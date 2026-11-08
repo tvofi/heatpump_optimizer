@@ -1,0 +1,18 @@
+2026-11-08T08:54:35Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T08:58:38Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:02:39Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:06:41Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:10:43Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:14:46Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:18:48Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:22:50Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:26:52Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:30:54Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:34:56Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:38:58Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:42:59Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:47:01Z rc=1 RED 34f4afac0852fa09091263a05a36c50b624caec5 pending: none red: gate
+--- rerun wait 2026-11-08T09:47:30Z
+2026-11-08T09:47:32Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:51:34Z rc=3 WAIT 34f4afac0852fa09091263a05a36c50b624caec5 pending: gate red: none
+2026-11-08T09:55:36Z rc=1 RED 34f4afac0852fa09091263a05a36c50b624caec5 pending: none red: gate

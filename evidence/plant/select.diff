@@ -1,0 +1,14 @@
+30,31c30,31
+<       SKIP  tests/backtest.py  (closure: 36 files, no changed file is in its measured closure)
+<       SKIP  tests/edge.py  (closure: 34 files, no changed file is in its measured closure)
+---
+>       SKIP  tests/backtest.py  (closure: 37 files, no changed file is in its measured closure)
+>       SKIP  tests/edge.py  (closure: 35 files, no changed file is in its measured closure)
+37,39c37,39
+<       SKIP  tests/optimality.py  (closure: 36 files, no changed file is in its measured closure)
+<       SKIP  tests/stress.py  (closure: 40 files, no changed file is in its measured closure)
+<       SKIP  tests/validate.py  (closure: 34 files, no changed file is in its measured closure)
+---
+>       SKIP  tests/optimality.py  (closure: 37 files, no changed file is in its measured closure)
+>       SKIP  tests/stress.py  (closure: 41 files, no changed file is in its measured closure)
+>       SKIP  tests/validate.py  (closure: 35 files, no changed file is in its measured closure)

@@ -1,0 +1,17 @@
+stamp rc=0 1s ::   ok   rows gate: main() cross-checks the parse against rule 4's window RESULT stamp_self_test=pass 
+tick rc=0 3s :: orchestrator_tick self-test: 283 checks, 0 failed 
+handoff rc=0 1s :: handoff_push self-test: 6 checks, 0 failed 
+bodypush rc=0 2s :: ok   ... and says the keep failed body_push self-test: 35 checks, 0 failed 
+postmerge rc=0 0s :: postmerge self-test: 15 checks, 0 failed 
+ci_predict rc=0 77s ::   ok   an exemption no run line holds is a gap ci_predict self-test: 0 failed 
+ref_privacy rc=1 3s :: ref_privacy self-test: 113 checks, 1 failed 
+structure rc=0 15s :: RESULT thread_factor=1.0 ratio STRUCTURE RATCHET PASSED 
+wiring rc=0 0s :: selftest_wiring: 0 index gap(s) 
+rules_sync rc=0 0s :: 
+policy_lint rc=0 26s :: TOTAL: 0 error(s) across 49 policy file(s) FIXTURE ok: 93 error(s) hold 269 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+policy_budgets rc=0 0s :: 
+app_approve rc=0 30s :: ok   the failed read was retried once (2 calls), then the pre-POST re-read (3) app_approve self-test: 324 checks, 0 failed 
+entities rc=1 413s ::   ok   a run whose mutants all timed out or went unstarted is refused by cause, and a partial PASSED counts the timed-out ones 2 of 2648 ENTITY CHECKS FAILED 
+merge_train rc=0 53s ::   ok   queue: an unreadable verdict bus listing stops the builder (no queue from a failed read) merge_train self-test: 475 checks, 0 failed 
+bus rc=1 47s :: error: failed to push some refs to '/tmp/tmp.Pd8GojsXIO/origin.git' bus self-test: 166 checks, 1 failed 
+DONE

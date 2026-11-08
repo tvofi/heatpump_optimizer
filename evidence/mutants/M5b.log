@@ -1,0 +1,36 @@
+ok   REFUSE pred: exit code unchanged
+ok   ... and the refused body is kept at handoff-wip/t-body
+ok   ... and the keep line names the ref and sha
+ok   ... as a parentless commit
+ok   (null) the kept body is not in the code head's ancestry
+ok   MUTANT keep deleted (pred): nothing is kept, so the arm above would fail
+ok   REFUSE lint: exit code unchanged
+ok   ... and the refused body is kept at handoff-wip/t-body
+ok   ... and the keep line names the ref and sha
+ok   ... as a parentless commit
+ok   (null) the kept body is not in the code head's ancestry
+ok   MUTANT keep deleted (lint): nothing is kept, so the arm above would fail
+ok   REFUSE packet: exit code unchanged
+ok   ... and the refused body is kept at handoff-wip/t-body
+ok   ... and the keep line names the ref and sha
+ok   ... as a parentless commit
+ok   (null) the kept body is not in the code head's ancestry
+ok   MUTANT keep deleted (packet): nothing is kept, so the arm above would fail
+ok   REFUSE landed: exit code unchanged
+ok   ... and the refused body is kept at handoff-wip/t-body
+ok   ... and the keep line names the ref and sha
+ok   ... as a parentless commit
+ok   (null) the kept body is not in the code head's ancestry
+ok   MUTANT keep deleted (landed): nothing is kept, so the arm above would fail
+ok   a second refusal fast-forwards the keep ref
+ok   a keep whose push fails leaves the same refusal
+ok   ... and says the keep failed
+ok   a refusal is kept before the healthy run
+ok   the healthy run pushes
+ok   ... to handoff-body/t
+ok   ... and the keep ref is gone
+ok   (null) the published body is not in the code head's ancestry
+FAIL REFUSE head-stale: a stale ## Head is refused, naming both shas (got '00', want '11')
+FAIL ... and nothing is pushed to handoff-body/t (got 'f7a070886d63f55837104fd0d80d791a5eaf3b49', want 'none')
+ok   (null) a ## Head naming the code sha passes the head check
+body_push self-test: 35 checks, 2 failed
