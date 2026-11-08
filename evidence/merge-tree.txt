@@ -1,8 +1,0 @@
-d42a93b053aff98d545242e6f71c6e7d2020571e
-100644 d0bd566033f9067d5cd89c512580db9f32313d54 1	tools/audit/carry_audit.py
-100644 9d5440640bb291261425f8c4cb45fa8ffa9ae146 2	tools/audit/carry_audit.py
-100644 6c93f4b47702548e2bedf0d0d953fadd84ee285f 3	tools/audit/carry_audit.py
-
-Auto-merging tools/audit/carry_audit.py
-CONFLICT (content): Merge conflict in tools/audit/carry_audit.py
-exit=1

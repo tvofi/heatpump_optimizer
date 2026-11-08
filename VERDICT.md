@@ -1,17 +1,22 @@
-Fix review: blocked 6b5d99b5c48036517be86310c773e8e8a66cbe14 merge-conflict: tools/audit/carry_audit.py conflicts with origin/main 17e621f08 (#3318)
+Fix review: blocked 061a828e18df8ba29a95827fb0e11cd3b7f963b4 ci-red: ledger.py KINDS lacks carry-fold; governance / instrument-self-tests and gate red at this head
 
-bus-nonce: 1c57d1691e7facd69e3bbc2a05035edf
+bus-nonce: d67abbb036dd6528c8b90a429838adf0
 
 ## Block
 
-- Real content conflict with main in tools/audit/carry_audit.py, not a claim file (fix-review.md step 13; owner ruling 2026-11-07 blocks on main only for a real merge-tree conflict, which this is). `git merge-tree --write-tree origin/main 6b5d99b5c48036517be86310c773e8e8a66cbe14` prints `CONFLICT (content): Merge conflict in tools/audit/carry_audit.py` with stages 1 d0bd566, 2 9d54406 (main), 3 6c93f4b (head); no MERGE-CLAIM marker, since no claim file is involved. Main's side is #3318 (merge 17e621f08), commits d4a05c81f (own-group carry index as a status line) and c77a4c037 (self-test pin), and it rewrites the same `landed()` loop body that this PR changes to land a source only through a carry (`group_text(..., brief=False)`). A reviewer cannot know what the merged `landed()` should be, so the fixer resolves it by merging origin/main and re-running steps 2-8 (fixer.md); the round after that reviews the resolution. Carry: R10-CARRY-RESIDUE-2
+- Round: not stated in the packet; the verdict history was not readable here, so the round number is unknown.
+- At head 061a828e18df8ba29a95827fb0e11cd3b7f963b4, `python3 -I tools/audit/seat/ledger.py --self-test` prints `FAIL every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)` and `101 checks, 1 failed`. I reproduced it myself. The cause is the diff's own `carry_fold_arm`, which writes `level_line carry-fold`, a kind missing from `KINDS` in `tools/audit/seat/ledger.py`.
+- The PR body admits the repair is still owed ("the PR must not be read as clean until it lands"). `governance / instrument-self-tests` is red at this head, the required `gate` is red, and `merge_train.py classify` prints RED (pending: none, red: gate).
+- Fix: add `carry-fold` to `KINDS`, then re-take the head and the body's Red checks.
+- Red checks the body does not name at this head: `tests / ci-ratchet`, `tests / coverage`, `tests / coverage-ratchet`, `tests / graders-head-copy` and `tests / lane-proofs` all concluded cancelled. The packet refuses them as red-unanswered. The body's Red checks section is about the earlier head 6b5d99b5c, so it must be re-taken at the new head. If the cancellations are only the gate's supersession, say so there.
+- Merge with origin/main: `git merge-tree --write-tree origin/main HEAD` exits 0 and prints the tree 3c138aa16, so there is no conflict.
 
 ## Findings
 
+- Follow-up: re-take the body's Red checks and Figures at the repaired head; the body quotes figures for 30986c09c, not the PR head. Carry: dismissed: owed by this block, nothing to carry beyond the re-cut
+
 ## Evidence
 
-- Head reviewed: 6b5d99b5c48036517be86310c773e8e8a66cbe14; `git ls-remote` shows refs/pull/3325/head and refs/heads/fix/r10-carry-residue-2 both at it (ev/ls-remote.txt). origin/main at review time: 17e621f08c4feec724478573741fbd8b596ceaba (ev/HEAD.txt).
-- Merge base: 4fe7d5934b0a4bc092c9398f29b579fbd2df8b50. The three-dot diff touches 9 files, +144/-30. The head-side carry_audit.py change is in ev/head-carry_audit.diff and main's in ev/main-carry_audit.diff.
-- merge-tree output in ev/merge-tree.txt. review_packet.py render refused with signal `structure` ("head does not merge cleanly with origin/main", naming carry_audit.py) and still wrote the packet (ev/review-packet.md).
-- Round: first round.
-- Not done, because the conflict blocks it: mutation proof, finder-harness RESULT lines, the merge_train classify wait for CI, the check-run red audit, and tests/entities.py. A DIRTY PR does not run CI for its merged result (claim-files.md), and measuring a tree that cannot merge would not cover what lands. The next round re-takes all of these at the resolved head.
+- Not done: the mutation proofs, the carry-audit figures and the budgets were not re-derived, because the head is red already. The figure_lint block in the packet shows 13 resolved, 0 not verified.
+- Packet refusals: red-unanswered for five checks, and required-red for `gate`.
+- Head: ev/HEAD.txt. Ledger self-test output: ev/ledger-selftest.txt. Classify output: ev/classify.txt.
