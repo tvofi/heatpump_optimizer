@@ -19252,7 +19252,9 @@
    "fixture": false,
    "owner_gate": null,
    "rca": [],
-   "carry": [],
+   "carry": [
+    "From #3288 (r10-train-merge-loop-2), body item 23779576: The measure-first count parent carry 3 requires (BOT_HEAD stops in the train logs since 2026-10-20, and how many had their pull_request runs approved at refusal time) needs the orchestrator's train logs, the same raw train timelines that R10-TRAIN-REJOIN-NO-RECARRY's waste-study measurement reads. That group is not started, and its files are merge_train.py and train.sh, this seam. Carry: R10-TRAIN-REJOIN-NO-RECARRY (items 23779576)"
+   ],
    "architect_note": "",
    "group": "R10-TRAIN-REJOIN-NO-RECARRY",
    "size": "M",
