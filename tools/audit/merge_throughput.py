@@ -550,6 +550,12 @@ def flow_self_test() -> int:
         mw = flow_merge_wait(ctx, a, b)[0]
         check("merge-wait: a verdict after the merge is not read",
               [(r["pr"], r["hours"], r["at_head"]) for r in mw[0]], [(1, 0.17, True)])
+        # and one: the latest verdict before the merge named another head (a
+        # recarry moved it): its wait is read, and it is not at the merged head
+        verdict(1, "merge", "e" * 40, T(1, 55))
+        mw = flow_merge_wait(ctx, a, b)[0]
+        check("merge-wait: a verdict on another head is read, not at head",
+              [(r["pr"], r["hours"], r["at_head"]) for r in mw[0]], [(1, 0.08, False)])
 
         # PERTURBATION 1 -- the record key is `record_prefix`, not a name.
         ctx_fix = replace(ctx, record_prefix="fix/")

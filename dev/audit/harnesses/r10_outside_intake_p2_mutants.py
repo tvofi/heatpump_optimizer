@@ -81,7 +81,7 @@ MUTANTS = [
     ("beat-unreadable-dropped", BEAT, 'ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))',
      'ln.startswith(("BOTTLENECK: ",))', ()),
     ("beat-missing-key-runs", BEAT, 'got = ctx.need("bottleneck", "train_log", "plan_slots")',
-     'got = ctx.need("bottleneck", "plan_slots")', ()),
+     'got = [str(ctx.overlay.get("train_log")), str(ctx.overlay.get("plan_slots"))]', ()),
     ("mark-close-off", EDIT,
      'closed = a.op == "mark-carry" and close_discharged(roster, a.group, legacy)',
      "closed = False", ()),
