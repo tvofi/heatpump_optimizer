@@ -1,0 +1,18 @@
+
+=== features block ===
+  ok   R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length None)
+  ok   R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length 4)
+  ok   R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length 3)
+  ok   R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length 2)
+  ok   R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length None)
+  ok   R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 4)
+  ok   R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 3)
+  ok   R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 2)
+  ok   R10-SAV-COMFORT: the baseline is booked on the steps it covers and no further
+  ok   R10-SAV-COMFORT: the comfort shortfall floors each demand at zero (outdoor 10.0)
+  ok   R10-SAV-COMFORT: the comfort shortfall floors each demand at zero (outdoor 20.2)
+  FAIL R10-SAV-COMFORT: two-zone, the comfort shortfall is the lower floor's (outdoor 10.0)  [[0.025000000000000022, -0.07499999999999996, -0.275] want [-0.05, -0.45, -1.25]]
+  FAIL R10-SAV-COMFORT: two-zone, the comfort shortfall is the lower floor's (outdoor 20.2)  [[0.0, 0.0, -0.19000000000000006] want [0.0, -0.365, -1.165]]
+  ok   R10-SAV-COMFORT: a COP below the floor settles at the floor, and one above it is kept
+
+2 of 14 FEATURES BLOCK FAILED
