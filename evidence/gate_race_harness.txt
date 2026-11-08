@@ -1,4 +1,4 @@
 base: RESULT scene=race red=['gate'] checkrun_polls=1 sibling_reads=0
 base: RESULT scene=null red=['gate'] checkrun_polls=1 sibling_reads=0
-wt: RESULT scene=race red=[] checkrun_polls=3 sibling_reads=2
-wt: RESULT scene=null red=['gate'] checkrun_polls=1 sibling_reads=1
+head: RESULT scene=race red=[] checkrun_polls=3 sibling_reads=2
+head: RESULT scene=null red=['gate'] checkrun_polls=1 sibling_reads=1

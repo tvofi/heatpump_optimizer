@@ -1,58 +1,58 @@
 # Review packet #3288
-head: 35fc2646348b9c4d69a3b56b6452ff4075289807
-base: b4ec2f332fe3ab8dcf169bd3066276d3bb8848ab
+head: f326fd6dc0dfe9b29d4008903a6768cefd50d4e9
+base: d2e4d2d10cfe15b9ec51c36422029718e8367f1c
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: green
-CodeQL id=128448394662 success
-arch-score / arch-score id=128498740990 success
-arm id=128444264975 skipped
-budget-raise-gate / budget-raise-gate id=128498773207 success
-cancel-superseded id=128498773893 success
-codeql id=128498770188 skipped
-codeql / Analyze (actions) id=128492842024 success
-codeql / Analyze (javascript-typescript) id=128492820154 success
-codeql / Analyze (python) id=128492850145 success
-gate id=128498740508 success
-governance id=128498772353 skipped
-governance / delivery-status id=128492853951 success
-governance / delivery-status-publish id=128492856644 skipped
-governance / env-matrix id=128492856590 success
-governance / instrument-self-tests id=128492820087 success
-governance / policy-docs id=128492848046 success
-governance / record id=128492819648 skipped
-governance / wave-script id=128492846409 success
-hassfest id=128498763389 skipped
-hassfest / hassfest id=128492855907 success
-kernel-points id=128498777605 skipped
-pr-contract id=128498741379 skipped
-pr-contract / pr-contract id=128498295968 success
-prelude id=128498740478 success
-refresh id=128498740730 success
-tests id=128498741027 skipped
-tests / arch-instrument id=128492820578 success
-tests / briefs id=128492819982 success
-tests / browser id=128492820768 success
-tests / ci-ratchet id=128495970644 skipped
-tests / claims-autofix id=128492821208 skipped
-tests / closure-scope id=128492846229 success
-tests / closures id=128492820315 success
-tests / closures-autofix id=128492820817 skipped
-tests / coverage id=128492818833 success
-tests / coverage-ratchet id=128495969221 success
-tests / fast (3.14) id=128492820145 success
-tests / graders-head-copy id=128495969147 success
-tests / lane-proofs id=128495969241 success
-tests / mutation id=128492819762 success
-tests / mutation-autofix id=128492820603 skipped
-tests / mutation-pins id=128492820954 skipped
-tests / nightly-ha id=128492820663 skipped
-tests / nightly-status id=128492818270 success
-tests / replay id=128492820611 skipped
-tests / typing id=128492820690 success
-validate id=128498776355 skipped
-validate / validate-hacs id=128492859933 success
+CodeQL id=128637267916 success
+arch-score / arch-score id=128645136621 success
+arm id=128636898244 skipped
+budget-raise-gate / budget-raise-gate id=128645106132 success
+cancel-superseded id=128645129716 success
+codeql id=128645127409 skipped
+codeql / Analyze (actions) id=128637167473 success
+codeql / Analyze (javascript-typescript) id=128637167459 success
+codeql / Analyze (python) id=128637167411 success
+gate id=128645105770 success
+governance id=128645135344 skipped
+governance / delivery-status id=128637167696 success
+governance / delivery-status-publish id=128637168943 skipped
+governance / env-matrix id=128637167608 success
+governance / instrument-self-tests id=128637167549 success
+governance / policy-docs id=128637167546 success
+governance / record id=128637169022 skipped
+governance / wave-script id=128637167598 success
+hassfest id=128645106108 skipped
+hassfest / hassfest id=128637167380 success
+kernel-points id=128645131706 skipped
+pr-contract id=128645106345 skipped
+pr-contract / pr-contract id=128644808143 success
+prelude id=128645105521 success
+refresh id=128645129783 success
+tests id=128645132699 skipped
+tests / arch-instrument id=128637731645 success
+tests / briefs id=128637167478 success
+tests / browser id=128637731681 success
+tests / ci-ratchet id=128644095015 skipped
+tests / claims-autofix id=128640065857 skipped
+tests / closure-scope id=128637167530 success
+tests / closures id=128637731680 success
+tests / closures-autofix id=128642002599 skipped
+tests / coverage id=128637731626 success
+tests / coverage-ratchet id=128644094129 success
+tests / fast (3.14) id=128637731642 success
+tests / graders-head-copy id=128644094140 success
+tests / lane-proofs id=128644094099 success
+tests / mutation id=128637167502 success
+tests / mutation-autofix id=128637541874 skipped
+tests / mutation-pins id=128637541671 skipped
+tests / nightly-ha id=128637732947 skipped
+tests / nightly-status id=128637167409 success
+tests / replay id=128637732390 skipped
+tests / typing id=128637731836 success
+validate id=128645106136 skipped
+validate / validate-hacs id=128637167378 success
 
 ## Refusals
 none
@@ -61,17 +61,35 @@ none
 hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
 
 ## carry_audit at the head
-CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+NOTE stale tree: 5bc009bc82962df5d239cbacc2e570dffd9a9cf9 lacks origin/main 092941b7ef5993f324ab23135e99687b44403b51; roster read at origin/main
+NOTE body item 23779576: R10-TRAIN-REJOIN-NO-RECARRY: R10-TRAIN-REJOIN-NO-RECARRY resolved on origin/handoff/audit-r10-roster
+NOTE body item 6fa66b64: R10-HOTFIX-TRAIN-DEFER-WAIT: R10-HOTFIX-TRAIN-DEFER-WAIT resolved on origin/handoff/audit-r10-roster
+NOTE body item f7d2bf7c: R10-TRAIN-REJOIN-NO-RECARRY: R10-TRAIN-REJOIN-NO-RECARRY resolved on origin/handoff/audit-r10-roster
+NOTE body item 847c501e: R10-FLY-GH-READ-RETRY
+NOTE body item 2e8e868b: dismissed:the approver-login filter, the exact-head match and the head pin bind the verdict to this head, and a nonce authenticates a dispatch, not a head.
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         PYTHONPATH=tests/hastub python3 tools/audit/seat/merge_train.py --self-test
+ok         python3 tools/audit/seat/merge_train.py --self-test
              `tools/audit/seat/merge_train.py` is in the tree at this head
+  ok         bash tools/pr/app_approve.sh --self-test
+             `tools/pr/app_approve.sh` is in the tree at this head
   ok         bash tools/audit/seat/pr_args.sh --self-test
              `tools/audit/seat/pr_args.sh` is in the tree at this head
+  unverified python3 -c "import sys; sys.path.insert(0,'tools/audit/seat'); import gh_read; sys.exit(gh_read.self_test())"
+             python3 runs an inline script rather than a file
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
+  ok         python3 tools/audit/archscore/score.py --diff 35fc2646348b9c4d69a3b56b6452ff4075289807 HEAD
+             `tools/audit/archscore/score.py` is in the tree at this head
+  unverified git grep -nE '"git", *"(fetch|push)"|git (-C [^ ]+ )?(fetch|push)\b' -- tools/pr/app_approve.sh tools/audit/seat/merge_train.py tools/audit/seat/train.sh tools/audit/seat/remerge_main.sh
+             `git grep` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         tools/pr/prepr.sh
+             `tools/pr/prepr.sh` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh
+             `tools/pr/prepr.sh` is in the tree at this head
 
-FIGURES: 3 resolved, 0 not verified, 0 refused
+FIGURES: 7 resolved, 2 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -167,11 +185,132 @@ index 000000000..52e82810f
 +++ b/dev/programme/delivery/3288.md
 @@ -0,0 +1 @@
 +- [#3288](https://github.com/tvofi/heatpump_optimizer/pull/3288) — **open**, R10-TRAIN-MERGE-LOOP-2: train merge loop 2 (R10-TRAIN-MERGE-LOOP-2)
+diff --git a/tools/audit/seat/gh_read.py b/tools/audit/seat/gh_read.py
+index 798428713..d85023cea 100644
+--- a/tools/audit/seat/gh_read.py
++++ b/tools/audit/seat/gh_read.py
+@@ -2,6 +2,8 @@
+ """The bounded retry of GitHub READS for the seat's Python instruments (R10-FLY-GH-READ-RETRY).
+ 
+     printf '%s' "$stderr" | python3 tools/audit/seat/gh_read.py --classify   # exit 0: transient
++    printf '%s' "$stderr" | python3 tools/audit/seat/gh_read.py --classify-git   # git's, exit 0: transient
++    python3 tools/audit/seat/gh_read.py --git-retry git fetch -q origin main     # git under run_git_retry
+ 
+ `self_test()` runs inside record_row.py's self-test, which CI runs; this file
+ has no self-test entry point of its own to wire.
+@@ -59,6 +61,44 @@ SHORT_FIELD_FLAGS = ("-f", "-F")
+ LONG_FIELD_FLAGS = ("--field", "--raw-field", "--input")
+ 
+ 
++#: R10-TRAIN-MERGE-LOOP-2: a `git fetch`/`git push` is GitHub transport too.
++#: git's own stderr, measured: smart-HTTP and socket failures a later call rides out.
++GIT_TRANSIENT = re.compile(
++    r"returned error: 5\d\d|RPC failed; HTTP 5\d\d|unexpected disconnect while reading sideband"
++    r"|early EOF|the remote end hung up unexpectedly|Connection reset by peer|Could not resolve host"
++    r"|Failed to connect|Operation timed out|GnuTLS recv error|SSL_ERROR_SYSCALL|unable to access.*timed? ?out")
++#: A refusal or a rejected update: never retried, whatever else the output says.
++GIT_REFUSED = re.compile(
++    r"non-fast-forward|\[rejected\]|Permission denied|Authentication failed|\b40[34]\b"
++    r"|couldn't find remote ref|protected branch hook declined|stale info|remote rejected")
++
++
++def git_transient(output: str) -> bool:
++    """git's stderr on a failed fetch/push -> True when another call may ride it out."""
++    return not GIT_REFUSED.search(output) and bool(GIT_TRANSIENT.search(output))
++
++
++GIT_TRIES = 3
++
++
++def run_git_retry(run, argv, sleep, log=lambda line: None, **kw):
++    """`run(argv)` for a git fetch/push, repeated up to GIT_TRIES times (settling 5/15 s)
++    while the failure is git_transient; a rejection or a success answers at once.
++    merge_train.py's fetches and pushes, and `--git-retry`'s shell callers, share it."""
++    for n in range(1, GIT_TRIES + 1):
++        code, o = run(argv, **kw)
++        if not code or n == GIT_TRIES or not git_transient(o):
++            return code, o
++        log(f"{' '.join(argv)[:120]}: git {n}/{GIT_TRIES}: {' '.join(o.split())[:120]}")
++        sleep(READ_SLEEP_S * 3 ** (n - 1))
++
++
++def _run_captured(argv):
++    import subprocess
++    p = subprocess.run(argv, capture_output=True, text=True)
++    return p.returncode, p.stdout + p.stderr
++
++
+ def http_transient(code: int, line: str) -> bool:
+     """Whether a later read may ride out an HTTP failure, given its status line."""
+     if 500 <= code <= 599 or code == 429:
+@@ -224,7 +264,13 @@ def ALTERNATIVES() -> set[str]:  # noqa: N802 -- named for the bash table's ALTS
+     from pathlib import Path
+     tree = ast.parse(Path(__file__).read_text())
+     out = {"default"}
++    # git's rule (GIT_TRANSIENT, GIT_REFUSED) is a second classifier with its
++    # own table in merge_train.py's self-test; app_approve.sh's gh twin has none of it.
++    git = {id(n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)
++           and any(getattr(t, "id", "").startswith("GIT_") for t in n.targets)}
+     for node in ast.walk(tree):
++        if id(node) in git:
++            continue
+         if (isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "compile"
+                 and node.args and isinstance(node.args[0], ast.Constant)):
+             out.update(_alternatives(node.args[0].value))
+@@ -458,6 +504,34 @@ def self_test() -> int:
+                        (["git", "fetch", "origin"], False)):
+         check(f"is_read({' '.join(argv)}) is {want}", is_read(argv) is want)
+ 
++    # git's rule (R10-TRAIN-MERGE-LOOP-2): the loop, its runner and the CLI the
++    # shell callers use. merge_train.py's self-test holds the classifier's table.
++    import contextlib
++    import io
++    outs, logs, slept = [(1, "error: RPC failed; HTTP 502"), (0, "ok")], [], []
++    got = run_git_retry(lambda argv: outs.pop(0), ["git", "fetch"], slept.append, logs.append)
++    check("run_git_retry: a 502 then success answers the success after one 5 s settle, logged once",
++          got == (0, "ok") and slept == [5] and len(logs) == 1 and "git 1/3" in logs[0])
++    code, o = _run_captured(["git", "--version"])
++    check("_run_captured: git's own output comes back, with its exit code", code == 0 and o.startswith("git version"))
++    for text, rc in (("fatal: unable to access 'u': The requested URL returned error: 502", 0),
++                     ("! [rejected] main -> main (non-fast-forward)", 1)):
++        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
++            stdin, sys.stdin = sys.stdin, io.StringIO(text)
++            try:
++                got = main(["--classify-git"])
++            finally:
++                sys.stdin = stdin
++        check(f"--classify-git exits {rc} on {text[:40]!r}", got == rc)
++    for argv, rc, want in ((["git", "--version"], 0, "git version"), (["git", "--no-such-flag"], 129, "unknown option")):
++        out, err = io.StringIO(), io.StringIO()
++        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
++            got = main(["--git-retry", *argv])
++        check(f"--git-retry {' '.join(argv)}: rc {rc}, git's output on {'stdout' if rc == 0 else 'stderr'}",
++              got == rc and want in (out if rc == 0 else err).getvalue())
++    with contextlib.redirect_stderr(io.StringIO()):
++        check("--git-retry refuses an argv that is not git (usage, rc 2)", main(["--git-retry", "ls"]) == 2)
++
+     print(f"gh_read self-test: {passed + failed} checks, {failed} failed")
+     return 1 if failed else 0
+ 
+@@ -465,6 +539,13 @@ def self_test() -> int:
+ def main(argv: list[str]) -> int:
+     if argv == ["--classify"]:
+         return 0 if gh_transient(sys.stdin.read()) else 1
++    if argv == ["--classify-git"]:
++        return 0 if git_transient(sys.stdin.read()) else 1
++    if argv[:1] == ["--git-retry"] and argv[1:2] == ["git"]:
++        code, o = run_git_retry(_run_captured, argv[1:], time.sleep,
++                                lambda line: print(f"gh_read: {line}", file=sys.stderr))
++        (sys.stderr if code else sys.stdout).write(o)
++        return code
+     print(__doc__.split("\n\n")[0], file=sys.stderr)
+     return 2
+ 
 diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
-index 3361fce26..f2582291a 100644
+index a75b5690f..a156f1514 100644
 --- a/tools/audit/seat/merge_train.py
 +++ b/tools/audit/seat/merge_train.py
-@@ -778,6 +778,13 @@ class Stop(Exception):
+@@ -908,6 +908,13 @@ class Stop(Exception):
  # "Base branch was modified", the GraphQL "is not up to date" family).
  BASE_MOVED = re.compile(r"base branch was modified|not up to date|head branch is behind|is behind the base", re.I)
  HOLDER = "HOLDER"                    # the recarry's branch is checked out in another worktree
@@ -185,7 +324,7 @@ index 3361fce26..f2582291a 100644
  BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: its pull_request runs are held
  STALE_VERDICT_CARRY = "STALE-VERDICT-CARRY"  # the verdict sha no longer carries: the branch moved post-verdict
  ROW_MISSING = "ROW-MISSING"          # no delivery row in the three-dot diff
-@@ -1131,6 +1138,81 @@ def launch_detached(argv: "list[str]", state: Path) -> "tuple[int, str]":
+@@ -1261,6 +1268,81 @@ def launch_detached(argv: "list[str]", state: Path) -> "tuple[int, str]":
      return 0, f"rc {p.poll()}: {tail[:200]}"
  
  
@@ -267,7 +406,7 @@ index 3361fce26..f2582291a 100644
  def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_detached,
                settle: float = ADD_SETTLE_SECONDS, front: bool = False, ready: "list[dict] | None" = None) -> int:
      """`add`: load one verdicted pull request into the state dir's live train,
-@@ -1180,6 +1262,8 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
+@@ -1310,6 +1392,8 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
              return 1
          entry = {k: item[k] for k in ("pr", "verdict", "verdict_comment", "issues", "priority") if item.get(k) is not None}
          entry["pr"] = int(pr)
@@ -276,51 +415,16 @@ index 3361fce26..f2582291a 100644
          if front:
              entry["front"] = True
          if live:
-@@ -1218,6 +1302,34 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
-         return 0
- 
- 
-+GIT_TRIES = 3
-+#: git's own stderr, measured: smart-HTTP and socket failures a later call rides out.
-+GIT_TRANSIENT = re.compile(
-+    r"returned error: 5\d\d|RPC failed; HTTP 5\d\d|unexpected disconnect while reading sideband"
-+    r"|early EOF|the remote end hung up unexpectedly|Connection reset by peer|Could not resolve host"
-+    r"|Failed to connect|Operation timed out|GnuTLS recv error|SSL_ERROR_SYSCALL|unable to access.*timed? ?out")
-+#: A refusal or a rejected update: never retried, whatever else the output says.
-+GIT_REFUSED = re.compile(
-+    r"non-fast-forward|\[rejected\]|Permission denied|Authentication failed|\b40[34]\b"
-+    r"|couldn't find remote ref|protected branch hook declined|stale info|remote rejected")
-+
-+
-+def git_transient(output: str) -> bool:
-+    """git's stderr on a failed fetch/push -> True when another call may ride it out."""
-+    return not GIT_REFUSED.search(output) and bool(GIT_TRANSIENT.search(output))
-+
-+
-+def run_git_retry(run, argv, sleep, log=lambda line: None, **kw):
-+    """`run(argv)` for a git fetch/push, repeated up to GIT_TRIES times (settling 5/15 s)
-+    while the failure is git_transient; a rejection or a success answers at once."""
-+    for n in range(1, GIT_TRIES + 1):
-+        code, o = run(argv, **kw)
-+        if not code or n == GIT_TRIES or not git_transient(o):
-+            return code, o
-+        log(f"merge_train: {' '.join(argv)[:120]}: git {n}/{GIT_TRIES}: {' '.join(o.split())[:120]}")
-+        sleep(5 * 3 ** (n - 1))
-+
-+
- class Train:
-     def __init__(self, repo: str, state: Path, mandate: str | None, role: str,
-                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
-@@ -1292,6 +1404,8 @@ class Train:
+@@ -1422,6 +1506,8 @@ class Train:
          failure with the attempt count. Train 8 stopped on one unretried read
          of a head commit. Every other call, and every write, is `run`'s alone."""
          def retried(argv, **kw):
 +            if argv[:2] in (["git", "fetch"], ["git", "push"]):  # transport, idempotent: a rejection is never retried
-+                return run_git_retry(run, argv, self.sleep, self.log, **kw)
++                return gh_read.run_git_retry(run, argv, self.sleep, lambda line: self.log(f"merge_train: {line}"), **kw)
              if not gh_read.is_read(argv):
                  return run(argv, **kw)
  
-@@ -1327,8 +1441,9 @@ class Train:
+@@ -1457,8 +1543,9 @@ class Train:
      # 2026-10-09 no such run was created at all (63084989/#2066 and
      # a9ba0b88/#2070: 4 dispatched runs each, the same 5 of the 17 required
      # contexts of main-protect-checks absent). The autofix job's approve step
@@ -332,7 +436,7 @@ index 3361fce26..f2582291a 100644
      # Dispatch cannot write those contexts: governance.yml answers
      # workflow_dispatch, but pr-contract.yml and budget-raise-gate.yml take
      # pull_request/merge_group only. An App push is a follow-up that does, and
-@@ -1345,7 +1460,12 @@ class Train:
+@@ -1475,7 +1562,12 @@ class Train:
          if code or "\t" not in o:
              raise Stop("ci", f"the head commit at {h[:8]} could not be read: {o.strip()[-160:]}")
          who, _, subject = o.strip().partition("\t")
@@ -346,7 +450,7 @@ index 3361fce26..f2582291a 100644
  
      def bot_refusal(self, pr: int, h: str, subject: str) -> Stop:
          return Stop("ci", f"#{pr} head {h[:8]} is a GITHUB_TOKEN push (github-actions[bot]: "
-@@ -1516,6 +1636,29 @@ class Train:
+@@ -1646,6 +1738,29 @@ class Train:
          except ValueError:
              return None
  
@@ -373,19 +477,20 @@ index 3361fce26..f2582291a 100644
 +                out.append(int(rid))
 +        return sorted(out)
 +
-     def wait_ci(self, h: str, only: "list[str] | None" = None,
-                 beat: "str | None" = None) -> list[str]:
-         """The names whose latest run at <h> is not green, once every run completed.
-@@ -1540,13 +1683,24 @@ class Train:
+     def _gate_busy(self, h: str, check_runs) -> list:
+         """gate_busy at <h> from one ci.yml runs listing by head sha. An
+         unreadable listing reads no run busy, logged: the red stands as it did
+@@ -1700,6 +1815,7 @@ class Train:
          start = self.clock()
          due = start + HEARTBEAT_SECONDS
          what = beat or f"CI at {h[:8]}"
 +        graced = False
+         held: list = []
+         settle = 0
          for k in range(1, self.polls + 1):
-             runs = self._check_runs(h)
-             last = latest_runs(runs or ())
-             if only is not None and runs is not None:
-                 _, pending, red = classify(last, only)
+@@ -1724,7 +1840,17 @@ class Train:
+                     state = classify(last, only, busy)
+                 _, pending, red = state
                  if not pending:
 -                    return red
 +                    sib = self.gate_deferred(h, red)
@@ -401,8 +506,8 @@ index 3361fce26..f2582291a 100644
 +                        self.log(f"wait: gate red at {h[:8]} is a deferral while run(s) {sib} at this head are unfinished; waiting")
              if only is None and runs and len(runs) >= self.min_runs and all(
                      c.get("status") == "completed" for c in runs):
-                 return sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
-@@ -2201,7 +2355,7 @@ class Train:
+                 red = sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
+@@ -2387,7 +2513,7 @@ class Train:
              if under:
                  self.log(f"#{pr} policy head lands under {under}")
              self.log(f"#{pr} approved ({self.approve(pr, h, item, files)})")
@@ -411,7 +516,7 @@ index 3361fce26..f2582291a 100644
          title = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "title", "--jq", ".title")
          pf = self.run(["bash", tool("preflight"), *map(str, item.get("issues", []))], stdin=title + "\n")[1]
          if re.search(r"(?m)^\s*REFUSE\b", pf) or not re.search(r"(?m)^\s*clean\b", pf):
-@@ -3659,6 +3813,14 @@ def _self_test() -> int:
+@@ -3850,6 +3976,14 @@ def _self_test() -> int:
                  return world.get("hold_create", (0, "{}"))
              if argv[:3] == ["gh", "auth", "token"]:
                  return 0, "tok"
@@ -426,7 +531,7 @@ index 3361fce26..f2582291a 100644
              if argv[:3] == ["gh", "pr", "view"] and argv[3] == "9":  # the record PR
                  return 0, ("e" * 40 if "headRefOid" in a else
                             "MERGED " + "9" * 40 if 9 in world.get("bot_merged", ()) else "OPEN None")
-@@ -3705,6 +3867,8 @@ def _self_test() -> int:
+@@ -3901,6 +4035,8 @@ def _self_test() -> int:
                  if reads <= world.get("pending_reads", 0):
                      runs = [dict(c, status="in_progress") for c in runs]
                  return 0, "\n".join(json.dumps(c) for c in runs)
@@ -435,7 +540,7 @@ index 3361fce26..f2582291a 100644
              if argv[:2] == ["gh", "api"] and "/commits/" in a:  # bot_tip's read, post-jq
                  sha = a.split("/commits/")[1].split()[0].split("?")[0].split("/")[0]
                  subj = world.get("bot_tips", {}).get(sha)
-@@ -3810,6 +3974,29 @@ def _self_test() -> int:
+@@ -4006,6 +4142,32 @@ def _self_test() -> int:
      def approved(calls) -> bool:
          return any(c[:3] == ["gh", "pr", "review"] for c in calls)
  
@@ -458,14 +563,17 @@ index 3361fce26..f2582291a 100644
 +    check("undraft null: a draft with a pending required context is not undrafted",
 +          rc == 1 and not ud(lines) and not merged(calls))
 +    rc, lines, calls = go({"is_draft": True, "ready_rc": (1, "boom")}, q=[dict(D)])
-+    check("a failed gh pr ready is an undraft Stop, no merge", rc == 1 and "undraft:" in lines[-1] and not merged(calls))
++    # Keyed on each arm's own Stop: the failed ready's fixture leaves isDraft true, so
++    # the re-read arm would stop it too, under the same `undraft:` phase.
++    check("a failed gh pr ready is its own undraft Stop, naming the call and its output, no merge",
++          rc == 1 and "undraft: gh pr ready #7 failed: boom" in lines[-1] and not merged(calls))
 +    rc, lines, calls = go({"is_draft": True, "redraft": True}, q=[dict(D)])
-+    check("a head re-drafted after the call stops the run before the merge",
-+          rc == 1 and "undraft:" in lines[-1] and not merged(calls))
++    check("a head re-drafted after the call stops the run before the merge, as a draft again",
++          rc == 1 and "undraft: #7 is a draft again after gh pr ready" in lines[-1] and not merged(calls))
      rc, lines, calls = go({})
      check("a green, carried, non-policy pull request merges (null control)", rc == 0 and merged(calls) and lines[-1] == "TRAIN DONE")
      check("a wait that settles on its first poll beats nothing (heartbeat null control)",
-@@ -4630,6 +4817,15 @@ def _self_test() -> int:
+@@ -4826,6 +4988,15 @@ def _self_test() -> int:
            "and the train goes on at the new head (null control for the refusal above)",
            rc == 0 and merged(calls) and any("recarry" in ln for ln in lines)
            and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
@@ -481,9 +589,9 @@ index 3361fce26..f2582291a 100644
      # The route the stubs cannot see: the real remerge_main.sh pushes with --recarry.
      rm = (ROOT / TOOLS["remerge_main"][0]).read_text()
      check("remerge_main.sh pushes the recarry with app_push.sh --recarry and passes its RECARRY line on",
-@@ -4898,7 +5094,9 @@ def _self_test() -> int:
-           not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
+@@ -5095,7 +5266,9 @@ def _self_test() -> int:
      _stop_self_test(check)
+     _unwind_self_test(check)
      _read_retry_self_test(check)
 +    _git_retry_self_test(check)
      _review_settle_self_test(check)
@@ -491,7 +599,7 @@ index 3361fce26..f2582291a 100644
      _state_self_test(check, go, merged, throwaway_git_init)
      _infra_self_test(check)
      _batch_self_test(check)
-@@ -5349,6 +5547,63 @@ def _queue_self_test(check) -> None:
+@@ -5546,6 +5719,66 @@ def _queue_self_test(check) -> None:
      tmp.cleanup()
  
  
@@ -542,6 +650,9 @@ index 3361fce26..f2582291a 100644
 +    red, sb = wait([[edit_gate]], [done])
 +    check("null control: a red gate with no unfinished sibling run still returns red on the first poll",
 +          red == [GATE] and len(sb) == 1)
++    red, sb = wait([[edit_gate]], ["42237558473\taction_required\n42237558635\tcompleted\n"])
++    check("a held sibling run (action_required) is not unfinished: the red gate returns on the first poll",
++          red == [GATE] and len(sb) == 1)
 +    red, sb = wait([[edit_gate]], [(1, "boom")])
 +    check("an unreadable runs listing leaves the red standing (today's skip)", red == [GATE] and len(sb) == 1)
 +    unit = {"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}
@@ -555,7 +666,7 @@ index 3361fce26..f2582291a 100644
  def _review_settle_self_test(check) -> None:
      """P331: the `CI review` wait is bounded by time, and a BLOCKED/APPROVED
      refusal beside a settling review run is a wait, not a park.
-@@ -5411,6 +5666,40 @@ def _review_settle_self_test(check) -> None:
+@@ -5608,6 +5841,40 @@ def _review_settle_self_test(check) -> None:
      check("P331 (2) null: a required context red parks, never waits", got[1] is False and "red" in got[0])
  
  
@@ -567,12 +678,12 @@ index 3361fce26..f2582291a 100644
 +              "Connection reset by peer", "Could not resolve host: github.com", "Failed to connect to github.com",
 +              "Operation timed out", "GnuTLS recv error (-54)", "OpenSSL SSL_ERROR_SYSCALL", "returned error: 502",
 +              "fatal: unable to access 'u': Connection timed out"):
-+        check(f"git transient: {s[:50]}", git_transient(s))
++        check(f"git transient: {s[:50]}", gh_read.git_transient(s))
 +    for s in (" ! [rejected] main -> main (non-fast-forward)", "Permission denied (publickey)", "Authentication failed",
 +              "returned error: 403", "returned error: 404", "fatal: couldn't find remote ref x",
 +              "remote: error: protected branch hook declined", "! [rejected] (stale info)", "! [remote rejected] x",
 +              "RPC failed; HTTP 502 but remote rejected"):
-+        check(f"git not transient: {s[:50]}", not git_transient(s))
++        check(f"git not transient: {s[:50]}", not gh_read.git_transient(s))
 +
 +    def go(outs):
 +        calls, sleeps = [], []
@@ -596,7 +707,7 @@ index 3361fce26..f2582291a 100644
  def _read_retry_self_test(check) -> None:
      """R10-FLY-GH-READ-RETRY: the train's GitHub reads retry on gh_read's rule.
  
-@@ -7273,6 +7562,8 @@ def _add_self_test(check) -> None:
+@@ -7814,6 +8081,8 @@ def _add_self_test(check) -> None:
              got = budget_fixture(w.get("budgets"), argv, B)
              if got is not None:
                  return got
@@ -605,7 +716,7 @@ index 3361fce26..f2582291a 100644
              if argv[:2] == ["git", "ls-remote"]:  # verdict/<pr>'s confirmed tip
                  return w.get("ls", (0, f"{T}\t{argv[-1]}\n"))
              if argv[:2] == ["gh", "api"] and "/comments" in a:  # its posting: merge at the added verdict
-@@ -7375,6 +7666,13 @@ def _add_self_test(check) -> None:
+@@ -7916,6 +8185,13 @@ def _add_self_test(check) -> None:
          check("add, a train live: the entry is spooled for its NEXT batch, nothing started (ADDED)",
                rc == 0 and len(got) == 1 and [e["pr"] for e in spool_read(st)[0]] == [8]
                and lines[-1].startswith("ADDED #8 to the live train"))
@@ -619,7 +730,7 @@ index 3361fce26..f2582291a 100644
          rc8, l8 = add(st, 8, launch)
          rc7, l7 = add(st, 7, launch)
          check("add is idempotent: a pull request spooled, or in the live train's batches, is ALREADY -- rc 0, "
-@@ -7495,6 +7793,7 @@ def _add_self_test(check) -> None:
+@@ -8036,6 +8312,7 @@ def _add_self_test(check) -> None:
              p.wait()
          tmp.cleanup()
      _spool_edit_self_test(check, stub, H)
@@ -627,7 +738,7 @@ index 3361fce26..f2582291a 100644
  
  
  def _spool_edit_self_test(check, stub, H: str) -> None:
-@@ -7671,6 +7970,67 @@ def _spool_edit_self_test(check, stub, H: str) -> None:
+@@ -8212,6 +8489,79 @@ def _spool_edit_self_test(check, stub, H: str) -> None:
          tmp.cleanup()
  
  
@@ -635,7 +746,7 @@ index 3361fce26..f2582291a 100644
 +    """`add --wait-post-approval`: a fake gh, a fake clock; sleeping advances it."""
 +    H, OLD, AT, NEW = "a" * 40, "2026-01-01T10:00:00Z", "2026-01-01T11:00:00Z", "2026-01-01T11:05:00Z"
 +
-+    def wait(runs_by_poll, ref=H, budget=10000.0):
++    def wait(runs_by_poll, ref=H, budget=10000.0, verdict="merge", comments=None):
 +        clk, slept = [0.0], []
 +
 +        def run(argv, **kw):
@@ -646,7 +757,9 @@ index 3361fce26..f2582291a 100644
 +                return 0, json.dumps([[{"user": {"login": APPROVER_BOT}, "state": "APPROVED", "commit_id": H,
 +                                       "submitted_at": AT}]])
 +            if "/comments" in j:
-+                return 0, json.dumps([[{"user": {"login": APPROVER_BOT}, "body": f"Fix review: merge {H}\nn"}]])
++                if comments is not None:
++                    return 0, comments
++                return 0, json.dumps([[{"user": {"login": APPROVER_BOT}, "body": f"Fix review: {verdict} {H}\nn"}]])
 +            if "check-runs" in j:
 +                rs = runs_by_poll[min(len(slept), len(runs_by_poll) - 1)]
 +                return 0, "\n".join(json.dumps(r) for r in rs)
@@ -667,6 +780,16 @@ index 3361fce26..f2582291a 100644
 +    rc, slept, _ = wait([[old_green, cr(NEW, "in_progress", None)], [old_green, cr(NEW)]])
 +    check("post-approval wait: a gate run green BEFORE the approval plus one in progress after it waits "
 +          "(slept), then adds when the new run completes", rc == 0 and len(slept) == 1)
++    rc, slept, lines = wait([[old_green, cr(NEW)]], verdict="blocked", budget=500)
++    check("post-approval wait: an approval review with no `Fix review: merge <head>` comment beside it "
++          "waits to the budget (rc 3), naming the missing verdict",
++          rc == 3 and "WAIT BUDGET SPENT" in lines[-1] and "verdict comment" in lines[-1])
++    rc, slept, lines = wait([[old_green, cr(NEW)]], comments="not json", budget=500)
++    check("post-approval wait: an unparseable comment listing is no verdict: it waits to the budget (rc 3)",
++          rc == 3 and "verdict comment" in lines[-1])
++    rc, slept, _ = wait([[old_green, cr(AT)]])
++    check("post-approval wait: a gate run started at the approval's own second counts as the re-run (adds, rc 0)",
++          rc == 0 and not slept)
 +    rc, slept, _ = wait([[old_green]])
 +    check("post-approval wait: only a pre-approval run is no re-run: it waits to the budget (rc 3)",
 +          rc == 3 and bool(slept))
@@ -695,7 +818,7 @@ index 3361fce26..f2582291a 100644
  def _parser() -> argparse.ArgumentParser:
      """The CLI parser, built apart from `main` so the self-test can pin the
      defaults a caller actually gets: both new flags off without the flag."""
-@@ -7744,6 +8104,11 @@ def _parser() -> argparse.ArgumentParser:
+@@ -8285,6 +8635,11 @@ def _parser() -> argparse.ArgumentParser:
                      help="HOTFIX: the spool's drain puts this entry before critical-path and arrival order (P312)")
      ad.add_argument("--stamp", action="store_true",
                      help="a stamp's add: a record pull request is added, not HELD-FOR-STAMP (carry 15)")
@@ -707,7 +830,7 @@ index 3361fce26..f2582291a 100644
      ad.add_argument("--auto", action="store_true",
                      help="a started train is a bare train.sh launch (RECOMMENDED by default) with --mandate, "
                           "as the sweep's is: bus.sh's post calls this")
-@@ -7803,6 +8168,10 @@ def main(argv: list[str]) -> int:
+@@ -8344,6 +8699,10 @@ def main(argv: list[str]) -> int:
              return 2
          if a.remove:
              return spool_edit(t, a.pr, "remove")
@@ -719,13 +842,55 @@ index 3361fce26..f2582291a 100644
              if a.front:
                  return spool_edit(t, a.pr, "front")
 diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
-index 164eea228..e52581687 100644
+index bb6e4b756..ec7c7591f 100644
 --- a/tools/audit/seat/pr_args.sh
 +++ b/tools/audit/seat/pr_args.sh
-@@ -1470,6 +1470,21 @@ GH
+@@ -477,7 +477,7 @@ STUB
+   # line), a fresh state root, the output in $t/out and the status in $t/rc.
+   copyin() { # <mutant|->: copies of the scripts, less the named mutant's line
+     local g
+-    for g in open_pr.sh update_pr.sh handoff_push.sh remerge_main.sh delivery_row.sh pr_args.sh pr_cap.py ref_privacy.py; do
++    for g in open_pr.sh update_pr.sh handoff_push.sh remerge_main.sh delivery_row.sh pr_args.sh pr_cap.py ref_privacy.py gh_read.py; do
+       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
+       else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+     done
+@@ -1482,9 +1482,9 @@ GH
+   fi
+   rmrun() { # <mutant|-> <branch>: remerge_main.sh on <branch> in worktree $t/rmw; the output in $t/out
+     local g; git -C "$t/rmm" worktree remove --force "$t/rmw" 2>/dev/null; rm -rf "$t/rmw"; git -C "$t/rmm" worktree prune
+-    for g in remerge_main.sh pr_args.sh; do grep -v "# mut:$1\$" "$src/$g" > "$t/rmm/tools/audit/seat/$g"; done
++    for g in remerge_main.sh pr_args.sh gh_read.py; do grep -v "# mut:$1\$" "$src/$g" > "$t/rmm/tools/audit/seat/$g"; done
+     git -C "$t/rmm" fetch -q origin "$2" && git -C "$t/rmm" worktree add -q -B "$2" "$t/rmw" "origin/$2" \
+-      && bash "$t/rmm/tools/audit/seat/remerge_main.sh" 7 "$t/rmw" "$2" "$t/body.md" > "$t/out" 2>&1
++      && PATH="$t/rmgit:$PATH" bash "$t/rmm/tools/audit/seat/remerge_main.sh" 7 "$t/rmw" "$2" "$t/body.md" > "$t/out" 2>&1
+     echo $? > "$t/rc"
+   }
+   rmfree() { # MERGE CONFLICT named, the worktree clean at origin/rk, removed unforced, and rk free for a second worktree
+@@ -1493,6 +1493,10 @@ GH
+       && git -C "$t/rmm" worktree remove "$t/rmw" 2>/dev/null \
+       && git -C "$t/rmm" worktree add -q -B rk "$t/rmadd" origin/rk 2>/dev/null && git -C "$t/rmm" worktree remove "$t/rmadd"
+   }
++  # `git` on remerge_main's PATH is the real one, unless $t/rmgitfail queues one stderr line per
++  # failing `git fetch`: the recarry's transport failure, without a network.
++  mkdir -p "$t/rmgit"; printf '#!/bin/bash\nq=%q\nif [ "$1" = fetch ] && [ -s "$q" ]; then head -1 "$q" >&2; sed -i.bak 1d "$q"; exit 128; fi\nexec %q "$@"\n' \
++    "$t/rmgitfail" "$(command -v git)" > "$t/rmgit/git"; chmod +x "$t/rmgit/git"
+   [ -e "$t/rmo-ok" ]; ck "remerge_main fixture: an origin whose main conflicts with rk" $?
+   rmrun - rk; rmfree
+   ck "remerge_main: a conflicting main is named MERGE CONFLICT and leaves the worktree clean at origin/rk, released unforced, rk free" $?
+@@ -1501,6 +1505,31 @@ GH
    rmrun - rc; ! grep -qF "MERGE CONFLICT" "$t/out" && [ "$(git -C "$t/rmw" rev-parse HEAD^2)" = "$(git -C "$t/rmm" rev-parse origin/main)" ] \
      && [ "$(git -C "$t/rmw" rev-parse HEAD^1)" = "$(git -C "$t/rmm" rev-parse origin/rc)" ]
    ck "null control: remerge_main on a clean merge keeps that merge (HEAD's parents origin/rc and origin/main), nothing aborted" $?
++  # R10-TRAIN-MERGE-LOOP-2: the recarry's fetch rides git's transient stderr out on gh_read.py's rule;
++  # unretried, one 502 printed MERGE CONFLICT and the train stopped on a merge that was clean.
++  printf '%s\n' "fatal: unable to access 'https://github.com/o/r/': The requested URL returned error: 502" > "$t/rmgitfail"
++  rmrun - rc; ! grep -qF "MERGE CONFLICT" "$t/out" && [ ! -s "$t/rmgitfail" ] \
++    && [ "$(git -C "$t/rmw" rev-parse HEAD^2)" = "$(git -C "$t/rmm" rev-parse origin/main)" ]
++  ck "remerge_main: a fetch failing once with git's 502 is fetched again, and the clean merge is kept" $?
++  printf '%s\n' "fatal: couldn't find remote ref rc" > "$t/rmgitfail"
++  rmrun - rc; grep -qF "MERGE CONFLICT 7" "$t/out" && [ ! -s "$t/rmgitfail" ] && grep -qF "couldn't find remote ref" "$t/out"
++  ck "null control: a fetch git rejected is not fetched again (a second fetch would have succeeded)" $?
++  : > "$t/rmgitfail"
 +  # The push's FAIL lines and prepr's `full log:` line reach the train's Stop message, and a push that
 +  # printed no PUSHED keeps its log (carry 16): the old grep kept only RECARRY|REFUSE|PUSHED and the trap
 +  # deleted the log, so a prepr refusal named neither its failing arm nor its log.
@@ -745,19 +910,30 @@ index 164eea228..e52581687 100644
    # daemonized `git gc --auto`, which kept the push's fd 9, and so its lock, after the push). The
    # fixture's git has auto-maintenance off (throwaway_git); fix/g's stub push turns gc.auto back on
 diff --git a/tools/audit/seat/remerge_main.sh b/tools/audit/seat/remerge_main.sh
-index 7597f0889..1a8cb33ce 100755
+index 7597f0889..138f304ab 100755
 --- a/tools/audit/seat/remerge_main.sh
 +++ b/tools/audit/seat/remerge_main.sh
-@@ -16,7 +16,7 @@ set -uo pipefail
+@@ -16,14 +16,17 @@ set -uo pipefail
  # trap reaps it, and the push runs asynchronously so an INT does not wait behind it.
  . "$(dirname -- "$0")/pr_args.sh"
  PR=$1; W=$2; BR=$3; B=$4; shift 4
 -PL=$B.push.log; pr_exit_trap 'rm -f "$PL"'
++SEAT=$(cd "$(dirname -- "$0")" && pwd)
 +PL=$B.push.log; pr_exit_trap 'test -n "${KEEP:-}" || rm -f "$PL"'
  cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
  export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com
  # A failed merge is aborted before the stop (P276: #2935, #2936): left conflicted, the worktree kept
-@@ -36,5 +36,8 @@ ISS=$(grep -oiE '\b(fixes|closes|resolves) #[0-9]+' "$B" | grep -oE '[0-9]+' | s
+ # the branch, merge_train.py's unforced release_worktrees could not remove it, and the next recarry's
+ # `worktree add -B` found the branch checked out. The merge started at origin/$BR and merged only
+ # origin/main, so the abort, or the reset when no merge is in progress, loses nothing.
+-if ! ( cd "$W" && git fetch -q origin main "$BR" && git reset -q --hard "origin/$BR" && git merge --no-edit -q origin/main ); then
++# The fetch rides git's own transient stderr out on gh_read.py's rule, the train's own
++# (R10-TRAIN-MERGE-LOOP-2): unretried, one 502 read as MERGE CONFLICT and stopped the train.
++if ! ( cd "$W" && python3 "$SEAT/gh_read.py" --git-retry git fetch -q origin main "$BR" && git reset -q --hard "origin/$BR" && git merge --no-edit -q origin/main ); then
+   git -C "$W" merge --abort 2>/dev/null || git -C "$W" reset -q --hard "origin/$BR" 2>/dev/null || :  # mut:remergeabort
+   echo "MERGE CONFLICT $PR"; exit 1
+ fi
+@@ -36,5 +39,8 @@ ISS=$(grep -oiE '\b(fixes|closes|resolves) #[0-9]+' "$B" | grep -oE '[0-9]+' | s
  if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
  PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash "$_push" --recarry tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS > "$PL" 2>&1 &
  wait $! || :; push_out=$(cat "$PL")
@@ -767,6 +943,101 @@ index 7597f0889..1a8cb33ce 100755
 +# No PUSHED: keep the log, as pr_push_failed does, and name it.
 +case $push_out in *PUSHED*) ;; *) KEEP=1; echo "remerge: push log kept: $PL" ;; esac
  sleep 5; echo "RESULT pr=$PR head=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)"
+diff --git a/tools/pr/app_approve.sh b/tools/pr/app_approve.sh
+index 75a4ab62e..0937956d7 100755
+--- a/tools/pr/app_approve.sh
++++ b/tools/pr/app_approve.sh
+@@ -157,12 +157,20 @@ gh_transient() { # gh's stderr -> 0 when another read may ride the failure out
+   printf '%s\n' "$1" | grep -qE '^Get "https?://[^"]*": |^error connecting to '
+ }
+ 
+-# read_with <var> <fetcher> <args...>: sets <var> to the fetcher's answer; on a
+-# refusal or a spent budget returns 1 with GH_ERR holding its last stderr. A
+-# fetcher prints the answer on stdout and, on a failure, gh's stderr shape.
+-read_with() {
+-  local _var=$1 _fetch=$2 _out _ef _try=1 _delay=$READ_SLEEP
+-  shift 2
++# git's stderr -> 0 when another fetch may ride the failure out: gh_read.py's
++# git_transient, the one rule merge_train.py's own fetches and pushes retry on
++# (R10-TRAIN-MERGE-LOOP-2), read through its CLI rather than copied here.
++GH_READ_PY="$(dirname -- "${BASH_SOURCE[0]}")/../audit/seat/gh_read.py"
++git_transient() { printf '%s' "$1" | python3 "$GH_READ_PY" --classify-git; }
++
++# retry_with <classifier> <var> <fetcher> <args...>: sets <var> to the fetcher's
++# answer; on a refusal or a spent budget returns 1 with GH_ERR holding its last
++# stderr. A fetcher prints the answer on stdout and, on a failure, the stderr
++# shape its classifier reads: gh's for read_with, git's for a carry's fetch.
++read_with() { retry_with gh_transient "$@"; }
++retry_with() {
++  local _cls=$1 _var=$2 _fetch=$3 _out _ef _try=1 _delay=$READ_SLEEP
++  shift 3
+   _ef=$(mktemp "${TMPDIR:-/tmp}/app_approve_read.XXXXXX") || { GH_ERR="could not create a temporary file"; return 1; }
+   while :; do
+     if _out=$("$_fetch" "$@" 2>"$_ef"); then
+@@ -170,7 +178,7 @@ read_with() {
+     fi
+     GH_ERR=$(tr '\n' ' ' < "$_ef" | sed 's/ *$//')
+     [ -n "$GH_ERR" ] || GH_ERR="gh failed with nothing on stderr"
+-    if ! gh_transient "$(cat "$_ef")" || [ "$_try" -ge "$READ_TRIES" ]; then
++    if ! "$_cls" "$(cat "$_ef")" || [ "$_try" -ge "$READ_TRIES" ]; then
+       rm -f "$_ef"
+       [ "$_try" -eq 1 ] || GH_ERR="$GH_ERR (after $_try attempts)"
+       return 1
+@@ -542,8 +550,10 @@ else:
+     why="the newest allowlisted verdict on #$pr ($vurl) is '$vline', not 'Fix review: merge $sha'"
+     vsha=$(printf '%s' "$vline" | sed -n 's/^Fix review: merge \([0-9a-f]\{40\}\)$/\1/p')
+     [ -n "$vsha" ] || die "$why"
+-    git fetch -q --no-tags origin "+refs/heads/main:refs/hpo-carry/main" "+refs/pull/$pr/head:refs/hpo-carry/head" \
+-      || die "$why, and fetching main and the head to test a carry failed"
++    local _fetched
++    retry_with git_transient _fetched git fetch -q --no-tags origin \
++      "+refs/heads/main:refs/hpo-carry/main" "+refs/pull/$pr/head:refs/hpo-carry/head" \
++      || die "$why, and fetching main and the head to test a carry failed: $GH_ERR"
+     [ "$(git rev-parse refs/hpo-carry/head)" = "$sha" ] || die "$why, and the fetched head is not $sha"
+     carried=$(carry "$vsha" "$sha" refs/hpo-carry/main) || die "$why, and it does not carry: $carried"
+     evsha=$vsha
+@@ -846,7 +856,20 @@ cat > "$W/bin/sleep" <<'STUB'
+ #!/bin/bash
+ printf 'sleep %s\n' "$*" >> "$STUB/log"
+ STUB
+-chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl" "$W/bin/sleep"
++# `git` is the real one, unless `$STUB/gitfail` queues one stderr line per
++# failing `git fetch` (consumed first to last): the carry path's transport
++# failure, without a network. No other case writes that file.
++REAL_GIT=$(command -v git) || exit 2
++cat > "$W/bin/git" <<STUB
++#!/bin/bash
++q="\$STUB/gitfail"
++if [ "\$1" = fetch ] && [ -s "\$q" ]; then
++  printf 'git fetch\n' >> "\$STUB/log"
++  head -1 "\$q" >&2; sed -i.bak 1d "\$q"; exit 128
++fi
++exec "$REAL_GIT" "\$@"
++STUB
++chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl" "$W/bin/sleep" "$W/bin/git"
+ 
+ # The carry's fixture: a real repository whose `origin` is a local bare one,
+ # so `git fetch` and the carry run for real and no case reaches the network.
+@@ -1942,6 +1965,19 @@ run carry o/r 7 "$H_MERGE"; st $? 0 "a merge verdict at V is approved at a head
+ st "$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["commit_id"], "(#1667)" in d["body"])' "$W/carry/posted.json")" \
+    "$H_MERGE True" "at the live head, and the review says it was carried"
+ st "$(grep -c "^app_approve: CARRY $V -> $H_MERGE" "$W/carry/out")" 1 "printing the carry it relied on"
++# R10-TRAIN-MERGE-LOOP-2: the carry's fetch rides git's own transient stderr
++# out on gh_read.py's git_transient, the rule merge_train.py's fetches use, and
++# refuses a rejection at once (the null control) and a spent budget with its count.
++GIT502="fatal: unable to access 'https://github.com/o/r/': The requested URL returned error: 502"
++setpr "$H_MERGE"; mkcase carryflaky open false "$H_MERGE" "$CARRYV"; printf '%s\n' "$GIT502" > "$W/carryflaky/gitfail"
++run carryflaky o/r 7 "$H_MERGE"; st $? 0 "a carry whose first fetch failed with git's 502 is fetched again and approved"
++st "$(grep -c '^git fetch$' "$W/carryflaky/log") $(grep -c '^sleep ' "$W/carryflaky/log")" "1 1" "after one transient failure and one settle"
++mkcase carryrej open false "$H_MERGE" "$CARRYV"; printf '%s\n' "fatal: couldn't find remote ref refs/pull/7/head" > "$W/carryrej/gitfail"
++run carryrej o/r 7 "$H_MERGE"; st $? 1 "REFUSE: a carry fetch git rejected is not fetched again (null control)"
++st "$(grep -c '^sleep ' "$W/carryrej/log") $(grep -c 'fetching main and the head to test a carry failed' "$W/carryrej/err")" "0 1" "at once, with no settle"
++mkcase carryspent open false "$H_MERGE" "$CARRYV"; printf '%s\n' "$GIT502" "$GIT502" "$GIT502" "$GIT502" "$GIT502" > "$W/carryspent/gitfail"
++run carryspent o/r 7 "$H_MERGE"; st $? 1 "REFUSE: a carry fetch still failing transiently when the read budget is spent"
++st "$(grep -c '^git fetch$' "$W/carryspent/log") $(grep -c 'after 4 attempts' "$W/carryspent/err")" "4 1" "after 4 fetches, naming the count"
+ setpr "$H_EVIL"; mkcase nocarry open false "$H_EVIL" "$CARRYV"
+ run nocarry o/r 7 "$H_EVIL"; st $? 1 "REFUSE: the verdict at V does not carry to a head one byte away (null control)"
+ st "$(grep -c "does not carry" "$W/nocarry/err")" 1 "saying why"
 
 ## Before you return the verdict (P275)
 Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;

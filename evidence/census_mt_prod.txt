@@ -1,0 +1,20 @@
+tools/audit/seat/merge_train.py:1509:            if argv[:2] in (["git", "fetch"], ["git", "push"]):  # transport, idempotent: a rejection is never retried
+tools/audit/seat/merge_train.py:1533:        self.run(["git", "fetch", "-q", "origin", "main", h])
+tools/audit/seat/merge_train.py:1616:        self.run(["git", "fetch", "-q", "origin", br])
+tools/audit/seat/merge_train.py:1722:        self.run(["git", "fetch", "-q", "origin", verdict])
+tools/audit/seat/merge_train.py:2020:        if not is_sha(c) or c == h or not self.ok("git", "fetch", "-q", "origin", c):
+tools/audit/seat/merge_train.py:2339:                self.run(["git", "fetch", "-q", "origin", br])
+tools/audit/seat/merge_train.py:2454:        self.run(["git", "fetch", "-q", "origin", h])
+tools/audit/seat/merge_train.py:2482:                self.run(["git", "fetch", "-q", "origin", "main"])
+tools/audit/seat/merge_train.py:2711:        `git push`: its committer date is the publication time the record
+tools/audit/seat/merge_train.py:2936:            self.run(["git", "fetch", "-q", "origin", verdict, h])
+tools/audit/seat/merge_train.py:2952:        if self.run(["git", "fetch", "-q", "origin", f"verdict/{n}"])[0]:
+tools/audit/seat/merge_train.py:3038:        self.run(["git", "fetch", "-q", "origin", h])
+tools/audit/seat/merge_train.py:3240:        self.run(["git", "fetch", "-q", "origin", self.base])
+tools/audit/seat/merge_train.py:3632:            self.run(["git", "fetch", "-q", "origin", "main", h, *([v] if v != h else [])])
+tools/audit/seat/merge_train.py:3704:            self.run(["git", "fetch", "-q", "origin", self.base])
+tools/audit/seat/merge_train.py:3736:                self.run(["git", "fetch", "-q", "origin", self.base])
+tools/audit/seat/merge_train.py:3762:                    self.run(["git", "fetch", "-q", "origin", self.base])
+tools/audit/seat/merge_train.py:3776:                    self.run(["git", "fetch", "-q", "origin", self.base])
+tools/audit/seat/merge_train.py:3793:                        self.run(["git", "fetch", "-q", "origin", self.base])
+tools/audit/seat/merge_train.py:3843:            code, out = self.run(["git", "push", "-q", "origin", "--delete", *self.branches])

@@ -1,0 +1,20 @@
+NULL (unmutated):
+   tools/audit/seat/pr_args.sh -> pr_args self-test: 184 checks, 0 failed
+   tools/pr/app_approve.sh -> app_approve self-test: 322 checks, 0 failed
+   gh_read -> gh_read self-test: 129 checks, 0 failed
+   dev/audit/harnesses/r10_codescan_wait_race.py -> selftest: 12 checks, 0 failed
+   tools/audit/seat/merge_train.py -> merge_train self-test: 564 checks, 0 failed
+RESULT mutant=deferred-no-held file=tools/audit/seat/merge_train.py -> merge_train self-test: 564 checks, 1 failed
+RESULT mutant=deferred-empty file=tools/audit/seat/merge_train.py -> merge_train self-test: 564 checks, 5 failed
+RESULT mutant=no-grace-poll file=tools/audit/seat/merge_train.py -> merge_train self-test: 564 checks, 1 failed
+RESULT mutant=drop-main-busy file=tools/audit/seat/merge_train.py -> merge_train self-test: 564 checks, 5 failed
+RESULT mutant=mt-no-git-retry file=tools/audit/seat/merge_train.py -> merge_train self-test: 564 checks, 2 failed
+RESULT mutant=aa-plain-fetch file=tools/pr/app_approve.sh -> app_approve self-test: 322 checks, 3 failed
+RESULT mutant=aa-gh-classifier file=tools/pr/app_approve.sh -> app_approve self-test: 322 checks, 3 failed
+RESULT mutant=aa-always-transient file=tools/pr/app_approve.sh -> app_approve self-test: 322 checks, 2 failed
+RESULT mutant=rm-plain-fetch file=tools/audit/seat/remerge_main.sh -> pr_args self-test: 184 checks, 1 failed
+RESULT mutant=gr-one-try file=tools/audit/seat/gh_read.py -> gh_read self-test: 129 checks, 1 failed
+RESULT mutant=gr-refused-ignored file=tools/audit/seat/gh_read.py -> merge_train self-test: 564 checks, 1 failed
+RESULT mutant=hr-no-fallback file=dev/audit/harnesses/r10_codescan_wait_race.py -> AssertionError: unreachable
+restored: clean
+MUT_DONE
