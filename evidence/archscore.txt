@@ -1,5 +1,0 @@
-Architecture score: dS +4.7870 IMPROVES
-  duplication_copies 28 -> 19  +4.7858
-  coord_footprint 2491 -> 2489  +0.0012
-  shape_copies 42 -> 40  (gate only)
-rc=0
