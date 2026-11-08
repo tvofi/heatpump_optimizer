@@ -1,0 +1,13 @@
+diff --git a/tests/card_browser.mjs b/tests/card_browser.mjs
+index b4221cf38..358c4f395 100644
+--- a/tests/card_browser.mjs
++++ b/tests/card_browser.mjs
+@@ -833,7 +833,7 @@ function instrument() {
+   };
+   // Ink a clipping box hides and cannot scroll to: the run's own element
+   // first, since a run clipped by its own box is clipped all the same.
+-  const unreachable = (run) => {
++  const unreachable = (run) => { return 999;
+     let worst = 0;
+     for (const axis of ["x", "y"]) {
+       for (let n = run.el; n && n !== document.documentElement; n = parentOf(n)) {
