@@ -8892,6 +8892,1546 @@
    ]
   },
   {
+   "name": "3244-triple",
+   "pr": "3244",
+   "head": "a258212553e123d735c7eff139a8e347a1a52ea3",
+   "runs": [
+    {
+     "id": 42293328283,
+     "title": "CI edit pr=3244 base=main sha=a55f7c5fd175646f72fb6fc076a39697ee380a15",
+     "created_at": "2026-11-06T21:02:04Z",
+     "attempts": [
+      {
+       "n": 1,
+       "run_started_at": "2026-11-06T21:02:04Z",
+       "jobs": [
+        {
+         "id": 128152092922,
+         "name": "cancel-superseded",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:02:05Z",
+         "started_at": "2026-11-06T21:02:08Z",
+         "completed_at": "2026-11-06T21:02:20Z"
+        },
+        {
+         "id": 128152093340,
+         "name": "prelude",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:02:05Z",
+         "started_at": "2026-11-06T21:02:08Z",
+         "completed_at": "2026-11-06T21:02:41Z"
+        },
+        {
+         "id": 128152093399,
+         "name": "refresh",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:02:05Z",
+         "started_at": "2026-11-06T21:02:08Z",
+         "completed_at": "2026-11-06T21:02:49Z"
+        },
+        {
+         "id": 128152386993,
+         "name": "arch-score / arch-score",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:02:41Z",
+         "started_at": "2026-11-06T21:02:44Z",
+         "completed_at": "2026-11-06T21:03:46Z"
+        },
+        {
+         "id": 128152387131,
+         "name": "budget-raise-gate / budget-raise-gate",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:02:41Z",
+         "started_at": "2026-11-06T21:02:44Z",
+         "completed_at": "2026-11-06T21:03:12Z"
+        },
+        {
+         "id": 128152388710,
+         "name": "governance",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:02:41Z",
+         "started_at": "2026-11-06T21:02:41Z",
+         "completed_at": "2026-11-06T21:02:41Z"
+        },
+        {
+         "id": 128152388888,
+         "name": "codeql",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:02:41Z",
+         "started_at": "2026-11-06T21:02:41Z",
+         "completed_at": "2026-11-06T21:02:41Z"
+        },
+        {
+         "id": 128152389383,
+         "name": "tests",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:02:41Z",
+         "started_at": "2026-11-06T21:02:41Z",
+         "completed_at": "2026-11-06T21:02:41Z"
+        },
+        {
+         "id": 128152389486,
+         "name": "hassfest",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:02:41Z",
+         "started_at": "2026-11-06T21:02:41Z",
+         "completed_at": "2026-11-06T21:02:41Z"
+        },
+        {
+         "id": 128152389527,
+         "name": "validate",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:02:41Z",
+         "started_at": "2026-11-06T21:02:41Z",
+         "completed_at": "2026-11-06T21:02:41Z"
+        },
+        {
+         "id": 128152390045,
+         "name": "kernel-points",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:02:42Z",
+         "started_at": "2026-11-06T21:02:42Z",
+         "completed_at": "2026-11-06T21:02:41Z"
+        },
+        {
+         "id": 128152913206,
+         "name": "gate",
+         "status": "completed",
+         "conclusion": "failure",
+         "created_at": "2026-11-06T21:03:46Z",
+         "started_at": "2026-11-06T21:03:49Z",
+         "completed_at": "2026-11-06T21:04:23Z"
+        },
+        {
+         "id": 128152915001,
+         "name": "pr-contract",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:03:46Z",
+         "started_at": "2026-11-06T21:03:46Z",
+         "completed_at": "2026-11-06T21:03:46Z"
+        }
+       ]
+      },
+      {
+       "n": 2,
+       "run_started_at": "2026-11-06T21:46:14Z",
+       "jobs": [
+        {
+         "id": 128173073456,
+         "name": "gate",
+         "status": "completed",
+         "conclusion": "failure",
+         "created_at": "2026-11-06T21:46:17Z",
+         "started_at": "2026-11-06T21:46:20Z",
+         "completed_at": "2026-11-06T21:46:59Z"
+        },
+        {
+         "id": 128173074051,
+         "name": "refresh",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:17Z",
+         "started_at": "2026-11-06T21:02:08Z",
+         "completed_at": "2026-11-06T21:02:49Z"
+        },
+        {
+         "id": 128173074088,
+         "name": "hassfest",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:17Z",
+         "started_at": "2026-11-06T21:46:17Z",
+         "completed_at": "2026-11-06T21:46:17Z"
+        },
+        {
+         "id": 128173074557,
+         "name": "budget-raise-gate / budget-raise-gate",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:17Z",
+         "started_at": "2026-11-06T21:02:44Z",
+         "completed_at": "2026-11-06T21:03:12Z"
+        },
+        {
+         "id": 128173075059,
+         "name": "codeql",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:17Z",
+         "started_at": "2026-11-06T21:46:17Z",
+         "completed_at": "2026-11-06T21:46:17Z"
+        },
+        {
+         "id": 128173075113,
+         "name": "tests",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:17Z",
+         "started_at": "2026-11-06T21:46:17Z",
+         "completed_at": "2026-11-06T21:46:17Z"
+        },
+        {
+         "id": 128173075229,
+         "name": "pr-contract",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:17Z",
+         "started_at": "2026-11-06T21:46:17Z",
+         "completed_at": "2026-11-06T21:46:17Z"
+        },
+        {
+         "id": 128173116970,
+         "name": "arch-score / arch-score",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:23Z",
+         "started_at": "2026-11-06T21:02:44Z",
+         "completed_at": "2026-11-06T21:03:46Z"
+        },
+        {
+         "id": 128173140728,
+         "name": "prelude",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:26Z",
+         "started_at": "2026-11-06T21:02:08Z",
+         "completed_at": "2026-11-06T21:02:41Z"
+        },
+        {
+         "id": 128173142234,
+         "name": "governance",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:26Z",
+         "started_at": "2026-11-06T21:46:26Z",
+         "completed_at": "2026-11-06T21:46:17Z"
+        },
+        {
+         "id": 128173143939,
+         "name": "kernel-points",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:26Z",
+         "started_at": "2026-11-06T21:46:26Z",
+         "completed_at": "2026-11-06T21:46:17Z"
+        },
+        {
+         "id": 128173150753,
+         "name": "validate",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:27Z",
+         "started_at": "2026-11-06T21:46:27Z",
+         "completed_at": "2026-11-06T21:46:17Z"
+        },
+        {
+         "id": 128173152527,
+         "name": "cancel-superseded",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:27Z",
+         "started_at": "2026-11-06T21:02:08Z",
+         "completed_at": "2026-11-06T21:02:20Z"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": 42286624031,
+     "title": "CI edit pr=3244 base=main sha=a55f7c5fd175646f72fb6fc076a39697ee380a15",
+     "created_at": "2026-11-06T20:14:19Z",
+     "attempts": [
+      {
+       "n": 1,
+       "run_started_at": "2026-11-06T20:14:19Z",
+       "jobs": [
+        {
+         "id": 128128995811,
+         "name": "cancel-superseded",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:20Z",
+         "started_at": "2026-11-06T20:14:23Z",
+         "completed_at": "2026-11-06T20:14:32Z"
+        },
+        {
+         "id": 128128996192,
+         "name": "refresh",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:20Z",
+         "started_at": "2026-11-06T20:14:23Z",
+         "completed_at": "2026-11-06T20:14:59Z"
+        },
+        {
+         "id": 128128996359,
+         "name": "prelude",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:20Z",
+         "started_at": "2026-11-06T20:14:23Z",
+         "completed_at": "2026-11-06T20:14:50Z"
+        },
+        {
+         "id": 128129252349,
+         "name": "arch-score / arch-score",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:50Z",
+         "started_at": "2026-11-06T20:14:53Z",
+         "completed_at": "2026-11-06T20:16:06Z"
+        },
+        {
+         "id": 128129252382,
+         "name": "budget-raise-gate / budget-raise-gate",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:50Z",
+         "started_at": "2026-11-06T20:14:53Z",
+         "completed_at": "2026-11-06T20:15:22Z"
+        },
+        {
+         "id": 128129254222,
+         "name": "codeql",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:50Z",
+         "started_at": "2026-11-06T20:14:50Z",
+         "completed_at": "2026-11-06T20:14:50Z"
+        },
+        {
+         "id": 128129254418,
+         "name": "validate",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:50Z",
+         "started_at": "2026-11-06T20:14:50Z",
+         "completed_at": "2026-11-06T20:14:50Z"
+        },
+        {
+         "id": 128129254766,
+         "name": "tests",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:50Z",
+         "started_at": "2026-11-06T20:14:50Z",
+         "completed_at": "2026-11-06T20:14:50Z"
+        },
+        {
+         "id": 128129255124,
+         "name": "governance",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:51Z",
+         "started_at": "2026-11-06T20:14:51Z",
+         "completed_at": "2026-11-06T20:14:50Z"
+        },
+        {
+         "id": 128129255361,
+         "name": "hassfest",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:51Z",
+         "started_at": "2026-11-06T20:14:51Z",
+         "completed_at": "2026-11-06T20:14:50Z"
+        },
+        {
+         "id": 128129255414,
+         "name": "kernel-points",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:51Z",
+         "started_at": "2026-11-06T20:14:51Z",
+         "completed_at": "2026-11-06T20:14:50Z"
+        },
+        {
+         "id": 128129885668,
+         "name": "gate",
+         "status": "completed",
+         "conclusion": "failure",
+         "created_at": "2026-11-06T20:16:06Z",
+         "started_at": "2026-11-06T20:16:14Z",
+         "completed_at": "2026-11-06T20:16:44Z"
+        },
+        {
+         "id": 128129887758,
+         "name": "pr-contract",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:16:07Z",
+         "started_at": "2026-11-06T20:16:07Z",
+         "completed_at": "2026-11-06T20:16:06Z"
+        }
+       ]
+      },
+      {
+       "n": 2,
+       "run_started_at": "2026-11-06T21:46:13Z",
+       "jobs": [
+        {
+         "id": 128173059639,
+         "name": "gate",
+         "status": "completed",
+         "conclusion": "failure",
+         "created_at": "2026-11-06T21:46:15Z",
+         "started_at": "2026-11-06T21:46:18Z",
+         "completed_at": "2026-11-06T21:46:54Z"
+        },
+        {
+         "id": 128173059798,
+         "name": "cancel-superseded",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:15Z",
+         "started_at": "2026-11-06T20:14:23Z",
+         "completed_at": "2026-11-06T20:14:32Z"
+        },
+        {
+         "id": 128173060880,
+         "name": "governance",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:16Z",
+         "started_at": "2026-11-06T21:46:16Z",
+         "completed_at": "2026-11-06T21:46:15Z"
+        },
+        {
+         "id": 128173061273,
+         "name": "pr-contract",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:16Z",
+         "started_at": "2026-11-06T21:46:16Z",
+         "completed_at": "2026-11-06T21:46:15Z"
+        },
+        {
+         "id": 128173104092,
+         "name": "prelude",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:21Z",
+         "started_at": "2026-11-06T20:14:23Z",
+         "completed_at": "2026-11-06T20:14:50Z"
+        },
+        {
+         "id": 128173113101,
+         "name": "codeql",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:22Z",
+         "started_at": "2026-11-06T21:46:22Z",
+         "completed_at": "2026-11-06T21:46:15Z"
+        },
+        {
+         "id": 128173117900,
+         "name": "validate",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:23Z",
+         "started_at": "2026-11-06T21:46:23Z",
+         "completed_at": "2026-11-06T21:46:15Z"
+        },
+        {
+         "id": 128173120630,
+         "name": "hassfest",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:23Z",
+         "started_at": "2026-11-06T21:46:23Z",
+         "completed_at": "2026-11-06T21:46:15Z"
+        },
+        {
+         "id": 128173122877,
+         "name": "arch-score / arch-score",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:23Z",
+         "started_at": "2026-11-06T20:14:53Z",
+         "completed_at": "2026-11-06T20:16:06Z"
+        },
+        {
+         "id": 128173124528,
+         "name": "refresh",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:24Z",
+         "started_at": "2026-11-06T20:14:23Z",
+         "completed_at": "2026-11-06T20:14:59Z"
+        },
+        {
+         "id": 128173136532,
+         "name": "budget-raise-gate / budget-raise-gate",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:25Z",
+         "started_at": "2026-11-06T20:14:53Z",
+         "completed_at": "2026-11-06T20:15:22Z"
+        },
+        {
+         "id": 128173137029,
+         "name": "kernel-points",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:25Z",
+         "started_at": "2026-11-06T21:46:25Z",
+         "completed_at": "2026-11-06T21:46:15Z"
+        },
+        {
+         "id": 128173139308,
+         "name": "tests",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:25Z",
+         "started_at": "2026-11-06T21:46:25Z",
+         "completed_at": "2026-11-06T21:46:15Z"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": 42286558101,
+     "title": "CI edit pr=3244 base=main sha=a55f7c5fd175646f72fb6fc076a39697ee380a15",
+     "created_at": "2026-11-06T20:13:53Z",
+     "attempts": [
+      {
+       "n": 1,
+       "run_started_at": "2026-11-06T20:13:53Z",
+       "jobs": [
+        {
+         "id": 128128775885,
+         "name": "refresh",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:13:54Z",
+         "started_at": "2026-11-06T20:13:57Z",
+         "completed_at": "2026-11-06T20:14:35Z"
+        },
+        {
+         "id": 128128776325,
+         "name": "cancel-superseded",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:13:54Z",
+         "started_at": "2026-11-06T20:13:57Z",
+         "completed_at": "2026-11-06T20:14:06Z"
+        },
+        {
+         "id": 128128776377,
+         "name": "prelude",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:13:54Z",
+         "started_at": "2026-11-06T20:13:56Z",
+         "completed_at": "2026-11-06T20:14:21Z"
+        },
+        {
+         "id": 128129004570,
+         "name": "arch-score / arch-score",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:21Z",
+         "started_at": "2026-11-06T20:14:24Z",
+         "completed_at": "2026-11-06T20:15:28Z"
+        },
+        {
+         "id": 128129004623,
+         "name": "budget-raise-gate / budget-raise-gate",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:21Z",
+         "started_at": "2026-11-06T20:14:24Z",
+         "completed_at": "2026-11-06T20:14:52Z"
+        },
+        {
+         "id": 128129006444,
+         "name": "validate",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:21Z",
+         "started_at": "2026-11-06T20:14:21Z",
+         "completed_at": "2026-11-06T20:14:21Z"
+        },
+        {
+         "id": 128129006951,
+         "name": "codeql",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:21Z",
+         "started_at": "2026-11-06T20:14:21Z",
+         "completed_at": "2026-11-06T20:14:21Z"
+        },
+        {
+         "id": 128129007421,
+         "name": "kernel-points",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:21Z",
+         "started_at": "2026-11-06T20:14:21Z",
+         "completed_at": "2026-11-06T20:14:21Z"
+        },
+        {
+         "id": 128129007962,
+         "name": "governance",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:21Z",
+         "started_at": "2026-11-06T20:14:21Z",
+         "completed_at": "2026-11-06T20:14:21Z"
+        },
+        {
+         "id": 128129008021,
+         "name": "hassfest",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:21Z",
+         "started_at": "2026-11-06T20:14:21Z",
+         "completed_at": "2026-11-06T20:14:21Z"
+        },
+        {
+         "id": 128129008185,
+         "name": "tests",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:21Z",
+         "started_at": "2026-11-06T20:14:21Z",
+         "completed_at": "2026-11-06T20:14:21Z"
+        },
+        {
+         "id": 128129568672,
+         "name": "gate",
+         "status": "completed",
+         "conclusion": "failure",
+         "created_at": "2026-11-06T20:15:28Z",
+         "started_at": "2026-11-06T20:15:31Z",
+         "completed_at": "2026-11-06T20:16:04Z"
+        },
+        {
+         "id": 128129570157,
+         "name": "pr-contract",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:15:28Z",
+         "started_at": "2026-11-06T20:15:28Z",
+         "completed_at": "2026-11-06T20:15:28Z"
+        }
+       ]
+      },
+      {
+       "n": 2,
+       "run_started_at": "2026-11-06T21:46:12Z",
+       "jobs": [
+        {
+         "id": 128173052172,
+         "name": "prelude",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:14Z",
+         "started_at": "2026-11-06T20:13:56Z",
+         "completed_at": "2026-11-06T20:14:21Z"
+        },
+        {
+         "id": 128173052224,
+         "name": "gate",
+         "status": "completed",
+         "conclusion": "failure",
+         "created_at": "2026-11-06T21:46:14Z",
+         "started_at": "2026-11-06T21:46:18Z",
+         "completed_at": "2026-11-06T21:46:57Z"
+        },
+        {
+         "id": 128173052713,
+         "name": "refresh",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:14Z",
+         "started_at": "2026-11-06T20:13:57Z",
+         "completed_at": "2026-11-06T20:14:35Z"
+        },
+        {
+         "id": 128173053194,
+         "name": "validate",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:15Z",
+         "started_at": "2026-11-06T21:46:15Z",
+         "completed_at": "2026-11-06T21:46:14Z"
+        },
+        {
+         "id": 128173053717,
+         "name": "hassfest",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:15Z",
+         "started_at": "2026-11-06T21:46:15Z",
+         "completed_at": "2026-11-06T21:46:14Z"
+        },
+        {
+         "id": 128173053718,
+         "name": "tests",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:15Z",
+         "started_at": "2026-11-06T21:46:15Z",
+         "completed_at": "2026-11-06T21:46:14Z"
+        },
+        {
+         "id": 128173053736,
+         "name": "pr-contract",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:15Z",
+         "started_at": "2026-11-06T21:46:15Z",
+         "completed_at": "2026-11-06T21:46:14Z"
+        },
+        {
+         "id": 128173053807,
+         "name": "codeql",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:15Z",
+         "started_at": "2026-11-06T21:46:15Z",
+         "completed_at": "2026-11-06T21:46:14Z"
+        },
+        {
+         "id": 128173053958,
+         "name": "budget-raise-gate / budget-raise-gate",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:15Z",
+         "started_at": "2026-11-06T20:14:24Z",
+         "completed_at": "2026-11-06T20:14:52Z"
+        },
+        {
+         "id": 128173054379,
+         "name": "arch-score / arch-score",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:15Z",
+         "started_at": "2026-11-06T20:14:24Z",
+         "completed_at": "2026-11-06T20:15:28Z"
+        },
+        {
+         "id": 128173110390,
+         "name": "kernel-points",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:22Z",
+         "started_at": "2026-11-06T21:46:22Z",
+         "completed_at": "2026-11-06T21:46:14Z"
+        },
+        {
+         "id": 128173117667,
+         "name": "governance",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:46:23Z",
+         "started_at": "2026-11-06T21:46:23Z",
+         "completed_at": "2026-11-06T21:46:14Z"
+        },
+        {
+         "id": 128173120496,
+         "name": "cancel-superseded",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:46:23Z",
+         "started_at": "2026-11-06T20:13:57Z",
+         "completed_at": "2026-11-06T20:14:06Z"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": 42286556863,
+     "title": "CI code pr=3244 base=main sha=a55f7c5fd175646f72fb6fc076a39697ee380a15",
+     "created_at": "2026-11-06T20:13:52Z",
+     "attempts": [
+      {
+       "n": 1,
+       "run_started_at": "2026-11-06T20:13:52Z",
+       "jobs": [
+        {
+         "id": 128128855778,
+         "name": "refresh",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:03Z",
+         "started_at": "2026-11-06T20:14:07Z",
+         "completed_at": "2026-11-06T20:14:31Z"
+        },
+        {
+         "id": 128128856008,
+         "name": "cancel-superseded",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:03Z",
+         "started_at": "2026-11-06T20:14:07Z",
+         "completed_at": "2026-11-06T20:14:16Z"
+        },
+        {
+         "id": 128128856107,
+         "name": "prelude",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:04Z",
+         "started_at": "2026-11-06T20:14:07Z",
+         "completed_at": "2026-11-06T20:14:28Z"
+        },
+        {
+         "id": 128129071002,
+         "name": "governance / wave-script",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:15:13Z"
+        },
+        {
+         "id": 128129071021,
+         "name": "governance / env-matrix",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:19:55Z"
+        },
+        {
+         "id": 128129071039,
+         "name": "governance / policy-docs",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:18:37Z"
+        },
+        {
+         "id": 128129071086,
+         "name": "arch-score / arch-score",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:15:40Z"
+        },
+        {
+         "id": 128129071099,
+         "name": "governance / delivery-status",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:15:07Z"
+        },
+        {
+         "id": 128129071211,
+         "name": "governance / instrument-self-tests",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:41:32Z"
+        },
+        {
+         "id": 128129071214,
+         "name": "tests / briefs",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:15:28Z"
+        },
+        {
+         "id": 128129071266,
+         "name": "hassfest / hassfest",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:14:53Z"
+        },
+        {
+         "id": 128129071286,
+         "name": "tests / mutation",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:37:54Z"
+        },
+        {
+         "id": 128129071298,
+         "name": "validate / validate-hacs",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:15:10Z"
+        },
+        {
+         "id": 128129071326,
+         "name": "tests / closure-scope",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:33Z",
+         "completed_at": "2026-11-06T20:15:10Z"
+        },
+        {
+         "id": 128129071362,
+         "name": "codeql / Analyze (actions)",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:15:25Z"
+        },
+        {
+         "id": 128129071392,
+         "name": "codeql / Analyze (python)",
+         "status": "completed",
+         "conclusion": "cancelled",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:59:37Z"
+        },
+        {
+         "id": 128129071430,
+         "name": "budget-raise-gate / budget-raise-gate",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:15:02Z"
+        },
+        {
+         "id": 128129071475,
+         "name": "codeql / Analyze (javascript-typescript)",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:15:47Z"
+        },
+        {
+         "id": 128129071484,
+         "name": "tests / nightly-status",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:14:42Z"
+        },
+        {
+         "id": 128129073591,
+         "name": "governance / delivery-status-publish",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:29Z",
+         "completed_at": "2026-11-06T20:14:28Z"
+        },
+        {
+         "id": 128129073639,
+         "name": "kernel-points",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:29Z",
+         "completed_at": "2026-11-06T20:14:28Z"
+        },
+        {
+         "id": 128129073681,
+         "name": "governance / record",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:14:29Z",
+         "started_at": "2026-11-06T20:14:29Z",
+         "completed_at": "2026-11-06T20:14:28Z"
+        },
+        {
+         "id": 128129419528,
+         "name": "tests / browser",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:15:11Z",
+         "started_at": "2026-11-06T20:15:13Z",
+         "completed_at": "2026-11-06T20:19:46Z"
+        },
+        {
+         "id": 128129419609,
+         "name": "tests / closures",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:15:11Z",
+         "started_at": "2026-11-06T20:15:13Z",
+         "completed_at": "2026-11-06T20:53:23Z"
+        },
+        {
+         "id": 128129419618,
+         "name": "tests / replay",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:15:11Z",
+         "started_at": "2026-11-06T20:15:13Z",
+         "completed_at": "2026-11-06T20:23:10Z"
+        },
+        {
+         "id": 128129419621,
+         "name": "tests / fast (3.14)",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:15:11Z",
+         "started_at": "2026-11-06T20:15:13Z",
+         "completed_at": "2026-11-06T20:40:19Z"
+        },
+        {
+         "id": 128129419730,
+         "name": "tests / arch-instrument",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:15:11Z",
+         "started_at": "2026-11-06T20:15:14Z",
+         "completed_at": "2026-11-06T20:16:55Z"
+        },
+        {
+         "id": 128129419735,
+         "name": "tests / coverage",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:15:11Z",
+         "started_at": "2026-11-06T20:15:13Z",
+         "completed_at": "2026-11-06T20:40:37Z"
+        },
+        {
+         "id": 128129419786,
+         "name": "tests / typing",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:15:11Z",
+         "started_at": "2026-11-06T20:15:13Z",
+         "completed_at": "2026-11-06T20:16:19Z"
+        },
+        {
+         "id": 128129422502,
+         "name": "tests / nightly-ha",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:15:11Z",
+         "started_at": "2026-11-06T20:15:11Z",
+         "completed_at": "2026-11-06T20:15:10Z"
+        },
+        {
+         "id": 128140555105,
+         "name": "tests / mutation-autofix",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:37:55Z",
+         "started_at": "2026-11-06T20:37:55Z",
+         "completed_at": "2026-11-06T20:37:54Z"
+        },
+        {
+         "id": 128140555170,
+         "name": "tests / mutation-pins",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:37:55Z",
+         "started_at": "2026-11-06T20:37:55Z",
+         "completed_at": "2026-11-06T20:37:54Z"
+        },
+        {
+         "id": 128141703410,
+         "name": "tests / claims-autofix",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:40:20Z",
+         "started_at": "2026-11-06T20:40:20Z",
+         "completed_at": "2026-11-06T20:40:19Z"
+        },
+        {
+         "id": 128141848591,
+         "name": "tests / coverage-ratchet",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:40:38Z",
+         "started_at": "2026-11-06T20:40:41Z",
+         "completed_at": "2026-11-06T20:40:55Z"
+        },
+        {
+         "id": 128141848618,
+         "name": "tests / graders-head-copy",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:40:38Z",
+         "started_at": "2026-11-06T20:40:40Z",
+         "completed_at": "2026-11-06T20:41:02Z"
+        },
+        {
+         "id": 128141848842,
+         "name": "tests / lane-proofs",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:40:38Z",
+         "started_at": "2026-11-06T20:40:41Z",
+         "completed_at": "2026-11-06T20:40:49Z"
+        },
+        {
+         "id": 128147971661,
+         "name": "tests / ci-ratchet",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:53:23Z",
+         "started_at": "2026-11-06T20:53:23Z",
+         "completed_at": "2026-11-06T20:53:23Z"
+        },
+        {
+         "id": 128147971882,
+         "name": "tests / closures-autofix",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T20:53:23Z",
+         "started_at": "2026-11-06T20:53:23Z",
+         "completed_at": "2026-11-06T20:53:23Z"
+        },
+        {
+         "id": 128150883465,
+         "name": "pr-contract / pr-contract",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T20:59:38Z",
+         "started_at": "2026-11-06T20:59:42Z",
+         "completed_at": "2026-11-06T21:00:35Z"
+        },
+        {
+         "id": 128151356662,
+         "name": "gate",
+         "status": "completed",
+         "conclusion": "failure",
+         "created_at": "2026-11-06T21:00:36Z",
+         "started_at": "2026-11-06T21:00:39Z",
+         "completed_at": "2026-11-06T21:01:11Z"
+        }
+       ]
+      },
+      {
+       "n": 2,
+       "run_started_at": "2026-11-06T21:01:20Z",
+       "jobs": [
+        {
+         "id": 128151741153,
+         "name": "codeql / Analyze (python)",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T21:01:26Z",
+         "completed_at": "2026-11-06T21:44:03Z"
+        },
+        {
+         "id": 128151741398,
+         "name": "cancel-superseded",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:14:07Z",
+         "completed_at": "2026-11-06T20:14:16Z"
+        },
+        {
+         "id": 128151742356,
+         "name": "validate / validate-hacs",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:15:10Z"
+        },
+        {
+         "id": 128151742585,
+         "name": "tests / mutation",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:37:54Z"
+        },
+        {
+         "id": 128151742621,
+         "name": "tests / nightly-status",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:14:42Z"
+        },
+        {
+         "id": 128151742866,
+         "name": "governance / record",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T21:01:23Z",
+         "completed_at": "2026-11-06T20:14:28Z"
+        },
+        {
+         "id": 128151742910,
+         "name": "governance / policy-docs",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:18:37Z"
+        },
+        {
+         "id": 128151742993,
+         "name": "arch-score / arch-score",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:15:40Z"
+        },
+        {
+         "id": 128151743218,
+         "name": "governance / delivery-status-publish",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T21:01:23Z",
+         "completed_at": "2026-11-06T20:14:28Z"
+        },
+        {
+         "id": 128151743251,
+         "name": "governance / delivery-status",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:15:07Z"
+        },
+        {
+         "id": 128151743290,
+         "name": "tests / briefs",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:15:28Z"
+        },
+        {
+         "id": 128151743336,
+         "name": "governance / instrument-self-tests",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:41:32Z"
+        },
+        {
+         "id": 128151743474,
+         "name": "governance / wave-script",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:15:13Z"
+        },
+        {
+         "id": 128151744025,
+         "name": "codeql / Analyze (javascript-typescript)",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:15:47Z"
+        },
+        {
+         "id": 128151745458,
+         "name": "tests / replay",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:15:13Z",
+         "completed_at": "2026-11-06T20:23:10Z"
+        },
+        {
+         "id": 128151745637,
+         "name": "tests / mutation-pins",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T21:01:23Z",
+         "completed_at": "2026-11-06T20:37:54Z"
+        },
+        {
+         "id": 128151745655,
+         "name": "tests / coverage",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:15:13Z",
+         "completed_at": "2026-11-06T20:40:37Z"
+        },
+        {
+         "id": 128151745958,
+         "name": "tests / typing",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:15:13Z",
+         "completed_at": "2026-11-06T20:16:19Z"
+        },
+        {
+         "id": 128151746026,
+         "name": "tests / arch-instrument",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:15:14Z",
+         "completed_at": "2026-11-06T20:16:55Z"
+        },
+        {
+         "id": 128151746176,
+         "name": "tests / nightly-ha",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T21:01:23Z",
+         "completed_at": "2026-11-06T20:15:10Z"
+        },
+        {
+         "id": 128151746217,
+         "name": "tests / fast (3.14)",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:15:13Z",
+         "completed_at": "2026-11-06T20:40:19Z"
+        },
+        {
+         "id": 128151746392,
+         "name": "tests / closures",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:15:13Z",
+         "completed_at": "2026-11-06T20:53:23Z"
+        },
+        {
+         "id": 128151746779,
+         "name": "tests / browser",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:23Z",
+         "started_at": "2026-11-06T20:15:13Z",
+         "completed_at": "2026-11-06T20:19:46Z"
+        },
+        {
+         "id": 128151748877,
+         "name": "tests / lane-proofs",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:24Z",
+         "started_at": "2026-11-06T20:40:41Z",
+         "completed_at": "2026-11-06T20:40:49Z"
+        },
+        {
+         "id": 128151749175,
+         "name": "tests / ci-ratchet",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:01:24Z",
+         "started_at": "2026-11-06T21:01:24Z",
+         "completed_at": "2026-11-06T20:53:23Z"
+        },
+        {
+         "id": 128151749245,
+         "name": "tests / mutation-autofix",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:01:24Z",
+         "started_at": "2026-11-06T21:01:24Z",
+         "completed_at": "2026-11-06T20:37:54Z"
+        },
+        {
+         "id": 128151749665,
+         "name": "tests / coverage-ratchet",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:24Z",
+         "started_at": "2026-11-06T20:40:41Z",
+         "completed_at": "2026-11-06T20:40:55Z"
+        },
+        {
+         "id": 128151750135,
+         "name": "tests / closures-autofix",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:01:24Z",
+         "started_at": "2026-11-06T21:01:24Z",
+         "completed_at": "2026-11-06T20:53:23Z"
+        },
+        {
+         "id": 128151750531,
+         "name": "tests / claims-autofix",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:01:24Z",
+         "started_at": "2026-11-06T21:01:24Z",
+         "completed_at": "2026-11-06T20:40:19Z"
+        },
+        {
+         "id": 128151750617,
+         "name": "tests / graders-head-copy",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:24Z",
+         "started_at": "2026-11-06T20:40:40Z",
+         "completed_at": "2026-11-06T20:41:02Z"
+        },
+        {
+         "id": 128151786189,
+         "name": "kernel-points",
+         "status": "completed",
+         "conclusion": "skipped",
+         "created_at": "2026-11-06T21:01:28Z",
+         "started_at": "2026-11-06T21:01:28Z",
+         "completed_at": "2026-11-06T21:01:22Z"
+        },
+        {
+         "id": 128151796183,
+         "name": "hassfest / hassfest",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:29Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:14:53Z"
+        },
+        {
+         "id": 128151796411,
+         "name": "governance / env-matrix",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:29Z",
+         "started_at": "2026-11-06T20:14:31Z",
+         "completed_at": "2026-11-06T20:19:55Z"
+        },
+        {
+         "id": 128151798156,
+         "name": "budget-raise-gate / budget-raise-gate",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:30Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:15:02Z"
+        },
+        {
+         "id": 128151798486,
+         "name": "prelude",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:30Z",
+         "started_at": "2026-11-06T20:14:07Z",
+         "completed_at": "2026-11-06T20:14:28Z"
+        },
+        {
+         "id": 128151805415,
+         "name": "refresh",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:30Z",
+         "started_at": "2026-11-06T20:14:07Z",
+         "completed_at": "2026-11-06T20:14:31Z"
+        },
+        {
+         "id": 128151809621,
+         "name": "tests / closure-scope",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:31Z",
+         "started_at": "2026-11-06T20:14:33Z",
+         "completed_at": "2026-11-06T20:15:10Z"
+        },
+        {
+         "id": 128151812171,
+         "name": "codeql / Analyze (actions)",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:01:31Z",
+         "started_at": "2026-11-06T20:14:32Z",
+         "completed_at": "2026-11-06T20:15:25Z"
+        },
+        {
+         "id": 128172029926,
+         "name": "pr-contract / pr-contract",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:44:04Z",
+         "started_at": "2026-11-06T21:44:07Z",
+         "completed_at": "2026-11-06T21:45:14Z"
+        },
+        {
+         "id": 128172572226,
+         "name": "gate",
+         "status": "completed",
+         "conclusion": "success",
+         "created_at": "2026-11-06T21:45:15Z",
+         "started_at": "2026-11-06T21:45:18Z",
+         "completed_at": "2026-11-06T21:45:53Z"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "gates": [
+    {
+     "run": 42286558101,
+     "attempt": 2,
+     "job": 128173052224,
+     "started_at": "2026-11-06T21:46:18Z",
+     "completed_at": "2026-11-06T21:46:57Z",
+     "conclusion": "failure",
+     "pin": "9cbd7dd0d7a66163b5b593dfe55f1d8b220785de",
+     "workset": "arch-score budget-raise-gate",
+     "verdict": "FAIL run(s) [42286624031, 42293328283] at this head are still being judged; their gate decides"
+    },
+    {
+     "run": 42286624031,
+     "attempt": 2,
+     "job": 128173059639,
+     "started_at": "2026-11-06T21:46:18Z",
+     "completed_at": "2026-11-06T21:46:54Z",
+     "conclusion": "failure",
+     "pin": "9cbd7dd0d7a66163b5b593dfe55f1d8b220785de",
+     "workset": "arch-score budget-raise-gate",
+     "verdict": "FAIL run(s) [42286558101, 42293328283] at this head are still being judged; their gate decides"
+    },
+    {
+     "run": 42293328283,
+     "attempt": 2,
+     "job": 128173073456,
+     "started_at": "2026-11-06T21:46:20Z",
+     "completed_at": "2026-11-06T21:46:59Z",
+     "conclusion": "failure",
+     "pin": "9cbd7dd0d7a66163b5b593dfe55f1d8b220785de",
+     "workset": "arch-score budget-raise-gate",
+     "verdict": "FAIL run(s) [42286558101, 42286624031] at this head are still being judged; their gate decides"
+    }
+   ]
+  },
+  {
    "name": "3263-c3",
    "pr": "3263",
    "head": "02e92e7cbcb95c32fbb2ad3a7a46a8d465a436d8",

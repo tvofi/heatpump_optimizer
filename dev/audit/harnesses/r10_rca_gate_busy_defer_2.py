@@ -9,13 +9,16 @@ live gate ran (its `programs restored from <sha>` line), so it can answer the qu
 harnesses could not ask: which program judged the red.
 
 Arms:
-  record OUT.json        read the scenes below from the GitHub API (gh api), write the fixture
+  record OUT.json [--scene NAME]
+                         read the scenes below from the GitHub API (gh api), write the fixture;
+                         with --scene, re-read that one scene into the existing fixture only
   replay --ci DIR        judge every scene's gates with DIR's gate.py; print one line per scene
                          and exit 1 on a defect class: a pair scene's gate defers to its partner
-                         (DEADLOCK: both do; HALF-DEFERRED: one does; the live #3241/#3246 defect), or
-                         a single edit gate publishes its deferral to a code run at once, naps 0
-                         (C3-AT-ONCE; the #3263 defect #3276 removed). A single gate that waited and
-                         then deferred is DEFERRED, not a defect: the bounded wait. The single-gate
+                         (DEADLOCK: every one does; HALF-DEFERRED: some do; the live #3241/#3246/#3244
+                         defect). A single edit gate that publishes its deferral to a code run at once,
+                         naps 0, is C3-AT-ONCE: #3263's defect under #3276, the design since #3287
+                         (5c1fa41f: a deferral holds no runner, gate-sweep.yml re-judges it), so no
+                         defect; nor is a gate that waited and then deferred (DEFERRED). The single-gate
                          scenes judge one gate beside a code run listed as recorded, so they see the
                          at-once bound and not the wait cycle judging() once made (#3276's fixture
                          self-test in gate.py pins that)
@@ -54,6 +57,8 @@ SCENES = [
     ("3261-pair", "3261", "e17fadc1795ebbaaf0f01ed067fbb59aeba90dee", [(42307493684, 8), (42307798573, 8)]),
     ("3265-pair", "3265", "c7c5cef52a49bed59ee4c8a42e495ef2dae30db5", [(42332777827, 4), (42333388705, 4)]),
     ("3255-pair", "3255", "2ad28ecb50906877b34a378cacd8085e6afca029", [(42321825054, 5), (42322943199, 4)]),
+    # three edit gates, attempt 2, started within 2 s after the code run's gate went green (r10-hotfix-gate-busy-defer-p5)
+    ("3244-triple", "3244", "a258212553e123d735c7eff139a8e347a1a52ea3", [(42286558101, 2), (42286624031, 2), (42293328283, 2)]),
     ("3263-c3", "3263", "02e92e7cbcb95c32fbb2ad3a7a46a8d465a436d8", [(42338396358, 1)]),
     ("3261-c3", "3261", "61187afe6cfdc4416f161e23111571bc50d25d9c", [(42338828285, 1)]),
     ("3241-c3", "3241", "3720667a319cca90628a6b4167e3774408cb60a3", [(42338898175, 1)]),
@@ -90,9 +95,14 @@ def gate_log(job_id):
     return {"pin": pin, "workset": workset, "verdict": verdict}
 
 
-def record(out):
+def record(out, only=None):
     doc = {"repo": REPO, "recorded_at": iso(datetime.now(timezone.utc)), "scenes": []}
+    if only:
+        doc = json.loads(Path(out).read_text())
+        doc["scenes"] = [s for s in doc["scenes"] if s["name"] != only]
     for name, pr, head, gates in SCENES:
+        if only and name != only:
+            continue
         runs = gh(f"repos/{REPO}/actions/workflows/ci.yml/runs?head_sha={head}&per_page=100")["workflow_runs"]
         rec = []
         for r in runs:
@@ -112,6 +122,7 @@ def record(out):
             live.append({"run": rid, "attempt": n, "job": g["id"], "started_at": g["started_at"],
                          "completed_at": g["completed_at"], "conclusion": g["conclusion"], **gate_log(g["id"])})
         doc["scenes"].append({"name": name, "pr": pr, "head": head, "runs": rec, "gates": live})
+    doc["scenes"].sort(key=lambda s: [x[0] for x in SCENES].index(s["name"]))
     Path(out).write_text(json.dumps(doc, indent=1) + "\n")
     print(f"recorded {len(doc['scenes'])} scenes to {out}")
     return 0
@@ -200,10 +211,10 @@ def judge_one(gate, scene, g, t0, sim):
     return outcome, clock["t"], clock["naps"]
 
 
-# Classes that make replay exit 1. C3-AT-ONCE is a defect since #3276 (812bb8747) deleted gate.py's at-once
+# Classes that make replay exit 1. C3-AT-ONCE was a defect from #3276 (812bb8747), which deleted gate.py's at-once
 # bound for a deferring edit gate (the cause was prelude.judging() reading the deferring run's skipped
 # `pr-contract` caller as owed); DEFERRED after naps is the bounded wait, a designed outcome.
-DEFECTS = ("DEADLOCK", "HALF-DEFERRED", "C3-AT-ONCE")
+DEFECTS = ("DEADLOCK", "HALF-DEFERRED")    # C3-AT-ONCE left them at #3287 (5c1fa41f): the at-once deferral is its design
 
 
 def classify(scene, verdicts):
@@ -314,9 +325,10 @@ def main(argv):
     ap.add_argument("--since", default="2026-11-07T03:45:14Z")    # 355d9965's merge
     ap.add_argument("--until", default="9999")
     ap.add_argument("--fix", default=FIX)
+    ap.add_argument("--scene")
     a = ap.parse_args(argv)
     if a.arm == "record":
-        return record(a.out or a.fixture)
+        return record(a.out or a.fixture, a.scene)
     if a.arm == "census":
         return census(a.since, a.until, a.fix)
     if a.arm == "pins":
