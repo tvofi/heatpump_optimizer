@@ -1,0 +1,32 @@
+== 569318eded52 wall=gate+60s
+SCENE #3293-settle-gap(synthetic) want=WAIT got=WAIT pending=['gate'] red=[]
+SCENE null-code-run-red(synthetic) want=RED got=RED pending=[] red=['gate']
+RESULT replay defects=0 settle_gap=0 null_bad=0 scenes=7
+== a38bd141ec8b wall=gate+60s
+SCENE #3293-settle-gap(synthetic) want=WAIT got=RED pending=[] red=['gate']
+SCENE null-code-run-red(synthetic) want=RED got=RED pending=[] red=['gate']
+RESULT replay defects=0 settle_gap=1 null_bad=0 scenes=7
+== 569318eded52 wall=gate+240s
+SCENE #3293-settle-gap(synthetic) want=WAIT got=WAIT pending=['gate'] red=[]
+SCENE null-code-run-red(synthetic) want=RED got=RED pending=[] red=['gate']
+RESULT replay defects=0 settle_gap=0 null_bad=0 scenes=7
+== a38bd141ec8b wall=gate+240s
+SCENE #3293-settle-gap(synthetic) want=WAIT got=RED pending=[] red=['gate']
+SCENE null-code-run-red(synthetic) want=RED got=RED pending=[] red=['gate']
+RESULT replay defects=0 settle_gap=1 null_bad=0 scenes=7
+== 569318eded52 wall=gate+241s
+SCENE #3293-settle-gap(synthetic) want=WAIT got=RED pending=[] red=['gate']
+SCENE null-code-run-red(synthetic) want=RED got=RED pending=[] red=['gate']
+RESULT replay defects=0 settle_gap=1 null_bad=0 scenes=7
+== a38bd141ec8b wall=gate+241s
+SCENE #3293-settle-gap(synthetic) want=WAIT got=RED pending=[] red=['gate']
+SCENE null-code-run-red(synthetic) want=RED got=RED pending=[] red=['gate']
+RESULT replay defects=0 settle_gap=1 null_bad=0 scenes=7
+== 569318eded52 wall=gate+3600s
+SCENE #3293-settle-gap(synthetic) want=WAIT got=RED pending=[] red=['gate']
+SCENE null-code-run-red(synthetic) want=RED got=RED pending=[] red=['gate']
+RESULT replay defects=0 settle_gap=1 null_bad=0 scenes=7
+== a38bd141ec8b wall=gate+3600s
+SCENE #3293-settle-gap(synthetic) want=WAIT got=RED pending=[] red=['gate']
+SCENE null-code-run-red(synthetic) want=RED got=RED pending=[] red=['gate']
+RESULT replay defects=0 settle_gap=1 null_bad=0 scenes=7

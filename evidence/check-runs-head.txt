@@ -1,0 +1,5 @@
+Check runs at 569318eded525daf0d9f5eb89e1d169475284b2c, read 2026-11-08 ~00:57Z via the GitHub MCP get_check_runs (per_page=100): total_count 55, all 55 on one page.
+Conclusions: success or skipped only. Zero failure/cancelled/timed_out/action_required.
+Code run 42429886088: gate 128582373364 success 00:54:21Z-00:54:52Z; pr-contract / pr-contract 128582183933 success 00:53:31Z-00:54:19Z.
+Edit run 42429885312: gate 128582570771 success 00:55:14Z-00:55:52Z.
+Required-adjacent: governance / instrument-self-tests 128576337685 success; tests / nightly-status 128576337642 success; tests / mutation 128576337729 success.

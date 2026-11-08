@@ -1,4 +1,4 @@
-"""Reviewer's own replay (not the finder's harness): the head's recorded check runs and ci.yml runs, cut at time T, fed to merge_train.classify_cmd at the code under test."""
+"""Reviewer's own replay (round 4, adapted from the round-3 reviewer's replay_gap.py): recorded runs at a38bd141 cut at T, with the Train wall clock set to T."""
 import json, sys, importlib.util
 from pathlib import Path
 tree, T = sys.argv[1], sys.argv[2]
@@ -22,7 +22,9 @@ def run(argv, cwd=None, stdin=None):
     if "actions/workflows/ci.yml/runs" in a: return 0, "\n".join(json.dumps(r) for r in runs)
     if "check-runs" in a: return 0, "\n".join(json.dumps(c) for c in snap)
     return 9, "unstubbed"
-t=mt.Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s:None, log=lambda m: print("log:",m))
+import datetime
+wall=datetime.datetime.fromisoformat(T.replace("Z","+00:00")).timestamp()
+t=mt.Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s:None, log=lambda m: print("log:",m), **({"wall":(lambda: wall)} if "wall" in mt.Train.__init__.__code__.co_varnames else {}))
 t.required=lambda pr_head=True: ["gate"]
 f=getattr(mt,"classify_cmd",None)
 print(T, *(f(t, "a38bd141ec8b42fc8d2bcd17090be1814ca97d83", None, False) if f else mt.classify(mt.latest_runs(snap), ["gate"])))

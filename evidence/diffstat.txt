@@ -1,0 +1,10 @@
+ dev/programme/delivery/3290.md                 |   1 +
+ tools/audit/seat/ci-watch.sh                   |  48 ++-
+ tools/audit/seat/instruments/ci-watch.sh.md    |   5 +-
+ tools/audit/seat/instruments/merge_train.py.md |  19 +-
+ tools/audit/seat/instruments/proof_watch.py.md |   4 +-
+ tools/audit/seat/instruments/train.sh.md       |   4 +-
+ tools/audit/seat/merge_train.py                | 437 +++++++++++++++++++++++--
+ tools/audit/seat/proof_watch.py                | 109 +++++-
+ tools/audit/seat/train.sh                      |  17 +-
+ 9 files changed, 600 insertions(+), 44 deletions(-)
