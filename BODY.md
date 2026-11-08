@@ -1,38 +1,91 @@
-R10-PARTLOAD-RESIDUE: the three measure-first items #3182 left. Each was measured at this group's merge base, and **no production line changes**. The diff lands the harness that re-derives the CPU figures and carry 2's stated-rate figures (`dev/audit/harnesses/r10_partload_residue.py`), plus its `INERT` classification. The linear-valuation bounds come from `r10_partload_pricing.py`, the finder's harness, which is already in the tree. Carries are numbered 1 to 3 in roster order, so the brief's carry 0, 1 and 2 are carries 1, 2 and 3 here.
+R10-PARTLOAD-RESIDUE: the three measure-first items #3182 left. Each was measured at this group's merge base. Repair round 3 adds carry 2's fourth seam, the wood advisor's pump-heat price, which is measured and **fixed in production** (`wood_fuel.py`, plus the one `partload_at` line in `coordinator.py`). The diff also lands the harness that re-derives the CPU figures and carry 2's stated-rate figures (`dev/audit/harnesses/r10_partload_residue.py`), plus its `INERT` classification. The linear-valuation bounds come from `r10_partload_pricing.py`, the finder's harness, which is already in the tree. Carries are numbered 1 to 3 in roster order, so the brief's carry 0, 1 and 2 are carries 1, 2 and 3 here.
 
 - **Carry 1, the live buffer store's CPU.** A 750 L store costs about 1.9x per solve. One lever at a time: 1.87x on the seeded spread days, 1.93x on the flat null, and 1.15x for the price day alone. The worst solve is 1.83 s here, about 12 s scaled to Pi class. That is 2 % of the shortest optimisation interval the options flow accepts (10 min). The 272 s owner-box outlier did not reproduce in 80 seeded solves, and no harness in the tree re-derives it. **Refused:** no bound or warm start is earned at these numbers.
 - **Carry 2, linear valuations under a convex cost.** The hot-water LP's secant error is at most 0.27 currency/day against a hot-water cost of about 7 to 8 per day (3.8 %).
   - This round states a refill rate for the terminal and deferred figures: the plan's own energy-weighted mean draw, `P_r`. At that rate their errors are at most 3.71 and 0.79 per horizon (flat day), against bounds of 4.37 and 2.14 at max power. The zero-derate null reads exactly 0 at both rates.
   - **Not immaterial at the stated rate**, so this measurement does not settle the carry. Whether to segment the hot-water LP and derate the terminal and deferred refill is a production decision on `_plan_dhw_min_cost`, `_terminal_cost` and `_deferred_energy_cost`.
+  - The fourth seam, the wood advisor (`wood_fuel` `cheaper_steps` and `_scan_wood_night`), priced pump heat at `price / compute_cop(outdoor)` with no draw. At d = 0.112 that under-prices pump heat by up to 12.6 % (`d / (1 - d)`), and the advisor counted up to 19 (spread) and 58 (flat) fewer wood-cheaper steps than at the derated price. **Fixed here:** each step's COP is multiplied by `partload_factor` at the plan's own total draw (`## Repair round 3`). At the default derate 0 every factor is exactly 1.0, so the view is unchanged.
   - `_terminal_cost`'s docstring binds its refill pricing to the savings settle-up "exactly as `_deferred_energy_cost` prices it", so the decision cannot be taken in one of them alone. It is carried, with its control and these figures, to the live group that owns the savings settle-up's stored-heat term on `optimizer.py`: R10-SAV-COMFORT (`## Carry for the roster`).
 - **Carry 3, Pi CPU of the relaxed start.** The worst clamped solve is 1.96 s and the relaxed pass inside it at most 0.32 s. At the derived Pi-class factor of 6.8x that is about 13.3 s and 2.2 s, against the 600 s budget. The null control holds: the unclamped cells start 0 relaxed runs and spend 0.000 s in the pass. **Refused:** a `maxiter` cap on the relaxed pass is not earned. It would become due only if a clamped solve ran 306x slower than here.
 
+
 ## Head
 
-306a0b76e8bdd3e82e7370e3f1ad7bc08be832c1.
+2f25b38933f0d297eb87da092433c3c68e25184e.
 
-- The CPU figures (carries 1 and 3) were taken at 67cc12cc52afaf347534fa2859a4d6d329ea5690, on merge base b4ec2f332fe3ab8dcf169bd3066276d3bb8848ab.
-- Two `origin/main` merges followed: 219c27b5d (bringing in 1c1ae100b) and 12a5d22a5 (bringing in 4b5d771bd). Neither moved anything the figures read: `git diff --quiet b4ec2f332 306a0b76e -- custom_components dev/audit/harnesses/r10_buffer_store.py dev/audit/harnesses/r10_partload_pricing.py dev/audit/harnesses/r10_cop_partload.py dev/audit/harnesses/r10_setpoint_boost.py tests/profiles.py && echo MEASURED-INPUTS-IDENTICAL` prints `MEASURED-INPUTS-IDENTICAL`.
-- This round's one commit, 306a0b76e, adds the harness's `refill` subcommand. Its two removed lines are the docstring's usage line and the `thermal_model` import; the `relaxed` and `buffer` bodies are untouched.
-- Carry 2's figures (both harnesses) were re-taken at 306a0b76e.
-- `origin/main` has since moved to 53273de4d449a990bc29734565f63babada9ff7f. `git merge-tree --write-tree origin/main 306a0b76e` reports no conflict, so by the owner's 2026-11-07 ruling no third merge is made; the merge train recarries the head.
-- Carry 2's `refill` and `r10_partload_pricing.py` figures were re-derived a second time by the body re-take seat (at 306a0b76e and at merge base 4b5d771bd) and matched every printed digit; the zero-derate null read `null rows not zero 0` on both.
+- This round's commits sit on the reviewed head 8bef9bc866a7458b19dbc00d0bf4ed07ed2f206a: 4555ba0c8 (harness: the wood arm and the positive control), 26fcbc7eb (the `wood_fuel` fix, its pins, the harness's production comparison and the structure re-record), ac397921e (a test name `prepr.sh`'s no-copies step refused), 8594a61c5 (the equivalent guard deleted, and pins for four diff-mutant survivors) and 2f25b3893 (the pin for the last survivor).
+- Merge base 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76. Every figure in this body was re-taken at 2f25b3893, or at the merge base where it says so.
+- origin/main is 5bc009bc82962df5d239cbacc2e570dffd9a9cf9, read at 2026-11-08T05:59Z. `git merge-tree --write-tree origin/main HEAD` reports no conflict (the ledger driver merges `tests/structure_budgets.json` and `tests/closures.json`), so by the owner's 2026-11-07 ruling no merge is made.
+- The CPU figures (carries 1 and 3) were taken at 67cc12cc52afaf347534fa2859a4d6d329ea5690 on merge base b4ec2f332fe3ab8dcf169bd3066276d3bb8848ab. They read the solver alone. This round changes `wood_fuel.py` and one `coordinator.py` call, which no solve reaches. They were not re-taken.
+
+## Repair round 3
+
+The answer to the fix review's verdict at 8bef9bc86, one finding at a time.
+
+- **Block: the wood advisor's pump-heat price was neither measured nor dispositioned.** Measured in 4555ba0c8, fixed in 26fcbc7eb (pins completed in 8594a61c5 and 2f25b3893).
+  - Measured with `r10_partload_residue.py refill`'s new wood arm. It uses the same 16 installs x 2 price days x 2 derates and the same solves as the other three seams, and has the zero-derate null.
+  - The production `cheaper_hour_count` and `_scan_wood_night` are each fed two COP lists. The first is the advisor's own `compute_cop`. The second is that COP derated at each running step's published draw.
+  - Wood prices: 41 points spanning each cell's band, from its lowest linear to its highest derated pump-heat price.
+  - At d = 0.112:
+    - The pump-heat price error is up to 0.037629 (spread) and 0.061299 (flat) currency/kWh, relative 0.12613 = 0.112 / 0.888.
+    - The cheaper-count shortfall is up to 19 steps (spread, on all 16 cells) and 58 (flat, 14 cells).
+    - The night pick changes at 67 and 560 of 656 grid prices.
+  - At d = 0 every wood figure reads 0.
+  - This is not immaterial, and unlike the other three seams it binds no savings settle-up, so it is fixed rather than carried.
+  - The fix: `wood_fuel_from_parts` builds the per-step factors with `_plan_partload`, `partload_factor` at space plus hot-water draw. `build_wood_fuel_view` and `_attach_night_advice` multiply the COPs by them (`_derated`).
+  - `thermal_model` imports `wood_fuel`, so `partload_factor` is passed in by the coordinator (`partload_at`), as `compute_cop` is. A late import would add an import cycle, which `tests/structure.py` refuses.
+  - After the fix, the harness's production comparison reads count residual 0 and night picks off 0 on every row. At the merge base the same harness reads 19/67 (spread) and 58/560 (flat) (`## Figures`). Carry: dismissed: fixed in this diff
+- **Follow-up: `refill` had no positive control.** Added in 4555ba0c8. `refill` now exits 1 when a d > 0 price day's terminal, deferred or wood-price maximum is 0. Mutant `k_r = 0.0` now prints `positive (d>0) price days with a zero maximum 2` and exits 1 (`## Null control`). Carry: dismissed: fixed in this diff
+- **Residual: carry 1's 272 s outlier.** Kept as stated. It is refused on non-reproduction in 80 seeded solves, on the synthetic owner shape alone, and it re-opens only from a diagnostics bundle (D15). Carry: dismissed: no in-tree input reproduces it; re-opens only from a diagnostics bundle (D15), which this group does not hold
 
 ## Mutation proof
 
-n/a: no production line is added or changed, so there is no fix line to delete. Each harness's refusal arm is exercised by its null control instead:
-- `relaxed` exits 1 when an unclamped cell starts a relaxed run. It read 0 such cells.
-- `refill` exits 1 when a `d=0` row's terminal or deferred error is not exactly 0. It read `null rows not zero 0`.
+Each fix line was mutated alone in the worktree, the pinning checks were run, and the line was restored. The checks: `PYTHONPATH=tests/hastub:custom_components:tests python3 tests/wood_advisor.py`, and the `tests/features.py` wood block through `python3 tools/audit/seat/features_block.py --prelude "from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator" --prelude "from harness import FakeEntry, FakeHass" --prelude "NOW = datetime(2026, 2, 1, 12, 0, tzinfo=UTC)" "from heatpump_optimizer.wood_fuel import (" "_wf_soc_kwargs = dict("`. Baseline: both exit 0.
+
+| mutant | failing checks |
+|---|---|
+| M1 `coordinator.py` drops `partload_at=partload_factor` | features: "the published wood advisor prices a max-power step's pump heat at the derated COP (cheaper at d = 0.1, not at d = 0; R10-PARTLOAD-RESIDUE)" |
+| M2 `_plan_partload` returns an empty list | wood_advisor: "the wood advisor prices pump heat at the derated COP of the plan's own draw ..." and "the night advice prices pump heat at the derated COP ..."; features: the check above |
+| M3 `_derated` drops the factor | the same three |
+| M4 `_attach_night_advice` gets no `partload` | wood_advisor: "the night advice prices pump heat at the derated COP ..." |
+| M5 the cheaper count's COPs are not derated | wood_advisor: "the wood advisor prices pump heat ..."; features: the check above |
+| M6 the hot-water draw is dropped from the total | wood_advisor: both checks (the space share sits at the floor, so only the total derates) |
+
+The failing test came first. Its first version, run against the unfixed `wood_fuel.py`, read `[0, 0, 0]` where `[30, 0, 0]` was expected. The final checks pass `partload_at`, which the unfixed `wood_fuel_from_parts` does not accept, so at the merge base they raise `TypeError`.
+
+Diff mutants (`prepr.sh` step 6d', owner ruling 2026-11-07): `MUTANT_CMD` was `bash <script>`, with `MUTANT_MAX=40`. The script, a short file in this seat's scratch directory, runs `tests/wood_advisor.py`, then the features wood block above, and exits non-zero on the first failure.
+- The first standalone run of `python3 -I tools/audit/seat/mutant_run.py --diff 4b5d771bd...HEAD --cmd "bash <script>" --max-mutants 40 --report-only`, at ac397921e, took 20 s wall and found 8 `SURVIVED` sites, all in `wood_fuel.py`:
+  - `_derated`'s empty guard, GUARD_OFF and RETURN_DEL. This mutant is equivalent: an empty `partload` gives `[] + cops`. The guard is deleted in 8594a61c5.
+  - `_derated`'s `strict` swap. Pinned by a plan shorter than the outdoor list.
+  - `_plan_partload`'s None guard, GUARD_OFF and RETURN_DEL. Pinned by the default `partload_at=None`.
+  - Its `finite_float` default. Pinned by a non-finite space draw.
+  - Its `fillvalue`. Pinned by no hot-water schedule.
+  - The night advice's `[3.0]` fallback. Pinned in 2f25b3893.
+- The rerun at 2f25b3893 took 14 s wall and printed no `SURVIVED` line.
+- `prepr.sh`'s own step at 2f25b3893 printed `diff mutants no survivor`. Survivor count: 0.
+
+## Unpinned sites
+
+Listed by `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` (`ADDED UNPINNED`) at 2f25b3893. Each is killed by this diff's own tests: the diff-mutant run above has no survivor, and mutation-proof rows M3 and the `partload_at=None` edge check fail on them. The ledger pin is `mutation-autofix`'s to write.
+- `custom_components/heatpump_optimizer/wood_fuel.py:546 RETURN_DEL` (`_derated`'s return): pinned by `mutation-autofix`; killed by `tests/wood_advisor.py` "the wood advisor prices pump heat at the derated COP of the plan's own draw ...".
+- `custom_components/heatpump_optimizer/wood_fuel.py:666 GUARD_OFF` (`_plan_partload`'s `result is None or partload_at is None` guard): pinned by `mutation-autofix`; killed by `tests/wood_advisor.py` "the derate reads only what the plan publishes: no partload_at, ...".
 
 ## Null control
 
 - Carry 1: the flat price day, with no cheap window to store for. The 750 L store still costs 1.93x there, so its cost is per-solve model work, not arbitrage search. The no-buffer arm separates the price lever: 0.455 s flat against 0.522 s spread, p50.
 - Carry 2: zero derate.
-  - `r10_partload_pricing.py` prints `null rows not zero 0`. Its `lp_err`, terminal, deferred and baseline-change figures all read `0.000000` at `d=0.0`, on both price days and all 16 installs.
-  - `r10_partload_residue.py refill` prints `terminal-at-P_r max 0.000000 deferred-at-P_r max 0.000000` on both `d=0.0` rows, then `null rows not zero 0`.
-- Carry 3: the non-relaxed path, on the 32 unclamped cells. They show 0 relaxed runs and a maximum of 0.000 s inside the pass. The whole-solve delta between the production arm and the pass-removed arm ranges from -0.082 to +0.056 s there, which is the timing noise floor. The clamped cells' delta has a p50 of +0.150 s and a maximum of +0.667 s.
+  - `r10_partload_pricing.py` prints `null rows not zero 0`.
+  - `r10_partload_residue.py refill`, at 2f25b3893 and at the merge base, prints `null rows not zero 0`. Its d = 0 rows read `0.000000` for the terminal, deferred and wood-price errors, a count shortfall of 0, 0 night picks changed, and production residual 0.
+- Positive controls on `refill`, each on a mutated copy of the harness at 4555ba0c8 (outputs in this seat's evidence):
+  - `k_r = 0.0`: `positive (d>0) price days with a zero maximum 2`, exit 1.
+  - The wood derate dropped (`true = lin`): the same line, `2`, exit 1.
+  - The null arm perturbed (factor - 1e-9): `null rows not zero 32`, exit 1.
+- The production comparison is its own control. At the merge base it reads the defect (count residual 19 and 58, night picks off 67 and 560). At 2f25b3893 it reads 0 on all four rows. At d = 0 it reads 0 at both ends.
+- The fix's own null is `tests/wood_advisor.py` and the features check at derate 0: 0 cheaper steps, and no night advice.
+- Carry 3: the non-relaxed path, on the 32 unclamped cells. They show 0 relaxed runs and a maximum of 0.000 s inside the pass.
 
 ## Figures
+
 
 All CPU times are `time.process_time` of one process pinned to one core (`taskset -c N`), with `OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1`.
 - Host: x86_64, `Intel(R) Xeon(R) Processor @ 2.30GHz`, family 6, model 173 (Granite Rapids class), Python 3.14.7, numpy 2.5.4, scipy 1.18.1.
@@ -76,17 +129,31 @@ The 3.8 % share is 0.267290 / 7.0145.
 - 2319/340 = 6.8 is the top of the 1818/340 = 5.3 to 6.8 range, so the scaled figures are taken at the slow end.
 - Pi-class figures: 1.961 x 6.8 = 13.3 s, 0.318 x 6.8 = 2.2 s and 1.828 x 6.8 = 12.4 s. The breach factor is 600 / 1.961 = 306.
 
-**Gate.** `bash tools/pr/prepr.sh` on 306a0b76e printed `gate mode MODE: SCOPED` and the result line `PRE-PR: 306a0b76e8bdd3e82e7370e3f1ad7bc08be832c1 ... rc=0`. `bash tools/pr/prepr.sh --body-check <this body> --pr-branch fix/r10-partload-residue` printed `PR-BODY: 0 error(s)` and `CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)`. On this head, prepr's merged `tests/structure.py` printed `STRUCTURE RATCHET PASSED`, and `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` printed `ALL 112 HARNESS HEADER CHECKS PASSED`.
+**Carry 2's fourth seam, the wood advisor.** Command: `OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTHONPATH=tests/hastub:custom_components:tests taskset -c 0 python3 dev/audit/harnesses/r10_partload_residue.py refill` at 2f25b3893. The harness sha1 is fc617bd018a323a13891beb284a733ce42ce31bc. The same command was run on a merge-base worktree with this harness copied in, `taskset -c 1`.
+- Rule: per cell, the advisor's `wood_fuel._cops(outdoor, compute_cop)` against the same list times `partload_factor(P)` on each running step, where `P` is that step's published space plus hot-water draw.
+- Both lists are fed to the production `cheaper_hour_count` and `_scan_wood_night`, at 41 wood prices evenly spanning each cell's band, from its lowest linear to its highest derated pump-heat price.
+- "Production" is the COP list the tree's advisor uses: `production_cops`, which is `_cops` alone where `wood_fuel._plan_partload` is absent.
+- At 2f25b3893 it prints:
+  - `spread d=0.112: wood price err max 0.037629 rel max 0.12613; count short max 19 (share of running steps max 0.7368); cells with a count short 16; night picks changed 67 of 656 (cells 16)`
+  - `flat d=0.112: wood price err max 0.061299 rel max 0.12613; count short max 58 (share of running steps max 1.0000); cells with a count short 14; night picks changed 560 of 656 (cells 14)`
+  - `production advisor against the derated arm: count residual max 0, night picks off 0` on all four rows
+  - the d = 0.0 wood rows at 0, then `null rows not zero 0`, `positive (d>0) price days with a zero maximum 0`, `failures 0`, rc 0.
+- At the merge base 4b5d771bd, the wood rows are identical, and the production rows read:
+  - `spread d=0.112: ... count residual max 19, night picks off 67`
+  - `flat d=0.112: ... count residual max 58, night picks off 560`
+  - 0 at d = 0.0, rc 0.
+- The flat day's share of 1.0 is its constant price: every running step sits at one pump-heat price, so a wood price inside the 12.6 % band flips every step at max draw.
+- The terminal and deferred rows printed by the same run are digit-identical to round 2 (`2.117798`/`0.486127` spread and `3.714491`/`0.792466` flat).
+
+**Structure.** `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`. The re-record lowered `class_excess_loc` from 17585 to 17584 and `max_class_loc` from 7955 to 7954. The coordinator gains one `partload_at` line, and `_wear_price`'s `int()` argument, which was split over three lines, is joined onto one. The reason is in the commit message. No budget rises.
+
+**Gate.** `MUTANT_CMD="bash <script>" MUTANT_MAX=40 PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` on 2f25b3893 printed `gate mode MODE: SCOPED`, `merged structure STRUCTURE RATCHET PASSED`, `CI PREDICT: no closures, fast, governance or instrument red predicted`, `diff mutants no survivor` and the result line `PRE-PR: 2f25b38933f0d297eb87da092433c3c68e25184e ... rc=0`, in 729 s wall. The scoped gate (`tests/closure.py select`) names 27 scripts, `tests/wood_advisor.py` and `tests/features.py` among them; this seat ran wood_advisor in full, and the features wood block through `features_block.py`, and leaves the rest to CI.
 
 ## Red checks
 
-Every check run at PR head d5f8f410c, read with `filter=all` across both pages (156 runs at 2026-11-07 20:12 UTC, re-runs included; the in-progress re-runs are not concluded and not listed), with each concluded run not `success`, `skipped` or `neutral`:
-- `gate`, check run 128454048061 (edit run 42388390774), failure. It was a deferral: `FAIL run(s) [42388250566] at this head are still being judged; their gate decides`. The code run's own `gate` (check run 128463363585) then concluded success at 16:43 UTC, and the edit run's `gate` re-ran as check run 128465293496, success at 16:53 UTC. Class: gate deferral, not a defect. Answer: no cheaper detector exists, because the deferral is the gate waiting on the run it defers to. None.
-- `gate`, check run 128453123588 (edit run 42388250955), cancelled at 16:06 UTC. Class: superseded gate run, not a defect; run 42388250955's `gate` is re-running as check run 128513716807 (in progress at the read). Answer: none owed; a cancellation carries no verdict on this diff, and the code run's `gate` (128463363585) concluded success.
-- `tests / nightly-status`, check run 128451039899, failure. It grades `main`, and this diff touches none of what it reads (its scripts, the workflows, the plan, `HANDOVER.md` or a delivery row). By `defect-root-cause.md` it is the orchestrator's on `main`. None owed here.
-- `governance / instrument-self-tests`, check run 128451039876, cancelled after 30 min 14 s (15:53:40 to 16:23:54 UTC). It is a cancellation, not a failure, and the gate that judged its run concluded success afterwards. This diff changes nothing under `tools/`. The cause was not established in this seat. Named here; this head re-runs it.
+2f25b3893 has not run CI; the reviewer reads its own checks. At the reviewed head 8bef9bc86, the fix review's read of all 64 check runs found two concluded reds: the two `gate` runs 128574120853 and 128575220710. Each was a deferral (`FAIL run(s) [42429084301] at this head are still being judged; their gate decides`), and code run 42429084301 then concluded success. Class: gate deferral, not a defect. Answer: no cheaper detector exists, because the deferral is the gate waiting on the run it defers to.
 
-Each is a red at d5f8f410c. The new head 306a0b76e has not run CI yet, so the reviewer reads its own checks.
+Predicted at 2f25b3893: `tests / mutation`, red by construction on the two `## Unpinned sites`, until `mutation-autofix` writes their pins (`ci-autofix.md`). It is not a defect of this diff: both sites are killed by its tests.
 
 ## Carry for the roster
 
@@ -106,3 +173,4 @@ Destination: R10-SAV-COMFORT (`carries-open`; seam `optimizer.py`, `ledger.py`),
 ## Friction
 
 - fixer-pi-measurement: cost: the brief prefers GitHub's ubuntu-24.04-arm runner or an arm64 container under a CPU quota. This seat has neither (x86_64 container, no runner dispatch from a fixer's return refs), so the Pi-class figure is an x86_64 single-core `process_time` scaled by a cited Geekbench 6 single-core ratio. The verdict holds under any factor below 306x. Carry: dismissed: verdict robust below a 306x factor
+- fixer-wip-ref: cost: `refs/heads/handoff-wip/r10-partload-residue` held a prior seat's BLOCKED.md commits (19a838bc8), which are not ancestors of the PR head. A fast-forward-only step push was therefore refused, and this seat did not force it. The milestones are in the handoff commits instead. Carry: dismissed: the step ref is deleted after the body push
