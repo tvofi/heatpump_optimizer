@@ -1,0 +1,10 @@
+Head 930e1786863a0bfba7cbde0aa2e6dd246f9a4f11, tools/audit/seat/cloud_dispatch.py --self-test after each mutant (restored between):
+M1 reviewer line reverted to "(`git merge-tree --write-tree`). "        -> FAIL reviewer arm; 129 checks, 1 failed
+M2 reviewer "never on a head ... merges cleanly" -> "or on a head ... main" -> FAIL reviewer arm; 1 failed
+M3 fixer "needs no re-merge and no second run" -> "needs a re-merge..."  -> FAIL fixer arm; 1 failed
+M4 fixer "rerun prepr.sh only when" -> "rerun prepr.sh always;"          -> FAIL fixer arm; 1 failed
+M5 fixer old unconditional sentence restored (git merge origin/main, rerun) -> FAIL fixer arm; 1 failed
+M6 fixer "first clean" -> "last clean"                                   -> FAIL fixer arm; 1 failed
+M7 null control perturbed: probe seat line gains "behind main but merges cleanly" -> FAIL null control; 1 failed
+Failing first: base 8a4974d15 _prompt + head self_test -> FAIL fixer arm, FAIL reviewer arm; 129 checks, 2 failed
+Unmutated head: 129 checks, 0 failed
