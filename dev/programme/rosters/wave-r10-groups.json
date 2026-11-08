@@ -18638,7 +18638,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From r10-min-power-floor, body item c7e2fe29: The new option's German label: no German translation file exists at base. Owed to R10-I18N-DE's roster brief (item 9980b124), which the orchestrator writes, since a fixer seat writes no roster. Carry: R10-I18N-DE (items c7e2fe29)"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
