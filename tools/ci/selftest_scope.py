@@ -530,6 +530,9 @@ def fold(trace_dir: Path, steps: list[Step], root: Path = ROOT) -> dict[str, dic
         acc["probes"] -= acc["files"]
         out[s.id] = acc
     ignored = _ignored(root, set().union(*(e["probes"] for e in out.values())) if out else set())
+    gone = [r.rstrip("/") for r in retired_paths(root)]
+    ignored |= {p for e in out.values() for p in e["probes"]
+                if any(p == r or p.startswith(r + "/") for r in gone)}
     return {sid: {"run_sha": next(s.run_sha for s in steps if s.id == sid),
                   "files": sorted(e["files"]), "probes": sorted(e["probes"] - ignored),
                   "dirs": sorted(e["dirs"]), "index": e["index"], "objects": e["objects"],
@@ -634,6 +637,23 @@ def _traced() -> bool:
                    if l.startswith("TracerPid:"))
     except (OSError, IndexError):
         return False
+
+
+def retired_paths(root: Path) -> list[str]:
+    """tests/layout.py's LANDED retired paths at `root` (none without it). A
+    diff re-adding a file under one is refused there (`placement`), so a probe
+    of one can select nothing, and naming it would be a new reference to a
+    retired path, which the same guard refuses."""
+    if not (root / "tests" / "layout.py").is_file():
+        return []
+    sys.path.insert(0, str(root / "tests"))
+    try:
+        import layout
+    finally:
+        sys.path.pop(0)
+    manifest = layout.load(root)
+    return [r["old"] for r in layout.landed(layout.tracked(root), manifest["retired"],
+                                            manifest.get("ref_namespaces", ()))]
 
 
 def write_table(out: Path, entries: dict[str, dict], root: Path = ROOT) -> None:
@@ -1158,6 +1178,16 @@ def self_test() -> int:
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
             ck("an unknown command is a usage error", main(["frobnicate"], root) == 2)
+
+    # The live table names no landed retired path (tests/layout.py's guard
+    # refuses a new reference to one, and a diff re-adding one), and the
+    # list it is checked against is not empty (the check's own precondition).
+    gone = [r.rstrip("/") for r in retired_paths(ROOT)]
+    live_t = load_table(ROOT / TABLE) or {"steps": {}}
+    named = sorted({p for e in live_t["steps"].values() for k in ("files", "probes", "dirs")
+                    for p in e.get(k, ()) if any(p == r or p.startswith(r + "/") for r in gone)})
+    ck(f"the committed table names no landed retired path ({len(gone)} retired; named: {named[:3]})",
+       bool(gone) and named == [] and retired_paths(Path(tempfile.gettempdir())) == [])
 
     # The live job: its gating is consistent (the seat's own null control).
     live = workflow_steps(ROOT)
