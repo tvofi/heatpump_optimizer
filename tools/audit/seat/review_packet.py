@@ -31,6 +31,9 @@ harness the diff adds or edits is the fixer's, and the render refuses it.
 REFUSALS (rc 1, each named by its signal), all mechanical:
   carry-audit      `carry_audit.py check` returns 1 on the body (unrouted or bad);
   head-note        `## Head` does not name the dispatched head;
+  figure-lint      `figure_lint.mjs --pr-body` exits non-zero on the body (unverified is
+                   not refused, as `fixer.md` step 3 reads it);
+  moved-head       the pull request's head is no longer the dispatched head;
   structure        `tests/structure.py` refuses the head merged with main;
   red-unanswered   a CONCLUDED red check the body's `## Red checks` does not name
                    (`policy_lint.mjs --pr-body --red`);
@@ -133,7 +136,7 @@ HOT_FILES = ("tools/audit/seat/pr_args.sh", "tools/audit/seat/update_pr.sh",
              "dev/audit/harnesses/r10_seat_selftests_mutants.py")
 RED = {"failure", "cancelled", "timed_out", "action_required", "startup_failure"}
 LEDGER = "tests/mutation_ledger"
-SIGNALS = ("carry-audit", "head-note", "structure", "red-unanswered", "required-red", "host-path", "hot-file",
+SIGNALS = ("carry-audit", "figure-lint", "moved-head", "head-note", "structure", "red-unanswered", "required-red", "host-path", "hot-file",
            "handoff-not-applied", "carry-landed")
 
 
@@ -510,6 +513,10 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
     refusals: list[str] = []
     if facts["carry_rc"]:
         refusals.append("carry-audit: carry_audit.py check returned 1 on the body")
+    if facts.get("figure_rc"):
+        refusals.append("figure-lint: figure_lint.mjs refused the body (its output is in the packet)")
+    if facts.get("pr_head") and facts["pr_head"] != head:
+        refusals.append(f"moved-head: the pull request's head is {facts['pr_head']}, not the dispatched {head}")
     if not head_note_ok(facts):
         refusals.append(f"head-note: ## Head does not name the dispatched head {head}"
                         + head_note_repair(head, facts.get("branch")))
@@ -570,7 +577,7 @@ def gather(a) -> dict:
     gate = gate_digest(runs)
     owed = approval_owed_line(a.pr, head) if set(gate[2]) & set(REQUIRED) else None
     crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
-    _, fout = tool(["node", "tools/policy/figure_lint.mjs", "--pr-body", "{BODY}", "--at", head], body)
+    frc, fout = tool(["node", "tools/policy/figure_lint.mjs", "--pr-body", "{BODY}", "--at", head], body)
     red_unanswered = unanswered_reds(body, head, base, gate[2], touched, existing)
     named = head_named(body, head, base)
     ident = ref_privacy.Identity.of_host()
@@ -580,7 +587,8 @@ def gather(a) -> dict:
     return {
         "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate, "approval_owed": owed,
         "branch": branch, "unlanded": unlanded, "head_named": named,
-        "carry_rc": crc, "carry_out": cout, "figure_out": fout,
+        "carry_rc": crc, "carry_out": cout, "figure_out": fout, "figure_rc": frc,
+        "pr_head": (pr.get("head") or {}).get("sha"),
         "structure": None if a.no_structure else structure_at_merge(main, head),
         "red_unanswered": red_unanswered, "host": host, "handoff": handoff,
         "hot": hot_file_refusals(touched, open_prs, boarded, a.pr),
@@ -722,6 +730,12 @@ def _self_test() -> int:
                 os.environ.pop("HPO_PACKET_LINT", None)
             else:
                 os.environ["HPO_PACKET_LINT"] = saved
+    check("P-card3 figure-lint: a figure_lint refusal on the body refuses", refused("figure-lint", figure_rc=1))
+    check("P-card3 figure-lint null: figure_lint exit 0 (unverified included) does not refuse", build({**clean, "figure_rc": 0})[0] == [])
+    check("P-card3 moved-head: a pull request head other than the dispatched one refuses, naming both",
+          refused("moved-head", pr_head=B) and H in build({**clean, "pr_head": B})[0][0])
+    check("P-card3 moved-head null: the same head, or a handoff-ref dispatch with no pull request yet, does not refuse",
+          build({**clean, "pr_head": H})[0] == [] and build({**clean, "pr_head": None})[0] == [])
     check("structure: a structure refusal at the merge refuses", refused("structure", structure="max_class_loc"))
     check("red-unanswered: an unanswered concluded red refuses", refused("red-unanswered", red_unanswered=["tests / fast"]))
     check("host-path: a host path refuses", refused("host-path", host=["home-directory in the body"]))
