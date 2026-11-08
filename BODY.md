@@ -11,9 +11,16 @@ R10-PARTLOAD-RESIDUE: the three measure-first items #3182 left. Each was measure
 
 ## Head
 
-The head moved only to reset the CI re-run cap: the gate run at 17e891bf0 reached GitHub's 45-attempt re-run cap, so this merge of origin/main (clean; `git merge-tree --write-tree origin/main 17e891bf0` reported no conflict) changes no code of this PR.
+`5e21a591e7728b8ba4f103dcbc30f6e373371b8b` is this PR's head, the round-5 repair. It is a merge of origin/main 51cd5ec8a42abde3c223f22e9f4a0d5f35f8844a into the prior head 5fca8c7042a0b1b11057b9694a55e9965a07bdf4 (parents in that order), made because origin/main had moved since 5fca8c70's base 16f3d9cc3. `git merge-tree --write-tree origin/main 5fca8c70` reported no conflict; the ledger driver merged `tests/closures.json`'s `inert_reads` as a set. No other commit is added.
 
-`fd54a82ba513d989a09aaa969f16c56caa88b1a9` is the pull request head this body is taken at. Its first parent is the prior head 17e891bf00140d79e166d95901391294002b513c; the figures above were taken at that head's code and the merge brings in only main's own commits.
+- The branch's own three-dot diff from merge base 51cd5ec8a has the same `git patch-id --stable` (f7727f66e6957271c8062dbbaf045e2f43453894) as 5fca8c70's own diff from 16f3d9cc3. A different patch would have printed a different id.
+- `git diff --quiet 5fca8c70 HEAD` passes on `custom_components/heatpump_optimizer/{coordinator,wood_fuel,thermal_model,optimizer}.py`, `tests/wood_advisor.py`, `tests/profiles.py` and the four `dev/audit/harnesses/r10_*` harnesses the figures read; the only `custom_components` paths main moved are `manifest.json` and the card JS (the stamp). So every figure below, taken at a3a54793c (tree-identical to 17e891bf0) or earlier as each states, holds at this head for the branch's own code; none was re-taken.
+- `tools/pr/prepr.sh` was re-run at this head (`## Figures`, **Gate**).
+
+## Repair round 5
+
+The answer to the round-5 verdict at 5fca8c70 (`ci-red`). The verdict owes no code change: the head's units were all green and the two red `gate` jobs were deferrals to an edit run. Its one body finding was that `## Red checks` did not name 5fca8c70's reds; they are now named there. Carry: dismissed: fixed in this body
+- origin/main had moved (16f3d9cc3 -> 51cd5ec8a), so the brief's merge-and-rerun applies, and the new head gets fresh code-run gates. Carry: dismissed: fixed in this diff
 
 ## Repair round 4
 
@@ -150,11 +157,16 @@ The 3.8 % share is 0.267290 / 7.0145.
 
 **Architecture score.** `python3 tools/audit/archscore/score.py --diff 73365699a HEAD`: `Architecture score: dS -0.1926 WORSENS (inadmissible: params_over_10 6->7)` at 9211bed5a (49 s wall), `Architecture score: dS +0.0000 NULL` at a3a54793c. `PYTHONPATH=tests/hastub python3 tests/arch_score_head.py`: `1 of 18 ARCHITECTURE SCORE HEAD CHECKS FAILED` at 9211bed5a, `ALL 18 ARCHITECTURE SCORE HEAD CHECKS PASSED` at a3a54793c. No gate metric rises, so no `## Architecture score` explanation is owed.
 
-**Gate.** `MUTANT_CMD="bash <script>" MUTANT_MAX=40 PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>` on a3a54793c printed `gate mode MODE: SCOPED`, `CI PREDICT: no closures, fast, governance or instrument red predicted against 73365699a135`, `merged structure STRUCTURE RATCHET PASSED`, `diff mutants no survivor` and the result line `PRE-PR: a3a54793cf23ee4d5c6b790969e722b901625f56 ... rc=0`, in 857 s wall. The diff-mutant step's survivor count is 0. origin/main did not move between that run and the handoff.
+**Gate.** Round 5, at 5e21a591e: `MUTANT_CMD="bash <script>" MUTANT_MAX=40 PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>` (the same script as round 4's, recreated in this seat's scratch directory) printed `gate mode MODE: SCOPED`, `CI PREDICT: no closures, fast, governance or instrument red predicted against 51cd5ec8a42a`, `merged structure STRUCTURE RATCHET PASSED`, `diff mutants no survivor`, `CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted` and the result line `PRE-PR: 5e21a591e7728b8ba4f103dcbc30f6e373371b8b ... rc=0`, in 796 s wall. Round 4's run was at a3a54793c, `PRE-PR: a3a54793cf23ee4d5c6b790969e722b901625f56 ... rc=0`.
 
 ## Red checks
 
-At head 17e891bf0 the check runs that concluded non-success, read from all check-run pages of the commit, are three: `codeql / Analyze (python)` (`cancelled`, job 128686972435, run 42461842836) and two `gate` jobs (`failure`, jobs 128686936720 and 128687225710). No code-scanning alert is attached to this head: `Perform CodeQL Analysis` was cancelled, not failed, so no analysis was uploaded to raise one on a line this diff added.
+At head 5fca8c7042a0b1b11057b9694a55e9965a07bdf4 (the prior head) the only concluded non-success runs were two `gate` jobs, as the round-5 verdict read from all 94 check runs: job 128826607391 (code run 42501481491) and job 128826617125 (code run 42501476955). Every other required leg, `codeql / Analyze (python)` included, concluded `success` or `skipped`.
+
+- `gate` (jobs 128826607391 and 128826617125): **a gate deferral to the body-edit run, not a failed unit; this diff did not cause it.** Both logs read only `FAIL run(s) [42511845716] at this head are still being judged; their gate decides` and exit 1. Edit run 42511845716's own `gate` (job 128827075024) concluded `success`. With `gate-sweep.yml` disabled nothing re-ran the deferred gates. Cheaper detector: none; the deferral happens only at CI time, when a body edit races a code run's gate. This head is new, so its code-run gates run afresh. Carry: dismissed: a CI-time gate deferral with no cheaper detector; R10-HOTFIX-TRAIN-DEFER-WAIT holds the class
+- At this head, 5e21a591e: no check had concluded when this body was written, because the head is pushed with it.
+
+Earlier, at head 17e891bf0, the check runs that concluded non-success, read from all check-run pages of the commit, are three: `codeql / Analyze (python)` (`cancelled`, job 128686972435, run 42461842836) and two `gate` jobs (`failure`, jobs 128686936720 and 128687225710). No code-scanning alert is attached to this head: `Perform CodeQL Analysis` was cancelled, not failed, so no analysis was uploaded to raise one on a line this diff added.
 
 - `codeql / Analyze (python)`: **cancelled at the 45-minute cap, runner-speed variance; this diff did not cause it.**
   - Evidence: the job ran 08:12:02Z to 08:57:09Z (45 min 7 s). Every step before `Perform CodeQL Analysis` succeeded, that step ran 08:12:27Z to 08:57:02Z (44 min 35 s) and is the only `cancelled` step, and the next step (the INERT-list check) was skipped. A real alert concludes `success` with an alert attached; a timeout concludes `cancelled`.
