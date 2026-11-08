@@ -151,6 +151,19 @@ LINE_BACKUP_HEATER = "backup_heater"
 RESISTIVE_LINES = (LINE_IMMERSION, LINE_DHW_BOOSTER, LINE_BACKUP_HEATER)
 
 
+class WhyNowDriver(TypedDict):
+    code: str
+    direction: str  # "run", "idle" or "neutral"
+    weight: float  # signed percent of the step's push; magnitudes sum to 100
+
+
+class WhyNow(TypedDict):
+    """``slot_drivers.why_now_at``: the current step's drivers, largest first."""
+
+    t: str
+    drivers: list[WhyNowDriver]
+
+
 class CurrentAction(TypedDict, total=False):
     mode: str
     power: float
@@ -181,6 +194,7 @@ class CurrentAction(TypedDict, total=False):
     dhw_reason: str | None
     boost_space: bool
     boost_dhw: bool
+    why_now: WhyNow
 
 
 class DisinfectionSwitch(TypedDict, total=False):
@@ -980,6 +994,7 @@ class SolvedSlice(TypedDict, total=False):
     schedule: list[ScheduleStep]
     space_plan: SpacePlan
     dhw_plan: DhwPlan
+    why_now: WhyNow
 
 
 class Payload(
