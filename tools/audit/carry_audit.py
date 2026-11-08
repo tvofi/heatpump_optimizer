@@ -1936,6 +1936,9 @@ def _self_test() -> int:
     got, sts = own_item("Carry 99: not a carry of this group. Carry: R10-A")
     check("landed: an index the group has no carry at is a finding and lands (null control)",
           len(land_ops(got)) == 1 and sts == [])
+    got, sts = own_item("Carry 5: the first index past the group's five carries. Carry: R10-A")
+    check("landed: the index one past the last carry (5 of 0-4) is a finding and lands (the bound)",
+          len(land_ops(got)) == 1 and sts == [])
     got, sts = own_item("Carry 3: built. Carry: R10-A", "#9 r10-b")
     check("landed: the same item from another group's pull request lands (null control)",
           len(land_ops(got)) == 1 and sts == [])
