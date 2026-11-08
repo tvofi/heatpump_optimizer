@@ -5050,6 +5050,11 @@ def _self_test() -> int:
     check("a missing-evidence refusal is not overridden by a mandate", rc == 1 and "app_approve.sh refused: REFUSE: the verdict cites" in lines[-1] and not approved(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "MERGE CONFLICT 7"})
     check("a recarry conflict stops it, named as one", rc == 1 and "without a resolution" in lines[-1] and not merged(calls))
+    rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "REMERGE FAILED 7 at fetch (rc=128)"})
+    check("carry f7d2bf7c: a remerge that failed before any conflict stops as a git failure -- never a "
+          "conflict, never read as a push that landed",
+          rc == 1 and "REMERGE FAILED 7 at fetch" in lines[-1] and "without a resolution" not in lines[-1]
+          and not merged(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0], "remerge": "REFUSE: body"})
     check("a recarry that pushed nothing and left the head where it was stops it (the refusal is real)",
           rc == 1 and "pushed nothing" in lines[-1] and not merged(calls))
@@ -7893,7 +7898,16 @@ def _batch_self_test(check) -> None:
           w["rc"] == 1 and sorted(w["merged"]) == [1] and bool(rj) and m1 is not None and m1 < rj[0]
           and "cap" in w["lines"][rj[-1]] and "stays skipped" in w["lines"][rj[-1]]
           and w["cr_reads"].get(w["h2"], 0) <= 3 + 2 * (2 * (REVIEW_POLL_SECONDS + POLL_SECONDS)) // 60
+          and w["slept"].count(min(POLL_SECONDS, HEARTBEAT_SECONDS)) == w["cr_reads"].get(w["h2"], 0) - 2
           and w["lines"][-1] == "TRAIN DONE" and [s["pr"] for s in (w["skip_json"] or [])] == [2])
+    w = go(two, base="main", skip_bad=True, setup=lambda w: (gated(["red", "green", "red"])(w), w.update(strict="false")),
+           clock=ticking())
+    check("REJOIN: a rejoin refused again (red at its own CI wait) is skipped again, its row replaced, "
+          "one row and one skip for #2",
+          w["rc"] == 1 and sorted(w["merged"]) == [1] and any(ln.startswith("REJOIN #2: GREEN") for ln in w["lines"])
+          and [s["pr"] for s in (w["skip_json"] or [])] == [2]
+          and "red at the head: gate" in (w["skip_json"] or [{}])[0].get("reason", "")
+          and any(ln == "SKIP REPORT: 1 skipped of 2" for ln in w["lines"]) and w["lines"][-1] == "TRAIN DONE")
     w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "x\n"}}, base="main", skip_bad=True,
            setup=lambda w: (gated(["red", "green"])(w), w.update(strict="false")), clock=ticking())
     check("REJOIN (a), serial: a serial entry SKIPped on a red gate at its turn rejoins once GREEN and merges",

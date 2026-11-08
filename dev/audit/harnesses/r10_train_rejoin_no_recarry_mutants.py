@@ -76,6 +76,16 @@ MUTANTS = [
      "                        a[\"rc_base\"] = a.get(\"nr_base\") or rb", "                        a[\"rc_base\"] = rb"),
     ("M15", "strict_update reads the policy", "        return {\"true\": True, \"false\": False}.get(o.strip()) if ok else None",
      "        return False"),
+    # prepr.sh step 6d's diff-mutant survivors at 5358f7b1, killed by tests added after them.
+    ("M16", "a REMERGE FAILED recarry stops as a git failure", "            if failed:  # carry f7d2bf7c",
+     "            if False:  # carry f7d2bf7c"),
+    ("M17", "a rejoin refused again is skipped again",
+     "                        self.skip(pr, \"post-merge\" if self.is_merged(pr) else s.step, f\"#{pr} {s.why}\", s.cls)\n",
+     "                        pass\n"),
+    ("M18", "the rejoin sleeps between reads", "            if waiting:\n                self.hold_refresh()  # the rejoin",
+     "            if False:\n                self.hold_refresh()  # the rejoin"),
+    ("M19", "the rejoin's sleep is the train's poll grain",
+     "                self.sleep(min(POLL_SECONDS, HEARTBEAT_SECONDS))\n\n    def skip_report", "                pass\n\n    def skip_report"),
 ]
 
 def one(m: tuple[str, str, str, str]) -> tuple[str, str, list[str]]:
