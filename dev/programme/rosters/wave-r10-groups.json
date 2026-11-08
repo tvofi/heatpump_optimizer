@@ -18207,7 +18207,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From #3288 (r10-train-merge-loop-2), body item 6fa66b64: The gate-race hotfix (Carry 15) has no committed finder harness. Its only pin is `_gate_race_self_test`, and the reviewer's own gate-race harness is review evidence, not tree. R10-HOTFIX-TRAIN-DEFER-WAIT (#3290) owns the same false-red-gate defect with a measured finder census (56 `ci red=['gate']` SKIPs over 2026-11-05..07), and its harness is the finder's. Carry: R10-HOTFIX-TRAIN-DEFER-WAIT (items 6fa66b64)"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
