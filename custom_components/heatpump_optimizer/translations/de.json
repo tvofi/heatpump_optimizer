@@ -1003,6 +1003,7 @@
           "heat_pump_cop_nominal": "Nenn-COP der Wärmepumpe",
           "heat_pump_max_power": "Maximale Leistung der Wärmepumpe (kW)",
           "heat_pump_min_power": "Mindestleistung der Wärmepumpe (kW)",
+          "compressor_modulation": "Verdichter läuft unterhalb der Mindestleistung",
           "heat_pump_cop_partload_derate": "COP-Verlust der Wärmepumpe bei maximaler Leistung",
           "after_save": "Nach dem Speichern"
         },
@@ -1014,6 +1015,7 @@
           "heat_pump_cop_nominal": "Erzeugte Wärme pro eingesetzter Einheit Strom unter Normalbedingungen. Prüfe das Datenblatt; 3 bis 4 ist typisch für Luft-Wasser, 4 bis 5 für Erdwärme.",
           "heat_pump_max_power": "Elektrische Leistungsaufnahme bei voller Leistung. Begrenzt, wie viel günstiger Strom pro Stunde gespeichert werden kann.",
           "heat_pump_min_power": "Niedrigste elektrische Leistungsaufnahme, bei der die Wärmepumpe laufen kann, ohne zu takten.",
+          "compressor_modulation": "Ob der Verdichter unterhalb der oben angegebenen Mindestleistung laufen kann. Ein/Aus: Jeder geplante Schritt ist entweder aus oder liegt zwischen Mindest- und Maximalleistung, wobei sich Warmwasser und Raumheizung diesen einen Verdichter teilen. Modulierend: Eine Stufe unterhalb der Mindestleistung wird als Mittelwert geplant, den die Wärmepumpe erreicht, indem sie nur während eines Teils des Schritts läuft. Automatisch entscheidet anhand der zugeordneten Entitäten: Ein Ein/Aus-Schalter plus ein Sollwert ohne Frequenz-Entität gilt als Ein/Aus, alles andere als modulierend.",
           "heat_pump_cop_partload_derate": "Anteil der Effizienz, der beim Betrieb mit maximaler statt minimaler Leistung verloren geht, als Bruchteil (0,1 = 10 %). Größere Wärmeströme erfordern größere Temperaturdifferenzen an den Wärmetauschern. 0 lässt die Leistung aus dem COP heraus; typische Luft-Wasser-Geräte verlieren 0,05 bis 0,15. Ein Wärmemengenzähler ist nicht nötig. Halte den Wert unter Spanne / (Spanne + maximale Leistung), wobei die Spanne maximale minus minimale Leistung ist, sonst würde die Wärme bei steigender Leistung sinken.",
           "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
@@ -1614,6 +1616,13 @@
       "options": {
         "indoor": "Innentemperatur",
         "flow": "Vorlauftemperatur"
+      }
+    },
+    "compressor_modulation": {
+      "options": {
+        "auto": "Automatisch (anhand der zugeordneten Entitäten)",
+        "on_off": "Nein: Ein/Aus",
+        "modulating": "Ja: modulierend"
       }
     },
     "two_zone_mode": {
