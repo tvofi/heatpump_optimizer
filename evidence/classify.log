@@ -1,3 +1,0 @@
-11:20:37 rc=3 WAIT 6016f9dd6e0ff482d0e140946721657357653726 pending: gate red: none
-11:25:39 rc=3 WAIT 6016f9dd6e0ff482d0e140946721657357653726 pending: gate red: none
-11:30:41 rc=1 RED 6016f9dd6e0ff482d0e140946721657357653726 pending: none red: gate

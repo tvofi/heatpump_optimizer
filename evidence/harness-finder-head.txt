@@ -14,3 +14,4 @@ clamp=True prices=flat dhw=False out=-4.0: steps_on=53 total_below_min=0 space_s
 clamp=True prices=flat dhw=False out=5.0: steps_on=9 total_below_min=0 space_steps_below_min=0 slots=1 min_slot_avg=3.39 cost=32.407
 clamp=True prices=flat dhw=True out=-4.0: steps_on=40 total_below_min=0 space_steps_below_min=3 slots=1 min_slot_avg=3.27 cost=67.364
 clamp=True prices=flat dhw=True out=5.0: steps_on=20 total_below_min=0 space_steps_below_min=0 slots=1 min_slot_avg=3.47 cost=39.167
+rc=0

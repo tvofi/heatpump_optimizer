@@ -1,4 +1,0 @@
-finder rv rc=0
-finder base rc=0
-ext rv rc=0
-ext base rc=0

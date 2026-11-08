@@ -1,0 +1,14 @@
+
+=== features block ===
+  ok   a declared on/off compressor clamps on every write surface, metered or not
+  ok   null control: a capability built without the declaration is not on/off, and a setpoint-only surface it describes can duty-cycle
+  ok   null control: auto and an absent key keep the probe's clamp on every surface, legacy false and modulating opt out, legacy true clamps
+  ok   declared_modulation reads the select first, the legacy key only under auto or absent, and anything else as undeclared
+  ok   an unmetered on/off install freezes the house learner; a metered one, or a declared modulating one, learns
+  ok   space projects against the DHW in its step: capped at p_max - dhw, a sub-minimum level raised to p_min only where DHW is off, identity where the total already fits
+  ok   a clamped install realizes DHW as its own projection and space against it; unclamped and DHW-less draws are unchanged
+  ok   per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)
+  ok   per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW above max power, nor a running step below min power
+
+ALL 9 FEATURES BLOCK PASSED
+rc=0
