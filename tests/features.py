@@ -72115,13 +72115,13 @@ R.check(
 # The guard: a class whose config key const does not define is not offered.
 _fb_saved_flow_key = _fb_const.CONF_FLOW_METER_ENTITY
 del _fb_const.CONF_FLOW_METER_ENTITY
-def _module_block_71471():
+def _module_block_71674():
     global _fb_unkeyed
     try:
         _fb_unkeyed = _fb_gaps({})
     finally:
         _fb_const.CONF_FLOW_METER_ENTITY = _fb_saved_flow_key
-_module_block_71471()
+_module_block_71674()
 R.check(
     "guard: with no flow key in const the table emits no flow row, and with it the row appears",
     [g["class"] for g in _fb_unkeyed] == ["power", "energy", "frequency"]
@@ -72940,13 +72940,13 @@ _ec_ragged = _PaNS(
                 _ec_pt0 + timedelta(minutes=30)],
     room_temp_trajectory=[21.0, 22.0],
 )
-def _module_block_72293():
+def _module_block_72496():
     global _ec_ragged_view
     try:
         _ec_ragged_view = _ec._planned_room(_ec_ragged, _ec_pt0 + timedelta(minutes=20))
     except IndexError:
         _ec_ragged_view = "IndexError"
-_module_block_72293()
+_module_block_72496()
 R.check(
     "_planned_room holds no reading past a trajectory shorter than its timestamps",
     _ec_ragged_view == [],
@@ -73273,7 +73273,7 @@ R.check(
     f"unsub={_ec_det_h.unsub!r} wiring={_ec_det_h.wiring!r}",
 )
 _ec_det.hass.services.calls.clear()
-def _module_block_72623():
+def _module_block_72826():
     global _ec_det_event
     try:
         _ec_det_cb(_PaNS(data={"new_state": FakeState("30.0", unit="°C")}))
@@ -73281,7 +73281,7 @@ def _module_block_72623():
     except AttributeError:
         # The wiring guard gone: the callback reaches on_room_event with None wiring.
         _ec_det_event = "AttributeError"
-_module_block_72623()
+_module_block_72826()
 R.check(
     "a room event after detach is a no-op through the wiring guard, not a crash",
     _ec_det_event == "ok" and _ec_det.hass.services.calls == [],
@@ -73300,13 +73300,13 @@ R.check(
 # allow_on's wiring guard: an early refresh after unload (a cut on record, the
 # wiring already dropped) must return the plan's own value, not read the wiring.
 _ec_aw = _ec.CutoffState(cut_at=_ec_dt.as_utc(_ec_dt.now()))
-def _module_block_72647():
+def _module_block_72850():
     global _ec_aw_on
     try:
         _ec_aw_on = _ec.allow_on(_ec_aw, True)
     except AttributeError:
         _ec_aw_on = "AttributeError"
-_module_block_72647()
+_module_block_72850()
 R.check(
     "allow_on returns the plan's value when the record carries no wiring (unloaded)",
     _ec_aw_on is True and _ec.allow_on(_ec_aw, False) is False,
@@ -74490,14 +74490,14 @@ class _RpChannelSpy:
 
 _rp_real = _rp_tm.planned_draw_runs
 _rp_pa.planned_draw_runs = _RpChannelSpy(_rp_real)
-def _module_block_73834():
+def _module_block_74037():
     global _rp_duty
     try:
         _rp_duty = _rp_pa.step_duty(_rp_plan, _RP_T0)
     finally:
         _rp_pa.planned_draw_runs = _rp_real
         _rp_real.__dict__.pop("modulation_floor", None)
-_module_block_73834()
+_module_block_74037()
 R.check(
     "D7-arch3-04: the plan's floor reaches planned_draw_runs as an argument -- "
     "a floorless reader is unaffected while step_duty runs",
@@ -74530,13 +74530,13 @@ R.check(
 # the plan's floor on the real reader from here, then ask it floorless: a
 # reader with no channel reads the 0.5 kW draw as running whatever is set.
 _rp_real.modulation_floor = _rp_plan.duty_floor_kw
-def _module_block_73871():
+def _module_block_74074():
     global _rp_receiver
     try:
         _rp_receiver = _rp_tm.planned_draw_runs(0.5)
     finally:
         _rp_real.__dict__.pop("modulation_floor", None)
-_module_block_73871()
+_module_block_74074()
 R.check(
     "D7-arch3-04: the reader has no channel -- a floor set on planned_draw_runs "
     "from outside pump_arbiter does not reach a floorless read",
@@ -74611,7 +74611,7 @@ R.check(
 _rp_widths = []
 _rp_saved = _rp_ps.PLAN_STEP_MINUTES
 _rp_ps.PLAN_STEP_MINUTES = 30
-def _module_block_73949():
+def _module_block_74152():
     global _rp_held, _rp_now
     try:
         for _rp_now in (
@@ -74631,7 +74631,7 @@ def _module_block_73949():
             ))
     finally:
         _rp_ps.PLAN_STEP_MINUTES = _rp_saved
-_module_block_73949()
+_module_block_74152()
 R.check(
     "D7-s3-8x-slotfloor: the arbiter's ledger step and the solve's anchor are "
     "one function on one width -- widened to 30 minutes, both read the 30-minute "
@@ -75465,14 +75465,14 @@ async def _al_resolve_first(return_in_h):
 
 _al_saved = (away_mode.load_mapping, away_mode.persist_override)
 away_mode.load_mapping, away_mode.persist_override = _al_load, _al_save
-def _module_block_74800():
+def _module_block_75003():
     global _al_first, _al_lapsed, _al_off, _al_on
     try:
         _al_on, _al_off = _ls_aio.run(_al_reload(True)), _ls_aio.run(_al_reload(False))
         _al_first, _al_lapsed = _ls_aio.run(_al_resolve_first(24.0)), _ls_aio.run(_al_resolve_first(-1.0))
     finally:
         away_mode.load_mapping, away_mode.persist_override = _al_saved
-_module_block_74800()
+_module_block_75003()
 R.check(
     "R10-HOTFIX-AWAY-LIVE a reload after the away switch, before its solve "
     "published, drops the home handover: the first publish carries the restored "
@@ -76795,13 +76795,13 @@ _he_jit_closed, _he_jit_refused = _he_counter(
 _he_drift = [-0.005] + [0.01] * 39
 _he_saved = _he.SPAN_CLOSE_ALLOWANCE_H
 _he.SPAN_CLOSE_ALLOWANCE_H = 0.0
-def _module_block_76127():
+def _module_block_76330():
     global _he_noallow
     try:
         _he_noallow = _he_counter(_he.HeatEnergyMeter(), 3.0, cycles=40, cadence_h=0.75, jitter_h=_he_drift)
     finally:
         _he.SPAN_CLOSE_ALLOWANCE_H = _he_saved
-_module_block_76127()
+_module_block_76330()
 _he_allow = _he_counter(_he.HeatEnergyMeter(), 3.0, cycles=40, cadence_h=0.75, jitter_h=_he_drift)
 R.check(
     "a counter span closes on elapsed time, inside the learners' sample bounds, "
@@ -77619,13 +77619,13 @@ R.check(
 # dr3-eps-at-span): a 30 min cadence closes at 1.0 h, where the design's 0.5
 # refuses an integer-kWh counter at 1.5 kW (one step against 1.5 expected).
 _he.HEAT_RESOLUTION_EPS, _he_eps_saved = 0.5, _he.HEAT_RESOLUTION_EPS
-def _module_block_76948():
+def _module_block_77151():
     global _he_i15_half
     try:
         _he_i15_half = _he_int(1.5)
     finally:
         _he.HEAT_RESOLUTION_EPS = _he_eps_saved
-_module_block_76948()
+_module_block_77151()
 R.check(
     "null control for the resolution bound: at the design's 0.5 the one-hour "
     "span refuses every integer-kWh span at 1.5 kW, which 1.0 reads",
@@ -78903,14 +78903,14 @@ R.check(
 # the configured band without raising.
 _cpd_c._optimization_result = _CpNS(solve_band={})
 _cpd_empty_view = _cpd_c._learning_view().get("pump_max_power", "absent")
-def _module_block_78229():
+def _module_block_78432():
     global _cpd_nostamp_err, _cpd_top_nostamp, _e
     try:
         _cpd_top_nostamp = _cpd_arbitrate({"mode": "eco", "power": 3.0}, (3.0,), None)
         _cpd_nostamp_err = None
     except AttributeError as _e:
         _cpd_top_nostamp, _cpd_nostamp_err = None, _e
-_module_block_78229()
+_module_block_78432()
 R.check(
     "part D publish: an empty stamp publishes None; an arbiter pass on a plan with no stamp "
     "(None) writes what the configured band writes and does not raise",
@@ -79146,7 +79146,7 @@ R.check(
 # Quiet windows are wall-clock hours in the configured zone, so the instant is
 # the same 23:00 local under any ``HASTUB_TZ`` (``_CP_T0`` is 23:00 UTC).
 _cp_dt.freeze(_CP_T0.replace(tzinfo=_cp_dt.DEFAULT_TIME_ZONE))
-def _module_block_78469():
+def _module_block_78672():
     global _CP_ROOM, _cp_c, _cp_loud, _cp_quiet, _cp_quiet_armed
     try:
         _CP_ROOM = {"indoor_temp_entity": "sensor.room", "outdoor_temp_entity": "sensor.out"}
@@ -79161,7 +79161,7 @@ def _module_block_78469():
         _cp_sysid_cycle(_cp_loud)
     finally:
         _cp_dt.freeze(None)
-_module_block_78469()
+_module_block_78672()
 R.check(
     "inside a quiet off window the coordinator holds an armed probe with the reason and aborts "
     "a started one; a window elsewhere in the day holds nothing",
@@ -79225,7 +79225,7 @@ _cp_log = _cp_logging.getLogger(_cp_sid.__name__)
 _cp_log.addHandler(_cp_logs)
 _cp_prev_level = _cp_log.level
 _cp_log.setLevel(_cp_logging.INFO)
-def _module_block_78545():
+def _module_block_78748():
     global _cp_off, _cp_off_lines, _cp_on, _cp_on_armed, _cp_on_lines, m
     try:
         _cp_on = _cp_sid.SystemIdentification(_cp_cfg())
@@ -79238,7 +79238,7 @@ def _module_block_78545():
     finally:
         _cp_log.removeHandler(_cp_logs)
         _cp_log.setLevel(_cp_prev_level)
-_module_block_78545()
+_module_block_78748()
 R.check(
     "arm_from_config logs the armed kind once when it arms, and says nothing of arming when it does not",
     _cp_on_armed is True and _cp_on.kind == _cp_sid.KIND_PROBE
@@ -79377,13 +79377,13 @@ async def _ap_handover():
 
 _al_saved = (away_mode.load_mapping, away_mode.persist_override)
 away_mode.load_mapping, away_mode.persist_override = _al_load, _al_save
-def _module_block_78694():
+def _module_block_78897():
     global _ap_first, _ap_published, _ap_t0
     try:
         _ap_published, _ap_first, _ap_t0 = _ls_aio.run(_ap_handover())
     finally:
         away_mode.load_mapping, away_mode.persist_override = _al_saved
-_module_block_78694()
+_module_block_78897()
 R.check(
     "R10-HOTFIX-AWAY-PRESENCE the republished reload handover says the next solve "
     "is due now, not the pre-reload cycle's time",
@@ -79452,13 +79452,13 @@ def _rp2_share(minutes_in):
 _rp2_real = (_rp2_share(5.9), _rp2_share(6.1), _pa.ArbiterState().log.maxlen)
 _rp2_saved = _pa.PLAN_STEP_MINUTES
 _pa.PLAN_STEP_MINUTES = 30
-def _module_block_78766():
+def _module_block_78969():
     global _rp2_wide
     try:
         _rp2_wide = (_rp2_share(11.9), _rp2_share(12.1), _pa.ArbiterState().log.maxlen)
     finally:
         _pa.PLAN_STEP_MINUTES = _rp2_saved
-_module_block_78766()
+_module_block_78969()
 R.check(
     "R10-PROD-RESIDUE-PINS #2365: a 40 % hot-water share splits at minute 12 of a "
     "30-minute step (6 of a 15-minute one) and the log holds a day of steps",
@@ -79689,13 +79689,13 @@ R.check(
 # Invariant (1): the drivers are read after the solve, never written back.
 _wn_real = _wn_sd.space_drivers
 _wn_sd.space_drivers = lambda *_a, **_k: {}
-def _module_block_79000():
+def _module_block_79203():
     global _wn_patched, _wn_popt
     try:
         _wn_popt, _wn_patched = _wn_solve(_wn_cheap)
     finally:
         _wn_sd.space_drivers = _wn_real
-_module_block_79000()
+_module_block_79203()
 R.check(
     "R10-WHY-NOW-WIDGET: the plan is byte-identical with the drivers emptied; no why_now then",
     _wn_patched.power_schedule == _wn_res.power_schedule
@@ -79863,13 +79863,13 @@ R.check(
 _wn_f12 = _wn_sd._forecast_push(_wn_h(2, dt=12.0, outdoor=[0.0, -10.0]), 5.0)[0]
 _wn_fw = _wn_sd._forecast_push(_wn_h(24, outdoor=[0.0] + [30.0] * 23), 5.0)[0]
 _wn_hot = _wn_cw(26.0, drops=0.5)
-def _module_block_79171():
+def _module_block_79374():
     global _wn_end, exc
     try:
         _wn_end = _wn_sd.step_reasons(_wn_res, len(_wn_res.space_reasons))
     except Exception as exc:  # noqa: BLE001 -- the bound under test is what raised
         _wn_end = f"raised {type(exc).__name__}"
-_module_block_79171()
+_module_block_79374()
 R.check(
     "R10-WHY-NOW-WIDGET: the forecast window floors at one step and clips at -1; comfort clips at -1; step_reasons past the end is None",
     _wn_f12 == 0.0 and _wn_fw == -1.0 and _wn_hot == (-66.7, -33.3)
@@ -79995,13 +79995,13 @@ _wn_spec = _wn_ilu.spec_from_file_location(
     "hpo_r10_demand_overbook", "dev/audit/harnesses/r10_demand_overbook.py")
 _wn_hm = _wn_ilu.module_from_spec(_wn_spec)
 _wn_spec.loader.exec_module(_wn_hm)
-def _module_block_79300():
+def _module_block_79503():
     global _wn_herr, _wn_hsched
     try:
         _wn_hsched = _wn_hm.comfort_schedule(_wn_bopt, _wn_t0, 24)
     except ValueError as _wn_herr:
         _wn_hsched = _wn_herr
-_module_block_79300()
+_module_block_79503()
 _wn_hh = np.array([(_wn_t0.hour + _wn_t0.minute / 60.0 + i * _wn_hm.DT_MIN / 60.0) % 24.0
                    for i in range(24)])
 _wn_hwant = _wn_bopt._build_comfort_bounds(
