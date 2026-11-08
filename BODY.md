@@ -12,6 +12,10 @@ Fix review round 1 (blocked at d7b25eca, `architecture-unsound`): the design now
 - **pr-contract runs no pull-request program, spawned ones included.** `.github/workflows/pr-contract.yml`'s base restore now also lists `tools/audit/seat/merge_train.py`, the `gh_read.py` it imports and `tools/policy/fixtures/required-contexts.json` it reads. The pin is a new rule in `tests/entities.py` (`_pcr_unrestored`). For every `spawnSync('python3', [path.join(ROOT|root|HERE, ...)])` in `policy_lint.mjs`, it walks the spawned file's local closure: column-0 `import X` with X.py beside it, and column-0 `NAME = ROOT / "path"` reads. Each file in that closure must match a pr-contract restore pathspec.
 - **The fail-closed rc check is driven on its live path.** `requiredFromTrain(root)` takes the tree whose `merge_train.py` answers, and the `--pr-body` thunk body is now `requiredSet(requiredFile, notes, root)`. policy_lint's acceptance runs the real chain (`checkPrBody` -> `requiredSet` -> `requiredFromTrain` -> `spawnSync`) against a stub tree whose `merge_train.py` exits 2 with `REFUSE proof: HTTP 403`, and asserts that every red is owed and that the skip note names the REFUSE line.
 
+Code repair round 2. The body-push seat found two reds this diff causes. Both are repaired in code:
+- **`tests / closures` UNDER-SCOPED** -> be2cfbef5. `tests/entities.py`'s `_pcr_unrestored` rule reads the source of every program policy_lint.mjs spawns, `tools/policy/budget_raise_gate.py` among them, and no measured closure listed it. The closure was re-recorded with `derive_closures.sh --single tests/entities.py` on this Linux box, and the file moves from the `tools/policy/` INERT prefix to `INERT_EXCEPT`.
+- **CodeQL alert 52, `js/insecure-temporary-file`** -> ef082a130 (`policy_lint.mjs`, the named-reds null control in the self-test). The body file had a pid-derived name in the shared tmpdir. It now sits inside a `fs.mkdtempSync(path.join(os.tmpdir(), 'prbody-named-'))` directory, which a `finally` removes. A new self-test pin scans policy_lint.mjs's own source and refuses any `path.join(os.tmpdir(), ...)` outside `mkdtempSync`.
+
 ## Approval
 
 Pending: this diff changes `dev/governance/rules/defect-root-cause.md` and `dev/governance/roles/fix-review.md` (policy) on the owner's ruling of 2026-11-07, quoted above; it merges only on tvofi's approving review at its head.
@@ -20,11 +24,9 @@ On merge (the orchestrator's): the brief says this subsumes R10-BODY-CONTRACT's 
 
 ## Head
 
-3b4dec95f05704d3495e3e2d1f32f35667a1412f, a fast-forward of the reviewed PR head d7b25eca474f4edde0cad8eb284c27c977a0157c.
+be2cfbef52ecc71b9dcb5c0ca6f8da6f025151a0, a fast-forward of the PR head 6ef8ac12236f3ff258f19180334cbe216962dfd3, which descends from the earlier handoff tip 3b4dec95f05704d3495e3e2d1f32f35667a1412f.
 
-At the reviewed head, `git merge-tree --write-tree origin/main HEAD` against origin/main 8aec35435 reported a conflict in `tools/audit/seat/merge_train.py`, so origin/main was merged in at 9487052c0. The conflict: main's `classify` gained a `busy`/`deferred` gate arm, and this branch's `classify` had moved to `judged(required)`. The resolution keeps main's arm over `names = judged(required)`.
-
-When the body was written, origin/main had moved to afc1586a4 (2026-11-08 06:49 UTC). `git merge-tree --write-tree origin/main HEAD` exits 0 there (no conflict), so main is not merged again (owner ruling 2026-11-07).
+`git merge-tree --write-tree origin/main HEAD` exits 0 against origin/main 72940b795 (2026-11-08 09:50 UTC, no conflict), so main is not merged (owner ruling 2026-11-07). Figures from earlier rounds are stated at the heads they name. Round 2's figures are at be2cfbef52ecc71b9dcb5c0ca6f8da6f025151a0.
 
 ## Review findings answered
 
@@ -50,6 +52,10 @@ Each mutant was applied in the working tree at 3b23a50da (and the pathspec mutan
 - **entities.py, the closure following no ROOT read** (the read arm dropped): rc=1, required-contexts.json missing from the closure.
 - **The earlier body's mutant** (`return true` first in `redOwed`) and its kills are unchanged from round 1, which the reviewer confirmed.
 
+- **Round 2, policy_lint.mjs, the temp file in the shared tmpdir again.** At ef082a130, `fs.mkdtempSync(path.join(os.tmpdir(), 'prbody-named-'))` became ``path.join(os.tmpdir(), `prbody-named-${process.pid}`); fs.mkdirSync(namedDir, { recursive: true })``.
+  - `node tools/policy/policy_lint.mjs --self-test`: rc=1, `FIXTURE VACUOUS: line(s) 4525 join a name onto the shared tmpdir outside mkdtempSync; a temporary file goes inside a private mkdtempSync directory`. Restored from a copy; the rerun gives rc=0.
+- **Round 2, closures.** The control is the PR head's `tests/closures.json`: CI's `tests / closures` reported UNDER-SCOPED at 6ef8ac122 for `tools/policy/budget_raise_gate.py`. At be2cfbef5, `python3 tests/closure.py check --in-dir <recording> --partial` gives rc=0, `committed closures cover every file this run touched`.
+
 ## Null control
 
 - **The stub tree's other arm.** The same stub `merge_train.py`, exiting 0 and printing `tests / fast (3.14)`, owes exactly `tests / fast (3.14)` and adds no skip note. This proves the stub answered, not a fallback.
@@ -57,6 +63,7 @@ Each mutant was applied in the working tree at 3b23a50da (and the pathspec mutan
 - **The pattern's non-vacuity term caught a real miss.** At d45cdb79f the pattern was ROOT-only and missed `path.join(root, ...)`. It read an empty closure and the check refused (entities run at d45cdb79f: `5 of 2665 ENTITY CHECKS FAILED`, the two `_PCR` checks among them). 3b23a50da fixed the pattern. 3b4dec95f then split the path segments on commas, because agreement.mjs refused the quoted-token regex as a grammar duplicated with `tools/audit/merge_fastpath.py`.
 - **The drive's control** is the reviewed head's pr-contract.yml (Figures).
 - The round-1 null controls hold unchanged at this head: a body naming every red is owed nothing and never reads the set, and an unreadable set leaves every red owed.
+- **Round 2, the scan's own null.** On the unmodified tree, the scan finds three `os.tmpdir()` joins, all inside `mkdtempSync` (the raise, stub and window-cache fixtures), and the pin is ok. If it finds no site at all, it refuses with `no os.tmpdir() site found`, so a scan that read nothing cannot pass.
 
 ## Figures
 
@@ -89,9 +96,22 @@ Each mutant was applied in the working tree at 3b23a50da (and the pathspec mutan
   - Mutants run: the 24 that `--list` names, 22 in merge_train.py and 2 in review_packet.py. None is in `.mjs` or `tests/`; those lines are covered by Mutation proof.
   - prepr.sh's own diff-mutant step, with the same MUTANT_CMD, prints `BASELINE FAILS`, as in round 1: its `git archive` copy has no `.git`, which these self-tests read. That is why the step's tool was run `--in-place`.
 
+- **Round 2, at be2cfbef52ecc71b9dcb5c0ca6f8da6f025151a0:**
+  - `node tools/policy/policy_lint.mjs --self-test`: rc=0, `FIXTURE ok: 93 error(s) hold 276 pins across 12 check classes`. That is one pin more than round 1's 275: the tmpdir scan.
+  - `bash tests/derive_closures.sh --single tests/entities.py --record-only --out-dir D`, then `python3 tests/closure.py merge --in-dir D --partial --allow-failures`.
+    - The recording reached entities.py's summary line, `3 of 2667 ENTITY CHECKS FAILED`, the same three as round 1 (coverage-cache reuse, release ZIP, Pages probe), so the read set is the whole run's. The entry's recorded `rc` is therefore 1.
+    - The merge added `tools/policy/budget_raise_gate.py` to entities.py's closure.
+    - It first refused the file as INERT-and-read, which is why the file moves to `INERT_EXCEPT` in `tests/closure.py`.
+    - It kept `tests/golden/card_claimed_drift.txt`, which this run did not touch (over-scoped, safe).
+  - `python3 tests/closure.py select --diff <merge-base>`: `MODE: FULL`, because `tests/closure.py changes the gate itself`. CI runs the full suite.
+  - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. No budget was touched.
+  - `MUTANT_CMD="node tools/policy/policy_lint.mjs --self-test" MUTANT_MAX=24 PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>` at be2cfbef5: `PRE-PR: be2cfbef52ecc71b9dcb5c0ca6f8da6f025151a0 ... rc=0`, with `pr-body: PR-BODY: 0 error(s)`. Its diff-mutant step printed `BASELINE FAILS` without running a mutant, as in round 1 (the `git archive` copy has no `.git`). Survivors: 0. Wall time: no mutant ran.
+  - `python3 -I tools/audit/seat/mutant_run.py --diff HEAD~2...HEAD --list` names no site: round 2 adds `.mjs` and closure-list lines only. The tmpdir scan's hand mutant (Mutation proof) covers them.
+
 ## Red checks
 
-none
+- `tests / closures` (UNDER-SCOPED at 6ef8ac122): caused by this diff. entities.py's new spawn-closure rule reads `tools/policy/budget_raise_gate.py`, and no closure listed it. It is repaired in be2cfbef5 by a `--single` re-recording. The cheaper detector already exists and ran: `tests/closure.py`'s recording, which prepr.sh skips under `PREPR_SKIP_CLOSURES=1`. Round 1 ran prepr with that skip, so the detector never saw this diff before CI. No new countermeasure: the standing cost is one Linux recording (about 17 min for entities.py), and CI's closures job caught it within one push.
+- `code-scanning alert 52 (js/insecure-temporary-file)`: caused by this diff's self-test fixture in policy_lint.mjs. It is repaired in ef082a130. The cheaper detector is the new self-test pin, which scans policy_lint.mjs for any `path.join(os.tmpdir(), ...)` outside `mkdtempSync`. It runs in every policy_lint self-test (about 30 s, already paid), and its mutant fails it (Mutation proof).
 
 ## Unpinned sites
 
