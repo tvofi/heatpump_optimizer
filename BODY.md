@@ -15,9 +15,11 @@ R10-MIN-POWER-FLOOR, built to the approved design (`design/r10-min-power-floor` 
 
 ## Head
 
-f60b4d8c0f5c219e6b8c6d506f4874ce4c8f2a0a
+ac28d7e8859cfdd05a1537584cb9051c2cd83a80
 
-origin/main moved to 48af0864a after this branch was cut. `git merge-tree --write-tree origin/main HEAD` reports no conflict (the ledger driver resolves `structure_budgets.json` and `closures.json`), so per the owner ruling of 2026-11-07 main is not merged; the merge train recarries the head.
+This is the merge of origin/main (72940b795, VERSION 7.1.6) into the PR head fb5658f13 (the code handoff f60b4d8c0, a merge of origin/main 33c51f71b, the delivery row feb778843 and the bot's pin commit fb5658f13). The merge train had refused the recarry: `git merge-tree --write-tree --name-only origin/main fb5658f13` printed `MERGE-CLAIM: refused tests/golden/claimed_drift.txt`, because both sides changed claims under different `claims-for:` stamps (this branch 7.1.5, main 7.1.6).
+
+Merge delta, the claim-file resolution and nothing else: `tests/golden/claimed_drift.txt` is main's file byte-identical (`claims-for: 7.1.6`, main's v7.1.6 note; the five R10-SAV-WOOD-HEAT `coord_*` claims belong to v7.1.5, which the stamp expired) plus this branch's one claim, `config_flow`, restated with its reason: the compressor_modulation select added to the thermal_model options page moves `tests/golden/config_flow.json` ADD-ONLY. `git diff origin/main HEAD -- tests/golden/claimed_drift.txt` is that one added line. Every other file merged clean (the ledger driver resolved `tests/closures.json`). `card_claimed_drift.txt` is byte-identical to main.
 
 ## Mutation proof
 
@@ -52,6 +54,9 @@ The draw_range consequence (carry f850a2a5) is pinned in the `draw_range` block 
 
 ## Figures
 
+- At the merge head (this re-take): `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>` printed `rc=0` (merged structure `STRUCTURE RATCHET PASSED`, diff mutants no survivor, `PR-BODY: 0 error(s)`, carry audit 7 routed, 0 unrouted). The #3289 block prints `ALL 9 FEATURES BLOCK PASSED`; `python3 tests/env_drift.py` prints `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE`. Diff mutants against merge base 72940b795: 18 mutants, 0 SURVIVED, wall 33.6 s; control `--cmd true` 18 SURVIVED.
+- Scoped gate at the merge head: `closure.py select` prints `MODE: SCOPED -- 30 script(s) run, 3 scoped out`. `GATE_SCOPE=auto GOLDEN_MODE=drift tests/run.sh` failed one check: `tests/stress.py` "memory peaks stay within their recorded budgets" (`winter_extreme/1z/dhw traced peak 5.3 MiB vs recorded 3.4 MiB`). Every other script passed. Run alone at the same head, `tests/stress.py` prints `ALL 113 STRESS CHECKS PASSED` with that check `ok`. Run alone at origin/main its memory check is also `ok`, and its 7 fails are the baseline checks of a tree compared against itself (`origin/main IS this commit`). So the reading moves with gate load and the merge does not cause it: the merge delta is one claim-file line, which no solve reads.
+- Figures below this line were measured at fb5658f13 and earlier; the merge brings main's code beside them unchanged.
 - Harness, base vs head (`dev/audit/harnesses/r10_min_power_floor.py`, sha1 a93b48e6096e, landed here, extended from the finder's e21d29905d30): `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_min_power_floor.py`, run in a detached worktree at dee8b413f with the head's harness copied in, and at the head. clamp=True with DHW: `max_total` 5.30 / 5.00 / 5.00 / 3.50 at base, and 3.50 in all four at the head; `total_below_min` 0 at both ends. Declared arm `clamp=on_off` (a metered map with `compressor_modulation: on_off`): at base it equals the clamp=False lines (7 / 5 / 62 / 27 / 55 / 39 running steps below 2.5 kW); at the head `total_below_min=0`, `space_only_below_min=0` and `max_total <= 3.50` in all 8 cells.
 - Harness null control: `diff` of the 8 clamp=False lines base vs head printed nothing (`&& echo` fired); the 4 clamp=True DHW-off lines are byte-identical.
 - Objective values (not savings), spread / flat: spread DHW -4 C 38.844 -> 39.056, spread DHW 5 C 20.652 -> 20.601, flat DHW -4 C 67.571 -> 67.364, flat DHW 5 C 39.167 -> 39.167. Same harness lines.
@@ -79,7 +84,7 @@ The draw_range consequence (carry f850a2a5) is pinned in the `draw_range` block 
 
 ## Unpinned sites
 
-Each is a `custom_components/` site that `mutation-autofix` pins once CI's mutation lane records it. Each is already killed by the #3289 block (0 survivors in the diff-mutant run):
+Each is a `custom_components/` site that `mutation-autofix` pinned in fb5658f13 (six `killed_by` records, one per site below). Each is already killed by the #3289 block (0 survivors in the diff-mutant run):
 - custom_components/heatpump_optimizer/optimizer.py:158 GUARD_OFF (`_realize_draw` `if dhw is None:`): killed. `_realize_joint(None)` raises, and the block's DHW-less realization check goes red. Pinned by mutation-autofix.
 - custom_components/heatpump_optimizer/optimizer.py:160 RETURN_DEL (`_realize_draw` `return _realize_joint(...)`): killed by the clamped-realization check. Pinned by mutation-autofix.
 - custom_components/heatpump_optimizer/optimizer.py:176 GUARD_OFF (`_realize_joint` `if not clamp:`): killed (M11). Pinned by mutation-autofix.
@@ -89,7 +94,12 @@ Each is a `custom_components/` site that `mutation-autofix` pins once CI's mutat
 
 ## Red checks
 
-- `mutation` (predicted, `ci_predict.py`): red on the 6 unpinned sites above until `mutation-autofix` commits their pins (`ci-autofix.md`); each is already killed locally. Cheaper detector: none is owed, because `prepr.sh` step 6d already predicts it in seconds before the push, and the repair is the bot's by design.
+Read at head fb5658f13 across all check-run pages; the 15 commits between origin/main and the head, per `record red-history`, carry the failure conclusions below.
+
+- `tests / mutation`: red once, at feb778843 (run 128618806025, 03:44Z), and green at the head (runs 128642813122 and 128642787428, both `success`). Cause: `MUTATION TABLE REFUSED -- 2840 unpinned site(s) against 2834 at the ratchet base, 6 of them added by this diff`, the six `custom_components/` sites in `## Unpinned sites`. This diff caused it in the sense that it added those six guards and returns, and each is already killed by the #3289 block (0 survivors in the diff-mutant run, 18 mutants). It is not a survivor and not stale: `mutation-autofix` committed `ci: pin killed mutants` (fb5658f13, six `killed_by` records) and the lane then passed. The red is stale at the head and is named only because `pr-contract`'s red-history reads every failure across the 15 commits. Cheaper detector: `tools/pr/prepr.sh` step 6d (`ci_predict.py`) predicts exactly this refusal before the push, and ran here with the six sites listed as predicted. Standing cost: seconds per run. The repair is the bot's by design (`ci-autofix.md`), so nothing further is owed.
+- `codeql / Analyze (python)`: cancelled at 05:06Z in both runs of the head (jobs 128642814495 and 128642787348, run 42446414757, run attempt 4), with no step recorded and 45 minutes between start and cancel. No alert was raised and `pr-contract` lists no open `code-scanning alert`. Cause: infrastructure (a hung or cancelled job, run attempt 4), not a code finding. This diff does not touch the analysis, the workflow or any query; the head's python changes are the same files whose earlier commits ran codeql to completion. Cheaper detector: none exists locally, because CodeQL needs the hosted analysis database. Standing cost of a proxy: running it locally takes a database build, which a Pi-class or cloud seat does not carry. Owed: a re-run of the cancelled job by the orchestrator, which a fixer seat cannot trigger.
+- `gate`: failed at 05:45Z (jobs 128642787665, 128642784576, 128642033791). Cause, from its log: `FAIL codeql / Analyze (python): cancelled (run 42446414757)`, and nothing else. The gate aggregates the required contexts and fails on the cancelled codeql job alone; every other context in it is green. This diff did not cause it. Cheaper detector: none, since it is a derived red of the codeql cancel above and clears when that job re-runs green.
+- `pr-contract / pr-contract`: failed with exactly one error, `check tests / mutation is red and ## Red checks does not name it`, because the earlier body's `## Red checks` named it as `mutation` and not by its exact check name. This body names `tests / mutation`. Cheaper detector: `prepr.sh --body-check` against the live check history; it runs it, and the earlier body passed it before the red-history carried the name.
 
 ## Forward-carry
 
