@@ -46,17 +46,24 @@ def pr_of(run):
     return parts[2] if len(parts) > 2 else ""
 
 
+#: GitHub's default page. A 100-job page of a long run is a 502 no retry rides
+#: out: run 40126133450's `jobs?filter=all` (312 jobs) answers 502 at
+#: per_page=100 on page 1 and 2, every time, and 200 on all 11 pages at 30
+#: (R10-FLY-GH-READ-RETRY carry 5).
+PER_PAGE = 30
+
+
 def pages(get, path, params):
     """Every item, paged by `page=` rather than the Link header (whose
     repositories/<id> form some proxies refuse); ghapi.paginate's one-list rule."""
     out = []
     for n in range(1, ghapi.MAX_PAGES + 1):
-        st, _, doc = get(path, dict(params, per_page=100, page=n))
+        st, _, doc = get(path, dict(params, per_page=PER_PAGE, page=n))
         if st != 200 or not isinstance(doc, dict):
             raise ghapi.ApiError(path, st, "")
         items = next(v for v in doc.values() if isinstance(v, list))
         out += items
-        if len(items) < 100:
+        if len(items) < PER_PAGE:
             return out
     raise ghapi.ApiError(path, 200, "too many pages")
 
@@ -134,7 +141,22 @@ def selftest():
     want = dict(inverted=2, ordered=1, red_inverted=1, red_ordered=0, red_attempts=3, rerun=2, fresh=1, carried=1)
     bad = [k for k, v in want.items() if o[k] != v]
     rows_ok = [r[6] for r in o["rows"]] == [True, False]
-    print(f"selftest: {len(want) + 1} checks, {len(bad) + (not rows_ok)} failed{' ' + str(bad) if bad else ''}")
+    # carry 5: the measured server, a 502 for any page over 50 jobs, serving 70 jobs.
+    asked = []
+
+    def server(path, params):
+        asked.append(params["per_page"])
+        if params["per_page"] > 50:
+            return 502, {}, None
+        lo = (params["page"] - 1) * params["per_page"]
+        return 200, {}, {"total_count": 70, "jobs": list(range(70))[lo:lo + params["per_page"]]}
+    try:
+        paged = pages(server, "repos/o/r/actions/runs/1/jobs", {"filter": "all"})
+    except ghapi.ApiError:
+        paged = None
+    if paged != list(range(70)) or len(asked) != 3:
+        bad.append(f"pages over a server refusing pages over 50: got {paged and len(paged)} in {asked}")
+    print(f"selftest: {len(want) + 2} checks, {len(bad) + (not rows_ok)} failed{' ' + str(bad) if bad else ''}")
     return 1 if bad or not rows_ok else 0
 
 
