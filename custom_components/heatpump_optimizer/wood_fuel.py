@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta, tzinfo
+from itertools import zip_longest
 from typing import Any
 
 from .drift import utc_elapsed_seconds
@@ -24,6 +25,9 @@ from .const import (
 )
 from .const import finite_float
 from .payload import NightAdvice, WoodFuel, WoodSlot, WoodWindow
+
+# ``thermal_model.partload_factor``'s signature: (params, draw kW) -> multiplier.
+PartloadAt = Callable[[Any, float], Any]
 
 WOOD_KWH_M3 = {
     "birch": {"packed": 1900.0, "loose": 1140.0},
@@ -469,8 +473,12 @@ def build_wood_fuel_view(
     wood_tank_temperature: float | None = None,
     comfort_min: float | None = None,
     local_tz: tzinfo | None = None,
+    partload: Sequence[float] = (),
 ) -> WoodFuel:
     """Ready/cheaper/slots. cheaper is False when not ready.
+
+    ``partload`` is the per-step COP multiplier at the plan's own draw
+    (``wood_fuel_from_parts``); empty prices pump heat at ``cop_at`` alone.
 
     ``forecast_kw`` is the detector's free-heat forecast, empty while it is
     not suppressing, so detected slots exist only while it suppresses.
@@ -498,7 +506,7 @@ def build_wood_fuel_view(
     count = 0
     cheap: list[bool] = []
     if ready and sek is not None:
-        cops = _cops(outdoor, cop_at)
+        cops = _derated(_cops(outdoor, cop_at), partload)
         count = cheaper_hour_count(sek, prices, cops, runs)
         if count:
             cheap = cheaper_steps(sek, prices, cops, runs)
@@ -527,8 +535,15 @@ def build_wood_fuel_view(
         sek,
         wood_tank_temperature,
         comfort_min,
+        partload,
     )
     return view
+
+
+def _derated(cops: list[float], partload: Sequence[float]) -> list[float]:
+    """``cops`` times each step's part-load factor; a step past ``partload``
+    (and every step, when it is empty) keeps its COP."""
+    return [c * f for c, f in zip(cops, partload, strict=False)] + cops[len(partload):]
 
 
 def _attach_windows(
@@ -571,6 +586,7 @@ def _attach_night_advice(
     sek: float | None,
     wood_tank_temperature: float | None,
     comfort_min: float | None,
+    partload: Sequence[float] = (),
 ) -> None:
     if not wood_furnace_on(config) or sek is None or not prices or not timestamps:
         return
@@ -578,7 +594,7 @@ def _attach_night_advice(
     soc = wood_tank_soc_from_probes(wood_tank_temperature, floor)
     if soc is None:
         return
-    cops = _cops(outdoor, cop_at) if outdoor else [3.0] * len(prices)
+    cops = _derated(_cops(outdoor, cop_at), partload) if outdoor else [3.0] * len(prices)
     advice = night_advice(
         now=timestamps[0],
         prices=prices,
@@ -601,6 +617,7 @@ def wood_fuel_from_parts(
     current_state: Any,
     result: Any,
     local_tz: tzinfo,
+    partload_at: PartloadAt | None = None,
 ) -> WoodFuel:
     """The published wood-fuel view from the coordinator's parts (#1739).
 
@@ -632,4 +649,27 @@ def wood_fuel_from_parts(
         wood_tank_temperature=getattr(current_state, "wood_tank_temperature", None),
         comfort_min=getattr(opt_config, "min_temp", None),
         local_tz=local_tz,
+        partload=_plan_partload(thermal_params, result, partload_at),
     )
+
+
+def _plan_partload(
+    thermal_params: Any, result: Any, partload_at: PartloadAt | None
+) -> list[float]:
+    """Per step, the COP multiplier at the plan's own total draw (space plus
+    hot water): a step's pump heat is bought at ``cop * partload_factor(P)``,
+    so pricing it at ``cop`` alone under-prices it by up to ``d / (1 - d)``
+    (R10-PARTLOAD-RESIDUE). ``partload_at`` is ``thermal_model.partload_factor``,
+    passed in because ``thermal_model`` imports this module. Empty with no
+    plan or no ``partload_at``; at a 0 derate every factor is exactly 1.0, so
+    the default prices every step bit for bit as before."""
+    if result is None or partload_at is None:
+        return []
+    return [
+        float(partload_at(thermal_params, finite_float(p, 0.0) + finite_float(h, 0.0)))
+        for p, h in zip_longest(
+            result.power_schedule or [],
+            getattr(result, "dhw_power_schedule", None) or [],
+            fillvalue=0.0,
+        )
+    ]
