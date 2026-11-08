@@ -2421,12 +2421,6 @@ class Tick:
         except OSError as e:
             self.unreadable(S, "roster invariants", str(e)[:80])
             return
-        finally:
-            if tmp:
-                try:
-                    os.unlink(tmp)
-                except OSError:
-                    pass
         summary = [l for l in out if l.startswith("CARRY-ROSTER:")]
         if rc not in (0, 1) or not summary:
             self.unreadable(S, "roster invariants", f"exit {rc}, "
@@ -2912,6 +2906,40 @@ def self_test() -> int:
              bool(ri_calls) and "--open-issues" in ri_calls[0] and "roster" in ri_calls[0]),
             ("null: a clean roster flags nothing from the invariant",
              not any("routing invariants" in x["text"] for x in tri0.findings)),
+        ])
+        total, failed = total + a, failed + f
+
+        def ri_tick(carry, gh_extra=None):
+            t_ = tick(queue=str(q16), roster=tg_roster_path, gh_extra=gh_extra or [], carry=carry)
+            try:
+                t_.replan()
+            except OSError:  # an escaped tool error is a missing line, read as a FAIL, not a crash
+                pass
+            return t_
+
+        def ri_unreadable(t_):
+            return (any("UNREADABLE: roster invariants" in x["text"] for x in t_.findings)
+                    and not any("routing invariants broken" in x["text"] for x in t_.findings))
+
+        def ri_raise(argv):
+            raise OSError("carry_audit.py: cannot exec")
+
+        ri_bad_calls: list = []
+        t_os = ri_tick(ri_raise)
+        ri_tick(lambda argv: ri_bad_calls.append(argv) or (0, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"]),
+                gh_extra=[(("issue", "list"), 0, "not json")])
+        a, f = check("REPLAN routing invariants: an unreadable tool is never clean", [
+            ("exit 2 with no summary (a REFUSED roster ref) is one UNREADABLE line",
+             ri_unreadable(ri_tick(lambda argv: (2, ["carry_audit: REFUSED cannot list origin/x"])))),
+            ("exit 2 with a summary is still UNREADABLE (the rc arm alone)",
+             ri_unreadable(ri_tick(lambda argv: (2, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"])))),
+            ("exit 0 with no summary is UNREADABLE (the summary arm alone)",
+             ri_unreadable(ri_tick(lambda argv: (0, ["something else"])))),
+            ("an OSError from the tool is one UNREADABLE line naming it",
+             ri_unreadable(t_os) and any("cannot exec" in x["text"] for x in t_os.findings)),
+            ("a non-JSON issue list drops --open-issues and still runs the roster call",
+             len(ri_bad_calls) == 1 and "roster" in ri_bad_calls[0]
+             and "--open-issues" not in ri_bad_calls[0]),
         ])
         total, failed = total + a, failed + f
         t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),
