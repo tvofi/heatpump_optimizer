@@ -851,14 +851,20 @@ class Tick:
         for when, l in self._fired():
             if (when is None or when >= cutoff) and self._fire_names(n, topics, l):
                 return True
+        tg = _module("topic_grammar_tick", "tools/audit/seat/topic_grammar.py")
         for t in topics:
             for fam in kinds:
-                sha = heads.get(f"{fam}/{t}")
-                if fam == "handoff-wip" and sha and self._blocked_md(sha) is not None:  # mut:blockedseat
-                    continue  # a stop on a question is owed by blocked_stops, not a seat on the PR
-                age = self._age_min(f"{fam}/{t}", sha) if sha else None
-                if age is not None and age <= SEAT_WINDOW_MIN:
-                    return True
+                refs = [f"{fam}/{t}"]
+                if fam == "handoff-wip":  # a split seat step-pushes under the family's topic (topic-family.md)
+                    refs += sorted(k for k in heads if k.startswith("handoff-wip/")
+                                   and k != refs[0] and tg.family(t).fullmatch(k[len("handoff-wip/"):]))  # mut:wipfamily
+                for ref in refs:
+                    sha = heads.get(ref)
+                    if fam == "handoff-wip" and sha and self._blocked_md(sha) is not None:  # mut:blockedseat
+                        continue  # a stop on a question is owed by blocked_stops, not a seat on the PR
+                    age = self._age_min(ref, sha) if sha else None
+                    if age is not None and age <= SEAT_WINDOW_MIN:
+                        return True
         return False
 
     @staticmethod
@@ -4006,6 +4012,9 @@ def self_test() -> int:
         _, o_bl_nofile = oboard2([], refs=bl["refs"], cts=bl["cts"])
         _, o_bl_red = oboard2([(86, "BLOCKED", [], 0)], red={86: ["gate"]}, dref=("86", "f" * 40, 600),
                               refs=[("handoff-wip/86", bl_tip)], cts={bl_tip: 5}, show={bl_tip: bl_txt})
+        # carry 7: a family member's handoff-wip is a seat on the PR; a bare -<N> sibling's is not
+        _, o_fam = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]}, refs=[("handoff-wip/82-p1", "e" * 40)], cts={"e" * 40: 5})
+        _, o_fam2 = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]}, refs=[("handoff-wip/82-2", "e" * 40)], cts={"e" * 40: 5})
         # R10-TICK-LEVELS null controls: a DIRTY and red PR a bucket already owns prints no OWED line
         rec = getattr(_module("record_row_tick", "tools/audit/seat/record_row.py"), "RECORD_BRANCH", "record")
         bk_of = lambda t: t.sections["PRS"][-1]["text"]
@@ -4077,6 +4086,8 @@ def self_test() -> int:
              and o_r2 == [] and o_rc == [] and o_rm == []),
             ("carry 5 BODY-AHEAD: a body ref newer than the head owes; an older one, or a fire, does not",
              len(o_ba) == 1 and "body-ahead #85" in o_ba[0] and o_ba0 == [] and o_baf == []),
+            ("carry 7: a wip ref of a family member (-p1) is a seat; a bare -<N> sibling's is not",
+             not any("red-unowned" in x for x in o_fam) and any("red-unowned" in x for x in o_fam2)),
             ("carry 13: a disposition at the body sha clears BODY-AHEAD; one at an older sha still owes",
              o_bd == [] and len(o_bd0) == 1 and o_bd0[0].startswith("OWED body-ahead #85")),
             ("carry 14: a BLOCKED.md tip owes, naming topic, sha and Question line",

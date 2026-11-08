@@ -4757,6 +4757,22 @@
       "doc": [
         "dev/audit/rca/r10-gate-busy-defer-2.md"
       ]
+    },
+    "R10-RCA-TOPIC-FAMILY": {
+      "class": "R10-TOPIC-FAMILY",
+      "level": "class",
+      "subject": "R10-TOPIC-FAMILY class: instruments keyed on an exact topic miss its split parts (3 instances, round 10)",
+      "trigger": "class (3 instances: triage P363, P370, P376)",
+      "date": "2026-11-02",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a) the process did not exist: no policy or instrument defined the topic grammar",
+      "countermeasure": "tools/audit/seat/topic_grammar.py: one module owning pr_topic, family, family_refs, group_of and owner_topic, read by noreturn_arm, open_driver.py and roster_sync.py; self-test rows for a part return, a bare -<N> and a sibling-prefix topic, with a mutant for each",
+      "in_tree_home": "dev/audit/rca/topic-family.md",
+      "landed": null,
+      "doc": [
+        "dev/audit/rca/topic-family.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5324,6 +5340,41 @@
       "cross_round": false,
       "barriered_any": false,
       "class_rca_on_record": false
+    }
+  },
+  "R10-TOPIC-FAMILY": {
+    "kind": "instrument",
+    "mechanism": "The topic is the join key between dispatch, return, PR and roster records, and nothing defined its grammar in one place: each instrument parsed the relation it needed from the exact string, so a split into <topic>-p<N> parts, which renames the topic partway through the work, missed at every join that crossed it (noreturn_arm false-fired SEAT ENDED NO RETURN after a seat returned on handoff/<topic>-p1; the opener logged NEEDS-TITLE for part topics)",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 P363",
+      "R10 P370",
+      "R10 P376"
+    ],
+    "per_round": {
+      "R10": 3
+    },
+    "total": 3,
+    "max_per_round": 3,
+    "detector": "tools/audit/seat/topic_grammar.py --self-test: its rows drive the family rule over the bare -<N> and sibling-prefix topics",
+    "detector_idea": null,
+    "barrier": "tools/audit/seat/topic_grammar.py, read by tools/audit/seat/cloud_relay.sh (noreturn_arm and the PR-topic strip), tools/audit/seat/open_driver.py and tools/audit/seat/roster_sync.py",
+    "status": "barriered",
+    "nearest_existing": null,
+    "mechanism_difference": "a join keyed on an exact string misses a renamed part; no value is stale or wrong, the key itself changed",
+    "aliases": [],
+    "non_round_instances": [],
+    "rca": [
+      "R10-RCA-TOPIC-FAMILY"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
     }
   }
 }

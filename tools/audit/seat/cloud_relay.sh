@@ -1516,7 +1516,7 @@ $cfo2") $(calls 67)" = "1 1"
   # so the relay's own launch runs it from its levelled tools tree (tools_level, P283). The relay
   # is a copy, so no route (a mutant's included) reaches the real update_pr.sh.
   cp "$t/lead.sh" "$t/tm/tools/audit/seat/update_pr.sh"; tmc lead; git -C "$t/o.git" fetch -qf "$t/tm" "HEAD:refs/heads/main"
-  mkdir -p "$t/seat" && cp "$HERE/cloud_relay.sh" "$HERE/pr_args.sh" "$t/seat/" && cp "$t/lead.sh" "$t/seat/update_pr.sh"
+  mkdir -p "$t/seat" && cp "$HERE/cloud_relay.sh" "$HERE/pr_args.sh" "$HERE/topic_grammar.py" "$t/seat/" && cp "$t/lead.sh" "$t/seat/update_pr.sh"
   HPO_RELAY_UPDATE= stoprelay "$t/seat/cloud_relay.sh" 2
   git worktree remove --force "$t/state/relay-tools"; rm -rf "$t/state/relay-tools.lock"
   git -C "$t/o.git" fetch -qf "$t/m" "HEAD:refs/heads/main"; git fetch -q origin main 2>/dev/null
