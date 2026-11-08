@@ -1,0 +1,80 @@
+  PASS  main keeps
+  PASS  merged into main deletes
+  PASS  open PR keeps
+  PASS  open PR keeps even when merged (null control)
+  PASS  handoff whose PR merged deletes
+  PASS  merged beats handoff-pr-merged
+  PASS  no PR is residue
+  PASS  closed-unmerged PR is residue
+  PASS  open handoff ref keeps
+  PASS  handoff ref that is a done group's branch deletes
+  PASS  ...but an OPEN handoff group branch still keeps
+  PASS  archive tag is the branch under archive/
+  PASS  archive tag of a two-segment ref
+  PASS  family is the first segment
+  PASS  planner tags before deletes
+  PASS  planner never acts on main
+  PASS  orphans scope tags only unmerged tips
+  PASS  orphans scope still deletes the already-merged tip
+  PASS  archive-scope none deletes nothing
+  PASS  keep-residue keeps a no-PR ref
+  PASS  a ci-probe ref with no PR deletes
+  PASS  a ci-probe ref with a closed PR deletes
+  PASS  null: a ci-probe ref that is an open PR's head keeps
+  PASS  null: a probe/ ref (cloud_relay's) is not the ci-probe family
+  PASS  the planner deletes the closed probe ref untagged and keeps the open one, even with --keep-residue
+  PASS  refuses an undrained verdict ref
+  PASS  refuses a plan that would act on main
+  PASS  refuses an archive tag naming a host path, without echoing it
+  PASS  and plans the same tip under a clean name (the null control)
+  PASS  a claude/* ref with a main-reachable tip is kept
+  PASS  null: the same tip on a fix/ ref is deleted
+  PASS  a design/ ref of a not-done group is kept
+  PASS  a design-verdict/ ref of a not-done group is kept
+  PASS  null: the same design/ ref of a done group is still deleted
+  PASS  a tip younger than 6 h is kept
+  PASS  null: a tip older than 6 h is deleted
+  PASS  a dispatch/* tip of 7 h is kept (24 h guard)
+  PASS  null: a dispatch/* tip of 25 h is deleted
+  PASS  a tip whose age is unreadable is kept, never read as 0-or-old
+  PASS  no ages given disables the guard (the offline arm)
+  PASS  the open-PR keep dominates the session keep
+  PASS  topic 't' matches handoff/t
+  PASS  topic 't' matches handoff-body/t
+  PASS  topic 't' matches handoff/t-r2
+  PASS  topic 't' matches handoff-body/t-r12
+  PASS  topic 't' matches dispatch/fixer-t
+  PASS  topic 't' matches dispatch/t
+  PASS  topic 't' skips handoff/xt
+  PASS  topic 't' skips handoff/t-other
+  PASS  topic 't' skips fix/t
+  PASS  topic 't' skips dispatch/fixer-xt
+  PASS  the gh stub has no group/other permission bits
+  PASS  null: the same check reads a 0o755 mode as wide (and 0o700 as private)
+  PASS  topic on main: plans its handoff, body and dispatch refs, tags first
+  PASS  a dry run writes nothing (remote refs unchanged, no push issued)
+  PASS  the topic's refs are gone after the push arm
+  PASS  every archive tag exists at the ref's own sha
+  PASS  chunk of 2: 2 tag pushes then 2 delete pushes, tags before deletes
+  PASS  0 gh calls in the push arm (the gh stub fails on any call)
+  PASS  a handoff-body ref's own unique content is not a cherry refusal
+  PASS  a topic with a '+' cherry line is refused and nothing is touched
+  PASS  null: the refusal reads the cherry, not the name (t-ok passed above)
+  PASS  a topic with an open PR is refused
+  PASS  a topic with no ref is refused
+  PASS  a ref to delete lacking its archive tag refuses; nothing deleted
+  PASS  null: the same delete listed untagged by the plan proceeds
+  PASS  the first refused tag push aborts: no later chunk, no delete
+  FAIL  a tag held at another sha: the tip is archived under its per-sha name, then deleted
+  FAIL  ...and the old tag is left at the old sha; the other tag keeps its plain name
+  PASS  main is never deletable by the push arm
+  PASS  a ref moved after the plan read is not deleted: delete-FAILED, its new tip stays
+  PASS  the moved ref's chunk is refused whole (atomic): its unmoved partner stays too
+  FAIL  a re-plan after a lease refusal archives the moved tip under a per-sha tag and deletes
+  PASS  null: the unmoved ref, planned alone at its live tip, archives and deletes
+  PASS  gh-api arm: a ref read at another sha than planned is not deleted
+  PASS  gh-api arm: a refused tag aborts before any read or delete
+  PASS  null control: the gh-api arm makes 2N writes (and N reads) for N unmoved refs
+SELF-TEST FAIL (74 checks)
+
+rc=1

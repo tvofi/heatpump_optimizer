@@ -1,0 +1,134 @@
+ok   the sweep over every class exits 0 (fail-soft)
+ok   merged+clean: worktree removed
+ok   the removal leased at the head the porcelain read (class A)
+ok   and the local branch deleted, leased at the head the porcelain read
+ok   and the seat scratch directory removed
+ok   open PR: worktree and seat kept
+ok   kept naming open-pr
+ok   and no remove call for it (null control)
+ok   no pull request at all: kept (ambiguous, not proved merged)
+ok   kept naming no-merged-pr
+ok   detached at a merged sha: worktree removed
+ok   the removal leased at the head the porcelain read (class B)
+ok   its cited evidence moved into the keep-dir
+ok   out of the seat directory
+ok   and the seat directory removed
+ok   and the move printed
+ok   detached at an unmerged sha: kept
+ok   kept naming unmerged-head
+ok   dirty merged: removed (force; merged work is on main)
+ok   dirty or not (merged work is on main)
+ok   its uncommitted state printed
+ok   diff text included
+ok   the diff is printed BEFORE the removal (stop-a-seat check)
+ok   locked: kept (a seat's claim, trap 34)
+ok   kept naming locked
+ok   orphan dir old and dead: seat dir removed
+ok   with its evidence preserved to the keep-dir
+ok   orphan dir fresh: kept (2h guard)
+ok   kept naming fresh
+ok   orphan with an open-PR branch: kept
+ok   kept naming unmerged-branch
+ok   orphan with a merged branch: removed
+ok   the orphan removal leased at the head the read gave (class C)
+ok   stale venv: removed
+ok   venv a live worktree symlinks: kept
+ok   kept naming venv-in-use
+ok   the main checkout is never touched
+ok   the fixture redirect holds: the real seats root is never walked (null control)
+ok   one PR read per branch worktree (the unpushed one included) plus the two orphan branches
+ok   a no-PR branch is never removed
+ok   on-remote: a clean detached worktree at a head a remote ref holds is removed
+ok   naming on-remote
+ok   null control: the same at a head no remote ref or tag holds is kept
+ok   naming unmerged-head
+ok   a process cwd inside an on-remote worktree: kept
+ok   naming cwd-inside
+ok   a young on-remote worktree: kept
+ok   naming young
+ok   a dirty on-remote worktree: kept
+ok   naming dirty-detached
+ok   a locked on-remote worktree: kept
+ok   naming locked
+ok   a worktree at the origin/main tip is kept though a remote ref holds it
+ok   naming unmerged-head
+ok   a branch worktree with an unpushed commit is kept though its PR merged
+ok   naming unpushed
+ok   and its branch is not deleted
+ok   and no remove call for it (apply path)
+ok   one summary line
+ok   dry-run: the unpushed worktree is kept (classify path)
+ok   dry-run: and the on-remote one is named for removal
+ok   a branch moved after the read: rc 0 (fail-soft)
+ok   the moved branch is not deleted
+ok   and the refused delete is reported
+ok   null control: the unmoved merged branch in the same run deletes
+ok   a detached HEAD moved after the read: rc 0 (fail-soft)
+ok   the detached worktree whose HEAD moved is kept
+ok   and the refused removal is reported
+ok   null control: the unmoved detached worktree in the same run is removed
+ok   an orphan's detached HEAD moved after the read: rc 0 (fail-soft)
+ok   the orphaned seat whose HEAD moved is kept
+ok   and the refused removal is reported
+ok   null control: the unmoved detached orphan in the same run is removed
+ok   failed fetch: the on-remote worktree is kept
+ok   naming unmerged-head
+ok   unreadable lsof: the on-remote worktree is kept
+ok   naming cwd-unread
+ok   nested live worktree under an orphan: rc 0
+ok   the nested worktree itself is kept naming open-pr
+ok   the nested LIVE worktree is not deleted
+ok   and the seat dir holding it is kept
+ok   kept naming the nested worktree
+ok   never announced as an orphan removal (null control)
+ok   the live worktree's file is intact
+ok   failed evidence move in class C: rc 0
+ok   the move failure is reported
+ok   the evidence stays in the seat dir
+ok   and the seat dir is kept
+ok   kept naming nondisposable-contents
+ok   the carry-0/1 sweep exits 0
+ok   carry 0: a seat branch whose fix/<topic> PR merged, clean and pushed: removed
+ok   carry 0: and one whose fix/<topic> PR is closed
+ok   its branch deleted, leased
+ok   null control: one unpushed commit keeps the seat
+ok   naming unpushed
+ok   null control: a live process cwd in a topic-merged seat keeps it
+ok   naming cwd-inside
+ok   null control: an uncommitted change keeps a topic-mapped seat
+ok   naming dirty-topic-seat
+ok   null control: an open fix/<topic> PR keeps the seat
+ok   naming open-pr
+ok   null control: a seat branch with no topic PR at all stays no-merged-pr
+ok   carry 1 (c): class A with a holder keeps
+ok   naming cwd-inside
+ok   carry 1 (a): class B with a holder keeps
+ok   naming cwd-inside
+ok   carry 1 (b): class B without a holder removes (null control)
+ok   carry 0: a plain mutant copy in a merged-topic seat: removed
+ok   and a null copy
+ok   null control: a copy with a .git, and a directory not named like a copy, stay
+ok   a seat under the second root of the list is collected
+ok   null control: copies of an open topic stay
+ok   naming copies-unmerged-topic
+ok   null control: a process cwd in a copy keeps it
+ok   while the other copy of that seat goes
+ok   null control: a seat modified within the age guard keeps its copies
+ok   --dry-run exits 0
+ok   removes no worktree
+ok   deletes no branch
+ok   leaves the merged seat on disk
+ok   moves no evidence
+ok   and says what would go
+ok   and what is kept, with the reason
+ok   unauthenticated gh: rc 0 (fail-soft)
+ok   a notice, not a refusal
+ok   and nothing removed
+ok   the merged worktree survives
+ok   --strict with nothing eligible: rc 1
+ok   without --strict the same run is rc 0
+ok   no repository argument is a usage error
+ok   and so is a repo without owner/repo shape
+ok   refused before any git or gh call
+worktree_gc self-test: 132 checks, 0 failed
+rc=0

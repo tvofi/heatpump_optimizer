@@ -1,0 +1,38 @@
+  PASS  a dry run with a group open exits 0 and says --apply would refuse B
+  PASS  a dry run prints the plan
+  PASS  a dry run writes nothing (remote refs, tree, report dir)
+  PASS  --apply with a group open refuses (rc 2) naming it
+  PASS  ...and wrote nothing
+  PASS  roster_blockers names every other open group and skips this one
+  PASS  a fixture roster with only the post-stamp owner step open proceeds
+  PASS  a refused group (no open host) is not a blocker
+  PASS  a ruled group whose host is still open blocks
+  PASS  null control: an ordinary not-started group still refuses beside the exempt ones
+  PASS  a group after the post-stamp step is post-stamp too
+  FAIL  step 4 does not wait for an issue wired to a post-stamp group
+  PASS  null control: step 4 still waits for an unwired issue
+  PASS  null: with every other group done, --apply gets past the roster to step 1
+  PASS  step 1 blocks on a failing brief_lint and nothing is written after it
+  PASS  a blocked run still writes the report, marked BLOCKED
+  PASS  a state doc missing from main blocks step 1
+  PASS  a policy file still citing a doomed ref blocks step 1, naming the retarget
+  PASS  --apply with every other group done runs steps 1-3; step 4 passes with only the successor
+  PASS  every tag precedes every delete: the archive tags exist at the old shas
+  PASS  the deleted refs are gone from the remote
+  PASS  null control: main and the open-PR head are kept
+  PASS  a worktree holding an unpushed commit survives
+  PASS  null: the clean seat worktree at a pushed head is removed
+  PASS  scratch under the orchestrator root goes, the ledger stays
+  PASS  the unpushed branch is not deleted, and the final worktree_gc ran once
+  PASS  the report states COMPLETE, the left refs with their rule, and the kept worktree
+  PASS  an open issue beyond the successor blocks step 4 and the report says BLOCKED
+  PASS  unreadable issues block step 4 (never read as zero)
+  PASS  a ref to be deleted that lacks its archive tag refuses
+  PASS  step 2: a ref moved after the plan read is not deleted; the step reports it
+  PASS  step 3: a local branch moved after the read is not deleted
+  PASS  null: the same branch at the sha read is deleted
+  PASS  step 3: a detached worktree whose HEAD moved after the read is kept
+  PASS  null: the same worktree at the HEAD read is removed
+closeout self-test: 35 checks, 1 failed
+
+rc=1
