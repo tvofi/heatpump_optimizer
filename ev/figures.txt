@@ -1,0 +1,23 @@
+selftest_wiring: 122 self-testing, 122 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+rc=0
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+rc=0
+CASE ok want=2 got=2 pkill at command position
+CASE ok want=2 got=2 killall at command position
+CASE ok want=2 got=2 kill fed by pgrep
+CASE ok want=2 got=2 pgrep piped to xargs kill
+CASE ok want=0 got=0 NULL kill of an owned pid
+CASE ok want=0 got=0 NULL a non-kill command
+CASE ok want=0 got=0 NULL pkill inside quoted text
+MUTANT M-pkill killed=yes
+MUTANT M-killall killed=yes
+MUTANT M-pgrepkill killed=yes
+rc=0
+offline_spy: tools/audit/seat/hooks_setup.py rc=0 network=0 remote_git=0 git=160 subprocess=54 backstop=none offline | hooks_setup self-test: 39 checks, 0 failed
+offline_spy: 1 files, 0 refused
+rc=0
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 5bc009bc8296
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 798 line(s) added since 5bc009bc8296 judged, 0 refused
