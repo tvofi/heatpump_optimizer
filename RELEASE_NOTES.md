@@ -1,3 +1,27 @@
+## v7.1.7
+
+**Patch stamp: 5 merges since v7.1.6.** The user-visible change is that the round's plan page is now public: the developer documentation links it, and outside contributors have a stated intake route. The rest of the window is round-10 engineering and audit machinery.
+
+### #3262 The round's plan page is public (R10-OUTSIDE-INTAKE)
+
+The plan page for an ongoing audit round is now published from the developer documentation (owner ruling, 2026-11-06). The same change states how issues, pull requests and posts from outside users are taken in and answered during a round.
+
+### #3301 CI's prediction covers every restoring job (R10-FLY-CIPREDICT-RESTORING)
+
+`tools/pr/ci_predict.py` now predicts every CI job that restores a grader from the base, not only governance's three. A prediction no longer misses a red those jobs would raise. Closes #2952.
+
+### #3288 The merge train retries its carry-path fetch (R10-TRAIN-MERGE-LOOP part 2)
+
+The merge loop's second part: the approval carry path retries a failed `git fetch` instead of refusing on the first transient error.
+
+### #3312 The figure block is registered with the field-coverage grader (R10-BODY-CONTRACT part 3 bootstrap)
+
+`tools/pr/figure_block.py` is registered as pending in main's field-coverage registry, so the body-contract work that builds on it can pass the grader CI restores from the base.
+
+### #3311 The "other" friction family is disposed (R10-FRICTION-OTHER-FAMILY)
+
+The record of the friction family that matched no class: mostly spelling dispersion, and one taught obligation that three pull requests had missed. It lands as `dev/audit/rca/R10-RCA-OTHER-UNTAUGHT.md`.
+
 ## v7.1.6
 
 **Patch stamp: 27 merges since v7.1.5.** The user-visible changes are a live "Why now" explanation on the card, a saving that says when it includes wood heat, a buffer tank that no longer starts every solve from a fixed 40 °C, and inputs that come back as soon as their entity reports again. The rest of the window is round-10 engineering and audit machinery.
