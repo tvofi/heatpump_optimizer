@@ -96,10 +96,10 @@ def _restorer(config: Any) -> off_restore.Restorer | None:
     entity_id = config.heat_curve_displace_entity
     if not entity_id or config.heat_curve_target_kind != HEAT_CURVE_KIND_OFFSET:
         return None
-    return off_restore.Restorer(entity_id, write_setpoint, neutral=0.0, restored=_restored)
+    return off_restore.Restorer(entity_id, write_setpoint, neutral=0.0, restored=_restore_recorded)
 
 
-def _restored(entry: Any, value: float) -> None:
+def _restore_recorded(entry: Any, value: float) -> None:
     """The restore wrote ``value``: the entity's last instruction, a new target.
 
     W2 and W3 then judge the next publish against the restore's write, never
