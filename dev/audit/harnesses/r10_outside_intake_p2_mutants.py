@@ -24,7 +24,6 @@ aborts.
 """
 from __future__ import annotations
 
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -97,9 +96,8 @@ MUTANTS = [
 
 
 def failures(out: str) -> list[str]:
-    """Every self-test's FAIL lines: `FAIL ...` (any indent) or a summary naming failed checks."""
-    return [ln.strip() for ln in out.splitlines()
-            if ln.strip().startswith("FAIL") or re.match(r"\d+ self-test check\(s\) failed: ", ln)]
+    """Every self-test's FAIL lines, at any indent: each self-test run here prints its own."""
+    return [ln.strip() for ln in out.splitlines() if ln.strip().startswith("FAIL")]
 
 
 def main(argv: list[str]) -> int:

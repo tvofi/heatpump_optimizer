@@ -219,8 +219,8 @@ PLANTS = {
            '        elif isinstance(x, dict) and isinstance(x.get("number"), int):  # R5\n'),
     "H1": ("    if held:\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n",
            "    if False:  # H1\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n"),
-    "H2": ('        if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
-           '        if a.op == "set-stage":  # H2\n'),
+    "H2": ('        if closed or a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
+           '        if closed or a.op == "set-stage":  # H2\n'),
 }
 
 
