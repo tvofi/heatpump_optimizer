@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.5
+# claims-for: 7.1.6
 #
-# v7.1.5: Bounded process worker wait (outside contribution #3232); round-10 machinery. The stamp empties the list; the
+# v7.1.6: Round 10 fixes since v7.1.5. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
