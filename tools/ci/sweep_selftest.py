@@ -270,8 +270,9 @@ def run_checks():
     ok("stale pin null: a dispatched run's gate (it rev-parses origin/<base> at its re-run) is re-run, the "
        "base never compared", w.posts == ["repos/o/r/actions/jobs/10/rerun"] and w.compares == 0)
     w = pinned(run(1, "1"), run(2, "2"), v_run())
-    w.sweep()
-    ok("stale pin: two stale reds at one head take one dispatch, one compare", w.posts == [dispatch] and w.compares == 1)
+    rc, out = w.sweep()
+    ok("stale pin: two stale reds at one head take one dispatch, one compare, and the second says so",
+       w.posts == [dispatch] and w.compares == 1 and "run 2 left to this sweep's dispatched run" in out)
     w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), v=2)
     w.sweep()
     ok("stale pin, settle: the #3261 pair (two deferrals under a pre-fix program) takes one dispatch, no re-run",
@@ -281,6 +282,11 @@ def run_checks():
     rc, out = w.sweep()
     ok("stale pin, no loop: a dispatched run created after the stale gate concluded re-judges the head; "
        "nothing posted", w.posts == [] and "run 5 re-judges" in out)
+    w = pinned(run(1, "1"), run(5, "2", g="success"), v_run())
+    w.runs[5]["event"] = "workflow_dispatch"
+    w.sweep()
+    ok("stale pin, no loop: a dispatched run created in the second the stale gate concluded is that fresh judge",
+       w.posts == [])
     w = pinned(run(1, "1"), run(5, "1"), v_run())
     w.runs[5]["event"] = "workflow_dispatch"
     w.runs[1]["gate"]["completed_at"] = "2"
