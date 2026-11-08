@@ -1,5 +1,0 @@
-planted P4
-RESULT P4 [python3 tests/config_flow_steps.py] rc=0 19s :: ALL 549 checks PASSED
-RESULT P4 [python3 tests/features.py] rc=0 541s :: ALL 4978 FEATURE CHECKS PASSED
-RESULT P4 [python3 tests/entities.py] rc=1 491s :: 6 of 2701 ENTITY CHECKS FAILED
-DONE

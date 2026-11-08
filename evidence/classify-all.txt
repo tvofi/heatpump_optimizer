@@ -1,0 +1,34 @@
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+RED 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: none red: gate
+rc=1
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+WAIT 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: gate red: none
+rc=3
+RED 9b9c4ffc7d168af9dc7007f361e9402ad32065db pending: none red: gate
+rc=1

@@ -1,0 +1,12 @@
+== m1
+RESULT de: leaves=1441 missing=1 extra=0 placeholder_mismatch=0 ['options.step.thermal_model.data.compressor_modulation'] [] []
+== m2
+RESULT de: leaves=1441 missing=1 extra=0 placeholder_mismatch=0 ['options.step.thermal_model.data_description.compressor_modulation'] [] []
+== m3
+RESULT de: leaves=1439 missing=3 extra=0 placeholder_mismatch=0 ['selector.compressor_modulation.options.auto', 'selector.compressor_modulation.options.modulating', 'selector.compressor_modulation.options.on_off'] [] []
+== m4
+RESULT de: leaves=1441 missing=1 extra=0 placeholder_mismatch=0 ['selector.compressor_modulation.options.on_off'] [] []
+== m5
+RESULT de: leaves=1442 missing=0 extra=0 placeholder_mismatch=0 [] [] []
+== null
+RESULT de: leaves=1442 missing=0 extra=0 placeholder_mismatch=0 [] [] []
