@@ -1078,7 +1078,7 @@ throwaway_git_init "$R/origin.git" -q --bare -b main && throwaway_git_clone -q "
 python3 -c 'import sys
 tip = sys.argv[1]
 for i in range(6000):
-    sys.stdout.write("commit refs/heads/main\ncommitter t <t@t> %d +0000\ndata 2\nc\n%s\n" % (1700000000 + i, "from %s\n" % tip if i == 0 else ""))' \
+    sys.stdout.write("commit refs/heads/main\ncommitter t <1+t@users.noreply.github.com> %d +0000\ndata 2\nc\n%s\n" % (1700000000 + i, "from %s\n" % tip if i == 0 else ""))' \
   "$(git -C "$R/wt" rev-parse main)" | git -C "$R/wt" fast-import --quiet && rgit -C "$R/wt" push -q origin main
 st "$(git -C "$R/wt" rev-list --first-parent origin/main | wc -c | awk '{print ($1 > 65536) ? "over" : "under"}')" over "real git: main's first-parent list is over 64 KB, past any pipe buffer"
 st "$(git -C "$R/wt" merge-base --is-ancestor evil origin/main && echo ancestor)$(git -C "$R/wt" ls-tree --name-only HEAD | grep -c evil.py)" ancestor1 "real git (review of #2069): parent 2 is a merged branch's intermediate commit, an ancestor of origin/main, and HEAD carries its evil.py"
