@@ -34,7 +34,22 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+
+
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
 FIXTURE = Path(__file__).with_suffix(".json")
 REPO = "tvofi/heatpump_optimizer"
 HEADS = {"3293": "fefaa4926e36e9c571cc685e0b6aa2b391d14793", "3267": "cc6ee11ff27b8b57cd7e017121544dca9dbe6e30",
