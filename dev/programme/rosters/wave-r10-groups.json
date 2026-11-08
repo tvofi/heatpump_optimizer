@@ -18266,9 +18266,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-ci-own-delivery-row",
-    "commit": null,
+    "commit": "d2e4d2d10cfe15b9ec51c36422029718e8367f1c",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "s12 CI-levers seat 2026-11-07: owner lever 2",
