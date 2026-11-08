@@ -114,13 +114,14 @@ none
 
 ## Forward-carry
 
+Each item goes to #2731, the class's issue, which this group lists. Landing a carry on the roster branch is the orchestrator's write. Carry 11 is already the group's own carry (status above).
+
 - Carry 0's wiring, once this diff is on main. Route each of pr-contract.yml's 7 `gh api` reads through `python3 -I tools/audit/seat/gh_read_run.py gh api ...`, add `'tools/audit/seat/gh_read.py'` and `'tools/audit/seat/gh_read_run.py'` to the step "Restore the check source from the base commit"'s pathspec list, and drop both `pending` keys in `tools/policy/field_coverage.mjs`'s DECLARED.
   - It is code-owned (`.github/workflows/`), under the mandated approval the brief names.
   - Measured on this branch's first cut, that wiring passes `codeowners_gap.py --check` (rc 0, `uncovered_files=0`, both files `PINNED`). It went red only on the base-copy registration this diff lands.
-  - Carry: R10-FLY-GH-READ-RETRY
-- The other 17 workflow `gh api` reads (`git grep -n 'gh api' -- .github/workflows`, less pr-contract.yml's) are the same class. Each can use the same runner where its job pins nothing, or with the same restore and DECLARED entries where it does. Re-run the enumerator at that group's merge base. Carry: R10-FLY-GH-READ-RETRY
-- Carries 8/10, measured here: pr-contract's red list missed 1 still-running red in 379 lists (2026-11-07T18:00Z onward, `dev/audit/harnesses/r10_red_list_lag.py`). The fix decision, and a re-run over the RCA's three incident windows, rest with the orchestrator. Carry: R10-FLY-GH-READ-RETRY
-- Carry 11 (app_push.sh's push on `git_transient`) waits on #3288 landing the classifier. Carry: R10-FLY-GH-READ-RETRY
+  - Carry: #2731
+- The other 17 workflow `gh api` reads (`git grep -n 'gh api' -- .github/workflows`, less pr-contract.yml's) are the same class. Each can use the same runner where its job pins nothing, or with the same restore and DECLARED entries where it does. Re-run the enumerator at that group's merge base. Carry: #2731
+- Carries 8/10, measured here: pr-contract's red list missed 1 still-running red in 379 lists (2026-11-07T18:00Z onward, `dev/audit/harnesses/r10_red_list_lag.py`). The fix decision, and a re-run over the RCA's three incident windows, rest with the orchestrator. Carry: #2731
 
 ## Friction
 
