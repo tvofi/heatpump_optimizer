@@ -1182,12 +1182,15 @@ def self_test() -> int:
     # The live table names no landed retired path (tests/layout.py's guard
     # refuses a new reference to one, and a diff re-adding one), and the
     # list it is checked against is not empty (the check's own precondition).
-    gone = [r.rstrip("/") for r in retired_paths(ROOT)]
-    live_t = load_table(ROOT / TABLE) or {"steps": {}}
-    named = sorted({p for e in live_t["steps"].values() for k in ("files", "probes", "dirs")
-                    for p in e.get(k, ()) if any(p == r or p.startswith(r + "/") for r in gone)})
-    ck(f"the committed table names no landed retired path ({len(gone)} retired; named: {named[:3]})",
-       bool(gone) and named == [] and retired_paths(Path(tempfile.gettempdir())) == [])
+    if not (ROOT / ".git").exists():
+        print("  skip the live table's retired-path check: no git work tree here (a `git archive` copy)")
+    else:
+        gone = [r.rstrip("/") for r in retired_paths(ROOT)]
+        live_t = load_table(ROOT / TABLE) or {"steps": {}}
+        named = sorted({p for e in live_t["steps"].values() for k in ("files", "probes", "dirs")
+                        for p in e.get(k, ()) if any(p == r or p.startswith(r + "/") for r in gone)})
+        ck(f"the committed table names no landed retired path ({len(gone)} retired; named: {named[:3]})",
+           bool(gone) and named == [] and retired_paths(Path(tempfile.gettempdir())) == [])
 
     # The live job: its gating is consistent (the seat's own null control).
     live = workflow_steps(ROOT)
