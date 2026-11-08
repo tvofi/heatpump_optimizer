@@ -264,6 +264,37 @@ second grader.
 - It exits 2 on the fix head with its `if measured:` turned to `if False:`.
   That is the skip control: a tree that grades nothing cannot pass.
 - The metered install grades on every tree, so the harness can see a sample.
+- **Each door alone.** Two more trees are cut from the fix head:
+  - **door N** reopens only the no-heat door: `cop_sample`'s no-heat arm
+    returns `True`. It prints `null=graded tuya=withheld`, rc 1.
+  - **door T** reopens only the estimate door: `_estimated` returns `False`
+    first. It prints `null=withheld tuya=graded`, rc 1.
+  So either verdict alone is enough to refuse.
+
+**Mutation proof.** `prepr.sh`'s diff-mutant step generates no mutants here,
+because `mutant_run.py` skips `dev/` (`SKIP_PREFIXES`). So the detector was
+mutated by hand. The scored command requires every one of these together:
+
+- rc 0 at the fix head;
+- rc 1 at v7.1.5;
+- rc 2 on the skip tree;
+- rc 1 on door N and on door T.
+
+Unmutated, the command passes. Each mutant below was applied alone and
+restored, and each fails the command, so each is killed (6 of 6):
+
+| mutant | the edit |
+|---|---|
+| M-a | the verdict line becomes `return 0` |
+| M-b | the skip guard becomes `if False:` |
+| M-c | the null verdict is forced to `withheld` |
+| M-d | the tuya verdict is forced to `withheld` |
+| M-e | `null` is dropped from the verdict |
+| M-f | the metered verdict is forced to `graded` |
+
+Before the door trees existed, M-c, M-d and M-e survived. At v7.1.5 both
+doors are open, so either verdict alone refuses. The door trees are what kill
+them.
 
 It is hand-run evidence under `dev/audit/` and is wired into no gate. The
 instance's barrier in CI is #3297's own section in `tests/features.py`. Its
