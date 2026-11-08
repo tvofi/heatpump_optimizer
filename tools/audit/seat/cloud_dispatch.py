@@ -429,12 +429,14 @@ def _snapshot(repo_dir: str, ref: str, prompt: str) -> str:
     return _publish(repo_dir, ref, {"PROMPT.md": prompt})
 
 
-def group_brief(group: dict) -> str:
+def group_brief(group: dict, roster: dict | None = None, *, fixer: bool = False) -> str:
     """What a group's seat is briefed with: the roster brief, then `After:` the groups it
     follows, then each carry as `Carry <i>:`, verbatim, `<i>` its 0-based index in the
     roster's list (the index a brief or a verdict cites a carry by)."""
     parts = [(group.get("brief") or "").rstrip("\n"), "After: " + (", ".join(group.get("after") or []) or "none")]
     parts += [f"Carry {i}: {c}" for i, c in enumerate(group.get("carry") or [])]
+    if fixer and roster is not None:  # the generated lines, after everything the roster wrote
+        parts += roster_lib.brief_lines(roster, group.get("group") or "")
     return "\n\n".join(p for p in parts if p) + "\n"
 
 
@@ -527,7 +529,7 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
         if not design:
             raise Refusal(f"no design/{group_id} on origin to review")
     args = dict(design=design, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
-                pr=pr, topic=topic, brief=group_brief(group))
+                pr=pr, topic=topic, brief=group_brief(group, roster, fixer=role == "fixer"))
     head = head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip()
     if role == "reviewer":
         render(role, head, **args, nonce=BUS_PROBE_NONCE)  # every other refusal, before the bus records
@@ -619,7 +621,12 @@ def _group_checks(check) -> None:
         cbad = {"group": "R10-CBAD", "brief": "Clean.\n", "carry": ["fine", "cd " + users + "someone/work"]}
         ruled = {"group": "R10-M", "brief": "Model.\n", "model": {"fixer": "sonnet", "reviewer": "opus"}}
         legacy = {"group": "R10-L", "brief": "Legacy.\n", "fixerModel": "opus"}
-        land([grp, bad, big, two, cbad, ruled, legacy])
+        prod = {"group": "R10-PROD", "brief": "Produce.\n", "files": ["tools/a.py"], "resume": {"stage": "in-progress"},
+                "enumeration": "git grep -n seam -- tools"}
+        cons = {"group": "R10-CONS", "brief": "Consume.\n", "after": ["R10-PROD"], "resume": {"stage": "queued"}}
+        share = {"group": "R10-SHARE", "brief": "Share.\n", "files": ["tools/a.py", "tools/b.py"], "resume": {"stage": "queued"}}
+        donec = {"group": "R10-DONEC", "brief": "Done.\n", "after": ["R10-PROD"], "resume": {"stage": "done"}}
+        land([grp, bad, big, two, cbad, ruled, legacy, prod, cons, share, donec])
         git(work, "remote", "add", "origin", str(origin))
         tip = git(work, "rev-parse", "origin/main").strip()
 
@@ -716,9 +723,18 @@ def _group_checks(check) -> None:
               rc0 == 0 and content(plain.getvalue()) == msg)
         check("the roster brief is inlined and the roster tip is the head",
               "Fix the thing in tools/x.py." in msg and tip in msg)
-        check("a group with no carry renders its brief and `After:` alone (the null control for the carries)",
-              msg.endswith("\nBrief (snapshotted when this payload was rendered):\n"
-                           "Fix the thing in tools/x.py.\n\nAfter: none\n") and "Carry " not in msg)
+        check("a group with no carry, consumer or enumeration renders its brief and `After:` alone (the null control)",
+              fetched(dispatch("R10-L", model="opus"), "PROMPT.md").endswith("\nBrief (snapshotted when this payload was rendered):\n"
+                                                              "Legacy.\n\nAfter: none\n"))
+        # CARRY 4 (tvofi 2026-11-01 card 2): the live consumers and the class enumeration, generated.
+        ptext = fetched(dispatch("R10-PROD"), "PROMPT.md")
+        check("a fixer's brief lists the live consumers (after-edged and file-sharing) as the only valid Carry targets, not the done one",
+              "Valid `Carry:` targets (live consumers of R10-PROD: groups after it or sharing its files): R10-CONS, R10-SHARE\n" in ptext
+              and "R10-DONEC" not in ptext.split("Valid `Carry:` targets")[1])
+        check("and the group's class-enumeration command",
+              "disposition every seam it returns): git grep -n seam -- tools\n" in ptext)
+        check("a reviewer's brief carries neither generated line",
+              "Valid `Carry:`" not in group_brief(prod, {"groups": [prod, cons]}, fixer=False))
         try:
             dispatch("R10-M", model="claude-opus-5-5")
             why = ""
@@ -754,9 +770,11 @@ def _group_checks(check) -> None:
                                "Carry 1: Second; tools/z.py.\n"))
         check("a host path inside a carry refuses as one in the brief does, and pushes nothing",
               refused("R10-CBAD") and "r10-cbad" not in git(work, "ls-remote", str(origin)))
-        check("a re-dispatch of the same brief moves no ref", dispatch() == line
-              and git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]
-              == git(work, "rev-parse", "FETCH_HEAD").strip())
+        dispatch()  # settle: the ref holds this roster's brief for R10-X
+        tip_of = lambda: git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]
+        settled = tip_of()
+        check("a re-dispatch of the same brief moves no ref", dispatch() == line and tip_of() == settled)
+        git(work, "fetch", "-q", str(origin), "refs/heads/" + line)
         first = git(work, "rev-parse", "FETCH_HEAD").strip()
         land([{**grp, "brief": "Changed.\n"}, bad])
         dispatch()

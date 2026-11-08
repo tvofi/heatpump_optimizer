@@ -563,6 +563,34 @@ def needs_design(group: dict) -> bool:
     return group.get("size") in DESIGN_SIZES
 
 
+def consumers_of(roster: dict, group_id: str) -> list[str]:
+    """The live groups a `Carry:` from `group_id` may name (finding-propagation.md): the
+    reverse after-edges, then the groups sharing a file in `files`, in roster order, never
+    the group itself and never a group `CARRY_CLOSED` (done or absorbed)."""
+    groups = groups_of(roster)
+    me = groups.get(group_id) or {}
+    mine = set(me.get("files") or [])
+    return [n for n, g in groups.items()
+            if n != group_id and (g.get("resume") or {}).get("stage") not in CARRY_CLOSED
+            and (group_id in (g.get("after") or []) or mine & set(g.get("files") or []))]
+
+
+def brief_lines(roster: dict, group_id: str) -> list[str]:
+    """The two generated lines a fixer's brief and `prepr.sh` print (Carry 4, tvofi 2026-11-01
+    card 2): the live consumer groups, the only valid `Carry:` targets, and the finding's
+    class-enumeration command (the group's optional `enumeration` field). A group with
+    neither yields no lines, so its brief stays byte-identical."""
+    out = []
+    live = consumers_of(roster, group_id)
+    if live:
+        out.append(f"Valid `Carry:` targets (live consumers of {group_id}: groups after it or sharing its files): "
+                   + ", ".join(live))
+    enum = ((groups_of(roster).get(group_id) or {}).get("enumeration") or "").strip()
+    if enum:
+        out.append(f"Class-enumeration command (step 8 of the fixer's contract; run it and disposition every seam it returns): {enum}")
+    return out
+
+
 def norm_group(s: str) -> str:
     """A roster group id or branch tail normalized for comparison:
     lowercased with ``_`` written as ``-``. `group_for_branch` and the
@@ -1001,4 +1029,13 @@ def _self_test() -> int:
 if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         sys.exit(_self_test())
+    if sys.argv[1:2] == ["brief-lines"] and len(sys.argv) == 4:
+        # brief-lines <roster-ref> <branch>: what `prepr.sh` prints; always rc 0 (informational)
+        try:
+            _r = show_roster(".", sys.argv[2])
+            _g = group_for_branch(_r, sys.argv[3])
+            print("\n".join(brief_lines(_r, _g)) if _g else f"no roster group answers for branch {sys.argv[3]}")
+        except Exception as e:  # a missing ref is a note, never a refusal
+            print(f"unreadable: {e.__class__.__name__}")
+        sys.exit(0)
     sys.exit(__doc__)
