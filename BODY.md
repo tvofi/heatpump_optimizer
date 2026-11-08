@@ -76,12 +76,10 @@ The four parts follow.
 
 ## Head
 
-The head is `11fb790082eff5436cb7e63e27ecea837a779abd`: origin/main `73365699a` plus four commits.
+The head is `b8fba2c8d5ab03067539c7e8d06e369f85162c31`. The code was measured at `11fb790082eff5436cb7e63e27ecea837a779abd`; `b8fba2c8d` adds only a merge of origin/main (`6e459e0e6`, which brought in the v7.1.6 stamp) and the delivery row `dev/programme/delivery/3316.md` (`b8fba2c8d record: the delivery row for #3316`). The diff against the merge base still touches the same five paths under `dev/` and `tests/closures.json`, nothing under `custom_components/`.
 
-- origin/main had not moved at the `tools/pr/prepr.sh` run: it was
-  `73365699a` at that run (`git rev-parse origin/main`) and still is now. No
-  second run was owed.
-- `git merge-tree --write-tree origin/main HEAD` reports no conflict.
+- The prepr run below was at `11fb79008`, on origin/main `73365699a`. Main has since moved; per the owner's ruling of 2026-11-07 it is not re-run for that.
+- `git merge-tree --write-tree origin/main HEAD` at `b8fba2c8d` reports no conflict.
 
 ## Mutation proof
 
@@ -157,7 +155,22 @@ both doors are open, so either verdict alone refuses.
 
 ## Red checks
 
-none
+Every concluded red at `b8fba2c8d` is a **cancellation**, not a failure. The check-run list (68 runs, read once across all pages) has no `failure` conclusion on any test job except `gate`, and no job log shows an assertion or an `UNDER-SCOPED` line. All of them end at about 08:47:24 to 08:47:40Z, inside one run, `CI code pr=3316` (run 42463804677, attempt 24).
+
+- `tests / fast (3.14)`: cancelled. The log's last lines are `start python3 tests/entities.py` then `The operation was canceled.`, 4m27s into that script. Not caused by this diff: the job was killed, and the scoped run had printed no failure before it.
+- `tests / graders-head-copy`: cancelled, with empty output. Not caused by this diff; it never ran to a verdict.
+- `tests / lane-proofs`: cancelled, with empty output. Not caused by this diff.
+- `tests / closures`: cancelled, with empty output. So the closure recording is neither shown stale nor shown under-scoped by this run. The diff's one closures change is `tests/closures.json` for `tests/harness_headers.py`, written by `ci_predict.py --apply-inert`, and `harness_headers.py` passes locally (see Null control).
+- `tests / closures-autofix`: cancelled. No bot commit exists beyond the head (`git ls-remote origin fix/r10-rca-cop-unmeasured` returns `b8fba2c8d`), so nothing was repaired and nothing was owed.
+- `pr-contract / pr-contract`: two runs, both success. The earlier refusal named in the dispatch is no longer standing.
+- `gate`: failure, in two jobs (the edit job and the code job). Both logs end with `FAIL tests / fast (3.14): cancelled` and `tests / closures: cancelled`, so `gate` is red only because it aggregates the cancelled jobs. It is a derived red, not an independent one. A third `gate` entry was still in progress when read.
+
+Cause and cheaper detector:
+
+- Cause: the runs were cancelled while the test jobs were running, not failed by a test. Why they were cancelled was not established here. I have no evidence that the diff caused it.
+- Cheaper detector (`defect-root-cause.md`): none applies. A cancellation is not a defect a local check can predict, and `tools/pr/prepr.sh` has no step for it. The failures that a local check does predict, namely `ci predict`, the carry routing and the body path, were run and repaired before the handoff (see Figures, prepr).
+- On origin/main `6188936a8` the same jobs had not concluded when read (43 runs, none failed, 14 in progress), so no main-versus-branch comparison is possible yet.
+- A re-run of the cancelled jobs at this head will show whether any of them fails. If one does, that failure is the finding, not this paragraph.
 
 ## Forward-carry
 
