@@ -1,0 +1,10 @@
+## null: no-op comment
+ALL 25 wood-advisor checks PASSED
+## mutant C: _derated drops the factor (c * f -> c)
+    return [c for c, f in zip(cops, partload, strict=False)] + cops[len(partload):]
+3
+rc=1
+## mutant A: coordinator drops partload_at=partload_factor
+ custom_components/heatpump_optimizer/coordinator.py | 1 -
+ 1 file changed, 1 deletion(-)
+wood_advisor rc=0
