@@ -541,9 +541,8 @@ def build_wood_fuel_view(
 
 
 def _derated(cops: list[float], partload: Sequence[float]) -> list[float]:
-    """``cops`` times each step's part-load factor; unchanged when empty."""
-    if not partload:
-        return cops
+    """``cops`` times each step's part-load factor; a step past ``partload``
+    (and every step, when it is empty) keeps its COP."""
     return [c * f for c, f in zip(cops, partload, strict=False)] + cops[len(partload):]
 
 
