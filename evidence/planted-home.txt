@@ -1,3 +1,0 @@
-line 1: home-directory, account-name in the bodybad rc=1
-no host identity in the body
-ok rc=0

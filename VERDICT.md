@@ -1,24 +1,27 @@
-Fix review: blocked 0c3138c5f35760a738cf78694f91cb65af4c3726 root-cause-unanswered: gate
+Fix review: merge 0c3138c5f35760a738cf78694f91cb65af4c3726
 
-bus-nonce: 8e5af60d1dd4d41c4fb90737e729b717
+bus-nonce: ef64bfe28eb4a7e0c5fa3fdc85eaacff
 
-Round 1 (sonnet), head 0c3138c5f35760a738cf78694f91cb65af4c3726. Fix-review contract read from main (roles dir unchanged between merge base and main per the check). I ran on Linux and could not reproduce the Darwin 127; the Darwin claim is reasoned from the diff and the body's recorded Mac evidence only.
+## Summary
 
-## Block
-- `gate` (check-run 128823275143) concluded failure at this head and the body's `## Red checks` says "none". The gate log's only line is "FAIL run(s) [42510666835] at this head are still being judged; their gate decides" at 18:36:40Z, i.e. an early-run race, not a code failure; every other concluded check of the head is green or skipped (env-matrix, instrument-self-tests, browser, closures were in_progress at render). I polled merge_train classify (>60 s apart, background) until it exited 1 (RED, pending: none, red: gate). Fix rule 11: the body must name the red gate and answer it (cheaper detector, or none). It does not, so I cannot tell which; the author should name it in `## Red checks` (a race of the gate against the head's still-running workflows, answerable by naming it) and re-trigger the gate. The code change itself is sound; nothing below blocks on it.
-Carry: built-here
+First-round review of PR 3343 (R10-HOTFIX-PREPR-SELFTEST-DARWIN). I run on Linux, where the arm was always green, so **I could not reproduce the Darwin failure**. The Darwin claim rests on reading the diff, a simulated shim, and the seat's recorded evidence in the PR body.
 
-## Findings
-- Residual: the arm's repair is Darwin-only in effect; no Linux CI arm exercises a shimmed python3 under a planted HOME, so the fix has no automatic regression guard (Mac-only evidence, mutation proof run by the author on a Mac).
-Carry: dismissed: owner ruling scopes this as a hand-run hotfix for a shim host; no cheaper CI detector exists on Linux.
+- Diff (three-dot): `tools/pr/prepr.sh` (+5/-2 effective) and `dev/programme/delivery/3343.md` (the delivery row, present). No new tracked file beyond that row, no budget file touched, VERSION / manifest / RELEASE_NOTES.md untouched (empty diff). `## Head` names 0c3138c5 and the authored code head.
+- Merge: `git merge-tree --write-tree origin/main HEAD` is clean (tree 26f5b333).
+- Reading: the two changed calls prepend the real interpreter's directory (`dirname sys.executable`, resolved under the real HOME before the planted one) to PATH only for `body_privacy_line`. `body_privacy_line` calls `python3 -I tools/audit/seat/ref_privacy.py`. With the real interpreter first on PATH it cannot reach a HOME-resolving shim, so it cannot exit 127. The rc and message checks are unchanged, so they still judge the subject.
+- Note on the body's wording: at main on a shim host, `body_privacy_line` as written returns rc 1 with the shim's message for the clean body, not 127. The shim's 127 is captured inside $(...) and the function ends in `return 1`. The arm's "got 127" in the PR body is the fixer's observed output on the Mac. The disagreement is cosmetic and the failure mode is the same (clean body wrongly nonzero).
 
 ## Evidence
-- Setup: cloud-setup check OK; merge-tree origin/main vs head: clean (tree bf0b4de2e98a, no conflict). Diff three-dot: tools/pr/prepr.sh (+5/-2 lines of change) and dev/programme/delivery/3343.md only; no new tracked file beyond the delivery row; no budget, VERSION, manifest, RELEASE_NOTES.md or closures change. `## Head` names the head and the authored code head.
-- RESULT self-test at head (Linux): 514 passed, 0 failed, rc=0 (ev/selftest-head.log).
-- RESULT self-test at main (Linux, null control: real python3 unaffected at both ends): 514 passed, 0 failed, rc=0 (ev/selftest-main.log).
-- RESULT planted-HOME pair at head with the fix's PATH prefix, body_privacy_line extracted from the head: clean body rc=0, planted body rc=1 (ev/planted-home.txt).
-- RESULT mutant (body_privacy_line's python call replaced with `true`, so the subject never fails): 513 passed, 1 failed, rc=2: "FAIL a body naming the host home directory is refused by body_privacy_line (got 0, wanted 1)" (ev/selftest-mutant.log). The arm still fails when its subject fails; the PATH change does not mask it.
-- Reading the diff: the added `pfp` prepends the directory of `python3 -I -c 'import sys; print(sys.executable)'`, run under the real HOME before the planting; the two calls then use that PATH under the planted HOME, so a shim that resolves its venv under HOME is bypassed. It adds only the PATH variable to the call env and changes no assertion, so it cannot reach 127 via the shim; whether a shim's sys.executable names the real binary on Darwin is not verifiable here.
-- tests/entities.py: did NOT run clean here: venv-ci python3 raises ModuleNotFoundError: homeassistant (ev/entities.log); venv-ha python3 raises ModuleNotFoundError: paho (ev/entities-venvha.log). Environmental, not caused by the diff; no BASH_ENV workaround used.
-- Mutation proof of the body (removing the PATH prefix) is Mac-only; not re-derived here. Figures: none claimed (figure_lint 0 resolved, 0 refused).
-- Review packet refusals at render: red-unanswered (gate), required-red (gate); packet in ev/review-packet.md.
+
+- Self-test at merge-base (main side): `ev/selftest-base.txt`, 514 passed, 0 failed, rc 0 (Linux null control: the arm is green at main).
+- Self-test at the head: `ev/selftest-head-full.txt`, 514 passed, 0 failed, rc 0 (green at both ends).
+- Planted-HOME pair at the head on Linux, real python3 (`ev/pair.txt`): planted body rc 1, clean body rc 0. Same at main.
+- Simulated Darwin shim (`ev/shim.txt`; a python3 shim that execs the venv under $HOME or prints "no venv under $HOME" and exits 127; real HOME has the venv, planted HOME does not). Main-side call: planted rc 1 with the shim's message, clean rc 1 with the shim's message (clean case wrong). Head-side call: planted rc 1 with "home-directory, account-name in the body", clean rc 0. This is a simulation, not the Mac.
+- Mask check (mutant): in a worktree of the head I replaced `tools/audit/seat/ref_privacy.py` with `sys.exit(0)`. `ev/selftest-mutant.txt` is 513 passed, 1 failed, rc 2: `FAIL a body naming the host home directory is refused by body_privacy_line (got 0, wanted 1)`. The arm still fails when its subject fails.
+- `python3 tests/entities.py`, run plainly: **did not run clean.** It exits rc 1 at import (`ModuleNotFoundError: No module named 'homeassistant'` from tests/harness.py) in this cloud environment (`ev/entities.txt`). This is an environment limit, not a result on the tree, so entities is unverified here. The diff adds one delivery row, no other tracked file.
+- CI at the head: `merge_train.py classify ... --pr 3343` returns RED (`red: gate`, exit 1) on every poll (`ev/classify*.txt`). Cause, from the gate logs (`ev/oldgate-logs.txt`): two older `gate` suites, runs 42510666835 (code, 128840026466) and 42510666939 (edit, 128839941254), failed at 19:41-19:42Z with the one line "run(s) [42516277088] at this head are still being judged; their gate decides". The deciding run 42516277088 (suite 115166803851, gate check-run 128840815485) concluded **success** at 19:45:44Z on this head. The train's A5 rule keeps the worst gate of each suite, and a deferral red is never re-run. All other required contexts in the digest are success, including `pr-contract` (128840624028), `budget-raise-gate` and `tests / mutation`. I judge the head GREEN on the deciding gate. This is the deferral class the PR body's `## Red checks` already describes.
+- `ev/HEAD.txt` holds the reviewed head.
+
+## Findings
+
+- Follow-up: `## Red checks` names only gate check-run 128823275143. The head also carries two later concluded deferral reds from suites 115152319844 and 115152320114 (check-runs 128840026466 and 128839941254, same one-line deferral, all superseded by the success of 42516277088). `pr-contract` ran green after them, so the body check passes, but the body does not name them. This is the train's classify staying RED on a settled deferral (R10-HOTFIX-TRAIN-DEFER-WAIT / R10-HOTFIX-SWEEP-SETTLE-LOOP's class), so the orchestrator should merge on the deciding gate, not on classify's exit code. Carry: dismissed: the settled-deferral class is already carried by the PR body (R10-HOTFIX-SWEEP-SETTLE-LOOP), pr-contract is green at the head, and the fix is unaffected

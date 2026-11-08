@@ -1,0 +1,7 @@
+== simulated Darwin shim (real HOME has the venv; planted HOME does not)
+main-shim-planted rc=1 :: shim: no venv under /Users/exampleuser
+main-shim-clean rc=1 :: shim: no venv under /Users/exampleuser
+head-shim-planted rc=1 :: line 1: home-directory, account-name in the body
+head-shim-clean rc=0 :: no host identity in the body
+== mutation: head arm with the dirname-prefix removed from the call only (PATH not passed) == main behaviour above
+== planted failure at head: privacy script broken -> arm must fail
