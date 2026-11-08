@@ -1,2 +1,0 @@
-ok   tests/mutation_table.py still prints 'def survivor_sites(run: str | None) -> list[str]:'
-survivor_list self-test: 20 checks, 0 failed
