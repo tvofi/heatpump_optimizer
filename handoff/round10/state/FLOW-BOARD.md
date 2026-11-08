@@ -1,14 +1,14 @@
 # Flow board
 
-Window ends 2026-11-08T09:18:24+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-08T09:40:29+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
 | roster groups closed vs takt | 0 / 1.0 | 24 / 24.0 |
-| fly-ins closed | 0 | 5 |
-| main moves: group-carrying / record / roster-edit / fly-in | 0 / 1 / 0 / 0 | 24 / 7 / 1 / 5 |
+| fly-ins closed | 0 | 4 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 1 / 0 / 0 | 24 / 7 / 1 / 4 |
 | first-pass fix-review yield | 0/0 (-) | 8/24 (0.33) |
 | blocked-class mix | none | architecture-unsound:2, carry-missing:1, ci-red:1, claim-refuted:1, class-open:10, harness:1, mutation-vacuous:6, red-checks:2, robustness:1, settle-unjudged:1 |
 | lead time per size (h, n/p50/max) | none | L n=3 p50=23.70 max=27.32; M n=6 p50=21.99 max=41.48; S n=15 p50=13.92 max=24.28 |
@@ -17,7 +17,7 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 53 | 7 | 3 |
+| 1 | 54 | 7 | 3 |
 
 ## Rules
 
