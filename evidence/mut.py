@@ -1,44 +1,35 @@
-import subprocess, sys, os
-from pathlib import Path
-W = Path("/tmp/tmp.NxRJ50dQWt/wt"); MT = "tools/audit/seat/merge_train.py"; HR = "dev/audit/harnesses/r10_codescan_wait_race.py"
-M = [
- ("hotfix-defer-empty", MT, '        if red != [GATE]:\n            return []\n', '        return []\n'),
- ("hotfix-no-cascade-grace", MT, '                    elif graced and red == [GATE]:', '                    elif False:'),
- ("hotfix-count-action_required", MT, 'st.strip() not in ("completed", "action_required", "")', 'st.strip() not in ("completed", "")'),
- ("c3-runs_approved-True", MT, '    return bool(rows) and not any("action_required" in r for r in rows)', '    return True'),
- ("c3-runs_approved-noempty", MT, '    return bool(rows) and not any(', '    return not any('),
- ("c3-unreadable-approves", MT, 'return subject if code or not runs_approved(o) else None', 'return subject if not runs_approved(o) else None'),
- ("c6-drop-started_at", MT, ' and at and (c.get("started_at") or "") >= at]', ']'),
- ("c6-drop-head-pin", MT, '        if code == 0 and ref.strip() != head:', '        if False:'),
- ("c6-red-not-refused", MT, 'c.get("conclusion") in ("failure", "cancelled") for c in mine)', 'c.get("conclusion") in () for c in mine)'),
- ("c6-no-comment-needed", MT, '            if not (at and said):', '            if not at:'),
- ("c7-transient-False", MT, '    return not GIT_REFUSED.search(output) and bool(GIT_TRANSIENT.search(output))', '    return False'),
- ("c7-ignore-refused", MT, '    return not GIT_REFUSED.search(output) and bool(GIT_TRANSIENT.search(output))', '    return bool(GIT_TRANSIENT.search(output))'),
- ("c7-wrapper-unhooked", MT, '                return run_git_retry(run, argv, self.sleep, self.log, **kw)', '                return run(argv, **kw)'),
- ("c9-drop-admission", MT, '    if not item.get("draft") or not is_draft(t, pr):', '    if not is_draft(t, pr):'),
- ("c9-no-reread", MT, '    if is_draft(t, pr):\n        raise Stop("undraft", f"#{pr} is a draft again', '    if False:\n        raise Stop("undraft", f"#{pr} is a draft again'),
- ("c9-ready-fail-continues", MT, '    if code:\n        raise Stop("undraft", f"gh pr ready', '    if False:\n        raise Stop("undraft", f"gh pr ready'),
- ("c9-add-no-record", MT, '            entry["draft"] = True', '            pass'),
- ("c8-no-fallback", HR, 'for size in (100, 30):', 'for size in (100,):'),
-]
-def run(f):
-    if f == HR:
-        p = subprocess.run([sys.executable, HR, "--selftest"], cwd=W, capture_output=True, text=True)
-    else:
-        p = subprocess.run([sys.executable, MT, "--self-test"], cwd=W, capture_output=True, text=True, env=dict(os.environ, PYTHONPATH="tests/hastub"))
-    out = p.stdout + p.stderr
-    fails = [l.strip() for l in out.splitlines() if l.strip().startswith(("FAIL", "not ok"))]
-    summ = [l for l in out.splitlines() if "checks," in l]
-    return p.returncode, summ[-1] if summ else out.strip().splitlines()[-1][:160], fails
-only = sys.argv[1:]
-for name, f, a, b in M:
+"""Reviewer's targeted mutants for #3288 at f326fd6d (reviewer-built, not the finder's)."""
+import subprocess, sys, pathlib
+root = pathlib.Path(sys.argv[1]); only = sys.argv[2:]
+MT="tools/audit/seat/merge_train.py"; AA="tools/pr/app_approve.sh"; GR="tools/audit/seat/gh_read.py"
+RM="tools/audit/seat/remerge_main.sh"; HR="dev/audit/harnesses/r10_codescan_wait_race.py"
+T_MT="python3 tools/audit/seat/merge_train.py --self-test 2>&1 | tail -1"
+T_AA="bash tools/pr/app_approve.sh --self-test 2>&1 | tail -1"
+T_PA="bash tools/audit/seat/pr_args.sh --self-test 2>&1 | tail -1"
+T_GR="python3 -c \"import sys; sys.path.insert(0,'tools/audit/seat'); import gh_read; sys.exit(gh_read.self_test())\" 2>&1 | tail -1"
+T_HR="python3 dev/audit/harnesses/r10_codescan_wait_race.py --selftest 2>&1 | tail -1"
+M = {
+ "deferred-no-held": (MT, '"completed", "action_required", ""', '"completed", ""', T_MT),
+ "deferred-empty": (MT, '        if red != [GATE]:\n            return []', '        return []', T_MT),
+ "no-grace-poll": (MT, 'elif graced and red == [GATE]:', 'elif False:', T_MT),
+ "drop-main-busy": (MT, '                    busy = self._gate_busy(h, runs)\n', '                    busy = []\n', T_MT),
+ "mt-no-git-retry": (MT, 'return gh_read.run_git_retry(run, argv, self.sleep, lambda line: self.log(f"merge_train: {line}"), **kw)', 'return run(argv, **kw)', T_MT),
+ "aa-plain-fetch": (AA, 'retry_with git_transient _fetched git fetch', 'git fetch', T_AA),
+ "aa-gh-classifier": (AA, 'retry_with git_transient _fetched', 'retry_with gh_transient _fetched', T_AA),
+ "aa-always-transient": (AA, 'git_transient() { printf', 'git_transient() { return 0; printf', T_AA),
+ "rm-plain-fetch": (RM, 'python3 "$SEAT/gh_read.py" --git-retry git fetch', 'git fetch', T_PA),
+ "gr-one-try": (GR, 'if not code or n == GIT_TRIES or not git_transient(o):', 'if True:', T_GR),
+ "gr-refused-ignored": (GR, 'return not GIT_REFUSED.search(output) and bool', 'return bool', T_MT),
+ "hr-no-fallback": (HR, 'for size in (100, 30):', 'for size in (100,):', T_HR),
+}
+def sh(c): return subprocess.run(c, shell=True, cwd=root, capture_output=True, text=True).stdout.strip()
+print("NULL (unmutated):")
+for t in sorted({v[3] for v in M.values()}): print("  ", t.split()[1] if 'import gh_read' not in t else 'gh_read', "->", sh(t))
+for name, (f, a, b, t) in M.items():
     if only and name not in only: continue
-    p = W / f; src = p.read_text()
+    p = root / f; src = p.read_text()
     assert src.count(a) == 1, (name, src.count(a))
     p.write_text(src.replace(a, b))
-    try:
-        rc, s, fails = run(f)
-    finally:
-        p.write_text(src)
-    print(f"MUTANT {name}: rc={rc} {s} {'KILLED' if rc else 'SURVIVED'}")
-    for x in fails[:6]: print("   ", x[:150])
+    try: print(f"RESULT mutant={name} file={f} -> {sh(t)}")
+    finally: p.write_text(src)
+print("restored:", sh("git status --porcelain") or "clean")

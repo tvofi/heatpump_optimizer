@@ -1,2 +1,15 @@
-cddd845cd3e481fb26c4abc2fdb465b30eabaf78
-rc=0 origin/main=cb24224b2387955085c6d0fe0eb42736f7ad2cb7
+merge-tree origin/main(092941b7ef5993f324ab23135e99687b44403b51) f326fd6dc0dfe9b29d4008903a6768cefd50d4e9:
+7e0259aa4267e4fc479b32e93ff401c8e2c4dbe7
+rc=0
+
+three-dot names:
+M	dev/audit/harnesses/r10_codescan_wait_race.py
+A	dev/programme/delivery/3288.md
+M	tools/audit/seat/gh_read.py
+M	tools/audit/seat/merge_train.py
+M	tools/audit/seat/pr_args.sh
+M	tools/audit/seat/remerge_main.sh
+M	tools/pr/app_approve.sh
+
+VERSION/manifest/notes/budgets touched:
+none

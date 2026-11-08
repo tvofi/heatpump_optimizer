@@ -1,0 +1,5 @@
+PR (^1): added 364 lines vs merge base b4ec2f33, missing in merged: 0 []
+main (^2): added 560 lines vs merge base b4ec2f33, missing in merged: 0 []
+PR: removed 5 lines
+main: removed 26 lines
+f326fd6d tools/audit/seat/merge_train.py == 17b8194e's except main-side auto-merge:
