@@ -1,57 +1,68 @@
-Fix review: blocked 3940fad2f1f49fcd466a22ad80934a76f26188c4 class-open: tools/pr/gate_priority.py derived_priority and orchestrator_tick.owed_levels order by critical path with no outside or hotfix term, neither in the diff nor dispositioned in the body
+Fix review: blocked 2bf0e026397c99378c53d47a0a49c30927deefd9 class-open: replan dispatch_tier hotfix predicate needs production class for an R10-HOTFIX name, so 7 live hotfix groups rank below outside in the plan and above it in every other orderer
 
-bus-nonce: 5b2e336e26a191112ee6414d3bd36ad5
+bus-nonce: bc4960e8b7501ae499bfc0d893978ea3
 
 ## Block
 
-Round 1 (first-round review). Reviewed at head 3940fad2f1f49fcd466a22ad80934a76f26188c4. Merge base 7c9c4c154cda514f938fd503cde2779716caf251. Three-dot diff.
+This is round 2, a later-round review. I reviewed head 2bf0e026397c99378c53d47a0a49c30927deefd9 against merge base 73365699a135fb813a43380096b6776d57f8ff4c, using the three-dot diff. Every Block and Finding item from round 1 (verdict/3304 at 429c7eaab) is closed at this head (see Evidence). One new item blocks.
 
-The ruling is general: "all accepted outside issues or contributions should be prioritized higher than audit or owner submitted ones unless i call the owner one a hotfix". The body says outside work orders first "in the three orderers" but names no rule for how it enumerated them (fix-review.md step 6). I enumerated every site in the tree that orders work by critical path or hotfix. Three of those sites are neither in the diff nor dispositioned in the body:
+The brief defines the order as "main, then hotfix (an R10-HOTFIX- name or kind bug), then outside, then today's order". The PR adds `roster_lib.is_hotfix`, which follows that definition: kind `bug`, or `HOTFIX` in the name. It also adds `dispatch_rank`, whose docstring calls it "the one order every queue reader applies". gate_priority and the tick's OWED order use it. open_driver gets the same result by name.
 
-1. `tools/pr/gate_priority.py:97` `derived_priority` returns 1 for a critical-path group's branch and 0 for everything else. An outside group's branch therefore waits behind a critical-path one for the gate lease and the heavy slot (`tools/pr/prepr.sh` step 1b0 exports it as `HPO_GATE_PRIORITY`; `tests/gate_lock.py` orders waiters by it). Hotfix gets no lift there either.
-2. `tools/audit/seat/orchestrator_tick.py:851` `owed_levels` sorts the OWED review and fixer lines by `(0 if group in crit else 1, n)`. An outside PR that is owed a reviewer or fixer is listed after every critical-path one.
-3. `tools/audit/seat/sweep_template.md:77` (4d) tells the sweep seat the queue priority "for the train, review, fixer and CI queues alike": "a push to main; then critical path and hotfix; then production ...". That now contradicts the train's own drain order at this head.
+`tools/plan/replan.py` `dispatch_tier` does not use it. The diff moves its hotfix line ahead of the new outside arm but keeps the predicate `k == "bug" or "HOTFIX" in g and cls == "production"`. So an R10-HOTFIX-named group that is not production class is not a hotfix in the plan. It falls to the instrument tier (6), below outside (3) and below the critical path (4).
 
-Each of these needs one of two things: the outside term (and the hotfix split where it applies) wired in, or a body disposition carrying it to the owning group. R10-CI-PRIORITY-PAUSE, which is after-edged on this group, owns the CI tier module and lists `orchestrator_tick.py`. I did not find it naming gate_priority or owed_levels.
+On the live roster (`handoff/audit-r10-roster` 6fb2599d), 8 HOTFIX-named groups are not done. 7 of them get replan tier 6 and dispatch_rank 0 (`ev/live-hotfix-tiers.txt`): GATE-BUSY-DEFER, CODEQL-HEADROOM, TRAIN-DEFER-WAIT, AUTHOR-EMAIL, NONREQUIRED-REDS, ROSTER-LINT-REFRESH and PREPR-SELFTEST-DARWIN.
 
-Two integration defects in this diff's own scope go with this block, because they ship stale statements of the order the PR changes:
+A two-group fixture shows the effect (`ev/hotfix-predicate.txt`). With slots=1, R10-HOTFIX-X (kind instrument) and OUT (source outside):
+- replan dispatches `['OUT', 'R10-HOTFIX-X']` (tiers 3 and 6);
+- dispatch_rank gives `{'R10-HOTFIX-X': 0, 'OUT': 1}`;
+- open_driver orders `['r10-hotfix-x', 'r10-out']`.
 
-4. `tools/audit/seat/plan_page.py:1129`: the Tier column's tooltip on the rendered plan page still reads "1 main, 2 critical path and hotfixes, 3 production and instruments saving 12 h or more, 4 other instruments by savings". At this head the page renders tiers 1–6 (2 hotfix, 3 outside, 4 critical path, 5 production, 6 instrument). The PR updated the code comment at :248 but left the user-visible legend. The self-test label at :868 ("the critical path is tier 2") is stale the same way, though its value uses the constant.
-5. `tools/audit/seat/instruments/open_driver.py.md:13-15` is a file in this group's own roster `files` list. It still states the old order: "a critical-path topic is never behind a non-critical one, an omitted topic slots by default class (critical, `R10-HOTFIX-*`, ...)".
+The plan therefore starts an outside group ahead of a group the owner named a hotfix. The opener, gate lease and OWED list put that hotfix first. That breaks the ruling's "unless i call the owner one a hotfix" in the one orderer that decides fixer starts. It also contradicts the PR's own claim of a single order.
 
-6. A surviving mutant on the wiring the group brief requires ("an entry maps to its group by branch, else by group_for_pr"). In `merge_train.py`'s `drain_order`, I changed `return {"branch": b, "pr": e["pr"]}` to `return {"branch": b}`. All checks still pass: `merge_train.py --self-test` rc 0, mutant `mt-item-no-pr` SURVIVED. The fork-head arm is pinned only on `_outside` called directly, never through `drain_order`. A fork-head outside entry in a real drain could lose its outside rank and no test would fail. The body's survivor list does not include this line.
+The body's enumeration rule (`critical_path|critical_path_groups|CRITICAL_PRIORITY`) finds ordering sites, not hotfix predicates. So this seam is neither in its output nor dispositioned. The `production` condition was inherited from the base, where it decided only "urgent or not". This diff gives hotfix its own tier above outside, so the old predicate now decides an order the ruling settles.
+
+To settle it, do one of these:
+- make `dispatch_tier`'s hotfix arm `roster_lib.is_hotfix(group)`, with a fixture that has a non-production R10-HOTFIX group and an outside group, plus its mutant;
+- or disposition in the body why a non-production hotfix should rank below outside in the plan only, with the owner's word for it.
+
+Carry: R10-OUTSIDE-FIRST
 
 ## Findings
 
-- Class-open: `tools/pr/gate_priority.py` `derived_priority` (gate lease and heavy slot via `tests/gate_lock.py`) has no outside or hotfix term. Carry: R10-OUTSIDE-FIRST
-- Class-open: `tools/audit/seat/orchestrator_tick.py` `owed_levels` orders OWED review and fixer lines critical path first, with no outside term. Carry: R10-OUTSIDE-FIRST
-- Class-open: `tools/audit/seat/sweep_template.md` (4d) states the superseded queue order for the train, review, fixer and CI queues. Carry: R10-OUTSIDE-FIRST
-- Defect: the `plan_page.py:1129` Tier tooltip and the `:868` check label still describe the four-tier order. Carry: R10-OUTSIDE-FIRST
-- Defect: `instruments/open_driver.py.md:13-15` (in the group's own files list) states the superseded opener order. Carry: R10-OUTSIDE-FIRST
-- Surviving mutant `mt-item-no-pr`: `drain_order` dropping `pr` from the item survives. It needs a drain-level check with a fork-head outside entry. Carry: R10-OUTSIDE-FIRST
-- Surviving mutant `rl-group-for-pr-bool`: deleting `group_for_pr`'s `isinstance(pr, bool)` guard survives, because the fixture has no group with `resume.pr` 1, so `True` maps to None anyway. A fixture group at pr 1 would pin it. Carry: R10-OUTSIDE-FIRST
-- Figure: the body quotes `merge_train.py --self-test` as 477 checks. It is 478 at both da8a36ec and the head (base 472; the last pin commit added one). Carry: R10-OUTSIDE-FIRST
+- Class-open: `tools/plan/replan.py` `dispatch_tier` keeps the base's `"HOTFIX" in g and cls == "production"` predicate while `roster_lib.is_hotfix`/`dispatch_rank` drop the class condition. 7 of 8 live non-done R10-HOTFIX groups get replan tier 6 below outside (3) and dispatch_rank 0 above it (`ev/live-hotfix-tiers.txt`, `ev/hotfix-predicate.txt`). Carry: R10-OUTSIDE-FIRST
+- Defect (minor, same seam): `open_driver.default_class` treats a hotfix by name only (`r10-hotfix-` topic or `R10-HOTFIX-` group), never by kind `bug`, which the brief and `is_hotfix` both count. No live non-done group is kind `bug` without a HOTFIX name today, so nothing is misordered now. Passing `is_hotfix` through as the outside set is passed would close it. Carry: R10-OUTSIDE-FIRST
+- Defect (doc): `tools/audit/seat/instruments/merge_train.py.md` is in the group's roster `files` list. It describes `Train.drain_order` and the `--front`/`--priority` tier, but not the new outside term between priority and the critical path. Carry: R10-OUTSIDE-FIRST
+- Follow-up: `orchestrator_tick.owed_levels` and `gate_priority.derived_priority` map a PR to its group by `group_for_branch` only. A fork-head outside PR, whose branch no group claims, gets rank 3 / priority 0 there, while `merge_train._roster_group` falls back to `group_for_pr`. The brief requires that fallback only in merge_train. The tick has the PR number, so the same fallback would cost one call. Carry: R10-OUTSIDE-FIRST
 
 ## Evidence
 
-- Head: the PR API shows the head is 3940fad2f1f49fcd466a22ad80934a76f26188c4 at verdict time. The body names the same head. `ev/HEAD.txt`.
-- Role files: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contract is current.
-- Merge: `git merge-tree --write-tree origin/main <head>` rc 0, no conflict (origin/main 17e115792). `ev/merge-tree.txt`.
-- CI: `merge_train.py classify 3940fad2 --pr 3304` exits 0: "GREEN 3940fad2f1f49fcd466a22ad80934a76f26188c4 pending: none red: none" (`ev/classify.txt`). Across all check-run pages at the head nothing concluded other than success or skipped (`ev/checks.txt`). No red check, so no root-cause answer is owed, and the body's "Red checks: none" holds.
-- Self-tests at head: replan 0 failed; open_driver 83 checks, 0 failed; merge_train 478 checks, 0 failed; roster_lib 69 checks, 0 failed (`ev/head-*.log`). At base: 472 / 76 / 0 failed / 67. `tests/structure.py` at head: STRUCTURE RATCHET PASSED, rc 0.
-- Harness: none was named by the finder. I built my own (`ev/reviewer_harness.py.txt`) and disclose it as mine. It drives each orderer at base and head; RESULT lines are in `ev/harness.txt`:
-  - replan with outside: head `['R10-HOTFIX-H', 'OUT', 'CPA', 'CPB', 'PROD']`, base `['CPA', 'CPB', 'R10-HOTFIX-H', 'PROD', 'OUT']`.
-  - open_driver default order: head `['r10-hotfix-x', 'r10-out', 'r10-cp', 'triage-x', 'r10-inst']`.
-  - drain_order: head `[5, 3, 2, 1, 4]` (priority, outside, critical, arrival) both injected and through the roster read; base `[5, 2, 1, 3, 4]`.
-  - Each orderer puts outside between hotfix and critical path.
-- Null control: random rosters and topic sets with no `source` field and no hotfix give the same sha256 at base and head. replan `8fac3ead7e92fd63` at both ends; open_driver `bef9dfd41011a633` at both ends; drain null `[5, 2, 1, 3, 4]` at both ends.
-- Hotfix split: with a hotfix present and no outside group, the order differs from base, as the body says (replan null `['R10-HOTFIX-H', 'CPA', ...]`). It is pinned: replan's "dispatch follows the owner's order" seq and the `replan-hotfix-below-cp` mutant (KILLED), and open_driver's "the fence beats the file" check. A consequence the body does not name: in open_driver, an omitted record topic now slots ahead of listed rest-class topics when the only listed higher-class topic was a hotfix, because the hotfix is now fenced.
-- Fence starvation: 10 listed outside topics plus 1 omitted hotfix leaves the hotfix at position 0 of 11. The fence cannot starve hotfix.
-- Live roster (`handoff/audit-r10-roster`): 4 groups with `source: outside` (R10-COMBI-TANK, R10-GENERIC-HEAT-CURVE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-INPUT-REAPPEAR), tier 3 at head. Tier histogram base `[(2,5),(3,14),(4,49)]`, head `[(2,1),(3,4),(4,4),(5,10),(6,49)]`.
-- Callers of dispatch_tier and its constants: plan_page only. `plan_page.py --self-test` 67 checks, 0 failed. No committed plan or ordering golden carries tier values, so there is nothing to claim. `VERSION`, the manifest and the release notes are untouched (no such path in the diff).
-- Mutants, mine (`ev/mutants.txt`, `ev/reviewer_mutants.py.txt`), 16 KILLED and 2 SURVIVED:
-  - KILLED: replan-tier-outside, replan-hotfix-below-cp, replan-outside-eq-urgent, od-class-outside, od-fence-1, od-fence-0, od-sortkey-unfenced, od-runpass-outside-empty, od-swap-hotfix-outside, mt-drain-outside, mt-drain-swap, mt-no-pr-fallback, mt-outside-any-group, rl-is-outside-truthy, rl-is-outside-absent-true, rl-group-for-pr-none.
-  - SURVIVED: mt-item-no-pr, rl-group-for-pr-bool.
-  - The body's named mutation proofs reproduce.
-- Not re-derived: the body's `tests/entities.py` figure ("3 of 2655 ENTITY CHECKS FAILED" at head and at base 8a1358e8). In this container entities.py stops at import (`ModuleNotFoundError: homeassistant`) at both the head and the merge base (`ev/head-entities.txt`, `ev/base-entities.txt`). Also not re-derived: the prepr mutant figures (25 survivors, 23m41s), whose log is on the fixer's machine.
-- Forward-carry: the body says none, and the roster group has no carries. The block above is this group's own to settle.
+- Head: `git ls-remote` shows refs/heads/fix/r10-outside-first at 2bf0e026397c99378c53d47a0a49c30927deefd9 when I measured and again before writing. The PR API head is the same, and the body's `## Head` names it (merging authored head 4c4dd755). `ev/HEAD.txt`.
+- Role files: `git diff <merge-base>...origin/main -- dev/governance/roles/` touches orchestrator.md and standing-dispatch.md only. fix-review.md is unchanged, so I followed the main copy.
+- Merge: `git merge-tree --write-tree origin/main <head>` rc 0, no conflict, tree a239317f (origin/main 17e621f08). `ev/merge-tree.txt`.
+- CI: `merge_train.py classify 2bf0e026… --pr 3304` exits 0, `GREEN … pending: none red: none`, on two reads (`ev/classify.txt`). I read all 55 check runs at the head (paginated): every one concluded success, skipped or neutral (`ev/checks.txt`). The body's `## Red checks` names the three reds of earlier heads (instrument-self-tests on the merge ref, pr-contract, gate), each with cause and detector, and the pr-contract run at this head is green.
+- Round-1 items, all closed at this head:
+  - gate_priority `derived_priority` now goes through `dispatch_rank`: hotfix and outside give 2, critical gives 1. Mutants gp-outside-band-off and gp-outside-as-critical are KILLED.
+  - `owed_levels` ranks by `dispatch_rank`. Mutants ot-owed-rank-const and ot-owed-old-crit-only are KILLED.
+  - sweep_template 4d is restated.
+  - The plan_page tooltip, the note and the :875 label are restated.
+  - The open_driver.py.md order is restated.
+  - mt-item-no-pr is KILLED (the drain-level fork-head check).
+  - rl-group-for-pr-bool is KILLED (the `R10-ONE` pr-1 fixture).
+  - The merge_train check count is quoted as 514 and is 514.
+- Self-tests at the head, all rc 0 and 0 failed (`ev/head-*.log`): replan; gate_priority 15; roster_lib 71; orchestrator_tick 285; merge_train 514; plan_page 67; open_driver 84. These match every count in the body's Figures. At the base: 12 / 67 / 283 / 506 / 67 / 76, and replan 0 failed (`ev/base-*.log`).
+- `tests/structure.py` at the head: STRUCTURE RATCHET PASSED, rc 0. The diff touches no `*_budgets.json`, `VERSION`, manifest, `RELEASE_NOTES.md`, claim file or `tests/closures.json`. The one new tracked file, `dev/programme/delivery/3304.md`, is the delivery row (`**open**`, R10-OUTSIDE-FIRST), and CI's closure checks are green on it.
+- `tests/entities.py` (run plainly, BASH_ENV unset per the owner note) did not run clean. It stops at import with `ModuleNotFoundError: No module named 'homeassistant'` from tests/harness.py:25 (`ev/head-entities.txt`). The body quotes no entities figure at this head.
+- Harness: the finder named none. I used the round-1 reviewer's harness (`ev/reviewer_harness.py.txt`), which is a reviewer's instrument, not the finder's or the fixer's, and ran it at both ends (`ev/harness-base.txt`, `ev/harness-head.txt`).
+  - Head: replan with outside starts CPA (exempt) and then `R10-HOTFIX-H`, `OUT`, `PROD` on the real slot. open_driver orders `['r10-hotfix-x','r10-out','r10-cp','triage-x','r10-inst']`. drain_order gives `[5,3,2,1,4]`, both injected and through the roster read.
+  - Base: drain_order gives `[5,2,1,3,4]`.
+- Null control at both ends:
+  - replan random-null digest is 8fac3ead7e92fd63 at the base and at the head;
+  - open_driver random-null digest is bef9dfd41011a633 at both ends;
+  - drain null is `[5,2,1,3,4]` at both ends.
+- Live roster tier histogram: base `[(2,4),(3,12),(4,50)]`, head `[(2,1),(3,3),(4,3),(5,9),(6,50)]`.
+- Mutation proof (`ev/mutants.txt`, script `ev/reviewer_mutants.py.txt`): 26 mutants, 26 KILLED, 0 SURVIVED. The list is the round-1 eighteen plus replan-arm-order-main, gp-outside-band-off, gp-outside-as-critical, rl-rank-hotfix-arm, rl-rank-outside-arm, rl-is-hotfix-no-bug, ot-owed-rank-const and ot-owed-old-crit-only.
+  - The repair's own proof reproduces. Moving the overflow arm back ahead of the tiered pick fails `dispatch follows the owner's order …` with `['CPA','CPB','CPC','R10-HOTF…`, and fails `the hotfix takes the free slot at t0 …`.
+  - The replan "unmutated copy's self-test exits 0" failure under a mutant is that check copying the mutated tree. It is expected and is not a false kill.
+- Enumeration rule: I re-ran the body's grep (`ev/enum-rule.txt`). Beyond the five sites the body wires, it returns merge_throughput, ci_critpath, gantt_drift, plan_table, probe_bridge, sweep_gantt, budget_raise_gate and stamp. I read each hit: they measure, display or budget the critical path and order no work, so the body's claim holds for its own rule. The blocking seam above is outside that rule's reach.
+- Not re-derived: the prepr figures (40 of 40 survivors under MUTANT_CMD at 413c9ec2) and the per-file instrument survivor counts (133 mutants, 38 then 34 survivors) and wall times. Their logs are on the fixer's machine. My own mutants are a different, hand-written set.
+- Forward-carry: the body's one carry (splitting the lease band) and both Friction items are dismissed with a reason, and the packet's carry_audit routes all three. The roster group has no `carry` entries.

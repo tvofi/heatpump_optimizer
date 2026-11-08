@@ -10,9 +10,20 @@ ok   a held L with one open carry plans one part (20 h), not its L size
 ok   six carries appended since measurement count open: 7 -> two parts (40 h)
 ok   a held group with zero open carries plans zero (null control)
 ok   the zero-open held group starts and finishes at the replan instant
+ok   R10-BODY-CONTRACT's shape: 8 unmarked of 44 plan one part (19.8 h), not four
+ok   carries filling two parts, four marked and left out, plan one part (20 h)
+ok   the same carries with none marked plan two parts as before (null control)
+ok   a measured held group counts only the unmarked carries appended since: 1 + 3 -> one part
+ok   a measured held group whose carries were all marked since plans zero, not one part
+ok   the measured open count never exceeds the carries then held still pending: 0 + 1
+ok   five open at measurement, seven of the eight since marked: one open carry
+ok   a size with no carry baseline prices every unmarked carry as absorbed: 18 + 4 h
+ok   marked carries are not absorbed work: 2 unmarked at the S baseline plan 18 h
+ok   a legacy carry (held while closed at the cut-over) is not open work: one part
 ok   every started group with no open dependency starts now, past a cap of 2
 ok   a started group says why it starts: its fixer is working
-ok   a planned group waits while started groups fill the cap, and names it
+ok   a critical-path group starts past a full cap, flagged exempt
+ok   null: a non-critical group in the same position still waits, and names it
 ok   a started group waits only for its unmerged after-group, and names it
 ok   the plan with started groups past the cap passes --check
 ok   a PLANNED dispatch into a full cap is still refused
@@ -26,7 +37,8 @@ ok   null control: any other source (or none) is internal
 ok   production work is tier 3
 ok   an instrument saving 12 h is tier 3, one saving 11 h tier 4
 ok   an instrument with no recorded savings says so
-ok   dispatch follows the owner's order (tvofi 2026-11-07, triage P420): hotfix, outside, critical path, production, instruments by savings, unrecorded savings last
+ok   dispatch follows the owner's order (tvofi 2026-11-07, triage P420): hotfix, outside, production, instruments by savings, unrecorded savings last on the real slots
+ok   the hotfix takes the free slot at t0 and the ready critical-path group starts beside it past the cap, never ahead of it on the real slot
 ok   each group's sort_key is in the plan and orders it the same way
 ok   within a tier the critical path goes first, even its shorter tail
 ok   null control: two groups in one tier keep the height tie-break
@@ -107,6 +119,51 @@ ok   --check refuses a round-close stamp that is not the last stamp
 ok   --check refuses a minor stamp beside a correct round close
 ok   build_plan without round_n refuses
 ok   --check refuses a plan recording no round
+ok   absorbed: the group is done, names its absorber, is not scheduled
+ok   absorbed: a note naming no group records the ADVISORY, never a refusal
+ok   absorbed (null): the roster minus the absorbed group reproduces the schedule
+ok   post-closure: the owner step starts at or after the closing stamp, flagged
+ok   post-closure: in no stamp's carries and outside summary.closure
+ok   post-closure (null): a production group with no stamp dependency is in the closing stamp's carries
+ok   post-closure: the plan passes --check
+ok   overflow: a ready critical-path group starts at t=0, flagged exempt
+ok   overflow (null): the non-critical group past the cap waits and is not exempt
+ok   cadence: the patch stamp lands at the 3rd GROUP, carrying it, not the 3rd PR
+ok   cadence (null): no credit leaves two groups and no patch stamp
+ok   cadence: production groups since the tag, once each; comment-only and instrument groups do not count
+ok   evidence: an in-progress group with no ref is pending
+ok   evidence (null): with a handoff ref it is live
+ok   evidence (null): no-evidence reproduces the stage-word plan byte-for-byte
+ok   evidence: a carries-open group with an open PR starts at t=0 as live
+ok   evidence (null): the same group with no PR waits behind the full slot
+ok   evidence: an open PR credits the live fraction (0.7 x 4 h)
+ok   evidence: a design-only group starts at t=0 at its full duration, no credit
+ok   binding: the slot-delayed predecessor is a link, with the critical-path slack
+ok   binding (null): with a slot for each the chain is the critical path
+ok   inflow: 0 reproduces the plan byte-for-byte, no arrivals
+ok   inflow: above 0 adds expected_arrivals and changes nothing scheduled
+ok   overflow slots do not hold a real slot: the waiting group takes the slot a finished group frees while the exempt one still runs
+ok   overflow (null): no exempt group, the waiter also starts at the freed slot
+ok   post-closure: what follows an owner step, and what follows the closing-stamp group, is post-closure too
+ok   post-closure (null): a group after nothing post-closure is in the round
+ok   --check refuses a post-closure group starting before the round-close stamp
+ok   --check refuses a post-closure group named in a stamp's carries
+ok   --check counts the credited groups among the merges (null: plan holds)
+ok   cadence: a non-production done group in the tag range earns no credit
+ok   cadence: a credited group still open is counted once, in the plan
+ok   cadence: a patch stamp cuts `every` groups and keeps the rest for the next
+ok   binding: the chain walks back through the LAST-finishing predecessor
+ok   binding (null): the early predecessor is not the link
+ok   inflow: arrivals are priced at the median size
+ok   live refs: a ls-remote listing yields branch names without refs/heads/, tags dropped
+ok   post-closure groups are outside the in-flight peak (null: none, same peak)
+ok   evidence: a stage-live group with only a design ref gets no live credit
+ok   since-tag: a real-shaped merge subject names its group by the topic branch
+ok   since-tag (null): the same merges with no code change credit nothing
+ok   since-tag: part branches credit their group by the longest roster topic they extend, once each
+ok   since-tag (null): an unrelated topic and a non-boundary prefix (r10-storey) credit nothing
+ok   since-tag: a squash subject naming R10-STORE-RACES credits it, not the shorter R10-STORE
+ok   since-tag: a clean merge's change is read against its first parent
 ok   the gate price includes the cancelled-leg rerun
   null control: unmutated copy rc=0
 ok   the unmutated copy's self-test exits 0 (null control)
@@ -128,8 +185,54 @@ ok   self-test fails when tier-main is deleted
 ok   self-test fails when tier-saving-instrument is deleted
   mutation tier-savings: 'sav = (-savings[n] if n in savings else float("inf"))' -> rc=1
 ok   self-test fails when tier-savings is deleted
-  mutation cp-first-in-tier: '(t, 0 if n in crit else 1, sav,' -> rc=1
+  mutation cp-first-in-tier: 'n = pick(sorted(x for x in ready if x in crit), t)' -> rc=1
 ok   self-test fails when cp-first-in-tier is deleted
+  mutation overflow-exempt: 'exempt.add(n)' -> rc=1
+ok   self-test fails when overflow-exempt is deleted
+  mutation absorbed-done: 'return not roster_lib.is_open(group)' -> rc=1
+ok   self-test fails when absorbed-done is deleted
+  mutation absorbed-advisory: 'out[n] = (into, None if into else' -> rc=1
+ok   self-test fails when absorbed-advisory is deleted
+  mutation post-closure-excluded: 'open_ = open_all - post' -> rc=1
+ok   self-test fails when post-closure-excluded is deleted
+  mutation post-closure-after-stamp: 'max([stamps[-1]["at"]] + [' -> rc=1
+ok   self-test fails when post-closure-after-stamp is deleted
+  mutation stamp-credit-groups: 'dict.fromkeys(since_tag or [])' -> rc=1
+ok   self-test fails when stamp-credit-groups is deleted
+  mutation comment-only-diff: 'not body.startswith("#")' -> rc=1
+ok   self-test fails when comment-only-diff is deleted
+  mutation stamp-credit-lane: 'lane[n] in PRODUCTION and n in done]' -> rc=1
+ok   self-test fails when stamp-credit-lane is deleted
+  mutation stamp-credit-done: 'lane[n] in PRODUCTION and n in done]' -> rc=1
+ok   self-test fails when stamp-credit-done is deleted
+  mutation since-tag-merge-topic: 'n = by_topic[max(hit, key=len)] if hit else None' -> rc=1
+ok   self-test fails when since-tag-merge-topic is deleted
+  mutation since-tag-first-parent: '"diff", "-U0", f"{sha}^1", sha,' -> rc=1
+ok   self-test fails when since-tag-first-parent is deleted
+  mutation since-tag-part-branch: 'topic == t or topic.startswith(t + "-")]' -> rc=1
+ok   self-test fails when since-tag-part-branch is deleted
+  mutation since-tag-part-boundary: 'topic.startswith(t + "-")]' -> rc=1
+ok   self-test fails when since-tag-part-boundary is deleted
+  mutation since-tag-part-longest: 'n = by_topic[max(hit, key=len)] if hit else None' -> rc=1
+ok   self-test fails when since-tag-part-longest is deleted
+  mutation since-tag-squash-longest: 'n = max(named, key=len) if named else None' -> rc=1
+ok   self-test fails when since-tag-squash-longest is deleted
+  mutation since-tag-once: 'return list(out)' -> rc=1
+ok   self-test fails when since-tag-once is deleted
+  mutation evidence-design-uncredited: 'live = (live - demoted - ev_design) | ev_live\n' -> rc=1
+ok   self-test fails when evidence-design-uncredited is deleted
+  mutation evidence-demotes: 'demoted = {n for n in live if topic_evidence' -> rc=1
+ok   self-test fails when evidence-demotes is deleted
+  mutation evidence-pr-live: 'return "pr"' -> rc=1
+ok   self-test fails when evidence-pr-live is deleted
+  mutation binding-start: 'node = max(merged_t, key=' -> rc=1
+ok   self-test fails when binding-start is deleted
+  mutation binding-slack: 'closure / 60.0 - cp_hours' -> rc=1
+ok   self-test fails when binding-slack is deleted
+  mutation inflow-zero: 'if inflow > 0:' -> rc=1
+ok   self-test fails when inflow-zero is deleted
+  mutation inflow-rate: 'n_exp = inflow * closure / 60.0' -> rc=1
+ok   self-test fails when inflow-rate is deleted
   mutation height-tiebreak: 'sav, -height[n], -dur_min[n], n)' -> rc=1
 ok   self-test fails when height-tiebreak is deleted
   mutation started-past-cap: 'for n in sorted((n for n in ready if n in started), key=priority):' -> rc=1
@@ -148,8 +251,18 @@ ok   self-test fails when rounds-explicit is deleted
 ok   self-test fails when absorbed-carries is deleted
   mutation class-cell: 'work = float(cell.get(cls, first[size]))' -> rc=1
 ok   self-test fails when class-cell is deleted
-  mutation appended-carries-open: 'added = max(0, carry - int(rec["carries"]))' -> rc=1
+  mutation appended-carries-open: 'added = sum(1 for i in pending if i >= cut)' -> rc=1
 ok   self-test fails when appended-carries-open is deleted
+  mutation held-open-pending: 'return len(pending), f"{len(pending)} carries' -> rc=1
+ok   self-test fails when held-open-pending is deleted
+  mutation held-measured-pending: 'then = min(int(rec["open"]), sum(1 for i in pending if i < cut))' -> rc=1
+ok   self-test fails when held-measured-pending is deleted
+  mutation absorbed-pending: 'extra = len(pending) - float(' -> rc=1
+ok   self-test fails when absorbed-pending is deleted
+  mutation pending-left-out: 'left_out = f", {left} marked carries left out" if left else ""' -> rc=1
+ok   self-test fails when pending-left-out is deleted
+  mutation legacy-threaded: 'roster_path or roster_ref or "<fixture>", legacy)' -> rc=1
+ok   self-test fails when legacy-threaded is deleted
   mutation caps-owner-default: '"slots": DEFAULT_CAPS["slots"] if args.slots is None else args.slots,' -> rc=1
 ok   self-test fails when caps-owner-default is deleted
   mutation model-monotone: '        if hb < ha:' -> rc=1
@@ -158,7 +271,7 @@ ok   self-test fails when model-monotone is deleted
 ok   self-test fails when savings-validated is deleted
   mutation size-refusal: 'if size not in sizes:' -> rc=1
 ok   self-test fails when size-refusal is deleted
-  mutation stamp-cadence: 'if len(carry) >= every:' -> rc=1
+  mutation stamp-cadence: 'while len(carry) >= every:' -> rc=1
 ok   self-test fails when stamp-cadence is deleted
   mutation round-close-version: 'stamps.append({"version": closing, "at": closure + closure_lead,' -> rc=1
 ok   self-test fails when round-close-version is deleted
@@ -168,7 +281,7 @@ ok   self-test fails when round-close-check is deleted
 ok   self-test fails when round-close-last is deleted
   mutation round-close-stray-kind: 'if s["kind"] not in ("patch", ROUND_CLOSE)]' -> rc=1
 ok   self-test fails when round-close-stray-kind is deleted
-  mutation round-n-required: 'roster_path: str = "", *, round_n: int) -> dict:' -> rc=1
+  mutation round-n-required: 'roster_path: str = "", *, round_n: int, since_tag' -> rc=1
 ok   self-test fails when round-n-required is deleted
   mutation round-from-roster: 'round_n = roster_lib.roster_round(src)' -> rc=1
 ok   self-test fails when round-from-roster is deleted
