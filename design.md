@@ -4,7 +4,7 @@ Base: 2a3c05644d85b7ee5c2c314fde5aca950e4aba91 (origin/main; no predecessor, `Af
 Round 3: answers the one revise point of the round-2 verdict on b50afa686 (§1 held start, §1 buffer, §5 checks and mutant) and folds its five
 fixer carries into §5. Round 1's points (one step-0 target, no feedback, fallback streak), the seam, sibling sites, consistency and cost are kept.
 Toolchain: `tools/audit/seat/cloud-setup.sh --check` OK at the base. `brief_lint.mjs` (note wrapped as one roster group): clean but for the
-three helper names this note proposes, which are not in the tree by design.
+two new helper names this note proposes (`_reference_held_start(...)`, `_stash_initial_buffer(state)`), absent from the tree by design.
 
 ## 0. Measured (round 1, base c3a279e32)
 `r10_advisor_residue.py whatif`: `rows 24 plan_moves_by_start 24 held_moves_by_start 0`; caps `plan 18/36 settled 1/36` reading a saving
