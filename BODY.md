@@ -1,30 +1,27 @@
-## What changed
+_Requested by **tvofi**_
 
-Two new files on origin/main `c3b7c964f`, one `**open**` delivery row each for the dependabot pull requests #3087 (the actions group, 12 updates) and #3088 (the pip group in /tests, 44 updates): `dev/programme/delivery/3087.md` and `dev/programme/delivery/3088.md`, the line shape `delivery_row.sh`'s `row_line` writes. A dependabot branch is never edited, so the rows land here instead.
-
-## Sources
-
-- #3087 and #3088 as listed open by `gh pr view`; orchestrator instruction of 2026-11-01 (one record pull request for both rows).
+Record handoff: the `**open**` delivery rows for the three open dependabot pull requests #3321, #3322 and #3323. `bus.sh` refuses to dispatch reviewers for a dependabot head until origin/main carries its row, and a commit on the bot's branch would redden pr-contract, so the rows land from here and the dependabot branches are untouched. Each row was written by `record_row.py`'s own `open_row_line` through `write_rows` (the guarded write set), with the title read from the API; the CLI's `--write-self-row` only emits a row titled for the record PR itself, so the functions it calls were used directly with the dependabot titles.
 
 ## Head
 
-ab795f4dc9eb5bb02c82f87fc50bb74b7a78edf0
-
-## Mutation proof
-
-n/a: record-only change, no production code or check altered.
-
-## Null control
-
-n/a: nothing quantified; two record files.
+`2325188b4e78bda34b599a2fee44c4c975c69c23` (the row commit, on origin/main `bb7dfb9bd6`)
 
 ## Figures
 
-none
+- delivery-status ledger at this head: `python3 tests/delivery_status.py` -- the instrument; re-derive at the head.
+- each row file is exactly one line anchoring its own pull request number, never a table row.
+
+## Mutation proof
+
+n/a: record-only diff -- every file is a `dev/programme/delivery/<N>.md` row file; there is no production, test or check code to mutate.
+
+## Null control
+
+n/a: no quantified production claim; the one figure names its instrument and re-derives at the head.
 
 ## Red checks
 
-none. No check was red at the base when the rows were written; main's own `governance / instrument-self-tests` red (uutils sleep) is fixed on main by #3086.
+none
 
 ## Forward-carry
 
