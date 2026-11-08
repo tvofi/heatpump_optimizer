@@ -18915,7 +18915,8 @@
    ],
    "carry": [
     "From r10-min-power-floor, body item a4565419: The reply on 3289 names the option: the reporter picks `on_off` unless their surface is switch plus setpoint, where the probe already clamps and only the DHW projection moves (item 052fa8fb). The orchestrator answers the issue. Carry: R10-MIN-POWER-FLOOR (items a4565419)",
-    "From r10-min-power-floor, body item de37a181: Re-read #3297's `probe_install` and `InstallCapability` at its merge. If it changes `can_duty_cycle` or `fully_metered`, revalidate the `on_off` early return and the block's checks before this merges (item df5196cc). Carry: R10-MIN-POWER-FLOOR (items de37a181)"
+    "From r10-min-power-floor, body item de37a181: Re-read #3297's `probe_install` and `InstallCapability` at its merge. If it changes `can_duty_cycle` or `fully_metered`, revalidate the `on_off` early return and the block's checks before this merges (item df5196cc). Carry: R10-MIN-POWER-FLOOR (items de37a181)",
+    "From r10-min-power-floor, body item b8c2d996: After R10-GENERIC-HEAT-CURVE merges, re-measure the `option_doc_coverage.py` EXPECTED counts at the merge (+1 field from each side). `option_fields_undocumented` must stay 0 (item 3c867235). Carry: R10-MIN-POWER-FLOOR (items b8c2d996)"
    ],
    "architect_note": "",
    "resume": {
