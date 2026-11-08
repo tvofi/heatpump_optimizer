@@ -49,34 +49,48 @@ Carry 40 - answered by the card 7 build (option B).
 Carry 41 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
 Carry 42 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 
-Repair round (this push): the opener refused the previous head three times. Three causes, each fixed at its root.
+Carry 43 - built here (card 7 ruling; roster index 42, 0-based).
+Carry 44 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 
-1. `tools/pr/figure_block.py` built its self-test repository with a hand-written `git init`; it now goes through `tests/throwaway_git.py` (`throwaway_git_init`), and every git call in the self-test runs under that module's environment.
-2. The prepr self-test read `513 passed, 2 failed`. The two failures were `a tree with no raw repository build passes the raw-git check (null control) (got 1, wanted 0)` and `and the ok line is the check's own, so it ran (got 0, wanted 1)`: both are `tests/throwaway_git.py --check` run at HEAD, refusing the raw `git init` at figure_block.py:223, so they were cause 1 and not separate defects. The assertions are untouched. Now `515 passed, 0 failed`.
-3. `field_coverage.mjs REFUSED registry: pinned tools/pr/figure_block.py is unregistered`. The bootstrap entry (`pending:`) is NOT on main: `git log origin/main -S"pinned tools/pr/figure_block.py" -- tools/policy/field_coverage.mjs` is empty; topic r10-body-contract-p3-bootstrap is only on `handoff-wip/r10-body-contract-p3-bootstrap`. So this change carries the entry itself in the final shape (`none:` with no `pending`), in the same change that pins the program in governance.yml. `node tools/policy/field_coverage.mjs` reads `FIELD COVERAGE ok`, rc=0, here. CI grades policy-docs with the base's copy, so `governance / policy-docs` stays red on this head until the bootstrap lands on main; that is the one-time bootstrap ee2974270 describes, and it is named below. When the bootstrap merges first, this entry conflicts trivially: keep this one (no `pending`).
+Earlier repair round (head 86f9e729f, unchanged here): `figure_block.py`'s self-test repository is built through `tests/throwaway_git.py` (`throwaway_git_init`), which clears the prepr self-test's two `throwaway_git.py --check` failures; the `field_coverage.mjs` entry for `pinned tools/pr/figure_block.py` is in its final shape (`none:`, no `pending:`).
 
-An earlier wip attempt (`handoff-wip/r10-body-contract-p3`, b4e835040) did the same repairs and stopped with BLOCKED.md on question (a)/(b)/(c); I took (b) as the brief directs and superseded that wip tip with a merge that keeps this tree.
+Merge round (this push): the bootstrap #3312 (859434ba16) landed the same entry on main with `pending: 'R10-BODY-CONTRACT part 3 pins it in governance.yml'`, so merging origin/main conflicted on that one line of the DECLARED registry. Resolved by taking this head's entry (no `pending:`). The bootstrap's `field_coverage.mjs` hunk, three-dot from the old merge base to origin/main, was that one added line and nothing else, so no other main-side change to the file exists to lose; the merged file is byte-identical to the tip's (`git diff HEAD -- tools/policy/field_coverage.mjs` empty before the merge commit). `tests/closures.json` auto-resolved through LEDGER-MERGE (`closures.tests/entities.py` merged as a set); its diff against origin/main is exactly this branch's two added members, `tools/pr/figure_block.py` and `tools/pr/figure_registry.json`. Because the base now carries the pending entry, the former `governance / policy-docs` red (the base's copy refusing an unregistered pin) no longer applies.
+
+The pin is double: `codeowners_gap.py` derives `PINNED tools/pr/figure_block.py` from both `.github/workflows/governance.yml` (step `Show the figure-block renderer refusing its own fixtures`, `--self-test`) and `.github/workflows/pr-contract.yml` (`figure_block.py verify`). The brief's null control (delete the governance.yml step alone) therefore does not move field_coverage; it is reported below as measured, and the null control that does move it removes both.
+
+Step ref: the previous seat's `handoff-wip/r10-body-contract-p3` tip held only a BLOCKED.md note on 86f9e729f; it was advanced fast-forward by a tree-preserving wrapper commit, and that note is not in the code head.
 
 ## Head
 
-86f9e729f12a3da493029c3c02ea9854bdb34ce7
+566ff83528c66d3edd20e5ae7cd3cd3038e00745
+
+Two merges of origin/main into 86f9e729f: 17e621f08 (the conflict, resolved at 377b93dce), then 51cd5ec8a (clean; LEDGER-MERGE again resolved tests/closures.json). Every figure and control below was re-taken at 566ff8352 after the second merge.
 
 ## Mutation proof
 
-`figure_block.py --self-test` mutants: hand-typed value, moved head, unregistered/head-only instrument, unknown name, non-zero exit each fail their check; `body_push.sh --self-test` deletes the `# mut:keep` refresh line and its arm fails; `policy_lint.mjs` registers `figureBlockProblems` as a return-mutant site. Repair: reverting the figure_block.py hunk makes `tests/throwaway_git.py --check` print `REFUSE tools/pr/figure_block.py:223` and the prepr self-test read `513 passed, 2 failed`; with it, `0 raw git init or clone site(s) refused` and `515 passed, 0 failed`.
+`figure_block.py --self-test` mutants: hand-typed value, moved head, unregistered/head-only instrument, unknown name, non-zero exit each fail their check; `body_push.sh --self-test` deletes the `# mut:keep` refresh line and its arm fails; `policy_lint.mjs` registers `figureBlockProblems` as a return-mutant site. Earlier repair: reverting the figure_block.py hunk makes `tests/throwaway_git.py --check` refuse `tools/pr/figure_block.py` and the prepr self-test fail its two raw-git checks. The merge adds no production line of its own.
 
 ## Null control
 
-A body with no block and a free-form figure still passes (self-test arm); an unregistered instrument is refused as a block. The unmodified head 71cbfe6b1 is the failing control for the repair above.
+Pin removal on a scratch worktree of 566ff8352 (`git worktree add --detach`), `node tools/policy/field_coverage.mjs`:
+
+- governance.yml pin step deleted alone: `FIELD COVERAGE ok`, rc=0, the entry still listed as `none pinned tools/pr/figure_block.py`, because `codeowners_gap.py` still prints `PINNED tools/pr/figure_block.py` from pr-contract.yml (its output with only that step removed still names it).
+- both pins removed (the governance.yml step and the pr-contract.yml step `Every figure block is what its registered instrument renders`, each deleted whole): `DEAD registry: DECLARED \`pinned tools/pr/figure_block.py\` is no longer in the derived set`, `RESULT ... declared_none=37 ... dead=1 refused=0`, `FIELD COVERAGE REFUSED`, rc=1. `codeowners_gap.py`'s `PINNED` set, sorted and diffed against the unperturbed tree, loses exactly `tools/pr/figure_block.py`. (A first attempt renamed pr-contract.yml's `run:` path instead of deleting the step; that also dropped `PINNED tools/pr/preflight.sh` and `tools/pr/prepr.sh` and read dead=3, so it was discarded as a perturbation wider than the claim.)
+- restored (`git checkout .github`, `git status --short` empty): `RESULT ... declared_none=38 ... dead=0 refused=0`, `FIELD COVERAGE ok`, rc=0, the entry back as `none`.
 
 ## Figures
 
-No block is used in this body: the registry does not exist at the base, so this pull request cannot use its own instrument. Free-form:
+No block is used in this body: the registry does not exist at the base, so this pull request cannot use its own instrument. Free-form, each run at 566ff8352:
 
-- `python3 -I tools/pr/figure_block.py --self-test` printed 11 checks, 0 failed.
-- `bash tools/pr/prepr.sh --self-test` printed 515 passed, 0 failed.
-- `python3 -I tests/throwaway_git.py --check` printed 0 raw sites.
-- `node tools/policy/field_coverage.mjs` printed FIELD COVERAGE ok.
+- `node tools/policy/field_coverage.mjs` printed `RESULT read=56 ignored=28 declared_none=38 blind=0 dead=0 refused=0 runs=146` and `FIELD COVERAGE ok`, rc=0; `figure_block.py` listed as `none`, not dead and not pending (no `pending` line printed).
+- `node tools/policy/field_coverage.mjs --self-test` printed `FIELD COVERAGE SELF-TEST ok`, rc=0.
+- `python3 -I tools/pr/figure_block.py --self-test` printed `figure_block self-test: 11 checks, 0 failed`.
+- `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2668 ENTITY CHECKS PASSED`, rc=0 (its `FAIL` lines, e.g. `a3:roster`, `a3:orjson`, are planted-input arms inside its checks; the verdict line is the one quoted).
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: FULL` (reason: `tests/closure.py changes the gate itself`), so the scripts are left to CI.
+- `tools/pr/prepr.sh` with `PREPR_SKIP_CLOSURES=1` at 566ff8352 printed `PRE-PR: 566ff83528c66d3edd20e5ae7cd3cd3038e00745 000000000000000000000000000000000 rc=0` (`ci predict`: no red predicted against 51cd5ec8a42a; `self-test`: 516 passed, 0 failed). origin/main, re-fetched after the run, was still 51cd5ec8a, so no further merge was needed. Null control at main for that skip: the only closures delta against origin/main 51cd5ec8a is the two members named above, the same two the tip added, so the skipped recording step can find nothing the merges introduced; closures-autofix owns it on the pull request.
+
+origin/main measured at 51cd5ec8a (committed 2026-11-08T21:20:13+01:00; fetched 2026-11-08T20:32Z).
 
 ## Approval
 
@@ -84,7 +98,7 @@ Policy files touched (policy_lint.mjs, PULL_REQUEST_TEMPLATE.md, pr-contract.yml
 
 ## Red checks
 
-`governance / policy-docs`: `field_coverage.mjs REFUSED registry: pinned tools/pr/figure_block.py is unregistered`, graded with the base's copy of field_coverage.mjs. Cheaper detector: `prepr.sh` ci predict already predicts it; it cannot be cleared here because the bootstrap entry is not on main (see cause 3). Standing cost of a detector that avoids it: none beyond landing the bootstrap first; this is the one-time bootstrap shape of ee2974270.
+none predicted: the earlier `governance / policy-docs` refusal is answered by the base's pending entry (#3312).
 
 ## Forward-carry
 
@@ -93,4 +107,3 @@ none
 ## Friction
 
 none
-
