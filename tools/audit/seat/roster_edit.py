@@ -887,6 +887,22 @@ def ruling_reader(worktree, checkout):
 
 
 # ----------------------------------------------------------------- flow
+def _on_origin(checkout, wt, sha, branch) -> bool:
+    """Whether some origin ref holds `sha`. The local tracking refs go stale
+    when a rival writer pushes the roster branch, so a miss fetches the
+    branch once and asks again before an unpushed edit is declared."""
+    def held():
+        return bool(run(["git", "-C", str(wt), "for-each-ref", "--contains",
+                         sha, "--format=%(refname)",
+                         "refs/remotes/origin/"]).strip())
+    if held():
+        return True
+    subprocess.run(["git", "-C", str(checkout), "fetch", "-q", "origin",
+                    f"+refs/heads/{branch}:refs/remotes/origin/{branch}"],
+                   capture_output=True)
+    return held()
+
+
 def prepare_worktree(checkout, ref, branch, wt, discard=None) -> str:
     """A throwaway DETACHED worktree at the branch's remote tip when one
     exists (so sequential edits accumulate), else at origin/<ref>; returns
@@ -909,9 +925,7 @@ def prepare_worktree(checkout, ref, branch, wt, discard=None) -> str:
         if run(["git", "-C", str(wt), "status", "--porcelain"]).strip():
             raise Refuse(f"{wt} has uncommitted changes; refusing to reuse it")
         old = run(["git", "-C", str(wt), "rev-parse", "HEAD"]).strip()
-        if old != discard and not run(
-                ["git", "-C", str(wt), "for-each-ref", "--contains", old,
-                 "--format=%(refname)", "refs/remotes/origin/"]).strip():
+        if old != discard and not _on_origin(checkout, wt, old, branch):
             raise Refuse(f"{wt} HEAD {old[:12]} is on no origin ref; an "
                          "unpushed edit would be lost")
         run(["git", "-C", str(wt), "checkout", "-q", "--detach", base_sha])
@@ -1101,6 +1115,11 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
                             "origin", refspec],
                            capture_output=True, text=True)
         if r.returncode == 0:
+            # our own push: the tracking ref must follow it, or the next op
+            # in this run finds HEAD on no origin ref
+            subprocess.run(["git", "-C", str(checkout), "update-ref",
+                            f"refs/remotes/origin/{branch}", head],
+                           capture_output=True)
             print(f"pushed {branch} at {head}")
             return 0
         why = (r.stderr or r.stdout).strip()[:400]
@@ -1148,7 +1167,9 @@ def build_parser():
                         "containing it")
     p.add_argument("--cite", help="set-size / set-files: <ref>@<sha>, a ref "
                    "that must hold the sha; recorded in resume.note")
-    p.add_argument("--add", nargs="+", help="set-files: paths appended to files")
+    p.add_argument("--add", nargs="+", action="extend",
+                   help="set-files: paths appended to files; repeatable "
+                        "(the default store action kept only the last list)")
     p.add_argument("--set-files", help="set-files: replace files whole "
                    "(comma list, - for none)")
     p.add_argument("--set-hot", help="set-files: replace hot_files whole "
@@ -2704,7 +2725,38 @@ def _self_test() -> int:
     check("fetch_origin: several raced refs in one fetch are one race",
           got[0] == "ok" and got[1] == 2, got)
 
+    # --- a stale tracking ref is not an unpushed edit (P409)
+    wt_ = Path(tmp, "wt")
+    run(["git", "-C", str(drv), "fetch", "-q", "origin"])
+    head_ = tip()
+    run(["git", "-C", str(wt_), "checkout", "-q", "--detach", head_])
+    check("P409: the worktree head is on origin before the tracking ref goes stale",
+          _on_origin(drv, wt_, head_, "edit-1"))
+    for ref_ in run(["git", "-C", str(drv), "for-each-ref", "--format=%(refname)",
+                     "refs/remotes/origin/"]).split():
+        run(["git", "-C", str(drv), "update-ref", "-d", ref_])
+    check("P409: a stale tracking ref (a rival's push) passes after the one fetch",
+          _on_origin(drv, wt_, head_, "edit-1"))
+    run(["git", "-C", str(wt_), "commit", "-q", "--allow-empty", "-m", "unpushed"])
+    check("P409: a real unpushed commit still refuses (null control)",
+          not _on_origin(drv, wt_, run(["git", "-C", str(wt_), "rev-parse",
+                                        "HEAD"]).strip(), "edit-1"))
+    run(["git", "-C", str(wt_), "reset", "-q", "--hard", head_])
+    run(["git", "-C", str(drv), "update-ref", "-d", "refs/remotes/origin/edit-1"])
+    check("P409: two ops in one run both land after our own push",
+          more("set-resume", "R9-A", "first", "--field", "note") == 0
+          and more("set-resume", "R9-A", "second", "--field", "note") == 0
+          and "second" in (grp("R9-A").get("resume") or {}).get("note", "")
+          and subprocess.run(["git", "-C", str(drv), "rev-parse",
+                              "refs/remotes/origin/edit-1"],
+                             capture_output=True, text=True).stdout.strip() == tip())
     shutil.rmtree(tmp, ignore_errors=True)
+    # --- repeated --add (P418): extend, never keep only the last list
+    for argv_, want_ in ((["--add", "a", "--add", "b"], ["a", "b"]),
+                         (["--add", "a", "b", "--add", "c"], ["a", "b", "c"]),
+                         (["--add", "a"], ["a"])):
+        check(f"set-files {' '.join(argv_)} parses to {want_}",
+              parse_op(["set-files", "G", "--worktree", "w"] + argv_)[0].add == want_)
     # --- the roster seat's lane (P215): structural ops need the queue runner's marker
     saved_lane = os.environ.pop(LANE_ENV, None)
     try:
