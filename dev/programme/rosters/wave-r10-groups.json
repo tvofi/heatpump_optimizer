@@ -18980,10 +18980,11 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-friction-other-family",
     "note": "s12 roster audit 2026-11-07: created to receive issue 3283; overlap admitted (R10-FRICTION-CI-RED): issue 3283 filed by the friction cron 2026-11-07 with no owning group",
-    "pr": 3311
+    "pr": 3311,
+    "commit": "4fe7d5934b0a4bc092c9398f29b579fbd2df8b50"
    },
    "brief": "Root-cause record for the recurring-friction family key other (untaught) (family), issue 3283, filed by the governance cron's friction step at 2026-11-07T12:29Z for the window v7.1.4..origin/main (re-derive the family verdict at your merge base). One record under dev/audit/rca/: re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.1.4, name each pull request and the friction it hit, then the cause, the process state (a-d), the cost test with numbers and a countermeasure or a recorded refusal (dev/governance/roles/root-cause.md, dev/governance/rules/defect-root-cause.md). Say whether the untaught keys need teaching in the classifier or whether the family is noise. A countermeasure that is policy waits for the owner's approving review. The body carries a Disposes line for 3283, no closing keyword; the orchestrator wires it. Carry no count."
   },
