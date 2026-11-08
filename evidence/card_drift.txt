@@ -1,1 +1,0 @@
-card_drift: 1 state(s) moved and claimed, 44 identical

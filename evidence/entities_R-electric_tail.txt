@@ -1,0 +1,27 @@
+h of each spelling and none of their published twins (the scan's null control)
+  ok   EG-B3: every merge source in the payload producers is resolved
+  ok   EG-B3: Payload declares exactly the keys the producers publish
+  ok   EG-B3: Insight and CompressorStarts declare the keys _insight_view writes
+  FAIL the Pages workflow deploys on a release tag, is gated on Pages being enabled, and stages the published set and never a markdown file  [probe on workflow: rc=1 enabled=[]; probe on 404: rc=1 enabled=[]; probe on legacy: rc=1 enabled=[]]
+  ok   and a staging that copies docs/ wholesale, or a guard that refuses nothing, is refused (null controls)
+  ok   pages.yml is not a gate file, and is classified
+  ok   and a deploy outside the github-pages environment, or a build job that inherits the deploy grant, is refused (null controls)
+  ok   and an `if:` calling any status function is refused, one planted spelling each (null controls)
+  ok   EG-B3b: every view the assembler merges returns a slice Payload inherits
+  ok   EG-B3b: _build_data_dict returns Payload and casts nothing
+  ok   EG-B3b: every payload key an entity reads is declared in Payload
+  ok   EG-B3b: DATA, the representative payload, carries only keys Payload declares
+  ok   EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only
+  ok   R10 N-no-expiry barrier: every 'entry covering now' lookup goes through _covering_index or is on the reasoned list with its exact count
+  ok   R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list with its exact count -- a persisting condition goes through log_held
+  ok   the record job's three modes are all found, so the wiring check below reads something
+  ok   every record-job invocation of --record, --stats and --sunset passes the same --window-cache file
+  ok   Nightly's enumerate step is bracketed by its own M0 pair, the after reading under always()
+  ok   the record job's push arm reads --record alone: --stats, --sunset and the filer wait on the window step's report
+  ok   the window step reports on the schedule, a dispatch and the stamp, never an ordinary push
+  ok   record_burst_replay counts demand as record + enumerate + rest, never the record job alone
+  ok   every InputReader key is an options-flow entity field, so the Health card has its label
+  ok   the machinery ratchet reads every key of the tracked machinery_budgets.json, and refuses a key it does not read
+
+3 of 2645 ENTITY CHECKS FAILED
+rc=1

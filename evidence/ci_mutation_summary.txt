@@ -1,0 +1,12 @@
+  tests/harness_headers.py: DEFERRED AND NEVER RUN -- no mutant survived every shared driver, so its baseline was never checked here; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  tests/stress.py: DEFERRED AND NEVER RUN -- no mutant survived every shared driver, so its baseline was never checked here; a red one would have made it INCONCLUSIVE, a killed null REFUSED
+  ok    custom_components/heatpump_optimizer/accuracy.py:843 GUARD_OFF  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/accuracy.py:845 RETURN_DEL  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/coordinator.py:3355 GUARD_OFF  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/coordinator.py:5416 GUARD_OFF  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/coordinator.py:5448 GUARD_OFF  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/sensor.py:1712 GUARD_OFF  -- killed by tests/entities.py
+  ok    custom_components/heatpump_optimizer/thermal_model.py:1320 BOOLOP  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/thermal_model.py:1321 RETURN_DEL  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/thermal_model.py:1418 RETURN_DEL  -- killed by tests/features.py
+MUTATION TABLE PASSED
