@@ -50,6 +50,16 @@ def steps(pr: int, repo: str, state_dir: Path, sha: str, group: str) -> "list[tu
     ]
 
 
+def refusal_detail(o: str) -> str:
+    """The step's last line, led by the lint ERROR lines a refusal printed: the
+    TOTAL line alone never named what the gate refused (P435)."""
+    lines = [ln.strip() for ln in o.strip().splitlines()]
+    if not lines:
+        return "no output"
+    errs = [ln for ln in lines if ln.startswith("ERROR")][:3]
+    return " | ".join(errs + [lines[-1]])[:300]
+
+
 def postmerge(pr: int, repo: str, state_dir: Path, dry: bool, retry: bool = False,
               run=rb.sh, out=print, roster=None) -> int:
     owed: "list[tuple[str, str]]" = []
@@ -69,7 +79,7 @@ def postmerge(pr: int, repo: str, state_dir: Path, dry: bool, retry: bool = Fals
             out(f"DRY-RUN {name}: " + " ".join(argv))
             continue
         code, o = run(argv)
-        last = o.strip().splitlines()[-1][:160] if o.strip() else "no output"
+        last = refusal_detail(o)
         if name == "main":
             out(f"main {last}")
             if code == 3:  # WAIT: the push's own checks are still running
@@ -120,6 +130,10 @@ def self_test() -> int:
 
     full = "c" * 40
     roster = {"groups": [{"group": "R10-X", "resume": {"branch": "fix/r10-x"}}]}
+    det = refusal_detail("x\n  ERROR   [G-1] cite: a.py:9 moved\nTOTAL: 1 error(s)\n")
+    check("refusal_detail leads with the lint ERROR line", "G-1" in det and det.endswith("TOTAL: 1 error(s)"), det)
+    check("refusal_detail of plain output is its last line (null control)",
+          refusal_detail("a\nb\n") == "b" and refusal_detail("") == "no output")
 
     def fake(rc=None):
         rc = rc or {}

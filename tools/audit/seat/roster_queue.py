@@ -317,6 +317,17 @@ def _run_batch(a, sh, rep, py, editor, lines, mark):
     return 0
 
 
+def refusal_tail(out):
+    """What a refused op reports: the last three lines, or, for a lint-gate
+    refusal, the ERROR lines under its banner -- the TOTAL line alone never
+    named the citation (P435)."""
+    lines = out.strip().split("\n")
+    for i, ln in enumerate(lines):
+        if "LINT GATE REFUSED" in ln:
+            return " | ".join(lines[i + 1:i + 6])[:700]
+    return " | ".join(lines[-3:])[:400]
+
+
 def _run_op(a, sh, rep, py, editor, op, g, arg, extra):
     """One op: exactly one report line, or an exception for the caller to report."""
     cmd = [py, editor, op, g] + ([arg] if arg else []) + extra + [
@@ -348,7 +359,7 @@ def _run_op(a, sh, rep, py, editor, op, g, arg, extra):
         if attempt < 4 and (MOVED in out or ("failed to push" in out and "lint gate: TOTAL: 0" in out)):
             sh("git", "worktree", "remove", "--force", a.worktree)
             continue
-        rep(f"roster: {op} {g} refused rc={r.returncode} " + " | ".join(out.strip().split("\n")[-3:])[:400])
+        rep(f"roster: {op} {g} refused rc={r.returncode} " + refusal_tail(out))
         return False
 
 
@@ -691,6 +702,11 @@ def _self_test():
         run_queue(argparse.Namespace(**{**vars(base), "first": "all", "last": None, "mark": True}),
                   python=sys.executable)
         ck("a marked line is never applied again", (t / "rep").read_text().count("\n") == 3)
+        gate = "x\nroster_edit: LINT GATE REFUSED the push\nERROR [G-1] cite a.py:9\nTOTAL: 1 error(s)\nthe commit is local\n"
+        ck("refusal_tail: a lint-gate refusal reports the ERROR line, not only TOTAL",
+           "ERROR [G-1]" in refusal_tail(gate))
+        ck("refusal_tail: other output is its last three lines (null)",
+           refusal_tail("a\nb\nc\nd") == "b | c | d")
         # inline append-carry readback (LANDED test, first 60 chars)
         ck("readback_text: the carry's first 60 chars are found",
            readback_text(sha, "G", "hello carry", cwd=clone))
