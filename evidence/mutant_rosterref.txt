@@ -1,0 +1,5 @@
+FAIL carry_audit check --body runs on the same body, at the freshly fetched round roster branch (got '0', want '1')
+FAIL REFUSE: the carry names a group the round roster branch lacks, though the worktree roster and main hold it (the real carry_audit reads the ref) (got '0', want '1')
+FAIL (and nothing minted) (got '6', want '0')
+FAIL mutant rref changed nothing
+body_patch self-test: 102 checks, 3 failed

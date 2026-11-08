@@ -1,0 +1,12 @@
+== head
+CARRY-STATUS R10-BODY-CONTRACT body item e233ae28: a status line on its own carry, lands nothing: '- Carry 0: built. `body_patch.sh` already passed `--roster-ref` at the base (commit 5c9b6d2f6); what'
+CARRY-STATUS R10-BODY-CONTRACT body item ead48b21: a status line on its own carry, lands nothing: '- Carry 5: already built at the base: `Dests.check` refuses a done, absorbed or closing group and `c'
+CARRY-STATUS R10-BODY-CONTRACT body item ef161325: a status line on its own carry, lands nothing: '- Carry 6: already built at the base: `seg_dests` returns `dismissed(<G>):<reason>` and the pointer '
+CARRY-STATUS R10-BODY-CONTRACT body item 52b55967: a status line on its own carry, lands nothing: '- Carry 8: already built at the base: (i) the carry control lint and `LEGACY_CONTROL_CAP` (a17d51d41'
+CARRY-STATUS R10-BODY-CONTRACT body item fe95bcab: a status line on its own carry, lands nothing: "- Carry 9: not in this part: `body_push.sh` is part 3's file; it follows part 3. Carry: R10-BODY-CON"
+CARRY-STATUS R10-BODY-CONTRACT body item 4a5f7e3c: a status line on its own carry, lands nothing: '- Carry 43: built. `landed(body, dests, source, statuses)` reads an item whose destination is the so'
+CARRY-LANDED: 0 missing
+rc=0
+== base
+CARRY-LANDED: 0 missing
+rc=0

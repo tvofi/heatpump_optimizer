@@ -1,0 +1,28 @@
+MUTANT ownstatus-false: 2 fail-lines; carry_audit self-test: 400 checks, 2 failed
+FAIL landed: an own-group item naming one of its carries by index lands nothing and is a status line
+FAIL landed: the group is read from pr_group when the source names no topic
+carry_audit self-test: 400 checks, 2 failed
+MUTANT bound-le: 1 fail-lines; carry_audit self-test: 400 checks, 1 failed
+FAIL landed: the index one past the last carry (5 of 0-4) is a finding and lands (the bound)
+carry_audit self-test: 400 checks, 1 failed
+MUTANT no-round-groups: 0 fail-lines; carry_audit self-test: 400 checks, 0 failed
+carry_audit self-test: 400 checks, 0 failed
+MUTANT no-main-groups: 2 fail-lines; carry_audit self-test: 400 checks, 2 failed
+FAIL landed: an own-group item naming one of its carries by index lands nothing and is a status line
+FAIL landed: the group is read from pr_group when the source names no topic
+carry_audit self-test: 400 checks, 2 failed
+MUTANT no-pr-group: 1 fail-lines; carry_audit self-test: 400 checks, 1 failed
+FAIL landed: the group is read from pr_group when the source names no topic
+carry_audit self-test: 400 checks, 1 failed
+MUTANT no-topic: 1 fail-lines; carry_audit self-test: 400 checks, 1 failed
+FAIL landed: an own-group item naming one of its carries by index lands nothing and is a status line
+carry_audit self-test: 400 checks, 1 failed
+MUTANT no-codespan: 0 fail-lines; carry_audit self-test: 400 checks, 0 failed
+carry_audit self-test: 400 checks, 0 failed
+MUTANT tok-any: 1 fail-lines; carry_audit self-test: 400 checks, 1 failed
+FAIL landed: the same item naming another live group lands one append-carry (null control)
+carry_audit self-test: 400 checks, 1 failed
+MUTANT no-status-append: 2 fail-lines; carry_audit self-test: 400 checks, 2 failed
+FAIL landed: an own-group item naming one of its carries by index lands nothing and is a status line
+FAIL landed: the group is read from pr_group when the source names no topic
+carry_audit self-test: 400 checks, 2 failed
