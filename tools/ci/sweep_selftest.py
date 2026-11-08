@@ -249,7 +249,8 @@ def run_checks():
     rc, out = w.sweep()
     ok("stale pin: a red gate pinned before a tools/ci change on its base is re-judged by ONE dispatched run "
        "(pr, base), never re-run", w.posts == [dispatch] and w.bodies == [{"ref": "fix/b",
-       "inputs": {"pr": "7", "base": "main"}}] and "STALE-PIN P0" in out and "dispatches=1" in out)
+       "inputs": {"pr": "7", "base": "main"}}] and "STALE-PIN P0" in out and "(HTTP 204)" in out
+       and "dispatches=1" in out)
     w = pinned(run(1, "1"), v_run(), files=("custom_components/heatpump_optimizer/x.py", "tools/ci/fixtures/f.json",
                                             "tools/pr/prepr.sh"))
     w.sweep()
@@ -284,9 +285,9 @@ def run_checks():
        "nothing posted", w.posts == [] and "run 5 re-judges" in out)
     w = pinned(run(1, "1"), run(5, "2", g="success"), v_run())
     w.runs[5]["event"] = "workflow_dispatch"
-    w.sweep()
+    rc, out = w.sweep()
     ok("stale pin, no loop: a dispatched run created in the second the stale gate concluded is that fresh judge",
-       w.posts == [])
+       w.posts == [] and "run 5 re-judges" in out)
     w = pinned(run(1, "1"), run(5, "1"), v_run())
     w.runs[5]["event"] = "workflow_dispatch"
     w.runs[1]["gate"]["completed_at"] = "2"
