@@ -18891,10 +18891,11 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-closeout-instruments",
     "note": "split from R10-CLOSEOUT-CLEANUP by the s12 roster audit 2026-11-07",
-    "pr": 3324
+    "pr": 3324,
+    "commit": "cb5512741638029289deb392b30bc246fa667387"
    },
    "brief": "Instrument half of R10-CLOSEOUT-CLEANUP's remaining carries, split out by the s12 roster-completeness audit (2026-11-07) so that R10-ROUND-PLAYBOOK-FINAL and R10-ARCH-DOCS can follow every instrument change while R10-CLOSEOUT-CLEANUP keeps only the round's final --apply run, which follows them. Three defects in the closeout path, measured at origin/main: (1) tools/audit/seat/closeout.py roster_blockers returns every group roster_lib.open_groups returns other than itself, so --apply refuses while R10-CATALOG-PR is open, and R10-CATALOG-PR by owner ruling (tvofi 2026-10-29, 2026-11-07) starts only after the v10.0.0 stamp that follows the closeout run; it also refuses on every group in a disposition stage (refused, refuted, absorbed), which the roster keeps open by design, so the run can never pass. (2) step_issues refuses while any issue beyond the successor is open, and issue 2965 (the catalog) closes only after the catalog pull request. (3) worktree_gc.sh and prune_refs.py carry the defects in the carries below. Fix (1) and (2) at the source with one rule both read: a post-stamp group (by a roster field or a named list the instrument reads from the roster, never a literal in closeout.py) and its wired issues are exempt, and a group in a disposition stage whose host or ruling is closed is not a blocker. Failing test first for each: a fixture roster with only R10-CATALOG-PR open proceeds; one with a refused group proceeds; one with an ordinary not-started group still refuses (null control); a mutant that drops the exemption fails the first arm. Re-measure every figure at this group's merge base; carry no count. Mandated approval under 6329234399 as for R10-CLOSEOUT-CLEANUP."
   },
@@ -19408,8 +19409,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
-    "note": "triage batch 134 P419; overlap admitted (R10-HOTFIX-NONREQUIRED-REDS, R10-REVIEW-ENUMERATE): triage batch 134 P419, owner rulings reach dispatched seats; carry 17 moved from R10-TICK-LEVELS"
+    "stage": "in-progress",
+    "note": "triage batch 134 P419; overlap admitted (R10-HOTFIX-NONREQUIRED-REDS, R10-REVIEW-ENUMERATE): triage batch 134 P419, owner rulings reach dispatched seats; carry 17 moved from R10-TICK-LEVELS",
+    "pr": 3338
    },
    "brief": "From triage batch 134 (triage: dev/programme/triage/s6-batch134.md#P419 at b1f3ce2c73001c509b61a4163d2d08cb946d1518), narrowed by the 2026-11-08 keep test (triage batch 136 entry 427): build carry 0 only, the owner's ruling of 2026-11-07 that a fixer hands off at its first clean prepr.sh head and merges origin/main only when `git merge-tree --write-tree origin/main HEAD` conflicts, and that a reviewer blocks on a merge-tree conflict only. The change is the fixer, repair-round and reviewer text that tools/audit/seat/cloud_dispatch.py renders, plus the merge-tree check in dev/governance/roles/fix-review.md. The --preamble flag is not built: its benefit was unmeasured. Failing test first, controls and the reviewer-side rule are in carry 0. Instrument doc tools/audit/seat/instruments/cloud_dispatch.py.md records the changed text. fix-review.md is code-owned policy: it merges under the mandate in force or on tvofi review."
   },
