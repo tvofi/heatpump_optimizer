@@ -15492,9 +15492,9 @@
     "P9's clip check `unreachable()` (`tests/card_browser.mjs`) starts its ancestor walk at `parentOf(run.el)`, so a clip set on the text run's own element is outside its reach and a driver line clipped by its own box passes the grid. Pre-existing, not this PR's change. Carry: R10-WHY-NOW-WIDGET"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-why-now-widget",
-    "commit": null,
+    "commit": "5bc009bc82962df5d239cbacc2e570dffd9a9cf9",
     "last_step": null,
     "next_step": "dispatch a designer (dev/governance/roles/designer.md) for design/R10-WHY-NOW-WIDGET, then its design reviewer; the fixer dispatches only on Design review: approve",
     "note": "tvofi 2026-11-01, rulings card 2 option (c) Both: the live why-now widget, size L, design first, after R10-GRADE-DRIVERS",
