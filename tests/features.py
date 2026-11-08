@@ -11500,17 +11500,19 @@ R.check(
 )
 # Above the mixer the debit is nominal, so eps cannot move the trajectory; below
 # it the debit is read at the tap, so eps must (the liveness leg).
-_ct_hot_heat = [4.0] * 24
-_ct_hot_draw = [2.0] * 24
-_ct_e6, _ct_e10 = _ct_params(eps=0.6), _ct_params(eps=1.0)
-_ct_hot6 = _ct_walk(_ct_store(_ct_e6), 66.0, _ct_hot_heat, _ct_hot_draw)[0] if _ct_e6 else None
-_ct_hot10 = _ct_walk(_ct_store(_ct_e10), 66.0, _ct_hot_heat, _ct_hot_draw)[0] if _ct_e10 else None
+# A 65 C setpoint puts the rating above the 60 C store that gives 40 C at the
+# tap at eps 0.6, so the walk cools freely inside the mixed band.
+_ct_hot_heat = [1.6] * 6
+_ct_hot_draw = [2.0] * 6
+_ct_e6, _ct_e10 = _ct_params(eps=0.6, dhw_setpoint=65.0), _ct_params(eps=1.0, dhw_setpoint=65.0)
+_ct_hot6 = _ct_walk(_ct_store(_ct_e6), 64.5, _ct_hot_heat, _ct_hot_draw)[0] if _ct_e6 else None
+_ct_hot10 = _ct_walk(_ct_store(_ct_e10), 64.5, _ct_hot_heat, _ct_hot_draw)[0] if _ct_e10 else None
 _ct_cold6 = _ct_walk(_ct_store(_ct_e6), 45.0, [0.0] * 4, [3.0] * 4)[0] if _ct_e6 else None
 _ct_cold10 = _ct_walk(_ct_store(_ct_e10), 45.0, [0.0] * 4, [3.0] * 4)[0] if _ct_e10 else None
 R.check(
     "combi eps null control: with the tap above the mixer, eps 0.6 and 1.0 walk the same "
     "store; below it, the colder tap debits less",
-    _ct_hot6 is not None and _ct_hot6 == _ct_hot10
+    _ct_hot6 is not None and _ct_hot6 == _ct_hot10 and _ct_hot6[-1] < _ct_hot6[0] - 1.0
     and min(_ct_hot6) > _ct_store(_ct_e6).store_temp_for_tap(_CT_MIX)
     and _ct_cold6[-1] > _ct_cold10[-1],
     f"hot {(_ct_hot6 or [None])[-1]} vs {(_ct_hot10 or [None])[-1]}; "
