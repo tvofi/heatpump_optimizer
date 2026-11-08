@@ -12,6 +12,16 @@ out of order, and prelude.waits_on makes the higher-id code run's gate the one t
 Never the triggering run, never a green one, never past attempt 45 (N2: the sweep leaves a
 run at 44 alone), each polled run re-run at most once. The poll lists runs ONCE per
 poll for all of them, no faster than 60 s (tvofi 2026-10-19), for at most 600 s.
+
+Where no green gate covers the newest event (`settle`, r10-gate-busy-defer-3): a gate defers at
+once and holds no runner (gate.judge), so a deferral nothing green follows -- two gates that
+deferred to each other, or a decider that ended red or cancelled -- would stay red. Once every
+gate at the head has concluded (in_progress gates polled as above), every red gate, V's own
+included, that may have judged an undecided head is re-run (`undecided`: it started before a
+job of ANOTHER run, its gate aside, finished; or a higher-id run's gate started while it judged,
+the lagging-listing pair, of which the lower id is re-run, or the higher where the lower ended
+green). A re-run judges after every such job
+finished and beside no gate starting, so it is never re-run again: the branch cannot loop.
 A rate limit prints `RATE-LIMITED`, re-runs nothing further and exits 1: reset_epoch is
 printed, a caller re-runs nothing before it.
 
@@ -50,6 +60,27 @@ def latest_gate(jobs):
     return next((j for j in jobs if j.get("name") == "gate"), None)
 
 
+def undecided(gate, run_id, others):
+    """The other runs (id -> latest jobs) this gate's verdict may have deferred to: one with a job,
+    its gate aside, that finished after this gate started or has not finished (a source it could
+    not read); or a HIGHER-id run whose gate started while this one judged (a listing lagging
+    that start reads the run busy, and busy()'s tie-break makes the lower id the one that
+    decides, so only the lower is re-run: re-judged, it is final, and nothing loops); or a
+    LOWER-id run whose gate judged while this one did and ended green (that pair seen from its
+    higher side, which deferred to the decider: re-run, it starts after that gate concluded, so
+    it is final; a red lower is re-run by the arm before, never both, so nothing loops)."""
+    t0, t1 = gate.get("started_at") or "", gate.get("completed_at") or "~"
+    out = []
+    for i, jobs in others.items():
+        g = latest_gate(jobs) or {}
+        gs, ge = g.get("started_at") or "", g.get("completed_at") or "~"
+        if (any(j.get("name") != "gate" and (j.get("completed_at") or "~") > t0 for j in jobs)
+                or (i > run_id and t0 <= gs <= t1)
+                or (i < run_id and g.get("conclusion") == "success" and gs <= t1 and ge >= t0)):
+            out.append(i)
+    return sorted(out)
+
+
 def covers_newest(v_gate, runs):
     """V's latest gate is green and completed and started after every run at the head was created."""
     return bool(v_gate and v_gate.get("status") == "completed" and v_gate.get("conclusion") == "success"
@@ -78,8 +109,11 @@ class Sweep:
             raise RuntimeError(f"GET {path}: {status}")
         return body
 
+    def jobs_of(self, run_id):
+        return self.j(f"actions/runs/{run_id}/jobs", {"filter": "latest", "per_page": 100})["jobs"]
+
     def gate_of(self, run_id):
-        return latest_gate(self.j(f"actions/runs/{run_id}/jobs", {"filter": "latest", "per_page": 100})["jobs"])
+        return latest_gate(self.jobs_of(run_id))
 
     def live(self, pr, head):
         return self.j(f"pulls/{pr}")["head"]["sha"] == head
@@ -111,8 +145,7 @@ class Sweep:
         runs = self.runs_at(head)
         vg = self.gate_of(run_id)
         if not covers_newest(vg, runs):
-            self.out(f"SKIP run {run_id}: its gate is not green and newest-covering; a newer run's sweep owns convergence")
-            return 0
+            return self.settle(run_id, pr, head)
         polled = {}
         for r in sorted((r for r in runs if r["id"] != v["id"]), key=lambda r: r["id"]):
             g = self.gate_of(r["id"])
@@ -135,6 +168,36 @@ class Sweep:
                 polled[i] = listing.get(i, {}).get("status", polled[i])
         for i, st in polled.items():
             self.out(f"SWEEP left run {i} still {st} at the {POLL_WAIT} s bound; red until the next event")
+        self.out(f"SWEEP-DONE run={run_id} reruns={self.reruns}")
+        return 0
+
+
+    def settle(self, run_id, pr, head):
+        """No green gate covers the newest event: once every gate at the head has concluded,
+        re-run each red one that judged before another run's sources finished (module doc)."""
+        deadline = self.clock() + POLL_WAIT
+        while True:
+            runs = self.runs_at(head)
+            jobs = {r["id"]: self.jobs_of(r["id"]) for r in runs}
+            gates = {i: latest_gate(js) or {} for i, js in jobs.items()}
+            finishing = [r["id"] for r in runs if gates[r["id"]].get("status") == "in_progress"
+                         or (gates[r["id"]].get("status") == "completed" and r["status"] != "completed")]
+            if not finishing or self.clock() + POLL_FLOOR > deadline:
+                break
+            self.sleep(POLL_FLOOR)
+            if not self.live(pr, head):
+                self.out(f"SWEEP stop: head moved while run {run_id}'s settle polled; the newer run's sweep owns the rest")
+                return 0
+        unconcluded = sorted(i for i, g in gates.items() if g.get("status") != "completed")
+        if unconcluded:
+            self.out(f"SKIP run {run_id}: its gate is not green and newest-covering, and run(s) {unconcluded} have "
+                     "not concluded their gate; their completion sweeps")
+            return 0
+        for r in sorted(runs, key=lambda r: r["id"]):
+            g = gates[r["id"]]
+            late = undecided(g, r["id"], {i: js for i, js in jobs.items() if i != r["id"]})
+            if g.get("conclusion") != "success" and late:
+                self.judge(r, g, f"judged before run(s) {late} finished")
         self.out(f"SWEEP-DONE run={run_id} reruns={self.reruns}")
         return 0
 

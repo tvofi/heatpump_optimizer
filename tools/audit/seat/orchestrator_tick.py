@@ -1049,6 +1049,15 @@ class Tick:
                 level = [r.strip() for r in fh if r.startswith("OWED ")]
         except FileNotFoundError:
             level = []
+            try:
+                with open(self.relay_log, encoding="utf-8", errors="replace") as fh:
+                    n = sum(1 for r in fh if r.startswith("OWED ") and " handoff-no-pr " in r)
+            except OSError:
+                n = 0
+            if n > 0:
+                self.line(S, f"GAP: {self.relay_log} holds {n} handoff-no-pr OWED line(s) but "
+                             f"{self.relay_log}.level does not exist: the relay has not published its level",
+                          flag=True)
         except OSError as e:
             level = []
             self.unreadable(S, "cloud-relay level", str(e)[:100])
@@ -4637,6 +4646,21 @@ def self_test() -> int:
              not any(x.startswith(("DISPATCH", "OWNER")) for x in flagged(aged_off)) and len(flagged(aged_off)) == 3),
             ("a malformed switch is UNREADABLE, never a silent default",
              any("UNREADABLE: handoff aging" in x for x in flagged(aged_bad))),
+        ])
+        total, failed = total + a, failed + f
+
+        gap_text = f"OWED 2026-10-21T07:35:00Z handoff-no-pr refs/heads/handoff/t0 {'c' * 40}\n"
+        gap_no_level, _ = owed_lines(gap_text)
+        gap_no_lines, _ = owed_lines(o1 + "\n")
+        gap_with_level, _ = owed_lines(gap_text, gap_text)
+        a, f = check("relay GAP", [
+            ("a relay log holding a handoff-no-pr OWED line and no .level file prints GAP, flagged, with the count",
+             any(l["text"].startswith("GAP: ") and "holds 1 handoff-no-pr OWED line(s)" in l["text"] and l["flag"]
+                 for l in gap_no_level)),
+            ("null control: no .level file and no handoff-no-pr line prints no GAP",
+             not any(l["text"].startswith("GAP:") for l in gap_no_lines)),
+            ("null control: the same log with its .level file published prints no GAP",
+             not any(l["text"].startswith("GAP:") for l in gap_with_level)),
         ])
         total, failed = total + a, failed + f
 
