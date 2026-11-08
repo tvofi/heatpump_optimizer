@@ -1007,7 +1007,7 @@ for SEATS_ONE in ${SEATS_REALS[@]+"${SEATS_REALS[@]}"}; do
     [ -d "$seat" ] || continue
     seat_real=$(realpath_of "${seat%/}")
     case "$seat_real" in "$KEEP_REAL"|"$KEEP_REAL"/*) continue ;; esac
-    printf '%b' "$C_SEATS" | grep -qx "$seat_real" && continue
+    printf '%b' "$C_SEATS" | grep -x "$seat_real" >/dev/null && continue
     copies=()
     for cp in "$seat_real"/*/; do
       cp="${cp%/}"
