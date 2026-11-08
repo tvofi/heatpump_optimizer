@@ -1,0 +1,11 @@
+== tools/audit/seat/roster_edit.py --self-test
+pushed edit-1 at 50e71479134e33a89ca7b8f43ac7d2cc96aa0a97
+roster_edit self-test: 256 checks, 0 failed
+rc=0
+== -I tools/audit/seat/roster_queue.py --self-test
+no difference
+roster_queue self-test: 58 checks, 0 failed
+rc=0
+== -I tools/audit/seat/postmerge.py --self-test
+postmerge self-test: 19 checks, 0 failed
+rc=0

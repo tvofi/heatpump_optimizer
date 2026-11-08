@@ -1,0 +1,58 @@
+CodeQL completed success 128865118875
+arch-score / arch-score completed success 128864010032
+arch-score completed skipped 128862796820
+arm completed skipped 128862215616
+budget-raise-gate / budget-raise-gate completed success 128864009981
+budget-raise-gate completed skipped 128862796339
+cancel-superseded completed success 128862183726
+cancel-superseded completed success 128862184994
+cancel-superseded completed success 128874402620
+codeql / Analyze (actions) completed success 128864009984
+codeql / Analyze (javascript-typescript) completed success 128864009827
+codeql / Analyze (python) completed success 128864009863
+codeql completed skipped 128862796353
+gate completed cancelled 128862797001
+gate completed success 128873106886
+governance / delivery-status completed success 128864009910
+governance / delivery-status-publish completed skipped 128864011351
+governance / env-matrix completed success 128864009919
+governance / instrument-self-tests completed success 128864009871
+governance / policy-docs completed success 128864009870
+governance / record completed skipped 128864011115
+governance / wave-script completed success 128864009823
+governance completed skipped 128862796759
+hassfest / hassfest completed success 128864009724
+hassfest completed skipped 128862796684
+kernel-points completed skipped 128862796551
+kernel-points completed skipped 128864010951
+pr-contract / pr-contract completed success 128872953664
+pr-contract completed skipped 128862797381
+prelude completed cancelled 128862184047
+prelude completed success 128862185008
+prelude queued null 128874401072
+refresh completed success 128862183992
+refresh completed success 128862185063
+refresh completed success 128874402407
+tests / arch-instrument completed success 128865786541
+tests / briefs completed success 128864010076
+tests / browser completed success 128865786557
+tests / ci-ratchet completed skipped 128872657241
+tests / claims-autofix completed skipped 128870520008
+tests / closure-scope completed success 128864010064
+tests / closures completed success 128865786476
+tests / closures-autofix completed skipped 128872486802
+tests / coverage completed success 128865786468
+tests / coverage-ratchet completed success 128872655869
+tests / fast (3.14) completed success 128865786566
+tests / graders-head-copy completed success 128872655833
+tests / lane-proofs completed success 128872655769
+tests / mutation completed success 128864010021
+tests / mutation-autofix completed skipped 128865022562
+tests / mutation-pins completed skipped 128865021980
+tests / nightly-ha completed skipped 128865787715
+tests / nightly-status completed success 128864009999
+tests / replay completed skipped 128865788107
+tests / typing completed success 128865786550
+tests completed skipped 128862796497
+validate / validate-hacs completed success 128864009975
+validate completed skipped 128862796822

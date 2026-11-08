@@ -1,49 +1,38 @@
-Fix review: blocked 1a1da73c912e471b40b7b06ea94a76b71d62c100 mutation-vacuous: write_roster passes base_text to lint_gate unpinned (deleting it fails 0 of 254 checks); refusal_tail row passes on the old tail
+Fix review: merge d96b14c349acc69869183552071adbaf7ece498e
 
-bus-nonce: 66f4fd376849148b08ff1ca61479c44d
+bus-nonce: 265b7e7d61ccc8ac925280a83365baea
 
-Round: first round of fix review for PR #3344 (R10-ROSTER-WRITE-SWEEP part 2), head 1a1da73c912e471b40b7b06ea94a76b71d62c100, merge base 996ded2a6dc52816bd4c7dd873c048d85fc6adad. I worked in a detached worktree at the head.
+Round: second round (delta review) of PR #3344 (R10-ROSTER-WRITE-SWEEP part 2). The previous verdict blocked head 1a1da73c912e471b40b7b06ea94a76b71d62c100. This round reviews head d96b14c349acc69869183552071adbaf7ece498e, merge base 51cd5ec8a42abde3c223f22e9f4a0d5f35f8844a (origin/main's tip; 0 behind). I worked from a detached worktree at the head.
 
 ## Block
 
-- mutation-vacuous: P435 (carry 20) is wired into the write path by one changed production line, `ok, detail = lint_gate(checkout, lint_cwd, path, base_text)` in `write_roster` (tools/audit/seat/roster_edit.py). I reverted it to the old call `lint_gate(checkout, lint_cwd, path)`, which restores the old whole-roster gate on every real write, and `roster_edit.py --self-test` still passes 254 of 254 (ev/mut2.txt, M8 SURVIVED). The five new `lint gate:` rows call `lint_gate` directly. No row goes through an op. The brief's failing test first was "a roster whose not-done brief cites a shifted line admits an unrelated set-resume", and no such row exists, so nothing pins that the fix reaches a write. Owed: an op-level row, e.g. `set-resume` on a planted roster whose base already carries an ERROR, landing rc 0 with the WARN, with the M8 mutant killed. Its null is the same op adding a new bad citation, refused rc 3.
-  Carry: R10-ROSTER-WRITE-SWEEP
-- mutation-vacuous: in roster_queue.py, `refusal_tail` is unpinned. I made it ignore the gate banner (M13) and also restored the old `_run_op` tail expression (M14). Both survive, and roster_queue passes 55 of 55 (ev/mut1.txt). The row `refusal_tail: a lint-gate refusal reports the ERROR line, not only TOTAL` uses a fixture whose ERROR line already sits in the last three lines, so the old code passes it too (ev/tail_demo.txt, "old tail already names ERROR: True"). On real `write_roster` refusal output the old tail does not name the ERROR and the new one does (ev/tail_demo.txt). So the production change is real but its test is vacuous. Owed: a fixture in `write_roster`'s real refusal shape, i.e. banner, ERROR lines, `CARRY:` line, blank line, `TOTAL`, then `the commit is local ...`.
-  Carry: R10-ROSTER-WRITE-SWEEP
+none
 
 ## Findings
 
-- Follow-up: `update-ref refs/remotes/origin/<branch>` after a successful push (P409 part b) is unpinned. I replaced it with a no-op rev-parse (M3) and it SURVIVED. The row `P409: two ops in one run both land after our own push` also passes through `_on_origin`'s fetch-on-miss, so the update-ref only saves one fetch. Either pin it with a row that counts fetches, or record it as equivalent in `## Unpinned sites`. The body does not list it there today.
-  Carry: R10-ROSTER-WRITE-SWEEP
-- Follow-up: postmerge.py's call site `last = refusal_detail(o)` is unpinned. I restored the old last-line expression (M16) and it SURVIVED. Only the helper is unit-tested.
-  Carry: R10-ROSTER-WRITE-SWEEP
-- Follow-up: in roster_queue `_run_batch`, the `mark_line(a.queue, ln, "refused")` for a parse-refused line is unpinned (M12 SURVIVED). Without it, under `--mark` a malformed line stays unmarked and is re-run every pass. Also, when a later batch-level failure falls back to the single-op path without `--mark`, the malformed line is reported refused a second time, because the fallback re-runs the whole range. That is minor, but the self-test does not cover it.
-  Carry: R10-ROSTER-WRITE-SWEEP
-- Follow-up: the body's mutant_run.py figure, "11 SURVIVED, 0 KILLED", is self-declared untrusted and undiagnosed. My hand mutants M2, M4, M5, M6, M7, M15, M1, M9, M10 and M11 kill, so the runner's zero is an instrument result, not a fact about the diff. I did not re-run it (fix-review.md 11: CI's heavy runs are cited, not re-run).
-  Carry: dismissed: the body discloses it as untrusted and the hand mutants in this verdict supersede it
+none. Each of the previous verdict's Block and Findings items is closed at this head, or recorded in the body; see Evidence.
 
 ## Evidence
 
-- RESULT self-tests at the head: roster_edit 254 checks, 0 failed; roster_queue 55 checks, 0 failed; postmerge 18 checks, 0 failed. These match the body's figures.
-- RESULT mutants (ev/mut.py, ev/mut1.txt, ev/mut2.txt). Each mutant was applied, the owning self-test run, and the line restored; `git status` was clean afterwards.
-  - KILLED: M1 (--add store), M2 (_on_origin no fetch), M4 (empty base set), M5 (pass every error), M6 (drop whole-check), M7 (no WARN), M9 (keep the refused line), M10 (no per-line catch), M11 (no batch-failure report), M15 (refusal_detail ERROR lead).
-  - SURVIVED: M3, M8, M12, M13, M14, M16.
-  - The body's four named mutants (carries 17 to 20) reproduce as killed.
-- RESULT real brief_lint.mjs end-to-end (my own harness, disclosed: ev/e2e_real_lint.py, ev/e2e_real_lint_out.txt). I planted two errors in a roster copy from handoff/audit-r10-roster and called `lint_gate` with origin/main as lint_cwd:
-  - An unrelated write beside them passes, with WARN lines naming the group.
-  - A new bad citation in a live group (R10-PREPR-CAP) is refused, naming it. So is one in the same group.
-  - A clean roster gives TOTAL 0.
-  - With no base text, the old gate refuses.
-  - brief_lint prints one line per error (`  ERROR   [group] kind: message`), so `_lint_errors`' `whole` check holds on the real format.
-  - A repeated identical bad citation is deduplicated by the lint, so it passes as pre-existing. That is the brief's key semantics, not a defect.
-- Finder's harness: the group's controls are the self-test rows the carries name; no committed finder harness. The packet names none. The e2e harness above is mine.
-- CI: `merge_train.py classify 1a1da73c912e471b40b7b06ea94a76b71d62c100 --pr 3344` printed `GREEN 1a1da73c912e471b40b7b06ea94a76b71d62c100 pending: none red: none` (ev/ci_classify.txt). The packet's gate digest has no failure on any page, so the body's `## Red checks: none` matches.
-- Merge: `git merge-tree --write-tree origin/main <head>` exits 0 against both 996ded2a6d and origin/main at 17e621f08 (tree 8188e7a5). No conflict.
-- Head: `git ls-remote` shows the branch is still at 1a1da73c; the body's `## Head` names it.
-- Untouched: VERSION, the manifest, RELEASE_NOTES.md and tests/ are all untouched in the three-dot diff. The delivery row dev/programme/delivery/3344.md is in the diff.
-- Size: 4 files, +200/-27, under the 400-line split bound.
-- Architecture: `score.py --diff 996ded2a6d 1a1da73c` gives `Architecture score: dS +0.0000 NULL`.
-- Structure: `tests/structure.py` printed STRUCTURE RATCHET PASSED; no budget file is in the diff.
-- tests/entities.py, run plainly: rc 1, `ModuleNotFoundError: No module named 'homeassistant'` from tests/harness.py (ev/entities_tail.txt). This is an environment failure in this container, not a result about the diff; the CI `tests / closures` and `closure-scope` lanes are green at this head.
-- Carry audit of carries 0 to 16: I checked the build of 17 to 20 (P409, P417, P418, P435). I did not re-derive the body's "91 of 342 groups" handoff_push figure for carry 9. It is not verified here, and it is a roster-data residue already moved to R10-CARRY-RESIDUE-2.
-- Forward-carry: the body says none. The block above returns to this same group.
+- Delta scope. The head's tree equals c220b2788's tree (`git diff c220b2788 d96b14c34` is empty). The parent merge 11d19c47e brings in origin/main 51cd5ec8a4, and main touched none of the PR's four files between 996ded2a6d and 51cd5ec8a4. So the PR's own change since round 1 is c220b2788 alone. It adds rows inside `_self_test` / `self_test` in roster_edit.py, roster_queue.py and postmerge.py, and changes no production line. The three-dot diff `git diff 51cd5ec8a4...d96b14c34` is four files: three tools plus dev/programme/delivery/3344.md (ev/threedot.txt). VERSION, the manifest, RELEASE_NOTES.md and every *_budgets.json are untouched.
+- RESULT self-tests at the head (ev/selftests.txt): roster_edit 256 checks, 0 failed; roster_queue 58 checks, 0 failed; postmerge 19 checks, 0 failed. These match the body's figures. The null control is the unmutated run of the same three self-tests, all green, against the mutant runs below.
+- RESULT mutants: round 1's own script, unchanged, run at this head (ev/mut_r1.py, ev/mut_r2.txt). `git status --porcelain` was clean afterwards.
+  - Block 1 (M8, `write_roster` drops `base_text`): CLOSED. KILLED. It fails `P435 op: set-resume beside a pre-existing lint error lands rc 0, warning it`, a row that goes through `main()` set-resume. Under M8 the op returns rc 3 with `LINT GATE REFUSED`. The null row, `P435 op: the same op adding a new bad citation refuses rc 3, naming it first (null)`, refuses with the base-aware gate, so the pair separates old from new.
+  - Block 2 (M13, `refusal_tail` ignores the gate; M14, the old `_run_op` tail): CLOSED. Both KILLED. M13 fails `refusal_tail: a lint-gate refusal reports the ERROR line, not only TOTAL` (got ` | TOTAL: 1 error(s)...`). M14 fails `run: a lint-gate refusal's report line names the refused citation`. The new precondition row asserts that the fixture's old three-line tail holds no ERROR. That was round 1's objection.
+  - Finding M3 (no `update-ref` after the push): SURVIVED, as before. It is now recorded under the body's `## Unpinned sites` as equivalent in outcome: `_on_origin` fetches on a miss and the P409 two-op row lands both ops either way. I agree with that reasoning: M2, which removes that fetch, is KILLED, so the fallback the equivalence rests on is itself pinned. CLOSED, as round 1 offered.
+  - Finding M16 (postmerge call site restored to the old last line): CLOSED. KILLED by `a stage refused by the lint gate owes its ERROR line, not only the last line (P435)`.
+  - Finding M12 (no `mark_line(...,"refused")` for a parse-refused batch line): CLOSED. KILLED by `run --batch --mark: a malformed line is marked `#refused``. The no-`--mark` double report is dismissed in the body; it causes no wrong write. I accept that.
+  - Finding on the mutant_run.py figure: CLOSED. The body drops it from `## Figures`.
+  - The other round-1 mutants still kill: M1, M2, M4, M5, M6, M7, M9, M10, M11, M15.
+- CI. `merge_train.py classify d96b14c349acc69869183552071adbaf7ece498e --pr 3344` printed `GREEN d96b14c349acc69869183552071adbaf7ece498e pending: none red: none` with rc 0 (ev/ci_classify.txt).
+  - All check-run pages, read once with filter=all (ev/check_runs_all.txt, 58 runs): no run concluded failure.
+  - Two runs concluded `cancelled`, `gate` 128862797001 and `prelude` 128862184047, and each was superseded by a green run (`gate` 128873106886 success). The review packet's `required-red` / `red-unanswered` refusal was rendered while the cancelled `gate` was the only gate run, and it does not hold at the concluded state.
+  - So the body's `## Red checks: none` holds, and `pr-contract / pr-contract` is success.
+- Merge. `git merge-tree --write-tree origin/main d96b14c34` exits 0 (tree b861c613) at origin/main daf8b349f, re-fetched just before this verdict. No conflict.
+- Head. `git ls-remote` shows fix/r10-roster-write-sweep-p2 at d96b14c349acc69869183552071adbaf7ece498e. The body's `## Head` names it and its authored head c220b2788.
+- Delivery row. dev/programme/delivery/3344.md is in the diff and reads `open`, which is current for an unmerged PR.
+- tests/entities.py, run plainly (BASH_ENV removed, no workaround): NOT clean. rc 1, `ModuleNotFoundError: No module named 'homeassistant'` from tests/harness.py (ev/entities_full.txt). This is the container's environment, not the diff. With `PYTHONPATH=tests/hastub` it prints `ALL 2668 ENTITY CHECKS PASSED`, rc 0 (ev/entities_hastub.txt), which matches the body's figure. CI `tests / closures` and `tests / closure-scope` are green at this head.
+- Structure. `tests/structure.py` printed STRUCTURE RATCHET PASSED (ev/structure.txt).
+- Not re-derived. The body's carry-audit listing for carries 0 to 16 is unchanged from round 0, and its roster-data residue is already carried to R10-CARRY-RESIDUE-2. I did not re-verify it this round, because it is outside the blocked points.
+- Finder's harness. None is committed; the group's controls are the self-test rows. My instrument is round 1's mutant script, reused unchanged.
+- Forward-carry. The body says none, and this round raises nothing new.
