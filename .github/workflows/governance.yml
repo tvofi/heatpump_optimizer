@@ -456,9 +456,13 @@ jobs:
       # intake's owed lines, answers and mutants, offline over faked gh and
       # git; the intake's projections run through the runner's own jq.
       - name: Show the plan page stager refusing a page it may not publish
+        id: plan-public
+        if: steps.scope.outputs.plan-public == 'true'
         run: python3 -I tools/audit/seat/plan_public.py --self-test
 
       - name: Show the outside intake owing, answering once and refusing its fixtures
+        id: outside-intake
+        if: steps.scope.outputs.outside-intake == 'true'
         run: python3 -I tools/audit/seat/outside_intake.py --self-test
 
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
@@ -1181,7 +1185,8 @@ jobs:
           grep -Eq '^beat_jobs self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beat-jobs-self-test.txt"
 
       - name: Show the hook installer refusing its own fixtures
-        if: ${{ !cancelled() }}
+        id: hooks-setup
+        if: ${{ !cancelled() && steps.scope.outputs.hooks-setup == 'true' }}
         run: |
           set -o pipefail
           python3 -I tools/audit/seat/hooks_setup.py --self-test | tee "$RUNNER_TEMP/hooks-setup-self-test.txt"
