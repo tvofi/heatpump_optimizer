@@ -201,8 +201,25 @@ def approval_owed_line(pr: int, head: str) -> str | None:
     return m.group(1) if r.returncode == 4 and m else None
 
 
-def head_note_ok(body: str, head: str) -> bool:
-    return head in section(body, "Head")
+def head_named(body: str, head: str, base: str) -> bool:
+    """Whether `## Head` names the dispatched head as `policy_lint.mjs --pr-body --head` decides
+    (P405): the contract accepts a 7-character name and a bot autofix chain on top of a named
+    head, so one rule decides and this packet adds none. Only its own `does not name` error
+    refuses; a run that stops without reading the head section is Unavailable, not a pass.
+    HPO_PACKET_LINT replaces the command (the self-test's stub)."""
+    cmd = shlex.split(os.environ.get("HPO_PACKET_LINT", "")) or ["node", "tools/policy/policy_lint.mjs"]
+    rc, out = tool([*cmd, "--pr-body", "{BODY}", "--head", head, "--base", base], body)
+    if "does not name" in out and "`## Head`" in out:
+        return False
+    if rc and "[pr-body]" not in out:
+        raise Unavailable(f"policy_lint --pr-body did not run: {out[:200]}")
+    return True
+
+
+def head_note_ok(facts: dict) -> bool:
+    """The gathered verdict, else the contract's bare floor (the head's full SHA in `## Head`)."""
+    named = facts.get("head_named")
+    return facts["head"] in section(facts["body"], "Head") if named is None else named
 
 
 def hot_file_refusals(paths: set[str], open_prs: list[dict], boarded: set[int], this_pr: int) -> list[str]:
@@ -493,7 +510,7 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
     refusals: list[str] = []
     if facts["carry_rc"]:
         refusals.append("carry-audit: carry_audit.py check returned 1 on the body")
-    if not head_note_ok(body, head):
+    if not head_note_ok(facts):
         refusals.append(f"head-note: ## Head does not name the dispatched head {head}"
                         + head_note_repair(head, facts.get("branch")))
     refusals += handoff_refusals(facts["structure"], facts["hot"], [])
@@ -555,13 +572,14 @@ def gather(a) -> dict:
     crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
     _, fout = tool(["node", "tools/policy/figure_lint.mjs", "--pr-body", "{BODY}", "--at", head], body)
     red_unanswered = unanswered_reds(body, head, base, gate[2], touched, existing)
+    named = head_named(body, head, base)
     ident = ref_privacy.Identity.of_host()
     host = [w for w in [ref_privacy.body_refusal(body, ident)] if w]
     host += ref_privacy.content_refusals(ref_privacy.added_lines(base, head, repo()), ident)
     open_prs, boarded = hot_prs(touched)
     return {
         "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate, "approval_owed": owed,
-        "branch": branch, "unlanded": unlanded,
+        "branch": branch, "unlanded": unlanded, "head_named": named,
         "carry_rc": crc, "carry_out": cout, "figure_out": fout,
         "structure": None if a.no_structure else structure_at_merge(main, head),
         "red_unanswered": red_unanswered, "host": host, "handoff": handoff,
@@ -677,6 +695,33 @@ def _self_test() -> int:
           H in hn and "update_pr.sh fix/g - <body-file>" in hn)
     check("head-note repair null: a branch that cannot be read prints today's refusal, no command",
           build({**clean, "body": f"## Head\n{B}\n"})[0][0] == f"head-note: ## Head does not name the dispatched head {H}")
+    with tempfile.TemporaryDirectory() as d:
+        stub = Path(d) / "lint.sh"
+        stub.write_text('echo "$*" > "$(dirname "$0")/argv"\n'
+                        'if [ -n "${PK_NAME:-}" ]; then echo \'  ERROR   [pr-body] `## Head` does not name aaaaaaa, which is the head\'; exit 1; fi\n'
+                        'echo \'  ERROR   [pr-body] no `## Figures` section\'; exit 1\n')
+        saved = os.environ.get("HPO_PACKET_LINT")
+        os.environ["HPO_PACKET_LINT"] = f"bash {stub}"
+        try:
+            os.environ.pop("PK_NAME", None)
+            ok = head_named(clean_body, H, B)
+            check("P405 head-note asks policy_lint --pr-body --head (one rule decides); another pr-body error is not its refusal",
+                  ok and f"--head {H}" in (Path(d) / "argv").read_text())
+            os.environ["PK_NAME"] = "1"
+            check("P405 head-note refuses on policy_lint's own `does not name` error, whatever the substring says",
+                  not head_named(clean_body, H, B))
+            check("P405 gathered verdict decides: a chain policy_lint accepts passes where the substring test refuses",
+                  head_note_ok({**clean, "body": f"## Head\n{B}\n", "head_named": True}) is True)
+            check("P405 gathered verdict decides: policy_lint's refusal beats a body that contains the head",
+                  head_note_ok({**clean, "head_named": False}) is False)
+            check("P405 null: with no gathered verdict the floor is the head in ## Head",
+                  head_note_ok(clean) and not head_note_ok({**clean, "body": f"## Head\n{B}\n"}))
+        finally:
+            os.environ.pop("PK_NAME", None)
+            if saved is None:
+                os.environ.pop("HPO_PACKET_LINT", None)
+            else:
+                os.environ["HPO_PACKET_LINT"] = saved
     check("structure: a structure refusal at the merge refuses", refused("structure", structure="max_class_loc"))
     check("red-unanswered: an unanswered concluded red refuses", refused("red-unanswered", red_unanswered=["tests / fast"]))
     check("host-path: a host path refuses", refused("host-path", host=["home-directory in the body"]))
