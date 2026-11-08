@@ -1,0 +1,6 @@
+## git grep at head for old bar figures
+acd78b4d770d1666652baa9d94559aa3ea9f57eb:dev/governance/roles/proposal-triage.md:18:least 10% on those four measures; unmeasured does not pass.
+acd78b4d770d1666652baa9d94559aa3ea9f57eb:dev/governance/roles/proposal-triage.md:22:at least 10% to keep. Major or critical, a required countermeasure, closeout
+## severity vocabulary in tooling
+## severity values named in governance/tools at head
+tools/audit/archscore/calibration/corpus.tsv:10:severity high
