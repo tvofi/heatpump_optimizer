@@ -1,0 +1,24 @@
+JOB briefs .github/workflows/tests.yml briefs
+JOB budget-raise-gate .github/workflows/budget-raise-gate.yml budget-raise-gate
+JOB env-matrix .github/workflows/governance.yml env-matrix
+JOB policy-docs .github/workflows/governance.yml policy-docs
+JOB pr-contract .github/workflows/pr-contract.yml pr-contract
+JOB wave-script .github/workflows/governance.yml wave-script
+RESULT restoring_jobs 6
+RESULT null-control jobs scanned 95 mismatches []
+--- merge base dee8b413 workflows:
+JOB briefs .github/workflows/tests.yml briefs
+JOB budget-raise-gate .github/workflows/budget-raise-gate.yml budget-raise-gate
+JOB env-matrix .github/workflows/governance.yml env-matrix
+JOB policy-docs .github/workflows/governance.yml policy-docs
+JOB pr-contract .github/workflows/pr-contract.yml pr-contract
+JOB wave-script .github/workflows/governance.yml wave-script
+RESULT restoring_jobs 6
+RESULT null-control jobs scanned 95 mismatches []
+--- independent awk at head:
+INDEP .github/workflows/budget-raise-gate.yml budget-raise-gate:
+INDEP .github/workflows/governance.yml policy-docs:
+INDEP .github/workflows/governance.yml env-matrix:
+INDEP .github/workflows/governance.yml wave-script:
+INDEP .github/workflows/pr-contract.yml pr-contract:
+INDEP .github/workflows/tests.yml briefs:

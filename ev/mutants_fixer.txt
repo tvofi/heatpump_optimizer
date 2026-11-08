@@ -1,0 +1,74 @@
+M1 restored_hit keys nothing: bad 11; 11 FAIL
+    FAIL tools/policy/vendor/markdown-it.min.js keys every restoring job -- []
+    FAIL tools/policy/budget_raise_gate.py keys every restoring job -- []
+    FAIL a second workflow's restored grader edited so the head passes what the base refuses is predicted red, job
+    FAIL a run line reading the pull request's live state is run, predicted with what it ran without, and noted pa
+    FAIL an exclusion written into the restored grader is predicted red (#2916's shape) -- ([], [])
+    FAIL an edit to a vendored file the grader requires is predicted red (round 3's markdown-it.min.js) -- ([], []
+    FAIL an edit to a gate the grader spawns is predicted red (round 2's budget_raise_gate.py) -- ([], [])
+    FAIL a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body -
+    FAIL the event tokens are stood in (head, title, author), the stdout redirect is not an argument
+    FAIL a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is) -- ([],
+    FAIL a run reading the body is skipped, noted, never passed, with no body to read (null control: the run that 
+M2 restored_hit ignores the base tip: bad 1; 1 FAIL
+    FAIL a restored path the base tip lacks keys no job (nothing to restore it from)
+M3 grader_runs drops no exemption: bad 2; 2 FAIL
+    FAIL the arm makes every pinned run but the agreement arm's and the exempt -- {('policy-docs', 'machinery_ratc
+    FAIL pr-contract's code-scanning wait grades no file and is exempt (null control: its preflight run is graded)
+M4 predict's graders entry removed: bad 1; 1 FAIL
+    FAIL predict reaches the graders arm by name (its call site, not only its helper) -- []
+M6 ci_tree_run reads governance.yml for every job: bad 6; 6 FAIL
+    FAIL a second workflow's restored grader edited so the head passes what the base refuses is predicted red, job
+    FAIL a run line reading the pull request's live state is run, predicted with what it ran without, and noted pa
+    FAIL a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body -
+    FAIL the event tokens are stood in (head, title, author), the stdout redirect is not an argument
+    FAIL a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is) -- (['G
+    FAIL a run reading the body is skipped, noted, never passed, with no body to read (null control: the run that 
+M7 the enumeration reads governance.yml only:   FAIL a run reading the body is skipped, noted, never passed, with no body to read (null control: the run that reads none still runs) -- ([], []); 10 FAIL
+    FAIL the arm's job set is every restoring step the workflows hold (the enumeration rule's count) -- 3 jobs, gr
+    FAIL the arm makes every pinned run but the agreement arm's and the exempt -- {('wave-script', 'check-wave-scr
+    FAIL every pinned run line is runnable as CI runs it (null control: no gap) -- ['GRADER_EXEMPT: no run line st
+    FAIL a second workflow's restored grader edited so the head passes what the base refuses is predicted red, job
+    FAIL a run line reading the pull request's live state is run, predicted with what it ran without, and noted pa
+    FAIL a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body -
+    FAIL the event tokens are stood in (head, title, author), the stdout redirect is not an argument
+    FAIL a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is) -- ([],
+    FAIL two workflows sharing a job name are keyed `<stem>/<job>` apart -- ['policy-docs']
+    FAIL a run reading the body is skipped, noted, never passed, with no body to read (null control: the run that 
+M5 ci_tree_run restores nothing: bad 4; 4 FAIL
+    FAIL a second workflow's restored grader edited so the head passes what the base refuses is predicted red, job
+    FAIL an exclusion written into the restored grader is predicted red (#2916's shape) -- ([], [])
+    FAIL an edit to a vendored file the grader requires is predicted red (round 3's markdown-it.min.js) -- ([], []
+    FAIL an edit to a gate the grader spawns is predicted red (round 2's budget_raise_gate.py) -- ([], [])
+R1-I the run regex drops bash/.sh: bad 4; 4 FAIL
+    FAIL the arm makes every pinned run but the agreement arm's and the exempt -- {('policy-docs', 'policy_lint.mj
+    FAIL a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body -
+    FAIL a run reading the body is skipped, noted, never passed, with no body to read (null control: the run that 
+    FAIL pr-contract's code-scanning wait grades no file and is exempt (null control: its preflight run is graded)
+R1-K the no-body skip is off: bad 1; 1 FAIL
+    FAIL a run reading the body is skipped, noted, never passed, with no body to read (null control: the run that 
+R1-L event tokens unsubstituted: bad 1; 1 FAIL
+    FAIL the event tokens are stood in (head, title, author), the stdout redirect is not an argument -- GRADER lin
+R1-O $INTENDED stood in empty: bad 1; 1 FAIL
+    FAIL a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body -
+R1-P stdin redirect dropped: bad 1; 1 FAIL
+    FAIL a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body -
+R1-E partial missing-input swallow deleted: bad 1; 1 FAIL
+    FAIL a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is) -- (["G
+R1-H stdout redirect kept as arguments: bad 1; 1 FAIL
+    FAIL the event tokens are stood in (head, title, author), the stdout redirect is not an argument -- GRADER lin
+R1-F collision key is the bare job: bad 5; 5 FAIL
+    FAIL a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body -
+    FAIL the event tokens are stood in (head, title, author), the stdout redirect is not an argument
+    FAIL a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is) -- ([],
+    FAIL two workflows sharing a job name are keyed `<stem>/<job>` apart -- ['gate', 'other-job', 'policy-docs']
+    FAIL a run reading the body is skipped, noted, never passed, with no body to read (null control: the run that 
+R1-N codescan_wait exemption deleted: bad 1; 1 FAIL
+    FAIL pr-contract's code-scanning wait grades no file and is exempt (null control: its preflight run is graded)
+R1-S summary always owes a repair: bad 1; 1 FAIL
+    FAIL the closing line owes no repair when every red is a BOOTSTRAP (null control: one repairable red does)
+
+real	0m44.288s
+user	0m20.071s
+sys	0m23.226s
+rc=0

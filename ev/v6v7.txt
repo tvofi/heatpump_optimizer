@@ -1,0 +1,4 @@
+V6 rc 1 FAILs []
+V6 stderr tail: ['  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/shlex.py", line 208, in read_token', '    raise ValueError("No escaped character")', 'ValueError: No escaped character']
+V7 rc 1 FAILs []
+V7 stderr tail: ['    wf, job, text = homes[key]', '                    ~~~~~^^^^^', "KeyError: 'gate'"]

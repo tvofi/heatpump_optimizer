@@ -1,0 +1,20 @@
+RUN briefs ('briefs', 'brief_lint.mjs') | partial-prefix: False exact: False
+RUN budget-raise-gate ('budget-raise-gate', 'budget_raise_gate.py', '--base', '--head', '--pr') | partial-prefix: True exact: True
+RUN env-matrix ('env-matrix', 'policy_lint_envmatrix.mjs') | partial-prefix: False exact: False
+RUN policy-docs ('policy-docs', 'rules_sync.mjs', '--check') | partial-prefix: False exact: False
+RUN policy-docs ('policy-docs', 'codeowners_gap.py', '--check') | partial-prefix: False exact: False
+RUN policy-docs ('policy-docs', 'policy_lint.mjs') | partial-prefix: False exact: False
+RUN policy-docs ('policy-docs', 'fragments_sync.mjs') | partial-prefix: False exact: False
+RUN policy-docs ('policy-docs', 'machinery_ratchet.py', '--check-event') | partial-prefix: False exact: False
+RUN policy-docs ('policy-docs', 'policy_lint.mjs', '--hooks') | partial-prefix: False exact: False
+RUN policy-docs ('policy-docs', 'field_coverage.mjs') | partial-prefix: False exact: False
+RUN pr-contract ('pr-contract', 'policy_lint.mjs', '--pr-body', '--head', '--base', '--title', '--author', '--commits-file', '--paths-file', '--existing-file') | partial-prefix: True exact: True
+RUN pr-contract ('pr-contract', 'figure_lint.mjs', '--pr-body') | partial-prefix: False exact: False
+RUN pr-contract ('pr-contract', 'preflight.sh') | partial-prefix: True exact: True
+RUN pr-contract ('pr-contract', 'prepr.sh', '--version-edit') | partial-prefix: False exact: False
+RUN pr-contract ('pr-contract', 'carry_audit.py', '--body', '--branch') | partial-prefix: False exact: False
+RUN wave-script ('wave-script', 'check-wave-script.mjs') | partial-prefix: False exact: False
+RUN wave-script ('wave-script', 'agreement.mjs', '--self-test') | partial-prefix: False exact: False
+RUN wave-script ('wave-script', 'fold_ledger.py', '--self-test') | partial-prefix: False exact: False
+RUN wave-script ('wave-script', 'fold_ledger.py') | partial-prefix: False exact: False
+GAPS []

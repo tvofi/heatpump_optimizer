@@ -1,0 +1,8 @@
+RESULT ci_predict ALLOW entries 7
+DROP 'PR_BODY = "/tmp/pr-body.md"': covers ci_predict lines [640]; check rc=1 tmp_paths: 1 refused, 0 stale allow entries at HEAD, ledger lines added since dee8b413fd7d
+DROP '"/tmp/pr-commits.tsv": "empty"': covers ci_predict lines [641]; check rc=1 tmp_paths: 1 refused, 0 stale allow entries at HEAD, ledger lines added since dee8b413fd7d
+DROP '/tmp/pr-author.txt': covers ci_predict lines [643, 811, 1576]; check rc=1 tmp_paths: 3 refused, 0 stale allow entries at HEAD, ledger lines added since dee8b413fd7d
+DROP '"/tmp/pr-commits.tsv": ""': covers ci_predict lines [822]; check rc=1 tmp_paths: 1 refused, 0 stale allow entries at HEAD, ledger lines added since dee8b413fd7d
+DROP '"/tmp/pr-existing.txt": paths(': covers ci_predict lines [823]; check rc=1 tmp_paths: 1 refused, 0 stale allow entries at HEAD, ledger lines added since dee8b413fd7d
+DROP 'bash p/pre.sh $INTENDED < /tmp/pr-body.md': covers ci_predict lines [1574]; check rc=1 tmp_paths: 1 refused, 0 stale allow entries at HEAD, ledger lines added since dee8b413fd7d
+DROP 'p/lint.py --pr-body /tmp/pr-body.md': covers ci_predict lines [1575]; check rc=1 tmp_paths: 1 refused, 0 stale allow entries at HEAD, ledger lines added since dee8b413fd7d

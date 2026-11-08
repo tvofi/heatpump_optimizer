@@ -1,0 +1,7 @@
+NOTE    GRADER PARTIAL budget-raise-gate: budget_raise_gate.py ran without the live pull-request reviews, the mandate comments and the PR number; its result is not a pass, a clean run grades only what it could read
+NOTE    GRADER SKIPPED pr-contract: carry_audit.py reads the pull-request body; pass --body to grade it as CI does
+NOTE    GRADER SKIPPED pr-contract: figure_lint.mjs reads the pull-request body; pass --body to grade it as CI does
+NOTE    GRADER SKIPPED pr-contract: policy_lint.mjs reads the pull-request body; pass --body to grade it as CI does
+NOTE    GRADER SKIPPED pr-contract: preflight.sh reads the pull-request body; pass --body to grade it as CI does
+CI PREDICT: no closures, fast, governance or instrument red predicted against 3d46d033d9a0 (a data-file read is not seen)
+rc=0
