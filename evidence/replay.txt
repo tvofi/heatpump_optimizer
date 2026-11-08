@@ -1,9 +1,2 @@
-== origin/main
-RESULT replay reruns=86 max_attempt=44 sim_minutes=72 alarm=yes
-== 52f9fc5b34
-RESULT replay reruns=86 max_attempt=44 sim_minutes=72 alarm=yes
-== 52f9fc5b34^
-RESULT replay reruns=0 max_attempt=1 sim_minutes=0 alarm=no
-RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
 RESULT replay reruns=86 max_attempt=44 sim_minutes=72 alarm=yes
 RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
