@@ -61,14 +61,26 @@ The added sites are pinned by the mutants above and by the in-tree ledger entrie
 
 ## Carry dispositions
 
-- Carry 0 (0-based; re-key and held verdict): built, with policy text.
-- Carry 4: built.
-- The hold-on-a-pending-context item (roster index 6): superseded by the second ruling above; nothing was written for it.
-- Carry 8: built.
-- Carry 11: built.
-- Carry 12: built; its third clause is the existing `noreturn_arm`.
-- Carry 17 (REPAIR-OWED on RED; WAIT dispatches) and Carry 16 (head-note asks `policy_lint --pr-body --head`): already on this branch from the cloud seats.
-- Carries 1, 2, 3, 5, 7, 9, 10, 13, 14, 15: delivered at main by earlier pull requests, no re-fix (the survey the cloud seat's BLOCKED.md cites, afc1586a4).
+Numbered 1-based, as the review packet numbers the group's 18 carries (roster index plus one; the orchestrator's 0-based Carries 0, 4, 6, 8, 11, 12 are Carries 1, 5, 7, 9, 12, 13 here).
+
+- Carry 1 (re-key and held handoff verdict): built here, with the policy text.
+- Carry 2 (the same dispatch-at-handoff item, restated by the review-packet group): built here under Carry 1.
+- Carry 3 (hold while an autofix job can move the head): delivered at main by an earlier pull request, no re-fix (the survey the cloud seat's BLOCKED.md cites, afc1586a4).
+- Carry 4 (refuse a dispatch on a carry, figure or moved-head red): already on this branch from the cloud seats' `review_packet.py` commit.
+- Carry 5 (generated consumer and class-enumeration brief lines): built here.
+- Carry 6 (review_carry on an identical patch-id, no second reviewer at a merge head): delivered at main, no re-fix.
+- Carry 7 (hold on a pending required context): superseded by the second ruling above; nothing was written for it.
+- Carry 8 (refuse a fourth full review): delivered at main, no re-fix.
+- Carry 9 (roster-read model routing): built here.
+- Carry 10 (carry refusal applies to a merge verdict only): delivered at main, no re-fix.
+- Carry 11 (Dependabot row on main): delivered at main, no re-fix.
+- Carry 12 (Dependabot commit list for body_patch): built here.
+- Carry 13 (pending-ci reviewer wait): built here; its no-return digest clause is the existing `noreturn_arm`.
+- Carry 14 (hot-file self-exclusion at the handoff): delivered at main, no re-fix.
+- Carry 15 (confirm lock and same-tree verdict): delivered at main, no re-fix.
+- Carry 16 (append_commit same-tree idempotence): delivered at main, no re-fix.
+- Carry 17 (head-note asks `policy_lint --pr-body --head`): already on this branch from the cloud seats.
+- Carry 18 (REPAIR-OWED on a RED required context; WAIT dispatches): already on this branch from the cloud seats.
 
 ## Red checks
 
