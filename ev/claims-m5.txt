@@ -1,0 +1,2 @@
+RESULT claims_true=123 claims
+RESULT claims_false=0 claims
