@@ -245,8 +245,8 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
         rows.append({
             "g": g, "lane": pg["lane"], "st": st, "label": label, "pr": pr,
             # The tier is the plan's computed dispatch priority (replan.py's
-            # dispatch_tier, named by replan.TIER_LEGEND); a done group has none. Why it is that tier and why it starts when it
-            # does are the plan's own words (`tier_reason`, `start_reason`).
+            # dispatch_tier, named by replan.TIER_LEGEND); a done group has none.
+            # Why it is that tier and why it starts when it does are the plan's own words (`tier_reason`, `start_reason`).
             "tier": pg.get("tier"),
             "why": "; ".join(x for x in (
                 pg.get("tier_reason"), pg.get("start_reason"), pg.get("duration_basis"),

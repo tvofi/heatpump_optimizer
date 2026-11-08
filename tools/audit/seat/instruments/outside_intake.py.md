@@ -6,7 +6,9 @@
   (R10-OUTSIDE-INTAKE; tvofi, 2026-11-06). `list` prints `OUTSIDE #N
   owed=triage|answer|reply ...` lines, read from the roster and the thread and
   never from memory: on no roster group and not refused is `triage`; wired into
-  a group's `issues` or `fixes` (`roster_edit.py wire-issue`) and unanswered is
+  a group's `issues` or `fixes` (`roster_edit.py wire-issue`; the group's
+  `source` is then set with `set-source <GROUP> outside`, which the plan's top
+  tier reads) and unanswered is
   `answer` once the plan page answers; an outside comment newer than every one
   of ours on a disposed thread is `reply`. `answer --issue N` posts the plan
   page link (`plan_public.PLAN_URL`) through `tools/pr/gh_comment.py` with its
