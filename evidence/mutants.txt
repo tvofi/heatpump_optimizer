@@ -1,0 +1,16 @@
+SURVIVED NULL
+KILLED M1-scored-conclusion
+KILLED M2-program-split
+SURVIVED M3-green-after-red
+KILLED M4-green-earliest
+KILLED M5-green-same-head
+KILLED M6-attempt-first-after
+KILLED M7-attempt-end-gate
+KILLED M8-loop-skipped-dropped
+KILLED M9-loop-ended-by
+KILLED M10-stale-rerun
+KILLED M11-stale-after-merge
+KILLED M12-residual-success
+KILLED M13-lag-success-filter
+KILLED M14-erase-null-control
+KILLED M15-human-bots
