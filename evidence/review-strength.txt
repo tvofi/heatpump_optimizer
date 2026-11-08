@@ -1,0 +1,39 @@
+verdicts on the bus: 2243; outside the grammar: 0
+taught real: architecture-unsound, class-open, harness, metric-gamed, mutation-vacuous, product-tradeoff-regression
+taught bookkeeping: carry-missing, claims, conflict, head-moved, null-control, other, preflight-mismatch, root-cause-detectable, root-cause-unanswered, root-cause-unrecorded, version
+untaught real: defect, figures-false, mutant-survives, mutation, mutation-survivor, mutation-untriaged, policy-regression, test-vacuous, vacuous-check, vacuous-test
+## all
+  all                      last3d PRs 83 verdicts 188 real 49 (0.59/PR) book 55 (0.66/PR) incidence 30/83 (0.36) first-pass 17/73
+## class
+  (merge)                  last3d PRs 76 verdicts 84 real 0 (0.00/PR) book 0 (0.00/PR) incidence 0/76 (0.00) first-pass 17/17
+  architecture-unsound     last3d PRs 1 verdicts 2 real 2 (2.00/PR) book 0 (0.00/PR) incidence 1/1 (1.00) first-pass 0/1
+  beyond-card              last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  body-stale               last3d PRs 2 verdicts 3 real 0 (0.00/PR) book 3 (1.50/PR) incidence 0/2 (0.00) first-pass 0/1
+  carry-missing            last3d PRs 2 verdicts 2 real 0 (0.00/PR) book 2 (1.00/PR) incidence 0/2 (0.00) first-pass 0/1
+  carry-unanswered         last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  ci-cancelled             last3d PRs 2 verdicts 2 real 0 (0.00/PR) book 2 (1.00/PR) incidence 0/2 (0.00) first-pass 0/1
+  ci-red                   last3d PRs 15 verdicts 18 real 0 (0.00/PR) book 18 (1.20/PR) incidence 0/15 (0.00) first-pass 0/6
+  ci-red-cancelled         last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  citation-false           last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  citation-wrong           last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  claim-refuted            last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  class-open               last3d PRs 9 verdicts 17 real 17 (1.89/PR) book 0 (0.00/PR) incidence 9/9 (1.00) first-pass 0/7
+  defect                   last3d PRs 2 verdicts 3 real 3 (1.50/PR) book 0 (0.00/PR) incidence 2/2 (1.00) first-pass 0/1
+  figures-uncited          last3d PRs 2 verdicts 3 real 0 (0.00/PR) book 3 (1.50/PR) incidence 0/2 (0.00) first-pass 0/2
+  harness                  last3d PRs 2 verdicts 3 real 3 (1.50/PR) book 0 (0.00/PR) incidence 2/2 (1.00) first-pass 0/2
+  instrument-broken        last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  mutation-vacuous         last3d PRs 18 verdicts 24 real 24 (1.33/PR) book 0 (0.00/PR) incidence 18/18 (1.00) first-pass 0/16
+  over-fire                last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  owner-ruling-contradicted last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  owner-words              last3d PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  policy-unapproved        last3d PRs 1 verdicts 3 real 0 (0.00/PR) book 3 (3.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  pr-closed                last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  pr-contract-red          last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  ratchet-grown            last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  red-checks               last3d PRs 1 verdicts 2 real 0 (0.00/PR) book 2 (2.00/PR) incidence 0/1 (0.00) first-pass 0/0
+  regression               last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  root-cause-detectable    last3d PRs 3 verdicts 3 real 0 (0.00/PR) book 3 (1.00/PR) incidence 0/3 (0.00) first-pass 0/1
+  root-cause-unrecorded    last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  selftest-red             last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  settle-unjudged          last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
+  wait-cycle               last3d PRs 1 verdicts 1 real 0 (0.00/PR) book 1 (1.00/PR) incidence 0/1 (0.00) first-pass 0/1
