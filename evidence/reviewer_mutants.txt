@@ -1,0 +1,13 @@
+RESULT mutant='R1 summary prefix wrong' rc=1 fails=4
+    FAIL REPLAN routing invariants at tick level: a stranded carry flags one line naming the command
+    FAIL REPLAN routing invariants at tick level: the row is printed
+    FAIL null control: zero findings
+    FAIL null control: empty list line printed
+RESULT mutant='R2 roster subcommand dropped' rc=1 fails=2
+    FAIL REPLAN routing invariants at tick level: the roster call carries --open-issues when gh answers
+    FAIL REPLAN routing invariants: an unreadable tool is never clean: a non-JSON issue list drops --open-issues and still runs the roster call
+RESULT mutant='R3 rows filter empties' rc=1 fails=1
+    FAIL REPLAN routing invariants at tick level: the row is printed
+RESULT mutant='R4 gh nonzero still reads issues' rc=0 fails=0
+RESULT mutant='R5 flag=False on broken line' rc=1 fails=1
+    FAIL REPLAN routing invariants at tick level: a stranded carry flags one line naming the command

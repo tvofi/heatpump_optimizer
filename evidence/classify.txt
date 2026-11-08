@@ -1,4 +1,4 @@
-RED 04efeb4a8e175392acb0f780252ad177ccaef9ed pending: none red: gate
-rc=1 21:52:52
-RED 04efeb4a8e175392acb0f780252ad177ccaef9ed pending: none red: gate
-rc=1 21:53:44
+GREEN 04efeb4a8e175392acb0f780252ad177ccaef9ed pending: none red: none
+rc=0
+GREEN 04efeb4a8e175392acb0f780252ad177ccaef9ed pending: none red: none
+rc=0
