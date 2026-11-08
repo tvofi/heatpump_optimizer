@@ -42,6 +42,11 @@ Arms:
                          conclusion `skipped` dropped (the null control: the runs' real work had
                          finished long before every re-run). Prints RESULT reruns, predicted_listed,
                          predicted_without_skipped
+  selftest               runs census and loop on the committed fixture and compares every RESULT
+                         the EXPECTED RESULT block below names; then two null controls: the
+                         fixture with every deferral line erased scores deferral_reds=0, and a
+                         loop replay with every skipped job dropped predicts fewer re-runs.
+                         Exit 1 on any difference (MUTANT_CMD for this harness's diff mutants)
   heads [--fixture F]    per pull request: heads recorded, heads with a deferral red, and the
                          gate failures that were not deferrals (the null control: such a red is
                          not counted as a deferral)
@@ -260,6 +265,36 @@ def loop(doc, ci):
     return 0
 
 
+def selftest(ci):
+    import contextlib
+    import copy
+    import io
+    import re
+    want = dict(re.findall(r"RESULT (\w+)=(\S+)", __doc__.split("EXPECTED RESULT", 1)[1]))
+    doc = json.loads(FIXTURE.read_text())
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        census(doc["prs"])
+        loop(doc, ci)
+    got = dict(re.findall(r"^RESULT (\w+)=(\S+)$", buf.getvalue(), re.M))
+    bad = [f"{k}: want {v}, got {got.get(k)}" for k, v in want.items() if got.get(k) != v]
+    erased = copy.deepcopy(doc["prs"])
+    for p in erased:
+        for r in p["runs"]:
+            for g in r["gate"]:
+                g["defer_to"] = None
+    del LOOPED[:]
+    rs, _ = rows(erased)
+    if rs:
+        bad.append(f"null control: {len(rs)} deferral red(s) scored with every deferral line erased")
+    if not int(got.get("predicted_without_skipped", 0)) < int(got.get("predicted_listed", 0)):
+        bad.append("null control: dropping the re-stamped skipped jobs did not lower the predicted re-runs")
+    for b in bad:
+        print(f"FAIL {b}")
+    print(f"SELFTEST {'FAIL' if bad else 'ok'}: {len(want)} expected result(s), 2 null controls")
+    return 1 if bad else 0
+
+
 def heads(prs):
     for p in prs:
         hs = {r["head_sha"] for r in p["runs"]}
@@ -271,12 +306,14 @@ def heads(prs):
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("arm", choices=("census", "heads", "loop"))
+    ap.add_argument("arm", choices=("census", "heads", "loop", "selftest"))
     ap.add_argument("--fixture", default=str(FIXTURE))
     ap.add_argument("--ci", default=str(Path(__file__).resolve().parents[3] / "tools" / "ci"))
     a = ap.parse_args(argv)
     if a.arm == "loop":
         return loop(json.loads(Path(a.fixture).read_text()), a.ci)
+    if a.arm == "selftest":
+        return selftest(a.ci)
     prs = load(a.fixture)
     return census(prs) if a.arm == "census" else heads(prs)
 
