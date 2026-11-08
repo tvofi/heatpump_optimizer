@@ -46,7 +46,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-RCA-GATE-BUSY-DEFER-2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-STAMP-FLUSH-COST (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-COP-UNMEASURED (stage in-progress, branch `handoff/r10-hotfix-cop-unmeasured`): `git fetch origin handoff/r10-hotfix-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-HOTFIX-TRAIN-DEFER-WAIT (stage in-progress, branch `handoff/r10-hotfix-train-defer-wait`): `git fetch origin handoff/r10-hotfix-train-defer-wait && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-HOTFIX-TRAIN-DEFER-WAIT (stage carries-open, branch `handoff/r10-hotfix-train-defer-wait`): `git fetch origin handoff/r10-hotfix-train-defer-wait && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CI-OWN-DELIVERY-ROW (stage in-progress, branch `handoff/r10-ci-own-delivery-row`): `git fetch origin handoff/r10-ci-own-delivery-row && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-GATE-E (stage in-progress, branch `handoff/r10-cop-gate-e`): `git fetch origin handoff/r10-cop-gate-e && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PARTLOAD-RESIDUE (stage in-progress, branch `handoff/r10-partload-residue`): `git fetch origin handoff/r10-partload-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
