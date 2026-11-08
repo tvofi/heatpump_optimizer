@@ -7,7 +7,7 @@ Never write to any branch except your return refs and refs/heads/handoff-wip/r10
 Brief (snapshotted when this payload was rendered):
 Repair fixer for #3341 (topic r10-review-enumerate).
 Blocked verdict, first line verbatim:
-VERDICT.md evidence/HEAD.txt evidence/archscore.txt 
+Fix review: blocked 81741e448f32052efde42f2c0fe2605c8083e19f mutation-vacuous: tools/audit/seat/survivor_list.py:77 left-boundary lookbehind unpinned
 
 Read the full verdict comment on #3341 first (it is the newest hpo-approver "Fix review:" comment).
 Repair this blocked PR on its existing handoff topic r10-review-enumerate: fix only what the verdict names, then merge origin/main if it moved, re-run tools/pr/prepr.sh (PREPR_SKIP_CLOSURES=1 allowed), and re-publish with body_push.sh (the body must answer every red under ## Red checks and name its new ## Head). Push only handoff/r10-review-enumerate and handoff-body/r10-review-enumerate, never a PR. Make no GitHub writes. Every finding line ends Carry: <GROUP>|#N|dismissed: <reason>. If the verdict names a defect that is not this PR's (a baseline red at origin/main), show it at origin/main and answer it in the body instead of changing code.
