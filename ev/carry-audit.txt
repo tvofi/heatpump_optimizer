@@ -1,0 +1,12 @@
+NOTE stale tree: 6016f9dd6e0ff482d0e140946721657357653726 lacks origin/main 8a4cf2618c53a6dca6b65df3eae5efc8832d1796; roster read at origin/main
+NOTE body item c7e2fe29: R10-I18N-DE: R10-I18N-DE resolved on origin/handoff/audit-r10-roster
+NOTE body item cc1cca91: R10-USER-DOCS-VERIFY
+NOTE body item a4565419: R10-MIN-POWER-FLOOR: R10-MIN-POWER-FLOOR resolved on origin/handoff/audit-r10-roster
+NOTE body item de37a181: R10-MIN-POWER-FLOOR: R10-MIN-POWER-FLOOR resolved on origin/handoff/audit-r10-roster
+NOTE body item b8c2d996: R10-MIN-POWER-FLOOR: R10-MIN-POWER-FLOOR resolved on origin/handoff/audit-r10-roster
+NOTE body item 03a73a59: dismissed:steps correct once projected (item f3c0e349)
+NOTE body item 05ac7044: #201
+NOTE review 0 item 23782d40: R10-MIN-POWER-FLOOR: R10-MIN-POWER-FLOOR resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item e5cb8518: R10-MIN-POWER-FLOOR: R10-MIN-POWER-FLOOR resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT: 9 finding item(s): 9 routed, 0 unrouted, 0 bad destination(s)
+rc=0

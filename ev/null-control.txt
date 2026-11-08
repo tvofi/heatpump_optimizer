@@ -1,0 +1,4 @@
+finder clamp=False identical
+finder clamp=True dhw=False identical
+landed clamp=False identical
+landed clamp=True dhw=False identical

@@ -1,0 +1,17 @@
+custom_components/heatpump_optimizer/const.py:804:CONF_CLAMP_PLANNED_LEVELS: Final = "clamp_planned_levels"
+custom_components/heatpump_optimizer/draw_range.py:584:    if cap.can_duty_cycle():
+custom_components/heatpump_optimizer/optimizer.py:141:def _published_levels(
+custom_components/heatpump_optimizer/optimizer.py:146:        project_planned_levels(power, p_min, p_max) if clamp else power
+custom_components/heatpump_optimizer/optimizer.py:150:def _realize_draw(
+custom_components/heatpump_optimizer/optimizer.py:159:        return _published_levels(clamp, space, p_min, p_max), None
+custom_components/heatpump_optimizer/optimizer.py:178:    tank = project_planned_levels(dhw, p_min, p_max)
+custom_components/heatpump_optimizer/optimizer.py:2131:            clamp_planned_levels=levels_clamped(cfg),
+custom_components/heatpump_optimizer/optimizer.py:4655:            space_power, dhw_plan_power = _realize_draw(
+custom_components/heatpump_optimizer/optimizer.py:4717:            space_matrix, dhw_plan_power = _realize_draw(
+custom_components/heatpump_optimizer/optimizer.py:4876:            optimal_power = _published_levels(
+custom_components/heatpump_optimizer/thermal_model.py:1323:            and self.can_duty_cycle()
+custom_components/heatpump_optimizer/thermal_model.py:1385:    legacy = cfg.get(const.CONF_CLAMP_PLANNED_LEVELS)
+custom_components/heatpump_optimizer/thermal_model.py:1476:        else True if cap.fully_metered() else cap.can_duty_cycle()
+custom_components/heatpump_optimizer/thermal_model.py:1480:def levels_clamped(config: Any) -> bool:
+custom_components/heatpump_optimizer/thermal_model.py:1540:        if cap.measured_power or cap.can_duty_cycle()
+custom_components/heatpump_optimizer/thermal_model.py:1594:def project_planned_levels(power: Any, p_min: float, p_max: float) -> np.ndarray:

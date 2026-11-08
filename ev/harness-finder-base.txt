@@ -1,0 +1,17 @@
+clamp=False prices=spread dhw=False out=-4.0: steps_on=34 total_below_min=0 space_steps_below_min=0 slots=2 min_slot_avg=3.5 cost=30.869
+clamp=False prices=spread dhw=False out=5.0: steps_on=19 total_below_min=0 space_steps_below_min=0 slots=2 min_slot_avg=3.5 cost=14.825
+clamp=False prices=spread dhw=True out=-4.0: steps_on=43 total_below_min=7 space_steps_below_min=4 slots=2 min_slot_avg=3.2 cost=37.317
+clamp=False prices=spread dhw=True out=5.0: steps_on=26 total_below_min=5 space_steps_below_min=1 slots=2 min_slot_avg=3.25 cost=19.497
+clamp=False prices=flat dhw=False out=-4.0: steps_on=85 total_below_min=62 space_steps_below_min=62 slots=2 min_slot_avg=1.42 cost=57.823
+clamp=False prices=flat dhw=False out=5.0: steps_on=41 total_below_min=27 space_steps_below_min=27 slots=4 min_slot_avg=0.13 cost=28.815
+clamp=False prices=flat dhw=True out=-4.0: steps_on=84 total_below_min=55 space_steps_below_min=64 slots=2 min_slot_avg=1.45 cost=63.745
+clamp=False prices=flat dhw=True out=5.0: steps_on=54 total_below_min=39 space_steps_below_min=39 slots=3 min_slot_avg=0.31 cost=33.794
+clamp=True prices=spread dhw=False out=-4.0: steps_on=34 total_below_min=0 space_steps_below_min=0 slots=2 min_slot_avg=3.5 cost=30.869
+clamp=True prices=spread dhw=False out=5.0: steps_on=20 total_below_min=0 space_steps_below_min=0 slots=2 min_slot_avg=3.39 cost=14.876
+clamp=True prices=spread dhw=True out=-4.0: steps_on=45 total_below_min=0 space_steps_below_min=0 slots=4 min_slot_avg=2.5 cost=38.844
+clamp=True prices=spread dhw=True out=5.0: steps_on=26 total_below_min=0 space_steps_below_min=0 slots=2 min_slot_avg=3.39 cost=20.652
+clamp=True prices=flat dhw=False out=-4.0: steps_on=53 total_below_min=0 space_steps_below_min=0 slots=2 min_slot_avg=2.5 cost=58.944
+clamp=True prices=flat dhw=False out=5.0: steps_on=9 total_below_min=0 space_steps_below_min=0 slots=1 min_slot_avg=3.39 cost=32.407
+clamp=True prices=flat dhw=True out=-4.0: steps_on=40 total_below_min=0 space_steps_below_min=0 slots=1 min_slot_avg=3.4 cost=67.571
+clamp=True prices=flat dhw=True out=5.0: steps_on=20 total_below_min=0 space_steps_below_min=0 slots=1 min_slot_avg=3.47 cost=39.167
+rc=0

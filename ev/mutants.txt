@@ -1,0 +1,38 @@
+A legacy true not read as on/off: rc=1 KILLED fails=2
+      FAIL null control: auto and an absent key keep the probe's clamp on every surface, legacy false and modulating opt out, legacy true clamps
+      FAIL declared_modulation reads the select first, the legacy key only under auto or absent, and anything else as undeclared
+B cap ignores dhw: rc=1 KILLED fails=4
+      FAIL space projects against the DHW in its step: capped at p_max - dhw, a sub-minimum level raised to p_min only where DHW is off, identity where the total al
+      FAIL a clamped install realizes DHW as its own projection and space against it; unclamped and DHW-less draws are unchanged  [space [0.0, 0.3, 2.8, 3.5, 2.5, 2
+      FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 0, max 4.34]
+      FAIL per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW above max power, nor a running step below min power  [max 4.34, steps be
+C raise ignores dhw: rc=1 KILLED fails=4
+      FAIL space projects against the DHW in its step: capped at p_max - dhw, a sub-minimum level raised to p_min only where DHW is off, identity where the total al
+      FAIL a clamped install realizes DHW as its own projection and space against it; unclamped and DHW-less draws are unchanged  [space [0.0, 2.5, 2.5, 0.0, 2.5, 2
+      FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 0, max 5.30]
+      FAIL per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW above max power, nor a running step below min power  [max 5.30, steps be
+D dhw not projected in joint: rc=1 KILLED fails=3
+      FAIL a clamped install realizes DHW as its own projection and space against it; unclamped and DHW-less draws are unchanged  [space [0.0, 1.5, 1.0, 0.0, 2.5, 2
+      FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 5, max 3.50]
+      FAIL per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW above max power, nor a running step below min power  [max 3.50, steps be
+E publish unclamped: rc=1 KILLED fails=2
+      FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 8, max 3.50]
+      FAIL per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW above max power, nor a running step below min power  [max 3.50, steps be
+F scorer per-channel (base): rc=1 KILLED fails=1
+      FAIL a clamped install realizes DHW as its own projection and space against it; unclamped and DHW-less draws are unchanged  [space [0.0, 2.5, 2.8, 3.5, 2.5, 2
+G probe on_off inverted: rc=1 KILLED fails=4
+      FAIL a declared on/off compressor clamps on every write surface, metered or not  [[False, False, False, False]]
+      FAIL null control: auto and an absent key keep the probe's clamp on every surface, legacy false and modulating opt out, legacy true clamps
+      FAIL an unmetered on/off install freezes the house learner; a metered one, or a declared modulating one, learns
+      FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 7, max 3.50]
+H duty_cycle_realizable reverted to base read: rc=1 KILLED fails=1
+      FAIL null control: auto and an absent key keep the probe's clamp on every surface, legacy false and modulating opt out, legacy true clamps
+I learner_unmetered reverted to base read: rc=1 KILLED fails=1
+      FAIL an unmetered on/off install freezes the house learner; a metered one, or a declared modulating one, learns
+J select modulating ignored: rc=1 KILLED fails=3
+      FAIL null control: auto and an absent key keep the probe's clamp on every surface, legacy false and modulating opt out, legacy true clamps
+      FAIL declared_modulation reads the select first, the legacy key only under auto or absent, and anything else as undeclared
+      FAIL an unmetered on/off install freezes the house learner; a metered one, or a declared modulating one, learns
+K onto_band raise strict->le: rc=1 KILLED fails=1
+      FAIL a clamped install realizes DHW as its own projection and space against it; unclamped and DHW-less draws are unchanged  [space [0.0, 0.3, 1.0, 0.0, 2.5, 2
+clean
