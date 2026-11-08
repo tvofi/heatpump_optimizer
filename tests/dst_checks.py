@@ -2463,4 +2463,71 @@ R.check(
 )
 
 
+# R10-CLONE-2238 (#2238, class P2): one fact, one owner. Each check patches the
+# owner to a sentinel and drives every production caller that decided the fact
+# on its own copy; a caller that re-inlines its copy never reaches the sentinel.
+from unittest import mock as _c2238_mock  # noqa: E402
+from heatpump_optimizer import coordinator as _c2238_cmod  # noqa: E402
+from heatpump_optimizer import tariff as _c2238_tmod  # noqa: E402
+
+
+class _C2238Gate(Exception):
+    """Raised by the patched residual gate: the learner consulted the owner."""
+
+
+# P2: a fabric-loss residual too large to be a heat-loss error -- both loss
+# learners consult _loss_residual_rejected and nothing else.
+_c2238_gated = []
+for _lower, _name in ((False, "house"), (True, "lower-floor")):
+    try:
+        with _c2238_mock.patch.object(
+            _c2238_cmod, "_loss_residual_rejected", create=True, side_effect=_C2238Gate
+        ):
+            _house_dt(_FOLD_LAST, _FOLD_NOW, _lower)
+    except _C2238Gate:
+        _c2238_gated.append(_name)
+    finally:
+        dt_util.freeze(None)
+R.check(
+    "R10-CLONE-2238 P2: the house and lower-floor loss learners both gate the "
+    "residual through _loss_residual_rejected",
+    _c2238_gated == ["house", "lower-floor"],
+    f"{_c2238_gated}",
+)
+
+# P2's bound itself: a residual exactly at HOUSE_LOSS_MAX_RESIDUAL is still a
+# heat-loss error (the copies refused only ``>``); one ulp past it is refused.
+_c2238_max = _c2238_cmod.HOUSE_LOSS_MAX_RESIDUAL
+_c2238_past = float(np.nextafter(_c2238_max, np.inf))
+R.check(
+    "R10-CLONE-2238 P2: _loss_residual_rejected keeps a residual at the bound "
+    "(either sign) and refuses one just past it",
+    not _c2238_cmod._loss_residual_rejected(_c2238_max, "house heat loss")
+    and not _c2238_cmod._loss_residual_rejected(-_c2238_max, "house heat loss")
+    and _c2238_cmod._loss_residual_rejected(_c2238_past, "house heat loss") is True
+    and _c2238_cmod._loss_residual_rejected(-_c2238_past, "house heat loss") is True,
+    f"bound {_c2238_max}, past {_c2238_past}",
+)
+
+# P9: each window's real local start -- the billing factors and the day labels
+# are both read off tariff._window_starts.
+_c2238_noon = datetime(2030, 1, 15, 12, 0, tzinfo=STHLM)
+_c2238_autumn = datetime(2026, 10, 24, 21, 0, tzinfo=STHLM)
+_c2238_mask = CapacityTariff(
+    enabled=True, window_minutes=60, peak_hours=((7.0, 20.0),), offpeak_factor=0.0
+)
+with _c2238_mock.patch.object(
+    _c2238_tmod, "_window_starts", create=True,
+    side_effect=lambda _s, _w, n: [_c2238_noon] * int(n),
+):
+    _c2238_p9_f = window_factors(_c2238_mask, _c2238_autumn, 6, 0.25)
+    _c2238_p9_d = _c2238_tmod.plan_window_days(6, 60, _c2238_autumn)
+R.check(
+    "R10-CLONE-2238 P9: window_factors and plan_window_days both walk the "
+    "windows through _window_starts",
+    _c2238_p9_f is not None and list(_c2238_p9_f) == [1.0] * 6
+    and list(_c2238_p9_d) == [_c2238_noon.toordinal()] * 6,
+    f"factors {_c2238_p9_f}, days {_c2238_p9_d}",
+)
+
 sys.exit(R.close("DST / QUARTER-GRID CHECKS"))
