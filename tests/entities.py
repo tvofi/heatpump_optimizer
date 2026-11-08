@@ -32138,7 +32138,7 @@ _PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
 def _pcr_spawned(mjs: str) -> "list[str]":
     # HERE is policy_lint's own directory; ROOT, and a `root` parameter, the tree.
     return sorted({"/".join((["tools", "policy"] if m.group(1) == "HERE" else [])
-                            + re.findall(r"'([^']+)'", m.group(2))) for m in _PCR_SPAWN.finditer(mjs)})
+                            + [t.strip().strip("'") for t in m.group(2).split(",")]) for m in _PCR_SPAWN.finditer(mjs)})
 
 
 def _pcr_closure(roots) -> "list[str]":
