@@ -150,9 +150,9 @@ def run():
     go(sd, w, line("r10-cp", sha("7")))
     check("moved handoff skipped", w.launched == [])
     for tp in ("triage-s9-batch4", "roster-carry-fold"):
-        sd, w = world("", heads=[(tp, sha("2"))])
+        sd, w = world("", ros=roster("ROSTER-CARRY-FOLD", "R10-TRIAGE-S9"), heads=[(tp, sha("2"))])
         go(sd, w, line(tp, sha("2")))
-        check(f"{tp} is batched, not opened", w.launched == [])
+        check(f"{tp} is batched, not opened", w.launched == [] and od.resolve(tp, {"ROSTER-CARRY-FOLD", "R10-TRIAGE-S9"}, "")[0])
     sd, w = world("", heads=[("r10-cp", sha("2"))])
     go(sd, w, line("r10-cp", sha("2")))
     check("null: a production topic is opened as before", len(w.launched) == 1)
