@@ -20,10 +20,14 @@ Carry dispositions, numbered 1 to 20 as the roster entry holds them (the dispatc
 - Carry 3 (brief 2), card equals `ledger.savings_months`: implemented at main (34cd75bf1).
 - Carry 4 (brief 3), owner's baseline definition: implemented at main (34cd75bf1, then part 3).
 - Carry 5 (brief 4), actuation phase: implemented at main (5d4e0bcfb). `r10_sav_actuation_phase.py` prints `AGREE: yes` at both ends.
-- Carry 6 (brief 5), the two accuracy biases on one sample window: not taken here. See Forward-carry.
+- Carry 6 (brief 5), the two accuracy biases on one sample window: not taken here. It stays open on this group's roster entry.
 - Carry 7 (brief 6), the month row's comfort shortfall: implemented at main (e57dfbbe0), with the same figures as carry 1.
 - Carry 8 (brief 7), the duty-ledger tail settle: implemented at main (eb0cf1893). `AGREE: yes` at both ends.
-- Carry 9 (brief 8), the unattributed residual (item 476710bb): measured and not attributed. See Forward-carry.
+- Carry 9 (brief 8), the unattributed residual (item 476710bb): measured, not attributed, and it stays open on this group's roster entry.
+  - `r10_sav_wood_reference.py` reads -3.90 % (valve-flat), -8.02 % (valve-vary), -3.22 % (wood-cold) and -3.42 % (wood-stale), identical at both ends.
+  - A scratch probe on valve-flat, in kWh_th: the plan delivers 264.54, the reference 263.10, comfort 11.25, stored -9.68. The plan buys about 22 kWh_th more than the settled reference.
+  - Buffer-tank standing loss is ruled out: 2.16 for the plan against 1.91 for the reference.
+  - The next hypothesis is that the two-zone comfort term counts the lower floor only (`_floor_demand_terms`). That needs a two-zone control. The single-zone reading of the same arm, at -154 %, is a different regime and not a control.
 - Carry 10 (brief 9), no pump cap in `_apportion_by_steady_demand` (item 0497bde5): closed in this diff.
 - Carry 11 (brief 10), the two-zone comfort check, M2 (item 435eb685): closed in this diff.
 - Carry 12 (brief 11), the residual (item c38cb7d9): the same as carry 9.
@@ -34,7 +38,9 @@ Carry dispositions, numbered 1 to 20 as the roster entry holds them (the dispatc
 - Carry 17 (brief 16), the residual (item 7da8ff67): the same as carry 9.
 - Carry 18 (brief 17), the pump cap: closed in this diff.
 - Carry 19 (brief 18), the residual: the same as carry 9.
-- Carry 20 (brief 19), part-load refill pricing (item 213e8a10): not taken here. See Forward-carry.
+- Carry 20 (brief 19), part-load refill pricing (item 213e8a10): not taken here, and it stays open on this group's roster entry.
+  - `r10_partload_pricing.py` prints `null rows not zero 0`. Flat d=0.112 reads lp_err 0.267290, terminal-at-max 4.368455 and deferred-at-max 2.139841, at both ends.
+  - The refill-residue harness the carry cites is not in the tree at the merge base.
 
 ## Head
 
@@ -67,11 +73,6 @@ Applied to production `optimizer.py` and run through `tools/audit/seat/features_
 - **Raw month null** (`python3 dev/audit/harnesses/r10_sav_baseline.py null`): 12.336 % saved, DEFECT, rc=1, at main and at the head.
 - **Null-arm split** (`python3 dev/audit/harnesses/r10_sav_null_terms.py`): booked thermostat 128.4 kWh against plan 112.6, comfort gap 6.9 kWh, power-weighted COP gain +17.29 %, at both ends.
 - **Unattributed residual** (`python3 dev/audit/harnesses/r10_sav_wood_reference.py valve-flat`, also `valve-vary`, and `--quick wood-cold` / `--quick wood-stale`; sha1 dfcdcc46269e): -3.90 %, -8.02 %, -3.22 % and -3.42 %, identical at both ends.
-- **Residual probe** (a scratch copy of that harness adding the plan's and the held reference's buffer-tank standing loss; probe kept out of the tree):
-  - Valve-flat in kWh_th: plan delivers 264.54, reference 263.10, comfort 11.25, stored -9.68. The plan buys about 22 kWh_th more than the settled reference.
-  - Tank standing loss is 2.16 for the plan against 1.91 for the reference, so the tank does not explain the gap.
-  - The same arm read single-zone gives -154 %, a different regime, so it is no control for a two-zone comfort-term hypothesis.
-  - Not attributed. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
 - **summer_dhw_only** (`golden.capture`): +5.881915 % at both ends; `away_setback` 29.627509 % at both ends.
 - **Diff mutants** (`tools/audit/seat/mutant_run.py --diff 5bc009bc8...HEAD --max-mutants 40 --report-only`): 6 mutants, 0 survivors, 1265 s wall.
 - **Gate scope** (`tests/closure.py select`): `MODE: SCOPED -- 27 script(s) run, 6 scoped out`.
@@ -90,7 +91,7 @@ Applied to production `optimizer.py` and run through `tools/audit/seat/features_
 
 ## Red checks
 
-With this seat's `BASH_ENV` set, `tests/entities.py` fails 3 checks, at main 5bc009bc8 and at the head alike: `a8:register_once`, `hb:positive_control`, and the Pages-workflow probe. The cause is `/etc/profile.d/hpo-toolchain.sh`, which `BASH_ENV` sources into every `bash -c`. Its `export RUNNER_TEMP=...` overrides the probe's own. Run with `env -u BASH_ENV`, which leaves the venv-ci python first on PATH, all 2665 entity checks pass at the head, and this prepr ran that way. See Friction.
+With this seat's `BASH_ENV` set, `tests/entities.py` fails 3 checks, at main 5bc009bc8 and at the head alike: `a8:register_once`, `hb:positive_control`, and the Pages-workflow probe. The cause is `/etc/profile.d/hpo-toolchain.sh`, which `BASH_ENV` sources into every `bash -c`. Its `export RUNNER_TEMP=...` overrides the probe's own. Run with `env -u BASH_ENV`, which leaves the venv-ci python first on PATH, all 2665 entity checks pass at the head, and this prepr ran that way. The fix belongs in `tools/audit/seat/cloud-setup.sh`, outside this group's scope.
 
 A fourth failure at the head, the #1536 `min_electrical_power * 24 h per day` comment pin, was caused by this branch's own comment payment. It was fixed in this branch. The cheaper detector is that check itself, which runs in the scoped gate.
 
@@ -98,10 +99,8 @@ A fourth failure at the head, the #1536 `min_electrical_power * 24 h per day` co
 
 ## Forward-carry
 
-- **Carries 9, 12, 14, 17, 19 (unattributed residual).** The residual is unchanged at -3.90 %, -8.02 %, -3.22 % and -3.42 %. Buffer-tank standing loss is ruled out (0.25 kWh_th apart). In kWh_th the plan delivers about 22 more than the settled reference. The next hypothesis is that the two-zone comfort term counts the lower floor only (`_floor_demand_terms`), which needs a two-zone control. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
-- **Carry 6 (power_ratio and cost_error on one sample window).** Not taken here. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
-- **Carry 20 (part-load refill pricing).** Not taken here. Re-measured at 5bc009bc8: `r10_partload_pricing.py` prints `null rows not zero 0`. Flat d=0.112 reads lp_err 0.267290, terminal-at-max 4.368455 and deferred-at-max 2.139841. The carry's refill-residue harness is not in the tree at the merge base, so its figures were not re-measured. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
+none. Carries 6, 9, 12, 14, 17, 19 and 20 stay open on this group's own roster entry. Their dispositions are at the top of this body.
 
 ## Friction
 
-- cloud-setup: unenforced: `tools/audit/seat/cloud-setup.sh` writes `/etc/profile.d/hpo-toolchain.sh`, which this seat's `BASH_ENV` names. Its `export RUNNER_TEMP` reaches every `bash -c` a test spawns, so three `tests/entities.py` checks go red at main on a cloud seat, and prepr's closures step refuses (`env -u BASH_ENV`: 2665 pass). Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
+none
