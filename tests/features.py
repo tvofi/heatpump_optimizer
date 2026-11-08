@@ -43874,8 +43874,8 @@ _cal_gapless_model = _sav_cal_month(_sav_vary, _sav_therm, _sav_plan, 1.0, with_
 R.check(
     "#2492: an install whose meter reads its model keeps the modelled figures byte-identical",
     _cal_gapless["meter_calibration"] == 1.0
-    and {k: v for k, v in _cal_gapless.items() if k != "meter_calibration"}
-    == {k: v for k, v in _cal_gapless_model.items() if k != "meter_calibration"},
+    and {k: v for k, v in _cal_gapless.items() if k not in ("meter_calibration", "calibration_basis")}
+    == {k: v for k, v in _cal_gapless_model.items() if k not in ("meter_calibration", "calibration_basis")},
     f"{_cal_gapless} / {_cal_gapless_model}",
 )
 # A month whose savings lines began before the plan line existed (an upgrade
@@ -43957,8 +43957,8 @@ R.check(
     "R10-SAV-COMFORT null control: an interval without either reading settles nothing",
     _st_null.savings_months(_SavDT(2026, 2, 10))[0]
     == {"month": "2026-01", "baseline_sek": 4.0, "actual_sek": 3.0, "savings_sek": 1.0,
-        "savings_pct": 25.0, "old_basis": False, "estimated": False, "meter_calibration": None,
-        "stored_heat_sek": 0.0, "comfort_sek": 0.0},
+        "savings_pct": 25.0, "old_basis": False, "below_meter_floor": False, "estimated": False,
+        "meter_calibration": None, "calibration_basis": None, "stored_heat_sek": 0.0, "comfort_sek": 0.0},
     repr(_st_null.savings_months(_SavDT(2026, 2, 10))),
 )
 _st_z = _SavLedger()
@@ -70516,6 +70516,36 @@ R.check(
     "2 hours old, both ends included; a re-run sooner or a gap longer pairs nothing",
     _cg_pairs(0.05) and _cg_pairs(2.0) and _cg_pairs(1.0)
     and not _cg_pairs(0.049) and not _cg_pairs(2.001),
+)
+
+
+# R10-SAV-METER-FLOOR: the interval's pending snapshot carries whether wood
+# heats it, read from the detector's own predicate, on a wood house only.
+def _cg_wood_flag(wood, **detector):
+    cfg = dict(_L5_CFG, heat_pump_max_power=14.0, heat_pump_min_power=1.0)
+    if wood:
+        cfg["wood_furnace_enabled"] = True
+    coord = _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+    for key, value in detector.items():
+        setattr(coord._external_heat.state, key, value)
+    coord._current_action = {"power": 1.0, "dhw_power": 0.0}
+    coord._record_accuracy()
+    return coord._pending_prediction.get("wood_heated", "absent")
+
+
+_cg_flags = {
+    "plain, fire": _cg_wood_flag(False, active=True),
+    "wood, quiet": _cg_wood_flag(True),
+    "wood, active": _cg_wood_flag(True, active=True),
+    "wood, fading": _cg_wood_flag(True, fading=True),
+    "wood, displacing": _cg_wood_flag(True, displacement=0.3),
+    "wood, free heat": _cg_wood_flag(True, free_heat_kw=0.5),
+}
+R.check(
+    "the pending snapshot carries wood_heated from the detector on a wood house, and None on a plain one",
+    _cg_flags == {"plain, fire": None, "wood, quiet": False, "wood, active": True, "wood, fading": True,
+                  "wood, displacing": True, "wood, free heat": True},
+    repr(_cg_flags),
 )
 
 
