@@ -62,11 +62,12 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 7.1.6
+# claims-for: 7.1.7
 #
-# v7.1.6: Round 10 fixes since v7.1.5. The stamp empties the list; the
+# v7.1.7: The round's plan page is public. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+config_flow # R10-MIN-POWER-FLOOR (#3289): the thermal_model options page gains the compressor_modulation select (auto/on_off/modulating, pre-filled auto); ADD-ONLY, one 10-line field leaf in the plain and one in the seeded render (git diff --numstat 20 insertions, 0 deletions), no existing leaf moves; re-recorded with --record --only config_flow because env_drift compares config_flow exactly
 config_flow # R10-GENERIC-HEAT-CURVE: the heat_curve page gains heat_curve_target_kind, heat_curve_displace_entity and heat_curve_offset_band_k, and the advanced menu label reads 'Heat curve control'; float-free, recorded by golden.py --record --only config_flow
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
