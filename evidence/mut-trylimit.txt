@@ -1,0 +1,16 @@
+ tools/audit/seat/cloud_relay.sh | 1 -
+ 1 file changed, 1 deletion(-)
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index db4276042..84b081924 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -617,7 +617,6 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+       # moving: it reruns after HPO_RELAY_RETRY_BACKOFF (30 min), three runs at most, then it is recorded and owed.
+       n=${tries% *}; n=$((n + 1)); cls=retry
+       ! grep -qiE '^[[:space:]]*(update_pr: )?REFUSE[: ]+(unpinned sites?|carry|pr-body|figures|brief)' "$bd/update.out" || cls=content  # mut:retryall
+-      [ "$n" -lt 3 ] || cls=content  # mut:trylimit
+       if [ "$cls" = content ]; then
+         echo "$key" >> "$f"
+       else printf '%s\t%s\t%s\n' "$key" "$n" "$(date +%s)" >> "$f.tries"; fi
+  FAIL (c) three refusals of a retryable class stop: three runs over five passes (rc=1, want 0)
+cloud_relay self-test: 381 checks, 1 failed
