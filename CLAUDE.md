@@ -88,7 +88,7 @@ binds the seat to this file.
 | `claim-files.md` | the `claimnotes` merge driver and its refusal; a branch that claims nothing leaves both claim files byte-identical; a `DIRTY` pull request does not go red, it cannot run |
 | `comment-readback.md` | post an issue or pull-request comment by running `gh_comment.py`, and read back what landed — a read-back leaves an artifact another seat reads, which a warning about the flag does not |
 | `defect-root-cause.md` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |
-| `delivery-status-tracking.md` | the record is the pull-request list and one #201 line per merge, plus roster `resume` and every open issue's disposition — at each merge, not at session end; no per-PR row |
+| `delivery-status-tracking.md` | the record is the pull-request list and one #201 line per merge, plus roster `resume` and every open issue's disposition — at each merge, not at session end; no seat writes a per-PR row |
 | `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief, landed at the latest at the producing pull request's merge — a PR comment records it, it does not propagate it |
 | `gate-scoping.md` | how to run the scoped gate, the `gate_lock.py` lease, and never a full `derive_closures.sh` off Linux — that path replaced the Linux recordings and cost one lane most of its closure |
 | `ratchet-budgets.md` | three one-sided caps, because the floor prices a session that opens nothing and a split lowers it without deleting a line; re-record it only alongside a flat corpus and flat role caps |

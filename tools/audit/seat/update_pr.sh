@@ -30,9 +30,11 @@
 # (pass it as the code sha); HPO_UPDATE_BODY_ONLY=1 (the relay's) refuses any run that would move the
 # head, pushing nothing. pr-contract re-runs on the `edited` event. HPO_BODY_PATCH replaces
 # body_patch.sh (the self-test's stub).
-# --self-test runs delivery_row.sh's self-test; pr_args.sh's runs once, in its own governance step (#3245 carry 2).
+# --self-test runs delivery_row.sh's self-test, then pr_args.sh's, under pr_args.sh's self-test bound.
 . "$(dirname -- "$0")/delivery_row.sh"; . "$(dirname -- "$0")/pr_args.sh"
-[ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; exit $?; }
+[ "${1:-}" = --self-test ] && { [ -n "${PR_BOUND:-}" ] || pr_bounded update_pr bash "$0" --self-test  # pr_args.sh's bound
+  bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
+  bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }
 PR_NAME=update_pr; pr_trap; unset GIT_AUTHOR_NAME; export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
 SEAT=$(cd "$(dirname -- "$0")" && pwd); PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
 pr_need_args 3 $# "update_pr.sh <branch> <code-sha|-> <body-file> [issues...]"
