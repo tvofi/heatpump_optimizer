@@ -1,9 +1,9 @@
-NOTE stale tree: 926a01499de2a184481a42734fc91bfedc5bb4b1 lacks origin/main 8a1358e8448e6734ed16982f25da6aae223ba8b9; roster read at origin/main
-NOTE stale tree: 926a01499de2a184481a42734fc91bfedc5bb4b1 lacks origin/main 8a1358e8448e6734ed16982f25da6aae223ba8b9; roster read at origin/main
+NOTE stale tree: 3d46d033d9a00219b9e7895b61281200a6c9dba0 lacks origin/main d2e4d2d10cfe15b9ec51c36422029718e8367f1c; roster read at origin/main
+NOTE stale tree: 3d46d033d9a00219b9e7895b61281200a6c9dba0 lacks origin/main d2e4d2d10cfe15b9ec51c36422029718e8367f1c; roster read at origin/main
   ok   a carry to a group of the roster is predicted green
-NOTE stale tree: 926a01499de2a184481a42734fc91bfedc5bb4b1 lacks origin/main 8a1358e8448e6734ed16982f25da6aae223ba8b9; roster read at origin/main
+NOTE stale tree: 3d46d033d9a00219b9e7895b61281200a6c9dba0 lacks origin/main d2e4d2d10cfe15b9ec51c36422029718e8367f1c; roster read at origin/main
   ok   a carry to a group the roster lacks is predicted red
-NOTE stale tree: 926a01499de2a184481a42734fc91bfedc5bb4b1 lacks origin/main 8a1358e8448e6734ed16982f25da6aae223ba8b9; roster read at origin/main
+NOTE stale tree: 3d46d033d9a00219b9e7895b61281200a6c9dba0 lacks origin/main d2e4d2d10cfe15b9ec51c36422029718e8367f1c; roster read at origin/main
   ok   a finding with no carry at all is predicted red
   ok   a file re-added at a path whose move landed is predicted red (rc 1)
   ok   the re-added path under a second commit is predicted red (rc 1)
@@ -70,10 +70,18 @@ NOTE stale tree: 926a01499de2a184481a42734fc91bfedc5bb4b1 lacks origin/main 8a13
   ok   the exclusion in the unrestored data file, the grader keyed by a comment, is predicted green (null control: the repair)
   ok   a corpus-only diff the base's grader refuses is not run (null control: the key; prepr runs the same copy CI does)
   ok   the inline exclusion staged and not committed is predicted green (null control)
+  ok   a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body
+  ok   the event tokens are stood in (head, title, author), the stdout redirect is not an argument
+  ok   a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is)
+  ok   two workflows sharing a job name are keyed `<stem>/<job>` apart
+  ok   a run reading the body is skipped, noted, never passed, with no body to read (null control: the run that reads none still runs)
+  ok   pr-contract's code-scanning wait grades no file and is exempt (null control: its preflight run is graded)
+  ok   the closing line owes no repair when every red is a BOOTSTRAP (null control: one repairable red does)
   ok   predict reaches the graders arm by name (its call site, not only its helper)
   ok   every JOB value is a name gate.REQUIRED owes
 ci_predict self-test: 0 failed
 
-real	1m47.310s
-user	1m30.429s
-sys	0m16.412s
+real	1m29.409s
+user	1m11.879s
+sys	0m16.731s
+rc=0

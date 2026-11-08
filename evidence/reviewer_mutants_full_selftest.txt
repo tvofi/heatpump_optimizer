@@ -1,9 +1,0 @@
-E reviews-unread swallow dropped: ['ci_predict self-test: 0 failed']; 0 FAIL
-F collision key always bare: ['ci_predict self-test: 0 failed']; 0 FAIL
-H redirect kept: ['ci_predict self-test: 0 failed']; 0 FAIL
-I bash runs not parsed: ['ci_predict self-test: 0 failed']; 0 FAIL
-K body-skip dropped: ['ci_predict self-test: 0 failed']; 0 FAIL
-L ctx substitution dropped: ['ci_predict self-test: 0 failed']; 0 FAIL
-N codescan exemption dropped: ['ci_predict self-test: 0 failed']; 0 FAIL
-O INTENDED empty: ['ci_predict self-test: 0 failed']; 0 FAIL
-P stdin redirect dropped: ['ci_predict self-test: 0 failed']; 0 FAIL
