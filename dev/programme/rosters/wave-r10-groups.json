@@ -18107,7 +18107,9 @@
     "R10-FRICTION-OTHER-FAMILY",
     "R10-FIXER-MD-SPELLING-CORPUS"
    ],
-   "carry": [],
+   "carry": [
+    "From r10-round-playbook, body item 79056928: The unresolved decision of whether a future change names a decision record by path. Doing so pulls the file into `policy_lint`'s `named-docs` corpus rule. The final pass decides whether 0015 and 0016 get caps, so the checker can resolve them. Carry: R10-ROUND-PLAYBOOK-FINAL (items 79056928)"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "not-started",
