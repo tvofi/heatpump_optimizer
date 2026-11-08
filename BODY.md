@@ -29,11 +29,48 @@ Measured at 92c5c2afe33c82d4bc19ed801cd968c51d767adb, cut from origin/main e36e5
 
 ## Forward-carry
 
-- Carries 3, 4 and 13: done at 788e8ceed2d7251740e46fa7f1568ea284d85d47. Carries 5 and 14: done at 20cfab74c6aa9d9ff26e81328ebe1af407ed7cdc. Carry 9: done at 2a9cd3476dae9f45d3091b546fdd2723bcb0ce4e. Carries 7, 10, 11, 15, 16 and 17: done at d855180e284c1b121ca77abae042e82098ea24b2. Carries 0, 1, 2 and 18, and carries 20 to 39: dismissed. Carry: R10-HANDOFF-PATH
-- Carry 6: built at 92c5c2afe33c82d4bc19ed801cd968c51d767adb. `open_pr.sh` collects its checkout (`pr_collect_wt`, pr_args.sh) once the PR exists with its row; `update_pr.sh` resets and reuses its one per-PR checkout. The sweep's disk-floor naming of collectable checkouts is not built: nothing in the sweep reads this path, and no such floor instrument was found in the tree. Carry: R10-HANDOFF-PATH
-- Carry 8: built at 92c5c2afe33c82d4bc19ed801cd968c51d767adb. update_pr.sh exits 75 (`pr_busy`) for a branch checked out elsewhere and for a worktree holding unpushed commits; the relay keys cloud-handoff-failed on topic, handoff sha and body sha and keeps the reason. Carry: R10-HANDOFF-PATH
-- Carry 12: built at 92c5c2afe33c82d4bc19ed801cd968c51d767adb. A refusal of unpinned sites, carry, figures or the body contract is recorded at once; any other reruns after HPO_RELAY_RETRY_BACKOFF (1800 s) up to three runs, then stays owed. Carry: R10-HANDOFF-PATH
-- Carry 19 and its duplicate carry 40: built at 92c5c2afe33c82d4bc19ed801cd968c51d767adb. Carry: R10-HANDOFF-PATH
+- Carry 0: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 1: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 2: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 3: done at 788e8ceed2d7251740e46fa7f1568ea284d85d47. Carry: R10-HANDOFF-PATH
+- Carry 4: done at 788e8ceed2d7251740e46fa7f1568ea284d85d47. Carry: R10-HANDOFF-PATH
+- Carry 5: done at 20cfab74c6aa9d9ff26e81328ebe1af407ed7cdc. Carry: R10-HANDOFF-PATH
+- Carry 6: built at 92c5c2afe33c82d4bc19ed801cd968c51d767adb: `open_pr.sh` collects its checkout (`pr_collect_wt`, pr_args.sh) once the PR exists with its row, and `update_pr.sh` resets and reuses its one per-PR checkout; the sweep's disk-floor naming of collectable checkouts is not built (no such floor instrument was found in the tree). Carry: R10-HANDOFF-PATH
+- Carry 7: done at d855180e284c1b121ca77abae042e82098ea24b2. Carry: R10-HANDOFF-PATH
+- Carry 8: built at 92c5c2afe33c82d4bc19ed801cd968c51d767adb: update_pr.sh exits 75 (`pr_busy`) for a branch checked out elsewhere and for a worktree holding unpushed commits, and the relay keys cloud-handoff-failed on topic, handoff sha and body sha and keeps the reason. Carry: R10-HANDOFF-PATH
+- Carry 9: done at 2a9cd3476dae9f45d3091b546fdd2723bcb0ce4e. Carry: R10-HANDOFF-PATH
+- Carry 10: done at d855180e284c1b121ca77abae042e82098ea24b2. Carry: R10-HANDOFF-PATH
+- Carry 11: done at d855180e284c1b121ca77abae042e82098ea24b2. Carry: R10-HANDOFF-PATH
+- Carry 12: built at 92c5c2afe33c82d4bc19ed801cd968c51d767adb: a refusal of unpinned sites, carry, figures or the body contract is recorded at once; any other reruns after HPO_RELAY_RETRY_BACKOFF (1800 s) up to three runs, then stays owed. Carry: R10-HANDOFF-PATH
+- Carry 13: done at 788e8ceed2d7251740e46fa7f1568ea284d85d47. Carry: R10-HANDOFF-PATH
+- Carry 14: done at 20cfab74c6aa9d9ff26e81328ebe1af407ed7cdc. Carry: R10-HANDOFF-PATH
+- Carry 15: done at d855180e284c1b121ca77abae042e82098ea24b2. Carry: R10-HANDOFF-PATH
+- Carry 16: done at d855180e284c1b121ca77abae042e82098ea24b2. Carry: R10-HANDOFF-PATH
+- Carry 17: done at d855180e284c1b121ca77abae042e82098ea24b2. Carry: R10-HANDOFF-PATH
+- Carry 18: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 19: built at 92c5c2afe33c82d4bc19ed801cd968c51d767adb: the `mut:unlock` arm is deterministic (see Figures). Carry: R10-HANDOFF-PATH
+- Carry 20: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 21: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 22: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 23: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 24: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 25: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 26: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 27: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 28: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 29: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 30: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 31: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 32: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 33: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 34: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 35: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 36: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 37: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 38: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 39: dismissed (folded, resolved, duplicate or a status line, per the brief). Carry: R10-HANDOFF-PATH
+- Carry 40: built at 92c5c2afe33c82d4bc19ed801cd968c51d767adb: the duplicate of carry 19, answered by the same change. Carry: R10-HANDOFF-PATH
+- Carry 41: not in the brief snapshot this seat was given (carries 0 to 40); not built here, stays open on the roster. Carry: R10-HANDOFF-PATH
 
 ## Unpinned sites
 
