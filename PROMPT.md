@@ -7,7 +7,7 @@ Never write to any branch except your return refs and refs/heads/handoff-wip/r10
 Brief (snapshotted when this payload was rendered):
 Repair fixer for #3325 (topic r10-carry-residue-2).
 Blocked verdict, first line verbatim:
-VERDICT.md evidence/HEAD.txt evidence/head-carry_audit.diff 
+Fix review: blocked 6b5d99b5c48036517be86310c773e8e8a66cbe14 merge-conflict: tools/audit/carry_audit.py conflicts with origin/main 17e621f08 (#3318)
 
 Read the full verdict comment on #3325 first (it is the newest hpo-approver "Fix review:" comment).
 Repair this blocked PR on its existing handoff topic r10-carry-residue-2: fix only what the verdict names, then merge origin/main if it moved, re-run tools/pr/prepr.sh (PREPR_SKIP_CLOSURES=1 allowed), and re-publish with body_push.sh (the body must answer every red under ## Red checks and name its new ## Head). Push only handoff/r10-carry-residue-2 and handoff-body/r10-carry-residue-2, never a PR. Make no GitHub writes. Every finding line ends Carry: <GROUP>|#N|dismissed: <reason>. If the verdict names a defect that is not this PR's (a baseline red at origin/main), show it at origin/main and answer it in the body instead of changing code.
