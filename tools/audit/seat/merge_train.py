@@ -311,6 +311,37 @@ def stop_on_signal() -> None:
     for sig in (signal.SIGTERM, signal.SIGHUP):
         signal.signal(sig, unwind)
 
+@contextlib.contextmanager
+def stop_ignored():
+    """The closing lines (worktree release, then the hold DELETE) are not cut short
+    by a stop and do not swallow one. A TERM or HUP in the block is recorded, not
+    raised, so the DELETE follows the release; the handlers stop_on_signal
+    installed are restored after.
+
+    Entered with a stop already unwinding (a SystemExit in flight), a further
+    signal is dropped: the stop is being delivered. Entered otherwise -- the close
+    of a batch that completed, the train going on to the next -- the first signal
+    is delivered when the block ends, through the restored handler, so the stop
+    reaches the loop that would have merged the next batch. Ignoring it (SIG_IGN)
+    discarded it."""
+    stopping = isinstance(sys.exc_info()[1], SystemExit)
+    pending: list[int] = []
+
+    def defer(signum, _frame):
+        pending.append(signum)
+    handler = defer  # mut:stopign
+    saved = {sig: signal.signal(sig, handler)
+             for sig in (signal.SIGTERM, signal.SIGHUP)}
+    try:
+        yield
+    finally:
+        for sig, old in saved.items():
+            signal.signal(sig, old)
+        if pending and not stopping:
+            old = saved[pending[0]]
+            old(pending[0], None) if callable(old) else os.kill(os.getpid(), pending[0])  # mut:deferdeliver
+
+
 # EVERY SCRIPT THE TRAIN RUNS, AND WHERE THE ROW IT REQUIRES LIVES (#1990's RCA,
 # dev/audit/rca/R9-RCA-1990.md). R9-RO-6 moved app_approve.sh and preflight.sh to
 # tools/pr/ and R9-RO-5 lifted the delivery rows under dev/programme/; the train
@@ -442,18 +473,110 @@ def platform_gate(payload, head: str) -> "tuple[str, str]":
     return "green", f"{len(gates)} required gate run(s) pass"
 
 
-def classify(latest: dict, required) -> "tuple[str, list[str], list[str]]":
+def classify(latest: dict, required, busy=()) -> "tuple[str, list[str], list[str]]":
     """(state, pending, red) over the required contexts less NOT_GATING, each
     on its latest run: 'red' when any concluded non-green, else 'wait' while
-    any is pending or has no run yet, else 'green'. `required` None (a ruleset
-    that could not be read) raises ValueError: a refusal, never green. A head
-    is reviewable (K15 (d)) exactly when `red` is empty."""
+    any is pending or has no run yet, else 'green'. A red GATE is pending
+    while `busy` (gate_busy: a ci.yml run at the head still adding a source)
+    is non-empty. `required` None (a ruleset that could not be read) raises
+    ValueError: a refusal, never green. A head is reviewable (K15 (d))
+    exactly when `red` is empty."""
     if required is None:
         raise ValueError(f"{RULESET}'s required contexts are unreadable; nothing is judged against a guessed list")
     names = [n for n in required if n not in NOT_GATING]
-    pending = sorted(n for n in names if n not in latest or run_state(latest[n]) == "pending")
-    red = sorted(n for n in names if n in latest and run_state(latest[n]) == "red")
+    deferred = {GATE} if busy else set()
+    pending = sorted(n for n in names if n not in latest or run_state(latest[n]) == "pending"
+                     or (n in deferred and run_state(latest[n]) == "red"))
+    red = sorted(n for n in names if n in latest and run_state(latest[n]) == "red" and n not in deferred)
     return ("red" if red else "wait" if pending else "green"), pending, red
+
+
+# A DEFERRED GATE IS NOT A VERDICT (R10-HOTFIX-TRAIN-DEFER-WAIT). An edit run's
+# gate fails at once deferring ("run(s) [..] at this head are still being
+# judged; their gate decides": gate.py `deferral`, fa921fd59, 2026-11-05), and
+# the code run it defers to publishes no `gate` check run until every unit of
+# that run finishes, so the check runs alone read the head red: 32 of 56
+# `ci red=['gate']` SKIPs over 2026-11-05/07 sat at heads whose code run
+# concluded success. While gate.py's own `busy` names an unfinished ci.yml run
+# at the head, a red GATE is a wait; GATE's success, `cross_check` and the
+# ruleset still decide a merge, and `polls` still bounds the wait (TIMEOUT).
+_GATE_PY = ROOT / "tools/ci/gate.py"
+
+
+@functools.lru_cache(maxsize=1)
+def _gate_py():
+    """tools/ci/gate.py, imported from its tree path: its `busy` is THE rule, never a copy."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("hpo_ci_gate", str(_GATE_PY))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def gate_busy(ci_runs, check_runs) -> list:
+    """The ci.yml run ids at a head gate.py's `busy` reads as still adding a
+    source (unfinished, not held, not judging), from the train's two reads:
+    the head's ci.yml runs listing and its check runs. A run's jobs are its
+    check suite's check runs (a job is a check run of its run's suite, by the
+    same name), so `judging` reads what gate.py's per-run jobs read gives it,
+    with no read per run."""
+    by_suite: dict = {}
+    for c in sorted(check_runs or (), key=lambda c: c.get("started_at") or ""):
+        sid = (c.get("check_suite") or {}).get("id")
+        by_suite.setdefault(sid, {})[c["name"]] = (c.get("status"), c.get("conclusion"))
+    runs = [{"id": r["id"], "title": r.get("display_title") or "", "status": r.get("status"),
+             "jobs": {} if r.get("status") == "action_required" else by_suite.get(r.get("check_suite_id"), {})}
+            for r in ci_runs]
+    # The train is no run: gate.py's tie-break between two gates (a LATER run
+    # whose gate started) has no train side, so run_id is past every id.
+    return _gate_py().busy({"run_id": float("inf")}, runs)
+
+
+def gate_rerunning(ci_runs, check_runs) -> list:
+    """The unfinished ci.yml run ids at a head whose check suite's latest GATE
+    run is completed: `gate` is ci.yml's last job, so such a run is a re-run
+    attempt (gate-sweep's) whose gate is not yet listed again, and gate.py's
+    `busy` reads it judging. Its red is the one being re-judged."""
+    done = {(c.get("check_suite") or {}).get("id") for c in gate_suites(check_runs or ())
+            if c.get("status") == "completed"}
+    return sorted(r["id"] for r in ci_runs
+                  if r.get("status") not in ("completed", "action_required") and r.get("check_suite_id") in done)
+
+
+def sweep_settling(check_runs, now: float) -> bool:
+    """Whether the newest green GATE suite completed at most SWEEP_SETTLE_SECONDS
+    before <now> (epoch seconds), so gate-sweep's re-run of a red beside it may
+    not have started. A stamp ahead of <now>, or none readable, is unknowable:
+    no settle, the red stands."""
+    ends = [c.get("completed_at") for c in gate_suites(check_runs or ()) if run_state(c) == "green"]
+    try:
+        last = max(datetime.datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp() for t in ends)
+    except (ValueError, AttributeError):
+        return False
+    return 0 <= now - last <= SWEEP_SETTLE_SECONDS
+
+
+#: Polls a red GATE beside a green GATE suite is still waited on once no run is
+#: busy: gate-sweep.yml starts on the green run's completion and re-runs the
+#: deferred red gate (tools/ci/sweep.py), which lists its run unfinished again.
+#: One poll (HEARTBEAT_SECONDS) covers the sweep's start; a sweep that never
+#: re-runs it leaves the red standing, read one poll later.
+SWEEP_SETTLE_POLLS = 1
+
+
+def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
+    """The `classify` subcommand's one read at <sha>, as (exit code, line):
+    GREEN 0, RED 1, WAIT 3, APPROVAL-OWED 4. A Stop is the caller's REFUSE."""
+    runs = t._check_runs(sha)
+    if runs is None:
+        raise Stop("ci", f"the check runs at {sha[:12]} could not be read")
+    req = t.required(pr_head=not on_main)
+    state, pending, red = t.classify_at(sha, runs, req)
+    why = approval_owed(t, pr, sha, runs, req) if state == "red" and pr is not None else None
+    if why:
+        return 4, f"APPROVAL-OWED {sha} {why}"
+    return ({"green": 0, "red": 1, "wait": 3}[state],
+            f"{state.upper()} {sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
 
 
 #: The gate unit whose red, before the review, is every budget raise's state (K15 (d)).
@@ -666,6 +789,13 @@ POLL_SECONDS = 300
 # poll slower or faster than the beat never hides it. Log lines only: no gate,
 # wait, merge decision or exit code reads them.
 HEARTBEAT_SECONDS = 240
+#: Seconds after the newest green GATE suite completed during which a red GATE
+#: beside it, with no ci.yml run busy or re-running, is still a wait for the
+#: one-read readers (`classify_at`): gate-sweep.yml starts on that completion,
+#: its workflow_run runs at main's sha, so no listing by the head names it.
+#: The poller's SWEEP_SETTLE_POLLS polls, in seconds. Measured: 62 s from the
+#: green completion to the re-run's request at a38bd141 (20:02:31Z -> 20:03:33Z).
+SWEEP_SETTLE_SECONDS = SWEEP_SETTLE_POLLS * HEARTBEAT_SECONDS
 # The main-moved recovery's bound (R10-TICK-TRAIN, tvofi 2026-10-15: #2284 sat
 # green 14/14 and was stopped because a record PR auto-merged). Each recovery
 # costs one full CI wait at the new head (~40 min), so three bound a busy
@@ -1516,6 +1646,34 @@ class Train:
         except ValueError:
             return None
 
+    def _gate_busy(self, h: str, check_runs) -> list:
+        """gate_busy at <h> from one ci.yml runs listing by head sha. An
+        unreadable listing reads no run busy, logged: the red stands as it did
+        before this read existed -- a refusal, never a wait on a guess."""
+        code, raw = self.run(["gh", "api", "--paginate", "--jq", ".workflow_runs[]",
+                              f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}&per_page=100"])
+        try:
+            ci_runs = [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else None
+        except ValueError:
+            ci_runs = None
+        if ci_runs is None:
+            self.log(f"gate red at {h[:8]}: the ci.yml runs listing is unreadable, so no run reads busy")
+            return []
+        return gate_busy(ci_runs, check_runs) or gate_rerunning(ci_runs, check_runs)
+
+    def classify_at(self, h: str, runs, required) -> "tuple[str, list[str], list[str]]":
+        """`classify` over <h>'s check runs with a red GATE re-read against
+        `_gate_busy` (a run busy, or re-running its gate), else against
+        `sweep_settling` on the wall clock: the deferral reading of the one-read
+        readers (the `classify` subcommand, proof_watch), none of which re-reads
+        a RED. `wait_ci`, which polls, takes the same settle as SWEEP_SETTLE_POLLS."""
+        last = latest_runs(runs or ())
+        state = classify(last, required)
+        if GATE not in state[2]:
+            return state
+        busy = self._gate_busy(h, runs) or (["sweep"] if sweep_settling(runs, self.wall()) else [])
+        return classify(last, required, busy) if busy else state
+
     def wait_ci(self, h: str, only: "list[str] | None" = None,
                 beat: "str | None" = None) -> list[str]:
         """The names whose latest run at <h> is not green, once every run completed.
@@ -1524,6 +1682,8 @@ class Train:
         GitHub adds later, or `action_required` and `stale` today, reads red.
         With `only`, those names alone are waited for and judged, and each must
         have a run: a batch proof judges the required contexts (`required`).
+        A red GATE among them is re-read against one ci.yml runs listing at
+        <h> (`_gate_busy`) and waited on while gate.py's `busy` names a run.
 
         `beat` is the phrase after "waiting" in the heartbeat line (default
         "CI at <sha[:8]>"; a proof passes "proof <branch>"): every
@@ -1540,16 +1700,42 @@ class Train:
         start = self.clock()
         due = start + HEARTBEAT_SECONDS
         what = beat or f"CI at {h[:8]}"
+        held: list = []
+        settle = 0
         for k in range(1, self.polls + 1):
             runs = self._check_runs(h)
             last = latest_runs(runs or ())
             if only is not None and runs is not None:
-                _, pending, red = classify(last, only)
+                state = classify(last, only)
+                if GATE in state[2]:
+                    busy = self._gate_busy(h, runs)
+                    if not busy and settle < SWEEP_SETTLE_POLLS and any(
+                            run_state(c) == "green" for c in gate_suites(runs)):
+                        settle += 1
+                        busy = ["sweep"]
+                    if busy != held:
+                        held = busy
+                        if busy == ["sweep"]:
+                            self.log(f"gate red at {h[:8]} beside a green gate suite, no ci.yml run busy: "
+                                     f"waiting {SWEEP_SETTLE_POLLS} poll(s) for gate-sweep's re-run")
+                        elif busy:
+                            self.log(f"gate red at {h[:8]} is a deferral while ci.yml run(s) {busy} "
+                                     "are unfinished: waiting (gate.py busy)")
+                    state = classify(last, only, busy)
+                _, pending, red = state
                 if not pending:
                     return red
             if only is None and runs and len(runs) >= self.min_runs and all(
                     c.get("status") == "completed" for c in runs):
-                return sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
+                red = sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
+                # Every unit concluded, so gate.py's `busy` names no run; the
+                # sweep's re-run of a deferred red takes the train's settle.
+                if not (GATE in red and settle < SWEEP_SETTLE_POLLS
+                        and any(run_state(c) == "green" for c in gate_suites(runs))):
+                    return red
+                settle += 1
+                self.log(f"gate red at {h[:8]} beside a green gate suite, every run concluded: "
+                         f"waiting {SWEEP_SETTLE_POLLS} poll(s) for gate-sweep's re-run")
             now = self.clock()
             # A poll slower than the beat prints ONE beat, whose elapsed names
             # the true wait; a boundary-exact tick never prints twice.
@@ -2453,12 +2639,18 @@ class Train:
                  f"NOT released: {HOLD_REF} stays (rc={code}: {said.strip()[-160:]}); "
                  "it expires at the beat's own bound, or delete it by hand")
 
+    def unwind(self) -> None:
+        """The closing lines of a train or batch, run once a stop is already
+        unwinding it: release the worktrees, then the hold, ignoring a second stop."""
+        with stop_ignored():
+            self.release_worktrees()
+            self.hold_release()
+
     def train(self, queue: list[dict]) -> int:
         try:
             return self._train(queue)
         finally:
-            self.release_worktrees()
-            self.hold_release()
+            self.unwind()
 
     def _train(self, queue: list[dict]) -> int:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
@@ -3182,8 +3374,7 @@ class Train:
                 try:
                     stopped = self._batch(batches[k], name, total)
                 finally:
-                    self.release_worktrees()
-                    self.hold_release()
+                    self.unwind()
                 if stopped:
                     return 1
                 for e in batches[k]:  # neither merged nor skipped: ran (a rehearsal), no longer pending
@@ -3697,10 +3888,15 @@ def _self_test() -> int:
             if "statusCheckRollup" in a:  # A5's platform cross-check
                 world["rollup_reads"] = world.get("rollup_reads", 0) + 1
                 return world.get("rollup", (1, "HTTP 502"))
+            if "actions/workflows/ci.yml/runs" in a:  # the deferral read (R10-HOTFIX-TRAIN-DEFER-WAIT)
+                world["ci_list_reads"] = world.get("ci_list_reads", 0) + 1
+                return world.get("ci_runs_out") or (0, "\n".join(json.dumps(r) for r in world.get("ci_runs", [])))
             if "check-runs" in a:
                 # `pending_reads`: the first N reads report in_progress, so a
                 # wait that outlives one poll can be driven without a clock.
                 reads = world["ci_reads"] = world.get("ci_reads", 0) + 1
+                if world.get("frames"):  # a scene: the Nth read sees frame N (the last one holds)
+                    world.update(world["frames"][min(reads, len(world["frames"])) - 1])
                 runs = world.get("runs", [])
                 if reads <= world.get("pending_reads", 0):
                     runs = [dict(c, status="in_progress") for c in runs]
@@ -3796,7 +3992,7 @@ def _self_test() -> int:
 
         with tempfile.TemporaryDirectory() as d:
             rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs,
-                       run=run_traced, sleep=lambda s: None, log=logline, polls=2, merge_tries=3,
+                       run=run_traced, sleep=lambda s: None, log=logline, polls=opts.pop("polls", 2), merge_tries=3,
                        approval_carry=approval_carry, base=base, **opts).train(q or [dict(item)])
             for key, name in (("approve_body", "approve7.md"), ("carry_body", "carry7.md")):
                 f = Path(d) / name
@@ -4897,6 +5093,7 @@ def _self_test() -> int:
     check("a bare wait-ci publishes no hold: only a train or batch arms the ref",
           not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
     _stop_self_test(check)
+    _unwind_self_test(check)
     _read_retry_self_test(check)
     _review_settle_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
@@ -5480,6 +5677,110 @@ def _read_retry_self_test(check) -> None:
     check("read retry: and neither is a merge", code == 1 and n(calls, "pr merge") == 1 and sleeps == [])
 
 
+def _unwind_self_test(check) -> None:
+    """The closing lines of a train or batch are not cut short by a stop and do not
+    swallow one. A train TERMed twice mid-unwind still deletes the hold ref (the
+    second TERM is dropped: the stop is already unwinding). A FIRST TERM landing in
+    the release that closes batch 1 is deferred, not discarded: batch 2 never runs
+    and the train exits 143 once the hold DELETE has gone out. The driver stubs `gh`
+    and makes the worktree release take 2 s. Null controls send no signal (both
+    batches merge) or one TERM (the DELETE goes out). The mutants are
+    the source with one marked line replaced, run for real: the old SIG_IGN
+    (a first signal is discarded) and a defer that never re-raises (it is lost as well)."""
+    mark = "# mut" + ":"
+    prelude = (
+        "import sys, time, tempfile, types\nfrom pathlib import Path\n"
+        f"SRC = {str(Path(__file__).resolve())!r}\nMARK = {mark!r}\n"
+        "def load(mut):\n"
+        "    src = Path(SRC).read_text().split('\\n')\n"
+        "    for name, repl in mut.items():\n"
+        "        hit = [i for i, l in enumerate(src) if l.rstrip().endswith(MARK + name)]\n"
+        "        assert len(hit) == 1, (name, hit)\n"
+        "        l = src[hit[0]]; src[hit[0]] = l[:len(l) - len(l.lstrip())] + repl\n"
+        "    mod = types.ModuleType('merge_train'); mod.__file__ = SRC\n"
+        "    sys.modules['merge_train'] = mod\n"
+        "    exec(compile('\\n'.join(src), SRC, 'exec'), mod.__dict__)\n"
+        "    return mod\n"
+        "MUTANTS = {'real': {}, 'sigign': {'stopign': 'handler = signal.SIG_IGN'},\n"
+        "           'noraise': {'deferdeliver': 'pass'}}\n"
+        "m = load(MUTANTS[sys.argv[2]])\n"
+        "rec = open(sys.argv[1], 'a')\n"
+        "def run(argv, cwd=None, stdin=None):\n"
+        "    rec.write(' '.join(argv) + '\\n'); rec.flush()\n"
+        "    if argv[:3] == ['git', 'worktree', 'remove']:\n"
+        "        rec.write('UNWINDING\\n'); rec.flush(); time.sleep(2)\n"
+        "    return 0, ''\n")
+    train_driver = prelude + (
+        "m.Train._train = lambda self, q: time.sleep(60)\n"
+        "t = m.Train('o/r', Path(tempfile.mkdtemp()), None, 'r', (), 1, run=run, log=lambda s: None)\n"
+        "t.held = True; t.made_wts = [Path('/x')]\n"
+        "m.stop_on_signal()\n"
+        "rec.write('READY\\n'); rec.flush()\n"
+        "try: t.train([])\n"
+        "except SystemExit: pass\n")
+    batch_driver = prelude + (
+        "import signal\n"
+        "m.queue_batches = lambda q: [[{'pr': 1}], [{'pr': 2}]]\n"
+        "m.Train.queue_open = lambda self, b: None\n"
+        "m.Train.queue_close = lambda self: None\n"
+        "m.Train.queue_take = lambda self, b, k: k < len(b)\n"
+        "m.Train.seen_mark = lambda self, *a, **k: None\n"
+        "def _batch(self, b, name, total):\n"
+        "    rec.write(f'BATCH {name}\\n'); rec.flush()\n"
+        "    self.held = True; self.made_wts = [Path('/x')]\n"
+        "    return False\n"
+        "m.Train._batch = _batch\n"
+        "t = m.Train('o/r', Path(tempfile.mkdtemp()), None, 'r', (), 1, run=run, log=lambda s: None)\n"
+        "t._seen = {}\n"
+        "m.stop_on_signal()\n"
+        "rec.write('READY\\n'); rec.flush()\n"
+        "try:\n"
+        "    rc = t.batch([], 'T'); rec.write(f'RETURNED rc={rc}\\n')\n"
+        "except SystemExit as e:\n"
+        "    rec.write(f'SYSTEMEXIT {e.code}\\n')\n")
+
+    def drive(driver: str, mode: str, terms: int, at: str) -> str:
+        """Run the driver, send `terms` TERMs (the first once `at` is recorded,
+        the others 0.5 s apart), return what it recorded."""
+        with tempfile.TemporaryDirectory() as d:
+            rec = Path(d) / "rec"
+            p = subprocess.Popen([sys.executable, "-I", "-c", driver, str(rec), mode])
+            for _ in range(300):
+                if rec.exists() and at in rec.read_text():
+                    break
+                time.sleep(0.1)
+            for k in range(terms):
+                time.sleep(0.3 if k == 0 else 0.5)
+                os.kill(p.pid, signal.SIGTERM)
+            try:
+                p.wait(20)
+            except subprocess.TimeoutExpired:
+                p.kill()
+            return rec.read_text()
+
+    def deleted(terms: int, mode: str) -> bool:
+        return "--method DELETE" in drive(train_driver, mode, terms, "READY")
+    check("a train TERMed again during its unwind still deletes the hold ref",
+          deleted(2, "real"))
+    check("  null control: one TERM deletes the hold ref",
+          deleted(1, "real"))
+    # the batch seam: batch 1 completes normally and its release is where the TERM lands
+    got = drive(batch_driver, "real", 1, "UNWINDING")
+    check("a first TERM in batch 1's closing release stops the train: no second batch, exit 143",
+          "BATCH T-b2" not in got and "SYSTEMEXIT 143" in got and "RETURNED" not in got)
+    check("  and the hold DELETE is issued before the stop is delivered",
+          "--method DELETE" in got)
+    got = drive(batch_driver, "real", 0, "UNWINDING")
+    check("  null control: with no signal both batches merge and the train returns 0",
+          "BATCH T\n" in got and "BATCH T-b2" in got and "RETURNED rc=0" in got)
+    got = drive(batch_driver, "sigign", 1, "UNWINDING")
+    check("  mutant (old SIG_IGN): the first TERM is discarded and batch 2 runs",
+          "BATCH T-b2" in got and "RETURNED rc=0" in got)
+    got = drive(batch_driver, "noraise", 1, "UNWINDING")
+    check("  mutant (defer never re-raises): the stop is lost as well and batch 2 runs",
+          "BATCH T-b2" in got and "RETURNED rc=0" in got)
+
+
 def _stop_self_test(check) -> None:
     """R10-PUSHER-REAP: a TERMed train ends the tool Train._run is running, and
     the tool's tree with it. The tool sources the real pr_args.sh and starts a
@@ -5535,6 +5836,243 @@ def _stop_self_test(check) -> None:
         rc, left = stopped(False)
         check("  null control: without stop_on_signal the train dies and its tool's tree survives",
               left == 3)
+
+
+def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str) -> None:
+    """R10-HOTFIX-TRAIN-DEFER-WAIT: a red GATE while gate.py's `busy` names a
+    ci.yml run at the head is a wait, never a SKIP; the scenes are #3248's and
+    the 13:01Z cycle's (2026-11-07, five recarries onto 28d46c49)."""
+    E, C = 42237558635, 42237558473       # #3248: edit run (gate failed 14:55:47Z), code run (gate green 15:25:55Z)
+
+    def wr(rid, status, suite, title="CI code pr=3248 base=main sha=a"):
+        return {"id": rid, "status": status, "check_suite_id": suite, "display_title": title}
+
+    def unit(name, suite, status="completed", conclusion="success", started="14:40"):
+        return dict(cr(name, status, conclusion if status == "completed" else None, started), check_suite={"id": suite})
+
+    edit_red = gt("failure", 1, "14:55:47", title="run(s) [42237558473] at this head are still being judged; their gate decides")
+    running = [edit_red, unit("tests / closures", 2, "in_progress")]
+    # The table both readings are pinned against: gate_busy over the train's two
+    # reads, and gate.py's own busy over the per-run jobs gate.py reads itself.
+    gp = _gate_py()
+    judging_edit = wr(E, "in_progress", 1, "CI edit pr=3248 base=main sha=a")
+    judging_jobs = [unit("prelude", 1), unit("arch-score / arch-score", 1), unit("budget-raise-gate / budget-raise-gate", 1),
+                    unit("pr-contract", 1, conclusion="skipped"), unit(GATE, 1, "in_progress")]
+    table = (
+        ("a code run with a unit in progress is busy", [wr(E, "completed", 1), wr(C, "in_progress", 2)], running, [C]),
+        ("a held run (action_required) is not busy", [wr(C, "action_required", 2)], [edit_red], []),
+        ("a completed run is not busy", [wr(E, "completed", 1), wr(C, "completed", 2)], [edit_red], []),
+        ("a run at its gate with every unit done is judging, not busy", [judging_edit], judging_jobs, []),
+        ("the same run with pr-contract unfinished is busy (judging's null)", [judging_edit],
+         judging_jobs[:3] + [unit("pr-contract", 1, "in_progress"), judging_jobs[4]], [E]))
+    for what, ci_runs, crs, want in table:
+        jobs = {}
+        for c in sorted(crs, key=lambda c: c.get("started_at") or ""):
+            jobs.setdefault(c["check_suite"]["id"], {})[c["name"]] = (c["status"], c["conclusion"])
+        own = gp.busy({"run_id": float("inf")}, [{"id": r["id"], "title": r["display_title"], "status": r["status"],
+                                                  "jobs": {} if r["status"] == "action_required" else jobs.get(r["check_suite_id"], {})}
+                                                 for r in ci_runs])
+        check(f"defer-wait table: {what} (gate_busy == gate.py busy == {want})", gate_busy(ci_runs, crs) == own == want)
+    check("defer-wait: classify reads a red gate as pending while busy, red without (null: a red non-gate context "
+          "stays red whatever is busy)",
+          classify(latest_runs([edit_red]), [GATE], [C]) == ("wait", [GATE], [])
+          and classify(latest_runs([edit_red]), [GATE]) == ("red", [], [GATE])
+          and classify(latest_runs([cr("fast", conclusion="failure")]), ["fast"], [C])[0] == "red")
+    code_gate_live = unit(GATE, 2, "in_progress", started="15:20")
+    code_gate_green = unit(GATE, 2, started="15:20")
+    scene = [  # one frame per check-runs read, i.e. per poll
+        {"runs": running, "ci_runs": [wr(E, "completed", 1), wr(C, "in_progress", 2)]},
+        {"runs": running, "ci_runs": [wr(E, "completed", 1), wr(C, "in_progress", 2)]},
+        {"runs": [edit_red, code_gate_live], "ci_runs": [wr(E, "completed", 1), wr(C, "in_progress", 2)]},
+        # the code run done, gate-sweep not yet started: one settle poll
+        {"runs": [edit_red, code_gate_green], "ci_runs": [wr(E, "completed", 1), wr(C, "completed", 2)]},
+        {"runs": [edit_red, unit(GATE, 1, "in_progress", started="15:27"), code_gate_green],
+         "ci_runs": [wr(E, "in_progress", 1), wr(C, "completed", 2)]},
+        {"runs": [edit_red, unit(GATE, 1, started="15:27"), code_gate_green],
+         "ci_runs": [wr(E, "completed", 1), wr(C, "completed", 2)]}]
+    w = dict(gate_req, frames=scene, rollup=(0, rollup_green))
+    rc, lines, calls = go(w, polls=8)
+    check("defer-wait #3248: the edit gate's red while code run 42237558473 runs is waited on, then it MERGES "
+          "(the failing-test-first scene)",
+          rc == 0 and merged(calls) and any("deferral while ci.yml run(s) [42237558473]" in ln for ln in lines)
+          and any("waiting 1 poll(s) for gate-sweep" in ln for ln in lines))
+    for k in range(5):  # 13:01Z: five recarries, each edit gate failing deferral 1210 s in, each code run running
+        w = dict(gate_req, frames=scene, rollup=(0, rollup_green))
+        rc, lines, calls = go(w, polls=8)
+        if not (rc == 0 and merged(calls)):
+            break
+    check("defer-wait 13:01Z cycle: five of five deferring heads wait and merge, none SKIPs (the mutant's named case)",
+          rc == 0 and merged(calls) and k == 4)
+    rc, lines, calls = go(dict(gate_req, frames=[{"runs": [edit_red], "ci_runs": [wr(E, "completed", 1)]}],
+                               rollup=(0, rollup_green)), polls=8)
+    check("defer-wait null: a red gate with no unfinished ci.yml run at the head still SKIPs, on its first poll",
+          rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1] and "beat:" not in " ".join(lines))
+    code_red = unit(GATE, 2, conclusion="failure", started="15:20")
+    rc, lines, calls = go(dict(gate_req, frames=scene[:3] + [
+        {"runs": [edit_red, code_red], "ci_runs": [wr(E, "completed", 1), wr(C, "completed", 2)]}],
+        rollup=(0, rollup_green)), polls=8)
+    check("defer-wait null: a genuine code-run failure still SKIPs once that run finishes (no green suite: no settle)",
+          rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1]
+          and not any("gate-sweep" in ln for ln in lines))
+    w = dict(gate_req, frames=[scene[3]], rollup=(0, rollup_green))
+    rc, lines, calls = go(w, polls=8)
+    check("defer-wait bound: a sweep that never re-runs the red leaves it standing one poll later, a SKIP "
+          "(two red polls, two ci.yml listing reads)",
+          rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1] and w.get("ci_list_reads") == 2)
+    rc, lines, calls = go(dict(gate_req, frames=scene[:1], rollup=(0, rollup_green)), polls=3)
+    check("defer-wait bound: a code run that never finishes ends in TIMEOUT within `polls`, never merges",
+          rc == 1 and not merged(calls) and "TIMEOUT" in lines[-1])
+    rc, lines, calls = go(dict(gate_req, frames=[{"runs": [edit_red]}], ci_runs_out=(1, "HTTP 502"),
+                               rollup=(0, rollup_green)), polls=3)
+    check("defer-wait: an unreadable runs listing reads no run busy -- the red stands, logged, never a merge",
+          rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1]
+          and any("runs listing is unreadable" in ln for ln in lines))
+    # The `classify` subcommand (dispatch's and every reviewer's CI wait, "exits
+    # 1 RED") reads the same deferral through the same predicate (round 2).
+    def cli(frame, ci_out=None, wall=time.time, cr_out=None):
+        logged: list = []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if a.endswith("rulesets --jq " + argv[-1]) and argv[2] == "repos/o/r/rulesets":
+                return 0, "7\n"
+            if "repos/o/r/rulesets/7" in argv:
+                return 0, GATE + "\n"
+            if "actions/workflows/ci.yml/runs" in a:
+                return ci_out or (0, "\n".join(json.dumps(r) for r in frame.get("ci_runs", [])))
+            if "check-runs" in a:
+                return cr_out or (0, "\n".join(json.dumps(c) for c in frame["runs"]))
+            return 9, "unstubbed: " + a
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=logged.append, wall=wall)
+        return classify_cmd(t, "a" * 40, None, False), logged
+    (rc, line), _ = cli(scene[0])
+    check("defer-wait CLI #3248: `classify` reads the deferring edit gate as WAIT (exit 3) while code run "
+          "42237558473 runs, never RED", rc == 3 and line.startswith("WAIT ") and line.endswith("red: none"))
+    (rc, line), _ = cli({"runs": [edit_red], "ci_runs": [wr(E, "completed", 1)]})
+    check("defer-wait CLI null: a red gate with no unfinished ci.yml run still reads RED (exit 1)",
+          rc == 1 and line.startswith("RED ") and line.endswith("red: " + GATE))
+    (rc, line), logged = cli({"runs": [edit_red]}, ci_out=(1, "HTTP 502"))
+    check("defer-wait CLI: an unreadable runs listing leaves the red standing (exit 1), logged",
+          rc == 1 and line.startswith("RED ") and any("runs listing is unreadable" in ln for ln in logged))
+    (rc, line), _ = cli({"runs": [edit_red, code_gate_green],
+                         "ci_runs": [wr(E, "completed", 1), wr(C, "completed", 2)]})
+    check("defer-wait CLI null: a red beside a green suite whose completion is unstamped takes no settle -- RED",
+          rc == 1 and line.startswith("RED "))
+    (rc, line), logged = cli({"runs": [code_gate_green]}, ci_out=(1, "HTTP 502"))
+    check("defer-wait CLI: a green gate is read with no ci.yml listing read (no unreadable-listing log) -- GREEN",
+          rc == 0 and line.startswith("GREEN ") and not logged)
+    try:
+        cli({"runs": []}, cr_out=(1, "HTTP 502"))
+        refused = False
+    except Stop:
+        refused = True
+    check("defer-wait CLI: unreadable check runs are a Stop (the caller's REFUSE), never a verdict", refused)
+    # The `wait-ci` subcommand (wait_ci with no `only`) returns once every check
+    # run concluded: the code run's units are done then, but gate-sweep's re-run
+    # of the deferred red may not have started -- the same settle as the train's.
+    def wait_all(frames):
+        logged, reads = [], [0]
+
+        def run(argv, cwd=ROOT, stdin=None):
+            if "check-runs" in " ".join(argv):
+                reads[0] += 1
+                return 0, "\n".join(json.dumps(c) for c in frames[min(reads[0], len(frames)) - 1])
+            return 9, "unstubbed"
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=logged.append, polls=4)
+        return t.wait_ci("a" * 40), logged, reads[0]
+    swept = dict(edit_red, conclusion="success", started_at="15:27", output={"title": ""})
+    red, logged, reads = wait_all([[edit_red, code_gate_green], [edit_red, swept, code_gate_green]])
+    check("defer-wait wait-ci: a red gate beside a green suite, every run concluded, waits one poll for "
+          "gate-sweep's re-run and reads its green", red == [] and reads == 2
+          and any("waiting 1 poll(s) for gate-sweep" in ln for ln in logged))
+    red, logged, reads = wait_all([[edit_red, code_gate_green]])
+    check("defer-wait wait-ci bound: a sweep that never re-runs the red leaves it standing one poll later",
+          red == [GATE] and reads == 2)
+    red, logged, reads = wait_all([[edit_red]])
+    check("defer-wait wait-ci null: a red gate with no green suite beside it is read on the first poll, no settle",
+          red == [GATE] and reads == 1 and not logged)
+
+    _settle_gap_self_test(check, cli, wr)
+
+
+def _settle_gap_self_test(check, cli, wr) -> None:
+    """The one-read readers' settle (R10-HOTFIX-TRAIN-DEFER-WAIT round 3): the
+    gate-sweep gap at a38bd141 (code run 42404526059's gate 128512781341 green
+    at 20:02:31Z, gate-sweep's attempt 2 of edit runs 42404527136/42406706258
+    from 20:03:33Z, their gates re-listed 20:05:39Z), and #3293's train race at
+    fefaa492 (edit run 42414123334's gate failed 21:07:57Z, code run
+    42414123291 in progress)."""
+    def ts(hms):
+        return datetime.datetime.fromisoformat(f"2026-11-07T{hms}+00:00").timestamp()
+
+    def g(cid, suite, conclusion, started, done=None, status="completed"):
+        return {"name": GATE, "id": cid, "status": status, "conclusion": conclusion if status == "completed" else None,
+                "started_at": f"2026-11-07T{started}Z", "check_suite": {"id": suite},
+                **({"completed_at": f"2026-11-07T{done}Z"} if done else {})}
+    CODE, E1, E2 = 42404526059, 42404527136, 42406706258
+    def units(suite, started, done):  # each edit run's attempt-1 jobs, completed (ev/check-runs-head.jsonl)
+        return [{"name": n, "status": "completed", "conclusion": c, "started_at": f"2026-11-07T{started}Z",
+                 "completed_at": f"2026-11-07T{done}Z", "check_suite": {"id": suite}}
+                for n, c in (("prelude", "success"), ("cancel-superseded", "success"), ("refresh", "success"),
+                             ("budget-raise-gate / budget-raise-gate", "success"), ("arch-score / arch-score", "success"),
+                             ("tests", "skipped"), ("hassfest", "skipped"), ("kernel-points", "skipped"),
+                             ("governance", "skipped"), ("validate", "skipped"), ("codeql", "skipped"),
+                             ("pr-contract", "skipped"))]
+    reds = (units(114882436719, "19:05:54", "19:07:11") + [g(128499580417, 114882436719, "failure", "19:07:14", "19:19:15")]
+            + units(114887946321, "19:33:13", "19:39:40") + [g(128507622651, 114887946321, "failure", "19:41:28", "19:53:38")])
+    code_green = g(128512781341, 114882433887, "success", "20:01:55", "20:02:31")
+    done = [wr(CODE, "completed", 114882433887), wr(E1, "completed", 114882436719, "CI edit pr=3290 base=main sha=a"),
+            wr(E2, "completed", 114887946321, "CI edit pr=3290 base=main sha=a")]
+    rerun = done[:1] + [dict(r, status="in_progress") for r in done[1:]]
+    gap = {"runs": reds + [code_green], "ci_runs": done}
+    bound = SWEEP_SETTLE_SECONDS
+    (rc, line), _ = cli(gap, wall=lambda: ts("20:03:00"))
+    check("settle gap a38bd141 20:03:00Z: the code gate green 29 s ago, no sweep yet -- `classify` reads WAIT (exit 3)",
+          rc == 3 and line.startswith("WAIT ") and line.endswith("red: none"))
+    (rc, line), _ = cli(dict(gap, ci_runs=rerun), wall=lambda: ts("20:04:00"))
+    check("settle gap a38bd141 20:04:00Z: gate-sweep's attempt 2 running, its gates not re-listed -- WAIT (exit 3)",
+          rc == 3 and line.startswith("WAIT "))
+    (rc, line), _ = cli(dict(gap, ci_runs=rerun), wall=lambda: ts("20:02:31") + bound + 600)
+    check("settle gap: a re-run attempt whose gate is not re-listed is a wait past the bound too (the re-run read)",
+          rc == 3 and line.startswith("WAIT "))
+    swept = [dict(r, conclusion="success", started_at="2026-11-07T20:05:39Z", completed_at="2026-11-07T20:06:15Z",
+                  id=r["id"] + 1) for r in reds if r["name"] == GATE]
+    (rc, line), _ = cli({"runs": reds + swept + [code_green], "ci_runs": done}, wall=lambda: ts("20:06:20"))
+    check("settle gap a38bd141 20:06:20Z: swept -- GREEN (exit 0)", rc == 0 and line.startswith("GREEN "))
+    (rc, line), _ = cli(gap, wall=lambda: ts("20:02:31") + bound + 1)
+    check(f"settle gap null: past the bound ({bound} s) with no re-run, the red stands -- RED (exit 1), "
+          "a sweep that never comes still ends RED", rc == 1 and line.startswith("RED ") and line.endswith("red: " + GATE))
+    (rc, line), _ = cli(gap, wall=lambda: ts("20:02:31") + bound)
+    check("settle gap: at exactly the bound the settle still holds -- WAIT", rc == 3)
+    (rc, line), _ = cli(gap, wall=lambda: ts("20:02:31"))
+    check("settle gap: a read in the code gate's completion second (age 0) is inside the settle -- WAIT", rc == 3)
+    (rc, line), _ = cli(gap, wall=lambda: ts("20:02:00"))
+    check("settle gap: a completion stamped ahead of the reading clock is unknowable, no settle -- RED",
+          rc == 1 and line.startswith("RED "))
+    (rc, line), _ = cli({"runs": reds + [dict(code_green, conclusion="failure")], "ci_runs": done},
+                        wall=lambda: ts("20:03:00"))
+    check("settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once",
+          rc == 1 and line.startswith("RED "))
+    # #3293 at fefaa492: both runs created 21:04:55Z; the edit gate failed
+    # deferring while code run 42414123291's units still ran.
+    CODE2, EDIT2 = 42414123291, 42414123334
+    edit_red = g(128528991330, 114906715876, "failure", "21:07:26", "21:07:57")
+    closures = {"name": "tests / closures", "id": 128528714784, "status": "in_progress", "conclusion": None,
+                "started_at": "2026-11-07T21:07:17Z", "check_suite": {"id": 114906715780}}
+    race = {"runs": [edit_red, closures],
+            "ci_runs": [wr(CODE2, "in_progress", 114906715780, "CI code pr=3293 base=main sha=a"),
+                        wr(EDIT2, "completed", 114906715876, "CI edit pr=3293 base=main sha=a")]}
+    (rc, line), _ = cli(race, wall=lambda: ts("21:08:30"))
+    check("#3293 race: the edit gate failed while code run 42414123291 runs -- `classify` reads WAIT (exit 3), "
+          "never RED", rc == 3 and line.startswith("WAIT ") and line.endswith("red: none"))
+    (rc, line), _ = cli(dict(race, ci_runs=race["ci_runs"][1:]), wall=lambda: ts("21:08:30"))
+    check("#3293 null: the same edit gate failure with no code run in progress stays RED (exit 1)",
+          rc == 1 and line.startswith("RED "))
+    code_red = g(128530000001, 114906715780, "failure", "21:20:00", "21:20:30")
+    (rc, line), _ = cli({"runs": [edit_red, dict(closures, status="completed", conclusion="failure"), code_red],
+                         "ci_runs": [dict(r, status="completed") for r in race["ci_runs"]]}, wall=lambda: ts("21:20:40"))
+    check("#3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)",
+          rc == 1 and line.startswith("RED "))
 
 
 def _state_self_test(check, go, merged, throwaway_git_init) -> None:
@@ -5658,6 +6196,7 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         rc, lines, calls = go(w)
         check(f"A5 serial: {what}", (rc == 0 and merged(calls)) == merges
               and (merges or not merged(calls)) and ("A5" in lines[-1] or merges or "red at the head" in lines[-1]))
+    _defer_wait_self_test(check, go, merged, cr, gt, gate_req, json.dumps(rollup(ok_g, ok_g)))
     rc, lines, calls = go({})  # go()'s default: the ruleset ["fast"], green runs
     check("A5 null: an old-layout ruleset (no gate) makes no platform read", rc == 0 and merged(calls)
           and not any("statusCheckRollup" in " ".join(c) for c in calls))
@@ -5749,6 +6288,8 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
             if "/actions/jobs/" in a and a.endswith("/logs"):
                 text = (logs or {}).get(int(a.rsplit("/", 2)[-2]), RAISE_LOG)
                 return (0, text) if text is not None else (1, "HTTP 410: logs expired")
+            if "actions/workflows/ci.yml/runs" in a:  # no ci.yml run at the head: nothing busy
+                return 0, ""
             if "check-runs" in a:
                 return 0, "\n".join(json.dumps(c) for c in runs)
             if a.endswith("rulesets --jq " + argv[-1]):
@@ -7818,26 +8359,19 @@ def main(argv: list[str]) -> int:
         print("DONE", a.sha, "red:", " ".join(red) or "none")
         return 1 if red else 0
     if a.cmd in ("unstale", "classify"):
-        t = Train(a.repo, Path("."), None, "", (), a.min_runs)
+        # classify's stdout is its one verdict line; its deferral log goes to stderr
+        t = Train(a.repo, Path("."), None, "", (), a.min_runs,
+                  **({"log": lambda m: print(m, file=sys.stderr)} if a.cmd == "classify" else {}))
         try:
             if a.cmd == "unstale":
                 t.unstale(a.sha)
                 return 0
-            runs = t._check_runs(a.sha)
-            if runs is None:
-                raise Stop("ci", f"the check runs at {a.sha[:12]} could not be read")
-            req = t.required(pr_head=not a.main)
-            state, pending, red = classify(latest_runs(runs), req)
-            why = (approval_owed(t, a.pr, a.sha, runs, req)
-                   if state == "red" and a.pr is not None else None)
+            rc, line = classify_cmd(t, a.sha, a.pr, a.main)
         except Stop as s:
             print(f"REFUSE {s.step}: {s.why}")
             return 1 if a.cmd == "unstale" else 2
-        if why:
-            print(f"APPROVAL-OWED {a.sha} {why}")
-            return 4
-        print(f"{state.upper()} {a.sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
-        return {"green": 0, "red": 1, "wait": 3}[state]
+        print(line)
+        return rc
     if a.cmd == "sweep":
         t = Train(a.repo, Path(a.state_dir), a.mandate, "", (), a.min_runs, stamp=a.stamp)
         return sweep(t, auto_train_argv(a.repo, a.state_dir, a.mandate))
