@@ -19421,6 +19421,53 @@
     "note": "Registered by the orchestrator (s7) after merge: the root-cause PR landed with no roster group.; overlap admitted (R10-RCA-STAMP-FLUSH-COST, R10-RCA-COP-UNMEASURED): record-only: merged RCA group, stage done; shares only the append-only bugclasses.json with R10-RCA-STAMP-FLUSH-COST"
    },
    "brief": "Root-cause record for the whole-run cancels at live heads on PR 3241 and PR 3232: not concurrency cancels, runner loss or cancel_superseded.py, but cancels POSTed under the owner credential from outside every in-tree canceller. Landed in PR 3277 (merge 28d46c491): the record dev/audit/rca/r10-livehead-cancel.md, the detector livehead_cancels.py, class N-livehead-operator-cancel and the _rca entry in bugclasses.json. The process that sent the cancels is not nameable from GitHub data and is left to the orchestrator's own transcripts. Registered done so the plan counts it."
+  },
+  {
+   "group": "R10-RCA-FLUSH-DISPATCH",
+   "lane": "CP",
+   "kind": "rca",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "N-dispatch-overreach",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/audit/rca/r10-rca-flush-dispatch.md",
+    "dev/audit/harnesses/r10_rca_flush_dispatch.py",
+    "tests/closures.json",
+    "dev/audit/config/finding.schema.json",
+    ".claude/workflows/audit-find.js",
+    "dev/audit/config/bugclasses.json"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "done",
+    "branch": "handoff/r10-rca-flush-dispatch",
+    "pr": 3285,
+    "commit": "b4ec2f332fe3ab8dcf169bd3066276d3bb8848ab",
+    "last_step": null,
+    "next_step": null,
+    "note": "Registered by the orchestrator (s7) after merge: the root-cause PR landed with no roster group.; overlap admitted (R10-RCA-STAMP-FLUSH-COST, R10-RCA-COP-UNMEASURED): record-only: merged RCA group, stage done; shares only the append-only bugclasses.json with R10-RCA-STAMP-FLUSH-COST"
+   },
+   "brief": "Root-cause record, beside R10-FLY-STAMP-FLUSH-COST, for the stamp record flush dispatching all of Nightly to run the one-minute record-autofix job: the flush rule took a job as the unit of dispatch while the API dispatches a workflow. Process state (c). Landed in PR 3285 (merge b4ec2f332): the record, harness r10_rca_flush_dispatch.py, class N-dispatch-overreach and the _rca entry. A generic dispatch-scope check is refused under the cost bound; the countermeasure, a one-line proposal-triage.md rule pricing a dispatch by the jobs it runs, is proposed and awaits the owner. Registered done so the plan counts it."
   }
  ]
 }
