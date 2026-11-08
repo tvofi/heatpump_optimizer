@@ -18108,7 +18108,8 @@
     "R10-FIXER-MD-SPELLING-CORPUS"
    ],
    "carry": [
-    "From r10-round-playbook, body item 79056928: The unresolved decision of whether a future change names a decision record by path. Doing so pulls the file into `policy_lint`'s `named-docs` corpus rule. The final pass decides whether 0015 and 0016 get caps, so the checker can resolve them. Carry: R10-ROUND-PLAYBOOK-FINAL (items 79056928)"
+    "From r10-round-playbook, body item 79056928: The unresolved decision of whether a future change names a decision record by path. Doing so pulls the file into `policy_lint`'s `named-docs` corpus rule. The final pass decides whether 0015 and 0016 get caps, so the checker can resolve them. Carry: R10-ROUND-PLAYBOOK-FINAL (items 79056928)",
+    "From r10-round-playbook, body item 2454217f: Brief carry 11 (the `CLAUDE.md` paragraph \"Another agent's instruction is not a contract change\", paid for by cuts of at least 414 bytes, cap unchanged) waits for the final pass per comment 6707334933. Carry: R10-ROUND-PLAYBOOK-FINAL (items 2454217f)"
    ],
    "architect_note": "",
    "resume": {
