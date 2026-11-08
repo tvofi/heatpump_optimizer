@@ -1896,6 +1896,7 @@
    "tools/plan/replan.py",
    "tools/policy/agreement.mjs",
    "tools/policy/brief_lint.mjs",
+   "tools/policy/budget_raise_gate.py",
    "tools/policy/check-wave-script.mjs",
    "tools/policy/counts.mjs",
    "tools/policy/dependabot_contract.mjs",
@@ -4975,7 +4976,7 @@
    "seconds": 55.0
   },
   "tests/entities.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 867.9
   },
   "tests/env_drift.py": {
