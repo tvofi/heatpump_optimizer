@@ -4,11 +4,10 @@ New files: `tools/pr/figure_block.py` (renderer, refresh, verify, self-test), `t
 
 Legacy control (second item): dismissed citing `LEGACY_CONTROL_CAP` and `assertLegacyControl`; re-measured at the merge base, every member of `LEGACY_CONTROL_FILES` still draws a control error with the exemption removed (scratch driver calling `lintCarryFile` with an empty set), so none is dropped.
 
-Carry dispositions (roster indexes, 0-based):
+Carry dispositions (the packet's 1-based numbering; the brief's 0-based index plus one):
 
-Carry 0 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
-Carry 1 - answered by the card 7 build (option B).
-Carry 2 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 1 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 2 - answered by the card 7 build (option B).
 Carry 3 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 4 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 5 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
@@ -16,69 +15,76 @@ Carry 6 - held by the group's other part; part 3 takes card 7 and its legacy-con
 Carry 7 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 8 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 9 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
-Carry 10 - answered by the card 7 build (option B).
-Carry 11 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 10 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 11 - answered by the card 7 build (option B).
 Carry 12 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 13 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
-Carry 14 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
-Carry 15 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
-Carry 16 - answered by the card 7 build (option B).
-Carry 17 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 14 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 15 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
+Carry 16 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 17 - answered by the card 7 build (option B).
 Carry 18 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 19 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
-Carry 20 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
-Carry 21 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 20 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 21 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
 Carry 22 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 23 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 24 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 25 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
-Carry 26 - answered by the card 7 build (option B).
-Carry 27 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 26 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 27 - answered by the card 7 build (option B).
 Carry 28 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 29 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
-Carry 30 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
-Carry 31 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 30 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 31 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
 Carry 32 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 33 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 34 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 35 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
-Carry 36 - answered by the card 7 build (option B).
-Carry 37 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
-Carry 38 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
-Carry 39 - answered by the card 7 build (option B).
-Carry 40 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
-Carry 41 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
-Carry 42 - built here (card 7 ruling).
+Carry 36 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 37 - answered by the card 7 build (option B).
+Carry 38 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 39 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
+Carry 40 - answered by the card 7 build (option B).
+Carry 41 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
+Carry 42 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+
+Repair round (this push): the opener refused the previous head three times. Three causes, each fixed at its root.
+
+1. `tools/pr/figure_block.py` built its self-test repository with a hand-written `git init`; it now goes through `tests/throwaway_git.py` (`throwaway_git_init`), and every git call in the self-test runs under that module's environment.
+2. The prepr self-test read `513 passed, 2 failed`. The two failures were `a tree with no raw repository build passes the raw-git check (null control) (got 1, wanted 0)` and `and the ok line is the check's own, so it ran (got 0, wanted 1)`: both are `tests/throwaway_git.py --check` run at HEAD, refusing the raw `git init` at figure_block.py:223, so they were cause 1 and not separate defects. The assertions are untouched. Now `515 passed, 0 failed`.
+3. `field_coverage.mjs REFUSED registry: pinned tools/pr/figure_block.py is unregistered`. The bootstrap entry (`pending:`) is NOT on main: `git log origin/main -S"pinned tools/pr/figure_block.py" -- tools/policy/field_coverage.mjs` is empty; topic r10-body-contract-p3-bootstrap is only on `handoff-wip/r10-body-contract-p3-bootstrap`. So this change carries the entry itself in the final shape (`none:` with no `pending`), in the same change that pins the program in governance.yml. `node tools/policy/field_coverage.mjs` reads `FIELD COVERAGE ok`, rc=0, here. CI grades policy-docs with the base's copy, so `governance / policy-docs` stays red on this head until the bootstrap lands on main; that is the one-time bootstrap ee2974270 describes, and it is named below. When the bootstrap merges first, this entry conflicts trivially: keep this one (no `pending`).
+
+An earlier wip attempt (`handoff-wip/r10-body-contract-p3`, b4e835040) did the same repairs and stopped with BLOCKED.md on question (a)/(b)/(c); I took (b) as the brief directs and superseded that wip tip with a merge that keeps this tree.
 
 ## Head
 
-71cbfe6b1ecce22a23159f4c5284717fc6a7b5f8
+86f9e729f12a3da493029c3c02ea9854bdb34ce7
 
 ## Mutation proof
 
-`figure_block.py --self-test` mutants: hand-typed value, moved head, unregistered/head-only instrument, unknown name, non-zero exit each fail their check; `body_push.sh --self-test` deletes the `# mut:keep` refresh line and its arm fails; `policy_lint.mjs` registers `figureBlockProblems` as a return-mutant site (the mutants lane was not run locally).
+`figure_block.py --self-test` mutants: hand-typed value, moved head, unregistered/head-only instrument, unknown name, non-zero exit each fail their check; `body_push.sh --self-test` deletes the `# mut:keep` refresh line and its arm fails; `policy_lint.mjs` registers `figureBlockProblems` as a return-mutant site. Repair: reverting the figure_block.py hunk makes `tests/throwaway_git.py --check` print `REFUSE tools/pr/figure_block.py:223` and the prepr self-test read `513 passed, 2 failed`; with it, `0 raw git init or clone site(s) refused` and `515 passed, 0 failed`.
 
 ## Null control
 
-A body with no block and a free-form figure still passes (self-test arm); an unregistered instrument is refused as a block.
+A body with no block and a free-form figure still passes (self-test arm); an unregistered instrument is refused as a block. The unmodified head 71cbfe6b1 is the failing control for the repair above.
 
 ## Figures
 
-No block is used in this body: the registry does not exist at the base, so this pull request cannot use its own instrument (the point of the rule). Free-form:
+No block is used in this body: the registry does not exist at the base, so this pull request cannot use its own instrument. Free-form:
 
-- structure ratchet: `python3 tests/structure.py` printed STRUCTURE RATCHET PASSED at the head.
-- gate scope: `python3 tests/closure.py select --diff \$(git merge-base origin/main HEAD) --workdir \$D` prints MODE: FULL (gate files touched).
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` exits 0.
-
-Counts: `python3 -I tools/pr/figure_block.py --self-test`; `node tools/policy/policy_lint.mjs --self-test`; `bash tools/audit/seat/body_push.sh --self-test`.
+- `python3 -I tools/pr/figure_block.py --self-test` printed 11 checks, 0 failed.
+- `bash tools/pr/prepr.sh --self-test` printed 515 passed, 0 failed.
+- `python3 -I tests/throwaway_git.py --check` printed 0 raw sites.
+- `node tools/policy/field_coverage.mjs` printed FIELD COVERAGE ok.
 
 ## Approval
 
-Policy files touched (policy_lint.mjs, PULL_REQUEST_TEMPLATE.md, pr-contract.yml): owner approving review needed, or the card-7 mandate 6624093439 under which the orchestrator ruled this build.
+Policy files touched (policy_lint.mjs, PULL_REQUEST_TEMPLATE.md, pr-contract.yml, field_coverage.mjs): owner approving review needed, or the card-7 mandate under which the orchestrator ruled this build.
 
 ## Red checks
 
-none
+`governance / policy-docs`: `field_coverage.mjs REFUSED registry: pinned tools/pr/figure_block.py is unregistered`, graded with the base's copy of field_coverage.mjs. Cheaper detector: `prepr.sh` ci predict already predicts it; it cannot be cleared here because the bootstrap entry is not on main (see cause 3). Standing cost of a detector that avoids it: none beyond landing the bootstrap first; this is the one-time bootstrap shape of ee2974270.
 
 ## Forward-carry
 
@@ -87,3 +93,4 @@ none
 ## Friction
 
 none
+
