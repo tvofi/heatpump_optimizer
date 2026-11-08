@@ -1,0 +1,25 @@
+RESULT real-lint unrelated-write ok=True warn=True
+WARN pre-existing, re-pin owed: ERROR   [R10-ROSTER-WRITE-SWEEP] path:line: tools/audit/seat/roster_edit.py:99999: line 99999 is past end of file (2742 lines)
+WARN pre-existing, re-pin owed: ERROR   [R10-ROSTER-WRITE-SWEEP] symbol: 'zz_no_such_symbol_qq': not found in the tracked tree (no tag cited either)
+RESULT real-lint new-bad-cite ok=True
+WARN pre-existing, re-pin owed: ERROR   [R10-ROSTER-WRITE-SWEEP] path:line: tools/audit/seat/roster_edit.py:99999: line 99999 is past end of file (2742 lines)
+WARN pre-existing, re-pin owed: ERROR   [R10-ROSTER-WRITE-SWEEP] symbol: 'zz_no_such_symbol_qq': not found in the tracked tree (no tag cited either)
+RESULT real-lint clean ok=True CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 0 error(s) across 1 file(s)
+RESULT real-lint same-group-note ok=True
+live group R10-PREPR-CAP
+RESULT real-lint new-bad-cite-live-group ok=False
+ERROR   [R10-PREPR-CAP] path:line: tools/audit/seat/bus.sh:999999: line 999999 is past end of file (2046 lines)
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 3 error(s) across 1 file(s)
+RESULT real-lint new-bad-cite-same-group ok=False
+ERROR   [R10-ROSTER-WRITE-SWEEP] path:line: tools/audit/seat/bus.sh:999998: line 999998 is past end of file (2046 lines)
+CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json)
+
+TOTAL: 3 error(s) across 1 file(s)
+RESULT real-lint no-base(old gate) unrelated ok=False
+RESULT real-lint duplicate-error-string-in-new-carry ok=True
+WARN pre-existing, re-pin owed: ERROR   [R10-ROSTER-WRITE-SWEEP] path:line: tools/audit/seat/roster_edit.py:99999: line 99999 is past end of file (2742 lines)
+WARN pre-existing, re-pin owed: ERROR   [R10-ROSTER-WRITE-SWEEP] symbol: 'zz_no_such_symbol_qq': not found in the tracked tree (no tag cited either)
