@@ -4102,6 +4102,7 @@
    "dev/audit/harnesses/r10_merge_subject_plants.sh",
    "dev/audit/harnesses/r10_mermaid_gantt_title.mjs",
    "dev/audit/harnesses/r10_mermaid_parse.mjs",
+   "dev/audit/harnesses/r10_min_power_floor.py",
    "dev/audit/harnesses/r10_month_last_window_billed.py",
    "dev/audit/harnesses/r10_mutant_skip/null_drive.py",
    "dev/audit/harnesses/r10_mutant_skip/replay.py",
