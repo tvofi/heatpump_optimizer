@@ -5329,7 +5329,7 @@
     ],
     "non_round_note": "A process defect ruled by the owner on 2026-11-07, not an audit finding, not in register_rows.tsv, not counted in total. Reopen on a second code caller whose dispatch runs jobs it does not want.",
     "non_round_instances": [
-      "6b1aa629f stamp.py dispatch_record_beat dispatches all of nightly.yml for record-autofix (26 dispatches, at most 15909 runner-min, 2026-10-26 to 2026-11-07)"
+      "6b1aa629f stamp.py dispatch_record_beat dispatches all of nightly.yml for record-autofix (27 dispatches, at most 16916 runner-min, 2026-10-26 to 2026-11-07; re-measured at 73365699a, dev/audit/rca/r10-rca-flush-dispatch.md section 7)"
     ],
     "rca": [
       "R10-RCA-FLUSH-DISPATCH"
