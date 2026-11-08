@@ -4197,6 +4197,14 @@ def _p2_registry(sources):
 #: Facts no AST shape holds, each held by a census in another script that
 #: asserts its own reach. A registry entry here is the census's check text.
 _P2_CENSUSES = {
+    # R10-COMBI-TANK-STORE (#3225): the hot-water store is one view, its two
+    # sides exchange their flux, and only tap-stated limits pass through eps.
+    "combi_store_view": (
+        "tests/features.py", "combi_store_view census: outside thermal_model.py nothing reads"),
+    "combi_flux_live": (
+        "tests/features.py", "combi_flux_live census: every DHW walk the planner runs"),
+    "combi_tap_limit": (
+        "tests/features.py", "combi_tap_limit census: every tap-stated minimum the planner"),
     # #1747: the DHW mode block reached the first DHW build and not the
     # co-optimisation replan's (R9-RCA-1747); EG-B8's census holds it.
     "dhw_mode_blocked_at_every_build": (

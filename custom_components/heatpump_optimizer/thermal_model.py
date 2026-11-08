@@ -1916,6 +1916,11 @@ class DhwStore:
             return store_c
         return self.inlet_c + self.effectiveness * (store_c - self.inlet_c)
 
+    def space_flux(self, space_net_kw: np.ndarray | None) -> np.ndarray | None:
+        """The space side's net flux as this store sees it: a separate tank
+        shares no water with the space side, so for it the series is dead."""
+        return space_net_kw if self.combi else None
+
 
 def combi_store_of(p: ThermalParameters) -> DhwStore | None:
     """The combi store, or None off combi: read once per walk, never per step."""

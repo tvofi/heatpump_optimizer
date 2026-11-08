@@ -1002,6 +1002,7 @@ class DhwPlanner:
             wood_temps,
             holiday_flags,
         )
+        tank_exo_kw = store.space_flux(tank_exo_kw)
 
         # The pump serves DHW as an on/off block, not a trickle, so the planner
         # allocates at a realistic run power and never below the level at which
