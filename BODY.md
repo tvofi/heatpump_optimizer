@@ -74,7 +74,6 @@ none
 - Carry 38: dismissed (folded, resolved, duplicate or a status line, per the brief)
 - Carry 39: dismissed (folded, resolved, duplicate or a status line, per the brief)
 - Carry 40: built at 92c5c2afe33c82d4bc19ed801cd968c51d767adb: the duplicate of carry 19, answered by the same change
-- Carry 41: not in the brief snapshot this seat was given (carries 0 to 40); not built here, stays open on the roster. Carry: R10-HANDOFF-PATH
 
 ## Unpinned sites
 
