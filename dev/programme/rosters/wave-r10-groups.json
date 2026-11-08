@@ -7640,7 +7640,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done",
-    "note": "Owner request 2026-10-21; the last group before the closure stamp."
+    "note": "Owner request 2026-10-21; the last group before the closure stamp.",
+    "pr": 3319
    }
   },
   {
