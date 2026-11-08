@@ -38,10 +38,11 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-TRAIN-MERGE-LOOP-2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-GATE-BUSY-DEFER (stage carries-open, branch `handoff/r10-gate-busy-defer-3`): `git fetch origin handoff/r10-gate-busy-defer-3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-CARRY-RESIDUE-2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REPLAY-COST-2 (stage refused): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-CODEQL-HEADROOM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-COMBI-TANK (stage carries-open, branch `handoff/r10-combi-tank`): `git fetch origin handoff/r10-combi-tank && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-OUTSIDE-INTAKE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-OUTSIDE-INTAKE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-RCA-GATE-BUSY-DEFER-2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-STAMP-FLUSH-COST (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-COP-UNMEASURED (stage in-progress, branch `handoff/r10-hotfix-cop-unmeasured`): `git fetch origin handoff/r10-hotfix-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -53,6 +54,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FRICTION-CI-RED (stage carries-open, branch `handoff/r10-friction-ci-red`): `git fetch origin handoff/r10-friction-ci-red && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-I18N-DE (stage in-progress, branch `handoff/r10-i18n-de`): `git fetch origin handoff/r10-i18n-de && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GENERIC-HEAT-CURVE (stage in-progress, branch `handoff/r10-generic-heat-curve`): `git fetch origin handoff/r10-generic-heat-curve && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-CLOSEOUT-INSTRUMENTS (stage in-progress, branch `handoff/r10-closeout-instruments`): `git fetch origin handoff/r10-closeout-instruments && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-MIN-POWER-FLOOR (stage in-progress, branch `handoff/r10-min-power-floor`): `git fetch origin handoff/r10-min-power-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FRICTION-OTHER-FAMILY (stage carries-open, branch `handoff/r10-friction-other-family`): `git fetch origin handoff/r10-friction-other-family && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-COP-UNMEASURED (stage in-progress, branch `handoff/r10-rca-cop-unmeasured`): `git fetch origin handoff/r10-rca-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
