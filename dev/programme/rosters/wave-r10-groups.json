@@ -18371,7 +18371,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "done",
+    "stage": "carries-open",
     "branch": "handoff/r10-ci-grader-batch-study",
     "commit": "34ed8ee709c1bd9295a0f35b6ae161d796e809b2",
     "last_step": null,
