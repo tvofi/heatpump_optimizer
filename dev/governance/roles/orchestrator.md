@@ -191,7 +191,7 @@ established fact, with nothing gating it. A real finding you must not touch goes
 ## 9. The record, and the one living handover
 
 `delivery-status-tracking.mdc`, at **each merge**: `postmerge.py`'s #201 line and roster `resume`,
-no per-PR row (card C5); a verdict's paperwork notes are yours to resolve at that merge.
+no per-PR row from you (card C5); a verdict's paperwork notes are yours to resolve at that merge.
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
 
 Failure shapes already produced, all yours:
