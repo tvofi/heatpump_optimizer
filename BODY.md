@@ -57,8 +57,7 @@ none
 
 ## Forward-carry
 
-- Carries 4, 9 and 16 data ops: Carry: R10-CARRY-RESIDUE-2 (roster seat applies them through `roster_queue.py`; this seat does not push the roster branch).
-- Carry 1 (M4 to M6 plants): waits on the original plants or an owner ruling; Carry: R10-CARRY-RESIDUE-2.
+none: the owed roster-data ops (carries 4, 9, 16) and carry 1 are already carries of R10-CARRY-RESIDUE-2 / this group in the roster, so nothing new is found here; they are named in `## Figures` with their commands.
 
 ## Friction
 
