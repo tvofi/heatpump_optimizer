@@ -1,0 +1,8 @@
+sweep self-test: 60 checks, 0 failed
+gate self-test: 77 checks, 0 failed
+ModuleNotFoundError: No module named 'sweep'
+tools/ci/gate.py:662:                if j["status"] == "completed" and j["completed_at"] and epoch(j["completed_at"]) <= t:
+tools/ci/gate.py:664:                elif j.get("started_at") and epoch(j["started_at"]) <= t:
+tools/ci/gate.py:682:        t0 = epoch(next(j for j in me["jobs"] if j["name"] == "gate")["judge_started_at"])
+tools/ci/gate.py:739:                j = {**j, "id": r["id"] * 10 if j["name"] == "gate" else 1, "started_at": rj["started_at"],
+tools/ci/gate.py:740:                     "completed_at": rj["completed_at"] if j["status"] == "completed" else None}

@@ -1,0 +1,9 @@
+== base
+step a (late real source): ['repos/o/r/actions/jobs/10/rerun', 'repos/o/r/actions/jobs/20/rerun']
+step b (bot pair, both red, mutual deferral): ['repos/o/r/actions/jobs/10/rerun']
+step c (lower re-judged alone, green): ['repos/o/r/actions/jobs/20/rerun']
+RESULT liveness reruns_after_pair=1 stuck_red=no
+== head
+step a (late real source): ['repos/o/r/actions/jobs/10/rerun', 'repos/o/r/actions/jobs/20/rerun']
+step b (bot pair, both red, mutual deferral): []
+RESULT liveness reruns_after_pair=0 stuck_red=yes

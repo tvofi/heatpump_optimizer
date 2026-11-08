@@ -1,0 +1,4 @@
+head: RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
+m1: RESULT replay reruns=86 max_attempt=44 sim_minutes=72 alarm=yes
+m2: RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
+m3: RESULT replay reruns=86 max_attempt=44 sim_minutes=72 alarm=yes
