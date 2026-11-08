@@ -34,9 +34,9 @@ At the dispatched run 42473930832: `codeql / Analyze (python)` cancelled at the 
 
 - A module-scope ClassDef body holding a try is not refused by the guard; the measurement gives no reason to extend it. Carry: dismissed: no instance in either file, and the premise is unproven
 - The cure does not clear the cap in n=1: either raise the cap or split the python job (the owner's ruling forbade both), or accept a repeated-run protocol. Carry: dismissed: the owner ruling forbids both cures (raise the cap, split the job), and the repeated-run protocol is the stated acceptance, recorded under Figures; it waits on no further ruling
-- A CI-cost hotfix under tests/ shows its effect only on a `workflow_dispatch` with no `pr` input (a closed PR's number is refused). Carry: R10-CI-SELFTEST-SCOPE
+- A CI-cost hotfix under tests/ shows its effect only on a `workflow_dispatch` with no `pr` input (a closed PR's number is refused). Carry: R10-CI-SELFTEST-SCOPE (dev/programme/rosters/wave-r10-groups.json)
 
 ## Friction
 
-- codeql-dispatch: contradiction: the verdict told the fixer to dispatch with pr=3266 base=main, but prelude refuses that when the PR is closed. Carry: R10-CI-SELFTEST-SCOPE
-- seat-tooling: stale: cloud-setup's venv-ha lacks scipy and paho and its homeassistant breaks tests/harness.py, so the suites cannot run in a cloud seat. Carry: R10-RCA-CLOUD-ENTITIES-ENV
+- codeql-dispatch: contradiction: the verdict told the fixer to dispatch with pr=3266 base=main, but prelude refuses that when the PR is closed. Carry: R10-CI-SELFTEST-SCOPE (dev/programme/rosters/wave-r10-groups.json)
+- seat-tooling: stale: cloud-setup's venv-ha lacks scipy and paho and its homeassistant breaks tests/harness.py, so the suites cannot run in a cloud seat. Carry: R10-RCA-CLOUD-ENTITIES-ENV (dev/programme/rosters/wave-r10-groups.json)
