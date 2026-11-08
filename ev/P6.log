@@ -1,0 +1,3 @@
+planted P6
+RESULT P6 [python3 tests/entities.py] rc=1 519s :: 5 of 2701 ENTITY CHECKS FAILED
+DONE

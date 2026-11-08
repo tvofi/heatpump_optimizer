@@ -1,0 +1,3 @@
+planted P5
+RESULT P5 [node tests/card.mjs] rc=1 0s :: FAIL: plan payload /tmp/plandata-712b5a2839c7.json not found — run tests/plan_view.py first
+DONE
