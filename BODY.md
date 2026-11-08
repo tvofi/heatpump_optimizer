@@ -35,7 +35,9 @@ Round 6. This is a minimal re-cut of the round-5 block (`verdict/3262`, ci-red).
 
 ## Head
 
-`0ac370fa281804336ba3444b3c867dacf48505ff`, a conflict resolution by merge: one merge commit whose parents are the previous head `33c3dd998d2413452fa6aec5c331a0a7e9c0c579` and `origin/main` at `8a1358e8448e6734ed16982f25da6aae223ba8b9`. No re-cut, squash or rebase. The merge conflicted in `tools/audit/seat/beat_jobs.py`, `tools/audit/seat/beat_jobs_selftest.py` and `tools/audit/seat/instruments/beat_jobs.py.md`; `tests/closures.json` and `sweep_template.md` merged without a conflict. Review only the resolution delta: `git show --cc 0ac370fa2`, which prints just the hunks that differ from both parents.
+`df0ffdf5e0ac56832a65818b7a31b7ac00c185fc`: round 7 repair, one commit on `c95c3b4b2e5875103fd5944c766d9e954f5b8a90` (the conflict-resolution head, which contains `0ac370fa281804336ba3444b3c867dacf48505ff`). It changes only `tools/audit/seat/beat_jobs_selftest.py`: two `plan_beat` cases and their two `MUTANTS` entries. No production line moved. `git merge-tree --write-tree origin/main HEAD` reported no conflict, so main was not merged; origin/main had not moved since the last prepr run (merge base `7c9c4c154cda514f938fd503cde2779716caf251`).
+
+The previous head `0ac370fa2` was a conflict resolution by merge: one merge commit whose parents are the previous head `33c3dd998d2413452fa6aec5c331a0a7e9c0c579` and `origin/main` at `8a1358e8448e6734ed16982f25da6aae223ba8b9`. No re-cut, squash or rebase. The merge conflicted in `tools/audit/seat/beat_jobs.py`, `tools/audit/seat/beat_jobs_selftest.py` and `tools/audit/seat/instruments/beat_jobs.py.md`; `tests/closures.json` and `sweep_template.md` merged without a conflict. Review only the resolution delta and the round 7 test commit: `git show --cc 0ac370fa2`, which prints just the hunks that differ from both parents.
 
 Resolution delta:
 - `beat_jobs.py` docstring: `plan-beat` keeps main's `PLAN MOVED` sentence, then this branch's `pages.yml` dispatch sentences. The `gantt` and `verdict-audit` docs are main's.
@@ -49,7 +51,12 @@ Previous head `33c3dd998` was itself at `8eac7a704` plus the round-6 review fixe
 
 ## Mutation proof
 
-**Failing test first.** At `b6feee85e~1`, I applied the new `MUTANTS` entries alone, without the new cases.
+**Round 7 (beat_jobs).** The round-7 reviewer's two surviving mutants of the resolved `plan_beat` lines (`verdict/3262` `evidence/reviewer-mutants-resolution.txt`; probes `reviewer-probe-moved-and-pushed.txt`, `reviewer-probe-rc1-page.txt`) each survived `beat_jobs.py --self-test --no-mutants` with rc 0 at `c95c3b4b2`. Two cases now pin them, and both mutants are in `beat_jobs_selftest.py`'s `MUTANTS`:
+- `moved_early_return` (`lines.append(PLAN MOVED ...)` becomes `return write_job(...)`) is killed by "plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once": `state_docs` writes a changed page and prints `pushed ...` at rc 0; the case requires the PLAN MOVED line and exactly one `gh workflow run pages.yml`.
+- `moved_on_rc1` (`if rc == 0:` becomes `if rc in (0, 1):` before the page read) is killed by "plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory": at rc 1 with a re-rendered page the digest starts `PLAN UNAVAILABLE rc=1`, has no PLAN MOVED, and `plan-page.json` stays empty.
+- Null control: the unmutated head passes both cases (`175 checks, 0 failed`). The mutant stage applies each entry to a copy and requires its named case to fail, and an entry whose edit does not apply is refused as stale; the run prints `ok   mutant moved_early_return killed by: ...` and `ok   mutant moved_on_rc1 killed by: ...`.
+
+**Earlier rounds (plan_public, outside_intake).** **Failing test first.** At `b6feee85e~1`, I applied the new `MUTANTS` entries alone, without the new cases.
 - `python3 -I tools/audit/seat/plan_public.py --self-test` gave rc 1: `FAIL mutant main_url_rc1 killed by: url prints PLAN_URL alone, rc 0`.
 - `outside_intake.py --self-test` refused both new entries as stale, because their cases did not yet exist: `FAIL mutant scan_disc_kind: stale` and `FAIL mutant owed_reply_ge: stale`.
 
@@ -95,34 +102,25 @@ The round-5 survivors `mark_old_restored_EQUIV`, `has_disc_ignored` and `plan_li
 - `VERSION`, `RELEASE_NOTES.md`, the manifest and both claim files are byte-identical to `origin/main`: `git diff --quiet origin/main HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt && echo BYTE-IDENTICAL` printed `BYTE-IDENTICAL`.
 - `dev/programme/delivery/3262.md` is in the three-dot diff (`grep -c` prints 1).
 - Toolchain: `bash tools/audit/seat/cloud-setup.sh` was run, then `--check` gave `cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3`. No golden was run, because the diff touches none.
-- `python3 tools/audit/seat/beat_jobs.py --self-test` at the merge: rc 0, `171 checks, 0 failed`, every mutant `ok`, including `plan_rc1_silent`, `plan_moved_every_pass` and the three `pages_*` mutants.
 - `python3 -I tools/audit/seat/plan_public.py --self-test` and `outside_intake.py --self-test`: rc 0 after the merge.
-- `tools/pr/prepr.sh` at `0ac370fa2` (no body passed): `PRE-PR: 0ac370fa281804336ba3444b3c867dacf48505ff ... rc=0`, every lane `ok` or `skip`. `closures` skipped (CI re-records); `diff mutants` skipped with `MUTANT_CMD` unset: the added lines of the resolution are this branch's and main's already-killed lines, covered by the beat_jobs self-test mutants above, so the survivor count is 0 by that run and there is no new site.
+- `tools/pr/prepr.sh` at `df0ffdf5e0ac56832a65818b7a31b7ac00c185fc` (`PREPR_SKIP_CLOSURES=1` since CI re-records closures; `MUTANT_CMD` set to the beat_jobs self-test): `PRE-PR ... rc=0`. The diff-mutant step reports 11 survivors against main; each is answered in the Unpinned sites section. The resolved `plan_beat` lines DO form a new control-flow site: main's early `return write_job` for PLAN MOVED and this branch's Pages dispatch were folded into one `lines` list. The round-7 review found two survivors there, now pinned by the two cases under Mutation proof. The earlier sentence saying the resolution had no new site was wrong.
+- `python3 -I tools/audit/seat/beat_jobs.py --self-test` at this head: rc 0, `175 checks, 0 failed` (171 before: +2 cases, +2 mutants); `moved_early_return` and `moved_on_rc1` each print `ok   mutant ... killed by`.
 
 ## Red checks
 
-**At the new head `0ac370fa2`, nothing has run, so no red has concluded; the reads below were taken at the previous head and are not re-taken.** `gh api "repos/tvofi/heatpump_optimizer/commits/8eac7a7049082315693abbedf6c2f5ed2e19babc/check-runs?filter=all&per_page=100"` gives `total_count` 0 (one page), and `actions/runs?head_sha=` gives `total_count` 0. Both were read at 2026-11-07T18:39:12Z. The same reads gave 0 and 0 at `f6a7b52fe` (18:05Z) and at `b6feee85e` (17:50Z).
-- `merge_train.py classify 8eac7a7049082315693abbedf6c2f5ed2e19babc --pr 3262` read `WAIT 8eac7a7049082315693abbedf6c2f5ed2e19babc pending: gate red: none` at 18:39:12Z. At `f6a7b52fe` it read `WAIT` at 18:05:20Z, and at `b6feee85e` it read `WAIT` at 17:20:02Z and 17:50:08Z.
-- The cause: pull request #3262's head branch is `fix/r10-outside-intake`, still at `b9b6af68683febf678907b19d7e73be453bc5bb7` (`pulls/3262` `.head`). The PR moves only when the orchestrator's `tools/audit/seat/handoff_push.sh` relays `handoff/r10-outside-intake` through `app_push.sh`.
-- So the brief's "make classify read GREEN before handoff" cannot be met from this seat, which may not write `fix/`. I took the option that keeps coverage: hand off with the fresh head. **The GREEN classify is owed at the relayed head before the next review.** If a fresh run is cancelled by a runner stall, that is the orchestrator's re-run.
+At `c95c3b4b2` (the resolution head) two checks concluded red, per the round-7 verdict:
+- `gate` 128581122145: `FAIL run(s) [42424058362] at this head are still being judged; their gate decides`. An edit-run deferral to the code run, which was still running; not a defect of this diff.
+- `pr-contract / pr-contract` 128578752551: `FAIL closed: no run at this head owns a finished codeql unit for base 'main' after 600 s`. A timing fail-close in `codescan_wait.py` while CodeQL python was still running; its body lanes were clean. It re-runs once CodeQL finishes.
 
-**The old head's concluded reds** (`b9b6af686`, `verdict/3262` `evidence/reds.tsv`). This head supersedes each one:
-- `gate` 128449147307 concluded `failure`, with `FAIL tests / fast (3.14): cancelled (run 42385084286)`.
-- `gate` 128449368751 concluded `cancelled`.
-- The cancelled jobs of code run 42385084286, cancelled at about 15:46:18Z with no re-run: `tests / fast (3.14)`, `tests / browser`, `tests / closures`, `tests / coverage`, `governance / instrument-self-tests` and `codeql / Analyze (python)`.
-  - This was a cancellation, not a defect of this diff. No cheaper detector exists.
-  - The two `gate` reds repeat it, and they are the same edit-run gate red class that `R10-HOTFIX-GATE-BUSY-DEFER` carries.
-- `tests / nightly-status` 128443914073 concluded `failure`. It grades main's cancelled Nightly 42369836867 at `08fd676`.
-  - This diff does not read that run: `git diff --name-only $(git merge-base origin/main HEAD)...HEAD | grep -c nightly_status` prints 0.
-  - The check is unrequired, red for every open PR graded against that dispatch, and its own detector.
+At this new head nothing has run yet, so no red has concluded; both are owed a re-read at the relayed head. The reds of the older head `b9b6af686` (a cancelled `gate`, the unrequired `tests / nightly-status`) are superseded.
 
-This seat could not read the code-scanning alerts: the body check's ancestry lane reports `code-scanning/analyses page 1: HTTP 403`, fail-closed. That read is owed by a seat with that access.
-
-Carry: R10-HOTFIX-GATE-BUSY-DEFER (the edit-run gate reds on another run's cancelled jobs recur).
+Carry: R10-HOTFIX-GATE-BUSY-DEFER (the edit-run gate deferral recurs).
 
 ## Unpinned sites
 
-none: the diff touches no `custom_components/` file, the only tree step 6d inventories. The `tools/` sites carry the in-tree mutants under `## Mutation proof`.
+The diff touches no `custom_components/` file. The diff-mutant step reports 11 survivors on the added lines against main, all in the beat_jobs pair and none in the round-7 lines:
+- `beat_jobs.py:583-584` (`GUARD_OFF`, `RETURN_DEL`): the `outside-intake` row's guard from an earlier round of this PR; not new in round 7. Disposition: left to `mutation-autofix`/triage if the row is touched.
+- `beat_jobs_selftest.py:127, 391-394, 401, 414, 471-472` (`CONST_SWAP`, `CALL_DEL`, `GUARD_OFF`, `RETURN_DEL`): test-fixture constants and null-case inputs. A mutated fixture is not production behaviour; the production mutants for these cases are the `MUTANTS` entries. Disposition: value checks, no pin owed.
 
 ## Approval
 
