@@ -1880,6 +1880,7 @@
    "tools/audit/seat/roster_sync.py",
    "tools/audit/seat/state_docs.py",
    "tools/audit/seat/tmp_paths.py",
+   "tools/audit/seat/topic_grammar.py",
    "tools/ci/alert_list.py",
    "tools/ci/codescan_wait.py",
    "tools/ci/gate.py",
@@ -4981,7 +4982,7 @@
    "seconds": 55.0
   },
   "tests/entities.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 867.9
   },
   "tests/env_drift.py": {
