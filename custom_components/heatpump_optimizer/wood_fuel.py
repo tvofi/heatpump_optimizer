@@ -465,20 +465,18 @@ def build_wood_fuel_view(
     config: Mapping[str, Any],
     *,
     prices: list[float],
-    outdoor: list[float],
+    cops: Sequence[float],
     runs: list[bool],
-    cop_at: Callable[[float], object],
     timestamps: Sequence[datetime],
     forecast_kw: list[float],
     wood_tank_temperature: float | None = None,
     comfort_min: float | None = None,
     local_tz: tzinfo | None = None,
-    partload: Sequence[float] = (),
 ) -> WoodFuel:
     """Ready/cheaper/slots. cheaper is False when not ready.
 
-    ``partload`` is the per-step COP multiplier at the plan's own draw
-    (``wood_fuel_from_parts``); empty prices pump heat at ``cop_at`` alone.
+    ``cops`` is the per-step COP the pump buys heat at, already derated at
+    the plan's own draw (``wood_fuel_from_parts``); the view only prices it.
 
     ``forecast_kw`` is the detector's free-heat forecast, empty while it is
     not suppressing, so detected slots exist only while it suppresses.
@@ -506,7 +504,6 @@ def build_wood_fuel_view(
     count = 0
     cheap: list[bool] = []
     if ready and sek is not None:
-        cops = _derated(_cops(outdoor, cop_at), partload)
         count = cheaper_hour_count(sek, prices, cops, runs)
         if count:
             cheap = cheaper_steps(sek, prices, cops, runs)
@@ -530,12 +527,10 @@ def build_wood_fuel_view(
         config,
         prices,
         timestamps,
-        outdoor,
-        cop_at,
+        cops,
         sek,
         wood_tank_temperature,
         comfort_min,
-        partload,
     )
     return view
 
@@ -581,12 +576,10 @@ def _attach_night_advice(
     config: Mapping[str, Any],
     prices: list[float],
     timestamps: Sequence[datetime],
-    outdoor: list[float],
-    cop_at: Callable[[float], object],
+    cops: Sequence[float],
     sek: float | None,
     wood_tank_temperature: float | None,
     comfort_min: float | None,
-    partload: Sequence[float] = (),
 ) -> None:
     if not wood_furnace_on(config) or sek is None or not prices or not timestamps:
         return
@@ -594,12 +587,11 @@ def _attach_night_advice(
     soc = wood_tank_soc_from_probes(wood_tank_temperature, floor)
     if soc is None:
         return
-    cops = _derated(_cops(outdoor, cop_at), partload) if outdoor else [3.0] * len(prices)
     advice = night_advice(
         now=timestamps[0],
         prices=prices,
         timestamps=timestamps,
-        cops=cops,
+        cops=list(cops) if cops else [3.0] * len(prices),
         wood_sek=sek,
         tank_soc=soc,
     )
@@ -639,17 +631,19 @@ def wood_fuel_from_parts(
     return build_wood_fuel_view(
         config,
         prices=list(result.prices) if result is not None else [],
-        outdoor=list(result.outdoor_temps) if result is not None else [],
+        cops=_derated(
+            _cops(result.outdoor_temps if result is not None else [],
+                  thermal_model.compute_cop),
+            _plan_partload(thermal_params, result, partload_at),
+        ),
         runs=(
             list(result.heat_pump_on_schedule or []) if result is not None else []
         ),
-        cop_at=thermal_model.compute_cop,
         timestamps=list(result.timestamps) if result is not None else [],
         forecast_kw=forecast_kw,
         wood_tank_temperature=getattr(current_state, "wood_tank_temperature", None),
         comfort_min=getattr(opt_config, "min_temp", None),
         local_tz=local_tz,
-        partload=_plan_partload(thermal_params, result, partload_at),
     )
 
 
