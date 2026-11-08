@@ -31,6 +31,17 @@ Arms:
                          - by: who started the green attempt, known only when it is its run's
                            latest attempt (the listing carries one triggering_actor per run).
                          Exit 1 when the fixture is malformed; the census itself has no verdict.
+  loop [--ci DIR]        replays the fixture's `loop_scene` (#3274 head 4f8ab965: one code and two
+                         edit runs, every gate red on `tests / closures`, a content red, each run
+                         re-run by github-actions[bot] to attempt 44 of sweep.py's ATTEMPT_CAP 45)
+                         through DIR's sweep.undecided() (default: this tree's tools/ci). For each
+                         actual re-run (attempt k >= 2 of run Y, starting at S), the sweep that
+                         fired it read Y's previous gate beside the other runs' attempts that had
+                         ended by S; the arm asks undecided() whether Y's gate deferred to them
+                         (predicted re-run) twice: on the jobs as listed, and with every job of
+                         conclusion `skipped` dropped (the null control: the runs' real work had
+                         finished long before every re-run). Prints RESULT reruns, predicted_listed,
+                         predicted_without_skipped
   heads [--fixture F]    per pull request: heads recorded, heads with a deferral red, and the
                          gate failures that were not deferrals (the null control: such a red is
                          not counted as a deferral)
@@ -42,8 +53,14 @@ created 2026-11-07T00:00Z to 2026-11-08T07:00Z; only runs with a re-run attempt 
 conclusion had their jobs read (an attempt-1 success has no deferral red to score).
 Needs the repository's history for the program split (git merge-base --is-ancestor).
 
-EXPECTED RESULT (fixture as committed):
-  RESULT deferral_reds=see the RCA document's Figures; this header carries the rule, not the count
+EXPECTED RESULT (fixture as committed; census, then loop at origin/main 73365699a's tools/ci):
+  RESULT deferral_reds=86
+  RESULT heads_with_deferral=43
+  RESULT non_deferral_reds=276
+  RESULT residual_red_decider_success=0
+  RESULT at_once_lag_min_max_decider_success=1.5
+  RESULT predicted_listed=129
+  RESULT predicted_without_skipped=38
 """
 from __future__ import annotations
 
@@ -59,6 +76,7 @@ FIXTURE = Path(__file__).with_suffix(".json")
 AT_ONCE_FIX = "5c1fa41fb9773048a79d86f741e30dec60fa5253"    # #3287's merge: the deferral publishes at once
 AT_ONCE_MERGED = "2026-11-07T19:14:31Z"                       # its committer stamp, 20:14:31 +0100
 _ANCESTRY: dict = {}
+LOOPED: list = []    # non-deferral gate reds on a re-run attempt of a run the bot re-ran last
 
 
 def ts(s):
@@ -116,6 +134,8 @@ def rows(prs):
                     continue
                 if not g.get("defer_to"):
                     nondefer += 1
+                    if g["run_attempt"] > 1 and r.get("triggering_actor") == "github-actions[bot]":
+                        LOOPED.append((p["pr"], r["id"], g))
                     continue
                 done = ts(g["completed_at"])
                 named = [runs.get(i) for i in g["defer_to"]]
@@ -159,6 +179,12 @@ def census(prs):
     print(f"RESULT heads_with_deferral={len(heads)}")
     print(f"RESULT prs_with_deferral={len({x['pr'] for x in rs})}")
     print(f"RESULT non_deferral_reds={nondefer}")
+    # the settle loop (r10-gate-defer-read-final.md section 7): a content red re-run by the sweep;
+    # a run's listing names only its LATEST attempt's actor, so this counts runs the bot re-ran last
+    print(f"RESULT bot_reran_content_reds={len(LOOPED)}")
+    print(f"RESULT bot_reran_content_red_gate_min="
+          f"{sum((ts(g['completed_at']) - ts(g['started_at'])).total_seconds() for _, _, g in LOOPED if g.get('completed_at')) / 60:.0f}")
+    print(f"RESULT bot_reran_content_red_prs={len({p for p, _, _ in LOOPED})}")
     resid = [x for x in rs if x["green"] is None]
     print(f"RESULT residual_red={len(resid)}")
     # a residual red is honest when its decider did not succeed (the head is red or superseded
@@ -176,14 +202,61 @@ def census(prs):
         reds = [x["red_min"] for x in sub if x["red_min"] is not None]
         lags = [x["lag_min"] for x in sub if x["lag_min"] is not None]
         print(f"RESULT {prog.replace('-', '_')}_reds={len(sub)}")
+        print(f"RESULT {prog.replace('-', '_')}_heads={len({(x['pr'], x['head']) for x in sub})}")
         if reds:
             print(f"RESULT {prog.replace('-', '_')}_red_min_median={statistics.median(reds):.1f}")
             print(f"RESULT {prog.replace('-', '_')}_red_min_max={max(reds):.1f}")
         if lags:
             print(f"RESULT {prog.replace('-', '_')}_lag_min_median={statistics.median(lags):.1f}")
             print(f"RESULT {prog.replace('-', '_')}_lag_min_max={max(lags):.1f}")
-        humans = sum(1 for x in sub if x["by"] not in (None, "?", "github-actions[bot]"))
+        ok = [x["lag_min"] for x in sub if x["lag_min"] is not None
+              and set((x["decider_verdict"] or "?").split(",")) == {"success"}]
+        if ok:
+            # the sweep's own latency: reds whose every named run's attempt succeeded
+            print(f"RESULT {prog.replace('-', '_')}_lag_min_max_decider_success={max(ok):.1f}")
+        humans = sum(1 for x in sub if x["by"] not in (None, "?") and not x["by"].endswith("[bot]"))
         print(f"RESULT {prog.replace('-', '_')}_green_by_human={humans}")
+    return 0
+
+
+def loop(doc, ci):
+    sys.path.insert(0, str(Path(ci).resolve()))
+    sweep = __import__("sweep")
+    scene, fields = doc["loop_scene"], doc["loop_scene_fields"]
+    runs = {int(r): {int(a): [dict(zip(fields, j)) for j in js] for a, js in atts.items()}
+            for r, atts in scene["runs"].items()}
+
+    def gate(jobs):
+        gs = [j for j in jobs if j["name"] == "gate"]
+        return gs[-1] if gs else None
+
+    def start(jobs):
+        return min(j["started_at"] for j in jobs if j["started_at"])
+
+    def end(jobs):
+        return max(j["completed_at"] for j in jobs if j["completed_at"])
+
+    n = listed = bare = 0
+    for y, atts in sorted(runs.items()):
+        for k in sorted(atts):
+            if k < 2 or (k - 1) not in atts:
+                continue
+            s = max(j["started_at"] for j in atts[k] if j["name"] == "gate")    # the re-run's gate
+            g = gate(atts[k - 1])
+            others = {}
+            for x, xa in runs.items():
+                done = [a for a in xa if x != y and end(xa[a]) <= s]
+                if done:
+                    others[x] = xa[max(done, key=lambda a: end(xa[a]))]
+            if not g or not others:
+                continue
+            n += 1
+            listed += bool(sweep.undecided(g, y, others))
+            bare += bool(sweep.undecided(g, y, {x: [j for j in js if j["conclusion"] != "skipped"]
+                                                for x, js in others.items()}))
+    print(f"RESULT reruns={n}")
+    print(f"RESULT predicted_listed={listed}")
+    print(f"RESULT predicted_without_skipped={bare}")
     return 0
 
 
@@ -198,9 +271,12 @@ def heads(prs):
 
 def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("arm", choices=("census", "heads"))
+    ap.add_argument("arm", choices=("census", "heads", "loop"))
     ap.add_argument("--fixture", default=str(FIXTURE))
+    ap.add_argument("--ci", default=str(Path(__file__).resolve().parents[3] / "tools" / "ci"))
     a = ap.parse_args(argv)
+    if a.arm == "loop":
+        return loop(json.loads(Path(a.fixture).read_text()), a.ci)
     prs = load(a.fixture)
     return census(prs) if a.arm == "census" else heads(prs)
 
