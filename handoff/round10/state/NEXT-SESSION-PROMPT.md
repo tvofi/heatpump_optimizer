@@ -21,7 +21,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-POLICY-ROLE-PACK (stage carries-open, branch `handoff/r10-policy-role-pack`): `git fetch origin handoff/r10-policy-role-pack && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ADVISOR-WHATIF (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-FLY-CIPREDICT-RESTORING (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-FLY-CIPREDICT-RESTORING (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-STANDING-CONTRACTS (stage carries-open, branch `handoff/r10-fly-standing-contracts`): `git fetch origin handoff/r10-fly-standing-contracts && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-BODY-CONTRACT (stage carries-open, branch `handoff/r10-body-contract`): `git fetch origin handoff/r10-body-contract && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CI-PRIORITY-PAUSE (stage refused, branch `handoff/r10-ci-priority-pause`): `git fetch origin handoff/r10-ci-priority-pause && git worktree add --detach $SEAT/wt FETCH_HEAD`
