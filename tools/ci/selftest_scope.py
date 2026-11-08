@@ -537,6 +537,11 @@ def fold(trace_dir: Path, steps: list[Step], root: Path = ROOT) -> dict[str, dic
             for sid, e in out.items()}
 
 
+def _under_scoped(sid: str, kind: str, miss: list[str]) -> str:
+    more = f" (+{len(miss) - 8} more)" if len(miss) > 8 else ""
+    return f"UNDER-SCOPED step {sid}: {kind} misses {miss[:8]}{more}"
+
+
 def drift(table: dict | None, measured: dict[str, dict], steps: list[Step]) -> tuple[list[str], list[str]]:
     """(refusals, notes): what the committed table misses, and what it over-names."""
     refuse, notes = [], []
@@ -552,29 +557,18 @@ def drift(table: dict | None, measured: dict[str, dict], steps: list[Step]) -> t
             continue
         if e.get("run_sha") != m["run_sha"]:
             refuse.append(f"STALE step {sid}: its run text changed since the record")
-        have = set(e.get("files", ()))
-        miss = sorted(f for f in m["files"] if not covers(have, f))
-        if miss:
-            refuse.append(f"UNDER-SCOPED step {sid}: files misses {miss[:8]}"
-                          + (f" (+{len(miss) - 8} more)" if len(miss) > 8 else ""))
-        gone = [f for f in have if not (f.endswith("/**") and any(
-            x.startswith(f[:-2]) for x in m["files"])) and f not in set(m["files"])]
-        if gone:
-            notes.append(f"over-scoped step {sid}: {len(gone)} files no longer measured")
+        have, dirs = set(e.get("files", ())), set(e.get("dirs", ()))
         probes = set(e.get("probes", ()))
-        miss = sorted(p for p in m["probes"] if not covers(probes, p)
-                      and not any(a in set(e.get("dirs", ())) for a in _ancestors(p)))
-        if miss:
-            refuse.append(f"UNDER-SCOPED step {sid}: probes misses {miss[:8]}"
-                          + (f" (+{len(miss) - 8} more)" if len(miss) > 8 else ""))
-        for k in ("dirs",):
-            miss = sorted(set(m[k]) - set(e.get(k, ())))
-            if miss:
-                refuse.append(f"UNDER-SCOPED step {sid}: {k} misses {miss[:8]}"
-                              + (f" (+{len(miss) - 8} more)" if len(miss) > 8 else ""))
-            extra = set(e.get(k, ())) - set(m[k])
-            if extra:
-                notes.append(f"over-scoped step {sid}: {len(extra)} {k} no longer measured")
+        misses = {
+            "files": [f for f in m["files"] if not covers(have, f)],
+            "probes": [p for p in m["probes"] if not covers(probes, p)
+                       and not any(a in dirs for a in _ancestors(p))],
+            "dirs": sorted(set(m["dirs"]) - dirs)}
+        refuse += [_under_scoped(sid, k, sorted(v)) for k, v in misses.items() if v]
+        gone = {"files": [f for f in have if f not in set(m["files"]) and not (
+                    f.endswith("/**") and any(x.startswith(f[:-2]) for x in m["files"]))],
+                "dirs": sorted(dirs - set(m["dirs"]))}
+        notes += [f"over-scoped step {sid}: {len(v)} {k} no longer measured" for k, v in gone.items() if v]
         for k in ("index", "objects"):
             if m[k] and not e.get(k):
                 refuse.append(f"UNDER-SCOPED step {sid}: it read the {k}, the table says not")
@@ -925,6 +919,35 @@ def self_test() -> int:
         coll["steps"]["a"]["files"] = ["tools/**", "tests/lane.py"]
         ck("drift: a collapsed D/** entry covers the files measured under D",
            drift(coll, measured, st2)[0] == [])
+        many = json.loads(json.dumps(measured))
+        many["a"]["files"] = [f"tools/x/m{i}.py" for i in range(9)]
+        r9 = drift(full_table, many, st2)[0]
+        many["a"]["files"] = many["a"]["files"][:8]
+        r8 = drift(full_table, many, st2)[0]
+        ck("drift: nine misses name eight and count the ninth, eight name all eight",
+           len(r9) == 1 and r9[0].endswith("(+1 more)") and len(r8) == 1 and "more)" not in r8[0])
+        pm = json.loads(json.dumps(measured))
+        pm["a"]["probes"] += ["tools/x/gone.json", "dev/governance/rules/new.md"]
+        pm["a"]["dirs"] += ["docs"]
+        ck("drift: a new probe and a new listed directory are refused; a probe under a listed dir is not",
+           drift(full_table, pm, st2)[0] == ["UNDER-SCOPED step a: probes misses ['tools/x/gone.json']",
+                                             "UNDER-SCOPED step a: dirs misses ['docs']"])
+        od = json.loads(json.dumps(full_table))
+        od["steps"]["a"]["dirs"] += ["docs"]
+        od["steps"]["a"]["files"] += ["ab/**"]
+        om = json.loads(json.dumps(measured))
+        om["a"]["files"] += ["abc/x.py"]
+        ck("drift: a directory and a D/** no longer measured are notes (ab/** does not cover abc/x.py)",
+           drift(od, om, st2) == (["UNDER-SCOPED step a: files misses ['abc/x.py']"],
+                                  ["over-scoped step a: 1 files no longer measured",
+                                   "over-scoped step a: 1 dirs no longer measured"]))
+        sa = json.loads(json.dumps(full_table))
+        sa["steps"]["a"]["run_sha"] = "0"
+        sa["steps"]["zz"] = {}
+        ck("drift: a lagging run_sha and an entry no gated step has are refused",
+           drift(sa, measured, st2)[0] == ["STALE step a: its run text changed since the record",
+                                           "EXTRA entry zz: no gated step has that id"])
+        ck("drift: no table is refused", drift(None, measured, st2)[0] == ["UNREADABLE the committed table"])
         ck("drift: a step this run did not trace is refused",
            drift(full_table, {k: v for k, v in measured.items() if k != "slow"}, st2)[0]
            == ["UNMEASURED step slow: this run left no trace of it"])
@@ -977,6 +1000,13 @@ def self_test() -> int:
            selection(base, "HEAD", root) == "b slow")
         ck("selection: a base git cannot resolve runs every step", selection("nosuchref", "HEAD", root) == "all")
         ck("selection: with no workflow, every step", selection(base, "HEAD", root / "nowhere") == "all")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            main(["select", "--base", base, "--head", "HEAD"], root)
+            main(["select", "--base", "nosuchref"], root)
+        ck("select --base/--head reads the diff; a base git cannot diff is FULL",
+           out.getvalue().startswith("MODE: SCOPED -- 2 step(s) run\n  run b\n  run slow\n")
+           and "MODE: FULL -- every step runs (git cannot diff)" in out.getvalue())
         gd, cd = _git_dirs(root)
         ck("git dirs: a plain repository's git dir is its common dir", gd == cd == root / ".git")
         git("worktree", "add", "-q", str(root / "wt2"), base)
@@ -1042,6 +1072,21 @@ def self_test() -> int:
             ck("record: a detached self-test's reads are its waiter's",
                "tools/x/slow.sh" in slow_e.get("files", ()) and "tools/x/slow.sh" not in a_e.get("files", ()))
             ck("record: it leaves no trace directory behind", left == [])
+            part = root / "part.json"
+            part.write_text(json.dumps({"steps": {"slow": {"run_sha": "old", "files": [], "probes": [],
+                                                           "dirs": [], "index": False, "objects": False}}}))
+            with contextlib.redirect_stdout(io.StringIO()):
+                rc1 = main(["record", "--step", "a", "--out", str(part)], root)
+            pt = load_table(part) or {"steps": {}}
+            ck("record --step --out: the step is re-measured into that file, the other entries kept",
+               rc1 == 0 and pt["steps"].get("slow", {}).get("run_sha") == "old"
+               and "tools/x/a.py" in pt["steps"].get("a", {}).get("files", ()))
+            probe = ("import sys; sys.path.insert(0, sys.argv[1]); import selftest_scope as s; "
+                     "print(s._traced())")
+            seen = [subprocess.run(pre + [sys.executable, "-I", "-c", probe, str(ROOT / "tools/ci")],
+                                   capture_output=True, text=True).stdout.strip()
+                    for pre in ([], ["strace", "-f", "-qq", "-o", os.devnull])]
+            ck("_traced: False untraced, True under strace", seen == ["False", "True"])
         # The drift check and the CLI over a synthetic trace directory.
         (root / TABLE).parent.mkdir(parents=True, exist_ok=True)
         st3 = job_steps(e2e)
@@ -1054,6 +1099,12 @@ def self_test() -> int:
         (tdir / "step-a.trace").write_text(
             f'5 openat(AT_FDCWD<{root}>, "tools/x/a.py", O_RDONLY) = 3<{root}/tools/x/a.py>\n')
         (tdir / "step-slow.trace").write_text("")
+        (tdir / "step-launch.trace").write_text(
+            f'5 openat(AT_FDCWD<{root}>, "docs/d.md", O_RDONLY) = 3<{root}/docs/d.md>\n')
+        ck("fold: an ungated step's trace is no entry; a gated one with no trace is absent",
+           sorted(fold(tdir, st3, root)) == ["a", "slow"]
+           and sorted(fold(tdir, [x for x in st3 if x.id != "slow"] + [Step("Z", "z",
+                      "steps.scope.outputs.z == 'true'", "true\n")], root)) == ["a"])
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             rc_ok = main(["check", "--traces", str(tdir), "--write", str(root / "m.json")], root)
