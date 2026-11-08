@@ -11,7 +11,7 @@ Alternatives: require every score line to equal the measured one (rejected: the 
 
 ## Head
 
-b27acc1452b9825fb9037b8cc3526867ee5dc198
+92871ab22330adaf81912036add164f4e51fceec
 
 ## Mutation proof
 
@@ -26,6 +26,7 @@ At the merge base the same wrong-after-true body passes (`want in got`), the mut
 - `python3 -I tools/policy/budget_raise_gate.py --self-test` -> `274 checks, 0 failed`.
 - `python3 -I tools/audit/seat/merge_train.py --self-test` -> `506 checks, 0 failed`.
 - Mutant wall time and survivor count: not run beyond the hand mutation above; `tools/` sites are not in `mutation-autofix`'s lane.
+- `python3 -I tools/audit/seat/r10_mandate_guard_mutants.py --self-test` -> `8 checks, 0 failed` (B4 re-anchored on the new predicate: a verdict-blind mutant, killed by the "same dS with another verdict word" case).
 
 ## Unpinned sites
 
