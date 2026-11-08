@@ -1,0 +1,11 @@
+head 3dd5a3556fde58a9bc46961ef19e6724e2b6d567; each mutant applied in a scratch worktree, checked with `python3 tools/ci/prelude.py --self-test`, restored.
+baseline (unmutated head): prelude self-test: 76 checks, 0 failed
+R1 tests.yml arch-instrument: all inputs.machinery_rowblind -> inputs.machinery          : 1 failed (lane_gates)  KILLED
+R2 tests.yml arch-instrument: one step flipped back to inputs.machinery (partial drift)  : 1 failed (lane_gates)  KILLED
+R3 governance.yml env-matrix MACHINERY_IDLE on inputs.machinery_rowblind                 : 1 failed (lane_gates)  KILLED
+R4 ci.yml passes needs.prelude.outputs.machinery as machinery_rowblind (fail-safe dir.)  : 0 failed  SURVIVED (only loses the saving)
+R5 own-row test widened to every dev/programme/delivery/ file                             : 2 failed  KILLED
+R6 pr.isdigit() guard dropped                                                             : 0 failed  SURVIVED (equivalent: "delivery/.md" never matches a real row)
+R7 machinery_rowblind output computed without pr=                                         : 1 failed  KILLED
+R8 ci.yml lines 190/216 pass needs.prelude.outputs.machinery_rowblind into the row-reading
+   lanes' `machinery` input (tests.yml closures, governance.yml env-matrix/instrument-self-tests): 0 failed  SURVIVED (see R8-ci-wiring.diff)
