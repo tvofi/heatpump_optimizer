@@ -1,0 +1,102 @@
+RESULT mutant replan-tier-outside: KILLED [('replan.py', 1)]
+    replan.py: FAIL a hotfix ranks ahead of an outside group, which ranks ahead of the critical path: [2, 5]
+    replan.py: FAIL an outside group that is also a hotfix is a hotfix, and one on the critical path is outside: 
+    replan.py: FAIL dispatch follows the owner's order (tvofi 2026-11-07, triage P420): hotfix, outside, production, instruments by savings, unrecorded savings last on the real slots: ['R10-HOTFIX-H', 'PROD', 'OUT',
+RESULT mutant replan-hotfix-below-cp: KILLED [('replan.py', 1)]
+    replan.py: FAIL an outside group that is also a hotfix is a hotfix, and one on the critical path is outside: 
+    replan.py: FAIL within a tier the critical path goes first, even its shorter tail: {'A': ('2026-01-05T00:00:00Z', [4, 0, 0.0, -50.0, -1920, 'A']), 'B': ('2026-01-06T08:00:00Z', [4, 0, 0.0, -18.0, -1080, 'B']), '
+    replan.py: FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+RESULT mutant replan-outside-eq-urgent: KILLED [('replan.py', 1)]
+    replan.py: FAIL a hotfix ranks ahead of an outside group, which ranks ahead of the critical path: [2, 4]
+    replan.py: FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+RESULT mutant od-class-outside: KILLED [('open_driver.py', 1)]
+    open_driver.py: FAIL the fence orders hotfix, outside, critical whatever the file lists
+    open_driver.py: FAIL an outside topic ranks ahead of a critical one and behind a hotfix one, by default
+    open_driver.py: FAIL an outside topic that is also critical is outside; a hotfix one is a hotfix
+RESULT mutant od-fence-1: KILLED [('open_driver.py', 1)]
+    open_driver.py: FAIL critical listed last is still ahead of every non-fenced topic
+RESULT mutant od-fence-0: KILLED [('open_driver.py', 1)]
+    open_driver.py: FAIL critical listed last is still ahead of every non-fenced topic
+    open_driver.py: FAIL the fence orders hotfix, outside, critical whatever the file lists
+RESULT mutant od-sortkey-unfenced: KILLED [('open_driver.py', 1)]
+    open_driver.py: FAIL null: omitted non-critical after listed higher class
+    open_driver.py: FAIL the fence beats the file: a listed instrument is behind an omitted hotfix
+    open_driver.py: FAIL omitted record sorts after listed hotfix
+RESULT mutant od-runpass-outside-empty: KILLED [('open_driver.py', 1)]
+    open_driver.py: FAIL run_pass: an outside group opens ahead of the critical path, cap 2
+RESULT mutant od-swap-hotfix-outside: KILLED [('open_driver.py', 1)]
+    open_driver.py: FAIL the fence orders hotfix, outside, critical whatever the file lists
+    open_driver.py: FAIL an outside topic ranks ahead of a critical one and behind a hotfix one, by default
+    open_driver.py: FAIL an outside topic that is also critical is outside; a hotfix one is a hotfix
+RESULT mutant mt-drain-outside: KILLED [('merge_train.py', 1)]
+    merge_train.py:   FAIL P420: an outside entry (#3) drains ahead of a critical-path one (#2) and behind a priority one (#4)
+    merge_train.py:   FAIL P420: outside entries keep arrival order among themselves, ahead of the critical path
+    merge_train.py:   FAIL P420 drain_order: a fork-head outside entry (#31, branch no group claims) drains first through resume.pr
+RESULT mutant mt-drain-swap: KILLED [('merge_train.py', 1)]
+    merge_train.py:   FAIL P420: an outside entry (#3) drains ahead of a critical-path one (#2) and behind a priority one (#4)
+    merge_train.py:   FAIL P420: outside entries keep arrival order among themselves, ahead of the critical path
+RESULT mutant mt-no-pr-fallback: KILLED [('merge_train.py', 1)]
+    merge_train.py:   FAIL P420 _outside: a branch maps to its group, a fork head through resume.pr; an internal group, an unrecorded pull request and no pull request are not outside
+    merge_train.py:   FAIL P420 drain_order: a fork-head outside entry (#31, branch no group claims) drains first through resume.pr
+RESULT mutant mt-outside-any-group: KILLED [('merge_train.py', 1)]
+    merge_train.py:   FAIL P420 _outside: a branch maps to its group, a fork head through resume.pr; an internal group, an unrecorded pull request and no pull request are not outside
+RESULT mutant mt-item-no-pr: KILLED [('merge_train.py', 1)]
+    merge_train.py:   FAIL P420 drain_order: a fork-head outside entry (#31, branch no group claims) drains first through resume.pr
+RESULT mutant rl-is-outside-truthy: KILLED [('roster_lib.py', 1), ('gate_priority.py', 0), ('orchestrator_tick.py', 0), ('merge_train.py', 0), ('replan.py', 1), ('open_driver.py', 0)]
+    roster_lib.py: FAIL is_outside: source `outside` only; absent or other is internal (got: )
+    replan.py: FAIL null control: any other source (or none) is internal: 
+    replan.py: FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+RESULT mutant rl-is-outside-absent-true: KILLED [('roster_lib.py', 1), ('gate_priority.py', 1), ('orchestrator_tick.py', 1), ('merge_train.py', 1), ('replan.py', 1), ('open_driver.py', 1)]
+    roster_lib.py: FAIL is_outside: source `outside` only; absent or other is internal (got: )
+    roster_lib.py: FAIL dispatch_rank: hotfix 0, outside 1, critical 2, other or unknown or none 3; a hotfix beats outside (got: )
+    gate_priority.py: FAIL a listed group gets priority with no env and no marker (got: 2)
+    gate_priority.py: FAIL an outside group and a hotfix group outrank the critical path (owner ruling 2026-11-07) (got: [2, 2, 2])
+    gate_priority.py: FAIL an outside group needs no critical-path set; a malformed set drops only the critical 1 (got: )
+    orchestrator_tick.py:   FAIL OWED buckets: the critical-path group's OWED line prints before a lower-numbered PR's outside it
+    orchestrator_tick.py:   FAIL OWED buckets: an outside group's OWED line prints before the critical path's, a hotfix's before both
+    orchestrator_tick.py:   FAIL OWED buckets: null control: a roster with no outside group and no hotfix orders as the critical path first
+    merge_train.py:   FAIL P420 _outside: a branch maps to its group, a fork head through resume.pr; an internal group, an unrecorded pull request and no pull request are not outside
+    merge_train.py:   FAIL P420 _outside null: a roster with no source field has no outside entry
+    merge_train.py:   FAIL P420 drain_order null: the same entries with no outside group keep arrival order
+    replan.py: FAIL the critical path is the urgent tier: 
+    replan.py: FAIL a hotfix ranks ahead of an outside group, which ranks ahead of the critical path: [2, 3]
+    replan.py: FAIL null control: any other source (or none) is internal: 
+    open_driver.py: FAIL run_pass: an outside group opens ahead of the critical path, cap 2
+RESULT mutant rl-group-for-pr-none: KILLED [('roster_lib.py', 1), ('gate_priority.py', 0), ('orchestrator_tick.py', 0), ('merge_train.py', 1), ('replan.py', 0), ('open_driver.py', 0)]
+    roster_lib.py: FAIL group_for_pr: resume.pr maps int or digit string; unrecorded, bool, junk are None (got: )
+    merge_train.py:   FAIL P420 _outside: a branch maps to its group, a fork head through resume.pr; an internal group, an unrecorded pull request and no pull request are not outside
+    merge_train.py:   FAIL P420 drain_order: a fork-head outside entry (#31, branch no group claims) drains first through resume.pr
+RESULT mutant rl-group-for-pr-bool: KILLED [('roster_lib.py', 1), ('gate_priority.py', 0), ('orchestrator_tick.py', 0), ('merge_train.py', 0), ('replan.py', 0), ('open_driver.py', 0)]
+    roster_lib.py: FAIL group_for_pr: resume.pr maps int or digit string; unrecorded, bool, junk are None (got: )
+RESULT mutant replan-arm-order-main: KILLED [('replan.py', 1)]
+    replan.py: FAIL dispatch follows the owner's order (tvofi 2026-11-07, triage P420): hotfix, outside, production, instruments by savings, unrecorded savings last on the real slots: ['CPA', 'CPB', 'CPC', 'R10-HOTF
+    replan.py: FAIL the hotfix takes the free slot at t0 and the ready critical-path group starts beside it past the cap, never ahead of it on the real slot: {'CPA': ('2026-01-05T00:00:00Z', 0, None), 'CPB': ('2026-
+    replan.py: FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+RESULT mutant gp-outside-band-off: KILLED [('gate_priority.py', 1)]
+    gate_priority.py: FAIL an outside group and a hotfix group outrank the critical path (owner ruling 2026-11-07) (got: [0, 0, 0])
+    gate_priority.py: FAIL an outside group needs no critical-path set; a malformed set drops only the critical 1 (got: )
+RESULT mutant gp-outside-as-critical: KILLED [('gate_priority.py', 1)]
+    gate_priority.py: FAIL an outside group and a hotfix group outrank the critical path (owner ruling 2026-11-07) (got: [1, 1, 1])
+    gate_priority.py: FAIL an outside group needs no critical-path set; a malformed set drops only the critical 1 (got: )
+RESULT mutant rl-rank-hotfix-arm: KILLED [('roster_lib.py', 1), ('gate_priority.py', 1), ('orchestrator_tick.py', 1), ('merge_train.py', 0), ('replan.py', 0), ('open_driver.py', 0)]
+    roster_lib.py: FAIL dispatch_rank: hotfix 0, outside 1, critical 2, other or unknown or none 3; a hotfix beats outside (got: )
+    gate_priority.py: FAIL an outside group and a hotfix group outrank the critical path (owner ruling 2026-11-07) (got: [2, 0, 2])
+    gate_priority.py: FAIL an outside group needs no critical-path set; a malformed set drops only the critical 1 (got: )
+    orchestrator_tick.py:   FAIL OWED buckets: an outside group's OWED line prints before the critical path's, a hotfix's before both
+RESULT mutant rl-rank-outside-arm: KILLED [('roster_lib.py', 1), ('gate_priority.py', 1), ('orchestrator_tick.py', 1), ('merge_train.py', 0), ('replan.py', 0), ('open_driver.py', 0)]
+    roster_lib.py: FAIL dispatch_rank: hotfix 0, outside 1, critical 2, other or unknown or none 3; a hotfix beats outside (got: )
+    gate_priority.py: FAIL an outside group and a hotfix group outrank the critical path (owner ruling 2026-11-07) (got: [0, 2, 1])
+    gate_priority.py: FAIL an outside group needs no critical-path set; a malformed set drops only the critical 1 (got: )
+    orchestrator_tick.py:   FAIL OWED buckets: an outside group's OWED line prints before the critical path's, a hotfix's before both
+RESULT mutant rl-is-hotfix-no-bug: KILLED [('roster_lib.py', 1), ('gate_priority.py', 1), ('orchestrator_tick.py', 1), ('merge_train.py', 0), ('replan.py', 0), ('open_driver.py', 0)]
+    roster_lib.py: FAIL dispatch_rank: hotfix 0, outside 1, critical 2, other or unknown or none 3; a hotfix beats outside (got: )
+    roster_lib.py: FAIL is_hotfix: kind bug or HOTFIX in the name only (got: )
+    gate_priority.py: FAIL an outside group and a hotfix group outrank the critical path (owner ruling 2026-11-07) (got: [2, 0, 2])
+    gate_priority.py: FAIL an outside group needs no critical-path set; a malformed set drops only the critical 1 (got: )
+    orchestrator_tick.py:   FAIL OWED buckets: an outside group's OWED line prints before the critical path's, a hotfix's before both
+RESULT mutant ot-owed-rank-const: KILLED [('orchestrator_tick.py', 1)]
+    orchestrator_tick.py:   FAIL OWED buckets: the critical-path group's OWED line prints before a lower-numbered PR's outside it
+    orchestrator_tick.py:   FAIL OWED buckets: an outside group's OWED line prints before the critical path's, a hotfix's before both
+    orchestrator_tick.py:   FAIL OWED buckets: null control: a roster with no outside group and no hotfix orders as the critical path first
+RESULT mutant ot-owed-old-crit-only: KILLED [('orchestrator_tick.py', 1)]
+    orchestrator_tick.py:   FAIL OWED buckets: an outside group's OWED line prints before the critical path's, a hotfix's before both
