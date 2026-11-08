@@ -71847,11 +71847,13 @@ _wrr_ret = _wrr_command("return", _WRR_CMD, inlet=30.0)
 _wrr_flow = _wrr_command("flow", _WRR_CMD, inlet=30.0)
 _wrr_indoor = _wrr_command("indoor", {"flow_heat_c": 38.0})
 R.check(
-    "a return target with headroom publishes the same held command as a flow one -- the "
-    "configured ceiling, not 55, and the 25 degC gate, both in the entity's own terms -- "
-    "and an indoor one publishes none",
-    _wrr_ret is not None and _wrr_ret == _wrr_flow
-    and _wrr_ret.ceiling_c == 38.0 and _wrr_ret.gate_c == _bst_pa.FLOW_GATE_C
+    "a return target with headroom publishes the held command in the entity's own terms "
+    "-- the configured ceiling, not 55, and the gate moved down by the rated spread, "
+    "20 degC against a flow target's 25 -- and an indoor one publishes none",
+    _wrr_ret is not None and _wrr_ret.written_c == _wrr_flow.written_c == 40.0
+    and _wrr_ret.ceiling_c == _wrr_flow.ceiling_c == 38.0
+    and _wrr_ret.gate_c == _bst_pa.FLOW_GATE_C - _bst_pa.RETURN_SUPPLY_OFFSET_K == 20.0
+    and _wrr_flow.gate_c == _bst_pa.FLOW_GATE_C
     and _wrr_indoor is None,
     f"return {_wrr_ret} flow {_wrr_flow} indoor {_wrr_indoor}",
 )
@@ -71873,7 +71875,7 @@ R.check(
     and _wrr_blind.ceiling_c == _WRR_FULL_OFF
     and _wrr_valve.ceiling_c == _WRR_FULL_OFF
     and _wrr_flow_tight.ceiling_c == 38.0
-    and _wrr_tight.gate_c == _wrr_flow.gate_c and _wrr_tight.written_c == 40.0,
+    and _wrr_tight.gate_c == _wrr_ret.gate_c and _wrr_tight.written_c == 40.0,
     f"edge {_wrr_edge} tight {_wrr_tight} blind {_wrr_blind} valve {_wrr_valve}",
 )
 
@@ -71929,23 +71931,40 @@ def _wrr_write(unit, duty, inlet, extra=None, curve=None):
 
 
 _WRR_SMALL = {"flow_min_lift_k": 1.5, "flow_heat_c": 37.0}
+# The gate is a supply number (25 degC is below any heated supply) and so is
+# moved to return terms like the hold and the curve: as a return target 25 degC
+# sits above a floor return cooled overnight (23-24 degC measured on the
+# install this was written for), and a controller modulating on target minus
+# return would heat on a step meant to be off. 20 degC is also what that
+# Luxtronik reports as its own idle return target.
+_WRR_GATE = _pa.FLOW_GATE_C - _pa.RETURN_SUPPLY_OFFSET_K
 R.check(
-    "a return target's non-heating duties write the gate exactly as a flow one, "
-    "whatever the lift and ceiling",
+    "a return target's non-heating duties write the gate in return terms, 20 degC, "
+    "whatever the lift and ceiling; a flow target's write the 25 degC gate (null control)",
     all(
-        _wrr_write("return", duty, 30.0, _WRR_SMALL)
-        == _wrr_write("flow", duty, 30.0, _WRR_SMALL)
-        == _pa.FLOW_GATE_C
+        _wrr_write("return", duty, 30.0, _WRR_SMALL) == _WRR_GATE == 20.0
+        and _wrr_write("flow", duty, 30.0, _WRR_SMALL) == _pa.FLOW_GATE_C
         for duty in ("dhw", "idle")
     ),
-    f"{[_wrr_write('return', d, 30.0, _WRR_SMALL) for d in ('dhw', 'idle')]}",
+    f"{[_wrr_write('return', d, 30.0, _WRR_SMALL) for d in ('dhw', 'idle')]} "
+    f"{[_wrr_write('flow', d, 30.0, _WRR_SMALL) for d in ('dhw', 'idle')]}",
 )
 _wrr_cold = _wrr_write("return", "space", 22.0, _WRR_SMALL)
+_wrr_cold_flow = _wrr_write("flow", "space", 22.0, _WRR_SMALL)
 R.check(
-    "a 1.5 K lift over a return below the gate takes the lift from the gate and rounds "
-    "up on a whole-degree entity, so a heating step never writes the gate",
-    _wrr_cold == 27.0 and _wrr_cold > _pa.FLOW_GATE_C,
-    f"{_wrr_cold}",
+    "a 1.5 K lift over a 22 degC return takes the lift from the return, above the 20 degC "
+    "return gate, and rounds up on a whole-degree entity to 24; a flow target's floor "
+    "is still taken from its 25 degC gate, 27 -- so a heating step never writes either gate",
+    _wrr_cold == 24.0 and _wrr_cold > _WRR_GATE
+    and _wrr_cold_flow == 27.0 and _wrr_cold_flow > _pa.FLOW_GATE_C,
+    f"return {_wrr_cold} flow {_wrr_cold_flow}",
+)
+_wrr_colder = _wrr_write("return", "space", 18.0, _WRR_SMALL)
+R.check(
+    "a return below the return gate takes the lift from that gate: 20 + 1.5, rounded up "
+    "to 22 on a whole-degree entity",
+    _wrr_colder == 22.0,
+    f"{_wrr_colder}",
 )
 R.check(
     "a return above the ceiling writes the ceiling, never above it, on a return target",

@@ -357,9 +357,14 @@ def _as_target(config: Any, supply_c: float) -> float:
     ``return``) sits :data:`RETURN_SUPPLY_OFFSET_K` below it: the rated hold
     :data:`FLOW_HOLD_C` is the W35 point at 30/35 °C, and the weather curve
     is a supply curve, so written unchanged as a return target each would
-    run the system water that spread hotter than meant. Values already in
-    the entity's own terms -- the measured inlet plus the lift, the
-    configured ceiling, the gate -- are not moved.
+    run the system water that spread hotter than meant. The gate
+    :data:`FLOW_GATE_C` is a supply number too (a 25 °C supply target is
+    below any heated water); as a return target, 25 °C sits above a cooled
+    floor return (the install this was written for reads 23-24 °C after a
+    blocked night), and a controller that modulates on target minus return
+    would then heat on a step meant to be off, so it is moved as well
+    (:func:`_gate_c`). Values already in the entity's own terms -- the
+    measured inlet plus the lift, the configured ceiling -- are not moved.
     """
     return supply_c - RETURN_SUPPLY_OFFSET_K if _return_unit(config) else supply_c
 
@@ -652,9 +657,22 @@ def _flow_inlet_c(inp: ArbiterInputs) -> float | None:
     )
 
 
+def _gate_floor_c(config: Any) -> float:
+    """The gate in the entity's own terms, °C: :data:`FLOW_GATE_C`, or that
+    less the rated spread for a return target (:func:`_as_target`)."""
+    return _as_target(config, FLOW_GATE_C)
+
+
 def _gate_c(inp: ArbiterInputs) -> float | None:
-    """The flow set-point a step that does not heat writes, °C."""
-    return _bounded(inp, "space_setpoint", FLOW_GATE_C, FLOW_GATE_C, rounding="down")
+    """The water set-point a step that does not heat writes, °C.
+
+    The entity's minimum, never below the gate in its own terms
+    (:func:`_gate_floor_c`): 25 °C for a flow target, 20 °C for a return
+    target. The floor the lift is taken from on a heating step, and the
+    floor every heating write is bounded by, are the same number.
+    """
+    gate = _gate_floor_c(inp.config)
+    return _bounded(inp, "space_setpoint", gate, gate, rounding="down")
 
 
 @dataclass(frozen=True)
@@ -700,7 +718,7 @@ def _flow_command(inp: ArbiterInputs, state: Any) -> FlowCommand | None:
         return None
     gate = _gate_c(inp)
     ceiling = _bounded(
-        inp, "space_setpoint", _heat_ceiling_c(inp.config), FLOW_GATE_C,
+        inp, "space_setpoint", _heat_ceiling_c(inp.config), _gate_floor_c(inp.config),
         rounding="down",
     )
     if gate is None or ceiling is None or not isinstance(written[0], (int, float)):
@@ -769,7 +787,7 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
                 _step_kw(inp.plan, now) if (kw := _experiment_kw(inp)) is None else kw,
                 p_min, p_max, heat_c, floor_c,
             ),
-            FLOW_GATE_C,
+            _gate_floor_c(inp.config),
             lo=min(floor_c, heat_c),
             hi=heat_c,
         )
@@ -785,7 +803,7 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     target = _as_target(inp.config, FLOW_HOLD_C if curve is None else max(curve, FLOW_HOLD_C))
     capped = curve is not None or _return_unit(inp.config)
     hold = min(target, ceiling) if capped else target
-    return _bounded(inp, "space_setpoint", hold, FLOW_GATE_C)
+    return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config))
 
 
 def _silent_rows(spec: Any) -> TypeGuard[str]:
