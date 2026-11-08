@@ -8,6 +8,10 @@ Where it applies:
 
 The two policy files (`dev/governance/rules/defect-root-cause.md` and `dev/governance/roles/fix-review.md`) need the owner's approving review at merge.
 
+Fix review round 1 (blocked at d7b25eca, `architecture-unsound`): the design now matches the PR's claim that the set is read through its owner and never copied. In CI the owner is now main's copy.
+- **pr-contract runs no pull-request program, spawned ones included.** `.github/workflows/pr-contract.yml`'s base restore now also lists `tools/audit/seat/merge_train.py`, the `gh_read.py` it imports and `tools/policy/fixtures/required-contexts.json` it reads. The pin is a new rule in `tests/entities.py` (`_pcr_unrestored`). For every `spawnSync('python3', [path.join(ROOT|root|HERE, ...)])` in `policy_lint.mjs`, it walks the spawned file's local closure: column-0 `import X` with X.py beside it, and column-0 `NAME = ROOT / "path"` reads. Each file in that closure must match a pr-contract restore pathspec.
+- **The fail-closed rc check is driven on its live path.** `requiredFromTrain(root)` takes the tree whose `merge_train.py` answers, and the `--pr-body` thunk body is now `requiredSet(requiredFile, notes, root)`. policy_lint's acceptance runs the real chain (`checkPrBody` -> `requiredSet` -> `requiredFromTrain` -> `spawnSync`) against a stub tree whose `merge_train.py` exits 2 with `REFUSE proof: HTTP 403`, and asserts that every red is owed and that the skip note names the REFUSE line.
+
 ## Approval
 
 Pending: this diff changes `dev/governance/rules/defect-root-cause.md` and `dev/governance/roles/fix-review.md` (policy) on the owner's ruling of 2026-11-07, quoted above; it merges only on tvofi's approving review at its head.
@@ -16,48 +20,74 @@ On merge (the orchestrator's): the brief says this subsumes R10-BODY-CONTRACT's 
 
 ## Head
 
-3ff9b98a4ca05e2334242504eeabe59126351b6d. The branch is cut from 364353e67, and `git merge-tree --write-tree origin/main HEAD` against origin/main dee8b413f (and again at 7c9c4c154) reports no conflict, so main is not merged in (owner ruling 2026-11-07).
+3b4dec95f05704d3495e3e2d1f32f35667a1412f, a fast-forward of the reviewed PR head d7b25eca474f4edde0cad8eb284c27c977a0157c.
 
-`tools/pr/prepr.sh` at this head passes every step except pr-body, which refused only a carry path not in the tree. `tools/pr/prepr.sh --body-check` then passes this body (PR-BODY: 0 errors). The code is unchanged since that run.
+At the reviewed head, `git merge-tree --write-tree origin/main HEAD` against origin/main 8aec35435 reported a conflict in `tools/audit/seat/merge_train.py`, so origin/main was merged in at 9487052c0. The conflict: main's `classify` gained a `busy`/`deferred` gate arm, and this branch's `classify` had moved to `judged(required)`. The resolution keeps main's arm over `names = judged(required)`.
+
+When the body was written, origin/main had moved to afc1586a4 (2026-11-08 06:49 UTC). `git merge-tree --write-tree origin/main HEAD` exits 0 there (no conflict), so main is not merged again (owner ruling 2026-11-07).
+
+## Review findings answered
+
+1. **The required set's owner is read from the change under check** -> fixed in b8141a7ce, with the rule's pattern corrected in 3b23a50da and 3b4dec95f.
+   - pr-contract now restores the owner and its closure from the base.
+   - `tests/entities.py` pins the class (`_pcr_unrestored`), with a null control: each of the three pathspecs removed in turn is refused on exactly that file.
+   - The reviewer's drive was reproduced. Both drives use a tree whose `merge_train.py` alone is edited so `owed-reds` prints `bogus / name`; the body is silent on `tests / typing`, `tests / fast (3.14)` and `gate`. Results are under Figures, "Reviewer's drive".
+2. **Fail-closed on an unreadable set was unpinned on its live path** -> fixed in d45cdb79f. The reviewer's mutant now fails policy_lint's acceptance (Mutation proof).
+   - **How the `.mjs` lines are mutation-covered.** `mutant_run.py --diff` mutates added Python lines only, and its `--list` at this head names no `.mjs` and no `tests/` line. So every new `.mjs` line and every new `tests/entities.py` line is covered by the hand-applied mutants under Mutation proof, each run against its own check.
 
 ## Mutation proof
 
-The brief's mutant treats every concluded red as required: `return true` as the first line of `redOwed` in `tools/policy/policy_lint.mjs`. It was applied in a detached scratch worktree at the head. What goes red:
-- `node tools/policy/policy_lint.mjs` (acceptance): rc=1, `FIXTURE VACUOUS: with the required set known, red [...] owed answers for [all six]`.
-- `python3 tools/audit/seat/review_packet.py --self-test`: rc=1, 2 failed. The failures are `red-unanswered: with the required set read, only the required unit is owed, on a diff touching the reporter's own script` and `red-unanswered: under the train's set, a delivery row the base had owes delivery-status nothing`.
+Each mutant was applied in the working tree at 3b23a50da (and the pathspec mutant again at 3b4dec95f), run, and then restored. Restoration was checked with `git status --short` (clean).
 
-With the line restored, both pass (Figures).
+- **policy_lint.mjs, the reviewer's mutant.** `if (r.status !== 0 || !names.length)` became `if (!names.length)` in `requiredFromTrain`.
+  - `node tools/policy/policy_lint.mjs`: rc=1, `FIXTURE VACUOUS: an owed-reds that exits 2 with a REFUSE line owed [] (notes []), not every red; a refused read must leave every red owed`.
+- **policy_lint.mjs, the root ignored.** `requiredSet`'s `else got = requiredFromTrain(root)` became `requiredFromTrain()`.
+  - rc=1, `FIXTURE VACUOUS: an owed-reds that exits 2 with a REFUSE line owed ["tests / fast (3.14)"] ...`: the live owner answered instead of the stub.
+- **pr-contract.yml, each new pathspec deleted in turn** (merge_train.py, gh_read.py, required-contexts.json). The check was the `_PCR` block run alone with entities.py's own `_twp_` helpers. That harness is a scratch exec of entities.py's source, shown under Figures.
+  - All three: rc=1. `every python3 program policy_lint.mjs spawns ... is restored from the base by pr-contract` FAILs, naming the dropped file as not restored.
+- **pr-contract.yml as it stood at the reviewed head d7b25eca** (the control): rc=1 on the same check.
+- **entities.py, the closure following no import** (the import arm emptied): rc=1, gh_read.py missing from the closure.
+- **entities.py, the closure following no ROOT read** (the read arm dropped): rc=1, required-contexts.json missing from the closure.
+- **The earlier body's mutant** (`return true` first in `redOwed`) and its kills are unchanged from round 1, which the reviewer confirmed.
 
 ## Null control
 
-A body that names every red behaves exactly as before the ruling:
-- In policy_lint's acceptance, the body naming all six reds is refused for none, with or without the set, and never reads the set (`reads == 0`).
-- The review packet's `red-unanswered null: a body naming every red is owed nothing` holds.
-- Harness case D: `base owed=none | head owed=none`.
-
-If the set cannot be read (an empty or missing `--required-file`, or `owed-reds` rc 2), the pre-ruling P282 arms all still hold. The review_packet self-test keeps all of them under the `unread set` labels.
+- **The stub tree's other arm.** The same stub `merge_train.py`, exiting 0 and printing `tests / fast (3.14)`, owes exactly `tests / fast (3.14)` and adds no skip note. This proves the stub answered, not a fallback.
+- **The entities rule's own null.** pr-contract with one pathspec removed is refused on that file and no other, and `tools/release/stamp.py`, which policy_lint only reads as text (`fs.readFileSync`), is not in the closure.
+- **The pattern's non-vacuity term caught a real miss.** At d45cdb79f the pattern was ROOT-only and missed `path.join(root, ...)`. It read an empty closure and the check refused (entities run at d45cdb79f: `5 of 2665 ENTITY CHECKS FAILED`, the two `_PCR` checks among them). 3b23a50da fixed the pattern. 3b4dec95f then split the path segments on commas, because agreement.mjs refused the quoted-token regex as a grammar duplicated with `tools/audit/merge_fastpath.py`.
+- **The drive's control** is the reviewed head's pr-contract.yml (Figures).
+- The round-1 null controls hold unchanged at this head: a body naming every red is owed nothing and never reads the set, and an unreadable set leaves every red owed.
 
 ## Figures
 
-- `python3 dev/audit/harnesses/r10_nonrequired_reds.py --base dee8b413fd7da7b07f13e28a93d7d49b4a9e978a` at head 3ff9b98a4, with the live set read through `owed-reds`:
-  - A reporter red, reporter input touched: base owed=['tests / nightly-status'] | head owed=none
-  - B required unit red: base owed=['tests / typing'] | head owed=['tests / typing']
-  - C non-required red: base owed=['docs / links'] | head owed=none
-  - D null, every red named: base owed=none | head owed=none
-- `python3 tools/audit/seat/merge_train.py --self-test`: 475 checks, 0 failed, including the `owed-reds` checks: the set, `owed_reds` over a stub train, and `main(["owed-reds"])` over a faked ruleset
-- `python3 tools/audit/seat/review_packet.py --self-test`: 72 checks, 0 failed
-- `python3 tools/audit/seat/record_row.py --self-test`: all checks passed
-- `node tools/policy/policy_lint.mjs`: TOTAL 0 errors, acceptance rc=0
-- `python3 tools/audit/seat/merge_train.py owed-reds`: prints the live set (23 names at the run). It omits `tests / nightly-status` and `governance / delivery-status`, which NOT_GATING excludes. Instrument: `owed-reds`; the number is a function of the live ruleset.
-- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` gives `MODE: SCOPED -- 1 script(s) run`; `scope.run` names `tests/entities.py`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` at d83f5f787: `3 of 2645 ENTITY CHECKS FAILED`. They are the coverage-cache reuse check, the release-ZIP build and the Pages-workflow probe, and none of them reads a file this diff touches.
-  - Control: the same run at the merge base 364353e67 fails the same 3. Comparing the two runs' `FAIL` lines, the only difference is one randomized negative fixture (`a8:register_once`'s duplicated service names).
-  - So these failures come from the container, not from this diff; CI's runner decides them.
-- `bash tools/pr/prepr.sh --self-test`: 514 passed, 0 failed
-- Diff mutants: `python3 -I tools/audit/seat/mutant_run.py --diff 364353e670f666be6c97a5942ffa0bea9132b5ce...HEAD --in-place --report-only --max-mutants 0 --cmd "bash -c 'python3 tools/audit/seat/review_packet.py --self-test && python3 tools/audit/seat/record_row.py --self-test && python3 tools/audit/seat/merge_train.py --self-test'"` at 3ff9b98a4: 24 mutants (the count `--list` prints), 0 SURVIVED, wall 1018 s.
-  - prepr.sh's diff-mutant step, with MUTANT_CMD set to the same self-tests, prints `BASELINE FAILS`. Its default `git archive` copy has no `.git`, which these self-tests read, so I ran the step's own tool `--in-place` instead.
-  - Earlier in-place runs left 9 survivors, all in the new `owed-reds` CLI arm plus record_row's empty-file write. The arm is now a function, `owed_reds`, driven both directly and through `main`; the write became `os.devnull`.
-  - Null control: a mutant run whose `--cmd` was not wrapped in `bash -c` ran only the first self-test (`shlex.split` passes `&&` as arguments) and left those survivors standing.
+- **Reviewer's drive.** Instrument: `drive.sh <commit>`, a scratch script. For each run it:
+  1. checks out a detached worktree at HEAD;
+  2. edits only `merge_train.py`, so that `owed-reds` prints `bogus / name` and exits 0;
+  3. extracts the `Restore the check source from the base commit` step's `run:` from `<commit>`'s pr-contract.yml, and runs it with `PINNED=HEAD`, standing in for the base;
+  4. runs `node tools/policy/policy_lint.mjs --pr-body tools/policy/fixtures/policy-rot/prepr/unnamed-red.md --head 0x40 --red 'tests / typing' --red 'tests / fast (3.14)' --red gate`.
+
+  Results:
+  - With pr-contract.yml at d7b25eca (control): `Updated 0 paths`, merge_train.py is still the PR copy, `PR-BODY: 0 error(s)`. The defect is reproduced.
+  - With pr-contract.yml at the fix head: `Updated 1 path`, merge_train.py is the base copy, and `PR-BODY: 3 error(s)`, one per required red, naming `tests / typing`, `tests / fast (3.14)` and `gate`.
+  - Before the restore, both trees give `PR-BODY: 0 error(s)`.
+- **The entities rule at this head.** It enumerates `spawned=['tools/audit/seat/merge_train.py', 'tools/policy/budget_raise_gate.py']`. The closure is gh_read.py, merge_train.py, tools/ci/gate.py, tools/ci/ghapi.py, tools/ci/prelude.py, tools/policy/budget_raise_gate.py and tools/policy/fixtures/required-contexts.json. Not restored: `[]`. Each seat it returns has a disposition:
+  - the three new pathspecs: closed in this diff;
+  - `tools/ci/*.py` and `tools/policy/*.py`: already restored before this diff.
+- **Mutant harness for the entities block.** It exec's entities.py's source from `import shlex as _twp_shlex` to `_TWP_TRACKED`, plus the `_PCR` block, with `_PRW_TEXTS` read as entities.py reads it. At this head it gives 2 ok, rc=0.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` at 3b4dec95f (and before it at 3b23a50da): `3 of 2665 ENTITY CHECKS FAILED`, the same three as round 1: the coverage-cache reuse check, the release-ZIP build and the Pages-workflow probe. Round 1's run at the merge base failed the same three, and none of them reads a file this diff touches. Both new `_PCR` checks are `ok`.
+- `python3 tools/audit/seat/merge_train.py --self-test`: 509 checks, 0 failed. The count is up from 475 because of the merged main.
+- `python3 tools/audit/seat/review_packet.py --self-test`: 72 checks, 0 failed.
+- `python3 tools/audit/seat/record_row.py --self-test`: all checks passed.
+- `node tools/policy/policy_lint.mjs`: rc=0, `FIXTURE ok: 93 error(s) hold 275 pins across 12 check classes`.
+- `node tools/policy/rules_sync.mjs --check`: RULES-SYNC ok.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. No budget was touched.
+- `node tools/policy/field_coverage.mjs`: `FIELD COVERAGE ok`, `blind=0 dead=0 refused=0`. The extra restored pathspecs leave codeowners_gap's PINNED registry whole.
+- `PREPR_SKIP_CLOSURES=1 MUTANT_CMD=... MUTANT_MAX=24 bash tools/pr/prepr.sh <this body>` at 3b4dec95f: `PRE-PR: 3b4dec95f05704d3495e3e2d1f32f35667a1412f ... rc=0`, with `pr-body: PR-BODY: 0 error(s)` and `agreement lane` ok.
+  - An earlier run at 3b23a50da was refused by the agreement lane: `UNREGISTERED "'([^']+)'" in tests/entities.py, tools/audit/merge_fastpath.py`. 3b4dec95f answers it.
+- **Diff mutants.** The run was `python3 -I tools/audit/seat/mutant_run.py --diff 8aec35435...HEAD --in-place --report-only --max-mutants 0 --cmd "bash -c 'python3 tools/audit/seat/review_packet.py --self-test && python3 tools/audit/seat/record_row.py --self-test && python3 tools/audit/seat/merge_train.py --self-test'"` at 3b4dec95f.
+  - Result: rc=0, wall 1144 s, 0 SURVIVED. Diff mode prints only survivor lines, and its baseline passed (no `BASELINE FAILS`).
+  - Mutants run: the 24 that `--list` names, 22 in merge_train.py and 2 in review_packet.py. None is in `.mjs` or `tests/`; those lines are covered by Mutation proof.
+  - prepr.sh's own diff-mutant step, with the same MUTANT_CMD, prints `BASELINE FAILS`, as in round 1: its `git archive` copy has no `.git`, which these self-tests read. That is why the step's tool was run `--in-place`.
 
 ## Red checks
 
@@ -65,7 +95,7 @@ none
 
 ## Unpinned sites
 
-none: prepr.sh step 6d prints `the diff adds no unpinned mutation site`, and the diff-mutant run above has no survivor.
+none: prepr.sh at 3b4dec95f prints `the diff adds no unpinned mutation site`, and the diff-mutant run above has no survivor. The new `.mjs` and `tests/entities.py` lines are pinned by the acceptance and entities checks their hand mutants fail (Mutation proof).
 
 ## Forward-carry
 
