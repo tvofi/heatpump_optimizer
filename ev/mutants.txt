@@ -1,0 +1,35 @@
+MF sweep_settling always False: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+      FAIL settle gap a38bd141 20:03:00Z: the code gate green 29 s ago, no sweep yet -- `classify` reads WAIT (exit 3)
+      FAIL settle gap: at exactly the bound the settle still holds -- WAIT
+      FAIL settle gap: a read in the code gate's completion second (age 0) is inside the settle -- WAIT
+    FAIL (g4) the settle gap 30 s after the code gate's green is waited on, not REQUIRED RED (got 'aborted: REQUIRED RED at aaaaaaaaaaaa: gate; nothing merged', want 'no abort')
+    FAIL (g4) the settle gap waits one poll, then merges on gate-sweep's swept green (got False, want True)
+MG gate_rerunning disabled: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+      FAIL settle gap: a re-run attempt whose gate is not re-listed is a wait past the bound too (the re-run read)
+MH bound <= -> <: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+      FAIL settle gap: at exactly the bound the settle still holds -- WAIT
+MI lower bound dropped: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+      FAIL settle gap: a completion stamped ahead of the reading clock is unknowable, no settle -- RED
+MJ bound unbounded: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+MK green filter dropped: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+      FAIL settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+      FAIL #3293 null: the same edit gate failure with no code run in progress stays RED (exit 1)
+      FAIL #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+ML rerunning: any suite: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+MN rerunning: completed-gate filter dropped: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+MO classify_at early return removed: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+      FAIL defer-wait CLI: a green gate is read with no ci.yml listing read (no unreadable-listing log) -- GREEN
+MP proof_watch wall not passed: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+    FAIL (g4) the settle gap 30 s after the code gate's green is waited on, not REQUIRED RED (got 'aborted: REQUIRED RED at aaaaaaaaaaaa: gate; nothing merged', want 'no abort')
+    FAIL (g4) the settle gap waits one poll, then merges on gate-sweep's swept green (got False, want True)
+MQ settle unstamped -> True: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+      FAIL defer-wait CLI null: a red gate with no unfinished ci.yml run still reads RED (exit 1)
+      FAIL defer-wait CLI: an unreadable runs listing leaves the red standing (exit 1), logged
+      FAIL defer-wait CLI null: a red beside a green suite whose completion is unstamped takes no settle -- RED
+      FAIL settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+    FAIL (g) the red context is named (got False, want True)
+    FAIL (g2) an older red gate suite: the red gate is named (got False, want True)
+    FAIL (g2) a RATE-LIMITED gate suite: the red gate is named (got False, want True)
+NULL comment in sweep_settling: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+NULL comment in proof_watch: [/handoff/audit-r10-roster has not merged; merge main into it] [oof_watch: REFUSE: --mode owner needs --mandate <comment-id>]
+tree clean
