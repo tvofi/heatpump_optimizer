@@ -1,0 +1,6 @@
+* 56dd13aa8 Merge remote-tracking branch 'origin/main' into fix/r10-flow-toolkit-model
+* 9391c0d5a Merge commit '55b86a71ea5752e1af9f6491a94798629df236b2' into fix/r10-flow-toolkit-model
+* 55b86a71e replan: pin the pending-carry boundaries the diff mutants left open
+* e08021412 replan: price only the carries a group still owes (carry 15)
+* 83b3e0b00 replan: failing test first -- a marked carry is priced as open work (carry 15)
+* d84006e66 Merge origin/main into fix/r10-flow-toolkit-model (conflict in tools/plan/replan.py: keep both sides)
