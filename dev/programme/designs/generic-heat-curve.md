@@ -26,7 +26,7 @@ for "both" kinds and for use beyond his install.
 not part of this note's first build (§Sibling sites).
 
 **Read at.** `origin/main` = `28d46c4918285d36c409c1fb2f72eb77e04e569e`, unchanged since note 1. Outside the tree,
-read-only: the user's `luxtronik_shi` at `1eb46953f3baf55f5e9f915f4a244e6ab9b8e49d` (`registers.py`, `README.md`; the line numbers cited below were re-verified at its main `3629551`),
+read-only: the user's `luxtronik_shi` at `362955143b58da2dc037981bd3266cd409463831` (`registers.py`, `README.md`; every line number cited below was verified at this commit),
 and python-luxtronik, a shallow clone of Bouni/python-luxtronik at
 `02afea84bd5bf3ee87445de6f2a42b8029983169` (2026-03-22, `git -C /home/claude/shi-re/pylux/src log -1`):
 `luxtronik/definitions/holdings.py` and `luxtronik/definitions/parameters.py`.
@@ -69,7 +69,7 @@ stopgap C is no longer the answer.
 - U1: `heating_offset` acts as a parallel shift of the return-target curve on FW 3.92.3. **Measured by the user**
   on the reference installation (LWDV 91-1/3, FW 3.92.3, `luxtronik_shi`; SHI heating mode holding 10000 =
   `offset`, heating offset holding 10002). Instrument: `luxtronik_shi` sensor key `return_target` (SHI input
-  register 10101, registers.py:189 at `luxtronik_shi` `3629551`), entity `sensor.lwdv_shi_return_target`, resolution
+  register 10101, registers.py:189 at the pinned `luxtronik_shi` commit), entity `sensor.lwdv_shi_return_target`, resolution
   0.1 K.
   - M1, 2026-11-07 14:18 local, outdoor 5.7–5.8 °C: offset +2 K, return target 27.7 → 29.7 °C; mode set back to
     `off`: 27.7 °C again; the offset was then set to 0 with the mode left at `offset`.
