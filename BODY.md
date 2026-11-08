@@ -48,37 +48,46 @@ Carry 39 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; 
 Carry 40 - answered by the card 7 build (option B).
 Carry 41 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
 Carry 42 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+
 Carry 43 - built here (card 7 ruling; roster index 42, 0-based).
+Carry 44 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+
+Repair round (this push): the opener refused the previous head three times. Three causes, each fixed at its root.
+
+1. `tools/pr/figure_block.py` built its self-test repository with a hand-written `git init`; it now goes through `tests/throwaway_git.py` (`throwaway_git_init`), and every git call in the self-test runs under that module's environment.
+2. The prepr self-test read `513 passed, 2 failed`. The two failures were `a tree with no raw repository build passes the raw-git check (null control) (got 1, wanted 0)` and `and the ok line is the check's own, so it ran (got 0, wanted 1)`: both are `tests/throwaway_git.py --check` run at HEAD, refusing the raw `git init` at figure_block.py:223, so they were cause 1 and not separate defects. The assertions are untouched. Now `515 passed, 0 failed`.
+3. `field_coverage.mjs REFUSED registry: pinned tools/pr/figure_block.py is unregistered`. The bootstrap entry (`pending:`) is NOT on main: `git log origin/main -S"pinned tools/pr/figure_block.py" -- tools/policy/field_coverage.mjs` is empty; topic r10-body-contract-p3-bootstrap is only on `handoff-wip/r10-body-contract-p3-bootstrap`. So this change carries the entry itself in the final shape (`none:` with no `pending`), in the same change that pins the program in governance.yml. `node tools/policy/field_coverage.mjs` reads `FIELD COVERAGE ok`, rc=0, here. CI grades policy-docs with the base's copy, so `governance / policy-docs` stays red on this head until the bootstrap lands on main; that is the one-time bootstrap ee2974270 describes, and it is named below. When the bootstrap merges first, this entry conflicts trivially: keep this one (no `pending`).
+
+An earlier wip attempt (`handoff-wip/r10-body-contract-p3`, b4e835040) did the same repairs and stopped with BLOCKED.md on question (a)/(b)/(c); I took (b) as the brief directs and superseded that wip tip with a merge that keeps this tree.
 
 ## Head
 
-71cbfe6b1ecce22a23159f4c5284717fc6a7b5f8
+86f9e729f12a3da493029c3c02ea9854bdb34ce7
 
 ## Mutation proof
 
-`figure_block.py --self-test` mutants: hand-typed value, moved head, unregistered/head-only instrument, unknown name, non-zero exit each fail their check; `body_push.sh --self-test` deletes the `# mut:keep` refresh line and its arm fails; `policy_lint.mjs` registers `figureBlockProblems` as a return-mutant site (the mutants lane was not run locally).
+`figure_block.py --self-test` mutants: hand-typed value, moved head, unregistered/head-only instrument, unknown name, non-zero exit each fail their check; `body_push.sh --self-test` deletes the `# mut:keep` refresh line and its arm fails; `policy_lint.mjs` registers `figureBlockProblems` as a return-mutant site. Repair: reverting the figure_block.py hunk makes `tests/throwaway_git.py --check` print `REFUSE tools/pr/figure_block.py:223` and the prepr self-test read `513 passed, 2 failed`; with it, `0 raw git init or clone site(s) refused` and `515 passed, 0 failed`.
 
 ## Null control
 
-A body with no block and a free-form figure still passes (self-test arm); an unregistered instrument is refused as a block.
+A body with no block and a free-form figure still passes (self-test arm); an unregistered instrument is refused as a block. The unmodified head 71cbfe6b1 is the failing control for the repair above.
 
 ## Figures
 
-No block is used in this body: the registry does not exist at the base, so this pull request cannot use its own instrument (the point of the rule). Free-form:
+No block is used in this body: the registry does not exist at the base, so this pull request cannot use its own instrument. Free-form:
 
-- structure ratchet: `python3 tests/structure.py` printed STRUCTURE RATCHET PASSED at the head.
-- gate scope: `python3 tests/closure.py select --diff \$(git merge-base origin/main HEAD) --workdir \$D` prints MODE: FULL (gate files touched).
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` exits 0.
-
-Counts: `python3 -I tools/pr/figure_block.py --self-test`; `node tools/policy/policy_lint.mjs --self-test`; `bash tools/audit/seat/body_push.sh --self-test`.
+- `python3 -I tools/pr/figure_block.py --self-test` printed 11 checks, 0 failed.
+- `bash tools/pr/prepr.sh --self-test` printed 515 passed, 0 failed.
+- `python3 -I tests/throwaway_git.py --check` printed 0 raw sites.
+- `node tools/policy/field_coverage.mjs` printed FIELD COVERAGE ok.
 
 ## Approval
 
-Policy files touched (policy_lint.mjs, PULL_REQUEST_TEMPLATE.md, pr-contract.yml): owner approving review needed, or the card-7 mandate 6624093439 under which the orchestrator ruled this build.
+Policy files touched (policy_lint.mjs, PULL_REQUEST_TEMPLATE.md, pr-contract.yml, field_coverage.mjs): owner approving review needed, or the card-7 mandate under which the orchestrator ruled this build.
 
 ## Red checks
 
-none
+`governance / policy-docs`: `field_coverage.mjs REFUSED registry: pinned tools/pr/figure_block.py is unregistered`, graded with the base's copy of field_coverage.mjs. Cheaper detector: `prepr.sh` ci predict already predicts it; it cannot be cleared here because the bootstrap entry is not on main (see cause 3). Standing cost of a detector that avoids it: none beyond landing the bootstrap first; this is the one-time bootstrap shape of ee2974270.
 
 ## Forward-carry
 
@@ -87,3 +96,4 @@ none
 ## Friction
 
 none
+
