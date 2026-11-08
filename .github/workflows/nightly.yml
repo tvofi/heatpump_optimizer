@@ -142,7 +142,7 @@ jobs:
   # `mutation-nightly` samples the whole package and records nothing, and
   # `--pin-killed` reaches only the sites a diff adds, so the unpinned sites
   # that predate the ratchet had no way out. This job drives a slice of that
-  # stock -- whole anchors, walked by a date seed -- with the same kill rule,
+  # stock -- whole anchors, walked by the run's seed -- with the same kill rule,
   # baseline and null control, and hands what it killed to the next job. It
   # holds no write grant; the job that pushes runs no driver (D11-s1-03).
   # Main only (#1848): a dispatch on any other ref would drive that ref's
@@ -150,10 +150,27 @@ jobs:
   #
   # SHARDED four ways (triage s6-batch16 P85): one runner drove 40 sites a
   # night, about 24 kills, against ~3400 killable. `--shard K/4` deals the
-  # night's slice -- drawn at four times --max under the one date seed -- by
+  # night's slice -- drawn at four times --max under the one run seed -- by
   # whole anchor (`drain_pool`), so the shards are disjoint and together the
   # slice one runner would not have had the hours for. Each shard uploads its
   # own artifact; the one push merges them (`merge_pin_shards`).
+  #
+  # The seed is the RUN id, not the date (R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT):
+  # every run draws from the unpinned stock as it stood at its checkout, so
+  # two runs one UTC date apart by less than a drive -- a dispatch beside the
+  # schedule -- drew one slice twice. Run 42139479636 killed 90 sites and
+  # landed 20 pins, the other 70 pushed first by dispatch 42135552492 under
+  # the same date seed (dev/audit/harnesses/nightly_drain_breakdown.py
+  # --prior). The four shards of a run still share one seed, so they stay
+  # disjoint; the seed is printed in each DRAIN SHARD header, so a night's
+  # draw replays as before.
+  #
+  # --budget-minutes 270, mutation-nightly's sizing under the same 330-minute
+  # timeout (R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT): at 240, 185 of the 320 sites
+  # run 42139479636 drew were never started, while its longest shard ended
+  # 225 minutes into its 330 (nightly_drain_breakdown.py; the jobs API's
+  # started_at and completed_at). The 60 minutes left cover the runs in
+  # flight, each under its scaled timeout.
   mutation-ledger:
     if: github.ref == 'refs/heads/main' && github.event_name != 'push'
     runs-on: ubuntu-latest
@@ -202,7 +219,7 @@ jobs:
           python3 tests/mutation_table.py \
             --scope full --drain "$out" --shard ${{ matrix.shard }}/4 \
             --max 80 --jobs 4 \
-            --seed "$(date -u +%Y%m%d)" --budget-minutes 240 \
+            --seed "${{ github.run_id }}" --budget-minutes 270 \
             --pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json" \
             | tee "$RUNNER_TEMP/mutation-ledger.txt"
           test -s "$out/status"
