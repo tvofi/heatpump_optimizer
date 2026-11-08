@@ -1,8 +1,8 @@
-Carry 17 of R10-DISPATCH-AT-HANDOFF (part 2): `bus.sh dispatch` reads a required-context RED as a repair owed to the fixer, not a refusal a retry loop re-tries. A WAIT head still dispatches and only RED holds. Part 2 also carries the two earlier `review_packet.py` commits already on this branch (head-note asks `policy_lint --pr-body --head`; the packet refuses a figure_lint red and a moved head).
+Roster item 17 of R10-DISPATCH-AT-HANDOFF (part 2): `bus.sh dispatch` reads a required-context RED as a repair owed to the fixer, not a refusal a retry loop re-tries. A WAIT head still dispatches and only RED holds. Part 2 also carries the two earlier `review_packet.py` commits already on this branch (head-note asks `policy_lint --pr-body --head`; the packet refuses a figure_lint red and a moved head).
 
-Ruling cited: orchestrator ruling (mandate 6715477401, 2026-11-08): "a PENDING (queued or in-progress) required context does NOT hold a dispatch; WAIT dispatches, only RED holds." That supersedes the brief's pending ruling. Carry 6 (hold on a pending required context) is therefore closed as superseded by this ruling and not built. Card 7's WAIT-dispatches arm is already the code (`0|3) ;;`) and is pinned by the existing "classify WAIT dispatches" self-test arm; I changed nothing there.
+Ruling cited: orchestrator ruling (mandate 6715477401, 2026-11-08): "a PENDING (queued or in-progress) required context does NOT hold a dispatch; WAIT dispatches, only RED holds." That supersedes the brief's pending ruling. Roster item 6 (hold on a pending required context) is therefore closed as superseded by this ruling and not built. Card 7's WAIT-dispatches arm is already the code (`0|3) ;;`) and is pinned by the existing "classify WAIT dispatches" self-test arm; I changed nothing there.
 
-Pending a ruling, not built here: Carries 0, 4, 8, 11, 12 (BLOCKED.md of 07:31Z listed them as waiting on an owner or orchestrator ruling). Carry 6 vs 17: resolved as above.
+Pending a ruling, not built here: Roster items 0, 4, 8, 11, 12 (BLOCKED.md of 07:31Z listed them as waiting on an owner or orchestrator ruling). Item 6 vs 17: resolved as above.
 
 ## Head
 
