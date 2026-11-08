@@ -1,0 +1,44 @@
+import subprocess, sys, pathlib
+W = pathlib.Path.home()/"wt"
+M = [
+ ("replan-tier-outside","tools/plan/replan.py","    if roster_lib.is_outside(group):\n        return TIER_OUTSIDE","    if False:\n        return TIER_OUTSIDE"),
+ ("replan-hotfix-below-cp","tools/plan/replan.py",'    if k == "bug" or "HOTFIX" in g and cls == "production":\n        return TIER_HOTFIX','    if on_cp:\n        return TIER_URGENT, "critical path"\n    if k == "bug" or "HOTFIX" in g and cls == "production":\n        return TIER_HOTFIX'),
+ ("replan-outside-eq-urgent","tools/plan/replan.py",'return TIER_OUTSIDE, "outside (source)"','return TIER_URGENT, "outside (source)"'),
+ ("od-class-outside","tools/audit/seat/open_driver.py","    if group and roster_lib.norm_group(group) in outside:\n","    if False:\n"),
+ ("od-fence-1","tools/audit/seat/open_driver.py","FENCED = 2\n","FENCED = 1\n"),
+ ("od-fence-0","tools/audit/seat/open_driver.py","FENCED = 2\n","FENCED = 0\n"),
+ ("od-sortkey-unfenced","tools/audit/seat/open_driver.py","key=lambda x: (min(cls[x[0]], FENCED + 1), pos(x[0])","key=lambda x: (0, pos(x[0])"),
+ ("od-runpass-outside-empty","tools/audit/seat/open_driver.py","    outside = {roster_lib.norm_group","    outside = set() and {roster_lib.norm_group"),
+ ("od-swap-hotfix-outside","tools/audit/seat/open_driver.py",'    if topic.startswith("r10-hotfix-") or (group or "").startswith("R10-HOTFIX-"):\n        return 0\n    if group and roster_lib.norm_group(group) in outside:\n        return 1','    if group and roster_lib.norm_group(group) in outside:\n        return 0\n    if topic.startswith("r10-hotfix-") or (group or "").startswith("R10-HOTFIX-"):\n        return 1'),
+ ("mt-drain-outside","tools/audit/seat/merge_train.py","not self.outside(items[id(e)]),  # mut:drain-outside","False,  # mut:drain-outside"),
+ ("mt-drain-swap","tools/audit/seat/merge_train.py","not self.outside(items[id(e)]),  # mut:drain-outside\n                                            not self.critical(items[id(e)])))","not self.critical(items[id(e)]),\n                                            not self.outside(items[id(e)])))"),
+ ("mt-no-pr-fallback","tools/audit/seat/merge_train.py",'        if not gid and item.get("pr") is not None:','        if False:'),
+ ("mt-outside-any-group","tools/audit/seat/merge_train.py",'if g.get("group") == gid)','if True)'),
+ ("mt-item-no-pr","tools/audit/seat/merge_train.py",'return {"branch": b, "pr": e["pr"]}','return {"branch": b}'),
+ ("rl-is-outside-truthy","tools/audit/seat/roster_lib.py",'group.get("source") == "outside"','bool(group.get("source"))'),
+ ("rl-is-outside-absent-true","tools/audit/seat/roster_lib.py",'group.get("source") == "outside"','group.get("source", "outside") == "outside"'),
+ ("rl-group-for-pr-none","tools/audit/seat/roster_lib.py","                return g.get(\"group\")\n        except (TypeError, ValueError):\n            continue\n    return None","                return None\n        except (TypeError, ValueError):\n            continue\n    return None"),
+ ("rl-group-for-pr-bool","tools/audit/seat/roster_lib.py","        if isinstance(pr, bool):\n            return None\n","")
+]
+TESTS = {"tools/plan/replan.py":["tools/plan/replan.py"],
+ "tools/audit/seat/open_driver.py":["tools/audit/seat/open_driver.py"],
+ "tools/audit/seat/merge_train.py":["tools/audit/seat/merge_train.py"],
+ "tools/audit/seat/roster_lib.py":["tools/audit/seat/roster_lib.py","tools/audit/seat/merge_train.py","tools/plan/replan.py","tools/audit/seat/open_driver.py"]}
+only = sys.argv[1:]
+for name, f, a, b in M:
+    if only and name not in only: continue
+    p = W/f; src = p.read_text()
+    if src.count(a) != 1: print(f"RESULT mutant {name}: NOT-APPLIED (count {src.count(a)})", flush=True); continue
+    p.write_text(src.replace(a, b))
+    try:
+        res = []
+        for t in TESTS[f]:
+            r = subprocess.run([sys.executable, t, "--self-test"], cwd=W, capture_output=True, text=True, timeout=600)
+            fails = [l for l in (r.stdout+r.stderr).splitlines() if l.startswith(("FAIL", "  FAIL")) or "FAIL" in l[:8]]
+            res.append((t.split('/')[-1], r.returncode, fails[:3]))
+        killed = any(rc != 0 for _, rc, _ in res)
+        print(f"RESULT mutant {name}: {'KILLED' if killed else 'SURVIVED'} {[(t, rc) for t, rc, _ in res]}", flush=True)
+        for t, rc, fl in res:
+            for l in fl: print(f"    {t}: {l[:200]}", flush=True)
+    finally:
+        p.write_text(src)
