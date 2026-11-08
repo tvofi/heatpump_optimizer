@@ -14,7 +14,11 @@ The two instrument docs are corrected: `cloud_dispatch.py.md` no longer lists `B
 
 ## Head
 
-`4612662f84b3799106f796a215a359b8e946b349`, one commit on origin/main `4a9d2d5425ea13e728dca20aff15d7f76345dc73`.
+`1d4c7cda56dc8d4604977c621b0ccc9457818b21`, the conflict-resolution merge of origin/main `daf8b349fd30cc60786eeca333a426b693aa4c5f` into the verdicted head `2bb81f4215c17cd6640ef2c69d7a1458a7235587` (the PR was DIRTY; resolved by merge, not re-cut). Resolution delta, one conflicted file:
+
+- `dev/audit/config/bugclasses.json`: both sides added a class entry at the same spot. Union: this branch's `R10-RCA-CLOUD-ENTITIES-ENV` and main's `R10-RCA-COP-UNMEASURED` are both present (read back as parsed JSON: both keys present), and the file ends with the trailing newline main carries (a second commit, `git diff origin/main -- <file>` is only the 16 added lines of this branch's entry). No other file was touched by the resolution.
+
+`tools/pr/prepr.sh` (PREPR_SKIP_CLOSURES=1) at this head: rc 0, on origin/main `daf8b349fd30` (stamped 2026-11-08, `date -u`).
 
 ## Mutation proof
 
@@ -45,7 +49,7 @@ none
 
 ## Forward-carry
 
-none
+Carry 1 (item bac1b3fe: cloud-setup's venv-ha lacks scipy and paho, so suites cannot run in a cloud seat): not touched by this resolution-only delta; the verdicted change is unchanged. Carry: R10-RCA-CLOUD-ENTITIES-ENV (dev/programme/rosters/wave-r10-groups.json)
 
 ## Friction
 
