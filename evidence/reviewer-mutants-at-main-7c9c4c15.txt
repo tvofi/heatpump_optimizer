@@ -1,2 +1,0 @@
-main null_control SURVIVED
-main moved_on_rc1 KILLED
