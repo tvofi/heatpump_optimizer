@@ -1,0 +1,18 @@
+RESULT mutant=W18 rc=1 fails=1
+    FAIL append-carry refuses text ending in a mark-shaped suffix
+plants: 1, without a FAIL line: none
+
+RESULT mutant=W16 rc=1 fails=8
+RESULT mutant=W17 rc=1 fails=1
+RESULT mutant=W18 rc=1 fails=1
+RESULT mutant=Q13 rc=1 fails=1
+RESULT mutant=Q9 rc=1 fails=1
+== M9 head
+RESULT mutant=M9_carry_dedupe_dropped rc=1 fails=1
+    FAIL an item the destination holds verbatim is skipped silently, not refused as a near-duplicate (M9) (got: roster_sync: pull requests: 13 read offline from --pr-state
+restored
+== M9 base
+RESULT mutant=M9_carry_dedupe_dropped rc=0 fails=0
+restored
+
+[exited with code 0]
