@@ -99,6 +99,8 @@ from .thermal_model import (
     _step_humidity,
     channel_heating_draw,
     channel_heating_steps,
+    combi_dhw_net_series,
+    combi_space_net_kw,
     levels_clamped,
     plan_step_runs,
     planned_draw_runs,
@@ -1377,6 +1379,72 @@ def _multi_start_minimize(
 #: a near-zero mean divides by ~1e-6 and saturates the clip into bang-bang
 #: at arbitrary steps. Real Nordic spring days do average below zero.
 PRICE_MEAN_GUESS_EPS = 1e-3
+
+
+def _with_buffer_exo(weather: WeatherSeries, buffer_exo_kw: np.ndarray | None) -> WeatherSeries:
+    """``weather`` carrying a combi store's hot-water flux, or as it is when there is none."""
+    return weather if buffer_exo_kw is None else replace(weather, buffer_exo_kw=buffer_exo_kw)
+
+
+def _combi_dhw_exo(
+    model: ThermalModel, h: _Horizon, schedule: np.ndarray, draw_rates: np.ndarray,
+    tank_exo_kw: np.ndarray | None = None,
+) -> np.ndarray | None:
+    """The hot-water side's net flux into a combi store along ``schedule``'s
+    own store walk (``combi_dhw_net_series``), the series the space solve
+    takes as ``buffer_exo_kw``; ``None`` off combi (R10-COMBI-TANK, Solver)."""
+    p = model.params
+    if not (p.dhw_combi_tank_enabled and p.combi_tank_active):
+        return None
+    temps = model.simulate_dhw_only(
+        initial_temp=float(h.initial_state.dhw_temperature), dhw_power_schedule=schedule,
+        outdoor_temps=h.outdoor_temps, draw_rates=draw_rates, dt_hours=h.dt,
+        humidity=h.humidity, exo_kw=tank_exo_kw,
+    )
+    return combi_dhw_net_series(model, temps, schedule, draw_rates, h.outdoor_temps, h.humidity)
+
+
+#: Cap on the combi flux exchange's rounds, each a DHW plan build: each
+#: re-plans hot water against the space side's net flux under the previous
+#: round's plan, and a plan still moving at the cap is published as it stands
+#: (the `exchange` harness arm in dev/audit/harnesses/r10_combi_tank.py
+#: prints the rounds a plan takes).
+_COMBI_EXCHANGE_ROUNDS = 4
+
+
+def _combi_flux_exchange(
+    opt: HeatPumpOptimizer, h: _Horizon, planner: DhwPlanner, space_power: np.ndarray,
+    dhw_power: np.ndarray, draw_rates: np.ndarray, p_max: float,
+) -> np.ndarray:
+    """The hot-water plan for a combi store, re-planned against the fixed
+    space plan's net flux into it until it stops moving (R10-COMBI-TANK,
+    Solver): the space step takes the DHW side's flux as ``buffer_exo_kw``,
+    the DHW recursions take the space side's as ``tank_exo_kw``, so the heat
+    either side moves, and the standing loss, is counted once.
+
+    A feasibility repair, never a scored candidate: the first plan's store
+    breaches the hot-water floor the space side drains, so its score bounds
+    nothing, and a space re-solve would draw the repair straight back out.
+    """
+    model, store = opt.model, opt.model.params.dhw_store
+    weather = WeatherSeries.from_horizon(h)
+    space_net = None
+    for _ in range(_COMBI_EXCHANGE_ROUNDS):
+        dhw_exo = _combi_dhw_exo(model, h, dhw_power, draw_rates, space_net)
+        buffer_temps = model.simulate_trajectory(
+            initial_state=h.initial_state, power_schedule=space_power,
+            weather=_with_buffer_exo(weather, dhw_exo), dt_hours=h.dt,
+            valve_targets=h.valve_targets, start_hour=float(h.step_hours[0]))[4]
+        space_net = combi_space_net_kw(store, buffer_temps, dhw_exo, h.dt)
+        plan, opt._dhw_requirement = planner._build_dhw_requirements(
+            h, p_max=p_max, space_demand=space_power,
+            p_run_cap=None if h.power_caps_extra is None else float(np.min(h.power_caps_extra)),
+            blocked=h.dhw_blocked, off_steps=h.off_steps, tank_exo_kw=space_net,
+        )
+        if np.allclose(plan.schedule, dhw_power, atol=1e-4):
+            break
+        dhw_power = plan.schedule
+    return dhw_power
 
 
 def _price_guess_weights(prices: np.ndarray) -> np.ndarray:
@@ -3193,6 +3261,7 @@ class HeatPumpOptimizer:
         solve_space: Callable[..., Any],
         p_max: float,
         planner: DhwPlanner,
+        draw_rates: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, str]:
         """Re-plan hot water against the space heating it competes with.
 
@@ -3206,6 +3275,8 @@ class HeatPumpOptimizer:
         makes a single extra iteration safe rather than something that needs to
         run to convergence. The wood-tank coil (#400) re-plans here against
         the solved space heating's wood trajectory; no compressor pin required.
+        A combi store re-plans against the solved space side's net flux into
+        it (``combi_space_net_kw``, R10-COMBI-TANK), the flux exchange.
         """
         try:
             headroom = np.maximum(0.0, p_max - dhw_power)
@@ -3220,6 +3291,10 @@ class HeatPumpOptimizer:
                 raw = self.model.dhw_draw_rates(hours)
                 credited = planner._dhw_planner_draws(raw, wood_temps)
                 coil_replan = not np.allclose(credited, raw, atol=1e-9)
+            if draw_rates is not None and self.model.params.dhw_store.combi:
+                # A feasibility repair, not a scored candidate (its docstring).
+                return space_power, _combi_flux_exchange(
+                    self, h, planner, space_power, dhw_power, draw_rates, p_max), status
             if not bool(np.any(pinned)) and not coil_replan:
                 return space_power, dhw_power, status
 
@@ -4637,11 +4712,11 @@ class HeatPumpOptimizer:
         )
         energy_cost_of = self._energy_cost_fn(prices, dt)
 
-        def _space_traj(power_schedule: np.ndarray) -> Any:
+        def _space_traj(power_schedule: np.ndarray, buffer_exo_kw: Any = None) -> Any:
             return self.model.simulate_trajectory(
                 initial_state=initial_state,
                 power_schedule=power_schedule,
-                weather=weather,
+                weather=_with_buffer_exo(weather, buffer_exo_kw),
                 dt_hours=dt,
                 valve_targets=h.valve_targets,
                 start_hour=float(h.step_hours[0]),
@@ -4650,6 +4725,7 @@ class HeatPumpOptimizer:
         def objective(
             space_power: np.ndarray,
             dhw_plan_power: np.ndarray | None = None,
+            buffer_exo_kw: np.ndarray | None = None,
         ) -> float:
             """Compute the total cost with predictive weather anticipation."""
             space_power, dhw_plan_power = _realize_draw(
@@ -4657,7 +4733,7 @@ class HeatPumpOptimizer:
                 self.model.params.min_electrical_power, self.model.params.max_electrical_power,
             )
             room_temps, slab_temps, upper_temps, lower_temps, buffer_temps, _, _ = (
-                _space_traj(space_power)
+                _space_traj(space_power, buffer_exo_kw)
             )
 
             # The compressor is one machine: the grid sees the *combined*
@@ -4703,6 +4779,7 @@ class HeatPumpOptimizer:
         def objective_batch(
             space_matrix: np.ndarray,
             dhw_plan_power: np.ndarray | None = None,
+            buffer_exo_kw: np.ndarray | None = None,
         ) -> np.ndarray:
             """The same objective, for B schedules at once (issue #97).
 
@@ -4721,7 +4798,7 @@ class HeatPumpOptimizer:
             traj = self.model.simulate_trajectory_batch(
                 initial_state=initial_state,
                 power_matrix=space_matrix,
-                weather=weather,
+                weather=_with_buffer_exo(weather, buffer_exo_kw),
                 dt_hours=dt,
                 valve_targets=h.valve_targets,
                 start_hour=float(h.step_hours[0]),
@@ -5106,8 +5183,11 @@ class HeatPumpOptimizer:
         init_base = np.clip(init_base, p_min * 0.5, p_max * 0.8)
 
         def solve_space(
-            dhw_plan: np.ndarray, warm_start: np.ndarray | None
+            dhw_plan: np.ndarray, warm_start: np.ndarray | None,
+            tank_exo_kw: np.ndarray | None = None,
         ) -> tuple[np.ndarray, str, float]:
+            # Combi: the space solve sees this DHW plan's flux into the store.
+            exo = _combi_dhw_exo(self.model, h, dhw_plan, dhw_draw_rates, tank_exo_kw)
             return self._solve_space(
                 dhw_plan,
                 warm_start,
@@ -5117,8 +5197,9 @@ class HeatPumpOptimizer:
                 dt,
                 prices,
                 init_base,
-                objective,
-                objective_batch,
+                objective if exo is None else partial(objective, buffer_exo_kw=exo),
+                objective_batch if exo is None
+                else partial(objective_batch, buffer_exo_kw=exo),
             )
 
         # The seam between the DHW LP stage above and the gradient space
@@ -5137,6 +5218,7 @@ class HeatPumpOptimizer:
             solve_space=solve_space,
             p_max=p_max,
             planner=planner,
+            draw_rates=dhw_draw_rates,
         )
         optimal_space, optimal_dhw = _realize_joint(
             self.config.clamp_planned_levels, optimal_space, optimal_dhw,
@@ -5165,8 +5247,13 @@ class HeatPumpOptimizer:
             end_state=published_end,
         )
         # The achieved objective, for candidate comparison across valve
-        # schedules.
-        achieved_objective = float(objective(optimal_space, optimal_dhw))
+        # schedules; in combi, at the hot-water flux of the published walk.
+        achieved_objective = float(objective(
+            optimal_space, optimal_dhw,
+            combi_dhw_net_series(
+                self.model, buffer_temps, optimal_dhw, dhw_draw_rates, outdoor_temps, h.humidity)
+            if self.model.params.dhw_store.combi else None,
+        ))
 
         # Baseline cost. The reference holds the comfort schedule, not the comfort the plan
         # delivered (#2255): the baseline must not move with the plan's start.
@@ -5465,15 +5552,16 @@ class HeatPumpOptimizer:
             cap = caps.get(cap_key)
             return min(value, cap) if cap is not None else value
 
-        # (store, mass, COP-read temperature, reference end, plan end)
+        # (store, mass, COP-read temperature, reference end, plan end); a combi
+        # store already counted as the buffer is not counted again as DHW.
         tanks: list[tuple[str, float, float | None, float, float]] = []
         if p.two_zone_enabled:
             tanks.append(("buffer", p.buffer_tank_thermal_mass, caps.get("buffer"),
                           baseline_end.buffer_tank_temperature,
                           optimized_end.buffer_tank_temperature))
-        if include_dhw:
+        if include_dhw and not (p.dhw_store.combi and p.two_zone_enabled):
             dhw_cap = caps.get("dhw")
-            tanks.append(("dhw", p.dhw_tank_thermal_mass,
+            tanks.append(("dhw", p.dhw_store.capacity_kwh_per_c,
                           dhw_cap if dhw_cap is not None else p.dhw_setpoint,
                           baseline_end.dhw_temperature, optimized_end.dhw_temperature))
         for store, mass, cop_temp, ref_end, plan_end in tanks:
@@ -5706,8 +5794,8 @@ class HeatPumpOptimizer:
                 p.slab_thermal_mass * _t(state.slab_temperature, "slab")
                 + p.room_thermal_mass * _t(state.room_temperature, "room")
             )
-        if include_dhw:
-            stored += p.dhw_tank_thermal_mass * _t(state.dhw_temperature, "dhw")
+        if include_dhw and not (p.dhw_store.combi and p.two_zone_enabled):
+            stored += p.dhw_store.capacity_kwh_per_c * _t(state.dhw_temperature, "dhw")
         return float(stored)
 
     def _replay_end_state(

@@ -336,6 +336,7 @@ from .thermal_model import (
     ThermalParameters,
     ThermalState,
     channel_heating_steps,
+    dhw_mixed_litres,
     is_sunlit_interval,
     heat_loss_anchor_pair,
     heat_loss_basis,
@@ -4427,9 +4428,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         inlet = params.dhw_inlet_reference
         if 40.0 - inlet < 1.0:
             return {}
-        litres = (
-            params.dhw_tank_volume * max(0.0, float(tank) - inlet) / (40.0 - inlet)
-        )
+        litres = dhw_mixed_litres(params, float(tank), 40.0)
         flow = ctx._config.shower_flow_lpm
         out: DhwMixed = {"litres_40c": round(litres, 1), "tank_temperature": round(float(tank), 1)}
         if flow > 0:
@@ -4454,7 +4453,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         params = ctx._thermal_params
         if not params.dhw_enabled or not self._prices:
             return {}
-        c_dhw = params.dhw_tank_thermal_mass
+        c_dhw = params.dhw_store.capacity_kwh_per_c
         outdoor = float(ctx._current_state.outdoor_temperature)
         mean_price = _sweep_price(kwh_price, self._prices)
         # The heaviest ready energy any window needs, learned where
@@ -4490,7 +4489,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         for setpoint in range(48, 61, 2):
             t = float(setpoint)
             standby_kwh = (
-                params.dhw_tank_heat_loss_coefficient
+                params.dhw_store.ua_kw_per_c
                 * max(0.5 * (t + params.dhw_min_temp) - TANK_ROOM_AMBIENT_TEMP, 0.0)
                 * 24.0
             )
@@ -5141,7 +5140,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         thermal_kw = params.max_electrical_power * max(cop, 1.0)
         if tank == "dhw":
-            capacity = params.dhw_tank_thermal_mass
+            capacity = params.dhw_store.capacity_kwh_per_c
         else:
             capacity = params.buffer_tank_thermal_mass
         if capacity <= 1e-6:
