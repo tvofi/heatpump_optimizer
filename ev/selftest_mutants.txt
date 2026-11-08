@@ -1,0 +1,43 @@
+== head
+sweep self-test: 60 checks, 0 failed
+rc=0
+== skip
+FAIL #3308: skipped jobs re-stamped by a sibling's gate re-run are no source; settle re-runs nothing (swept from run 42470642055)
+FAIL #3308: skipped jobs re-stamped by a sibling's gate re-run are no source; settle re-runs nothing (swept from run 42470643072)
+FAIL #3308: skipped jobs re-stamped by a sibling's gate re-run are no source; settle re-runs nothing (swept from run 42471173865)
+FAIL #3308 null: a non-skipped source (codeql python) finishing after a sibling gate started re-runs that gate, once
+FAIL #3308 null: that re-run, judged after the source, re-stamping its own skips, is final; no sweep re-runs a gate
+sweep self-test: 60 checks, 5 failed
+rc=1
+== settled
+FAIL settle: an overlapping pair of re-run gates, re-run by github-actions[bot], with no source after them, is final
+sweep self-test: 60 checks, 1 failed
+rc=1
+== actor
+FAIL settle: an overlapping pair of re-run gates, re-run by tvofi, with no source after them, is re-judged (the lower id, null)
+sweep self-test: 60 checks, 1 failed
+rc=1
+== srcafter
+FAIL #3308: skipped jobs re-stamped by a sibling's gate re-run are no source; settle re-runs nothing (swept from run 42470642055)
+FAIL #3308: skipped jobs re-stamped by a sibling's gate re-run are no source; settle re-runs nothing (swept from run 42470643072)
+FAIL #3308: skipped jobs re-stamped by a sibling's gate re-run are no source; settle re-runs nothing (swept from run 42471173865)
+FAIL #3308 null: a non-skipped source (codeql python) finishing after a sibling gate started re-runs that gate, once
+FAIL #3308 null: that re-run, judged after the source, re-stamping its own skips, is final; no sweep re-runs a gate
+sweep self-test: 60 checks, 5 failed
+rc=1
+== revert
+FAIL #3308: skipped jobs re-stamped by a sibling's gate re-run are no source; settle re-runs nothing (swept from run 42471173865)
+FAIL #3308 null: a non-skipped source (codeql python) finishing after a sibling gate started re-runs that gate, once
+FAIL #3308 null: that re-run, judged after the source, re-stamping its own skips, is final; no sweep re-runs a gate
+FAIL sweep.SWEEP_ACTOR is the recorded bot login
+FAIL settle: an overlapping pair of re-run gates, re-run by github-actions[bot], with no source after them, is final
+sweep self-test: 60 checks, 7 failed
+rc=1
+== m3
+FAIL #3308 null: a non-skipped source (codeql python) finishing after a sibling gate started re-runs that gate, once
+sweep self-test: 60 checks, 1 failed
+RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
+== m4
+FAIL settle: an overlapping pair of re-run gates, re-run by github-actions[bot], with no source after them, is final
+sweep self-test: 60 checks, 1 failed
+RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no

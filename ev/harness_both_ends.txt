@@ -1,0 +1,10 @@
+== base
+replay: 2026-11-08T11:33:11Z the sweep for run 42469369682's completion re-ran gate of run 42469369199 -> attempt 44
+RESULT replay reruns=86 max_attempt=44 sim_minutes=72 alarm=yes
+== base no-restamp
+RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
+== head
+replay: 2026-11-08T10:22:25Z the sweep for run 42469369199's completion re-ran gate of run 42469369682 -> attempt 2
+RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
+== head no-restamp
+RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
