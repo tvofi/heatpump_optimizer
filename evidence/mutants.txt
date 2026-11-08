@@ -1,0 +1,40 @@
+== MUTANT:     if want in got:
+  FAIL score: a wrong figure after the true one is refused (carry 5): got 0, want 1
+budget_raise_gate self-test: 274 checks, 1 failed
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+== MUTANT:     if got and got[0] == want:
+  FAIL score: the true figure last, after a payment's own line, passes (earlier lines are shape-only): got 1, want 0
+  FAIL score: a wrong figure after the true one is refused (carry 5): got 0, want 1
+budget_raise_gate self-test: 274 checks, 2 failed
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+== MUTANT:     if got and got[-1][0] == want[0]:
+  FAIL score: the same dS with another verdict word is refused: got 0, want 1
+budget_raise_gate self-test: 274 checks, 1 failed
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+== MUTANT:     if got and got[-1][1] == want[1]:
+budget_raise_gate self-test: 274 checks, 0 failed
+  FAIL a mandated raise whose body quotes a dS the scorer did not measure stops, as budget-raise-gate refuses it (the train reads budget_raise_gate.justified, its measured figure)
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+== MUTANT:     if got:
+  FAIL score: a planted false IMPROVES under a mandate is refused: got 0, want 1
+  FAIL score: ... and the refusal names both figures: got False, want True
+  FAIL score: the same dS with another verdict word is refused: got 0, want 1
+  FAIL score: a wrong figure after the true one is refused (carry 5): got 0, want 1
+  FAIL a mandated raise whose body quotes a dS the scorer did not measure stops, as budget-raise-gate refuses it (the train reads budget_raise_gate.justified, its measured figure)
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+== MUTANT:     if got and want in got:
+  FAIL score: a wrong figure after the true one is refused (carry 5): got 0, want 1
+budget_raise_gate self-test: 274 checks, 1 failed
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+
+[exited with code 0]
