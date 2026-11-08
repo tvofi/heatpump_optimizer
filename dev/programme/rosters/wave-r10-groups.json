@@ -19708,6 +19708,49 @@
     "note": "overlap admitted (R10-HOTFIX-AUTHOR-EMAIL): fly-in group, orchestrator 2026-11-08: handoff built before its row; distinct seam (cloud-setup.sh, entities env RCA)"
    },
    "brief": "Fly-in root cause: why tests/entities.py fails in the cloud environment for environment reasons (3 of 2665 checks), with a cloud-setup.sh countermeasure. Handoff handoff/r10-rca-cloud-entities-env at 4612662f (body 737720e9) is already built; this row records it."
+  },
+  {
+   "group": "R10-RCA-SWEEP-SETTLE-LOOP",
+   "lane": "C",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/audit/rca/R10-RCA-SWEEP-SETTLE-LOOP.md",
+    "dev/audit/harnesses/r10_rca_sweep_settle_loop.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-rca-sweep-settle-loop",
+    "pr": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch fixer",
+    "note": null
+   },
+   "brief": "Fly-in root cause beside R10-HOTFIX-SWEEP-SETTLE-LOOP: the cause, process state, cost test and countermeasure for the sweep settle loop, with the replay harness. Handoff handoff/r10-rca-sweep-settle-loop at ae2bceee is already built; this row records it."
   }
  ]
 }
