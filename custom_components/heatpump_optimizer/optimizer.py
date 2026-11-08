@@ -5591,9 +5591,9 @@ class HeatPumpOptimizer:
         held = np.zeros(len(steady), dtype=bool)
         while (total := float(np.sum(steady[~held]))) > 0.0:
             spread = np.where(held, cap, steady * ((energy - cap * int(np.sum(held))) / total))
-            if not (over := spread > cap).any():
+            if not (over := ~held & (spread > cap)).any():
                 return spread
-            held |= over
+            held = over
         return simulated
 
     def _settle_horizon(

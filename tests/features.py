@@ -44292,6 +44292,21 @@ R.check(
     and np.allclose(_hz_lout, [0.0, 0.0, 0.0, 0.35], atol=1e-12),
     f"demand {_hz_ldem!r} spread {_hz_lout!r}",
 )
+# A step whose share lands exactly at the pump is at it, not past it: three
+# zero-demand steps and one cold one, the horizon's energy one pump-step, keep
+# the spread (all of it on the cold step) rather than handing the horizon back
+# to the simulation, as a step held with no demand left to share would.
+_hz_eout = _hz_opt._apportion_by_steady_demand(
+    np.full(4, 0.25 * _hz_mcap), _HbWSeries(
+        outdoor_temps=np.array([30.0, 30.0, 30.0, -5.0]), wind_speeds=np.zeros(4),
+        precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+    ), [21.0] * 4,
+)
+R.check(
+    "behind a valve, a step spread exactly to the pump keeps the spread",
+    _hz_eout.tolist() == [0.0, 0.0, 0.0, _hz_mcap],
+    repr(_hz_eout),
+)
 R.check(
     "precondition: the cold step's plain share of the horizon passes the pump",
     bool(np.all(_hz_mdem > 0.0))
