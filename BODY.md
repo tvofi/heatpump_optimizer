@@ -1,29 +1,27 @@
-Policy change on two owner rulings (tvofi, 2026-11-08, chat to the orchestrator): the bar for a new process, tooling or instrument proposal and for the owner's exemption moves from over 10% to over 20% improvement (CI time, programme completion time, right-first-time, token usage); an already planned instrument or machinery group, or an existing non-production CI lane or seat, stays only on a measured improvement of at least 10% (was 5%, in no policy file; its only statement was `dev/programme/triage/s6-batch126.md`, a record left as written); a minor or low defect repair in instrument or machinery code takes the same bars. Approval: mandate 6715477401 (scope all) covers the owner's approving review.
+Policy change on two owner rulings (tvofi, 2026-11-08, chat to the orchestrator): the bar for a new process, tooling or instrument proposal and for the owner's exemption moves from over 10% to over 20% improvement (CI time, programme completion time, right-first-time, token usage); an already planned instrument or machinery group, or an existing non-production CI lane or seat, stays only on a measured improvement of at least 10% (was 5%, in no policy file; its only statement was `dev/programme/triage/s6-batch126.md`, a record left as written); a minor or low defect repair in instrument or machinery code takes the same bars. Owner correction of 2026-11-08: the issue bar applies only to instrument and machinery code. Approval: mandate 6715477401 (scope all) covers the owner's approving review.
 
 Sites changed: `dev/governance/roles/proposal-triage.md` (exemption sentence, keep test, minor-defect rule), `dev/governance/rules/ratchet-budgets.md` plus its generated `.claude/rules/` and `.cursor/rules/` copies (`node tools/policy/rules_sync.mjs`), `tools/audit/machinery_ratchet.py` (docstring, `THRESHOLD`, self-test cases at exactly 20%), `tools/audit/seat/instruments/machinery_ratchet.py.md`. Left alone: unrelated percentages (docs solver/furnace figures, round 9 perf-gate noise, D0 price figures, rate-limit floors) and the older `dev/programme/triage/s6-batch*.md` records that recount the 10% bar as applied then.
 
-## Repair of the blocked review (comment 6719859854)
+## Repair of the blocked review (comment 6721196982)
 
-Block 1, the severity scale. The minor-defect rule now names every value the roster's `severity` field carries, once. **For the owner to confirm:** `low` and `normal` take the bar (over 20% to add, at least 10% to keep); `medium`, `high`, `major` and `critical` skip it and keep their route, as do a required countermeasure, closeout and an owner directive; an unset `severity` is classified first. This is the minimal reading of the ruling's "minor or low" (bar) against "major or critical" (skip); `medium` and `high` are read as not minor. If the owner means `medium` to be minor, it is a one-word move between the two lists.
+Block, the rule conflict. The skip list at 2684306f named "a required countermeasure", and the opening defines a countermeasure policy requires as "(root cause, red-check carry, finding fix)", so a `low` or `normal` machinery repair that fixes a finding both met the bar and skipped it. At this head:
 
-Block 2, the obligations the word-budget cut removed. Each is restored in `proposal-triage.md` at this head:
+- the skip list reads "`medium`, `high`, `major`, `critical`, root-cause countermeasure, closeout, owner directive skip them": only a root-cause countermeasure skips, as the group brief keeps it;
+- the opening reads "(root cause, red-check carry, finding fix; see below) keeps its route", pointing the finding-fix route at the Machinery paragraph, which is the one exception.
 
-- an ACCEPT runs its rule on each instance, result beside it: "An ACCEPT runs its rule per instance, result beside it."
-- git and local logs before the API: "Git and local logs before the API."
-- the `Cost:` field's estimate: "`Cost:` (the estimate, each capped file's `--budgets` row)"
-- the cost units: "critical-path wall-clock/seat time; tokens (model x effort x expected runs); API calls; standing CPU (Pi-class, CI runners); complexity (lines, new files, checks, hot files, review rounds); maintenance"
-- `Instances:` "or log" and cite-don't-carry: "(each figure beside its command or log: cite, don't carry)"
-- an exemption ACCEPT's PR records it: "says so; its PR records it."
-- the Proposals-line source: "Sources: the orchestrator's sweep and Proposals line, seat results, verdict optimisation notes."
-- medium effort, rulings checked against code: "One opus seat, medium effort; check rulings against code."
-- the definition of proposal-sourced text: "it refuses text naming `triage P<n>` or `proposal P<n>` citing no ACCEPT ruling."
-- also restored, though the review did not list it: ACCEPT's "new group, brief" destination. Not restored: DEFER's "or the owning group", which the previous head also lacked and the review did not list. DEFER still names "what would change it". Raised here for the reviewer.
+So a `low` or `normal` repair of instrument, machinery, CI-lane or seat code (outside `custom_components/`) meets both bars whether or not it fixes a finding; a product defect never takes the bar. The `low`/`normal` take, `medium`/`high`/`major`/`critical` skip mapping is unchanged from the orchestrator-approved one.
 
-Paid without a raise, by tightening the same file's prose: the provenance "tvofi 2026-10-22;" (kept as "decision 0015"), the exemption's four measures (cited to `ratchet-budgets.md` instead of repeated), the merged keep-test and minor-defect paragraphs, and shorter wording elsewhere. No `*budgets*.json` file is in the diff.
+Findings, each restored:
+
+- DEFER's "or the owning group" (base wording): "DEFER, what would change it or the owning group".
+- "never assumed major" (group brief): "unset is classified first, never assumed major."
+- "An even or marginal trade is REJECT" (base): "Even or marginal: REJECT".
+
+Paid within the 489 ~token cap (bytes/4) without a raise, by prose trims that change no seat duty, each listed: "this cost/benefit gate before it is built" to "this gate before building" (the **Bar** paragraph defines the gate as cost against benefit); "the orchestrator's sweep" to "orchestrator sweep"; "outweighs its costs" to "outweighs cost"; "An ACCEPT on the exemption" to "An exemption ACCEPT"; "or an existing" to "or existing"; "A repair" to "Repair"; "a required countermeasure" to "root-cause countermeasure" (the repair itself); "closeout and an owner directive" to "closeout, owner directive"; "`Cost:` (the estimate," to "`Cost:` (estimate,"; "**A ruling** is a" to "**A ruling**: a"; "routes an ACCEPT" to "routes ACCEPTs"; "citing no ACCEPT ruling" to "citing no ACCEPT" (an ACCEPT is a ruling here). The paragraphs were re-wrapped at 79 columns. The nine obligations the round-2 review listed are all still present: per-instance rule run, git before the API, the `Cost:` estimate, "or log" and cite-don't-carry, the exemption PR records it, the cost units, the Proposals line, medium effort and rulings checked against code, and the proposal-sourced text definition. No `*budgets*.json` file is in the diff.
 
 ## Head
 
-eda3592e3317f21d59398f67dd43ab085dd79996 (a fast-forward of c7f4535d and of the PR head acd78b4d). origin/main at 6188936a8bdc58b510ecb8794ad86350283c49a7, 2026-11-08T10:08:56Z: `git merge-tree --write-tree origin/main HEAD` exited 0 (no conflict), so main was not merged, per the owner ruling of 2026-11-07.
+`42c0ebbb531244c8815968779d519f9680d0fef7`: the repair commit 54651332 (on 2684306f) merged with origin/main 8a4cf2618c53a6dca6b65df3eae5efc8832d1796, which had moved 117 commits since the last prepr run (merge at 2026-11-08T14:12:58Z, clean, no conflict). Every figure below is taken at this head. origin/main was re-read at 2026-11-08T14:42:53Z, still 8a4cf261, so it has not moved since this head's `tools/pr/prepr.sh` run and no second run was owed.
 
 ## Mutation proof
 
@@ -31,29 +29,32 @@ Mutant: `THRESHOLD = Fraction(1, 5)` set back to `Fraction(1, 10)` in `tools/aud
 
 ## Null control
 
-For the self-test: at the base the self-test passes with exactly 10% refusing; at the head 21% passes (`ex-11`) and exactly 20% refuses, so the cases tell the two thresholds apart. For the severity mapping: a script that reads the `severity` values from `dev/programme/rosters/wave-r10-groups.json` on `handoff/audit-r10-roster` (9fd3d6a2) and looks for each one as a code span in `proposal-triage.md` finds none missing at this head and finds `critical, high, low, major, medium, normal` all missing at acd78b4d. So the check reads the defect at the old head and its absence at this one.
+For the rule conflict: `git show <ref>:dev/governance/roles/proposal-triage.md | tr '\n' ' ' | grep -oE "required countermeasure|root-cause countermeasure|finding fix[^)]*\)|never assumed major|Even or marginal|what would change it or the owning group"` prints, at 2684306f, `finding fix)` and `required countermeasure` only; at this head, `finding fix; see below)`, `Even or marginal`, `root-cause countermeasure`, `never assumed major` and `what would change it or the owning group`, and no `required countermeasure`. So the same command reads the conflict and the three omissions at the reviewed head and their repair at this one.
+
+For the self-test: at the base the self-test passes with exactly 10% refusing; at the head 21% passes (`ex-11`) and exactly 20% refuses, so the cases tell the two thresholds apart. For the severity mapping: every `severity` value on the roster (below) is named once as a code span in `proposal-triage.md`; the round-3 review confirmed it at 1726b3bc.
 
 ## Figures
 
-- Roster scale, `python3 -I` over `wave-r10-groups.json` at `handoff/audit-r10-roster` 9fd3d6a2 (the review read 9263aea2; the counts are unchanged): 388 groups; high 90, low 56, medium 202, critical 8, normal 7, major 1, unset 24; R10-FLY-TRIAGE-BAR is `medium`.
+- Roster scale, `python3 -I` over `wave-r10-groups.json` at `handoff/audit-r10-roster` 9fd3d6a2 (the round-3 review re-read 1726b3bc, same counts): 388 groups; high 90, low 56, medium 202, critical 8, normal 7, major 1, unset 24; R10-FLY-TRIAGE-BAR is `medium`.
 - `python3 tools/audit/machinery_ratchet.py --self-test`: `54 checks, 0 failed`.
-- `node tools/policy/policy_lint.mjs --budgets`: `proposal-triage.md` 35 lines / 489 ~tokens against caps 36 / 489. The column is bytes/4 (`cmdBudgets` / `sizes()` in `policy_lint.mjs`), not words. The previous body called it "words": 487 at the previous head, 489 at the base.
+- `node tools/policy/policy_lint.mjs --budgets`: `proposal-triage.md` 36 lines / 489 ~tokens against caps 36 / 489 (1956 bytes; the column is bytes/4).
 - `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)`.
 - `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `MUTANT_CMD="python3 tools/audit/machinery_ratchet.py --self-test" PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh`: `PRE-PR: eda3592e3317f21d59398f67dd43ab085dd79996 ... rc=0`, wall 1164 s for the whole run including the diff-mutant step; diff mutants: 7 survivors (answered below).
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`; `scope.run` names `tests/entities.py`: `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `4 of 2666 ENTITY CHECKS FAILED` at this head and the same `4 of 2666 ENTITY CHECKS FAILED` at origin/main 8a4cf261 with this diff absent; the four names (the coverage-job cache reuse, the release ZIP build, the two Pages-workflow checks) match line for line between the two logs (`diff` of the `FAIL` lines: identical). They come from this container, which cannot run those workflow steps, not from this diff, which touches no file those checks read. CI's `fast` lane is the authority.
+- `MUTANT_CMD="python3 tools/audit/machinery_ratchet.py --self-test" PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh`: `PRE-PR: 42c0ebbb531244c8815968779d519f9680d0fef7 ... rc=0`, run on the committed merge head; closures skipped, diff mutants WARN (7 survivors, the same seven answered under Unpinned sites), every other step ok or skip.
 
 ## Unpinned sites
 
-All seven survivors sit on added lines inside `machinery_ratchet.py`'s own `self_test()`, the instrument's test assertions, not its production logic:
+All seven survivors sit on added lines inside `machinery_ratchet.py`'s own `self_test()`, the instrument's test assertions, not its production logic; this repair adds no code site:
 
-- `:614`, `:615`, `:616`, `:633` CALL_DEL (the `ok(...)` call deleted): deleting a self-test assertion cannot fail the same self-test. Disposition: value check. The THRESHOLD mutant above turns `:614` and `:615` red, so they bite; `:616` (21% passes) and `:633` (`improvement()` exact) are the positive and exact-value controls. The review's extra 1/4 mutant turned `:616` red.
+- `:614`, `:615`, `:616`, `:633` CALL_DEL (the `ok(...)` call deleted): deleting a self-test assertion cannot fail the same self-test. Disposition: value check. The THRESHOLD mutant above turns `:614` and `:615` red, so they bite; `:616` (21% passes) and `:633` (`improvement()` exact) are the positive and exact-value controls. The review's extra mutants (1/4, 21/100) turned `:616` red.
 - `:614`, `:615` CONST_SWAP (`entry(9 ...)` to `entry(10 ...)`): both cases expect a refusal, and an entry naming another PR is also refused, so the swap is equivalent for the refusing cases. Disposition: equivalent mutant.
 - `:633` CONST_SWAP (the pr number in `improvement(entry(...))`): `improvement()` does not read `pr`. Disposition: equivalent mutant.
 
 ## Red checks
 
-None concluded red at acd78b4d (the review's `merge_train.py classify`: `GREEN ... red: none`). Locally the closures step was skipped (`PREPR_SKIP_CLOSURES=1`, as the brief directs) and is left to CI's closures-autofix. Every other prepr step was ok or skip, and diff mutants WARN is report-only.
+`gate` at 2684306f (the round-3 review's `merge_train.py classify`: `RED ... red: gate`): not a code result. Gate job 128721651467 ended `RATE-LIMITED reset_epoch=1794138942 ... exit code 3` on the shared GitHub API rate limit, and the test jobs it reads were cancelled with no result. Cause: the shared API rate limit, not this diff; no cheaper detector could have run it, so no root-cause countermeasure is owed. This push re-runs it. Locally the closures step was skipped (`PREPR_SKIP_CLOSURES=1`) and is left to CI's closures-autofix.
 
 ## Forward-carry
 
@@ -65,4 +66,4 @@ none
 
 ## Approval
 
-Owner rulings quoted in the opening paragraph (tvofi, 2026-11-08, two chat messages to the orchestrator); the owner's approving review at the head is covered by mandate 6715477401, scope all. The severity mapping in "Repair of the blocked review" is stated for the owner to confirm.
+Owner rulings quoted in the opening paragraph (tvofi, 2026-11-08, two chat messages to the orchestrator) and the owner's correction of 2026-11-08; the owner's approving review at the head is covered by mandate 6715477401, scope all, under which the orchestrator approves this policy merge.
