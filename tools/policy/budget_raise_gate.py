@@ -146,8 +146,8 @@ JUSTIFICATION_SCORE = re.compile(
 # The figure is also checked, not only its shape (the #3045 fix review,
 # 2026-10-31): a body claiming "dS +0.0012 IMPROVES" on a diff that scores
 # +0.0000 NULL reached a mandated approval. On the mandated arm the gate runs
-# the BASE's scorer three-dot, as arch-score.yml does (measured_score), and one
-# score line of the section must name that figure: the dS at score.py's four
+# the BASE's scorer three-dot, as arch-score.yml does (measured_score), and the LAST
+# score line of the section (the head's claim) must name that figure: the dS at score.py's four
 # decimals and the verdict word. The other lines report payments tried, trees
 # the gate cannot rebuild, so they are shape-checked only.
 ARCH_SCORER = "tools/audit/archscore/score.py"
@@ -500,19 +500,22 @@ def justification(body) -> tuple[bool, str]:
 
 
 def score_check(body, measured) -> tuple[bool, str]:
-    """(agrees, why): a score line of the body's section names the figure in
-    `measured`, score.py's report line for this head (measured_score)."""
+    """(agrees, why): the LAST score line of the body's section names the
+    figure in `measured`, score.py's report line for this head (measured_score).
+    Earlier lines are the payments' own reports (the contract asks for them), so
+    the head's claim is the one that closes the section; a wrong figure after
+    the true one is no longer accepted beside it (R10-RAISE-GATE-SHIM-P2)."""
     m = JUSTIFICATION_SCORE.search(str(measured or ""))
     if not m:
         return False, (f"the measured architecture score could not be read ({str(measured)[:120]!r}), "
                        "and an unread figure supports no claim")
     want = (round(float(m.group(1)), 4), m.group(2))
     got = [(round(float(a), 4), v) for a, v in JUSTIFICATION_SCORE.findall(_section(body) or "")]
-    if want in got:
+    if got and got[-1] == want:
         return True, f"the body's arch_score figure is the measured one, dS {m.group(1)} {m.group(2)}"
     return False, (f"`{JUSTIFICATION_HEADING}` claims {', '.join(f'dS {a:+.4f} {v}' for a, v in got) or 'no figure'}, "
                    f"but {ARCH_SCORER} measures dS {m.group(1)} {m.group(2)} for this head three-dot: "
-                   "a mandated raise rests on the true figure")
+                   "a mandated raise rests on the true figure, as the section's last score line")
 
 
 def justified(body, score_fn=None) -> tuple[bool, str]:
@@ -1213,9 +1216,12 @@ def self_test() -> int:
           rcm([agent()], body=TRUE_BODY.replace("+0.0000", "+0.0"), score=TRUE)[0], 0)
     check("score: -0.0000 is the same figure as +0.0000",
           rcm([agent()], body=TRUE_BODY.replace("+0.0000", "-0.0000"), score=TRUE)[0], 0)
-    check("score: the true figure beside a payment's own line passes (other lines are shape-only)",
-          rcm([agent()], body=TRUE_BODY.replace(TRUE, TRUE + "\nArchitecture score: dS -0.0310 WORSENS"),
+    check("score: the true figure last, after a payment's own line, passes (earlier lines are shape-only)",
+          rcm([agent()], body=TRUE_BODY.replace(TRUE, "Architecture score: dS -0.0310 WORSENS\n" + TRUE),
               score=TRUE)[0], 0)
+    check("score: a wrong figure after the true one is refused (carry 5)",
+          rcm([agent()], body=TRUE_BODY.replace(TRUE, TRUE + "\nArchitecture score: dS -0.0310 WORSENS"),
+              score=TRUE)[0], 1)
     check("score: the true figure under another heading does not count",
           rcm([agent()], body=PLANT.replace("## Tests\n", f"## Figures\n\n{TRUE}\n\n## Tests\n"), score=TRUE)[0], 1)
     check("score: score.py's inadmissible suffix still reads",
