@@ -5977,7 +5977,8 @@
     ".github/workflows/governance.yml",
     "tests/throwaway_git.py",
     "tools/ci/selftest_closures.json",
-    "tools/ci/selftest_scope.py"
+    "tools/ci/selftest_scope.py",
+    "tools/ci/selftest_step.sh"
    ],
    "probes": [
     ".",
