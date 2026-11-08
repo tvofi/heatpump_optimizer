@@ -19860,10 +19860,10 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-hotfix-prepr-selftest-darwin",
     "pr": 3343,
-    "commit": null,
+    "commit": "20e83746fe91a1841ab5c4c93aef64eab38335b0",
     "last_step": null,
     "next_step": "open PR, review",
     "note": null
