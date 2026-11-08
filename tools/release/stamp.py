@@ -2155,14 +2155,15 @@ def get_gh(path: str, run=subprocess.run, sleep=time.sleep) -> dict:
     gh_read = read_rule()
     argv = ["gh", "api", path]
 
-    def attempt():
+    codes = []
+
+    def attempt():  # a failure is gh's stderr, which gh_wait classifies
         done = run(argv, cwd=ROOT, text=True, capture_output=True)
-        return (done.stdout, None) if done.returncode == 0 else (None, done)
-    out, failure, _, why = gh_read.retry(attempt, lambda done: gh_read.gh_wait(done.stderr or ""),
-                                         sleep, _read_note)
+        codes.append(done.returncode)
+        return (done.stdout, None) if done.returncode == 0 else (None, (done.stderr or "").rstrip())
+    out, failure, _, why = gh_read.retry(attempt, gh_read.gh_wait, sleep, _read_note)
     if failure is not None:  # the last complaint, with what stopped the loop on its line
-        raise subprocess.CalledProcessError(failure.returncode, argv, failure.stdout,
-                                            " ".join(((failure.stderr or "").rstrip(), why)).strip())
+        raise subprocess.CalledProcessError(codes[-1], argv, None, " ".join((failure, why)).strip())
     return json.loads(out)
 
 

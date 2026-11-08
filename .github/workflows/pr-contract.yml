@@ -109,6 +109,8 @@ jobs:
             'tools/audit/record-predicate' \
             'tools/audit/round6/D11/fix/codeowners_gap.py' \
             'tools/audit/seat/roster_lib.py' \
+            'tools/audit/seat/gh_read.py' \
+            'tools/audit/seat/gh_read_run.py' \
             'tools/policy/*.mjs' \
             'tools/policy/*.py' \
             'tools/pr/*.py' \
@@ -152,14 +154,14 @@ jobs:
           if [ "$EVENT" = "merge_group" ]; then
             NUMBER=$(printf '%s' "$QUEUE_REF" | jq -Rr 'capture("/pr-(?<n>[0-9]+)-[0-9a-f]{40}$").n')
             HEAD=$(git rev-parse --verify 'HEAD^2^{commit}')
-            test "$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" --jq '.head.sha')" = "$HEAD"
+            test "$(python3 -I tools/audit/seat/gh_read_run.py gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" --jq '.head.sha')" = "$HEAD"
             echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
             echo "base=$QUEUE_BASE" >> "$GITHUB_OUTPUT"
             echo "head=$HEAD" >> "$GITHUB_OUTPUT"
             echo "queue entry: pull request $NUMBER at $HEAD on base $QUEUE_BASE"
           else
             test -n "$IN_PR" && test -n "$IN_HEAD"
-            BASE=${PAYLOAD_BASE:-$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${IN_PR}" --jq '.base.sha')}
+            BASE=${PAYLOAD_BASE:-$(python3 -I tools/audit/seat/gh_read_run.py gh api "repos/${GITHUB_REPOSITORY}/pulls/${IN_PR}" --jq '.base.sha')}
             echo "number=$IN_PR" >> "$GITHUB_OUTPUT"
             echo "base=$BASE" >> "$GITHUB_OUTPUT"
             echo "head=$IN_HEAD" >> "$GITHUB_OUTPUT"
@@ -193,24 +195,30 @@ jobs:
       # untrusted-context census in tools/audit/round4/D11/untrusted_text.py
       # counts the same `env:` interpolations and the same zero free-text
       # shell ones as before this step changed.
+      #
+      # Every GitHub read in this job goes through gh_read_run.py, restored
+      # from the base above: gh_read.py's bounded retry of a failure a later
+      # read can ride out (a transport error, a 5xx, a non-JSON answer: #2579's
+      # `invalid character 'S'`), and the same fail-closed refusal of any
+      # other after its one read (R10-FLY-GH-READ-RETRY carry 0).
       - name: Read the body off the API, not the event payload
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ steps.pr.outputs.number }}
         run: |
           set -euo pipefail
-          BODY=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.body // ""')
+          BODY=$(python3 -I tools/audit/seat/gh_read_run.py gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.body // ""')
           printf '%s' "$BODY" > /tmp/pr-body.md
-          AUTHOR=$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.user.login // ""')
+          AUTHOR=$(python3 -I tools/audit/seat/gh_read_run.py gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.user.login // ""')
           printf '%s' "$AUTHOR" > /tmp/pr-author.txt
           # The title too: a queue entry's payload does not carry it, and a
           # dispatch's has no pull request. Read like the body, never the payload.
-          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.title // ""' > /tmp/pr-title.txt
+          python3 -I tools/audit/seat/gh_read_run.py gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.title // ""' > /tmp/pr-title.txt
           # Every commit's identity, for the Dependabot arm alone
           # (tools/policy/dependabot_contract.mjs): a human commit pushed onto a
           # Dependabot branch keeps the bot as the PR's author, so the author
           # cannot be the whole key. Fail-closed like the body read.
-          gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/commits" \
+          python3 -I tools/audit/seat/gh_read_run.py gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/commits" \
             --jq '.[] | [.sha, (.author.login // ""), (.committer.login // ""), (.commit.verification.verified | tostring)] | @tsv' \
             > /tmp/pr-commits.tsv
 
@@ -302,7 +310,7 @@ jobs:
           # Fail-closed, on the paths-file step's own principle: a derivation
           # that fails must fail the step, because an empty red list read from
           # a failed fetch is "no reds" -- the fail-open this wiring closes.
-          gh api --paginate \
+          python3 -I tools/audit/seat/gh_read_run.py gh api --paginate \
             "repos/${GITHUB_REPOSITORY}/commits/${PR_HEAD}/check-runs" \
             --jq '.check_runs[]
                    | select(.status == "completed" and .conclusion == "failure")

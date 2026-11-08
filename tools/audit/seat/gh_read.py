@@ -50,6 +50,12 @@ GO_STATUS = re.compile(r"^HTTP (?P<code>[0-9]{3})(: .*)? \(https?://[^ ]+\)$")
 #: A transport failure: Go's `Get "https://...": ` (`Post` is `gh pr view`'s
 #: GraphQL query, a read), or gh's `error connecting to `.
 TRANSPORT = re.compile(r'^(Get|Post) "https?://[^"]*": |^error connecting to ')
+#: A body that is not JSON, with no status line: gh's `--jq` parsing what a
+#: failing front end sent (#2579's pr-contract run 39681234360, job
+#: 119504172159: `invalid character 'S' looking for beginning of value`, and a
+#: sibling read a second earlier answered). GitHub's refusals are JSON, so
+#: this is no refusal; a status line, when gh prints one, still decides.
+NON_JSON = re.compile(r"^invalid character '.{1,6}' looking for beginning of value$")
 SECONDARY = "secondary rate limit"
 #: What a 403 names when it is a rate-limit response, primary or secondary.
 RATE_LIMIT = "rate limit"
@@ -70,7 +76,7 @@ def gh_transient(text: str) -> bool:
     """gh's output on a failed read -> True when another read may ride it out.
 
     The last whole status line decides: it is the response gh read last. With
-    none, a transport line on any line does."""
+    none, a transport line, or a body that did not parse as JSON, on any line does."""
     status = None
     for line in text.splitlines():
         m = GH_STATUS.search(line) or GO_STATUS.search(line)
@@ -78,7 +84,7 @@ def gh_transient(text: str) -> bool:
             status = (int(m.group("code")), line)
     if status is not None:
         return http_transient(*status)
-    return any(TRANSPORT.search(line) for line in text.splitlines())
+    return any(TRANSPORT.search(line) or NON_JSON.search(line) for line in text.splitlines())
 
 
 def gh_wait(text: str) -> float | None:
@@ -419,6 +425,15 @@ def self_test() -> int:
         (SECONDARY, False, "gh: secondary limit reached (HTTP 403)"),
         (SECONDARY, False, "gh: secondary rate exceeded (HTTP 403)"),
         (SECONDARY, False, "gh: secondary rate limit (HTTP 404)"),
+        (NON_JSON.pattern, True, "invalid character 'S' looking for beginning of value"),
+        (NON_JSON.pattern, True, "A new release of gh is available\ninvalid character '<' looking for beginning of value"),
+        (NON_JSON.pattern, True, "invalid character '\\x00' looking for beginning of value"),
+        (NON_JSON.pattern, False, "jq: invalid character 'S' looking for beginning of value"),
+        (NON_JSON.pattern, False, "invalid character 'S' looking for beginning of value at offset 1"),
+        (NON_JSON.pattern, False, "invalid character 'S' after top-level value"),
+        (NON_JSON.pattern, False, "invalid character '' looking for beginning of value"),
+        (NON_JSON.pattern, False, "invalid character 'Service' looking for beginning of value"),
+        (NON_JSON.pattern, False, "gh: Not Found (HTTP 404)\ninvalid character 'S' looking for beginning of value"),
         ("default", False, "something gh never says"), ("default", False, ""),
         ("default", False, "gh: Not Found (HTTP 404)\nerror connecting to api.github.com"),
     ]

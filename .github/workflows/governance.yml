@@ -874,6 +874,13 @@ jobs:
           python3 -I tools/audit/seat/record_row.py --self-test | tee "$RUNNER_TEMP/record-row-self-test.txt"
           grep -Eq '^record_row self-test: all checks passed$' "$RUNNER_TEMP/record-row-self-test.txt"
 
+      - name: Show the workflow read runner refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/gh_read_run.py --self-test | tee "$RUNNER_TEMP/gh-read-run-self-test.txt"
+          grep -Eq '^gh_read_run self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gh-read-run-self-test.txt"
+
       - name: Show the resume renderer refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
