@@ -710,11 +710,16 @@ writes, at every 15-minute plan step:
   number as its **return-water** target, as a Luxtronik (alpha innotec,
   Novelan) through its Smart Home Interface is assumed to — everything above
   applies, with these differences:
-  - The two values derived from a supply temperature, the 35 °C hold and
-    the weather curve, are written 5 K lower (the rated supply-over-return
-    spread, an assumption from the W35 rating point), and so is the 35 °C
-    floor used when no inlet sensor reads. The hold is always capped at the
-    heating ceiling.
+  - The values derived from a supply temperature — the 35 °C hold, the
+    weather curve and the 25 °C gate — are written 5 K lower (the rated
+    supply-over-return spread, an assumption from the W35 rating point), and
+    so is the 35 °C floor used when no inlet sensor reads. The hold is
+    always capped at the heating ceiling. The gate a step that does not heat
+    writes is therefore 20 °C (or the entity's minimum, if higher): a
+    25 °C return target sits above a floor return cooled overnight, and a
+    controller that modulates on target minus return would heat on a step
+    meant to be off. The lift at the lowest level is taken from the measured
+    return or this 20 °C gate, whichever is higher.
   - The lift is taken only from the heat pump's return, the buffer tank or
     the floor return, never from the valve outlet, which is house-side
     supply. With none of them reading, the floor is the 30 °C hold. Map the
@@ -733,9 +738,14 @@ writes, at every 15-minute plan step:
     level; check it against the measured frequency and power. Choose the
     ceiling above the highest return you see in normal heating plus the
     lift (otherwise a heating step writes a target below the return, and
-    such a controller presumably stops), and no higher than the controller accepts. For a
-    low-temperature floor heating, 1–2 K and 35–40 °C may be a starting
-    point; they are not measured values.
+    such a controller presumably stops), and no higher than the controller accepts: a Luxtronik
+    clamps the target to its own minimum return target and return limit, so a ceiling above the
+    limit is written but not followed. A controller that starts heating only once the target sits
+    its hysteresis above the return (2 K on a Luxtronik's default) is not started by a smaller lift;
+    it only keeps a running compressor near its minimum. On the install this was written for, a
+    0.5 K lift held 26–31 Hz once running, 1–1.5 K ramped to 73–81 Hz. For a low-temperature floor
+    heating, 0.5–2 K and 30–40 °C may be a starting point; check them against the compressor's
+    frequency and power.
   - Downgrading: a version before this option reads *Return temperature* as
     *Indoor temperature* and writes the planned room temperature to the
     entity. Switch the unit back to *Flow temperature* before downgrading.
