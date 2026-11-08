@@ -1,0 +1,8 @@
+append-carry R10-BODY-CONTRACT 'From #3399 (r10-x-p9), body item e233ae28: Carry 0: built. `body_patch.sh` already passe
+append-carry R10-BODY-CONTRACT 'From #3399 (r10-x-p9), body item ead48b21: Carry 5: already built at the base: `Dests.ch
+append-carry R10-BODY-CONTRACT 'From #3399 (r10-x-p9), body item ef161325: Carry 6: already built at the base: `seg_dest
+-- /tmp/tmp.yxXwFPq765/ca_base.py rc=0
+append-carry R10-BODY-CONTRACT 'From #3399 (r10-x-p9), body item e233ae28: Carry 0: built. `body_patch.sh` already passe
+append-carry R10-BODY-CONTRACT 'From #3399 (r10-x-p9), body item ead48b21: Carry 5: already built at the base: `Dests.ch
+append-carry R10-BODY-CONTRACT 'From #3399 (r10-x-p9), body item ef161325: Carry 6: already built at the base: `seg_dest
+-- tools/audit/carry_audit.py rc=0
