@@ -3186,11 +3186,12 @@ def self_test() -> int:
         total, failed = total + a, failed + f
 
         # ---- MAIN: D-1 (R10-CI-LAYOUT PR 1). record-autofix left the Tests
-        # push run for nightly.yml, and card C5 (#3245) then deleted it and
-        # nightly.yml's push trigger. Every nightly.yml job that runs on a push
-        # to main -- read off the workflow, not listed here -- must be one
-        # NIGHTLY_CLASS flags; there is now none, and a job given a push
-        # trigger again is refused here until this pin names it.
+        # push run for nightly.yml, so its red no longer reddens Tests; the
+        # tick must still flag it. It reads per-commit check runs, whatever
+        # workflow wrote them, so what is pinned is the name: every
+        # nightly.yml job that runs on a push to main -- read off the
+        # workflow, not listed here -- is one NIGHTLY_CLASS flags, and the
+        # tick names it red beside a green required set.
         wf = (ROOT / ".github/workflows/nightly.yml").read_text().split("\njobs:\n", 1)[1]
         on_push = []
         for job in re.findall(r"(?m)^  ([A-Za-z][\w-]*):\n", wf):
@@ -3210,10 +3211,12 @@ def self_test() -> int:
         t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
         t.main()
         a, f = check("MAIN D-1", [
-            ("nightly.yml runs no job on a push to main (card C5)", on_push == []),
+            ("nightly.yml's push-run jobs are exactly the record beat", on_push == ["record-autofix"]),
             ("each is a name the tick flags", all(NIGHTLY_CLASS.search(j) for j in on_push)),
-            ("and the required set green reads main green",
-             not any("REQUIRED not green" in x["text"] for x in t.findings)),
+            ("and its red is named with the required set green",
+             any("non-required red" in x["text"] and "record-autofix" in x["text"]
+                 for x in t.findings)
+             and not any("REQUIRED not green" in x["text"] for x in t.findings)),
             ("null control: a beat renamed out of the class would not be flagged",
              not NIGHTLY_CLASS.search("delivery-beat")),
         ])

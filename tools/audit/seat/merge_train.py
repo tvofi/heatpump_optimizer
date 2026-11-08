@@ -7014,10 +7014,13 @@ def _batch_self_test(check) -> None:
     # THE GUARD THE STUB CANNOT SEE: --bot-prs runs record_row.py's own CLI,
     # the one the record beat runs; these read the real tree.
     rr = (ROOT / "tools/audit/seat/record_row.py").read_text()
-    # card C5 retired the record beat (nightly.yml record-autofix)
-    check("record_row.py takes every option the bot sweep passes",
+    beat = (ROOT / ".github/workflows/nightly.yml").read_text()
+    check("record_row.py takes every option the bot sweep passes, and the record beat merges behind "
+          "the same --automerge-check ... --head ... --require-green guard",
           all(f'"{o}"' in rr for o in ("--find-open", "--owner", "--automerge-check", "--require-green",
-                                       "--head", "--pr", "--repo")))
+                                       "--head", "--pr", "--repo"))
+          and "--automerge-check --repo \"$REPO\" --pr \"$NUM\" --head \"$HEAD\"" in beat
+          and "guard --require-green" in beat)
     rplain = _parser().parse_args(["run", "q.json"])
     rflag = _parser().parse_args(["run", "q.json", "--approval-carry"])
     check("--approval-carry is a run flag too, and off by default",
