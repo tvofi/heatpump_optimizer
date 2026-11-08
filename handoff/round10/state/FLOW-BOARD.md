@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-08T22:03:48+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-08T22:31:17+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 0 / 1.0 | 13 / 24.0 |
+| roster groups closed vs takt | 1 / 1.0 | 14 / 24.0 |
 | fly-ins closed | 0 | 1 |
-| main moves: group-carrying / record / roster-edit / fly-in | 4 / 0 / 0 / 0 | 27 / 4 / 0 / 1 |
-| first-pass fix-review yield | 1/3 (0.33) | 19/40 (0.47) |
-| blocked-class mix | ci-red:1, class-open:2, mutant-survives:1 | architecture-unsound:1, carry-unmet:1, ci-red:4, class-open:8, countermeasure-unsound:1, gate-red:1, merge-conflict:1, mutant-survives:1, mutation-survivor:1, mutation-vacuous:6, own-row-not-generated:1, robustness:1, root-cause-detectable:1, root-cause-unanswered:1, rule-conflict:1 |
-| lead time per size (h, n/p50/max) | L n=1 p50=15.27 max=15.27; M n=2 p50=12.97 max=14.77; S n=1 p50=13.01 max=13.01 | L n=5 p50=24.23 max=27.32; M n=9 p50=17.46 max=41.48; S n=13 p50=13.01 max=50.20 |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 0 | 27 / 4 / 0 / 1 |
+| first-pass fix-review yield | 1/2 (0.50) | 19/39 (0.49) |
+| blocked-class mix | class-open:1 | architecture-unsound:1, carry-unmet:1, ci-red:4, class-open:6, countermeasure-unsound:1, gate-red:1, merge-conflict:1, mutant-survives:1, mutation-survivor:1, mutation-vacuous:6, own-row-not-generated:1, robustness:1, root-cause-detectable:1, root-cause-unanswered:1, rule-conflict:1 |
+| lead time per size (h, n/p50/max) | L n=1 p50=15.27 max=15.27 | L n=5 p50=24.23 max=27.32; M n=9 p50=17.46 max=41.48; S n=13 p50=13.01 max=50.20 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 53 | 14 | 3 |
+| 1 | 52 | 14 | 3 |
 
 ## Rules
 
