@@ -18,7 +18,7 @@ once and holds no runner (gate.judge), so a deferral nothing green follows -- tw
 deferred to each other, or a decider that ended red or cancelled -- would stay red. Once every
 gate at the head has concluded (in_progress gates polled as above), every red gate, V's own
 included, that may have judged an undecided head is re-run (`undecided`: it started before a
-job of ANOTHER run, its gate aside, finished; or a higher-id run's gate started while it judged,
+source of ANOTHER run, below, finished; or a higher-id run's gate started while it judged,
 the lagging-listing pair, of which the lower id is re-run, or the higher where the lower ended
 green). A source is a job that ran: a skipped job is none, because GitHub re-stamps every
 skipped job of a run at each re-run of its gate, so a stamp it carries says when a sibling's
