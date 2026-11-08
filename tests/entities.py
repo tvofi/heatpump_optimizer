@@ -21804,9 +21804,16 @@ R.check(
 # check reads.
 _CODEQL_JOBS = (_yaml.safe_load(_CODEQL_YML) or {}).get("jobs") or {}
 _analyze_cap = (_CODEQL_JOBS.get("analyze") or {}).get("timeout-minutes")
+# The cap is `${{ matrix.language == 'python' && N || 45 }}`: N for the python
+# leg, 45 for the others (r10-hotfix-codeql-headroom). Resolve it per leg.
+_cap_m = re.fullmatch(
+    r"\$\{\{ matrix\.language == 'python' && (\d+) \|\| (\d+) \}\}",
+    str(_analyze_cap))
+_cap_py, _cap_other = ((int(_cap_m[1]), int(_cap_m[2])) if _cap_m
+                       else (_analyze_cap, _analyze_cap))
 R.check(
     "codeql.yml's analyze cap clears the python leg's measured worst case",
-    isinstance(_analyze_cap, int) and _analyze_cap >= 45,
+    isinstance(_cap_py, int) and _cap_py >= 60 and _cap_other == 45,
     f"analyze timeout-minutes={_analyze_cap!r}; the python leg was cancelled "
     "at 30:19 before the cap rose (2bd5e90f, 2026-10-20)",
 )

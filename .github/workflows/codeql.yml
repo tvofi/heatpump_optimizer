@@ -113,7 +113,17 @@ jobs:
     # while uploading results. A rerun of 4e5801eb finished in 21.5 minutes
     # (job 118701134345). 45 leaves 14:41 over the longest observed run
     # (45:00 - 30:19); tests/entities.py refuses a lower value.
-    timeout-minutes: 45
+    #
+    # 60 for the python leg alone (r10-hotfix-codeql-headroom, 2026-11-08): of
+    # the last 58 completed `Analyze (python)` jobs on main's ci.yml push runs
+    # 8 were cancelled at the 45-minute cap (45.1 min), 11 ran 44 minutes or
+    # more, p50 41.7 and p90 45.0 -- the sample is censored at the cap, so p99
+    # is not measurable (>= 45.1) and the swing is runner speed, not file
+    # growth. 60 = the cap plus the same ~15 minutes of margin the 45 was
+    # given over the 30:19 worst case (fixer.md step 8: the rule, not only the
+    # value); every capped run would have needed more than 15 minutes beyond
+    # the cap to fail again. The actions and javascript-typescript legs keep 45.
+    timeout-minutes: ${{ matrix.language == 'python' && 60 || 45 }}
     # One language failing must not cancel the others: each leg is its own
     # analysis and its own evidence.
     strategy:
