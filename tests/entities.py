@@ -32126,17 +32126,19 @@ R.check(
 # required set (`requiredFromTrain`: merge_train.py owed-reds). A spawned
 # program outside the restore list is the pull request's copy, and a diff
 # editing it alone answered its own required reds. The rule enumerates the
-# class: every `spawnSync('python3', [path.join(ROOT, ...)` in policy_lint, and
+# class: every `spawnSync('python3', [path.join(<root>, ...)` in policy_lint, and
 # each one's local closure -- a column-0 `import X`/`from X` with X.py beside
 # it, and a column-0 `NAME = ROOT / "path"` it reads -- must match a pathspec
 # of pr-contract's restore. A file read as text (stamp.py at :4780) is no spawn.
-_PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\(ROOT,\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
+_PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\((ROOT|root|HERE),\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
 _PCR_IMPORT = re.compile(r"^(?:import|from)\s+([A-Za-z_]\w*)", re.M)
 _PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
 
 
 def _pcr_spawned(mjs: str) -> "list[str]":
-    return sorted({"/".join(re.findall(r"'([^']+)'", m.group(1))) for m in _PCR_SPAWN.finditer(mjs)})
+    # HERE is policy_lint's own directory; ROOT, and a `root` parameter, the tree.
+    return sorted({"/".join((["tools", "policy"] if m.group(1) == "HERE" else [])
+                            + re.findall(r"'([^']+)'", m.group(2))) for m in _PCR_SPAWN.finditer(mjs)})
 
 
 def _pcr_closure(roots) -> "list[str]":
