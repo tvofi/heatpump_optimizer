@@ -1,3 +1,0 @@
-STRUCTURE RATCHET PASSED
-3 of 2645 ENTITY CHECKS FAILED
-no VERSION/manifest/notes/budget touched

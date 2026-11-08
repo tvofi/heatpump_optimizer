@@ -1,0 +1,34 @@
+== 569318eded525daf0d9f5eb89e1d169475284b2c
+    sys.exit(replay(a[a.index("--tree") + 1] if "--tree" in a else ROOT))
+             ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.0W5grikHtO/harness/r10_rca_gate_busy_defer_4.py", line 139, in replay
+    state, pending, red = read(mt, crs, runs, head)
+                          ~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.0W5grikHtO/harness/r10_rca_gate_busy_defer_4.py", line 103, in read
+    return t.classify_at(head, crs, req)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.0W5grikHtO/tree-569318eded52/tools/audit/seat/merge_train.py", line 1674, in classify_at
+    busy = self._gate_busy(h, runs) or (["sweep"] if sweep_settling(runs, self.wall()) else [])
+                                                                          ^^^^^^^^^
+AttributeError: 'Train' object has no attribute 'wall'
+rc=0
+== a38bd141ec8b42fc8d2bcd17090be1814ca97d83
+SCENE #3267-edit-gate-just-failed want=WAIT got=WAIT pending=['gate'] red=[]
+SCENE #3268-edit-gate-just-failed want=WAIT got=WAIT pending=['gate'] red=[]
+SCENE #3293-edit-gate-just-failed want=WAIT got=WAIT pending=['gate'] red=[]
+SCENE #3293-settle-gap(synthetic) want=WAIT got=RED pending=[] red=['gate']
+SCENE null-code-run-red(synthetic) want=RED got=RED pending=[] red=['gate']
+SCENE null-all-green(synthetic) want=GREEN got=GREEN pending=[] red=[]
+SCENE null-red-non-gate want=RED got=RED
+RESULT replay defects=0 settle_gap=1 null_bad=0 scenes=7
+rc=0
+== origin/main
+SCENE #3267-edit-gate-just-failed want=WAIT got=RED pending=[] red=['gate']
+SCENE #3268-edit-gate-just-failed want=WAIT got=RED pending=[] red=['gate']
+SCENE #3293-edit-gate-just-failed want=WAIT got=RED pending=[] red=['gate']
+SCENE #3293-settle-gap(synthetic) want=WAIT got=RED pending=[] red=['gate']
+SCENE null-code-run-red(synthetic) want=RED got=RED pending=[] red=['gate']
+SCENE null-all-green(synthetic) want=GREEN got=GREEN pending=[] red=[]
+SCENE null-red-non-gate want=RED got=RED
+RESULT replay defects=3 settle_gap=1 null_bad=0 scenes=7
+rc=0
