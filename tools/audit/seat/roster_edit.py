@@ -1516,8 +1516,11 @@ def _self_test() -> int:
         cannot tell this op's refusal from argparse refusing the op itself,
         or one refusal from another that happens to fire first."""
         err = io.StringIO()
-        with contextlib.redirect_stderr(err):
-            rc = sysrc(lambda: edit(*args, **kw))
+        try:
+            with contextlib.redirect_stderr(err):
+                rc = sysrc(lambda: edit(*args, **kw))
+        except Exception:  # a crash is no refusal: a FAIL line, not a traceback that ends the run (C6)
+            return False
         return rc not in (0, None) and why in err.getvalue()
 
     def refusal(*args, **kw):
@@ -1753,7 +1756,7 @@ def _self_test() -> int:
           and edit("drop-carry", "R9-B", None, match="no proposal") == 0
           and edit("drop-carry", "R9-B", None, match="lettered proposal") == 0
           and edit("drop-carry", "R9-B", None, match="P-value") == 0
-          and branch_roster()["groups"][1]["carry"] == [])
+          and branch_roster()["groups"][1].get("carry") == [])  # .get: a dropped key is a FAIL line, never a KeyError crash (C6)
 
     # set-resume: the resume free-text fields a session restarts from, through
     # the same load/modify/dump flow -- never a string splice.

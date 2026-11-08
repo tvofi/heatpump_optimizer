@@ -708,6 +708,53 @@ noreturn_arm() {
   rm -f "$state/cloud-nr.$$" "$state/cloud-nrr.$$"
 }
 
+carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md names CARRY-LANDED alone: fold the kept body's carries, re-run body_push.sh
+  # A cloud fixer may not write the roster, so body_push.sh's CARRY-LANDED refusal (exit 4; each refusal prints
+  # `body_push: REFUSED <KIND>` into the BLOCKED.md the fixer pushes) stranded it until a seat landed the carries
+  # by hand (4 times on 2026-11-06, twice more on 11-07). The refusal is folded only when it is the ONLY kind the
+  # BLOCKED.md names and the refused body is kept on handoff-wip/<topic>-body; any other BLOCKED.md prints a tick
+  # line and folds nothing. carry_fold.py is the designated roster writer; HPO_RELAY_FOLD / HPO_RELAY_BODYPUSH replace the two steps.
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} sha ref topic bw bsha kinds wt body why rc
+  git ls-remote origin 'refs/heads/handoff-wip/*' > "$state/cloud-wip.$$" \
+    || { echo "cloud_relay: could not list handoff-wip refs; the carry-fold level stays as it was" >&2; rm -f "$state/cloud-wip.$$"; return 0; }
+  mkdir -p "$state"; : > "$state/cloud-level-fold.$$"
+  while read -r sha ref; do
+    topic=${ref#refs/heads/handoff-wip/}
+    case $topic in ''|*/*|*-body|*-carries|*-body-*) continue;; esac
+    git fetch -q origin "$ref" 2>/dev/null && bw=$(git show "$sha:BLOCKED.md" 2>/dev/null) || continue
+    kinds=$(printf '%s\n' "$bw" | sed -n 's/^body_push: REFUSED \([A-Z-]*\)[[:space:]]*$/\1/p' | sort -u | tr '\n' ' ')
+    bsha=$(awk -v r="refs/heads/handoff-wip/$topic-body" '$2 == r { print $1; exit }' "$state/cloud-wip.$$")
+    if [ -f "$state/cloud-folded" ] && grep -qxF "$topic $bsha" "$state/cloud-folded"; then continue; fi
+    if [ "$kinds" != "CARRY-LANDED " ] || [ -z "$bsha" ]; then  # mut:foldonly
+      why="BLOCKED.md names ${kinds:-no refusal line}${bsha:+; }${bsha:-and no kept body}: not CARRY-LANDED alone, nothing folded"
+      echo "cloud_relay: OWED carry-fold $topic ${sha:0:12} $why"
+      level_line carry-fold "$ref" "$sha" "$why" >> "$state/cloud-level-fold.$$"; continue
+    fi
+    body=$state/cloud-fold-$topic.md
+    git fetch -q origin "refs/heads/handoff-wip/$topic-body" 2>/dev/null && git show "$bsha:BODY.md" > "$body" 2>/dev/null \
+      || { echo "cloud_relay: no BODY.md at handoff-wip/$topic-body; nothing folded" >&2; continue; }
+    rc=0; why=$(${HPO_RELAY_FOLD:-python3 -I "$HERE/carry_fold.py"} --body "$body" --topic "$topic" --worktree "$state/cloud-fold-wt" 2>&1) || rc=$?
+    if [ $rc != 0 ]; then
+      why=$(last_line "$why"); echo "cloud_relay: OWED carry-fold $topic ${sha:0:12} carry_fold rc=$rc: $why"
+      level_line carry-fold "$ref" "$sha" "carry_fold rc=$rc: $why" >> "$state/cloud-level-fold.$$"; continue
+    fi
+    if [ -n "${HPO_RELAY_BODYPUSH:-}" ]; then "$HPO_RELAY_BODYPUSH" "$topic" "$body" > "$state/cloud-fold.out" 2>&1; rc=$?
+    else
+      wt=$state/cloud-fold-code; rm -rf "$wt"; git worktree prune
+      git fetch -q origin "refs/heads/handoff/$topic" 2>/dev/null && git worktree add -q --detach "$wt" FETCH_HEAD 2>/dev/null \
+        || { echo "cloud_relay: OWED carry-fold $topic ${sha:0:12} no handoff/$topic to push the body from"; continue; }
+      (cd "$wt" && bash "$HERE/body_push.sh" "$topic" "$body") > "$state/cloud-fold.out" 2>&1; rc=$?
+      git worktree remove --force "$wt" 2>/dev/null
+    fi
+    if [ $rc = 0 ]; then echo "$topic $bsha" >> "$state/cloud-folded"; echo "cloud_relay: FOLDED $topic: carries landed, body_push.sh pushed handoff-body/$topic"
+    else
+      why=$(last_line "$(cat "$state/cloud-fold.out")"); echo "cloud_relay: OWED carry-fold $topic ${sha:0:12} body_push rc=$rc after the fold: $why"
+      level_line carry-fold "$ref" "$sha" "body_push rc=$rc: $why" >> "$state/cloud-level-fold.$$"
+    fi
+  done < "$state/cloud-wip.$$"
+  level_set carry-fold "$state/cloud-level-fold.$$"; rm -f "$state/cloud-wip.$$"
+}
+
 pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
   local every=120 loop=""
   while [ $# -gt 0 ]; do case $1 in
@@ -716,7 +763,7 @@ pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
   case $every in ''|*[!0-9]*|0) echo "cloud_relay: --interval must be a positive number of seconds" >&2; return 2;; esac
   while :; do
     echo "cloud_relay: state dir ${HPO_STATE_DIR:-$HOME/.local/state/hpo}, ledger ${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-relayed, log $(relay_log)"
-    handoff_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; stuck_arm; noreturn_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
+    handoff_arm; carry_fold_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; stuck_arm; noreturn_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
 }
 
 self_test() {
@@ -1594,6 +1641,37 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   LOG=$t/nr2.log; : > "$LOG"; nrc dispatch/fixer-nr-p 10800
   nro=$(handoff_arm() { :; }; probe_arm() { :; }; CONFIRM= pass 2>&1)
   chk "a pass runs the no-return arm" 0 grep -q "SEAT ENDED NO RETURN nr-p " <<< "$nro"
+  # THE CARRY-FOLD ARM (R10-CARRY-RESIDUE-2 carry 14): a BLOCKED.md naming CARRY-LANDED alone, with its body kept on
+  # handoff-wip/<topic>-body, is folded (carry_fold.py) and re-pushed (body_push.sh); any other block prints a line and folds nothing.
+  throwaway_git_init "$t/cf.git" -q --bare; throwaway_git_init "$t/cfw" -q; cd "$t/cfw" || exit 1
+  git remote add origin "$t/cf.git"; LOG=$t/cf.log; : > "$LOG"; rm -rf "$t/state/cloud-folded"
+  cfref() { # cfref <ref> <file> <content>: a one-file orphan commit at <ref> on the origin
+    rm -rf "$t/cfx"; throwaway_git_init "$t/cfx" -q; printf '%s\n' "$3" > "$t/cfx/$2"; git -C "$t/cfx" add -A; git -C "$t/cfx" commit -qm x
+    git -C "$t/cf.git" fetch -qf "$t/cfx" "HEAD:refs/heads/$1"; }
+  printf '#!/bin/bash\necho "$@" >> %s/folds\n' "$t" > "$t/foldstub"; printf '#!/bin/bash\necho "$@" >> %s/bps\n' "$t" > "$t/bpstub"
+  chmod +x "$t/foldstub" "$t/bpstub"; export HPO_RELAY_FOLD=$t/foldstub HPO_RELAY_BODYPUSH=$t/bpstub
+  cfref handoff-wip/cf-a BLOCKED.md "$(printf 'the carries\nbody_push: REFUSED CARRY-LANDED')"; cfref handoff-wip/cf-a-body BODY.md "the body A"
+  cfo=$(carry_fold_arm 2>&1)
+  chk "a CARRY-LANDED-only block is folded by carry_fold.py on the kept body" 0 grep -q -- "--topic cf-a " "$t/folds"
+  chk "... and body_push.sh re-runs on the same body" 0 grep -q "^cf-a .*cloud-fold-cf-a.md" "$t/bps"
+  chk "... and the arm says FOLDED" 0 grep -q "FOLDED cf-a" <<< "$cfo"
+  rm -f "$t/folds" "$t/bps"; carry_fold_arm >/dev/null 2>&1
+  chk "a folded body is not folded twice (same topic and body sha)" 1 test -e "$t/folds"
+  cfref handoff-wip/cf-b BLOCKED.md "$(printf 'body_push: REFUSED CARRY-LANDED\nbody_push: REFUSED BODY-LINT')"; cfref handoff-wip/cf-b-body BODY.md "the body B"
+  rm -f "$t/folds" "$t/bps"; cfo=$(carry_fold_arm 2>&1)
+  chk "null control: CARRY-LANDED plus another refusal folds nothing" 1 test -e "$t/folds"
+  chk "... runs no body_push.sh" 1 test -e "$t/bps"
+  chk "... and prints its tick line naming both kinds" 0 grep -q "OWED carry-fold cf-b .*BODY-LINT CARRY-LANDED" <<< "$cfo"
+  chk "... which is on the level" 0 grep -q "carry-fold .*cf-b" "$LOG.level"
+  cfref handoff-wip/cf-c BLOCKED.md "the fixer is stuck on a design question"; cfref handoff-wip/cf-c-body BODY.md "the body C"
+  rm -f "$t/folds"; cfo=$(carry_fold_arm 2>&1)
+  chk "a block with no refusal line folds nothing and prints its line" 0 grep -q "OWED carry-fold cf-c .*no refusal line" <<< "$cfo"
+  chk "... and ran no fold" 1 test -e "$t/folds"
+  printf '#!/bin/bash\nexit 1\n' > "$t/foldstub"; cfref handoff-wip/cf-d BLOCKED.md "body_push: REFUSED CARRY-LANDED"; cfref handoff-wip/cf-d-body BODY.md "the body D"
+  rm -f "$t/bps"; cfo=$(carry_fold_arm 2>&1)
+  chk "a fold that fails (rc 1) re-runs no body_push.sh and stays owed" 0 grep -q "OWED carry-fold cf-d .*carry_fold rc=1" <<< "$cfo"
+  chk "... with no body_push" 1 test -e "$t/bps"
+  unset HPO_RELAY_FOLD HPO_RELAY_BODYPUSH; cd "$t/w" || exit 1
   cd / && rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]
 }

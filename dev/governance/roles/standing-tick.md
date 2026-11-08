@@ -16,7 +16,10 @@ owed action and the board line that shows it. Before any `REVIEW OWED`, apply
 the ancestor-recarry test: a head that moved past its verdict only by merging
 `origin/main`, with `git diff --name-only <verdict> <head>` missing the
 branch's own diff, is a carry for the orchestrator (`orchestrator.md`
-section 11), never a review owed. Touch the session's liveness file every
+section 11), never a review owed. The board prints that carry as an unflagged
+`CARRY: #<pr> <head sha>` line (`orchestrator_tick.py`'s ancestor-recarry test, the
+output of `ledger.py`'s `review_owed`): report it as a carry owed to the orchestrator,
+never as a `REVIEW OWED`. Touch the session's liveness file every
 pass; end the window with `tick: <n> owed, <m> new, window ends <utc>`.
 
 **You never** act on the board: no push, merge, dispatch, comment or roster
