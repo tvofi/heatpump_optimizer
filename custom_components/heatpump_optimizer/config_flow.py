@@ -1618,7 +1618,9 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # ceiling at full power. Their defaults are today's constants, so an
     # untouched page stores neither (``_ABSENT_FALLBACKS``).
     _F("entities", CONF_FLOW_MIN_LIFT_K, DEFAULT_FLOW_MIN_LIFT_K, _number(0.5, 15, 0.5, 'K'), when=_water_space_setpoint, group="indoor"),
-    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(25, 70, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
+    # The ceiling's minimum sits above pump_arbiter.FLOW_GATE_C (25 °C): a
+    # ceiling at the gate would write "off" on every heating step.
+    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, 70, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
     # -- entities_metering
     _F("entities_metering", CONF_SOLAR_RADIATION_ENTITY, _STORED, _entity_of('sensor'), group="solar"),
     _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector(), group="solar"),

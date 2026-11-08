@@ -69496,7 +69496,8 @@ R.check(
     == _wl_water[_WL_UNIT_KEY].group
     and _wl_lift_row.default == _SP_LIFT and _wl_heat_row.default == _pa.FLOW_HEAT_C
     and (_wl_lift_row.widget.config["min"], _wl_lift_row.widget.config["max"]) == (0.5, 15)
-    and (_wl_heat_row.widget.config["min"], _wl_heat_row.widget.config["max"]) == (25, 70)
+    and (_wl_heat_row.widget.config["min"], _wl_heat_row.widget.config["max"]) == (30, 70)
+    and _wl_heat_row.widget.config["min"] > _pa.FLOW_GATE_C
     and _wl_flow._omit_unstored_defaults(
         {_WL_LIFT_KEY: _WL_LIFT_DEFAULT, _PP_FLOW_KEY: _PP_FLOW_DEFAULT}, {}
     ) == {}
@@ -69541,9 +69542,9 @@ R.check(
 R.check(
     "with no inlet reading a return target's floor is the rated hold in return terms, "
     "the hold less the rated spread; a flow target keeps the hold",
-    _sp_write(1.5, (), extra=_RT) == _pa.FLOW_HOLD_C - _SP_LIFT
+    _sp_write(1.5, (), extra=_RT) == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K
     and _sp_write(1.5, (), extra=_RT_FLOW) == _pa.FLOW_HOLD_C
-    and _sp_write(1.5, (), extra={**_RT, _WL_LIFT_KEY: 1.0}) == _pa.FLOW_HOLD_C - _SP_LIFT,
+    and _sp_write(1.5, (), extra={**_RT, _WL_LIFT_KEY: 1.0}) == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K,
     f"{_sp_write(1.5, (), extra=_RT)} {_sp_write(1.5, (), extra=_RT_FLOW)}",
 )
 
@@ -69566,9 +69567,9 @@ def _rt_baseline(unit, curve, heat=48.0):
 R.check(
     "the baseline hold of a return target is the curve or rated hold less the rated "
     "spread, still capped at the ceiling; a flow target's is unchanged",
-    _rt_baseline("flow", 40.0) == 40.0 and _rt_baseline("return", 40.0) == 40.0 - _SP_LIFT
+    _rt_baseline("flow", 40.0) == 40.0 and _rt_baseline("return", 40.0) == 40.0 - _pa.RETURN_SUPPLY_OFFSET_K
     and _rt_baseline("flow", 20.0) == _pa.FLOW_HOLD_C
-    and _rt_baseline("return", 20.0) == _pa.FLOW_HOLD_C - _SP_LIFT
+    and _rt_baseline("return", 20.0) == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K
     and _rt_baseline("return", 60.0) == 48.0
     and _rt_baseline("return", 60.0, heat=38.0) == 38.0,
     f"{_rt_baseline('flow', 40.0)} {_rt_baseline('return', 40.0)} {_rt_baseline('return', 20.0)}",
@@ -69586,7 +69587,7 @@ R.check(
 R.check(
     "null control: the supply-to-target conversion moves nothing but a return target",
     _pa._as_target({}, 35.0) == 35.0 and _pa._as_target(_RT_FLOW, 35.0) == 35.0
-    and _pa._as_target(_RT, 35.0) == 35.0 - _SP_LIFT,
+    and _pa._as_target(_RT, 35.0) == 35.0 - _pa.RETURN_SUPPLY_OFFSET_K,
 )
 
 # The objective scores the rounded levels a clamped install ships, so it is
@@ -71822,31 +71823,86 @@ R.check(
 # small lift, and that the rated spread the hold moves by is not the lift.
 
 
-def _wrr_command(unit, extra=None):
-    """``_flow_command`` for a held 40 degC on a ``unit`` water set-point."""
-    coord = _DrCoord(FakeHass({_BST_ENTITY: FakeState("40", attributes={"min": 20, "max": 70})}),
-                     _dr_entry(data={
-                         "tibber_token": "x", "weather_entity": "weather.home",
-                         "space_setpoint_entity": _BST_ENTITY,
-                         "pump_duty_mode": "control", "space_setpoint_unit": unit,
-                         **(extra or {})}))
+def _wrr_command(unit, extra=None, inlet=None, inlet_key=None):
+    """``_flow_command`` for a held 40 degC on a ``unit`` water set-point,
+    with ``inlet`` read on ``inlet_key`` (the pump return by default)."""
+    states = {_BST_ENTITY: FakeState("40", attributes={"min": 20, "max": 70})}
+    data = {
+        "tibber_token": "x", "weather_entity": "weather.home",
+        "space_setpoint_entity": _BST_ENTITY,
+        "pump_duty_mode": "control", "space_setpoint_unit": unit,
+        **(extra or {})}
+    if inlet is not None:
+        data[inlet_key or _SP_PUMP_RETURN] = "sensor.wrr_inlet"
+        states["sensor.wrr_inlet"] = FakeState(str(inlet), unit="°C")
+    coord = _DrCoord(FakeHass(states), _dr_entry(data=data))
     coord._current_action = {"power": 6.0, "dhw_power": 0.0}
     coord._measured_power = 2.3
     _bst_pa.state_for(coord).written["space_setpoint"] = (40.0, _BST_T0)
     return _bst_pa._flow_command(coord.arbiter_inputs(), _bst_pa.state_for(coord))
 
 
-_wrr_ret = _wrr_command("return", {"flow_heat_c": 38.0, "flow_min_lift_k": 1.5})
-_wrr_flow = _wrr_command("flow", {"flow_heat_c": 38.0, "flow_min_lift_k": 1.5})
+_WRR_CMD = {"flow_heat_c": 38.0, "flow_min_lift_k": 1.5}
+_wrr_ret = _wrr_command("return", _WRR_CMD, inlet=30.0)
+_wrr_flow = _wrr_command("flow", _WRR_CMD, inlet=30.0)
 _wrr_indoor = _wrr_command("indoor", {"flow_heat_c": 38.0})
 R.check(
-    "a return target publishes the same held command as a flow one -- the configured "
-    "ceiling, not 55, and the 25 degC gate, both in the entity's own terms -- and an "
-    "indoor one publishes none",
+    "a return target with headroom publishes the same held command as a flow one -- the "
+    "configured ceiling, not 55, and the 25 degC gate, both in the entity's own terms -- "
+    "and an indoor one publishes none",
     _wrr_ret is not None and _wrr_ret == _wrr_flow
     and _wrr_ret.ceiling_c == 38.0 and _wrr_ret.gate_c == _bst_pa.FLOW_GATE_C
     and _wrr_indoor is None,
     f"return {_wrr_ret} flow {_wrr_flow} indoor {_wrr_indoor}",
+)
+# D1 (review): a return target at the ceiling commands the pump's top only
+# while the measured return sits at least the rated lift below the ceiling.
+_WRR_FULL_OFF = 38.0 + _SP_LIFT
+_wrr_edge = _wrr_command("return", _WRR_CMD, inlet=38.0 - _SP_LIFT)
+_wrr_tight = _wrr_command("return", _WRR_CMD, inlet=38.0 - _SP_LIFT + 0.5)
+_wrr_blind = _wrr_command("return", _WRR_CMD)
+_wrr_valve = _wrr_command("return", _WRR_CMD, inlet=30.0, inlet_key=_SP_VALVE)
+_wrr_flow_tight = _wrr_command("flow", _WRR_CMD, inlet=37.0)
+R.check(
+    "a return target's ceiling is a max-draw set-point only with the rated lift of "
+    "headroom over the measured return: at exactly that headroom it is, with less, with "
+    "no return-side reading, or with only the valve outlet it is reported one lift above "
+    "the ceiling, where no write reaches; a flow target's never moves",
+    _wrr_edge.ceiling_c == 38.0
+    and _wrr_tight.ceiling_c == _WRR_FULL_OFF
+    and _wrr_blind.ceiling_c == _WRR_FULL_OFF
+    and _wrr_valve.ceiling_c == _WRR_FULL_OFF
+    and _wrr_flow_tight.ceiling_c == 38.0
+    and _wrr_tight.gate_c == _wrr_flow.gate_c and _wrr_tight.written_c == 40.0,
+    f"edge {_wrr_edge} tight {_wrr_tight} blind {_wrr_blind} valve {_wrr_valve}",
+)
+
+
+def _wrr_folded(command, experiment_s=None):
+    """A fresh store after one running 3.0 kW space interval held at ``command``."""
+    d = _dr.DrawRange()
+    _dr.fold(d, 3.0, (5.0, 0.0), _dr_params(1.5, 5.5), frozen=False, distorted=False,
+             defrost=False, command=command, experiment_s=experiment_s)
+    return d
+
+
+from dataclasses import replace as _wrr_replace  # noqa: E402
+
+_wrr_edge_c = _wrr_replace(_wrr_edge, written_c=38.0)
+_wrr_tight_c = _wrr_replace(_wrr_tight, written_c=38.0)
+_wrr_e_probe = _wrr_folded(_wrr_edge_c, experiment_s=1.0)
+_wrr_t_probe = _wrr_folded(_wrr_tight_c, experiment_s=1.0)
+_wrr_e_run = _wrr_folded(_wrr_edge_c)
+_wrr_t_run = _wrr_folded(_wrr_tight_c)
+R.check(
+    "draw_range folds a ceiling write on a return target as ceiling-probe evidence and as "
+    "a full sample only with headroom; without it the probe interval goes to the window "
+    "and the sample is not full",
+    len(_wrr_e_probe.ceiling) == 1 and len(_wrr_t_probe.ceiling) == 0
+    and [e[2] for e in _wrr_e_run._evidence()] == [True]
+    and [e[2] for e in _wrr_t_run._evidence()] == [False],
+    f"probe {len(_wrr_e_probe.ceiling)}/{len(_wrr_t_probe.ceiling)} "
+    f"full {[e[2] for e in _wrr_e_run._evidence()]}/{[e[2] for e in _wrr_t_run._evidence()]}",
 )
 
 
@@ -71900,9 +71956,9 @@ R.check(
     "the hold moves by the rated spread, not by the configured lift: a 1.5 K lift "
     "leaves the return baseline at curve - 5 K and the no-curve hold at 30",
     _wrr_write("return", None, 30.0, {**_WRR_SMALL, "flow_heat_c": 48.0}, curve=40.0)
-    == 40.0 - _SP_LIFT
+    == 40.0 - _pa.RETURN_SUPPLY_OFFSET_K
     and _wrr_write("return", None, 30.0, _WRR_SMALL, curve=None)
-    == _pa.FLOW_HOLD_C - _SP_LIFT
+    == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K
     and _wrr_write("flow", None, 30.0, {**_WRR_SMALL, "flow_heat_c": 48.0}, curve=40.0)
     == 40.0,
     f"{_wrr_write('return', None, 30.0, {**_WRR_SMALL, 'flow_heat_c': 48.0}, curve=40.0)}",
@@ -71926,6 +71982,37 @@ R.check(
     "and a description, in strings.json, en and sv",
     not _wrr_tr_missing,
     f"{_wrr_tr_missing}",
+)
+
+# --- Review fixes D3, D5, D6 (return unit) ---------------------------------
+R.check(
+    "D3: a stored ceiling at or below the gate reads as the default heating flow, so a "
+    "heating step never writes the gate; one above the gate is kept",
+    _pa._heat_ceiling_c({_PP_FLOW_KEY: _pa.FLOW_GATE_C}) == _pa.FLOW_HEAT_C
+    and _pa._heat_ceiling_c({_PP_FLOW_KEY: 20.0}) == _pa.FLOW_HEAT_C
+    and _pa._heat_ceiling_c({_PP_FLOW_KEY: 30.0}) == 30.0
+    and _pa._heat_ceiling_c({}) == _pa.FLOW_HEAT_C
+    and _sp_write(5.5, _WL_RETURN, extra={_PP_FLOW_KEY: 25.0}) == _pa.FLOW_HEAT_C,
+    f"{_sp_write(5.5, _WL_RETURN, extra={_PP_FLOW_KEY: 25.0})}",
+)
+R.check(
+    "D5: a return target's bare hold (no curve) is capped at its ceiling; a flow "
+    "target's stays the uncapped rated hold, as on the base",
+    _rt_baseline("return", None, heat=28.0) == 28.0
+    and _rt_baseline("return", None, heat=48.0) == 30.0
+    and _pa.RETURN_SUPPLY_OFFSET_K == 5.0
+    and _rt_baseline("flow", None, heat=28.0) == _pa.FLOW_HOLD_C,
+    f"{_rt_baseline('return', None, heat=28.0)} {_rt_baseline('flow', None, heat=28.0)}",
+)
+R.check(
+    "D6: a return target's floor never anchors on the valve outlet: alone it leaves the "
+    "no-inlet floor, behind a tank the tank wins; a flow target still takes it",
+    _sp_write(1.5, (_SP_VALVE,), extra=_RT) == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K
+    and _sp_write(1.5, (_SP_TANK, _SP_VALVE), extra=_RT) == _SP_READ[_SP_TANK] + _SP_LIFT
+    and _sp_write(1.5, (_SP_FLOOR, _SP_VALVE), extra=_RT) == _SP_READ[_SP_FLOOR] + _SP_LIFT
+    and _sp_write(1.5, (_SP_VALVE,), extra=_RT_FLOW) == _SP_READ[_SP_VALVE] + _SP_LIFT
+    and _pa.RETURN_SKIPPED_RUNG == _SP_VALVE,
+    f"{_sp_write(1.5, (_SP_VALVE,), extra=_RT)}",
 )
 
 # --- #1956 the card recommends a feedback sensor on an unmetered install ---
