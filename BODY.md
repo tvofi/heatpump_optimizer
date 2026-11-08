@@ -9,39 +9,66 @@ What changes:
 - `class-open` has no mechanical check. There is no driver output to count a seam against: the enumeration rule a body names is free-form, so the obligation stays in the reviewer contract. The body says so here, as the brief asked.
 - The rule text is paid for inside `fix-review.md` by trimming spent prose in steps 2, 4, 8, 9, 11 and 13, with no meaning dropped. The file stays inside its `policy_lint.mjs --budgets` caps (133 of 140 lines, ~2449 of 2451 tokens). No budget was raised.
 
-In-flight edits to `fix-review.md`: R10-PROCESS-SLIM (`handoff/r10-process-slim`), R10-HOTFIX-NONREQUIRED-REDS (`handoff/r10-hotfix-nonrequired-reds`) and R10-DISPATCH-AT-HANDOFF (`handoff/r10-dispatch-at-handoff`, `-p2`). None has landed: `origin/main` is still the given base `8a4cf2618c53`, so there was nothing to rebase onto. The two that touch the file (the dispatch-at-handoff heads touch none of it) edit the preamble's publish line and steps 11 and 12. This diff edits steps 1, 2, 4, 6, 8, 9, the GREEN-mutation paragraph of step 11 (below the hunk both siblings change) and step 13. `git merge-tree --write-tree` against each sibling head is in Figures.
+In-flight edits to `fix-review.md`: R10-PROCESS-SLIM (`handoff/r10-process-slim`), R10-HOTFIX-NONREQUIRED-REDS (`handoff/r10-hotfix-nonrequired-reds`) and R10-DISPATCH-AT-HANDOFF (`handoff/r10-dispatch-at-handoff`, `-p2`). This diff edits steps 1, 2, 4, 6, 8, 9, the GREEN-mutation paragraph of step 11 and step 13. `git merge-tree --write-tree` against each sibling head is in Figures: one sibling, `-p2`, now conflicts in `fix-review.md`.
+
+## Repair
+
+Round 1 repair of the blocked verdict `Fix review: blocked 81741e448f32052efde42f2c0fe2605c8083e19f mutation-vacuous: tools/audit/seat/survivor_list.py:77 left-boundary lookbehind unpinned`. The verdict lists two items, and this repair answers both.
+
+- Survivor `tools/audit/seat/survivor_list.py:77`, the left-boundary lookbehind `(?<![\w./-])` of the whole-token rule in `unlisted`. Fixed in `c7b72252c`. This commit adds the self-test arm `a key is a whole token: tools/setup.py:3 does not list setup.py:3`, which is the reviewer's own example: a verdict that names only `tools/setup.py:3` must leave survivor `setup.py:3` unlisted. The mutant `token_lookbehind_off` survives at `81741e448` and is killed at this head (Mutation proof). No production line changed. Carry: R10-REVIEW-ENUMERATE
+- Stale scope figure. The previous body's `--files` scope line was taken before `tests/closures.json` entered the diff. Re-taken under Figures at this head with both commands. Carry: R10-REVIEW-ENUMERATE
+
+The reviewer's `class_anchor` survivor (`^` and the trailing `:` dropped from `CLASS`) was judged equivalent in the verdict and was not blocked on. It is left alone. Carry: dismissed: the verdict judged it equivalent (`re.match` anchors at the start, and no verdict class extends `mutation-vacuous`)
 
 ## Head
 
-ed4d90addd9fe9f6d46ca008db40f1ab9d30905d, measured against merge base and `origin/main` 8a4cf2618c53a6dca6b65df3eae5efc8832d1796 (2026-11-08T15:09Z). `tools/pr/prepr.sh <body>` passed at this head against that base (`PRE-PR: ed4d90add... rc=0`). After that run, `origin/main` moved to 6b92bca124462875080a270202d78615c29972b8 (#3320, entities host-determinism; 2026-11-08T15:25Z). `git merge-tree --write-tree origin/main HEAD` exits 0, and the moved range touches none of this diff's files. Under the owner ruling of 2026-11-07 (merge `origin/main` only on a merge-tree conflict), the branch is not merged. Every figure below is at the 8a4cf2618c53 base.
+`32fbd8338c86f6e66730eb5be9bc880edbe9273c`. The chain to it from the reviewed head `81741e448f32052efde42f2c0fe2605c8083e19f` is:
+- `c7b72252cef4ddd58b22af131c1a4990be016695`: the repair commit, on top of `81741e448`.
+- `ebbc08bfb1d23deea548a6f0c901329d170b4933`: merges `origin/main` `51cd5ec8a42a`. The only resolution was the ledger driver's set merge of `tests/closures.json`.
+- `32fbd8338c86`: merges `origin/main` `daf8b349fd30cc60786eeca333a426b693aa4c5f` (#3346). That moved range touches none of this diff's files.
+
+Every figure below was taken at `32fbd8338c86`, with merge base and `origin/main` `daf8b349fd30` (2026-11-08T21:06Z). `tools/pr/prepr.sh` ran clean at this head against that base. A `PREPR_SKIP_CLOSURES=1` run also passed at `ebbc08bfb` against `51cd5ec8a42a`, before main moved.
 
 ## Mutation proof
 
-- `survivor_list.py`, via `python3 tools/audit/seat/mutant_run.py --spec <4 mutants> --cmd 'python3 -I tools/audit/seat/survivor_list.py --self-test'`: `SURVIVED NULL`, then `KILLED class_gate_off` (the class predicate forced to `if True: return []`), `KILLED listed_always` (the listed test forced false), `KILLED triaged_not_dropped` (`found - triaged` becomes `found`), `KILLED check_rc_zero` (`if missing:` becomes `if False:`).
-- `bus.sh`: deleted the two-line `survivor_list.py check` call in `push_verdict` and ran `bash tools/audit/seat/bus.sh --self-test`. Red: `FAIL push-verdict refuses a mutation-vacuous verdict naming one of two survivors, and review/7 does not move`. Restored. (`FAIL an ordinary append with no intervening fetch is the same commit object as before` is red at `origin/main` too. See Red checks.)
+Run at `32fbd8338c86`: `python3 tools/audit/seat/mutant_run.py --spec <6 mutants> --cmd 'python3 -I tools/audit/seat/survivor_list.py --self-test'` (copy-tree). Output: `SURVIVED NULL`, then six kills:
+- `KILLED class_gate_off`: the class predicate is forced to `if True: return []`.
+- `KILLED listed_always`: the listed test is forced false.
+- `KILLED triaged_not_dropped`: `found - triaged` becomes `found`.
+- `KILLED check_rc_zero`: `if missing:` becomes `if False:`.
+- `KILLED token_lookbehind_off`: the reviewer's survivor, with `(?<![\w./-])` deleted.
+- `KILLED token_lookahead_off`: `(?![\w])` deleted.
+
+Control at the reviewed head `81741e448`, with the same `token_lookbehind_off` spec run in place: `SURVIVED token_lookbehind_off`. This reproduces the verdict.
+
+`bus.sh`'s pin is unchanged by this repair. The arm `push-verdict refuses a mutation-vacuous verdict naming one of two survivors, and review/7 does not move` was re-run by the reviewer at `81741e448` and goes red when the call is deleted.
 
 ## Null control
 
-- `bus.sh --self-test`: `ok null control: another blocked class over the same evidence proposes`. A `harness:` verdict over the same two-survivor evidence that refuses the `mutation-vacuous` one is pushed unchanged.
-- `survivor_list.py --self-test`: `ok null control: another blocked class with the same evidence passes`, `ok null control: a merge verdict passes`, `ok evidence with no driver output counts nothing`.
-- The brief's control: a `mutation-vacuous` verdict naming one survivor while the driver output at that head shows two is refused by `push-verdict`. This is the arm `push-verdict refuses a mutation-vacuous verdict naming one of two survivors` (rc != 0, `UNLISTED custom_components/x/a.py:40`, `review/7` unmoved). The same verdict listing both is proposed (`ok and proposes the mutation-vacuous verdict once it lists both survivors`).
+- `survivor_list.py --self-test` at this head prints all three of `ok null control: another blocked class with the same evidence passes`, `ok null control: a merge verdict passes` and `ok evidence with no driver output counts nothing`.
+- The new arm has a null twin: the existing arm `a key is a whole token: :12 does not list :120` pins the right boundary. `token_lookahead_off` is killed and `token_lookbehind_off` is killed by the new arm, so each side of the token rule has its own killing arm.
+- `bus.sh --self-test`: `ok null control: another blocked class over the same evidence proposes`.
 
 ## Figures
 
-- `python3 -I tools/audit/seat/survivor_list.py --self-test`: `survivor_list self-test: 19 checks, 0 failed`. The checks include four that pin the producers' own print statements (`mutant_run.py`, `tests/mutation_table.py`), so a format change turns this red. Without them, every survivor would silently read as none.
-- `bash tools/audit/seat/bus.sh --self-test`: 162 checks, 1 failed at the head. At `origin/main` 8a4cf2618c53 it is 159 checks, 1 failed, and the failure is the same check, `an ordinary append with no intervening fetch is the same commit object as before`. The 3 added checks are this diff's arms, all `ok`.
-- `node tools/policy/policy_lint.mjs --budgets`: `fix-review.md` 133 lines (cap 140), ~2449 tokens (cap 2451). The rule is `Math.round(bytes / 4)`. At the base it was 137 / 2448.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `4 of 2666 ENTITY CHECKS FAILED` at the head and at `origin/main`. The four top-level names are identical at both ends (`diff` of the two `FAIL` lists, sub-check rows excluded, printed `SAME-4-AT-BASE`): the coverage-reuse, release-ZIP and two Pages workflow checks. This diff touches none of them.
-- `tests/doc_claims.py`: `ALL 296 checks PASSED`. `tests/harness_headers.py`: `ALL 112 HARNESS HEADER CHECKS PASSED`. `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- Scope: `python3 tests/closure.py select --files <the three-dot diff's files>` printed `MODE: SCOPED -- 3 script(s) run` (doc_claims, entities, harness_headers).
-- `python3 -I tools/audit/seat/selftest_wiring.py --check`: `125 self-testing, 125 wired, 0 unwired`, `0 index gap(s)`. The new governance.yml step wires the self-test.
-- `node tools/policy/agreement.mjs`: no `UNREGISTERED` line after `df7f154da`. Before it, `survivor_list.py` carried a second copy of `mutation_table.py`'s `--pin-killed` grammar, which it now imports instead.
-- The brief's measurement, re-run here: `python3 -I tools/audit/seat/review_strength.py --window last3d=2026-11-04T19:00:00Z..2026-11-07T19:00:00Z --by class`. It printed `mutation-vacuous ... PRs 18 verdicts 24` and `class-open ... PRs 9 verdicts 17`. The brief states 25 on 19 and 23 on 13. The instrument reads live verdict refs, so its counts depend on when and where it runs. I re-took it from this cloud checkout and cannot reconcile the difference. The instrument is named, not either number.
-- Sibling conflicts. `git merge-tree --write-tree HEAD origin/handoff/r10-hotfix-nonrequired-reds` exits 0. `git merge-tree --write-tree HEAD origin/handoff/r10-process-slim` exits 1, on `dev/governance/roles/orchestrator.md` and `tools/audit/seat/INSTRUMENTS.md`. `git merge-tree --write-tree origin/main origin/handoff/r10-process-slim` names the same two paths, so this diff adds no conflict of its own with that sibling, and none in `fix-review.md`.
+- `python3 -I tools/audit/seat/survivor_list.py --self-test`: `survivor_list self-test: 20 checks, 0 failed`. That is 19 at `81741e448` plus the one new arm.
+- `bash tools/audit/seat/bus.sh --self-test`: `bus self-test: 162 checks, 0 failed`.
+- Scope at this head, by `fixer.md` step 5's command: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 3 script(s) run, 30 scoped out` over 8 changed files, `tests/closures.json` among them, running doc_claims, entities and harness_headers. The reviewer's command, `python3 tests/closure.py select --files $(git diff --name-only $(git merge-base origin/main HEAD)...HEAD)`, prints `MODE: FULL` at the same head. The `tests/closures.json` edit adds one `INERT` entry. The `--diff` selector scopes past it and `--files` does not. The scoped gate in `tests/run.sh` calls `closure.py select --diff`. I have not traced why the two differ, so no cause is claimed. The previous body's `--files ... SCOPED -- 3` was taken before that file entered the diff, and it is withdrawn.
+- `PYTHONPATH=tests/hastub` scoped scripts at this head: `tests/doc_claims.py` printed `ALL 296 checks PASSED`, `tests/entities.py` printed `ALL 2668 ENTITY CHECKS PASSED` and `tests/harness_headers.py` printed `ALL 112 HARNESS HEADER CHECKS PASSED`, each rc 0.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `node tools/policy/policy_lint.mjs --budgets`: `fix-review.md` 133 lines (cap 140), ~2449 tokens (cap 2451). The rule is `Math.round(bytes / 4)`. This repair does not touch that file.
+- `python3 -I tools/audit/seat/selftest_wiring.py --check`: `125 self-testing, 125 wired, 0 unwired`, `0 index gap(s)`.
+- `node tools/policy/agreement.mjs`: `RESULT divergent=0 unregistered=0`. The 6 `REFUSED` lines ask for `--py-json`, which this bare run did not pass.
+- Sibling conflicts, `git merge-tree --write-tree HEAD <sibling handoff head>`:
+  - `r10-process-slim`: rc 0.
+  - `r10-hotfix-nonrequired-reds`: rc 0.
+  - `r10-dispatch-at-handoff`: rc 0.
+  - `r10-dispatch-at-handoff-p2` (`089f1da01`): rc 1, on `dev/governance/roles/fix-review.md`. Against `origin/main` it gives rc 0, so this diff causes the conflict. The two hunks are adjacent: `-p2` drops `(a script routes on it)` from the preamble's first-line sentence and rewrites step 7. This diff rewrites steps 6 and 8, which sit on either side of step 7. Whichever lands second merges `origin/main` and resolves by keeping both texts. That merge is the orchestrator's under `fixer.md` step 6, not a re-cut.
+- The brief's motivating counts come from `python3 -I tools/audit/seat/review_strength.py --by class`. It reads live verdict refs, so it is named here and not quoted (`fixer.md` step 3).
 
 ## Red checks
 
-none at the handoff (no CI has run on this head). Local reds that predate this diff, unchanged from `origin/main`: `tests/entities.py` 4 of 2666 (named above) and `bus.sh --self-test`'s `ordinary append` check. Neither is reached by this diff.
+none. CI has not run on this head. The reviewed head `81741e448` classified `GREEN ... red: none` (`merge_train.py classify`, in the verdict). The local reds the previous body named (`tests/entities.py` 4 of 2666, and `bus.sh`'s `ordinary append` check) are gone at this head: entities and bus.sh both pass above.
 
 ## Forward-carry
 
@@ -53,7 +80,7 @@ none
 
 ## Unpinned sites
 
-`tools/audit/seat/survivor_list.py`'s predicates are pinned by the four spec mutants above, all killed by its self-test. `bus.sh`'s added call is pinned by the bus.sh self-test arm named under Mutation proof.
+`tools/audit/seat/survivor_list.py`'s predicates, both sides of the whole-token rule included, are pinned by the six spec mutants above. All six are killed by its self-test. `bus.sh`'s added call is pinned by the bus.sh self-test arm named under Mutation proof.
 
 ## Approval
 
