@@ -1923,6 +1923,20 @@ if [ "${1:-}" = "--self-test" ]; then
   r=$?; st "$r" 0 "this repository's own wired hooks pass (null control)"
   [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
 
+  # The session-start hook's self-test under a git whose clock advances 70 s per
+  # call: `origin/main at:` is git's relative `%cr`, so a self-test that
+  # compares two reports byte for byte fails on a clock tick, as main did
+  # minutes after a merge (R10-HOTFIX-MAIN-IST-RED, 22 passed 2 failed). The
+  # shim sets the clock only when the self-test has not pinned one, so the row
+  # passes when the self-test pins its own and fails when it does not.
+  tk=$(mktemp -d); mkdir -p "$tk/bin"; gt=$(command -v git)
+  printf '#!/bin/bash\nf="%s/clk"; n=$(( $(cat "$f" 2>/dev/null || echo 0) + 70 )); echo "$n" > "$f"\nexport GIT_TEST_DATE_NOW="${GIT_TEST_DATE_NOW:-$(( $(date +%%s) + n ))}"\nexec "%s" "$@"\n' "$tk" "$gt" > "$tk/bin/git"
+  chmod +x "$tk/bin/git"
+  hk=$(PATH="$tk/bin:$PATH" bash .claude/hooks/session-start.sh --self-test 2>&1); r=$?
+  st "$r" 0 "the session-start self-test passes while git's clock ticks between its reports (null control)"
+  [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
+  rm -rf "$tk"
+
   # A missing matcher, `""` and `"*"` are Claude Code's own "match every tool"
   # spellings, not a pattern to compile -- `"*"` alone threw out of `RegExp`
   # and read as MATCHER BLIND on a group that in fact fires on every edit
