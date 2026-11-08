@@ -188,3 +188,9 @@
   `review_carry.py <handoff head> <PR head>` answers CARRY, else `HELD-STALE` names
   `bus.sh dispatch <pr> <head>` and the ref is refused until disposed. `HPO_RELAY_PRHEAD` and
   `HPO_RELAY_CARRY` replace the head read and the carry command (self-test stubs).
+  Pending-CI drafts (R10-CLOUD-POOL carry 5, moved to R10-DISPATCH-AT-HANDOFF): a verdict with a
+  `pending-ci: <why>` line (a reviewer whose review is done while CI at the head is pending) posts
+  only when `merge_train.py classify` reads the head GREEN; WAIT holds it (rc 75, one
+  `HELD-PENDING-CI` line, retried next pass), RED refuses it, and a PR head that moved since the
+  draft refuses it naming both heads. `HPO_RELAY_CLASSIFY` replaces the command. A fired session
+  with no return ref after the bounded window is `SEAT ENDED NO RETURN` (the no-return arm above).

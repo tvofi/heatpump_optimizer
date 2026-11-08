@@ -236,7 +236,10 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
                    "or 4 (APPROVAL-OWED: the only red is the budget raise's approval, which follows your verdict; "
                    "judge the head as GREEN and quote the line); 3 is WAIT, so run it again. Never wait with `pgrep` or `pkill`, whose `-f` pattern matches "
                    "the waiter's own command line, nor on a context the ruleset does not require, such as "
-                   "`prelude`.\n")
+                   "`prelude`. If your review is otherwise complete and classify still prints WAIT after "
+                   "about 30 minutes of polling, stop waiting: put the line `pending-ci: <the context names it "
+                   "printed>` straight after the `bus-nonce:` line and return the verdict as below; the relay "
+                   "posts it once CI is green at this head, refuses it over a red, and refuses it if the head moves.\n")
         body = (
             "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
             f"exactly. Fetch the {'handoff' if at_handoff else 'PR'} head with `git fetch origin {head}`; " + where +
@@ -1171,6 +1174,8 @@ def self_test() -> int:
           "refs/heads/probe/revt-t-1-abcd1234" in hand and f'-m \"verdict t-1 {head}\"' in hand)
     check("and reads the body at handoff-body/<topic>, renders no packet and waits on no CI",
           "handoff-body/t-1" in hand and "review_packet.py render" not in hand and "merge_train.py classify" not in hand)
+    check("a reviewer with a PR is told to return a `pending-ci:` draft rather than wait without bound; a handoff reviewer, which waits on no CI, is not",
+          "pending-ci: <the context names" in pull and "pending-ci" not in hand)
     check("null control: a reviewer with a PR number is unchanged (probe/rev-<pr>, the packet, the CI wait)",
           "refs/heads/probe/rev-7-abcd1234" in pull and f'-m \"verdict 7 {head}\"' in pull
           and "review_packet.py render --pr 7" in pull and "merge_train.py classify" in pull and "revt-" not in pull)
