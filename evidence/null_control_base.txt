@@ -1,9 +1,0 @@
-5979:-- R10-HOTFIX-COP-UNMEASURED: a COP sample is measured only from metered heat over metered power
-5980-  FAIL no heat input: a hot-water interval whose draw equals its ask records no measured COP and no health-watch sample, though its inference is the model exactly; the COP scale still trains on it  [inferred 2.5533587538536424 model 2.5533587538536424; (None, {(2, True): [2.5533587538536424, 1]}, 2.55, 2.5533587538536424); scale samples 1]
-5981-  FAIL estimated heat over estimated power observes the fitted COP on every interval and records nothing measured; marked metered it records; an estimate marked by its source records nothing whatever its name  [observed [3.1, 2.4, 4.05]; tuya (None, {(2, False): [3.1833333333333336, 3]}, 4.05, 3.537688749999999); meter (None, {(2, False): [3.1, 1]}, 3.1, 3.5874999999999995); named (None, {(2, False): [3.1, 1]}, 3.1, 3.5874999999999995)]
-5982-Traceback (most recent call last):
-5983-  File "/tmp/claude-0/-home-user-heatpump-optimizer/94055c0d-52c3-5c28-a0ea-0a8aea2b2405/scratchpad/base/tests/features_nc.py", line 71742, in <module>
-5984-    not _cu_probe(_CU_TUYA).cop_measured(False)
-5985-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-5986-AttributeError: 'InstallCapability' object has no attribute 'cop_measured'
-5987-rc=1

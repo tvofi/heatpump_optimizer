@@ -1,79 +1,64 @@
-Fix review: blocked 9cf0b6108527943795f1b4dda6e6069ebff0e7f7 mutation-vacuous: coordinator.py:4575 measured_cop provenance gate survives every check
+Fix review: merge 2d010b0913cabbbfc72ace3fc8d203bfb65744f7
 
-bus-nonce: 48cc398fd1089ad881e7f6546ed55939
+bus-nonce: 22f38dfbae6110059a91a1cf89f2d120
 
-## Block
+## Round
 
-Round 1. Head measured: 9cf0b6108527943795f1b4dda6e6069ebff0e7f7, still the head of `fix/r10-hotfix-cop-unmeasured` when this verdict was written.
-
-The body's item 5 says "A pre-fix store's last COP is not shown as measured either". The production line that does this is `coordinator.py:4575`, `MeasuredCop.from_dict(stored.get("measured_cop") if _COP_BASELINE_KEY in stored else None)`. I replaced it with the ungated `MeasuredCop.from_dict(stored.get("measured_cop"))` (mutant G). The result:
-
-- `tests/features.py` rc=0, ALL 4912 FEATURE CHECKS PASSED.
-- `tests/entities.py` rc=1 with 3 of 2645 ENTITY CHECKS FAILED, the same three environment failures the unmutated head prints (coverage-job reuse, release ZIP, Pages workflow).
-
-Nothing kills the mutant. The migration check ("a COP baseline stored before measured provenance loads empty ...") loads a pre-fix payload that holds `cop_baseline` and `cop_health_cusum` but no `measured_cop`, so this gate is never exercised.
-
-The gate carries weight on the owner's own install. Without it, the pre-fix `measured_cop` (a model value: 2.55 on the null-control fixture) loads back after the upgrade, with its old `at`. Two surfaces then read it:
-
-- Diagnostics `cop_learner.measured_cop` (`accuracy.diagnostics_view`) reports it as measured.
-- The card's Health COP row appends "Measured {age} ago." from `measured_cop_at`, right under the new "COP cannot be measured on this install" text.
-
-This is the "do not report a model value as measured" requirement of brief items (2) and (5) and carry (a). The ObservedCOPSensor masks it only because it is unavailable while `waiting_for` names a reason.
-
-Cure, small, and inside this group:
-- Add a `measured_cop` record to `_cu_old_payload` in the R10-HOTFIX-COP-UNMEASURED section.
-- Assert `_cu_old._measured_cop.cop is None`, and that the since-fix payload round-trips its `measured_cop`.
-- Re-run the mutation proof on 4575.
-
-Every other part of the review passes; see Evidence.
-
-## Findings
-
-- When a heat counter is configured, `probe_install` forces `heat_estimated` and `power_estimated` to False, and nothing ever inspects the electric counter (`CONF_ENERGY_ENTITY`) or the heat counter (`CONF_HEAT_ENERGY_ENTITY`) for an estimate: there is no source option for either, and `auto`'s id rule never reads their ids. A Riemann-sum counter integrated from the Tuya "Estimated Power Draw" or "Estimated Heating Output" therefore still records a measured COP through the span route (`heat_energy.close_span` -> `_fold_cop_evidence`), and that COP is the vendor's own fitted COP. This is carry (d)'s "an estimated input on EITHER side", reached through the counter pair. The body discloses that a heat counter "is read as metered" but gives no reason. The owner's install has both counters unset, so this does not reach the owner today. It is not the cause of the block. Carry: R10-COP-GATE-E
-- `codeql / Analyze (python)` in run 42406301156 was cancelled at 20:19:32Z, about 45 minutes after it started at 19:34:32Z, in mid-evaluation ("The operation was canceled"). The same analysis passed in run 42406296114 (job 128552885531). It is a runner-time stall, not this diff, and it is one of the two reasons `gate` stays red. Carry: R10-HOTFIX-CODEQL-HEADROOM
-- The finding has no committed finder's harness. The packet reads "Finder's harness: none named", so the brief's null control is the harness, and the fixer implemented it as the first two checks of the tests/features.py R10-HOTFIX-COP-UNMEASURED section. I transplanted that section onto the merge base myself and it reproduces the defect there (Evidence). Carry: dismissed: brief null control now committed as features.py checks
+Second fix-review round of PR 3297 (the first blocked 9cf0b6108 mutation-vacuous). I reviewed the whole fix again plus the repair delta (9cf0b6108..385073c4f, `tests/features.py` only, +46/-2), from a detached worktree at 2d010b0913cabbbfc72ace3fc8d203bfb65744f7. The roster has no committed harness for this hotfix, so the finder's harness is the brief's null control plus the R10-HOTFIX-COP-UNMEASURED section of `tests/features.py`. I built the section-block driver (`ev/mkprelude.py`, `ev/mutants.py`, `ev/whole.py`) myself; it is mine, not the finder's.
 
 ## Evidence
 
-- Merge base aaaec2128e5d2efc2e0ad8ffe4918eec6cbb7f98. `git diff aaaec212...origin/main -- dev/governance/roles/` touches fix-review.md only, and the current main copy is the one I read and followed.
-- Merge: `git merge-tree --write-tree origin/main 9cf0b610` exits 0 against origin/main 7c9c4c154 (tree 7fc7b5240). No conflict (ev/merge_tree.txt).
-- RESULT head tests/features.py rc=0 ALL 4912 FEATURE CHECKS PASSED (7m14s). This is the null for every mutant below.
-- RESULT null-control base: I transplanted the head's section (head lines 69695-71882) into base tests/features.py, before "early cut-off".
-  - No heat slot, a DHW interval with ask == reading: the base records `{(2, True): [2.5533587538536424, 1]}` and measured COP 2.55, equal to compute_cop_dhw(8, 48). The head records `{}` and None, and the scale still takes 1 sample.
-  - Tuya fixture: observed [3.1, 2.4, 4.05] equals the fitted COP fed in; the base records band `{(2, False): [3.1833..., 3]}`; the head records nothing.
-  - The base then raises AttributeError on `cop_measured`.
-  - This matches the body's `## Null control` (ev/null_control_base.txt).
-- Mutation proof, each mutant on a fresh worktree at the head, whole tests/features.py (ev/mutants.txt, ev/mutant_detail.txt, ev/mutants_def.py):
-  - A `if measured:` -> `if True:`: rc=1, 3 failed (the null control, the Tuya check and the metered-records check), as body M1.
-  - B cop_sample `return None if ... else False` -> `return False`: rc=1, 1 failed (no-heat-reading refusal), as M3.
-  - C `_estimated` id rule -> `return False`: rc=1, 3 failed, as M4.
-  - D `not (heat_estimated or power_estimated)` -> `not heat_estimated` (power side ignored): rc=1, 1 failed (probe_install either-side check).
-  - E -> `not power_estimated` (heat side ignored): rc=1, 2 failed.
-  - F loader also reads the pre-fix `cop_baseline`: rc=1, 1 failed (migration), as M5.
-  - G measured_cop load ungated: rc=0, SURVIVES; it also survives tests/entities.py. This is the block.
-  - H `machine_score`'s `if not measurable` deleted: rc=1, 1 failed, as M6.
-  - I `heat_sees_dhw or not dhw` deleted: rc=1, 1 failed, as M7.
-  - J CUSUM loader also reads the pre-fix `cop_health_cusum`: rc=1, 1 failed.
-  - K `COP_ESTIMATED if estimated else COP_HEAT_METERED` -> `COP_HEAT_METERED`: rc=1, 2 failed.
-  - L power_estimated no longer outranked by a heat counter: rc=1, 1 failed.
-- Class rule, re-run at the head: `git grep -n -e "_measured_cop.record(" -e "_observe_cop_health(" -- custom_components` returns exactly coordinator.py:5400-5401, inside `if measured:`. The direct `_cop_baseline[...]` writes are the loader (4590) and `_observe_cop_health` (9496). `_fold_cop_evidence`'s callers are the per-cycle fold (5352) and the span close (1163). The rule is sound for the writers.
-- Architecture score: `python3 tools/audit/archscore/score.py --diff aaaec212 HEAD` prints `Architecture score: dS -0.0023 WORSENS (inadmissible: coord_footprint 2491->2495)`, matching the body (ev/archscore.txt). I did not decompose the +4 statement by statement.
-- My judgement on the +4: it is justified. The decision is pure and lives on `InstallCapability.cop_measured` / `cop_sample` in thermal_model.py, and the coordinator only branches on its answer at the three points it already owned. I hunted for a payment inside the seam and found none that is sound:
-  - Pushing the guard into `_observe_cop_health` stays inside the class and couples the health watch to the install.
-  - Folding the refusal earlier would recompute `heat_kw` and the reference curve.
-  - Having `machine_score` read config adds an edge `fixer.md` step 17 refuses.
-  - The only larger lever I saw, moving `machine_score` out of coordinator.py, is an unrelated move and out of seam for a hotfix.
-- No `*_budgets.json` is in the three-dot diff, and VERSION, the manifest and RELEASE_NOTES.md are untouched (VERSION 7.1.5 on both sides). `dev/programme/delivery/3297.md` is in the diff. The only new tracked files are that row and mutation-ledger pins, and `tests / closures` and `tests / closure-scope` are green.
-- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED, rc=0.
-- `python3 tests/env_drift.py --all aaaec212`: NO UNCLAIMED DRIFT over 56 scenarios, NO STALE FIXTURE over 56 fixtures. The six claims (coord_* x5, config_flow) carry `claims-for: 7.1.5` = VERSION.
-- `node tests/card_drift.mjs aaaec212` (after tests/plan_view.py): 1 state moved and claimed (score_open), 44 identical, matching the body. The tool prints "CLAIMED score_open -- no reason given" because the reason sits in comment lines above the name rather than inline. This is cosmetic, and rc=0. Carry: dismissed: evidence, not a finding
-- `tests/entities.py` at the head: 3 of 2645 ENTITY CHECKS FAILED, the three environment checks the body names (ev/entities_head.txt).
-- `## Head` names 9cf0b6108, the head I measured.
-- Owner's ruling: it is quoted verbatim in the body, and no learner is gated. Mutant B's null arm and the Tuya check (3 scale samples) pin the retained scale training.
-- CI, read job by job over all 95 check runs at the head:
-  - `merge_train.py classify` exits 1 on every run from 22:50Z to 23:27Z+: `RED ... pending: none red: gate` (ev/classify.txt).
-  - Both of gate's latest runs (job 128552885487 at 22:49Z, job 128551986658 at 22:44Z) print `FAIL codeql / Analyze (python): cancelled (run 42406301156)` and `pr-contract / pr-contract: failure (run 42406301156)`.
-  - The pr-contract failure is the 20:19Z run, which predates the body repair. The later pr-contract run (job 128552885967, 22:40:55Z) is success, and the arch-score rerun is success. gate still reads run 42406301156.
-  - Re-running that run's pr-contract and codeql/python jobs would clear it with no code change.
-  - The body's `## Red checks` names gate, pr-contract, arch-score and the codeql cancellation, so step 11 is answered.
-  - The block above stands on its own, independent of CI.
+- RESULT head=2d010b0913cabbbfc72ace3fc8d203bfb65744f7 merge-base=aaaec2128e5d2efc2e0ad8ffe4918eec6cbb7f98. `## Head` in the body names this head, a merge of the code head 385073c4f, so it is current.
+- RESULT merge-tree: `git merge-tree --write-tree origin/main 2d010b09` rc=0, no conflict (`ev/merge_tree.txt`).
+- RESULT roles: `git diff $(merge-base)...origin/main -- dev/governance/roles/` shows one line changed in fix-review.md ("Evidence names differ beyond case"). I followed the main copy.
+- RESULT CI: `merge_train.py classify 2d010b09 --pr 3297` returned `GREEN ... pending: none red: none`, rc=0 (`ev/classify.txt`). All 56 check runs at this head are listed in `ev/check_runs_head.txt`. The one concluded red is the edit-run `gate` (job 128631241009, 04:57Z), and it failed on one line only: "FAIL run(s) [42447989984] at this head are still being judged; their gate decides". That is a GATE DEFERRAL. The code-run gates 128642035569 and 128642815635 are both success (05:43Z and 05:45Z). `pr-contract / pr-contract` (128641734924, 05:39Z–05:40Z) started after that last red concluded and is success, so the body check stands. Under the brief's deferral rule this red needs no body answer. `tests / mutation` is success and prints `MUTATION TABLE PASSED`, with every diff site killed (`ev/ci_mutation_summary.txt`).
+- RESULT features at head: `PYTHONPATH=tests/hastub python3 tests/features.py` gives `ALL 4915 FEATURE CHECKS PASSED`, rc=0 (`ev/features_head_summary.txt`). This matches the body.
+- RESULT section block (158 checks, as the body states): unmutated it gives `ALL 158 FEATURES BLOCK PASSED`, rc=0. This is the null control for every mutant below.
+- RESULT mutants on the repair delta, each against the section block (`ev/mutants_block.txt`):
+  - G, the measured_cop provenance gate removed: rc=1. It fails "a last COP stored before measured provenance does not load as measured; one stored since round-trips".
+  - The CUSUM load replaced by `pass`: rc=1. It fails "a COP health CUSUM stored since measured provenance loads with its state".
+  - DOMAINS `cop_health_cusum_measured/stat` floor 0.0→1.0: rc=1. It fails the store-domains check.
+  - DOMAINS `cop_baseline_measured/*/1` floor 1→2: rc=1. It fails the store-domains check.
+  - All three of the body's repair claims reproduce.
+- RESULT mutants on the first-round production lines, re-run at this head:
+  - Killed by the section block: M1, M3, M4, M5, M7. My added mutant M5b (the loader also reading the old `cop_health_cusum`) is killed too.
+  - Also killed by the section block, each from my own list:
+    - power side only / heat side only in `cop_measured`
+    - `_estimated` without its estimate arm / without its meter arm
+    - the heat counter no longer outranking an estimated thermal power
+    - `heat_sees_dhw` forced off
+    - `cop_observability`'s `estimated` forced False
+    - `cop_observability`'s no-heat guard deleted
+    - the `COP_REFUSED_NO_HEAT` refusal removed
+  - Survive the block but are killed by the whole `tests/features.py`, 1 of 4915 each (`ev/whole_*.txt`):
+    - M6, `machine_score`'s `if not measurable` deleted: killed by "a fresh install grades nothing ... with no heat reading the heat pump is never graded".
+    - `machine_score(..., cop_measured(False))` → `True`: killed by the same check.
+    - `_FACTORY_VOID` reverted to the old keys: killed by "a learners reset drops every learned key ...", which names `cop_baseline_measured`.
+  - One survivor, `cop_measured` without `and self.cop_electric()`, is under `## Findings`.
+- RESULT null control (the brief's): the section's no-heat check shows the inference equal to `compute_cop_dhw(8.0, 48.0)` with nothing recorded and `_cop_samples == 1`. The Tuya check shows heat over power observing the fitted COP on every interval with nothing recorded, and the same install set to `meter` records. M1 turns both red, so the control moves under its own perturbation. I did not re-transplant the section onto the base. The base reading is the first round's (the body says "the review reproduced this at the merge base aaaec2128"), and production code is unchanged since then (`git diff --stat 9cf0b6108 385073c4f` lists `tests/features.py` alone).
+- RESULT drift: `python3 tests/env_drift.py --all aaaec2128` gives `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE`, rc=0 (`ev/env_drift.txt`). The claim lines are the five coord_* reason-string edits plus config_flow, and `card_claimed_drift.txt` claims score_open. I did not re-run `card_drift.mjs`; I cite CI's green `tests / browser`.
+- RESULT ratchet: `python3 tests/structure.py` gives `STRUCTURE RATCHET PASSED`, rc=0 (`ev/structure.txt`). The three-dot diff touches no `*_budgets.json`, `VERSION` (7.1.5), `manifest.json` or `RELEASE_NOTES.md`.
+- RESULT bookkeeping: the delivery row `dev/programme/delivery/3297.md` is in the diff. The only new tracked files are that row and nine `tests/mutation_ledger/killed_by/*.json` pins, and `governance`/`tests / closure-scope` are green on them.
+- RESULT archscore: `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD` gives `Architecture score: dS -0.0023 WORSENS (inadmissible: coord_footprint 2491->2495)`, rc=0 (`ev/archscore_diff.txt`). This is the body's figure, re-derived.
+- Judgement on the +4: `metrics/footprint.py` charges logic statements in the coordinator class and in every function handed the coordinator. So the module function `machine_score`, which takes only `baseline`, and its new guard are not charged. The charge falls inside `_fold_cop_evidence`:
+  - the `cop_sample(...) is None` refusal and its return
+  - the `if measured:` that now guards the already-counted `record` and `_observe_cop_health` calls
+  - the score-path argument
+  The decision itself already lives off-coordinator, in `InstallCapability.cop_measured` and `cop_sample`, so the move the coordinator suggested is made. I looked for a payment the fixer missed:
+  - Pushing the guard into `MeasuredCop.record` leaves `_observe_cop_health` as a coordinator method, so it is still charged.
+  - Encoding the refusal as a return value of `cop_sample` keeps one branch per outcome.
+  - Moving the `machine_score`/`_watched_cop_buckets` block out of `coordinator.py` would change nothing, because the metric does not charge it.
+  None of these is a sounder in-seam payment. The +4 is justified, and no budget is raised.
+- RESULT class rule: `git grep -n -e "_measured_cop.record(" -e "_observe_cop_health(" -- custom_components` returns only the two calls inside `if measured:`. The loader grep returns the three keys, each with a pre-fix arm and a since-fix arm, killed above. I also checked for leftover uses of the old keys: `git grep '"cop_baseline"' '"cop_health_cusum"' -- custom_components tools` returns only the comment at coordinator.py:385.
+- RESULT store: `store.off_domain` is diagnostic only (`_log_off_domain`), so a pre-fix payload's undeclared `cop_baseline` key does not quarantine the store. It drops on the next save, because `_save_thermal_learning` rebuilds the dict.
+- RESULT entities: I did not re-run `tests/entities.py` at the head. I cite CI's `tests / fast`, `tests / coverage` and `gate` green. Under the R-electric mutant it gives `3 of 2645 ENTITY CHECKS FAILED`: the coverage-job reuse, release-ZIP and Pages-workflow checks, the same three environment failures the body names (`ev/entities_R-electric_tail.txt`).
+- Forward-carry: the body says `none`, and I found no stage-changing finding beyond the one below.
+
+## Findings
+
+- Follow-up: `custom_components/heatpump_optimizer/thermal_model.py` `InstallCapability.cop_measured`, the conjunct `and self.cop_electric()`, is unpinned. Deleting it passes the whole `tests/features.py` (ALL 4915) and leaves `tests/entities.py` at its three environment failures (`ev/whole_R-electric.txt`, `ev/whole_R-electric_entities.txt`). On the sample paths it is equivalent: a heat-counter span with no electric delta refuses `unaligned_meters` in `heat_energy.close_span`, and a thermal power with no power entity refuses `no_power` first. It is reachable at one point, the score call `machine_score(..., cop_measured(False))`. On an install with a heat counter and no electric counter (the config flow allows that), the mutant would publish `cop_watch_learning` ("not enough data yet") forever instead of `cop_unmeasurable`, which is the user-visible symptom this hotfix removes. The grade is None either way, and the production line is correct, so this does not block a hotfix. What is owed: one fresh-install check that a heat counter with no electric counter grades `cop_unmeasurable`. Carry: R10-HOTFIX-COP-UNMEASURED
+
+## Friction
+
+- The brief asks for handoff-wip pushes at milestones, but the dispatch prompt says to push nothing but the probe ref. I followed the dispatch prompt and pushed no handoff-wip. Carry: dismissed: dispatch instruction conflict, resolved by the outer prompt
+- `tools/audit/seat/features_block.py` needs a hand-built `--prelude` for this section (32 statements). The body states the count but not the statements. I derived them with my own AST script (`ev/mkprelude.py`). Carry: dismissed: seat convenience, no defect in this PR
