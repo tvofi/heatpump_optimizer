@@ -16,8 +16,8 @@ the network, and the roster reaches a tool as a parsed dict.
 
 Roster shape (dev/audit/rounds/round9/fixplan/gen.py writes it):
   {"groups": [{"group", "lane", "issues", "fixes", "wave", "after", "brief",
-               "fixerModel", "reviewerModel", "owner_gate", "resume": {...},
-               ...}], "repo", "session", ...}
+               "fixerModel", "reviewerModel", "owner_gate", "source",
+               "resume": {...}, ...}], "repo", "session", ...}
 """
 
 from __future__ import annotations
@@ -561,6 +561,21 @@ def needs_design(group: dict) -> bool:
     record is exempt at the dispatch (`cloud_dispatch --design-exempt`), where the
     orchestrator states the reason; the roster carries no such marker."""
     return group.get("size") in DESIGN_SIZES
+
+
+#: A group's `source`: where its work came from. Only one value is a reading
+#: anyone acts on: OUTSIDE, an accepted submission by a user outside the
+#: project (`outside_intake.py` lists them; tvofi 2026-11-07: those go first
+#: in every queue). Absent means the programme's own audit or owner work.
+OUTSIDE = "outside"
+SOURCES = (OUTSIDE,)
+
+
+def is_outside(group: dict) -> bool:
+    """Whether the group answers an outside request: its `source` is OUTSIDE.
+    Read from the roster alone (`roster_edit.py set-source` writes it), never
+    from a list of names or a GitHub read, so a replan stays offline."""
+    return group.get("source") == OUTSIDE
 
 
 def norm_group(s: str) -> str:

@@ -245,9 +245,7 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
         rows.append({
             "g": g, "lane": pg["lane"], "st": st, "label": label, "pr": pr,
             # The tier is the plan's computed dispatch priority (replan.py's
-            # dispatch_tier: 1 main, 2 critical path and hotfixes, 3 production
-            # and instruments saving 12 h or more, 4 other instruments); a done
-            # group has none. Why it is that tier and why it starts when it
+            # dispatch_tier, named by replan.TIER_LEGEND); a done group has none. Why it is that tier and why it starts when it
             # does are the plan's own words (`tier_reason`, `start_reason`).
             "tier": pg.get("tier"),
             "why": "; ".join(x for x in (
@@ -546,6 +544,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
         "issues_chart": issues_section(roster, plan, snap),
         "end": _t(summ["closure"]).strftime("%a %d %b %H:%M"),
         "svg": svg, "crit": crit or "—", "trs": trs, "stamps": stamps, "waves": waves,
+        "tier_legend": e(", ".join(f"{t} {w}" for t, w in sorted(replan.TIER_LEGEND.items()))),
         "slots": str(slots), "every": str(every),
         "slots_note": e(
             f"Read from plan.json: {summ['groups_open']} open groups, {summ['batches']} "
@@ -659,7 +658,7 @@ def _self_test() -> int:
             fails.append(f"{name} (got: {str(got)[:300]})")
 
     def grp(gid, lane, after=(), stage="not-started", branch="", commit=None,
-            issues=(), fixes=()):
+            issues=(), fixes=(), **kw):
         resume = {"stage": stage}
         if branch:
             resume["branch"] = branch
@@ -667,7 +666,7 @@ def _self_test() -> int:
             resume["commit"] = commit
         return {"group": gid, "lane": lane, "kind": "defect", "size": "S",
                 "after": list(after), "issues": list(issues), "fixes": list(fixes),
-                "brief": f"tvofi, 2026-01-01: Does {gid}. More.", "resume": resume}
+                "brief": f"tvofi, 2026-01-01: Does {gid}. More.", "resume": resume, **kw}
 
     roster = {"groups": [
         grp("R9-DONE-SHA", "CO", stage="done", commit="aaaaaaa1", issues=(11,), fixes=(11,)),
@@ -676,7 +675,8 @@ def _self_test() -> int:
         grp("R9-LIVE", "LE", stage="in-progress", branch="fix/r9-live-g", issues=(12,)),
         grp("R9-PART", "UX"),
         grp("R9-BLOCK", "UX", after=("R9-LIVE",)),
-        grp("R9-READY", "IN", after=("R9-DONE-SHA",), issues=(13,), fixes=(13,)),
+        grp("R9-READY", "IN", after=("R9-DONE-SHA",), issues=(13,), fixes=(13,),
+            source=roster_lib.OUTSIDE),
         dict(grp("R9-HELD", "IN", stage="absorbed"), absorbed_into="R9-DONE-SHA"),
     ]}
     snap = {
@@ -875,8 +875,16 @@ def _self_test() -> int:
                   and '<td class="tier">—</td>' in page
                   and '<th title="dispatch tier' in page,
                   {g: rows[g]["tier"] for g in rows})
-            check("the critical path is tier 2 and production tier 3 (the owner's order)",
-                  all(rows[g]["tier"] == replan.TIER_URGENT for g in plan["critical_path"])
+            check("an outside request off the critical path is the top tier, and its "
+                  "hover and the legend say so",
+                  "R9-READY" not in plan["critical_path"]
+                  and rows["R9-READY"]["tier"] == replan.TIER_TOP
+                  and "outside request" in rows["R9-READY"]["why"]
+                  and all(f"{t} {html.escape(w)}" in page
+                          for t, w in replan.TIER_LEGEND.items()),
+                  (rows["R9-READY"], plan["critical_path"]))
+            check("the critical path is the top tier and production tier 4 (the owner's order)",
+                  all(rows[g]["tier"] == replan.TIER_TOP for g in plan["critical_path"])
                   and any(rows[g]["tier"] == replan.TIER_PRODUCTION_WORK
                           for g in rows if scheduled(g)),
                   {g: rows[g]["tier"] for g in rows})
@@ -1137,10 +1145,10 @@ td.d{min-width:260px;max-width:440px}
     <label class="chk"><input type="checkbox" id="hide-done"> Hide merged</label>
   </div>
   <div class="scroll"><table>
-    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: 1 main, 2 critical path and hotfixes, 3 production and instruments saving 12 h or more, 4 other instruments by savings">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
+    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: {{tier_legend}}">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
     <tbody id="rows">{{trs}}</tbody>
   </table></div>
-  <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Tier is the plan's dispatch priority: 0 the computed critical path, 1 production, 2 non-production ranked by its <code>savings</code> (— for a merged group). Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
+  <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Tier is the plan's dispatch priority: {{tier_legend}} (— for a merged group); an ETA's hover names the roster field that decided it. Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
 </section>
 
 <section>
