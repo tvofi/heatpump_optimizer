@@ -55,12 +55,16 @@ class Restorer:
     ``write(hass, entity_id, value)`` sends ``value`` in the entity's own
     unit. ``neutral`` is the fixed restore value; ``None`` restores the
     baseline ``baseline_of(hass, entity_id)`` returned at the first arm.
+    ``restored(entry, value)``, when given, is told each restore write that
+    succeeded, so the consumer's own write record names what the entity was
+    last told; the restore never edits that record itself.
     """
 
     entity_id: str
     write: Callable[[HomeAssistant, str, float], Awaitable[Any]]
     neutral: float | None = None
     baseline_of: Callable[[HomeAssistant, str], float | None] | None = None
+    restored: Callable[[Any, float], None] | None = None
 
 
 Factory = Callable[[Any], "Restorer | None"]
@@ -166,6 +170,8 @@ async def async_restore(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry
                      "Restore of %s to %s on %s failed: %s", restorer.entity_id, value, reason, err)
             continue
         log_held(entry, f"off_restore_{key}", False)
+        if restorer.restored is not None:
+            restorer.restored(entry, value)
         held.armed.pop(key)
         sent += 1
         _LOGGER.info("Restored %s to %s (%s)", restorer.entity_id, value, reason)
