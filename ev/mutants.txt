@@ -1,0 +1,14 @@
+selftest_scope.py static at 26e05a4681d1d1e525f32cbdecfd2fb9e1ec50ca, each mutant applied to governance.yml / selftest_closures.json and restored:
+M0-clean rc=0 106 gated step(s), 0 problem(s)
+M1 drop id plan-public rc=1 2 problem(s) UNGATED plan page stager
+M2 drop if plan-public rc=1 2 problem(s) UNGATED plan page stager
+M3 drop if outside-intake rc=1 2 problem(s) UNGATED outside intake
+M3b drop id outside-intake rc=1 2 problem(s) UNGATED outside intake
+M4 hooks-setup if reverted to ${{ !cancelled() }} rc=1 2 problem(s) UNGATED hook installer
+M4b drop id hooks-setup rc=1 2 problem(s) UNGATED hook installer
+M5 drop table entry plan-public rc=1 1 problem(s) STALE missing ['plan-public']
+M6 run_sha corrupt outside-intake rc=1 1 problem(s) STALE run text changed ['outside-intake']
+M6 run_sha corrupt hooks-setup rc=1 1 problem(s) STALE run text changed ['hooks-setup']
+NULL comment-only edit to governance.yml: 106 gated step(s), 0 problem(s)
+Before/after: c8673442c static -> 103 gated, 3 problem(s) (three UNGATED); head -> 106 gated, 0 problem(s)
+Re-record (record --step plan-public --step outside-intake --step hooks-setup, rc 0) vs committed table: files 8/9/105, probes 4/3/0, dirs 3/2/7, index/objects False, git 0 -- identical sets, run_sha equal
