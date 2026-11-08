@@ -37,7 +37,7 @@ none
 
 ## Forward-carry
 
-Splitting hotfix from outside inside the gate lease needs PRIORITY_MAX above 2 in tests/gate_lock.py (a different seam); not done here, hotfix and outside share band 2.
+Splitting hotfix from outside inside the gate lease needs PRIORITY_MAX above 2 in tests/gate_lock.py (a different seam); not done here, hotfix and outside share band 2. Carry: R10-CI-PRIORITY-PAUSE
 
 ## Friction
 
