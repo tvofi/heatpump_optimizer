@@ -1512,8 +1512,12 @@ GH
     && [ "$(git -C "$t/rmw" rev-parse HEAD^2)" = "$(git -C "$t/rmm" rev-parse origin/main)" ]
   ck "remerge_main: a fetch failing once with git's 502 is fetched again, and the clean merge is kept" $?
   printf '%s\n' "fatal: couldn't find remote ref rc" > "$t/rmgitfail"
-  rmrun - rc; grep -qF "MERGE CONFLICT 7" "$t/out" && [ ! -s "$t/rmgitfail" ] && grep -qF "couldn't find remote ref" "$t/out"
-  ck "null control: a fetch git rejected is not fetched again (a second fetch would have succeeded)" $?
+  rmrun - rc; ! grep -qF "MERGE CONFLICT" "$t/out" && grep -qF "REMERGE FAILED 7 at fetch" "$t/out" && [ ! -s "$t/rmgitfail" ] \
+    && grep -qF "couldn't find remote ref" "$t/out"
+  ck "null control: a fetch git rejected is not fetched again (a second fetch would have succeeded), and is named REMERGE FAILED at fetch, never MERGE CONFLICT (carry f7d2bf7c)" $?
+  printf '%s\n' "fatal: couldn't find remote ref rc" > "$t/rmgitfail"
+  rmrun remergeconflict rc; grep -qF "MERGE CONFLICT 7" "$t/out"
+  ck "  mutant mut:remergeconflict (its line deleted): a rejected fetch is misreported as MERGE CONFLICT" $?
   : > "$t/rmgitfail"
   # The push's FAIL lines and prepr's `full log:` line reach the train's Stop message, and a push that
   # printed no PUSHED keeps its log (carry 16): the old grep kept only RECARRY|REFUSE|PUSHED and the trap
