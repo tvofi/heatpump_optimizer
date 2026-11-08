@@ -354,6 +354,46 @@ def open_groups(roster: dict) -> dict:
     return {k: g for k, g in groups_of(roster).items() if is_open(g)}
 
 
+#: The group that cuts the round's closing stamp; a group after it is post-closure.
+CLOSE_STAMP_MARK = "STAMP-ROUND-MAJOR"
+POST_CLOSE_STEP_RE = re.compile(r"after the .*\b(stamp|closeout)\b", re.I)
+#: A disposition that ends a group's claim on the round: a ruling closed it.
+#: `deferred` and `carries-open` still owe work and are not in it.
+RULED_STAGES = ("refused", "refuted")
+
+
+def post_closure_groups(G: dict, open_: set) -> set:
+    """Open groups that run after the round's closing stamp: an owner-step
+    whose next step is "after the ... stamp", a group whose `after` names the
+    closing-stamp group, and every group after one of those. The one owner of
+    the rule: the planner and the closeout instrument both read it."""
+    post = {n for n in open_
+            if (G[n].get("kind") == "owner-step"
+                and POST_CLOSE_STEP_RE.search(str((G[n].get("resume") or {}).get("next_step") or "")))
+            or any(CLOSE_STAMP_MARK in a for a in G[n].get("after") or [])}
+    grew = True
+    while grew:
+        grew = False
+        for n in open_ - post:
+            if any(a in post for a in G[n].get("after") or []):
+                post.add(n)
+                grew = True
+    return post
+
+
+def closeout_exempt(roster: dict) -> tuple:
+    """(groups, issues) the round's closeout run does not wait for: the open
+    post-closure groups and the issues wired to them, and every group whose
+    stage is a ruled disposition (`RULED_STAGES`) unless its `resume.host`
+    names a group still open. The roster keeps a ruled group open by design."""
+    G, open_ = groups_of(roster), set(open_groups(roster))
+    post = post_closure_groups(G, open_)
+    ruled = {n for n in open_
+             if (G[n].get("resume") or {}).get("stage") in RULED_STAGES
+             and (G[n]["resume"].get("host") not in open_)}
+    return post | ruled, {i for n in post for i in G[n].get("issues") or []}
+
+
 def run_refusing(tool: str, main, argv=None) -> int:
     """`main(argv)`, a missing roster printed as the one `<tool>: REFUSED ...`
     line and exit 2, never a traceback: the shared refusal of every reader
