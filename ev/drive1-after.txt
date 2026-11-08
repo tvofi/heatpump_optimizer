@@ -1,0 +1,5 @@
+tools/policy/fixtures/policy-rot/prepr/unnamed-red.md
+  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `tests / typing` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and 
+  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `tests / fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector
+  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `gate` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standi
+PR-BODY: 3 error(s) in tools/policy/fixtures/policy-rot/prepr/unnamed-red.md

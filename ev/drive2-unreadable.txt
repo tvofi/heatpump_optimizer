@@ -1,0 +1,8 @@
+  skip    required-set: REFUSE proof: could not read main-protect-checks's required contexts; no proof is judged against a guessed list -- every red is owed an 
+tools/policy/fixtures/policy-rot/prepr/unnamed-red.md
+  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `tests / typing` is red and `## Red checks` does not name it. Name the failure 
+  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `tests / fast (3.14)` is red and `## Red checks` does not name it. Name the fai
+  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `gate` is red and `## Red checks` does not name it. Name the failure and answer
+  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `tests / nightly-status` is red and `## Red checks` does not name it. It grades
+  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `docs / links` is red and `## Red checks` does not name it. Name the failure an
+PR-BODY: 5 error(s) in tools/policy/fixtures/policy-rot/prepr/unnamed-red.md
