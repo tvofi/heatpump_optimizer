@@ -1,3 +1,122 @@
+## v7.1.6
+
+**Patch stamp: 27 merges since v7.1.5.** The user-visible changes are a live "Why now" explanation on the card, a saving that says when it includes wood heat, a buffer tank that no longer starts every solve from a fixed 40 °C, and inputs that come back as soon as their entity reports again. The rest of the window is round-10 engineering and audit machinery.
+
+### #3274 Why now widget (R10-WHY-NOW-WIDGET)
+
+The solver now publishes five signed drivers for each step: price rank, comfort floor, mold guard, away and forecast. Each is a percent of that step's push. The space-plan sensor publishes the current step's drivers as `why_now`, and the card shows them after the headline, in English and Swedish. They are computed in a new pure module, `slot_drivers.py`.
+
+### #3244 The monthly saving says it includes wood heat (R10-HOTFIX-SAV-ESTIMATE part 2)
+
+Wherever wood is configured, the saving now states that it includes wood's heat and excludes the cost of firewood (owner ruling, 2026-11-04). The receipt event, the `MonthlySavingsSensor` attribute `saving_includes_wood`, the card's receipt and savings table, and the notification blueprint all read one definition. The CodeQL autoescape alert on its render harness is fixed at the root.
+
+### #3268 Buffer tank seeded without a probe (R10-COMBI-TANK PR 0)
+
+Without a buffer probe, the buffer temperature never advanced. Every solve started from the 40 °C default or a stale value. It is now seeded from the previous plan's trajectory, the way the DHW tank already was. The rise inputs used for external-heat detection read only measured values, so a planned rise is no longer counted as evidence of external heat.
+
+### #3300 A missing input is re-read when its entity returns (R10-INPUT-REAPPEAR)
+
+This adopts the outside pull request #3292 from @Bankaifan. When the cycle finds a configured input missing or unavailable, it is now re-read as soon as its entity reports a value, instead of one optimisation interval later.
+
+### #3273 One owner for each clone-class fact (R10-CLONE-2238)
+
+The remaining #2238 clone-class instances (one fact decided twice) now each have a single owner in the module that held both copies, and every other copy calls it. Examples are the planned space/DHW split, the fabric-loss residual refusal and the indoor-sensor trajectory.
+
+### #3307 Session-start hook self-test pins its clock (R10-HOTFIX-MAIN-IST-RED)
+
+Main's `instrument-self-tests` job went red when git's relative clock ticked between two reports that the self-test compares byte for byte. The self-test now pins `GIT_TEST_DATE_NOW`. The hook's normal output is unchanged.
+
+### #3295 Root-cause record for the ci-red friction key (R10-FRICTION-CI-RED)
+
+The record behind the recurring-friction key `ci-red` (#3156). It names each of the 18 entries' PR and red check, and finds that one verdict word covers four mechanisms. It also re-files #3219 from group A to group D.
+
+### #3264 Plan-model correctness and the Gantt-drift instrument (R10-FLOW-TOOLKIT-MODEL)
+
+`tools/plan/replan.py` now prices only pending carries as open work. The Gantt-drift instrument is now tracked in the tree.
+
+### #3296 The stamp's record flush dispatches only the beat (R10-FLY-STAMP-FLUSH-COST)
+
+`nightly.yml` gains a `lanes` input (all or beat), and the stamp's record flush posts `lanes=beat`, so it no longer runs every nightly lane. Rules 4 and 5 now read one window.
+
+### #3302 Each PR's own delivery row no longer counts as non-product (R10-CI-OWN-DELIVERY-ROW)
+
+CI-throughput lever 2. A pull request's own delivery row no longer stops the machinery lanes from standing down on an all-product change. A strace recording measures which lanes actually read a row.
+
+### #3290 The merge train waits for a deferring gate (R10-HOTFIX-TRAIN-DEFER-WAIT)
+
+CI-throughput lever 1. The train no longer treats an edit run's deferring red gate as final while the head's code run is still running.
+
+### #3287 A deferring gate publishes at once and the sweep settles it (R10-HOTFIX-GATE-BUSY-DEFER, part 3)
+
+A deferring gate no longer holds a runner. `gate-sweep.yml` re-runs it once the deciding run completes. A new `settle` branch covers gates that deferred to each other and deciders that ended red or cancelled.
+
+### #3278 Root cause of the busy gate deferral (R10-RCA-GATE-BUSY-DEFER-2)
+
+The root-cause record beside the gate-deferral fix. Re-runs replayed a pre-fix `gate.py` restored from the payload's base SHA. The record also reclassifies #3263's edit/code-run red as a defect, the one #3276 fixed.
+
+### #3277 Whole-run cancels at live heads (R10-RCA-LIVEHEAD-CANCEL)
+
+The root-cause record, detector and bug class for whole-run cancels at live heads. They were operator cancels under the owner credential, not CI machinery.
+
+### #3285 Root cause of the record flush dispatching all of Nightly (R10-RCA-FLUSH-DISPATCH)
+
+The record, harness and class `N-dispatch-overreach`. The flush treated a job as the unit of dispatch, but the API dispatches a whole workflow.
+
+### #3280 The record flush honours a train hold (R10-FLY-STAMP-FLUSH-HOLD)
+
+`stamp.py` no longer spends its flush dispatches under a live `train-hold`. `merge_train.py` keeps the hold DELETE from being skipped by a second signal during the unwind.
+
+### #3275 Instrument self-tests run detached (R10-HOTFIX-SELFTEST-TIMEOUT)
+
+The five slow self-tests in `instrument-self-tests` now start detached at the beginning of the job, so the job takes as long as the longer of the two parts instead of their sum. The 30-minute timeout is not raised.
+
+### #3269 Nightly pins per night (R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT)
+
+Mutation-ledger runs are now seeded by run id, so two runs on one date no longer draw the same slice. Two more changes, each tied to a measured line of the 06 Nov breakdown, raise the number of pins per night.
+
+### #3265 Plan page lanes (R10-HOTFIX-PLAN-LANES)
+
+`roster_lane` now places a group by the files it owns, so instrument, CI and record groups are no longer drawn in the core-model lane.
+
+### #3267 Sweep template sync (R10-SWEEP-TEMPLATE-SYNC)
+
+The 11-06 sweep changes made outside the tree are folded into the tracked sweep instruments, and the template declares the overlay keys its rows read.
+
+### #3252 Relay residue (R10-RELAY-SWEEP)
+
+The residue in `cloud_relay.sh` is fixed on one owning seam (carries 0-9).
+
+### #3293 Handoff path, part 2 (R10-HANDOFF-PATH)
+
+`pr_args.sh` resolves its own directory once, when it is sourced. `open_driver.py` gains a stem escape, a guarded log read and a STUCK line after three tries.
+
+### #3272 Triage batch 128
+
+P399, cloud fires without sources, is accepted, narrowed to R10-POLICY-ROLE-PACK.
+
+### #3286, #3298, #3306, #3309 Delivery rows (autofix)
+
+Record-class merges that write the delivery rows: #3286 for #3244 and #3277; #3298 for #3252, #3265, #3272, #3273, #3278, #3280, #3285 and #3287; #3306 for #3267, #3268, #3269, #3275 and #3293; #3309 for #3264, #3274, #3290, #3295, #3296, #3300, #3302 and #3307.
+
+
+## v7.1.5
+
+**Patch stamp: 23 merges since v7.1.4.** One user-visible fix: the optimiser no longer hangs when its worker process goes silent.
+
+Stamped with --allow-red before main's gate completed, on the owner's standing order to stamp without waiting for main CI.
+
+User-visible:
+
+- #3232 (outside contribution from @Bankaifan, adopted from #3226): the coordinator's process worker reply wait is now bounded, and the stop path no longer holds the worker lock indefinitely, so a silent worker cannot hang optimisation or Home Assistant shutdown.
+
+Engineering and audit programme (round 10):
+
+- Audited fix groups and instruments (15): #3250 (roster-reader predicates, carries 1-4), #3251 (ref privacy for cloud seats), #3259 (gate stale-jobs carries, part 2), #3260 (body-contract carries, part 2), #3249 (dispatch at handoff), #3241 (carry residue), #3276 (an edit gate no longer defers to a code run it cannot see conclude), #3263 (nightly-status hotfix), #3234 (replay cost budget, round 2), #3242 (train merge loop), #3246 (one concurrent gate run decides at a head), #3248 (obligations ledger residue), #3253 (roster write path residue), #3255 (friction records), #3256 (policy role pack).
+- Brief carries (2): #3247 (D0 brief: stop-tolerance refusal and DHW cert-cell gap), #3261 (D1 brief: the process-worker hang root cause).
+- Roster and record merges (5): #3258 (round-10 roster and triage rulings), #3270 (delivery rows, autofix), #3271 (triage batch 127, P393 to P398), #3279 (delivery rows for #3232, #3246, #3255, #3263, autofix), #3281 (delivery rows for #3241, #3249, #3250, #3251, #3259, #3261, #3271, #3276, autofix).
+
+- Delivery record: the rows the stamp flushed before tagging (#3282).
+
 ## v7.1.4
 
 **Patch stamp: 10 merges since v7.1.3.** No user-visible change. The window is release and audit machinery.

@@ -2828,6 +2828,26 @@ check("the hand-scheduled reason has a label",
     /Covers spot energy, grid energy fee, capacity charge\. The savings figure compares spot cost only\./.test(rcpPage));
   check("UX-6: the saving against a thermostat is the month's own row",
     /Saved 148\.00 SEK \(19 %\) against a plain thermostat/.test(rcpPage));
+  // R10-SAV-WOOD-HEAT (owner ruling, 2026-11-04): the reference has no wood, so
+  // on a house with wood configured the receipt's saving states, beside the
+  // figure, that it includes wood's heat and not firewood's cost, in en and sv.
+  // The null control is the page above: no wood configured, no disclaimer.
+  const rcpWood = (lang) => {
+    const st = JSON.parse(JSON.stringify(rcpStates));
+    st[DEFAULT_SPACE].attributes.wood_fuel = { ready: true, cheaper: false, show_whatif: true, slots: [] };
+    const c = build(st);
+    c.hass = { states: st, language: lang };
+    c._onCardClick({});
+    c.dialog.page = "savings";
+    c._render();
+    return collect(c.shadowRoot).join("\n");
+  };
+  const rcpWoodNote = (page) => (page.match(/receipt-wood-note">([^<]*)/) || [])[1] || "";
+  check("the receipt's saving on a wood house says it includes wood's heat, not firewood's cost (en, sv); none without wood",
+    rcpWoodNote(rcpWood("en")) === "The saving includes heat from wood. Firewood's cost is not counted." &&
+    rcpWoodNote(rcpWood("sv-SE")) === "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte." &&
+    !/receipt-wood-note/.test(rcpPage),
+    `${rcpWoodNote(rcpWood("en"))} | ${rcpWoodNote(rcpWood("sv-SE"))}`);
   check("UX-6: the money goes by reason, largest first",
     /Where the money went/.test(rcpPage) &&
     rcpPage.indexOf("Cheapest hours") < rcpPage.indexOf("Keeping the house at target"));
@@ -13279,6 +13299,75 @@ check("without an indoor reading the corner now label is absent",
     `${JSON.stringify(asked)} -> ${viaEntry} | ${viaEntity}`);
   check("openHaLink falls back to the whole integration when the registry refuses",
     fallback.length === 1 && fallback[0] === haLink("options", null), String(fallback));
+}
+
+// --- R10-WHY-NOW-WIDGET: the "Why now" block ---------------------------------
+// Rendered from the space-plan sensor's `why_now` attribute alone, after the
+// headline narrative: one row per driver with its mark and signed share, one
+// line when every driver is neutral, the no-data line when it is absent. The
+// block and every row carry the metric in plain words as their hover.
+{
+  const stats = {
+    "sensor.heat_pump_optimizer_optimization_score": {
+      state: "82", attributes: { envelope: 90, machine: 75 } },
+    "sensor.heat_pump_optimizer_plan_narrative": {
+      state: "cheap_price", attributes: { lines: ["Most heating is placed in the cheapest hours."], language: "en" } },
+  };
+  const withWhy = (why, lang) => {
+    const st = { ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), ...stats };
+    if (why !== undefined) st[DEFAULT_SPACE] = { ...st[DEFAULT_SPACE], attributes: { ...st[DEFAULT_SPACE].attributes, why_now: why } };
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: st, ...(lang ? { language: lang } : {}) };
+    if (c.connectedCallback) c.connectedCallback();
+    c.hass = { states: st, ...(lang ? { language: lang } : {}) };
+    const dump = collect(c.shadowRoot).join("\n");
+    return (dump.match(/<div class="score-breakdown why-now"[\s\S]*?<\/div><\/div>\s*<\/div>/) || dump.match(/<div class="score-breakdown why-now"[\s\S]{0,4000}/) || [""])[0];
+  };
+  const why = { t: "2026-01-15T12:00:00+00:00", drivers: [
+    { code: "price_rank", direction: "run", weight: 57.1 },
+    { code: "away", direction: "idle", weight: -42.9 },
+    { code: "mold_guard", direction: "neutral", weight: 0.0 },
+    { code: "not_a_code", direction: "run", weight: 99 },
+  ] };
+  const fed = withWhy(why);
+  const EN = fn("STRINGS.en");
+  check("why-now: a row per known driver, with its mark and signed share, in the published order",
+    /data-part="price_rank"[\s\S]*sb-val">↑ \+57%<[\s\S]*data-part="away"[\s\S]*sb-val">↓ −43%<[\s\S]*data-part="mold_guard"[\s\S]*sb-na">· 0%</.test(fed)
+    && !/not_a_code/.test(fed), fed);
+  check("why-now: the block and each row carry the plain-words metric as their hover",
+    fed.includes(`title="${fn("esc")(EN["whynow.metric"])}"`)
+    && fed.includes(fn("esc")(`Price rank: pushes toward running, ↑ +57%\n${EN["whynow.explain_price_rank"]}\n${EN["whynow.metric"]}`)), fed.slice(0, 600));
+  check("why-now: each row names its direction in words: toward running, toward idle, no effect now",
+    /data-part="price_rank"[\s\S]*?sb-text">pushes toward running</.test(fed)
+    && /data-part="away"[\s\S]*?sb-text">pushes toward idle</.test(fed)
+    && /data-part="mold_guard"[\s\S]*?sb-text">no effect now</.test(fed), fed);
+  const absent = withWhy(undefined);
+  check("why-now: no why_now attribute renders the no-data line and no rows",
+    absent.includes(`<div class="sb-text">${EN["whynow.no_data"]}</div>`) && !/sb-row/.test(absent), absent);
+  const neutral = withWhy({ t: why.t, drivers: [
+    { code: "price_rank", direction: "neutral", weight: 0 }, { code: "forecast", direction: "neutral", weight: 0 }] });
+  check("why-now: every driver neutral renders the one all-neutral line",
+    neutral.includes(`<div class="sb-text">${EN["whynow.all_neutral"]}</div>`) && !/sb-row/.test(neutral), neutral);
+  const sv = withWhy(why, "sv-SE");
+  const SV = fn("STRINGS.sv");
+  check("why-now: Swedish words, hover and percent spacing",
+    sv.includes(SV["whynow.title"]) && sv.includes("↑ +57 %") && sv.includes(fn("esc")(SV["whynow.metric"]))
+    && sv.includes("Prisrang") && sv.includes("Bortaläge") && sv.includes("driver mot drift") && sv.includes("driver mot vila"), sv.slice(0, 600));
+  build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)); // leave the module back in English
+  const whyKeys = (lang) => Object.keys(fn(`STRINGS.${lang}`)).filter((k) => k.startsWith("whynow.")).sort();
+  check("why-now: every en string has its sv twin, and every driver code has a label and an explanation",
+    JSON.stringify(whyKeys("en")) === JSON.stringify(whyKeys("sv"))
+    && ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].every((c) => EN[`whynow.driver_${c}`] && EN[`whynow.explain_${c}`])
+    // The roster brief's wording, verbatim (R10-WHY-NOW-WIDGET carry 1).
+    && ["Price rank", "Comfort floor", "Mold guard", "Away", "Forecast"].join() === ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].map((c) => EN[`whynow.driver_${c}`]).join()
+    && ["Prisrang", "Komfortgolv", "Mögelskydd", "Bortaläge", "Prognos"].join() === ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].map((c) => fn("STRINGS.sv")[`whynow.driver_${c}`]).join()
+    && EN["whynow.metric"].startsWith("The reasons weighing on this hour's plan.") && fn("STRINGS.sv")["whynow.metric"].startsWith("Skälen som väger på den här timmens plan.")
+    // The rows are pushes on the plan, not the decision: the text may not
+    // claim a share decides the hour (fix review of #3274, finding 1).
+    && !/decides the hour/.test(EN["whynow.metric"]) && EN["whynow.metric"].includes("can still do the opposite")
+    && fn("STRINGS.sv")["whynow.metric"].includes("ändå göra tvärtom"),
+    `${whyKeys("en")} | ${whyKeys("sv")}`);
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");

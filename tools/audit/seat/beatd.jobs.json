@@ -83,6 +83,46 @@
       "kind": "periodic"
     },
     {
+      "name": "gantt",
+      "argv": [
+        "python3",
+        "-I",
+        "tools/audit/seat/beat_jobs.py",
+        "gantt",
+        "--state",
+        "$S"
+      ],
+      "cwd": "orch",
+      "interval_s": 1800,
+      "timeout_s": 600,
+      "heartbeat_s": null,
+      "env_pass": [
+        "GH_TOKEN"
+      ],
+      "class": "orch-checkout",
+      "kind": "periodic"
+    },
+    {
+      "name": "verdict-audit",
+      "argv": [
+        "python3",
+        "-I",
+        "tools/audit/seat/beat_jobs.py",
+        "verdict-audit",
+        "--state",
+        "$S"
+      ],
+      "cwd": "orch",
+      "interval_s": 1800,
+      "timeout_s": 600,
+      "heartbeat_s": null,
+      "env_pass": [
+        "GH_TOKEN"
+      ],
+      "class": "orch-checkout",
+      "kind": "periodic"
+    },
+    {
       "name": "pulse",
       "argv": [
         "python3",

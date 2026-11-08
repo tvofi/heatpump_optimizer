@@ -161,6 +161,18 @@ _REF_CHARS = re.compile(r"^[A-Za-z0-9._/-]+$")
 _SLUG_UNSAFE = re.compile(r"[^A-Za-z0-9_]+")
 
 
+#: Homes that name no person: the no-home placeholder (Debian's `nobody`) and
+#: a public account's own, the cloud seat's. A seat on one has no host identity
+#: to hide; `_public_home` is the predicate.
+NO_HOMES = frozenset({"/nonexistent", "/"})
+
+
+def _public_home(home: str) -> bool:
+    h = os.path.realpath(home) if home else ""
+    return any(x.rstrip("/") in NO_HOMES or re.fullmatch(
+        r"/(?:(?:Users|home)/)?" + _PUBLIC, x.rstrip("/")) is not None or x.rstrip("/") == "" for x in (home, h))
+
+
 @dataclass(frozen=True)
 class Identity:
     homes: tuple[str, ...]
@@ -186,6 +198,7 @@ class Identity:
                 homes.add(pw.pw_dir)
             except (ImportError, KeyError):
                 pass
+        homes = {h for h in homes if not _public_home(h)}
         names.update(os.path.basename(h.rstrip("/")) for h in homes)
         import socket
         return Identity.made(homes, names, uid, {socket.gethostname()})
@@ -779,7 +792,7 @@ def self_test() -> int:
        "session" not in (refusal("fix/claude-session-trailer", (), fid) or ""))
     host = Identity.of_host()
     ok("the host identity reads a home and a hostname, and judges no public account",
-       bool(host.homes) and bool(host.hosts) and not set(host.names) & PUBLIC_ACCOUNTS)
+       (bool(host.homes) or _public_home(os.environ.get("HOME", ""))) and bool(host.hosts) and not set(host.names) & PUBLIC_ACCOUNTS)
 
     # --commits: only the commits no remote-tracking ref holds are judged.
     with tempfile.TemporaryDirectory() as td:
@@ -1131,21 +1144,45 @@ def self_test() -> int:
     # R10-FLY-REFPRIV-HOME-SEGMENT: a home is judged as a whole path, never a
     # substring. A cloud seat's HOME is `/root`, so a line citing a
     # `roles/root-cause.md` file read as that home and was refused (#2872).
-    rid = Identity.made({under("root")}, {"root"}, 0)
+    rid = Identity.made({under("srv", "root")}, {"seatuser"}, 0)
     cite = "see dev/governance/roles/" + "root-cause.md"
     ok("a cloud seat's home inside a longer path segment passes",
        leaks(cite, rid) == [] and leaks("x/root/y and a.root/z", rid) == [], str(leaks(cite, rid)))
     ok("and its home as a whole path is still refused, alone, at a start or after a quote",
-       all(leaks(t, rid) == ["home-directory"] for t in (under("root", ".cache", "x"), under("root"),
-                                                       "cd " + under("root") + ".", "'" + under("root", "wt") + "'")),
-       str([leaks(t, rid) for t in (under("root", ".cache", "x"), under("root"))]))
+       all(leaks(t, rid) == ["home-directory"] for t in (under("srv", "root", ".cache", "x"), under("srv", "root"),
+                                                       "cd " + under("srv", "root") + ".", "'" + under("srv", "root", "wt") + "'")),
+       str([leaks(t, rid) for t in (under("srv", "root", ".cache", "x"), under("srv", "root"))]))
     ok("a macOS home is unchanged: case-folded, after `file://`, refused (the null control)",
        leaks("see " + under("users", fake_name.upper(), "x"), fid) == ["home-directory", "account-name"]
        and "home-directory" in leaks("file://" + fake_home + "/x", fid))
     ok("a sibling extending the home's last segment is not that home",
        "home-directory" not in leaks(fake_home + "s/x", fid), str(leaks(fake_home + "s/x", fid)))
     ok("scrub rewrites the cloud home only as a whole path",
-       scrub(cite + " " + under("root", "x"), rid) == cite + " ~/x", scrub(cite + " " + under("root", "x"), rid))
+       scrub(cite + " " + under("srv", "root", "x"), rid) == cite + " ~/x", scrub(cite + " " + under("srv", "root", "x"), rid))
+
+    # R10-REF-PRIVACY-CLOUD: a cloud seat (uid 0, HOME=/root, or the
+    # no-home placeholder under HOME=/nonexistent) has no host identity: its
+    # own paths and the passwd name root are public by construction, so a
+    # roster line citing them is no leak. Driven through Identity.of_host
+    # with the seat's environment, the cloud-seat string as the fixture.
+    from unittest import mock
+    import pwd as _pwd
+    cloud_line = "on a cloud seat, where `$HOME` is `" + under("root") + "`, a nonexistent group (0-based) of root"
+    for home in (under("root"), under("nonexistent")):
+        with mock.patch.dict(os.environ, {"HOME": home, "USER": "root", "LOGNAME": "root"}), \
+             mock.patch.object(os, "getuid", return_value=0), \
+             mock.patch.object(_pwd, "getpwuid", return_value=_pwd.struct_passwd(("root", "x", 0, 0, "", under("root"), "/bin/sh"))):
+            cid = Identity.of_host()
+        ok(f"a uid-0 cloud seat ({home.lstrip('/')}) judges its own paths and names no leak",
+           leaks(cloud_line, cid) == [], f"{cid} {leaks(cloud_line, cid)}")
+    with mock.patch.dict(os.environ, {"HOME": fake_home, "USER": fake_name, "LOGNAME": fake_name}), \
+         mock.patch.object(os, "getuid", return_value=501), \
+         mock.patch.object(_pwd, "getpwuid", return_value=_pwd.struct_passwd((fake_name, "x", 501, 20, "", fake_home, "/bin/sh"))):
+        hid = Identity.of_host()
+    ok("a real host's /Users/<name> path still refuses through of_host (the null control)",
+       leaks("see " + fake_home + "/x and " + fake_name, hid) == ["home-directory", "account-name", "host-path"], str(leaks(fake_home, hid)))
+    ok("a /Users/<name> path refuses on a cloud seat too: _HOST_PATH is not widened",
+       leaks("see " + fake_home + "/x", cid) == ["host-path"], str(leaks(fake_home, cid)))
 
     # body_lines (P76): a verdict body is judged line by line, as its post would judge it.
     vbody = "Fix review: merge x\n\nbus-nonce: n\n" + "\n" * 12 + "- see " + fake_home + "/ev/log\n"

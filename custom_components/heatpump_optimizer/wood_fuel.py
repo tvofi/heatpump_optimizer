@@ -91,6 +91,16 @@ def wood_furnace_on(config: Mapping[str, Any]) -> bool:
     return wood_furnace_inferred(config)
 
 
+def saving_includes_wood(data: Mapping[str, Any]) -> bool:
+    """Whether the payload's metered saving includes wood's heat.
+
+    The reference has no wood, so where wood is configured the saving counts
+    its heat and not firewood's cost (owner ruling, 2026-11-04). Every surface
+    stating that saving reads this one definition.
+    """
+    return bool((data.get("wood_fuel") or {}).get("show_whatif"))
+
+
 def wood_fuel_ready(config: Mapping[str, Any]) -> bool:
     if not wood_furnace_on(config):
         return False
