@@ -55,8 +55,15 @@ hostname):
                   [A-Za-z0-9._/-];
   host-email      (author and committer emails only) a private-use domain
                   (`.local`, `.lan`, `.internal`, ...) or this host's own
-                  name -- git's default identity is <user>@<hostname>. A
-                  public domain passes, so a noreply address does.
+                  name -- git's default identity is <user>@<hostname>.
+  unnumbered-email  (author and committer emails only, P408) an address outside
+                  the attributable grammar: `<digits>+<login>@users.noreply.github.com`
+                  (the seat's 70032254+tvofi included), `[<digits>+]<name>[bot]@users.noreply.github.com`,
+                  `noreply@github.com` as committer only, and an adopted
+                  contributor's own address named by `--adopt-email <addr>`
+                  (an author only). GitHub credits an unnumbered login to
+                  whoever holds it; a placeholder (`t@t`, `seat@users.noreply...`)
+                  credits nobody right. History is not rewritten; only added commits are judged.
 Commit messages, and comment bodies, are judged on ATTRIBUTION's classes too
 (a session link, a session or co-author trailer, the generated-by footer): no
 host's identity, but the owner's ban on a tool's attribution (2026-10-22). The
