@@ -16340,7 +16340,8 @@
     "From handoff/r10-rca-tick-blind, body item 2a35d4b3: NOT REVIEWABLE names deferral-only and real, and the board flags a disabled Gate sweep. Carry: R10-TICK-LEVELS (items 2a35d4b3)",
     "From handoff/r10-rca-tick-blind, body item 42c659b5: OUTSIDE-CHAIN-IDLE walks after-edges for outside-sourced groups. Carry: R10-TICK-LEVELS (items 42c659b5)",
     "From handoff/r10-rca-tick-blind, body item c4fd2112: probe-refused classified by reason and ranked by critical path. Carry: R10-TICK-LEVELS (items c4fd2112)",
-    "From handoff/r10-rca-tick-blind, body item f7f2f31d: unrecorded-merge query fixed; HANDOVER line stops naming state_docs. Carry: R10-TICK-LEVELS (items f7f2f31d)"
+    "From handoff/r10-rca-tick-blind, body item f7f2f31d: unrecorded-merge query fixed; HANDOVER line stops naming state_docs. Carry: R10-TICK-LEVELS (items f7f2f31d)",
+    "From handoff/r10-rca-tick-blind, body item 2acc909a: Repair-discharges-line self-test barrier per flagged line kind. Carry: R10-TICK-LEVELS (items 2acc909a)"
    ],
    "architect_note": "",
    "resume": {
