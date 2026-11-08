@@ -534,6 +534,13 @@ def self_test() -> int:
              "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in lagging}} for i in (lo, hi)]
     check("busy-defer: of two started gates at one head the lower id defers to none, the higher to the lower",
           (busy({**ctx, "run_id": lo}, pair), busy({**ctx, "run_id": hi}, pair)), ([], [lo]))
+    # #3244 at a2582125, attempt 2: three edit gates started 21:46:18-20Z, after the code run's gate
+    # went green (21:45:53Z), and each deferred to the other two under pinned program 294a880d (before
+    # #3246), so none judged. With every caller's listing lagging, the ids still leave one judging.
+    trio = [{**pair[0], "id": i} for i in (42286558101, 42286624031, 42293328283)]
+    check("busy-defer, three gates (#3244): the lowest defers to none, each other only to the gates below it",
+          [busy({**ctx, "run_id": r["id"]}, trio) for r in trio],
+          [[], [trio[0]["id"]], [trio[0]["id"], trio[1]["id"]]])
     honest = [{**r, "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in at_gate}} for r in pair]
     check("busy-defer-2: listed as GitHub lists it (`pr-contract` skipped), neither started gate waits on the other",
           (busy({**ctx, "run_id": lo}, honest), busy({**ctx, "run_id": hi}, honest)), ([], []))
