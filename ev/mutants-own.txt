@@ -1,0 +1,15 @@
+NULL rc=0 SURVIVED
+diff_rx_off rc=1 KILLED
+spec_null_kept rc=1 KILLED
+lives_off rc=1 KILLED
+pinkilled_off rc=1 KILLED
+triaged_off rc=1 KILLED
+token_lookahead_off rc=1 KILLED
+token_lookbehind_off rc=0 SURVIVED
+class_off rc=1 KILLED
+rc1_to_0 rc=1 KILLED
+unreadable_rc0 rc=1 KILLED
+rglob_top rc=1 KILLED
+class_anchor rc=0 SURVIVED
+demo original unlisted: ['setup.py:3']
+demo lookbehind-off mutant unlisted: []

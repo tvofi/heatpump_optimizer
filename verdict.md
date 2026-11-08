@@ -1,0 +1,32 @@
+Fix review: blocked 81741e448f32052efde42f2c0fe2605c8083e19f mutation-vacuous: tools/audit/seat/survivor_list.py:77 left-boundary lookbehind unpinned
+
+bus-nonce: 04922a30660b077b2dd8d6b2097c7642
+
+## Block
+
+- Survivor: `tools/audit/seat/survivor_list.py:77`. I removed the left-boundary lookbehind `(?<![\w./-])` from the listed-test regex, and `survivor_list.py --self-test` still passed: `19 checks, 0 failed`, rc 0 (`ev/mutants-own.txt`, `token_lookbehind_off rc=0 SURVIVED`). The mutant is not equivalent. For a survivor `setup.py:3` and a verdict naming only `tools/setup.py:3`, the original returns `['setup.py:3']` (refused), but the mutant returns `[]` (passes). So a verdict can omit a survivor whose key is a path suffix of another named site (demo in `ev/mutants-own.txt`). The self-test arm "a key is a whole token" pins only the right boundary (`:12` vs `:120`). The PR's `## Unpinned sites` says the predicates are pinned, which is not so for this half of the token rule. Repair: add a self-test arm in which a longer path ending in the key does not list it (for example, verdict `tools/setup.py:3` against survivor `setup.py:3`), and show the mutant killed. This is every survivor my run found at this head. Carry: R10-REVIEW-ENUMERATE
+
+## Findings
+
+- Stale figure: the body's `## Figures` scope line says `python3 tests/closure.py select --files <the three-dot diff's files>` printed `MODE: SCOPED -- 3 script(s) run`. At the authored code head `ed4d90add`, and at this head, the three-dot diff includes `tests/closures.json`, so that command prints `MODE: FULL` (reason: `tests/closures.json changes the gate itself`; `ev/closure-select.txt`). I reproduced `SCOPED -- 3` only at `df7f154da` with closures.json excluded, so the figure predates the closures commit. The repair round should re-take it. Carry: R10-REVIEW-ENUMERATE
+
+## Evidence
+
+- Head reviewed: `81741e448f32052efde42f2c0fe2605c8083e19f` (`ev/HEAD.txt`), from a detached worktree. Merge base `cb5512741638029289deb392b30bc246fa667387`. Every comparison uses the three-dot diff (8 files). `## Head` names this head and accounts for the row commit and the main merge `e2c1f80a9`.
+- CI: `merge_train.py classify 81741e448f32052efde42f2c0fe2605c8083e19f --pr 3341` printed `GREEN 81741e448f32052efde42f2c0fe2605c8083e19f pending: none red: none`, rc 0 (`ev/classify.txt`). The review packet's gate digest is green and lists no concluded red. The body's `## Red checks` (none at handoff) is consistent.
+- Merge with main: `git merge-tree --write-tree origin/main HEAD` rc 0, no conflict (`ev/merge-tree.txt`).
+- PR's own mutation proof, re-run. I deleted the two-line `survivor_list.py check` call in `push_verdict`, and `bus.sh --self-test` went red: `FAIL push-verdict refuses a mutation-vacuous verdict naming one of two survivors, and review/7 does not move` (`ev/bus-selftest-mutant-callremoved.txt`). Restored, and confirmed restored with `cmp`.
+- My own mutant set on `survivor_list.py`, 12 mutants plus NULL. Killed: diff-regex off, spec NULL kept, LIVES off, `--pin-killed` read dropped, triaged not subtracted, right-boundary lookahead off, class gate off, rc 1→0, unreadable rc 2→0, `rglob`→`glob` (nested evidence). Survived: the lookbehind (in the Block), and `class_anchor`, which dropped `^` and the trailing `:` from `CLASS`. I judge `class_anchor` equivalent: `re.match` already anchors at the start, and `git grep` finds no verdict class extending `mutation-vacuous`, so the colon separates nothing real. NULL survived as it should.
+- Null controls re-run at the head: `bash tools/audit/seat/bus.sh --self-test` gave `162 checks, 0 failed` (`ev/bus-selftest-head.txt`), including `ok null control: another blocked class over the same evidence proposes`. The body's 162/1-failed figure is a check that passes here; that check is not in this diff. `survivor_list.py --self-test` gave `19 checks, 0 failed`, matching the body.
+- Workflow: the governance.yml change only adds one step under `instrument-self-tests`, with `set -o pipefail` and a `grep -Eq` on the summary line. It removes or loosens no existing step. `selftest_wiring.py --check`: `125 self-testing, 125 wired, 0 unwired`, `0 index gap(s)`.
+- Policy budgets: `policy_lint.mjs --budgets` puts `fix-review.md` at 133/140 lines and 2449/2451 tokens, matching the body (`ev/policy-budgets.txt`). I read the rule text against the brief: steps 1 and 6 require the full list found at that head with no hunt past it, and keep the judge's void rule. The trims in steps 2, 4, 8, 9, 11 and 13 keep their meaning.
+- Structure: `tests/structure.py` printed `STRUCTURE RATCHET PASSED`, and no `*_budgets.json` is in the diff. Architecture: `archscore/score.py --diff` printed `Architecture score: dS +0.0000 NULL`. `agreement.mjs` printed 0 `UNREGISTERED`, and `rules_sync.mjs --check` was ok.
+- Closure classification: the one new code file, `tools/audit/seat/survivor_list.py`, is added to `tests/closures.json` (inert list). Its page `instruments/survivor_list.py.md` and the INSTRUMENTS.md row match the instrument's behaviour.
+- Delivery row `dev/programme/delivery/3341.md` is in the diff. `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched.
+- Body figure re-taken: `review_strength.py --window last3d=... --by class` printed `mutation-vacuous ... PRs 18 verdicts 24` and `class-open ... PRs 9 verdicts 17`, matching the body. Neither matches the brief's 25/19 and 23/13. This is a live-ref instrument, so I cannot reproduce the brief's figures and they stay unverified (`ev/review-strength.txt`).
+- No finder's harness is named (policy group, no finding). The brief's control (one of two survivors refused, null control for another class) is the bus.sh arm verified above.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` ran plainly at this head (no BASH_ENV workaround) and passed: `ALL 2668 ENTITY CHECKS PASSED`, rc 0 (`ev/entities-head.txt`). The body's `4 of 2666` failures were pre-existing at its older base and are gone at this head. `survivor_list.py` is classified, and entities reports no file that forces FULL.
+
+## Friction
+
+- The brief names `python3 tools/audit/seat/carry_audit.py check <verdict.md>`, but that path does not exist at this head. I ran `tools/audit/carry_audit.py check --body <stub> --comments <verdict as one comment> --pr-group R10-REVIEW-ENUMERATE`, which printed `CARRY-AUDIT: 0 finding item(s)` rc 0. It read no items from this blocked verdict, so its zero proves nothing here. Both items above carry `Carry: R10-REVIEW-ENUMERATE` by hand.
