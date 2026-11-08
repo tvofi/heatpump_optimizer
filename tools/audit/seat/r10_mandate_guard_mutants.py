@@ -51,7 +51,7 @@ PLANTS = {
     "B2": (GATE, "        return score_check(body, score_fn())", "        return ok, why"),
     "B3": (GATE, '_git("worktree", "add", "-q", "--detach", wt, base)',
            '_git("worktree", "add", "-q", "--detach", wt, head)'),
-    "B4": (GATE, "    if want in got:", "    if want[0] in [a for a, _ in got]:"),
+    "B4": (GATE, "    if got and got[-1] == want:", "    if got and got[-1][0] == want[0]:"),
 }
 
 
