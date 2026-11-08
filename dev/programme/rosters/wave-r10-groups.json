@@ -19031,10 +19031,11 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-rca-stamp-flush-cost",
     "note": "owner order 2026-11-07T12:18Z, created by the s12 roster audit; overlap admitted (R10-FRICTION-CI-RED, R10-FRICTION-OTHER-FAMILY): owner order tvofi 2026-11-07T12:18Z: the stamp flush defect owes a root-cause seat",
-    "pr": 3335
+    "pr": 3335,
+    "commit": "8a4974d1522f979f5b1c837df8e3a76b535bf35e"
    },
    "brief": "Root cause owed by owner order (tvofi 2026-11-07T12:18Z: the stamp dispatching a whole Nightly run is a DEFECT, hotfix priority, and owes a root-cause seat beside R10-FLY-STAMP-FLUSH-COST under defect-root-cause.md). stamp.py's record flush dispatches nightly.yml whole to run the one-minute record-autofix beat, and re-dispatches every FLUSH_REDISPATCH_S; on 2026-11-07 the dispatches held tens of runner-hours and were hand-cancelled (re-measure from the Actions history). Owed: the named cause, process state a-d with evidence (why the flush design and its review accepted a whole-workflow dispatch), a cost test with numbers, and a countermeasure or a recorded refusal, as a new RCA document cited from the bugclass register. Runs beside the R10-FLY-STAMP-FLUSH-COST fixer, never inside it; never edits stamp.py or nightly.yml."
   },
