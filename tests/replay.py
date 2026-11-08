@@ -524,7 +524,7 @@ COST_CLASS_BUDGETS: dict[str, dict[str, dict[str, float]]] = {
                                 "ref31": {'cpu_ratio': 3.2877},
                                 "ref38": {'cpu_ratio': 3.4579},
                                 "ref40": {'cpu_ratio': 3.9874},
-                                "ref47": {'cpu_ratio': 3.3424},
+                                "ref47": {'cpu_ratio': 2.7713},
                                 "ref53": {'cpu_ratio': 2.076}},
 }
 #: Every CI draw on record: one row per job, fixture and run (``clean`` or a
