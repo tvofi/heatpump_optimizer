@@ -4757,6 +4757,24 @@
       "doc": [
         "dev/audit/rca/r10-gate-busy-defer-2.md"
       ]
+    },
+    "R10-RCA-STAMP-CLAIM-CONFLICT": {
+      "class": "N-stamp-claim-conflict",
+      "level": "instance-or-process",
+      "subject": "the v7.1.6 stamp (2a3c05644) emptied the claim files and left #3297, #3299 and #3308 refused by the claimnotes different-stamps guard; the same shape followed the v6.7.13, v6.7.17 and v7.1.0 stamps",
+      "trigger": "owner ruling 2026-11-08 (same shape three times)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "owner approval of the claim-files.md sentence and the driver change"
+      ],
+      "process_state": "(a) no step handles a stamp-emptied claim base meeting a branch's added claim; the driver test uses a base with no claim line",
+      "countermeasure": "narrow the blanket stamp guard in merge_claim_decision: when the newer-stamp side carries no claim, decide per scenario; prototype resolves #3299 and #3308 and refuses the controls; about 18 h of seat time per 25 days against 0 s standing cost (estimate)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5317,6 +5335,41 @@
     ],
     "rca": [
       "R10-RCA-FLUSH-DISPATCH"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-stamp-claim-conflict": {
+    "kind": "instrument",
+    "mechanism": "A release stamp empties both claim files and bumps claims-for; a branch forked before it whose base held claim lines and which added a claim is refused by the claimnotes driver's blanket different-stamps guard, so every claim-carrying open branch needs a hand resolution after each claim-deleting stamp.",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "git merge-tree --write-tree origin/main <head> prints MERGE-CLAIM: refused tests/golden/claimed_drift.txt with the different 'claims-for:' stamps text",
+    "detector_idea": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-postreview-merge-red",
+    "mechanism_difference": "N-postreview-merge-red is a merge that reddens a reviewed head; here the merge cannot run at all (refused, the pull request goes DIRTY) and the cause is the driver's stamp guard meeting the stamp's own emptying of the list.",
+    "aliases": [
+      "new: a stamp that empties the claim files leaves open branches unmergeable"
+    ],
+    "non_round_note": "Process defect ruled by the owner on 2026-11-08, not an audit finding, not counted in total. Instances: stamp commits v6.7.13, v6.7.17, v7.1.0 and v7.1.6 (merge commits 8f30964ff, 45c04b7d6, 7790838ea, 68b0735be; #3297, #3299, #3308).",
+    "non_round_instances": [
+      "8f30964ff v6.7.13",
+      "45c04b7d6 v6.7.17",
+      "7790838ea v7.1.0",
+      "68b0735be v7.1.6 (#3297, #3299, #3308)"
+    ],
+    "rca": [
+      "R10-RCA-STAMP-CLAIM-CONFLICT"
     ],
     "rca_planned": [],
     "trigger": {
