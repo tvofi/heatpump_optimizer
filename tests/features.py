@@ -43931,6 +43931,22 @@ _hz_mout = _hz_opt._apportion_by_steady_demand(_hz_msim, _hz_mws, [21.0] * 4)
 _hz_mdem = np.array([_hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0)
                      for t in _hz_mws.outdoor_temps])
 _hz_mr = _hz_mout[:3] / _hz_mdem[:3]
+# A horizon demanding little (under 1 kW summed) still has a shape: three
+# zero-demand steps and one mild one put all the energy on the mild one.
+_hz_lo = 21.0 - (_hz_par.internal_gains + 0.2) / _hz_par.heat_loss_coefficient
+_hz_lws = _HbWSeries(
+    outdoor_temps=np.array([30.0, 30.0, 30.0, _hz_lo]), wind_speeds=np.zeros(4),
+    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+)
+_hz_ldem = [max(0.0, _hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0))
+            for t in _hz_lws.outdoor_temps]
+_hz_lout = _hz_opt._apportion_by_steady_demand(np.array([0.1, 0.2, 0.05, 0.0]), _hz_lws, [21.0] * 4)
+R.check(
+    "behind a valve, a horizon with a small steady demand spreads by it, not by the simulation",
+    0.0 < sum(_hz_ldem) < 1.0 and _hz_ldem[:3] == [0.0, 0.0, 0.0]
+    and np.allclose(_hz_lout, [0.0, 0.0, 0.0, 0.35], atol=1e-12),
+    f"demand {_hz_ldem!r} spread {_hz_lout!r}",
+)
 R.check(
     "precondition: the cold step's plain share of the horizon passes the pump",
     bool(np.all(_hz_mdem > 0.0))
