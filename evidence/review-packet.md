@@ -1,58 +1,22 @@
 # Review packet #3342
-head: 88690628b6feb50266cdcdb175b2a9c293db472a
-base: cb5512741638029289deb392b30bc246fa667387
+head: 04efeb4a8e175392acb0f780252ad177ccaef9ed
+base: daf8b349fd30cc60786eeca333a426b693aa4c5f
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: green
-CodeQL id=128822133723 success
-arch-score / arch-score id=128831628764 success
-arm id=128821925834 skipped
-budget-raise-gate / budget-raise-gate id=128831597666 success
-cancel-superseded id=128831640289 success
-codeql id=128831597454 skipped
-codeql / Analyze (actions) id=128822090387 success
-codeql / Analyze (javascript-typescript) id=128822090280 success
-codeql / Analyze (python) id=128822090311 success
-gate id=128831596485 success
-governance id=128831622795 skipped
-governance / delivery-status id=128822090401 success
-governance / delivery-status-publish id=128822091445 skipped
-governance / env-matrix id=128822090331 success
-governance / instrument-self-tests id=128822090379 success
-governance / policy-docs id=128822090369 success
-governance / record id=128822091892 skipped
-governance / wave-script id=128822090399 success
-hassfest id=128831596601 skipped
-hassfest / hassfest id=128822090235 success
-kernel-points id=128831597275 skipped
-pr-contract id=128831622363 skipped
-pr-contract / pr-contract id=128826311958 success
-prelude id=128831641230 success
-refresh id=128831597316 success
-tests id=128831597393 skipped
-tests / arch-instrument id=128822273191 success
-tests / briefs id=128822090303 success
-tests / browser id=128822273217 success
-tests / ci-ratchet id=128826162697 skipped
-tests / claims-autofix id=128824621093 skipped
-tests / closure-scope id=128822090394 success
-tests / closures id=128822273139 success
-tests / closures-autofix id=128826097896 skipped
-tests / coverage id=128822273269 success
-tests / coverage-ratchet id=128826161541 success
-tests / fast (3.14) id=128822273172 success
-tests / graders-head-copy id=128826161493 success
-tests / lane-proofs id=128826161501 success
-tests / mutation id=128822090314 success
-tests / mutation-autofix id=128822280982 skipped
-tests / mutation-pins id=128822281037 skipped
-tests / nightly-ha id=128822274605 skipped
-tests / nightly-status id=128822090341 success
-tests / replay id=128822274532 skipped
-tests / typing id=128822273097 success
-validate id=128831631102 skipped
-validate / validate-hacs id=128822090285 success
+## Gate digest: pending
+arch-score / arch-score id=128869293838 queued
+arm id=128867675575 skipped
+budget-raise-gate / budget-raise-gate id=128869293864 queued
+cancel-superseded id=128868029424 queued
+codeql id=128869294936 skipped
+governance id=128869294855 skipped
+hassfest id=128869294897 skipped
+kernel-points id=128869295297 skipped
+prelude id=128868030058 queued
+refresh id=128868029255 queued
+tests id=128869295241 skipped
+validate id=128869295194 skipped
 
 ## Refusals
 none
@@ -64,20 +28,24 @@ hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         python3 tools/audit/carry_audit.py roster
-             `tools/audit/carry_audit.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 tools/audit/seat/orchestrator_tick.py --self-test
+ok         PYTHONPATH=tests/hastub python3 tools/audit/seat/orchestrator_tick.py --self-test
              `tools/audit/seat/orchestrator_tick.py` is in the tree at this head
-  ok         python3 tools/audit/seat/roster_sync.py --self-test
-             `tools/audit/seat/roster_sync.py` is in the tree at this head
+  ok         python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test
+             `tools/audit/seat/r10_roster_ops_mutants.py` is in the tree at this head
   ok         python3 tools/audit/seat/roster_edit.py --self-test
              `tools/audit/seat/roster_edit.py` is in the tree at this head
+  ok         python3 tools/audit/seat/roster_sync.py --self-test
+             `tools/audit/seat/roster_sync.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+             `tests/closure.py` is in the tree at this head
+  ok         tests/entities.py
+             `tests/entities.py` is in the tree at this head
   ok         PYTHONPATH=tests/hastub python3 tests/entities.py
              `tests/entities.py` is in the tree at this head
 
-FIGURES: 6 resolved, 0 not verified, 0 refused
+FIGURES: 8 resolved, 0 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -97,7 +65,7 @@ index 000000000..8d2f80e6b
 @@ -0,0 +1 @@
 +- [#3342](https://github.com/tvofi/heatpump_optimizer/pull/3342) — **open**, R10-ROSTER-READ-SWEEP: roster read sweep, part 2 (R10-ROSTER-READ-SWEEP)
 diff --git a/tools/audit/seat/orchestrator_tick.py b/tools/audit/seat/orchestrator_tick.py
-index ececf246d..bd08d47ce 100644
+index ececf246d..5287c02bc 100644
 --- a/tools/audit/seat/orchestrator_tick.py
 +++ b/tools/audit/seat/orchestrator_tick.py
 @@ -2237,6 +2237,7 @@ class Tick:
@@ -171,7 +139,7 @@ index ececf246d..bd08d47ce 100644
          t = Tick("o/r", str(kw.pop("checkout", ROOT)), queue=queue,
                   train_log=train_log, workers_file=workers, roster_file=roster,
                   gh=gh, git=git, proc=procs or (lambda pattern: []),
-@@ -2841,6 +2891,29 @@ def self_test() -> int:
+@@ -2841,6 +2891,63 @@ def self_test() -> int:
               any("1 group(s) blocked on owner" in x["text"] for x in tg_own.findings)),
          ])
          total, failed = total + a, failed + f
@@ -198,22 +166,70 @@ index ececf246d..bd08d47ce 100644
 +             not any("routing invariants" in x["text"] for x in tri0.findings)),
 +        ])
 +        total, failed = total + a, failed + f
++
++        def ri_tick(carry, gh_extra=None):
++            t_ = tick(queue=str(q16), roster=tg_roster_path, gh_extra=gh_extra or [], carry=carry)
++            try:
++                t_.replan()
++            except OSError:  # an escaped tool error is a missing line, read as a FAIL, not a crash
++                pass
++            return t_
++
++        def ri_unreadable(t_):
++            return (any("UNREADABLE: roster invariants" in x["text"] for x in t_.findings)
++                    and not any("routing invariants broken" in x["text"] for x in t_.findings))
++
++        def ri_raise(argv):
++            raise OSError("carry_audit.py: cannot exec")
++
++        ri_bad_calls: list = []
++        t_os = ri_tick(ri_raise)
++        ri_tick(lambda argv: ri_bad_calls.append(argv) or (0, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"]),
++                gh_extra=[(("issue", "list"), 0, "not json")])
++        a, f = check("REPLAN routing invariants: an unreadable tool is never clean", [
++            ("exit 2 with no summary (a REFUSED roster ref) is one UNREADABLE line",
++             ri_unreadable(ri_tick(lambda argv: (2, ["carry_audit: REFUSED cannot list origin/x"])))),
++            ("exit 2 with a summary is still UNREADABLE (the rc arm alone)",
++             ri_unreadable(ri_tick(lambda argv: (2, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"])))),
++            ("exit 0 with no summary is UNREADABLE (the summary arm alone)",
++             ri_unreadable(ri_tick(lambda argv: (0, ["something else"])))),
++            ("an OSError from the tool is one UNREADABLE line naming it",
++             ri_unreadable(t_os) and any("cannot exec" in x["text"] for x in t_os.findings)),
++            ("a non-JSON issue list drops --open-issues and still runs the roster call",
++             len(ri_bad_calls) == 1 and "roster" in ri_bad_calls[0]
++             and "--open-issues" not in ri_bad_calls[0]),
++        ])
++        total, failed = total + a, failed + f
          t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),
                                          (12, "python3 merge_train.py")])
          t.train()
 diff --git a/tools/audit/seat/r10_roster_ops_mutants.py b/tools/audit/seat/r10_roster_ops_mutants.py
-index 8d5f41342..ca3f49cd9 100644
+index 8d5f41342..8795407fb 100644
 --- a/tools/audit/seat/r10_roster_ops_mutants.py
 +++ b/tools/audit/seat/r10_roster_ops_mutants.py
-@@ -67,6 +67,7 @@ Plants, one per refusal of the two ops and per round-trip property:
+@@ -67,6 +67,12 @@ Plants, one per refusal of the two ops and per round-trip property:
             naming no live group (W12, W13) or needing none (W14), and a phase
             branch unresolved in roster_lib.group_for_branch (W15).
  
 +    W18 append-carry's refusal of text already ending in a mark.
++    U1-U6 orchestrator_tick's roster_invariants never reads an unreadable
++           tool as clean: the guard dropped (U1), its rc arm (U2) or its
++           summary arm (U3) alone, the OSError branch silent (U4) or not
++           catching at all (U5), and a non-JSON issue list still passing
++           --open-issues (U6).
      W16-W17 the lane marker on structural ops (carry 15): the guard dropped
             (W16) and set-stage wrongly made structural (W17); Q13 is the
             queue runner not setting it.
-@@ -307,6 +308,8 @@ PLANTS.update({
+@@ -107,6 +113,8 @@ LIB, SYNC, AUDIT = ("tools/audit/seat/roster_lib.py",
+                     "tools/audit/seat/roster_sync.py", "tools/audit/carry_audit.py")
+ _MARK_LINE = next((ln for ln in (ROOT / LIB).read_text().splitlines()
+                    if ln.startswith("_CARRY_MARK = ")), "_CARRY_MARK missing")
++TICK = "tools/audit/seat/orchestrator_tick.py"
++RI_UNREAD = '            self.unreadable(S, "roster invariants"'
+ DETACHED = ('g = next((x for x in roster.get("groups", []) '
+             'if x.get("group") == group), {})')
+ 
+@@ -307,9 +315,23 @@ PLANTS.update({
      "W16": ("    if op in STRUCTURAL_OPS and os.environ.get(LANE_ENV) != LANE_VALUE:\n",
              "    if False:\n"),
      "W17": ('STRUCTURAL_OPS = ("wire-issue",', 'STRUCTURAL_OPS = ("set-stage", "wire-issue",'),
@@ -222,6 +238,48 @@ index 8d5f41342..ca3f49cd9 100644
      "Q13": (RQ, '    env["HPO_ROSTER_LANE"] = "queue-runner"', '    env["HPO_ROSTER_LANE"] = "x"'),
      "Q9": (RQ, '    if "def batch_edit" not in Path(path).read_text():\n',
             '    if False:\n'),
++    "U1": (TICK, f"        if rc not in (0, 1) or not summary:\n{RI_UNREAD}",
++           f"        if False:\n{RI_UNREAD}"),
++    "U2": (TICK, f"        if rc not in (0, 1) or not summary:\n{RI_UNREAD}",
++           f"        if not summary:\n{RI_UNREAD}"),
++    "U3": (TICK, f"        if rc not in (0, 1) or not summary:\n{RI_UNREAD}",
++           f"        if rc not in (0, 1):\n{RI_UNREAD}"),
++    "U4": (TICK, f"        except OSError as e:\n{RI_UNREAD}, str(e)[:80])\n            return\n",
++           "        except OSError as e:\n            return\n"),
++    "U5": (TICK, f"        except OSError as e:\n{RI_UNREAD}, str(e)[:80])\n            return\n",
++           "        except ZeroDivisionError:\n            return\n"),
++    "U6": (TICK, "            except ValueError:\n                pass\n        try:\n            rc, out = self.carry_run(argv)\n",
++           '            except ValueError:\n                argv += ["--open-issues", "x"]\n        try:\n            rc, out = self.carry_run(argv)\n'),
+ })
+ 
+ 
+@@ -321,10 +343,16 @@ def parts(name):
+     return plant if len(plant) == 3 else (TARGET,) + plant
+ 
+ 
++def fail_lines(stdout):
++    """A target's FAIL lines, indented or not: orchestrator_tick prints
++    `  FAIL <check>`, roster_edit `FAIL <check>`."""
++    return [ln.strip() for ln in stdout.splitlines() if ln.lstrip().startswith("FAIL ")]
++
++
+ def target_self_test(target=TARGET):
+     r = subprocess.run([sys.executable, "-I", target, "--self-test"], cwd=ROOT,
+                        capture_output=True, text=True)
+-    fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
++    fails = fail_lines(r.stdout)
+     return r.returncode, fails, (r.stdout + r.stderr).strip().splitlines()[-3:]
+ 
+ 
+@@ -377,6 +405,8 @@ def self_test():
+            "      Traceback", "      boom"])
+     ck("a survivor prints fails=0 and no tail",
+        rendered(0, [], ["x"]) == ["RESULT mutant=X rc=0 fails=0"])
++    ck("an indented FAIL line is read; an ok line naming FAIL is not",
++       fail_lines("  FAIL a\nFAIL b\n  ok   FAIL-free c\n") == ["FAIL a", "FAIL b"])
+     ck("no names selects every plant", select([]) == (list(PLANTS), []))
+     ck("a named plant is kept", select(["A1"]) == (["A1"], []))
+     ck("an unknown plant is returned for refusal",
 diff --git a/tools/audit/seat/roster_edit.py b/tools/audit/seat/roster_edit.py
 index df8cccd8e..15dccccbf 100644
 --- a/tools/audit/seat/roster_edit.py
