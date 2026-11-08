@@ -1211,12 +1211,13 @@ def dispatch_order(registry: str, pr: int, head: str, nonce: str) -> "tuple[str,
     registry (`<pr> <head> <reviewer> <nonce> <utc> <model>`), its mint: a
     `--nonce` re-record later is the same dispatch. None when no such record
     exists or it predates the utc field. The registry is append-only, so the
-    index orders a same-second pair."""
+    index orders a same-second pair. A mint with no time is not dated by a
+    later re-record: the dispatch happened before that."""
     for i, ln in enumerate(registry.splitlines()):
-        f = ln.split()
-        if len(f) >= 4 and f[:2] == [str(pr), head] and f[3] == nonce:
+        f = ln.split() + ["", ""]  # a short line reads as empty fields, never an IndexError
+        if f[:2] == [str(pr), head] and f[3] == nonce:
             try:  # bus.sh writes `date -u +%FT%TZ`; anything else is no time
-                datetime.datetime.strptime(f[4] if len(f) >= 5 else "", "%Y-%m-%dT%H:%M:%SZ")
+                datetime.datetime.strptime(f[4], "%Y-%m-%dT%H:%M:%SZ")
             except ValueError:
                 return None
             return f[4], i
@@ -5431,6 +5432,11 @@ def _stale_verdict_self_test(check) -> None:
                     ("the blocked verdict's nonce has no registry record", {"registry": [rec(NM, "2026-11-06T20:50:26Z")]}),
                     ("a pre-R10-ORCH-DISPATCH-REG record stops at the nonce",
                      {"registry": [f"7 {H} cmsg_R {NM}", rec(NB, "2026-11-06T22:13:28Z")]}),
+                    ("a mint before the utc field is not dated by a later --nonce re-record",
+                     {"registry": [f"7 {H} cmsg_R {NM}", rec(NM, "2026-11-06T23:40:00Z"),
+                                   rec(NB, "2026-11-06T22:13:28Z")]}),
+                    ("a malformed time is no time", {"registry": [rec(NM, "2026-11-06T25:61:00Z"),
+                                                                 rec(NB, "2026-11-06T22:13:28Z")]}),
                     ("no registry file on this machine", {"registry": None}),
                     ("the blocked verdict carries no bus-nonce", {"registry": [rec(NM, "2026-11-06T23:40:00Z")],
                                                                   "blocked_nonce": None}),
