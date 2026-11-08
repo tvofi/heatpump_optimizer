@@ -466,6 +466,25 @@ def cases(bj) -> dict[str, bool]:
     bj.plan_beat(c)
     res["plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line"] = (
         pre and first and same and "PLAN MOVED" in digest(c))
+    def page_rc(rc, out, err, text):
+        def ans(argv):
+            if arg(argv, "--mirror") is None:
+                return 0, "", ""
+            m = Path(arg(argv, "--mirror"))
+            m.mkdir(parents=True, exist_ok=True)
+            (m / "PLAN.html").write_text(text)
+            return rc, out, err
+        return ans
+    c, f = fresh(answers={"state_docs.py": page_rc(0, "pushed handoff/audit-r10-plan at abc\n", "", "<p>moved</p>")})
+    bj.plan_beat(c)
+    gh = [x for x in f.calls if x[0] == "gh"]
+    res["plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once"] = (
+        digest(c).startswith("plan-beat: PLAN MOVED") and len(gh) == 1 and gh[0][1:4] == ["workflow", "run", "pages.yml"])
+    c, f = fresh(answers={"state_docs.py": page_rc(1, "", "state_docs: PLAN.html UNAVAILABLE: stale plan\n", "<p>x</p>")})
+    bj.plan_beat(c)
+    res["plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory"] = (
+        digest(c).startswith("plan-beat: PLAN UNAVAILABLE rc=1") and "PLAN MOVED" not in digest(c)
+        and c.memory("plan-page.json", "") == "")
     c, f = fresh()
     bj.plan_beat(c)
     res["plan-beat null: no mirrored page is no PLAN MOVED and no byte"] = not files(c)
@@ -835,6 +854,11 @@ MUTANTS = {
                             "roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases"),
     "plan_rc1_silent": ("    if rc != 0:\n        said = ", "    if rc not in (0, 1):\n        said = ",
                         "plan-beat: state_docs rc 1 is PLAN UNAVAILABLE"),
+    "moved_early_return": ('            lines.append(f"plan-beat: PLAN MOVED {Path(mirror) / \'PLAN.html\'} re-rendered; republish owed")',
+                           '            return write_job(ctx, "plan-beat", [f"plan-beat: PLAN MOVED {Path(mirror) / \'PLAN.html\'} re-rendered; republish owed"])',
+                           "plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once"),
+    "moved_on_rc1": ("    if rc == 0:\n        page = read(", "    if rc in (0, 1):\n        page = read(",
+                     "plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory"),
     "pages_never_dispatched": ('re.search(r"^pushed ", out, re.M)', "False",
                                "plan-beat: a state push that landed dispatches the Pages deploy on main, once"),
     "pages_always_dispatched": ('    if rc in (0, 1) and re.search(r"^pushed ", out, re.M):', "    if rc in (0, 1):",
