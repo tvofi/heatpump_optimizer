@@ -616,7 +616,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
       # ref moves, which is a new key: recorded at once. Any other (ancestry reds, ci predict) can clear with no ref
       # moving: it reruns after HPO_RELAY_RETRY_BACKOFF (30 min), three runs at most, then it is recorded and owed.
       n=${tries% *}; n=$((n + 1)); cls=retry
-      ! grep -qiE 'REFUSE[: ]+(unpinned sites?|carry|pr-body|figures|brief)|unpinned site' "$bd/update.out" || cls=content  # mut:retryall
+      ! grep -qiE '^[[:space:]]*(update_pr: )?REFUSE[: ]+(unpinned sites?|carry|pr-body|figures|brief)' "$bd/update.out" || cls=content  # mut:retryall
       [ "$n" -lt 3 ] || cls=content  # mut:trylimit
       if [ "$cls" = content ]; then
         echo "$key" >> "$f"
@@ -1256,7 +1256,7 @@ EOF
   chk "nor owed" 1 grep -q "handoff-update" "$LOG.level"
   bodyc() { git -C "$t/b" -c user.name=t -c user.email=t@t commit -q --allow-empty -m body ${1:+-m "Code: $1"}; mkref2; }
   # Carry 12: a refusal that clears with no ref moving is rerun after a backoff, three runs at most; a body-content refusal waits for the body.
-  rt=$t/rt.sh; printf '#!/bin/sh\nn=$(cat "%s/rtn" 2>/dev/null || echo 0); echo $((n + 1)) > "%s/rtn"\ncase "$RT_MODE" in\n ok1) [ "$n" = 0 ] && { echo "update_pr: REFUSE: ancestry reds: r"; exit 1; }; exit 0;;\n *) echo "update_pr: REFUSE: $RT_MODE: r"; exit 1;;\nesac\n' "$t" "$t" > "$rt"; chmod +x "$rt"; HPO_RELAY_UPDATE=$rt
+  rt=$t/rt.sh; printf '#!/bin/sh\nn=$(cat "%s/rtn" 2>/dev/null || echo 0); echo $((n + 1)) > "%s/rtn"\ncase "$RT_MODE" in\n prepr) echo "  REFUSE   ci predict            r"; echo "  skip     unpinned sites        the diff adds no unpinned mutation site"; exit 1;;\n ok1) [ "$n" = 0 ] && { echo "update_pr: REFUSE: ancestry reds: r"; exit 1; }; exit 0;;\n *) echo "update_pr: REFUSE: $RT_MODE: r"; exit 1;;\nesac\n' "$t" "$t" > "$rt"; chmod +x "$rt"; HPO_RELAY_UPDATE=$rt
   rtreset() { rm -f "$t/rtn" "$t/state/cloud-handoff-failed" "$t/state/cloud-handoff-failed.why" "$t/state/cloud-handoff-failed.tries"; : > "$LOG"; rm -f "$LOG.level"; }
   rtcalls() { cat "$t/rtn" 2>/dev/null || echo 0; }
   export HPO_RELAY_RETRY_BACKOFF=0
@@ -1265,6 +1265,9 @@ EOF
   rtreset; RT_MODE="ancestry reds"; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
   chk "(c) three refusals of a retryable class stop: three runs over five passes" 0 test "$(rtcalls)" = 3
   chk "(c) and the third is recorded and owed with its reason" 0 grep -q "^OWED .* handoff-update refs/heads/handoff/topic-a $HS2 update_pr: REFUSE: ancestry reds: r\$" "$LOG.level"
+  # A prepr-shaped run: its late steps print `skip unpinned sites` after the `REFUSE ci predict` line; only REFUSE step lines classify.
+  rtreset; RT_MODE=prepr; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
+  chk "(d) a ci-predict refusal whose output also holds the unpinned-sites skip line is rerun" 0 test "$(rtcalls)" = 2
   rtreset; RT_MODE="unpinned sites"; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
   chk "(b) an unpinned-sites refusal with the same body is not rerun" 0 test "$(rtcalls)" = 1
   chk "(b) and it is recorded at once, owed with its reason" 0 grep -q "^OWED .* handoff-update refs/heads/handoff/topic-a $HS2 update_pr: REFUSE: unpinned sites: r\$" "$LOG.level"
