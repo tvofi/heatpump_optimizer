@@ -41388,6 +41388,176 @@ R.check(
     "heat_curve_target_kind" in _ghc_kept and "heat_curve_displace_entity" in _ghc_kept,
     repr(sorted(k for k in _ghc_kept if k.startswith("heat_curve"))),
 )
+# The restore and the arm's record (fix review 1 of PR 3299, block 1): the
+# restore's neutral write is the entity's last instruction, so W2 and W3 judge
+# a re-enable against it, never against the plan's write before the off. Probe
+# A: off then on inside the grace, plan unchanged. Probe B: a first-miss
+# rewrite that held, then off and on at the same target. The fake entity holds
+# what it is told only where the probe sets the reading.
+_GHC_ATTRS = {"step": 0.5, "min": -20.0, "max": 20.0}
+
+
+def _ghc_reads(coord, value):
+    coord.hass.states.set(_GHC_ENT, _ghc_state(value, unit="K", attributes=_GHC_ATTRS))
+
+
+_gpa = _ghc_coord(entry_id="ghc_probe_a")
+_ghc_pub(_gpa, 2.0)
+_asyncio.run(_gpa.async_set_mode(_ghc_off, refresh=False))
+_asyncio.run(_gpa.async_set_mode(_ghc_auto, refresh=False))
+_gpa_warn = _ghc_logged(lambda: _ghc_pub(_gpa, 2.0))
+R.check(
+    "off then on inside the grace, plan unchanged: the re-enable rewrites 2 over the restore's 0, "
+    "never held as W2's grace of the write before the off",
+    _ghc_writes(_gpa) == [2, 0, 2] and _gpa_warn == [],
+    "writes=%r warn=%r" % (_ghc_writes(_gpa), _gpa_warn),
+)
+
+
+def _ghc_probe_b(toggle):
+    coord = _ghc_coord(entry_id=f"ghc_probe_b_{toggle}")
+    _ghc_pub(coord, 2.0)
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    _ghc_pub(coord, 2.0)  # the first miss, rewritten once
+    _ghc_reads(coord, "2")  # and it held
+    if toggle:
+        _asyncio.run(coord.async_set_mode(_ghc_off, refresh=False))
+        _ghc_reads(coord, "0")  # the restore held too
+        _asyncio.run(coord.async_set_mode(_ghc_auto, refresh=False))
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    warn = _ghc_logged(lambda: _ghc_pub(coord, 2.0))
+    return _ghc_writes(coord), warn
+
+
+_gpb, _gpb_warn = _ghc_probe_b(True)
+_gpbn, _gpbn_warn = _ghc_probe_b(False)
+R.check(
+    "a rewrite that held, then off and on at the same target: 2 is written again and W3 does not "
+    "latch against the restore's own 0",
+    _gpb == [2, 2, 0, 2] and not any("does not hold" in m for m in _gpb_warn),
+    "writes=%r warn=%r" % (_gpb, _gpb_warn),
+)
+R.check(
+    "null control, the same history without the off and on: the held 2 is not rewritten, nothing warned",
+    _gpbn == [2, 2] and _gpbn_warn == [],
+    "writes=%r warn=%r" % (_gpbn, _gpbn_warn),
+)
+# The unload path, and the options reload behind it: the record is keyed on
+# the entry, so the next coordinator for the same entry inherits it.
+_gpu = _ghc_coord(entry_id="ghc_probe_unload")
+_ghc_pub(_gpu, 2.0)
+_gpu.entry.runtime_data = _gpu
+_asyncio.run(_ghc_unload(_gpu.hass, _gpu.entry))
+_gpu2 = Coord(_gpu.hass, _gpu.entry)
+_ghc_pub(_gpu2, 2.0)
+R.check(
+    "unload, then the reloaded coordinator for the same entry inside the grace: 2 is written over "
+    "the restore's 0",
+    _ghc_writes(_gpu2) == [2, 0, 2] and _ghc.state_for(_gpu.entry).written == 2,
+    "writes=%r" % (_ghc_writes(_gpu2),),
+)
+# A restore that did not hold, and a re-enable at its own 0: W2 and W3 judge
+# the 0 afresh, from its own stamp, with no miss inherited from the plan's 2.
+def _ghc_restore_missed(aged_rewrite):
+    coord = _ghc_coord(entry_id=f"ghc_restore_missed_{aged_rewrite}")
+    _ghc_pub(coord, 2.0)
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    if aged_rewrite:
+        _ghc_pub(coord, 2.0)  # a first miss: misses 1
+    _ghc_reads(coord, "2")  # held, and the restore below does not land
+    _asyncio.run(coord.async_set_mode(_ghc_off, refresh=False))
+    _asyncio.run(coord.async_set_mode(_ghc_auto, refresh=False))
+    if aged_rewrite:
+        _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    warn = _ghc_logged(lambda: _ghc_pub(coord, 0.0))
+    return _ghc_writes(coord), warn
+
+
+_grm_grace, _ = _ghc_restore_missed(False)
+_grm_miss, _grm_warn = _ghc_restore_missed(True)
+R.check(
+    "a re-enable at 0 right after a restore that did not hold is inside the restore's own grace (W2)",
+    _grm_grace == [2, 0],
+    repr(_grm_grace),
+)
+R.check(
+    "and after its grace the restore's first miss is written once more, not given up on the plan's "
+    "earlier miss (W3)",
+    _grm_miss == [2, 2, 0, 0] and not any("does not hold" in m for m in _grm_warn),
+    "writes=%r warn=%r" % (_grm_miss, _grm_warn),
+)
+# A failed restore told the entity nothing, so the record stays the plan's write.
+_gpf = _ghc_coord(entry_id="ghc_probe_failed_restore")
+_ghc_pub(_gpf, 2.0)
+_gpf.hass.services = _GhcRaising()
+_asyncio.run(_gpf.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a restore whose write raised leaves the arm's record at the plan's write",
+    _ghc.state_for(_gpf.entry).written == 2,
+    repr(_ghc.state_for(_gpf.entry).written),
+)
+
+# The design's evidence plan, arms bullet (fix review 1, block 2): every
+# displace the chokepoint forms reaches the entity arm -- the peak guard's
+# engage (plan minus the nudge) and release (the plan), boost's maximum, and
+# the learned curve bias.
+from heatpump_optimizer import boost as _ghc_boost  # noqa: E402
+from homeassistant.util import dt as _ghc_dt  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    MODE_BOOST as _ghc_boost_mode,
+    PEAK_GUARD_DISPLACE_NUDGE_C as _ghc_nudge,
+)
+
+_gpg = _ghc_coord(entry_id="ghc_peak_guard", heat_curve_offset_band_k=5.0)
+_gpg._current_action = {"displace_value": 3.0, "heat_pump_on": True}
+_gpg._peak_guard.suppressing = True
+_asyncio.run(_gpg._async_peak_guard_transition())
+_gpg._peak_guard.suppressing = False
+_asyncio.run(_gpg._async_peak_guard_transition())
+R.check(
+    "the peak guard's engage writes the plan less the nudge to the entity, its release the plan again",
+    _ghc_nudge == 2.0 and _ghc_writes(_gpg) == [1, 3],
+    "nudge=%r writes=%r" % (_ghc_nudge, _ghc_writes(_gpg)),
+)
+_gbm = _ghc_coord(entry_id="ghc_boost_mode", heat_curve_offset_band_k=10.0, ecl110_displace_max=4.0)
+_asyncio.run(_gbm.async_set_mode(_ghc_boost_mode, refresh=False))
+_gbm._current_action = _gbm._fixed_mode_action()
+_asyncio.run(_gbm.async_publish_current_action())
+_gbo = _ghc_coord(entry_id="ghc_boost_overlay", heat_curve_offset_band_k=10.0, ecl110_displace_max=4.0)
+_gbo_action = {"displace_value": 0.0, "heat_pump_on": False}
+_ghc_boost.overlay(
+    _gbo_action, _ghc_boost.BoostState(until={_ghc_boost.CHANNEL_SPACE: _ghc_dt.utcnow()}),
+    max_power=3.0, max_temp=23.0, ecl_max=_gbo._ecl110_displace_max,
+)
+_gbo._current_action = _gbo_action
+_asyncio.run(_gbo.async_publish_current_action())
+_ghc_max = int(round(_gbm._ecl110_displace_max))
+R.check(
+    "boost writes the displace maximum to the entity, the boost mode and the space boost overlay alike",
+    _ghc_writes(_gbm) == [_ghc_max] and _ghc_writes(_gbo) == [_ghc_max] and _ghc_max == 4,
+    "max=%r mode=%r overlay=%r" % (_ghc_max, _ghc_writes(_gbm), _ghc_writes(_gbo)),
+)
+_gcb = _ghc_coord(entry_id="ghc_curve_bias", curve_learning_enabled=True)
+_gcb._curve_learner.bias = -1.0
+_ghc_pub(_gcb, 3.0)
+_gcb0 = _ghc_coord(entry_id="ghc_curve_bias_off")
+_gcb0._curve_learner.bias = -1.0
+_ghc_pub(_gcb0, 3.0)
+R.check(
+    "the learned curve bias reaches the entity: 3 with a -1 bias sends 2; with curve learning off, 3",
+    _ghc_writes(_gcb) == [2] and _ghc_writes(_gcb0) == [3],
+    "on=%r off=%r" % (_ghc_writes(_gcb), _ghc_writes(_gcb0)),
+)
+# The arm's own off guard (fix review 1, residual): the chokepoint called while
+# off still publishes MQTT and never writes the entity.
+_gmo = _ghc_coord(entry_id="ghc_chokepoint_off", ecl110_displace_set_topic="ecl/set")
+_asyncio.run(_gmo.async_set_mode(_ghc_off, refresh=False))
+_ghc_pub(_gmo, 2.0)
+R.check(
+    "the chokepoint called while off writes no entity value; the MQTT arm still carries the integer",
+    _ghc_writes(_gmo) == [] and _ghc_mqtt(_gmo) == [("ecl/set", "2")],
+    "writes=%r mqtt=%r" % (_ghc_writes(_gmo), _ghc_mqtt(_gmo)),
+)
 _ = _ghc_auto
 
 

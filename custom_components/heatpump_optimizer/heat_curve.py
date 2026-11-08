@@ -25,7 +25,9 @@ latched (W4); the MQTT arms' integer is sent (W5), saturated and latched once
 where the entity's range is narrower (W6).
 
 **Off and unload** restore 0 through :mod:`off_restore`, the shared hook this
-module registers with; the arm itself writes nothing while the mode is off.
+module registers with, which reports the restore back so the record above
+names the 0 as the last write; the arm itself writes nothing while the mode
+is off.
 """
 from __future__ import annotations
 
@@ -94,7 +96,19 @@ def _restorer(config: Any) -> off_restore.Restorer | None:
     entity_id = config.heat_curve_displace_entity
     if not entity_id or config.heat_curve_target_kind != HEAT_CURVE_KIND_OFFSET:
         return None
-    return off_restore.Restorer(entity_id, write_setpoint, neutral=0.0)
+    return off_restore.Restorer(entity_id, write_setpoint, neutral=0.0, restored=_restored)
+
+
+def _restored(entry: Any, value: float) -> None:
+    """The restore wrote ``value``: the entity's last instruction, a new target.
+
+    W2 and W3 then judge the next publish against the restore's write, never
+    against the plan's write before it, which would hold a re-enable in grace
+    or latch W3 on a healthy entity. Not a W4 write: the guard counts the
+    arm's own loop.
+    """
+    held = state_for(entry)
+    held.written, held.written_at, held.misses = value, time.monotonic(), 0
 
 
 off_restore.register_consumer(CONSUMER, _restorer)
