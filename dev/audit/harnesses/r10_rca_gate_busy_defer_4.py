@@ -115,6 +115,9 @@ def read(mt, crs, runs, head):
     t = object.__new__(mt.Train)
     t.repo, t.log = REPO, lambda *a, **k: None
     t.run = lambda argv: (0, "\n".join(json.dumps(r) for r in runs))
+    # the wall clock `sweep_settling` reads: five seconds after the newest completion in the scene
+    now = max([ts(c["completed_at"]) for c in crs if c.get("completed_at")] or [0]) + 5
+    t.wall = lambda: now
     return t.classify_at(head, crs, req)
 
 
