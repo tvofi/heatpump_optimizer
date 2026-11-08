@@ -1206,14 +1206,6 @@ def bus_registry() -> Path:
     return Path(os.environ.get("HPO_BUS_STATE") or Path.home() / ".zcode" / "bus") / "dispatched"
 
 
-def verdict_nonce(verdict_md: str) -> "str | None":
-    """bus.sh's `verdict_nonce`: the first whole `bus-nonce: <32 hex>` line of a
-    VERDICT.md. Anchored, so a finding quoting another round's nonce in prose
-    is not read as this verdict's (PR 2465's merge verdict quotes round 2's)."""
-    m = re.search(r"^bus-nonce: ([0-9a-f]{32})$", verdict_md, re.M)
-    return m.group(1) if m else None
-
-
 def dispatch_order(registry: str, pr: int, head: str, nonce: str) -> "tuple[str, int] | None":
     """(utc, line index) of <nonce>'s FIRST record for <pr> at <head> in bus.sh's
     registry (`<pr> <head> <reviewer> <nonce> <utc> <model>`), its mint: a
@@ -1223,7 +1215,11 @@ def dispatch_order(registry: str, pr: int, head: str, nonce: str) -> "tuple[str,
     for i, ln in enumerate(registry.splitlines()):
         f = ln.split()
         if len(f) >= 4 and f[:2] == [str(pr), head] and f[3] == nonce:
-            return (f[4], i) if len(f) >= 5 and re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", f[4]) else None
+            try:  # bus.sh writes `date -u +%FT%TZ`; anything else is no time
+                datetime.datetime.strptime(f[4] if len(f) >= 5 else "", "%Y-%m-%dT%H:%M:%SZ")
+            except ValueError:
+                return None
+            return f[4], i
     return None
 
 
@@ -3067,7 +3063,7 @@ class Train:
 
         def nonce(c: str) -> "str | None":
             code, o = self.run(["git", "show", f"{c}:VERDICT.md"])
-            return None if code else verdict_nonce(o)
+            return None if code else proof_watch.verdict_nonce(o)
 
         try:
             registry = bus_registry().read_text()

@@ -82,13 +82,13 @@ def dispatch_times(events: str) -> dict[str, str]:
 
 def nonce_of(body: str) -> str | None:
     """The first 8 hex of the verdict's own nonce, by bus.sh's anchored rule
-    (`merge_train.verdict_nonce`, imported): an unanchored search read a nonce
+    (`proof_watch.verdict_nonce`, imported): an unanchored search read a nonce
     quoted in a finding's prose (PR 2465) as the verdict's own."""
-    import merge_train
+    import proof_watch
     m = CONF.search(body)
     if not m:
         return None
-    n = merge_train.verdict_nonce(git("show", f"{m.group(1)}:VERDICT.md"))
+    n = proof_watch.verdict_nonce(git("show", f"{m.group(1)}:VERDICT.md"))
     return n[:8] if n else None
 
 
