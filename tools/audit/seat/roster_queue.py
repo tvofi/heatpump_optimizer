@@ -713,9 +713,28 @@ def _self_test():
         run_queue(argparse.Namespace(**{**vars(base), "first": "all", "last": None, "mark": True}),
                   python=sys.executable)
         ck("a marked line is never applied again", (t / "rep").read_text().count("\n") == 3)
-        gate = "x\nroster_edit: LINT GATE REFUSED the push\nERROR [G-1] cite a.py:9\nTOTAL: 1 error(s)\nthe commit is local\n"
+        # write_roster's real refusal shape: banner, the new ERROR lines, then
+        # the lint's own last three lines (an ERROR, its CARRY line, a blank),
+        # TOTAL, and the commit-is-local line -- the old three-line tail held
+        # only the blank, TOTAL and that last line, never an ERROR.
+        gate = ("lint gate: running\nroster_edit: LINT GATE REFUSED the push\n"
+                "  ERROR   [G-1] cite: a.py:9 moved\n"
+                "  CARRY: G-1 re-pin a.py:9\n\n"
+                "TOTAL: 1 error(s) across 1 file(s)\n"
+                "the commit is local at 0123456789ab in /w (detached); nothing pushed\n")
+        ck("refusal_tail: the fixture's old three-line tail names no ERROR (precondition)",
+           "ERROR" not in " | ".join(gate.strip().split("\n")[-3:]))
         ck("refusal_tail: a lint-gate refusal reports the ERROR line, not only TOTAL",
-           "ERROR [G-1]" in refusal_tail(gate))
+           "[G-1] cite: a.py:9" in refusal_tail(gate) and "TOTAL: 1" in refusal_tail(gate),
+           refusal_tail(gate))
+        stub3 = t / "stub3.py"
+        stub3.write_text("import sys\nsys.stderr.write(" + repr(gate) + ")\nsys.exit(3)\n")
+        fresh("1 set-stage G done\n")
+        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 1,
+                                        "editor": str(stub3)}), python=sys.executable)
+        rr = (t / "rep").read_text().strip()
+        ck("run: a lint-gate refusal's report line names the refused citation",
+           rr.startswith("roster: set-stage G refused rc=3 ") and "[G-1] cite: a.py:9" in rr, rr)
         ck("refusal_tail: other output is its last three lines (null)",
            refusal_tail("a\nb\nc\nd") == "b | c | d")
         # inline append-carry readback (LANDED test, first 60 chars)
@@ -771,6 +790,13 @@ def _self_test():
            rr[0].startswith("roster: bogus-op G refused rc=2")
            and rr[1].startswith("roster: set-stage G refused rc=2")
            and "fell back" not in "\n".join(rr), rr)
+        # ... and under --mark the malformed line is marked, so no later pass re-runs it
+        fresh("1 bogus-op G done\n2 set-stage G done\n")
+        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 2, "batch": True,
+                                        "mark": True, "editor": real_ed}), python=sys.executable)
+        got = (t / "q.txt").read_text().split("\n")
+        ck("run --batch --mark: a malformed line is marked `#refused`",
+           got[0] == "#refused 1 bogus-op G done", got)
         # release-held: a held carry waits for its batch file on origin/main
         (t / "q.txt").write_text(
             "#held append-carry G 'x dev/programme/triage/b.md#P1'\n"
