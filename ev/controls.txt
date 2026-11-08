@@ -1,0 +1,3 @@
+cwd=v715 target=skip rc=2 RESULT null=withheld tuya=withheld metered=withheld
+cwd=v715 target=doorN rc=1 RESULT null=graded tuya=withheld metered=graded
+cwd=v715 target=doorT rc=1 RESULT null=withheld tuya=graded metered=graded

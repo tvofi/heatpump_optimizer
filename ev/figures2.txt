@@ -1,0 +1,62 @@
+== df7db8215
++ATTR_COP_MEASURED: Final = "measured_cop"
++        self._last_measured_cop: float | None = None
++        observed_cop = modelled_cop * commanded / self._measured_power
++        self._last_measured_cop = round(float(observed_cop), 2)
+== fold_ledger
+fold_ledger: 50 classes, 755 instances, 121 in-tree judge survivors (rounds [8, 10]), 138 rca entries
+fold_ledger: 0 violation(s)
+== closure select
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+== structure
+
+STRUCTURE RATCHET PASSED
+== budgets diff
+(empty=untouched)
+== carry ref
+[
+ {
+  "group": "R10-RCA-COP-UNMEASURED",
+  "lane": "CP",
+  "kind": "rca",
+  "issues": [],
+  "fixes": [],
+  "findings": [],
+  "class": "process",
+  "severity": "normal",
+  "size": "S",
+  "wave": 1,
+  "files": [
+   "dev/audit/rca/",
+   "dev/audit/config/bugclasses.json"
+  ],
+  "hot_files": [],
+  "fixerModel": "sonnet",
+  "reviewerModel": "opus",
+  "model": {
+   "fixer": "sonnet",
+   "reviewer": "opus",
+   "rca": null,
+   "runner": "haiku",
+   "record": "sonnet"
+  },
+  "effort": "medium",
+  "fixture": false,
+  "owner_gate": null,
+  "rca": [],
+  "after": [],
+  "carry": [
+   "From 3316 (r10-rca-cop-unmeasured), body item 6d58568e: **The cwd capture across `dev/audit/harnesses/`.** Any harness that takes a root and imports `tests/harness.py` measures the cwd's tree unless it changes into the root first, for the cause in Head. This seat's detector is repaired. The rest are enumerated, as a superset and not a per-file trace, by `git grep -l 'from harness import\\|import harness' -- dev/audit/harnesses/ | xargs grep -l sys.path`, less those `git grep -l os.chdir -- dev/audit/harnesses/` also lists. The repair belongs to the stage owning those harnesses: a change of directory per harness, or anchoring `tests/harness.py`'s inserts (current trees only, see Head). Recorded in the document's section 6 for the orchestrator to route. Carry: R10-RCA-COP-UNMEASURED (items 6d58568e)"
+  ],
+  "architect_note": "",
+  "resume": {
+   "stage": "in-progress",
+   "branch": "handoff/r10-rca-cop-unmeasured",
+   "note": "s12 roster audit 2026-11-07; trigger 1 of defect-root-cause.md, orchestrator to confirm; overlap admitted (R10-FRICTION-CI-RED, R10-FRICTION-OTHER-FAMILY, R10-RCA-STAMP-FLUSH-COST): defect-root-cause.md trigger 1 for R10-HOTFIX-COP-UNMEASURED, s12 roster audit 2026-11-07",
+   "pr": 3316
+  },
+  "brief": "Root cause for the defect R10-HOTFIX-COP-UNMEASURED fixes (defect-root-cause.md trigger 1: a defect that reached a release). The Health tab's measured COP grades model values against the model on an install with no heat input. Owed: the named cause, process state a-d with evidence (which review, audit dimension or test let a model value be labelled measured), a cost test with numbers, and a countermeasure or a recorded refusal, as a new RCA document cited from the bugclass register. Runs beside the hotfix fixer, never inside it; never edits custom_components/. If the orchestrator finds trigger 1 does not apply, it records that and refuses this group instead."
+ }
+]

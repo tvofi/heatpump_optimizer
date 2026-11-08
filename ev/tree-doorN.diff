@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index e77657414..6cda58a2e 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -1317,7 +1317,7 @@ class InstallCapability:
+         inference.
+         """
+         if heat_kw is None:
+-            return None if self.measured_heat and not self.heat_counter else False
++            return True
+         return self.cop_measured(dhw)
+ 
+     def can_duty_cycle(self) -> bool:
