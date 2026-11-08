@@ -19894,6 +19894,48 @@
     "note": null
    },
    "brief": "Fly-in RCA, orchestrator 2026-11-08 under mandate 6715477401: root-cause analysis of the relay handoff arm starving behind serial updates (parent R10-RELAY-HANDOFF-ARM absorbed). Its handoff exists; open and review it."
+  },
+  {
+   "group": "R10-RCA-STAMP-CLAIM-CONFLICT",
+   "lane": "C",
+   "kind": "rca",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "rca",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-rca-stamp-claim-conflict",
+    "pr": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "open PR, review",
+    "note": null
+   },
+   "brief": "Fly-in RCA, orchestrator 2026-11-08 under mandate 6715477401: root-cause analysis of the stamp emptying claimed_drift.txt under open PRs, which leaves claimnotes conflicts (parent R10-HOTFIX-STAMP-BASE done). Its handoff exists; open and review it."
   }
  ]
 }
