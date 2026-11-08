@@ -19555,6 +19555,48 @@
     "note": null
    },
    "brief": "Owner ruling (tvofi, 2026-11-08, in chat to the orchestrator): \"bump the triage cost/benefit target to 20% improvement and the limit for keeping already planned instrument groups to 10% instead of 5\". Two thresholds change. (1) The bar for a NEW process, tooling or instrument proposal, and the owner's exemption that rides it, moves from more than 10% to more than 20% improvement in CI time, programme completion time, right-first-time or token usage: dev/governance/roles/proposal-triage.md (the exemption sentence), dev/governance/rules/ratchet-budgets.md (the owner's exemption paragraph), tools/audit/machinery_ratchet.py (its exemption docstring, the strictly-above-one-tenth rule and its self-test cases at exactly 10%, which become exactly 20%), and that instrument's guide line under tools/audit/seat/instruments/. (2) An ALREADY PLANNED instrument or machinery group, or an existing non-production CI lane or seat, stays only on a measured improvement of at least 10% on the same four measures (was 5%, a ruling of 2026-11-05 never written into the tree); unmeasured does not pass. Write rule (2) into proposal-triage.md beside rule (1), once, as the triage seat's keep test for planned groups. Enumerate every other site with git grep over dev/governance, tools and .claude for the old figures in this sense and change each; leave unrelated percentages (rate-limit floors, D0 figures) alone and say so in the body. Mutation-prove the ratchet change: a mutant restoring one tenth must fail the self-test. This is policy: the owner approves before merging (mandate 6715477401, scope all, covers the approval). Keep governance files within their policy_budgets caps (node tools/policy/policy_lint.mjs --budgets); pay by cutting, never raise. Owner ruling (tvofi, 2026-11-08, second message): \"for 2, raise the bar for instrument and machinery defects that can be classified as minor. Major and critical skips the bar.\" So write a third rule into proposal-triage.md: a defect repair in instrument or machinery code (outside custom_components/) whose severity is minor (or low) is no longer exempt as a defect countermeasure. It takes the same bars: more than 20% for a new one, at least 10% to keep a planned one. A major or critical defect, a root-cause countermeasure policy requires, closeout, and an owner directive keep their route without the bar. Name the severity field the triage seat reads (the roster group's severity) and how an unclassified defect is treated (classified first, never assumed major)."
+  },
+  {
+   "group": "R10-HOTFIX-MAIN-IST-RED",
+   "lane": "CP",
+   "kind": "fix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "N-main-red",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/pr/prepr.sh"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-hotfix-main-ist-red",
+    "pr": null,
+    "commit": null,
+    "last_step": "fixer fired 2026-11-08T02:20Z",
+    "next_step": "handoff then PR",
+    "note": null
+   },
+   "brief": "Main is red on governance / instrument-self-tests from main e36e5327d (2026-11-08): step 'Show the pre-PR self-check refusing its own fixtures', 512 passed 1 failed, the no-matcher null control (got 1, wanted 0); job 128597751217 at 48af0864a. Green at 17e115792. The red-turning merge (PR 3306) adds only delivery rows, so the cause is a flake, environment, time or tree-state dependence. tools/pr/prepr.sh records this row failing once in five serial runs on a loaded box. Reproduce, name the cause, fix it architecturally with a failing test first; the fixer brief is the dispatch seat's brief-fix-main-ist-red."
   }
  ]
 }
