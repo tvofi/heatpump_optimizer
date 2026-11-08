@@ -2819,6 +2819,52 @@ def _self_test() -> int:
           and subprocess.run(["git", "-C", str(drv), "rev-parse",
                               "refs/remotes/origin/edit-1"],
                              capture_output=True, text=True).stdout.strip() == tip())
+
+    # --- P435 through an op: write_roster hands the gate the roster it found,
+    # so a not-done brief already failing the lint (a merge moved the line it
+    # cites) does not stop an unrelated write; the same op adding a new bad
+    # citation still refuses. The lint is `errlint` (one ERROR per plant).
+    seed4 = Path(tmp, "seed4")
+    seed4.mkdir()
+    throwaway_git_init(seed4, "-q", "-b", "main")
+    (seed4 / BRIEF_LINT_NEW).parent.mkdir(parents=True)
+    (seed4 / BRIEF_LINT_NEW).write_text(errlint, encoding="utf-8")
+    r4 = {"groups": [{"group": "R9-A", "lane": "L1", "issues": [], "after": [],
+                      "brief": "cites __bad_one__", "resume": {}}]}
+    (seed4 / FIXTURE_ROSTER).parent.mkdir(parents=True, exist_ok=True)
+    (seed4 / FIXTURE_ROSTER).write_text(dump(r4), encoding="utf-8")
+    run(["git", "-C", str(seed4), "add", "-A"])
+    run(["git", "-C", str(seed4), "commit", "-q", "-m", "a pre-existing lint error"])
+    origin4 = Path(tmp, "origin4.git")
+    throwaway_git_clone(seed4, origin4, "-q", "--bare")
+    drv4 = Path(tmp, "drv4")
+    throwaway_git_clone(origin4, drv4, "-q")
+
+    def resume4(value, wt):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            rc = sysrc(lambda: main(
+                ["set-resume", "R9-A", value, "--field", "note",
+                 "--checkout", str(drv4), "--roster-ref", "main",
+                 "--branch", "edit-4", "--worktree", str(Path(tmp, wt)),
+                 "--lint-cwd", str(seed4), "--push"]))
+        return rc, err.getvalue()
+
+    def at4():
+        return subprocess.run(["git", "-C", str(origin4), "rev-parse", "-q", "--verify",
+                               "refs/heads/edit-4"], capture_output=True,
+                              text=True).stdout.strip()
+
+    rc, said = resume4("an unrelated note", "wt-p435")
+    landed = at4()
+    check("P435 op: set-resume beside a pre-existing lint error lands rc 0, warning it",
+          rc == 0 and bool(landed) and "WARN pre-existing" in said and "G-one" in said,
+          (rc, said[-300:]))
+    rc, said = resume4("adds __bad_two__", "wt-p435b")
+    named = said.split("LINT GATE REFUSED the push\n", 1)[-1].splitlines()[:1]
+    check("P435 op: the same op adding a new bad citation refuses rc 3, naming it first (null)",
+          rc == 3 and at4() == landed and named and "G-two" in named[0],
+          (rc, said[-300:]))
     shutil.rmtree(tmp, ignore_errors=True)
     # --- repeated --add (P418): extend, never keep only the last list
     for argv_, want_ in ((["--add", "a", "--add", "b"], ["a", "b"]),
