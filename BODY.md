@@ -1,4 +1,4 @@
-Part 2 of R10-TRAIN-MERGE-LOOP (#3242), repair round 2 after `Fix review: blocked 35fc2646` (class-open: `tools/pr/app_approve.sh` carry-path `git fetch` unretried). The round adds two commits on top of the reviewed head 35fc2646, which is unchanged beneath them; the head is 022a55fd. No main merge: `git merge-tree --write-tree origin/main HEAD` exits 0 against origin/main 17e115792590 (2026-11-08T00:29Z), and the owner ruling of 2026-11-07 merges main only on a conflict.
+Part 2 of R10-TRAIN-MERGE-LOOP (#3242), repair round 2 after `Fix review: blocked 35fc2646` (class-open: `tools/pr/app_approve.sh` carry-path `git fetch` unretried). The round adds two commits on top of the reviewed head 35fc2646, which is unchanged beneath them; the head is 17b8194e, which merges origin/main 48af0864 (#3290) into 022a55fd to resolve one content conflict (see Resolution delta).
 
 Carry N is the 1-based position in this group's carry list on the roster (handoff/audit-r10-roster); the parent's numbers are noted.
 - Carry 15 (the hotfix): `wait_ci` treats a red `gate` as pending while another workflow run at the same head is unfinished (read from actions/runs?head_sha, not check-run presence), then allows one poll for gate.py's rerun cascade. Bounded by the polls. A held (`action_required`) sibling run is not unfinished: this round pins that.
@@ -13,7 +13,15 @@ Alternatives for the shared rule: (a) copy the regexes into app_approve.sh: reje
 
 ## Head
 
-022a55fd2fff20b3f66278464e03a9612b5dda8a
+17b8194eaa90af37291b810ee2fd19d8e6801abb
+
+## Resolution delta
+
+- Conflict: `tools/audit/seat/merge_train.py`, two hunks, from #3290 (R10-HOTFIX-TRAIN-DEFER-WAIT, 48af0864). Hunk 1: #3288's `gate_deferred` against #3290's `_gate_busy` and `classify_at`. Hunk 2: #3288's `graced = False` against #3290's `held`/`settle` in `wait_ci`.
+- Resolution: keep both sides. `wait_ci` first applies #3290's gate.py `busy` reading (`_gate_busy`, then the sweep settle); a lone red gate that remains then goes through #3288's `gate_deferred` sibling-run read and its one-poll `graced` allowance. Functions `gate_deferred`, `_gate_busy`, `classify_at` all stay.
+- Read-back: lines added by each side relative to the merge base, counted as a multiset, are all present in the merged file (0 missing for #3288, 0 for main).
+- Rerun at 17b8194e: merge_train self-test 564 checks 0 failed; app_approve 322/0; pr_args 184/0; gh_read 129/0; structure ratchet passed; prepr rc=0; claim files byte-identical to origin/main; no budget file, VERSION or RELEASE_NOTES change.
+- Mutation proof rerun: `action_required` dropped from `gate_deferred`'s exclusion gives `merge_train self-test: 564 checks, 1 failed`; restored.
 
 ## Mutation proof
 
@@ -30,7 +38,7 @@ A rejected carry fetch (`couldn't find remote ref`) is one fetch, no settle, ref
 
 ## Figures
 
-- `python3 tools/audit/seat/merge_train.py --self-test` prints `523 checks, 0 failed` at this head (35fc2646: 519; +4 arms, and 2 undraft arms re-keyed).
+- `python3 tools/audit/seat/merge_train.py --self-test` prints `523 checks, 0 failed` at 022a55fd (35fc2646: 519). At 17b8194e it prints `564 checks, 0 failed` (main's #3290 arms merged in).
 - `bash tools/pr/app_approve.sh --self-test` prints `322 checks, 0 failed` at this head (3 new carry-fetch arms carry 6 checks).
 - `bash tools/audit/seat/pr_args.sh --self-test` prints `179 checks, 0 failed` at this head (35fc2646: 177; +2 remerge fetch arms).
 - `python3 -c "import sys; sys.path.insert(0,'tools/audit/seat'); import gh_read; sys.exit(gh_read.self_test())"` prints `gh_read self-test: 129 checks, 0 failed` (35fc2646: 122; +7 git-rule checks).
@@ -38,7 +46,7 @@ A rejected carry fetch (`couldn't find remote ref`) is one fetch, no settle, ref
 - `python3 tools/audit/archscore/score.py --diff 35fc2646348b9c4d69a3b56b6452ff4075289807 HEAD` prints `Architecture score: dS +0.0000 NULL`.
 - Class census (fixer step 8), rule: `git grep -nE '"git", *"(fetch|push)"|git (-C [^ ]+ )?(fetch|push)\b' -- tools/pr/app_approve.sh tools/audit/seat/merge_train.py tools/audit/seat/train.sh tools/audit/seat/remerge_main.sh`, outside each file's self-test. It returns 18 `self.run`/`self.ok` git fetch/push sites in merge_train.py above `_self_test` (17 fetches, 1 push; counted by piping the merge_train.py hits through `awk` on line < `_self_test`'s line and `grep -c 'self.run\|self.ok'`), which are closed through `Train._reads_retried` → `gh_read.run_git_retry`. It returns app_approve.sh's carry fetch, closed in this diff. It returns remerge_main.sh's recarry fetch, closed in this diff. train.sh returns none. The census also reaches app_push.sh's pushes, which the train runs through remerge_main.sh. They are outside this group's files, and app_push.sh's read-back rule already confirms a push. A distinct finding is carried under Forward-carry.
 - Diff mutants: `tools/pr/prepr.sh` with `MUTANT_CMD="bash -c 'python3 tools/audit/seat/merge_train.py --self-test && python3 -c \"import sys; sys.path.insert(0, \\\"tools/audit/seat\\\"); import gh_read; sys.exit(gh_read.self_test())\"'"` (mutant_run.py --diff over the diff's added lines, its default cap of 40 mutants) prints `WARN diff mutants 4 survivor(s)`. The whole prepr run took 2087 s of wall time. The same prepr whose mutant baseline failed at once (record_row.py's self-test fails inside mutant_run's git-archive copy on a Node body check) took 683 s, so the mutant step is about 1400 s of that. The first run, with merge_train's self-test alone, printed 13 survivors: 11 in gh_read.py, which that command never runs, and 2 in post_approval_wait. Each is pinned under Mutation proof.
-- prepr: `PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` prints `PRE-PR: 022a55fd2fff20b3f66278464e03a9612b5dda8a ... rc=0` at this head. Its only WARN is the diff-mutant line, and its scope line is `MODE: SCOPED`. origin/main moved after the run, and per the owner ruling it is not merged (merge-tree clean).
+- prepr: `PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` prints `PRE-PR: 17b8194eaa90af37291b810ee2fd19d8e6801abb ... rc=0` at this head, wall 2878 s with MUTANT_CMD as below. Its only WARN is the diff-mutant line (4 survivors, the same four sites), and its scope line is `MODE: SCOPED`.
 - Not measured, carried: the carry 1 measure-first count (BOT_HEAD stops since 2026-10-20, and how many had their runs approved at refusal) needs the train logs on the orchestrator's machine. This container has none.
 
 ## Unpinned sites
@@ -57,7 +65,7 @@ Read from `pulls/3288` check-runs (filter latest, 94 runs, one page) at 35fc2646
 - tests / nightly-status (128447471717, 128454570948): class main-graded reporter (a cancelled main verification dispatch). Re-run 128492818270 succeeded. It is not in the required set. Cheaper detector: none for a main-side cancel.
 - pr-contract / pr-contract (128474383637): class body gap (the body did not name the two coverage reds). Later runs 128497175481, 128497835304 and 128498295968 succeeded. Cheaper detector: `tools/pr/prepr.sh --body-check`, one run per body push.
 - gate (128474546962, 128451186144, 128448800913): class aggregate of the above. Later gates 128497380614, 128498034328, 128498498368, 128498735667 and 128498740508 succeeded.
-At this head (022a55fd) no CI has run: it is pushed to the handoff ref only.
+At this head (17b8194e) no CI has run: it is pushed to the handoff ref only.
 
 ## Forward-carry
 
