@@ -18554,9 +18554,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-friction-ci-red",
-    "commit": null,
+    "commit": "092941b7ef5993f324ab23135e99687b44403b51",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "s12 carry-routing 2026-11-07: created to receive #3156, which R10-FRICTION-RECORDS did not dispose",
