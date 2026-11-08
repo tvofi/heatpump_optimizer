@@ -5535,9 +5535,9 @@ class HeatPumpOptimizer:
 
             hum_i = hums[i]
             cop = _reference_cop(self.model, state, outdoor_temps[i], hum_i)
-            # No clamp to ``min_electrical_power``: a pump below it cycles, and
-            # a step's energy is its average power (a clamp burnt it all day on
-            # a house needing no heat). No clip at 0: demand floors at 0 above.
+            # No clamp to the pump's minimum (below it a pump cycles; a step's energy
+            # is its average power): a clamp burnt min_electrical_power * 24 h per day
+            # on a house needing no heat. No clip at 0: demand floors at 0 above.
             power = min(power_for_heat_per_cop_kw(p, required_thermal / cop), p.max_electrical_power)
             baseline_power[i] = power
 
