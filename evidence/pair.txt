@@ -1,0 +1,9 @@
+== real python3 (null control), Linux
+main-real rc=1 :: line 1: home-directory, account-name in the body
+head-real rc=1 :: line 1: home-directory, account-name in the body
+main-real-ok rc=0 :: no host identity in the body
+head-real-ok rc=0 :: no host identity in the body
+== shim python3 first on PATH (simulated; shim real interp via SHIM_REAL when HOME has no venv)
+main-shim rc=1 :: line 1: home-directory, account-name in the body
+head-shim rc=1 :: line 1: home-directory, account-name in the body
+head-shim-ok rc=0 :: no host identity in the body

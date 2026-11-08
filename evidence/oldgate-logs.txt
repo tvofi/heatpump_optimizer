@@ -1,0 +1,52 @@
+2026-11-08T19:42:26.4722157Z env:
+2026-11-08T19:42:26.4725221Z   GH_TOKEN: ***
+2026-11-08T19:42:26.4725461Z   PR: 3343
+2026-11-08T19:42:26.4725645Z   BASE: main
+2026-11-08T19:42:26.4725829Z   KIND: code
+2026-11-08T19:42:26.4726209Z   WORKSET: arch-score budget-raise-gate codeql governance hassfest pr-contract tests validate
+2026-11-08T19:42:26.4726666Z ##[endgroup]
+2026-11-08T19:42:34.0476756Z FAIL run(s) [42516277088] at this head are still being judged; their gate decides
+2026-11-08T19:42:34.0632537Z ##[error]Process completed with exit code 1.
+2026-11-08T19:42:34.0781682Z Post job cleanup.
+2026-11-08T19:42:34.1689298Z [command]/usr/bin/git version
+2026-11-08T19:42:34.1733025Z git version 2.56.0
+2026-11-08T19:42:34.1769696Z Temporarily overriding HOME='/home/runner/work/_temp/783be977-ff13-4d36-b5b7-fcd6b7981fe1' before making global git config changes
+2026-11-08T19:42:34.1770617Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-08T19:42:34.1777244Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-08T19:42:34.1812632Z Removing SSH command configuration
+2026-11-08T19:42:34.1819113Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-08T19:42:34.1857987Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-08T19:42:34.2159880Z Removing HTTP extra header
+2026-11-08T19:42:34.2165797Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-08T19:42:34.2205664Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-08T19:42:34.2500540Z Removing includeIf entries pointing to credentials config files
+2026-11-08T19:42:34.2507601Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-08T19:42:34.2546637Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-08T19:42:34.3039909Z Cleaning up orphan processes
+----
+2026-11-08T19:42:03.5203850Z env:
+2026-11-08T19:42:03.5206885Z   GH_TOKEN: ***
+2026-11-08T19:42:03.5207114Z   PR: 3343
+2026-11-08T19:42:03.5207304Z   BASE: main
+2026-11-08T19:42:03.5207491Z   KIND: edit
+2026-11-08T19:42:03.5207696Z   WORKSET: arch-score budget-raise-gate
+2026-11-08T19:42:03.5207970Z ##[endgroup]
+2026-11-08T19:42:10.5433140Z FAIL run(s) [42516277088] at this head are still being judged; their gate decides
+2026-11-08T19:42:10.5568276Z ##[error]Process completed with exit code 1.
+2026-11-08T19:42:10.5721049Z Post job cleanup.
+2026-11-08T19:42:10.6583029Z [command]/usr/bin/git version
+2026-11-08T19:42:10.6623140Z git version 2.56.0
+2026-11-08T19:42:10.6660520Z Temporarily overriding HOME='/home/runner/work/_temp/54f246e1-2550-46a8-b05f-1a007b945b17' before making global git config changes
+2026-11-08T19:42:10.6661888Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-08T19:42:10.6665845Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-08T19:42:10.6697662Z Removing SSH command configuration
+2026-11-08T19:42:10.6705124Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-08T19:42:10.6739120Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-08T19:42:10.7019640Z Removing HTTP extra header
+2026-11-08T19:42:10.7024716Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-08T19:42:10.7060201Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-08T19:42:10.7334886Z Removing includeIf entries pointing to credentials config files
+2026-11-08T19:42:10.7340477Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-08T19:42:10.7372011Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-08T19:42:10.7821880Z Cleaning up orphan processes
+----
