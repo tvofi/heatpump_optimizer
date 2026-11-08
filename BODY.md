@@ -1,5 +1,7 @@
 PREMISE FAILED, READ FIRST: the dispatched CI run at this head (run 42473930832) still hit the 45-minute cap. Its `codeql / Analyze (python)` job (128711085671) was cancelled at 45.1 minutes, after extraction had finished at about 21 minutes. features.py's extraction (1211 s) sits inside main's 817-1389 s range; only entities.py's fell (191 s against 343-688 s). Whether a module-scope `try` is what costs CodeQL time is therefore not shown for features.py, and the cure does not give the job headroom. The dispatch seat should decide whether the group stays a code change (this wrapping, 4,700 changed lines and a permanent guard) or becomes a cap or job-split decision for the owner.
 
+Carry 1 (after-figure): measured by dispatch, see Figures; it fails the premise. Carry 2 (false `on:` and "first measurement" sentences, Red checks): corrected in Figures and Red checks. Carry 3 (module-scope ClassDef residual): dismissed, see Forward-carry.
+
 R10-HOTFIX-CODEQL-HEADROOM (#3266), repair round 2. Main's `codeql / Analyze (python)` job runs 28 to 43 minutes against a 45-minute cap, mostly extracting `tests/features.py` and `tests/entities.py`. This change runs every module-scope statement holding a `try` (172 in `features.py`, 110 in `entities.py`) inside `def _module_block_<line>():`, called once at its old place, declaring `global` every name it binds. The AST of each wrapped statement and the order of the rest are asserted unchanged by `tools/audit/seat/wrap_module_tries.py`. The one source edit besides wrapping is that `_ep_inits: list = []` and `_ep_builds: list = []` lose their annotation (a `global` name cannot be annotated). `tests/entities.py` gains a guard: no script past 20000 lines runs a `try` at module scope, with the detector's own null control. `tests/layout.py` keys its old-citation check on the stripped line, and `tests/closures.json` records the new tool.
 
 Since the reviewer's block, main added module-scope `try` statements to both scripts, so both were re-derived from main's text with the tool (not merged line by line), and the guard re-appended. Code behaviour is unchanged from the cleared 402b18da. Alternatives rejected as before: raising the cap or excluding files (forbidden by the owner's ruling), one wrapper per file, splitting `features.py` (budget raise).
@@ -31,10 +33,10 @@ At the dispatched run 42473930832: `codeql / Analyze (python)` cancelled at the 
 ## Forward-carry
 
 - A module-scope ClassDef body holding a try is not refused by the guard; the measurement gives no reason to extend it. Carry: dismissed: no instance in either file, and the premise is unproven
-- The cure does not clear the cap in n=1: either raise the cap or split the python job (the owner's ruling forbade both), or accept a repeated-run protocol. Carry: R10-HOTFIX-CODEQL-HEADROOM (dev/programme/rosters/wave-r10-groups.json)
-- A CI-cost hotfix under tests/ shows its effect only on a `workflow_dispatch` with no `pr` input (a closed PR's number is refused). Carry: R10-HOTFIX-CODEQL-HEADROOM (dev/programme/rosters/wave-r10-groups.json)
+- The cure does not clear the cap in n=1: either raise the cap or split the python job (the owner's ruling forbade both), or accept a repeated-run protocol. Carry: dismissed: the owner ruling forbids both cures (raise the cap, split the job), and the repeated-run protocol is the stated acceptance, recorded under Figures; it waits on no further ruling
+- A CI-cost hotfix under tests/ shows its effect only on a `workflow_dispatch` with no `pr` input (a closed PR's number is refused). Carry: R10-CI-SELFTEST-SCOPE
 
 ## Friction
 
-- codeql-dispatch: contradiction: the verdict told the fixer to dispatch with pr=3266 base=main, but prelude refuses that when the PR is closed. Carry: R10-HOTFIX-CODEQL-HEADROOM (dev/programme/rosters/wave-r10-groups.json)
-- seat-tooling: stale: cloud-setup's venv-ha lacks scipy and paho and its homeassistant breaks tests/harness.py, so the suites cannot run in a cloud seat. Carry: R10-HOTFIX-CODEQL-HEADROOM (dev/programme/rosters/wave-r10-groups.json)
+- codeql-dispatch: contradiction: the verdict told the fixer to dispatch with pr=3266 base=main, but prelude refuses that when the PR is closed. Carry: R10-CI-SELFTEST-SCOPE
+- seat-tooling: stale: cloud-setup's venv-ha lacks scipy and paho and its homeassistant breaks tests/harness.py, so the suites cannot run in a cloud seat. Carry: R10-RCA-CLOUD-ENTITIES-ENV
