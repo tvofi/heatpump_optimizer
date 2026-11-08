@@ -19699,7 +19699,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From r10-hotfix-codeql-headroom, body item bac1b3fe: seat-tooling: stale: cloud-setup's venv-ha lacks scipy and paho and its homeassistant breaks tests/harness.py, so the suites cannot run in a cloud seat. Carry: R10-RCA-CLOUD-ENTITIES-ENV (dev/programme/rosters/wave-r10-groups.json) (items bac1b3fe)"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "not-started",
