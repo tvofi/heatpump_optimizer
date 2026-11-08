@@ -1,4 +1,0 @@
-## head 0281438a528b71722a32ae98610c7f3b7b344f4a
-  ok   the live job parses (111 steps) and its gating is consistent
-selftest_scope self-test: 90 checks, 0 failed
-selftest_scope static: 103 gated step(s), 0 problem(s)

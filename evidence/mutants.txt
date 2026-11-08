@@ -1,10 +1,14 @@
-Mutants of the round's gate, each applied to .github/workflows/governance.yml in a detached worktree at 0281438a528b71722a32ae98610c7f3b7b344f4a, graded by `python3 -I tools/ci/selftest_scope.py --self-test` and `static`, then restored:
-M1 `&& steps.scope.outputs.gantt-drift == 'true'` deleted: FAIL the live job parses (111 steps) and its gating is consistent; 90 checks, 1 failed; static 102 gated, 2 problem(s) -> KILLED
-M2 gate reads steps.scope.outputs.gantt-drif: same FAIL, 1 failed; static 2 problem(s) -> KILLED
-M3 `id: gantt-drift` deleted: same FAIL, 1 failed; static 2 problem(s) -> KILLED
-M4 id renamed gantt-drif: same FAIL, 1 failed; static 2 problem(s) -> KILLED
-M5 table entry steps.gantt-drift deleted from tools/ci/selftest_closures.json: static `STALE ... missing ['gantt-drift']`, 1 problem; `select --change M:tools/audit/seat/gantt_drift.py` -> MODE: FULL (fail closed) -> KILLED
-Restored: `select --change M:tools/audit/seat/gantt_drift.py` -> MODE: SCOPED -- 20 step(s) run, gantt-drift among them.
-Independent re-record: `env -u BASH_ENV python3 tools/ci/selftest_scope.py record --step gantt-drift` (strace, this container): OK 0.3s gantt-drift, 0 failed; `git diff` of the table afterwards empty -- byte-identical to the committed entry {files:[tools/audit/seat/gantt_drift.py], probes:["."], dirs:[], index:false, objects:false, git:[]}.
-`git diff d9990a12f 0281438a -- .github tools/ci`: 0 lines (the body's byte-identical claim).
-`python3 tests/structure.py` at head: STRUCTURE RATCHET PASSED. No VERSION / manifest / RELEASE_NOTES / *_budgets.json / claim file in the three-dot diff.
+selftest_scope.py static at 26e05a4681d1d1e525f32cbdecfd2fb9e1ec50ca, each mutant applied to governance.yml / selftest_closures.json and restored:
+M0-clean rc=0 106 gated step(s), 0 problem(s)
+M1 drop id plan-public rc=1 2 problem(s) UNGATED plan page stager
+M2 drop if plan-public rc=1 2 problem(s) UNGATED plan page stager
+M3 drop if outside-intake rc=1 2 problem(s) UNGATED outside intake
+M3b drop id outside-intake rc=1 2 problem(s) UNGATED outside intake
+M4 hooks-setup if reverted to ${{ !cancelled() }} rc=1 2 problem(s) UNGATED hook installer
+M4b drop id hooks-setup rc=1 2 problem(s) UNGATED hook installer
+M5 drop table entry plan-public rc=1 1 problem(s) STALE missing ['plan-public']
+M6 run_sha corrupt outside-intake rc=1 1 problem(s) STALE run text changed ['outside-intake']
+M6 run_sha corrupt hooks-setup rc=1 1 problem(s) STALE run text changed ['hooks-setup']
+NULL comment-only edit to governance.yml: 106 gated step(s), 0 problem(s)
+Before/after: c8673442c static -> 103 gated, 3 problem(s) (three UNGATED); head -> 106 gated, 0 problem(s)
+Re-record (record --step plan-public --step outside-intake --step hooks-setup, rc 0) vs committed table: files 8/9/105, probes 4/3/0, dirs 3/2/7, index/objects False, git 0 -- identical sets, run_sha equal
