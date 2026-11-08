@@ -11,7 +11,7 @@ R10-PARTLOAD-RESIDUE: the three measure-first items #3182 left. Each was measure
 
 ## Head
 
-2f25b38933f0d297eb87da092433c3c68e25184e.
+0940e9aae621ea196fa2db7842c802df30946467 is the pull request head this body was re-taken at. Its handoff tip 2f25b38933f0d297eb87da092433c3c68e25184e is contained, and the figures below were measured at 2f25b3893 (the code is the same).
 
 - This round's commits sit on the reviewed head 8bef9bc866a7458b19dbc00d0bf4ed07ed2f206a: 4555ba0c8 (harness: the wood arm and the positive control), 26fcbc7eb (the `wood_fuel` fix, its pins, the harness's production comparison and the structure re-record), ac397921e (a test name `prepr.sh`'s no-copies step refused), 8594a61c5 (the equivalent guard deleted, and pins for four diff-mutant survivors) and 2f25b3893 (the pin for the last survivor).
 - Merge base 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76. Every figure in this body was re-taken at 2f25b3893, or at the merge base where it says so.
@@ -151,9 +151,14 @@ The 3.8 % share is 0.267290 / 7.0145.
 
 ## Red checks
 
-2f25b3893 has not run CI; the reviewer reads its own checks. At the reviewed head 8bef9bc86, the fix review's read of all 64 check runs found two concluded reds: the two `gate` runs 128574120853 and 128575220710. Each was a deferral (`FAIL run(s) [42429084301] at this head are still being judged; their gate decides`), and code run 42429084301 then concluded success. Class: gate deferral, not a defect. Answer: no cheaper detector exists, because the deferral is the gate waiting on the run it defers to.
+At head 0940e9aae621ea196fa2db7842c802df30946467 three checks concluded `failure` (CI code run 42457021003, merged into base 73365699a135). **All three are caused by this diff, not by main, and none is a stale red.** The earlier text of this section, which predicted only `tests / mutation`, was wrong about the other two.
 
-Predicted at 2f25b3893: `tests / mutation`, red by construction on the two `## Unpinned sites`, until `mutation-autofix` writes their pins (`ci-autofix.md`). It is not a defect of this diff: both sites are killed by its tests.
+- `arch-score / arch-score` (job 128658352537, step "Score the change, and refuse an unexplained rise"). Log: `Architecture score: dS -0.1926 WORSENS (inadmissible: params_over_10 6->7)`. Cause: this diff adds `partload_at` to `wood_fuel.build_wood_fuel_view` (10 -> 11 parameters) and to `wood_fuel_from_parts` (8 -> 9), which takes the function over the ten-parameter line. Main's count is 6, so the red is this diff's. The gate calls the rise inadmissible, so an `## Architecture score` paragraph cannot clear it. Cheaper detector: `python3 tools/audit/archscore/gate.py --base origin/main --head HEAD`, and `tests/arch_score_head.py`. Neither is a step of `tools/pr/prepr.sh` (it names only `tools/audit/archscore/ABOUT.md`), and the prepr run of `PREPR_SKIP_CLOSURES=1` selected 27 scoped scripts without it. The detector exists and was not run.
+- `tests / arch-instrument` (job 128658496674, step "Run the architecture-score pair"). Log: `FAIL every function over ten parameters is a dispositioned row (#1776) [unlisted: ['wood_fuel.build_wood_fuel_view']: take the horizon, the weather series or a frozen record of the related arrays, or row the function here with why it stays over the line]`. 1 of 18 head checks failed. Cause: the same eleventh parameter. Same answer for the cheaper detector: `python3 tests/arch_score_head.py` runs in 42 s, is in the closure table, and was scoped out of the local gate. Not run before the push.
+- `tests / mutation` (job 128658352721, step "Drive the table over what this diff tested"). Log: `MUTATION TABLE REFUSED -- 2757 unpinned site(s) against 2755 at the ratchet base 73365699a135, 2 of them added by this diff`, namely `wood_fuel.py:546 RETURN_DEL` and `wood_fuel.py:666 GUARD_OFF`. Cause: this diff's own two added sites have no ledger disposition yet. Both are named in `## Unpinned sites` and killed by this diff's tests, and `mutation-autofix` writes the ledger pins (`ci-autofix.md`). So this red is expected and self-repairing. Cheaper detector: `tests/mutation_table.py --scope changed --base origin/main`, which `tools/pr/ci_predict.py` already runs and the body predicted, so it was detected locally and not fixed before the handoff.
+
+Handoff state: the two arch reds need a code change (give `build_wood_fuel_view` a frozen record or the existing horizon/series record instead of an eleventh parameter, or row it in `PARAMS_OVER_10_LEFT` with owner approval). This body-only seat did not touch code. It is blocked and the reviewer should not approve this head until the fixer repairs both.
+
 
 ## Carry for the roster
 
