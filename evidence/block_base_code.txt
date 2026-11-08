@@ -1,0 +1,4 @@
+  FAIL a returned value the guards reject is re-read and keeps the learners frozen  [refreshes [], got 'missing_entity:indoor_temp_entity']
+  FAIL an input read as unavailable is watched and re-read when it reports a value  [refreshes [], indoor unavailable]
+Traceback (most recent call last):
+ImportError: cannot import name 'InputReturnWatch' from 'heatpump_optimizer.inputs' (/tmp/claude-0/-home-user-heatpump-optimizer/1ae667fa-38f9-56a2-8e08-27664e72862a/scratchpad/wt/custom_components/heatpump_optimizer/inputs.py)
