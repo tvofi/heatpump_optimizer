@@ -4,7 +4,7 @@ Owner ruling (tvofi 2026-11-07, triage batch 134 P420), verbatim: "all accepted 
 
 ## Head
 
-d21a15eb2fe0476875832f9d7695e9dea033083b
+ed1f1b1d196e2e2d78959696c4bc412a108c9b5d (merge of the handoff tip d21a15eb2fe0476875832f9d7695e9dea033083b into the branch)
 
 ## Answers to the verdict (one commit: d21a15eb2fe0476875832f9d7695e9dea033083b)
 
@@ -29,11 +29,15 @@ No outside group and no hotfix: gate_priority fixture reads [1, 0, 0] as at base
 
 ## Figures
 
-Self-tests at head: gate_priority 15 checks, roster_lib 71, orchestrator_tick 285, merge_train 480, plan_page 67, all 0 failed. `python3 tests/structure.py`: RATCHET PASSED. `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh`: rc=0; its diff-mutant step skipped (no file mutants reads in the diff), so survivor count 0 and no run time; the hand mutants above stand in. origin/main unmoved-or-conflict-free: `git merge-tree --write-tree origin/main HEAD` rc 0.
+Self-tests at head: gate_priority 15 checks, roster_lib 71, orchestrator_tick 285, merge_train 480, plan_page 67, all 0 failed. `python3 tests/structure.py`: RATCHET PASSED. `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh`: rc=0 (at d21a15eb); its diff-mutant step skipped (no file mutants reads in the diff), so survivor count 0 and no run time; the hand mutants above stand in. origin/main unmoved-or-conflict-free: `git merge-tree --write-tree origin/main HEAD` rc 0.
 
 ## Red checks
 
-none
+`governance / instrument-self-tests` (job 128661348216): red. Cause: `python3 -I tools/plan/replan.py --self-test` fails on the PR merge ref (refs/pull/3304/merge, 5259a4c4) with `FAIL dispatch follows the owner's order ... ['CPA','CPB','CPC','R10-HOTFIX-H','OUT',...]`, then `FAIL the unmutated copy's self-test exits 0`. The head alone passes (0 failed) and origin/main alone passes (0 failed); head merged with origin/main fails identically. Main's scheduler starts a ready critical-path group at once, over the slots cap (the overflow-exempt arm in build_plan), so with slots=1 the critical-path groups start at t0 with the hotfix and the outside group and sort ahead of them; this diff's new fixture assumes the old cap behavior. This diff's fixture is what fails, so this diff owns the red: it needs a fixer repair (order the fixture by tier among simultaneous starts, or carry the outside and hotfix tiers into the overflow pick), not a rerun. Cheaper detector: running the self-test on `git merge origin/main` of the head. It exists as this CI job; tools/pr/prepr.sh runs on the head unmerged and, by the owner ruling of 2026-11-07, is not rerun when main moves, so no pre-push detector covers a main-side scheduler change landing after the push. Standing cost of a merged-tree self-test pass in prepr: one replan.py run, seconds. Carry: dismissed: the merge train recarries and re-proves the head on current main under the owner ruling, so a prepr merge step would repeat that proof.
+
+`pr-contract / pr-contract` (job 128661350034): red. Cause: `[pr-body] check governance / instrument-self-tests is red and ## Red checks does not name it`, the only error; the body said `none`. This diff did not cause it beyond the red above; it clears when this section names the check. Cheaper detector: `tools/pr/prepr.sh --body-check`, which exists and reads the red-history from the check-runs; it ran before the red existed, so it could not name it.
+
+`gate` (job 128661143751): red at `Judge this head`, one line: `FAIL pr-contract / pr-contract: failure`. A consequence of the pr-contract red above; no separate cause and nothing to detect.
 
 ## Forward-carry
 
