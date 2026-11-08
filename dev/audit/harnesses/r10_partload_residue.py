@@ -58,7 +58,11 @@ derated are wood-cheaper) and its share of the running steps, and how many
 grid prices change the night scan's pick (``best_i``, ``expensive_next``).
 Null: at ``d = 0`` every wood figure must read exactly 0 (``partload_factor``
 is then 1.0, so the lists are bitwise equal). Positive control: the
-``d > 0`` price-error maximum must be above 0.
+``d > 0`` price-error maximum must be above 0. The production advisor's own
+COP list (``production_cops``: ``_cops`` alone at a tree without
+``wood_fuel._plan_partload``, else derated as ``wood_fuel_from_parts`` does)
+is compared with the derated arm: the count residual and the night picks off
+read the defect at the merge base and 0 once the advisor reads the draw.
 """
 from __future__ import annotations
 
@@ -163,32 +167,47 @@ def buffer(n: int) -> int:
     return 0
 
 
-def wood_figures(opt, res, total) -> tuple[float, float, int, float, int]:
+def production_cops(opt, res) -> list[float]:
+    """The COP list the production advisor prices pump heat at on this plan:
+    ``_cops`` alone where the tree has no ``_plan_partload`` (the merge
+    base), else derated as ``wood_fuel_from_parts`` derates it."""
+    lin = wood_fuel._cops(list(res.outdoor_temps), opt.model.compute_cop)
+    plan = getattr(wood_fuel, "_plan_partload", None)
+    if plan is None:
+        return lin
+    return wood_fuel._derated(lin, plan(opt.model.params, res, partload_factor))
+
+
+def wood_figures(opt, res, total) -> tuple[float, float, int, float, int, int, int]:
     """(price error max, relative max, count shortfall max, its share of the
-    running steps, night picks changed) for one solve; see ``wood``."""
+    running steps, night picks changed, production count residual max,
+    production night picks off) for one solve; see ``wood``."""
     params = opt.model.params
     pr = np.asarray(res.prices, float)
     runs = [bool(r) for r in (res.heat_pump_on_schedule or [False] * len(pr))]
     lin = wood_fuel._cops(list(res.outdoor_temps), opt.model.compute_cop)
     true = [c * float(partload_factor(params, p)) if on else c
             for c, p, on in zip(lin, total, runs, strict=True)]
+    prod = production_cops(opt, res)
     on_i = [i for i, on in enumerate(runs) if on and lin[i] > 0.0]
     if not on_i:
-        return 0.0, 0.0, 0, 0.0, 0
+        return 0.0, 0.0, 0, 0.0, 0, 0, 0
     pump_lin = np.array([pr[i] / lin[i] for i in on_i])
     pump_true = np.array([pr[i] / true[i] for i in on_i])
     err = pump_true - pump_lin
     stamps = list(res.timestamps)
-    short = night = 0
+    short = night = resid = prod_night = 0
     for w in np.linspace(pump_lin.min(), pump_true.max(), WOOD_GRID):
         w = float(w)
-        short = max(short, wood_fuel.cheaper_hour_count(w, pr, true, runs)
-                    - wood_fuel.cheaper_hour_count(w, pr, lin, runs))
+        derated = wood_fuel.cheaper_hour_count(w, pr, true, runs)
+        short = max(short, derated - wood_fuel.cheaper_hour_count(w, pr, lin, runs))
+        resid = max(resid, abs(derated - wood_fuel.cheaper_hour_count(w, pr, prod, runs)))
         scan = [wood_fuel._scan_wood_night(stamps[0], pr, stamps, c, w, len(pr))
-                for c in (lin, true)]
+                for c in (lin, true, prod)]
         night += scan[0] != scan[1]
+        prod_night += scan[2] != scan[1]
     return (float(err.max()), float((err / pump_lin).max()), short,
-            short / len(on_i), night)
+            short / len(on_i), night, resid, prod_night)
 
 
 def refill() -> int:
@@ -227,9 +246,10 @@ def refill() -> int:
                       f" | deferred {defer:.4f} at-P_r {abs(defer) * k_r:.6f}"
                       f" | dhw cost {dhw_cost:.4f} | predicted {pred:.4f}"
                       f" | wood price err {wf[0]:.6f} rel {wf[1]:.5f}"
-                      f" count short {wf[2]} share {wf[3]:.4f} night changed {wf[4]}")
+                      f" count short {wf[2]} share {wf[3]:.4f} night changed {wf[4]}"
+                      f" | production residual {wf[5]} night off {wf[6]}")
                 if d == 0.0 and (term * k_r != 0.0 or defer * k_r != 0.0
-                                 or any(wf)):
+                                 or any(wf[:5])):
                     null_bad += 1
             if rows:
                 a = np.array(rows, float)
@@ -244,6 +264,9 @@ def refill() -> int:
                       f" cells with a count short {int((w[:, 2] > 0).sum())};"
                       f" night picks changed {w[:, 4].sum():.0f} of"
                       f" {len(woods) * WOOD_GRID} (cells {int((w[:, 4] > 0).sum())})")
+                print(f"{tag} d={d}: production advisor against the derated arm:"
+                      f" count residual max {w[:, 5].max():.0f},"
+                      f" night picks off {w[:, 6].sum():.0f}")
                 if d > 0.0 and not (a[:, 0].max() > 0.0 and a[:, 1].max() > 0.0
                                     and w[:, 0].max() > 0.0):
                     positive_bad += 1

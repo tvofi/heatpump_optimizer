@@ -579,4 +579,57 @@ if _Env is not None:
         repr((_late_before, _late_after, _late_set)),
     )
 
+# The pump-heat price is derated at the plan's own draw (R10-PARTLOAD-RESIDUE,
+# #3182 carry 2's fourth seam). Driven through the coordinator's one entry,
+# ``wood_fuel_from_parts``, on production ``ThermalParameters``: band 1-3 kW,
+# derate 0.1, so a step drawing 3 kW delivers its heat at COP 3 * 0.9 = 2.7.
+# At 2.85 SEK/kWh the linear price is 0.95 (< wood's 1.0) and the derated one
+# 1.0556 (> 1.0): wood is cheaper there only once the draw is read. A step at
+# the 1 kW floor keeps factor 1, and derate 0 is the null. The space share
+# sits at the floor, so only the total (space plus hot water) is derated.
+from types import SimpleNamespace as _NS
+
+from heatpump_optimizer.thermal_model import ThermalParameters as _TP
+from heatpump_optimizer.thermal_model import partload_factor as _plf
+from heatpump_optimizer.wood_fuel import wood_fuel_from_parts as _from_parts
+
+
+def _parts_view(derate, draw, tank=None):
+    tp = _TP(min_electrical_power=1.0, max_electrical_power=3.0,
+             cop_partload_derate=derate)
+    n = len(_STAMPS)
+    result = _NS(
+        timestamps=_STAMPS, prices=[2.85] * n, outdoor_temps=[0.0] * n,
+        heat_pump_on_schedule=[True] * n,
+        power_schedule=[1.0] * n, dhw_power_schedule=[draw - 1.0] * n,
+    )
+    return _from_parts(
+        _WOOD_READY, external_heat=_NS(suppressing=False),
+        opt_config=_NS(dt_hours=1.0, min_temp=20.0), thermal_params=tp,
+        thermal_model=_NS(compute_cop=lambda _t: 3.0),
+        current_state=_NS(wood_tank_temperature=tank), result=result,
+        local_tz=_tz.utc, partload_at=_plf,
+    )
+
+
+_derated = [_parts_view(d, p).get("cheaper_hour_count") for d, p in
+            ((0.1, 3.0), (0.1, 1.0), (0.0, 3.0))]
+R.check(
+    "the wood advisor prices pump heat at the derated COP of the plan's own "
+    "draw (space plus hot water): every step at max power reads wood-cheaper, "
+    "none at the floor draw, none at derate 0",
+    _derated == [len(_STAMPS), 0, 0],
+    repr(_derated),
+)
+# The night scan reads the same derated COP: a low tank (25 C over a 20 C
+# floor) is told to light only where the derated pump heat is dearer than wood.
+_night = [_parts_view(d, 3.0, tank=25.0).get("night_advice", {}).get("action")
+          for d in (0.1, 0.0)]
+R.check(
+    "the night advice prices pump heat at the derated COP of the plan's own "
+    "draw: light at derate 0.1, no advice at derate 0",
+    _night == ["light", None],
+    repr(_night),
+)
+
 sys.exit(R.close("wood-advisor checks"))
