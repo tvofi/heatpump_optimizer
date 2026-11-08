@@ -14389,7 +14389,7 @@
     "From dispatch seat s12-32, evidence for the live-head-cancel class that #3277 (R10-RCA-LIVEHEAD-CANCEL) names as operator cancels under the owner credential: CI code run 42345748044 on #3278 at head fbf55e8ffc184ca5732778284770b48a316c78a5 (run_attempt 1, created 06:09:35Z) concluded `cancelled` with actor hpo-author[bot], every `tests` job and the gate cancelled; its edit runs 42345749170 and 42346332344 failed (edit-gate race). The cancel is therefore not only the owner credential: an App actor also cancels whole runs at a live head, so the detector (dev/audit/harnesses/livehead_cancels.py) must attribute App-actor cancels and the RCA's class description must allow non-owner actors. Not yet established whether the actor on the run is the canceller (an actor is who triggered the run). Carry: R10-RCA-LIVEHEAD-CANCEL"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "refused",
     "branch": "handoff/r10-ci-priority-pause",
     "commit": null,
     "last_step": null,
