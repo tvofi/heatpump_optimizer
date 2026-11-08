@@ -1,0 +1,7 @@
+ dev/audit/rca/R10-RCA-CI-RED.md         | 175 ++++++++++++++++++++++++++++++++
+ dev/audit/rca/ci-red/entries.py         |  41 ++++++++
+ dev/audit/rca/ci-red/entries_v7.1.2.tsv |  19 ++++
+ dev/audit/rca/ci-red/stats_v7.1.2.txt   | 128 +++++++++++++++++++++++
+ dev/programme/delivery/3295.md          |   1 +
+ 5 files changed, 364 insertions(+)
+0
