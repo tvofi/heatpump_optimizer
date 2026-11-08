@@ -1,0 +1,10 @@
+OK       0.0s launch
+OK       4.2s plan-public
+OK      48.1s outside-intake
+OK      51.3s hooks-setup
+OK       0.0s unread
+selftest_scope: recorded 3 step(s) into /root/scr/rerec.json; 0 failed []
+
+real	1m47.504s
+user	0m41.699s
+sys	0m39.084s

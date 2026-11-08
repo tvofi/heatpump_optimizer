@@ -1,6 +1,0 @@
-## merge of origin/main bb7dfb9bd6c68548d1a956adc411be91e02965e0 with 0281438a528b71722a32ae98610c7f3b7b344f4a (tree 0cb72b10090a846df2029d43d19ba2e311ca3e1d)
-  FAIL the live job parses (113 steps) and its gating is consistent
-selftest_scope self-test: 90 checks, 1 failed
-  UNGATED step 'Show the plan page stager refusing a page it may not publish': its if: does not read steps.scope.outputs.<its own id>
-  UNGATED step 'Show the outside intake owing, answering once and refusing its fixtures': its if: does not read steps.scope.outputs.<its own id>
-selftest_scope static: 103 gated step(s), 2 problem(s)
