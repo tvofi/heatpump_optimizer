@@ -11,3 +11,11 @@ Two concluded reds are caused by this diff. This body-push seat does not touch c
    Repair: write into a `fs.mkdtempSync` private directory and remove it after.
 
 The body on `handoff-body/r10-hotfix-nonrequired-reds` names every concluded red and answers it; the body check passes against it.
+
+## body_push.sh refused
+
+`bash tools/audit/seat/body_push.sh r10-hotfix-nonrequired-reds <body>` printed, and pushed nothing:
+
+    body_push: handoff/r10-hotfix-nonrequired-reds is at 3b4dec95f057, this checkout at 2a3c05644d85; push the code, then the body
+
+The PR head 6ef8ac12 is not on `handoff/…`, and this seat may not move that ref (it updates the pull request). Not overridden. The finished body, passing `policy_lint.mjs --pr-body` at 6ef8ac12 with 0 errors, is `BODY.md` on `refs/heads/handoff-wip/r10-hotfix-nonrequired-reds-body`.
