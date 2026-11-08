@@ -513,9 +513,9 @@ From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393... |  |
 | R10-RCA-SWEEP-SETTLE-LOOP | C | 1 | in-progress | - | sonnet/opus | - | Fly-in root cause beside R10-HOTFIX-SWEEP-SETTLE-LOOP: the cause, process state, cost test and countermeasure for the sweep settle loop, with the replay harn... |  |
 | R10-HOTFIX-ROSTER-LINT-REFRESH | C | 1 | in-progress | - | sonnet/opus | - | Fly-in hotfix, orchestrator 2026-11-08 under mandate 6715477401: the roster drain refused 3+ ops on the stale-worktree trap (lint clone not refreshed, ignore... |  |
 | R10-HOTFIX-PREPR-SELFTEST-DARWIN | C | 1 | in-progress | - | sonnet/opus | - | Fly-in hotfix, orchestrator 2026-11-08 under mandate 6715477401: prepr.sh self-test arm (body-privacy null control) fails on Darwin hosts whose python3 is th... |  |
-| R10-RCA-RELAY-HANDOFF-STARVATION | C | 1 | not-started | - | sonnet/opus | - | Fly-in RCA, orchestrator 2026-11-08 under mandate 6715477401: root-cause analysis of the relay handoff arm starving behind serial updates (parent R10-RELAY-H... |  |
-| R10-RCA-STAMP-CLAIM-CONFLICT | C | 1 | not-started | - | sonnet/opus | - | Fly-in RCA, orchestrator 2026-11-08 under mandate 6715477401: root-cause analysis of the stamp emptying claimed_drift.txt under open PRs, which leaves claimn... |  |
-| R10-HOTFIX-STRESS-MEM-PEAK | C | 1 | not-started | - | opus/opus | - | Fly-in hotfix, orchestrator 2026-11-08 under mandate 6715477401: tests/stress.py memory probe red on #3297 (R10-HOTFIX-COP-UNMEASURED, which gates R10-COP-GA... |  |
+| R10-RCA-RELAY-HANDOFF-STARVATION | C | 1 | in-progress | - | sonnet/opus | - | Fly-in RCA, orchestrator 2026-11-08 under mandate 6715477401: root-cause analysis of the relay handoff arm starving behind serial updates (parent R10-RELAY-H... |  |
+| R10-RCA-STAMP-CLAIM-CONFLICT | C | 1 | in-progress | - | sonnet/opus | - | Fly-in RCA, orchestrator 2026-11-08 under mandate 6715477401: root-cause analysis of the stamp emptying claimed_drift.txt under open PRs, which leaves claimn... |  |
+| R10-HOTFIX-STRESS-MEM-PEAK | C | 1 | in-progress | - | opus/opus | - | Fly-in hotfix, orchestrator 2026-11-08 under mandate 6715477401: tests/stress.py memory probe red on #3297 (R10-HOTFIX-COP-UNMEASURED, which gates R10-COP-GA... |  |
 
 ## ETA
 
