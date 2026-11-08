@@ -2287,6 +2287,12 @@ def selftest() -> int:
             caps_=dict(caps, coordinator_cap=2))
     expect("coordinator (null): inside the cap the critical-path group is not flagged",
            not cq["groups"]["CP1"].get("exempt_coordinator"), str(cq["groups"]["CP1"]))
+    ce = mk([cfx("K1", stage="in-progress"), cfx("CP1", "XL"), fx("CP2", after=["CP1"])],
+            caps_=dict(caps, coordinator_cap=1))
+    expect("coordinator: a critical-path group is flagged exactly when the cap is "
+           "full (one in flight, cap 1), not only when it is exceeded",
+           ce["groups"]["CP1"].get("exempt_coordinator") is True
+           and ce["groups"]["CP1"]["start"] == iso(start, 0), str(ce["groups"]["CP1"]))
     nocp = json.loads(json.dumps(cc))
     nocp["groups"]["CP1"].pop("exempt_coordinator")
     nocp["groups"]["X3"].update(start=nocp["groups"]["CP1"]["start"],
