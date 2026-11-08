@@ -1021,7 +1021,10 @@ def controls() -> list[tuple[str, bool, str]]:
     # the class its job's rulers name, and each doubled arm is over that
     # class's budget. Null: a draw moved across a border is mis-graded and
     # named -- job 127046649273 (ref47) moved over the ref47/ref53 border,
-    # and the lowest ref53 job, 125051003592, moved under it.
+    # and the lowest ref53 job, 125051003592, moved down into ref40. Not
+    # into ref47: since R10-HOTFIX-STRESS-MEM-PEAK's draw re-centred ref47
+    # on 2.7713, every ref53 draw grades clean there, so that move names
+    # nothing and could not show a border matters.
     def moved(job: str, to: float) -> dict:
         r = draw_rulers(draws)[job][0]
         return {(j, f): {k: {**c, "ref_ms": c["ref_ms"] * to / r} for k, c in a.items()}
@@ -1029,7 +1032,7 @@ def controls() -> list[tuple[str, bool, str]]:
 
     border = COST_RUNNER_CLASSES["ref53"][0]
     nulls = (draw_offenders(moved("127046649273", border + 1.0)),
-             draw_offenders(moved("125051003592", border - 1.0)))
+             draw_offenders(moved("125051003592", COST_RUNNER_CLASSES["ref47"][0] - 1.0)))
     off = draw_offenders(draws)
     per_class: dict[str, int] = {}
     for (j, f), a in draws.items():
