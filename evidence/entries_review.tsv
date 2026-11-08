@@ -16,4 +16,6 @@
 #3242	2026-11-06T13:40:00Z	e836876f3	328	tests / fast (3.14) is red at this head because tests/harness_headers.py refuses the hand-written depth root this diff adds at dev/audit/harnesses/r10_ci_layout_p1/critpath_fetch.sh:12 (base 112/112 pass, head 1 of 112 fail), and the body's Red checks reads a commit with no check runs and reports none
 #3244	2026-11-06T23:24:31Z	a25821255	111	required gate concluded failure at this head, three edit-run gates deferring to one another
 #3244	2026-11-07T01:16:00Z	8bc540e05	442	CodeQL code-scanning alert 50 py/jinja2/autoescape-false on the new render harness, unanswered in Red checks, so pr-contract and the code gate are red
-ENTRIES 18 PRS 14
+#3265	2026-11-07T05:06:16Z	c7c5cef52	690	required gate is red at the head by mutual edit-run deferral (gate jobs 128296193620 and 128296198588, 04:08Z) and the body's Red checks predates both and reports the gate green; the code is otherwise approvable
+#3273	2026-11-07T04:19:50Z	a46e4d02f	521	tests/mutation refused 14 added unpinned sites and code run 42329898240 was cancelled before mutation-autofix pinned them
+ENTRIES 20 PRS 16
