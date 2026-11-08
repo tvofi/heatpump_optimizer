@@ -34,7 +34,22 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+
+
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
 FIXTURE = Path(__file__).with_suffix(".json")
 REPO = "tvofi/heatpump_optimizer"
 HEADS = {"3293": "fefaa4926e36e9c571cc685e0b6aa2b391d14793", "3267": "cc6ee11ff27b8b57cd7e017121544dca9dbe6e30",
@@ -100,6 +115,9 @@ def read(mt, crs, runs, head):
     t = object.__new__(mt.Train)
     t.repo, t.log = REPO, lambda *a, **k: None
     t.run = lambda argv: (0, "\n".join(json.dumps(r) for r in runs))
+    # the wall clock `sweep_settling` reads: five seconds after the newest completion in the scene
+    now = max([ts(c["completed_at"]) for c in crs if c.get("completed_at")] or [0]) + 5
+    t.wall = lambda: now
     return t.classify_at(head, crs, req)
 
 
