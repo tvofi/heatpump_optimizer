@@ -1,0 +1,28 @@
+tools/ci/gate.py:662:                if j["status"] == "completed" and j["completed_at"] and epoch(j["completed_at"]) <= t:
+tools/ci/gate.py:664:                elif j.get("started_at") and epoch(j["started_at"]) <= t:
+tools/ci/gate.py:682:        t0 = epoch(next(j for j in me["jobs"] if j["name"] == "gate")["judge_started_at"])
+tools/ci/gate.py:739:                j = {**j, "id": r["id"] * 10 if j["name"] == "gate" else 1, "started_at": rj["started_at"],
+tools/ci/gate.py:740:                     "completed_at": rj["completed_at"] if j["status"] == "completed" else None}
+
+tools/audit/archscore/planted/perturb/B4a_inplace_write_shared_dict.py:17:            self._current_action["solve_started_at"] = now.isoformat()
+tools/audit/round4/D11/governance_cost.py:6:  governance_seconds_per_merge  sum of (completed_at - started_at) over the check
+tools/audit/round4/D11/governance_cost.py:76:    if not c.get("started_at") or not c.get("completed_at"):
+tools/audit/round4/D11/governance_cost.py:78:    a = datetime.datetime.fromisoformat(c["started_at"].replace("Z", "+00:00"))
+tools/audit/round4/D11/governance_cost.py:79:    b = datetime.datetime.fromisoformat(c["completed_at"].replace("Z", "+00:00"))
+tools/audit/round4/D11/governance_cost.py:93:                     if bare(c["name"]) not in GOV and c["conclusion"] != "skipped"))
+tools/audit/seat/ci_critpath.py:129:            out += [r for r in d["workflow_runs"] if r["conclusion"] not in ("cancelled", "skipped")]
+tools/audit/seat/ci_critpath.py:181:    ran = {j["name"]: j for j in jobs if j.get("conclusion") not in (None, "skipped")
+tools/audit/seat/ci_critpath.py:182:           and j.get("started_at") and j.get("completed_at")}
+tools/audit/seat/ci_critpath.py:197:        g[n] = dict(s=ts(j["started_at"]), e=ts(j["completed_at"]), needs=dep, steps=j.get("steps") or [])
+tools/audit/seat/ci_critpath.py:244:    start = ts(run["run_started_at"])
+tools/audit/seat/ci_critpath.py:281:        steps = [(ts(s["completed_at"]) - ts(s["started_at"]), s["name"]) for s in j["steps"]
+tools/audit/seat/ci_critpath.py:282:                 if s.get("started_at") and s.get("completed_at")]
+tools/audit/seat/ci_critpath.py:447:        js = [dict(name=f"j{i}", conclusion="success", started_at="2026-01-01T00:00:00Z",
+tools/audit/seat/ci_critpath.py:448:                   completed_at="2026-01-01T00:00:01Z") for i in range(PAGE + 5)]
+tools/audit/seat/ci_critpath.py:459:    g, unmapped = graph([dict(name="fast (3.14)", conclusion="success", started_at="2026-01-01T00:00:10Z",
+tools/audit/seat/ci_critpath.py:460:                              completed_at="2026-01-01T00:00:20Z"),
+tools/audit/seat/ci_critpath.py:461:                         dict(name="Pretty", conclusion="success", started_at="2026-01-01T00:00:00Z",
+tools/audit/seat/ci_critpath.py:462:                              completed_at="2026-01-01T00:00:05Z"),
+tools/audit/seat/ci_critpath.py:463:                         dict(name="gone", conclusion="skipped", started_at="2026-01-01T00:00:00Z",
+662: in def self_test() -> int: (line 360)
+740: in def self_test() -> int: (line 360)

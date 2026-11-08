@@ -1,0 +1,14 @@
+== base
+RESULT pair-lower-green swept_from=1 posts=['repos/o/r/actions/jobs/20/rerun']
+    SWEEP re-ran gate of run 2 (attempt 2, completed red)
+    SWEEP-DONE run=1 reruns=1
+RESULT pair-lower-green swept_from=2 posts=['repos/o/r/actions/jobs/20/rerun']
+    SWEEP re-ran gate of run 2 (attempt 2, judged before run(s) [1] finished)
+    SWEEP-DONE run=2 reruns=1
+== head
+RESULT pair-lower-green swept_from=1 posts=['repos/o/r/actions/jobs/20/rerun']
+    SWEEP re-ran gate of run 2 (attempt 2, completed red)
+    SWEEP-DONE run=1 reruns=1
+RESULT pair-lower-green swept_from=2 posts=[]
+    SWEEP left run 2: attempt 2, the bot's re-run, judged after every source finished
+    SWEEP-DONE run=2 reruns=0
