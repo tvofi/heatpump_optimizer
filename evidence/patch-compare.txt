@@ -1,0 +1,4 @@
+DIFFERS: dev/audit/rounds/round3/D5/option_doc_coverage.py
+DIFFERS: dev/audit/rounds/round4/D6/claims.json
+DIFFERS: dev/audit/rounds/round4/D6/claims.md
+DIFFERS: tests/structure_budgets.json
