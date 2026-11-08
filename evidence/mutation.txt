@@ -1,0 +1,7 @@
+M1_refresh_noop | harness RESULT: FAIL | ModuleNotFoundError: No module named 'throwaway_git'
+M2_detach_lint_own_ref | harness RESULT: FAIL | ModuleNotFoundError: No module named 'throwaway_git'
+M3_no_fetch_ec | harness RESULT: PASS | ModuleNotFoundError: No module named 'throwaway_git'
+M4_no_wt_remove_on_refusal | harness RESULT: PASS | ModuleNotFoundError: No module named 'throwaway_git'
+M5_no_head_check | harness RESULT: PASS | ModuleNotFoundError: No module named 'throwaway_git'
+M6_ignore_err | harness RESULT: PASS | ModuleNotFoundError: No module named 'throwaway_git'
+M7_no_retry_fetch | harness RESULT: PASS | ModuleNotFoundError: No module named 'throwaway_git'
