@@ -341,10 +341,8 @@ def selection(base: str, head: str, root: Path = ROOT) -> str:
         steps = workflow_steps(root)
     except OSError:
         return "all"
-    changes = diff_changes(base, head, root)
-    if changes is None:
-        return "all"
-    return output(select(changes, load_table(root / TABLE), steps))
+    # git unable to diff gives no changes, and an empty diff is FULL.
+    return output(select(diff_changes(base, head, root) or [], load_table(root / TABLE), steps))
 
 
 # ---------------------------------------------------------------------------
@@ -407,9 +405,7 @@ def trace_events(text: str):
         ok = bool(ret) and int(ret.group(1)) >= 0
         if call in _OPENS and ok and ret.group(2):
             path = ret.group(2)
-        elif raw.startswith("/"):
-            path = raw
-        else:
+        else:                             # an absolute `raw` replaces the base
             path = os.path.join(base or str(ROOT), raw)
         yield pid, call, os.path.normpath(path), ok, rest
 
@@ -483,9 +479,7 @@ def fold_trace(text: str, root: Path, tracked: set[str], tracked_dirs: set[str],
                 break
         else:
             continue
-        if rel == ".git" or rel.startswith(".git/") or "/.git/" in rel:
-            continue
-        rel = _pyc_source(rel)
+        rel = _pyc_source(rel)              # .git/ is neither tracked nor a tracked dir
         if is_dir and ok and call in _OPENS:
             if rel in tracked_dirs:
                 dirs.add(rel)
@@ -506,8 +500,6 @@ def _tracked(root: Path) -> tuple[set[str], set[str]]:
 
 
 def _ignored(root: Path, paths: set[str]) -> set[str]:
-    if not paths:
-        return set()
     r = subprocess.run(["git", "check-ignore", "--no-index", "--stdin", "-z"], cwd=root,
                        input="\0".join(sorted(paths)) + "\0", capture_output=True, text=True)
     return {p for p in r.stdout.split("\0") if p}
@@ -871,7 +863,7 @@ def self_test() -> int:
         junk = fold_trace("\n".join(
             f'9 newfstatat(AT_FDCWD<{root}>, "{n}", 0x1, 0) = -1 ENOENT (x)' for n in (
                 "pipe:[123]", "HEAD:tools/x/a.py", "abc...HEAD", "abc^1", ".merge_file_Xy12",
-                "objects/00/abcd", "tools/x/new.json")), root, tracked, tdirs, g, g)
+                "objects/00/abcd", "tools/nodir/f.json", "tools/x/new.json")), root, tracked, tdirs, g, g)
         ck("fold: strings that name no file are not probes; a name in a tracked directory is",
            junk["probes"] == {"tools/x/new.json"})
         ck("fold: the index open is flagged, no object read", got["index"] and not got["objects"])
@@ -889,7 +881,19 @@ def self_test() -> int:
             '9 execve("/usr/bin/git", ["git", "show", "HEAD:x"], 0x0 /* 1 var */) = 0',
             f'9 openat(AT_FDCWD<{root}>, ".git/objects/pack/p.pack", O_RDONLY) = 3<{g}/objects/pack/p.pack>']),
             root, tracked, tdirs, g, g)
-        ck("fold: ... and `git show` opening it does (null control)", got4["objects"])
+        ck("fold: ... and `git show` opening it does (null control), naming the subcommand",
+           got4["objects"] and got4["git"] == {"show"} and got3["git"] == set())
+        link = Path(td + "-link")
+        link.symlink_to(root)
+        try:
+            via = fold_trace("\n".join([
+                f'9 openat(AT_FDCWD<{root}>, "tools/x/a.py", O_RDONLY) = 3<{root}/tools/x/a.py>',
+                f'9 newfstatat(AT_FDCWD<{link}>, "tools/x/b.json", 0x1, 0) = -1 ENOENT (x)']),
+                link, tracked, tdirs, g, g)
+            ck("fold: a root reached through a symlink takes resolved and unresolved paths alike",
+               via["files"] == {"tools/x/a.py"} and via["probes"] == {"tools/x/b.json"})
+        finally:
+            link.unlink()
         # The mutant the brief names: a table that omits a file a step reads
         # is shown red by the drift check; the full table is clean.
         wf2 = wf.replace("tools/x/a.py --self-test", "tools/x/a.py --self-test ")
@@ -975,6 +979,10 @@ def self_test() -> int:
         ck("selection: with no workflow, every step", selection(base, "HEAD", root / "nowhere") == "all")
         gd, cd = _git_dirs(root)
         ck("git dirs: a plain repository's git dir is its common dir", gd == cd == root / ".git")
+        git("worktree", "add", "-q", str(root / "wt2"), base)
+        gd2, cd2 = _git_dirs(root / "wt2")
+        ck("git dirs: a linked worktree's git dir is its own, its common dir the main one",
+           gd2 == root / ".git" / "worktrees" / "wt2" and cd2 == root / ".git")
 
     # trace lines strace prints that are no syscall, a resume with no start,
     # and an open through an undecorated fd, which only the result names.
@@ -1015,8 +1023,15 @@ def self_test() -> int:
             print("  skip the recorder end to end: no strace here, or this run is itself traced")
         else:
             out = io.StringIO()
-            with contextlib.redirect_stdout(out):
-                rc = main(["record"], root)
+            scratch, tempfile.tempdir = tempfile.tempdir, str(root.parent / f"{root.name}-tmp")
+            os.makedirs(tempfile.tempdir)
+            try:
+                with contextlib.redirect_stdout(out):
+                    rc = main(["record"], root)
+                left = os.listdir(tempfile.tempdir)
+            finally:
+                shutil.rmtree(tempfile.tempdir, ignore_errors=True)
+                tempfile.tempdir = scratch
             t = load_table(root / TABLE) or {"steps": {}}
             a_e, slow_e = t["steps"].get("a", {}), t["steps"].get("slow", {})
             ck(f"record: a traced run of the job writes one entry per gated step (rc={rc})",
@@ -1026,8 +1041,7 @@ def self_test() -> int:
                and "docs" in a_e.get("dirs", ()) and a_e.get("run_sha") == job_steps(e2e)[1].run_sha)
             ck("record: a detached self-test's reads are its waiter's",
                "tools/x/slow.sh" in slow_e.get("files", ()) and "tools/x/slow.sh" not in a_e.get("files", ()))
-            ck("record: it leaves no trace directory behind",
-               not any(Path(tempfile.gettempdir()).glob("selftest-record-*/" + TRACE_DIR + "/step-a.trace")))
+            ck("record: it leaves no trace directory behind", left == [])
         # The drift check and the CLI over a synthetic trace directory.
         (root / TABLE).parent.mkdir(parents=True, exist_ok=True)
         st3 = job_steps(e2e)
