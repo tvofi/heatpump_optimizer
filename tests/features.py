@@ -69866,13 +69866,28 @@ R.check(
 _cu_kept = _cu_coord()
 
 
-async def _cu_kept_load(_p={"cop_baseline_measured": {"2": [3.0, 1]},
-                            "cop_health_cusum_measured": {"stat": 0.5, "tripped": True}}):
+_cu_kept_payload = {"cop_baseline_measured": {"2": [3.0, 1]},
+                    "cop_health_cusum_measured": {"stat": 0.5, "tripped": True}}
+
+
+async def _cu_kept_load(_p=_cu_kept_payload):
     return _p
 
 
 _cu_kept._thermal_learning_store.async_load = _cu_kept_load
 _asyncio.run(_cu_kept._async_load_thermal_learning())
+from heatpump_optimizer import store as _cu_store  # noqa: E402
+
+# The store declares what the coordinator writes under the new keys: a band of
+# one sample and a CUSUM below its first unit both load, not quarantined.
+R.check(
+    "the store's domains admit a since-fix COP payload: the one the fold wrote, "
+    "and a one-sample band beside a CUSUM part-way to its alarm",
+    _cu_store.off_domain("heatpump_optimizer_thermal_learning", _cu_new_payload) == []
+    and _cu_store.off_domain("heatpump_optimizer_thermal_learning", _cu_kept_payload) == [],
+    f"{_cu_store.off_domain('heatpump_optimizer_thermal_learning', _cu_new_payload)} "
+    f"{_cu_store.off_domain('heatpump_optimizer_thermal_learning', _cu_kept_payload)}",
+)
 R.check(
     "a COP health CUSUM stored since measured provenance loads with its state",
     _cu_kept._cop_health_cusum.tripped and _cu_kept._cop_baseline == {(2, False): [3.0, 1]},
