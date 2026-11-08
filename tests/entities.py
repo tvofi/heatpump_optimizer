@@ -39614,6 +39614,24 @@ _MUT_AN_REL = _MUT_AN.split(":")[0]
 _MUT_AN_KILL, _MUT_AN_PASS = "tests/stub_kills.py", "tests/stub_passes.py"
 _MUT_AN_BUDGETS = _mut.load_budgets()
 _MUT_AN_TEXT = (_mut.ROOT / _MUT_AN_REL).read_text()
+# The file a stubbed run clones: the live text, or a variant the check plants.
+_MUT_AN_BASE = {"text": _MUT_AN_TEXT}
+
+
+def _mut_an_nulled(text):
+    # `text` with the production null control written in, as the anchor run
+    # writes its own (`mutation_table.null_control`). The stub killer tells
+    # that edit from a mutant by this text, never by its marker words: the
+    # mutation lane's null control puts the same words into the live file
+    # whenever it lands in topology.py, and a marker search then read every
+    # mutant as a null control and killed none (#3331's null-control red).
+    with tempfile.TemporaryDirectory() as _d:
+        _p = Path(_d) / "anchor.py"
+        _p.write_text(text)
+        _nc = _mut.null_control(_p)
+    _lines = text.splitlines(True)
+    _lines[_nc["line"] - 1] = _nc["new"] + "\n"
+    return "".join(_lines)
 
 
 # The third stub reads no code at all: it is TRIAGE_JUDGE's ledger check in
@@ -39628,7 +39646,7 @@ _MUT_AN_ROWS = _mut.ledger_dir().relative_to(_mut.ROOT)
 
 def _mut_an_clone(dest, row=None):
     (dest / _MUT_AN_REL).parent.mkdir(parents=True, exist_ok=True)
-    (dest / _MUT_AN_REL).write_text(_MUT_AN_TEXT)
+    (dest / _MUT_AN_REL).write_text(_MUT_AN_BASE["text"])
     if row is not None:
         _at = dest / _MUT_AN_ROWS / _mut.ledger_relpath("killed_by", _MUT_AN)
         _at.parent.mkdir(parents=True, exist_ok=True)
@@ -39647,15 +39665,15 @@ def _mut_an_stale(cwd):
 
 def _mut_an_run(script, cwd, timeout, extra_args=None, extra_env=None):
     text = (cwd / _MUT_AN_REL).read_text()
-    red = ((script == _MUT_AN_KILL and text != _MUT_AN_TEXT
-            and "(null control)" not in text)
+    base = _MUT_AN_BASE["text"]
+    red = ((script == _MUT_AN_KILL and text not in (base, _mut_an_nulled(base)))
            or (script == _MUT_AN_JUDGE and _mut_an_stale(cwd)))
     return _mut.ScriptRun(1 if red else 0, 1 if red else 0, 0.1,
                           "  FAIL stub\n1 of 1 STUB CHECKS FAILED\n" if red
                           else "ok\n")
 
 
-def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS)):
+def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS), text=_MUT_AN_TEXT):
     # The one row it re-drives, not the live ledger: main() refuses a ledger
     # that disagrees with the live inventory, so a whole-ledger stub went red
     # on ANY pinned line a mutant rewrote -- the vacuous kill (R10
@@ -39672,6 +39690,7 @@ def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS)):
     _mut.clone_tree = lambda dest: _mut_an_clone(dest, _row)
     _mut.drop_tree = lambda dest: None
     _mut.run_script = _mut_an_run
+    _MUT_AN_BASE["text"] = text
     _log = tempfile.TemporaryFile("w+")
     try:
         with _pv_ctx.redirect_stdout(_log):
@@ -39680,6 +39699,7 @@ def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS)):
     finally:
         for _n, _v in _saved.items():
             setattr(_mut, _n, _v)
+        _MUT_AN_BASE["text"] = _MUT_AN_TEXT
     _log.seek(0)
     return _rc, _log.read()
 
@@ -39709,6 +39729,19 @@ R.check(
     and "PIN RE-VERIFICATION: 0 reproduced, 1 not reproduced, 0 not re-verified" in _MUT_AN_VAC[1],
     f"has pin={_MUT_AN_HAS} judge-pinned={_MUT_AN_VAC!r:.600} -- reproduced "
     "means the ledger judge read the mutant's own stale row as a kill",
+)
+# The same re-drive from a file the mutation lane's null control already
+# commented: every mutant of it carries the null control's words, so the stub
+# killer must still kill the real pin, and must still spare the run's own
+# null control (#3331's null-control red, where topology.py was in the diff).
+_MUT_AN_PRE = (_mut_anchor(_MUT_AN_KILL, text=_mut_an_nulled(_MUT_AN_TEXT))
+               if _MUT_AN_HAS else (None, ""))
+R.check(
+    "--anchor still reproduces the real pin when the anchored file already "
+    "carries the mutation lane's comment-only null control",
+    _MUT_AN_PRE[0] == 0
+    and "PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified" in _MUT_AN_PRE[1],
+    f"has pin={_MUT_AN_HAS} pre-nulled={_MUT_AN_PRE!r:.600}",
 )
 # The rows a rewrite invalidates, on the real ledger: a pinned line rewritten
 # equivalently (a trailing comment) loses exactly the rows pinned to it, and
