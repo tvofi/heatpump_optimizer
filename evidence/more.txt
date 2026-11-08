@@ -1,6 +1,0 @@
-head 50a78a49ba19061c5d4e6e4a8f5efae62da64aab
-origin/52f9fc5b34 tools/ci replay: reruns=86 max_attempt=44
-52f9fc5b34^ replay: reruns=0 max_attempt=1
-candidate (arm1 skips conclusion==skipped) replay: reruns=1 max_attempt=2
-merge_train classify: GREEN pending none red none
-merge-tree origin/main: clean (LEDGER-MERGE auto-resolved closures.json, bugclasses.json)
