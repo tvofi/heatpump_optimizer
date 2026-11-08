@@ -1435,6 +1435,9 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "sensor_advisor",
             # Lovelace reads plan-sensor attributes, not coordinator.data.
             "wood_fuel",
+            # The space plan's current-step drivers (R10-WHY-NOW-WIDGET):
+            # card-only, and new at every step.
+            "why_now",
         }
     )
     _plan_key: str = ""
@@ -1625,6 +1628,15 @@ class SpaceHeatingPlanSensor(_PlanSensorBase):
         super().__init__(
             coordinator, entry, "space_heating_plan", "plan_space_heating"
         )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """The plan's attributes, and the current step's why-now drivers
+        (R10-WHY-NOW-WIDGET): absent while the plan has none, the card's
+        "no data"."""
+        attrs = super().extra_state_attributes
+        why_now = self._data().get("why_now")
+        return {**attrs, "why_now": why_now} if why_now else attrs
 
 
 class DHWHeatingPlanSensor(_DHWEntityMixin, _PlanSensorBase):

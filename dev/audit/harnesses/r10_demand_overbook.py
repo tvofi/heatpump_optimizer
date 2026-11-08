@@ -210,6 +210,21 @@ def _production_cost(opt, state, window, t, schedule):
     return round(float(got["objective"](np.asarray(schedule, dtype=float))), 3)
 
 
+def comfort_schedule(opt, t, n):
+    """The solve's own per-step (target, floor, ceiling) over ``n`` steps from ``t``.
+
+    Read from ``_build_comfort_bounds``, the one site that builds them, with
+    no margins and no mold floor; its fourth element (the pre-mold comfort
+    floor and the padded mold floor) is not the DP's. tests/features.py
+    drives this function, so a caller left on another return shape is red.
+    """
+    dt_h = DT_MIN / 60.0
+    hours = [(t.hour + t.minute / 60.0 + i * dt_h) % 24.0 for i in range(n)]
+    targets, floors, ceilings, _ = opt._build_comfort_bounds(
+        np.array(hours), n, None, None, [t + timedelta(minutes=DT_MIN * i) for i in range(n)])
+    return targets, floors, ceilings
+
+
 def _dp_reference(opt, state, window, res, t):
     """The optimizer's plan against a DP optimum, both on ``model`` and one objective.
 
@@ -242,8 +257,7 @@ def _dp_reference(opt, state, window, res, t):
     # The solve's own per-step comfort schedule (day/night target and band),
     # from the one site that builds it, never the flat config target: a flat
     # 21/20 band priced the night setback the solve is allowed as a breach.
-    targets, floors, ceilings = opt._build_comfort_bounds(
-        np.array(hours), n, None, None, [t + timedelta(minutes=DT_MIN * i) for i in range(n)])
+    targets, floors, ceilings = comfort_schedule(opt, t, n)
     bands = np.maximum(targets - floors, 1.0)
 
     def stage(room, p, i):

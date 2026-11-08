@@ -3146,6 +3146,10 @@ def _apply_result_payload(
             ],
         }
     )
+    # The why-now drivers of the step the action came from; absent when the
+    # action carries none, which the card reads as "no data".
+    if "why_now" in current_action:
+        data["why_now"] = current_action["why_now"]
 
 
 def _apply_unsolved_payload(data: Payload) -> None:
@@ -6266,10 +6270,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 space_pins=space_pins,
                 dhw_pins=dhw_pins,
                 power_caps_extra=quiet.caps,
-                # T5 (#16 #54): the comfort floor's two gated adjustments;
-                # None for both is the byte-inert default path.
+                # T5 (#16 #54): the comfort floor's gated adjustments; None is byte-inert.
                 min_temp_margins=self._confidence_margins(n),
                 min_temp_floors=self._mold_floor_series(horizon.outdoor_temps),
+                away_floor_drop_c=away_mode.floor_drop_c(ctx._opt_config, self._away_state),
                 # v5.3.0: never promise heat the pump's current mode cannot
                 # deliver — symmetrically. Both default False, so an install
                 # with no mode entity plans exactly as before.
