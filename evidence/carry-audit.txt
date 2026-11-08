@@ -1,0 +1,7 @@
+NOTE body item 0040dd27: dismissed:implemented by merged part 1 of this group
+NOTE body item 29aee995: dismissed:not reproduced here, control is the same run
+NOTE body item cbec3001: dismissed:built in this pull request, nothing left to carry
+NOTE body item 834c3877: dismissed:built in this pull request, nothing left to carry
+NOTE body item c19381e5: dismissed(R10-FLY-SUITE-ENV-FLAKES):the respawn stays conditional exactly as that done group's brief states, no live group fits (R10-ARCH-DOCS and R10-ROUND-PLAYBOOK-FINAL do not own nightly flakes)
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
+rc=0
