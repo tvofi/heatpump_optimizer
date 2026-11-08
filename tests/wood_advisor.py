@@ -594,12 +594,13 @@ from heatpump_optimizer.thermal_model import partload_factor as _plf
 from heatpump_optimizer.wood_fuel import wood_fuel_from_parts as _from_parts
 
 
-def _parts_view(derate, space, dhw, tank=None, partload_at=_plf, n_out=None):
+def _parts_view(derate, space, dhw, tank=None, partload_at=_plf, n_out=None,
+                price=2.85):
     tp = _TP(min_electrical_power=1.0, max_electrical_power=3.0,
              cop_partload_derate=derate)
     n = len(_STAMPS)
     result = _NS(
-        timestamps=_STAMPS, prices=[2.85] * n,
+        timestamps=_STAMPS, prices=[price] * n,
         outdoor_temps=[0.0] * (n if n_out is None else n_out),
         heat_pump_on_schedule=[True] * n,
         power_schedule=space, dhw_power_schedule=dhw,
@@ -659,6 +660,17 @@ R.check(
     "draw: light at derate 0.1, no advice at derate 0",
     _night == ["light", None],
     repr(_night),
+)
+# With no outdoor forecast the night scan keeps its flat COP 3 (no draw read):
+# at 3.3 SEK/kWh the pump heat is 1.1, dearer than wood's 1.0, so it lights;
+# at 2.7 it is 0.9 and it does not.
+_no_out = [_parts_view(0.1, [1.0] * _N, [2.0] * _N, tank=25.0, n_out=0, price=p).get(
+    "night_advice", {}).get("action") for p in (3.3, 2.7)]
+R.check(
+    "with no outdoor forecast the night advice prices pump heat at a flat "
+    "COP of 3: light at 3.3 SEK/kWh, no advice at 2.7",
+    _no_out == ["light", None],
+    repr(_no_out),
 )
 
 sys.exit(R.close("wood-advisor checks"))
