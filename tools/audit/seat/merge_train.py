@@ -532,6 +532,30 @@ def gate_busy(ci_runs, check_runs) -> list:
     return _gate_py().busy({"run_id": float("inf")}, runs)
 
 
+def gate_rerunning(ci_runs, check_runs) -> list:
+    """The unfinished ci.yml run ids at a head whose check suite's latest GATE
+    run is completed: `gate` is ci.yml's last job, so such a run is a re-run
+    attempt (gate-sweep's) whose gate is not yet listed again, and gate.py's
+    `busy` reads it judging. Its red is the one being re-judged."""
+    done = {(c.get("check_suite") or {}).get("id") for c in gate_suites(check_runs or ())
+            if c.get("status") == "completed"}
+    return sorted(r["id"] for r in ci_runs
+                  if r.get("status") not in ("completed", "action_required") and r.get("check_suite_id") in done)
+
+
+def sweep_settling(check_runs, now: float) -> bool:
+    """Whether the newest green GATE suite completed at most SWEEP_SETTLE_SECONDS
+    before <now> (epoch seconds), so gate-sweep's re-run of a red beside it may
+    not have started. A stamp ahead of <now>, or none readable, is unknowable:
+    no settle, the red stands."""
+    ends = [c.get("completed_at") for c in gate_suites(check_runs or ()) if run_state(c) == "green"]
+    try:
+        last = max(datetime.datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp() for t in ends)
+    except (ValueError, AttributeError):
+        return False
+    return 0 <= now - last <= SWEEP_SETTLE_SECONDS
+
+
 #: Polls a red GATE beside a green GATE suite is still waited on once no run is
 #: busy: gate-sweep.yml starts on the green run's completion and re-runs the
 #: deferred red gate (tools/ci/sweep.py), which lists its run unfinished again.
@@ -765,6 +789,13 @@ POLL_SECONDS = 300
 # poll slower or faster than the beat never hides it. Log lines only: no gate,
 # wait, merge decision or exit code reads them.
 HEARTBEAT_SECONDS = 240
+#: Seconds after the newest green GATE suite completed during which a red GATE
+#: beside it, with no ci.yml run busy or re-running, is still a wait for the
+#: one-read readers (`classify_at`): gate-sweep.yml starts on that completion,
+#: its workflow_run runs at main's sha, so no listing by the head names it.
+#: The poller's SWEEP_SETTLE_POLLS polls, in seconds. Measured: 62 s from the
+#: green completion to the re-run's request at a38bd141 (20:02:31Z -> 20:03:33Z).
+SWEEP_SETTLE_SECONDS = SWEEP_SETTLE_POLLS * HEARTBEAT_SECONDS
 # The main-moved recovery's bound (R10-TICK-TRAIN, tvofi 2026-10-15: #2284 sat
 # green 14/14 and was stopped because a record PR auto-merged). Each recovery
 # costs one full CI wait at the new head (~40 min), so three bound a busy
@@ -1628,16 +1659,19 @@ class Train:
         if ci_runs is None:
             self.log(f"gate red at {h[:8]}: the ci.yml runs listing is unreadable, so no run reads busy")
             return []
-        return gate_busy(ci_runs, check_runs)
+        return gate_busy(ci_runs, check_runs) or gate_rerunning(ci_runs, check_runs)
 
     def classify_at(self, h: str, runs, required) -> "tuple[str, list[str], list[str]]":
         """`classify` over <h>'s check runs with a red GATE re-read against
-        `_gate_busy`: the deferral reading of the one-read readers (the
-        `classify` subcommand, proof_watch). One read takes no sweep settle;
-        that is `wait_ci`'s, which polls, and a caller's next read sees the sweep."""
+        `_gate_busy` (a run busy, or re-running its gate), else against
+        `sweep_settling` on the wall clock: the deferral reading of the one-read
+        readers (the `classify` subcommand, proof_watch), none of which re-reads
+        a RED. `wait_ci`, which polls, takes the same settle as SWEEP_SETTLE_POLLS."""
         last = latest_runs(runs or ())
         state = classify(last, required)
-        busy = self._gate_busy(h, runs) if GATE in state[2] else []
+        if GATE not in state[2]:
+            return state
+        busy = self._gate_busy(h, runs) or (["sweep"] if sweep_settling(runs, self.wall()) else [])
         return classify(last, required, busy) if busy else state
 
     def wait_ci(self, h: str, only: "list[str] | None" = None,
@@ -5880,9 +5914,11 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
     check("defer-wait null: a genuine code-run failure still SKIPs once that run finishes (no green suite: no settle)",
           rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1]
           and not any("gate-sweep" in ln for ln in lines))
-    rc, lines, calls = go(dict(gate_req, frames=[scene[3]], rollup=(0, rollup_green)), polls=8)
-    check("defer-wait bound: a sweep that never re-runs the red leaves it standing one poll later, a SKIP",
-          rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1])
+    w = dict(gate_req, frames=[scene[3]], rollup=(0, rollup_green))
+    rc, lines, calls = go(w, polls=8)
+    check("defer-wait bound: a sweep that never re-runs the red leaves it standing one poll later, a SKIP "
+          "(two red polls, two ci.yml listing reads)",
+          rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1] and w.get("ci_list_reads") == 2)
     rc, lines, calls = go(dict(gate_req, frames=scene[:1], rollup=(0, rollup_green)), polls=3)
     check("defer-wait bound: a code run that never finishes ends in TIMEOUT within `polls`, never merges",
           rc == 1 and not merged(calls) and "TIMEOUT" in lines[-1])
@@ -5893,7 +5929,7 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
           and any("runs listing is unreadable" in ln for ln in lines))
     # The `classify` subcommand (dispatch's and every reviewer's CI wait, "exits
     # 1 RED") reads the same deferral through the same predicate (round 2).
-    def cli(frame, ci_out=None):
+    def cli(frame, ci_out=None, wall=time.time, cr_out=None):
         logged: list = []
 
         def run(argv, cwd=ROOT, stdin=None):
@@ -5905,9 +5941,9 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
             if "actions/workflows/ci.yml/runs" in a:
                 return ci_out or (0, "\n".join(json.dumps(r) for r in frame.get("ci_runs", [])))
             if "check-runs" in a:
-                return 0, "\n".join(json.dumps(c) for c in frame["runs"])
+                return cr_out or (0, "\n".join(json.dumps(c) for c in frame["runs"]))
             return 9, "unstubbed: " + a
-        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=logged.append)
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=logged.append, wall=wall)
         return classify_cmd(t, "a" * 40, None, False), logged
     (rc, line), _ = cli(scene[0])
     check("defer-wait CLI #3248: `classify` reads the deferring edit gate as WAIT (exit 3) while code run "
@@ -5920,8 +5956,17 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
           rc == 1 and line.startswith("RED ") and any("runs listing is unreadable" in ln for ln in logged))
     (rc, line), _ = cli({"runs": [edit_red, code_gate_green],
                          "ci_runs": [wr(E, "completed", 1), wr(C, "completed", 2)]})
-    check("defer-wait CLI: one read takes no settle -- a red beside a green suite with nothing busy is RED "
-          "(the caller's next read sees the sweep)", rc == 1 and line.startswith("RED "))
+    check("defer-wait CLI null: a red beside a green suite whose completion is unstamped takes no settle -- RED",
+          rc == 1 and line.startswith("RED "))
+    (rc, line), logged = cli({"runs": [code_gate_green]}, ci_out=(1, "HTTP 502"))
+    check("defer-wait CLI: a green gate is read with no ci.yml listing read (no unreadable-listing log) -- GREEN",
+          rc == 0 and line.startswith("GREEN ") and not logged)
+    try:
+        cli({"runs": []}, cr_out=(1, "HTTP 502"))
+        refused = False
+    except Stop:
+        refused = True
+    check("defer-wait CLI: unreadable check runs are a Stop (the caller's REFUSE), never a verdict", refused)
     # The `wait-ci` subcommand (wait_ci with no `only`) returns once every check
     # run concluded: the code run's units are done then, but gate-sweep's re-run
     # of the deferred red may not have started -- the same settle as the train's.
@@ -5946,6 +5991,88 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
     red, logged, reads = wait_all([[edit_red]])
     check("defer-wait wait-ci null: a red gate with no green suite beside it is read on the first poll, no settle",
           red == [GATE] and reads == 1 and not logged)
+
+    _settle_gap_self_test(check, cli, wr)
+
+
+def _settle_gap_self_test(check, cli, wr) -> None:
+    """The one-read readers' settle (R10-HOTFIX-TRAIN-DEFER-WAIT round 3): the
+    gate-sweep gap at a38bd141 (code run 42404526059's gate 128512781341 green
+    at 20:02:31Z, gate-sweep's attempt 2 of edit runs 42404527136/42406706258
+    from 20:03:33Z, their gates re-listed 20:05:39Z), and #3293's train race at
+    fefaa492 (edit run 42414123334's gate failed 21:07:57Z, code run
+    42414123291 in progress)."""
+    def ts(hms):
+        return datetime.datetime.fromisoformat(f"2026-11-07T{hms}+00:00").timestamp()
+
+    def g(cid, suite, conclusion, started, done=None, status="completed"):
+        return {"name": GATE, "id": cid, "status": status, "conclusion": conclusion if status == "completed" else None,
+                "started_at": f"2026-11-07T{started}Z", "check_suite": {"id": suite},
+                **({"completed_at": f"2026-11-07T{done}Z"} if done else {})}
+    CODE, E1, E2 = 42404526059, 42404527136, 42406706258
+    def units(suite, started, done):  # each edit run's attempt-1 jobs, completed (ev/check-runs-head.jsonl)
+        return [{"name": n, "status": "completed", "conclusion": c, "started_at": f"2026-11-07T{started}Z",
+                 "completed_at": f"2026-11-07T{done}Z", "check_suite": {"id": suite}}
+                for n, c in (("prelude", "success"), ("cancel-superseded", "success"), ("refresh", "success"),
+                             ("budget-raise-gate / budget-raise-gate", "success"), ("arch-score / arch-score", "success"),
+                             ("tests", "skipped"), ("hassfest", "skipped"), ("kernel-points", "skipped"),
+                             ("governance", "skipped"), ("validate", "skipped"), ("codeql", "skipped"),
+                             ("pr-contract", "skipped"))]
+    reds = (units(114882436719, "19:05:54", "19:07:11") + [g(128499580417, 114882436719, "failure", "19:07:14", "19:19:15")]
+            + units(114887946321, "19:33:13", "19:39:40") + [g(128507622651, 114887946321, "failure", "19:41:28", "19:53:38")])
+    code_green = g(128512781341, 114882433887, "success", "20:01:55", "20:02:31")
+    done = [wr(CODE, "completed", 114882433887), wr(E1, "completed", 114882436719, "CI edit pr=3290 base=main sha=a"),
+            wr(E2, "completed", 114887946321, "CI edit pr=3290 base=main sha=a")]
+    rerun = done[:1] + [dict(r, status="in_progress") for r in done[1:]]
+    gap = {"runs": reds + [code_green], "ci_runs": done}
+    bound = SWEEP_SETTLE_SECONDS
+    (rc, line), _ = cli(gap, wall=lambda: ts("20:03:00"))
+    check("settle gap a38bd141 20:03:00Z: the code gate green 29 s ago, no sweep yet -- `classify` reads WAIT (exit 3)",
+          rc == 3 and line.startswith("WAIT ") and line.endswith("red: none"))
+    (rc, line), _ = cli(dict(gap, ci_runs=rerun), wall=lambda: ts("20:04:00"))
+    check("settle gap a38bd141 20:04:00Z: gate-sweep's attempt 2 running, its gates not re-listed -- WAIT (exit 3)",
+          rc == 3 and line.startswith("WAIT "))
+    (rc, line), _ = cli(dict(gap, ci_runs=rerun), wall=lambda: ts("20:02:31") + bound + 600)
+    check("settle gap: a re-run attempt whose gate is not re-listed is a wait past the bound too (the re-run read)",
+          rc == 3 and line.startswith("WAIT "))
+    swept = [dict(r, conclusion="success", started_at="2026-11-07T20:05:39Z", completed_at="2026-11-07T20:06:15Z",
+                  id=r["id"] + 1) for r in reds if r["name"] == GATE]
+    (rc, line), _ = cli({"runs": reds + swept + [code_green], "ci_runs": done}, wall=lambda: ts("20:06:20"))
+    check("settle gap a38bd141 20:06:20Z: swept -- GREEN (exit 0)", rc == 0 and line.startswith("GREEN "))
+    (rc, line), _ = cli(gap, wall=lambda: ts("20:02:31") + bound + 1)
+    check(f"settle gap null: past the bound ({bound} s) with no re-run, the red stands -- RED (exit 1), "
+          "a sweep that never comes still ends RED", rc == 1 and line.startswith("RED ") and line.endswith("red: " + GATE))
+    (rc, line), _ = cli(gap, wall=lambda: ts("20:02:31") + bound)
+    check("settle gap: at exactly the bound the settle still holds -- WAIT", rc == 3)
+    (rc, line), _ = cli(gap, wall=lambda: ts("20:02:31"))
+    check("settle gap: a read in the code gate's completion second (age 0) is inside the settle -- WAIT", rc == 3)
+    (rc, line), _ = cli(gap, wall=lambda: ts("20:02:00"))
+    check("settle gap: a completion stamped ahead of the reading clock is unknowable, no settle -- RED",
+          rc == 1 and line.startswith("RED "))
+    (rc, line), _ = cli({"runs": reds + [dict(code_green, conclusion="failure")], "ci_runs": done},
+                        wall=lambda: ts("20:03:00"))
+    check("settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once",
+          rc == 1 and line.startswith("RED "))
+    # #3293 at fefaa492: both runs created 21:04:55Z; the edit gate failed
+    # deferring while code run 42414123291's units still ran.
+    CODE2, EDIT2 = 42414123291, 42414123334
+    edit_red = g(128528991330, 114906715876, "failure", "21:07:26", "21:07:57")
+    closures = {"name": "tests / closures", "id": 128528714784, "status": "in_progress", "conclusion": None,
+                "started_at": "2026-11-07T21:07:17Z", "check_suite": {"id": 114906715780}}
+    race = {"runs": [edit_red, closures],
+            "ci_runs": [wr(CODE2, "in_progress", 114906715780, "CI code pr=3293 base=main sha=a"),
+                        wr(EDIT2, "completed", 114906715876, "CI edit pr=3293 base=main sha=a")]}
+    (rc, line), _ = cli(race, wall=lambda: ts("21:08:30"))
+    check("#3293 race: the edit gate failed while code run 42414123291 runs -- `classify` reads WAIT (exit 3), "
+          "never RED", rc == 3 and line.startswith("WAIT ") and line.endswith("red: none"))
+    (rc, line), _ = cli(dict(race, ci_runs=race["ci_runs"][1:]), wall=lambda: ts("21:08:30"))
+    check("#3293 null: the same edit gate failure with no code run in progress stays RED (exit 1)",
+          rc == 1 and line.startswith("RED "))
+    code_red = g(128530000001, 114906715780, "failure", "21:20:00", "21:20:30")
+    (rc, line), _ = cli({"runs": [edit_red, dict(closures, status="completed", conclusion="failure"), code_red],
+                         "ci_runs": [dict(r, status="completed") for r in race["ci_runs"]]}, wall=lambda: ts("21:20:40"))
+    check("#3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)",
+          rc == 1 and line.startswith("RED "))
 
 
 def _state_self_test(check, go, merged, throwaway_git_init) -> None:
