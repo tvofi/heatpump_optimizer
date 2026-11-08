@@ -20,11 +20,12 @@ What it reads
 The schedule
     List scheduling over the roster's `after` edges with six pull-request
     slots, the owner's dispatch priority first and longest-remaining-path
-    within a tier. The priority (tvofi 2026-10-26) is derived at every replan:
-    tier 0 is `critical_path()`'s output for the roster graph as it stands
-    (never a stored list), tier 1 a production-lane group, tier 2 everything
-    else, ranked within tier 2 by the roster's `savings` field (absent sorts
-    last). Height breaks ties within a tier. A group holds a slot from its
+    within a tier. The priority is `dispatch_tier`'s, derived at every replan
+    from the roster alone: main, then the top tier (an outside request or
+    `critical_path()`'s output for the graph as it stands, unordered between
+    them), then hotfixes, production, and the other instruments ranked by
+    the roster's `savings` field (absent sorts last); `TIER_LEGEND` names
+    them. Height breaks ties within a tier. A group holds a slot from its
     start (the PR opens) to its finish (the PR merges). Groups whose fixer is
     already working (stage `in-progress`) were dispatched before the replan:
     up to six start at the replan instant in the same priority order, whatever
@@ -107,11 +108,6 @@ SELF = "tools/plan/replan.py"
 # the owner's cadence ("a patch stamp after roughly five production groups").
 LANES = ("Learners", "Core model", "Product UX", "Replay", "Instruments", "Docs")
 PRODUCTION = ("Learners", "Core model", "Product UX")
-
-# The owner's dispatch priority (tvofi 2026-10-26): the critical path first,
-# then production, then everything else by the savings it carries. The tiers
-# are derived from the roster graph at every replan; none is stored.
-TIER_CRITICAL, TIER_PRODUCTION, TIER_OTHER = 0, 1, 2
 
 # The kind of the one stamp that closes the programme: the round's major.
 ROUND_CLOSE = "round-close"
@@ -424,29 +420,47 @@ def critical_path(deps: dict, dur: dict, order: list) -> list:
     return chain
 
 
-#: The owner's priority order (standing directive, 2026-10-30), as tiers:
-#: 1 main (a red main or a main fix), 2 the critical path and hotfixes (user-
-#: reported production findings), 3 production work and instruments saving
-#: SAVING_TIER_HOURS or more, 4 every other instrument, ranked by its savings.
-TIER_MAIN, TIER_URGENT, TIER_PRODUCTION_WORK, TIER_INSTRUMENT = 1, 2, 3, 4
+#: The owner's priority order, as tiers. 1 main (a red main or a main fix):
+#: it blocks every merge, the top tier's included. 2 the top tier (tvofi
+#: 2026-11-08: "landing the outside requests, and landing the critical path
+#: ... All of them have top priority ... in no particular order"): an
+#: outside request (`roster_lib.is_outside`) or the critical path, ordered
+#: among themselves by height alone. Below it the standing order (2026-10-30)
+#: continues unchanged: 3 hotfixes (user-reported production findings), 4
+#: production work and instruments saving SAVING_TIER_HOURS or more, 5 every
+#: other instrument, ranked by its savings.
+TIER_MAIN, TIER_TOP, TIER_URGENT, TIER_PRODUCTION_WORK, TIER_INSTRUMENT = 1, 2, 3, 4, 5
 SAVING_TIER_HOURS = 12.0
+#: Each tier in words, for a reader of `tier` (the plan page's legend).
+TIER_LEGEND = {
+    TIER_MAIN: "main",
+    TIER_TOP: "outside requests and the critical path, unordered",
+    TIER_URGENT: "hotfixes",
+    TIER_PRODUCTION_WORK: f"production and instruments saving {SAVING_TIER_HOURS:g} h or more",
+    TIER_INSTRUMENT: "other instruments by savings",
+}
 
 
 def dispatch_tier(group: dict, on_cp: bool, savings: float | None) -> tuple[int, str]:
     """(tier, the roster fields that decided it) for one open group.
 
     Read from the roster alone: `kind` "main" or a `-MAIN-FIX`/`-MAIN-RED`
-    name is main; `on_cp` (`critical_path()`'s output, never a stored list),
-    a `kind` "bug" (the user-reported finding) or a HOTFIX-named production
-    group is urgent; `work_class` production, or an instrument whose
-    `savings` is at least SAVING_TIER_HOURS, is tier 3; else tier 4.
+    name is main; `on_cp` (`critical_path()`'s output, never a stored list)
+    or a `source` of outside (`roster_lib.is_outside`, never a list of
+    names) is the top tier; a `kind` "bug" (the user-reported finding) or a
+    HOTFIX-named production group is urgent; `work_class` production, or an
+    instrument whose `savings` is at least SAVING_TIER_HOURS, is tier 4;
+    else tier 5.
     """
     g, k = group["group"], group.get("kind")
     if k == "main" or "-MAIN-FIX" in g or "-MAIN-RED" in g:
         return TIER_MAIN, f"main (kind {k!r}, name)"
     cls = work_class(group)
+    outside = "outside request (source)"
     if on_cp:
-        return TIER_URGENT, "critical path"
+        return TIER_TOP, "critical path" + (f"; {outside}" if roster_lib.is_outside(group) else "")
+    if roster_lib.is_outside(group):
+        return TIER_TOP, outside
     if k == "bug" or "HOTFIX" in g and cls == "production":
         return TIER_URGENT, f"hotfix (kind {k!r}, name)"
     if cls == "production":
@@ -458,17 +472,19 @@ def dispatch_tier(group: dict, on_cp: bool, savings: float | None) -> tuple[int,
     return TIER_INSTRUMENT, f"{cls} saving {savings:g} h"
 
 
-def dispatch_key(n: str, tier: dict, crit: set, savings: dict, height: dict,
+def dispatch_key(n: str, tier: dict, savings: dict, height: dict,
                  dur_min: dict) -> tuple:
-    """The dispatch order, lowest first: tier, the critical path first within
-    it, then (tier 4 only) savings descending with an unrecorded savings last,
-    then the tie-break that predates the tiers: height, duration, name. It is
-    a pure function of the plan's own fields (`plan.json` records it per
-    group as `sort_key`), so a reader can re-derive the order from the plan.
+    """The dispatch order, lowest first: tier, then (tier 5 only) savings
+    descending with an unrecorded savings last, then the tie-break that
+    predates the tiers: height, duration, name. Nothing ranks the critical
+    path within a tier: it holds the top tier with the outside requests, in
+    no particular order (tvofi 2026-11-08), so height decides. It is a pure
+    function of the plan's own fields (`plan.json` records it per group as
+    `sort_key`), so a reader can re-derive the order from the plan.
     """
     t = tier[n]
     sav = (-savings[n] if n in savings else float("inf")) if t == TIER_INSTRUMENT else 0.0
-    return (t, 0 if n in crit else 1, sav, -height[n], -dur_min[n], n)
+    return (t, sav, -height[n], -dur_min[n], n)
 
 
 # ------------------------------------------------------------- duration model
@@ -744,11 +760,17 @@ def selftest_model() -> int:
     def tier_of(g, cp=False, sav=None):
         return dispatch_tier(g, cp, sav)[0]
     expect("main work is tier 1", tier_of(grp("R10-MAIN-FIX-X", kind="main")) == TIER_MAIN)
-    expect("the critical path is tier 2", tier_of(grp("I", kind="instrument"), cp=True) == TIER_URGENT)
-    expect("a user-reported bug (hotfix) is tier 2, off the critical path",
+    expect("main outranks the top tier, even an outside main fix",
+           tier_of(grp("R10-MAIN-FIX-X", kind="main", source="outside"), cp=True) == TIER_MAIN)
+    expect("the critical path is the top tier", tier_of(grp("I", kind="instrument"), cp=True) == TIER_TOP)
+    expect("an outside instrument is the top tier, off the critical path",
+           tier_of(grp("I", kind="instrument", source="outside")) == TIER_TOP)
+    expect("a user-reported bug (hotfix) is tier 3, off the critical path",
            tier_of(grp("R10-HOTFIX-X", kind="bug")) == TIER_URGENT)
-    expect("production work is tier 3", tier_of(grp("P")) == TIER_PRODUCTION_WORK)
-    expect("an instrument saving 12 h is tier 3, one saving 11 h tier 4",
+    expect("production work is tier 4", tier_of(grp("P")) == TIER_PRODUCTION_WORK)
+    expect("a source other than outside is no top tier (null control)",
+           tier_of(grp("P", source="audit")) == TIER_PRODUCTION_WORK)
+    expect("an instrument saving 12 h is tier 4, one saving 11 h tier 5",
            tier_of(grp("I", kind="instrument"), sav=12) == TIER_PRODUCTION_WORK
            and tier_of(grp("I", kind="instrument"), sav=11) == TIER_INSTRUMENT)
     why = dispatch_tier(grp("I", kind="instrument"), False, None)[1]
@@ -769,14 +791,49 @@ def selftest_model() -> int:
            sorted(keys, key=lambda n: [float("inf") if k is None else k for k in keys[n]])[0] == "CPA"
            and all(po["groups"][n]["tier_reason"] for n in keys), keys)
     # A critical-path tail (B, 18 h left) against a taller hotfix (H, 24 h):
-    # height alone dispatches H first; the owner's order puts B first.
+    # height alone dispatches H first; the top tier puts B first.
     tail = build_plan({"groups": [grp("A", "L", "instrument"),
                                   grp("B", "S", "instrument", after=["A"]),
                                   grp("H", "M", "bug")]}, M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
     T = tail["groups"]
-    expect("within tier 2 the critical path goes first, even its shorter tail",
+    expect("the critical path outranks a hotfix, even its shorter tail",
            tail["critical_path"] == ["A", "B"] and T["B"]["start"] < T["H"]["start"],
            {n: (T[n]["start"], T[n]["sort_key"]) for n in T})
+    # The owner's top tier (tvofi 2026-11-07, 2026-11-08): an accepted outside
+    # request ranks with the critical path, unordered among them, ahead of a
+    # production group that is taller than it. The outside group (S) is
+    # shorter than PRODX (M) and on no critical path (CPX, L, is the path);
+    # PRODY is the same production group with no outside source: tier 4.
+    out = build_plan({"groups": [grp("CPX", "L"), grp("PRODX", "M"),
+                                 grp("OUTX", "S", source="outside"), grp("PRODY", "S")]},
+                     M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
+    O = out["groups"]
+    expect("an outside request is the top tier off the critical path, and dispatches "
+           "before a taller production group",
+           out["critical_path"] == ["CPX"] and O["OUTX"]["tier"] == TIER_TOP
+           and "outside request" in O["OUTX"]["tier_reason"]
+           and O["OUTX"]["start"] < O["PRODX"]["start"],
+           {n: (O[n]["tier"], O[n]["start"], O[n]["tier_reason"]) for n in O})
+    expect("null control: the same production group with no outside source stays below",
+           O["PRODY"]["tier"] == TIER_PRODUCTION_WORK and "outside" not in O["PRODY"]["tier_reason"]
+           and O["PRODX"]["start"] < O["PRODY"]["start"],
+           {n: (O[n]["tier"], O[n]["start"]) for n in O})
+    # Unordered within the top tier: height decides between an outside group
+    # and the critical path. CPA -> CPB is the path; once CPA merges, OUTT
+    # (M) is taller than the path's tail CPB (S), so OUTT takes the one free
+    # slot and CPB still starts at the same instant, past the cap.
+    unord = build_plan({"groups": [grp("CPA", "L"), grp("CPB", "S", after=["CPA"]),
+                                   grp("OUTT", "M", source="outside")]},
+                       M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
+    U = unord["groups"]
+    expect("within the top tier height orders an outside group and the critical path, "
+           "and the critical path is still exempt from the cap",
+           unord["critical_path"] == ["CPA", "CPB"]
+           and U["OUTT"]["tier"] == U["CPB"]["tier"] == TIER_TOP
+           and U["OUTT"]["sort_key"] < U["CPB"]["sort_key"]
+           and U["OUTT"]["start"] == U["CPB"]["start"] and U["CPB"].get("exempt") is True
+           and not U["OUTT"].get("exempt"),
+           {n: (U[n]["sort_key"], U[n]["start"], U[n].get("exempt")) for n in U})
     tie = build_plan({"groups": [grp("A1", "M"), grp("A2", "S")]}, M,
                      dict(caps1, slots=1), start, "v1.0.0", round_n=2)
     expect("null control: two groups in one tier keep the height tie-break",
@@ -980,7 +1037,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         tier[n], tier_why[n] = dispatch_tier(G[n], n in crit, savings.get(n))
 
     def priority(n: str):
-        return dispatch_key(n, tier, crit, savings, height, dur_min)
+        return dispatch_key(n, tier, savings, height, dur_min)
 
     slots = int(caps["slots"])
     seats = int(caps["seats"])
@@ -1071,9 +1128,25 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                 inherited.add(n)
             ready.discard(n)
             pending.discard(n)
-        # A ready critical-path group starts now whatever the slots cap, as
-        # dispatch does (orchestrator.md section 5); it takes a free slot when
-        # one exists and an overflow slot otherwise, and is exempt from the cap.
+        # The free slots go in the priority order. The critical path does not
+        # take them first: it shares the top tier with the outside requests,
+        # unordered (tvofi 2026-11-08), so a taller outside group wins a slot
+        # and the critical path still starts below, past the cap.
+        while ready and free_slot() is not None:
+            n = pick(sorted(ready), t)
+            if n is None:
+                break
+            s = free_slot()
+            start_t[n] = t
+            slot_of[n] = s
+            work_end[n] = t + dur_min[n]
+            running[n] = (s, work_end[n])
+            ready.discard(n)
+            pending.discard(n)
+        # Then a ready critical-path group the free slots did not take starts
+        # now whatever the slots cap, as dispatch does (orchestrator.md section
+        # 5): it takes a free slot when one is left (the coordinator cap held
+        # it above) and an overflow slot otherwise, and is exempt from the cap.
         while True:
             n = pick(sorted(x for x in ready if x in crit), t)
             if n is None:
@@ -1082,17 +1155,6 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             if s is None:
                 s = overflow_base + len(start_t)
                 exempt.add(n)
-            start_t[n] = t
-            slot_of[n] = s
-            work_end[n] = t + dur_min[n]
-            running[n] = (s, work_end[n])
-            ready.discard(n)
-            pending.discard(n)
-        while ready and free_slot() is not None:
-            n = pick(sorted(ready), t)
-            if n is None:
-                break
-            s = free_slot()
             start_t[n] = t
             slot_of[n] = s
             work_end[n] = t + dur_min[n]
@@ -1988,7 +2050,7 @@ def selftest() -> int:
            p5["groups"]["A"]["start"] > p5["groups"]["B"]["start"],
            f"A starts {p5['groups']['A']['start']}, B {p5['groups']['B']['start']}")
 
-    # The owner's dispatch priority (tvofi 2026-10-26): the critical path
+    # The owner's dispatch priority (`dispatch_tier`): the critical path
     # computed from the graph, then production, then the rest by the roster's
     # `savings`. The fixtures below fail on a key that sees remaining height
     # alone; the tiers are derived at each replan, never stored.
@@ -2036,9 +2098,10 @@ def selftest() -> int:
            and p8["groups"]["PROD"]["sort_key"] < p8["groups"]["TALL"]["sort_key"],
            str({g: p8["groups"][g]["sort_key"] for g in ("PROD", "TALL")}))
 
-    # Within tier 2 the roster's `savings` ranks; absent sorts last. CP owns
-    # the critical path so HI/LO/NONE are all tier 2. The size order (L, M, S)
-    # is the opposite of the savings order, so height alone would invert it.
+    # Within the instrument tier the roster's `savings` ranks; absent sorts
+    # last. CP owns the critical path so HI/LO/NONE all share that tier. The
+    # size order (L, M, S) is the opposite of the savings order, so height
+    # alone would invert it.
     save = {"groups": [
         {"group": "CP", "size": "XL", "lane": "IN", "kind": "instrument",
          "after": [], "resume": {"stage": "not-started"}},
@@ -2050,7 +2113,7 @@ def selftest() -> int:
          "after": [], "resume": {"stage": "not-started"}},
     ]}
     p9 = build_plan(save, durations, one, start, "v1.0.0", round_n=FIXTURE_ROUND)
-    expect("tier 2 ranks by savings, and absent savings sorts last",
+    expect("the instrument tier ranks by savings, and absent savings sorts last",
            p9["groups"]["HI"]["start"] < p9["groups"]["LO"]["start"]
            < p9["groups"]["NONE"]["start"],
            str({g: p9["groups"][g]["start"] for g in ("HI", "LO", "NONE")}))
@@ -2484,6 +2547,12 @@ def selftest() -> int:
             ("tier-critical-path",
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
              "    if on_cp:", "    if False:"),
+            ("tier-outside",
+             _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
+             _m("    if roster_lib.is_outside", "(group):\n"), "    if False:\n"),
+            ("top-tier-unordered",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("n = pick(sorted(ready", "), t)"), "n = pick(sorted(ready & crit or ready), t)"),
             ("tier-production",
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
              _m('return TIER_PRODUCTION_WORK, "production ', '(work_class)"'),
@@ -2498,9 +2567,9 @@ def selftest() -> int:
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
              _m("if savings is not None and savings >= ", "SAVING_TIER_HOURS:"), "if False:"),
             ("tier-savings",
-             _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
+             _m("def dispatch_key(n: str, ", "tier: dict, savings: dict,"),
              _m('sav = (-savings[n] if n in savings ', 'else float("inf"))'), "sav = (0.0)"),
-            ("cp-first-in-tier",
+            ("cp-overflow-start",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("n = pick(sorted(x for x in ready ", "if x in crit), t)"),
              "n = pick(sorted(x for x in ready if False), t)"),
@@ -2576,7 +2645,7 @@ def selftest() -> int:
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              "n_exp = inflow * closure / 60.0", "n_exp = 1.0"),
             ("height-tiebreak",
-             _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
+             _m("def dispatch_key(n: str, ", "tier: dict, savings: dict,"),
              _m("sav, -height[n], ", "-dur_min[n], n)"), "sav, n)"),
             ("started-past-cap",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
