@@ -1,4 +1,0 @@
-RESULT lanes=beat nightly_status=PASSED rc=0 ran=['mutation-ledger', 'mutation-ledger-push', 'mutation-nightly', 'nightly-ha', 'record-autofix', 'slow']
-    NIGHTLY PASSED: every job of the scheduled run below succeeded or was skipped, in the last verification dispatch.
-RESULT lanes=all nightly_status=PASSED rc=0 ran=['mutation-ledger', 'mutation-ledger-push', 'mutation-nightly', 'nightly-ha', 'record-autofix', 'slow']
-    NIGHTLY PASSED: every job of the scheduled run below succeeded or was skipped, in the last verification dispatch.

@@ -1,0 +1,8 @@
+review_carry: 01e9c6127 -> e5a600c1e  main=origin/main
+  branch-only commits: 4
+  why: the branch's own commits b4446e5cb 278609d60 9dce60e33 change its content: e5a600c1e28b5cfd11b6218fad8b39b01724f50c is not the reviewed head 01e9c61273753db2526fb19b6b44ece19167128b merged onto aaaec2128e5d2efc2e0ad8ffe4918eec6cbb7f98
+  9dce60e33  nightly-status: a lanes=beat record flush is never the graded nightly
+  278609d60  stamp: the flush's comments name the lanes=beat dispatch it now sends
+  b4446e5cb  stamp self-test: the rows gate and the record beat pins read their return values
+  e5a600c1e  Merge commit 'b4446e5cb97958de79c1c9d38d25e7679624de68' into fix/r10-fly-stamp-flush-cost
+review_carry: FRESH-REVIEW

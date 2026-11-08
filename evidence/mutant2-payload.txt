@@ -1,2 +1,0 @@
-  FAIL record beat: dispatch_record_beat posts lanes=beat
-RESULT stamp_self_test=fail
