@@ -1,0 +1,5 @@
+head c95c3b4b2e5875103fd5944c766d9e954f5b8a90 -- check-runs (51, one page) read ~00:51Z 2026-11-08
+pr-contract / pr-contract 128578752551 failure: "FAIL closed: no run at this head owns a finished codeql unit for base 'main' after 600 s" (codescan_wait.py, 00:48:53Z); figure_lint 16 resolved 2 not verified 0 refused; preflight clean; carry_audit 0 items
+gate 128581122145 (KIND edit) failure: "FAIL run(s) [42424058362] at this head are still being judged; their gate decides" (00:49:30Z)
+in progress at read: tests / closures, governance / instrument-self-tests, codeql / Analyze (python) (code run 42424058362)
+merge_train classify 00:50:20Z: RED c95c3b4b2e5875103fd5944c766d9e954f5b8a90 pending: none red: gate (rc 1)

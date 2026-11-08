@@ -1,44 +1,54 @@
 # Review packet #3262
-head: b9b6af68683febf678907b19d7e73be453bc5bb7
-base: a37c58e5f32123b4028e90983799dc2aa81816f8
+head: c95c3b4b2e5875103fd5944c766d9e954f5b8a90
+base: 7c9c4c154cda514f938fd503cde2779716caf251
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: pending
-CodeQL id=128445982011 neutral
-arch-score / arch-score id=128443914192 success
-arm id=128440648251 skipped
-budget-raise-gate / budget-raise-gate id=128443914124 success
-cancel-superseded id=128440654967 success
-codeql / Analyze (actions) id=128443913968 queued
-codeql / Analyze (javascript-typescript) id=128443914110 success
-codeql / Analyze (python) id=128443913987 in_progress
-governance / delivery-status id=128443914003 success
-governance / delivery-status-publish id=128443915106 skipped
-governance / env-matrix id=128443913991 success
-governance / instrument-self-tests id=128443914094 queued
-governance / policy-docs id=128443914107 queued
-governance / record id=128443915157 skipped
-governance / wave-script id=128443914127 queued
-hassfest / hassfest id=128443913980 success
-kernel-points id=128443914941 skipped
-prelude id=128440655172 queued
-refresh id=128440655165 success
-tests / arch-instrument id=128444220410 queued
-tests / briefs id=128443914128 queued
-tests / browser id=128444220595 queued
-tests / closure-scope id=128443913967 success
-tests / closures id=128444220413 queued
-tests / coverage id=128444220587 queued
-tests / fast (3.14) id=128444220455 queued
-tests / mutation id=128443913966 success
-tests / mutation-autofix id=128444729230 skipped
-tests / mutation-pins id=128444729100 skipped
-tests / nightly-ha id=128444221810 skipped
-tests / nightly-status id=128443914073 queued
-tests / replay id=128444221382 skipped
-tests / typing id=128444220450 queued
-validate / validate-hacs id=128443913923 success
+CodeQL id=128558737877 success
+arch-score / arch-score id=128578631274 success
+arm id=128558428608 skipped
+budget-raise-gate / budget-raise-gate id=128578631318 success
+cancel-superseded id=128578505279 success
+codeql id=128578497664 skipped
+codeql / Analyze (actions) id=128578631162 success
+codeql / Analyze (javascript-typescript) id=128578631156 success
+codeql / Analyze (python) id=128578631175 in_progress
+governance id=128578497263 skipped
+governance / delivery-status id=128578631221 success
+governance / delivery-status-publish id=128578632760 skipped
+governance / env-matrix id=128578631249 in_progress
+governance / instrument-self-tests id=128578631299 in_progress
+governance / policy-docs id=128578631355 in_progress
+governance / record id=128578632662 skipped
+governance / wave-script id=128578631330 success
+hassfest id=128578497316 skipped
+hassfest / hassfest id=128578631130 success
+kernel-points id=128578632155 skipped
+pr-contract / pr-contract id=128578752551 in_progress
+prelude id=128578505546 success
+refresh id=128578505506 success
+tests id=128578497540 skipped
+tests / arch-instrument id=128578774344 success
+tests / briefs id=128578631131 success
+tests / browser id=128578774138 success
+tests / claims-autofix id=128578803274 skipped
+tests / closure-scope id=128578631086 success
+tests / closures id=128578774028 in_progress
+tests / coverage id=128578775201 skipped
+tests / coverage-ratchet id=128578775710 skipped
+tests / fast (3.14) id=128578774041 success
+tests / graders-head-copy id=128578774459 success
+tests / lane-proofs id=128578801745 success
+tests / mutation id=128578631148 success
+tests / mutation-autofix id=128578797690 skipped
+tests / mutation-pins id=128578798399 skipped
+tests / nightly-ha id=128578775537 skipped
+tests / nightly-status id=128578631338 success
+tests / replay id=128578775495 skipped
+tests / typing id=128578774255 success
+validate id=128578497974 skipped
+validate / validate-hacs id=128578631279 success
 
 ## Refusals
 none
@@ -60,9 +70,9 @@ ok         python3 -I tools/audit/seat/plan_public.py --self-test
              `tests/entities.py` is in the tree at this head
   ok         tests/harness_headers.py
              `tests/harness_headers.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 tests/entities.py
+  ok         python3 tests/entities.py
              `tests/entities.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 tests/harness_headers.py
+  ok         python3 tests/harness_headers.py
              `tests/harness_headers.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
@@ -76,16 +86,18 @@ ok         python3 -I tools/audit/seat/plan_public.py --self-test
              `tools/audit/seat/tmp_paths.py` is in the tree at this head
   ok         python3 -I tools/audit/seat/selftest_wiring.py --check
              `tools/audit/seat/selftest_wiring.py` is in the tree at this head
+  ok         python3 -I tests/throwaway_git.py --check
+             `tests/throwaway_git.py` is in the tree at this head
   unverified git diff --quiet origin/main HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt && echo BYTE-IDENTICAL
              `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
-  ok         bash tools/audit/seat/cloud-setup.sh --check
+  ok         bash tools/audit/seat/cloud-setup.sh
              `tools/audit/seat/cloud-setup.sh` is in the tree at this head
-  ok         tools/pr/prepr.sh <body>
+  ok         python3 tools/audit/seat/beat_jobs.py --self-test
+             `tools/audit/seat/beat_jobs.py` is in the tree at this head
+  ok         tools/pr/prepr.sh
              `tools/pr/prepr.sh` is in the tree at this head
-  unverified git init
-             `git init` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
 
-FIGURES: 14 resolved, 3 not verified, 0 refused
+FIGURES: 16 resolved, 2 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -98,7 +110,7 @@ none
 
 ## Three-dot diff
 diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
-index 759ec575e..018e7f43f 100644
+index 94240aa6f..7e77a0d35 100644
 --- a/.github/workflows/governance.yml
 +++ b/.github/workflows/governance.yml
 @@ -320,6 +320,16 @@ jobs:
@@ -119,10 +131,10 @@ index 759ec575e..018e7f43f 100644
        # synthetic registration, offline: `policy-docs` runs the base's copy,
        # which cannot answer for a change to this one.
 diff --git a/.github/workflows/pages.yml b/.github/workflows/pages.yml
-index 1bd18308a..048b2e70b 100644
+index 1bd18308a..71e98540c 100644
 --- a/.github/workflows/pages.yml
 +++ b/.github/workflows/pages.yml
-@@ -19,6 +19,16 @@ name: Pages
+@@ -19,6 +19,18 @@ name: Pages
  #   is red. The deploy job runs in the `github-pages` environment, whose
  #   deployment rules (the owner's) decide which refs may deploy: a `v*` tag
  #   deploys only once that environment admits `v*` tags.
@@ -132,14 +144,16 @@ index 1bd18308a..048b2e70b 100644
 +#   `handoff/audit-r<N>-plan` state ref, refusing a page that carries a host
 +#   path or a tool's attribution (a red run; nothing deployed), and the beat's
 +#   `plan-beat` row dispatches this workflow on `main` after each state push
-+#   that carried a page. Between rounds there is no page: the site deploys
-+#   without one and warns. The docs are always the newest `v*` tag's -- on a
++#   that carried a page. A closed round's state ref stays the newest until
++#   `closeout.py --apply` deletes it, so its page is served until then; with
++#   no state ref, or no page at the newest, the site deploys without one and
++#   warns. The docs are always the newest `v*` tag's -- on a
 +#   dispatch the build checks that tag out after staging the plan -- so a plan
 +#   refresh never serves main's unreleased documentation.
  #
  # tests/entities.py pins all of this, and runs the staging and guard steps by
  # their names in a scratch repository.
-@@ -52,6 +62,8 @@ jobs:
+@@ -52,6 +64,8 @@ jobs:
        - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
          with:
            persist-credentials: false
@@ -148,7 +162,7 @@ index 1bd18308a..048b2e70b 100644
  
        - name: Ask whether Pages is enabled
          id: probe
-@@ -75,6 +87,32 @@ jobs:
+@@ -75,6 +89,32 @@ jobs:
            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
            echo "enabled=false" >> "$GITHUB_OUTPUT"
  
@@ -181,7 +195,7 @@ index 1bd18308a..048b2e70b 100644
        - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
          with:
            node-version: "22"
-@@ -109,6 +147,14 @@ jobs:
+@@ -109,6 +149,14 @@ jobs:
            mkdir -p _site/site/mermaid
            cp tools/site/node_modules/mermaid/dist/mermaid.min.js _site/site/mermaid/mermaid.min.js
  
@@ -301,7 +315,7 @@ index 000000000..9cdf482a1
 @@ -0,0 +1 @@
 +- [#3262](https://github.com/tvofi/heatpump_optimizer/pull/3262) — **open**, R10-OUTSIDE-INTAKE: the plan html public from the developer documentation, and the outside-contributor intake (R10-OUTSIDE-INTAKE)
 diff --git a/tests/closures.json b/tests/closures.json
-index 828aa5824..822938127 100644
+index a71088377..5f6cfadfc 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
 @@ -3877,9 +3877,12 @@
@@ -318,10 +332,10 @@ index 828aa5824..822938127 100644
     "tools/audit/seat/probe_bridge.py",
     "tools/audit/seat/proof_watch.py",
 diff --git a/tests/entities.py b/tests/entities.py
-index 95a2f533a..4e6061f57 100644
+index 890a94459..ecb3abc02 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
-@@ -40977,6 +40977,78 @@ R.check(
+@@ -41026,6 +41026,78 @@ R.check(
      f"copy-all: {_PG_NULL_STAGE}; no-op guard: {_PG_NULL_GUARD}",
  )
  
@@ -401,7 +415,7 @@ index 95a2f533a..4e6061f57 100644
  # script reads it, so an edit to it selects this script; it sets no gate
  # variable and runs no gate script, so it never forces FULL.
 diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
-index 57fcb0697..b6620aa2d 100644
+index fa3ebbd50..77f8e1c5c 100644
 --- a/tools/audit/seat/INSTRUMENTS.md
 +++ b/tools/audit/seat/INSTRUMENTS.md
 @@ -111,6 +111,8 @@ sweep's standing-seat liveness step keep them alive.
@@ -414,23 +428,23 @@ index 57fcb0697..b6620aa2d 100644
  - [`record_beat.py`](instruments/record_beat.py.md) — one merged pull request's #201 record line from a fixed template, the full merge sha, read back byte-identical
  - [`sweep_driver.py`](instruments/sweep_driver.py.md) — the probe PR's sweep, where `workflow_run` never fires (`gate-sweep.yml` runs only from the default branch)
 diff --git a/tools/audit/seat/beat_jobs.py b/tools/audit/seat/beat_jobs.py
-index 3e4be953b..24daa2182 100644
+index 1618be209..42d72d86b 100644
 --- a/tools/audit/seat/beat_jobs.py
 +++ b/tools/audit/seat/beat_jobs.py
-@@ -55,7 +55,11 @@ ROWS (the job table's `interval_s` in brackets):
-                      `S/roster-lint`, the orchestrator's to provision.
-   plan-beat [1800]   replan.py `--out`, then state_docs.py `--push --mirror
+@@ -63,7 +63,11 @@ ROWS (the job table's `interval_s` in brackets):
                       --plan`; `plan-beat: PLAN UNAVAILABLE` on a replan failure
--                     or state_docs rc 1, `plan-beat: REFUSED` on its rc 2.
-+                     or state_docs rc 1, `plan-beat: REFUSED` on its rc 2. A
+                      or state_docs rc 1, `plan-beat: REFUSED` on its rc 2; on
+                      success `plan-beat: PLAN MOVED` when the mirrored PLAN.html
+-                     differs from the last pass's (a republish is owed).
++                     differs from the last pass's (a republish is owed). A
 +                     pass whose state push landed (`pushed ` on rc 0 or 1)
 +                     dispatches `pages.yml` on main, which publishes the page
 +                     at plan_public.PLAN_URL; `plan-beat: PAGES NOT DISPATCHED`
 +                     when gh refuses.
-   pulse [300]        pulse.py into `S/beatd/pulse.txt`; its STOPPED and
-                      UNREADABLE lines to the digest.
-   cancel-sweep [600] cancel_superseded.py `sweep --repo R`; failures only.
-@@ -74,6 +78,10 @@ ROWS (the job table's `interval_s` in brackets):
+   gantt [1800]       sweep_gantt.py against `plan_json`, its baseline in
+                      `state/gantt/`, the `gantt_acks` file, the roster at
+                      `gantt_roster` (`<branch>:<path>`), the open pull requests,
+@@ -89,6 +93,10 @@ ROWS (the job table's `interval_s` in brackets):
                       dispatched again only after it reads `ok` or `insufficient`.
                       The guardrail's exit code is not read as a verdict; a failed run
                       is UNREADABLE until the next readable run clears it.
@@ -441,16 +455,16 @@ index 3e4be953b..24daa2182 100644
  No row runs `git checkout`, `reset`, `pull` or `merge`; main is read as
  `git -C <repo> cat-file -e origin/main:<path>`. No row touches a seat's alive
  file. Every row exits 0 once its lines are written: the digest is the signal,
-@@ -95,7 +103,7 @@ import time
+@@ -111,7 +119,7 @@ import time
  from pathlib import Path
  
- ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "pulse",
+ ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
 -        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch")
 +        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake")
  HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
  #: The board's actionable family (carry 20's list), keyed on the texts
  #: orchestrator_tick.py and ledger.py print; the self-test pins each literal there.
-@@ -355,20 +363,26 @@ def roster_drain(ctx: Ctx) -> None:
+@@ -382,26 +390,34 @@ def roster_drain(ctx: Ctx) -> None:
  
  
  def plan_beat(ctx: Ctx) -> None:
@@ -465,17 +479,25 @@ index 3e4be953b..24daa2182 100644
          last = (err.strip().splitlines() or [""])[-1]
          return write_job(ctx, "plan-beat", [f"plan-beat: PLAN UNAVAILABLE replan rc={rc}: {last}"])
 -    rc, _, err = ctx.py("tools/audit/seat/state_docs.py", "--push", "--mirror", mirror, "--plan", plan)
--    if rc == 0:
--        return write_job(ctx, "plan-beat", [])
--    said = [ln for ln in err.splitlines() if "UNAVAILABLE" in ln or "REFUSED" in ln]
--    word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"
--    write_job(ctx, "plan-beat", [f"plan-beat: {word} rc={rc}: {(said or [''])[-1]}"])
 +    rc, out, err = ctx.py("tools/audit/seat/state_docs.py", "--push", "--mirror", mirror, "--plan", plan)
 +    lines = []
 +    if rc != 0:
 +        said = [ln for ln in err.splitlines() if "UNAVAILABLE" in ln or "REFUSED" in ln]
 +        word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"
 +        lines.append(f"plan-beat: {word} rc={rc}: {(said or [''])[-1]}")
+     if rc == 0:
+         page = read(Path(mirror) / "PLAN.html")
+         sha = hashlib.sha256(page.encode()).hexdigest() if page else ""
+         moved = sha and sha != ctx.memory("plan-page.json", "")
+         ctx.remember("plan-page.json", sha, "")
+         # owner ruling (tvofi 2026-11-06): every sweep updates the plan artifact; a changed page owes a republish
+-        return write_job(ctx, "plan-beat", [f"plan-beat: PLAN MOVED {Path(mirror) / 'PLAN.html'} "
+-                                            "re-rendered; republish owed"] if moved else [])
+-    said = [ln for ln in err.splitlines() if "UNAVAILABLE" in ln or "REFUSED" in ln]
+-    word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"
+-    write_job(ctx, "plan-beat", [f"plan-beat: {word} rc={rc}: {(said or [''])[-1]}"])
++        if moved:
++            lines.append(f"plan-beat: PLAN MOVED {Path(mirror) / 'PLAN.html'} re-rendered; republish owed")
 +    if rc in (0, 1) and re.search(r"^pushed ", out, re.M):  # the state ref moved: publish its page
 +        drc, _, derr = ctx.run(["gh", "workflow", "run", "pages.yml", "--repo", repo, "--ref", "main"],
 +                               ctx.repo, ctx.env)
@@ -484,8 +506,8 @@ index 3e4be953b..24daa2182 100644
 +    write_job(ctx, "plan-beat", lines)
  
  
- def pulse(ctx: Ctx) -> None:
-@@ -476,9 +490,22 @@ def audit_dispatch(ctx: Ctx) -> None:
+ def gantt(ctx: Ctx) -> None:
+@@ -562,9 +578,22 @@ def audit_dispatch(ctx: Ctx) -> None:
      write_job(ctx, "audit-dispatch", kept + new)
  
  
@@ -502,7 +524,7 @@ index 3e4be953b..24daa2182 100644
 +
 +
  RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
-        "plan-beat": plan_beat, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
+        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
 -       "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch}
 +       "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
 +       "outside-intake": outside_intake}
@@ -510,10 +532,10 @@ index 3e4be953b..24daa2182 100644
  
  def main(argv: list[str]) -> int:
 diff --git a/tools/audit/seat/beat_jobs_selftest.py b/tools/audit/seat/beat_jobs_selftest.py
-index 7487a63dc..1647e8466 100644
+index 5aaf59830..152bfa42f 100644
 --- a/tools/audit/seat/beat_jobs_selftest.py
 +++ b/tools/audit/seat/beat_jobs_selftest.py
-@@ -70,7 +70,8 @@ def cases(bj) -> dict[str, bool]:
+@@ -124,7 +124,8 @@ def cases(bj) -> dict[str, bool]:
          (s / "beatd").mkdir(parents=True)
          ov = {"repo": "o/r", "seat_ledger": str(s / "ledger"), "plan_json": str(s / "p.json"),
                "plan_slots": 10, "plan_seats": 99, "state_mirror": str(s / "mirror"),
@@ -523,7 +545,7 @@ index 7487a63dc..1647e8466 100644
          if overlay is not None:
              ov = overlay
          (s / "sweep-overlay.json").write_text(json.dumps(ov))
-@@ -323,6 +324,38 @@ def cases(bj) -> dict[str, bool]:
+@@ -381,6 +382,38 @@ def cases(bj) -> dict[str, bool]:
      res["plan-beat: replan is handed the plan, slots and seats"] = (
          arg(a, "--out") == str(c.state.parent / "p.json") or arg(a, "--out").endswith("p.json")) and (
          arg(a, "--slots") == "10" and arg(a, "--seats") == "99")
@@ -560,14 +582,13 @@ index 7487a63dc..1647e8466 100644
 +    bj.outside_intake(c)
 +    res["outside-intake: rc 2 is UNREADABLE, never clean"] = digest(c).startswith("outside-intake: UNREADABLE")
  
-     # pulse
-     ok = "PULSE opener ok fine\npulse: 1 arms, 0 stopped, 0 unreadable at 2026-11-01T09:00:00Z\n"
-@@ -564,9 +597,19 @@ MUTANTS = {
+     # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
+     c, f = fresh(answers={"roster_queue.py": (0, "", "")})
+@@ -800,8 +833,19 @@ MUTANTS = {
                         "roster-drain: a queue line drains once, is marked, and is not re-run"),
      "roster_hold_ignored": ("            if not on_main(ctx, parts[1]):", "            if False:",
                              "roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases"),
--    "plan_rc1_silent": ('    if rc == 0:\n        return write_job(ctx, "plan-beat", [])',
--                        '    if rc in (0, 1):\n        return write_job(ctx, "plan-beat", [])',
+-    "plan_rc1_silent": ('    if rc == 0:\n        page = read(', '    if rc in (0, 1):\n        page = read(',
 +    "plan_rc1_silent": ("    if rc != 0:\n        said = ", "    if rc not in (0, 1):\n        said = ",
                          "plan-beat: state_docs rc 1 is PLAN UNAVAILABLE"),
 +    "pages_never_dispatched": ('re.search(r"^pushed ", out, re.M)', "False",
@@ -585,10 +606,10 @@ index 7487a63dc..1647e8466 100644
      "cancel_failure_dropped": ('r"could not cancel| rc=', 'r"could not cancelX| rc=',
                                 "cancel-sweep: a failure reaches the digest"),
 diff --git a/tools/audit/seat/beatd.jobs.json b/tools/audit/seat/beatd.jobs.json
-index 7e68ada02..6bff549a8 100644
+index fbb4d3b5a..f2c61ede3 100644
 --- a/tools/audit/seat/beatd.jobs.json
 +++ b/tools/audit/seat/beatd.jobs.json
-@@ -201,6 +201,26 @@
+@@ -241,6 +241,26 @@
        ],
        "class": null,
        "kind": "periodic"
@@ -616,16 +637,20 @@ index 7e68ada02..6bff549a8 100644
    ]
  }
 diff --git a/tools/audit/seat/instruments/beat_jobs.py.md b/tools/audit/seat/instruments/beat_jobs.py.md
-index f399272d5..505a36255 100644
+index 2cc1846ef..cbc71e3c2 100644
 --- a/tools/audit/seat/instruments/beat_jobs.py.md
 +++ b/tools/audit/seat/instruments/beat_jobs.py.md
-@@ -9,11 +9,12 @@
-   `S/roster-drain.queue`, each exact line marked done, a refusal never
-   retried, `hold <tree-path> <op>` released once main carries the path and
-   `HOLD-STALE` after 24 h), `plan-beat` (`replan.py` then `state_docs.py
--  --push --mirror --plan`), `pulse` (into `S/beatd/pulse.txt`), `cancel-sweep`,
-+  --push --mirror --plan`, then a `pages.yml` dispatch after a state push that
-+  landed, so `plan_public.py` republishes the public page), `pulse` (into `S/beatd/pulse.txt`), `cancel-sweep`,
+@@ -11,14 +11,15 @@
+   reported nor marked `UNRUN` and pending, a refusal by a worktree on no origin
+   ref pending under one `CASCADE` line, `hold <tree-path> <op>` released once
+   main carries the path and `HOLD-STALE` after 24 h), `plan-beat` (`replan.py`
+-  then `state_docs.py --push --mirror --plan`, and `PLAN MOVED` when the
+-  mirrored `PLAN.html` changed), `gantt` (`sweep_gantt.py`'s `GANTT-SLIP` and
++  then `state_docs.py --push --mirror --plan`, `PLAN MOVED` when the
++  mirrored `PLAN.html` changed, and a `pages.yml` dispatch after a state push that
++  landed, so `plan_public.py` republishes the public page), `gantt` (`sweep_gantt.py`'s `GANTT-SLIP` and
+   `GANTT-BASELINE` lines), `verdict-audit` (`verdict_audit.py`'s `UNHELD`
+   lines), `pulse` (into `S/beatd/pulse.txt`), `cancel-sweep`,
    `disk` (`worktree_gc.sh` under the floor), `opener` (one `open_driver.py
    --board` pass, its refusals and `STUCK` forwarded) `head-watch`
    (`HEAD-MOVED` events) and `audit-dispatch` (one `DISPATCH: planted-defect-audit
@@ -1064,10 +1089,10 @@ index 000000000..9e092aa90
 +    sys.exit(main(sys.argv[1:]))
 diff --git a/tools/audit/seat/outside_intake_selftest.py b/tools/audit/seat/outside_intake_selftest.py
 new file mode 100644
-index 000000000..6912e54df
+index 000000000..ef2748933
 --- /dev/null
 +++ b/tools/audit/seat/outside_intake_selftest.py
-@@ -0,0 +1,370 @@
+@@ -0,0 +1,391 @@
 +"""The fixtures, cases and mutants of outside_intake.py's self-test, kept beside it.
 +
 +Run through `outside_intake.py`'s own flag, which CI's governance workflow
@@ -1349,6 +1374,22 @@ index 000000000..6912e54df
 +                                                 "body": m.REFUSED_MARK + " by our App"}]}])
 +    lines, _ = m.listing(Fake(wd), "o/r", SINCE, roster(), LIVE(), NOW)
 +    res["discussions: our App's marker is read (GraphQL names a bot without its [bot] suffix)"] = lines == []
++    wd = dict(empty, discussions=[{"n": 3262, "at": "2026-11-01T10:00:00Z", "login": "asker", "type": "User",
++                                   "comments": [{"login": "asker", "type": "User", "at": "2026-11-06T10:00:00Z",
++                                                 "body": "still open?"}]}])
++    lines, _ = m.listing(Fake(wd), "o/r", SINCE, roster(), LIVE(), NOW)
++    res["discussions: a discussion opened before the cursor, its new outside comment listed as a discussion"] = (
++        lines == ["OUTSIDE #3262 owed=triage discussion by=asker since=2026-11-06T10:00:00Z"])
++    # A design choice: GitHub stamps to the second, so a same-second outside comment cannot be
++    # ordered against our answer; only outside activity strictly after our latest comment owes a reply.
++    t = m.Thread(3225, "issue")
++    t.saw("Bankaifan", "2026-11-06T22:00:00Z")
++    t.answered = t.last_ours = "2026-11-06T22:00:00Z"
++    later = m.Thread(3225, "issue")
++    later.saw("Bankaifan", "2026-11-06T22:00:01Z")
++    later.answered = later.last_ours = "2026-11-06T22:00:00Z"
++    res["reply: outside activity in our answer's own second owes nothing; one second later owes a reply"] = (
++        m.owed(t, m.wired(roster()), True) is None and m.owed(later, m.wired(roster()), True) == "reply")
 +    res["identity: every account of ours and every bot is not outside; a stranger is"] = (
 +        not any(m.outside(a, "User") for a in m.OURS) and not m.outside("renovate[bot]", "Bot")
 +        and m.outside("Bankaifan", "User"))
@@ -1399,6 +1440,11 @@ index 000000000..6912e54df
 +                         "post: gh_comment.py post is run with the body file, --dry-run passed, rc 0 kept"),
 +    "post_wrong_script": ('"tools/pr/gh_comment.py"', '"tools/pr/gh_comment_missing.py"',
 +                          "post: gh_comment.py post is run with the body file, --dry-run absent, rc 0 kept"),
++    "scan_disc_kind": ('        if t.n in disc:\n            t.kind = "discussion"', '        if False:\n            t.kind = "discussion"',
++                       "discussions: a discussion opened before the cursor, its new outside comment listed as a discussion"),
++    "owed_reply_ge": ('"reply" if t.last_out > max(disposed, t.last_ours) else None',
++                      '"reply" if t.last_out >= max(disposed, t.last_ours) else None',
++                      "reply: outside activity in our answer's own second owes nothing; one second later owes a reply"),
 +    "discussion_answered": ('        return 1, f"outside_intake: REFUSED: #{n} is a discussion; answer it by hand"', "        pass",
 +                            "discussions: an outside discussion is listed, and answering one is refused (by hand)"),
 +}
@@ -1440,10 +1486,10 @@ index 000000000..6912e54df
 +    return 0
 diff --git a/tools/audit/seat/plan_public.py b/tools/audit/seat/plan_public.py
 new file mode 100644
-index 000000000..560429379
+index 000000000..75f5866f9
 --- /dev/null
 +++ b/tools/audit/seat/plan_public.py
-@@ -0,0 +1,237 @@
+@@ -0,0 +1,246 @@
 +#!/usr/bin/env python3
 +"""plan_public.py -- stage the ongoing round's plan page for the public site.
 +
@@ -1465,8 +1511,11 @@ index 000000000..560429379
 +STAGE reads the remote-tracking state refs (`origin/handoff/audit-r<N>-plan`,
 +the layout `state_docs.state_of` owns), takes the highest round N's PLAN.html
 +and writes it as `<out>/plan/index.html`. Nothing to publish, rc 2 and nothing
-+written: no state ref, or no PLAN.html at the newest one (between rounds: the
-+workflow deploys the site without a plan and warns). Refusals, rc 1 and nothing
++written: no state ref, or no PLAN.html at the newest one (the workflow deploys
++the site without a plan and warns). A closed round's state ref stays the newest
++until `closeout.py --apply` deletes it, so its page is served until then; only
++after that delete, and before the next round's state ref, is there no page.
++Refusals, rc 1 and nothing
 +written, which turn the deploy red: a page that is not an HTML document, and a page `ref_privacy` reads a host path, account name, uid or
 +session scratch root in, or a tool's attribution -- a public page carries
 +none of them. The UNAVAILABLE page `plan_page.py` writes over a stale plan is
@@ -1546,6 +1595,8 @@ index 000000000..560429379
 +                           "the CLI over a scratch repository: a clean page is staged, rc 0"),
 +    "main_rc0": ("    return rc\n", "    return 0\n",
 +                 "the CLI over a scratch repository: a page naming a home directory is refused, rc 1 and nothing written"),
++    "main_url_rc1": ("        print(PLAN_URL)\n        return 0", "        print(PLAN_URL)\n        return 1",
++                     "url prints PLAN_URL alone, rc 0"),
 +}
 +
 +
@@ -1629,6 +1680,10 @@ index 000000000..560429379
 +            staged = out / PLAN_DIR / "index.html"
 +            check(f"the CLI over a scratch repository: {name}",
 +                  rc == want_rc and (staged.read_text() == body if want_rc == 0 else not staged.exists()))
++    url_out = __import__("io").StringIO()
++    with __import__("contextlib").redirect_stdout(url_out):
++        url_rc = main(["url"])
++    check("url prints PLAN_URL alone, rc 0", url_rc == 0 and url_out.getvalue() == PLAN_URL + "\n")
 +    check("PLAN_URL is under the Pages site and ends in the staged directory",
 +          PLAN_URL.startswith(PAGES_URL) and PLAN_URL.endswith(f"/{PLAN_DIR}/"))
 +    if mutants:
@@ -1682,7 +1737,7 @@ index 000000000..560429379
 +if __name__ == "__main__":
 +    sys.exit(main(sys.argv[1:]))
 diff --git a/tools/audit/seat/sweep_template.md b/tools/audit/seat/sweep_template.md
-index 139293ef5..f39b9d02e 100644
+index 6e60d5b75..785b53e5d 100644
 --- a/tools/audit/seat/sweep_template.md
 +++ b/tools/audit/seat/sweep_template.md
 @@ -48,6 +48,7 @@ rendered text that no overlay value supplied.
@@ -1691,9 +1746,9 @@ index 139293ef5..f39b9d02e 100644
  | `seat_alives` | optional: `SEAT=FILE[:MIN]` entries, one per standing seat the session runs, whitespace-separated or a JSON list; each renders as `pulse.py --seat-alive ENTRY` (`FILE.d/<id>` holds the per-process entries). A seat listed with no alive file reads `UNREADABLE`, never skipped; none listed leaves the flag out |
 +| `intake_since` | the UTC time the outside intake starts from (the round's opening); the beat's `outside-intake` row keeps its own cursor past it |
  | `launch_ledger` | optional: the launch ledger file (`<ts> <nonce> <role> ...` and `<ts> <nonce> stop` lines) for `pulse.py --launch-ledger`; empty leaves the flag out |
- 
- <!-- sweep:begin -->
-@@ -75,6 +76,8 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
+ | `gantt_roster` | the roster the beat's `gantt` row reads, as `<branch>:<path>` (fetched to `refs/gantt/roster`, never a local branch) |
+ | `gantt_acks` | the Gantt acks file `sweep_gantt.py --acks` reads, one `<ISO> <KEY> act\|defer\|accept [until=<ISO>] <reason>` line per answered slip |
+@@ -80,6 +81,8 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
  
  (5) Tick watcher. If {{tick_alive}} is missing or older than {{tick_stale_min}} minutes, the tick seat has died: start a new one in the background on `dev/governance/roles/standing-tick.md`, whose prompt is the contents of {{tick_brief}}; it runs `tools/audit/seat/orchestrator_tick.py`. Log the restart in {{seat_ledger}}. Read {{digest}}/digest.txt whole, never truncated: the beat's `tick-digest` row writes there the board {{tick_log}}'s actionable family, every `OWED`, `REVIEW OWED`, `DISPATCH:`, `OWNER FLAG:` and `DESIGN-BUILD:` line among it, and its `owed-check` row the `UNACTIONED` lines of `tools/audit/seat/owed_unactioned.py`, which runs there once per sweep and never by hand (it counts every run as a sweep). Give every line an action this sweep, and print `grep -c '^-> ' {{tick_log}}` and `grep -c 'OWED' {{tick_log}}` beside the actions taken: an `OWED` line is a level re-printed every pass, not a diff (`dev/governance/roles/standing-tick.md`); the tick only lists, the sweep acts (`tools/audit/seat/INSTRUMENTS.md`, `orchestrator_tick.py`). A disposition that defers a line to a seat names that seat's ledger id or PID, and the next sweep re-checks it; one naming no seat is not a disposition. The `pulse.py` lines step (1b) printed name each consumer whose owed input is waiting on it (opener, verdict router or train, state beat, a standing seat's queue): drive that consumer before the rest of the sweep, and log it in {{seat_ledger}}; `UNREADABLE` is not a clean board. Each `UNACTIONED` line gets its action this sweep, or an `OWED-ACK` line in {{seat_ledger}} naming its next action and what it waits on; an acknowledgement lapses after its ttl, so the next sweep re-checks the handling. The sweep is not done while the digest holds an `UNACTIONED` line, and `owed-check: UNREADABLE` is never clean (`dev/audit/rca/R10-RCA-OWED-UNACTIONED.md`).
  
