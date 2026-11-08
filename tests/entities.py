@@ -39609,7 +39609,7 @@ R.check(
 # RETURN_DEL is pinned to the first; planted on the second, which the cost
 # order would put second, the run must drive it first, find it did not kill,
 # and say so. A real end-to-end `--anchor` run belongs to the mutation lane.
-_MUT_AN = "custom_components/heatpump_optimizer/topology.py:_tr RETURN_DEL 25b21b2f"
+_MUT_AN = "custom_components/heatpump_optimizer/topology.py:_tr RETURN_DEL 86fae85d"
 _MUT_AN_REL = _MUT_AN.split(":")[0]
 _MUT_AN_KILL, _MUT_AN_PASS = "tests/stub_kills.py", "tests/stub_passes.py"
 _MUT_AN_BUDGETS = _mut.load_budgets()
