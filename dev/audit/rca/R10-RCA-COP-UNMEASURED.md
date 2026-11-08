@@ -271,6 +271,18 @@ second grader.
     first. It prints `null=withheld tuya=graded`, rc 1.
   So either verdict alone is enough to refuse.
 
+**The verdict follows the named root, not the shell's cwd.** `tests/harness.py`,
+at every tree measured, inserts the cwd-relative `tests` and
+`custom_components` ahead of the root's own entries, so at `b8fba2c8` the
+detector loaded `heatpump_optimizer` from whatever checkout
+the shell stood in: from a v7.1.5 cwd the fix head read rc 1, and from the fix
+cwd v7.1.5 read rc 0, a false clean. The detector now changes into the root
+before importing, and exits 3 (`REFUSED`) if `harness`, `flow_meter` or the
+coordinator loaded from outside it. Every rc in this section was re-taken with
+the shell's cwd holding a different tree from the one measured: v7.1.5 run from
+the fix tree, every other tree run from v7.1.5, and v7.1.5 and the fix head
+again from a neutral `/tmp`.
+
 **Mutation proof.** `prepr.sh`'s diff-mutant step generates no mutants here,
 because `mutant_run.py` skips `dev/` (`SKIP_PREFIXES`). So the detector was
 mutated by hand. The scored command requires every one of these together:
@@ -278,10 +290,11 @@ mutated by hand. The scored command requires every one of these together:
 - rc 0 at the fix head;
 - rc 1 at v7.1.5;
 - rc 2 on the skip tree;
-- rc 1 on door N and on door T.
+- rc 1 on door N and on door T;
 
-Unmutated, the command passes. Each mutant below was applied alone and
-restored, and each fails the command, so each is killed (6 of 6):
+each target run from a cwd holding a different tree (v7.1.5 from the fix tree,
+the rest from v7.1.5). Unmutated, the command passes. Each mutant below was applied alone and
+restored, and each fails the command, so each is killed (8 of 8):
 
 | mutant | the edit |
 |---|---|
@@ -291,6 +304,8 @@ restored, and each fails the command, so each is killed (6 of 6):
 | M-d | the tuya verdict is forced to `withheld` |
 | M-e | `null` is dropped from the verdict |
 | M-f | the metered verdict is forced to `graded` |
+| M-g | the `os.chdir(root)` line is deleted: the provenance refusal fires, rc 3 |
+| M-h | M-g with the refusal's `return 3` made `pass`: the cwd-captured detector, v7.1.5 read as rc 0 from the fix cwd |
 
 Before the door trees existed, M-c, M-d and M-e survived. At v7.1.5 both
 doors are open, so either verdict alone refuses. The door trees are what kill
@@ -344,6 +359,18 @@ into the owning stage's brief.
   - The `ObservedCOPSensor` docstring (sensor.py 1694) says "derived from
     measured electrical input".
   - #3297 changes neither doc. Its diff touches `docs/configuration.md` only.
+- **The cwd capture, beyond this detector.** Any harness that takes a root
+  and imports `tests/harness.py` measures the cwd's tree unless it changes into
+  that root first, for the reason above. Enumerator (a superset, not a
+  per-file trace): `git grep -l 'from harness import\|import harness' --
+  dev/audit/harnesses/ | xargs grep -l 'sys.path'`, less those that
+  `git grep -l os.chdir` also returns. Anchoring the two inserts in
+  `tests/harness.py` to its own directory was not landed here: a historical
+  root brings its own `tests/harness.py`, so a harness measuring v7.1.5 needs
+  the change of directory regardless, and the file is imported by the whole
+  suite, outside this seat's edit scope. It is the same unit this RCA indicts,
+  a detector that never traced its own inputs. For the orchestrator to route
+  to the stage owning `dev/audit/harnesses/`.
 - **The defect's issue.** `defect-root-cause.md` asks for a short **Root
   cause** section on the defect's own issue. R10-HOTFIX-COP-UNMEASURED is an
   owner-reported hotfix with no issue on record, and this seat's brief forbids
@@ -352,8 +379,12 @@ into the owning stage's brief.
 
 ## Reproduce
 
+Run from any cwd; the verdict follows the argument.
+
     git worktree add --detach /tmp/v715 v7.1.5
+    git worktree add --detach /tmp/fix 2d010b091
     python3 -I dev/audit/harnesses/r10_rca_cop_unmeasured.py --check /tmp/v715     # rc 1
     python3 -I dev/audit/harnesses/r10_rca_cop_unmeasured.py --check .             # rc 1 at main until #3297
-    git worktree add --detach /tmp/fix origin/fix/r10-hotfix-cop-unmeasured
     python3 -I dev/audit/harnesses/r10_rca_cop_unmeasured.py --check /tmp/fix      # rc 0
+    (cd /tmp/fix  && python3 -I "$OLDPWD"/dev/audit/harnesses/r10_rca_cop_unmeasured.py --check /tmp/v715)  # rc 1
+    (cd /tmp/v715 && python3 -I "$OLDPWD"/dev/audit/harnesses/r10_rca_cop_unmeasured.py --check /tmp/fix)   # rc 0
