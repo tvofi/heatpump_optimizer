@@ -884,8 +884,19 @@ for water the pump never made — and cannot eat the buffer's
 safe-temperature headroom, so the plan keeps charging cheap hours right through
 a burn. Heat still in the wood tank at day's end counts in the thermal-battery
 view, up to 95 °C. The savings reference has no wood at all, so wood's heat
-counts in the saving and firewood's cost is not counted; the savings page says
-so where wood is configured. Without the probe, or
+counts in the saving and firewood's cost is not counted; the savings page, the
+Plan Monthly Savings sensor and the notifications blueprint's monthly receipt
+say so where wood is configured. The reference is scaled to the meter, and on a
+wood house that scale only raises it, so a meter that falls under the plan
+during a fire cannot cancel wood's heat. A fire the plan did not foresee moves
+the meter off the plan only until the next re-plan reads the warmer tank. In a
+simulated house (the `wood-plant` arm of
+`dev/audit/harnesses/r10_sav_wood_reference.py`: 4 to 12 kW, 4-hour fires,
+each plan held an hour, where the integration re-plans every interval), the
+pump drew between 0 and 4.5 % less than its plan.
+Where the model reads the meter low, the reference is booked low by that
+share, so the saving is understated by up to that much. Where the model reads
+the meter high, the reference is not scaled down at all on a wood house. Without the probe, or
 while it is stale, the wood tank is not a store of its own: the model keeps the
 one buffer tank, and a burn is the bounded free heat described above.
 

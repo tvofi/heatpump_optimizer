@@ -121,6 +121,10 @@ CLOSURES_COMMENT = (
 # could not record it without both. Its own nightly job runs it.
 NOT_A_TEST = {
     "harness.py", "profiles.py", "closure.py", "gate_lock.py",
+    # features.py's worker-deadline checks (#3232), a module it imports and
+    # runs, kept out of features.py so CodeQL's extraction of that module
+    # fits its job limit. Measured through features.py's closure.
+    "worker_deadlines.py",
     # The lane-skip decision instrument (R9-CI-SKIP): it reads this table to
     # decide whether `fast`/`coverage`/`browser` may report `skipped`, so it
     # is driven by the workflow's decision steps, never by the suite. NOT
@@ -973,6 +977,15 @@ INERT_EXCEPT = (
     # It leaves the prefix the way the U5 harnesses did; enumerate_api_calls.py
     # stays INERT, read only by the replay's child under inert_reads.
     "dev/audit/harnesses/record_burst_replay.py",
+    # R10-WHY-NOW-WIDGET: tests/features.py imports this harness and drives
+    # its `comfort_schedule`, so a caller left on the old
+    # `_build_comfort_bounds` shape fails a named check. The
+    # dev/audit/harnesses/ prefix kept it INERT while features.py opens it:
+    # closures job 128558742815 was INERT READS UNDER-APPROXIMATED, and
+    # closures-autofix ended skip-merge-failed on the pair. It leaves the
+    # prefix the way record_burst_replay.py did, so an edit selects
+    # tests/features.py.
+    "dev/audit/harnesses/r10_demand_overbook.py",
 )
 
 
