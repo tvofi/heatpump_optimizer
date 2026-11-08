@@ -1,5 +1,0 @@
-'record: delivery rows (autofix)'
-3321 MATCH
-3322 MATCH
-3323 MATCH
-3332 ('DIFF', '- [#3332](https://github.com/tvofi/heatpump_optimizer/pull/3332) — **open**, record: delivery rows (autofix)\n', '- [#3332](https://github.com/tvofi/heatpump_optimizer/pull/3332) — **open**, record: delivery rows for dependabot #3321 #3322 #3323 (R10-RECORD)\n')
