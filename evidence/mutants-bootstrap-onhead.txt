@@ -1,0 +1,19 @@
+applied both part-3 workflow hunks
+codeowners_gap lines naming figure_block:
+      3 #   PINNED tools/pr/figure_block.py
+      1 #   UNCOVERED tools/pr/figure_block.py
+== K1: head + part-3 workflow hunks + script, head grader (entry pending)
+  none     pinned tools/pr/figure_block.py: reads the figures a pull-request body states against the commands that produced them; graded by its own self-test, no arm here
+RESULT read=3 ignored=0 declared_none=38 blind=0 dead=0 refused=0 runs=0 seconds=5.7
+FIELD COVERAGE ok
+rc=0
+== K2: same, entry without pending (part 3's row)
+  none     pinned tools/pr/figure_block.py: reads the figures a pull-request body states against the commands that produced them; graded by its own self-test, no arm here
+RESULT read=3 ignored=0 declared_none=38 blind=0 dead=0 refused=0 runs=0 seconds=5.8
+FIELD COVERAGE ok
+rc=0
+== K3: same, main's grader (no entry) = the failure the PR fixes
+  REFUSED  registry: `pinned tools/pr/figure_block.py` is unregistered: DECLARED names neither an arm for its input nor none
+RESULT read=3 ignored=0 declared_none=37 blind=0 dead=0 refused=1 runs=0 seconds=5.7
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+rc=1

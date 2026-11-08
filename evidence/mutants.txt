@@ -1,0 +1,31 @@
+== head, unmodified
+  pending  registry: DECLARED `pinned tools/pr/figure_block.py` awaits its check in the derived set (R10-BODY-CONTRACT part 3 pins it in governance.yml)
+RESULT read=3 ignored=0 declared_none=37 blind=0 dead=0 refused=0 runs=0 seconds=5.7
+FIELD COVERAGE ok
+rc=0
+ tools/policy/field_coverage.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M1: pending dropped, no pin
+  DEAD     registry: DECLARED `pinned tools/pr/figure_block.py` is no longer in the derived set
+RESULT read=3 ignored=0 declared_none=37 blind=0 dead=1 refused=0 runs=0 seconds=5.6
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+rc=1
+ tools/policy/field_coverage.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M2: empty pending reason
+  DEAD     registry: DECLARED `pinned tools/pr/figure_block.py` is no longer in the derived set
+RESULT read=3 ignored=0 declared_none=37 blind=0 dead=1 refused=0 runs=0 seconds=5.5
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+rc=1
+== M3a: part-3 governance.yml pin + head grader (bootstrap entry present)
+  pending  registry: DECLARED `pinned tools/pr/figure_block.py` awaits its check in the derived set (R10-BODY-CONTRACT part 3 pins it in governance.yml)
+RESULT read=3 ignored=0 declared_none=37 blind=0 dead=0 refused=0 runs=0 seconds=5.4
+FIELD COVERAGE ok
+rc=0
+ .github/workflows/governance.yml | 183 ++++++++++-----------------------------
+ tools/policy/field_coverage.mjs  |   1 -
+ 2 files changed, 46 insertions(+), 138 deletions(-)
+== M3b: part-3 pin + main's grader (no entry) = the failure the PR fixes
+RESULT read=3 ignored=0 declared_none=37 blind=0 dead=0 refused=0 runs=0 seconds=5.0
+FIELD COVERAGE ok
+rc=0
