@@ -1,0 +1,18 @@
+== 128874321255
+Prepare all required actions
+  persist-credentials: false
+Removing includeIf entries pointing to credentials config files
+Removing includeIf entries pointing to credentials config files
+/home/runner/work/_temp/git-credentials-619d8797-8a7a-40e7-ad6d-2fcdeaaee5c0.config
+/home/runner/work/_temp/git-credentials-619d8797-8a7a-40e7-ad6d-2fcdeaaee5c0.config
+/github/runner_temp/git-credentials-619d8797-8a7a-40e7-ad6d-2fcdeaaee5c0.config
+/github/runner_temp/git-credentials-619d8797-8a7a-40e7-ad6d-2fcdeaaee5c0.config
+== 128886406412
+Prepare all required actions
+  persist-credentials: false
+Removing includeIf entries pointing to credentials config files
+Removing includeIf entries pointing to credentials config files
+/home/runner/work/_temp/git-credentials-3191b749-9bb4-4ddb-9f31-67bb9a6b3323.config
+/home/runner/work/_temp/git-credentials-3191b749-9bb4-4ddb-9f31-67bb9a6b3323.config
+/github/runner_temp/git-credentials-3191b749-9bb4-4ddb-9f31-67bb9a6b3323.config
+/github/runner_temp/git-credentials-3191b749-9bb4-4ddb-9f31-67bb9a6b3323.config

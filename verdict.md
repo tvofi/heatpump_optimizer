@@ -1,0 +1,42 @@
+Fix review: blocked e225451599cfd963a06c42560bf16e1c524d195b ci-red: required gate red at this head on tests / fast (3.14) (tests/stress.py traced memory peak) and codeql / Analyze (python) cancelled; the resolution delta itself is clean
+
+bus-nonce: 1d2d7031bf1b9ddf21e78d0230c1fdb1
+
+## Block
+
+- The required `gate` is red at this head. `merge_train.py classify e225451599cfd963a06c42560bf16e1c524d195b --pr 3299` exits 1: `RED e225451599cfd963a06c42560bf16e1c524d195b pending: none red: gate` (ev/classify.txt). The code-kind gate job 128886406412 names two failures: `tests / fast (3.14): failure` and `codeql / Analyze (python): cancelled` (ev/gate-jobs.txt).
+- `tests / fast (3.14)` (job 128874207500, CPython 3.14.10) failed exactly one script and one check: `tests/stress.py` "the probed scenarios' memory peaks stay within their recorded budgets". All six probes trace 5.3 MiB (4.1 on typical_slab/shoulder) against records of 3.4 to 3.5 (1.8); the RSS arms are flat (ev/fast-3.14.log, 2.5 MB, around line 22556). Main's push run at `daf8b349f` (job 128861638096) traced 3.5 / 2.2 on the same six and passed.
+- Cause, as far as I can read it: this is the defect R10-HOTFIX-STRESS-MEM-PEAK (#3349, open, `fix/r10-hotfix-stress-mem-peak-pr`) analyses. `threadpool_limits` builds a fresh `ThreadpoolController` on every minimize call, which interns names inside the traced window, and CPython's interned-string table rebuilds in one ~1.83 MiB step at points the tree's growth crosses. That matches here: a uniform +1.8 to 1.9 MiB on every probe, traced arm only, nothing in the solve changed. I could not reproduce it on this box. `stress.py --memory-probe` with the gate's probe environment reads `traced_mb` 3.46 at both `daf8b349f` and this head, and the memory baseline differs by 1.1 MiB RSS (ev/memprobe_main_vs_head.txt; CPython 3.14.7 here, 3.14.10 on CI). So the attribution to #3349's mechanism is inference, not my measurement.
+- The step-11 root-cause trigger is not what blocks: `pr-contract / pr-contract` (job 128885429538) started at 22:40:27Z, after both reds had concluded (22:15:04Z and 22:35:21Z), and is green. That run is the evidence on the trigger. The body does not name the stress red, though; a re-handoff should, naming #3349.
+- Way out (not this seat's to take): land #3349 on main and merge main into this branch, or get a green `tests / fast (3.14)` and CodeQL Python analysis on this head another legitimate way. Either way the head moves, and the next review is again a resolution delta from this verdict.
+  Carry: R10-HOTFIX-STRESS-MEM-PEAK
+
+## Scope
+
+Resolution-delta review (round: delta after the merge verdict at `85ba6cda83898bb3fcc1dee71432c1622f14a72e`), from a detached worktree at `e225451599cfd963a06c42560bf16e1c524d195b`. origin/main read `daf8b349fd30cc60786eeca333a426b693aa4c5f`, which the head contains (merge base = origin/main). `review_carry.py 85ba6cda e2254515` prints `FRESH-REVIEW` (ev/review_carry.txt), because the range holds merges with a hand resolution and the commit `93fd91607` (claims.py regenerating the D6 records); so the delta is reviewed here.
+
+## Evidence
+
+- Merge structure: `85ba6cda` -> `0a0a7153c` (merge main `cb5512741`) -> `93fd91607` (D6 regen) -> `c7f657610` (merge main `17e621f08`, hand resolution of `tests/golden/claimed_drift.txt`) -> `678bce461` (merge main `51cd5ec8a`, `LEDGER-MERGE: resolved tests/closures.json`) -> `a15234e6a` (merge of `85ba6cda` with `678bce461`) -> head (merge main `daf8b349f`). Re-running `git merge-tree --write-tree` on each merge's parents and diffing against its tree: head, `a15234e6a` and `678bce461` are byte-equal to the automatic merge; `c7f657610` differs only in `tests/golden/claimed_drift.txt` (4 lines: the conflict markers and the inherited `R10-MIN-POWER-FLOOR (#3289)` claim removed); `0a0a7153c` differs only in `option_doc_coverage.py` and `claimed_drift.txt` (both later superseded and re-checked below).
+- Patch comparison (item 2): the three-dot patch at `85ba6cda` (merge base `6188936a8`) and at the head (merge base `daf8b349f`) name the same 107 files (ev/prev-threedot.stat, ev/head-threedot.stat). Comparing each file's +/- lines, 103 are identical; 4 differ (ev/patch-compare.txt), each only by main's own count moving under the branch's unchanged delta:
+  - `tests/structure_budgets.json`: base `class_excess_loc` 17560 -> 17558 on main; the branch still lowers it by 5 (17553), and `coordinator_attrs` 141->139, `max_class_loc` 7933->7927, `seam_cut_total` 423->421 as before. The branch's `recorded_at` change is gone: the head keeps main's `dee8b413f`, and every number only moves down (ev/budgets-trace.txt). This is a tightening, not a raise; `structure.py` at head: STRUCTURE RATCHET PASSED, rc=0 (ev/structure.txt).
+  - `option_doc_coverage.py`: expected 204->207 / 237->240 became 205->208 / 238->241 (main added one field); re-run at head prints `option_fields_rendered=208`, `option_schema_keys_rendered=241`, `option_fields_undocumented=0` (ev/option_doc_coverage.txt).
+  - `claims.md` / `claims.json`: C125 46->47 selects instead of 45->46 (main's select); the other moved rows are the same. Re-running `dev/audit/rounds/round4/D6/claims.py` at head leaves `git status` clean (ev/d6_claims.txt), so the committed records are what the generator outputs.
+- Lines lost or duplicated, conflict markers (item 1): no `<<<<<<<`/`>>>>>>>` in any file of the three-dot patch; `git diff origin/main HEAD -- tests/golden/claimed_drift.txt` is one added line, this PR's `R10-GENERIC-HEAT-CURVE` claim; `# claims-for: 7.1.8` equals `VERSION` 7.1.8.
+- Claim-file checks and null controls on the resolved file (item 3):
+  - `env_drift.py --all daf8b349f` at head: NO UNCLAIMED DRIFT, 56 scenarios; NO STALE FIXTURE, 56 fixtures; rc=0 (ev/env_drift_all.txt).
+  - `env_drift.py --claims-only origin/main` at head: `claims hygiene: origin/main ok` (ev/claims_only.txt).
+  - Null control, stamp put back to `7.1.7`: refused, rc=1 (ev/null_stale_stamp.txt).
+  - Null control, this PR's own claim line deleted: `DRIFT config_flow: 8 leaves moved`, rc=1 (ev/null_claim_dropped.txt). So the one line left is what excuses the branch's recorded drift.
+  - The body says re-adding the `R10-MIN-POWER-FLOOR` line is not refused by any guard (`inherited_claims_error` compares the whole list); I did not re-take that figure, and the body records it as dismissed.
+- Group tests at head: `tests/config_flow_steps.py` ALL 551 checks PASSED, rc=0 (ev/config_flow_steps.txt). `tests/entities.py`, run plainly: ALL 2668 ENTITY CHECKS PASSED, rc=0 (ev/entities.txt).
+- Mutation proof re-taken at head (step 1):
+  - `config_flow.py:2195` range-excludes-0 guard replaced by `if False`: `config_flow_steps.py` 2 of 551 FAILED (T2 refusal and its null control), rc=1 (ev/mutant_range_guard.txt).
+  - `heat_curve.py:60` °F factor 1.8 -> 1.0: `features.py` 1 of 5037 FAILED, exactly `a Fahrenheit entity is sent the difference x9/5`, rc=1 (ev/mutant_degF.txt). An earlier attempt hit my own 235 s timeout (rc=124) and was re-run without one.
+  - Both restored, worktree clean.
+- Finder's harness: the packet names none. This is an owner-ruled build with an approved design, not a finding; the merge verdict at `85ba6cda` already ruled on that and this delta does not change it.
+- Item 4: body `## Head` names `e225451599cfd963a06c42560bf16e1c524d195b` and describes this delta; delivery row `dev/programme/delivery/3299.md` exists at head and reads open. `VERSION`, `manifest.json` and `RELEASE_NOTES.md` are absent from the three-dot patch; the only `*_budgets.json` in it is the downward `structure_budgets.json` above, the same as in the reviewed patch. `git merge-tree --write-tree origin/main e2254515`: rc=0, tree `3d29b3c9d` (ev/merge-tree.txt).
+- Body figure checked: the body says "No budget file touched" under "Figures at this head". That holds for this delta's own changes, but the PR's three-dot patch does touch `tests/structure_budgets.json` (downward only, carried from the reviewed patch). Read it as being about the delta.
+- Prior merge verdict (`verdict/3299` at `dfd0a3f7b`): carried no findings; nothing to reconfirm beyond the mutation and test re-runs above.
+- CI: RED on the required gate (see `## Block`). Everything else at this head concluded green or skipped in the check-run listing read at about 22:50Z; `tests / mutation` and `tests / closures` passed.
+- Round: second review of this PR (one merge verdict at `85ba6cda`, this resolution delta); no re-cut is owed on round count.
