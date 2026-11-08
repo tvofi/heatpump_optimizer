@@ -981,6 +981,15 @@ INERT_EXCEPT = (
     # It leaves the prefix the way the U5 harnesses did; enumerate_api_calls.py
     # stays INERT, read only by the replay's child under inert_reads.
     "dev/audit/harnesses/record_burst_replay.py",
+    # R10-WHY-NOW-WIDGET: tests/features.py imports this harness and drives
+    # its `comfort_schedule`, so a caller left on the old
+    # `_build_comfort_bounds` shape fails a named check. The
+    # dev/audit/harnesses/ prefix kept it INERT while features.py opens it:
+    # closures job 128558742815 was INERT READS UNDER-APPROXIMATED, and
+    # closures-autofix ended skip-merge-failed on the pair. It leaves the
+    # prefix the way record_burst_replay.py did, so an edit selects
+    # tests/features.py.
+    "dev/audit/harnesses/r10_demand_overbook.py",
 )
 
 

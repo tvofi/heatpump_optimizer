@@ -26,6 +26,11 @@
 #      branch, leased at the head the porcelain read (`git update-ref -d
 #      refs/heads/<branch> <head>`: a branch that moved since is kept and the
 #      refusal reported), then the seat scratch directory.
+#      A SEAT BRANCH (`work/<t>`, `scratch/<t>`, `seat/<t>`) has no pull request
+#      of its own: its PR sits on `fix/<t>`. A MERGED or CLOSED one there frees
+#      the seat, but only clean (uncommitted work is on no remote) and, as for
+#      every arm, with no unpushed commit and no process cwd inside it.
+#      Every removal arm keeps a worktree a process stands in (`cwd-inside`).
 #   B. a DETACHED worktree (reviewers check out merged pull request heads)
 #      whose HEAD sha is a PROPER ancestor of origin/main -- the tip itself is
 #      excluded, because reading live main is a running seat, not a leftover --
@@ -43,6 +48,11 @@
 #      A wt/ git can read is removed leased at the HEAD read in it (`git -C
 #      <wt> update-ref --no-deref -d HEAD <head>`, then rm -rf): a HEAD that
 #      moved since, or one that cannot be read, keeps the seat.
+#   E. a PLAIN COPY of the repository (a `*mutant*`, `*null*` or `*head*`
+#      directory without .git) directly inside a seat directory whose topic --
+#      the directory name less a leading `seat-` -- has a MERGED pull request
+#      on `fix/<topic>`, with nothing under the seat modified within the orphan
+#      age, no live worktree beneath the seat and no process cwd in the copy.
 #   D. a stale venv (a *-venv* directory under /tmp) untouched for 24 hours
 #      that no registered worktree symlinks into at depth <= 2.
 #
@@ -76,7 +86,8 @@
 # environment error (no checkout, unreadable worktree list).
 #
 # Environment, for the self-test and for seats on another machine:
-#   WORKTREE_GC_SEATS_ROOT (default /tmp/hpo-orch), WORKTREE_GC_TMP_ROOT
+#   WORKTREE_GC_SEATS_ROOT (default /tmp/hpo-orch; a colon-separated list --
+#   seats live under ~/hpo-seats/<round>), WORKTREE_GC_TMP_ROOT
 #   (default /tmp), WORKTREE_GC_MIN_AGE (3600, the detached guard),
 #   WORKTREE_GC_ORPHAN_AGE (7200), WORKTREE_GC_VENV_AGE (86400).
 set -uo pipefail
@@ -201,7 +212,7 @@ PY
     # null control pins the redirect itself.
     ( cd "$d/root"
       export STUB="$d" PATH="$W/bin:$PATH" TMPDIR="$d/tmp"
-      export WORKTREE_GC_SEATS_ROOT="$d/orch" WORKTREE_GC_TMP_ROOT="$d/tmp"
+      export WORKTREE_GC_SEATS_ROOT="$(cat "$d/seatsroot" 2>/dev/null || printf '%s' "$d/orch")" WORKTREE_GC_TMP_ROOT="$d/tmp"
       bash "$SELF" "$@" > "$d/out" 2> "$d/err" )
   }
   gots() { grep -c -- "$2" "$W/$1/out"; }
@@ -445,6 +456,71 @@ PY
   [ -d "$D/orch/seat-orph-fail" ]; st $? 0 "and the seat dir is kept"
   st "$(gots failed-move "keep  $D/orch/seat-orph-fail  nondisposable-contents (ev-9)")" 1 "kept naming nondisposable-contents"
 
+  # Carries 0 and 1 (R10-CLOSEOUT-INSTRUMENTS). Seat branches map to their topic's
+  # pull request on fix/<topic>; every removal arm keeps a worktree a process
+  # stands in; plain repo copies in a seat of a merged topic go; the seats root
+  # is a colon-separated list.
+  mkcase seatb; build seatb
+  D="$W/seatb"; mkdir -p "$D/orch2" "$D/live"
+  PH() { printf '%040d' 0 | tr 0 "$1"; }
+  seatwt() { # seat branch head: a registered branch worktree
+    printf 'worktree %s/orch/seat-%s/wt\nHEAD %s\nbranch refs/heads/%s\n\n' "$D" "$1" "$3" "$2" >> "$D/porcelain"
+    mkdir -p "$D/orch/seat-$1/wt"; age_old "$H3" "$D/orch/seat-$1"
+  }
+  seatwt tmerged work/merged-topic "$(PH 7)"; printf '[{"state":"MERGED"}]\n' > "$D/pr/fix_merged-topic.json"
+  seatwt tclosed work/closed-topic "$(PH 7)"; printf '[{"state":"CLOSED"}]\n' > "$D/pr/fix_closed-topic.json"
+  seatwt tunp scratch/unp-topic "$(PH 7)"; printf '[{"state":"MERGED"}]\n' > "$D/pr/fix_unp-topic.json"
+  printf '1\n' > "$D/unpushed/$(encpath "$D/orch/seat-tunp/wt")"
+  seatwt tcwd seat/cwd-topic "$(PH 7)"; printf '[{"state":"MERGED"}]\n' > "$D/pr/fix_cwd-topic.json"
+  seatwt tdirty work/dirty-topic "$(PH 7)"; printf '[{"state":"MERGED"}]\n' > "$D/pr/fix_dirty-topic.json"
+  printf 'M f\n' > "$D/status/$(encpath "$D/orch/seat-tdirty/wt")"
+  seatwt topen work/open-topic "$(PH 7)"; printf '[{"state":"OPEN"}]\n' > "$D/pr/fix_open-topic.json"
+  seatwt tnone work/none-topic "$(PH 7)"
+  seatwt aholder fix/aholder "$(PH 2)"; printf '[{"state":"MERGED"}]\n' > "$D/pr/fix_aholder.json"
+  printf 'worktree %s/orch/seat-bhold/wt\nHEAD 2222222222222222222222222222222222222223\ndetached\n\n' "$D" >> "$D/porcelain"
+  mkdir -p "$D/orch/seat-bhold/wt/sub"; age_old "$H3" "$D/orch/seat-bhold"
+  { printf '%s/orch/seat-tcwd/wt\n%s/orch/seat-aholder/wt\n%s/orch/seat-bhold/wt/sub\n' "$D" "$D" "$D"; cat "$D/cwds"; } > "$D/cwds.n"; mv "$D/cwds.n" "$D/cwds"
+  # class E: plain copies. seat-copy (merged topic, two copies and a non-copy), seat-copyopen
+  # (open topic), seat-copycwd (a process in a copy), seat-copyfresh (inside the age guard);
+  # the second one lives in the second root.
+  for sd in "$D/orch/seat-copy" "$D/orch/seat-copyopen" "$D/orch/seat-copycwd" "$D/orch2/seat-copy2"; do
+    mkdir -p "$sd/mutant-1" "$sd/null-run" "$sd/notes"; printf 'x\n' > "$sd/mutant-1/f"
+  done
+  mkdir -p "$D/orch/seat-copy/head-tree/.git" "$D/orch/seat-copyfresh/mutant-1"
+  for t in copy copycwd copy2; do printf '[{"state":"MERGED"}]\n' > "$D/pr/fix_$t.json"; done
+  printf '[{"state":"OPEN"}]\n' > "$D/pr/fix_copyopen.json"; printf '[{"state":"MERGED"}]\n' > "$D/pr/fix_copyfresh.json"
+  age_old "$H3" "$D/orch/seat-copy" "$D/orch/seat-copyopen" "$D/orch/seat-copycwd" "$D/orch2/seat-copy2"
+  printf '%s/orch/seat-copycwd/null-run/deep\n' "$D" >> "$D/cwds"; mkdir -p "$D/orch/seat-copycwd/null-run/deep"
+  age_old "$H3" "$D/orch/seat-copycwd"
+  printf '%s:%s\n' "$D/orch" "$D/orch2" > "$D/seatsroot"
+  run seatb --keep-dir "$D/ev" o/r; st $? 0 "the carry-0/1 sweep exits 0"
+  gone "$D/orch/seat-tmerged/wt"; st $? 0 "carry 0: a seat branch whose fix/<topic> PR merged, clean and pushed: removed"
+  gone "$D/orch/seat-tclosed/wt"; st $? 0 "carry 0: and one whose fix/<topic> PR is closed"
+  st "$(grep -c "^git update-ref -d refs/heads/work/merged-topic " "$D/log")" 1 "its branch deleted, leased"
+  [ -d "$D/orch/seat-tunp/wt" ]; st $? 0 "null control: one unpushed commit keeps the seat"
+  st "$(gots seatb "keep  $D/orch/seat-tunp/wt  unpushed")" 1 "naming unpushed"
+  [ -d "$D/orch/seat-tcwd/wt" ]; st $? 0 "null control: a live process cwd in a topic-merged seat keeps it"
+  st "$(gots seatb "keep  $D/orch/seat-tcwd/wt  cwd-inside")" 1 "naming cwd-inside"
+  [ -d "$D/orch/seat-tdirty/wt" ]; st $? 0 "null control: an uncommitted change keeps a topic-mapped seat"
+  st "$(gots seatb "keep  $D/orch/seat-tdirty/wt  dirty-topic-seat")" 1 "naming dirty-topic-seat"
+  [ -d "$D/orch/seat-topen/wt" ]; st $? 0 "null control: an open fix/<topic> PR keeps the seat"
+  st "$(gots seatb "keep  $D/orch/seat-topen/wt  open-pr")" 1 "naming open-pr"
+  st "$(gots seatb "keep  $D/orch/seat-tnone/wt  no-merged-pr")" 1 "null control: a seat branch with no topic PR at all stays no-merged-pr"
+  [ -d "$D/orch/seat-aholder/wt" ]; st $? 0 "carry 1 (c): class A with a holder keeps"
+  st "$(gots seatb "keep  $D/orch/seat-aholder/wt  cwd-inside")" 1 "naming cwd-inside"
+  [ -d "$D/orch/seat-bhold/wt" ]; st $? 0 "carry 1 (a): class B with a holder keeps"
+  st "$(gots seatb "keep  $D/orch/seat-bhold/wt  cwd-inside")" 1 "naming cwd-inside"
+  gone "$D/orch/seat-detached/wt"; st $? 0 "carry 1 (b): class B without a holder removes (null control)"
+  gone "$D/orch/seat-copy/mutant-1"; st $? 0 "carry 0: a plain mutant copy in a merged-topic seat: removed"
+  gone "$D/orch/seat-copy/null-run"; st $? 0 "and a null copy"
+  [ -d "$D/orch/seat-copy/head-tree/.git" ] && [ -d "$D/orch/seat-copy/notes" ]; st $? 0 "null control: a copy with a .git, and a directory not named like a copy, stay"
+  gone "$D/orch2/seat-copy2/mutant-1"; st $? 0 "a seat under the second root of the list is collected"
+  [ -d "$D/orch/seat-copyopen/mutant-1" ]; st $? 0 "null control: copies of an open topic stay"
+  st "$(gots seatb "keep  $D/orch/seat-copyopen  copies-unmerged-topic")" 1 "naming copies-unmerged-topic"
+  [ -d "$D/orch/seat-copycwd/null-run" ]; st $? 0 "null control: a process cwd in a copy keeps it"
+  gone "$D/orch/seat-copycwd/mutant-1"; st $? 0 "while the other copy of that seat goes"
+  [ -d "$D/orch/seat-copyfresh/mutant-1" ]; st $? 0 "null control: a seat modified within the age guard keeps its copies"
+
   # --dry-run over a rebuilt fixture: identical decisions, nothing moved.
   mkcase dry; build dry
   run dry --dry-run --keep-dir "$W/dry/ev" o/r; st $? 0 "--dry-run exits 0"
@@ -528,7 +604,7 @@ FETCH_OK=0
 git fetch --prune origin >/dev/null 2>&1 && FETCH_OK=1
 ORIGIN_MAIN_SHA=$(git rev-parse origin/main 2>/dev/null || printf '')
 
-# state: open | merged | none | error -- from the API, never from the local
+# state: open | merged | closed | none | error -- from the API, never from the local
 # branch's existence.
 pr_state_of() {
   local out
@@ -540,7 +616,7 @@ try:
 except ValueError:
     print("error"); raise SystemExit
 s = {(x.get("state") or "").upper() for x in d if isinstance(x, dict)}
-print("open" if "OPEN" in s else ("merged" if "MERGED" in s else "none"))'
+print("open" if "OPEN" in s else ("merged" if "MERGED" in s else ("closed" if "CLOSED" in s else "none")))'
 }
 
 # A merged pull request's head is a PROPER ancestor of origin/main under this
@@ -575,6 +651,28 @@ cwd_inside() { # real path of a worktree
   [ -n "$out" ] || return 2
   printf '%s\n' "$out" | awk -v p="$1" 'substr($0,1,1)=="n" { d=substr($0,2); if (d==p || index(d, p "/")==1) f=1 } END { exit f ? 0 : 1 }' && return 1
   return 0
+}
+
+# 0 when no live process holds the worktree and it may go; otherwise prints the
+# keep line (cwd-inside, or cwd-unread when lsof cannot say) and returns 1. Every
+# removal arm asks it: a worktree a process stands in goes on no arm.
+cwd_free() { # wt-path real-path
+  cwd_inside "$2"
+  case $? in
+    1) printf 'keep  %s  cwd-inside\n' "$1"; KEPT_N=$((KEPT_N+1)); return 1 ;;
+    2) printf 'keep  %s  cwd-unread\n' "$1"; KEPT_N=$((KEPT_N+1)); return 1 ;;
+  esac
+  return 0
+}
+
+# A seat branch (`work/<topic>`, `scratch/<topic>`, `seat/<topic>`) never has a
+# pull request of its own: its pull request sits on `fix/<topic>`. Prints the
+# state of that one, or `none` for any other branch.
+topic_pr_state() { # branch
+  case "$1" in
+    work/?*|scratch/?*|seat/?*) pr_state_of "fix/${1#*/}" ;;
+    *) printf 'none' ;;
+  esac
 }
 
 # 0 iff something under dir was modified within the given seconds; the keep
@@ -665,13 +763,23 @@ dispose_seat_dir() { # seat-dir, after its worktree was removed
 }
 
 seat_dir_of() { # a worktree's real path -> its seat dir when it is <seats>/<seat>/wt
-  case "$1" in
-    "$SEATS_REAL"/*/wt) dirname "$1" ;;
-    *) printf '' ;;
-  esac
+  local root
+  for root in ${SEATS_REALS[@]+"${SEATS_REALS[@]}"}; do
+    case "$1" in
+      "$root"/*/wt) dirname "$1"; return 0 ;;
+    esac
+  done
+  printf ''
 }
 
-SEATS_REAL=$(realpath_of "$SEATS_ROOT" 2>/dev/null || printf '%s' "$SEATS_ROOT")
+# WORKTREE_GC_SEATS_ROOT is a colon-separated list: seats live under one
+# directory per round (~/hpo-seats/<round>), not under one fixed root.
+SEATS_REALS=()
+IFS=: read -r -a SEATS_LIST <<<"$SEATS_ROOT"
+for r in ${SEATS_LIST[@]+"${SEATS_LIST[@]}"}; do
+  [ -n "$r" ] && SEATS_REALS+=("$(realpath_of "$r" 2>/dev/null || printf '%s' "$r")")
+done
+SEATS_ONE=""
 KEEP_REAL=$(realpath_of "$KEEP_DIR" 2>/dev/null || printf '%s' "$KEEP_DIR")
 ELIGIBLE=0; REMOVED_N=0; KEPT_N=0
 HANDLED_SEATS=""
@@ -719,7 +827,7 @@ flush() {
 }
 
 classify() {
-  local real state seat st_out st_rc up onremote c
+  local real state seat st_out st_rc up onremote topic
   real=$(realpath_of "$wt" 2>/dev/null || printf '%s' "$wt")
   printf '%s\n' "$real" >>"$LIVE_FILE"
 
@@ -732,18 +840,31 @@ classify() {
   if [ "$has_branch" -eq 1 ]; then
     # Class A: a branch worktree goes only on an API-read MERGED pull request.
     state=$(pr_state_of "$branch")
+    topic=0
     case "$state" in
       open) printf 'keep  %s  open-pr\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0 ;;
       merged) ;;
-      none) printf 'keep  %s  no-merged-pr\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0 ;;
+      none|closed)
+        # A seat branch's pull request sits on fix/<topic>; a merged or closed
+        # one there frees the seat, on the stricter terms below.
+        case "$(topic_pr_state "$branch")" in
+          merged|closed) topic=1 ;;
+          open) printf 'keep  %s  open-pr\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0 ;;
+          *) printf 'keep  %s  no-merged-pr\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0 ;;
+        esac ;;
       *) printf 'keep  %s  gh-error\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0 ;;
     esac
     up=$(unpushed_of "$wt")
     if [ "$up" != 0 ]; then
       printf 'keep  %s  unpushed (%s commit(s) on no remote ref)\n' "$wt" "$up"; KEPT_N=$((KEPT_N+1)); return 0
     fi
-    ELIGIBLE=$((ELIGIBLE+1))
     st_out=$(git -C "$wt" status --porcelain 2>/dev/null); st_rc=$?
+    if [ "$topic" -eq 1 ] && { [ -n "$st_out" ] || [ "$st_rc" -ne 0 ]; }; then
+      # Not proved merged by its own branch: uncommitted work is on no remote.
+      printf 'keep  %s  dirty-topic-seat\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0
+    fi
+    cwd_free "$wt" "$real" || return 0
+    ELIGIBLE=$((ELIGIBLE+1))
     if [ -n "$st_out" ] || [ "$st_rc" -ne 0 ]; then print_uncommitted "$wt"; fi
     remove_worktree "$wt" "$head" || return 0
     if [ "$DRY" -eq 0 ]; then
@@ -774,13 +895,7 @@ classify() {
   if recently_modified "$real" "$MIN_AGE_DETACHED"; then
     printf 'keep  %s  young\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0
   fi
-  if [ "$onremote" -eq 1 ]; then
-    cwd_inside "$real"; c=$?
-    case "$c" in
-      1) printf 'keep  %s  cwd-inside\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0 ;;
-      2) printf 'keep  %s  cwd-unread\n' "$wt"; KEPT_N=$((KEPT_N+1)); return 0 ;;
-    esac
-  fi
+  cwd_free "$wt" "$real" || return 0
   ELIGIBLE=$((ELIGIBLE+1))
   if [ "$onremote" -eq 1 ]; then remove_worktree "$wt" "$head" on-remote || return 0
   else remove_worktree "$wt" "$head" || return 0; fi
@@ -806,8 +921,10 @@ is_registered() { awk -v p="$1" 'BEGIN{f=1} index(p, $0)==1 {f=0} END{exit f}' "
 # handled" and the seat is judged a second time (R9-RCA-prepr-tmp).
 handled_seat() { printf '%b' "$HANDLED_SEATS" | grep -x "$1" >/dev/null; }
 
-if [ -d "$SEATS_REAL" ]; then
-  for seat in "$SEATS_REAL"/*/; do
+C_SEATS=""
+for SEATS_ONE in ${SEATS_REALS[@]+"${SEATS_REALS[@]}"}; do
+  [ -d "$SEATS_ONE" ] || continue
+  for seat in "$SEATS_ONE"/*/; do
     [ -d "$seat" ] || continue
     seat="${seat%/}"
     seat_real=$(realpath_of "$seat")
@@ -852,6 +969,7 @@ if [ -d "$SEATS_REAL" ]; then
       printf 'keep  %s  live-worktree (%s)\n' "$seat" "$nested"; KEPT_N=$((KEPT_N+1)); continue
     fi
     ELIGIBLE=$((ELIGIBLE+1))
+    C_SEATS="$C_SEATS$seat_real\n"
     printf 'remove  %s (orphaned seat)\n' "$seat"
     preserve_evidence "$seat_real"
     if [ "$DRY" -eq 0 ]; then
@@ -874,7 +992,54 @@ if [ -d "$SEATS_REAL" ]; then
         || printf 'worktree_gc: FAILED to remove %s\n' "$seat" >&2
     fi
   done
-fi
+done
+
+# --- class E: plain repo copies in a seat dir ---------------------------------
+# A mutant, null or head tree a seat copied out of the repository carries no
+# .git, so classes A-C never see it and a seat directory holding one is kept as
+# nondisposable-contents. It goes when the seat's topic (the directory name less
+# a leading `seat-`) has a MERGED pull request on `fix/<topic>`, nothing under
+# the seat was modified within the orphan age, no live worktree remains beneath
+# the seat and no process has its cwd inside the copy.
+for SEATS_ONE in ${SEATS_REALS[@]+"${SEATS_REALS[@]}"}; do
+  [ -d "$SEATS_ONE" ] || continue
+  for seat in "$SEATS_ONE"/*/; do
+    [ -d "$seat" ] || continue
+    seat_real=$(realpath_of "${seat%/}")
+    case "$seat_real" in "$KEEP_REAL"|"$KEEP_REAL"/*) continue ;; esac
+    printf '%b' "$C_SEATS" | grep -x "$seat_real" >/dev/null && continue
+    copies=()
+    for cp in "$seat_real"/*/; do
+      cp="${cp%/}"
+      [ -d "$cp" ] && [ ! -e "$cp/.git" ] || continue
+      case "$(basename "$cp")" in
+        wt) continue ;;
+        *mutant*|*null*|*head*) copies+=("$cp") ;;
+      esac
+    done
+    [ "${#copies[@]}" -gt 0 ] || continue
+    topic=$(basename "$seat_real"); topic=${topic#seat-}
+    if [ "$(pr_state_of "fix/$topic")" != merged ]; then
+      printf 'keep  %s  copies-unmerged-topic\n' "$seat_real"; KEPT_N=$((KEPT_N+1)); continue
+    fi
+    if recently_modified "$seat_real" "$ORPHAN_AGE"; then
+      printf 'keep  %s  fresh\n' "$seat_real"; KEPT_N=$((KEPT_N+1)); continue
+    fi
+    nested=$(live_under "$seat_real")
+    if [ -n "$nested" ]; then
+      printf 'keep  %s  live-worktree (%s)\n' "$seat_real" "$nested"; KEPT_N=$((KEPT_N+1)); continue
+    fi
+    for cp in ${copies[@]+"${copies[@]}"}; do
+      cwd_free "$cp" "$cp" || continue
+      ELIGIBLE=$((ELIGIBLE+1))
+      printf 'remove  %s (plain copy)\n' "$cp"
+      if [ "$DRY" -eq 0 ]; then
+        rm -rf "$cp" && printf 'removed  %s\n' "$cp" && REMOVED_N=$((REMOVED_N+1)) \
+          || printf 'worktree_gc: FAILED to remove %s\n' "$cp" >&2
+      fi
+    done
+  done
+done
 
 # --- class D: stale venvs ----------------------------------------------------
 venv_referenced() { # vdir -> 0 when a live worktree symlinks into it (depth <= 2)
