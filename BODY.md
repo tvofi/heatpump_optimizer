@@ -64,7 +64,7 @@ Carry 11 (the brief's carry 10): measured first, then fixed here through carry 1
   - The null, a fresher red is still the source, never passed over: self-tests `C3: a body edited after the code run's gate passed is still judged (this run's own pr-contract)` and `source order: ... null`.
   - M27 (id order) reads `MISREAD` on the scene, replay exit 1.
 - **The residual, stated.** The red stands until the code run's own `pr-contract` runs. At #3252 that was the code run's re-run, about 1.5 h after the first red, against 3 h 10 min live.
-- **Two harness defects fixed on the way**, both now in its selftest (12 checks):
+- **Two harness defects fixed on the way**, both now in its selftest (15 checks after the merge of main, below):
   - The run listing truncated silently at GitHub's 1000-run cap, and the 7-day window holds 1821. It now reads day windows and refuses a window at the cap.
   - Run 42425147012's `filter=all` jobs listing answers HTTP 502 on pages 2-6 every time. It is now read per attempt after a 5xx.
 
@@ -72,7 +72,25 @@ Carry 12 (the brief's carry 11): fixed here (source order, above).
 
 ## Head
 
-1202efb64f6bf776c32fc8131c82a8220ec89fe5, cut from origin/main afc1586a4424f997ce70ed2003add9d7de93d6f6. origin/main moved to 2a3c05644d85b7ee5c2c314fde5aca950e4aba91 (v7.1.6's stamp, #3307, #3309) before the handoff. `git merge-tree --write-tree origin/main HEAD` reports no conflict, and `git diff --stat afc1586a 2a3c0564` touches no `tools/ci/`, `.github/workflows/` or harness path this diff changes. Under the owner's ruling of 2026-11-07 the branch is not merged and prepr is not re-run for it; the merge train re-proves this head on current main.
+6772efc98d49a33fc878deefd7b9a6dcd5cad329, the tip 1202efb64f6bf776c32fc8131c82a8220ec89fe5 with origin/main 17e621f08c4feec724478573741fbd8b596ceaba merged in (`git merge`, never rebase; stamped 2026-11-08T19:36Z). The branch was cut from afc1586a4424f997ce70ed2003add9d7de93d6f6. origin/main was fetched again before the handoff and had not moved past 17e621f0, so prepr was run once, on this head.
+
+**The merge of main (this repair).** One conflict, in `dev/audit/harnesses/r10_codescan_wait_race.py`, `selftest()`, right after the shared `rows_ok` line:
+- main's 3220210742 added three `pages()` checks: the 100->30 fallback after a persistent 502, a clean run, and a 404 that raises after one call.
+- the tip added three: `windows()`, `jobs_all()`'s per-attempt read after a 5xx, and `jobs_all()` not reading around a 4xx.
+- Both sides' checks are kept, in that order: the tip's first, then main's. One summary line counts them: `len(want) + 7`. That is 8 `want` keys, `rows_ok`, the tip's 3 and main's 3, so 15. Each side's `+ 4` was the base's `+ 1` plus its own three.
+- The failed count adds `len(bad)`, `not rows_ok` and each of main's three `pages()` flags separately (`[pages_ok, clean_ok, null_ok].count(False)`), not one `not pg`. The return is nonzero when `bad`, `rows_ok` or any `pages()` flag fails.
+- A check whose call raises `ghapi.ApiError` now fails that check through a small `caught()` wrapper. Before, it ended the selftest with a traceback and printed no count. This was needed for the mutants below to raise the count rather than crash.
+- `jobs_all()` (both the `filter=all` read and the per-attempt fallback) and `main()`'s run listing call main's `pages()` as merged. `grep -n 'MAX_PAGES' r10_codescan_wait_race.py` returns the one loop in `pages()`, and there is no second paging loop.
+- Outside `selftest()`, the harness differs from the tip only in main's `pages()` hunk, which changes behaviour only when a 5xx persists past ghapi's retries.
+
+## Merge repair: null control and mutants
+
+Each was run on a scratch copy in `dev/audit/harnesses/`, removed afterwards, with `python3 <copy> --selftest`:
+- unmutated: `selftest: 15 checks, 0 failed`, exit 0.
+- main's fallback broken (`if st >= 500 and size != 30: break` -> `if st >= 500: raise ghapi.ApiError(path, st, "")`): `selftest: 15 checks, 1 failed pages(fallback False, clean True, 4xx True)`, exit 1.
+- the tip's per-attempt read broken (`if e.status < 500: raise` -> `raise`): `selftest: 15 checks, 1 failed ['jobs_all: no per-attempt read after a 5xx']`, exit 1.
+
+**This part's finding, before and after the merge.** `python3 dev/audit/harnesses/r10_rca_gate_busy_defer_2.py replay --ci <D>/tools/ci`, with `<D>` holding `git archive 1202efb64 tools/ci`, and the same with `--ci tools/ci` at this head. The two outputs differ only in the `RESULT ... ci=<path>` echo: `defects=no`, exit 0 at both. Every scene reads the same, and `3252-nosource: DECIDED`, PASS. The harness file and its fixture JSON are byte-identical between the tip and this head (`git diff --quiet`), and main's merge touches no `tools/ci/` file (`git diff --stat 1202efb64 HEAD -- tools/ci` is empty).
 
 ## Mutation proof
 
@@ -127,19 +145,19 @@ Every survivor is a constant in a test fixture that no assertion reads, so each 
 
 ## Figures
 
-- Self-tests at this head:
+- Self-tests at this head (re-run after the merge of main):
   - `python3 -I tools/ci/gate.py --self-test`: 81 checks, 0 failed.
   - `python3 -I tools/ci/sweep.py --self-test`: 62 checks, 0 failed.
   - `python3 -I tools/ci/prelude.py --self-test`: 76 checks, 0 failed.
 - RCA replay (dev/audit/harnesses/r10_rca_gate_busy_defer_2.py, sha1 556b35c217d462db2fc89f669f790ada1a7699ee). Fixture scenes `3244-triple` and `3252-nosource` were added by `record --scene <name>`, additions only. Each `--ci` copy is `git archive <sha> tools/ci tools/pr | tar -x -C $D`, run as `python3 dev/audit/harnesses/r10_rca_gate_busy_defer_2.py replay --ci $D/tools/ci`:
   - at 9cbd7dd0 (the triple's live pin, lacking 355d9965a): `3244-triple: DEADLOCK`, each gate `FAIL run(s) [<the other two>] ...`, as live.
   - at afc1586a (main): `3244-triple: DECIDED`, all PASS naps=0; `RESULT ... defects=no`.
-  - at this head (`replay`, no `--ci`): `3244-triple` the same as main; `3252-nosource: DECIDED`, PASS; `defects=no`, exit 0.
+  - at this head (`replay`, no `--ci`; re-run after the merge with `--ci tools/ci`, the same): `3244-triple` the same as main; `3252-nosource: DECIDED`, PASS; `defects=no`, exit 0.
   - `3252-nosource` at main: `MISREAD`, `FAIL pr-contract / pr-contract: failure (run 42387066581)`, the recorded live verdict; exit 1. Under M27 on this head: the same `MISREAD`, exit 1.
   - M17 on main: still `DECIDED`. The honest listing is ordered by `judging()`, so the self-test's lagging trio is the case that kills M17.
 - Gate mutants: `python3 dev/audit/harnesses/r10_ci_gate_core.py mutants` (sha1 fcee81f4174409a55f1e57f7bbd4e83904aadbd2): `RESULT mutants=22 survivors=0`. At main it read `mutants=21 survivors=1`, M26 NOT RUN.
 - Diff mutants: 73 mutants, 6 SURVIVED (equivalent, `## Unpinned sites`), wall time 15.8 s (`## Mutation proof`).
-- Codescan harness (dev/audit/harnesses/r10_codescan_wait_race.py, sha1 b25381629a7f71ee8826435b9d5553a879a4be53): `--selftest` 12 checks, 0 failed. The 7-day reading is under carry 10.
+- Codescan harness (dev/audit/harnesses/r10_codescan_wait_race.py, sha1 aa74f7bb2382641d56e1a04cfa3e597d5041259a at this head): `--selftest` 15 checks, 0 failed. At the tip (sha1 b25381629a7f71ee8826435b9d5553a879a4be53) it read 12 checks. The 7-day reading was taken at the tip and is under carry 10. It was not re-taken, because the measuring path changed only by main's `pages()` fallback (`## Head`).
 - `rerun-gate.sh`: `git grep -n rerun-gate` over the tree: no hit.
 - Live gate census since #3287 (`r10_rca_gate_busy_defer_2.py census --since 2026-11-07T19:14:31Z`): not taken. The run reads every attempt and gate log in the window and was stopped at this session's 30-minute background limit before printing. No figure in this body rests on it.
 - Class census, the seams where a program orders runs at a head by id (fixer step 8). Rule: `grep -nE "sorted\(.*\"id\"|r\[\"id\"\] [<>]|i [<>] run_id|\"id\"\] [<>]" tools/ci/gate.py tools/ci/sweep.py tools/ci/prelude.py`, self-test lines aside. At the merge base it also returns `gate.gate`'s source loop (`sorted(others + [me], key=lambda r: r["id"], reverse=True)`); at this head it returns 8 lines:
@@ -154,10 +172,11 @@ Every survivor is a constant in a test fixture that no assertion reads, so each 
   - `python3 tools/audit/archscore/score.py --diff afc1586a`: `Architecture score: dS +0.0000 NULL`.
   - `tests/closure.py select --diff $(git merge-base origin/main HEAD)` reads `MODE: FULL`, with the reason `tools/ci/gate.py changes the gate itself`. The full suite is CI's.
   - `VERSION`, the manifest, the `RELEASE_NOTES.md` heading, both claim files and every `*_budgets.json` are byte-identical to the merge base.
-- prepr: `tools/pr/prepr.sh` with this body and `MUTANT_CMD`/`MUTANT_MAX=0` as under `## Mutation proof`, on the committed head 1202efb6, printed `PRE-PR: 1202efb64f6bf776c32fc8131c82a8220ec89fe5 ... rc=0`.
-  - Its `ci predict` step: `no closures, fast, governance or instrument red predicted against afc1586a4424`.
-  - Its `merged structure` step (HEAD merged with origin/main): `STRUCTURE RATCHET PASSED`.
-  - Its diff-mutant step: `6 survivor(s)`, the six under `## Unpinned sites`.
+- prepr: `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` with this body and `MUTANT_CMD`/`MUTANT_MAX=0` as under `## Mutation proof`, on the committed merged head 6772efc9, printed `PRE-PR: 6772efc98d49a33fc878deefd7b9a6dcd5cad329 ... rc=0`. Before the merge, the tip 1202efb6 had printed `rc=0` without the skip.
+  - Its `ci predict` step: `no closures, fast, governance or instrument red predicted against 17e621f08c4f`.
+  - Its `merged structure` step: `STRUCTURE RATCHET PASSED (tests/structure.py at 6772efc98d49, HEAD merged with origin/main)`.
+  - Its diff-mutant step: `6 survivor(s)`, the same six sites as under `## Unpinned sites` (gate.py trio and source-order-null id, and sweep_selftest.py's four `pinned(run(1, ...` sites).
+  - `PREPR_SKIP_CLOSURES=1` skips only the closures step, which the cloud brief allows. Its null control at main: `tests/closure.py select` at this head reads `MODE: FULL` (`tools/ci/gate.py changes the gate itself`), so CI runs every script and no scoped closure decides this head. The skip also leaves `closures-autofix` the repair, by `ci-autofix.md`.
 
 ## Red checks
 
