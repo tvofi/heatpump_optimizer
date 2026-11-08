@@ -1,5 +1,0 @@
-ci_predict_refusal.out: cls=content
-early_ancestry.out: cls=retry
-regex from cloud_relay.sh:619 at head: REFUSE[: ]+(unpinned sites?|carry|pr-body|figures|brief)|unpinned site
-ci_predict_refusal.out content (from-file regex)
-early_ancestry.out retry (from-file regex)

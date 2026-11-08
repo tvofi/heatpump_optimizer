@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/update_pr.sh b/tools/audit/seat/update_pr.sh
+index 60a11a9b9..a633a247d 100755
+--- a/tools/audit/seat/update_pr.sh
++++ b/tools/audit/seat/update_pr.sh
+@@ -70,7 +70,7 @@ git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && pr_busy "branch $BR ch
+ # One checkout per pull request (carry 6): the worktree an earlier run left is reset onto the branch and reused, not
+ # removed and cut again; anything that cannot be reset falls back to the removal.
+ if [ -e "$WT/.git" ]; then git -C "$WT" merge --abort 2>/dev/null || :; fi
+-RE=; if [ -e "$WT/.git" ] && git -C "$WT" checkout -q -f -B "$BR" "origin/$BR" 2>/dev/null && git -C "$WT" clean -fdq 2>/dev/null; then RE=1; fi  # mut:updreusewt
++RE=; if [ -e "$WT/.git" ] && git -C "$WT" checkout -q -f -B "$BR" "origin/$BR" 2>/dev/null; then RE=1; fi  # mut:updreusewt
+ if [ -z "$RE" ]; then [ ! -d $WT ] || git worktree remove --force $WT; git worktree add -q -B "$BR" $WT origin/$BR; fi
+ cd $WT
+ G="git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com"

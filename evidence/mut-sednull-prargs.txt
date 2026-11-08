@@ -63,6 +63,7 @@ Terminated
   ok   a PR_REAP_LEAD outside the walk (a stale or reused pid) is never signalled; the host's own tree is reaped
   ok     mutant mut:leadwalk (its line deleted): the stale lead's process is TERMed
 tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok   the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
 tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
 tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
@@ -71,12 +72,12 @@ tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
 tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok     a new script that runs app_push.sh is refused as undispositioned
 tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok     a runner without pr_exit_trap is refused
 tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
 tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok     a runner whose push runs in the foreground is refused (its `2>&1` backgrounds nothing)
 tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok     a runner under the branch lock whose push holds no push lock is refused
 tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
 tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
@@ -176,7 +177,7 @@ tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok     mutant mut:rowonly (its line deleted): code sha '-' asks for --reuse, not --row-only
   ok   null control: a code sha the head lacks is merged and never asks for --row-only; it asks for --reuse, whose verdict or the full prepr judges its push
   ok     mutant mut:updreuse (its line deleted): a code sha the head lacks asks no reuse verdict, so its push runs the full prepr
-  ok   null control: update_pr with code sha '108067d' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha '797bfad' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   update_pr: the run leaves its worktree detached, so no worktree holds the branch
   ok     mutant mut:detach (its line deleted): the worktree still holds fix/x
@@ -187,6 +188,11 @@ tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok   remerge_main: a conflicting main is named MERGE CONFLICT and leaves the worktree clean at origin/rk, released unforced, rk free
   ok     mutant mut:remergeabort (its line deleted): the conflicted merge stays, and the worktree is not released
   ok   null control: remerge_main on a clean merge keeps that merge (HEAD's parents origin/rc and origin/main), nothing aborted
+  ok   remerge_main: a fetch failing once with git's 502 is fetched again, and the clean merge is kept
+  ok   null control: a fetch git rejected is not fetched again (a second fetch would have succeeded)
+  ok   remerge_main: a push that pushed nothing prints its REFUSE, FAIL and full-log lines and names its kept log, which exists after exit
+  ok     mutant mut:remergegrep (its line deleted): the FAIL and full-log lines are lost
+  ok   null control: a push that printed PUSHED prints as before, keeps no log and names none
   ok   update_pr: the push's git gc --auto runs in the foreground, as part of the push, so nothing it starts outlives the push holding its lock
   ok     mutant mut:fggc (its line deleted): git detaches that gc, which keeps the push's fd 9 once the push has ended
   ok   pr_bounded: a self-test past its bound is ended, its whole session with it, and exits 124 saying so
@@ -200,5 +206,5 @@ tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok   every # mut: line is a whole statement, never one continued from the line above
   ok   null control: a # mut: line continued from the line above is named
   ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 189 checks, 0 failed
+pr_args self-test: 194 checks, 0 failed
 rc=0

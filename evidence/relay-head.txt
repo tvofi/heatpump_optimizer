@@ -84,7 +84,7 @@
   ok   and is not tried a fourth time
   ok   the refusal is owed in the level file, once, with its reason
   ok   a refusal of the ref itself (rc 2) is refused at once, with its reason
-ledger: dispose wrote to /tmp/cloud_relay_st.BOO9DA, not the default home; the tick reads /tmp/cloud_relay_st.BOO9DA/state
+ledger: dispose wrote to /tmp/cloud_relay_st.cvCgFf, not the default home; the tick reads /tmp/cloud_relay_st.cvCgFf/state
   ok   a disposed refusal is not owed
   ok   with the real bus.sh push-verdict the relay passes
   ok   and confirms the remote tip as carrying its verdict tree
@@ -274,6 +274,7 @@ ledger: dispose wrote to /tmp/cloud_relay_st.BOO9DA, not the default home; the t
   ok   (a) an ancestry-reds refusal that then clears updates on the retry, with no ref moved
   ok   (c) three refusals of a retryable class stop: three runs over five passes
   ok   (c) and the third is recorded and owed with its reason
+  ok   (d) a ci-predict refusal whose output also holds the unpinned-sites skip line is rerun
   ok   (b) an unpinned-sites refusal with the same body is not rerun
   ok   (b) and it is recorded at once, owed with its reason
   ok   (b) a new body reruns it
@@ -316,8 +317,8 @@ ledger: dispose wrote to /tmp/cloud_relay_st.BOO9DA, not the default home; the t
   ok   null control: a handoff committed after its topic's merge stays owed
   ok   a no-PR handoff ref a live fix/ head carries is not owed (the ledger's ancestry close)
   ok   a handoff-body ref with no open PR is OWED
-ledger: dispose wrote to /tmp/cloud_relay_st.BOO9DA, not the default home; the tick reads /tmp/cloud_relay_st.BOO9DA/state
-ledger: dispose wrote to /tmp/cloud_relay_st.BOO9DA, not the default home; the tick reads /tmp/cloud_relay_st.BOO9DA/state
+ledger: dispose wrote to /tmp/cloud_relay_st.cvCgFf, not the default home; the tick reads /tmp/cloud_relay_st.cvCgFf/state
+ledger: dispose wrote to /tmp/cloud_relay_st.cvCgFf, not the default home; the tick reads /tmp/cloud_relay_st.cvCgFf/state
   ok   disposed no-PR refs are not owed
   ok   a disposed no-PR ref that moved is OWED again
   ok   a failed PR listing leaves the level as it was (unknown is not 'nothing owed')
@@ -353,7 +354,7 @@ ledger: dispose wrote to /tmp/cloud_relay_st.BOO9DA, not the default home; the t
   ok   and owes nothing
   ok   an undispatched review is owed once in the level after two passes (null control)
   ok   and confirm never runs on it
-ledger: dispose wrote to /tmp/cloud_relay_st.BOO9DA, not the default home; the tick reads /tmp/cloud_relay_st.BOO9DA/state
+ledger: dispose wrote to /tmp/cloud_relay_st.cvCgFf, not the default home; the tick reads /tmp/cloud_relay_st.cvCgFf/state
   ok   a disposed review is not owed
   ok   a review/<pr> tip the relay did not push is left to the orchestrator (null control)
   ok   and owes nothing
@@ -382,5 +383,5 @@ ledger: dispose wrote to /tmp/cloud_relay_st.BOO9DA, not the default home; the t
   ok   a return ref older than the dispatch (an earlier round's) does not count as a return
   ok   deleting the dispatch ref takes its line off the level (the disposal)
   ok   a pass runs the no-return arm
-cloud_relay self-test: 380 checks, 0 failed
+cloud_relay self-test: 381 checks, 0 failed
 rc=0

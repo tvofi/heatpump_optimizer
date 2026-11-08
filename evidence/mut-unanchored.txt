@@ -1,0 +1,17 @@
+ tools/audit/seat/cloud_relay.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index db4276042..ffa121572 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -616,7 +616,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+       # ref moves, which is a new key: recorded at once. Any other (ancestry reds, ci predict) can clear with no ref
+       # moving: it reruns after HPO_RELAY_RETRY_BACKOFF (30 min), three runs at most, then it is recorded and owed.
+       n=${tries% *}; n=$((n + 1)); cls=retry
+-      ! grep -qiE '^[[:space:]]*(update_pr: )?REFUSE[: ]+(unpinned sites?|carry|pr-body|figures|brief)' "$bd/update.out" || cls=content  # mut:retryall
++      ! grep -qiE '(unpinned site|carry|pr-body|figures|brief)' "$bd/update.out" || cls=content  # mut:retryall
+       [ "$n" -lt 3 ] || cls=content  # mut:trylimit
+       if [ "$cls" = content ]; then
+         echo "$key" >> "$f"
+  FAIL (d) a ci-predict refusal whose output also holds the unpinned-sites skip line is rerun (rc=1, want 0)
+cloud_relay self-test: 381 checks, 1 failed

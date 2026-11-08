@@ -1,0 +1,20 @@
+ tools/audit/seat/cloud_relay.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index db4276042..93ccf3ee5 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -546,7 +546,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+       level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue
+     fi
+     # A failed run is keyed on the body sha too (P22, carry 8): a new body re-triggers it, and the reason stays.
+-    key="$topic $hs $bs"
++    key="$topic $hs"
+     if [ -f "$f" ] && grep -qxF "$key" "$f"; then
+       why=$(awk -F'\t' -v k="$key" '$1 == k { w = $2 } END { print w }' "$f.why" 2>/dev/null)
+       level_line handoff-update "refs/heads/handoff/$topic" "$hs" "$why" >> "$state/cloud-level-update.$$"; continue
+  FAIL (b) a new body reruns it (rc=1, want 0)
+  FAIL while cloud-handoff-failed keeps its <topic> <code sha> <body sha> line (rc=1, want 0)
+  FAIL a failed body-only run is recorded on topic, code and body sha (rc=1, want 0)
+  FAIL a new body re-triggers it (rc=1, want 0)
+cloud_relay self-test: 381 checks, 4 failed
