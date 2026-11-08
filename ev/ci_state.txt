@@ -1,0 +1,8 @@
+head 6016f9dd6e0ff482d0e140946721657357653726
+merge_train classify: 11:30:41Z rc=1 RED pending: none red: gate
+gate job 128714863506 (11:19Z) and re-run job 128717322616 (11:29:39-11:30:09Z): log's only FAIL line:
+  FAIL codeql / Analyze (actions): failure (run 42470642055)
+codeql / Analyze (actions) job 128714861880 (10:17Z): failed in the codeql-action 'init' step;
+  "Debugging artifacts are unavailable since the 'init' Action failed before it could produce any."
+Every other context in the packet digest: success or skipped (tests / mutation success, pr-contract / pr-contract success,
+arch-score success, budget-raise-gate success, codeql python + javascript success).
