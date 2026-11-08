@@ -19608,7 +19608,7 @@
     "stage": "done",
     "branch": "handoff/r10-hotfix-main-ist-red",
     "pr": 3307,
-    "commit": "73365699a135fb813a43380096b6776d57f8ff4c",
+    "commit": "73365699a135",
     "last_step": "fixer fired 2026-11-08T02:20Z",
     "next_step": "handoff then PR",
     "note": null
