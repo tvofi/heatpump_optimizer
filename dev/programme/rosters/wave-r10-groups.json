@@ -14709,7 +14709,7 @@
     "From r10-planted-defect-audit (PR #3240), fix review round 2, verdict/3240 (probe/rev-3240-768e2f86, ev/stale-probe.txt): DISPATCH lines never leave the job file. After a trip clears, the line is kept (`recover-ok` and `ok-again`), and each new episode appends another. The fold stamps only new lines, so the orchestrator is not re-woken, but `digest.txt` keeps a done audit as an actionable line indefinitely and grows by one line per episode (measured: 3 episodes in 5.4 days). Fix: expire a DISPATCH line by age, or when its arm clears, matching the roster-drain HOLD-STALE precedent, with a self-test case, a mutant (expiry removed, case red) and a null control. Carry: R10-PLANTED-DEFECT-AUDIT [dismissed: keep test failed, owner bar 2026-11-08; triage batch 136 entry 430]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-planted-defect-audit",
     "commit": "a2240924bdbcb582a5d77898268c6ab45baeca54",
     "last_step": null,
