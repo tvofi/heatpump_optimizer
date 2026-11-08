@@ -4520,12 +4520,19 @@ function assertAcceptance(derived) {
   }
   // The null control: a body that names every red is refused for none, with or
   // without the set, and never reads it (the read is lazy).
-  const namedAll = path.join(os.tmpdir(), `prbody-named-${process.pid}.md`)
-  fs.writeFileSync(namedAll, fs.readFileSync(path.join(ROOT, unnamed), 'utf8').replace(/## Red checks\n[^#]*/, `## Red checks\n${MIXED.map((n) => `- \`${n}\`: answered.`).join('\n')}\n\n`))
+  // The body goes in a private directory (CodeQL js/insecure-temporary-file):
+  // a predictable name in the shared tmpdir can be pre-planted or symlinked.
+  const namedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prbody-named-'))
   let reads = 0
-  const namedWith = owedOf(checkPrBody(namedAll, { head: ZERO, red: MIXED, paths: ['tests/x.py'], required: () => { reads += 1; return REQ } }))
-  const namedWithout = owedOf(checkPrBody(namedAll, { head: ZERO, red: MIXED, paths: ['tests/x.py'] }))
-  fs.rmSync(namedAll, { force: true })
+  let namedWith, namedWithout
+  try {
+    const namedAll = path.join(namedDir, 'body.md')
+    fs.writeFileSync(namedAll, fs.readFileSync(path.join(ROOT, unnamed), 'utf8').replace(/## Red checks\n[^#]*/, `## Red checks\n${MIXED.map((n) => `- \`${n}\`: answered.`).join('\n')}\n\n`))
+    namedWith = owedOf(checkPrBody(namedAll, { head: ZERO, red: MIXED, paths: ['tests/x.py'], required: () => { reads += 1; return REQ } }))
+    namedWithout = owedOf(checkPrBody(namedAll, { head: ZERO, red: MIXED, paths: ['tests/x.py'] }))
+  } finally {
+    fs.rmSync(namedDir, { recursive: true, force: true })
+  }
   if (namedWith.length || namedWithout.length || reads) {
     console.log(`\nFIXTURE VACUOUS: a body naming every red was refused for ${JSON.stringify([...namedWith, ...namedWithout])} (set read ${reads} time(s)); naming every red behaves as before the ruling`)
     rc = 1
@@ -4569,6 +4576,18 @@ function assertAcceptance(derived) {
   let reads0 = 0
   checkPrBody(unnamed, { head: ZERO, red: [], paths: ['tests/x.py'], required: () => { reads0 += 1; return REQ } })
   if (reads0) { console.log('\nFIXTURE VACUOUS: a run with no red read the required set'); rc = 1 }
+  // Every temporary path this file builds sits under a private mkdtempSync
+  // directory: a bare `path.join(os.tmpdir(), ...)` names a file in the shared
+  // tmpdir, which another user can pre-plant (CodeQL js/insecure-temporary-file,
+  // alert 52). The scan reads this file's own source, so the old shape fails it.
+  pins += 1
+  const tmpSites = fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n')
+    .map((l, i) => [i + 1, l]).filter(([, l]) => /path\.join\(os\.tmpdir\(\)/.test(l) && !/^\s*\/\//.test(l))
+  const bareTmp = tmpSites.filter(([, l]) => !/mkdtempSync\(path\.join\(os\.tmpdir\(\)/.test(l))
+  if (!tmpSites.length || bareTmp.length) {
+    console.log(`\nFIXTURE VACUOUS: ${tmpSites.length ? `line(s) ${bareTmp.map(([n]) => n).join(', ')} join a name onto the shared tmpdir outside mkdtempSync` : 'no os.tmpdir() site found; the scan read nothing'}; a temporary file goes inside a private mkdtempSync directory`)
+    rc = 1
+  }
   // Both markers on SHAPE, for the reason `enumSkipLine`'s pin above gives: they
   // carry no finding, so no count can see them. The skip line is the only thing
   // between an unread history and a green that measured nothing, and the record
