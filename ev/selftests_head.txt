@@ -1,0 +1,9 @@
+== head tools/policy/budget_raise_gate.py
+  ok   e2e: --check-body: --base without --head exits 2
+budget_raise_gate self-test: 274 checks, 0 failed
+== head tools/audit/seat/merge_train.py
+  ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
+merge_train self-test: 564 checks, 0 failed
+== head tools/audit/seat/r10_mandate_guard_mutants.py
+  ok   B4: its anchor occurs exactly once and the plant compiles
+r10_mandate_guard_mutants self-test: 8 checks, 0 failed
