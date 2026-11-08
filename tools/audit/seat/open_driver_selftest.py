@@ -119,6 +119,9 @@ def run():
     check("file order among listed (outside the fence)", names(["r10-inst", "triage-s6-batch1"]).index("r10-inst") < names(["r10-inst", "triage-s6-batch1"]).index("triage-s6-batch1"))
     check("the fence beats the file: a listed instrument is behind an omitted hotfix", names(["r10-inst", "r10-hotfix-x"]).index("r10-hotfix-x") < names(["r10-inst", "r10-hotfix-x"]).index("r10-inst"))
     check("omitted record sorts after listed hotfix", names(["r10-hotfix-x"]).index("triage-s6-batch1") > names(["r10-hotfix-x"]).index("r10-hotfix-x"))
+    same = [("r10-a", "R10-A", 1), ("r10-b", "R10-B", 2)]
+    check("an omitted topic slots after a listed one of its own class, never before it",
+          [t for t, _, _ in od.order(same, ["r10-b"], set())] == ["r10-b", "r10-a"])
     check("critical listed last is still ahead of every non-fenced topic", names(["r10-inst", "triage-s6-batch1", "r10-cp"])[:2] == ["r10-hotfix-x", "r10-cp"])
     check("the fence orders hotfix, outside, critical whatever the file lists",
           [t for t, _, _ in od.order(items + [("r10-out", "R10-OUT", 5)], ["r10-cp", "r10-out", "r10-hotfix-x", "r10-inst"], {"r10-cp"}, {"r10-out"})][:3]

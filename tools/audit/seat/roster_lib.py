@@ -894,14 +894,16 @@ def _self_test() -> int:
               and not is_outside({"group": "G", "source": True}) and not is_outside({"group": "G", "source": ["outside"]}))
         rp = {"groups": [{"group": "R10-F", "resume": {"pr": 7}}, {"group": "R10-G", "resume": {"pr": "8"}},
                          {"group": "R10-H", "resume": {"pr": None}}, {"group": "R10-I"},
-                         {"group": "R10-ONE", "resume": {"pr": 1}}]}
+                         {"group": "R10-BOOL", "resume": {"pr": True}}, {"group": "R10-ONE", "resume": {"pr": 1}}]}
         rk = {"groups": [{"group": "H1", "kind": "bug"}, {"group": "R10-HOTFIX-N"},
                          {"group": "O1", "source": "outside"}, {"group": "O2", "source": "outside", "kind": "bug"},
                          {"group": "C1"}, {"group": "P1"}]}
         check("dispatch_rank: hotfix 0, outside 1, critical 2, other or unknown or none 3; a hotfix beats outside",
               [dispatch_rank(rk, g, {"c1", "o1"}) for g in ("H1", "R10-HOTFIX-N", "O1", "O2", "C1", "P1", "ZZ", None)]
               == [0, 0, 1, 0, 2, 3, 3, 3]
-              and dispatch_rank(rk, "C1", set()) == 3)
+              and dispatch_rank(rk, "C1", set()) == 3
+              # no group id is 3 even where a roster row carries no id and is a hotfix
+              and dispatch_rank({"groups": [{"group": None, "kind": "bug"}]}, None, set()) == 3)
         check("is_hotfix: kind bug or HOTFIX in the name only",
               is_hotfix({"group": "X", "kind": "bug"}) and is_hotfix({"group": "r10-hotfix-x"})
               and not is_hotfix({"group": "X"}) and not is_hotfix(None))
