@@ -1,0 +1,12 @@
+lane control: 3 run step(s), 0 uses: step(s) listed, 0 exited non-zero, 6342 trace lines, 2 step(s) read a row, 2 s
+  [0] exit=0 lines=200 open=1 exec-names=2 :: planted reader
+      by cat dev/programme/delivery/1059.md: {'exec-names': 1, 'open': 1}
+      by git show HEAD:dev/programme/delivery/1065.md: {'exec-names': 1}
+  [1] exit=0 lines=6019 open=2914 list=6 exec-names=4 stat=1458 :: planted copy reader
+      by cp -r dev/programme/delivery /home/user/rec/control/control.tmp/runner/copy-rows-src: {'exec-names': 1, 'stat': 1457, 'open': 1457, 'list': 3}
+      by mkdir -p /home/user/rec/control/control.tmp/runner/copy/dev/programme: {'exec-names': 1}
+      by mv /home/user/rec/control/control.tmp/runner/copy-rows-src /home/user/rec/control/control.tmp/runner/copy/dev/programme/delivery: {'exec-names': 1, 'stat': 1}
+      by bash --noprofile --norc -eo: {'open': 1, 'list': 3}
+      by cat /home/user/rec/control/control.tmp/runner/copy/dev/programme/delivery/1059.md /home/user/rec/control/control.tmp/runner/copy/dev/programme/delivery/1065.md : {'exec-names': 1, 'open': 1456}
+RESULT control_hits=3 copy_reader=True fixture_reader=False
+rc=0

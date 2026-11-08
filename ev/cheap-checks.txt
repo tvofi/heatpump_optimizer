@@ -1,0 +1,6 @@
+STRUCTURE RATCHET PASSED
+ALL 112 HARNESS HEADER CHECKS PASSED
+inline rc=0
+review_carry: CANNOT DECIDE: no arguments
+
+[exited with code 0]

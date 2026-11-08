@@ -1,0 +1,22 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 8c35d489e..39ef1a3d4 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -187,7 +187,7 @@ jobs:
+       head: ${{ needs.prelude.outputs.head }}
+       recheck: ${{ inputs.recheck }}
+       no-skip: ${{ inputs.no-skip }}
+-      machinery: ${{ needs.prelude.outputs.machinery }}
++      machinery: ${{ needs.prelude.outputs.machinery_rowblind }}
+       machinery_rowblind: ${{ needs.prelude.outputs.machinery_rowblind }}
+     # Until M-3 decides the approve steps.
+     secrets:
+@@ -213,7 +213,7 @@ jobs:
+     uses: ./.github/workflows/governance.yml
+     with:
+       base: ${{ needs.prelude.outputs.base }}
+-      machinery: ${{ needs.prelude.outputs.machinery }}
++      machinery: ${{ needs.prelude.outputs.machinery_rowblind }}
+     permissions:
+       contents: read
+       pull-requests: read

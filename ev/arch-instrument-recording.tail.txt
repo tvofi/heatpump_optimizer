@@ -1,0 +1,2 @@
+lane arch-instrument: 3 run step(s), 2 uses: step(s) listed, 0 exited non-zero, 533882 trace lines, 0 step(s) read a row, 1011 s
+rc=0
