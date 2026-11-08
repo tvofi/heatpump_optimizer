@@ -1,0 +1,6 @@
+[
+ {"name":"main_check_off","file":"tools/audit/seat/survivor_list.py","old":"    if len(argv) == 3 and argv[0] == \"check\":","new":"    if False:"},
+ {"name":"main_argv_swap","file":"tools/audit/seat/survivor_list.py","old":"        return check(argv[1], argv[2])","new":"        return check(argv[2], argv[2])"},
+ {"name":"main_entry_off","file":"tools/audit/seat/survivor_list.py","old":"if __name__ == \"__main__\":","new":"if False:"},
+ {"name":"bus_call_off","file":"tools/audit/seat/bus.sh","old":"  why=$(python3 -I \"$ROOT/tools/audit/seat/survivor_list.py\" check \"$v\" \"$ev\") \\\n    || die \"push-verdict: $(tr '\\n' ' ' <<< \"$why\")\"","new":"  :"}
+]
