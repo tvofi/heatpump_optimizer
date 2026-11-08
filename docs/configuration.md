@@ -622,7 +622,9 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Lower floor temperature sensor | the setup value | a temperature sensor | As on Optional sensors. Two-zone houses only. |
 | Heat pump on/off switch | the setup value | a `switch` | As on Optional sensors. |
 | Space-heating set-point entity | none | `number` / `input_number` / `climate` | Optional. Used to notice when the entity cannot be read. Written only with **Pump duty control** at Control, and then with the plan's own number (see below), never a recommended optimum. |
-| What that set-point entity expects | Indoor temperature | Indoor temperature / Flow temperature | A declaration, not a write. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. |
+| What that set-point entity expects | Indoor temperature | Indoor temperature / Flow temperature / Return temperature | A declaration, not a write. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. *Return temperature* is a controller that takes the number as its return-water target (see [Pump duty control](#pump-duty-control)). |
+| Minimum lift above the inlet water (`flow_min_lift_k`) | 5 K | 0.5–15 K, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at the plan's lowest power is the measured inlet water plus this (see [Pump duty control](#pump-duty-control)). |
+| Heating flow ceiling (`flow_heat_c`) | 55 °C | 25–70 °C, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at full planned power, and the highest one written while the plan is in charge. |
 
 ### Power and solar sensors
 
@@ -684,8 +686,8 @@ writes, at every 15-minute plan step:
 | Neither (idle) | left as it is | the same | the space gate |
 | Every fallback | *Heating + DHW* | the same | the hold value |
 
-- **For a *Flow temperature* entity** the heating value follows the planned
-  power. At full power it is 55 °C (the `flow_heat_c` option, when set), or
+- **For a *Flow temperature* entity** (and a *Return temperature* one,
+  below) the heating value follows the planned power. At full power it is 55 °C (the `flow_heat_c` option, when set), or
   the entity's maximum if that is lower. A lower planned level moves the
   target toward the return-water temperature, or toward 35 °C when no return
   sensor is configured, so the pump's own water thermostat can deliver that
@@ -698,6 +700,25 @@ writes, at every 15-minute plan step:
   that is higher, and never above the heating ceiling.
   The model's weather curve is a pricing curve, not a set-point: written
   as one, it held the pump at 25 °C and underheated the house.
+  The lift at the lowest level is 5 K over the inlet (`flow_min_lift_k`)
+  and the ceiling 55 °C (`flow_heat_c`); both are on **Sensors and
+  entities**, once the unit is *Flow* or *Return temperature* (the two
+  fields appear once that unit is saved). Those defaults suit a controller
+  that holds its **supply** at the set-point.
+- **For a *Return temperature* entity** — a controller that takes the
+  number as its **return-water** target and runs the compressor harder the
+  further it sits above the measured return, such as a Luxtronik (alpha
+  innotec, Novelan) through its Smart Home Interface — everything above
+  applies unchanged, except that the two values derived from a supply
+  temperature, the 35 °C hold and the weather curve, are written 5 K lower
+  (the rated supply-over-return spread), and so is the 35 °C floor used
+  when no inlet sensor reads. The lift and the ceiling are written as you
+  set them, and their defaults stay 5 K and 55 °C, which are too high for
+  such a controller: the 5 K lift drives its compressor to near full speed
+  at the plan's lowest level, and a 55 °C return target overheats the
+  system water. Map the heat pump's return sensor (the first inlet the lift
+  is taken from) and set a lift of about 1–2 K and a ceiling of about
+  35–40 °C.
 - **For an *Indoor temperature* entity** each of the three is the step's
   planned room temperature, clamped to the entity's range (5 °C as the gate
   where the mode offers no hot-water-only option). An entity whose own
