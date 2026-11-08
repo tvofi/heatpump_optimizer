@@ -230,6 +230,9 @@ MUTANTS = [
      'return "gate" in (run.get("jobs") or {})'),
     # r10-gate-busy-defer-2: a never-expanded unit adds no source; the deferring gate waits like any other.
     ("M25 judging: a skipped caller read as owing its unit", '        if jobs.get(u, ("",))[0] == "completed":\n            continue', '        pass', PRELUDE),
+    # r10-hotfix-gate-busy-defer-p5: a unit's source is the run whose jobs for it started last (27233708).
+    ("M27 source order by id alone", 'key=lambda r: fresh(r, names), reverse=True', 'key=lambda r: r["id"], reverse=True'),
+    ("M28 a lagging own unit displaced", '            return "~", r["id"]\n', '            pass\n'),
     # M26 (C3's at-once bound restored, #3263's red) retired: #3287 (5c1fa41f) made every deferral at once,
     # so the mutant's behaviour is the design and its `> bound:` anchor no longer exists.
 ]
