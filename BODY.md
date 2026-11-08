@@ -17,7 +17,7 @@ R10-MIN-POWER-FLOOR, built to the approved design (`design/r10-min-power-floor` 
 
 f60b4d8c0f5c219e6b8c6d506f4874ce4c8f2a0a
 
-origin/main moved to 7c9c4c154 after this branch was cut. `git merge-tree --write-tree origin/main HEAD` reports no conflict (the ledger driver resolves `structure_budgets.json` and `closures.json`), so per the owner ruling of 2026-11-07 main is not merged; the merge train recarries the head.
+origin/main moved to 48af0864a after this branch was cut. `git merge-tree --write-tree origin/main HEAD` reports no conflict (the ledger driver resolves `structure_budgets.json` and `closures.json`), so per the owner ruling of 2026-11-07 main is not merged; the merge train recarries the head.
 
 ## Mutation proof
 
