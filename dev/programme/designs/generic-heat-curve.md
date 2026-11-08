@@ -1,14 +1,14 @@
-# generic-heat-curve design note (designer seat, note 3 of at most 3)
+# generic-heat-curve design note (designer seat, note 4)
 
 The group's architect note, extended (`dev/governance/roles/designer.md`). It lives on `design/generic-heat-curve`
 and never merges. **There is no finding and no finder harness: the evidence is a user's feature request** (an
 alpha innotec LWDV 91-1/3 owner, Luxtronik firmware 3.92.3). No roster group exists, so there are no predecessors
 and no `after` briefs. `dev/governance/dimensions/D12.md` (Traps) classes a new control surface as a product
-request: **whether to build it is `decision: owner`**.
+request: whether to build it was `decision: owner`, settled by the owner on 2026-11-07 (note 4).
 
 **Note 2** answers `Design review: revise f8316155370f4b890ee3051e0516010739ae332a architecture-unsound`:
 R1 in §Target contract (one slot, a declared target kind; kind `offset` is the first build, kind `persistent` a
-specified follow-up), R1b in §Write policy (W1–W6 sized for volatile targets; the persistent budget is a
+later group, per note 4 with its own note and review), R1b in §Write policy (W1–W6 sized for volatile targets; the persistent budget is a
 documented refusal), R2 in U4 and §Alternatives (A split into A1 and A2). The verdict's seven fixer carries are in
 §Notes for the fixer as items ghc-r01…r07. The reviewer's verified points (seam, chokepoint, feeds, K-unit trap,
 ratchet, sibling designs) stand unchanged. The user asked for "both" kinds and for use beyond his install.
@@ -17,6 +17,18 @@ ratchet, sibling designs) stand unchanged. The user asked for "both" kinds and f
 option (i): kind `persistent` is downgraded to a sketch whose own group owes its own design note and review
 (§Target contract (b)); it adds carry ghc-r08 and records the user's measurement of 2026-11-07 under U1. Nothing
 else changed.
+
+**Note 4** folds in the owner's comment on PR tvofi/heatpump_optimizer#3284 (tvofi, 2026-11-07) and the carries
+ghc-r09 and ghc-r10 of the note-3 approval. Owner decisions (2026-11-07, not the author's opinion):
+- The feature is accepted for this round (it settles the first `decision: owner` of the earlier notes).
+- Kind `offset` is built first, from this note, through the single displace path.
+- Kind `persistent` follows in the same round with its **own design note and design review**. That note must solve
+  O1–O4 and take its defaults (band, daily write budget, minimum dwell) from a sourced study across many
+  controllers, not only Luxtronik (O5).
+- The ruling "off writes nothing" (2026-09-26) is **retracted**: kind `offset` writes a neutral 0 on MODE_OFF and
+  on unload; kind `persistent` restores its captured baseline; the pump arbiter's space set-point also restores
+  the user's value on off.
+Measurements added: U1 at a second outdoor temperature (M1, M2) and U4 at one operating point, both below.
 
 **Read at.** `origin/main` = `28d46c4918285d36c409c1fb2f72eb77e04e569e`, unchanged since note 1. Outside the tree,
 read-only: the user's `luxtronik_shi` at `1eb46953f3baf55f5e9f915f4a244e6ab9b8e49d` (`registers.py`, `README.md`),
@@ -52,30 +64,47 @@ to the current return temperature setpoint (tRL) for heating. Requires heating_m
 python-luxtronik that SHI holdings are volatile (README.md:213-217, :229-231).
 
 **Recommendation.** Build one slot with a declared target kind. **First build: kind `offset`** (§Target contract
-(a)). **Kind `persistent` is a later group** sketched in (b), not part of the first build and not
-build-level: its group owes its own design note and design review before any fixer starts. Never two
-slots, and never writes of two curve points (A1). If the owner sees no install class beyond the reference, the
-zero-code stopgap C suffices and nothing is built. **`decision: owner`**: build at all; first build (a) only, or
-(a) and later (b).
+(a)). **Kind `persistent` is a later group in the same round** sketched in (b), not part of the first build and
+not build-level: its group owes its own design note and design review before any fixer starts. Never two
+slots, and never writes of two curve points (A1). **Owner decision (tvofi, 2026-11-07, PR #3284):** the feature
+is accepted for this round, `offset` first, `persistent` after with its own note and review; the zero-code
+stopgap C is no longer the answer.
 
 **Assumptions the tree cannot verify.**
-- U1: `heating_offset` acts as a parallel shift of the return-target curve on FW 3.92.3. **Measured by the user
-  on 2026-11-07** on the reference installation (LWDV 91-1/3, FW 3.92.3, SHI): with SHI heating mode (holding
-  10000) = `offset` and heating offset (holding 10002) = +2 K, the controller's return-temperature target rose from
-  27.7 °C to 29.7 °C; with the mode set back to `off` it returned to 27.7 °C; the offset was then set to 0 with the
-  mode left at `offset`. So at that one operating point the offset shifts the return target by exactly the offset.
-  Whether it does so at other outdoor temperatures (a true parallel shift across the curve) was not measured; U1
-  stays open beyond that point, and U4 is untouched by it.
+- U1: `heating_offset` acts as a parallel shift of the return-target curve on FW 3.92.3. **Measured by the user**
+  on the reference installation (LWDV 91-1/3, FW 3.92.3, `luxtronik_shi`; SHI heating mode holding 10000 =
+  `offset`, heating offset holding 10002). Instrument: `luxtronik_shi` sensor key `return_target` (SHI input
+  register 10101, registers.py:189 at `luxtronik_shi` `1eb46953`), entity `sensor.lwdv_shi_return_target`, resolution
+  0.1 K.
+  - M1, 2026-11-07 14:18 local, outdoor 5.7–5.8 °C: offset +2 K, return target 27.7 → 29.7 °C; mode set back to
+    `off`: 27.7 °C again; the offset was then set to 0 with the mode left at `offset`.
+  - M2, 2026-11-08 12:17 local, outdoor 7.6 °C: baseline 27.2 °C; offset +1 K → 28.2 °C; offset 0 → 27.2 °C.
+  Result: at two outdoor temperatures and two offset values the offset shifted the return target by exactly the
+  offset. This covers **5.7–7.6 °C outdoor only**; other, colder outdoor temperatures stay open. It says nothing
+  about the shape of the curve (U3).
 - U2: it applies only while `cfg_heating_mode` = offset, which the optimizer does not own; mode setpoint, which
   the arbiter's space set-point on this controller needs (`luxtronik_shi` README, "Heating setpoint (reg. 10001)"),
   excludes it.
-- U3: the Luxtronik curve between its two points is linear. No source in reach states its shape.
+- U3: the Luxtronik curve between its two points is linear. **Unverified, and contradicted by the owner's
+  statement (2026-11-07) that the curve itself is not linear** while the offset shift (U1) is. No source in reach
+  states its shape; nothing below may rely on linearity.
 - U4: what the persistent "parallel shift" parameter is on FW 3.92.3, a foot point (absolute return temperature at
   a warm reference) or a whole-curve offset. python-luxtronik gives no semantics for indices 1
   (`ID_Einst_WK_akt`), 11, 12 (`ID_Einst_HzHKRANH_akt`) and 13 (`ID_Einst_HzHKRABS_akt`): all `Celsius`, `°C/10`,
-  `description: ''` (parameters.py:60-69, 158-187). Which index the user's Luxtronik entities map to is not stated
-  by any source in reach. The user's values (shift 22 °C below end point 30 °C) read as a temperature at a
-  reference point rather than an offset; that is an inference, not a measurement.
+  `description: ''` (parameters.py:60-69, 158-187). **One operating point measured** on the reference
+  installation (parameter index 12 `ID_Einst_HzHKRANH_akt`, entity
+  `number.luxtronik_341120_089_heating_curve_parallel_shift_temperature` "Heiz Heizkurve Parallelverschiebung",
+  written through the BenPru luxtronik2 integration, port 8889; the controller screen shows end point 30 °C and
+  this parameter 22 °C), 2026-11-08 12:36 local, outdoor 7.9 °C, SHI mode `offset` with offset 0 (the SHI offset
+  does not interfere), resolution 0.1 K: baseline return target 27.2 °C; parameter 22 → 23 °C; after about 90 s
+  return target 28.4 °C (+1.2 K); parameter back to 22 °C: 27.1 °C at 8.0 °C outdoor.
+  - Reading: +1 K on the parameter moved the target by about +1.2 K at 7.9 °C. A foot-point model with the end
+    point fixed at 30 °C at −20 °C outdoor and the parameter at 22 °C would predict only about +0.3 K at 7.9 °C
+    under a linear curve. The observation does not fit that simple model, but the curve is non-linear (U3), so it
+    neither proves nor refutes a foot point or a parallel shift.
+  - Owner statement (2026-11-07, not a measurement): it is a real offset.
+  - Still open: one point, no second outdoor temperature, no check of the end-point parameter. The semantics of
+    the parameter are not otherwise stated here.
 
 ## Owning seam
 
@@ -108,14 +137,17 @@ entity-only install.
   unavailable at save time is open (ghc-r08). Volatility is the user's declaration, stated as a requirement in
   docs/ecl110.md, and that declaration carries the contract.
 - T3 persistent controller parameters are **out of scope for kind `offset`**, in this design and in the docs.
-- T4 MODE_OFF and unload write nothing, the 2026-09-26 ruling (pump_arbiter.py:1131-1133). A volatile target falls
-  back by itself on a controller restart.
+- T4 MODE_OFF and unload write the neutral 0. **Owner decision (tvofi, 2026-11-07)** retracting the 2026-09-26
+  "off writes nothing" ruling (pump_arbiter.py:1131-1133): the user's offset is not left at the last displace. A
+  volatile target also falls back by itself on a controller restart. The arbiter's space set-point likewise restores the user's value on off (owner
+  decision, same date).
 
-**(b) Kind `persistent`: a stored controller parameter (sketch only, for a later group).** For a curve parameter
+**(b) Kind `persistent`: a stored controller parameter (sketch only, own note and review in the same round, owner
+decision 2026-11-07).** For a curve parameter
 the controller keeps in non-volatile memory, such as a single "parallel shift" parameter if U4 holds as an offset
 or a foot point the user accepts as approximate (A2). **P1–P7 are a sketch, not a design on record**: the later
-group owes its own design note and design review before any fixer starts, starting from P1–P7 and solving the open
-problems listed after them. Sketch:
+group owes its own design note and design review before any fixer starts, starting from P1–P7 and solving O1–O4 listed
+after them, with the O5 defaults taken from a sourced study across many controllers, not only Luxtronik. Sketch:
 - P1 **baseline captured at enable**: when the options flow saves kind `persistent` (or a new entity under it),
   it reads the entity's current value and stores it as `heat_curve_baseline` in the options, shown and editable on
   the same page. No Store: the options are the record, and an entity change re-captures.
@@ -141,7 +173,7 @@ problems listed after them. Sketch:
 - P7 a baseline outside the entity's range, or no readable value at enable, refuses the save.
 
 **Open problems the later group's note must solve** (design review V1 of dd331b64; the options listener reloads
-the entry on any changed option, __init__.py:345 and :372-398):
+the entry on any changed option, __init__.py:345 and :372-398; O1–O4 are the owner's required solves, 2026-11-07):
 - O1 P6 writes the baseline into the options, which triggers a reload; each reload costs a restore (P3) plus a
   rewrite of `baseline + d`, and any other options save while kind `persistent` is active costs the same.
 - O2 the budget and dwell state (P4, P5) lives per coordinator and does not survive a reload or a restart, so P4 is
@@ -150,7 +182,9 @@ the entry on any changed option, __init__.py:345 and :372-398):
   nothing detects or prevents it.
 - O4 two restore hooks with no single owner: `async_remove_entry` (__init__.py:429) runs after the unload, finds no
   coordinator and duplicates the unload restore.
-- O5 the band, budget and dwell defaults have no numbers and no source can derive them: `decision: owner`.
+- O5 the band, budget and dwell defaults have no numbers and no source in reach derives them. Owner decision
+  (2026-11-07): they come from a sourced study across many controllers, not only Luxtronik; until it exists they
+  stay open.
 
 ## Shape
 
@@ -161,7 +195,7 @@ before: _publish_ecl110_topics(hass, set_topic, command_topic, qos, retain, disp
 after:  heat_curve.publish(hass, ctx._config, heat_curve.state_for(self), displace_int, payload)
           ├─ MQTT set topic, MQTT legacy topic (unchanged)
           └─ entity arm: kind offset -> displace_int        (a)
-                         kind persistent -> baseline + d     (b, follow-up; restore hook on OFF/unload/remove)
+                         kind persistent -> baseline + d     (b, later group; restore hook on OFF/unload/remove)
 ```
 
 **Mapping.** Never through the absolute set-point helpers (`write_setpoint_c`, `setpoint_range_c`,
@@ -169,8 +203,8 @@ after:  heat_curve.publish(hass, ctx._config, heat_curve.state_for(self), displa
 beside it) shows an entity in K reading −2 read as −275.15 °C and a −2 write sent as 271.15, because
 `TEMPERATURE_UNIT_TO_C` maps `K` to −273.15 (const.py:225). Range is the entity's raw `min`/`max`; step
 `inputs.setpoint_step` (inputs.py:539); the call `inputs.write_setpoint` (inputs.py:596), which takes a value in
-the entity's own unit. Kind `persistent` (°C, absolute) may use the absolute helpers for its baseline arithmetic
-only when the entity's unit is a temperature unit other than `K`.
+the entity's own unit. A later design for kind `persistent` may use the absolute helpers only when the entity's unit
+is a temperature unit other than `K`; that is not permitted in the first build.
 
 ## Write policy (R1b)
 
@@ -191,7 +225,8 @@ only when the entity's unit is a temperature unit other than `K`.
 **Kind `persistent`** adds P4 and P5 on top of W1, W3, W5, W6, and replaces W2's rewrite-on-miss by P6.
 
 **Interactions.** Fixed modes, boost, peak guard and curve bias reach both kinds through the chokepoint. MODE_OFF
-writes nothing for (a) and restores for (b). Only `_apply_action` checks plan staleness (coordinator.py:7797-7808);
+writes the neutral 0 for (a) and restores the baseline for (b) (owner decision, 2026-11-07, retracting "off writes
+nothing"); the arbiter's space set-point restores the user's value on off. Only `_apply_action` checks plan staleness (coordinator.py:7797-7808);
 the peak-guard transition (coordinator.py:8846-8870) and a mode change (climate.py:291-296 → coordinator.py:7712)
 publish without it, as for MQTT today. **Changed for the user:** curve learning on an entity-only install now moves
 the real pump, where with no topic it moved nothing.
@@ -210,7 +245,7 @@ entity (ghc-r03).
   write is a true parallel shift and the geometric objection does not apply. If it is a foot point, writing
   `baseline + d` rotates the curve about the end point (shift `d·(x − x_end)/(x_base − x_end)` at outdoor x, under
   U3), so only the base point moves by d. Either way its remaining costs are persistence, baseline and wear,
-  which the later group's note must answer from the P1–P7 sketch and O1–O5. Not rejected: deferred to the follow-up, behind U4 and `decision: owner`.
+  which the later group's note must answer from the P1–P7 sketch and O1–O5. Not rejected: deferred to the later group for kind `persistent`, behind U4.
 - **B. A new `space_setpoint_unit` "offset" on the arbiter's slot.** The arbiter's value is per duty and per
   one-minute tick, and the displace chain does not pass through it: two owners of one concern. Lost on coupling.
 - **B2. Two slots, one per kind.** Two writers on one concern, the objection to B. Lost on coupling.
@@ -231,7 +266,7 @@ entity (ghc-r03).
 | climate.py:235, sensor.py:862, coordinator.py:8114, payload.py:161 | readouts of the plan value; unchanged |
 | coordinator.py:4511 (`curve_driven`), 6834-6835 (lag) | read the action, not the arm; unchanged |
 | const.py:693, entry_config.py:213 | the new keys go beside them |
-| (b) only: `async_unload_entry` (__init__.py:401), `async_remove_entry` (:429), MODE_OFF in coordinator.py:7714 | restore hook |
+| `async_unload_entry` (__init__.py:401) and MODE_OFF in coordinator.py:7714: neutral-0 write for (a), T4; (b) only: `async_remove_entry` (:429) | restore hook; (b)'s ownership is O4 |
 
 ## Evidence plan (by file), first build (a)
 
@@ -241,7 +276,7 @@ entity (ghc-r03).
 - Arms: K −2 sent as −2 (red if routed through `write_setpoint_c`, per the probe); °F ×1.8; entity −5…5 with
   displace 8 sends 5 and latches W6; W1 equal reading, no call; W2 inside grace no call, after grace one rewrite;
   W3 a second miss, no third call, a new target writes; W4; missing / unavailable / `sensor` domain / unit `%` /
-  raising service, no write while the MQTT arm still publishes; MODE_OFF no call; peak-guard engage plan − nudge,
+  raising service, no write while the MQTT arm still publishes; MODE_OFF one write of 0, and one on unload while Home Assistant is not stopping; peak-guard engage plan − nudge,
   release plan; boost maximum; curve bias applied.
 - **Null control:** the option empty: identical `mqtt.publish` calls and payloads, no `number` call; the tests at
   tests/features.py:40498 and :40578 stay green except the import.
@@ -260,22 +295,22 @@ entity (ghc-r03).
 No coordinator method or attribute is added; heat_curve.py stays under `GOD_CLASS_LOC_LIMIT`. Payment: the shorter
 call and the two deleted stores lower `class_excess_loc`, `max_class_loc` and `coordinator_attrs`; the moved
 helpers leave the coordinator's helper count. Watch `duplication_copies` (do not clone `_command_valve_target`'s
-epsilon-and-latch block) and `functions_cc_over_15` (split `write_displace` into read, convert, decide). Follow-up
-(b)'s restore hook in `async_publish_current_action` and unload costs coordinator lines; it is paid in its own
-group. No raise is expected; one needs the owner (CLAUDE.md, rule 2).
+epsilon-and-latch block) and `functions_cc_over_15` (split `write_displace` into read, convert, decide). The
+neutral-0 write on unload (T4) costs lines in unload and is paid inside heat_curve.py; (b)'s restore hook in
+`async_publish_current_action` costs coordinator lines and is paid in its own group. No raise is expected; one needs the owner (CLAUDE.md, rule 2).
 
 ## Docs
 
 `docs/ecl110.md`: "Without MQTT: a number entity" (option, kind `offset` contract T1–T4, delta units, W1–W6, the
 Luxtronik SHI example with U1, U2 and ghc-r04 stated); `docs/configuration.md:358` page row; `README.md:243` surface
 row and the "ECL110 control is MQTT-only" limit at README.md:273; `strings.json`, `translations/en.json`,
-`translations/sv.json`. Follow-up (b) adds its own section with P1–P7 and the no-endurance-source caveat.
+`translations/sv.json`. The later group for kind `persistent` writes its own docs section from its own note.
 
 ## Hot files and serial position
 
 coordinator.py, config_flow.py, const.py, entry_config.py, sensor.py, diagnostics.py, strings and translations,
-docs/ecl110.md, docs/configuration.md, README.md, tests/features.py, tests/config_flow_steps.py, heat_curve.py; (b)
-adds `__init__.py`. `design/R10-USER-DOCS-FINAL` edits docs/ecl110.md and docs/configuration.md: this group goes
+docs/ecl110.md, docs/configuration.md, README.md, tests/features.py, tests/config_flow_steps.py, heat_curve.py; (b)'s
+later group adds `__init__.py`. `design/R10-USER-DOCS-FINAL` edits docs/ecl110.md and docs/configuration.md: this group goes
 after it. `design/r10-livestate` touches `_async_handle_ecl110_state_message`, a different seam: no edge. Roster
 group, size (L by file count, M by logic), and (b) as its own later group are `decision: orchestrator`.
 
@@ -290,10 +325,11 @@ group, size (L by file count, M by logic), and (b) as its own later group are `d
   Carry: dismissed: documentation claim outside scope, for a D6 round (item ghc-03)
 - sensor.py:63 and config_flow.py:1750 cite `coordinator._ecl110_topic`, which no longer exists. Carry: dismissed:
   stale comment outside scope, for a D5 round (item ghc-04)
-- Questions only the owner or the user can answer: build at all, and (a) only versus (a) then (b)
-  (`decision: owner`); for (b), restore the baseline on OFF and unload as P3 specifies, against the 2026-09-26
-  "off writes nothing" ruling, which (a) keeps (`decision: owner`); U1 across outdoor temperatures and U4 measured on the reference
-  installation before the docs name the Luxtronik example (the user). Carry: generic-heat-curve (item ghc-05)
+- Settled by the owner (tvofi, 2026-11-07): build, `offset` first and `persistent` later with its own note; off
+  and unload write the neutral 0 for `offset` (T4). Still the user's to measure before the docs name the Luxtronik
+  example: U1 at colder outdoor temperatures (measured only at 5.7–7.6 °C) and U4 (one point only). The docs'
+  Luxtronik example quotes M1, M2 and the instrument `return_target` with their outdoor temperatures. Carry:
+  generic-heat-curve (item ghc-05; ghc-r09 and ghc-r10 are folded into this note)
 - Only `_apply_action` checks staleness (coordinator.py:7797-7808); the peak-guard transition
   (coordinator.py:8846-8870) and a mode change (climate.py:291-296 → coordinator.py:7712-7720) publish without it.
   Unchanged from MQTT, but the docs must not promise "a stale plan writes nothing". Carry: generic-heat-curve
