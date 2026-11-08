@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "ci"))
@@ -61,8 +62,32 @@ def pages(get, path, params):
     raise ghapi.ApiError(path, 200, "too many pages")
 
 
-def jobs_all(get, rid):
-    return pages(get, f"repos/{REPO}/actions/runs/{rid}/jobs", {"filter": "all"})
+def jobs_all(get, rid, attempts=1):
+    """Every attempt's jobs. A run whose `filter=all` listing GitHub cannot page (run
+    42425147012, 16 attempts and 640 jobs: pages 2-6 answer HTTP 502 on every read) is read
+    one attempt at a time instead."""
+    try:
+        return pages(get, f"repos/{REPO}/actions/runs/{rid}/jobs", {"filter": "all"})
+    except ghapi.ApiError as e:
+        if e.status < 500:
+            raise
+        return [j for n in range(1, attempts + 1)
+                for j in pages(get, f"repos/{REPO}/actions/runs/{rid}/attempts/{n}/jobs", {})]
+
+
+CAP = 1000      # GitHub lists at most 1000 runs for a filtered query, silently
+
+
+def windows(since, until, days=1):
+    """[since, until) cut into `days`-long windows, so no listing reaches CAP unseen."""
+    def utc(x):
+        d = datetime.fromisoformat(x.replace("Z", "+00:00"))
+        return d if d.tzinfo else d.replace(tzinfo=timezone.utc)      # a bare date (--since 2026-10-22) is UTC
+    t, end = utc(since), utc(until)
+    while t < end:
+        nxt = min(t + timedelta(days=days), end)
+        yield t.strftime("%Y-%m-%dT%H:%M:%SZ"), nxt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        t = nxt
 
 
 def measure(runs, jobs_of):
@@ -134,14 +159,33 @@ def selftest():
     want = dict(inverted=2, ordered=1, red_inverted=1, red_ordered=0, red_attempts=3, rerun=2, fresh=1, carried=1)
     bad = [k for k, v in want.items() if o[k] != v]
     rows_ok = [r[6] for r in o["rows"]] == [True, False]
-    print(f"selftest: {len(want) + 1} checks, {len(bad) + (not rows_ok)} failed{' ' + str(bad) if bad else ''}")
+    w = list(windows("2026-11-01", "2026-11-03T12:00:00Z"))
+    want_w = [("2026-11-01T00:00:00Z", "2026-11-02T00:00:00Z"), ("2026-11-02T00:00:00Z", "2026-11-03T00:00:00Z"),
+              ("2026-11-03T00:00:00Z", "2026-11-03T12:00:00Z")]
+    if w != want_w:
+        bad.append(f"windows: {w}")
+
+    def flaky(path, params):              # the 42425147012 shape: filter=all cannot page, per attempt can
+        if path.endswith("/runs/5/jobs"):
+            return (200, {}, {"jobs": [{}] * 100}) if params.get("page") == 1 else (502, {}, {})
+        if "/runs/5/attempts/" in path:
+            return 200, {}, {"jobs": [{"name": path.split("/")[-2]}]}
+        return 404, {}, {}
+    if [j["name"] for j in jobs_all(flaky, 5, 3)] != ["1", "2", "3"]:
+        bad.append("jobs_all: no per-attempt read after a 5xx")
+    try:
+        jobs_all(lambda path, params: (200, {}, {"jobs": []}) if "/attempts/" in path else (404, {}, {}), 5, 3)
+        bad.append("jobs_all: a 4xx was read around")
+    except ghapi.ApiError:
+        pass
+    print(f"selftest: {len(want) + 4} checks, {len(bad) + (not rows_ok)} failed{' ' + str(bad) if bad else ''}")
     return 1 if bad or not rows_ok else 0
 
 
 def main(argv):
     ap = argparse.ArgumentParser()
     ap.add_argument("--since")
-    ap.add_argument("--until", default="*")
+    ap.add_argument("--until")
     ap.add_argument("--rows", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
@@ -149,15 +193,22 @@ def main(argv):
         return selftest()
     if not a.since:
         ap.error("--since is required")
-    runs = pages(ghapi.get, f"repos/{REPO}/actions/workflows/ci.yml/runs",
-                 {"created": f"{a.since}..{a.until}", "event": "pull_request"})
+    until = a.until or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    runs = []
+    for lo, hi in windows(a.since, until):
+        got = pages(ghapi.get, f"repos/{REPO}/actions/workflows/ci.yml/runs",
+                    {"created": f"{lo}..{hi}", "event": "pull_request"})
+        if len(got) >= CAP:
+            raise SystemExit(f"REFUSE {lo}..{hi} lists {len(got)} runs, GitHub's cap: a narrower window is owed")
+        runs += [r for r in got if r["id"] not in {x["id"] for x in runs}]   # a boundary second is in both
+    attempts = {r["id"]: r.get("run_attempt", 1) for r in runs}
     cache = {}
 
     def jobs_of(i):
         if i not in cache:
-            cache[i] = jobs_all(ghapi.get, i)
+            cache[i] = jobs_all(ghapi.get, i, attempts.get(i, 1))
         return cache[i]
-    print(f"ci.yml pull_request runs created {a.since}..{a.until}: {len(runs)}")
+    print(f"ci.yml pull_request runs created {a.since}..{until}: {len(runs)}")
     report(measure(runs, jobs_of), a.rows)
     return 0
 
