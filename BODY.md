@@ -1,23 +1,22 @@
-_Requested by **tvofi**_
-
-Record handoff: the `**open**` delivery rows for the three open dependabot pull requests #3321, #3322 and #3323. `bus.sh` refuses to dispatch reviewers for a dependabot head until origin/main carries its row, and a commit on the bot's branch would redden pr-contract, so the rows land from here and the dependabot branches are untouched. Each row was written by `record_row.py`'s own `open_row_line` through `write_rows` (the guarded write set), with the title read from the API; the CLI's `--write-self-row` only emits a row titled for the record PR itself, so the functions it calls were used directly with the dependabot titles.
+Repairs the blocked verdict `own-row-not-generated` on #3332: its own row `dev/programme/delivery/3332.md` carried a hand-written title and is now the line `record_row.py` generates, `open_row_line(3332, OPEN_ROW_TITLE)`. The rows for #3321, #3322 and #3323 are unchanged.
 
 ## Head
 
-`2325188b4e78bda34b599a2fee44c4c975c69c23` (the row commit, on origin/main `bb7dfb9bd6`)
-
-## Figures
-
-- delivery-status ledger at this head: `python3 tests/delivery_status.py` -- the instrument; re-derive at the head.
-- each row file is exactly one line anchoring its own pull request number, never a table row.
+a254cd764e49e39691d635246dc5c5b840dbb5e5
 
 ## Mutation proof
 
-n/a: record-only diff -- every file is a `dev/programme/delivery/<N>.md` row file; there is no production, test or check code to mutate.
+n/a: the diff is one data row, no production line changed; the generator is untouched.
 
 ## Null control
 
-n/a: no quantified production claim; the one figure names its instrument and re-derives at the head.
+At the previous head e9a128cd283417d9f141780ff6b461678535a0f9 the row read "record: delivery rows for dependabot #3321 #3322 #3323 (R10-RECORD)", and `record_row.py --automerge-check --pr 3332` refused with "this pull request's own row is not the generated open row".
+
+## Figures
+
+- own row equals the generated line: `python3 -c "import sys;sys.path.insert(0,'tools/audit/seat');import record_row as r;print(open('dev/programme/delivery/3332.md').read().strip()==r.open_row_line(3332,r.OPEN_ROW_TITLE))"` printed True at this head (row produced by `python3 tools/audit/seat/record_row.py --write-self-row --pr 3332 --root .` after deleting the old file, since write_rows skips existing files).
+- `python3 tools/audit/seat/record_row.py --automerge-check --pr 3332` run at this head's parent still refuses #3321, #3322, #3323 (the API reports them open, not merged into main) and "not record/autofix -> main"; those two refusals concern state and branch name, not row bytes, and are outside this repair. Run with --head at the new SHA it refuses "head moved" because the live PR head is the old one.
+- `tools/pr/prepr.sh` ran clean (rc=0) at a254cd764e49e39691d635246dc5c5b840dbb5e5 against origin/main bb7dfb9bd6c6; main had not moved since.
 
 ## Red checks
 
