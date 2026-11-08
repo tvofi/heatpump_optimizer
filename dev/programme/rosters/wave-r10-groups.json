@@ -19496,6 +19496,51 @@
     "note": "Registered by the orchestrator (s7) after merge: the root-cause PR landed with no roster group.; overlap admitted (R10-RCA-STAMP-FLUSH-COST, R10-RCA-COP-UNMEASURED): record-only: merged RCA group, stage done; shares only the append-only bugclasses.json with R10-RCA-STAMP-FLUSH-COST"
    },
    "brief": "Root-cause record, beside R10-FLY-STAMP-FLUSH-COST, for the stamp record flush dispatching all of Nightly to run the one-minute record-autofix job: the flush rule took a job as the unit of dispatch while the API dispatches a workflow. Process state (c). Landed in PR 3285 (merge b4ec2f332): the record, harness r10_rca_flush_dispatch.py, class N-dispatch-overreach and the _rca entry. A generic dispatch-scope check is refused under the cost bound; the countermeasure, a one-line proposal-triage.md rule pricing a dispatch by the jobs it runs, is proposed and awaits the owner. Registered done so the plan counts it."
+  },
+  {
+   "group": "R10-FLY-TRIAGE-BAR",
+   "lane": "Instruments",
+   "kind": "policy",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "N-policy-threshold",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/governance/roles/proposal-triage.md",
+    "dev/governance/rules/ratchet-budgets.md",
+    "tools/audit/machinery_ratchet.py",
+    "tools/audit/seat/instruments/machinery_ratchet.py.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-triage-bar",
+    "pr": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch fixer",
+    "note": null
+   },
+   "brief": "Owner ruling (tvofi, 2026-11-08, in chat to the orchestrator): \"bump the triage cost/benefit target to 20% improvement and the limit for keeping already planned instrument groups to 10% instead of 5\". Two thresholds change. (1) The bar for a NEW process, tooling or instrument proposal, and the owner's exemption that rides it, moves from more than 10% to more than 20% improvement in CI time, programme completion time, right-first-time or token usage: dev/governance/roles/proposal-triage.md (the exemption sentence), dev/governance/rules/ratchet-budgets.md (the owner's exemption paragraph), tools/audit/machinery_ratchet.py (its exemption docstring, the strictly-above-one-tenth rule and its self-test cases at exactly 10%, which become exactly 20%), and that instrument's guide line under tools/audit/seat/instruments/. (2) An ALREADY PLANNED instrument or machinery group, or an existing non-production CI lane or seat, stays only on a measured improvement of at least 10% on the same four measures (was 5%, a ruling of 2026-11-05 never written into the tree); unmeasured does not pass. Write rule (2) into proposal-triage.md beside rule (1), once, as the triage seat's keep test for planned groups. Enumerate every other site with git grep over dev/governance, tools and .claude for the old figures in this sense and change each; leave unrelated percentages (rate-limit floors, D0 figures) alone and say so in the body. Mutation-prove the ratchet change: a mutant restoring one tenth must fail the self-test. This is policy: the owner approves before merging (mandate 6715477401, scope all, covers the approval). Keep governance files within their policy_budgets caps (node tools/policy/policy_lint.mjs --budgets); pay by cutting, never raise. Owner ruling (tvofi, 2026-11-08, second message): \"for 2, raise the bar for instrument and machinery defects that can be classified as minor. Major and critical skips the bar.\" So write a third rule into proposal-triage.md: a defect repair in instrument or machinery code (outside custom_components/) whose severity is minor (or low) is no longer exempt as a defect countermeasure. It takes the same bars: more than 20% for a new one, at least 10% to keep a planned one. A major or critical defect, a root-cause countermeasure policy requires, closeout, and an owner directive keep their route without the bar. Name the severity field the triage seat reads (the roster group's severity) and how an unclassified defect is treated (classified first, never assumed major)."
   }
  ]
 }
