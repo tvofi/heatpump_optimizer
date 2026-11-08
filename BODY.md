@@ -4,7 +4,7 @@ Disposes #3283 (no closing keyword; the orchestrator wires it). Adds `dev/audit/
 
 ## Head
 
-Measured at merge base 73365699a135fb813a43380096b6776d57f8ff4c, window v7.1.4..origin/main. Main had not moved since the first prepr run, so there is no second run.
+Head c5cae3b (merge-of-main prepr measured; branch head c5cae3bc2997c1f7e7aae92474403cd3bd2ed335). Measured at merge base 73365699a135fb813a43380096b6776d57f8ff4c, window v7.1.4..origin/main. Main had not moved since the first prepr run, so there is no second run.
 
 ## Mutation proof
 
@@ -31,7 +31,7 @@ none.
 
 ## Forward-carry
 
-The proposed fold of `red-checks` into `FRICTION_FAMILIES` root-cause is owner-gated policy. Carry: owner decision on #3283.
+The proposed fold of `red-checks` into `FRICTION_FAMILIES` root-cause is owner-gated policy. Carry: dev/audit/rca/R10-RCA-OTHER-UNTAUGHT.md
 
 ## Friction
 
