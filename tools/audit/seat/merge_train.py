@@ -5275,8 +5275,101 @@ def _self_test() -> int:
     _failed_marker_self_test(check)
     _add_self_test(check)
     _queue_self_test(check)
+    _stale_verdict_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _stale_verdict_self_test(check) -> None:
+    """P393 (R10-TRAIN-STALE-VERDICT-GUARD): a merge verdict at <head> whose
+    dispatch is older than a blocked verdict's at the same head is refused by
+    `posted_verdict`, so by the queue builder and `admit_add` alike. The bus is a
+    stubbed verdict/7 history; bus.sh's registry is a real file under a
+    temporary HPO_BUS_STATE."""
+    sys.modules.setdefault("merge_train", sys.modules[__name__])
+    import proof_watch
+    login, vid = (lambda a: (sorted(a[0])[0], a[1]))(proof_watch.verdict_allowlist(ROOT / "tools/pr/app_approve.sh"))
+    H, OTHER, T, BC, MC = "1" * 40, "3" * 40, "7" * 40, "b" * 40, "a" * 40
+    NM, NB = "a" * 32, "b" * 32
+    tmp = tempfile.TemporaryDirectory()
+
+    def world(registry=None, blocked_head=H, blocked_nonce=NB, merge_nonce=NM, log_code=0):
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if argv[:2] == ["git", "ls-remote"]:
+                return 0, f"{T}\trefs/heads/verdict/7\n"
+            if argv[:2] == ["gh", "api"] and "/comments" in a:
+                return 0, json.dumps([[{"id": 42, "created_at": "2026-11-06T23:00:00Z",
+                                        "user": {"login": login, "id": vid},
+                                        "body": f"Fix review: merge {H}\n\nbus: verdict/7 at {T}, confirmed\n"}]])
+            if argv[:2] == ["git", "log"]:  # verdict/7, newest first: the merge tip over a blocked one
+                return (log_code, "fatal: bad object" if log_code else
+                        f"{T}\x00verdict: #7 Fix review: merge {H}\n"
+                        f"{BC}\x00verdict: #7 Fix review: blocked {blocked_head} tests: red\n"
+                        f"{MC}\x00verdict: #7 Fix review: merge {OTHER}\n")
+            if argv[:2] == ["git", "show"] and argv[2].endswith(":VERDICT.md"):
+                n = {T: merge_nonce, BC: blocked_nonce}.get(argv[2].split(":")[0])
+                return (0, f"Fix review: x\n\nbus-nonce: {n}\n") if n else (0, "Fix review: x\n")
+            if argv[:3] == ["gh", "pr", "view"]:
+                return 0, json.dumps({"state": "OPEN", "baseRefName": "main", "headRefOid": H})
+            if argv[:2] == ["git", "diff"]:
+                return 0, f"a.py\n{ROW_DIR}/7.md"
+            if "--corpus-filter" in a:  # admit_add's policy read: no fixture file is policy
+                return 0, "\n".join(f for f in (stdin or "").split() if f == "CLAUDE.md")
+            return 0, ""
+        d = Path(tempfile.mkdtemp(dir=tmp.name))
+        if registry is not None:
+            (d / "dispatched").write_text("".join(ln + "\n" for ln in registry))
+        return run, d
+
+    def posted(**w):
+        run, d = world(**w)
+        was = os.environ.get("HPO_BUS_STATE")
+        os.environ["HPO_BUS_STATE"] = str(d)
+        try:
+            t = Train("o/r", Path("."), None, "", (), 1, run=run, log=lambda m: None)
+            return t.posted_verdict(7, T, ({login}, vid)), t.admit_add({"pr": 7, "verdict": H, "verdict_comment": "42"})
+        finally:
+            if was is None:
+                os.environ.pop("HPO_BUS_STATE", None)
+            else:
+                os.environ["HPO_BUS_STATE"] = was
+
+    rec = lambda n, at, h=H: f"7 {h} cmsg_R {n} {at} opus"  # noqa: E731  bus.sh dispatch's six fields
+    stale, stale_add = posted(registry=[rec(NM, "2026-11-06T20:50:26Z"), rec(NB, "2026-11-06T22:13:28Z")])
+    check("stale verdict: STALE -- a merge verdict dispatched before a blocked verdict at the same head is refused "
+          "(PR 3232's times), by posted_verdict and as admit_add's `verdict` rule",
+          isinstance(stale, str) and stale.startswith("stale merge verdict:") and "aaaaaaaa" in stale
+          and "bbbbbbbb" in stale and (stale_add or "").startswith("verdict: stale merge verdict:"))
+    later, later_add = posted(registry=[rec(NB, "2026-11-06T22:13:28Z"), rec(NM, "2026-11-06T23:40:00Z")])
+    check("stale verdict: LATER (null control) -- the merge verdict's dispatch after the blocked one's is admitted",
+          later == (H, "42") and later_add is None)
+    same, same_add = posted(registry=[], blocked_nonce=NM)
+    check("stale verdict: SAME (null control) -- one nonce posted both verdicts, admitted with no dispatch time read",
+          same == (H, "42") and same_add is None)
+    for name, w in (("the merge verdict's nonce has no registry record", {"registry": [rec(NB, "2026-11-06T22:13:28Z")]}),
+                    ("the blocked verdict's nonce has no registry record", {"registry": [rec(NM, "2026-11-06T20:50:26Z")]}),
+                    ("a pre-R10-ORCH-DISPATCH-REG record stops at the nonce",
+                     {"registry": [f"7 {H} cmsg_R {NM}", rec(NB, "2026-11-06T22:13:28Z")]}),
+                    ("no registry file on this machine", {"registry": None}),
+                    ("the blocked verdict carries no bus-nonce", {"registry": [rec(NM, "2026-11-06T23:40:00Z")],
+                                                                  "blocked_nonce": None}),
+                    ("a record at another head is not this nonce's dispatch",
+                     {"registry": [rec(NM, "2026-11-06T23:40:00Z", OTHER), rec(NB, "2026-11-06T22:13:28Z")]})):
+        got = posted(**w)[0]
+        check(f"stale verdict: a missing dispatch time is refused with its reason ({name})",
+              isinstance(got, str) and got.startswith("stale merge verdict undecidable:"))
+    tie = posted(registry=[rec(NM, "2026-11-06T22:13:28Z"), rec(NB, "2026-11-06T22:13:28Z")])[0]
+    tie_later = posted(registry=[rec(NB, "2026-11-06T22:13:28Z"), rec(NM, "2026-11-06T22:13:28Z")])[0]
+    check("stale verdict: a same-second tie is ordered by the registry's append order (refused, then admitted)",
+          isinstance(tie, str) and tie.startswith("stale merge verdict:") and tie_later == (H, "42"))
+    other = posted(registry=None, blocked_head=OTHER)[0]
+    check("stale verdict: a blocked verdict at another head is not this head's finding (admitted, no registry read)",
+          other == (H, "42"))
+    unread = posted(registry=[], log_code=128)[0]
+    check("stale verdict: an unreadable verdict/<pr> history is refused, never read as no blocked verdict",
+          isinstance(unread, str) and "history could not be read" in unread)
+    tmp.cleanup()
 
 
 def _failed_marker_self_test(check) -> None:
