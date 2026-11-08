@@ -101,6 +101,9 @@ def key_of(line: str) -> "tuple[str, list[str]]":
     m = re.match(r"OWED [a-z][a-z-]* (#\d+) ([0-9a-f]{12}) ", body)  # the tick's own bucket line: OWED <kind> #<n> <head12> <reason>
     if m:
         return m.group(1), [m.group(2)]
+    m = re.match(r"OWED blocked-stop (\S+) ([0-9a-f]{12}) ", body)  # a fixer's stop on a question: the topic is the subject
+    if m:
+        return m.group(1), [m.group(2)]
     m = re.match(r"OWED fire-owed (payload-\S+\.json) ", body)  # the tick's FIRE-OWED line: the payload file is the subject
     if m:
         return m.group(1), []
@@ -405,6 +408,8 @@ def self_test() -> int:
             ln = f"-> OWED {kind} #3265 c7c5cef52a49 handoff-body/r10-x is newer than the head"
             _, kk = board(tick(t0, ln))
             check(f"OWED {kind}: keyed #3265 on its head12", set(kk) == {"#3265"} and kk["#3265"]["shas"] == ["c7c5cef52a49"])
+        _, kb = board(tick(t0, "-> OWED blocked-stop r10-x e1e1e1e1e1e1 Question: which seam?"))
+        check("OWED blocked-stop keys its topic on the tip sha12", set(kb) == {"r10-x"} and kb["r10-x"]["shas"] == ["e1e1e1e1e1e1"])
         ba = "-> OWED body-ahead #3265 c7c5cef52a49 handoff-body/r10-x is newer than the head, repair done and unapplied"
         go(tick(t0 + dt.timedelta(hours=7), ba), state="lv-ba.json")
         rcb, ob = go(tick(t0 + dt.timedelta(hours=7, minutes=10), ba), state="lv-ba.json")

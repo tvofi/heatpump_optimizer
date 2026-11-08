@@ -204,7 +204,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "written unless the signal is `host-path`; re-read the live checks either way. "
             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
             "every figure in the body at this head. Check that it merges with origin/main "
-            "(`git merge-tree --write-tree`). Wait for CI on this head only by re-running "
+            f"(`git merge-tree --write-tree origin/main {head}`): block on main only when that reports a "
+            "conflict, never on a head that is behind main but merges cleanly (the train recarries it). Wait for CI on this head only by re-running "
             f"`python3 tools/audit/seat/merge_train.py classify {head} --pr {pr}` in the background, at least "
             "60 s between runs, until it exits 0 (GREEN), 1 (RED), 2 (unreadable: say so in the verdict) "
             "or 4 (APPROVAL-OWED: the only red is the budget raise's approval, which follows your verdict; "
@@ -243,10 +244,12 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"in a worktree of your own cut from origin/main. Fetch {head} for the base you were given.\n"
             f"Output: push each verified step, fast-forward only, to refs/heads/{WIP_NS}/{topic} before "
             f"any wait on a background run, so an idle container loses nothing; never step-push to "
-            f"handoff/{topic}, whose move updates the pull request. Before the handoff, when origin/main "
-            "has moved since your last `tools/pr/prepr.sh` run, `git merge origin/main`, rerun "
-            "`tools/pr/prepr.sh` (the body check included) and fix what it refuses; hand off only on a "
-            "clean run (an unmoved main needs no second run: say so in the body). Then push the code to "
+            f"handoff/{topic}, whose move updates the pull request. Hand off at your first clean "
+            "`tools/pr/prepr.sh` head (the body check included): do not merge a moved origin/main or rerun "
+            "prepr because main moved; the merge train recarries and re-proves your head on the current main. "
+            "Merge origin/main only when `git merge-tree --write-tree origin/main HEAD` reports a conflict, "
+            "then rerun `tools/pr/prepr.sh`. If you must stop on a question, first push `BLOCKED.md` with a "
+            f"`Question:` line to refs/heads/{WIP_NS}/{topic}, even with no code. Then push the code to "
             f"refs/heads/handoff/{topic}, then write the PR body and run "
             f"`bash tools/audit/seat/body_push.sh {topic} <body.md>`, which pushes "
             f"refs/heads/handoff-body/{topic}; that second push is the return signal. Once it succeeds, "
@@ -1049,9 +1052,17 @@ def self_test() -> int:
           and f"except your return refs and {wip} and {wip}-body." in fx)
     check("the fixer deletes the step ref only after body_push.sh succeeds",
           0 <= fx.find("body_push.sh t-1") < fx.find(f"`git push origin :{wip}`"))
-    check("the fixer merges a moved origin/main and reruns prepr.sh before it pushes the handoff",
-          0 <= fx.find("`git merge origin/main`, rerun `tools/pr/prepr.sh`")
-          < fx.find("push the code to refs/heads/handoff/t-1"))
+    check("the fixer hands off at its first clean prepr.sh head and merges main only on a merge-tree conflict",
+          0 <= fx.find("Hand off at your first clean `tools/pr/prepr.sh` head")
+          < fx.find("Merge origin/main only when `git merge-tree --write-tree origin/main HEAD` reports a conflict")
+          < fx.find("push the code to refs/heads/handoff/t-1")
+          and "when origin/main has moved since your last" not in fx.replace("\n", " ")
+          and "`git merge origin/main`, rerun" not in fx)
+    check("the fixer is told to push BLOCKED.md with a Question line before stopping on a question",
+          f"first push `BLOCKED.md` with a `Question:` line to refs/heads/{WIP_NS}/t-1" in fx
+          and all("BLOCKED.md" not in t for r, t in prompts.items() if r != "fixer"))
+    check("the reviewer blocks on main only on a merge-tree conflict, never on a head merely behind main",
+          "block on main only when that reports a conflict, never on a head that is behind main" in rv)
     check("no other role is licensed a step ref (null control)",
           all(WIP_NS not in t for r, t in prompts.items() if r != "fixer"))
     ident = f"`git config user.name {SEAT_NAME} && git config user.email {SEAT_EMAIL}`"
