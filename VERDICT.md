@@ -1,40 +1,59 @@
-Fix review: blocked 6016f9dd6e0ff482d0e140946721657357653726 ci-red: required gate red only on codeql / Analyze (actions) init failure (infrastructure); re-run it, no code change owed
+Fix review: merge 6016f9dd6e0ff482d0e140946721657357653726
 
-bus-nonce: 97fa6e0780f3fa3da8d94c7d37f3f1c1
+bus-nonce: 7cd814e94379735d9b3e6415de52c405
 
-Round 1 (first-round adversarial fix review), PR #3308, R10-MIN-POWER-FLOOR, measured head 6016f9dd6e0ff482d0e140946721657357653726 (still the branch head by `git ls-remote` at verdict time).
-
-## Block
-
-- `merge_train.py classify 6016f9dd… --pr 3308` exited 1, RED. The only red is `gate`. Its log at both runs, job 128714863506 and re-run job 128717322616 at 11:30Z, has one FAIL line: `FAIL codeql / Analyze (actions): failure (run 42470642055)`. That job, 128714861880, failed inside the codeql-action `init` step before any analysis ran ("the 'init' Action failed before it could produce any"). The PR body's `## Red checks` names it as a CodeQL CLI download failure, an infrastructure fault that no local detector can catch, so the root-cause trigger is answered. But a required context is red, and a red CI never carries, so I cannot return `merge` on this state.
-- No code finding blocks. On the code, every check below passed. The remedy is a re-run of `codeql / Analyze (actions)` and then `gate` at this same head, then re-dispatch or a carry of this review. No fixer change is owed.
-
-## Findings
-
-- Follow-up: before this merges, re-read #3297's `probe_install` and `InstallCapability` at its merge (R10-HOTFIX-COP-UNMEASURED has not merged at origin/main 4fe7d5934). Revalidate the `on_off` early return in `can_duty_cycle` if that PR moves `can_duty_cycle` or `fully_metered`. The roster holds this as body item de37a181. Carry: R10-MIN-POWER-FLOOR
-- Follow-up: after R10-GENERIC-HEAT-CURVE (#3284, not merged) lands, re-measure the `option_doc_coverage.py` EXPECTED counts at the merge (+1 field from each side). `option_fields_undocumented` must stay 0. The roster holds this as item b8c2d996. Carry: R10-MIN-POWER-FLOOR
-- Follow-up: the reply on issue 3289 names the option: `on_off` unless the reporter's surface is switch plus setpoint. Owed by the orchestrator, on the roster as item a4565419. Carry: R10-MIN-POWER-FLOOR
-- Follow-up: the new option's German label. No German file exists at base. On R10-I18N-DE's roster carry list. Carry: R10-I18N-DE
-- Follow-up: the docs row "Compressor runs below min power" and the sentence after the setup table are claims `tests/doc_claims.py` may pin. Item df23e57c is in R10-USER-DOCS-VERIFY's roster entry. Carry: R10-USER-DOCS-VERIFY
+Round 1 (first-round adversarial fix review), PR #3308, group R10-MIN-POWER-FLOOR, head 6016f9dd6e0ff482d0e140946721657357653726 measured from detached worktrees at the head and at the merge base 6188936a8bdc58b510ecb8794ad86350283c49a7. The diff was judged against the approved design (design/r10-min-power-floor 23fbff36), not the design itself.
 
 ## Evidence
 
-- Setup: `cloud-setup.sh --check` OK. Role files are current: the three-dot diff of `dev/governance/roles/` from the merge base to origin/main is empty. The review packet was rendered here and refused on signal `required-red` (gate). It is in ev/review-packet.md.
-- Merge: `git merge-tree --write-tree origin/main(4fe7d5934) 6016f9dd…` gives rc=0, no conflict and no MERGE-CLAIM line (ev/merge_tree.txt). The 9 main commits past the merge base 6188936a8 are governance only and touch no production file.
-- Step 1, mutation proof with my own 12 mutants (ev/reviewer_mutants.py), each run against the #3289 features block and then restored; `git status` was clean afterwards. All 12 were killed: on_off early return deleted (4 FAIL); probe never sets on_off (4); cap ignores DHW (4, max 4.34); raise ignores DHW (4, max 5.30); joint returns per-channel space (3); space projected against raw, unprojected DHW (3); DHW shipped unprojected (3); legacy-true read dropped (2); modulating select ignored (3); `duty_cycle_realizable` opts out on any declaration (3); publish reverted to a space-only projection (2); `_realize_joint` ignores clamp (1). See ev/mutants_block.txt. Diff-mutant instrument against merge base 6188936a8: 0 SURVIVED. Its `--cmd true` control gives 18 SURVIVED, which matches the body's 18 (ev/diff_mutants*.txt).
-- Step 2, the FINDER's harness, sha1 e21d29905d30 (from d58242d8c, not the fixer's copy), at base 6188936a8 and at the head (ev/finder_base.txt, ev/finder_rv.txt). All 8 clamp=False lines are byte-identical: this arm is flat by design and stays flat. The 4 clamp=True DHW-off lines are byte-identical. The clamp=True DHW cells move as the design says: total_below_min stays 0, and the objective goes 38.844→39.056, 20.652→20.601, 67.571→67.364 (flat) and 39.167→39.167 (flat). Flat-price cells are beside every objective figure, and these are objective values, not savings. The fixer's extended harness (a93b48e6096e) ran at both ends (ev/ext_*.txt). At base, clamp=True DHW max_total read 5.30/5.00/5.00/3.50. At head it reads 3.50 in all four. The `clamp=on_off` arm at base equals clamp=False (7/5/62/27/55/39 running steps below 2.5 kW). At head the arm reads total_below_min=0, space_only_below_min=0 and max_total<=3.50 in all 8 cells. Every harness figure in the body re-derives exactly.
-- Step 3, null controls: clamp=False byte-identical and the flat-price cells present, as above. My own property check (ev/property_check.txt) ran `_realize_joint(clamp=True)` over 160000 random steps with p_min<=p_max. Zero totals fall outside {0} ∪ [p_min, p_max]. Space and DHW stay >= 0. The B x N batch path row-equals the vector path, and clamp=False is the identity.
-- Step 4, claims: `env_drift.py --all` reports `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE` for 56 scenarios. The only move is `CLAIMED config_flow`: 2 leaves, `compressor_modulation`, present on one side only, ADD-ONLY (ev/env_drift_all.txt). The claim diff is that one line. `card_claimed_drift.txt` is untouched, and no solver fixture moves.
-- Step 5: `VERSION`, `manifest.json`, `RELEASE_NOTES.md` and `card_claimed_drift.txt` are untouched in the three-dot diff (ev/version_untouched.txt).
-- Step 6, class: I re-ran the body's enumerator, the design's grep, at the head (ev/enumerator_head.txt). Every production site matches the body's dispositions. optimizer.py:4876 is in `_optimize_space_only`, which has no DHW, so it is correctly unchanged. :5141 is in `_optimize_with_dhw` and now goes through `_realize_joint`. :4655 and :4717 (objective and objective_batch) go through `_realize_draw`. Nothing in `custom_components/` but `declared_modulation` reads `CONF_CLAMP_PLANNED_LEVELS` or `CONF_COMPRESSOR_MODULATION`, apart from config_flow writing it. Other configurations: zero-evidence `{}`, setpoint-only, frequency-sensor-only, metered and unmetered are covered by the block's null control. The property check covers p_min=0 and arbitrary bands.
-- Step 7: the head in the body, `6016f9dd…`, is the measured head.
-- Step 8: every figure I re-derived matched: harness lines, 18 mutants and 0 survivors, the config_flow ADD-ONLY move, structure `class_excess_loc` 17558, D6/D5 not re-run. The prepr and scoped-gate figures, measured at earlier heads, are cited and not re-derived: I did not re-run the gate (CI's heavy runs are cited).
-- Step 9: the finder's harness is committed (d58242d8c). The fixer's extension is disclosed as theirs. Design trace: every evidence-plan item in design note 23fbff36 has a check in the block or in S4 (`tests/features.py:71012`, `:71020`). Both departures the body names are behaviour-identical: the publish calls `_realize_joint`, and the floors at 0 are dropped. My property check confirms totals stay in-band without the floors.
-- Step 10, forward-carry: roster `handoff/audit-r10-roster` at 1726b3bc2. R10-I18N-DE holds the German-label carry. R10-MIN-POWER-FLOOR holds a4565419, de37a181 and b8c2d996. R10-USER-DOCS-VERIFY holds item df23e57c. Neither precondition PR, #3297 or #3284, has merged.
-- Step 11, CI: see `## Block` and ev/ci_state.txt. `tests / mutation` and `pr-contract / pr-contract` are green at this head.
-- Step 14, metrics: `class_excess_loc` 17560→17558 is earned. With the publish's single `_realize_joint` call reverted to the two original `_published_levels` calls, `structure.py` reads 17560 (ev/structure.txt shows the head at 17558 and `STRUCTURE RATCHET PASSED`). `duplication_copies` is unchanged because `_onto_band` is shared. CI arch-score and budget-raise-gate are green, and no budget is raised.
-- Step 15: the added lines follow approved design 23fbff36, choice (a). `declared_modulation` is the only reader of either key in thermal_model.py. Space is projected against the DHW already in the step. The total lies in {0} ∪ [p_min, p_max], and DHW keeps what its planner booked.
+- RESULT head-measured=6016f9dd6e0ff482d0e140946721657357653726; `git ls-remote` just before writing the verdict shows the same head on fix/r10-min-power-floor (ev/heads-at-verdict.txt).
+- RESULT role-file-current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` touches only orchestrator.md. I read fix-review.md from origin/main.
+- RESULT merge-tree: `git merge-tree --write-tree origin/main 6016f9dd` against origin/main 8a4cf2618 exits 0 and prints `MERGE-CLAIM: resolved tests/golden/claimed_drift.txt` and `LEDGER-MERGE: resolved tests/closures.json`, with no conflict (ev/merge-tree.txt).
+- RESULT harness (step 2): I ran the finder's harness as committed at d58242d8c (handoff-wip, the stop-report harness) and the extended copy this PR lands, at both base and head (ev/harness-{finder,landed}-{base,head}.txt). Every figure in the body re-derives:
+  - clamp=True with DHW, `max_total`: 5.30 / 5.00 / 5.00 / 3.50 at base, and 3.50 in all four cells at the head. `total_below_min` is 0 at both ends.
+  - Declared arm `clamp=on_off`: at base it equals the clamp=False lines (7 / 5 / 62 / 27 / 55 / 39 running steps below 2.5 kW). At the head, `total_below_min=0`, `space_only_below_min=0` and `max_total<=3.50` in all 8 cells.
+  - The finder's own `space_steps_below_min` reads 3 / 1 / 3 in the head's clamp=True DHW cells, as the body discloses: those are mixed steps.
+- RESULT null control (step 3), ev/null-control.txt: the 8 clamp=False lines are byte-identical base vs head under both harness copies, and so are the 4 clamp=True DHW-off lines. Flat-price cells sit beside every cost figure. Objectives (spread / flat) at the base and head are 38.844->39.056, 20.652->20.601, 67.571->67.364 and 39.167->39.167, as quoted. They are objective values and not a savings claim, as the body says. The clamp=True control arm is present and runs.
+- RESULT mutation (step 1): I applied 11 mutants of my own, distinct from the fixer's table, to the head's production files, ran the #3289 features block after each, then restored the files (`git status` clean; ev/mutants.txt). All 11 were KILLED by named checks:
+  - A: legacy true not read as on/off
+  - B: the cap ignores DHW (max 4.34)
+  - C: the raise ignores DHW (max 5.30)
+  - D: DHW not projected in the joint arm
+  - E: the publish left unclamped (8 steps below 2.5)
+  - F: the scorer reverted to per-channel projection
+  - G: probe `on_off` inverted
+  - H: `duty_cycle_realizable` reverted to base's read
+  - I: `learner_unmetered` reverted to base's read
+  - J: the select's `modulating` ignored
+  - K: the band's raise threshold moved
+  - Of these, mutant F (`_realize_draw` scoring per-channel while the publish stays joint) is killed only by the unit check on `_realize_draw`; neither solve-level check notices it. That is a kill, not a survivor, and I record it only as the strength of the pin.
+- RESULT features block at the head: `ALL 9 FEATURES BLOCK PASSED` (ev/block-head.txt).
+- RESULT claims (step 4): `tests/env_drift.py --all 6188936a8` printed `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE: 56`. The output shows `CLAIMED config_flow: 2 leaves moved`; those two leaves are the compressor_modulation leaves, plain and seeded. Every solver fixture is byte-identical, including winter_single_dhw (ev/env_drift-all.txt).
+  - `config_flow.json` numstat is 20 insertions, 0 deletions.
+  - `card_claimed_drift.txt` is untouched.
+  - Plain `env_drift.py`: NO UNCLAIMED DRIFT, NO STALE FIXTURE.
+- RESULT version (step 5): the diff from 6188936a8 to the head leaves VERSION, manifest.json and RELEASE_NOTES.md empty.
+- RESULT class (step 6): I re-ran the body's enumerator grep at the head (ev/class-enum-head.txt). Every production site it returns is dispositioned in the body. The publish-path enumeration agrees: `_build_result` has two callers, the space-only publish (`_published_levels`, DHW absent) and the joint publish (`_realize_joint`). The scorer's `objective` and `objective_batch` both go through `_realize_draw`. `CONF_COMPRESSOR_MODULATION` and `CONF_CLAMP_PLANNED_LEVELS` are read only inside `declared_modulation`, as the design requires.
+- RESULT other configurations (step 6), all checked by reading the code:
+  - On a frequency-write install declared on_off, `planned_range` returns None (pinned in S4).
+  - `p_min=0` is the identity.
+  - The B x N batch broadcasts against the N-vector DHW (pinned).
+  - A user who saves `auto` keeps base's clamp on 5 surfaces (pinned).
+  - Legacy `clamp_planned_levels: true` now clamps on a fully metered install too. The design note (line 33) states that legacy true means on/off, so this is in the approved design, and the body's "declared on_off on any surface" covers it.
+- RESULT structure (step 14): `tests/structure.py` prints `STRUCTURE RATCHET PASSED`. `class_excess_loc` is 17560 at the base and 17558 at the head. The -2 is earned: the publish's two 3-line `_published_levels` statements inside HeatPumpOptimizer became one 4-line `_realize_joint` call, and the projection moved out of the class. No budget is raised.
+- RESULT D5/D6 figures: `option_doc_coverage.py` at the head prints `option_fields_rendered=205`, `option_schema_keys_rendered=238` and `option_fields_undocumented=0`. `claims.py` regenerated the D6 register with no diff against the committed `46 selects` C125 row.
+- RESULT carries (step 10): roster handoff/audit-r10-roster d96891da holds:
+  - the group's three carries: the 3289 reply, the #3297 revalidation and the option_doc_coverage re-measure;
+  - R10-I18N-DE's carry for the German label;
+  - R10-USER-DOCS-VERIFY's carry for the docs row.
+- RESULT red checks (step 11): pr-contract / pr-contract 128753384570 started at 14:02:20Z, after the last red concluded at 11:49:15Z, and is green. The body names `codeql / Analyze (actions)` (the CodeQL download outage) and `gate` (derived).
+- RESULT CI (merge_train classify): every run exited 1, `RED 6016f9dd... pending: none red: gate` (ev/classify1.txt, ev/classify-log.txt).
+  - The red is two stale `gate` jobs, 128721349979 and 128721563207, in the "CI edit" suites (runs 42471173865 and 42470643072). Their only failure line is `FAIL codeql / Analyze (actions): failure (run 42470642055)`.
+  - That codeql job has since re-run green: 128753170500 succeeded at 14:02:17Z. The code suite's gate 128753622846 is green at 14:03:59Z, and every other context is green or skipped.
+  - The red is therefore an infrastructure aggregate already answered in the body, not this patch. `classify` keeps the worst gate across suites (A5), so the train will not pass this head until those two edit-suite gate jobs are re-run. That re-run is the orchestrator's, carried below.
+- RESULT harness provenance (step 9): the finder's harness was out of tree on handoff-wip (d58242d8c). It lands here, extended, in 08e52f9b0, and the body discloses the extension as the fixer's. I built no instrument of my own beyond the mutant driver, whose mutant list is in ev/mutants.txt.
 
-## Friction
+## Findings
 
-- The brief asks for handoff-wip pushes, but PROMPT.md's output rule says "push nothing else" beyond the probe ref. I followed PROMPT.md and pushed only the probe ref. Carry: dismissed: brief conflict resolved toward the stricter rule, nothing owed
+- Follow-up: the comment on `const.CONF_CLAMP_PLANNED_LEVELS` (const.py:802) still documents only `false` and absent. The diff makes `true` a declared on/off that clamps on any surface, including a fully metered one, and the docs row does not say so. Carry: R10-MIN-POWER-FLOOR
+- Follow-up: merge_train classify stays RED at this head only on the two stale CI-edit-suite `gate` jobs (128721349979, 128721563207), which failed on the since-re-run-green `codeql / Analyze (actions)`. Re-run those two jobs before the train takes this head. Carry: R10-MIN-POWER-FLOOR

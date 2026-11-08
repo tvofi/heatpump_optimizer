@@ -22,3 +22,4 @@ clamp=on_off prices=flat dhw=False out=-4.0: steps_on=53 total_below_min=0 space
 clamp=on_off prices=flat dhw=False out=5.0: steps_on=9 total_below_min=0 space_steps_below_min=0 slots=1 min_slot_avg=3.39 cost=32.407 max_total=3.50 space_only_below_min=0
 clamp=on_off prices=flat dhw=True out=-4.0: steps_on=40 total_below_min=0 space_steps_below_min=3 slots=1 min_slot_avg=3.27 cost=67.364 max_total=3.50 space_only_below_min=0
 clamp=on_off prices=flat dhw=True out=5.0: steps_on=20 total_below_min=0 space_steps_below_min=0 slots=1 min_slot_avg=3.47 cost=39.167 max_total=3.50 space_only_below_min=0
+rc=0

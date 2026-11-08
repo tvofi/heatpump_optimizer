@@ -4,64 +4,65 @@ base: 6188936a8bdc58b510ecb8794ad86350283c49a7
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=128700836363 neutral
-arch-score / arch-score id=128714897750 success
+## Gate digest: green
+CodeQL id=128700836363 success
+arch-score / arch-score id=128753207395 success
 arm id=128700336034 skipped
-budget-raise-gate / budget-raise-gate id=128714864150 success
-cancel-superseded id=128714895175 success
-codeql id=128714864283 skipped
-codeql / Analyze (actions) id=128714861880 failure
-codeql / Analyze (javascript-typescript) id=128714886865 success
-codeql / Analyze (python) id=128714862125 success
-gate id=128714863506 failure
-governance id=128714864100 skipped
-governance / delivery-status id=128714861918 success
-governance / delivery-status-publish id=128714861681 skipped
-governance / env-matrix id=128714861923 success
-governance / instrument-self-tests id=128714861772 success
-governance / policy-docs id=128714893446 success
-governance / record id=128714862135 skipped
-governance / wave-script id=128714861847 success
-hassfest id=128714864004 skipped
-hassfest / hassfest id=128714861677 success
-kernel-points id=128714864094 skipped
-pr-contract id=128714864076 skipped
-pr-contract / pr-contract id=128714863337 success
-prelude id=128714863304 success
-refresh id=128714864068 success
-tests id=128714864151 skipped
-tests / arch-instrument id=128714862527 success
-tests / briefs id=128714861928 success
-tests / browser id=128714862705 success
-tests / ci-ratchet id=128714863223 skipped
-tests / claims-autofix id=128714862680 skipped
-tests / closure-scope id=128714861904 success
-tests / closures id=128714862624 success
-tests / closures-autofix id=128714863509 skipped
-tests / coverage id=128714861893 success
-tests / coverage-ratchet id=128714862543 success
-tests / fast (3.14) id=128714862644 success
-tests / graders-head-copy id=128714862779 success
-tests / lane-proofs id=128714862775 success
-tests / mutation id=128714861841 success
-tests / mutation-autofix id=128714862571 skipped
-tests / mutation-pins id=128714862678 skipped
-tests / nightly-ha (2025.2.0) id=128714862297 success
-tests / nightly-ha (stable) id=128714862641 success
-tests / nightly-status id=128714861912 success
-tests / replay id=128714862485 success
-tests / typing id=128714862556 success
-validate id=128714864123 skipped
-validate / validate-hacs id=128714861834 success
+budget-raise-gate / budget-raise-gate id=128753204180 success
+cancel-superseded id=128753196432 success
+codeql id=128721563969 skipped
+codeql / Analyze (actions) id=128753170500 success
+codeql / Analyze (javascript-typescript) id=128753208964 success
+codeql / Analyze (python) id=128753201168 success
+gate id=128753622846 success
+governance id=128721563853 skipped
+governance / delivery-status id=128753199661 success
+governance / delivery-status-publish id=128753212061 skipped
+governance / env-matrix id=128753199247 success
+governance / instrument-self-tests id=128753171722 success
+governance / policy-docs id=128753198042 success
+governance / record id=128753171969 skipped
+governance / wave-script id=128753208529 success
+hassfest id=128721593226 skipped
+hassfest / hassfest id=128753198426 success
+kernel-points id=128753171614 skipped
+pr-contract id=128721564187 skipped
+pr-contract / pr-contract id=128753384570 success
+prelude id=128753203400 success
+refresh id=128753171472 success
+tests id=128721564042 skipped
+tests / arch-instrument id=128753172853 success
+tests / briefs id=128753205668 success
+tests / browser id=128753172528 success
+tests / ci-ratchet id=128753173386 skipped
+tests / claims-autofix id=128753173737 skipped
+tests / closure-scope id=128753213876 success
+tests / closures id=128753173114 success
+tests / closures-autofix id=128753173404 skipped
+tests / coverage id=128753172749 success
+tests / coverage-ratchet id=128753173543 success
+tests / fast (3.14) id=128753172843 success
+tests / graders-head-copy id=128753173250 success
+tests / lane-proofs id=128753173752 success
+tests / mutation id=128753172372 success
+tests / mutation-autofix id=128753173405 skipped
+tests / mutation-pins id=128753172384 skipped
+tests / nightly-ha (2025.2.0) id=128753172746 success
+tests / nightly-ha (stable) id=128753172864 success
+tests / nightly-status id=128753172345 success
+tests / replay id=128753172731 success
+tests / typing id=128753172816 success
+validate id=128721563801 skipped
+validate / validate-hacs id=128753172169 success
 
 ## Refusals
-required-red: required context `gate` concluded failure at 6016f9dd6e0ff482d0e140946721657357653726
+none
 
 ## Advisories
 none
 
 ## carry_audit at the head
+NOTE stale tree: 6016f9dd6e0ff482d0e140946721657357653726 lacks origin/main 8a4cf2618c53a6dca6b65df3eae5efc8832d1796; roster read at origin/main
 NOTE body item c7e2fe29: R10-I18N-DE: R10-I18N-DE resolved on origin/handoff/audit-r10-roster
 NOTE body item cc1cca91: R10-USER-DOCS-VERIFY
 NOTE body item a4565419: R10-MIN-POWER-FLOOR: R10-MIN-POWER-FLOOR resolved on origin/handoff/audit-r10-roster

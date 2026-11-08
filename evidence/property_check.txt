@@ -1,2 +1,0 @@
-PROPERTY: 160000 steps, 0 totals outside {0} U [p_min,p_max]; batch rows equal vector path; space,dhw >= 0
-clamp=False identity: [0.3] [5.0]
