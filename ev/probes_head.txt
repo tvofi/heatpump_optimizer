@@ -1,0 +1,32 @@
+# prior verdict 6718280627 probes (cwd: other repo)
+ok want=2 rc=2  if true; then git -C /tmp/tmp.I3vTZlv4Cn/orch pull; fi
+ok want=2 rc=2  if false; then :; else git -C /tmp/tmp.I3vTZlv4Cn/orch pull; fi
+ok want=2 rc=2  if false; then :; elif git -C /tmp/tmp.I3vTZlv4Cn/orch pull; then :; fi
+ok want=2 rc=2  for x in 1; do git -C /tmp/tmp.I3vTZlv4Cn/orch pull; done
+ok want=2 rc=2  while git -C /tmp/tmp.I3vTZlv4Cn/orch pull; do :; done
+ok want=2 rc=2  until git -C /tmp/tmp.I3vTZlv4Cn/orch pull; do :; done
+ok want=2 rc=2  { git -C /tmp/tmp.I3vTZlv4Cn/orch pull; }
+ok want=2 rc=2  pushd /tmp/tmp.I3vTZlv4Cn/orch && git pull
+ok want=2 rc=2  pushd /tmp/tmp.I3vTZlv4Cn/orch >/dev/null; git reset --hard
+# kill arm
+ok want=2 rc=2  if true; then pkill x; fi
+ok want=2 rc=2  { pkill x; }
+ok want=2 rc=2  for i in 1; do pkill x; done
+ok want=2 rc=2  while true; do killall y; done
+# null controls
+ok want=0 rc=0  git -C /tmp/tmp.I3vTZlv4Cn/orch status
+ok want=0 rc=0  echo then git pull
+ok want=0 rc=0  echo then pkill x
+ok want=0 rc=0  echo { pkill x }
+ok want=0 rc=0  for x in pkill killall; do echo $x; done
+ok want=0 rc=0  git -C /tmp/tmp.I3vTZlv4Cn/orch log --format='{ then do }'
+ok want=0 rc=0  if [ -f x ]; then echo pkill; fi
+ok want=0 rc=0  kill 1234
+ok want=2 rc=2  git pull
+# new-construct probes beyond the block (class opening, informational)
+ok want=2 rc=2  f() { pkill x; }
+FAIL want=2 rc=0  function f { pkill x; }
+FAIL want=2 rc=0  coproc pkill x
+ok want=2 rc=2  case a in a) git -C /tmp/tmp.I3vTZlv4Cn/orch pull;; esac
+ok want=2 rc=2  select x in 1; do git -C /tmp/tmp.I3vTZlv4Cn/orch pull; done
+ok want=2 rc=2  [[ -d x ]] && git -C /tmp/tmp.I3vTZlv4Cn/orch pull

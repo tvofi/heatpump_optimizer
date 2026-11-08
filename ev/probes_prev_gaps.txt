@@ -1,0 +1,2 @@
+at 7359a638: FAIL want=2 rc=0  function f { pkill x; }
+at 7359a638: FAIL want=2 rc=0  coproc pkill x

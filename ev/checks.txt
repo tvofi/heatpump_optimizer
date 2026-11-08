@@ -1,0 +1,27 @@
+## delta 7359a638..HEAD
+ .claude/hooks/pre-bash.sh | 13 ++++++++++---
+ 1 file changed, 10 insertions(+), 3 deletions(-)
+0046931c7 Merge commit '223daee18ab05cc1b41df11148143c9d50cfee5c' into fix/r10-fly-standing-contracts-p2
+223daee18 pre-bash: reserved words keep command position; guard follows pushd
+## r10 drive
+CASE ok want=2 got=2 pkill at command position
+CASE ok want=2 got=2 killall at command position
+CASE ok want=2 got=2 kill fed by pgrep
+CASE ok want=2 got=2 pgrep piped to xargs kill
+CASE ok want=0 got=0 NULL kill of an owned pid
+CASE ok want=0 got=0 NULL a non-kill command
+CASE ok want=0 got=0 NULL pkill inside quoted text
+MUTANT M-pkill killed=yes
+MUTANT M-killall killed=yes
+MUTANT M-pgrepkill killed=yes
+## structure
+
+STRUCTURE RATCHET PASSED
+## wiring
+selftest_wiring: 122 self-testing, 122 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+## forbidden paths in 3-dot diff
+none
+## merge-tree
+66b76f50fe71b6fb7b222c4fdacbc1c7fa91c6ab
+rc=0
