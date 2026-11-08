@@ -708,11 +708,11 @@ STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
 # S08 (handoff_push.sh's delivery_row dispatch) retired with the row push (#3245, card C5).
 WRAPPERS = [
     ("S12", "open_pr.sh",
-     'bash "$(dirname -- "$0")/delivery_row.sh" --self-test; exit $?; }',
-     'exit 0; }'),
+     'bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }',
+     'exit $r; }'),
     ("S27", "update_pr.sh",
-     'bash "$(dirname -- "$0")/delivery_row.sh" --self-test; exit $?; }',
-     'exit 0; }'),
+     '[ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?',
+     '[ "${1:-}" = --self-test ] && { r=0'),
 ]
 
 
