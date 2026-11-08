@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._grid_terms RETURN_DEL 8c52a9ac",
-  "killed_by": "tests/plan_view.py",
-  "old": "        return cycling, capacity, baseline, cycling_batch, capacity_batch",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
-}

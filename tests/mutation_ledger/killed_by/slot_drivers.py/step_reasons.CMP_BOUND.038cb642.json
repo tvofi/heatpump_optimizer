@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/slot_drivers.py:step_reasons CMP_BOUND 038cb642",
-  "killed_by": "tests/features.py",
-  "old": "        \"dhw_reason\": result.dhw_reasons[i] if i < len(result.dhw_reasons) else None,",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`\"dhw_reason\": result.dhw_reasons[i] if i <= len(result.dhw_reasons) else None,`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

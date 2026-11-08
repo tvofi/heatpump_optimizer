@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_solver_status CMP_BOUND 164e7925",
-  "killed_by": "tests/env_drift.py",
-  "old": "        if objective(result.x) <= objective(initial_guess):",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if objective(result.x) < objective(initial_guess):`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
-}

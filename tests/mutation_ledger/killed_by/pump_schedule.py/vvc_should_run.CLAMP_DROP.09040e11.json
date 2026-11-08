@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_schedule.py:vvc_should_run CLAMP_DROP 09040e11",
-  "killed_by": "tests/features.py",
-  "old": "    lead_h = max(0.0, float(lead_minutes)) / 60.0",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`lead_h = (0.0) / 60.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

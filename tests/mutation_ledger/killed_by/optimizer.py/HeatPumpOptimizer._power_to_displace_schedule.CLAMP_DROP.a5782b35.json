@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._power_to_displace_schedule CLAMP_DROP a5782b35",
-  "killed_by": "tests/env_drift.py",
-  "old": "                displace += min(2.0, abs(out_t) * 0.08)",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`displace += (2.0)`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=28."
-}

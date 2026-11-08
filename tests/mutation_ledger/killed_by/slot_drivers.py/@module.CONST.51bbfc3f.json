@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/slot_drivers.py:<module> CONST 51bbfc3f",
-  "killed_by": "tests/features.py",
-  "old": "NEUTRAL_BELOW_PCT = 0.5",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`NEUTRAL_BELOW_PCT = 1.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

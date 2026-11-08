@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.best_restore RETURN_DEL 78a2ce75",
-  "killed_by": "tests/features.py",
-  "old": "            return snap",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=19."
-}

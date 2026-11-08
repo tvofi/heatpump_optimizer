@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_step GUARD_OFF 794b44a0",
-  "killed_by": "tests/features.py",
-  "old": "        if self.params.two_zone_enabled:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=84."
-}

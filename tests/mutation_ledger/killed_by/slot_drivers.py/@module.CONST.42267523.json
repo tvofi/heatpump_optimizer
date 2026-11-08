@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/slot_drivers.py:<module> CONST 42267523",
-  "killed_by": "tests/features.py",
-  "old": "FORECAST_OUTDOOR_SCALE_C = 10.0",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`FORECAST_OUTDOOR_SCALE_C = 20.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

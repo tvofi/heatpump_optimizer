@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/topology.py:_slot_lines BOOLOP e4322dcb",
-  "killed_by": "tests/guard_pins.py",
-  "old": "        if not slot[\"entity\"] and slot.get(\"manual_setpoint\") is not None:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if not slot[\"entity\"] or slot.get(\"manual_setpoint\") is not None:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
-}

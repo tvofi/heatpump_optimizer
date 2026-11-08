@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_settlement_schedule BOOLOP 12766997",
-  "killed_by": "tests/features.py",
-  "old": "        buffer_temps if buffer_temps is not None and len(buffer_temps) > h.n_steps",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`buffer_temps if buffer_temps is not None or len(buffer_temps) > h.n_steps`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
-}

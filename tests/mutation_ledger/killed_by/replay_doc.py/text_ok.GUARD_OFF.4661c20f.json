@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:text_ok GUARD_OFF 4661c20f",
-  "killed_by": "tests/structure.py",
-  "old": "    if any(p.search(value) for p in SECRET_TEXT):",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
-}

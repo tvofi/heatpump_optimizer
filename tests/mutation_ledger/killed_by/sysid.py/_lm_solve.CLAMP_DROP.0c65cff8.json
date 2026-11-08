@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sysid.py:_lm_solve CLAMP_DROP 0c65cff8",
-  "killed_by": "tests/entities.py",
-  "old": "                    np.clip(candidate[1], SLAB_LOG_ROOM_CAP_LO, SLAB_LOG_ROOM_CAP_HI)",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`(candidate[1])`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
-}

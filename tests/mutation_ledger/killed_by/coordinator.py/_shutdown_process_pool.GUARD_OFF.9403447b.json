@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_shutdown_process_pool GUARD_OFF 9403447b",
-  "killed_by": "tests/features.py",
-  "old": "    if not _PROCESS_LOCK.acquire(timeout=_SHUTDOWN_LOCK_TIMEOUT_S):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

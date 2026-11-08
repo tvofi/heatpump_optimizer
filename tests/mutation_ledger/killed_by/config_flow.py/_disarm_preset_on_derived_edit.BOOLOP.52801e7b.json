@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_disarm_preset_on_derived_edit BOOLOP 52801e7b",
-  "killed_by": "tests/config_flow_steps.py",
-  "old": "        key in saved and saved[key] != stored.get(key) for key in DERIVED_THERMAL_KEYS",
-  "reason": "Recorded by `mutation_table.py --drain` against c3530277373ddf87652858f9ecb0ee1cf36f4347: BOOLOP (`key in saved or saved[key] != stored.get(key) for key in DERIVED_THERMAL_KEYS`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
-}

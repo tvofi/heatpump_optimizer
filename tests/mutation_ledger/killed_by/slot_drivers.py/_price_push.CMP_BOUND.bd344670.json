@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/slot_drivers.py:_price_push CMP_BOUND bd344670",
-  "killed_by": "tests/features.py",
-  "old": "    less = (prices[None, :] < prices[:, None]).sum(axis=1)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`less = (prices[None, :] <= prices[:, None]).sum(axis=1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

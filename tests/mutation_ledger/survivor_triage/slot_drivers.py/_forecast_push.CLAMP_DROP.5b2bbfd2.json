@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/slot_drivers.py:_forecast_push CLAMP_DROP 5b2bbfd2",
-  "old": "        end = min(i + span, n)",
-  "reason": "CLAMP_DROP (`end = (i + span)`) is equivalent: `end` is used only as the stop of the slices `out[i:end]`, `hlf[i:end]` and `sun[i:end]`, and a Python/numpy slice stop past the array's length is clamped to that length, so `x[i:i + span]` and `x[i:min(i + span, n)]` select the same elements for every i < n (the loop's range) and every span >= 1. Measured: `python3 tests/mutation_table.py --pin-killed --base origin/main` drove this mutant through tests/features.py, tests/harness_headers.py and tests/stress.py and reported `slot_drivers.py:90 CLAMP_DROP -- lives`, while the CLAMP_DROPs on lines 94 and 96 of the same function were killed by tests/features.py.",
-  "verdict": "equivalent"
-}

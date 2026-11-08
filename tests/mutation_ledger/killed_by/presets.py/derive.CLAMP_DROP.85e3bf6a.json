@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/presets.py:derive CLAMP_DROP 85e3bf6a",
-  "killed_by": "tests/features.py",
-  "old": "                \"upper_floor_thermal_mass\": round(max(0.5, upper_mass), 2),",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`\"upper_floor_thermal_mass\": round((0.5), 2),`) took tests/features.py from rc=0 failed=0 to rc=1 failed=19."
-}
