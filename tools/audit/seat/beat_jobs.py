@@ -63,7 +63,11 @@ ROWS (the job table's `interval_s` in brackets):
                      --plan`; `plan-beat: PLAN UNAVAILABLE` on a replan failure
                      or state_docs rc 1, `plan-beat: REFUSED` on its rc 2; on
                      success `plan-beat: PLAN MOVED` when the mirrored PLAN.html
-                     differs from the last pass's (a republish is owed).
+                     differs from the last pass's (a republish is owed). A
+                     pass whose state push landed (`pushed ` on rc 0 or 1)
+                     dispatches `pages.yml` on main, which publishes the page
+                     at plan_public.PLAN_URL; `plan-beat: PAGES NOT DISPATCHED`
+                     when gh refuses.
   gantt [1800]       sweep_gantt.py against `plan_json`, its baseline in
                      `state/gantt/`, the `gantt_acks` file, the roster at
                      `gantt_roster` (`<branch>:<path>`), the open pull requests,
@@ -89,6 +93,10 @@ ROWS (the job table's `interval_s` in brackets):
                      dispatched again only after it reads `ok` or `insufficient`.
                      The guardrail's exit code is not read as a verdict; a failed run
                      is UNREADABLE until the next readable run clears it.
+  outside-intake [1800] outside_intake.py `list --since <intake_since>
+                     --cursor state/outside-cursor.json`: its `OUTSIDE` lines
+                     (submissions by outside users owed a triage, an answer or
+                     a reply this turn), `outside-intake: UNREADABLE` on rc 2.
 No row runs `git checkout`, `reset`, `pull` or `merge`; main is read as
 `git -C <repo> cat-file -e origin/main:<path>`. No row touches a seat's alive
 file. Every row exits 0 once its lines are written: the digest is the signal,
@@ -111,7 +119,7 @@ import time
 from pathlib import Path
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
-        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch")
+        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: The board's actionable family (carry 20's list), keyed on the texts
 #: orchestrator_tick.py and ledger.py print; the self-test pins each literal there.
@@ -382,26 +390,34 @@ def roster_drain(ctx: Ctx) -> None:
 
 
 def plan_beat(ctx: Ctx) -> None:
-    got = ctx.need("plan-beat", "plan_json", "plan_slots", "plan_seats", "state_mirror")
+    got = ctx.need("plan-beat", "plan_json", "plan_slots", "plan_seats", "state_mirror", "repo")
     if got is None:
         return
-    plan, slots, seats, mirror = got
+    plan, slots, seats, mirror, repo = got
     rc, _, err = ctx.py("tools/plan/replan.py", "--out", plan, "--slots", slots, "--seats", seats)
     if rc != 0:
         last = (err.strip().splitlines() or [""])[-1]
         return write_job(ctx, "plan-beat", [f"plan-beat: PLAN UNAVAILABLE replan rc={rc}: {last}"])
-    rc, _, err = ctx.py("tools/audit/seat/state_docs.py", "--push", "--mirror", mirror, "--plan", plan)
+    rc, out, err = ctx.py("tools/audit/seat/state_docs.py", "--push", "--mirror", mirror, "--plan", plan)
+    lines = []
+    if rc != 0:
+        said = [ln for ln in err.splitlines() if "UNAVAILABLE" in ln or "REFUSED" in ln]
+        word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"
+        lines.append(f"plan-beat: {word} rc={rc}: {(said or [''])[-1]}")
     if rc == 0:
         page = read(Path(mirror) / "PLAN.html")
         sha = hashlib.sha256(page.encode()).hexdigest() if page else ""
         moved = sha and sha != ctx.memory("plan-page.json", "")
         ctx.remember("plan-page.json", sha, "")
         # owner ruling (tvofi 2026-11-06): every sweep updates the plan artifact; a changed page owes a republish
-        return write_job(ctx, "plan-beat", [f"plan-beat: PLAN MOVED {Path(mirror) / 'PLAN.html'} "
-                                            "re-rendered; republish owed"] if moved else [])
-    said = [ln for ln in err.splitlines() if "UNAVAILABLE" in ln or "REFUSED" in ln]
-    word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"
-    write_job(ctx, "plan-beat", [f"plan-beat: {word} rc={rc}: {(said or [''])[-1]}"])
+        if moved:
+            lines.append(f"plan-beat: PLAN MOVED {Path(mirror) / 'PLAN.html'} re-rendered; republish owed")
+    if rc in (0, 1) and re.search(r"^pushed ", out, re.M):  # the state ref moved: publish its page
+        drc, _, derr = ctx.run(["gh", "workflow", "run", "pages.yml", "--repo", repo, "--ref", "main"],
+                               ctx.repo, ctx.env)
+        if drc != 0:
+            lines.append(f"plan-beat: PAGES NOT DISPATCHED rc={drc}: {(derr.strip().splitlines() or [''])[-1]}")
+    write_job(ctx, "plan-beat", lines)
 
 
 def gantt(ctx: Ctx) -> None:
@@ -562,9 +578,22 @@ def audit_dispatch(ctx: Ctx) -> None:
     write_job(ctx, "audit-dispatch", kept + new)
 
 
+def outside_intake(ctx: Ctx) -> None:
+    got = ctx.need("outside-intake", "repo", "intake_since")
+    if got is None:
+        return
+    rc, out, err = ctx.py("tools/audit/seat/outside_intake.py", "list", "--repo", got[0], "--since", got[1],
+                          "--cursor", str(ctx.digest / "state" / "outside-cursor.json"))
+    if rc in (0, 1):
+        return write_job(ctx, "outside-intake", [ln for ln in out.splitlines() if ln.startswith("OUTSIDE ")])
+    why = next((ln for ln in out.splitlines() if ln.startswith("outside-intake: UNREADABLE")), None)
+    write_job(ctx, "outside-intake", [why or f"outside-intake: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+
+
 RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
-       "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch}
+       "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
+       "outside-intake": outside_intake}
 
 
 def main(argv: list[str]) -> int:
