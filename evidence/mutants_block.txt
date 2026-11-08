@@ -1,0 +1,49 @@
+A can_duty_cycle on_off early return deleted: rc=1 fails=4
+    FAIL a declared on/off compressor clamps on every write surface, metered or not  [[False, False, False, False]]
+    FAIL null control: auto and an absent key keep the probe's clamp on every surface, legacy false and modulating opt out, legacy true clamps
+    FAIL an unmetered on/off install freezes the house learner; a metered one, or a declared modulating one, learns
+    FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 7, max 3.
+B probe on_off never set: rc=1 fails=4
+    FAIL a declared on/off compressor clamps on every write surface, metered or not  [[False, False, False, False]]
+    FAIL null control: auto and an absent key keep the probe's clamp on every surface, legacy false and modulating opt out, legacy true clamps
+    FAIL an unmetered on/off install freezes the house learner; a metered one, or a declared modulating one, learns
+    FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 7, max 3.
+C cap ignores DHW: rc=1 fails=4
+    FAIL space projects against the DHW in its step: capped at p_max - dhw, a sub-minimum level raised to p_min only where DHW is off, identity where the 
+    FAIL a clamped install realizes DHW as its own projection and space against it; unclamped and DHW-less draws are unchanged  [space [0.0, 0.3, 2.8, 3.5
+    FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 0, max 4.
+    FAIL per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW above max power, nor a running step below min power  [max 4.34, 
+D raise ignores DHW: rc=1 fails=4
+    FAIL space projects against the DHW in its step: capped at p_max - dhw, a sub-minimum level raised to p_min only where DHW is off, identity where the 
+    FAIL a clamped install realizes DHW as its own projection and space against it; unclamped and DHW-less draws are unchanged  [space [0.0, 2.5, 2.5, 0.0
+    FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 0, max 5.
+    FAIL per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW above max power, nor a running step below min power  [max 5.30, 
+E joint returns per-channel space: rc=1 fails=3
+    FAIL a clamped install realizes DHW as its own projection and space against it; unclamped and DHW-less draws are unchanged  [space [0.0, 2.5, 2.8, 3.5
+    FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 0, max 5.
+    FAIL per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW above max power, nor a running step below min power  [max 5.30, 
+F space against raw (unprojected) DHW: rc=1 fails=3
+    FAIL a clamped install realizes DHW as its own projection and space against it; unclamped and DHW-less draws are unchanged  [space [0.0, 1.5, 1.0, 0.0
+    FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 0, max 4.
+    FAIL per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW above max power, nor a running step below min power  [max 4.34, 
+G DHW shipped unprojected: rc=1 fails=3
+    FAIL a clamped install realizes DHW as its own projection and space against it; unclamped and DHW-less draws are unchanged  [space [0.0, 0.3, 1.0, 0.0
+    FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 5, max 3.
+    FAIL per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW above max power, nor a running step below min power  [max 3.50, 
+H legacy true ignored: rc=1 fails=2
+    FAIL null control: auto and an absent key keep the probe's clamp on every surface, legacy false and modulating opt out, legacy true clamps
+    FAIL declared_modulation reads the select first, the legacy key only under auto or absent, and anything else as undeclared
+I modulating select ignored: rc=1 fails=3
+    FAIL null control: auto and an absent key keep the probe's clamp on every surface, legacy false and modulating opt out, legacy true clamps
+    FAIL declared_modulation reads the select first, the legacy key only under auto or absent, and anything else as undeclared
+    FAIL an unmetered on/off install freezes the house learner; a metered one, or a declared modulating one, learns
+J duty_cycle_realizable opt-out on any declaration: rc=1 fails=3
+    FAIL a declared on/off compressor clamps on every write surface, metered or not  [[False, False, False, False]]
+    FAIL null control: auto and an absent key keep the probe's clamp on every surface, legacy false and modulating opt out, legacy true clamps
+    FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 7, max 3.
+K publish reverted to space-only projection, DHW raw: rc=1 fails=2
+    FAIL per step, a declared on/off pump on a fully metered install plans every step off or between min and max power (#3289)  [steps below 2.5 4, max 5.
+    FAIL per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW above max power, nor a running step below min power  [max 5.30, 
+L _realize_joint ignores clamp: rc=1 fails=1
+    FAIL a clamped install realizes DHW as its own projection and space against it; unclamped and DHW-less draws are unchanged  [space [0.0, 0.3, 1.0, 0.0
+git status clean: True

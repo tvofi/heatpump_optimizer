@@ -1,0 +1,19 @@
+SURVIVED custom_components/heatpump_optimizer/optimizer.py:158 GUARD_OFF  if False:
+SURVIVED custom_components/heatpump_optimizer/optimizer.py:159 RETURN_DEL  pass
+SURVIVED custom_components/heatpump_optimizer/optimizer.py:160 RETURN_DEL  pass
+SURVIVED custom_components/heatpump_optimizer/optimizer.py:176 GUARD_OFF  if False:
+SURVIVED custom_components/heatpump_optimizer/optimizer.py:177 RETURN_DEL  pass
+SURVIVED custom_components/heatpump_optimizer/optimizer.py:179 RETURN_DEL  pass
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:1279 CONST_SWAP  on_off: bool = True
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:1297 GUARD_OFF  if False:
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:1298 RETURN_DEL  pass
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:1298 CONST_SWAP  return True
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:1368 CONST_SWAP  on_off=declared_modulation(cfg) is True,
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:1387 CONST_SWAP  True if mode == const.COMPRESSOR_MODULATION_ON_OFF
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:1388 CONST_SWAP  else False if mode == const.COMPRESSOR_MODULATION_MODULATING
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:1389 CONST_SWAP  else True if legacy is True
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:1390 CONST_SWAP  else False if legacy is False
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:1475 CONST_SWAP  if declared_modulation(cfg) is False
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:1538 CONST_SWAP  if declared_modulation(cfg) is False
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:1604 RETURN_DEL  pass
+rc=0
