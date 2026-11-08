@@ -48,17 +48,25 @@ def pr_of(run):
 
 def pages(get, path, params):
     """Every item, paged by `page=` rather than the Link header (whose
-    repositories/<id> form some proxies refuse); ghapi.paginate's one-list rule."""
-    out = []
-    for n in range(1, ghapi.MAX_PAGES + 1):
-        st, _, doc = get(path, dict(params, per_page=100, page=n))
-        if st != 200 or not isinstance(doc, dict):
-            raise ghapi.ApiError(path, st, "")
-        items = next(v for v in doc.values() if isinstance(v, list))
-        out += items
-        if len(items) < 100:
-            return out
-    raise ghapi.ApiError(path, 200, "too many pages")
+    repositories/<id> form some proxies refuse); ghapi.paginate's one-list rule.
+    ghapi.get already retries a 5xx twice with backoff; one that persists
+    (run 40126133450: page 2 of per_page=100 answered 502, per_page=30 answered
+    200) restarts the listing at the next smaller page size; a 4xx raises."""
+    for size in (100, 30):
+        out = []
+        for n in range(1, ghapi.MAX_PAGES + 1):
+            st, _, doc = get(path, dict(params, per_page=size, page=n))
+            if st >= 500 and size != 30:
+                break
+            if st != 200 or not isinstance(doc, dict):
+                raise ghapi.ApiError(path, st, "")
+            items = next(v for v in doc.values() if isinstance(v, list))
+            out += items
+            if len(items) < size:
+                return out
+        else:
+            raise ghapi.ApiError(path, 200, "too many pages")
+    raise AssertionError("unreachable")
 
 
 def jobs_all(get, rid):
@@ -134,8 +142,33 @@ def selftest():
     want = dict(inverted=2, ordered=1, red_inverted=1, red_ordered=0, red_attempts=3, rerun=2, fresh=1, carried=1)
     bad = [k for k, v in want.items() if o[k] != v]
     rows_ok = [r[6] for r in o["rows"]] == [True, False]
-    print(f"selftest: {len(want) + 1} checks, {len(bad) + (not rows_ok)} failed{' ' + str(bad) if bad else ''}")
-    return 1 if bad or not rows_ok else 0
+    calls = []
+
+    def fake(fail_p2_at):
+        def get(path, params):
+            calls.append((params["per_page"], params["page"]))
+            n, size = params["page"], params["per_page"]
+            if size == fail_p2_at and n == 2:
+                return 502, {}, {}
+            if path == "404":
+                return 404, {}, {}
+            total = 150
+            return 200, {}, {"jobs": list(range((n - 1) * size, min(n * size, total)))}
+        return get
+    got = pages(fake(100), "x", {})
+    pages_ok = got == list(range(150)) and calls == [(100, 1), (100, 2)] + [(30, i) for i in range(1, 7)]
+    calls.clear()
+    clean_ok = pages(fake(0), "x", {}) == list(range(150)) and calls == [(100, 1), (100, 2)]
+    calls.clear()
+    try:
+        pages(fake(0), "404", {})
+        null_ok = False
+    except ghapi.ApiError as e:
+        null_ok = e.status == 404 and len(calls) == 1
+    pg = pages_ok and clean_ok and null_ok
+    print(f"selftest: {len(want) + 4} checks, {len(bad) + (not rows_ok) + (not pg)} failed{' ' + str(bad) if bad else ''}"
+          f"{'' if pg else f' pages(fallback {pages_ok}, clean {clean_ok}, 4xx {null_ok})'}")
+    return 1 if bad or not rows_ok or not pg else 0
 
 
 def main(argv):
