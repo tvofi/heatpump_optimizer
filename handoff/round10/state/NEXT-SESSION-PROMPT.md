@@ -65,7 +65,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-NONREQUIRED-REDS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-TRAIN-REJOIN-NO-RECARRY (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REVIEW-ENUMERATE (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-FLY-DISPATCH-RULINGS (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-FLY-DISPATCH-RULINGS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-FIRST (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FLY-TRIAGE-BAR (stage in-progress, branch `handoff/r10-fly-triage-bar`): `git fetch origin handoff/r10-fly-triage-bar && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-REPLAN-DEFECTS (stage in-progress, branch `handoff/r10-fly-replan-defects`): `git fetch origin handoff/r10-fly-replan-defects && git worktree add --detach $SEAT/wt FETCH_HEAD`
