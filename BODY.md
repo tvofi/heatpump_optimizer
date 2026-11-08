@@ -38,7 +38,7 @@ The one added predicate is pinned by the hand mutation above (killed by the self
 
 ## Forward-carry
 
-none. The carries 0(c)/2 wait for the first raise PR's job duration; carried in the roster by the existing group entry.
+Carries 0(c) and 2 (the raise-diff job duration of the budget-raise-gate job, unmeasured until a raise PR runs it): the first raise PR's body reads its job duration. Carry: R10-RAISE-GATE-SHIM-P2
 
 ## Friction
 
