@@ -69438,9 +69438,10 @@ _SP_READ = {
 }
 
 
-def _sp_write(kw, slots, stale=()):
-    """What the arbiter writes for a space step at ``kw`` with ``slots`` set."""
-    config = {_PP_FLOW_KEY: 48.0, "space_setpoint_entity": "number.flow"}
+def _sp_write(kw, slots, stale=(), extra=None):
+    """What the arbiter writes for a space step at ``kw`` with ``slots`` set,
+    ``extra`` merged over the config."""
+    config = {_PP_FLOW_KEY: 48.0, "space_setpoint_entity": "number.flow", **(extra or {})}
     states = {"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}
     for key in slots:
         config[key] = f"sensor.sp_{key}"
@@ -69515,6 +69516,192 @@ R.check(
     "the floor helper refuses an unmeasured inlet rather than guessing one",
     _sp_floor_of(None) is None and _sp_floor_of(float("nan")) is None
     and _sp_floor_of(30.0) == 30.0 + _SP_LIFT,
+)
+
+# --- The configurable lift and ceiling of a water set-point (flow_min_lift_k,
+# flow_heat_c). A controller that takes the set-point as its return-water
+# target modulates on target minus return, so the rated 5 K lift ran one
+# (Luxtronik through its Smart Home Interface) near full speed at the plan's
+# lowest level. The production readers, never a copy of their rule.
+from heatpump_optimizer import config_flow as _wl_flow  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_FLOW_MIN_LIFT_K as _WL_LIFT_KEY,
+    CONF_SPACE_SETPOINT_UNIT as _WL_UNIT_KEY,
+    DEFAULT_FLOW_MIN_LIFT_K as _WL_LIFT_DEFAULT,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    configured_flow_min_lift_k as _wl_lift_of,
+)
+
+_WL_RETURN = (_SP_PUMP_RETURN,)
+# A whole-degree lift: the stub entity has no step attribute, so the write is
+# on a 1 degC step and the floor rounds up (``quantise_setpoint_c``).
+_WL_TUNED = {_WL_LIFT_KEY: 2.0, _PP_FLOW_KEY: 38.0}
+_wl_low = _sp_write(1.5, _WL_RETURN, extra=_WL_TUNED)
+_wl_mid = _sp_write(3.5, _WL_RETURN, extra=_WL_TUNED)
+_wl_full = _sp_write(5.5, _WL_RETURN, extra=_WL_TUNED)
+R.check(
+    "null control: an absent lift is the rated FLOW_MIN_LIFT_K, the const default is "
+    "the same number, and the floor write is unchanged",
+    _wl_lift_of({}) == _SP_LIFT == _WL_LIFT_DEFAULT == 5.0
+    and _wl_lift_of(None) == _SP_LIFT
+    and _sp_write(1.5, _WL_RETURN) == _SP_READ[_SP_PUMP_RETURN] + _SP_LIFT
+    and _sp_write(1.5, _WL_RETURN, extra={_WL_LIFT_KEY: _WL_LIFT_DEFAULT})
+    == _sp_write(1.5, _WL_RETURN),
+    f"{_wl_lift_of({})} {_sp_write(1.5, _WL_RETURN)}",
+)
+R.check(
+    "a configured lift and ceiling move the floor to return + lift and full power to "
+    "the ceiling, with a partial level between them",
+    _wl_low == _SP_READ[_SP_PUMP_RETURN] + 2.0
+    and _wl_full == 38.0
+    and _wl_low < _wl_mid < _wl_full,
+    f"low {_wl_low} mid {_wl_mid} full {_wl_full}",
+)
+R.check(
+    "a ceiling under return + lift writes the ceiling, never above it",
+    _sp_write(1.5, _WL_RETURN, extra={_WL_LIFT_KEY: 1.5, _PP_FLOW_KEY: 26.0}) == 26.0,
+    f"{_sp_write(1.5, _WL_RETURN, extra={_WL_LIFT_KEY: 1.5, _PP_FLOW_KEY: 26.0})}",
+)
+_wl_refused = {
+    repr(v): _wl_lift_of({_WL_LIFT_KEY: v})
+    for v in (0.0, -2.0, float("nan"), float("inf"), "warm", None, True)
+}
+R.check(
+    "a lift that is not a positive finite number reads as the rated lift, and text "
+    "that is one is read",
+    all(v == _SP_LIFT for v in _wl_refused.values())
+    and _wl_lift_of({_WL_LIFT_KEY: "1.5"}) == 1.5
+    and _wl_lift_of({_WL_LIFT_KEY: 2}) == 2.0,
+    f"{_wl_refused}",
+)
+R.check(
+    "the floor helper takes the lift it is given, and its default is the rated one",
+    _sp_floor_of(30.0, None, 1.0) == 31.0
+    and _sp_floor_of(20.0, 25.0, 1.0) == 26.0
+    and _sp_floor_of(30.0) == _sp_floor_of(30.0, None, _SP_LIFT),
+)
+
+
+def _wl_keys(config):
+    return {row.key: row for row in _wl_flow._page_rows("entities", config)}
+
+
+_wl_none = _wl_keys({})
+_wl_indoor = _wl_keys({"space_setpoint_entity": "number.flow", _WL_UNIT_KEY: "indoor"})
+_wl_unknown = _wl_keys({"space_setpoint_entity": "number.flow", _WL_UNIT_KEY: "kelvin"})
+_wl_water = _wl_keys({"space_setpoint_entity": "number.flow", _WL_UNIT_KEY: "flow"})
+_wl_ret = _wl_keys({"space_setpoint_entity": "number.flow", _WL_UNIT_KEY: "return"})
+R.check(
+    "the entities page offers the lift and ceiling only for a water unit, flow or return",
+    _WL_LIFT_KEY not in _wl_none and _PP_FLOW_KEY not in _wl_none
+    and _WL_LIFT_KEY not in _wl_indoor and _PP_FLOW_KEY not in _wl_indoor
+    and _WL_LIFT_KEY not in _wl_unknown
+    and _WL_LIFT_KEY in _wl_water and _PP_FLOW_KEY in _wl_water
+    and _WL_LIFT_KEY in _wl_ret and _PP_FLOW_KEY in _wl_ret,
+    f"{sorted(k for k in _wl_water if k not in _wl_none)}",
+)
+_wl_lift_row = _wl_water.get(_WL_LIFT_KEY)
+_wl_heat_row = _wl_water.get(_PP_FLOW_KEY)
+R.check(
+    "the two fields sit with the set-point, default to today's constants, carry their "
+    "ranges, and an untouched page stores neither",
+    _wl_lift_row is not None and _wl_heat_row is not None
+    and _wl_lift_row.group == _wl_heat_row.group
+    == _wl_water[_WL_UNIT_KEY].group
+    and _wl_lift_row.default == _SP_LIFT and _wl_heat_row.default == _pa.FLOW_HEAT_C
+    and (_wl_lift_row.widget.config["min"], _wl_lift_row.widget.config["max"]) == (0.5, 15)
+    and (_wl_heat_row.widget.config["min"], _wl_heat_row.widget.config["max"]) == (25, 70)
+    and _wl_flow._omit_unstored_defaults(
+        {_WL_LIFT_KEY: _WL_LIFT_DEFAULT, _PP_FLOW_KEY: _PP_FLOW_DEFAULT}, {}
+    ) == {}
+    and _wl_flow._omit_unstored_defaults({_WL_LIFT_KEY: 1.5}, {}) == {_WL_LIFT_KEY: 1.5},
+    f"lift {_wl_lift_row} heat {_wl_heat_row}",
+)
+
+# --- space_setpoint_unit "return": the entity is the pump's return-water
+# target. Written as a flow set-point is -- the inlet plus the lift at the
+# floor, the ceiling at full power, the gate when idle -- except that the
+# two supply-derived values, the rated hold and the weather curve, sit the
+# rated spread lower.
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_PUMP_DUTY_MODE as _RT_DUTY_KEY,
+    PUMP_DUTY_MODES as _RT_DUTIES,
+    SPACE_SETPOINT_UNITS as _RT_UNITS,
+)
+from heatpump_optimizer.entry_config import EntryConfig as _RtEC  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ceiling_probe_install as _rt_probe_install,
+    flow_setpoint_driven as _rt_driven,
+)
+
+_RT = {_WL_UNIT_KEY: "return"}
+_RT_FLOW = {_WL_UNIT_KEY: "flow"}
+R.check(
+    "return is a declared unit, parsed as itself, and an unknown one is still indoor",
+    "return" in _RT_UNITS
+    and _RtEC.from_mapping(_RT).space_setpoint_unit == "return"
+    and _RtEC.from_mapping({_WL_UNIT_KEY: "kelvin"}).space_setpoint_unit == "indoor",
+)
+_rt_tuned = {**_RT, **_WL_TUNED}
+R.check(
+    "a return target is written from the measured return like a flow one: return + lift "
+    "at the floor, the ceiling at full power, the same partial level between",
+    _sp_write(1.5, _WL_RETURN, extra=_rt_tuned) == _SP_READ[_SP_PUMP_RETURN] + 2.0
+    and _sp_write(5.5, _WL_RETURN, extra=_rt_tuned) == 38.0
+    and _sp_write(3.5, _WL_RETURN, extra=_rt_tuned) == _wl_mid
+    and _sp_write(1.5, _WL_RETURN, extra=_RT) == _sp_write(1.5, _WL_RETURN, extra=_RT_FLOW),
+    f"{_sp_write(1.5, _WL_RETURN, extra=_rt_tuned)} {_sp_write(5.5, _WL_RETURN, extra=_rt_tuned)}",
+)
+R.check(
+    "with no inlet reading a return target's floor is the rated hold in return terms, "
+    "the hold less the rated spread; a flow target keeps the hold",
+    _sp_write(1.5, (), extra=_RT) == _pa.FLOW_HOLD_C - _SP_LIFT
+    and _sp_write(1.5, (), extra=_RT_FLOW) == _pa.FLOW_HOLD_C
+    and _sp_write(1.5, (), extra={**_RT, _WL_LIFT_KEY: 1.0}) == _pa.FLOW_HOLD_C - _SP_LIFT,
+    f"{_sp_write(1.5, (), extra=_RT)} {_sp_write(1.5, (), extra=_RT_FLOW)}",
+)
+
+
+def _rt_baseline(unit, curve, heat=48.0):
+    return _pa._flow_target(
+        _PaNS(
+            config={_PP_FLOW_KEY: heat, "space_setpoint_entity": "number.flow", _WL_UNIT_KEY: unit},
+            hass=FakeHass({"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}),
+            state=_PaNS(outdoor_temperature=-5.0, return_temperature=35.0,
+                        floor_return_temperature=None),
+            thermal=_PaNS(curve_flow_temp=lambda _o: curve),
+            plan=None,
+        ),
+        None,
+        _PA_T0,
+    )
+
+
+R.check(
+    "the baseline hold of a return target is the curve or rated hold less the rated "
+    "spread, still capped at the ceiling; a flow target's is unchanged",
+    _rt_baseline("flow", 40.0) == 40.0 and _rt_baseline("return", 40.0) == 40.0 - _SP_LIFT
+    and _rt_baseline("flow", 20.0) == _pa.FLOW_HOLD_C
+    and _rt_baseline("return", 20.0) == _pa.FLOW_HOLD_C - _SP_LIFT
+    and _rt_baseline("return", 60.0) == 48.0
+    and _rt_baseline("return", 60.0, heat=38.0) == 38.0,
+    f"{_rt_baseline('flow', 40.0)} {_rt_baseline('return', 40.0)} {_rt_baseline('return', 20.0)}",
+)
+_rt_control = {_RT_DUTY_KEY: _RT_DUTIES[2]}
+R.check(
+    "a return target drives the pump through a water set-point exactly as a flow one: "
+    "the arbiter's water unit, the flow-command gate and the ceiling probe",
+    _pa._flow_unit(_RT) and _pa._flow_unit(_RT_FLOW) and not _pa._flow_unit({})
+    and _rt_driven({**_rt_control, **_RT}) and _rt_driven({**_rt_control, **_RT_FLOW})
+    and not _rt_driven({**_rt_control, _WL_UNIT_KEY: "indoor"})
+    and _rt_probe_install({**_rt_control, **_RT, "heat_pump_power_entity": "sensor.p"})
+    == _rt_probe_install({**_rt_control, **_RT_FLOW, "heat_pump_power_entity": "sensor.p"}),
+)
+R.check(
+    "null control: the supply-to-target conversion moves nothing but a return target",
+    _pa._as_target({}, 35.0) == 35.0 and _pa._as_target(_RT_FLOW, 35.0) == 35.0
+    and _pa._as_target(_RT, 35.0) == 35.0 - _SP_LIFT,
 )
 
 # The objective scores the rounded levels a clamped install ships, so it is

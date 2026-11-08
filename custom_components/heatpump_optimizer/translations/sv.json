@@ -581,13 +581,17 @@
               "indoor_temp_entity": "Inomhusgivare",
               "outdoor_temp_entity": "Utomhusgivare",
               "space_setpoint_entity": "Börvärdesenhet för rumsuppvärmning (valfritt)",
-              "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig"
+              "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig",
+              "flow_min_lift_k": "Minsta höjning över inkommande vatten (K)",
+              "flow_heat_c": "Högsta framledning vid värme (°C)"
             },
             "data_description": {
               "indoor_temp_entity": "Valfritt. Den verkliga rumstemperaturen. Utan den litar optimeringen på sin egen modell, som glider med tiden.",
               "outdoor_temp_entity": "Valfritt. En egen utegivare är mer exakt än prognosen för den aktuella timmen.",
               "space_setpoint_entity": "Valfritt. En number-, helper- eller climate-enhet som är pumpens börvärde för rumsuppvärmning. Används bara för att märka när enheten inte går att läsa. Optimeringen skriver aldrig ett rekommenderat rumsuppvärmningsbörvärde.",
-              "space_setpoint_unit": "Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur. Att peka ett inomhusmål mot en framledningsenhet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten är en deklaration: den här integrationen rekommenderar aldrig ett rumsuppvärmningsbörvärde."
+              "space_setpoint_unit": "Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur som den håller framledningen på. Returtemperatur är för en styrenhet som tar börvärdet som mål för returvattnet och modulerar kompressorn efter skillnaden mot den uppmätta returen (till exempel en Luxtronik via dess Smart Home Interface); den skrivs som ett framledningsbörvärde, med det nominella hållvärdet och värmekurvan flyttade 5 K ned till returnivå. Att peka ett inomhusmål mot en framledningsenhet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten är en deklaration: den här integrationen rekommenderar aldrig ett rumsuppvärmningsbörvärde.",
+              "flow_min_lift_k": "Med Styrning av pumpens uppgift på Styrning skrivs vattenbörvärdet vid planens lägsta effekt som det uppmätta inkommande vattnet (värmepumpens retur, bufferttank, golvretur eller ventilens utlopp) plus detta. 5 K passar en styrenhet som håller sin framledning på börvärdet. En entitet med Returtemperatur (till exempel en Luxtronik via dess Smart Home Interface) vill ha ungefär 1–2 K: den kör kompressorn hårdare ju högre målet ligger över returen.",
+              "flow_heat_c": "Vattenbörvärdet som skrivs vid full planerad effekt, och det högsta som skrivs medan planen styr. 55 °C passar ett framledningsmål. För en entitet med Returtemperatur håller ungefär 35–40 °C systemvattnet från att bli för varmt."
             }
           },
           "plant": {
@@ -1673,7 +1677,8 @@
     "space_setpoint_unit": {
       "options": {
         "indoor": "Inomhustemperatur",
-        "flow": "Framledningstemperatur"
+        "flow": "Framledningstemperatur",
+        "return": "Returtemperatur"
       }
     },
     "price_source": {
