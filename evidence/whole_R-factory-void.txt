@@ -1,2 +1,0 @@
-RESULT whole mutant=R-factory-void script=tests/features.py rc=1 ['1 of 4915 FEATURE CHECKS FAILED']
-    FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('thermal_learning', 'cop_baseline_measured'), ('thermal_learning', 'c

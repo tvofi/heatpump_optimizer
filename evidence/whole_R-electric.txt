@@ -1,1 +1,0 @@
-RESULT whole mutant=R-electric script=tests/features.py rc=0 ['ALL 4915 FEATURE CHECKS PASSED']
