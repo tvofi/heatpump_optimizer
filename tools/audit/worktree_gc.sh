@@ -764,7 +764,7 @@ dispose_seat_dir() { # seat-dir, after its worktree was removed
 
 seat_dir_of() { # a worktree's real path -> its seat dir when it is <seats>/<seat>/wt
   local root
-  for root in "${SEATS_REALS[@]}"; do
+  for root in ${SEATS_REALS[@]+"${SEATS_REALS[@]}"}; do
     case "$1" in
       "$root"/*/wt) dirname "$1"; return 0 ;;
     esac
@@ -776,7 +776,7 @@ seat_dir_of() { # a worktree's real path -> its seat dir when it is <seats>/<sea
 # directory per round (~/hpo-seats/<round>), not under one fixed root.
 SEATS_REALS=()
 IFS=: read -r -a SEATS_LIST <<<"$SEATS_ROOT"
-for r in "${SEATS_LIST[@]}"; do
+for r in ${SEATS_LIST[@]+"${SEATS_LIST[@]}"}; do
   [ -n "$r" ] && SEATS_REALS+=("$(realpath_of "$r" 2>/dev/null || printf '%s' "$r")")
 done
 SEATS_ONE=""
@@ -922,7 +922,7 @@ is_registered() { awk -v p="$1" 'BEGIN{f=1} index(p, $0)==1 {f=0} END{exit f}' "
 handled_seat() { printf '%b' "$HANDLED_SEATS" | grep -x "$1" >/dev/null; }
 
 C_SEATS=""
-for SEATS_ONE in "${SEATS_REALS[@]}"; do
+for SEATS_ONE in ${SEATS_REALS[@]+"${SEATS_REALS[@]}"}; do
   [ -d "$SEATS_ONE" ] || continue
   for seat in "$SEATS_ONE"/*/; do
     [ -d "$seat" ] || continue
@@ -1001,7 +1001,7 @@ done
 # a leading `seat-`) has a MERGED pull request on `fix/<topic>`, nothing under
 # the seat was modified within the orphan age, no live worktree remains beneath
 # the seat and no process has its cwd inside the copy.
-for SEATS_ONE in "${SEATS_REALS[@]}"; do
+for SEATS_ONE in ${SEATS_REALS[@]+"${SEATS_REALS[@]}"}; do
   [ -d "$SEATS_ONE" ] || continue
   for seat in "$SEATS_ONE"/*/; do
     [ -d "$seat" ] || continue
@@ -1029,7 +1029,7 @@ for SEATS_ONE in "${SEATS_REALS[@]}"; do
     if [ -n "$nested" ]; then
       printf 'keep  %s  live-worktree (%s)\n' "$seat_real" "$nested"; KEPT_N=$((KEPT_N+1)); continue
     fi
-    for cp in "${copies[@]}"; do
+    for cp in ${copies[@]+"${copies[@]}"}; do
       cwd_free "$cp" "$cp" || continue
       ELIGIBLE=$((ELIGIBLE+1))
       printf 'remove  %s (plain copy)\n' "$cp"
