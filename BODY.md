@@ -29,19 +29,19 @@ The changed `bus.sh` lines are pinned by the manual mutation above (the `exit 5`
 
 ## Carry dispositions
 
-- Carry 1: pending a ruling, not built (re-key, held-verdict relay).
+- Carry 1: pending a ruling, not built (re-key, held-verdict relay). Carry: R10-DISPATCH-AT-HANDOFF
 - Carry 2: delivered at main by an earlier PR, no re-fix (survey of afc1586a4).
 - Carry 3: delivered at main, no re-fix.
 - Carry 4: delivered at main, no re-fix.
-- Carry 5: pending a ruling, not built.
+- Carry 5: pending a ruling, not built. Carry: R10-DISPATCH-AT-HANDOFF
 - Carry 6: delivered at main, no re-fix.
-- Carry 7: closed as superseded by the orchestrator ruling cited above; not built.
+- Carry 7: closed as superseded by the orchestrator ruling cited above; not built. Carry: R10-DISPATCH-AT-HANDOFF
 - Carry 8: delivered at main, no re-fix.
-- Carry 9: pending a ruling, not built.
+- Carry 9: pending a ruling, not built. Carry: R10-DISPATCH-AT-HANDOFF
 - Carry 10: delivered at main, no re-fix.
 - Carry 11: delivered at main, no re-fix.
-- Carry 12: pending a ruling, not built.
-- Carry 13: pending a ruling, not built.
+- Carry 12: pending a ruling, not built. Carry: R10-DISPATCH-AT-HANDOFF
+- Carry 13: pending a ruling, not built. Carry: R10-DISPATCH-AT-HANDOFF
 - Carry 14: delivered at main, no re-fix.
 - Carry 15: delivered at main, no re-fix.
 - Carry 16: delivered at main, no re-fix.
