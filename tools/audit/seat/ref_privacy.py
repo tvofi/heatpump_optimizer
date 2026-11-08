@@ -772,13 +772,39 @@ def self_test() -> int:
        and email_leaks("t@seat.lan", fid) == ["host-email"])
     ok("and one at this host's own name, short or full",
        email_leaks("t@example-mbp", fid) == ["host-email"] and email_leaks("t@EXAMPLE-MBP.local", fid) == ["host-email"])
-    ok("a noreply address passes, even naming the account (the null control)",
+    ok("email_leaks (the host check) passes a noreply address, even naming the account; email_shape judges it",
        email_leaks("123+" + fake_name + "@users.noreply.github.com", fid) == []
        and email_leaks("hpo-fixer@users.noreply.github.com", fid) == [])
     ok("an @anthropic.com identity is refused, as the runner default is not a seat's",
        email_leaks("noreply@anthropic.com", fid) == ["anthropic-identity"]
        and email_leaks("x@mail.ANTHROPIC.com>", fid) == ["anthropic-identity"]
        and email_leaks("x@notanthropic.com", fid) == [])
+    # P408: the attributable-identity grammar. Each refused form, each admitted form.
+    refused = ["seat@users.noreply.github.com", "hpo-fixer@users.noreply.github.com",
+               "noreply@users.noreply.github.com", "t@t", "x@x", "fixer@invalid", "noreply@anthropic.com",
+               "hpo-author[bot]@example.com", "+tvofi@users.noreply.github.com", "70032254+@users.noreply.github.com",
+               "70032254+tvofi@users.noreply.github.com.evil.test", "x70032254+tvofi@users.noreply.github.com"]
+    bad = [e for e in refused if email_shape(e) != ["unnumbered-email"] or email_shape(e, True) != ["unnumbered-email"]]
+    ok("every placeholder or unnumbered form is refused, as author and as committer", not bad, str(bad))
+    allowed = ["70032254+tvofi@users.noreply.github.com", "476059+Bankaifan@users.noreply.github.com",
+               "41898282+github-actions[bot]@users.noreply.github.com", "hpo-author[bot]@users.noreply.github.com",
+               "331381602+hpo-author[bot]@users.noreply.github.com", "<70032254+tvofi@users.noreply.github.com>"]
+    ok("the seat identity, a numbered login and both bot shapes pass (the null control)",
+       all(email_shape(e) == [] for e in allowed), str([e for e in allowed if email_shape(e)]))
+    ok("noreply@github.com passes as a committer only",
+       email_shape("noreply@github.com", True) == [] and email_shape("noreply@github.com") == ["unnumbered-email"])
+    ok("an adopted contributor's own address passes only when named, and only as an author",
+       email_shape("jo@corp.example", False, ("JO@corp.example",)) == []
+       and email_shape("jo@corp.example", True, ("jo@corp.example",)) == ["unnumbered-email"]
+       and email_shape("jo@corp.example") == ["unnumbered-email"])
+    ok("refusal() names the commit's field",
+       "unnumbered-email in the author email of abc" in (refusal(
+           "fix/x", (), fid, [("the author email of abc", "seat@users.noreply.github.com")]) or ""))
+    ok("a Co-authored-by trailer is not judged, even naming an unnumbered address (the null control)",
+       refusal("fix/x", [("the message of abc", "x\n\nCo-authored-by: Bankaifan <476059+Bankaifan@users.noreply.github.com>\n"
+                          "Co-authored-by: A <seat@users.noreply.github.com>")], fid,
+               [("the author email of abc", "70032254+tvofi@users.noreply.github.com"),
+                ("the committer email of abc", "noreply@github.com")]) is None)
     bodyleak = "evidence: " + fake_home + "/.zcode/bus/verdicts/7/abc/evidence"
     ok("a comment body naming this host's home is refused (the bus evidence line)",
        (body_refusal(bodyleak, fid) or "").startswith("home-directory, account-name"), str(body_refusal(bodyleak, fid)))
@@ -874,6 +900,23 @@ def self_test() -> int:
         # R10-FLY-NO-FOOTERS end to end: an unpushed commit carrying the session
         # trailer is refused, and the same trailer on a commit origin already
         # holds is history, never charged.
+        # P408 end to end: author and committer are each judged; --adopt-email names one exception.
+        for who in ("AUTHOR", "COMMITTER"):
+            subprocess.run(["git", "commit", "-q", "--amend", "--allow-empty", "--no-edit", "--reset-author"],
+                           cwd=seat, check=True, env={**env, f"GIT_{who}_NAME": "seat", f"GIT_{who}_EMAIL": "seat@users.noreply.github.com"})
+            r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                                "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+            ok(f"the guard CLI refuses an unpushed commit whose {who.lower()} is an unnumbered noreply, exit 3",
+               r.returncode == 3 and f"unnumbered-email in the {who.lower()} email of" in r.stderr, r.stderr.strip())
+            r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                                "--commits", "HEAD", "--adopt-email", "seat@users.noreply.github.com", "-C", seat],
+                               env=env, capture_output=True, text=True)
+            ok("and --adopt-email admits it as an author only", (r.returncode == 0) == (who == "AUTHOR"), r.stderr.strip())
+            subprocess.run(["git", "commit", "-q", "--amend", "--allow-empty", "--no-edit", "--reset-author"],
+                           cwd=seat, check=True, env=env)
+        r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                            "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+        ok("and passes the numbered fixture identity (the null control)", r.returncode == 0, r.stderr.strip())
         g("commit", "-q", "--allow-empty", "-m", footer["session-trailer"])
         r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
                             "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
