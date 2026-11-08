@@ -11344,9 +11344,16 @@ _CT_CP = _ct_tm.WATER_SPECIFIC_HEAT
 _CT_MIX = _ct_tm.DHW_MIXED_USE_TEMP
 
 
+# The issue's MFS 600 S, per the manufacturer manual (carry 4, item 1): 504 l of
+# heating water, a 40 l coil, and an ErP standing loss of 111 W at 65 C, so a
+# UA of 111/45 W/K, entered as the cooling rate it gives at the code's 25 K.
+_CT_UA_KW = 0.111 / 45.0
+_CT_RATE = _CT_UA_KW * 25.0 / (_ct_tm.WATER_SPECIFIC_HEAT * 544.0)
+
+
 def _ct_params(combi=True, eps=0.85, potable=40.0, **kw):
     base = dict(buffer_tank_volume=504.0, mixing_valve_mode=_mv.MODE_SMART_WRITE,
-                dhw_enabled=True, dhw_tank_volume=200.0)
+                dhw_enabled=True, dhw_tank_volume=200.0, buffer_cooling_rate=_CT_RATE)
     base.update(kw)
     try:
         return ThermalParameters(dhw_combi_tank_enabled=combi, combi_dhw_effectiveness=eps,
@@ -11370,6 +11377,7 @@ R.check(
     and abs(_ct_s.capacity_kwh_per_c - _CT_CP * 544.0) < 1e-12
     and _ct_s.capacity_kwh_per_c == _ct_p.buffer_tank_thermal_mass
     and _ct_s.ua_kw_per_c == _ct_p.buffer_tank_heat_loss_coefficient
+    and abs(_ct_s.ua_kw_per_c / _CT_UA_KW - 1.0) < 1e-12
     and _ct_p.buffer_store_volume == 544.0
     and _ct_s.rating_max_temp == min(_ct_p.dhw_hard_max_temp, _ct_p.buffer_max_temp)
     and _ct_s.charge_max_temp == min(_ct_p.dhw_max_temp, _ct_p.buffer_max_temp),

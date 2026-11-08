@@ -4,8 +4,9 @@
         python3 dev/audit/harnesses/r10_combi_tank.py [ARM ...]
 
 Synthetic installs only; no private data. The install is the issue's shape:
-a 504 l store behind a smart-write valve with a 40 l potable coil, eps 0.85
-unless an arm says otherwise. Every arm prints ``RESULT name=value`` lines;
+a 504 l store behind a smart-write valve with a 40 l potable coil and the
+manual's 111 W standing loss at 65 degC (UA 111/45 W/K), eps 0.85 unless an
+arm says otherwise. Every arm prints ``RESULT name=value`` lines;
 no arm asserts, tests/features.py's R10-COMBI-TANK-STORE block does that.
 
 ``issue``: the battery's components and stored kWh at 55 degC for the
@@ -48,9 +49,15 @@ from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig, 
 from profiles import solve_inputs
 
 
+#: The MFS 600 S's ErP standing loss, 111 W at 65 degC (carry 4, item 1), as
+#: the cooling rate its UA of 111/45 W/K gives at 25 K over 544 l.
+RATE = 0.111 / 45.0 * 25.0 / (tm.WATER_SPECIFIC_HEAT * 544.0)
+
+
 def params(combi=True, eps=0.85, **kw):
     base = dict(buffer_tank_volume=504.0, mixing_valve_mode=mixing_valve.MODE_SMART_WRITE,
-                dhw_enabled=True, dhw_tank_volume=200.0, combi_potable_volume_l=40.0)
+                dhw_enabled=True, dhw_tank_volume=200.0, combi_potable_volume_l=40.0,
+                buffer_cooling_rate=RATE)
     base.update(kw)
     return tm.ThermalParameters(dhw_combi_tank_enabled=combi, combi_dhw_effectiveness=eps, **base)
 
@@ -89,6 +96,7 @@ def arm_issue():
         tanks = [c for c in b.components if c.name in ("buffer_tank", "dhw_tank")]
         print(f"RESULT {label}_tank_components={len(tanks)}")
         print(f"RESULT {label}_tank_kwh_per_c={sum(c.capacity_kwh_per_c for c in tanks):.4f}")
+    print(f"RESULT combi_store_ua_w_per_k={params().dhw_store.ua_kw_per_c * 1000.0:.4f}")
 
 
 def arm_off_identity():
