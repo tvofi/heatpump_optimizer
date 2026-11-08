@@ -789,7 +789,7 @@ def selftest_model() -> int:
            seq == ["R10-HOTFIX-H", "OUT", "PROD", "HI", "LO", "NONE"], seq)
     expect("the hotfix takes the free slot at t0 and the ready critical-path group starts "
            "beside it past the cap, never ahead of it on the real slot",
-           P["R10-HOTFIX-H"]["start"] == iso(start, 0) and P["R10-HOTFIX-H"]["slot"] < 1
+           P["R10-HOTFIX-H"]["start"] == iso(start, 0) and P["R10-HOTFIX-H"]["slot"] == 0
            and P["CPA"]["start"] == iso(start, 0) and P["CPA"].get("exempt") is True
            and all(P[n].get("exempt") is True for n in ("CPA", "CPB", "CPC")),
            {n: (P[n]["start"], P[n]["slot"], P[n].get("exempt")) for n in P})
