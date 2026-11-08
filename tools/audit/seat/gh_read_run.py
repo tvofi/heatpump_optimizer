@@ -4,7 +4,8 @@
     python3 -I tools/audit/seat/gh_read_run.py gh api repos/o/r/pulls/1 --jq .body
     python3 -I tools/audit/seat/gh_read_run.py --self-test
 
-pr-contract.yml's reads (R10-FLY-GH-READ-RETRY carry 0): one unretried
+For pr-contract.yml's reads (R10-FLY-GH-READ-RETRY carry 0; the job's wiring
+is a follow-up, because the job grades with the base's copy): one unretried
 `gh api` read failed #2579's contract on a non-JSON answer that a sibling read
 a second earlier did not get. The rule is gh_read's, not restated here: 4
 reads settling 5/15/45 s, retrying only what `gh_read.gh_wait` calls

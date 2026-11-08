@@ -4,7 +4,7 @@
   workflow step with no Python of its own: `python3 -I
   tools/audit/seat/gh_read_run.py gh api <path> --jq <filter>`. When: a
   `gh api` read in a workflow, which a pinned job restores from the base
-  (`pr-contract.yml` restores both files). It writes the answering read's
+  (`gh_read.py` beside it; pr-contract.yml's reads are its first users). It writes the answering read's
   stdout once, so a retried `--paginate` prints no page twice, and each
   settle on stderr. Refusal: a non-transient failure after its one read, or a
   spent budget, exits with the last read's code and writes its stderr, with
