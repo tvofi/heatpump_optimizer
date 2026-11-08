@@ -19201,7 +19201,7 @@
    "architect_note": "",
    "resume": {
     "stage": "refused",
-    "note": "triage batch 133 P412"
+    "note": "keep test failed (owner bar 2026-11-08, >=10%): 1 conflict round on its two files in the last 7 days; triage batch 136 entry 426"
    },
    "brief": "From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P412 at 0ef02f3cab9eccf6ed8823fa46039c2d561f9096), savings estimate 8 to 20 h (central 10 h; instrument tier). The file-overlap measurement (seat a50195df, 2026-11-07): 147 merge-forward conflict rounds in 94 PRs, lag median 1.4 h, sum 919 h; dev/programme/rosters/wave-r10-groups.json 15 rounds and tools/audit/seat/INSTRUMENTS.md 8. Add a keyed three-way merge driver under tools/merge/ modelled on ledger_merge.py: wave-r10-groups.json merged per group object (keyed by group), INSTRUMENTS.md per bullet (keyed by its link target), refusing a same-key edit on both sides so git keeps the conflict; wire both in .gitattributes and in the existing --install step. Self-tests: disjoint additions merge; a same-key edit conflicts; a reorder-only side is a no-op; null control: a malformed side refuses. Measure before and after by replaying the evidence 23 rounds on these two files against the driver and report how many resolve. No per-file open-PR cap; no driver for Python files (r10_seat_selftests_mutants.py, D6/claims.py)."
   },
