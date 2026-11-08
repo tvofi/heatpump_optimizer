@@ -1,0 +1,5 @@
+Sun Nov  8 11:00:41 UTC 2026
+REFUSE ci: the check runs at b8fba2c8d5ab could not be read
+rc=2
+code run 42463804677 pull_request completed cancelled attempt=44 updated=2026-11-08T09:55:34Z
+b8fba2c8d5ab03067539c7e8d06e369f85162c31	refs/pull/3316/head
