@@ -61,7 +61,6 @@ sys.path.insert(0, str(ROOT / "tools" / "audit"))
 
 SUBJ = re.compile(r"^verdict: #(\d+) Fix review: (merge|blocked) ([0-9a-f]{40})")
 CONF = re.compile(r"^bus-confirmed: .*\(review/\d+ at ([0-9a-f]{40})\)", re.M)
-NONCE = re.compile(r"bus-nonce:\s*([0-9a-f]{8})")
 NS = "refs/p393scan"
 
 
@@ -82,11 +81,15 @@ def dispatch_times(events: str) -> dict[str, str]:
 
 
 def nonce_of(body: str) -> str | None:
+    """The first 8 hex of the verdict's own nonce, by bus.sh's anchored rule
+    (`merge_train.verdict_nonce`, imported): an unanchored search read a nonce
+    quoted in a finding's prose (PR 2465) as the verdict's own."""
+    import merge_train
     m = CONF.search(body)
     if not m:
         return None
-    n = NONCE.search(git("show", f"{m.group(1)}:VERDICT.md"))
-    return n.group(1) if n else None
+    n = merge_train.verdict_nonce(git("show", f"{m.group(1)}:VERDICT.md"))
+    return n[:8] if n else None
 
 
 def instances():

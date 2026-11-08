@@ -1206,6 +1206,14 @@ def bus_registry() -> Path:
     return Path(os.environ.get("HPO_BUS_STATE") or Path.home() / ".zcode" / "bus") / "dispatched"
 
 
+def verdict_nonce(verdict_md: str) -> "str | None":
+    """bus.sh's `verdict_nonce`: the first whole `bus-nonce: <32 hex>` line of a
+    VERDICT.md. Anchored, so a finding quoting another round's nonce in prose
+    is not read as this verdict's (PR 2465's merge verdict quotes round 2's)."""
+    m = re.search(r"^bus-nonce: ([0-9a-f]{32})$", verdict_md, re.M)
+    return m.group(1) if m else None
+
+
 def dispatch_order(registry: str, pr: int, head: str, nonce: str) -> "tuple[str, int] | None":
     """(utc, line index) of <nonce>'s FIRST record for <pr> at <head> in bus.sh's
     registry (`<pr> <head> <reviewer> <nonce> <utc> <model>`), its mint: a
@@ -3059,8 +3067,7 @@ class Train:
 
         def nonce(c: str) -> "str | None":
             code, o = self.run(["git", "show", f"{c}:VERDICT.md"])
-            m = None if code else re.search(r"^bus-nonce: ([0-9a-f]{32})$", o, re.M)
-            return m.group(1) if m else None
+            return None if code else verdict_nonce(o)
 
         try:
             registry = bus_registry().read_text()
@@ -5384,7 +5391,9 @@ def _stale_verdict_self_test(check) -> None:
                         f"{MC}\x00verdict: #7 Fix review: merge {OTHER}\n")
             if argv[:2] == ["git", "show"] and argv[2].endswith(":VERDICT.md"):
                 n = {T: merge_nonce, BC: blocked_nonce}.get(argv[2].split(":")[0])
-                return (0, f"Fix review: x\n\nbus-nonce: {n}\n") if n else (0, "Fix review: x\n")
+                # A finding quoting the OTHER verdict's nonce in prose (PR 2465's shape) is not this one's.
+                quote = f"- a note on round 2's `bus-nonce: {NB if n != NB else NM}` line\n"
+                return (0, f"Fix review: x\n\n{quote}\nbus-nonce: {n}\n") if n else (0, f"Fix review: x\n\n{quote}")
             if argv[:3] == ["gh", "pr", "view"]:
                 return 0, json.dumps({"state": "OPEN", "baseRefName": "main", "headRefOid": H})
             if argv[:2] == ["git", "diff"]:
