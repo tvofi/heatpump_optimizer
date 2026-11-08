@@ -1,7 +1,0 @@
-M1_refresh_noop | self-test: FAIL refresh_lint: names the clone that did not move (null control: a missing clone is refused)  roster_queue self-test: 54 checks, 1 failed 
-M2_detach_lint_own_ref | self-test: roster_queue self-test: 54 checks, 0 failed 
-M3_no_fetch_ec | self-test: roster_queue self-test: 54 checks, 0 failed 
-M4_no_wt_remove_on_refusal | self-test: roster_queue self-test: 54 checks, 0 failed 
-M5_no_head_check | self-test: roster_queue self-test: 54 checks, 0 failed 
-M6_ignore_err | self-test: roster_queue self-test: 54 checks, 0 failed 
-M7_no_retry_fetch | self-test: roster_queue self-test: 54 checks, 0 failed 

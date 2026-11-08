@@ -1,0 +1,12 @@
+CI at head 0fc051047d3c4bcd842bc687205f10e0166ff1f6, read once via get_check_runs (total_count 68, one page of 100).
+Concluded reds (all `gate`, all deferrals):
+  run 42523092238 job 128861298228 21:06:36Z  log: "FAIL run(s) [42523090642] at this head are still being judged; their gate decides"
+  run 42523735030 job 128867258247 21:27:54Z  log: "FAIL run(s) [42523090642] at this head are still being judged; their gate decides"
+Deciding run 42523090642:
+  gate job 128869154750 success 21:34:42Z, KIND: code, WORKSET: arch-score budget-raise-gate codeql governance hassfest pr-contract tests validate -> "PASS"
+  pr-contract / pr-contract job 128867515073 success 21:33:15Z-21:33:59Z (started after the last red concluded at 21:27:54Z)
+  tests / closures, fast (3.14), coverage, coverage-ratchet, browser, typing, mutation, briefs, closure-scope, lane-proofs, graders-head-copy, arch-instrument: success
+  governance / instrument-self-tests, env-matrix, policy-docs, wave-script, delivery-status: success
+  codeql x3, hassfest, validate-hacs, arch-score, budget-raise-gate: success
+Every other run is success or skipped.
+merge_train.py classify: rc=1 "RED 0fc051047d3c4bcd842bc687205f10e0166ff1f6 pending: none red: gate" (ev/classify.txt, ev/classify_poll.txt)
