@@ -60,6 +60,7 @@ SELF_TEST=0
 #
 # WRAP = {"sudo", "doas", "xargs", "env", "nohup", "exec", "time", "command",
 #         "nice", "stdbuf", "setsid", "timeout", "builtin", "!"}
+# RESERVED = {"if", "then", "else", "elif", "do", "while", "until", "{"}   # compound-command words: the next word is still a command
 # SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
 # SEP = " \t\n;&|()"
 # cmds = []                                # (statement id, command word, argv), in the order run
@@ -141,7 +142,7 @@ SELF_TEST=0
 #             parse(w, 0, None)            # the body of bash -c runs
 #         if at:
 #             base = w.rsplit("/", 1)[-1]
-#             if re.fullmatch(r"\w+=.*", w) or base in WRAP or (w.startswith("-") and prev in WRAP):
+#             if re.fullmatch(r"\w+=.*", w) or base in WRAP or w in RESERVED or (w.startswith("-") and prev in WRAP):
 #                 pass                     # still at command position
 #             else:
 #                 at = False
@@ -189,7 +190,7 @@ SELF_TEST=0
 # # incrementally, so a command that moves its HEAD or working tree corrupts
 # # them (2026-10-31, gap 4 of R10-FLY-STANDING-CONTRACTS). It reads the parse
 # # block's `cmds` -- so `bash -c`, `eval`, `( )` and `$( )` bodies are seen --
-# # following `cd` in the order the commands appear (a `cd` inside a subshell is
+# # following `cd` and `pushd` in the order the commands appear (a `cd` inside a subshell is
 # # carried past its close, which can only refuse more). INERT unless
 # # $HPO_STATE_DIR/orch-checkout names a directory; fails open on anything odd.
 # MOVERS = {"checkout", "switch", "reset", "pull", "merge", "rebase", "stash", "clean", "restore"}
@@ -206,7 +207,7 @@ SELF_TEST=0
 #         return os.path.realpath(os.path.join(d, os.path.expandvars(os.path.expanduser(p))))
 #     cur = payload.get("cwd") or os.getcwd()
 #     for _, b, w in cmds:
-#         if b == "cd":
+#         if b in ("cd", "pushd"):
 #             to = [a for a in w[1:] if not a.startswith("-")]
 #             if to:
 #                 cur = under(cur, to[0])
@@ -296,6 +297,8 @@ pkill x'                                           "pkill on a later line is ref
 pkill -f x
 EOF'                                               "a heredoc body holding pkill is allowed (null control)"
   st allow  'echo hi # pkill x'                    "pkill in a comment is allowed (null control)"
+  st refuse 'if true; then pkill x; fi'            "pkill after a then is refused"
+  st allow  'echo then pkill x'                    "then as an echo argument is allowed (null control)"
   st allow  'git status'                           "a command without the substring kill takes the prefilter path"
   # SECOND ARM: the orchestrator-checkout guard, over a throwaway repository
   # and state directory (HPO_STATE_DIR/orch-checkout names the repository).
@@ -321,6 +324,10 @@ EOF'                                               "a heredoc body holding pkill
   gst refuse "(cd $gtmp/orch && git pull)"      "$gtmp/other" "guard: a subshell's cd is followed"
   gst refuse "echo x \$(git -C $gtmp/orch checkout main)" "$gtmp/other" "guard: a \$( ) substitution is read"
   gst refuse "sh -c 'cd $gtmp/orch; git reset --hard'" "$gtmp/other" "guard: a cd inside sh -c is followed"
+  # the second review's compound-command and pushd probes (verdict 6718280627)
+  gst refuse "if true; then git -C $gtmp/orch pull; fi" "$gtmp/other" "guard: a then body is read"
+  gst refuse "pushd $gtmp/orch >/dev/null; git reset --hard" "$gtmp/other" "guard: pushd is followed like cd"
+  gst allow  "echo then git pull"               "$gtmp/orch"  "guard: then as an echo argument is allowed (null control)"
   gst allow  "echo 'git pull' > notes.txt"      "$gtmp/orch"  "guard: git pull as quoted echo text is allowed (null control)"
   gst allow  'git status'                       "$gtmp/orch"  "guard: a read-only git command is allowed (null control)"
   gst allow  "git -C $gtmp/orch show origin/main:README.md" "$gtmp/other" "guard: show of main is allowed (null control)"
