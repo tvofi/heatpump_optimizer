@@ -388,6 +388,7 @@ jobs:
           bg_unread() { # every name started whose status no bg_wait read: list them, fail
             local d="$RUNNER_TEMP/bg" p n s=0 u=0
             for p in "$d"/*.pid; do
+              test -e "$p" || continue  # none started (a scope that chose no waiter): nothing unread
               n=$(basename "$p" .pid); s=$((s + 1))
               if ! test -f "$d/$n.read"; then echo "UNREAD $n: no step read its status" >&2; u=$((u + 1)); fi
             done

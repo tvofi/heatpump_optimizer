@@ -427,6 +427,21 @@ def _git_subcommand(line: str) -> str:
     return args[0] if args else ""
 
 
+_NOT_A_NAME = re.compile(r"[:\[\]^~*?]|\.\.\.|^\.merge_file_")
+
+
+def probe_path(rel: str, tracked_dirs: set[str]) -> bool:
+    """Whether a probed path is one a diff could add or delete: under a
+    tracked directory, not a cache, and a file name rather than a string a
+    process handed to a path syscall (`pipe:[N]`, `REV:path`, `A...B`, git's
+    `.merge_file_*` temporaries) -- those differ run to run and name nothing
+    (two recordings of one tree, compared step by step)."""
+    parts = rel.split("/")
+    parent = "/".join(parts[:-1]) or "."
+    return (parent in tracked_dirs and "__pycache__" not in parts and "node_modules" not in parts
+            and not _NOT_A_NAME.search(parts[-1]))
+
+
 def _pyc_source(rel: str) -> str:
     m = re.fullmatch(r"(.*/)?__pycache__/([^/]+?)\.[^/.]+(?:\.opt-\d)?\.pyc", rel)
     return f"{m.group(1) or ''}{m.group(2)}.py" if m else rel
@@ -470,7 +485,7 @@ def fold_trace(text: str, root: Path, tracked: set[str], tracked_dirs: set[str],
                 dirs.add(rel)
         elif ok and call in _OPENS + _EXECS and rel in tracked:
             files.add(rel)
-        elif "__pycache__" not in rel and "node_modules" not in rel.split("/"):
+        elif probe_path(rel, tracked_dirs):
             probes.add(rel)
     return {"files": files, "probes": probes, "dirs": dirs, "git": gits, **flags}
 
@@ -823,6 +838,12 @@ def self_test() -> int:
         ck("fold: a failed stat is a probe, an fd's own stat and an outside path are nothing",
            got["probes"] == {"tools/x/a.json"})
         ck("fold: a listed tracked directory is a dir", got["dirs"] == {"dev/governance/rules"})
+        junk = fold_trace("\n".join(
+            f'9 newfstatat(AT_FDCWD<{root}>, "{n}", 0x1, 0) = -1 ENOENT (x)' for n in (
+                "pipe:[123]", "HEAD:tools/x/a.py", "abc...HEAD", "abc^1", ".merge_file_Xy12",
+                "objects/00/abcd", "tools/x/new.json")), root, tracked, tdirs, g, g)
+        ck("fold: strings that name no file are not probes; a name in a tracked directory is",
+           junk["probes"] == {"tools/x/new.json"})
         ck("fold: the index open is flagged, no object read", got["index"] and not got["objects"])
         got2 = fold_trace(f'9 openat(AT_FDCWD<{root}>, ".git/objects/pack/p.pack", O_RDONLY) = 3<{g}/objects/pack/p.pack>',
                           root, tracked, tdirs, g, g)
