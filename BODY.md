@@ -8,7 +8,7 @@ R10-GENERIC-HEAT-CURVE, kind `offset` (design option (a)): the heat-curve displa
 - Docs: `docs/ecl110.md` "Without MQTT: a number entity" (T1–T3 contract, W1–W6, the off rule with the stop case, the Luxtronik SHI example with U1, U2 and ghc-r04, python-luxtronik cited at `02afea84bd5bf3ee87445de6f2a42b8029983169`), `docs/configuration.md`, `README.md`, `docs/architecture.md`.
 
 **The restore hook's interface, which R10-ARBITER-OFF-RESTORE and R10-GENERIC-HEAT-CURVE-PERSISTENT call unchanged.**
-- `off_restore.register_consumer(key, factory)` at import; `factory(config)` returns `off_restore.Restorer(entity_id, write, neutral=None, baseline_of=<(hass, entity_id) -> float | None>)`, or `None` when unconfigured.
+- `off_restore.register_consumer(key, factory)` at import; `factory(config)` returns `off_restore.Restorer(entity_id, write, neutral=None, baseline_of=<(hass, entity_id) -> float | None>, restored=<(entry, value) -> None>)`, or `None` when unconfigured. `restored`, when given, is told each restore write that succeeded, so the consumer's own write record names what the entity was last told; the hook never edits a consumer's state itself (this round, fix review 1 block 1).
 - `await off_restore.async_arm(hass, entry, config, key)` before each write: the first arm captures `baseline_of(...)` for a consumer with no `neutral` and persists it per entry (store `heatpump_optimizer_<entry_id>_off_restore`), so a restart never re-captures a value the optimizer wrote (the note's O3); `False` refuses the write (no readable baseline).
 - The coordinator and `__init__` call `async_mode_change`, `async_restore` and `async_forget`; a consumer never does. A restore write bypasses the consumer's own policy, is counted (`off_restore.diagnostics`), and a failure is latched and keeps the consumer armed for the next off or unload.
 - Shown by the check "a stand-in second consumer registers without editing the hook: its baseline, captured before its first write, survives a restart and is what the restore writes" (tests/features.py, section R10-GENERIC-HEAT-CURVE). The arbiter's own MODE_OFF branch (`pump_arbiter._arbitrate`) is untouched here.
@@ -19,111 +19,87 @@ R10-GENERIC-HEAT-CURVE, kind `offset` (design option (a)): the heat-curve displa
 
 **Toolchain.** `bash tools/audit/seat/cloud-setup.sh` then `--check`: OK, python3 is venv-ci's; numpy 2.5.4 and scipy 1.18.1, matching `tests/requirements-ci.txt`.
 
-**Repair round (this head).** The reds at `e330a7681c5b5e4ac416e0b8ed4270a857e89ab2` were this branch's own; five commits answer them and touch no production line: `tests/features.py`, `tests/golden/config_flow.json`, `tests/golden/claimed_drift.txt` and two `tests/mutation_ledger/survivor_triage/` records.
-- `tests / fast (3.14)`: `tests/env_drift.py --all` found the float-free `config_flow` fixture STALE and its drift UNCLAIMED (the heat_curve page's three new options and the menu label). Re-recorded with `golden.py --record --only config_flow`, which a float-free fixture allows on any machine, and claimed in `claimed_drift.txt` under `claims-for: 7.1.5`; no other fixture or claim line moves.
-- `tests / coverage-ratchet`: `off_restore.py` at 90.10 % (ten missed lines: the save and remove failures, a refused arm, the unconfigured disarm, a raising restore write). New checks drive each through the production functions; the module measures 100 % under `tests/features.py` alone.
-- `tests / mutation` and `tests / mutation-autofix`: the 71 sites CI listed as ADDED UNPINNED. Each one is now killed by a driver CI runs, or triaged equivalent with its measurement (two sites). The new checks in the section are the kills.
+**Repair round (this head): fix review 1 of PR 3299, blocked at `f00e035b5ad61373bd4315d7a8d12ccc73029c76`.** Built on the PR head `c93e293fdd20fb9b3f159f98c2d264dd1b988612` (the mutation-autofix bot's `ci: pin killed mutants` on `f00e035b`). Four commits, each answering below.
+
+## Fix review 1, answered
+
+1. **Block 1, robustness: restore-record-stale.** Fix commit `f143904bfd90c7198a706f6d9306c0dd5b20d6e3` (callback renamed in `070cff63d`). `off_restore.Restorer` gains an optional `restored(entry, value)` callback. `async_restore` calls it after each restore write that succeeded, before disarming. `heat_curve` registers `_restore_recorded`, which records the neutral as the entity's last write: `written = 0`, `written_at = now`, `misses = 0`. So W2's grace and W3's give-up judge the next publish against what the entity was actually told last. The hook still owns no consumer state, the record keeps its one writer (`heat_curve`), and the one restore path covers MODE_OFF, unload and the options reload behind it, because `_STATES` is keyed on the entry. A restore write that raised calls nothing, so the record stays the plan's write. The reviewer's probes, re-taken through `async_set_mode` and `async_publish_ecl110_command` in the R10 block:
+   - Probe A (off then on inside the grace, plan unchanged): base `writes=[2, 0]`, head `[2, 0, 2]`, no warning.
+   - Probe B (a first-miss rewrite that held, then off and on, same target): base `writes=[2, 2, 0]` plus the false W3 warning; head `[2, 2, 0, 2]`, no warning.
+   - B-null (the same history without the off/on): `[2, 2]`, no warning, green at the base and at this head.
+   - The unload and reload path (`async_unload_entry`, then a new coordinator on the same entry inside the grace): base `[2, 0]`, head `[2, 0, 2]`.
+   - Two further checks pin the callback's stamp and miss reset where the next target equals the restored 0 and the restore did not hold: inside its own grace no rewrite (`[2, 0]`); after it, one rewrite and no W3 (`[2, 2, 0, 0]`).
+   Alternatives, and why each lost: (a) clearing `written` to `None` in the callback. It is equally killable, but it forgets that the entity was told 0, so a re-enable at 0 against a restore that did not land is rewritten at once, with no grace. (b) `off_restore` resetting `heat_curve.state_for(entry)` itself: a second writer of the arm's record, and the hook importing a consumer. (c) `heat_curve` resetting its record from `publish` when the mode leaves off: the unload and reload path has no mode transition, so it is not covered.
+2. **Block 2, harness: peak-guard, boost and curve-bias at the entity arm.** Fix commit `f143904bf`, test-only. Three checks drive the design's evidence-plan items through production:
+   - "the peak guard's engage writes the plan less the nudge to the entity, its release the plan again": `_async_peak_guard_transition` with `_peak_guard.suppressing` True then False, plan 3, writes `[1, 3]`, `PEAK_GUARD_DISPLACE_NUDGE_C == 2.0`.
+   - "boost writes the displace maximum to the entity, the boost mode and the space boost overlay alike": `ecl110_displace_max = 4`, band 10, the MODE_BOOST fixed action and `boost.overlay` each write `[4]`.
+   - "the learned curve bias reaches the entity: 3 with a -1 bias sends 2; with curve learning off, 3".
+   The reviewer's m11 (`publish` skips the entity arm when the legacy reason is `peak_guard`) is re-planted here as M8 and is KILLED (below).
+3. **Residual: the `and not mode_off` guard in `heat_curve.publish`.** Pinned rather than dropped, by "the chokepoint called while off writes no entity value; the MQTT arm still carries the integer". The guard was unpinned only because of block 1. The existing check "and while off the arm writes nothing, nor does a second off" calls the chokepoint while off, but the stale record held that call in W2's grace whether or not the guard ran. With the record fixed, M7 (the guard dropped) fails both checks. I kept the guard because `publish` is the arm's one chokepoint. Dropping it would leave "off writes nothing" resting on both callers' early returns, and a third caller could break it. Carry: dismissed: closed in this diff by the named check
+4. **Follow-ups (entity keying of the armed record).** The persistent and arbiter consumers are not built here. The roster carries for R10-GENERIC-HEAT-CURVE-PERSISTENT and R10-ARBITER-OFF-RESTORE are the reviewer's own (under `## Forward-carry`, last two lines). For kind `offset`, a write armed on entity A and restored to B is a neutral 0 to B, as the review says. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT Carry: R10-ARBITER-OFF-RESTORE
 
 ## Head
 
-`fb9b2313ec06b69c6810df8a49457daf509b3b17`. It merges the PR head `30e7024e81f409e60803ab25928ed6f7d717d527` into this round's code head `90d3265e87bfad1901dc3f580f5b03f3d483d006`; the merge resolved cleanly. `30e7024e8` is the merge-main bot's `ci: merge main` on `e330a7681c5b5e4ac416e0b8ed4270a857e89ab2`, bringing origin/main to `15e34edb8b1c`, now the merge base. `90d3265e8` is five commits on `e330a768`, and they touch no production line. The merge was needed so the handoff fast-forwards from the PR head (prepr's push-order step refused the unmerged `90d3265e8`); it is not a merge of a moved main.
-
-Where each figure was measured. The mutation proof, the diff-mutant and spec passes, the coverage run and the first suite pass ran at `90d3265e8` over merge base `53273de4d`. After the merge these re-ran at `fb9b2313e` over `15e34edb8`: `tests/features.py`, the section block, the scoped five (`tests/closure.py select` over this round's commits still names config_flow_steps, entities, env_drift, features and golden), `structure.py`, `closure.py selftest`, `tools/pr/prepr.sh`, and its body check. The merged delta touches `coordinator.py` and `tests/features.py`, never `heat_curve.py`, `off_restore.py` or `config_flow.py`, so the mutant sites keep their lines and text. `origin/main` was at `e36e5327d` at 2026-11-08 UTC. `git merge-tree --write-tree origin/main HEAD` reports no conflict (`tests/closures.json` resolved by the ledger driver), so main was not merged, per the owner's 2026-11-07 ruling.
+`070cff63d97e5be28e1a9a15cb2668781058757b`. It is `c93e293fd` plus: `f143904bf` (the tests first, then the fix), `f4a0fd7b7` (merge of `origin/main` `5bc009bc82962df5d239cbacc2e570dffd9a9cf9`), `0788a44ee` (the stale `_restorer` RETURN_DEL pin deleted, as ci_predict directs) and `070cff63d` (the callback renamed off a name `tests/entities.py` defines). Main was merged because `git merge-tree --write-tree origin/main HEAD` reported a conflict (prepr's merged-tree step refused; owner ruling 2026-11-07). The conflicts were count lines only, each resolved to the sum of both sides' additions: `docs/architecture.md` (88 modules, 30 importing `homeassistant`), `tests/deployment_shape.py` (106 package files; 146 closures), `dev/audit/rounds/round4/D6/claims.py`'s two RESULTs (88), with claims.md and claims.json regenerated by running claims.py (prepr's `claims register` step: byte-identical). `ls custom_components/heatpump_optimizer/*.py | wc -l` prints 88, and `git ls-files custom_components/heatpump_optimizer/ | wc -l` prints 106. Every figure below is measured at this head over merge base `5bc009bc8`, unless a line says otherwise. `origin/main` was `5bc009bc8` at 2026-11-08T06:57Z.
 
 ## Mutation proof
 
-Each mutant is one named production edit, applied in a `git archive` copy of the head, run, and restored. The driver is the `R10-GENERIC-HEAT-CURVE` block of `tests/features.py` through `tools/audit/seat/features_block.py` (the `MUTANT_CMD` under Figures). The failing check names, as printed:
+Each mutant is one named production edit, applied in the worktree, run through the R10 block (`MUTANT_CMD` under Figures), and restored (`git status` clean after). At this head:
 
 ```
-BASELINE (unmutated head): rc=0, 0 failing
-
-M1 entity arm call deleted (heat_curve.publish): rc=1, 26 failing
-    FAIL no topic and an offset entity: one publish of 5 sends one set_value of 5 (R10-GENERIC-HEAT-CURVE)  [writes=[] mqtt=[]]
-    FAIL both configured: MQTT first with the full integer, the entity bounded by the 3 K default band  [[('mqtt', 'publish', {'topic': 'ecl/set', 'payload': '5', '
-    FAIL a kelvin entity is sent -2 for -2, never 271.15 through the absolute helpers (T1)  [[]]
-    FAIL a Fahrenheit entity is sent the difference x9/5: 2 K is 3.6 °F (T1)  [[]]
-    FAIL an entity range narrower than the displace saturates and is latched once, naming it (W6)  [writes=[] warn=[]]
-    FAIL inside the grace a differing reading proves nothing: no second write (W2)  [[]]
-    FAIL after the grace the first miss is written once more (W2)  [[]]
-    FAIL a second miss for the same target latches a warning and sends nothing (W3)  [writes=[] warn=[]]
-    FAIL and a new target is written again (W3)  [[]]
-    FAIL at the guard nothing is written and it is latched; one below it the write goes (W4)  [at=[] below=[] warn=[]]
-    FAIL absent, unavailable, a non-temperature unit, a sensor, a range without 0 or a raising service: no value lands, the failure is latched, the MQTT arm still p
-    FAIL MODE_OFF after a write writes one 0 (the off rule)  [[]]
-    FAIL and while off the arm writes nothing, nor does a second off  [[]]
-    FAIL unload after a write writes one 0, through async_unload_entry (the off rule)  [ok=True writes=[]]
-    FAIL a write left armed by a crash is restored by the next run's first off  [[]]
-    FAIL a range narrower than the displace saturates on the low side too: -3 K sends -2 (W6)  [[]]
-    FAIL a target within half a step of the last write is that write, still in its grace: 3 after 2 at step 2 sends nothing (W2)  [[]]
-    FAIL a reading that held clears the misses, and the grace is 90 s: a miss 91 s after the write is written once more, not given up (W1, W2)  [writes=[] misses=0]
-    FAIL writes older than 24 h leave the guard: a full day of them 24 h and 1 s old blocks nothing (W4)  [writes=[] kept=96]
-    FAIL at exactly 90 s the grace is over: a miss then is written once more (W2's bound)  [[]]
-    FAIL a write that succeeds clears the failure latch, and so does a readable entity: the next failure is warned again, not swallowed  [write=[0, 1] entity=[0, 0,
-    FAIL the heat-curve diagnostics: zeros before any write, the write and its 24 h count after one  [fresh={'written': None, 'misses': 0, 'writes_24h': 0, 'write_c
-    FAIL publish called without mode_off writes the entity: only the off mode suppresses the arm  [[]]
-    FAIL a heat-curve write armed before its entity option was cleared is disarmed unwritten at the next off  [writes=[] diag={'armed': [], 'restores': 0, 'last_res
-    FAIL a mode change that is not into off, or off to off, restores nothing and answers 0  [ret=(0, 0) writes=[]]
-    FAIL a restore is persisted, so the next run does not restore it again; a forgotten entry's armed set is gone from the store  [saved=[] forgotten=[]]
-
-M2 off-rule mode hook call deleted (coordinator.async_set_mode): rc=1, 4 failing
-    FAIL MODE_OFF after a write writes one 0 (the off rule)  [[2]]
-    FAIL and while off the arm writes nothing, nor does a second off  [[2]]
-    FAIL a write left armed by a crash is restored by the next run's first off  [[2]]
-    FAIL a restore is persisted, so the next run does not restore it again; a forgotten entry's armed set is gone from the store  [saved=[2] forgotten=[2]]
-
-M3 unload restore deleted (__init__.async_unload_entry): rc=1, 1 failing
-    FAIL unload after a write writes one 0, through async_unload_entry (the off rule)  [ok=True writes=[-3]]
-
-M4 W1 hold predicate off (heat_curve._decide): rc=1, 2 failing
-    FAIL a reading already at the target is not written (W1)  [[3]]
-    FAIL a reading exactly half a step from the target holds: 2.25 against 2 at step 0.5 is not written (W1)  [[2]]
-
-M5 persisted armed set never loaded (off_restore._armed_record): rc=1, 3 failing
-    FAIL a write left armed by a crash is restored by the next run's first off  [[2]]
-    FAIL a stand-in second consumer registers without editing the hook: its baseline, captured before its first write, survives a restart and is what the restore wr
-    FAIL the persisted armed set is read once per entry, not at every arm  [[]]
-
-M6 a failed restore write disarms anyway (off_restore.async_restore): rc=1, 2 failing
-    FAIL a restore whose write raises sends nothing, stays armed and latches a warning naming the entity  [armed=True after=([1], {'armed': [], 'restores': 1, 'last
-    FAIL and the next off retries it: one write of the neutral 0, disarmed and counted  [sent=0 writes=[] diag={'armed': [], 'restores': 1, 'last_restore': 'unload'
-
-M7 store save swallow removed (off_restore._save): rc=1, 0 failing
-
-M8 W2 grace bound moved (heat_curve._decide): rc=1, 1 failing
-    FAIL at exactly 90 s the grace is over: a miss then is written once more (W2's bound)  [[2]]
-
-M9 the arm's sent answer dropped (heat_curve.write_displace): rc=1, 1 failing
-    FAIL the entity arm answers True only for a write sent: held, capped and unreadable are False  [(False, False, False, False)]
-
-restored clean: rc=0, 0 failing
+BASELINE (unmutated head): ALL 59 FEATURES BLOCK PASSED
+RESULT M1-restored-call-deleted: rc=1 failing=4 -> KILLED
+    FAIL off then on inside the grace, plan unchanged: the re-enable rewrites 2 over the restore's 0, never held as W2's grace of the write before the off  [writes=[2, 0] war
+    FAIL a rewrite that held, then off and on at the same target: 2 is written again and W3 does not latch against the restore's own 0  [writes=[2, 2, 0] warn=['Heat-curve en
+    FAIL unload, then the reloaded coordinator for the same entry inside the grace: 2 is written over the restore's 0  [writes=[2, 0]]
+    FAIL a re-enable at 0 right after a restore that did not hold is inside the restore's own grace (W2)  [[2, 0, 0]]
+RESULT M2-restored-guard-inverted: rc=1 failing=0 -> KILLED (the block stops: TypeError: 'NoneType' object is not callable, in async_restore for the stand-in consumers, which register no callback)
+RESULT M3-callback-not-registered: rc=1 failing=4 -> KILLED
+    FAIL off then on inside the grace, plan unchanged: the re-enable rewrites 2 over the restore's 0, never held as W2's grace of the write before the off  [writes=[2, 0] war
+    FAIL a rewrite that held, then off and on at the same target: 2 is written again and W3 does not latch against the restore's own 0  [writes=[2, 2, 0] warn=['Heat-curve en
+    FAIL unload, then the reloaded coordinator for the same entry inside the grace: 2 is written over the restore's 0  [writes=[2, 0]]
+    FAIL a re-enable at 0 right after a restore that did not hold is inside the restore's own grace (W2)  [[2, 0, 0]]
+RESULT M4-written-not-recorded: rc=1 failing=3 -> KILLED
+    FAIL off then on inside the grace, plan unchanged: the re-enable rewrites 2 over the restore's 0, never held as W2's grace of the write before the off  [writes=[2, 0] war
+    FAIL unload, then the reloaded coordinator for the same entry inside the grace: 2 is written over the restore's 0  [writes=[2, 0]]
+    FAIL a re-enable at 0 right after a restore that did not hold is inside the restore's own grace (W2)  [[2, 0, 0]]
+RESULT M5-stamp-not-recorded: rc=1 failing=1 -> KILLED
+    FAIL a re-enable at 0 right after a restore that did not hold is inside the restore's own grace (W2)  [[2, 0, 0]]
+RESULT M6-misses-not-cleared: rc=1 failing=1 -> KILLED
+    FAIL and after its grace the restore's first miss is written once more, not given up on the plan's earlier miss (W3)  [writes=[2, 2, 0] warn=['Heat-curve entity number.he
+RESULT M7-mode-off-guard-dropped: rc=1 failing=2 -> KILLED
+    FAIL and while off the arm writes nothing, nor does a second off  [[2, 0, 2]]
+    FAIL the chokepoint called while off writes no entity value; the MQTT arm still carries the integer  [writes=[2] mqtt=[('ecl/set', '2')]]
+RESULT M8-peak-guard-skips-entity: rc=1 failing=1 -> KILLED
+    FAIL the peak guard's engage writes the plan less the nudge to the entity, its release the plan again  [nudge=2.0 writes=[3]]
 ```
 
-M7 prints no FAIL line: the block stops at the dead-store check on the uncaught `RuntimeError: store gone`, which is rc=1 too. M1–M5 re-take the previous round's proof at this head; M6–M9 pin lines this round's checks added.
+The FAIL lines above come from the run at `f143904bf`. At this head, the same eight mutants (`mutants.py`'s list, with M3's text following the rename) print the same rc and failing counts: M1 4, M2 rc=1 (crash), M3 4, M4 3, M5 1, M6 1, M7 2, M8 1. Every one is KILLED. M2 prints no FAIL line because the block stops at the first restore of a consumer with no `restored`, which is rc=1 too. The previous round's M1–M9 (the entity arm, the mode hook, the unload restore, W1, the persisted set, the failed-restore disarm, the store swallow, W2's bound, the sent answer) touch lines this round does not edit; their proof stands as the review re-ran it (its M1–M9 KILLED).
 
 ## Null control
 
-The unmutated head runs the block at rc=0 with 0 failing (BASELINE above), and so does the restored copy. The entity option empty, the same publish sends no `set_value`, and the `/set` topic carries `5` as before (check "the entity option empty: no set_value, and the /set topic still carries the integer (W7)"). Each mutant pass under Figures starts with mutant_run's NULL mutant (no edit) and reports it SURVIVED; a command that failed unedited would have reported `KILLED NULL` and stopped at rc 3.
+- At `c93e293fd`, the PR head, before the fix, the new checks ran through the same `MUTANT_CMD`. Three checks failed, with exactly the reviewer's numbers: probe A `writes=[2, 0] warn=[]`, probe B `writes=[2, 2, 0]` plus `Heat-curve entity number.heating_offset does not hold 2.0 after a rewrite: not resent until the target changes`, and the unload/reload `writes=[2, 0]`. B-null and every other check passed (`3 of 57 FEATURES BLOCK FAILED`; the two restore-did-not-hold checks were added after that run). At this head: `ALL 59 FEATURES BLOCK PASSED`.
+- B-null, the same history without the off/on, is `[2, 2]` with no warning at both ends. So the fix changes nothing on a path with no restore.
+- The entity option empty, the same publish sends no `set_value`, and the `/set` topic carries `5` as before (check "the entity option empty: no set_value, and the /set topic still carries the integer (W7)").
 
 ## Figures
 
-- `PYTHONPATH=tests/hastub python3 tests/features.py`: ALL 4970 FEATURE CHECKS PASSED at `fb9b2313e` (392 s); ALL 4961 at `90d3265e8`. The section block: ALL 48 FEATURES BLOCK PASSED at both.
-- `PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py`: ALL 548 checks PASSED. `tests/golden.py`: NO STALE FIXTURE, 56 committed fixtures. `python3 tests/env_drift.py --all 53273de4d449a990bc29734565f63babada9ff7f`: NO UNCLAIMED DRIFT, NO STALE FIXTURE, CLAIMED config_flow (8 leaves); at `e330a768` the same command printed `1 UNCLAIMED DRIFT(S)` and `1 COMMITTED FIXTURE(S) ARE STALE` (the null control). `--claims-only`: claims hygiene ok. `tests/closure.py selftest`: ALL 118 PASSED. `tests/structure.py`: STRUCTURE RATCHET PASSED.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py`: 3 of 2655 failed on this host: "the coverage job reuses only an entry main's push run saved", "the release ZIP holds the integration folder at its root" and "the Pages workflow deploys on a release tag". The same command at the merge base `53273de4d` on this host fails the same 3 of 2655 (the null control), and CI's `tests / fast (3.14)` ran `tests/entities.py` green at `e330a768`. So the three are this host's workflow-step probes, not the diff's.
-- Scope: `python3 tests/closure.py select --diff 53273de4d449a990bc29734565f63babada9ff7f --workdir <dir>` prints `MODE: SCOPED -- 30 script(s) run, 3 scoped out`; over this round's own commits (`--diff e330a7681c5b5e4ac416e0b8ed4270a857e89ab2`) `MODE: SCOPED -- 5 script(s) run`, namely config_flow_steps, entities, env_drift, features and golden, each run above, plus run.sh's `run_always` lines (`env_drift.py --claims-only`, `closure.py selftest`). `tests/stress.py` is CI's.
-- Coverage: `python3 -m coverage run --include='*/off_restore.py' tests/features.py` then `python3 -m coverage report -m` (coverage 7.17.2): off_restore.py 101 statements, 0 missed, 100 %. CI's coverage-ratchet read 90.10 % at `e330a768`, with lines 115, 116, 129, 160, 161, 164, 165, 167, 199 and 200 missed (the null control).
-- Diff mutants, the owner's 2026-11-07 ruling: `MUTANT_CMD='env PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude "import asyncio as _asyncio" --prelude "import logging as _logging" --prelude "src = open(__file__).read(); i = src.index(\"class _LogCapture(\"); exec(src[i:src.index(\"async def _drive_outage_polls\", i)])" "R.section(\"R10-GENERIC-HEAT-CURVE" "R.section(\"R5-D12-01"'`. The preludes are the three names earlier blocks define; `_LogCapture` is executed from features.py's own text, never copied. `python3 -I tools/audit/seat/mutant_run.py --diff 53273de4d449a990bc29734565f63babada9ff7f...HEAD --cmd "$MUTANT_CMD" --report-only` over 146 mutants: 67 SURVIVED at `e330a768`, 24 at this head; wall 2 m 51 s at `e330a768`. The 24 at this head: 11 on lines another driver owns, killed by it (#193 S3 block: heat_curve.py 163, 169, 180; `tests/config_flow_steps.py`: config_flow.py 2191, 2214, 2253, 3699; `tests/typing_ruler.py`: 2193, 2216; `tests/golden.py --only config_flow`: const.py 1497, 1498; `tests/finite_boundary.py`: store.py 479). The other 13 are equivalent under mutant_run's operators, which CI's table does not ratchet (heat_curve.py 76, 78, 148, 149, 273, 276; config_flow.py 1773 CONST_SWAP on a box field's unread step, #1679; off_restore.py 43; plus the mutant_run CONST_SWAP/CALL_DEL forms of lines whose ratcheted sites are killed). The four targeted passes ran in 1197 s wall.
-- `MUTANT_CMD=<the command above> bash tools/pr/prepr.sh <body>` at `fb9b2313e`, step 6d' (`mutant_run.py --diff` capped at its default 40 mutants): 18 SURVIVED, each one among the 24 the previous line answers (config_flow.py 1773, 2191, 2192, 2193, 2214, 2215, 2216, 2253, 3699 twice; const.py 1498; heat_curve.py 76, 78, 148, 149, 163, 169, 180). prepr ran in 971 s with rc=0.
-- CI's ratcheted sites: the 71 mutants (69 keys) `tests / mutation` listed as ADDED UNPINNED at `e330a768`, regenerated by `mutation_table._generate` at this head (production lines unchanged) and driven by `mutant_run.py --spec`: 61 KILLED by the two features.py blocks (94 s wall), 6 by `tests/config_flow_steps.py` (122 s), 2 by `tests/typing_ruler.py` (56 s), 2 SURVIVED and triaged equivalent. Survivor count: 0 untriaged. Each site's disposition is under `## Unpinned sites`.
-- `python3 tests/mutation_table.py --pin-killed --base 53273de4d449a990bc29734565f63babada9ff7f` locally: unmeasured. Run 1 was INCONCLUSIVE on env_drift's red baseline (since repaired). Run 2 was INCONCLUSIVE on entities.py's three host probes. Run 3, without entities.py and stress.py, was stopped at this environment's 2 h background limit before writing a pin. The pins are `mutation-autofix`'s after the push (`ci-autofix.md`).
-- Toolchain: `python3 -c "import numpy,scipy;print(numpy.__version__,scipy.__version__)"` prints 2.5.4 1.18.1, equal to `tests/requirements-ci.txt`.
+- `MUTANT_CMD='env PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude "import asyncio as _asyncio" --prelude "import logging as _logging" --prelude "src = open(__file__).read(); i = src.index(\"class _LogCapture(\"); exec(src[i:src.index(\"async def _drive_outage_polls\", i)])" "R.section(\"R10-GENERIC-HEAT-CURVE" "R.section(\"R5-D12-01"'`: ALL 59 FEATURES BLOCK PASSED at this head; 3 of 57 failed at `c93e293fd` with this round's tests (Null control).
+- `PYTHONPATH=tests/hastub python3 tests/features.py`: ALL 5006 FEATURE CHECKS PASSED (439 s). `tests/deployment_shape.py`: ALL DEPLOYMENT SHAPE CHECKS PASSED. `tests/doc_claims.py`: ALL 296 checks PASSED. `tests/config_flow_steps.py`: ALL 548 checks PASSED. `tests/golden.py`: NO STALE FIXTURE, 56 committed fixtures. `python3 tests/env_drift.py --all 5bc009bc82962df5d239cbacc2e570dffd9a9cf9`: NO UNCLAIMED DRIFT, 56 scenarios; NO STALE FIXTURE.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`: 3 of 2665 failed on this host. The three are "the coverage job reuses only an entry main's push run saved", "the release ZIP holds the integration folder at its root" and "the Pages workflow deploys on a release tag": the workflow-step probes the previous round measured. Null control: the same command at `origin/main` `5bc009bc8`, in a detached worktree on this host, fails the same 3 of 2665, so the three are this host's, not the diff's. CI's `tests / fast (3.14)` runs them.
+- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>` prints `MODE: SCOPED -- 30 script(s) run, 3 scoped out` (taken at `f143904bf` over `15e34edb8`). The scripts above are those the round's edits and the merge reach. `tests/stress.py` and the rest of the 30 are CI's.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED; no budget file is touched this round. `python3 tools/audit/archscore/score.py --diff origin/main`: `Architecture score: dS +0.0000 NULL` (taken at `f143904bf`).
+- `MUTANT_CMD=<above> PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` at `0788a44ee`: rc=1 on one refusal, no-copies (`tests/entities.py` defines `_restored`), answered by `070cff63d`. Step 6d's diff mutants (`mutant_run.py --diff`, its default cap of 40) printed 18 SURVIVED, wall 15 m 38 s for the whole prepr run. All 18 are the sites the previous body answered, at the same text. Their line numbers moved by +2 (the module docstring) or +14 (the docstring and `_restore_recorded`): config_flow.py 1773, 2191, 2192, 2193, 2214, 2215, 2216, 2253, 3699 ×2 and const.py 1498 (killed by `tests/config_flow_steps.py`, `tests/typing_ruler.py` and `tests/golden.py --only config_flow`, which the block does not run; 1773 and 1498 CONST_SWAP equivalent); heat_curve.py 78 and 80 (CONST_SWAP on dataclass defaults, equivalent; were 76 and 78); and heat_curve.py 162, 163, 177, 183, 194 (the #193 S3 block's, killed there; were 148, 149, 163, 169, 180). None is on a line this round adds. The final prepr run is under `## Red checks`.
+- Diff mutants on this round's own lines: the eight hand mutants above, all KILLED. Wall about 70 s for the eight, through `MUTANT_CMD`.
 
 ## Architecture score
 
-`python3 tools/audit/archscore/score.py --diff origin/main` at this head: `Architecture score: dS +0.0000 NULL`. No metric rises, so no per-metric line is owed; this round changes no production line. `off_restore` imports `homeassistant.core.HomeAssistant` for the `hass` it writes through and the store it persists to: it is a glue module.
+`python3 tools/audit/archscore/score.py --diff origin/main`: `Architecture score: dS +0.0000 NULL`. No metric rises. The callback lives with the hook's existing `Restorer` contract, and `heat_curve` adds one module-level function that writes only its own record.
 
 ## Red checks
 
-Every concluded red at `e330a7681c5b5e4ac416e0b8ed4270a857e89ab2` and at the PR head `30e7024e81f409e60803ab25928ed6f7d717d527` (check-runs, filter=all, every page; the runs cancelled there are not concluded reds), and the branch's red history `pr-contract` records, by literal name:
+At the reviewed head `f00e035b5`: `tests / mutation` (`MUTATION TABLE REFUSED`, 69 sites added unpinned) and `gate`, which follows from it, as the review records. Answer: red by construction until `mutation-autofix` pinned the killed sites. It did, in `c93e293fd`. This round's three new sites (below) follow the same path. The cheaper detector is prepr step 6d plus `mutant_run.py --diff`; it ran this round. CI at `c93e293fd` and at this head was not read from this seat. `UNDER-SCOPED` and `INHERITED CLAIMS`: none predicted (`ci predict` ok at `0788a44ee`).
+Reds in this branch's ancestry, as answered at `e330a7681c5b5e4ac416e0b8ed4270a857e89ab2` in the previous round, unchanged here:
 - `tests / fast (3.14)`: class own, `tests/env_drift.py --all` STALE and UNCLAIMED `config_flow`. Answer: re-recorded and claimed (above). The cheaper detector exists and is the same script: `env_drift.py --all` in the scoped gate before handoff. It was not run on the last merge of main into the branch, which brought the fixture's drift into view; no cheaper detector is missing.
 - `tests / coverage-ratchet`: class own, off_restore.py 90.10 % < 95 %. Answer: covered to 100 %. A cheaper detector exists at a cost: `coverage run` over the module's driver (one features.py run, ~7 min). prepr.sh does not run it; I'm recording that rather than building it here.
 - `tests / mutation`: class own, 71 ADDED UNPINNED. Answer: every site killed by a CI driver or triaged (`## Unpinned sites`). The cheaper detector is prepr step 6d plus `mutant_run.py --diff` with `MUTANT_CMD` (seconds per mutant over the block). It was not run last round; it ran this round. Red by construction until `mutation-autofix` pins the killed sites after the push.
@@ -131,13 +107,17 @@ Every concluded red at `e330a7681c5b5e4ac416e0b8ed4270a857e89ab2` and at the PR 
 - `gate`: class follows from the four above. Answer: those four.
 - `governance / delivery-status`: red at the PR head `30e7024e8` only, a check outside the required set (the owner's 2026-11-07 ruling: delivery-status never counts). Named here, not answered.
 - `pr-contract / pr-contract`: class own, `## Red checks` did not name the four `tests / *` reds. Answer: this section names each. Its cheaper detector, `prepr.sh --body-check`, ran clean at this head.
-`UNDER-SCOPED` and `INHERITED CLAIMS`: none predicted.
+Final run: `MUTANT_CMD=<above> PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>` at this head: `PRE-PR: 070cff63d97e5be28e1a9a15cb2668781058757b ... rc=0`, with the same 18 diff-mutant survivors (Figures) and the 3 unpinned sites (`## Unpinned sites`).
+
+The claim file differs from origin/main by the branch's own `config_flow` line, carried since the previous round. This round claims nothing new and touches neither claim file.
 
 ## Forward-carry
 
 - The hook's interface (this body's "restore hook" list) changes how R10-ARBITER-OFF-RESTORE and R10-GENERIC-HEAT-CURVE-PERSISTENT must work: register a consumer and arm before the first write, never a second owner of the unload, MODE_OFF or remove path. Lands in those two groups' entries in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ARBITER-OFF-RESTORE. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT.
 - For the persistent kind: the baseline is persisted per entry by `async_arm`, which answers the note's O3 (a crash's displaced value is never re-captured) and O4 (one owner); O1 does not arise, because the baseline is not in the options. O2 (budget and dwell across reloads) and O5's endurance numbers (12/day, 7000/yr) stay that group's, in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT.
 - ghc-d02, `decision: owner`: whether the MQTT ECL110 arms also publish displace 0 on MODE_OFF and unload. Not built: W7 keeps MQTT byte-identical. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT.
+- Fix review 1's first follow-up: the armed record is keyed by consumer key only, and the restore writes to the entity the current config names. A consumer with a baseline (the persistent kind) needs the armed entity id persisted beside the baseline, and either a restore to that entity or a disarm on a mismatch. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT
+- Fix review 1's second follow-up: the same entity-keying gap binds the arbiter's space set-point consumer, which captures a non-neutral baseline. The new `restored(entry, value)` callback is that consumer's way to keep its own write record honest after a restore. Carry: R10-ARBITER-OFF-RESTORE
 
 ## Roster carries
 
@@ -151,80 +131,14 @@ ghc-03 and ghc-04 stay as the note disposed of them (a D6 and a D5 round's); unt
 
 ## Friction
 
-- frugal-routing: cost: the inline-search budget counted plain sed/cat/tail reads of a file already located, and a Monitor's tail, so file reads went through extra subagents. Carry: dismissed: a session plugin's guard, not this repository's policy
-- handoff-wip: stale: `refs/heads/handoff-wip/r10-generic-heat-curve` held a previous seat's `BLOCKED` commit (`d70150252`, 2026-11-07 19:02Z) on head `98ce151cf`, so this seat's fast-forward step push was refused. Nothing was forced; the ref is deleted after the body push, as the brief directs. Carry: dismissed: one seat's leftover, already resolved by the PR existing
+- handoff-wip: stale: `refs/heads/handoff-wip/r10-generic-heat-curve` still holds a previous seat's `BLOCKED` commit (`d701502523915719d09dd49049a27a5be359381a`) on `98ce151cf`, so this seat's fast-forward step pushes were refused. Deleting the ref first was denied by this session's permission guard, and nothing was forced. So no step ref was pushed this round, and the ref is left for the orchestrator. Carry: dismissed: one seat's leftover, already resolved by the PR existing
+- merge-tree: unclear: `git merge-tree --write-tree origin/main HEAD` prints a ledger driver's `LEDGER-MERGE: resolved tests/closures.json` lines before it exits non-zero on a real content conflict. I read the resolved lines as a clean merge until prepr's merged-tree step refused. Keying on the exit status, not the text, is the reading. Carry: dismissed: the exit status already says it
 
 ## Unpinned sites
 
-The 69 keys (71 mutants) `tests / mutation` listed as ADDED UNPINNED at `e330a768`, each with its disposition. Every site is under `custom_components/`, which the `mutation-autofix` lane mutates.
-- custom_components/heatpump_optimizer/config_flow.py:2191 BOOLOP: pinned by mutation-autofix; killed here by tests/config_flow_steps.py
-- custom_components/heatpump_optimizer/config_flow.py:2191 GUARD_OFF: pinned by mutation-autofix; killed here by tests/config_flow_steps.py
-- custom_components/heatpump_optimizer/config_flow.py:2193 RETURN_DEL: pinned by mutation-autofix; killed here by tests/typing_ruler.py
-- custom_components/heatpump_optimizer/config_flow.py:2214 BOOLOP: pinned by mutation-autofix; killed here by tests/config_flow_steps.py
-- custom_components/heatpump_optimizer/config_flow.py:2214 GUARD_OFF: pinned by mutation-autofix; killed here by tests/config_flow_steps.py
-- custom_components/heatpump_optimizer/config_flow.py:2216 RETURN_DEL: pinned by mutation-autofix; killed here by tests/typing_ruler.py
-- custom_components/heatpump_optimizer/config_flow.py:2253 RETURN_DEL: pinned by mutation-autofix; killed here by tests/config_flow_steps.py
-- custom_components/heatpump_optimizer/config_flow.py:3699 RETURN_DEL: pinned by mutation-autofix; killed here by tests/config_flow_steps.py
-- custom_components/heatpump_optimizer/heat_curve.py:66 CONST: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:67 CONST: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:88 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:90 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:95 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:97 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:148 BOOLOP: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:148 GUARD_OFF: triaged equivalent, tests/mutation_ledger/survivor_triage/heat_curve.py/publish_ecl110_topics.GUARD_OFF.8b6644d6.json
-- custom_components/heatpump_optimizer/heat_curve.py:152 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:169 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:209 BOOLOP: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:209 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:219 CMP_BOUND*2: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:219 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:229 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:232 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:235 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:237 CLAMP_DROP*2: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:239 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:240 CLAMP_DROP: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:241 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:242 CLAMP_DROP: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:243 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:248 BOOLOP: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:248 CMP_BOUND: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:248 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:250 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:251 CMP_BOUND: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:251 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:253 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:254 CMP_BOUND: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:254 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:257 CMP_BOUND: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:257 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:262 CLAMP_DROP: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:262 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:277 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:279 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:281 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:294 BOOLOP: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:294 CMP_BOUND: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:297 CMP_BOUND: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:300 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:306 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/heat_curve.py:310 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/inputs.py:635 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:43 GUARD_OFF: triaged equivalent, tests/mutation_ledger/survivor_triage/off_restore.py/@module.GUARD_OFF.e1433e05.json
-- custom_components/heatpump_optimizer/off_restore.py:48 CONST: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:98 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:100 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:104 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:109 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:128 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:131 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:134 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:142 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:159 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:175 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:186 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:188 RETURN_DEL: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
-- custom_components/heatpump_optimizer/off_restore.py:206 GUARD_OFF: pinned by mutation-autofix; killed here by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py
+The three sites prepr step 6d lists as added with no pin at this head. Each is under `custom_components/`, which `mutation-autofix` mutates.
+- custom_components/heatpump_optimizer/heat_curve.py:99 RETURN_DEL: pinned by mutation-autofix; killed here by M3 (the callback not registered), 4 failing checks in the R10-GENERIC-HEAT-CURVE block of tests/features.py
+- custom_components/heatpump_optimizer/off_restore.py:173 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (the R10 block stops on the TypeError for the stand-in consumers with no callback, rc=1; M2 is the inverted form)
+- custom_components/heatpump_optimizer/config_flow.py:2193 RETURN_DEL: pinned by mutation-autofix; killed here by tests/typing_ruler.py (the previous body's disposition, line and text unchanged)
 
 Co-authored-by: Bankaifan <476059+Bankaifan@users.noreply.github.com>
