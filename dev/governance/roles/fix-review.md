@@ -43,7 +43,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     its control as a precondition (`finding-propagation.md`). One only
     in this PR's comments is `blocked <sha> carry-missing: not carried to <stage>`.
     A `Carry:` to the PR's own group naming neither `fixer.md` exception is
-    `blocked <sha> carry-own-group`.
+    `blocked <sha> carry-missing: own-group carry names no exception`.
 11. **A red check owes an answer** (`defect-root-cause.md`'s second
     trigger). Read the PR's own checks (`get_check_runs`, or
     the commit's `check-runs` API), not the body's account, and never a
