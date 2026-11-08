@@ -18795,7 +18795,8 @@
    "fixerModel": "opus",
    "reviewerModel": "opus",
    "after": [
-    "R10-GENERIC-HEAT-CURVE"
+    "R10-GENERIC-HEAT-CURVE",
+    "R10-GENERIC-HEAT-CURVE-PERSISTENT"
    ],
    "files": [
     "custom_components/heatpump_optimizer/pump_arbiter.py",
