@@ -24,7 +24,9 @@ COP (``_measured_cop.cop``), then ``RESULT`` with a verdict per install:
 Without ``--check`` it exits 0: it measures, it does not judge. With
 ``--check`` it is the detector: exit 1 when the watch took a ``null`` or
 ``tuya`` sample (the defect), exit 2 when it withheld the ``metered`` one (a
-tree that withholds everything would otherwise pass by skipping), else 0.
+tree that withholds everything would otherwise pass by skipping), exit 3 when
+a module loaded from outside the named root, else 0. The verdict follows the
+named root whatever the shell's cwd: the harness changes into it first.
 """
 from __future__ import annotations
 
@@ -34,10 +36,23 @@ import sys
 
 def main(root: str, check: bool = False) -> int:
     root = os.path.abspath(root)
+    # tests/harness.py, at every tree measured, inserts the cwd-relative
+    # "tests" and "custom_components" ahead of these, so the import follows
+    # the shell's cwd unless the cwd is the root itself.
+    os.chdir(root)
     sys.path[:0] = [os.path.join(root, p) for p in ("tests/hastub", "custom_components", "tests")]
+    import harness  # noqa: PLC0415
     from harness import FakeEntry, FakeHass, FakeState  # noqa: PLC0415
     from heatpump_optimizer import flow_meter  # noqa: PLC0415
     from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator  # noqa: PLC0415
+
+    # Refuse rather than measure another tree: every module the verdict
+    # rests on must have loaded from the root named on the command line.
+    for mod in (harness, flow_meter, sys.modules["heatpump_optimizer.coordinator"]):
+        loaded = os.path.realpath(mod.__file__)
+        if os.path.commonpath([loaded, os.path.realpath(root)]) != os.path.realpath(root):
+            print(f"REFUSED {mod.__name__} loaded from {loaded}, outside {root}")
+            return 3
 
     base_cfg = {
         "tibber_token": "x", "weather_entity": "weather.home",
