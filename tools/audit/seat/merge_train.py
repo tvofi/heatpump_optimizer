@@ -1201,6 +1201,46 @@ def spool_edit_locked(t: "Train", pr: int, op: str) -> int:
     return 0
 
 
+def bus_registry() -> Path:
+    """bus.sh's worker registry, `$S/dispatched`, where `S=${HPO_BUS_STATE:-$HOME/.zcode/bus}`."""
+    return Path(os.environ.get("HPO_BUS_STATE") or Path.home() / ".zcode" / "bus") / "dispatched"
+
+
+def dispatch_order(registry: str, pr: int, head: str, nonce: str) -> "tuple[str, int] | None":
+    """(utc, line index) of <nonce>'s FIRST record for <pr> at <head> in bus.sh's
+    registry (`<pr> <head> <reviewer> <nonce> <utc> <model>`), its mint: a
+    `--nonce` re-record later is the same dispatch. None when no such record
+    exists or it predates the utc field. The registry is append-only, so the
+    index orders a same-second pair."""
+    for i, ln in enumerate(registry.splitlines()):
+        f = ln.split()
+        if len(f) >= 4 and f[:2] == [str(pr), head] and f[3] == nonce:
+            return (f[4], i) if len(f) >= 5 and re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", f[4]) else None
+    return None
+
+
+def stale_merge(pr: int, head: str, merge: "str | None", blocked: "list[str | None]", registry: str) -> "str | None":
+    """P393 (triage batch 127): the merge verdict at <head>, nonce <merge>, is
+    refused when a blocked verdict at the same head carries a different nonce
+    dispatched after it (a later reviewer's finding stands), and refused with
+    the reason when either dispatch time is missing. A blocked verdict posted
+    under the merge's own nonce is that reviewer's revision; None admits."""
+    for b in blocked:
+        if merge is not None and b == merge:
+            continue
+        mt = dispatch_order(registry, pr, head, merge) if merge else None
+        bt = dispatch_order(registry, pr, head, b) if b else None
+        if mt is None or bt is None:
+            return (f"stale merge verdict undecidable: a blocked verdict at {head[:12]} carries nonce "
+                    f"{(b or 'none')[:8]} and the merge verdict {(merge or 'none')[:8]}; "
+                    f"{'the merge' if mt is None else 'the blocked'} verdict's dispatch time is not in "
+                    f"bus.sh's registry ({bus_registry()})")
+        if mt < bt:
+            return (f"stale merge verdict: its nonce {merge[:8]} was dispatched at {mt[0]}, before the blocked "
+                    f"verdict's {b[:8]} at {bt[0]}, at the same head {head[:12]}: the later finding stands")
+    return None
+
+
 def already_held(pr: int, verdict: "str | None", seen: dict, spooled: "set[int]") -> "str | None":
     """THE admission rule `add` (`train_add`) and the drain (`Train.queue_take`)
     both apply (P129, P189, P291): None admits <pr> at <verdict>, else why it
@@ -2991,7 +3031,42 @@ class Train:
         got = proof_watch.parse_verdict(first)
         if got is None or got[0] != "merge":
             return f"the newest verdict is {got[0] if got else 'unparsed'}: {first[:120]}"
+        why = self.stale_verdict(n, tip, got[1])
+        if why:
+            return why
         return got[1], str(v.get("id"))
+
+    def stale_verdict(self, n: int, tip: str, head: str) -> "str | None":
+        """P393: None, or why the merge verdict at verdict/<n>'s <tip> is stale. Every
+        older `blocked <head>` commit on verdict/<n> is a finding at the same head;
+        `stale_merge` rules on their bus-nonces (VERDICT.md, which each verdict
+        commit carries as its review tree) against bus.sh's dispatch registry. An
+        unreadable history refuses: it is never read as no blocked verdict."""
+        import proof_watch
+        if self.run(["git", "fetch", "-q", "origin", f"verdict/{n}"])[0]:
+            return f"stale merge verdict undecidable: verdict/{n}'s history could not be read (fetch failed)"
+        code, o = self.run(["git", "log", "--format=%H%x00%s", tip])
+        if code:
+            return f"stale merge verdict undecidable: verdict/{n}'s history could not be read: {o.strip()[-120:]}"
+        blocked = []
+        for ln in o.splitlines():
+            c, _, subj = ln.partition("\x00")
+            m = re.match(rf"verdict: #{n} (.*)$", subj)
+            if c != tip and m and proof_watch.parse_verdict(m.group(1)) == ("blocked", head):
+                blocked.append(c)
+        if not blocked:
+            return None
+
+        def nonce(c: str) -> "str | None":
+            code, o = self.run(["git", "show", f"{c}:VERDICT.md"])
+            m = None if code else re.search(r"^bus-nonce: ([0-9a-f]{32})$", o, re.M)
+            return m.group(1) if m else None
+
+        try:
+            registry = bus_registry().read_text()
+        except OSError:
+            registry = ""
+        return stale_merge(n, head, nonce(tip), [nonce(c) for c in blocked], registry)
 
     # ------------------------------------------------------------- the batch
     def git(self, *argv: str) -> str:
