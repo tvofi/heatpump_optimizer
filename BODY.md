@@ -1,5 +1,7 @@
 Instrument half of R10-CLOSEOUT-CLEANUP's carries (closeout exemptions, worktree_gc, prune_refs). Merge base is origin/main 73365699a135, unmoved since my last prepr run (no second run owed).
 
+Note: the round's final --apply run stays with R10-CLOSEOUT-CLEANUP. Two readings to confirm: "host" is resume.host as a group id; class E derives the topic from the seat directory name less a leading seat-.
+
 ## Head
 
 fe7d2e21dcb53e67e812def87e42910d455a32ff
@@ -31,8 +33,6 @@ tests/entities.py fails 3 checks that fail identically on an untouched origin/ma
 ## Forward-carry
 
 none
-
-Note: the round's final --apply run stays with R10-CLOSEOUT-CLEANUP. Two readings to confirm: "host" is resume.host as a group id; class E derives the topic from the seat directory name less a leading seat-.
 
 ## Friction
 
