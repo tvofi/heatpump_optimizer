@@ -219,6 +219,48 @@ def stale(table: dict, steps: list[Step]) -> str:
     return f"run text changed since it was recorded: {moved}" if moved else ""
 
 
+def covers(entries, path: str) -> bool:
+    """Whether a `files` list names `path`: the path itself, or `D/**` for an
+    ancestor D (a directory the record read every tracked file of)."""
+    entries = entries if isinstance(entries, (set, frozenset)) else set(entries)
+    return path in entries or any(f"{a}/**" in entries for a in _ancestors(path) if a != ".")
+
+
+def collapse(files: set[str], tracked: set[str]) -> list[str]:
+    """(Idempotent: a `D/**` entry already in `files` is kept.)"""
+    done = {f for f in files if f.endswith("/**")}
+    files = {f for f in files if not covers(done, f)} - done
+    return sorted(set(_collapse(files, tracked)) | done)
+
+
+def _collapse(files: set[str], tracked: set[str]) -> list[str]:
+    """`files` with each topmost directory whose every tracked file was read
+    (two or more) written `D/**`: the table's size, losslessly at record time,
+    and a file added under D later is taken as read, which is safe."""
+    total: dict[str, int] = {}
+    for f in tracked:
+        for a in _ancestors(f):
+            total[a] = total.get(a, 0) + 1
+    read: dict[str, int] = {}
+    for f in files:
+        for a in _ancestors(f):
+            read[a] = read.get(a, 0) + 1
+    out = set()
+    for f in files:
+        whole = [a for a in _ancestors(f) if a != "." and total.get(a, 0) >= 2
+                 and read.get(a) == total.get(a)]
+        out.add(f"{whole[-1]}/**" if whole else f)
+    return sorted(out)
+
+
+def compact_probes(probes: set[str], dirs: set[str], tracked: set[str]) -> list[str]:
+    """Probes less those a listed directory already answers for (an add or
+    delete under one selects the step anyway), then collapsed like files."""
+    keep = {p for p in probes if not p.endswith("/**")
+            and not any(a in dirs for a in _ancestors(p))}
+    return sorted(collapse(keep, tracked) + [p for p in probes if p.endswith("/**")])
+
+
 def _ancestors(path: str) -> list[str]:
     parts = path.split("/")[:-1]
     return ["/".join(parts[:k]) or "." for k in range(len(parts), -1, -1)]
@@ -241,10 +283,10 @@ def select(changes: list[tuple[str, str]], table: dict | None, steps: list[Step]
     gate = sorted(p for _, p in changes if p in GATE_FILES)
     if gate:
         return full(f"a gate file changed: {gate}")
-    known = set().union(*(set(e.get("files", ())) | set(e.get("probes", ()))
-                          for e in table["steps"].values()))
+    known_files = set().union(*(set(e.get("files", ())) for e in table["steps"].values()))
+    known = known_files | set().union(*(set(e.get("probes", ())) for e in table["steps"].values()))
     new = sorted(p for st, p in changes if st == "A" and p.startswith(NEW_FILE_PREFIX)
-                 and p not in known)
+                 and p not in known and not covers(known_files, p))
     if new:
         return full(f"a new {NEW_FILE_PREFIX} file has no recorded closure: {new}")
     picked = []
@@ -252,9 +294,9 @@ def select(changes: list[tuple[str, str]], table: dict | None, steps: list[Step]
         e = table["steps"][sid]
         files, probes, dirs = set(e.get("files", ())), set(e.get("probes", ())), set(e.get("dirs", ()))
         for st, p in changes:
-            if p in files or e.get("objects"):
+            if covers(files, p) or e.get("objects"):
                 break
-            if st in ("A", "D") and (p in probes or e.get("index")
+            if st in ("A", "D") and (covers(probes, p) or e.get("index")
                                      or any(a in dirs for a in _ancestors(p))):
                 break
         else:
@@ -394,6 +436,7 @@ def fold_trace(text: str, root: Path, tracked: set[str], tracked_dirs: set[str],
                git_dir: Path, common_dir: Path) -> dict:
     files, probes, dirs = set(), set(), set()
     flags = {"index": False, "objects": False}
+    gits: set[str] = set()                # the git subcommands that set `objects`
     real_root = os.path.realpath(root)
     git_cmd: dict[str, str] = {}          # pid -> the git subcommand it exec'd
     for pid, call, path, ok, line in trace_events(text):
@@ -409,6 +452,7 @@ def fold_trace(text: str, root: Path, tracked: set[str], tracked_dirs: set[str],
                 if (call in _OPENS and ok and sub.startswith("objects/")
                         and git_cmd.get(pid) not in WORKTREE_GIT):
                     flags["objects"] = True
+                    gits.add(git_cmd.get(pid) or "?")
         for cand in (path, real):
             if cand == real_root or cand.startswith(real_root + "/"):
                 rel = cand[len(real_root) + 1:] if cand != real_root else "."
@@ -428,7 +472,7 @@ def fold_trace(text: str, root: Path, tracked: set[str], tracked_dirs: set[str],
             files.add(rel)
         elif "__pycache__" not in rel and "node_modules" not in rel.split("/"):
             probes.add(rel)
-    return {"files": files, "probes": probes, "dirs": dirs, **flags}
+    return {"files": files, "probes": probes, "dirs": dirs, "git": gits, **flags}
 
 
 def _tracked(root: Path) -> tuple[set[str], set[str]]:
@@ -459,13 +503,14 @@ def fold(trace_dir: Path, steps: list[Step], root: Path = ROOT) -> dict[str, dic
         sources = [trace_dir / f"step-{s.id}.trace"] + [trace_dir / f"bg-{n}.trace" for n in s.waits_on()]
         if not sources[0].is_file():
             continue
-        acc = {"files": set(), "probes": set(), "dirs": set(), "index": False, "objects": False}
+        acc = {"files": set(), "probes": set(), "dirs": set(), "git": set(),
+               "index": False, "objects": False}
         for src in sources:
             if not src.is_file():
                 continue
             got = fold_trace(src.read_text(errors="replace"), root, tracked, tracked_dirs,
                              git_dir, common_dir)
-            for k in ("files", "probes", "dirs"):
+            for k in ("files", "probes", "dirs", "git"):
                 acc[k] |= got[k]
             for k in ("index", "objects"):
                 acc[k] = acc[k] or got[k]
@@ -474,7 +519,8 @@ def fold(trace_dir: Path, steps: list[Step], root: Path = ROOT) -> dict[str, dic
     ignored = _ignored(root, set().union(*(e["probes"] for e in out.values())) if out else set())
     return {sid: {"run_sha": next(s.run_sha for s in steps if s.id == sid),
                   "files": sorted(e["files"]), "probes": sorted(e["probes"] - ignored),
-                  "dirs": sorted(e["dirs"]), "index": e["index"], "objects": e["objects"]}
+                  "dirs": sorted(e["dirs"]), "index": e["index"], "objects": e["objects"],
+                  "git": sorted(e["git"])}
             for sid, e in out.items()}
 
 
@@ -493,7 +539,22 @@ def drift(table: dict | None, measured: dict[str, dict], steps: list[Step]) -> t
             continue
         if e.get("run_sha") != m["run_sha"]:
             refuse.append(f"STALE step {sid}: its run text changed since the record")
-        for k in ("files", "probes", "dirs"):
+        have = set(e.get("files", ()))
+        miss = sorted(f for f in m["files"] if not covers(have, f))
+        if miss:
+            refuse.append(f"UNDER-SCOPED step {sid}: files misses {miss[:8]}"
+                          + (f" (+{len(miss) - 8} more)" if len(miss) > 8 else ""))
+        gone = [f for f in have if not (f.endswith("/**") and any(
+            x.startswith(f[:-2]) for x in m["files"])) and f not in set(m["files"])]
+        if gone:
+            notes.append(f"over-scoped step {sid}: {len(gone)} files no longer measured")
+        probes = set(e.get("probes", ()))
+        miss = sorted(p for p in m["probes"] if not covers(probes, p)
+                      and not any(a in set(e.get("dirs", ())) for a in _ancestors(p)))
+        if miss:
+            refuse.append(f"UNDER-SCOPED step {sid}: probes misses {miss[:8]}"
+                          + (f" (+{len(miss) - 8} more)" if len(miss) > 8 else ""))
+        for k in ("dirs",):
             miss = sorted(set(m[k]) - set(e.get(k, ())))
             if miss:
                 refuse.append(f"UNDER-SCOPED step {sid}: {k} misses {miss[:8]}"
@@ -557,7 +618,11 @@ def record(root: Path, only: list[str] | None, out: Path) -> int:
     return 1 if failed else 0
 
 
-def write_table(out: Path, entries: dict[str, dict]) -> None:
+def write_table(out: Path, entries: dict[str, dict], root: Path = ROOT) -> None:
+    tracked, _ = _tracked(root)
+    entries = {k: {**v, "files": collapse(set(v["files"]), tracked),
+                   "probes": compact_probes(set(v["probes"]), set(v["dirs"]), tracked)}
+               for k, v in entries.items()}
     out.write_text(json.dumps({"_comment": TABLE_COMMENT, "workflow": WORKFLOW, "job": JOB,
                                "steps": dict(sorted(entries.items()))}, indent=1) + "\n")
 
@@ -692,6 +757,16 @@ def self_test() -> int:
        S(("A", "dev/governance/rules/new.md"))["ids"] == ["b", "slow"])
     ck("a modified file in a listed directory selects only the index reader's add rule: none",
        S(("M", "dev/governance/rules/old.md"))["ids"] == [])
+    ck("collapse: a directory whose every tracked file was read is written D/**, "
+       "a partly-read one file by file",
+       collapse({"a/x", "a/y", "a/s/z", "b/x"}, {"a/x", "a/y", "a/s/z", "b/x", "b/y"})
+       == ["a/**", "b/x"])
+    ck("covers: D/** covers a file under D, added later too, and not a sibling of D",
+       covers(["a/**"], "a/s/new") and not covers(["a/**"], "ab/x") and covers(["b/x"], "b/x"))
+    ck("a modified file under a collapsed directory selects the reader",
+       select([("M", "dev/governance/rules/x.md")],
+              {"steps": {**table["steps"], "b": entry(b, files=["dev/governance/**"])}},
+              steps)["ids"] == ["b"])
     ck("a step that read the object store takes every diff",
        select([("M", "docs/x.md")], {"steps": {**table["steps"], "a": entry(a, objects=True)}},
               steps)["ids"] == ["a"])
@@ -716,16 +791,18 @@ def self_test() -> int:
         p.write_text(json.dumps({"steps": {"a": []}}))
         ck("a table whose entries are not objects loads as None", load_table(p) is None)
 
-    # Folding: a synthetic strace log over a throwaway tree.
-    with tempfile.TemporaryDirectory() as td:
+    # Folding: a synthetic strace log over a throwaway tree, every git call in
+    # it under the shared helper's environment (tests/throwaway_git.py).
+    sys.path.insert(0, str(ROOT / "tests"))
+    from throwaway_git import throwaway_git_environ, throwaway_git_init
+    with tempfile.TemporaryDirectory() as td, throwaway_git_environ():
         root = Path(os.path.realpath(td))
         for f in ("tools/x/a.py", "tools/x/lib.py", "dev/governance/rules/r.md", "tests/lane.py"):
             (root / f).parent.mkdir(parents=True, exist_ok=True)
             (root / f).write_text("x\n")
         (root / "tools/x/__pycache__").mkdir()
         (root / "tools/x/__pycache__/lib.cpython-312.pyc").write_text("")
-        subprocess.run(["git", "init", "-q", str(root)], check=True)
-        subprocess.run(["git", "-C", str(root), "add", "."], check=True)
+        subprocess.run(["git", "add", "."], cwd=root, env=throwaway_git_init(root, "-q"), check=True)
         g = root / ".git"
         log = "\n".join([
             f'10 execve("{root}/tools/x/a.py", ["a.py"], 0x0 /* 3 vars */) = 0',
@@ -789,6 +866,10 @@ def self_test() -> int:
         over["steps"]["b"]["files"].append("tools/x/gone.py")
         r, n = drift(over, measured, st2)
         ck("drift: an over-scoped entry is a note, not a refusal", r == [] and len(n) == 1)
+        coll = json.loads(json.dumps(full_table))
+        coll["steps"]["a"]["files"] = ["tools/**", "tests/lane.py"]
+        ck("drift: a collapsed D/** entry covers the files measured under D",
+           drift(coll, measured, st2)[0] == [])
         ck("drift: a step this run did not trace is refused",
            drift(full_table, {k: v for k, v in measured.items() if k != "slow"}, st2)[0]
            == ["UNMEASURED step slow: this run left no trace of it"])
