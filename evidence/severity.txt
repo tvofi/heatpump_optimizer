@@ -1,2 +1,0 @@
-388 Counter({'medium': 202, 'high': 90, 'low': 56, 'unset': 24, 'critical': 8, 'normal': 7, 'major': 1})
-roster 1726b3bc2321994def2dc511eaad087fe06326d5
