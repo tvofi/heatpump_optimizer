@@ -381,7 +381,7 @@
       "cannot_connect": "Tibber konnte zur Prüfung des Tokens nicht erreicht werden. Prüfe die Internetverbindung und versuche es erneut.",
       "invalid_dhw_windows": "Diese Zeitfenster konnten nicht gelesen werden. Verwende 24-Stunden-Zeiten, durch Kommas getrennt, zum Beispiel \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "Ein Warmwasser-Zeitfenster ist kürzer als {min_window_minutes} Minuten. Der Plan wird in {min_window_minutes}-Minuten-Schritten erstellt, daher kann ein kürzeres Fenster zwischen zwei Schritte fallen und nie wirksam werden.",
-      "silent_mode_window_too_short": "Ein Zeitfenster für den Silent-Modus ist kürzer als {min_window_minutes} Minuten. Der Plan wird in {min_window_minutes}-Minuten-Schritten erstellt, daher kann ein kürzeres Fenster zwischen zwei Schritte fallen und nie wirksam werden.",
+      "silent_mode_window_too_short": "Ein Flüstermodus-Zeitfenster ist kürzer als {min_window_minutes} Minuten. Der Plan wird in {min_window_minutes}-Minuten-Schritten erstellt, daher kann ein kürzeres Fenster zwischen zwei Schritte fallen und nie wirksam werden.",
       "dhw_min_too_close": "Ein Warmwasser-Minimum so nahe am Sollwert lässt dem Speicher kein Arbeitsband; halte mindestens 5 °C Abstand unter dem Sollwert.",
       "min_above_target": "Die Mindesttemperatur liegt über der Zieltemperatur.",
       "max_below_target": "Die Höchsttemperatur liegt unter der Zieltemperatur.",
@@ -514,7 +514,7 @@
           "hot_water": "Warmwasser",
           "tuning": "Einsparung oder Komfort",
           "grid": "Lastspitzentarif des Netzes",
-          "away": "Abwesenheits- und Urlaubsmodus",
+          "away": "Abwesenheits- und Feiertagsmodus",
           "modbus_prefill": "Aus einem Wärmepumpengerät vorbefüllen",
           "quick_setup": "Schnelleinrichtung",
           "advanced": "Erweiterte Einstellungen"
@@ -663,7 +663,7 @@
             }
           },
           "holiday": {
-            "name": "Urlaubsprofil",
+            "name": "Feiertagsprofil",
             "data": {
               "holiday_comfort_temp_day": "Komfort an Feiertagen tagsüber",
               "holiday_comfort_temp_night": "Komfort an Feiertagen nachts",
@@ -1069,18 +1069,18 @@
         }
       },
       "away": {
-        "title": "Abwesenheits- und Urlaubsmodus",
+        "title": "Abwesenheits- und Feiertagsmodus",
         "description": "Eine Woche Abwesenheit ist die größte einzelne Einsparung, die ein Heizsystem bieten kann. Wenn du zusätzlich angibst, wann du zurückkommst, wird die Wärme zum erneuten Aufheizen des Hauses vorher in den günstigsten Stunden eingekauft statt zu dem Preis, der gerade gilt, wenn du hereinkommst.",
         "data": {
           "away_presence_entity": "Abwesenheitsanzeige (optional)",
-          "holiday_calendar_entity": "Kalender für Urlaubsprofil (optional)",
+          "holiday_calendar_entity": "Kalender für Feiertagsprofil (optional)",
           "away_temperature": "Temperatur bei Abwesenheit",
           "away_dhw_min_temperature": "Warmwasser-Mindesttemperatur bei Abwesenheit",
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
           "away_presence_entity": "Eine Person, ein Gerätetracker, ein Kalender oder ein Anwesenheitssensor. Der Schalter auf der Plan-Seite hat Vorrang, bis er ausgeschaltet wird. Eine Person, die „nicht zu Hause“ ist, bedeutet bei ausgeschaltetem Schalter weiterhin Abwesenheit.",
-          "holiday_calendar_entity": "Wenn dieser Kalender eingeschaltet ist, ersetzen die Urlaubs-Komfort- und Urlaubs-Warmwasserfenster für diesen Tag das Paar aus Werktag und Wochenende. Die Abwesenheitsabsenkung hat weiterhin Vorrang, wenn Abwesenheit aktiv ist.",
+          "holiday_calendar_entity": "Wenn dieser Kalender eingeschaltet ist, ersetzen die Feiertags-Komfort- und Feiertags-Warmwasserfenster für diesen Tag das Paar aus Werktag und Wochenende. Die Abwesenheitsabsenkung hat weiterhin Vorrang, wenn Abwesenheit aktiv ist.",
           "away_dhw_min_temperature": "Der Anti-Legionellen-Zyklus läuft weiterhin und wird so getimt, dass er vor deiner Rückkehr abgeschlossen ist.",
           "away_temperature": "Die Haltetemperatur während der Abwesenheit. Niedrig genug zum Sparen, hoch genug, um das Haus und seine Leitungen zu schützen.",
           "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
@@ -1805,8 +1805,8 @@
       "description": "Die gespeicherten Daten {store} des Optimierers können nicht gelesen werden: {detail}. Diese Version hat dafür keine Migration, daher beginnt dieser Teil des Gelernten wieder bei den Standardwerten. Das passiert, wenn eine ältere Version über eine neuere installiert wird oder eine neuere, die das Speicherformat geändert hat. Damit der Optimierer weiterläuft, ist nichts zu tun. Wurden die Daten von einer neueren Version gespeichert, bleiben sie unverändert und diese Version überschreibt nichts: Installiere die neuere Version erneut, um sie zurückzubekommen, oder lösche, um diese Version zu behalten, die Datei {store} im Ordner .storage und starte neu."
     },
     "quiet_silent_not_enforced": {
-      "title": "Leisezeiten werden nicht durchgesetzt",
-      "description": "Leisezeiten sind konfiguriert, aber der Slot für die leistungsbegrenzte Entität ({entity}) ist kein Schalter, den diese Integration halten kann, daher wird der Plan dafür nicht begrenzt und die Wärmepumpe wird nie zum leisen Betrieb aufgefordert. Weise den eigenen Nacht-/Leisemodus-Schalter der Wärmepumpe als leistungsbegrenzte Entität zu oder entferne die Leise-Zeilen."
+      "title": "Ruhezeiten werden nicht durchgesetzt",
+      "description": "Ruhezeiten sind konfiguriert, aber der Slot für die leistungsbegrenzte Entität ({entity}) ist kein Schalter, den diese Integration halten kann, daher wird der Plan dafür nicht begrenzt und die Wärmepumpe wird nie zum leisen Betrieb aufgefordert. Weise den eigenen Nacht-/Flüstermodus-Schalter der Wärmepumpe als leistungsbegrenzte Entität zu oder entferne die Leise-Zeilen."
     }
   },
   "entity": {
@@ -2289,14 +2289,14 @@
         },
         "quiet_silent_windows": {
           "name": "Ruhezeiten",
-          "description": "Zeiträume, in denen die Wärmepumpe leise läuft, im gleichen Format wie die Warmwasserzeiträume, z. B. \"22:00-06:00\". Der Plan begrenzt die elektrische Leistung darin auf den Anteil der Nennleistung, der als Leistungsanteil im Leisebetrieb festgelegt ist. Ein leerer String entfernt die Leisezeilen."
+          "description": "Zeiträume, in denen die Wärmepumpe leise läuft, im gleichen Format wie die Warmwasserzeiträume, z. B. \"22:00-06:00\". Der Plan begrenzt die elektrische Leistung darin auf den Anteil der Nennleistung, der als Leistungsanteil im Flüstermodus festgelegt ist. Ein leerer String entfernt die Leisezeilen."
         },
         "quiet_off_windows": {
           "name": "Auszeiten",
           "description": "Zeiträume, in denen überhaupt nichts geplant wird: keine Raumheizung und keine Warmwasserslots, z. B. \"weekend 23:00-07:00\". Der Plan heizt davor vor. Eine Auszeit darf sich nicht mit einem Warmwasserzeitraum überschneiden. Ein leerer String entfernt die Auszeitzeilen."
         },
         "silent_mode_power_fraction": {
-          "name": "Leistungsanteil im Leisebetrieb",
+          "name": "Leistungsanteil im Flüstermodus",
           "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0. 1,0 zeigt die Zeilen an, begrenzt aber nichts."
         }
       }
@@ -2371,14 +2371,14 @@
         },
         "quiet_silent_windows": {
           "name": "Ruhezeiten",
-          "description": "Zeiträume, in denen die Wärmepumpe leise läuft, im gleichen Format wie die Warmwasserzeiträume, z. B. \"22:00-06:00\". Der Plan begrenzt die elektrische Leistung darin auf den Anteil der Nennleistung, der als Leistungsanteil im Leisebetrieb festgelegt ist. Ein leerer String entfernt die Leisezeilen."
+          "description": "Zeiträume, in denen die Wärmepumpe leise läuft, im gleichen Format wie die Warmwasserzeiträume, z. B. \"22:00-06:00\". Der Plan begrenzt die elektrische Leistung darin auf den Anteil der Nennleistung, der als Leistungsanteil im Flüstermodus festgelegt ist. Ein leerer String entfernt die Leisezeilen."
         },
         "quiet_off_windows": {
           "name": "Auszeiten",
           "description": "Zeiträume, in denen überhaupt nichts geplant wird: keine Raumheizung und keine Warmwasserslots, z. B. \"weekend 23:00-07:00\". Der Plan heizt davor vor. Eine Auszeit darf sich nicht mit einem Warmwasserzeitraum überschneiden. Ein leerer String entfernt die Auszeitzeilen."
         },
         "silent_mode_power_fraction": {
-          "name": "Leistungsanteil im Leisebetrieb",
+          "name": "Leistungsanteil im Flüstermodus",
           "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0. 1,0 zeigt die Zeilen an, begrenzt aber nichts."
         }
       }
@@ -2461,14 +2461,14 @@
         },
         "quiet_silent_windows": {
           "name": "Ruhezeiten",
-          "description": "Zeiträume, in denen die Wärmepumpe leise läuft, im gleichen Format wie die Warmwasserzeiträume, z. B. \"22:00-06:00\". Der Plan begrenzt die elektrische Leistung darin auf den Anteil der Nennleistung, der als Leistungsanteil im Leisebetrieb festgelegt ist. Ein leerer String entfernt die Leisezeilen."
+          "description": "Zeiträume, in denen die Wärmepumpe leise läuft, im gleichen Format wie die Warmwasserzeiträume, z. B. \"22:00-06:00\". Der Plan begrenzt die elektrische Leistung darin auf den Anteil der Nennleistung, der als Leistungsanteil im Flüstermodus festgelegt ist. Ein leerer String entfernt die Leisezeilen."
         },
         "quiet_off_windows": {
           "name": "Auszeiten",
           "description": "Zeiträume, in denen überhaupt nichts geplant wird: keine Raumheizung und keine Warmwasserslots, z. B. \"weekend 23:00-07:00\". Der Plan heizt davor vor. Eine Auszeit darf sich nicht mit einem Warmwasserzeitraum überschneiden. Ein leerer String entfernt die Auszeitzeilen."
         },
         "silent_mode_power_fraction": {
-          "name": "Leistungsanteil im Leisebetrieb",
+          "name": "Leistungsanteil im Flüstermodus",
           "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0. 1,0 zeigt die Zeilen an, begrenzt aber nichts."
         },
         "dhw_setpoint": {

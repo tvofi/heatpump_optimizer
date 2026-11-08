@@ -1857,7 +1857,7 @@ const STRINGS = {
     "health.input_heat_pump_supply_temp_entity": "Vorlauftemperatur",
     "health.input_heat_pump_switch_entity": "Ein/Aus-Schalter der Wärmepumpe",
     "health.input_heat_pump_thermal_power_entity": "Thermischer Leistungsmesser der Wärmepumpe",
-    "health.input_holiday_calendar_entity": "Kalender für Urlaubsprofil",
+    "health.input_holiday_calendar_entity": "Kalender für Feiertagsprofil",
     "health.input_house_power_entity": "Leistungsmesser des ganzen Hauses",
     "health.input_indoor_humidity_entity": "Raumfeuchtesensor",
     "health.input_indoor_temp_entity": "Innentemperatursensor",
@@ -2190,7 +2190,7 @@ const STRINGS = {
     "whatif.quiet_action_off": "Aus",
     "whatif.quiet_action_aria": "Aktion Zeitfenster {n}",
     "whatif.quiet_not_enforced": "nicht erzwungen",
-    "whatif.quiet_frac": "Leistungsanteil im Leisebetrieb",
+    "whatif.quiet_frac": "Leistungsanteil im Flüstermodus",
     "whatif.quiet_frac_note": "Der Leistungsanteil beträgt noch 1,0, daher begrenzen Leise-Zeilen nichts, bis du ihn senkst.",
     "whatif.add_quiet": "+ Zeitfenster hinzufügen",
     "whatif.no_quiet_hint": "Keine Leise- oder Aus-Zeitfenster.",
@@ -2413,7 +2413,7 @@ const STRINGS = {
       "Wie weit der Schimmelschutz die niedrigste zulässige Temperatur in diesem Zeitfenster über das Komfortminimum anhebt; er drängt immer nur zum Laufen.",
     "whynow.driver_away": "Abwesenheit",
     "whynow.explain_away":
-      "Wie weit der Abwesenheitsmodus oder das Urlaubsprofil die niedrigste zulässige Temperatur absenkt; er drängt immer nur zum Pausieren.",
+      "Wie weit der Abwesenheitsmodus oder das Feiertagsprofil die niedrigste zulässige Temperatur absenkt; er drängt immer nur zum Pausieren.",
     "whynow.driver_forecast": "Prognose",
     "whynow.explain_forecast":
       "Das Wetter dieses Zeitfensters im Vergleich zu den nächsten 8 Stunden: Kälter, windiger oder nasser in Zukunft drängt jetzt zum Laufen, mehr Sonne in Zukunft zum Pausieren.",
