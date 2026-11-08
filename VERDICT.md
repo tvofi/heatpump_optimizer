@@ -1,0 +1,23 @@
+Fix review: merge a5ea296904e9539dc70cd473d9b1c6d144a01f99
+
+bus-nonce: f315d142fac7de265b80c9066eb0cf00
+
+## Summary
+
+Round 1. The only reviewer round for PR #3312 (R10-BODY-CONTRACT part 3 bootstrap). Reviewed from a detached worktree at a5ea296904e9539dc70cd473d9b1c6d144a01f99. The head was re-read with `git ls-remote` before return and is unchanged. The roles directory is unchanged since the merge base, so the role contract is current. The diff adds one `DECLARED` row to `tools/policy/field_coverage.mjs`, with a `pending:` reason that is not empty, plus the delivery row `dev/programme/delivery/3312.md` that `delivery-status-tracking.md` requires. It touches nothing else. VERSION, the manifest and RELEASE_NOTES.md are untouched.
+
+## Findings
+
+- The `pending:` reason says "R10-BODY-CONTRACT part 3 pins it in governance.yml", but governance.yml is not what pins it. Part 3's governance.yml hunk runs `figure_block.py --self-test` in `instrument-self-tests`, which sets `HPO_JOB_GRADES: nothing`. With only that hunk applied, `codeowners_gap.py` tags the file `NO-PR-JOB`, the derived set does not yield the key, and main's grader passes with no row at all (ev/mutants-bootstrap.txt, ev/mutants-bootstrap-onhead.txt as first written). Part 3's `pr-contract.yml` hunk is what pins it: the step "Every figure block is what its registered instrument renders" runs `python3 -I tools/pr/figure_block.py verify` from the base's restored copy. With that hunk applied too, `codeowners_gap.py` reports `PINNED tools/pr/figure_block.py`, and main's grader refuses (K3 below). The bootstrap is therefore needed and correct. Only the wording of the reason is wrong, and that reason lives only until part 3 drops `pending:`. Carry: R10-BODY-CONTRACT | dismissed: part 3 deletes this pending reason when it lands; the wrong file name is cosmetic and changes no later stage's brief
+
+## Evidence
+
+- RESULT self-test at head: `FIELD COVERAGE SELF-TEST ok`, rc=0. It includes the pending-path rows ("a pending DECLARED key the set does not yield is printed, not DEAD", "a pending ... the set yields is graded like any other", "a pending with an empty reason is no tolerance: DEAD"). See ev/selftest.txt.
+- RESULT full run at head: `RESULT read=56 ignored=28 declared_none=37 blind=0 dead=0 refused=0 runs=146 seconds=158.7`, `FIELD COVERAGE ok`, rc=0. The figure_block row prints as `pending`. See ev/full.txt. This re-derives the body's "refused=0".
+- RESULT mutation, registry arm, at head (ev/mutants.txt). Unmodified: ok, figure_block pending. M1, `pending:` dropped: `DEAD`, rc=1. M2, `pending: ''`: `DEAD`, rc=1. The pending field is what keeps main green until part 3 lands.
+- RESULT bootstrap proof (ev/mutants-bootstrap-onhead.txt): this head plus part 3's two workflow hunks (ev/part3-governance.patch, ev/part3-pr-contract.patch, taken from merge-base..86f9e729 of handoff/r10-body-contract-p3) plus part 3's tools/pr/figure_block.py, staged in the index. `codeowners_gap.py` reports `PINNED tools/pr/figure_block.py`. K1, the head grader: ok, declared_none=38. K2, the row without `pending:` (part 3's own row): ok. K3, main's grader with no row: `REFUSED registry: pinned tools/pr/figure_block.py is unregistered`, refused=1, rc=1. K3 is the failure the PR body names, and K1 shows this head's row removes it. This is my own harness: no finder's harness is named, and the packet's harness section reads "none named" (fix-review step 9; a bootstrap row has no finding of its own to measure).
+- Merge with origin/main (2a3c05644d85b7ee5c2c314fde5aca950e4aba91): `git merge-tree --write-tree` gives tree 8e01c49d7d65523918edbd5952c9e70365cbcdf1, rc=0, no conflict. See ev/merge-tree.txt.
+- CI: `merge_train.py classify` printed `GREEN a5ea296904e9539dc70cd473d9b1c6d144a01f99 pending: none red: none`, rc=0 (ev/classify.txt). The packet's gate digest shows no red check. The body's "Red checks: none" holds, so step 11 owes nothing.
+- Body: the `## Head` section names a5ea296904e9539dc70cd473d9b1c6d144a01f99, the head measured. `## Figures: none` matches figure_lint `0 resolved, 0 not verified, 0 refused`. The packet's carry_audit routes its one item (1 routed, 0 unrouted). The body's "One line, one file" leaves out the delivery-row file, which is the standard record commit and not code.
+- Forward-carry: the body records part 3's `pending:` drop as part 3's own scope. R10-BODY-CONTRACT appears in dev/programme/rosters/wave-r10-groups.json on main (35 mentions). Part 3's handoff at 86f9e729 already carries the row without `pending:`, and K2 shows that row grades clean once the pin exists.
+- Class: one seam, a single registry row. No enumeration rule applies, and the body names none.

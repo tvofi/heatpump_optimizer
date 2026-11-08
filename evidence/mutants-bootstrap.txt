@@ -1,0 +1,21 @@
+codeowners_gap PINNED lines naming figure_block:
+/tmp/tmp.Ijnz02awhO/wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:914: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#   NO-PR-JOB tools/pr/figure_block.py
+#   NO-PR-JOB tools/pr/figure_block.py
+#   NO-PR-JOB tools/pr/figure_block.py
+#   NO-PR-JOB tools/pr/figure_block.py
+== M3a: part-3 pin+script tracked, head grader (bootstrap entry, pending)
+  pending  registry: DECLARED `pinned tools/pr/figure_block.py` awaits its check in the derived set (R10-BODY-CONTRACT part 3 pins it in governance.yml)
+RESULT read=3 ignored=0 declared_none=37 blind=0 dead=0 refused=0 runs=0 seconds=5.5
+FIELD COVERAGE ok
+rc=0
+== M3c: part-3 pin+script, entry without pending (= part 3's own grader)
+  DEAD     registry: DECLARED `pinned tools/pr/figure_block.py` is no longer in the derived set
+RESULT read=3 ignored=0 declared_none=37 blind=0 dead=1 refused=0 runs=0 seconds=5.7
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+rc=1
+== M3b: part-3 pin+script, main's grader (no entry) = the failure the PR fixes
+RESULT read=3 ignored=0 declared_none=37 blind=0 dead=0 refused=0 runs=0 seconds=5.2
+FIELD COVERAGE ok
+rc=0
