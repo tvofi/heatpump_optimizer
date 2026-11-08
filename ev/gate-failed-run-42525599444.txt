@@ -1,0 +1,40 @@
+[36;1m  PINNED=$(git rev-parse "refs/remotes/origin/$INPUT_BASE")[0m
+[36;1mfi[0m
+[36;1mif [ -n "$PINNED" ]; then[0m
+[36;1m  git checkout "$PINNED" -- 'tools/ci/*.py'[0m
+[36;1m  echo "programs restored from $PINNED"[0m
+[36;1mfi[0m
+shell: /usr/bin/bash -e {0}
+env:
+  PINNED: daf8b349fd30cc60786eeca333a426b693aa4c5f
+  INPUT_BASE: 
+##[endgroup]
+programs restored from daf8b349fd30cc60786eeca333a426b693aa4c5f
+##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+[36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+shell: /usr/bin/bash -e {0}
+env:
+  GH_TOKEN: ***
+  PR: 3341
+  BASE: main
+  KIND: edit
+  WORKSET: arch-score budget-raise-gate
+##[endgroup]
+FAIL run(s) [42525600582] at this head are still being judged; their gate decides
+##[error]Process completed with exit code 1.
+Post job cleanup.
+[command]/usr/bin/git version
+git version 2.56.0
+Temporarily overriding HOME='/home/runner/work/_temp/bd3adaa6-ef11-455d-a7b9-dc74b94e74f6' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+[command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+Removing SSH command configuration
+[command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Removing HTTP extra header
+[command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Removing includeIf entries pointing to credentials config files
+[command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+[command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Cleaning up orphan processes

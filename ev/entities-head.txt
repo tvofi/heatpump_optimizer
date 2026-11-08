@@ -1,0 +1,5 @@
+  ok   the machinery ratchet reads every key of the tracked machinery_budgets.json, and refuses a key it does not read
+  ok   R10-CLONE-2238 P6: the accuracy, contract-comparison and frequency-advisor sensors all publish _evidence_attributes
+
+ALL 2668 ENTITY CHECKS PASSED
+rc=0
