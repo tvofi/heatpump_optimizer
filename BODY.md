@@ -21,7 +21,7 @@ Terminology was spot-checked against Home Assistant core's shipped German string
 
 **Left alone, by design.** `name_match.SYNONYMS` and `grid_fee`'s month and day parser accept English and Swedish input words. They parse user-typed input and entity names; they are not UI text. German examples in `de.json` keep the English input grammar (`Nov-Mar Mon-Fri`), which is what the parser accepts. `tests/card_browser.mjs`'s P9 layout grid stays `["en", "sv-SE"]`. It is a render-overflow sweep, not a parity check, and no scope selects it.
 
-**Carry c7e2fe29.** This is the German label for r10-min-power-floor's new option. That group is unmerged (`handoff/r10-min-power-floor`), so its key is not in `en.json` at this base and cannot be translated here. The existing `heat_pump_min_power` labels were harmonized (see above). Whichever of the two pull requests merges second is refused until the German leaf exists. The refusal comes from `tests/entities.py`'s "de.json has exactly strings.json's keys" and `tests/card.mjs`'s every-language parity check.
+**Carry 1 (c7e2fe29).** This is the German label for r10-min-power-floor's new option. That group is unmerged (`handoff/r10-min-power-floor`), so its key is not in `en.json` at this base and cannot be translated here. The existing `heat_pump_min_power` labels were harmonized (see above). Whichever of the two pull requests merges second is refused until the German leaf exists. The refusal comes from `tests/entities.py`'s "de.json has exactly strings.json's keys" and `tests/card.mjs`'s every-language parity check.
 
 ## Head
 
@@ -62,7 +62,7 @@ none: `mutant_run.py --diff` drove both added sites and `tests/guard_pins.py` ki
 
 ## Forward-carry
 
-- Carry c7e2fe29 is the German label for r10-min-power-floor's new option. That key is not in `en.json` at this base, so its `de.json` (and card `de`, if it adds card text) leaf is owed by that group's diff. If R10-MIN-POWER-FLOOR merges after this pull request, `tests/entities.py`'s "de.json has exactly strings.json's keys" refuses it without the leaf. If it merges first, this branch's re-carry is refused the same way. The German terms to use are the ones this branch settled for that field family: Mindestleistung, Maximale Leistung, Leistungsaufnahme, takten. Carry: R10-MIN-POWER-FLOOR (item c7e2fe29)
+- Carry 1 (the roster brief's "Carry 0", item c7e2fe29) is the German label for r10-min-power-floor's new option. That key is not in `en.json` at this base, so its `de.json` (and card `de`, if it adds card text) leaf is owed by that group's diff. If R10-MIN-POWER-FLOOR merges after this pull request, `tests/entities.py`'s "de.json has exactly strings.json's keys" refuses it without the leaf. If it merges first, this branch's re-carry is refused the same way. The German terms to use are the ones this branch settled for that field family: Mindestleistung, Maximale Leistung, Leistungsaufnahme, takten. Carry: R10-MIN-POWER-FLOOR (item c7e2fe29)
 
 ## Friction
 
