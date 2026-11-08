@@ -290,9 +290,32 @@ def _leaks(text: str, ident: Identity) -> list[str]:
     return found
 
 
-def refusal(ref: str, messages=(), ident: Identity | None = None, emails=()) -> str | None:
+#: The numbered noreply grammar (P408). GitHub credits `<login>@users.noreply.github.com`
+#: to whichever account holds that login, so an unnumbered one credits a stranger;
+#: the number pins the account. Anything outside this grammar, a placeholder
+#: (`t@t`, `fixer@invalid`) or a runner default included, is refused; `noreply@github.com`
+#: is the web-merge committer, so it is admitted as a committer only. The seat identity
+#: (70032254+tvofi@...) is a numbered address and needs no entry of its own.
+_NOREPLY = r"@users\.noreply\.github\.com"
+_NUMBERED = re.compile(r"\d+\+[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?" + _NOREPLY, re.I)
+_BOT = re.compile(r"(?:\d+\+)?[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?\[bot\]" + _NOREPLY, re.I)
+
+
+def email_shape(email: str, committer: bool = False, adopted=()) -> list[str]:
+    """`unnumbered-email` when `email` is outside the attributable grammar, else [].
+    `adopted` is an outside contributor's own address, named per adoption: it
+    admits an author only, as the adopter is the committer of what it adopts."""
+    e = email.strip().strip("<>")
+    if (_NUMBERED.fullmatch(e) or _BOT.fullmatch(e) or (committer and e.casefold() == "noreply@github.com")
+            or (not committer and e.casefold() in {a.casefold() for a in adopted})):
+        return []
+    return ["unnumbered-email"]
+
+
+def refusal(ref: str, messages=(), ident: Identity | None = None, emails=(), adopted=()) -> str | None:
     """Why pushing `ref` with these commit messages and identities would publish the host,
-    or a message carries a tool's attribution, or None."""
+    or a message carries a tool's attribution, or an identity GitHub would misattribute
+    (`email_shape`), or None."""
     ident = ident or Identity.of_host()
     why = leaks(ref, ident)
     if not _REF_CHARS.match(ref):
@@ -304,7 +327,7 @@ def refusal(ref: str, messages=(), ident: Identity | None = None, emails=()) -> 
         if why:
             return f"{', '.join(why)} in {where}"
     for where, email in emails:
-        why = email_leaks(email, ident)
+        why = email_leaks(email, ident) or email_shape(email, "committer email" in where, adopted)
         if why:
             return f"{', '.join(why)} in {where}"
     return None
@@ -1233,9 +1256,10 @@ def main(argv: list[str]) -> int:
         return 0
     if argv[:1] == ["guard"]:
         ref, messages, emails, rev, over, cwd, rest = None, [], [], None, None, None, argv[1:]
+        adopted: list[str] = []
         while rest:
             flag = rest[0]
-            if flag not in ("--ref", "--message", "--commits", "--over", "-C") or len(rest) < 2:
+            if flag not in ("--ref", "--message", "--commits", "--over", "--adopt-email", "-C") or len(rest) < 2:
                 print(f"ref_privacy: unknown or incomplete argument {flag!r}", file=sys.stderr)
                 return 2
             if flag == "--ref":
@@ -1246,6 +1270,8 @@ def main(argv: list[str]) -> int:
                 rev = rest[1]
             elif flag == "--over":
                 over = rest[1]
+            elif flag == "--adopt-email":
+                adopted.append(rest[1])
             else:
                 cwd = rest[1]
             rest = rest[2:]
@@ -1260,7 +1286,7 @@ def main(argv: list[str]) -> int:
             print(f"ref_privacy: REFUSE: could not read the commits the push publishes ({e}); nothing pushed",
                   file=sys.stderr)
             return 2
-        why = refusal(ref, messages, None, emails)
+        why = refusal(ref, messages, None, emails, adopted)
         if why:
             print(f"ref_privacy: REFUSE: {why} would publish this host or a tool's attribution; nothing pushed",
                   file=sys.stderr)
