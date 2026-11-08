@@ -16,6 +16,7 @@ class World:
         self.runs, self.v_id, self.script = {r["id"]: r for r in runs}, v_id, script or {}
         self.live_head, self.posts, self.listings, self.sleeps, self.t = "H", [], 0, [], 0
         self.limit, self.post_limit = limit, post_limit
+        self.base_files, self.bodies, self.compares = [], [], 0     # the base's changes since the PR's pin
 
     def get(self, path, params=None):
         if self.limit:
@@ -30,14 +31,19 @@ class World:
             self.listings += 1
             return 200, {}, {"workflow_runs": [dict(r, path=sweep.CI_PATH) for r in self.runs.values()]}
         if re.search(r"/pulls/7$", path):
-            return 200, {}, {"head": {"sha": self.live_head}}
+            return 200, {}, {"head": {"sha": self.live_head, "ref": "fix/b", "repo": {"full_name": "o/r"}},
+                             "base": {"sha": "P0", "ref": "main"}}
+        if path.endswith("/compare/P0...main"):
+            self.compares += 1
+            return 200, {}, {"files": [{"filename": f} for f in self.base_files]}
         return 404, {}, {}
 
     def post(self, path, body=None):
         if self.post_limit:
             raise sweep.RateLimited(self.post_limit)
         self.posts.append(path)
-        return 201, {}, {}
+        self.bodies.append(body)
+        return (204 if path.endswith("/dispatches") else 201), {}, {}
 
     def sleep(self, s):
         self.sleeps.append(s)
@@ -227,6 +233,50 @@ def run_checks():
     w = World([run(1, "1", started="2", units=["1"])], 1)
     rc, out = w.sweep()
     ok("settle null: a lone red gate at its head is never re-run", w.posts == [] and "reruns=0" in out)
+    # Stale pin (RCA r10-gate-busy-defer-2 5.2; carries 3 and 5): a pull_request run's gate restores
+    # tools/ci/*.py from the event's base.sha, and a re-run replays that event, so it runs the programs
+    # of that pin however far the base has moved. Where the base changed tools/ci since, a fresh run.
+    dispatch = "repos/o/r/actions/workflows/ci.yml/dispatches"
+
+    def pinned(*rs, v=9, files=("tools/ci/gate.py",)):
+        for r in rs:
+            r.setdefault("event", "pull_request")
+        w = World(list(rs), v)
+        w.base_files = list(files)
+        return w
+    w = pinned(run(1, "1"), v_run())
+    rc, out = w.sweep()
+    ok("stale pin: a red gate pinned before a tools/ci change on its base is re-judged by ONE dispatched run "
+       "(pr, base), never re-run", w.posts == [dispatch] and w.bodies == [{"ref": "fix/b",
+       "inputs": {"pr": "7", "base": "main"}}] and "STALE-PIN P0" in out and "dispatches=1" in out)
+    w = pinned(run(1, "1"), v_run(), files=("custom_components/heatpump_optimizer/x.py", "tools/ci/fixtures/f.json",
+                                            "tools/pr/prepr.sh"))
+    w.sweep()
+    ok("stale pin null: a base that moved without touching tools/ci/*.py re-runs the gate as before",
+       w.posts == ["repos/o/r/actions/jobs/10/rerun"])
+    w = pinned(run(1, "1"), v_run())
+    w.runs[1]["event"] = "workflow_dispatch"
+    w.sweep()
+    ok("stale pin null: a dispatched run's gate (it rev-parses origin/<base> at its re-run) is re-run, the "
+       "base never compared", w.posts == ["repos/o/r/actions/jobs/10/rerun"] and w.compares == 0)
+    w = pinned(run(1, "1"), run(2, "2"), v_run())
+    w.sweep()
+    ok("stale pin: two stale reds at one head take one dispatch, one compare", w.posts == [dispatch] and w.compares == 1)
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), v=2)
+    w.sweep()
+    ok("stale pin, settle: the #3261 pair (two deferrals under a pre-fix program) takes one dispatch, no re-run",
+       w.posts == [dispatch])
+    w = pinned(run(1, "1"), run(5, "3", g="success"), v_run(created="2"))
+    w.runs[5]["event"] = "workflow_dispatch"
+    rc, out = w.sweep()
+    ok("stale pin, no loop: a dispatched run created after the stale gate concluded re-judges the head; "
+       "nothing posted", w.posts == [] and "run 5 re-judges" in out)
+    w = pinned(run(1, "1"), run(5, "1"), v_run())
+    w.runs[5]["event"] = "workflow_dispatch"
+    w.runs[1]["gate"]["completed_at"] = "2"
+    w.sweep()
+    ok("stale pin null: a dispatched run created before the stale gate concluded is no fresh judge: dispatch",
+       dispatch in w.posts)
     return checks
 
 
