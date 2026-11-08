@@ -1317,7 +1317,7 @@ class InstallCapability:
         inference.
         """
         if heat_kw is None:
-            return None if self.measured_heat and not self.heat_counter else False
+            return True
         return self.cop_measured(dhw)
 
     def can_duty_cycle(self) -> bool:
