@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Mapping, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, Mapping, TypedDict
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -403,6 +403,25 @@ class _WaitsForEvidenceMixin(_SensorMixinBase):
     @property
     def available(self) -> bool:
         return bool(super().available and self._waiting_for is None)
+
+    def _evidence_attributes(
+        self,
+        block: Literal["accuracy", "contract_comparison", "freq_control"],
+        report_key: Literal["last_diagnosis", "monthly_report"] | None = None,
+    ) -> dict[str, Any]:
+        """The payload ``block``, ``waiting_for``, and at most one ``insight`` report.
+
+        The report rides on the sensor whose evidence it explains, and only
+        when one exists; ``report_key`` None publishes none.
+        """
+        data = self._data()
+        attrs = dict(data.get(block, {}) or {})
+        attrs["waiting_for"] = self._waiting_for
+        if report_key is not None:
+            report = (data.get("insight") or {}).get(report_key)
+            if report:
+                attrs[report_key] = report
+        return attrs
 
 
 # ---------------------------------------------------------------------------
@@ -1414,6 +1433,9 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "sensor_advisor",
             # Lovelace reads plan-sensor attributes, not coordinator.data.
             "wood_fuel",
+            # The space plan's current-step drivers (R10-WHY-NOW-WIDGET):
+            # card-only, and new at every step.
+            "why_now",
         }
     )
     _plan_key: str = ""
@@ -1604,6 +1626,15 @@ class SpaceHeatingPlanSensor(_PlanSensorBase):
         super().__init__(
             coordinator, entry, "space_heating_plan", "plan_space_heating"
         )
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """The plan's attributes, and the current step's why-now drivers
+        (R10-WHY-NOW-WIDGET): absent while the plan has none, the card's
+        "no data"."""
+        attrs = super().extra_state_attributes
+        why_now = self._data().get("why_now")
+        return {**attrs, "why_now": why_now} if why_now else attrs
 
 
 class DHWHeatingPlanSensor(_DHWEntityMixin, _PlanSensorBase):
@@ -1919,16 +1950,9 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = dict((self._data()).get("accuracy", {}) or {})
-        attrs["waiting_for"] = self._waiting_for
         # T6 #52: the last interval's residual, attributed input by input —
         # accuracy's "how wrong" gets its "why" on the same sensor.
-        report = ((self._data()).get("insight") or {}).get(
-            "last_diagnosis"
-        )
-        if report:
-            attrs["last_diagnosis"] = report
-        return attrs
+        return self._evidence_attributes("accuracy", "last_diagnosis")
 
 
 class PredictedIndoorTempSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
@@ -2415,18 +2439,9 @@ class ContractComparisonSensor(
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = dict(
-            (self._data()).get("contract_comparison", {}) or {}
-        )
-        attrs["waiting_for"] = self._waiting_for
         # T6 #40: the latest frozen month's itemised receipt rides on the
         # month-money sensor — the receipt is that comparison, settled.
-        report = ((self._data()).get("insight") or {}).get(
-            "monthly_report"
-        )
-        if report:
-            attrs["monthly_report"] = report
-        return attrs
+        return self._evidence_attributes("contract_comparison", "monthly_report")
 
 
 class PowerHeadroomSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
@@ -2810,9 +2825,7 @@ class FrequencyAdvisorSensor(
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = dict((self._data()).get("freq_control", {}) or {})
-        attrs["waiting_for"] = self._waiting_for
-        return attrs
+        return self._evidence_attributes("freq_control")
 
 
 #: The price of a consumed kWh the Sensor-Gap Advisor assumes when the

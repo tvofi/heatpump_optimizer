@@ -178,6 +178,7 @@
    "open": 4
   }
  },
+ "inflow_groups_per_hour": 0.4,
  "live_remaining_fraction": 0.7,
  "live_remaining_fraction_note": "0.7: the share of a size duration still ahead for a group whose fixer is already working. A working estimate carried from the out-of-tree renderer; no measurement supports a different fraction.",
  "provenance": {
