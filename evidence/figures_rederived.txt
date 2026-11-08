@@ -1,0 +1,41 @@
+sample dev/audit/harnesses/r10_ci_slim/body_defer_sample.json @81375a03 sha1 fb0d479ba40d694d8feeb5ffc864084fd89df034
+== since 05:00Z, head predicate
+[/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/wt/tools/ci/prelude.py since 2026-11-07T05:00:00Z] edit: 70 runs, 70 deferred, 53 re-run; job-minutes 358 -> 426; prelude wait above the floor 12 -> 0; code-gate wait added 122
+[/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/wt/tools/ci/prelude.py since 2026-11-07T05:00:00Z] review: 20 runs, 20 deferred, 19 re-run; job-minutes 180 -> 57; prelude wait above the floor 127 -> 0; code-gate wait added 2
+[/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/wt/tools/ci/prelude.py since 2026-11-07T05:00:00Z] prelude floor 0.45 min
+[null control: code runs, same predicate] code: 88 runs, 0 deferred, 0 re-run; job-minutes 11647 -> 11647; prelude wait above the floor 24 -> 24; code-gate wait added 0
+[null control: code runs, same predicate] prelude floor 0.45 min
+== whole window, head predicate
+[/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/wt/tools/ci/prelude.py since the start] edit: 399 runs, 396 deferred, 271 re-run; job-minutes 3524 -> 2187; prelude wait above the floor 2022 -> 0; code-gate wait added 625
+[/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/wt/tools/ci/prelude.py since the start] review: 99 runs, 95 deferred, 69 re-run; job-minutes 889 -> 263; prelude wait above the floor 652 -> 2; code-gate wait added 4
+[/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/wt/tools/ci/prelude.py since the start] prelude floor 0.45 min
+[null control: code runs, same predicate] code: 368 runs, 0 deferred, 0 re-run; job-minutes 46653 -> 46653; prelude wait above the floor 31 -> 31; code-gate wait added 0
+[null control: code runs, same predicate] prelude floor 0.45 min
+== whole window, b4ec2f332fe3 predicate
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/wt/dev/audit/harnesses/r10_ci_slim/body_defer.py", line 164, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/wt/dev/audit/harnesses/r10_ci_slim/body_defer.py", line 156, in main
+    pre = edit_runs.load_prelude(Path(a.prelude))
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/wt/dev/audit/harnesses/r10_ci_slim/edit_runs.py", line 66, in load_prelude
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "<frozen importlib._bootstrap_external>", line 759, in exec_module
+  File "<frozen importlib._bootstrap>", line 491, in _call_with_frames_removed
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/prelude_b4ec.py", line 49, in <module>
+    import ghapi  # noqa: E402
+    ^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'ghapi'
+== whole window, b4ec2f332fe3 predicate (export)
+[/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/b4ec/tools/ci/prelude.py since the start] edit: 399 runs, 374 deferred, 270 re-run; job-minutes 3524 -> 2292; prelude wait above the floor 2022 -> 20; code-gate wait added 621
+[/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/b4ec/tools/ci/prelude.py since the start] review: 99 runs, 0 deferred, 0 re-run; job-minutes 889 -> 889; prelude wait above the floor 652 -> 652; code-gate wait added 0
+[/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/b4ec/tools/ci/prelude.py since the start] prelude floor 0.45 min
+[null control: code runs, same predicate] code: 368 runs, 0 deferred, 0 re-run; job-minutes 46653 -> 46653; prelude wait above the floor 31 -> 31; code-gate wait added 0
+[null control: code runs, same predicate] prelude floor 0.45 min
+== whole window, merge-base 7c9c4c15 predicate
+[/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/base/tools/ci/prelude.py since the start] edit: 399 runs, 374 deferred, 270 re-run; job-minutes 3524 -> 2292; prelude wait above the floor 2022 -> 20; code-gate wait added 621
+[/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/base/tools/ci/prelude.py since the start] review: 99 runs, 0 deferred, 0 re-run; job-minutes 889 -> 889; prelude wait above the floor 652 -> 652; code-gate wait added 0
+[/tmp/claude-0/-home-user-heatpump-optimizer/6212819f-cc26-51db-82ef-3f1ba0284f2c/scratchpad/base/tools/ci/prelude.py since the start] prelude floor 0.45 min
+[null control: code runs, same predicate] code: 368 runs, 0 deferred, 0 re-run; job-minutes 46653 -> 46653; prelude wait above the floor 31 -> 31; code-gate wait added 0
+[null control: code runs, same predicate] prelude floor 0.45 min

@@ -1,0 +1,8 @@
+base pending(queued, no jobs): defer_to -> 40; body kinds deferred: ('edit',)
+base running(units in progress): defer_to -> 40; body kinds deferred: ('edit',)
+base running(pr-contract started): defer_to -> None; body kinds deferred: ('edit',)
+base concluded(completed): defer_to -> None; body kinds deferred: ('edit',)
+wt pending(queued, no jobs): defer_to -> 40; body kinds deferred: ('edit', 'review')
+wt running(units in progress): defer_to -> 40; body kinds deferred: ('edit', 'review')
+wt running(pr-contract started): defer_to -> 40; body kinds deferred: ('edit', 'review')
+wt concluded(completed): defer_to -> None; body kinds deferred: ('edit', 'review')
