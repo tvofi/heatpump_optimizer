@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_flow_target CLAMP_DROP c3f2647f",
-  "killed_by": "tests/features.py",
-  "old": "    hold = target if curve is None else min(target, ceiling)",
-  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (the fallback hold's two clamps now sit on two lines, retiring anchor fa7f3970). Dropping the min (`hold = target if curve is None else (target)`) took tests/features.py from rc=0 failed=0 of 4979 to rc=1 failed=3: a curve of 60 holds 60 against a configured 48 and 38 degC ceiling (flow and return), and the baseline-above-the-heating-flow check sees the write."
-}
