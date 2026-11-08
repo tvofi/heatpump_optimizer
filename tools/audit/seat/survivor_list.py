@@ -129,6 +129,8 @@ def _self_test() -> int:
     t("a key is a whole token: :12 does not list :120",
       unlisted(mv + "custom_components/x/a.py:120", ["SURVIVED custom_components/x/a.py:12 CALL_DEL  pass\n"])
       == ["custom_components/x/a.py:12"])
+    t("a key is a whole token: tools/setup.py:3 does not list setup.py:3",
+      unlisted(mv + "tools/setup.py:3", ["SURVIVED setup.py:3 CALL_DEL  pass\n"]) == ["setup.py:3"])
     t("spec mode: a named survivor is read, NULL is not",
       survivors(["SURVIVED NULL\nSURVIVED guard_off\nKILLED other\n"]) == ["guard_off"])
     table = ("  LIVES custom_components/x/b.py:7 cmp\n"
