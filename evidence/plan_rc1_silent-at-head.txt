@@ -1,0 +1,3 @@
+836:    "plan_rc1_silent": ("    if rc != 0:\n        said = ", "    if rc not in (0, 1):\n        said = ",
+837-                        "plan-beat: state_docs rc 1 is PLAN UNAVAILABLE"),
+838-    "pages_never_dispatched": ('re.search(r"^pushed ", out, re.M)', "False",

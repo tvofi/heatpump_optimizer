@@ -1,8 +1,0 @@
-2026-11-07T15:46:20.0545482Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
-2026-11-07T15:46:20.3432471Z ##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
-2026-11-07T15:46:20.3432799Z [36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
-2026-11-07T15:46:20.3477400Z   KIND: edit
-2026-11-07T15:47:27.7803080Z FAIL tests / fast (3.14): cancelled (run 42385084286)
-2026-11-07T15:47:27.7803449Z tests / browser: cancelled (run 42385084286)
-2026-11-07T15:47:27.7803629Z tests / closures: cancelled (run 42385084286)
-2026-11-07T15:47:27.7803823Z codeql / Analyze (python): cancelled (run 42385084286)

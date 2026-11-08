@@ -1,0 +1,2 @@
+probe(rc1+page): head (no mutation) rc 0 []
+probe(rc1+page): moved_on_rc1 rc 1 ['  FAIL probe: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone']

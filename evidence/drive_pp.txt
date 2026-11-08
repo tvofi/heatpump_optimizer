@@ -1,4 +1,0 @@
-plan_public: round 10 PLAN.html from origin/handoff/audit-r10-plan -> plan/index.html
-clean page: rc=0  staged=yes
-plan_public: REFUSED: round 10 PLAN.html: host-path in the page
-leaky page: rc=1  staged=no
