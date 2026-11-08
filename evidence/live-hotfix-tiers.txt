@@ -1,0 +1,12 @@
+R10-HOTFIX-GATE-BUSY-DEFER kind fix class instrument replan 6 dispatch_rank 0
+R10-HOTFIX-CODEQL-HEADROOM kind fix class hotfix replan 6 dispatch_rank 0
+R10-COMBI-TANK kind production class production replan 3 dispatch_rank 1
+R10-HOTFIX-COP-UNMEASURED kind hotfix class hotfix replan 2 dispatch_rank 0
+R10-HOTFIX-TRAIN-DEFER-WAIT kind fix class hotfix replan 6 dispatch_rank 0
+R10-GENERIC-HEAT-CURVE kind owner class owner replan 3 dispatch_rank 1
+R10-GENERIC-HEAT-CURVE-PERSISTENT kind owner class owner replan 3 dispatch_rank 1
+R10-HOTFIX-AUTHOR-EMAIL kind instrument class instrument replan 6 dispatch_rank 0
+R10-HOTFIX-NONREQUIRED-REDS kind instrument class instrument replan 6 dispatch_rank 0
+R10-HOTFIX-ROSTER-LINT-REFRESH kind instrument class instrument replan 6 dispatch_rank 0
+R10-HOTFIX-PREPR-SELFTEST-DARWIN kind instrument class instrument replan 6 dispatch_rank 0
+roster ref sha: 6fb2599d5f2704399b9b6f845dd27811aa1b9128

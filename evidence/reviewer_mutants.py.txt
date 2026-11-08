@@ -1,5 +1,5 @@
 import subprocess, sys, pathlib
-W = pathlib.Path.home()/"wt"
+W = pathlib.Path("/tmp/claude-0/-home-user-heatpump-optimizer/f7e4145f-87bf-5ef8-abfb-a3437c1858e6/scratchpad/mut")
 M = [
  ("replan-tier-outside","tools/plan/replan.py","    if roster_lib.is_outside(group):\n        return TIER_OUTSIDE","    if False:\n        return TIER_OUTSIDE"),
  ("replan-hotfix-below-cp","tools/plan/replan.py",'    if k == "bug" or "HOTFIX" in g and cls == "production":\n        return TIER_HOTFIX','    if on_cp:\n        return TIER_URGENT, "critical path"\n    if k == "bug" or "HOTFIX" in g and cls == "production":\n        return TIER_HOTFIX'),
@@ -20,10 +20,22 @@ M = [
  ("rl-group-for-pr-none","tools/audit/seat/roster_lib.py","                return g.get(\"group\")\n        except (TypeError, ValueError):\n            continue\n    return None","                return None\n        except (TypeError, ValueError):\n            continue\n    return None"),
  ("rl-group-for-pr-bool","tools/audit/seat/roster_lib.py","        if isinstance(pr, bool):\n            return None\n","")
 ]
+import json
+SW=json.loads(open("/tmp/claude-0/-home-user-heatpump-optimizer/f7e4145f-87bf-5ef8-abfb-a3437c1858e6/scratchpad/sw.json").read())
+M += [
+ ("replan-arm-order-main","tools/plan/replan.py",SW[0],SW[1]),
+ ("gp-outside-band-off","tools/pr/gate_priority.py","        if rank <= 1:\n","        if False:\n"),
+ ("gp-outside-as-critical","tools/pr/gate_priority.py","            return OUTSIDE_PRIORITY\n","            return CRITICAL_PRIORITY\n"),
+ ("rl-rank-hotfix-arm","tools/audit/seat/roster_lib.py","    if g is not None and is_hotfix(g):\n        return 0\n",""),
+ ("rl-rank-outside-arm","tools/audit/seat/roster_lib.py","    if g is not None and is_outside(g):\n        return 1\n",""),
+ ("rl-is-hotfix-no-bug","tools/audit/seat/roster_lib.py",'group.get("kind") == "bug" or ','False or '),
+ ("ot-owed-rank-const","tools/audit/seat/orchestrator_tick.py","owed.append((rank, n,","owed.append((3, n,"),
+ ("ot-owed-old-crit-only","tools/audit/seat/orchestrator_tick.py","owed.append((rank, n,","owed.append((0 if rank == 2 else 1, n,"),
+]
 TESTS = {"tools/plan/replan.py":["tools/plan/replan.py"],
  "tools/audit/seat/open_driver.py":["tools/audit/seat/open_driver.py"],
  "tools/audit/seat/merge_train.py":["tools/audit/seat/merge_train.py"],
- "tools/audit/seat/roster_lib.py":["tools/audit/seat/roster_lib.py","tools/audit/seat/merge_train.py","tools/plan/replan.py","tools/audit/seat/open_driver.py"]}
+ "tools/audit/seat/roster_lib.py":["tools/audit/seat/roster_lib.py","tools/pr/gate_priority.py","tools/audit/seat/orchestrator_tick.py","tools/audit/seat/merge_train.py","tools/plan/replan.py","tools/audit/seat/open_driver.py"], "tools/pr/gate_priority.py":["tools/pr/gate_priority.py"], "tools/audit/seat/orchestrator_tick.py":["tools/audit/seat/orchestrator_tick.py"]}
 only = sys.argv[1:]
 for name, f, a, b in M:
     if only and name not in only: continue

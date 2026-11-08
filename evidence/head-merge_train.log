@@ -226,6 +226,40 @@
   ok   A5 serial: train green, GitHub red (a suite the train never saw): a disagreement stops it
   ok   A5 serial: train green, the rollup unreadable: stopped, never agreement
   ok   A5 serial: head (i) at the train: an older red suite stops it before any cross-check
+  ok   defer-wait table: a code run with a unit in progress is busy (gate_busy == gate.py busy == [42237558473])
+  ok   defer-wait table: a held run (action_required) is not busy (gate_busy == gate.py busy == [])
+  ok   defer-wait table: a completed run is not busy (gate_busy == gate.py busy == [])
+  ok   defer-wait table: a run at its gate with every unit done is judging, not busy (gate_busy == gate.py busy == [])
+  ok   defer-wait table: the same run with pr-contract unfinished is busy (judging's null) (gate_busy == gate.py busy == [42237558635])
+  ok   defer-wait: classify reads a red gate as pending while busy, red without (null: a red non-gate context stays red whatever is busy)
+  ok   defer-wait #3248: the edit gate's red while code run 42237558473 runs is waited on, then it MERGES (the failing-test-first scene)
+  ok   defer-wait 13:01Z cycle: five of five deferring heads wait and merge, none SKIPs (the mutant's named case)
+  ok   defer-wait null: a red gate with no unfinished ci.yml run at the head still SKIPs, on its first poll
+  ok   defer-wait null: a genuine code-run failure still SKIPs once that run finishes (no green suite: no settle)
+  ok   defer-wait bound: a sweep that never re-runs the red leaves it standing one poll later, a SKIP (two red polls, two ci.yml listing reads)
+  ok   defer-wait bound: a code run that never finishes ends in TIMEOUT within `polls`, never merges
+  ok   defer-wait: an unreadable runs listing reads no run busy -- the red stands, logged, never a merge
+  ok   defer-wait CLI #3248: `classify` reads the deferring edit gate as WAIT (exit 3) while code run 42237558473 runs, never RED
+  ok   defer-wait CLI null: a red gate with no unfinished ci.yml run still reads RED (exit 1)
+  ok   defer-wait CLI: an unreadable runs listing leaves the red standing (exit 1), logged
+  ok   defer-wait CLI null: a red beside a green suite whose completion is unstamped takes no settle -- RED
+  ok   defer-wait CLI: a green gate is read with no ci.yml listing read (no unreadable-listing log) -- GREEN
+  ok   defer-wait CLI: unreadable check runs are a Stop (the caller's REFUSE), never a verdict
+  ok   defer-wait wait-ci: a red gate beside a green suite, every run concluded, waits one poll for gate-sweep's re-run and reads its green
+  ok   defer-wait wait-ci bound: a sweep that never re-runs the red leaves it standing one poll later
+  ok   defer-wait wait-ci null: a red gate with no green suite beside it is read on the first poll, no settle
+  ok   settle gap a38bd141 20:03:00Z: the code gate green 29 s ago, no sweep yet -- `classify` reads WAIT (exit 3)
+  ok   settle gap a38bd141 20:04:00Z: gate-sweep's attempt 2 running, its gates not re-listed -- WAIT (exit 3)
+  ok   settle gap: a re-run attempt whose gate is not re-listed is a wait past the bound too (the re-run read)
+  ok   settle gap a38bd141 20:06:20Z: swept -- GREEN (exit 0)
+  ok   settle gap null: past the bound (240 s) with no re-run, the red stands -- RED (exit 1), a sweep that never comes still ends RED
+  ok   settle gap: at exactly the bound the settle still holds -- WAIT
+  ok   settle gap: a read in the code gate's completion second (age 0) is inside the settle -- WAIT
+  ok   settle gap: a completion stamped ahead of the reading clock is unknowable, no settle -- RED
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 race: the edit gate failed while code run 42414123291 runs -- `classify` reads WAIT (exit 3), never RED
+  ok   #3293 null: the same edit gate failure with no code run in progress stays RED (exit 1)
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
   ok   A5 null: an old-layout ruleset (no gate) makes no platform read
   ok   K15 (b): stale only while its run has completed (null control: a run still in progress)
   ok   K15 (b): a stale check-run at the head is re-run once, before the merge attempt, and logged with its run id
@@ -278,7 +312,7 @@
   ok   carry 2: job_log passes the flag first, reads without it only where gh does not know the flag, and returns None for a read that fails otherwise (one call, no retry)
   ok   carry 2 null: through the same reader, a gate red on a non-infra job is never re-run
   ok   V142 blocking null: a gate that does not qualify is not re-run and main stops red as today
-/root/wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:914: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+/tmp/claude-0/-home-user-heatpump-optimizer/f7e4145f-87bf-5ef8-abfb-a3437c1858e6/scratchpad/head/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:914: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
   ok   batch null control: two clean pull requests are proved once and both merge, the base's tree equal to P_i after each
   ok   the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch
@@ -363,7 +397,6 @@
   ok   P291 the merge skip carries its environment class: SKIP #5 merge: [BRANCH-POLICY], and skipped.json's row names the class and the verdict it was skipped at
   ok   P189 null control: a ci-skipped entry re-added at the SAME verdict (#6), and an entry this train merged (#4), are ALREADY on both sides -- `add` spools nothing, the drain runs neither
   ok   null control: an entry still in the live batch (#5, #6 re-added as batch 2 starts) is ALREADY from the pending layer, rc 0, nothing spooled
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   P189 HOLDER arm, pre-flight: a PARK at `recarry` (the worktree holder) is recorded skipped [HOLDER] with its verdict, so a same-verdict re-add is admitted; a `carry` PARK is skipped [PRE-FLIGHT]
   ok   P189 HOLDER arm: an entry skipped [HOLDER] and re-added at the SAME verdict is ADDED by `add` and by the drain (batch 2), and a ci-skipped one at the same verdict is ALREADY on both sides
   ok   carries 3/18: a cured pre-flight park rejoins at the same verdict (ADDED, spooled); the uncured one is ADD REFUSED rc 1 with no spool line; a ci skip at the same verdict stays ALREADY (null)
@@ -408,31 +441,22 @@ roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10
   ok   add refused: the admission's rule is printed (ADD REFUSED #9 carry: ...), rc 1, nothing spooled
   ok   add, a train live: a CARRIED single (verdict an ancestor of its head, main's merge the gap) passes app_approve.sh --carry under the queue lock and is spooled for the NEXT batch (ADDED)
   ok   null control: a head carrying a non-main delta past its verdict is refused by the `carry` rule (app_approve.sh's own CARRY: no), nothing spooled
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   add, the start refused: rc 2 naming it, and a stopped train's leftover stays spooled
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   add, no train live with a leftover spooled: the new train's queue holds both, the spool is empty
   ok   add beside a train.sh still holding train.pid with no queue open waits it out, then starts nothing beside it (one-train, rc 2)
   ok   RACE: two concurrent adds with no train live start exactly ONE train (one launch, one train.pid) and spool exactly the other entry
   ok   P112 --front: on a spool of three the named PR goes first (its line marked `front`), the others keep their order and bytes, and the order read back is printed
   ok   P112 null: a plain add appends last
   ok   P112 --front on a new entry: admitted, spooled first, the order read back printed
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   P112 --front with no live train: the train it starts runs the entry FIRST, then what the stopped train left spooled, in order
   ok   P112 --remove: drops only #12's line; every other line, an unreadable one included, byte-identical and in order; the order read back printed
   ok   P112 --remove null: an absent PR exits nonzero and the spool is byte-identical
   ok   P112: --front with --remove, or a plain add with no verdict, is refused (rc 2), nothing written
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   P312 null: no --front, nothing critical but #13 -> arrival order after the critical #13
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   P112 x P312: `--front 12` on a spool holding critical #13 -> the drain runs #12 first, as the read-back said, then #13, then #11
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   add --priority / --front through the CLI, train_add and the spool: #21 is stored with priority and #22 with front (neither stored on a plain add), #22 lands first with the order read back, and the drain runs #22 and #21 (spool order), the critical #13 and #23, then arrival
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
   ok   P112 --front under the lock: a concurrent add waits and its line survives
   ok   P112 --front null (no lock, the mutant): the concurrent add's line is lost
@@ -454,17 +478,14 @@ roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10
   ok   queue: the verdict grammar is proof_watch.parse_verdict's, not a copy -- a grammar swapped there admits #11 under it and leaves #11 under the old spelling
   ok   queue: an unreadable pull request list stops the builder (no queue from a failed read)
   ok   queue: an unreadable verdict bus listing stops the builder (no queue from a failed read)
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   carry 14: three ready pull requests and no live train -> `add` starts ONE train whose first batch is all three (STARTED over #11 #12 #15)
   ok   carry 14 null: exactly one ready (the add's own) -> a batch of one
   ok   carry 14: an unreadable queue at the start still starts the add's entry, logged BATCH-READ
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   carry 14: with no queue handed in, the add reads build_queue itself (the fixture's #11 #12 #15)
   ok   carry 15: outside a stamp, the record pull requests (#12, #15: every path a record) are HELD-FOR-STAMP and queued for nobody; the production one (#11, a record row beside code) is queued (null control)
   ok   carry 15: a stamp's queue (--stamp) holds nothing: every held record joins the one queue the stamp's train merges as one batch
   ok   carry 15 at add: a record pull request added between stamps is HELD-FOR-STAMP, rc 0, nothing started; a production one starts its train (null); under --stamp the record starts it
   ok   carry 15: record_pr is every path a record and at least one; an empty list is not a record
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   carry 15 at the stamp: `sweep --stamp` over three held records (#11 #12 #15, every path a record) starts ONE train whose first batch is all three; without --stamp it starts none and each is HELD-FOR-STAMP (null control)
   ok   carry 14: the sweep hands add its own queue, so a started train batches without a second read
   ok   sweep: every admitted head is handed to add, oldest first, with the started train's argv
@@ -476,15 +497,12 @@ roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10
   ok   sweep: null control -- a closed train-stop holds nothing (the sweep reaches its queue)
   ok   sweep: an unreadable ledger refuses (rc 2), never reads as no obligation
   ok   sweep: an unreadable pull request list refuses (rc 2), nothing added
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   sweep, no train live: ONE train starts over BOTH missed heads in its first batch (carry 14: batch by default); the second add finds #12 pending in it, ALREADY -- never a second train
   ok   sweep, a train live: the next pass adds nothing and starts nothing (exactly once)
   ok   sweep while a batch is in proof: both missed heads land in the spool -- the NEXT batch -- and no train starts beside it
 REFUSE add: --auto is the started train's flags; give it or `-- <train.sh flags>`, not both
   ok   sweep's CLI: one sweep under the mandate, its started train a bare hand launch of train.sh (--repo --state-dir --mandate, no flag: RECOMMENDED is train.sh's default)
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   P312: a spool holding a non-priority entry (#1) ahead of a HOTFIX entry (#4) drains the HOTFIX first
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
   ok   P312: priority, then critical path, then arrival: #4 (priority), #3 (critical), #1, #2
   ok   P420: an outside entry (#3) drains ahead of a critical-path one (#2) and behind a priority one (#4)
   ok   P420: outside entries keep arrival order among themselves, ahead of the critical path
@@ -492,8 +510,9 @@ roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10
   ok   P420 _outside: a branch maps to its group, a fork head through resume.pr; an internal group, an unrecorded pull request and no pull request are not outside
   ok   P420 _outside: a roster that cannot be read is internal, never outside
   ok   P420 _outside null: a roster with no source field has no outside entry
-roster_lib: WARNING: origin/main carries roster changes origin/handoff/audit-r10-roster has not merged; merge main into it
+  ok   P420 drain_order: a fork-head outside entry (#31, branch no group claims) drains first through resume.pr
+  ok   P420 drain_order null: the same entries with no outside group keep arrival order
   ok   P312 null: no priority and nothing critical keeps arrival order; one entry is untouched
   ok   RECOMMENDED is the owner's six, each a flag batch accepts
   ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
-merge_train self-test: 478 checks, 0 failed
+merge_train self-test: 514 checks, 0 failed
