@@ -7,7 +7,7 @@ alwaysApply: true
 
 After each programme merge — wave group, tooling the plan tracks, or a closed tracked issue — tracking is updated **at that merge**, never batched to session end, where an abort loses it:
 
-1. **The record is the pull-request list and #201**: `tools/audit/seat/postmerge.py` posts one #201 line per merge from its fixed template. There is no per-PR `dev/programme/delivery/<N>.md` row and no record pull request (card C5, tvofi 2026-11-05: the rows and the `governance / delivery-status` grader produced more blocked rounds than catches); the rows already merged stay as history, read by nothing that gates.
+1. **The record is the pull-request list and #201**: `tools/audit/seat/postmerge.py` posts one #201 line per merge from its fixed template. No seat writes a per-PR `dev/programme/delivery/<N>.md` row (card C5, tvofi 2026-11-05: the rows and the `governance / delivery-status` grader produced more blocked rounds than catches). Nightly's `record-autofix` beat still rows each merge from API facts, because `tools/release/stamp.py`'s flush and `--require-rows` read those rows (orchestrator ruling 2026-11-08, until R10-FLY-STAMP-FLUSH-COST retires them).
 2. **`.claude/workflows/wave-*-groups.json` `resume` fields** — match measured `origin/main` (merged PR SHAs, open PR heads).
 3. **GitHub issue #201** — before each PR, merge or release, coordinate here; not a heartbeat.
 4. **Every PR the programme has opened**, not only the ones a roster predicted, is read from the pull-request list; hotfixes, instrument repairs and anything found *in passing* are never filed under a wave they do not belong to.

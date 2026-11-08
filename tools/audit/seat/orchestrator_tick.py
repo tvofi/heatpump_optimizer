@@ -1049,6 +1049,15 @@ class Tick:
                 level = [r.strip() for r in fh if r.startswith("OWED ")]
         except FileNotFoundError:
             level = []
+            try:
+                with open(self.relay_log, encoding="utf-8", errors="replace") as fh:
+                    n = sum(1 for r in fh if r.startswith("OWED ") and " handoff-no-pr " in r)
+            except OSError:
+                n = 0
+            if n > 0:
+                self.line(S, f"GAP: {self.relay_log} holds {n} handoff-no-pr OWED line(s) but "
+                             f"{self.relay_log}.level does not exist: the relay has not published its level",
+                          flag=True)
         except OSError as e:
             level = []
             self.unreadable(S, "cloud-relay level", str(e)[:100])
@@ -3177,11 +3186,12 @@ def self_test() -> int:
         total, failed = total + a, failed + f
 
         # ---- MAIN: D-1 (R10-CI-LAYOUT PR 1). record-autofix left the Tests
-        # push run for nightly.yml, and card C5 (#3245) then deleted it and
-        # nightly.yml's push trigger. Every nightly.yml job that runs on a push
-        # to main -- read off the workflow, not listed here -- must be one
-        # NIGHTLY_CLASS flags; there is now none, and a job given a push
-        # trigger again is refused here until this pin names it.
+        # push run for nightly.yml, so its red no longer reddens Tests; the
+        # tick must still flag it. It reads per-commit check runs, whatever
+        # workflow wrote them, so what is pinned is the name: every
+        # nightly.yml job that runs on a push to main -- read off the
+        # workflow, not listed here -- is one NIGHTLY_CLASS flags, and the
+        # tick names it red beside a green required set.
         wf = (ROOT / ".github/workflows/nightly.yml").read_text().split("\njobs:\n", 1)[1]
         on_push = []
         for job in re.findall(r"(?m)^  ([A-Za-z][\w-]*):\n", wf):
@@ -3201,10 +3211,12 @@ def self_test() -> int:
         t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
         t.main()
         a, f = check("MAIN D-1", [
-            ("nightly.yml runs no job on a push to main (card C5)", on_push == []),
+            ("nightly.yml's push-run jobs are exactly the record beat", on_push == ["record-autofix"]),
             ("each is a name the tick flags", all(NIGHTLY_CLASS.search(j) for j in on_push)),
-            ("and the required set green reads main green",
-             not any("REQUIRED not green" in x["text"] for x in t.findings)),
+            ("and its red is named with the required set green",
+             any("non-required red" in x["text"] and "record-autofix" in x["text"]
+                 for x in t.findings)
+             and not any("REQUIRED not green" in x["text"] for x in t.findings)),
             ("null control: a beat renamed out of the class would not be flagged",
              not NIGHTLY_CLASS.search("delivery-beat")),
         ])
@@ -4634,6 +4646,21 @@ def self_test() -> int:
              not any(x.startswith(("DISPATCH", "OWNER")) for x in flagged(aged_off)) and len(flagged(aged_off)) == 3),
             ("a malformed switch is UNREADABLE, never a silent default",
              any("UNREADABLE: handoff aging" in x for x in flagged(aged_bad))),
+        ])
+        total, failed = total + a, failed + f
+
+        gap_text = f"OWED 2026-10-21T07:35:00Z handoff-no-pr refs/heads/handoff/t0 {'c' * 40}\n"
+        gap_no_level, _ = owed_lines(gap_text)
+        gap_no_lines, _ = owed_lines(o1 + "\n")
+        gap_with_level, _ = owed_lines(gap_text, gap_text)
+        a, f = check("relay GAP", [
+            ("a relay log holding a handoff-no-pr OWED line and no .level file prints GAP, flagged, with the count",
+             any(l["text"].startswith("GAP: ") and "holds 1 handoff-no-pr OWED line(s)" in l["text"] and l["flag"]
+                 for l in gap_no_level)),
+            ("null control: no .level file and no handoff-no-pr line prints no GAP",
+             not any(l["text"].startswith("GAP:") for l in gap_no_lines)),
+            ("null control: the same log with its .level file published prints no GAP",
+             not any(l["text"].startswith("GAP:") for l in gap_with_level)),
         ])
         total, failed = total + a, failed + f
 

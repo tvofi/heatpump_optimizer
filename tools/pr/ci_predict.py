@@ -585,13 +585,9 @@ def step_replay_preds(root: Path, base: str, changed: set[str],
             was = instrument_steps(wt)
             for n, rc in reds.items():
                 b = replay_step(wt, was[n]) if n in was else None
-                # A timeout is the bound's verdict on this container's load, not the step's:
-                # one at the head is replayed there again before it is the branch's red.
-                again = replay_step(root, head[n]) if rc == 124 and not b else rc
-                if b or not again:
+                if b:
                     (notes if notes is not None else []).append(
-                        f"STEP REPLAY {n}: rc {rc} at the head and {b} at the base -- this container's, left to CI"
-                        if b else f"STEP REPLAY {n}: timed out at the head once, 0 on its replay -- load, not the branch")
+                        f"STEP REPLAY {n}: rc {rc} at the head and {b} at the base -- this container's, left to CI")
                 else:
                     out.append(("instrument", f"STEP REPLAY {n}: rc {rc} at the head, "
                                 + ("a step the base lacks" if b is None else "0 at the base")))
@@ -641,28 +637,6 @@ def step_replay_self_test(root: Path) -> int:
         good = got == 0 and len(notes) == 1
         print(f"  {'ok  ' if good else 'FAIL'} a step red at the base too is a note, not this branch's red")
         bad += not good
-        # The bound is wall-clock, so a loaded container times a green step out (#3245's
-        # update_pr: rc 124 at the head, 0 at the base; 78 s idle). `.slow-once` makes a.sh
-        # outlast the bound on its first run only; the null control outlasts it every run.
-        once = "[ -e .slow-once ] || { : > .slow-once; sleep 4; }\n" + ok.format(n="a")
-        always = "sleep 4\n" + ok.format(n="a")
-        was_bound = globals()["SELF_TEST_TIMEOUT"]
-        globals()["SELF_TEST_TIMEOUT"] = 1
-        try:
-            for label, text, want, want_notes in (
-                    ("a head timeout that finishes green on its replay after the base is a note, not a red",
-                     once, 0, 1),
-                    ("null control: a head that times out on both replays is still predicted red, "
-                     "in a's step and in c's", always, 2, 0)):
-                (t / ".slow-once").unlink(missing_ok=True)
-                (t / "tools" / "a.sh").write_text(text)
-                notes = []
-                got = len(step_replay_preds(t, base, {"tools/a.sh"}, notes))
-                good = got == want and len(notes) == want_notes
-                print(f"  {'ok  ' if good else 'FAIL'} {label}")
-                bad += not good
-        finally:
-            globals()["SELF_TEST_TIMEOUT"] = was_bound
     g = globals()
     real = g["step_replay_preds"]
     g["step_replay_preds"] = lambda *_a: [("instrument", "STEP REPLAY sentinel")]

@@ -707,7 +707,7 @@ MAIN_MOVED_TRIES = 3
 # requests on its own schedule: #2291, #2295 and #2299 each landed mid-train
 # on 2026-10-15 and stopped or re-carried #2284 and #2290. A real run
 # publishes this ref while it is live and deletes it at its closing line; the
-# beat skipped while the ref was younger than HOLD_MAX_AGE_S (below) and treats
+# beat skips while the ref is younger than its own HOLD_MAX_AGE_S and treats
 # an older one as stale, so a crashed train cannot block records forever. The
 # ref points at a commit created at publication, whose committer date is the
 # age the beat reads; it is refreshed at the start of every queue item, before
@@ -716,11 +716,6 @@ MAIN_MOVED_TRIES = 3
 # (a recarry or a poll), never a whole CI wait and never a whole batch. A
 # `batch/` rehearsal publishes nothing: it merges nothing into main.
 HOLD_REF = "refs/heads/train-hold"
-#: A hold at least this old is stale (a crashed train): tools/release/stamp.py's
-#: record flush reads it off this source (#3280). It moved here, beside the ref it
-#: bounds, from nightly.yml's record beat, which #3245 (card C5) retires. One phase
-#: between refreshes (<= 240 s), never a whole CI wait or batch, prices it.
-HOLD_MAX_AGE_S = 3600
 #: The approver App's login (app_approve.sh's VERDICT_AUTHORS): its APPROVED
 #: review at a head is that head's approval, never posted twice (P86).
 APPROVER_LOGIN = "hpo-approver[bot]"
@@ -5588,10 +5583,6 @@ def _unwind_self_test(check) -> None:
         "rec = open(sys.argv[1], 'a')\n"
         "def run(argv, cwd=None, stdin=None):\n"
         "    rec.write(' '.join(argv) + '\\n'); rec.flush()\n"
-        # The fixture's /x is registered, so release_worktrees removes it rather than
-        # logging it already collected (#3245's train docs step) and the 2 s window opens.
-        "    if argv[:3] == ['git', 'worktree', 'list']:\n"
-        "        return 0, 'worktree /x\\n'\n"
         "    if argv[:3] == ['git', 'worktree', 'remove']:\n"
         "        rec.write('UNWINDING\\n'); rec.flush(); time.sleep(2)\n"
         "    return 0, ''\n")
@@ -7023,10 +7014,13 @@ def _batch_self_test(check) -> None:
     # THE GUARD THE STUB CANNOT SEE: --bot-prs runs record_row.py's own CLI,
     # the one the record beat runs; these read the real tree.
     rr = (ROOT / "tools/audit/seat/record_row.py").read_text()
-    # card C5 retired the record beat (nightly.yml record-autofix)
-    check("record_row.py takes every option the bot sweep passes",
+    beat = (ROOT / ".github/workflows/nightly.yml").read_text()
+    check("record_row.py takes every option the bot sweep passes, and the record beat merges behind "
+          "the same --automerge-check ... --head ... --require-green guard",
           all(f'"{o}"' in rr for o in ("--find-open", "--owner", "--automerge-check", "--require-green",
-                                       "--head", "--pr", "--repo")))
+                                       "--head", "--pr", "--repo"))
+          and "--automerge-check --repo \"$REPO\" --pr \"$NUM\" --head \"$HEAD\"" in beat
+          and "guard --require-green" in beat)
     rplain = _parser().parse_args(["run", "q.json"])
     rflag = _parser().parse_args(["run", "q.json", "--approval-carry"])
     check("--approval-carry is a run flag too, and off by default",
