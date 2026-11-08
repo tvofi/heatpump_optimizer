@@ -4,6 +4,13 @@
 # imports or runs it. The two Linux wheels only (the runner is x86_64): the
 # hashes are PyPI's published sha256 for py-spy 0.4.2's
 # manylinux_2_5_x86_64 and manylinux_2_17_aarch64 wheels.
-py-spy==0.4.2 \
-    --hash=sha256:aeb0323409199c785f730645e9f4bb7a7b9ca2c481f2c331a55642b5d13fa52f \
-    --hash=sha256:142887e984a4e541071c99a4401ff8c3770f255d329dbd0f64e8c1dd51882cce
+py-spy==0.4.3 \
+    --hash=sha256:65ac4319f8c20dcd1e2ea219935c6b4fd98179b0b7faf59181eae2680a85fad4 \
+    --hash=sha256:7de40c2903602a7cca888c26cc5d37aed004a7fd07b5258d1a14356c00540974 \
+    --hash=sha256:885d61020f763792e99cb3ad0788ae424b73cef45d5420ec9683f30e270b5d75 \
+    --hash=sha256:89ccab893c89b65f8f45bd51f8173294eaeebefbfc4252345681de8048420437 \
+    --hash=sha256:8a4277225f470d394a85cca0cdd944bef87f0097b6f20150a6dd3ac2e92806b8 \
+    --hash=sha256:a21b6958bf1200ff225c4f360834a77f7e12556ac11dcd863e26c9345b468783 \
+    --hash=sha256:b14e00fddd4bfb12628e5c04b7d22c6754ae4c31bdfad0728adbe091ed26445f \
+    --hash=sha256:b4e22d1fbc22bffa7d8e43c8b13daf47f56f14dbdbc813590093df81f0a971c6 \
+    --hash=sha256:bbcec46930d464b3bfc142d6d02ade4dd8ad5627823263b3eff0280e80c7c132
