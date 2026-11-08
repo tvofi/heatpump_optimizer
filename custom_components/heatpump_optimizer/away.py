@@ -360,6 +360,20 @@ _OPT_FIELDS = (
 _DHW_FIELDS = ("dhw_min_temp", "dhw_idle_min_temp")
 
 
+def _setback_target(state: AwayState | None) -> float | None:
+    """The comfort target a setback solves at, or None while none is in force."""
+    if state is None or not state.active or state.recovery_active:
+        return None
+    return state.target_temperature or DEFAULT_AWAY_TEMPERATURE
+
+
+def floor_drop_c(opt_config: _SetbackConfig, state: AwayState | None) -> float | None:
+    """How far the setback lowers the configured floor, °C (``solve_bands``'
+    arithmetic); None when away is inactive or recovering."""
+    target = _setback_target(state)
+    return None if target is None else max(0.0, opt_config.min_temp - target)
+
+
 def solve_bands(
     opt_config: _SetbackConfig,
     thermal_params: _SetbackThermal,
@@ -379,8 +393,7 @@ def solve_bands(
         n: v for n in _OPT_FIELDS if (v := getattr(opt_config, n)) is not None
     }
     dhw = {n: getattr(thermal_params, n) for n in _DHW_FIELDS}
-    if state is not None and state.active and not state.recovery_active:
-        target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
+    if (target := _setback_target(state)) is not None and state is not None:
         floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
         config = {
             **dict.fromkeys(config, target),
