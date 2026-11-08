@@ -19605,6 +19605,49 @@
     "note": null
    },
    "brief": "Main is red on governance / instrument-self-tests from main e36e5327d (2026-11-08): step 'Show the pre-PR self-check refusing its own fixtures', 512 passed 1 failed, the no-matcher null control (got 1, wanted 0); job 128597751217 at 48af0864a. Green at 17e115792. The red-turning merge (PR 3306) adds only delivery rows, so the cause is a flake, environment, time or tree-state dependence. tools/pr/prepr.sh records this row failing once in five serial runs on a loaded box. Reproduce, name the cause, fix it architecturally with a failing test first; the fixer brief is the dispatch seat's brief-fix-main-ist-red."
+  },
+  {
+   "group": "R10-FLY-REPLAN-DEFECTS",
+   "lane": "Instruments",
+   "kind": "fix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "N-planner-misprice",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/plan/replan.py",
+    "tools/audit/seat/roster_lib.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-replan-defects",
+    "pr": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch fixer",
+    "note": null
+   },
+   "brief": "Three planner defects a 2026-11-08 replan study measured (s13 lane study; variants under the orchestrator's lane-study directory, re-derive them). (a) roster_lane in tools/plan/replan.py classifies by name prefix, and the prefix R10-I1 also matches R10-I18N-DE, a custom_components product group, which is then priced at instrument rates, drawn in the Instruments lane and left out of the stamp count; renamed it reads Core model. Classify by the group's files or an exact id set, not a prefix that collides. (b) tools/audit/seat/roster_lib.py CLOSED_STAGES omits the refused stage, so a refused group (R10-FLY-CLOUD-FRUGAL-OFF) still holds a planned slot for about 17 h. A human disposition of refused or deferred must not be scheduled. Check every other reader of CLOSED_STAGES for the same change. (c) The planner does not model the critical-path cap exemption (orchestrator.md section 5, decision 0015 item 6: a ready critical-path group starts regardless of every cap). It queues critical-path groups behind the slot cap, so the 2026-11-08 plan showed R10-HANDOFF-PATH waiting about 12.5 h, worth 12.97 h of closure. Exempt critical-path groups from the slot cap in the scheduler, measured with a before/after replan at a fixed --start and a null control (two identical runs). Failing test first for each, mutation proof of each predicate, and the replan --self-test green. No budget raise."
   }
  ]
 }
