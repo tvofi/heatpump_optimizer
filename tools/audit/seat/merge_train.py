@@ -5462,7 +5462,8 @@ def _stale_verdict_self_test(check) -> None:
     calls.clear()
     other = posted(registry=None, blocked_head=OTHER)[0]
     check("stale verdict: a blocked verdict at another head is not this head's finding (admitted, no nonce read)",
-          other == (H, "42") and not any(c[:2] == ["git", "show"] for c in calls))
+          other == (H, "42") and any(c[:2] == ["git", "log"] for c in calls)  # the read ran: the null below is not vacuous
+          and not any(c[:2] == ["git", "show"] for c in calls))
     unread = posted(registry=[], log_code=128)[0]
     unfetched = posted(registry=[], fetch_code=128)[0]
     check("stale verdict: an unreadable verdict/<pr> history (log or fetch) is refused, never read as no blocked verdict",
