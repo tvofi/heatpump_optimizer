@@ -1,6 +1,6 @@
 ---
 description: The scoped gate, the gate lease, and closures off Linux
-globs: tests/**,custom_components/**
+globs: tests/**,custom_components/**,tools/ci/**
 alwaysApply: true
 ---
 # Running the gate
@@ -52,3 +52,12 @@ Only `--single` passes `--partial`, whose `if partial:` branch in `closure.py` k
 `strace` saw; the full path **replaces** the Linux recordings (`card_drift.mjs` measured **66 scripts → 6**).
 Off Linux 6b leaves scoped recordings to CI's `closures` and `closures-autofix`; `PREPR_RECORD_CLOSURES=1`
 records them for a first-green head. Node lanes record on Darwin via `node --import tests/node_fs_trace.mjs`.
+
+## The self-test steps are scoped too
+
+On a pull request `instrument-self-tests` runs a step only when the diff reaches its measured read
+set in `tools/ci/selftest_closures.json`; a push to main runs every step under `strace` and refuses
+a table missing a read (owner lever 3, #201 comment 6707834331). `selftest_scope.py select --base
+$(git merge-base origin/main HEAD)` prints the mode line: key on it. A step whose `run:` text changed
+is stale, so every step runs, until re-recorded on Linux (`selftest_scope.py record --step <id>`) or
+main's `selftest-closures` artifact is committed.
