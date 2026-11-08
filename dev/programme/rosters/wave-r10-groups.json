@@ -17542,7 +17542,8 @@
     "From r10-replay-cost-budget-r2, body item 21bb12c3: The AWAY_COVERED pin and the export.py credential-refusal pin are built, not carried: `ok control:away:covered_names_are_committed`, `ok AWAY_COVERED names committed fixtures`, `ok recorder:unsupported_scheme_refusal_prints_none_of_the_url`; destination tests/replay.py. Carry: R10-REPLAY-COST-2 (items 21bb12c3)"
    ],
    "resume": {
-    "stage": "refused"
+    "stage": "refused",
+    "note": "keep test failed (owner bar 2026-11-08, >=10%): minor, 1 of 78 replay draws; triage batch 136 entry 431"
    },
    "brief": "Part 2 of R10-REPLAY-COST-BUDGET (#3234, minimal re-cut under the three-round rule, fixer.md): the round-3 review's findings other than the ref46/ref53 border. Each carry names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count."
   },
