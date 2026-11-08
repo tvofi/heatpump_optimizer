@@ -4173,6 +4173,7 @@
    "dev/audit/harnesses/r10_train_overlap_grade_p4_mutants.py",
    "dev/audit/harnesses/r10_train_raise_hold_mutants.sh",
    "dev/audit/harnesses/r10_train_raise_hold_replay.py",
+   "dev/audit/harnesses/r10_train_rejoin_no_recarry_mutants.py",
    "dev/audit/harnesses/r10_train_upgrade_mutants.py",
    "dev/audit/harnesses/r10_triage_gate_replay.py",
    "dev/audit/harnesses/r10_triage_p391.py",
