@@ -429,19 +429,20 @@ def _git_subcommand(line: str) -> str:
     return args[0] if args else ""
 
 
-_NOT_A_NAME = re.compile(r"[:\[\]^~*?]|\.\.\.|^\.merge_file_")
+_NOT_A_NAME = re.compile(r"[:\[\]^~*?]|\.\.\.|^\.merge_file_|^[0-9a-f]{40}$|^[0-9a-f]{64}$")
 
 
 def probe_path(rel: str, tracked_dirs: set[str]) -> bool:
     """Whether a probed path is one a diff could add or delete: under a
     tracked directory, not a cache, and a file name rather than a string a
     process handed to a path syscall (`pipe:[N]`, `REV:path`, `A...B`, git's
-    `.merge_file_*` temporaries) -- those differ run to run and name nothing
-    (two recordings of one tree, compared step by step)."""
+    `.merge_file_*` temporaries, a commit id) -- those differ run to run and
+    name nothing (two recordings of one tree, compared step by step); nor
+    `.git`, which no diff adds (a linked worktree's is a file in `.`)."""
     parts = rel.split("/")
     parent = "/".join(parts[:-1]) or "."
-    return (parent in tracked_dirs and "__pycache__" not in parts and "node_modules" not in parts
-            and not _NOT_A_NAME.search(parts[-1]))
+    return (parent in tracked_dirs and parts[0] != ".git" and "__pycache__" not in parts
+            and "node_modules" not in parts and not _NOT_A_NAME.search(parts[-1]))
 
 
 def _pyc_source(rel: str) -> str:
@@ -877,7 +878,8 @@ def self_test() -> int:
         junk = fold_trace("\n".join(
             f'9 newfstatat(AT_FDCWD<{root}>, "{n}", 0x1, 0) = -1 ENOENT (x)' for n in (
                 "pipe:[123]", "HEAD:tools/x/a.py", "abc...HEAD", "abc^1", ".merge_file_Xy12",
-                "objects/00/abcd", "tools/nodir/f.json", "tools/x/new.json")), root, tracked, tdirs, g, g)
+                "objects/00/abcd", "tools/nodir/f.json", ".git", "d2e4d2d10cfe15b9ec51c36422029718e8367f1c",
+                "tools/x/new.json")), root, tracked, tdirs, g, g)
         ck("fold: strings that name no file are not probes; a name in a tracked directory is",
            junk["probes"] == {"tools/x/new.json"})
         ck("fold: the index open is flagged, no object read", got["index"] and not got["objects"])

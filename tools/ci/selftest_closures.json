@@ -1040,6 +1040,8 @@
   "ci-prelude": {
    "run_sha": "493783248b75a0de7544a6396b62a2bc2021aee6f8aa2b790cbfc7183cf607f0",
    "files": [
+    ".github/workflows/governance.yml",
+    ".github/workflows/tests.yml",
     "tests/closures.json",
     "tools/ci/ghapi.py",
     "tools/ci/prelude.py",
@@ -1102,12 +1104,20 @@
   "ci-watcher": {
    "run_sha": "820b4913eacfeeee41bc39a41bfb2b5cf11e5d7350295ebc90b3b3dc65d18da7",
    "files": [
-    "tools/audit/seat/ci-watch.sh"
+    "tools/audit/seat/ci-watch.sh",
+    "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/merge_train.py"
    ],
    "probes": [
-    "."
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat",
+    "tools/policy/policy_lint.mjs"
    ],
-   "dirs": [],
+   "dirs": [
+    "tools/audit/seat"
+   ],
    "index": false,
    "objects": false,
    "git": []
@@ -2279,7 +2289,7 @@
     "dev/audit/rounds",
     "dev/audit/rounds/round6",
     "dev/audit/rounds/round6/D11",
-    "dev/audit/rounds/round6/D11/**",
+    "dev/audit/rounds/round6/D11/fix",
     "package.json",
     "tests",
     "tools",
@@ -2707,7 +2717,7 @@
     "dev/audit/rounds",
     "dev/audit/rounds/round6",
     "dev/audit/rounds/round6/D11",
-    "dev/audit/rounds/round6/D11/**",
+    "dev/audit/rounds/round6/D11/fix",
     "tests",
     "tools",
     "tools/audit"
@@ -2784,6 +2794,9 @@
     "tools/audit/seat/remerge_main.sh",
     "tools/audit/seat/review_packet.py",
     "tools/audit/seat/roster_lib.py",
+    "tools/ci/gate.py",
+    "tools/ci/ghapi.py",
+    "tools/ci/prelude.py",
     "tools/policy/budget_raise_gate.py",
     "tools/policy/fixtures/required-contexts.json",
     "tools/pr/app_approve.sh",
@@ -2795,6 +2808,7 @@
     "tests",
     "tools/audit",
     "tools/audit/seat",
+    "tools/ci",
     "tools/release"
    ],
    "index": false,
@@ -3246,7 +3260,7 @@
     "dev/audit/rounds",
     "dev/audit/rounds/round6",
     "dev/audit/rounds/round6/D11",
-    "dev/audit/rounds/round6/D11/**",
+    "dev/audit/rounds/round6/D11/fix",
     "tests"
    ],
    "dirs": [
@@ -3444,7 +3458,6 @@
     ".github/actions/.gitattributes",
     ".github/actions/nightly-ha/.gitattributes",
     ".mailmap",
-    "0000000000000000000000000000000000000000",
     "audit-round2-evidence",
     "blueprints/.gitattributes",
     "blueprints/automation/.gitattributes",
@@ -5035,7 +5048,6 @@
     "diff",
     "fetch",
     "hash-object",
-    "init",
     "log",
     "ls-tree",
     "merge-base",
@@ -5092,17 +5104,22 @@
    "files": [
     "tools/audit/seat/gh_read.py",
     "tools/audit/seat/merge_train.py",
-    "tools/audit/seat/proof_watch.py"
+    "tools/audit/seat/proof_watch.py",
+    "tools/ci/gate.py",
+    "tools/ci/ghapi.py",
+    "tools/ci/prelude.py"
    ],
    "probes": [
     ".",
     "tools",
     "tools/audit",
     "tools/audit/seat",
+    "tools/ci",
     "tools/policy/policy_lint.mjs"
    ],
    "dirs": [
-    "tools/audit/seat"
+    "tools/audit/seat",
+    "tools/ci"
    ],
    "index": false,
    "objects": false,
@@ -5126,7 +5143,6 @@
     ".github/.gitattributes",
     ".github/workflows/.gitattributes",
     ".mailmap",
-    "17e1157925908bd69addb58ed824c1ac22bfa82f",
     "HEAD",
     "config",
     "objects",
@@ -5216,8 +5232,6 @@
    ],
    "probes": [
     ".",
-    "0000000000000000000000000000000000000000",
-    "1111111111111111111111111111111111111111",
     "config",
     "dev/governance/dimensions",
     "objects",
@@ -5836,7 +5850,6 @@
    ],
    "probes": [
     ".",
-    ".git",
     "tests",
     "tools",
     "tools/ci"
