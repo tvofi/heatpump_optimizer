@@ -41767,6 +41767,7 @@ _g2_saved_extend = _G2Tm.extend_dhw_temps
 
 def _g2_extend_via_full_sim(
     self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25, humidity=None,
+    exo_kw=None,
 ):
     _G2Tm.extend_dhw_temps = _g2_saved_extend
     try:
@@ -41777,6 +41778,7 @@ def _g2_extend_via_full_sim(
             draw_rates=draws,
             dt_hours=dt_hours,
             humidity=humidity,
+            exo_kw=exo_kw,
         )
     finally:
         _G2Tm.extend_dhw_temps = _g2_extend_via_full_sim
@@ -41937,6 +41939,7 @@ _mr_saved_extend = _G2Tm.extend_dhw_temps
 
 def _mr_extend_via_full_sim(
     self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25, humidity=None,
+    exo_kw=None,
 ):
     _G2Tm.extend_dhw_temps = _mr_saved_extend
     try:
@@ -41947,6 +41950,7 @@ def _mr_extend_via_full_sim(
             draw_rates=draws,
             dt_hours=dt_hours,
             humidity=humidity,
+            exo_kw=exo_kw,
         )
     finally:
         _G2Tm.extend_dhw_temps = _mr_extend_via_full_sim
@@ -59554,7 +59558,7 @@ def _r7d203_zero_capacity():
         legionella = _dhw_planner(opt)._dhw_legionella_ceilings(
             _dhw_horizon(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
                          n=12, dt=1.0),
-            params=params, store=_dhw_store_with(params.dhw_store, capacity_kwh_per_c=0.0),
+            params=params,
             draw_rates=np.zeros(12), floor_temps=np.full(12, 45.0),
             p_dhw_run=3.0,
             legionella_due=True, legionella_hour=6.0, legionella_step=5,
@@ -59763,8 +59767,7 @@ def _r7ua_legionella(volume):
     res = _dhw_planner(opt)._dhw_legionella_ceilings(
         _dhw_horizon(prices=np.zeros(n), outdoor=np.full(n, -5.0),
                      n=n, dt=1.0),
-        params=params, store=_dhw_store_with(params.dhw_store, capacity_kwh_per_c=c),
-        draw_rates=np.zeros(n),
+        params=params, draw_rates=np.zeros(n),
         floor_temps=np.full(n, 20.0),
         p_dhw_run=2.0 * c, legionella_due=True, legionella_hour=20.0,
         legionella_step=20,
@@ -76579,7 +76582,7 @@ def _pli_runup(derate):
     n = 24
     res = _dhw_planner(opt)._dhw_legionella_ceilings(
         _dhw_horizon(prices=np.zeros(n), outdoor=np.full(n, -5.0), n=n, dt=1.0),
-        params=params, store=params.dhw_store, draw_rates=np.zeros(n),
+        params=params, draw_rates=np.zeros(n),
         floor_temps=np.full(n, 20.0), p_dhw_run=3.0, legionella_due=True,
         legionella_hour=20.0, legionella_step=20)
     return [round(float(x), 4) for x in res.runup_temps]

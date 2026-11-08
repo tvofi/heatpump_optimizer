@@ -263,6 +263,11 @@ class _DhwPlanContext:
         """The store's capacity, kWh/K: the one value the planners divide by."""
         return self.store.capacity_kwh_per_c
 
+    @property
+    def tank_decay(self) -> tuple[float, float]:
+        """The store's per-step ``_tank_decay`` (share kept, standby gain), for a positive capacity."""
+        return _tank_decay(self.store.ua_kw_per_c, self.dt, self.c_dhw)
+
 
 class _Horizon(Protocol):
     """The planner's read-only view of the optimizer's per-solve horizon.
@@ -590,7 +595,6 @@ class DhwPlanner:
         h: _Horizon,
         *,
         params: ThermalParameters,
-        store: DhwStore,
         draw_rates: np.ndarray,
         floor_temps: np.ndarray,
         p_dhw_run: float,
@@ -609,6 +613,7 @@ class DhwPlanner:
         dt = h.dt
         outdoor_temps = h.outdoor_temps
         humidity = h.humidity
+        store = params.dhw_store
         max_temp = np.full(max(n_steps, 0), float(store.charge_max_temp))
         lp_max_temp = max_temp
         # The run-up the cycle needs, as a per-step FLOOR. Folded into
@@ -699,7 +704,6 @@ class DhwPlanner:
         h: _Horizon,
         *,
         params: ThermalParameters,
-        store: DhwStore,
         hours_mod: np.ndarray,
         draw_rates: np.ndarray,
         ready_temps: np.ndarray,
@@ -730,7 +734,6 @@ class DhwPlanner:
         return self._dhw_legionella_ceilings(
             h,
             params=params,
-            store=store,
             draw_rates=draw_rates,
             floor_temps=floor_temps,
             p_dhw_run=p_dhw_run,
@@ -1036,7 +1039,6 @@ class DhwPlanner:
         ) = self._dhw_legionella_plan(
             h,
             params=params,
-            store=store,
             hours_mod=hours_mod,
             draw_rates=draw_rates,
             ready_temps=ready_temps,
@@ -1382,13 +1384,13 @@ class DhwPlanner:
         n_steps = ctx.n_steps
         dt = ctx.dt
         p_dhw_max = ctx.p_dhw_max
-        c_dhw, exo = ctx.c_dhw, ctx.tank_exo_kw
+        c_dhw = ctx.c_dhw
         if n_steps == 0 or c_dhw <= 0.0:
             return None
 
         requirement, max_temp = _within_ceiling(requirement, max_temp)
         params = self.model.params
-        decay, gain = _tank_decay(ctx.store.ua_kw_per_c, dt, c_dhw)
+        decay, gain = ctx.tank_decay
 
         # Free trajectory: what the tank does with no heating (and, in combi,
         # the space side's flux, which leaves the influence matrix unchanged).
@@ -1396,7 +1398,8 @@ class DhwPlanner:
         free[0] = initial_temp
         for i in range(n_steps):
             free[i + 1] = (
-                decay * free[i] - (float(draw_rates[i]) - _exo_at(exo, i)) * dt / c_dhw + gain
+                decay * free[i]
+                - (float(draw_rates[i]) - _exo_at(ctx.tank_exo_kw, i)) * dt / c_dhw + gain
             )
 
         # Influence matrix: A[m, j] = degrees at step m+1 per thermal kWh at j.
@@ -1518,7 +1521,8 @@ class DhwPlanner:
             # Refine the COP estimate against the tank temperatures this plan
             # actually produces, so the cost ranking reflects reality.
             temps = self._dhw_plan_temps(
-                best, initial_temp, outdoor_temps, draw_rates, dt, humidity, exo
+                best, initial_temp, outdoor_temps, draw_rates, dt, humidity,
+                ctx.tank_exo_kw,
             )
             refined = self._dhw_cop_profile(outdoor_temps, temps[:-1], humidity)
             if np.allclose(refined, cop, rtol=0.02):
@@ -1639,7 +1643,7 @@ class DhwPlanner:
         p_dhw_max = ctx.p_dhw_max
         min_run_power = ctx.min_run_power
         prices = ctx.import_prices
-        c_dhw, exo = ctx.c_dhw, ctx.tank_exo_kw
+        c_dhw = ctx.c_dhw
         plan = np.asarray(plan, dtype=float).copy()
         n = plan.size
         if n == 0 or requirement is None or c_dhw <= 0.0:
@@ -1654,7 +1658,7 @@ class DhwPlanner:
         # uses: heat added now is worth less later, so the ceiling bound
         # below can price how much of a top-up still survives at each step.
         params = self.model.params
-        decay, _ = _tank_decay(ctx.store.ua_kw_per_c, dt, c_dhw)
+        decay, _ = ctx.tank_decay
         # Breaches no ceiling-legal top-up can close. Skipped rather than
         # returned on: a demand window later in the day is not helped by
         # giving up at the first step the tank cannot quite reach, and a
@@ -1668,7 +1672,7 @@ class DhwPlanner:
         for _ in range(48):
             temps, deficit, b = self._dhw_shortfall(
                 temps, plan, initial_temp, outdoor_temps, draw_rates, dt,
-                humidity, req, unreachable, exo,
+                humidity, req, unreachable, ctx.tank_exo_kw,
             )
             if b is None:
                 return plan
@@ -1773,7 +1777,7 @@ class DhwPlanner:
                     dt=dt,
                     max_temp=ceiling,
                     humidity=humidity,
-                    exo_kw=exo,
+                    exo_kw=ctx.tank_exo_kw,
                 )
                 plan = np.where(plan < min_run_power - 1e-9, 0.0, plan)
                 if np.array_equal(plan, before):
@@ -1784,7 +1788,8 @@ class DhwPlanner:
                     unreachable.add(b)
                 else:
                     temps = self._dhw_plan_temps(
-                        plan, initial_temp, outdoor_temps, draw_rates, dt, humidity, exo
+                        plan, initial_temp, outdoor_temps, draw_rates, dt, humidity,
+                        ctx.tank_exo_kw,
                     )
             else:
                 # Nothing ceiling-legal can fix this step; move on rather than
@@ -2071,7 +2076,7 @@ class DhwPlanner:
         p_dhw_max = ctx.p_dhw_max
         min_run_power = ctx.min_run_power
         max_lead_steps = ctx.max_lead_steps
-        c_dhw, exo = ctx.c_dhw, ctx.tank_exo_kw
+        c_dhw = ctx.c_dhw
         if initial_plan is None:
             plan = np.zeros(n_steps)
         else:
@@ -2093,7 +2098,7 @@ class DhwPlanner:
         for _ in range(400):
             temps, gaps, k = self._dhw_shortfall(
                 temps, plan, initial_temp, outdoor_temps, draw_rates, dt,
-                humidity, requirement, unreachable, exo,
+                humidity, requirement, unreachable, ctx.tank_exo_kw,
             )
             if k is None:
                 break
@@ -2183,7 +2188,7 @@ class DhwPlanner:
                     draw_rates,
                     dt_hours=dt,
                     humidity=humidity,
-                    exo_kw=exo,
+                    exo_kw=ctx.tank_exo_kw,
                 )
                 break
 

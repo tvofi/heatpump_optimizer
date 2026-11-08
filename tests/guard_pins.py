@@ -163,7 +163,6 @@ def _runup_stops_at_the_ordinary_floor() -> bool:
             heat_loss_factors=np.ones(n_steps), forecast={}, t_start=0.0,
         ),
         params=params,
-        c_dhw=max(params.dhw_tank_thermal_mass, 0.05),
         draw_rates=np.zeros(n_steps),
         floor_temps=floor_temps,
         p_dhw_run=3.0,
