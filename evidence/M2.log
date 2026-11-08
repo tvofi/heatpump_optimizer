@@ -1,3 +1,0 @@
-planted M2
-RESULT M2 [python3 tests/entities.py] rc=1 444s :: 6 of 2701 ENTITY CHECKS FAILED
-DONE

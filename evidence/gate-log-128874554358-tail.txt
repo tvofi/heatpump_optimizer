@@ -1,0 +1,60 @@
+2026-11-08T21:55:58.1325568Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-08T21:55:58.1349981Z /home/runner/work/_temp/git-credentials-ae7fadb8-61e1-46a1-8562-88fd1f99b3ac.config
+2026-11-08T21:55:58.1358321Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-ae7fadb8\-61e1\-46a1\-8562\-88fd1f99b3ac\.config
+2026-11-08T21:55:58.1449079Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-08T21:55:58.1470671Z /home/runner/work/_temp/git-credentials-ae7fadb8-61e1-46a1-8562-88fd1f99b3ac.config
+2026-11-08T21:55:58.1482859Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-ae7fadb8\-61e1\-46a1\-8562\-88fd1f99b3ac\.config
+2026-11-08T21:55:58.1517853Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-08T21:55:58.1539857Z /github/runner_temp/git-credentials-ae7fadb8-61e1-46a1-8562-88fd1f99b3ac.config
+2026-11-08T21:55:58.1546379Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-ae7fadb8\-61e1\-46a1\-8562\-88fd1f99b3ac\.config
+2026-11-08T21:55:58.1582618Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-08T21:55:58.1605640Z /github/runner_temp/git-credentials-ae7fadb8-61e1-46a1-8562-88fd1f99b3ac.config
+2026-11-08T21:55:58.1612056Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-ae7fadb8\-61e1\-46a1\-8562\-88fd1f99b3ac\.config
+2026-11-08T21:55:58.1642846Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-08T21:55:58.1892515Z Removing credentials config '/home/runner/work/_temp/git-credentials-ae7fadb8-61e1-46a1-8562-88fd1f99b3ac.config'
+2026-11-08T21:55:58.1902971Z ##[endgroup]
+2026-11-08T21:55:58.2320290Z ##[group]Run set -euo pipefail
+2026-11-08T21:55:58.2320593Z [36;1mset -euo pipefail[0m
+2026-11-08T21:55:58.2320876Z [36;1mif [ -z "$PINNED" ] && [ -n "${INPUT_BASE:-}" ]; then[0m
+2026-11-08T21:55:58.2321270Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-08T21:55:58.2321657Z [36;1m  PINNED=$(git rev-parse "refs/remotes/origin/$INPUT_BASE")[0m
+2026-11-08T21:55:58.2321930Z [36;1mfi[0m
+2026-11-08T21:55:58.2322112Z [36;1mif [ -n "$PINNED" ]; then[0m
+2026-11-08T21:55:58.2322352Z [36;1m  git checkout "$PINNED" -- 'tools/ci/*.py'[0m
+2026-11-08T21:55:58.2322612Z [36;1m  echo "programs restored from $PINNED"[0m
+2026-11-08T21:55:58.2322833Z [36;1mfi[0m
+2026-11-08T21:55:58.2376140Z shell: /usr/bin/bash -e {0}
+2026-11-08T21:55:58.2376391Z env:
+2026-11-08T21:55:58.2376613Z   PINNED: 51cd5ec8a42abde3c223f22e9f4a0d5f35f8844a
+2026-11-08T21:55:58.2376879Z   INPUT_BASE: 
+2026-11-08T21:55:58.2377060Z ##[endgroup]
+2026-11-08T21:55:58.2717571Z programs restored from 51cd5ec8a42abde3c223f22e9f4a0d5f35f8844a
+2026-11-08T21:55:58.2765206Z ##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+2026-11-08T21:55:58.2765687Z [36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+2026-11-08T21:55:58.2816343Z shell: /usr/bin/bash -e {0}
+2026-11-08T21:55:58.2816565Z env:
+2026-11-08T21:55:58.2818758Z   GH_TOKEN: ***
+2026-11-08T21:55:58.2818949Z   PR: 3331
+2026-11-08T21:55:58.2819109Z   BASE: main
+2026-11-08T21:55:58.2819271Z   KIND: code
+2026-11-08T21:55:58.2819580Z   WORKSET: arch-score budget-raise-gate codeql governance hassfest pr-contract tests validate
+2026-11-08T21:55:58.2819932Z ##[endgroup]
+2026-11-08T21:56:01.8904125Z FAIL arch-score / arch-score: cancelled (run 42523765167)
+2026-11-08T21:56:01.8904705Z budget-raise-gate / budget-raise-gate: cancelled (run 42523765167)
+2026-11-08T21:56:01.9027122Z ##[error]Process completed with exit code 1.
+2026-11-08T21:56:01.9144584Z Post job cleanup.
+2026-11-08T21:56:01.9843391Z [command]/usr/bin/git version
+2026-11-08T21:56:01.9878539Z git version 2.56.0
+2026-11-08T21:56:01.9905758Z Temporarily overriding HOME='/home/runner/work/_temp/d31dd8fa-e881-4947-9135-3980e0e7845f' before making global git config changes
+2026-11-08T21:56:01.9906891Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-08T21:56:01.9910321Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-08T21:56:01.9938586Z Removing SSH command configuration
+2026-11-08T21:56:01.9943326Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-08T21:56:01.9974450Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-08T21:56:02.0243871Z Removing HTTP extra header
+2026-11-08T21:56:02.0251014Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-08T21:56:02.0286235Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-08T21:56:02.0539304Z Removing includeIf entries pointing to credentials config files
+2026-11-08T21:56:02.0546867Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-08T21:56:02.0588013Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-08T21:56:02.1010060Z Cleaning up orphan processes

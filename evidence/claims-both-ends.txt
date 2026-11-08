@@ -1,0 +1,21 @@
+== old
+RESULT claims_extracted=125 claims
+RESULT claims_checked=125 claims
+RESULT claims_true=122 claims
+RESULT claims_false=1 claims
+RESULT claims_stale=0 claims
+status: 2 changed
+== head
+RESULT claims_extracted=125 claims
+RESULT claims_checked=125 claims
+RESULT claims_true=123 claims
+RESULT claims_false=0 claims
+RESULT claims_stale=0 claims
+status: 0 changed
+== m4
+RESULT claims_extracted=125 claims
+RESULT claims_checked=125 claims
+RESULT claims_true=122 claims
+RESULT claims_false=1 claims
+RESULT claims_stale=0 claims
+status: 2 changed

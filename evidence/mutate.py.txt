@@ -1,0 +1,14 @@
+import json,sys,collections
+p=sys.argv[1]+"/custom_components/heatpump_optimizer/translations/de.json"; m=sys.argv[2]
+d=json.load(open(p),object_pairs_hook=collections.OrderedDict)
+en=json.load(open(sys.argv[1]+"/custom_components/heatpump_optimizer/translations/en.json"))
+t=d["options"]["step"]["thermal_model"]
+if m=="m1": del t["data"]["compressor_modulation"]
+if m=="m2": del t["data_description"]["compressor_modulation"]
+if m=="m3": del d["selector"]["compressor_modulation"]
+if m=="m4": del d["selector"]["compressor_modulation"]["options"]["on_off"]
+if m=="m5":
+    t["data"]["compressor_modulation"]=en["options"]["step"]["thermal_model"]["data"]["compressor_modulation"]
+    t["data_description"]["compressor_modulation"]=en["options"]["step"]["thermal_model"]["data_description"]["compressor_modulation"]
+    d["selector"]["compressor_modulation"]=en["selector"]["compressor_modulation"]
+open(p,"w").write(json.dumps(d,ensure_ascii=False,indent=2)+"\n")
