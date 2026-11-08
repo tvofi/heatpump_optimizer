@@ -4,7 +4,7 @@ Code: 444f489ad66a632576438177da8683eb58ef54e1
 
 ## Head
 
-444f489ad66a632576438177da8683eb58ef54e1, measured at merge base 73365699a135fb813a43380096b6776d57f8ff4c. origin/main had not moved when `tools/pr/prepr.sh` ran (merge-tree reports no conflict), so no second run.
+6b5d99b5c48036517be86310c773e8e8a66cbe14 (code handoff 444f489ad66a632576438177da8683eb58ef54e1, plus the delivery row #3325), measured at merge base 73365699a135fb813a43380096b6776d57f8ff4c. origin/main had not moved when `tools/pr/prepr.sh` ran (merge-tree reports no conflict), so no second run.
 
 ## Carry dispositions
 
@@ -48,6 +48,7 @@ Code: 444f489ad66a632576438177da8683eb58ef54e1
 - `bash tools/audit/seat/bus.sh --self-test` : 161 checks, 1 failed, the same "an ordinary append with no intervening fetch is the same commit object as before" as at the merge base (`git stash` run: 159 checks, 1 failed).
 - `python3 -I tools/audit/seat/cloud_dispatch.py --self-test` : 127 checks, 0 failed.
 - `tools/pr/prepr.sh` self-test: 514 passed, 0 failed (it pinned `rc=1` for the landed refusal; now `rc=4`).
+- `python3 -I tools/audit/seat/ledger.py --self-test` at this head: 101 checks, 1 failed (the census FAIL above; the other 100 pass).
 - `PYTHONPATH=tests/hastub python3 tests/entities.py` : `3 of 2665 ENTITY CHECKS FAILED` at both this head and a clean worktree of 73365699a135.
 - Diff-mutant step: `MUTANT_CMD` was the three Python self-tests above; `prepr.sh` ran in 26m11s wall (`time`) in total; `mutant_run.py --diff` reports 5 survivors, dispositioned below.
 
@@ -58,7 +59,14 @@ Code: 444f489ad66a632576438177da8683eb58ef54e1
 
 ## Red checks
 
-`prepr.sh` `closures` refused: `tests/entities.py` exited 1 while the closures were recorded. It exits 1 identically on origin/main (same `3 of 2665 ENTITY CHECKS FAILED`, a clean worktree at the merge base), so it is the container, not this diff; CI re-derives. The cheaper detector exists and ran: the same script, locally. `WARN diff mutants` is answered under Unpinned sites. No check went red on a commit in this branch beyond those.
+`prepr.sh` `closures` refused: `tests/entities.py` exited 1 while the closures were recorded. It exits 1 identically on origin/main (same `3 of 2665 ENTITY CHECKS FAILED`, a clean worktree at the merge base), so it is the container, not this diff; CI re-derives. The cheaper detector exists and ran: the same script, locally. `WARN diff mutants` is answered under Unpinned sites.
+
+Check-runs of 6b5d99b5c48036517be86310c773e8e8a66cbe14 read once, filter=all, all pages (68 runs). Five concluded red; no other run at this head concluded failure, and `CodeQL` and `tests / closures-autofix` are not among them (`CodeQL` success, `closures-autofix` skipped). The checker's red history over the 5 commits between origin/main and this head lists only `governance / instrument-self-tests`; no earlier push of this PR had a red that a later push cleared.
+
+- `governance / instrument-self-tests` (run 42478631013, job 128725587761, 13 min, not a timeout cancellation): this diff caused it. Step "Show the obligations ledger refusing its own fixtures" ended `ledger self-test: 101 checks, 1 failed`, the failure being `every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)`: `carry_fold_arm` writes `level_line carry-fold`, a kind `tools/audit/seat/ledger.py` `KINDS` does not list. The four steps after it were skipped. Reproduced at this head: `python3 -I tools/audit/seat/ledger.py --self-test` prints the same FAIL. Answer: a cheaper detector exists, that one command (seconds), but `prepr.sh` does not run it; only `governance.yml` does, so the failure reached CI. Standing cost of closing the gap: one line in the `prepr.sh` self-test list, seconds per run. The repair is one entry in `KINDS` in `ledger.py` and is owed as a code push; this body re-take may not move the head, so it is not made here. The orchestrator decides the push, and the reviewer verdict must not be read as clean until it lands.
+- `gate` (check-runs 128725941970 at 12:07 and 128728973151 at 12:20): class R10-HOTFIX-GATE-BUSY-DEFER. Both printed `FAIL run(s) [42478631013] at this head are still being judged; their gate decides`: the edit-run deferral, with code run 42478631013 the run that decided it (it concluded failure on `governance / instrument-self-tests` above). Cheaper detector: none exists for a deferral that fires while the deciding run is in flight; standing cost: the red clears when that run concludes, and this one cleared into the real failure.
+- `gate` (check-run 128731910040 at 12:32): the same run's final decision, `FAIL pr-contract / pr-contract: failure (this run)`. It is the aggregate of the `pr-contract` red below, not a separate cause.
+- `pr-contract / pr-contract` (check-run 128731777697): its `[pr-body]` check refused the earlier body because `## Red checks` did not name `governance / instrument-self-tests` (this section is the answer). Cheaper detector: `tools/pr/prepr.sh --body-check` against the live check-runs, run before the handoff; the earlier body was checked before the head had any concluded red, so it could not see it. Standing cost: one read of the head's check-runs per body, which this re-take did.
 
 ## Forward-carry
 
