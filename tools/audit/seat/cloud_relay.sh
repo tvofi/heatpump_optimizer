@@ -553,8 +553,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     fi
     # A retryable refusal (carry 12) waits out its backoff, owed meanwhile with its reason; $f.tries is `<key>\t<n>\t<epoch>`.
     tries=$(awk -F'\t' -v k="$key" '$1 == k { n = $2; t = $3 } END { print (n == "" ? "0 0" : n " " t) }' "$f.tries" 2>/dev/null)
-    if [ "${tries% *}" != 0 ] && [ "$(date +%s)" -lt $(( ${tries#* } + ${HPO_RELAY_RETRY_BACKOFF:-1800} )) ]; then  # mut:backoff
-      why=$(awk -F'\t' -v k="$key" '$1 == k { w = $2 } END { print w }' "$f.why" 2>/dev/null); level_line handoff-update "refs/heads/handoff/$topic" "$hs" "$why" >> "$state/cloud-level-update.$$"; continue; fi
+    if [ "${tries% *}" != 0 ] && [ "$(date +%s)" -lt $(( ${tries#* } + ${HPO_RELAY_RETRY_BACKOFF:-1800} )) ]; then why=$(awk -F'\t' -v k="$key" '$1 == k { w = $2 } END { print w }' "$f.why" 2>/dev/null); level_line handoff-update "refs/heads/handoff/$topic" "$hs" "$why" >> "$state/cloud-level-update.$$"; continue; fi  # mut:backoff
     # The body goes in a directory of this run's own, under the state dir: a file directly in a
     # shared temp root ($TMPDIR, /tmp) is refused by prepr's body-path check, so every relay
     # update failed there (#2469, #2471) -- and still raced the manual update it was meant to spare.
@@ -1255,6 +1254,7 @@ EOF
   chk "a busy update is tried again on the next pass" 0 test "$(wc -l < "$t/updated" | tr -d ' ')" = 2
   chk "and is not recorded failed" 0 test ! -s "$t/state/cloud-handoff-failed"
   chk "nor owed" 1 grep -q "handoff-update" "$LOG.level"
+  bodyc() { git -C "$t/b" -c user.name=t -c user.email=t@t commit -q --allow-empty -m body ${1:+-m "Code: $1"}; mkref2; }
   # Carry 12: a refusal that clears with no ref moving is rerun after a backoff, three runs at most; a body-content refusal waits for the body.
   rt=$t/rt.sh; printf '#!/bin/sh\nn=$(cat "%s/rtn" 2>/dev/null || echo 0); echo $((n + 1)) > "%s/rtn"\ncase "$RT_MODE" in\n ok1) [ "$n" = 0 ] && { echo "update_pr: REFUSE: ancestry reds: r"; exit 1; }; exit 0;;\n *) echo "update_pr: REFUSE: $RT_MODE: r"; exit 1;;\nesac\n' "$t" "$t" > "$rt"; chmod +x "$rt"; HPO_RELAY_UPDATE=$rt
   rtreset() { rm -f "$t/rtn" "$t/state/cloud-handoff-failed" "$t/state/cloud-handoff-failed.why" "$t/state/cloud-handoff-failed.tries"; : > "$LOG"; rm -f "$LOG.level"; }
@@ -1287,7 +1287,6 @@ EOF
   printf '#!/bin/sh\necho "update_pr: merging"\necho "update_pr: STALE CHECKOUT"\nexit 1\n' > "$ru"; handoff_arm >/dev/null 2>&1
   chk "an update failing with no REFUSE line records its last line" 0 grep -q "^OWED .* handoff-update refs/heads/handoff/topic-a $HS2 update_pr: STALE CHECKOUT\$" "$LOG.level"
   rm -f "$t/state/cloud-handoff-failed" "$t/state/cloud-handoff-failed.why" "$t/hupdated"; : > "$LOG"; HPO_RELAY_UPDATE=$hu; rm -f "$t/state/cloud-handoff-failed.tries"
-  bodyc() { git -C "$t/b" -c user.name=t -c user.email=t@t commit -q --allow-empty -m body ${1:+-m "Code: $1"}; mkref2; }
   bodyc "$HS"; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
   chk "a body whose Code: names the previous handoff head runs no update_pr" 0 test ! -e "$t/hupdated"
   chk "and owes one handoff-body-stale line at the handoff tip, naming the body's head" \
