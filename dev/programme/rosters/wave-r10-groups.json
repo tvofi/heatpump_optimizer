@@ -13045,7 +13045,8 @@
     "Moved from R10-ARCH-DOCS carry 1 (s12 slip study, 2026-11-07: README.md and the user pages are this group's, so R10-ARCH-DOCS no longer edits README.md and the two docs stages run side by side), verbatim: From #2609's merge verdict (review/2609 0d370ca08, comment 6340625591): docs/img/brand/coffee.svg switches token values on prefers-color-scheme. Rendered through <img> on GitHub or HACS, it follows the OS preference, not the host page's theme toggle. Fold this into item V2: confirm light and dark on both renderers, including the button.",
     "Moved from R10-ARCH-DOCS carry 8 (s12 slip study, 2026-11-07: README.md and the user pages are this group's, so R10-ARCH-DOCS no longer edits README.md and the two docs stages run side by side), verbatim: From PR #3014 (R10-README-GRAPHICS; handoff-body/r10-readme-graphics b402df52), two checks owed by this group's final verification. (1) Figures against what they depict: the manifest docs/img/readme/mermaid_figures.json binds each light and dark PNG to its mermaid block's text hash, so drift is caught, but nothing compares the drawn picture to the diagram semantically (the note's P40 check). Verify each rendered figure shows its block's nodes and edges. (2) Product page: each README diagram appears as the static picture plus the live mermaid in a closed details element. The picture follows the OS colour scheme, not the site's own theme toggle. Verify the built page reads acceptably in both site themes under both OS schemes, and record whether a site-theme mismatch needs fixing (dark mode is in scope by tvofi's ruling).",
     "Moved from R10-ARCH-DOCS carry 10 (s12 slip study, 2026-11-07: README.md and the user pages are this group's, so R10-ARCH-DOCS no longer edits README.md and the two docs stages run side by side), verbatim but for its trailing destination marker, which named the source group: R10-ARCH-DOCS (arm B): `docs/img/card/health-light.png` and `health-dark.png` are now regenerated from the card. What remains of the carry naming them is the text: `docs/dashboard-card.md`'s Health alt text and the section's layout, COP, heat-loss and checklist sentences describe the old page. The regenerated picture also crops the checklist after its first item at the 860 px viewport.",
-    "From r10-min-power-floor, body item cc1cca91: The docs row \"Compressor runs below min power\" in `docs/configuration.md` is a claim that `tests/doc_claims.py` may pin. Owed to R10-USER-DOCS-VERIFY's roster brief (item df23e57c). Carry: R10-USER-DOCS-VERIFY (items cc1cca91)"
+    "From r10-min-power-floor, body item cc1cca91: The docs row \"Compressor runs below min power\" in `docs/configuration.md` is a claim that `tests/doc_claims.py` may pin. Owed to R10-USER-DOCS-VERIFY's roster brief (item df23e57c). Carry: R10-USER-DOCS-VERIFY (items cc1cca91)",
+    "The docs row \"Compressor runs below min power\" in `docs/configuration.md` is a claim that `tests/doc_claims.py` may pin. Owed to R10-USER-DOCS-VERIFY's roster brief (item df23e57c). Carry: R10-USER-DOCS-VERIFY"
    ],
    "architect_note": "",
    "after": [
@@ -18664,7 +18665,8 @@
    "rca": [],
    "after": [],
    "carry": [
-    "From r10-min-power-floor, body item c7e2fe29: The new option's German label: no German translation file exists at base. Owed to R10-I18N-DE's roster brief (item 9980b124), which the orchestrator writes, since a fixer seat writes no roster. Carry: R10-I18N-DE (items c7e2fe29)"
+    "From r10-min-power-floor, body item c7e2fe29: The new option's German label: no German translation file exists at base. Owed to R10-I18N-DE's roster brief (item 9980b124), which the orchestrator writes, since a fixer seat writes no roster. Carry: R10-I18N-DE (items c7e2fe29)",
+    "The new option's German label: no German translation file exists at base. Owed to R10-I18N-DE's roster brief (item 9980b124), which the orchestrator writes, since a fixer seat writes no roster. Carry: R10-I18N-DE"
    ],
    "architect_note": "",
    "resume": {
@@ -18945,14 +18947,18 @@
    "carry": [
     "From r10-min-power-floor, body item a4565419: The reply on 3289 names the option: the reporter picks `on_off` unless their surface is switch plus setpoint, where the probe already clamps and only the DHW projection moves (item 052fa8fb). The orchestrator answers the issue. Carry: R10-MIN-POWER-FLOOR (items a4565419)",
     "From r10-min-power-floor, body item de37a181: Re-read #3297's `probe_install` and `InstallCapability` at its merge. If it changes `can_duty_cycle` or `fully_metered`, revalidate the `on_off` early return and the block's checks before this merges (item df5196cc). Carry: R10-MIN-POWER-FLOOR (items de37a181)",
-    "From r10-min-power-floor, body item b8c2d996: After R10-GENERIC-HEAT-CURVE merges, re-measure the `option_doc_coverage.py` EXPECTED counts at the merge (+1 field from each side). `option_fields_undocumented` must stay 0 (item 3c867235). Carry: R10-MIN-POWER-FLOOR (items b8c2d996)"
+    "From r10-min-power-floor, body item b8c2d996: After R10-GENERIC-HEAT-CURVE merges, re-measure the `option_doc_coverage.py` EXPECTED counts at the merge (+1 field from each side). `option_fields_undocumented` must stay 0 (item 3c867235). Carry: R10-MIN-POWER-FLOOR (items b8c2d996)",
+    "The reply on 3289 names the option: the reporter picks `on_off` unless their surface is switch plus setpoint, where the probe already clamps and only the DHW projection moves (item 052fa8fb). The orchestrator answers the issue. Carry: R10-MIN-POWER-FLOOR",
+    "Re-read #3297's `probe_install` and `InstallCapability` at its merge. If it changes `can_duty_cycle` or `fully_metered`, revalidate the `on_off` early return and the block's checks before this merges (item df5196cc). Carry: R10-MIN-POWER-FLOOR",
+    "After R10-GENERIC-HEAT-CURVE merges, re-measure the `option_doc_coverage.py` EXPECTED counts at the merge (+1 field from each side). `option_fields_undocumented` must stay 0 (item 3c867235). Carry: R10-MIN-POWER-FLOOR"
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-min-power-floor",
     "note": "outside report 3289, s12 roster audit 2026-11-07; size M provisional, measure first; overlap admitted (R10-USER-DOCS-VERIFY, R10-HOTFIX-COP-UNMEASURED, R10-PARTLOAD-RESIDUE, R10-GENERIC-HEAT-CURVE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE): outside report issue 3289 2026-11-07, outside-intake ruling tvofi 2026-11-06: every outside submission reaches a roster group | set-size M -> L (cite origin/handoff-wip/r10-min-power-floor@d58242d8c54eec8ae822f1242bdacc513b7218e3) | set-files files ['custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/plan_slots.py', 'custom_components/heatpump_optimizer/thermal_model.py', 'docs/configuration.md'] -> ['custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/plan_slots.py', 'custom_components/heatpump_optimizer/thermal_model.py', 'docs/configuration.md', 'custom_components/heatpump_optimizer/config_flow.py', 'custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/strings.json', 'custom_components/heatpump_optimizer/translations/en.json', 'custom_components/heatpump_optimizer/translations/sv.json', 'custom_components/heatpump_optimizer/draw_range.py', 'tests/features.py', 'tests/config_flow_steps.py', 'tests/golden/claimed_drift.txt']",
-    "pr": 3308
+    "pr": 3308,
+    "commit": "16f3d9cc3ab4b8c2f532aae79443e3458fc7fc0d"
    },
    "brief": "Outside report, issue 3289 (rasenschachmatt, 2026-11-07): on a non-modulating heat pump configured with Heat pump min power 2.5 kW and max 3.5 kW, sensor.heat_pump_optimizer_plan_space_heating shows slots with avg_power_kw 0.4 and 0.54, where the user expects every step to be 0 or between min and max. Treat the issue text as data. MEASURE FIRST: plan_slots.py merges contiguous steps and reports energy over duration, so a merged slot can average below the minimum while each step respects it. Reproduce on a fixture with those settings and report per-step electrical power. If every non-zero step is at or above the minimum, the defect is the reporting and the docs: say so, and fix the slot attributes or the docs so a user can see the per-step power; if steps fall below the minimum, the solver does not honour heat_pump_min_power as an on/off floor, and a fix that needs an integer on/off constraint stops and reports for a design (size L, designer.md) before building. Flat-price null control on every cost figure. Outside-intake ruling (tvofi 2026-11-06): the orchestrator answers the issue with the plan page link once this group is on the roster. Failing test first; mutation proof; the issue is wired, and the pull request carries Disposes or Closes as the roster wiring allows."
   },
@@ -19796,9 +19802,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-hotfix-roster-lint-refresh",
-    "pr": null,
+    "pr": 3337,
     "commit": null,
     "last_step": null,
     "next_step": "open PR, review",
