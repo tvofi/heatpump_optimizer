@@ -2,6 +2,8 @@
 """The bounded retry of GitHub READS for the seat's Python instruments (R10-FLY-GH-READ-RETRY).
 
     printf '%s' "$stderr" | python3 tools/audit/seat/gh_read.py --classify   # exit 0: transient
+    printf '%s' "$stderr" | python3 tools/audit/seat/gh_read.py --classify-git   # git's, exit 0: transient
+    python3 tools/audit/seat/gh_read.py --git-retry git fetch -q origin main     # git under run_git_retry
 
 `self_test()` runs inside record_row.py's self-test, which CI runs; this file
 has no self-test entry point of its own to wire.
@@ -57,6 +59,44 @@ RATE_LIMIT = "rate limit"
 #: short one alone or attached (`-fbody=x`), a long one alone or with `=`.
 SHORT_FIELD_FLAGS = ("-f", "-F")
 LONG_FIELD_FLAGS = ("--field", "--raw-field", "--input")
+
+
+#: R10-TRAIN-MERGE-LOOP-2: a `git fetch`/`git push` is GitHub transport too.
+#: git's own stderr, measured: smart-HTTP and socket failures a later call rides out.
+GIT_TRANSIENT = re.compile(
+    r"returned error: 5\d\d|RPC failed; HTTP 5\d\d|unexpected disconnect while reading sideband"
+    r"|early EOF|the remote end hung up unexpectedly|Connection reset by peer|Could not resolve host"
+    r"|Failed to connect|Operation timed out|GnuTLS recv error|SSL_ERROR_SYSCALL|unable to access.*timed? ?out")
+#: A refusal or a rejected update: never retried, whatever else the output says.
+GIT_REFUSED = re.compile(
+    r"non-fast-forward|\[rejected\]|Permission denied|Authentication failed|\b40[34]\b"
+    r"|couldn't find remote ref|protected branch hook declined|stale info|remote rejected")
+
+
+def git_transient(output: str) -> bool:
+    """git's stderr on a failed fetch/push -> True when another call may ride it out."""
+    return not GIT_REFUSED.search(output) and bool(GIT_TRANSIENT.search(output))
+
+
+GIT_TRIES = 3
+
+
+def run_git_retry(run, argv, sleep, log=lambda line: None, **kw):
+    """`run(argv)` for a git fetch/push, repeated up to GIT_TRIES times (settling 5/15 s)
+    while the failure is git_transient; a rejection or a success answers at once.
+    merge_train.py's fetches and pushes, and `--git-retry`'s shell callers, share it."""
+    for n in range(1, GIT_TRIES + 1):
+        code, o = run(argv, **kw)
+        if not code or n == GIT_TRIES or not git_transient(o):
+            return code, o
+        log(f"{' '.join(argv)[:120]}: git {n}/{GIT_TRIES}: {' '.join(o.split())[:120]}")
+        sleep(READ_SLEEP_S * 3 ** (n - 1))
+
+
+def _run_captured(argv):
+    import subprocess
+    p = subprocess.run(argv, capture_output=True, text=True)
+    return p.returncode, p.stdout + p.stderr
 
 
 def http_transient(code: int, line: str) -> bool:
@@ -224,7 +264,13 @@ def ALTERNATIVES() -> set[str]:  # noqa: N802 -- named for the bash table's ALTS
     from pathlib import Path
     tree = ast.parse(Path(__file__).read_text())
     out = {"default"}
+    # git's rule (GIT_TRANSIENT, GIT_REFUSED) is a second classifier with its
+    # own table in merge_train.py's self-test; app_approve.sh's gh twin has none of it.
+    git = {id(n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)
+           and any(getattr(t, "id", "").startswith("GIT_") for t in n.targets)}
     for node in ast.walk(tree):
+        if id(node) in git:
+            continue
         if (isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "compile"
                 and node.args and isinstance(node.args[0], ast.Constant)):
             out.update(_alternatives(node.args[0].value))
@@ -458,6 +504,34 @@ def self_test() -> int:
                        (["git", "fetch", "origin"], False)):
         check(f"is_read({' '.join(argv)}) is {want}", is_read(argv) is want)
 
+    # git's rule (R10-TRAIN-MERGE-LOOP-2): the loop, its runner and the CLI the
+    # shell callers use. merge_train.py's self-test holds the classifier's table.
+    import contextlib
+    import io
+    outs, logs, slept = [(1, "error: RPC failed; HTTP 502"), (0, "ok")], [], []
+    got = run_git_retry(lambda argv: outs.pop(0), ["git", "fetch"], slept.append, logs.append)
+    check("run_git_retry: a 502 then success answers the success after one 5 s settle, logged once",
+          got == (0, "ok") and slept == [5] and len(logs) == 1 and "git 1/3" in logs[0])
+    code, o = _run_captured(["git", "--version"])
+    check("_run_captured: git's own output comes back, with its exit code", code == 0 and o.startswith("git version"))
+    for text, rc in (("fatal: unable to access 'u': The requested URL returned error: 502", 0),
+                     ("! [rejected] main -> main (non-fast-forward)", 1)):
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            stdin, sys.stdin = sys.stdin, io.StringIO(text)
+            try:
+                got = main(["--classify-git"])
+            finally:
+                sys.stdin = stdin
+        check(f"--classify-git exits {rc} on {text[:40]!r}", got == rc)
+    for argv, rc, want in ((["git", "--version"], 0, "git version"), (["git", "--no-such-flag"], 129, "unknown option")):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            got = main(["--git-retry", *argv])
+        check(f"--git-retry {' '.join(argv)}: rc {rc}, git's output on {'stdout' if rc == 0 else 'stderr'}",
+              got == rc and want in (out if rc == 0 else err).getvalue())
+    with contextlib.redirect_stderr(io.StringIO()):
+        check("--git-retry refuses an argv that is not git (usage, rc 2)", main(["--git-retry", "ls"]) == 2)
+
     print(f"gh_read self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
@@ -465,6 +539,13 @@ def self_test() -> int:
 def main(argv: list[str]) -> int:
     if argv == ["--classify"]:
         return 0 if gh_transient(sys.stdin.read()) else 1
+    if argv == ["--classify-git"]:
+        return 0 if git_transient(sys.stdin.read()) else 1
+    if argv[:1] == ["--git-retry"] and argv[1:2] == ["git"]:
+        code, o = run_git_retry(_run_captured, argv[1:], time.sleep,
+                                lambda line: print(f"gh_read: {line}", file=sys.stderr))
+        (sys.stderr if code else sys.stdout).write(o)
+        return code
     print(__doc__.split("\n\n")[0], file=sys.stderr)
     return 2
 
