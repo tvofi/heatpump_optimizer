@@ -2822,8 +2822,11 @@ const FRICTION_FAMILIES = [
   // One obligation under three class words (#2437, R10-RCA-FRICTION-RESIDUE
   // section 5): the root-cause check the fix reviewer enforces, split by what
   // went wrong with the body's answer. Measured v7.0.4..origin/main: 5, 6 and
-  // 12 pull requests under the three words.
-  { name: 'root-cause', members: ['root-cause-unanswered', 'root-cause-detectable', 'root-cause-unrecorded'] },
+  // 12 pull requests under the three words. `red-checks` is the fourth
+  // spelling of the same unanswered-body block: #3252 twice (the body's
+  // `## Red checks` names none of the head's concluded reds), v7.1.5..origin/main
+  // (R10-RCA-OTHER-UNTAUGHT.md section 3, R10-RCA-FRICTION-OTHER-FAMILY-P2.md).
+  { name: 'root-cause', members: ['root-cause-unanswered', 'root-cause-detectable', 'root-cause-unrecorded', 'red-checks'] },
 ]
 
 // THE DERIVED FAMILY (#2436, R10-RCA-FRICTION-RESIDUE section 4). The reviewer
@@ -6199,13 +6202,16 @@ function assertAcceptance(derived) {
       const filedAlone = mk([['ci-red', [1, 2, 3]], ['body-stale', [4]]])
       const f = fam(filedAlone, UNTAUGHT_FAMILY)
       const rcFam = fam(mk([['root-cause-unanswered', [1]], ['root-cause-detectable', [2]], ['root-cause-unrecorded', [3]]]), 'root-cause')
+      const rcSpelled = fam(mk([['red-checks', [1]], ['root-cause-detectable', [2]], ['root-cause-unrecorded', [3]]]), 'root-cause')
+      const rcNull = fam(mk([['root-cause-detectable', [1]], ['root-cause-unrecorded', [2]]]), 'root-cause')
       if (
+        !rcSpelled || rcSpelled.prs.size !== 3 || !rcNull || rcNull.prs.size !== 2 ||
         !u || u.prs.size !== 3 || u.union !== 3 || fam(taughtOnly, UNTAUGHT_FAMILY) ||
         !f || f.prs.size !== 1 || f.union !== 4 || f.filed.join() !== 'ci-red' ||
         statsFamilies(split).some((x) => x.name === UNTAUGHT_FAMILY) ||
         !rcFam || rcFam.prs.size !== 3 || fam(taughtOnly, 'root-cause')
       ) {
-        console.log('\nFIXTURE VACUOUS: the derived `other (untaught)` or the declared `root-cause` family did not fold as pinned (3 untaught words on 3 PRs -> 3; taught and passing words out; a word filing alone subtracted; no derived list given -> no row; root-cause 1+1+1 -> 3)')
+        console.log('\nFIXTURE VACUOUS: the derived `other (untaught)` or the declared `root-cause` family did not fold as pinned (3 untaught words on 3 PRs -> 3; taught and passing words out; a word filing alone subtracted; no derived list given -> no row; root-cause 1+1+1 -> 3; `red-checks` is a member: red-checks+detectable+unrecorded -> 3, and the same window without it -> 2)')
         rc = 1
       }
     }
