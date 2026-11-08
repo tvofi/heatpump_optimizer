@@ -19,11 +19,25 @@ name: Nightly
 # REQUIRED_LANES, which tests/entities.py derives from the `if:`s below. After
 # a red, verify with `gh workflow run nightly.yml --ref main`.
 
+# A lanes=beat dispatch (the stamp's record flush) runs no REQUIRED_LANES job,
+# so its title marks it and nightly_status.BEAT_TITLE drops it from the runs
+# it grades; every other run keeps the title `Nightly`.
+run-name: ${{ inputs.lanes == 'beat' && 'Nightly record beat' || 'Nightly' }}
+
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      # `beat` runs record-autofix alone: the stamp's record flush needs only
+      # that one-minute job, not the nightly lanes. Default `all` keeps a hand
+      # dispatch running every lane.
+      lanes:
+        description: "all nightly lanes, or only the record beat"
+        type: choice
+        options: [all, beat]
+        default: all
   schedule:
     - cron: "37 0 * * *"
 
@@ -49,7 +63,7 @@ jobs:
   # of one pool, so two half-runs would each judge their own half against a
   # cap measured over the whole.
   mutation-nightly:
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && inputs.lanes != 'beat'
     runs-on: ubuntu-latest
     timeout-minutes: 330
     steps:
@@ -172,7 +186,7 @@ jobs:
   # started_at and completed_at). The 60 minutes left cover the runs in
   # flight, each under its scaled timeout.
   mutation-ledger:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'push' && inputs.lanes != 'beat'
     runs-on: ubuntu-latest
     timeout-minutes: 330
     strategy:
@@ -292,6 +306,7 @@ jobs:
     if: >-
       !cancelled() && github.ref == 'refs/heads/main'
       && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      && inputs.lanes != 'beat'
       && needs.mutation-ledger.result == 'success'
     environment: ledger
     runs-on: ubuntu-latest
@@ -435,7 +450,7 @@ jobs:
             "${{ steps.record.outputs.status }}"
 
   slow:
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && inputs.lanes != 'beat'
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
@@ -527,7 +542,7 @@ jobs:
   # the two cannot drift. tests.yml's own comment on that job carries the
   # lane's history (#511, #2056, #533). Not a required context.
   nightly-ha:
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && inputs.lanes != 'beat'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     # Unrequired, and on a pull request its verdict is about the pull

@@ -138,6 +138,10 @@ on:
         description: "The prelude's: 'false' on a pull request whose every changed file is product idles the machinery lanes (R10-CI-SLIM C7(a)); anything else runs them"
         type: string
         default: ""
+      machinery_rowblind:
+        description: "The prelude's machinery decision with the pull request's own delivery row ignored, for a machinery lane that reads no row (arch-instrument; R10-CI-OWN-DELIVERY-ROW); anything but 'false' runs it"
+        type: string
+        default: ""
     # The autofix jobs' push token and the run-approver App, until M-3.
     secrets:
       CLOSURES_PUSH_TOKEN:
@@ -452,24 +456,24 @@ jobs:
             echo "A recorded green run of fast and this job at this exact base and diff"
             echo "stands in for this rerun; every step below is skipped and this job reports success."
           fi
-          if [ "${{ inputs.machinery }}" = "false" ]; then
-            echo "Every changed file is product (prelude.machinery, R10-CI-SLIM C7(a)): this"
+          if [ "${{ inputs.machinery_rowblind }}" = "false" ]; then
+            echo "Every changed file but its own delivery row is product (prelude.machinery_rowblind, R10-CI-SLIM C7(a)): this"
             echo "machinery lane stands down, every step below is skipped and this job reports success."
           fi
 
       # Full history: the scoped plan diffs against the merge base.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery != 'false'
+        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery_rowblind != 'false'
         with:
           fetch-depth: 0
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery != 'false'
+        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery_rowblind != 'false'
         with:
           python-version: "3.14"
 
       - name: Install pinned test dependencies
-        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery != 'false'
+        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery_rowblind != 'false'
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
@@ -477,13 +481,13 @@ jobs:
 
       # The runner's speed probe: see the `fast` job's.
       - name: Probe the runner's speed (python 3.14)
-        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery != 'false'
+        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery_rowblind != 'false'
         run: python3 tests/host_probe.py
 
       # The scope `fast` takes: the prelude's, diffed from the merge base with
       # the PR's base (origin/main on a dispatch naming none); full on push.
       - name: Run the architecture-score pair
-        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery != 'false'
+        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery_rowblind != 'false'
         env:
           RUN_PART: arch
           GATE_SCOPE: ${{ inputs.gate_scope == 'auto' && 'auto' || 'full' }}

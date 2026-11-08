@@ -204,6 +204,18 @@ REQUIRED_LANES = ("mutation-ledger", "mutation-ledger-push", "mutation-nightly",
 VERIFYING_EVENTS = frozenset({"schedule", "workflow_dispatch"})
 DEFAULT_BRANCH = "main"
 
+# The run-name nightly.yml gives a `lanes=beat` dispatch: the stamp's record
+# flush, which runs record-autofix alone and skips every REQUIRED_LANES job.
+# It is not a nightly, so it is never the run graded: graded, it would read
+# ABSENT after every stamp and hide the last real nightly's jobs.
+# `tests/entities.py` evaluates nightly.yml's `run-name:` against this.
+BEAT_TITLE = "Nightly record beat"
+
+
+def is_beat(run: dict | None) -> bool:
+    """True for a record-beat dispatch, which no nightly verdict may read."""
+    return (run or {}).get("display_title") == BEAT_TITLE
+
 FAILED = "FAILED"
 PASSED = "PASSED"
 RUNNING = "RUNNING"
@@ -624,9 +636,11 @@ def _discover(repo: str, workflow: str, token: str | None,
         # A dispatch on a feature branch is somebody testing their own
         # branch, not a statement about the nightly. Dropped here rather
         # than in pick_runs so the age window still sees every candidate.
+        # A record beat is dropped here too: it runs no nightly lane.
         runs += [r for r in found
-                 if r.get("event") != "workflow_dispatch"
-                 or r.get("head_branch") == default_branch]
+                 if not is_beat(r)
+                 and (r.get("event") != "workflow_dispatch"
+                      or r.get("head_branch") == default_branch)]
     return runs
 
 
@@ -656,6 +670,11 @@ def collect(repo: str, workflow: str, token: str | None,
                 f"run {run_id} was dispatched on {run.get('head_branch')!r}, "
                 f"not {default_branch!r}; a dispatch verifies the nightly only "
                 "on the default branch"
+            )
+        if is_beat(run):
+            raise Unreadable(
+                f"run {run_id} is a record beat ({BEAT_TITLE!r}): it runs no "
+                "nightly lane, so it verifies nothing"
             )
         concluded, in_flight = pick_runs([run])
     else:
