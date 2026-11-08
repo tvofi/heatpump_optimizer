@@ -13,7 +13,9 @@ Not in this part, by the part-scope carry: design P2 (the standing-*.md policy e
 
 ## Head
 
-65f5930251490c4376c8ebca350e7f446cca6333 (four commits on the PR head 131b1358e408954ed0076904bb9a811e5e80fac8; no merge of origin/main: `git merge-tree --write-tree origin/main HEAD` exits 0 with no conflict, and the owner's 2026-11-07 ruling says merge main only on a conflict).
+89b5a555c1d862d417d8720e0d27231bf07a526b: the merge of origin/main (48af0864a43052a43e9125fa31c2822bac99165d) into the previous head 917364917f00545f3cc1bc47ded9c8141fd3f7be, which holds the review repair 65f5930251490c4376c8ebca350e7f446cca6333. Main moved, and `git merge-tree` reported one conflict, so this is the merge the owner's 2026-11-07 ruling allows. The merge commit descends from 65f59302 and from main; the Figures below were measured at 65f59302 and the merge changes none of the code they measure.
+
+Merge delta: one conflict, `.github/workflows/governance.yml`. This branch added the step "Show the hook installer refusing its own fixtures" (`hooks_setup.py --self-test`) after the PR updater step; main moved the PR updater's self-test into a detached run read by a `bg_wait update-pr` step. Resolved by keeping main's form of the PR updater step and this branch's hook installer step. Read back against both parents: the set of step names of each parent is contained in the merged file (nothing dropped), the file parses as YAML, and no conflict marker remains. `selftest_wiring.py --check`: 121 self-testing, 121 wired, 0 unwired, 0 index gaps. `python3 tests/structure.py`: PASSED, no budget raise. `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh`: rc=0 at this head (the diff-mutant step skipped, `MUTANT_CMD` unset in this run; the mutant figures below are from 65f59302). Claim files byte-identical to origin/main; VERSION, manifest version and RELEASE_NOTES heading untouched.
 
 ## Mutation proof
 
@@ -59,6 +61,8 @@ Every survivor of the uncapped pass at 65f59302, 45, by class:
 ## Red checks
 
 Every concluded non-success check run at the PR head 131b1358 (`check-runs?filter=all`, both pages, 134 runs), by literal name. The new head carries no CI yet; the merge train re-proves it.
+
+- Attempt-45 cap: the gate refused further attempts at the previous head after 45 runs. Class: environment cap, not a defect of the diff. The cure is a new commit, which this merge is.
 
 - `tests / nightly-status` (128515447702, 128466988722): failure. Class: outside the required set (the owner's ruling: it never counts). It grades main's last nightly dispatch, whose `mutation-ledger (1..4)`, `mutation-ledger-push`, `mutation-nightly` and `slow` lanes failed; this diff's governance.yml change only wires the `hooks_setup.py --self-test` step, which reads no nightly lane. Answer: not this pull request's own; owned by the nightly lanes' owner on main. No cheaper detector: the check is itself the detector of main's nightly.
 - `pr-contract / pr-contract` (128515449967, 128477471244): failure at 17:40:12Z, because the body did not yet name `tests / nightly-status`. Superseded by `pr-contract / pr-contract` 128515052906, success at 20:10:54Z after the body named it. Class: body, repaired. Cheaper detector: `prepr.sh --body-check` reads the same rule offline; it could not see the red before CI raised it.
