@@ -1,0 +1,27 @@
+  ok   the shallow state is printed and is one of the three answers
+  ok   the branch is printed
+  ok   the merge base is printed, or says it does not resolve
+  ok   the distance from origin/main is printed as a count, or says it does not resolve
+  ok   origin/main's committer date is printed, or says it does not resolve
+  ok   the claim driver is printed, or says how to install it
+  ok   the toolchain state is printed and is one of the four answers
+  ok   no variables and no CLAUDE_ENV_FILE refuses, naming the per-call remedy
+  ok   no variables with a CLAUDE_ENV_FILE exports into it
+  ok   a shell sourcing the exported file gets venv-ci's python3
+  ok   a PATH entry holding a space survives the exported file
+  ok   the REFUSE line's remedy, eval of this hook's --env-lines, gets venv-ci's python3
+  ok   the variables set read OK
+  ok   no venv-ci is not a cloud seat
+  ok   the printed distance is a fresh git rev-list --count HEAD..origin/main
+  ok   the claimnotes merge driver is configured after a run
+  ok   unset, the hook prints the clone-fact report and not a byte more
+  ok   unset, no role pack line is printed
+  ok   set, the output is the unset output plus one role pack line
+  ok   set, exactly one role pack line
+  ok   set, one line more than unset, and no other
+  ok   the pack the line names checks clean as the fixer's
+  ok   an unknown role prints a REFUSE line and still starts
+  ok   role_pack.py's self-test passes: every role clean, every rule's mutant refused
+
+24 passed, 0 failed
+rc=0

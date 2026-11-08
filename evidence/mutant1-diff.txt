@@ -1,0 +1,14 @@
+ .claude/hooks/session-start.sh | 1 -
+ 1 file changed, 1 deletion(-)
+diff --git a/.claude/hooks/session-start.sh b/.claude/hooks/session-start.sh
+index 910b4e3bf..85c19913a 100755
+--- a/.claude/hooks/session-start.sh
++++ b/.claude/hooks/session-start.sh
+@@ -153,7 +153,6 @@ if [ "${1:-}" = "--self-test" ]; then
+   # 48af0864a failed that way minutes after its merge (R10-HOTFIX-MAIN-IST-RED).
+   # `GIT_TEST_DATE_NOW` is git's own pin, inherited by every `bash "$0"` below.
+   # A caller's pin stands, so a test can drive a ticking clock through it.
+-  : "${GIT_TEST_DATE_NOW:=$(date +%s)}"; export GIT_TEST_DATE_NOW
+   out=$(report)
+   pass=0; fail=0
+   st() { if printf '%s' "$out" | grep -E "$1" >/dev/null; then pass=$((pass+1)); printf '  ok   %s\n' "$2"
