@@ -41019,6 +41019,41 @@ R.check(
     _ghc_writes(_gp) == [2] and len(_ghc.state_for(_gp.entry).writes) == 1,
     "writes=%r kept=%r" % (_ghc_writes(_gp), len(_ghc.state_for(_gp.entry).writes)),
 )
+
+
+class _GhcClock:
+    """A fixed monotonic clock for heat_curve, so a boundary is hit exactly."""
+
+    def __init__(self, now: float) -> None:
+        self.now = now
+
+    def monotonic(self) -> float:
+        return self.now
+
+
+_ghc_real_time = _ghc.time
+try:
+    _ghc.time = _gclk = _GhcClock(1000.0)
+    _gb90 = _ghc_coord()
+    _ghc_pub(_gb90, 2.0)
+    _gclk.now = 1090.0
+    _ghc_pub(_gb90, 2.0)
+    _gclk.now = 100000.0
+    _gb24 = _ghc_coord()
+    _ghc.state_for(_gb24.entry).writes.extend([100000.0 - 86400.0] * _cap)
+    _ghc_pub(_gb24, 2.0)
+finally:
+    _ghc.time = _ghc_real_time
+R.check(
+    "at exactly 90 s the grace is over: a miss then is written once more (W2's bound)",
+    _ghc_writes(_gb90) == [2, 2],
+    repr(_ghc_writes(_gb90)),
+)
+R.check(
+    "and a write exactly 24 h old still counts: a full day of them at that age blocks the write (W4's bound)",
+    _ghc_writes(_gb24) == [] and len(_ghc.state_for(_gb24.entry).writes) == _cap,
+    "writes=%r kept=%r" % (_ghc_writes(_gb24), len(_ghc.state_for(_gb24.entry).writes)),
+)
 _gr = _ghc_coord()
 _gr_cfg = _gr.effective_config
 _gr_sent = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 2))
