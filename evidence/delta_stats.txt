@@ -1,2 +1,2 @@
-clamped=True n=32 delta_s p50 +0.211 min -0.059 max +0.835 runs_max 1 pass_s_max 0.404
-clamped=False n=32 delta_s p50 +0.017 min -0.077 max +0.234 runs_max 0 pass_s_max 0.000
+RESULT delta_s clamped n 32 p50 +0.220 min -0.032 max +0.838
+RESULT delta_s unclamped n 32 min -0.216 max +0.169 p50 +0.000; runs max 0 pass_s max 0.000

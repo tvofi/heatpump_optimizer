@@ -1,5 +1,0 @@
-buffer 750 L spread: n 20 p50_s 1.303 max_s 2.652 worst share of budget 0.00442
-buffer 750 L flat: n 20 p50_s 1.116 max_s 1.601 worst share of budget 0.00267
-buffer 0 L spread: n 20 p50_s 0.673 max_s 1.195 worst share of budget 0.00199
-buffer 0 L flat: n 20 p50_s 0.581 max_s 0.940 worst share of budget 0.00157
-rc=0
