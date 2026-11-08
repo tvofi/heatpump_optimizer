@@ -71930,6 +71930,119 @@ R.check(
     f"{_bst_flow_of((40.0, _BST_T0), states={})}",
 )
 
+# --- Review of the return unit (flow_min_lift_k / space_setpoint_unit
+# "return"): the paths the developer's checks reach only through
+# ``_flow_target``'s heating branch -- the held command draw_range and the
+# ceiling probe read, the non-heating duties, the gate ordering under a
+# small lift, and that the rated spread the hold moves by is not the lift.
+
+
+def _wrr_command(unit, extra=None):
+    """``_flow_command`` for a held 40 degC on a ``unit`` water set-point."""
+    coord = _DrCoord(FakeHass({_BST_ENTITY: FakeState("40", attributes={"min": 20, "max": 70})}),
+                     _dr_entry(data={
+                         "tibber_token": "x", "weather_entity": "weather.home",
+                         "space_setpoint_entity": _BST_ENTITY,
+                         "pump_duty_mode": "control", "space_setpoint_unit": unit,
+                         **(extra or {})}))
+    coord._current_action = {"power": 6.0, "dhw_power": 0.0}
+    coord._measured_power = 2.3
+    _bst_pa.state_for(coord).written["space_setpoint"] = (40.0, _BST_T0)
+    return _bst_pa._flow_command(coord.arbiter_inputs(), _bst_pa.state_for(coord))
+
+
+_wrr_ret = _wrr_command("return", {"flow_heat_c": 38.0, "flow_min_lift_k": 1.5})
+_wrr_flow = _wrr_command("flow", {"flow_heat_c": 38.0, "flow_min_lift_k": 1.5})
+_wrr_indoor = _wrr_command("indoor", {"flow_heat_c": 38.0})
+R.check(
+    "a return target publishes the same held command as a flow one -- the configured "
+    "ceiling, not 55, and the 25 degC gate, both in the entity's own terms -- and an "
+    "indoor one publishes none",
+    _wrr_ret is not None and _wrr_ret == _wrr_flow
+    and _wrr_ret.ceiling_c == 38.0 and _wrr_ret.gate_c == _bst_pa.FLOW_GATE_C
+    and _wrr_indoor is None,
+    f"return {_wrr_ret} flow {_wrr_flow} indoor {_wrr_indoor}",
+)
+
+
+def _wrr_write(unit, duty, inlet, extra=None, curve=None):
+    """``_flow_target`` for ``duty`` on a ``unit`` entity whose pump return reads ``inlet``."""
+    config = {"space_setpoint_entity": "number.wrr", "space_setpoint_unit": unit,
+              **(extra or {})}
+    states = {"number.wrr": FakeState("30", attributes={"min": 20, "max": 70})}
+    if inlet is not None:
+        config[_SP_PUMP_RETURN] = "sensor.wrr_return"
+        states["sensor.wrr_return"] = FakeState(str(inlet), unit="°C")
+    return _pa._flow_target(
+        _PaNS(
+            config=config, hass=FakeHass(states),
+            state=_PaNS(outdoor_temperature=0.0, buffer_tank_temperature=40.0,
+                        floor_return_temperature=None),
+            thermal=_PaNS(params=None, curve_flow_temp=lambda _o: curve),
+            params=_PaNS(min_electrical_power=1.5, max_electrical_power=5.5),
+            plan=_PaNS(timestamps=[_PA_T0], power_schedule=[1.5]),
+            action=None,
+        ),
+        duty, _PA_T0,
+    )
+
+
+_WRR_SMALL = {"flow_min_lift_k": 1.5, "flow_heat_c": 37.0}
+R.check(
+    "a return target's non-heating duties write the gate exactly as a flow one, "
+    "whatever the lift and ceiling",
+    all(
+        _wrr_write("return", duty, 30.0, _WRR_SMALL)
+        == _wrr_write("flow", duty, 30.0, _WRR_SMALL)
+        == _pa.FLOW_GATE_C
+        for duty in ("dhw", "idle")
+    ),
+    f"{[_wrr_write('return', d, 30.0, _WRR_SMALL) for d in ('dhw', 'idle')]}",
+)
+_wrr_cold = _wrr_write("return", "space", 22.0, _WRR_SMALL)
+R.check(
+    "a 1.5 K lift over a return below the gate takes the lift from the gate and rounds "
+    "up on a whole-degree entity, so a heating step never writes the gate",
+    _wrr_cold == 27.0 and _wrr_cold > _pa.FLOW_GATE_C,
+    f"{_wrr_cold}",
+)
+R.check(
+    "a return above the ceiling writes the ceiling, never above it, on a return target",
+    _wrr_write("return", "space", 39.0, _WRR_SMALL) == 37.0,
+    f"{_wrr_write('return', 'space', 39.0, _WRR_SMALL)}",
+)
+R.check(
+    "the hold moves by the rated spread, not by the configured lift: a 1.5 K lift "
+    "leaves the return baseline at curve - 5 K and the no-curve hold at 30",
+    _wrr_write("return", None, 30.0, {**_WRR_SMALL, "flow_heat_c": 48.0}, curve=40.0)
+    == 40.0 - _SP_LIFT
+    and _wrr_write("return", None, 30.0, _WRR_SMALL, curve=None)
+    == _pa.FLOW_HOLD_C - _SP_LIFT
+    and _wrr_write("flow", None, 30.0, {**_WRR_SMALL, "flow_heat_c": 48.0}, curve=40.0)
+    == 40.0,
+    f"{_wrr_write('return', None, 30.0, {**_WRR_SMALL, 'flow_heat_c': 48.0}, curve=40.0)}",
+)
+
+_wrr_tr_root = _FrPath(__file__).resolve().parent.parent / "custom_components" / "heatpump_optimizer"
+_wrr_tr_missing = []
+for _wrr_name in ("strings.json", "translations/en.json", "translations/sv.json"):
+    _wrr_doc = _fi_json.loads((_wrr_tr_root / _wrr_name).read_text(encoding="utf-8"))
+    _wrr_opts = _wrr_doc["selector"]["space_setpoint_unit"]["options"]
+    _wrr_ind = _wrr_doc["options"]["step"]["entities"]["sections"]["indoor"]
+    _wrr_tr_missing += [f"{_wrr_name}:unit:{u}" for u in _RT_UNITS if not _wrr_opts.get(u)]
+    _wrr_tr_missing += [
+        f"{_wrr_name}:{part}:{key}"
+        for part in ("data", "data_description")
+        for key in ("flow_min_lift_k", "flow_heat_c")
+        if not _wrr_ind.get(part, {}).get(key)
+    ]
+R.check(
+    "every set-point unit, return included, has a label, and both new fields a label "
+    "and a description, in strings.json, en and sv",
+    not _wrr_tr_missing,
+    f"{_wrr_tr_missing}",
+)
+
 # --- #1956 the card recommends a feedback sensor on an unmetered install ---
 # The probe is #1955's own: power and frequency come from ``probe_install``;
 # the energy and flow entities are the classes the probe does not carry. The
