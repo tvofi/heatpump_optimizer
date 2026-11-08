@@ -5372,9 +5372,15 @@ def _stale_verdict_self_test(check) -> None:
     NM, NB = "a" * 32, "b" * 32
     tmp = tempfile.TemporaryDirectory()
 
-    def world(registry=None, blocked_head=H, blocked_nonce=NB, merge_nonce=NM, log_code=0):
+    calls: list = []
+
+    def world(registry=None, blocked_head=H, blocked_nonce=NB, merge_nonce=NM, log_code=0, fetch_code=0):
         def run(argv, cwd=ROOT, stdin=None):
             a = " ".join(argv)
+            calls.append(argv)
+            if argv[:2] == ["git", "fetch"]:
+                # a successful fetch may still print (a redirect warning): its exit code decides
+                return (fetch_code, "fatal: couldn't find remote ref" if fetch_code else "warning: redirecting to https://x/")
             if argv[:2] == ["git", "ls-remote"]:
                 return 0, f"{T}\trefs/heads/verdict/7\n"
             if argv[:2] == ["gh", "api"] and "/comments" in a:
@@ -5449,12 +5455,19 @@ def _stale_verdict_self_test(check) -> None:
     tie_later = posted(registry=[rec(NB, "2026-11-06T22:13:28Z"), rec(NM, "2026-11-06T22:13:28Z")])[0]
     check("stale verdict: a same-second tie is ordered by the registry's append order (refused, then admitted)",
           isinstance(tie, str) and tie.startswith("stale merge verdict:") and tie_later == (H, "42"))
+    skew = posted(registry=[rec(NB, "2026-11-06T22:13:28Z"), rec(NM, "2026-11-06T20:50:26Z")])[0]
+    check("stale verdict: the dispatch time decides, not the registry's line order (a merge dispatch recorded "
+          "after the blocked one but timed before it is refused)",
+          isinstance(skew, str) and skew.startswith("stale merge verdict:"))
+    calls.clear()
     other = posted(registry=None, blocked_head=OTHER)[0]
-    check("stale verdict: a blocked verdict at another head is not this head's finding (admitted, no registry read)",
-          other == (H, "42"))
+    check("stale verdict: a blocked verdict at another head is not this head's finding (admitted, no nonce read)",
+          other == (H, "42") and not any(c[:2] == ["git", "show"] for c in calls))
     unread = posted(registry=[], log_code=128)[0]
-    check("stale verdict: an unreadable verdict/<pr> history is refused, never read as no blocked verdict",
-          isinstance(unread, str) and "history could not be read" in unread)
+    unfetched = posted(registry=[], fetch_code=128)[0]
+    check("stale verdict: an unreadable verdict/<pr> history (log or fetch) is refused, never read as no blocked verdict",
+          isinstance(unread, str) and "history could not be read" in unread
+          and isinstance(unfetched, str) and "could not be read (fetch failed)" in unfetched)
     tmp.cleanup()
 
 
