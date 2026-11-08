@@ -201,6 +201,7 @@ from .inputs import (
     UNBOUNDED,
     InputHealth,
     InputReader,
+    InputReading,
     age_of,
     normalize_price_per_kwh,
     parse_bool,
@@ -2531,6 +2532,22 @@ def _open_loop_plan_value(
     return None if index is None else float(trajectory[index])
 
 
+def _seed_store(
+    reading: InputReading,
+    result: OptimizationResult | None,
+    trajectory_attr: str,
+    now: datetime,
+) -> float | None:
+    """A tank's level for this cycle: the probe, else the plan's own estimate.
+
+    One seed path for every store (R10-BUFFER-OPENLOOP, D12-s1-01): an ok
+    reading wins; without one the previous plan's ``trajectory_attr`` at the
+    step covering ``now``; ``None`` when neither exists, and the caller then
+    leaves its field as it is rather than fabricate a level.
+    """
+    return reading.value if reading.ok else _open_loop_plan_value(result, trajectory_attr, now)
+
+
 def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
     """Picklable diagnose args; the coordinator itself is not picklable."""
     record = coord._last_interval_record
@@ -3127,6 +3144,10 @@ def _apply_result_payload(
             ],
         }
     )
+    # The why-now drivers of the step the action came from; absent when the
+    # action carries none, which the card reads as "no data".
+    if "why_now" in current_action:
+        data["why_now"] = current_action["why_now"]
 
 
 def _apply_unsolved_payload(data: Payload) -> None:
@@ -5213,10 +5234,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         outlet = reader.read(CONF_VALVE_OUTLET_TEMP_ENTITY)
         wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
         wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
+        # The rise inputs take the probes alone: the published levels may be
+        # the plan's own open-loop seed, whose planned rise is no evidence of
+        # outside heat. ``hp_tank_temp`` is a level, so it keeps the estimate.
+        dhw = reader.read(CONF_DHW_TEMP_ENTITY)
+        buffer = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
         observation = ExternalHeatObservation(
             now=dt_util.now(),
-            dhw_temp=ctx._current_state.dhw_temperature,
-            buffer_temp=ctx._current_state.buffer_tank_temperature,
+            dhw_temp=dhw.value if dhw.ok else None,
+            buffer_temp=buffer.value if buffer.ok else None,
             commanded_power_kw=self._commanded_power(),
             measured_power_kw=self._measured_power,
             dhw_max_rise_c_per_h=self._max_pump_rise("dhw"),
@@ -6327,10 +6353,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 space_pins=space_pins,
                 dhw_pins=dhw_pins,
                 power_caps_extra=quiet.caps,
-                # T5 (#16 #54): the comfort floor's two gated adjustments;
-                # None for both is the byte-inert default path.
+                # T5 (#16 #54): the comfort floor's gated adjustments; None is byte-inert.
                 min_temp_margins=self._confidence_margins(n),
                 min_temp_floors=self._mold_floor_series(horizon.outdoor_temps),
+                away_floor_drop_c=away_mode.floor_drop_c(ctx._opt_config, self._away_state),
                 # v5.3.0: never promise heat the pump's current mode cannot
                 # deliver — symmetrically. Both default False, so an install
                 # with no mode entity plans exactly as before.
@@ -6727,25 +6753,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 self._solar_radiation = observed
                 state.solar_radiation = observed
 
-        # DHW temperature sensor. Without an ok reading the tank is seeded
-        # from the previous plan's own trajectory (open-loop propagation,
-        # R9 D12-s1-01); the 55 °C dataclass default reached every solve
-        # otherwise, so every plan believed the tank was just charged.
+        # The tank levels. Without an ok reading each tank is seeded from the
+        # previous plan's own trajectory (open-loop propagation, D12-s1-01):
+        # a never-advanced default (55 °C DHW, 40 °C buffer) reached every
+        # solve otherwise. No reading and no plan leaves the field as it is.
         dhw = reader.read(CONF_DHW_TEMP_ENTITY)
+        buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
+        plan, seeded_at = self._optimization_result, dt_util.now()
         if dhw.ok:
             self._dhw_temperature = dhw.value
-            state.dhw_temperature = self._dhw_temperature
-        elif (
-            seed := _open_loop_plan_value(
-                self._optimization_result, "dhw_temp_trajectory", dt_util.now()
-            )
-        ) is not None:
-            state.dhw_temperature = seed
-
-        # Buffer tank temperature sensor (optional; enables cooling learning)
-        buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
-        if buffer_reading.ok:
-            state.buffer_tank_temperature = buffer_reading.value
+        if (level := _seed_store(dhw, plan, "dhw_temp_trajectory", seeded_at)) is not None:
+            state.dhw_temperature = level
+        if (level := _seed_store(buffer_reading, plan, "buffer_temp_trajectory", seeded_at)) is not None:
+            state.buffer_tank_temperature = level
 
         # Wood tank temperature (issue #40): re-read from the physical tank
         # each cycle through the same stale-aware reader — the model never

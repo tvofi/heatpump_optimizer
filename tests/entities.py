@@ -2367,6 +2367,21 @@ R.check(
     f"populated={sorted(k for k in _DHW_BLOCK_KEYS if k in _no_dhw_plan_attrs)} "
     "-- the payload carried all five; the gate must keep them off the entity",
 )
+# R10-WHY-NOW-WIDGET: the space-plan sensor is the why-now carrier: it
+# publishes the payload's `why_now` as is, the DHW plan never does, and the
+# key is absent when the payload has none (the card's "no data").
+_WHY_NOW = {"t": "2026-02-01T05:00:00+00:00", "drivers": [
+    {"code": "price_rank", "direction": "run", "weight": 100.0}]}
+_why_data = {**_NO_DHW_DATA, "dhw_enabled": True, "space_plan": _LIVE_SPACE_PLAN,
+             "dhw_plan": _LIVE_SPACE_PLAN, "why_now": _WHY_NOW}
+R.check(
+    "R10-WHY-NOW-WIDGET: the space plan publishes why_now; the DHW plan does not; none without one",
+    sensor.SpaceHeatingPlanSensor(FakeCoordinator(_why_data), ENTRY).extra_state_attributes.get("why_now") == _WHY_NOW
+    and "why_now" not in sensor.DHWHeatingPlanSensor(FakeCoordinator(_why_data), ENTRY).extra_state_attributes
+    and "why_now" not in sensor.SpaceHeatingPlanSensor(
+        FakeCoordinator({**_NO_DHW_DATA, "space_plan": _LIVE_SPACE_PLAN}), ENTRY).extra_state_attributes,
+    "the space-plan sensor's attribute block is the card's only why_now source",
+)
 _no_dhw_on_attrs = sensor.SpaceHeatingPlanSensor(
     FakeCoordinator(
         {**_NO_DHW_DATA, "dhw_enabled": True, "space_plan": _LIVE_SPACE_PLAN}
@@ -2439,6 +2454,11 @@ R.check(
 R.check(
     "and keeps wood_fuel out of the recorder",
     "wood_fuel" in sensor._PlanSensorBase._unrecorded_attributes,
+)
+R.check(
+    "the space plan keeps why_now out of the recorder (R10-WHY-NOW-WIDGET)",
+    "why_now" in sensor.SpaceHeatingPlanSensor._unrecorded_attributes,
+    "card-only, and new at every step: worth no SD-card writes per update",
 )
 
 # Optional inputs must degrade cleanly.
@@ -27113,6 +27133,7 @@ def _ns_nightly_lanes(text: str) -> "list[str]":
 
     def _runs(_n, _ev):
         _ctx = {"github.event_name": _ev, "github.ref": "refs/heads/main",
+                "inputs.lanes": "all",
                 **{f"needs.{_m}.result": _v for _m, _v in _ok.items()}}
         return _gh_eval(_gh_if(_workflow_job(_body, _n)), _ctx)
     return sorted(_n for _n in _ids if _runs(_n, "schedule") and not _runs(_n, "push"))
@@ -27134,7 +27155,7 @@ R.check(
 # The derivation's null control: a lane whose `if:` admits the push too (the
 # record beat's shape) is not a nightly lane, and one added on the schedule is.
 _NS_PLANT = _NIGHTLY_YML.replace(
-    "\n  slow:\n    if: github.event_name != 'push'\n",
+    "\n  slow:\n    if: github.event_name != 'push' && inputs.lanes != 'beat'\n",
     "\n  slow:\n    if: github.event_name != 'pull_request'\n", 1) + (
     "\n  planted-lane:\n    if: github.event_name == 'schedule'\n    runs-on: x\n")
 R.check(
@@ -27142,6 +27163,33 @@ R.check(
     _ns_nightly_lanes(_NS_PLANT)
     == sorted({*_nstatus.REQUIRED_LANES, "planted-lane"} - {"slow"}),
     f"planted={_ns_nightly_lanes(_NS_PLANT)}",
+)
+
+# The record flush dispatches lanes=beat (stamp.py RECORD_BEAT_PAYLOAD): every
+# heavy job skips and record-autofix alone runs. A dispatch with no input (a
+# hand probe) runs every lane; schedule and push evaluate as before.
+def _nightly_runs_on(_text: str, _ev: str, _lanes: str) -> "dict[str, bool]":
+    _body = _text.split("\njobs:", 1)[1]
+    _ids = re.findall(r"^  ([A-Za-z][\w-]*):$", _body, re.M)
+    _ctx = {"github.event_name": _ev, "github.ref": "refs/heads/main", "inputs.lanes": _lanes,
+            **{f"needs.{_m}.result": "success" for _m in _ids}}
+    return {_n: _gh_eval(_gh_if(_workflow_job(_body, _n)), _ctx) for _n in _ids}
+
+
+_NS_BEAT = _nightly_runs_on(_NIGHTLY_YML, "workflow_dispatch", "beat")
+_NS_HAND = _nightly_runs_on(_NIGHTLY_YML, "workflow_dispatch", "")
+R.check(
+    "lanes=beat skips every heavy nightly lane and runs record-autofix; no input runs every lane",
+    sorted(_n for _n, _v in _NS_BEAT.items() if _v) == ["record-autofix"]
+    and all(_NS_HAND[_n] for _n in _nstatus.REQUIRED_LANES)
+    and _NS_HAND["record-autofix"],
+    f"beat={_NS_BEAT} hand={_NS_HAND}",
+)
+R.check(
+    "nightly.yml declares the lanes choice input (all, beat) defaulting to all",
+    re.search(r"workflow_dispatch:\n    inputs:\n(?:      #.*\n)*      lanes:\n(?:.*\n)*?"
+              r"        options: \[all, beat\]\n        default: all\n", _NIGHTLY_YML) is not None,
+    "lanes input missing",
 )
 
 # --- the four states --------------------------------------------------------
@@ -27749,6 +27797,70 @@ R.check(
     f"a run: record={_ns_wf_some is not None} reads={_ns_wf_reads_some}",
 )
 
+# The record beat is never the graded nightly (R10-FLY-STAMP-FLUSH-COST). The
+# stamp's flush dispatches nightly.yml with lanes=beat, which skips every
+# REQUIRED_LANES job; graded, it reads ABSENT after every stamp and hides the
+# last real nightly. nightly.yml's own `run-name:` is evaluated here, so the
+# title the reporter drops is the title the workflow gives, and the null
+# control is a lanes=all dispatch, which stays the graded run.
+_NS_RUN_NAME = _re.search(r"^run-name: \$\{\{ (.*) \}\}$", _NIGHTLY_YML, _re.M)
+
+
+def _ns_title(_lanes: str) -> "str | None":
+    if _NS_RUN_NAME is None:
+        return None
+    _e = (_NS_RUN_NAME.group(1).replace("inputs.lanes", repr(_lanes))
+          .replace("&&", " and ").replace("||", " or "))
+    return eval(_e, {"__builtins__": {}})  # noqa: S307 -- literals only
+
+
+_ns_bt_real_get, _ns_bt_real_sleep = _nstatus._get, _nstatus._sleep
+_ns_bt_sched = {**_ns_run(81, "2026-10-21T00:40:00Z"), "event": "schedule",
+                "head_branch": "main", "display_title": _ns_title("")}
+
+
+def _ns_bt_graded(_dispatch_lanes: str):
+    _disp = {**_ns_run(82, "2026-10-21T09:00:00Z"), "event": "workflow_dispatch",
+             "head_branch": "main", "display_title": _ns_title(_dispatch_lanes)}
+
+    def _fake_get(url, _token):
+        if "/jobs" in url:
+            return {"total_count": len(_NS_LIVE), "jobs": _NS_LIVE}
+        if "/actions/runs/" in url:
+            return _disp
+        return {"workflow_runs": [r for r in (_disp, _ns_bt_sched)
+                                  if r["event"] == url.split("event=")[1].split("&")[0]]}
+
+    _nstatus._get, _nstatus._sleep = _fake_get, lambda _s: None
+    try:
+        _c = _nstatus.collect("o/r", "nightly.yml", None, None,
+                              now=datetime(2026, 10, 21, 12, 0, tzinfo=UTC))[0]
+        try:
+            _nstatus.collect("o/r", "nightly.yml", None, 82)
+            _by_id = "read"
+        except _nstatus.Unreadable:
+            _by_id = "refused"
+    finally:
+        _nstatus._get, _nstatus._sleep = _ns_bt_real_get, _ns_bt_real_sleep
+    return (_c or {}).get("id"), _by_id
+
+
+_ns_bt_beat, _ns_bt_all = _ns_bt_graded("beat"), _ns_bt_graded("all")
+R.check(
+    "nightly.yml titles a lanes=beat run nightly_status.BEAT_TITLE, and no other run",
+    _ns_title("beat") == _nstatus.BEAT_TITLE
+    and _ns_title("all") != _nstatus.BEAT_TITLE and _ns_title("") != _nstatus.BEAT_TITLE,
+    f"run-name={_NS_RUN_NAME and _NS_RUN_NAME.group(1)!r} beat={_ns_title('beat')!r} "
+    f"all={_ns_title('all')!r} schedule={_ns_title('')!r}",
+)
+R.check(
+    "a lanes=beat dispatch is never the graded nightly, by discovery or by "
+    "--run-id; a newer lanes=all dispatch still is (null control)",
+    _ns_bt_beat == (81, "refused") and _ns_bt_all == (82, "read"),
+    f"beat: graded {_ns_bt_beat}, want (81, 'refused'); all: graded "
+    f"{_ns_bt_all}, want (82, 'read')",
+)
+
 # --- the delivery ledger, and why it replaced a red tick --------------------
 #
 # `record` refuses a merged pull request with no disposition row, and it is
@@ -28191,7 +28303,54 @@ def _ds_rc(ledger, *flags):
             sys.argv = argv
 
 
-_DS_ROWS_RCS = {v: _ds_rc(l, "--require-rows") for v, l in (
+def _ds_head_window():
+    """gather() over a throwaway repo: A (tagged), then merges #101 and #102."""
+    with _tempfile.TemporaryDirectory() as td:
+        repo = Path(td) / "r"
+        env = throwaway_git_init(repo, "-q", "-b", "main")
+
+        def g(*a):
+            return subprocess.run(["git", *a], cwd=repo, env=env, check=True,
+                                  capture_output=True, text=True).stdout.strip()
+        (repo / "f").write_text("a")
+        g("add", "-A")
+        g("commit", "-q", "-m", "A")
+        g("tag", "v0.0.1")
+        shas = []
+        for n, side in ((101, "a"), (102, "b")):
+            g("checkout", "-q", "-b", side)
+            (repo / f"{side}.txt").write_text(side)
+            g("add", "-A")
+            g("commit", "-q", "-m", side)
+            g("checkout", "-q", "main")
+            g("merge", "-q", "--no-ff", "-m", f"Merge pull request #{n} from x/{side}", side)
+            shas.append(g("rev-parse", "HEAD"))
+        g("update-ref", "refs/remotes/origin/main", shas[1])
+        saved, _ds.ROOT = _ds.ROOT, repo
+        try:
+            nums = lambda *a, **k: [m["number"] for m in _ds.gather("r", *a, **k)[0]]
+            return (nums("v0.0.1", head=shas[0]), nums("v0.0.1", head=shas[1]),
+                    nums("v0.0.1"))
+        finally:
+            _ds.ROOT = saved
+
+
+_ds_h1, _ds_h2, _ds_hdef = _ds_head_window()
+R.check(
+    "delivery_status --head selects its window",
+    _ds_h1 == [101],
+    f"gather(head=M1) returned {_ds_h1}, expected [101]")
+R.check(
+    "delivery_status --head at the tip is unchanged (null control)",
+    _ds_h2 == [102, 101],
+    f"gather(head=M2) returned {_ds_h2}, expected [102, 101]")
+R.check(
+    "delivery_status default head is origin/main",
+    _ds_hdef == _ds_h2,
+    f"default {_ds_hdef} != head=M2 {_ds_h2}")
+
+
+_DS_ROWS_RCS ={v: _ds_rc(l, "--require-rows") for v, l in (
     ("OVERDUE", _ds_overdue), ("UNCHECKED", _ds_unchecked),
     ("OK", _ds_all_rowed), ("EMPTY", _ds_empty), ("PENDING", _ds_pending))}
 R.check(
@@ -36091,7 +36250,7 @@ R.check(
 # --drain (R9 F10.5): the pre-ratchet stock's path to a disposition. The slice
 # is whole anchors -- a split anchor spends runs on sites `pin_results` can
 # never pin -- reachable by a recorded closure, under the cap, fixed for one
-# seed and moved by another, so the nightly's date seed walks the stock rather
+# seed and moved by another, so the nightly's run seed walks the stock rather
 # than retrying the same survivors.
 _dp_site = lambda anchor, file, line: {  # noqa: E731
     "anchor": anchor, "file": file, "line": line, "kind": "CLAMP_DROP",
@@ -36357,7 +36516,7 @@ R.check(
 )
 
 # Wired, against the YAML: the measuring job holds no write grant and runs the
-# drain with a date seed; the pushing job runs no driver, applies through
+# drain with the run's seed; the pushing job runs no driver, applies through
 # `apply_drained` with the measured head's diff, checks the write set, pushes
 # only to main under the writer's subject, and is graded by `drain_report`.
 _ml_meas = _workflow_job(_NIGHTLY_YML, "mutation-ledger")
@@ -36365,12 +36524,12 @@ _ml_push = _workflow_job(_NIGHTLY_YML, "mutation-ledger-push")
 _ML_MISSING = [w for w, job in (
     ('--scope full --drain "$out" --shard ${{ matrix.shard }}/4', _ml_meas),
     ("--max 80 --jobs 4", _ml_meas),
-    ("--budget-minutes 240", _ml_meas),
+    ("--budget-minutes 270", _ml_meas),
     ("shard: [1, 2, 3, 4]", _ml_meas),
     ("pattern: mutation-ledger-*", _ml_push),
     ("m.merge_pin_shards(sys.argv[1], sys.argv[2])", _ml_push),
     ("if: always() && matrix.shard == 1", _ml_meas),
-    ('--seed "$(date -u +%Y%m%d)"', _ml_meas),
+    ('--seed "${{ github.run_id }}"', _ml_meas),
     ("github.event_name != 'push'", _ml_meas),
     ("needs.mutation-ledger.result == 'success'", _ml_push),
     ("m.apply_drained(pins, head, changed)", _ml_push),
@@ -36406,7 +36565,7 @@ _REACH: list = []
 try:
     for _rv in _NIGHTLY_EVENTS:
         for _rr in ("refs/heads/main", "refs/heads/fix/x"):
-            _rx = {"github.event_name": _rv, "github.ref": _rr}
+            _rx = {"github.event_name": _rv, "github.ref": _rr, "inputs.lanes": "all"}
             _r_meas = _gh_eval(_gh_if(_ml_meas), _rx)
             _r_push = _gh_eval(_gh_if(_ml_push), {
                 **_rx, "needs.mutation-ledger.result": "success" if _r_meas else "skipped"})
@@ -36456,7 +36615,7 @@ try:
                                        "needs.closure-scope.outputs.nightly_ha": _nf})
             # nightly.yml lists push, schedule and dispatch alone.
             _ngot_n = _nv in _NIGHTLY_EVENTS and _gh_eval(
-                _NHA_NIGHT_IF, {"github.event_name": _nv})
+                _NHA_NIGHT_IF, {"github.event_name": _nv, "inputs.lanes": "all"})
             _nwant = _nv == "pull_request" and _nf == "true"
             _nwant_n = _nv in ("schedule", "workflow_dispatch")
             if (_ngot, _ngot_n) != (_nwant, _nwant_n):
@@ -38657,7 +38816,7 @@ R.check(
 # pull request's pin step only to a base program that has the flag.
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
-    ("mutation-ledger", "--budget-minutes 240"),
+    ("mutation-ledger", "--budget-minutes 270"),
     ("mutation-pins", "&& budget=(--budget-minutes 260)"),
     ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
     # The budget's ceilings, derived 2026-10-09 from the draw_range-class
@@ -38985,6 +39144,56 @@ R.check(
     f"serial={_MUT_BG2_OUT[0]!r} split={_MUT_BG2_OUT[1]!r}"
     if _MUT_BG2_OUT else f"drive_pin_pool="
                          f"{'absent' if _mut_pin is None else 'present'}",
+)
+
+# A pair `reach_skip` frees costs no run, so admission must not charge it
+# (R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT): the drain's 06 Nov shards closed
+# their pools 16-80 minutes before --budget-minutes with 185 of 320 drawn
+# sites unstarted, charging each mutant the sweep of drivers its traced
+# baselines never ran. The fixture of the check above plus a 1000 s driver
+# every mutant's trace frees: charged, it closes the pool before the first
+# mutant; freed, the schedules measure what the 40 s driver alone allows,
+# and the freed driver never runs. A predicate freeing nothing is the null
+# control: both schedules close at once, as charging everything would.
+def _mut_rf_run(schedule, workers, free):
+    _MUT_BG2_T[0] = 0.0
+    ran: list = []
+    pool = [dict(m, drivers=["tests/a.py", "tests/big.py"])
+            for m in _MUT_BG2_POOL]
+
+    def drive(w, m, s):
+        ran.append((m["line"], s))
+        _MUT_BG2_T[0] += {"tests/a.py": 40, "tests/big.py": 1000}[s] / workers
+        return False
+
+    try:
+        out = schedule(pool, workers, {"tests/a.py": 40, "tests/big.py": 1000},
+                       drive, deadline=100, clock=lambda: _MUT_BG2_T[0],
+                       free=free)
+    except TypeError as exc:
+        return repr(exc)
+    return [v for _, v in out], sorted(ran)
+
+
+_mut_rf_big = lambda m, s: s == "tests/big.py"  # noqa: E731
+_MUT_RF_OUT = ((_mut_rf_run(_mut.drive_pool, 1, _mut_rf_big),
+                _mut_rf_run(_mut_pin, 4, _mut_rf_big),
+                _mut_rf_run(_mut.drive_pool, 1, lambda m, s: False),
+                _mut_rf_run(_mut_pin, 4, lambda m, s: False))
+               if _mut_pin is not None else None)
+R.check(
+    "budget admission charges no pair reach_skip frees, in both schedules, "
+    "and main() hands the schedule its reach predicate",
+    _MUT_RF_OUT is not None
+    and _MUT_RF_OUT[0] == (["LIVES", "LIVES", "SKIP-BUDGET", "SKIP-BUDGET"],
+                           [(0, "tests/a.py"), (1, "tests/a.py")])
+    and _MUT_RF_OUT[1] == (["LIVES"] * 4,
+                           [(i, "tests/a.py") for i in range(4)])
+    and _MUT_RF_OUT[2] == (["SKIP-BUDGET"] * 4, [])
+    and _MUT_RF_OUT[3] == (["SKIP-BUDGET"] * 4, [])
+    and "free=reach_free)" in _MUT_BODY,
+    f"{_MUT_RF_OUT!r}" if _MUT_RF_OUT else
+    f"drive_pin_pool={'absent' if _mut_pin is None else 'present'}",
 )
 # R9-CI-1: #2025's pin step started none of 56 sites (run 37663843895). The
 # split charged every admitted mutant its EXCLUSIVE tail up front -- stress.py
