@@ -30519,6 +30519,351 @@ R.check(
 )
 
 
+R.section("A configured input that returns is re-read at once, not one interval later")
+
+# A live install's indoor sensor is a Zigbee2MQTT entity. After a restart or a
+# reload of this integration the first read ran before MQTT discovery had
+# re-created it, so the reading was `missing_entity` and every learner froze;
+# nothing read it again until the next scheduled update, one
+# `optimization_interval` (15 min there) later, although the entity was back
+# within seconds. `InputReturnWatch` asks for the coordinator's debounced
+# refresh as soon as an input the last read found absent or valueless reports
+# a value. The re-read goes through the real `_update_current_state` here, so
+# every guard a scheduled read applies applies to the returned value too.
+import gc as _ir_gc  # noqa: E402
+import weakref as _ir_weakref  # noqa: E402
+
+_IR_SPACING_S = 15 * 60.0
+
+
+def _ir_event(entity_id, state):
+    return type("Ev", (), {"data": {
+        "entity_id": entity_id, "old_state": None, "new_state": state}})()
+
+
+def _ir_fire(hass, entity_id, state):
+    for ids, action in list(getattr(hass, "state_listeners", [])):
+        if entity_id in ids:
+            action(_ir_event(entity_id, state))
+
+
+def _ir_rig(indoor=None, *, stub_refresh=True):
+    """A coordinator whose first read finds ``indoor`` (absent when None).
+
+    ``stub_refresh`` replaces the refresh with the cycle's input half (the
+    real read, every real guard); without it the real debounced
+    ``async_request_refresh`` is what a return reaches.
+    """
+    import homeassistant.util.dt as _ir_dt
+
+    states = {"sensor.outdoor": FakeState("-8.0", unit="°C", last_updated=_LF_T0)}
+    if indoor is not None:
+        states["sensor.indoor"] = indoor
+    hass = _FakeHass(states)
+    coord = Coord(hass, _FakeEntry(data={
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "optimization_interval": 15,
+    }))
+    coord._current_weather = lambda: (0.0, 0.0)
+    # Captured from here on: the construction's own loaders are not the watch.
+    tasks = []
+    hass.async_create_task = lambda coro, *a, **k: tasks.append(coro)
+    refreshes = []
+
+    async def _refresh():
+        refreshes.append(1)
+        await coord._update_current_state()
+
+    if stub_refresh:
+        coord.async_request_refresh = _refresh
+    clock = [1000.0]
+    # getattr: at a tree without the watch the checks below fail, not crash.
+    watch = getattr(coord, "_input_returns", None)
+    if watch is not None:
+        watch.clock = lambda: clock[0]
+    real = (_ir_dt.now, _ir_dt.utcnow)
+
+    def run(coro):
+        _ir_dt.now = _ir_dt.utcnow = lambda: _LF_T0
+        try:
+            _asyncio.run(coro)
+        finally:
+            _ir_dt.now, _ir_dt.utcnow = real
+
+    run(coord._update_current_state())
+
+    def run_tasks():
+        while tasks:
+            run(tasks.pop(0))
+
+    return coord, hass, tasks, refreshes, clock, run_tasks, run
+
+
+def _ir_watched(hass):
+    return sorted(
+        e for ids, _a in getattr(hass, "state_listeners", []) for e in ids)
+
+
+def _ir_indoor(coord):
+    return coord._input_health.readings["indoor_temp_entity"]
+
+
+_ir_c, _ir_h, _ir_tasks, _ir_refreshes, _ir_clock, _ir_run, _ir_do = _ir_rig()
+R.check(
+    "precondition: an indoor entity absent at the first read is missing_entity "
+    "and freezes the learners",
+    _ir_indoor(_ir_c).problem == "missing_entity"
+    and _ir_c._learning_frozen("indoor_temp_entity")
+    == "missing_entity:indoor_temp_entity",
+    f"got {_ir_c._learning_frozen('indoor_temp_entity')!r}",
+)
+R.check(
+    "the read that found it absent watches exactly that entity",
+    _ir_watched(_ir_h) == ["sensor.indoor"],
+    f"watched {_ir_watched(_ir_h)}",
+)
+# HA writes an `unavailable` placeholder for a registry entity whose
+# integration has not loaded; that is not a return.
+_ir_fire(_ir_h, "sensor.indoor", FakeState("unavailable", last_updated=_LF_T0))
+R.check(
+    "an entity that reappears without a value asks for nothing",
+    not _ir_tasks,
+    f"{len(_ir_tasks)} refreshes requested",
+)
+_ir_back = FakeState("21.3", unit="°C", last_updated=_LF_T0)
+_ir_h.states.set("sensor.indoor", _ir_back)
+_ir_fire(_ir_h, "sensor.indoor", _ir_back)
+R.check(
+    "the entity reporting a value asks for one refresh at once",
+    len(_ir_tasks) == 1,
+    f"{len(_ir_tasks)} refreshes requested",
+)
+_ir_run()
+R.check(
+    "that refresh re-reads it: the input is ok, the learners unfreeze, the "
+    "planner's room temperature is the reading",
+    _ir_refreshes == [1]
+    and _ir_indoor(_ir_c).ok
+    and _ir_c._learning_frozen("indoor_temp_entity") is None
+    and _ir_c._current_state.room_temperature == 21.3,
+    f"refreshes {_ir_refreshes}, "
+    f"frozen {_ir_c._learning_frozen('indoor_temp_entity')!r}, "
+    f"room {_ir_c._current_state.room_temperature}",
+)
+R.check(
+    "and with nothing absent any more nothing is watched",
+    _ir_watched(_ir_h) == [],
+    f"watched {_ir_watched(_ir_h)}",
+)
+
+# A flapping sensor: absent again at the next scheduled read, back within the
+# same interval. The hold runs from the re-read (at clock 1000.0), one
+# interval long, so one extra refresh per entity per interval, not one per flap.
+_ir_h.states._states.pop("sensor.indoor")
+_ir_do(_ir_c._update_current_state())
+_ir_clock[0] = 1000.0 + _IR_SPACING_S - 1.0
+_ir_fire(_ir_h, "sensor.indoor", _ir_back)
+R.check(
+    "a return one second short of an interval after the re-read asks for nothing",
+    not _ir_tasks and _ir_watched(_ir_h) == ["sensor.indoor"],
+    f"{len(_ir_tasks)} requested, watched {_ir_watched(_ir_h)}",
+)
+_ir_clock[0] = 1000.0 + _IR_SPACING_S
+_ir_fire(_ir_h, "sensor.indoor", _ir_back)
+R.check(
+    "a return exactly one interval after the re-read asks again",
+    len(_ir_tasks) == 1,
+    f"{len(_ir_tasks)} refreshes requested",
+)
+_ir_tasks.clear()
+
+# A return while a cycle is in flight. Home Assistant's debouncer discards a
+# call while it is executing; the real `async_request_refresh` meets the stub's
+# copy of that branch here. A request that never became a read must not start
+# the hold, or the next return would wait a whole interval.
+_ir_f, _ir_fh, _ir_ft, _ir_fr, _ir_fc, _ir_frun, _ir_fdo = _ir_rig(stub_refresh=False)
+_ir_fh.states.set("sensor.indoor", _ir_back)
+_ir_f._debounced_refresh._executing = True
+_ir_fire(_ir_fh, "sensor.indoor", _ir_back)
+_ir_asked = len(_ir_ft)
+_ir_frun()
+R.check(
+    "precondition: a return during an in-flight cycle is asked for and "
+    "dropped by the debouncer, so nothing was re-read",
+    _ir_asked == 1 and _ir_f.refresh_requests == 1
+    and _ir_indoor(_ir_f).problem == "missing_entity",
+    f"asked {_ir_asked}, requests {_ir_f.refresh_requests}, "
+    f"indoor {_ir_indoor(_ir_f).problem}",
+)
+_ir_f._debounced_refresh._executing = False
+_ir_fc[0] += 60.0
+_ir_fire(_ir_fh, "sensor.indoor", _ir_back)
+R.check(
+    "the next report after a dropped request asks again",
+    len(_ir_ft) == 1,
+    f"{len(_ir_ft)} refreshes requested",
+)
+for _ir_coro in _ir_ft:
+    _ir_coro.close()
+_ir_ft.clear()
+# The in-flight cycle read its inputs before the return arrived, so it cannot
+# settle it; the first read that runs after the return does (here the next
+# one), and that read starts the hold.
+_ir_fdo(_ir_f._update_current_state())
+_ir_fh.states._states.pop("sensor.indoor")
+_ir_fdo(_ir_f._update_current_state())
+_ir_fc[0] += 60.0
+_ir_fire(_ir_fh, "sensor.indoor", _ir_back)
+R.check(
+    "a read after the return settles it: the next return inside the hold "
+    "asks for nothing",
+    not _ir_ft,
+    f"{len(_ir_ft)} refreshes requested",
+)
+
+# The guards still decide. A value twelve hours old comes back: the re-read
+# runs, rejects it as stale, and the learners stay frozen.
+_ir_s, _ir_sh, _ir_st, _ir_sr, _ir_sc, _ir_srun, _ = _ir_rig()
+_ir_old = FakeState("21.0", unit="°C", last_updated=_LF_T0 - timedelta(hours=12))
+_ir_sh.states.set("sensor.indoor", _ir_old)
+_ir_fire(_ir_sh, "sensor.indoor", _ir_old)
+_ir_srun()
+R.check(
+    "a returned value the guards reject is re-read and keeps the learners "
+    "frozen",
+    _ir_sr == [1]
+    and _ir_s._learning_frozen("indoor_temp_entity") == "stale:indoor_temp_entity",
+    f"refreshes {_ir_sr}, got {_ir_s._learning_frozen('indoor_temp_entity')!r}",
+)
+
+# `unavailable` is watched as `missing_entity` is: an entity HA holds, with no
+# value, that then reports one.
+_ir_u, _ir_uh, _ir_ut, _ir_ur, _ir_uc, _ir_urun, _ = _ir_rig(
+    FakeState("unavailable", unit="°C", last_updated=_LF_T0))
+_ir_uh.states.set("sensor.indoor", _ir_back)
+_ir_fire(_ir_uh, "sensor.indoor", _ir_back)
+_ir_urun()
+R.check(
+    "an input read as unavailable is watched and re-read when it reports a value",
+    _ir_watched(_ir_uh) == [] and _ir_ur == [1] and _ir_indoor(_ir_u).ok,
+    f"refreshes {_ir_ur}, indoor {_ir_indoor(_ir_u).problem}",
+)
+
+# Released with the entry (#236): the listener goes, and no later read re-arms.
+_ir_r, _ir_rh, _ir_rt, _ir_rr, _ir_rc, _ir_rrun, _ir_rdo = _ir_rig()
+_ir_r._release_registrations()
+_ir_released = _ir_watched(_ir_rh)
+_ir_rdo(_ir_r._update_current_state())
+R.check(
+    "releasing the entry drops the watch, and a read after it registers none",
+    _ir_released == [] and _ir_watched(_ir_rh) == [],
+    f"after release {_ir_released}, after a later read {_ir_watched(_ir_rh)}",
+)
+# And nothing the watch holds keeps the coordinator alive: a module-level
+# table keyed by the coordinator, whose value held its bound refresh, pinned
+# every coordinator for the life of the process -- one per reload and per
+# ConfigEntryNotReady retry.
+_ir_ref = _ir_weakref.ref(_ir_r)
+del _ir_r, _ir_rh, _ir_rt, _ir_rr, _ir_rc, _ir_rrun, _ir_rdo
+_ir_gc.collect()
+R.check(
+    "a released coordinator is collected",
+    _ir_ref() is None,
+    f"{len(_ir_gc.get_referrers(_ir_ref()))} referrers" if _ir_ref() else "",
+)
+
+# NULL CONTROL: a healthy install carries no listener at all, so the watch
+# cannot be what every healthy read pays for.
+_ir_n, _ir_nh, _ir_nt, *_ = _ir_rig(
+    FakeState("21.0", unit="°C", last_updated=_LF_T0))
+R.check(
+    "null control: a read with every configured input usable watches nothing",
+    _ir_indoor(_ir_n).ok and _ir_watched(_ir_nh) == [] and not _ir_nt,
+    f"watched {_ir_watched(_ir_nh)}",
+)
+# A design choice, pinned: only absence and no-value are watched. A sensor
+# reporting a word (or a fault code, or a unit the reader cannot convert) is
+# present and reporting, and a stale one re-reported unchanged fires no state
+# change at all; an event vouches for nothing the re-read could accept, so
+# watching either would buy one extra update per interval while it stays so.
+_ir_w, _ir_wh, *_ = _ir_rig(FakeState("warm", unit="°C", last_updated=_LF_T0))
+R.check(
+    "a present input with an unusable value (not_numeric) is not watched",
+    _ir_indoor(_ir_w).problem == "not_numeric" and _ir_watched(_ir_wh) == [],
+    f"watched {_ir_watched(_ir_wh)}",
+)
+_ir_o, _ir_oh, *_ = _ir_rig(
+    FakeState("21.0", unit="°C", last_updated=_LF_T0 - timedelta(hours=12)))
+R.check(
+    "a stale input is not watched",
+    _ir_indoor(_ir_o).problem == "stale" and _ir_watched(_ir_oh) == [],
+    f"watched {_ir_watched(_ir_oh)}",
+)
+
+# The watch itself, driven with a fake clock and a counting tracker, so the
+# bookkeeping a whole-coordinator read cannot see is pinned too.
+from heatpump_optimizer.inputs import (  # noqa: E402
+    InputHealth as _IrHealth,
+    InputReading as _IrReading,
+    InputReturnWatch as _IrWatch,
+)
+
+
+def _ir_unit():
+    log = {"track": [], "unsub": 0, "req": 0, "t": 0.0, "cb": None}
+
+    def track(ids, cb):
+        log["track"].append(list(ids))
+        log["cb"] = cb
+
+        def unsub():
+            log["unsub"] += 1
+        return unsub
+
+    def request():
+        log["req"] += 1
+
+    w = _IrWatch(track, request, _IR_SPACING_S, clock=lambda: log["t"])
+    return w, log
+
+
+def _ir_health(*ids):
+    h = _IrHealth()
+    for i in ids:
+        h.record(_IrReading(key=i, entity_id=i, problem="missing_entity"))
+    return h
+
+
+_ir_w1, _ir_l1 = _ir_unit()
+_ir_w1.arm(_ir_health("sensor.a"))
+_ir_w1.arm(_ir_health("sensor.a"))
+R.check(
+    "an unchanged watched set neither re-registers nor drops the listener",
+    _ir_l1["track"] == [["sensor.a"]] and _ir_l1["unsub"] == 0,
+    f"{_ir_l1['track']} unsub {_ir_l1['unsub']}",
+)
+
+# The re-read stamp is the arm that follows the request, not a later arm.
+_ir_w2, _ir_l2 = _ir_unit()
+_ir_w2.arm(_ir_health("sensor.a"))
+_ir_l2["t"] = 10.0
+_ir_l2["cb"](_ir_event("sensor.a", FakeState("1.0")))
+_ir_l2["t"] = 20.0
+_ir_w2.arm(_ir_health("sensor.a"))  # stamps the re-read at t=20
+_ir_l2["t"] = 5000.0
+_ir_w2.arm(_ir_health("sensor.a"))  # nothing pending: must not restamp
+_ir_l2["t"] = 20.0 + _IR_SPACING_S
+_ir_l2["cb"](_ir_event("sensor.a", FakeState("1.0")))
+R.check(
+    "a settled request is stamped once; a later arm does not push the spacing out",
+    _ir_l2["req"] == 2,
+    f"requests {_ir_l2['req']}",
+)
+
+
 # ===========================================================================
 # v5.1.7 — an ordinary slot stops calling itself weather pre-heating
 # ===========================================================================
@@ -68837,6 +69182,192 @@ R.check(
     f"{_pp_low}",
 )
 
+# --- #3289 a declared on/off compressor; space projected against the DHW ------
+# R10-MIN-POWER-FLOOR. ``compressor_modulation`` declares whether the
+# compressor can run below p_min; ``thermal_model.declared_modulation`` is its
+# only reader. On a clamped install one compressor serves space and DHW, so
+# space ships projected against the DHW the step already carries
+# (``project_space_against``): every step's total is 0 or in [p_min, p_max].
+# The solve cell is the finder's (dev/audit/harnesses/r10_min_power_floor.py):
+# a 2.5-3.5 kW pump, spread prices, DHW on, outdoor mean -4 degC.
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_CLAMP_PLANNED_LEVELS as _MPF_CLAMP_KEY,
+    CONF_COMPRESSOR_FREQ_ENTITY as _MPF_FREQ,
+    CONF_HEAT_PUMP_SWITCH_ENTITY as _MPF_SWITCH,
+    CONF_POWER_ENTITY as _MPF_POWER,
+    CONF_SPACE_SETPOINT_ENTITY as _MPF_SETPOINT,
+    COMPRESSOR_MODULATION_AUTO as _MPF_AUTO,
+    COMPRESSOR_MODULATION_MODULATING as _MPF_MOD,
+    COMPRESSOR_MODULATION_ON_OFF as _MPF_ON_OFF,
+    CONF_COMPRESSOR_FREQ_SENSOR as _MPF_FREQ_SENSOR,
+    CONF_COMPRESSOR_MODULATION as _MPF_KEY,
+    CONF_FREQ_CONTROL_MODE as _MPF_FREQ_MODE,
+    FREQ_MODE_CONTROL as _MPF_FREQ_CONTROL,
+)
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _MpfOpt,
+    OptimizationConfig as _MpfCfg,
+    _realize_draw as _mpf_realize,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    UNMETERED_POWER_FREEZE as _MPF_FREEZE,
+    ThermalModel as _MpfTM,
+    ThermalParameters as _MpfTP,
+    ThermalState as _MpfTS,
+    declared_modulation as _mpf_declared,
+    InstallCapability as _MpfCap,
+    learner_unmetered as _mpf_unmetered,
+    probe_install as _mpf_probe,
+    project_planned_levels as _mpf_project,
+    project_space_against as _mpf_against,
+)
+
+# The #1955 block's two surfaces, restated so this block runs alone
+# (``tools/audit/seat/features_block.py``): switch plus setpoint, and that
+# surface with a power entity and a frequency write.
+_MPF_UNMETERED = {_MPF_SWITCH: "switch.hp", _MPF_SETPOINT: "number.flow"}
+_MPF_METERED = {**_MPF_UNMETERED, _MPF_POWER: "sensor.hp_power", _MPF_FREQ: "number.hz"}
+
+_MPF_SETPOINT_ONLY = {_MPF_SETPOINT: "number.flow"}
+_MPF_FREQ_ONLY = {_MPF_FREQ_SENSOR: "sensor.hz"}
+
+
+def _mpf_on_off(cfg):
+    return {**cfg, _MPF_KEY: _MPF_ON_OFF}
+
+
+R.check(
+    "a declared on/off compressor clamps on every write surface, metered or not",
+    all(
+        _MpfCfg.from_mapping(_mpf_on_off(m)).clamp_planned_levels is True
+        for m in (_MPF_METERED, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY, {})
+    )
+    and _mpf_probe(_mpf_on_off(_MPF_METERED)).fully_metered() is False,
+    f"{[_MpfCfg.from_mapping(_mpf_on_off(m)).clamp_planned_levels for m in (_MPF_METERED, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY, {})]}",
+)
+_mpf_bare_cap = _MpfCap(writes=frozenset({"setpoint"}), measured_power=False, frequency=False)
+R.check(
+    "null control: a capability built without the declaration is not on/off, and a "
+    "setpoint-only surface it describes can duty-cycle",
+    _mpf_bare_cap.on_off is False and _mpf_bare_cap.can_duty_cycle() is True
+    and _mpf_probe(_MPF_SETPOINT_ONLY).on_off is False,
+    f"{_mpf_bare_cap}",
+)
+_mpf_base_rows = (_MPF_UNMETERED, _MPF_METERED, {}, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY)
+R.check(
+    "null control: auto and an absent key keep the probe's clamp on every surface, "
+    "legacy false and modulating opt out, legacy true clamps",
+    all(
+        _MpfCfg.from_mapping({**m, _MPF_KEY: _MPF_AUTO}).clamp_planned_levels
+        is _MpfCfg.from_mapping(m).clamp_planned_levels
+        for m in _mpf_base_rows
+    )
+    and [_MpfCfg.from_mapping(m).clamp_planned_levels for m in _mpf_base_rows]
+    == [True, False, False, False, False]
+    and _MpfCfg.from_mapping({**_MPF_UNMETERED, _MPF_KEY: _MPF_MOD}).clamp_planned_levels is False
+    and _MpfCfg.from_mapping({**_MPF_UNMETERED, _MPF_CLAMP_KEY: False}).clamp_planned_levels is False
+    and _MpfCfg.from_mapping({**_MPF_METERED, _MPF_CLAMP_KEY: True}).clamp_planned_levels is True
+    and _MpfCfg.from_mapping(
+        {**_MPF_UNMETERED, _MPF_KEY: _MPF_AUTO, _MPF_CLAMP_KEY: False}
+    ).clamp_planned_levels is False,
+)
+R.check(
+    "declared_modulation reads the select first, the legacy key only under auto or absent, "
+    "and anything else as undeclared",
+    _mpf_declared({}) is None
+    and _mpf_declared({_MPF_KEY: _MPF_ON_OFF, _MPF_CLAMP_KEY: False}) is False
+    and _mpf_declared({_MPF_KEY: _MPF_MOD, _MPF_CLAMP_KEY: True}) is True
+    and _mpf_declared({_MPF_KEY: _MPF_AUTO, _MPF_CLAMP_KEY: True}) is False
+    and _mpf_declared({_MPF_CLAMP_KEY: False}) is True
+    and _mpf_declared({_MPF_KEY: "bogus"}) is None
+    and _mpf_declared({_MPF_CLAMP_KEY: "false"}) is None,
+)
+R.check(
+    "an unmetered on/off install freezes the house learner; a metered one, or a "
+    "declared modulating one, learns",
+    _mpf_unmetered(_mpf_on_off(_MPF_SETPOINT_ONLY)) == _MPF_FREEZE
+    and _mpf_unmetered(_MPF_SETPOINT_ONLY) is None
+    and _mpf_unmetered(_mpf_on_off(_MPF_METERED)) is None
+    and _mpf_unmetered({**_MPF_UNMETERED, _MPF_KEY: _MPF_MOD}) is None
+    and _mpf_unmetered(_MPF_UNMETERED) == _MPF_FREEZE,
+)
+
+_mpf_space = np.array([0.0, 0.3, 2.8, 4.0, 1.0, 2.8, 0.05, -0.2])
+_mpf_dhw = np.array([0.0, 0.0, 2.5, 0.0, 3.5, 0.0, 2.5, 0.0])
+_mpf_proj = _mpf_against(_mpf_space, _mpf_dhw, 2.5, 3.5)
+_mpf_rows = _mpf_against(np.vstack([_mpf_space, _mpf_space[::-1]]), _mpf_dhw, 2.5, 3.5)
+R.check(
+    "space projects against the DHW in its step: capped at p_max - dhw, a sub-minimum "
+    "level raised to p_min only where DHW is off, identity where the total already fits",
+    np.allclose(_mpf_proj, [0.0, 2.5, 1.0, 3.5, 0.0, 2.8, 0.05, 0.0])
+    and np.array_equal(_mpf_against(_mpf_space, np.zeros(8), 2.5, 3.5),
+                       _mpf_project(_mpf_space, 2.5, 3.5))
+    and np.array_equal(_mpf_rows[0], _mpf_proj)
+    and np.array_equal(_mpf_rows[1], _mpf_against(_mpf_space[::-1], _mpf_dhw, 2.5, 3.5)),
+    f"{_mpf_proj.tolist()}",
+)
+_mpf_r_space, _mpf_r_dhw = _mpf_realize(True, _mpf_space, np.array([0.0, 1.0, 2.5, 4.0, 0, 0, 0, 0]), 2.5, 3.5)
+R.check(
+    "a clamped install realizes DHW as its own projection and space against it; "
+    "unclamped and DHW-less draws are unchanged",
+    np.allclose(_mpf_r_dhw, [0.0, 2.5, 2.5, 3.5, 0, 0, 0, 0])
+    and np.allclose(_mpf_r_space, [0.0, 0.3, 1.0, 0.0, 2.5, 2.8, 2.5, 0.0])
+    and _mpf_realize(False, _mpf_space, _mpf_dhw, 2.5, 3.5)[0] is _mpf_space
+    and _mpf_realize(False, _mpf_space, _mpf_dhw, 2.5, 3.5)[1] is _mpf_dhw
+    and _mpf_realize(True, _mpf_space, None, 2.5, 3.5)[1] is None
+    and np.array_equal(_mpf_realize(True, _mpf_space, None, 2.5, 3.5)[0],
+                       _mpf_project(_mpf_space, 2.5, 3.5)),
+    f"space {_mpf_r_space.tolist()} dhw {_mpf_r_dhw.tolist()}",
+)
+
+_MPF_STEPS = np.arange(96)
+_MPF_SPREAD = 1.3 + 0.9 * np.sin(2 * np.pi * (_MPF_STEPS - 30) / 96.0)
+
+
+def _mpf_totals(cfg):
+    """Per-step space+DHW of the finder's spread/DHW/-4 degC cell under ``cfg``."""
+    params = _MpfTP()
+    params.mixing_valve_mode, params.buffer_tank_volume = "none", 0.0
+    params.min_electrical_power, params.max_electrical_power = 2.5, 3.5
+    params.dhw_enabled = True
+    out = -4.0 + 3 * np.sin(2 * np.pi * (_MPF_STEPS - 50) / 96)
+    opt = _MpfOpt(_MpfTM(params), _MpfCfg(
+        clamp_planned_levels=_MpfCfg.from_mapping(cfg).clamp_planned_levels,
+    ))
+    res = opt.optimize(inputs=solve_inputs(
+        initial_state=_MpfTS(
+            room_temperature=20.5, upper_floor_temperature=20.5,
+            lower_floor_temperature=20.5, slab_temperature=21.0,
+            outdoor_temperature=float(out[0]), dhw_temperature=50.0,
+        ),
+        prices=_MPF_SPREAD, outdoor_temps=out,
+        start_time=datetime(2026, 1, 10, tzinfo=UTC),
+    ))
+    return (np.asarray(res.power_schedule, float)
+            + np.asarray(res.dhw_power_schedule or np.zeros(96), float))
+
+
+def _mpf_off_or_band(tot):
+    return bool(np.all((tot == 0.0) | ((tot >= 2.5 - 1e-9) & (tot <= 3.5 + 1e-9))))
+
+
+_mpf_declared_tot = _mpf_totals(_mpf_on_off(_MPF_METERED))
+_mpf_probed_tot = _mpf_totals(_MPF_UNMETERED)
+R.check(
+    "per step, a declared on/off pump on a fully metered install plans every step off "
+    "or between min and max power (#3289)",
+    _mpf_off_or_band(_mpf_declared_tot),
+    f"steps below 2.5 {int(np.sum((_mpf_declared_tot > 0) & (_mpf_declared_tot < 2.5 - 1e-9)))}, "
+    f"max {_mpf_declared_tot.max():.2f}",
+)
+R.check(
+    "per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW "
+    "above max power, nor a running step below min power",
+    _mpf_off_or_band(_mpf_probed_tot),
+    f"max {_mpf_probed_tot.max():.2f}, steps below 2.5 "
+    f"{int(np.sum((_mpf_probed_tot > 0) & (_mpf_probed_tot < 2.5 - 1e-9)))}",
+)
+
 # --- R10-SETPOINT-POWER: the set-point is a power command (tvofi, 2026-10-19)
 # The modulation floor's flow sits FLOW_MIN_LIFT_K above the measured water
 # the pump heats, read from whichever sensors are configured, in the
@@ -68966,7 +69497,9 @@ R.check(
 # moved between arm64 and CI's x86_64. So the checks pin what the mechanism
 # guarantees on every platform -- a strictly lower objective where it wins,
 # never a higher one, and a plan that books above the floor -- not a cell's
-# basin.
+# basin. In the hot-water cells space ships projected against the DHW plan
+# (#3289, ``project_space_against``): before that, two cells shipped space
+# plus DHW above their 5.5 kW p_max; the checks' predicates hold either way.
 import heatpump_optimizer.optimizer as _sp_opt_mod  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer as _SpOpt,
@@ -70548,6 +71081,21 @@ R.check(
 R.check(
     "S4 where the install can duty-cycle: the min end stays configured",
     _dr.planned_range(_dr_live, _dr_params(), _DR_DUTY) == (_DR_MIN, _dr_live_seen[1]),
+)
+_dr_duty_cfg = {_MPF_SETPOINT: "number.flow", _MPF_POWER: "sensor.hp_power"}
+R.check(
+    "S4 on a setpoint-only install declared on/off: the metered floor raises the min "
+    "end, as on a switch-plus-setpoint one (#3289); undeclared it stays configured",
+    _dr.planned_range(_dr_live, _dr_params(), _dr_probe(_mpf_on_off(_dr_duty_cfg)))
+    == _dr_live_seen
+    and _dr.planned_range(_dr_live, _dr_params(), _dr_probe(_dr_duty_cfg))
+    == (_DR_MIN, _dr_live_seen[1]),
+)
+R.check(
+    "S4 a declared on/off install whose plan writes the frequency still reads None",
+    _dr.planned_range(_dr_live, _dr_params(), _dr_probe(_mpf_on_off(
+        {_MPF_SWITCH: "switch.hp", _MPF_FREQ: "number.hz", _MPF_FREQ_MODE: _MPF_FREQ_CONTROL}
+    ))) is None,
 )
 _dr_below_min = _dr_learner("live", cfg=(2.0, _DR_MAX))
 _dr_below_seen = _dr_below_min.observed()
