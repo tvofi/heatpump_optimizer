@@ -1,0 +1,18 @@
+== replay ci@daf8b349fd30cc60786eeca333a426b693aa4c5f
+3252-nosource: MISREAD | 42385416529: FAIL pr-contract / pr-contract: failure (run 42387066581) naps=0
+3244-triple: DECIDED | 42286558101: PASS naps=0; 42286624031: PASS naps=0; 42293328283: PASS naps=0
+RESULT replay ci=/tmp/tmp.meVIuTJGOH/ci-daf8b349fd30cc60786eeca333a426b693aa4c5f/tools/ci defects=yes
+rc=1
+== replay ci@afc1586a4424f997ce70ed2003add9d7de93d6f6
+3252-nosource: MISREAD | 42385416529: FAIL pr-contract / pr-contract: failure (run 42387066581) naps=0
+3244-triple: DECIDED | 42286558101: PASS naps=0; 42286624031: PASS naps=0; 42293328283: PASS naps=0
+RESULT replay ci=/tmp/tmp.meVIuTJGOH/ci-afc1586a4424f997ce70ed2003add9d7de93d6f6/tools/ci defects=yes
+rc=1
+== replay ci@9cbd7dd0
+3252-nosource: MISREAD | 42385416529: FAIL pr-contract / pr-contract: failure (run 42387066581) naps=0
+3244-triple: DEADLOCK | 42286558101: FAIL run(s) [42286624031, 42293328283] at this head are stil naps=0; 42286624031: FAIL run(s) [42286558101, 42293328283] at this head are stil naps=0; 42293328283: FAIL run(s) [42286558101, 42286624031] at this head are stil naps=0
+RESULT replay ci=/tmp/tmp.meVIuTJGOH/ci-9cbd7dd0/tools/ci defects=yes
+rc=1
+3252-nosource: DECIDED | 42385416529: PASS naps=0
+3244-triple: DECIDED | 42286558101: PASS naps=0; 42286624031: PASS naps=0; 42293328283: PASS naps=0
+RESULT replay ci=tools/ci defects=no

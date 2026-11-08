@@ -1,0 +1,21 @@
+== head
+settle+fresh judge present: posts= []
+STALE-PIN P0: run 5 re-judges this head with fresh programs; run 1 left
+STALE-PIN P0: run 5 re-judges this head with fresh programs; run 2 left
+SWEEP-DONE run=2 reruns=0 dispatches=0
+poll+fresh judge present: posts= []
+SWEEP-DONE run=9 reruns=0 dispatches=0
+== S15
+settle+fresh judge present: posts= ['repos/o/r/actions/workflows/ci.yml/dispatches']
+STALE-PIN P0: run 1's gate restores programs older than main's tools/ci; re-judged by a fresh run dispatched on fix/b (HTTP 204)
+STALE-PIN P0: run 2 left to this sweep's dispatched run
+SWEEP-DONE run=2 reruns=0 dispatches=1
+poll+fresh judge present: posts= []
+SWEEP-DONE run=9 reruns=0 dispatches=0
+== S16
+settle+fresh judge present: posts= []
+STALE-PIN P0: run 5 re-judges this head with fresh programs; run 1 left
+STALE-PIN P0: run 5 re-judges this head with fresh programs; run 2 left
+SWEEP-DONE run=2 reruns=0 dispatches=0
+poll+fresh judge present: posts= []
+SWEEP-DONE run=9 reruns=0 dispatches=0
