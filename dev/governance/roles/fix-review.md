@@ -9,32 +9,35 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
    run the closure, confirm the named checks fail, restore. If nothing fails,
-   the test is vacuous: `blocked <sha> mutation-vacuous: <mutant>`.
+   it is vacuous: `blocked <sha> mutation-vacuous: <mutants>`: every
+   survivor your driver run at that head reports, which `push-verdict` reads in
+   your evidence (`survivor_list.py`, tvofi 2026-11-07).
 2. Measure with the **finder's** harness, not the fixer's: at the baseline
    SHA and at the PR head, printing your own `RESULT` lines. One flat by
-   design (`fixer.md` step 3): confirm it flat, not regressed, at both ends,
-   and run the companion yourself at both ends.
+   design (`fixer.md` step 3): confirm it flat at both ends, and run
+   its companion yourself at both.
 3. Re-run the null control and the both-ends check where the PR claims one.
 4. Compare the claim files with the actual drift: run `env_drift.py --all`
-   (and `card_drift.mjs` for card changes) against the merge base; every
+   (`card_drift.mjs` for a card) against the merge base; every
    moved fixture is claimed and every claim moved.
 5. Check `VERSION`, the manifest version and the notes heading are untouched.
 6. Attack the fix at other configurations the finding's harness accepts:
    the other topologies, the other price profiles, the zero-evidence install.
    **And open the class: a harness's configurations are its parameters, not its
-   population.** Run the enumeration rule the body names and compare its output with
+   population.** Run the enumeration rule the body names and compare its output to
    the diff: a seam it returns that is neither in the diff nor dispositioned in the body
-   is `blocked <sha> class-open: <seam>`, a site or a predicate's unguarded
-   domain. A body whose issue states more than one seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
-   returns nothing is a body whose class is one seam — say so rather than treating the absence as compliance.
+   is `blocked <sha> class-open: <seams>`, a site or a predicate's unguarded
+   domain: every one the review found, not one per round, no hunt past it owed.
+   An item whose harness does not move under its own perturbation is void
+   (`judge.md`): padding buys nothing. A body whose issue states more than one seam and names no rule is `blocked <sha> harness: class-rule-missing`. A rule returning
+   nothing means a one-seam class: say so, never read the absence as compliance.
 7. Confirm the head SHA in the PR body is the head you measured, or `--carry`s to it.
-8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
+8. **A quoted number you cannot re-derive is not verified: say so.** Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
-   if you had to build your own definition to check it, write that in the verdict.
+   had to build your own definition, write that in the verdict.
 9. **When the finding has no committed harness, that is itself a finding**.
-   A fixer who builds their own instrument must
-   disclose it as their own, not the finder's -- so do you, if you built one;
-   one rebuilt because a copy lived out of tree is named, and lands (`fixer.md` 18).
+   An instrument you or the fixer built is disclosed as the builder's, not the
+   finder's; one rebuilt from an out-of-tree copy is named and lands (`fixer.md` 18).
    A feature's harness is its judge's design: a requirement or on-device measurement it names and neither tests nor tvofi waived is `blocked <sha> harness: design-trace-missing <item>` (#1588).
 
 10. **Check the forward-carry before you return `merge`.** The PR body names
@@ -66,11 +69,9 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     `record`/`skip red-history` for the range; `skip` means every earlier head
     UNCHECKED.
 
-    **A GREEN `mutation` does not mean the baseline was green.** Since #1120 the
-    lane prints `MUTATION TABLE INCONCLUSIVE` and exits 0 on `--scope changed`
-    when its baseline is red, so a green conclusion means either no mutant
-    survived or none was evaluated; a diff writing no production code line draws
-    no mutant (`changed_lines`). Where the answer turns on it, read the lane's log.
+    **A GREEN `mutation` may have evaluated nothing**: on `--scope changed` a red
+    baseline prints `MUTATION TABLE INCONCLUSIVE` and exits 0 (#1120), and a diff
+    writing no production code line draws no mutant (`changed_lines`). Where the answer turns on it, read the lane's log.
 
     **Cite CI's heavy runs** (tvofi, 2026-09-30): never re-run the gate or the
     mutation table. Cheap checks (seconds: a lint, one
@@ -92,26 +93,21 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
     (`claim-files.md`). Confirm before you block:
-
-    ```
-    git merge-tree --write-tree origin/main <head>
-    ```
-
-    A non-zero exit names the conflicting paths. A conflict on any path other
+    `git merge-tree --write-tree origin/main <head>`; a non-zero exit names the conflicting paths. A conflict on any path other
     than the two claim files is yours to block on, because you cannot know the
     merged result is correct.
 
     **The driver's verdict is in that command's stderr; read it, never infer it
     from the paths.** `merge-tree` invokes the driver once per conflicting claim
     file if you installed it (`claim-files.md`). Key on the marker,
-    `MERGE-CLAIM: resolved <path>` or `MERGE-CLAIM: refused <path>`, not on the
+    `MERGE-CLAIM: resolved|refused <path>`, not on the
     wording after it, which several checks supply. A `resolved` line settles
-    that file, and a non-zero exit beside it is about another path. A `refused`
-    line is the orchestrator's to resolve by hand, not a defect in the authored
-    work — say which file refused and why.
+    that file; a non-zero exit beside it is another path's. A `refused`
+    line is the orchestrator's to resolve by hand, not the author's defect: say
+    which file refused and why.
 
     Never classify by line shape: to `_comment_lines` a `may-drift` line **is**
-    a `#` comment, and `merge_claim_defect` refuses when one is lost, so "only
+    a `#` comment, and `merge_claim_defect` refuses losing one, so "only
     comment notes conflict" waves a real refusal through.
 
 14. **Every number the diff moves is earned by the change, not the instrument**:

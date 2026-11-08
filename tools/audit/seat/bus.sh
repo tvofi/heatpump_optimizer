@@ -76,7 +76,8 @@
 # would refuse (ref_privacy.py body-lines, naming the line: P76), and one whose
 # finding items name no valid `Carry:` (carry_audit.py, the train pre-flight's
 # parser, over the verdict as its one comment, at origin/main and the round's
-# roster branch as last fetched: P40, P207). The push runs with a 500 MB
+# roster branch as last fetched: P40, P207), and a `mutation-vacuous` verdict omitting a survivor
+# the evidence's driver output reports (survivor_list.py). The push runs with a 500 MB
 # http.postBuffer: a ~30 MB evidence/ once failed HTTP 400 at git's 1 MB (#2563).
 #
 # NONCE VISIBILITY. The record lives in `$S` — `$HPO_BUS_STATE` else
@@ -295,6 +296,10 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
   why=$(python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" body-lines "$v") \
     || die "push-verdict: its post would refuse $v at $why; write the path as ~/... or drop it"
   why=$(carry_gate "$v") || die "push-verdict: $why"
+  # A mutation-vacuous block names every survivor its evidence's driver output reports, so the
+  # repair answers them in one round (fix-review.md step 1; tvofi 2026-11-07; #3262's four blocks).
+  why=$(python3 -I "$ROOT/tools/audit/seat/survivor_list.py" check "$v" "$ev") \
+    || die "push-verdict: $(tr '\n' ' ' <<< "$why")"
   t=$(mktemp -d) || die "push-verdict: no temporary directory"
   mkdir -p "$t/w/evidence" && cp "$v" "$t/w/VERDICT.md" && cp -R "$ev"/. "$t/w/evidence/" \
     || { rm -rf "$t"; die "push-verdict: could not stage the verdict and its evidence"; }
@@ -1850,6 +1855,22 @@ B
   out=$(vg "A defect, its log at ~/hpo/x.log. Carry: R10-LIVE"); rc=$?
   [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
   expect "and proposes it with the path written ~/... (the null control)" $?
+  # Owner ruling 2026-11-07 (card 2): a mutation-vacuous block lists every survivor its evidence's
+  # driver output reports; another class over the same evidence is not read (null control).
+  mkdir -p "$W/evmut"; printf '%s\n' "$h1" > "$W/evmut/head.txt"
+  printf 'SURVIVED custom_components/x/a.py:12 GUARD_OFF  if False:\nSURVIVED custom_components/x/a.py:40 RETURN_DEL  pass\n' > "$W/evmut/mutants.log"
+  vm() { printf 'Fix review: blocked %s %s\n\nbus-nonce: %s\n' "$h1" "$1" "$NG" > "$W/vm.md"; seat push-verdict 7 "$W/vm.md" "$W/evmut" 2>&1; }
+  r7=$(tip review/7)
+  out=$(vm "mutation-vacuous: custom_components/x/a.py:12 lives"); rc=$?
+  [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "UNLISTED custom_components/x/a.py:40 .*names 1 of the 2 survivor"
+  expect "push-verdict refuses a mutation-vacuous verdict naming one of two survivors, and review/7 does not move" $?
+  out=$(vm "harness: custom_components/x/a.py:12 lives"); rc=$?
+  [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
+  expect "null control: another blocked class over the same evidence proposes" $?
+  r7=$(tip review/7)
+  out=$(vm "mutation-vacuous: custom_components/x/a.py:12 and custom_components/x/a.py:40 live"); rc=$?
+  [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
+  expect "and proposes the mutation-vacuous verdict once it lists both survivors" $?
   GIT_TRACE2_EVENT=$W/tr2 GIT_TRACE2_CONFIG_PARAMS=http.postBuffer seat push-verdict 7 "$W/merge-clean.md" "$W/ev1" >/dev/null 2>&1
   grep -q '"param":"http.postbuffer","value":"524288000"' "$W/tr2"
   expect "the verdict push runs with a 500 MB http.postBuffer (#2563's HTTP 400)" $?
