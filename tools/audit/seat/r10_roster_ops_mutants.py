@@ -67,6 +67,7 @@ Plants, one per refusal of the two ops and per round-trip property:
            naming no live group (W12, W13) or needing none (W14), and a phase
            branch unresolved in roster_lib.group_for_branch (W15).
 
+    W18 append-carry's refusal of text already ending in a mark.
     W16-W17 the lane marker on structural ops (carry 15): the guard dropped
            (W16) and set-stage wrongly made structural (W17); Q13 is the
            queue runner not setting it.
@@ -307,6 +308,8 @@ PLANTS.update({
     "W16": ("    if op in STRUCTURAL_OPS and os.environ.get(LANE_ENV) != LANE_VALUE:\n",
             "    if False:\n"),
     "W17": ('STRUCTURAL_OPS = ("wire-issue",', 'STRUCTURAL_OPS = ("set-stage", "wire-issue",'),
+    "W18": ("    if mark:\n        raise Refuse(f\"append-carry: the text already ends",
+            "    if False:\n        raise Refuse(f\"append-carry: the text already ends"),
     "Q13": (RQ, '    env["HPO_ROSTER_LANE"] = "queue-runner"', '    env["HPO_ROSTER_LANE"] = "x"'),
     "Q9": (RQ, '    if "def batch_edit" not in Path(path).read_text():\n',
            '    if False:\n'),
