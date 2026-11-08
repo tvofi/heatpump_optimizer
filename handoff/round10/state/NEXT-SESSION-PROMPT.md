@@ -28,7 +28,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SUITE-HOST-DETERMINISM (stage carries-open, branch `handoff/r10-suite-host-determinism`): `git fetch origin handoff/r10-suite-host-determinism && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DISPATCH-AT-HANDOFF (stage carries-open, branch `handoff/r10-dispatch-at-handoff`): `git fetch origin handoff/r10-dispatch-at-handoff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RAISE-GATE-SHIM (stage carries-open, branch `handoff/r10-raise-gate-shim`): `git fetch origin handoff/r10-raise-gate-shim && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-WHY-NOW-WIDGET (stage in-progress, branch `handoff/r10-why-now-widget`): `git fetch origin handoff/r10-why-now-widget && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-WHY-NOW-WIDGET (stage carries-open, branch `handoff/r10-why-now-widget`): `git fetch origin handoff/r10-why-now-widget && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-WRITE-SWEEP (stage carries-open, branch `handoff/r10-roster-write-sweep`): `git fetch origin handoff/r10-roster-write-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-READ-SWEEP (stage carries-open, branch `handoff/r10-roster-read-sweep`): `git fetch origin handoff/r10-roster-read-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TICK-LEVELS (stage carries-open, branch `handoff/r10-tick-levels`): `git fetch origin handoff/r10-tick-levels && git worktree add --detach $SEAT/wt FETCH_HEAD`
