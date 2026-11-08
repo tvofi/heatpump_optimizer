@@ -5583,6 +5583,8 @@ def _unwind_self_test(check) -> None:
         "rec = open(sys.argv[1], 'a')\n"
         "def run(argv, cwd=None, stdin=None):\n"
         "    rec.write(' '.join(argv) + '\\n'); rec.flush()\n"
+        "    if argv[:3] == ['git', 'worktree', 'list']:\n"  # /x is registered, as in life, so it is removed
+        "        return 0, 'worktree /x\\n\\n'\n"
         "    if argv[:3] == ['git', 'worktree', 'remove']:\n"
         "        rec.write('UNWINDING\\n'); rec.flush(); time.sleep(2)\n"
         "    return 0, ''\n")
