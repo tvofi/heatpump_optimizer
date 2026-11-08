@@ -1,0 +1,79 @@
+dev/governance/dimensions/D2.md:38:5. **Estimators.** `sysid.identify` bias under white, quantised (0.1 °C) and
+dev/governance/roles/proposal-triage.md:18:least 10% on those four measures; unmeasured does not pass.
+dev/governance/roles/proposal-triage.md:22:at least 10% to keep. Major or critical, a required countermeasure, closeout
+tools/audit/archscore/calibration/corpus.tsv:14:3e5aba6a	296e2734	2026-04-05	-	BAD	no	P3	adds a third inline copy of the (power-p_min)/max(p_max-p_min,0.1) normalisation	"R9-P3 RCA (tools/audit/rca/R9-P3.md): ""At the initial release ec45dc4d there were already two copies, one clipped and one not. 3e5aba6a added a third copy ... every later sibling was one more copy."""
+tools/audit/archscore/planted/perturb/B3a_passthrough_chain_optimize.py:3:the statement boundaries nearest 25/50/75 % of its span; each fragment
+tools/audit/seat/beatd.py:276:            time.sleep(0.1)
+tools/audit/seat/beatd.py:358:                time.sleep(0.1)
+tools/audit/seat/beatd.py:615:        time.sleep(0.1)
+tools/audit/seat/beatd.py:641:        time.sleep(0.1)
+tools/audit/seat/ci-watch.sh:284:  while [ ! -s "$TMP/slept" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
+tools/audit/seat/cloud_relay.sh:943:  printf '5 %s thread %s\n' "$h" "$n" > "$t/bus/dispatched"
+tools/audit/seat/cloud_relay.sh:1394:  printf '#!/bin/sh\necho "$1" > "%s/slow.started"\nwhile [ ! -e "%s/slow.go" ]; do sleep 0.1; done\n' "$t" "$t" > "$hslow"; chmod +x "$hslow"
+tools/audit/seat/cloud_relay.sh:1396:  for _ in $(seq 100); do [ -e "$t/slow.started" ] && break; sleep 0.1; done
+tools/audit/seat/cloud_relay.sh:1403:  mk 5 $h $h $n; printf '5 %s thread %s\n' "$h" "$n" >> "$t/bus/dispatched"
+tools/audit/seat/cloud_relay.sh:1405:  printf '#!/bin/sh\necho "$1" > "%s/slow.started"\nwhile [ ! -e "%s/slow.go" ]; do sleep 0.1; done\nexec "%s" "$@"\n' "$t" "$t" "$stub" > "$hslow"
+tools/audit/seat/cloud_relay.sh:1407:  for _ in $(seq 100); do [ -e "$t/slow.started" ] && break; sleep 0.1; done
+tools/audit/seat/cloud_relay.sh:1490:    k=0; while case $(ps -o stat= -p "$rp" 2>/dev/null | tr -d ' ') in ''|Z*) false;; esac && [ $k -lt 100 ]; do sleep 0.1; k=$((k + 1)); done
+tools/audit/seat/cloud_relay.sh:1493:      { [ "$live" = 0 ] || [ $k -ge 30 ]; } && break; sleep 0.1; k=$((k + 1)); done
+tools/audit/seat/cloud_relay.sh:1500:  printf '#!/bin/bash\necho $$ >> "%s/tpids"\nbash -c '"'"'trap "echo G >> \"$0\"; exit 0" TERM; while :; do sleep 0.1; done'"'"' "%s/marks" & g=$!; echo $g >> "%s/tpids"\ntrap '"'"'sleep 0.5; grep -q G "%s/marks" && echo early >> "%s/marks"; kill $g; wait $g; exit 143'"'"' TERM\nwait\n' \
+tools/audit/seat/cloud_relay.sh:1528:      { [ "$live" = 0 ] || [ $k -ge 30 ]; } && break; sleep 0.1; k=$((k + 1)); done
+tools/audit/seat/daemonize.py:188:            time.sleep(0.1)
+tools/audit/seat/daemonize.py:214:            time.sleep(0.1)
+tools/audit/seat/gh_read.py:397:        (TR1, True, 'A new release of gh is available\nGet "http://127.0.0.1:1/x": connection refused'),
+tools/audit/seat/ledger.py:1304:        clean = run_opener("sleep 0.1 & wait $!\nPR_ATTEMPT=opened,PR=9", term=False)
+tools/audit/seat/merge_train.py:1257:        time.sleep(0.1)
+tools/audit/seat/merge_train.py:1325:            time.sleep(0.1)  # a train.sh still exiting after its train closed the queue
+tools/audit/seat/merge_train.py:5751:                time.sleep(0.1)
+tools/audit/seat/merge_train.py:5827:                time.sleep(0.1)
+tools/audit/seat/merge_train.py:8089:                       settle=0.1, front=True)
+tools/audit/seat/mutant_run.py:424:        time.sleep(0.1)
+tools/audit/seat/mutant_run.py:467:                    time.sleep(0.1)
+tools/audit/seat/offline_spy.py:243:            "remote.sh": "git ls-remote https://127.0.0.1:9/r.git >/dev/null 2>&1; exit 0\n",
+tools/audit/seat/open_driver_selftest.py:232:                time.sleep(0.1)
+tools/audit/seat/open_driver_selftest.py:290:                time.sleep(0.1)
+tools/audit/seat/open_driver_selftest.py:321:            time.sleep(0.1)
+tools/audit/seat/orchestrator_tick.py:3468:                 f"{dp} v7.0.1: stamp")
+tools/audit/seat/plan_audit.py:451:    good = reconcile(plan, bodies, end, 0.1)
+tools/audit/seat/plan_audit.py:459:    unexplained = reconcile(plan, bad_bodies, end, 0.1)
+tools/audit/seat/plan_audit.py:467:    owed = reconcile(plan, {"G1": bodies["G1"]}, end, 0.1)
+tools/audit/seat/plan_audit.py:473:    unplanned = reconcile(plan, {**bodies, "G3": bodies["G2"]}, {**end, "dS": 2.5}, 0.1)
+tools/audit/seat/plan_audit.py:478:    inad = reconcile(plan, bodies, {**end, "admissible": False, "rises": ["private_cross_module 9 -> 12"]}, 0.1)
+tools/audit/seat/plan_audit.py:482:    worse = reconcile(plan, bodies, {**end, "dS": 1.5, "verdict": "WORSENS"}, 0.1)
+tools/audit/seat/plan_audit.py:487:    resid = reconcile(plan, bodies, {**end, "dS": 5.0}, 0.1)
+tools/audit/seat/pr_args.sh:230:  while [ "$n" -lt "${PR_REAP_LEAD_TENTHS:-300}" ] && kill -0 "$PR_REAP_LEAD" 2>/dev/null; do sleep 0.1; n=$((n + 1)); done
+tools/audit/seat/pr_args.sh:247:    sleep 0.1
+tools/audit/seat/pr_args.sh:670:      sleep 0.1; k=$((k + 1))
+tools/audit/seat/pr_args.sh:696:    while kill -0 "$up" 2>/dev/null && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
+tools/audit/seat/pr_args.sh:782:  printf 'echo $$ >> "$REAP_DIR/pids"\nbash -c '"'"'trap "echo G >> \"$0\"; exit 0" TERM; while :; do sleep 0.1; done'"'"' "$REAP_DIR/marks" & g=$!; echo $g >> "$REAP_DIR/pids"\ntrap '"'"'sleep 0.5; grep -q G "$REAP_DIR/marks" && echo early >> "$REAP_DIR/marks"; kill $g 2>/dev/null; wait $g; exit 143'"'"' TERM\nwait\n' > "$t/lhost.sh.lead"
+tools/audit/seat/pr_args.sh:894:      while [ ! -e "$t/held" ] && [ $k -lt 200 ]; do sleep 0.1; k=$((k + 1)); done
+tools/audit/seat/pr_args.sh:978:    k=0; while kill -0 "$up" 2>/dev/null && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
+tools/audit/seat/state_docs.py:1031:                time.sleep(0.1)
+tools/audit/seat/tick_loop.sh:132:  while kill -0 "$hp" 2>/dev/null && [ $k -lt $((wait * 10)) ]; do sleep 0.1; k=$((k + 1)); done
+tools/audit/seat/tick_loop.sh:213:  k=0; while [ "$(tail -n 1 "$t/slow")" != done ] && [ $k -lt 150 ]; do sleep 0.1; k=$((k + 1)); done
+tools/audit/seat/tick_loop.sh:217:  k=0; while [ ! -f "$t/b.txt.relay.rc" ] && [ $k -lt 50 ]; do sleep 0.1; k=$((k + 1)); done
+tools/audit/seat/tick_loop.sh:228:  k=0; while [ ! -f "$t/g.txt.relay.rc" ] && [ $k -lt 100 ]; do sleep 0.1; k=$((k + 1)); done
+tools/audit/seat/tick_loop.sh:310:  k=0; while [ ! -f "$t/f.txt.relay.lock.up" ] && [ $k -lt 100 ]; do sleep 0.1; k=$((k + 1)); done
+tools/audit/seat/train.sh:365:  printf 'import os, signal, subprocess, sys, time\nopen("%s/pids", "a").write("%%d\\n" %% os.getpid())\ng = subprocess.Popen(["bash", "-c", "trap \\"echo G >> %s/marks; exit 0\\" TERM; while :; do sleep 0.1; done"])\nopen("%s/pids", "a").write("%%d\\n" %% g.pid)\ndef stop(*_):\n    time.sleep(0.5)\n    if "G" in open("%s/marks").read(): open("%s/marks", "a").write("early\\n")\n    g.terminate(); g.wait(); sys.exit(143)\nsignal.signal(signal.SIGTERM, stop)\nwhile True: time.sleep(0.1)\n' \
+tools/devices/measure_prefill_corpus.py:47:MARGINS = (0.00, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12)
+tools/plan/replan.py:576:OLD_MODEL = {"sizes_hours": {"S": 13.1, "M": 11.4, "L": 20.1, "XL": 30.2},
+tools/plan/replan.py:1808:    st2["stamps"].insert(0, {"version": "v1.0.1",
+tools/plan/replan.py:2137:           [s["version"] for s in pat] == ["v1.0.1"], str(pat))
+tools/policy/agreement.mjs:756:  probes.push(['a single-parent commit is not a merge', !guard([[H('a'), H('1'), 'v7.0.1: stamp']], writers).length])
+tools/pr/app_approve.sh:1460:^Get "https?://[^"]*": 	transient	Get "http://127.0.0.1:1/x": dial tcp 127.0.0.1:1: connect: connection refused
+tools/pr/app_push.sh:905:  if [ "$n" = 0 ] || [ "$k" -ge 30 ]; then echo "$n"; return; fi; sleep 0.1; k=$((k + 1)); done; }
+tools/pr/app_push.sh:924:while kill -0 "$ap" 2>/dev/null && [ "$(ps -o stat= -p "$ap" | tr -d ' ' | cut -c1)" != Z ] && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
+tools/pr/app_push.sh:939:  while kill -0 "$ap" 2>/dev/null && [ "$(ps -o stat= -p "$ap" | tr -d ' ' | cut -c1)" != Z ] && [ $k -lt 40 ]; do sleep 0.1; k=$((k + 1)); done
+tools/pr/depgraph.py:243:            "node_modules/a/node_modules/b": {"version": "0.1.0"}}}))
+tools/pr/depgraph.py:251:        ok("npm: scoped and nested lock entries, root skipped", npm_pins(r), {("@scope/x", "1.2.3"), ("b", "0.1.0")})
+tools/pr/depgraph.py:258:                "pkg:pypi/certifi@2026.10.19", "pkg:npm/%40scope/x@1.2.3", "pkg:npm/b@0.1.0",
+tools/pr/prepr.sh:2742:rec = {"script": s, "rc": 0, "seconds": 0.1, "files": files, "spawned": [], "how": "audithook+sys.modules", "argv": [s]}
+tools/pr/prepr.sh:2839:    for i in $(seq 1 1200); do [ -s "$SP" ] && break; sleep 0.1; done
+tools/pr/prepr.sh:2844:      alive "$dpid" || alive "$spid" || alive "$lpid" || break; sleep 0.1
+tools/pr/prepr.sh:3685:    for i in $(seq 1 1200); do [ -s "$HR/pid" ] && [ -s "$HR/pid.lane" ] && break; sleep 0.1; done
+tools/pr/prepr.sh:3689:    for i in $(seq 1 50); do alive "$dpid" || alive "$spid" || alive "$lpid" || break; sleep 0.1; done
+tools/release/stamp.py:1077:    # suspended for (v7.0.1's refusal), in place: one note where the first
+tools/release/stamp.py:1885:          _attribution(stamp_message("7.0.1", "t")) == [] and "stamp_message(nxt, args.title)" in _main_src
+tools/replay/debug_ingest.py:186:        "predicted_temp": 20.0, "actual_temp": 20.1,
+tools/replay/debug_ingest.py:200:        "diagnostics": {"accuracy": {"temperature_bias": -0.1}},
+tools/replay/debug_ingest.py:216:    temps = [(20.0, 20.4), (20.0, 19.0), (20.0, 20.1), (20.0, 20.2)]

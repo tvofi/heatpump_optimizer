@@ -1,0 +1,24 @@
+dev/audit/rounds/round6/D7/REPORT.md:52:identify the house's heat-loss coefficient more than 10 % wrong â€” worst of the
+dev/audit/rounds/round6/D7/report.json:11:   "claim": "On the three shipped presets, with the room sensor the only noisy input, 14 of the 75 experiments that clear the production adoption gate (comple
+dev/audit/rounds/round6/D7/report.json:32:   "metric_definition": "count of grid cells whose identify_slab UA (SysIdResult.heat_loss_kw_per_c) passes completed and confidence>=0.3 and is >10% from the
+dev/audit/rounds/round8/evidence/D7/s1_sysid.py:176:    print(f"RESULT admitted_biased_cells={admitted_biased} count (|bias|>10% and gate wrote a scale)")
+dev/audit/rounds/round9/batch1-findings.json:4831:  "claim": "The solver treats a step below the modulation floor as duty cycling within the step (bounds [0,P_max], optimizer.py ~:3962). The switch pa
+dev/audit/rounds/round9/reports-B7.json:38:          "claim": "The solver treats a step below the modulation floor as duty cycling within the step (bounds [0,P_max], optimizer.py ~:3962). The switch p
+dev/audit/rounds/round9/verify/G2-findings.json:1410:   "claim": "The solver treats a step below the modulation floor as duty cycling within the step (bounds [0,P_max], optimizer.py ~:3962). The switc
+dev/programme/register/audit-2026-09.md:1304:| D7-01 | high | the production sysid adoption gate admits UA errors over 10 % in 14 of the 75 experiments it accepts on the three shipped presets, worst â
+dev/programme/register/audit-2026-09.md:1852:| D7-01 | corroborates closed round-6 **#1394** | Round-6 D7-01 measured the adoption gate admitting UA errors over 10 % because `_slab_confidence` "has no
+dev/programme/rosters/wave-r10-groups.json:7605:    "Machinery freeze after v10.0.0 (tvofi 2026-11-01, production-share ruling). From the round-10 closeout stamp on, a change to the programme's machin
+dev/programme/rosters/wave-r10-groups.json:7607:    "Proposal bar (tvofi 2026-11-01, production-share ruling; in force operationally since 2026-11-01T19:50Z by owner ruling to the triage seat). propos
+dev/programme/rosters/wave-r10-groups.json:15719:   "brief": "Instrument and machinery ratchets, modelled on the production ratchets (tests/structure.py with tests/structure_budgets.json; dev/governan
+dev/programme/triage/s6-batch109.md:7:improvement above 10% is recorded with its evidence, and no carry or group is built. The batch
+dev/programme/triage/s6-batch109.md:13:changes on a measured figure above 10% in CI time, completion time, right-first-time or tokens,
+dev/programme/triage/s6-batch109.md:49:  there is no >10% figure.
+dev/programme/triage/s6-batch111.md:6:no improvement above 10% is recorded with its evidence, and no carry or group is built. The batch
+dev/programme/triage/s6-batch111.md:12:changes on a measured figure above 10% in CI time, completion time, right-first-time or tokens,
+dev/programme/triage/s6-batch111.md:68:  no measured share of CI time or completion time, let alone one above 10%.
+dev/programme/triage/s6-batch115.md:12:batching size the owner already set. The answer changes on a measured CI-time saving above 10%
+dev/programme/triage/s6-batch115.md:79:  - No measured figure above 10% with a baseline and a null control was given, so the proposal is
+dev/programme/triage/s6-batch116.md:63:  that touches `custom_components/`, and no measured gain above 10% is offered.
+dev/programme/triage/s6-batch126.md:3:**The bar.** Owner, relayed by the orchestrator: "the non production CIs and the triage seat should fulfil the cost benefit analysis, the "5 percent rule" for exi
+dev/programme/triage/s6-batch127.md:14:Verdict: ACCEPT narrowed. This is an instrument defect: the train takes the newest `verdict/<pr>` tip and so admits a PR over a live blocked finding. It keeps it
+dev/programme/triage/s6-batch128.md:7:Verdict: ACCEPT narrowed. The benefit is measured, and one incident costs more than the build. The proposed form is changed. A renderer the orchestrator must reme
