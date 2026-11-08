@@ -273,6 +273,16 @@ def _owned_lane(group: dict) -> str | None:
     return "Docs" if group.get("kind") == "doc" or user_docs else "Instruments"
 
 
+#: Group-name stems drawn as Instruments. A stem matches the group of that exact
+#: name or one named `<stem>-...`: a bare string prefix also took a stem's
+#: look-alikes (`R10-I1` priced `R10-I18N-DE`, an integration group, as an
+#: instrument).
+INSTRUMENT_NAME_STEMS = (
+    "R10-TICK", "R10-TRAIN", "R10-REF", "R10-D15", "R10-PREPR", "R10-GATE",
+    "R10-STALE", "R10-PRE-EDIT", "R10-POLICY", "R10-I1", "R10-ARCHSCORE",
+    "R10-STRUCTURE", "R10-BRIEFS")
+
+
 def roster_lane(group: dict) -> str:
     """The lane a group is drawn in and counted under for the stamp cadence.
 
@@ -286,10 +296,8 @@ def roster_lane(group: dict) -> str:
     k = group.get("kind")
     if g in ("R10-ARCH-DOCS", "R10-I5-DOCS"):
         return "Docs"
-    if k in ("instrument", "policy") or g.startswith(
-            ("R10-TICK", "R10-TRAIN", "R10-REF", "R10-D15", "R10-PREPR", "R10-GATE",
-             "R10-STALE", "R10-PRE-EDIT", "R10-POLICY", "R10-I1", "R10-ARCHSCORE",
-             "R10-STRUCTURE", "R10-BRIEFS")):
+    if k in ("instrument", "policy") or any(
+            g == p or g.startswith(p + "-") for p in INSTRUMENT_NAME_STEMS):
         return "Instruments"
     if "REPLAY" in g:
         return "Replay"
@@ -1016,6 +1024,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     patch = 0
     overflow_base = slots + 100
     exempt: set = set()         # critical-path groups started past the slots cap
+    exempt_coord: set = set()   # ... or past the coordinator cap
 
     def free_slot() -> int | None:
         # A slot is held from the start to the merge, not to the end of the
@@ -1036,12 +1045,13 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     def in_flight_coord() -> int:
         return sum(1 for n in list(running) + list(finished) if coord[n])
 
-    def pick(candidates, now: int):
-        """The owner's dispatch priority; coordinator cap on planned starts."""
+    def pick(candidates, now: int, cap_exempt: bool = False):
+        """The owner's dispatch priority; coordinator cap on planned starts,
+        which a critical-path candidate (`cap_exempt`) is not held by."""
         cc = in_flight_coord()
         best = None
         for n in candidates:
-            if coord[n] and n not in started and cc >= coord_cap:
+            if coord[n] and n not in started and cc >= coord_cap and not cap_exempt:
                 coord_held.add(n)
                 continue
             key = priority(n)
@@ -1075,9 +1085,11 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         # dispatch does (orchestrator.md section 5); it takes a free slot when
         # one exists and an overflow slot otherwise, and is exempt from the cap.
         while True:
-            n = pick(sorted(x for x in ready if x in crit), t)
+            n = pick(sorted(x for x in ready if x in crit), t, cap_exempt=True)
             if n is None:
                 break
+            if coord[n] and in_flight_coord() >= coord_cap:
+                exempt_coord.add(n)
             s = free_slot()
             if s is None:
                 s = overflow_base + len(start_t)
@@ -1283,6 +1295,8 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         }
         if n in exempt:
             groups_out[n]["exempt"] = True
+        if n in exempt_coord:
+            groups_out[n]["exempt_coordinator"] = True
         if n in design_only:
             groups_out[n]["design_only"] = True
 
@@ -1547,7 +1561,8 @@ def check_plan(plan: dict) -> list:
 
     # 3. coordinator cap: at most `coord_cap` PLANNED groups in flight; the
     #    inherited in-progress set is recorded and must match the groups.
-    coord = [(n, g) for n, g in in_round.items() if g.get("coordinator")]
+    coord = [(n, g) for n, g in in_round.items()
+             if g.get("coordinator") and not g.get("exempt_coordinator")]
     for t, _, _ in events:
         curc = sum(1 for n, g in coord
                    if not g.get("started")
@@ -1721,6 +1736,16 @@ def selftest() -> int:
            _lane([], kind="rca") == "Instruments")
     expect("lane: a tooling group with no files is Instruments",
            _lane([], kind="tooling") == "Instruments")
+    expect("lane: a stem names its exact group and its `<stem>-...` groups, "
+           "never a look-alike (R10-I18N-DE is not R10-I1's)",
+           roster_lane({"group": "R10-I1"}) == "Instruments"
+           and roster_lane({"group": "R10-TICK-GROUP-LINES"}) == "Instruments"
+           and roster_lane({"group": "R10-I18N-DE",
+                            "files": ["custom_components/heatpump_optimizer/translations/de.json"]})
+           == "Core model"
+           and roster_lane({"group": "R10-GATEWAY"}) == "Core model",
+           str([roster_lane({"group": g}) for g in
+                ("R10-I1", "R10-TICK-GROUP-LINES", "R10-I18N-DE", "R10-GATEWAY")]))
     expect("lane: a roster class instrument with no files is Instruments",
            roster_lane({"group": "X-LANE-PROBE", "kind": "fix",
                         "class": "instrument"}) == "Instruments")
@@ -2239,6 +2264,51 @@ def selftest() -> int:
            any(g["start"] > iso(start, 0) and not g.get("exempt")
                for n, g in ov["groups"].items() if n == "X3"), "none waited")
 
+    # 3b. the exemption holds against the coordinator cap too (orchestrator.md
+    # section 5: "regardless of every cap"); the slots cap alone is not enough.
+    def cfx(n, size="S", **kw):
+        return fx(n, size, files=["custom_components/heatpump_optimizer/coordinator.py"], **kw)
+    cc = mk([cfx("K1", stage="in-progress"), cfx("K2", stage="in-progress"),
+             cfx("X3", "L"), cfx("CP1", "XL"), fx("CP2", after=["CP1"])],
+            caps_=dict(caps, coordinator_cap=1))
+    expect("coordinator: a ready critical-path group starts at t=0 past a full "
+           "coordinator cap, flagged, and the plan passes --check",
+           cc["groups"]["CP1"]["start"] == iso(start, 0)
+           and cc["groups"]["CP1"].get("exempt_coordinator") is True
+           and check_plan(cc) == [],
+           str({n: g["start"] for n, g in cc["groups"].items()}) + str(check_plan(cc)))
+    expect("coordinator (null): the non-critical coordinator group still waits and "
+           "is not flagged",
+           cc["groups"]["X3"]["start"] > iso(start, 0)
+           and not cc["groups"]["X3"].get("exempt_coordinator")
+           and cc["groups"]["X3"]["start_reason"].startswith("coordinator cap 1"),
+           str(cc["groups"]["X3"]))
+    cq = mk([cfx("K1", stage="in-progress"), cfx("CP1", "XL"), fx("CP2", after=["CP1"])],
+            caps_=dict(caps, coordinator_cap=2))
+    expect("coordinator (null): inside the cap the critical-path group is not flagged",
+           not cq["groups"]["CP1"].get("exempt_coordinator"), str(cq["groups"]["CP1"]))
+    nocp = json.loads(json.dumps(cc))
+    nocp["groups"]["CP1"].pop("exempt_coordinator")
+    nocp["groups"]["X3"].update(start=nocp["groups"]["CP1"]["start"],
+                                finish=nocp["groups"]["CP1"]["finish"])
+    expect("coordinator: --check still refuses two planned coordinator groups in "
+           "flight when the critical-path one is unflagged",
+           any("coordinator cap" in b for b in check_plan(nocp)), str(check_plan(nocp)))
+
+    # 3c. a refused or deferred group is a human disposition, never scheduled
+    # (roster_lib.CLOSED_STAGES); a refuted one names a finding and stays open.
+    for st in ("refused", "deferred"):
+        rf = mk([fx("R10-A"), fx("R10-X", stage=st), fx("R10-Y", after=["R10-X"])])
+        expect(f"{st}: the group is done and not scheduled, and its dependent is "
+               "not held behind it",
+               rf["groups"]["R10-X"]["done"] and rf["groups"]["R10-X"]["start"] is None
+               and rf["groups"]["R10-Y"]["start"] == iso(start, 0),
+               str({n: g["start"] for n, g in rf["groups"].items()}))
+    rt = mk([fx("R10-A"), fx("R10-X", stage="refuted")])
+    expect("refused (null): a refuted group is still scheduled",
+           not rt["groups"]["R10-X"]["done"] and rt["groups"]["R10-X"]["start"] is not None,
+           str(rt["groups"]["R10-X"]))
+
     # 4. stamp cadence counts groups, not pull requests (carry 9)
     cad = [fx("P1", stage="done"), fx("P2", stage="done"), fx("Q1"), fx("Q2")]
     ck = mk(cad, since_tag=["P1", "P1", "P2"])    # P1 took two pull requests
@@ -2479,8 +2549,10 @@ def selftest() -> int:
             ("earliest-attempt",
              _m("def _ingest_check_runs(", "lines, want) -> dict:"),
              _m("if prev is None or started ", '< prev["started"]:'), "if prev is None:"),
-            ("coordinator-cap", _m("def pick(candidates, ", "now: int):"),
-             _m("if coord[n] and n not in started ", "and cc >= coord_cap:"), "if False:"),
+            ("coordinator-cap",
+             _m("def pick(candidates, ", "now: int, cap_exempt: bool = False):"),
+             _m("if coord[n] and n not in started ", "and cc >= coord_cap and not cap_exempt:"),
+             "if False:"),
             ("tier-critical-path",
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
              "    if on_cp:", "    if False:"),
@@ -2502,8 +2574,18 @@ def selftest() -> int:
              _m('sav = (-savings[n] if n in savings ', 'else float("inf"))'), "sav = (0.0)"),
             ("cp-first-in-tier",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             _m("n = pick(sorted(x for x in ready ", "if x in crit), t)"),
-             "n = pick(sorted(x for x in ready if False), t)"),
+             _m("n = pick(sorted(x for x in ready ", "if x in crit), t, cap_exempt=True)"),
+             "n = pick(sorted(x for x in ready if False), t, cap_exempt=True)"),
+            ("lane-stem-boundary",
+             _m("def roster_lane(group: ", "dict) -> str:"),
+             'g == p or g.startswith(p + "-") for p in INSTRUMENT_NAME_STEMS',
+             "g.startswith(p) for p in INSTRUMENT_NAME_STEMS"),
+            ("coordinator-cp-exempt",
+             _m("def pick(candidates, ", "now: int, cap_exempt: bool = False):"),
+             _m("and cc >= coord_cap ", "and not cap_exempt:"), "and cc >= coord_cap:"),
+            ("coordinator-cp-flag",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "exempt_coord.add(n)", "pass"),
             ("overflow-exempt",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              "exempt.add(n)", "pass"),

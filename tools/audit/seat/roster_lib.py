@@ -80,11 +80,13 @@ LIVE_CLAIM = tuple(w for w, k in STAGE_KIND if k == "live-claim")
 #: records that is not here keeps the group open (and its after-edges
 #: constraining).
 DONE_STAGES = tuple(w for w, k in STAGE_KIND if k == "done")
-#: The stages that end a group's work: the done ones, and `absorbed`, whose
-#: work lives in its fold destination. `is_open`, the after-edge closure and the
-#: carry destination check read this one set; `absorbed` stays a disposition
+#: The stages that end a group's work: the done ones, `absorbed`, whose work
+#: lives in its fold destination, and the two dispositions that decide the work
+#: will not be done, `refused` and `deferred`. `is_open`, the after-edge closure
+#: and the carry destination check read this one set; each stays a disposition
 #: (roster_sync never rewrites it), so DONE_STAGES keeps meaning "merged".
-CLOSED_STAGES = DONE_STAGES + ("absorbed",)
+#: `refuted` stays open: it names a finding, not a group's work.
+CLOSED_STAGES = DONE_STAGES + ("absorbed", "refused", "deferred")
 #: Human dispositions: nothing derives, clears or overwrites one.
 DISPOSITION = tuple(w for w, k in STAGE_KIND if k == "disposition")
 #: The stages in which a group's work is under way, for the planner's live
@@ -773,6 +775,13 @@ def _self_test() -> int:
           and is_open({"resume": {"stage": "queued"}})
           and "absorbed" not in DONE_STAGES and CARRY_CLOSED == CLOSED_STAGES,
           (CLOSED_STAGES, CARRY_CLOSED))
+    check("refused and deferred are closed: not open, a carry has no destination "
+          "there; refuted stays open (null)",
+          not is_open({"resume": {"stage": "refused"}})
+          and not is_open({"resume": {"stage": "deferred"}})
+          and is_open({"resume": {"stage": "refuted"}})
+          and "refused" in CARRY_CLOSED and "deferred" not in DONE_STAGES,
+          CLOSED_STAGES)
     ab = {"groups": [{"group": "A", "resume": {"stage": "absorbed"}},
                      {"group": "B", "after": ["A"], "resume": {"stage": "queued"}}]}
     check("an absorbed group is not in the open set or the dependency depth",
