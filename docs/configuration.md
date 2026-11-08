@@ -210,6 +210,11 @@ Then three numbers off the heat pump's nameplate:
 | Heat pump max power | 5.0 kW | 1–20, 0.5 steps | Electrical input at full output. Caps how much cheap electricity can be stored per hour. |
 | Heat pump min power | 1.0 kW | 0–10, 0.5 steps | The lowest input the pump can hold without cycling. Must not exceed the maximum. |
 
+A pump that cannot run below its min power at all, only on or off, is
+declared on **Thermal model (expert)** as *Compressor runs below min power:
+No: on/off*; otherwise the plan may book steps below the minimum as averages
+the pump would reach by modulating.
+
 That is the whole questionnaire path — the two-zone and solar pages are skipped
 deliberately. Their fields, once written, are what switches the two-zone model
 on, and a fresh install should not be given a two-zone model it did not ask
@@ -853,6 +858,7 @@ the per-floor numbers live on **Two-zone model**.
 | Heat pump nominal COP | the setup value | 1.5–6.0 | Units of heat per unit of electricity under normal conditions. |
 | Heat pump max power | the setup value | 1–20 kW | Electrical input at full output. |
 | Heat pump min power | the setup value | 0–10 kW | The lowest input the pump can hold without cycling. |
+| Compressor runs below min power | Automatic | Automatic, No: on/off, Yes: modulating | **No: on/off** plans every step at 0 or between min and max power, hot water and space heating together. **Yes: modulating** plans a level below min power as an average the pump reaches by running part of the step. **Automatic** counts a power switch plus a setpoint with no frequency entity as on/off, anything else as modulating. |
 | Heat pump COP loss at max power | the setup value | 0–0.5 | The share of efficiency lost at max power rather than min power. See [the setup screen](#thermal-model--optimization) for the limit the page enforces. |
 
 **Changing a derived value turns the derivation off.** These fields are what
