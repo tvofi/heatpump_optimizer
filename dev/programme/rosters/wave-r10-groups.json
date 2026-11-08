@@ -19813,6 +19813,48 @@
     "note": null
    },
    "brief": "Fly-in hotfix, orchestrator 2026-11-08 under mandate 6715477401: the roster drain refused 3+ ops on the stale-worktree trap (lint clone not refreshed, ignored return codes) and cascaded 172 on-no-origin-ref refusals. Detach the lint clone at the edit checkout origin/main sha and verify; remove wt-run after a final refusal. RCA in the PR body, process state (c)."
+  },
+  {
+   "group": "R10-HOTFIX-PREPR-SELFTEST-DARWIN",
+   "lane": "C",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/pr/prepr.sh"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-hotfix-prepr-selftest-darwin",
+    "pr": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "open PR, review",
+    "note": null
+   },
+   "brief": "Fly-in hotfix, orchestrator 2026-11-08 under mandate 6715477401: prepr.sh self-test arm (body-privacy null control) fails on Darwin hosts whose python3 is the seat shim, because the arm plants HOME and the shim resolves its venv under HOME (rc 127). It blocked local opens and updates (#3291, author-email). Put the real interpreter dir first on PATH for the planted-HOME calls, as ref_privacy.py self-test does."
   }
  ]
 }
