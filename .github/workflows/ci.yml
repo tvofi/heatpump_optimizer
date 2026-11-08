@@ -89,6 +89,8 @@ jobs:
       workset: ${{ steps.derive.outputs.workset }}
       # R10-CI-SLIM C7(a): 'false' idles the machinery lanes (prelude.machinery).
       machinery: ${{ steps.derive.outputs.machinery }}
+      # R10-CI-SELFTEST-SCOPE: instrument-self-tests' steps (prelude.selftest_scope).
+      selftests: ${{ steps.derive.outputs.selftests }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -211,6 +213,7 @@ jobs:
     with:
       base: ${{ needs.prelude.outputs.base }}
       machinery: ${{ needs.prelude.outputs.machinery }}
+      selftests: ${{ needs.prelude.outputs.selftests }}
     permissions:
       contents: read
       pull-requests: read

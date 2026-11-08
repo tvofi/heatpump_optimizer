@@ -28,12 +28,12 @@ if [ "${1:-}" = --as ]; then
   if [ -z "${SELFTEST_TRACE:-}" ]; then exec "$@"; fi
   d="$RUNNER_TEMP/selftest-trace"
   mkdir -p "$d"
-  exec strace -f -qq -y -e trace="$SYSCALLS" -o "$d/bg-$name.trace" -- "$@"
+  exec strace -f -qq -y --seccomp-bpf -e trace="$SYSCALLS" -o "$d/bg-$name.trace" -- "$@"
 fi
 if [ -z "${SELFTEST_TRACE:-}" ] || [ "${GITHUB_ACTION:-}" = launch ]; then
   exec bash --noprofile --norc -eo pipefail "$1"
 fi
 d="$RUNNER_TEMP/selftest-trace"
 mkdir -p "$d"
-exec strace -f -qq -y -e trace="$SYSCALLS" -o "$d/step-${GITHUB_ACTION:-unnamed}.trace" \
+exec strace -f -qq -y --seccomp-bpf -e trace="$SYSCALLS" -o "$d/step-${GITHUB_ACTION:-unnamed}.trace" \
   -- bash --noprofile --norc -eo pipefail "$1"

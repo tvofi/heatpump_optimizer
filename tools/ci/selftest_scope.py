@@ -51,7 +51,10 @@ re-record with `record` (Linux, strace).
 BLIND SPOTS, stated: a path a process named relative to a working directory
 the trace does not decorate (a non-*at syscall after a chdir) is resolved
 against the repository root; a read through a network or a cache outside the
-checkout is not a repo read; a step whose behaviour depends on the
+checkout is not a repo read; a git command in WORKTREE_GIT that opens the
+object store does not set `objects` (its worktree reads are traced), so one
+handed a revision reads committed content the record does not name; a step
+whose behaviour depends on the
 environment rather than the tree is not scoped by any table.
 """
 from __future__ import annotations
@@ -327,7 +330,7 @@ def _git_dirs(root: Path) -> tuple[Path, Path]:
 
 
 def trace_events(text: str):
-    """(call, resolved absolute path, ok, is_dir) per relevant syscall line,
+    """(pid, call, resolved absolute path, ok, line) per relevant syscall line,
     joining a call strace split into `<unfinished ...>` and `resumed`."""
     pending: dict[str, str] = {}
     for line in text.splitlines():
@@ -360,7 +363,26 @@ def trace_events(text: str):
             path = raw
         else:
             path = os.path.join(base or str(ROOT), raw)
-        yield call, os.path.normpath(path), ok, "O_DIRECTORY" in rest
+        yield pid, call, os.path.normpath(path), ok, rest
+
+
+# Git subcommands whose content reads are the worktree's, which the trace
+# names file by file; the object store they also open (a pack to resolve the
+# index) carries no content they report. A revision handed to one of them
+# (`git grep PAT HEAD`) is a blind spot, stated in the module docstring.
+WORKTREE_GIT = frozenset({"grep", "ls-files", "status", "check-ignore", "check-attr",
+                          "diff-files", "rev-parse", "config", "var"})
+
+
+def _git_subcommand(line: str) -> str:
+    """The subcommand an execve of git runs ('' for anything else)."""
+    m = re.search(r'execve\("[^"]*/git", \[(.*?)\]', line)
+    if not m:
+        return ""
+    args = re.findall(_STR, m.group(1))[1:]
+    while args and args[0].startswith("-"):
+        args = args[2:] if args[0] in ("-C", "-c") else args[1:]
+    return args[0] if args else ""
 
 
 def _pyc_source(rel: str) -> str:
@@ -373,14 +395,19 @@ def fold_trace(text: str, root: Path, tracked: set[str], tracked_dirs: set[str],
     files, probes, dirs = set(), set(), set()
     flags = {"index": False, "objects": False}
     real_root = os.path.realpath(root)
-    for call, path, ok, is_dir in trace_events(text):
+    git_cmd: dict[str, str] = {}          # pid -> the git subcommand it exec'd
+    for pid, call, path, ok, line in trace_events(text):
+        is_dir = "O_DIRECTORY" in line
+        if call in _EXECS and ok:
+            git_cmd[pid] = _git_subcommand(line)
         real = os.path.realpath(path) if ok else path
         for gd in {str(git_dir), str(common_dir)}:
             if real.startswith(gd + "/"):
                 sub = real[len(gd) + 1:]
                 if call in _OPENS and ok and sub == "index" and gd == str(git_dir):
                     flags["index"] = True
-                if call in _OPENS and ok and sub.startswith("objects/"):
+                if (call in _OPENS and ok and sub.startswith("objects/")
+                        and git_cmd.get(pid) not in WORKTREE_GIT):
                     flags["objects"] = True
         for cand in (path, real):
             if cand == real_root or cand.startswith(real_root + "/"):
@@ -702,7 +729,7 @@ def self_test() -> int:
         g = root / ".git"
         log = "\n".join([
             f'10 execve("{root}/tools/x/a.py", ["a.py"], 0x0 /* 3 vars */) = 0',
-            f'10 openat(AT_FDCWD</{root}>, "tools/x/lib.py", O_RDONLY|O_CLOEXEC) = 3<{root}/tools/x/lib.py>',
+            f'10 openat(AT_FDCWD<{root}>, "tools/x/lib.py", O_RDONLY|O_CLOEXEC) = 3<{root}/tools/x/lib.py>',
             f'11 openat(AT_FDCWD<{root}>, "tests/lane.py", O_RDONLY <unfinished ...>',
             f'10 newfstatat(AT_FDCWD<{root}>, "tools/x/a.json", 0x7ff, 0) = -1 ENOENT (No such file)',
             f'11 <... openat resumed>) = 4<{root}/tests/lane.py>',
@@ -724,6 +751,17 @@ def self_test() -> int:
                           root, tracked, tdirs, g, g)
         ck("fold: an object-store open is flagged and names no file",
            got2["objects"] and not got2["files"])
+        got3 = fold_trace("\n".join([
+            '9 execve("/usr/bin/git", ["git", "-C", "/r", "grep", "-l", "x"], 0x0 /* 1 var */) = 0',
+            f'9 openat(AT_FDCWD<{root}>, ".git/objects/pack/p.pack", O_RDONLY) = 3<{g}/objects/pack/p.pack>']),
+            root, tracked, tdirs, g, g)
+        ck("fold: a worktree git command (grep) opening the object store does not flag it",
+           not got3["objects"])
+        got4 = fold_trace("\n".join([
+            '9 execve("/usr/bin/git", ["git", "show", "HEAD:x"], 0x0 /* 1 var */) = 0',
+            f'9 openat(AT_FDCWD<{root}>, ".git/objects/pack/p.pack", O_RDONLY) = 3<{g}/objects/pack/p.pack>']),
+            root, tracked, tdirs, g, g)
+        ck("fold: ... and `git show` opening it does (null control)", got4["objects"])
         # The mutant the brief names: a table that omits a file a step reads
         # is shown red by the drift check; the full table is clean.
         wf2 = wf.replace("tools/x/a.py --self-test", "tools/x/a.py --self-test ")
