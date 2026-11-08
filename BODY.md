@@ -21,7 +21,7 @@ Terminology was spot-checked against Home Assistant core's shipped German string
 
 **Left alone, by design.** `name_match.SYNONYMS` and `grid_fee`'s month and day parser accept English and Swedish input words. They parse user-typed input and entity names; they are not UI text. German examples in `de.json` keep the English input grammar (`Nov-Mar Mon-Fri`), which is what the parser accepts. `tests/card_browser.mjs`'s P9 layout grid stays `["en", "sv-SE"]`. It is a render-overflow sweep, not a parity check, and no scope selects it.
 
-**Carry 1 (c7e2fe29).** This is the German label for r10-min-power-floor's new option. That group is unmerged (`handoff/r10-min-power-floor`), so its key is not in `en.json` at this base and cannot be translated here. The existing `heat_pump_min_power` labels were harmonized (see above). Whichever of the two pull requests merges second is refused until the German leaf exists. The refusal comes from `tests/entities.py`'s "de.json has exactly strings.json's keys" and `tests/card.mjs`'s every-language parity check.
+**Carry 1 (c7e2fe29).** This is the German label for r10-min-power-floor's new option. That group is unmerged (`handoff/r10-min-power-floor`), so its key is not in `en.json` at this base and cannot be translated here. The existing `heat_pump_min_power` labels were harmonized to Mindestleistung, Maximale Leistung, Leistungsaufnahme and takten. Whichever of the two pull requests merges second is refused until the German leaf exists. The refusal comes from `tests/entities.py`'s "de.json has exactly strings.json's keys" and `tests/card.mjs`'s every-language parity check. So the item is enforced mechanically and gets no forward-carry. An earlier draft routed it to R10-MIN-POWER-FLOOR, and `body_push.sh` refused that draft with CARRY-MISSING, asking for a roster-branch write that this seat's brief forbids.
 
 ## Head
 
@@ -59,6 +59,12 @@ none: `mutant_run.py --diff` drove both added sites and `tests/guard_pins.py` ki
 - **`tests/entities.py`, the three `--anchor` checks.** The branch turned them red. The fixture names a ledger row by anchor, and the stopped fixer's `ddd0ce25` retired that row without updating the fixture. The detector that caught it is the scoped gate, which selects `tests/entities.py` for any `topology.py` edit, and it caught it before the handoff. A cheaper detector would be a lint for literal ledger anchors in tests. Its standing cost: one more tree scan per push, to save an `entities.py` run that already runs for every production diff. No such lint is worth building. The stopped fixer never ran `entities.py` at its final head; prepr does not run the gate.
 - **`tests/entities.py`, two checks red in this container at unmodified main as well:** "the coverage job reuses only an entry main's push run saved, keyed on the runner's OS" and "the release ZIP holds the integration folder at its root, and its check refuses a hacs.json naming another file". Both fail identically in a worktree of unmodified `origin/main` (73365699a) in this container, so neither comes from this diff. I did not establish their cause. Neither check is in the merge train's required set (owner ruling 2026-11-07).
 - **`tests/arch_score.py`, "arch-score.yml: a head edit to tests/structure.py is not what the gate loads (the #2068 plant)".** It failed with `fatal: '/opt/hpo/runner-temp/base' already exists`. That directory was this seat's first gate run's leftover: the plant ran `git worktree add` into the environment's real `$RUNNER_TEMP/base`, and its own temp repo was then deleted. I removed the orphan and re-ran `python3 tests/arch_score.py`. It printed `ALL 279 ARCHITECTURE SCORE CHECKS PASSED` at f9db7d7a0, and it left `$RUNNER_TEMP/base` behind again, which confirms the leak (see `## Friction`). The check is not this diff's.
+
+## Forward-carry
+
+none
+
+## Friction`). The check is not this diff's.
 
 ## Forward-carry
 
