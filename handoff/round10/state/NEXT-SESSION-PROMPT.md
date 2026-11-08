@@ -15,7 +15,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-PREPR-CAP (stage carries-open, branch `handoff/r10-prepr-cap`): `git fetch origin handoff/r10-prepr-cap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SAV-COMFORT (stage carries-open, branch `fix/r10-sav-comfort`): `git fetch origin fix/r10-sav-comfort && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLOW-TOOLKIT-MODEL (stage in-progress, branch `handoff/r10-flow-toolkit-model`): `git fetch origin handoff/r10-flow-toolkit-model && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLOW-TOOLKIT-MODEL (stage carries-open, branch `handoff/r10-flow-toolkit-model`): `git fetch origin handoff/r10-flow-toolkit-model && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GH-READ-RETRY (stage carries-open, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROUND-PLAYBOOK (stage in-progress, branch `handoff/r10-round-playbook`): `git fetch origin handoff/r10-round-playbook && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-POLICY-ROLE-PACK (stage carries-open, branch `handoff/r10-policy-role-pack`): `git fetch origin handoff/r10-policy-role-pack && git worktree add --detach $SEAT/wt FETCH_HEAD`
