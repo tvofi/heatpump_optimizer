@@ -1,0 +1,4 @@
+358820
+2963  openat(AT_FDCWD</home/user/rev>, "dev/programme/delivery/1059.md", O_RDONLY) = 3</home/user/rev/dev/programme/delivery/1059.md>
+2962  openat(AT_FDCWD</home/user/rev>, "dev/programme/delivery/1065.md", O_RDONLY) = 4</home/user/rev/dev/programme/delivery/1065.md>
+2960  openat(AT_FDCWD</home/user/rev>, "dev/programme/delivery/1076.md", O_RDONLY <unfinished ...>
