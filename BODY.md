@@ -72,6 +72,12 @@ Carry 12 (the brief's carry 11): fixed here (source order, above).
 
 ## Head
 
+`25811b2ec3b38ecff4128e66e787725068bff8c7` merges origin/main `daf8b349fd30cc60786eeca333a426b693aa4c5f` into the previous head `2b2e7a7b37c4f87fc1792b1a21e709667bd6d3bc` (`git merge`, no conflict). This is the repair's only commit: the red-check answer needed no code change. main's two commits since `51cd5ec8a4` touch only `tests/card_browser.mjs` and `dev/programme/delivery/3346.md`, no file this branch changes, and no `tools/ci/` file. origin/main moved after the first `tools/pr/prepr.sh` run at 2b2e7a7b3 (rc=0), so prepr was run again on this head with this body (`PREPR_SKIP_CLOSURES=1`); its result is under `## Mutation proof`.
+
+`2b2e7a7b37c4f87fc1792b1a21e709667bd6d3bc` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/3348.md`. The authored code head is `6772efc98d49a33fc878deefd7b9a6dcd5cad329`.
+
+`aa8c0e7e26f5a385c18e283b4074e5b8382b4887` merges origin/main `51cd5ec8a4` into the authored code head `6772efc98d49a33fc878deefd7b9a6dcd5cad329` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
 6772efc98d49a33fc878deefd7b9a6dcd5cad329, the tip 1202efb64f6bf776c32fc8131c82a8220ec89fe5 with origin/main 17e621f08c4feec724478573741fbd8b596ceaba merged in (`git merge`, never rebase; stamped 2026-11-08T19:36Z). The branch was cut from afc1586a4424f997ce70ed2003add9d7de93d6f6. origin/main was fetched again before the handoff and had not moved past 17e621f0, so prepr was run once, on this head.
 
 **The merge of main (this repair).** One conflict, in `dev/audit/harnesses/r10_codescan_wait_race.py`, `selftest()`, right after the shared `rows_ok` line:
@@ -93,6 +99,8 @@ Each was run on a scratch copy in `dev/audit/harnesses/`, removed afterwards, wi
 **This part's finding, before and after the merge.** `python3 dev/audit/harnesses/r10_rca_gate_busy_defer_2.py replay --ci <D>/tools/ci`, with `<D>` holding `git archive 1202efb64 tools/ci`, and the same with `--ci tools/ci` at this head. The two outputs differ only in the `RESULT ... ci=<path>` echo: `defects=no`, exit 0 at both. Every scene reads the same, and `3252-nosource: DECIDED`, PASS. The harness file and its fixture JSON are byte-identical between the tip and this head (`git diff --quiet`), and main's merge touches no `tools/ci/` file (`git diff --stat 1202efb64 HEAD -- tools/ci` is empty).
 
 ## Mutation proof
+
+**This repair's prepr, at 25811b2ec3b3 against daf8b349fd30** (`PREPR_SKIP_CLOSURES=1`, this body): `rc=0`. `ci predict`: no closures, fast, governance or instrument red predicted against daf8b349fd30. `merged structure`: STRUCTURE RATCHET PASSED (tests/structure.py at 25811b2ec3b3). `pr-body`: 0 error(s). The earlier run at 2b2e7a7b3 against 51cd5ec8a42a was also rc=0.
 
 Failing tests first, each committed red before its fix:
 - a23110b7c, over main's `sweep.py`: `sweep self-test: 59 checks, 5 failed`:
@@ -180,7 +188,20 @@ Every survivor is a constant in a test fixture that no assertion reads, so each 
 
 ## Red checks
 
-none. No pull request exists yet for this head; `tools/pr/prepr.sh`'s `ci predict` step is the prediction (`## Figures`).
+- **`gate`, check-run 128854449062 (edit run 42520919046, 20:37:29Z), and check-run 128863146375 (edit run 42523443855, 21:17:53Z), both at the previous head 2b2e7a7b3.** Both are deferrals only. Neither is a unit failure.
+  - Each job's log has one verdict line: `FAIL run(s) [42520919204] at this head are still being judged; their gate decides`, then exit 1. That is main's `gate.deferral()`.
+  - Each job printed `programs restored from 51cd5ec8a42abde3c223f22e9f4a0d5f35f8844a` before it judged. ci.yml restores `tools/ci/*.py` from the base SHA for every pull_request run. So main's gate, not this branch's, made both deferrals.
+  - Code run 42520919204 (`CI code pr=3348`) finished with every unit green. Its `tests / fast (3.14)` passed at 21:11:39Z and its `pr-contract / pr-contract` (job 128864456676) passed. Its `gate`, check-run 128865410993, started 21:23:09Z and printed `PASS` (KIND code, programs restored from 51cd5ec8a4).
+  - That is the newest `gate` check-run at 2b2e7a7b3. At 21:24Z 2b2e7a7b3 had no failed check-run other than the two deferrals above, and none still running.
+  - Cheaper detector: none exists. A deferral is the gate working as designed: an edit run's gate defers to the code run that is still adding sources, and it reads red until the code run's gate decides. The red was decided by when the packet read the head, not by the code. Its standing cost is a re-read after the code run's gate, which `failure_logs.sh` (newest check-run per name) already does.
+- **Can this change let `gate` go green over a real red?** No, for three reasons:
+  1. **The branch's gate never judges this PR.** Every pull_request gate runs the base's `tools/ci/*.py`, as both job logs above show. The new source order first runs on PRs after it merges.
+  2. **`busy()` and `deferral()` are unchanged.** Over `tools/ci/gate.py` the diff touches only `gate()`'s sort key (`fresh()`) and self-tests. A unit's source still has to be a completed green job; the order picks which run that is, and a red or unfinished source is still a FAIL.
+  3. **The self-tests hold the line.**
+     - `source order: a LOWER-id edit run's red arch-score started after the code run's own -> the code gate reads the later start` expects `FAIL arch-score / arch-score: failure (run 99)`: a later red beats an earlier green.
+     - `source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green` expects `FAIL ... PENDING (this run)`: a sibling's green does not cover this run's own pending unit.
+     - M27 (id order) reads `MISREAD` on the replay.
+     - The `busy-defer, three gates (#3244)` check pins the tie-break, so exactly one gate judges. None passes without judging.
 
 ## Forward-carry
 
@@ -188,4 +209,6 @@ none
 
 ## Friction
 
+- review-packet-deferral-read: cost: the packet refused dispatch on `gate` red at 2b2e7a7b3 while the code run 42520919204 it deferred to was still in `tests / fast`; the code gate passed about 46 min after the first deferral started. Carry: dismissed: a deferral is red by design until the code gate decides, and re-reading after it, as here, is the remedy; no new mechanism is owed
 - frugal-inline-budget: cost: a session guard caps inline searches per prompt, so the carry survey went through one subagent. Carry: dismissed: a session plugin's guard, not this repository's policy
+
