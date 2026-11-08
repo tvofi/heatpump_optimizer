@@ -1,0 +1,4 @@
+  FAIL  every card language is key-for-key with en and keeps en's placeholders
+  FAIL  and a planted missing key, dropped or unlisted extra placeholder, or extra key in any language fails it (null controls)
+  FAIL  why-now: every en string has its twin in every card language, and every driver code has a label and an explanation
+3 CARD CHECK(S) FAILED

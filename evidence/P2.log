@@ -1,0 +1,4 @@
+planted P2
+RESULT P2 [python3 tests/guard_pins.py] rc=0 1s :: ALL 61 GUARD PIN CHECKS PASSED
+RESULT P2 [python3 tests/features.py] rc=1 426s :: 1 of 4978 FEATURE CHECKS FAILED
+DONE

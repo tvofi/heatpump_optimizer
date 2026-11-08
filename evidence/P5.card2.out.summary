@@ -1,0 +1,3 @@
+  FAIL  a region-tagged hass.language reaches every card dictionary, de-DE included, and an unknown one falls back to en
+  FAIL  UX-HEALTH A: every card language names its optional-field marker
+  FAIL  hover spec: every card language names its no-data wording
