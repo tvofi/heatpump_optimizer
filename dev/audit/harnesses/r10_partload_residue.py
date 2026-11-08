@@ -1,7 +1,7 @@
 """R10-PARTLOAD-RESIDUE: the solver CPU the residue of #3182 left measure-first.
 
     PYTHONPATH=tests/hastub:custom_components:tests \\
-        taskset -c 0 python3 dev/audit/harnesses/r10_partload_residue.py relaxed|buffer N
+        taskset -c 0 python3 dev/audit/harnesses/r10_partload_residue.py relaxed|buffer N|refill
 
 Synthetic throughout; every time is ``time.process_time`` of one process
 pinned to one core, so a Raspberry-Pi-class figure is this figure times the
@@ -25,6 +25,19 @@ harness exits 1 otherwise.
 seeded hourly prices, outdoor -15..8 degC) at 750 L and at no buffer, each
 on the seeded spread days and on a flat day (the null: no cheap window to
 store for). Printed per arm: p50 and worst ``process_time`` over N solves.
+
+``refill``: #3182's carry 2 at a stated refill rate. ``_terminal_cost`` and
+``deferred_energy_cost`` value heat at a COP with no draw, so under a derate
+their secant error is the figure times ``P_r / heat_per_cop_kw(P_r) - 1``
+(``r10_partload_pricing.py``'s rule, which prints it only at the floor, 0,
+and at max power). The rate stated here is the plan's own: ``P_r``, the
+energy-weighted mean of the published total draw (space plus hot water)
+over its running steps, ``sum(P^2) / sum(P)``, the draw at which the plan
+bought its mean kWh. Same cells and solves as ``r10_partload_pricing.py``
+(``pp.solve``, ``pp.terminal_figure``). Printed per cell and as maxima: the
+terminal and deferred errors at ``P_r``, beside the plan's hot-water cost
+and its ``predicted_cost``. Null control: at ``d = 0`` both errors must read
+exactly 0; the harness exits 1 otherwise.
 """
 from __future__ import annotations
 
@@ -40,7 +53,11 @@ import r10_cop_partload as cp  # noqa: E402
 import r10_partload_pricing as pp  # noqa: E402
 import r10_setpoint_boost as sb  # noqa: E402
 from heatpump_optimizer import optimizer as opt_mod  # noqa: E402
-from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel,
+    ThermalParameters,
+    heat_per_cop_kw,
+)
 
 BUDGET_S = 10 * 60.0
 
@@ -122,7 +139,54 @@ def buffer(n: int) -> int:
     return 0
 
 
+def refill() -> int:
+    derate = central_derate()
+    print(f"central plant derate {derate}")
+    null_bad = failures = 0
+    for tag, prices in (("spread", sb.SPREAD), ("flat", sb.FLAT)):
+        for d in (0.0, derate):
+            rows = []
+            for cell in sb.CELLS:
+                try:
+                    opt, res = pp.solve(cell, prices, d)
+                except Exception as err:  # counted, never dropped
+                    failures += 1
+                    print(f"  {tag} {cell} d={d} failed: {err!r}")
+                    continue
+                params = opt.model.params
+                pr = np.asarray(res.prices, float)
+                space = np.asarray(res.power_schedule, float)
+                dhw = np.asarray(res.dhw_power_schedule or [0.0] * len(pr), float)
+                total = space + dhw
+                run = total[total > 0.0]
+                p_r = float((run * run).sum() / run.sum()) if run.size else 0.0
+                k_r = p_r / heat_per_cop_kw(params, p_r) - 1.0 if p_r > 0.0 else 0.0
+                term = pp.terminal_figure(opt, res)
+                defer = float(res.deferred_energy_cost)
+                dhw_cost = float((pr * dhw).sum() * pp.DT_H)
+                pred = float(res.predicted_cost)
+                rows.append((term * k_r, abs(defer) * k_r, dhw_cost, pred,
+                             term * k_r / pred if pred > 0 else 0.0))
+                print(f"  {tag} {cell} d={d} P_r {p_r:.3f} k_r {k_r:.5f}"
+                      f" | terminal {term:.4f} at-P_r {term * k_r:.6f}"
+                      f" | deferred {defer:.4f} at-P_r {abs(defer) * k_r:.6f}"
+                      f" | dhw cost {dhw_cost:.4f} | predicted {pred:.4f}")
+                if d == 0.0 and (term * k_r != 0.0 or defer * k_r != 0.0):
+                    null_bad += 1
+            if rows:
+                a = np.array(rows, float)
+                print(f"{tag} d={d}: cells {len(rows)} terminal-at-P_r max {a[:, 0].max():.6f}"
+                      f" deferred-at-P_r max {a[:, 1].max():.6f}"
+                      f" (dhw cost max {a[:, 2].max():.4f}, predicted max {a[:, 3].max():.4f})"
+                      f" terminal-at-P_r / predicted max {a[:, 4].max():.5f}")
+    print(f"null rows not zero {null_bad}")
+    print(f"failures {failures}")
+    return 1 if null_bad or failures else 0
+
+
 def main(argv: list[str]) -> int:
+    if argv[:1] == ["refill"]:
+        return refill()
     if argv[:1] == ["relaxed"]:
         return relaxed()
     if argv[:1] == ["buffer"]:
