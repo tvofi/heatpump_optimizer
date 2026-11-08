@@ -1,0 +1,18 @@
+RESULT mutant=U1 rc=1 fails=3
+    FAIL REPLAN routing invariants: an unreadable tool is never clean: exit 2 with no summary (a REFUSED roster ref) is one UNREADABLE line
+    FAIL REPLAN routing invariants: an unreadable tool is never clean: exit 2 with a summary is still UNREADABLE (the rc arm alone)
+    FAIL REPLAN routing invariants: an unreadable tool is never clean: exit 0 with no summary is UNREADABLE (the summary arm alone)
+RESULT mutant=U2 rc=1 fails=1
+    FAIL REPLAN routing invariants: an unreadable tool is never clean: exit 2 with a summary is still UNREADABLE (the rc arm alone)
+RESULT mutant=U3 rc=1 fails=1
+    FAIL REPLAN routing invariants: an unreadable tool is never clean: exit 0 with no summary is UNREADABLE (the summary arm alone)
+RESULT mutant=U4 rc=1 fails=1
+    FAIL REPLAN routing invariants: an unreadable tool is never clean: an OSError from the tool is one UNREADABLE line naming it
+RESULT mutant=U5 rc=1 fails=1
+    FAIL REPLAN routing invariants: an unreadable tool is never clean: an OSError from the tool is one UNREADABLE line naming it
+RESULT mutant=U6 rc=1 fails=1
+    FAIL REPLAN routing invariants: an unreadable tool is never clean: a non-JSON issue list drops --open-issues and still runs the roster call
+RESULT mutant=W18 rc=1 fails=1
+    FAIL append-carry refuses text ending in a mark-shaped suffix
+plants: 7, without a FAIL line: none
+rc=0
