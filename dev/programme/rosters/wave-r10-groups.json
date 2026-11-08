@@ -19759,6 +19759,50 @@
     "note": null
    },
    "brief": "Fly-in root cause beside R10-HOTFIX-SWEEP-SETTLE-LOOP: the cause, process state, cost test and countermeasure for the sweep settle loop, with the replay harness. Handoff handoff/r10-rca-sweep-settle-loop at ae2bceee is already built; this row records it."
+  },
+  {
+   "group": "R10-HOTFIX-ROSTER-LINT-REFRESH",
+   "lane": "C",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/roster_queue.py",
+    "dev/audit/harnesses/roster_queue_stale_lint.py",
+    "tests/closures.json"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-hotfix-roster-lint-refresh",
+    "pr": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "open PR, review",
+    "note": null
+   },
+   "brief": "Fly-in hotfix, orchestrator 2026-11-08 under mandate 6715477401: the roster drain refused 3+ ops on the stale-worktree trap (lint clone not refreshed, ignored return codes) and cascaded 172 on-no-origin-ref refusals. Detach the lint clone at the edit checkout origin/main sha and verify; remove wt-run after a final refusal. RCA in the PR body, process state (c)."
   }
  ]
 }
