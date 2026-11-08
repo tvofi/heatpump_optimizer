@@ -8,12 +8,16 @@ Code: 444f489ad66a632576438177da8683eb58ef54e1
 
 ## Carry dispositions
 
-- Carry 0, 2, 13: covered here. `dev/governance/roles/standing-tick.md` now names the unflagged `CARRY: #<pr> <sha>` line beside the ancestor-recarry test, inside the file's budget (25 lines, `policy_lint.mjs` clean). It is a policy edit: it waits for the owner's approving review before merging.
-- Carry 1: fixed in `carry_audit.landed()`. A source token (`--pr`, `--topic`) now lands an item only through a group's carries, never its brief; an item id still lands through either. The brief names the PRs it was cut from, which is why `--pr '#3234'` hid every missing carry.
-- Carry 3 and 14: `body_push.sh` exits 4 when CARRY-LANDED is the refusal (the earlier arms exit before it) and every refusal prints `body_push: REFUSED <KIND>`; `cloud_relay.sh` gains `carry_fold_arm` (run each pass after `handoff_arm`). It reads each `handoff-wip/<topic>` BLOCKED.md, and only when its refusal kinds are exactly CARRY-LANDED and `handoff-wip/<topic>-body` is kept, runs `carry_fold.py` on that body and then `body_push.sh` from a worktree at `handoff/<topic>`. Any other block prints `OWED carry-fold ...` and goes on the level. The fixer prompt (`cloud_dispatch.py`) tells a fixer to push the exit-4 output as BLOCKED.md. The carry named a `-carries` ref; none is needed since the body already is the kept state.
+- Carry 0: covered here. `dev/governance/roles/standing-tick.md` names the unflagged `CARRY: #<pr> <sha>` line beside the ancestor-recarry test, inside the file's budget (25 lines, `policy_lint.mjs` clean). A policy edit: it waits for the owner's approving review (see Approval).
+- Carry 1: fixed in `carry_audit.landed()`. A source token (`--pr`, `--topic`) lands an item only through a group's carries, never its brief; an item id still lands through either. The brief names the PRs it was cut from, which is why `--pr '#3234'` hid every missing carry.
+- Carry 2: same edit as carry 0.
+- Carry 3: `body_push.sh` exits 4 when CARRY-LANDED is the refusal (the earlier arms exit before it) and every refusal prints `body_push: REFUSED <KIND>`; `cloud_relay.sh` gains `carry_fold_arm` (run each pass after `handoff_arm`), see carry 14. The carry named a `handoff-wip/<topic>-carries` ref; none is needed, because the refused body is already kept on `handoff-wip/<topic>-body`.
 - Carry 4: `bus.sh blocked_rounds` counts distinct blocked heads on `verdict/<pr>`.
-- Carry 8: plant C6 now fails with FAIL lines (see Mutation proof).
-- Carries 5, 6, 7 and 9, 10, 11, 12 (`set-resume --field pr`, `edit-brief`, `set-stage --into`, and the later absorbed-group lint): roster DATA edits on the roster branch this seat may not write. They wait for the orchestrator's roster seat; each keeps its precondition (count measured at that seat's base; `pr` read from `dev/programme/delivery/<N>.md`; the briefs' phrase count reads 0 afterwards; `carry_audit.py roster` reports REROUTED). Nothing was guessed or written here.
+- Carry 5, 6, 7, 9, 10, 11 (`set-resume --field pr`, `edit-brief`, `set-stage --into`, and the absorbed-group lint after them): roster DATA edits on the roster branch this seat may not write. They wait for the orchestrator's roster seat, each keeping its precondition (count measured at that seat's base; `pr` read from `dev/programme/delivery/<N>.md`; the briefs' phrase count reads 0 afterwards; `carry_audit.py roster` reports REROUTED). Nothing was written or guessed here.
+- Carry 8 and 12: plant C6 now fails with FAIL lines (see Mutation proof).
+- Carry 13: same edit as carry 0.
+- Carry 14: `carry_fold_arm` reads each `handoff-wip/<topic>` BLOCKED.md and, only when its refusal kinds are exactly CARRY-LANDED and `handoff-wip/<topic>-body` is kept, runs `carry_fold.py` on that body and then `body_push.sh` from a worktree at `handoff/<topic>`. Any other block prints `OWED carry-fold ...` and goes on the level. The fixer prompt (`cloud_dispatch.py`) tells a fixer to push the exit-4 output as BLOCKED.md.
+- Carry 15: the review packet reports it, but the group holds carries 0 to 14 on `origin/handoff/audit-r10-roster`; nothing is owed under that number.
 
 ## Mutation proof
 
