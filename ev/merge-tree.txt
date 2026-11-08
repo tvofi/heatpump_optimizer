@@ -1,0 +1,28 @@
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+MERGE-CLAIM: resolved tests/golden/card_claimed_drift.txt
+241ecf808d92189040670e46a95eb4f42f6ee433
+custom_components/heatpump_optimizer/thermal_model.py
+dev/audit/rounds/round3/D5/option_doc_coverage.py
+dev/audit/rounds/round4/D6/claims.json
+dev/audit/rounds/round4/D6/claims.md
+
+Auto-merging custom_components/heatpump_optimizer/config_flow.py
+Auto-merging custom_components/heatpump_optimizer/const.py
+Auto-merging custom_components/heatpump_optimizer/strings.json
+Auto-merging custom_components/heatpump_optimizer/thermal_model.py
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/thermal_model.py
+Auto-merging custom_components/heatpump_optimizer/translations/en.json
+Auto-merging custom_components/heatpump_optimizer/translations/sv.json
+Auto-merging custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+Auto-merging dev/audit/rounds/round3/D5/option_doc_coverage.py
+CONFLICT (content): Merge conflict in dev/audit/rounds/round3/D5/option_doc_coverage.py
+Auto-merging dev/audit/rounds/round4/D6/claims.json
+CONFLICT (content): Merge conflict in dev/audit/rounds/round4/D6/claims.json
+Auto-merging dev/audit/rounds/round4/D6/claims.md
+CONFLICT (content): Merge conflict in dev/audit/rounds/round4/D6/claims.md
+Auto-merging docs/configuration.md
+Auto-merging tests/entities.py
+Auto-merging tests/features.py
+Auto-merging tests/golden/card_claimed_drift.txt
+Auto-merging tests/golden/claimed_drift.txt
+Auto-merging tests/golden/config_flow.json
