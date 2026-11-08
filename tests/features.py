@@ -12641,8 +12641,8 @@ for _tr_lang in _topo._TRANSLATIONS:
         f"unchanged: {[k for k in _en_labels if _tr_labels.get(k) == _en_labels[k]]}; {_tr_text[:200]}",
     )
 R.check(
-    "setup text ships the card's languages beside English",
-    set(_topo._TRANSLATIONS) >= {"sv", "de"},
+    "setup text ships every translated catalogue's language, and no other",
+    set(_topo._TRANSLATIONS) == set(TRANSLATED_LANGS),
     str(sorted(_topo._TRANSLATIONS)),
 )
 R.check(
@@ -24662,8 +24662,8 @@ _par_bad = [
     != set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES[_lang6].get(key, "")))
 ]
 R.check(
-    "every template language uses en's placeholders per key",
-    len(narrative_mod.TEMPLATES) >= 3 and not _par_bad,
+    "every template language uses en's placeholders per key, one per shipped catalogue",
+    set(narrative_mod.TEMPLATES) == {"en", *TRANSLATED_LANGS} and not _par_bad,
     f"{sorted(narrative_mod.TEMPLATES)}: {_par_bad[:6]} -- a placeholder present "
     "in one language and absent in the other is a sentence that cannot be said",
 )
@@ -31055,7 +31055,7 @@ _card_langs_cl = _re_cl.findall(
 )
 R.check(
     "and a card label in every card language, wired to the code",
-    len(_card_langs_cl) >= 2
+    set(_card_langs_cl) == {"en", *TRANSLATED_LANGS}
     and _card_src_cl.count('"reasons.scheduled"') == len(_card_langs_cl) + 1
     and "scheduled: \"reasons.scheduled\"," in _card_src_cl,
     f"{_card_src_cl.count(chr(34) + 'reasons.scheduled' + chr(34))} uses over {_card_langs_cl}",

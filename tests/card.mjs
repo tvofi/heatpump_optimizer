@@ -13423,10 +13423,16 @@ check("without an indoor reading the corner now label is absent",
   check("why-now: Swedish words, hover and percent spacing",
     sv.includes(SV["whynow.title"]) && sv.includes("↑ +57 %") && sv.includes(fn("esc")(SV["whynow.metric"]))
     && sv.includes("Prisrang") && sv.includes("Bortaläge") && sv.includes("driver mot drift") && sv.includes("driver mot vila"), sv.slice(0, 600));
+  const de = withWhy(why, "de-DE");
+  const DE = fn("STRINGS.de");
+  check("why-now: German words, hover and percent spacing",
+    de.includes(DE["whynow.title"]) && de.includes("↑ +57 %") && de.includes(fn("esc")(DE["whynow.metric"]))
+    && de.includes("Preisrang") && de.includes("Abwesenheit") && de.includes("drängt zum Laufen") && de.includes("drängt zum Pausieren"), de.slice(0, 600));
   build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)); // leave the module back in English
   const whyKeys = (lang) => Object.keys(fn(`STRINGS.${lang}`)).filter((k) => k.startsWith("whynow.")).sort();
-  check("why-now: every en string has its sv twin, and every driver code has a label and an explanation",
-    JSON.stringify(whyKeys("en")) === JSON.stringify(whyKeys("sv"))
+  const whyLangs = Object.keys(fn("STRINGS"));
+  check("why-now: every en string has its twin in every card language, and every driver code has a label and an explanation",
+    whyLangs.every((lang) => JSON.stringify(whyKeys("en")) === JSON.stringify(whyKeys(lang)))
     && ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].every((c) => EN[`whynow.driver_${c}`] && EN[`whynow.explain_${c}`])
     // The roster brief's wording, verbatim (R10-WHY-NOW-WIDGET carry 1).
     && ["Price rank", "Comfort floor", "Mold guard", "Away", "Forecast"].join() === ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].map((c) => EN[`whynow.driver_${c}`]).join()
@@ -13436,7 +13442,7 @@ check("without an indoor reading the corner now label is absent",
     // claim a share decides the hour (fix review of #3274, finding 1).
     && !/decides the hour/.test(EN["whynow.metric"]) && EN["whynow.metric"].includes("can still do the opposite")
     && fn("STRINGS.sv")["whynow.metric"].includes("ändå göra tvärtom"),
-    `${whyKeys("en")} | ${whyKeys("sv")}`);
+    whyLangs.map((lang) => `${lang}: ${whyKeys(lang)}`).join(" | "));
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");

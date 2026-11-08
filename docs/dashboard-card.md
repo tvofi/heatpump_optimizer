@@ -946,7 +946,7 @@ series:                                  # optional, initial per-series visibili
 | Option         | Type    | Default                        | Description |
 |----------------|---------|--------------------------------|-------------|
 | `type`         | string  | —                              | Must be `custom:heatpump-optimizer-card`. |
-| `title`        | string  | localized                      | Card header text. Left out, it is the built-in default for the frontend language (`Heat pump plan`, `Värmepumpsplan`). An explicit empty string renders no header text. |
+| `title`        | string  | localized                      | Card header text. Left out, it is the built-in default for the frontend language (`Heat pump plan`, `Värmepumpsplan`, `Wärmepumpenplan`). An explicit empty string renders no header text. |
 | `space_entity` | string  | `sensor.heat_pump_optimizer_plan_space_heating`, else auto-detected | Entity id of the space-heating plan sensor (its `forecast` attribute supplies `price`, `outdoor`, `space_power`, `room`, `upper`, `lower`). |
 | `dhw_entity`   | string  | `sensor.heat_pump_optimizer_plan_dhw_heating`, else auto-detected | Entity id of the DHW plan sensor (its `forecast` attribute supplies `dhw_power`, `dhw_temp`, the `dhw_temp_lo`/`dhw_temp_hi` expected-error band, and `price`/`outdoor` fallbacks). |
 | `solar_entity` | string  | `sensor.heat_pump_optimizer_solar_irradiance`, else auto-detected | Entity id of the solar irradiance sensor (its `forecast` attribute supplies `ghi`). |
