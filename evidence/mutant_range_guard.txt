@@ -145,11 +145,11 @@
   ok   the learning page saves its watchdogs and does not carry detection
   ok   the heat curve page saves its MQTT wiring
   ok   an offset whose range includes 0 saves
-  ok   an entity whose own range excludes 0 is refused (T2)
+  FAIL an entity whose own range excludes 0 is refused (T2)  [errors=None type='menu']
   ok   an entity with no state at save time is not judged at save (ghc-r08)
   ok   no offset entity configured: the check returns exactly {}
   ok   an offset whose range includes 0: the check returns exactly {}
-  ok   null control: a range excluding 0 returns the refusal
+  FAIL null control: a range excluding 0 returns the refusal  [returned={}]
   ok   the heat-curve entity may not be an entity the optimizer already writes (ghc-r03)
   ok   and the same refusal where the other half is saved, on the building page (ghc-r03)
   ok   kind persistent is not accepted in this build: the selector offers offset only
@@ -468,7 +468,7 @@ Invalid per-day DHW window 'x' for dhw_windows_fri (Invalid window 'x' (expected
 Invalid per-day DHW window 'x' for dhw_windows_sat (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
 Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
   ok   positive control: a non-default stored value is seen
-  .. 197 candidate key(s): 183 behave identically, 14 differ, 31 unobserved by the refresh, 78 with a named read not proven; 180 proven safe
+  .. 198 candidate key(s): 184 behave identically, 14 differ, 32 unobserved by the refresh, 78 with a named read not proven; 181 proven safe
   .. differs when stored at its default: comfort_temp_day_weekend: .after._ctx._config.comfort_temp_day_weekend: None != 21.0
   .. differs when stored at its default: comfort_temp_night_weekend: .after._ctx._config.comfort_temp_night_weekend: None != 19.5
   .. differs when stored at its default: day_end_hour_weekend: .after._ctx._config.day_end_hour_weekend: None != 22
@@ -492,7 +492,7 @@ Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected
   ok   every listed fallback is the value the form shows while the key is absent
 
 -- options: an untouched page does not reload
-/tmp/claude-0/-home-user-heatpump-optimizer/abcabbec-fa28-5c6e-a759-18f0875451ae/scratchpad/wt-head/tests/harness.py:575: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/tmp/tmp.48HlYIkcyD/wt3/tests/harness.py:575: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   never saved page by page: only the pages posting a behaviour-changing default reload
@@ -664,7 +664,7 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   replacing the stored price entity saves the new one
   ok   switching to Tibber with a token saves it and nulls the cleared price entity
 
-RESULT flow_checks_covered=526/526 checks
+RESULT flow_checks_covered=524/526 checks
 RESULT step_user happy=7/7 error_branches=11/11
 RESULT step_user_sensors happy=2/2 error_branches=0/0
 RESULT step_finish_setup happy=5/5 error_branches=0/0
@@ -694,7 +694,7 @@ RESULT step_opt_building happy=35/35 error_branches=6/6
 RESULT step_opt_thermal_model happy=9/9 error_branches=2/2
 RESULT step_opt_thermal_model_zones happy=6/6 error_branches=0/0
 RESULT step_opt_tuning happy=3/3 error_branches=0/0
-RESULT step_opt_heat_curve happy=9/9 error_branches=4/4
+RESULT step_opt_heat_curve happy=9/9 error_branches=2/4
 RESULT step_opt_building_preset happy=3/3 error_branches=0/0
 RESULT step_opt_grid happy=6/6 error_branches=5/5
 RESULT step_opt_grid_connection happy=4/4 error_branches=5/5
@@ -712,4 +712,5 @@ RESULT reconfigure_round_trips=1
 RESULT options_close_round_trips=1
 RESULT duplicate_aborts=1
 
-ALL 551 checks PASSED
+2 of 551 checks FAILED
+rc=1
