@@ -1,0 +1,15 @@
+== mutant skip
+RESULT replay reruns=86 max_attempt=44 sim_minutes=72 alarm=yes
+selftest rc=1
+== mutant settled
+RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
+selftest rc=1
+== mutant actor
+RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
+selftest rc=1
+== mutant srcafter
+RESULT replay reruns=86 max_attempt=44 sim_minutes=72 alarm=yes
+selftest rc=1
+== mutant revert
+RESULT replay reruns=86 max_attempt=44 sim_minutes=72 alarm=yes
+selftest rc=1

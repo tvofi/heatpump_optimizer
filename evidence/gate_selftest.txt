@@ -1,0 +1,1 @@
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp.TcZI5wVUKO/head/tools/policy/fixtures/required-contexts.json'

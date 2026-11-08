@@ -1,0 +1,4 @@
+  File "/tmp/tmp.TcZI5wVUKO/head/tools/ci/sweep_selftest.py", line 8, in <module>
+    import sweep
+ModuleNotFoundError: No module named 'sweep'
+rc=1

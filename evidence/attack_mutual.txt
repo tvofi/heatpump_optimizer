@@ -1,0 +1,6 @@
+== base
+RESULT mutual-defer-bot-pair swept_from=1 posts=['repos/o/r/actions/jobs/10/rerun']
+RESULT mutual-defer-bot-pair swept_from=2 posts=['repos/o/r/actions/jobs/10/rerun']
+== head
+RESULT mutual-defer-bot-pair swept_from=1 posts=[]
+RESULT mutual-defer-bot-pair swept_from=2 posts=[]
