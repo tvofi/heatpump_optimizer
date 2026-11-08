@@ -1,23 +1,40 @@
 R10-SAV-COMFORT part 4 (topic r10-sav-comfort-p4). Part of #201.
 
-Behind a valve, the thermostat reference (`HeatPumpOptimizer._apportion_by_steady_demand`) spread the horizon's simulated energy by steady demand with no pump cap. On a 3 kW pump with a -25 C night and 400 W/m2 midday sun it booked 3.678 kW, which is 1.226x the pump. That is carries 0497bde5, e9ced5fc, 7f2fa39d and fc24128d.
+Behind a valve, the thermostat reference (`HeatPumpOptimizer._apportion_by_steady_demand`) spread the horizon's simulated energy by steady demand with no pump cap. On a 3 kW pump with a -25 C night and 400 W/m2 midday sun it booked 3.678 kW, which is 1.226x the pump. That is carries 10, 13, 15, 16 and 18 (items 0497bde5, e9ced5fc, 7f2fa39d and fc24128d).
 
-Now a step the spread would put past `max_electrical_power` is held at the pump, and its excess goes to the uncapped steps in proportion to their steady demand. The energy is kept. The reference is inside the solve's bounds at its source, so `_optimize_space_only` no longer needs to clamp its seed (`np.clip(seed_power, 0.0, p_max)` is removed). This also adds the two-zone comfort-shortfall check owed by carry 435eb685.
+Now a step the spread would put past `max_electrical_power` is held at the pump, and its excess goes to the uncapped steps in proportion to their steady demand. The energy is kept. The reference is inside the solve's bounds at its source, so `_optimize_space_only` no longer needs to clamp its seed (`np.clip(seed_power, 0.0, p_max)` is removed). This also adds the two-zone comfort-shortfall check owed by carry 11 (item 435eb685).
 
 Alternatives considered:
 - Clamp the booked reference after the spread. Rejected: it destroys energy, and the saving would then be booked against a thermostat that bought less than it needed.
 - Keep the seed clip as a second guard. Rejected: once the reference is capped it is dead code, its mutant can only survive, and the concern would have two owners.
 - Move the helper to module level, beside `_floor_demand_at_target`. Rejected: it orphans three mutation-ledger rows whose anchors carry the class qualname, and gains nothing over paying the class lines in place.
 
-Carry dispositions, each re-measured at merge base 5bc009bc8 and at the head:
-- Carry 0 / 6 (comfort-matched null): already settled at main by part 3 (e57dfbbe0). `r10_sav_null_settled.py`: the const arm, comfort-matched with stored heat settled, reads +0.28 %. The varying arm reads +14.28 %, which is the timing term. Both read the same at main and at the head. `r10_sav_baseline.py null` still prints DEFECT at 12.34 % (10.83 % at 92588d581). That arm reads the raw month saving, with the comfort shortfall published beside it and not netted out, by the part 3 ruling.
-- Carry 0 second limit (summer_dhw_only start bound): settled at main. `golden.capture('summer_dhw_only')` reads +5.881915 % at main and at the head, and `away_setback` reads 29.627509 % at both. The committed fixture's -3.17 % is a canonical-environment recording that this seat cannot honestly re-record (rule 3).
-- Carries 1, 2, 3, 4, 7: implemented at main (34cd75bf1, 5d4e0bcfb, eb0cf1893). `r10_sav_actuation_phase.py` prints `AGREE: yes`, and `r10_sav_volume.py` reads flat 0.00 and vary timing +74.88, at both ends.
-- Carries 9, 12, 14, 15, 17 (`_apportion_by_steady_demand` had no pump cap): closed in this diff.
-- Carry 10 (two-zone comfort check, M2): closed in this diff.
-- Carries 8, 11, 13, 16, 18 (unattributed residual): measured and not attributed. See Forward-carry.
-- Carry 5 (accuracy biases on one sample window): not taken. See Forward-carry.
-- Carry 19 (part-load refill pricing): not taken. See Forward-carry.
+Carry dispositions, numbered 1 to 20 as the roster entry holds them (the dispatch brief rendered the same list 0 to 19; its index is in brackets). Each one was re-measured at merge base 5bc009bc8 and at the head:
+
+- Carry 1 (brief 0), comfort-matched null and summer_dhw_only start bound: both settled at main.
+  - Part 3 (e57dfbbe0) settled the comfort-matched null. `r10_sav_null_settled.py` reads the const arm, comfort-matched with stored heat settled at both ends, at +0.28 %. The varying arm reads +14.28 %, which is the timing term.
+  - `r10_sav_baseline.py null` still prints DEFECT at 12.34 % (10.83 % at 92588d581). That arm reads the raw month saving, which publishes the comfort shortfall beside the saving rather than netting it out, by the part 3 ruling.
+  - `golden.capture('summer_dhw_only')` reads +5.881915 %, and `away_setback` reads 29.627509 %. The committed fixture's -3.17 % is a canonical-environment recording that this seat cannot honestly re-record (rule 3).
+  - All of these read the same at both ends.
+- Carry 2 (brief 1), volume basis: implemented at main (34cd75bf1). `r10_sav_volume.py` reads flat 0.00 and vary timing +74.88 at both ends.
+- Carry 3 (brief 2), card equals `ledger.savings_months`: implemented at main (34cd75bf1).
+- Carry 4 (brief 3), owner's baseline definition: implemented at main (34cd75bf1, then part 3).
+- Carry 5 (brief 4), actuation phase: implemented at main (5d4e0bcfb). `r10_sav_actuation_phase.py` prints `AGREE: yes` at both ends.
+- Carry 6 (brief 5), the two accuracy biases on one sample window: not taken here. See Forward-carry.
+- Carry 7 (brief 6), the month row's comfort shortfall: implemented at main (e57dfbbe0), with the same figures as carry 1.
+- Carry 8 (brief 7), the duty-ledger tail settle: implemented at main (eb0cf1893). `AGREE: yes` at both ends.
+- Carry 9 (brief 8), the unattributed residual (item 476710bb): measured and not attributed. See Forward-carry.
+- Carry 10 (brief 9), no pump cap in `_apportion_by_steady_demand` (item 0497bde5): closed in this diff.
+- Carry 11 (brief 10), the two-zone comfort check, M2 (item 435eb685): closed in this diff.
+- Carry 12 (brief 11), the residual (item c38cb7d9): the same as carry 9.
+- Carry 13 (brief 12), the pump cap (item e9ced5fc): closed in this diff.
+- Carry 14 (brief 13), the residual (item d7f65c3b): the same as carry 9.
+- Carry 15 (brief 14), the pump cap (item 7f2fa39d): closed in this diff.
+- Carry 16 (brief 15), the pump cap, 1.226x on a 3 kW pump (item fc24128d): closed in this diff. The check that pins it reads 3.678 kW on the 3.0 kW pump at main.
+- Carry 17 (brief 16), the residual (item 7da8ff67): the same as carry 9.
+- Carry 18 (brief 17), the pump cap: closed in this diff.
+- Carry 19 (brief 18), the residual: the same as carry 9.
+- Carry 20 (brief 19), part-load refill pricing (item 213e8a10): not taken here. See Forward-carry.
 
 ## Head
 
@@ -81,9 +98,9 @@ A fourth failure at the head, the #1536 `min_electrical_power * 24 h per day` co
 
 ## Forward-carry
 
-- **Carries 8, 11, 13, 16, 18 (unattributed residual).** The residual is unchanged at -3.90 %, -8.02 %, -3.22 % and -3.42 %. Buffer-tank standing loss is ruled out (0.25 kWh_th apart). In kWh_th the plan delivers about 22 more than the settled reference. The next hypothesis is that the two-zone comfort term counts the lower floor only (`_floor_demand_terms`), which needs a two-zone control. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
-- **Carry 5 (power_ratio and cost_error on one sample window).** Not taken here. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
-- **Carry 19 (part-load refill pricing).** Not taken here. Re-measured at 5bc009bc8: `r10_partload_pricing.py` prints `null rows not zero 0`. Flat d=0.112 reads lp_err 0.267290, terminal-at-max 4.368455 and deferred-at-max 2.139841. The carry's refill-residue harness is not in the tree at the merge base, so its figures were not re-measured. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
+- **Carries 9, 12, 14, 17, 19 (unattributed residual).** The residual is unchanged at -3.90 %, -8.02 %, -3.22 % and -3.42 %. Buffer-tank standing loss is ruled out (0.25 kWh_th apart). In kWh_th the plan delivers about 22 more than the settled reference. The next hypothesis is that the two-zone comfort term counts the lower floor only (`_floor_demand_terms`), which needs a two-zone control. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
+- **Carry 6 (power_ratio and cost_error on one sample window).** Not taken here. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
+- **Carry 20 (part-load refill pricing).** Not taken here. Re-measured at 5bc009bc8: `r10_partload_pricing.py` prints `null rows not zero 0`. Flat d=0.112 reads lp_err 0.267290, terminal-at-max 4.368455 and deferred-at-max 2.139841. The carry's refill-residue harness is not in the tree at the merge base, so its figures were not re-measured. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
 
 ## Friction
 
