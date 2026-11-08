@@ -655,8 +655,10 @@ def plan_page_arms(root: Path, ok, git) -> None:
         return
     tip1 = tip_of(state_ref)
     good = at(tip1, page_path) or ""
+    # Keyed on the refusal page's own heading, as publish's crash guard is: a
+    # drawn page may carry a flow metric's UNAVAILABLE cell (plan_page's Flow).
     ok("plan page: a fresh plan draws PLAN.html in the plan table's commit",
-       rc == 0 and "Fix Plan" in good and "UNAVAILABLE" not in good
+       rc == 0 and "Fix Plan" in good and "PLAN UNAVAILABLE" not in good
        and at(tip1, write_set[0]) is not None, (rc, good[:200]))
     ok("plan page: the mirror carries PLAN.html",
        (mirror / PLAN_PAGE).read_text(encoding="utf-8") == good)
