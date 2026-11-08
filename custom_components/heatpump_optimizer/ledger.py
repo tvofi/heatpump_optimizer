@@ -331,7 +331,7 @@ class MonthlyLedger:
         fee_per_kwh = float(fee) if isinstance(fee, (int, float)) and math.isfinite(fee) else 0.0
         self.add_savings_settlement(
             when, actual_kwh=actual_kwh, spot=spot + fee_per_kwh, dt=dt,
-            planned_kw=pending.get("power"), wood_heated=pending.get("wood_heated"),
+            planned_kw=pending.get("power"), wood_free=pending.get("wood_heated") is False,
             **{key: pending.get(key) for key in SETTLEMENT_KEYS},
         )
 
@@ -347,7 +347,7 @@ class MonthlyLedger:
         stored_kw_th: float | None = None,
         comfort_kw: float | None = None,
         steady_cop: float | None = None,
-        wood_heated: bool | None = None,
+        wood_free: bool = False,
     ) -> None:
         """Book the savings lines, or none.
 
@@ -358,7 +358,7 @@ class MonthlyLedger:
         month whose savings lines began without it never gains one, which
         would calibrate a share of its thermostat only. The plan step's
         ``stored_kw_th`` (with its ``steady_cop``) and ``comfort_kw`` book theirs.
-        ``wood_heated`` False also books the ``SAVINGS_WOOD_FREE_LINES`` pair.
+        ``wood_free`` (wood did not heat it) also books the ``SAVINGS_WOOD_FREE_LINES`` pair.
         Every line is priced at the interval's ``spot``.
         """
         if baseline_kw is None or not all(np.isfinite(v) for v in (baseline_kw, actual_kwh, spot, dt)):
@@ -376,7 +376,7 @@ class MonthlyLedger:
         book("savings_actual", float(actual_kwh))
         if calibrated and planned_kw is not None and np.isfinite(planned_kw):
             book(SAVINGS_PLAN_LINE, plan_kwh := float(planned_kw) * float(dt))
-            if wood_heated is False:
+            if wood_free:
                 book(SAVINGS_WOOD_FREE_LINES[0], plan_kwh)
                 book(SAVINGS_WOOD_FREE_LINES[1], float(actual_kwh))
         if stored_kw_th is not None and steady_cop is not None and np.isfinite(steady_cop):
