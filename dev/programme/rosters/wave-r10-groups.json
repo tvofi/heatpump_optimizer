@@ -16341,7 +16341,8 @@
     "From handoff/r10-rca-tick-blind, body item 42c659b5: OUTSIDE-CHAIN-IDLE walks after-edges for outside-sourced groups. Carry: R10-TICK-LEVELS (items 42c659b5)",
     "From handoff/r10-rca-tick-blind, body item c4fd2112: probe-refused classified by reason and ranked by critical path. Carry: R10-TICK-LEVELS (items c4fd2112)",
     "From handoff/r10-rca-tick-blind, body item f7f2f31d: unrecorded-merge query fixed; HANDOVER line stops naming state_docs. Carry: R10-TICK-LEVELS (items f7f2f31d)",
-    "From handoff/r10-rca-tick-blind, body item 2acc909a: Repair-discharges-line self-test barrier per flagged line kind. Carry: R10-TICK-LEVELS (items 2acc909a)"
+    "From handoff/r10-rca-tick-blind, body item 2acc909a: Repair-discharges-line self-test barrier per flagged line kind. Carry: R10-TICK-LEVELS (items 2acc909a)",
+    "From handoff/r10-rca-tick-blind, body item bfa71add: postmerge / record_beat posts nothing when issue 201 already carries the sha40. Carry: R10-TICK-LEVELS (items bfa71add)"
    ],
    "architect_note": "",
    "resume": {
