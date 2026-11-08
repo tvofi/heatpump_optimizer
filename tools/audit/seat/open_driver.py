@@ -117,6 +117,9 @@ def resolve(topic: str, groups, body_head: str, titles: dict | None = None) -> t
     return None, "NEEDS-TITLE"
 
 
+SKIP_TOPIC_PREFIXES = ("triage-", "roster-")
+
+
 def default_class(topic: str, group: str | None, critical) -> int:
     if group and roster_lib.norm_group(group) in critical:
         return 0
@@ -273,7 +276,9 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
         def skip(why):
             skipped[topic] = why
             log(f"SKIP {topic} {sha[:8]} {why}")
-        if tips.get(f"refs/heads/handoff/{topic}") != sha:
+        if topic.startswith(SKIP_TOPIC_PREFIXES):  # mut:optopicskip
+            skip("batched")  # triage and roster changes wait and merge together with stamps (tvofi 2026-11-04)
+        elif tips.get(f"refs/heads/handoff/{topic}") != sha:
             skip("moved")
         elif f"refs/heads/handoff-body/{topic}" not in tips:
             skip("no-body")
