@@ -1,0 +1,13 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index 323ffe583..ffa6fdd74 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -29021,7 +29021,7 @@ try:
+             Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + 'f "${a[@]}"\n')
+             os.chdir(_ba_tmp)
+             with throwaway_git_environ():
+-                _ba_uncommitted = (_ba.scan("HEAD"), _ba.scan())
++                _ba_uncommitted = (_ba.scan(), _ba.scan())
+         finally:
+             os.chdir(_ba_cwd)
+     _ba_rows = (
