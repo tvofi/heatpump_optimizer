@@ -135,8 +135,8 @@ def self_test() -> int:
     check("refusal_detail of plain output is its last line (null control)",
           refusal_detail("a\nb\n") == "b" and refusal_detail("") == "no output")
 
-    def fake(rc=None):
-        rc = rc or {}
+    def fake(rc=None, said=None):
+        rc, said = rc or {}, said or {}
         log = []
 
         def run(argv, stdin=None, cwd=None):
@@ -150,12 +150,12 @@ def self_test() -> int:
                 return 0, full + "\n"
             for key in ("gh_comment.py", "roster_sync.py", "state_docs.py", "classify", "ledger.py"):
                 if key in j:
-                    return rc.get(key, 0), f"{key} said" + (" REFUSED" if rc.get(key) else "")
+                    return rc.get(key, 0), said.get(key, f"{key} said" + (" REFUSED" if rc.get(key) else ""))
             return 0, ""
         return run, log
 
-    def go(rc=None, dry=False, retry=False):
-        run, log = fake(rc)
+    def go(rc=None, dry=False, retry=False, said=None):
+        run, log = fake(rc, said)
         lines = []
         with tempfile.TemporaryDirectory() as td:
             code = postmerge(7, rb.DEFAULT_REPO, Path(td), dry, retry, run, lines.append, roster)
@@ -185,6 +185,11 @@ def self_test() -> int:
     code, lines, _ = go({"roster_sync.py": 1})
     check("a refused stage names the resolved group: set-stage owed <GROUP> <merge sha>",
           f"set-stage owed R10-X {full}" in lines, lines)
+    gate = ("roster_edit: LINT GATE REFUSED the push\n  ERROR   [G-1] cite: a.py:9 moved\n\n"
+            "TOTAL: 1 error(s) across 1 file(s)\nthe commit is local at 0123 in /w; nothing pushed\n")
+    code, lines, _ = go({"roster_sync.py": 3}, said={"roster_sync.py": gate})
+    check("a stage refused by the lint gate owes its ERROR line, not only the last line (P435)",
+          any(l.startswith("OWED stage: rc 3: ") and "[G-1] cite: a.py:9" in l for l in lines), lines)
     code, lines, log = go({"classify": 3})
     check("main WAIT (checks still running) is printed, not owed", code == 0 and
           any(l.startswith("main ") for l in lines) and not any(l.startswith("OWED") for l in lines), lines)
