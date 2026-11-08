@@ -1081,6 +1081,25 @@ def self_test() -> int:
             ck("record --step --out: the step is re-measured into that file, the other entries kept",
                rc1 == 0 and pt["steps"].get("slow", {}).get("run_sha") == "old"
                and "tools/x/a.py" in pt["steps"].get("a", {}).get("files", ()))
+            buf, err = io.StringIO(), io.StringIO()
+            path, os.environ["PATH"] = os.environ["PATH"], ""
+            try:
+                with contextlib.redirect_stderr(err):
+                    rc_ns = main(["record"], root)
+            finally:
+                os.environ["PATH"] = path
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc_unk = main(["record", "--step", "nosuch"], root)
+                (root / WORKFLOW).write_text(e2e.replace("cat tools/x/a.py > /dev/null", "false"))
+                rc_fail = main(["record", "--step", "a", "--out", str(root / "f.json")], root)
+                (root / WORKFLOW).write_text(e2e.replace("! sel slow || ", ""))
+                rc_gap = main(["record", "--out", str(root / "g.json")], root)
+                (root / WORKFLOW).write_text(e2e)
+            ck("record refuses with no strace (2), an unknown step (2), an inconsistent job (1), "
+               "and fails a failing step (1), naming it",
+               (rc_ns, rc_unk, rc_gap, rc_fail) == (2, 2, 1, 1) and "needs strace" in err.getvalue()
+               and "no gated step ['nosuch']" in err.getvalue() and "UNSELECTED start slow" in err.getvalue()
+               and "1 failed ['a']" in buf.getvalue() and "FAIL" in buf.getvalue())
             probe = ("import sys; sys.path.insert(0, sys.argv[1]); import selftest_scope as s; "
                      "print(s._traced())")
             seen = [subprocess.run(pre + [sys.executable, "-I", "-c", probe, str(ROOT / "tools/ci")],
