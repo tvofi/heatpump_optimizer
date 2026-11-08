@@ -35,7 +35,12 @@ Each mutant was applied to the production line, the owning self-test run, and th
   - Carry 7: covered by 28482ece in `write_roster`'s in-process `privacy_refusal` (`<op> naming a host path is refused with the scrub hint (carry 7)`); it runs beside the lint gate, not inside `lint_gate`.
   - Carry 8: framing only; its sub-items are carries 9 to 14.
   - Carry 9: not delivered. The phrase "handoff_push" still occurs in 91 of 342 groups of `wave-r10-groups.json` (67 briefs, 14 carries, 1 files list). Owed as one `edit-brief` op per live group, for the roster seat.
-  - Carries 10, 11, 12, 14, 15: covered by 28482ece (`parse_line`, `run --mark`, `loop`/`release-held`/`unwired`, `lane_refusal`).
+  - Carry 10: covered by 28482eceeb6b9809e44b12d80fc994282cc21645, `parse: a trailing ` # comment` is dropped (carry 11)`.
+  - Carry 11: covered by 28482eceeb6b9809e44b12d80fc994282cc21645, `a # inside a word is kept (null)`.
+  - Carry 12: covered by 28482eceeb6b9809e44b12d80fc994282cc21645, `run --mark: a pushed op is `#done`, a refused op `#refused``.
+  - Carry 14: covered by 28482eceeb6b9809e44b12d80fc994282cc21645, `loop: a missing lint clone is re-provisioned`, `release-held` and `unwired` rows.
+  - Carry 15: covered by 28482eceeb6b9809e44b12d80fc994282cc21645, `lane: <op> without the marker is refused, naming the queue runner`.
+  - Carry 21: the brief carries no numbered item 21; the only further item is the trailing `Carry: R10-ORCH-ROSTER-SCHEMA` line of carries 14 and 15, covered by 28482eceeb6b9809e44b12d80fc994282cc21645.
   - Carry 13: (1) docstring and (3) comment parsing covered; (4) `run --batch` covered; (2) refers to `roster_drain.py`, which does not exist in the tree, so there is nothing to fix.
   - Carry 16: code covered by 28482ece (`set-stage absorbed --into`). Data not done: the ten named groups are still `done`. Owed as ten `set-stage G absorbed --into H` ops for the roster seat; the host for each is a ruling for the orchestrator.
 - Carries built here: 17 (`_on_origin`, `update-ref` after the push), 18 (`_run_batch` names the failure and isolates a malformed line), 19 (`--add` is `action="extend"`; it is the only repeatable flag in `build_parser`), 20 (`lint_gate(..., base_text)`, `refusal_tail` in `roster_queue.py`, `refusal_detail` in `postmerge.py`).
