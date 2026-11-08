@@ -60,7 +60,9 @@ environment rather than the tree is not scoped by any table.
 """
 from __future__ import annotations
 
+import contextlib
 import hashlib
+import io
 import json
 import os
 import re
@@ -627,14 +629,25 @@ def record(root: Path, only: list[str] | None, out: Path) -> int:
             failed.append(s.id)
             print((r.stdout + r.stderr)[-1500:], flush=True)
     measured = fold(tmp / TRACE_DIR, steps, root)
+    shutil.rmtree(tmp, ignore_errors=True)    # gigabytes of traces on a full record
     old = load_table(out)
     entries = dict(old["steps"]) if old and only else {}
     entries.update(measured)
     entries = {k: v for k, v in entries.items() if k in set(gated_ids(steps))}
-    write_table(out, entries)
+    write_table(out, entries, root)
     print(f"selftest_scope: recorded {len(measured)} step(s) into {out}; "
           f"{len(failed)} failed {failed}")
     return 1 if failed else 0
+
+
+def _traced() -> bool:
+    """Whether a tracer holds this process: main's traced run of this very
+    step, where a nested strace could not attach (one tracer per process)."""
+    try:
+        return any(l.split()[1] != "0" for l in Path("/proc/self/status").read_text().splitlines()
+                   if l.startswith("TracerPid:"))
+    except (OSError, IndexError):
+        return False
 
 
 def write_table(out: Path, entries: dict[str, dict], root: Path = ROOT) -> None:
@@ -651,7 +664,7 @@ def check_cli(trace_dir: Path, write: Path | None = None, root: Path = ROOT) -> 
     gaps = wiring_gaps(steps)
     measured = fold(trace_dir, steps, root)
     if write is not None:
-        write_table(write, measured)        # this run's measurement, to commit as the table
+        write_table(write, measured, root)  # this run's measurement, to commit as the table
     refuse, notes = drift(load_table(root / TABLE), measured, steps)
     for line in gaps + refuse:
         print(f"  {line}")
@@ -974,6 +987,94 @@ def self_test() -> int:
         ck("trace_events skips non-syscall lines and orphan resumes, and takes an open's result path",
            [(e[1], e[2]) for e in ev] == [("openat", f"{root}/tools/x/lib.py")])
 
+    # The recorder end to end, over a throwaway repository: the CI wrapper,
+    # strace, a detached self-test attributed to its waiter, the fold, the
+    # table, then the drift check and the CLI over it. Needs strace (Linux).
+    lib = ("bg_run() { if bash tools/ci/selftest_step.sh --as \"$1\" \"${@:2}\" > \"$RUNNER_TEMP/$1.log\" 2>&1; "
+           "then echo 0 > \"$RUNNER_TEMP/$1.rc\"; else echo 1 > \"$RUNNER_TEMP/$1.rc\"; fi; }\n"
+           "sel() { grep -qx -- \"$1\" \"$RUNNER_TEMP/selftest-scope.txt\"; }\n")
+    e2e = (f"jobs:\n  {JOB}:\n    steps:\n"
+           "      - name: Launch\n        id: launch\n        run: |\n"
+           + "".join(f"          {x}\n" for x in lib.splitlines()) +
+           "          ! sel slow || bg_run slow cat tools/x/slow.sh\n"
+           "      - name: A\n        id: a\n        if: steps.scope.outputs.a == 'true'\n        run: |\n"
+           "          cat tools/x/a.py > /dev/null\n          test -f tools/x/maybe.json || true\n"
+           "          ls docs > /dev/null\n"
+           "      - name: Slow\n        id: slow\n        if: steps.scope.outputs.slow == 'true'\n"
+           "        run: |\n          bg_wait() { test \"$(cat \"$RUNNER_TEMP/$1.rc\")\" = 0; }\n"
+           "          bg_wait slow\n")
+    with tempfile.TemporaryDirectory() as td, throwaway_git_environ():
+        root = Path(os.path.realpath(td))
+        env = throwaway_git_init(root, "-q")
+        for rel, body in ((WORKFLOW, e2e), ("tools/x/a.py", "a\n"), ("tools/x/slow.sh", "s\n"),
+                          ("docs/d.md", "d\n"), (WRAPPER, (ROOT / WRAPPER).read_text())):
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text(body)
+        subprocess.run(["git", "add", "-A"], cwd=root, env=env, check=True)
+        if shutil.which("strace") is None or _traced():
+            print("  skip the recorder end to end: no strace here, or this run is itself traced")
+        else:
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = main(["record"], root)
+            t = load_table(root / TABLE) or {"steps": {}}
+            a_e, slow_e = t["steps"].get("a", {}), t["steps"].get("slow", {})
+            ck(f"record: a traced run of the job writes one entry per gated step (rc={rc})",
+               rc == 0 and sorted(t["steps"]) == ["a", "slow"])
+            ck("record: a step's open is a file, its failed test -f a probe, its ls a dir",
+               "tools/x/a.py" in a_e.get("files", ()) and "tools/x/maybe.json" in a_e.get("probes", ())
+               and "docs" in a_e.get("dirs", ()) and a_e.get("run_sha") == job_steps(e2e)[1].run_sha)
+            ck("record: a detached self-test's reads are its waiter's",
+               "tools/x/slow.sh" in slow_e.get("files", ()) and "tools/x/slow.sh" not in a_e.get("files", ()))
+            ck("record: it leaves no trace directory behind",
+               not any(Path(tempfile.gettempdir()).glob("selftest-record-*/" + TRACE_DIR + "/step-a.trace")))
+        # The drift check and the CLI over a synthetic trace directory.
+        (root / TABLE).parent.mkdir(parents=True, exist_ok=True)
+        st3 = job_steps(e2e)
+        write_table(root / TABLE, {"a": {"run_sha": st3[1].run_sha, "files": ["tools/x/a.py"], "probes": [],
+                                         "dirs": [], "index": False, "objects": False, "git": []},
+                                   "slow": {"run_sha": st3[2].run_sha, "files": [], "probes": [], "dirs": [],
+                                            "index": False, "objects": False, "git": []}}, root)
+        tdir = root / "traces"
+        tdir.mkdir()
+        (tdir / "step-a.trace").write_text(
+            f'5 openat(AT_FDCWD<{root}>, "tools/x/a.py", O_RDONLY) = 3<{root}/tools/x/a.py>\n')
+        (tdir / "step-slow.trace").write_text("")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            rc_ok = main(["check", "--traces", str(tdir), "--write", str(root / "m.json")], root)
+        ck("check: a table naming every read passes, and --write saves the measurement",
+           rc_ok == 0 and "2 gated step(s), 0 refusal(s)" in out.getvalue()
+           and (load_table(root / "m.json") or {}).get("steps", {}).get("a", {}).get("files") == ["tools/x/a.py"])
+        (tdir / "step-slow.trace").write_text(
+            f'6 openat(AT_FDCWD<{root}>, "docs/d.md", O_RDONLY) = 3<{root}/docs/d.md>\n')
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            rc_bad = main(["check", "--traces", str(tdir)], root)
+        ck("check: a read the table misses fails, naming the step and the file",
+           rc_bad == 1 and "UNDER-SCOPED step slow: files misses ['docs/d.md']" in out.getvalue())
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            rcs = [main(["static"], root), main(["ids"], root),
+                   main(["select", "--change", "M:tools/x/a.py"], root)]
+        ck("static, ids and select over a fresh table",
+           rcs == [0, 0, 0] and "0 problem(s)" in out.getvalue() and "a slow\n" in out.getvalue()
+           and "MODE: SCOPED -- 1 step(s) run\n  run a\n" in out.getvalue())
+        (root / WORKFLOW).write_text(e2e.replace("cat tools/x/a.py", "cat tools/x/a.py tools/x/a.py"))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            rc_st = main(["static"], root)
+        ck("static: a step whose run text changed since the record is refused",
+           rc_st == 1 and "STALE" in out.getvalue())
+        (root / TABLE).write_text("{")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            rc_un = main(["static"], root)
+        ck("static: an unreadable table is refused", rc_un == 1 and f"UNREADABLE {TABLE}" in out.getvalue())
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            ck("an unknown command is a usage error", main(["frobnicate"], root) == 2)
+
     # The live job: its gating is consistent (the seat's own null control).
     live = workflow_steps(ROOT)
     ck(f"the live job parses ({len(live)} steps) and its gating is consistent",
@@ -982,23 +1083,23 @@ def self_test() -> int:
     return 1 if failed else 0
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], root: Path = ROOT) -> int:
     if argv == ["--self-test"]:
         return self_test()
     if argv == ["ids"]:
-        print(" ".join(gated_ids(workflow_steps())))
+        print(" ".join(gated_ids(workflow_steps(root))))
         return 0
     if argv == ["static"]:
-        return static_check()
+        return static_check(root)
     if argv[:1] == ["select"] and ("--base" in argv or "--change" in argv):
-        steps = workflow_steps()
+        steps = workflow_steps(root)
         if "--change" in argv:          # a hypothetical diff: STATUS:PATH ...
             changes = [tuple(argv[k + 1].split(":", 1)) for k, a in enumerate(argv) if a == "--change"]
         else:
             base = argv[argv.index("--base") + 1]
             head = argv[argv.index("--head") + 1] if "--head" in argv else "HEAD"
-            changes = diff_changes(base, head)
-        plan = select(changes or [], load_table(ROOT / TABLE), steps) if changes is not None else \
+            changes = diff_changes(base, head, root)
+        plan = select(changes or [], load_table(root / TABLE), steps) if changes is not None else \
             {"mode": "FULL", "why": "git cannot diff", "ids": gated_ids(steps)}
         print(mode_line(plan))
         for i in plan["ids"]:
@@ -1006,11 +1107,11 @@ def main(argv: list[str]) -> int:
         return 0
     if argv[:1] == ["record"]:
         only = [argv[k + 1] for k, a in enumerate(argv) if a == "--step"]
-        out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else ROOT / TABLE
-        return record(ROOT, only or None, out.resolve())
+        out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else root / TABLE
+        return record(root, only or None, out.resolve())
     if argv[:1] == ["check"] and "--traces" in argv:
         write = Path(argv[argv.index("--write") + 1]) if "--write" in argv else None
-        return check_cli(Path(argv[argv.index("--traces") + 1]), write)
+        return check_cli(Path(argv[argv.index("--traces") + 1]), write, root)
     print(__doc__.split("\n\n")[0], file=sys.stderr)
     return 2
 
