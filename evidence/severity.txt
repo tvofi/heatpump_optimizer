@@ -1,2 +1,2 @@
-roster severity counts (handoff/audit-r10-roster): {'high': 90, 'low': 56, 'medium': 202, None: 24, 'critical': 8, 'major': 1, 'normal': 7} total 388
-9263aea2b22ff14be4019be3fadba7cda8823968
+388 Counter({'medium': 202, 'high': 90, 'low': 56, 'unset': 24, 'critical': 8, 'normal': 7, 'major': 1})
+roster 1726b3bc2321994def2dc511eaad087fe06326d5

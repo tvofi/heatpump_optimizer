@@ -1,0 +1,16 @@
+## head self-test
+  ok   --check-event: nothing set is push mode at HEAD
+machinery_ratchet self-test: 54 checks, 0 failed
+ tools/audit/machinery_ratchet.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+## mutant 1/10
+  FAIL exemption: exactly 20% refuses: got 0, want 1
+  FAIL exemption: exactly 20% as floats refuses: got 0, want 1
+machinery_ratchet self-test: 54 checks, 2 failed
+## mutant 21/100
+  FAIL exemption: 21% with evidence passes: got 1, want 0
+  FAIL exemption: 21% right-first-time (a gain) passes: got 1, want 0
+  FAIL positive control: an entry its own merge added takes that merge out of the window: got False, want True
+machinery_ratchet self-test: 54 checks, 3 failed
+## restored
+machinery_ratchet self-test: 54 checks, 0 failed

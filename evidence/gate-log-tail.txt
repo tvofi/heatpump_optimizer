@@ -1,0 +1,4 @@
+gate job 128721651467 (run 42473869682) tail:
+RATE-LIMITED reset_epoch=1794138942 repos/tvofi/heatpump_optimizer/actions/runs/42473869682/jobs
+##[error]Process completed with exit code 3.
+Test jobs (fast, closures, coverage, browser, lane-proofs, ...) concluded cancelled 11:06Z; gate jobs 128721647619 and 128721400596 also failure.
