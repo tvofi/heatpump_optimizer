@@ -113,7 +113,16 @@
   judged on the latest run of each required context (`main-protect-checks`,
   read live; `record`, `record-autofix`, `nightly-status` and
   `delivery-status` never count): a queued or in-progress run is a wait,
-  never red, and an unreadable ruleset refuses. `--overlap` logs main RED,
+  never red, and an unreadable ruleset refuses. A red `gate` in a head wait
+  is a wait while `tools/ci/gate.py`'s own `busy` (imported) names a ci.yml
+  run at the head, or `gate_rerunning` names one re-running its gate (a run
+  unfinished past its completed `gate`: gate-sweep's attempt 2), read from one
+  runs listing per poll, so an edit run's
+  at-once deferral red is not read final while its code run runs; a red
+  beside a green `gate` suite gets one settle poll for gate-sweep's re-run,
+  and an unreadable listing leaves the red standing, logged
+  (R10-HOTFIX-TRAIN-DEFER-WAIT). `polls` still bounds the wait (TIMEOUT); `wait-ci
+  <sha>` (no `only`) takes the same settle once every run concluded. `--overlap` logs main RED,
   or still running, by that rule. Before a merge attempt a check-run still
   queued or in progress over a completed workflow run is stale: its run is
   re-run once, logged `STALE <context> ... run <id>` (a third recurrence goes
@@ -121,7 +130,13 @@
   `classify <sha>` prints GREEN (rc 0), RED (rc 1) or WAIT (rc 3) over a pull
   request's required contexts (`--main`: less the PR-only ones), rc 2 when
   unreadable — a head is reviewable unless RED, which `bus.sh dispatch`
-  enforces. `--pr N` asks `approval_owed(train, pr, head, runs, required)`, the one
+  enforces. Its one read goes through `Train.classify_at`: a red `gate` while
+  gate.py's `busy` or `gate_rerunning` names a ci.yml run at the head is
+  WAIT, and so is one beside a green `gate` suite completed at most
+  `SWEEP_SETTLE_SECONDS` before the read (`sweep_settling`, the poller's one
+  settle poll on the wall clock: none of the one-read callers re-reads a RED);
+  past the bound, or on a stamp ahead of the clock, the red stands. Its
+  deferral log goes to stderr. `--pr N` asks `approval_owed(train, pr, head, runs, required)`, the one
   owner of a budget raise's pre-approval red (P345): when the red set over
   `gating_names` is `gate` and `budget-raise-gate / budget-raise-gate` alone,
   every red gate suite's own log (`gate_raise_only`, through `gate_outcome`)
