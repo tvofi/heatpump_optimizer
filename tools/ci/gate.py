@@ -615,6 +615,24 @@ def self_test() -> int:
     get, naps, nap, now = scene([red_edit])
     check("C3: the edit run's red arch-score (the latest body) is the code gate's source, not its own older green",
           verdict(ctx, get, nap, now), "FAIL arch-score / arch-score: failure (run 101)")
+    # r10-ci-edit-runner 27233708: GitHub numbered the edit run BELOW its code run (27 of 94 same-second
+    # pairs), so the code run's own arch-score shadowed the edit run's read of the latest body by id alone.
+    def stamped(jobs, at):
+        return [dict(j, started_at=at.get(j["name"], "2026-11-01T10:00:00Z")) for j in jobs]
+    arch = "arch-score / arch-score"
+    for label, at, want in (("started after the code run's own", "2026-11-01T10:05:00Z",
+                             "FAIL arch-score / arch-score: failure (run 99)"),
+                            ("null: started before it", "2026-11-01T09:55:00Z", "PASS")):
+        get, naps, nap, now = scene([{**red_edit, "id": 99, "jobs": stamped(red_edit["jobs"], {arch: at})}],
+                                    mine=stamped(green, {}))
+        check(f"source order: a LOWER-id edit run's red arch-score {label} -> the code gate reads the later start",
+              verdict(ctx, get, nap, now), want)
+    lagged = [dict(j, status="queued", conclusion=None, started_at=None) if j["name"] == arch else j
+              for j in stamped(green, {})]
+    get, naps, nap, now = scene([{**done_edit, "id": 101, "jobs": stamped(done_edit["jobs"], {arch: "2026-11-01T10:05:00Z"})}],
+                                mine=lagged)
+    check("source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green",
+          verdict(ctx, get, nap, now), "FAIL arch-score / arch-score: PENDING (this run)")
     for label, red, want in (("green", (), "PASS"),
                              ("its pr-contract red", ("pr-contract / pr-contract",),
                               "FAIL pr-contract / pr-contract: failure (run 99)")):
