@@ -743,8 +743,8 @@ case "$*" in
   *"status --porcelain") [ -f "$STUB/dirty" ] && printf ' M tools/audit/x.sh'; true ;;
   *"log -1 --format=%s") printf 'fix: the stub subject' ;;
   *"--not refs/remotes/origin/main")  # ref_privacy.py's read of the commits the PR adds: sha, emails, message
-    if [ -f "$STUB/leaky-log" ]; then printf 'a\037t@t\037t@t\037fix: notes in /%s/exampleuser/x\036' Users
-    else printf 'a\037t@t\037t@t\037fix: the stub subject\036'; fi ;;
+    if [ -f "$STUB/leaky-log" ]; then printf 'a\0371+t@users.noreply.github.com\0371+t@users.noreply.github.com\037fix: notes in /%s/exampleuser/x\036' Users
+    else printf 'a\0371+t@users.noreply.github.com\0371+t@users.noreply.github.com\037fix: the stub subject\036'; fi ;;
   *"push https://github.com/"*)
     if [ -f "$STUB/push-fails" ]; then echo "error: stub push refused" >&2; exit 1; fi
     if [ -f "$STUB/push-tree" ]; then  # a push still running when the pusher is stopped
