@@ -779,10 +779,17 @@ def selftest_model() -> int:
         grp("HI", "S", "instrument", savings=9), grp("LO", "S", "instrument", savings=2),
         grp("NONE", "S", "instrument")]}
     po = build_plan(order, M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
-    seq = sorted((g for g in po["groups"]), key=lambda n: po["groups"][n]["start"])
+    PG = po["groups"]
+    # The one real slot goes in the owner's order; the critical path, exempt
+    # from the cap, starts at once beside it on an overflow slot.
+    seq = sorted((n for n in PG if not PG[n].get("exempt")), key=lambda n: PG[n]["start"])
     expect("dispatch follows the owner's order (tvofi 2026-11-07, triage P420): hotfix, outside, "
-           "critical path, production, instruments by savings, unrecorded savings last",
-           seq == ["R10-HOTFIX-H", "OUT", "CPA", "CPB", "CPC", "PROD", "HI", "LO", "NONE"], seq)
+           "production, instruments by savings, unrecorded savings last on the real slot",
+           seq == ["R10-HOTFIX-H", "OUT", "PROD", "HI", "LO", "NONE"], seq)
+    expect("the hotfix takes the free real slot at t=0 and the critical path overflows beside it",
+           PG["R10-HOTFIX-H"]["start"] == iso(start, 0) and not PG["R10-HOTFIX-H"].get("exempt")
+           and PG["CPA"]["start"] == iso(start, 0) and PG["CPA"].get("exempt") is True,
+           {n: (PG[n]["start"], PG[n].get("exempt")) for n in PG})
     keys = {n: po["groups"][n]["sort_key"] for n in po["groups"]}
     expect("each group's sort_key is in the plan and orders it the same way",
            sorted(keys, key=lambda n: [float("inf") if k is None else k for k in keys[n]])[0] == "R10-HOTFIX-H"
@@ -1091,28 +1098,22 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                 inherited.add(n)
             ready.discard(n)
             pending.discard(n)
-        # A ready critical-path group starts now whatever the slots cap, as
-        # dispatch does (orchestrator.md section 5); it takes a free slot when
-        # one exists and an overflow slot otherwise, and is exempt from the cap.
-        while True:
-            n = pick(sorted(x for x in ready if x in crit), t)
+        # Real slots go to the ready groups in the one dispatch order, so a
+        # hotfix or an outside group outranks the critical path for a slot
+        # (tvofi 2026-11-07, triage P420). A ready critical-path group left
+        # without one still starts now, as dispatch does (orchestrator.md
+        # section 5), on an overflow slot, exempt from the cap.
+        while ready:
+            s = free_slot()
+            if s is not None:
+                n = pick(sorted(ready), t)
+            else:
+                n = pick(sorted(x for x in ready if x in crit), t)
+                if n is not None:
+                    s = overflow_base + len(start_t)
+                    exempt.add(n)
             if n is None:
                 break
-            s = free_slot()
-            if s is None:
-                s = overflow_base + len(start_t)
-                exempt.add(n)
-            start_t[n] = t
-            slot_of[n] = s
-            work_end[n] = t + dur_min[n]
-            running[n] = (s, work_end[n])
-            ready.discard(n)
-            pending.discard(n)
-        while ready and free_slot() is not None:
-            n = pick(sorted(ready), t)
-            if n is None:
-                break
-            s = free_slot()
             start_t[n] = t
             slot_of[n] = s
             work_end[n] = t + dur_min[n]
@@ -2527,6 +2528,10 @@ def selftest() -> int:
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("n = pick(sorted(x for x in ready ", "if x in crit), t)"),
              "n = pick(sorted(x for x in ready if False), t)"),
+            ("tier-before-overflow",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("n = pick(sorted(ready), ", "t)"),
+             "n = pick(sorted(x for x in ready if x in crit), t) or pick(sorted(ready), t)"),
             ("overflow-exempt",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              "exempt.add(n)", "pass"),
