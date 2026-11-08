@@ -343,10 +343,16 @@ def parts(name):
     return plant if len(plant) == 3 else (TARGET,) + plant
 
 
+def fail_lines(stdout):
+    """A target's FAIL lines, indented or not: orchestrator_tick prints
+    `  FAIL <check>`, roster_edit `FAIL <check>`."""
+    return [ln.strip() for ln in stdout.splitlines() if ln.lstrip().startswith("FAIL ")]
+
+
 def target_self_test(target=TARGET):
     r = subprocess.run([sys.executable, "-I", target, "--self-test"], cwd=ROOT,
                        capture_output=True, text=True)
-    fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
+    fails = fail_lines(r.stdout)
     return r.returncode, fails, (r.stdout + r.stderr).strip().splitlines()[-3:]
 
 
@@ -399,6 +405,8 @@ def self_test():
            "      Traceback", "      boom"])
     ck("a survivor prints fails=0 and no tail",
        rendered(0, [], ["x"]) == ["RESULT mutant=X rc=0 fails=0"])
+    ck("an indented FAIL line is read; an ok line naming FAIL is not",
+       fail_lines("  FAIL a\nFAIL b\n  ok   FAIL-free c\n") == ["FAIL a", "FAIL b"])
     ck("no names selects every plant", select([]) == (list(PLANTS), []))
     ck("a named plant is kept", select(["A1"]) == (["A1"], []))
     ck("an unknown plant is returned for refusal",
