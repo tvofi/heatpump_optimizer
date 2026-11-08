@@ -1,0 +1,16 @@
+SURVIVED tools/plan/replan.py:661 CONST_SWAP  m11 = dict(M, carries_per_part=22.0, carry_part_hours=19.8)
+SURVIVED tools/plan/replan.py:662 CONST_SWAP  h, why = group_hours(grp("BC", "M", stage="carries-open", carry=body), m11, True, "fx")
+SURVIVED tools/plan/replan.py:664 CMP_BOUND  abs(h - 19.8) <= 1e-9 and "36 marked carries left out" in why, f"{h} {why}")
+SURVIVED tools/plan/replan.py:666 CONST_SWAP  h, why = group_hours(grp("T", "L", stage="carries-open", carry=two), M, True, "fx")
+SURVIVED tools/plan/replan.py:669 CONST_SWAP  h, why = group_hours(grp("T", "L", stage="carries-open", carry=["c"] * 10), M, False, "fx")
+SURVIVED tools/plan/replan.py:673 CONST_SWAP  h, why = group_hours(grp("H1", "L", stage="carries-open", carry=h1), M, True, "fx")
+SURVIVED tools/plan/replan.py:676 CONST_SWAP  h, why = group_hours(grp("H1", "L", stage="carries-open", carry=[marked(1)] * 8), M, False, "fx")
+SURVIVED tools/plan/replan.py:679 CONST_SWAP  h, why = group_hours(grp("H1", "L", stage="carries-open", carry=[marked(1)] * 8 + ["c"]),
+SURVIVED tools/plan/replan.py:680 CONST_SWAP  M, True, "fx")
+SURVIVED tools/plan/replan.py:683 CONST_SWAP  m5 = dict(M, held_open_carries={"H5": {"open": 6, "carries": 8}})
+SURVIVED tools/plan/replan.py:684 CONST_SWAP  h, why = group_hours(grp("H5", "L", stage="carries-open", carry=["c"] + [marked(1)] * 7),
+SURVIVED tools/plan/replan.py:685 CONST_SWAP  m5, True, "fx")
+SURVIVED tools/plan/replan.py:688 CONST_SWAP  h, why = group_hours(grp("P", "S", carry=["x"] + [marked(1)] * 3),
+SURVIVED tools/plan/replan.py:696 CONST_SWAP  pl = build_plan(held, M, dict(DEFAULT_CAPS), dt.datetime(2027, 1, 5), "v1.0.0",
+SURVIVED tools/plan/replan.py:697 CONST_SWAP  round_n=3, legacy={"H": frozenset({"old"})})
+rc=0

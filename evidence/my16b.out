@@ -1,0 +1,3 @@
+then-le rc= 1 KILLED ['FAIL the measured open count never exceeds the carries then held still pending: 0 + 1: 20.0 1 open carries at measurement + 1 appended since: 1 part(s), 8 marked carries left out']
+then-max rc= 1 KILLED ['FAIL a held L with one open carry plans one part (20 h), not its L size: 8 open carries at measurement: 2 part(s)']
+then-plus-added-dropped rc= 1 KILLED ['FAIL six carries appended since measurement count open: 7 -> two parts (40 h): 1 open carries at measurement + 6 appended since: 1 part(s)']

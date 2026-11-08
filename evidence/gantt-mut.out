@@ -2,3 +2,4 @@ cp-first rc= 1 KILLED gantt_drift self-test: 45 checks, 2 failed
 late-threshold rc= 1 KILLED gantt_drift self-test: 45 checks, 3 failed
 closure-threshold rc= 1 KILLED gantt_drift self-test: 45 checks, 2 failed
 word-boundary rc= 1 KILLED gantt_drift self-test: 45 checks, 2 failed
+done

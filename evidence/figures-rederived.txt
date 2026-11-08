@@ -1,0 +1,16 @@
+R10-ARCH-DOCS 2083 -> 2004
+R10-BODY-CONTRACT 4752 -> 1188
+R10-FLOW-TOOLKIT-MODEL 1016 -> 947
+R10-HANDOFF-PATH 4752 -> 1188
+R10-PREPR-CAP 3564 -> 2376
+R10-ROSTER-WRITE-SWEEP 2376 -> 1188
+R10-ROUND-PLAYBOOK 1154 -> 1113
+R10-SAV-COMFORT 2376 -> 1188
+R10-TICK-LEVELS 2376 -> 1188
+R10-TRAIN-MERGE-LOOP 2376 -> 0
+R10-USER-DOCS-VERIFY 1332 -> 1313
+RESULT seat-minutes fewer (before d84006e66 vs after head, marked roster df4c1694): 14464
+RESULT null control (head on 661-marks-stripped roster vs d84006e66 on marked roster): groups differing in duration/start/finish: 0 summary equal: True
+RESULT perturbation main-legacy-none on live roster df4c1694: groups whose duration moves: 1
+   ('R10-SAV-COMFORT', 1188, 2376, '14 carries, none measured as answered: 2 part(s), 5 marked carries left out')
+  closure head 2026-11-14T00:51:00Z mutant 2026-11-14T01:11:00Z
