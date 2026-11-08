@@ -74,13 +74,13 @@
         "description": "Drei Werte vom Typenschild. Alles, was der Fragebogen abgeleitet hat, lässt sich später in den Optionen der Integration prüfen.",
         "data": {
           "heat_pump_cop_nominal": "Nenn-COP der Wärmepumpe",
-          "heat_pump_max_power": "Max. Leistung der Wärmepumpe (kW)",
-          "heat_pump_min_power": "Min. Leistung der Wärmepumpe (kW)"
+          "heat_pump_max_power": "Maximale Leistung der Wärmepumpe (kW)",
+          "heat_pump_min_power": "Mindestleistung der Wärmepumpe (kW)"
         },
         "data_description": {
           "heat_pump_cop_nominal": "Erzeugte Wärmeeinheiten pro Einheit Strom unter Normalbedingungen. Siehe Datenblatt; 3 bis 4 sind typisch für Luft-Wasser, 4 bis 5 für Erdwärme.",
           "heat_pump_max_power": "Elektrische Leistungsaufnahme bei voller Leistung. Begrenzt, wie viel günstiger Strom pro Stunde gespeichert werden kann.",
-          "heat_pump_min_power": "Niedrigste elektrische Leistungsaufnahme, mit der die Pumpe ohne ständiges Ein- und Ausschalten laufen kann."
+          "heat_pump_min_power": "Niedrigste elektrische Leistungsaufnahme, bei der die Wärmepumpe laufen kann, ohne zu takten."
         }
       },
       "thermal": {
@@ -92,8 +92,8 @@
           "slab_thermal_mass": "Thermische Masse des Estrichs (kWh/°C)",
           "slab_heat_transfer": "Wärmeübertragung Estrich–Raum (kW/°C)",
           "heat_pump_cop_nominal": "Nenn-COP der Wärmepumpe",
-          "heat_pump_max_power": "Max. Leistung der Wärmepumpe (kW)",
-          "heat_pump_min_power": "Min. Leistung der Wärmepumpe (kW)",
+          "heat_pump_max_power": "Maximale Leistung der Wärmepumpe (kW)",
+          "heat_pump_min_power": "Mindestleistung der Wärmepumpe (kW)",
           "optimization_interval": "Neu berechnen alle",
           "price_weight": "Wie stark niedrige Preise angestrebt werden",
           "comfort_weight": "Wie streng die Temperatur gehalten wird"
@@ -105,7 +105,7 @@
           "slab_heat_transfer": "Wie schnell die Wärme aus diesem Speicher in den Raum gelangt. Niedrigere Werte bedeuten einen trägen Boden, der früher aufgeladen werden muss; Heizkörper sind deutlich schneller und liegen weit höher.",
           "heat_pump_cop_nominal": "Erzeugte Wärmeeinheiten pro Einheit Strom unter Normalbedingungen. Siehe Datenblatt; 3 bis 4 sind typisch für Luft-Wasser, 4 bis 5 für Erdwärme.",
           "heat_pump_max_power": "Elektrische Leistungsaufnahme bei voller Leistung. Begrenzt, wie viel günstiger Strom pro Stunde gespeichert werden kann.",
-          "heat_pump_min_power": "Niedrigste elektrische Leistungsaufnahme, mit der die Pumpe ohne ständiges Ein- und Ausschalten laufen kann.",
+          "heat_pump_min_power": "Niedrigste elektrische Leistungsaufnahme, bei der die Wärmepumpe laufen kann, ohne zu takten.",
           "optimization_interval": "Wie oft der Plan anhand aktueller Preise und aktuellen Wetters neu berechnet wird. Häufiger reagiert schneller, verursacht aber mehr Rechenaufwand.",
           "price_weight": "Höher bedeutet, dass der Optimierer stärker versucht, das Heizen in günstige Stunden zu verlegen, auf Kosten größerer Temperaturschwankungen.",
           "comfort_weight": "Das Gegengewicht zur obigen Einstellung und der wirksamste Regler, den du hast. Er wird gegen den von dir erlaubten Bereich gemessen, ein breiterer Bereich macht den Optimierer also mutiger. Etwa 5 lässt das Haus innerhalb deines erlaubten Bereichs frei schwanken und bringt die größten Einsparungen; 10 hält es spürbar näher am Ziel; 20 oder mehr verhält sich fast wie ein gewöhnlicher Thermostat."
@@ -388,7 +388,7 @@
       "night_above_day": "Die Nachttemperatur liegt über der Tagestemperatur.",
       "day_window_empty": "Der Tag würde zu oder vor seinem Beginn enden und ließe überhaupt keinen Tageszeitraum übrig.",
       "comfort_outside_band": "Die Komforttemperaturen für Tag und Nacht müssen innerhalb des Komfortbereichs liegen",
-      "min_power_above_max": "Die Mindestleistung der Wärmepumpe liegt über ihrer Höchstleistung.",
+      "min_power_above_max": "Die Mindestleistung der Wärmepumpe liegt über ihrer maximalen Leistung.",
       "stored_value_out_of_range": "Dieser Wert liegt außerhalb des Bereichs, den dieses Feld normalerweise akzeptiert. Der Bereich wurde erweitert, damit die Seite dennoch gespeichert werden kann – prüfe den Wert und korrigiere ihn, falls er falsch aussieht.",
       "flow_target_needs_two_zone": "„Vorlauftemperatur“ wird aus der eigenen Vorlaufkurve des Zwei-Zonen-Gebäudemodells abgeleitet, die bei diesem Eintrag nicht konfiguriert ist. Konfiguriere zuerst das Zwei-Zonen-Modell oder belasse dies auf „Innentemperatur“.",
       "prefill_device_unreadable": "Dieses Gerät konnte nicht gelesen werden. Seine Integration hat hier noch keine Zuordnung, oder keine seiner Entitäten enthält einen Wert. Lass das Gerät leer und gib stattdessen ein Modbus-Paket-Präfix an."
@@ -1002,7 +1002,7 @@
           "slab_heat_transfer": "Wärmeübergang Estrich–Raum (kW/°C)",
           "heat_pump_cop_nominal": "Nenn-COP der Wärmepumpe",
           "heat_pump_max_power": "Maximale Leistung der Wärmepumpe (kW)",
-          "heat_pump_min_power": "Minimale Leistung der Wärmepumpe (kW)",
+          "heat_pump_min_power": "Mindestleistung der Wärmepumpe (kW)",
           "heat_pump_cop_partload_derate": "COP-Verlust der Wärmepumpe bei maximaler Leistung",
           "after_save": "Nach dem Speichern"
         },
@@ -1012,8 +1012,8 @@
           "slab_thermal_mass": "Pro Grad gespeicherte Wärme in dem, worüber die Wärme abgegeben wird: der Betonestrich eines Hauses mit Fußbodenheizung – der Puffer, der es erlaubt, den Boden in Preisspitzen abzuschalten – oder, bei Heizkörpern, das Wasser und der Stahl des Heizkörperkreises, der weit kleiner ist. Ein Haus mit Heizkörpern von 100 m² liegt bei etwa 0,2 kWh/°C, ein beheizter Estrich gleicher Größe bei etwa 10.",
           "slab_heat_transfer": "Wie schnell Wärme aus diesem Speicher in den Raum gelangt. Niedrigere Werte bedeuten einen trägen Boden, der weiter im Voraus geladen werden muss; Heizkörper sind deutlich schneller und liegen weit höher.",
           "heat_pump_cop_nominal": "Erzeugte Wärme pro eingesetzter Einheit Strom unter Normalbedingungen. Prüfe das Datenblatt; 3 bis 4 ist typisch für Luft-Wasser, 4 bis 5 für Erdwärme.",
-          "heat_pump_max_power": "Elektrische Aufnahme bei voller Leistung. Begrenzt, wie viel günstiger Strom pro Stunde gespeichert werden kann.",
-          "heat_pump_min_power": "Geringste elektrische Aufnahme, bei der die Wärmepumpe laufen kann, ohne zu takten.",
+          "heat_pump_max_power": "Elektrische Leistungsaufnahme bei voller Leistung. Begrenzt, wie viel günstiger Strom pro Stunde gespeichert werden kann.",
+          "heat_pump_min_power": "Niedrigste elektrische Leistungsaufnahme, bei der die Wärmepumpe laufen kann, ohne zu takten.",
           "heat_pump_cop_partload_derate": "Anteil der Effizienz, der beim Betrieb mit maximaler statt minimaler Leistung verloren geht, als Bruchteil (0,1 = 10 %). Größere Wärmeströme erfordern größere Temperaturdifferenzen an den Wärmetauschern. 0 lässt die Leistung aus dem COP heraus; typische Luft-Wasser-Geräte verlieren 0,05 bis 0,15. Ein Wärmemengenzähler ist nicht nötig. Halte den Wert unter Spanne / (Spanne + maximale Leistung), wobei die Spanne maximale minus minimale Leistung ist, sonst würde die Wärme bei steigender Leistung sinken.",
           "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
@@ -1546,7 +1546,7 @@
       "day_window_empty": "Der Tag würde bei oder vor seinem Beginn enden und ließe überhaupt keinen Tageszeitraum übrig.",
       "comfort_outside_band": "Die Komfort-Temperaturen für Tag und Nacht müssen innerhalb des Komfortbereichs liegen",
       "partload_derate_above_limit": "Dieser COP-Verlust ist für das Leistungsband zu steil: Die abgegebene Wärme würde sinken, wenn die Leistung Richtung Maximum steigt. Halte ihn unter Band / (Band + maximale Leistung), wobei Band die maximale minus die minimale Leistung ist: unter 0,44 bei einer 1-5-kW-Pumpe, unter 0,17 bei einer 4-5-kW-Pumpe.",
-      "min_power_above_max": "Die minimale Leistung der Wärmepumpe liegt über ihrer maximalen Leistung.",
+      "min_power_above_max": "Die Mindestleistung der Wärmepumpe liegt über ihrer maximalen Leistung.",
       "stored_value_out_of_range": "Dieser Wert liegt außerhalb des Bereichs, den dieses Feld normalerweise akzeptiert. Der Bereich wurde erweitert, damit die Seite weiterhin gespeichert werden kann – prüfe den Wert und korrigiere ihn, falls er falsch aussieht.",
       "flow_target_needs_two_zone": "„Vorlauftemperatur“ leitet sich aus der eigenen Vorlaufkurve des Zwei-Zonen-Gebäudemodells ab, die dieser Eintrag nicht konfiguriert hat. Konfiguriere zuerst das Zwei-Zonen-Modell oder lass es bei „Innentemperatur“.",
       "flow_curve_needs_direct_plant": "Die Bepreisung der Vorlauftemperaturanhebung ist für ein System ohne Mischventil gedacht. Mit Ventil bepreist die Temperatur des Pufferspeichers die Anhebung bereits, sie würde also doppelt gezählt. Stelle das Ventil auf „Kein Mischventil“ oder schalte dies aus.",
