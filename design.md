@@ -1,90 +1,135 @@
-# R10-GENERIC-HEAT-CURVE-PERSISTENT design note (designer seat, note 1)
+# R10-GENERIC-HEAT-CURVE-PERSISTENT design note (designer seat, note 2, a re-cut)
 
-The group's architect note, extended (`dev/governance/roles/designer.md`), at
-`design/R10-GENERIC-HEAT-CURVE-PERSISTENT`; it never merges. Size L. **There is no finding and no finder harness:
-the evidence is the owner's ruling** (tvofi, #201, 2026-11-07: "Offset kind and a later persistent kind, both in
-this round. Turning the optimizer off should restore the baseline, retract my 26 september ruling"), the
-contributor's request (PR 3284, Bankaifan, fork head 16058355161065c24aaf9eeba496133240527c0f, read as data) and
-the research body below. No finder harness: owner report.
+This is the group's architect note, extended (`dev/governance/roles/designer.md`), at
+`design/R10-GENERIC-HEAT-CURVE-PERSISTENT`. It never merges. Size L. **There is no finding and no finder harness.
+No finder harness: owner report.** The evidence is the owner's rulings (tvofi, #201, 2026-11-07: "Offset kind and
+a later persistent kind, both in this round. Turning the optimizer off should restore the baseline"; issue comment
+6708225978: "Arbiter too"), the contributor's request (PR 3284, Bankaifan, fork head
+16058355161065c24aaf9eeba496133240527c0f, read as data, its §Target contract (b) P1–P7 and O1–O5) and the research
+body restated below.
 
-**Read at.** Base `4b5d771bdf8feb1f83d7d9443e5117b771a0ab76` = `origin/main` at writing. The predecessor
-R10-GENERIC-HEAT-CURVE has dispatched its fixer but has no handoff head, so the code is read at the base; its
-approved note is `design/R10-GENERIC-HEAT-CURVE` tip `6564b0c7f40c5c81b7d9556ed3dcda8926d91bad`, approved by
-`design-verdict/R10-GENERIC-HEAT-CURVE` `16e67bb5cbc00b87718008c6818b5fed176df13f` with carries ghc-d01…d07. This
-note starts from that note's §Target contract (b), P1–P7 and O1–O5, and builds on its module, which is not yet in
-the tree.
+**Read at.** Base `996ded2a6dc52816bd4c7dd873c048d85fc6adad` (= `origin/main`). The predecessor's handoff head is
+#3299 at `85ba6cda83898bb3fcc1dee71432c1622f14a72e` (`verdict/3299` dfd0a3f7: `Fix review: merge`, not yet merged).
+Its production tree equals d7d4c511, the head the round-1 review read, except the version stamp. Every
+`off_restore.py`, `heat_curve.py` and `__init__.py` line below is at 85ba6cda. This re-cut answers
+`design-verdict/R10-GENERIC-HEAT-CURVE-PERSISTENT` ae96e235 (`revise e2d81a61 architecture-unsound`), points 1–4
+(§Answers to the review).
 
 ## Owning seam
 
-`custom_components/heatpump_optimizer/heat_curve.py` (created by the predecessor) owns kind `persistent` too: the
-mapping, the write policy, the record and the restore. One owner, as the predecessor note's §Owning seam states and
-ghc-d01 makes the restore owner. Callers only: `async_publish_ecl110_command` (unchanged), the predecessor's
-MODE_OFF and unload calls (reused, not duplicated), `async_remove_entry` (`custom_components/heatpump_optimizer/__init__.py`:429,
-one new call), `config_flow.py`, `entry_config.py`, `sensor.py`, `diagnostics.py`. A pure helper,
-`custom_components/heatpump_optimizer/baseline.py` (new, no `hass`), holds the baseline classification both this group and
-R10-ARBITER-OFF-RESTORE need (§Shared baseline). No coordinator method or attribute is added.
+There are two modules, and each concern has one owner. No concern is split between them.
+
+- **`custom_components/heatpump_optimizer/off_restore.py`** owns everything persisted per entry, including the
+  baseline: the armed record, the baseline capture, the MODE_OFF and unload restore, and the remove path. This group
+  changes it in four named ways (§Shape, C1–C4). It gains no consumer knowledge.
+- **`custom_components/heatpump_optimizer/heat_curve.py`** owns kind `persistent`'s mapping and write policy. It is
+  a second `Restorer` (kind `persistent`, `neutral=None`) of the existing consumer key `heat_curve`. It persists
+  nothing itself.
+
+Callers only, unchanged in shape: `async_publish_ecl110_command` → `heat_curve.publish`; `async_set_mode`
+(coordinator.py:6490) and `async_unload_entry` (`custom_components/heatpump_optimizer/__init__.py`:426) →
+off_restore; `async_remove_entry` (`__init__.py`:438) → `async_forget`. Also `config_flow.py`, `entry_config.py`,
+`sensor.py` and `diagnostics.py`. **No `baseline.py`, no second Store, no call from heat_curve.py at remove, and no
+coordinator line.**
 
 ## Shape
 
-**Options.** Kind value `persistent` added to `CONF_HEAT_CURVE_TARGET_KIND` (a value, not a key, as the
-predecessor arranged). Three new keys beside it: `heat_curve_persistent_band` (K), `heat_curve_persistent_writes_per_day`,
-`heat_curve_persistent_min_dwell_minutes`, each an `EntryConfig` field and a `_F("heat_curve", ...)` row shown only
-under kind `persistent`. **The baseline is not an option** (this solves O1): it lives in the record.
+**Options.** Add the value `persistent` to `HEAT_CURVE_TARGET_KINDS` (a value, not a key). This drops the fallback
+at entry_config.py:222-224 for that value. Add three keys, each an `EntryConfig` field and a `_F("heat_curve", …)`
+row shown only under kind `persistent`: `heat_curve_persistent_band_k`, `heat_curve_persistent_writes_per_day` and
+`heat_curve_persistent_min_dwell_minutes`. The baseline is not an option (O1 does not arise). The options flow keeps
+P7 as a **check only**: under kind `persistent` it refuses a save whose entity is unreadable or reads outside its
+own range. It stores nothing.
 
-**The record** (solves O1, O2, O3). A per-entry `QuarantiningStore` keyed by the entry id, like the arbiter's, in the
-shape of the arbiter's ownership record (`_store`/`_persist`/`_load`,
-`custom_components/heatpump_optimizer/pump_arbiter.py`:1354-1393):
-`{entity_id, baseline, written: [value, at], previous: [value, at], day: "YYYY-MM-DD", count}`. Written
-**before** each entity write (write-ahead: a crash between the save and the call leaves a reading equal to
-`previous`, which `baseline.classify` reads as ours). An options save no longer touches it, so P6 adoption costs no
-reload; the budget and dwell survive reload and restart.
+**off_restore changes (C1–C4), each owned by off_restore alone:**
 
-**Value.** `written = baseline + delta(d)` in the entity's own unit, `delta` the predecessor's T1 conversion
-(identity for K/°C, ×9/5 for °F, else refused), clamped to `baseline ± delta(band)`, then to the entity's `min`/`max`,
-then on `setpoint_step`, sent by `write_setpoint` (inputs.py:596).
-No absolute helper is used (the predecessor's K trap does not arise: only deltas are converted).
+- **C1, the armed entry holds the entity (review point 3, carry a2b5f107).** Today `armed[key]` is
+  `float | None` (:88). It becomes `{"entity_id": str, "value": float}`, where `value` is what the restore writes:
+  the `neutral`, or the captured baseline. The restore writes the **recorded** value to the **recorded** entity
+  (rule R).
+  - `async_restore` (:149) uses the current factory only for its `write`. When the factory returns None, a
+    writer registered per key at import supplies it: `register_consumer(key, factory, write)`. `Restorer.write` is
+    removed, so there is one source.
+  - `async_arm` (:123) on a key armed for entity A while the restorer now names B first restores A from the
+    record. Only on success does it arm B, which captures B's baseline. A failed A restore is latched, and the
+    write to B is refused. A key is armed on at most one entity.
+  - **The legacy reader:** a stored `float | None` (the only shape #3299 writes, all from the neutral offset
+    consumer) loads as `{entity_id: <the configured entity>, value: <its neutral>}`. That is exactly today's
+    behaviour, so `OFF_RESTORE_STORE_VERSION` stays 1 and no migration runs.
+  - `restored(entry, value)` becomes `restored(entry, entity_id, value)`. A consumer ignores a restore of an
+    entity it no longer names.
+- **C2, re-baseline (P6).** `async_rebaseline(hass, entry, key, entity_id, value) -> bool` replaces the armed
+  value when `key` is armed on `entity_id`, saves, and returns True. Otherwise it writes nothing and returns False.
+  The first arm keeps its baseline forever (:135), so this is the only way a baseline moves, and off_restore is its
+  one owner.
+- **C3, consumer state (write-ahead "previous", P4, P5; review point 1 bullet 2).** A second section of the same
+  record, `{"armed": {...}, "state": {key: mapping}}`, is persisted per key and survives a restore, which pops
+  only `armed`:
+  - `consumer_state(entry, key) -> dict`, which is mutable;
+  - `async_save_state(hass, entry)`.
 
-**Flow.**
+  off_restore never reads inside a consumer's mapping. The restore loop's existing `_save` (:180) persists what
+  `restored` changed. `async_forget` drops it with the rest, so remove keeps one owner.
+- **C4, remove (review point 2).** `async_forget` (:197) reads the record before it deletes the Store. For each
+  entry still armed (a failed unload restore), it logs one WARNING naming the entity and the value to set by hand.
+  **It writes nothing**, so remove stays off_restore's alone. A retry at remove was rejected: the unload restore
+  tried the same write moments before, and remove has no coordinator or config to judge it.
+
+**heat_curve's persistent arm (the consumer).** `_restorer(config)` returns, for kind `persistent`,
+`Restorer(entity_id, neutral=None, baseline_of=_baseline_reading, restored=_restore_recorded)`. Its persisted
+state is `consumer_state(entry, "heat_curve")` = `{written, previous, written_at (UTC ISO), day (local date),
+count}`. Kind `offset` keeps its in-memory `HeatCurveState`, byte for byte (I4). One publish, with `d` the
+displace integer:
+
 ```
-setup ─► heat_curve.load(record) ─► reconcile(reading):   baseline.classify(record, reading)
-            none        -> baseline := reading (P1; refuse at save if unreadable or outside range, P7)
-            ours        -> keep baseline (O3: a crash residue at baseline+d is recognised, not captured)
-            edit        -> baseline := reading − last d, INFO (P6)
-          mode OFF at setup and record dirty -> restore
-publish(d) ─► target = clamp(baseline + delta(d))
-            W1 equal reading -> nothing
-            dwell (P5) not elapsed -> wait for the next publish after it
-            budget (P4): allowed iff count + 1 + (target != baseline) <= budget
-            -> persist record, write, count += 1
-MODE_OFF / unload ─► restore: write baseline if reading != baseline; bypasses dwell, counted, never refused
-remove entry     ─► if record dirty (an unload restore failed): one restore from the record, then delete the store
+publish(d) ─► reading = number_reading(entity)            (unreadable / range: latched, not written)
+   armed = off_restore record for heat_curve on entity      (None before the first write)
+   b = armed.value if armed else reading                    (the arm captures exactly this reading)
+   classify(reading, state):   ≈ written → ours   ≈ previous → refusal (W3 latch)   else, after HELD_GRACE_S → edit
+       edit and armed → b := reading − delta(last d); off_restore.async_rebaseline(…, b); INFO   (P6)
+   target = setpoint_step(clamp(b + delta(d), b ± delta(band), entity min/max))      (P2, I1)
+   W1 reading ≈ target → nothing
+   dwell: now − written_at < dwell → nothing                (P5; wall clock, so it survives restart and reload)
+   budget: count + 1 + (target ≠ b) > writes_per_day → refused, INFO once per day (P4 + reserve rule)
+   off_restore.async_arm(…)  → False: not written           (first arm persists {entity, b}; O3)
+   state.previous, state.written = state.written, target; count += 1; await async_save_state  (write-ahead)
+   write_setpoint(entity, target)
+MODE_OFF / unload ─► off_restore.async_restore (unchanged owner) ─► write b to the recorded entity
+   ─► restored(entry, entity, b): state.written = b, written_at = now, count += 1     (persisted by the restore's _save)
+remove ─► off_restore.async_forget: WARNING per still-armed entry, delete record    (C4)
 ```
-**The reserve rule** (`+ (target != baseline)`) keeps one write back for the restore, so restores never exceed the
-budget and every displace has its way home: the research's "12/day = 6 displace-and-restore episodes".
 
-**Off rule** (owner, 2026-11-07). MODE_OFF and every unload write the baseline, including a reload (options save,
-O1) and a Home Assistant stop: the ruling says "on unload" without exception, so P3's shutdown exception is
-**dropped**. Cost: up to two writes per reload or restart, inside the budget by the reserve rule; after a reload the
-dwell runs from the restore, so the curve sits at baseline for one dwell. A failed restore is latched and leaves
-the record dirty, which setup and remove retry (O4). The pump arbiter's off rule
-(`custom_components/heatpump_optimizer/pump_arbiter.py`:1131-1133) is unchanged.
+The **reserve rule** `+ (target ≠ b)` keeps one write back for the restore. So restores never exceed the budget,
+and every displace has its way home. This is the research's "12/day = 6 displace-and-restore episodes". Kind
+`persistent` uses this persisted budget **instead of** W4's `write_cap_per_day` (heat_curve.py:274), not on top of
+it (carry ghcp-r2). A budget of 0 means no writes. With nothing displaced, there are no restores either.
 
-**Restore hook** (solves O4). The predecessor's unload and MODE_OFF calls into heat_curve.py are the one owner;
-kind `persistent` adds only a branch inside them. `async_remove_entry` runs after the unload with no coordinator,
-so it calls `heat_curve.async_remove(hass, entry)`, which acts only on a dirty record and deletes the store: no
-duplicated restore.
+**Off rule** (owner, 2026-11-07): MODE_OFF and every unload restore the baseline, a reload and a Home Assistant stop
+included, as #3299 already does (`__init__.py`:424-425). P3's stop exception is dropped. A reload's unload passes the
+loaded coordinator's `effective_config` (`__init__.py`:427), which names the old entity. So an options change
+from A to B on a loaded entry restores A before B is armed. Rule R covers the remaining path: a crash, or a failed
+restore, followed by a changed config.
 
-**Invariants.** I1 the entity never leaves `baseline ± band`. I2 writes per local day ≤ the budget option (0 = no
-writes, restores included, since nothing was displaced). I3 every unload or MODE_OFF leaves the entity at baseline
-or a latched failure with a dirty record. I4 with kind `offset` or no entity, no behaviour, payload or golden moves.
+**Invariants.**
+- I1: the entity never leaves `b ± band`.
+- I2: writes per local day ≤ `writes_per_day`, restores included.
+- I3: every MODE_OFF or unload leaves each armed entity at its recorded value, or leaves a latched failure that is
+  still armed.
+- I4: with kind `offset` or no entity, no behaviour, payload, golden or record shape moves (the legacy reader).
+- I5: a key is armed on at most one entity, and nothing restores a value onto an entity other than the one it was
+  captured from.
 
-## Shared baseline (R10-ARBITER-OFF-RESTORE)
+## Answers to the review (ae96e235)
 
-Sound to share the **logic**, not the state: `baseline.py` exposes `classify(record, reading, step) -> "none" | "ours"
-| "edit"` and the record's to/from-mapping. Each owner keeps its own Store (the arbiter already has one); the
-arbiter group adds a `baseline` field per slot to its own record and calls `classify`. Sharing the Store would
-couple two owners' persistence (D7). Serial: this group lands `baseline.py`; the arbiter group goes after it or
-reuses it from this group's branch, `decision: orchestrator`.
+1. The baseline lives only in off_restore's armed record. The consumer-private state lives in C3's `state` section
+   of that same record, with C2 and C3 as the named API. There is no second Store.
+2. There is no `heat_curve.async_remove`. Remove is off_restore's alone (C4: it logs and writes nothing, for the
+   reason given there).
+3. C1 persists the entity, and rule R restores to the recorded entity. The evidence plan carries the arm "armed on
+   A, options to B, restart → A restored, B untouched". R10-ARBITER-OFF-RESTORE gets C1 for free as the second
+   consumer. Whichever group lands first carries C1: `decision: orchestrator`.
+4. `baseline.py` is dropped. Classify reads heat_curve's own write state, so it stays in heat_curve.py. The shared
+   baseline is off_restore's armed record. The arbiter consumes C1 and C2 and adds no module.
 
 ## Defaults (O5), restated from the research body
 
@@ -93,93 +138,141 @@ a37c58e5). Tags: D documented, F forum, E estimate, S snippet only.
 
 | knob | default | range | reason and sources |
 |---|---|---|---|
-| `_WIRING` at entry_config.py:284 | kind already added (ghc-d03); the three tuning keys reset on factory reset, the record (baseline) is untouched |
-| band | 3 K | 0.5–5 K | Luxtronik user correction ±5 K (Homey Luxtronik app, homey.app/de-at/app/com.luxtronik.heatpump, D third-party); NIBE SG Ready +1/+2 offset steps (manualslib S1256PC manual p.44, D; step-to-K ratio E); 3 K a midpoint (E) |
-| writes/day | 12 | 0–48 | Daikin EKMBDXA design guide "7000 per year" ≈19/day (quoted in github.com/Arnold-n/P1P2Serial/pull/87, F quoting D; github.com/budulinek/Daikin-P1P2---UDP-Gateway, D); 12×5475 d on a 100k SLC NAND cell (Micron MT29F4G08ABADAH4, D) = 66 %; 12 over 9 rests on wear levelling (E) |
-| dwell | 60 min | 15 min–6 h | 3τ with radiator τ ≈ 20 min (enpal.de consumer guide, F); SG-Ready 10 min minimum (gridx.ai/knowledge/sg-ready, D secondary) is the floor; floor heating users 2–3 h (gwf-stuttgart.de sheet, F) |
+| band | 3 K | 0.5–5 K | Luxtronik user correction ±5 K (Homey Luxtronik app, D third-party); NIBE SG Ready +1/+2 offset steps (manualslib S1256PC p.44, D; step-to-K E); 3 K a midpoint (E) |
+| writes/day | 12 | 0–48 | Daikin EKMBDXA guide "7000 per year" ≈19/day (P1P2Serial PR 87, F quoting D; budulinek Daikin-P1P2 gateway, D); 12 × 5475 d on a 100k SLC NAND cell (Micron datasheet, D) = 66 %; 12 rather than 19 rests on wear levelling (E) |
+| dwell | 60 min | 15 min–6 h | 3τ with radiator τ ≈ 20 min (enpal.de, F); the SG-Ready 10 min minimum (gridx.ai, D secondary) is the floor; floor heating 2–3 h (GWF Stuttgart sheet, F) |
 
-python-luxtronik README (github.com/Bouni/python-luxtronik, D): parameter writes reach NAND; SHI registers are
-volatile. So the docs **prefer kind `offset` wherever a volatile register exists**, and persistent only otherwise.
-Unverified: NIBE 1M writes (energiesparhaus.at, F/S), ioBroker counters (forum.iobroker.net, F/S); no data for
-Vaillant, Stiebel Eltron, Mitsubishi, Panasonic. 48/day is above Daikin's quota: the option's description says so.
+- python-luxtronik README (D): parameter writes reach NAND, and SHI registers are volatile. So the docs prefer kind
+  `offset` wherever a volatile register exists, and use `persistent` only otherwise.
+- Unverified: NIBE 1M writes (energiesparhaus.at, F/S) and the ioBroker counters (F/S).
+- No data was found for Vaillant, Stiebel Eltron, Mitsubishi or Panasonic.
+- The 48/day maximum is above Daikin's quota, and the option's description says so.
 
 ## Alternatives, and why each lost
 
-- **A. Baseline in the options (contributor P1).** Every adoption (P6) and capture writes the options, the listener
-  reloads (`custom_components/heatpump_optimizer/__init__.py`:372-398), and each reload costs a restore plus a
-  rewrite: O1. Lost on call count.
-- **B. Budget and dwell in coordinator memory (P4/P5 as sketched).** Reset by every reload and restart, so not a
-  budget: O2. Lost on state ownership.
-- **C. Skip the restore on reload and stop (P3).** Saves two writes per reload but contradicts the owner's "on
-  unload" ruling; the reserve rule already bounds the cost. Lost on the ruling.
-- **D. One Store shared with the arbiter.** Two owners of one persistence; lost on coupling (§Shared baseline).
-- **E. Restore from `async_remove_entry` unconditionally (O4).** Duplicates the unload restore and needs a
-  coordinator it does not have. Lost on ownership.
+- **A. The baseline in the options (contributor P1).** Every P6 adoption reloads the entry
+  (`__init__.py`:373-399), and each reload costs a restore plus a rewrite (O1). It lost on call count.
+- **B. heat_curve's own Store for the write state** (note 1's record without its baseline). The state must outlive a
+  restore, so it cannot sit in `armed`. A second per-entry Store, though, needs a second remove owner, or off_restore
+  knowing about it. It lost on remove-path ownership to C3.
+- **C. Disarm with an INFO when the recorded entity differs** (the review's other option). A stays displaced
+  forever, by up to the band, on a non-volatile parameter, which is the harm the off rule exists to undo. It also
+  drops the retry a failed restore keeps today (off_restore.py:24-25). It lost to rule R on the off rule.
+- **D. Skip the restore on reload and on stop (P3).** It saves two writes per reload, but contradicts "on unload"
+  and #3299's tree. The reserve rule already bounds the cost. It lost on the ruling.
+- **E. A separate `baseline.py`.** Its only content would be classify, which reads heat_curve's state, plus record
+  helpers that off_restore owns. It lost on coupling: it would be a third module for one record.
 
 ## Sibling sites (step 5)
 
-`grep -n "MODE_OFF\|async_unload_entry\|async_remove_entry\|async_set_mode\|async_shutdown" custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/__init__.py`
+`git grep -n "off_restore\.\|MODE_OFF\|async_unload_entry\|async_remove_entry\|async_shutdown" 85ba6cda -- custom_components/heatpump_optimizer/`
 
 | site | disposition |
 |---|---|
-| `async_unload_entry` at `__init__.py`:401, `async_set_mode` at coordinator.py:6509 | predecessor's hook (ghc-d01); this group adds a branch in heat_curve.py only |
-| `async_remove_entry` at `__init__.py`:429 | one call into heat_curve.py |
-| off guards `MODE_OFF` at coordinator.py:7714, :8855, :7795 | upstream of the arm; unchanged, the OFF write is the hook's |
-| other `MODE_OFF` guards, coordinator.py:3768, 4533, 7733, 10880 | other writers' off guards (valve, frequency, pump on); out of scope, not heat curve |
-| `async_shutdown` latch, coordinator.py:6579 | the restore runs before it, in unload, as the predecessor orders |
+| `async_set_mode` → `async_mode_change` coordinator.py:6490; unload `__init__.py`:426; remove `__init__.py`:438 | the one hook, unchanged callers; C1–C4 change only off_restore |
+| `heat_curve.publish(..., mode_off=...)` coordinator.py:7671, off guards coordinator.py:7676, 8817 | upstream of the arm; the OFF write is the hook's |
+| other `MODE_OFF` guards coordinator.py:3750, 4512, 7695, 7757, 10831 | other writers (valve, pump on, frequency); not the heat curve |
+| `async_shutdown` coordinator.py:6554 | the restore runs before it, in unload, unchanged |
+| pump_arbiter.py:1131-1139 off rule, its Store pump_arbiter.py:1354-1393 | R10-ARBITER-OFF-RESTORE's; it becomes off_restore's second consumer through C1 and C2 and is not edited here |
 
 ## Evidence plan (by file)
 
-- **Failing test first**, `tests/features.py` beside the predecessor's heat-curve block: kind `persistent`, entity
-  `number.x` (°C, 5…35, step 0.5, state 22), no record; `async_publish_ecl110_command(2.0, True)` writes 24 and
-  the record holds baseline 22. Red at the predecessor's head (kind refused).
-- Arms: band clamp (d 8 → 25); °F delta; W1 no call; dwell holds a second change, releases after; budget 4 with
-  reserve allows one displace and its restore, refuses a second displace; restore on MODE_OFF and on unload writes
-  22 once; reload restores then rewaits the dwell; crash residue (record written 24, reading 24) keeps 22; edit
-  (reading 21 while written 24, d 2) adopts 19; write-ahead crash (reading = previous) is ours; unreadable or
-  out-of-range at save refuses; `async_remove_entry` with a dirty record restores once and deletes the store, with a
-  clean one writes nothing; day rollover at local midnight resets the count; record survives a restart.
-- `tests/config_flow_steps.py`: kind `persistent` accepted, three rows shown only under it, ranges enforced, P7.
-- **Null control:** kind `offset` and empty entity: the predecessor's tests and every MQTT payload unchanged, no
-  store created.
-- **Goldens:** none move (I4); no claim file touched.
-- **Mutation targets:** the reserve comparison, the band clamp, the dwell comparator, the day key, each `classify`
-  branch, the dirty check in `async_remove`. New sites killed or triaged (`tests/mutation_budgets.json`).
+- **Failing test first**, in `tests/features.py`, beside #3299's heat-curve block. Kind `persistent`, entity
+  `number.x` (°C, 5…35, step 0.5, state 22), no record. `async_publish_ecl110_command(2.0, True)` writes 24, and
+  the off-restore record holds `{entity_id: number.x, value: 22}`. It is red at 85ba6cda because the unknown kind
+  falls back to offset, whose `range_excludes_zero` refuses 5..35 (carry ghcp-r1). It is not red because the kind is
+  refused.
+- **Arms (heat_curve).**
+  - band clamp (d = 8 → 25) and the °F delta;
+  - W1 no call;
+  - the dwell holds a second change and releases it after;
+  - budget 4 with the reserve: one displace plus its restore pass, and a second displace is refused;
+  - MODE_OFF and unload each write 22 once, and `restored` marks 22 as written;
+  - the dwell and the count survive a restart (a new coordinator, same record);
+  - crash residue (written 24, reading 24, still armed): 22 is kept and not re-captured (O3);
+  - write-ahead crash (reading = previous) reads as ours;
+  - edit (reading 21 while written 24, d = 2): adopts 19 through `async_rebaseline`, then restores 19;
+  - local midnight resets the count;
+  - with kind `persistent`, W4 is not consulted.
+- **Arms (off_restore).**
+  - **"armed on A, options to B, restart → A restored, B untouched, then B armed with its own baseline"**;
+  - the A restore fails → the B write is refused and latched, and A stays armed;
+  - the entity is cleared with A armed → A restored through the registered writer;
+  - `async_rebaseline` on a wrong entity → False and no save;
+  - the legacy `float | None` record loads as before;
+  - `async_forget` with an armed entry logs one WARNING, writes nothing and deletes the record;
+  - the `state` section survives a restore and is dropped by `async_forget`.
+- `tests/config_flow_steps.py`: kind `persistent` is accepted, its three rows appear only under it, the ranges are
+  enforced, and P7 refuses an unreadable or out-of-range entity.
+- **Null control:** with kind `offset` or an empty entity, #3299's checks and every MQTT payload are unchanged, and
+  the stored record is byte-identical to #3299's for kind `offset`, with no `state` key written.
+- **Goldens:** none move (I4). No claim file is touched.
+- **Mutation targets:**
+  - the reserve comparison, the band clamp, the dwell comparator and the day key;
+  - each classify branch;
+  - C1's mismatch test and the legacy-reader branch;
+  - C2's guard and C4's armed loop.
+
+  New sites are killed or triaged (`tests/mutation_budgets.json`).
 
 ## Cost against the ratchet
 
-`tests/structure_budgets.json` is at zero headroom on several metrics. No coordinator line is added; heat_curve.py
-grows, so watch `GOD_CLASS_LOC_LIMIT` and `functions_cc_over_15` (split decide into clamp, dwell, budget) and
-`duplication_copies` against pump_arbiter's store trio (share via `baseline.py` record helpers, ghc-d07). No raise is
-expected; one needs the owner first (CLAUDE.md rule 2).
+`tests/structure_budgets.json` has several metrics at zero headroom. No coordinator line is added. heat_curve.py
+grows: split publish's decision into classify, clamp, dwell and budget to keep `functions_cc_over_15` flat, and
+watch `GOD_CLASS_LOC_LIMIT`. off_restore.py grows by roughly 40 lines. No raise is expected. A raise needs the
+owner first (CLAUDE.md rule 2).
 
 ## Docs
 
-`docs/ecl110.md` "Kind persistent": the record, I1–I3, the off rule including reload and stop, the reserve rule,
-the three defaults with their tags and that the budget rests on E/F/S evidence, "prefer offset where a volatile
-register exists"; `docs/configuration.md` rows; `README.md` surface row; `strings.json` and translations.
+- `docs/ecl110.md`, "Kind persistent": the baseline record, I1–I3, the off rule (reload and stop included), the
+  reserve rule, rule R, the three defaults with their tags, a note that the budget rests on E/F/S evidence, and
+  "prefer offset where a volatile register exists".
+- `docs/configuration.md`: the rows.
+- `README.md`: the surface row.
+- `strings.json` and translations.
 
 ## Hot files and serial position
 
-heat_curve.py, baseline.py (new), `__init__.py`, config_flow.py, const.py, entry_config.py, sensor.py,
-diagnostics.py, strings and translations, docs/ecl110.md, docs/configuration.md, README.md, tests/features.py,
-tests/config_flow_steps.py. The fixer starts after R10-GENERIC-HEAT-CURVE merges, since that group creates heat_curve.py.
-R10-ARBITER-OFF-RESTORE shares baseline.py and `__init__.py`: serial, `decision: orchestrator`.
+`off_restore.py`, `heat_curve.py`, config_flow.py, const.py, entry_config.py, sensor.py, diagnostics.py, the
+strings and translations, docs/ecl110.md, docs/configuration.md, README.md, tests/features.py and
+tests/config_flow_steps.py.
+
+`__init__.py` is no longer touched. The fixer starts after #3299 merges. R10-ARBITER-OFF-RESTORE shares
+`off_restore.py` (C1, C2). It goes serially after this group, or it lands C1 itself if it goes first:
+`decision: orchestrator`.
+
+## Routed, not built here
+
+- `decision: orchestrator`: R10-ARBITER-OFF-RESTORE's brief still reads "on unload (while Home Assistant is not
+  stopping)". One hook carries one rule, and the hook restores on a stop (`__init__.py`:424-425), so that brief
+  should be re-read against the 2026-11-07 ruling.
+- `decision: owner` (ghc-d02, carry 711d4be1): whether the MQTT ECL110 arms also publish displace 0 on MODE_OFF and
+  unload. It is not built, because W7 keeps MQTT byte-identical.
 
 ## Notes for the fixer
 
 - The build PR carries `Co-authored-by: Bankaifan <476059+Bankaifan@users.noreply.github.com>` (owner ruling,
   relayed 2026-11-07). Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-01)
-- Cite each default to its source line in the research body; the user docs say the budget and band rest partly on
-  F, S or E evidence. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-02)
-- Before starting, re-read the predecessor's merged diff: the restore entry points, `state_for` shape and the
-  delta conversion this note reuses; if they moved, the designer revalidates. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-03)
-- U4 (what the Luxtronik "parallel shift" parameter is) stays open: if it is a foot point, `baseline + d` rotates
-  the curve about the end point (predecessor note A2); the docs say so and do not name it a parallel shift.
+- Cite each default to its source line in the research body. The user docs say that the budget and band rest
+  partly on F, S or E evidence. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-02)
+- Re-read #3299's merged diff before starting: `Restorer`, `async_arm`, `async_restore`, `async_forget`,
+  `restored`, `state_for` and the delta conversion. If any of them moved, the designer revalidates.
+  Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-03)
+- U4 (what the Luxtronik "parallel shift" parameter is) stays open. If it is a foot point, `b + d` rotates the
+  curve about the end point. The docs say so and do not call it a parallel shift.
   Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-04)
-- heat_curve's store file and baseline.py, plus any new test script, are new tracked files: classify them in
-  `tests/closures.json` or `tests/closure.py`'s INERT list. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-05)
-- R10-ARBITER-OFF-RESTORE reuses `baseline.classify` and keeps its own store; it adds no second owner of the
-  unload restore. Carry: R10-ARBITER-OFF-RESTORE (item ghcp-06)
-- A Home Assistant stop may unload the target integration first; the restore then fails, latches, and leaves the
-  record dirty for the next setup (same as ghc-d04). Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-07)
+- Classify any new test script in `tests/closures.json` or on `tests/closure.py`'s INERT list. No new production
+  file is created. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-05)
+- R10-ARBITER-OFF-RESTORE registers a consumer with `neutral=None` and arms before its first write. It takes its
+  baseline from C1's record, adopts edits through C2 and keeps no baseline in its own Store. It adds no owner of
+  unload, MODE_OFF or remove. Carry: R10-ARBITER-OFF-RESTORE (item ghcp-06)
+- A Home Assistant stop may unload the target integration first. The restore then fails, latches and stays armed,
+  so the next off or unload retries it (off_restore.py:24-27). Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-07)
+- The failing test's reason is the offset fallback's `range_excludes_zero`, not a refused kind (review note).
+  Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-r1)
+- The persisted budget replaces W4 for kind `persistent` and does not stack on it. 
+  Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-r2)
+- The citations are refreshed to 85ba6cda in this note (coordinator.py:6490/6554, inputs.py:597, `__init__.py`:426/438,
+  entry_config.py:289). Re-check them at the merged head. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-r3)
+- C3's `written_at` is wall clock (UTC), not monotonic, because it must survive a restart. A clock step backwards
+  reads as "dwell not elapsed" only until the clock passes it again. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-r4)
