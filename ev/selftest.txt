@@ -1,0 +1,1 @@
+SELFTEST ok: 18 expected result(s), 2 null controls

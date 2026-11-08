@@ -1,0 +1,117 @@
+#3263 5cf07f77 run 42327440324#1 waiting  red 2026-11-07T02:07:09Z decider 2026-11-07T02:38:51 success green 2026-11-07T02:38:51 run 42327439751#1 red_min 31.7 lag_min 0.0 by ?
+#3262 3189559b run 42329337283#1 waiting  red 2026-11-07T02:29:18Z decider 2026-11-07T03:09:48 success green 2026-11-07T03:09:48 run 42329336154#1 red_min 40.5 lag_min 0.0 by ?
+#3264 0ce1f09b run 42329758968#1 waiting  red 2026-11-07T02:37:43Z decider 2026-11-07T02:54:43 cancelled green 2026-11-07T03:38:13 run 42329754862#2 red_min 60.5 lag_min 43.5 by tvofi
+#3273 a46e4d02 run 42329898001#1 waiting  red 2026-11-07T02:41:28Z decider 2026-11-07T03:41:16 cancelled green NONE red_min - lag_min - by None
+#3274 0260beb4 run 42332429384#1 waiting  red 2026-11-07T03:11:28Z decider 2026-11-07T03:16:53 cancelled green NONE red_min - lag_min - by None
+#3263 5cf07f77 run 42327440324#3 waiting  red 2026-11-07T03:20:16Z decider 2026-11-07T03:24:22 success green 2026-11-07T03:23:30 run 42327439751#2 red_min 3.2 lag_min -0.9 by github-actions[bot]
+#3262 3189559b run 42329337283#3 waiting  red 2026-11-07T03:20:52Z decider 2026-11-07T03:23:51 success green 2026-11-07T03:23:06 run 42329336154#2 red_min 2.2 lag_min -0.8 by github-actions[bot]
+#3264 0ce1f09b run 42333416528#1 waiting  red 2026-11-07T03:21:02Z decider 2026-11-07T03:38:13 success green 2026-11-07T03:38:13 run 42329754862#2 red_min 17.2 lag_min 0.0 by tvofi
+#3264 0ce1f09b run 42329758968#2 waiting  red 2026-11-07T03:39:33Z decider 2026-11-07T03:39:35 failure green NONE red_min - lag_min - by None
+#3264 0ce1f09b run 42333416528#2 waiting  red 2026-11-07T03:39:35Z decider 2026-11-07T03:39:33 failure green NONE red_min - lag_min - by None
+#3273 a46e4d02 run 42337833504#1 waiting  red 2026-11-07T04:20:27Z decider 2026-11-07T04:41:32 failure green NONE red_min - lag_min - by None
+#3263 02e92e7c run 42338396358#1 waiting  red 2026-11-07T04:28:01Z decider 2026-11-07T04:59:03 success green 2026-11-07T04:59:03 run 42338396871#1 red_min 31.0 lag_min 0.0 by ?
+#3262 0fd9bc6d run 42339564397#1 waiting  red 2026-11-07T04:51:34Z decider 2026-11-07T05:30:29 success green 2026-11-07T05:30:29 run 42339563999#1 red_min 38.9 lag_min 0.0 by ?
+#3262 0fd9bc6d run 42339680803#2 waiting  red 2026-11-07T05:39:03Z decider 2026-11-07T06:04:44 success green 2026-11-07T06:04:44 run 42339563999#2 red_min 25.7 lag_min 0.0 by ?
+#3273 fe40be98 run 42339338428#1 waiting  red 2026-11-07T06:16:36Z decider 2026-11-07T06:42:39 cancelled green 2026-11-07T06:47:29 run 42339338428#2 red_min 30.9 lag_min 4.8 by ?
+#3262 0fd9bc6d run 42339680803#3 waiting  red 2026-11-07T06:18:04Z decider 2026-11-07T06:44:00 success green 2026-11-07T06:44:00 run 42339563999#3 red_min 25.9 lag_min 0.0 by tvofi
+#3279 0251fffb run 42347261573#1 waiting  red 2026-11-07T06:44:37Z decider 2026-11-07T06:50:47 cancelled green 2026-11-07T08:03:59 run 42347261251#2 red_min 79.4 lag_min 73.2 by tvofi
+#3279 0251fffb run 42347261573#2 waiting  red 2026-11-07T06:51:34Z decider 2026-11-07T08:03:59 success green 2026-11-07T08:03:59 run 42347261251#2 red_min 72.4 lag_min 0.0 by tvofi
+#3273 fe40be98 run 42339338428#3 waiting  red 2026-11-07T07:27:14Z decider 2026-11-07T08:40:15 success green 2026-11-07T08:40:15 run 42339342568#4 red_min 73.0 lag_min 0.0 by ?
+#3264 ec3b2460 run 42349673529#1 waiting  red 2026-11-07T07:33:50Z decider 2026-11-07T08:18:56 failure green 2026-11-07T08:47:59 run 42349985075#2 red_min 74.2 lag_min 29.1 by tvofi
+#3274 8b7a1cd5 run 42350614102#2 waiting  red 2026-11-07T09:51:56Z decider 2026-11-07T09:58:31 failure green NONE red_min - lag_min - by None
+#3281 78e05a3b run 42359419928#1 waiting  red 2026-11-07T09:54:54Z decider 2026-11-07T10:02:10 cancelled,cancelled green NONE red_min - lag_min - by None
+#3262 aa5022f6 run 42361044742#1 waiting  red 2026-11-07T09:59:21Z decider 2026-11-07T10:30:23 failure green 2026-11-07T11:19:04 run 42361045445#2 red_min 79.7 lag_min 48.7 by tvofi
+#3281 896b110b run 42362098366#1 waiting  red 2026-11-07T10:16:11Z decider 2026-11-07T10:29:49 success,cancelled green 2026-11-07T10:29:49 run 42362098769#1 red_min 13.6 lag_min 0.0 by hpo-author[bot]
+#3262 aa5022f6 run 42361044742#3 waiting  red 2026-11-07T11:01:53Z decider 2026-11-07T11:19:04 success green 2026-11-07T11:19:04 run 42361045445#2 red_min 17.2 lag_min 0.0 by tvofi
+#3262 aa5022f6 run 42365451746#1 waiting  red 2026-11-07T11:02:29Z decider 2026-11-07T11:19:04 success green 2026-11-07T11:19:04 run 42361045445#2 red_min 16.6 lag_min 0.0 by tvofi
+#3282 024a0201 run 42367457809#1 waiting  red 2026-11-07T11:30:22Z decider 2026-11-07T11:49:03 success,success green 2026-11-07T11:48:41 run 42367457479#1 red_min 18.3 lag_min -0.4 by hpo-author[bot]
+#3274 97786d25 run 42372899572#1 waiting  red 2026-11-07T12:46:03Z decider 2026-11-07T13:06:35 cancelled,failure green 2026-11-07T15:08:49 run 42372900036#3 red_min 142.8 lag_min 122.2 by tvofi
+#3274 97786d25 run 42373556850#1 waiting  red 2026-11-07T13:06:35Z decider 2026-11-07T13:35:42 failure green 2026-11-07T15:08:49 run 42372900036#3 red_min 122.2 lag_min 93.1 by tvofi
+#3273 8efcbace run 42375262270#1 waiting  red 2026-11-07T13:24:40Z decider 2026-11-07T14:30:45 success green 2026-11-07T14:30:45 run 42375263719#1 red_min 66.1 lag_min 0.0 by hpo-author[bot]
+#3274 97786d25 run 42373556850#2 waiting  red 2026-11-07T14:50:24Z decider 2026-11-07T15:08:49 success green 2026-11-07T15:08:49 run 42372900036#3 red_min 18.4 lag_min 0.0 by tvofi
+#3274 97786d25 run 42382500683#1 waiting  red 2026-11-07T14:51:45Z decider 2026-11-07T15:08:49 success green 2026-11-07T15:08:49 run 42372900036#3 red_min 17.1 lag_min 0.0 by tvofi
+#3273 0df04fbf run 42383020351#1 waiting  red 2026-11-07T15:19:58Z decider 2026-11-07T16:00:06 cancelled green NONE red_min - lag_min - by None
+#3291 d5f8f410 run 42388390774#1 waiting  red 2026-11-07T16:21:51Z decider 2026-11-07T16:43:40 success green 2026-11-07T16:43:40 run 42388250566#1 red_min 21.8 lag_min 0.0 by ?
+#3273 b42685e7 run 42388595276#1 waiting  red 2026-11-07T16:39:15Z decider 2026-11-07T17:20:02 success green 2026-11-07T17:20:02 run 42388594630#1 red_min 40.8 lag_min 0.0 by ?
+#3273 702de0b8 run 42397400113#1 waiting  red 2026-11-07T17:53:54Z decider 2026-11-07T19:02:24 success green 2026-11-07T19:02:24 run 42397401999#1 red_min 68.5 lag_min 0.0 by ?
+#3296 01e9c612 run 42397746427#1 waiting  red 2026-11-07T18:09:30Z decider 2026-11-07T18:41:38 failure green 2026-11-07T19:14:16 run 42397746427#2 red_min 64.8 lag_min 32.6 by github-actions[bot]
+#3296 01e9c612 run 42397678005#2 waiting  red 2026-11-07T18:31:23Z decider 2026-11-07T18:41:38 failure green 2026-11-07T19:14:16 run 42397746427#2 red_min 42.9 lag_min 32.6 by github-actions[bot]
+#3262 33c3dd99 run 42403100209#1 waiting  red 2026-11-07T19:02:09Z decider 2026-11-07T19:37:07 cancelled green 2026-11-07T19:55:52 run 42403100209#2 red_min 53.7 lag_min 18.8 by github-actions[bot]
+#3291 d5f8f410 run 42388250955#3 waiting  red 2026-11-07T20:18:39Z decider 2026-11-07T20:48:19 success green 2026-11-07T20:48:19 run 42388250566#2 red_min 29.7 lag_min 0.0 by tvofi
+#3291 d5f8f410 run 42388390774#3 waiting  red 2026-11-07T20:18:45Z decider 2026-11-07T20:48:19 success green 2026-11-07T20:48:19 run 42388250566#2 red_min 29.6 lag_min 0.0 by tvofi
+#3300 e27c318c run 42416787888#1 at-once  red 2026-11-07T21:40:07Z decider 2026-11-07T22:37:28 failure green NONE red_min - lag_min - by None
+#3274 4f8ab965 run 42419764212#1 at-once  red 2026-11-07T22:18:02Z decider 2026-11-07T23:08:19 failure green NONE red_min - lag_min - by None
+#3274 4f8ab965 run 42420070733#1 at-once  red 2026-11-07T22:21:59Z decider 2026-11-07T23:08:19 failure green NONE red_min - lag_min - by None
+#3262 c95c3b4b run 42424058360#2 at-once  red 2026-11-07T23:16:39Z decider 2026-11-07T23:52:32 success green 2026-11-07T23:52:32 run 42424058362#1 red_min 35.9 lag_min 0.0 by ?
+#3302 2a7dcd6c run 42425146272#1 at-once  red 2026-11-07T23:26:58Z decider 2026-11-08T00:08:28 failure green NONE red_min - lag_min - by None
+#3302 2a7dcd6c run 42425289085#1 at-once  red 2026-11-07T23:28:42Z decider 2026-11-08T00:08:28 failure green NONE red_min - lag_min - by None
+#3304 3940fad2 run 42427026851#1 at-once  red 2026-11-07T23:52:20Z decider 2026-11-08T00:26:20 success green 2026-11-08T00:27:12 run 42427026851#2 red_min 34.9 lag_min 0.9 by github-actions[bot]
+#3262 c95c3b4b run 42424058360#3 at-once  red 2026-11-07T23:55:02Z decider 2026-11-08T00:37:21 success green 2026-11-08T00:37:21 run 42424058362#2 red_min 42.3 lag_min 0.0 by ?
+#3304 3940fad2 run 42427426379#1 at-once  red 2026-11-07T23:58:01Z decider 2026-11-08T00:26:20 success green 2026-11-08T00:27:12 run 42427026851#2 red_min 29.2 lag_min 0.9 by github-actions[bot]
+#3264 56dd13aa run 42428588857#1 at-once  red 2026-11-08T00:13:15Z decider 2026-11-08T00:51:41 success green 2026-11-08T00:51:41 run 42428588462#1 red_min 38.4 lag_min 0.0 by ?
+#3264 56dd13aa run 42429932725#1 at-once  red 2026-11-08T00:31:17Z decider 2026-11-08T00:51:41 success green 2026-11-08T00:51:41 run 42428588462#1 red_min 20.4 lag_min 0.0 by ?
+#3291 8bef9bc8 run 42429084435#1 waiting  red 2026-11-08T00:31:48Z decider 2026-11-08T00:59:22 success green 2026-11-08T00:59:22 run 42429084301#1 red_min 27.6 lag_min 0.0 by ?
+#3291 8bef9bc8 run 42429424788#1 waiting  red 2026-11-08T00:35:57Z decider 2026-11-08T00:59:22 success green 2026-11-08T00:59:22 run 42429084301#1 red_min 23.4 lag_min 0.0 by ?
+#3302 3dd5a355 run 42430821615#1 at-once  red 2026-11-08T00:42:27Z decider 2026-11-08T01:14:59 success green 2026-11-08T01:15:45 run 42433007441#2 red_min 33.3 lag_min 0.8 by github-actions[bot]
+#3262 c95c3b4b run 42424058360#4 at-once  red 2026-11-08T00:49:33Z decider 2026-11-08T01:22:56 success green 2026-11-08T01:22:56 run 42424058362#3 red_min 33.4 lag_min 0.0 by ?
+#3264 56dd13aa run 42429932725#2 at-once  red 2026-11-08T00:52:32Z decider 2026-11-08T00:55:31 success green 2026-11-08T00:55:31 run 42428588857#2 red_min 3.0 lag_min 0.0 by tvofi
+#3264 56dd13aa run 42428588462#2 at-once  red 2026-11-08T00:53:23Z decider 2026-11-08T00:55:31 success green 2026-11-08T00:55:31 run 42428588857#2 red_min 2.1 lag_min 0.0 by tvofi
+#3302 3dd5a355 run 42433007441#1 at-once  red 2026-11-08T01:11:40Z decider 2026-11-08T01:14:59 success green 2026-11-08T01:15:45 run 42433007441#2 red_min 4.1 lag_min 0.8 by github-actions[bot]
+#3296 e5a600c1 run 42432162344#1 waiting  red 2026-11-08T01:11:43Z decider 2026-11-08T01:45:21 failure,failure green NONE red_min - lag_min - by None
+#3264 b3f2169d run 42433523102#1 at-once  red 2026-11-08T01:19:28Z decider 2026-11-08T01:57:43 success green 2026-11-08T01:57:43 run 42433521452#1 red_min 38.2 lag_min 0.0 by ?
+#3296 e5a600c1 run 42433088977#1 waiting  red 2026-11-08T01:24:33Z decider 2026-11-08T01:45:21 failure green NONE red_min - lag_min - by None
+#3262 c95c3b4b run 42424058362#4 at-once  red 2026-11-08T01:25:21Z decider 2026-11-08T01:27:09 success green 2026-11-08T01:27:09 run 42424058360#6 red_min 1.8 lag_min 0.0 by tvofi
+#3274 dbf79f83 run 42434593486#1 at-once  red 2026-11-08T01:33:36Z decider 2026-11-08T02:23:11 success green 2026-11-08T02:23:57 run 42434593486#2 red_min 50.4 lag_min 0.8 by github-actions[bot]
+#3274 dbf79f83 run 42435141123#1 at-once  red 2026-11-08T01:41:17Z decider 2026-11-08T02:23:11 success green 2026-11-08T02:23:57 run 42434593486#2 red_min 42.7 lag_min 0.8 by github-actions[bot]
+#3264 b3f2169d run 42433523102#3 at-once  red 2026-11-08T02:00:43Z decider 2026-11-08T02:01:18 failure green 2026-11-08T02:00:49 run 42433521452#2 red_min 0.1 lag_min -0.5 by github-actions[bot]
+#3264 b3f2169d run 42436586762#1 at-once  red 2026-11-08T02:01:18Z decider 2026-11-08T02:00:43 failure green 2026-11-08T02:01:51 run 42433523102#4 red_min 0.6 lag_min 1.1 by github-actions[bot]
+#3302 da510c74 run 42437264163#1 at-once  red 2026-11-08T02:12:04Z decider 2026-11-08T02:46:04 success green 2026-11-08T02:46:04 run 42437262412#1 red_min 34.0 lag_min 0.0 by ?
+#3296 4818616c run 42437217421#1 at-once  red 2026-11-08T02:12:16Z decider 2026-11-08T02:46:08 success green 2026-11-08T02:47:01 run 42437217421#2 red_min 34.8 lag_min 0.9 by github-actions[bot]
+#3264 c46c3011 run 42437306800#1 at-once  red 2026-11-08T02:13:50Z decider 2026-11-08T02:58:04 failure green NONE red_min - lag_min - by None
+#3300 21fdd06b run 42440429524#1 at-once  red 2026-11-08T02:55:48Z decider 2026-11-08T03:49:50 success green 2026-11-08T03:49:50 run 42440429288#1 red_min 54.0 lag_min 0.0 by ?
+#3274 178dc0fe run 42440990521#1 at-once  red 2026-11-08T03:14:14Z decider 2026-11-08T04:06:46 success green 2026-11-08T04:06:46 run 42440989424#1 red_min 52.5 lag_min 0.0 by ?
+#3296 9697c17c run 42444995447#1 at-once  red 2026-11-08T04:02:55Z decider 2026-11-08T04:43:59 success green 2026-11-08T04:43:59 run 42444995466#1 red_min 41.1 lag_min 0.0 by ?
+#3264 730ef3ef run 42445057684#1 at-once  red 2026-11-08T04:07:25Z decider 2026-11-08T04:48:57 success green 2026-11-08T04:48:57 run 42445056970#1 red_min 41.5 lag_min 0.0 by ?
+#3300 21fdd06b run 42440429288#2 at-once  red 2026-11-08T04:08:04Z decider 2026-11-08T04:14:40 success green 2026-11-08T04:14:40 run 42445232321#1 red_min 6.6 lag_min 0.0 by ?
+#3300 21fdd06b run 42440429524#3 at-once  red 2026-11-08T04:09:51Z decider 2026-11-08T04:14:40 success green 2026-11-08T04:14:40 run 42445232321#1 red_min 4.8 lag_min 0.0 by ?
+#3264 730ef3ef run 42445057684#3 at-once  red 2026-11-08T04:58:29Z decider 2026-11-08T04:59:59 success green 2026-11-08T05:00:53 run 42445057684#4 red_min 2.4 lag_min 0.9 by github-actions[bot]
+#3264 730ef3ef run 42445056970#2 at-once  red 2026-11-08T04:58:38Z decider 2026-11-08T04:59:59 success green 2026-11-08T05:00:53 run 42445057684#4 red_min 2.2 lag_min 0.9 by github-actions[bot]
+#3262 d17e43cf run 42449103812#1 at-once  red 2026-11-08T05:04:43Z decider 2026-11-08T05:13:48 cancelled green 2026-11-08T05:49:39 run 42449104484#2 red_min 44.9 lag_min 35.9 by tvofi
+#3274 178dc0fe run 42440990521#3 at-once  red 2026-11-08T05:16:48Z decider 2026-11-08T05:17:28 success green 2026-11-08T05:18:57 run 42440990521#4 red_min 2.1 lag_min 1.5 by github-actions[bot]
+#3262 d17e43cf run 42449103812#2 at-once  red 2026-11-08T05:17:26Z decider 2026-11-08T05:20:37 failure green 2026-11-08T05:49:39 run 42449104484#2 red_min 32.2 lag_min 29.0 by tvofi
+#3262 d17e43cf run 42450169220#1 at-once  red 2026-11-08T05:20:37Z decider 2026-11-08T05:49:39 success green 2026-11-08T05:49:39 run 42449104484#2 red_min 29.0 lag_min 0.0 by tvofi
+#3300 21fdd06b run 42445232321#2 at-once  red 2026-11-08T05:29:56Z decider 2026-11-08T05:33:09 success green 2026-11-08T05:32:36 run 42440429524#5 red_min 2.7 lag_min -0.6 by github-actions[bot]
+#3300 21fdd06b run 42440429288#4 at-once  red 2026-11-08T05:30:43Z decider 2026-11-08T05:33:09 success green 2026-11-08T05:32:36 run 42440429524#5 red_min 1.9 lag_min -0.6 by github-actions[bot]
+#3304 ed1f1b1d run 42454530341#1 at-once  red 2026-11-08T06:25:30Z decider 2026-11-08T07:00:48 failure green NONE red_min - lag_min - by None
+#3304 ed1f1b1d run 42454871767#1 at-once  red 2026-11-08T06:30:39Z decider 2026-11-08T07:00:48 failure green NONE red_min - lag_min - by None
+RESULT deferral_reds=86
+RESULT heads_with_deferral=43
+RESULT prs_with_deferral=13
+RESULT non_deferral_reds=276
+RESULT bot_reran_content_reds=257
+RESULT bot_reran_content_red_gate_min=159
+RESULT bot_reran_content_red_prs=6
+RESULT residual_red=18
+RESULT residual_red_decider_success=0
+RESULT residual_red_decider_unknown=0
+RESULT stale_pin_reds_after_fix=6
+RESULT stale_pin_reruns_after_fix=2
+RESULT waiting_reds=45
+RESULT waiting_heads=25
+RESULT waiting_red_min_median=31.0
+RESULT waiting_red_min_max=142.8
+RESULT waiting_lag_min_median=0.0
+RESULT waiting_lag_min_max=122.2
+RESULT waiting_lag_min_max_decider_success=0.0
+RESULT waiting_green_by_human=15
+RESULT at_once_reds=41
+RESULT at_once_heads=18
+RESULT at_once_red_min_median=32.2
+RESULT at_once_red_min_max=54.0
+RESULT at_once_lag_min_median=0.0
+RESULT at_once_lag_min_max=35.9
+RESULT at_once_lag_min_max_decider_success=1.5
+RESULT at_once_green_by_human=6
+RESULT unpinned_reds=0
+RESULT unpinned_heads=0
+RESULT unpinned_green_by_human=0
