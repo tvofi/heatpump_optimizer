@@ -1011,8 +1011,27 @@ def brief_lint_script(lint_cwd) -> str | None:
     return None
 
 
-def lint_gate(checkout, lint_cwd, roster_path):
-    """brief_lint from a fresh origin/main checkout. Returns (ok, detail)."""
+ERROR_LINE = re.compile(r"^\s*ERROR\b.*$", re.M)
+TOTAL_N = re.compile(r"TOTAL: (\d+) error")
+
+
+def _lint_errors(out):
+    """(the ERROR lines of one lint run, whether they account for its TOTAL).
+    A failure the lines do not account for (a problem printed in another
+    shape) cannot be attributed to a write, so the gate refuses it whole."""
+    errs = [m.group(0).strip() for m in ERROR_LINE.finditer(out)]
+    m = TOTAL_N.search(out)
+    return errs, bool(m) and int(m.group(1)) == len(errs)
+
+
+def lint_gate(checkout, lint_cwd, roster_path, base_text=None):
+    """brief_lint from a fresh origin/main checkout. Returns (ok, detail).
+
+    With `base_text` (the roster as the write found it) the gate refuses only
+    the ERROR lines the same lint over that base does not print: a merge to
+    main that moves a line one brief cites must not stop a write that never
+    touches that brief (P435). Each pre-existing error is returned in `detail`
+    as a WARN naming its group, for the owner to re-pin."""
     run(["git", "-C", str(checkout), "fetch", "-q", "origin", "main"])
     main_sha = run(["git", "-C", str(checkout), "rev-parse", "origin/main"]).strip()
     made = None
@@ -1037,7 +1056,25 @@ def lint_gate(checkout, lint_cwd, roster_path):
         out = r.stdout + r.stderr
         ok = bool(TOTAL_OK.search(out))
         tail = "\n".join(out.strip().splitlines()[-3:])
-        return ok, tail
+        if ok or base_text is None:
+            return ok, tail
+        errs, whole = _lint_errors(out)
+        if not whole:
+            return False, tail
+        bdir = tempfile.mkdtemp(prefix="hpo-lint-base-")
+        try:
+            bpath = Path(bdir) / Path(roster_path).name
+            bpath.write_text(base_text, encoding="utf-8")
+            br = subprocess.run(["node", script, str(bpath)], cwd=lint_cwd,
+                                capture_output=True, text=True)
+            base_errs, _ = _lint_errors(br.stdout + br.stderr)
+        finally:
+            shutil.rmtree(bdir, ignore_errors=True)
+        new = [e for e in errs if e not in base_errs]
+        if new:
+            return False, "\n".join(new + [tail])
+        warn = "\n".join(f"WARN pre-existing, re-pin owed: {e}" for e in errs)
+        return True, warn
     finally:
         if made:
             run(["git", "-C", str(checkout), "worktree", "remove",
@@ -1081,8 +1118,9 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
             raise Refuse(str(e))
         path = Path(worktree) / rel
         print(f"roster: {rel} on {branch}")
-        roster = json.loads(path.read_text(encoding="utf-8"))
-        before = json.loads(path.read_text(encoding="utf-8"))
+        base_text = path.read_text(encoding="utf-8")
+        roster = json.loads(base_text)
+        before = json.loads(base_text)
         if not edit(roster, rel):
             return 0
         why = triage_refusal(added_texts(before, roster),
@@ -1100,7 +1138,9 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
         run(["git", "-C", str(worktree), "commit", "-q", "-am", msg])
         head = run(["git", "-C", str(worktree), "rev-parse", "HEAD"]).strip()
         refspec = f"{head}:refs/heads/{branch}"
-        ok, detail = lint_gate(checkout, lint_cwd, path)
+        ok, detail = lint_gate(checkout, lint_cwd, path, base_text)
+        if ok and detail:
+            print(detail, file=sys.stderr)
         if not ok:
             print(f"roster_edit: LINT GATE REFUSED the push\n{detail}\n"
                   f"the commit is local at {head[:12]} in {worktree} "
@@ -1444,6 +1484,35 @@ def _self_test() -> int:
               not ok and "neither brief_lint path" in why, why[:160])
     finally:
         os.chdir(here)
+
+    # --- the gate refuses only errors the base roster does not already carry (P435)
+    errlint = (
+        "import {readFileSync} from 'node:fs';\n"
+        "const t=readFileSync(process.argv[2],'utf8');\n"
+        "const e=[...t.matchAll(/__bad_(\\w+)__/g)].map(m=>m[1]);\n"
+        "for (const x of e) console.log(`  ERROR   [G-${x}] cite: a.py:${x} moved`);\n"
+        "console.log(`TOTAL: ${e.length} error(s) across 1 file(s)`);\n")
+    drv_e, lint_e = planted("gate-base", {new_rel: errlint})
+    rpath = lint_e / "roster-under-lint.json"
+    cur = "{}\n__bad_one__\n"
+    def base_gate(text, base):
+        rpath.write_text(text, encoding="utf-8")
+        return lint_gate(drv_e, str(lint_e), rpath, base)
+    ok, why = base_gate(cur + "other edit\n", cur)
+    check("lint gate: an unrelated write passes beside a pre-existing error, warning it",
+          ok and "WARN pre-existing" in why and "G-one" in why, why[:200])
+    ok, why = base_gate(cur + "__bad_two__\n", cur)
+    check("lint gate: the same write adding a bad citation is refused, naming it",
+          not ok and "G-two" in why.splitlines()[0], why[:200])
+    ok, why = base_gate("{}\nclean\n", "{}\nclean\n")
+    check("lint gate: a clean roster writes as before (null control)",
+          ok and why.startswith("TOTAL: 0"), why[:200])
+    ok, why = base_gate(cur, None)
+    check("lint gate: with no base text every error refuses (the old gate)",
+          not ok and "G-one" in why, why[:200])
+    ok, why = base_gate(cur, "{}\n")
+    check("lint gate: an error the base lacks refuses (an empty base set would pass it)",
+          not ok and "G-one" in why, why[:200])
 
     # The fixture's roster: one round, so the newest IS this path.
     FIXTURE_ROSTER = f"{roster_lib.ROSTERS_DIR}/wave-r9-groups.json"
@@ -2520,7 +2589,7 @@ def _self_test() -> int:
     def racing(times):
         busy = []
 
-        def hooked(checkout, lint_cwd, roster_path):
+        def hooked(checkout, lint_cwd, roster_path, *rest):
             if not busy and len(rivals) < times:
                 rivals.append(f"rival carry {next(serial)}")
                 busy.append(1)
@@ -2533,7 +2602,7 @@ def _self_test() -> int:
                     busy.clear()
                 if rc_r != 0:
                     raise Refuse(f"self-test rival edit failed rc={rc_r}")
-            return real_lint(checkout, lint_cwd, roster_path)
+            return real_lint(checkout, lint_cwd, roster_path, *rest)
         return hooked
 
     def race_tip():
