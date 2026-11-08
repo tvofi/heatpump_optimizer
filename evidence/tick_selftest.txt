@@ -1,0 +1,2 @@
+orchestrator_tick self-test: 292 checks, 0 failed
+rc=0

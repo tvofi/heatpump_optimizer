@@ -1,7 +1,0 @@
-== null control: fail_lines reverted to unindented-only
-  ok   a crash with no FAIL line prints its tail
-  FAIL an indented FAIL line is read; an ok line naming FAIL is not
-r10_roster_ops_mutants self-test: 343 checks, 1 failed
-RESULT mutant=U4 rc=1 fails=0
-    crash tail:
-      FAIL REPLAN routing invariants: an unreadable tool is never clean: an OSError from the tool is one UNREADABLE line naming it

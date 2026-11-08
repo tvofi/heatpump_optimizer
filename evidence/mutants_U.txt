@@ -1,10 +1,3 @@
-== unmutated
-orchestrator_tick self-test: 292 checks, 0 failed
-orchestrator_tick self-test: 292 checks, 0 failed
-== r10_roster_ops_mutants self-test
-  ok   an unknown plant is returned for refusal
-r10_roster_ops_mutants self-test: 343 checks, 0 failed
-== plants U1-U6 W18
 RESULT mutant=U1 rc=1 fails=3
     FAIL REPLAN routing invariants: an unreadable tool is never clean: exit 2 with no summary (a REFUSED roster ref) is one UNREADABLE line
     FAIL REPLAN routing invariants: an unreadable tool is never clean: exit 2 with a summary is still UNREADABLE (the rc arm alone)
@@ -22,3 +15,4 @@ RESULT mutant=U6 rc=1 fails=1
 RESULT mutant=W18 rc=1 fails=1
     FAIL append-carry refuses text ending in a mark-shaped suffix
 plants: 7, without a FAIL line: none
+rc=0

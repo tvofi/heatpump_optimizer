@@ -1,8 +1,0 @@
-== null: plants at e3d39d0d5c55eca3aa442765f6ef69f7d7ad51b6 with this head's harness
-RESULT mutant=U1 rc=0 fails=0
-RESULT mutant=U2 rc=0 fails=0
-RESULT mutant=U3 rc=0 fails=0
-RESULT mutant=U4 rc=0 fails=0
-RESULT mutant=U5 rc=0 fails=0
-RESULT mutant=U6 rc=0 fails=0
-plants: 6, without a FAIL line: ['U1', 'U2', 'U3', 'U4', 'U5', 'U6']
