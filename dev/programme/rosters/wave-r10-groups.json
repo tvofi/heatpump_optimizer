@@ -7496,9 +7496,9 @@
    "architect_note": "",
    "brief": "Plan-model correctness residue, narrowed by the instrument-group audit (orchestrator s10, 2026-11-01, on tvofi's card-2 ruling: a carry stays only if it is a verified defect, or an accepted improvement that reaches the round's improvement bar and aligns with its other instrument groups). The Lean flow projection model this group was opened for (--project, --rank, the shadow overlay and the schedule table) is dropped: its own carry states it saves no round-10 time, and the machinery freeze after v10.0.0 leaves no later round to use it. Scope, in tools/plan/replan.py and tools/policy/brief_lint.mjs: (1) a group is live by evidence (a live ref, an open pull request, a design ref), not by its stage word; (2) an absorbed group is not scheduled as open work; (3) a ready critical-path group starts past the slots cap, as dispatch already does; (4) the stamp cadence the owner set; (5) brief_lint's roster index, the merge-time carry fold and the control lint (#2438, owner-approved 2026-10-29). Each carry names its own controls. Re-measure every figure a carry states at this group's merge base; carry no count.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-flow-toolkit-model",
-    "commit": null,
+    "commit": "8aec354354bff43ce74b8657273451453ec1d16b",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "Lean flow study 2026-10-21 (owner-adopted)",
