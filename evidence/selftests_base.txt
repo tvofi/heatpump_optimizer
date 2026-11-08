@@ -1,0 +1,6 @@
+== base tools/policy/budget_raise_gate.py
+  ok   e2e: --check-body: --base without --head exits 2
+budget_raise_gate self-test: 273 checks, 0 failed
+== base tools/audit/seat/r10_mandate_guard_mutants.py
+  ok   B4: its anchor occurs exactly once and the plant compiles
+r10_mandate_guard_mutants self-test: 8 checks, 0 failed
