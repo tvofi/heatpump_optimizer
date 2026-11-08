@@ -51,13 +51,16 @@ def pr_of(run):
 #: per_page=100 on page 1 and 2, every time, and 200 on all 11 pages at 30
 #: (R10-FLY-GH-READ-RETRY carry 5).
 PER_PAGE = 30
+#: The item ceiling ghapi.paginate's MAX_PAGES gives at 100 a page, kept at the
+#: smaller page: a re-run run lists every attempt's jobs (run 42454528717: 1760).
+MAX_ITEMS = ghapi.MAX_PAGES * 100
 
 
 def pages(get, path, params):
     """Every item, paged by `page=` rather than the Link header (whose
     repositories/<id> form some proxies refuse); ghapi.paginate's one-list rule."""
     out = []
-    for n in range(1, ghapi.MAX_PAGES + 1):
+    for n in range(1, -(-MAX_ITEMS // PER_PAGE) + 1):
         st, _, doc = get(path, dict(params, per_page=PER_PAGE, page=n))
         if st != 200 or not isinstance(doc, dict):
             raise ghapi.ApiError(path, st, "")
@@ -156,7 +159,17 @@ def selftest():
         paged = None
     if paged != list(range(70)) or len(asked) != 3:
         bad.append(f"pages over a server refusing pages over 50: got {paged and len(paged)} in {asked}")
-    print(f"selftest: {len(want) + 2} checks, {len(bad) + (not rows_ok)} failed{' ' + str(bad) if bad else ''}")
+
+    def many(path, params):  # run 42454528717's 1760 jobs, every attempt listed
+        lo = (params["page"] - 1) * params["per_page"]
+        return 200, {}, {"jobs": list(range(1760))[lo:lo + params["per_page"]]}
+    try:
+        n_many = len(pages(many, "repos/o/r/actions/runs/1/jobs", {"filter": "all"}))
+    except ghapi.ApiError:
+        n_many = None
+    if n_many != 1760:
+        bad.append(f"pages over 1760 jobs: got {n_many} (the base's 100-a-page ceiling is 5000 items)")
+    print(f"selftest: {len(want) + 3} checks, {len(bad) + (not rows_ok)} failed{' ' + str(bad) if bad else ''}")
     return 1 if bad or not rows_ok else 0
 
 
