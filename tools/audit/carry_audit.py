@@ -581,14 +581,42 @@ def group_text(dests: Dests, group: str, brief: bool = True) -> str:
     return "\n".join(out)
 
 
-def landed(body: str, dests: Dests, source: str = "") -> list[dict]:
+CARRY_INDEX = re.compile(r"(?<![\w-])Carry\s+\[?(\d+)\]?(?![\w-])")
+
+
+def own_group(dests: Dests, srcs: list[str]) -> str | None:
+    """The group a source (`#<pr>` and the handoff topic) answers for: the pull request's own
+    `pr_group` when set, else the group a topic token resolves to (`pr_group_of`)."""
+    if dests.pr_group:
+        return dests.pr_group
+    for x in srcs:
+        if not x.startswith("#") and (g := pr_group_of(dests, x)):
+            return g
+    return None
+
+
+def own_carry_status(dests: Dests, group: str, text: str) -> bool:
+    """Whether <text> names one of <group>'s carries by 0-based index, on main's roster or the
+    round's branch: then it reports that carry's status and is no new carry."""
+    n = max(len((g or {}).get("carry") or []) for g in (dests.groups.get(group), dests.round_groups.get(group)))
+    return any(int(i) < n for i in CARRY_INDEX.findall(CODE_SPAN.sub(" ", text)))
+
+
+def landed(body: str, dests: Dests, source: str = "", statuses: "list[dict] | None" = None) -> list[dict]:
     """Each (finding item, GROUP destination) of a body whose group's brief or
-    carries hold neither the item id nor the source (`#<pr>` or the handoff
-    topic: P310, an id re-minted by a reword still lands by its source), or
+    carries do not hold the item id and whose carries do not hold the source
+    (`#<pr>` or the handoff topic: P310, an id re-minted by a reword still lands
+    by its source; a brief naming the source lands nothing, #3234), or
     whose group is no valid destination. A `dismissed:` item, a `#N` and an
-    O-brief need no landing. Each: {"group", "id", "text", "why"}."""
+    O-brief need no landing. Each: {"group", "id", "text", "why"}.
+
+    An item naming the source's OWN group (`own_group`) and one of that group's carries by
+    index (`Carry 3: built. Carry: <own group>`) reports that carry's status: it lands
+    nothing and is appended to <statuses> when given (carry_audit prints it as a status
+    line). An own-group item with no index, or an index the group has no carry at, lands."""
     out = []
     srcs = [x for x in re.split(r"[\s,]+", source) if x]
+    own = own_group(dests, srcs)
     for r in audit(body, [], dests)["rows"]:
         for tok in r["dests"]:
             if not GROUP_TOK.match(tok):
@@ -596,6 +624,10 @@ def landed(body: str, dests: Dests, source: str = "") -> list[dict]:
             ok, note = dests.check(tok)
             if not ok:
                 out.append({"group": tok, "id": r["id"], "text": r["text"], "why": f"bad destination: {note}"})
+                continue
+            if tok == own and own_carry_status(dests, own, r["text"]):  # mut:ownstatus
+                if statuses is not None:
+                    statuses.append({"group": tok, "id": r["id"], "text": r["text"]})
                 continue
             split = lambda t: set(re.split(r"[^\w#-]+", t))  # whole tokens: #25581 is not #2558
             # the source (`#<pr>`, the topic) lands only through a carry: a group's brief
@@ -944,11 +976,15 @@ def main(argv: list[str]) -> int:
             except (roster_lib.RosterNotFound, ValueError, OSError) as e:
                 print(f"carry_audit: UNREAD the roster: {e}")
                 return 3
-            missing = landed(Path(a.body).read_text(), dests, f"{a.pr} {a.topic}")
+            statuses: list[dict] = []
+            missing = landed(Path(a.body).read_text(), dests, f"{a.pr} {a.topic}", statuses)
             if a.cmd == "land-ops":
                 for op in land_ops(missing, a.pr, a.topic):
                     print(op)
                 return 1 if missing else 0
+            for m in statuses:
+                one = re.sub(r"\s+", " ", m["text"])[:100]
+                print(f"CARRY-STATUS {m['group']} body item {m['id']}: a status line on its own carry, lands nothing: {one!r}")
             for m in missing:
                 one = re.sub(r"\s+", " ", m["text"])[:100]
                 print(f"CARRY-MISSING {m['group']} body item {m['id']}: {m['why']}: {one!r}")
@@ -1887,6 +1923,37 @@ def _self_test() -> int:
     md = landed(head + "## Forward-carry\n\n- x. Carry: R10-DONE\n", dl())
     check("landed: a done destination is missing as a bad destination, and never gets an op",
           len(md) == 1 and md[0]["why"].startswith("bad destination") and land_ops(md) == [])
+    # CARRY 43 (s12 slip study): an item of a group's own part body that names one of that group's
+    # carries by index and routes to that group reports a carry's status; it lands nothing.
+    own_roster = json.loads(json.dumps(Dl_roster))
+    own_roster["groups"][0]["carry"] = [f"owed {i}" for i in range(5)]
+    own_d = Dests(own_roster, {300})
+    own_src = "#9 r10-a-p2"
+    def own_item(text, src=own_src):
+        sts: list = []
+        got = landed(head + "## Forward-carry\n\n- " + text + "\n", own_d, src, sts)
+        return got, sts
+    got, sts = own_item("Carry 3: built. Carry: R10-A")
+    check("landed: an own-group item naming one of its carries by index lands nothing and is a status line",
+          got == [] and len(sts) == 1 and sts[0]["group"] == "R10-A")
+    got, sts = own_item("Carry 3: built. Carry: R10-B")
+    check("landed: the same item naming another live group lands one append-carry (null control)",
+          len(land_ops(got)) == 1 and sts == [])
+    got, sts = own_item("The census misses the store seam. Carry: R10-A")
+    check("landed: an own-group item with no carry index still lands (null control)",
+          len(land_ops(got)) == 1 and sts == [])
+    got, sts = own_item("Carry 99: not a carry of this group. Carry: R10-A")
+    check("landed: an index the group has no carry at is a finding and lands (null control)",
+          len(land_ops(got)) == 1 and sts == [])
+    got, sts = own_item("Carry 5: the first index past the group's five carries. Carry: R10-A")
+    check("landed: the index one past the last carry (5 of 0-4) is a finding and lands (the bound)",
+          len(land_ops(got)) == 1 and sts == [])
+    got, sts = own_item("Carry 3: built. Carry: R10-A", "#9 r10-b")
+    check("landed: the same item from another group's pull request lands (null control)",
+          len(land_ops(got)) == 1 and sts == [])
+    own_d.pr_group = "R10-A"
+    got, sts = own_item("Carry 0: stays open. Carry: R10-A", "#9")
+    check("landed: the group is read from pr_group when the source names no topic", got == [] and len(sts) == 1)
     flagged_2645 = [x["id"] for x in items(fx["verdict_2645"]["whole"], True) if x["flagged"]]
     check("CARRY 3: #2645's round-1 blocked verdict flags at most one item (8 at 7539d1675)", len(flagged_2645) <= 1)
     for name, text, comments, want in item_grammar:

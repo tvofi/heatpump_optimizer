@@ -19,6 +19,18 @@ name: Pages
 #   is red. The deploy job runs in the `github-pages` environment, whose
 #   deployment rules (the owner's) decide which refs may deploy: a `v*` tag
 #   deploys only once that environment admits `v*` tags.
+# * It also serves the ongoing round's plan page at `plan/` (R10-OUTSIDE-INTAKE;
+#   tvofi, 2026-11-06): tools/audit/seat/plan_public.py, run from the
+#   dispatched ref's tree, stages PLAN.html from the newest
+#   `handoff/audit-r<N>-plan` state ref, refusing a page that carries a host
+#   path or a tool's attribution (a red run; nothing deployed), and the beat's
+#   `plan-beat` row dispatches this workflow on `main` after each state push
+#   that carried a page. A closed round's state ref stays the newest until
+#   `closeout.py --apply` deletes it, so its page is served until then; with
+#   no state ref, or no page at the newest, the site deploys without one and
+#   warns. The docs are always the newest `v*` tag's -- on a
+#   dispatch the build checks that tag out after staging the plan -- so a plan
+#   refresh never serves main's unreleased documentation.
 #
 # tests/entities.py pins all of this, and runs the staging and guard steps by
 # their names in a scratch repository.
@@ -52,6 +64,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Ask whether Pages is enabled
         id: probe
@@ -74,6 +88,32 @@ jobs:
           echo "::warning title=Pages not deployed::${msg}"
           echo "$msg" >> "$GITHUB_STEP_SUMMARY"
           echo "enabled=false" >> "$GITHUB_OUTPUT"
+
+      # From the dispatched ref's tree, before the release is checked out:
+      # rc 2 is no page to publish (warned), rc 1 a refused page (red).
+      - name: Stage the round's plan page
+        run: |
+          set -uo pipefail
+          git fetch --no-tags --quiet origin '+refs/heads/handoff/audit-r*-plan:refs/remotes/origin/handoff/audit-r*-plan' || exit 1
+          rc=0
+          python3 -I tools/audit/seat/plan_public.py stage --out "$RUNNER_TEMP/plan-site" || rc=$?
+          if [ "$rc" -eq 2 ]; then
+            echo "::warning title=No plan page::no round's plan page to publish; the site deploys without one"
+          elif [ "$rc" -ne 0 ]; then
+            exit "$rc"
+          fi
+
+      - name: Check out the release
+        if: github.ref_type != 'tag'
+        run: |
+          set -euo pipefail
+          tag=$(git tag -l 'v*' --sort=-v:refname | head -n 1)
+          if [ -z "$tag" ]; then
+            echo "::warning title=No release tag::no v* tag; the docs are the dispatched ref's"
+            exit 0
+          fi
+          git -c advice.detachedHead=false checkout --quiet "$tag"
+          echo "docs from $tag"
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -108,6 +148,14 @@ jobs:
           rm -f _site/docs-manifest.json
           mkdir -p _site/site/mermaid
           cp tools/site/node_modules/mermaid/dist/mermaid.min.js _site/site/mermaid/mermaid.min.js
+
+      - name: Add the round's plan page
+        run: |
+          set -euo pipefail
+          if [ -f "$RUNNER_TEMP/plan-site/plan/index.html" ]; then
+            mkdir -p _site/plan
+            cp "$RUNNER_TEMP/plan-site/plan/index.html" _site/plan/index.html
+          fi
 
       - name: Refuse a published markdown file
         run: |
