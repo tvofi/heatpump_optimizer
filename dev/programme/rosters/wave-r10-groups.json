@@ -18325,7 +18325,9 @@
    "after": [
     "R10-HOTFIX-SELFTEST-TIMEOUT"
    ],
-   "carry": [],
+   "carry": [
+    "From r10-hotfix-codeql-headroom, body item e8d2bee2: A CI-cost hotfix under tests/ shows its effect only on a `workflow_dispatch` with no `pr` input (a closed PR's number is refused). Carry: R10-CI-SELFTEST-SCOPE (dev/programme/rosters/wave-r10-groups.json) (items e8d2bee2)"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
