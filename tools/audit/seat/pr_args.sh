@@ -1618,6 +1618,26 @@ print(n)' "$1"
   ck "every # mut: line is a whole statement, never one continued from the line above" $?
   printf 'a \\\n  b  # mut:x\n' > "$t/mutshape.sh"; ! mutshape "$t/mutshape.sh" >/dev/null
   ck "null control: a # mut: line continued from the line above is named" $?
+  # CARRY 0 (dispatch at the handoff): once #N exists, open_pr.sh re-keys the topic's dispatch to it
+  # (`bus.sh rekey <topic> <pr>`); rc 3 (no handoff dispatch) is the ordinary case and silent, any other
+  # failure is named and never fatal. The open path stops at the absent push in this harness, so the
+  # statement carrying `# mut:rekey` is run alone against a bus.sh stub.
+  mkdir -p "$t/rkseat"
+  rkrun() { # <mutant|-> <stub rc> -> $t/rk.argv: what the stub saw; $t/rk.err: the statement's stderr
+    : > "$t/rk.argv"
+    printf '#!/bin/bash\necho "$*" >> "%s/rk.argv"\nexit %s\n' "$t" "$2" > "$t/rkseat/bus.sh"
+    if [ "$1" = - ]; then grep -h '# mut:rekey$' "$src/open_pr.sh"; else grep -h '# mut:rekey$' "$src/open_pr.sh" | grep -v "# mut:$1\$"; fi > "$t/rk.line"
+    SEAT=$t/rkseat PR_NAME=open_pr T=ht N=77 bash "$t/rk.line" 2> "$t/rk.err"
+    echo $? > "$t/rk.rc"
+  }
+  rkrun - 0; [ "$(cat "$t/rk.argv")" = "rekey ht 77" ] && [ ! -s "$t/rk.err" ] && [ "$(cat "$t/rk.rc")" = 0 ]
+  ck "open_pr: a pull request that opens re-keys the topic's handoff dispatch to it (bus.sh rekey <topic> <pr>)" $?
+  rkrun - 3; [ ! -s "$t/rk.err" ] && [ "$(cat "$t/rk.rc")" = 0 ]
+  ck "open_pr: null control: no handoff dispatch (rc 3) says nothing and does not fail the open" $?
+  rkrun - 1; grep -q 'open_pr: bus.sh rekey ht 77 failed' "$t/rk.err" && [ "$(cat "$t/rk.rc")" = 0 ]
+  ck "open_pr: a failed re-key is named, never fatal (the pull request is already open)" $?
+  rkrun rekey 0; [ ! -s "$t/rk.argv" ]
+  ck "  mutant mut:rekey (its line deleted) re-keys nothing" $?
   # The cap's own counting rule, which orchestrator_tick.py imports too.
   python3 -I "$src/pr_cap.py" --self-test > "$t/cap.out" 2>&1 && grep -q 'pr_cap self-test: [1-9][0-9]* checks, 0 failed' "$t/cap.out"
   ck "pr_cap.py --self-test: its tally says 0 failed" $?

@@ -7,6 +7,8 @@
 #   bus.sh watch [--once] [--post] [--every <seconds>]          (orchestrator)
 #   bus.sh dispatch <pr> <head> <reviewer> [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>]
 #                   [--harness <path> | --harness-file <file>]
+#   bus.sh dispatch-handoff <topic> <handoff-sha> <reviewer> [--model M]   (a reviewer at the handoff, before the PR opens)
+#   bus.sh rekey <topic> <pr>                                   (open_pr.sh: the topic's dispatch becomes the PR's)
 #   bus.sh push-design <topic> <design.md>                      (designer)
 #   bus.sh push-design-verdict <topic> <verdict.md>             (design reviewer)
 #   bus.sh confirm <pr> <review commit>                         (orchestrator)
@@ -191,7 +193,8 @@ verdict_nonce() { # verdict file -> the first bus-nonce, or nothing
 dispatch_binding() { # verdict-file pr head -> 0 when the nonce binds to (pr, head); else why
   local n rec rp rh
   n=$(verdict_nonce "$1")
-  rec=$(awk -v n="$n" '$4 == n { print $1, $2; exit }' "$S/dispatched" 2>/dev/null)
+  # a `topic:<t>` record (dispatch-handoff) binds to no pull request until `rekey` adds the PR's own line
+  rec=$(awk -v n="$n" '$4 == n && $1 !~ /^topic:/ { print $1, $2; exit }' "$S/dispatched" 2>/dev/null)  # mut:bindtopic
   [ -n "$rec" ] || { printf 'unknown nonce %s: no dispatch in %s minted it; mint one at this head with bus.sh dispatch %s %s <reviewer>' "$n" "$S/dispatched" "$2" "$3"; return 1; }
   rp=${rec%% *} rh=${rec#* }
   [ "$rp" = "$2" ] || { printf 'nonce %s belongs to pull request #%s, not #%s; mint a dispatch for this one with bus.sh dispatch %s %s <reviewer>' "$n" "$rp" "$2" "$2" "$3"; return 1; }
@@ -698,6 +701,57 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
     || printf 'bus: the ledger refused the reviewer-fire close for #%s at %s; close it by hand\n' "$pr" "$h" >&2
   printf '%s\n' "$pkline"
   printf 'bus-nonce: %s\n' "$n"
+}
+
+# DISPATCH AT THE HANDOFF (R10-DISPATCH-AT-HANDOFF Carry 0; tvofi 2026-10-27, "if there are no code
+# changes, the previous review can be carried"). The reviewer starts when handoff/<topic> and
+# handoff-body/<topic> land, not when the PR opens: the record is keyed `topic:<topic>` in the
+# worker registry (every reader keys on a pull-request number, so no reader sees it), and
+# `rekey`, run by open_pr.sh once #N exists, appends the same record under N. The verdict then
+# binds to #N at the handoff head; cloud_relay.sh posts it only when review_carry.py answers CARRY
+# for handoff-head..PR-head (the merge of main and the row commit), else it reports
+# HELD-STALE and the PR is re-dispatched at its head. Nothing here reads CI, a row or a packet:
+# none exists before the PR does.
+dispatch_handoff() { # topic sha reviewer [--model M] -> records `topic:<topic> <sha> ...`, prints the nonce
+  local t=${1:-} h=${2:-} r=${3:-} m=- n tip
+  shift 3 2>/dev/null || shift $#
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --model) [[ ${2:-} =~ ^[A-Za-z0-9._-]+$ ]] || die "dispatch-handoff: --model takes one token"; m=$2; shift 2 ;;
+      *) die "dispatch-handoff: unknown argument '$1'" ;;
+    esac
+  done
+  [[ $t =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || die "dispatch-handoff: '$t' is not a topic (letters, digits, . _ -)"
+  [[ $h =~ ^[0-9a-f]{40}$ ]] || die "dispatch-handoff: '$h' is not a 40-hex head"
+  [[ $r =~ ^[A-Za-z0-9_-]+$ ]] || die "dispatch-handoff: name the reviewer's thread or session as one token"
+  tip=$(git ls-remote "$REMOTE" "refs/heads/handoff/$t") || die "dispatch-handoff: could not read handoff/$t on $REMOTE"
+  tip=${tip%%[[:space:]]*}
+  [ "$tip" = "$h" ] || die "dispatch-handoff: handoff/$t is at ${tip:-nothing}, not $h; a reviewer is dispatched at the handoff tip"  # mut:handofftip
+  [ -n "$(git ls-remote "$REMOTE" "refs/heads/handoff-body/$t")" ] || die "dispatch-handoff: handoff-body/$t does not exist, so the handoff is not complete"
+  if awk -v k="topic:$t $h " 'index($0, k) == 1 { f = 1 } END { exit !f }' "$S/dispatched" 2>/dev/null; then  # mut:handoffdup
+    die "dispatch-handoff: $t already has a reviewer dispatched at $h, so no second one is started"
+  fi
+  n=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+  [[ $n =~ ^[0-9a-f]{32}$ ]] || die "dispatch-handoff: could not mint a nonce"
+  mkdir -p "$S" && printf 'topic:%s %s %s %s %s %s\n' "$t" "$h" "$r" "$n" "$(date -u +%FT%TZ)" "$m" >> "$S/dispatched" \
+    || die "dispatch-handoff: cannot record in $S"
+  printf 'bus-nonce: %s\n' "$n"
+}
+
+rekey() { # topic pr -> appends each `topic:<topic>` record under the pull request; rc 3 when the topic has none
+  local t=${1:-} pr=${2:-} line rest n=0
+  [[ $t =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || die "rekey: '$t' is not a topic"
+  numeric "$pr" || die "rekey: the pull request '$pr' is not a number"
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    rest=${line#* }
+    grep -qxF -- "$pr $rest" "$S/dispatched" 2>/dev/null && continue  # idempotent: a second open_pr run adds nothing
+    printf '%s %s\n' "$pr" "$rest" >> "$S/dispatched" || die "rekey: cannot record in $S"
+    printf '%s %s %s\n' "$t" "${rest%% *}" "$pr" >> "$S/rekeyed" || die "rekey: cannot record in $S"
+    n=$((n + 1))
+  done < <(awk -v k="topic:$t " 'index($0, k) == 1' "$S/dispatched" 2>/dev/null)  # mut:rekeyfilter
+  if [ "$n" = 0 ] && ! grep -q "^$t " "$S/rekeyed" 2>/dev/null; then echo "bus: rekey: $t has no handoff dispatch, nothing to re-key"; return 3; fi
+  printf 'BUS rekeyed %s -> #%s (%s record(s) added)\n' "$t" "$pr" "$n"
 }
 
 confirm() { # pr review-commit -> signs the reviewer's proposal onto verdict/<pr>, then posts it
@@ -1221,6 +1275,39 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   expect "null control: dispatch mints at a head that does carry code" $?
   git -C "$W/seat" checkout -q main
   git -C "$W/seat" push -q -f origin "$cbase:refs/heads/main"
+  # DISPATCH AT THE HANDOFF (Carry 0): a topic-keyed record before the PR exists, re-keyed to #N by open_pr.sh.
+  git -C "$W/seat" push -q origin "$h1:refs/heads/handoff/ht1" "$h1:refs/heads/handoff-body/ht1"
+  n=$(grep -c . "$W/state/dispatched")
+  out=$(seat dispatch-handoff ht1 "$h1" cmsg_H --model sonnet); rc=$?
+  hn=$(echo "$out" | sed -n 's/^bus-nonce: //p')
+  [ $rc = 0 ] && [[ $hn =~ ^[0-9a-f]{32}$ ]] && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ] \
+    && grep -q "^topic:ht1 $h1 cmsg_H $hn .* sonnet\$" "$W/state/dispatched" && ! grep -q "^ht1 " "$W/state/dispatched"
+  expect "dispatch-handoff at the handoff tip mints a nonce and records it under topic:<topic>, never under a pull-request number" $?
+  out=$(seat dispatch-handoff ht1 "$h1" cmsg_H2); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "already has a reviewer dispatched at $h1" && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
+  expect "a second reviewer at the same handoff head is refused and records nothing" $?
+  out=$(seat dispatch-handoff ht1 "$h2" cmsg_H3); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "handoff/ht1 is at $h1, not $h2" && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
+  expect "null control: a head that is not the handoff tip is refused (a moved handoff is re-dispatched, never reviewed stale)" $?
+  out=$(seat dispatch-handoff nosuch "$h1" cmsg_H4); rc=$?
+  [ $rc != 0 ] && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]; expect "a topic with no handoff ref is refused" $?
+  printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$hn" > "$W/hmerge.md"
+  out=$(seat push-verdict 55 "$W/hmerge.md" "$W/ev1"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "unknown nonce"; expect "before the re-key, the topic's nonce binds to no pull request (push-verdict refuses it)" $?
+  out=$(seat rekey ht1 55); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -qx "BUS rekeyed ht1 -> #55 (1 record(s) added)" \
+    && grep -q "^55 $h1 cmsg_H $hn .* sonnet\$" "$W/state/dispatched" && grep -qx "ht1 $h1 55" "$W/state/rekeyed"
+  expect "rekey appends the topic's record under the pull request and notes it in rekeyed" $?
+  out=$(seat rekey ht1 55); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -qx "BUS rekeyed ht1 -> #55 (0 record(s) added)" && [ "$(grep -c "^55 $h1 cmsg_H " "$W/state/dispatched")" = 1 ]
+  expect "a second rekey is idempotent (open_pr.sh re-run adds nothing)" $?
+  out=$(seat push-verdict 55 "$W/hmerge.md" "$W/ev1"); rc=$?
+  [ $rc = 0 ]; expect "after the re-key the handoff-dispatched verdict proposes on #55 at the handoff head" $?
+  git -C "$W/seat" push -q origin :refs/heads/review/55
+  out=$(seat rekey never 56); rc=$?
+  [ $rc = 3 ] && echo "$out" | grep -q "never has no handoff dispatch" && ! grep -q "^56 " "$W/state/dispatched"
+  expect "null control: a topic with no handoff dispatch re-keys nothing (rc 3), so open_pr.sh stays quiet" $?
+  git -C "$W/seat" push -q origin :refs/heads/handoff/ht1 :refs/heads/handoff-body/ht1  # the orphans arms below keep their base
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N1" > "$W/merge.md"
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N1b" > "$W/othernonce.md"
   # push-verdict binds the nonce to its dispatch before it proposes. A nonce no
@@ -2039,6 +2126,8 @@ case ${1:-} in
   push-design-verdict) shift; push_design_verdict "$@" ;;
   watch) shift; watch "$@" ;;
   dispatch) shift; dispatch "$@" ;;
+  dispatch-handoff) shift; dispatch_handoff "$@" ;;
+  rekey) shift; rekey "$@" ;;
   confirm) shift; confirm "$@" ;;
   post) shift; numeric "${1:-}" || die "post: give a pull-request number"; mkdir -p "$S"; post_verdict "$1" ;;
   orphans) shift; orphans "$@" ;;

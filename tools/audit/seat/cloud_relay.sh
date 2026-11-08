@@ -215,12 +215,13 @@ ev_case_collision() { # <commit> -> "<a> and <b>" for the first two names under 
       if ((k in s) && s[k] != q) { print s[k] " and " q; exit } s[k] = q } }'
 }
 
-relay() {
-  local pr=$1 nonce=$2 head=$3 ref sha d subj first state led
+relay() { # <pr> <nonce> <head> [<topic>]: with a topic, the verdict was returned at the handoff (probe/revt-<topic>-<n8>, subject `verdict <topic> <head>`)
+  local pr=$1 nonce=$2 head=$3 topic=${4:-} ref sha d subj first state led key=$1
   case $pr in ''|*[!0-9]*) die "pr '$pr' is not a number"; return;; esac
   printf '%s' "$head" | grep -Eq '^[0-9a-f]{40}$' || { die "head must be 40 lowercase hex"; return; }
   printf '%s' "$nonce" | grep -Eq '^[0-9a-f]{32}$' || { die "nonce must be 32 hex"; return; }
   ref=refs/heads/probe/rev-$pr-$(printf '%s' "$nonce" | cut -c1-8)
+  [ -z "$topic" ] || { key=$topic; ref=refs/heads/probe/revt-$topic-$(printf '%s' "$nonce" | cut -c1-8); }  # mut:relaytopic
   sha=$(git ls-remote origin "$ref" | awk 'NF { print $1; exit }')
   [ -n "$sha" ] || { die "no $ref on origin"; return; }
   state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}; led=$state/cloud-relayed
@@ -237,7 +238,7 @@ relay() {
   d=$(mktemp -d "${TMPDIR:-/tmp}/cloud_relay.XXXXXX") || return 1
   git archive "$sha" | tar -x -C "$d" || { die "could not read $sha"; return; }
   subj=$(git log -1 --format=%s "$sha")
-  [ "$subj" = "verdict $pr $head" ] || { die "the ref's commit says '$subj', not 'verdict $pr $head': another PR or head"; return; }
+  [ "$subj" = "verdict $key $head" ] || { die "the ref's commit says '$subj', not 'verdict $key $head': another PR or head"; return; }
   [ -f "$d/verdict.md" ] || { die "no verdict.md in the ref"; return; }
   first=$(head -n 1 "$d/verdict.md")
   if [[ $first =~ ^(Fix\ review:\ blocked\ [0-9a-f]{40})\ \[([a-z-]+:\ [^][]+)\]$ ]]; then
@@ -310,12 +311,12 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
   led=$state/cloud-relayed; bus=${HPO_BUS_STATE:-$HOME/.zcode/bus}
   # a failed listing leaves the level as it was: unknown is not "nothing owed"
   git ls-remote origin 'refs/heads/probe/*' > "${TMPDIR:-/tmp}/cloud_relay_ls.$$" || { echo "cloud_relay: ls-remote failed; will retry" >&2; rm -f "${TMPDIR:-/tmp}/cloud_relay_ls.$$"; return 0; }
-  mkdir -p "$state"; : > "$state/cloud-level-probe.$$"; : > "$state/cloud-level-refused.$$"; : > "$state/cloud-torelay.$$"
+  mkdir -p "$state"; : > "$state/cloud-level-probe.$$"; : > "$state/cloud-level-refused.$$"; : > "$state/cloud-torelay.$$"; : > "$state/cloud-level-vheld.$$"
   # The levels are published before the serial relay loop, which is slow (a fetch and a push per ref):
   # written only at its end they were missing for a whole pass (2026-10-22, R10-RELAY-SWEEP carry 2).
   while read -r sha ref; do
     [ -n "$ref" ] || continue
-    case $ref in refs/heads/probe/rev-*) ;;
+    case $ref in refs/heads/probe/rev-*|refs/heads/probe/revt-*) ;;
       *) disposed "$ref" "$sha" || { level_line probe-ref "$ref" "$sha" >> "$state/cloud-level-probe.$$"; echo "cloud_relay: OWED probe-ref $ref $sha"; }; continue;; esac
     if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then continue; fi
     if [ -f "$led.refused" ] && grep -qxF "$ref $sha" "$led.refused"; then
@@ -330,6 +331,9 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
   level_set probe-ref "$state/cloud-level-probe.$$.k"; level_set probe-refused "$state/cloud-level-refused.$$.k"
   while read -r sha ref; do
     [ -n "$ref" ] || continue
+    case $ref in refs/heads/probe/revt-*)
+      topic_verdict "$sha" "$ref" "$state/cloud-level-vheld.$$" "$state/cloud-level-refused.$$"; continue ;;
+    esac
     k=${ref#refs/heads/probe/rev-}; pr=${k%%-*}; n8=${k#*-}
     rec=$(awk -v p="$pr" -v n="$n8" '$1 == p && index($4, n) == 1 { print $2, $4 }' "$bus/dispatched" 2>/dev/null | tail -n 1)
     if [ -z "$rec" ]; then echo "$(date -u +%FT%TZ) cloud_relay: $ref $sha has no dispatch record in $bus; leaving it" >&2; continue; fi
@@ -348,6 +352,51 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
   done < "$state/cloud-torelay.$$"
   rm -f "${TMPDIR:-/tmp}/cloud_relay_ls.$$" "$state/cloud-relay-err.$$" "$state/cloud-torelay.$$"
   level_set probe-ref "$state/cloud-level-probe.$$"; level_set probe-refused "$state/cloud-level-refused.$$"
+  level_set handoff-verdict-held "$state/cloud-level-vheld.$$"
+}
+
+# A verdict returned at the handoff (Carry 0; bus.sh dispatch-handoff). Three outcomes, none a post unless the
+# review carries. HELD: no pull request has opened for the topic (bus.sh rekey writes `<topic> <head> <pr>` to
+# <bus>/rekeyed when open_pr.sh opens one), so the verdict is reported on the level every pass and never posted:
+# a topic that never opens a PR stays reported. CARRY: review_carry.py answers CARRY for handoff-head..PR-head (the
+# merge of main and the delivery row), and the verdict is relayed and confirmed as any other, at the handoff head
+# it names. STALE: the PR head holds a commit of the branch's own (a conflict resolution, a code edit), so the
+# verdict is not posted, the ref is refused with the reason (owed until disposed), and the PR is re-dispatched at
+# its head by the ordinary `bus.sh dispatch <pr> <head>`. An unreadable PR head or range retries next pass.
+topic_verdict() { # <sha> <ref> <held-level-file> <refused-level-file>
+  local sha=$1 ref=$2 vheld=$3 vref=$4 k topic n8 rec head nonce pr prhead rc why out
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} led bus=${HPO_BUS_STATE:-$HOME/.zcode/bus}
+  led=$state/cloud-relayed
+  k=${ref#refs/heads/probe/revt-}; n8=${k##*-}; topic=${k%-*}
+  rec=$(awk -v t="topic:$topic" -v n="$n8" '$1 == t && index($4, n) == 1 { print $2, $4 }' "$bus/dispatched" 2>/dev/null | tail -n 1)
+  [ -n "$rec" ] || { echo "$(date -u +%FT%TZ) cloud_relay: $ref $sha has no handoff dispatch record in $bus; leaving it" >&2; return 0; }
+  head=${rec%% *}; nonce=${rec#* }
+  pr=$(awk -v t="$topic" -v h="$head" '$1 == t && $2 == h { p = $3 } END { print p }' "$bus/rekeyed" 2>/dev/null)
+  if [ -z "$pr" ]; then  # mut:topicheld
+    echo "cloud_relay: HELD-NOPR $ref $sha: no pull request has opened for $topic, so its verdict is held, never posted"
+    level_line handoff-verdict-held "$ref" "$sha" "topic $topic: no pull request opened" >> "$vheld"
+    return 0
+  fi
+  prhead=$(if [ -n "${HPO_RELAY_PRHEAD:-}" ]; then "$HPO_RELAY_PRHEAD" "$pr"; else gh pr view "$pr" -R "${HPO_RELAY_REPO:-tvofi/heatpump_optimizer}" --json headRefOid --jq .headRefOid; fi 2>/dev/null)
+  printf '%s' "$prhead" | grep -Eq '^[0-9a-f]{40}$' || { echo "cloud_relay: #$pr's head could not be read; $ref $sha retries next pass" >&2; return 0; }
+  git fetch -q origin "$head" "$prhead" 2>/dev/null || :
+  out=$(${HPO_RELAY_CARRY:-python3 -I "$HERE/review_carry.py"} "$head" "$prhead" --verdict-only 2>&1); rc=$?
+  if [ "$rc" = 2 ]; then echo "cloud_relay: $ref $sha: cannot read $head..$prhead ($(last_line "$out")); retries next pass" >&2; return 0; fi
+  if [ "$rc" != 0 ]; then  # mut:topiccarry
+    why="verdict at handoff head ${head:0:12} is stale against #$pr's head ${prhead:0:12} (review_carry: FRESH-REVIEW); re-dispatch: bus.sh dispatch $pr $prhead <reviewer>"
+    echo "$ref $sha" >> "$led.refused"; echo "$ref $sha $why" >> "$led.refused-why"
+    level_line probe-refused "$ref" "$sha" "$why" >> "$vref"; echo "cloud_relay: HELD-STALE $ref $sha $why"
+    return 0
+  fi
+  echo "$(date -u +%FT%TZ) cloud_relay: relaying $ref $sha at #$pr (handoff head carries to ${prhead:0:12})"
+  relay "$pr" "$nonce" "$head" "$topic"; rc=$?
+  [ "$rc" = 0 ] && return 0
+  echo "$ref $sha" >> "$led.tries"
+  if [ "$rc" = 2 ] || [ "$(grep -cxF "$ref $sha" "$led.tries")" -ge "${HPO_RELAY_TRIES:-3}" ]; then
+    why="relay of the held handoff verdict failed (rc=$rc)"
+    echo "$ref $sha" >> "$led.refused"; echo "$ref $sha $why" >> "$led.refused-why"
+    level_line probe-refused "$ref" "$sha" "$why" >> "$vref"; echo "cloud_relay: REFUSED $ref $sha $why"
+  fi
 }
 
 confirm_arm() { # one pass over review/* tips the relay delivered: confirm each not yet posted, owed on the level until it is
@@ -1006,6 +1055,39 @@ EOF
   X=$t/other.log; printf 'OWED 2026-01-01T00:00:00Z probe-ref refs/heads/probe/scan-y %s\n' "$h" > "$X.level"
   chk "dispose --log FILE (the CLI) takes the ref" 0 bash "$HERE/cloud_relay.sh" dispose --log "$X" refs/heads/probe/scan-y "$h"
   chk "and drops its line from the level beside that log" 1 grep -q scan-y "$X.level"
+  # A verdict returned at the handoff (Carry 0): probe/revt-<topic>-<n8>, held until the topic's PR opens (bus.sh rekey),
+  # relayed when review_carry answers CARRY for handoff-head..PR-head, refused as stale when it does not.
+  LOG=$t/topicv.log; LV=$LOG.level; : > "$LOG"; rm -f "$LV" "$t/state/cloud-relayed" "$t/state/cloud-relayed.refused" "$t/state/cloud-relayed.refused-why" "$t/state/cloud-relayed.tries"
+  th=1111111111111111111111111111111111111111; tn=fedcba9876543210fedcba9876543210; PH=2222222222222222222222222222222222222222
+  rm -f "$t/bus/dispatched" "$t/bus/rekeyed"; printf 'topic:tp-1 %s cthread %s 2026-11-08T00:00:00Z sonnet\n' "$th" "$tn" > "$t/bus/dispatched"
+  mkt() { # mkt <topic> <head>: the reviewer's probe/revt-<topic>-<n8> ref
+    rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "$((c=c+1)) $2" > "$t/pr/ev/e"
+    printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$2" "$tn" > "$t/pr/verdict.md"
+    git -C "$t/pr" add -A; git -C "$t/pr" commit -qm "verdict $1 $2"
+    git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/probe/revt-$1-${tn:0:8}"; }
+  mkt tp-1 $th; : > "$t/pushed"
+  cstubok=$t/carry-ok.sh; printf '#!/bin/sh\necho "$@" > "%s/carry.args"\necho "review_carry: CARRY"; exit 0\n' "$t" > "$cstubok"
+  cstubno=$t/carry-no.sh; printf '#!/bin/sh\necho "review_carry: FRESH-REVIEW"; exit 1\n' > "$cstubno"
+  cstubun=$t/carry-un.sh; printf '#!/bin/sh\necho "review_carry: CANNOT DECIDE"; exit 2\n' > "$cstubun"
+  chmod +x "$cstubok" "$cstubno" "$cstubun"; phstub=$t/ph.sh; printf '#!/bin/sh\necho %s\n' "$PH" > "$phstub"; chmod +x "$phstub"
+  export HPO_RELAY_PRHEAD=$phstub HPO_RELAY_CARRY=$cstubok
+  out=$(probe_arm 2>&1)
+  chk "a handoff verdict whose topic has no pull request is reported HELD-NOPR" 0 grep -q "^cloud_relay: HELD-NOPR refs/heads/probe/revt-tp-1-${tn:0:8} " <<< "$out"
+  chk "and is owed on the level as handoff-verdict-held, every pass" 0 grep -q "^OWED .* handoff-verdict-held refs/heads/probe/revt-tp-1-${tn:0:8} " "$LV"
+  chk "and is never posted: nothing pushed, nothing relayed" 0 test ! -s "$t/pushed" -a ! -s "$t/state/cloud-relayed"
+  printf 'tp-1 %s 71\n' "$th" > "$t/bus/rekeyed"; printf '71 %s cthread %s 2026-11-08T00:00:00Z sonnet\n' "$th" "$tn" >> "$t/bus/dispatched"
+  export HPO_RELAY_CARRY=$cstubno; out=$(probe_arm 2>&1)
+  chk "a PR head that does not carry (a conflict resolution) is HELD-STALE, naming the re-dispatch" 0 grep -q "HELD-STALE refs/heads/probe/revt-tp-1-${tn:0:8} .*re-dispatch: bus.sh dispatch 71 $PH" <<< "$out"
+  chk "the stale verdict is posted nowhere: nothing pushed" 0 test ! -s "$t/pushed"
+  chk "and is refused with its reason in the level until disposed" 0 grep -q "^OWED .* probe-refused refs/heads/probe/revt-tp-1-${tn:0:8} .*FRESH-REVIEW" "$LV"
+  chk "the held level line is gone once the PR opened (a level is rewritten)" 1 grep -q "handoff-verdict-held" "$LV"
+  rm -f "$t/state/cloud-relayed.refused" "$t/state/cloud-relayed.refused-why" "$LV"; export HPO_RELAY_CARRY=$cstubun; out=$(probe_arm 2>&1)
+  chk "an undecidable range retries next pass: not relayed, not refused" 0 test ! -s "$t/pushed" -a ! -e "$t/state/cloud-relayed.refused"
+  export HPO_RELAY_CARRY=$cstubok; out=$(probe_arm 2>&1)
+  chk "null control: the same verdict over a head that carries is relayed at the handoff head, on #71" 0 test "$(cat "$t/pushed")" = 71
+  chk "and the carry predicate was asked handoff-head then PR-head" 0 grep -qx "$th $PH --verdict-only" "$t/carry.args"
+  chk "and its ref and sha are recorded as relayed" 0 grep -q "^refs/heads/probe/revt-tp-1-${tn:0:8} " "$t/state/cloud-relayed"
+  unset HPO_RELAY_PRHEAD HPO_RELAY_CARRY
   # the handoff arm (a bare origin holds PR branches, handoff/ and handoff-body/ refs)
   unset HPO_RELAY_PUSH; export HPO_RELAY_PUSH=$stub; LOG=$t/pass.log; : > "$LOG"; CONFIRM=
   prs=$t/prs.tsv; ustub=$t/ustub.sh; dstub=$t/dstub.sh; astub=$t/astub.sh; N40=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

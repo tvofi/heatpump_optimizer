@@ -27,7 +27,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
    is `blocked <sha> class-open: <seam>`, a site or a predicate's unguarded
    domain. A body whose issue states more than one seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
    returns nothing is a body whose class is one seam — say so rather than treating the absence as compliance.
-7. Confirm the head SHA in the PR body is the head you measured, or `--carry`s to it.
+7. Confirm the head SHA in the PR body is the head you measured, or `--carry`s to it. A review dispatched at the handoff measures the handoff tip; the relay posts it only on `review_carry.py` CARRY to the PR head (`standing-dispatch.md`).
 8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
    if you had to build your own definition to check it, write that in the verdict.

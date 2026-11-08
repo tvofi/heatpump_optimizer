@@ -144,4 +144,8 @@ $({ grep -E 'REFUSE' $D/p2.log || tail -n 20 $D/p2.log; } 2>/dev/null || :)"
 fi
 PR_PUSHED=$H
 PR_ATTEMPT=opened,PR=$N
+# DISPATCH AT THE HANDOFF (Carry 0): a reviewer already fired at handoff/$T holds a `topic:$T` record in
+# the worker registry; it becomes this pull request's, so its verdict can bind to #$N. rc 3 is "no
+# handoff dispatch", the ordinary case, and says nothing; a failure is named, never fatal (the PR is open).
+bash "$SEAT/bus.sh" rekey "$T" "$N" >&2 || [ $? = 3 ] || echo "$PR_NAME: bus.sh rekey $T $N failed; a reviewer dispatched at the handoff cannot post until it is re-keyed" >&2  # mut:rekey
 echo "PR=$N HEAD=$H AUTHOR=$(git log -1 --format='%an')"

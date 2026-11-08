@@ -36,3 +36,6 @@
   released instead of kept as dirty.
   `--self-test` runs `delivery_row.sh`'s, then
   `pr_args.sh`'s.
+  Once #N exists it runs `bus.sh rekey <topic> <N>`: a reviewer dispatched at the handoff
+  (`bus.sh dispatch-handoff`) becomes the PR's. rc 3 (none) is silent; another failure is
+  named and never fatal.
