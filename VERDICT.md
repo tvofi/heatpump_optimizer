@@ -1,35 +1,48 @@
-Fix review: blocked b8fba2c8d5ab03067539c7e8d06e369f85162c31 countermeasure-unsound: the built detector measures the shell's cwd tree, not the checkout it is given; the RCA's own Reproduce recipe returns rc 1 for the fix tree, and a defective v7.1.5 reads rc 0 from a fixed cwd
+Fix review: merge 1623c5ade60f6b9023a7d613631b998f5cc39c4d
 
-bus-nonce: 02fea4f6344a76b34285b6cbdbd280ad
+bus-nonce: c4d9cea39f7adb37ed29e097dd3dc95d
 
-Round 1 of the fix review for PR #3316 (R10-RCA-COP-UNMEASURED). Measured at head `b8fba2c8d5ab03067539c7e8d06e369f85162c31`, merge base `2a3c05644d85b7ee5c2c314fde5aca950e4aba91`. `refs/pull/3316/head` was re-read at 11:00Z and has not moved.
+## Summary
 
-## Block
-
-- The RCA's only built countermeasure, `dev/audit/harnesses/r10_rca_cop_unmeasured.py --check <checkout>`, does not measure `<checkout>`. It prepends `<root>/tests/hastub`, `<root>/custom_components` and `<root>/tests` to `sys.path`, then imports `harness`. `tests/harness.py:22-23` (at this head and at every tree measured) then runs `sys.path.insert(0, "tests")` and `sys.path.insert(0, "custom_components")`. Those cwd-relative entries go ahead of the root's, so `heatpump_optimizer` loads from whatever checkout the shell is in. Shown in `ev/cwd_dependence.txt`:
-  - The RCA's `## Reproduce` recipe, run verbatim from a repository checkout at this head (`python3 -I dev/audit/harnesses/r10_rca_cop_unmeasured.py --check <fix tree 2d010b091>`), prints `RESULT null=graded tuya=graded metered=graded` with rc 1. The document says `# rc 0`.
-  - Run from inside the fix tree with the root set to v7.1.5 (`516ad1b6b`), it prints `null=withheld tuya=withheld metered=graded` with rc 0. That is a defective release certified as fixed: a false clean from the detector.
-  - My first measurement pass, run from the repository root, printed rc 1 for every tree including the fix head (`ev/harness_runs.txt`). That is how I found this.
-  - The module docstring says it "builds the real coordinator ... from the checkout named on the command line". That is not true unless the cwd is neutral.
-  - The fix is small and has to go in the PR: `os.chdir(root)` before the imports (or importing `harness` before the inserts and then re-putting the root first), plus a control that runs the detector from a cwd holding a different tree and shows the verdict follows `<checkout>`. The documented recipe and every rc in section 5 should then be re-taken under it.
-  Carry: R10-RCA-COP-UNMEASURED
-
-## Findings
-
-- Follow-up: the same cwd capture reaches every harness that takes a root and imports `tests/harness.py`. Eleven files under `dev/audit/harnesses/` pair `from harness import` with a root-relative `sys.path` insert (`ev/class_sites.txt`, a pattern grep, not a per-file trace). Each one silently measures the cwd's tree when run from a checkout. The single sound repair is in `tests/harness.py`: anchor its two inserts to `os.path.dirname(__file__)` rather than the cwd. This seat's PR may land that repair with its own control, or record why not. Either way, the RCA's process section should name it, because a detector that reads the wrong tree is the same "never traced its inputs" unit this RCA indicts.
-  Carry: R10-RCA-COP-UNMEASURED
-- Follow-up: CI is not green at this head, independent of the block. The required `gate` is `failure` on every entry. The only code run (`CI code pr=3316`, run 42463804677, attempt 44) concluded `cancelled`, with `tests / fast (3.14)`, `tests / closures`, `coverage`, `coverage-ratchet`, `ci-ratchet`, `graders-head-copy`, `lane-proofs`, `claims-autofix`, `closures-autofix` and `governance / instrument-self-tests` cancelled. The code gate printed `FAIL tests / fast (3.14): cancelled (this run)`. The latest edit gate (128707623015) exited 3 on `RATE-LIMITED reset_epoch=1794135167`. So no run has shown this head's suite green. The body's `## Red checks` names the cancellations truthfully, but it was written before the 10:25Z, 10:45Z and 10:47Z gate entries and does not mention the RATE-LIMITED one. The next head needs a code run that concludes.
-  Carry: R10-RCA-COP-UNMEASURED
+Round 2 of the fix review for PR #3316 (R10-RCA-COP-UNMEASURED), measured at head `1623c5ade60f6b9023a7d613631b998f5cc39c4d` (tree identical to `1b684dfbf`: `git diff 1b684dfbf 1623c5ade60f6b9023a7d613631b998f5cc39c4d` is empty), merge base `8a4cf2618`. This is an RCA seat with no production code. The named cause, the process state (c), the cost test and the countermeasure (built detector, proposed D1 step, recorded refusal) check out against the repository. Round 1's `countermeasure-unsound` block (the detector measured the cwd's tree) is repaired: the verdict now follows the target from every cwd I tried.
 
 ## Evidence
 
-- Harness, neutral cwd (`/tmp`), the PR head's copy of the detector: v7.1.5 rc 1, merge base `2a3c05644` rc 1, origin/main `4fe7d5934` rc 1, PR head rc 1, fix head `2d010b091` rc 0 (`null=withheld tuya=withheld metered=graded`). The null band `{(2, True): [2.5533587538536424, 1]}` with `equal = True`, and the tuya band `[3.1833333333333336, 3]`, reproduce the RCA's table exactly. `ev/cwd_dependence.txt`.
-- Controls, neutral cwd, on the fix tree `2d010b091` (`ev/controls.txt`): skip (`if measured:` changed to `if False:`) gives all withheld, rc 2. Door N (the no-heat arm of `cop_sample` returns `True`) gives `null=graded tuya=withheld`, rc 1. Door T (`_estimated` returns `False` first) gives `null=withheld tuya=graded`, rc 1. All three match the body.
-- Hand mutants of the detector that I re-ran myself: M-a (the verdict changed to `return 0`) gives rc 0 on v7.1.5, killed. M-e (`null` dropped from the verdict) gives rc 0 on door N, killed. I did not re-run M-b, M-c, M-d or M-f.
-- Figures re-derived at the merge base (`ev/figures.txt`): the name census gives 23. `git tag --contains a63b576cd -l 'v*'` gives 135 today, which is 134 without the later `v7.1.6`, so it matches the RCA as of v7.1.5. `a63b576cd` is dated 2026-08-26 (PR #50, v4.0.0). `sweep-P5.md:37` and `D1.md:10-11` quote verbatim. `DEFAULT_CAPACITY_CURVE_ENABLED: Final = False`. `df7db8215` is dated 2026-08-22.
-- Not verified: the cost-test inputs (#3297's 12.0 h, 12 commits, 39 files, +700/-146, the 0.1-per-round estimate). The RCA itself labels the 2 to 3 min per name and the 1 to 3 h seat cost as estimates.
-- Process state (c): checked against the tree. D1 names "fabricated data as measured" with no method step that reaches it. The P5 sweep cleared `_cop_health_cusum` by its container. On the history, `a63b576cd` added the watch onto the inferred sample. I did not open the claim about #2262's study text.
-- Closure classification: the new harness is added under `inert_reads` / `tests/harness_headers.py` in `tests/closures.json`. No `*_budgets.json`, no claim file, no `VERSION`, no manifest and no notes heading appear in the three-dot diff. Nothing is under `custom_components/`.
-- `git merge-tree --write-tree origin/main b8fba2c8d` exits 0, so there is no conflict.
-- `merge_train.py classify b8fba2c8d... --pr 3316` was run at about 10:55Z and 11:00Z. Both runs gave `REFUSE ci: the check runs at b8fba2c8d5ab could not be read` with rc 2, so the classifier's verdict is unreadable. I read the check runs directly through the commit's `check-runs` API across all 107 entries (`ev/ci.txt`, and the gate logs quoted above).
-- I measured with the PR's own harness, because the finder named none: the packet says `Finder's harness: none named`. This is an RCA seat, and the harness is the product under review.
+- RESULT cwd-matrix: 12 of 12 cells match the body. Cwd is each of v7.1.5 `516ad1b6b`, the #3297 head `2d010b091`, current origin/main `996ded2a6` and /tmp; the target is each of fix, v7.1.5 and main. Fix gives `null=withheld tuya=withheld metered=graded` rc 0. v7.1.5 and main give `null=graded tuya=graded metered=graded` rc 1. No cell printed REFUSED (ev/matrix.txt). Main has moved since the body's `bb7dfb9bd`; it still reads rc 1, because #3297 is not on main.
+- RESULT controls, which I built myself from `2d010b091` with the body's edits (ev/tree-*.diff), cwd v7.1.5: the skip tree (`if measured:` changed to `if False:`) gives `withheld x3` rc 2. Door N gives `null=graded tuya=withheld` rc 1. Door T gives `null=withheld tuya=graded` rc 1 (ev/controls.txt).
+- RESULT detector mutants, scored with the body's command (fix rc 0 from cwd v7.1.5; v7.1.5 rc 1 from cwd fix; skip rc 2; doors rc 1). The unmutated detector passes. M-a to M-h are all killed, 8 of 8, and each fails on the arm the body names (ev/mutants.txt, ev/mutants/). One extra mutant of my own, M-i, survives; see Findings.
+- Mutation proof (step 1): the diff adds no production line (`git diff --stat` shows only dev/, delivery and one closures.json entry). The diff-mutant step draws nothing, as the body says, because `mutant_run.py` skips `dev/`. The hand proof above stands in for it.
+- Figures re-derived (ev/figures.txt, ev/figures2.txt):
+  - 134 tags from `git tag --contains a63b576cd -l 'v*' --no-contains v7.1.6`, running v4.0.0 (2026-08-26) to v7.1.5 (2026-11-07), which is 73 days.
+  - v2.8.0, the first tag containing `df7db8215`, is dated 2026-08-22: 78 days to 2026-11-08.
+  - The name census at the merge base is 23.
+  - `df7db8215` holds `observed_cop = modelled_cop * commanded / self._measured_power` and `ATTR_COP_MEASURED = "measured_cop"`.
+  - `a63b576cd` is #50, v4.0.0, with "inherits every filter for free".
+  - The citation `sweep-P5.md:37` and the D1 lines 10-11 quotes are verbatim at the merge base.
+  - fold_ledger: `50 classes, 755 instances, 121 ..., 138 rca entries`, 0 violations.
+  - closure select: `MODE: SCOPED -- 1 script(s) run, 32 scoped out`.
+  - structure.py: `STRUCTURE RATCHET PASSED`.
+- Not re-derived: that PR #11 merged "four minutes after opening, with no review"; #3297's 12.0 h, 12 commits, 39 files and +700/−146; the 2 to 3 min per name estimate (labelled an estimate in the body). I did not read them through the API.
+- Untouched files: no `*_budgets.json`, `VERSION`, manifest, `RELEASE_NOTES.md` or `tests/golden` change in the three-dot diff. No claim files move, so step 4 has nothing to compare. The roles diff from the merge base to origin/main is empty.
+- Closure classification: the new harness is in `tests/closures.json`. The code run's `tests / closures` passed and its `tests / fast` passed (entities included).
+- Merge with main: `git merge-tree --write-tree origin/main 1623c5ade60f6b9023a7d613631b998f5cc39c4d` exits 0, with `LEDGER-MERGE: resolved` for `tests/closures.json` and `bugclasses.json`.
+- Forward-carry (step 10): the roster at `a62e0a80a` holds the cwd-capture carry on R10-RCA-COP-UNMEASURED. The group goes `carries-open` (roster_edit HOLD_STAGE) rather than `done` while the carry is pending, so it stays a live destination. The docs carry goes to #3139. carry_audit at the head: 2 routed, 0 unrouted.
+- CI at this head:
+  - The code run 42511678981 concluded success. Its `gate` (128833446999, 19:16:48Z) and `pr-contract / pr-contract` (128833300805) both succeeded.
+  - The only reds are the two edit-run gates, 128826363189 and 128826551028. Each log reads `FAIL run(s) [42511678981] at this head are still being judged; their gate decides`. That is the deferral, and the run it deferred to is green.
+  - `merge_train.py classify` still prints `RED 1623c5ade60f6b9023a7d613631b998f5cc39c4d pending: none red: gate` rc 1 at 19:22Z (ev/classify2.txt). It takes the worst gate suite, and no gate-sweep has run since 12:22Z to re-judge the deferred reds.
+  - Under the brief's GATE DEFERRAL rule I judge the head green. The train needs those edit gates re-run before GitHub's rollup reads green.
+- Red checks (step 11): the body says no check had concluded when it was written. Every red since then is that deferral, so no gate red owes a root-cause answer.
+
+## Findings
+
+- Minor: the body's `## Head` still carries a stale line, "The head is `1b684dfbf...`", under the line naming `1623c5ade60f6b9023a7d613631b998f5cc39c4d`. The two trees are byte-identical, so every figure holds at this head.
+  Carry: dismissed: wording only, tree identical
+- Residual: my own mutant M-i survives the scored command: the provenance refusal's `return 3` turned to `pass`, with `os.chdir(root)` left in. The refusal cannot be reached while the change of directory runs before the imports, at every tree I measured. M-g and M-h already show the refusal firing and the capture it guards.
+  Carry: dismissed: equivalent mutant behind os.chdir
+- Follow-up: the cwd capture is wider than this detector. The body's enumerator returns 24 harnesses under `dev/audit/harnesses/` that import `tests/harness.py` and set sys.path with no os.chdir (ev/cwd_enum.txt). At least 8 of them take a root or tree argument, so they may grade the shell's tree.
+  Carry: R10-RCA-COP-UNMEASURED
+
+## Friction
+
+none

@@ -1,25 +1,3 @@
-### skip control: if measured: -> if False:
- custom_components/heatpump_optimizer/coordinator.py | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-RESULT null=withheld tuya=withheld metered=withheld
-rc=2
-### door N: cop_sample no-heat arm
-14:1320-            return None if self.measured_heat and not self.heat_counter else False
-15:1321-        return self.cop_measured(dhw)
-26:1332-        return (
-### door N: no-heat arm returns True
--            return None if self.measured_heat and not self.heat_counter else False
-+            return True
-RESULT null=graded tuya=withheld metered=graded
-rc=1
-### door T: _estimated returns False first
-+    return False
-RESULT null=withheld tuya=graded metered=graded
-rc=1
-### harness mutant M-a: final verdict return 0 (scored over fix=0,v715=1,skip=2,doorN=1,doorT=1) -- checked on v7.1.5 only
-RESULT null=graded tuya=graded metered=graded
-rc=0 (killed: expected 1)
-### harness mutant M-e: drop null from verdict, run on door T tree... skipped; door N:
-RESULT null=graded tuya=withheld metered=graded
-rc=0 (killed: expected 1)
-0
+cwd=v715 target=skip rc=2 RESULT null=withheld tuya=withheld metered=withheld
+cwd=v715 target=doorN rc=1 RESULT null=graded tuya=withheld metered=graded
+cwd=v715 target=doorT rc=1 RESULT null=withheld tuya=graded metered=graded

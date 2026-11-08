@@ -1,0 +1,12 @@
+cwd=v715 target=fix rc=0 RESULT null=withheld tuya=withheld metered=graded
+cwd=v715 target=v715 rc=1 RESULT null=graded tuya=graded metered=graded
+cwd=v715 target=main rc=1 RESULT null=graded tuya=graded metered=graded
+cwd=fix target=fix rc=0 RESULT null=withheld tuya=withheld metered=graded
+cwd=fix target=v715 rc=1 RESULT null=graded tuya=graded metered=graded
+cwd=fix target=main rc=1 RESULT null=graded tuya=graded metered=graded
+cwd=main target=fix rc=0 RESULT null=withheld tuya=withheld metered=graded
+cwd=main target=v715 rc=1 RESULT null=graded tuya=graded metered=graded
+cwd=main target=main rc=1 RESULT null=graded tuya=graded metered=graded
+cwd=tmp target=fix rc=0 RESULT null=withheld tuya=withheld metered=graded
+cwd=tmp target=v715 rc=1 RESULT null=graded tuya=graded metered=graded
+cwd=tmp target=main rc=1 RESULT null=graded tuya=graded metered=graded
