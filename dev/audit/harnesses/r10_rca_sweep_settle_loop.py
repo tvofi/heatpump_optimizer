@@ -33,8 +33,21 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[2]
+ROOT = repo_root(__file__)
 FIXTURE = HERE / "r10_rca_sweep_settle_loop.json"
 GITHUB_CEILING = 50          # GitHub refuses a run's 51st attempt
 SWEEP_DELAY_S = 12           # gate-sweep.yml's first read after a CI completion (#3282 replay: +11 s)
