@@ -1,6 +1,6 @@
 {
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state GUARD_OFF 12569471",
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:_PlanSensorBase.native_value GUARD_OFF 0d8eaeb4",
   "killed_by": "tests/entities.py",
-  "old": "        if buffer_reading.ok:",
+  "old": "        if not plan:",
   "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
 }
