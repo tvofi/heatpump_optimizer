@@ -1,0 +1,50 @@
+== regression
+#3232	2026-11-06T00:54:59Z	e80a319c2	349	select.select refuses a worker pipe fd >= 1024 (FD_SETSIZE) that main serves, and tests/entities.py fails the N-log-flood barrier on the new _await_optimize WARNING
+ENTRIES 1 PRS 1
+== wait-cycle
+#3246	2026-11-06T11:40:38Z	c0c60886e	88	deferring edit gate now waits 720 s on a later edit run whose prelude waits on it
+ENTRIES 1 PRS 1
+== owner-words
+#3247	2026-11-06T12:32:13Z	c42b84004	99	D0.md owner text reworded across four sections, not cut
+#3247	2026-11-06T14:10:56Z	c42b84004	1	D0.md owner text reworded across four sections, not cut
+ENTRIES 2 PRS 1
+== instrument-broken
+#3250	2026-11-06T13:56:25Z	99cf3c253	251	r10_roster_ops_mutants.py self-test fails at the head, plant L4's anchor (CARRY_CLOSED = DONE_STAGES + ("absorbed",)) occurs 0 times
+ENTRIES 1 PRS 1
+== red-checks
+#3252	2026-11-07T11:06:54Z	b9cc5e32e	396	the body's Red checks names neither concluded red of this head and keeps the carried gate deferral round 1 blocked
+#3252	2026-11-07T17:42:38Z	313479801	119	the required gate concluded failure at this head and the body's Red checks reads b9cc5e32's runs, naming none of this head's concluded reds
+ENTRIES 2 PRS 1
+== selftest-red
+#3253	2026-11-06T14:40:27Z	21be201ce	279	roster_queue.py --self-test crashes under python3 -I (ModuleNotFoundError roster_edit at roster_queue.py:236), red in governance / instrument-self-tests and unnamed in ## Red checks; deferred carries have no Forward-car
+ENTRIES 1 PRS 1
+== policy-unapproved
+#3255	2026-11-06T18:08:58Z	f676a8f55	284	ci-autofix.md deletes two policy statements outside the approved #2429 text, undisclosed; roster issue #3156 undisposed; derived-family filing path and #2942 spellings unpinned
+#3255	2026-11-06T22:52:41Z	a8d19cf19	88	the repair cut the approved #2429 bound (by tests/mutation's conclusion, the pin owed by the handoff) though the approved text fits the cap, and the body still calls it approved and bounded
+#3255	2026-11-07T00:20:57Z	a8d19cf19	117	the dispatched head is the round-3 blocked head unchanged, so the cut #2429 bound survives; the round-3 repair sits on handoff-wip/r10-friction-records and never reached the pull request
+ENTRIES 3 PRS 1
+== citation-false
+#3261	2026-11-06T22:13:57Z	eb7102637	88	the RCA cites round 9 leads.json's ThermalModel._stability_substeps as an unbuilt D1-s4 lead, but the record says raised_by D1-s2, "closed by D1-s2-02"
+ENTRIES 1 PRS 1
+== defect
+#3264	2026-11-07T04:01:04Z	0ce1f09bd	852	--since-tag credits no multi-PR group's part-branch merges (4 of 12 production groups missed over v7.1.0..v7.1.1), and ## Red checks names no concluded red of this head
+ENTRIES 1 PRS 1
+== settle-unjudged
+#3287	2026-11-07T15:33:48Z	520538ccf	115	a higher-id gate that deferred to a lagging lower run whose green gate does not cover the newest event is never re-run
+ENTRIES 1 PRS 1
+== claim-refuted
+#3295	2026-11-07T18:28:17Z	e30942461	572	#3219 is filed under group A (no check failed on the diff) but tests / mutation concluded failure on an unpinned site added by its diff 14 min before the blocked verdict
+ENTRIES 1 PRS 1
+== carry-unanswered
+#3242	2026-11-06T08:17:45Z	40019c52e	322	carry 2 is not on main (infra_rerun at merge_train.py:2996 reads job logs without --allow-escape-sequences, with no shared reader), and owner-stated carries 14, 15 and 18 plus 3, 6-9, 16 and 17 are left unbuilt in the g
+ENTRIES 1 PRS 1
+== ci-red
+#3242	2026-11-06T13:40:00Z	e836876f3	328	tests / fast (3.14) is red at this head because tests/harness_headers.py refuses the hand-written depth root this diff adds at dev/audit/harnesses/r10_ci_layout_p1/critpath_fetch.sh:12 (base 112/112 pass, head 1 of 112 
+#3244	2026-11-06T23:24:31Z	a25821255	111	required gate concluded failure at this head, three edit-run gates deferring to one another
+#3244	2026-11-07T01:16:00Z	8bc540e05	442	CodeQL code-scanning alert 50 py/jinja2/autoescape-false on the new render harness, unanswered in Red checks, so pr-contract and the code gate are red
+#3265	2026-11-07T05:06:16Z	c7c5cef52	690	required gate is red at the head by mutual edit-run deferral (gate jobs 128296193620 and 128296198588, 04:08Z) and the body's Red checks predates both and reports the gate green; the code is otherwise approvable
+#3273	2026-11-07T04:19:50Z	a46e4d02f	521	tests/mutation refused 14 added unpinned sites and code run 42329898240 was cancelled before mutation-autofix pinned them
+ENTRIES 5 PRS 4
+== root-cause-detectable
+#3234	2026-11-06T13:38:04Z	4512d770d	167	governance / instrument-self-tests is red on this PR's own new file tests/replay_cost_draws.tsv (in no audit universe, not excluded), ## Red checks does not name it; tools/audit/check_scopes.py --repo . shows it in 1.2 
+ENTRIES 1 PRS 1
