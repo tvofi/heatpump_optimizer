@@ -1,61 +1,54 @@
 # Review packet #3294
-head: 131b1358e408954ed0076904bb9a811e5e80fac8
-base: 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76
+head: 7359a63866d9f66af019ff543f8d6864268d71b3
+base: 5bc009bc82962df5d239cbacc2e570dffd9a9cf9
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=128467241362 success
-arch-score / arch-score id=128515476918 success
-arm id=128466293384 skipped
-budget-raise-gate / budget-raise-gate id=128515481890 success
-cancel-superseded id=128515480489 success
-codeql id=128515454563 skipped
-codeql / Analyze (actions) id=128515448632 success
-codeql / Analyze (javascript-typescript) id=128515490221 success
-codeql / Analyze (python) id=128515448022 success
-gate id=128515453754 success
-governance id=128515496923 skipped
-governance / delivery-status id=128515448155 success
-governance / delivery-status-publish id=128515478340 skipped
-governance / env-matrix id=128515476794 success
-governance / instrument-self-tests id=128515448156 success
-governance / policy-docs id=128515489982 success
-governance / record id=128515489451 skipped
-governance / wave-script id=128515448108 success
-hassfest id=128515483417 skipped
-hassfest / hassfest id=128515448047 success
-kernel-points id=128515486532 skipped
-pr-contract id=128515454871 skipped
-pr-contract / pr-contract id=128515449967 failure
-prelude id=128515485003 success
-refresh id=128515454310 success
-tests id=128515454531 skipped
-tests / arch-instrument id=128515448930 success
-tests / briefs id=128515484880 success
-tests / browser id=128515449024 success
-tests / ci-ratchet id=128515449606 skipped
-tests / claims-autofix id=128515449151 skipped
-tests / closure-scope id=128515472716 success
-tests / closures id=128515449043 success
-tests / closures-autofix id=128515449255 skipped
-tests / coverage id=128515448807 success
-tests / coverage-ratchet id=128515449284 success
-tests / fast (3.14) id=128515449090 success
-tests / graders-head-copy id=128515449289 success
-tests / lane-proofs id=128515449929 success
-tests / mutation id=128515448104 success
-tests / mutation-autofix id=128515449414 skipped
-tests / mutation-pins id=128515449425 skipped
-tests / nightly-ha id=128515448662 skipped
-tests / nightly-status id=128515447702 failure
-tests / replay id=128515449300 skipped
-tests / typing id=128515449097 success
-validate id=128515454418 skipped
-validate / validate-hacs id=128515480790 success
+CodeQL id=128642513802 neutral
+arch-score / arch-score id=128642345616 success
+arm id=128641426755 skipped
+budget-raise-gate / budget-raise-gate id=128642345606 success
+cancel-superseded id=128641431902 success
+codeql id=128642346429 skipped
+codeql / Analyze (actions) id=128641851117 success
+codeql / Analyze (javascript-typescript) id=128641851086 success
+codeql / Analyze (python) id=128641851021 in_progress
+gate id=128642835260 failure
+governance id=128642346871 skipped
+governance / delivery-status id=128641851060 success
+governance / delivery-status-publish id=128641852132 skipped
+governance / env-matrix id=128641851079 success
+governance / instrument-self-tests id=128641851069 in_progress
+governance / policy-docs id=128641851025 success
+governance / record id=128641852201 skipped
+governance / wave-script id=128641851112 success
+hassfest id=128642346708 skipped
+hassfest / hassfest id=128641850953 success
+kernel-points id=128642346614 skipped
+pr-contract id=128642835720 skipped
+prelude id=128641431737 success
+refresh id=128641431849 success
+tests id=128642346519 skipped
+tests / arch-instrument id=128642673420 success
+tests / briefs id=128641851022 success
+tests / browser id=128642673428 in_progress
+tests / closure-scope id=128641851107 success
+tests / closures id=128642673557 in_progress
+tests / coverage id=128642673347 in_progress
+tests / fast (3.14) id=128642673442 in_progress
+tests / mutation id=128641851042 success
+tests / mutation-autofix id=128642740300 skipped
+tests / mutation-pins id=128642739848 skipped
+tests / nightly-ha id=128642674574 skipped
+tests / nightly-status id=128641851006 success
+tests / replay id=128642674583 skipped
+tests / typing id=128642673386 success
+validate id=128642346481 skipped
+validate / validate-hacs id=128641850944 success
 
 ## Refusals
-none
+required-red: required context `gate` concluded failure at 7359a63866d9f66af019ff543f8d6864268d71b3
 
 ## Advisories
 none
@@ -64,29 +57,50 @@ none
 NOTE body item 6a07172e: R10-FLY-STANDING-CONTRACTS
 NOTE body item 8d488756: R10-FLY-STANDING-CONTRACTS
 NOTE body item 88565884: R10-FLY-STANDING-CONTRACTS
+NOTE body item ffe275c6: R10-FLY-STANDING-CONTRACTS
+NOTE body item e3821077: R10-FLY-STANDING-CONTRACTS
+NOTE body item f29a186f: R10-FLY-STANDING-CONTRACTS
 NOTE body item 28185cf3: R10-FLY-STANDING-CONTRACTS
 NOTE body item 8a9d989c: R10-FLY-STANDING-CONTRACTS
-CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
+CARRY-AUDIT: 8 finding item(s): 8 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         python3 -I tools/audit/seat/hooks_setup.py --self-test
-             `tools/audit/seat/hooks_setup.py` is in the tree at this head
-  ok         bash .claude/hooks/pre-bash.sh --self-test
+ok         bash .claude/hooks/pre-bash.sh --self-test
              `.claude/hooks/pre-bash.sh` is in the tree at this head
+  ok         python3 -I tools/audit/seat/hooks_setup.py --self-test
+             `tools/audit/seat/hooks_setup.py` is in the tree at this head
+  ok         python3 -I tools/audit/seat/r10_bash_kill_hook_drive.py
+             `tools/audit/seat/r10_bash_kill_hook_drive.py` is in the tree at this head
+  unverified git
+             `git` with no subcommand word to resolve
+  unverified git -C <orch> pull
+             `git pull` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified git pull
+             `git pull` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified bash -c
+             bash runs an inline script rather than a file
+  unverified sh -c
+             sh runs an inline script rather than a file
+  unverified git -C <orch> status
+             `git status` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         python3 -I tools/audit/seat/mutant_run.py --diff <merge base>...HEAD --cmd "python3 -I tools/audit/seat/hooks_setup.py --self-test --no-mutants" --max-mutants 0 --report-only
+             `tools/audit/seat/mutant_run.py` is in the tree at this head
+  ok         python3 tools/audit/archscore/score.py --diff 131b1358e408954ed0076904bb9a811e5e80fac8 HEAD
+             `tools/audit/archscore/score.py` is in the tree at this head
   ok         python3 -I tools/audit/seat/offline_spy.py tools/audit/seat/hooks_setup.py
              `tools/audit/seat/offline_spy.py` is in the tree at this head
   ok         python3 -I tools/audit/seat/selftest_wiring.py --check
              `tools/audit/seat/selftest_wiring.py` is in the tree at this head
-  ok         python3 tests/closure.py select
-             `tests/closure.py` is in the tree at this head
   ok         python3 -I tools/audit/seat/tmp_paths.py --check
              `tools/audit/seat/tmp_paths.py` is in the tree at this head
+  ok         python3 -I tools/audit/seat/ref_privacy.py --check
+             `tools/audit/seat/ref_privacy.py` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
   ok         tools/pr/prepr.sh
              `tools/pr/prepr.sh` is in the tree at this head
-  ok         gh api repos/tvofi/heatpump_optimizer/pulls/<n>/files
-             gh api: every long flag accepted
 
-FIGURES: 8 resolved, 0 not verified, 0 refused
+FIGURES: 11 resolved, 6 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -99,10 +113,134 @@ none
 
 ## Three-dot diff
 diff --git a/.claude/hooks/pre-bash.sh b/.claude/hooks/pre-bash.sh
-index 1ef88954f..89d0b20d0 100755
+index 1ef88954f..bdf61786d 100755
 --- a/.claude/hooks/pre-bash.sh
 +++ b/.claude/hooks/pre-bash.sh
-@@ -160,17 +160,86 @@ SELF_TEST=0
+@@ -14,7 +14,8 @@
+ # `|` `&` `(` `$(` a backtick, a newline, and past `sudo`, `xargs`, `env` and
+ # the like. The same words inside a quoted argument (`echo "never pkill"`),
+ # a comment, a heredoc body or an argument of `grep` do not run and are not read.
+-# `bash -c '...'` and `eval` bodies are read, because they do run.
++# `bash -c '...'` and `eval` bodies are read, because they do run. Both arms
++# read the commands this one parser finds (HPO_PRE_BASH_PARSE_PY).
+ #
+ # KNOWN GAPS, by design: a name held in a variable (`$K x`), a wrapper option
+ # that takes a value (`sudo -u root pkill x`) and a pid list built on an earlier
+@@ -31,7 +32,9 @@ set -uo pipefail
+ SELF_TEST=0
+ [ "${1:-}" = "--self-test" ] && SELF_TEST=1
+ 
+-# HPO_PRE_BASH_PY
++# HPO_PRE_BASH_PARSE_PY
++# # THE ONE COMMAND-POSITION PARSER, shared by both arms: `decide` prepends this
++# # block to each arm's block, so neither arm splits a command on its own.
+ # import json, re, sys
+ # try:
+ #     payload = json.loads(sys.argv[1])
+@@ -59,36 +62,43 @@ SELF_TEST=0
+ #         "nice", "stdbuf", "setsid", "timeout", "builtin", "!"}
+ # SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
+ # SEP = " \t\n;&|()"
+-# cmds = []                                # (statement id, command word)
++# cmds = []                                # (statement id, command word, argv), in the order run
+ # stmt = 0
+ #
+ # def parse(s, i, close):
+-#     """Scan s from i; record every word at command position. Returns the index past `close`."""
++#     """Scan s from i; record every simple command at command position. Returns the index past `close`."""
+ #     global stmt
+ #     n, at, prev, shellc = len(s), True, None, False
++#     argv, body = None, None              # this scan's open command; the words of an eval
++#     def end():                           # a separator closes the open command
++#         nonlocal argv, body
++#         if body:
++#             parse(" ".join(body), 0, None)   # the body of eval runs
++#         argv = body = None
+ #     while i < n:
+ #         c = s[i]
+ #         if close == ")" and c == ")":
+-#             return i + 1
++#             end(); return i + 1
+ #         if close == "`" and c == "`":
+-#             return i + 1
++#             end(); return i + 1
+ #         if c in " \t":
+ #             i += 1; continue
+ #         if c in ";\n":
+-#             stmt += 1; at = True; i += 1; continue
++#             end(); stmt += 1; at = True; i += 1; continue
+ #         if c == "&":
+-#             i += 2 if s[i:i+2] == "&&" else 1
++#             end(); i += 2 if s[i:i+2] == "&&" else 1
+ #             stmt += 1; at = True; continue
+ #         if c == "|":
++#             end()
+ #             if s[i:i+2] == "||":
+ #                 i += 2; stmt += 1
+ #             else:
+ #                 i += 1
+ #             at = True; continue
+ #         if c == "(":
+-#             at = True; i += 1; continue
++#             end(); at = True; i += 1; continue
+ #         if c == ")":
+-#             at = True; i += 1; continue
++#             end(); at = True; i += 1; continue
+ #         if c == "#":
+ #             while i < n and s[i] != "\n":
+ #                 i += 1
+@@ -126,9 +136,9 @@ SELF_TEST=0
+ #                 i = parse(s, i + 1, "`"); quoted_sub = True
+ #             else:
+ #                 w += ch; i += 1
+-#         if shellc or prev == "eval":
++#         if shellc:
+ #             shellc = False
+-#             parse(w, 0, None)            # the body of bash -c / eval runs
++#             parse(w, 0, None)            # the body of bash -c runs
+ #         if at:
+ #             base = w.rsplit("/", 1)[-1]
+ #             if re.fullmatch(r"\w+=.*", w) or base in WRAP or (w.startswith("-") and prev in WRAP):
+@@ -136,20 +146,32 @@ SELF_TEST=0
+ #             else:
+ #                 at = False
+ #                 if base:
+-#                     cmds.append((stmt, base))
+-#         elif w == "-c" and prev in SHELLS:
+-#             shellc = True
++#                     argv = [w]
++#                     cmds.append((stmt, base, argv))
++#                     if base == "eval":
++#                         body = []
++#         else:
++#             if w == "-c" and prev in SHELLS:
++#                 shellc = True
++#             if w and argv is not None:
++#                 argv.append(w)
++#             if w and body is not None:
++#                 body.append(w)
+ #         if at or w:
+ #             prev = w.rsplit("/", 1)[-1]
++#     end()
+ #     return i
+ #
+ # try:
+ #     parse(text, 0, None)
+ # except Exception:
+ #     sys.exit(0)                          # anything unforeseen -- fail open
+-#
+-# feeds = {s for s, b in cmds if b == "pgrep"}
+-# for s, b in cmds:
++# HPO_PRE_BASH_PARSE_PY_END
++
++# HPO_PRE_BASH_PY
++# # First arm: a kill by name, over the parse block's `cmds`.
++# feeds = {s for s, b, _ in cmds if b == "pgrep"}
++# for s, b, _ in cmds:
+ #     if b in ("pkill", "killall") or (b == "kill" and s in feeds):
+ #         what = "kill fed by pgrep" if b == "kill" else b
+ #         print(f"`{what}` kills processes by name or pattern, and on a shared host "
+@@ -160,17 +182,84 @@ SELF_TEST=0
  #         sys.exit(1)
  # HPO_PRE_BASH_PY_END
  
@@ -114,11 +252,14 @@ index 1ef88954f..89d0b20d0 100755
 -    /^# HPO_PRE_BASH_PY$/d
 -    /^# HPO_PRE_BASH_PY_END$/d
 +# HPO_PRE_BASH_GUARD_PY
-+# import json, os, re, shlex, subprocess, sys
++# import os, subprocess
 +# # Second arm: the orchestrator's checkout is what beatd, tick_loop.sh and
 +# # cloud_relay.sh run their scripts from, and bash reads a script
 +# # incrementally, so a command that moves its HEAD or working tree corrupts
-+# # them (2026-10-31, gap 4 of R10-FLY-STANDING-CONTRACTS). INERT unless
++# # them (2026-10-31, gap 4 of R10-FLY-STANDING-CONTRACTS). It reads the parse
++# # block's `cmds` -- so `bash -c`, `eval`, `( )` and `$( )` bodies are seen --
++# # following `cd` in the order the commands appear (a `cd` inside a subshell is
++# # carried past its close, which can only refuse more). INERT unless
 +# # $HPO_STATE_DIR/orch-checkout names a directory; fails open on anything odd.
 +# MOVERS = {"checkout", "switch", "reset", "pull", "merge", "rebase", "stash", "clean", "restore"}
 +# try:
@@ -126,34 +267,25 @@ index 1ef88954f..89d0b20d0 100755
 +#     marker = open(os.path.join(state, "orch-checkout")).read().strip() if state else ""
 +#     if not marker or not os.path.isdir(marker):
 +#         sys.exit(0)
-+#     payload = json.loads(sys.argv[1])
-+#     cmd = payload["tool_input"]["command"]
-+#     cwd = payload.get("cwd") or os.getcwd()
 +#     guarded = os.path.realpath(marker)
-+#     if not isinstance(cmd, str):
-+#         sys.exit(0)
 +#     def toplevel(d):
 +#         r = subprocess.run(["git", "-C", d, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
 +#         return os.path.realpath(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip() else ""
-+#     cur = cwd
-+#     for stmt in re.split(r"\n|;|&&|\|\||\||&", cmd):
-+#         try:
-+#             w = shlex.split(stmt, comments=True)
-+#         except ValueError:
++#     def under(d, p):
++#         return os.path.realpath(os.path.join(d, os.path.expandvars(os.path.expanduser(p))))
++#     cur = payload.get("cwd") or os.getcwd()
++#     for _, b, w in cmds:
++#         if b == "cd":
++#             to = [a for a in w[1:] if not a.startswith("-")]
++#             if to:
++#                 cur = under(cur, to[0])
 +#             continue
-+#         while w and (re.fullmatch(r"\w+=.*", w[0]) or w[0] in ("sudo", "env", "command", "time", "nohup", "exec")):
-+#             w = w[1:]
-+#         if not w:
-+#             continue
-+#         if w[0] == "cd" and len(w) > 1:
-+#             cur = os.path.realpath(os.path.join(cur, os.path.expanduser(w[1])))
-+#             continue
-+#         if w[0] != "git":
++#         if b != "git":
 +#             continue
 +#         d, i = cur, 1
 +#         while i < len(w) and w[i].startswith("-"):
 +#             if w[i] == "-C" and i + 1 < len(w):
-+#                 d = os.path.realpath(os.path.join(d, os.path.expanduser(w[i + 1]))); i += 2
++#                 d = under(d, w[i + 1]); i += 2
 +#             elif w[i] in ("-c", "--git-dir", "--work-tree", "--namespace") and i + 1 < len(w):
 +#                 i += 2
 +#             else:
@@ -183,22 +315,26 @@ index 1ef88954f..89d0b20d0 100755
 +  }" "$0"
 +}
 +
++arm() { # $1 an arm's marker, $2 the payload: the shared parser, then that arm
++  { extract HPO_PRE_BASH_PARSE_PY; extract "$1"; } | python3 - "$2"
++}
++
 +decide() { # $1 the raw payload; stdout: a refusal message, or nothing
 +  # Prefilter: no `kill` anywhere in the payload means the first arm cannot
 +  # match, and a bash `case` costs about 3 ms where a python start costs about
 +  # 26. The second arm needs `git` in the payload AND a marker file.
 +  case "$1" in
-+    *kill*) extract HPO_PRE_BASH_PY | python3 - "$1" ;;
++    *kill*) arm HPO_PRE_BASH_PY "$1" ;;
 +  esac
 +  case "$1" in
 +    *git*) [ -n "${HPO_STATE_DIR:-}" ] && [ -f "$HPO_STATE_DIR/orch-checkout" ] \
-+             && extract HPO_PRE_BASH_GUARD_PY | python3 - "$1" ;;
++             && arm HPO_PRE_BASH_GUARD_PY "$1" ;;
 +  esac
 +  return 0
  }
  
  if [ "$SELF_TEST" = 1 ]; then
-@@ -208,6 +277,31 @@ pkill -f x
+@@ -208,6 +297,38 @@ pkill -f x
  EOF'                                               "a heredoc body holding pkill is allowed (null control)"
    st allow  'echo hi # pkill x'                    "pkill in a comment is allowed (null control)"
    st allow  'git status'                           "a command without the substring kill takes the prefilter path"
@@ -220,6 +356,13 @@ index 1ef88954f..89d0b20d0 100755
 +  gst refuse "git -C $gtmp/orch checkout main"  "$gtmp/other" "guard: git -C into the checkout is refused"
 +  gst refuse "cd $gtmp/orch && git reset --hard" "$gtmp/other" "guard: cd then reset is refused"
 +  gst refuse 'git -c x=y merge origin/main'     "$gtmp/orch"  "guard: git -c before the subcommand is read past"
++  # the fix review's five probes (verdict/3294): bodies the shared parser reads
++  gst refuse "bash -c 'git pull'"               "$gtmp/orch"  "guard: a bash -c body is read"
++  gst refuse 'eval git pull'                    "$gtmp/orch"  "guard: an eval body is read"
++  gst refuse "(cd $gtmp/orch && git pull)"      "$gtmp/other" "guard: a subshell's cd is followed"
++  gst refuse "echo x \$(git -C $gtmp/orch checkout main)" "$gtmp/other" "guard: a \$( ) substitution is read"
++  gst refuse "sh -c 'cd $gtmp/orch; git reset --hard'" "$gtmp/other" "guard: a cd inside sh -c is followed"
++  gst allow  "echo 'git pull' > notes.txt"      "$gtmp/orch"  "guard: git pull as quoted echo text is allowed (null control)"
 +  gst allow  'git status'                       "$gtmp/orch"  "guard: a read-only git command is allowed (null control)"
 +  gst allow  "git -C $gtmp/orch show origin/main:README.md" "$gtmp/other" "guard: show of main is allowed (null control)"
 +  gst allow  'git pull'                         "$gtmp/other" "guard: pull in another repository is allowed (null control)"
@@ -231,12 +374,12 @@ index 1ef88954f..89d0b20d0 100755
    # drives `decide`, none of them the wrapper that reads the payload and turns a
    # message into an exit status -- where pre-edit.sh was inert once.
 diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
-index 759ec575e..3a22e649c 100644
+index 59acc1dcf..c0d6e2912 100644
 --- a/.github/workflows/governance.yml
 +++ b/.github/workflows/governance.yml
-@@ -970,6 +970,13 @@ jobs:
-           grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
-           grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
+@@ -1010,6 +1010,13 @@ jobs:
+           python3 -I tools/audit/seat/beat_jobs.py --self-test | tee "$RUNNER_TEMP/beat-jobs-self-test.txt"
+           grep -Eq '^beat_jobs self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beat-jobs-self-test.txt"
  
 +      - name: Show the hook installer refusing its own fixtures
 +        if: ${{ !cancelled() }}
@@ -256,22 +399,22 @@ index 000000000..29c75324b
 @@ -0,0 +1 @@
 +- [#3294](https://github.com/tvofi/heatpump_optimizer/pull/3294) — **open**, R10-FLY-STANDING-CONTRACTS: standing contracts, part 2 (R10-FLY-STANDING-CONTRACTS)
 diff --git a/tests/closures.json b/tests/closures.json
-index e0693316d..fcc289561 100644
+index 0a6011505..db902ea69 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -3870,6 +3870,7 @@
-    "tools/audit/seat/features_block.py",
+@@ -3900,6 +3900,7 @@
     "tools/audit/seat/flow_metrics.py",
+    "tools/audit/seat/gantt_drift.py",
     "tools/audit/seat/gh_calls.py",
 +   "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/ledger.py",
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/moved_paths.py",
 diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
-index 57fcb0697..2c89b57c6 100644
+index 73eb1f71b..193ad1537 100644
 --- a/tools/audit/seat/INSTRUMENTS.md
 +++ b/tools/audit/seat/INSTRUMENTS.md
-@@ -123,3 +123,4 @@ sweep's standing-seat liveness step keep them alive.
+@@ -126,3 +126,4 @@ sweep's standing-seat liveness step keep them alive.
  - [`shims/seat-python`, `shims/seat-python3`](instruments/shims_seat-python.md) — the seat interpreter
  - [`shims/seat-gh`](instruments/shims_seat-gh.md) — the seat's `gh`: one log line per call (caller, subcommand, api path, no values), then the real gh
  - [`gh_calls.py`](instruments/gh_calls.py.md) — reads that log: `--top` ranks callers and endpoints, `--coverage` names the processes whose PATH misses the shim
@@ -532,10 +675,10 @@ index 000000000..dffa49da9
 +    sys.exit(main(sys.argv[1:]))
 diff --git a/tools/audit/seat/hooks_setup.py b/tools/audit/seat/hooks_setup.py
 new file mode 100644
-index 000000000..1cae049c5
+index 000000000..f12ec91f4
 --- /dev/null
 +++ b/tools/audit/seat/hooks_setup.py
-@@ -0,0 +1,330 @@
+@@ -0,0 +1,414 @@
 +#!/usr/bin/env python3
 +"""Report and install the user-level Claude Code hooks the orchestrator's host depends on.
 +
@@ -714,13 +857,16 @@ index 000000000..1cae049c5
 +    return s, fd
 +
 +
-+def _run_hook(script: str, state: Path, payload: dict | None = None) -> str:
++def _run_hook(script: str, state: Path, payload: dict | None = None, *, env: dict | None = None,
++              seat: Path = SEAT, args: list[str] | None = None) -> str:
++    """The hook's stdout, plus an `EXIT <rc>` line when it exits non-zero (a hook must not)."""
 +    tr = state.parent / "transcript.jsonl"
 +    payload = dict({"hook_event_name": "SessionStart", "transcript_path": str(tr)}, **(payload or {}))
-+    r = subprocess.run([sys.executable, "-I", str(SEAT / "hooks" / script), "--state", str(state)],
-+                       input=json.dumps(payload),
++    r = subprocess.run([sys.executable, "-I", str(seat / "hooks" / script),
++                        *(["--state", str(state)] if args is None else args)],
++                       input=json.dumps(payload), env=dict(os.environ, **(env or {})),
 +                       capture_output=True, text=True)
-+    return r.stdout
++    return r.stdout + (f"EXIT {r.returncode}\n" if r.returncode else "")
 +
 +
 +def cases() -> dict[str, bool]:
@@ -768,9 +914,57 @@ index 000000000..1cae049c5
 +        res["liveness: a healthy table prints nothing actionable"] = (
 +            not any(w in out for w in ("DEAD", "STALE", "ALARM", "UNREADABLE")) and "ARM:" in out
 +            and "OWED reviewer-fire 1" in out)
++        res["liveness: a healthy table with a fresh stamp owes no policy re-read"] = "POLICY-REREAD" not in out
 +        res["liveness: PostCompact demands the policy re-read"] = (
 +            "POLICY-REREAD" in _run_hook("liveness.py", s, {"hook_event_name": "PostCompact"}))
++        res["liveness: an unparseable HPO_ALIVE_STALE_MIN falls back to its default"] = (
++            "ARM:" in (o := _run_hook("liveness.py", s, env={"HPO_ALIVE_STALE_MIN": "x"})) and "UNREADABLE" not in o)
++        past = time.time() - 120.5 * 60  # half a minute past the 120-minute default
++        os.utime(s / "alive" / "merge", (past, past))
++        res["liveness: an alive file half a minute past HPO_ALIVE_STALE_MIN is STALE"] = (
++            "STALE alive merge age_min=120" in _run_hook("liveness.py", s))
++        (s / "policy-reread.stamp").unlink()
++        res["liveness: SessionStart with no re-read stamp owes the policy re-read"] = (
++            "POLICY-REREAD owed" in _run_hook("liveness.py", s))
++        # a seat copy holding the hook but not policy_reread_check.py: the check cannot run
++        cp = tmp / "seatcopy"
++        (cp / "hooks").mkdir(parents=True)
++        shutil.copy2(SEAT / "hooks" / "liveness.py", cp / "hooks" / "liveness.py")
++        o = _run_hook("liveness.py", s, seat=cp)
++        res["liveness: a policy_reread_check that cannot run is UNREADABLE, not owed"] = (
++            "UNREADABLE policy_reread_check" in o and "POLICY-REREAD" not in o)
++        # the same copy with a stub beatd.py: each status line shape it reads
++        shutil.copy2(SEAT / "policy_reread_check.py", cp / "policy_reread_check.py")
++        (cp / "beatd.py").write_text(
++            "import os, sys\nprint('JOB pulse failed\\nJOB tick ok\\nJOB x\\nDOWN no pid\\nALERT disk\\nSTALE-CODE b')\n"
++            "sys.exit(2 if os.environ.get('STUB_RC') == '2' else 0)\n")
++        o = _run_hook("liveness.py", s, seat=cp)
++        res["liveness: beatd's failed job, DOWN, ALERT and STALE-CODE lines are reported, ok and short lines not"] = (
++            "ALARM job pulse failed" in o and "DEAD beatd no pid" in o and "ALARM ALERT disk" in o
++            and "ALARM STALE-CODE b" in o and "job tick" not in o and "UNREADABLE" not in o)
++        res["liveness: beatd status exiting 2 is UNREADABLE"] = (
++            "UNREADABLE beatd status" in _run_hook("liveness.py", s, seat=cp, env={"STUB_RC": "2"}))
++        res["liveness: a --state with no value, and no HPO_STATE_DIR, is inert"] = (
++            _run_hook("liveness.py", s, args=["--state"], env={"HPO_STATE_DIR": ""}) == ""
++            and _run_hook("liveness.py", s, args=[], env={"HPO_STATE_DIR": ""}) == "")
++        past = time.time() - 30.5 * 60  # half a minute past the 30-minute default
++        for p in (s / "digest" / "digest.txt", s / "beatd" / "journal.log"):
++            os.utime(p, (past, past))
++        res["liveness: a digest and journal half a minute past HPO_DIGEST_STALE_MIN are STALE"] = (
++            "STALE digest" in _run_hook("liveness.py", s))
++        # seat_interpreter against a stub seat_venv.sh: silent when it passes, its last line when not
++        (cp / "hooks" / "seat_interpreter.py").write_bytes((SEAT / "hooks" / "seat_interpreter.py").read_bytes())
++        (cp / "seat_venv.sh").write_text('[ "${STUB_VENV:-}" = ok ] && exit 0\necho first >&2\necho last >&2\nexit 1\n')
++        res["seat-interpreter: a passing seat_venv.sh --check prints nothing"] = (
++            _run_hook("seat_interpreter.py", s, seat=cp, env={"STUB_VENV": "ok"}) == "")
++        res["seat-interpreter: the refusal quotes the check's last line"] = (
++            _run_hook("seat_interpreter.py", s, seat=cp).startswith("SEAT-INTERPRETER refused: last;")
++            and _run_hook("seat_interpreter.py", s, seat=cp, args=["--state"], env={"HPO_STATE_DIR": ""}) == "")
 +        os.close(fd)
++        gone = tmp / "gone"
++        gone.mkdir()
++        (gone / "orch-checkout").write_text(f"{tmp / 'no-such-checkout'}\n")
++        res["liveness: an orch-checkout naming no directory is inert"] = _run_hook("liveness.py", gone) == ""
 +        s, fd = _fixture_state(tmp / "dead", dead=True)
 +        res["liveness: a planted dead loop prints DEAD"] = "DEAD loop pulse" in _run_hook("liveness.py", s)
 +        os.close(fd)
@@ -785,19 +979,47 @@ index 000000000..1cae049c5
 +            _run_hook(h, quiet) == "" for h in ("liveness.py", "seat_interpreter.py", "git_identity.py"))
 +        s, fd = _fixture_state(tmp / "ident")
 +        os.close(fd)
++        # the fixture state holds orch-checkout but no venv-ci, so seat_venv.sh --check refuses
++        out = _run_hook("seat_interpreter.py", s)
++        res["seat-interpreter: a refusing seat_venv.sh --check prints SEAT-INTERPRETER refused"] = (
++            out.startswith("SEAT-INTERPRETER refused: seat_venv: no venv at") and "seat_venv.sh" in out)
 +        (s / "git-identity").write_text("Seat Name\nseat@example.invalid\n")
 +        first = _run_hook("git_identity.py", s)
 +        repo = (s / "orch-checkout").read_text().strip()
 +        have = subprocess.run(["git", "-C", repo, "config", "--local", "user.email"],
 +                              capture_output=True, text=True).stdout.strip()
++        name = subprocess.run(["git", "-C", repo, "config", "--local", "user.name"],
++                              capture_output=True, text=True).stdout.strip()
 +        res["git-identity: sets a differing identity, then prints nothing"] = (
 +            "GIT-IDENTITY set user.email" in first and have == "seat@example.invalid"
-+            and _run_hook("git_identity.py", s) == "")
++            and name == "Seat Name" and _run_hook("git_identity.py", s) == "")
++        (s / "git-identity").write_text("Other Name\n")
++        res["git-identity: a one-line identity file is ignored"] = _run_hook("git_identity.py", s) == ""
++        res["git-identity: a --state with no value is ignored"] = _run_hook("git_identity.py", s, args=["--state"]) == ""
++        # the installer's edges and its command line
++        rc, out = check({}, tmp / "bare")
++        res["check reports the project guard missing in a tree without it"] = (
++            rc == 1 and any(ln.startswith("missing pre-bash guard") for ln in out))
++        deep = tmp / "new" / "dir" / "settings.json"
++        res["install creates a settings file under a missing directory, then has nothing to change"] = (
++            cmd_install(deep) == 0 and check(load(deep))[0] == 0 and cmd_install(deep) == 0)
++        bad = tmp / "list.json"
++        bad.write_text("[]\n")
++        cli = lambda *a: subprocess.run([sys.executable, "-I", str(SEAT / "hooks_setup.py"), *a],  # noqa: E731
++                                        capture_output=True, text=True)
++        res["the command line: --check, --install, a non-object file refused, no mode"] = (
++            cli("--check", "--settings", str(deep)).returncode == 0
++            and cli("--install", "--settings", str(tmp / "cli" / "s.json")).returncode == 0
++            and (tmp / "cli" / "s.json").is_file()
++            and "REFUSE" in (r := cli("--check", "--settings", str(bad))).stderr and r.returncode == 2
++            and cli().returncode == 2)
 +    finally:
 +        shutil.rmtree(tmp, ignore_errors=True)
 +    return res
 +
 +
++COPY_FOR_MUTANTS = (  # what cases() reads outside tools/audit/seat, copied beside each mutant
++    "tests/throwaway_git.py", "tests/typing_budgets.json", ".claude/settings.json", PROJECT_GUARD[1])
 +MUTANTS = [  # (label, old text, new text): each must turn at least one case red
 +    ("install skips the backup", "        shutil.copy2(path, bak)\n", "        pass\n"),
 +    ("install rewrites an unrelated entry",
@@ -806,6 +1028,7 @@ index 000000000..1cae049c5
 +    ("install is not idempotent", "            if st == \"ok\":\n                continue\n", ""),
 +    ("liveness reads no dead loop", "            if f[2] == \"late\":", "            if False:"),
 +    ("liveness reads no stale digest", "if not ages or min(ages) > _env_min(", "if False and min(ages) > _env_min("),
++    ("seat-interpreter never reports", "    if r.returncode == 0:\n        return []\n", "    if True:\n        return []\n"),
 +]
 +
 +
@@ -816,17 +1039,20 @@ index 000000000..1cae049c5
 +    for k in fails:
 +        print(f"  FAIL {k}")
 +    if run_mutants and not fails and not os.environ.get("HPO_HOOKS_MUTANT"):
-+        for label, old, new in MUTANTS:
++        # the null control first: the copy un-mutated must pass, or every mutant "dies" of the copy
++        for label, old, new in [("null control: the copy un-mutated", None, None), *MUTANTS]:
 +            tgt = Path(tempfile.mkdtemp(prefix="hooks-mutant-"))
 +            try:
 +                shutil.copytree(SEAT, tgt / "tools/audit/seat", ignore=shutil.ignore_patterns("__pycache__", "fixtures"))
-+                (tgt / "tests").mkdir()
-+                shutil.copy2(ROOT / "tests" / "throwaway_git.py", tgt / "tests" / "throwaway_git.py")
-+                for f in ("hooks_setup.py", "hooks/liveness.py"):
++                for rel in COPY_FOR_MUTANTS:
++                    (tgt / rel).parent.mkdir(parents=True, exist_ok=True)
++                    shutil.copy2(ROOT / rel, tgt / rel)
++                # the hooks before this file: an anchor without a newline also matches its own MUTANTS literal here
++                for f in ("hooks/liveness.py", "hooks/seat_interpreter.py", "hooks_setup.py"):
 +                    p = tgt / "tools/audit/seat" / f
 +                    text = p.read_text()
-+                    if old in text:
-+                        p.write_text(text.replace(old, new, 1))
++                    if old is None or old in text:
++                        p.write_text(text if old is None else text.replace(old, new, 1))
 +                        break
 +                else:
 +                    print(f"  FAIL mutant '{label}': its target text is gone")
@@ -835,8 +1061,9 @@ index 000000000..1cae049c5
 +                r = subprocess.run([sys.executable, "-I", str(tgt / "tools/audit/seat/hooks_setup.py"), "--self-test"],
 +                                   capture_output=True, text=True, env=dict(os.environ, HPO_HOOKS_MUTANT="1"))
 +                n += 1
-+                if r.returncode == 0:
-+                    print(f"  FAIL mutant '{label}' survived")
++                if (r.returncode == 0) != (old is None):
++                    print(f"  FAIL mutant '{label}' " + ("is red: " + " | ".join(
++                        ln.strip() for ln in r.stdout.splitlines() if "FAIL" in ln) if old is None else "survived"))
 +                    fails.append(label)
 +            finally:
 +                shutil.rmtree(tgt, ignore_errors=True)
@@ -868,7 +1095,7 @@ index 000000000..1cae049c5
 +    sys.exit(main(sys.argv[1:]))
 diff --git a/tools/audit/seat/instruments/hooks_setup.py.md b/tools/audit/seat/instruments/hooks_setup.py.md
 new file mode 100644
-index 000000000..3c9df2455
+index 000000000..f6411c8fa
 --- /dev/null
 +++ b/tools/audit/seat/instruments/hooks_setup.py.md
 @@ -0,0 +1,12 @@
@@ -881,7 +1108,7 @@ index 000000000..3c9df2455
 +| liveness | SessionStart, PostCompact | `hooks/liveness.py` | demands a fresh policy re-read (`policy_reread_check.py`; always on PostCompact); prints `DEAD`/`ALARM` per late beat job and for a free `beatd.lock` (`beatd.py status`, so the loop list is the job table), `STALE` for an alive file under `$HPO_STATE_DIR/alive/` and for a digest whose `digest.txt` and beat journal both stood still, then the digest, then one `ARM:` line | after a compaction nobody re-armed the wake loop and owed lines stood unread for hours (2026-11-01) |
 +| seat-interpreter | SessionStart | `hooks/seat_interpreter.py` | runs `seat_venv.sh --check`; one `SEAT-INTERPRETER` line when it refuses | a temp cleanup deleted the seat venv unnoticed (2026-10-03) |
 +| git-identity | SessionStart | `hooks/git_identity.py` | sets the orchestrator checkout's local `user.name`/`user.email` from `$HPO_STATE_DIR/git-identity` when they differ | a commit under the host's default identity is refused only after the push (decision 0011) |
-+| Bash guard | PreToolUse, project-level | `.claude/hooks/pre-bash.sh`, second arm | exit 2 for `git checkout/switch/reset/pull/merge/rebase/stash/clean/restore` whose cwd, `cd` or `-C` resolves to the checkout named in `$HPO_STATE_DIR/orch-checkout` | `beatd`, `tick_loop.sh` and `cloud_relay.sh` run from that checkout and bash reads a script incrementally |
++| Bash guard | PreToolUse, project-level | `.claude/hooks/pre-bash.sh`, second arm | exit 2 for `git checkout/switch/reset/pull/merge/rebase/stash/clean/restore` whose cwd, `cd` or `-C` resolves to the checkout named in `$HPO_STATE_DIR/orch-checkout`, read through the hook's one command-position parser (`HPO_PRE_BASH_PARSE_PY`), so `bash -c`, `eval`, `( )` and `$( )` bodies count | `beatd`, `tick_loop.sh` and `cloud_relay.sh` run from that checkout and bash reads a script incrementally |
 +
 +The three user-level hooks are inert (print nothing, exit 0) unless `$HPO_STATE_DIR/orch-checkout` names a directory; the guard is inert without `HPO_STATE_DIR` or that file, and fails open on an unparseable payload. `--check` reports the guard as present in the tree and installs nothing for it. Thresholds: `HPO_ALIVE_STALE_MIN` (120), `HPO_DIGEST_STALE_MIN` (30).
 

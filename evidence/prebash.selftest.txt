@@ -24,6 +24,12 @@
   ok   guard: git -C into the checkout is refused
   ok   guard: cd then reset is refused
   ok   guard: git -c before the subcommand is read past
+  ok   guard: a bash -c body is read
+  ok   guard: an eval body is read
+  ok   guard: a subshell's cd is followed
+  ok   guard: a $( ) substitution is read
+  ok   guard: a cd inside sh -c is followed
+  ok   guard: git pull as quoted echo text is allowed (null control)
   ok   guard: a read-only git command is allowed (null control)
   ok   guard: show of main is allowed (null control)
   ok   guard: pull in another repository is allowed (null control)
@@ -34,5 +40,5 @@
   ok   END TO END: an unparseable payload fails OPEN
   ok   END TO END: a tool_input that is not an object fails OPEN
 
-35 passed, 0 failed
+41 passed, 0 failed
 rc=0

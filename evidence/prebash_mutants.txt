@@ -1,0 +1,8 @@
+RESULT P1 bash -c body never parsed: KILLED rc=2 ['FAIL pkill inside bash -c is refused (got allow, wanted refuse)', 'FAIL guard: a bash -c body is read (got allow, wanted refuse)', 'FAIL guard: a cd inside sh -c is followed (got allow, wanted refuse)']
+RESULT P2 eval words never collected: KILLED rc=2 ['FAIL guard: an eval body is read (got allow, wanted refuse)']
+RESULT P3 ( no longer reopens command position: KILLED rc=2 ["FAIL guard: a subshell's cd is followed (got allow, wanted refuse)"]
+RESULT P4 unquoted $( ) skipped: KILLED rc=2 ['FAIL kill fed by pgrep in a substitution is refused (got allow, wanted refuse)', 'FAIL guard: a $( ) substitution is read (got allow, wanted refuse)']
+RESULT P5 guard ignores cd: KILLED rc=2 ['FAIL guard: cd then reset is refused (got allow, wanted refuse)', "FAIL guard: a subshell's cd is followed (got allow, wanted refuse)", 'FAIL guard: a cd inside sh -c is followed (got allow, wanted refuse)']
+RESULT P6 guard arm reads its own split (cmds emptied): KILLED rc=2 ['FAIL guard: a bash -c body is read (got allow, wanted refuse)', 'FAIL guard: an eval body is read (got allow, wanted refuse)', "FAIL guard: a subshell's cd is followed (got allow, wanted refuse)", 'FAIL guard: a $( ) substitution is read (got allow, wanted refuse)']
+RESULT P7 end() drops eval body: KILLED rc=2 ['FAIL guard: an eval body is read (got allow, wanted refuse)']
+RESULT N0 null control: comment-only: SURVIVED rc=0 []

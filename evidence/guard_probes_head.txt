@@ -1,0 +1,64 @@
+# controls
+rc=2 cwd=orch :: git pull
+rc=0 cwd=orch :: git status
+rc=0 cwd=other :: git pull
+rc=0 cwd=orch :: git fetch
+rc=0 cwd=other :: git -C <T>/orch show origin/main:x
+# prior block's five probes
+rc=2 cwd=orch :: bash -c 'git pull'
+rc=2 cwd=orch :: eval git pull
+rc=2 cwd=other :: (cd <T>/orch && git pull)
+rc=2 cwd=other :: echo x $(git -C <T>/orch checkout main)
+rc=2 cwd=other :: sh -c 'cd <T>/orch; git reset --hard'
+# design acceptance rows (cwd and -C)
+rc=2 cwd=orch :: git checkout
+rc=2 cwd=other :: git -C <T>/orch checkout
+rc=2 cwd=orch :: git switch
+rc=2 cwd=other :: git -C <T>/orch switch
+rc=2 cwd=orch :: git reset
+rc=2 cwd=other :: git -C <T>/orch reset
+rc=2 cwd=orch :: git pull
+rc=2 cwd=other :: git -C <T>/orch pull
+rc=2 cwd=orch :: git merge
+rc=2 cwd=other :: git -C <T>/orch merge
+rc=2 cwd=orch :: git rebase
+rc=2 cwd=other :: git -C <T>/orch rebase
+rc=2 cwd=orch :: git stash
+rc=2 cwd=other :: git -C <T>/orch stash
+rc=2 cwd=orch :: git clean
+rc=2 cwd=other :: git -C <T>/orch clean
+rc=2 cwd=orch :: git restore
+rc=2 cwd=other :: git -C <T>/orch restore
+# false positives
+rc=0 cwd=orch :: echo 'git pull' > notes.txt
+rc=0 cwd=orch :: grep 'git reset' file
+rc=0 cwd=orch :: cat <<EOF2
+git pull
+EOF2
+# repository-selection seams outside the census
+rc=0 cwd=other :: pushd <T>/orch && git pull
+rc=0 cwd=other :: git --git-dir=<T>/orch/.git --work-tree=<T>/orch reset --hard
+rc=0 cwd=other :: git --git-dir <T>/orch/.git --work-tree <T>/orch reset --hard
+rc=0 cwd=other :: GIT_DIR=<T>/orch/.git GIT_WORK_TREE=<T>/orch git reset --hard
+rc=0 cwd=other :: env GIT_DIR=<T>/orch/.git git -C <T>/other reset --hard
+rc=0 cwd=other :: timeout 5 git -C <T>/orch pull
+rc=2 cwd=other :: cd <T>/orch; eval 'git pull'
+rc=2 cwd=other :: eval "cd <T>/orch && git pull"
+rc=2 cwd=other :: cd <T>/orch
+git pull
+rc=0 cwd=other :: if true; then git -C <T>/orch pull; fi
+rc=0 cwd=other :: { git -C <T>/orch pull; }
+rc=0 cwd=other :: for x in 1; do git -C <T>/orch pull; done
+rc=2 cwd=other :: true && (git -C <T>/orch pull)
+rc=2 cwd=other :: xargs git -C <T>/orch pull < /dev/null
+rc=0 cwd=other :: git -C<T>/orch pull
+rc=0 cwd=other :: D=<T>/orch; git -C $D pull
+rc=2 cwd=orch :: git -c core.x=1 pull
+rc=2 cwd=orch :: git --no-pager pull
+rc=0 cwd=orch :: git worktree add ../wt
+rc=0 cwd=other :: if false; then :; else git -C <T>/orch pull; fi
+rc=0 cwd=other :: if false; then :; elif git -C <T>/orch pull; then :; fi
+rc=0 cwd=other :: until git -C <T>/orch pull; do :; done
+rc=0 cwd=other :: while git -C <T>/orch pull; do :; done
+rc=2 cwd=other :: case x in x) git -C <T>/orch pull;; esac
+rc=0 cwd=other :: pushd <T>/orch >/dev/null; git reset --hard

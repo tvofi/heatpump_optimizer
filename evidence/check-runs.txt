@@ -1,5 +1,0 @@
-Head 131b1358e408954ed0076904bb9a811e5e80fac8, all 68 check runs (one page, total_count 68), concluded reds:
-- tests / nightly-status 128515447702 failure (run 42393649117) -- outside the required set; named in the body.
-- pr-contract / pr-contract 128515449967 failure 17:39-17:40Z (run 42393649117) -- superseded by pr-contract / pr-contract 128515052906 success 20:10Z (run 42409566555), started after the last red concluded; named in the body.
-Every other run success or skipped; gate 128515453754 success 20:13Z, gate 128515449064 success 20:12Z, gate 128515245845 success 20:11Z.
-merge_train classify: see classify.txt / classify.rc
