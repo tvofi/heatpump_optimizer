@@ -1,0 +1,38 @@
+diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
+index 3d84a3c27..10b31365a 100644
+--- a/.github/workflows/governance.yml
++++ b/.github/workflows/governance.yml
+@@ -945,7 +945,8 @@ jobs:
+           grep -Eq '^plan_table self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-table-self-test.txt"
+ 
+       - name: Show the gantt drift reader refusing its own fixtures
+-        if: ${{ !cancelled() }}
++        id: gantt-drift
++        if: ${{ !cancelled() && steps.scope.outputs.gantt-drift == 'true' }}
+         run: |
+           set -o pipefail
+           python3 -I tools/audit/seat/gantt_drift.py --self-test | tee "$RUNNER_TEMP/gantt-drift-self-test.txt"
+diff --git a/tools/ci/selftest_closures.json b/tools/ci/selftest_closures.json
+index 620ed5695..e5e1e3ee3 100644
+--- a/tools/ci/selftest_closures.json
++++ b/tools/ci/selftest_closures.json
+@@ -2458,6 +2458,19 @@
+    "objects": false,
+    "git": []
+   },
++  "gantt-drift": {
++   "run_sha": "166a86552d93555728edf76ea5296105cfd058e20150f8cc1dcd4d417cf9f209",
++   "files": [
++    "tools/audit/seat/gantt_drift.py"
++   ],
++   "probes": [
++    "."
++   ],
++   "dirs": [],
++   "index": false,
++   "objects": false,
++   "git": []
++  },
+   "gate-predicate": {
+    "run_sha": "dbd1cf4a4f40114a4869ab0943a911f0f65164587b81ebe19d3336a05aae01d7",
+    "files": [
