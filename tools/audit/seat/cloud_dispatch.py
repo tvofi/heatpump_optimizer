@@ -161,6 +161,26 @@ def model_refusal(role: str, group: dict, model: str) -> str | None:
     return f"{group.get('group')} rules {ruled} for its {role} (roster model.{key}); --model {model} is not {ruled}"
 
 
+#: The family a carry-only (review_carry CARRY) or record-PR review runs on, whatever the
+#: roster rules for a full review (tvofi 2026-11-01, card 9: a delta re-read needs no opus).
+LIGHT_REVIEW_MODEL = "sonnet"
+
+
+def resolve_model(role: str, group: dict, *, carry_only: bool = False, record_pr: bool = False) -> tuple[str, str]:
+    """The model a dispatch with no --model runs on, and the roster field it was read from
+    (`model.fixer`, `fixerModel`, or the light-review rule), never an opus default. A role
+    the roster rules no model for refuses: a guess goes stale (the overlay's `model` is the
+    flag path's, not a group's)."""
+    if role == "reviewer" and (carry_only or record_pr):
+        return LIGHT_REVIEW_MODEL, "carry-only review" if carry_only else "record-PR review"
+    key = MODEL_KEY.get(role)
+    table = group.get("model") if isinstance(group.get("model"), dict) else {}
+    for field, val in ((f"model.{key}", table.get(key)), (f"{key}Model", group.get(f"{key}Model"))):
+        if key and val:
+            return val, f"roster {field}"
+    raise Refusal(f"{group.get('group')} rules no model for its {role} (roster model.{key}): pass --model")
+
+
 def _seat_line(role: str, repo: str, pr: str, head: str, topic: str, nonce: str) -> str:
     who = {"reviewer": "CLOUD REVIEWER", "fixer": "CLOUD FIXER", "probe": "CLOUD PROBE",
            "designer": "CLOUD DESIGNER", "design-reviewer": "CLOUD DESIGN REVIEWER"}[role]
@@ -460,7 +480,8 @@ def design_approved(repo_dir: str, group_id: str) -> bool:
 
 def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
                    roster_ref: str | None = None, head: str = "", pr: str = "", nonce: str = "",
-                   overlay: str | None = None, environ=None, design_exempt: str = "") -> str:
+                   overlay: str | None = None, environ=None, design_exempt: str = "",
+                   carry_only: bool = False, record_pr: bool = False) -> str:
     """Render the seat for `group_id` from the roster, publish it, return its ref name.
 
     The roster at `roster_ref` of `repo_dir` (default: the round's roster
@@ -481,9 +502,13 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
     group = roster_lib.groups_of(roster).get(group_id)
     if group is None:
         raise Refusal(f"{group_id} is not a group of the roster at {roster_ref}")
-    why = model_refusal(role, group, model)
-    if why:
-        raise Refusal(why)
+    if model:
+        why = model_refusal(role, group, model)
+        if why:
+            raise Refusal(why)
+    else:
+        model, source = resolve_model(role, group, carry_only=carry_only, record_pr=record_pr)
+        print(f"cloud_dispatch: model {model} for the {role} of {group_id}, read from {source}", file=sys.stderr)
     environ = os.environ if environ is None else environ
     known = _config(argparse.Namespace(overlay=overlay, env_id=None, model=model, repo=None), environ)
     topic = group_id if role in DESIGN_ROLES else _topic_of(group)
@@ -706,6 +731,21 @@ def _group_checks(check) -> None:
               dispatch("R10-M", model="claude-sonnet-5-5") == dispatch("R10-M", model="sonnet") == "dispatch/fixer-r10-m")
         check("the legacy <role>Model field rules where the model table is absent",
               refused("R10-L", model="claude-sonnet-5-5") and dispatch("R10-L", model="claude-opus-5-5"))
+        # CARRY 8 (tvofi 2026-11-01 card 9): a dispatch with no --model reads the roster's field.
+        errbuf = io.StringIO()
+        with contextlib.redirect_stderr(errbuf):
+            routed = dispatch_group("fixer", "R10-M", "", repo_dir=str(work), environ=env)
+        check("a fixer dispatched with no model runs on the roster's fixer model and prints the model and the field it read",
+              routed == "dispatch/fixer-r10-m" and "model sonnet for the fixer of R10-M, read from roster model.fixer" in errbuf.getvalue())
+        check("the legacy <role>Model field is read where the table is absent, and the field named",
+              resolve_model("fixer", legacy) == ("opus", "roster fixerModel"))
+        check("a roster ruling opus for the reviewer still resolves opus for a first-round review (null control)",
+              resolve_model("reviewer", ruled) == ("opus", "roster model.reviewer"))
+        check("a carry-only review and a record-PR review resolve sonnet whatever the roster rules",
+              resolve_model("reviewer", ruled, carry_only=True)[0] == resolve_model("reviewer", ruled, record_pr=True)[0] == "sonnet"
+              and resolve_model("fixer", ruled, carry_only=True)[0] == "sonnet")
+        check("a role with no ruled model and no --model refuses rather than guessing",
+              refused("R10-X", model="") and "rules no model" in reason("R10-X", model=""))
         check("a role the roster rules no model for is not checked (a probe on R10-M runs on any model)",
               dispatch("R10-M", "probe", model="claude-haiku-5-5") == "dispatch/probe-r10-m")
         twotext = fetched(dispatch("R10-TWO"), "PROMPT.md")
@@ -952,7 +992,7 @@ def _flag_checks(check) -> None:
     try:
         for dest in sorted(dests):
             base = {"role": "fixer", "group": "G-BASE", "model": "m-base"}
-            value = "probe" if dest == "role" else f"value-of-{dest}"
+            value = "probe" if dest == "role" else (True if dest in switches else f"value-of-{dest}")
             argv = [x for k, v in {**base, dest: value}.items() for x in ("--" + k.replace("_", "-"), v)]
             if dest in switches:  # a switch takes no value
                 argv = argv[:-1]
@@ -1120,6 +1160,7 @@ def self_test() -> int:
 GROUP_FLAGS = {
     "role": None, "group": None, "model": None, "head": None, "roster_ref": None,
     "pr": None, "nonce": None, "overlay": None, "design_exempt": None,
+    "carry_only": None, "record_pr": None,
     "design": "dispatch_group reads the tip of design/<group> on origin",
     "topic": "the roster gives the topic (the group's branch)",
     "brief": "the roster gives the brief",
@@ -1145,7 +1186,10 @@ def _parser() -> argparse.ArgumentParser:
                     "design, pre-study or prototype is already on record: the reason")
     ap.add_argument("--brief")
     ap.add_argument("--env-id")
-    ap.add_argument("--model")
+    ap.add_argument("--model", help="with --group, omitted: read from the roster (model.<role>, <role>Model), "
+                    "and the field is printed")
+    ap.add_argument("--carry-only", action="store_true", help="--group reviewer: a review_carry CARRY or delta re-review (sonnet)")
+    ap.add_argument("--record-pr", action="store_true", help="--group reviewer: a record-PR review (sonnet)")
     ap.add_argument("--repo")
     ap.add_argument("--overlay")
     ap.add_argument("--out")
@@ -1164,11 +1208,10 @@ def main(argv: list[str]) -> int:
             for dest, why in GROUP_FLAGS.items():
                 if why and getattr(args, dest) != ap.get_default(dest):
                     raise Refusal(f"--{dest.replace('_', '-')} does not apply with --group: {why}")
-            if not args.model:
-                raise Refusal("--group needs --model")
-            print(dispatch_group(args.role, args.group, args.model, roster_ref=args.roster_ref,
+            print(dispatch_group(args.role, args.group, args.model or "", roster_ref=args.roster_ref,
                                  head=args.head or "", pr=args.pr, design_exempt=args.design_exempt,
-                                 nonce=args.nonce, overlay=args.overlay))
+                                 nonce=args.nonce, overlay=args.overlay,
+                                 carry_only=args.carry_only, record_pr=args.record_pr))
             return 0
         if not args.head:
             raise Refusal("--head is required without --group")
