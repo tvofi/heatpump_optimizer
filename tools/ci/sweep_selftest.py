@@ -17,6 +17,7 @@ class World:
         self.live_head, self.posts, self.listings, self.sleeps, self.t = "H", [], 0, [], 0
         self.limit, self.post_limit = limit, post_limit
         self.base_files, self.bodies, self.compares = [], [], 0     # the base's changes since the PR's pin
+        self.head_repo = "o/r"
 
     def get(self, path, params=None):
         if self.limit:
@@ -31,7 +32,7 @@ class World:
             self.listings += 1
             return 200, {}, {"workflow_runs": [dict(r, path=sweep.CI_PATH) for r in self.runs.values()]}
         if re.search(r"/pulls/7$", path):
-            return 200, {}, {"head": {"sha": self.live_head, "ref": "fix/b", "repo": {"full_name": "o/r"}},
+            return 200, {}, {"head": {"sha": self.live_head, "ref": "fix/b", "repo": {"full_name": self.head_repo}},
                              "base": {"sha": "P0", "ref": "main"}}
         if path.endswith("/compare/P0...main"):
             self.compares += 1
@@ -254,6 +255,15 @@ def run_checks():
     w.sweep()
     ok("stale pin null: a base that moved without touching tools/ci/*.py re-runs the gate as before",
        w.posts == ["repos/o/r/actions/jobs/10/rerun"])
+    w = pinned(run(1, "1"), v_run(), files=[f"docs/f{k}.md" for k in range(300)])
+    w.sweep()
+    ok("stale pin: a compare listing at GitHub's 300-file cap may hide a tools/ci change: a fresh run",
+       w.posts == [dispatch])
+    w = pinned(run(1, "1"), v_run())
+    w.head_repo = "fork/r"
+    w.sweep()
+    ok("stale pin null: a fork head (no branch here to dispatch on) is re-run as before, the base never compared",
+       w.posts == ["repos/o/r/actions/jobs/10/rerun"] and w.compares == 0)
     w = pinned(run(1, "1"), v_run())
     w.runs[1]["event"] = "workflow_dispatch"
     w.sweep()
