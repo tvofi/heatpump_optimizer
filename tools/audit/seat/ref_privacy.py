@@ -308,6 +308,18 @@ _NUMBERED = re.compile(r"\d+\+[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?" + _NORE
 _BOT = re.compile(r"(?:\d+\+)?[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?\[bot\]" + _NOREPLY, re.I)
 
 
+#: What a refused seat runs to self-correct (the coordinator's ruling). A plain
+#: `git config` inside a worktree writes the repository's shared config, so the
+#: per-worktree form is named; `--author` fixes one commit, and a committer
+#: needs the environment or `-c`.
+PIN_HINT = ("ref_privacy: pin the seat identity, then re-author the commits: "
+            "`git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com commit ...`, "
+            "or `git commit --author='tvofi <70032254+tvofi@users.noreply.github.com>'`, "
+            "or for a worktree `git config extensions.worktreeConfig true && git config --worktree user.email "
+            "70032254+tvofi@users.noreply.github.com` (a plain `git config` there writes the shared repo config); "
+            "then `git rebase --exec 'git commit --amend --no-edit --reset-author' <base>`.")
+
+
 def email_shape(email: str, committer: bool = False, adopted=()) -> list[str]:
     """`unnumbered-email` when `email` is outside the attributable grammar, else [].
     `adopted` is an outside contributor's own address, named per adoption: it
@@ -914,7 +926,9 @@ def self_test() -> int:
             r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
                                 "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
             ok(f"the guard CLI refuses an unpushed commit whose {who.lower()} is an unnumbered noreply, exit 3",
-               r.returncode == 3 and f"unnumbered-email in the {who.lower()} email of" in r.stderr, r.stderr.strip())
+               r.returncode == 3 and f"unnumbered-email in the {who.lower()} email of" in r.stderr
+               and "user.email=70032254+tvofi@users.noreply.github.com" in r.stderr
+               and "--worktree user.email" in r.stderr and "--author=" in r.stderr, r.stderr.strip())
             r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
                                 "--commits", "HEAD", "--adopt-email", "seat@users.noreply.github.com", "-C", seat],
                                env=env, capture_output=True, text=True)
@@ -1340,6 +1354,8 @@ def main(argv: list[str]) -> int:
         if why:
             print(f"ref_privacy: REFUSE: {why} would publish this host or a tool's attribution; nothing pushed",
                   file=sys.stderr)
+            if "unnumbered-email" in why:
+                print(PIN_HINT, file=sys.stderr)
             return 3
         return 0
     print(__doc__.split("\n\n")[1], file=sys.stderr)
