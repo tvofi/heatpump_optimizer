@@ -1,0 +1,5 @@
+AUTOMERGE REFUSE #3332: not record/autofix -> main within one repository
+AUTOMERGE REFUSE #3332: #3321: the row cites a pull request the API does not report merged into main
+AUTOMERGE REFUSE #3332: #3322: the row cites a pull request the API does not report merged into main
+AUTOMERGE REFUSE #3332: #3323: the row cites a pull request the API does not report merged into main
+AUTOMERGE REFUSE #3332: #3332: this pull request's own row is not the generated open row
