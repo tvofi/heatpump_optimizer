@@ -218,9 +218,12 @@ def _self_test() -> int:
 
     tmp = tempfile.mkdtemp(prefix="figblock-st-")
     try:
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tests"))
+        from throwaway_git import throwaway_git_init
+        env = throwaway_git_init(tmp, "-q", "-b", "main")
+
         def g(*a, cwd=tmp):
-            subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=cwd, check=True, capture_output=True)
-        g("init", "-q", "-b", "main")
+            subprocess.run(["git", *a], cwd=cwd, env=env, check=True, capture_output=True)
         os.makedirs(os.path.join(tmp, "tools/pr"))
         reg = {"instruments": {"mb": {"argv": ["git", "merge-base", "{base}", "{head}"], "files": []},
                                "bad": {"argv": ["false"], "files": []}}}
