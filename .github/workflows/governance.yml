@@ -811,6 +811,13 @@ jobs:
           python3 -I tools/audit/seat/plan_table.py --self-test | tee "$RUNNER_TEMP/plan-table-self-test.txt"
           grep -Eq '^plan_table self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-table-self-test.txt"
 
+      - name: Show the gantt drift reader refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/gantt_drift.py --self-test | tee "$RUNNER_TEMP/gantt-drift-self-test.txt"
+          grep -Eq '^gantt_drift self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gantt-drift-self-test.txt"
+
       - name: Show the plan page refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |

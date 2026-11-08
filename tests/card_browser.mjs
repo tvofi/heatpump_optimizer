@@ -831,11 +831,12 @@ function instrument() {
     }
     return runs;
   };
-  // Ink a clipping ancestor hides and cannot scroll to.
+  // Ink a clipping box hides and cannot scroll to: the run's own element
+  // first, since a run clipped by its own box is clipped all the same.
   const unreachable = (run) => {
     let worst = 0;
     for (const axis of ["x", "y"]) {
-      for (let n = parentOf(run.el); n && n !== document.documentElement; n = parentOf(n)) {
+      for (let n = run.el; n && n !== document.documentElement; n = parentOf(n)) {
         const cs = getComputedStyle(n);
         const o = axis === "x" ? cs.overflowX : cs.overflowY;
         if (o === "visible") continue;
