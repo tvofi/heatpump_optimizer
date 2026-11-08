@@ -206,10 +206,6 @@ def groups_of(roster: dict) -> dict:
 #: work lives in the group its resume note names.
 ABSORBED_RE = re.compile(r"absorbed into ([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+)")
 
-#: The group that cuts the round's closing stamp; a group after it is post-closure.
-CLOSE_STAMP_MARK = "STAMP-ROUND-MAJOR"
-POST_CLOSE_STEP_RE = re.compile(r"after the .*\b(stamp|closeout)\b", re.I)
-
 
 def is_done(group: dict) -> bool:
     return not roster_lib.is_open(group)
@@ -229,24 +225,6 @@ def absorbers(G: dict) -> dict:
         out[n] = (into, None if into else
                   f"ADVISORY: {n} is absorbed but its resume note names no existing group")
     return out
-
-
-def post_closure_groups(G: dict, open_: set) -> set:
-    """Open groups that run after the round's closing stamp: an owner-step
-    whose next step is "after the ... stamp", a group whose `after` names the
-    closing-stamp group, and every group after one of those."""
-    post = {n for n in open_
-            if (G[n].get("kind") == "owner-step"
-                and POST_CLOSE_STEP_RE.search(str((G[n].get("resume") or {}).get("next_step") or "")))
-            or any(CLOSE_STAMP_MARK in a for a in G[n].get("after") or [])}
-    grew = True
-    while grew:
-        grew = False
-        for n in open_ - post:
-            if any(a in post for a in G[n].get("after") or []):
-                post.add(n)
-                grew = True
-    return post
 
 
 #: Paths that are instruments, CI or records, never the integration (tvofi
@@ -916,7 +894,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     deps, open_, done = dependency_graph(G)
     # Groups after the round's closing stamp are scheduled after it and are
     # neither inside closure nor in any stamp's carries (carries 10, 11).
-    post = post_closure_groups(G, open_)
+    post = roster_lib.post_closure_groups(G, open_)
     open_all = open_
     open_ = open_all - post
     deps_post = {n: deps[n] for n in post}
