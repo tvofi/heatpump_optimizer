@@ -1,0 +1,11 @@
+M1: prelude rc=1 prelude self-test: 65 checks, 5 failed | gate rc=0 gate self-test: 86 checks, 0 failed
+M2: prelude rc=1 prelude self-test: 65 checks, 1 failed | gate rc=0 gate self-test: 86 checks, 0 failed
+M3: prelude rc=1 prelude self-test: 65 checks, 1 failed | gate rc=0 gate self-test: 86 checks, 0 failed
+M4: prelude rc=1 prelude self-test: 65 checks, 1 failed | gate rc=1 gate self-test: 86 checks, 7 failed
+M5: prelude rc=0 prelude self-test: 65 checks, 0 failed | gate rc=1 gate self-test: 86 checks, 2 failed
+M6: prelude rc=0 prelude self-test: 65 checks, 0 failed | gate rc=1 gate self-test: 86 checks, 2 failed
+M7: prelude rc=0 prelude self-test: 65 checks, 0 failed | gate rc=1 gate self-test: 86 checks, 4 failed
+M8: prelude rc=0 prelude self-test: 65 checks, 0 failed | gate rc=1 gate self-test: 86 checks, 1 failed
+R1-waiting_on-drops-pending: prelude rc=0 prelude self-test: 65 checks, 0 failed | gate rc=1 gate self-test: 86 checks, 2 failed
+R2-redispatch-ignores-completed: prelude rc=0 prelude self-test: 65 checks, 0 failed | gate rc=1 gate self-test: 86 checks, 1 failed
+R3-pending-takes-earliest: prelude rc=0 prelude self-test: 65 checks, 0 failed | gate rc=1 gate self-test: 86 checks, 4 failed
