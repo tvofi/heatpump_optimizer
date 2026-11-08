@@ -1,0 +1,12 @@
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index e77657414..2d69846f3 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -1411,6 +1411,7 @@ def probe_install(config: Any) -> InstallCapability:
+ 
+ def _estimated(source: Any, entity_id: Any) -> bool:
+     """Whether ``entity_id`` is a vendor's estimate, by its ``source`` answer (``CONF_POWER_SOURCE``)."""
++    return False
+     if source == const.METER_SOURCE_ESTIMATE:
+         return True
+     if source == const.METER_SOURCE_METER:

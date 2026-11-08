@@ -1,21 +1,25 @@
-### name census at merge base
+== tags
+134
+v4.0.0
+v7.1.5
+v4.0.0 2026-08-26
+v7.1.5 2026-11-07
+== tag containing a63b576cd first
+v4.0.0
+v2.8.0
+a63b576cd 2026-08-26 v4.0.0 T4a: learned-state insurance and drift detectors (#42 #26 #11 #12) (#50)
+df7db8215 2026-08-22 Add feature modules for staleness, power, external heat, tariff, PV and more
+f2ea21dfe 2026-10-24 feat(r10-thermal-power-option): an optional thermal power entity (#1955 fold e)
+3ea1d8d48 2026-10-28 R10-COP-GATE (#2262): COP observability state, latch time, draw pairing
+68dfc752a 2026-10-31 docs: the heat-loss learner's inputs, an estimated power reading, and the reset (R10-USER-DOCS-FINAL)
+== census at MB
 23
-### tags containing a63b576cd
-135
-a63b576cd 2026-08-26 02:09:18 +0200 v4.0.0 T4a: learned-state insurance and drift detectors (#42 #26 #11 #12) (#50)
-2248f64e0 2026-08-26 15:48:03 +0200
-516ad1b6b 2026-11-07 13:27:14 +0100
-### sweep-P5:37
+== sweep-P5:37
 | coordinator.py `_cop_health_cusum` (2912) | not applicable. It is fed a shortfall against an empirical per-bucket, per-curve baseline (lift-normalised), not a model residual. It gates no thermal learner. |
-### D1 lines 10-11
+== D1 10-11
+
 Ways the integration wedges, leaks, races, publishes stale or fabricated data
 as measured, or turns a corrupt input into a permanent failure — under real
-### df7db8215
-df7db8215 2026-08-22 12:45:46 +0200 Add feature modules for staleness, power, external heat, tariff, PV and more
-### capacity default
-### tags excluding v7.1.6
-134
-v7.1.6
-v7.1.5
-### capacity default
-/root/wt/2a3c05644d85/custom_components/heatpump_optimizer/const.py:1027:DEFAULT_CAPACITY_CURVE_ENABLED: Final = False
+Home Assistant semantics, not the test stub's.
+== a63b576cd comment
++        # and low duty, so the baseline inherits every filter for free.

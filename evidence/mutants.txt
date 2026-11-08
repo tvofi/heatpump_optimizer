@@ -1,0 +1,10 @@
+orig: PASS(survived)
+M-a:  v715 doorN doorT
+M-b:  skip
+M-c:  doorN
+M-d:  doorT
+M-e:  doorN
+M-f:  skip
+M-g:  fix v715 skip doorN doorT
+M-h:  fix v715 skip
+M-i: PASS(survived)
