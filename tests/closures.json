@@ -3916,6 +3916,7 @@
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/plan_public.py",
    "tools/audit/seat/postmerge.py",
+   "tools/audit/seat/pr_cap.py",
    "tools/audit/seat/probe_bridge.py",
    "tools/audit/seat/proof_watch.py",
    "tools/audit/seat/prune_refs.py",
@@ -4939,7 +4940,7 @@
   },
   "tests/backtest.py": {
    "rc": 0,
-   "seconds": 151.6
+   "seconds": 61.6
   },
   "tests/block_duty.py": {
    "rc": 0,
@@ -5035,7 +5036,7 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 291.9
+   "seconds": 142.5
   },
   "tests/plan_view.py": {
    "rc": 0,
