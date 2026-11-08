@@ -15433,9 +15433,9 @@
     "The replay lane's `COST_RUNNER_CLASSES` bands miss the runners CI assigns (ref_ms 21.58 to 22.10 on this head's replay, 40.1 on main's 2026-11-05 nightly), so `cycle_cost` refuses with no budget on main and on any head, whatever the diff. This PR neither causes nor fixes it. Carry: R10-REPLAY-COST-BUDGET [dismissed: duplicate of carry 3, implemented by PR 3234 80016a71; prune P3, tvofi 2026-11-07]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-replay-cost-budget",
-    "commit": "80016a71",
+    "commit": "80016a71f",
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-REPLAY-REAL-DAY",
