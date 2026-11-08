@@ -1295,13 +1295,6 @@ def self_test() -> int:
     # stub transport; the stubs count calls and the sleeps are recorded.
     import urllib.error
 
-    class _Resp(io.BytesIO):
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *exc):
-            return False
-
     def rest(queue):
         calls, sleeps = [], []
 
@@ -1310,7 +1303,7 @@ def self_test() -> int:
             item = queue.pop(0) if queue else b'{"ok": 1}'
             if isinstance(item, BaseException):
                 raise item
-            return _Resp(item)
+            return io.BytesIO(item)  # urlopen's answer is a context manager too
         try:
             got = get_rest("repos/o/r/x", opener=opener, sleep=sleeps.append)
         except Exception as exc:  # noqa: BLE001 -- the refusal is the observation
@@ -1352,6 +1345,8 @@ def self_test() -> int:
 
         def run(argv, **kw):
             calls.append(argv)
+            if not (kw.get("text") is True and kw.get("capture_output") is True and kw.get("cwd") == ROOT):
+                raise AssertionError(f"get_gh must read text, captured, at the root: {kw}")
             rc, err = queue.pop(0) if queue else (0, "")
             return subprocess.CompletedProcess(argv, rc, '{"ok": 1}' if rc == 0 else "", err)
         try:
@@ -1372,6 +1367,11 @@ def self_test() -> int:
           isinstance(got, subprocess.CalledProcessError) and len(calls) == 4 and sleeps == [5, 15, 45])
     check("carry 6: and tests_gate's last-line detail names the last error and the count",
           got.stderr.splitlines()[-1] == "gh: HTTP 502 (after 4 attempts)")
+    fresh = subprocess.run([sys.executable, "-I", "-c", "import sys; sys.path.insert(0, sys.argv[1]); "
+                            "import stamp; print(stamp.read_rule().READ_TRIES)", str(ROOT / "tools" / "release")],
+                           capture_output=True, text=True)
+    check("carry 6: a fresh interpreter finds gh_read through read_rule alone",
+          fresh.returncode == 0 and fresh.stdout.strip() == "4")
 
     # The tag-push fallback is a control-flow contract, so it is pinned by
     # reading this file: a failed tag push must not raise past the caller,

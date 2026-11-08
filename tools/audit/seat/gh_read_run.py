@@ -29,7 +29,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import gh_read  # noqa: E402  the one read rule
 
 
-def read(argv, run=subprocess.run, sleep=time.sleep, out=sys.stdout, err=sys.stderr) -> int:
+def read(argv, run=subprocess.run, sleep=time.sleep, out=None, err=None) -> int:
+    out, err = out or sys.stdout, err or sys.stderr
     if not gh_read.is_read(argv):
         print(f"gh_read_run: not a read, so not run: {' '.join(argv)}", file=err)
         return 2
@@ -66,6 +67,8 @@ def self_test() -> int:
 
         def run(a, **kw):
             calls.append(list(a))
+            if not (kw.get("text") is True and kw.get("capture_output") is True):
+                raise AssertionError(f"a read is run as text, its output captured: {kw}")
             rc, text = queue.pop(0) if queue else (0, "")
             return subprocess.CompletedProcess(a, rc, '{"ok"}\n' if rc == 0 else "partial\n", text)
         rc = read(list(argv), run=run, sleep=sleeps.append, out=out, err=err)
@@ -104,6 +107,13 @@ def self_test() -> int:
     check("a field-carrying gh api is a write: exit 2 after 0 calls", rc == 2 and n == 0)
     rc, n, *_ = drive([], ("git", "fetch", "origin"))
     check("a command that is not gh is not run: exit 2 after 0 calls", rc == 2 and n == 0)
+    err = io.StringIO()
+    saved, sys.stderr = sys.stderr, err
+    try:
+        rc = main(["gh", "api", "-X", "POST", "repos/o/r/issues/1/comments"])
+    finally:
+        sys.stderr = saved
+    check("main hands any other argv to read: a write exits 2, never run", rc == 2 and "not a read" in err.getvalue())
     print(f"gh_read_run self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
