@@ -19,7 +19,7 @@ R10-GENERIC-HEAT-CURVE, kind `offset` (design option (a)): the heat-curve displa
 
 **Toolchain.** `bash tools/audit/seat/cloud-setup.sh` then `--check`: OK, python3 is venv-ci's; numpy 2.5.4 and scipy 1.18.1, matching `tests/requirements-ci.txt`.
 
-**Conflict-resolution round (this head): a merge of `origin/main` `2a3c05644d85b7ee5c2c314fde5aca950e4aba91` (v7.1.6), nothing else.** The merge train refused the recarry at `32e5c520d0aa57c5474e1ec0ee121fa26447a8a8` (`MERGE-CLAIM: refused tests/golden/claimed_drift.txt`: main restamped the claims for 7.1.6 while this branch carried 7.1.5's). Code, tests and the answers to fix review 1 below are unchanged since `32e5c520d`.
+**Conflict-resolution round (head `2eb13559c`): a merge of `origin/main` `2a3c05644d85b7ee5c2c314fde5aca950e4aba91` (v7.1.6), nothing else.** The merge train refused the recarry at `32e5c520d0aa57c5474e1ec0ee121fa26447a8a8` (`MERGE-CLAIM: refused tests/golden/claimed_drift.txt`: main restamped the claims for 7.1.6 while this branch carried 7.1.5's). Code, tests and the answers to fix review 1 below are unchanged since `32e5c520d`.
 
 **Repair round (previous head `070cff63d`): fix review 1 of PR 3299, blocked at `f00e035b5ad61373bd4315d7a8d12ccc73029c76`.** Built on the PR head `c93e293fdd20fb9b3f159f98c2d264dd1b988612` (the mutation-autofix bot's `ci: pin killed mutants` on `f00e035b`). Four commits, each answering below.
 
@@ -42,9 +42,43 @@ R10-GENERIC-HEAT-CURVE, kind `offset` (design option (a)): the heat-curve displa
 
 ## Head
 
-`93fd91607bd3de2c454f86829cafde0757d0b6d9`. It is the reviewed head `85ba6cda83898bb3fcc1dee71432c1622f14a72e` plus `0a0a7153c` (merge of `origin/main` `cb5512741638029289deb392b30bc246fa667387`, VERSION 7.1.7) and `93fd91607` (the D6 claims records regenerated). The merge train refused `85ba6cda8` ("main does not merge without a resolution"). No production line changes in this delta.
+**Resolution note: `tests/golden/claimed_drift.txt`, resolved by hand to main's file plus this PR's one claim line.** The head is `678bce461c2599bfea735e36d7f2e599e088ed47`. It is the previous handoff tip `93fd91607bd3de2c454f86829cafde0757d0b6d9` (the reviewed head `85ba6cda83898bb3fcc1dee71432c1622f14a72e` plus the v7.1.7 resolution below) plus two merge commits. The first, `c7f657610`, merges `origin/main` `17e621f08c4feec724478573741fbd8b596ceaba` (VERSION 7.1.8, stamped at `996ded2a6`) and carries the resolution below. The second, `678bce461`, merges `origin/main` `51cd5ec8a42abde3c223f22e9f4a0d5f35f8844a`, because main moved during the first prepr run. That merge had no conflict: `tests/closures.json` was resolved by its ledger driver (`LEDGER-MERGE: resolved`), every other file auto-merged, and it touches neither claim file. No production, test or document line of this PR changes in this delta.
 
 ### Resolution delta (for the delta review)
+
+Why: the v7.1.8 stamp emptied main's claim list and set `# claims-for: 7.1.8`; `93fd91607` still carried `claims-for: 7.1.7` and two claim lines, so `git merge-tree origin/main 93fd91607` refused (`MERGE-CLAIM: refused tests/golden/claimed_drift.txt`, `CONFLICTING CLAIMS: ... different 'claims-for:' stamps`).
+
+`python3 tests/env_drift.py --install-merge-driver` (`MERGE-CLAIM: already-installed`), then `git merge origin/main`: one conflict, `tests/golden/claimed_drift.txt`; every other file auto-merged. The conflict hunk had main's side empty and the branch's side holding two lines. Resolved:
+- Main's file kept byte-for-byte outside the hunk: `# claims-for: 7.1.8` (equal to `VERSION` 7.1.8) and main's v7.1.8 note.
+- Kept: `config_flow # R10-GENERIC-HEAT-CURVE: ...`, this PR's own claim, unchanged in text.
+- Dropped: `config_flow # R10-MIN-POWER-FLOOR (#3289): ...`. #3289 wrote it, not this PR; the 93fd916 round carried it in from main, and the v7.1.8 stamp has released it.
+
+Read back against both parents: `git diff origin/main HEAD -- tests/golden/claimed_drift.txt` is exactly one added line, the R10-GENERIC-HEAT-CURVE claim; `git diff 93fd91607 HEAD -- tests/golden/claimed_drift.txt` is the stamp `7.1.7 -> 7.1.8`, main's note line, and the R10-MIN-POWER-FLOOR line removed, nothing else. At `678bce461`, three-dot, `git diff --numstat $(git merge-base origin/main HEAD)...HEAD -- tests/golden/` (merge base `51cd5ec8a`): `1 0 tests/golden/claimed_drift.txt` and `62 1 tests/golden/config_flow.json` (the branch's own recorded fixture), and the one `+` line of the claim file is the R10-GENERIC-HEAT-CURVE claim. `cmp` of `tests/golden/card_claimed_drift.txt` against `origin/main`'s: byte-identical (this PR claims no card drift). `git merge-tree --write-tree origin/main HEAD` exits 0.
+
+The other files the merge brought in are main's own. `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js`, `dev/audit/rounds/round4/D6/claims.json` and `claims.md` auto-merged. `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` on the merged tree leaves `git status` clean, so the D6 records are the generator's output. The same holds for the semantic count the 93fd916 round had to regenerate.
+
+### Claim checks and null controls
+
+- `python3 tests/env_drift.py --claims-only origin/main` at `c7f657610` and again at `678bce461`: `claims hygiene: origin/main ok`, rc=0. It checks: `claims-for:` equals VERSION, no inherited list, no fixture both claimed and may-drift, may-drift coverage.
+- Null control at main: the same command in a detached worktree of `origin/main` `17e621f08`: `claims hygiene: origin/main ok`, rc=0.
+- Null control, a stale stamp (at `c7f657610`): the merged file with `# claims-for: 7.1.7` put back: `STALE CLAIM FILE: tests/golden/claimed_drift.txt declares claims for v7.1.7 but this tree is v7.1.8`, rc=1. So the stamp arm refuses.
+- Null control, the R10-MIN-POWER-FLOOR line put back above this PR's line (at `c7f657610`): `claims hygiene: origin/main ok`, **rc=0, not refused**. The brief predicted an inherited-claims refusal here, and it does not happen. `inherited_claims_error` (tests/env_drift.py) refuses only a parsed claim list *equal* to the fork point's. #1255's multi-value map makes a list that adds a line beside the baseline's a rewrite, not an inheritance. At this head the fork point is `origin/main`, whose list is empty, so no non-empty list can equal it. The line was dropped on the claim-files.md rule (a line excuses only the diff that wrote it), not because a guard refuses it. No `config_flow`-level check would catch it, because both lines claim the one scenario that does drift. Carry: dismissed: a guard limit stated here, not filed; a per-line authorship check would need the stamp history and is the orchestrator's call
+
+### Figures at this head (`678bce461`, origin/main `51cd5ec8a`, unless named)
+
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. No budget file touched.
+- `PYTHONPATH=tests/hastub python3 tests/golden.py --only config_flow`: ALL 1 GOLDEN SCENARIOS UNCHANGED, so the merged `config_flow.json` is the merged render.
+- `python3 tests/env_drift.py --all $(git merge-base origin/main HEAD)` at `c7f657610` (merge base `17e621f08`): NO UNCLAIMED DRIFT, 56 scenarios; NO STALE FIXTURE, 56 committed fixtures. So the one remaining claim line still covers the `config_flow` drift this branch records.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` at `c7f657610`: ALL 2668 ENTITY CHECKS PASSED, rc=0. The three workflow-step probes the earlier rounds saw fail on their host pass on this one.
+- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>`: `MODE: SCOPED -- 30 script(s) run, 3 scoped out`, over the PR's 107 changed files. This delta changes one non-production line, so the 30 scripts are left to CI.
+- `MUTANT_CMD='env PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py' PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>` at `c7f657610`: `PRE-PR: c7f657610b5112ba2059b3d0104fd5cbdc16a811 ... rc=0`, finished 2026-11-08T20:20:26Z. Step 6d: the diff adds no unpinned mutation site; its diff mutants: 31 survivors, the same count and driver as the previous round's, all dispositioned under `## Unpinned sites`. `ci predict`: no red predicted against `17e621f08`. Closures were skipped (`PREPR_SKIP_CLOSURES=1`, allowed in the cloud); its null control at main is CI's `tests / closures` on main's push run. `origin/main` then read `51cd5ec8a` (`date -u` 2026-11-08T20:20:36Z), so it was merged (`678bce461`) and prepr was run again: the same command at `678bce461`: `PRE-PR: 678bce461c2599bfea735e36d7f2e599e088ed47 ... rc=0`, finished 2026-11-08T20:51:13Z. Step 6d: no unpinned site added, 31 diff-mutant survivors; `ci predict`: no red predicted against `51cd5ec8a`; merged structure: STRUCTURE RATCHET PASSED. Re-fetched afterwards, `origin/main` was still `51cd5ec8a` (`date -u` 2026-11-08T20:53:34Z), so no third run was owed.
+- `python3 tests/env_drift.py --all $(git merge-base origin/main HEAD)` at `678bce461` (merge base `51cd5ec8a`): NO UNCLAIMED DRIFT, 56 scenarios; NO STALE FIXTURE, 56 committed fixtures, rc=0.
+
+### The v7.1.7 resolution round (`93fd91607`)
+
+`93fd91607bd3de2c454f86829cafde0757d0b6d9`. It is the reviewed head `85ba6cda83898bb3fcc1dee71432c1622f14a72e` plus `0a0a7153c` (merge of `origin/main` `cb5512741638029289deb392b30bc246fa667387`, VERSION 7.1.7) and `93fd91607` (the D6 claims records regenerated). The merge train refused `85ba6cda8` ("main does not merge without a resolution"). No production line changes in this delta.
+
+#### Its resolution delta
 
 `git merge origin/main` with the `claimnotes` driver installed (`python3 tests/env_drift.py --install-merge-driver`: already-installed) conflicted in two files; every other file auto-merged.
 
@@ -165,7 +199,7 @@ Reds in this branch's ancestry, as answered at `e330a7681c5b5e4ac416e0b8ed4270a8
 - `pr-contract / pr-contract`: class own, `## Red checks` did not name the four `tests / *` reds. Answer: this section names each. Its cheaper detector, `prepr.sh --body-check`, ran clean at this head.
 Final run: `MUTANT_CMD=<above> PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>` at this head: `PRE-PR: 2eb13559c988cf1190306ee023863b87263adb5b ... rc=0`, with the same 18 diff-mutant survivors (Figures) and the 3 unpinned sites (`## Unpinned sites`).
 
-The claim file differs from origin/main `2a3c05644` by the branch's own `config_flow` line, carried since the round that recorded the fixture and restated under main's `claims-for: 7.1.6` by this round's merge (`## Head`). This round claims nothing new; `card_claimed_drift.txt` is main's.
+The claim file differs from origin/main `17e621f08` by the branch's own `config_flow` line, carried since the round that recorded the fixture and restated under main's `claims-for: 7.1.8` by this round's merge (`## Head`). This round claims nothing new; `card_claimed_drift.txt` is main's.
 
 ## Forward-carry
 
@@ -196,7 +230,7 @@ ghc-03 and ghc-04 stay as the note disposed of them (a D6 and a D5 round's); unt
 
 ## Unpinned sites
 
-The three sites prepr step 6d lists as added with no pin at this head. Each is under `custom_components/`, which `mutation-autofix` mutates.
+The three sites prepr step 6d listed as added with no pin at `2eb13559c`. At this head step 6d lists none ("the diff adds no unpinned mutation site"). Each is under `custom_components/`, which `mutation-autofix` mutates.
 - custom_components/heatpump_optimizer/heat_curve.py:99 RETURN_DEL: pinned by mutation-autofix; killed here by M3 (the callback not registered), 4 failing checks in the R10-GENERIC-HEAT-CURVE block of tests/features.py
 - custom_components/heatpump_optimizer/off_restore.py:173 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (the R10 block stops on the TypeError for the stand-in consumers with no callback, rc=1; M2 is the inverted form)
 - custom_components/heatpump_optimizer/config_flow.py:2193 RETURN_DEL: pinned on the seat by `mutation_table.py --pin-killed` (`20ceaf9dd`), killed by tests/config_flow_steps.py (the direct `_heat_curve_errors` rows, 2 FAILED under the mutant). The previous body's `tests/typing_ruler.py` disposition was wrong: CI's drive left it alive.
