@@ -54,7 +54,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-I18N-DE (stage in-progress, branch `handoff/r10-i18n-de`): `git fetch origin handoff/r10-i18n-de && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GENERIC-HEAT-CURVE (stage in-progress, branch `handoff/r10-generic-heat-curve`): `git fetch origin handoff/r10-generic-heat-curve && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-MIN-POWER-FLOOR (stage in-progress, branch `handoff/r10-min-power-floor`): `git fetch origin handoff/r10-min-power-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FRICTION-OTHER-FAMILY (stage in-progress, branch `handoff/r10-friction-other-family`): `git fetch origin handoff/r10-friction-other-family && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FRICTION-OTHER-FAMILY (stage carries-open, branch `handoff/r10-friction-other-family`): `git fetch origin handoff/r10-friction-other-family && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-COP-UNMEASURED (stage in-progress, branch `handoff/r10-rca-cop-unmeasured`): `git fetch origin handoff/r10-rca-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-KEYED-MERGE-DRIVERS (stage refused): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-NONREQUIRED-REDS (stage in-progress): no branch pushed yet, so nothing to fetch
