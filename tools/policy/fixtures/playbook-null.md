@@ -8,6 +8,7 @@ path resolves in the tree, as a directory, or at the cited commit d5d8c4a.
 | stamps | `tools/release/stamp.py --push --push-key` | `dev/governance/roles/orchestrator.md` |
 | beat | `tools/audit/seat/beat_jobs.py` | `dev/governance/roles/standing-tick.md` |
 | seats | `tools/audit/seat/` | `fixer.md` |
+| beat entry | `tools/audit/seat/beat_jobs.py:12` | `standing-tick.md` |
 | state docs | `tools/audit/seat/state_docs.py` | `standing-tick.md` |
 | archive | `tools/audit/round2/JUDGE.md` at d5d8c4a | -- |
 

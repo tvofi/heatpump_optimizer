@@ -1,6 +1,6 @@
 # Playbook fixture (renamed and removed instruments)
 
-brief_lint.mjs's playbook arm must refuse this file four times (the fourth is the stated open-PR cap in the last line): the stamp renamed, the beat job removed and the state-doc pusher moved to another directory; every other backticked
+brief_lint.mjs's playbook arm must refuse this file six times (the sixth is the stated open-PR cap in the last line): the stamp renamed, the beat job removed, the state-doc pusher moved to another directory, a seat directory renamed, and a renamed instrument cited at a line; every other backticked
 path resolves in the tree, as a directory, or at the cited commit d5d8c4a.
 
 | phase | instrument | contract |
@@ -8,6 +8,8 @@ path resolves in the tree, as a directory, or at the cited commit d5d8c4a.
 | stamps | `tools/release/stamp_renamed.py --push --push-key` | `dev/governance/roles/orchestrator.md` |
 | beat | `tools/audit/seat/no_such_beat.py` | `dev/governance/roles/standing-tick.md` |
 | seats | `tools/audit/seat/` | `fixer.md` |
+| seat dir | `tools/audit/seatz/` | `fixer.md` |
+| beat entry | `tools/audit/seat/beat_jobz.py:12` | `standing-tick.md` |
 | state docs | `tools/pr/state_docs.py` | `standing-tick.md` |
 | archive | `tools/audit/round2/JUDGE.md` at d5d8c4a | -- |
 
