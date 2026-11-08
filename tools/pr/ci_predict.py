@@ -1234,15 +1234,21 @@ def main(argv: list[str] | None = None) -> int:
                f"above the rest" if inert else
                "the lines above name each arm's repair")
         boot = sum(1 for j, l in preds if is_red(j, l) and "BOOTSTRAP:" in l)
-        tail = ("repair before the handoff; " if boot < reds else "") + who
-        print(f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
-              f"against {base[:12]} -- {tail}" + (f" ({boot} BOOTSTRAP: split or move, not repair)" if boot else ""))
+        print(summary_line(reds, boot, jobs, base, who))
     else:
         ran = args.record_self_tests or args.only == "self-test-reads"
         seen = (" unless a changed file's own self-test makes it" if ran else "")
         print(f"CI PREDICT: no closures, fast, governance or instrument red predicted against "
               f"{base[:12]} (a data-file read is not seen{seen})")
     return rc
+
+
+def summary_line(reds: int, boot: int, jobs, base: str, who: str) -> str:
+    """The closing line over `reds` predicted reds, `boot` of them BOOTSTRAP
+    (the refusing program is itself in the diff: split or move, not repair)."""
+    tail = ("repair before the handoff; " if boot < reds else "") + who
+    return (f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
+            f"against {base[:12]} -- {tail}" + (f" ({boot} BOOTSTRAP: split or move, not repair)" if boot else ""))
 
 
 def wiring_self_test(root: Path) -> int:
@@ -1455,7 +1461,8 @@ def graders_self_test(root: Path) -> int:
     runs = {run_key(*r) for t in texts for r in pinned_runs(t, root)}
     made = {run_key(j, p, a) for _, j, t in homes.values() for p, a in grader_runs(t, root, j)}
     want = {("policy-docs", "policy_lint.mjs"), ("policy-docs", "policy_lint.mjs", "--hooks"),
-            ("wave-script", "check-wave-script.mjs"), ("env-matrix", "policy_lint_envmatrix.mjs")}
+            ("wave-script", "check-wave-script.mjs"), ("env-matrix", "policy_lint_envmatrix.mjs"),
+            ("pr-contract", "preflight.sh")}
     ck("the arm makes every pinned run but the agreement arm's and the exempt", made == runs - AGREEMENT_RUNS -
        GRADER_EXEMPT.keys() and want <= made and not made & (AGREEMENT_RUNS | GRADER_EXEMPT.keys()), str(made))
     ck("every pinned run line is runnable as CI runs it (null control: no gap)", grader_gaps(texts) == [],
@@ -1557,9 +1564,80 @@ def graders_self_test(root: Path) -> int:
             else:
                 ok = ok and not nl
             ck(label, ok, str((got, nl)))
+        # The pr-contract-shaped stand-ins: a body-fed stdin redirect, the $INTENDED list, a stdout redirect,
+        # the event tokens, a partial run whose missing input is no verdict, and a run with no body to read.
+        fourth = ("jobs:\n  gate:\n    steps:\n"
+                  "      - name: Restore the check source from the base commit\n        run: |\n"
+                  '          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \\\n'
+                  "            'p/*.py' 'p/*.sh' > \"$RUNNER_TEMP/pinned.list\"\n"
+                  "      - name: Grade\n        run: |\n"
+                  "          bash p/pre.sh $INTENDED < /tmp/pr-body.md\n"
+                  '          python3 -I p/lint.py --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \\\n'
+                  '            --author "$(cat /tmp/pr-author.txt)" > out.txt\n'
+                  '          python3 -I p/rev.py --head "$PR_HEAD"\n          python3 -I p/plain.py --head "$PR_HEAD"\n')
+        lint = ("import sys\na = sys.argv[1:]\nv = lambda f: a[a.index(f) + 1] if f in a else '-'\n"
+                "print('ERROR lint head=%s title=%s author=%s body=%s stray=%s' % (v('--head'), v('--title'), "
+                "v('--author'), open(v('--pr-body')).read().split()[0], [x for x in a if x in ('>', 'out.txt') or '$' in x]))\n"
+                "sys.exit(1)\n")
+        pfiles = {**base_files, ".github/workflows/fourth.yml": fourth, "p/lint.py": lint,
+                  "p/pre.sh": "echo \"ERROR pre args=[$*] stdin=[$(timeout 5 cat)]\"\nexit 1\n",
+                  "p/rev.py": "import sys\nprint('ERROR reviews could not be read')\nsys.exit(1)\n",
+                  "p/plain.py": "import sys\nprint('ERROR plain refusal')\nsys.exit(1)\n"}
+        g["GRADER_PARTIAL"][("gate", "rev.py", "--head")] = "the live reviews (self-test stand-in)"
+        bodyfile = tmp / "body.md"
+        bodyfile.write_text("Closes #7 and fixes #9\n")
+        for n, with_body in (("pr-with-body", True), ("pr-no-body", False)):
+            r = tmp / n
+            env = throwaway_git_init(r, "-q", "-b", "main")
+
+            def run(*a):
+                return subprocess.run(a, cwd=r, env=env, capture_output=True, text=True)
+            for p, text_ in pfiles.items():
+                (r / p).parent.mkdir(parents=True, exist_ok=True)
+                (r / p).write_text(text_)
+            run("git", "add", "-A")
+            run("git", "commit", "-qm", "base")
+            tip = run("git", "rev-parse", "HEAD").stdout.strip()
+            for p in pfiles:
+                if p.startswith("p/"):
+                    (r / p).write_text(pfiles[p] + ("# a comment\n" if p.endswith(".py") else ""))
+            (r / "p/pre.sh").write_text(pfiles["p/pre.sh"] + "# a comment\n")
+            run("git", "add", "-A")
+            run("git", "commit", "-qm", "pr-contract stand-ins")
+            head = run("git", "rev-parse", "HEAD").stdout.strip()
+            nl: list[str] = []
+            got = [l for j, l in grader_preds(r, tip, str(bodyfile) if with_body else None, nl) if j == "gate"]
+            find = lambda prog: next((l for l in got if f"GRADER {prog}" in l), "")
+            if with_body:
+                ck("a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body",
+                   "args=[7 9] stdin=[Closes #7 and fixes #9]" in find("pre.sh"), str(got))
+                ck("the event tokens are stood in (head, title, author), the stdout redirect is not an argument",
+                   f"head={head} title=pr-contract stand-ins author=hpo-author[bot] body=Closes stray=[]" in find("lint.py")
+                   and "BOOTSTRAP:" in find("lint.py"), find("lint.py"))
+                ck("a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is)",
+                   not find("rev.py") and "plain refusal" in find("plain.py")
+                   and any(l.startswith("GRADER PARTIAL gate: rev.py") for l in nl), str((got, nl)))
+                keys_ = restoring_jobs(r).keys()
+                ck("two workflows sharing a job name are keyed `<stem>/<job>` apart",
+                   {"third/gate", "fourth/gate"} <= keys_ and "gate" not in keys_, str(sorted(keys_)))
+            else:
+                ck("a run reading the body is skipped, noted, never passed, with no body to read (null control: the "
+                   "run that reads none still runs)", not find("pre.sh") and not find("lint.py") and "plain refusal" in find("plain.py")
+                   and all(any(l.startswith(f"GRADER SKIPPED gate: {x} ") for l in nl) for x in ("pre.sh", "lint.py")), str((got, nl)))
+        prc = next(t for _, j, t in homes.values() if j == "pr-contract")
+        ck("pr-contract's code-scanning wait grades no file and is exempt (null control: its preflight run is graded)",
+           ("pr-contract", "codescan_wait.py", "--pr", "--base") in GRADER_EXEMPT
+           and not any(Path(p).name == "codescan_wait.py" for p, _ in grader_runs(prc, root, "pr-contract"))
+           and any(Path(p).name == "preflight.sh" for p, _ in grader_runs(prc, root, "pr-contract")))
+        ck("the closing line owes no repair when every red is a BOOTSTRAP (null control: one repairable red does)",
+           "repair before the handoff" not in summary_line(2, 2, ["x"], "abc", "w")
+           and "(2 BOOTSTRAP: split or move, not repair)" in summary_line(2, 2, ["x"], "abc", "w")
+           and "repair before the handoff" in summary_line(2, 1, ["x"], "abc", "w")
+           and "BOOTSTRAP" not in summary_line(1, 0, ["x"], "abc", "w"))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     GRADER_PARTIAL.pop(("gate", "gate2.py", "--base", "--head", "--pr"), None)
+    GRADER_PARTIAL.pop(("gate", "rev.py", "--head"), None)
     real = g["grader_preds"]
     g["grader_preds"] = lambda _root, _base, *_a: [("policy-docs", "GRADER sentinel")]
     try:
