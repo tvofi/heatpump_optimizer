@@ -32,6 +32,11 @@ line (`git log --first-parent --format='%h %s' v7.0.0..origin/main | grep ' v7\.
   is a dated snapshot, not the path. The resume, plan table and next-session
   prompt under `handoff/round10/state/` on `origin/handoff/audit-r10-plan` are
   generated from the roster by `tools/audit/seat/state_docs.py`.
+- **The round's plan page is public** at
+  `https://tvofi.github.io/heatpump_optimizer/plan/`: `.github/workflows/pages.yml`
+  publishes it through `tools/audit/seat/plan_public.py` after each state push
+  of the beat's `plan-beat` row. An outside submission on the roster is answered
+  with that link by `tools/audit/seat/outside_intake.py answer`.
 - **Done for round 10** (tvofi, 2026-10-25, verbatim): "run the full programme
   to completion (no owed handoffs, no deferred findings, no deferred leads, no
   open roster groups, no issues open except 201, nothing deferred to round

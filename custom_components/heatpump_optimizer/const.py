@@ -802,6 +802,20 @@ DEFAULT_FLOW_HEAT_C: Final = 55.0
 #: ``false`` keeps the duty-cycle reading on a switch-plus-setpoint
 #: install. Absent follows the install probe (#1955).
 CONF_CLAMP_PLANNED_LEVELS: Final = "clamp_planned_levels"
+#: Whether the compressor can run below its minimum power (#3289). ``on_off``
+#: plans every step at 0 or between min and max power; ``modulating`` keeps a
+#: level below the minimum as a duty-cycle average; ``auto`` (the default, same
+#: as absent) follows ``clamp_planned_levels``, then the install probe.
+CONF_COMPRESSOR_MODULATION: Final = "compressor_modulation"
+COMPRESSOR_MODULATION_AUTO: Final = "auto"
+COMPRESSOR_MODULATION_ON_OFF: Final = "on_off"
+COMPRESSOR_MODULATION_MODULATING: Final = "modulating"
+COMPRESSOR_MODULATIONS: Final = (
+    COMPRESSOR_MODULATION_AUTO,
+    COMPRESSOR_MODULATION_ON_OFF,
+    COMPRESSOR_MODULATION_MODULATING,
+)
+DEFAULT_COMPRESSOR_MODULATION: Final = COMPRESSOR_MODULATION_AUTO
 CONF_DHW_DAILY_CONSUMPTION: Final = "dhw_daily_consumption"  # liters/day
 # How fast the tank cools when nothing is drawn, expressed at a reference
 # condition so it stays meaningful regardless of tank size. Self-learned at
