@@ -214,23 +214,35 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
              "Run anything heavy in "
              "the background with Monitor and no timeout. " + WAIT_LINE)
     if role == "reviewer":
+        # DISPATCH AT THE HANDOFF (Carry 0): no pull request exists yet, so the reviewer reads the
+        # body at handoff-body/<topic>, renders no packet and waits on no CI, and returns its
+        # verdict on probe/revt-<topic>-<nonce8> as `verdict <topic> <head>`; the relay holds it
+        # until open_pr.sh re-keys the dispatch to the PR (bus.sh rekey) and the carry check passes.
+        at_handoff = not pr
+        subj_key = topic if at_handoff else pr
+        ref_key = f"revt-{topic}" if at_handoff else f"rev-{pr}"
+        where = (f"the body is BODY.md at refs/heads/handoff-body/{topic} (`git fetch origin handoff-body/{topic}`), "
+                 "and no pull request exists yet. There is no review packet and no CI to wait on before the PR "
+                 "opens: say so in the verdict's evidence. " if at_handoff else
+                 "the PR body is in the PR. Start from the review packet, which you render here rather than read from the "
+                 "dispatcher, whose copy is a path on its own machine: "
+                 f"`python3 -I tools/audit/seat/review_packet.py render --pr {pr} --head {head} "
+                 "--out $HOME/review-packet.md`. A refusal names its signal and the packet is still "
+                 "written unless the signal is `host-path`; re-read the live checks either way. ")
+        wait_ci = ("\n" if at_handoff else
+                   "Wait for CI on this head only by re-running "
+                   f"`python3 tools/audit/seat/merge_train.py classify {head} --pr {pr}` in the background, at least "
+                   "60 s between runs, until it exits 0 (GREEN), 1 (RED), 2 (unreadable: say so in the verdict) "
+                   "or 4 (APPROVAL-OWED: the only red is the budget raise's approval, which follows your verdict; "
+                   "judge the head as GREEN and quote the line); 3 is WAIT, so run it again. Never wait with `pgrep` or `pkill`, whose `-f` pattern matches "
+                   "the waiter's own command line, nor on a context the ruleset does not require, such as "
+                   "`prelude`.\n")
         body = (
             "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
-            f"exactly. Fetch the PR head with `git fetch origin {head}`; the PR body is in the PR. "
-            "Start from the review packet, which you render here rather than read from the "
-            "dispatcher, whose copy is a path on its own machine: "
-            f"`python3 -I tools/audit/seat/review_packet.py render --pr {pr} --head {head} "
-            "--out $HOME/review-packet.md`. A refusal names its signal and the packet is still "
-            "written unless the signal is `host-path`; re-read the live checks either way. "
+            f"exactly. Fetch the {'handoff' if at_handoff else 'PR'} head with `git fetch origin {head}`; " + where +
             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
             "every figure in the body at this head. Check that it merges with origin/main "
-            "(`git merge-tree --write-tree`). Wait for CI on this head only by re-running "
-            f"`python3 tools/audit/seat/merge_train.py classify {head} --pr {pr}` in the background, at least "
-            "60 s between runs, until it exits 0 (GREEN), 1 (RED), 2 (unreadable: say so in the verdict) "
-            "or 4 (APPROVAL-OWED: the only red is the budget raise's approval, which follows your verdict; "
-            "judge the head as GREEN and quote the line); 3 is WAIT, so run it again. Never wait with `pgrep` or `pkill`, whose `-f` pattern matches "
-            "the waiter's own command line, nor on a context the ruleset does not require, such as "
-            "`prelude`.\n"
+            "(`git merge-tree --write-tree`). " + wait_ci +
             f"Output: in a fresh directory of your own (`W=$(mktemp -d)`), write verdict.md, whose first line is "
             f"exactly `Fix review: merge {head}` or `Fix review: blocked {head} <class>: <reason>` (no brackets; "
             f"the class is lower-case letters and dashes), in the format the role file gives, "
@@ -254,8 +266,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"`R=$(git rev-parse --show-toplevel); G=$(git rev-parse --absolute-git-dir); mkdir -p $W/pr && "
             f"cp -r $W/verdict.md $W/ev $W/pr/ && cd $W/pr && T=$(GIT_DIR=$G GIT_INDEX_FILE=$W/idx GIT_WORK_TREE=$W/pr "
             f"sh -c 'git add -A -f . && git write-tree') && C=$(GIT_DIR=$G git -c user.name={SEAT_NAME} "
-            f"-c user.email={SEAT_EMAIL} commit-tree $T -m \"verdict {pr} {head}\") && "
-            f"git -C $R push -q origin $C:refs/heads/probe/rev-{pr}-{nonce.strip()[:8]}`. "
+            f"-c user.email={SEAT_EMAIL} commit-tree $T -m \"verdict {subj_key} {head}\") && "
+            f"git -C $R push -q origin $C:refs/heads/probe/{ref_key}-{nonce.strip()[:8]}`. "
             "That ref is the return signal. Do not post comments, approve or merge.")
     elif role == "fixer":
         body = (
@@ -322,8 +334,10 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
     if role == "reviewer":
         if not nonce.strip():
             raise Refusal("a reviewer needs a non-empty bus nonce")
-        if not pr.isdigit():
-            raise Refusal("a reviewer needs --pr <number>")
+        if not pr and topic.strip() and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", topic):
+            pass  # a reviewer at the handoff: the topic keys the dispatch until the PR opens
+        elif not pr.isdigit():
+            raise Refusal("a reviewer needs --pr <number> (or --topic <t>, a reviewer at the handoff before the PR opens)")
     elif not topic.strip() or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", topic):
         raise Refusal("a fixer, probe or design seat needs --topic (letters, digits, . _ -)")
     if role == "design-reviewer" and not is_head(design or ""):
@@ -1146,7 +1160,20 @@ def self_test() -> int:
     check("a non-hex head is refused", refused(h="g" * 40))
     check("an empty reviewer nonce is refused", refused(nonce=""))
     check("a blank reviewer nonce is refused", refused(nonce="  "))
-    check("a reviewer without --pr is refused", refused(pr=""))
+    check("a reviewer with neither --pr nor --topic is refused", refused(pr="", topic=""))
+    check("a reviewer's --pr must be a number when it is given", refused(pr="x7"))
+    # CARRY 0: a reviewer at the handoff, before the pull request exists, keyed by the topic.
+    def reviewer_text(**kw):
+        a = {**base, "nonce": "abcd1234" * 4, **kw}
+        return render("reviewer", head, **a)["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
+    hand, pull = reviewer_text(pr="", topic="t-1"), reviewer_text(pr="7", topic="t-1")
+    check("a reviewer at the handoff returns on probe/revt-<topic>-<nonce8> with the subject `verdict <topic> <head>`",
+          "refs/heads/probe/revt-t-1-abcd1234" in hand and f'-m \"verdict t-1 {head}\"' in hand)
+    check("and reads the body at handoff-body/<topic>, renders no packet and waits on no CI",
+          "handoff-body/t-1" in hand and "review_packet.py render" not in hand and "merge_train.py classify" not in hand)
+    check("null control: a reviewer with a PR number is unchanged (probe/rev-<pr>, the packet, the CI wait)",
+          "refs/heads/probe/rev-7-abcd1234" in pull and f'-m \"verdict 7 {head}\"' in pull
+          and "review_packet.py render --pr 7" in pull and "merge_train.py classify" in pull and "revt-" not in pull)
     check("a fixer without --topic is refused", refused("fixer", topic=""))
     check("a design reviewer without the 40-hex design tip is refused on the flag path",
           refused("design-reviewer", design="") and not refused("design-reviewer", design=head))
