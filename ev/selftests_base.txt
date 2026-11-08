@@ -1,0 +1,8 @@
+== d2e4d2d10cfe15b9ec51c36422029718e8367f1c
+  ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
+merge_train self-test: 506 checks, 0 failed
+app_approve self-test: 316 checks, 0 failed
+pr_args self-test: 179 checks, 0 failed
+gh_read self-test: 122 checks, 0 failed
+gh_read rc=0
+selftest: 9 checks, 0 failed

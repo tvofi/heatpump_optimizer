@@ -1,0 +1,16 @@
+== 128642651276
+2026-11-08T05:43:36.3279299Z Complete job name: gate
+2026-11-08T05:43:59.2816994Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-08T05:43:59.3709477Z ##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+2026-11-08T05:43:59.3709952Z [36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+2026-11-08T05:43:59.3758401Z   WORKSET: arch-score budget-raise-gate
+2026-11-08T05:44:02.6766225Z FAIL run(s) [42449977714] at this head are still being judged; their gate decides
+2026-11-08T05:44:02.6888631Z ##[error]Process completed with exit code 1.
+== 128638659969
+2026-11-08T05:23:12.0671301Z Complete job name: gate
+2026-11-08T05:23:39.7036381Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-08T05:23:39.9465097Z ##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+2026-11-08T05:23:39.9465920Z [36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+2026-11-08T05:23:39.9522396Z   WORKSET: arch-score budget-raise-gate
+2026-11-08T05:23:42.6003203Z FAIL run(s) [42449977714] at this head are still being judged; their gate decides
+2026-11-08T05:23:42.6137581Z ##[error]Process completed with exit code 1.

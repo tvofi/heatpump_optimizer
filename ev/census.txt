@@ -1,0 +1,31 @@
+tools/audit/seat/merge_train.py:1509:            if argv[:2] in (["git", "fetch"], ["git", "push"]):  # transport, idempotent: a rejection is never retried
+tools/audit/seat/merge_train.py:1533:        self.run(["git", "fetch", "-q", "origin", "main", h])
+tools/audit/seat/merge_train.py:1616:        self.run(["git", "fetch", "-q", "origin", br])
+tools/audit/seat/merge_train.py:1722:        self.run(["git", "fetch", "-q", "origin", verdict])
+tools/audit/seat/merge_train.py:2020:        if not is_sha(c) or c == h or not self.ok("git", "fetch", "-q", "origin", c):
+tools/audit/seat/merge_train.py:2339:                self.run(["git", "fetch", "-q", "origin", br])
+tools/audit/seat/merge_train.py:2454:        self.run(["git", "fetch", "-q", "origin", h])
+tools/audit/seat/merge_train.py:2482:                self.run(["git", "fetch", "-q", "origin", "main"])
+tools/audit/seat/merge_train.py:2711:        `git push`: its committer date is the publication time the record
+tools/audit/seat/merge_train.py:2936:            self.run(["git", "fetch", "-q", "origin", verdict, h])
+tools/audit/seat/merge_train.py:2952:        if self.run(["git", "fetch", "-q", "origin", f"verdict/{n}"])[0]:
+tools/audit/seat/merge_train.py:3038:        self.run(["git", "fetch", "-q", "origin", h])
+tools/audit/seat/merge_train.py:3240:        self.run(["git", "fetch", "-q", "origin", self.base])
+tools/audit/seat/merge_train.py:3632:            self.run(["git", "fetch", "-q", "origin", "main", h, *([v] if v != h else [])])
+tools/audit/seat/merge_train.py:3704:            self.run(["git", "fetch", "-q", "origin", self.base])
+tools/audit/seat/merge_train.py:3736:                self.run(["git", "fetch", "-q", "origin", self.base])
+tools/audit/seat/merge_train.py:3762:                    self.run(["git", "fetch", "-q", "origin", self.base])
+tools/audit/seat/merge_train.py:3776:                    self.run(["git", "fetch", "-q", "origin", self.base])
+tools/audit/seat/merge_train.py:3793:                        self.run(["git", "fetch", "-q", "origin", self.base])
+tools/audit/seat/merge_train.py:3843:            code, out = self.run(["git", "push", "-q", "origin", "--delete", *self.branches])
+tools/audit/seat/merge_train.py:5365:            if argv[:3] == ["git", "fetch", "-q"] and w.get("fetch_fail"):  # same_tree_posting's fetch
+tools/audit/seat/merge_train.py:5431:    check("queue: null control -- the same same-tree descendant waits when `git fetch origin verdict/<n>` fails "
+tools/audit/seat/merge_train.py:5845:    """R10 carry 7: git fetch/push ride out git's own transient stderr, and nothing else."""
+tools/audit/seat/merge_train.py:5866:        return t.run(["git", "fetch", "-q", "origin", "main"]), len(calls), sleeps
+tools/audit/seat/remerge_main.sh:29:if ! ( cd "$W" && python3 "$SEAT/gh_read.py" --git-retry git fetch -q origin main "$BR" && git reset -q --hard "origin/$BR" && git merge --no-edit -q origin/main ); then
+tools/pr/app_approve.sh:554:    retry_with git_transient _fetched git fetch -q --no-tags origin \
+tools/pr/app_approve.sh:860:# failing `git fetch` (consumed first to last): the carry path's transport
+tools/pr/app_approve.sh:867:  printf 'git fetch\n' >> "\$STUB/log"
+tools/pr/app_approve.sh:875:# so `git fetch` and the carry run for real and no case reaches the network.
+tools/pr/app_approve.sh:1974:st "$(grep -c '^git fetch$' "$W/carryflaky/log") $(grep -c '^sleep ' "$W/carryflaky/log")" "1 1" "after one transient failure and one settle"
+tools/pr/app_approve.sh:1980:st "$(grep -c '^git fetch$' "$W/carryspent/log") $(grep -c 'after 4 attempts' "$W/carryspent/err")" "4 1" "after 4 fetches, naming the count"

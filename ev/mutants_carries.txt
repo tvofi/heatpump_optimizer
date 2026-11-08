@@ -1,0 +1,5 @@
+RESULT mutant=c1-runs-approved-false -> merge_train self-test: 564 checks, 1 failed
+RESULT mutant=c2-started-at-filter-dropped -> merge_train self-test: 564 checks, 1 failed
+RESULT mutant=c2-no-verdict-needed -> merge_train self-test: 564 checks, 2 failed
+RESULT mutant=c5-undraft-unrecorded -> merge_train self-test: 564 checks, 1 failed
+RESULT mutant=c5-failed-ready-ignored -> merge_train self-test: 564 checks, 1 failed
