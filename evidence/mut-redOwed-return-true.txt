@@ -4,4 +4,5 @@ KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
 TOTAL: 0 error(s) across 50 policy file(s)
 
 FIXTURE VACUOUS: with the required set known, red ["tests / nightly-status","governance / delivery-status","docs / links","tests / fast (3.14)","budget-raise-gate","code-scanning alert 7 (py/x)"] owed answers for ["tests / nightly-status","governance / delivery-status","docs / links","tests / fast (3.14)","budget-raise-gate","code-scanning alert 7 (py/x)"]; only the required unit, the job-name prediction and the alert are owed
-rc=1
+
+FIXTURE VACUOUS: an owed-reds that exits 0 naming tests / fast (3.14) owed ["tests / nightly-status","docs / links","tests / fast (3.14)"]; the stub tree did not answer

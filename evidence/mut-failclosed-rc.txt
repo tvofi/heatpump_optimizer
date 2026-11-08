@@ -1,0 +1,6 @@
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 50 policy file(s)
+
+FIXTURE VACUOUS: an owed-reds that exits 2 with a REFUSE line owed [] (notes []), not every red; a refused read must leave every red owed
