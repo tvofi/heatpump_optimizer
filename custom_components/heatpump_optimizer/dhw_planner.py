@@ -1392,8 +1392,7 @@ class DhwPlanner:
         params = self.model.params
         decay, gain = ctx.tank_decay
 
-        # Free trajectory: what the tank does with no heating (and, in combi,
-        # the space side's flux, which leaves the influence matrix unchanged).
+        # Free trajectory: the tank with no heating (in combi, under the space side's flux).
         free = np.zeros(n_steps + 1)
         free[0] = initial_temp
         for i in range(n_steps):
@@ -1955,12 +1954,13 @@ class DhwPlanner:
         ceiling = np.asarray(max_temp, dtype=float)
         ceiling = np.concatenate([ceiling[:1], ceiling]) + 0.5
 
-        walk = (initial_temp, outdoor_temps, draw_rates, dt, humidity, exo_kw)
         run_power = min(min_run_power, p_dhw_max)
-        base = self._dhw_plan_temps(plan, *walk)
+        base = self._dhw_plan_temps(
+            plan, initial_temp, outdoor_temps, draw_rates, dt, humidity, exo_kw)
         joint = plan.copy()
         joint[weak] = run_power
-        joint_temps = self._dhw_plan_temps(joint, *walk)
+        joint_temps = self._dhw_plan_temps(
+            joint, initial_temp, outdoor_temps, draw_rates, dt, humidity, exo_kw)
         joint_limit = np.maximum(
             ceiling[: joint_temps.size], base[: joint_temps.size]
         )

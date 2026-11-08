@@ -64755,10 +64755,10 @@ _f22_breach_offsets: list[int] = []
 
 
 def _f22_whole_suffix_fits(
-    self, candidate, base, ceiling, slot, plan, outdoor, draws, dt, humidity
+    self, candidate, base, ceiling, slot, plan, outdoor, draws, dt, humidity, exo_kw=None
 ):
     self.model.extend_dhw_temps(
-        candidate, slot, plan, outdoor, draws, dt_hours=dt, humidity=humidity
+        candidate, slot, plan, outdoor, draws, dt_hours=dt, humidity=humidity, exo_kw=exo_kw
     )
     limit = np.maximum(ceiling[: candidate.size], base)
     bad = np.nonzero(candidate[slot + 1:] > limit[slot + 1:] + 1e-9)[0]

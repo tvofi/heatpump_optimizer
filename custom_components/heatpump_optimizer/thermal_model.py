@@ -2037,7 +2037,7 @@ def dhw_charge_kw(
     """The heat a DHW draw of ``dhw_power_kw`` puts into a store at ``temp``,
     at the DHW COP: the charge term of the separate tank and the combi store."""
     cop = model.compute_cop_dhw(outdoor_temp, temp, humidity=humidity)
-    return cop * heat_per_cop_kw(model.params, dhw_power_kw)
+    return float(cop * heat_per_cop_kw(model.params, dhw_power_kw))
 
 
 def combi_dhw_net_series(
