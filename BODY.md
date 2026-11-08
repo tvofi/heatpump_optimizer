@@ -52,8 +52,8 @@ none
 
 ## Forward-carry
 
-- Carries 4, 9 and 16 data ops: `Carry: R10-ROSTER-WRITE-SWEEP` (roster seat applies them through `roster_queue.py`; this seat does not push the roster branch).
-- Carry 1 (M4 to M6 plants): waits on the original plants or an owner ruling; `Carry: R10-ROSTER-WRITE-SWEEP`.
+- Carries 4, 9 and 16 data ops: Carry: R10-CARRY-RESIDUE-2 (roster seat applies them through `roster_queue.py`; this seat does not push the roster branch).
+- Carry 1 (M4 to M6 plants): waits on the original plants or an owner ruling; Carry: R10-CARRY-RESIDUE-2.
 
 ## Friction
 
