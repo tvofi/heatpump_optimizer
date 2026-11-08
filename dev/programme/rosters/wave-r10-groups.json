@@ -18835,7 +18835,8 @@
    "reviewerModel": "opus",
    "after": [
     "R10-GENERIC-HEAT-CURVE",
-    "R10-GENERIC-HEAT-CURVE-PERSISTENT"
+    "R10-GENERIC-HEAT-CURVE-PERSISTENT",
+    "R10-WATER-SETPOINT-LIFT"
    ],
    "files": [
     "custom_components/heatpump_optimizer/pump_arbiter.py",
