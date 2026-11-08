@@ -42,6 +42,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     carry at the body's `handoff/audit-r<N>-roster` SHA) and confirm it states
     its control as a precondition (`finding-propagation.md`). One only
     in this PR's comments is `blocked <sha> carry-missing: not carried to <stage>`.
+    A `Carry:` to the PR's own group naming neither `fixer.md` exception is
+    `blocked <sha> carry-own-group`.
 11. **A red check owes an answer** (`defect-root-cause.md`'s second
     trigger). Read the PR's own checks (`get_check_runs`, or
     the commit's `check-runs` API), not the body's account, and never a
@@ -121,10 +123,9 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     mechanism the body names; a movement that survives is not earned:
     `blocked <sha> metric-gamed: <instrument>: <how>`. Then plant the diff's own
     kind of move on the same instrument with nothing improved, and on its
-    neighbouring rules, not only the counter's own re-spelled (#2373). If it reproduces
+    neighbouring rules, not only the counter's own re-spelled. If it reproduces
     the movement, block only where the diff's change is that shape; under a sound
-    change it is an instrument finding, carried by `finding-propagation.md`
-    (#1874, #1867, #1868). On a raise, judge each listed payment and
+    change it is an instrument finding, carried by `finding-propagation.md`. On a raise, judge each listed payment and
     hunt one it missed: one that truly improves the code is `metric-gamed` too.
 15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
     from the architect or approved design note, is `blocked <sha> architecture-unsound: <how>`.
@@ -134,4 +135,3 @@ in the grammar above; one that does not parse is refused. Before you return one,
 
 **Say which round this is**: from the fourth, `fixer.md` owes a re-cut.
 
-A ruling naming a destination stage states it as a `Carry:` marker.
