@@ -1,0 +1,205 @@
+diff --git a/.claude/rules/ratchet-budgets.md b/.claude/rules/ratchet-budgets.md
+index afaf797a2..f8b475d8e 100644
+--- a/.claude/rules/ratchet-budgets.md
++++ b/.claude/rules/ratchet-budgets.md
+@@ -107,7 +107,7 @@ as a known defect is not a ratchet.
+ production, and nonproduct lines per 1000 product lines. Each closes the
+ other's hole (splitting production lowers the first, not the second; a pure
+ move costs neither). Each cap takes its band as above; the window is frozen.
+-**The owner's exemption**: a change proving over 10% improvement in CI time,
++**The owner's exemption**: a change proving over 20% improvement in CI time,
+ programme completion time, right-first-time or token usage appends its
+ `exemptions` entry (number, measure, before, after, each one's command,
+ evidence path) in its own pull request. Recorded, never silently allowed: an
+diff --git a/.cursor/rules/ratchet-budgets.mdc b/.cursor/rules/ratchet-budgets.mdc
+index 5dc045c05..92e0f7705 100644
+--- a/.cursor/rules/ratchet-budgets.mdc
++++ b/.cursor/rules/ratchet-budgets.mdc
+@@ -102,7 +102,7 @@ as a known defect is not a ratchet.
+ production, and nonproduct lines per 1000 product lines. Each closes the
+ other's hole (splitting production lowers the first, not the second; a pure
+ move costs neither). Each cap takes its band as above; the window is frozen.
+-**The owner's exemption**: a change proving over 10% improvement in CI time,
++**The owner's exemption**: a change proving over 20% improvement in CI time,
+ programme completion time, right-first-time or token usage appends its
+ `exemptions` entry (number, measure, before, after, each one's command,
+ evidence path) in its own pull request. Recorded, never silently allowed: an
+diff --git a/dev/governance/roles/proposal-triage.md b/dev/governance/roles/proposal-triage.md
+index baf91a31a..2ff7092ae 100644
+--- a/dev/governance/roles/proposal-triage.md
++++ b/dev/governance/roles/proposal-triage.md
+@@ -1,34 +1,36 @@
+ # The proposal-triage seat's contract
+ 
+-Every process, tooling or instrument proposal passes this cost/benefit gate
+-before any implementation (owner ruling, tvofi 2026-10-22; decision 0015).
+-Proposals come from the orchestrator's sweep, its Proposals line, a seat's
+-result and a verdict's optimisation note. A defect countermeasure policy
+-already requires (a root-cause countermeasure, a carry for a red check, a
+-finding's fix) is not a proposal and keeps its route. One opus seat at
+-medium effort: rulings are checked against code.
++A process, tooling or instrument proposal passes this gate before building
++(decision 0015). Sources: orchestrator sweep and Proposals line, seat results,
++verdict optimisation notes. A countermeasure policy requires (root cause,
++red-check carry, finding fix; see below) keeps its route. One opus seat, medium
++effort; check rulings against code.
+ 
+-**The bar is "clearly".** A proposal is wired in only when its measured
+-benefit clearly outweighs everything it adds: wall-clock or seat time on the
+-critical path; tokens (seat model x effort x expected runs); GitHub API calls;
+-standing CPU on the Pi-class target or CI runners; code and policy
+-complexity (lines, new files and checks, hot files touched, review rounds);
+-and maintenance surface. An even or marginal trade is REJECT; an unmeasured
+-benefit is DEFER, never ACCEPT. An ACCEPT on the >10% exemption
+-(`ratchet-budgets.md`) says so; its PR records it.
++**Bar:** measured benefit clearly outweighs cost: critical-path wall-clock/seat
++time; tokens (model x effort x expected runs); API calls; standing CPU
++(Pi-class, CI runners); complexity (lines, new files, checks, hot files, review
++rounds); maintenance. Even or marginal: REJECT; unmeasured: DEFER, never
++ACCEPT. An exemption ACCEPT (over 20% on a `ratchet-budgets.md` measure) says
++so; its PR records it.
+ 
+-**Verdicts:** ACCEPT names a destination (a roster group and carry
+-text, or a new group and brief); DEFER, what would change it or the owning
+-group; REJECT, the binding cost.
++**Machinery.** A planned instrument/machinery group, or existing non-production
++CI lane or seat, stays only on a measured gain of at least 10% on them. Repair
++of such code (outside `custom_components/`) with roster `severity` `low` or
++`normal` meets both (over 20% to add); `medium`, `high`, `major`, `critical`,
++root-cause countermeasure, closeout, owner directive skip them; unset is
++classified first, never assumed major.
+ 
+-**The ruling** is one `## P<n>: <title>` entry in a batch file under
+-`dev/programme/triage/`: `Verdict:`, `Source:`, `Instances:` (each figure
+-beside its command or log: cite, don't carry), `Cost:` (the estimate and
+-each capped file's `--budgets` row) and `Binding:`. An ACCEPT runs its rule
+-on each instance, result beside it. Git and local logs before the API.
++**Verdicts:** ACCEPT names a destination (roster group and carry, or new group,
++brief); DEFER, what would change it or the owning group; REJECT, the binding
++cost.
+ 
+-**You do not** implement, edit the roster or merge. The orchestrator routes an
+-ACCEPT through `tools/audit/seat/roster_edit.py`, whose text cites the ruling
+-as `triage: dev/programme/triage/<file>.md#P<n>`; the tool refuses
+-proposal-sourced text (one naming `triage P<n>` or `proposal P<n>`) that cites
+-no ACCEPT ruling.
++**A ruling**: a `## P<n>: <title>` entry in a `dev/programme/triage/` batch
++file: `Verdict:`, `Source:`, `Instances:` (each figure beside its command or
++log: cite, don't carry), `Cost:` (estimate, each capped file's `--budgets`
++row), `Binding:`. An ACCEPT runs its rule per instance, result beside it. Git
++and local logs before the API.
++
++**You never** implement, edit the roster or merge; the orchestrator routes
++ACCEPTs via `seat/roster_edit.py`, citing
++`triage: dev/programme/triage/<file>.md#P<n>`; it refuses text naming
++`triage P<n>` or `proposal P<n>` citing no ACCEPT.
+diff --git a/dev/governance/rules/ratchet-budgets.md b/dev/governance/rules/ratchet-budgets.md
+index afaf797a2..f8b475d8e 100644
+--- a/dev/governance/rules/ratchet-budgets.md
++++ b/dev/governance/rules/ratchet-budgets.md
+@@ -107,7 +107,7 @@ as a known defect is not a ratchet.
+ production, and nonproduct lines per 1000 product lines. Each closes the
+ other's hole (splitting production lowers the first, not the second; a pure
+ move costs neither). Each cap takes its band as above; the window is frozen.
+-**The owner's exemption**: a change proving over 10% improvement in CI time,
++**The owner's exemption**: a change proving over 20% improvement in CI time,
+ programme completion time, right-first-time or token usage appends its
+ `exemptions` entry (number, measure, before, after, each one's command,
+ evidence path) in its own pull request. Recorded, never silently allowed: an
+diff --git a/dev/programme/delivery/3310.md b/dev/programme/delivery/3310.md
+new file mode 100644
+index 000000000..d151a34c7
+--- /dev/null
++++ b/dev/programme/delivery/3310.md
+@@ -0,0 +1 @@
++- [#3310](https://github.com/tvofi/heatpump_optimizer/pull/3310) — **open**, R10-FLY-TRIAGE-BAR: fly triage bar (R10-FLY-TRIAGE-BAR)
+diff --git a/tools/audit/machinery_ratchet.py b/tools/audit/machinery_ratchet.py
+index 4696039fc..acc96a614 100644
+--- a/tools/audit/machinery_ratchet.py
++++ b/tools/audit/machinery_ratchet.py
+@@ -32,7 +32,7 @@ THE METRICS, each compared against its cap plus its band:
+   churn_per_kilo_product_lines  nonproduct lines per 1000 product lines,
+                                 rounded half up to an integer
+ 
+-THE EXEMPTION (the owner's: a change proving more than a 10% improvement in
++THE EXEMPTION (the owner's: a change proving more than a 20% improvement in
+ CI time, programme completion time, right-first-time or token usage). An entry
+ in the budgets file's `exemptions` list exempts merge M only when all hold:
+   - its `pr` is M's own number (the merge subject's; the event's for the
+@@ -41,7 +41,7 @@ in the budgets file's `exemptions` list exempts merge M only when all hold:
+     the candidate), and one is at M (the head): it was added by the merge it
+     exempts, so an entry appended later for an already-merged PR exempts
+     nothing;
+-  - its improvement is strictly above 1/10, exactly: (before-after)/before
++  - its improvement is strictly above 1/5, exactly: (before-after)/before
+     for a cost, (after-before)/before for right_first_time;
+   - its evidence path resolves at M, and before, after and the two commands
+     are read from M's tree too.
+@@ -75,7 +75,7 @@ MEASURES = {"ci_time": "cost", "programme_completion_time": "cost",
+             "token_usage": "cost", "right_first_time": "gain"}
+ ENTRY_KEYS = ("pr", "measure", "before", "after", "before_command",
+               "after_command", "evidence")
+-THRESHOLD = Fraction(1, 10)
++THRESHOLD = Fraction(1, 5)
+ SUBJECT = re.compile(r"^Merge pull request #(\d+)\b")
+ 
+ 
+@@ -181,7 +181,7 @@ def improvement(entry: dict) -> Fraction | None:
+ 
+ 
+ def entry_grants(repo: str, rev: str, entry: dict) -> tuple[bool, str]:
+-    """Whether one entry, read from the tree at `rev`, proves its >10%."""
++    """Whether one entry, read from the tree at `rev`, proves its >20%."""
+     missing = [k for k in ENTRY_KEYS if k not in entry]
+     if missing:
+         return False, f"entry for #{entry.get('pr')} lacks {missing}"
+@@ -415,7 +415,7 @@ def self_test() -> int:
+                 "nonproduction_merges_band": m1b, "churn_per_kilo_product_lines": m2,
+                 "churn_per_kilo_product_lines_band": m2b, EXEMPTIONS_KEY: list(ex)}
+ 
+-    def entry(pr, before=100, after=89, measure_="ci_time", evidence="ev/proof.txt"):
++    def entry(pr, before=100, after=79, measure_="ci_time", evidence="ev/proof.txt"):
+         return {"pr": pr, "measure": measure_, "before": before, "after": after,
+                 "before_command": "time x", "after_command": "time x", "evidence": evidence}
+ 
+@@ -611,12 +611,12 @@ def self_test() -> int:
+             return rc
+ 
+         ok("exemption: no entry refuses", pr_case("ex-none", None), 1)
+-        ok("exemption: exactly 10% refuses", pr_case("ex-10", entry(9, 100, 90)), 1)
+-        ok("exemption: exactly 10% as floats refuses", pr_case("ex-10f", entry(9, 1.0, 0.9)), 1)
+-        ok("exemption: 11% with evidence passes", pr_case("ex-11", entry(9)), 0)
+-        ok("exemption: 11% right-first-time (a gain) passes",
+-           pr_case("ex-rft", entry(9, 100, 111, "right_first_time")), 0)
+-        ok("exemption: 11% with a missing evidence path refuses",
++        ok("exemption: exactly 20% refuses", pr_case("ex-10", entry(9, 100, 80)), 1)
++        ok("exemption: exactly 20% as floats refuses", pr_case("ex-10f", entry(9, 1.0, 0.8)), 1)
++        ok("exemption: 21% with evidence passes", pr_case("ex-11", entry(9)), 0)
++        ok("exemption: 21% right-first-time (a gain) passes",
++           pr_case("ex-rft", entry(9, 100, 121, "right_first_time")), 0)
++        ok("exemption: 21% with a missing evidence path refuses",
+            pr_case("ex-noev", entry(9), evidence=False), 1)
+         ok("exemption: an entry naming another pull request refuses",
+            pr_case("ex-other", entry(8)), 1)
+@@ -630,7 +630,7 @@ def self_test() -> int:
+             held = {k: v for k, v in entry(9).items() if k != key}
+             ok(f"exemption: an entry lacking `{key}` is refused, not raised",
+                entry_grants(".", "none", held)[0], False)
+-        ok("improvement() is exact: 100 -> 90 is 1/10", improvement(entry(9, 100, 90)), Fraction(1, 10))
++        ok("improvement() is exact: 100 -> 80 is 1/5", improvement(entry(9, 100, 80)), Fraction(1, 5))
+ 
+         # Merged merges, in push mode: an entry its own merge added exempts it
+         # (the positive control), one appended later exempts nothing.
+diff --git a/tools/audit/seat/instruments/machinery_ratchet.py.md b/tools/audit/seat/instruments/machinery_ratchet.py.md
+index 52c9dad12..b9eaa7ed0 100644
+--- a/tools/audit/seat/instruments/machinery_ratchet.py.md
++++ b/tools/audit/seat/instruments/machinery_ratchet.py.md
+@@ -9,6 +9,6 @@
+   base's window; `--check-event` reads those three from `MACHINERY_BASE`,
+   `MACHINERY_HEAD` and `MACHINERY_PR`, as `policy-docs` sets them. `--measure --window 580 --bands 150` prints both metrics and
+   each band, which is how the budgets file is re-recorded. Refusal: exit 1
+-  names each metric past its cap plus its band; an exemption counts only when
+-  the merge it exempts added it (`ratchet-budgets.md`). `--self-test` —
++  names each metric past its cap plus its band; an exemption (over 20%
++  improvement) counts only when the merge it exempts added it (`ratchet-budgets.md`). `--self-test` —
+   `governance.yml` greps its `checks, 0 failed` line.
