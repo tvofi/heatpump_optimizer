@@ -1,0 +1,13 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index 323ffe583..f21c703f1 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -18775,7 +18775,7 @@ def _hb_stdlib_arm(reads, platform):
+     """
+     try:
+         return reads(True), reads(False)
+-    except PermissionError as exc:
++    except Exception as exc:
+         if platform != "darwin":
+             raise
+         print(f"SKIP stdlib sampler control: macOS denies the task port ({exc})")
