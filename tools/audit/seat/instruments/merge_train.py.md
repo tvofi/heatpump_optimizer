@@ -82,7 +82,13 @@
   two it drains what `train.sh add` spooled into one more batch, never into a
   batch in proof, and a batch that stops ends the train (`NOT RUN` lines);
   an `add` that starts a train orders its first batch, the entry and what a
-  stopped train left spooled, by the same `Train.drain_order`.
+  stopped train left spooled, by the same `Train.drain_order`: entries added
+  with `--priority` (HOTFIX), a roster hotfix (`roster_lib.is_hotfix`, flag
+  or not) or `--front` first, then outside entries
+  (`roster_lib.is_outside`, owner ruling tvofi 2026-11-07, triage P420), then
+  critical-path entries, then arrival order; an entry maps to its group by
+  branch, else by its pull request (`roster_lib.group_for_pr`), so a fork head
+  ranks as its group does.
   `add` and that drain apply one admission rule (`already_held`, over the
   live train's `queue.seen.json`): a pull request still to run, spooled,
   merged or run by this train is `ALREADY` on both sides; one it skipped is
@@ -94,7 +100,7 @@
   one mutant per arm of that rule. The spool is edited only through the
   instrument: `add --front <pr>` puts an entry first in the next batch (a
   spooled one is moved there, and the drain keeps it in the `--priority` tier
-  ahead of critical-path entries) and `add --remove <pr>` drops a spooled one
+  ahead of outside and critical-path entries) and `add --remove <pr>` drops a spooled one
   (rc 1, nothing written, when it is absent), both under the queue's flock
   and each printing the spool order read back. A batch's admission waits
   each head on the required set a pull request's head carries

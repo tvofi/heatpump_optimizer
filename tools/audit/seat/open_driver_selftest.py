@@ -161,6 +161,24 @@ def run():
     go(osd, ow, oboard)
     check("run_pass: an outside group opens ahead of the critical path, cap 2",
           [t for t, _, _ in ow.launched] == ["r10-out", "r10-cp"])
+    # A kind "bug" group is a hotfix by roster_lib.is_hotfix with no HOTFIX in its
+    # name (#3304 round 2): it opens ahead of the outside group, as the plan and
+    # dispatch_rank order it; with no kind it is the rest and the outside opens first.
+    bros = roster("R10-OUT", "R10-BUGFIX")
+    bros["groups"][0]["source"], bros["groups"][1]["kind"] = "outside", "bug"
+    bheads = [("r10-out", sha("1")), ("r10-bugfix", sha("2"))]
+    bboard = "\n".join(line(t, s) for t, s in bheads)
+    bsd, bw = world(bboard, ros=bros, heads=bheads)
+    (bsd / "open-cap.txt").write_text("1\n")
+    go(bsd, bw, bboard)
+    check("run_pass: a kind-bug group with no HOTFIX name opens ahead of an outside group, cap 1",
+          [t for t, _, _ in bw.launched] == ["r10-bugfix"])
+    bros["groups"][1].pop("kind")
+    bsd, bw = world(bboard, ros=bros, heads=bheads)
+    (bsd / "open-cap.txt").write_text("1\n")
+    go(bsd, bw, bboard)
+    check("run_pass null: the same group with no kind waits behind the outside group",
+          [t for t, _, _ in bw.launched] == ["r10-out"])
     nros = roster("R10-CP", "R10-INST", "R10-OUT", after={"R10-INST": ["R10-CP"]})
     nsd, nw = world(oboard, ros=nros, heads=oheads)
     go(nsd, nw, oboard)

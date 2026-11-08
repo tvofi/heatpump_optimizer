@@ -1355,7 +1355,7 @@ class Train:
                  skip_bad: bool = False, overlap: bool = False,
                  approval_carry: bool = False, main_moved_tries: int = 0,
                  bot_prs: bool = False, pre_flight: bool = False,
-                 free_holders: bool = False, critical=None, outside=None,
+                 free_holders: bool = False, critical=None, outside=None, hotfix=None,
                  clock: "callable" = time.monotonic, wall: "callable" = time.time, stamp: bool = False) -> None:
         self.repo, self.state, self.mandate, self.role = repo, state, mandate, role
         if base != "main" and not base.startswith("batch/"):
@@ -1392,6 +1392,9 @@ class Train:
         # Is an entry an accepted outside contribution (item -> bool): its group by
         # branch, else by `resume.pr` for a fork head; the roster's by default.
         self.outside = outside or self._outside
+        # Is an entry's group a hotfix (`roster_lib.is_hotfix`), the --priority
+        # tier without the flag; the roster's by default.
+        self.hotfix = hotfix or self._hotfix
         self.cp_read: "tuple[dict, set] | None" = None  # (roster, critical ids), read once per run
         self.skipped: list[dict] = []
         self.approved: dict[int, str] = {}  # {pr: head} this run approved (P86: never twice at one head)
@@ -1633,18 +1636,27 @@ class Train:
         except Exception:
             return False
 
-    def _outside(self, item: dict) -> bool:
-        """Is <item>'s group an accepted outside contribution (owner ruling tvofi
-        2026-11-07, triage P420: `roster_lib.is_outside`). Anything unread is
-        internal: today's order."""
+    def _roster_is(self, item: dict, pred: str) -> bool:
+        """Does `roster_lib.<pred>` hold for <item>'s group (`_roster_group`'s).
+        Anything unread is False: today's order."""
         try:
             import roster_lib
             gid, _ = self._roster_group(item)
             roster = self.cp_read[0]
-            return bool(gid) and any(roster_lib.is_outside(g) for g in roster.get("groups", [])
+            return bool(gid) and any(getattr(roster_lib, pred)(g) for g in roster.get("groups", [])
                                      if g.get("group") == gid)
         except Exception:
             return False
+
+    def _outside(self, item: dict) -> bool:
+        """Is <item>'s group an accepted outside contribution (owner ruling tvofi
+        2026-11-07, triage P420: `roster_lib.is_outside`)."""
+        return self._roster_is(item, "is_outside")
+
+    def _hotfix(self, item: dict) -> bool:
+        """Is <item>'s group a hotfix (`roster_lib.is_hotfix`: a HOTFIX name or
+        kind "bug"), which outranks outside (triage P420) with or without --priority."""
+        return self._roster_is(item, "is_hotfix")
 
     def carry_refusal(self, pr: int, verdict: str, h: str, o: str) -> Stop:
         """The `--carry` refusal, classified when its shape is the known one:
@@ -3430,8 +3442,9 @@ class Train:
 
     def drain_order(self, added: "list[dict]") -> "list[dict]":
         """P312: a spool drains into the next batch in an explicit order: entries
-        added with `--priority` (HOTFIX) or `--front` (P112: the entry the spool
-        puts first) first, in spool order, then outside entries (owner ruling tvofi
+        added with `--priority` (HOTFIX), a roster hotfix (`self.hotfix`) or
+        `--front` (P112: the entry the spool puts first) first, in spool order,
+        then outside entries (owner ruling tvofi
         2026-11-07, triage P420: `self.outside`), then critical-path entries
         (`self.critical`, the branch read only when two or more wait), then
         arrival order. An entry maps to its group by branch, else by its pull
@@ -3443,7 +3456,8 @@ class Train:
                                            "--json", "headRefName", "--jq", ".headRefName").strip()
             return {"branch": b, "pr": e["pr"]}
         items = {id(e): item(e) for e in added}
-        return sorted(added, key=lambda e: (not (e.get("priority") or e.get("front")),
+        return sorted(added, key=lambda e: (not (e.get("priority") or e.get("front")
+                                                 or self.hotfix(items[id(e)])),  # mut:drain-hotfix
                                             not self.outside(items[id(e)]),  # mut:drain-outside
                                             not self.critical(items[id(e)])))  # mut:drain
 
@@ -5611,6 +5625,13 @@ def _queue_self_test(check) -> None:
     ent_fork = [{"pr": 7, "branch": "mine"}, {"pr": 31, "branch": "someone:main"}, {"pr": 8, "branch": "mine"}]
     check("P420 drain_order: a fork-head outside entry (#31, branch no group claims) drains first through resume.pr",
           drain_live420(ros_fork, ent_fork, {}) == [31, 7, 8])
+    ros_hf = {"groups": [{"group": "R10-F", "source": "outside", "resume": {"pr": 31}},
+                         {"group": "R10-HOTFIX-I", "kind": "instrument", "resume": {"pr": 8}}]}
+    check("P420 drain_order: a roster hotfix with no --priority flag (#8) drains ahead of an outside entry (#31)",
+          drain_live420(ros_hf, ent_fork, {}) == [8, 31, 7])
+    check("P420 drain_order null: the same group without a HOTFIX name drains behind the outside entry",
+          drain_live420({"groups": [ros_hf["groups"][0], {"group": "R10-I", "kind": "instrument", "resume": {"pr": 8}}]},
+                        ent_fork, {}) == [31, 7, 8])
     check("P420 drain_order null: the same entries with no outside group keep arrival order",
           drain_live420({"groups": [{"group": "R10-F", "resume": {"pr": 31}}]}, ent_fork, {}) == [7, 31, 8])
     check("P312 null: no priority and nothing critical keeps arrival order; one entry is untouched",
