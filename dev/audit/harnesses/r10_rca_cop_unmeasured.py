@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reproduce R10-HOTFIX-COP-UNMEASURED at any checkout: the COP health watch fed by the model.
 
-    python3 -I dev/audit/harnesses/r10_rca_cop_unmeasured.py <repo root at the SHA to measure>
+    python3 -I dev/audit/harnesses/r10_rca_cop_unmeasured.py [--check] <repo root at the SHA to measure>
 
 The root-cause seat's reproduction (dev/audit/rca/R10-RCA-COP-UNMEASURED.md).
 It builds the real coordinator against the tests' Home Assistant stub, from the
@@ -21,7 +21,10 @@ COP (``_measured_cop.cop``), then ``RESULT`` with a verdict per install:
 ``graded`` (the watch took the sample) or ``withheld``. A defective tree prints
 ``null=graded tuya=graded``; a fixed one ``null=withheld tuya=withheld``.
 ``metered=graded`` on both is the control that the harness can see a sample.
-Exit 0 always: it measures, it does not judge.
+Without ``--check`` it exits 0: it measures, it does not judge. With
+``--check`` it is the detector: exit 1 when the watch took a ``null`` or
+``tuya`` sample (the defect), exit 2 when it withheld the ``metered`` one (a
+tree that withholds everything would otherwise pass by skipping), else 0.
 """
 from __future__ import annotations
 
@@ -29,7 +32,7 @@ import os
 import sys
 
 
-def main(root: str) -> int:
+def main(root: str, check: bool = False) -> int:
     root = os.path.abspath(root)
     sys.path[:0] = [os.path.join(root, p) for p in ("tests/hastub", "custom_components", "tests")]
     from harness import FakeEntry, FakeHass, FakeState  # noqa: PLC0415
@@ -78,11 +81,18 @@ def main(root: str) -> int:
     verdicts["metered"] = "graded" if metered._cop_baseline else "withheld"
 
     print("RESULT " + " ".join(f"{k}={v}" for k, v in verdicts.items()))
-    return 0
+    if not check:
+        return 0
+    if verdicts["metered"] != "graded":
+        return 2
+    return 1 if "graded" in (verdicts["null"], verdicts["tuya"]) else 0
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
+    args = sys.argv[1:]
+    want_check = args[:1] == ["--check"]
+    args = args[1:] if want_check else args
+    if len(args) != 1:
         print(__doc__)
         sys.exit(2)
-    sys.exit(main(sys.argv[1]))
+    sys.exit(main(args[0], want_check))
