@@ -2393,6 +2393,30 @@ const STRINGS = {
     "score.label_machine": "Wärmepumpe",
     "score.label_operation": "Betrieb",
     "headline.savings_pct": "({pct} %)",
+    "whynow.title": "Warum jetzt",
+    "whynow.metric":
+      "Die Gründe, die den Plan dieser Stunde bestimmen. Jede Zeile ist ein Grund: Der Pfeil zeigt, ob er die Wärmepumpe zum Laufen oder zum Pausieren drängt, und der Prozentwert ist sein Anteil am gesamten Einfluss in dieser Stunde. Ein hoher Anteil bedeutet, dass dieser Grund am stärksten drängt; der Plan wägt alle Stunden des Tages gegeneinander ab, daher kann die Wärmepumpe in dieser Stunde trotzdem das Gegenteil tun. Keine Daten bedeutet, dass der Optimierer für diese Stunde noch keinen Plan hat, zum Beispiel vor der ersten Berechnung oder solange die Preisprognose fehlt.",
+    "whynow.no_data": "Keine Daten",
+    "whynow.all_neutral": "Derzeit wirkt kein Grund.",
+    "whynow.dir_run": "drängt zum Laufen",
+    "whynow.dir_idle": "drängt zum Pausieren",
+    "whynow.dir_neutral": "derzeit ohne Einfluss",
+    "whynow.weight": "{sign}{w} %",
+    "whynow.driver_price_rank": "Preisrang",
+    "whynow.explain_price_rank":
+      "Wie günstig dieses Zeitfenster im Vergleich zum Rest des Plans ist: Das günstigste Zeitfenster drängt voll zum Laufen, das teuerste zum Pausieren.",
+    "whynow.driver_comfort_floor": "Komfortuntergrenze",
+    "whynow.explain_comfort_floor":
+      "Wie weit der Raum von der Mitte seines Komfortbereichs entfernt ist, oberhalb der Komfortuntergrenze: Unterhalb der Mitte drängt es zum Laufen, darüber zum Pausieren.",
+    "whynow.driver_mold_guard": "Schimmelschutz",
+    "whynow.explain_mold_guard":
+      "Wie weit der Schimmelschutz die niedrigste zulässige Temperatur in diesem Zeitfenster über das Komfortminimum anhebt; er drängt immer nur zum Laufen.",
+    "whynow.driver_away": "Abwesenheit",
+    "whynow.explain_away":
+      "Wie weit der Abwesenheitsmodus oder das Urlaubsprofil die niedrigste zulässige Temperatur absenkt; er drängt immer nur zum Pausieren.",
+    "whynow.driver_forecast": "Prognose",
+    "whynow.explain_forecast":
+      "Das Wetter dieses Zeitfensters im Vergleich zu den nächsten 8 Stunden: Kälter, windiger oder nasser in Zukunft drängt jetzt zum Laufen, mehr Sonne in Zukunft zum Pausieren.",
     "tiles.price_now": "Preis jetzt",
     "tiles.planned": "Geplante Heizung",
     "tiles.planned_title": "Strom, den der aktuelle Plan über seinen Horizont zum Heizen verbraucht.",
