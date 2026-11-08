@@ -7,7 +7,7 @@ R10-RCA-SWEEP-SETTLE-LOOP is the root-cause seat for the sweep settle loop. It r
 
 ## Head
 
-`ae2bceee537b241afc74e2685daec6d3cc9e6896`, branch `fix/r10-rca-sweep-settle-loop`, two commits on origin/main `4fe7d5934b`, which is the merge base. The three-dot diff adds:
+`95f3e79e7af9a4dbe2e18be5078eeaf89d23bd53` (the repair of blocked 8db2e568; origin/main `bb7dfb9bd6c6` merged, prepr.sh rc=0 on it), branch `fix/r10-rca-sweep-settle-loop`, two commits on origin/main `4fe7d5934b`, which is the merge base. The three-dot diff adds:
 - the RCA document;
 - the harness `dev/audit/harnesses/r10_rca_sweep_settle_loop.py` and its recorded fixture `.json`;
 - the `_rca` entry;
@@ -45,7 +45,12 @@ This handoff adds no production line. The detector it adds is the harness's `rep
 
 ## Red checks
 
-None. No PR exists and no CI has run on this head.
+Verdict "Fix review: blocked 8db2e568 root-cause-detectable: tests / fast (3.14)", red `tests/harness_headers.py`.
+
+- Cause, mine: `harness_headers.py` check "every inlined walk matches the canonical helper and no depth root remains" failed at 8db2e568 on `dev/audit/harnesses/r10_rca_sweep_settle_loop.py:37: ROOT = HERE.parents[2]` (run locally: `1 of 112 HARNESS HEADER CHECKS FAILED`, the only FAIL line). Fixed in a0ee437f: the harness inlines the canonical `repo_root`. After: `harness_headers.inline_scan()` rc 0 and `depth_root_seams()` is `[]`; `replay` still prints `RESULT replay reruns=86 max_attempt=44 sim_minutes=72 alarm=yes`.
+- The named `a3:roster`, `a3:orjson`, `a3:finite` are `tests/nightly_ha.py` checks driven from `tests/entities.py`, not `harness_headers.py`; my diff touches neither, and the local `harness_headers.py` run lists no a3 line. I did not reproduce them and do not claim them fixed; if they are red at this head they are not caused by this diff.
+- Root-cause trigger: cheaper detector exists and is standing: `prepr.sh` "ci predict" ran `harness_headers` seams only on a changed file's self-test, and a new harness under `dev/audit/harnesses/` has none, so it missed this. Standing cost of running `depth_root_seams()` in prepr for any added file in that scope: one in-process scan, well under a second (`python3 -c "import harness_headers as h; h.depth_root_seams()"`). No countermeasure built here; recorded as a refusal to widen prepr inside a repair PR, for the orchestrator to cost.
+- Remaining: no CI has run on this new head.
 
 ## Forward-carry
 
