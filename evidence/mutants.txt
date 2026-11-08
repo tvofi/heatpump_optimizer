@@ -1,0 +1,13 @@
+MUTANT M1-drop-frugal: cloud_dispatch self-test: 129 checks, 1 failed | FAILs: 1
+  FAIL every role's prompt carries the frugal-routing line once, verbatim (P398)
+MUTANT M2-dup-frugal: cloud_dispatch self-test: 129 checks, 1 failed | FAILs: 1
+  FAIL every role's prompt carries the frugal-routing line once, verbatim (P398)
+MUTANT M3-drop-pack: cloud_dispatch self-test: 129 checks, 1 failed | FAILs: 1
+  FAIL every role with a contract is told to render its pack, the probe is not
+MUTANT M4-pack-typo: cloud_dispatch self-test: 129 checks, 0 failed | FAILs: 0
+MUTANT M5-drop-out: cloud_dispatch self-test: 129 checks, 1 failed | FAILs: 1
+  FAIL every role with a contract is told to render its pack, the probe is not
+MUTANT M6-drop-refuse-fallback: cloud_dispatch self-test: 129 checks, 0 failed | FAILs: 0
+MUTANT M7-pack-for-probe: KeyError: 'probe' | FAILs: 0
+MUTANT M8-frugal-text: cloud_dispatch self-test: 129 checks, 0 failed | FAILs: 0
+M7 rc=1
