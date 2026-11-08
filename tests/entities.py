@@ -27113,6 +27113,7 @@ def _ns_nightly_lanes(text: str) -> "list[str]":
 
     def _runs(_n, _ev):
         _ctx = {"github.event_name": _ev, "github.ref": "refs/heads/main",
+                "inputs.lanes": "all",
                 **{f"needs.{_m}.result": _v for _m, _v in _ok.items()}}
         return _gh_eval(_gh_if(_workflow_job(_body, _n)), _ctx)
     return sorted(_n for _n in _ids if _runs(_n, "schedule") and not _runs(_n, "push"))
@@ -27134,7 +27135,7 @@ R.check(
 # The derivation's null control: a lane whose `if:` admits the push too (the
 # record beat's shape) is not a nightly lane, and one added on the schedule is.
 _NS_PLANT = _NIGHTLY_YML.replace(
-    "\n  slow:\n    if: github.event_name != 'push'\n",
+    "\n  slow:\n    if: github.event_name != 'push' && inputs.lanes != 'beat'\n",
     "\n  slow:\n    if: github.event_name != 'pull_request'\n", 1) + (
     "\n  planted-lane:\n    if: github.event_name == 'schedule'\n    runs-on: x\n")
 R.check(
@@ -27142,6 +27143,33 @@ R.check(
     _ns_nightly_lanes(_NS_PLANT)
     == sorted({*_nstatus.REQUIRED_LANES, "planted-lane"} - {"slow"}),
     f"planted={_ns_nightly_lanes(_NS_PLANT)}",
+)
+
+# The record flush dispatches lanes=beat (stamp.py RECORD_BEAT_PAYLOAD): every
+# heavy job skips and record-autofix alone runs. A dispatch with no input (a
+# hand probe) runs every lane; schedule and push evaluate as before.
+def _nightly_runs_on(_text: str, _ev: str, _lanes: str) -> "dict[str, bool]":
+    _body = _text.split("\njobs:", 1)[1]
+    _ids = re.findall(r"^  ([A-Za-z][\w-]*):$", _body, re.M)
+    _ctx = {"github.event_name": _ev, "github.ref": "refs/heads/main", "inputs.lanes": _lanes,
+            **{f"needs.{_m}.result": "success" for _m in _ids}}
+    return {_n: _gh_eval(_gh_if(_workflow_job(_body, _n)), _ctx) for _n in _ids}
+
+
+_NS_BEAT = _nightly_runs_on(_NIGHTLY_YML, "workflow_dispatch", "beat")
+_NS_HAND = _nightly_runs_on(_NIGHTLY_YML, "workflow_dispatch", "")
+R.check(
+    "lanes=beat skips every heavy nightly lane and runs record-autofix; no input runs every lane",
+    sorted(_n for _n, _v in _NS_BEAT.items() if _v) == ["record-autofix"]
+    and all(_NS_HAND[_n] for _n in _nstatus.REQUIRED_LANES)
+    and _NS_HAND["record-autofix"],
+    f"beat={_NS_BEAT} hand={_NS_HAND}",
+)
+R.check(
+    "nightly.yml declares the lanes choice input (all, beat) defaulting to all",
+    re.search(r"workflow_dispatch:\n    inputs:\n(?:      #.*\n)*      lanes:\n(?:.*\n)*?"
+              r"        options: \[all, beat\]\n        default: all\n", _NIGHTLY_YML) is not None,
+    "lanes input missing",
 )
 
 # --- the four states --------------------------------------------------------
@@ -27749,6 +27777,70 @@ R.check(
     f"a run: record={_ns_wf_some is not None} reads={_ns_wf_reads_some}",
 )
 
+# The record beat is never the graded nightly (R10-FLY-STAMP-FLUSH-COST). The
+# stamp's flush dispatches nightly.yml with lanes=beat, which skips every
+# REQUIRED_LANES job; graded, it reads ABSENT after every stamp and hides the
+# last real nightly. nightly.yml's own `run-name:` is evaluated here, so the
+# title the reporter drops is the title the workflow gives, and the null
+# control is a lanes=all dispatch, which stays the graded run.
+_NS_RUN_NAME = _re.search(r"^run-name: \$\{\{ (.*) \}\}$", _NIGHTLY_YML, _re.M)
+
+
+def _ns_title(_lanes: str) -> "str | None":
+    if _NS_RUN_NAME is None:
+        return None
+    _e = (_NS_RUN_NAME.group(1).replace("inputs.lanes", repr(_lanes))
+          .replace("&&", " and ").replace("||", " or "))
+    return eval(_e, {"__builtins__": {}})  # noqa: S307 -- literals only
+
+
+_ns_bt_real_get, _ns_bt_real_sleep = _nstatus._get, _nstatus._sleep
+_ns_bt_sched = {**_ns_run(81, "2026-10-21T00:40:00Z"), "event": "schedule",
+                "head_branch": "main", "display_title": _ns_title("")}
+
+
+def _ns_bt_graded(_dispatch_lanes: str):
+    _disp = {**_ns_run(82, "2026-10-21T09:00:00Z"), "event": "workflow_dispatch",
+             "head_branch": "main", "display_title": _ns_title(_dispatch_lanes)}
+
+    def _fake_get(url, _token):
+        if "/jobs" in url:
+            return {"total_count": len(_NS_LIVE), "jobs": _NS_LIVE}
+        if "/actions/runs/" in url:
+            return _disp
+        return {"workflow_runs": [r for r in (_disp, _ns_bt_sched)
+                                  if r["event"] == url.split("event=")[1].split("&")[0]]}
+
+    _nstatus._get, _nstatus._sleep = _fake_get, lambda _s: None
+    try:
+        _c = _nstatus.collect("o/r", "nightly.yml", None, None,
+                              now=datetime(2026, 10, 21, 12, 0, tzinfo=UTC))[0]
+        try:
+            _nstatus.collect("o/r", "nightly.yml", None, 82)
+            _by_id = "read"
+        except _nstatus.Unreadable:
+            _by_id = "refused"
+    finally:
+        _nstatus._get, _nstatus._sleep = _ns_bt_real_get, _ns_bt_real_sleep
+    return (_c or {}).get("id"), _by_id
+
+
+_ns_bt_beat, _ns_bt_all = _ns_bt_graded("beat"), _ns_bt_graded("all")
+R.check(
+    "nightly.yml titles a lanes=beat run nightly_status.BEAT_TITLE, and no other run",
+    _ns_title("beat") == _nstatus.BEAT_TITLE
+    and _ns_title("all") != _nstatus.BEAT_TITLE and _ns_title("") != _nstatus.BEAT_TITLE,
+    f"run-name={_NS_RUN_NAME and _NS_RUN_NAME.group(1)!r} beat={_ns_title('beat')!r} "
+    f"all={_ns_title('all')!r} schedule={_ns_title('')!r}",
+)
+R.check(
+    "a lanes=beat dispatch is never the graded nightly, by discovery or by "
+    "--run-id; a newer lanes=all dispatch still is (null control)",
+    _ns_bt_beat == (81, "refused") and _ns_bt_all == (82, "read"),
+    f"beat: graded {_ns_bt_beat}, want (81, 'refused'); all: graded "
+    f"{_ns_bt_all}, want (82, 'read')",
+)
+
 # --- the delivery ledger, and why it replaced a red tick --------------------
 #
 # `record` refuses a merged pull request with no disposition row, and it is
@@ -28191,7 +28283,54 @@ def _ds_rc(ledger, *flags):
             sys.argv = argv
 
 
-_DS_ROWS_RCS = {v: _ds_rc(l, "--require-rows") for v, l in (
+def _ds_head_window():
+    """gather() over a throwaway repo: A (tagged), then merges #101 and #102."""
+    with _tempfile.TemporaryDirectory() as td:
+        repo = Path(td) / "r"
+        env = throwaway_git_init(repo, "-q", "-b", "main")
+
+        def g(*a):
+            return subprocess.run(["git", *a], cwd=repo, env=env, check=True,
+                                  capture_output=True, text=True).stdout.strip()
+        (repo / "f").write_text("a")
+        g("add", "-A")
+        g("commit", "-q", "-m", "A")
+        g("tag", "v0.0.1")
+        shas = []
+        for n, side in ((101, "a"), (102, "b")):
+            g("checkout", "-q", "-b", side)
+            (repo / f"{side}.txt").write_text(side)
+            g("add", "-A")
+            g("commit", "-q", "-m", side)
+            g("checkout", "-q", "main")
+            g("merge", "-q", "--no-ff", "-m", f"Merge pull request #{n} from x/{side}", side)
+            shas.append(g("rev-parse", "HEAD"))
+        g("update-ref", "refs/remotes/origin/main", shas[1])
+        saved, _ds.ROOT = _ds.ROOT, repo
+        try:
+            nums = lambda *a, **k: [m["number"] for m in _ds.gather("r", *a, **k)[0]]
+            return (nums("v0.0.1", head=shas[0]), nums("v0.0.1", head=shas[1]),
+                    nums("v0.0.1"))
+        finally:
+            _ds.ROOT = saved
+
+
+_ds_h1, _ds_h2, _ds_hdef = _ds_head_window()
+R.check(
+    "delivery_status --head selects its window",
+    _ds_h1 == [101],
+    f"gather(head=M1) returned {_ds_h1}, expected [101]")
+R.check(
+    "delivery_status --head at the tip is unchanged (null control)",
+    _ds_h2 == [102, 101],
+    f"gather(head=M2) returned {_ds_h2}, expected [102, 101]")
+R.check(
+    "delivery_status default head is origin/main",
+    _ds_hdef == _ds_h2,
+    f"default {_ds_hdef} != head=M2 {_ds_h2}")
+
+
+_DS_ROWS_RCS ={v: _ds_rc(l, "--require-rows") for v, l in (
     ("OVERDUE", _ds_overdue), ("UNCHECKED", _ds_unchecked),
     ("OK", _ds_all_rowed), ("EMPTY", _ds_empty), ("PENDING", _ds_pending))}
 R.check(
@@ -31977,6 +32116,73 @@ R.check(
     "(its precondition)",
     _TWP_LIVE != [] and _TWP_MATCHER_OFF == [],
     f"restores read: {len(_TWP_LIVE)}; the matcher disagrees with git on: {_TWP_MATCHER_OFF}",
+)
+
+
+# --- R10-HOTFIX-NONREQUIRED-REDS (fix review round 1): A PROGRAM PR-CONTRACT
+# RUNS IS THE BASE'S, SPAWNED ONES INCLUDED. pr-contract restores its check
+# source from the base so it runs no pull-request program (#1515, decision
+# 0013), but `policy_lint.mjs --pr-body` spawns `python3 <ROOT>/...py` for the
+# required set (`requiredFromTrain`: merge_train.py owed-reds). A spawned
+# program outside the restore list is the pull request's copy, and a diff
+# editing it alone answered its own required reds. The rule enumerates the
+# class: every `spawnSync('python3', [path.join(<root>, ...)` in policy_lint, and
+# each one's local closure -- a column-0 `import X`/`from X` with X.py beside
+# it, and a column-0 `NAME = ROOT / "path"` it reads -- must match a pathspec
+# of pr-contract's restore. A file read as text (stamp.py at :4780) is no spawn.
+_PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\((ROOT|root|HERE),\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
+_PCR_IMPORT = re.compile(r"^(?:import|from)\s+([A-Za-z_]\w*)", re.M)
+_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
+
+
+def _pcr_spawned(mjs: str) -> "list[str]":
+    # HERE is policy_lint's own directory; ROOT, and a `root` parameter, the tree.
+    return sorted({"/".join((["tools", "policy"] if m.group(1) == "HERE" else [])
+                            + [t.strip().strip("'") for t in m.group(2).split(",")]) for m in _PCR_SPAWN.finditer(mjs)})
+
+
+def _pcr_closure(roots) -> "list[str]":
+    seen, todo = set(), list(roots)
+    while todo:
+        f = todo.pop()
+        if f in seen:
+            continue
+        seen.add(f)
+        if not f.endswith(".py") or not Path(f).is_file():
+            continue
+        text = Path(f).read_text()
+        todo += [q for q in (str(Path(f).parent / f"{m}.py") for m in _PCR_IMPORT.findall(text))
+                 if Path(q).is_file()]
+        todo += _PCR_READ.findall(text)
+    return sorted(seen)
+
+
+def _pcr_unrestored(texts: dict, mjs: str) -> "tuple[list[str], list[str]]":
+    """(the closure, the files of it no pr-contract restore pathspec matches)."""
+    specs = [p for w, _l, sp, _d, _a in _twp_steps({"pr-contract.yml": texts["pr-contract.yml"]}) for p in sp]
+    files = _pcr_closure(_pcr_spawned(mjs))
+    return files, [f for f in files if not specs or not any(_twp_hit(p, f) for p in specs)]
+
+
+_PCR_MJS = Path("tools/policy/policy_lint.mjs").read_text()
+_PCR_FILES, _PCR_OPEN = _pcr_unrestored(_PRW_TEXTS, _PCR_MJS)
+R.check(
+    "every python3 program policy_lint.mjs spawns, with its local import and ROOT-read closure, is "
+    "restored from the base by pr-contract (merge_train.py owed-reds, gh_read.py, required-contexts.json)",
+    _PCR_OPEN == [] and "tools/audit/seat/merge_train.py" in _PCR_FILES
+    and "tools/audit/seat/gh_read.py" in _PCR_FILES
+    and "tools/policy/fixtures/required-contexts.json" in _PCR_FILES,
+    f"closure: {_PCR_FILES}; not restored: {_PCR_OPEN}",
+)
+_PCR_NULL = {k: _pcr_unrestored({"pr-contract.yml": _PRW_TEXTS["pr-contract.yml"].replace(f"'{k}' \\\n", "")},
+                                _PCR_MJS)[1] for k in ("tools/audit/seat/merge_train.py",
+                                                       "tools/audit/seat/gh_read.py",
+                                                       "tools/policy/fixtures/required-contexts.json")}
+R.check(
+    "and pr-contract with any one of those three pathspecs removed is refused on that file "
+    "(null control); a file read as text, stamp.py, is no spawn",
+    all(v == [k] for k, v in _PCR_NULL.items()) and "tools/release/stamp.py" not in _PCR_FILES,
+    f"refused per removed pathspec: {_PCR_NULL}",
 )
 
 
@@ -36406,7 +36612,7 @@ _REACH: list = []
 try:
     for _rv in _NIGHTLY_EVENTS:
         for _rr in ("refs/heads/main", "refs/heads/fix/x"):
-            _rx = {"github.event_name": _rv, "github.ref": _rr}
+            _rx = {"github.event_name": _rv, "github.ref": _rr, "inputs.lanes": "all"}
             _r_meas = _gh_eval(_gh_if(_ml_meas), _rx)
             _r_push = _gh_eval(_gh_if(_ml_push), {
                 **_rx, "needs.mutation-ledger.result": "success" if _r_meas else "skipped"})
@@ -36456,7 +36662,7 @@ try:
                                        "needs.closure-scope.outputs.nightly_ha": _nf})
             # nightly.yml lists push, schedule and dispatch alone.
             _ngot_n = _nv in _NIGHTLY_EVENTS and _gh_eval(
-                _NHA_NIGHT_IF, {"github.event_name": _nv})
+                _NHA_NIGHT_IF, {"github.event_name": _nv, "inputs.lanes": "all"})
             _nwant = _nv == "pull_request" and _nf == "true"
             _nwant_n = _nv in ("schedule", "workflow_dispatch")
             if (_ngot, _ngot_n) != (_nwant, _nwant_n):
