@@ -38,7 +38,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
-from throwaway_git import throwaway_git_env, throwaway_git_init
+from throwaway_git import throwaway_git_env, throwaway_git_environ, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
 # is still there, otherwise the path the move map records, so a module import
@@ -18810,18 +18810,69 @@ def _hb_stdlib_reads(spin: bool) -> str:
         child.wait()
 
 
+def _hb_stdlib_arm(reads, platform):
+    """The (spinning, idle) stdlib samples, or None where macOS refuses the task port.
+
+    One platform rule: only a ``PermissionError`` on darwin is a skip, printed with
+    its reason. Any other platform or exception still fails the run, and a bad
+    sample is not an exception at all, so the arm's checks still judge it.
+    """
+    try:
+        return reads(True), reads(False)
+    except PermissionError as exc:
+        if platform != "darwin":
+            raise
+        print(f"SKIP stdlib sampler control: macOS denies the task port ({exc})")
+        return None
+
+
+def _hb_denied(_spin):
+    raise PermissionError(1, "task_for_pid denied")
+
+
+def _hb_other(_spin):
+    raise OSError("other")
+
+
+def _hb_arm_run(reads, platform):
+    out, seen = _io.StringIO(), None
+    try:
+        with _hb_contextlib.redirect_stdout(out):
+            seen = _hb_stdlib_arm(reads, platform)
+    except Exception as exc:  # noqa: BLE001 - the control reads which one escaped
+        seen = type(exc).__name__
+    return seen, out.getvalue()
+
+
 if _nightly.importlib.util.find_spec("_remote_debugging") is not None:
-    _hb_in, _hb_out = _hb_stdlib_reads(True), _hb_stdlib_reads(False)
-    _hb_reads = (
-        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
-        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
-    )
+    _hb_skip, _hb_skip_out = _hb_arm_run(_hb_denied, "darwin")
+    _hb_lin, _ = _hb_arm_run(_hb_denied, "linux")
+    _hb_oth, _ = _hb_arm_run(_hb_other, "darwin")
+    _hb_bad, _ = _hb_arm_run(lambda spin: "in nothing" if spin else "", "linux")
     R.check(
-        "the stdlib sample of a real spinning process reads as the spin to the control, "
-        "and of the same process outside it does not",
-        _hb_reads[0] == (True, True, True) and _hb_reads[1] == (True, True, False),
-        f"spinning: {_hb_reads[0]} {_hb_in[-160:]!r}; idle: {_hb_reads[1]} {_hb_out[-160:]!r}",
+        "a task-port refusal is a printed skip on darwin only: linux and any other "
+        "exception still fail, and a bad sample is still judged by the arm",
+        _hb_skip is None and _hb_skip_out.count("SKIP stdlib sampler control:") == 1
+        and _hb_lin == "PermissionError" and _hb_oth == "OSError"
+        and _hb_bad == ("in nothing", "")
+        and _nightly.hb_control_reading(
+            {"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_bad[0]]})
+        != (True, True, True),
+        f"darwin={_hb_skip!r}/{_hb_skip_out!r} linux={_hb_lin!r} other={_hb_oth!r} bad={_hb_bad!r}",
     )
+    _hb_pair = _hb_stdlib_arm(_hb_stdlib_reads, sys.platform)
+    if _hb_pair is not None:
+        _hb_in, _hb_out = _hb_pair
+        _hb_reads = (
+            _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
+            _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
+        )
+        R.check(
+            "the stdlib sample of a real spinning process reads as the spin to the control, "
+            "and of the same process outside it does not",
+            _hb_reads[0] == (True, True, True) and _hb_reads[1] == (True, True, False),
+            f"spinning: {_hb_reads[0]} {_hb_in[-160:]!r}; idle: {_hb_reads[1]} {_hb_out[-160:]!r}",
+        )
 else:
     R.check(
         "the stdlib sample of a real spinning process reads as the spin to the control "
@@ -29000,7 +29051,27 @@ try:
     # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
     _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
     _ba_fixed = _ba_head + 'x | python3 -I ledger.py landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads\n'
+    # This row judges HEAD's blobs, not the working tree (a tree read would open every
+    # tools/*.sh and join this script's closure); `bare_array.py --check` with no ref
+    # reads the working tree. Planted control: one temp repo, a clean commit and an
+    # uncommitted bare edit -- HEAD reads clean, the tree reads red.
+    with _tempfile.TemporaryDirectory() as _ba_tmp:
+        _ba_cwd = os.getcwd()
+        try:
+            _ba_env = throwaway_git_init(_ba_tmp, "-q")
+            Path(_ba_tmp, "tools").mkdir()
+            Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + "f x\n")
+            for _ba_args in (["add", "."], ["commit", "-qm", "c"]):
+                subprocess.run(["git", *_ba_args], cwd=_ba_tmp, env=_ba_env, check=True, capture_output=True)
+            Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + 'f "${a[@]}"\n')
+            os.chdir(_ba_tmp)
+            with throwaway_git_environ():
+                _ba_uncommitted = (_ba.scan("HEAD"), _ba.scan())
+        finally:
+            os.chdir(_ba_cwd)
     _ba_rows = (
+        (_ba_uncommitted[0] == [] and len(_ba_uncommitted[1]) == 1,
+         "an uncommitted bare site is invisible to the HEAD scan this row runs and red to the tree scan"),
         (len(_ba.sites(_ba_base)) == 1, "the base bus.sh call is refused"),
         (_ba.sites(_ba_fixed) == [], "the guarded form passes (control)"),
         (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
@@ -29019,7 +29090,7 @@ try:
 except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
     _ba_hits, _ba_rows = [f"{type(_ba_exc).__name__}: {_ba_exc}"], ()
 R.check(
-    "no tracked tools/**/*.sh script expands a bare \"${array[@]}\"",
+    "no tools/**/*.sh script, as committed at HEAD, expands a bare \"${array[@]}\"",
     not _ba_hits,
     "bash 3.2 (macOS) dies on an empty array under -u; guard with ${a[@]+\"${a[@]}\"} or "
     "put `# never-empty: <reason>` on the line, or on the line above when it ends in `# mut:<name>`:\n" + "\n".join(_ba_hits),
