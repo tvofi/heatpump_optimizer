@@ -23619,6 +23619,23 @@ R.check(
     "check names:\n" + _lm_detail,
 )
 
+# --- the orchestrator tick's self-test runs where roster_lib changes --------
+#
+# The tick reads roster_lib (`open_groups`, `groups_of`), and tools/ is INERT, so
+# no scoped script ran its self-test on a roster_lib.py change: CLOSED_STAGES
+# gaining `deferred` broke "PLAN: deferred E stays deferred" and only
+# governance's instrument-self-tests saw it (#3326). tests/closures.json puts
+# roster_lib.py in this script's closure, so running it here is the edge.
+_tick_run = subprocess.run(
+    [sys.executable, "-I", str(_closure.ROOT / "tools" / "audit" / "seat" / "orchestrator_tick.py"),
+     "--self-test"],
+    capture_output=True, text=True, cwd=str(_closure.ROOT), check=False)
+R.check(
+    "orchestrator_tick.py --self-test passes (it reads roster_lib's closed set)",
+    _tick_run.returncode == 0 and ", 0 failed" in _tick_run.stdout,
+    (_tick_run.stdout + _tick_run.stderr).strip()[-400:],
+)
+
 # --- #493: inherited card claims on a roster-only three-dot -----------------
 #
 # PR #493 (squash ae97a65) touched only INERT roster/plan files. Claim files

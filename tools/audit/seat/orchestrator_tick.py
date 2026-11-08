@@ -1508,9 +1508,11 @@ class Tick:
         open_g = rl.open_groups(roster)
         self.line(S, f"{len(open_g)} open group(s) of {len(groups)}")
         for gid, g in groups.items():
-            if gid not in open_g:
-                continue
             stage = (g.get("resume") or {}).get("stage")
+            # roster_lib closes refused and deferred groups (is_open is
+            # False), yet the tick still reports them: they stay deferred.
+            if gid not in open_g and stage not in DEFERRED_STAGES:
+                continue
             blockers = [a for a in (g.get("after") or []) if a in open_g]
             if stage in DEFERRED_STAGES or g.get("deferred") or g.get("refused"):
                 self.line(S, f"{gid}: deferred/refused (stage {stage}) -- "
