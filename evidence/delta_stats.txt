@@ -1,2 +1,0 @@
-RESULT delta_s clamped n 32 p50 +0.220 min -0.032 max +0.838
-RESULT delta_s unclamped n 32 min -0.216 max +0.169 p50 +0.000; runs max 0 pass_s max 0.000

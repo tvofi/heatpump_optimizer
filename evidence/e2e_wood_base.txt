@@ -1,0 +1,6 @@
+RESULT spread d=0.0 published-vs-derated mismatch max 0; derated-vs-linear shortfall max 0
+RESULT spread d=0.112 published-vs-derated mismatch max 19; derated-vs-linear shortfall max 19
+RESULT flat d=0.0 published-vs-derated mismatch max 0; derated-vs-linear shortfall max 0
+RESULT flat d=0.112 published-vs-derated mismatch max 58; derated-vs-linear shortfall max 58
+RESULT partload_at wired: False; null (d=0 published != linear) 0; cells 64
+rc=0
