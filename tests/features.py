@@ -43525,6 +43525,104 @@ R.check(
     and _sb_meter_row(0.5, True)["meter_calibration"] == 1.0,
     repr(_sb_up),
 )
+# R10-SAV-METER-FLOOR carry 1: the floor above also kept a model that reads the
+# meter high from being corrected. A wood house calibrates from the intervals
+# wood did not heat (the pending snapshot's ``wood_heated``), floored only where
+# too few of those were metered.
+def _sb_wood_free_row(free_meter, fire_meter, *, wood=True, flag=True, free_hours=12, price=1.0):
+    led = _SavLedger()
+    for hour in range(24):
+        fire = hour >= free_hours
+        pending = {"baseline_kw": 2.0, "power": 1.0, **({"wood_heated": fire} if flag else {})}
+        led.observe_spot_and_settle_savings(
+            _SavDT(2026, 2, 9, hour, 0), price, pending, fire_meter if fire else free_meter, 1.0
+        )
+    return led.savings_months(_SavDT(2026, 3, 2, 0, 0), wood_configured=wood)[0]
+
+
+_sb_wf = _sb_wood_free_row(0.8, 0.2)
+R.check(
+    "a wood house whose wood-free hours meter 0.8 of the plan publishes that calibration, not the floor's 1.0",
+    _sb_wf["meter_calibration"] == 0.8 and _sb_wf.get("calibration_basis") == "wood_free"
+    and _sb_wf["baseline_sek"] == round(48.0 * 0.8, 2),
+    repr(_sb_wf),
+)
+_sb_wf_low = _sb_wood_free_row(1.5, 0.2)
+R.check(
+    "a wood house's model that reads the meter low on its wood-free hours is still corrected up",
+    _sb_wf_low["meter_calibration"] == 1.5 and _sb_wf_low.get("calibration_basis") == "wood_free",
+    repr(_sb_wf_low),
+)
+# Null (a): at one flat price the saving is volume alone, the calibrated
+# reference's kWh less the metered kWh, priced at 1.0.
+R.check(
+    "at one flat price the wood-free calibrated row's saving is the volume difference alone",
+    _sb_wf["savings_sek"] == round(48.0 * 0.8 - (12 * 0.8 + 12 * 0.2), 2) and _sb_wf["actual_sek"] == 12.0,
+    repr(_sb_wf),
+)
+# Null (b) and the fallback: each row as it read before the pair existed, field by field.
+_sb_fields = ("meter_calibration", "baseline_sek", "actual_sek", "savings_sek", "savings_pct")
+_sb_plain_rows = {f: {k: _sb_meter_row(f, False)[k] for k in _sb_fields} for f in (1.0, 0.5, 0.25)}
+R.check(
+    "a no-wood row is unchanged field by field at a meter of 1.0, 0.5 and 0.25 of the plan, the pair or not",
+    _sb_plain_rows == {f: {"meter_calibration": f, "baseline_sek": 48.0 * f, "actual_sek": 24.0 * f,
+                           "savings_sek": 24.0 * f, "savings_pct": 50.0} for f in (1.0, 0.5, 0.25)}
+    and {k: _sb_wood_free_row(0.8, 0.2, wood=False)[k] for k in _sb_fields}
+    == {k: _sb_wood_free_row(0.8, 0.2, wood=False, flag=False)[k] for k in _sb_fields},
+    repr(_sb_plain_rows),
+)
+_sb_fallback = {k: _sb_wood_free_row(0.8, 0.2, free_hours=0)[k] for k in _sb_fields}
+R.check(
+    "a wood month with too few wood-free kWh, or booked before the pair existed, keeps the floor's row exactly",
+    _sb_fallback == {"meter_calibration": 1.0, "baseline_sek": 48.0, "actual_sek": 4.8,
+                     "savings_sek": 43.2, "savings_pct": 90.0}
+    and {k: _sb_wood_free_row(0.8, 0.2, flag=False)[k] for k in _sb_fields}
+    == {"meter_calibration": 1.0, "baseline_sek": 48.0, "actual_sek": 12.0, "savings_sek": 36.0, "savings_pct": 75.0}
+    and _sb_wood_free_row(0.8, 0.2, free_hours=0).get("calibration_basis") == "wood_floor"
+    and _sb_meter_row(1.0, False).get("calibration_basis") == "meter",
+    repr(_sb_fallback),
+)
+# R10-SAV-METER-FLOOR: a row whose booked reference is under METER_FLOOR of its
+# metered kWh states no saving and says why. The booked lines decide, because
+# the calibrated column cancels the meter.
+from heatpump_optimizer.ledger import METER_FLOOR as _sb_floor
+
+
+def _sb_floor_row(baseline_kw, meter_kwh, *, old=False):
+    led = _SavLedger()
+    for hour in range(24):
+        led.observe_spot_and_settle_savings(
+            _SavDT(2026, 2, 9, hour, 0), 1.0, {"baseline_kw": baseline_kw, "power": 1.0}, meter_kwh, 1.0
+        )
+    if old:
+        led.months["2026-02"]["meta"]["reference_basis"] = {"sum": 0.0, "count": 1}
+    return led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
+
+
+_sb_collapsed = _sb_floor_row(0.2, 1.0)
+_sb_at_floor = _sb_floor_row(_sb_floor, 1.0)
+_sb_tiny = _sb_floor_row(0.001, 0.04)
+_sb_old_low = _sb_floor_row(0.2, 1.0, old=True)
+R.check(
+    "a booked reference under the meter floor of its metered kWh states no saving, keeps both columns and says why",
+    _sb_floor == 0.5 and _sb_collapsed.get("below_meter_floor") is True
+    and _sb_collapsed["savings_sek"] is None and _sb_collapsed["savings_pct"] is None
+    and _sb_collapsed["baseline_sek"] == 4.8 and _sb_collapsed["actual_sek"] == 24.0,
+    repr(_sb_collapsed),
+)
+R.check(
+    "the meter floor is strict, skips a month under MIN_CALIBRATION_KWH metered, and leaves an old-basis row as old basis",
+    _sb_at_floor.get("below_meter_floor") is False and _sb_at_floor["savings_sek"] == -12.0
+    and _sb_tiny.get("below_meter_floor") is False and _sb_tiny["savings_sek"] is not None
+    and _sb_old_low.get("below_meter_floor") is False and _sb_old_low["old_basis"] is True,
+    repr((_sb_at_floor, _sb_tiny, _sb_old_low)),
+)
+R.check(
+    "wood cannot trip the meter floor: a meter under the plan raises booked over metered",
+    all(_sb_meter_row(f, True).get("below_meter_floor") is False for f in (1.0, 0.5, 0.25))
+    and _sb_wf.get("below_meter_floor") is False,
+    repr([_sb_meter_row(f, True).get("below_meter_floor") for f in (1.0, 0.5, 0.25)]),
+)
 from heatpump_optimizer.notifier import _monthly_receipt as _sb_receipt
 
 
@@ -43543,6 +43641,14 @@ R.check(
     and _sb_ev_new["saving_pct"] == -300.0 and _sb_ev_new["saving_old_basis"] is False
     and _sb_ev_new["saving_includes_wood"] is False,
     repr((_sb_ev_old, _sb_ev_new)),
+)
+_sb_ev_floor = _sb_event({"month": "2026-09", "savings_sek": None, "savings_pct": None, "old_basis": False,
+                          "below_meter_floor": True}, False)
+R.check(
+    "the receipt event says a row under the meter floor states no saving, and an ordinary row says it is not",
+    _sb_ev_floor["saving_sek"] is None and _sb_ev_floor.get("saving_below_meter_floor") is True
+    and _sb_ev_new.get("saving_below_meter_floor") is False,
+    repr(_sb_ev_floor),
 )
 _sb_plain = _sb_first_steps(True, False)[(20.0, None)]
 _sb_wood = _sb_first_steps(True, True)
