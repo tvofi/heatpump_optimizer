@@ -15,3 +15,7 @@
   none); (5) the report with counts before and after under `--report-dir`.
   Archiving merged cloud sessions stays the orchestrator's. `--self-test` runs
   every control against a throwaway bare remote.
+  `--apply`'s roster refusal and step 4 exempt what `roster_lib.closeout_exempt`
+  returns: open post-stamp groups (the owner step that starts after this run's
+  stamp, and groups after it), the issues wired to them, and `refused`/`refuted`
+  groups whose `resume.host` is not an open group.

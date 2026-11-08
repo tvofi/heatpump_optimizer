@@ -1,3 +1,55 @@
+## v7.1.8
+
+**Patch stamp: 6 merges since v7.1.7.** The user-visible change is that the heat-pump plan now respects the "Heat pump min power" setting. The rest of the window is round-10 tooling and audit machinery.
+
+### #3308 The plan respects "Heat pump min power" (R10-MIN-POWER-FLOOR)
+
+The heat-pump plan now respects the "Heat pump min power" setting. A pump that cannot modulate is no longer planned at steps below its minimum, and a pump that also heats hot water no longer has space heating and hot water planned together above its maximum power. A new "compressor modulation" option (auto, on/off, modulating) on the thermal model page lets you declare how your pump behaves. Closes #3289.
+
+### #3294 Standing contracts for the orchestrator's sessions, part 2 (R10-FLY-STANDING-CONTRACTS)
+
+The hooks that the orchestrator's sessions depend on are now tracked, described and installable, including a guard on the orchestrator's shell commands. Developer tooling only.
+
+### #3320 Suite host determinism, part 2 (R10-SUITE-HOST-DETERMINISM)
+
+The entity test script gives the same answer on any host. Test tooling only.
+
+### #3335 Root-cause record for the stamp flush cost (R10-RCA-STAMP-FLUSH-COST)
+
+Records that the existing root-cause note on stamps dispatching a whole Nightly run already covers the owner's ruling. No code changed.
+
+### #3324 Closeout instruments (R10-CLOSEOUT-INSTRUMENTS)
+
+The instruments for closing out an audit round: worktree collection, closeout exemptions and tag pruning. Developer tooling only.
+
+### #3328 Delivery rows recorded (autofix)
+
+Delivery-status rows for #3262, #3288, #3301, #3311 and #3312. Record only.
+
+## v7.1.7
+
+**Patch stamp: 5 merges since v7.1.6.** The user-visible change is that the round's plan page is now public: the developer documentation links it, and outside contributors have a stated intake route. The rest of the window is round-10 engineering and audit machinery.
+
+### #3262 The round's plan page is public (R10-OUTSIDE-INTAKE)
+
+The plan page for an ongoing audit round is now published from the developer documentation (owner ruling, 2026-11-06). The same change states how issues, pull requests and posts from outside users are taken in and answered during a round.
+
+### #3301 CI's prediction covers every restoring job (R10-FLY-CIPREDICT-RESTORING)
+
+`tools/pr/ci_predict.py` now predicts every CI job that restores a grader from the base, not only governance's three. A prediction no longer misses a red those jobs would raise. Closes #2952.
+
+### #3288 The merge train retries its carry-path fetch (R10-TRAIN-MERGE-LOOP part 2)
+
+The merge loop's second part: the approval carry path retries a failed `git fetch` instead of refusing on the first transient error.
+
+### #3312 The figure block is registered with the field-coverage grader (R10-BODY-CONTRACT part 3 bootstrap)
+
+`tools/pr/figure_block.py` is registered as pending in main's field-coverage registry, so the body-contract work that builds on it can pass the grader CI restores from the base.
+
+### #3311 The "other" friction family is disposed (R10-FRICTION-OTHER-FAMILY)
+
+The record of the friction family that matched no class: mostly spelling dispersion, and one taught obligation that three pull requests had missed. It lands as `dev/audit/rca/R10-RCA-OTHER-UNTAUGHT.md`.
+
 ## v7.1.6
 
 **Patch stamp: 27 merges since v7.1.5.** The user-visible changes are a live "Why now" explanation on the card, a saving that says when it includes wood heat, a buffer tank that no longer starts every solve from a fixed 40 °C, and inputs that come back as soon as their entity reports again. The rest of the window is round-10 engineering and audit machinery.
