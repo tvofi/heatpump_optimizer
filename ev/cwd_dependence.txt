@@ -1,0 +1,20 @@
+### Reproduce recipe verbatim, cwd = PR head checkout (doc says rc 0 for the fix tree)
+RESULT null=graded tuya=graded metered=graded
+rc=1
+### cwd = fix tree, root = v7.1.5 (defective tree reads as fixed)
+RESULT null=withheld tuya=withheld metered=graded
+rc=0
+### cwd = /tmp (neutral), each root
+v7.1.5: RESULT null=graded tuya=graded metered=graded
+ rc=1
+2a3c05644d85: RESULT null=graded tuya=graded metered=graded
+ rc=1
+origin_main: RESULT null=graded tuya=graded metered=graded
+ rc=1
+2d010b0913ca: RESULT null=withheld tuya=withheld metered=graded
+ rc=0
+b8fba2c8d5ab: RESULT null=graded tuya=graded metered=graded
+ rc=1
+### cause
+22:sys.path.insert(0, "tests")
+23:sys.path.insert(0, "custom_components")

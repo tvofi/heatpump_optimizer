@@ -1,0 +1,21 @@
+### name census at merge base
+23
+### tags containing a63b576cd
+135
+a63b576cd 2026-08-26 02:09:18 +0200 v4.0.0 T4a: learned-state insurance and drift detectors (#42 #26 #11 #12) (#50)
+2248f64e0 2026-08-26 15:48:03 +0200
+516ad1b6b 2026-11-07 13:27:14 +0100
+### sweep-P5:37
+| coordinator.py `_cop_health_cusum` (2912) | not applicable. It is fed a shortfall against an empirical per-bucket, per-curve baseline (lift-normalised), not a model residual. It gates no thermal learner. |
+### D1 lines 10-11
+Ways the integration wedges, leaks, races, publishes stale or fabricated data
+as measured, or turns a corrupt input into a permanent failure — under real
+### df7db8215
+df7db8215 2026-08-22 12:45:46 +0200 Add feature modules for staleness, power, external heat, tariff, PV and more
+### capacity default
+### tags excluding v7.1.6
+134
+v7.1.6
+v7.1.5
+### capacity default
+/root/wt/2a3c05644d85/custom_components/heatpump_optimizer/const.py:1027:DEFAULT_CAPACITY_CURVE_ENABLED: Final = False
