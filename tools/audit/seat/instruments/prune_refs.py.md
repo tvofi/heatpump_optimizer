@@ -26,3 +26,6 @@
   the plan to one topic's refs (`handoff/T`, `handoff-body/T`, `-rN`,
   `dispatch/*T*`) and refuses it whole when a `handoff/` tip has a `+` line in
   `git cherry` against main or any of its refs has an open pull request.
+  A tag the remote holds at another sha (a lease refusal moved the ref after
+  its tag went up) is not retargeted: the new tip is archived as
+  `archive/<name>.<sha12>` and the delete check accepts either spelling.

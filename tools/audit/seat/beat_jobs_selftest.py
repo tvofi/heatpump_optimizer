@@ -124,7 +124,8 @@ def cases(bj) -> dict[str, bool]:
         (s / "beatd").mkdir(parents=True)
         ov = {"repo": "o/r", "seat_ledger": str(s / "ledger"), "plan_json": str(s / "p.json"),
               "plan_slots": 10, "plan_seats": 99, "state_mirror": str(s / "mirror"),
-              "disk_floor_gib": 20, "seat_queues": "--seat-queue merge=" + str(s / "q")}
+              "disk_floor_gib": 20, "seat_queues": "--seat-queue merge=" + str(s / "q"),
+              "intake_since": "2026-11-01T00:00:00Z"}
         if overlay is not None:
             ov = overlay
         (s / "sweep-overlay.json").write_text(json.dumps(ov))
@@ -381,6 +382,38 @@ def cases(bj) -> dict[str, bool]:
     res["plan-beat: replan is handed the plan, slots and seats"] = (
         arg(a, "--out") == str(c.state.parent / "p.json") or arg(a, "--out").endswith("p.json")) and (
         arg(a, "--slots") == "10" and arg(a, "--seats") == "99")
+    c, f = fresh(answers={"state_docs.py": (0, "pushed handoff/audit-r10-plan at abc\n", "")})
+    bj.plan_beat(c)
+    gh = [x for x in f.calls if x[0] == "gh"]
+    res["plan-beat: a state push that landed dispatches the Pages deploy on main, once"] = (
+        not files(c) and len(gh) == 1 and gh[0][1:4] == ["workflow", "run", "pages.yml"]
+        and arg(gh[0], "--ref") == "main" and arg(gh[0], "--repo") == "o/r")
+    c, f = fresh(answers={"state_docs.py": (0, "already current: handoff/audit-r10-plan at abc carries it\n", "")})
+    bj.plan_beat(c)
+    res["plan-beat null: an already-current state ref dispatches nothing"] = not any(x[0] == "gh" for x in f.calls)
+    c, f = fresh(answers={"state_docs.py": (0, "pushed handoff/audit-r10-plan at abc\n", ""),
+                          "gh": (1, "", "HTTP 403: Resource not accessible\n")})
+    bj.plan_beat(c)
+    res["plan-beat: a refused Pages dispatch reaches the digest"] = digest(c).startswith(
+        "plan-beat: PAGES NOT DISPATCHED rc=1")
+
+    # outside-intake
+    c, f = fresh(answers={"outside_intake.py": (0, "", "")})
+    bj.outside_intake(c)
+    oi = next((x for x in f.calls if any(a.endswith("outside_intake.py") for a in x)), [])
+    res["outside-intake null: nothing owed writes nothing"] = not files(c) and f.ran("outside_intake.py") == 1
+    res["outside-intake: the instrument is handed the repo, the overlay's since and a cursor under state/"] = (
+        arg(oi, "--repo") == "o/r" and arg(oi, "--since") == "2026-11-01T00:00:00Z"
+        and (arg(oi, "--cursor") or "").endswith("state/outside-cursor.json") and "list" in oi)
+    line = "OUTSIDE #3226 owed=triage pr by=Bankaifan since=2026-11-05T11:36:11Z"
+    c, f = fresh(answers={"outside_intake.py": (1, "noise\n" + line + "\n", "")})
+    absent = "OUTSIDE #3226" not in digest(c)
+    bj.outside_intake(c)
+    res["outside-intake: each OUTSIDE line reaches the digest, nothing else"] = (
+        absent and digest(c).splitlines() == ["OUTSIDE #3226 owed=triage pr by=Bankaifan since=<t>"])
+    c, f = fresh(answers={"outside_intake.py": (2, "outside-intake: UNREADABLE Unreadable: gh api rc=1\n", "")})
+    bj.outside_intake(c)
+    res["outside-intake: rc 2 is UNREADABLE, never clean"] = digest(c).startswith("outside-intake: UNREADABLE")
 
     # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
     c, f = fresh(answers={"roster_queue.py": (0, "", "")})
@@ -433,6 +466,25 @@ def cases(bj) -> dict[str, bool]:
     bj.plan_beat(c)
     res["plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line"] = (
         pre and first and same and "PLAN MOVED" in digest(c))
+    def page_rc(rc, out, err, text):
+        def ans(argv):
+            if arg(argv, "--mirror") is None:
+                return 0, "", ""
+            m = Path(arg(argv, "--mirror"))
+            m.mkdir(parents=True, exist_ok=True)
+            (m / "PLAN.html").write_text(text)
+            return rc, out, err
+        return ans
+    c, f = fresh(answers={"state_docs.py": page_rc(0, "pushed handoff/audit-r10-plan at abc\n", "", "<p>moved</p>")})
+    bj.plan_beat(c)
+    gh = [x for x in f.calls if x[0] == "gh"]
+    res["plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once"] = (
+        digest(c).startswith("plan-beat: PLAN MOVED") and len(gh) == 1 and gh[0][1:4] == ["workflow", "run", "pages.yml"])
+    c, f = fresh(answers={"state_docs.py": page_rc(1, "", "state_docs: PLAN.html UNAVAILABLE: stale plan\n", "<p>x</p>")})
+    bj.plan_beat(c)
+    res["plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory"] = (
+        digest(c).startswith("plan-beat: PLAN UNAVAILABLE rc=1") and "PLAN MOVED" not in digest(c)
+        and c.memory("plan-page.json", "") == "")
     c, f = fresh()
     bj.plan_beat(c)
     res["plan-beat null: no mirrored page is no PLAN MOVED and no byte"] = not files(c)
@@ -800,8 +852,24 @@ MUTANTS = {
                        "roster-drain: a queue line drains once, is marked, and is not re-run"),
     "roster_hold_ignored": ("            if not on_main(ctx, parts[1]):", "            if False:",
                             "roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases"),
-    "plan_rc1_silent": ('    if rc == 0:\n        page = read(', '    if rc in (0, 1):\n        page = read(',
+    "plan_rc1_silent": ("    if rc != 0:\n        said = ", "    if rc not in (0, 1):\n        said = ",
                         "plan-beat: state_docs rc 1 is PLAN UNAVAILABLE"),
+    "moved_early_return": ('            lines.append(f"plan-beat: PLAN MOVED {Path(mirror) / \'PLAN.html\'} re-rendered; republish owed")',
+                           '            return write_job(ctx, "plan-beat", [f"plan-beat: PLAN MOVED {Path(mirror) / \'PLAN.html\'} re-rendered; republish owed"])',
+                           "plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once"),
+    "moved_on_rc1": ("    if rc == 0:\n        page = read(", "    if rc in (0, 1):\n        page = read(",
+                     "plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory"),
+    "pages_never_dispatched": ('re.search(r"^pushed ", out, re.M)', "False",
+                               "plan-beat: a state push that landed dispatches the Pages deploy on main, once"),
+    "pages_always_dispatched": ('    if rc in (0, 1) and re.search(r"^pushed ", out, re.M):', "    if rc in (0, 1):",
+                                "plan-beat null: an already-current state ref dispatches nothing"),
+    "pages_refusal_silent": ("        if drc != 0:\n", "        if False:\n",
+                             "plan-beat: a refused Pages dispatch reaches the digest"),
+    "outside_lines_dropped": ('if ln.startswith("OUTSIDE ")]', 'if ln.startswith("OUTSIDEX ")]',
+                              "outside-intake: each OUTSIDE line reaches the digest, nothing else"),
+    "outside_rc2_clean": ("    if rc in (0, 1):\n        return write_job(ctx, \"outside-intake\"",
+                          "    if rc in (0, 1, 2):\n        return write_job(ctx, \"outside-intake\"",
+                          "outside-intake: rc 2 is UNREADABLE, never clean"),
     "pulse_stopped_dropped": ('(?:STOPPED|UNREADABLE) ', '(?:UNREADABLE) ', "pulse: a STOPPED line reaches the digest"),
     "cancel_failure_dropped": ('r"could not cancel| rc=', 'r"could not cancelX| rc=',
                                "cancel-sweep: a failure reaches the digest"),
