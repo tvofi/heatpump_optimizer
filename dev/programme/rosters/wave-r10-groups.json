@@ -18113,7 +18113,8 @@
     "From r10-round-playbook, body item 6426840d: Brief carry 12 (the `orchestrator.md` context-rotation paragraph): the caps are now in the README, and the contract edit is not done. Carry: R10-ROUND-PLAYBOOK-FINAL (items 6426840d)",
     "From r10-round-playbook, body item e1802aed: Brief carry 16 (1) and (2): the floor-not-cap text in `architect-planner.md` and `plan-review.md`, and the production-group clause in `fixer.md` step 17. The README states (3). Carry: R10-ROUND-PLAYBOOK-FINAL (items e1802aed)",
     "From r10-round-playbook, body item 70f77501: Brief carry 20's code half: `pr_cap.py` reserving production slots and printing open PRs by class on every tick. The README states the rule. Carry: R10-ROUND-PLAYBOOK-FINAL (items 70f77501)",
-    "From r10-round-playbook, body item 21500a6a: Brief carry 21's contract half: `proposal-triage.md` and the triage verdict vocabulary gaining LOG. The README states the bar. Carry: R10-ROUND-PLAYBOOK-FINAL (items 21500a6a)"
+    "From r10-round-playbook, body item 21500a6a: Brief carry 21's contract half: `proposal-triage.md` and the triage verdict vocabulary gaining LOG. The README states the bar. Carry: R10-ROUND-PLAYBOOK-FINAL (items 21500a6a)",
+    "From r10-round-playbook, body item e3198644: Brief carry 22: `dev/programme/HANDOVER.md`'s stale `pr_cap` owed entry. Carry: R10-ROUND-PLAYBOOK-FINAL (items e3198644)"
    ],
    "architect_note": "",
    "resume": {
