@@ -135,8 +135,6 @@ def job_steps(text: str, job: str = JOB) -> list[Step]:
             continue
         if m.group("lead") == "      - ":
             steps.append(Step())
-        if not steps:
-            continue
         key, val, st = m.group("key"), m.group("val"), steps[-1]
         if key == "name":
             st.name = val.strip()
@@ -368,10 +366,13 @@ def _unescape(s: str) -> str:
 
 
 def _git_dirs(root: Path) -> tuple[Path, Path]:
+    """(this checkout's git dir, the common dir holding objects/): two paths
+    in a linked worktree, one otherwise; both absolute, whatever our cwd."""
     def rev(arg):
-        r = subprocess.run(["git", "rev-parse", arg], cwd=root, capture_output=True, text=True)
+        r = subprocess.run(["git", "rev-parse", "--path-format=absolute", arg], cwd=root,
+                           capture_output=True, text=True)
         return Path(os.path.realpath(r.stdout.strip() if r.returncode == 0 else root / ".git"))
-    return rev("--absolute-git-dir"), Path(os.path.realpath(root / rev("--git-common-dir")))
+    return rev("--git-dir"), rev("--git-common-dir")
 
 
 def trace_events(text: str):
@@ -734,6 +735,16 @@ def self_test() -> int:
     ck("a block run is dedented, an inline one kept",
        steps[4].run == "set -o pipefail\npython3 -I tools/x/b.py --self-test\n"
        and steps[3].run == "python3 -I tools/x/a.py --self-test\n")
+    ck("run_sha is the sha256 of the step's own run text",
+       steps[3].run_sha == hashlib.sha256(steps[3].run.encode()).hexdigest()
+       and steps[3].run_sha != steps[4].run_sha)
+    ck("a workflow without the job has no steps", job_steps("jobs:\n  other:\n    steps: []\n") == [])
+    ck("a job with no steps key, last in its file, has no steps",
+       job_steps(f"jobs:\n  {JOB}:\n    runs-on: x\n") == [])
+    last = job_steps(f"jobs:\n  {JOB}:\n    steps:\n      - name: L\n        id: l\n"
+                     "        run: |\n          echo one\n          echo two\n")
+    ck("a job last in its file, steps: right under its header, keeps its last block run",
+       [(x.id, x.run) for x in last] == [("l", "echo one\necho two\n")])
     ck("gated steps are those whose if reads their own scope output",
        gated_ids(steps) == ["a", "b", "slow"])
     ck("a consistent job has no wiring gap (null control)", wiring_gaps(steps) == [])
@@ -900,6 +911,68 @@ def self_test() -> int:
         ck("drift: a step this run did not trace is refused",
            drift(full_table, {k: v for k, v in measured.items() if k != "slow"}, st2)[0]
            == ["UNMEASURED step slow: this run left no trace of it"])
+
+    # The edges a seat's run reaches but the cases above do not.
+    ck("a duplicated step id is named", "DUPLICATE id a" in wiring_gaps(
+        job_steps(wf.replace("        id: b\n", "        id: a\n"))))
+    ck("a launcher start no step waits on is named", "UNREAD start lone: no step waits on it" in wiring_gaps(
+        job_steps(wf.replace("sel slow && bg_start slow", "sel lone && bg_start lone"))))
+    ck("mode lines: FULL carries its reason, SCOPED its count",
+       mode_line({"mode": "FULL", "why": "w", "ids": ["a"]}) == "MODE: FULL -- every step runs (w)"
+       and mode_line({"mode": "SCOPED", "why": "", "ids": ["a", "b"]}) == "MODE: SCOPED -- 2 step(s) run"
+       and output({"mode": "SCOPED", "why": "", "ids": ["a", "b"]}) == "a b")
+    ck("ancestors run from the parent up to the root, once each",
+       _ancestors("a/b/c") == ["a/b", "a", "."] and _ancestors("c") == ["."])
+    ck("collapse takes a two-file directory read whole, not a one-file one",
+       collapse({"a/x", "a/y", "c/z"}, {"a/x", "a/y", "c/z"}) == ["a/**", "c/z"])
+    ck("compact_probes drops a probe under a listed directory and keeps the rest",
+       compact_probes({"d/p", "e/p", "f/**"}, {"d"}, {"e/q"}) == ["e/p", "f/**"])
+    ck("an undecodable escape is kept as written", _unescape("\\x4") == "\\x4")
+    with tempfile.TemporaryDirectory() as td:
+        p = Path(td) / "t.json"
+        p.write_text(json.dumps({"steps": {"a": {"files": []}}}))
+        ck("a well-formed table loads", load_table(p) == {"steps": {"a": {"files": []}}})
+
+    # selection end to end over a throwaway repository: the prelude's entry.
+    with tempfile.TemporaryDirectory() as td, throwaway_git_environ():
+        root = Path(os.path.realpath(td))
+        env = throwaway_git_init(root, "-q")
+        git = lambda *a: subprocess.run(["git", *a], cwd=root, env=env, check=True,  # noqa: E731
+                                        capture_output=True, text=True).stdout.strip()
+        (root / WORKFLOW).parent.mkdir(parents=True)
+        (root / WORKFLOW).write_text(wf)
+        (root / TABLE).parent.mkdir(parents=True)
+        (root / TABLE).write_text(json.dumps(table))
+        for f in ("tools/x/b.py", "docs/old.md"):
+            (root / f).parent.mkdir(parents=True, exist_ok=True)
+            (root / f).write_text("1\n")
+        git("add", "-A"); git("commit", "-qm", "base")
+        base = git("rev-parse", "HEAD")
+        (root / "tools/x/b.py").write_text("2\n")
+        (root / "docs/new.md").write_text("n\n")
+        (root / "docs/old.md").unlink()
+        git("add", "-A"); git("commit", "-qm", "head")
+        ck("diff_changes reads status and path, one row per file",
+           sorted(diff_changes(base, "HEAD", root)) ==
+           [("A", "docs/new.md"), ("D", "docs/old.md"), ("M", "tools/x/b.py")])
+        ck("diff_changes is None when git cannot diff", diff_changes("nosuchref", "HEAD", root) is None)
+        ck("selection: the PR's diff picks its steps (b, and the index reader on the add)",
+           selection(base, "HEAD", root) == "b slow")
+        ck("selection: a base git cannot resolve runs every step", selection("nosuchref", "HEAD", root) == "all")
+        ck("selection: with no workflow, every step", selection(base, "HEAD", root / "nowhere") == "all")
+        gd, cd = _git_dirs(root)
+        ck("git dirs: a plain repository's git dir is its common dir", gd == cd == root / ".git")
+
+    # trace lines strace prints that are no syscall, a resume with no start,
+    # and an open through an undecorated fd, which only the result names.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(os.path.realpath(td))
+        ev = list(trace_events("\n".join([
+            "strace: Process 7 attached",
+            '8 <... openat resumed>) = 3</x>',
+            f'9 openat(3, "lib.py", O_RDONLY) = 4<{root}/tools/x/lib.py>'])))
+        ck("trace_events skips non-syscall lines and orphan resumes, and takes an open's result path",
+           [(e[1], e[2]) for e in ev] == [("openat", f"{root}/tools/x/lib.py")])
 
     # The live job: its gating is consistent (the seat's own null control).
     live = workflow_steps(ROOT)

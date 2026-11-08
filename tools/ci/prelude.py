@@ -535,8 +535,16 @@ def self_test() -> int:
     check("selftests: a pull request takes the scope rule's answer", (out["selftests"], seen), ("none", ["H"]))
     check("selftests: a push runs every step (null control)",
           outputs(ctx("push"), None, g(live), selftests=lambda c: "none")[0]["selftests"], "all")
-    check("selftests: a pull request with no base sha runs every step (fail closed)",
-          selftest_scope(context("pull_request", {"pull_request": pr}, {})), "all")
+    import selftest_scope as _st
+    _real, _st.selection = _st.selection, lambda base, head: f"chosen {base} {head}"
+    try:
+        check("selftests: a pull request with no base sha runs every step (fail closed)",
+              selftest_scope(context("pull_request", {"pull_request": pr}, {})), "all")
+        check("selftests: with a base sha the PR's base...head goes to the scope rule",
+              selftest_scope(context("pull_request", {"pull_request": {**pr, "base": {"ref": "main", "sha": "B"}}},
+                                     {})), "chosen B H")
+    finally:
+        _st.selection = _real
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live))
     check("legs from codeql_scope", json.loads(out["legs"]), {"actions": "skip", "javascript-typescript": "skip", "python": "skip"})
 
