@@ -3900,6 +3900,7 @@
    "tools/audit/seat/flow_metrics.py",
    "tools/audit/seat/gantt_drift.py",
    "tools/audit/seat/gh_calls.py",
+   "tools/audit/seat/hooks_setup.py",
    "tools/audit/seat/ledger.py",
    "tools/audit/seat/merge_train.py",
    "tools/audit/seat/moved_paths.py",
