@@ -1,0 +1,2 @@
+42382408131 workflow_dispatch 2026-11-07T14:36:39Z success a37c58e5 total=1007 record-autofix=1 shards_ok=4 ledger-push=success lost=0
+RESULT runs=1 runner_min=1007 record_autofix_min=1 cancelled=0 lost_ledger_min=0

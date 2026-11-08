@@ -1,0 +1,177 @@
+# Review packet #3335
+head: e509b39efdf731960cfb0e8b6338ad3610689efe
+base: 8a4cf2618c53a6dca6b65df3eae5efc8832d1796
+
+Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
+
+## Gate digest: green
+CodeQL id=128761681302 success
+arch-score / arch-score id=128761639003 success
+arm id=128761558930 skipped
+budget-raise-gate / budget-raise-gate id=128761639019 success
+cancel-superseded id=128761531113 success
+codeql id=128761635187 skipped
+codeql / Analyze (actions) id=128761638972 success
+codeql / Analyze (javascript-typescript) id=128761638973 success
+codeql / Analyze (python) id=128761638987 success
+gate id=128767145014 success
+governance id=128761635114 skipped
+governance / delivery-status id=128761639136 success
+governance / delivery-status-publish id=128761640165 skipped
+governance / env-matrix id=128761638999 success
+governance / instrument-self-tests id=128761639077 success
+governance / policy-docs id=128761638998 success
+governance / record id=128761640549 skipped
+governance / wave-script id=128761639233 success
+hassfest id=128761634838 skipped
+hassfest / hassfest id=128761638913 success
+kernel-points id=128761639857 skipped
+pr-contract id=128761953068 skipped
+pr-contract / pr-contract id=128766970256 success
+prelude id=128761531316 success
+refresh id=128761531290 success
+tests id=128761635003 skipped
+tests / arch-instrument id=128761811548 success
+tests / briefs id=128761639048 success
+tests / browser id=128761811494 success
+tests / ci-ratchet id=128766971213 skipped
+tests / claims-autofix id=128762926491 skipped
+tests / closure-scope id=128761639029 success
+tests / closures id=128761811527 success
+tests / closures-autofix id=128766970812 skipped
+tests / coverage id=128761811532 success
+tests / coverage-ratchet id=128762104576 success
+tests / fast (3.14) id=128761811462 success
+tests / graders-head-copy id=128762104543 success
+tests / lane-proofs id=128762924888 success
+tests / mutation id=128761639051 success
+tests / mutation-autofix id=128761866029 skipped
+tests / mutation-pins id=128761865988 skipped
+tests / nightly-ha id=128761812720 skipped
+tests / nightly-status id=128761639043 success
+tests / replay id=128761813118 skipped
+tests / typing id=128761811519 success
+validate id=128761635113 skipped
+validate / validate-hacs id=128761638914 success
+
+## Refusals
+none
+
+## Advisories
+none
+
+## carry_audit at the head
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+
+## figure_lint at the head
+ok         python3 -I dev/audit/harnesses/r10_rca_flush_dispatch.py runs 42382408131
+             `dev/audit/harnesses/r10_rca_flush_dispatch.py` is in the tree at this head
+  ok         python3 -I dev/audit/harnesses/r10_rca_flush_dispatch.py since 2026-10-26T02:31:17Z
+             `dev/audit/harnesses/r10_rca_flush_dispatch.py` is in the tree at this head
+  ok         python3 -I dev/audit/harnesses/r10_rca_flush_dispatch.py since 2026-11-08T04:48:27Z
+             `dev/audit/harnesses/r10_rca_flush_dispatch.py` is in the tree at this head
+  unverified git grep -nE '/dispatches|gh workflow run|createWorkflowDispatch|repository_dispatch'
+             `git grep` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         python3 tools/audit/fold_ledger.py check
+             `tools/audit/fold_ledger.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+             `tests/closure.py` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+
+FIGURES: 6 resolved, 1 not verified, 0 refused
+
+## Finder's harness: none named
+### at the base
+not run
+### at the head
+not run
+
+## Mutation-ledger diff
+none
+
+## Three-dot diff
+diff --git a/dev/audit/config/bugclasses.json b/dev/audit/config/bugclasses.json
+index 8570dccf2..4a6840d12 100644
+--- a/dev/audit/config/bugclasses.json
++++ b/dev/audit/config/bugclasses.json
+@@ -5313,7 +5313,7 @@
+     ],
+     "non_round_note": "A process defect ruled by the owner on 2026-11-07, not an audit finding, not in register_rows.tsv, not counted in total. Reopen on a second code caller whose dispatch runs jobs it does not want.",
+     "non_round_instances": [
+-      "6b1aa629f stamp.py dispatch_record_beat dispatches all of nightly.yml for record-autofix (26 dispatches, at most 15909 runner-min, 2026-10-26 to 2026-11-07)"
++      "6b1aa629f stamp.py dispatch_record_beat dispatches all of nightly.yml for record-autofix (27 dispatches, at most 16916 runner-min, 2026-10-26 to 2026-11-07; re-measured at 73365699a, dev/audit/rca/r10-rca-flush-dispatch.md section 7)"
+     ],
+     "rca": [
+       "R10-RCA-FLUSH-DISPATCH"
+diff --git a/dev/audit/rca/r10-rca-flush-dispatch.md b/dev/audit/rca/r10-rca-flush-dispatch.md
+index 1bc91f312..dee713804 100644
+--- a/dev/audit/rca/r10-rca-flush-dispatch.md
++++ b/dev/audit/rca/r10-rca-flush-dispatch.md
+@@ -296,3 +296,55 @@ request's.
+ - **The defect's issue:** this seat was told to post no comment. The
+   **Root cause** section `defect-root-cause.md` asks for on the issue is
+   therefore left to the orchestrator, who can copy this section.
++
++## 7. Re-measured after the instance fix (R10-RCA-STAMP-FLUSH-COST)
++
++A second root-cause seat, dispatched for the same owner ruling under the topic
++R10-RCA-STAMP-FLUSH-COST, re-measured this document at `origin/main`
++`73365699a` on 2026-11-08. That commit carries the instance fix, #3296 (merged
++`341da0721`, 2026-11-08T04:48:27Z). The seat writes no second document: one
++defect has one RCA, so its findings land here. Sections 2 to 6 stand: the cause,
++state (c), the reach and the cost-test verdicts are unchanged.
++
++- **One dispatch came after section 1's measurement.** Command:
++  `python3 -I dev/audit/harnesses/r10_rca_flush_dispatch.py runs 42382408131`
++  prints `RESULT runs=1 runner_min=1007 record_autofix_min=1 cancelled=0 lost_ledger_min=0`.
++  The run was created at 2026-11-07T14:36:39Z, before #3296 merged, and ran
++  every lane to `success`. No release tag follows it (`v7.1.5` was cut at
++  12:27Z), so this seat cannot attribute it to the stamp. It counts toward the
++  upper bound only.
++- **Since the flush shipped, corrected.** Command:
++  `since 2026-10-26T02:31:17Z` now prints
++  `RESULT runs=27 runner_min=16916 record_autofix_min=34 cancelled=7 lost_ledger_min=916`.
++  That is section 1's 26 runs and 15909 runner-min plus the one run above. So
++  2026-11-07 had 8 dispatches and 4564 runner-min, not 7 and 3557. Of those 8,
++  the 7 cancelled runs are the ones section 1 lists. The figures in section 5
++  move by the same 1007 runner-min. P(recurrence) at 0.1 per cycle gives about
++  28 runner-h per cycle, against section 5's 27. Neither verdict changes.
++- **No dispatch since the fix.** Command: `since 2026-11-08T04:48:27Z` prints
++  `RESULT runs=0`. As a null control, the same instrument found 27 dispatches
++  in the window above, so 0 is a reading rather than a blind read. The fix's
++  `lanes=beat` payload has not yet run in production. The next stamp's flush is
++  the first one: a run titled `Nightly record beat` that has `record-autofix`
++  as its only non-skipped job.
++- **The fix as landed.** At `73365699a`, `tools/release/stamp.py` has
++  `RECORD_BEAT_PAYLOAD = {"ref": "main", "inputs": {"lanes": "beat"}}`. At the
++  fix's merge base `d2e4d2d10`, the post was `json.dumps({"ref": "main"})`.
++  The `nightly.yml` `lanes` input and the `tests/entities.py` pin that section
++  5 premised P(recurrence) on are both in the tree.
++- **The class search, re-run.** Section 4's `git grep` rule, at `73365699a`,
++  finds the same code callers, and no new ones:
++  - `merge-main.yml`;
++  - the three `tests.yml` autofix jobs;
++  - `ci_probe.py`;
++  - `stamp.py`.
++
++  `merge_train.py`'s argv-tuple `DISPATCH` is still invisible to the grep, as
++  section 5 recorded, and is still in section 4's table. The one remaining
++  every-lane form is the hand recipe in `nightly.yml`'s header comment,
++  `gh workflow run nightly.yml --ref main`, which verifies a red. It wants
++  every lane. `stamp.py` names its one-lane hand form,
++  `gh workflow run nightly.yml -f lanes=beat`.
++- **Still owed:** the owner's decision on section 5's `proposal-triage.md` line
++  (`_rca` `parts_missing`), and the **Root cause** section on the defect's
++  issue, which section 6 left to the orchestrator.
+diff --git a/dev/programme/delivery/3335.md b/dev/programme/delivery/3335.md
+new file mode 100644
+index 000000000..c95a8f478
+--- /dev/null
++++ b/dev/programme/delivery/3335.md
+@@ -0,0 +1 @@
++- [#3335](https://github.com/tvofi/heatpump_optimizer/pull/3335) — **open**, R10-RCA-STAMP-FLUSH-COST: rca stamp flush cost (R10-RCA-STAMP-FLUSH-COST)
+
+## Before you return the verdict (P275)
+Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;
+an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.
