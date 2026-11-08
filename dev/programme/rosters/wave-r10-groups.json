@@ -17712,7 +17712,11 @@
    "fixture": false,
    "owner_gate": "design review first (owner ruling tvofi 2026-11-06)",
    "rca": [],
-   "after": [],
+   "after": [
+    "R10-ADVISOR-WHATIF",
+    "R10-COP-GATE-E",
+    "R10-GENERIC-HEAT-CURVE-PERSISTENT"
+   ],
    "carry": [
     "Owner ruling (tvofi, 11-06): this group also fixes the known no-probe buffer bug. Found by the R10-COMBI-TANK designer (design/r10-combi-tank f9ede213, \"Notes for the fixer\"): in coordinator.py _update_current_state (about :6565-6567 at 198b8f7e), buffer_tank_temperature with no buffer probe configured is never advanced: there is no else branch, so the plan seeds from a frozen value. Same class as R9 D12-s1-01 (DHW open-loop seed). Fix with the same seed helper the design adds (combi_tank_seed / the open-loop plan value), so an unprobed buffer is seeded from the previous plan's buffer trajectory. Control: a probed buffer is unchanged byte-for-byte. Failing test first: with no buffer probe, the seed after one cycle must equal the open-loop trajectory value, not the stale initial. The design note must cover it; mutation-pin the else branch.",
     "Owner ruling 2026-11-06 ~22:02Z (tvofi), verbatim: \"Make sure the combi tank design includes thorough investigation of how this and other types of combi tanks works, so the heat transfer is physically sound, and the implementation is general enough for many types of combi tanks.\" Binding on every R10-COMBI-TANK design note, design review and fixer. The design must survey the MFS 600 S (#3225 datasheet) and the other common combi/multifunction tank types: tank-in-tank, internal DHW coil, external plate exchanger/fresh-water station, stratified buffer with solar/wood coil, dual-zone single vessel. For each it states the heat-transfer path between the space-heating and DHW volumes (conduction/coil UA, stratification, mixing), with physical parameters and sources. The model must conserve energy across both volumes; a null control (no coupling: UA=0) reproduces the separate-tank result. Tank type is configuration, not code branches per vendor. A design review returns revise (class-open) when the survey, the physical model or the generality is missing. Carry: R10-COMBI-TANK",
