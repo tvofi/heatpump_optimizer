@@ -49,7 +49,7 @@ none
 
 ## Forward-carry
 
-none
+Carry 1 (item bac1b3fe: cloud-setup's venv-ha lacks scipy and paho, so suites cannot run in a cloud seat): not touched by this resolution-only delta; the verdicted change is unchanged. Carry: R10-RCA-CLOUD-ENTITIES-ENV|#3334|dismissed: out of scope for a conflict-resolution merge, which changes nothing beyond the union in bugclasses.json
 
 ## Friction
 
