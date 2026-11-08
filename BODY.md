@@ -8,7 +8,7 @@ Three planner defects from the 2026-11-08 replan study: (a) a name-prefix lane c
 
 ## Head
 
-33332e239a256b410795736d9e771a65c3d76f7e, cut from main at 2a3c05644d85b7ee5c2c314fde5aca950e4aba91. Main had not moved when I handed off, so there was no second prepr run.
+266ef2802f7b12544435faa10e27a05663d4e076 (the pull request head; the code handoff was 33332e239a256b410795736d9e771a65c3d76f7e, cut from main at 2a3c05644d85b7ee5c2c314fde5aca950e4aba91, and the head adds only main merges and the delivery row). Main had not moved when I handed off the code, so there was no second prepr run.
 
 ## Mutation proof
 
@@ -53,6 +53,18 @@ Seams for class (b): the readers named above, enumerated with `grep -rn "is_open
 - `replan.py` `coordinator_cap=3` in the `cq` fixture: a test-fixture constant. The row pins the inside-the-cap behaviour at 2, and the cap-full row pins 1.
 
 ## Red checks
+
+Read from the check-runs of 266ef2802f7b12544435faa10e27a05663d4e076 with filter=all across all pages (68 runs), the job steps and the job logs. Five runs concluded red at the head; they are two causes.
+
+**governance / instrument-self-tests** (job 128731174619, run 42480460139): RED, and this diff caused it. It did not time out: it ran 12 minutes and failed at the step "Show the orchestrator tick deciding its own fixtures". The log says `FAIL PLAN: deferred E stays deferred` and `orchestrator_tick self-test: 283 checks, 1 failed`. I reproduced it: `python3 -I tools/audit/seat/orchestrator_tick.py --self-test` at 266ef2802f7b gives the same line and 1 failed; at origin/main 8a4cf2618 it gives 283 checks, 0 failed. Cause: (b) puts `deferred` in `roster_lib.CLOSED_STAGES`, so the tick's PLAN section no longer walks a deferred group and never prints "E: deferred/refused (stage deferred) -- stays deferred" (`orchestrator_tick.py` line 1515, with its fixture at line 3092). I did not name that reader in the list of readers above and did not run its self-test. It is not class A and not R10-HOTFIX-SELFTEST-TIMEOUT #3275: every earlier step passed and the cut is a real failure. This body re-take changes no code, so the red stays at this head: the code fix is to make the tick report a deferred or refused group as closed (or to decide that its "stays deferred" line is no longer wanted and change the fixture), and it needs a push to this branch by the next seat. Cheaper detector: none runs before CI. `tests/closures.json` lists `orchestrator_tick.py` in no script's closure, and `prepr.sh` runs only the self-tests its steps name, so `instrument-self-tests` is the only place that runs this file's self-test. Standing cost: one governance run per push, about 13 minutes. A detector would be a closure edge from `roster_lib.py` to the tick's self-test, whose cost is a longer scoped gate on every `roster_lib.py` change; I have not built or measured it.
+
+**gate** (jobs 128731638734 in run 42480460487, 128732971392 in run 42480946879, 128736246575 in run 42480460139), step "Judge this head": RED three times, class R10-HOTFIX-GATE-BUSY-DEFER for the first two and a consequence for the third. The first two logs say `FAIL run(s) [42480460139] at this head are still being judged; their gate decides`: they are the edit-run and sibling-run deferral, and say nothing about this diff. The code run that decided is run 42480460139, whose gate (job 128736246575) concluded `FAIL pr-contract / pr-contract: failure (this run)`. So the third gate is red because of the two checks below, and clears with them. The deferral's answer is the one it already has: a deferred gate is red by design until the deciding run concludes, and the cheaper detector for that is reading the mode and deciding run from the log rather than the tick.
+
+**pr-contract / pr-contract** (job 128736065819, run 42480460139): RED. Step "Check the body against the contract" refused with `check governance / instrument-self-tests is red and ## Red checks does not name it`. This body names it and the failing step, which answers the refusal. Cheaper detector: `prepr.sh --body-check`, which I run on this body with the red named.
+
+Earlier pushes of this PR: the push ebb07fad6 had two `gate`, two `refresh` and two `prelude` runs conclude `cancelled`, not red; `cancel-superseded` cancelled them when the next push landed, and no run at ebb07fad6 or at the code handoff 33332e239 concluded red. CodeQL concluded `skipped` at the head, with no infra 504 and no alert, and `tests / closures-autofix` concluded `skipped`; neither is red here.
+
+Before the head moved, `prepr.sh` step `closures` refused on the code handoff, and I left that answer as it was:
 
 `prepr.sh` step `closures` REFUSES: `tests/entities.py` exits 1 with "3 of 2665 ENTITY CHECKS FAILED". The same 3 of 2665 appear at main 2a3c05644d85 in a separate worktree, run beside mine with the non-`ok` output diffed (identical apart from paths). So it is inherited, not caused by this diff. I did not isolate which 3 checks fail. The likely cause is this container (timing-sensitive `hb:` checks) rather than the code. Nothing else refused. `ci predict` predicts no red.
 
