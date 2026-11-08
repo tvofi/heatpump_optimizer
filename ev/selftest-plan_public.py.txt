@@ -1,0 +1,21 @@
+ok   the newest round is the highest N, by number, never by string order (10 > 9)
+ok   a clean page at the newest state ref is staged as plan/index.html, rc 0
+ok   nothing to publish, rc 2 and nothing written: no state ref at all
+ok   nothing to publish, rc 2 and nothing written: no PLAN.html at the newest ref (an older round's is never taken)
+ok   refused, rc 1 and nothing written: a page that is not an HTML document
+ok   refused, rc 1 and nothing written: a page naming a home directory
+ok   refused, rc 1 and nothing written: a page naming a session scratch root
+ok   refused, rc 1 and nothing written: a page carrying a tool's attribution
+ok   the CLI over a scratch repository: a clean page is staged, rc 0
+ok   the CLI over a scratch repository: a page naming a home directory is refused, rc 1 and nothing written
+ok   the CLI over a scratch repository: no state ref, rc 2 and nothing written
+ok   url prints PLAN_URL alone, rc 0
+ok   PLAN_URL is under the Pages site and ends in the staged directory
+ok   mutant string_order killed by: the newest round is the highest N, by number, never by string order (10 > 9)
+ok   mutant leak_published killed by: refused, rc 1 and nothing written: a page naming a home directory
+ok   mutant attribution_published killed by: refused, rc 1 and nothing written: a page carrying a tool's attribution
+ok   mutant absent_refused_red killed by: nothing to publish, rc 2 and nothing written: no PLAN.html at the newest ref (an older round's is never taken)
+ok   mutant host_ident_dropped killed by: the CLI over a scratch repository: a clean page is staged, rc 0
+ok   mutant main_rc0 killed by: the CLI over a scratch repository: a page naming a home directory is refused, rc 1 and nothing written
+ok   mutant main_url_rc1 killed by: url prints PLAN_URL alone, rc 0
+plan_public self-test: all checks passed

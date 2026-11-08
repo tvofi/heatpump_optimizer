@@ -1,0 +1,2 @@
+probe(moved+pushed): head (no mutation) rc 0 []
+probe(moved+pushed): moved_early_return rc 1 ['  FAIL plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line']
