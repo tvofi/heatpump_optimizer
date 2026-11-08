@@ -1,0 +1,13 @@
+diff --git a/tests/card_browser.mjs b/tests/card_browser.mjs
+index b4221cf38..cf1a550a2 100644
+--- a/tests/card_browser.mjs
++++ b/tests/card_browser.mjs
+@@ -836,7 +836,7 @@ function instrument() {
+   const unreachable = (run) => {
+     let worst = 0;
+     for (const axis of ["x", "y"]) {
+-      for (let n = run.el; n && n !== document.documentElement; n = parentOf(n)) {
++      for (let n = parentOf(run.el); n && n !== document.documentElement; n = parentOf(n)) {
+         const cs = getComputedStyle(n);
+         const o = axis === "x" ? cs.overflowX : cs.overflowY;
+         if (o === "visible") continue;
