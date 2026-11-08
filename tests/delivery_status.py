@@ -532,8 +532,8 @@ def parse_log(text: str) -> list[dict]:
     return commits
 
 
-def gather(repo: str,
-           since_tag: str | None = None) -> tuple[list[dict], list[dict]]:
+def gather(repo: str, since_tag: str | None = None,
+           head: str = "origin/main") -> tuple[list[dict], list[dict]]:
     """Merged pull requests in the current window, newest first, and the
     merge commits in it that could not be attributed to one.
 
@@ -554,7 +554,7 @@ def gather(repo: str,
         since_tag = subprocess.run(
             list(DESCRIBE_ARGV), cwd=ROOT,
             capture_output=True, text=True).stdout.strip()
-    span = f"{since_tag}..origin/main" if since_tag else "origin/main"
+    span = f"{since_tag}..{head}" if since_tag else head
     log = subprocess.run(
         ["git", "log", "--first-parent", f"--format={LOG_FORMAT}", span],
         cwd=ROOT, capture_output=True, text=True).stdout
@@ -665,13 +665,16 @@ def main() -> int:
                          "tag moves the window's start past the merges")
     ap.add_argument("--repo", default="tvofi/heatpump_optimizer")
     ap.add_argument("--since", default="")
+    ap.add_argument("--head", default="origin/main",
+                    help="the window's end revision (default origin/main); the "
+                         "release stamp passes the head it enumerates for rule 4")
     args = ap.parse_args()
 
     if args.source:
         ledger = json.loads(Path(args.source).read_text())
     else:
         try:
-            merges, unattributed = gather(args.repo, args.since or None)
+            merges, unattributed = gather(args.repo, args.since or None, args.head)
         except Exception as err:  # noqa: BLE001
             # Fails CLOSED, like every reporter here: a ledger that could not
             # be built must not read as a ledger with nothing in it.
