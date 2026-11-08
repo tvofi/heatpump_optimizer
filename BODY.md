@@ -4,6 +4,8 @@ Part 2 of R10-SUITE-HOST-DETERMINISM: carries 4-8, the host determinism of `test
 
 b974110d7c800d78cd49382e8b8d22245aa8bc7d, cut from origin/main b4ec2f332fe3ab8dcf169bd3066276d3bb8848ab. `tools/pr/prepr.sh` ran clean at this head (rc=0, the body check not yet passed to it). Main had not moved when it ran.
 
+Body-repair note: the earlier field-coverage refusal on the settings hook file was not re-measured in this pass (no code changed; this diff does not touch that file).
+
 ## Mutation proof
 
 Each mutant applied to `tests/entities.py` alone and the full `entities.py` run read; each leaves exactly `1 of 2647 ENTITY CHECKS FAILED`, then the good copy was restored:
@@ -39,4 +41,4 @@ Carry 8 (heartbeat respawn): left open. The nightly history (schedule events of 
 
 ## Friction
 
-The earlier `field coverage: REFUSED hooks .claude/settings.json, unperturbed` line was not re-measured in this repair pass (no code changed here); it is a check on a file this diff does not touch.
+none
