@@ -1,197 +1,159 @@
-R10-PROCESS-SLIM: cards C4, C5, C8 and C6 (a) of the slip study, as written, plus the merge train's two defects (the post-merge docs step and the carry-ancestry park). content approved by tvofi in chat 2026-11-05. C6 (a) is folded in by the main seat's ruling; its half (b), the wake stream, is out of tree and not here.
+R10-PROCESS-SLIM: cards C4, C5, C8 and C6 (a) of the slip study, plus the merge train's two defects (the post-merge docs step and the carry-ancestry park). Content approved by tvofi in chat 2026-11-05. C6 (a) is folded in by the main seat's ruling. Its half (b), the wake stream, is out of tree and not here.
 
-Deletion over machinery throughout: 43 files changed, 590 insertions, 1,921 deletions (`git diff --shortstat 28d46c4918285d36c409c1fb2f72eb77e04e569e...HEAD` at the head below). 0 files under `custom_components/` (`git diff --name-only <merge-base>...HEAD -- custom_components` is empty). One cap pair is removed, for a deleted file (the raise justification below). Claim files, `VERSION`, the manifest version and the notes heading are byte-identical to the merge base (`git diff --quiet` over the five paths exits 0).
+**This round's change, by the orchestrator's ruling of 2026-11-08: C5 no longer deletes Nightly's `record-autofix` beat.** `tools/release/stamp.py` (code-owned) still depends on that beat in two places:
+- its flush (rules 3-4) dispatches nightly.yml so that the beat merges a record pull request;
+- its rule 5 (`--require-rows`) refuses a merged PR without the row the beat writes.
 
-This is repair round 4, a merge-resolution repair, re-taken whole. Round 2 was blocked at 6289321a (ci-red: `governance / instrument-self-tests`, ref_privacy's runner-default arm). Round 3's repair (on `handoff/r10-process-slim` at 830409b7d19e612e5352dc30c135e621ecc45ec7) was never applied to the PR. This round confirms that repair with a mutant and a null control, merges origin/main six times (516ad1b6, which conflicted in three files, then 28d46c49, a37c58e5, b4ec2f33, 1c1ae100 and 4b5d771b, which did not), and resolves each conflict by union. Neither parent loses a hunk. Every figure is re-taken at the head below.
+R10-FLY-STAMP-FLUSH-COST (#3296) is changing that flush now, so the beat's deletion is forward-carried to it (Forward-carry). `.github/workflows/nightly.yml` is byte-identical to origin/main again (`git diff --quiet origin/main HEAD -- .github/workflows/nightly.yml` exits 0).
+
+Deletion over machinery throughout: 39 files changed, 557 insertions, 743 deletions (`git diff --shortstat 17e1157925908bd69addb58ed824c1ac22bfa82f...HEAD` at the head below). The diff writes 0 files under `custom_components/` (`git diff --name-only 17e1157925908bd69addb58ed824c1ac22bfa82f...HEAD -- custom_components` is empty). One cap pair is removed, for a deleted file (Raise justification). Claim files, `VERSION`, the manifest version and the notes heading are byte-identical to the merge base (prepr steps `no version edit` and `claim files`).
 
 ### What changes, per card
 
-- **C4 (verdict carry):** `bus.sh dispatch` without `--reviewed-head` derives it from `verdict/<pr>`'s latest `Fix review: merge <sha>` (`last_merge_verdict`). The existing `review_carry.py` refusal therefore applies by default, and a second reviewer at the very head a merge verdict names is refused. The carry predicate is unchanged (`app_approve.sh --carry`: main merges git resolved itself, claim files unioned, the branch's own diff equal to the reviewed one). `fix-review.md` step 12 states it.
-- **C5 (paperwork is a note):** `fix-review.md` blocks only on code, tests and harness. `carry-missing` and `root-cause-*` become `Note:` lines the orchestrator resolves at merge, and a note on `custom_components/` is still a block. The per-PR delivery row is retired:
-  - `bus.sh dispatch` no longer demands it, and `handoff_push.sh` no longer writes it;
-  - `governance / delivery-status`, `delivery-status-publish` and Nightly's `record-autofix` are deleted;
+- **C4 (verdict carry):** when `bus.sh dispatch` is given no `--reviewed-head`, it derives one from `verdict/<pr>`'s latest `Fix review: merge <sha>` (`last_merge_verdict`).
+  - The existing `review_carry.py` refusal therefore applies by default, and a second reviewer at the very head that a merge verdict names is refused.
+  - The carry predicate is unchanged (`app_approve.sh --carry`).
+  - `fix-review.md` step 12 states it.
+- **C5 (paperwork is a note):** `fix-review.md` blocks only on code, tests and harness. `carry-missing` and `root-cause-*` become `Note:` lines, and a note on `custom_components/` is still a block. No seat writes a per-PR delivery row:
+  - `bus.sh dispatch` no longer demands a row;
+  - `handoff_push.sh` no longer writes one;
+  - `governance / delivery-status` and `delivery-status-publish` are deleted;
   - `governance / record`'s refusal step is report-only;
-  - the policy files listed under Approval follow.
-- **C8 (review after the cheap checks):** `bus.sh dispatch` on a WAIT head refuses while any of `CHEAP_CHECKS` (`tests / mutation`, `tests / typing`, `governance / policy-docs`) is still in flight. `bus.sh post` refuses a `merge` verdict at a head `merge_train.py classify` calls RED, and at an unreadable classification.
-- **C6 (a):** `dev/governance/roles/proposal-triage.md` is deleted, and the orchestrator or owner rules a proposal directly. Its two cap keys in `policy_budgets.json` and its phantom `tests/closures.json` entry go with it. `.claude/rules` and `.cursor/rules` are regenerated by `tools/policy/rules_sync.mjs`. The sweep template, `roster_edit.py`'s docstring and `orchestrator_tick.py`'s D-1 pin follow C5 and C6 (repair 2).
-- **Train docs step: removed.** The `plan-beat` owns the state ref, and the duplicate writer's push raced it into `OWED docs: rc 2: hi...`. `release_worktrees` logs `released <wt> (already collected)` for a worktree `worktree_gc.sh` already collected.
-- **Train carry ancestry: fixed** in `app_approve.sh carry()`. It fetches an absent verdict or head by sha, refuses `is not an ancestor of` only on rc 1, and prints `cannot read the ancestry ... not judged` on any other rc.
-- **Repair 2 (carry 2):** `open_pr.sh` and `update_pr.sh`'s self-tests stop re-running `pr_args.sh`'s, which its own step runs. instrument-self-tests' `timeout-minutes` goes from 30 to 40, from the measured 30:03 cancelled run (comment in governance.yml).
+  - **kept, unlike the earlier rounds:** Nightly's `record-autofix` beat, its `push:` trigger and `HOLD_MAX_AGE_S`. The beat still rows each merge from API facts. `record_row.py`'s plan covers both a rowless merge and a merged PR whose row reads `**open**`, so a PR that `handoff_push.sh` no longer rows is still rowed for rule 5.
+- **C8 (review after the cheap checks):** `bus.sh dispatch` on a WAIT head refuses while any of `CHEAP_CHECKS` is still in flight. `bus.sh post` refuses a `merge` verdict at a head that `merge_train.py classify` calls RED, or whose classification it cannot read.
+- **C6 (a):** `dev/governance/roles/proposal-triage.md` is deleted. Its two cap keys and its phantom `tests/closures.json` entry go with it.
+- **Train docs step: removed** from `postmerge.py`. `release_worktrees` logs `released <wt> (already collected)` for a worktree that `worktree_gc.sh` already collected.
+- **Train carry ancestry: fixed** in `app_approve.sh carry()`.
+- **Carry 2, superseded by main:** main's R10-HOTFIX-SELFTEST-TIMEOUT now starts the slow self-tests detached (timeout 30), so this branch's timeout-40 hunk and its `open_pr.sh`/`update_pr.sh` change are dropped in favour of main's (Merge resolution).
 
-### Merge resolution (round 4)
+### This round's commits
 
-`git merge origin/main` (516ad1b6b55e6594b7c489d504292bc9291b004b) conflicted in three files. Each was resolved by union from `git show :1:/:2:/:3:` and each side's diff from the merge base 80016a71f567. Commit 706ee33d092bb27819f11b6e309f41401242d75a.
-- **`tools/audit/seat/bus.sh`, `dispatch()`'s `local` line (one hunk).**
-  - Main added `local force="" fixing=""` for its `--force` flag and autofix hold (P344).
-  - This branch dropped `row`, because the per-PR delivery row is retired (C5), and added `pend cheap name` for C8.
-  - Kept: main's line, and the branch's line beside it. Every other bus.sh hunk merged automatically, so both sides are present: main's card-3 merge-head check, autofix hold, same-tree confirm and pid settle; the branch's C4 derive and C8 cheap-check hold.
-- **`tools/pr/ci_predict.py` (two hunks).**
-  - Main added the `mutant_preds` arm. This branch added the STEP REPLAY arm (`instrument_steps` to `step_replay_self_test`).
-  - Hunk 1 keeps both blocks whole, the branch's first. Hunk 2 makes `ARMS` name both `"mutants"` and `"step-replay"`.
-  - The two `self_test()` calls and the two `predict()` entries merged automatically, and both are present.
-- **`dev/audit/harnesses/r10_seat_selftests_mutants.py` (one hunk).**
-  - Both sides added a mutant named `bus-10`: main's ten `bus-10`..`bus-16`, the branch's C8 one.
-  - Kept: all of main's ids unchanged. The branch's C8 mutant (`pr-contract / pr-contract` put back into `CHEAP_CHECKS`) is renamed `bus-17`. No file outside the harness names either id.
-- **The union's semantic interactions,** found by the self-tests and repaired in tests only. No production line changed.
-  - Main's card-3 null control dispatched at `h2`, an empty child of the merge-verdict head `h1`. Under this branch's C4, that is a clean carry and is refused (`bus self-test: 158 checks, 1 failed`). The arm now dispatches at `h2c`, the in-fixture head carrying one code line, so its property is measured (commit fc89ddb10).
-  - C4's derived-head refusal answers a default dispatch at a merge-verdict head first, so main's `# mut:mergehead` line, mutant `bus-12`, SURVIVED. A new arm dispatches with `--reviewed-head "$norow"`, a reviewed head with code since it. That skips C4's derive and passes the carry, so only card 3's check can refuse. `bus-12` is now KILLED, and `bus-7` (C4's line) is still KILLED (commit c8b96d9ca).
-- **The later merges,** origin/main 28d46c4918285d36c409c1fb2f72eb77e04e569e (ea534d5e2) , a37c58e5f32123b4028e90983799dc2aa81816f8 (f99852a62) , b4ec2f332fe3ab8dcf169bd3066276d3bb8848ab (2f7ec1326) , 1c1ae100b59e29564c7aec069b257dface6ef50f (1a31dbf2b) and 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76 (e97ef78ab), merged without conflict. Their only overlap with this diff is `tests/closures.json` and `tests/entities.py`, both merged by git and the closures driver. The three-dot delta in `tests/closures.json` is still the one removed `proposal-triage.md` entry.
+- 5fa6b6a9c: merges origin/main 17e1157925908bd69addb58ed824c1ac22bfa82f. `git merge-tree --write-tree origin/main b2381acd` reported a conflict (rc 1), so the merge was owed under the 2026-11-07 ruling.
+- d70186a59: restores main's pins on the beat, unchanged, failing first:
+  - `tests/entities.py`: the record-autofix wiring, the train hold, the batch gate, the rate-limit and the push-trigger checks;
+  - `merge_train.py`: the batch self-test's guard read;
+  - `orchestrator_tick.py`: the MAIN D-1 push-run pin.
+- a210a9cec: `nightly.yml` restored to origin/main.
+- 2600a6b28: the record text corrected. `delivery-status-tracking.md` item 1, CLAUDE.md's index row, `orchestrator.md` section 9 and `dev/README.md` said that no row is written and that merged rows gate nothing. Both claims are false while the beat runs. They now say that no seat writes a row and that the beat does, which the stamp reads.
+- e6a4a7dd3: a test-only repair of a semantic merge interaction in `merge_train.py`'s unwind self-test (Merge resolution).
 
-### Repair (round 3)
+### Merge resolution (origin/main 17e11579)
 
-- **The block:** body_push.sh's head-stale refusal ran before the runner-default-author guard that `ref_privacy.py --self-test`'s fixture pins. The fixture body names no `## Head`, so the arm's expected author refusal was never reached.
-- **The fix, taken:** body_push.sh runs the identity guard (`ref_privacy.py guard`) before the head-stale check (commit 9f4ecd399). Identity outranks a body claim: a head authored by a runner default is refused as such, whatever its body says.
-- **The alternative, rejected:** giving the fixture body a `## Head`. That would leave the guard reachable, but nothing would pin the order, and the reviewed head's defect would pass silently.
-- **The arm's assertion is unchanged.** It still requires the author refusal's line (`gline in body_err`).
-- **Mutants:** this round adds two to the in-tree harness `dev/audit/harnesses/r10_seat_selftests_mutants.py`, both graded by ref_privacy's self-test through `STEP_OF`. `body_push-5` drops the guard. `body_push-6` re-plants the reviewed head's order, a `## Head` check before the guard.
-
-### Owner constraint, per change (why the risk is acceptable; what still guards production)
-
-- **C4:** only an unchanged own diff carries, and a red CI never carries. `tests / mutation`, goldens, the features suite and CodeQL run on every head as before. An Opus review of a production diff still runs whenever the own diff changes.
-- **C5:** no code, test or harness class moved, and a note on `custom_components/` blocks. Every check above stays, plus the reviewer's real classes (mutation-vacuous, class-open, metric-gamed, architecture-unsound, head-moved). `carry_audit.py` in `pr-contract` still refuses a body line with no `Carry:` marker.
-- **C8:** only checks under 10 minutes are waited on. A production review waits for `tests / mutation`, itself a merge-blocking production check. A cheap check GitHub has not yet created reads as not in flight; the post gate then refuses a merge verdict at a red head.
-- **C6 (a):** no production check reads the triage seat.
-- **Train fixes and repairs:** no production check changes. The repair-3 change is to tools and a harness only, and it tightens: the identity refusal is now pinned in its order by a mutant. Round 4 changes only bus.sh's self-test, adding one arm and moving one null control's head.
-
-## Approval
-
-content approved by tvofi in chat 2026-11-05 (cards C2-C9 accepted; C4, C5, C8 and C6 (a) are this group's). tvofi posts the approving review at the head.
-
-The policy sentences this diff changes, for the owner. Unchanged since round 2: the repairs and the merges touch no policy file. The full list is the round-2 verdict's.
-- CLAUDE.md:
-  - the delivery-status row now reads "the record is the pull-request list and one #201 line per merge ... no per-PR row";
-  - finding-propagation's "before the producing pull request merges" becomes "landed at the latest at the producing pull request's merge";
-  - the `proposal-triage.md` row is removed;
-  - fix-review's row loses "a head that moved under the review is a blocked verdict" and gains "blocks on code, tests and harness, paperwork is a note; a verdict carries while the PR's own diff is unchanged";
-  - "the fix reviewer returns `blocked` on one the body left unanswered" becomes "an unanswered one is a reviewer's note resolved at merge (card C5)".
-- fix-review.md:
-  - adds "Block only on code, tests and harness (card C5) ... one on `custom_components/` blocks. `bus.sh post` refuses `merge` at a red (C8)";
-  - `carry-missing` and `root-cause-*` become `Note:` lines;
-  - the "posted only once the head's workflows all concluded ... (tvofi, 2026-10-08)" sentence is removed;
-  - the delivery-status exemption is removed;
-  - step 12's carry is extended to "any later head whose own diff is unchanged (card C4)".
-- fixer.md: "Your PR does not merge until any finding ... is in that stage's own brief" becomes "Put any finding ... in that stage's own brief".
-- orchestrator.md:
-  - section 5: a proposal is "ruled directly, by the owner or by you ... no standing triage seat (card C6)";
-  - section 9: the record is the postmerge #201 line and roster `resume`, with no per-PR row;
-  - "bar its delivery row" is removed.
-- standing-dispatch.md: the delivery-row check is removed, and "(cards C4, C8 refuse there)" is added.
-- standing-roster.md: the proposal-triage citation becomes "An op naming a triage or proposal number cites its ruling".
-- D11.md item 5: "goes to `proposal-triage.md`" becomes "goes to the orchestrator".
-- defect-root-cause.md:
-  - the enforcement block becomes a C5 note and a C8 no-merge-at-red;
-  - `governance / delivery-status` is dropped from the main-graded pair;
-  - "or a row it did not add" and "or drain the overdue rows" are removed.
-- delivery-status-tracking.md: rewritten around #201 and the PR list. "same session or an immediate record PR" becomes "at that merge"; a stale body becomes a note; and it adds "An owner's ask in a verdict or a body goes into the roster at the merge".
-- finding-propagation.md: "before the PR that produced it merges" becomes "by the producing PR's merge (card C5)".
-- policy_budgets.json: the two proposal-triage.md keys (36, 489) are removed.
-- proposal-triage.md: deleted.
+- **`.github/workflows/governance.yml` (three hunks).** Main's R10-HOTFIX-SELFTEST-TIMEOUT runs `open_pr.sh`, `pr_args.sh` and `update_pr.sh`'s self-tests detached, and its read steps grep `pr_args self-test` in the output of `open_pr.sh` and `update_pr.sh`.
+  - Kept: main's timeout comment and `timeout-minutes: 30`, and main's removal of the in-line open-pr and update-pr steps.
+  - Because main's steps read the `pr_args` tally, `open_pr.sh`, `update_pr.sh` and the harness's S12/S27 wrapper mutants take main's text. This branch's carry 2 is superseded.
+- **`dev/governance/roles/fix-review.md` (one hunk):** union, with main's "Evidence names differ beyond case." inside the branch's paragraph.
+  - The union was 9 tokens over the file's `files_tokens` cap.
+  - Paid by dropping two attribution dates from the branch's own added lines (C4's and C5's).
+  - `node tools/policy/policy_lint.mjs`: `0 error(s) across 49 policy file(s)`.
+- **The semantic interaction, repaired in a test only (e6a4a7dd3).**
+  - The interaction: main's new batch-seam arm, "a first TERM in batch 1's closing release stops the train", waits for a stubbed `git worktree remove`. This branch's `release_worktrees` skips a worktree that git does not list and that does not exist. The driver's stub listed none, so `/x` was skipped and the arm failed.
+  - The repair: the stub now lists `/x`, as in life. Production is unchanged.
 
 ## Head
 
-e97ef78ab8e9a12e54f7c4207e4ec53c41f70bd6 (`handoff/r10-process-slim`).
-- It descends from round 3's handoff 830409b7d19e612e5352dc30c135e621ecc45ec7, a descendant of the PR head 60812ab93eeb16f80713c99ffcd4e8983f11c2c5. On top of that are: the union merge of origin/main 516ad1b6b55e6594b7c489d504292bc9291b004b (706ee33d0), the two bus.sh self-test commits (fc89ddb10, c8b96d9ca), and the merges of origin/main 28d46c4918285d36c409c1fb2f72eb77e04e569e (ea534d5e2), a37c58e5f32123b4028e90983799dc2aa81816f8 (f99852a62) , b4ec2f332fe3ab8dcf169bd3066276d3bb8848ab (2f7ec1326) , 1c1ae100b59e29564c7aec069b257dface6ef50f (1a31dbf2b) and 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76 (e97ef78ab), with no conflict.
-- `git merge-base origin/main HEAD` is 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76, the diff base below.
-- origin/main moved twice while this round ran. It went from 516ad1b6 to 28d46c49 while the first prepr attempt was running; that attempt was stopped unfinished and main was merged. prepr then ran clean at ea534d5e2, after which main moved to a37c58e5. That move was merged and prepr ran clean at f99852a62. Main then moved to b4ec2f33, whose delta is audit-find config, one RCA harness and record, one delivery row and `tests/closures.json`. That move was merged and prepr ran clean at 2f7ec1326. Main then moved to 1c1ae100, whose delta is three delivery-row files. A concurrent seat on this topic merged it onto 2f7ec1326 as 1a31dbf2b; this seat's own merge of the same main had the identical tree (8036794e). This seat took that commit as its head so the step ref stays fast-forward, and prepr ran clean there. Main then moved to 4b5d771b, whose delta is one delivery row and one triage record. That move was merged (e97ef78ab), and `tools/pr/prepr.sh` re-ran clean at this head (Figures).
-- **Not in this head:** the concurrent seat then pushed f6a573c61 onto `handoff-wip/r10-process-slim` ("ci_predict step replay: a head timeout is replayed at the head before it is the branch's red") and merged it as 46b39dde1. That is a change to `tools/pr/ci_predict.py` this seat did not make or verify, beyond this round's minimal scope, so it is not merged here. That seat's next push merges this head.
-- Every figure below was taken in this seat on 2026-11-07, by a command run at this head, or at fc89ddb10, c8b96d9ca, ea534d5e2, f99852a62, 2f7ec1326 or 1a31dbf2b where it says so. Main's merged deltas since fc89ddb10 touch none of the planted or self-tested files. The PR head 60812ab9 and the reviewed head 6289321a are the controls.
+e6a4a7dd3374b97b44dcb5ea1bb52d23d984f628 (`handoff/r10-process-slim`).
+- It descends from the PR head b2381acd5004e85a8b85a4643bc0939d25a3bf75 through the five commits above.
+- `git merge-base origin/main HEAD` is 17e1157925908bd69addb58ed824c1ac22bfa82f, the diff base for every three-dot figure here.
+- Not in this head: the previous step ref's 747e9065b, which moved `HOLD_MAX_AGE_S` into merge_train.py. It kept the hold alive for a beat the diff then removed; with the beat kept, the constant stays in nightly.yml, as on main.
+- `handoff-wip/r10-process-slim` was kept fast-forward by a tree-identical side merge, because deleting the ref was refused. That merge is not this head.
 
 ## Mutation proof
 
-One run of `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py bus-1 bus-2 bus-7 bus-10 bus-11 bus-12 bus-13 bus-14 bus-15 bus-16 bus-17 ci_predict-3 ci_predict-4 ci_predict-5 body_push-5 body_push-6`, at fc89ddb10 (tree-identical to ea534d5e2 in every planted file):
-- **The block's arm.** `body_push-5` (the identity guard dropped) and `body_push-6` (a `## Head` check planted before the guard, the reviewed head's order) are both KILLED: `ref_privacy self-test: 113 checks, 1 failed`.
-- **The countermeasure:**
-  - `ci_predict-3` KILLED (2 failed);
-  - `ci_predict-4` KILLED (1 failed);
-  - `ci_predict-5` KILLED (1 failed).
-- **This branch's cards:**
-  - `bus-1`, `bus-2` and `bus-7` KILLED;
-  - `bus-17`, the C8 caller pin that was `bus-10` before the merge, KILLED.
-- **Main's bus mutants, after the union:**
-  - `bus-10`, `bus-11` and `bus-13`..`bus-16` KILLED;
-  - `bus-12` SURVIVED (see Merge resolution).
-- **After the repair arm (c8b96d9ca):** `bus-12` KILLED and `bus-7` KILLED, `RESULT survivors=0`.
-- **By hand, step 1:** body_push.sh restored to the reviewed head 6289321a's guard order prints `ref_privacy self-test: 109 checks, 1 failed` at 830409b7. That is the 109-check suite before main's merge, and the failure is the runner-default arm. The handoff's own order prints `109 checks, 0 failed`.
-- The hand mutants on `app_approve.sh carry()`, `release_worktrees` and `postmerge.py`'s docs step are round 1's. Those files are unchanged by the merges since, and their self-tests are green at this head (M0 below).
+Each changed line was mutated by hand. A mutant was graded by the self-test or check named, and the file was restored after.
+- **The beat (a210a9cec), whose deletion is the mutant.** At d70186a59, with the restored pins and without the beat:
+  - `python3 -I tools/release/stamp.py --self-test` prints `FAIL hold: the bound is nightly.yml's own HOLD_MAX_AGE_S by source read` and `RESULT stamp_self_test=fail`;
+  - `python3 tools/audit/seat/orchestrator_tick.py --self-test` prints `283 checks, 2 failed` (`FAIL MAIN D-1: nightly.yml's push-run jobs are exactly the record beat`, and its red-named pair);
+  - `python3 tools/audit/seat/merge_train.py --self-test` prints `FAIL record_row.py takes every option the bot sweep passes, and the record beat merges behind the same --automerge-check ... --head ... --require-green guard`;
+  - `PYTHONPATH=tests/hastub python3 tests/entities.py` stops with `ValueError: substring not found` at `_RAF_JOB_RAW = _workflow_job(_NIGHTLY_YML, "record-autofix")`.
+  - At a210a9cec and at this head, the first three print `RESULT stamp_self_test=pass`, `283 checks, 0 failed` and `475 checks, 0 failed`. entities.py runs to its end, and its only reds are this container's two (Null control).
+- **The fixture repair (e6a4a7dd3).** Without the two stub lines, `merge_train.py --self-test` prints `475 checks, 1 failed` (`FAIL a first TERM in batch 1's closing release stops the train`), three runs of three. With them it prints `0 failed`, three runs of three. The arm's own mutants (the old `SIG_IGN`, and a defer that never re-raises) still print `ok`, so the arm still separates them.
+- **The policy text (2600a6b28)** has no executable line. `node tools/policy/rules_sync.mjs --check` exits 0, and `node tools/policy/policy_lint.mjs` prints `0 error(s)`.
+- **The cards' own mutants are the earlier rounds'**, in `dev/audit/harnesses/r10_seat_selftests_mutants.py`. Their planted files are not changed by this round except the S12/S27 wrappers, which are back to main's text. MUTANT_CMD was left unset (prepr's diff-mutant step is report-only).
 
 ## Null control
 
-- **ref_privacy at the reviewed head.** `python3 -I tools/audit/seat/ref_privacy.py --self-test` printed `109 checks, 1 failed` at 6289321a (the verdict's run and round 3's). At 830409b7 it prints `109 checks, 0 failed`, and at this head `113 checks, 0 failed`. The two body_push mutants restore exactly one failure.
-- **The merge's interactions:**
-  - The bus self-test at the unrepaired union (706ee33d0) prints `158 checks, 1 failed`. At this head it prints `159 checks, 0 failed`.
-  - The new arm passes unmutated, and fails only under `bus-12`.
-- **Each mutant's baseline:** the harness runs the same step on the unmutated file first and prints NOT RUN unless it passes. No NOT RUN was printed.
-- **nightly-status:** the grader's red and green read the same pinned file (`tests/nightly_status.py`, unchanged by this diff) over different main runs; see Red checks.
+- **origin/main 17e11579, the same container:**
+  - `stamp.py --self-test` prints `pass`;
+  - `merge_train.py --self-test` prints `472 checks, 0 failed`;
+  - `entities.py` prints `2 of 2656 ENTITY CHECKS FAILED`. The two are "the coverage job reuses only an entry main's push run saved" and "the release ZIP holds the integration folder at its root". This head prints the same two, as `2 of 2648`; the 8 fewer checks are C5's delivery-status pins.
+- **The container's, not the branch's:**
+  - `bus.sh --self-test` prints `FAIL an ordinary append with no intervening fetch is the same commit object as before`, and `ref_privacy.py --self-test` prints `113 checks, 1 failed` (the machine-email author arm). Both fail identically at origin/main here, with or without the seat's `GIT_AUTHOR_*` variables, so they are left to CI.
+  - `ci_predict.py --self-test` printed `1 failed` until `/opt/hpo/runner-temp`, the `RUNNER_TEMP` that this container's `BASH_ENV` sets, existed. It then printed `0 failed`.
+- **The merge commit 5fa6b6a9c, before the restoration:** `stamp.py --self-test` prints `RESULT stamp_self_test=fail`, the red the previous seat measured on CI (`tests / fast (3.14)`, `governance / instrument-self-tests`).
 
 ## Figures
 
-- **The sweep.** `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py M0` at fc89ddb10: `== M0: 0 seat step(s) red`, `RESULT survivors=0`.
-- **Self-tests:**
-  - `bash tools/audit/seat/bus.sh --self-test`: `159 checks, 0 failed`;
-  - `python3 tools/pr/ci_predict.py --self-test`: `0 failed`;
-  - `python3 -I tools/audit/seat/ref_privacy.py --self-test`: `113 checks, 0 failed`;
-  - `python3 tools/audit/seat/ref_privacy.py --check`: 0 refused;
-  - `bash tools/audit/seat/body_push.sh --self-test`: `35 checks, 0 failed`.
-- **`python3 tests/structure.py`:** STRUCTURE RATCHET PASSED, at fc89ddb10, f99852a62 and 2f7ec1326; main's delta since touches only delivery and triage records. No budget moves.
-- **`python3 -I tools/audit/seat/selftest_wiring.py --check`:** `118 self-testing, 118 wired, 0 unwired`.
-- **`PYTHONPATH=tests/hastub python3 tests/entities.py`:** ALL 2622 ENTITY CHECKS PASSED at f99852a62 and 2f7ec1326 (2620 at fc89ddb10).
-- **`node tools/policy/rules_sync.mjs --check`:** rc 0. **`node tools/policy/policy_lint.mjs`:** `0 error(s) across 49 policy file(s)`.
-- **The gate scope:** `MODE: FULL`, read in prepr's gate-mode line. governance.yml and nightly.yml change the gate, so CI runs the suite.
-- **`bash tools/pr/prepr.sh`:** clean at this head, rc=0.
-- **The archscore.** `python3 tools/audit/archscore/score.py --diff 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76 HEAD` prints `Architecture score: dS +0.0000 NULL`.
-- **Toolchain:** `bash tools/audit/seat/cloud-setup.sh --check` prints OK, with python3 from venv-ci.
-- **The verdict's Finding.** `tests/config_flow_steps.py`'s fee_bound pin compares the function with itself. It is pre-existing at origin/main and already dispositioned (dismissed, D3 observation), so it is left as is.
-- **Card figures** (RFT, verdict counts, token and job-minute estimates) are the slip study's, cited, not re-taken.
+- `python3 -I tools/release/stamp.py --self-test`: `RESULT stamp_self_test=pass`.
+- `python3 tools/audit/seat/orchestrator_tick.py --self-test`: `283 checks, 0 failed`.
+- `python3 tools/audit/seat/merge_train.py --self-test`: `475 checks, 0 failed`.
+- `bash tools/audit/seat/handoff_push.sh --self-test`: `6 checks, 0 failed`.
+- `bash tools/audit/seat/body_push.sh --self-test`: `35 checks, 0 failed`.
+- `python3 tools/audit/seat/postmerge.py --self-test`: `15 checks, 0 failed`.
+- `python3 tools/pr/ci_predict.py --self-test`: `0 failed`.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
+- `python3 -I tools/audit/seat/selftest_wiring.py --check`: `0 index gap(s)`.
+- `node tools/policy/rules_sync.mjs --check`: rc 0. `node tools/policy/policy_lint.mjs`: `0 error(s) across 49 policy file(s)`.
+- `python3 tools/audit/archscore/score.py --diff 17e1157925908bd69addb58ed824c1ac22bfa82f HEAD`: `Architecture score: dS +0.0000 NULL`.
+- `bash tools/audit/seat/cloud-setup.sh --check`: OK, with python3 from venv-ci.
+- `bash tools/pr/prepr.sh`: clean at this head, `PRE-PR: e6a4a7dd3374b97b44dcb5ea1bb52d23d984f628 ... rc=0` (gate mode `MODE: FULL`: governance.yml changes the gate, so CI runs the suite). origin/main then moved to 48af0864a43052a43e9125fa31c2822bac99165d (read 2026-11-08T02:40Z). `git merge-tree --write-tree origin/main HEAD` reports no conflict (rc 0), so under the owner's 2026-11-07 ruling it is not merged and prepr is not re-run; the merge train re-carries the head on the current main.
 
 ## Red checks
 
-At e97ef78ab8e9a12e54f7c4207e4ec53c41f70bd6 no check has run: a handoff ref runs no workflow.
+At e6a4a7dd3374b97b44dcb5ea1bb52d23d984f628 no check has run: a handoff ref runs no workflow.
 
-The PR's present head is 60812ab93eeb16f80713c99ffcd4e8983f11c2c5. It was re-read in this seat on 2026-11-07 from the check-runs API for #3245 with `per_page=100`: `total_count` 53, one page, every page read. Its concluded reds are `tests / nightly-status`, `budget-raise-gate / budget-raise-gate` (two runs), `pr-contract / pr-contract` and `gate` (two runs).
-
-The reviewed head is 6289321a8451138719535f170ab395590ff556f0. Its concluded reds, from `verdict/3245` (66 check runs, both pages read by the reviewer), are `governance / instrument-self-tests`, `budget-raise-gate / budget-raise-gate` (three runs) and `gate` (three runs). At that head `pr-contract / pr-contract` concluded success. Each is answered below.
-- **`tests / nightly-status`** (failure, check-run 128081099943, 18:39:56Z; class: inherited from main, not this diff).
-  - Failure: it graded main's last concluded verification dispatch, run 42235215315 (workflow_dispatch, 2026-11-06T14:35Z, head 33e60b5b, a main merge commit and an ancestor of this PR's old merge base 4b7e1770b), whose `slow` job (127950940724) failed: `4 of 194 replay checks FAILED`, each `synthetic-dhw-only.json: cycle_cost ... runner class unknown: ref_ms 41.5 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]`.
-  - Why not this diff: none of the three runs it reads contains this branch's code (`git merge-base --is-ancestor 343a0521 <sha>` is false for 33e60b5b, 817c2b16 and 4b7e1770b). The grader is restored from the base and runs main's `nightly.yml`, and the failing band table is `tests/replay.py`'s, which this diff does not touch. The diff keeps every `REQUIRED_LANES` job of `tests/nightly_status.py` (`mutation-ledger`, `mutation-ledger-push`, `mutation-nightly`, `nightly-ha`, `slow` are all still in this head's nightly.yml); it drops only the `push:` trigger and the `record-autofix` job, and the grader reads neither.
-  - Main's own evidence: the next dispatch on main, run 42247578523 (2026-11-06T15:55Z, head 817c2b16, concluded 19:34Z, after this check ran), concluded `success`. The last scheduled run, 42139479636 (00:48Z, head 785c2b60), is `success`. The same grader run live at 22:04Z prints `NIGHTLY PASSED` (Figures), so a re-run of this check reads green with no change here.
-  - Root-cause trigger: none exists. The red is a runner-class draw on main's `slow` lane, `ref_ms` measured on whatever runner GitHub assigns, and the cheapest detector for that is the nightly lane itself. A local run measures a different machine. Owner: the orchestrator on main; the band table is R10-REPLAY-COST-BUDGET's, whose round 2 (#3234, 80016a71) is merged into this head's base, so its fix is main's and not this diff's.
-- **`governance / instrument-self-tests`** (failure at the reviewed ancestor head 6289321a8451138719535f170ab395590ff556f0, check-run 127997950671; class: this PR's code, fixed in round 3). At 60812ab9 it concluded success (check-run 128081099969).
-  - Cause: body_push.sh's head-stale refusal masked ref_privacy's runner-default-author arm, and the sweep template, D-1 pin and roster_edit lines were hidden behind it.
-  - Answer: fixed by round 3 (the identity guard before the head-stale check). At this head `ref_privacy self-test: 109 checks, 0 failed`, `M0: 0 seat step(s) red`, and `body_push-5` and `body_push-6` are KILLED (Mutation proof).
-  - Root-cause trigger: the cheaper detector is running the self-test of every script that calls a changed script before the handoff, seconds per step. Countermeasure, landed in this diff: `tools/pr/ci_predict.py`'s STEP REPLAY (prepr step 6d, `names_changed`), killed by `ci_predict-5`.
-- **`budget-raise-gate / budget-raise-gate`** (failure at 60812ab9, check-runs 128081099974 and 128081025103, and three runs at 6289321a: `REFUSED: no decisive review by tvofi (id 70032254) on this pull request`; class: policy, expected).
-  - Cause: it reads the deletion of the retired `proposal-triage.md`'s two caps (`files` 36, `files_tokens` 489 -> none) as a raise.
-  - Answer: cleared by the owner's approving review at the head, or by the mandate line under Raise justification. Cheaper detector: `prepr.sh`'s body check names it before the handoff, at no added cost.
-- **`pr-contract / pr-contract`** (failure, check-run 128102024378): `check \`tests / nightly-status\` is red and \`## Red checks\` does not name it`. Answered by the nightly-status entry above, which this body adds. No cheaper detector is needed: `prepr.sh --body-check` runs the same check, and `body_push.sh` runs it before the push.
-- **`gate`** (failure at 60812ab9, check-runs 128102624348: `FAIL budget-raise-gate / budget-raise-gate`, and 128081535559: `run(s) [42272627907] at this head are still being judged`; three runs at 6289321a, the last of which, 128022390637, reads `FAIL budget-raise-gate / budget-raise-gate` only). It is the umbrella over the checks above and clears with them; no cheaper detector is needed.
+The PR's present head is b2381acd5004e85a8b85a4643bc0939d25a3bf75. Its concluded reds, from the check-runs API with `filter=latest`, every page read, are:
+- **`tests / fast (3.14)`** (128481970498) and **`governance / instrument-self-tests`** (128481970080). Class: this PR's diff, through its merge with main. Both fail on `stamp.py --self-test`'s `FAIL hold: the bound is nightly.yml's own HOLD_MAX_AGE_S by source read`. Main's #3280 added that check after the old merge base, and C5's beat deletion removed the line it reads. Answer: fixed here, because the beat is kept and `stamp_self_test=pass` (Mutation proof). Root-cause trigger: the cheaper detector exists. It is prepr's self-test step at a head merged with main, which is what this round ran. Its standing cost is nil beyond the merge the ruling already owes on a conflict, so no countermeasure is added.
+- **`pr-contract / pr-contract`** (128493151057): it refused a body that did not name `tests / fast (3.14)`. Answered by this entry. `prepr.sh --body-check` runs the same check before the push.
+- **`gate`** (128493523507, 128481472549, 128476564557): the umbrella over the reds above. It clears with them.
+- **`budget-raise-gate / budget-raise-gate`** (128481970199, 128480546680, 128476230798). Class: policy, expected. It reads the removal of the deleted `proposal-triage.md`'s two caps as a raise, and clears on the owner's review or on the mandate line under Raise justification.
+- **`tests / nightly-status`** (128481970037). Class: inherited from main. It graded main's cancelled dispatch 42369836867, and main's next dispatch, 42382408131, concluded success. The grader reads nightly.yml's lanes, and nightly.yml is now main's byte for byte.
 
 ## Unpinned sites
 
-n/a: the diff writes no line under `custom_components/`. Every new `tools/` predicate is killed by an in-tree self-test arm or harness mutant listed under Mutation proof.
+n/a: the diff writes no line under `custom_components/`. This round's executable change is the restored nightly.yml, pinned by the restored checks, and one self-test fixture line, which its own arm and mutants grade.
+
+## Approval
+
+Content approved by tvofi in chat 2026-11-05 (cards C2-C9 accepted; C4, C5, C8 and C6 (a) are this group's). tvofi posts the approving review at the head.
+
+**Policy sentences this round changes**, beyond the round-2 list the verdict holds:
+- `delivery-status-tracking.md` item 1 changes. It read "There is no per-PR `dev/programme/delivery/<N>.md` row and no record pull request ... the rows already merged stay as history, read by nothing that gates". It now reads "No seat writes a per-PR ... row (card C5 ...). Nightly's `record-autofix` beat still rows each merge from API facts, because `tools/release/stamp.py`'s flush and `--require-rows` read those rows (orchestrator ruling 2026-11-08, until R10-FLY-STAMP-FLUSH-COST retires them)."
+- CLAUDE.md's `delivery-status-tracking.md` row: "no per-PR row" becomes "no seat writes a per-PR row".
+- `orchestrator.md` section 9: "no per-PR row (card C5)" becomes "no per-PR row from you (card C5)".
+- `fix-review.md`: main's "Evidence names differ beyond case." is unioned in, and "(card C5, tvofi 2026-11-05)" and "(card C4, tvofi 2026-11-05; #1667, 2026-10-27)" lose their dates. That is the cap payment.
+
+The round-2 sentences that said the beat is deleted are no longer in the diff.
 
 ## Raise justification
 
 Raise approved under mandate (comment 6624093439, scope all) by the orchestrator 2026-11-06 14:4xZ: cap removal for a deleted file, no payment possible.
-- **What moves:** no cap rises in substance. The two caps removed are `dev/governance/roles/proposal-triage.md`'s (`files` 36, `files_tokens` 489) in `dev/governance/config/policy_budgets.json`, and card C6 (a) deletes that file.
+- **What moves:** no cap rises in substance. The two caps removed belong to `dev/governance/roles/proposal-triage.md` (`files` 36, `files_tokens` 489, in `dev/governance/config/policy_budgets.json`), and card C6 (a) deletes that file.
 - **Why a cap must go:** `policy_lint.mjs --budgets` refuses a cap on a missing file, so keeping them is refused too.
 
 Payments tried: keeping the caps (refused by `policy_lint.mjs --budgets`); keeping the file as an on-demand contract (rejected, because card C6 retires the seat and an unread contract is spent prose).
 
-- **The other policy files:** every one this diff touches was paid inside its own cap by cutting the added prose.
-- **The score:** re-run in this seat at e97ef78ab8e9a12e54f7c4207e4ec53c41f70bd6 (`python3 tools/audit/archscore/score.py --diff 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76 HEAD`).
+- **The other policy files:** each one this diff touches is paid inside its own cap. This round's `fix-review.md` union is paid by the two dates.
+- **The score:** re-run in this seat at e6a4a7dd3374b97b44dcb5ea1bb52d23d984f628 (`python3 tools/audit/archscore/score.py --diff 17e1157925908bd69addb58ed824c1ac22bfa82f HEAD`).
 Architecture score: dS +0.0000 NULL
 
 ## Forward-carry
 
-none
+- Delete Nightly's `record-autofix` beat once no stamp rule reads it. That deletion covers:
+  - its `push:` trigger and `HOLD_MAX_AGE_S`;
+  - `merge_train.py`'s train hold (`hold_refresh`, `HOLD_REF`) and the stamp's `hold_bound_s`/`train_hold`/`record_flush` arms;
+  - `record_row.py`'s `governance / delivery-status` red name (that job is deleted by this PR);
+  - the pins this PR restored in `tests/entities.py`, `merge_train.py` and `orchestrator_tick.py`.
+
+  The stamp's flush (rules 3-4) and rule 5 (`--require-rows`) still read the beat, and that group is changing the flush now (orchestrator ruling 2026-11-08). Carry: R10-FLY-STAMP-FLUSH-COST
 
 ## Carries
 
-- **Carry 1** is the roster's carry on R10-PROCESS-SLIM: a repair body's `## Head` named the previous handoff. Now `tools/audit/seat/body_push.sh` refuses `head-stale` when `## Head` does not name `handoff/<topic>`'s code sha, after the identity guard (round 3), and pushes nothing.
-- **Carry 2** is the instrument-self-tests timeout: `open_pr.sh` and `update_pr.sh` stop re-running `pr_args.sh`'s self-test, and the timeout is 40 minutes, set from the measured run.
+- **Carry 1** is the roster's carry on R10-PROCESS-SLIM: a repair body's `## Head` named the previous handoff. `tools/audit/seat/body_push.sh` now refuses `head-stale` when `## Head` does not name `handoff/<topic>`'s code sha. The check runs after the identity guard (round 3) and pushes nothing. It is unchanged by this round, and `body_push.sh --self-test` prints `35 checks, 0 failed`.
+- **Carry 2** is the instrument-self-tests timeout. Main's R10-HOTFIX-SELFTEST-TIMEOUT answers it now, by running the slow self-tests detached under the 30-minute timeout. This branch's own answer (`open_pr.sh` and `update_pr.sh` no longer re-running `pr_args.sh`'s self-test, and a 40-minute timeout) is dropped in the merge in favour of main's (Merge resolution).
 
 ## Friction
 
 - r10-process-slim-1: cost: with the record stream retired, `merge_train.py --bot-prs` (`sweep_bots`) likely has nothing left to merge; this was not measured here. Carry: dismissed: unmeasured, and deleting a live train path is beyond the cards' scope.
 - r10-process-slim-2: unenforced: `bus.sh`'s C8 gate cannot see a cheap check GitHub has not yet created. Carry: dismissed: the card's risk line accepts review starting early, never a merge at red.
-- r10-process-slim-3: unenforced: the reviewed head's ref_privacy red was a caller's self-test the PR's own self-test list omitted. Carry: dismissed: closed in this diff by `tools/pr/ci_predict.py`'s `names_changed` (prepr step 6d), killed by `ci_predict-5`.
+- r10-process-slim-3: unenforced: the container's `BASH_ENV` sets a `RUNNER_TEMP` it does not create, so `ci_predict.py`'s STEP REPLAY self-test reads red in a fresh cloud seat until the directory exists. Carry: dismissed: environment setup, not this diff's code; the measured fix is one `mkdir`.
