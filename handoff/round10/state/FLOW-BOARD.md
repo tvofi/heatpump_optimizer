@@ -1,17 +1,17 @@
 # Flow board
 
-Window ends 2026-11-08T10:35:33+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-08T11:19:28+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 1 / 1.0 | 25 / 24.0 |
-| fly-ins closed | 0 | 4 |
-| main moves: group-carrying / record / roster-edit / fly-in | 2 / 0 / 0 / 0 | 24 / 6 / 1 / 4 |
-| first-pass fix-review yield | 2/3 (0.67) | 10/27 (0.37) |
-| blocked-class mix | class-open:1 | architecture-unsound:2, carry-missing:1, ci-red:1, claim-refuted:1, class-open:11, harness:1, mutation-vacuous:6, red-checks:2, robustness:1, settle-unjudged:1 |
-| lead time per size (h, n/p50/max) | M n=1 p50=36.06 max=36.06; S n=1 p50=50.20 max=50.20 | L n=3 p50=23.70 max=27.32; M n=5 p50=34.28 max=41.48; S n=16 p50=14.25 max=50.20 |
+| roster groups closed vs takt | 0 / 1.0 | 25 / 24.0 |
+| fly-ins closed | 1 | 4 |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 1 | 22 / 6 / 0 / 4 |
+| first-pass fix-review yield | 1/3 (0.33) | 10/28 (0.36) |
+| blocked-class mix | carry-unmet:1, class-open:1 | architecture-unsound:2, carry-missing:1, carry-unmet:1, ci-red:1, claim-refuted:1, class-open:11, harness:1, mutation-vacuous:6, red-checks:2, robustness:1, settle-unjudged:1 |
+| lead time per size (h, n/p50/max) | S n=1 p50=50.20 max=50.20 | L n=3 p50=23.70 max=27.32; M n=4 p50=36.06 max=41.48; S n=15 p50=13.92 max=50.20 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
