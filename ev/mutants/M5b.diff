@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/body_push.sh b/tools/audit/seat/body_push.sh
+index e1d05e42d..b19f3f135 100644
+--- a/tools/audit/seat/body_push.sh
++++ b/tools/audit/seat/body_push.sh
+@@ -154,7 +154,7 @@ if [ -n "$HREF" ]; then
+   # After the identity guard, which outranks it (ref_privacy's self-test pins that order):
+   # a body's ## Head is a claim about what was measured: refused, never rewritten, when it does not name this code sha.
+   HEADSEC=$(awk '/^## Head[[:space:]]*$/ { f = 1; next } /^## / { f = 0 } f' "$BODY")
+-  case $HEADSEC in *"$HREF"*) ;; *)
++  case $HEADSEC in *) ;; nomatch-never)
+     NAMED=$(printf '%s\n' "$HEADSEC" | grep -oE '[0-9a-f]{40}' | head -1 || true)
+     echo "body_push: REFUSE head-stale: ## Head does not name the handoff's code sha $HREF; it names ${NAMED:-none}" >&2
+     keep_refused

@@ -1,0 +1,25 @@
+=== CLAUDE.md
+< | `delivery-status-tracking.md` | the record is the pull-request list and one #201 line per merge, plus roster `resume` and every open issue's disposition — at each merge, not at session end; no per-PR row |
+> | `delivery-status-tracking.md` | the record is the pull-request list and one #201 line per merge, plus roster `resume` and every open issue's disposition — at each merge, not at session end; no seat writes a per-PR row |
+=== dev/governance/rules/delivery-status-tracking.md
+< 1. **The record is the pull-request list and #201**: `tools/audit/seat/postmerge.py` posts one #201 line per merge from its fixed template. There is no per-PR `dev/programme/delivery/<N>.md` row and no record pull request (card C5, tvofi 2026-11-05: the rows and the `governance / delivery-status` grader produced more blocked rounds than catches); the rows already merged stay as history, read by nothing that gates.
+> 1. **The record is the pull-request list and #201**: `tools/audit/seat/postmerge.py` posts one #201 line per merge from its fixed template. No seat writes a per-PR `dev/programme/delivery/<N>.md` row (card C5, tvofi 2026-11-05: the rows and the `governance / delivery-status` grader produced more blocked rounds than catches). Nightly's `record-autofix` beat still rows each merge from API facts, because `tools/release/stamp.py`'s flush and `--require-rows` read those rows (orchestrator ruling 2026-11-08, until R10-FLY-STAMP-FLUSH-COST retires them).
+=== dev/governance/roles/orchestrator.md
+< no per-PR row (card C5); a verdict's paperwork notes are yours to resolve at that merge.
+> no per-PR row from you (card C5); a verdict's paperwork notes are yours to resolve at that merge.
+=== dev/governance/roles/fix-review.md
+< Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then your brief's `bus-nonce: <nonce>`.
+< **Block only on code, tests and harness** (card C5, tvofi 2026-11-05): paperwork (a stale body, a carry route, a figure, a root-cause answer) is a `Note: <class>: <text>` line under `merge`; one on `custom_components/` blocks. `bus.sh post` refuses `merge` at a red (C8). It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
+> Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. Evidence names differ beyond case. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then your brief's `bus-nonce: <nonce>`.
+> **Block only on code, tests and harness** (card C5): paperwork (a stale body, a carry route, a figure, a root-cause answer) is a `Note: <class>: <text>` line under `merge`; one on `custom_components/` blocks. `bus.sh post` refuses `merge` at a red (C8). It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
+<     to any later head whose own diff is unchanged** (card C4, tvofi 2026-11-05;
+<     #1667, 2026-10-27): `tools/audit/seat/review_carry.py <verdicted> <new>`
+>     to any later head whose own diff is unchanged** (card C4;
+>     #1667): `tools/audit/seat/review_carry.py <verdicted> <new>`
+=== dev/README.md
+<    `tools/audit/seat/postmerge.py` posts one #201 line per merge, and no
+<    per-PR row is written (`dev/governance/rules/delivery-status-tracking.md`).
+>    `tools/audit/seat/postmerge.py` posts one #201 line per merge. No seat
+>    writes a per-PR row; `tools/audit/seat/record_row.py` drives the
+>    record-autofix job that rows each merge, which the stamp reads
+>    (`dev/governance/rules/delivery-status-tracking.md`).

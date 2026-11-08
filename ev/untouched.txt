@@ -1,0 +1,37 @@
+VERSION vs-base rc=0
+VERSION vs-main rc=1
+custom_components/heatpump_optimizer/manifest.json vs-base rc=0
+custom_components/heatpump_optimizer/manifest.json vs-main rc=1
+RELEASE_NOTES.md vs-base rc=0
+RELEASE_NOTES.md vs-main rc=1
+tests/golden/claimed_drift.txt vs-base rc=0
+tests/golden/claimed_drift.txt vs-main rc=1
+tests/golden/card_claimed_drift.txt vs-base rc=0
+tests/golden/card_claimed_drift.txt vs-main rc=1
+.github/workflows/nightly.yml vs-base rc=0
+.github/workflows/nightly.yml vs-main rc=1
+.github/workflows/ci.yml vs-base rc=0
+.github/workflows/ci.yml vs-main rc=1
+custom_components files: 0
+tools/ci files: 0
+ 39 files changed, 557 insertions(+), 743 deletions(-)
+diff --git a/dev/governance/config/policy_budgets.json b/dev/governance/config/policy_budgets.json
+index 60e213864..4f642cbbf 100644
+--- a/dev/governance/config/policy_budgets.json
++++ b/dev/governance/config/policy_budgets.json
+@@ -81,7 +81,6 @@
+     "dev/governance/roles/architect-planner.md": 85,
+     "dev/governance/roles/standing-merge.md": 37,
+     "dev/governance/roles/standing-dispatch.md": 39,
+-    "dev/governance/roles/proposal-triage.md": 36,
+     "dev/governance/roles/standing-roster.md": 27,
+     "dev/governance/roles/standing-tick.md": 26,
+     "dev/governance/roles/plan-review.md": 24
+@@ -135,7 +134,6 @@
+     "dev/governance/roles/architect-planner.md": 1261,
+     "dev/governance/roles/standing-merge.md": 507,
+     "dev/governance/roles/standing-dispatch.md": 509,
+-    "dev/governance/roles/proposal-triage.md": 489,
+     "dev/governance/roles/standing-roster.md": 368,
+     "dev/governance/roles/standing-tick.md": 330,
+     "dev/governance/roles/plan-review.md": 304
