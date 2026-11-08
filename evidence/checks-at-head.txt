@@ -1,0 +1,10 @@
+Check runs at d17e43cf530c324acba0c6594256291a725b7023, read 05:51Z via pull_request_read get_check_runs (total_count 68, one page of 100):
+latest per job: every check run concluded success or skipped; none failure/cancelled/in_progress.
+key: gate 128643695123 (code run 42449104484 att 2) success; gate 128643899038 (edit 42449103812) success; gate 128643901917 (edit 42450169220) success;
+     governance / instrument-self-tests 128637530289 success 05:18:24-05:31:10Z; pr-contract / pr-contract 128643483744 success;
+     codeql / Analyze (python) 128637530472 success; tests / closures 128637530616 success; tests / coverage 128637530625 success; tests / fast (3.14) 128637531686 success.
+superseded reds at this head (earlier attempts):
+  gate 128634825177 (edit run 42449103812 att 1) failure 05:04:40Z: "FAIL run(s) [42449104484] at this head are still being judged; their gate decides" (edit-run deferral)
+  governance / instrument-self-tests 128634393148 (code run 42449104484 att 1) cancelled 05:13:34Z mid-step (ci_predict self-test), ~11 min in: an external cancel before the 05:17Z re-run by tvofi, not the 30-min timeout
+  edit run 42450169220 run-level conclusion failure (05:20:38Z), its gate check now 128643901917 success
+merge_train classify: 05:51:03Z rc=0 GREEN d17e43cf530c324acba0c6594256291a725b7023 pending: none red: none (ev/classify-loop.txt)

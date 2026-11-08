@@ -1,70 +1,72 @@
-Fix review: blocked c95c3b4b2e5875103fd5944c766d9e954f5b8a90 mutation-vacuous: beat_jobs.py plan_beat resolution mutants moved_early_return and moved_on_rc1 survive the self-test
+Fix review: merge d17e43cf530c324acba0c6594256291a725b7023
 
-bus-nonce: 65a08d07985d3e88836905178f706405
+bus-nonce: ff015eaa9fe5b5433985199dc214e417
 
-Round 7 of the fix review of #3262 (R10-OUTSIDE-INTAKE), at head c95c3b4b2e5875103fd5944c766d9e954f5b8a90. It is limited to the resolution delta against 33c3dd99, per the orchestrator's past-three ruling s13. I worked from a detached worktree at the head. This is a policy and developer-docs PR: it merges only on tvofi's approving review at the head.
+Round 8 of the fix review of #3262 (R10-OUTSIDE-INTAKE), at head d17e43cf530c324acba0c6594256291a725b7023, from a detached worktree at the head. The scope is the past-three ruling s13: the cure of the round-7 block (`verdict/3262`, blocked at c95c3b4b, mutation-vacuous) plus the delta `git diff c95c3b4b2 d17e43cf5`. That delta is one authored commit, df0ffdf5e, adding 24 lines to `tools/audit/seat/beat_jobs_selftest.py`: two `plan_beat` cases and two `MUTANTS` entries. The merge d17e43cf5 has the same tree as df0ffdf5e. No production line moved. This is a policy and developer-docs PR: it merges only on tvofi's approving review at the head.
 
-## Block
+## Verdict
 
-- **The resolution made a new control-flow site, and the shipped self-test does not pin it.** Before the merge:
-  - Main's `plan_beat` wrote `PLAN MOVED` through an early `return write_job(...)` on rc 0.
-  - The branch's version dispatched `pages.yml` after a push that landed.
-  - The resolution at `tools/audit/seat/beat_jobs.py:392-418` folds both into one `lines` list with a single `write_job`.
-  - The head behaves correctly. My probe shows it dispatches the Pages deploy on a pass where the page moved and the push landed.
-  - The body says the resolution's added lines "are this branch's and main's already-killed lines … there is no new site". That is false. Two behavioural mutants of the resolved lines survive `python3 -I tools/audit/seat/beat_jobs.py --self-test --no-mutants`, which gives rc 0 under each (`ev/reviewer-mutants-resolution.txt`).
-- **Mutant `moved_early_return`** (L412-413):
-  - The edit: `lines.append(PLAN MOVED …)` becomes `return write_job(ctx, "plan-beat", [PLAN MOVED …])`. This is main's own pre-merge shape, the one a careless resolution would keep.
-  - Effect: on every pass whose page changed, the Pages dispatch is skipped. Those are exactly the passes where the public page most needs republishing.
-  - Why it survives: the `PLAN MOVED` case's fake `state_docs` prints no `pushed ` line, and the dispatch cases write no page. No case combines the two.
-  - Proof it is not equivalent: `ev/reviewer-probe-moved-and-pushed.txt` makes that case's `state_docs` print `pushed …` and require exactly one `gh` call.
-    - At the head: rc 0.
-    - Under the mutant: rc 1, `FAIL plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line`.
-- **Mutant `moved_on_rc1`** (L407):
-  - The edit: `if rc == 0:` becomes `if rc in (0, 1):` before `page = read(`.
-  - Effect: on a `state_docs` rc 1 the row also emits `PLAN MOVED` and advances `plan-page.json`. The docstring says `PLAN MOVED` is "on success".
-  - On main 7c9c4c15 this mutant is KILLED (`ev/reviewer-mutants-at-main-7c9c4c15.txt`): main's rc-1 path lost its `PLAN UNAVAILABLE` line under it. The resolution moved the error line ahead of the page block, so main's pin no longer reaches it. The merge lost coverage that main had.
-  - Proof it is not equivalent: `ev/reviewer-probe-rc1-page.txt` adds a case where rc 1 has a re-rendered page.
-    - At the head: rc 0.
-    - Under the mutant: rc 1, `FAIL probe: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone`.
-- **Null control:** the unmutated head passes both probe cases and the full self-test (`171 checks, 0 failed`, `ev/beat_jobs_selftest.txt`). Each kill belongs to its mutant.
-- **Cure:**
-  - Add the two cases my probes show: moved plus pushed dispatches once; rc 1 with a re-rendered page is `PLAN UNAVAILABLE` alone.
-  - Add `moved_early_return` and `moved_on_rc1` to `beat_jobs_selftest.py`'s `MUTANTS`, each naming its case.
-  - Show both fail first, at the head without the cases.
-  - Correct the body's resolution claim.
+The round-7 block is cured:
+- Both surviving mutants of the resolved `plan_beat` lines (`moved_early_return`, `moved_on_rc1`) are now killed by named cases, which I re-ran myself.
+- The fail-first is shown: under the c95c3b4b self-test both mutants survive.
+- The body's false "no new site" sentence is corrected.
+- CI at the head is GREEN; I read every check run myself.
+- The head merges cleanly with origin/main.
 
 ## Findings
 
-- Follow-up, non-blocking: **three branch-own `plan_beat` dispatch mutants survive.** Claim: these mutants of the dispatch predicate `if rc in (0, 1) and re.search(r"^pushed ", out, re.M)` (L414) survive the self-test at both 33c3dd99 and the head, so they predate this delta and fall outside round 7's scope:
-  - `dispatch_only_rc0` (rc 1 with a landed push no longer dispatches; the docstring says "on rc 0 or 1").
-  - `dispatch_rc012`.
-  - `pushed_regex_unanchored` (`"pushed"` anywhere, so `already current … pushed` text would dispatch).
-
-  Evidence: `ev/reviewer-mutants-resolution.txt` and `ev/reviewer-mutants-at-33c3dd99.txt`. Harness: `beat_jobs.py --self-test --no-mutants` on a mutated copy. Metric: rc. Null control: the unmutated copy gives rc 0. Perturbation: each edit as named. `dispatch_rc012` may be near-equivalent if `state_docs` never prints `pushed ` on rc 2; the other two are behavioural. Carry: R10-OUTSIDE-INTAKE
-- Follow-up, non-blocking: **`## Red checks` names the reds of an older head.** The section names reds at b9b6af686 and says nothing has run at 0ac370fa2. At c95c3b4b, `gate` 128581122145 and `pr-contract / pr-contract` 128578752551 have concluded red (see Evidence), and the body names neither. Both must be named and answered at the next head. Carry: R10-OUTSIDE-INTAKE
+- Follow-up, non-blocking: **three branch-own `plan_beat` dispatch mutants still survive** at the head.
+  - Claim: these mutants of `if rc in (0, 1) and re.search(r"^pushed ", out, re.M)` (`beat_jobs.py:414`) leave `beat_jobs.py --self-test --no-mutants` at rc 0:
+    - `dispatch_only_rc0`: becomes `rc == 0`. A landed push at rc 1 then no longer dispatches, against the docstring's "on rc 0 or 1".
+    - `dispatch_rc012`.
+    - `pushed_regex_unanchored`: becomes `re.search(r"pushed", out)`.
+  - Round 7 carried them, and df0ffdf5e does not touch them. They predate the s13 delta, so they do not block.
+  - Evidence: `ev/reviewer-mutants-head.txt`.
+  - Harness: a mutated copy, then `beat_jobs.py --self-test --no-mutants`. Metric: rc. Perturbation: each edit as named. Null control: rc 0 on the unmutated copy.
+  - `dispatch_rc012` may be near-equivalent, if `state_docs` never prints `pushed ` on rc 2. Carry: R10-OUTSIDE-INTAKE
+- Follow-up, non-blocking: **`## Red checks` still describes the previous head.**
+  - The body names reds at c95c3b4b2 and says "At this new head nothing has run yet". At d17e43cf, two checks concluded red and were then superseded:
+    - `gate` 128634825177: an edit-run deferral, `FAIL run(s) [42449104484] at this head are still being judged; their gate decides`.
+    - `governance / instrument-self-tests` 128634393148: cancelled at 05:13:34Z mid-step, before tvofi's 05:17Z re-run. It was not the 30-minute timeout.
+  - Both now have green successors (`ev/checks-at-head.txt`). The body names neither.
+  - Harness: `get_check_runs` across all pages, compared against the body. Perturbation: on the round-7 body it named both concluded reds of c95c3b4b, so this is not a reader artefact. Carry: R10-OUTSIDE-INTAKE
+- Follow-up, non-blocking: **`## Head` names `cdf33cc1b6b925124315643b9c4320341ec29b72`, which is not in the head's history.**
+  - cdf33cc1b is a sibling merge with the same parents as the head, c95c3b4b2 and df0ffdf5e.
+  - Harness: `git merge-base --is-ancestor cdf33cc1b d17e43cf5` gives rc 1; the same check on d17e43cf5 itself gives rc 0.
+  - A later seat could check out the wrong commit; the line should be dropped. Carry: R10-OUTSIDE-INTAKE
 
 ## Evidence
 
-- Setup:
+- **Setup:**
   - `cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3`.
-  - `review_packet.py render --pr 3262 --head c95c3b4b…` gave rc 0 (`ev/packet.log`, `ev/review-packet.md`).
-- Scope check:
-  - The three-dot branch-own diffs at 33c3dd99 (base 364353e6) and at the head (base 7c9c4c15) differ in exactly three files: `tools/audit/seat/beat_jobs.py`, `beat_jobs_selftest.py` and `instruments/beat_jobs.py.md` (`ev/own-old.stat`, `ev/own-new.stat`).
-  - Nothing else in the patch moved.
-- Both sides' behaviour survives at the head. Main's `PLAN MOVED` on rc 0 and the branch's `pages.yml` dispatch on a landed push (rc 0 or 1) both pass. The probe confirms the two together. The docstring and the instrument doc carry both sentences.
-- `plan_rc1_silent` at the head targets `    if rc != 0:\n        said = `, as the body states (`ev/plan_rc1_silent-at-head.txt`), and is killed.
-- `python3 tools/audit/seat/beat_jobs.py --self-test` at the head: rc 0, `171 checks, 0 failed`, 71 `killed by` lines.
-- `outside_intake.py --self-test` and `plan_public.py --self-test` at the head: rc 0, all checks passed (`ev/selftest-*.txt`).
-- My mutants on the resolved lines (`ev/reviewer-mutants-resolution.txt`):
-  - KILLED: `remember_dropped`, `dispatch_ref_dropped`.
-  - Equivalent: `lines_reset_after_err` (rc 0 never has an error line).
-  - Survivors: as listed under Block and Findings.
-- `git merge-tree --write-tree origin/main c95c3b4b…`: rc 0, no conflict (`ev/merge-tree.txt`).
-- CI at the head (`ev/ci-reds.txt`, `ev/classify.log`):
-  - `merge_train.py classify` at 00:50:20Z: `RED c95c3b4b2e5875103fd5944c766d9e954f5b8a90 pending: none red: gate` (rc 1).
-  - Two check-runs concluded red:
-    - `gate` 128581122145 (KIND edit): `FAIL run(s) [42424058362] at this head are still being judged; their gate decides`. This is an edit-run deferral to code run 42424058362, which was still running `tests / closures`, `governance / instrument-self-tests` and `codeql / Analyze (python)`.
-    - `pr-contract / pr-contract` 128578752551: `FAIL closed: no run at this head owns a finished codeql unit for base 'main' after 600 s`. This is a timing fail-close in `codescan_wait.py` while CodeQL python was still running. Its body lanes were clean: figure_lint `16 resolved, 2 not verified, 0 refused`, preflight `no refusal`, carry audit 0 items.
-  - I did not wait out the code run. The block above is a code finding that CI cannot cure, so a green run would not change this verdict.
-  - The next head owes both reds re-read, and `pr-contract` re-run once CodeQL has finished.
-- Carry destinations on `handoff/audit-r10-roster`: R10-OUTSIDE-INTAKE is `in-progress`.
+  - `review_packet.py render --pr 3262 --head d17e43cf…` gave rc 0, with the refusal `required-red: required context gate concluded failure` at render time (05:05Z): the deferral red, since superseded (`ev/review-packet.md`).
+- **Scope:** `git diff --stat c95c3b4b2 d17e43cf5` shows only `tools/audit/seat/beat_jobs_selftest.py | 24 +`. `git diff df0ffdf5e d17e43cf5` is empty.
+- **Mutation proof at the head** (`ev/reviewer-mutants-head.txt`), using my own driver on `beat_jobs.py` with `--self-test --no-mutants`:
+  - null: rc 0.
+  - `moved_early_return`: KILLED, `FAIL plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once`.
+  - `moved_on_rc1`: KILLED, `FAIL plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory`.
+  - Also KILLED: `pages_err_dropped`, `dispatch_ref_dropped`, `remember_dropped`, `moved_always`, `word_swapped`.
+  - Survived: `dispatch_only_rc0`, `dispatch_rc012`, `pushed_regex_unanchored` (see Findings).
+- **Fail-first** (`ev/fail-first-old-selftest.txt`): with the c95c3b4b `beat_jobs_selftest.py` swapped in at the head, both `moved_early_return` and `moved_on_rc1` give rc 0, so they survive. The new cases are what kill them.
+- **Flake check, not reproduced:**
+  - One null run under the old self-test once printed `FAIL plan-beat: state_docs rc 1 is PLAN UNAVAILABLE`. Five repeats of that null gave no FAIL.
+  - 30 null runs at the head gave 0 FAIL (`ev/flake-head-30.txt`).
+  - I could not move it, so it is not a finding.
+- **Self-tests at the head:**
+  - `python3 -I tools/audit/seat/beat_jobs.py --self-test`: rc 0, `beat_jobs self-test: 175 checks, 0 failed`, with both new mutants reported `killed by` their named cases. This matches the body's 175 (171 before, plus 2 cases and 2 mutants).
+  - `outside_intake.py --self-test` and `plan_public.py --self-test`: rc 0 (`ev/selftest-*.txt`).
+  - `tests/structure.py`: rc 0. `tests/entities.py` could not run locally (no `homeassistant` module here); it passed in CI.
+- **Invariants** (`ev/invariants.txt`):
+  - Merge base 7c9c4c154.
+  - VERSION, RELEASE_NOTES.md, the manifest and both claim files: `BYTE-IDENTICAL`.
+  - `budgets.json` in the three-dot diff: 0.
+  - `dev/programme/delivery/3262.md` in the three-dot diff: 1.
+  - `custom_components/` in the three-dot diff: 0.
+  - `ref_privacy --check`: 0 refused.
+- **Merge:** `git merge-tree --write-tree origin/main d17e43cf…` (origin/main 8aec35435) gave rc 0 with tree 894c25dbf. The only conflict, in `tests/closures.json`, was resolved by the ledger driver (`ev/merge-tree.txt`).
+- **CI** (`ev/checks-at-head.txt`, `ev/classify-loop.txt`):
+  - `merge_train.py classify` read RED or WAIT on the edit-run gate deferral until code run 42449104484 attempt 2 concluded. Then it read `05:51:03Z rc=0 GREEN d17e43cf… pending: none red: none`.
+  - I read all 68 check runs (one page) myself. Every latest run is success or skipped.
+  - Notably: `governance / instrument-self-tests` 128637530289 success (05:18-05:31Z), `gate` 128643695123, 128643899038 and 128643901917 success, `pr-contract / pr-contract` 128643483744 success.
+  - The superseded reds of earlier attempts are listed in that file.
+- **Approval:** this policy and developer-docs change merges only on tvofi's approving review at the head.

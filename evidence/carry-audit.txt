@@ -1,2 +1,0 @@
-NOTE review 1 item ffa15d6c: R10-OUTSIDE-INTAKE
-CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)

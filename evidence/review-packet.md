@@ -1,57 +1,54 @@
 # Review packet #3262
-head: c95c3b4b2e5875103fd5944c766d9e954f5b8a90
+head: d17e43cf530c324acba0c6594256291a725b7023
 base: 7c9c4c154cda514f938fd503cde2779716caf251
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: pending
-CodeQL id=128558737877 success
-arch-score / arch-score id=128578631274 success
-arm id=128558428608 skipped
-budget-raise-gate / budget-raise-gate id=128578631318 success
-cancel-superseded id=128578505279 success
-codeql id=128578497664 skipped
-codeql / Analyze (actions) id=128578631162 success
-codeql / Analyze (javascript-typescript) id=128578631156 success
-codeql / Analyze (python) id=128578631175 in_progress
-governance id=128578497263 skipped
-governance / delivery-status id=128578631221 success
-governance / delivery-status-publish id=128578632760 skipped
-governance / env-matrix id=128578631249 in_progress
-governance / instrument-self-tests id=128578631299 in_progress
-governance / policy-docs id=128578631355 in_progress
-governance / record id=128578632662 skipped
-governance / wave-script id=128578631330 success
-hassfest id=128578497316 skipped
-hassfest / hassfest id=128578631130 success
-kernel-points id=128578632155 skipped
-pr-contract / pr-contract id=128578752551 in_progress
-prelude id=128578505546 success
-refresh id=128578505506 success
-tests id=128578497540 skipped
-tests / arch-instrument id=128578774344 success
-tests / briefs id=128578631131 success
-tests / browser id=128578774138 success
-tests / claims-autofix id=128578803274 skipped
-tests / closure-scope id=128578631086 success
-tests / closures id=128578774028 in_progress
-tests / coverage id=128578775201 skipped
-tests / coverage-ratchet id=128578775710 skipped
-tests / fast (3.14) id=128578774041 success
-tests / graders-head-copy id=128578774459 success
-tests / lane-proofs id=128578801745 success
-tests / mutation id=128578631148 success
-tests / mutation-autofix id=128578797690 skipped
-tests / mutation-pins id=128578798399 skipped
-tests / nightly-ha id=128578775537 skipped
-tests / nightly-status id=128578631338 success
-tests / replay id=128578775495 skipped
-tests / typing id=128578774255 success
-validate id=128578497974 skipped
-validate / validate-hacs id=128578631279 success
+## Gate digest: red
+CodeQL id=128634515598 neutral
+arch-score / arch-score id=128634400974 success
+arm id=128634274533 skipped
+budget-raise-gate / budget-raise-gate id=128634400937 success
+cancel-superseded id=128634279808 success
+codeql id=128634401659 skipped
+codeql / Analyze (actions) id=128634393058 success
+codeql / Analyze (javascript-typescript) id=128634393190 success
+codeql / Analyze (python) id=128634393090 in_progress
+gate id=128634825177 failure
+governance id=128634401389 skipped
+governance / delivery-status id=128634393269 success
+governance / delivery-status-publish id=128634394301 skipped
+governance / env-matrix id=128634393138 in_progress
+governance / instrument-self-tests id=128634393148 in_progress
+governance / policy-docs id=128634393109 success
+governance / record id=128634394346 skipped
+governance / wave-script id=128634393147 success
+hassfest id=128634401711 skipped
+hassfest / hassfest id=128634393182 success
+kernel-points id=128634401654 skipped
+pr-contract id=128634826056 skipped
+prelude id=128634279926 success
+refresh id=128634279923 success
+tests id=128634401366 skipped
+tests / arch-instrument id=128634648571 success
+tests / briefs id=128634393195 success
+tests / browser id=128634648577 in_progress
+tests / closure-scope id=128634393129 success
+tests / closures id=128634648563 in_progress
+tests / coverage id=128634648593 in_progress
+tests / fast (3.14) id=128634648643 in_progress
+tests / mutation id=128634393183 success
+tests / mutation-autofix id=128634680919 skipped
+tests / mutation-pins id=128634680655 skipped
+tests / nightly-ha id=128634649590 skipped
+tests / nightly-status id=128634393317 success
+tests / replay id=128634650045 skipped
+tests / typing id=128634648569 success
+validate id=128634401607 skipped
+validate / validate-hacs id=128634393078 success
 
 ## Refusals
-none
+required-red: required context `gate` concluded failure at d17e43cf530c324acba0c6594256291a725b7023
 
 ## Advisories
 none
@@ -92,10 +89,10 @@ ok         python3 -I tools/audit/seat/plan_public.py --self-test
              `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
   ok         bash tools/audit/seat/cloud-setup.sh
              `tools/audit/seat/cloud-setup.sh` is in the tree at this head
-  ok         python3 tools/audit/seat/beat_jobs.py --self-test
-             `tools/audit/seat/beat_jobs.py` is in the tree at this head
   ok         tools/pr/prepr.sh
              `tools/pr/prepr.sh` is in the tree at this head
+  ok         python3 -I tools/audit/seat/beat_jobs.py --self-test
+             `tools/audit/seat/beat_jobs.py` is in the tree at this head
 
 FIGURES: 16 resolved, 2 not verified, 0 refused
 
@@ -532,7 +529,7 @@ index 1618be209..42d72d86b 100644
  
  def main(argv: list[str]) -> int:
 diff --git a/tools/audit/seat/beat_jobs_selftest.py b/tools/audit/seat/beat_jobs_selftest.py
-index 5aaf59830..152bfa42f 100644
+index 5aaf59830..84edfa0d8 100644
 --- a/tools/audit/seat/beat_jobs_selftest.py
 +++ b/tools/audit/seat/beat_jobs_selftest.py
 @@ -124,7 +124,8 @@ def cases(bj) -> dict[str, bool]:
@@ -584,13 +581,44 @@ index 5aaf59830..152bfa42f 100644
  
      # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
      c, f = fresh(answers={"roster_queue.py": (0, "", "")})
-@@ -800,8 +833,19 @@ MUTANTS = {
+@@ -433,6 +466,25 @@ def cases(bj) -> dict[str, bool]:
+     bj.plan_beat(c)
+     res["plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line"] = (
+         pre and first and same and "PLAN MOVED" in digest(c))
++    def page_rc(rc, out, err, text):
++        def ans(argv):
++            if arg(argv, "--mirror") is None:
++                return 0, "", ""
++            m = Path(arg(argv, "--mirror"))
++            m.mkdir(parents=True, exist_ok=True)
++            (m / "PLAN.html").write_text(text)
++            return rc, out, err
++        return ans
++    c, f = fresh(answers={"state_docs.py": page_rc(0, "pushed handoff/audit-r10-plan at abc\n", "", "<p>moved</p>")})
++    bj.plan_beat(c)
++    gh = [x for x in f.calls if x[0] == "gh"]
++    res["plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once"] = (
++        digest(c).startswith("plan-beat: PLAN MOVED") and len(gh) == 1 and gh[0][1:4] == ["workflow", "run", "pages.yml"])
++    c, f = fresh(answers={"state_docs.py": page_rc(1, "", "state_docs: PLAN.html UNAVAILABLE: stale plan\n", "<p>x</p>")})
++    bj.plan_beat(c)
++    res["plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory"] = (
++        digest(c).startswith("plan-beat: PLAN UNAVAILABLE rc=1") and "PLAN MOVED" not in digest(c)
++        and c.memory("plan-page.json", "") == "")
+     c, f = fresh()
+     bj.plan_beat(c)
+     res["plan-beat null: no mirrored page is no PLAN MOVED and no byte"] = not files(c)
+@@ -800,8 +852,24 @@ MUTANTS = {
                         "roster-drain: a queue line drains once, is marked, and is not re-run"),
      "roster_hold_ignored": ("            if not on_main(ctx, parts[1]):", "            if False:",
                              "roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases"),
 -    "plan_rc1_silent": ('    if rc == 0:\n        page = read(', '    if rc in (0, 1):\n        page = read(',
 +    "plan_rc1_silent": ("    if rc != 0:\n        said = ", "    if rc not in (0, 1):\n        said = ",
                          "plan-beat: state_docs rc 1 is PLAN UNAVAILABLE"),
++    "moved_early_return": ('            lines.append(f"plan-beat: PLAN MOVED {Path(mirror) / \'PLAN.html\'} re-rendered; republish owed")',
++                           '            return write_job(ctx, "plan-beat", [f"plan-beat: PLAN MOVED {Path(mirror) / \'PLAN.html\'} re-rendered; republish owed"])',
++                           "plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once"),
++    "moved_on_rc1": ("    if rc == 0:\n        page = read(", "    if rc in (0, 1):\n        page = read(",
++                     "plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory"),
 +    "pages_never_dispatched": ('re.search(r"^pushed ", out, re.M)', "False",
 +                               "plan-beat: a state push that landed dispatches the Pages deploy on main, once"),
 +    "pages_always_dispatched": ('    if rc in (0, 1) and re.search(r"^pushed ", out, re.M):', "    if rc in (0, 1):",

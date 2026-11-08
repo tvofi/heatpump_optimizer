@@ -43,6 +43,8 @@
   ok   roster-drain: a refusal by a worktree on no origin ref is CASCADE, stays pending, then runs
   ok   roster-drain null: a lint refusal marked #refused is no CASCADE and no UNRUN, and is not retried
   ok   plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line
+  ok   plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once
+  ok   plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory
   ok   plan-beat null: no mirrored page is no PLAN MOVED and no byte
   ok   gantt: a GANTT-SLIP line reaches the digest, and nothing else sweep_gantt prints
   ok   gantt: sweep_gantt is handed the plan, acks, roster, open PRs, live handoff rows and the fire ledger
@@ -107,6 +109,8 @@
   ok   mutant roster_no_mark killed by: roster-drain: a queue line drains once, is marked, and is not re-run
   ok   mutant roster_hold_ignored killed by: roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases
   ok   mutant plan_rc1_silent killed by: plan-beat: state_docs rc 1 is PLAN UNAVAILABLE
+  ok   mutant moved_early_return killed by: plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once
+  ok   mutant moved_on_rc1 killed by: plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory
   ok   mutant pages_never_dispatched killed by: plan-beat: a state push that landed dispatches the Pages deploy on main, once
   ok   mutant pages_always_dispatched killed by: plan-beat null: an already-current state ref dispatches nothing
   ok   mutant pages_refusal_silent killed by: plan-beat: a refused Pages dispatch reaches the digest
@@ -169,5 +173,4 @@
   ok   mutant fold_counter_to_set killed by: fold: a duplicated line is one more line, new.txt and a new stamp
   ok   mutant need_accepts_empty killed by: a row whose overlay key is empty says so, and runs nothing
   ok   mutant fold_new_kept_stale killed by: fold: a fold that added nothing empties new.txt, and leaves the stamp
-beat_jobs self-test: 171 checks, 0 failed
-rc=0
+beat_jobs self-test: 175 checks, 0 failed

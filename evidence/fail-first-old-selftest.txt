@@ -1,0 +1,3 @@
+old-selftest null: rc=1 KILLED | FAIL plan-beat: state_docs rc 1 is PLAN UNAVAILABLE
+old-selftest moved_early_return: rc=0 SURVIVED
+old-selftest moved_on_rc1: rc=0 SURVIVED

@@ -1,0 +1,11 @@
+null: rc=0 SURVIVED
+moved_early_return: rc=1 KILLED | FAIL plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once
+moved_on_rc1: rc=1 KILLED | FAIL plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory
+dispatch_only_rc0: rc=0 SURVIVED
+dispatch_rc012: rc=0 SURVIVED
+pushed_regex_unanchored: rc=0 SURVIVED
+pages_err_dropped: rc=1 KILLED | FAIL plan-beat: a refused Pages dispatch reaches the digest
+dispatch_ref_dropped: rc=1 KILLED | FAIL plan-beat: a state push that landed dispatches the Pages deploy on main, once
+remember_dropped: rc=1 KILLED | FAIL plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line
+moved_always: rc=1 KILLED | FAIL plan-beat null: both succeed, nothing written
+word_swapped: rc=1 KILLED | FAIL plan-beat: state_docs rc 1 is PLAN UNAVAILABLE
