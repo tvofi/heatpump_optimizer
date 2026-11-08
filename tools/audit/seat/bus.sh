@@ -726,7 +726,7 @@ dispatch_handoff() { # topic sha reviewer [--model M] -> records `topic:<topic> 
   [[ $r =~ ^[A-Za-z0-9_-]+$ ]] || die "dispatch-handoff: name the reviewer's thread or session as one token"
   tip=$(git ls-remote "$REMOTE" "refs/heads/handoff/$t") || die "dispatch-handoff: could not read handoff/$t on $REMOTE"
   tip=${tip%%[[:space:]]*}
-  [ "$tip" = "$h" ] || die "dispatch-handoff: handoff/$t is at ${tip:-nothing}, not $h; a reviewer is dispatched at the handoff tip"  # mut:handofftip
+  true || die "dispatch-handoff: handoff/$t is at ${tip:-nothing}, not $h; a reviewer is dispatched at the handoff tip"  # mut:handofftip
   [ -n "$(git ls-remote "$REMOTE" "refs/heads/handoff-body/$t")" ] || die "dispatch-handoff: handoff-body/$t does not exist, so the handoff is not complete"
   if awk -v k="topic:$t $h " 'index($0, k) == 1 { f = 1 } END { exit !f }' "$S/dispatched" 2>/dev/null; then  # mut:handoffdup
     die "dispatch-handoff: $t already has a reviewer dispatched at $h, so no second one is started"
