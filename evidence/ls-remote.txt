@@ -1,2 +1,0 @@
-6b5d99b5c48036517be86310c773e8e8a66cbe14	refs/heads/fix/r10-carry-residue-2
-6b5d99b5c48036517be86310c773e8e8a66cbe14	refs/pull/3325/head

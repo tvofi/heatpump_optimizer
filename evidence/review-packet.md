@@ -1,61 +1,65 @@
 # Review packet #3325
-head: 6b5d99b5c48036517be86310c773e8e8a66cbe14
-base: 4fe7d5934b0a4bc092c9398f29b579fbd2df8b50
+head: 061a828e18df8ba29a95827fb0e11cd3b7f963b4
+base: daf8b349fd30cc60786eeca333a426b693aa4c5f
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=128725628686 success
-arch-score / arch-score id=128831863598 success
-arm id=128725466849 skipped
-budget-raise-gate / budget-raise-gate id=128831833149 success
-cancel-superseded id=128831854018 success
-codeql id=128831863115 skipped
-codeql / Analyze (actions) id=128725587295 success
-codeql / Analyze (javascript-typescript) id=128725587334 success
-codeql / Analyze (python) id=128725587326 success
-gate id=128831820007 success
-governance id=128831851089 skipped
-governance / delivery-status id=128725587357 success
-governance / delivery-status-publish id=128725588210 skipped
-governance / env-matrix id=128725587235 success
-governance / instrument-self-tests id=128725587761 failure
-governance / policy-docs id=128725587253 success
-governance / record id=128725588313 skipped
-governance / wave-script id=128725587298 success
-hassfest id=128831825855 skipped
-hassfest / hassfest id=128725587268 success
-kernel-points id=128831832385 skipped
-pr-contract id=128831820873 skipped
-pr-contract / pr-contract id=128806406438 success
-prelude id=128831863090 success
-refresh id=128831860383 success
-tests id=128831820621 skipped
-tests / arch-instrument id=128725720690 success
-tests / briefs id=128725587331 success
-tests / browser id=128725720633 success
-tests / ci-ratchet id=128730857864 skipped
-tests / claims-autofix id=128727720369 skipped
-tests / closure-scope id=128725587314 success
-tests / closures id=128725720717 success
-tests / closures-autofix id=128730675801 skipped
-tests / coverage id=128725720685 success
-tests / coverage-ratchet id=128730856464 success
-tests / fast (3.14) id=128725720691 success
-tests / graders-head-copy id=128730856459 success
-tests / lane-proofs id=128730856380 success
-tests / mutation id=128725587279 success
-tests / mutation-autofix id=128725769170 skipped
-tests / mutation-pins id=128725768456 skipped
-tests / nightly-ha id=128725721577 skipped
-tests / nightly-status id=128725587339 success
-tests / replay id=128725721949 skipped
-tests / typing id=128725720739 success
-validate id=128831862382 skipped
-validate / validate-hacs id=128725587230 success
+CodeQL id=128875034720 success
+arch-score / arch-score id=128874759867 success
+arm id=128874357645 skipped
+budget-raise-gate / budget-raise-gate id=128874759923 success
+cancel-superseded id=128874360912 success
+codeql id=128874761267 skipped
+codeql / Analyze (actions) id=128874739369 success
+codeql / Analyze (javascript-typescript) id=128874739375 success
+codeql / Analyze (python) id=128874739469 success
+gate id=128879330618 cancelled
+governance id=128874761694 skipped
+governance / delivery-status id=128874739526 success
+governance / delivery-status-publish id=128874741239 skipped
+governance / env-matrix id=128874739536 success
+governance / instrument-self-tests id=128874739574 failure
+governance / policy-docs id=128874739485 success
+governance / record id=128874741127 skipped
+governance / wave-script id=128874739499 success
+hassfest id=128874761151 skipped
+hassfest / hassfest id=128874739400 success
+kernel-points id=128874761448 skipped
+pr-contract id=128879329794 skipped
+prelude id=128874360713 success
+refresh id=128874360611 success
+tests id=128874761558 skipped
+tests / arch-instrument id=128875307016 success
+tests / briefs id=128874739392 success
+tests / browser id=128875307003 success
+tests / ci-ratchet id=128879330832 cancelled
+tests / claims-autofix id=128877937740 skipped
+tests / closure-scope id=128874739493 success
+tests / closures id=128875307045 cancelled
+tests / closures-autofix id=128879329875 cancelled
+tests / coverage id=128875307010 cancelled
+tests / coverage-ratchet id=128879277746 cancelled
+tests / fast (3.14) id=128875306957 success
+tests / graders-head-copy id=128879277641 cancelled
+tests / lane-proofs id=128879277788 cancelled
+tests / mutation id=128874739432 success
+tests / mutation-autofix id=128875340202 skipped
+tests / mutation-pins id=128875339900 skipped
+tests / nightly-ha id=128875308022 skipped
+tests / nightly-status id=128874739515 success
+tests / replay id=128875308419 skipped
+tests / typing id=128875307025 success
+validate id=128874760935 skipped
+validate / validate-hacs id=128874739378 success
 
 ## Refusals
-structure: tests/structure.py refuses the head merged with main: head does not merge cleanly with origin/main: ['100644 d0bd566033f9067d5cd89c512580db9f32313d54 1\ttools/audit/carry_audit.py', '100644 9d5440640bb291261425f8c4cb45fa8ffa9ae146 2\ttools/audit/carry_audit.py']
+red-unanswered: concluded red check `tests / ci-ratchet` is not named in ## Red checks
+red-unanswered: concluded red check `tests / coverage` is not named in ## Red checks
+red-unanswered: concluded red check `tests / coverage-ratchet` is not named in ## Red checks
+red-unanswered: concluded red check `tests / graders-head-copy` is not named in ## Red checks
+red-unanswered: concluded red check `tests / lane-proofs` is not named in ## Red checks
+required-red: required context `gate` concluded failure at 061a828e18df8ba29a95827fb0e11cd3b7f963b4
 
 ## Advisories
 hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
@@ -66,7 +70,7 @@ NOTE body item b3ad9aa1: dismissed:it is in this diff, nothing to carry
 CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         python3 -I tools/audit/carry_audit.py --self-test
+ok         python3 tools/audit/carry_audit.py --self-test
              `tools/audit/carry_audit.py` is in the tree at this head
   ok         bash tools/audit/seat/body_push.sh --self-test
              `tools/audit/seat/body_push.sh` is in the tree at this head
@@ -74,18 +78,26 @@ ok         python3 -I tools/audit/carry_audit.py --self-test
              `tools/audit/seat/cloud_relay.sh` is in the tree at this head
   ok         bash tools/audit/seat/bus.sh --self-test
              `tools/audit/seat/bus.sh` is in the tree at this head
-  unverified git stash
-             `git stash` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
   ok         python3 -I tools/audit/seat/cloud_dispatch.py --self-test
              `tools/audit/seat/cloud_dispatch.py` is in the tree at this head
-  ok         tools/pr/prepr.sh
-             `tools/pr/prepr.sh` is in the tree at this head
   ok         python3 -I tools/audit/seat/ledger.py --self-test
              `tools/audit/seat/ledger.py` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff daf8b349f
+             `tests/closure.py` is in the tree at this head
+  ok         tests/doc_claims.py
+             `tests/doc_claims.py` is in the tree at this head
+  ok         tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/doc_claims.py
+             `tests/doc_claims.py` is in the tree at this head
   ok         PYTHONPATH=tests/hastub python3 tests/entities.py
              `tests/entities.py` is in the tree at this head
+  ok         PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>
+             `tools/pr/prepr.sh` is in the tree at this head
 
-FIGURES: 8 resolved, 1 not verified, 0 refused
+FIGURES: 13 resolved, 0 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -141,7 +153,7 @@ index 000000000..3fcd68d89
 @@ -0,0 +1 @@
 +- [#3325](https://github.com/tvofi/heatpump_optimizer/pull/3325) — **open**, R10-CARRY-RESIDUE-2: carry residue 2 (R10-CARRY-RESIDUE-2)
 diff --git a/tools/audit/carry_audit.py b/tools/audit/carry_audit.py
-index d0bd56603..6c93f4b47 100644
+index 9d5440640..1327c3219 100644
 --- a/tools/audit/carry_audit.py
 +++ b/tools/audit/carry_audit.py
 @@ -571,12 +571,13 @@ def audit(body: str, comments: list[dict], dests: Dests) -> dict:
@@ -161,9 +173,21 @@ index d0bd56603..6c93f4b47 100644
      return "\n".join(out)
  
  
-@@ -596,9 +597,10 @@ def landed(body: str, dests: Dests, source: str = "") -> list[dict]:
-             if not ok:
-                 out.append({"group": tok, "id": r["id"], "text": r["text"], "why": f"bad destination: {note}"})
+@@ -603,8 +604,9 @@ def own_carry_status(dests: Dests, group: str, text: str) -> bool:
+ 
+ def landed(body: str, dests: Dests, source: str = "", statuses: "list[dict] | None" = None) -> list[dict]:
+     """Each (finding item, GROUP destination) of a body whose group's brief or
+-    carries hold neither the item id nor the source (`#<pr>` or the handoff
+-    topic: P310, an id re-minted by a reword still lands by its source), or
++    carries do not hold the item id and whose carries do not hold the source
++    (`#<pr>` or the handoff topic: P310, an id re-minted by a reword still lands
++    by its source; a brief naming the source lands nothing, #3234), or
+     whose group is no valid destination. A `dismissed:` item, a `#N` and an
+     O-brief need no landing. Each: {"group", "id", "text", "why"}.
+ 
+@@ -627,9 +629,10 @@ def landed(body: str, dests: Dests, source: str = "", statuses: "list[dict] | No
+                 if statuses is not None:
+                     statuses.append({"group": tok, "id": r["id"], "text": r["text"]})
                  continue
 -            words = set(re.split(r"[^\w#-]+", group_text(dests, tok)))  # whole tokens: #25581 is not #2558
 -            keys = [r["id"]] + srcs
@@ -175,7 +199,7 @@ index d0bd56603..6c93f4b47 100644
                  out.append({"group": tok, "id": r["id"], "text": r["text"], "why": "not in its brief or carries"})
      return out
  
-@@ -1874,6 +1876,12 @@ def _self_test() -> int:
+@@ -1909,6 +1912,12 @@ def _self_test() -> int:
            landed(lb, dl(["From #2558: the census."]), "#2558") == [])
      check("... and another pull request's number does not (null control)",
            len(landed(lb, dl(["From #2558: the census."]), "#25581")) == 1)
@@ -304,10 +328,10 @@ index c6189967d..a5b3a0161 100755
    # THE REVIEW PACKET: dispatch names the packet rendered at its head and passes the
    # finder's harness through; a REFUSED head records nothing; a seat that cannot render
 diff --git a/tools/audit/seat/cloud_dispatch.py b/tools/audit/seat/cloud_dispatch.py
-index bd83906aa..897c4bd76 100644
+index 6e8a6939d..ec2cc6b48 100644
 --- a/tools/audit/seat/cloud_dispatch.py
 +++ b/tools/audit/seat/cloud_dispatch.py
-@@ -250,7 +250,10 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
+@@ -268,7 +268,10 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
              f"refs/heads/handoff/{topic}, then write the PR body and run "
              f"`bash tools/audit/seat/body_push.sh {topic} <body.md>`, which pushes "
              f"refs/heads/handoff-body/{topic}; that second push is the return signal. Once it succeeds, "
@@ -319,7 +343,7 @@ index bd83906aa..897c4bd76 100644
              "else, open no pull request and write no delivery row. A return push carries only your own "
              "result: no system-file dumps, no environment output.")
      elif role == "designer":
-@@ -823,7 +826,9 @@ def _group_checks(check) -> None:
+@@ -841,7 +844,9 @@ def _group_checks(check) -> None:
          check("_publish itself refuses a ref that would publish the host, and pushes nothing",
                not published and "someone" not in git(work, "ls-remote", str(origin)))
          # A step push matches no glob the handoff machinery lists, read from its own source.

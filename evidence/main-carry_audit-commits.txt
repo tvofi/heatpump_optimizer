@@ -1,2 +1,0 @@
-c77a4c037 carry_audit self-test: pin the own-group carry index bound
-d4a05c81f carry_audit: an own-group item naming one of its carries by index is a status line and lands nothing; body_patch: a real-carry_audit arm pins the roster ref read
