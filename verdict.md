@@ -1,0 +1,26 @@
+Fix review: merge c1f244211a4978d4b8535720a2e131657cc0292a
+
+bus-nonce: fa40f61f6958e3f484edb4ddf77dfe20
+
+## Summary
+
+Round 1. PR #3311 (R10-FRICTION-OTHER-FAMILY) adds one root-cause record, `dev/audit/rca/R10-RCA-OTHER-UNTAUGHT.md`, and its delivery row. No code, policy, classifier, budget, closure, claim file, `VERSION`, manifest or notes heading changes (three-dot diff at merge base 73365699a: two files, 134 insertions). The record does what the roster brief asks: it re-derives the count at the merge base, names each pull request and its friction, states cause, process state (c), a cost test with numbers, a recorded refusal for the singletons and one proposed countermeasure left to the owner. Every figure I re-derived matches.
+
+## Findings
+
+- The proposed countermeasure (section 6.2: fold `red-checks` alone into the `root-cause` family) would not by itself raise that family to the threshold in the measured window. Re-derived at 73365699a: `root-cause (family)` holds 1 PR (#3234, `root-cause-detectable`); adding `red-checks` (#3252) gives 2, below 3. Section 3's "with these three it would hold four" needs `selftest-red` and `defect` too, which section 5 declines to fold. The cost test's defect side also sums all three PRs' gaps (396, 279, 852 min) while the proposal catches only #3252; its conclusion still holds on #3252's 396 min alone, since the standing cost is zero. Not a block: the record proposes and does not change anything, and section 6 hands the demonstration to whichever group the owner approves. The owner should read it knowing the fold leaves this window's family at 2. Carry: dismissed: advisory for the owner's decision on the record's section 6, which names no group yet; the record's conclusion survives on #3252 alone
+- Section 1 says #3283's body was "an earlier, smaller reading of the same window". The issue's live body (read once at review) now measures `v7.1.5..origin/main` (family at 4, 5 entries), not the `v7.1.4` window the brief and the record use. The bot refreshes that body in place, so it may have read v7.1.4 when filed; I cannot tell from the live body. This does not change the disposition: the keys and the cluster are the same. Carry: dismissed: wording only; the record's figures are for the brief's v7.1.4 window and re-derive exactly
+
+## Evidence
+
+- Head: `c1f244211a4978d4b8535720a2e131657cc0292a`, checked with `git ls-remote` (PR ref and branch) at verdict time. The body's `## Head` names it. Branch commits over the base: c5cae3bc2 (record), c1f244211 (delivery row).
+- Merge with main: `git merge-tree --write-tree origin/main c1f244211` exit 0, no conflict (ev/merge-tree.txt).
+- CI: `merge_train.py classify c1f244211 --pr 3311` printed `GREEN c1f244211a4978d4b8535720a2e131657cc0292a pending: none red: none`, exit 0, at the start and again at the end (ev/classify.txt). The packet digest shows no concluded red, so step 11 owes nothing, and the body's `## Red checks` (none by the diff) agrees.
+- Count re-derived with the finder's command at the merge base: a clone with `origin/main` pinned to 73365699a, `node tools/policy/policy_lint.mjs --stats --since v7.1.4 --window-cache W.json`. RESULT: 50 merged PRs in the window; `other (untaught) (family)` 11 PRs / 15 entries with a would-open line, net of `ci-red` (4 PRs / 5 entries); `root-cause (family)` 1 / 1 (ev/policy_lint_stats_at_merge_base.txt).
+- Per-key rows: I re-read every one of section 2's rows, not only the five the record spot-verified, with `python3 -I dev/audit/rca/ci-red/entries.py W.json <key>` for all 11 untaught keys plus `ci-red`, `carry-unanswered` and `root-cause-detectable` (ev/entries_per_key.txt). All match: PR numbers, keys, multiplicities (owner-words x2 at one head c42b84004, red-checks x2, policy-unapproved x3 with round 4 on the round-3 head), and friction wording. #3242 holds the window's one `carry-unanswered`, as stated.
+- Cost-test figures: the first-entry gap columns are #3252 396, #3253 279 and #3264 852 minutes, as quoted. The "thirteen words" are the 11 family keys plus `ci-red` and `carry-unanswered`.
+- Section 3's claim that #3242, #3244 and #3265 (held by `ci-red`) carry the same unanswered-body shape: confirmed in the full verdict comments in the window cache. Each ci-red verdict cites `## Red checks` not reading or naming the head's reds.
+- `FRICTION_FAMILIES` at the merge base: root-cause = {root-cause-unanswered, root-cause-detectable, root-cause-unrecorded}. `red-checks` is not a member, as the record says.
+- Steps 1, 2 and 3: the diff writes no production or test line, so there is no mutant to plant, and none is claimed. The finder's harness is the stats command above, run at the merge base. A record-only PR has no at-head measurement that differs. No null control is claimed.
+- Step 4: no fixture moved and neither claim file is in the diff. Step 5: `VERSION`, the manifest and the `RELEASE_NOTES.md` heading are untouched. Step 14: no budget, closure, `INERT` or ledger number moves. Step 15: no architecture surface. Step 10: the body's Forward-carry is none. The only forward-looking item is the owner proposal, which the record itself routes.
+- Role file: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contract read is current.
