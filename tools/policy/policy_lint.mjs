@@ -4537,6 +4537,34 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE VACUOUS: an unreadable required set owed ${JSON.stringify(unreadSet)}, not both reds; the relaxation must fail closed`)
     rc = 1
   }
+  // THE OWNER'S OWN FAIL-CLOSED ARM, DRIVEN THROUGH THE SPAWN (fix review
+  // round 1). requiredSet -> requiredFromTrain against a stub tree whose
+  // merge_train.py stands in for `owed-reds`: exit 2 with a REFUSE line on
+  // stdout is no set, so every red is owed; the mutant dropping
+  // `r.status !== 0` reads the REFUSE line as a one-name set and owes nothing.
+  // Null control: the same stub exiting 0 with one required name owes that one
+  // only, which proves the stub, not a fallback, answered.
+  pins += 2
+  const stubRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'owed-reds-stub-'))
+  const stubTrain = path.join(stubRoot, 'tools', 'audit', 'seat', 'merge_train.py')
+  fs.mkdirSync(path.dirname(stubTrain), { recursive: true })
+  const STUB_RED = ['tests / nightly-status', 'docs / links', 'tests / fast (3.14)']
+  const viaStub = (src) => {
+    fs.writeFileSync(stubTrain, src)
+    const stubNotes = []
+    return { owed: owedOf(checkPrBody(unnamed, { head: ZERO, red: STUB_RED, paths: ['tests/nightly_status.py'], existing: ['tests/nightly_status.py'], required: () => requiredSet(null, stubNotes, stubRoot) })), stubNotes }
+  }
+  const refused = viaStub('import sys\nprint("REFUSE proof: HTTP 403")\nsys.exit(2)\n')
+  const readOne = viaStub('print("tests / fast (3.14)")\n')
+  fs.rmSync(stubRoot, { recursive: true, force: true })
+  if (refused.owed.join('|') !== STUB_RED.join('|') || !refused.stubNotes.some((n) => n.includes('required-set: REFUSE proof: HTTP 403'))) {
+    console.log(`\nFIXTURE VACUOUS: an owed-reds that exits 2 with a REFUSE line owed ${JSON.stringify(refused.owed)} (notes ${JSON.stringify(refused.stubNotes)}), not every red; a refused read must leave every red owed`)
+    rc = 1
+  }
+  if (readOne.owed.join('|') !== 'tests / fast (3.14)' || readOne.stubNotes.length) {
+    console.log(`\nFIXTURE VACUOUS: an owed-reds that exits 0 naming tests / fast (3.14) owed ${JSON.stringify(readOne.owed)}; the stub tree did not answer`)
+    rc = 1
+  }
   // No unnamed red, no read: an empty red list never calls the owner.
   let reads0 = 0
   checkPrBody(unnamed, { head: ZERO, red: [], paths: ['tests/x.py'], required: () => { reads0 += 1; return REQ } })
@@ -6801,12 +6829,26 @@ function redOwed(name, required) {
 
 // The live set, through its owner; { names } or { why }. `--required-file`
 // (one name per line) replaces the read for a caller that already holds it.
-function requiredFromTrain() {
-  const r = spawnSync('python3', [path.join(ROOT, 'tools', 'audit', 'seat', 'merge_train.py'), 'owed-reds'],
-    { cwd: ROOT, encoding: 'utf8', timeout: 120000 })
+// `root` is the tree whose merge_train.py answers: the checkout (in CI, the
+// base's copy, which pr-contract restores), or the acceptance's stub tree.
+function requiredFromTrain(root = ROOT) {
+  const r = spawnSync('python3', [path.join(root, 'tools', 'audit', 'seat', 'merge_train.py'), 'owed-reds'],
+    { cwd: root, encoding: 'utf8', timeout: 120000 })
   const names = (r.stdout ?? '').split('\n').map((x) => x.trim()).filter(Boolean)
   if (r.status !== 0 || !names.length) return { why: (r.stdout || r.stderr || String(r.error ?? `rc ${r.status}`)).trim().split('\n').pop() }
   return { names }
+}
+
+// checkPrBody's `required` thunk body: the Set, or null (every red owed) with a
+// skip note when neither the file nor the owner yields a name.
+function requiredSet(requiredFile, notes, root = ROOT) {
+  let got
+  if (requiredFile != null) {
+    try { got = { names: fs.readFileSync(requiredFile, 'utf8').split('\n').map((x) => x.trim()).filter(Boolean) } } catch { got = { why: `--required-file ${requiredFile}: unreadable` } }
+  } else got = requiredFromTrain(root)
+  if (got.names?.length) return new Set(got.names)
+  notes.push(`  skip    required-set: ${got.why ?? 'empty'} -- every red is owed an answer this run, as before the 2026-11-07 ruling`)
+  return null
 }
 
 const RED_HISTORY_PAGE = 100
@@ -7203,15 +7245,7 @@ function cmdPrBody(args) {
   // Read only when a red goes unnamed (checkPrBody calls it lazily), so a body
   // naming every red, or a run with none, reaches no network at all.
   const requiredFile = val('--required-file')
-  const required = () => {
-    let got
-    if (requiredFile != null) {
-      try { got = { names: fs.readFileSync(requiredFile, 'utf8').split('\n').map((x) => x.trim()).filter(Boolean) } } catch { got = { why: `--required-file ${requiredFile}: unreadable` } }
-    } else got = requiredFromTrain()
-    if (got.names?.length) return new Set(got.names)
-    notes.push(`  skip    required-set: ${got.why ?? 'empty'} -- every red is owed an answer this run, as before the 2026-11-07 ruling`)
-    return null
-  }
+  const required = () => requiredSet(requiredFile, notes)
   const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author, commits, required })
   for (const n of notes) console.log(n)
   printFindings(findings)
