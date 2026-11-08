@@ -69861,6 +69861,23 @@ R.check(
     and _cu_back._cop_baseline == {(2, False): [3.0, 1]},
     f"old {_cu_old._cop_baseline} tripped {_cu_old._cop_health_cusum.tripped}; back {_cu_back._cop_baseline}",
 )
+# The same CUSUM under the since-fix key is kept: the reset above is the key's,
+# not the loader dropping every CUSUM (the old check's null control).
+_cu_kept = _cu_coord()
+
+
+async def _cu_kept_load(_p={"cop_baseline_measured": {"2": [3.0, 1]},
+                            "cop_health_cusum_measured": {"stat": 0.5, "tripped": True}}):
+    return _p
+
+
+_cu_kept._thermal_learning_store.async_load = _cu_kept_load
+_asyncio.run(_cu_kept._async_load_thermal_learning())
+R.check(
+    "a COP health CUSUM stored since measured provenance loads with its state",
+    _cu_kept._cop_health_cusum.tripped and _cu_kept._cop_baseline == {(2, False): [3.0, 1]},
+    f"tripped {_cu_kept._cop_health_cusum.tripped}; baseline {_cu_kept._cop_baseline}",
+)
 R.check(
     "a last COP stored before measured provenance does not load as measured; "
     "one stored since round-trips",
