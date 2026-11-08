@@ -114,6 +114,7 @@ from .thermal_model import (
 from .tariff import (
     CapacityTariff,
     PeakBilling,
+    billed_windows,
     metering_windows,
     peak_cost,
     peak_cost_batch,
@@ -1976,6 +1977,17 @@ class OptimizationResult:
     #: The arbiter maps the plan's steps by it (R10-COP-GATE part D).
     solve_band: dict[str, Any] = field(default_factory=dict)
 
+    def sensor_trajectory(self, two_zone: bool) -> list[float]:
+        """The trajectory the indoor sensor reads (#2238 P3's one owner).
+
+        In two-zone mode the sensor sits on the upper floor, so its
+        trajectory is the upper one when the plan carries it; otherwise the
+        room's.
+        """
+        if two_zone and self.upper_temp_trajectory:
+            return self.upper_temp_trajectory
+        return self.room_temp_trajectory
+
 
 @dataclass
 class OptimizationConfig:
@@ -3374,10 +3386,18 @@ class HeatPumpOptimizer:
             weekdays_only=bool(cfg.peak_weekdays_only),
             offpeak_factor=float(cfg.peak_offpeak_factor),
         )
-        n_windows = metering_windows(
-            np.zeros(n_steps), cfg.peak_window_minutes, dt, offset_steps
-        ).size
+        n_windows = self._n_peak_windows(n_steps, dt, offset_steps)
         return window_factors(mask, start_time, n_windows, dt)
+
+    def _n_peak_windows(self, n_steps: int, dt: float, offset_steps: int) -> int:
+        """How many metering windows a plan of ``n_steps`` spans.
+
+        The one count both the window factors and the window days are sized
+        by, so the two arrays ``peak_cost`` zips cannot differ in length.
+        """
+        return metering_windows(
+            np.zeros(n_steps), self.config.peak_window_minutes, dt, offset_steps
+        ).size
 
     def _peak_day_kwargs(
         self,
@@ -3393,9 +3413,7 @@ class HeatPumpOptimizer:
         are read at the same real instant (#1512).
         """
         cfg = self.config
-        n_windows = metering_windows(
-            np.zeros(n_steps), cfg.peak_window_minutes, dt, offset_steps
-        ).size
+        n_windows = self._n_peak_windows(n_steps, dt, offset_steps)
         days = (
             None if start_time is None
             else plan_window_days(n_windows, cfg.peak_window_minutes, start_time)
@@ -4101,10 +4119,7 @@ class HeatPumpOptimizer:
             power_caps_extra, space_blocked, off_steps, n_steps
         ):
             trajectory = np.asarray(
-                result.upper_temp_trajectory
-                if self.model.params.two_zone_enabled
-                and result.upper_temp_trajectory
-                else result.room_temp_trajectory,
+                result.sensor_trajectory(self.model.params.two_zone_enabled),
                 dtype=float,
             )
             # Trajectories carry n+1 entries with index 0 the *initial*
@@ -4474,12 +4489,7 @@ class HeatPumpOptimizer:
 
         release_space: list[int] = []
         if space_pins is not None:
-            two_zone = self.model.params.two_zone_enabled
-            room = (
-                result.upper_temp_trajectory
-                if two_zone and result.upper_temp_trajectory
-                else result.room_temp_trajectory
-            )
+            room = result.sensor_trajectory(self.model.params.two_zone_enabled)
             for i in range(len(result.power_schedule)):
                 temp = room[i + 1] if i + 1 < len(room) else room[-1]
                 floor = (
@@ -4929,10 +4939,9 @@ class HeatPumpOptimizer:
             windows = metering_windows(
                 house, bill.window_minutes, dt, offset_steps
             )
-            f = factors[: windows.size]
-            if f.size < windows.size:
-                f = np.concatenate([f, np.ones(windows.size - f.size)])
-            peak_kw = float(np.max(windows * f)) if windows.size else 0.0
+            peak_kw = (
+                float(np.max(billed_windows(windows, factors))) if windows.size else 0.0
+            )
         return {
             "peak_kw": round(peak_kw, 3),
             "peak_cost": round(peak_cost(total_power, baseline_load, bill), 3),
