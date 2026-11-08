@@ -1,0 +1,12 @@
+21:28:09 rc=3 WAIT 1310d182e16b613937de0e200f03f2aa15c65785 pending: gate red: none
+21:32:10 rc=3 WAIT 1310d182e16b613937de0e200f03f2aa15c65785 pending: gate red: none
+21:36:12 rc=3 WAIT 1310d182e16b613937de0e200f03f2aa15c65785 pending: gate red: none
+21:40:14 rc=3 WAIT 1310d182e16b613937de0e200f03f2aa15c65785 pending: gate red: none
+21:44:16 rc=1 RED 1310d182e16b613937de0e200f03f2aa15c65785 pending: none red: gate
+21:49:00 RED 1310d182e16b613937de0e200f03f2aa15c65785 pending: none red: gate | 42525709909:completed:failure:a1 42524777454:completed:failure:a1 42524776987:completed:cancelled:a1 42524775862:completed:skipped:a1
+
+[killed]
+22:19:09 RED 1310d182e16b613937de0e200f03f2aa15c65785 pending: none red: gate | 42525709909:completed:failure:a1 42524777454:completed:failure:a1 42524776987:completed:cancelled:a1 42524775862:completed:skipped:a1 | head=1310d182e16b
+22:43:27 window end: RED 1310d182e16b613937de0e200f03f2aa15c65785 pending: none red: gate
+
+[exited with code 0]
