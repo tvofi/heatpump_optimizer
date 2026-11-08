@@ -893,7 +893,9 @@ class Tick:
             if bucket == "unreadable":
                 self.unreadable(S, "owed buckets", f"#{n}: {reason}")
             if bucket == "owed":
-                group = rl.group_for_branch(roster, branch) if rl is not None and roster else None
+                # A fork head's branch is no group's; the roster's resume.pr maps it
+                # (as merge_train._roster_group does).
+                group = (rl.group_for_branch(roster, branch) or rl.group_for_pr(roster, n)) if rl is not None and roster else None
                 rank = rl.dispatch_rank(roster, group, {rl.norm_group(str(c)) for c in crit}) if rl is not None and roster else 3
                 owed.append((rank, n, f"OWED {kind} #{n} {head[:12]} {reason}"))
         for _, _, text in sorted(owed):
@@ -3962,6 +3964,17 @@ def self_test() -> int:
         _, o_ro = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb"), gpr(102, "go"), gpr(103, "gh")],
                           extra_read=(99, 100, 102, 103), roster=str(orf2))
         _, o_rn = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb")], extra_read=(99, 100), roster=str(orf))
+        # A fork-head outside PR: its branch is no group's, the roster's resume.pr maps it (#3304 round 2)
+        def fork_roster(pr):
+            f = tmp / f"owed-roster-fork-{pr}.json"
+            f.write_text(json.dumps({"groups": [
+                {"group": "GA", "resume": {"stage": "not-started"}},
+                {"group": "GB", "resume": {"stage": "not-started"}, "after": ["GA"]},
+                {"group": "GO", "source": "outside", "resume": {"stage": "not-started", "pr": pr}}]}))
+            return str(f)
+        fork = lambda: pr_obj(104, h(104), ms="DIRTY", branch="patch-1")
+        _, o_fk = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 104), roster=fork_roster(104))
+        _, o_fk0 = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 104), roster=fork_roster(None))
         pd = tmp / "payloads"
         pd.mkdir()
         pf = pd / "payload-fix-86-r1.json"
@@ -4028,7 +4041,9 @@ def self_test() -> int:
             ("an outside group's OWED line prints before the critical path's, a hotfix's before both",
              [x.split()[2] for x in o_ro] == ["#103", "#102", "#100", "#99"]),
             ("null control: a roster with no outside group and no hotfix orders as the critical path first",
-             [x.split()[2] for x in o_rn] == ["#100", "#99"] and [x.split()[2] for x in o_co] == ["#100", "#99"])])
+             [x.split()[2] for x in o_rn] == ["#100", "#99"] and [x.split()[2] for x in o_co] == ["#100", "#99"]),
+            ("a fork-head outside PR, mapped by resume.pr, prints before the critical path's; unrecorded, after it",
+             [x.split()[2] for x in o_fk] == ["#104", "#100"] and [x.split()[2] for x in o_fk0] == ["#100", "#104"])])
         total, failed = total + a, failed + f
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).

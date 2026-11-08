@@ -29,7 +29,8 @@ a stripped match, `<GROUP>: <topic words>` for an exact one.
 
 ORDER (P337 rule 2, P350): `open-priority.txt` lists topics, one per line (`#`
 comments), `open-cap.txt` the cap (default 2); both are re-read every pass. A
-hotfix topic (R10-HOTFIX-*), then an outside one (`roster_lib.is_outside`:
+hotfix topic (R10-HOTFIX-*, or a group `roster_lib.is_hotfix` counts, which
+includes `kind` "bug"), then an outside one (`roster_lib.is_outside`:
 owner ruling tvofi 2026-11-07, triage P420), then a critical-path one
 (`roster_lib.critical_path`) is never behind a topic of a later class,
 whatever the file says. Within a class a listed topic keeps its file order, and
@@ -119,10 +120,15 @@ def resolve(topic: str, groups, body_head: str, titles: dict | None = None) -> t
     return None, "NEEDS-TITLE"
 
 
-def default_class(topic: str, group: str | None, critical, outside=frozenset()) -> int:
+def default_class(topic: str, group: str | None, critical, outside=frozenset(),
+                  hotfix=frozenset()) -> int:
     """0 hotfix, 1 outside, 2 critical, 3 record, 4 the rest. Owner ruling tvofi
-    2026-11-07 (triage P420): hotfix, then outside, then today's order."""
+    2026-11-07 (triage P420): hotfix, then outside, then today's order. A hotfix
+    is a hotfix topic or group name, or a group in `hotfix` (`roster_lib.is_hotfix`,
+    which also counts `kind` "bug")."""
     if topic.startswith("r10-hotfix-") or (group or "").startswith("R10-HOTFIX-"):
+        return 0
+    if group and roster_lib.norm_group(group) in hotfix:
         return 0
     if group and roster_lib.norm_group(group) in outside:
         return 1
@@ -136,11 +142,11 @@ def default_class(topic: str, group: str | None, critical, outside=frozenset()) 
 FENCED = 2
 
 
-def order(items, priority: list, critical, outside=frozenset()) -> list:
+def order(items, priority: list, critical, outside=frozenset(), hotfix=frozenset()) -> list:
     """items: [(topic, group, ct)]. Hotfix, outside, critical first, in that order;
     a listed topic keeps its file order within a class; an omitted one slots after
     the last listed topic of equal or higher class."""
-    cls = {t: default_class(t, g, critical, outside) for t, g, _ in items}
+    cls = {t: default_class(t, g, critical, outside, hotfix) for t, g, _ in items}
     idx = {t: i for i, t in enumerate(priority)}
 
     def pos(t):
@@ -275,6 +281,7 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
     groups = set(roster_lib.groups_of(ros))
     critical = {roster_lib.norm_group(g) for g in roster_lib.critical_path(ros)}
     outside = {roster_lib.norm_group(str(g.get("group") or "")) for g in ros.get("groups", []) if roster_lib.is_outside(g)}
+    hotfix = {roster_lib.norm_group(str(g.get("group") or "")) for g in ros.get("groups", []) if roster_lib.is_hotfix(g)}
     titles = _load(sd / "open-titles.json", {})
     priority = _lines(sd / "open-priority.txt")
     try:
@@ -312,7 +319,7 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
     started = []
     live = len(runs)
     by_topic = {c[0]: c for c in cands}
-    for topic, g, ct in order([(c[0], c[1], c[2]) for c in cands], priority, critical, outside):
+    for topic, g, ct in order([(c[0], c[1], c[2]) for c in cands], priority, critical, outside, hotfix):
         _, _, _, sha, title = by_topic[topic]
         if live >= cap:
             skipped[topic] = "cap"

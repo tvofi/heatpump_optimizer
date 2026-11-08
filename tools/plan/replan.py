@@ -206,10 +206,6 @@ def groups_of(roster: dict) -> dict:
 #: work lives in the group its resume note names.
 ABSORBED_RE = re.compile(r"absorbed into ([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+)")
 
-#: The group that cuts the round's closing stamp; a group after it is post-closure.
-CLOSE_STAMP_MARK = "STAMP-ROUND-MAJOR"
-POST_CLOSE_STEP_RE = re.compile(r"after the .*\b(stamp|closeout)\b", re.I)
-
 
 def is_done(group: dict) -> bool:
     return not roster_lib.is_open(group)
@@ -229,24 +225,6 @@ def absorbers(G: dict) -> dict:
         out[n] = (into, None if into else
                   f"ADVISORY: {n} is absorbed but its resume note names no existing group")
     return out
-
-
-def post_closure_groups(G: dict, open_: set) -> set:
-    """Open groups that run after the round's closing stamp: an owner-step
-    whose next step is "after the ... stamp", a group whose `after` names the
-    closing-stamp group, and every group after one of those."""
-    post = {n for n in open_
-            if (G[n].get("kind") == "owner-step"
-                and POST_CLOSE_STEP_RE.search(str((G[n].get("resume") or {}).get("next_step") or "")))
-            or any(CLOSE_STAMP_MARK in a for a in G[n].get("after") or [])}
-    grew = True
-    while grew:
-        grew = False
-        for n in open_ - post:
-            if any(a in post for a in G[n].get("after") or []):
-                post.add(n)
-                grew = True
-    return post
 
 
 #: Paths that are instruments, CI or records, never the integration (tvofi
@@ -440,8 +418,8 @@ def dispatch_tier(group: dict, on_cp: bool, savings: float | None) -> tuple[int,
     """(tier, the roster fields that decided it) for one open group.
 
     Read from the roster alone: `kind` "main" or a `-MAIN-FIX`/`-MAIN-RED`
-    name is main; a `kind` "bug" (the user-reported finding) or a HOTFIX-named production
-    group is a hotfix; `source` "outside" (`roster_lib.is_outside`) is
+    name is main; `roster_lib.is_hotfix` (a `kind` "bug" or a HOTFIX name, of
+    any work class) is a hotfix; `source` "outside" (`roster_lib.is_outside`) is
     outside, ahead of `on_cp` (`critical_path()`'s output, never a stored
     list), which is urgent; `work_class` production, or an instrument whose
     `savings` is at least SAVING_TIER_HOURS, is the production tier; else the
@@ -451,7 +429,7 @@ def dispatch_tier(group: dict, on_cp: bool, savings: float | None) -> tuple[int,
     if k == "main" or "-MAIN-FIX" in g or "-MAIN-RED" in g:
         return TIER_MAIN, f"main (kind {k!r}, name)"
     cls = work_class(group)
-    if k == "bug" or "HOTFIX" in g and cls == "production":
+    if roster_lib.is_hotfix(group):
         return TIER_HOTFIX, f"hotfix (kind {k!r}, name)"
     if roster_lib.is_outside(group):
         return TIER_OUTSIDE, "outside (source)"
@@ -764,6 +742,23 @@ def selftest_model() -> int:
     expect("an outside group that is also a hotfix is a hotfix, and one on the critical path is outside",
            tier_of(grp("R10-HOTFIX-O", kind="bug", source="outside")) == tier_of(grp("R10-HOTFIX-X", kind="bug"))
            and tier_of(grp("OUT", source="outside"), cp=True) == tier_of(grp("OUT", source="outside")))
+    # A HOTFIX name is a hotfix of any work class, the order roster_lib.dispatch_rank
+    # gives every other reader (#3304 round 2: the base's production-only arm
+    # ranked an instrument-class hotfix below outside in the plan alone).
+    hx = build_plan({"groups": [grp("R10-HOTFIX-X", "S", "instrument"), grp("OUT", "S", source="outside")]},
+                    M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
+    HX = hx["groups"]  # OUT, the taller, is the critical path and starts beside it exempt
+    expect("an instrument-class R10-HOTFIX group is the hotfix tier and holds the one real slot at t0 "
+           "ahead of an outside group, the order dispatch_rank gives",
+           tier_of(grp("R10-HOTFIX-X", kind="instrument")) == TIER_HOTFIX
+           and HX["R10-HOTFIX-X"]["slot"] == 0 and HX["R10-HOTFIX-X"]["start"] == iso(start, 0)
+           and not HX["R10-HOTFIX-X"].get("exempt") and HX["OUT"].get("exempt") is True
+           and [roster_lib.dispatch_rank({"groups": [grp("R10-HOTFIX-X", "S", "instrument"),
+                                                     grp("OUT", "S", source="outside")]}, n, set())
+                for n in ("R10-HOTFIX-X", "OUT")] == [0, 1],
+           {n: (HX[n]["start"], HX[n]["slot"], HX[n].get("exempt"), HX[n]["sort_key"][0]) for n in HX})
+    expect("null control: the same instrument without a HOTFIX name stays the instrument tier",
+           tier_of(grp("R10-FIX-X", kind="instrument")) == TIER_INSTRUMENT)
     expect("null control: any other source (or none) is internal",
            tier_of(grp("P", source="audit")) == tier_of(grp("P")) == TIER_PRODUCTION_WORK)
     expect("production work is tier 3", tier_of(grp("P")) == TIER_PRODUCTION_WORK)
@@ -946,7 +941,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     deps, open_, done = dependency_graph(G)
     # Groups after the round's closing stamp are scheduled after it and are
     # neither inside closure nor in any stamp's carries (carries 10, 11).
-    post = post_closure_groups(G, open_)
+    post = roster_lib.post_closure_groups(G, open_)
     open_all = open_
     open_ = open_all - post
     deps_post = {n: deps[n] for n in post}
@@ -2524,7 +2519,7 @@ def selftest() -> int:
              'return TIER_INSTRUMENT, "x"'),
             ("tier-hotfix",
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
-             _m('if k == "bug" or "HOTFIX" in g ', 'and cls == "production":'), "if False:"),
+             "    if roster_lib.is_hotfix(group):", "    if False:"),
             ("tier-outside",
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
              "    if roster_lib.is_outside(group):", "    if False:"),
