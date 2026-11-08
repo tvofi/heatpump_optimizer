@@ -46,7 +46,10 @@ Arms:
                          the EXPECTED RESULT block below names; then two null controls: the
                          fixture with every deferral line erased scores deferral_reds=0, and a
                          loop replay with every skipped job dropped predicts fewer re-runs.
-                         Exit 1 on any difference (MUTANT_CMD for this harness's diff mutants)
+                         Exit 1 on any difference. Its mutants are r10_gate_defer_read_final_mutants.json:
+                           python3 -I tools/audit/seat/mutant_run.py --spec <that file> --cmd \
+                             "env GIT_DIR=<repo>/.git python3 -I <this file> selftest"
+                         (GIT_DIR: the driver's git-archive copy has no history for the program split)
   heads [--fixture F]    per pull request: heads recorded, heads with a deferral red, and the
                          gate failures that were not deferrals (the null control: such a red is
                          not counted as a deferral)
