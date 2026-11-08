@@ -1,0 +1,24 @@
+== null_fresh rq_base.py
+roster: set-stage G pushed 61c53b6fc
+roster: set-stage G pushed ad38aad0f
+RESULT: PASS
+== null_fresh rq_head.py
+roster: set-stage G pushed 61c53b6fc
+roster: set-stage G pushed ad38aad0f
+RESULT: PASS
+== null_fresh M4_no_wt_remove_on_refusal.py
+roster: set-stage G pushed 61c53b6fc
+roster: set-stage G pushed 2445bc33b
+RESULT: PASS
+== cascade rq_base.py
+roster: set-stage G refused rc=4 REFUSED: unrelated
+roster: set-stage G refused rc=2 REFUSED: /tmp/tmpqvu14pfu/wt HEAD 9f4077bf5222 is on no origin ref
+RESULT: FAIL
+== cascade rq_head.py
+roster: set-stage G refused rc=4 REFUSED: unrelated
+roster: set-stage G pushed a3c388fb4
+RESULT: PASS
+== cascade M4_no_wt_remove_on_refusal.py
+roster: set-stage G refused rc=4 REFUSED: unrelated
+roster: set-stage G refused rc=2 REFUSED: /tmp/tmp9u4wgejc/wt HEAD 9f4077bf5222 is on no origin ref
+RESULT: FAIL

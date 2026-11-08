@@ -1,0 +1,3 @@
+roster: set-stage G refused rc=3 LINT GATE REFUSED the push | --lint-cwd is at b68df8882823, not origin/main (bb4de7d23c35): the stale-worktree trap
+roster: set-stage G refused rc=2 REFUSED: /tmp/tmpppye1vmj/wt HEAD 66c3e8d2b5e1 is on no origin ref
+RESULT: FAIL

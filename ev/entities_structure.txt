@@ -1,0 +1,11 @@
+  File "/tmp/tmp.GJHNmUH9qo/wt/tests/entities.py", line 40, in <module>
+    from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
+ModuleNotFoundError: No module named 'layout'
+  ok   methods_over_200 8 <= 8
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+  File "/tmp/tmp.GJHNmUH9qo/wt/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
