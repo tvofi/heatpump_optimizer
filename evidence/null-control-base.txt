@@ -1,3 +1,0 @@
-  FAIL every role's prompt carries the frugal-routing line once, verbatim (P398)
-  FAIL every role with a contract is told to render its pack, the probe is not
-cloud_dispatch self-test: 129 checks, 2 failed
