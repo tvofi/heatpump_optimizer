@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.SZQhBrmBGT/mut/M08-pr-delete-check-plain-only/tools/audit/seat/prune_refs.py", line 1121, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/tmp/tmp.SZQhBrmBGT/mut/M08-pr-delete-check-plain-only/tools/audit/seat/prune_refs.py", line 1061, in main
+    return self_test()
+  File "/tmp/tmp.SZQhBrmBGT/mut/M08-pr-delete-check-plain-only/tools/audit/seat/prune_refs.py", line 1023, in self_test
+    _self_test_git(results)
+    ~~~~~~~~~~~~~~^^^^^^^^^
+  File "/tmp/tmp.SZQhBrmBGT/mut/M08-pr-delete-check-plain-only/tools/audit/seat/prune_refs.py", line 781, in _self_test_git
+    out = apply_plan_push("origin", acts, False, chunk=1, git=runner)
+  File "/tmp/tmp.SZQhBrmBGT/mut/M08-pr-delete-check-plain-only/tools/audit/seat/prune_refs.py", line 508, in apply_plan_push
+    raise ApplyRefused(f"{len(missing)} ref(s) to delete lack their archive tag at "
+                       f"the same sha on the remote, first {missing[0]}; nothing deleted")
+ApplyRefused: 1 ref(s) to delete lack their archive tag at the same sha on the remote, first fix/n1; nothing deleted
+
+rc=1
