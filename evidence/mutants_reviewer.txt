@@ -1,0 +1,53 @@
+V1 BOOTSTRAP on every refusal (membership dropped): bad 2; 2 FAIL
+    FAIL an edit to a vendored file the grader requires is predicted red (round 3's markdown-it.min.js) -- ([('pol
+    FAIL an edit to a gate the grader spawns is predicted red (round 2's budget_raise_gate.py) -- ([('policy-docs'
+V2 BOOTSTRAP never: bad 3; 3 FAIL
+    FAIL a second workflow's restored grader edited so the head passes what the base refuses is predicted red, job
+    FAIL an exclusion written into the restored grader is predicted red (#2916's shape) -- ([('policy-docs', "GRAD
+    FAIL the event tokens are stood in (head, title, author), the stdout redirect is not an argument -- GRADER lin
+V3 partial annotation dropped from the refusal: bad 1; 1 FAIL
+    FAIL a run line reading the pull request's live state is run, predicted with what it ran without, and noted pa
+V4 PARTIAL note never written: bad 2; 2 FAIL
+    FAIL a run line reading the pull request's live state is run, predicted with what it ran without, and noted pa
+    FAIL a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is) -- (["G
+V5 notes never returned: bad 3; 3 FAIL
+    FAIL a run line reading the pull request's live state is run, predicted with what it ran without, and noted pa
+    FAIL a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is) -- (["G
+    FAIL a run reading the body is skipped, noted, never passed, with no body to read (null control: the run that 
+V6 backslash continuation not joined:   ok   the arm's job set is every restoring step the workflows hold (the enumeration rule's count); 0 FAIL
+V7 keyed by bare job:   ok   the inline exclusion staged and not committed is predicted green (null control); 0 FAIL
+V8 PR_TOKENS not excused from gaps: bad 1; 1 FAIL
+    FAIL every pinned run line is runnable as CI runs it (null control: no gap) -- ["budget-raise-gate: .claude/wo
+V9 runner files not redirected to tmp: bad 1; 1 FAIL
+    FAIL the event tokens are stood in (head, title, author), the stdout redirect is not an argument -- GRADER lin
+V10 runner files not written: bad 3; 3 FAIL
+    FAIL a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body -
+    FAIL the event tokens are stood in (head, title, author), the stdout redirect is not an argument
+    FAIL a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is) -- (["G
+V11 .sh run by node: bad 1; 1 FAIL
+    FAIL a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body -
+V12 '<' kept as an argument: bad 1; 1 FAIL
+    FAIL a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body -
+V13 partial key exact, not prefix: bad 0; 0 FAIL
+V14 partial never matched: bad 2; 2 FAIL
+    FAIL a run line reading the pull request's live state is run, predicted with what it ran without, and noted pa
+    FAIL a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is) -- (["G
+V15 ci_tree_run gets no workflow: bad 6; 6 FAIL
+    FAIL a second workflow's restored grader edited so the head passes what the base refuses is predicted red, job
+    FAIL a run line reading the pull request's live state is run, predicted with what it ran without, and noted pa
+    FAIL a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body -
+    FAIL the event tokens are stood in (head, title, author), the stdout redirect is not an argument
+    FAIL a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is) -- (['G
+    FAIL a run reading the body is skipped, noted, never passed, with no body to read (null control: the run that 
+V16 stdin not passed to run: bad 1; 1 FAIL
+    FAIL a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body -
+V17 author stand-in wrong: bad 1; 1 FAIL
+    FAIL the event tokens are stood in (head, title, author), the stdout redirect is not an argument -- GRADER lin
+V18 grader_gaps reads only the first text: bad 1; 1 FAIL
+    FAIL every pinned run line is runnable as CI runs it (null control: no gap) -- ['GRADER_EXEMPT: no run line st
+V19 boot counts every red (main): bad 0; 0 FAIL
+V20 summary drops the BOOTSTRAP count: bad 1; 1 FAIL
+    FAIL the closing line owes no repair when every red is a BOOTSTRAP (null control: one repairable red does)
+C2-R1 self_test_reads grades under the file's own key: bad 1; 1 FAIL
+    FAIL a read in the file's own closure but not the host's is graded under the host's key (null control for the 
+rc=0

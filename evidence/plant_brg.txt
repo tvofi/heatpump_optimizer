@@ -1,10 +1,7 @@
-case=brg head=926a01499de2a184481a42734fc91bfedc5bb4b1 diff: tests/structure_budgets.json tools/policy/budget_raise_gate.py 
-PREDICT governance / policy-docs GRADER policy_lint.mjs --hooks REFUSED by the base's copy, over tools/policy/budget_raise_gate.py: SELF-TEST FAILED  Stop          .claude/hooks/stop-selfcheck.sh  28 passed, 1 failed
 NOTE    GRADER PARTIAL budget-raise-gate: budget_raise_gate.py ran without the live pull-request reviews, the mandate comments and the PR number; its result is not a pass, a clean run grades only what it could read
 NOTE    GRADER SKIPPED pr-contract: carry_audit.py reads the pull-request body; pass --body to grade it as CI does
 NOTE    GRADER SKIPPED pr-contract: figure_lint.mjs reads the pull-request body; pass --body to grade it as CI does
 NOTE    GRADER SKIPPED pr-contract: policy_lint.mjs reads the pull-request body; pass --body to grade it as CI does
 NOTE    GRADER SKIPPED pr-contract: preflight.sh reads the pull-request body; pass --body to grade it as CI does
-CI PREDICT: a GRADER refusal is CI's verdict under the base's copy of every path the job restores, so an exclusion, registration or rule written into a restored grader, or into anything it loads, is graded by the copy it replaces: move it into the data the grader reads (corpus_excluded.json for named-docs, #2916's repair), or land the grader change first (dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md); the body names it under ## Red checks
-CI PREDICT: 1 predicted red(s) on governance / policy-docs against 926a01499de2 -- repair before the handoff; the lines above name each arm's repair
-rc=1
+CI PREDICT: no closures, fast, governance or instrument red predicted against 3d46d033d9a0 (a data-file read is not seen)
+rc=0
