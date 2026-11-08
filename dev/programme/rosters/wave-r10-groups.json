@@ -19940,6 +19940,50 @@
     "note": null
    },
    "brief": "Fly-in RCA, orchestrator 2026-11-08 under mandate 6715477401: root-cause analysis of the stamp emptying claimed_drift.txt under open PRs, which leaves claimnotes conflicts (parent R10-HOTFIX-STAMP-BASE done). Its handoff exists; open and review it."
+  },
+  {
+   "group": "R10-HOTFIX-STRESS-MEM-PEAK",
+   "lane": "C",
+   "kind": "production",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "tests/stress.py",
+    "tests/features.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-hotfix-stress-mem-peak",
+    "pr": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "open PR, review",
+    "note": "overlap admitted (R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE): overlap is only tests/features.py, a shared test file; the not-started groups own distinct seams (heat-curve persistence, arbiter restore), stress memory peak is its own block"
+   },
+   "brief": "Fly-in hotfix, orchestrator 2026-11-08 under mandate 6715477401: tests/stress.py memory probe red on #3297 (R10-HOTFIX-COP-UNMEASURED, which gates R10-COP-GATE-E and so R10-COMBI-TANK PR B, outside #3225). Cause: optimizer.py _scoped_minimize built a fresh ThreadpoolController per minimize call, interning runtime names and tripping CPython's interned-table rebuild inside the traced window. Fix: one module-level controller with controller.limit(limits=1) per call; stress.py refuses a traced window that imports modules; features.py pins zero controller builds per call. Linux arm unconfirmed until CI fast (3.14)."
   }
  ]
 }
