@@ -1,2 +1,2 @@
-GREEN 2d010b0913cabbbfc72ace3fc8d203bfb65744f7 pending: none red: none
-rc=0
+RED 7fe24f9f61f1935fab269f006e126fc6f84184b3 pending: none red: gate
+exit 1

@@ -1,2 +1,0 @@
-RESULT whole mutant=R-score-arg script=tests/features.py rc=1 ['1 of 4915 FEATURE CHECKS FAILED']
-    FAIL a fresh install grades nothing, and says why for each part (#2258): with no heat reading the heat pump is never graded (R10-HOTFIX-COP-UNMEASURED); a metered one is still learning  [{'envelope': 
