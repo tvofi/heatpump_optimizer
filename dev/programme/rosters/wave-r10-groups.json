@@ -17896,10 +17896,10 @@
    "issues": [],
    "fixes": [],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": null,
     "pr": 3275,
-    "commit": "17e1157925908bd69addb58ed824c1ac22bfa82f"
+    "commit": "17e115792"
    },
    "carry": [
     "Orchestrator evidence (2026-11-07): another class-A instance \u2014 #3262 head 0fd9bc6d, CI code run 42339563999 attempt 1, job governance / instrument-self-tests ran 04:45:23Z to 05:15:38Z (30m15s) and was cancelled at the 30-minute job timeout; earlier #3265 job 128283313187 (03:15:08Z-03:45:10Z). The fixer re-measures the self-test wall time at its own base. [implemented: 17e115792]"
