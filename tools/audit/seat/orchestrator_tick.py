@@ -857,7 +857,8 @@ class Tick:
         fixer-round | waiting-on #M | owed | verdicted (MERGE-READY and its levels own it)
         | review-owed (REVIEW OWED owns it). `owed` prints one `OWED <kind> #N <head12>
         <reason>` line (kinds in ledger.KINDS, derived each pass, so a moved head closes
-        it), the critical-path groups' PRs first, then one count line."""
+        it), hotfix groups' PRs first, then accepted outside groups' (owner ruling tvofi
+        2026-11-07, triage P420), then the critical-path groups', then one count line."""
         heads = self._heads()
         if heads is None:
             self.unreadable(S, "owed buckets", "git ls-remote of the handoff refs failed")
@@ -893,7 +894,8 @@ class Tick:
                 self.unreadable(S, "owed buckets", f"#{n}: {reason}")
             if bucket == "owed":
                 group = rl.group_for_branch(roster, branch) if rl is not None and roster else None
-                owed.append((0 if group in crit else 1, n, f"OWED {kind} #{n} {head[:12]} {reason}"))
+                rank = rl.dispatch_rank(roster, group, {rl.norm_group(str(c)) for c in crit}) if rl is not None and roster else 3
+                owed.append((rank, n, f"OWED {kind} #{n} {head[:12]} {reason}"))
         for _, _, text in sorted(owed):
             self.line(S, text, flag=True)
         self.line(S, "buckets: " + (", ".join(f"{k} {v}" for k, v in sorted(counts.items())) or "none")
@@ -3950,6 +3952,16 @@ def self_test() -> int:
                              red=gate_red(91), roster=str(orf))
         _, o_ae0 = oboard2([], extra=[gpr(91, "gb")], extra_read=(91,), red=gate_red(91), roster=str(orf))
         _, o_co = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb")], extra_read=(99, 100), roster=str(orf))
+        orf2 = tmp / "owed-roster-out.json"  # GB critical; GO outside, GH a hotfix, GZ plain
+        orf2.write_text(json.dumps({"groups": [
+            {"group": "GA", "resume": {"stage": "not-started"}},
+            {"group": "GB", "resume": {"stage": "not-started"}, "after": ["GA"]},
+            {"group": "GZ", "resume": {"stage": "not-started"}},
+            {"group": "GO", "source": "outside", "resume": {"stage": "not-started"}},
+            {"group": "GH", "kind": "bug", "resume": {"stage": "not-started"}}]}))
+        _, o_ro = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb"), gpr(102, "go"), gpr(103, "gh")],
+                          extra_read=(99, 100, 102, 103), roster=str(orf2))
+        _, o_rn = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb")], extra_read=(99, 100), roster=str(orf))
         pd = tmp / "payloads"
         pd.mkdir()
         pf = pd / "payload-fix-86-r1.json"
@@ -4012,7 +4024,11 @@ def self_test() -> int:
             ("null: a DIRTY, red PR whose group is after an open group is waiting-on it; with no open PR there it is owed",
              o_ae == [] and "waiting-on 1" in bk_of(t_ae) and len(o_ae0) == 1 and "dirty #91" in o_ae0[0]),
             ("the critical-path group's OWED line prints before a lower-numbered PR's outside it",
-             len(o_co) == 2 and "#100" in o_co[0] and "#99" in o_co[1])])
+             len(o_co) == 2 and "#100" in o_co[0] and "#99" in o_co[1]),
+            ("an outside group's OWED line prints before the critical path's, a hotfix's before both",
+             [x.split()[2] for x in o_ro] == ["#103", "#102", "#100", "#99"]),
+            ("null control: a roster with no outside group and no hotfix orders as the critical path first",
+             [x.split()[2] for x in o_rn] == ["#100", "#99"] and [x.split()[2] for x in o_co] == ["#100", "#99"])])
         total, failed = total + a, failed + f
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).

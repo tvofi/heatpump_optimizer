@@ -5438,6 +5438,21 @@ def _queue_self_test(check) -> None:
     check("P420 _outside null: a roster with no source field has no outside entry",
           live420({"groups": [{k: v for k, v in g.items() if k != "source"} for g in ros420["groups"]]}, *forks)
           == [False] * 5)
+    # drain_order through the live reader: an entry with no branch of ours (a fork head)
+    # keeps its outside rank through `resume.pr`, so the item must carry the pull request.
+    def drain_live420(roster, entries, heads):
+        def run(argv, cwd=ROOT, stdin=None):
+            return 0, heads[int(argv[3])] + "\n"
+        with tempfile.TemporaryDirectory() as dd:
+            t = Train("o/r", Path(dd), None, "", (), 1, run=run, log=lambda m: None)
+            t.cp_read = (roster, set())
+            return [e["pr"] for e in t.drain_order(entries)]
+    ros_fork = {"groups": [{"group": "R10-F", "source": "outside", "resume": {"pr": 31}}]}
+    ent_fork = [{"pr": 7, "branch": "mine"}, {"pr": 31, "branch": "someone:main"}, {"pr": 8, "branch": "mine"}]
+    check("P420 drain_order: a fork-head outside entry (#31, branch no group claims) drains first through resume.pr",
+          drain_live420(ros_fork, ent_fork, {}) == [31, 7, 8])
+    check("P420 drain_order null: the same entries with no outside group keep arrival order",
+          drain_live420({"groups": [{"group": "R10-F", "resume": {"pr": 31}}]}, ent_fork, {}) == [7, 31, 8])
     check("P312 null: no priority and nothing critical keeps arrival order; one entry is untouched",
           drain312(mk312(1, 2, 4), cp=()) == [1, 2, 4] and drain312(mk312(2)) == [2])
     check("RECOMMENDED is the owner's six, each a flag batch accepts",
