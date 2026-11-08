@@ -40557,6 +40557,26 @@ R.check(
 )
 
 
+class _S3Kwargs:
+    """MQTT that records each publish's keyword arguments."""
+
+    def __init__(self) -> None:
+        self.calls, self.kwargs = [], []
+
+    async def async_call(self, domain, service, data=None, **kwargs):
+        self.calls.append((domain, service, data))
+        self.kwargs.append(kwargs)
+
+
+_s3_kw = _S3Kwargs()
+_s3_publish_calls("ecl/set", "ecl/cmd", services=_s3_kw)
+R.check(
+    "both arms publish blocking, so a broker failure reaches the arm's own except (#193)",
+    _s3_kw.kwargs == [{"blocking": True}, {"blocking": True}],
+    repr(_s3_kw.kwargs),
+)
+
+
 # ---------------------------------------------------------------------------
 R.section("R10-GENERIC-HEAT-CURVE — the displace through a number entity, kind offset")
 
@@ -41068,6 +41088,27 @@ R.check(
     "a restore that succeeded cleared its latch: the next failed restore is warned again",
     any("number.flaky" in m and "failed" in m for m in _gw_rewarn),
     repr(_gw_rewarn),
+)
+_asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload"))
+from heatpump_optimizer.log_latch import _HELD_CONDITIONS as _ghc_latches  # noqa: E402
+R.check(
+    "and after the retry succeeds no failure is held for that consumer",
+    "off_restore_stand_in_flaky" not in _ghc_latches.get(_gw.entry, {}),
+    repr(_ghc_latches.get(_gw.entry)),
+)
+# The kind option is normalised to offset, so the hook's refusal is driven
+# through its contract: a factory that answers None for the arm's key.
+_gk2 = _ghc_coord()
+_ghc_real_factory = _ghc_restore._CONSUMERS[_ghc.CONSUMER]
+_ghc_restore.register_consumer(_ghc.CONSUMER, lambda cfg: None)
+try:
+    _gk2_sent = _asyncio.run(_ghc.write_displace(_gk2.hass, _gk2.entry, _gk2.effective_config, 2))
+finally:
+    _ghc_restore.register_consumer(_ghc.CONSUMER, _ghc_real_factory)
+R.check(
+    "a write the restore hook refuses to arm is never sent: the arm refuses before the write",
+    _gk2_sent is False and _ghc_writes(_gk2) == [],
+    "sent=%r writes=%r" % (_gk2_sent, _ghc_writes(_gk2)),
 )
 _gcl = _ghc_coord(entry_id="ghc_cleared")
 _ghc_pub(_gcl, 2.0)
