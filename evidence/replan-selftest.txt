@@ -10,6 +10,16 @@ ok   a held L with one open carry plans one part (20 h), not its L size
 ok   six carries appended since measurement count open: 7 -> two parts (40 h)
 ok   a held group with zero open carries plans zero (null control)
 ok   the zero-open held group starts and finishes at the replan instant
+ok   R10-BODY-CONTRACT's shape: 8 unmarked of 44 plan one part (19.8 h), not four
+ok   carries filling two parts, four marked and left out, plan one part (20 h)
+ok   the same carries with none marked plan two parts as before (null control)
+ok   a measured held group counts only the unmarked carries appended since: 1 + 3 -> one part
+ok   a measured held group whose carries were all marked since plans zero, not one part
+ok   the measured open count never exceeds the carries then held still pending: 0 + 1
+ok   five open at measurement, seven of the eight since marked: one open carry
+ok   a size with no carry baseline prices every unmarked carry as absorbed: 18 + 4 h
+ok   marked carries are not absorbed work: 2 unmarked at the S baseline plan 18 h
+ok   a legacy carry (held while closed at the cut-over) is not open work: one part
 ok   every started group with no open dependency starts now, past a cap of 2
 ok   a started group says why it starts: its fixer is working
 ok   a critical-path group starts past a full cap, flagged exempt
@@ -32,6 +42,26 @@ ok   a replan given no caps does not draw a 6-slot plan: the owner's 16, with pr
 ok   null control: a cap given on the command line is used and named as given
 ok   the plan records whose caps it drew at
 model self-test: 0 failed
+ok   lane: a CI-only group is Instruments
+ok   lane: a tests-and-tools group is Instruments
+ok   lane: a docs-only doc group is Docs
+ok   lane: a user-docs group is Docs
+ok   lane null control: docs plus a tool is Instruments, not Docs
+ok   lane null control: a core-model group stays Core model
+ok   lane null control: a mixed group stays Core model
+ok   lane null control: a group with no files stays Core model
+ok   lane null control: a bare filename is not proof of an instrument
+ok   lane: an RCA group with no files is Instruments
+ok   lane: a tooling group with no files is Instruments
+ok   lane: a roster class instrument with no files is Instruments
+ok   lane: user docs with a dev harness are Docs
+ok   lane null control: a production group with no files stays Core model
+ok   lane null control: a named UX group keeps its lane over its kind
+ok   lane null control: a learner keeps its lane over its files
+ok   lane null control: an integration hot file keeps a tool group Core model
+ok   lane null control: a bare hot filename keeps a tool group Core model
+ok   lane null control: a bare tool basename in hot_files stays Core model
+ok   lane: an instrument-path hot file keeps a tool group Instruments
 ok   an absorbed group is closed work, not scheduled
 ok   deterministic: two runs are byte-identical
 ok   the clean plan passes --check
@@ -215,8 +245,18 @@ ok   self-test fails when rounds-explicit is deleted
 ok   self-test fails when absorbed-carries is deleted
   mutation class-cell: 'work = float(cell.get(cls, first[size]))' -> rc=1
 ok   self-test fails when class-cell is deleted
-  mutation appended-carries-open: 'added = max(0, carry - int(rec["carries"]))' -> rc=1
+  mutation appended-carries-open: 'added = sum(1 for i in pending if i >= cut)' -> rc=1
 ok   self-test fails when appended-carries-open is deleted
+  mutation held-open-pending: 'return len(pending), f"{len(pending)} carries' -> rc=1
+ok   self-test fails when held-open-pending is deleted
+  mutation held-measured-pending: 'then = min(int(rec["open"]), sum(1 for i in pending if i < cut))' -> rc=1
+ok   self-test fails when held-measured-pending is deleted
+  mutation absorbed-pending: 'extra = len(pending) - float(' -> rc=1
+ok   self-test fails when absorbed-pending is deleted
+  mutation pending-left-out: 'left_out = f", {left} marked carries left out" if left else ""' -> rc=1
+ok   self-test fails when pending-left-out is deleted
+  mutation legacy-threaded: 'roster_path or roster_ref or "<fixture>", legacy)' -> rc=1
+ok   self-test fails when legacy-threaded is deleted
   mutation caps-owner-default: '"slots": DEFAULT_CAPS["slots"] if args.slots is None else args.slots,' -> rc=1
 ok   self-test fails when caps-owner-default is deleted
   mutation model-monotone: '        if hb < ha:' -> rc=1
@@ -246,4 +286,7 @@ ok   self-test fails when freshness is deleted
   mutation gate-cancellation: 'return fast + clo + ana * (1.0 + p_cancel)' -> rc=1
 ok   self-test fails when gate-cancellation is deleted
 self-test: 0 failed
-rc=0
+
+real	0m52.016s
+user	0m43.883s
+sys	0m7.132s

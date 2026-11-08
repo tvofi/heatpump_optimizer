@@ -14,3 +14,4 @@ design-start-t0 rc= 1 KILLED ["FAIL evidence: a design-only group starts at t=0 
 post-dur-in-closure rc= 1 KILLED ['FAIL post-closure groups are outside the in-flight peak (null: none, same peak): (2, 1)', "FAIL the unmutated copy's self-test exits 0 (null control): rc=1"]
 post-check-carries rc= 1 KILLED ["FAIL --check refuses a post-closure group named in a stamp's carries: ['stamp cadence: stamped production groups do not equal the merged production groups, in merge order']", "FAIL the unmutated copy's self-test exits 0 (null control): rc=1"]
 stamp-while-cut rc= 1 KILLED ["FAIL cadence: a patch stamp cuts `every` groups and keeps the rest for the next: [['P1', 'P2', 'P3', 'P4', 'Q1'], ['Q2']]", "FAIL the unmutated copy's self-test exits 0 (null control): rc=1"]
+done

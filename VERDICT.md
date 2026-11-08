@@ -1,34 +1,56 @@
-Fix review: merge 0542969c33313f54db611ca0609fade7c1b14989
+Fix review: merge 56dd13aa8b3fea657ade16ec6d7b0956493af3c8
 
-bus-nonce: 8a39ab9fef186274ec553075b934e33d
+bus-nonce: 7fa7e2af1039a2d73875b517a50f6d91
 
-Round 3 of this review (round 2 blocked 0ce1f09bd196 at verdict/3264 f201386b). Measured head 0542969c33313f54db611ca0609fade7c1b14989, still the branch head at verdict time, merge base a37c58e5f321. 0ce1f09b is an ancestor; the only authored change since it is afde870be (tools/plan/replan.py, +34/-3); the rest are merges of origin/main. No finder's harness is committed for this instrument group (packet: "Finder's harness: none named"), so the harness is the round-1 and round-2 reviewers' scripts from verdict/3264 (mut.py, mutg.py, m2.py, attackA.py), re-run unchanged, plus my own mutant script, disclosed as mine (ev/mine.py).
+Resolution-delta round. The previous verdict, verdict/3264, was `Fix review: merge 0542969c`. This round measured head 56dd13aa8b3fea657ade16ec6d7b0956493af3c8 from detached worktrees. Its merge base with origin/main is 17e1157925908bd69addb58ed824c1ac22bfa82f, which is origin/main itself, so the head already contains main.
 
 ## Findings
 
-none
+- The brief's precondition does not hold, and I reviewed the extra commits instead of returning unverdicted. `git log 0542969c..56dd13aa --not origin/main` holds more than the merge (ev/range-not-main.txt). It holds the conflict merge d84006e66 and two later merges of main (9391c0d5a, 56dd13aa8). It also holds three authored commits that land carry 16 / roster index 15: 83b3e0b00 (the failing test), e08021412 (the fix) and 55b86a71e (the pins). The PR body declares all three. No earlier review covered them. I reviewed them in full, which keeps coverage, so the verdict covers the resolution and carry 16. Carry: dismissed: process observation about the dispatch; this verdict covers the whole delta
+- Surviving mutant on a production line of carry 16: the legacy read in `main()` is unpinned. Carry 16 requires `roster_lib.read_legacy` for the roster's cut-over. Claim: the body says "no production site of this round is unpinned", and that is false.
+  - Evidence: two mutants of tools/plan/replan.py both survive `--self-test` (ev/my16.out). main-legacy-none changes `legacy=legacy)` to `legacy=None)` in `main`'s `build_plan` call. main-legacy-path passes `src` in place of `ROSTERS_DIR/<basename>`.
+  - Harness and perturbation: the real CLI on roster blob df4c1694 with `--start 2026-11-07T22:00:00`, with main-legacy-none applied. R10-SAV-COMFORT moves from 1188 to 2376 min, because 5 legacy carries are priced as open again. Closure moves from 2026-11-14T00:51Z to 01:11Z (ev/figures-rederived.txt).
+  - Metric: the head's figures are correct. The pin is missing, so a regression in the wiring would pass the self-test.
+  - mutant_run.py generated no mutant on these lines, so the body's diff-mutant figure could not see them.
+  - Fix: one self-test arm that drives `main` (or a helper it calls) with a `--roster-file` copy named wave-r10-groups.json, and asserts that a legacy carry is left out.
+  - Carry: R10-FLOW-TOOLKIT-MODEL
+- One phrase in the body is wrong; its total is right. `## Figures` says PREPR-CAP, ROSTER-WRITE-SWEEP, SAV-COMFORT and TICK-LEVELS drop "to 0". Re-derived, they go 3564->2376, 2376->1188, 2376->1188 and 2376->1188. Only TRAIN-MERGE-LOOP goes to 0 (2376->0). The summed 14464 is exact (ev/figures-rederived.txt). Carry: dismissed: body prose with no code consequence; the correct per-group figures are recorded here
+- Roster carries 13 and 14 (0-based) of R10-FLOW-TOOLKIT-MODEL stay open: the closure rule and the disposition stages. The body says they are outside this repair's brief and "open on the roster as it stands". This PR does not settle them. They remain on this group, which stays open after the merge. Carry: R10-FLOW-TOOLKIT-MODEL
 
 ## Evidence
 
-- RESULT round-2 block 1 is closed (part-branch credit). I re-ran round 2's attackA.py unchanged at this head against the live roster (handoff/audit-r10-roster, ev/roster-sha.txt). Over v7.1.0..v7.1.1 it credits 12 production groups, was 8; the 4 added are R10-COP-GATE, R10-COP-PARTLOAD, R10-SAV-COMFORT and R10-UX-HEALTH. Over v7.1.2..v7.1.3 it credits 9, was 8. The head now matches the reviewer's own perturbation exactly, with 0 added and 0 lost in every window (ev/attackA-r3.out). Null control: v7.1.1..v7.1.2 stays at 1, and v7.1.3..v7.1.4 stays at 0. This re-derives the body's figures "12 of 12" and "9 of 9".
-- RESULT round-2 block 2 is closed (`## Red checks`). The PR has 68 check runs on one page. Two concluded red at this head: `pr-contract / pr-contract` (latest attempt 128470376626, 16:22Z) and `tests / nightly-status` (128470374844). The body names and answers both, citing the earlier attempts' job ids. It also names the reds of the earlier head, and gate 128436038602 as a deferral. A later `pr-contract / pr-contract` run, 128469857807 in run 42394658094, started at 17:08:44Z, after the last red to conclude, and ended in success: that run is the evidence that the body check passed. nightly-status is not this PR's red: a scout traced it to tests/nightly_status.py:139, which sets DEFAULT_WORKFLOW = "nightly.yml" and so grades nightly.yml only. The diff touches governance.yml and not nightly.yml.
-- RESULT round-2 non-blocking findings are settled. The squash fallback is now pinned: squash-longest (`max` -> `min`) is KILLED, where round 2 saw it survive. Item 7 (inflow 0.4 and the slot_sensitivity note) is now dismissed with a reason in the body, no longer carried to the closing group. The edit-run deadlock stays carried on R10-PROCESS-SLIM, as round 2 routed it.
-- RESULT mutation proof on afde870be's lines. The fixer's in-table mutants since-tag-part-branch, -part-boundary, -part-longest and -squash-longest are all killed (rc=1) in --self-test (ev/replan-selftest-head.txt). My own mutants (ev/mine.py, ev/r3-own-mutants.txt) are KILLED: part-hit-or-swap (drop the exact-equal arm), part-endswith, part-hit-ignored (back to an exact by_topic.get) and part-sep-underscore. One survivor, part-no-squash-after-topic (skip the subject fallback when a topic parsed but matched nothing), is equivalent on main's merge subjects. "Merge pull request #N from <owner>/<branch>" names no upper-case group, so the fallback never fires for a parsed topic.
-- RESULT earlier mutants re-run at this head:
-  - round 1's mut.py: 15 of 15 anchored mutants killed (ev/r1-mutants-r3.txt).
-  - round 2's m2.py: credit-lane-r2, credit-done-r2, squash-fallback-dropped, squash-longest, since-prod-lane and since-substantive are killed (ev/r2-mutants-r3.txt). merge-topic-lastseg, merge-topic-lower and merge-re-anchor survive. Round 2 judged all three equivalent, and that is unchanged. The other m2.py entries are anchor-ambiguous or no longer anchor; the in-table mutants that cover them are killed in --self-test.
-  - round 1's mutg.py: 4 of 4 gantt_drift mutants killed (ev/gantt-mutants-r3.txt).
-  - A local stash taken in that worktree during the mut.py run held the post-after-mark mutant; that mutant reported KILLED, and a reverted file cannot produce a false kill.
-- RESULT self-tests at this head:
-  - replan.py --self-test: "self-test: 0 failed", rc 0.
+- RESULT merge-tree: `git merge-tree --write-tree origin/main 56dd13aa` exits 0 with tree 9c11f07496a5 and no conflict (ev/merge-tree.txt). origin/main 17e1157925 is an ancestor of the head.
+- RESULT both sides survive in tools/plan/replan.py:
+  - d84006e66's combined diff keeps this PR's `absorbers` and `post_closure_groups`, and main's `_owned_lane`, `_NON_PRODUCT_PREFIXES` and `INSTRUMENT_KINDS` (#3265: bdae685fb, 91ed006ba, aa5c0505b).
+  - At the head, `--self-test` passes main's lane arms: 22 `lane:` and `lane null control:` checks, all ok.
+  - It also passes this PR's carry-16 arms, the cadence and evidence arms, and `model self-test: 0 failed`, `null control: unmutated copy rc=0` and `self-test: 0 failed`. 61 in-table mutants report rc=1 (ev/replan-selftest.txt, wall 52 s).
+- RESULT carry 16 is correct on real data. Roster blob df4c1694f8b7 was run with `--start 2026-11-07T22:00:00` on d84006e66 (before) and on the head (after), each from its own clean worktree (ev/replan-before.txt, ev/replan-after-clean.txt).
+  - Before: `closure 2026-11-13T23:59:00Z | wall 145.98 h | CI 7537.5 min | batches 62`, binding chain R10-BODY-CONTRACT -> ARCH-DOCS -> CLOSEOUT-CLEANUP, critical path 133.72 h, slack 12.26 h.
+  - After: `closure 2026-11-14T00:51:00Z | wall 146.85 h | CI 7312.5 min | batches 60`, binding chain R10-CLONE-2238 -> ARCH-DOCS -> CLOSEOUT-CLEANUP, critical path 112.6 h, slack 34.25 h.
+  - Both match the body exactly. BODY-CONTRACT and HANDOFF-PATH each go 4752->1188, and 14464 seat-minutes in all are no longer priced.
+- RESULT null control: the head on the same roster with all 661 carry marks stripped is identical to d84006e66 on the marked roster. No group differs in duration, start or finish, and the summary is equal. This re-derives the body's whole-roster control (ev/figures-rederived.txt).
+- My first "after" runs were contaminated, and I discarded them. They ran in the worktree where round 1's mut.py was mutating replan.py at the same time, which gave CI 7537.5 / batches 62. They are kept in ev/contaminated/ only to disclose this. Every figure above comes from clean worktree wtc.
+- RESULT mutation proof on carry 16. This is my own harness, disclosed as mine (ev/my16.py, ev/my16b.py).
+  - Killed: pending-ignores-legacy, pending-all, left-count-zero, added-gt, then-le, then-max, then-no-pending, then-plus-added-dropped, added-unmarked-all, absorbed-left-out-dropped, held-left-out-dropped and build-legacy-none.
+  - Survived: main-legacy-none and main-legacy-path (see `## Findings`).
+  - The fixer's in-table mutants all report rc=1 in --self-test: held-open-pending, absorbed-pending, appended-carries-open, held-measured-pending, pending-left-out and legacy-threaded.
+- RESULT the body's diff-mutant run, re-run by its own command over `d84006e66...55b86a71e --path tools/plan/replan.py`: 15 survivors, all at self-test fixture lines 661-697, which matches the body (ev/diff-mutants-carry16.txt). The total of 39 is not re-derived, because `--report-only` lists only survivors.
+  - The same command over `d84006e66...HEAD` at 56dd13aa sweeps main's sweep_gantt.py, because that range now spans main's merges. That run is not this PR's figure.
+- RESULT the finder's harness: there is no committed finder harness for this group. I re-ran the earlier reviewers' scripts from verdict/3264 unchanged, each in its own worktree at the head.
+  - mut.py: 15 anchored mutants killed (credit-lane: ANCHOR 0, as in round 3) (ev/r1-mut.out).
+  - m2.py: credit-lane-r2, credit-done-r2, squash-fallback-dropped, squash-longest, since-prod-lane and since-substantive are killed. merge-topic-lastseg, merge-topic-lower and merge-re-anchor survive. Round 2 judged those three equivalent, and that is unchanged (ev/r2-m2.out).
+  - mutg.py: 4 of 4 gantt_drift mutants killed (ev/gantt-mut.out).
+  - Every worktree was clean after its run.
+- RESULT the other self-tests at the head (clean worktree):
   - gantt_drift.py --self-test: 45 checks, 0 failed.
   - plan_page.py --self-test: 67 checks, 0 failed.
   - tests/structure.py: STRUCTURE RATCHET PASSED.
-  - selftest_wiring --check: 0 index gaps (ev/structure-wiring.txt).
-- The body's "gantt_drift kills 16 mutants" is not re-derived. I re-ran only the 4 reviewer mutants and the self-test's 45 checks.
-- Diff base...head: 9 files (ev/diff-files.txt). No custom_components, VERSION, manifest or RELEASE_NOTES.md. dev/programme/delivery/3264.md is present, and gantt_drift.py is classified in tests/closures.json. No *_budgets.json changed. `git merge-tree --write-tree origin/main 0542969c` exits 0, and its stderr reports "LEDGER-MERGE: resolved tests/closures.json". The review roles are unchanged between the merge base and main.
-- `## Head` is current. 0542969c merges a37c58e5 into 84ef1285, whose parents are ec3b2460 and 28ec0da0. The 84ef1285..0542969c delta is main's content only (tests/closures.json, tools/policy/agreement.mjs).
-- Routing is unchanged and was verified in rounds 1 and 2: carries 1 and 7 (brief index) go to R10-BODY-CONTRACT, and 4, 5 and 6 are dismissed as duplicates.
-- Observation: v7.1.4..origin/main credits 0 of 3 code-changing merges. Two of them (r10-sav-wood-heat #3244 and r10-ext-3226 #3232) are merges of groups whose topic is on no roster group: no group is named R10-SAV-WOOD-HEAT or R10-EXT-3226, and no resume.branch names those branches. That is roster coverage, not this matcher. Carry: dismissed: evidence, not a finding
-- CI: merge_train classify 0542969c --pr 3264 returned rc=0 at 17:39:34Z: "GREEN 0542969c33313f54db611ca0609fade7c1b14989 pending: none red: none" (ev/classify-final.txt).
-- Closing self-audit: `carry_audit.py check` over this verdict exits 0 with "1 routed, 0 unrouted" (ev/carry-audit.txt). I passed an empty --body there: the packet's own carry_audit at the head reports the PR body holds 0 finding items. Re-classify immediately before return: GREEN, and the branch head is still 0542969c.
+- RESULT scope: the three-dot diff touches 9 files (ev/diff-files.txt). None is custom_components, VERSION, the manifest, RELEASE_NOTES.md or a *_budgets.json. dev/programme/delivery/3264.md is in the diff, and gantt_drift.py was classified in tests/closures.json in an earlier round. The structure_budgets.json change between 0542969c and the head is main's content, outside the three-dot diff. The review roles are unchanged between the merge base and main (an empty diff).
+- RESULT `## Head` names 56dd13aa8b3f, the head I measured.
+- RESULT checks: the head has 68 check runs, all on one page. Two `gate` runs concluded red:
+  - 128581984342 (run 42428588462, ended 00:53:23Z) and 128581829645 (run 42429932725, ended 00:52:32Z).
+  - Both logs read `FAIL run(s) [42428588857] at this head are still being judged; their gate decides`. Both are edit-run deferrals. That run's own `gate`, 128582492626, concluded success at 00:55:31Z.
+  - `pr-contract / pr-contract` 128582253262 started at 00:53:50Z, after the last red concluded, and ended in success. Under fix-review.md step 11, that run is the evidence that the body check passed.
+  - The body's `## Red checks` predates these deferrals. Its standing line already names gate-deferral reds as the instrument owned by R10-PROCESS-SLIM (#3245).
+- CI: `merge_train.py classify 56dd13aa8b3fea657ade16ec6d7b0956493af3c8 --pr 3264` gave RED (gate) at 00:55:41Z, before the deferred gate concluded, then WAIT, then `GREEN 56dd13aa8b3fea657ade16ec6d7b0956493af3c8 pending: none red: none` with rc=0 (ev/classify-final.txt).
+- Routing is unchanged since rounds 1 to 3: carries 1 and 7 (brief index) go to R10-BODY-CONTRACT, and 4, 5 and 6 are dismissed as duplicates. The resolution delta does not touch them.
