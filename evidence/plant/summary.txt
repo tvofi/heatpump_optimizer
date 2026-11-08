@@ -1,3 +1,2 @@
-RESULT plant wt config_flow_steps rc=0
-RESULT plant main config_flow_steps rc=0
-RESULT plant selection identical head vs main
+head rc=1 2 of 539 checks FAILED
+main rc=1 2 of 539 checks FAILED
