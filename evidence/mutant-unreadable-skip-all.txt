@@ -1,0 +1,99 @@
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 50 policy file(s)
+
+FIXTURE VACUOUS: a body whose `## Red checks` does not name the two earlier-head reds produced 0 error(s), not 2; the derived names have to reach the refusal the --red path already drives
+
+FIXTURE VACUOUS: MAIN_STATE_REPORTERS (exempt, own row added): red ["tests / nightly-status","governance / delivery-status","typing","governance / delivery-status-publish","tests / Nightly-Status"] over paths ["tests/x.py","dev/programme/delivery/9999.md"] owed answers for [], not ["typing","governance / delivery-status-publish","tests / Nightly-Status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
+
+FIXTURE VACUOUS: MAIN_STATE_REPORTERS (a merged row deleted): red ["governance / delivery-status"] over paths ["dev/programme/delivery/1570.md"] owed answers for [], not ["governance / delivery-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
+
+FIXTURE VACUOUS: MAIN_STATE_REPORTERS (a merged row deleted, old spelling): red ["governance / delivery-status"] over paths ["docs/delivery/1570.md"] owed answers for [], not ["governance / delivery-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
+
+FIXTURE VACUOUS: MAIN_STATE_REPORTERS (the moved plan edited): red ["governance / delivery-status"] over paths ["dev/programme/plan-2026-09-open-issues.md"] owed answers for [], not ["governance / delivery-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
+
+FIXTURE VACUOUS: MAIN_STATE_REPORTERS (the reporter's own script): red ["tests / nightly-status"] over paths ["tests/nightly_status.py"] owed answers for [], not ["tests / nightly-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
+
+FIXTURE VACUOUS: MAIN_STATE_REPORTERS (no existing list): red ["governance / delivery-status"] over paths ["tests/x.py","dev/programme/delivery/9999.md"] owed answers for [], not ["governance / delivery-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
+
+FIXTURE VACUOUS: MAIN_STATE_REPORTERS (no paths): red ["tests / nightly-status"] over paths [] owed answers for [], not ["tests / nightly-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
+
+FIXTURE VACUOUS: an unreadable required set owed [], not both reds; the relaxation must fail closed
+
+FIXTURE VACUOUS: check 'pr-body' produced no error saying "is red and"; that sub-claim refuses nothing the fixtures can produce
+rc=1
+  ok   null control: a clean head dispatches (no refusal)
+  ok   the packet is byte-identical on a second render of the same head
+  ok   the packet closes on the carry self-audit command (P275)
+  ok   the packet carries the head's harness output and names the head
+  ok   check names a stale packet: another head does not match
+  ok   carry-audit: an unrouted body refuses and names it
+  ok   head-note: a ## Head naming another head refuses
+  ok   head-note repair: the refusal names the head and the update_pr.sh push for the PR's branch
+  ok   head-note repair null: a branch that cannot be read prints today's refusal, no command
+  ok   structure: a structure refusal at the merge refuses
+  ok   red-unanswered: an unanswered concluded red refuses
+  ok   host-path: a host path refuses
+  ok   hot-file: a shared hot file with an unboarded merge verdict refuses
+  ok   required-red: the required context's latest run concluded failure refuses
+  ok   P345: a required red that is only a raise's owed approval renders: no refusal, an `approval-owed` advisory naming the reason, in the packet
+  ok   P345: the reason is classify --pr's own APPROVAL-OWED line at rc 4, asked with the pull request; RED (rc 1), a line naming another head, and the line at any rc but 4 are None (null controls)
+  ok   required-red null: the same head with that run green renders
+  ok   a head with checks still running dispatches, digest pending with run ids
+  ok   a head with no run read is `none`, never `green`
+  ok   write-on-refusal null: a clean render writes
+  ok   write-on-refusal: a concluded red still writes its packet
+  ok   write-on-refusal: a host path writes nothing
+  ok   write-on-refusal: one host path beside other refusals still writes nothing
+  ok   self-audit: a verdict note with no Carry: gives rc 1
+  ok   self-audit: the same note with its own `Carry: dismissed:` gives rc 0
+  ok   self-audit null: a verdict with no unrouted note gives rc 0
+  ok   brief-carries: a body answering carries 1-5 of 6 is refused naming carry 6
+  ok   brief-carries null: the same body with carry 6 dispositioned passes
+  ok   brief-carries null: a group with no carries passes
+  ok   brief-carries: `carry 1` does not name carry 10, and `Carry [10]` does
+  ok   handoff: structure and hot-file refuse beside the count, each named
+  ok   handoff null: a clean head refuses nothing
+  ok   carry-landed: only a line that says landed cites a carry, with its index and sha
+  ok   carry-landed: a carry the roster entry holds too few of at the sha refuses, naming it
+  ok   carry-landed: a sha off the roster ref refuses
+  ok   carry-landed null: the same body once the carry lands passes
+  ok   carry-landed null: a body citing no carry as landed passes
+  ok   carry-landed: the handoff refuses it beside the count
+  ok   hot-file arm: an unboarded merge verdict sharing a hot file refuses
+  ok   hot-file null: the same verdict boarded passes
+  ok   hot-file own-pr arm (a): the pull request whose head is an ancestor is not refused against itself
+  ok   own-pr: with no ancestor, the head branch fix/<topic> identifies it
+  ok   hot-file own-pr arm (b) null: a different open pull request holding an unboarded merge verdict still refuses
+  ok   hot-file own-pr arm (c): two ancestors are excluded neither and both are named
+  ok   hot-file null: a verdict at a stale head is not a merge verdict at its head
+  ok   hot-file reader: the verdict's head is the first line of VERDICT.md through proof_watch.parse_verdict
+  ok   hot-file reader null: a verdict-ref commit subject is not a verdict
+  ok   red-unanswered: with the required set read, only the required unit is owed, on a diff touching the reporter's own script
+  ok   red-unanswered null: a body naming every red is owed nothing
+  FAIL red-unanswered unread set: main's nightly-status red is not owed by a diff touching only a test file
+  FAIL red-unanswered unread set: a diff touching tests/nightly_status.py owes both
+  FAIL red-unanswered unread set: #2954's workflow diff still owes nightly-status
+  ok   red-unanswered null: no concluded red reads nothing
+  ok   red-unanswered unread set: main's delivery-status red is not owed by a diff adding only its own row
+  FAIL red-unanswered unread set: a delivery row the base already had owes delivery-status
+  ok   red-unanswered: under the train's set, a delivery row the base had owes delivery-status nothing
+  ok   red-unanswered: a path list policy_lint refuses is UNAVAILABLE, not no unanswered red
+  ok   independence: a harness the diff edits is refused as the fixer's
+  ok   independence: a harness absent at the base is refused
+  ok   independence null: a base harness the diff leaves alone is the finder's
+  ok   independence: --harness-file inside the checkout is refused
+  ok   handoff-not-applied: #2887's shape (old head merged with main, tip outside) refuses
+  ok   handoff-not-applied: the `fix/<t>-pr` spelling reads handoff/<t>
+  ok   handoff-not-applied null: a head containing the handoff tip renders
+  ok   handoff-not-applied null: a pull request with no handoff ref renders
+  ok   handoff-not-applied null: a branch not spelled fix/<t> renders
+  ok   repo(): a git read runs in the checkout the working directory is in, not the tool's install
+  ok   diff_paths: an added delivery row is touched, and only a file the base had is existing
+  ok   diff_paths -> red-unanswered: the row the diff adds owes main's delivery-status nothing
+  ok   UNAVAILABLE: a working directory outside a checkout exits 3, not 1, and writes nothing
+  ok   UNAVAILABLE: a failing `gh` is unavailable, never a refusal
+  ok   UNAVAILABLE: a git read that cannot resolve is unavailable, never a refusal
+review_packet self-test: 72 checks, 4 failed
+rp_rc=1

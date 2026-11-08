@@ -1,0 +1,5 @@
+A reporter red, reporter input touched: base owed=['tests / nightly-status'] | head owed=none
+B required unit red: base owed=['tests / typing'] | head owed=['tests / typing']
+C non-required red: base owed=['docs / links'] | head owed=none
+D null: every red named: base owed=none | head owed=none
+rc=0
