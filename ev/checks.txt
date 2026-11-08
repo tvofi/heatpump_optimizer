@@ -1,0 +1,19 @@
+== tests/entities.py
+    ...<9 lines>...
+    )
+  File "/root/wt/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+rc=1
+== tests/structure.py
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+== closure select
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+== untouched
+none of VERSION/manifest/RELEASE_NOTES/budgets/claims touched
+== roles current
+(empty above = current)

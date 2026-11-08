@@ -1,0 +1,11 @@
+== base (17e621f08 roster_queue.py, harness at head)
+stale: roster: set-stage G refused rc=3 LINT GATE REFUSED the push | --lint-cwd is at f0247ca43517, not origin/main (04d1743e4d83): the stale-worktree trap
+stale: roster: set-stage G refused rc=2 REFUSED: /tmp/tmp_e2sv4q3/wt HEAD 38a91f87f368 is on no origin ref
+stale: RESULT: FAIL
+cascade: roster: set-stage G refused rc=4 REFUSED: unrelated
+cascade: roster: set-stage G refused rc=2 REFUSED: /tmp/tmprwlx7bv4/wt HEAD 1b30f4d57812 is on no origin ref
+cascade: RESULT: FAIL
+follow: no refresh_lint
+follow: RESULT: FAIL
+RESULT: FAIL
+rc=1

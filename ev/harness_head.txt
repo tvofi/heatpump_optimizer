@@ -1,0 +1,11 @@
+== head 0fc051047d3c4bcd842bc687205f10e0166ff1f6
+stale: roster: set-stage G pushed 2d93605aa
+stale: roster: set-stage G pushed 30dd41f51
+stale: RESULT: PASS
+cascade: roster: set-stage G refused rc=4 REFUSED: unrelated
+cascade: roster: set-stage G pushed 30dd41f51
+cascade: RESULT: PASS
+follow: refresh_lint='' head=a05e03d29fab origin main=a05e03d29fab
+follow: RESULT: PASS
+RESULT: PASS
+rc=0

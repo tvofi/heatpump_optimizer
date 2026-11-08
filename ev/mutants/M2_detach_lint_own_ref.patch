@@ -1,0 +1,11 @@
+--- /tmp/tmp.F7d6bwDtoK/mut/old.py	2026-11-08 21:09:12.148688714 +0000
++++ /tmp/tmp.F7d6bwDtoK/mut/M2_detach_lint_own_ref.old.py	2026-11-08 21:09:12.168688715 +0000
+@@ -327,7 +327,7 @@
+         return f"edit checkout has no origin/main ({f.stderr.strip()[-120:]})"
+     if not Path(a.lint_clone).is_dir():
+         return f"{a.lint_clone} is not a directory, wanted {sha[:12]}"
+-    c = _git("checkout", "-q", "--detach", sha, cwd=a.lint_clone)
++    c = _git("checkout", "-q", "--detach", "origin/main", cwd=a.lint_clone)
+     if c.returncode != 0:  # the object is not in the clone's store yet: fetch it, then retry once
+         _git("fetch", "-q", "origin", "main", cwd=a.lint_clone)
+         c = _git("checkout", "-q", "--detach", sha, cwd=a.lint_clone)

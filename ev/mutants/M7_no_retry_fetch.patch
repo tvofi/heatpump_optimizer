@@ -1,0 +1,10 @@
+--- /tmp/tmp.F7d6bwDtoK/mut/old.py	2026-11-08 21:09:12.148688714 +0000
++++ /tmp/tmp.F7d6bwDtoK/mut/M7_no_retry_fetch.old.py	2026-11-08 21:09:12.222551262 +0000
+@@ -329,7 +329,6 @@
+         return f"{a.lint_clone} is not a directory, wanted {sha[:12]}"
+     c = _git("checkout", "-q", "--detach", sha, cwd=a.lint_clone)
+     if c.returncode != 0:  # the object is not in the clone's store yet: fetch it, then retry once
+-        _git("fetch", "-q", "origin", "main", cwd=a.lint_clone)
+         c = _git("checkout", "-q", "--detach", sha, cwd=a.lint_clone)
+     head = _git("rev-parse", "HEAD", cwd=a.lint_clone).stdout.strip()
+     if c.returncode != 0 or head != sha:
