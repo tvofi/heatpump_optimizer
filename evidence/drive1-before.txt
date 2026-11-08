@@ -1,0 +1,1 @@
+PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/unnamed-red.md

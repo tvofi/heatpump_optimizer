@@ -1,5 +1,0 @@
-== null control at base 70c15830
-  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `tests / typing` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and 
-  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `docs / links` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and it
-  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its st
-  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `code-scanning alert 9 (py/y)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper

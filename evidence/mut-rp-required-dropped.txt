@@ -1,28 +1,3 @@
-
-KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
-
-TOTAL: 0 error(s) across 50 policy file(s)
-
-FIXTURE VACUOUS: a body whose `## Red checks` does not name the two earlier-head reds produced 0 error(s), not 2; the derived names have to reach the refusal the --red path already drives
-
-FIXTURE VACUOUS: MAIN_STATE_REPORTERS (exempt, own row added): red ["tests / nightly-status","governance / delivery-status","typing","governance / delivery-status-publish","tests / Nightly-Status"] over paths ["tests/x.py","dev/programme/delivery/9999.md"] owed answers for [], not ["typing","governance / delivery-status-publish","tests / Nightly-Status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
-
-FIXTURE VACUOUS: MAIN_STATE_REPORTERS (a merged row deleted): red ["governance / delivery-status"] over paths ["dev/programme/delivery/1570.md"] owed answers for [], not ["governance / delivery-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
-
-FIXTURE VACUOUS: MAIN_STATE_REPORTERS (a merged row deleted, old spelling): red ["governance / delivery-status"] over paths ["docs/delivery/1570.md"] owed answers for [], not ["governance / delivery-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
-
-FIXTURE VACUOUS: MAIN_STATE_REPORTERS (the moved plan edited): red ["governance / delivery-status"] over paths ["dev/programme/plan-2026-09-open-issues.md"] owed answers for [], not ["governance / delivery-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
-
-FIXTURE VACUOUS: MAIN_STATE_REPORTERS (the reporter's own script): red ["tests / nightly-status"] over paths ["tests/nightly_status.py"] owed answers for [], not ["tests / nightly-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
-
-FIXTURE VACUOUS: MAIN_STATE_REPORTERS (no existing list): red ["governance / delivery-status"] over paths ["tests/x.py","dev/programme/delivery/9999.md"] owed answers for [], not ["governance / delivery-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
-
-FIXTURE VACUOUS: MAIN_STATE_REPORTERS (no paths): red ["tests / nightly-status"] over paths [] owed answers for [], not ["tests / nightly-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
-
-FIXTURE VACUOUS: an unreadable required set owed [], not both reds; the relaxation must fail closed
-
-FIXTURE VACUOUS: check 'pr-body' produced no error saying "is red and"; that sub-claim refuses nothing the fixtures can produce
-rc=1
   ok   null control: a clean head dispatches (no refusal)
   ok   the packet is byte-identical on a second render of the same head
   ok   the packet closes on the carry self-audit command (P275)
@@ -72,7 +47,7 @@ rc=1
   ok   hot-file reader null: a verdict-ref commit subject is not a verdict
   ok   red-unanswered: with the required set read, only the required unit is owed, on a diff touching the reporter's own script
   ok   red-unanswered null: a body naming every red is owed nothing
-  FAIL red-unanswered unread set: main's nightly-status red is not owed by a diff touching only a test file
+  ok   red-unanswered unread set: main's nightly-status red is not owed by a diff touching only a test file
   FAIL red-unanswered unread set: a diff touching tests/nightly_status.py owes both
   FAIL red-unanswered unread set: #2954's workflow diff still owes nightly-status
   ok   red-unanswered null: no concluded red reads nothing
@@ -95,5 +70,4 @@ rc=1
   ok   UNAVAILABLE: a working directory outside a checkout exits 3, not 1, and writes nothing
   ok   UNAVAILABLE: a failing `gh` is unavailable, never a refusal
   ok   UNAVAILABLE: a git read that cannot resolve is unavailable, never a refusal
-review_packet self-test: 72 checks, 4 failed
-rp_rc=1
+review_packet self-test: 72 checks, 3 failed

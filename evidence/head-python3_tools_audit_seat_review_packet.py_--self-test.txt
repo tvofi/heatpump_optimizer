@@ -1,10 +1,3 @@
-
-KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
-
-TOTAL: 0 error(s) across 50 policy file(s)
-
-FIXTURE ok: 93 error(s) hold 273 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
-rc=0
   ok   null control: a clean head dispatches (no refusal)
   ok   the packet is byte-identical on a second render of the same head
   ok   the packet closes on the carry self-audit command (P275)
@@ -54,12 +47,12 @@ rc=0
   ok   hot-file reader null: a verdict-ref commit subject is not a verdict
   ok   red-unanswered: with the required set read, only the required unit is owed, on a diff touching the reporter's own script
   ok   red-unanswered null: a body naming every red is owed nothing
-  FAIL red-unanswered unread set: main's nightly-status red is not owed by a diff touching only a test file
-  FAIL red-unanswered unread set: a diff touching tests/nightly_status.py owes both
-  FAIL red-unanswered unread set: #2954's workflow diff still owes nightly-status
+  ok   red-unanswered unread set: main's nightly-status red is not owed by a diff touching only a test file
+  ok   red-unanswered unread set: a diff touching tests/nightly_status.py owes both
+  ok   red-unanswered unread set: #2954's workflow diff still owes nightly-status
   ok   red-unanswered null: no concluded red reads nothing
   ok   red-unanswered unread set: main's delivery-status red is not owed by a diff adding only its own row
-  FAIL red-unanswered unread set: a delivery row the base already had owes delivery-status
+  ok   red-unanswered unread set: a delivery row the base already had owes delivery-status
   ok   red-unanswered: under the train's set, a delivery row the base had owes delivery-status nothing
   ok   red-unanswered: a path list policy_lint refuses is UNAVAILABLE, not no unanswered red
   ok   independence: a harness the diff edits is refused as the fixer's
@@ -77,5 +70,4 @@ rc=0
   ok   UNAVAILABLE: a working directory outside a checkout exits 3, not 1, and writes nothing
   ok   UNAVAILABLE: a failing `gh` is unavailable, never a refusal
   ok   UNAVAILABLE: a git read that cannot resolve is unavailable, never a refusal
-review_packet self-test: 72 checks, 4 failed
-rp_rc=1
+review_packet self-test: 72 checks, 0 failed

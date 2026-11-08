@@ -1,0 +1,13 @@
+##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+[36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+shell: /usr/bin/bash -e {0}
+env:
+  GH_TOKEN: ***
+  PR: 3305
+  BASE: main
+  KIND: code
+  WORKSET: arch-score budget-raise-gate codeql governance hassfest pr-contract tests validate
+##[endgroup]
+FAIL pr-contract / pr-contract: failure (this run)
+##[error]Process completed with exit code 1.
+Post job cleanup.

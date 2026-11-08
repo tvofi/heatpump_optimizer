@@ -1,9 +1,0 @@
-== gh fails (403); owed-reds:
-owed_rc=127
-== head as shipped
-  skip    required-set: REFUSE proof: could not read main-protect-checks's required contexts; no proof is judged against a guessed list -- every red is owed an answer thi
-  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `tests / typing` is red and `## Red checks` does not name it. Name the failure and answer
-  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `docs / links` is red and `## Red checks` does not name it. Name the failure and answer i
-PR-BODY: 2 error(s) in tools/policy/fixtures/policy-rot/prepr/unnamed-red.md
-== mutant: requiredFromTrain ignores owed-reds' rc
-PR-BODY: 0 error(s) in tools/policy/fixtures/policy-rot/prepr/unnamed-red.md
