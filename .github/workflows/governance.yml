@@ -265,13 +265,15 @@ jobs:
     # request whose every changed file is product (prelude.machinery).
     if: inputs.machinery != 'false'
     runs-on: ubuntu-latest
-    # 20, not 10: the seat self-tests below add about four minutes run
-    # serially on a seat (pr_args.sh's runs three times, through open_pr.sh
-    # and update_pr.sh), beside the job's three. 30, not 20: beatd.py's
-    # self-test is sleep-bound; with its mutants run serially this job took
-    # 26 min at #2916's ad1ba9adb. They now run four at a time
-    # (MUTANT_WORKERS), the self-test about 4.5 min, so the job is about
-    # 21 min of 30 (#2873's, without it, ran 16.5).
+    # 30 minutes. Run in line, this job's steps reached it: two main runs
+    # were cancelled there and its last four successful ones finished inside
+    # its final 90 s, mostly in five self-tests (prepr.sh's, beatd.py's, and
+    # pr_args.sh's once alone and once each through open_pr.sh and
+    # update_pr.sh), four of which wait far more than they compute. They start
+    # detached in the first step and are read in five steps near the end,
+    # the last step refusing any never read (R10-HOTFIX-SELFTEST-TIMEOUT), so the job lasts as long as the longer
+    # of its in-line steps and prepr.sh's self-test, not as long as all of
+    # them added together.
     timeout-minutes: 30
     env:
       HPO_JOB_GRADES: nothing
@@ -284,6 +286,70 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
+
+      # THE FIVE SLOWEST SELF-TESTS START HERE AND ARE READ AT THE END
+      # (R10-HOTFIX-SELFTEST-TIMEOUT). Run in line they were most of this
+      # job's wall time and two main runs hit the timeout; four of them wait
+      # far more than they compute (prepr.sh's alone keeps a core busy), so
+      # they overlap the steps below, each with its own log and exit status.
+      # pr_args.sh's self-test, which the three PR-tool steps each run, runs
+      # them one after another, as before: its mut:unlock arm observes a lock
+      # holder inside the 0.2 s it takes to notice its parent has gone, and
+      # under the CPU of all five at once it missed that window.
+      # prepr.sh's, the one that computes, runs at nice 10 for the same reason.
+      # Each keeps its own step at the end, under its old name, which prints
+      # that log and fails on that status -- every step still runs and still
+      # greps its tally. bg_wait fails a test whose launcher vanished without
+      # a status rather than waiting for the job timeout, and marks each
+      # status it reads; the job's last step fails naming every self-test
+      # started here whose status no step read, so deleting a waiter step,
+      # or its bg_wait line, turns the job red rather than leaving that
+      # self-test's exit status unread.
+      - name: Start the five slowest self-tests beside the rest of the job
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bg"
+          cat > "$RUNNER_TEMP/bg/lib.sh" <<'LIB'
+          bg_run() { # <name> <command...>: run it, to <name>.log, its status to <name>.rc
+            local d="$RUNNER_TEMP/bg" r
+            if "${@:2}" > "$d/$1.log" 2>&1; then r=0; else r=$?; fi
+            echo "$r" > "$d/$1.rc.tmp" && mv "$d/$1.rc.tmp" "$d/$1.rc"
+          }
+          bg_pid() { # <pid> <name...>: the detached process each name's bg_wait watches
+            local p=$1; shift
+            for n in "$@"; do echo "$p" > "$RUNNER_TEMP/bg/$n.pid"; done
+          }
+          bg_start() { # <name> <command...>: bg_run detached
+            ( bg_run "$@" ) < /dev/null > /dev/null 2>&1 &
+            bg_pid "$!" "$1"
+          }
+          bg_wait() { # <name>: wait for it, print its log, return its status
+            local d="$RUNNER_TEMP/bg"
+            while ! test -f "$d/$1.rc"; do
+              if ! kill -0 "$(cat "$d/$1.pid")" 2> /dev/null && ! test -f "$d/$1.rc"; then
+                cat "$d/$1.log"; echo "$1: its launcher exited with no status" >&2; return 1
+              fi
+              sleep 5
+            done
+            : > "$d/$1.read"; cat "$d/$1.log"; return "$(cat "$d/$1.rc")"
+          }
+          bg_unread() { # every name started whose status no bg_wait read: list them, fail
+            local d="$RUNNER_TEMP/bg" p n s=0 u=0
+            for p in "$d"/*.pid; do
+              n=$(basename "$p" .pid); s=$((s + 1))
+              if ! test -f "$d/$n.read"; then echo "UNREAD $n: no step read its status" >&2; u=$((u + 1)); fi
+            done
+            echo "bg_unread: $s started, $u unread"
+            test "$u" -eq 0
+          }
+          LIB
+          . "$RUNNER_TEMP/bg/lib.sh"
+          bg_start prepr nice -n 10 bash -c 'if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test; else bash tools/pr/prepr.sh --self-test; fi'
+          bg_start beatd python3 -I tools/audit/seat/beatd.py --self-test
+          ( bg_run open-pr bash tools/audit/seat/open_pr.sh --self-test
+            bg_run pr-args bash tools/audit/seat/pr_args.sh --self-test
+            bg_run update-pr bash tools/audit/seat/update_pr.sh --self-test ) < /dev/null > /dev/null 2>&1 &
+          bg_pid "$!" open-pr pr-args update-pr
 
       # EVERY STEP HERE DRIVES A PROGRAM THE PULL REQUEST CARRIES. A
       # self-test's verdict is about a program's own refusals, and the copy
@@ -354,9 +420,6 @@ jobs:
       # cannot fail for a reason is the defect this step exists to catch.
       - name: Show the record-predicate sweep refusing its own perturbations
         run: if test -f tools/audit/record-predicate/sweep.mjs; then node tools/audit/record-predicate/sweep.mjs --self-test; else node tools/policy/record-predicate/sweep.mjs --self-test; fi
-
-      - name: Show the pre-PR self-check refusing its own fixtures
-        run: if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test; else bash tools/pr/prepr.sh --self-test; fi
 
       - name: Show the push script's decisions refusing their own fixtures
         run: if test -f tools/audit/push.sh; then bash tools/audit/push.sh --self-test; else bash tools/pr/push.sh --self-test; fi
@@ -610,6 +673,7 @@ jobs:
           python3 -I tools/pr/head_note.py --self-test
           python3 -I tools/release/stamp.py --self-test
           python3 -I tools/policy/agreement_py.py --self-test
+          python3 -I tools/policy/role_pack.py --self-test
           # The wave-script restore list is derived, never carried: every .py
           # file the agreement reader loads must be restored from the base,
           # or a head whose readers agree still reads divergent (#2423).
@@ -740,14 +804,6 @@ jobs:
           python3 -I tools/audit/seat/moved_paths.py --self-test | tee "$RUNNER_TEMP/moved-paths-self-test.txt"
           grep -Eq '^moved_paths self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/moved-paths-self-test.txt"
 
-      - name: Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/open_pr.sh --self-test | tee "$RUNNER_TEMP/open-pr-self-test.txt"
-          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"
-          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"
-
       - name: Show the plan table refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -755,19 +811,19 @@ jobs:
           python3 -I tools/audit/seat/plan_table.py --self-test | tee "$RUNNER_TEMP/plan-table-self-test.txt"
           grep -Eq '^plan_table self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-table-self-test.txt"
 
+      - name: Show the gantt drift reader refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/gantt_drift.py --self-test | tee "$RUNNER_TEMP/gantt-drift-self-test.txt"
+          grep -Eq '^gantt_drift self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gantt-drift-self-test.txt"
+
       - name: Show the plan page refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail
           python3 -I tools/audit/seat/plan_page.py --self-test | tee "$RUNNER_TEMP/plan-page-self-test.txt"
           grep -Eq '^plan_page self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/plan-page-self-test.txt"
-
-      - name: Show the PR argument builder refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/pr_args.sh --self-test | tee "$RUNNER_TEMP/pr-args-self-test.txt"
-          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-args-self-test.txt"
 
       - name: Show the dispatch cap refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -947,27 +1003,12 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/heartbeat.sh --self-test | tee "$RUNNER_TEMP/heartbeat-self-test.txt"
           grep -Eq '^heartbeat self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/heartbeat-self-test.txt"
-
-      - name: Show the supervised beat refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          python3 -I tools/audit/seat/beatd.py --self-test | tee "$RUNNER_TEMP/beatd-self-test.txt"
-          grep -Eq '^beatd self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beatd-self-test.txt"
       - name: Show the beat's job rows refusing their own fixtures
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail
           python3 -I tools/audit/seat/beat_jobs.py --self-test | tee "$RUNNER_TEMP/beat-jobs-self-test.txt"
           grep -Eq '^beat_jobs self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beat-jobs-self-test.txt"
-
-      - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
-        if: ${{ !cancelled() }}
-        run: |
-          set -o pipefail
-          bash tools/audit/seat/update_pr.sh --self-test | tee "$RUNNER_TEMP/update-pr-self-test.txt"
-          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
-          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
 
       - name: Show the offline spy refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -1086,6 +1127,15 @@ jobs:
           python3 -I tools/audit/seat/sweep_driver.py --self-test | tee "$RUNNER_TEMP/sweep-driver-self-test.txt"
           grep -Eq '^sweep_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-driver-self-test.txt"
 
+      - name: Show the beat's Gantt and verdict-audit instruments (sweep_gantt.py, verdict_audit.py) refusing their own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/sweep_gantt.py --self-test | tee "$RUNNER_TEMP/sweep-gantt-self-test.txt"
+          grep -Eq '^sweep_gantt self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-gantt-self-test.txt"
+          python3 -I tools/audit/seat/verdict_audit.py --self-test | tee "$RUNNER_TEMP/verdict-audit-self-test.txt"
+          grep -Eq '^verdict_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/verdict-audit-self-test.txt"
+
       - name: Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -1122,6 +1172,55 @@ jobs:
           set -o pipefail
           sh tools/ci/alert_list_mutants.sh --self-test | tee "$RUNNER_TEMP/alert-list-mutants.txt"
           grep -Eq '^ALERT-LIST MUTANTS: every mutant refused$' "$RUNNER_TEMP/alert-list-mutants.txt"
+
+      # The five started beside the job above, read in their old order.
+      - name: Show the pre-PR self-check refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          . "$RUNNER_TEMP/bg/lib.sh"
+          bg_wait prepr
+
+      - name: Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          . "$RUNNER_TEMP/bg/lib.sh"
+          bg_wait open-pr | tee "$RUNNER_TEMP/open-pr-self-test.txt"
+          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"
+          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"
+
+      - name: Show the PR argument builder refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          . "$RUNNER_TEMP/bg/lib.sh"
+          bg_wait pr-args | tee "$RUNNER_TEMP/pr-args-self-test.txt"
+          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-args-self-test.txt"
+
+      - name: Show the supervised beat refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          . "$RUNNER_TEMP/bg/lib.sh"
+          bg_wait beatd | tee "$RUNNER_TEMP/beatd-self-test.txt"
+          grep -Eq '^beatd self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beatd-self-test.txt"
+
+      - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          . "$RUNNER_TEMP/bg/lib.sh"
+          bg_wait update-pr | tee "$RUNNER_TEMP/update-pr-self-test.txt"
+          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
+          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
+
+      # Last: a self-test started above whose status no step read would
+      # otherwise run unread and be killed as an orphan, the job green.
+      - name: Refuse a detached self-test whose status no step read
+        if: ${{ !cancelled() }}
+        run: |
+          . "$RUNNER_TEMP/bg/lib.sh"
+          bg_unread
 
   # THE LANES ABOVE RUN IN ONE ENVIRONMENT. Five separate assertions in this
   # repository were CORRECT and never RAN, because whether they run is decided

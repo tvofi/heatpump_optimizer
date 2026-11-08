@@ -57,6 +57,31 @@ Plants, one per refusal of the two ops and per round-trip property:
          though its group would orphan an open issue (H1), and the
          set-resume --field stage door left unheld (H2).
 
+    W1-W15 the write-sweep arms (R10-ROSTER-WRITE-SWEEP): the lettered
+           proposal label unmatched (W1), append-group's `@` strip dropped
+           (W2), the overlap test skipping the not-started stage (W3), the
+           --reason escape always open (W4), the index exemption dropped (W5),
+           append-carry's closing refusal (W6), the open-PR WARN (W7) and the
+           absorbed_into naming (W8) lost, set-resume's pr field (W9), a stale
+           note kept (W10), the privacy gate not called (W11), absorbed --into
+           naming no live group (W12, W13) or needing none (W14), and a phase
+           branch unresolved in roster_lib.group_for_branch (W15).
+
+    W16-W17 the lane marker on structural ops (carry 15): the guard dropped
+           (W16) and set-stage wrongly made structural (W17); Q13 is the
+           queue runner not setting it.
+
+    Q1-Q12 roster_queue.py's own self-test: the plain shlex.split line grammar
+           (a trailing comment reaches the editor, Q1), the run-start snapshot
+           written over a line appended since (Q2), a flag folded into the
+           value (Q3), a held line released with its batch file absent (Q4),
+           marking the wrong line (Q5), `all` run without --mark (Q6) and no
+           lint-clone self-heal in `loop` (Q7), the batch path resolving its
+           editor from the edit checkout, not the one `run` executes (Q8),
+           a file that is no roster_edit executed by the batch loader (Q9), and
+           the read-only `diff` blind to removed groups (Q10), to a replaced
+           carry of equal count (Q11), and `show --stage` unfiltered (Q12).
+
     python3 tools/audit/seat/r10_roster_ops_mutants.py [plant ...]
     python3 tools/audit/seat/r10_roster_ops_mutants.py --null
     python3 tools/audit/seat/r10_roster_ops_mutants.py --self-test
@@ -77,6 +102,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 TARGET = "tools/audit/seat/roster_edit.py"
 DROP = '    del g["carry"][_carry_index(g, index, match, "drop-carry")]\n'
+RQ = "tools/audit/seat/roster_queue.py"
 LIB, SYNC, AUDIT = ("tools/audit/seat/roster_lib.py",
                     "tools/audit/seat/roster_sync.py", "tools/audit/carry_audit.py")
 _MARK_LINE = next((ln for ln in (ROOT / LIB).read_text().splitlines()
@@ -134,8 +160,8 @@ PLANTS = {
            "    if True:  # S5\n        return None\n"),
     "S6": ("    if size is None or size in sizes:\n        return None\n",
            "    if True:  # S6\n        return None\n"),
-    "S7": ("        op_append_group(roster, value, rel, sizes)\n",
-           "        op_append_group(roster, value)  # S7\n"),
+    "S7": ("        op_append_group(roster, value, rel, sizes, reason)\n",
+           "        op_append_group(roster, value, reason=reason)  # S7\n"),
     "K1": ('    if roster_lib.carry_mark(g["carry"][i]):\n', "    if False:  # K1\n"),
     "K2": ("    if kind not in roster_lib.CARRY_MARKS:\n", "    if False:  # K2\n"),
     "K3": ('    if kind == "implemented" and not SHA_RE.match(arg):\n',
@@ -145,15 +171,15 @@ PLANTS = {
     "K6": ('    if kind == "dismissed" and not arg:\n', "    if False:  # K6\n"),
     "K7": ('["stage"] = _closing(g, stage, legacy, "set-stage")\n',
            '["stage"] = stage  # K7\n'),
-    "K8": ("                    legacy = roster_lib.read_legacy(a.worktree, rel)\n",
-           "                    legacy = {}  # K8\n"),
+    "K8": ("                legacy = roster_lib.read_legacy(a.worktree, rel)\n",
+           "                legacy = {}  # K8\n"),
     "K9": ('        value = _closing(g, value, legacy, "set-resume")\n',
            "        pass  # K9\n"),
     "K10": ("        if stage in roster_lib.CARRY_CLOSED:\n",
             "        if False:  # K10\n"),
     "K11": ('    if "]" in arg:\n', "    if False:  # K11\n"),
     "K12": ('raise Refuse(f"the carry cut-over is unreadable, so no "\n'
-            '                                 f"stage is written: {e}")',
+            '                             f"stage is written: {e}")',
             "legacy = {}  # K12"),
     "L1": (LIB, "            if carry_mark(c) is None and c not in held]\n",
            "            if c not in held]  # L1\n"),
@@ -161,7 +187,7 @@ PLANTS = {
            "            if carry_mark(c) is None]  # L2\n"),
     "L3": (LIB, '            if (g.get("resume") or {}).get("stage") in CARRY_CLOSED}\n',
            "            }  # L3\n"),
-    "L4": (LIB, 'CARRY_CLOSED = DONE_STAGES + ("absorbed",)\n',
+    "L4": (LIB, 'CARRY_CLOSED = CLOSED_STAGES\n',
            "CARRY_CLOSED = DONE_STAGES  # L4\n"),
     "L5": (LIB, '    return ("carries-open" if pending else "done"), pending\n',
            '    return "done", pending  # L5\n'),
@@ -193,8 +219,8 @@ PLANTS = {
            '        elif isinstance(x, dict) and isinstance(x.get("number"), int):  # R5\n'),
     "H1": ("    if held:\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n",
            "    if False:  # H1\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n"),
-    "H2": ('            if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
-           '            if a.op == "set-stage":  # H2\n'),
+    "H2": ('        if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
+           '        if a.op == "set-stage":  # H2\n'),
 }
 
 
@@ -240,6 +266,50 @@ PLANTS.update({
     "R11": ('                    and _git_ok(checkout, "merge-base", "--is-ancestor",\n'
             '                                sha, cand):\n',
             '                    and True:  # R11\n'),
+    "W1": ('LABEL = r"P(?:\\d+|-[A-Q])\\b"', 'LABEL = r"P\\d+\\b"'),
+    "W2": ('    if json_file.startswith("@"):\n        json_file = json_file[1:]\n', ""),
+    "W3": ('        if (g.get("resume") or {}).get("stage") != "not-started":\n            continue\n', ""),
+    "W4": ('    if clash and not (reason or "").strip():\n', "    if clash and reason is None:\n"),
+    "W5": ('if not _is_index(f)}', "}"),
+    "W6": ("    if stage in roster_lib.CARRY_CLOSED:\n        into = resume.get",
+           "    if False:\n        into = resume.get"),
+    "W7": ('    if resume.get("pr"):\n        print(f"WARN', '    if False:\n        print(f"WARN'),
+    "W8": ('if stage == "absorbed" and into else', "if False else"),
+    "W9": ('"note", "pr")', '"note")'),
+    "W10": ("            and OWED_NOTE_RE.search(note):\n", "            and not OWED_NOTE_RE.search(note):\n"),
+    "W11": ('        why = privacy_refusal(added_texts(before, roster) + added_resume(before, roster))\n'
+            '        if why:\n            raise Refuse(f"privacy gate: {why}; nothing written")\n', ""),
+    "W12": ('    if hstage in roster_lib.CARRY_CLOSED:\n', "    if False:\n"),
+    "W13": ('    if into == group:\n        raise Refuse(f"set-stage: {group} cannot be absorbed',
+            '    if False:\n        raise Refuse(f"set-stage: {group} cannot be absorbed'),
+    "W14": ('    if not into:\n        raise Refuse(f"set-stage: {group} absorbed needs',
+            '    if False:\n        raise Refuse(f"set-stage: {group} absorbed needs'),
+    "W15": (LIB, "    if phase != tail:  # handoff", "    if False:  # handoff"),
+    "Q1": (RQ, "    t = _split(ln)\n", "    t = shlex.split(ln)\n"),
+    "Q2": (RQ, '            mark_line(a.queue, ln, "done" if ok else "refused")\n',
+           '            Path(a.queue).write_text("\\n".join((("#done " if ok else "#refused ") + x) if x == ln else x for x in qlines))\n'),
+    "Q3": (RQ, 'return t[0], t[1], (rest[0] if rest else ""), rest[1:]',
+           'return t[0], t[1], " ".join(rest), []'),
+    "Q4": (RQ, "        if files and all(_git(", "        if True or all(_git("),
+    "Q5": (RQ, "        if x == old:\n", "        if x.strip() == old.strip() or True:\n"),
+    "Q6": (RQ, "    if allq and not mark:\n", "    if False:\n"),
+    "Q7": (RQ, "    if Path(a.lint_clone).is_dir():\n        return False\n",
+           "    if True:\n        return False\n"),
+    "Q8": (RQ, "        re_ = load_editor(editor)\n",
+           '        re_ = load_editor(str(Path(a.edit_checkout, "tools/audit/seat/roster_edit.py")))\n'),
+    "Q10": (RQ, "    out = [f\"- {g}\" for g in ga if g not in gb] + ",
+            "    out = [] + "),
+    "Q11": (RQ, "                out += [f\"~ {g} carry -{_short(c, 90)}\" for c in ca if c not in cb]\n"
+                "                out += [f\"~ {g} carry +{_short(c, 90)}\" for c in cb if c not in ca]\n",
+            "                if len(ca) != len(cb):\n"
+            "                    out.append(f\"~ {g} carry +{len(cb) - len(ca)}\")\n"),
+    "Q12": (RQ, "        if stage and r.get(\"stage\") != stage:\n", "        if False:\n"),
+    "W16": ("    if op in STRUCTURAL_OPS and os.environ.get(LANE_ENV) != LANE_VALUE:\n",
+            "    if False:\n"),
+    "W17": ('STRUCTURAL_OPS = ("wire-issue",', 'STRUCTURAL_OPS = ("set-stage", "wire-issue",'),
+    "Q13": (RQ, '    env["HPO_ROSTER_LANE"] = "queue-runner"', '    env["HPO_ROSTER_LANE"] = "x"'),
+    "Q9": (RQ, '    if "def batch_edit" not in Path(path).read_text():\n',
+           '    if False:\n'),
 })
 
 
@@ -252,7 +322,7 @@ def parts(name):
 
 
 def target_self_test(target=TARGET):
-    r = subprocess.run([sys.executable, target, "--self-test"], cwd=ROOT,
+    r = subprocess.run([sys.executable, "-I", target, "--self-test"], cwd=ROOT,
                        capture_output=True, text=True)
     fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
     return r.returncode, fails, (r.stdout + r.stderr).strip().splitlines()[-3:]

@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.3";
+const CARD_VERSION = "7.1.5";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -895,6 +895,30 @@ const STRINGS = {
     // The percent is a template because the spacing is orthographic:
     // English sets "(8%)", Swedish "(8 %)".
     "headline.savings_pct": "({pct}%)",
+    "whynow.title": "Why now",
+    "whynow.metric":
+      "The reasons weighing on this hour's plan. Each row is one reason: the arrow shows whether it pushes the heat pump to run or to idle, and the percentage is its share of the total push this hour. A high share means that reason pushes hardest; the plan weighs the whole day's hours together, so the heat pump can still do the opposite this hour. No data means the optimizer has no plan for this hour yet, for example before the first solve or while the price forecast is missing.",
+    "whynow.no_data": "No data",
+    "whynow.all_neutral": "No effect now from any reason.",
+    "whynow.dir_run": "pushes toward running",
+    "whynow.dir_idle": "pushes toward idle",
+    "whynow.dir_neutral": "no effect now",
+    "whynow.weight": "{sign}{w}%",
+    "whynow.driver_price_rank": "Price rank",
+    "whynow.explain_price_rank":
+      "How cheap this slot is against the rest of the plan: the cheapest slot pushes fully toward running, the dearest toward idle.",
+    "whynow.driver_comfort_floor": "Comfort floor",
+    "whynow.explain_comfort_floor":
+      "How far the room is from the middle of its comfort band, above the comfort floor: below the middle pushes toward running, above it toward idle.",
+    "whynow.driver_mold_guard": "Mold guard",
+    "whynow.explain_mold_guard":
+      "How far the mold guard lifts the lowest allowed temperature above the comfort minimum in this slot; it only ever pushes toward running.",
+    "whynow.driver_away": "Away",
+    "whynow.explain_away":
+      "How far away mode or the holiday schedule lowers the lowest allowed temperature; it only ever pushes toward idle.",
+    "whynow.driver_forecast": "Forecast",
+    "whynow.explain_forecast":
+      "This slot's weather against the next 8 hours: colder, windier or wetter ahead pushes toward running now, more sun ahead toward idle.",
     // The tile row and the header's status pill (R9-UI-3, #1791).
     "tiles.price_now": "Price now",
     "tiles.planned": "Planned heating",
@@ -1712,6 +1736,30 @@ const STRINGS = {
     "score.label_machine": "Värmepumpen",
     "score.label_operation": "Körningen",
     "headline.savings_pct": "({pct} %)",
+    "whynow.title": "Varför nu",
+    "whynow.metric":
+      "Skälen som väger på den här timmens plan. Varje rad är ett skäl: pilen visar om det driver värmepumpen att gå eller vila, och procenten är dess andel av den totala påverkan den här timmen. Hög andel betyder att skälet driver hårdast; planen väger hela dygnets timmar mot varandra, så värmepumpen kan ändå göra tvärtom den här timmen. Ingen data betyder att optimeraren ännu inte har någon plan för timmen, till exempel före första beräkningen eller när prisprognosen saknas.",
+    "whynow.no_data": "Ingen data",
+    "whynow.all_neutral": "Ingen påverkan nu från något skäl.",
+    "whynow.dir_run": "driver mot drift",
+    "whynow.dir_idle": "driver mot vila",
+    "whynow.dir_neutral": "ingen påverkan nu",
+    "whynow.weight": "{sign}{w} %",
+    "whynow.driver_price_rank": "Prisrang",
+    "whynow.explain_price_rank":
+      "Hur billig luckan är mot resten av planen: den billigaste luckan driver helt mot drift, den dyraste mot vila.",
+    "whynow.driver_comfort_floor": "Komfortgolv",
+    "whynow.explain_comfort_floor":
+      "Hur långt rummet ligger från mitten av sitt komfortintervall, ovanför komfortgolvet: under mitten driver mot drift, över mot vila.",
+    "whynow.driver_mold_guard": "Mögelskydd",
+    "whynow.explain_mold_guard":
+      "Hur mycket mögelskyddet lyfter den lägsta tillåtna temperaturen över komfortminimum i luckan; det driver bara mot drift.",
+    "whynow.driver_away": "Bortaläge",
+    "whynow.explain_away":
+      "Hur mycket bortaläget eller helgschemat sänker den lägsta tillåtna temperaturen; det driver bara mot vila.",
+    "whynow.driver_forecast": "Prognos",
+    "whynow.explain_forecast":
+      "Luckans väder mot de kommande 8 timmarna: kallare, blåsigare eller blötare framöver driver mot drift nu, mer sol framöver mot vila.",
     // The tile row and the header's status pill (R9-UI-3, #1791).
     "tiles.price_now": "Pris nu",
     "tiles.planned": "Planerad uppvärmning",
@@ -8939,13 +8987,19 @@ function scoreParts(plan) {
  * none to show; an unknown code is skipped rather than shown raw. */
 function scoreDrivers(part, drivers) {
   if (part !== "envelope" && !Array.isArray(drivers)) return "";
-  const shown = (Array.isArray(drivers) ? drivers : [])
-    .filter((d) => STRINGS.en[`score.driver_${d.code}`] !== undefined)
+  const shown = knownCodes(drivers, "score.driver_")
     .map((d) => ({ code: d.code, pts: Math.round(Number(d.points) || 0) }))
     .filter((d) => d.pts !== 0)
     .map((d) => `${L(`score.driver_${d.code}`)} ${d.pts > 0 ? "+" : "−"}${Math.abs(d.pts)}`);
   return shown.length ? shown.join("; ")
     : L(part === "envelope" ? "score.driver_typical" : `score.driver_typical_${part}`);
+}
+
+/** The entries of a published code list the card has words for under
+ * `prefix`; an unknown code is skipped rather than shown raw. Shared by the
+ * score's drivers and the why-now block. */
+function knownCodes(list, prefix) {
+  return (Array.isArray(list) ? list : []).filter((d) => STRINGS.en[`${prefix}${d.code}`] !== undefined);
 }
 
 /** What an ungraded heat pump waits on (`machine_evidence`): the four
@@ -8978,23 +9032,59 @@ function scoreReasonText(code) {
  */
 function scoreBreakdownHtml(plan) {
   const rows = scoreParts(plan)
-    .map((p) => {
-      const value =
-        p.value === null
-          ? `<span class="sb-na">— ${esc(p.reason)}</span>`
-          : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
-      const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
-      return (
-        `<div class="sb-row" data-part="${p.key}" title="${esc(scoreRowTitle(p))}">` +
-        `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
-        `${bar}${value}</div>` +
-        (p.drivers ? `<div class="sb-text sb-drivers">${esc(p.drivers)}</div>` : "") +
-        `<div class="sb-text">${esc(L(`score.part_${p.key}`))}</div>` +
-        `</div>`
-      );
-    })
+    .map((p) => breakdownRow({
+      key: p.key,
+      label: p.label,
+      valueText: p.value === null ? `— ${p.reason}` : `${Math.round(p.value)}/100`,
+      muted: p.value === null,
+      barPct: p.value,
+      sub: [["sb-text sb-drivers", p.drivers], ["sb-text", L(`score.part_${p.key}`)]],
+      title: scoreRowTitle(p),
+    }))
     .join("");
   return `<div class="score-breakdown">${rows}</div>`;
+}
+
+/** One breakdown row, shared by the score panel and the why-now block: a
+ * name, an optional 0-100 bar, a value (muted when it is a reason rather
+ * than a figure), each non-empty `[class, text]` sub-line, and a hover. */
+function breakdownRow({ key, label, valueText, muted = false, barPct = null, sub = [], title }) {
+  const bar = barPct === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, barPct))}%"></span></span>`;
+  return (
+    `<div class="sb-row" data-part="${key}" title="${esc(title)}">` +
+    `<div class="sb-head"><span class="sb-name">${esc(label)}</span>` +
+    `${bar}<span class="${muted ? "sb-na" : "sb-val"}">${esc(valueText)}</span></div>` +
+    sub.filter(([, text]) => text).map(([cls, text]) => `<div class="${cls}">${esc(text)}</div>`).join("") +
+    `</div>`
+  );
+}
+
+/** The "Why now" block (R10-WHY-NOW-WIDGET): the current step's drivers as
+ * the space-plan sensor publishes them in `why_now`, one row each with its
+ * direction mark and signed share of the push; one line when every driver
+ * is neutral, the no-data line when the attribute is absent. Derives
+ * nothing: the weights and directions are the solver's. */
+function whyNowHtml(plan) {
+  const why = plan.attrRaw("why_now", null);
+  const drivers = knownCodes(why && why.drivers, "whynow.driver_");
+  const mark = { run: "↑", idle: "↓" };
+  const rows = !drivers.length
+    ? `<div class="sb-text">${esc(L("whynow.no_data"))}</div>`
+    : drivers.every((d) => d.direction === "neutral")
+      ? `<div class="sb-text">${esc(L("whynow.all_neutral"))}</div>`
+      : drivers.map((d) => {
+        const w = Math.round(Number(d.weight) || 0);
+        const label = L(`whynow.driver_${d.code}`);
+        const valueText = `${mark[d.direction] || "·"} ${L("whynow.weight", { sign: w > 0 ? "+" : w < 0 ? "−" : "", w: Math.abs(w) })}`;
+        const dir = L(`whynow.dir_${mark[d.direction] ? d.direction : "neutral"}`);
+        return breakdownRow({
+          key: d.code, label, valueText, muted: d.direction === "neutral",
+          barPct: Math.abs(w), sub: [["sb-text", dir]],
+          title: `${label}: ${dir}, ${valueText}\n${L(`whynow.explain_${d.code}`)}\n${L("whynow.metric")}`,
+        });
+      }).join("");
+  return `<div class="score-breakdown why-now" data-block="why-now" title="${esc(L("whynow.metric"))}">` +
+    `<div class="sb-head"><span class="sb-name">${esc(L("whynow.title"))}</span></div>${rows}</div>`;
 }
 
 /** One sub-score's hover: its grade or reason, its drivers or what it
@@ -9144,6 +9234,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
       ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
       ${scoreOpen && score !== null ? scoreBreakdownHtml(plan) : ""}
       ${rows ? `<ul class="hl-narrative">${rows}</ul>` : ""}
+      ${whyNowHtml(plan)}
     </div>`;
 }
 
@@ -9922,7 +10013,7 @@ const RECEIPT_CSS = `
 const finiteNum = (n) => typeof n === "number" && Number.isFinite(n);
 
 /** The latest receipt's lines, its total and where its spot money went. */
-function receiptHtml(st, rows, cur) {
+function receiptHtml(st, rows, cur, wood) {
   const list = Array.isArray(st.attributes.receipts) ? st.attributes.receipts : [];
   const r = list.length ? list[list.length - 1] : null;
   if (!r || !r.lines || typeof r.lines !== "object") return "";
@@ -9948,7 +10039,9 @@ function receiptHtml(st, rows, cur) {
     ? `<div>${esc(L("receipt.saved", {
         amount: row.savings_sek.toFixed(2), unit: cur,
         pct: finiteNum(row.savings_pct) ? `${row.savings_pct.toFixed(0)} %` : "—",
-      }))}</div>`
+      }))}</div>${wood
+        ? `<div class="receipt-sub receipt-wood-note">${esc(L("savings.wood_note"))}</div>`
+        : ""}`
     : "";
   const covers = basis.map((n) => L(`receipt.line_${n}`).toLowerCase()).join(", ");
   const reasons = Object.entries(r.reasons || {})
@@ -14925,7 +15018,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const cur = savingsUnit(this.plan, "_plan_monthly_savings");
     // R9-UX-6: the closed month's receipt and yesterday's replay come first;
     // the table of every month below them is unchanged.
-    const drawn = `${receiptHtml(st, rows, cur)}${replayHtml(st, cur)}`;
+    // The reference has no wood: on a house with wood configured every saving
+    // the page states, the receipt's and the table's, says so (owner ruling,
+    // 2026-11-04).
+    const fuel = this.plan.woodFuel();
+    const wood = !!(fuel && fuel.show_whatif);
+    const drawn = `${receiptHtml(st, rows, cur, wood)}${replayHtml(st, cur)}`;
     const top = drawn ? `<style>${RECEIPT_CSS}</style>${drawn}` : "";
     const money = (n) => (finiteNum(n) ? n.toFixed(2) : "—");
     const pct = (n) => (finiteNum(n) ? `${n.toFixed(0)}%` : "—");
@@ -14959,8 +15057,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // the same unit down the whole column, and repeating it is what pushed
     // the decimal points out of line.
     const head = (key) => `${esc(L(key))} (${esc(cur)})`;
-    const fuel = this.plan.woodFuel();
-    const woodNote = fuel && fuel.show_whatif
+    const woodNote = wood
       ? `<div class="savings-wood-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.wood_note"))}</div>`
       : "";
     return `${top}<table class="savings-table">

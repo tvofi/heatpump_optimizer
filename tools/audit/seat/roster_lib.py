@@ -80,6 +80,11 @@ LIVE_CLAIM = tuple(w for w, k in STAGE_KIND if k == "live-claim")
 #: records that is not here keeps the group open (and its after-edges
 #: constraining).
 DONE_STAGES = tuple(w for w, k in STAGE_KIND if k == "done")
+#: The stages that end a group's work: the done ones, and `absorbed`, whose
+#: work lives in its fold destination. `is_open`, the after-edge closure and the
+#: carry destination check read this one set; `absorbed` stays a disposition
+#: (roster_sync never rewrites it), so DONE_STAGES keeps meaning "merged".
+CLOSED_STAGES = DONE_STAGES + ("absorbed",)
 #: Human dispositions: nothing derives, clears or overwrites one.
 DISPOSITION = tuple(w for w, k in STAGE_KIND if k == "disposition")
 #: The stages in which a group's work is under way, for the planner's live
@@ -340,11 +345,50 @@ def groups_of(roster: dict) -> dict:
 
 
 def is_open(group: dict) -> bool:
-    return (group.get("resume") or {}).get("stage") not in DONE_STAGES
+    return (group.get("resume") or {}).get("stage") not in CLOSED_STAGES
 
 
 def open_groups(roster: dict) -> dict:
     return {k: g for k, g in groups_of(roster).items() if is_open(g)}
+
+
+def run_refusing(tool: str, main, argv=None) -> int:
+    """`main(argv)`, a missing roster printed as the one `<tool>: REFUSED ...`
+    line and exit 2, never a traceback: the shared refusal of every reader
+    (carry_audit's own contract)."""
+    try:
+        return main(argv)
+    except RosterNotFound as e:
+        print(f"{tool}: REFUSED {e}")
+        return 2
+
+
+def missing_ref_probe(script: str) -> tuple[int, int, bool]:
+    """(rc, REFUSED lines, traceback seen) of `script` run against a roster ref
+    that does not exist: the self-test row every roster reader owes."""
+    r = subprocess.run([sys.executable, "-I", script, "--roster-ref",
+                        "origin/no-such-ref-xyz"], capture_output=True, text=True)
+    out = r.stdout + r.stderr
+    return r.returncode, out.count("REFUSED"), "Traceback" in out
+
+
+#: Owner-gate classes. A gate is `covered` when it names a mandate id or begins
+#: with a prefix the mandate in force covers (0013); `owner` when it states a
+#: decision still to be taken. The gate's meaning is the roster schema's, so the
+#: tick calls this and holds no pattern of its own.
+_GATE_COVERED = re.compile(r"\bmandate[ds]?\b|\A\s*(?:code-owned|policy|budget):", re.I)
+#: A gate stating a decision still to be taken (today only "owner decision after the probe").
+_GATE_OWNER = re.compile(r"\bowner decision\b", re.I)
+
+
+def gate_kind(text) -> str | None:
+    """None for no gate, `covered` for one the mandate in force covers, `owner`
+    for one stating a decision not yet taken (a mandate or covered prefix wins)."""
+    if not isinstance(text, str) or not text.strip():
+        return None
+    if _GATE_OWNER.search(text) and not _GATE_COVERED.search(text):
+        return "owner"
+    return "covered"
 
 
 # ------------------------------------------------------------ the carry ledger
@@ -361,9 +405,8 @@ def open_groups(roster: dict) -> dict:
 # `implemented` records that the sha is on main; it is not a verification.
 CARRY_MARKS = ("implemented", "moved", "dismissed")
 _CARRY_MARK = re.compile(r" \[(implemented|moved|dismissed): ([^\]\n]+)\]\Z")
-#: The stages in which a group can no longer receive or discharge a carry: the
-#: closed ones, and `absorbed`, whose work lives in its fold destination.
-CARRY_CLOSED = DONE_STAGES + ("absorbed",)
+#: The stages in which a group can no longer receive or discharge a carry.
+CARRY_CLOSED = CLOSED_STAGES
 #: THE CUT-OVER, per roster path: a carry that sat on a closed group at this
 #: roster-branch commit is LEGACY and is never reported, so the invariant
 #: starts at the cut-over with no blanket migration and nothing marked
@@ -537,7 +580,9 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
     normalized the same way: `fix/r9-fr-4` answers for `R9-FR-4` without the
     roster having to name every branch spelling a seat used. Equality, never
     a prefix -- `fix/r9-fr-1` must not answer for `R9-FR-10`. None for a
-    branch no group claims: the caller rows it in the neutral phrasing.
+    branch no group claims: the caller rows it in the neutral phrasing. A
+    phase branch `<group>-pN` (handoff/r10-x-p2) answers for its group when
+    no group is itself named `<group>-pN`.
     """
     if not branch:
         return None
@@ -549,6 +594,11 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
         gid = norm_group(str(g.get("group") or ""))
         if gid and gid == tail:
             return g.get("group")
+    phase = re.sub(r"-p\d+\Z", "", tail)
+    if phase != tail:  # handoff/<group>-pN: a phase branch of the group
+        for g in roster.get("groups", []):
+            if norm_group(str(g.get("group") or "")) == phase:
+                return g.get("group")
     return None
 
 
@@ -718,6 +768,27 @@ def _self_test() -> int:
     got = [(s[0], s[2]) for s in stranded({"groups": [
         cg, cg | {"group": "AB", "resume": {"stage": "absorbed"}},
         cg | {"group": "CO", "resume": {"stage": "carries-open"}}]}, legacy)]
+    check("absorbed is closed: not open, and an after-edge on it clears",
+          not is_open({"resume": {"stage": "absorbed"}})
+          and is_open({"resume": {"stage": "queued"}})
+          and "absorbed" not in DONE_STAGES and CARRY_CLOSED == CLOSED_STAGES,
+          (CLOSED_STAGES, CARRY_CLOSED))
+    ab = {"groups": [{"group": "A", "resume": {"stage": "absorbed"}},
+                     {"group": "B", "after": ["A"], "resume": {"stage": "queued"}}]}
+    check("an absorbed group is not in the open set or the dependency depth",
+          list(open_groups(ab)) == ["B"] and depth_of(ab)["B"] == 1 and depth_of(ab)["A"] == 1, depth_of(ab))
+    covered_gates = [
+        "code-owned CI: mandated approval under 6329234399",
+        "Policy: tvofi approves or mandate 6329234399",
+        "code-owned: .claude/hooks/",
+        "budget: a measurement change may move a ratchet metric",
+        "D10.md is policy; .github/workflows code-owned (approve under mandate 6329234399)"]
+    check("gate_kind: every gate shape on the roster is covered",
+          all(gate_kind(t) == "covered" for t in covered_gates),
+          [gate_kind(t) for t in covered_gates])
+    check("gate_kind: a pending decision is owner; no gate is None",
+          gate_kind("owner decision after the probe") == "owner"
+          and gate_kind("") is None and gate_kind(None) is None)
     check("stranded: a pending carry on a done or absorbed group, never on an "
           "open one", got == [("G", 1), ("AB", 0), ("AB", 1)], got)
 
@@ -752,6 +823,19 @@ def _self_test() -> int:
         # The critical-path set: read at a ref and normalized; None for every
         # failure shape, so a caller fails to FIFO rather than crashing.
         check("a group id normalizes case and underscore", norm_group("R10_A") == "r10-a")
+        # Phase branches (handoff/<group>-pN) answer for their group (carry 5).
+        rg = {"groups": [{"group": "R10-PH", "resume": {"branch": "handoff/other"}},
+                         {"group": "R10-PH-P2", "resume": {"branch": "handoff/x"}}]}
+        check("group_for_branch: handoff/<group>-p2 resolves to the group",
+              group_for_branch(rg, "handoff/r10-ph-p2") == "R10-PH-P2"
+              and group_for_branch({"groups": rg["groups"][:1]},
+                                   "handoff/r10-ph-p2") == "R10-PH")
+        check("group_for_branch: a phase branch of no group is None (null control)",
+              group_for_branch(rg, "handoff/r10-zz-p2") is None
+              and group_for_branch(rg, "handoff/r10-ph-px") is None)
+        check("group_for_branch: -p2 never answers a longer id by prefix",
+              group_for_branch({"groups": [{"group": "R10-PH-1"}]},
+                               "handoff/r10-ph-p2") is None)
         check("no critical-path file at a ref is None",
               critical_path_groups(str(repo), "HEAD") is None)
         check("critical_path_read: a ref publishing no file is (set(), ''), a "

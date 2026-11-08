@@ -32,10 +32,14 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      with its reason, never an exception: rule 2 is a refusal, and a
      refusal that crashes instead cannot be overridden.
   3. The next version is greater than VERSION and than every existing tag, and
-     its tag exists neither locally nor on origin; a round close's version is
-     `next_version`'s, refused as above before the tags are read.
+     its tag exists neither locally nor on origin: the bump starts from the
+     highest of VERSION and the fetched tags (`bump_base`), so a tag cut by
+     hand above VERSION is stepped past. A round close's version is
+     `next_version`'s, refused as above before the tags are read, and
+     recomputed from that base once they are.
   4. RELEASE_NOTES.md opens with a '## v<next>' section whose body mentions
-     every PR merged since the last tag -- a stamp covers everything
+     every PR merged since the last stamped tag (`last_stamped_tag`: the
+     newest whose tree's VERSION is its name) -- a stamp covers everything
      unstamped, whoever merged it. The merges are read off main's own
      --first-parent line, in both subject shapes main has produced
      ('Merge pull request #N from ...' and a trailing '(#N)'), and from a
@@ -47,7 +51,7 @@ claim file turned main red. So every rule below is a refusal, not a warning:
   5. (rule "rows") Every merged pull request in the window this tag is about to
      close has a disposition -- `record`'s own predicate, re-applied before the
      tag moves the anchor past it. The window is the one rule 4 reads
-     (`<last v* tag>..HEAD`, first-parent) and the instrument is
+     (`<last stamped tag>..HEAD`, first-parent) and the instrument is
      `tests/delivery_status.py --require-rows`, which answers it from git alone
      so a stamp needs no token. This is the countermeasure to #1301 (D11-02):
      the deploy-key tag push is `main-protect-checks`'s only bypass, so a stamp was the
@@ -76,7 +80,7 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      (rule "flush", between rules 3 and 4) The record beat batches on a
      push, so a window can owe rows it is holding back. Before rule 4 reads
      the window, a stamp whose window owes a non-record-class row dispatches
-     nightly.yml (a dispatch flushes at any count) and waits for the record
+     nightly.yml with lanes=beat (a dispatch flushes at any count) and waits for the record
      merge, then moves the checkout to that main, names the record pull
      request in the notes and waits for its gate (`flush_before_tag`). A flush
      that cannot dispatch or sees no merge in time leaves rule 5 to refuse;
@@ -122,6 +126,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import inspect
 import io
 import json
 import os
@@ -129,6 +134,7 @@ import pathlib
 import re
 import shlex
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -165,6 +171,16 @@ REGISTER_FILES = (REGISTER_DIR / "claims.json", REGISTER_DIR / "claims.md")
 # stub a stamp's checkout cannot be assumed to import.
 REGISTER_PYTHONPATH = "tests/hastub"
 TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
+# release.yml's steps the self-test drives by name, and the publish step's
+# read-back bound: GitHub lists a just-uploaded asset a moment after the upload
+# returns, so one read raced it.
+RELEASE_TREE_STEP = "Refuse a tag whose tree does not carry its version"
+RELEASE_PUBLISH_STEP = "Publish the release once its asset is on it"
+RELEASE_READBACK_ATTEMPTS = 5
+# The self-test's bound on one run of a release.yml step. Against the stub
+# gh, whose sleep returns at once, the shipped publish step exits 1 after 5
+# reads in under 0.05 s, so a step still running at this bound has no bound.
+RELEASE_STEP_TIMEOUT_S = 10
 # Rule 4's population: the pull requests merged into main since the last tag.
 # It is read off main's OWN first-parent line (window_log_args below). A
 # subject there has taken two shapes, so both are matched, and a deploy-key
@@ -334,6 +350,54 @@ def next_version(current: str, part: str | None, round_close: int | None,
     if part is None:
         return None, "one of --bump patch|minor or --round-close <round> is required"
     return bump(current, part), None
+
+
+def bump_base(current: str, tags: list[str]) -> str:
+    """The version a bump starts from: VERSION, or the highest release tag
+    when one stands above it. A tag cut by hand at a tree whose VERSION was
+    never moved (v7.1.2 at VERSION 7.1.1) leaves VERSION behind the tags, and
+    a bump from VERSION alone proposes that existing tag, which rule 3 then
+    refuses; from here the next stamp steps past it. `tags` is every tag name
+    read, release-shaped or not: TAG_RE drops the rest, so a v6.2.15-rc1
+    moves nothing."""
+    tops = [version_tuple(t) for t in tags if TAG_RE.match(t)]
+    return ".".join(map(str, max([version_tuple(current), *tops])))
+
+
+def last_stamped_tag(tags: list[str], version_at) -> str | None:
+    """The newest release tag a stamp made: the newest whose own tree's
+    VERSION equals its name. Rules 4 and 5 and the flush read their window
+    from it. A hand tag over a tree it did not stamp (v7.1.2 at VERSION
+    7.1.1) carries no notes section and no disposition pass of its own, so a
+    window anchored there would drop the merges the hand tag passed over.
+    `version_at(tag)` returns that tree's VERSION text, or None where it has
+    none (`tag_version` reads it through git); it is called newest first and
+    only until a tag matches."""
+    for tag in sorted((t for t in tags if TAG_RE.match(t)), key=version_tuple, reverse=True):
+        if (version_at(tag) or "").strip() == tag[1:]:
+            return tag
+    return None
+
+
+def tag_version(tag: str) -> str | None:
+    """The VERSION file of `tag`'s tree, or None where it has none (git show
+    fails and prints nothing to stdout)."""
+    return sh("git", "show", f"{tag}:VERSION", check=False) or None
+
+
+def release_step_script(name: str, workflow: Path | None = None) -> str:
+    """The bash text of release.yml's step `name`: its `run: |` block,
+    dedented. The self-test and the PR's tree proof run this, so what they
+    drive is the workflow's own text."""
+    lines = (workflow or ROOT / ".github" / "workflows" / "release.yml").read_text().splitlines()
+    at = lines.index(f"      - name: {name}")
+    run_at = next(i for i in range(at + 1, len(lines)) if lines[i].strip() == "run: |")
+    body = []
+    for line in lines[run_at + 1:]:
+        if line.strip() and not line.startswith(" " * 10):
+            break
+        body.append(line[10:])
+    return "\n".join(body).rstrip("\n") + "\n"
 
 
 def roster_round_at(root: Path) -> int | None:
@@ -1054,6 +1118,93 @@ def self_test() -> int:
     check("notes: #16 is not covered by #165", not re.search(r"#16(?!\d)", "fixed in #165"))
     check("tags: pre-release tags are ignored", not TAG_RE.match("v6.2.15-rc1") and bool(TAG_RE.match("v6.2.15")))
 
+    # THE BUMP BASE AND THE LAST STAMP (R10-HOTFIX-STAMP-BASE). v7.1.2 was
+    # tagged by hand at a tree whose VERSION reads 7.1.1: a bump from VERSION
+    # alone proposed v7.1.2 again, which rule 3 refuses, and a window anchored
+    # on the newest v* tag started at a commit no stamp made.
+    check("bump base: a hand tag above VERSION is the base, so the next patch is 7.1.3",
+          bump_base("7.1.1", ["v7.1.1", "v7.1.2"]) == "7.1.2"
+          and next_version(bump_base("7.1.1", ["v7.1.1", "v7.1.2"]), "patch", None, None)
+          == ("7.1.3", None))
+    check("bump base: no tag above VERSION leaves VERSION the base",
+          bump_base("7.1.1", ["v7.1.1"]) == "7.1.1" and bump_base("7.1.1", []) == "7.1.1")
+    check("bump base: a non-release tag is ignored",
+          bump_base("6.2.14", ["v6.2.14", "v6.2.15-rc1"]) == "6.2.14")
+    _trees = {"v7.1.0": "7.1.0\n", "v7.1.1": "7.1.1\n", "v7.1.2": "7.1.1\n",
+              "v7.1.3-rc1": "7.1.3-rc1\n"}
+    check("last stamp: a tag whose tree VERSION is not its name is skipped",
+          last_stamped_tag(["v7.1.0", "v7.1.1", "v7.1.2"], _trees.get) == "v7.1.1")
+    check("last stamp: a newest tag its tree stamps is the last stamp",
+          last_stamped_tag(["v7.1.0", "v7.1.1"], _trees.get) == "v7.1.1")
+    check("last stamp: non-release and VERSION-less tags are skipped, none is None",
+          last_stamped_tag(["v7.1.3-rc1", "v9.9.9"], _trees.get) is None)
+
+    # THE RELEASE WORKFLOW'S TREE CHECK AND ITS READ-BACK, driven from the YAML
+    # text itself: the step's own `run:` block is cut out of release.yml and
+    # run under bash, never a copy of its logic.
+    def _run_step(step: str, cwd, env: dict) -> int | None:
+        """Exit of release.yml step `step` under `bash -e -c` (GitHub's step
+        shell), or None when it is still running at RELEASE_STEP_TIMEOUT_S:
+        a step that does not end is a FAIL, never a hung self-test. It runs in
+        its own process group, killed whole at the bound, so no stub it started
+        outlives it in the temporary directory."""
+        proc = subprocess.Popen(["bash", "-e", "-c", release_step_script(step)], cwd=cwd, env=env,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                start_new_session=True)
+        try:
+            return proc.wait(timeout=RELEASE_STEP_TIMEOUT_S)
+        except subprocess.TimeoutExpired:
+            os.killpg(proc.pid, signal.SIGKILL)
+            proc.wait()
+            return None
+
+    def _tree_check(tag: str, version: str, manifest: str, heading: str) -> int:
+        with tempfile.TemporaryDirectory() as tree:
+            t = pathlib.Path(tree)
+            (t / "VERSION").write_text(version + "\n")
+            (t / "custom_components" / "heatpump_optimizer").mkdir(parents=True)
+            (t / "custom_components" / "heatpump_optimizer" / "manifest.json").write_text(
+                json.dumps({"domain": "heatpump_optimizer", "version": manifest}))
+            (t / "RELEASE_NOTES.md").write_text(f"# Notes\n\n{heading}\n\nShipped.\n")
+            return _run_step(RELEASE_TREE_STEP, t, {**os.environ, "TAG": tag})
+    check("release tree: a stamped tree releases (v7.1.1 at 7.1.1)",
+          _tree_check("v7.1.1", "7.1.1", "7.1.1", "## v7.1.1") == 0)
+    check("release tree: a tag over another VERSION refuses (v7.1.2 at 7.1.1)",
+          _tree_check("v7.1.2", "7.1.1", "7.1.2", "## v7.1.2") == 1)
+    check("release tree: a manifest that disagrees refuses",
+          _tree_check("v7.1.2", "7.1.2", "7.1.1", "## v7.1.2") == 1)
+    check("release tree: notes without the tag's own section refuse",
+          _tree_check("v7.1.2", "7.1.2", "7.1.2", "## v7.1.20") == 1)
+
+    def _publish_step(found_on: int) -> tuple[int, int, bool]:
+        """(exit, asset reads, published) of the publish step against a stub
+        gh whose release carries the asset from read `found_on` on (0: never)."""
+        with tempfile.TemporaryDirectory() as d:
+            b = pathlib.Path(d)
+            (b / "gh").write_text(
+                "#!/bin/bash\n"
+                f'if [ "$2" = view ]; then n=$(( $(cat {d}/reads 2>/dev/null || echo 0) + 1 ));'
+                f' echo $n > {d}/reads;'
+                f' [ {found_on} -gt 0 ] && [ $n -ge {found_on} ] && echo "$ASSET"; exit 0; fi\n'
+                f'if [ "$2" = edit ]; then touch {d}/published; fi\n')
+            (b / "sleep").write_text("#!/bin/bash\nexit 0\n")
+            for stub in ("gh", "sleep"):
+                (b / stub).chmod(0o755)
+            rc = _run_step(RELEASE_PUBLISH_STEP, d, {**os.environ, "PATH": f"{d}:{os.environ['PATH']}",
+                                                    "TAG": "v7.1.3", "ASSET": "heatpump_optimizer.zip"})
+            # A step killed at the bound can leave the stub mid-write: an empty count.
+            _n = (b / "reads").read_text().strip() if (b / "reads").exists() else "0"
+            reads = int(_n) if _n.isdigit() else -1
+            return rc, reads, (b / "published").exists()
+    check("release publish: an asset read back on the third read is published",
+          _publish_step(3) == (0, 3, True))
+    check("release publish: an asset on the first read is published at once",
+          _publish_step(1) == (0, 1, True))
+    _never = _publish_step(0)
+    check(f"release publish: an asset never read back fails after {RELEASE_READBACK_ATTEMPTS} "
+          "reads, unpublished",
+          _never == (1, RELEASE_READBACK_ATTEMPTS, False))
+
     # Rule 2's evidence, on both paths. gh is not installed everywhere a
     # release is taken from, and rule 2 used to call it before --allow-red
     # was read -- a missing binary raised FileNotFoundError instead of
@@ -1316,6 +1467,34 @@ def self_test() -> int:
     check("rows gate: with no tag yet it asks over the whole of origin/main",
           disposition_gate_argv(None, "py")
           == ["py", "tests/delivery_status.py", "--require-rows"])
+    check("rows gate: the stamp's head is passed to the instrument, one window with rule 4",
+          disposition_gate_argv("v6.6.1", "py", head="abc123")
+          == ["py", "tests/delivery_status.py", "--require-rows", "--since", "v6.6.1",
+              "--head", "abc123"])
+    _seen_argv: list = []
+    _gate_ret = disposition_gate("v6.6.1", lambda argv: (_seen_argv.append(argv), _Proc(0, "ok"))[1],
+                                 head="abc123")
+    check("rows gate: disposition_gate forwards its head to the command",
+          _seen_argv and _seen_argv[0][-2:] == ["--head", "abc123"] and _gate_ret == (True, "ok"))
+    check("rows gate: main's rule 5 passes the stamp head",
+          "disposition_gate(last_tag, head=head)" in __import__("inspect").getsource(main))
+    check("record beat: the dispatch payload carries lanes=beat on main",
+          RECORD_BEAT_PAYLOAD == {"ref": "main", "inputs": {"lanes": "beat"}})
+    _beat_sent: list = []
+
+    class _BeatResp:
+        status = 204
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+    _real_urlopen = urllib.request.urlopen
+    urllib.request.urlopen = lambda req, timeout=None: (_beat_sent.append(req.data), _BeatResp())[1]
+    try:
+        _beat_ret = dispatch_record_beat(token=lambda: "t")
+    finally:
+        urllib.request.urlopen = _real_urlopen
+    check("record beat: dispatch_record_beat posts lanes=beat",
+          _beat_sent and json.loads(_beat_sent[0]) == {"ref": "main", "inputs": {"lanes": "beat"}}
+          and _beat_ret == (True, "HTTP 204"))
     _rows_rowless = ("DELIVERY STATUS OK -- 0 rowed, 1 pending, 0 overdue "
                      "(overdue at 12 commits)\n  pending  #1301 0abc123 the merge")
     check("rows gate: a rowless window refuses, carrying the instrument's own list",
@@ -1358,7 +1537,7 @@ def self_test() -> int:
     _r5 = _r4_src[_r4_src.rindex("# Rule 5: the window"):]
     _r5 = _r5[:_r5.index("# Rule 6:")]
     check("rows gate: main() runs the disposition gate, before the manifest rule",
-          "disposition_gate(last_tag)" in _r5)
+          "disposition_gate(last_tag, head=head)" in _r5)
     check("rows gate: main() hands the verdict to the driven decision, and refuses it",
           "rows_gate_decision(" in _r5 and 'raise Refuse("rows"' in _r5)
 
@@ -1713,10 +1892,12 @@ def self_test() -> int:
     _fl: list = []
     _tick = iter(range(0, 10 ** 6, FLUSH_POLL_S))
 
-    def _flush(owed, lands_after, ready=True, sent=True):
+    def _flush(owed, lands_after, ready=True, sent=True, holds=(), fn=None):
         _fl.clear()
         polls = iter([[]] * lands_after + [["2810"]])
-        return record_flush(owed, "pre1234",
+        _holds = iter(holds)
+        return (fn or record_flush)(owed, "pre1234",
+                            held=lambda: next(_holds, None), say=_fl.append,
                             dispatch=lambda: (_fl.append("dispatch"), (sent, "x"))[1],
                             landed=lambda pre: (_fl.append(f"poll {pre}"), next(polls, []))[1],
                             ready=lambda: ready, sleep=lambda s: _fl.append("sleep"),
@@ -1742,6 +1923,48 @@ def self_test() -> int:
     _flush(_owed, 10 ** 5, ready=False)
     check("flush: and never re-dispatches while the record pull request is not ready",
           _fl.count("dispatch") == 1)
+    # The train hold (nightly.yml's HOLD_MAX_AGE_S): every beat dispatched under a
+    # live one exits skip-train-hold, so a flush spends no dispatch under it.
+    _H1 = {"sha": "a" * 40, "age": 120, "pid": "4242", "bound": 3600}
+    _live = [_H1] * 10 ** 5
+    _merged, _msg = _flush(_owed, 10 ** 5, holds=_live)
+    check("flush: a planted live hold is named, announced once, and spends no dispatch",
+          _merged == [] and _fl.count("dispatch") == 0 and "aaaaaaaa" in _msg and "pid 4242" in _msg
+          and "3600s" in _msg and sum("appeared" in l for l in _fl) == 1)
+    _merged, _msg = _flush(_owed, 6, holds=[None, None, _H1, _H1, None])
+    check("flush: a dispatch sent before the hold appeared is taken back and sent again "
+          "once it clears, and the flush still merges",
+          _merged == ["2810"] and _fl.count("dispatch") == 2 and "after 1 dispatch(es)" in _msg
+          and any("cleared" in l for l in _fl))
+    _flush(_owed, 10 ** 5, holds=[])
+    _merged, _msg = _flush(_owed, 10 ** 5)
+    check("flush: an absent hold changes nothing (null control): FLUSH_MAX_DISPATCHES, no hold named",
+          _fl.count("dispatch") == FLUSH_MAX_DISPATCHES and "train hold" not in _msg
+          and not any("train hold" in l for l in _fl))
+    _src = inspect.getsource(record_flush)
+    _mut = {}
+    exec(_src.replace("if not hold and (count == 0 or owe):", "if count == 0 or owe:")
+         .replace("if not hold and count <", "if count <"), globals(), _mut)
+    _flush(_owed, 10 ** 5, holds=_live, fn=_mut["record_flush"])
+    check("flush: a mutant dispatching under a live hold exhausts FLUSH_MAX_DISPATCHES, and is caught",
+          _src.count("if not hold and") == 2 and _fl.count("dispatch") == FLUSH_MAX_DISPATCHES)
+    _hold_log = {"ls": "abc\trefs/heads/train-hold\n", "ct": 1000, "msg": "train hold pid=77"}
+
+    def _git(*a):
+        if a[1] == "ls-remote":
+            return _hold_log["ls"]
+        return "" if a[1] == "fetch" else f"{'b' * 40}\n{_hold_log['ct']}\n{_hold_log['msg']}\n"
+    _g = lambda now, bound=3600: train_hold(_git, wall=lambda: now, bound=bound)
+    _bound = hold_bound_s()
+    check("hold: a young one is live with sha, age and pid; a stale one, a future-dated one and an "
+          "absent ref read as no hold",
+          _g(1100) == {"sha": "b" * 40, "age": 100, "pid": "77", "bound": 3600}
+          and _g(1000 + 3600) is None and _g(1000 + 3599) is not None and _g(900) is None
+          and train_hold(lambda *a: "" if a[1] == "ls-remote" else _git(*a), bound=3600) is None)
+    check("hold: the bound is nightly.yml's own HOLD_MAX_AGE_S by source read, not a literal here",
+          isinstance(_bound, int) and f"HOLD_MAX_AGE_S={_bound}" in
+          (ROOT / ".github" / "workflows" / NIGHTLY_WORKFLOW_FILE).read_text()
+          and "3600" not in inspect.getsource(train_hold) + inspect.getsource(hold_bound_s))
     check("flush: the owed set is rule 5's rowless merges less the record-class ones; a "
           "cleared window owes nothing",
           owed_rows("v1.0.0", gate=lambda t: (False, "  pending  #2801 abc1234 3 commit(s)\n"
@@ -1795,7 +2018,8 @@ def self_test() -> int:
           and _calls2 == [("flush", "pre1234")] and _notes2 == _nt)
     check("flush: main runs it after rule 3 and before rule 4, and a dry run's deferral "
           "reaches rule 5 only as that deferral",
-          _main_src.find("last_tag = \"v\"") < _main_src.find("flush_before_tag(args, last_tag, nxt, head)")
+          -1 < _main_src.find("last_tag = last_stamped_tag(tags, tag_version)")
+          < _main_src.find("flush_before_tag(args, last_tag, nxt, head)")
           < _main_src.find("body = notes_section(NOTES.read_text(), nxt)")
           and "allow_rowless=args.allow_rowless or bool(deferred)" in _main_src)
     _gates = iter([(False, "no completed ci.yml push run's gate for HEAD yet"),
@@ -1808,6 +2032,16 @@ def self_test() -> int:
           and wait_gate("new5678", gate=lambda h: (False, "ci.yml push run's gate for HEAD "
                                                           "concluded ['failure']"),
                         sleep=lambda s: 1 / 0, clock=lambda: 0)[0] is False)
+    _fetch_at = _main_src.find('sh("git", "fetch", "origin", "--quiet", "--tags")')
+    _base_at = _main_src.find("base = bump_base(current, tags + remote)")
+    _next_at = _main_src.find("nxt, why = next_version(base, ")
+    check("bump base: main() reads it after the tag fetch and bumps from it",
+          -1 < _fetch_at < _base_at < _next_at)
+    _r3 = _main_src[_main_src.index("# Rule 3: the next version is new"):]
+    _r3 = _r3[:_r3.index("# Rule \"flush\"")]
+    check("last stamp: main() anchors rules flush, 4 and 5 on the last stamped tag",
+          "last_tag = last_stamped_tag(tags, tag_version)" in _r3
+          and "last_tag = \"v\" +" not in _r3)
     check("round close: main takes the version from next_version, the round from the roster",
           "next_version(current, args.bump, args.round_close," in _main_src
           and "roster_round_at(ROOT)" in _main_src)
@@ -1989,18 +2223,23 @@ def claims_selfcheck(runner=None) -> tuple[bool, str]:
 DISPOSITION_GATE_SCRIPT = "tests/delivery_status.py"
 
 
-def disposition_gate_argv(last_tag: str | None, python: str = sys.executable) -> list[str]:
+def disposition_gate_argv(last_tag: str | None, python: str = sys.executable,
+                          head: str | None = None) -> list[str]:
     argv = [python, DISPOSITION_GATE_SCRIPT, "--require-rows"]
     if last_tag:
         argv += ["--since", last_tag]
+    if head:
+        argv += ["--head", head]
     return argv
 
 
-def disposition_gate(last_tag: str | None, runner=None) -> tuple[bool, str]:
+def disposition_gate(last_tag: str | None, runner=None, head: str | None = None) -> tuple[bool, str]:
     """(cleared, what it printed) for the window the tag is about to close.
 
     `record`'s predicate, asked from git alone: every merged pull request in
-    `<last tag>..origin/main` carries a disposition. With no tag yet the whole
+    `<last tag>..<head>` carries a disposition (`head` defaults to origin/main;
+    the stamp passes the head rule 4 enumerates, so one window is read even
+    when a merge lands on origin after the flush). With no tag yet the whole
     of origin/main is asked, which is the same window `record` would have read.
     Any exit other than 0 is a refusal -- the predicate returns 1 for a window
     with an unrowed merge, and a crash is not a pass. A gate that cannot be
@@ -2008,7 +2247,7 @@ def disposition_gate(last_tag: str | None, runner=None) -> tuple[bool, str]:
     this exists to stop."""
     run = runner or (lambda argv: subprocess.run(argv, cwd=ROOT, text=True, capture_output=True))
     try:
-        proc = run(disposition_gate_argv(last_tag))
+        proc = run(disposition_gate_argv(last_tag, head=head))
     except OSError as exc:
         return False, f"could not run the disposition check: {exc}"
     output = ((proc.stdout or "") + (proc.stderr or "")).strip()
@@ -2165,13 +2404,18 @@ def parse_rowless(output: str) -> list[tuple[str, str]]:
 # dispatches nothing and says what the stamp would flush. --no-flush skips
 # it, and rule 5 decides alone.
 NIGHTLY_WORKFLOW_FILE = "nightly.yml"
+#: The dispatch body of the flush: lanes=beat runs record-autofix alone. Without
+#: it (a hand `gh workflow run nightly.yml --ref main`) every nightly lane runs;
+#: the hand form of the flush is `gh workflow run nightly.yml -f lanes=beat`.
+RECORD_BEAT_PAYLOAD = {"ref": "main", "inputs": {"lanes": "beat"}}
 RECORD_ROW = ROOT / "tools" / "audit" / "seat" / "record_row.py"
 #: The fixer contract's 60 s API floor between reads of a waited-on state.
 FLUSH_POLL_S = 60
 #: Above record-autofix's own `timeout-minutes: 10`, so a dispatch that is
 #: still merging is never sent again.
 FLUSH_REDISPATCH_S = 900
-#: Open, merge, and one retry: each dispatch also runs every nightly lane.
+#: Open, merge, and one retry. Each dispatch is a lanes=beat run (record-autofix
+#: alone), titled `Nightly record beat`, which nightly_status never grades.
 FLUSH_MAX_DISPATCHES = 3
 #: A record head's base-to-merge wait, p90 6129 s over round 10
 #: (dev/audit/harnesses/record_batch_measure.py's `wait_s`), with margin.
@@ -2208,7 +2452,7 @@ def dispatch_record_beat(token=_api_token) -> tuple[bool, str]:
         return False, "no GH_TOKEN and no gh login to dispatch with"
     request = urllib.request.Request(
         f"{GITHUB_API}/repos/{REPO}/actions/workflows/{NIGHTLY_WORKFLOW_FILE}/dispatches",
-        data=json.dumps({"ref": "main"}).encode(), method="POST",
+        data=json.dumps(RECORD_BEAT_PAYLOAD).encode(), method="POST",
         headers={**rest_headers(tok), "Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(request, timeout=GATE_TIMEOUT_S) as response:
@@ -2246,37 +2490,101 @@ def record_pr_green(token=_api_token) -> bool:
                           text=True, capture_output=True, env=env).returncode == 0
 
 
+#: The ref merge_train.py publishes while a real run is live (`HOLD_REF` there).
+TRAIN_HOLD_REF = "refs/heads/train-hold"
+
+
+def hold_bound_s(workflow: Path | None = None) -> int | None:
+    """nightly.yml's `HOLD_MAX_AGE_S`, read off its source so the bound is never
+    a second literal; None when the workflow no longer states one."""
+    try:
+        text = (workflow or ROOT / ".github" / "workflows" / NIGHTLY_WORKFLOW_FILE).read_text()
+    except OSError:
+        return None
+    found = re.search(r"^\s*HOLD_MAX_AGE_S=(\d+)\s*$", text, re.M)
+    return int(found.group(1)) if found else None
+
+
+def train_hold(runner=None, wall=time.time, bound: int | None = None) -> dict | None:
+    """The live train hold {sha, age, pid, bound}, or None. Zero REST: `git
+    ls-remote` for presence, the fetched commit's committer date for age, its
+    message for the pid. Stale is nightly.yml's rule: at or past the bound, or a
+    date ahead of this clock (unknowable, never young, #775). A read that fails,
+    or a workflow stating no bound, reads as no hold: the flush never refuses on one."""
+    run = runner or sh
+    bound = hold_bound_s() if bound is None else bound
+    try:
+        if not run("git", "ls-remote", "origin", TRAIN_HOLD_REF).split() or bound is None:
+            return None
+        run("git", "fetch", "--quiet", "origin", TRAIN_HOLD_REF)
+        sha, stamp, message = run("git", "log", "-1", "--format=%H%n%ct%n%B", "FETCH_HEAD").split("\n", 2)
+        age = int(wall()) - int(stamp)
+    except (subprocess.CalledProcessError, OSError, ValueError):
+        return None
+    if not 0 <= age < bound:
+        return None
+    pid = message.partition("pid=")[2].split()[:1]
+    return {"sha": sha, "age": age, "pid": pid[0] if pid and pid[0].isdigit() else "unknown",
+            "bound": bound}
+
+
+def hold_line(hold: dict) -> str:
+    return (f"train hold {hold['sha'][:8]} age {hold['age']}s pid {hold['pid']} "
+            f"(live below {hold['bound']}s)")
+
+
 def record_flush(owed: list[tuple[str, str]], pre_main: str, dispatch=dispatch_record_beat,
                  landed=record_merges_since, ready=record_pr_green, sleep=None, clock=None,
-                 timeout_s: int = FLUSH_TIMEOUT_S) -> tuple[list[str], str]:
+                 timeout_s: int = FLUSH_TIMEOUT_S, held=train_hold, say=print) -> tuple[list[str], str]:
     """(record pull requests merged, what happened). Nothing owed dispatches
     nothing; otherwise one dispatch, then a wait for a record merge on main,
     with one more dispatch whenever the open record pull request is ready and
-    the last one is FLUSH_REDISPATCH_S old, up to FLUSH_MAX_DISPATCHES."""
+    the last one is FLUSH_REDISPATCH_S old, up to FLUSH_MAX_DISPATCHES.
+
+    A live train hold makes every beat exit `skip-train-hold`, so nothing is
+    dispatched while one is live, and a dispatch sent before one appeared (its
+    beat saw the hold) is taken back off the count: the dispatch is sent again
+    once the hold clears. `held` is the hold collaborator; each appearance,
+    change and clearing prints one line, and a still-live hold is named in the
+    timeout message. A hold never refuses the flush."""
     if not owed:
         return [], "record flush: nothing owed; nothing dispatched"
     sleep = sleep or time.sleep
     clock = clock or time.monotonic
     named = ", ".join(f"#{pr}" for pr, _ in owed)
-    sent, why = dispatch()
-    if not sent:
-        return [], f"record flush: could not dispatch {NIGHTLY_WORKFLOW_FILE} for {named}: {why}"
-    count, last = 1, clock()
+    count, last, hold, owe = 0, clock(), held(), False
     deadline = last + timeout_s
+    if hold:
+        say(f"record flush: {hold_line(hold)} appeared; no dispatch while it is live")
     while True:
+        if not hold and (count == 0 or owe):
+            owe = False
+            sent, why = dispatch()
+            if not sent:
+                return [], (f"record flush: could not dispatch {NIGHTLY_WORKFLOW_FILE} for "
+                            f"{named}: {why}")
+            count, last = count + 1, clock()
         merged = landed(pre_main)
         if merged:
             return merged, (f"record flush: record merge(s) #{', #'.join(merged)} landed for "
                             f"{named} after {count} dispatch(es)")
         now = clock()
         if now >= deadline:
+            tail = f"; {hold_line(hold)} was still live" if hold else ""
             return [], (f"record flush: no record merge landed within {timeout_s}s of "
-                        f"{count} dispatch(es) for {named}")
-        if count < FLUSH_MAX_DISPATCHES and now - last >= FLUSH_REDISPATCH_S and ready():
+                        f"{count} dispatch(es) for {named}{tail}")
+        if not hold and count < FLUSH_MAX_DISPATCHES and now - last >= FLUSH_REDISPATCH_S and ready():
             sent, why = dispatch()
             if sent:
                 count, last = count + 1, now
         sleep(FLUSH_POLL_S)
+        before, hold = hold, held()
+        if hold and (not before or hold["sha"] != before["sha"]):
+            say(f"record flush: {hold_line(hold)} " + ("changed" if before else "appeared"))
+        elif before and not hold:
+            say(f"record flush: train hold {before['sha'][:8]} cleared")
+        if hold and not before and count > 0:
+            count, owe = count - 1, True  # the beat sent before it appeared saw it and skipped
 
 
 def notes_with_flush(text: str, version: str, prs: list[str]) -> str:
@@ -2483,8 +2791,8 @@ def main() -> int:
     # round the roster or VERSION contradicts, refuses at once (decision 0016).
     # Rule 1 then proves this checkout -- its VERSION and roster -- is origin/main.
     current = VERSION_FILE.read_text().strip()
-    nxt, why = next_version(current, args.bump, args.round_close,
-                            roster_round_at(ROOT) if args.round_close is not None else None)
+    roster_round = roster_round_at(ROOT) if args.round_close is not None else None
+    nxt, why = next_version(current, args.bump, args.round_close, roster_round)
     if nxt is None:
         raise Refuse(3, why + "; nothing was written")
 
@@ -2506,16 +2814,25 @@ def main() -> int:
             raise Refuse(2, why + " (wait, or --allow-red with the cause understood)")
         print(f"WARNING: stamping a main whose gate is not green: {why}")
 
-    # Rule 3: the next version is new, and above every tag.
+    # Rule 3: the next version is new, and above every tag. The bump starts
+    # from the highest of VERSION and the tags just fetched (`bump_base`), so
+    # a hand tag above VERSION is stepped past rather than proposed again;
+    # the exists and above-every-tag refusals stay as the backstop.
     tags = [t for t in sh("git", "tag", "--list").split() if TAG_RE.match(t)]
     remote = [t for t in (l.split("refs/tags/")[1] for l in sh("git", "ls-remote", "--tags", "origin").splitlines()
                             if "refs/tags/v" in l and not l.endswith("^{}")) if TAG_RE.match(t)]
+    base = bump_base(current, tags + remote)
+    nxt, why = next_version(base, args.bump, args.round_close, roster_round)
+    if nxt is None:
+        raise Refuse(3, why + "; nothing was written")
     if f"v{nxt}" in tags or f"v{nxt}" in remote:
         raise Refuse(3, f"tag v{nxt} already exists")
     top = max((version_tuple(t) for t in tags + remote), default=(0, 0, 0))
     if version_tuple(nxt) <= top:
         raise Refuse(3, f"next version {nxt} is not above the highest tag {'.'.join(map(str, top))}")
-    last_tag = "v" + ".".join(map(str, top)) if top != (0, 0, 0) else None
+    # Rules "flush", 4 and 5 read the window from the last STAMP, not the
+    # newest tag: a hand tag passed over merges no notes section covered.
+    last_tag = last_stamped_tag(tags, tag_version)
 
     # Rule "flush": a window owing a row the batching record beat holds back
     # is flushed before rule 4 reads it (`flush_before_tag`).
@@ -2542,7 +2859,7 @@ def main() -> int:
     # and the row files and needs no token, so it runs under --dry-run too --
     # a dry run says whether the stamp would be refused, which is most of what
     # a dry run is for.
-    cleared, why = disposition_gate(last_tag)
+    cleared, why = disposition_gate(last_tag, head=head)
     # The record-class partition. The instrument's rowless merges are parsed
     # from its own output, cross-checked against rule 4's window (both read the
     # same first-parent line, so a number or sha one names and the other does
