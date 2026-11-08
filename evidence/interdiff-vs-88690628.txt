@@ -1,0 +1,113 @@
+9c9
+< index ececf246d..bd08d47ce 100644
+---
+> index ececf246d..5287c02bc 100644
+83c83
+< @@ -2841,6 +2891,29 @@ def self_test() -> int:
+---
+> @@ -2841,6 +2891,63 @@ def self_test() -> int:
+109a110,143
+> +
+> +        def ri_tick(carry, gh_extra=None):
+> +            t_ = tick(queue=str(q16), roster=tg_roster_path, gh_extra=gh_extra or [], carry=carry)
+> +            try:
+> +                t_.replan()
+> +            except OSError:  # an escaped tool error is a missing line, read as a FAIL, not a crash
+> +                pass
+> +            return t_
+> +
+> +        def ri_unreadable(t_):
+> +            return (any("UNREADABLE: roster invariants" in x["text"] for x in t_.findings)
+> +                    and not any("routing invariants broken" in x["text"] for x in t_.findings))
+> +
+> +        def ri_raise(argv):
+> +            raise OSError("carry_audit.py: cannot exec")
+> +
+> +        ri_bad_calls: list = []
+> +        t_os = ri_tick(ri_raise)
+> +        ri_tick(lambda argv: ri_bad_calls.append(argv) or (0, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"]),
+> +                gh_extra=[(("issue", "list"), 0, "not json")])
+> +        a, f = check("REPLAN routing invariants: an unreadable tool is never clean", [
+> +            ("exit 2 with no summary (a REFUSED roster ref) is one UNREADABLE line",
+> +             ri_unreadable(ri_tick(lambda argv: (2, ["carry_audit: REFUSED cannot list origin/x"])))),
+> +            ("exit 2 with a summary is still UNREADABLE (the rc arm alone)",
+> +             ri_unreadable(ri_tick(lambda argv: (2, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"])))),
+> +            ("exit 0 with no summary is UNREADABLE (the summary arm alone)",
+> +             ri_unreadable(ri_tick(lambda argv: (0, ["something else"])))),
+> +            ("an OSError from the tool is one UNREADABLE line naming it",
+> +             ri_unreadable(t_os) and any("cannot exec" in x["text"] for x in t_os.findings)),
+> +            ("a non-JSON issue list drops --open-issues and still runs the roster call",
+> +             len(ri_bad_calls) == 1 and "roster" in ri_bad_calls[0]
+> +             and "--open-issues" not in ri_bad_calls[0]),
+> +        ])
+> +        total, failed = total + a, failed + f
+114c148
+< index 8d5f41342..ca3f49cd9 100644
+---
+> index 8d5f41342..8795407fb 100644
+117c151
+< @@ -67,6 +67,7 @@ Plants, one per refusal of the two ops and per round-trip property:
+---
+> @@ -67,6 +67,12 @@ Plants, one per refusal of the two ops and per round-trip property:
+121a156,160
+> +    U1-U6 orchestrator_tick's roster_invariants never reads an unreadable
+> +           tool as clean: the guard dropped (U1), its rc arm (U2) or its
+> +           summary arm (U3) alone, the OSError branch silent (U4) or not
+> +           catching at all (U5), and a non-JSON issue list still passing
+> +           --open-issues (U6).
+125c164,173
+< @@ -307,6 +308,8 @@ PLANTS.update({
+---
+> @@ -107,6 +113,8 @@ LIB, SYNC, AUDIT = ("tools/audit/seat/roster_lib.py",
+>                      "tools/audit/seat/roster_sync.py", "tools/audit/carry_audit.py")
+>  _MARK_LINE = next((ln for ln in (ROOT / LIB).read_text().splitlines()
+>                     if ln.startswith("_CARRY_MARK = ")), "_CARRY_MARK missing")
+> +TICK = "tools/audit/seat/orchestrator_tick.py"
+> +RI_UNREAD = '            self.unreadable(S, "roster invariants"'
+>  DETACHED = ('g = next((x for x in roster.get("groups", []) '
+>              'if x.get("group") == group), {})')
+>  
+> @@ -307,9 +315,23 @@ PLANTS.update({
+133a182,223
+> +    "U1": (TICK, f"        if rc not in (0, 1) or not summary:\n{RI_UNREAD}",
+> +           f"        if False:\n{RI_UNREAD}"),
+> +    "U2": (TICK, f"        if rc not in (0, 1) or not summary:\n{RI_UNREAD}",
+> +           f"        if not summary:\n{RI_UNREAD}"),
+> +    "U3": (TICK, f"        if rc not in (0, 1) or not summary:\n{RI_UNREAD}",
+> +           f"        if rc not in (0, 1):\n{RI_UNREAD}"),
+> +    "U4": (TICK, f"        except OSError as e:\n{RI_UNREAD}, str(e)[:80])\n            return\n",
+> +           "        except OSError as e:\n            return\n"),
+> +    "U5": (TICK, f"        except OSError as e:\n{RI_UNREAD}, str(e)[:80])\n            return\n",
+> +           "        except ZeroDivisionError:\n            return\n"),
+> +    "U6": (TICK, "            except ValueError:\n                pass\n        try:\n            rc, out = self.carry_run(argv)\n",
+> +           '            except ValueError:\n                argv += ["--open-issues", "x"]\n        try:\n            rc, out = self.carry_run(argv)\n'),
+>  })
+>  
+>  
+> @@ -321,10 +343,16 @@ def parts(name):
+>      return plant if len(plant) == 3 else (TARGET,) + plant
+>  
+>  
+> +def fail_lines(stdout):
+> +    """A target's FAIL lines, indented or not: orchestrator_tick prints
+> +    `  FAIL <check>`, roster_edit `FAIL <check>`."""
+> +    return [ln.strip() for ln in stdout.splitlines() if ln.lstrip().startswith("FAIL ")]
+> +
+> +
+>  def target_self_test(target=TARGET):
+>      r = subprocess.run([sys.executable, "-I", target, "--self-test"], cwd=ROOT,
+>                         capture_output=True, text=True)
+> -    fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
+> +    fails = fail_lines(r.stdout)
+>      return r.returncode, fails, (r.stdout + r.stderr).strip().splitlines()[-3:]
+>  
+>  
+> @@ -377,6 +405,8 @@ def self_test():
+>             "      Traceback", "      boom"])
+>      ck("a survivor prints fails=0 and no tail",
+>         rendered(0, [], ["x"]) == ["RESULT mutant=X rc=0 fails=0"])
+> +    ck("an indented FAIL line is read; an ok line naming FAIL is not",
+> +       fail_lines("  FAIL a\nFAIL b\n  ok   FAIL-free c\n") == ["FAIL a", "FAIL b"])
+>      ck("no names selects every plant", select([]) == (list(PLANTS), []))
+>      ck("a named plant is kept", select(["A1"]) == (["A1"], []))
+>      ck("an unknown plant is returned for refusal",
