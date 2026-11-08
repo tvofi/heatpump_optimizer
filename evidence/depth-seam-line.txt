@@ -1,0 +1,1 @@
+11623:2026-11-08T13:03:29.7690636Z   FAIL every inlined walk matches the canonical helper and no depth root remains  [FAIL depth seams: dev/audit/harnesses/r10_rca_sweep_settle_loop.py:37: ROOT = HERE.parents[2]
