@@ -1,8 +1,10 @@
-Part 2 of R10-SUITE-HOST-DETERMINISM: carries 4-8, the host determinism of `tests/entities.py`. Carries 5, 6 and 7 are built; 4 is dismissed with a control; 8 is left open.
+Part 2 of R10-SUITE-HOST-DETERMINISM: roster carries 5-9 (numbered from 1; the first draft of this body counted from 0), the host determinism of `tests/entities.py`. Carries 6, 7 and 8 are built; 5 is dismissed with a control; 9 is left open. Carries 1, 2, 3 and 4 were implemented by part 1 (8bf45e5, #3170).
 
 ## Head
 
 b974110d7c800d78cd49382e8b8d22245aa8bc7d, cut from origin/main b4ec2f332fe3ab8dcf169bd3066276d3bb8848ab. `tools/pr/prepr.sh` ran clean at this head (rc=0, the body check not yet passed to it). Main had not moved when it ran.
+
+Body-repair note: the earlier field-coverage refusal on the settings hook file was not re-measured in this pass (no code changed; this diff does not touch that file).
 
 ## Mutation proof
 
@@ -29,15 +31,15 @@ none
 
 ## Forward-carry
 
-Carry 4 (cost): dismissed. `tests/entities.py` reads `ALL 2645 ENTITY CHECKS PASSED` at the merge base in this cloud seat, so the `gate-sweep.yml` U0c and `graders-head-copy` delivery_status failures do not reproduce here. Control: that same run. If they recur in another seat the reading is that seat's.
+Carry 1, Carry 2, Carry 3 and Carry 4: implemented by part 1, merged as 8bf45e5 (#3170); nothing owed here. Carry: dismissed: implemented by merged part 1 of this group
 
-Carry 5 (bare_array HEAD vs working tree): built as the documentation arm. The row's name now says it judges HEAD (a tree read would open every tools/*.sh and join the closure), and a planted control in a throwaway repo (`throwaway_git_init`) shows an uncommitted bare site is clean to `scan("HEAD")` and red to `scan()`. Mutant above.
+Carry 5 (cost): dismissed. `tests/entities.py` reads `ALL 2645 ENTITY CHECKS PASSED` at the merge base in this cloud seat, so the `gate-sweep.yml` U0c and `graders-head-copy` delivery_status failures do not reproduce here. Control: that same run. If they recur in another seat the reading is that seat's. Carry: dismissed: not reproduced here, control is the same run
 
-Carry 6 and Carry 7 (darwin task-port, wrapper copies): built as one platform rule, `_hb_stdlib_arm`. A `PermissionError` on darwin prints `SKIP stdlib sampler control: macOS denies the task port (<message>)` and the module continues; linux, any other exception, and a bad sample still fail or are judged. One row pins all four cases; the two mutants above go red. The py-spy stub's `wc -l` padding is already handled (`| tr -d " "`), so no change. The out-of-tree wrapper copies are not in the repository and no tools/ file was added.
+Carry 6 (bare_array HEAD vs working tree): built as the documentation arm. The row's name now says it judges HEAD (a tree read would open every tools/*.sh and join the closure), and a planted control in a throwaway repo (`throwaway_git_init`) shows an uncommitted bare site is clean to `scan("HEAD")` and red to `scan()`. Mutant above. Carry: dismissed: built in this pull request, nothing left to carry
 
-Carry 8 (heartbeat respawn): left open. The nightly history (schedule events of `nightly.yml`) shows failures after the stdlib-sampler fix on 2026-11-03, 11-04 and 11-05; I read the jobs for 11-05 only (run 41943946464): both `nightly-ha` jobs succeeded and the failure was the `slow` job's replay step, so not `hb:positive_control`. The 11-03 and 11-04 runs and the pre-fix null count were not read. Carry: R10-FLY-SUITE-ENV-FLAKES
+Carry 7 and Carry 8 (darwin task-port, wrapper copies): built as one platform rule, `_hb_stdlib_arm`. A `PermissionError` on darwin prints `SKIP stdlib sampler control: macOS denies the task port (<message>)` and the module continues; linux, any other exception, and a bad sample still fail or are judged. One row pins all four cases; the two mutants above go red. The py-spy stub's `wc -l` padding is already handled (`| tr -d " "`), so no change. The out-of-tree wrapper copies are not in the repository and no tools/ file was added. Carry: dismissed: built in this pull request, nothing left to carry
 
-Carry: R10-FLY-SUITE-ENV-FLAKES (carry 8 only; the respawn stays conditional exactly as its brief states)
+Carry 9 (heartbeat respawn): left open. The nightly history (schedule events of `nightly.yml`) shows failures after the stdlib-sampler fix on 2026-11-03, 11-04 and 11-05; I read the jobs for 11-05 only (run 41943946464): both `nightly-ha` jobs succeeded and the failure was the `slow` job's replay step, so not `hb:positive_control`. The 11-03 and 11-04 runs and the pre-fix null count were not read. Carry: R10-FLY-SUITE-ENV-FLAKES | dismissed: the respawn stays conditional exactly as that done group's brief states, no live group fits (R10-ARCH-DOCS and R10-ROUND-PLAYBOOK-FINAL do not own nightly flakes)
 
 ## Friction
 
