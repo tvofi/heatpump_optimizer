@@ -1,0 +1,14 @@
+## base-pre-bash.sh
+rc=2 :: pkill x
+rc=0 :: if true; then pkill x; fi
+rc=0 :: { pkill x; }
+rc=0 :: for i in 1; do pkill x; done
+rc=0 :: while true; do killall y; done
+rc=2 :: true || ! pkill x
+## /root/wt/.claude/hooks/pre-bash.sh
+rc=2 :: pkill x
+rc=0 :: if true; then pkill x; fi
+rc=0 :: { pkill x; }
+rc=0 :: for i in 1; do pkill x; done
+rc=0 :: while true; do killall y; done
+rc=2 :: true || ! pkill x

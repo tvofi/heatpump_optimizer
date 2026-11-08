@@ -1,0 +1,13 @@
+## S1 applied in tree (seat_interpreter: if True)
+  FAIL seat-interpreter: the refusal quotes the check's last line
+  FAIL seat-interpreter: a refusing seat_venv.sh --check prints SEAT-INTERPRETER refused
+hooks_setup self-test: 32 checks, 2 failed
+rc=0
+## null-control bite: drop .claude/settings.json from COPY_FOR_MUTANTS
+ tools/audit/seat/hooks_setup.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL mutant 'null control: the copy un-mutated' is red: FAIL the project-level guard is reported present in the tree | FAIL install then check lists none missing | FAIL install corrects the differing command only | FAIL install creates a settings file under a missing directory, then has nothing to change | FAIL the command line: --check, --install, a non-object file refused, no mode
+hooks_setup self-test: 39 checks, 1 failed
+## extra mutant G7: seat_interpreter prints nothing on refusal (print removed)
+9:and prints one `SEAT-INTERPRETER` line, with the rebuild command, when it
+40:            print(ln)
