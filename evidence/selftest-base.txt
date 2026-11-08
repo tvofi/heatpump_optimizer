@@ -1,0 +1,4 @@
+  ok   freshness: a pass already restarted does not exec again (at most once per pass)
+  ok   freshness: origin/main's tick_loop.sh failing bash -n is never checked out or exec'd
+  ok   freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
+tick_loop self-test: 27 checks, 0 failed
