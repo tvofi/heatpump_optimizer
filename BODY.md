@@ -1,10 +1,14 @@
 R10-CARRY-RESIDUE part 2: the carry audit, bus round counter, body_push/relay and standing-tick items the round-3 re-cut routed here.
 
-Code: 444f489ad66a632576438177da8683eb58ef54e1
+Code: 30986c09c9f1e6a20e9ff9fd76266b2df3fc535c
 
 ## Head
 
-6b5d99b5c48036517be86310c773e8e8a66cbe14 (code handoff 444f489ad66a632576438177da8683eb58ef54e1, plus the delivery row #3325), measured at merge base 73365699a135fb813a43380096b6776d57f8ff4c. origin/main had not moved when `tools/pr/prepr.sh` ran (merge-tree reports no conflict), so no second run.
+30986c09c9f1e6a20e9ff9fd76266b2df3fc535c, measured at merge base daf8b349fd30cc60786eeca333a426b693aa4c5f (origin/main at 2026-11-08T21:19Z). It is the blocked head 6b5d99b5c48036517be86310c773e8e8a66cbe14 with origin/main merged into it twice (fixer.md step 6: merge, never a re-cut): 1877c8000 resolved the conflict at main 51cd5ec8a; main then moved to daf8b349f (#3346: `tests/card_browser.mjs` and its delivery row, disjoint from this diff), merged cleanly as 30986c09c, and every figure below and `prepr.sh` were re-run at 30986c09c.
+
+## Merge resolution
+
+The round-1 verdict blocked 6b5d99b5c on a content conflict in `tools/audit/carry_audit.py` `landed()` with #3318 (merge 17e621f08). Main added the own-group carry-status arm (`own_group`, `own_carry_status`, `# mut:ownstatus`, the `statuses` argument and the `CARRY-STATUS` print); this head replaced the landing predicate so a source lands only through a group's carries. The resolution keeps both, in that order: an own-group item naming one of its carries by index is a status line and `continue`s before any landing test; every other item takes this head's predicate (`r["id"]` in brief or carries, a source token in carries only). The `landed()` docstring now states the source rule. No other file conflicted; `cloud_dispatch.py` auto-merged. `git merge-tree --write-tree origin/main HEAD` now prints only the tree id (9e89e536f) at 30986c09c, no CONFLICT line.
 
 ## Carry dispositions
 
@@ -27,7 +31,8 @@ Code: 444f489ad66a632576438177da8683eb58ef54e1
 
 ## Mutation proof
 
-- Carry 1: `landed()`'s source check read against `group_text(dests, tok)` (brief included) instead of the carries alone: `python3 -I tools/audit/carry_audit.py --self-test` goes `395 checks, 1 failed` (FAIL "the source named only in the group's brief does not land it (#3234, before)"); restored: `0 failed`.
+- Carry 1, re-taken at 30986c09c: `landed()`'s source check read against `group_text(dests, tok)` (brief included) instead of `group_text(dests, tok, False)`: `python3 tools/audit/carry_audit.py --self-test` goes `402 checks, 1 failed` (FAIL "landed: the source named only in the group's brief does not land it (#3234, before)"); restored: `402 checks, 0 failed`.
+- Merge resolution (main's arm kept): `if tok == own and own_carry_status(...)` (`# mut:ownstatus`) replaced by `if False:`: the same self-test goes `402 checks, 2 failed` (FAIL "landed: an own-group item naming one of its carries by index lands nothing and is a status line", FAIL "landed: the group is read from pr_group when the source names no topic"); restored: `0 failed`. So the resolution keeps #3318's pins live under this head's predicate.
 - Carry 4: dropping `sort -u` in `blocked_rounds`: `bash tools/audit/seat/bus.sh --self-test` adds FAIL "five re-posts at one head count as one round and dispatch (#3247)" (fixture: five re-posts at one head).
 - Carry 14: replacing the `# mut:foldonly` test with only the kept-body test: `bash tools/audit/seat/cloud_relay.sh --self-test` goes `384 checks, 6 failed` (the mixed-block and no-refusal-line arms); restored: `0 failed`.
 - Carry 8: `python3 tools/audit/seat/r10_roster_ops_mutants.py C6` was `rc=1 fails=0` with a KeyError tail before the fix; now `rc=1 fails=3` (FAIL "triage gate fixture restored", "drop-carry with no carry refused", "drop-carry of the last entry leaves the key empty"). The fix is `refuses()` in the `roster_edit.py` self-test treating a crash as no refusal, plus `.get("carry")` in the fixture-restored check.
@@ -42,28 +47,33 @@ Code: 444f489ad66a632576438177da8683eb58ef54e1
 
 ## Figures
 
-- `python3 -I tools/audit/carry_audit.py --self-test` : 395 checks, 0 failed.
+All at 30986c09c, 2026-11-08 (UTC).
+
+- `python3 tools/audit/carry_audit.py --self-test` : 402 checks, 0 failed (395 at 444f489ad; the 7 added are #3318's own-group checks).
 - `bash tools/audit/seat/body_push.sh --self-test` : 36 checks, 0 failed.
 - `bash tools/audit/seat/cloud_relay.sh --self-test` : 384 checks, 0 failed.
-- `bash tools/audit/seat/bus.sh --self-test` : 161 checks, 1 failed, the same "an ordinary append with no intervening fetch is the same commit object as before" as at the merge base (`git stash` run: 159 checks, 1 failed).
-- `python3 -I tools/audit/seat/cloud_dispatch.py --self-test` : 127 checks, 0 failed.
-- `tools/pr/prepr.sh` self-test: 514 passed, 0 failed (it pinned `rc=1` for the landed refusal; now `rc=4`).
-- `python3 -I tools/audit/seat/ledger.py --self-test` at this head: 101 checks, 1 failed (the census FAIL above; the other 100 pass).
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` : `3 of 2665 ENTITY CHECKS FAILED` at both this head and a clean worktree of 73365699a135.
-- Diff-mutant step: `MUTANT_CMD` was the three Python self-tests above; `prepr.sh` ran in 26m11s wall (`time`) in total; `mutant_run.py --diff` reports 5 survivors, dispositioned below.
+- `bash tools/audit/seat/bus.sh --self-test` : 161 checks, 0 failed (the one baseline failure at 73365699a no longer fails at merge base daf8b349f).
+- `python3 -I tools/audit/seat/cloud_dispatch.py --self-test` : 129 checks, 0 failed.
+- `python3 -I tools/audit/seat/ledger.py --self-test` : 101 checks, 1 failed (the KINDS census, see Red checks).
+- `python3 tests/structure.py` : STRUCTURE RATCHET PASSED.
+- Scope: `python3 tests/closure.py select --diff daf8b349f` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`; `scope.run` names `tests/doc_claims.py` and `tests/entities.py`.
+- `PYTHONPATH=tests/hastub python3 tests/doc_claims.py` : `ALL 296 checks PASSED`; `PYTHONPATH=tests/hastub python3 tests/entities.py` : `ALL 2668 ENTITY CHECKS PASSED` (its `FAIL` lines are the refusal fixtures it drives; exit 0).
+- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>` at 30986c09c: `rc=0`; `closures` skipped (PREPR_SKIP_CLOSURES; closures-autofix is left to CI), `unpinned sites` skipped ("the diff adds no unpinned mutation site"), `diff mutants` skipped (MUTANT_CMD unset; the mutation proof above was run by hand).
 
 ## Unpinned sites
+
+At 30986c09c `prepr.sh` step 6d reports "the diff adds no unpinned mutation site". The dispositions below are the 444f489ad run's, kept for the sites that run listed:
 
 - `carry_audit.py:1880` and `:1882` (CONST_SWAP on the fixture's group index / done-set): equivalent. Moving the brief to a group the item does not name leaves the expected `1 missing`; the real kill is the mutation proof above.
 - `roster_edit.py:1523` (RETURN_DEL, CONST_SWAP on `refuses()`'s crash arm) and `:1759` (CONST_SWAP on the group index): the arm runs only when an op crashes, so only the C6 plant reaches it. Killed there, not by the normal self-test: `r10_roster_ops_mutants.py C6` above, an in-tree harness.
 
 ## Red checks
 
-`prepr.sh` `closures` refused: `tests/entities.py` exited 1 while the closures were recorded. It exits 1 identically on origin/main (same `3 of 2665 ENTITY CHECKS FAILED`, a clean worktree at the merge base), so it is the container, not this diff; CI re-derives. The cheaper detector exists and ran: the same script, locally. `WARN diff mutants` is answered under Unpinned sites.
+At 6b5d99b5c (the blocked head; 30986c09c has no check-runs yet, since it is not the PR head): `prepr.sh` `closures` refused: `tests/entities.py` exited 1 while the closures were recorded. It exits 1 identically on origin/main (same `3 of 2665 ENTITY CHECKS FAILED`, a clean worktree at the merge base), so it is the container, not this diff; CI re-derives. The cheaper detector exists and ran: the same script, locally. `WARN diff mutants` is answered under Unpinned sites.
 
 Check-runs of 6b5d99b5c48036517be86310c773e8e8a66cbe14 read once, filter=all, all pages (68 runs). Five concluded red; no other run at this head concluded failure, and `CodeQL` and `tests / closures-autofix` are not among them (`CodeQL` success, `closures-autofix` skipped). The checker's red history over the 5 commits between origin/main and this head lists only `governance / instrument-self-tests`; no earlier push of this PR had a red that a later push cleared.
 
-- `governance / instrument-self-tests` (run 42478631013, job 128725587761, 13 min, not a timeout cancellation): this diff caused it. Step "Show the obligations ledger refusing its own fixtures" ended `ledger self-test: 101 checks, 1 failed`, the failure being `every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)`: `carry_fold_arm` writes `level_line carry-fold`, a kind `tools/audit/seat/ledger.py` `KINDS` does not list. The four steps after it were skipped. Reproduced at this head: `python3 -I tools/audit/seat/ledger.py --self-test` prints the same FAIL. Answer: a cheaper detector exists, that one command (seconds), but `prepr.sh` does not run it; only `governance.yml` does, so the failure reached CI. Standing cost of closing the gap: one line in the `prepr.sh` self-test list, seconds per run. The repair is one entry in `KINDS` in `ledger.py` and is owed as a code push; this body re-take may not move the head, so it is not made here. The orchestrator decides the push, and the reviewer verdict must not be read as clean until it lands.
+- `governance / instrument-self-tests` (run 42478631013, job 128725587761, 13 min, not a timeout cancellation): this diff caused it. Step "Show the obligations ledger refusing its own fixtures" ended `ledger self-test: 101 checks, 1 failed`, the failure being `every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)`: `carry_fold_arm` writes `level_line carry-fold`, a kind `tools/audit/seat/ledger.py` `KINDS` does not list. The four steps after it were skipped. Reproduced at this head: `python3 -I tools/audit/seat/ledger.py --self-test` prints the same FAIL. Answer: a cheaper detector exists, that one command (seconds), but `prepr.sh` does not run it; only `governance.yml` does, so the failure reached CI. Standing cost of closing the gap: one line in the `prepr.sh` self-test list, seconds per run. The repair is one entry in `KINDS` in `ledger.py`. It is still owed at 30986c09c: `python3 -I tools/audit/seat/ledger.py --self-test` prints the same FAIL there. This repair seat's brief is to fix only what the round-1 verdict names (the carry_audit.py conflict), so it is not made here; this red will recur on `governance / instrument-self-tests` at this head. The orchestrator decides that push, and the PR must not be read as clean until it lands.
 - `gate` (check-runs 128725941970 at 12:07 and 128728973151 at 12:20): class R10-HOTFIX-GATE-BUSY-DEFER. Both printed `FAIL run(s) [42478631013] at this head are still being judged; their gate decides`: the edit-run deferral, with code run 42478631013 the run that decided it (it concluded failure on `governance / instrument-self-tests` above). Cheaper detector: none exists for a deferral that fires while the deciding run is in flight; standing cost: the red clears when that run concludes, and this one cleared into the real failure.
 - `gate` (check-run 128731910040 at 12:32): the same run's final decision, `FAIL pr-contract / pr-contract: failure (this run)`. It is the aggregate of the `pr-contract` red below, not a separate cause.
 - `pr-contract / pr-contract` (check-run 128731777697): its `[pr-body]` check refused the earlier body because `## Red checks` did not name `governance / instrument-self-tests` (this section is the answer). Cheaper detector: `tools/pr/prepr.sh --body-check` against the live check-runs, run before the handoff; the earlier body was checked before the head had any concluded red, so it could not see it. Standing cost: one read of the head's check-runs per body, which this re-take did.
