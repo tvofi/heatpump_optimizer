@@ -5396,7 +5396,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         # #12: a measured sample, vetted on this path for frost, immersion, freezes and
         # low duty, feeds the health watch; an inference or estimate trains the scale alone.
-        if measured:
+        if False:
             self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp, dt_util.now())
             self._observe_cop_health(float(observed_cop), cop_curve_dhw)
         # #17 (gated): and the capacity envelope, for the same reason.
