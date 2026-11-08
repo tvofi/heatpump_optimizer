@@ -7554,7 +7554,8 @@
     "From PR 3205 (R10-RCA-GATE-STALE, item da72de94): `.github/workflows/pr-contract.yml`, step \"List the red checks at this head\": it keeps only `status == \"completed\" and conclusion == \"failure\"` check runs, so a red that is still lagging is left off the list the body must answer, and the check may fail open. I read this in the code; it is unmeasured, and the next step is the same measurement as above.",
     "`tools/ci/codescan_wait.py` `source()`, own-run path: when this run owns codeql it returns `_jobs()` at once, with no poll, and `legs_uploaded()` then keeps only legs whose upload step is listed `success`. A stale step row would read as \"stood down\", and that leg's analysis would be neither waited for nor read, so the check may fail open. I read this in the code; it is unmeasured (RCA section 3). The next step is to measure step rows inside the three incident windows before anything is built. The roster brief write is the orchestrator's; this seat may push only its return refs. Carry: R10-FLY-GH-READ-RETRY",
     "`.github/workflows/pr-contract.yml`, step \"List the red checks at this head\": it keeps only `status == \"completed\" and conclusion == \"failure\"` check runs, so a red that is still lagging is left off the list the body must answer, and the check may fail open. I read this in the code; it is unmeasured, and the next step is the same measurement as above. Carry: R10-FLY-GH-READ-RETRY",
-    "From #3288 (r10-train-merge-loop-2), body item 847c501e: app_push.sh's `git push` on the recarry route is outside this group's files; its read-back rule confirms a landed push, but a transient push failure is not retried on git_transient. Carry: R10-FLY-GH-READ-RETRY (items 847c501e)"
+    "From #3288 (r10-train-merge-loop-2), body item 847c501e: app_push.sh's `git push` on the recarry route is outside this group's files; its read-back rule confirms a landed push, but a transient push failure is not retried on git_transient. Carry: R10-FLY-GH-READ-RETRY (items 847c501e)",
+    "app_push.sh's `git push` on the recarry route is outside this group's files; its read-back rule confirms a landed push, but a transient push failure is not retried on git_transient. Carry: R10-FLY-GH-READ-RETRY"
    ],
    "architect_note": "",
    "brief": "Third instance of the class one unretried GitHub read kills an instrument, together with P7's record_row.py HTTP 500: an audit-class barrier. adopt as an audit-class barrier in new fly-in R10-FLY-GH-READ-RETRY (S, lane F, priority HIGH: it sits on the merge path), in two PRs ordered by file overlap. Do not fold into R10-FLOW-AUTOTRAIN, which is unregistered and a much larger mechanisation. (1) Third instance of the class \"one unretried GitHub read kills an instrument\", measured. Across every train log since 2026-10-20 there are 11 TRAIN STOPPED lines, and 2 are transient reads: train 8's `approve: ... could not read pull request #2547` (train2547/state8, 21:50:38Z, after waiting t+2667 s for CI, with 7 entries released) and `ci: the head commit at <sha> could not be read: Get \"https://api.github.com/...\": net/http...` in merge_train.py's own read. Add P7's record_row.py `HTTP Error 500` on main's push run, whose revisit trigger (\"a second 5xx instance\") is now met. The remaining 9 stops are content refusals (red CI 3, HOLDER worktree 4, stale carry 1, ledger merge 1), so 18% of train stops are pure transport. (2) The cause and the precedent. app_approve.sh l.104 `js=$(gh api \"repos/$1/pulls/$2\") || die` has three sibling reads (l.271 comments, l.406 CODEOWNERS, l.408 files), all single-shot, discarding stderr so the failure class is lost. app_push.sh already holds the house pattern (l.188-251: bounded RB_SLEEP*3^(n-1), 5/15/45 s, transport refusals distinguished from a genuine refusal, never retry-forever). Reuse that rule rather than inventing 10/30/60. (3) Classification, so it cannot mask a refusal. Retry only network/transport errors, HTTP 5xx, and 429 or a secondary-rate-limit 403 (honouring Retry-After). Anything else (401, 403-permission, 404, 422, or a body that parses but is wrong: head moved, no verdict, owned path) refuses at once, as today. After the budget it refuses with the last error text kept. Mutation-write calls (review POST, merge) are never retried by this rule; they keep their own guarded paths. (4) Ordering. PR 1, app_approve.sh's four reads plus self-test arms: no open PR or live handoff touches tools/pr/app_approve.sh, so dispatch now, ahead of R10-FLY-CARRY-DOC-CONTEXT (P17, same file), which gains an after-edge on it. PR 2, merge_train.py's GitHub reads and record_row.py's urlopen: after #2585 (CI-LAYOUT-P1: merge_train.py, record_row.py), #2584 (MAIN-GATE: merge_train.py) and #2524 (PUSHER-REAP: merge_train.py). Cost: ~25 lines in bash, ~20 in python, one shared rule stated once in INSTRUMENTS.md. Benefit: about 45 min of CI wait plus a relaunch for each transient stop (2 in about 30 h of trains), and one red main push run per 5xx. (5) Null control, in each self-test: a stub `gh` failing once with a transport error then answering passes, with exactly 2 calls logged. A stub answering 404, or a head mismatch, refuses after exactly 1 call (no retry masks a refusal). A stub failing 4 times refuses after the budget, naming the last error. A stub answering 500 to record_row twice then 200 records. Brief addition: \"bounded retry of GitHub READS only, app_push.sh's 5/15/45 s rule, retrying transport errors, 5xx, 429 and secondary-limit 403 and nothing else; fixtures: one transient then success (2 calls), 404 and a wrong head (1 call, immediate refuse), budget exhausted (refuse with the last error); PR 1 is app_approve.sh, PR 2 is merge_train.py and record_row.py after #2585, #2584 and #2524\".",
@@ -17383,8 +17384,9 @@
     "Carry 17, \"From #2639 (body, item bb2965c2), routed by routing audit 1\": split to part 2 for the same three reasons. It lands in the group's brief in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-TRAIN-MERGE-LOOP-2"
    ],
    "resume": {
-    "stage": "in-progress",
-    "pr": 3288
+    "stage": "carries-open",
+    "pr": 3288,
+    "commit": "72940b79545ca7ad9e404a4059ac0c34b091784c"
    },
    "brief": "Part 2 of R10-TRAIN-MERGE-LOOP (#3242), split off by the owner-side ruling of 2026-11-06 to keep part 1 reviewable (three-round rule). Part 1 builds carries 2, 14, 15, 18 and 19 and the same_tree_posting kill; this group builds the seven carries below. Numbering is the #3242 fix review (verdict/3242 220a2112): carry N is the 1-based position in R10-TRAIN-MERGE-LOOP carry list (roster index N-1). Each is carried verbatim in this group's carry list, in order carries 3, 6, 7, 8, 9, 16, 17; build each with its failing test first, mutation proof and null control, defer none, after #3242 merges, files tools/audit/seat/merge_train.py and tools/audit/seat/train.sh."
   },
@@ -18224,7 +18226,8 @@
    "after": [],
    "carry": [
     "From #3288 (r10-train-merge-loop-2), body item 6fa66b64: The gate-race hotfix (Carry 15) has no committed finder harness. Its only pin is `_gate_race_self_test`, and the reviewer's own gate-race harness is review evidence, not tree. R10-HOTFIX-TRAIN-DEFER-WAIT (#3290) owns the same false-red-gate defect with a measured finder census (56 `ci red=['gate']` SKIPs over 2026-11-05..07), and its harness is the finder's. Carry: R10-HOTFIX-TRAIN-DEFER-WAIT (items 6fa66b64)",
-    "From triage batch 136 (triage: dev/programme/triage/s6-batch136.md#P436), queue line GATE-DEFERRAL-NO-RECHECK, classified major, audit class: the class-eliminating barrier. The gate sweep (.github/workflows/gate-sweep.yml, tools/ci/sweep.py) already re-runs a deferring gate: on #3302 and #3304 attempt 2 of the deferring edit run was started by github-actions[bot] 14 s after the code run concluded, and on #3291 by the same bot. The cost is the window before that re-run, in which a reader takes the at-once deferral red (tools/ci/gate.py `deferral`) as final: the train's merge step parks the head [BRANCH-POLICY] (#3264 review run 42436586762, gate red 02:01:18Z, decider green 02:01:51Z, re-run green 02:02:51Z, about one train cycle lost), and the bus dispatch refuses it. wait_ci already reads a deferral as pending through `classify` with `gate_busy` and the sweep settle; the BRANCH-POLICY diagnosis does not. Fix: every reader of the required gate's conclusion in tools/audit/seat/merge_train.py, tools/audit/seat/bus.sh and tools/audit/seat/proof_watch.py reads it through that one classification: a gate red whose output is a deferral is pending while a run it names is unconcluded and for the sweep settle after. A structural self-test fails if another code path compares that check's conclusion to failure. Failing test first: the #3264 review instance is parked at the base and waits under the fix. Null control: a gate red naming no busy run is red at once. Mutant: dropping the settle is killed. Rejected: a new re-dispatch job (the sweep is one)."
+    "From triage batch 136 (triage: dev/programme/triage/s6-batch136.md#P436), queue line GATE-DEFERRAL-NO-RECHECK, classified major, audit class: the class-eliminating barrier. The gate sweep (.github/workflows/gate-sweep.yml, tools/ci/sweep.py) already re-runs a deferring gate: on #3302 and #3304 attempt 2 of the deferring edit run was started by github-actions[bot] 14 s after the code run concluded, and on #3291 by the same bot. The cost is the window before that re-run, in which a reader takes the at-once deferral red (tools/ci/gate.py `deferral`) as final: the train's merge step parks the head [BRANCH-POLICY] (#3264 review run 42436586762, gate red 02:01:18Z, decider green 02:01:51Z, re-run green 02:02:51Z, about one train cycle lost), and the bus dispatch refuses it. wait_ci already reads a deferral as pending through `classify` with `gate_busy` and the sweep settle; the BRANCH-POLICY diagnosis does not. Fix: every reader of the required gate's conclusion in tools/audit/seat/merge_train.py, tools/audit/seat/bus.sh and tools/audit/seat/proof_watch.py reads it through that one classification: a gate red whose output is a deferral is pending while a run it names is unconcluded and for the sweep settle after. A structural self-test fails if another code path compares that check's conclusion to failure. Failing test first: the #3264 review instance is parked at the base and waits under the fix. Null control: a gate red naming no busy run is red at once. Mutant: dropping the settle is killed. Rejected: a new re-dispatch job (the sweep is one).",
+    "The gate-race hotfix (Carry 15) has no committed finder harness. Its only pin is `_gate_race_self_test`, and the reviewer's own gate-race harness is review evidence, not tree. R10-HOTFIX-TRAIN-DEFER-WAIT (#3290) owns the same false-red-gate defect with a measured finder census (56 `ci red=['gate']` SKIPs over 2026-11-05..07), and its harness is the finder's. Carry: R10-HOTFIX-TRAIN-DEFER-WAIT"
    ],
    "architect_note": "",
    "resume": {
@@ -18318,12 +18321,13 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-ci-selftest-scope",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "s12 CI-levers seat 2026-11-07: owner lever 3; policy widening approved on #201 comment 6707834331; overlap admitted (R10-CI-OWN-DELIVERY-ROW): owner CI-throughput lever 3 of 2026-11-07, policy widening approved"
+    "note": "s12 CI-levers seat 2026-11-07: owner lever 3; policy widening approved on #201 comment 6707834331; overlap admitted (R10-CI-OWN-DELIVERY-ROW): owner CI-throughput lever 3 of 2026-11-07, policy widening approved",
+    "pr": 3315
    },
    "brief": "Owner-approved CI-throughput lever 3 (tvofi, 2026-11-07, #201 comment 6707834331), and the owner approved the policy widening in the same comment. On a pull request, each governance / instrument-self-tests step runs only when the diff reaches that step's MEASURED closure, the way rule 1 of CLAUDE.md selects test scripts from tests/closures.json; every push to main stays FULL (a wrong closure turns main red within one merge, which rule 1 already accepts). Measured over 2026-11-05 13:26Z to 2026-11-07 13:26Z (s12 study): this job is the largest single lane, an estimated 1,560 to 3,900 runner-minutes a day saved, the floor from 21 of 52 merged pull requests touching no tools/, .github/ or harness path, and it shortens the pull-request long pole from about 29 to 26 minutes. Today tools/ is INERT in tests/closure.py (tools/audit/seat/selftest_wiring.py states it), so no tool has a measured closure; STEP 1 is therefore to measure each self-test step's read-set (the files it imports or opens) into a recorded table that CI re-derives and refuses drift on, in the style of tests/closures.json and tests/derive_closures.sh, then to select steps from it. The job's selection is computed in tools/ci/prelude.py or the workflow from the diff and the table; steps are gated by that selection in .github/workflows/governance.yml. selftest_wiring.py --check must still pass: no step dropped, every step still greps its `checks, 0 failed` line. This is a policy change: it widens dev/governance/rules/gate-scoping.md, and this pull request edits that rule file (and regenerates the .claude/rules and .cursor/rules copies with node tools/policy/rules_sync.mjs). It merges on tvofi's approving review, the owner's approval of the widening being recorded in the comment above. ORDER: this group is after R10-HOTFIX-SELFTEST-TIMEOUT, which shards the same job; build on the sharded form and do not re-shard. Failing test first: a diff touching no tools/ file selects zero self-test steps. Null controls: a push to main selects every step; a diff touching a file inside one step's closure selects that step; an unreadable or stale table selects every step (fail closed). Mutant: a table that omits a file a step reads is shown red by a drift check. Say in the body how a new tools/ file is classified (a new file with no recorded closure runs every step) and what tests/entities.py demands of it."
   },
@@ -18974,9 +18978,10 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-friction-other-family",
-    "note": "s12 roster audit 2026-11-07: created to receive issue 3283; overlap admitted (R10-FRICTION-CI-RED): issue 3283 filed by the friction cron 2026-11-07 with no owning group"
+    "note": "s12 roster audit 2026-11-07: created to receive issue 3283; overlap admitted (R10-FRICTION-CI-RED): issue 3283 filed by the friction cron 2026-11-07 with no owning group",
+    "pr": 3311
    },
    "brief": "Root-cause record for the recurring-friction family key other (untaught) (family), issue 3283, filed by the governance cron's friction step at 2026-11-07T12:29Z for the window v7.1.4..origin/main (re-derive the family verdict at your merge base). One record under dev/audit/rca/: re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.1.4, name each pull request and the friction it hit, then the cause, the process state (a-d), the cost test with numbers and a countermeasure or a recorded refusal (dev/governance/roles/root-cause.md, dev/governance/rules/defect-root-cause.md). Say whether the untaught keys need teaching in the classifier or whether the family is noise. A countermeasure that is policy waits for the owner's approving review. The body carries a Disposes line for 3283, no closing keyword; the orchestrator wires it. Carry no count."
   },
@@ -19052,9 +19057,10 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-rca-cop-unmeasured",
-    "note": "s12 roster audit 2026-11-07; trigger 1 of defect-root-cause.md, orchestrator to confirm; overlap admitted (R10-FRICTION-CI-RED, R10-FRICTION-OTHER-FAMILY, R10-RCA-STAMP-FLUSH-COST): defect-root-cause.md trigger 1 for R10-HOTFIX-COP-UNMEASURED, s12 roster audit 2026-11-07"
+    "note": "s12 roster audit 2026-11-07; trigger 1 of defect-root-cause.md, orchestrator to confirm; overlap admitted (R10-FRICTION-CI-RED, R10-FRICTION-OTHER-FAMILY, R10-RCA-STAMP-FLUSH-COST): defect-root-cause.md trigger 1 for R10-HOTFIX-COP-UNMEASURED, s12 roster audit 2026-11-07",
+    "pr": 3316
    },
    "brief": "Root cause for the defect R10-HOTFIX-COP-UNMEASURED fixes (defect-root-cause.md trigger 1: a defect that reached a release). The Health tab's measured COP grades model values against the model on an install with no heat input. Owed: the named cause, process state a-d with evidence (which review, audit dimension or test let a model value be labelled measured), a cost test with numbers, and a countermeasure or a recorded refusal, as a new RCA document cited from the bugclass register. Runs beside the hotfix fixer, never inside it; never edits custom_components/. If the orchestrator finds trigger 1 does not apply, it records that and refuses this group instead."
   },
@@ -19285,7 +19291,9 @@
    "rca": [],
    "carry": [
     "From #3288 (r10-train-merge-loop-2), body item 23779576: The measure-first count parent carry 3 requires (BOT_HEAD stops in the train logs since 2026-10-20, and how many had their pull_request runs approved at refusal time) needs the orchestrator's train logs, the same raw train timelines that R10-TRAIN-REJOIN-NO-RECARRY's waste-study measurement reads. That group is not started, and its files are merge_train.py and train.sh, this seam. Carry: R10-TRAIN-REJOIN-NO-RECARRY (items 23779576)",
-    "From #3288 (r10-train-merge-loop-2), body item f7d2bf7c: remerge_main.sh prints `MERGE CONFLICT` for any failure of its fetch/reset/merge chain, so a spent transient budget or a rejected fetch is still misreported as a conflict, and the train's Stop says \"main does not merge without a resolution\". This is a separate diagnosis defect on the recarry seam (the transient case is closed here). Carry: R10-TRAIN-REJOIN-NO-RECARRY (items f7d2bf7c)"
+    "From #3288 (r10-train-merge-loop-2), body item f7d2bf7c: remerge_main.sh prints `MERGE CONFLICT` for any failure of its fetch/reset/merge chain, so a spent transient budget or a rejected fetch is still misreported as a conflict, and the train's Stop says \"main does not merge without a resolution\". This is a separate diagnosis defect on the recarry seam (the transient case is closed here). Carry: R10-TRAIN-REJOIN-NO-RECARRY (items f7d2bf7c)",
+    "The measure-first count parent carry 3 requires (BOT_HEAD stops in the train logs since 2026-10-20, and how many had their pull_request runs approved at refusal time) needs the orchestrator's train logs, the same raw train timelines that R10-TRAIN-REJOIN-NO-RECARRY's waste-study measurement reads. That group is not started, and its files are merge_train.py and train.sh, this seam. Carry: R10-TRAIN-REJOIN-NO-RECARRY",
+    "remerge_main.sh prints `MERGE CONFLICT` for any failure of its fetch/reset/merge chain, so a spent transient budget or a rejected fetch is still misreported as a conflict, and the train's Stop says \"main does not merge without a resolution\". This is a separate diagnosis defect on the recarry seam (the transient case is closed here). Carry: R10-TRAIN-REJOIN-NO-RECARRY"
    ],
    "architect_note": "",
    "group": "R10-TRAIN-REJOIN-NO-RECARRY",
@@ -19554,9 +19562,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-fly-triage-bar",
-    "pr": null,
+    "pr": 3310,
     "commit": null,
     "last_step": null,
     "next_step": "dispatch fixer",
@@ -19596,10 +19604,10 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-hotfix-main-ist-red",
     "pr": 3307,
-    "commit": null,
+    "commit": "73365699a135fb813a43380096b6776d57f8ff4c",
     "last_step": "fixer fired 2026-11-08T02:20Z",
     "next_step": "handoff then PR",
     "note": null
