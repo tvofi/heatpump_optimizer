@@ -16127,7 +16127,7 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-clone-2238",
     "commit": "53273de4d449a990bc29734565f63babada9ff7f",
     "last_step": null,
