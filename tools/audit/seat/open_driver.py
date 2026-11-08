@@ -65,6 +65,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import roster_lib  # noqa: E402
+import topic_grammar  # noqa: E402
 
 REPO = "tvofi/heatpump_optimizer"
 BOARD_RE = re.compile(r"^OWED \S+ handoff-no-pr refs/heads/handoff/(\S+) ([0-9a-f]{40})(?: ct=(\d+|\?))?")
@@ -89,32 +90,7 @@ def parse_board(text: str) -> list:
     return out
 
 
-def names_group(body_head: str, group: str) -> bool:
-    """`group` appears as a whole name in the text: not inside a longer one."""
-    return re.search(r"(?<![A-Za-z0-9_-])%s(?![A-Za-z0-9_-])" % re.escape(group), body_head, re.I) is not None
-
-
-def resolve(topic: str, groups, body_head: str, titles: dict | None = None) -> tuple:
-    """(group, title) or (None, why). `groups` are the roster's group ids."""
-    words = topic.replace("-", " ")
-    t = (titles or {}).get(topic)
-    if isinstance(t, dict) and t.get("group") and t.get("title"):
-        return t["group"], t["title"]
-    m = re.fullmatch(r"triage-s(\d+)-batch(\d+)", topic)
-    if m:
-        for g in (f"R10-TRIAGE-S{m.group(1)}", f"R10-TRIAGE-B{m.group(2)}"):
-            if g in groups:
-                return g, f"{g}: {words}"
-        return None, "NEEDS-TITLE"
-    up = topic.upper()
-    if up in groups:  # exact match always wins
-        return up, f"{up}: {words}"
-    for rx in (r"-p(\d+)", r"-(\d+)"):  # (ii) one trailing -p<N>, then (iii) one trailing -<N>
-        m = re.fullmatch(r"(.+)" + rx, topic)
-        if m and m.group(1).upper() in groups and names_group(body_head, m.group(1).upper()):
-            g = m.group(1).upper()
-            return g, f"{g} (part {m.group(2)}): {words}"
-    return None, "NEEDS-TITLE"
+names_group, resolve = topic_grammar.names_group, topic_grammar.group_of  # the grammar's one owner
 
 
 SKIP_TOPIC_PREFIXES = ("triage-", "roster-")
