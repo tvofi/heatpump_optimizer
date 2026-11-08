@@ -1,0 +1,86 @@
+KILLED  A coordinator drops partload_at
+    ALL 25 wood-advisor checks PASSED
+      FAIL the published wood advisor prices a max-power step's pump heat at the derated COP (cheaper at d = 0.1, not at d = 0; R10-PARTLOAD-RESIDUE)  [[0, 0]]
+    1 of 31 FEATURES BLOCK FAILED
+    wood_advisor rc=0 features rc=1
+KILLED  B _plan_partload guard always []
+      FAIL the wood advisor prices pump heat at the derated COP of the plan's own draw (space plus hot water): every step at max power reads wood-cheaper, none at the floor draw, none at derate 0  [[0, 0, 0]]
+      FAIL the derate reads only what the plan publishes: no partload_at, a non-finite space draw (0 kW), a missing hot-water schedule (0 kW) and steps past the plan's schedules (no factor) price as stated  [[0, 0, 0, 0]]
+      FAIL the night advice prices pump heat at the derated COP of the plan's own draw: light at derate 0.1, no advice at derate 0  [[None, None]]
+    3 of 25 wood-advisor checks FAILED
+      FAIL the published wood advisor prices a max-power step's pump heat at the derated COP (cheaper at d = 0.1, not at d = 0; R10-PARTLOAD-RESIDUE)  [[0, 0]]
+    1 of 31 FEATURES BLOCK FAILED
+    wood_advisor rc=1 features rc=1
+KILLED  C _derated drops factor
+      FAIL the wood advisor prices pump heat at the derated COP of the plan's own draw (space plus hot water): every step at max power reads wood-cheaper, none at the floor draw, none at derate 0  [[0, 0, 0]]
+      FAIL the derate reads only what the plan publishes: no partload_at, a non-finite space draw (0 kW), a missing hot-water schedule (0 kW) and steps past the plan's schedules (no factor) price as stated  [[0, 0, 0, 0]]
+      FAIL the night advice prices pump heat at the derated COP of the plan's own draw: light at derate 0.1, no advice at derate 0  [[None, None]]
+    3 of 25 wood-advisor checks FAILED
+      FAIL the published wood advisor prices a max-power step's pump heat at the derated COP (cheaper at d = 0.1, not at d = 0; R10-PARTLOAD-RESIDUE)  [[0, 0]]
+    1 of 31 FEATURES BLOCK FAILED
+    wood_advisor rc=1 features rc=1
+SURVIVED D _derated drops tail
+    ALL 25 wood-advisor checks PASSED
+    ALL 31 FEATURES BLOCK PASSED
+    wood_advisor rc=0 features rc=0
+KILLED  E total drops hot water
+      FAIL the wood advisor prices pump heat at the derated COP of the plan's own draw (space plus hot water): every step at max power reads wood-cheaper, none at the floor draw, none at derate 0  [[0, 0, 0]]
+      FAIL the derate reads only what the plan publishes: no partload_at, a non-finite space draw (0 kW), a missing hot-water schedule (0 kW) and steps past the plan's schedules (no factor) price as stated  [[0, 0, 0, 0]]
+      FAIL the night advice prices pump heat at the derated COP of the plan's own draw: light at derate 0.1, no advice at derate 0  [[None, None]]
+    3 of 25 wood-advisor checks FAILED
+    ALL 31 FEATURES BLOCK PASSED
+    wood_advisor rc=1 features rc=0
+KILLED  F zip not zip_longest
+    TypeError: zip() got an unexpected keyword argument 'fillvalue'
+    TypeError: zip() got an unexpected keyword argument 'fillvalue'
+    wood_advisor rc=1 features rc=1
+SURVIVED F2 fillvalue nan
+    ALL 25 wood-advisor checks PASSED
+    ALL 31 FEATURES BLOCK PASSED
+    wood_advisor rc=0 features rc=0
+SURVIVED G nan draw not zeroed
+    ALL 25 wood-advisor checks PASSED
+    ALL 31 FEATURES BLOCK PASSED
+    wood_advisor rc=0 features rc=0
+KILLED  H night always flat 3
+      FAIL the night advice prices pump heat at the derated COP of the plan's own draw: light at derate 0.1, no advice at derate 0  [[None, None]]
+    1 of 25 wood-advisor checks FAILED
+    ALL 31 FEATURES BLOCK PASSED
+    wood_advisor rc=1 features rc=0
+KILLED  I night no flat fallback
+      FAIL with no outdoor forecast the night advice prices pump heat at a flat COP of 3: light at 3.3 SEK/kWh, no advice at 2.7  [[None, None]]
+    1 of 25 wood-advisor checks FAILED
+    ALL 31 FEATURES BLOCK PASSED
+    wood_advisor rc=1 features rc=0
+KILLED  K dhw schedule ignored
+      FAIL the wood advisor prices pump heat at the derated COP of the plan's own draw (space plus hot water): every step at max power reads wood-cheaper, none at the floor draw, none at derate 0  [[0, 0, 0]]
+      FAIL the derate reads only what the plan publishes: no partload_at, a non-finite space draw (0 kW), a missing hot-water schedule (0 kW) and steps past the plan's schedules (no factor) price as stated  [[0, 0, 0, 0]]
+      FAIL the night advice prices pump heat at the derated COP of the plan's own draw: light at derate 0.1, no advice at derate 0  [[None, None]]
+    3 of 25 wood-advisor checks FAILED
+    ALL 31 FEATURES BLOCK PASSED
+    wood_advisor rc=1 features rc=0
+KILLED  M factor const 1
+      FAIL the wood advisor prices pump heat at the derated COP of the plan's own draw (space plus hot water): every step at max power reads wood-cheaper, none at the floor draw, none at derate 0  [[0, 0, 0]]
+      FAIL the derate reads only what the plan publishes: no partload_at, a non-finite space draw (0 kW), a missing hot-water schedule (0 kW) and steps past the plan's schedules (no factor) price as stated  [[0, 0, 0, 0]]
+      FAIL the night advice prices pump heat at the derated COP of the plan's own draw: light at derate 0.1, no advice at derate 0  [[None, None]]
+    3 of 25 wood-advisor checks FAILED
+      FAIL the published wood advisor prices a max-power step's pump heat at the derated COP (cheaper at d = 0.1, not at d = 0; R10-PARTLOAD-RESIDUE)  [[0, 0]]
+    1 of 31 FEATURES BLOCK FAILED
+    wood_advisor rc=1 features rc=1
+KILLED  N space draw ignored
+    ALL 25 wood-advisor checks PASSED
+      FAIL the published wood advisor prices a max-power step's pump heat at the derated COP (cheaper at d = 0.1, not at d = 0; R10-PARTLOAD-RESIDUE)  [[0, 0]]
+    1 of 31 FEATURES BLOCK FAILED
+    wood_advisor rc=0 features rc=1
+KILLED  O partload as divisor
+      FAIL the wood advisor prices pump heat at the derated COP of the plan's own draw (space plus hot water): every step at max power reads wood-cheaper, none at the floor draw, none at derate 0  [[0, 0, 0]]
+      FAIL the derate reads only what the plan publishes: no partload_at, a non-finite space draw (0 kW), a missing hot-water schedule (0 kW) and steps past the plan's schedules (no factor) price as stated  [[0, 0, 0, 0]]
+      FAIL the night advice prices pump heat at the derated COP of the plan's own draw: light at derate 0.1, no advice at derate 0  [[None, None]]
+    3 of 25 wood-advisor checks FAILED
+      FAIL the published wood advisor prices a max-power step's pump heat at the derated COP (cheaper at d = 0.1, not at d = 0; R10-PARTLOAD-RESIDUE)  [[0, 0]]
+    1 of 31 FEATURES BLOCK FAILED
+    wood_advisor rc=1 features rc=1
+SURVIVED NULL no-op mutant (comment)
+    ALL 25 wood-advisor checks PASSED
+    ALL 31 FEATURES BLOCK PASSED
+    wood_advisor rc=0 features rc=0

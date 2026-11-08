@@ -1,70 +1,55 @@
-Fix review: blocked 8bef9bc866a7458b19dbc00d0bf4ed07ed2f206a class-open: the wood advisor's pump-heat price (wood_fuel.py cheaper_steps and _scan_wood_night, price / COP with no draw), one of the four linear valuations carry 2 names, is neither measured nor dispositioned in the body
+Fix review: blocked 17e891bf00140d79e166d95901391294002b513c ci-red: the required codeql / Analyze (python) was cancelled at its 45-minute cap and never re-run, so every gate run at this head fails on it; no code change is owed, a re-run of that job is the cure
 
-bus-nonce: 826c60e1923b1bd9499b480ce7129fdd
+bus-nonce: f8a35d15b9e2d14879fe4844b6ba67fe
 
 ## Block
 
-Round 1 (first-round review). Brief: dispatch/reviewer-rev-3291 at 603ce8cb5. Reviewed from a detached worktree at 8bef9bc866a7458b19dbc00d0bf4ed07ed2f206a. Its tree is identical to 306a0b76e (`git diff --stat 306a0b76e 8bef9bc86` is empty).
+Round 4, and the class is new: `ci-red`. It is not a defect in the authored work. On merit this head would be `merge`: the round-3 finding is cured, the r4 repair changes nothing else, and every figure re-derives (`## Evidence`). The verdict is blocked only because CI on this head is RED on a required context, and a red CI never carries (fix-review.md step 12).
 
-The roster carry this group received (R10-PARTLOAD-PRICING carry 2, re-routed to R10-PARTLOAD-RESIDUE, `origin/handoff/audit-r10-roster` at 4092d06bc) names its class itself. Quoted: "The hot-water LP's objective (price * E / cop), the terminal row_cost, _deferred_energy_cost and the wood advisor's pump-heat price all price heat linearly at a COP, with no draw rate." It then says "FIRST measure the magnitude".
+- `merge_train.py classify 17e891bf00140d79e166d95901391294002b513c --pr 3291` printed `RED 17e891bf00140d79e166d95901391294002b513c pending: none red: gate` (rc 1) at 10:02:24Z and again at 10:19:32Z. It printed WAIT between those reads while new gate runs were in flight (`ev/classify_log.txt`).
+- `codeql / Analyze (python)` (job 128698187724 in the current attempt listing, 128686972435 originally) ran 08:12:02Z-08:57:09Z and concluded `cancelled` at the 45-minute cap. Per `.github/workflows/codeql.yml:109` it is a required context. It has not been re-run since: the four reads from 10:07Z to 10:19Z show the same single cancelled run.
+- Code run 42461842836 is at attempt 41, but its re-runs repeat only `gate`. Each gate run (128695203233, 128698188245, 128699421226, 128700868708 and 128701116712) logs `FAIL codeql / Analyze (python): cancelled (run 42461842836)` and exits 1 (`ev/gate_*.log`, `ev/checkruns_final.tsv`, 94 check runs on all pages).
+- This is not an edit-run deferral. The earlier deferral at 09:37Z (`still being judged`, run 42467953565) has concluded, and the gates since then name the CodeQL cancellation alone.
+- `## Red checks` names this red and answers it: the runner-speed cancellation recorded as R10-HOTFIX-CODEQL-HEADROOM, with the gate as its consequence. Step 11's trigger is answered, so this is not a `root-cause-*` block.
 
-The body measures and carries three of these four seams: `_plan_dhw_min_cost`, `_terminal_cost` and `_deferred_energy_cost`. Neither the body nor either harness mentions the fourth (`grep -ci wood` on the body prints 0, and prints nothing on both harnesses). The fourth seam is in the tree at this head:
-- `custom_components/heatpump_optimizer/wood_fuel.py:148`: `wood_sek < finite_float(price, 0.0) / cop_f`
-- `wood_fuel.py:226`: `pump = finite_float(prices[i], 0.0) / cop`
-
-The COP there is `thermal_model.compute_cop(outdoor)`. `wood_fuel.py` imports neither `partload_factor` nor `heat_per_cop_kw`. Under a part-load derate this under-prices pump heat, the same secant error the body measures elsewhere. The wood "cheaper" flag, `cheaper_hour_count` and the night advice therefore read wood as cheaper less often than it is.
-
-This is fix-review.md step 6: a seam the issue states that is neither in the diff nor dispositioned in the body. To cure it, either measure it (the same 16 installs x 2 price days x 2 derates, with the zero-derate null) and dispose of it, or route it with its control in `## Carry for the roster` with a stated reason. The R10-SAV-COMFORT carry already appended at 4092d06bc names only the three seams.
+Cure: re-run the cancelled `codeql / Analyze (python)` job (re-running the code run's failed jobs re-runs only `gate`), then re-classify. If it concludes `success` and the gate goes GREEN at this unchanged head, every finding below stands as a `merge`, and no fixer round is owed. Carry: R10-PARTLOAD-RESIDUE
 
 ## Findings
 
-- The wood advisor's pump-heat price (`wood_fuel.py:148`, `:226`) is a linear valuation under a convex part-load cost that this PR neither measures nor dispositions (see `## Block`). Carry: R10-PARTLOAD-RESIDUE
-- Follow-up: `r10_partload_residue.py refill` has no positive control, only the zero-derate null. Mutant `k_r = 0.0`, which drops the derate from the error, leaves every `d=0.112` row at `0.000000`, prints `null rows not zero 0` and exits 0 (`ev/refill_mutant_positive.txt`). A broken error term would read as "immaterial", and the harness would pass. The null is also structural: `heat_per_cop_kw` returns its input exactly while `cop_partload_derate` is 0, so `k_r` is 0 by construction. A guard that every `d>0` row has `max > 0` would make the harness refuse that mutant. Carry: R10-PARTLOAD-RESIDUE
-- Residual: carry 1's 272 s owner-box outlier is refused on non-reproduction in 80 seeded solves. No harness or recorded input in the tree reproduces the owner's case, so neither this review nor the body can establish its cause. The refusal rests on the synthetic owner shape alone, which the body states. Carry: dismissed: no in-tree input reproduces it; re-opens only from a diagnostics bundle (D15), which this group does not hold
+- Partial pin, `_derated`'s tail (`wood_fuel.py:541`, `+ cops[len(partload):]`). My hand mutant D drops the tail term, and both pinning suites still pass (`ev/mutants.txt`). The edge check "a plan 6 steps shorter than the outdoor list: the tail keeps its COP" expects `_N - 6`. Truncating the list also reads `_N - 6`, because at 2.85/3 = 0.95 a tail step is not wood-cheaper under either reading. So the check does not discriminate what its comment claims. The mutant cannot fire in production, though. `OptimizationResult` is built only by `optimizer._build_result`, and there `power_schedule`, `outdoor_temps`, `prices` and `timestamps` all have `n_steps` entries (`optimizer.py:3599`, `:3081`, `:3103-3104`). `dhw_power_schedule` is either `[]` or `n_steps` long (`:3128-3130`). The coordinator assigns `_optimization_result` from no other source (`coordinator.py:3751`, `:6497`). Carry: dismissed: equivalent in production, since every schedule is n_steps long by construction (optimizer.py:3599, 3081, 3103-3104, 3128-3130); only the test comment overstates the pin
+- Partial pin, `_plan_partload`'s `finite_float(p, 0.0)` on the space draw. My hand mutant G (`p` for `finite_float(p, 0.0)`) passes both suites. The check "a non-finite space draw is 0 kW" picks its values so that the NaN reading (factor NaN, then COP 0 in `cheaper_steps`, so never cheaper) and the 0 kW reading (factor 0.975, so 0.974 < 1.0, not cheaper) both give 0. The test comment says each reading is "told apart from its alternative", which is not true for this one. Production publishes no NaN draw on any traced path: L-BFGS-B output is bounded and the DHW path clips it (`optimizer.py:4275`), and a failed plan is rejected (`coordinator.py:6490`). The guard is defensive, and the fallback's direction (wood never reads cheaper) is the conservative one. Mutant F2 (`fillvalue=nan`) is truly equivalent, because both operands pass through `finite_float`. Carry: dismissed: no traced production path publishes a non-finite draw (optimizer.py:4275 clip, coordinator.py:6490 rejects failed plans) and the mutant's outcome is the conservative one
 
 ## Evidence
 
-- RESULT head 8bef9bc866a7458b19dbc00d0bf4ed07ed2f206a; merge base 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76. `git merge-tree --write-tree origin/main HEAD` exits 0 (origin/main 53273de4d), and the ledger driver merged `tests/closures.json`. `## Head` names this head, and its tree equals 306a0b76e, where the body's carry-2 figures were taken.
-- RESULT the three-dot diff touches no `custom_components/` line, `VERSION`, `RELEASE_NOTES.md` or `tests/structure_budgets.json` (`git diff --quiet` passes). The 3 files are the harness, `dev/programme/delivery/3291.md` (present) and one `INERT` line in `tests/closures.json`. With no production line, the mutation proof is n/a by design.
-- RESULT measured inputs identical: `git diff --quiet` on custom_components, r10_buffer_store, r10_partload_pricing, r10_cop_partload, r10_setpoint_boost and tests/profiles.py passes for b4ec2f332..306a0b76e and for 4b5d771bd..8bef9bc86.
-- RESULT finder's harness `r10_partload_pricing.py` at the merge base and at the head: the outputs are identical (`ev/pricing_base.txt`, `ev/pricing_head.txt`).
-  - `flat d=0.112 lp_err max 0.267290 (dhw cost max 7.0145) terminal-at-max max 4.368455 deferred-at-max max 2.139841`
-  - `spread d=0.112 lp_err max 0.173106 (dhw cost max 8.0681) terminal-at-max 3.723135 deferred-at-max 0.963508`
-  - both `d=0.0` rows at 0.000000, `null rows not zero 0`, rc 0
-  - Every body digit matches. 0.267290/7.0145 = 3.81 %. The horizon is 96 steps of 0.25 h, so "per horizon" is per 24 h here.
-- RESULT `refill` at the head (`ev/refill_head.txt`):
-  - flat: terminal-at-P_r max 3.714491, deferred 0.792466, ratio max 0.79001
-  - spread: 2.117798, 0.486127, ratio 0.08194
-  - `null rows not zero 0`, rc 0
-  - Every body digit matches. "Not immaterial" is justified: 3.71 per horizon is about half the 7.01 daily hot-water cost, and one cell's terminal error is 79 % of its predicted cost. Reserving the decision for the savings seat is consistent with `_terminal_cost`'s binding docstring.
-- RESULT null-control mutant `k_r += 1e-6`: `null rows not zero 32`, rc 1 (`ev/refill_mutant_null.txt`). The null arm refuses as claimed.
-- RESULT `relaxed`, pinned to `taskset -c 0` on this host (`ev/relaxed_pinned.txt`): `clamped solves 32: solve_s p50 0.574 max 2.858; relaxed_pass_s p50 0.130 max 0.452`, null 0 relaxed runs, rc 0.
-  - The delta_s regrouping by `clamped` is my own (`ev/delta_stats_pinned.txt`): clamped p50 +0.254, min +0.017, max +0.856; unclamped -0.298..+0.254.
-  - Absolute times cannot be re-derived digit-for-digit. This host is an `Intel Xeon @ 2.10GHz` (`ev/host.txt`) against the body's 2.30 GHz Granite Rapids, and it reads about 1.3-1.5x slower.
-  - The body's noise-floor claim does not hold cleanly here: the unclamped spread (to +0.254) overlaps the clamped p50. The refusal does not depend on it. It rests on `relaxed_pass_s`, measured inside the pass, max 0.452 s, and on the null's 0.000 s.
-  - The worst solve, 2.858 s, is 0.48 % of 600 s. Even at this slower host x 6.8 it is 19.4 s, so the maxiter refusal holds.
-- RESULT `buffer 20`, pinned to `taskset -c 1` (`ev/buffer_pinned.txt`):
-
-  | arm | p50 (s) | max (s) |
-  |---|---|---|
-  | 750 L spread | 1.241 | 2.379 |
-  | 750 L flat | 1.200 | 1.729 |
-  | 0 L spread | 0.667 | 1.164 |
-  | 0 L flat | 0.620 | 1.005 |
-
-  The ratios are 1.86x and 1.94x (body 1.87x and 1.93x) and the price lever 1.08x (body 1.15x). The ratios reproduce; the absolute seconds are host-bound. The worst solve is 0.40 % of budget, so the refusal holds.
-- RESULT the budget is `config_flow.py:1736` `_number(10, 120, ...)`, so the minimum is 10 min = 600 s. Confirmed.
-- RESULT the Pi factor 6.8x (Geekbench 6 ratio) is cited from external pages, which I did not re-fetch. Not verified here; the verdict is robust below 210x on this host's worst solve.
-- RESULT cheap checks at the head (`ev/cheap_checks.txt`, `ev/entities.txt`):
-  - `ALL 112 HARNESS HEADER CHECKS PASSED`
-  - `STRUCTURE RATCHET PASSED`
-  - entities: `every tracked file is either measured or deliberately classified` ok
-  - 3 of 2645 entity checks failed locally: the coverage cache, the release ZIP build and the Pages workflow probe. They are environment-bound and read nothing this diff touches; CI's `tests / closures` is authoritative.
-- RESULT forward-carry: R10-SAV-COMFORT's `carry` at 4092d06bc holds "From PR 3291, body item 213e8a10", with the zero-derate precondition and control. It names the three seams only, as the Block says.
-- RESULT CI on this head, all check-run pages (`ev/checkruns.tsv`, 64 runs): `merge_train.py classify` returned `RED ... red: gate` (rc 1). Both `gate` runs, 128574120853 and 128575220710, failed with `FAIL run(s) [42429084301] at this head are still being judged; their gate decides` (`ev/gate_*.log`). That is a gate deferral, not a defect. Code run 42429084301 then concluded `completed success` (`ev/coderun.txt`). The re-classify at 01:03:33 UTC printed `GREEN 8bef9bc866a7458b19dbc00d0bf4ed07ed2f206a pending: none red: none`, rc 0 (`ev/classify3.txt`). The head is still 8bef9bc86 at that read. This block does not rest on CI.
-- RESULT `## Red checks` reads the checks at d5f8f410c, not at this head. At this head the only concluded reds are the two deferral gates above. Re-state them at the next head.
-- RESULT the instruments are disclosed as the fixer's own: `r10_partload_residue.py`, which is new and lands. The finder's harness is `r10_partload_pricing.py`, already in the tree.
+- RESULT round 4 (the brief's fourth round). Reviewed from a detached worktree at 17e891bf00140d79e166d95901391294002b513c (`ev/HEAD.txt`). Its tree is byte-identical to the r4 handoff tip a3a54793c: `git diff --stat a3a54793c HEAD` is empty, and the parents are 9211bed5a and a3a54793c. Merge base 73365699a135fb813a43380096b6776d57f8ff4c. `git diff <mb>...origin/main -- dev/governance/roles/` is empty (`ev/roles_diff.txt`).
+- RESULT merges cleanly: `git merge-tree --write-tree origin/main HEAD` exits 0 at origin/main 6188936a8 (`ev/merge_tree.txt`).
+- RESULT the round-3 finding (the 11th parameter on `build_wood_fuel_view`, `params_over_10` 6 -> 7) is cured. `tools/audit/archscore/score.py --diff 73365699a HEAD` prints `Architecture score: dS +0.0000 NULL`, rc 0 (`ev/archscore_diff.txt`). `tests/arch_score_head.py` prints `ALL 18 ARCHITECTURE SCORE HEAD CHECKS PASSED` (`ev/arch_score_head.txt`). `tests/structure.py` prints `STRUCTURE RATCHET PASSED` (`ev/structure.txt`).
+- RESULT the r4 repair changes nothing else, read from `git show a3a54793c`:
+  - The view's COP is now built once in `wood_fuel_from_parts` (`_derated(_cops(outdoor, compute_cop), _plan_partload(...))`) instead of inside the view. The arithmetic is the same.
+  - The night scan's fallback moved from `if outdoor` to `if cops`. These are equivalent: `_cops` returns one entry per outdoor entry, and `_derated` keeps the length of its COP list, so `cops` is empty exactly when `outdoor` is.
+  - The 5 test callers each fed a constant COP (`cop_at=lambda _t: c`) and now pass `cops=[c] * n`, which yields the same numbers.
+  - The two pinned lines are unchanged in text, and the bot-written ledger files at 9211bed5a still match them.
+  - The finder-harness outputs below are digit-identical to the body's round-3 figures.
+- RESULT the round-1 block, the wood advisor's pump-heat price, is fixed, and I confirmed it with my own instrument (`ev/e2e_wood.py`, the reviewer's own, disclosed as such). It drives the production entry `wood_fuel_from_parts` end to end on the 16 cells x 2 price days x 2 derates (`pp.solve`), at 41 wood prices per cell. It compares the published `cheaper_hour_count` with an independent restatement of the derated price, `on and sek < price / (cop(T) * (1 - d * clip((Ps + Pdhw - Pmin) / band, 0, 1))))`:
+  - At the merge base (`ev/e2e_wood_base.txt`): `partload_at wired: False`; mismatch max 19 (spread d=0.112) and 58 (flat d=0.112); 0 at d=0.
+  - At the head (`ev/e2e_wood_head.txt`): `partload_at wired: True`; mismatch max 0 on all four rows; the derated-vs-linear shortfall is 19 / 58, the defect size; null (d=0 published != linear) 0.
+  - These re-derive the body's 19 and 58 with an independent formula.
+- RESULT finder's harness `r10_partload_pricing.py`, run at the merge base and at the head: the outputs are byte-identical (`cmp` passes; `ev/pricing_base.txt`, `ev/pricing_head.txt`). spread d=0.112: lp_err 0.173106 / dhw 8.0681 / terminal-at-max 3.723135 / deferred-at-max 0.963508. flat d=0.112: 0.267290 / 7.0145 / 4.368455 / 2.139841. Both d=0 rows read 0.000000, `null rows not zero 0`, `failures 0`, rc 0. All body digits match.
+- RESULT the fixer's `r10_partload_residue.py refill`, run at the head and at the merge base with the harness copied in (`ev/refill_head.txt`, `ev/refill_base.txt`). Terminal/deferred at P_r are 2.117798/0.486127 (spread) and 3.714491/0.792466 (flat), with a ratio max of 0.79001. Wood: err 0.037629/0.061299, rel 0.12613, count short 19/58, night picks changed 67/560 of 656. Production residual: 0/0 at the head and 19/67, 58/560 at the base. Null 0, positive 0, rc 0 at both ends. Every line except the production row is identical between base and head. All body digits match.
+- RESULT mutation proof, re-run by hand on every changed production line (`ev/mut.py`, `ev/mutants.txt`; pinning suites `tests/wood_advisor.py` 25 checks and the `tests/features.py` wood block 31 checks, both rc 0 at baseline):
+  - Killed: A (coordinator drops `partload_at=partload_factor`), B (guard always `[]`), C (`_derated` drops the factor), E (hot water dropped from the total), F (`zip` for `zip_longest`), H (night always flat 3), I (night loses its flat-3 fallback), K (hot-water schedule ignored), M (factor const 1), N (space draw ignored) and O (factor as a divisor).
+  - Survived: D, F2 and G. F2 is equivalent; D and G are under `## Findings`.
+  - Null control: a no-op comment mutant survives, as it must.
+  - The body's M1-M6 are a subset and each fails as the body states.
+- RESULT `VERSION`, `RELEASE_NOTES.md` and the manifest are untouched (`git diff --quiet` on the three-dot range). The delivery row `dev/programme/delivery/3291.md` is in the diff.
+- RESULT new tracked files: the harness, which is INERT in `tests/closures.json`; the delivery row; and two mutation-ledger files. `tests/entities.py` prints `ok every tracked file is either measured or deliberately classified` (`ev/entities.txt`). 3 of 2665 entity checks fail locally: the coverage cache, the release ZIP build and the Pages workflow probe. These are the same environment-bound three the round-1 review recorded, and nothing in this diff reaches them.
+- RESULT structure budgets: `class_excess_loc` 17560 -> 17559 and `max_class_loc` 7933 -> 7932, both lowered and none raised.
+  - The mechanism is the coordinator's `_wear_price` `int(...)` re-joined from 3 lines to 1 (-2). The added `partload_at=partload_factor` kwarg is +1 inside the class. Net -1, which matches the re-record.
+  - With the join removed, the count would read 7934 over a 7933 budget. So the join pays for the added line; it is a formatting payment, not a structural one. It is a downward re-record with its reason in the commit, which `ratchet-budgets.md` permits, so I do not read it as `metric-gamed`.
+- RESULT `## Head` names 17e891bf0 and states the tree identity with a3a54793c, which I confirmed. The forward-carry is present on `handoff/audit-r10-roster` at 9fd3d6a25: R10-SAV-COMFORT holds "From PR 3291, body item 213e8a10" with the zero-derate precondition and control (`ev/roster_groups_9fd3d6a2.json`).
+- RESULT the figures not re-derived here are carries 1 and 3's CPU times (host-bound, read the solver only, which this diff does not touch; round 1 re-took them on this host class) and the 6.8x Pi factor (external pages, not fetched). Neither the verdict nor the refusals turns on them below a ~300x factor.
+- RESULT CI at this head, all pages (`ev/checkruns_final.tsv`, read 10:20Z): the only concluded non-success runs are `codeql / Analyze (python)` (cancelled) and the gate runs listed in `## Block`. Every other required leg concluded success or skipped, as in the packet digest (`ev/review-packet.md`). The PR head is still 17e891bf00140d79e166d95901391294002b513c (`git ls-remote origin refs/pull/3291/head` at 10:20Z).
 
 ## Friction
 
-- The brief asks for `handoff-wip` pushes at milestones, while the payload says to push nothing but the probe ref. I pushed only the probe ref.
+- The code run's automatic re-runs (attempt 41) repeat only `gate`, never the cancelled CodeQL leg. The head can therefore loop RED without anyone acting, and neither the fixer nor this seat can re-run a job. Carry: dismissed: the re-run belongs to the orchestrator, and R10-HOTFIX-CODEQL-HEADROOM holds the cause
