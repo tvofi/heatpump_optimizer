@@ -13,3 +13,10 @@
   the listing read (`update-ref --no-deref -d HEAD <head>`): one whose HEAD
   moved since is kept and the refusal reported. An orphaned seat's removal
   is leased the same way, at the HEAD read in its unregistered `wt/`.
+  Every removal arm, not only `on-remote`, keeps a worktree a process stands
+  in (`cwd-inside`, `cwd-unread`). A seat branch (`work/`, `scratch/`, `seat/`)
+  is judged by the pull request on `fix/<topic>`: merged or closed frees it
+  when clean and pushed. Class E removes `*mutant*`, `*null*` and `*head*`
+  copies without `.git` in a seat directory whose `fix/<topic>` PR merged.
+  `WORKTREE_GC_SEATS_ROOT` is a colon-separated list (seats live under
+  `~/hpo-seats/<round>`).
