@@ -1,0 +1,15 @@
+== mutant N0
+46 passed, 0 failed
+== mutant R1-drop-reserved
+  FAIL pkill after a then is refused (got allow, wanted refuse)
+  FAIL guard: a then body is read (got allow, wanted refuse)
+44 passed, 2 failed
+== mutant R2-pushd-as-cd
+  FAIL guard: pushd is followed like cd (got allow, wanted refuse)
+45 passed, 1 failed
+== mutant R3-reserved-without-brace
+46 passed, 0 failed
+== mutant R4-reserved-without-then
+  FAIL pkill after a then is refused (got allow, wanted refuse)
+  FAIL guard: a then body is read (got allow, wanted refuse)
+44 passed, 2 failed

@@ -1,7 +1,0 @@
-plant rc=2 :: if true; then git -C <T>/orch pull; fi
-plant rc=2 :: { git -C <T>/orch pull; }
-plant rc=2 :: for x in 1; do git -C <T>/orch pull; done
-plant rc=2 :: while git -C <T>/orch pull; do :; done
-plant rc=2 :: if true; then pkill x; fi
-plant rc=0 :: git -C <T>/orch status
-plant rc=0 :: echo then git pull

@@ -1,0 +1,8 @@
+drop if     46 passed, 0 failed
+drop then   44 passed, 2 failed
+drop else   46 passed, 0 failed
+drop elif   46 passed, 0 failed
+drop do     46 passed, 0 failed
+drop while  46 passed, 0 failed
+drop until  46 passed, 0 failed
+drop {      46 passed, 0 failed
