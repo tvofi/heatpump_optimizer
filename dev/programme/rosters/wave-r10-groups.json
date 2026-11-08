@@ -18913,7 +18913,9 @@
     "R10-HOTFIX-COP-UNMEASURED",
     "R10-GENERIC-HEAT-CURVE"
    ],
-   "carry": [],
+   "carry": [
+    "From r10-min-power-floor, body item a4565419: The reply on 3289 names the option: the reporter picks `on_off` unless their surface is switch plus setpoint, where the probe already clamps and only the DHW projection moves (item 052fa8fb). The orchestrator answers the issue. Carry: R10-MIN-POWER-FLOOR (items a4565419)"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "not-started",
