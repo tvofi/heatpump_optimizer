@@ -605,6 +605,19 @@ def _self_test():
         ck("run: the child editor carries the roster lane marker (roster_edit.LANE_ENV)",
            (t / "lane").read_text() == "queue-runner")
         ck("run: alive touched", (t / "alive").exists())
+        # A clone that exists but cannot reach the SHA (empty store, no origin): the HEAD check refuses
+        # it, and _run_op reports that refusal without running the editor.
+        lc0 = t / "lc_empty"
+        throwaway_git_init(lc0, "-q")
+        why = refresh_lint(argparse.Namespace(edit_checkout=str(repo), lint_clone=str(lc0)))
+        ck("refresh_lint: a clone whose checkout fails is refused, not passed", f"wanted {ahead[:12]}" in why, why)
+        before, r0 = (t / "calls").read_text(), []
+        _run_op(argparse.Namespace(**{**vars(a), "lint_clone": str(lc0)}),
+                lambda *c, **k: subprocess.run(c, capture_output=True, text=True),
+                r0.append, sys.executable, str(stub), "set-stage", "G", "", [])
+        ck("run: an unrefreshed lint clone is reported by name and the editor never runs",
+           len(r0) == 1 and "refused rc=2 lint clone not refreshed" in r0[0]
+           and (t / "calls").read_text() == before, r0)
         # P315 / #3020: a failing op writes its own FAILED line and stops the run;
         # a missing lint clone is refused by name, rc 2, before any op.
         (t / "rep2").write_text("")
