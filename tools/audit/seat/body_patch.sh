@@ -141,6 +141,15 @@ contract() { # pr-json base head body|- [title] -> rc   (`-`: the live body the 
   local args=(--pr-body "$body" --head "$head" --base "$base" --title "$title" --author "$author"
               --paths-file "$d/files" --existing-file "$d/existing") name rc=0
   while IFS= read -r name; do args+=(--red "$name"); done < "$d/reds"
+  # A Dependabot pull request is judged on its commit list (dependency_bump's clause);
+  # without `--commits-file` its body can never be patched (#3088, 2026-11-01).
+  if [ "$author" = "dependabot[bot]" ]; then
+    gh api --paginate "repos/$REPO/pulls/$(printf '%s' "$doc" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("number") or "")')/commits" \
+        --jq '.[] | [.sha, (.author.login // ""), (.committer.login // ""), (.commit.verification.verified // false | tostring)] | @tsv' \
+        > "$d/commits" 2>/dev/null \
+      || { echo "body_patch: the commit list of the Dependabot pull request could not be read" >&2; rm -rf "$d"; return 1; } # mut:commitlist
+    args+=(--commits-file "$d/commits") # mut:commitsarg
+  fi
   # never-empty: args starts with the literal --pr-body list; the body cites paths of the head, not of this checkout
   BRIEF_LINT_TREE_REV=$head node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
   if roster_ref_args; then
@@ -312,6 +321,9 @@ case "$*" in
     prog=""; prev=""; for a in "$@"; do [ "$prev" = "--jq" ] && prog="$a"; prev="$a"; done
     jq -n --rawfile n "$STUB/reds" '{check_runs: ($n | split("\n") | map(select(. != "")) | map({name: ., status: "completed", conclusion: "failure"}))}' 2>/dev/null \
       | jq -r "$prog" ;;
+  "api --paginate repos/o/r/pulls/7/commits "*)
+    [ -f "$STUB/commits-fail" ] && exit 1
+    cp "$STUB/commits.tsv" "$STUB/commits.read" 2>/dev/null; cat "$STUB/commits.tsv" ;;
   *) exit 9 ;;
 esac
 STUB
@@ -319,7 +331,7 @@ cat > "$W/bin/node" <<'STUB'
 #!/bin/bash
 printf 'node %s\n' "$*" >> "$STUB/log"
 printf 'treerev %s\n' "${BRIEF_LINT_TREE_REV-unset}" >> "$STUB/log"
-prev=""; for a in "$@"; do [ "$prev" = "--paths-file" ] && cp "$a" "$STUB/paths"; [ "$prev" = "--existing-file" ] && cp "$a" "$STUB/existing"; prev="$a"; done
+prev=""; for a in "$@"; do [ "$prev" = "--commits-file" ] && cp "$a" "$STUB/commits.arg"; [ "$prev" = "--paths-file" ] && cp "$a" "$STUB/paths"; [ "$prev" = "--existing-file" ] && cp "$a" "$STUB/existing"; prev="$a"; done
 [ -f "$STUB/lint-fails" ] && { echo "policy_lint: REFUSE stub" >&2; exit 1; }
 exit 0
 STUB
@@ -561,6 +573,8 @@ mutant dot2   '/# mut:threedot$/s/"\$base\.\.\.\$head"/"$base" "$head"/'
 mutant trb    '/# mut:titlereadback$/s/.*/same = True/'
 mutant tshp   '/# mut:titleshape$/s/.*/:/'
 mutant treerev '/# mut:contract$/s/BRIEF_LINT_TREE_REV=\$head //'
+mutant cmtl   '/# mut:commitlist$/s/.*/      || true/'
+mutant cmta   '/# mut:commitsarg$/s/.*/    :/'
 mutant tctr   '/# mut:titlecontract$/s/.*/    :/'
 MBP() { echo "$W/mut-$1/audit/seat/body_patch.sh"; }
 mkcase m1 "$MOVED"; run m1 "$(MBP head)" --repo o/r 7 "$HEAD" "$W/body.md"
@@ -597,6 +611,19 @@ st "$(calls m14 'curl PATCH')" 1 "MUTANT open-PR title contract deleted: a title
 
 mkcase m15; run m15 "$(MBP treerev)" --repo o/r 7 "$HEAD" "$W/body.md"
 st "$(grep -c "^treerev $HEAD\$" "$W/m15/log")" 0 "MUTANT BRIEF_LINT_TREE_REV dropped: policy_lint no longer runs at the head (the ok-run assertion catches it)"
+
+# A Dependabot pull request (#3088): its commit list reaches policy_lint as --commits-file.
+mkdep() { mkcase "$1"; printf 'sha1\tdependabot[bot]\tweb-flow\ttrue\n' > "$W/$1/commits.tsv"
+  python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); d["user"]["login"] = "dependabot[bot]"; json.dump(d, open(sys.argv[1], "w"))' "$W/$1/live.json"; }
+mkdep dep; run dep "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 0 "a Dependabot pull request is patched"
+st "$(cat "$W/dep/commits.arg" 2>/dev/null)" "$(printf 'sha1\tdependabot[bot]\tweb-flow\ttrue')" "policy_lint gets the PR's commit list as --commits-file (Dependabot arm)"
+mkdep depf; : > "$W/depf/commits-fail"; run depf "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REFUSE: a commit list that cannot be read is no list (never an empty file)"
+st "$(calls depf 'curl PATCH')" 0 "and nothing is sent"
+st "$([ -e "$W/ok/commits.arg" ] && echo passed || echo none)" none "null control: a non-Dependabot pull request is given no --commits-file"
+mkdep m16; run m16 "$(MBP cmta)" --repo o/r 7 "$HEAD" "$W/body.md"
+st "$([ -e "$W/m16/commits.arg" ] && echo passed || echo none)" none "MUTANT --commits-file dropped: the Dependabot arm no longer passes the list (the dep arm catches it)"
+mkdep m17; : > "$W/m17/commits-fail"; run m17 "$(MBP cmtl)" --repo o/r 7 "$HEAD" "$W/body.md"
+st "$(calls m17 'curl PATCH')" 1 "MUTANT commit-list read check deleted: an unreadable list now patches"
 
 echo "body_patch self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]
