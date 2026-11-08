@@ -38,7 +38,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
-from throwaway_git import throwaway_git_env, throwaway_git_init
+from throwaway_git import throwaway_git_env, throwaway_git_environ, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
 # is still there, otherwise the path the move map records, so a module import
@@ -18892,18 +18892,69 @@ def _hb_stdlib_reads(spin: bool) -> str:
         child.wait()
 
 
+def _hb_stdlib_arm(reads, platform):
+    """The (spinning, idle) stdlib samples, or None where macOS refuses the task port.
+
+    One platform rule: only a ``PermissionError`` on darwin is a skip, printed with
+    its reason. Any other platform or exception still fails the run, and a bad
+    sample is not an exception at all, so the arm's checks still judge it.
+    """
+    try:
+        return reads(True), reads(False)
+    except PermissionError as exc:
+        if platform != "darwin":
+            raise
+        print(f"SKIP stdlib sampler control: macOS denies the task port ({exc})")
+        return None
+
+
+def _hb_denied(_spin):
+    raise PermissionError(1, "task_for_pid denied")
+
+
+def _hb_other(_spin):
+    raise OSError("other")
+
+
+def _hb_arm_run(reads, platform):
+    out, seen = _io.StringIO(), None
+    try:
+        with _hb_contextlib.redirect_stdout(out):
+            seen = _hb_stdlib_arm(reads, platform)
+    except Exception as exc:  # noqa: BLE001 - the control reads which one escaped
+        seen = type(exc).__name__
+    return seen, out.getvalue()
+
+
 if _nightly.importlib.util.find_spec("_remote_debugging") is not None:
-    _hb_in, _hb_out = _hb_stdlib_reads(True), _hb_stdlib_reads(False)
-    _hb_reads = (
-        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
-        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
-    )
+    _hb_skip, _hb_skip_out = _hb_arm_run(_hb_denied, "darwin")
+    _hb_lin, _ = _hb_arm_run(_hb_denied, "linux")
+    _hb_oth, _ = _hb_arm_run(_hb_other, "darwin")
+    _hb_bad, _ = _hb_arm_run(lambda spin: "in nothing" if spin else "", "linux")
     R.check(
-        "the stdlib sample of a real spinning process reads as the spin to the control, "
-        "and of the same process outside it does not",
-        _hb_reads[0] == (True, True, True) and _hb_reads[1] == (True, True, False),
-        f"spinning: {_hb_reads[0]} {_hb_in[-160:]!r}; idle: {_hb_reads[1]} {_hb_out[-160:]!r}",
+        "a task-port refusal is a printed skip on darwin only: linux and any other "
+        "exception still fail, and a bad sample is still judged by the arm",
+        _hb_skip is None and _hb_skip_out.count("SKIP stdlib sampler control:") == 1
+        and _hb_lin == "PermissionError" and _hb_oth == "OSError"
+        and _hb_bad == ("in nothing", "")
+        and _nightly.hb_control_reading(
+            {"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_bad[0]]})
+        != (True, True, True),
+        f"darwin={_hb_skip!r}/{_hb_skip_out!r} linux={_hb_lin!r} other={_hb_oth!r} bad={_hb_bad!r}",
     )
+    _hb_pair = _hb_stdlib_arm(_hb_stdlib_reads, sys.platform)
+    if _hb_pair is not None:
+        _hb_in, _hb_out = _hb_pair
+        _hb_reads = (
+            _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
+            _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
+        )
+        R.check(
+            "the stdlib sample of a real spinning process reads as the spin to the control, "
+            "and of the same process outside it does not",
+            _hb_reads[0] == (True, True, True) and _hb_reads[1] == (True, True, False),
+            f"spinning: {_hb_reads[0]} {_hb_in[-160:]!r}; idle: {_hb_reads[1]} {_hb_out[-160:]!r}",
+        )
 else:
     R.check(
         "the stdlib sample of a real spinning process reads as the spin to the control "
@@ -19329,7 +19380,7 @@ R.check(
 import typing as _rd_typing  # noqa: E402
 
 _rd_hint_failures = []
-def _module_block_19206():
+def _module_block_19257():
     global _rd_entry_point, exc
     for _rd_entry_point in (
         integration.async_setup_entry,
@@ -19340,7 +19391,7 @@ def _module_block_19206():
             _rd_typing.get_type_hints(_rd_entry_point)
         except Exception as exc:  # noqa: BLE001 - the failure text is the point
             _rd_hint_failures.append(f"{_rd_entry_point.__name__}: {exc!r}")
-_module_block_19206()
+_module_block_19257()
 R.check(
     "get_type_hints resolves all three entry points' annotations",
     not _rd_hint_failures,
@@ -19367,12 +19418,12 @@ def _a14_spy(name, package=None):
 
 integration.__dict__.pop("HeatPumpOptimizerCoordinator", None)
 integration.importlib.import_module = _a14_spy
-def _module_block_19241():
+def _module_block_19292():
     try:
         getattr(integration, "HeatPumpOptimizerCoordinator")
     finally:
         integration.importlib.import_module = _a14_import
-_module_block_19241()
+_module_block_19292()
 R.check(
     "__getattr__ does not import_module a sibling already in sys.modules",
     ".coordinator" not in _a14_mod_names,
@@ -20089,7 +20140,7 @@ R.check(
 # red check, not a truncated run.
 _CIG_PATH = _closure.ROOT / "tools" / "ci" / "gate.py"
 import importlib.util as _cig_util
-def _module_block_19961():
+def _module_block_20012():
     global _cig, _cig_err, _cig_exc, _cig_required, _cig_spec, k, v
     try:
         _cig_spec = _cig_util.spec_from_file_location("hpo_ci_gate", _CIG_PATH)
@@ -20098,7 +20149,7 @@ def _module_block_19961():
         _cig_required, _cig_err = {k: tuple(v) for k, v in _cig.REQUIRED.items()}, ""
     except Exception as _cig_exc:  # noqa: BLE001 -- see stamp.py's load above
         _cig_required, _cig_err = {}, f"{type(_cig_exc).__name__}: {_cig_exc}"
-_module_block_19961()
+_module_block_20012()
 _CIG_FIXTURE = json.loads((_closure.ROOT / "tools" / "policy" / "fixtures"
                            / "required-contexts.json").read_text())
 
@@ -20840,7 +20891,7 @@ _rs_root = str(_closure.ROOT)
 (_rs_dir / "r.json").write_text(json.dumps(
     {"files": ["tests/deployment_shape.py"], "how": "audithook+sys.modules"}))
 _RS_INERT = None
-def _module_block_20709():
+def _module_block_20760():
     global _RS_GOT, _RS_INERT, _RS_INERT_SEEN, _RS_REC, _RS_SEEN, _rs_exc
     try:
         _RS_SEEN = sorted(_closure.strace_files(_rs_dir / "r.strace"))
@@ -20852,7 +20903,7 @@ def _module_block_20709():
         _RS_INERT = (_RS_INERT_SEEN, _RS_REC.get("inert_reads"))
     except Exception as _rs_exc:  # noqa: BLE001 -- one red check, never a partial run
         _RS_GOT = (f"{type(_rs_exc).__name__}: {_rs_exc}",)
-_module_block_20709()
+_module_block_20760()
 _rs_shutil.rmtree(_rs_dir, ignore_errors=True)
 _RS_SRC = _inspect.getsource(_closure.record)
 R.check(
@@ -20887,7 +20938,7 @@ import subprocess as _ir_sp  # noqa: E402
 
 _ir_dir = Path(_tempfile.mkdtemp(prefix="closure-inert-"))
 _ir_real = json.loads(_closure.CLOSURES.read_text())
-def _module_block_20753():
+def _module_block_20804():
     global _IR_CHECK_LISTED, _IR_CHECK_MISSING, _IR_FOLD, _IR_GOT, _IR_HOOK, _IR_MERGED, _IR_RC, _IR_TABLE, _ir_exc, _ir_t, _saved_closures
     try:
         # C1: a Python script run by the recorder's own audit hook, no strace.
@@ -20930,7 +20981,7 @@ def _module_block_20753():
                    _IR_CHECK_MISSING, _IR_CHECK_LISTED)
     except Exception as _ir_exc:  # noqa: BLE001 -- one red check, never a partial run
         _IR_GOT = (f"{type(_ir_exc).__name__}: {_ir_exc}",)
-_module_block_20753()
+_module_block_20804()
 _rs_shutil.rmtree(_ir_dir, ignore_errors=True)
 R.check(
     "inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, "
@@ -21166,7 +21217,7 @@ R.check(
 )
 # Apply: a recording that names one extra file is the UNDER-SCOPED case.
 # Merge it, then check must pass, and the committed list must grow.
-def _module_block_21029():
+def _module_block_21080():
     global _af_after, _af_closures, _af_committed, _af_orig, _af_rec_dir, _af_root, _af_script, _af_status, _af_td
     with _tempfile.TemporaryDirectory() as _af_td:
         _af_root = Path(_af_td)
@@ -21190,13 +21241,13 @@ def _module_block_21029():
             _af_after = json.loads(_af_closures.read_text())["closures"][_af_script]
         finally:
             _closure.CLOSURES = _af_orig
-_module_block_21029()
+_module_block_21080()
 R.check(
     "UNDER-SCOPED recordings merge into the committed closure",
     _af_status == "changed" and "tests/run.sh" in _af_after,
     f"status={_af_status} files={_af_after}",
 )
-def _module_block_21056():
+def _module_block_21107():
     global _af2_closures, _af2_list, _af2_orig, _af2_rec, _af2_root, _af2_script, _af2_status, _af2_td
     with _tempfile.TemporaryDirectory() as _af2_td:
         _af2_root = Path(_af2_td)
@@ -21218,7 +21269,7 @@ def _module_block_21056():
                 _af2_rec, partial=True)
         finally:
             _closure.CLOSURES = _af2_orig
-_module_block_21056()
+_module_block_21107()
 R.check(
     "a recording that matches the committed list is not an autofix",
     _af2_status == "skip-clean",
@@ -21285,7 +21336,7 @@ R.check(
     f"status={_af3_status}: open_meteo.py under-approximates and its own "
     "recording stopped early -- a human is waiting for a commit no step will push",
 )
-def _module_block_21142():
+def _module_block_21193():
     global _af3u_after, _af3u_orig, _af3u_path, _af3u_rec, _af3u_status, _af3u_td, _i, _r
     with _tempfile.TemporaryDirectory() as _af3u_td:
         _af3u_path = Path(_af3u_td) / "closures.json"
@@ -21306,7 +21357,7 @@ def _module_block_21142():
         finally:
             _closure.CLOSURES = _af3u_orig
         _af3u_after = json.loads(_af3u_path.read_text())["closures"]
-_module_block_21142()
+_module_block_21193()
 R.check(
     "a failed recording of an UNRELATED script no longer blocks the repair; "
     "its own truncated trace is left out of the merge",
@@ -21502,7 +21553,7 @@ R.check(
     and _af8["absent"] == ("skip-not-under-scoped", True),
     f"{_af8}: a green closures job owes nothing",
 )
-def _module_block_21356():
+def _module_block_21407():
     global _af4_after, _af4_before, _af4_closures, _af4_orig, _af4_rec, _af4_root, _af4_status, _af4_td
     with _tempfile.TemporaryDirectory() as _af4_td:
         _af4_root = Path(_af4_td)
@@ -21522,7 +21573,7 @@ def _module_block_21356():
             _af4_after = _af4_closures.read_text()
         finally:
             _closure.CLOSURES = _af4_orig
-_module_block_21356()
+_module_block_21407()
 R.check(
     "unreadable recordings do not rewrite closures.json",
     _af4_status == "skip-merge-failed" and _af4_after == _af4_before,
@@ -22186,13 +22237,13 @@ def _bc_spy(files, base=None):
 
 _closure.select = _bc_spy
 sys.argv = ["closure.py", "select", "--files", _CJ, "--diff", _BC_ANC or "HEAD", "--json"]
-def _module_block_22037():
+def _module_block_22088():
     try:
         with _bc_contextlib.redirect_stdout(_bc_io.StringIO()):
             _closure.main()
     finally:
         _closure.select, sys.argv = _bc_select, _bc_argv
-_module_block_22037()
+_module_block_22088()
 R.check(
     "a closures.json change is measured against the merge base's table, not HEAD's",
     _BC_ANC is not None
@@ -22317,7 +22368,7 @@ R.check(
 # The precondition that makes dropping the roster test safe: `affected` never
 # returns `scoped` on a tree where a selectable script has no closure, so the
 # scoped path cannot run where that test would have fired.
-def _module_block_22166():
+def _module_block_22217():
     global _A_SHORT, _real, _short, _td, k, v
     with _tempfile.TemporaryDirectory() as _td:
         _short = Path(_td) / "closures.json"
@@ -22329,7 +22380,7 @@ def _module_block_22166():
             _A_SHORT = _closure.affected(["custom_components/heatpump_optimizer/optimizer.py"])
         finally:
             _closure.CLOSURES = _real
-_module_block_22166()
+_module_block_22217()
 R.check(
     "a selectable script with no closure forces the full re-derivation",
     _A_SHORT["case"] == "full" and "open_meteo" in _A_SHORT["reason"],
@@ -23707,7 +23758,7 @@ R.check(
 import contextlib as _lm_contextlib  # noqa: E402
 import importlib.util as _lm_util  # noqa: E402
 import io as _lm_io  # noqa: E402
-def _module_block_23553():
+def _module_block_23604():
     global _lm, _lm_detail, _lm_exc, _lm_ok, _lm_out, _lm_spec
     try:
         _lm_spec = _lm_util.spec_from_file_location(
@@ -23720,7 +23771,7 @@ def _module_block_23553():
         _lm_detail = _lm_out.getvalue()
     except Exception as _lm_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
         _lm_ok, _lm_detail = False, f"{type(_lm_exc).__name__}: {_lm_exc}"
-_module_block_23553()
+_module_block_23604()
 R.check(
     "tools/merge/ledger_merge.py --self-test passes",
     _lm_ok,
@@ -24835,7 +24886,7 @@ import io as _stamp_io
 # broadly here is deliberate: turning any failure mode into one red `R.check`
 # is strictly safer than letting any of them turn into a partial run.
 _STAMP_PATH = _closure.ROOT / "tools" / "release" / "stamp.py"
-def _module_block_24678():
+def _module_block_24729():
     global _stamp, _stamp_detail, _stamp_exc, _stamp_ok, _stamp_out, _stamp_rc, _stamp_spec
     try:
         _stamp_spec = _importlib_util.spec_from_file_location(
@@ -24856,7 +24907,7 @@ def _module_block_24678():
             f"tools/release/stamp.py raised loading or running --self-test: "
             f"{type(_stamp_exc).__name__}: {_stamp_exc}"
         )
-_module_block_24678()
+_module_block_24729()
 R.check(
     "tools/release/stamp.py's --self-test passes",
     _stamp_ok,
@@ -24870,7 +24921,7 @@ R.check(
 # write set stamp.py stages must be the guard's `STAMP_WRITES`, and the claim
 # files `rewrite_claims` produces must pass the guard as a push to main sees
 # them, deleting a claim neither file's author could have written.
-def _module_block_24710():
+def _module_block_24761():
     global _stc_after, _stc_before, _stc_claims, _stc_decl, _stc_deleted, _stc_detail, _stc_exc, _stc_ok, _stc_old, _stc_verdict, _stc_writes, p
     try:
         _stc_writes = {
@@ -24899,7 +24950,7 @@ def _module_block_24710():
     except Exception as _stc_exc:  # noqa: BLE001 -- one red check, never a partial run
         _stc_ok = False
         _stc_detail = f"{type(_stc_exc).__name__}: {_stc_exc}"
-_module_block_24710()
+_module_block_24761()
 R.check(
     "a claim file stamp.py rewrites passes env_drift's claims guard on the "
     "push to main, and both agree on the files a stamp writes",
@@ -24914,7 +24965,7 @@ R.check(
 # claim is live, and a name cannot be both). Pinned here, a branch that
 # suspends an entry in a form `restore_suspended` cannot read goes red on
 # its own pull request instead of on the next stamp.
-def _module_block_24751():
+def _module_block_24802():
     global _, _stcov_after, _stcov_claims, _stcov_decl, _stcov_detail, _stcov_dir, _stcov_exc, _stcov_md, _stcov_next, _stcov_ok, _stcov_path, _stcov_problem, _stcov_version
     try:
         _stcov_version = Path("VERSION").read_text().strip()
@@ -24938,7 +24989,7 @@ def _module_block_24751():
     except Exception as _stcov_exc:  # noqa: BLE001 -- one red check, never a partial run
         _stcov_ok = False
         _stcov_detail = f"{type(_stcov_exc).__name__}: {_stcov_exc}"
-_module_block_24751()
+_module_block_24802()
 R.check(
     "the claim file stamp.py would write from this tree covers every allowed "
     "may-drift name -- each suspended entry restored with the claims deleted",
@@ -25336,7 +25387,7 @@ class _GoodToken:
 
 _ra_flow_validate = config_flow.validate_tibber_token
 config_flow.validate_tibber_token = _GoodToken()
-def _module_block_25170():
+def _module_block_25221():
     global _ra_out
     try:
         _ra_out = asyncio.run(
@@ -25344,7 +25395,7 @@ def _module_block_25170():
         )
     finally:
         config_flow.validate_tibber_token = _ra_flow_validate
-_module_block_25170()
+_module_block_25221()
 R.check(
     "a valid token is written through and the entry reloads",
     _ra_out.get("reason") == "reauth_successful"
@@ -25374,14 +25425,14 @@ def _ce_spy(self, *args, **kwargs):
 
 
 _ce_uc.DataUpdateCoordinator.__init__ = _ce_spy
-def _module_block_25205():
+def _module_block_25256():
     global _ce_entry
     try:
         _ce_entry = FakeEntry(data=dict(_CRED_DATA))
         integration.HeatPumpOptimizerCoordinator(FakeHass(), _ce_entry)
     finally:
         _ce_uc.DataUpdateCoordinator.__init__ = _ce_orig
-_module_block_25205()
+_module_block_25256()
 R.check(
     "super().__init__ is passed config_entry=entry",
     bool(_ce_calls) and _ce_calls[0].get("config_entry") is _ce_entry,
@@ -25482,7 +25533,7 @@ def _run_reconfigure(flow, answers):
 
 _rc_real_validate = config_flow.validate_tibber_token
 config_flow.validate_tibber_token = _accept_any_token
-def _module_block_25310():
+def _module_block_25361():
     global _rc_flow_open, _rc_form, _rc_sensors_form
     try:
         _rc_flow_open = _rc_flow()
@@ -25490,7 +25541,7 @@ def _module_block_25310():
         _rc_sensors_form = asyncio.run(_rc_flow_open.async_step_user_sensors(None))
     finally:
         config_flow.validate_tibber_token = _rc_real_validate
-_module_block_25310()
+_module_block_25361()
 
 R.check(
     "reconfigure reopens the first screen rather than a fresh wizard",
@@ -26006,13 +26057,13 @@ R.check(
 # pins below it keep the move honest.
 R.section("Entity base classes (D10-08)")
 
-def _module_block_25831():
+def _module_block_25882():
     global _entity_mod
     try:
         from heatpump_optimizer import entity as _entity_mod  # noqa: E402
     except ImportError:  # the pre-#298 tree
         _entity_mod = None
-_module_block_25831()
+_module_block_25882()
 
 _shared_base = getattr(_entity_mod, "HeatPumpOptimizerEntity", None)
 R.check(
@@ -26276,7 +26327,7 @@ for _key, (_cls, _states, _mk) in _ENUM_SENSORS.items():
 # Assistant actually reads. ``.state`` is the stub's transcription of
 # sensor/__init__.py, so this fails exactly where a real install would.
 _enum_state_errors = []
-def _module_block_26098():
+def _module_block_26149():
     global _cls, _err, _got, _key, _mk, _s, _states
     for _key, (_cls, _states, _mk) in _ENUM_SENSORS.items():
         for _s in _states:
@@ -26287,7 +26338,7 @@ def _module_block_26098():
                 continue
             if _got != _s:
                 _enum_state_errors.append(f"{_key}={_s} rendered as {_got!r}")
-_module_block_26098()
+_module_block_26149()
 R.check(
     "every declared state survives Home Assistant's own enum validation",
     not _enum_state_errors,
@@ -26298,14 +26349,14 @@ R.check(
 # check that supplies the value it then asserts is this repository's most
 # repeated defect. A state outside the options must raise.
 _control_raised = []
-def _module_block_26117():
+def _module_block_26168():
     global _cls, _key, _mk, _states
     for _key, (_cls, _states, _mk) in _ENUM_SENSORS.items():
         try:
             _cls(_mk("a_state_no_producer_emits"), ENTRY).state
         except ValueError:
             _control_raised.append(_key)
-_module_block_26117()
+_module_block_26168()
 R.check(
     "and an undeclared state raises, so the check above can fail",
     sorted(_control_raised) == sorted(_ENUM_SENSORS),
@@ -27326,13 +27377,13 @@ def _ns_nightly_lanes(text: str) -> "list[str]":
     return sorted(_n for _n in _ids if _runs(_n, "schedule") and not _runs(_n, "push"))
 
 
-def _module_block_27142():
+def _module_block_27193():
     global _NS_SCHEDULE_ONLY, _ns_exc
     try:
         _NS_SCHEDULE_ONLY = _ns_nightly_lanes(_NIGHTLY_YML)
     except Exception as _ns_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
         _NS_SCHEDULE_ONLY = [f"{type(_ns_exc).__name__}: {_ns_exc}"]
-_module_block_27142()
+_module_block_27193()
 _NS_TESTS_CRON = re.findall(r"^  schedule:", _TESTS_YML.split("\njobs:", 1)[0], re.M)
 R.check(
     "the reporter watches exactly the lanes a pull request cannot see",
@@ -27762,7 +27813,7 @@ R.check(
 # word for "the nightly FAILED", and the truth was "this could not look", which
 # is what exit 2 exists for. Three call sites read a run's clock; all three.
 _ns_noclock = []
-def _module_block_27575():
+def _module_block_27626():
     global _call, _exc, _label
     for _label, _call in (
         ("pick_runs", lambda: _nstatus.pick_runs([{"id": 5, "status": "completed"}])),
@@ -27779,7 +27830,7 @@ def _module_block_27575():
             _ns_noclock.append(f"{_label} raised {type(_exc).__name__}")
         else:
             _ns_noclock.append(f"{_label} returned a verdict")
-_module_block_27575()
+_module_block_27626()
 R.check(
     "a run carrying no created_at is UNREADABLE, not a KeyError and not a "
     "verdict",
@@ -27800,7 +27851,7 @@ R.check(
 # `_get` is the one collaborator, stubbed; `_jobs` itself is the production
 # function under test.
 _ns_paging_real_get = _nstatus._get
-def _module_block_27610():
+def _module_block_27661():
     global _exc, _ns_truncated, _ns_whole
     try:
         _nstatus._get = lambda _u, _t: {
@@ -27819,7 +27870,7 @@ def _module_block_27610():
         _ns_whole = _nstatus._jobs("o/r", 1, None) == _NS_LIVE
     finally:
         _nstatus._get = _ns_paging_real_get
-_module_block_27610()
+_module_block_27661()
 R.check(
     "a jobs page that does not carry every job of the run is UNREADABLE, not a "
     "partial answer",
@@ -28262,7 +28313,7 @@ _DS_TITLE_WINDOW = [
     _ds_commit("ccccccc", "v6.7.16: stamp", parents=1),
 ]
 _ds_title_merges, _ds_title_blind = _ds.collect(_DS_TITLE_WINDOW)
-def _module_block_28069():
+def _module_block_28120():
     global _ds_from_body, _ds_from_fixes
     try:
         _ds_from_body = _ds.subject_number(
@@ -28275,7 +28326,7 @@ def _module_block_28069():
         )
     except TypeError:
         _ds_from_body = _ds_from_fixes = None
-_module_block_28069()
+_module_block_28120()
 R.check(
     "a title-subject merge is numbered from a body Merge pull request line",
     [m["number"] for m in _ds_title_merges] == [1970]
@@ -28346,7 +28397,7 @@ _DS_DIRECT = [
      "files": ["tools/policy/counts.mjs"]},
 ]
 _ds_allow = getattr(_ds, "direct_pushes", lambda t: {})("- 618d014: merged by hand before the PR flow; rows in #1999\n")
-def _module_block_28150():
+def _module_block_28201():
     global _DS_D, _ds_exc
     try:
         _DS_D = tuple(
@@ -28365,7 +28416,7 @@ def _module_block_28150():
             ))
     except Exception as _ds_exc:  # noqa: BLE001 -- one red check, never a partial run
         _DS_D = (f"{type(_ds_exc).__name__}: {_ds_exc}",)
-_module_block_28150()
+_module_block_28201()
 R.check(
     "a direct-push merge commit is dispositioned -- record-only by its files, "
     "anything else by a tracked line naming its sha -- or stays UNCHECKED (R9-RO-9a)",
@@ -29147,8 +29198,8 @@ R.check(
 # mutant line by that marker at the line's end.
 import importlib.util as _ba_util  # noqa: E402
 
-def _module_block_28948():
-    global _ba, _ba_base, _ba_exc, _ba_fixed, _ba_head, _ba_hits, _ba_rows, _ba_spec
+def _module_block_28999():
+    global _ba, _ba_args, _ba_base, _ba_cwd, _ba_env, _ba_exc, _ba_fixed, _ba_head, _ba_hits, _ba_rows, _ba_spec, _ba_tmp, _ba_uncommitted
     try:
         _ba_spec = _ba_util.spec_from_file_location(
             "hpo_bare_array", _closure.ROOT / "tools" / "audit" / "seat" / "bare_array.py")
@@ -29159,7 +29210,27 @@ def _module_block_28948():
         # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
         _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
         _ba_fixed = _ba_head + 'x | python3 -I ledger.py landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads\n'
+        # This row judges HEAD's blobs, not the working tree (a tree read would open every
+        # tools/*.sh and join this script's closure); `bare_array.py --check` with no ref
+        # reads the working tree. Planted control: one temp repo, a clean commit and an
+        # uncommitted bare edit -- HEAD reads clean, the tree reads red.
+        with _tempfile.TemporaryDirectory() as _ba_tmp:
+            _ba_cwd = os.getcwd()
+            try:
+                _ba_env = throwaway_git_init(_ba_tmp, "-q")
+                Path(_ba_tmp, "tools").mkdir()
+                Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + "f x\n")
+                for _ba_args in (["add", "."], ["commit", "-qm", "c"]):
+                    subprocess.run(["git", *_ba_args], cwd=_ba_tmp, env=_ba_env, check=True, capture_output=True)
+                Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + 'f "${a[@]}"\n')
+                os.chdir(_ba_tmp)
+                with throwaway_git_environ():
+                    _ba_uncommitted = (_ba.scan("HEAD"), _ba.scan())
+            finally:
+                os.chdir(_ba_cwd)
         _ba_rows = (
+            (_ba_uncommitted[0] == [] and len(_ba_uncommitted[1]) == 1,
+             "an uncommitted bare site is invisible to the HEAD scan this row runs and red to the tree scan"),
             (len(_ba.sites(_ba_base)) == 1, "the base bus.sh call is refused"),
             (_ba.sites(_ba_fixed) == [], "the guarded form passes (control)"),
             (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
@@ -29177,9 +29248,9 @@ def _module_block_28948():
         )
     except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
         _ba_hits, _ba_rows = [f"{type(_ba_exc).__name__}: {_ba_exc}"], ()
-_module_block_28948()
+_module_block_28999()
 R.check(
-    "no tracked tools/**/*.sh script expands a bare \"${array[@]}\"",
+    "no tools/**/*.sh script, as committed at HEAD, expands a bare \"${array[@]}\"",
     not _ba_hits,
     "bash 3.2 (macOS) dies on an empty array under -u; guard with ${a[@]+\"${a[@]}\"} or "
     "put `# never-empty: <reason>` on the line, or on the line above when it ends in `# mut:<name>`:\n" + "\n".join(_ba_hits),
@@ -29204,7 +29275,7 @@ import importlib.util as _rr_util  # noqa: E402
 import contextlib as _rr_cx  # noqa: E402
 import io as _rr_io  # noqa: E402
 
-def _module_block_29002():
+def _module_block_29073():
     global _rr, _rr_detail, _rr_exc, _rr_ok, _rr_out, _rr_spec
     try:
         _rr_spec = _rr_util.spec_from_file_location(
@@ -29218,7 +29289,7 @@ def _module_block_29002():
         _rr_detail = _rr_out.getvalue()
     except Exception as _rr_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
         _rr_ok, _rr_detail = False, f"{type(_rr_exc).__name__}: {_rr_exc}"
-_module_block_29002()
+_module_block_29073()
 R.check(
     "tools/audit/seat/record_row.py --self-test passes",
     _rr_ok,
@@ -29231,7 +29302,7 @@ R.check(
 # prevent (#1948). Equality on the NORMALIZED tail, never a prefix, so
 # `fix/r9-fr-1` cannot answer for R9-FR-10 -- the one mismatch a startswith
 # rule produces, and the control this arm drives beside the matches.
-def _module_block_29026():
+def _module_block_29097():
     global _rl, _rl_exc, _rl_got, _rl_ok, _rl_roster, _rl_spec, b
     try:
         _rl_spec = _rr_util.spec_from_file_location(
@@ -29251,7 +29322,7 @@ def _module_block_29026():
         _rl_ok = True
     except Exception as _rl_exc:  # noqa: BLE001
         _rl_ok, _rl_got = False, [f"{type(_rl_exc).__name__}: {_rl_exc}"]
-_module_block_29026()
+_module_block_29097()
 R.check(
     "a merged pull request's branch answers for its roster group, and only its group",
     _rl_ok and _rl_got == ["R9-FR-4", "R9-FR-4", "R9-FR-10", None, None, None],
@@ -29269,7 +29340,7 @@ R.check(
 # round 10's landed beside it. Its self-test is run here for the reason the
 # state-doc block below gives: under the INERT `tools/audit/` prefix an edit
 # would otherwise select no script.
-def _module_block_29061():
+def _module_block_29132():
     global _rlw_detail, _rlw_exc, _rlw_ok, _rlw_out
     try:
         with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _rlw_out:
@@ -29277,7 +29348,7 @@ def _module_block_29061():
         _rlw_detail = _rlw_out.getvalue()
     except Exception as _rlw_exc:  # noqa: BLE001 -- a crash is one red check
         _rlw_ok, _rlw_detail = False, f"{type(_rlw_exc).__name__}: {_rlw_exc}"
-_module_block_29061()
+_module_block_29132()
 R.check(
     "tools/audit/seat/roster_lib.py --self-test passes: the newest roster, "
     "the override, the loud refusal",
@@ -29304,7 +29375,7 @@ R.check(
 # `_rr_cx`/`_rr_io` are the record_row block's redirect helpers, one block up.
 import importlib.util as _sd_util  # noqa: E402
 
-def _module_block_29093():
+def _module_block_29164():
     global _sd, _sd_detail, _sd_err, _sd_exc, _sd_ok, _sd_out, _sd_spec
     try:
         _sd_spec = _sd_util.spec_from_file_location(
@@ -29318,7 +29389,7 @@ def _module_block_29093():
         _sd_detail = _sd_out.getvalue() + _sd_err.getvalue()
     except Exception as _sd_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
         _sd_ok, _sd_detail = False, f"{type(_sd_exc).__name__}: {_sd_exc}"
-_module_block_29093()
+_module_block_29164()
 R.check(
     "tools/audit/seat/state_docs.py --self-test passes, beat arms included",
     _sd_ok,
@@ -29370,7 +29441,7 @@ R.check(
 # `docs/delivery/<N>.md` -- the guard refuses the plan, the handover, and any
 # path that is not a row file, and each generated file is exactly one line so
 # it can neither split nor trail a table.
-def _module_block_29156():
+def _module_block_29227():
     global _bad, _raf_guard, _raf_line, _raf_text, _raf_tmp2, _raf_want
     with _ds_tf.TemporaryDirectory() as _raf_tmp2:
         _raf_guard = []
@@ -29391,7 +29462,7 @@ def _module_block_29156():
                        Path(_raf_tmp2))
         _raf_text = (Path(_raf_tmp2) / "dev/programme/delivery/2052.md").read_text()
         _raf_want = _rr.row_line(2052, "fix: one", "a" * 40, None) + "\n"
-_module_block_29156()
+_module_block_29227()
 R.check(
     "the generator's write set is dev/programme/delivery/<N>.md and nothing else",
     all(g.endswith("=refused") for g in _raf_guard)
@@ -32506,13 +32577,13 @@ _STATS_JS = (
 _STATS_OUT = subprocess.run(
     ["node", "--input-type=module", "-e", _STATS_JS],
     capture_output=True, text=True).stdout or "null"
-def _module_block_32289():
+def _module_block_32360():
     global _STATS_DEGRADED
     try:
         _STATS_DEGRADED = json.loads(_STATS_OUT)
     except ValueError:
         _STATS_DEGRADED = None
-_module_block_32289()
+_module_block_32360()
 R.check(
     "a verdict histogram whose block-class grammar is unreadable withholds "
     "the proposal and says why",
@@ -33320,7 +33391,7 @@ R.check(
 # sibling with the whole suite green (#1303 round-1 block). Both clauses there
 # are now driven with NO argument and through `main()`'s own call, so what is
 # pinned is the read the instrument actually performs.
-def _module_block_33100():
+def _module_block_33171():
     global _CFR, _CFR_ARTIFACT, _CFR_ARTIFACT_OK, _CFR_EXCL, _CFR_QUOTE, _CFR_RECORD_JOB, _cfr_artifact_detail, _cfr_exc
     try:
         _CFR_ARTIFACT = _closure.ROOT / "dev/governance/config/cfr_exclusions.json"
@@ -33353,12 +33424,12 @@ def _module_block_33100():
         _CFR_ARTIFACT_OK = False
         _CFR_EXCL = {}
         _cfr_artifact_detail = f"{type(_cfr_exc).__name__}: {_cfr_exc}"
-_module_block_33100()
+_module_block_33171()
 
 # The instrument's READ -- step 11, "a check pins the artifact it READS". In
 # its own try so a resolution that moves reds the check named for it and not
 # the artifact check above, which pins a different property.
-def _module_block_33135():
+def _module_block_33206():
     global _CFR_INSTR, _CFR_INSTR_OK, _cfr, _cfr_call_desc, _cfr_ctx, _cfr_default_map, _cfr_default_path, _cfr_exc, _cfr_git_stop, _cfr_instr_detail, _cfr_io, _cfr_main_exc, _cfr_main_ok, _cfr_os, _cfr_reads, _cfr_real_git, _cfr_real_load, _cfr_spec, _cfr_spy, _cfr_src, _cfr_stop, _cfr_util, _r
     try:
         import contextlib as _cfr_ctx
@@ -33446,7 +33517,7 @@ def _module_block_33135():
     except Exception as _cfr_exc:  # noqa: BLE001 -- one red check, never a partial run
         _CFR_INSTR_OK = False
         _cfr_instr_detail = f"{type(_cfr_exc).__name__}: {_cfr_exc}"
-_module_block_33135()
+_module_block_33206()
 
 _CFR_DETAIL = _cfr_artifact_detail + "; " + _cfr_instr_detail
 R.check(
@@ -33510,7 +33581,7 @@ _D13_WINDOW_SIGS = (
     ((True, False, False, True), 2),
     ((True, True, False, False), 2),
 )
-def _module_block_33284():
+def _module_block_33355():
     global _, _D13_INSTR, _D13_KEYINGS_OK, _count, _d13, _d13_detail, _d13_exc, _d13_head, _d13_merge, _d13_pr, _d13_rates, _d13_spec, _d13_util, _sig, n, on
     try:
         import importlib.util as _d13_util
@@ -33543,7 +33614,7 @@ def _module_block_33284():
     except Exception as _d13_exc:  # noqa: BLE001 -- one red check, never a partial run
         _D13_KEYINGS_OK = False
         _d13_detail = f"{type(_d13_exc).__name__}: {_d13_exc}"
-_module_block_33284()
+_module_block_33355()
 R.check(
     "the change-failure instrument reports the merge-keyed AND the PR-head-keyed "
     "rate (#1407)",
@@ -33596,7 +33667,7 @@ _D13_06_NAMES = {
     "fast (3.14)": [0.032, 0.0], "policy-docs": [0.065, 0.0],
     "delivery-status": [0.0, 0.129],
 }
-def _module_block_33367():
+def _module_block_33438():
     global _, _D13_06_OK, _count, _d13_06_detail, _d13b_by, _d13b_dropped, _d13b_exc, _d13b_head, _d13b_merge, _d13b_pr, _d13b_rates, _d13b_sum, _hfail, _mfail
     try:
         _d13b_merge, _d13b_head, _d13b_pr = {}, {}, 0
@@ -33639,7 +33710,7 @@ def _module_block_33367():
     except Exception as _d13b_exc:  # noqa: BLE001 -- one red check, never a partial run
         _D13_06_OK = False
         _d13_06_detail = f"{type(_d13b_exc).__name__}: {_d13b_exc}"
-_module_block_33367()
+_module_block_33438()
 R.check(
     "the change-failure instrument publishes the rate per check-run NAME at both "
     "keyings, so the name that separates them is visible (#1476)",
@@ -33659,7 +33730,7 @@ R.check(
 # cannot drift into a quote nothing in the tree supports -- and the exclusion map
 # itself is asserted UNCHANGED, because recording a refusal to widen the list is
 # not a widening.
-def _module_block_33427():
+def _module_block_33498():
     global _CFR_EXCL_NOW, _CFR_NOT_EXCL, _CFR_NOT_EXCL_OK, _MUT_QUOTE, _MUT_SRC, _cfr_ne_exc, _cfr_not_excl_detail, _cfr_now
     try:
         _cfr_now = json.loads(
@@ -33686,7 +33757,7 @@ def _module_block_33427():
     except Exception as _cfr_ne_exc:  # noqa: BLE001 -- one red check, never a partial run
         _CFR_NOT_EXCL_OK = False
         _cfr_not_excl_detail = f"{type(_cfr_ne_exc).__name__}: {_cfr_ne_exc}"
-_module_block_33427()
+_module_block_33498()
 R.check(
     "and the exclusion artifact records `mutation` as deliberately NOT excluded, "
     "with a reason and a citation the tree carries (#1476)",
@@ -35538,14 +35609,14 @@ def _mut_apply(mutant: dict) -> str:
 
 
 _MUT_UNPARSEABLE = []
-def _module_block_35303():
+def _module_block_35374():
     global _m
     for _m in _MUT_GOT:
         try:
             ast.parse(_mut_apply(_m))
         except SyntaxError:
             _MUT_UNPARSEABLE.append(f"{_m['kind']}:{_m['line']}")
-_module_block_35303()
+_module_block_35374()
 R.check(
     "and every mutant it generates leaves the module parseable",
     not _MUT_UNPARSEABLE,
@@ -35704,7 +35775,7 @@ R.check(
 # refused, an at-or-below count is not, and an unreadable base is REFUSED --
 # a ratchet with nothing to compare against must not go green by skipping.
 _REFUSE = getattr(_mut, "ratchet_refusal", None)
-def _module_block_35466():
+def _module_block_35537():
     global _MUT_RATCHET, _mut_r_exc
     try:
         _MUT_RATCHET = (
@@ -35712,7 +35783,7 @@ def _module_block_35466():
             _REFUSE(len(_MUT_GOT), _MUT_GOT), _REFUSE(len(_MUT_GOT) + 5, _MUT_GOT))
     except Exception as _mut_r_exc:  # noqa: BLE001 -- one red check, never a partial run
         _MUT_RATCHET = (f"{type(_mut_r_exc).__name__}: {_mut_r_exc}",)
-_module_block_35466()
+_module_block_35537()
 R.check(
     "ratchet_refusal refuses growth over the base count, and an unreadable base",
     _MUT_RATCHET == (1, 1, None, None),
@@ -35740,7 +35811,7 @@ _au_mv = _au("p/new.py", "g", "        if b:")
 _au_ret = _au("p/f.py", "g", "    return None", "RETURN_DEL")
 _au_ret2 = _au("p/new.py", "h", "    return None", "RETURN_DEL")
 _au_moved = ({"p/f.py"}, {"p/new.py"})
-def _module_block_35499():
+def _module_block_35570():
     global _AU_COUNT, _AU_GOT, _au_exc
     try:
         _AU_GOT = tuple(
@@ -35762,7 +35833,7 @@ def _module_block_35499():
         _AU_COUNT = _REFUSE(2, [_au_a, _au_c])
     except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
         _AU_GOT, _AU_COUNT = (f"{type(_au_exc).__name__}: {_au_exc}",), None
-_module_block_35499()
+_module_block_35570()
 R.check(
     "added_unpinned refuses a site traded in at an unchanged count, and keeps "
     "a re-indented or moved site the base's (#1646, #1748)",
@@ -35782,7 +35853,7 @@ R.check(
 # re-indents the old site adds nothing.
 _au_r = _au("p/o.py", "_seed", "    return out", "RETURN_DEL")
 _au_new = dict(_au("p/o.py", "_padded", "    return out", "RETURN_DEL"), line=10)
-def _module_block_35538():
+def _module_block_35609():
     global _AU_TWIN, _au_exc
     try:
         _AU_TWIN = tuple(
@@ -35791,7 +35862,7 @@ def _module_block_35538():
                          [dict(_au_r, line=40, old="        return out")]))
     except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
         _AU_TWIN = (f"{type(_au_exc).__name__}: {_au_exc}",)
-_module_block_35538()
+_module_block_35609()
 R.check(
     "added_unpinned charges a twin line to the def that gained it, not to the "
     "def that already had it (R9-RO-9a)",
@@ -35811,14 +35882,14 @@ with tempfile.TemporaryDirectory() as _au_d:
                      "    return 0\n")
     _au_cmp = [s for s in _mut.candidates(_au_p) if s["kind"] == "CMP_BOUND"]
 _AU_KEYS = getattr(_mut, "added_keys", lambda s: [])
-def _module_block_35564():
+def _module_block_35635():
     global _, _AU_K, _au_exc, k
     try:
         _AU_K = ([k for k, _ in _AU_KEYS(_au_cmp)],
                  [k for k, _ in _AU_KEYS(_au_cmp[:1])])
     except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
         _AU_K = (f"{type(_au_exc).__name__}: {_au_exc}",)
-_module_block_35564()
+_module_block_35635()
 R.check(
     "added_keys gives a line with three comparison mutants one key carrying "
     "its multiplicity, and a single mutant a bare key (R9-RO-9a)",
@@ -35853,7 +35924,7 @@ def _wi_compiles(m: dict) -> bool:
     "    z = np.clip(x, 0.0, 1.0)\n    w = math.fmin(x, y)\n"
     "    if (x and\n            y):\n        return 5\n"
     "    return z + w\n")
-def _module_block_35603():
+def _module_block_35674():
     global _WI_GOT, _WI_PARSE, _wi_exc
     try:
         _WI_GOT = sorted((_m["line"], _m["kind"], _m["new"].strip())
@@ -35863,7 +35934,7 @@ def _module_block_35603():
             _wi_compiles(_m) for _m in _mut.candidates(_WI_DIR / "w.py"))
     except Exception as _wi_exc:  # noqa: BLE001 -- one red check, never a partial run
         _WI_GOT, _WI_PARSE = [f"{type(_wi_exc).__name__}: {_wi_exc}"], False
-_module_block_35603()
+_module_block_35674()
 _mut_shutil.rmtree(_WI_DIR, ignore_errors=True)
 R.check(
     "the inventory sees elif, else-carrying, commented and numpy/math guard "
@@ -35900,7 +35971,7 @@ R.check(
 # ledger. Driven: a ledger disposing every synthetic site still covers every
 # one after three lines are inserted above them all; the null control edits
 # ONE pinned line's text, and exactly that disposition drops out.
-def _module_block_35647():
+def _module_block_35718():
     global _MUT_ALL, _MUT_EDITED, _MUT_SHIFT, _MUT_SHIFTED, _mut_s_exc, _s
     try:
         _MUT_ALL = {"survivor_triage": {}, "killed_by": {
@@ -35919,7 +35990,7 @@ def _module_block_35647():
         _MUT_SHIFT = (f"{type(_mut_s_exc).__name__}: {_mut_s_exc}",)
     finally:
         _MUT_FILE.write_text(_MUT_SRC)
-_module_block_35647()
+_module_block_35718()
 R.check(
     "a line shift keeps every disposition; an edit to the pinned text drops it",
     _MUT_SHIFT == (True, 0, [], 1, 1),
@@ -35934,7 +36005,7 @@ R.check(
 # sorts, drops the count, and reports (keeps) a retired key naming no site.
 _FORM = getattr(_mut, "ledger_form_problems", None)
 _NORM = getattr(_mut, "normalize", None)
-def _module_block_35678():
+def _module_block_35749():
     global _MUT_A, _MUT_B, _MUT_CANON, _MUT_FIXED, _MUT_FORM, _MUT_LEG, _MUT_PKG_INV, _MUT_UNMAPPED, _MUT_UNSORTED, _m, _mut_f_exc
     try:
         # The synthetic sites re-homed under the package, as the real ledger's are.
@@ -35964,7 +36035,7 @@ def _module_block_35678():
             len(_MUT_UNMAPPED))
     except Exception as _mut_f_exc:  # noqa: BLE001 -- one red check, never a partial run
         _MUT_FORM = (f"{type(_mut_f_exc).__name__}: {_mut_f_exc}",)
-_module_block_35678()
+_module_block_35749()
 R.check(
     "the ledger's canonical form is enforced, and --normalize reaches it",
     _MUT_FORM == (3, 1, [], [], False, True, 1),
@@ -35980,7 +36051,7 @@ R.check(
 _MUT_ORD_SRC = (
     "def f(a):\n    if a:\n        a = 1\n    if a:\n        a = 2\n"
     "    return a\n\n\ndef g(a):\n    if a:\n        a = 3\n    return a\n")
-def _module_block_35721():
+def _module_block_35792():
     global _MUT_ORD, _MUT_ORD2, _MUT_ORD_F, _MUT_ORD_GOT, _MUT_ORD_OK, _MUT_ORD_SRC2, _m, _mut_o_exc, _mut_ord_detail
     try:
         _MUT_ORD_GOT = [dict(_m, file=_mut.PKG + "ord.py") for _m in _mut.candidates(
@@ -36006,7 +36077,7 @@ def _module_block_35721():
         _mut_ord_detail = f"f -> {_MUT_ORD_F}; g -> {_MUT_ORD[(10, 'GUARD_OFF')]}"
     except Exception as _mut_o_exc:  # noqa: BLE001 -- one red check, never a partial run
         _MUT_ORD_OK, _mut_ord_detail = False, f"{type(_mut_o_exc).__name__}: {_mut_o_exc}"
-_module_block_35721()
+_module_block_35792()
 R.check(
     "an anchor's ordinal counts identical lines within one def, and only there",
     _MUT_ORD_OK,
@@ -36034,7 +36105,7 @@ def _mut_git(root: Path, *args: str) -> str:
 
 _MUT_B_SAVED = (_mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS,
                 _os.environ.pop("GOLDEN_REF", None))
-def _module_block_35772():
+def _module_block_35843():
     global _MB_A, _MB_SHA_A, _MB_SHA_B, _MUT_BASE, _mb_pkg, _mb_root, _mb_sites, _mut_b_exc
     try:
         _mb_root = Path(_tempfile.mkdtemp(prefix="mutation-base-"))
@@ -36080,7 +36151,7 @@ def _module_block_35772():
         if _MUT_B_SAVED[3] is not None:
             _os.environ["GOLDEN_REF"] = _MUT_B_SAVED[3]
         _mut_shutil.rmtree(_mb_root, ignore_errors=True)
-_module_block_35772()
+_module_block_35843()
 R.check(
     "base_unpinned counts the base exactly, and ratchet_base leaves HEAD for its parent",
     _MUT_BASE == (7, 7, None, None, True, True, True, 8),
@@ -36130,7 +36201,7 @@ _PIN_NEW = getattr(_mut, "new_unpinned", None)
 _PIN_ENTRY = getattr(_mut, "pin_entry", None)
 _pin_a = {"anchor": "f.py:g GUARD_OFF aaaa", "old": "    if a:"}
 _pin_b = {"anchor": "f.py:g GUARD_OFF bbbb", "old": "    if b:"}
-def _module_block_35865():
+def _module_block_35936():
     global _PIN_GOT, _pin_exc, x
     try:
         _PIN_GOT = (
@@ -36142,7 +36213,7 @@ def _module_block_35865():
         )
     except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
         _PIN_GOT = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
-_module_block_35865()
+_module_block_35936()
 R.check(
     "--pin-killed drives only the sites the diff added and records the measured kill",
     len(_PIN_GOT) == 3
@@ -36158,7 +36229,7 @@ R.check(
 # then the same file, and their add/add merges under git's default merge on
 # GitHub too; the base is in git's history already. Pins of two different
 # mutants still differ (the null control).
-def _module_block_35890():
+def _module_block_35961():
     global _PIN_BYTES, _pin_exc, _pin_row
     try:
         _pin_row = lambda site, failed: _mut.row_text(site["anchor"], _PIN_ENTRY(  # noqa: E731
@@ -36168,7 +36239,7 @@ def _module_block_35890():
                       _pin_row(_pin_a, 3))
     except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
         _PIN_BYTES = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
-_module_block_35890()
+_module_block_35961()
 R.check(
     "two pins of one mutant are byte-identical whatever base measured them, "
     "and pins of different mutants differ (P-L)",
@@ -36206,7 +36277,7 @@ _pr_u1 = _pr_site("f.py:g CLAMP_DROP u", 6, "a")
 _PR_SITES = [_pr_k, _pr_l, _pr_s, _pr_m1, _pr_m2, _pr_b1, _pr_b2, _pr_u1,
              _pr_site("f.py:g CLAMP_DROP u", 6, "b")]
 _KB = "killed by tests/x.py"
-def _module_block_35935():
+def _module_block_36006():
     global _PR_ALL, _PR_CLEAN, _PR_GOT, _PR_NORUN, _pr_exc, m
     try:
         _PR_ALL = _PR(
@@ -36223,7 +36294,7 @@ def _module_block_35935():
                    _PR_ALL[0].get("f.py:g CLAMP_DROP k", {}).get("killed_by"))
     except Exception as _pr_exc:  # noqa: BLE001 -- one red check, never a partial run
         _PR_GOT = (f"{type(_pr_exc).__name__}: {_pr_exc}",)
-_module_block_35935()
+_module_block_36006()
 R.check(
     "--pin-killed pins an anchor only when every site under it was killed, and exits 1 with any left",
     _PR_GOT == (["f.py:g CLAMP_DROP b", "f.py:g CLAMP_DROP k"], 1,
@@ -36241,7 +36312,7 @@ _AP_DIR = Path(_tempfile.mkdtemp(prefix="hpo-apply-pins-"))
 _AP_SAVED = (_mut.BUDGETS, _mut.inventory)
 _ap_b = dict(_pin_b, kind="GUARD_OFF", new="    if False:", file="f.py", line=4)
 _ap_c = dict(_ap_b, anchor="a.py:g GUARD_OFF cccc", old="    if c:", file="a.py", line=9)
-def _module_block_35967():
+def _module_block_36038():
     global _AP_GOT, _ap_before, _ap_exc, _ap_kb, _ap_pins, _ap_status
     try:
         (_AP_DIR / "ledger.json").write_text(_AP_SAVED[0].read_text())
@@ -36281,7 +36352,7 @@ def _module_block_35967():
     finally:
         _mut.BUDGETS, _mut.inventory = _AP_SAVED
         _mut_shutil.rmtree(_AP_DIR, ignore_errors=True)
-_module_block_35967()
+_module_block_36038()
 R.check(
     "mutation-autofix applies only a measured pin whose anchor, text and head this tree still has",
     _AP_GOT == ["skip-no-measurement", "skip-nothing-killed", "skip-no-base-program",
@@ -36303,7 +36374,7 @@ _ll_row = {"killed_by": "tests/x.py", "old": "    if a:"}
 _ll_led = {"max_survivor_fraction": {}, "survivor_triage": {},
            "killed_by": {_ll_a: _ll_row, _ll_a + "#2": _ll_row, _ll_c: _ll_row}}
 _LL_GOT: dict = {}
-def _module_block_36026():
+def _module_block_36097():
     global _ll_d, _ll_env, _ll_exc, _ll_git, _ll_gone, _ll_p, _ll_q, _ll_y, _ll_z
     try:
         _ll_git = ["git", "-C", str(_LL_DIR), "-c", "user.name=t", "-c", "user.email=t@t",
@@ -36338,7 +36409,7 @@ def _module_block_36026():
     finally:
         _mut.BUDGETS, _mut.ROOT = _LL_SAVED
         _mut_shutil.rmtree(_LL_DIR, ignore_errors=True)
-_module_block_36026()
+_module_block_36097()
 R.check(
     "the row ledger: one path per anchor and ordinal, a clean layout passes, and a ref's rows are read",
     _LL_GOT.get("ordinal") == 3 and _LL_GOT.get("clean") == [] and _LL_GOT.get("at_ref") is True,
@@ -36543,7 +36614,7 @@ _DP_Y, _DP_Z = _dp_site("p.py:g CLAMP_DROP y", "p.py", 2), _dp_site("q.py:g CLAM
 _DP_UN = [_DP_X1, _DP_X2, _DP_Y, _DP_Z]
 _DP_CL = {"tests/x.py": ["p.py"]}
 _DP_ROT = [_dp_site(f"p.py:g CLAMP_DROP r{i}", "p.py", 10 + i) for i in range(4)]
-def _module_block_36263():
+def _module_block_36334():
     global _DP_GOT, _DP_POOLS, _dp_anchors, _dp_exc, _dp_whole, a, p, s, seed
     try:
         _dp_anchors = lambda pool: sorted({s["anchor"] for s in pool})  # noqa: E731
@@ -36566,7 +36637,7 @@ def _module_block_36263():
         ]
     except Exception as _dp_exc:  # noqa: BLE001 -- one red check, never a partial run
         _DP_GOT = [f"{type(_dp_exc).__name__}: {_dp_exc}"]
-_module_block_36263()
+_module_block_36334()
 R.check(
     "--drain drives whole drivable anchors under the cap, fixed per seed, moved by the seed",
     _DP_GOT == [True, ["p.py:g CLAMP_DROP x", "p.py:g CLAMP_DROP y"], True,
@@ -36585,7 +36656,7 @@ R.check(
 # one shard's list would pass the pin check above and drop the others'.
 _SH_UN = [_dp_site(f"p.py:g CLAMP_DROP s{i}", "p.py", 20 + i) for i in range(9)]
 _SH_UN += [_dp_site("p.py:g CLAMP_DROP s0", "p.py", 40)]  # a twin: one anchor, two sites
-def _module_block_36302():
+def _module_block_36373():
     global _SH_GOT, _d, _k, _sd_got, _sd_none, _sd_root, _sd_td, _sh_args, _sh_exc, _sh_flat, _sh_key, _sh_other, _sh_parts, _sh_whole, _surv, k, p, x
     try:
         _sh_args = (_SH_UN, _DP_CL, ["tests/x.py"])
@@ -36620,7 +36691,7 @@ def _module_block_36302():
         ]
     except Exception as _sh_exc:  # noqa: BLE001 -- one red check, never a partial run
         _SH_GOT = [f"{type(_sh_exc).__name__}: {_sh_exc}"]
-_module_block_36302()
+_module_block_36373()
 R.check(
     "--drain --shard K/N: the shards are disjoint whole-anchor slices whose union is "
     "the unsharded slice at N times the cap; the merge unions the survivors",
@@ -36652,7 +36723,7 @@ def _ad_kb() -> list[str]:
                   if k in _ad_pins)
 
 
-def _module_block_36366():
+def _module_block_36437():
     global _AD_GOT, _ad_d, _ad_e, _ad_exc, _ad_m
     try:
         _mut.BUDGETS = _AD_DIR / "ledger.json"
@@ -36684,7 +36755,7 @@ def _module_block_36366():
     finally:
         _mut.BUDGETS, _mut.inventory, _mut.load_closures = _AD_SAVED
         _mut_shutil.rmtree(_AD_DIR, ignore_errors=True)
-_module_block_36366()
+_module_block_36437()
 _AD_BOTH = sorted(_ad_pins)
 R.check(
     "mutation-ledger-push applies a drained slice once, and on a moved main only "
@@ -36731,7 +36802,7 @@ def _hm_apply(pins: dict, sites: list[dict], closures: dict,
     return got, sorted(k for k in _mut.load_budgets().get("killed_by", {}) if k in pins)
 
 
-def _module_block_36442():
+def _module_block_36513():
     global _HM_GOT, _hm_39, _hm_changed, _hm_cl, _hm_cl2, _hm_ctl, _hm_exc, _hm_head, _hm_k40, _hm_mods, _hm_pins, _hm_sites, i, k, m, s
     try:
         _mut.BUDGETS = _HM_DIR / "ledger.json"
@@ -36757,7 +36828,7 @@ def _module_block_36442():
     finally:
         _mut.BUDGETS, _mut.inventory, _mut.load_closures = _HM_SAVED
         _mut_shutil.rmtree(_HM_DIR, ignore_errors=True)
-_module_block_36442()
+_module_block_36513()
 _HM_WANT = [("changed", sorted(_hm_39)),
             ("changed", sorted(k for k in _hm_pins if k not in {
                 _hm_sites[i]["anchor"] for i in (0, 39, 40)}))]
@@ -36857,7 +36928,7 @@ R.check(
 _NIGHTLY_ON = (_yaml.safe_load(_NIGHTLY_YML) or {})
 _NIGHTLY_EVENTS = sorted(_NIGHTLY_ON.get("on", _NIGHTLY_ON.get(True)) or {})
 _REACH: list = []
-def _module_block_36565():
+def _module_block_36636():
     global _REACH, _r_alone, _r_exc, _r_meas, _r_push, _r_want, _rr, _rv, _rx
     try:
         for _rv in _NIGHTLY_EVENTS:
@@ -36873,7 +36944,7 @@ def _module_block_36565():
                     _REACH.append((_rv, _rr, _r_meas, _r_push, _r_alone))
     except Exception as _r_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
         _REACH = [f"{type(_r_exc).__name__}: {_r_exc}"]
-_module_block_36565()
+_module_block_36636()
 R.check(
     "a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; main's schedule and dispatch reach both",
     not _REACH and _NIGHTLY_EVENTS == ["push", "schedule", "workflow_dispatch"],
@@ -36906,7 +36977,7 @@ R.check(
 _NHA_IF = _gh_if(_workflow_job(_TESTS_YML, "nightly-ha"))
 _NHA_NIGHT_IF = _gh_if(_workflow_job(_NIGHTLY_YML, "nightly-ha"))
 _NHA_REACH: list = []
-def _module_block_36611():
+def _module_block_36682():
     global _NHA_REACH, _n_exc, _nf, _ngot, _ngot_n, _nv, _nwant, _nwant_n
     try:
         for _nv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
@@ -36922,7 +36993,7 @@ def _module_block_36611():
                     _NHA_REACH.append((_nv, _nf, _ngot, _ngot_n))
     except Exception as _n_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
         _NHA_REACH = [f"{type(_n_exc).__name__}: {_n_exc}"]
-_module_block_36611()
+_module_block_36682()
 _NHA_SCOPE = _workflow_job(_TESTS_YML, "closure-scope")
 R.check(
     "nightly-ha runs on schedule, on dispatch, and on a pull request whose diff "
@@ -36963,7 +37034,7 @@ def _nha_copy(src, dst, *args, **kwargs):
     return _nha_copy2(src, dst, *args, **kwargs)
 
 
-def _module_block_36665():
+def _module_block_36736():
     global _n_exc, _nha_shutil
     try:
         _nha_on[0] = True
@@ -36976,7 +37047,7 @@ def _module_block_36665():
         _nightly.shutil.copy2 = _nha_copy2
         import shutil as _nha_shutil
         _nha_shutil.rmtree(_nha_tmp, ignore_errors=True)
-_module_block_36665()
+_module_block_36736()
 _NHA_DRIVER_READS = sorted(f for f in _nha_reads if not f.startswith("custom_components/"))
 _NHA_UNCOVERED = [f for f in _NHA_DRIVER_READS
                   if not any(f == s or f.startswith(s.rstrip("/") + "/") for s in _NHA_SPECS)]
@@ -37028,7 +37099,7 @@ def _pp_row(name: str, text: str, subject: str) -> None:
     _pp_git("commit", "-q", "-m", subject)
 
 
-def _module_block_36727():
+def _module_block_36798():
     global _PP_GOT, _pp_exc, _pp_main, _pp_side
     try:
         throwaway_git_init(_PP_DIR, "-q", "-b", "main")
@@ -37065,7 +37136,7 @@ def _module_block_36727():
         _PP_GOT = [f"{type(_pp_exc).__name__}: {_pp_exc}"]
     finally:
         _mut_shutil.rmtree(_PP_DIR, ignore_errors=True)
-_module_block_36727()
+_module_block_36798()
 _pp_push = _ml_push.find("push origin HEAD:refs/heads/main")
 R.check(
     "mutation-ledger-push sends one row commit on main's tip, and its diff of the measured head fails closed",
@@ -38403,7 +38474,7 @@ R.check(
 # mutant survives every shared driver, once, and before that mutant's run.
 _MUT_S_LOG: list = []
 _MUT_S_OUTS: list = [[], []]
-def _module_block_38099():
+def _module_block_38170():
     global _MUT_S_OUTS, n
     try:
         _MUT_S_OUTS = [_mut_pool(
@@ -38414,7 +38485,7 @@ def _module_block_38099():
             for n in (1, 3)]
     except TypeError:
         pass
-_module_block_38099()
+_module_block_38170()
 R.check(
     "a deferred stress.py baseline runs only once a mutant survives every "
     "shared driver, once, before that mutant's stress.py run",
@@ -38744,14 +38815,14 @@ _MUT_T_RUN = _mut.run_script("slow.py", _MUT_T_DIR, 1)
 _MUT_T_JUDGE = _mut.LazyBaselines({"slow.py": _MUT_T_GREEN}, lambda w, s: None)
 _MUT_T_SITE = {"file": "x.py", "line": 1, "kind": "GUARD_OFF", "anchor": "x.py:a",
                "old": "if a:", "new": "if False:", "drivers": ["slow.py"]}
-def _module_block_38437():
+def _module_block_38508():
     global _MUT_T_OUT
     try:
         _MUT_T_OUT = _mut_pool([_MUT_T_SITE], 1, {"slow.py": 0.6},
                                lambda w, m, s: _MUT_T_JUDGE.killed(w, s, _MUT_T_RUN))
     except TypeError:
         _MUT_T_OUT = []
-_module_block_38437()
+_module_block_38508()
 _MUT_T_PINS = (_mut.pin_results(_MUT_T_OUT, {}, {}, [_MUT_T_SITE])[0]
                if _MUT_T_OUT else None)
 R.check(
@@ -40169,7 +40240,7 @@ _mut_shutil.rmtree(_MUTL_DIR, ignore_errors=True)
 # alone like the baseline's.
 _MUT_X_SPANS.clear()
 _MUT_N_OUT: dict = {}
-def _module_block_39859():
+def _module_block_39930():
     if _mut_baselines is not None:
         try:
             _mut_baselines(
@@ -40181,7 +40252,7 @@ def _module_block_39859():
                 null_out=_MUT_N_OUT)
         except TypeError:
             pass
-_module_block_39859()
+_module_block_39930()
 R.check(
     "the null control runs under every driver in the baseline phase, and its "
     "stress.py run shares the runner with nothing",
@@ -40623,7 +40694,7 @@ R.check(
 _RP_JOB = _workflow_job(_TESTS_YML, "replay")
 _RP_SCOPE = _workflow_job(_TESTS_YML, "closure-scope")
 _RP_REACH: list = []
-def _module_block_40311():
+def _module_block_40382():
     global _RP_REACH, _rf, _rgot, _rp_exc, _rv
     try:
         for _rv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
@@ -40634,7 +40705,7 @@ def _module_block_40311():
                     _RP_REACH.append((_rv, _rf, _rgot))
     except Exception as _rp_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
         _RP_REACH = [f"{type(_rp_exc).__name__}: {_rp_exc}"]
-_module_block_40311()
+_module_block_40382()
 R.check(
     "the timed replay runs on a pull request whose diff reaches it, and on "
     "nothing else in tests.yml (nightly runs it in full)",
@@ -40809,13 +40880,13 @@ def _jb_run() -> dict:
                 ("200", "209", "±5 %"), ("200", "211", "+-5%"))]}
 
 
-def _module_block_40494():
+def _module_block_40565():
     global _JB, _jb_exc
     try:
         _JB = _jb_run()
     except Exception as _jb_exc:  # a crash reports as a failure, never as a skipped block
         _JB = {"rows": {}, "after": None, "md": "", "error": repr(_jb_exc)}
-_module_block_40494()
+_module_block_40565()
 _jbr = _JB["rows"]
 R.check(
     "judge_batch: a harness whose perturbation moves in the stated direction is "
@@ -41556,6 +41627,78 @@ R.check(
     f"copy-all: {_PG_NULL_STAGE}; no-op guard: {_PG_NULL_GUARD}",
 )
 
+# The round's plan page (R10-OUTSIDE-INTAKE): three steps, pinned by RUNNING
+# the two that move files and by their order. The page is staged from the
+# dispatched ref's tree BEFORE the release is checked out (a tag older than
+# plan_public.py could not stage it), the release checkout is skipped on a tag
+# push and takes the newest `v*` tag by version, never by string order, and
+# the page reaches `_site/plan/` only when a page was staged.
+_PG_PLAN = ("Stage the round's plan page", "Check out the release", "Add the round's plan page")
+
+
+def _pg_plan_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    steps = [s or {} for j in (doc.get("jobs") or {}).values() for s in ((j or {}).get("steps") or [])]
+    idx = {s.get("name"): i for i, s in enumerate(steps)}
+    if any(n not in idx for n in (*_PG_PLAN, _PG_STAGE, _PG_GUARD)):
+        return [f"a plan step is missing: {[n for n in _PG_PLAN if n not in idx]}"]
+    out: "list[str]" = []
+    st, co, add = (steps[idx[n]] for n in _PG_PLAN)
+    if not idx[_PG_PLAN[0]] < idx[_PG_PLAN[1]] < idx[_PG_STAGE] < idx[_PG_PLAN[2]] < idx[_PG_GUARD]:
+        out.append("plan steps out of order: stage the page, check out the release, "
+                   "stage the site, add the page, then the guard")
+    if "tools/audit/seat/plan_public.py stage" not in str(st.get("run", "")):
+        out.append("the plan page is not staged by plan_public.py")
+    if "ref_type != 'tag'" not in str(co.get("if", "")):
+        out.append("the release checkout is not skipped on a tag push")
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+        env = throwaway_git_init(repo, "-q")
+        for tag in ("v1.9.0", "v1.10.0", "x9"):
+            (repo / "f").write_text(tag)
+            subprocess.run(git + ["add", "f"], cwd=repo, check=True, env=env)
+            subprocess.run(git + ["commit", "-qm", tag], cwd=repo, check=True, env=env)
+            subprocess.run(git + ["tag", tag], cwd=repo, check=True, env=env)
+        rc = _pg_run(str(co.get("run", "")), repo)
+        if rc != 0 or (repo / "f").read_text() != "v1.10.0":
+            out.append(f"the release checkout took {(repo / 'f').read_text()!r} (rc={rc}), not v1.10.0")
+        (repo / "_site").mkdir()
+        if _pg_run(str(add.get("run", "")), repo) != 0 or (repo / "_site" / "plan").exists():
+            out.append("with no staged page, the add step put something at _site/plan")
+        # The stage step under the runner's own `-eo pipefail`, over a stub
+        # python3 and git: no page to publish (rc 2) warns and passes, a
+        # refused page (rc 1) is red.
+        stub = Path(tmp) / "bin"
+        stub.mkdir()
+        (stub / "git").write_text("#!/bin/sh\nexit 0\n")
+        for want_rc, py_rc in ((0, 2), (1, 1), (0, 0)):
+            (stub / "python3").write_text(f"#!/bin/sh\nexit {py_rc}\n")
+            for f in stub.iterdir():
+                f.chmod(0o755)
+            env = dict(os.environ, RUNNER_TEMP=tmp, GITHUB_OUTPUT=os.devnull, GITHUB_STEP_SUMMARY=os.devnull,
+                       PATH=f"{stub}{os.pathsep}{os.environ.get('PATH', '')}")
+            rc = subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", str(st.get("run", ""))],
+                                cwd=repo, env=env, capture_output=True, text=True).returncode
+            if (rc != 0) != bool(want_rc):
+                out.append(f"the plan stage step exits {rc} when plan_public.py exits {py_rc}")
+        page = Path(tmp) / "plan-site" / "plan" / "index.html"
+        page.parent.mkdir(parents=True)
+        page.write_text("<!doctype html>plan")
+        if _pg_run(str(add.get("run", "")), repo) != 0 or not (repo / "_site/plan/index.html").is_file():
+            out.append("a staged page did not reach _site/plan/index.html")
+    return out
+
+
+_PG_PLAN_GOT = _pg_plan_defects(_PG_WF.read_text()) if _PG_WF.is_file() else ["no pages.yml"]
+R.check(
+    "the Pages workflow stages the round's plan page before it checks out the newest release, "
+    "and adds it under plan/ only when one was staged",
+    not _PG_PLAN_GOT,
+    "; ".join(_PG_PLAN_GOT[:4]),
+)
+
 # Classified as its siblings are (the `_NON_GATE_WORKFLOWS` loop above): this
 # script reads it, so an edit to it selects this script; it sets no gate
 # variable and runs no gate script, so it never forces FULL.
@@ -41694,14 +41837,14 @@ import importlib.util as _egb3_ilu
 _egb3_spec = _egb3_ilu.spec_from_file_location(
     "payload_standalone", _egb3_pkg / "payload.py")
 _egb3_mod = _egb3_ilu.module_from_spec(_egb3_spec)
-def _module_block_41376():
+def _module_block_41519():
     global _egb3_err, _egb3_standalone
     try:
         _egb3_spec.loader.exec_module(_egb3_mod)
         _egb3_standalone = "Payload" in vars(_egb3_mod)
     except Exception as _egb3_err:  # noqa: BLE001 - the failure IS the finding
         _egb3_standalone = repr(_egb3_err)
-_module_block_41376()
+_module_block_41519()
 R.check(
     "EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only",
     _egb3_standalone is True,
