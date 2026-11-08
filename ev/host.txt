@@ -1,0 +1,2 @@
+Model name:                              Intel(R) Xeon(R) Processor @ 2.10GHz
+Python 3.14.7
