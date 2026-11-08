@@ -612,14 +612,14 @@ def _parts_view(derate, draw, tank=None):
     )
 
 
-_derated = [_parts_view(d, p).get("cheaper_hour_count") for d, p in
+_wood_counts = [_parts_view(d, p).get("cheaper_hour_count") for d, p in
             ((0.1, 3.0), (0.1, 1.0), (0.0, 3.0))]
 R.check(
     "the wood advisor prices pump heat at the derated COP of the plan's own "
     "draw (space plus hot water): every step at max power reads wood-cheaper, "
     "none at the floor draw, none at derate 0",
-    _derated == [len(_STAMPS), 0, 0],
-    repr(_derated),
+    _wood_counts == [len(_STAMPS), 0, 0],
+    repr(_wood_counts),
 )
 # The night scan reads the same derated COP: a low tank (25 C over a 20 C
 # floor) is told to light only where the derated pump heat is dearer than wood.
