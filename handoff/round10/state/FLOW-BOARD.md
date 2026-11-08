@@ -6,7 +6,7 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 0 / 1.0 | 17 / 24.0 |
+| roster groups closed vs takt | 1 / 1.0 | 18 / 24.0 |
 | fly-ins closed | 0 | 10 |
 | main moves: group-carrying / record / roster-edit / fly-in | 2 / 0 / 0 / 0 | 18 / 6 / 1 / 10 |
 | first-pass fix-review yield | 0/1 (0.00) | 9/26 (0.35) |
