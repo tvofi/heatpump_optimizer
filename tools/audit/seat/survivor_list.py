@@ -35,14 +35,16 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+import mutation_table  # noqa: E402  the --pin-killed survivor grammar's owner
+
 CLASS = re.compile(r"^Fix review: blocked [0-9a-f]{40} mutation-vacuous:")
 SITE = r"(\S+:\d+)"
 DRIVER_LINES = (
     re.compile(rf"^SURVIVED {SITE} [A-Z_]+\b", re.M),          # mutant_run --diff
     re.compile(r"^SURVIVED (?!NULL$)([^\s:]+)$", re.M),       # mutant_run --spec
     re.compile(rf"^  LIVES {SITE} \S+", re.M),                # mutation_table
-    re.compile(rf"^  UNPINNED {SITE} \S+ -- lives$", re.M),   # --pin-killed
-)
+)  # --pin-killed's `UNPINNED ... -- lives` is read by its owner, mutation_table.survivor_sites
 TRIAGED = re.compile(rf"^    {SITE} \S+: .*\[triaged equivalent\]$", re.M)
 PRODUCERS = {
     "tools/audit/seat/mutant_run.py": (
@@ -52,7 +54,7 @@ PRODUCERS = {
         'mark = "LIVES" if verdict == "LIVES"',
         "print(f\"  {mark} {mut['file']}:{mut['line']} {mut['kind']}{note}\")",
         '"  [triaged equivalent]"',
-        r'SURVIVOR_LINE = re.compile(r"^  UNPINNED (\S+:\d+ \S+) -- lives$", re.M)'),
+        "def survivor_sites(run: str | None) -> list[str]:"),
 }
 
 
@@ -62,6 +64,7 @@ def survivors(texts: list[str]) -> list[str]:
     for t in texts:
         for rx in DRIVER_LINES:
             found.update(rx.findall(t))
+        found.update(k.split(" ", 1)[0] for k in mutation_table.survivor_sites(t))
         triaged.update(TRIAGED.findall(t))
     return sorted(found - triaged)
 
