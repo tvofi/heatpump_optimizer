@@ -1,0 +1,5 @@
+SURVIVED NULL
+KILLED main_check_off
+KILLED main_argv_swap
+KILLED main_entry_off
+KILLED bus_call_off
