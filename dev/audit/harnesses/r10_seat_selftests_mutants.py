@@ -576,6 +576,8 @@ MUTANTS = [
     ("cloud_relay-51", "cloud_relay.sh", '  if [ -z "$pr" ]; then  # mut:topicheld', "  if false; then"),
     ("cloud_relay-52", "cloud_relay.sh", '  if [ "$rc" != 0 ]; then  # mut:topiccarry', "  if false; then"),
     ("body_patch-2", "body_patch.sh", '    args+=(--commits-file "$d/commits") # mut:commitsarg', "    :"),
+    ("cloud_relay-53", "cloud_relay.sh", """  if grep -q '^pending-ci: ' "$d/verdict.md"; then  # mut:pendingci""", "  if false; then"),
+    ("cloud_relay-54", "cloud_relay.sh", """    [ "$live" = "$head" ] || { die "the head moved under a pending-ci draft: drafted at $head, #$pr is at $live; it is not posted, and the PR is re-dispatched at its head"; return; }  # mut:pendinghead""", "    true"),
     ("ledger-1", "ledger.py", '"confirm-owed": "derived", "push-stuck": "derived",', '"confirm-owed": "derived",'),
     ("pr_args-1", "pr_args.sh", 'p = os.getppid(); start = int(time.time())', 'p = os.getppid(); start = 0'),
     # R10-FLOW-BODY-ONLY parts (a) and (b), graded by update_pr.sh's step (pr_args.sh's fixture):

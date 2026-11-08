@@ -253,6 +253,24 @@ relay() { # <pr> <nonce> <head> [<topic>]: with a topic, the verdict was returne
   else die "the first line is not 'Fix review: merge $head' or 'Fix review: blocked $head <class>: <reason>': '$first'"; return; fi
   grep -qx "bus-nonce: $nonce" "$d/verdict.md" || { die "nonce mismatch: no 'bus-nonce: $nonce' line"; return; }
   [ -d "$d/ev" ] || { die "no ev/ directory in the ref"; return; }
+  # PENDING-CI (R10-CLOUD-POOL carry 5, moved to R10-DISPATCH-AT-HANDOFF): a reviewer whose review is complete
+  # while CI at the head is still pending returns the verdict with a `pending-ci: <why>` line instead of waiting
+  # without bound. The relay posts it only once classify reads the head GREEN; WAIT holds it (rc 75, one line
+  # each pass, retried); RED refuses it (the PR goes back to its fixer); a PR head that moved refuses the draft,
+  # with the head it was drafted at and the head now.
+  if grep -q '^pending-ci: ' "$d/verdict.md"; then  # mut:pendingci
+    local live cls crc
+    live=$(if [ -n "${HPO_RELAY_PRHEAD:-}" ]; then "$HPO_RELAY_PRHEAD" "$pr"; else gh pr view "$pr" -R "${HPO_RELAY_REPO:-tvofi/heatpump_optimizer}" --json headRefOid --jq .headRefOid; fi 2>/dev/null)
+    if ! printf '%s' "$live" | grep -Eq '^[0-9a-f]{40}$'; then echo "cloud_relay: #$pr's head could not be read, so its pending-ci draft is held" >&2; return 75; fi
+    [ "$live" = "$head" ] || { die "the head moved under a pending-ci draft: drafted at $head, #$pr is at $live; it is not posted, and the PR is re-dispatched at its head"; return; }  # mut:pendinghead
+    cls=$(${HPO_RELAY_CLASSIFY:-python3 -I "$HERE/merge_train.py" classify} "$head" --repo "${HPO_RELAY_REPO:-tvofi/heatpump_optimizer}" --pr "$pr" 2>&1); crc=$?
+    case $crc in
+      0|4) echo "cloud_relay: pending-ci draft for #$pr: CI at $head is now GREEN (classify rc $crc); relaying" ;;
+      3) echo "cloud_relay: HELD-PENDING-CI #$pr $head: $(sed -n 's/^WAIT *//p' <<< "$cls" | head -n 1) (classify WAIT); the draft posts when CI is green"; return 75 ;;
+      1) die "CI is red at $head (classify RED): a pending-ci draft is not posted over a red; the PR goes back to its fixer"; return ;;
+      *) echo "cloud_relay: classify could not read $head (rc $crc): $(last_line "$cls"); the pending-ci draft is held" >&2; return 75 ;;
+    esac
+  fi
   local out sha2 wt tip tries=0
   wt=$(verdict_tree "$d/verdict.md" "$d/ev") || { echo "cloud_relay: could not build the verdict's tree" >&2; return 1; }
   # DELIVERED GUARD (R10-RELAY-REPLAY): a ledger that is not the one that recorded this probe (a
@@ -341,6 +359,7 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
     echo "$(date -u +%FT%TZ) cloud_relay: relaying $ref $sha"
     relay "$pr" "$nonce" "$head" 2> "$state/cloud-relay-err.$$"; rc=$?; cat "$state/cloud-relay-err.$$" >&2
     [ $rc -ne 0 ] || continue
+    [ $rc -ne 75 ] || continue  # a pending-ci draft held: nothing recorded, so the next pass asks again
     # rc 2 is a refusal of the ref itself, final; any other failure (a push, a fetch) is
     # retried on later passes, at most HPO_RELAY_TRIES times in all, then refused with its reason.
     why=$(last_line "$(cat "$state/cloud-relay-err.$$")"); echo "$ref $sha" >> "$led.tries"
@@ -390,7 +409,7 @@ topic_verdict() { # <sha> <ref> <held-level-file> <refused-level-file>
   fi
   echo "$(date -u +%FT%TZ) cloud_relay: relaying $ref $sha at #$pr (handoff head carries to ${prhead:0:12})"
   relay "$pr" "$nonce" "$head" "$topic"; rc=$?
-  [ "$rc" = 0 ] && return 0
+  [ "$rc" = 0 ] || [ "$rc" = 75 ] && return 0
   echo "$ref $sha" >> "$led.tries"
   if [ "$rc" = 2 ] || [ "$(grep -cxF "$ref $sha" "$led.tries")" -ge "${HPO_RELAY_TRIES:-3}" ]; then
     why="relay of the held handoff verdict failed (rc=$rc)"
@@ -1088,6 +1107,29 @@ EOF
   chk "and the carry predicate was asked handoff-head then PR-head" 0 grep -qx "$th $PH --verdict-only" "$t/carry.args"
   chk "and its ref and sha are recorded as relayed" 0 grep -q "^refs/heads/probe/revt-tp-1-${tn:0:8} " "$t/state/cloud-relayed"
   unset HPO_RELAY_PRHEAD HPO_RELAY_CARRY
+  # PENDING-CI drafts (R10-CLOUD-POOL carry 5): a verdict carrying `pending-ci:` posts only when classify reads its head GREEN.
+  rm -f "$t/state/cloud-relayed" "$t/pushed"; HPO_RELAY_PUSH=$stub; CONFIRM=
+  clstub=$t/classify.sh; printf '#!/bin/sh\necho "$@" > "%s/classify.args"\ncase "$(cat "%s/cls")" in 0) echo GREEN;; 3) echo "WAIT tests / fast gate";; 1) echo "RED tests / fast gate red: x";; *) echo boom;; esac\nexit "$(cat "%s/cls")"\n' "$t" "$t" "$t" > "$clstub"; chmod +x "$clstub"
+  phh=$t/ph-h.sh; printf '#!/bin/sh\necho %s\n' "$h" > "$phh"; chmod +x "$phh"; phm=$t/ph-m.sh; printf '#!/bin/sh\necho %s\n' "$PH" > "$phm"; chmod +x "$phm"
+  mkp() { mk 72 $h $h $n; rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; mkdir "$t/pr/ev"; echo "pc $h" > "$t/pr/ev/e"
+    printf 'Fix review: merge %s\n\nbus-nonce: %s\npending-ci: tests / fast gate\n' "$h" "$n" > "$t/pr/verdict.md"
+    git -C "$t/pr" add -A; git -C "$t/pr" commit -qm "verdict 72 $h"; git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/probe/rev-72-${n:0:8}"; }
+  export HPO_RELAY_CLASSIFY=$clstub HPO_RELAY_PRHEAD=$phh; mkp
+  echo 3 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "a pending-ci draft over a WAIT head is held (rc 75), one HELD-PENDING-CI line naming the context" 0 test "$rc" = 75 -a -n "$(grep -m1 'HELD-PENDING-CI #72 .*tests / fast gate' <<< "$out")"
+  chk "and nothing is pushed or recorded while it is held" 0 test ! -s "$t/pushed" -a ! -s "$t/state/cloud-relayed"
+  chk "classify was asked the head and the PR" 0 grep -qx "$h --repo tvofi/heatpump_optimizer --pr 72" "$t/classify.args"
+  echo 1 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "a pending-ci draft over a RED head is refused (rc 2), naming the red" 0 test "$rc" = 2 -a -n "$(grep -m1 'classify RED' <<< "$out")"
+  export HPO_RELAY_PRHEAD=$phm; echo 0 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "a pending-ci draft whose PR head moved is refused (rc 2), naming both heads, though CI is green" 0 test "$rc" = 2 -a -n "$(grep -m1 "drafted at $h, #72 is at $PH" <<< "$out")"
+  export HPO_RELAY_PRHEAD=$phh; echo 9 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "an unreadable classify holds the draft (rc 75), never reads it as green" 0 test "$rc" = 75 -a ! -s "$t/pushed"
+  echo 0 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "null control: the same draft over a GREEN head at the same head relays on #72" 0 test "$rc" = 0 -a "$(cat "$t/pushed")" = 72
+  rm -f "$t/state/cloud-relayed" "$t/pushed"; mk 72 $h $h $n; echo 3 > "$t/cls"; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "null control: a verdict with no pending-ci line never asks classify (a WAIT head still relays)" 0 test "$rc" = 0 -a "$(cat "$t/pushed")" = 72
+  unset HPO_RELAY_CLASSIFY HPO_RELAY_PRHEAD
   # the handoff arm (a bare origin holds PR branches, handoff/ and handoff-body/ refs)
   unset HPO_RELAY_PUSH; export HPO_RELAY_PUSH=$stub; LOG=$t/pass.log; : > "$LOG"; CONFIRM=
   prs=$t/prs.tsv; ustub=$t/ustub.sh; dstub=$t/dstub.sh; astub=$t/astub.sh; N40=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
