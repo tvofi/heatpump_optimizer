@@ -52,3 +52,8 @@ under the review is refused, and so is a topic with no design ref.
   origin/main (a row commit on the bot's head reddens `pr-contract`).
   `watch` holds `<state>/watch.lock` (a directory naming its pid): a second
   watcher refuses naming the holder; a dead pid's lock is taken over.
+  `dispatch-handoff <topic> <tip> <reviewer>` (R10-DISPATCH-AT-HANDOFF Carry 0) starts a
+  reviewer before the pull request exists: it records `topic:<topic> <tip> ...` in the
+  registry (no reader keys on it), refuses a tip that is not `handoff/<topic>`'s or a second
+  reviewer at one tip, and reads no row, packet or CI. `rekey <topic> <pr>`, run by
+  `open_pr.sh`, appends the record under the PR (rc 3: no handoff dispatch; idempotent).

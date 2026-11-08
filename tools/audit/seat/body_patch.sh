@@ -120,7 +120,7 @@ roster_ref_args() {
 # The contract arm: pr-contract's own policy_lint call, then the carry check.
 # Runs in the current directory (a worktree holding the head's objects).
 contract() { # pr-json base head body|- [title] -> rc   (`-`: the live body the pr-json carries)
-  local doc=$1 base=$2 head=$3 body=$4 title=${5:-} author
+  local doc=$1 base=$2 head=$3 body=$4 title=${5:-} author pn
   local d; d=$(mktemp -d "${TMPDIR:-/tmp}/body_patch.XXXXXX") || return 1
   if [ "$body" = - ]; then
     body=$d/live_body.md
@@ -144,10 +144,8 @@ contract() { # pr-json base head body|- [title] -> rc   (`-`: the live body the 
   # A Dependabot pull request is judged on its commit list (dependency_bump's clause);
   # without `--commits-file` its body can never be patched (#3088, 2026-11-01).
   if [ "$author" = "dependabot[bot]" ]; then
-    gh api --paginate "repos/$REPO/pulls/$(printf '%s' "$doc" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("number") or "")')/commits" \
-        --jq '.[] | [.sha, (.author.login // ""), (.committer.login // ""), (.commit.verification.verified // false | tostring)] | @tsv' \
-        > "$d/commits" 2>/dev/null \
-      || { echo "body_patch: the commit list of the Dependabot pull request could not be read" >&2; rm -rf "$d"; return 1; } # mut:commitlist
+    pn=$(printf '%s' "$doc" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("number") or "")')
+    gh api --paginate "repos/$REPO/pulls/$pn/commits" --jq '.[] | [.sha, (.author.login // ""), (.committer.login // ""), (.commit.verification.verified // false | tostring)] | @tsv' > "$d/commits" 2>/dev/null || { echo "body_patch: the commit list of the Dependabot pull request could not be read" >&2; rm -rf "$d"; return 1; } # mut:commitlist
     args+=(--commits-file "$d/commits") # mut:commitsarg
   fi
   # never-empty: args starts with the literal --pr-body list; the body cites paths of the head, not of this checkout
@@ -573,7 +571,7 @@ mutant dot2   '/# mut:threedot$/s/"\$base\.\.\.\$head"/"$base" "$head"/'
 mutant trb    '/# mut:titlereadback$/s/.*/same = True/'
 mutant tshp   '/# mut:titleshape$/s/.*/:/'
 mutant treerev '/# mut:contract$/s/BRIEF_LINT_TREE_REV=\$head //'
-mutant cmtl   '/# mut:commitlist$/s/.*/      || true/'
+mutant cmtl   '/# mut:commitlist$/s/ || {.*# mut:commitlist$/ || true/'
 mutant cmta   '/# mut:commitsarg$/s/.*/    :/'
 mutant tctr   '/# mut:titlecontract$/s/.*/    :/'
 MBP() { echo "$W/mut-$1/audit/seat/body_patch.sh"; }

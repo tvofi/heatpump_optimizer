@@ -182,3 +182,9 @@
   Confirm arm (P332): a relayed `review/<pr>` whose PR is not in the pass's
   open-PR listing prints `confirm skip #<pr>: not open` once and is settled,
   owed nothing; a failed listing skips nothing.
+  Handoff verdict arm (R10-DISPATCH-AT-HANDOFF Carry 0): `probe/revt-<topic>-<n8>` is a verdict
+  returned before the PR opened. With no `bus.sh rekey` yet it prints `HELD-NOPR` and is owed on
+  the level as `handoff-verdict-held` (never posted); once re-keyed it is relayed only when
+  `review_carry.py <handoff head> <PR head>` answers CARRY, else `HELD-STALE` names
+  `bus.sh dispatch <pr> <head>` and the ref is refused until disposed. `HPO_RELAY_PRHEAD` and
+  `HPO_RELAY_CARRY` replace the head read and the carry command (self-test stubs).

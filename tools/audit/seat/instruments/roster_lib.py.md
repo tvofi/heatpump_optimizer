@@ -10,3 +10,5 @@
   `--self-test` is its only CLI. When: any tool that reads the roster — one
   schema reader, not several. Refusal: no roster where one was asked for
   raises `RosterNotFound`, never a fallback to another round's.
+  `brief_lines <roster-ref> <branch>` prints the live consumers and the `enumeration` command
+  a fixer's brief and `prepr.sh` show (`consumers_of`, `brief_lines`).

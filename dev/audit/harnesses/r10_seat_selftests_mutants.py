@@ -563,6 +563,19 @@ MUTANTS = [
     ("cloud_relay-42", "cloud_relay.sh", 'if [ -n "$(git -C "$tw" status --porcelain --untracked-files=no 2>/dev/null)" ]; then', 'if false; then'),
     ("cloud_relay-43", "cloud_relay.sh", 'if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then echo', 'if false; then echo'),
     ("cloud_relay-44", "cloud_relay.sh", '  git -C "$tw" checkout -q --detach origin/main 2>/dev/null \\\n', '  true \\\n'),
+    # R10-DISPATCH-AT-HANDOFF part 2: Carry 0 (the handoff reviewer, its re-key and its held verdict), Carry 4
+    # (the generated brief lines), Carry 8 (the roster-read model), Carry 11 (the Dependabot commit list).
+    ("cloud_dispatch-21", "cloud_dispatch.py", 'if role == "reviewer" and (carry_only or record_pr):', "if False:"),
+    ("cloud_dispatch-22", "cloud_dispatch.py", "    if fixer and roster is not None:  # the generated lines, after everything the roster wrote", "    if False:"),
+    ("cloud_dispatch-23", "cloud_dispatch.py", "        at_handoff = not pr\n", "        at_handoff = False\n"),
+    ("bus-16", "bus.sh", '  [ "$tip" = "$h" ] || die "dispatch-handoff: handoff/$t is at ${tip:-nothing}, not $h; a reviewer is dispatched at the handoff tip"  # mut:handofftip', "  true"),
+    ("bus-17", "bus.sh", """  if awk -v k="topic:$t $h " 'index($0, k) == 1 { f = 1 } END { exit !f }' "$S/dispatched" 2>/dev/null; then  # mut:handoffdup""", "  if false; then"),
+    ("bus-18", "bus.sh", """  done < <(awk -v k="topic:$t " 'index($0, k) == 1' "$S/dispatched" 2>/dev/null)  # mut:rekeyfilter""", "  done < /dev/null"),
+    ("bus-19", "bus.sh", """  rec=$(awk -v n="$n" '$4 == n && $1 !~ /^topic:/ { print $1, $2; exit }' "$S/dispatched" 2>/dev/null)  # mut:bindtopic""", """  rec=$(awk -v n="$n" '$4 == n { print $1, $2; exit }' "$S/dispatched" 2>/dev/null)"""),
+    ("cloud_relay-50", "cloud_relay.sh", """  [ -z "$topic" ] || { key=$topic; ref=refs/heads/probe/revt-$topic-$(printf '%s' "$nonce" | cut -c1-8); }  # mut:relaytopic""", "  true"),
+    ("cloud_relay-51", "cloud_relay.sh", '  if [ -z "$pr" ]; then  # mut:topicheld', "  if false; then"),
+    ("cloud_relay-52", "cloud_relay.sh", '  if [ "$rc" != 0 ]; then  # mut:topiccarry', "  if false; then"),
+    ("body_patch-2", "body_patch.sh", '    args+=(--commits-file "$d/commits") # mut:commitsarg', "    :"),
     ("ledger-1", "ledger.py", '"confirm-owed": "derived", "push-stuck": "derived",', '"confirm-owed": "derived",'),
     ("pr_args-1", "pr_args.sh", 'p = os.getppid(); start = int(time.time())', 'p = os.getppid(); start = 0'),
     # R10-FLOW-BODY-ONLY parts (a) and (b), graded by update_pr.sh's step (pr_args.sh's fixture):

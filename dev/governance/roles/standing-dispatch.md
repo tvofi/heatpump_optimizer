@@ -11,6 +11,15 @@ head and nonce, and the `dispatch/reviewer-rev-<pr>` publish. Report
 `fire-owed <ref>`: a subagent cannot call RemoteTrigger; the orchestrator
 fires. A `record/autofix` pull request is never dispatched a reviewer.
 
+**Dispatch at the handoff** (R10-DISPATCH-AT-HANDOFF): once `handoff/<topic>` and
+`handoff-body/<topic>` land, `bus.sh dispatch-handoff <topic> <tip> <reviewer>`,
+then `cloud_dispatch.py --role reviewer --topic <topic> --head <tip> --nonce <it>`
+(no `--pr`). `open_pr.sh` re-keys the record to the pull request; the relay
+posts the verdict only when `review_carry.py` answers CARRY for tip..PR head,
+else it prints `HELD-STALE` and `bus.sh dispatch <pr> <head>` starts a fresh
+review. A topic that never opens a PR is reported, never posted. A pending
+required context never holds a dispatch; only a red does (`REPAIR-OWED`).
+
 **Relay:** `cloud_relay.sh pass --confirm`; `bus.sh confirm` merge verdicts
 carried to the live head; report each `handoff-body/<topic>`. A beat job takes
 over once a cycle's log agrees; never inline.
