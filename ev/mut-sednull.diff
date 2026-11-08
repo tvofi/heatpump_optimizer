@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 7ad8cdf7a..f33c8cef8 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -931,7 +931,7 @@ STUB
+     # mut:unlock leaves the holder to its own 0.2 s parent poll, so reading it alive at the run's return raced that
+     # poll under CPU load (1 FAIL in 9 with five self-tests at once): that copy polls every 30 s, so it is alive at the
+     # read whatever the load, and is ended and awaited below (a bound, not one kill -0 inside the poll).
+-    [ "$1" != unlock ] || sed -i 's/time.sleep(0.2)  # mut:watch/time.sleep(30)  # mut:watch/' "$m/tools/audit/seat/pr_args.sh"
++    [ "$1" != unlock ] && [ "$1" != - ] || sed -i 's/time.sleep(0.2)  # mut:watch/time.sleep(30)  # mut:watch/' "$m/tools/audit/seat/pr_args.sh"
+     printf '#!/bin/sh\nsleep 30 </dev/null >/dev/null 2>&1 &\necho $! >> "%s/sleepers"\n' "$t" > "$hk"; chmod +x "$hk"
+     cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out1" 2>&1
+     hp=$(cut -d' ' -f2 "$sd/pr/upd-fix-x.lock")
