@@ -4801,7 +4801,9 @@ class HeatPumpOptimizer:
         starts = [
             initial_power,
             _price_ranked_start(prices, baseline_energy, p_max, dt),
-            np.clip(seed_power, 0.0, p_max),
+            # Inside the bounds unclamped: the reference never asks more
+            # than the pump (``_apportion_by_steady_demand``) nor less than 0.
+            seed_power,
             _price_ranked_start(
                 prices,
                 baseline_energy * _LOW_ENERGY_START_FRACTION,
@@ -5567,7 +5569,12 @@ class HeatPumpOptimizer:
         thermostat's power: a tank above the curve zeroes them, one below it
         overshoots. The settlement books step 0 of a plan re-made every
         interval, so it would book only the transient. The simulation decides
-        how much the horizon draws; the demand decides when.
+        how much the horizon draws; the demand decides when, and no step asks
+        more than the pump has: a step the spread puts past
+        ``max_electrical_power`` is held there and its excess goes to the
+        uncapped steps by the same demand. Every simulated step lies under the
+        pump, so the energy fits; where the demand cannot place it (the
+        uncapped steps demand nothing), the simulated schedule stands.
         """
         assert weather.wind_speeds is not None and weather.precipitation is not None
         assert weather.solar_radiation is not None
@@ -5579,8 +5586,18 @@ class HeatPumpOptimizer:
             ))
             for i in range(len(simulated))
         ])
-        total = float(np.sum(steady))
-        return simulated if total <= 0.0 else steady * (float(np.sum(simulated)) / total)
+        energy = float(np.sum(simulated))
+        cap = float(self.model.params.max_electrical_power)
+        capped = np.zeros(len(steady), dtype=bool)
+        while True:
+            total = float(np.sum(steady[~capped]))
+            if total <= 0.0:
+                return simulated
+            spread = np.where(capped, cap, steady * ((energy - cap * int(np.sum(capped))) / total))
+            over = spread > cap
+            if not over.any():
+                return spread
+            capped |= over
 
     def _settle_horizon(
         self,
