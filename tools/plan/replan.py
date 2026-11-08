@@ -779,10 +779,20 @@ def selftest_model() -> int:
         grp("HI", "S", "instrument", savings=9), grp("LO", "S", "instrument", savings=2),
         grp("NONE", "S", "instrument")]}
     po = build_plan(order, M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
-    seq = sorted((g for g in po["groups"]), key=lambda n: po["groups"][n]["start"])
+    # A ready critical-path group starts past a full cap (orchestrator.md
+    # section 5), so the owner's order reads off the real slots: the capped
+    # groups in start order, the critical path exempt beside them.
+    P = po["groups"]
+    seq = sorted((n for n in P if not P[n].get("exempt")), key=lambda n: (P[n]["start"], n))
     expect("dispatch follows the owner's order (tvofi 2026-11-07, triage P420): hotfix, outside, "
-           "critical path, production, instruments by savings, unrecorded savings last",
-           seq == ["R10-HOTFIX-H", "OUT", "CPA", "CPB", "CPC", "PROD", "HI", "LO", "NONE"], seq)
+           "production, instruments by savings, unrecorded savings last on the real slots",
+           seq == ["R10-HOTFIX-H", "OUT", "PROD", "HI", "LO", "NONE"], seq)
+    expect("the hotfix takes the free slot at t0 and the ready critical-path group starts "
+           "beside it past the cap, never ahead of it on the real slot",
+           P["R10-HOTFIX-H"]["start"] == iso(start, 0) and P["R10-HOTFIX-H"]["slot"] < 1
+           and P["CPA"]["start"] == iso(start, 0) and P["CPA"].get("exempt") is True
+           and all(P[n].get("exempt") is True for n in ("CPA", "CPB", "CPC")),
+           {n: (P[n]["start"], P[n]["slot"], P[n].get("exempt")) for n in P})
     keys = {n: po["groups"][n]["sort_key"] for n in po["groups"]}
     expect("each group's sort_key is in the plan and orders it the same way",
            sorted(keys, key=lambda n: [float("inf") if k is None else k for k in keys[n]])[0] == "R10-HOTFIX-H"
@@ -1091,9 +1101,24 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                 inherited.add(n)
             ready.discard(n)
             pending.discard(n)
-        # A ready critical-path group starts now whatever the slots cap, as
-        # dispatch does (orchestrator.md section 5); it takes a free slot when
-        # one exists and an overflow slot otherwise, and is exempt from the cap.
+        # The real slots go in the dispatch order over every ready group, so a
+        # tier above the critical path (main, hotfix, outside; triage P420)
+        # takes a free slot ahead of a critical-path group, never behind it.
+        while ready and free_slot() is not None:
+            n = pick(sorted(ready), t)
+            if n is None:
+                break
+            s = free_slot()
+            start_t[n] = t
+            slot_of[n] = s
+            work_end[n] = t + dur_min[n]
+            running[n] = (s, work_end[n])
+            ready.discard(n)
+            pending.discard(n)
+        # A ready critical-path group the slots left waiting starts now
+        # whatever the cap, as dispatch does (orchestrator.md section 5), on an
+        # overflow slot (a free one only when the coordinator cap held the
+        # pick above), and is exempt from the cap.
         while True:
             n = pick(sorted(x for x in ready if x in crit), t)
             if n is None:
@@ -1102,17 +1127,6 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             if s is None:
                 s = overflow_base + len(start_t)
                 exempt.add(n)
-            start_t[n] = t
-            slot_of[n] = s
-            work_end[n] = t + dur_min[n]
-            running[n] = (s, work_end[n])
-            ready.discard(n)
-            pending.discard(n)
-        while ready and free_slot() is not None:
-            n = pick(sorted(ready), t)
-            if n is None:
-                break
-            s = free_slot()
             start_t[n] = t
             slot_of[n] = s
             work_end[n] = t + dur_min[n]
