@@ -11,12 +11,9 @@ R10-PARTLOAD-RESIDUE: the three measure-first items #3182 left. Each was measure
 
 ## Head
 
-17e891bf00140d79e166d95901391294002b513c is the pull request head this body is taken at. It is a merge commit whose tree is byte-identical to a3a54793cf23ee4d5c6b790969e722b901625f56 (`git diff a3a54793c 17e891bf0` is empty), the round-4 handoff tip, so every figure marked round 4 below was measured at that tree and holds at this head.
+The head moved only to reset the CI re-run cap: the gate run at 17e891bf0 reached GitHub's 45-attempt re-run cap, so this merge of origin/main (clean; `git merge-tree --write-tree origin/main 17e891bf0` reported no conflict) changes no code of this PR.
 
-- Merge base 73365699a135fb813a43380096b6776d57f8ff4c. `git merge-tree --write-tree origin/main 17e891bf0` reports no conflict at origin/main 72940b795, so no merge was made (owner ruling 2026-11-07: the merge train recarries on the current main).
-- The `prepr.sh` run is the round-4 one, at a3a54793c; the tree is unchanged, so no second run was made.
-- The CPU figures (carries 1 and 3) were taken at 67cc12cc52afaf347534fa2859a4d6d329ea5690 on merge base b4ec2f332fe3ab8dcf169bd3066276d3bb8848ab. They read the solver alone. Rounds 3 and 4 change `wood_fuel.py` and one `coordinator.py` call, which no solve reaches. They were not re-taken.
-- The carry 2 and wood figures were re-taken at a3a54793cf23ee4d5c6b790969e722b901625f56 with `r10_partload_residue.py refill`, and read digit-identical to 2f25b3893.
+`fd54a82ba513d989a09aaa969f16c56caa88b1a9` is the pull request head this body is taken at. Its first parent is the prior head 17e891bf00140d79e166d95901391294002b513c; the figures above were taken at that head's code and the merge brings in only main's own commits.
 
 ## Repair round 4
 
@@ -190,3 +187,4 @@ Destination: R10-SAV-COMFORT (`carries-open`; seam `optimizer.py`, `ledger.py`),
 
 - fixer-pi-measurement: cost: the brief prefers GitHub's ubuntu-24.04-arm runner or an arm64 container under a CPU quota. This seat has neither (x86_64 container, no runner dispatch from a fixer's return refs), so the Pi-class figure is an x86_64 single-core `process_time` scaled by a cited Geekbench 6 single-core ratio. The verdict holds under any factor below 306x. Carry: dismissed: verdict robust below a 306x factor
 - fixer-wip-ref: cost: `refs/heads/handoff-wip/r10-partload-residue` held a prior seat's BLOCKED.md commits (19a838bc8), which are not ancestors of the PR head. A fast-forward-only step push was therefore refused, and this seat did not force it. The milestones are in the handoff commits instead. Carry: dismissed: the step ref is deleted after the body push
+
