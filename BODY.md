@@ -155,22 +155,30 @@ both doors are open, so either verdict alone refuses.
 
 ## Red checks
 
-Every concluded red at `b8fba2c8d` is a **cancellation**, not a failure. The check-run list (68 runs, read once across all pages) has no `failure` conclusion on any test job except `gate`, and no job log shows an assertion or an `UNDER-SCOPED` line. All of them end at about 08:47:24 to 08:47:40Z, inside one run, `CI code pr=3316` (run 42463804677, attempt 24).
+Every concluded red at `b8fba2c8d` is a **cancellation**, not a failure. The check-run list (read across all pages, re-read once for this take) has no `failure` conclusion on any test job except `gate`. No job log shows an assertion or an `UNDER-SCOPED` line. Each cancelled job ended at 08:47:24 to 08:47:40Z, inside one run, `CI code pr=3316` (run 42463804677), which itself concluded `cancelled` at 09:55:34Z. This diff is RCA documentation and one closures line; the cancellation belongs to the run, not to a test.
 
-- `tests / fast (3.14)`: cancelled. The log's last lines are `start python3 tests/entities.py` then `The operation was canceled.`, 4m27s into that script. Not caused by this diff: the job was killed, and the scoped run had printed no failure before it.
-- `tests / graders-head-copy`: cancelled, with empty output. Not caused by this diff; it never ran to a verdict.
-- `tests / lane-proofs`: cancelled, with empty output. Not caused by this diff.
-- `tests / closures`: cancelled, with empty output. So the closure recording is neither shown stale nor shown under-scoped by this run. The diff's one closures change is `tests/closures.json` for `tests/harness_headers.py`, written by `ci_predict.py --apply-inert`, and `harness_headers.py` passes locally (see Null control).
+Each concluded red, by exact check name:
+
+- `tests / fast (3.14)`: cancelled. The log ends at `start python3 tests/entities.py` then `The operation was canceled.` Not caused by this diff: the job was killed before a verdict.
+- `tests / graders-head-copy`: cancelled, empty output. Not caused by this diff.
+- `tests / lane-proofs`: cancelled, empty output. Not caused by this diff.
+- `tests / closures`: cancelled, empty output. The closure recording is therefore neither shown stale nor shown under-scoped by this run. The diff's one closures change is the `tests/harness_headers.py` line in `tests/closures.json`, written by `ci_predict.py --apply-inert`. `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` passes locally (see Null control).
 - `tests / closures-autofix`: cancelled. No bot commit exists beyond the head (`git ls-remote origin fix/r10-rca-cop-unmeasured` returns `b8fba2c8d`), so nothing was repaired and nothing was owed.
-- `pr-contract / pr-contract`: two runs, both success. The earlier refusal named in the dispatch is no longer standing.
-- `gate`: failure, in two jobs (the edit job and the code job). Both logs end with `FAIL tests / fast (3.14): cancelled` and `tests / closures: cancelled`, so `gate` is red only because it aggregates the cancelled jobs. It is a derived red, not an independent one. A third `gate` entry was still in progress when read.
+- `tests / claims-autofix`: cancelled, empty output. This branch claims nothing: `tests/golden/claimed_drift.txt` and `card_claimed_drift.txt` are not in the diff (five paths, all under `dev/` plus `tests/closures.json`), so claim-file state cannot be the cause.
+- `tests / coverage`: cancelled, empty output. The diff touches nothing under `custom_components/`, so no covered line changed. Not caused by this diff.
+- `tests / coverage-ratchet`: cancelled, empty output. Same reason: no production line moved, and the ratchet never ran to a verdict.
+- `tests / ci-ratchet`: cancelled, empty output. Not caused by this diff.
+- `governance / instrument-self-tests`: cancelled, empty output. Not caused by this diff.
+- `pr-contract / pr-contract`: both recorded runs are success. The earlier refusal named in the dispatch no longer stands.
+- `gate`: failure in two completed entries (09:54:51Z to 09:55:33Z, and 10:00:08Z to 10:00:49Z). It is a required aggregate. It is red only because it lists the cancelled jobs above. It is a derived red, not an independent one. Two newer `gate` entries were `in_progress` (started 10:01:16Z) when read; their state is the next verdict.
 
-Cause and cheaper detector:
+Comparison with origin/main `6188936a8`: its check runs had not concluded when read (only `sweep` runs, all in progress, none failed). So an inherited-from-main cause is neither shown nor excluded; the evidence is that every red here is a cancellation with no failing assertion.
 
-- Cause: the runs were cancelled while the test jobs were running, not failed by a test. Why they were cancelled was not established here. I have no evidence that the diff caused it.
-- Cheaper detector (`defect-root-cause.md`): none applies. A cancellation is not a defect a local check can predict, and `tools/pr/prepr.sh` has no step for it. The failures that a local check does predict, namely `ci predict`, the carry routing and the body path, were run and repaired before the handoff (see Figures, prepr).
-- On origin/main `6188936a8` the same jobs had not concluded when read (43 runs, none failed, 14 in progress), so no main-versus-branch comparison is possible yet.
-- A re-run of the cancelled jobs at this head will show whether any of them fails. If one does, that failure is the finding, not this paragraph.
+Cause and cheaper detector (`defect-root-cause.md`):
+
+- Cause: the runs were cancelled while the test jobs were running, and the run ended `cancelled`. Why it was cancelled was not established here. I have no evidence that the diff caused it, and the workflow `concurrency` block is `cancel-in-progress: false`, so a newer push did not cancel it by that route.
+- Cheaper detector: none applies. A cancellation is not a defect a local check can predict, and `tools/pr/prepr.sh` has no step for it. The failures a local check does predict (`ci predict`, the carry routing, the body path) were run and repaired before the handoff (see Figures, prepr).
+- A re-run of the cancelled jobs at this head will show whether any fails. If one does, that failure is the finding, not this paragraph.
 
 ## Forward-carry
 
