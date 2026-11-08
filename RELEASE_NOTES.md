@@ -1,3 +1,31 @@
+## v7.1.8
+
+**Patch stamp: 6 merges since v7.1.7.** The user-visible change is that the heat-pump plan now respects the "Heat pump min power" setting. The rest of the window is round-10 tooling and audit machinery.
+
+### #3308 The plan respects "Heat pump min power" (R10-MIN-POWER-FLOOR)
+
+The heat-pump plan now respects the "Heat pump min power" setting. A pump that cannot modulate is no longer planned at steps below its minimum, and a pump that also heats hot water no longer has space heating and hot water planned together above its maximum power. A new "compressor modulation" option (auto, on/off, modulating) on the thermal model page lets you declare how your pump behaves. Closes #3289.
+
+### #3294 Standing contracts for the orchestrator's sessions, part 2 (R10-FLY-STANDING-CONTRACTS)
+
+The hooks that the orchestrator's sessions depend on are now tracked, described and installable, including a guard on the orchestrator's shell commands. Developer tooling only.
+
+### #3320 Suite host determinism, part 2 (R10-SUITE-HOST-DETERMINISM)
+
+The entity test script gives the same answer on any host. Test tooling only.
+
+### #3335 Root-cause record for the stamp flush cost (R10-RCA-STAMP-FLUSH-COST)
+
+Records that the existing root-cause note on stamps dispatching a whole Nightly run already covers the owner's ruling. No code changed.
+
+### #3324 Closeout instruments (R10-CLOSEOUT-INSTRUMENTS)
+
+The instruments for closing out an audit round: worktree collection, closeout exemptions and tag pruning. Developer tooling only.
+
+### #3328 Delivery rows recorded (autofix)
+
+Delivery-status rows for #3262, #3288, #3301, #3311 and #3312. Record only.
+
 ## v7.1.7
 
 **Patch stamp: 5 merges since v7.1.6.** The user-visible change is that the round's plan page is now public: the developer documentation links it, and outside contributors have a stated intake route. The rest of the window is round-10 engineering and audit machinery.
