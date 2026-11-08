@@ -106,18 +106,39 @@ def run():
     check("parse_board: one per topic, the first line wins", pb == [("r10-a", sha("1"), None), ("r10-b", sha("3"), None)])
     check("override wins", od.resolve("r10-x", G, "", {"r10-x": {"group": "R10-UX-HEALTH", "title": "T"}}) == ("R10-UX-HEALTH", "T"))
 
-    # order: critical > hotfix > record > rest by default; the file orders what it lists
+    # order: hotfix > outside or critical > record > rest by default (owner
+    # rulings tvofi 2026-11-07, triage P420, and 2026-11-08); the file orders
+    # what it lists within a class
     items = [("r10-inst", "R10-INST", 1), ("r10-cp", "R10-CP", 2), ("triage-s6-batch1", "R10-TRIAGE-S6", 3),
              ("r10-hotfix-x", "R10-HOTFIX-X", 4)]
     names = lambda pr: [t for t, _, _ in od.order(items, pr, {"r10-cp"})]
-    check("default order", names([]) == ["r10-cp", "r10-hotfix-x", "triage-s6-batch1", "r10-inst"])
+    check("default order", names([]) == ["r10-hotfix-x", "r10-cp", "triage-s6-batch1", "r10-inst"])
     check("omitted critical before listed instrument", names(["r10-inst"]).index("r10-cp") < names(["r10-inst"]).index("r10-inst"))
     check("null: omitted non-critical after listed higher class",
-          names(["r10-hotfix-x", "r10-cp"]) == ["r10-cp", "r10-hotfix-x", "triage-s6-batch1", "r10-inst"])
-    check("omitted higher classes slot before a listed instrument", names(["r10-inst"]) == ["r10-cp", "r10-hotfix-x", "triage-s6-batch1", "r10-inst"])
-    check("file order among listed", names(["r10-inst", "r10-hotfix-x"]).index("r10-inst") < names(["r10-inst", "r10-hotfix-x"]).index("r10-hotfix-x"))
+          names(["r10-hotfix-x", "r10-cp"]) == ["r10-hotfix-x", "r10-cp", "triage-s6-batch1", "r10-inst"])
+    check("omitted higher classes slot before a listed instrument", names(["r10-inst"]) == ["r10-hotfix-x", "r10-cp", "triage-s6-batch1", "r10-inst"])
+    check("file order among listed (outside the fence)", names(["r10-inst", "triage-s6-batch1"]).index("r10-inst") < names(["r10-inst", "triage-s6-batch1"]).index("triage-s6-batch1"))
+    check("the fence beats the file: a listed instrument is behind an omitted hotfix", names(["r10-inst", "r10-hotfix-x"]).index("r10-hotfix-x") < names(["r10-inst", "r10-hotfix-x"]).index("r10-inst"))
     check("omitted record sorts after listed hotfix", names(["r10-hotfix-x"]).index("triage-s6-batch1") > names(["r10-hotfix-x"]).index("r10-hotfix-x"))
-    check("critical listed last still first", names(["r10-inst", "r10-hotfix-x", "r10-cp"])[0] == "r10-cp")
+    check("critical listed last is still ahead of every non-fenced topic", names(["r10-inst", "triage-s6-batch1", "r10-cp"])[:2] == ["r10-hotfix-x", "r10-cp"])
+    check("the fence puts a hotfix first, then outside and critical in the file's order",
+          [t for t, _, _ in od.order(items + [("r10-out", "R10-OUT", 5)], ["r10-cp", "r10-out", "r10-hotfix-x", "r10-inst"], {"r10-cp"}, {"r10-out"})][:3]
+          == ["r10-hotfix-x", "r10-cp", "r10-out"]
+          and [t for t, _, _ in od.order(items + [("r10-out", "R10-OUT", 5)], ["r10-out", "r10-cp", "r10-inst"], {"r10-cp"}, {"r10-out"})][:3]
+          == ["r10-hotfix-x", "r10-out", "r10-cp"])
+    out_items = items + [("r10-out", "R10-OUT", 5)]
+    old_out = items + [("r10-out", "R10-OUT", 1)]
+    check("outside and critical share a class behind a hotfix: by default the older handoff first",
+          [t for t, _, _ in od.order(out_items, [], {"r10-cp"}, {"r10-out"})]
+          == ["r10-hotfix-x", "r10-cp", "r10-out", "triage-s6-batch1", "r10-inst"]
+          and [t for t, _, _ in od.order(old_out, [], {"r10-cp"}, {"r10-out"})]
+          == ["r10-hotfix-x", "r10-out", "r10-cp", "triage-s6-batch1", "r10-inst"])
+    check("an outside topic and a critical one are one class; a hotfix one is a hotfix",
+          od.default_class("r10-out", "R10-OUT", set(), {"r10-out"}) == 1
+          == od.default_class("r10-cp", "R10-CP", {"r10-cp"}, set())
+          and od.default_class("r10-hotfix-o", "R10-HOTFIX-O", set(), {"r10-hotfix-o"}) == 0)
+    check("null: no outside set orders byte-identically to a call without the argument",
+          od.order(out_items, ["r10-inst"], {"r10-cp"}, frozenset()) == od.order(out_items, ["r10-inst"], {"r10-cp"}))
 
     def world(lines, ros=None, **kw):
         sd = Path(tempfile.mkdtemp())
@@ -134,6 +155,24 @@ def run():
     sd, w = world(board, heads=heads, landed={sha("3")})
     res = go(sd, w, board)
     check("cp before instrument, cap 2 holds", [t for t, _, _ in w.launched] == ["r10-cp", "r10-inst"])
+    # Outside wiring (owner rulings tvofi 2026-11-07, triage P420, and
+    # 2026-11-08): the roster's `source` field reaches the order.
+    # R10-CP -> R10-INST is the critical path, so the outside group shares
+    # their class and the tie-break (topic name) decides: R10-A-OUT is named
+    # to sort first, so it opens; with no source field it is plain and waits.
+    oros = roster("R10-CP", "R10-INST", "R10-A-OUT", after={"R10-INST": ["R10-CP"]})
+    oros["groups"][2]["source"] = "outside"
+    oheads = [("r10-inst", sha("1")), ("r10-cp", sha("2")), ("r10-a-out", sha("3"))]
+    oboard = "\n".join(line(t, s) for t, s in oheads)
+    osd, ow = world(oboard, ros=oros, heads=oheads)
+    go(osd, ow, oboard)
+    check("run_pass: an outside group opens in the critical path's class, cap 2",
+          [t for t, _, _ in ow.launched] == ["r10-a-out", "r10-cp"])
+    nros = roster("R10-CP", "R10-INST", "R10-A-OUT", after={"R10-INST": ["R10-CP"]})
+    nsd, nw = world(oboard, ros=nros, heads=oheads)
+    go(nsd, nw, oboard)
+    check("run_pass null: with no source field the critical path opens first, as before",
+          [t for t, _, _ in nw.launched] == ["r10-cp", "r10-inst"])
     check("on-main skipped", res["skipped"].get("r10-onmain") == "landed" and all(t != "r10-onmain" for t, _, _ in w.launched))
     check("cap skip logged", res["skipped"].get("r10-x") == "cap" or res["skipped"].get("r10-old") == "cap")
     (sd / "open-cap.txt").write_text("3\n")
