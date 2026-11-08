@@ -1,0 +1,17 @@
+run 1 rc=3 13:49:17
+run 2 rc=3 13:53:19
+run 3 rc=3 13:57:22
+run 4 rc=3 14:01:24
+run 5 rc=3 14:05:26
+run 6 rc=3 14:09:28
+run 7 rc=1 14:13:30
+run2 rc=1 14:14:16 RED 7e9b464acd5289660b0d5a4ef10c7d609dd50c45 pending: none red: gate
+run2 rc=1 14:18:18 RED 7e9b464acd5289660b0d5a4ef10c7d609dd50c45 pending: none red: gate
+run2 rc=1 14:22:21 RED 7e9b464acd5289660b0d5a4ef10c7d609dd50c45 pending: none red: gate
+run2 rc=1 14:26:23 RED 7e9b464acd5289660b0d5a4ef10c7d609dd50c45 pending: none red: gate
+run2 rc=1 14:30:25 RED 7e9b464acd5289660b0d5a4ef10c7d609dd50c45 pending: none red: gate
+run2 rc=1 14:34:27 RED 7e9b464acd5289660b0d5a4ef10c7d609dd50c45 pending: none red: gate
+run2 rc=1 14:38:30 RED 7e9b464acd5289660b0d5a4ef10c7d609dd50c45 pending: none red: gate
+run2 rc=1 14:42:32 RED 7e9b464acd5289660b0d5a4ef10c7d609dd50c45 pending: none red: gate
+run2 rc=1 14:46:34 RED 7e9b464acd5289660b0d5a4ef10c7d609dd50c45 pending: none red: gate
+run2 rc=1 14:50:36 RED 7e9b464acd5289660b0d5a4ef10c7d609dd50c45 pending: none red: gate
