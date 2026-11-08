@@ -18114,7 +18114,8 @@
     "From r10-round-playbook, body item e1802aed: Brief carry 16 (1) and (2): the floor-not-cap text in `architect-planner.md` and `plan-review.md`, and the production-group clause in `fixer.md` step 17. The README states (3). Carry: R10-ROUND-PLAYBOOK-FINAL (items e1802aed)",
     "From r10-round-playbook, body item 70f77501: Brief carry 20's code half: `pr_cap.py` reserving production slots and printing open PRs by class on every tick. The README states the rule. Carry: R10-ROUND-PLAYBOOK-FINAL (items 70f77501)",
     "From r10-round-playbook, body item 21500a6a: Brief carry 21's contract half: `proposal-triage.md` and the triage verdict vocabulary gaining LOG. The README states the bar. Carry: R10-ROUND-PLAYBOOK-FINAL (items 21500a6a)",
-    "From r10-round-playbook, body item e3198644: Brief carry 22: `dev/programme/HANDOVER.md`'s stale `pr_cap` owed entry. Carry: R10-ROUND-PLAYBOOK-FINAL (items e3198644)"
+    "From r10-round-playbook, body item e3198644: Brief carry 22: `dev/programme/HANDOVER.md`'s stale `pr_cap` owed entry. Carry: R10-ROUND-PLAYBOOK-FINAL (items e3198644)",
+    "From r10-round-playbook, body item 74f2ae7d: Brief carry 0 (1): at this merge base, `standing-dispatch.md` names no beat row for the dispatch and relay seat (\"A beat job takes over once a cycle's log agrees\"). The README says the seat stays. The final pass names its row once one is live. Carry: R10-ROUND-PLAYBOOK-FINAL (items 74f2ae7d)"
    ],
    "architect_note": "",
    "resume": {
