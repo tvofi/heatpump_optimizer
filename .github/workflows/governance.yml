@@ -396,6 +396,12 @@ jobs:
       - name: Show the outside intake owing, answering once and refusing its fixtures
         run: python3 -I tools/audit/seat/outside_intake.py --self-test
 
+      # The bottleneck alert's rules: a null control, one planted breach per
+      # rule, each boundary and minimum sample, UNREADABLE, the trip memory and
+      # one mutant per rule predicate, offline over planted metrics.
+      - name: Show the bottleneck alert tripping each rule once and silent on its null control
+        run: python3 -I tools/audit/seat/bottleneck_check.py --self-test
+
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
       # which cannot answer for a change to this one.
