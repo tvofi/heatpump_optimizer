@@ -62,9 +62,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 7.1.6
+# claims-for: 7.1.7
 #
-# v7.1.6: Round 10 fixes since v7.1.5. The stamp empties the list; the
+# v7.1.7: The round's plan page is public. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 config_flow # R10-MIN-POWER-FLOOR (#3289): the thermal_model options page gains the compressor_modulation select (auto/on_off/modulating, pre-filled auto); ADD-ONLY, one 10-line field leaf in the plain and one in the seeded render (git diff --numstat 20 insertions, 0 deletions), no existing leaf moves; re-recorded with --record --only config_flow because env_drift compares config_flow exactly
