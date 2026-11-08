@@ -89,6 +89,7 @@ import datetime as dt
 import json
 import math
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -122,7 +123,7 @@ DEFAULT_CAPS = {
     "slots": 16,             # open pull requests: the owner's cap since 2026-10-31
     "seats": 16,             # fixers working: one per open pull request
     "coordinator_cap": 2,    # open pull requests touching coordinator.py
-    "stamp_every": 5,        # production groups per patch stamp
+    "stamp_every": 3,        # production groups per patch stamp (tvofi 2026-10-26)
 }
 #: Where DEFAULT_CAPS' slots and seats come from, recorded in every plan that
 #: uses them: a plan drawn at a cap nobody chose must say whose cap it is.
@@ -200,15 +201,64 @@ def groups_of(roster: dict) -> dict:
     return {g["group"]: g for g in roster.get("groups", [])}
 
 
+#: A group in a closed stage (`roster_lib.CLOSED_STAGES`, `absorbed` included:
+#: R10-FLOW-TOOLKIT-MODEL carry 2) is not scheduled as open work; its remaining
+#: work lives in the group its resume note names.
+ABSORBED_RE = re.compile(r"absorbed into ([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+)")
+
+
 def is_done(group: dict) -> bool:
     return not roster_lib.is_open(group)
+
+
+def absorbers(G: dict) -> dict:
+    """{absorbed group: (absorber or None, advisory or None)}: the group the
+    resume note names ("absorbed into <G>"), and an advisory -- never a
+    refusal -- for a note that names no group in the roster."""
+    out = {}
+    for n in sorted(G):
+        res = G[n].get("resume") or {}
+        if res.get("stage") != "absorbed":
+            continue
+        m = ABSORBED_RE.search(" ".join(str(res.get(k) or "") for k in ("note", "next_step")))
+        into = m.group(1) if m and m.group(1) in G else None
+        out[n] = (into, None if into else
+                  f"ADVISORY: {n} is absorbed but its resume note names no existing group")
+    return out
+
+
+#: Paths that are instruments, CI or records, never the integration (tvofi
+#: 2026-11-06: the plan placed instrument and CI fixes in the core lane).
+_NON_PRODUCT_PREFIXES = ("tools/", "tests/", ".github/", ".claude/", "dev/", "docs/")
+_NON_PRODUCT_FILES = ("CLAUDE.md", "AGENTS.md", "README.md", "RELEASE_NOTES.md")
+#: A group touching any of these lands a tool, so it is not user docs.
+_TOOLING_PREFIXES = ("tools/", ".github/", ".claude/")
+#: Kinds that land tools: a group the name rules leave unplaced and whose
+#: files do not place it is drawn as Instruments when its kind is one of these.
+INSTRUMENT_KINDS = ("instrument", "policy", "rca", "tooling")
+
+
+def _owned_lane(group: dict) -> str | None:
+    """Instruments (or Docs, for a doc group) when every file the group owns
+    is an instrument, CI or record path; None when it owns no file, a bare
+    filename, or any file outside those paths (the integration stays core)."""
+    files = list(group.get("files") or []) + list(group.get("hot_files") or [])
+    if not files or not all(f.startswith(_NON_PRODUCT_PREFIXES) or f in _NON_PRODUCT_FILES
+                            for f in files):
+        return None
+    user_docs = (any(f.startswith("docs/") or f == "README.md" for f in files)
+                 and not any(f.startswith(_TOOLING_PREFIXES) for f in files))
+    return "Docs" if group.get("kind") == "doc" or user_docs else "Instruments"
 
 
 def roster_lane(group: dict) -> str:
     """The lane a group is drawn in and counted under for the stamp cadence.
 
     Ported from the out-of-tree renderer this replaces, which was the only
-    definition: `kind` first, then the group's own name.
+    definition: `kind` first, then the group's own name, then the files it
+    owns, then a tool-landing kind or roster `class` (the signal `work_class`
+    prices); only a group none of these places is core
+    model work (tvofi 2026-11-06: instrument and CI fixes were drawn there).
     """
     g = group["group"]
     k = group.get("kind")
@@ -227,6 +277,10 @@ def roster_lane(group: dict) -> str:
         return "Learners"
     if k == "owner" or g in ("R10-UX-HEALTH", "R10-CONFIGFLOW-PAGES", "R10-DEEPLINK-CENSUS"):
         return "Product UX"
+    if owned := _owned_lane(group):
+        return owned
+    if k in INSTRUMENT_KINDS or group.get("class") == "instrument":
+        return "Instruments"
     return "Core model"
 
 
@@ -245,7 +299,7 @@ def work_class(group: dict) -> str:
     branch = (group.get("resume") or {}).get("branch") or ""
     if k == "record" or "audit-r" in branch and "-roster" in branch:
         return "record"
-    if roster_lane(group) in ("Instruments", "Docs") or k in ("rca", "policy", "tooling"):
+    if roster_lane(group) in ("Instruments", "Docs") or k in INSTRUMENT_KINDS:
         return "instrument"
     return "production"
 
@@ -405,20 +459,25 @@ def dispatch_key(n: str, tier: dict, crit: set, savings: dict, height: dict,
 HELD_STAGE = "carries-open"
 
 
-def held_open(group: dict, durations: dict) -> tuple[int, str]:
-    """(open carries, how known) for a carries-open group. The measured
-    count (`held_open_carries`, `tools/plan/size_durations.py`) plus every
-    carry appended since; a group it never measured counts every carry."""
-    carry = len(group.get("carry") or [])
+def held_open(group: dict, durations: dict, pending: list) -> tuple[int, str]:
+    """(open carries, how known) for a carries-open group, counting only
+    `pending` (`roster_lib.pending_carries`: unmarked and not legacy). The
+    measured count (`held_open_carries`, `tools/plan/size_durations.py`),
+    never above the carries then held that are still pending, plus every
+    pending carry appended since; a group it never measured counts every
+    pending carry."""
     rec = (durations.get("held_open_carries") or {}).get(group["group"])
     if rec is None:
-        return carry, f"{carry} carries, none measured as answered"
-    added = max(0, carry - int(rec["carries"]))
-    return int(rec["open"]) + added, (f"{rec['open']} open carries at measurement"
-                                      + (f" + {added} appended since" if added else ""))
+        return len(pending), f"{len(pending)} carries, none measured as answered"
+    cut = int(rec["carries"])
+    added = sum(1 for i in pending if i >= cut)
+    then = min(int(rec["open"]), sum(1 for i in pending if i < cut))
+    return then + added, (f"{then} open carries at measurement"
+                          + (f" + {added} appended since" if added else ""))
 
 
-def group_hours(group: dict, durations: dict, is_live: bool, where: str) -> tuple[float, str]:
+def group_hours(group: dict, durations: dict, is_live: bool, where: str,
+                legacy: dict | None = None) -> tuple[float, str]:
     """(hours of work left, the basis in words) for one open group.
 
     carries-open: ceil(open carries / carries_per_part) parts of
@@ -431,13 +490,21 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str) -> tupl
         sizes_hours alone. An unmeasured size is refused: a hand-written
         duration would be a fabricated measurement, and a KeyError from
         inside the schedule names neither the group nor the roster.
+    Both carry counts are `roster_lib.pending_carries` (`legacy`: the
+    roster's cut-over, `roster_lib.read_legacy`): a carry marked implemented,
+    moved or dismissed is not work left, and the basis says how many were
+    left out.
     """
     n, size, cls = group["group"], group.get("size") or "M", work_class(group)
     stage = (group.get("resume") or {}).get("stage")
+    pending = roster_lib.pending_carries(group, legacy or {})
+    left = len(group.get("carry") or []) - len(pending)
+    left_out = f", {left} marked carries left out" if left else ""
     if stage == HELD_STAGE and durations.get("carries_per_part"):
-        k, how = held_open(group, durations)
+        k, how = held_open(group, durations, pending)
         parts = math.ceil(k / float(durations["carries_per_part"]))
-        return parts * float(durations["carry_part_hours"]), f"{how}: {parts} part(s)"
+        return (parts * float(durations["carry_part_hours"]),
+                f"{how}: {parts} part(s){left_out}")
     sizes = durations["sizes_hours"]
     if size not in sizes:
         raise PlanError(f"{n}: size {size!r} has no measured duration in sizes_hours "
@@ -450,10 +517,11 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str) -> tupl
         rounds = float(rcell.get(cls, durations["review_rounds"][size]))
         hours = work + (rounds - 1) * float(durations["round_hours"])
         why = f"{size}/{cls if cls in cell else 'all'}: {work:g} h + {rounds - 1:.2f} extra rounds"
-        extra = len(group.get("carry") or []) - float((durations.get("carry_baseline") or {}).get(size, 0))
+        extra = len(pending) - float((durations.get("carry_baseline") or {}).get(size, 0))
         if extra > 0 and durations.get("carry_hours"):
             hours += extra * float(durations["carry_hours"])
             why += f" + {extra:g} absorbed carries"
+        why += left_out
     else:
         hours, why = float(sizes[size]), f"{size}: sizes_hours"
     if is_live:
@@ -566,6 +634,55 @@ def selftest_model() -> int:
            g0["start"] == g0["finish"] == iso(start, 0) and g0["duration_minutes"] == 0
            and "record step" in g0["start_reason"], str(g0))
 
+    # 2b. a carry `roster_edit.py mark-carry` discharged is not open work
+    # (carry 15): both carry counts read `roster_lib.pending_carries`.
+    def marked(i):
+        return f"c{i} [implemented: {i:040x}]"
+
+    owed = (0, 1, 5, 6, 8, 9, 42, 43)
+    body = [f"c{i}" if i in owed else marked(i) for i in range(44)]
+    m11 = dict(M, carries_per_part=11.0, carry_part_hours=19.8)
+    h, why = group_hours(grp("BC", "M", stage="carries-open", carry=body), m11, False, "fx")
+    expect("R10-BODY-CONTRACT's shape: 8 unmarked of 44 plan one part (19.8 h), not four",
+           abs(h - 19.8) < 1e-9 and "36 marked carries left out" in why, f"{h} {why}")
+    two = ["c"] * 5 + [marked(i) for i in range(4)]
+    h, why = group_hours(grp("T", "L", stage="carries-open", carry=two), M, False, "fx")
+    expect("carries filling two parts, four marked and left out, plan one part (20 h)",
+           h == 20.0 and "4 marked carries left out" in why, f"{h} {why}")
+    h, why = group_hours(grp("T", "L", stage="carries-open", carry=["c"] * 9), M, False, "fx")
+    expect("the same carries with none marked plan two parts as before (null control)",
+           h == 40.0 and "left out" not in why, f"{h} {why}")
+    h1 = ["c"] * 9 + [marked(9)] * 3 + ["c"] * 2
+    h, why = group_hours(grp("H1", "L", stage="carries-open", carry=h1), M, False, "fx")
+    expect("a measured held group counts only the unmarked carries appended since: 1 + 3 -> one part",
+           h == 20.0 and "3 appended since" in why, f"{h} {why}")
+    h, why = group_hours(grp("H1", "L", stage="carries-open", carry=[marked(0)] * 8), M, False, "fx")
+    expect("a measured held group whose carries were all marked since plans zero, not one part",
+           h == 0.0 and "0 open carries at measurement" in why, f"{h} {why}")
+    h, why = group_hours(grp("H1", "L", stage="carries-open", carry=[marked(0)] * 8 + ["c"]),
+                         M, False, "fx")
+    expect("the measured open count never exceeds the carries then held still pending: 0 + 1",
+           h == 20.0 and "0 open carries at measurement + 1 appended since" in why, f"{h} {why}")
+    m5 = dict(M, held_open_carries={"H5": {"open": 5, "carries": 8}})
+    h, why = group_hours(grp("H5", "L", stage="carries-open", carry=["c"] + [marked(0)] * 7),
+                         m5, False, "fx")
+    expect("five open at measurement, seven of the eight since marked: one open carry",
+           h == 20.0 and why.startswith("1 open carries at measurement:"), f"{h} {why}")
+    h, why = group_hours(grp("P", "S", carry=["x"] + [marked(0)] * 3),
+                         dict(M, carry_baseline={}), False, "fx")
+    expect("a size with no carry baseline prices every unmarked carry as absorbed: 18 + 4 h",
+           h == 22.0 and "+ 1 absorbed carries, 3 marked carries left out" in why, f"{h} {why}")
+    h, why = group_hours(grp("P", "S", carry=["x"] * 2 + [marked(0)] * 3), M, False, "fx")
+    expect("marked carries are not absorbed work: 2 unmarked at the S baseline plan 18 h",
+           h == 18.0 and "absorbed" not in why, f"{h} {why}")
+    held = {"groups": [grp("H", "L", stage="carries-open", carry=["old"] * 5 + ["c"])]}
+    pl = build_plan(held, M, dict(DEFAULT_CAPS), dt.datetime(2026, 1, 5), "v1.0.0",
+                    round_n=2, legacy={"H": frozenset({"old"})})
+    gh = pl["groups"]["H"]
+    expect("a legacy carry (held while closed at the cut-over) is not open work: one part",
+           gh["duration_minutes"] == 1200 and "5 marked carries left out" in gh["duration_basis"],
+           str(gh))
+
     # 3. started work keeps its place: in flight from now, past the slot cap.
     many = {"groups": [grp(f"L{i}", stage="in-progress") for i in range(4)]
             + [grp("NEW"), grp("DEP", after=["NEW"], stage="in-progress")]}
@@ -576,9 +693,18 @@ def selftest_model() -> int:
            {n: G[n]["start"] for n in G})
     expect("a started group says why it starts: its fixer is working",
            G["L0"]["start_reason"] == "started: its fixer is working", G["L0"]["start_reason"])
-    expect("a planned group waits while started groups fill the cap, and names it",
-           G["NEW"]["start"] > iso(start, 0) and G["NEW"]["start_reason"].startswith("slot cap 2"),
+    # NEW heads DEP's chain, so it is on the critical path: it starts at once
+    # on an overflow slot, exempt from the cap (carry 8). A group off the path
+    # still waits (the null control below).
+    expect("a critical-path group starts past a full cap, flagged exempt",
+           G["NEW"]["start"] == iso(start, 0) and G["NEW"].get("exempt") is True,
            G["NEW"])
+    off = {"groups": many["groups"] + [grp("OFF")]}
+    poff = build_plan(off, M, caps1, start, "v1.0.0", round_n=2)
+    expect("null: a non-critical group in the same position still waits, and names it",
+           poff["groups"]["OFF"]["start"] > iso(start, 0)
+           and poff["groups"]["OFF"]["start_reason"].startswith("slot cap 2"),
+           poff["groups"]["OFF"])
     expect("a started group waits only for its unmerged after-group, and names it",
            G["DEP"]["start"] == G["NEW"]["finish"]
            and G["DEP"]["start_reason"].startswith("started: its fixer is working; after NEW"),
@@ -587,6 +713,7 @@ def selftest_model() -> int:
            check_plan(pm))
     bad = json.loads(json.dumps(pm))
     bad["groups"]["NEW"]["start"] = iso(start, 0)
+    bad["groups"]["NEW"].pop("exempt", None)
     expect("a PLANNED dispatch into a full cap is still refused",
            any(b.startswith("in flight: NEW dispatched") for b in check_plan(bad)),
            check_plan(bad))
@@ -657,16 +784,127 @@ def selftest_model() -> int:
 
 # ------------------------------------------------------------------- schedule
 
+WORK_REF_PREFIXES = ("fixer/", "handoff/", "handoff-wip/", "dispatch/")
+DESIGN_REF_PREFIX = "design/"
+
+
+def parse_live_refs(text: str) -> set:
+    """Branch names from a saved `git ls-remote` listing (sha, tab, ref)."""
+    out = set()
+    for line in text.splitlines():
+        ref = line.split()[-1] if line.split() else ""
+        if ref.startswith("refs/heads/"):
+            out.add(ref[len("refs/heads/"):])
+    return out
+
+
+def topics_of(group: dict) -> set:
+    t = {group["group"].lower()}
+    branch = (group.get("resume") or {}).get("branch") or ""
+    if branch:
+        t.add(branch.rsplit("/", 1)[-1])
+    return t
+
+
+def topic_evidence(group: dict, evidence: dict) -> str | None:
+    """'pr' (an open pull request), 'work' (a fixer, handoff or dispatch ref),
+    'design' (a design ref and nothing built), or None, from the offline
+    listing and the in-flight file."""
+    topics = topics_of(group)
+    for pr in evidence.get("prs") or []:
+        head = str(pr.get("headRefName") or "")
+        if head.rsplit("/", 1)[-1] in topics:
+            return "pr"
+    refs = evidence.get("refs") or set()
+    if any(p + t in refs for p in WORK_REF_PREFIXES for t in topics):
+        return "work"
+    if any(DESIGN_REF_PREFIX + t in refs for t in topics):
+        return "design"
+    return None
+
+
+def substantive(diff: str) -> bool:
+    """True when a unified diff changes a line that is neither blank nor a
+    `#` comment: a comment-only or whitespace-only change ships no behaviour."""
+    for line in diff.splitlines():
+        if line[:1] in "+-" and not line.startswith(("+++", "---")):
+            body = line[1:].strip()
+            if body and not body.startswith("#"):
+                return True
+    return False
+
+
+MERGE_BRANCH_RE = re.compile(r"^Merge pull request #\d+ from \S+/(\S+)\s*$")
+
+
+def merge_topic(subject: str) -> str | None:
+    """The topic of a "Merge pull request #N from <owner>/<type>/<topic>"
+    subject: the last path segment of the merged branch, lower-cased."""
+    m = MERGE_BRANCH_RE.match(subject)
+    return m.group(1).rsplit("/", 1)[-1].lower() if m else None
+
+
+def production_groups_since(commits: list, G: dict) -> list:
+    """Production groups with a substantive `custom_components` change since
+    the last tag, once each however many pull requests they took.
+    `commits`: [{"subject": str, "diff": the change against the first parent
+    of custom_components}]. A group is named by a merge's topic branch, as
+    `topic_evidence` matches one (main's merges read "Merge pull request #N
+    from tvofi/fix/<topic>"; a part branch `<topic>-p2` extends its group's
+    topic at a `-` boundary), else by the longest roster group name in the
+    subject (a squash)."""
+    by_topic = {t: n for n in G for t in topics_of(G[n])}
+    out: dict = {}
+    for c in commits:
+        topic = merge_topic(c["subject"])
+        n = None
+        if topic:
+            # a part branch (`<topic>-p2`) belongs to the longest roster topic it
+            # equals or extends at a `-` boundary
+            hit = [t for t in by_topic if topic == t or topic.startswith(t + "-")]
+            n = by_topic[max(hit, key=len)] if hit else None
+        if n is None:
+            named = [g for g in G if g in c["subject"]]
+            n = max(named, key=len) if named else None
+        if n and roster_lane(G[n]) in PRODUCTION and substantive(c.get("diff") or ""):
+            out[n] = True
+    return list(out)
+
+
+def git_commits_since_tag(repo: str) -> list:
+    """The `production_groups_since` input from git: first-parent commits
+    since the last tag, each with its custom_components diff against its
+    FIRST PARENT (`git show` prints a merge's combined diff, empty for a
+    clean merge)."""
+    tag = _git(repo, "describe", "--tags", "--abbrev=0")
+    if tag.returncode != 0:
+        raise PlanError("--since-tag: the repository has no tag")
+    log = _git(repo, "log", "--first-parent", "--format=%H%x1f%s", f"{tag.stdout.strip()}..HEAD")
+    out = []
+    for line in log.stdout.splitlines():
+        sha, _, subject = line.partition("\x1f")
+        diff = _git(repo, "diff", "-U0", f"{sha}^1", sha, "--", "custom_components").stdout
+        out.append({"subject": subject, "diff": diff})
+    return out
+
+
 def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                version: str, roster_ref: str = "", roster_blob: str = "",
-               roster_path: str = "", *, round_n: int,
-               legacy: dict | None = None) -> dict:
+               roster_path: str = "", *, round_n: int, since_tag: list | None = None,
+               evidence: dict | None = None, legacy: dict | None = None) -> dict:
     closing, why = closure_version(version, round_n)
     if why:
         raise PlanError(f"the round-close stamp: {why}")
     G = groups_of(roster)
     deps, open_, done = dependency_graph(G, legacy)
     discharged = {n for n in done if not is_done(G[n])}
+    # Groups after the round's closing stamp are scheduled after it and are
+    # neither inside closure nor in any stamp's carries (carries 10, 11).
+    post = roster_lib.post_closure_groups(G, open_)
+    open_all = open_
+    open_ = open_all - post
+    deps_post = {n: deps[n] for n in post}
+    deps = {n: deps[n] for n in open_}
     order = topo_order(deps)
     children = children_of(deps)
     size_hours = durations["sizes_hours"]
@@ -678,10 +916,28 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     lane = {n: roster_lane(G[n]) for n in G}
     coord = {n: touches_coordinator(G[n]) for n in open_}
     live = {n for n in open_ if (G[n].get("resume") or {}).get("stage") in LIVE_STAGES}
+    design_only: set = set()
+    demoted: set = set()
+    if evidence is not None:
+        # Liveness by evidence, not by the stage word (carries 0, 3): an open
+        # pull request is live (credit); a design ref with no build starts at
+        # t=0 without credit; a stage-word live group with neither a work ref
+        # nor a pull request is pending. Offline: the listing is a saved file.
+        ev_live, ev_design = set(), set()
+        for n in open_:
+            if topic_evidence(G[n], evidence) == "pr":
+                ev_live.add(n)
+            elif topic_evidence(G[n], evidence) == "design":
+                ev_design.add(n)
+        demoted = {n for n in live if topic_evidence(G[n], evidence) is None}
+        # A stage-word live group whose only evidence is a design ref has
+        # built nothing: it is design-only, uncredited (carry 3).
+        live = (live - demoted - ev_design) | ev_live
+        design_only = ev_design - live
     dur_h, basis = {}, {}
     for n in open_:
         dur_h[n], basis[n] = group_hours(G[n], durations, n in live,
-                                         roster_path or roster_ref or "<fixture>")
+                                         roster_path or roster_ref or "<fixture>", legacy)
     # A held group with nothing left owes only its record step: it is
     # started at the replan instant like a working one and holds no slot wait.
     settled = {n for n in open_ if n not in live and dur_h[n] == 0}
@@ -726,21 +982,30 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     # but its record step -- already holds its pull request: it starts the
     # moment its `after` groups have merged, past the slot and coordinator
     # caps (which bind new dispatches), and is never queued behind them.
-    started = live | settled
+    started = live | settled | design_only
     released = {n: 0 for n in open_ if not deps[n]}   # n -> when it became ready
     coord_held: set = set()     # ready groups the coordinator cap passed over
     ready = {n for n in open_ if not deps[n]}
     pending = set(open_)
     batch_rows: list = []
     stamps: list = []
-    carry: list = []
+    # Production groups already merged since the last tag count toward the
+    # next patch stamp, once each however many pull requests they took.
+    # Only a DONE group is credit: one still open merges inside this plan and
+    # is counted there, so crediting it too would count it twice (carry 9).
+    credit = [n for n in dict.fromkeys(since_tag or [])
+              if n in G and lane[n] in PRODUCTION and n in done]
+    carry: list = list(credit)
     stamp_by_group: dict = {}
     patch = 0
+    overflow_base = slots + 100
+    exempt: set = set()         # critical-path groups started past the slots cap
 
     def free_slot() -> int | None:
         # A slot is held from the start to the merge, not to the end of the
         # work: a finished group waiting for its batch still has its PR open.
-        used = {s for s, _ in running.values()} | {slot_of[n] for n in finished}
+        used = ({s for s, _ in running.values()} | {slot_of[n] for n in finished})
+        used = {s for s in used if s < overflow_base}
         if len(used) >= slots:
             return None
         return next((s for s in range(slots) if s not in used), None)
@@ -748,7 +1013,8 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     def held_slot() -> int:
         # A started group's slot: the lowest free index, past the cap if the
         # started set alone exceeds it.
-        used = {s for s, _ in running.values()} | {slot_of[n] for n in finished}
+        used = ({s for s, _ in running.values()} | {slot_of[n] for n in finished})
+        used = {s for s in used if s < overflow_base}
         return next(s for s in range(len(used) + 1) if s not in used)
 
     def in_flight_coord() -> int:
@@ -787,6 +1053,23 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             running[n] = (s, work_end[n])
             if t == 0:
                 inherited.add(n)
+            ready.discard(n)
+            pending.discard(n)
+        # A ready critical-path group starts now whatever the slots cap, as
+        # dispatch does (orchestrator.md section 5); it takes a free slot when
+        # one exists and an overflow slot otherwise, and is exempt from the cap.
+        while True:
+            n = pick(sorted(x for x in ready if x in crit), t)
+            if n is None:
+                break
+            s = free_slot()
+            if s is None:
+                s = overflow_base + len(start_t)
+                exempt.add(n)
+            start_t[n] = t
+            slot_of[n] = s
+            work_end[n] = t + dur_min[n]
+            running[n] = (s, work_end[n])
             ready.discard(n)
             pending.discard(n)
         while ready and free_slot() is not None:
@@ -836,15 +1119,15 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             for n in sorted(batch):
                 if lane[n] in PRODUCTION:
                     carry.append(n)
-                    if len(carry) >= every:
+                    while len(carry) >= every:
                         patch += 1
                         v = bump(version, patch)
+                        cut, carry = carry[:every], carry[every:]
                         stamps.append({"version": v, "at": t + stamp_lead,
-                                       "carries": list(carry), "kind": "patch",
+                                       "carries": cut, "kind": "patch",
                                        "batch": bid})
-                        for c in carry:
+                        for c in cut:
                             stamp_by_group[c] = v
-                        carry = []
             for n in batch:
                 for c in children[n]:
                     # THE invariant that keeps a started group out of `ready`:
@@ -868,6 +1151,21 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     stamps.append({"version": closing, "at": closure + closure_lead,
                    "carries": list(carry), "kind": ROUND_CLOSE, "batch": None})
 
+    # Post-closure groups (owner steps after the closing stamp, and what
+    # follows them) start once the stamp is cut and every dependency has
+    # finished; they hold no slot, join no batch and are in no stamp.
+    post_dur = {}
+    for n in post:
+        h, _ = group_hours(G[n], durations, False, roster_path or roster_ref or "<fixture>")
+        post_dur[n] = max(1, int(round(h * 60)))
+    post_start: dict = {}
+    post_end: dict = {}
+    for n in topo_order({n: [a for a in deps_post[n] if a in post] for n in post}):
+        ready_at = max([stamps[-1]["at"]] + [post_end[a] for a in deps_post[n] if a in post_end]
+                       + [merged_t[a] for a in deps_post[n] if a in merged_t])
+        post_start[n] = ready_at
+        post_end[n] = ready_at + post_dur[n]
+
     # a wave is the set of groups the replan dispatches at one instant
     by_open: dict = {}
     for n in open_:
@@ -887,6 +1185,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "groups": gs,
         })
 
+    inflow = float(durations.get("inflow_groups_per_hour") or 0)
     gate = gate_minutes(durations)
     # The published gate is rounded; the CI minutes are the product of the
     # published pair, so a reader who multiplies the summary's own numbers
@@ -915,7 +1214,21 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         return [None if isinstance(k, float) and math.isinf(k) else k for k in key]
 
     groups_out = {}
+    absorbed_by = absorbers(G)
     for n in sorted(G):
+        if n in post:
+            groups_out[n] = {
+                "wave": None, "start": iso(start, post_start[n]),
+                "finish": iso(start, post_end[n]), "slot": None,
+                "duration_minutes": post_dur[n], "size": G[n].get("size"),
+                "lane": lane[n], "tier": None, "level": None, "live": False,
+                "inherited": False, "started": False,
+                "start_reason": "post-closure: after the round-close stamp",
+                "coordinator": touches_coordinator(G[n]), "batch": None,
+                "stamp": None, "after": sorted(deps_post[n]), "done": False,
+                "post_closure": True,
+            }
+            continue
         if n in done:
             groups_out[n] = {
                 "wave": None, "start": None, "finish": None, "slot": None,
@@ -927,6 +1240,8 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                 "stamp": None, "after": [], "done": True,
                 **({"discharged": True} if n in discharged else {}),
             }
+            if n in absorbed_by:
+                groups_out[n]["absorbed_into"] = absorbed_by[n][0]
             continue
         groups_out[n] = {
             "wave": next(w["wave"] for w in waves if n in w["groups"]),
@@ -951,7 +1266,19 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "after": sorted(deps[n]),
             "done": False,
         }
+        if n in exempt:
+            groups_out[n]["exempt"] = True
+        if n in design_only:
+            groups_out[n]["design_only"] = True
 
+    arrivals = None
+    if inflow > 0:
+        # Expected arrivals over the plan's wall time, priced at the median
+        # size: reported, not scheduled -- they are not groups yet.
+        sz = sorted(float(v) for v in size_hours.values())
+        n_exp = inflow * closure / 60.0
+        arrivals = {"groups": round(n_exp, 2),
+                    "work_hours": round(n_exp * sz[len(sz) // 2], 2)}
     peak_flight, peak_coord = peak_concurrency(groups_out, start)
     peak_working = peak_seats(groups_out, start)
     inherited_deps = [
@@ -961,9 +1288,32 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         if merged_t[g] > start_t[n]
     ]
     inherited_coord = sorted(n for n in inherited if coord[n])
+    # The binding chain: from the closing group, back through each group's
+    # last-finishing predecessor in the SCHEDULE. It differs from the
+    # unconstrained critical path whenever slots bind; the gap is its slack.
+    chain = []
+    if merged_t:
+        node = max(merged_t, key=lambda n: (merged_t[n], n))
+        while node is not None:
+            chain.append(node)
+            node = (max(deps[node], key=lambda a: (merged_t[a], a)) if deps[node] else None)
+        chain.reverse()
+    cp_hours = height[cp[0]] if cp else 0.0
+    binding = {
+        "chain": chain,
+        "links": [{"group": n, "start": iso(start, start_t[n]),
+                   "finish": iso(start, merged_t[n])} for n in chain],
+        "critical_path_hours": round(cp_hours, 2),
+        "critical_path_slack_hours": round(closure / 60.0 - cp_hours, 2),
+        "slot_sensitivity": "uncalibrated: 7-day roster history (27 snapshots 6 h "
+                            "apart) gave r=0.045 between live groups and completions 12 h later",
+    }
     plan = {
         "schema": 1,
         "generated": {
+            "stamp_credit": credit,
+            "liveness": ("evidence" if evidence is not None else "stage word"),
+            "demoted_live": sorted(demoted),
             "roster_ref": roster_ref,
             "roster_blob": roster_blob,
             "start": iso(start, 0),
@@ -1004,7 +1354,12 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "groups_total": len(G),
             "groups_done": len(done),
             "groups_discharged": len(discharged),
-            "groups_open": len(open_),
+            "groups_open": len(open_all),
+            "post_closure": sorted(post),
+            "post_closure_finish": (iso(start, max(post_end.values())) if post_end else None),
+            "production_since_tag": len(credit),
+            "exempt_started": len(exempt),
+            **({"expected_arrivals": arrivals} if arrivals else {}),
             "inherited_in_progress": len(inherited),
             "inherited_coordinator": sum(1 for n in inherited if coord[n]),
             "peak_in_flight": peak_flight,
@@ -1012,6 +1367,8 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "peak_coordinator_in_flight": peak_coord,
         },
         "critical_path": cp,
+        "binding": binding,
+        "absorbed": {n: {"into": a, "advisory": adv} for n, (a, adv) in absorbed_by.items()},
         "groups": groups_out,
         "waves": waves,
         "batches": [{"id": b["id"], "at": iso(start, b["at"]), "groups": b["groups"]}
@@ -1072,7 +1429,7 @@ def _sweep(groups_out: dict, start: dt.datetime, coord_only: bool = False,
 
     events = []
     for g in groups_out.values():
-        if g.get("done"):
+        if g.get("done") or g.get("post_closure"):
             continue
         if coord_only and not g.get("coordinator"):
             continue
@@ -1119,6 +1476,12 @@ def check_plan(plan: dict) -> list:
     coord_cap = caps["coordinator_cap"]
     every = caps["stamp_every"]
     groups = {n: g for n, g in plan["groups"].items() if not g.get("done")}
+    # What the caps count: not the critical-path groups started past the
+    # slots cap (exempt by rule, never filtered out of the report), and not
+    # post-closure owner steps, which hold no slot.
+    counted = {n: g for n, g in groups.items()
+               if not g.get("exempt") and not g.get("post_closure")}
+    in_round = {n: g for n, g in groups.items() if not g.get("post_closure")}
     start = dt.datetime.strptime(plan["generated"]["start"], "%Y-%m-%dT%H:%M:%SZ")
 
     def mins(s: str) -> int:
@@ -1153,16 +1516,16 @@ def check_plan(plan: dict) -> list:
     # The caps bind what the plan DISPATCHES: a started group (a working
     # fixer, its PR already open) is never refused for the state it inherited,
     # but no planned group may start while the cap is already full.
-    for n, g in groups.items():
+    for n, g in counted.items():
         if g.get("started"):
             continue
         t0 = mins(g["start"])
-        cur = sum(1 for m, h in groups.items() if m != n
+        cur = sum(1 for m, h in counted.items() if m != n
                   and mins(h["start"]) <= t0 < mins(h["finish"]))
         if cur >= slots:
             bad.append(f"in flight: {n} dispatched at {g['start']} with {cur} "
                        f"groups in flight (cap {slots})")
-        curw = sum(1 for m, h in groups.items() if m != n
+        curw = sum(1 for m, h in counted.items() if m != n
                    and mins(h["start"]) <= t0 < mins(h["start"]) + h["duration_minutes"])
         if curw >= seats:
             bad.append(f"seats: {n} dispatched at {g['start']} with {curw} "
@@ -1170,7 +1533,7 @@ def check_plan(plan: dict) -> list:
 
     # 3. coordinator cap: at most `coord_cap` PLANNED groups in flight; the
     #    inherited in-progress set is recorded and must match the groups.
-    coord = [(n, g) for n, g in groups.items() if g.get("coordinator")]
+    coord = [(n, g) for n, g in in_round.items() if g.get("coordinator")]
     for t, _, _ in events:
         curc = sum(1 for n, g in coord
                    if not g.get("started")
@@ -1199,7 +1562,7 @@ def check_plan(plan: dict) -> list:
     # 4. a wave opens only while the open-PR cap has room
     for w in plan.get("waves", []):
         t = mins(w["opens"])
-        cur = sum(1 for g in groups.values() if not g.get("started")
+        cur = sum(1 for g in counted.values() if not g.get("started")
                   and mins(g["start"]) <= t < mins(g["finish"]))
         if cur > slots:
             bad.append(f"wave {w['wave']} opens at {w['opens']} with {cur} in "
@@ -1209,8 +1572,10 @@ def check_plan(plan: dict) -> list:
     #    the last fewer-than-`every` ride the one round-close stamp that closes
     #    the programme, last, at the version `closure_version` assigns
     produced = [n for n, g in sorted(
-        ((n, g) for n, g in groups.items() if g.get("lane") in PRODUCTION),
+        ((n, g) for n, g in in_round.items() if g.get("lane") in PRODUCTION),
         key=lambda x: (mins(x[1]["finish"]), x[0]))]
+    credit = list((plan.get("generated") or {}).get("stamp_credit") or [])
+    produced = credit + produced
     patch_stamps = [s for s in plan.get("stamps", []) if s["kind"] == "patch"]
     closes = [s for s in plan.get("stamps", []) if s["kind"] == ROUND_CLOSE]
     gen = plan.get("generated") or {}
@@ -1227,6 +1592,11 @@ def check_plan(plan: dict) -> list:
              if s["kind"] not in ("patch", ROUND_CLOSE)]
     if stray:
         bad.append(f"stamp cadence: unknown stamp kind(s) {stray}")
+    for n in plan.get("summary", {}).get("post_closure") or []:
+        if any(n in s["carries"] for s in plan.get("stamps", [])):
+            bad.append(f"post-closure: {n} is in a stamp's carries")
+        if closes and mins(groups[n]["start"]) < mins(closes[0]["at"]):
+            bad.append(f"post-closure: {n} starts before the round-close stamp")
     if len(patch_stamps) != len(produced) // every:
         bad.append(f"stamp cadence: {len(patch_stamps)} patch stamps for "
                    f"{len(produced)} production merges at a cadence of {every}")
@@ -1253,7 +1623,7 @@ def check_plan(plan: dict) -> list:
         bad.append("summary: stamp count disagrees with the stamps list")
     if s["groups_open"] != len(groups):
         bad.append("summary: open-group count disagrees with the groups list")
-    closure = max((mins(g["finish"]) for g in groups.values()), default=0)
+    closure = max((mins(g["finish"]) for g in in_round.values()), default=0)
     if mins(s["closure"]) != closure:
         bad.append("summary: closure is not the last group finish")
     if "model" in plan["generated"]:
@@ -1305,6 +1675,67 @@ def selftest() -> int:
         print(f"{'ok  ' if cond else 'FAIL'} {name}{'' if cond else ': ' + detail}")
         if not cond:
             failures.append(name)
+
+    # The lane follows the files a group owns (tvofi 2026-11-06): a group whose
+    # every file is an instrument or CI path is not core-model work, whatever
+    # its name; a group touching the integration stays in the core lane.
+    def _lane(files, kind="fix", name="X-LANE-PROBE"):
+        return roster_lane({"group": name, "kind": kind, "files": files})
+
+    expect("lane: a CI-only group is Instruments",
+           _lane([".github/workflows/ci.yml", "tools/ci/gate.py"]) == "Instruments",
+           _lane([".github/workflows/ci.yml", "tools/ci/gate.py"]))
+    expect("lane: a tests-and-tools group is Instruments",
+           _lane(["tests/ci_ratchet.py", "tests/ci_budgets.json"]) == "Instruments")
+    expect("lane: a docs-only doc group is Docs",
+           _lane(["dev/audit/README.md", "CLAUDE.md"], kind="doc") == "Docs")
+    expect("lane: a user-docs group is Docs",
+           _lane(["README.md", "docs/setup.md", "tests/doc_claims.py"],
+                 kind="feature") == "Docs")
+    expect("lane null control: docs plus a tool is Instruments, not Docs",
+           _lane(["docs/setup.md", "tools/x.py"], kind="feature") == "Instruments")
+    expect("lane null control: a core-model group stays Core model",
+           _lane(["custom_components/heatpump_optimizer/optimizer.py"]) == "Core model")
+    expect("lane null control: a mixed group stays Core model",
+           _lane(["tools/audit/seat/x.py",
+                  "custom_components/heatpump_optimizer/ledger.py"]) == "Core model")
+    expect("lane null control: a group with no files stays Core model",
+           _lane([]) == "Core model")
+    expect("lane null control: a bare filename is not proof of an instrument",
+           _lane(["coordinator.py"]) == "Core model")
+    expect("lane: an RCA group with no files is Instruments",
+           _lane([], kind="rca") == "Instruments")
+    expect("lane: a tooling group with no files is Instruments",
+           _lane([], kind="tooling") == "Instruments")
+    expect("lane: a roster class instrument with no files is Instruments",
+           roster_lane({"group": "X-LANE-PROBE", "kind": "fix",
+                        "class": "instrument"}) == "Instruments")
+    expect("lane: user docs with a dev harness are Docs",
+           _lane(["README.md", "docs/img/x.png", "dev/audit/harnesses/h.mjs",
+                  "tests/doc_claims.py"], kind="production") == "Docs")
+    expect("lane null control: a production group with no files stays Core model",
+           roster_lane({"group": "X-LANE-PROBE", "kind": "production",
+                        "class": "production"}) == "Core model")
+    expect("lane null control: a named UX group keeps its lane over its kind",
+           _lane([], kind="rca", name="R10-DEEPLINK-CENSUS") == "Product UX")
+    expect("lane null control: a learner keeps its lane over its files",
+           _lane(["tools/x.py"], name="R10-COP-GATE") == "Learners")
+    # hot_files are owned files too: a tool group whose hot file is in the
+    # integration, or is a bare filename, stays core (a bare basename, even a
+    # tool's, is not proof of an instrument: the roster writes coordinator.py
+    # and merge_train.py alike).
+    def _hot(hot_files):
+        return roster_lane({"group": "X-LANE-PROBE", "kind": "fix",
+                            "files": ["tools/x.py"], "hot_files": hot_files})
+
+    expect("lane null control: an integration hot file keeps a tool group Core model",
+           _hot(["custom_components/heatpump_optimizer/x.py"]) == "Core model")
+    expect("lane null control: a bare hot filename keeps a tool group Core model",
+           _hot(["coordinator.py"]) == "Core model")
+    expect("lane null control: a bare tool basename in hot_files stays Core model",
+           _hot(["merge_train.py"]) == "Core model")
+    expect("lane: an instrument-path hot file keeps a tool group Instruments",
+           _hot([".github/workflows/ci.yml"]) == "Instruments")
 
     plan = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     absorbed = dict(roster, groups=roster["groups"] + [
@@ -1691,6 +2122,7 @@ def selftest() -> int:
     prod = {"groups": [
         {"group": f"P{i}", "size": "S", "lane": "Core model", "kind": "defect",
          "after": [], "resume": {"stage": "not-started"}} for i in range(6)]}
+    caps = dict(caps, stamp_every=5)
     p6 = build_plan(prod, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     pat = [s for s in p6["stamps"] if s["kind"] == "patch"]
     expect("five production merges cut one patch stamp",
@@ -1756,6 +2188,258 @@ def selftest() -> int:
     bad = check_plan(unround)
     expect("--check refuses a plan recording no round",
            any("round close" in b for b in bad), str(bad))
+
+    # ---- the round-10 flow-toolkit carries: one arm each, with a null control
+    def fx(n, size="S", kind="defect", lane="Core model", stage="not-started",
+           after=(), **kw):
+        return {"group": n, "size": size, "lane": lane, "kind": kind,
+                "after": list(after), "resume": {"stage": stage, **kw.pop("res", {})}, **kw}
+
+    def sched(p, drop=()):
+        return json.dumps({"g": {n: v for n, v in p["groups"].items() if n not in drop},
+                           "w": p["waves"], "s": p["stamps"], "b": p["batches"]},
+                          sort_keys=True)
+
+    def mk(groups, **kw):
+        c = kw.pop("caps_", dict(caps, stamp_every=DEFAULT_CAPS["stamp_every"]))
+        return build_plan({"groups": groups}, kw.pop("dur", durations), c, start,
+                          "v1.0.0", round_n=FIXTURE_ROUND, **kw)
+
+    # 1. absorbed counts as done (carry 2)
+    base_g = [fx("R10-A"), fx("R10-B", after=["R10-A"])]
+    ab = mk(base_g + [fx("R10-AB", stage="absorbed", res={"note": "absorbed into R10-A"})])
+    expect("absorbed: the group is done, names its absorber, is not scheduled",
+           ab["groups"]["R10-AB"]["done"] and ab["groups"]["R10-AB"]["start"] is None
+           and ab["groups"]["R10-AB"]["absorbed_into"] == "R10-A"
+           and ab["absorbed"]["R10-AB"] == {"into": "R10-A", "advisory": None}, str(ab["absorbed"]))
+    nb = mk(base_g + [fx("R10-AB", stage="absorbed", res={"note": "folded away"})])
+    expect("absorbed: a note naming no group records the ADVISORY, never a refusal",
+           nb["absorbed"]["R10-AB"]["into"] is None
+           and nb["absorbed"]["R10-AB"]["advisory"].startswith("ADVISORY: R10-AB"), str(nb["absorbed"]))
+    expect("absorbed (null): the roster minus the absorbed group reproduces the schedule",
+           sched(ab, drop=("R10-AB",)) == sched(mk(base_g)), "schedules differ")
+
+    # 2. post-closure groups (carries 10, 11)
+    cat = fx("R10-CATALOG-PR", kind="owner-step", lane="Docs", after=["R10-B"],
+             res={"next_step": "after the round-close stamp"})
+    pc = mk(base_g + [cat])
+    p0 = mk(base_g)
+    close_at = pc["stamps"][-1]["at"]
+    expect("post-closure: the owner step starts at or after the closing stamp, flagged",
+           pc["groups"]["R10-CATALOG-PR"].get("post_closure") is True
+           and pc["groups"]["R10-CATALOG-PR"]["start"] >= close_at
+           and pc["summary"]["post_closure"] == ["R10-CATALOG-PR"], str(pc["groups"]["R10-CATALOG-PR"]))
+    expect("post-closure: in no stamp's carries and outside summary.closure",
+           all("R10-CATALOG-PR" not in s["carries"] for s in pc["stamps"])
+           and pc["summary"]["closure"] == p0["summary"]["closure"]
+           and pc["stamps"] == p0["stamps"], str(pc["stamps"]))
+    expect("post-closure (null): a production group with no stamp dependency is in the "
+           "closing stamp's carries",
+           pc["stamps"][-1]["carries"] == ["R10-A", "R10-B"], str(pc["stamps"][-1]))
+    expect("post-closure: the plan passes --check", check_plan(pc) == [], str(check_plan(pc)))
+
+    # 3. overflow start (carry 8): a critical-path group starts past a full cap
+    ov = mk([fx("L1", stage="in-progress"), fx("L2", stage="in-progress"), fx("X3", "L"),
+             fx("CP1", "XL"), fx("CP2", after=["CP1"])], caps_=dict(caps, slots=2))
+    expect("overflow: a ready critical-path group starts at t=0, flagged exempt",
+           ov["groups"]["CP1"]["start"] == iso(start, 0) and ov["groups"]["CP1"].get("exempt") is True
+           and check_plan(ov) == [], str({n: g["start"] for n, g in ov["groups"].items()}))
+    expect("overflow (null): the non-critical group past the cap waits and is not exempt",
+           any(g["start"] > iso(start, 0) and not g.get("exempt")
+               for n, g in ov["groups"].items() if n == "X3"), "none waited")
+
+    # 4. stamp cadence counts groups, not pull requests (carry 9)
+    cad = [fx("P1", stage="done"), fx("P2", stage="done"), fx("Q1"), fx("Q2")]
+    ck = mk(cad, since_tag=["P1", "P1", "P2"])    # P1 took two pull requests
+    expect("cadence: the patch stamp lands at the 3rd GROUP, carrying it, not the 3rd PR",
+           [s["carries"] for s in ck["stamps"]] == [["P1", "P2", "Q1"], ["Q2"]]
+           and ck["summary"]["production_since_tag"] == 2, str(ck["stamps"]))
+    expect("cadence (null): no credit leaves two groups and no patch stamp",
+           [s["carries"] for s in mk(cad)["stamps"]] == [["Q1", "Q2"]], "")
+    G4 = groups_of({"groups": [fx("R10-X"), fx("R10-Y"), fx("R10-Z"), fx("R10-W", kind="instrument")]})
+    code, note = "+x = 1\n-x = 0\n", "+# a new note\n-\n+   \n"
+    got = production_groups_since([
+        {"subject": "R10-X (#1)", "diff": code}, {"subject": "R10-X part 2 (#2)", "diff": code},
+        {"subject": "R10-Y (#3)", "diff": note}, {"subject": "R10-Z (#4)", "diff": code},
+        {"subject": "R10-W (#5)", "diff": code}], G4)
+    expect("cadence: production groups since the tag, once each; comment-only and "
+           "instrument groups do not count", got == ["R10-X", "R10-Z"], str(got))
+
+    # 5. evidence liveness (carries 0, 3)
+    wip = [fx("W", stage="in-progress"), fx("O")]
+    nev = mk(wip, evidence={"refs": set(), "prs": []})
+    lev = mk(wip, evidence={"refs": {"handoff/w"}, "prs": []})
+    expect("evidence: an in-progress group with no ref is pending",
+           nev["groups"]["W"]["live"] is False and nev["generated"]["demoted_live"] == ["W"],
+           str(nev["groups"]["W"]))
+    expect("evidence (null): with a handoff ref it is live",
+           lev["groups"]["W"]["live"] is True and lev["generated"]["demoted_live"] == [],
+           str(lev["groups"]["W"]))
+    def strip_g(p):
+        q = json.loads(json.dumps(p))
+        q["generated"].pop("liveness"), q["generated"].pop("demoted_live")
+        return json.dumps(q, sort_keys=True)
+    expect("evidence (null): no-evidence reproduces the stage-word plan byte-for-byte",
+           strip_g(mk(wip)) == strip_g(lev) and mk(wip) == mk(wip, evidence=None), "plans differ")
+    one = dict(caps, slots=1)
+    held = [fx("H", "L", stage="carries-open", carry=["c"] * 3), fx("F", "XL")]
+    hp = mk(held, caps_=one, evidence={"refs": set(), "prs": [{"headRefName": "fixer/h"}]})
+    hn = mk(held, caps_=one, evidence={"refs": set(), "prs": []})
+    expect("evidence: a carries-open group with an open PR starts at t=0 as live",
+           hp["groups"]["H"]["start"] == iso(start, 0) and hp["groups"]["H"]["live"] is True,
+           str(hp["groups"]["H"]))
+    expect("evidence (null): the same group with no PR waits behind the full slot",
+           hn["groups"]["H"]["live"] is False, str(hn["groups"]["H"]))
+    pr_ = mk([fx("N", "M")], evidence={"refs": set(), "prs": [{"headRefName": "fixer/n"}]})
+    expect("evidence: an open PR credits the live fraction (0.7 x 4 h)",
+           pr_["groups"]["N"]["duration_minutes"] == 168, str(pr_["groups"]["N"]))
+    ds = mk([fx("F", "XL"), fx("D", "M")], caps_=one,
+            evidence={"refs": {"design/d"}, "prs": []})
+    expect("evidence: a design-only group starts at t=0 at its full duration, no credit",
+           ds["groups"]["D"]["start"] == iso(start, 0) and ds["groups"]["D"]["live"] is False
+           and ds["groups"]["D"]["duration_minutes"] == 240
+           and ds["groups"]["D"].get("design_only") is True, str(ds["groups"]["D"]))
+
+    # 6. the binding chain beside the critical path
+    bind = mk([fx("C", "L"), fx("BA"), fx("BB", after=["BA"])], caps_=one)
+    bw = mk([fx("C", "L"), fx("BA"), fx("BB", after=["BA"])])
+    expect("binding: the slot-delayed predecessor is a link, with the critical-path slack",
+           bind["critical_path"] == ["C"] and bind["binding"]["chain"] == ["BA", "BB"]
+           and bind["groups"]["BA"]["start"] > iso(start, 0)
+           and bind["binding"]["critical_path_slack_hours"] > 0
+           and "uncalibrated" in bind["binding"]["slot_sensitivity"], str(bind["binding"]))
+    expect("binding (null): with a slot for each the chain is the critical path",
+           bw["binding"]["chain"] == bw["critical_path"], str(bw["binding"]))
+
+    # 7. inflow
+    infl = [fx("A"), fx("B", after=["A"])]
+    i0 = mk(infl, dur=dict(durations, inflow_groups_per_hour=0))
+    expect("inflow: 0 reproduces the plan byte-for-byte, no arrivals",
+           i0 == mk(infl) and "expected_arrivals" not in i0["summary"], "")
+    i4 = mk(infl, dur=dict(durations, inflow_groups_per_hour=0.4))
+    want = round(0.4 * i4["summary"]["wall_hours"], 2)
+    expect("inflow: above 0 adds expected_arrivals and changes nothing scheduled",
+           abs(i4["summary"]["expected_arrivals"]["groups"] - want) <= 0.01
+           and sched(i4) == sched(mk(infl)), str(i4["summary"].get("expected_arrivals")))
+
+    # 8. repair round 4: one pin per reviewer mutant, each with its null control
+    ovs = mk([fx("L1", stage="in-progress"), fx("L2", "XL", stage="in-progress"), fx("X3"),
+              fx("CP1", "XL"), fx("CP2", after=["CP1"])], caps_=dict(caps, slots=2))
+    expect("overflow slots do not hold a real slot: the waiting group takes the slot a "
+           "finished group frees while the exempt one still runs",
+           ovs["groups"]["CP1"].get("exempt") is True
+           and ovs["groups"]["X3"]["start"] == ovs["groups"]["L1"]["finish"]
+           and ovs["groups"]["X3"]["start"] < ovs["groups"]["CP1"]["finish"],
+           str({n: (g["start"], g["finish"]) for n, g in ovs["groups"].items()}))
+    expect("overflow (null): no exempt group, the waiter also starts at the freed slot",
+           mk([fx("L1", stage="in-progress"), fx("L2", "XL", stage="in-progress"), fx("X3")],
+              caps_=dict(caps, slots=2))["groups"]["X3"]["start"]
+           == ovs["groups"]["L1"]["finish"], "")
+    pcs = mk(base_g + [cat, fx("R10-AFTER", after=["R10-CATALOG-PR"]),
+                       fx("STAMP-ROUND-MAJOR"), fx("R10-ZED", after=["STAMP-ROUND-MAJOR"])])
+    expect("post-closure: what follows an owner step, and what follows the closing-stamp "
+           "group, is post-closure too",
+           pcs["summary"]["post_closure"] == ["R10-AFTER", "R10-CATALOG-PR", "R10-ZED"]
+           and check_plan(pcs) == [], str(pcs["summary"]["post_closure"]) + str(check_plan(pcs)))
+    expect("post-closure (null): a group after nothing post-closure is in the round",
+           "R10-B" not in pcs["summary"]["post_closure"]
+           and "STAMP-ROUND-MAJOR" not in pcs["summary"]["post_closure"], "")
+    early = json.loads(json.dumps(pc))
+    early["groups"]["R10-CATALOG-PR"]["start"] = iso(start, 0)
+    expect("--check refuses a post-closure group starting before the round-close stamp",
+           any("starts before the round-close stamp" in b for b in check_plan(early)),
+           str(check_plan(early)))
+    carried = json.loads(json.dumps(pc))
+    carried["stamps"][0]["carries"] = carried["stamps"][0]["carries"] + ["R10-CATALOG-PR"]
+    expect("--check refuses a post-closure group named in a stamp's carries",
+           any("is in a stamp's carries" in b for b in check_plan(carried)),
+           str(check_plan(carried)))
+    expect("--check counts the credited groups among the merges (null: plan holds)",
+           check_plan(ck) == [], str(check_plan(ck)))
+    nonprod = mk(cad + [fx("R10-W", kind="instrument", stage="done")],
+                 since_tag=["R10-W", "P1", "P1", "P2"])
+    expect("cadence: a non-production done group in the tag range earns no credit",
+           nonprod["summary"]["production_since_tag"] == 2
+           and [s["carries"] for s in nonprod["stamps"]] == [["P1", "P2", "Q1"], ["Q2"]],
+           str(nonprod["stamps"]))
+    open_c = mk(cad, since_tag=["Q1"])
+    expect("cadence: a credited group still open is counted once, in the plan",
+           open_c["summary"]["production_since_tag"] == 0
+           and [s["carries"] for s in open_c["stamps"]] == [["Q1", "Q2"]], str(open_c["stamps"]))
+    pd = [fx("P%d" % i, stage="done") for i in range(1, 5)] + [fx("Q1"), fx("Q2")]
+    cutd = mk(pd, since_tag=["P1", "P2", "P3", "P4"])
+    expect("cadence: a patch stamp cuts `every` groups and keeps the rest for the next",
+           [s["carries"] for s in cutd["stamps"]] == [["P1", "P2", "P3"], ["P4", "Q1", "Q2"], []],
+           str([s["carries"] for s in cutd["stamps"]]))
+    bj = mk([fx("A"), fx("B", "XL"), fx("C", after=["A", "B"])])
+    expect("binding: the chain walks back through the LAST-finishing predecessor",
+           bj["binding"]["chain"] == ["B", "C"], str(bj["binding"]["chain"]))
+    expect("binding (null): the early predecessor is not the link",
+           "A" not in bj["binding"]["chain"], "")
+    szs = sorted(float(v) for v in durations["sizes_hours"].values())
+    ea = i4["summary"]["expected_arrivals"]
+    expect("inflow: arrivals are priced at the median size",
+           abs(ea["work_hours"] - ea["groups"] * szs[len(szs) // 2]) <= 0.05
+           and szs[0] != szs[len(szs) // 2], str(ea))
+    expect("live refs: a ls-remote listing yields branch names without refs/heads/, tags dropped",
+           parse_live_refs("abc\trefs/heads/fixer/w\nabc\trefs/tags/v1\n\n") == {"fixer/w"},
+           str(parse_live_refs("abc\trefs/heads/fixer/w\nabc\trefs/tags/v1\n")))
+    pp = mk(base_g + [cat, fx("R10-CAT2", kind="owner-step", lane="Docs", after=["R10-B"],
+                              res={"next_step": "after the round-close stamp"})])
+    expect("post-closure groups are outside the in-flight peak (null: none, same peak)",
+           pp["summary"]["peak_in_flight"] == p0["summary"]["peak_in_flight"]
+           and pp["summary"]["peak_working"] == p0["summary"]["peak_working"],
+           str((pp["summary"]["peak_in_flight"], p0["summary"]["peak_in_flight"])))
+    # liveness: a stage-word live group with a design ref only is design-only, uncredited
+    wd = mk([fx("W", "M", stage="in-progress"), fx("O")],
+            evidence={"refs": {"design/w"}, "prs": []})
+    wn = mk([fx("W", "M"), fx("O")], evidence={"refs": {"design/w"}, "prs": []})
+    expect("evidence: a stage-live group with only a design ref gets no live credit",
+           wd["groups"]["W"]["live"] is False and wd["groups"]["W"].get("design_only") is True
+           and wd["groups"]["W"]["duration_minutes"] == wn["groups"]["W"]["duration_minutes"],
+           str(wd["groups"]["W"]))
+    # --since-tag on main's real merge subjects and merge diffs (carry 9)
+    G9 = groups_of({"groups": [fx("R10-STORE"), fx("R10-STORE-RACES", res={}, branch="fix/r10-store-races"),
+                               fx("R10-W", kind="instrument")]})
+    real = [{"subject": "Merge pull request #12 from tvofi/fix/r10-store-races", "diff": code},
+            {"subject": "Merge pull request #13 from tvofi/fix/r10-w", "diff": code},
+            {"subject": "Merge pull request #14 from tvofi/fix/unrelated", "diff": code}]
+    expect("since-tag: a real-shaped merge subject names its group by the topic branch",
+           production_groups_since(real, G9) == ["R10-STORE-RACES"],
+           str(production_groups_since(real, G9)))
+    expect("since-tag (null): the same merges with no code change credit nothing",
+           production_groups_since([dict(c, diff=note) for c in real], G9) == [], "")
+    parts = [{"subject": "Merge pull request #15 from tvofi/fix/r10-store-p2", "diff": code},
+             {"subject": "Merge pull request #16 from tvofi/fix/r10-store-p3", "diff": code},
+             {"subject": "Merge pull request #17 from tvofi/fix/r10-store-races-p2", "diff": code},
+             {"subject": "Merge pull request #18 from tvofi/fix/r10-storey", "diff": code},
+             {"subject": "Merge pull request #19 from tvofi/fix/unrelated-p2", "diff": code}]
+    expect("since-tag: part branches credit their group by the longest roster topic they extend, once each",
+           production_groups_since(parts, G9) == ["R10-STORE", "R10-STORE-RACES"],
+           str(production_groups_since(parts, G9)))
+    expect("since-tag (null): an unrelated topic and a non-boundary prefix (r10-storey) credit nothing",
+           production_groups_since(parts[3:], G9) == [], str(production_groups_since(parts[3:], G9)))
+    sq = production_groups_since([{"subject": "R10-STORE-RACES (#20)", "diff": code}], G9)
+    expect("since-tag: a squash subject naming R10-STORE-RACES credits it, not the shorter R10-STORE",
+           sq == ["R10-STORE-RACES"], str(sq))
+    with throwaway_git_environ(), tempfile.TemporaryDirectory() as gd:
+        def g(*a):
+            return subprocess.run(["git", "-C", gd, *a], capture_output=True, text=True)
+        throwaway_git_init(gd, "-q", "-b", "main")
+        (Path(gd) / "custom_components").mkdir()
+        (Path(gd) / "custom_components" / "a.py").write_text("x = 0\n")
+        g("add", "-A"), g("commit", "-q", "-m", "base"), g("tag", "v0")
+        g("checkout", "-q", "-b", "fix/r10-store-races")
+        (Path(gd) / "custom_components" / "a.py").write_text("x = 1\n")
+        g("commit", "-q", "-am", "work")
+        g("checkout", "-q", "main")
+        (Path(gd) / "other.txt").write_text("m\n")
+        g("add", "-A"), g("commit", "-q", "-m", "mainline")
+        g("merge", "-q", "--no-ff", "-m", "Merge pull request #12 from tvofi/fix/r10-store-races",
+          "fix/r10-store-races")
+        got = production_groups_since(git_commits_since_tag(gd), G9)
+        expect("since-tag: a clean merge's change is read against its first parent",
+               got == ["R10-STORE-RACES"], str(got))
 
     gate = gate_minutes(durations)
     want_gate = 50.0 + 22.0 + 27.0 * (1.0 + 0.04)
@@ -1826,8 +2510,80 @@ def selftest() -> int:
              _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
              _m('sav = (-savings[n] if n in savings ', 'else float("inf"))'), "sav = (0.0)"),
             ("cp-first-in-tier",
-             _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
-             _m("(t, 0 if n in crit ", "else 1, sav,"), "(t, 0, sav,"),
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("n = pick(sorted(x for x in ready ", "if x in crit), t)"),
+             "n = pick(sorted(x for x in ready if False), t)"),
+            ("overflow-exempt",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "exempt.add(n)", "pass"),
+            ("absorbed-done",
+             _m("def is_done(group: ", "dict) -> bool:"),
+             "return not roster_lib.is_open(group)",
+             'return (group.get("resume") or {}).get("stage") in ("done", "rca-done")'),
+            ("absorbed-advisory",
+             _m("def absorbers(G: ", "dict) -> dict:"),
+             _m('out[n] = (into, None if into else', ''), 'out[n] = (into, None if True else'),
+            ("post-closure-excluded",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "open_ = open_all - post", "open_ = open_all"),
+            ("post-closure-after-stamp",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             'max([stamps[-1]["at"]] + [', "max([0] + ["),
+            ("stamp-credit-groups",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "dict.fromkeys(since_tag or [])", "(since_tag or [])"),
+            ("comment-only-diff",
+             _m("def substantive(diff: ", "str) -> bool:"),
+             'not body.startswith("#")', "True"),
+            ("stamp-credit-lane",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "lane[n] in PRODUCTION and n in done]", "n in done]"),
+            ("stamp-credit-done",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "lane[n] in PRODUCTION and n in done]", "lane[n] in PRODUCTION]"),
+            ("since-tag-merge-topic",
+             _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
+             "n = by_topic[max(hit, key=len)] if hit else None", "n = None"),
+            ("since-tag-first-parent",
+             _m("def git_commits_since_tag(", "repo: str) -> list:"),
+             '"diff", "-U0", f"{sha}^1", sha,', '"show", "-U0", sha, "--format=",'),
+            ("since-tag-part-branch",
+             _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
+             'topic == t or topic.startswith(t + "-")]', 'topic == t]'),
+            ("since-tag-part-boundary",
+             _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
+             'topic.startswith(t + "-")]', 'topic.startswith(t)]'),
+            ("since-tag-part-longest",
+             _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
+             "n = by_topic[max(hit, key=len)] if hit else None", "n = by_topic[min(hit, key=len)] if hit else None"),
+            ("since-tag-squash-longest",
+             _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
+             "n = max(named, key=len) if named else None", "n = min(named, key=len) if named else None"),
+            ("since-tag-once",
+             _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
+             "return list(out)", "return [n for n in out] + list(out)"),
+            ("evidence-design-uncredited",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "live = (live - demoted - ev_design) | ev_live\n",
+             "live = (live - demoted) | ev_live | ev_design\n"),
+            ("evidence-demotes",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "demoted = {n for n in live if topic_evidence", "demoted = {n for n in set() if topic_evidence"),
+            ("evidence-pr-live",
+             _m("def topic_evidence(group: ", "dict, evidence: dict) -> str | None:"),
+             'return "pr"', 'return "work"'),
+            ("binding-start",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "node = max(merged_t, key=", "node = min(merged_t, key="),
+            ("binding-slack",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "closure / 60.0 - cp_hours", "0.0"),
+            ("inflow-zero",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "if inflow > 0:", "if inflow >= 0:"),
+            ("inflow-rate",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "n_exp = inflow * closure / 60.0", "n_exp = 1.0"),
             ("height-tiebreak",
              _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
              _m("sav, -height[n], ", "-dur_min[n], n)"), "sav, n)"),
@@ -1860,8 +2616,26 @@ def selftest() -> int:
              _m("def group_hours(group: dict, ", "durations: dict,"),
              _m("work = float(cell.get(cls, ", "first[size]))"), "work = float(first[size])"),
             ("appended-carries-open",
-             _m("def held_open(group: dict, ", "durations: dict)"),
-             _m('added = max(0, carry - int(rec', '["carries"]))'), "added = 0"),
+             _m("def held_open(group: dict, ", "durations: dict, pending: list)"),
+             _m("added = sum(1 for i in pending ", "if i >= cut)"), "added = 0"),
+            ("held-open-pending",
+             _m("def held_open(group: dict, ", "durations: dict, pending: list)"),
+             _m("return len(pending), ", 'f"{len(pending)} carries'),
+             'return len(group.get("carry") or []), f"{len(pending)} carries'),
+            ("held-measured-pending",
+             _m("def held_open(group: dict, ", "durations: dict, pending: list)"),
+             _m('then = min(int(rec["open"]), ', "sum(1 for i in pending if i < cut))"),
+             'then = int(rec["open"])'),
+            ("absorbed-pending",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m("extra = len(pending) ", "- float("), 'extra = len(group.get("carry") or []) - float('),
+            ("pending-left-out",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m('left_out = f", {left} marked carries ', 'left out" if left else ""'), 'left_out = ""'),
+            ("legacy-threaded",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m('roster_path or roster_ref or "<fixture>", ', "legacy)"),
+             'roster_path or roster_ref or "<fixture>")'),
             ("caps-owner-default",
              _m("def cli_caps(", "args) -> dict:"),
              _m('"slots": DEFAULT_CAPS["slots"] if args.slots ', 'is None else args.slots,'),
@@ -1880,7 +2654,7 @@ def selftest() -> int:
              "if size not in sizes:", "if False:"),
             ("stamp-cadence",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             _m("if len(carry) >= ", "every:"), "if False:"),
+             _m("while len(carry) >= ", "every:"), "while False:"),
             ("round-close-version",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("stamps.append({\"version\": closing, ", "\"at\": closure + closure_lead,"),
@@ -1897,8 +2671,8 @@ def selftest() -> int:
              _m("if s[\"kind\"] not in (\"patch\", ", "\"minor\", ROUND_CLOSE)]")),
             ("round-n-required",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             _m("roster_path: str = \"\", *, ", "round_n: int,\n"),
-             _m("roster_path: str = \"\", *, ", "round_n: int = 10,\n")),
+             _m("roster_path: str = \"\", *, ", "round_n: int, since_tag"),
+             _m("roster_path: str = \"\", *, ", "round_n: int = 10, since_tag")),
             ("round-from-roster",
              _m("def main(argv=", "None) -> int:"),
              _m("round_n = roster_lib.roster_round(", "src)"), "round_n = 99"),
@@ -2082,6 +2856,13 @@ def parse_args(argv=None):
     p.add_argument("--sizes-csv", default=None, help="--measure-sizes: write the raw rows here")
     p.add_argument("--prs-cache", default=None, help="--measure-sizes: read or write the fetch")
     p.add_argument("--out-durations", default=None)
+    p.add_argument("--live-refs", default=None,
+                   help="a saved `git ls-remote --heads` listing: liveness by evidence")
+    p.add_argument("--in-flight", default=None,
+                   help="JSON list of open pull requests (number, headRefOid, headRefName, isDraft)")
+    p.add_argument("--since-tag", action="store_true",
+                   help="credit the stamp cadence with production groups merged since the last tag "
+                        "(comment-only diffs ignored)")
     p.add_argument("--repo-owner", default="tvofi/heatpump_optimizer")
     p.add_argument("--merges", type=int, default=30)
     p.add_argument("--slots", type=int, default=None,
@@ -2172,14 +2953,26 @@ def main(argv=None) -> int:
         round_n = roster_lib.roster_round(src)
     except roster_lib.RosterNotFound as exc:
         raise PlanError(f"no round for the round-close stamp: {exc}") from exc
-    # The cut-over carries `roster_lib.pending_carries` reads: a fixture has
-    # none; a roster whose cut-over cannot be read refuses, never "no legacy".
+    evidence = None
+    if args.live_refs or args.in_flight:
+        evidence = {
+            "refs": (parse_live_refs(Path(args.live_refs).read_text(encoding="utf-8"))
+                     if args.live_refs else set()),
+            "prs": (json.loads(Path(args.in_flight).read_text(encoding="utf-8"))
+                    if args.in_flight else []),
+        }
+    since_tag = (production_groups_since(git_commits_since_tag(args.repo), groups_of(roster))
+                 if args.since_tag else None)
+    # The carries a group still owes are `roster_lib.pending_carries`, which
+    # needs the round's cut-over (a `--roster-file` copy keeps its round's).
     try:
-        legacy = {} if args.roster_file else roster_lib.read_legacy(args.repo, src)
+        legacy = roster_lib.read_legacy(
+            args.repo, f"{roster_lib.ROSTERS_DIR}/{src.rsplit('/', 1)[-1]}")
     except roster_lib.RosterNotFound as exc:
-        raise PlanError(f"the carry cut-over is unreadable: {exc}") from exc
+        raise PlanError(f"the carry cut-over: {exc}") from exc
     plan = build_plan(roster, durations, caps, start, version, ref, blob,
-                      roster_path=src, round_n=round_n, legacy=legacy)
+                      roster_path=src, round_n=round_n, since_tag=since_tag, evidence=evidence,
+                      legacy=legacy)
     bad = check_plan(plan)
     if bad:
         print("the model produced a violating plan; refusing to write it", file=sys.stderr)
@@ -2206,6 +2999,19 @@ def print_waves(plan: dict) -> None:
           f"| inherited coordinator {len(ic.get('groups') or [])}/{ic.get('cap')} "
           f"({len(g.get('inherited_dependency_violations') or [])} inherited "
           f"dependency inversion(s))")
+    for n, a in (plan.get("absorbed") or {}).items():
+        print(f"absorbed: {n} -> {a['into'] or '?'}" + (f"  {a['advisory']}" if a["advisory"] else ""))
+    if s.get("post_closure"):
+        print(f"post-closure (after the round-close stamp, in no stamp): "
+              f"{', '.join(s['post_closure'])} until {s['post_closure_finish']}")
+    b = plan.get("binding") or {}
+    print(f"binding chain: {' -> '.join(b.get('chain') or [])} | critical path "
+          f"{b.get('critical_path_hours')} h, slack {b.get('critical_path_slack_hours')} h | "
+          f"slot sensitivity {b.get('slot_sensitivity')}")
+    print(f"production groups since the last tag: {s.get('production_since_tag', 0)}")
+    if s.get("expected_arrivals"):
+        print(f"expected arrivals: {s['expected_arrivals']['groups']} groups, "
+              f"{s['expected_arrivals']['work_hours']} work-hours")
 
 
 if __name__ == "__main__":
