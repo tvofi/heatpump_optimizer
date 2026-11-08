@@ -69826,10 +69826,13 @@ R.check(
 
 # The migration: bands stored before this fix were recorded without a heat
 # measurement on at least the owner's install, and carry no provenance, so
-# they are dropped with the CUSUM built on them; bands stored since load.
+# they are dropped with the CUSUM built on them and the last COP they reported
+# as measured; bands and a measured COP stored since load.
 _cu_old = _cu_coord()
 _cu_old_payload = {"cop_baseline": {"0:dhw": [2.3031, 2], "2": [2.5166, 2]},
-                   "cop_health_cusum": {"stat": 0.5, "tripped": True}}
+                   "cop_health_cusum": {"stat": 0.5, "tripped": True},
+                   "measured_cop": {"cop": 2.55, "curve_dhw": True, "dhw_temp": 48.0,
+                                    "at": "2026-11-01T12:00:00+00:00"}}
 
 
 async def _cu_old_load(_p=_cu_old_payload):
@@ -69857,6 +69860,47 @@ R.check(
     and "cop_baseline" not in _cu_new_payload
     and _cu_back._cop_baseline == {(2, False): [3.0, 1]},
     f"old {_cu_old._cop_baseline} tripped {_cu_old._cop_health_cusum.tripped}; back {_cu_back._cop_baseline}",
+)
+# The same CUSUM under the since-fix key is kept: the reset above is the key's,
+# not the loader dropping every CUSUM (the old check's null control).
+_cu_kept = _cu_coord()
+
+
+_cu_kept_payload = {"cop_baseline_measured": {"2": [3.0, 1]},
+                    "cop_health_cusum_measured": {"stat": 0.5, "tripped": True}}
+
+
+async def _cu_kept_load(_p=_cu_kept_payload):
+    return _p
+
+
+_cu_kept._thermal_learning_store.async_load = _cu_kept_load
+_asyncio.run(_cu_kept._async_load_thermal_learning())
+from heatpump_optimizer import store as _cu_store  # noqa: E402
+
+# The store declares what the coordinator writes under the new keys: a band of
+# one sample and a CUSUM below its first unit both load, not quarantined.
+R.check(
+    "the store's domains admit a since-fix COP payload: the one the fold wrote, "
+    "and a one-sample band beside a CUSUM part-way to its alarm",
+    _cu_store.off_domain("heatpump_optimizer_thermal_learning", _cu_new_payload) == []
+    and _cu_store.off_domain("heatpump_optimizer_thermal_learning", _cu_kept_payload) == [],
+    f"{_cu_store.off_domain('heatpump_optimizer_thermal_learning', _cu_new_payload)} "
+    f"{_cu_store.off_domain('heatpump_optimizer_thermal_learning', _cu_kept_payload)}",
+)
+R.check(
+    "a COP health CUSUM stored since measured provenance loads with its state",
+    _cu_kept._cop_health_cusum.tripped and _cu_kept._cop_baseline == {(2, False): [3.0, 1]},
+    f"tripped {_cu_kept._cop_health_cusum.tripped}; baseline {_cu_kept._cop_baseline}",
+)
+R.check(
+    "a last COP stored before measured provenance does not load as measured; "
+    "one stored since round-trips",
+    _cu_old._measured_cop.cop is None and _cu_old._measured_cop.at is None
+    and _cu_new_payload.get("measured_cop", {}).get("cop") is not None
+    and _cu_back._measured_cop.as_dict() == _cu_new._measured_cop.as_dict(),
+    f"old {_cu_old._measured_cop.as_dict()}; new {_cu_new_payload.get('measured_cop')}; "
+    f"back {_cu_back._measured_cop.as_dict()}",
 )
 
 # The latch outlives every later refusal, so the time it folded is kept with
