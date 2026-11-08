@@ -36,7 +36,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-RELAY-SWEEP (stage carries-open, branch `handoff/r10-relay-sweep`): `git fetch origin handoff/r10-relay-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CLOUD-FRUGAL-OFF (stage refused): no branch pushed yet, so nothing to fetch
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-TRAIN-MERGE-LOOP-2 (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-TRAIN-MERGE-LOOP-2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-GATE-BUSY-DEFER (stage carries-open, branch `handoff/r10-gate-busy-defer-3`): `git fetch origin handoff/r10-gate-busy-defer-3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-COST-2 (stage refused): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-CODEQL-HEADROOM (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -46,6 +46,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-STAMP-FLUSH-COST (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-COP-UNMEASURED (stage in-progress, branch `handoff/r10-hotfix-cop-unmeasured`): `git fetch origin handoff/r10-hotfix-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-TRAIN-DEFER-WAIT (stage carries-open, branch `handoff/r10-hotfix-train-defer-wait`): `git fetch origin handoff/r10-hotfix-train-defer-wait && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-CI-SELFTEST-SCOPE (stage in-progress, branch `handoff/r10-ci-selftest-scope`): `git fetch origin handoff/r10-ci-selftest-scope && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-GATE-E (stage in-progress, branch `handoff/r10-cop-gate-e`): `git fetch origin handoff/r10-cop-gate-e && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PARTLOAD-RESIDUE (stage in-progress, branch `handoff/r10-partload-residue`): `git fetch origin handoff/r10-partload-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CI-EDIT-RUNNER (stage refused, branch `handoff/r10-ci-edit-runner`): `git fetch origin handoff/r10-ci-edit-runner && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -53,12 +54,14 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-I18N-DE (stage in-progress, branch `handoff/r10-i18n-de`): `git fetch origin handoff/r10-i18n-de && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GENERIC-HEAT-CURVE (stage in-progress, branch `handoff/r10-generic-heat-curve`): `git fetch origin handoff/r10-generic-heat-curve && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-MIN-POWER-FLOOR (stage in-progress, branch `handoff/r10-min-power-floor`): `git fetch origin handoff/r10-min-power-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FRICTION-OTHER-FAMILY (stage in-progress, branch `handoff/r10-friction-other-family`): `git fetch origin handoff/r10-friction-other-family && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-RCA-COP-UNMEASURED (stage in-progress, branch `handoff/r10-rca-cop-unmeasured`): `git fetch origin handoff/r10-rca-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-KEYED-MERGE-DRIVERS (stage refused): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-NONREQUIRED-REDS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-FIRST (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-HOTFIX-MAIN-IST-RED (stage in-progress, branch `handoff/r10-hotfix-main-ist-red`): `git fetch origin handoff/r10-hotfix-main-ist-red && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-TRIAGE-BAR (stage in-progress, branch `handoff/r10-fly-triage-bar`): `git fetch origin handoff/r10-fly-triage-bar && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-WHATIF, R10-BODY-CONTRACT, R10-CARRY-RESIDUE-2, R10-CI-EDIT-RUNNER, R10-CI-SELFTEST-SCOPE, R10-CLOSEOUT-INSTRUMENTS, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-FLOW-TOOLKIT-MODEL, R10-FLY-CIPREDICT-RESTORING, R10-FLY-CLOUD-FRUGAL-OFF, R10-FLY-DISPATCH-RULINGS, R10-FLY-GH-READ-RETRY, R10-FLY-KEYED-MERGE-DRIVERS, R10-FLY-REPLAN-DEFECTS, R10-FLY-STAMP-FLUSH-COST, R10-FLY-STANDING-CONTRACTS, R10-FLY-TRIAGE-BAR, R10-FRICTION-CI-RED, R10-FRICTION-OTHER-FAMILY, R10-GENERIC-HEAT-CURVE, R10-HANDOFF-PATH, R10-HOTFIX-AUTHOR-EMAIL, R10-HOTFIX-CODEQL-HEADROOM, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-GATE-BUSY-DEFER, R10-HOTFIX-MAIN-IST-RED, R10-HOTFIX-NONREQUIRED-REDS, R10-HOTFIX-TRAIN-DEFER-WAIT, R10-I18N-DE, R10-OUTSIDE-FIRST, R10-OUTSIDE-INTAKE, R10-PARTLOAD-RESIDUE, R10-POLICY-ROLE-PACK, R10-PROCESS-SLIM, R10-RAISE-GATE-SHIM, R10-RCA-COP-UNMEASURED, R10-RCA-GATE-BUSY-DEFER-2, R10-RCA-STAMP-FLUSH-COST, R10-RELAY-SWEEP, R10-REPLAY-COST-2, R10-REVIEW-ENUMERATE, R10-ROSTER-READ-SWEEP, R10-ROSTER-WRITE-SWEEP, R10-ROUND-PLAYBOOK, R10-SAV-COMFORT, R10-SUITE-HOST-DETERMINISM, R10-TICK-LEVELS, R10-TRAIN-MERGE-LOOP-2, R10-WHY-NOW-WIDGET
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-WHATIF, R10-BODY-CONTRACT, R10-CARRY-RESIDUE-2, R10-CI-EDIT-RUNNER, R10-CI-SELFTEST-SCOPE, R10-CLOSEOUT-INSTRUMENTS, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-FLOW-TOOLKIT-MODEL, R10-FLY-CIPREDICT-RESTORING, R10-FLY-CLOUD-FRUGAL-OFF, R10-FLY-DISPATCH-RULINGS, R10-FLY-GH-READ-RETRY, R10-FLY-KEYED-MERGE-DRIVERS, R10-FLY-REPLAN-DEFECTS, R10-FLY-STAMP-FLUSH-COST, R10-FLY-STANDING-CONTRACTS, R10-FLY-TRIAGE-BAR, R10-FRICTION-CI-RED, R10-FRICTION-OTHER-FAMILY, R10-GENERIC-HEAT-CURVE, R10-HANDOFF-PATH, R10-HOTFIX-AUTHOR-EMAIL, R10-HOTFIX-CODEQL-HEADROOM, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-GATE-BUSY-DEFER, R10-HOTFIX-NONREQUIRED-REDS, R10-HOTFIX-TRAIN-DEFER-WAIT, R10-I18N-DE, R10-OUTSIDE-FIRST, R10-OUTSIDE-INTAKE, R10-PARTLOAD-RESIDUE, R10-POLICY-ROLE-PACK, R10-PROCESS-SLIM, R10-RAISE-GATE-SHIM, R10-RCA-COP-UNMEASURED, R10-RCA-GATE-BUSY-DEFER-2, R10-RCA-STAMP-FLUSH-COST, R10-RELAY-SWEEP, R10-REPLAY-COST-2, R10-REVIEW-ENUMERATE, R10-ROSTER-READ-SWEEP, R10-ROSTER-WRITE-SWEEP, R10-ROUND-PLAYBOOK, R10-SAV-COMFORT, R10-SUITE-HOST-DETERMINISM, R10-TICK-LEVELS, R10-TRAIN-MERGE-LOOP-2, R10-WHY-NOW-WIDGET
 
 ## Resume steps
 
