@@ -1,4 +1,4 @@
-# generic-heat-curve design note (designer seat, note 4)
+# generic-heat-curve design note (designer seat, note 5)
 
 The group's architect note, extended (`dev/governance/roles/designer.md`). It lives on `design/generic-heat-curve`
 and never merges. **There is no finding and no finder harness: the evidence is a user's feature request** (an
@@ -6,32 +6,27 @@ alpha innotec LWDV 91-1/3 owner, Luxtronik firmware 3.92.3). No roster group exi
 and no `after` briefs. `dev/governance/dimensions/D12.md` (Traps) classes a new control surface as a product
 request: whether to build it was `decision: owner`, settled by the owner on 2026-11-07 (note 4).
 
-**Note 2** answers `Design review: revise f8316155370f4b890ee3051e0516010739ae332a architecture-unsound`:
-R1 in §Target contract (one slot, a declared target kind; kind `offset` is the first build, kind `persistent` a
-later group, per note 4 with its own note and review), R1b in §Write policy (W1–W6 sized for volatile targets; the persistent budget is a
-documented refusal), R2 in U4 and §Alternatives (A split into A1 and A2). The verdict's seven fixer carries are in
-§Notes for the fixer as items ghc-r01…r07. The reviewer's verified points (seam, chokepoint, feeds, K-unit trap,
-ratchet, sibling designs) stand unchanged. The user asked for "both" kinds and for use beyond his install.
+**State of the design.** Kind `offset` is the first build (§Target contract (a)); kind `persistent` is a sketch
+whose later group owes its own design note and design review (§Target contract (b)). The fixer carries are in
+§Notes for the fixer (ghc-r01…r08, ghc-01…05); ghc-r09 (instrument and outdoor temperature of the measurements) is
+resolved in U1, ghc-r10 (leftover wording that made `persistent` more than a sketch) throughout. The user asked
+for "both" kinds and for use beyond his install.
 
-**Note 3** answers `Design review: revise dd331b64e6f35b376033ff9594e1ce03ab0b74fe architecture-unsound` (V1) by
-option (i): kind `persistent` is downgraded to a sketch whose own group owes its own design note and review
-(§Target contract (b)); it adds carry ghc-r08 and records the user's measurement of 2026-11-07 under U1. Nothing
-else changed.
-
-**Note 4** folds in the owner's comment on PR tvofi/heatpump_optimizer#3284 (tvofi, 2026-11-07) and the carries
-ghc-r09 and ghc-r10 of the note-3 approval. Owner decisions (2026-11-07, not the author's opinion):
-- The feature is accepted for this round (it settles the first `decision: owner` of the earlier notes).
+**Owner decisions** (tvofi, 2026-11-07, comment on PR tvofi/heatpump_optimizer#3284):
+- The feature is accepted for this round.
 - Kind `offset` is built first, from this note, through the single displace path.
 - Kind `persistent` follows in the same round with its **own design note and design review**. That note must solve
   O1–O4 and take its defaults (band, daily write budget, minimum dwell) from a sourced study across many
   controllers, not only Luxtronik (O5).
-- The ruling "off writes nothing" (2026-09-26) is **retracted**: kind `offset` writes a neutral 0 on MODE_OFF and
-  on unload; kind `persistent` restores its captured baseline; the pump arbiter's space set-point also restores
-  the user's value on off.
-Measurements added: U1 at a second outdoor temperature (M1, M2) and U4 at one operating point, both below.
+- The 2026-09-26 ruling "off writes nothing" is **retracted**: kind `offset` writes a neutral 0 on MODE_OFF and on
+  unload; kind `persistent` restores its captured baseline; the pump arbiter's space set-point also restores the
+  user's value on off.
+
+**Author additions** (not owner decisions; open for the owner): see T4. **Separate item:** the arbiter restore is
+not part of this note's first build (§Sibling sites).
 
 **Read at.** `origin/main` = `28d46c4918285d36c409c1fb2f72eb77e04e569e`, unchanged since note 1. Outside the tree,
-read-only: the user's `luxtronik_shi` at `1eb46953f3baf55f5e9f915f4a244e6ab9b8e49d` (`registers.py`, `README.md`),
+read-only: the user's `luxtronik_shi` at `1eb46953f3baf55f5e9f915f4a244e6ab9b8e49d` (`registers.py`, `README.md`; the line numbers cited below were re-verified at its main `3629551`),
 and python-luxtronik, a shallow clone of Bouni/python-luxtronik at
 `02afea84bd5bf3ee87445de6f2a42b8029983169` (2026-03-22, `git -C /home/claude/shi-re/pylux/src log -1`):
 `luxtronik/definitions/holdings.py` and `luxtronik/definitions/parameters.py`.
@@ -60,8 +55,8 @@ no new logic. Without MQTT that does not exist today. **For whom:** any integrat
 as a `number`. On the reference controller one exists and is volatile: python-luxtronik SHI holding
 `heating_offset` (holdings.py:75-89; index 2, address 10002, INT16 K/10, −200…200, default 0) is "Offset applied
 to the current return temperature setpoint (tRL) for heating. Requires heating_mode = offset to apply";
-`luxtronik_shi` exposes it as `cfg_heating_offset` (registers.py:363-375, −20…20 K, step 0.5) and quotes
-python-luxtronik that SHI holdings are volatile (README.md:213-217, :229-231).
+`luxtronik_shi` exposes it as `cfg_heating_offset` (registers.py:402-414, −20…20 K, step 0.5) and quotes
+python-luxtronik that SHI holdings are volatile (README.md:425, :438).
 
 **Recommendation.** Build one slot with a declared target kind. **First build: kind `offset`** (§Target contract
 (a)). **Kind `persistent` is a later group in the same round** sketched in (b), not part of the first build and
@@ -74,18 +69,18 @@ stopgap C is no longer the answer.
 - U1: `heating_offset` acts as a parallel shift of the return-target curve on FW 3.92.3. **Measured by the user**
   on the reference installation (LWDV 91-1/3, FW 3.92.3, `luxtronik_shi`; SHI heating mode holding 10000 =
   `offset`, heating offset holding 10002). Instrument: `luxtronik_shi` sensor key `return_target` (SHI input
-  register 10101, registers.py:189 at `luxtronik_shi` `1eb46953`), entity `sensor.lwdv_shi_return_target`, resolution
+  register 10101, registers.py:189 at `luxtronik_shi` `3629551`), entity `sensor.lwdv_shi_return_target`, resolution
   0.1 K.
   - M1, 2026-11-07 14:18 local, outdoor 5.7–5.8 °C: offset +2 K, return target 27.7 → 29.7 °C; mode set back to
     `off`: 27.7 °C again; the offset was then set to 0 with the mode left at `offset`.
   - M2, 2026-11-08 12:17 local, outdoor 7.6 °C: baseline 27.2 °C; offset +1 K → 28.2 °C; offset 0 → 27.2 °C.
-  Result: at two outdoor temperatures and two offset values the offset shifted the return target by exactly the
-  offset. This covers **5.7–7.6 °C outdoor only**; other, colder outdoor temperatures stay open. It says nothing
+  Result: at two outdoor temperatures and two offset values the offset shifted the return target by the offset,
+  within the 0.1 K resolution. This covers **5.7–7.6 °C outdoor only**; other, colder outdoor temperatures stay open. It says nothing
   about the shape of the curve (U3).
 - U2: it applies only while `cfg_heating_mode` = offset, which the optimizer does not own; mode setpoint, which
   the arbiter's space set-point on this controller needs (`luxtronik_shi` README, "Heating setpoint (reg. 10001)"),
   excludes it.
-- U3: the Luxtronik curve between its two points is linear. **Unverified, and contradicted by the owner's
+- U3: the Luxtronik curve between its two points is linear. **Unverified, and contradicted by the user's
   statement (2026-11-07) that the curve itself is not linear** while the offset shift (U1) is. No source in reach
   states its shape; nothing below may rely on linearity.
 - U4: what the persistent "parallel shift" parameter is on FW 3.92.3, a foot point (absolute return temperature at
@@ -95,14 +90,13 @@ stopgap C is no longer the answer.
   installation (parameter index 12 `ID_Einst_HzHKRANH_akt`, entity
   `number.luxtronik_341120_089_heating_curve_parallel_shift_temperature` "Heiz Heizkurve Parallelverschiebung",
   written through the BenPru luxtronik2 integration, port 8889; the controller screen shows end point 30 °C and
-  this parameter 22 °C), 2026-11-08 12:36 local, outdoor 7.9 °C, SHI mode `offset` with offset 0 (the SHI offset
-  does not interfere), resolution 0.1 K: baseline return target 27.2 °C; parameter 22 → 23 °C; after about 90 s
+  this parameter 22 °C), 2026-11-08 12:36 local, outdoor 7.9 °C, resolution 0.1 K. User-run procedure: SHI mode `offset` with SHI
+  offset 0 (so the SHI offset does not interfere); the reading was taken about 90 s after the write: baseline return target 27.2 °C; parameter 22 → 23 °C; after about 90 s
   return target 28.4 °C (+1.2 K); parameter back to 22 °C: 27.1 °C at 8.0 °C outdoor.
-  - Reading: +1 K on the parameter moved the target by about +1.2 K at 7.9 °C. A foot-point model with the end
-    point fixed at 30 °C at −20 °C outdoor and the parameter at 22 °C would predict only about +0.3 K at 7.9 °C
-    under a linear curve. The observation does not fit that simple model, but the curve is non-linear (U3), so it
-    neither proves nor refutes a foot point or a parallel shift.
-  - Owner statement (2026-11-07, not a measurement): it is a real offset.
+  - Reading: +1 K on the parameter moved the return target by about +1.2 K at 7.9 °C; +1.2 is not +1.0, so one
+    point does not decide between a foot point and a parallel shift. The curve is non-linear (user statement,
+    U3), so no model of it is assumed here.
+  - User statement (2026-11-07, not a measurement): the parameter is a real offset.
   - Still open: one point, no second outdoor temperature, no check of the end-point parameter. The semantics of
     the parameter are not otherwise stated here.
 
@@ -139,8 +133,15 @@ entity-only install.
 - T3 persistent controller parameters are **out of scope for kind `offset`**, in this design and in the docs.
 - T4 MODE_OFF and unload write the neutral 0. **Owner decision (tvofi, 2026-11-07)** retracting the 2026-09-26
   "off writes nothing" ruling (pump_arbiter.py:1131-1133): the user's offset is not left at the last displace. A
-  volatile target also falls back by itself on a controller restart. The arbiter's space set-point likewise restores the user's value on off (owner
-  decision, same date).
+  volatile target also falls back by itself on a controller restart. **Author additions, not owner decisions, open
+  for the owner:**
+  - The unload write needs a hook in `async_unload_entry` (__init__.py:401), which costs lines there.
+  - It must run after the coordinator is torn down, so that no later publish overwrites it.
+  - There is no `hass.is_stopping` carve-out for kind `offset`: the write happens on **every** unload, so a Home
+    Assistant shutdown is one write. Proposal (author, the safer reading for the heating): keep it, best effort,
+    because a stale displace left on the pump is the worse outcome; the alternative is to skip it while Home
+    Assistant stops, as (b)'s P3 sketch does. Open for the owner.
+  - The arbiter's space set-point restore on off is a separate item (§Sibling sites).
 
 **(b) Kind `persistent`: a stored controller parameter (sketch only, own note and review in the same round, owner
 decision 2026-11-07).** For a curve parameter
@@ -208,7 +209,7 @@ is a temperature unit other than `K`; that is not permitted in the first build.
 
 ## Write policy (R1b)
 
-**W1–W6 are sized for volatile targets (kind `offset`).** They bound log noise and churn, not memory wear.
+**W1–W7 are sized for volatile targets (kind `offset`).** They bound log noise and churn, not memory wear.
 1. W1 write-on-change against the reading: no call while `|reading − target| ≤ step/2`.
 2. W2 holds what it wrote, as pump_arbiter.py:59 states it: each write is recorded `(value, at)`; a differing
    reading inside the grace proves nothing; after it the first miss rewrites once (ghc-r05 on the grace constant).
@@ -219,7 +220,7 @@ is a temperature unit other than `K`; that is not permitted in the first build.
    (const.py:1500) it does not bind in normal running. It guards a loop bug, not wear.
 5. W5 the arm writes the same integer as the MQTT arms, exact on a 0.5 or 1 step.
 6. W6 an entity range narrower than the configured displace range saturates the mapping; latched once, naming
-   both ranges (`cfg_mk1_offset` is −5…5, registers.py:413-423, against the −20…20 default).
+   both ranges (`cfg_mk1_offset` is −5…5, registers.py:453-463, against the −20…20 default).
 7. W7 with the entity option empty, every MQTT payload, sensor and golden is byte-identical; no planner change.
 
 **Kind `persistent`** adds P4 and P5 on top of W1, W3, W5, W6, and replaces W2's rewrite-on-miss by P6.
@@ -245,12 +246,12 @@ entity (ghc-r03).
   write is a true parallel shift and the geometric objection does not apply. If it is a foot point, writing
   `baseline + d` rotates the curve about the end point (shift `d·(x − x_end)/(x_base − x_end)` at outdoor x, under
   U3), so only the base point moves by d. Either way its remaining costs are persistence, baseline and wear,
-  which the later group's note must answer from the P1–P7 sketch and O1–O5. Not rejected: deferred to the later group for kind `persistent`, behind U4.
+  which the later group's note must answer from the P1–P7 sketch and O1–O5. Not rejected: it is kind `persistent`, built in the later group with its own note, behind U4.
 - **B. A new `space_setpoint_unit` "offset" on the arbiter's slot.** The arbiter's value is per duty and per
   one-minute tick, and the displace chain does not pass through it: two owners of one concern. Lost on coupling.
 - **B2. Two slots, one per kind.** Two writers on one concern, the objection to B. Lost on coupling.
 - **C. No code: a user automation** mirroring a dummy `ecl110_displace_set_topic` into the number. Needs a
-  broker, adds a writer outside the optimizer, and has none of W1–W6 or P1–P7. The answer if the owner declines.
+  broker, adds a writer outside the optimizer, and has none of W1–W7 or P1–P7. Rejected: the owner accepted the feature (2026-11-07).
 
 ## Sibling sites (step 5)
 
@@ -266,6 +267,7 @@ entity (ghc-r03).
 | climate.py:235, sensor.py:862, coordinator.py:8114, payload.py:161 | readouts of the plan value; unchanged |
 | coordinator.py:4511 (`curve_driven`), 6834-6835 (lag) | read the action, not the arm; unchanged |
 | const.py:693, entry_config.py:213 | the new keys go beside them |
+| pump_arbiter.py:78, :106, :1131-1133 (restore of the space set-point on off, owner decision 2026-11-07) | **not this build**: a separate item owed by its own group, which also owes the stale "off writes nothing" comments at pump_arbiter.py:78, :106, :1132 and coordinator.py:3768, :4533, :7795, :8855; coordinator.py:7714 changes here |
 | `async_unload_entry` (__init__.py:401) and MODE_OFF in coordinator.py:7714: neutral-0 write for (a), T4; (b) only: `async_remove_entry` (:429) | restore hook; (b)'s ownership is O4 |
 
 ## Evidence plan (by file), first build (a)
@@ -276,7 +278,7 @@ entity (ghc-r03).
 - Arms: K −2 sent as −2 (red if routed through `write_setpoint_c`, per the probe); °F ×1.8; entity −5…5 with
   displace 8 sends 5 and latches W6; W1 equal reading, no call; W2 inside grace no call, after grace one rewrite;
   W3 a second miss, no third call, a new target writes; W4; missing / unavailable / `sensor` domain / unit `%` /
-  raising service, no write while the MQTT arm still publishes; MODE_OFF one write of 0, and one on unload while Home Assistant is not stopping; peak-guard engage plan − nudge,
+  raising service, no write while the MQTT arm still publishes; MODE_OFF one write of 0, and one on every unload (T4); peak-guard engage plan − nudge,
   release plan; boost maximum; curve bias applied.
 - **Null control:** the option empty: identical `mqtt.publish` calls and payloads, no `number` call; the tests at
   tests/features.py:40498 and :40578 stay green except the import.
@@ -287,7 +289,6 @@ entity (ghc-r03).
 - **Mutation targets** (heat_curve.py): the W1 comparator, the delta conversion, the clamp, the grace check, the W3
   give-up, the W4 guard, T2. New sites killed or triaged (`tests/mutation_budgets.json`).
 - **Kind (b)** has no evidence plan here: its later group's own design note owes one, with O1–O5 solved first.
-  Carry: generic-heat-curve (item ghc-06)
 
 ## Cost against the ratchet, and how it is paid
 
@@ -301,7 +302,7 @@ neutral-0 write on unload (T4) costs lines in unload and is paid inside heat_cur
 
 ## Docs
 
-`docs/ecl110.md`: "Without MQTT: a number entity" (option, kind `offset` contract T1–T4, delta units, W1–W6, the
+`docs/ecl110.md`: "Without MQTT: a number entity" (option, kind `offset` contract T1–T4, delta units, W1–W7, the
 Luxtronik SHI example with U1, U2 and ghc-r04 stated); `docs/configuration.md:358` page row; `README.md:243` surface
 row and the "ECL110 control is MQTT-only" limit at README.md:273; `strings.json`, `translations/en.json`,
 `translations/sv.json`. The later group for kind `persistent` writes its own docs section from its own note.
@@ -309,8 +310,8 @@ row and the "ECL110 control is MQTT-only" limit at README.md:273; `strings.json`
 ## Hot files and serial position
 
 coordinator.py, config_flow.py, const.py, entry_config.py, sensor.py, diagnostics.py, strings and translations,
-docs/ecl110.md, docs/configuration.md, README.md, tests/features.py, tests/config_flow_steps.py, heat_curve.py; (b)'s
-later group adds `__init__.py`. `design/R10-USER-DOCS-FINAL` edits docs/ecl110.md and docs/configuration.md: this group goes
+docs/ecl110.md, docs/configuration.md, README.md, tests/features.py, tests/config_flow_steps.py, heat_curve.py; `__init__.py` (the unload write of T4, kind `offset`); (b)'s
+later group adds the restore hook there too. pump_arbiter.py is not touched by this build. `design/R10-USER-DOCS-FINAL` edits docs/ecl110.md and docs/configuration.md: this group goes
 after it. `design/r10-livestate` touches `_async_handle_ecl110_state_message`, a different seam: no edge. Roster
 group, size (L by file count, M by logic), and (b) as its own later group are `decision: orchestrator`.
 
@@ -339,7 +340,7 @@ group, size (L by file count, M by logic), and (b) as its own later group are `d
 - The equal-entity refusal is cross-page: judge it also where the other half is saved: the entities page
   (config_flow.py:1590), the building page (:1693), the pre-fill save (`_prefill_errors`, config_flow.py:2165-2200)
   and the DHW set-point entity (:1667). Carry: generic-heat-curve (item ghc-r03)
-- After a controller restart `cfg_heating_mode` can fall back to off (luxtronik_shi README.md:229-231); W1 rewrites
+- After a controller restart `cfg_heating_mode` can fall back to off (luxtronik_shi README.md:438); W1 rewrites
   the offset, the reading matches, and the offset has no effect under U2. The arm cannot detect it; docs/ecl110.md's
   Luxtronik example must say so. Carry: generic-heat-curve (item ghc-r04)
 - W2 reuses `ECHO_GRACE_S`, calibrated for the Tuya fork's 8 s sent-value window (pump_arbiter.py:186-188). State
