@@ -7,8 +7,10 @@ the D8-s1-01 step: 0.07 kW asked, which the owner declares off.
 
     PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py [--perturb]
 
---perturb swaps every copy's literal for the owner's value on a temp copy of the package
-(the null arm): every probe must then pass. Prints RESULT probes_failed=<n>.
+Every seam now calls the owner (D8-s1-01 landed them all), so the probes read 6/6 PASS.
+--perturb is the null arm: on a temp copy of the package it re-inserts the retired
+``0.05`` copy at the four seams probes 3-6 read, each of which must then FAIL
+(probes_failed=4); probes 1-2 have no copy left to restore. Prints RESULT probes_failed=<n>.
 """
 from __future__ import annotations
 
@@ -17,6 +19,7 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 
 def repo_root(start):
@@ -35,20 +38,20 @@ def repo_root(start):
 REPO = repo_root(__file__)
 KW = 0.07  # the D8-s1-01 step: between the copies' 0.05 and the owner's 0.1
 
-# (file, exact old text, owner-valued text) for the --perturb null arm
+# (file, the owner's call as it stands, the retired copy) for the --perturb null arm
 FIXES = [
-    ("optimizer.py", "    n_steps: int,\n    threshold: float = 0.05,\n    *,",
-     "    n_steps: int,\n    threshold: float = MIN_RUNNING_DRAW_KW,\n    *,"),
-    ("optimizer.py", "    n_steps: int,\n    threshold: float = 0.05,\n    idle:",
-     "    n_steps: int,\n    threshold: float = MIN_RUNNING_DRAW_KW,\n    idle:"),
-    ("freq_control.py", "if not np.isfinite(target_kw) or target_kw <= 0.05:\n            return None",
-     "if not np.isfinite(target_kw) or target_kw <= 0.1:\n            return None"),
-    ("freq_control.py", "if not np.isfinite(target_kw) or target_kw <= 0.05:\n            return False",
-     "if not np.isfinite(target_kw) or target_kw <= 0.1:\n            return False"),
-    ("coordinator.py", "heating = float(self._current_action.get(\"power\", 0.0)) > 0.05",
-     "heating = float(self._current_action.get(\"power\", 0.0)) > 0.1"),
-    ("coordinator.py", "self._commanded_power() > 0.05 and reported >= hz_min",
-     "self._commanded_power() > 0.1 and reported >= hz_min"),
+    ("freq_control.py",
+     "if not np.isfinite(target_kw) or not planned_draw_runs(target_kw):\n            return None",
+     "if not np.isfinite(target_kw) or target_kw <= 0.05:\n            return None"),
+    ("freq_control.py",
+     "if not np.isfinite(target_kw) or not planned_draw_runs(target_kw):\n            return False",
+     "if not np.isfinite(target_kw) or target_kw <= 0.05:\n            return False"),
+    ("coordinator.py",
+     "heating = planned_draw_runs(float(self._current_action.get(\"power\", 0.0)))",
+     "heating = float(self._current_action.get(\"power\", 0.0)) > 0.05"),
+    ("coordinator.py",
+     "planned_draw_runs(self._commanded_power()) and reported >= hz_min",
+     "self._commanded_power() > 0.05 and reported >= hz_min"),
 ]
 
 
@@ -58,7 +61,7 @@ def _expr_in(pkg: Path, fname: str, func: str, needle: str) -> str:
     for fn in ast.walk(tree):
         if isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)) and fn.name == func:
             for n in ast.walk(fn):
-                if isinstance(n, (ast.Compare, ast.BoolOp)) and needle in ast.unparse(n):
+                if isinstance(n, (ast.Compare, ast.BoolOp, ast.Call)) and needle in ast.unparse(n):
                     return ast.unparse(n)
     raise LookupError((fname, func, needle))
 
@@ -96,24 +99,30 @@ def run(pkg: Path) -> list[tuple[str, bool, str]]:
     for _ in range(freq_control.FREQ_MIN_SAMPLES + 1):
         fm2.observe(30.0, 0.06, 30.0, 90.0)
     # the gate under test: past it, the method answers about evidence; before it, False
-    gate = _expr_in(pkg, "freq_control.py", "evidence_exhausted", "target_kw <=")
-    passes_gate = not eval(gate, {"np": np}, {"target_kw": KW})  # noqa: S307 - own source
+    # The needles survive either spelling, the owner's call or a re-inserted copy.
+    owned = {"np": np, "planned_draw_runs": thermal_model.planned_draw_runs}
+    gate = _expr_in(pkg, "freq_control.py", "evidence_exhausted", "np.isfinite(target_kw)")
+    passes_gate = not eval(gate, owned, {"target_kw": KW})  # noqa: S307 - own source
     out.append(("freq_control.FrequencyMap.evidence_exhausted", passes_gate == owner,
                 f"gate '{gate}' passes={passes_gate} owner_runs={owner}"))
 
     # 5-6: coordinator predicates, evaluated from their own source on the D8 action
     class _Self:
         _current_action = {"power": KW, "dhw_power": 0.0, "heat_pump_on": owner}
+        _pump_signals = SimpleNamespace(defrosting=False)
 
         def _commanded_power(self):
             return KW
 
     e5 = _expr_in(pkg, "coordinator.py", "_async_learn_buffer_cooling", "_current_action.get('power'")
-    v5 = bool(eval(e5, {}, {"self": _Self()}))  # noqa: S307 - own source
+    v5 = bool(eval(e5, owned, {"self": _Self()}))  # noqa: S307 - own source
     out.append(("coordinator._async_learn_buffer_cooling", v5 == owner,
                 f"'{e5}' -> heating={v5} owner_runs={owner}"))
-    e6 = _expr_in(pkg, "coordinator.py", "_observe_frequency", "_commanded_power() >")
-    v6 = bool(eval(e6, {}, {"self": _Self(), "reported": 45.0, "hz_min": 30.0}))  # noqa: S307
+    # Probe 6 binds defrost_interval from its owner, freq_control, so it evaluates.
+    e6 = _expr_in(pkg, "coordinator.py", "_observe_frequency", "reported >= hz_min")
+    v6 = bool(eval(  # noqa: S307 - own source
+        e6, {**owned, "defrost_interval": freq_control.defrost_interval},
+        {"self": _Self(), "reported": 45.0, "hz_min": 30.0}))
     out.append(("coordinator._observe_frequency", v6 == owner,
                 f"'{e6}' -> watch_active={v6} owner_runs={owner}"))
     return out

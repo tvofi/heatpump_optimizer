@@ -1460,7 +1460,7 @@ def drain_pool(unpinned: list[dict], closures: dict, allow: list[str],
     `pin_results` pins one only when all of them were driven and killed, and a
     slice that split an anchor would spend runs on sites it can never pin. The
     anchors are ordered by a hash of (seed, anchor), so the slice is fixed for
-    one seed and the nightly's date seed walks the stock rather than retrying
+    one seed and the nightly's run seed walks the stock rather than retrying
     the same survivors every night; an anchor no recorded closure reaches is
     left out, and anchors are taken while their sites fit under `cap`.
 
@@ -2792,7 +2792,7 @@ def drive_baselines(needed: list[str], workers: int, run, *, null_run=None,
 
 def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
                drive, settle=None, deadline: float | None = None,
-               clock=time.monotonic) -> list[tuple[dict, str]]:
+               clock=time.monotonic, free=None) -> list[tuple[dict, str]]:
     """Each mutant's verdict, its drivers shared over `workers` trees.
 
     `drive(worker, mut, script)` runs one driver on `mut` in that worker's tree
@@ -2815,7 +2815,10 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
     `deadline`, a `clock()` reading, is the budget (R9-F10.12). A mutant is
     started only if its every driver at `cost` -- the sweep it costs if it
     survives -- plus the EXCLUSIVE runs still owed by started mutants no driver
-    has killed, ends by then. The first that does not fit closes the pool:
+    has killed, ends by then. A pair `free(mut, script)` calls unkillable
+    (`reach_skip`: its traced baseline never ran the line) is neither queued
+    nor charged: it costs no run, so charging it closed the pool on a sweep
+    the night would never have spent. The first that does not fit closes the pool:
     it and every later one are SKIP-BUDGET, never started, so what ran is the
     shuffled pool's prefix and not a sample biased to cheap drivers. The cut
     falls on an anchor boundary: a mutant is admitted with every queued site
@@ -2826,7 +2829,8 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
     timeout over the estimate, not one per driver.
     """
     lock = threading.Lock()
-    todo = [[s for s in m["drivers"] if s not in EXCLUSIVE] for m in pool]
+    todo = [[s for s in m["drivers"] if s not in EXCLUSIVE
+             and not (free and free(m, s))] for m in pool]
     owes = [sum(cost.get(s, 0.0) for s in m["drivers"] if s in EXCLUSIVE)
             for m in pool]
     verdict: list[str | None] = [None] * len(pool)
@@ -2930,7 +2934,7 @@ MAX_PIN_JOBS = 8
 
 def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
                    drive, settle=None, deadline: float | None = None,
-                   clock=time.monotonic) -> list[tuple[dict, str]]:
+                   clock=time.monotonic, free=None) -> list[tuple[dict, str]]:
     """Each pin-drive mutant's verdict, its shared drivers run N-way.
 
     The tasks are (mutant, driver) pairs, not whole mutants: a worker takes
@@ -2970,8 +2974,8 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
     k = max(1, workers)
     lock = threading.Lock()
     order = [{s: i for i, s in enumerate(m["drivers"])} for m in pool]
-    shared0 = [[s for s in m["drivers"] if s not in EXCLUSIVE]
-               for m in pool]
+    shared0 = [[s for s in m["drivers"] if s not in EXCLUSIVE
+                and not (free and free(m, s))] for m in pool]
     todo = [list(s) for s in shared0]
     verdict: list[str | None] = [None] * len(pool)
     timed: list[list[str]] = [[] for _ in pool]
@@ -4131,6 +4135,17 @@ def main(argv: list[str] | None = None) -> int:
                   f"each row is hidden from that mutant's tree, so it cannot "
                   f"read killed for the row's sake (invalidated_rows)")
 
+        def reach_free(mut: dict, s: str) -> bool:
+            """A pair its traced baseline shows cannot kill, recorded as
+            reach-skipped before the schedule queues it, so the budget never
+            charges it (drive_pool's `free`). A lazy driver has no trace yet:
+            `drive` checks its pairs once its baseline has run."""
+            if not reach_skip(reaches.get(s), mut):
+                return False
+            reach_skipped.append((triage_key(mut), s))
+            outcomes[(id(mut), s)] = False
+            return True
+
         def drive(w: int, mut: dict, s: str) -> bool:
             # One task per worker at a time, so a tree carries one mutant.
             if verdicts.stop is not None:
@@ -4173,7 +4188,8 @@ def main(argv: list[str] | None = None) -> int:
             results += drive_phase(
                 [m for m in pool if id(m) in mutated], jobs, seconds, drive,
                 settle=lambda s: (s in deferred and verdicts.stop is None
-                                  and settle(s)), deadline=deadline)
+                                  and settle(s)), deadline=deadline,
+                free=reach_free)
         except Deferred as stop:
             return stop.rc
         if verdicts.stop is not None:
