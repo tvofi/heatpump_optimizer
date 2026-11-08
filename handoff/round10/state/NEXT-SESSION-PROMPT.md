@@ -36,6 +36,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-RELAY-SWEEP (stage carries-open, branch `handoff/r10-relay-sweep`): `git fetch origin handoff/r10-relay-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CLOUD-FRUGAL-OFF (stage refused): no branch pushed yet, so nothing to fetch
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-SAV-METER-FLOOR (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-TRAIN-MERGE-LOOP-2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-GATE-BUSY-DEFER (stage carries-open, branch `handoff/r10-gate-busy-defer-3`): `git fetch origin handoff/r10-gate-busy-defer-3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CARRY-RESIDUE-2 (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -53,6 +54,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-PARTLOAD-RESIDUE (stage in-progress, branch `handoff/r10-partload-residue`): `git fetch origin handoff/r10-partload-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CI-EDIT-RUNNER (stage refused, branch `handoff/r10-ci-edit-runner`): `git fetch origin handoff/r10-ci-edit-runner && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FRICTION-CI-RED (stage carries-open, branch `handoff/r10-friction-ci-red`): `git fetch origin handoff/r10-friction-ci-red && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-TRAIN-STALE-VERDICT-GUARD (stage in-progress, branch `handoff/r10-train-stale-verdict-guard`): `git fetch origin handoff/r10-train-stale-verdict-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-I18N-DE (stage in-progress, branch `handoff/r10-i18n-de`): `git fetch origin handoff/r10-i18n-de && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GENERIC-HEAT-CURVE (stage in-progress, branch `handoff/r10-generic-heat-curve`): `git fetch origin handoff/r10-generic-heat-curve && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-INSTRUMENTS (stage carries-open, branch `handoff/r10-closeout-instruments`): `git fetch origin handoff/r10-closeout-instruments && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -62,6 +64,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-AUTHOR-EMAIL (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FLY-KEYED-MERGE-DRIVERS (stage refused): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-NONREQUIRED-REDS (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-TRAIN-REJOIN-NO-RECARRY (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REVIEW-ENUMERATE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FLY-DISPATCH-RULINGS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-FIRST (stage in-progress): no branch pushed yet, so nothing to fetch

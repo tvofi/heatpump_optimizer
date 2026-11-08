@@ -454,7 +454,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FLY-RELAY-HOLD | CP | 1 | done | - | sonnet/opus | - | OWNER RULING (tvofi, in chat, 2026-11-05, verbatim picks): cards C2, C3, C4, C5, C6, C7, C8, C9 of the slip study are ACCEPTED. |  |
 | R10-CI-SLIM | C | 1 | done | - | opus/opus | - | OWNER RULING (tvofi, in chat, 2026-11-05, verbatim picks): cards C2, C3, C4, C5, C6, C7, C8, C9 of the slip study are ACCEPTED. |  |
 | R10-PROCESS-SLIM | C | 1 | in-progress | - | opus/opus | - | OWNER RULING (tvofi, in chat, 2026-11-05, verbatim picks): cards C2, C3, C4, C5, C6, C7, C8, C9 of the slip study are ACCEPTED. |  |
-| R10-SAV-METER-FLOOR | C | 2 | not-started | - | opus/opus | - | A month row states no saving when its booked savings_baseline kWh over its savings_actual kWh is below a floor constant in ledger.py, starting at 0.5, on row... |  |
+| R10-SAV-METER-FLOOR | C | 2 | in-progress | - | opus/opus | - | A month row states no saving when its booked savings_baseline kWh over its savings_actual kWh is below a floor constant in ledger.py, starting at 0.5, on row... |  |
 | R10-HOTFIX-STAMP-BASE | C | 1 | done | - | opus/opus | - | A hand-made tag poisons the stamp: v7.1.2 was tagged by hand at b8e823699 with the file VERSION still reading 7.1.1 then (the ruleset was disabled for the pu... |  |
 | R10-PR-CONTRACT-OUTSIDE | C | 1 | absorbed | - | opus/opus | - | RETIRED: owner ruling 2026-11-06: outside fixes merge via our own PR with acknowledgement. |  |
 | R10-REF-PRIVACY-CLOUD | IN | 1 | done | - | sonnet/opus | - | ref_privacy flags a false-positive host path on a cloud seat. |  |
@@ -484,7 +484,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-PARTLOAD-RESIDUE | IN | 1 | in-progress | #3124 | opus/opus | - | Residue of R10-PARTLOAD-PRICING after its pull request (#3182): the CPU cost of the live buffer store, the linear valuations under a convex part-load cost wi... |  |
 | R10-CI-EDIT-RUNNER | IN | 1 | refused | - | opus/opus | yes: code-owned: .github/workflows/ (tvofi approves, or mandate 6624093439 in force) | An edit run that finds no finished code run exits without holding a runner, and the code run's gate re-dispatches the body units when it finishes (an `action... |  |
 | R10-FRICTION-CI-RED | IN | 1 | carries-open | #3156 | sonnet/opus | - | Root-cause record for the recurring-friction key `ci-red` (#3156, verdict class, filed by the governance cron for the window from v7.1.2 to origin/main). |  |
-| R10-TRAIN-STALE-VERDICT-GUARD | IN | 2 | not-started | - | opus/opus | - | Split out of R10-TRAIN-MERGE-LOOP-2 (its carry 18, triage batch 127 P393), verbatim:
+| R10-TRAIN-STALE-VERDICT-GUARD | IN | 2 | in-progress | - | opus/opus | - | Split out of R10-TRAIN-MERGE-LOOP-2 (its carry 18, triage batch 127 P393), verbatim:
 
 From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393... |  |
 | R10-I18N-DE | B | 1 | in-progress | - | opus/opus | - | R10-I18N-DE (owner request 2026-11-07, tvofi: "Would an german language option be a small or large group? If M or smaller, fold it into this round."; sized M... |  |
@@ -501,7 +501,7 @@ From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393... |  |
 | R10-HOTFIX-AUTHOR-EMAIL | IN | 1 | in-progress | - | sonnet/opus | - | From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P408 at 0ef02f3cab9eccf6ed8823fa46039c2d561f9096), hotfix tier (owner, 2026-11-07: it misa... |  |
 | R10-FLY-KEYED-MERGE-DRIVERS | F | 1 | refused | - | sonnet/opus | - | From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P412 at 0ef02f3cab9eccf6ed8823fa46039c2d561f9096), savings estimate 8 to 20 h (central 10... |  |
 | R10-HOTFIX-NONREQUIRED-REDS | IN | 1 | in-progress | - | opus/opus | - | Owner ruling (tvofi, 2026-11-07): "One thing I want to do immediately is not having anything block because of unnamed reds that is non required." Hotfix tier... |  |
-| R10-TRAIN-REJOIN-NO-RECARRY | IN | 2 | not-started | - | opus/opus | - | Owner ruling (tvofi, 2026-11-07, waste-study decision cards, cards 1 and 5, both accepted): two changes in the merge train, one seam. |  |
+| R10-TRAIN-REJOIN-NO-RECARRY | IN | 2 | in-progress | - | opus/opus | - | Owner ruling (tvofi, 2026-11-07, waste-study decision cards, cards 1 and 5, both accepted): two changes in the merge train, one seam. |  |
 | R10-REVIEW-ENUMERATE | C | 1 | in-progress | - | opus/opus | - | Owner ruling (tvofi, 2026-11-07, waste-study decision cards, card 2, ruled NARROW): in dev/governance/roles/fix-review.md, a reviewer returning blocked with... |  |
 | R10-FLY-DISPATCH-RULINGS | IN | 1 | in-progress | - | sonnet/opus | - | From triage batch 134 (triage: dev/programme/triage/s6-batch134.md#P419 at b1f3ce2c73001c509b61a4163d2d08cb946d1518), narrowed by the 2026-11-08 keep test (t... |  |
 | R10-OUTSIDE-FIRST | IN | 1 | in-progress | - | sonnet/opus | - | From triage batch 134 (triage: dev/programme/triage/s6-batch134.md#P420 at b1f3ce2c73001c509b61a4163d2d08cb946d1518), owner ruling tvofi 2026-11-07T19:40Z, q... |  |
