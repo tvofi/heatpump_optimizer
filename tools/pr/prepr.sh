@@ -4582,6 +4582,10 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   # roster branch, freshly fetched (`carry_line` above): pr-contract's carry check.
   CARRY_LINE=$(carry_line "$BODY"); CARRY_RC=$?
   step "carry" "$CARRY_RC" "$CARRY_LINE"
+  # Carry 4: the live consumers (the only valid `Carry:` targets) and the group's class
+  # enumeration, as the fixer's brief renders them; informational, never a refusal.
+  CT_REF=$(python3 -I -c 'import sys; sys.path.insert(0, "tools/audit/seat"); import roster_lib as r; print(r.round_ref(r.git_in(".")) or "")' 2>/dev/null)
+  [ -z "$CT_REF" ] || while IFS= read -r l; do say info "carry targets" "$l"; done < <(python3 -I tools/audit/seat/roster_lib.py brief-lines "$CT_REF" "$(git branch --show-current 2>/dev/null)" 2>&1)
 
   # --- 7d. each unpinned site step 6d listed has its disposition (`unpinned_line`).
   UNPINNED_LINE=$(unpinned_line "$BODY" "$UNPINNED_SITES")
