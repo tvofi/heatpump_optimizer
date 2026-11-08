@@ -602,7 +602,9 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
   case $rc in
     0|3) ;;
     4) printf 'bus: %s\n' "$(printf '%s\n' "$cls" | grep '^APPROVAL-OWED ' | tail -n 1)" >&2 ;;
-    1) die "dispatch: #$pr's head $h is not reviewable: a required context's latest run there concluded failure ($(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p')) -- repair the head, then dispatch" ;;
+    # CARRY 17 card 3: a required red is a repair owed to the fixer, not a refusal a
+    # retry loop re-tries (190 REFUSE tries, 2026-11-07); rc 5 and no `REFUSE:` prefix.
+    1) printf 'bus: REPAIR-OWED: dispatch: #%s'"'"'s head %s is not reviewable: a required context'"'"'s latest run there concluded failure (%s) -- back to its fixer for a repair; do not retry\n' "$pr" "$h" "$(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p')" >&2; exit 5 ;;
     *) die "dispatch: cannot classify #$pr's head $h, so no reviewer is dispatched (an unread head is never green): $(printf '%s\n' "$cls" | grep -v '^[[:space:]]*$' | tail -n 1)" ;;
   esac
   # THE REVIEW CARRY (tvofi, 2026-10-27: "if there are no code changes, the
@@ -1910,9 +1912,9 @@ B
   # its GREEN and WAIT dispatch (the null controls); an unreadable answer refuses.
   n=$(grep -c . "$W/state/dispatched")
   out=$(BUS_CLASSIFY_RC=1 run dispatch 7 "$h1" cmsg_K); rc=$?
-  [ $rc != 0 ] && echo "$out" | grep -q "is not reviewable: .*(tests / fast gate)" \
+  [ $rc = 5 ] && echo "$out" | grep -q "^bus: REPAIR-OWED: .*is not reviewable: .*(tests / fast gate)" && ! echo "$out" | grep -q "REFUSE" \
     && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] && tail -n 1 "$W/classifies" | grep -qx "classify|$h1|--repo|o/r|--pr|7|"
-  expect "a head whose required context concluded failure (classify RED) is not dispatched, and nothing is recorded" $?
+  expect "a head whose required context concluded failure (classify RED) is not dispatched, owes its fixer a repair (rc 5, REPAIR-OWED, no REFUSE), and nothing is recorded" $?
   out=$(BUS_CLASSIFY_RC=0 run dispatch 7 "$h1" cmsg_K); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
   expect "null control: the same dispatch at a GREEN-classified head mints and records" $?
