@@ -1,0 +1,36 @@
+## head self-test
+  ok   --check-event: nothing set is push mode at HEAD
+machinery_ratchet self-test: 54 checks, 0 failed
+ tools/audit/machinery_ratchet.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+## mutant 1/10
+  FAIL exemption: exactly 20% refuses: got 0, want 1
+  FAIL exemption: exactly 20% as floats refuses: got 0, want 1
+machinery_ratchet self-test: 54 checks, 2 failed
+## mutant 1/4
+  FAIL exemption: 21% with evidence passes: got 1, want 0
+  FAIL exemption: 21% right-first-time (a gain) passes: got 1, want 0
+  FAIL positive control: an entry its own merge added takes that merge out of the window: got False, want True
+machinery_ratchet self-test: 54 checks, 3 failed
+## restored
+machinery_ratchet self-test: 54 checks, 0 failed
+## base self-test
+machinery_ratchet self-test: 54 checks, 0 failed
+## rules_sync
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+## budgets head
+.claude/rules/ratchet-budgets.md                 114  114     1648  1664 
+dev/governance/roles/architect-planner.md         85   85     1261  1261 
+dev/governance/roles/designer.md                  60   60      878   878 
+dev/governance/roles/design-review.md             53   53      778   778 
+dev/governance/roles/standing-dispatch.md         38   39      505   509 
+dev/governance/dimensions/D15.md                  36   37      690   690 
+dev/governance/roles/standing-merge.md            36   37      504   507 
+dev/governance/roles/proposal-triage.md           35   36      487   489 
+dev/governance/roles/standing-roster.md           27   27      368   368 
+dev/governance/roles/standing-tick.md             26   26      330   330 
+## budgets base
+.claude/rules/ratchet-budgets.md                 114  114     1648  1664 
+dev/governance/roles/proposal-triage.md           34   36      489   489 
+## budget file diff
