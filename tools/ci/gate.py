@@ -188,10 +188,20 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         u, n = name.split(" / ", 1)
         required.setdefault(u, []).append(n)
     me = {"id": ctx["run_id"], "title": title(kind, pr, base, ctx.get("sha", "")), "status": "completed",
-          "jobs": api["jobs"]}
+          "jobs": api["jobs"], "starts": api.get("starts") or {}}
+
+    def fresh(r, names):
+        """A unit's source order: the run whose jobs for it started LATEST read the head's live
+        state last (arch-score and budget-raise-gate read the PR at their start), then the higher
+        id. GitHub numbers a same-second push and body edit out of order (r10-ci-edit-runner:
+        the edit run lower in 27 of 94 pairs), and a re-run executes a lower run's unit afresh.
+        This run's own unit while its listing lags is never displaced: its needs ran it."""
+        if r is me and any((r["jobs"].get(f"{unit} / {n}") or ("",))[0] != "completed" for n in names):
+            return "~", r["id"]
+        return max(((r.get("starts") or {}).get(f"{unit} / {n}") or "" for n in names), default=""), r["id"]
     for unit, names in required.items():
         src = None
-        for r in sorted(others + [me], key=lambda r: r["id"], reverse=True):
+        for r in sorted(others + [me], key=lambda r: fresh(r, names), reverse=True):
             if r["status"] == "action_required":
                 continue
             t = parse_title(r["title"])
@@ -233,9 +243,10 @@ def _pull(get, repo: str, pr: str) -> dict:
 def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
     """Every Actions and pulls read the predicate needs, in one place: the last step."""
     repo, (_, pr, _) = ctx["repo"], derive(ctx)
-    jobs = run_jobs(get, repo, ctx["run_id"])
+    starts: dict = {}
+    jobs = run_jobs(get, repo, ctx["run_id"], starts)
     status, conclusion = jobs.get("prelude") or (None, None)
-    api = {"prelude": {"status": status, "conclusion": conclusion, **claim},
+    api = {"prelude": {"status": status, "conclusion": conclusion, **claim}, "starts": starts,
            "jobs": jobs, "reaches_cc": reaches_cc, "live_pr": None, "open_pr_heads": set()}
     if pr and ctx["event_name"] != "merge_group":
         lp = _pull(get, repo, pr)
@@ -244,9 +255,13 @@ def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
     elif ctx["event_name"] == "workflow_dispatch":
         api["open_pr_heads"] = {p["head"]["sha"] for p in ghapi.paginate(f"repos/{repo}/pulls", {"state": "open"}, get=get)}
     runs = ghapi.paginate(f"repos/{repo}/actions/workflows/ci.yml/runs", {"head_sha": ctx["head"]}, get=get)
-    api["runs_at_head"] = [{"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
-                            "jobs": {} if r["status"] == "action_required" else run_jobs(get, repo, r["id"])}
-                           for r in runs if r["id"] != ctx["run_id"]]
+    api["runs_at_head"] = []
+    for r in runs:
+        if r["id"] != ctx["run_id"]:
+            st: dict = {}
+            api["runs_at_head"].append({"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
+                                        "starts": st, "jobs": {} if r["status"] == "action_required"
+                                        else run_jobs(get, repo, r["id"], st)})
     return api
 
 
