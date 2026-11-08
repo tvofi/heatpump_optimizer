@@ -280,12 +280,24 @@ def _run_batch(a, sh, rep, py, editor, lines, mark):
         common += ["--branch", a.branch]
     try:
         re_ = load_editor(editor)
-        edits = []
-        for _, (op, g, arg, extra) in items:
-            with contextlib.redirect_stderr(io.StringIO()):  # argparse's usage noise
-                args, value, rest = re_.parse_op(
-                    [op, g] + ([arg] if arg else []) + extra + common)
-            edits.append(re_.make_edit(args, value, rest))
+        edits, good = [], []
+        for ln, (op, g, arg, extra) in items:
+            err = io.StringIO()
+            try:
+                with contextlib.redirect_stderr(err):  # argparse's usage noise
+                    args, value, rest = re_.parse_op(
+                        [op, g] + ([arg] if arg else []) + extra + common)
+                edits.append(re_.make_edit(args, value, rest))
+                good.append((ln, (op, g, arg, extra)))
+            except (SystemExit, re_.Refuse) as e:
+                # one line the parser refuses: name it, batch the rest (P417)
+                why = (err.getvalue().strip().splitlines() or [str(e)])[-1]
+                rep(f"roster: {op} {g} refused rc=2 {why[:300]}")
+                if mark:
+                    mark_line(a.queue, ln, "refused")
+        items = good
+        if not items:
+            return 0
         edit, results = re_.batch_edit(edits)
         _git("fetch", "-q", "origin", cwd=a.lint_clone)
         _git("checkout", "-q", "--detach", "origin/main", cwd=a.lint_clone)
@@ -299,9 +311,8 @@ def _run_batch(a, sh, rep, py, editor, lines, mark):
         m = re.search(r"pushed \S+ at ([0-9a-f]+)", buf.getvalue())
         if rc != 0 or not (m or not any(r is None for r in results)):
             raise RuntimeError(f"batch rc={rc}")
-    except SystemExit as e:  # argparse refused a line: that is a batch-level failure
-        rc, m, results = 1, None, None
-    except Exception as e:  # noqa: BLE001
+    except (SystemExit, Exception) as e:  # noqa: BLE001 - say what, then fall back
+        rep(f"roster: batch failed {type(e).__name__}: {str(e)[:300]}".replace("\n", " "))
         rc, m, results = 1, None, None
     if results is None:
         rep("roster: batch fell back to the single-op path")
@@ -718,8 +729,9 @@ def _self_test():
                   python=sys.executable)
         rr = (t / "rep").read_text().split("\n")
         ck("run --batch: a batch-level failure falls back to the single-op path",
-           rr[0] == "roster: batch fell back to the single-op path"
-           and rr[1] == f"roster: bogus-op G pushed {sha[:9]}", rr)
+           rr[0].startswith("roster: batch failed RuntimeError") and "no batch_edit" in rr[0]
+           and rr[1] == "roster: batch fell back to the single-op path"
+           and rr[2] == f"roster: bogus-op G pushed {sha[:9]}", rr)
         # ONE editor for both paths (resolve_editor), named by what each path ran
         seen = []
         real_load = load_editor
@@ -733,8 +745,8 @@ def _self_test():
                   python=sys.executable)
         globals()["load_editor"] = real_load
         ck("run --batch loads the passed --editor, and its fallback runs that same file",
-           seen == [str(stub)] and (t / "rep").read_text().split("\n")[1]
-           == f"roster: set-stage G pushed {sha[:9]}", seen)
+           seen == [str(stub)] and f"roster: set-stage G pushed {sha[:9]}"
+           in (t / "rep").read_text().split("\n"), seen)
         ck("resolve_editor: no --editor is the roster_edit.py beside this script, never the edit checkout",
            resolve_editor(argparse.Namespace(editor=None, edit_checkout=str(clone)))
            == str(Path(__file__).resolve().parent / "roster_edit.py")
@@ -750,6 +762,15 @@ def _self_test():
                                         "editor": real_ed}), python=sys.executable)
         ck("run --batch: a batch whose every op is refused reports each refused, no fallback",
            (t / "rep").read_text().startswith("roster: set-stage G refused rc=2"))
+        # P417: one malformed line is named and refused; the rest still batch
+        fresh("1 bogus-op G done\n2 set-stage G done\n")
+        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 2, "batch": True,
+                                        "editor": real_ed}), python=sys.executable)
+        rr = (t / "rep").read_text().split("\n")
+        ck("run --batch: a malformed line is named and refused, the rest still batch (no fallback)",
+           rr[0].startswith("roster: bogus-op G refused rc=2")
+           and rr[1].startswith("roster: set-stage G refused rc=2")
+           and "fell back" not in "\n".join(rr), rr)
         # release-held: a held carry waits for its batch file on origin/main
         (t / "q.txt").write_text(
             "#held append-carry G 'x dev/programme/triage/b.md#P1'\n"
