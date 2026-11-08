@@ -44851,9 +44851,8 @@ R.check(
 _wf_not_ready = _wf_view(
     {"wood_tank_volume": 500.0},
     prices=[4.0],
-    outdoor=[-5.0],
+    cops=[2.0],
     runs=[True],
-    cop_at=lambda _t: 2.0,
     timestamps=[],
     forecast_kw=[],
 )
@@ -45032,9 +45031,8 @@ R.check(
 
 _wf_soc_kwargs = dict(
     prices=_wf_cheap_night,
-    outdoor=[0.0] * 48,
+    cops=[3.0] * 48,
     runs=[False] * 48,
-    cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
 )
@@ -45083,9 +45081,8 @@ R.check(
 _wf_skip_view = _wf_view(
     _wf_cfg,
     prices=_wf_skip_prices,
-    outdoor=[0.0] * 48,
+    cops=[3.0] * 48,
     runs=[False] * 48,
-    cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
     wood_tank_temperature=87.4,

@@ -184,9 +184,8 @@ def _wood_view(cheap_steps, off_steps=(), config=None):
     return build_wood_fuel_view(
         _WOOD_READY if config is None else config,
         prices=[4.0 if i in cheap_steps else 1.0 for i in range(n)],
-        outdoor=[0.0] * n,
+        cops=[3.0] * n,
         runs=[i not in off_steps for i in range(n)],
-        cop_at=lambda _t: 3.0,
         timestamps=_STAMPS,
         forecast_kw=[],
         local_tz=_tz.utc,
@@ -248,9 +247,8 @@ _CET = _tz(_td(hours=1))
 _local = build_wood_fuel_view(
     _WOOD_READY,
     prices=[4.0 if i in (22, 23) else 1.0 for i in range(30)],
-    outdoor=[0.0] * 30,
+    cops=[3.0] * 30,
     runs=[True] * 30,
-    cop_at=lambda _t: 3.0,
     timestamps=_STAMPS,
     forecast_kw=[],
     local_tz=_CET,
