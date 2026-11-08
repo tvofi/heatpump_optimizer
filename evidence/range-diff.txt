@@ -1,0 +1,11 @@
+ 1:  0f4df1173 =  1:  0f4df1173 harness: R10-PARTLOAD-RESIDUE solver CPU (relaxed pass, buffer store), one lever per arm, process_time on one core
+ 2:  67cc12cc5 =  2:  67cc12cc5 closures: classify the r10_partload_residue harness as an inert read of harness_headers
+ 3:  d5f8f410c =  3:  d5f8f410c record: the delivery row for #3291
+ 4:  306a0b76e =  4:  306a0b76e harness: R10-PARTLOAD-RESIDUE refill, carry 2's terminal and deferred secant error at the plan's own energy-weighted draw, zero-derate null
+ 5:  4555ba0c8 =  5:  4555ba0c8 harness: R10-PARTLOAD-RESIDUE refill measures carry 2's fourth seam, the wood advisor's pump-heat price, and refuses a zero d>0 maximum
+ 6:  26fcbc7eb =  6:  26fcbc7eb wood_fuel: price pump heat at the derated COP of the plan's own draw (R10-PARTLOAD-RESIDUE, #3182 carry 2's fourth seam)
+ 7:  ac397921e =  7:  ac397921e tests: wood_advisor's derated-count result is _wood_counts, not production's name _derated (no-copies)
+ 8:  8594a61c5 =  8:  8594a61c5 wood_fuel: _derated drops its equivalent empty guard; wood_advisor pins the draw read's edges (no partload_at, a non-finite draw, no hot-water schedule, a plan shorter than the outdoor list)
+ 9:  2f25b3893 =  9:  2f25b3893 tests: wood_advisor pins the night advice's flat COP 3 with no outdoor forecast
+10:  9211bed5a = 10:  9211bed5a ci: pin killed mutants
+11:  a3a54793c = 11:  a3a54793c wood_fuel: price per-step COPs, not an eleventh parameter (R10-PARTLOAD-RESIDUE)

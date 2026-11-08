@@ -1,58 +1,56 @@
 # Review packet #3291
-head: 17e891bf00140d79e166d95901391294002b513c
-base: 73365699a135fb813a43380096b6776d57f8ff4c
+head: 5fca8c7042a0b1b11057b9694a55e9965a07bdf4
+base: 16f3d9cc3ab4b8c2f532aae79443e3458fc7fc0d
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=128672955101 neutral
-arch-score / arch-score id=128690671034 success
-arm id=128672631176 skipped
-budget-raise-gate / budget-raise-gate id=128690700421 success
-cancel-superseded id=128690707884 success
-codeql id=128690705840 skipped
-codeql / Analyze (actions) id=128690669364 success
-codeql / Analyze (javascript-typescript) id=128690669418 success
-codeql / Analyze (python) id=128690670166 cancelled
-gate id=128690670687 in_progress
-governance id=128690703393 skipped
-governance / delivery-status id=128690669488 success
-governance / delivery-status-publish id=128690669360 skipped
-governance / env-matrix id=128690669584 success
-governance / instrument-self-tests id=128690669636 success
-governance / policy-docs id=128690669861 success
-governance / record id=128690669670 skipped
-governance / wave-script id=128690669515 success
-hassfest id=128690694992 skipped
-hassfest / hassfest id=128690669414 success
-kernel-points id=128690671085 skipped
-pr-contract id=128690667131 skipped
-pr-contract / pr-contract id=128690671724 success
-prelude id=128690699120 success
-refresh id=128690696637 success
-tests id=128690709159 skipped
-tests / arch-instrument id=128690670041 success
-tests / briefs id=128690669526 success
-tests / browser id=128690670496 success
-tests / ci-ratchet id=128690671177 skipped
-tests / claims-autofix id=128690671068 skipped
-tests / closure-scope id=128690669888 success
-tests / closures id=128690670122 success
-tests / closures-autofix id=128690670773 skipped
-tests / coverage id=128690670198 success
-tests / coverage-ratchet id=128690670835 success
-tests / fast (3.14) id=128690670158 success
-tests / graders-head-copy id=128690670535 success
-tests / lane-proofs id=128690670919 success
-tests / mutation id=128690669240 success
-tests / mutation-autofix id=128690670849 skipped
-tests / mutation-pins id=128690670353 skipped
-tests / nightly-ha id=128690670834 skipped
-tests / nightly-status id=128690669935 success
-tests / replay id=128690670582 success
-tests / typing id=128690669911 success
-validate id=128690705280 skipped
-validate / validate-hacs id=128690669299 success
+## Gate digest: green
+CodeQL id=128795297397 success
+arch-score / arch-score id=128826616352 success
+budget-raise-gate / budget-raise-gate id=128826643109 success
+cancel-superseded id=128826639070 skipped
+codeql id=128826555412 skipped
+codeql / Analyze (actions) id=128826647089 success
+codeql / Analyze (javascript-typescript) id=128826616392 success
+codeql / Analyze (python) id=128826648728 success
+gate id=128827075024 success
+governance id=128826555873 skipped
+governance / delivery-status id=128826616801 skipped
+governance / delivery-status-publish id=128826616122 skipped
+governance / env-matrix id=128826616103 success
+governance / instrument-self-tests id=128826649119 success
+governance / policy-docs id=128826656115 success
+governance / record id=128826658746 skipped
+governance / wave-script id=128826616391 success
+hassfest id=128826555909 skipped
+hassfest / hassfest id=128826655513 success
+kernel-points id=128826645390 skipped
+pr-contract / pr-contract id=128826884628 success
+prelude id=128826655578 success
+refresh id=128826636538 success
+tests id=128826555987 skipped
+tests / arch-instrument id=128826617214 success
+tests / briefs id=128826616371 success
+tests / browser id=128826616634 success
+tests / ci-ratchet id=128826617842 skipped
+tests / claims-autofix id=128826617494 skipped
+tests / closure-scope id=128826647273 success
+tests / closures id=128826616841 success
+tests / closures-autofix id=128826617583 skipped
+tests / coverage id=128826616660 success
+tests / coverage-ratchet id=128826616987 success
+tests / fast (3.14) id=128826616959 success
+tests / graders-head-copy id=128826617375 skipped
+tests / lane-proofs id=128826617891 skipped
+tests / mutation id=128826652067 success
+tests / mutation-autofix id=128826617510 skipped
+tests / mutation-pins id=128826617194 skipped
+tests / nightly-ha id=128826617322 skipped
+tests / nightly-status id=128826650576 skipped
+tests / replay id=128826617031 skipped
+tests / typing id=128826616704 success
+validate id=128826556110 skipped
+validate / validate-hacs id=128826615866 success
 
 ## Refusals
 none
@@ -61,7 +59,7 @@ none
 none
 
 ## carry_audit at the head
-NOTE stale tree: 17e891bf00140d79e166d95901391294002b513c lacks origin/main 6188936a8bdc58b510ecb8794ad86350283c49a7; roster read at origin/main
+NOTE stale tree: 5fca8c7042a0b1b11057b9694a55e9965a07bdf4 lacks origin/main 996ded2a6dc52816bd4c7dd873c048d85fc6adad; roster read at origin/main
 NOTE body item c144b573: dismissed:fixed in this diff
 NOTE body item 90972501: dismissed:no in-tree input reproduces it; re-opens only from a diagnostics bundle (D15), which this group does not hold
 NOTE body item 213e8a10: R10-SAV-COMFORT
@@ -601,10 +599,10 @@ index 000000000..974eafcc3
 @@ -0,0 +1 @@
 +- [#3291](https://github.com/tvofi/heatpump_optimizer/pull/3291) — **open**, R10-PARTLOAD-RESIDUE: partload residue (R10-PARTLOAD-RESIDUE)
 diff --git a/tests/closures.json b/tests/closures.json
-index 0a6011505..ed9c971c2 100644
+index 983900c2a..6ab6d93bb 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -4108,6 +4108,7 @@
+@@ -4113,6 +4113,7 @@
     "dev/audit/harnesses/r10_nightly_status_mutants.py",
     "dev/audit/harnesses/r10_open_driver_mutants.py",
     "dev/audit/harnesses/r10_partload_pricing.py",
@@ -613,7 +611,7 @@ index 0a6011505..ed9c971c2 100644
     "dev/audit/harnesses/r10_plan_issues_chart_mutants.py",
     "dev/audit/harnesses/r10_plan_page_mutants.py",
 diff --git a/tests/features.py b/tests/features.py
-index c08b186ca..e92a46843 100644
+index f74104846..e8c632a0b 100644
 --- a/tests/features.py
 +++ b/tests/features.py
 @@ -44851,9 +44851,8 @@ R.check(
@@ -709,17 +707,17 @@ index 000000000..95cd9da48
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/wood_advisor.py from rc=0 failed=0 to rc=1 failed=1."
 +}
 diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
-index b09de8666..d25f493d0 100644
+index 0c48efaa2..e8fe5d7fe 100644
 --- a/tests/structure_budgets.json
 +++ b/tests/structure_budgets.json
 @@ -1,5 +1,5 @@
  {
-- "class_excess_loc": 17560,
-+ "class_excess_loc": 17559,
+- "class_excess_loc": 17558,
++ "class_excess_loc": 17557,
   "const_modules_over_50": 3,
   "coordinator_attrs": 141,
   "coordinator_multiassigned_attrs": 108,
-@@ -11,11 +11,11 @@
+@@ -11,7 +11,7 @@
   "functions_cc_over_25": 8,
   "import_cycle_modules": 0,
   "max_cc": 44,
@@ -728,11 +726,6 @@ index b09de8666..d25f493d0 100644
   "max_method_loc": 373,
   "methods_over_150": 15,
   "methods_over_200": 8,
-  "name_kept_members": 38,
-- "recorded_at": "28482eceeb6b9809e44b12d80fc994282cc21645",
-+ "recorded_at": "4b5d771bdf8feb1f83d7d9443e5117b771a0ab76",
-  "seam_cut_total": 423
- }
 diff --git a/tests/wood_advisor.py b/tests/wood_advisor.py
 index f496a546c..0e90ed366 100644
 --- a/tests/wood_advisor.py

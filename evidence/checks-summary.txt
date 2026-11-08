@@ -1,0 +1,10 @@
+structure rc=0
+wood_advisor rc=1
+features rc=1
+archscore_diff rc=0
+entities rc=1
+review_packet rc=0
+DONE
+features rc=0
+features_mutA rc=1
+entities rc=0
