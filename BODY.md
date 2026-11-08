@@ -2,9 +2,7 @@ Root-cause record for the third instance of the relay handoff-starvation class (
 
 ## Head
 
-3f1ec2907e1ff0c5eaabf2144144a36e3e214ca9
-
-Main (origin/main 28596c569) had not moved relevantly since the cut; no second prepr run, per the owner's ruling.
+08aebae1332325f9d26b4ca8a786f088b6d6dd89
 
 ## Mutation proof
 
@@ -27,9 +25,15 @@ n/a: no production code changes; the one new script is a detector whose null con
 
 none: no line under custom_components/ is added.
 
+## Head note
+
+Repair of the red `gate` and `pr-contract` at fae447091744a7bb7f5a07880fb89ff89f00dac6. The only code-kind run at that head (42527768645) was cancelled by the run-id group at 22:05; the two edit runs after it deferred to it, so no run at that head ever ran `tests`, `codeql`, `governance`, `hassfest` or `validate`. The repair is a new head (a merge of origin/main 425b85849), which starts a fresh code run; the diff is otherwise unchanged from fae447091.
+
 ## Red checks
 
-none
+- `gate` (runs 42528359772 and 42527769003): `FAIL tests: no run at this head judged base 'main'`, and the same for codeql, governance, hassfest, validate. Cause: the head's code run was cancelled, so the units never ran; not a branch defect. Cheaper detector: none cheaper than the gate, whose line names the cause (class `r10-rca-livehead-cancel`).
+- `pr-contract / pr-contract` (same runs): `FAIL closed: no run at this head owns a finished codeql unit for base 'main' after 600 s`, same cause; the body steps of that job (figures, carry-audit) read clean in its log.
+- `gate` (run 42527768645), cancelled: superseded by the later runs at the same head; nothing further owed.
 
 ## Forward-carry
 
