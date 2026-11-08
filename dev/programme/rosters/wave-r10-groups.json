@@ -18117,7 +18117,8 @@
     "From r10-round-playbook, body item e3198644: Brief carry 22: `dev/programme/HANDOVER.md`'s stale `pr_cap` owed entry. Carry: R10-ROUND-PLAYBOOK-FINAL (items e3198644)",
     "From r10-round-playbook, body item 74f2ae7d: Brief carry 0 (1): at this merge base, `standing-dispatch.md` names no beat row for the dispatch and relay seat (\"A beat job takes over once a cycle's log agrees\"). The README says the seat stays. The final pass names its row once one is live. Carry: R10-ROUND-PLAYBOOK-FINAL (items 74f2ae7d)",
     "From r10-round-playbook, body item 450cd329: Brief carry 14's baseline: the carry's 19 does not reproduce. The rule in Figures reads 21 on 2026-10-24. Carry: R10-ROUND-PLAYBOOK-FINAL (items 450cd329)",
-    "From r10-round-playbook, body item 8d90671c: Brief carries 1-10, 13, 15, 17, 18, 19, 23 are written into the README's round-11 list and production-share paragraph (carry 4's held groups are named under the org-move decision). Brief carry 24's closure sentence is quoted verbatim. Carry: R10-ROUND-PLAYBOOK-FINAL (items 8d90671c)"
+    "From r10-round-playbook, body item 8d90671c: Brief carries 1-10, 13, 15, 17, 18, 19, 23 are written into the README's round-11 list and production-share paragraph (carry 4's held groups are named under the org-move decision). Brief carry 24's closure sentence is quoted verbatim. Carry: R10-ROUND-PLAYBOOK-FINAL (items 8d90671c)",
+    "From r10-round-playbook, body item 121b68bc: `review_packet.py`: contradiction: the dispatched brief numbers carries from 0, while `review_packet.py handoff` counts them from 1 (`range(1, n+1)`). A body that answers \"Carry 0\" is refused for carry 25, and its other answers are read one number off. Carry: R10-ROUND-PLAYBOOK-FINAL (items 121b68bc)"
    ],
    "architect_note": "",
    "resume": {
