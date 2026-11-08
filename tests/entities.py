@@ -28452,7 +28452,7 @@ R.check(
     "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
     _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
     and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
-    == ["base", "machinery"],
+    == ["base", "machinery", "selftests"],
     f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.

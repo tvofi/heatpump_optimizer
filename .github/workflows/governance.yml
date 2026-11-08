@@ -289,7 +289,9 @@ jobs:
     # that misses what it read (`drift`), so a wrong closure turns main red
     # within one merge. The rule, its fail-closed arms and its blind spots
     # are tools/ci/selftest_scope.py's docstring.
-    timeout-minutes: ${{ github.event_name == 'push' && 45 || 30 }}
+    # A push traces every step and folds the traces (measured locally: about
+    # 34 minutes for both), so it gets 60.
+    timeout-minutes: ${{ github.event_name == 'push' && 60 || 30 }}
     env:
       HPO_JOB_GRADES: nothing
       SELFTEST_TRACE: ${{ github.event_name == 'push' && '1' || '' }}

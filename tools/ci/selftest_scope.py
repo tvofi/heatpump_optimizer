@@ -2,6 +2,7 @@
 """Scope governance.yml's instrument-self-tests steps by their measured read sets.
 
     python3 -I tools/ci/selftest_scope.py select --base REF [--head REF]
+    python3 -I tools/ci/selftest_scope.py select --change M:docs/x.md [--change A:PATH]...
     python3 -I tools/ci/selftest_scope.py ids
     python3 -I tools/ci/selftest_scope.py record [--step ID]... [--out PATH]
     python3 -I tools/ci/selftest_scope.py check --traces DIR [--write PATH]
@@ -283,10 +284,12 @@ def select(changes: list[tuple[str, str]], table: dict | None, steps: list[Step]
     gate = sorted(p for _, p in changes if p in GATE_FILES)
     if gate:
         return full(f"a gate file changed: {gate}")
-    known_files = set().union(*(set(e.get("files", ())) for e in table["steps"].values()))
-    known = known_files | set().union(*(set(e.get("probes", ())) for e in table["steps"].values()))
+    # Exact names only: a `D/**` entry says every file D held was read, which
+    # is no record of a file D did not hold yet.
+    known = set().union(*(set(e.get("files", ())) | set(e.get("probes", ()))
+                          for e in table["steps"].values()))
     new = sorted(p for st, p in changes if st == "A" and p.startswith(NEW_FILE_PREFIX)
-                 and p not in known and not covers(known_files, p))
+                 and p not in known)
     if new:
         return full(f"a new {NEW_FILE_PREFIX} file has no recorded closure: {new}")
     picked = []
@@ -787,6 +790,9 @@ def self_test() -> int:
               steps)["ids"] == ["a"])
     ck("a new tools/ file with no recorded closure runs every step",
        S(("A", "tools/x/new.py"))["mode"] == "FULL")
+    ck("... even under a directory a step read whole (D/** names no file D did not hold)",
+       select([("A", "tools/x/new.py")], {"steps": {**table["steps"], "b": entry(b, files=["tools/**"])}},
+              steps)["mode"] == "FULL")
     for gate in sorted(GATE_FILES):
         ck(f"a gate file runs every step: {gate}", S(("M", gate))["mode"] == "FULL")
     ck("an unreadable table runs every step (fail closed)",
@@ -911,11 +917,14 @@ def main(argv: list[str]) -> int:
         return 0
     if argv == ["static"]:
         return static_check()
-    if argv[:1] == ["select"] and "--base" in argv:
-        base = argv[argv.index("--base") + 1]
-        head = argv[argv.index("--head") + 1] if "--head" in argv else "HEAD"
+    if argv[:1] == ["select"] and ("--base" in argv or "--change" in argv):
         steps = workflow_steps()
-        changes = diff_changes(base, head)
+        if "--change" in argv:          # a hypothetical diff: STATUS:PATH ...
+            changes = [tuple(argv[k + 1].split(":", 1)) for k, a in enumerate(argv) if a == "--change"]
+        else:
+            base = argv[argv.index("--base") + 1]
+            head = argv[argv.index("--head") + 1] if "--head" in argv else "HEAD"
+            changes = diff_changes(base, head)
         plan = select(changes or [], load_table(ROOT / TABLE), steps) if changes is not None else \
             {"mode": "FULL", "why": "git cannot diff", "ids": gated_ids(steps)}
         print(mode_line(plan))
