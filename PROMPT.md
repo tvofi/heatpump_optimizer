@@ -7,7 +7,7 @@ Never write to any branch except your return refs and refs/heads/handoff-wip/r10
 Brief (snapshotted when this payload was rendered):
 Repair fixer for #3344 (topic r10-roster-write-sweep-p2).
 Blocked verdict, first line verbatim:
-VERDICT.md evidence/HEAD.txt evidence/ci_classify.txt 
+Fix review: blocked 1a1da73c912e471b40b7b06ea94a76b71d62c100 mutation-vacuous: write_roster passes base_text to lint_gate unpinned (deleting it fails 0 of 254 checks); refusal_tail row passes on the old tail
 
 Read the full verdict comment on #3344 first (it is the newest hpo-approver "Fix review:" comment).
 Repair this blocked PR on its existing handoff topic r10-roster-write-sweep-p2: fix only what the verdict names, then merge origin/main if it moved, re-run tools/pr/prepr.sh (PREPR_SKIP_CLOSURES=1 allowed), and re-publish with body_push.sh (the body must answer every red under ## Red checks and name its new ## Head). Push only handoff/r10-roster-write-sweep-p2 and handoff-body/r10-roster-write-sweep-p2, never a PR. Make no GitHub writes. Every finding line ends Carry: <GROUP>|#N|dismissed: <reason>. If the verdict names a defect that is not this PR's (a baseline red at origin/main), show it at origin/main and answer it in the body instead of changing code.
