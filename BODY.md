@@ -67,13 +67,13 @@ Step ref: the previous seat's `handoff-wip/r10-body-contract-p3` tip held only a
 
 ## Head
 
-fcd03452c746d9f61fb4aff53e81c0cc7d0544bf
+69f652ae101f5cae2dbae55226ef968b3060f13a
 
-main merged, policy_lint.mjs resolved by union. The merge of origin/main (#3305, merge 5e1ffb34) conflicted in one hunk of tools/policy/policy_lint.mjs: this PR inserts `figureBlockProblems` before `checkPrBody`, #3305 widens the `checkPrBody` signature with `required = null`. Resolution: both kept, so the signature carries `required` and `figureBlockProblems` is present and called (`figureBlockProblems(body, { base, head })` in checkPrBody). Resolution delta against origin/main in that file: only the `figureBlockProblems` function and its call and self-test uses (`git diff origin/main fcd03452c -- tools/policy/policy_lint.mjs`). tests/closures.json merged by its driver. Confirmed present after the merge: #3305's `required` option, its `required()` read for silent reds, and its self-test arms (reqGot, unreadSet, owed-reds stub); this PR's `figureBlockProblems` and its self-test arm. `node tools/policy/policy_lint.mjs --self-test` exits 0 (FIXTURE ok); `tools/pr/prepr.sh` at this head exits 0 (mode FULL, closures skipped as unscopable). fcd03452c is the conflict merge a5fd59d19 plus the wip marker merge (identical tree). Null control: `git merge-tree --write-tree origin/main fcd03452c | grep -c CONFLICT` prints 0.
+Repair round: `governance / instrument-self-tests` was red because the step `Show the figure-block renderer refusing its own fixtures` in `.github/workflows/governance.yml` had no `id:` and an `if:` of `${{ !cancelled() }}`, so `tools/ci/selftest_scope.py` read it as UNGATED. It now carries `id: figure-block` and `if: steps.scope.outputs.figure-block == 'true'`, as its neighbours do, and its measured closure is recorded in `tools/ci/selftest_closures.json` by `selftest_scope.py record --step figure-block` (strace, Linux). `selftest_scope.py` itself is unchanged. This commit adds no other file. `git merge-tree --write-tree origin/main HEAD` reports no conflict, so no merge is made.
 
 ## Mutation proof
 
-`figure_block.py --self-test` mutants: hand-typed value, moved head, unregistered/head-only instrument, unknown name, non-zero exit each fail their check; `body_push.sh --self-test` deletes the `# mut:keep` refresh line and its arm fails; `policy_lint.mjs` registers `figureBlockProblems` as a return-mutant site. Earlier repair: reverting the figure_block.py hunk makes `tests/throwaway_git.py --check` refuse `tools/pr/figure_block.py` and the prepr self-test fail its two raw-git checks. The merge adds no production line of its own.
+Earlier mutation proof stands (`figure_block.py --self-test` mutants, `body_push.sh --self-test` `# mut:keep` arm, `policy_lint.mjs` return-mutant site). This round's null control: at the previous head df99cceb4, `python3 tools/ci/selftest_scope.py static` printed `UNGATED step 'Show the figure-block renderer refusing its own fixtures': its if: does not read steps.scope.outputs.<its own id>` and `1 problem(s)`; with the `id:`/`if:` edit but before recording, it printed `STALE tools/ci/selftest_closures.json: its steps differ from the workflow's: missing ['figure-block']`; at this head it prints `0 problem(s)`. `python3 tools/ci/selftest_scope.py --self-test` prints `the live job parses (116 steps) and its gating is consistent` and `90 checks, 0 failed`.
 
 ## Null control
 
@@ -103,9 +103,13 @@ Policy files touched (policy_lint.mjs, PULL_REQUEST_TEMPLATE.md, pr-contract.yml
 
 ## Red checks
 
-`governance / delivery-status` is red at 7c586c7cf (job 128960422153, run 42554818800) and it is main's red, not this diff's: it grades main's delivery rows, and its log reads `DELIVERY STATUS OVERDUE — 0 rowed, 12 pending, 3 overdue (overdue at 12 commits)`, with the overdue rows #3333, #3316 and #3318, record PRs held for the stamp. This diff edits `.github/workflows/governance.yml` (the figure-block self-test step), so the body exemption does not apply and the red is named here. Evidence: the identical line prints on #3360 (job 128988774945) and #3350 (job 128985523599) at 2026-11-09 05:09 and 05:00Z, with the same three overdue rows. #3360's diff touches only its own delivery row, none of this check's inputs. The check's own text says it is not a required context. Cheaper detector: none; `tools/audit/seat/delivery_row.sh` and the check itself already catch it, and the standing cost is the stamp draining the rows, which this PR cannot do. Carry: dismissed: main's overdue rows pending the stamp, not this diff.
+`governance / instrument-self-tests` is red at df99cceb4 (job 129330035964) and it is this PR's own: the added figure-block step lacked a scope gate. Cheaper detector: `python3 tools/ci/selftest_scope.py static`, which names the step in under a second; its standing cost is that call in `prepr.sh`, which runs `--self-test` of the same script already. Same class as #3341. Repaired in this head.
 
-none other predicted: the earlier `governance / policy-docs` refusal is answered by the base's pending entry (#3312).
+`tests / fast (3.14)` is red and inherited from main at 2f6d699e (de.json keys and D6 claim C112), fixed by #3378; this diff touches neither.
+
+`prepr.sh` at this head refuses only `claims register` (D6 header `claims_true=122`, not 123), the same inherited main red that #3378 fixes; this branch touches no claim file (`claim files: byte-identical to origin/main`), so it is left for #3378. `gate` follows from those two reds, nothing separate.
+
+Earlier: `governance / delivery-status` grades main's overdue delivery rows, not this diff; cheaper detector: none, the stamp drains the rows. Carry: dismissed: main's overdue rows pending the stamp, not this diff.
 
 ## Forward-carry
 
