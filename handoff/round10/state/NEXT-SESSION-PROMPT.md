@@ -48,7 +48,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-COP-GATE-E (stage carries-open, branch `handoff/r10-cop-gate-e`): `git fetch origin handoff/r10-cop-gate-e && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PARTLOAD-RESIDUE (stage carries-open, branch `handoff/r10-partload-residue`): `git fetch origin handoff/r10-partload-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TRAIN-STALE-VERDICT-GUARD (stage in-progress, branch `handoff/r10-train-stale-verdict-guard`): `git fetch origin handoff/r10-train-stale-verdict-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-I18N-DE (stage in-progress, branch `handoff/r10-i18n-de`): `git fetch origin handoff/r10-i18n-de && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-I18N-DE (stage carries-open, branch `handoff/r10-i18n-de`): `git fetch origin handoff/r10-i18n-de && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GENERIC-HEAT-CURVE (stage in-progress, branch `handoff/r10-generic-heat-curve`): `git fetch origin handoff/r10-generic-heat-curve && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-INSTRUMENTS (stage carries-open, branch `handoff/r10-closeout-instruments`): `git fetch origin handoff/r10-closeout-instruments && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-MIN-POWER-FLOOR (stage carries-open, branch `handoff/r10-min-power-floor`): `git fetch origin handoff/r10-min-power-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`

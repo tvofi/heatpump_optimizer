@@ -470,7 +470,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-TRAIN-STALE-VERDICT-GUARD | IN | 2 | in-progress | - | opus/opus | - | Split out of R10-TRAIN-MERGE-LOOP-2 (its carry 18, triage batch 127 P393), verbatim:
 
 From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393... |  |
-| R10-I18N-DE | B | 1 | in-progress | - | opus/opus | - | R10-I18N-DE (owner request 2026-11-07, tvofi: "Would an german language option be a small or large group? If M or smaller, fold it into this round."; sized M... |  |
+| R10-I18N-DE | B | 1 | carries-open | - | opus/opus | - | R10-I18N-DE (owner request 2026-11-07, tvofi: "Would an german language option be a small or large group? If M or smaller, fold it into this round."; sized M... |  |
 | R10-GENERIC-HEAT-CURVE | UI | 1 | in-progress | - | opus/opus | - | Owner rulings (tvofi, #201, 2026-11-07, verbatim): "Yes, it should be built. |  |
 | R10-GENERIC-HEAT-CURVE-PERSISTENT | UI | 2 | not-started | - | opus/opus | - | Owner rulings (tvofi, #201, 2026-11-07, verbatim): "Yes, it should be built. |  |
 | R10-ARBITER-OFF-RESTORE | CORE | 3 | not-started | - | opus/opus | - | Owner ruling (tvofi, #201 comment 6708225978, 2026-11-07, verbatim): "Arbiter too" - the ruling that turning the optimizer off restores the baseline applies... |  |
