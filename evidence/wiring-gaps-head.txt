@@ -1,0 +1,1 @@
+GAP UNGATED step 'Show the bottleneck alert tripping each rule once and silent on its null control': its if: does not read steps.scope.outputs.<its own id>

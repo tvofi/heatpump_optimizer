@@ -1,0 +1,12 @@
+4c4
+<        - name: Show the outside intake owing, answering once and refusing its fixtures
+---
+>          if: steps.scope.outputs.outside-intake == 'true'
+195d194
+<     "dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py",
+196a196
+>     "dev/audit/harnesses/r10_nonrequired_reds.py",
+199a200
+>     "dev/audit/harnesses/r10_partload_residue.py",
+201d201
+<     "dev/audit/harnesses/r10_plan_issues_chart_mutants.py",
