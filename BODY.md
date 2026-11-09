@@ -55,6 +55,7 @@ Carry 45 - status line from #3318 (item 52b55967) on carry 9 (#2438): already bu
 Carry 46 - status line from #3318 (item fe95bcab) on carry 10: answered above, already built at the base by 8a2492ab5.
 Carry 47 - status line from #3318 (item 4a5f7e3c) on carry 44: built by #3318; nothing for part 3.
 Carry 48 - held by the group's other part (carry_audit continuation and quoted-phrase parsing); part 3 takes card 7 and its legacy-control item only.
+Carry 49 - held by the group's other part (part 5: carry_audit NONBLOCK section scoping, triage batch 137 P440, built together with carry 47); part 3 takes card 7 and its legacy-control item only.
 
 Earlier repair round (head 86f9e729f, unchanged here): `figure_block.py`'s self-test repository is built through `tests/throwaway_git.py` (`throwaway_git_init`), which clears the prepr self-test's two `throwaway_git.py --check` failures; the `field_coverage.mjs` entry for `pinned tools/pr/figure_block.py` is in its final shape (`none:`, no `pending:`).
 
@@ -66,11 +67,9 @@ Step ref: the previous seat's `handoff-wip/r10-body-contract-p3` tip held only a
 
 ## Head
 
-7c586c7cf5a70cf7ebfb7c58588aa6954b58f0ae
+fcd03452c746d9f61fb4aff53e81c0cc7d0544bf
 
-Body-only repair at the train head: 7c586c7cf is the merge of origin/main (c782949e3, #3354) into the handoff tip 566ff8352; no code changed.
-
-Two merges of origin/main into 86f9e729f: 17e621f08 (the conflict, resolved at 377b93dce), then 51cd5ec8a (clean; LEDGER-MERGE again resolved tests/closures.json). Every figure and control below was re-taken at 566ff8352 after the second merge.
+main merged, policy_lint.mjs resolved by union. The merge of origin/main (#3305, merge 5e1ffb34) conflicted in one hunk of tools/policy/policy_lint.mjs: this PR inserts `figureBlockProblems` before `checkPrBody`, #3305 widens the `checkPrBody` signature with `required = null`. Resolution: both kept, so the signature carries `required` and `figureBlockProblems` is present and called (`figureBlockProblems(body, { base, head })` in checkPrBody). Resolution delta against origin/main in that file: only the `figureBlockProblems` function and its call and self-test uses (`git diff origin/main fcd03452c -- tools/policy/policy_lint.mjs`). tests/closures.json merged by its driver. Confirmed present after the merge: #3305's `required` option, its `required()` read for silent reds, and its self-test arms (reqGot, unreadSet, owed-reds stub); this PR's `figureBlockProblems` and its self-test arm. `node tools/policy/policy_lint.mjs --self-test` exits 0 (FIXTURE ok); `tools/pr/prepr.sh` at this head exits 0 (mode FULL, closures skipped as unscopable). fcd03452c is the conflict merge a5fd59d19 plus the wip marker merge (identical tree). Null control: `git merge-tree --write-tree origin/main fcd03452c | grep -c CONFLICT` prints 0.
 
 ## Mutation proof
 
