@@ -49,8 +49,10 @@
   else, and a seat may not write a record it did not mint), `handoff/<topic>`
   plus `handoff-body/<topic>` for a fixer (which pushes each verified step,
   fast-forward only, to `handoff-wip/<topic>`, a prefix neither
-  `cloud_relay.sh`'s handoff arm nor `bus.sh orphans` lists, merges a moved
-  `origin/main` and reruns `prepr.sh` before the handoff, and deletes the step
+  `cloud_relay.sh`'s handoff arm nor `bus.sh orphans` lists, hands off at its
+  first clean `prepr.sh` head, merges `origin/main` and reruns only when
+  `git merge-tree --write-tree origin/main HEAD` conflicts (tvofi, 2026-11-07),
+  and deletes the step
   ref once `body_push.sh` succeeds; a seat that dies leaves that one ref),
   `handoff-body/<topic>` for a probe; a fixer or probe pins the noreply seat
   identity before its first commit,
