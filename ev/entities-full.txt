@@ -1,0 +1,2 @@
+RESULT full-entities head rc=0 2711 ok-lines; ALL 2670 ENTITY CHECKS PASSED
+RESULT full-entities mutant=py50 rc=1 1 of 2670 ENTITY CHECKS FAILED |   FAIL codeql.yml's analyze cap is per leg: python clears the measured worst case, the others stay at 45  [timeout-minutes='${{ matrix.timeout }}'; include caps={'actions': 45, 'javascript-typescript'

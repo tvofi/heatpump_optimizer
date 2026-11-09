@@ -1,0 +1,6 @@
+.github/workflows/codeql.yml:125:    timeout-minutes: ${{ matrix.timeout }}
+tests/entities.py:21858:_analyze_cap = _analyze_job.get("timeout-minutes")
+tests/entities.py:21866:    _analyze_cap == "${{ matrix.timeout }}"
+tests/entities.py:21874:    f"timeout-minutes={_analyze_cap!r}; include caps={_leg_caps!r}; the python "
+4:    uses: ./.github/workflows/codeql.yml
+5:    with:
