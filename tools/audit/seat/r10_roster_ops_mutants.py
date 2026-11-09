@@ -67,6 +67,12 @@ Plants, one per refusal of the two ops and per round-trip property:
            naming no live group (W12, W13) or needing none (W14), and a phase
            branch unresolved in roster_lib.group_for_branch (W15).
 
+    W18 append-carry's refusal of text already ending in a mark.
+    U1-U6 orchestrator_tick's roster_invariants never reads an unreadable
+           tool as clean: the guard dropped (U1), its rc arm (U2) or its
+           summary arm (U3) alone, the OSError branch silent (U4) or not
+           catching at all (U5), and a non-JSON issue list still passing
+           --open-issues (U6).
     W16-W17 the lane marker on structural ops (carry 15): the guard dropped
            (W16) and set-stage wrongly made structural (W17); Q13 is the
            queue runner not setting it.
@@ -107,6 +113,8 @@ LIB, SYNC, AUDIT = ("tools/audit/seat/roster_lib.py",
                     "tools/audit/seat/roster_sync.py", "tools/audit/carry_audit.py")
 _MARK_LINE = next((ln for ln in (ROOT / LIB).read_text().splitlines()
                    if ln.startswith("_CARRY_MARK = ")), "_CARRY_MARK missing")
+TICK = "tools/audit/seat/orchestrator_tick.py"
+RI_UNREAD = '            self.unreadable(S, "roster invariants"'
 DETACHED = ('g = next((x for x in roster.get("groups", []) '
             'if x.get("group") == group), {})')
 
@@ -187,7 +195,7 @@ PLANTS = {
            "            if carry_mark(c) is None]  # L2\n"),
     "L3": (LIB, '            if (g.get("resume") or {}).get("stage") in CARRY_CLOSED}\n',
            "            }  # L3\n"),
-    "L4": (LIB, 'CARRY_CLOSED = DONE_STAGES + ("absorbed",)\n',
+    "L4": (LIB, 'CARRY_CLOSED = CLOSED_STAGES\n',
            "CARRY_CLOSED = DONE_STAGES  # L4\n"),
     "L5": (LIB, '    return ("carries-open" if pending else "done"), pending\n',
            '    return "done", pending  # L5\n'),
@@ -307,9 +315,23 @@ PLANTS.update({
     "W16": ("    if op in STRUCTURAL_OPS and os.environ.get(LANE_ENV) != LANE_VALUE:\n",
             "    if False:\n"),
     "W17": ('STRUCTURAL_OPS = ("wire-issue",', 'STRUCTURAL_OPS = ("set-stage", "wire-issue",'),
+    "W18": ("    if mark:\n        raise Refuse(f\"append-carry: the text already ends",
+            "    if False:\n        raise Refuse(f\"append-carry: the text already ends"),
     "Q13": (RQ, '    env["HPO_ROSTER_LANE"] = "queue-runner"', '    env["HPO_ROSTER_LANE"] = "x"'),
     "Q9": (RQ, '    if "def batch_edit" not in Path(path).read_text():\n',
            '    if False:\n'),
+    "U1": (TICK, f"        if rc not in (0, 1) or not summary:\n{RI_UNREAD}",
+           f"        if False:\n{RI_UNREAD}"),
+    "U2": (TICK, f"        if rc not in (0, 1) or not summary:\n{RI_UNREAD}",
+           f"        if not summary:\n{RI_UNREAD}"),
+    "U3": (TICK, f"        if rc not in (0, 1) or not summary:\n{RI_UNREAD}",
+           f"        if rc not in (0, 1):\n{RI_UNREAD}"),
+    "U4": (TICK, f"        except OSError as e:\n{RI_UNREAD}, str(e)[:80])\n            return\n",
+           "        except OSError as e:\n            return\n"),
+    "U5": (TICK, f"        except OSError as e:\n{RI_UNREAD}, str(e)[:80])\n            return\n",
+           "        except ZeroDivisionError:\n            return\n"),
+    "U6": (TICK, "            except ValueError:\n                pass\n        try:\n            rc, out = self.carry_run(argv)\n",
+           '            except ValueError:\n                argv += ["--open-issues", "x"]\n        try:\n            rc, out = self.carry_run(argv)\n'),
 })
 
 
@@ -321,10 +343,16 @@ def parts(name):
     return plant if len(plant) == 3 else (TARGET,) + plant
 
 
+def fail_lines(stdout):
+    """A target's FAIL lines, indented or not: orchestrator_tick prints
+    `  FAIL <check>`, roster_edit `FAIL <check>`."""
+    return [ln.strip() for ln in stdout.splitlines() if ln.lstrip().startswith("FAIL ")]
+
+
 def target_self_test(target=TARGET):
     r = subprocess.run([sys.executable, "-I", target, "--self-test"], cwd=ROOT,
                        capture_output=True, text=True)
-    fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
+    fails = fail_lines(r.stdout)
     return r.returncode, fails, (r.stdout + r.stderr).strip().splitlines()[-3:]
 
 
@@ -377,6 +405,8 @@ def self_test():
            "      Traceback", "      boom"])
     ck("a survivor prints fails=0 and no tail",
        rendered(0, [], ["x"]) == ["RESULT mutant=X rc=0 fails=0"])
+    ck("an indented FAIL line is read; an ok line naming FAIL is not",
+       fail_lines("  FAIL a\nFAIL b\n  ok   FAIL-free c\n") == ["FAIL a", "FAIL b"])
     ck("no names selects every plant", select([]) == (list(PLANTS), []))
     ck("a named plant is kept", select(["A1"]) == (["A1"], []))
     ck("an unknown plant is returned for refusal",

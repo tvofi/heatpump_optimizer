@@ -329,6 +329,10 @@ class PeakTracker:
         # Keep a little more than the billed count so that a later correction
         # (a retracted sample) does not lose the runner-up.
         del ranked[max(tariff.peaks_averaged * 2, 6):]
+        self._keep_ranked(ranked)
+
+    def _keep_ranked(self, ranked: list[tuple[float, str]]) -> None:
+        """Store a ranked (kW, day) record as the parallel peak lists."""
         self.peaks = [kw for kw, _ in ranked]
         self.peak_days = [day for _, day in ranked]
 
@@ -409,9 +413,7 @@ class PeakTracker:
         if not isinstance(data, dict):
             return tracker
         tracker.month = str(data.get("month", ""))
-        ranked = _stored_peaks(data.get("peaks"), data.get("peak_days"))
-        tracker.peaks = [kw for kw, _ in ranked]
-        tracker.peak_days = [day for _, day in ranked]
+        tracker._keep_ranked(_stored_peaks(data.get("peaks"), data.get("peak_days")))
         tracker.closed_month = str(data.get("closed_month", ""))
         tracker.closed_peaks = [
             kw for kw, _ in _stored_peaks(data.get("closed_peaks"), None)
@@ -531,6 +533,19 @@ def _stored_peaks(peaks: Any, days: Any) -> list[tuple[float, str]]:
     return ranked
 
 
+def _window_partition(
+    window_minutes: int, dt_hours: float, offset_steps: int
+) -> tuple[int, int]:
+    """The metering-window partition of a step grid: (steps per window, head steps).
+
+    The clocks' property, never a row's, so the scalar ``metering_windows`` and
+    its batch twin ``_window_means_batch`` cannot partition a plan differently.
+    ``head_steps`` is how many steps the leading partial window holds.
+    """
+    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
+    return per_window, int(offset_steps) % per_window
+
+
 def metering_windows(
     house_power_kw: np.ndarray,
     window_minutes: int,
@@ -554,11 +569,10 @@ def metering_windows(
     house = np.asarray(house_power_kw, dtype=float)
     if house.size == 0:
         return house
-    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
+    per_window, head_steps = _window_partition(window_minutes, dt_hours, offset_steps)
     if per_window <= 1:
         return house
 
-    head_steps = int(offset_steps) % per_window
     head = house[:head_steps]
     rest = house[head_steps:]
 
@@ -584,28 +598,15 @@ def mask_active(tariff: CapacityTariff) -> bool:
     )
 
 
-def window_factors(
-    tariff: CapacityTariff,
-    start_time: datetime | None,
-    n_windows: int,
-    dt_hours: float,
-) -> np.ndarray | None:
-    """Billing factor per metering window over the horizon, or None.
+def _window_starts(
+    start_time: datetime, window: int, n_windows: int
+) -> list[datetime]:
+    """Each metering window's real local start, from the slot of ``start_time``.
 
-    None when no mask is configured — the fast path, and the proof of
-    inertness: ``peak_cost`` with ``None`` runs the exact pre-#13 arithmetic.
-    Windows are keyed by the aligned start instant the horizon's *real* clock
-    reaches, matching how ``PeakTracker.observe`` attributes a live window, so
-    for every ``window_minutes`` that DIVIDES the hour the plan's cost term and
-    the realised tracker cannot disagree about which hour a window bills under.
-    Sharing ``sample_factor`` is not what buys that — until #777 this walked the
-    wall clock instead, and on the two DST days a year it disagreed from the
-    transition onwards. The walk below is the load-bearing part, and the
-    divides-the-hour qualifier on it is not decoration; see there.
+    The one walk ``window_factors`` (billing factors) and ``plan_window_days``
+    (distinct-day labels) both date windows by, so a window's factor and its
+    day are read at the same real instant (#1512).
     """
-    if start_time is None or n_windows <= 0 or not mask_active(tariff):
-        return None
-    window = max(1, int(tariff.window_minutes))
     slot0 = _window_slot(start_time, window)
     # Walk the windows in UTC and convert back — ``drift.utc_step_starts``'
     # rule, and for its reason (#243, #777). ``timedelta`` on an aware datetime
@@ -617,7 +618,7 @@ def window_factors(
     # ``_window_slot``'s ``fold``, which is what picks the real pass to start
     # from, and ``astimezone`` honours it.
     #
-    # WHY THE DOCSTRING SAYS "divides the hour" — the condition is DIVISIBILITY,
+    # WHY ``window_factors`` SAYS "divides the hour" — the condition is DIVISIBILITY,
     # not size. A DST transition shifts the wall-clock offset by 60 minutes, so
     # a window length that divides 60 falls on the same ``_window_slot`` wall
     # grid on both sides of the shift and the walk reconciles the two ends
@@ -647,12 +648,34 @@ def window_factors(
     # both transitions.
     tz = slot0.tzinfo
     base = slot0 if tz is None else slot0.astimezone(timezone.utc)
-    starts = [base + timedelta(minutes=window * i) for i in range(n_windows)]
+    starts = [base + timedelta(minutes=window * i) for i in range(int(n_windows))]
+    return [s if tz is None else s.astimezone(tz) for s in starts]
+
+
+def window_factors(
+    tariff: CapacityTariff,
+    start_time: datetime | None,
+    n_windows: int,
+    dt_hours: float,
+) -> np.ndarray | None:
+    """Billing factor per metering window over the horizon, or None.
+
+    None when no mask is configured — the fast path, and the proof of
+    inertness: ``peak_cost`` with ``None`` runs the exact pre-#13 arithmetic.
+    Windows are keyed by the aligned start instant the horizon's *real* clock
+    reaches, matching how ``PeakTracker.observe`` attributes a live window, so
+    for every ``window_minutes`` that DIVIDES the hour the plan's cost term and
+    the realised tracker cannot disagree about which hour a window bills under.
+    Sharing ``sample_factor`` is not what buys that — until #777 this walked the
+    wall clock instead, and on the two DST days a year it disagreed from the
+    transition onwards. The walk below is the load-bearing part, and the
+    divides-the-hour qualifier on it is not decoration; see there.
+    """
+    if start_time is None or n_windows <= 0 or not mask_active(tariff):
+        return None
+    window = max(1, int(tariff.window_minutes))
     return np.asarray(
-        [
-            tariff.sample_factor(s if tz is None else s.astimezone(tz))
-            for s in starts
-        ],
+        [tariff.sample_factor(s) for s in _window_starts(start_time, window, n_windows)],
         dtype=float,
     )
 
@@ -666,13 +689,8 @@ def plan_window_days(
     ``start_time`` falls in, in UTC, converted back -- so a window is dated by
     the real start the meter dates it by, across both DST transitions.
     """
-    window = int(window_minutes)
-    slot0 = _window_slot(start_time, window)
-    tz = slot0.tzinfo
-    base = slot0 if tz is None else slot0.astimezone(timezone.utc)
-    starts = [base + timedelta(minutes=window * i) for i in range(int(n_windows))]
     return np.asarray(
-        [(s if tz is None else s.astimezone(tz)).toordinal() for s in starts],
+        [s.toordinal() for s in _window_starts(start_time, int(window_minutes), n_windows)],
         dtype=np.int64,
     )
 
@@ -840,6 +858,28 @@ class PeakBilling:
     distinct_days: bool = True
 
 
+def billed_windows(
+    windows: np.ndarray, window_factors: np.ndarray | None
+) -> np.ndarray:
+    """Window means at their billed-equivalent factor (#13).
+
+    The factors align with the last axis, so a 1-D plan and a [B, n] batch
+    share it; a window past the factors bills at 1, and no factors (or none
+    at all) leaves the means unscaled. A masked-out window (factor 0) can
+    never exceed any threshold, which is "contributes nothing" exactly. The
+    optimizer's published ``peak_kw`` and both peak charges read this one
+    answer, so they cannot disagree about a window past the factors.
+    """
+    if window_factors is None or not window_factors.size:
+        return windows
+    n = windows.shape[-1]
+    factors = window_factors[:n]
+    if factors.size < n:
+        factors = np.concatenate([factors, np.ones(n - factors.size)])
+    billed: np.ndarray = windows * factors
+    return billed
+
+
 def _peak_excess(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
@@ -864,18 +904,9 @@ def _peak_excess(
     if house.size == 0:
         return None
     windows = metering_windows(house, bill.window_minutes, bill.dt_hours, bill.offset_steps)
-    window_factors = bill.window_factors
-    if window_factors is not None and window_factors.size:
-        # Billed-equivalent kW (#13): each window's average counts at its
-        # hour's factor, against a threshold the tracker keeps in the same
-        # billed-equivalent terms. A masked-out window (factor 0) can never
-        # exceed any threshold, which is "contributes nothing" exactly.
-        factors = window_factors[: windows.size]
-        if factors.size < windows.size:
-            factors = np.concatenate(
-                [factors, np.ones(windows.size - factors.size)]
-            )
-        windows = windows * factors
+    # Billed-equivalent kW (#13): each window's average counts at its hour's
+    # factor, against a threshold the tracker keeps in the same terms.
+    windows = billed_windows(windows, bill.window_factors)
     excess = np.maximum(0.0, windows - bill.threshold_kw)
     if not np.any(excess > 0):
         return None
@@ -1074,10 +1105,9 @@ def _window_means_batch(
     n = houses.shape[1]
     if n == 0:
         return houses
-    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
+    per_window, head_steps = _window_partition(window_minutes, dt_hours, offset_steps)
     if per_window <= 1:
         return houses
-    head_steps = int(offset_steps) % per_window
     pieces: list[np.ndarray] = []
     if head_steps:
         pieces.append(
@@ -1160,15 +1190,7 @@ def peak_cost_batch(
     windows = _window_means_batch(
         houses, bill.window_minutes, bill.dt_hours, bill.offset_steps
     )
-    window_factors = bill.window_factors
-    if window_factors is not None and window_factors.size:
-        # Billed-equivalent kW (#13); see ``peak_cost``.
-        factors = window_factors[: windows.shape[1]]
-        if factors.size < windows.shape[1]:
-            factors = np.concatenate(
-                [factors, np.ones(windows.shape[1] - factors.size)]
-            )
-        windows = windows * factors
+    windows = billed_windows(windows, bill.window_factors)  # #13; see ``peak_cost``
     excess = np.maximum(0.0, windows - bill.threshold_kw)
     out = np.zeros(n_rows)
     above = np.flatnonzero(np.any(excess > 0, axis=1))

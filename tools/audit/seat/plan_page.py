@@ -183,7 +183,12 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
     PG = plan["groups"]
     start0 = plan["generated"]["start"]
     crit = set(plan["critical_path"])
+    # `closed` is the roster's own predicate (done stages and `absorbed`): it
+    # clears an after-edge and drops a group from the schedule. `merged` is the
+    # narrower class that renders done; an absorbed group stays held, naming
+    # the group it went to.
     done = {g for g in G if not roster_lib.is_open(G[g])}
+    merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES}
 
     open_pr: dict = {}
     for p in sorted(snap["open_prs"], key=lambda p: p["number"]):
@@ -206,11 +211,11 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
     rows = []
     for g, entry in G.items():
         pg = PG[g]
-        blk = [a for a in entry.get("after") or [] if a in G and a not in done]
+        blk = [a for a in entry.get("after") or [] if a in G and roster_lib.gates(G[a])]
         part = sorted(delivered.get(g) or [])
         sfx = f", part merged #{', #'.join(map(str, part))}" if part else ""
         pr = ", ".join(f"#{n}" for n in open_pr.get(g, [])) or "—"
-        if g in done:
+        if g in merged:
             commit = (entry.get("resume") or {}).get("commit")
             n = merged_pr(g, commit, by_sha, by_group)
             st = "done"
@@ -255,6 +260,8 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
             "crit": g in crit, "wave": None if g in done else pg["wave"],
             "start": None if g in done else pg["start"],
             "finish": None if g in done else pg["finish"]})
+        if pg.get("done"):  # the plan counts it done (absorbed): nothing to draw
+            rows[-1].update(wave=None, start=None, finish=None)
     rows.sort(key=lambda r: (r["st"] != "done", r["finish"] or "", r["g"]))
     return rows
 
@@ -268,7 +275,9 @@ def swimlanes(plan: dict, rows: list) -> tuple[str, int]:
     now = _t(plan["generated"]["start"])
     # The axis runs to the last planned stamp: the round-close stamp lands
     # after closure, and an axis ending at closure would not draw it.
-    end = max([_t(plan["summary"]["closure"])] + [_t(s["at"]) for s in plan["stamps"]])
+    end = max([_t(plan["summary"]["closure"])] + [_t(s["at"]) for s in plan["stamps"]]
+              + [_t(plan["summary"]["post_closure_finish"])
+                 for _ in [0] if plan["summary"].get("post_closure_finish")])
     slots = plan["generated"]["caps"]["slots"]
     span_h = max(1.0, (end - now).total_seconds() / 3600)
     W, LW, RH = 1180, 120, 24
@@ -277,7 +286,7 @@ def swimlanes(plan: dict, rows: list) -> tuple[str, int]:
         return LW + (t - now).total_seconds() / 3600 / span_h * (W - LW - 20)
 
     open_rows = [dict(r, s=_t(r["start"]), f=_t(r["finish"]))
-                 for r in rows if r["st"] != "done"]
+                 for r in rows if r["st"] != "done" and r["start"]]
     lanes = list(replan.LANES) + sorted({r["lane"] for r in open_rows} - set(replan.LANES))
     tracks_of: dict = {lane: [] for lane in lanes}
     for r in open_rows:
@@ -546,7 +555,12 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
             f"{inherited} inherited in-progress coordinator groups are recorded in "
             f"plan.json. The line above the lanes is how many groups are in flight at "
             f"each hour, riding the cap. Stamps: one patch per {every} production groups, "
-            f"the round's major at closure. Hover any bar, however narrow, for its name, state, "
+            f"the round's major at closure. {summ.get('production_since_tag', 0)} production "
+            f"groups already merged since the last tag count toward the next patch stamp"
+            + (f"; {len(summ['post_closure'])} post-closure group(s) run after the "
+               f"round-close stamp, in no stamp: {', '.join(map(short, summ['post_closure']))}"
+               if summ.get("post_closure") else "")
+            + f". Hover any bar, however narrow, for its name, state, "
             f"start, ETA and wave. {drawn} of {max(0, len(chain) - 1)} critical-path links "
             f"are drawn; the ◆ and the caption carry the rest."),
         "sizes": e(sizes),
@@ -839,8 +853,17 @@ def _self_test() -> int:
             check("the methodology states the plan's sizes and live fraction",
                   f"S {model['sizes_hours']['S']:g} h" in page
                   and f"{model['live_remaining_fraction'] * 100:g}%" in page)
+            # The planner's own class: a closed group (merged, or absorbed into
+            # another) is not scheduled, so it has no bar, tier or ETA reason.
+            def scheduled(g):
+                return not plan["groups"][g].get("done")
+            check("an absorbed group is held, unscheduled, and has no bar or tier",
+                  rows["R9-HELD"]["st"] == "held" and not scheduled("R9-HELD")
+                  and rows["R9-HELD"]["tier"] is None
+                  and 'data-name="HELD"' not in page)
             check("every open group has a bar; no done group does",
-                  all(f'data-name="{short(g)}"' in page for g in rows if rows[g]["st"] != "done")
+                  all(f'data-name="{short(g)}"' in page for g in rows
+                      if rows[g]["st"] != "done" and scheduled(g))
                   and 'data-name="DONE-SHA"' not in page)
             check("critical-path groups carry the mark",
                   all(rows[g]["crit"] for g in plan["critical_path"])
@@ -848,18 +871,19 @@ def _self_test() -> int:
             check("every open group's tier is shown, and a merged group's is not",
                   all(f'<td class="tier">{rows[g]["tier"]}</td>' in page
                       for g in rows if rows[g]["tier"] is not None)
-                  and all(rows[g]["tier"] is None for g in rows if rows[g]["st"] == "done")
+                  and all(rows[g]["tier"] is None for g in rows if not scheduled(g))
                   and '<td class="tier">—</td>' in page
                   and '<th title="dispatch tier' in page,
                   {g: rows[g]["tier"] for g in rows})
             check("the critical path is tier 2 and production tier 3 (the owner's order)",
                   all(rows[g]["tier"] == replan.TIER_URGENT for g in plan["critical_path"])
                   and any(rows[g]["tier"] == replan.TIER_PRODUCTION_WORK
-                          for g in rows if rows[g]["st"] != "done"),
+                          for g in rows if scheduled(g)),
                   {g: rows[g]["tier"] for g in rows})
             check("each open group's ETA cell names why it starts when it does",
                   all(f'title="{html.escape(rows[g]["why"])}"' in page and plan["groups"][g]["start_reason"]
-                      in rows[g]["why"] for g in rows if rows[g]["st"] != "done"),
+                      in rows[g]["why"] for g in rows
+                      if rows[g]["st"] != "done" and scheduled(g)),
                   {g: rows[g]["why"] for g in rows})
             check("a planned stamp is drawn", 'class="stampline"' in page)
             check("the closure stamp renders as the round's major, kind round-close",

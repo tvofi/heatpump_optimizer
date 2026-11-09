@@ -50,7 +50,8 @@
 // rules FOUND, and finding nothing is what a clean tree and a gutted linter
 // both look like. fixtures/wave-1b-931dffe.json pins lintBrief,
 // fixtures/shape-defects.json pins checkShape, fixtures/carry-99000*.json pin
-// the carry rules in both directions, and a probe pins the driver guard. Each
+// the carry rules in both directions, fixtures/playbook-*.md pin the playbook
+// arm (dev/audit/README.md's paths), and a probe pins the driver guard. Each
 // states the errors it must still produce; see REQUIRED_931DFFE.
 
 import fs from 'node:fs'
@@ -852,6 +853,7 @@ function checkShape(groups, findings) {
 // and belongs where case 4 already is.
 export const CARRY_FILE_RE = /^carry-(\d+)\.json$/
 export const ROSTER_FILE_RE = /^wave-.*-groups\.json$/
+export const ROSTERS_DIR = path.join(ROOT, 'dev', 'programme', 'rosters')
 const CARRY_EFFECTS = new Set(['narrows', 'invalidates', 'removes'])
 const CARRY_FIELDS = ['from', 'effect', 'control', 'remeasure', 'brief']
 
@@ -870,7 +872,11 @@ export function rosterIssues(dir) {
   const out = new Map()
   let files
   try {
-    files = dir ? fs.readdirSync(dir).filter((f) => ROSTER_FILE_RE.test(f)).sort().map((f) => path.join(dir, f)) : workflowFiles(ROSTER_FILE_RE)
+    // No argument reads the roster directory (roster_lib.ROSTERS_DIR) as well as workflowFiles(): a default
+    // that read only the latter indexed one issue, so the live-group refusal never fired in CI (#2896 A1).
+    const d = dir ?? ROSTERS_DIR
+    files = fs.readdirSync(d).filter((f) => ROSTER_FILE_RE.test(f)).sort().map((f) => path.join(d, f))
+    if (!dir) files = [...new Set([...files, ...workflowFiles(ROSTER_FILE_RE)])]
   } catch {
     return out
   }
@@ -954,13 +960,16 @@ export function checkCarryShape(file, data, findings, roster) {
 // Repairing them would rewrite other groups' controls, so the control lint leaves out these files and
 // only them (both its citation check and its no-path rule): the set is closed -- a new carry file is
 // never added here -- and shrinks as a carry is re-measured or consumed.
+// LEGACY_CONTROL_CAP pins that: the set may only shrink (assertLegacyControl), and a member whose
+// controls now lint clean must leave it.
+const LEGACY_CONTROL_CAP = 14
 const LEGACY_CONTROL_FILES = new Set([
   'carry-1067.json', 'carry-1336.json', 'carry-1395.json', 'carry-1398.json', 'carry-1412.json',
   'carry-1454.json', 'carry-1459.json', 'carry-1463.json', 'carry-1644.json', 'carry-1645.json',
-  'carry-1659.json', 'carry-1660.json', 'carry-1795.json', 'carry-201.json', 'carry-752.json',
+  'carry-1659.json', 'carry-1660.json', 'carry-201.json', 'carry-752.json',
 ])
 
-export function lintCarryFile(file, { roster } = {}) {
+export function lintCarryFile(file, { roster, legacy = LEGACY_CONTROL_FILES } = {}) {
   const findings = []
   const label = path.posix.basename(file)
   let data
@@ -976,7 +985,7 @@ export function lintCarryFile(file, { roster } = {}) {
     if (!c || typeof c !== 'object') return
     // The control is cited prose like the brief: an unresolvable path or symbol, a metric literal or a
     // derived count in it is refused the same way (the next stage re-establishes the finding from it).
-    if (typeof c.control === 'string' && c.control.trim() && !LEGACY_CONTROL_FILES.has(label)) {
+    if (typeof c.control === 'string' && c.control.trim() && !legacy.has(label)) {
       lintBrief(`${label} carry ${i} control`, c.control, findings)
       // A control no seat can re-run is a figure, not a control (writing-for-agents.md: no enumerator,
       // no figure). The requirement binds every carry file but the LEGACY_CONTROL_FILES recorded below.
@@ -1009,6 +1018,123 @@ export function carryFiles(dir) {
 // driver
 
 // `shape` is off for the acceptance fixture only -- see checkShape's note.
+// ---------------------------------------------------------------------------
+// The playbook arm (R10-ROUND-PLAYBOOK). dev/audit/README.md tells a fresh
+// orchestrator which instrument and contract binds each phase of a round; a
+// renamed or deleted one leaves the phase pointing at nothing. Every backticked
+// span whose first word is a path is resolved in the tree under test (the
+// checkout, or BRIEF_LINT_TREE_REV), or at a SHA or tag the same file cites.
+// Fenced and indented code is a command transcript, not a citation, and is
+// skipped. A token with a slash must match a tracked path exactly or as a
+// whole-segment suffix, so an instrument moved to another directory is red;
+// a bare basename resolves anywhere, as a brief's does. A trailing slash names
+// a directory: some tracked path starts with it.
+export const PLAYBOOK_FILE = 'dev/audit/README.md'
+const PLAYBOOK_PATH_RE = new RegExp(`^(?:[A-Za-z0-9_.][A-Za-z0-9_.-]*/)*(?:[A-Za-z0-9_][A-Za-z0-9_.-]*\\.(?:${EXT_RE})|[A-Za-z0-9_.][A-Za-z0-9_.-]*/)$`)
+
+const PLAYBOOK_CAP_FIGURE_RE = /\b\d+\s+(?:open\s+)?(?:PRs?|pull requests)?\s*in round \d+|\b(?:open-PR|PR|pull-request) cap\s*(?:is|of|at|:|=)\s*\d+|\b\d+-PR cap/gi
+
+export function playbookCitations(text) {
+  return playbookCitedAt(text).map((c) => c.token).filter((t, i, a) => a.indexOf(t) === i)
+}
+
+// Each citation with the prose line it stands on, so a tag SHA licenses only
+// the paragraph that cites it (brief-citations.md: a tag carries what is cited
+// "in the same brief"; a document's brief is the paragraph, not the file).
+// A paragraph is a run of lines between blank lines; a table row is its own.
+function playbookCitedAt(text) {
+  const out = []
+  let fenced = false
+  let para = []
+  const flush = () => {
+    const joined = para.map((p) => p.line).join('\n')
+    for (const p of para) {
+      const own = p.line.trimStart().startsWith('|') ? p.line : joined
+      for (const m of p.line.matchAll(/`([^`\n]+)`/g)) {
+        const word = m[1].trim().split(/\s+/)[0].replace(/:\d+(?:-\d+)?$/, '')
+        // `../x` is outside the repository by construction: a statement, not a citation.
+        if (PLAYBOOK_PATH_RE.test(word) && !word.startsWith('../')) out.push({ token: word, scope: own })
+      }
+    }
+    para = []
+  }
+  for (const line of text.split('\n')) {
+    if (/^\s*```/.test(line)) { fenced = !fenced; continue }
+    if (fenced || /^ {4}/.test(line)) continue
+    if (!line.trim()) flush()
+    else para.push({ line })
+  }
+  flush()
+  return out
+}
+
+function playbookLookup(listing, token) {
+  const list = listing.list || [...listing.set]
+  if (token.endsWith('/')) return list.some((f) => f.startsWith(token) || f.includes(`/${token}`))
+  if (!token.includes('/')) return !!lookupPath(listing, token)
+  return listing.set.has(token) || list.some((f) => f.endsWith(`/${token}`))
+}
+
+// The checkout is tried raw and canonical: trackedFiles() files a moved path
+// under its pre-move name (canonList), and a directory has no such entry.
+let _rawTree = null
+function rawTree() {
+  if (_rawTree) return _rawTree
+  const list = treeListing(process.env.BRIEF_LINT_TREE_REV).split('\n').filter(Boolean)
+  _rawTree = { set: new Set(list), byBase: basenameMap(list), list }
+  return _rawTree
+}
+
+export function lintPlaybook(label, text, findings) {
+  const add = (severity, kind, message) => findings.push({ group: label, severity, kind, message })
+  const seen = new Set()
+  for (const { token, scope } of playbookCitedAt(text)) {
+    const refs = tagRefsIn(scope)
+    const key = `${token}\0${refs.join(',')}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    if (playbookLookup(rawTree(), token) || playbookLookup(trackedFiles(), canonList([token])[0])) continue
+    const tagResult = checkAgainstTags(refs, (ref) => {
+      const listing = refFiles(ref)
+      return listing === null ? null : playbookLookup(listing, token)
+    })
+    if (tagResult.status === 'ok') continue
+    // No shorthand warning here: a playbook names an instrument to run, so a
+    // path that matches only part of a basename is a rename, not prose.
+    if (tagResult.status === 'none') add('error', 'playbook path', `${token}: not in the tree, and no tag SHA is cited alongside it`)
+    else reportUnresolvedPath(add, 'playbook path', token, token, tagResult, refs)
+  }
+  // The open-PR cap is the owner's and lives in tools/plan/replan.py; a figure
+  // for it written here goes stale at the next raise.
+  for (const m of text.matchAll(PLAYBOOK_CAP_FIGURE_RE)) add('error', 'playbook cap', `${m[0].trim()}: the open-PR cap is read from tools/plan/replan.py, not stated`)
+  return findings
+}
+
+const lintPlaybookFile = (file) => lintPlaybook('(playbook)', fs.readFileSync(file, 'utf8'), [])
+
+// The arm's acceptance: the renamed fixture must be refused for exactly the
+// instruments it renames, removes and moves to another directory, the directory
+// it renames and the renamed path it cites at a line, and the null fixture -- the same prose
+// with the real paths -- must produce no finding of any severity.
+const REQUIRED_PLAYBOOK = ['tools/release/stamp_renamed.py', 'tools/audit/seat/no_such_beat.py', 'tools/pr/state_docs.py', 'tools/audit/seatz/', 'tools/audit/seat/beat_jobz.py', 'tools/audit/round2/JUDGE.md', 'open-PR cap is 16']
+function assertPlaybookFixtures() {
+  const problems = []
+  const red = lintPlaybookFile(path.join(FIXTURES, 'playbook-renamed.md'))
+  const errs = red.filter((f) => f.severity === 'error')
+  for (const needle of REQUIRED_PLAYBOOK) {
+    if (!errs.some((e) => e.message.startsWith(`${needle}:`))) problems.push(`playbook-renamed.md: no error for ${needle}`)
+  }
+  if (errs.length !== REQUIRED_PLAYBOOK.length) problems.push(`playbook-renamed.md: ${errs.length} error(s), not ${REQUIRED_PLAYBOOK.length}`)
+  for (const f of lintPlaybookFile(path.join(FIXTURES, 'playbook-null.md'))) problems.push(`playbook-null.md: ${f.severity} ${f.message}`)
+  if (problems.length) {
+    console.log('\nPLAYBOOK VACUOUS:')
+    for (const m of problems) console.log(`  ${m}`)
+    return 1
+  }
+  console.log(`\nPLAYBOOK ok: the renamed fixture is refused for its ${REQUIRED_PLAYBOOK.length} moved instruments and the null fixture lints clean`)
+  return 0
+}
+
 function lintFile(file, { shape = true } = {}) {
   const findings = []
   let data
@@ -1288,7 +1414,7 @@ function assertCarryControl() {
     for (const m of problems) console.log(`  ${m}`)
     return 1
   }
-  console.log('\nCONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not; the 15 legacy files are left out')
+  console.log('\nCONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not; the legacy files are left out')
   return 0
 }
 
@@ -1319,6 +1445,45 @@ function assertCarryFixtures() {
     `\nCARRY ok: ${REQUIRED_CARRY.length} error(s) pin the carry acceptance across three malformed fixtures, ` +
       'and the correct one produces no finding of any severity'
   )
+  return 0
+}
+
+// A1 (#2896) and the carry-control narrowing, pinned:
+//  - the no-argument roster default reads dev/programme/rosters, so a carry file at an issue a live group
+//    covers is refused by lintCarryFile with no roster handed in (a carry at 999999 is not: null control);
+//  - LEGACY_CONTROL_FILES only shrinks: its size is at most LEGACY_CONTROL_CAP, and every member still has a
+//    control error when linted without the exemption (a repaired file must be removed from the set).
+function assertLegacyControl() {
+  const problems = []
+  const live = [...rosterIssues(ROSTERS_DIR).keys()][0]
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'carrycollide-'))
+  try {
+    const model = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'carry-990001.json'), 'utf8'))
+    const at = (n) => {
+      const f = path.join(tmp, `carry-${n}.json`)
+      fs.writeFileSync(f, JSON.stringify({ ...model, issue: n }))
+      return lintCarryFile(f).filter((x) => x.severity === 'error' && x.message.includes('live roster group'))
+    }
+    if (!Number.isInteger(live)) problems.push('the roster directory indexes no issue: the default reads nothing')
+    else if (!at(live).length) problems.push(`a carry file at #${live}, covered by a live group, is accepted with the default roster`)
+    if (at(999999).length) problems.push('a carry file at an uncovered issue (999999) is refused as a collision (null control)')
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+  if (LEGACY_CONTROL_FILES.size > LEGACY_CONTROL_CAP) problems.push(`LEGACY_CONTROL_FILES holds ${LEGACY_CONTROL_FILES.size} files, over its cap ${LEGACY_CONTROL_CAP}: the set only shrinks`)
+  const files = new Map(carryFiles().map((f) => [path.posix.basename(f), f]))
+  for (const label of LEGACY_CONTROL_FILES) {
+    const f = files.get(label)
+    if (!f) { problems.push(`${label} is in LEGACY_CONTROL_FILES and in no carry directory: remove it`); continue }
+    const errs = lintCarryFile(f, { roster: new Map(), legacy: new Set() }).filter((x) => x.severity === 'error' && / control/.test(x.group))
+    if (!errs.length) problems.push(`${label}: its controls lint clean without the exemption: remove it from LEGACY_CONTROL_FILES`)
+  }
+  if (problems.length) {
+    console.log('\nLEGACY-CONTROL VACUOUS:')
+    for (const m of problems) console.log(`  ${m}`)
+    return 1
+  }
+  console.log('\nLEGACY-CONTROL ok: the default roster refuses a live-group collision and accepts an uncovered carry; the legacy set is within its cap and each member still needs the exemption')
   return 0
 }
 
@@ -1473,6 +1638,7 @@ function main() {
   for (const f of carries) {
     totalErrors += printReport(path.relative(ROOT, f), lintFileGuarded(f, { roster }, lintCarryFile))
   }
+  if (defaultRun) totalErrors += printReport(PLAYBOOK_FILE, lintPlaybookFile(path.join(ROOT, PLAYBOOK_FILE)))
   // Printed even at zero, and named: a destination nobody has written to is a
   // fact a reviewer should read, not an absence they have to infer.
   console.log(`\nCARRY: ${carries.length} carry file(s) (dev/programme/carries/carry-<issue>.json)`)
@@ -1491,7 +1657,9 @@ function main() {
     acceptanceRc += assertRosterIssues()
     acceptanceRc += assertCarryFixtures()
     acceptanceRc += assertCarryControl()
+    acceptanceRc += assertLegacyControl()
     acceptanceRc += assertTreeRev()
+    acceptanceRc += assertPlaybookFixtures()
   }
   process.exit(totalErrors > 0 || acceptanceRc ? 1 : 0)
 }

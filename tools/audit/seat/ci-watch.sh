@@ -29,6 +29,17 @@ RULESET=main-protect-checks
 # wake on its exit does not rewrite the seat's whole context (R10-FLY-CACHE-PROMPTS),
 # and never under GitHub's 60 s poll floor.
 POLL_S=240
+# A red gate is re-read through merge_train's `classify` (Train.classify_at),
+# the train's own deferral reading: never a second copy of gate.py's `busy`.
+CLASSIFY=${CI_WATCH_CLASSIFY:-python3 -I $(dirname "$0")/merge_train.py classify}
+gate_deferred() { # <sha>: 0 when classify reads the head WAIT with `gate` not red
+  local out rc
+  out=$($CLASSIFY "$1" --repo "$R" 2>/dev/null); rc=$?
+  [ "$rc" = 3 ] || return 1
+  case "$out" in "WAIT "*) ;; *) return 1 ;; esac
+  case " ${out##* red: } " in *" gate "*) return 1 ;; esac
+  return 0
+}
 
 # --------------------------------------------------------------- self-test
 self_test() {
@@ -227,6 +238,35 @@ EOF
   ck "W12 a gate that did not succeed (skipped; RATE-LIMITED is a failure) alerts RED: gate, never a pass" \
      "$([ $rc = 1 ] && says 'RED: gate' "$O" && echo 1 || echo 0)"
 
+  # W13-W15 (R10-HOTFIX-TRAIN-DEFER-WAIT): a red gate is re-read through
+  # merge_train's `classify` (Train.classify_at: gate.py's own `busy`), stubbed
+  # here by CI_WATCH_CLASSIFY printing $FIX/classify and exiting $FIX/classify-rc.
+  printf '#!/bin/bash\ncat "$FIX/classify" 2>/dev/null\nexit "$(cat "$FIX/classify-rc" 2>/dev/null || echo 2)"\n' > "$TMP/bin/classify"
+  chmod +x "$TMP/bin/classify"
+  cwatch() { PATH="$TMP/bin:$PATH" FIX="$1" CI_WATCH_STATE="$2" CI_WATCH_ONCE=1 CI_WATCH_CLASSIFY="$TMP/bin/classify" bash "$WATCH" 2>&1; }
+  F=$TMP/w13; gatefix "$F" deferring <<EOF
+gate|completed|failure|2026-11-07T16:05:20Z|1
+tests / closures|in_progress||2026-11-07T16:11:23Z|2
+EOF
+  printf 'WAIT deferring pending: gate red: none\n' > "$F/classify"; echo 3 > "$F/classify-rc"
+  O=$(cwatch "$F" "$TMP/s13"); rc=$?
+  ck "W13 an edit run's deferral red while its code run runs (classify WAIT, gate not red) is no RED alert" \
+     "$([ $rc = 0 ] && ! says 'RED' "$O" && echo 1 || echo 0)"
+  F=$TMP/w14; gatefix "$F" realred <<EOF
+gate|completed|failure|2026-11-07T16:05:20Z|1
+EOF
+  printf 'RED realred pending: none red: gate\n' > "$F/classify"; echo 1 > "$F/classify-rc"
+  O=$(cwatch "$F" "$TMP/s14"); rc=$?
+  ck "W14 null: a red gate classify reads RED still alerts RED: gate" \
+     "$([ $rc = 1 ] && says 'RED: gate' "$O" && echo 1 || echo 0)"
+  F=$TMP/w15; gatefix "$F" unread <<EOF
+gate|completed|failure|2026-11-07T16:05:20Z|1
+EOF
+  printf 'REFUSE ci: the check runs could not be read\n' > "$F/classify"; echo 2 > "$F/classify-rc"
+  O=$(cwatch "$F" "$TMP/s15"); rc=$?
+  ck "W15 a classify that refuses leaves the red standing: RED: gate" \
+     "$([ $rc = 1 ] && says 'RED: gate' "$O" && echo 1 || echo 0)"
+
   # The cadence (R10-FLY-CACHE-PROMPTS): under the seat's 5-minute prompt-cache
   # TTL, never under GitHub's 60 s poll floor.
   ck "the poll is inside [60 s, 240 s] (POLL_S=${POLL_S:-unset})" \
@@ -291,7 +331,13 @@ while true; do
         # Sorted: the signature file dedups on this string, and awk's END-loop
         # order is arbitrary -- an unsorted list would re-alert the same reds
         # as a NEW state every cycle (v2's jq group_by was name-sorted).
-        reds=$(printf '%s\n' "$CR" | sort -s -t "$TAB" -k1,1 -k4,4 | awk -F "$TAB" '{k = ($1 == "gate") ? $1 SUBSEP $5 : $1; nm[k] = $1; bad[k] = ($1 == "gate") ? ($2 == "completed" && $3 != "success") : ($3 == "failure")} END {for (x in bad) if (bad[x]) print nm[x]}' | sort -u | tr '\n' ' ')
+        reds_l=$(printf '%s\n' "$CR" | sort -s -t "$TAB" -k1,1 -k4,4 | awk -F "$TAB" '{k = ($1 == "gate") ? $1 SUBSEP $5 : $1; nm[k] = $1; bad[k] = ($1 == "gate") ? ($2 == "completed" && $3 != "success") : ($3 == "failure")} END {for (x in bad) if (bad[x]) print nm[x]}' | sort -u)
+        # An edit run's at-once deferral while its code run runs is a wait,
+        # not a state (R10-HOTFIX-TRAIN-DEFER-WAIT); a refusing read keeps it red.
+        if printf '%s\n' "$reds_l" | grep -qx gate && gate_deferred "$sha"; then
+          reds_l=$(printf '%s\n' "$reds_l" | grep -vx gate)
+        fi
+        reds=$(printf '%s\n' "$reds_l" | sed '/^$/d' | tr '\n' ' ')
         [ -n "$reds" ] && issue="$issue | RED: $reds"
         # ABSENT, judged only at a settled head: every run it has completed.
         pending=$(printf '%s\n' "$CR" | awk -F "$TAB" '$2 != "completed"' | wc -l | tr -d ' ')

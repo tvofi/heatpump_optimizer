@@ -61,6 +61,13 @@ class Fake:
         return pid not in self.dead
 
 
+def rd(p):
+    try:
+        return p.read_text()
+    except OSError:
+        return None
+
+
 def line(topic, s, ct=None):
     return f"OWED 2026-11-02T00:00:00Z handoff-no-pr refs/heads/handoff/{topic} {s}" + (f" ct={int(ct)}" if ct else "")
 
@@ -142,6 +149,13 @@ def run():
     sd, w = world("", heads=[("r10-cp", sha("2"))])
     go(sd, w, line("r10-cp", sha("7")))
     check("moved handoff skipped", w.launched == [])
+    for tp in ("triage-s9-batch4", "roster-carry-fold"):
+        sd, w = world("", ros=roster("ROSTER-CARRY-FOLD", "R10-TRIAGE-S9"), heads=[(tp, sha("2"))])
+        go(sd, w, line(tp, sha("2")))
+        check(f"{tp} is batched, not opened", w.launched == [] and od.resolve(tp, {"ROSTER-CARRY-FOLD", "R10-TRIAGE-S9"}, "")[0])
+    sd, w = world("", heads=[("r10-cp", sha("2"))])
+    go(sd, w, line("r10-cp", sha("2")))
+    check("null: a production topic is opened as before", len(w.launched) == 1)
     sd, w = world("", heads=[("r10-cp", sha("2"))], extra=["refs/heads/fix/r10-cp-pr"])
     go(sd, w, line("r10-cp", sha("2")))
     check("existing fix branch skipped", w.launched == [])
@@ -159,20 +173,20 @@ def run():
     sd, w = world("", heads=h1)
     b = line("r10-cp", sha("2"))
     go(sd, w, b)
-    (d(sd) / "r10-cp.rc").write_text("1\n")
-    (d(sd) / "r10-cp.log").write_text("open_pr: REFUSE: the body lints red\n")
+    (d(sd) / "t-r10-cp.rc").write_text("1\n")
+    (d(sd) / "t-r10-cp.log").write_text("open_pr: REFUSE: the body lints red\n")
     go(sd, w, b, NOW + 10)
     check("failed open not marked seen", not (d(sd) / "seen.txt").exists() and len(w.launched) == 1)
     check("failed open prints OWED with reason", any(o.startswith("OWED") and "open-refused r10-cp" in o and "REFUSE" in o for o in out))
     check("backoff holds the retry", len(w.launched) == 1)
     go(sd, w, b, NOW + 10 + od.BACKOFF_S + 1)
     check("retry after backoff", len(w.launched) == 2)
-    (d(sd) / "r10-cp.rc").write_text("1\n")
+    (d(sd) / "t-r10-cp.rc").write_text("1\n")
     go(sd, w, b, NOW + 5000)
-    check("backoff schedule: 5 min, doubling, 2 h cap", [od.backoff(1), od.backoff(2), od.backoff(6), od.backoff(7)] == [300, 600, 7200, 7200])
+    check("backoff schedule: 30 min, 60 min, 2 h cap", [od.backoff(1), od.backoff(2), od.backoff(3), od.backoff(7)] == [1800, 3600, 7200, 7200])
     check("backoff doubles", od.backoff(2) == 2 * od.backoff(1) and od.backoff(99) == od.BACKOFF_MAX_S)
     go(sd, w, b, NOW + 5000 + 3 * 3600)
-    (d(sd) / "r10-cp.rc").write_text("0\n")
+    (d(sd) / "t-r10-cp.rc").write_text("0\n")
     go(sd, w, b, NOW + 5000 + 4 * 3600)
     check("rc=0 marks seen", f"r10-cp {sha('2')}" in (d(sd) / "seen.txt").read_text())
     k = len(w.launched)
@@ -181,9 +195,50 @@ def run():
     sd, w = world("", heads=h1)
     go(sd, w, b)
     w.dead.add(w.pid)
-    (d(sd) / "r10-cp.rc").unlink(missing_ok=True)
+    (d(sd) / "t-r10-cp.rc").unlink(missing_ok=True)
     go(sd, w, b, NOW + 1)
     check("a killed run (no result, no PID) is a failure", any("open-refused r10-cp" in o and "rc=-1" in o for o in out))
+
+    # three failed runs end the retries: STUCK once per pass, nothing relaunches; a new sha starts fresh
+    sd, w = world("", heads=h1)
+    go(sd, w, b)
+    (d(sd) / "t-r10-cp.log").write_text("open_pr: REFUSE: the body lints red\n")
+    (d(sd) / "t-r10-cp.rc").write_text("1\n")
+    go(sd, w, b, NOW + 10)
+    go(sd, w, b, NOW + 2000)
+    (d(sd) / "t-r10-cp.rc").write_text("1\n")
+    go(sd, w, b, NOW + 2100)
+    check("two failures print OWED, not STUCK", any(o.startswith("OWED") for o in out) and not any(o.startswith("STUCK") for o in out))
+    go(sd, w, b, NOW + 6000)
+    (d(sd) / "t-r10-cp.rc").write_text("1\n")
+    go(sd, w, b, NOW + 6100)
+    check("third failure prints exactly one STUCK line, no OWED",
+          [o for o in out if o.startswith(("STUCK", "OWED"))] == [f"STUCK r10-cp {sha('2')[:8]} rc=1 open_pr: REFUSE: the body lints red"])
+    go(sd, w, b, NOW + 100 * 3600)
+    check("stuck: no relaunch after a long time, STUCK again",
+          len(w.launched) == 3 and sum(o.startswith("STUCK r10-cp ") for o in out) == 1 and not any(o.startswith("OWED") for o in out))
+    w.t["refs/heads/handoff/r10-cp"] = sha("7")
+    go(sd, w, line("r10-cp", sha("7")), NOW + 100 * 3600 + 10)
+    check("a new sha for a stuck topic launches again", len(w.launched) == 4)
+
+    # a topic named like the driver's own log must not overwrite it; a plain one still works
+    check("stem: a/b != a%2Fb", od.stem("a/b") != od.stem("a%2Fb"))
+    with tempfile.TemporaryDirectory() as tmp:
+        sd = Path(tmp) / "sd"
+        (sd / "open-driver").mkdir(parents=True)
+        (sd / "open-driver" / "open-driver.log").write_text("driver\n")
+        wl = od.World(tmp, sd)
+        wl.opener = Path(tmp) / "o.sh"
+        wl.opener.write_text("echo topic-ran\n")
+        for topic in ("open-driver", "r10-plain"):
+            rcf = sd / "open-driver" / f"t-{od.stem(topic)}.rc"
+            wl.launch(topic, sha("1"), "T", "G")
+            for _ in range(100):
+                if rcf.exists() and rcf.read_text().strip():
+                    break
+                time.sleep(0.1)
+            check(f"topic {topic!r} launches into its own t- files", rd(sd / "open-driver" / f"t-{od.stem(topic)}.log") == "topic-ran\n")
+        check("open-driver.log not overwritten by topic 'open-driver'", rd(sd / "open-driver" / "open-driver.log") == "driver\n")
 
     # a second pass with the first run still alive must not launch again
     sd, w = world("", heads=h1)
@@ -235,14 +290,14 @@ def run():
             argsf.unlink(missing_ok=True)
             os.environ["HPO_ARGS_OUT"] = str(argsf)
             wl.launch(topic, sha("1"), "T x", "G")
-            rcf = sd / "open-driver" / f"{od.stem(topic)}.rc"
+            rcf = sd / "open-driver" / f"t-{od.stem(topic)}.rc"
             for _ in range(100):
                 if rcf.exists() and rcf.read_text().strip():
                     break
                 time.sleep(0.1)
             check(f"launch {topic!r}: rc file written with 0", rcf.exists() and rcf.read_text().strip() == "0")
             check(f"launch {topic!r}: topic arrives as one argument", argsf.exists() and argsf.read_text() == f"{topic}|{sha('1')}|T x|G|")
-            check(f"launch {topic!r}: log written", (sd / "open-driver" / f"{od.stem(topic)}.log").read_text() == "ran\n")
+            check(f"launch {topic!r}: log written", rd(sd / "open-driver" / f"t-{od.stem(topic)}.log") == "ran\n")
         check("launch: no topic executed as shell code", not marker.exists() and not list(Path(tmp).rglob("INJECTED")))
 
     # a slash topic end to end: run_pass launches it through the real World.launch, a later pass reaps its result
@@ -266,7 +321,7 @@ def run():
         ws = Slash(wr, roster("A/B"), heads=[("a/b", sha("4"))])
         b = line("a/b", sha("4"))
         go(sd, ws, b)
-        rcf = sd / "open-driver" / f"{od.stem('a/b')}.rc"
+        rcf = sd / "open-driver" / f"t-{od.stem('a/b')}.rc"
         for _ in range(100):
             if rcf.exists() and rcf.read_text().strip():
                 break

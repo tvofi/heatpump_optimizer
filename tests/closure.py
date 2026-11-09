@@ -121,6 +121,10 @@ CLOSURES_COMMENT = (
 # could not record it without both. Its own nightly job runs it.
 NOT_A_TEST = {
     "harness.py", "profiles.py", "closure.py", "gate_lock.py",
+    # features.py's worker-deadline checks (#3232), a module it imports and
+    # runs, kept out of features.py so CodeQL's extraction of that module
+    # fits its job limit. Measured through features.py's closure.
+    "worker_deadlines.py",
     # The lane-skip decision instrument (R9-CI-SKIP): it reads this table to
     # decide whether `fast`/`coverage`/`browser` may report `skipped`, so it
     # is driven by the workflow's decision steps, never by the suite. NOT
@@ -580,6 +584,16 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/pr/preflight.sh",
+    # R10-FLY-REPLAN-DEFECTS: tests/entities.py runs the orchestrator tick's
+    # self-test, whose closure holds roster_lib.py (a roster_lib edit must run it).
+    # CI's closures-autofix refused: INERT and read. Same route as the files below:
+    # the tools/audit/seat/ files stay INERT, this one moves to the recorded closure.
+    "tools/audit/seat/orchestrator_tick.py",
+    # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
+    # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
+    "tools/audit/seat/pr_cap.py",
+    "tools/policy/budget_raise_gate.py",
+    "tools/pr/app_approve.sh",
     # #2216: tests/entities.py reads the coverage stage, one of the three
     # HPO_CI_METRICS emitters, to pin that it keeps the metrics file from the
     # scripts it runs; left inside the tools/coverage/ prefix it would be
@@ -613,6 +627,13 @@ INERT_EXCEPT = (
     # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
     # stays INERT, this file joins the recorded closure.
     "tools/audit/seat/plan_page.py",
+    # R10-TICK-LEVELS P2: roster_sync.py (already a recorded read above) imports
+    # the topic grammar's one owner in-process, so tests/entities.py's load of it
+    # opens this file. CI's closures job 128825445404 was UNDER-SCOPED on it and
+    # closures-autofix ended skip-merge-failed (INERT and read). Same route as
+    # plan_page.py: tools/audit/seat/ stays INERT, this file joins the recorded
+    # closure, so an edit to the grammar selects tests/entities.py.
+    "tools/audit/seat/topic_grammar.py",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
@@ -789,6 +810,10 @@ INERT_EXCEPT = (
     "tools/policy/rules_sync.mjs",
     "tools/policy/vendor/markdown-it.min.js",
     "tools/policy/vendor/markdown-it.LICENSE",
+    # r10-hotfix-nonrequired-reds: tests/entities.py's _pcr_unrestored rule
+    # reads the source of every python3 program policy_lint.mjs spawns, and
+    # policy_lint.mjs spawns this one. An edit selects entities.py.
+    "tools/policy/budget_raise_gate.py",
     # #1240 (D13-03): tests/entities.py reads the wave script itself to
     # re-derive VERDICT_CLASSES and pin that the stats histogram's block-class
     # set is the one the wave teaches -- the stale-copy class of check this
@@ -973,6 +998,15 @@ INERT_EXCEPT = (
     # It leaves the prefix the way the U5 harnesses did; enumerate_api_calls.py
     # stays INERT, read only by the replay's child under inert_reads.
     "dev/audit/harnesses/record_burst_replay.py",
+    # R10-WHY-NOW-WIDGET: tests/features.py imports this harness and drives
+    # its `comfort_schedule`, so a caller left on the old
+    # `_build_comfort_bounds` shape fails a named check. The
+    # dev/audit/harnesses/ prefix kept it INERT while features.py opens it:
+    # closures job 128558742815 was INERT READS UNDER-APPROXIMATED, and
+    # closures-autofix ended skip-merge-failed on the pair. It leaves the
+    # prefix the way record_burst_replay.py did, so an edit selects
+    # tests/features.py.
+    "dev/audit/harnesses/r10_demand_overbook.py",
 )
 
 

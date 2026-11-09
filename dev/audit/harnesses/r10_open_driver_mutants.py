@@ -17,12 +17,15 @@ nothing mutated, must print failed=0. A pattern not found exactly once aborts.
   M-backoff  a failed open is retried every pass.
   M-live     a topic whose run is still alive launches again.
   M-launch   World.launch pastes the topic and state directory into bash -c text.
-  M-bo-base  the backoff base 300 s -> 600 s.
+  M-bo-base  the backoff base 1800 s -> 600 s.
   M-bo-max   the backoff cap 7200 s -> 14400 s.
   M-head4    body_head reads four lines, not three.
   M-headall  body_head reads the whole body.
   M-first    parse_board lets a later line for a topic win.
   M-triageB  the R10-TRIAGE-B<M> fallback is dropped.
+  M-escape   stem() no longer escapes % before /: `a%2Fb` and `a/b` share a file.
+  M-maxtries the MAX_TRIES stop is dropped: a failing open is retried forever.
+  M-stuckowed a stuck (topic, sha) prints OWED, not STUCK.
   M-open-stem   World.launch names the .rc by the raw topic: a slash topic's
                 result file is never written (the open side).
   M-reap-stem   run_pass reads the raw topic's .rc: a slash topic's result is
@@ -31,7 +34,7 @@ nothing mutated, must print failed=0. A pattern not found exactly once aborts.
 
     python3 dev/audit/harnesses/r10_open_driver_mutants.py
 
-EXPECTED RESULT mutants=19
+EXPECTED RESULT mutants=22
 EXPECTED RESULT survived=0
 """
 from __future__ import annotations
@@ -70,20 +73,23 @@ PLANTS = {
     "M-live": ("        elif topic in runs:\n", "        elif False:\n"),
     "M-launch": (
         """        cmd = 'o=$0; l=$1; r=$2; shift 2; bash "$o" "$@" > "$l" 2>&1; echo $? > "$r"'
-        argv = ["bash", "-c", cmd, str(self.opener), str(d / f"{stem(topic)}.log"), str(rc), topic, sha, title, group]
+        argv = ["bash", "-c", cmd, str(self.opener), str(d / f"t-{stem(topic)}.log"), str(rc), topic, sha, title, group]
 """,
-        """        cmd = f'bash {self.opener} "$@" > {d}/{topic}.log 2>&1; echo $? > {d}/{topic}.rc'
+        """        cmd = f'bash {self.opener} "$@" > {d}/t-{topic}.log 2>&1; echo $? > {d}/t-{topic}.rc'
         argv = ["bash", "-c", cmd, "_", topic, sha, title, group]
 """),
-    "M-bo-base": ("BACKOFF_S, BACKOFF_MAX_S = 300, 7200", "BACKOFF_S, BACKOFF_MAX_S = 600, 7200"),
-    "M-bo-max": ("BACKOFF_S, BACKOFF_MAX_S = 300, 7200", "BACKOFF_S, BACKOFF_MAX_S = 300, 14400"),
+    "M-bo-base": ("BACKOFF_S, BACKOFF_MAX_S, MAX_TRIES = 1800, 7200, 3", "BACKOFF_S, BACKOFF_MAX_S, MAX_TRIES = 600, 7200, 3"),
+    "M-bo-max": ("BACKOFF_S, BACKOFF_MAX_S, MAX_TRIES = 1800, 7200, 3", "BACKOFF_S, BACKOFF_MAX_S, MAX_TRIES = 1800, 14400, 3"),
     "M-head4": ("splitlines()[:3]", "splitlines()[:4]"),
     "M-headall": ('"\\n".join(r.stdout.splitlines()[:3])', "r.stdout"),
     "M-first": ("        if m and m.group(1) not in seen:\n", "        if m:\n"),
     "M-triageB": ('for g in (f"R10-TRIAGE-S{m.group(1)}", f"R10-TRIAGE-B{m.group(2)}"):', 'for g in (f"R10-TRIAGE-S{m.group(1)}",):'),
-    "M-open-stem": ('        rc = d / f"{stem(topic)}.rc"\n', '        rc = d / f"{topic}.rc"\n'),
-    "M-reap-stem": ('        rcf = d / f"{stem(t)}.rc"\n', '        rcf = d / f"{t}.rc"\n'),
-    "M-reap-log": ("reason(d / (stem(t) + '.log'))", "reason(d / (t + '.log'))"),
+    "M-open-stem": ('        rc = d / f"t-{stem(topic)}.rc"\n', '        rc = d / f"t-{topic}.rc"\n'),
+    "M-reap-stem": ('        rcf = d / f"t-{stem(t)}.rc"\n', '        rcf = d / f"t-{t}.rc"\n'),
+    "M-reap-log": ('{reason(d / f"t-{stem(t)}.log")}', '{reason(d / f"t-{t}.log")}'),
+    "M-escape": ('topic.replace("%", "%25").replace("/", "%2F")', 'topic.replace("/", "%2F")'),
+    "M-maxtries": ('        elif fails.get(f"{topic} {sha}", {}).get("n", 0) >= MAX_TRIES:\n', "        elif False:\n"),
+    "M-stuckowed": ('f"STUCK {t} {sha[:8]} rc=', 'f"OWED {stamp} open-refused {t} {sha[:8]} rc='),
 }
 
 

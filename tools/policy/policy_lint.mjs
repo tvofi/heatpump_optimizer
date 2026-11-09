@@ -46,7 +46,7 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node tools/policy/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login] [--commits-file f]
+//   node tools/policy/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login] [--commits-file f] [--required-file f]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
@@ -2813,10 +2813,31 @@ const FRICTION_THRESHOLD = 3
 // actually split. The mutation family's last four words are #2561 section 5's
 // measured synonyms of the mutation obligation (v7.0.0..df6ca4bc: test-vacuous
 // on 2 pull requests, the other three on 1 each).
+// The last three mutation members are v7.0.4..7e8939d38's spellings of the same
+// obligation: mutation-unpinned 2 pull requests, unpinned-site 2, mutation-survivors
+// 1, five that no other member holds (R10-RCA-MUTATION-VACUOUS.md, #2942).
 const FRICTION_FAMILIES = [
-  { name: 'mutation', members: ['mutation', 'mutation-vacuous', 'mutation-survivor', 'test-vacuous', 'vacuous-test', 'vacuous-check', 'mutant-survives'] },
+  { name: 'mutation', members: ['mutation', 'mutation-vacuous', 'mutation-survivor', 'test-vacuous', 'vacuous-test', 'vacuous-check', 'mutant-survives', 'mutation-unpinned', 'unpinned-site', 'mutation-survivors'] },
   { name: 'environment', members: ['environment', 'seat-environment'] },
+  // One obligation under three class words (#2437, R10-RCA-FRICTION-RESIDUE
+  // section 5): the root-cause check the fix reviewer enforces, split by what
+  // went wrong with the body's answer. Measured v7.0.4..origin/main: 5, 6 and
+  // 12 pull requests under the three words. `red-checks` is the fourth
+  // spelling of the same unanswered-body block: #3252 twice (the body's
+  // `## Red checks` names none of the head's concluded reds), v7.1.5..origin/main
+  // (R10-RCA-OTHER-UNTAUGHT.md section 3, R10-RCA-FRICTION-OTHER-FAMILY-P2.md).
+  { name: 'root-cause', members: ['root-cause-unanswered', 'root-cause-detectable', 'root-cause-unrecorded', 'red-checks'] },
 ]
+
+// THE DERIVED FAMILY (#2436, R10-RCA-FRICTION-RESIDUE section 4). The reviewer
+// may write any class word and the wave routes an untaught one to `other`, so
+// the obligation's unit is the spelling and a spelling that moves never reaches
+// the threshold. This family is every VERDICT histogram key that
+// VERDICT_CLASSES does not teach, other than the passing verdict, computed at
+// read time so no list of words can go stale. It is additive like the declared
+// families: the #2410 subtraction applies, every taught row prints
+// byte-identically, and a window with no untaught word prints no row.
+export const UNTAUGHT_FAMILY = 'other (untaught)'
 
 // The fold itself, pure over any histogram cell map (the verdict classes or
 // the friction rule ids): one row per declared family with at least one member
@@ -2832,9 +2853,19 @@ const FRICTION_FAMILIES = [
 // occasions filed twice, and the 2 left were below the threshold. `filed`
 // names the members that filed, `union` is the count before they are taken
 // out, so the table can show both.
-function statsFamilies(hist) {
+// The one place the derived family's input is built: the would-open lines
+// (`statsFindings`) and the `--stats` table (`cmdStats`) both call it, and the
+// wiring pin below holds `cmdStats` to the call.
+export const derivedInput = (blocks, passing) => (blocks ? { taught: blocks, passing } : null)
+function statsFamilies(hist, derived = null) {
   const out = []
-  for (const { name, members } of FRICTION_FAMILIES) {
+  const declared = [...FRICTION_FAMILIES]
+  if (derived?.taught?.length) {
+    const taught = new Set(derived.taught)
+    const members = [...hist.keys()].filter((k) => !taught.has(k) && k !== derived.passing)
+    declared.push({ name: UNTAUGHT_FAMILY, members })
+  }
+  for (const { name, members } of declared) {
     const cells = members.map((m) => hist.get(m)).filter(Boolean)
     if (!cells.length) continue
     const filed = members.filter((m) => (hist.get(m)?.prs.size ?? 0) >= FRICTION_THRESHOLD)
@@ -3174,7 +3205,7 @@ export function statsFindings({ prs, fetched, fetchError, classes, blocks = bloc
   // message shape is the one `friction_issues.mjs`'s WOULD_OPEN_RE parses:
   // kind, count, threshold.
   for (const [kind, hist] of [['verdict family', verdicts], ['friction family', friction]]) {
-    for (const fam of statsFamilies(hist)) {
+    for (const fam of statsFamilies(hist, kind === 'verdict family' ? derivedInput(blocks, passing) : null)) {
       const n = fam.prs.size
       if (n < FRICTION_THRESHOLD) continue
       out.push({
@@ -4471,6 +4502,94 @@ function assertAcceptance(derived) {
       console.log(`\nFIXTURE VACUOUS: MAIN_STATE_REPORTERS (${label}): red ${JSON.stringify(redNames)} over paths ${JSON.stringify(paths)} owed answers for ${JSON.stringify(got)}, not ${JSON.stringify(owed)}; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone`)
       rc = 1
     }
+  }
+  // ONLY A REQUIRED RED IS OWED (owner ruling 2026-11-07). The set is the
+  // train's at the recorded ruleset ([gate]): the fixture's gate_required plus
+  // `gate`, what `merge_train.py owed-reds` prints for it. A main-graded
+  // reporter red and a non-required check go unnamed even on a diff touching
+  // the reporter's own script; a required unit, prepr's job-name prediction and
+  // a code-scanning alert stay owed (the arm). The mutant -- every concluded
+  // red treated as required -- owes all six and fails it.
+  pins += 4
+  const RC = JSON.parse(fs.readFileSync(path.join(HERE, 'fixtures', 'required-contexts.json'), 'utf8'))
+  const REQ = new Set([...RC.contexts, ...RC.gate_required])
+  const owedOf = (findings) => findings.map((f) => /check `([^`]+)` is red/.exec(f.message)?.[1]).filter(Boolean)
+  const MIXED = ['tests / nightly-status', 'governance / delivery-status', 'docs / links',
+    'tests / fast (3.14)', 'budget-raise-gate', 'code-scanning alert 7 (py/x)']
+  const reqGot = owedOf(checkPrBody(unnamed, { head: ZERO, red: MIXED, paths: ['tests/nightly_status.py'], existing: ['tests/nightly_status.py'], required: REQ }))
+  if (reqGot.join('|') !== 'tests / fast (3.14)|budget-raise-gate|code-scanning alert 7 (py/x)') {
+    console.log(`\nFIXTURE VACUOUS: with the required set known, red ${JSON.stringify(MIXED)} owed answers for ${JSON.stringify(reqGot)}; only the required unit, the job-name prediction and the alert are owed`)
+    rc = 1
+  }
+  // The null control: a body that names every red is refused for none, with or
+  // without the set, and never reads it (the read is lazy).
+  // The body goes in a private directory (CodeQL js/insecure-temporary-file):
+  // a predictable name in the shared tmpdir can be pre-planted or symlinked.
+  const namedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prbody-named-'))
+  let reads = 0
+  let namedWith, namedWithout
+  try {
+    const namedAll = path.join(namedDir, 'body.md')
+    fs.writeFileSync(namedAll, fs.readFileSync(path.join(ROOT, unnamed), 'utf8').replace(/## Red checks\n[^#]*/, `## Red checks\n${MIXED.map((n) => `- \`${n}\`: answered.`).join('\n')}\n\n`))
+    namedWith = owedOf(checkPrBody(namedAll, { head: ZERO, red: MIXED, paths: ['tests/x.py'], required: () => { reads += 1; return REQ } }))
+    namedWithout = owedOf(checkPrBody(namedAll, { head: ZERO, red: MIXED, paths: ['tests/x.py'] }))
+  } finally {
+    fs.rmSync(namedDir, { recursive: true, force: true })
+  }
+  if (namedWith.length || namedWithout.length || reads) {
+    console.log(`\nFIXTURE VACUOUS: a body naming every red was refused for ${JSON.stringify([...namedWith, ...namedWithout])} (set read ${reads} time(s)); naming every red behaves as before the ruling`)
+    rc = 1
+  }
+  // An unreadable set (the thunk's null) is the rule as it stood: the same
+  // owed list REPORTER_CASES pins for the reporter's own script.
+  const unreadSet = owedOf(checkPrBody(unnamed, { head: ZERO, red: ['tests / nightly-status', 'docs / links'], paths: ['tests/nightly_status.py'], existing: ['tests/nightly_status.py'], required: () => null }))
+  if (unreadSet.join('|') !== 'tests / nightly-status|docs / links') {
+    console.log(`\nFIXTURE VACUOUS: an unreadable required set owed ${JSON.stringify(unreadSet)}, not both reds; the relaxation must fail closed`)
+    rc = 1
+  }
+  // THE OWNER'S OWN FAIL-CLOSED ARM, DRIVEN THROUGH THE SPAWN (fix review
+  // round 1). requiredSet -> requiredFromTrain against a stub tree whose
+  // merge_train.py stands in for `owed-reds`: exit 2 with a REFUSE line on
+  // stdout is no set, so every red is owed; the mutant dropping
+  // `r.status !== 0` reads the REFUSE line as a one-name set and owes nothing.
+  // Null control: the same stub exiting 0 with one required name owes that one
+  // only, which proves the stub, not a fallback, answered.
+  pins += 2
+  const stubRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'owed-reds-stub-'))
+  const stubTrain = path.join(stubRoot, 'tools', 'audit', 'seat', 'merge_train.py')
+  fs.mkdirSync(path.dirname(stubTrain), { recursive: true })
+  const STUB_RED = ['tests / nightly-status', 'docs / links', 'tests / fast (3.14)']
+  const viaStub = (src) => {
+    fs.writeFileSync(stubTrain, src)
+    const stubNotes = []
+    return { owed: owedOf(checkPrBody(unnamed, { head: ZERO, red: STUB_RED, paths: ['tests/nightly_status.py'], existing: ['tests/nightly_status.py'], required: () => requiredSet(null, stubNotes, stubRoot) })), stubNotes }
+  }
+  const refused = viaStub('import sys\nprint("REFUSE proof: HTTP 403")\nsys.exit(2)\n')
+  const readOne = viaStub('print("tests / fast (3.14)")\n')
+  fs.rmSync(stubRoot, { recursive: true, force: true })
+  if (refused.owed.join('|') !== STUB_RED.join('|') || !refused.stubNotes.some((n) => n.includes('required-set: REFUSE proof: HTTP 403'))) {
+    console.log(`\nFIXTURE VACUOUS: an owed-reds that exits 2 with a REFUSE line owed ${JSON.stringify(refused.owed)} (notes ${JSON.stringify(refused.stubNotes)}), not every red; a refused read must leave every red owed`)
+    rc = 1
+  }
+  if (readOne.owed.join('|') !== 'tests / fast (3.14)' || readOne.stubNotes.length) {
+    console.log(`\nFIXTURE VACUOUS: an owed-reds that exits 0 naming tests / fast (3.14) owed ${JSON.stringify(readOne.owed)}; the stub tree did not answer`)
+    rc = 1
+  }
+  // No unnamed red, no read: an empty red list never calls the owner.
+  let reads0 = 0
+  checkPrBody(unnamed, { head: ZERO, red: [], paths: ['tests/x.py'], required: () => { reads0 += 1; return REQ } })
+  if (reads0) { console.log('\nFIXTURE VACUOUS: a run with no red read the required set'); rc = 1 }
+  // Every temporary path this file builds sits under a private mkdtempSync
+  // directory: a bare `path.join(os.tmpdir(), ...)` names a file in the shared
+  // tmpdir, which another user can pre-plant (CodeQL js/insecure-temporary-file,
+  // alert 52). The scan reads this file's own source, so the old shape fails it.
+  pins += 1
+  const tmpSites = fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n')
+    .map((l, i) => [i + 1, l]).filter(([, l]) => /path\.join\(os\.tmpdir\(\)/.test(l) && !/^\s*\/\//.test(l))
+  const bareTmp = tmpSites.filter(([, l]) => !/mkdtempSync\(path\.join\(os\.tmpdir\(\)/.test(l))
+  if (!tmpSites.length || bareTmp.length) {
+    console.log(`\nFIXTURE VACUOUS: ${tmpSites.length ? `line(s) ${bareTmp.map(([n]) => n).join(', ')} join a name onto the shared tmpdir outside mkdtempSync` : 'no os.tmpdir() site found; the scan read nothing'}; a temporary file goes inside a private mkdtempSync directory`)
+    rc = 1
   }
   // Both markers on SHAPE, for the reason `enumSkipLine`'s pin above gives: they
   // carry no finding, so no count can see them. The skip line is the only thing
@@ -6150,6 +6269,98 @@ function assertAcceptance(derived) {
       }
     }
     pins += 1
+    // THE DERIVED AND THE ROOT-CAUSE FAMILIES (#2436, #2437), driven over
+    // synthetic histograms: three untaught words on one pull request each fire
+    // `other (untaught)` at 3 while no word reaches 3 alone; a taught word and
+    // the passing verdict are not members (null control: every taught row stays
+    // out, a window with no untaught word prints no row); a word that files on
+    // its own is subtracted (#2410); and the three root-cause words fold to one
+    // family that a taught-only window never prints.
+    {
+      const mk = (rows) => {
+        const h = new Map()
+        for (const [k, prs] of rows) for (const pr of prs) bump(h, k, pr)
+        return h
+      }
+      const d = { taught: ['harness', 'other', 'class-open'], passing: 'merge' }
+      const fam = (h, name) => statsFamilies(h, d).find((f) => f.name === name)
+      const split = mk([['body-stale', [1]], ['figure-wrong', [2]], ['claim-drift', [3]], ['harness', [4, 5, 6, 7]], ['merge', [8, 9, 10]]])
+      const u = fam(split, UNTAUGHT_FAMILY)
+      const taughtOnly = mk([['harness', [1, 2, 3]], ['other', [4]], ['merge', [5]]])
+      const filedAlone = mk([['ci-red', [1, 2, 3]], ['body-stale', [4]]])
+      const f = fam(filedAlone, UNTAUGHT_FAMILY)
+      const rcFam = fam(mk([['root-cause-unanswered', [1]], ['root-cause-detectable', [2]], ['root-cause-unrecorded', [3]]]), 'root-cause')
+      const rcSpelled = fam(mk([['red-checks', [1]], ['root-cause-detectable', [2]], ['root-cause-unrecorded', [3]]]), 'root-cause')
+      const rcNull = fam(mk([['root-cause-detectable', [1]], ['root-cause-unrecorded', [2]]]), 'root-cause')
+      if (
+        !rcSpelled || rcSpelled.prs.size !== 3 || !rcNull || rcNull.prs.size !== 2 ||
+        !u || u.prs.size !== 3 || u.union !== 3 || fam(taughtOnly, UNTAUGHT_FAMILY) ||
+        !f || f.prs.size !== 1 || f.union !== 4 || f.filed.join() !== 'ci-red' ||
+        statsFamilies(split).some((x) => x.name === UNTAUGHT_FAMILY) ||
+        !rcFam || rcFam.prs.size !== 3 || fam(taughtOnly, 'root-cause')
+      ) {
+        console.log('\nFIXTURE VACUOUS: the derived `other (untaught)` or the declared `root-cause` family did not fold as pinned (3 untaught words on 3 PRs -> 3; taught and passing words out; a word filing alone subtracted; no derived list given -> no row; root-cause 1+1+1 -> 3; `red-checks` is a member: red-checks+detectable+unrecorded -> 3, and the same window without it -> 2)')
+        rc = 1
+      }
+    }
+    pins += 1
+    // THE WIRING, NOT THE FOLD (#2436, #2942): `statsFindings` is what the
+    // governance cron files from, so the derived list it hands `statsFamilies`
+    // is driven end to end over synthetic merged pull requests. Three untaught
+    // words on three PRs yield exactly one `verdict family` would-open for
+    // `other (untaught)`; three `mutation` siblings (the #2942 spellings) on
+    // three PRs yield one for `mutation` and none for the derived family; a
+    // taught-only window opens neither.
+    {
+      const h40 = 'a'.repeat(40)
+      const win = (rows) => {
+        const prs = []
+        const fetched = new Map()
+        rows.forEach((word, i) => {
+          const pr = String(7100 + i)
+          prs.push({ pr, subject: `x (#${pr})` })
+          fetched.set(pr, { body: '', comments: [{ body: `Fix review: blocked ${h40} ${word}: x` }] })
+        })
+        return { prs, fetched }
+      }
+      const opens = (rows, extraTaught = []) => {
+        const { prs, fetched } = win(rows)
+        const blocks = ['harness', 'other', 'class-open', ...extraTaught]
+        return statsFindings({ prs, fetched, fetchError: null, classes: ['merge', 'blocked'], blocks, passing: 'merge' })
+          .filter((f) => /would open .*\(family\)" -- verdict family/.test(f.message))
+          .map((f) => /recurring friction: ([^"]+) \(family\)/.exec(f.message)[1])
+      }
+      const untaught = opens(['body-stale', 'figure-wrong', 'claim-drift'])
+      const mutWords = ['mutation-unpinned', 'unpinned-site', 'mutation-survivors']
+      const mut = opens(mutWords, mutWords)
+      const taughtOnly = opens(['harness', 'harness', 'other'])
+      // A friction-id row: three distinct untaught friction rule ids on three
+      // PRs. The derived family is the VERDICT table's; applied to friction
+      // ids it would file a spurious `other (untaught)` friction family.
+      const frictionWin = { prs: [], fetched: new Map() }
+      ;['zz-alpha', 'zz-beta', 'zz-gamma'].forEach((id, i) => {
+        const pr = String(7200 + i)
+        frictionWin.prs.push({ pr, subject: `x (#${pr})` })
+        frictionWin.fetched.set(pr, { body: `## Friction\n\n- \`${id}\`: \`cost\`: x.\n`, comments: [] })
+      })
+      const frictionFam = statsFindings({ ...frictionWin, fetchError: null, classes: ['merge', 'blocked'], blocks: ['harness', 'other', 'class-open'], passing: 'merge' })
+        .filter((f) => /would open .*\(family\)" -- friction family/.test(f.message))
+      if (
+        untaught.join('|') !== UNTAUGHT_FAMILY || mut.join('|') !== 'mutation' || taughtOnly.length || frictionFam.length
+      ) {
+        console.log(`\nFIXTURE VACUOUS: statsFindings did not file the families end to end (3 untaught words on 3 PRs -> ${JSON.stringify(untaught)}, want one \`${UNTAUGHT_FAMILY}\`; mutation-unpinned + unpinned-site + mutation-survivors -> ${JSON.stringify(mut)}, want one \`mutation\`; a taught-only window -> ${JSON.stringify(taughtOnly)}, want none; 3 untaught friction ids -> ${frictionFam.length} friction-family would-open(s), want none)`)
+        rc = 1
+      }
+    }
+    pins += 1
+    // `cmdStats` reads the network, so its table wiring is pinned by shape: the
+    // verdict table's family call must take the shared derived input, or the
+    // `other (untaught)` row vanishes from `--stats` with every count unchanged.
+    if (!/statsFamilies\(verdicts, derivedInput\(blocks, passingVerdict\(\)\)\)/.test(read('tools/policy/policy_lint.mjs') ?? '')) {
+      console.log('\nFIXTURE VACUOUS: cmdStats no longer builds the verdict table\'s families from derivedInput(blocks, passingVerdict()); the derived `other (untaught)` row would drop from --stats in silence')
+      rc = 1
+    }
+    pins += 1
     // A family that contains the passing verdict would open rework as
     // friction -- the one class the histogram withholds from its own row. The
     // declared set must never do it, and the pin is here so the next declared
@@ -6622,6 +6833,49 @@ function reporterInputsTouched(paths, existing) {
   const rows = (existing ?? paths).filter((p) => DELIVERY_ROW.test(p))
   return [...new Set([...paths.filter((p) => REPORTER_INPUTS.has(p)), ...rows])].sort()
 }
+// ONLY A REQUIRED RED OWES AN ANSWER (owner ruling tvofi, 2026-11-07: "not
+// having anything block because of unnamed reds that is non required"). The
+// required set is the one the merge train judges -- merge_train.py's `judged`
+// over `gating_names` of main-protect-checks, read live -- and it is read
+// through that owner (`merge_train.py owed-reds`), never a list copied here.
+// A red is owed when its name is in that set, or is the job half of a name in
+// it (prepr.sh's offline predictions ride `--red budget-raise-gate` and
+// `--red mutation`, the jobs of `budget-raise-gate / budget-raise-gate` and
+// `tests / mutation`), or is a code-scanning alert (alert_list.py's lines:
+// no check run, and owner ruling R-10 B made each one a red to answer). A set
+// that cannot be read leaves every red owed, MAIN_STATE_REPORTERS' exemption
+// included, which is the rule as it stood: the relaxation fails closed.
+const ALERT_RED = /^code-scanning alert \d+ /
+function redOwed(name, required) {
+  if (ALERT_RED.test(name) || required.has(name)) return true
+  for (const r of required) if (r.split(' / ').length === 2 && r.split(' / ')[1] === name) return true
+  return false
+}
+
+// The live set, through its owner; { names } or { why }. `--required-file`
+// (one name per line) replaces the read for a caller that already holds it.
+// `root` is the tree whose merge_train.py answers: the checkout (in CI, the
+// base's copy, which pr-contract restores), or the acceptance's stub tree.
+function requiredFromTrain(root = ROOT) {
+  const r = spawnSync('python3', [path.join(root, 'tools', 'audit', 'seat', 'merge_train.py'), 'owed-reds'],
+    { cwd: root, encoding: 'utf8', timeout: 120000 })
+  const names = (r.stdout ?? '').split('\n').map((x) => x.trim()).filter(Boolean)
+  if (r.status !== 0 || !names.length) return { why: (r.stdout || r.stderr || String(r.error ?? `rc ${r.status}`)).trim().split('\n').pop() }
+  return { names }
+}
+
+// checkPrBody's `required` thunk body: the Set, or null (every red owed) with a
+// skip note when neither the file nor the owner yields a name.
+function requiredSet(requiredFile, notes, root = ROOT) {
+  let got
+  if (requiredFile != null) {
+    try { got = { names: fs.readFileSync(requiredFile, 'utf8').split('\n').map((x) => x.trim()).filter(Boolean) } } catch { got = { why: `--required-file ${requiredFile}: unreadable` } }
+  } else got = requiredFromTrain(root)
+  if (got.names?.length) return new Set(got.names)
+  notes.push(`  skip    required-set: ${got.why ?? 'empty'} -- every red is owed an answer this run, as before the 2026-11-07 ruling`)
+  return null
+}
+
 const RED_HISTORY_PAGE = 100
 const RED_HISTORY_MAX_PAGES = 10
 
@@ -6796,7 +7050,7 @@ function dependabotYmlAt(base) {
   try { return fs.readFileSync(path.join(ROOT, '.github', 'dependabot.yml'), 'utf8') } catch { return '' }
 }
 
-function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null, commits = null } = {}) {
+function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null, commits = null, required = null } = {}) {
   // A Dependabot pull request answers the dependency-bump contract instead
   // (tools/policy/dependabot_contract.mjs); every other author, the full one.
   if (author != null && DEPENDABOT_AUTHORS.has(author)) {
@@ -6909,8 +7163,11 @@ function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], pat
   // but naming it is mechanical, and naming it is what gets skipped.
   const redSec = (secs.get('Red checks') ?? '').trim()
   const touched = reporterInputsTouched(paths, existing)
-  for (const name of red) {
-    if (redSec.includes(name) || (MAIN_STATE_REPORTERS.has(name) && !touched.length)) continue
+  const silent = red.filter((name) => !redSec.includes(name))
+  const req = silent.length && typeof required === 'function' ? required() : required
+  for (const name of silent) {
+    if (req instanceof Set && !redOwed(name, req)) continue
+    if (!(req instanceof Set) && MAIN_STATE_REPORTERS.has(name) && !touched.length) continue
     const why = MAIN_STATE_REPORTERS.has(name)
       ? ` It grades \`main\`, but this diff touches what it reads (${touched.join(', ')}), so the red may be this pull request's own.`
       : ''
@@ -7010,7 +7267,11 @@ function cmdPrBody(args) {
       return 1
     }
   }
-  const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author, commits })
+  // Read only when a red goes unnamed (checkPrBody calls it lazily), so a body
+  // naming every red, or a run with none, reaches no network at all.
+  const requiredFile = val('--required-file')
+  const required = () => requiredSet(requiredFile, notes)
+  const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author, commits, required })
   for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)
@@ -7467,7 +7728,7 @@ function cmdStats(since, cacheFile) {
     // over BOTH maps (FRICTION_FAMILIES: mutation's siblings are verdict
     // classes, environment's are friction rule ids). A window with no family
     // member prints none, and stays byte-identical to the pre-fold counter.
-    const families = { 'verdict class': statsFamilies(verdicts), rework: [], 'friction rule id': statsFamilies(friction) }
+    const families = { 'verdict class': statsFamilies(verdicts, derivedInput(blocks, passingVerdict())), rework: [], 'friction rule id': statsFamilies(friction) }
     for (const [label, hist] of [['verdict class', verdicts], ['rework', rework], ['friction rule id', friction]]) {
       console.log(`\n${label} (PRs / entries):`)
       const rows = [...hist.entries()].sort((a, b) => b[1].prs.size - a[1].prs.size || b[1].entries - a[1].entries)

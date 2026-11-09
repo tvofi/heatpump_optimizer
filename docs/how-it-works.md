@@ -884,8 +884,20 @@ for water the pump never made — and cannot eat the buffer's
 safe-temperature headroom, so the plan keeps charging cheap hours right through
 a burn. Heat still in the wood tank at day's end counts in the thermal-battery
 view, up to 95 °C. The savings reference has no wood at all, so wood's heat
-counts in the saving and firewood's cost is not counted; the savings page says
-so where wood is configured. Without the probe, or
+counts in the saving and firewood's cost is not counted; the savings page, the
+Plan Monthly Savings sensor and the notifications blueprint's monthly receipt
+say so where wood is configured. The reference is scaled to the meter, and on a
+wood house only over the intervals wood did not heat, so a meter that falls
+under the plan during a fire cannot cancel wood's heat; where too few such
+intervals were metered, the whole month's scale applies and only raises it. A fire the plan did not foresee moves
+the meter off the plan only until the next re-plan reads the warmer tank. In a
+simulated house (the `wood-plant` arm of
+`dev/audit/harnesses/r10_sav_wood_reference.py`: 4 to 12 kW, 4-hour fires,
+each plan held an hour, where the integration re-plans every interval), the
+pump drew between 0 and 4.5 % less than its plan.
+Where the model reads the meter high or low, the wood-free intervals correct
+it either way; only a month that falls back to the whole month's scale keeps a
+model that reads high uncorrected. Without the probe, or
 while it is stale, the wood tank is not a store of its own: the model keeps the
 one buffer tank, and a burn is the bounded free heat described above.
 
@@ -1254,7 +1266,7 @@ anticipating weather nobody has forecast. Everything below is built on those cod
 
 | Where to look | What it explains |
 |---|---|
-| **Plan Narrative** sensor | The current plan grouped by reason and told in prose, in English or Swedish |
+| **Plan Narrative** sensor | The current plan grouped by reason and told in prose, in English, Swedish or German |
 | **Cost Contract Comparison** sensor | The closed month as an itemised receipt, reason by reason, with the reason lines summing to the metered spot line by construction |
 | **Plan Optimization Score** sensor | Envelope, machine and operation graded separately — how good is the house, how healthy is the machine, how well is it driven — with the operation grade replaying each day's kWh against that day's prices |
 | **Prediction Accuracy Diagnose Last Interval** button | The last interval's temperature error attributed input by input: the interval is re-run swapping realised inputs in one at a time, each charged the share of the error it explains |
