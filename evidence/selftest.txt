@@ -1,0 +1,1 @@
+figure_block self-test: 11 checks, 0 failed

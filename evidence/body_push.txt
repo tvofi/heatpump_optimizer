@@ -1,4 +1,0 @@
-ok   the seat-side figure-block refresh ran
-ok   MUTANT refresh deleted: the arm above would fail
-ok   (null) the published body is not in the code head's ancestry
-body_push self-test: 34 checks, 0 failed
