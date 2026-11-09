@@ -1,0 +1,14 @@
+RESULT P419 ACCEPT
+RESULT P420 ACCEPT
+RESULT P421 DEFER
+RESULT P422 ACCEPT
+RESULT P423 ACCEPT
+RESULT P424 None
+RESULT refusal P419 None
+RESULT refusal P420 None
+RESULT refusal P421 dev/programme/triage/s6-batch134.md#P421 is not an ACCEPT ruling (DEFER)
+RESULT refusal P422 None
+RESULT refusal P423 None
+RESULT null absent the triage ruling dev/programme/triage/s6-batch134.md is not on the roster branch or origin/main
+RESULT mutant P422 dev/programme/triage/s6-batch134.md#P422 is not an ACCEPT ruling (REJECT)
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
