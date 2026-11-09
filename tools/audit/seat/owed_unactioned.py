@@ -16,7 +16,7 @@ two handoffs routed to the opener at 10:55Z stood 8 h.
 
 WHAT IT DOES. It reads the tick board's owed family -- every `-> ` line that
 starts `OWED`, `REVIEW OWED:`, `DISPATCH:`, `OWNER FLAG:`, `DESIGN-BUILD:`,
-`MERGE-READY:`, `BLOCKED-UNFIXED:`, `APPROVAL-OWED:`, `UNLEVELLED:` or `REVIEW STALLED:` -- and keys each on its obligation: the
+`MERGE-READY:`, `BLOCKED-UNFIXED:`, `APPROVAL-OWED:`, `UNLEVELLED:`, `REVIEW STALLED:` or `RECORD-OWED:` -- and keys each on its obligation: the
 handoff topic, or `#<pr>`. A verdict level (`MERGE-READY: #N <head8>`) carries
 its head8 as the id, so an acknowledgement covers one head and a new head
 re-raises. `APPROVAL-OWED:` means queue the PR for the train, which posts the
@@ -53,7 +53,7 @@ import re
 import sys
 import tempfile
 
-FAMILY = re.compile(r"^-> (OWED|REVIEW OWED:|DISPATCH:|OWNER FLAG:|DESIGN-BUILD:|MERGE-READY:|BLOCKED-UNFIXED:|APPROVAL-OWED:|UNLEVELLED:|REVIEW STALLED:)")
+FAMILY = re.compile(r"^-> (OWED|REVIEW OWED:|RECORD-OWED:|DISPATCH:|OWNER FLAG:|DESIGN-BUILD:|MERGE-READY:|BLOCKED-UNFIXED:|APPROVAL-OWED:|UNLEVELLED:|REVIEW STALLED:)")
 BOARD = re.compile(r"^BOARD measured from origin/main at \S+, (\S+)")
 SHA = re.compile(r"\b[0-9a-f]{12,40}\b")
 REF = re.compile(r"\b(?:refs/heads/)?(?:handoff-body|handoff|design)/(\S+)")
@@ -89,12 +89,24 @@ def key_of(line: str) -> "tuple[str, list[str]]":
     m = re.match(r"REVIEW STALLED: (#\d+) ([0-9a-f]{8}) \d+m$", body)  # the minutes grow each sweep: not in the key
     if m:
         return m.group(1), [m.group(2)]
+    m = re.match(r"RECORD-OWED: (#\d+) ([0-9a-f]{12}) \d+m$", body)  # the minutes grow, as above
+    if m:
+        return m.group(1), [m.group(2)]
     m = re.match(r"UNLEVELLED: (#\d+) ([0-9a-f]{8}) \S+$", body)
     if m:
         return m.group(1), [m.group(2)]
     m = re.match(r"OWED handoff: (\S+) ", body)
     if m:
         return m.group(1), shas
+    m = re.match(r"OWED [a-z][a-z-]* (#\d+) ([0-9a-f]{12}) ", body)  # the tick's own bucket line: OWED <kind> #<n> <head12> <reason>
+    if m:
+        return m.group(1), [m.group(2)]
+    m = re.match(r"OWED blocked-stop (\S+) ([0-9a-f]{12}) ", body)  # a fixer's stop on a question: the topic is the subject
+    if m:
+        return m.group(1), [m.group(2)]
+    m = re.match(r"OWED fire-owed (payload-\S+\.json) ", body)  # the tick's FIRE-OWED line: the payload file is the subject
+    if m:
+        return m.group(1), []
     m = re.match(r"OWED: OWED \S+ \S+ (\S+) (\S+)", body)
     if m:
         subj = m.group(1)
@@ -384,6 +396,31 @@ def self_test() -> int:
             rcn, on = go(tick(v0 + dt.timedelta(minutes=30), moved), lack, state=st)
             check(f"{name}: a new head8 re-raises", rcn == 1 and f"{key}  sweeps=4" in on
                   and f" {key} 9e8d7c6b ttl=1" in on)
+        # RECORD-OWED keys #<N> on its head12; its minutes grow each sweep and are not in the key
+        rw = "-> RECORD-OWED: #3235 5d4c3b2a1f0e 41m"
+        w0 = t0 + dt.timedelta(hours=6)
+        go(tick(w0, rw), state="lv-record.json")
+        rcw, ow = go(tick(w0 + dt.timedelta(minutes=10), rw.replace("41m", "51m")), state="lv-record.json")
+        check("RECORD-OWED: keyed #3235 on its head12, unactioned on the second sweep as its minutes grow",
+              rcw == 1 and "#3235  sweeps=2" in ow and " #3235 5d4c3b2a1f0e ttl=1" in ow)
+        # the tick's own OWED lines: every kind its owed buckets emit keys #<N> on its head12
+        for kind in ("body-ahead", "train-parked", "recut", "fixer-round", "dirty", "red-unowned"):
+            ln = f"-> OWED {kind} #3265 c7c5cef52a49 handoff-body/r10-x is newer than the head"
+            _, kk = board(tick(t0, ln))
+            check(f"OWED {kind}: keyed #3265 on its head12", set(kk) == {"#3265"} and kk["#3265"]["shas"] == ["c7c5cef52a49"])
+        _, kb = board(tick(t0, "-> OWED blocked-stop r10-x e1e1e1e1e1e1 Question: which seam?"))
+        check("OWED blocked-stop keys its topic on the tip sha12", set(kb) == {"r10-x"} and kb["r10-x"]["shas"] == ["e1e1e1e1e1e1"])
+        ba = "-> OWED body-ahead #3265 c7c5cef52a49 handoff-body/r10-x is newer than the head, repair done and unapplied"
+        go(tick(t0 + dt.timedelta(hours=7), ba), state="lv-ba.json")
+        rcb, ob = go(tick(t0 + dt.timedelta(hours=7, minutes=10), ba), state="lv-ba.json")
+        check("OWED body-ahead: unactioned on the second sweep", rcb == 1 and "#3265  sweeps=2" in ob)
+        _, kf = board(tick(t0, "-> OWED fire-owed payload-fix-3265-r2.json rendered 40m ago, no FIRED line (x)"))
+        check("OWED fire-owed keys its payload file", set(kf) == {"payload-fix-3265-r2.json"})
+        try:
+            board(tick(t0, "-> OWED body-ahead no pull request named"))
+            check("null control: an OWED line naming no PR stays Unreadable", False)
+        except Unreadable:
+            check("null control: an OWED line naming no PR stays Unreadable", True)
         _, kv = board(tick(t0, review, mr))
         check("REVIEW OWED and MERGE-READY on one pull request are one key",
               set(kv) == {"#2896"} and kv["#2896"]["shas"] == ["5f3a5dd615b5", "5f3a5dd6"])

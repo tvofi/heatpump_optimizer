@@ -555,6 +555,8 @@ const PAIRS = [
 // discovery arm prints. Any of them may end ` (awaits <path>)` while its
 // grammar's second reader is still to land (AN ENTRY BEFORE ITS SECOND READER).
 const SHARED_GRAMMARS = {
+  "`([^`\\n]+)`": "identical:a backticked doc span, read as a path citation by two readers over disjoint documents: doc_claims.py's wiring arm (WIRING_DOCS, the HEAD tree only) and brief_lint.mjs's playbook arm (dev/audit/README.md, tag-scoped and basename resolution, pinned by its playbook fixtures)",
+  ":\\d+(?:-\\d+)?": "identical:the trailing :line or :start-end those same two readers strip from a cited path before resolving it",
   "(if|elif|while|until)\\b|^!|\\|\\||&&|": "identical:countermeasure A's errexit safe-producer grammar, in entities.py a disclosed port of the frozen finder harness r10_errexit_capture.py (e1a684789), equal to it on six trees in R10-ERREXIT-COUNTERMEASURES",
   "  ([A-Za-z][\\w-]*):": "identical:the job-id scan of a workflow's jobs: block, a disclosed copy of entities.py _workflow_job_ids in the governance-workflow-jobs reader, null-controlled by the 'briefs' job",
   "wave-.*-groups\\.json": "identical:three directory filters over the wave rosters, one listing rule",
@@ -587,6 +589,8 @@ const SHARED_GRAMMARS = {
   "[0-9a-f]{40}": "not-a-concept:the full commit-SHA shape, policy_lint.mjs's head check and ci_probe.py's probe-push guard",
   "DERIVED=\\$\\(.*?\\)": "identical:coverage_tree.sh's DERIVED line extractor, entities.py _cir_once_count and the disclosed copy in U5b's script_runs.py null control",
   "fast\\)\\s+(SCRIPTS=.*?) ;;": "identical:coverage_tree.sh's `fast)` SCRIPTS extractor, entities.py _cir_once_count and the disclosed copy in U5b's script_runs.py null control",
+  // R10-HOTFIX-SAV-ESTIMATE: the blueprint's receipt reuses the card's wood note.
+  '"savings\\.wood_note": "([^"]+)"': "identical:the card's en savings.wood_note extractor, entities.py's blueprint receipt pin and the render harness r10_sav_receipt_render.py",
 }
 
 const isGovernanceCode = (f) => /\.(py|mjs|js|cjs)$/.test(f)

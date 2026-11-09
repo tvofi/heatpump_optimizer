@@ -792,16 +792,44 @@ CONF_DHW_MIN_TEMP: Final = "dhw_min_temperature"  # °C
 CONF_DHW_SETPOINT_ENTITY: Final = "dhw_setpoint_entity"
 CONF_SPACE_SETPOINT_ENTITY: Final = "space_setpoint_entity"
 CONF_SPACE_SETPOINT_UNIT: Final = "space_setpoint_unit"
-SPACE_SETPOINT_UNITS: Final = ("indoor", "flow")
+SPACE_SETPOINT_UNITS: Final = ("indoor", "flow", "return")
 DEFAULT_SPACE_SETPOINT_UNIT: Final = "indoor"
+#: The units whose number is a water temperature: the pump-duty arbiter writes
+#: the same heating flow to either. "return" is a controller that takes the
+#: set-point as its return-water target (Luxtronik through its Smart Home
+#: Interface): the lift and ceiling below are its own, and only the values
+#: the arbiter derives from a supply temperature (the rated hold, the weather
+#: curve) are moved down by the rated spread (``pump_arbiter._as_target``).
+SPACE_SETPOINT_WATER_UNITS: Final = ("flow", "return")
 #: Heating flow at full planned power, °C. The arbiter moves toward the
 #: return temperature as the planned level falls (#1955). Absent keeps
 #: :data:`pump_arbiter.FLOW_HEAT_C`.
 CONF_FLOW_HEAT_C: Final = "flow_heat_c"
 DEFAULT_FLOW_HEAT_C: Final = 55.0
+#: The flow set-point's lift over the measured inlet water at the modulation
+#: floor, K. Absent keeps :data:`thermal_model.FLOW_MIN_LIFT_K`. A controller
+#: that takes the set-point as its return-water target modulates on the gap
+#: between the two, so it wants a lift of about 1-2 K, not the rated 5 K
+#: supply-over-return spread a supply target is anchored at.
+CONF_FLOW_MIN_LIFT_K: Final = "flow_min_lift_k"
+DEFAULT_FLOW_MIN_LIFT_K: Final = 5.0
 #: ``false`` keeps the duty-cycle reading on a switch-plus-setpoint
 #: install. Absent follows the install probe (#1955).
 CONF_CLAMP_PLANNED_LEVELS: Final = "clamp_planned_levels"
+#: Whether the compressor can run below its minimum power (#3289). ``on_off``
+#: plans every step at 0 or between min and max power; ``modulating`` keeps a
+#: level below the minimum as a duty-cycle average; ``auto`` (the default, same
+#: as absent) follows ``clamp_planned_levels``, then the install probe.
+CONF_COMPRESSOR_MODULATION: Final = "compressor_modulation"
+COMPRESSOR_MODULATION_AUTO: Final = "auto"
+COMPRESSOR_MODULATION_ON_OFF: Final = "on_off"
+COMPRESSOR_MODULATION_MODULATING: Final = "modulating"
+COMPRESSOR_MODULATIONS: Final = (
+    COMPRESSOR_MODULATION_AUTO,
+    COMPRESSOR_MODULATION_ON_OFF,
+    COMPRESSOR_MODULATION_MODULATING,
+)
+DEFAULT_COMPRESSOR_MODULATION: Final = COMPRESSOR_MODULATION_AUTO
 CONF_DHW_DAILY_CONSUMPTION: Final = "dhw_daily_consumption"  # liters/day
 # How fast the tank cools when nothing is drawn, expressed at a reference
 # condition so it stays meaningful regardless of tank size. Self-learned at
