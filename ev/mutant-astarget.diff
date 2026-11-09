@@ -1,0 +1,14 @@
+# mutant astarget
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 1658ed00c..b196f043e 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -366,7 +366,7 @@ def _as_target(config: Any, supply_c: float) -> float:
+     (:func:`_gate_c`). Values already in the entity's own terms -- the
+     measured inlet plus the lift, the configured ceiling -- are not moved.
+     """
+-    return supply_c - RETURN_SUPPLY_OFFSET_K if _return_unit(config) else supply_c
++    return supply_c
+ 
+ 
+ def _heat_ceiling_c(config: Any) -> float:

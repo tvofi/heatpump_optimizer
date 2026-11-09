@@ -1,0 +1,14 @@
+# mutant boundary
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 1658ed00c..bcfecb57b 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -744,7 +744,7 @@ def _full_draw_c(inp: ArbiterInputs, ceiling_c: float) -> float:
+     if not _return_unit(inp.config):
+         return ceiling_c
+     inlet = _flow_inlet_c(inp)
+-    headroom = inlet is not None and ceiling_c - inlet >= FLOW_MIN_LIFT_K
++    headroom = inlet is not None and ceiling_c - inlet > FLOW_MIN_LIFT_K
+     return ceiling_c if headroom else ceiling_c + FLOW_MIN_LIFT_K
+ 
+ 

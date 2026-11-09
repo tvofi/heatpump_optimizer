@@ -1,0 +1,14 @@
+# mutant ceilguard
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 1658ed00c..cbc03420d 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -378,7 +378,7 @@ def _heat_ceiling_c(config: Any) -> float:
+     runtime half for a hand-edited entry.
+     """
+     ceiling = configured_flow_heat_c(config, FLOW_HEAT_C)
+-    return ceiling if ceiling > FLOW_GATE_C else FLOW_HEAT_C
++    return ceiling
+ 
+ 
+ def state_for(coord: Any) -> ArbiterState:
