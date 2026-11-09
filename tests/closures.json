@@ -1868,6 +1868,7 @@
    "tools/audit/seat/handover_prompt.py",
    "tools/audit/seat/ledger.py",
    "tools/audit/seat/merge_train.py",
+   "tools/audit/seat/orchestrator_tick.py",
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/plan_table.py",
    "tools/audit/seat/proof_watch.py",
@@ -3915,6 +3916,7 @@
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/plan_public.py",
    "tools/audit/seat/postmerge.py",
+   "tools/audit/seat/pr_cap.py",
    "tools/audit/seat/probe_bridge.py",
    "tools/audit/seat/proof_watch.py",
    "tools/audit/seat/prune_refs.py",
@@ -3948,6 +3950,7 @@
    "tools/policy/fixtures/policy-rot/prepr/raise/good.md",
    "tools/policy/fixtures/policy-rot/prepr/raise/score-no-verdict.md",
    "tools/policy/fixtures/policy-rot/prepr/raise/verdict-outside.md",
+   "tools/pr/app_approve.sh",
    "tools/pr/codeql_scope.py"
   ],
   "tests/harness_headers.py": [
@@ -4980,7 +4983,7 @@
    "seconds": 55.0
   },
   "tests/entities.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 867.9
   },
   "tests/env_drift.py": {

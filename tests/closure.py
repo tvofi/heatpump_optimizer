@@ -584,6 +584,11 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/pr/preflight.sh",
+    # R10-FLY-REPLAN-DEFECTS: tests/entities.py runs the orchestrator tick's
+    # self-test, whose closure holds roster_lib.py (a roster_lib edit must run it).
+    # CI's closures-autofix refused: INERT and read. Same route as the files below:
+    # the tools/audit/seat/ files stay INERT, this one moves to the recorded closure.
+    "tools/audit/seat/orchestrator_tick.py",
     # #2216: tests/entities.py reads the coverage stage, one of the three
     # HPO_CI_METRICS emitters, to pin that it keeps the metrics file from the
     # scripts it runs; left inside the tools/coverage/ prefix it would be
