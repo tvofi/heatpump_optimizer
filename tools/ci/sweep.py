@@ -18,10 +18,15 @@ once and holds no runner (gate.judge), so a deferral nothing green follows -- tw
 deferred to each other, or a decider that ended red or cancelled -- would stay red. Once every
 gate at the head has concluded (in_progress gates polled as above), every red gate, V's own
 included, that may have judged an undecided head is re-run (`undecided`: it started before a
-job of ANOTHER run, its gate aside, finished; or a higher-id run's gate started while it judged,
+source of ANOTHER run, below, finished; or a higher-id run's gate started while it judged,
 the lagging-listing pair, of which the lower id is re-run, or the higher where the lower ended
-green). A re-run judges after every such job
-finished and beside no gate starting, so it is never re-run again: the branch cannot loop.
+green). A source is a job that ran: a skipped job is none, because GitHub re-stamps every
+skipped job of a run at each re-run of its gate, so a stamp it carries says when a sibling's
+sweep re-ran that gate, not when anything finished (R10-HOTFIX-SWEEP-SETTLE-LOOP: read as
+sources, two runs at #3308's head re-ran each other's gates to attempt 39). And settle never
+re-runs a gate attempt the bot started (`SWEEP_ACTOR`: this sweep's token, and refresh's) unless
+a source finished after it, so it re-runs a gate at most once per source change: its re-runs
+are bounded by the sources that finish, never by the arms, which looped on re-stamped skips.
 A rate limit prints `RATE-LIMITED`, re-runs nothing further and exits 1: reset_epoch is
 printed, a caller re-runs nothing before it.
 
@@ -55,6 +60,7 @@ NOT_COMPLETED = ("queued", "waiting", "pending", "requested", "in_progress")  # 
 CI_PATH = ".github/workflows/ci.yml"
 PINNED_EVENTS = ("pull_request", "pull_request_review")   # ci.yml's restore reads github.event.pull_request.base.sha
 PINNED_PROGRAMS = "tools/ci/"                             # its pathspec 'tools/ci/*.py' (a git glob crosses '/')
+SWEEP_ACTOR = "github-actions[bot]"   # gate-sweep.yml's github.token; ci.yml's refresh posts as it too
 
 
 class RateLimited(Exception):
@@ -74,21 +80,37 @@ def latest_gate(jobs):
     return next((j for j in jobs if j.get("name") == "gate"), None)
 
 
+def sources(jobs):
+    """The jobs of a listing a gate reads as sources: never a gate, never a skipped job (module doc)."""
+    return [j for j in jobs if j.get("name") != "gate" and j.get("conclusion") != "skipped"]
+
+
+def source_after(t0, others):
+    """A source of another run finished after `t0`, or has not finished."""
+    return any((j.get("completed_at") or "~") > t0 for jobs in others.values() for j in sources(jobs))
+
+
+def settled(run, gate, others):
+    """The bot started this gate's latest attempt and no source finished after it: settle leaves it."""
+    return (run.get("run_attempt", 1) > 1 and (run.get("triggering_actor") or {}).get("login") == SWEEP_ACTOR
+            and not source_after(gate.get("started_at") or "", others))
+
+
 def undecided(gate, run_id, others):
-    """The other runs (id -> latest jobs) this gate's verdict may have deferred to: one with a job,
-    its gate aside, that finished after this gate started or has not finished (a source it could
-    not read); or a HIGHER-id run whose gate started while this one judged (a listing lagging
-    that start reads the run busy, and busy()'s tie-break makes the lower id the one that
-    decides, so only the lower is re-run: re-judged, it is final, and nothing loops); or a
-    LOWER-id run whose gate judged while this one did and ended green (that pair seen from its
-    higher side, which deferred to the decider: re-run, it starts after that gate concluded, so
-    it is final; a red lower is re-run by the arm before, never both, so nothing loops)."""
+    """The other runs (id -> latest jobs) this gate's verdict may have deferred to: one with a
+    source (`sources`) that finished after this gate started or has not finished; or a HIGHER-id
+    run whose gate started while this one judged (a listing lagging that start reads the run
+    busy, and busy()'s tie-break makes the lower id the one that decides, so only the lower is
+    re-run); or a LOWER-id run whose gate judged while this one did and ended green (that pair
+    seen from its higher side, which deferred to the decider: re-run, it starts after that gate
+    concluded; a red lower is re-run by the arm before, never both). What keeps a re-run from
+    being re-run again is `settled`, not these arms (module doc)."""
     t0, t1 = gate.get("started_at") or "", gate.get("completed_at") or "~"
     out = []
     for i, jobs in others.items():
         g = latest_gate(jobs) or {}
         gs, ge = g.get("started_at") or "", g.get("completed_at") or "~"
-        if (any(j.get("name") != "gate" and (j.get("completed_at") or "~") > t0 for j in jobs)
+        if (source_after(t0, {i: jobs})
                 or (i > run_id and t0 <= gs <= t1)
                 or (i < run_id and g.get("conclusion") == "success" and gs <= t1 and ge >= t0)):
             out.append(i)
@@ -247,9 +269,15 @@ class Sweep:
             return 0
         for r in sorted(runs, key=lambda r: r["id"]):
             g = gates[r["id"]]
-            late = undecided(g, r["id"], {i: js for i, js in jobs.items() if i != r["id"]})
-            if g.get("conclusion") != "success" and late:
-                self.judge(r, g, f"judged before run(s) {late} finished", runs)
+            others = {i: js for i, js in jobs.items() if i != r["id"]}
+            late = undecided(g, r["id"], others)
+            if g.get("conclusion") == "success" or not late:
+                continue
+            if settled(r, g, others):
+                self.out(f"SWEEP left run {r['id']}: attempt {r['run_attempt']}, the bot's re-run, judged after "
+                         "every source finished")
+                continue
+            self.judge(r, g, f"judged before run(s) {late} finished", runs)
         self.out(f"SWEEP-DONE run={run_id} reruns={self.reruns} dispatches={self.dispatches}")
         return 0
 

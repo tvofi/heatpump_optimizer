@@ -79,6 +79,78 @@ def finish(rid, g):
     return fn
 
 
+BOT = "github-actions[bot]"     # the login of gate-sweep.yml's github.token, the recorded runs' triggering_actor
+
+# #3308 at head 6016f9dd, recorded 2026-11-08 from `gh api repos/tvofi/heatpump_optimizer/actions/runs/<id>/attempts/<n>/jobs`
+# (the state the sweep for run 42471173865's attempt 24 read at 11:48:1x, after which runs 42470642055 and
+# 42470643072 were re-run at 11:48:33). Trimmed: run 42470642055's 41 jobs to its gate, its skipped jobs, and
+# five sources; the edit runs whole. Rows: (job id, name, conclusion, started, completed), times on 2026-11-08 UTC.
+# A skipped job's stamps are GitHub's re-stamp at its run's last gate re-run, not a source finishing.
+REC3308 = {
+    42470642055: ("10:15:21", 38, [
+        (128721141457, "kernel-points", "skipped", "11:46:40", "11:46:40"),
+        (128721141679, "cancel-superseded", "success", "10:15:24", "10:15:36"),
+        (128721142283, "governance / delivery-status-publish", "skipped", "11:46:41", "10:15:55"),
+        (128721142833, "tests / mutation-pins", "skipped", "11:46:41", "10:45:32"),
+        (128721143058, "tests / mutation-autofix", "skipped", "11:46:41", "10:45:32"),
+        (128721143069, "gate", "failure", "11:46:44", "11:47:23"),
+        (128721143188, "tests / claims-autofix", "skipped", "11:46:41", "10:40:04"),
+        (128721143295, "tests / ci-ratchet", "skipped", "11:46:41", "10:55:41"),
+        (128721143592, "tests / closures-autofix", "skipped", "11:46:41", "10:55:41"),
+        (128721164571, "prelude", "success", "10:15:24", "10:15:55"),
+        (128721166777, "codeql / Analyze (python)", "success", "10:15:58", "10:46:54"),
+        (128721168852, "governance / record", "skipped", "11:46:48", "10:15:55"),
+        (128721175140, "codeql / Analyze (actions)", "failure", "10:15:58", "10:17:21"),
+        (128721177543, "refresh", "success", "10:15:24", "10:15:51"),
+    ]),
+    42470643072: ("10:15:22", 24, [
+        (128721143207, "cancel-superseded", "success", "10:15:25", "10:15:36"),
+        (128721143539, "gate", "failure", "11:46:43", "11:47:13"),
+        (128721143587, "refresh", "success", "10:15:25", "10:16:00"),
+        (128721143691, "hassfest", "skipped", "11:46:41", "11:46:41"),
+        (128721143984, "arch-score / arch-score", "success", "10:15:54", "10:17:08"),
+        (128721144134, "codeql", "skipped", "11:46:41", "11:46:41"),
+        (128721144270, "governance", "skipped", "11:46:41", "11:46:41"),
+        (128721144288, "kernel-points", "skipped", "11:46:41", "11:46:41"),
+        (128721144361, "budget-raise-gate / budget-raise-gate", "success", "10:15:55", "10:16:20"),
+        (128721144413, "tests", "skipped", "11:46:41", "11:46:41"),
+        (128721144462, "pr-contract", "skipped", "11:46:41", "11:46:41"),
+        (128721164089, "prelude", "success", "10:15:25", "10:15:52"),
+        (128721177333, "validate", "skipped", "11:46:50", "11:46:41"),
+    ]),
+    42471173865: ("10:22:40", 24, [
+        (128721349953, "hassfest", "skipped", "11:47:37", "11:47:37"),
+        (128721349979, "gate", "failure", "11:47:39", "11:48:10"),
+        (128721350133, "prelude", "success", "10:22:43", "10:23:06"),
+        (128721350617, "tests", "skipped", "11:47:37", "11:47:37"),
+        (128721350659, "arch-score / arch-score", "success", "10:23:09", "10:24:24"),
+        (128721370684, "kernel-points", "skipped", "11:47:43", "11:47:37"),
+        (128721376633, "codeql", "skipped", "11:47:44", "11:47:37"),
+        (128721378973, "budget-raise-gate / budget-raise-gate", "success", "10:23:09", "10:23:41"),
+        (128721379915, "refresh", "success", "10:22:44", "10:23:21"),
+        (128721380679, "governance", "skipped", "11:47:46", "11:47:37"),
+        (128721382358, "validate", "skipped", "11:47:46", "11:47:37"),
+        (128721384599, "pr-contract", "skipped", "11:47:47", "11:47:37"),
+        (128721384912, "cancel-superseded", "success", "10:22:43", "10:22:52"),
+    ]),
+}
+
+
+def world3308(v_id=42471173865, edit=None):
+    """The #3308 recording as a World; `edit(runs)` perturbs it first. Every attempt past the first was the bot's."""
+    stamp = lambda t: f"2026-11-08T{t}Z"
+    runs = []
+    for rid, (created, attempt, jobs) in REC3308.items():
+        js = [{"id": i, "name": n, "status": "completed", "conclusion": c, "started_at": stamp(s), "completed_at": stamp(e)}
+              for i, n, c, s, e in jobs]
+        runs.append({"id": rid, "created_at": stamp(created), "status": "completed", "run_attempt": attempt,
+                     "triggering_actor": {"login": BOT},
+                     "gate": next(j for j in js if j["name"] == "gate"), "units": [j for j in js if j["name"] != "gate"]})
+    if edit:
+        edit({r["id"]: r for r in runs})
+    return World(runs, v_id)
+
+
 def run_checks():
     checks = []
 
@@ -278,6 +350,12 @@ def run_checks():
     w.sweep()
     ok("stale pin, settle: the #3261 pair (two deferrals under a pre-fix program) takes one dispatch, no re-run",
        w.posts == [dispatch])
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]),
+               run(5, "6", g="success", started="7"), v=2)
+    w.runs[5]["event"] = "workflow_dispatch"
+    rc, out = w.sweep()
+    ok("stale pin, settle, no loop: settle hands judge the head's runs, so a dispatched run created after the "
+       "pair's gates concluded is their fresh judge; nothing posted", w.posts == [] and "run 5 re-judges" in out)
     w = pinned(run(1, "1"), run(5, "3", g="success"), v_run(created="2"))
     w.runs[5]["event"] = "workflow_dispatch"
     rc, out = w.sweep()
@@ -294,6 +372,43 @@ def run_checks():
     w.sweep()
     ok("stale pin null: a dispatched run created before the stale gate concluded is no fresh judge: dispatch",
        dispatch in w.posts)
+    # R10-HOTFIX-SWEEP-SETTLE-LOOP: the recorded #3308 loop. Run 42471173865's gate re-run re-stamped its
+    # skipped jobs past the two sibling gates' starts; on main settle read them as sources and re-ran both,
+    # whose re-runs re-stamped theirs, each pair re-running the other up to the attempt cap.
+    for v in REC3308:
+        w = world3308(v)
+        rc, out = w.sweep()
+        ok(f"#3308: skipped jobs re-stamped by a sibling's gate re-run are no source; settle re-runs nothing "
+           f"(swept from run {v})", rc == 0 and w.posts == [] and "reruns=0" in out)
+
+    def late_codeql(runs):     # null: a real source, codeql python, finishing after run 42470643072's gate started
+        u = next(j for j in runs[42470642055]["units"] if j["name"] == "codeql / Analyze (python)")
+        u["completed_at"] = "2026-11-08T11:47:30Z"
+    w = world3308(edit=late_codeql)
+    w.sweep()
+    ok("#3308 null: a non-skipped source (codeql python) finishing after a sibling gate started re-runs that gate, once",
+       w.posts == ["repos/o/r/actions/jobs/128721143539/rerun"])
+    w.posts, r = [], w.runs[42470643072]
+    r["run_attempt"] += 1
+    r["gate"].update(started_at="2026-11-08T11:48:40Z", completed_at="2026-11-08T11:49:10Z")
+    for u in r["units"]:
+        if u["conclusion"] == "skipped":
+            u.update(started_at="2026-11-08T11:48:38Z", completed_at="2026-11-08T11:48:38Z")
+    for v in REC3308:
+        w.v_id = v
+        w.sweep()
+    ok("#3308 null: that re-run, judged after the source, re-stamping its own skips, is final; no sweep re-runs a gate",
+       w.posts == [])
+    ok("sweep.SWEEP_ACTOR is the recorded bot login", getattr(sweep, "SWEEP_ACTOR", None) == BOT)
+    # Fix (2): a gate attempt the bot itself started, with no non-skipped source finishing after it, is not
+    # re-run again by settle, whichever arm reads it undecided (here the lagging-pair arm).
+    for actor, want in ((BOT, []), ("tvofi", ["repos/o/r/actions/jobs/10/rerun"])):
+        w = World([run(1, "1", attempt=2, started="5", units=["4"]), run(2, "1", attempt=2, started="5", units=["4"])], 2)
+        for r in w.runs.values():
+            r["gate"]["completed_at"], r["triggering_actor"] = "6", {"login": actor}
+        w.sweep()
+        ok(f"settle: an overlapping pair of re-run gates, re-run by {actor}, with no source after them, "
+           f"{'is final' if not want else 'is re-judged (the lower id, null)'}", w.posts == want)
     return checks
 
 

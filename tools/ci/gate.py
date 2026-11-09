@@ -43,8 +43,10 @@ only to runs not yet `judging` (judging() reads a deferring run's skipped
 `pr-contract` caller as a unit it never ran, r10-gate-busy-defer-2), and two
 runs whose gates have both started are broken by id (`busy`): the lower decides,
 the higher defers to it. Where a lagging listing still makes two gates defer
-to each other, both are red, and settle re-runs both once each has concluded:
-a gate re-run after every source finished is final, so settle cannot loop.
+to each other, both are red, and settle re-runs both once each has concluded.
+Settle re-runs a gate at most once per source change, and a skipped job is no
+source: GitHub re-stamps it at every gate re-run (sweep.py's module doc;
+R10-HOTFIX-SWEEP-SETTLE-LOOP, where reading those stamps looped two runs).
 """
 from __future__ import annotations
 
