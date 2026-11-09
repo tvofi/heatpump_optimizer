@@ -15,7 +15,7 @@ Carry 6 - held by the group's other part; part 3 takes card 7 and its legacy-con
 Carry 7 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 8 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 9 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
-Carry 10 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 10 - already built at the base: `body_push.sh` keeps a refused body on `handoff-wip/<topic>-body` (8a2492ab5, on origin/main); this handoff's first body push printed `body_push: refused body kept at handoff-wip/r10-body-contract-p3-body`, so part 3 has nothing to build for it.
 Carry 11 - answered by the card 7 build (option B).
 Carry 12 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 13 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
@@ -50,7 +50,11 @@ Carry 41 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; 
 Carry 42 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 
 Carry 43 - built here (card 7 ruling; roster index 42, 0-based).
-Carry 44 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 44 - built by #3318 (the group's part 4: `carry_audit.landed()` reads an own-group carry status as a status line), as carry 47 records.
+Carry 45 - status line from #3318 (item 52b55967) on carry 9 (#2438): already built at the base (a17d51d41, #3260, fde0de40f), as that body says; nothing for part 3.
+Carry 46 - status line from #3318 (item fe95bcab) on carry 10: answered above, already built at the base by 8a2492ab5.
+Carry 47 - status line from #3318 (item 4a5f7e3c) on carry 44: built by #3318; nothing for part 3.
+Carry 48 - held by the group's other part (carry_audit continuation and quoted-phrase parsing); part 3 takes card 7 and its legacy-control item only.
 
 Earlier repair round (head 86f9e729f, unchanged here): `figure_block.py`'s self-test repository is built through `tests/throwaway_git.py` (`throwaway_git_init`), which clears the prepr self-test's two `throwaway_git.py --check` failures; the `field_coverage.mjs` entry for `pinned tools/pr/figure_block.py` is in its final shape (`none:`, no `pending:`).
 
@@ -62,9 +66,9 @@ Step ref: the previous seat's `handoff-wip/r10-body-contract-p3` tip held only a
 
 ## Head
 
-566ff83528c66d3edd20e5ae7cd3cd3038e00745
+fcd03452c746d9f61fb4aff53e81c0cc7d0544bf
 
-Two merges of origin/main into 86f9e729f: 17e621f08 (the conflict, resolved at 377b93dce), then 51cd5ec8a (clean; LEDGER-MERGE again resolved tests/closures.json). Every figure and control below was re-taken at 566ff8352 after the second merge.
+main merged, policy_lint.mjs resolved by union. The merge of origin/main (#3305, merge 5e1ffb34) conflicted in one hunk of tools/policy/policy_lint.mjs: this PR inserts `figureBlockProblems` before `checkPrBody`, #3305 widens the `checkPrBody` signature with `required = null`. Resolution: both kept, so the signature carries `required` and `figureBlockProblems` is present and called (`figureBlockProblems(body, { base, head })` in checkPrBody). Resolution delta against origin/main in that file: only the `figureBlockProblems` function and its call and self-test uses (`git diff origin/main fcd03452c -- tools/policy/policy_lint.mjs`). tests/closures.json merged by its driver. Confirmed present after the merge: #3305's `required` option, its `required()` read for silent reds, and its self-test arms (reqGot, unreadSet, owed-reds stub); this PR's `figureBlockProblems` and its self-test arm. `node tools/policy/policy_lint.mjs --self-test` exits 0 (FIXTURE ok); `tools/pr/prepr.sh` at this head exits 0 (mode FULL, closures skipped as unscopable). fcd03452c is the conflict merge a5fd59d19 plus the wip marker merge (identical tree). Null control: `git merge-tree --write-tree origin/main fcd03452c | grep -c CONFLICT` prints 0.
 
 ## Mutation proof
 
@@ -98,7 +102,9 @@ Policy files touched (policy_lint.mjs, PULL_REQUEST_TEMPLATE.md, pr-contract.yml
 
 ## Red checks
 
-none predicted: the earlier `governance / policy-docs` refusal is answered by the base's pending entry (#3312).
+`governance / delivery-status` is red at 7c586c7cf (job 128960422153, run 42554818800) and it is main's red, not this diff's: it grades main's delivery rows, and its log reads `DELIVERY STATUS OVERDUE — 0 rowed, 12 pending, 3 overdue (overdue at 12 commits)`, with the overdue rows #3333, #3316 and #3318, record PRs held for the stamp. This diff edits `.github/workflows/governance.yml` (the figure-block self-test step), so the body exemption does not apply and the red is named here. Evidence: the identical line prints on #3360 (job 128988774945) and #3350 (job 128985523599) at 2026-11-09 05:09 and 05:00Z, with the same three overdue rows. #3360's diff touches only its own delivery row, none of this check's inputs. The check's own text says it is not a required context. Cheaper detector: none; `tools/audit/seat/delivery_row.sh` and the check itself already catch it, and the standing cost is the stamp draining the rows, which this PR cannot do. Carry: dismissed: main's overdue rows pending the stamp, not this diff.
+
+none other predicted: the earlier `governance / policy-docs` refusal is answered by the base's pending entry (#3312).
 
 ## Forward-carry
 
