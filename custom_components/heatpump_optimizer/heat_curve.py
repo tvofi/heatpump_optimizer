@@ -57,7 +57,7 @@ from weakref import WeakKeyDictionary
 from homeassistant.util import dt as dt_util
 
 from . import off_restore
-from .const import DOMAIN, HEAT_CURVE_KIND_OFFSET, HEAT_CURVE_KIND_PERSISTENT
+from .const import DOMAIN, HEAT_CURVE_KIND_PERSISTENT
 from .payload import CurrentAction, Ecl110Payload
 from .inputs import NumberReading, number_reading, setpoint_step, write_setpoint
 from .log_latch import log_held
@@ -114,8 +114,7 @@ def _restorer(config: Any) -> off_restore.Restorer | None:
     if config.heat_curve_target_kind == HEAT_CURVE_KIND_PERSISTENT:
         return off_restore.Restorer(entity_id, write_setpoint, baseline_of=_baseline_reading,
                                     restored=_persistent_restored)
-    if config.heat_curve_target_kind != HEAT_CURVE_KIND_OFFSET:
-        return None
+    # EntryConfig reads any other kind as offset.
     return off_restore.Restorer(entity_id, write_setpoint, neutral=0.0, restored=_restore_recorded)
 
 

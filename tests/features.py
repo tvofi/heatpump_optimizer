@@ -42311,6 +42311,24 @@ R.check(
     and any("climate.no_service" in m and "failed" in m for m in _gns_warn),
     "sent=%r diag=%r warn=%r" % (_gns_sent, _ghc_restore.diagnostics(_gns.entry), _gns_warn),
 )
+_ghc_restore.register_consumer(
+    "stand_in_no_writer",
+    lambda cfg: _ghc_restore.Restorer("number.no_writer", _ghc_stand_in_write, baseline_of=lambda h, e: 21.0)
+    if cfg.get("no_writer") else None,
+)
+_gnw = _ghcp_coord(entity=None, entry_id="ghcp_no_writer", no_writer=True)
+_asyncio.run(_ghc_restore.async_arm(_gnw.hass, _gnw.entry, _gnw.effective_config, "stand_in_no_writer"))
+_gnw2 = _ghcp_coord(entity=None, hass=_gnw.hass, entry_id="ghcp_no_writer")
+_gnw_sent = []
+_gnw_warn = _ghc_logged(lambda: _gnw_sent.append(
+    _asyncio.run(_ghc_restore.async_restore(_gnw2.hass, _gnw2.entry, _gnw2.effective_config, "unload"))))
+R.check(
+    "a baseline entry whose consumer is unconfigured and registered no writer is disarmed unwritten, "
+    "naming the entity and the value to set by hand",
+    _gnw_sent == [0] and _ghc_writes(_gnw2) == [] and _ghc_restore.diagnostics(_gnw2.entry)["armed"] == []
+    and len(_gnw_warn) == 1 and "number.no_writer" in _gnw_warn[0] and "21" in _gnw_warn[0],
+    "sent=%r warn=%r" % (_gnw_sent, _gnw_warn),
+)
 _grb = _ghcp_coord(entry_id="ghcp_rebaseline")
 _ghc_pub(_grb, 2.0)
 _grb_key = f"heatpump_optimizer_{_grb.entry.entry_id}_off_restore"
