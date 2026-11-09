@@ -20824,6 +20824,49 @@
     "branch": null,
     "note": "overlap admitted (R10-TICK-RESIDUE, R10-STANDING-CONTRACTS-P2): carries-open audit 2026-11-09: distinct seam from R10-STANDING-CONTRACTS-P2, R10-TICK-RESIDUE, ordered by after-edges where files overlap"
    }
+  },
+  {
+   "group": "R10-CARRY-AUDIT-P5",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [
+    3103
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/audit/carry_audit.py"
+   ],
+   "hot_files": [
+    "tools/audit/carry_audit.py"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-BODY-CONTRACT"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Part 5 of R10-BODY-CONTRACT, carry_audit.py only: an indented Carry continuation and a quoted Carry phrase (pinned by the seven refused verdicts), and NONBLOCK section scoping (P440). Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
