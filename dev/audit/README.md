@@ -53,8 +53,7 @@ no open prs, handoffs, carries, findings or leads, and only issue 201 is open".
 
 **Round 10's final shape** (owner cards 1, 2 and 6, 2026-10-24):
 
-- The standing set is the triage seat (`proposal-triage.md`) plus the beat
-  jobs `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing one
+- The standing set is the beat jobs `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing one
   digest, `jobs/<row>` under the beat's state directory: the tick seat's job is
   the `tick-digest` and `owed-check` rows, the roster seat's `roster-drain`; the
   merge seat's is `train.sh` under `tools/audit/seat/daemonize.py`
@@ -84,7 +83,7 @@ from `DEFAULT_CAPS` in `tools/plan/replan.py`. Of it, 10 slots (a fixed count,
 the owner's ruling, not a tree value) are reserved for pull requests touching
 `custom_components/`; a machinery PR never takes one, and a production PR is never refused for a machinery slot. A proposal is
 accepted only when its friction blocks a production merge, otherwise ruled
-LOG (`proposal-triage.md`). Exemption from all three: a proposal proving more
+LOG. Exemption from all three: a proposal proving more
 than 10% on CI time, programme completion time, right-first-time rate or token
 usage, against a measured baseline and a null control.
 
