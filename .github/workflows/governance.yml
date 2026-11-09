@@ -548,7 +548,8 @@ jobs:
         run: python3 tools/pr/cancel_superseded.py --self-test
 
       - name: Show the figure-block renderer refusing its own fixtures
-        if: ${{ !cancelled() }}
+        id: figure-block
+        if: steps.scope.outputs.figure-block == 'true'
         run: |
           set -o pipefail
           python3 -I tools/pr/figure_block.py --self-test | tee "$RUNNER_TEMP/figure-block-self-test.txt"
