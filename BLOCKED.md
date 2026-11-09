@@ -1,8 +1,13 @@
-BLOCKED: body_push.sh r10-dispatch-at-handoff-p2 at 5f28e55aae26748ab33274d87c1ab8d79d7e50b2
+BLOCKED: r10-dispatch-at-handoff-p2 body repair (head 5f28e55aae26748ab33274d87c1ab8d79d7e50b2)
 
-verbatim:
-review_packet: REFUSE hot-file: #3245 holds an unboarded merge verdict and shares dev/audit/harnesses/r10_seat_selftests_mutants.py
-body_push: REFUSED REVIEW-PACKET
+The body's `## Head` now names 5f28e55a and lists the commits after e27484ff. `## Red checks` stays `none`.
+prepr.sh and body_push.sh both refuse it for a code reason:
 
-State: prepr.sh clean at this head (rc=0). Code pushed to handoff/r10-dispatch-at-handoff-p2. The body is kept at handoff-wip/r10-dispatch-at-handoff-p2-body (2b6b5641139628fe0c78f30a5f50afb5cd1ae3de). The ledger kind fix is in; the refusal needs #3245 to board/merge, an orchestrator call.
-Carry: R10-DISPATCH-AT-HANDOFF|#3245|dismissed: not mine to resolve
+pr-body ERROR [pr-body] BODY.md: check `governance / instrument-self-tests` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+body_push: REFUSED BODY-LINT
+
+Cause: the policy_lint at this head still requires an answer for every red. `merge_train.py owed-reds`
+does not exist at this head. Run from origin/main's copy, it lists 23 owed checks and `governance / instrument-self-tests` is not among them (only `tests / arch-instrument` matches "instrument").
+Under the owner ruling of 2026-11-09 that red is owed no answer, so I did not add one. Fix: merge origin/main into the handoff (brings the owed-reds-aware lint) or have the relay accept the answer.
+Also: body_push ancestry reds read code-scanning alerts as NOT READ (HTTP 403).
+No code was changed. The refused body is kept at refs/heads/handoff-wip/r10-dispatch-at-handoff-p2-body 38150311713697dc20001560bed014fb8c8ed967.
