@@ -41907,6 +41907,50 @@ _ = _ghc_auto
 
 
 # ---------------------------------------------------------------------------
+R.section("R10-GENERIC-HEAT-CURVE-PERSISTENT — kind persistent: a stored curve parameter")
+
+# The owner's ruling (tvofi, #201, 2026-11-07): a persistent kind in this round,
+# and off restores the baseline. The design note (design/R10-GENERIC-HEAT-CURVE-
+# PERSISTENT a64af2b3) binds: the baseline is captured once into off_restore's
+# record with its entity, the arm writes baseline + displace within the band.
+import json as _ghcp_json  # noqa: E402
+from homeassistant.helpers.storage import _DISK as _ghcp_disk  # noqa: E402
+
+_GHCP_ENT = "number.x"
+_GHCP_ATTRS = {"step": 0.5, "min": 5.0, "max": 35.0}
+
+
+def _ghcp_coord(value="22", entry_id=None, hass=None, entity=_GHCP_ENT, unit="°C", attrs=None, **extra):
+    """A coordinator whose heat-curve entity is a stored parameter ``entity`` reading ``value``."""
+    hass = hass or _ghc_hass()
+    if value is not None and entity:
+        hass.states.set(entity, _ghc_state(value, unit=unit, attributes=dict(attrs or _GHCP_ATTRS)))
+    cfg = {"tibber_token": "x", "weather_entity": "weather.home",
+           "heat_curve_target_kind": "persistent", **extra}
+    if entity:
+        cfg["heat_curve_displace_entity"] = entity
+    return Coord(hass, _ghc_entry(data=cfg, entry_id=entry_id or f"ghcp_{next(_ghc_seq)}"))
+
+
+def _ghcp_record(coord):
+    """The off-restore record as saved, or None."""
+    raw = _ghcp_disk.get(f"heatpump_optimizer_{coord.entry.entry_id}_off_restore")
+    return None if raw is None else _ghcp_json.loads(raw)
+
+
+# The failing test first: red at e066a630, where the unknown kind falls back to
+# offset and offset's T2 refuses a 5..35 range (carry ghcp-r1).
+_gp = _ghcp_coord(entry_id="ghcp_first")
+_ghc_pub(_gp, 2.0)
+R.check(
+    "kind persistent: displace 2 on a 22 °C parameter writes 24 and records {number.x, 22} before it",
+    _ghc_writes(_gp) == [24] and (_ghcp_record(_gp) or {}).get("armed")
+    == {"heat_curve": {"entity_id": _GHCP_ENT, "value": 22.0}},
+    "writes=%r record=%r" % (_ghc_writes(_gp), _ghcp_record(_gp)),
+)
+
+
+# ---------------------------------------------------------------------------
 R.section("R5-D12-01 — the ECL110 MQTT surface exists only when configured")
 
 # An install whose config carries no ``ecl110_*`` topic key -- an on/off-only
