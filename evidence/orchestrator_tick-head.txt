@@ -1,2 +1,0 @@
-  FAIL PLAN: deferred E stays deferred
-orchestrator_tick self-test: 283 checks, 1 failed
