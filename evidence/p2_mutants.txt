@@ -43,12 +43,15 @@ RESULT mutant=beat-unreadable-dropped rc=1 fails=1 verdict=killed
     FAIL bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else
 RESULT mutant=beat-missing-key-runs rc=1 fails=1 verdict=killed
     FAIL bottleneck: an overlay without train_log is UNREADABLE and runs nothing
-RESULT mutant=mark-close-off rc=1 fails=2 verdict=killed
+RESULT mutant=mark-close-off rc=1 fails=3 verdict=killed
     FAIL mark-carry discharging the last pending carry of a carries-open group writes done 
     FAIL ... and holds it carries-open, naming the issue, while it owns an orphaned open issue 
+    FAIL mark-carry whose only unmarked carry left is legacy writes done 
 RESULT mutant=mark-close-any-stage rc=1 fails=1 verdict=killed
     FAIL mark-carry's last mark on an in-progress group leaves its stage (null control) 
 RESULT mutant=mark-close-no-hold rc=1 fails=1 verdict=killed
     FAIL ... and holds it carries-open, naming the issue, while it owns an orphaned open issue 
+RESULT mutant=mark-legacy-dropped rc=1 fails=1 verdict=killed
+    FAIL mark-carry whose only unmarked carry left is legacy writes done 
 RESULT survived=0
-rc=0
+exit=0

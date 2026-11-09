@@ -1,0 +1,13 @@
+roster_edit self-test: 261 checks, 0 failed
+  ok   mutant yield-cmp killed
+  ok   mutant yield-sample killed
+  ok   mutant skip-cmp killed
+  ok   mutant skip-done killed
+  ok   mutant wait-cmp killed
+  ok   mutant wait-median killed
+  ok   mutant tput-cmp killed
+  ok   mutant wip-cmp killed
+  ok   mutant class-cmp killed
+  ok   mutant class-sample killed
+  ok   mutant memory-key-metric killed
+ok: bottleneck_check self-test
