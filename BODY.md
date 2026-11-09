@@ -2,9 +2,26 @@ Repair round for the three planner defects of the 2026-11-08 replan study (a nam
 
 (a) `roster_lane` matches `INSTRUMENT_NAME_STEMS` as the exact group or `<stem>-...`, so `R10-I1` no longer takes `R10-I18N-DE`. (b) `roster_lib.CLOSED_STAGES` gains `refused` and `deferred`; `refuted` stays open. (c) `build_plan` exempts a ready critical-path group from the coordinator cap, flags it `exempt_coordinator`, and `check_plan` leaves flagged groups out of its coordinator count.
 
+## Re-cut
+
+Round 3 of review: `Fix review: blocked 8f073db70d18895d0962924ac8da72647a02090a mutation-vacuous`. Two non-equivalent mutants survived; this head adds the owed checks and no production change (neither mutant revealed a defect). Disclosed self-correction: the Mutation proof line below that says `deferred-holds-dependent` was retargeted to the producing line did not kill `open_ = open_ - set(held)`; that site is now killed by its own row.
+
+## Round-3 mutation proof (head 2305095d2b61ccac83157333719f3124bc73be7c)
+
+Driver `tools/audit/seat/mutant_run.py --spec`, NULL mutant first (reported SURVIVED = the command passes unedited), then the mutant.
+
+| site | mutant | check added | result |
+|---|---|---|---|
+| `tools/plan/replan.py` `build_plan` | `open_ = open_ - set(held)` -> `pass` (spec `--in-place`, cmd `python3 tools/plan/replan.py --self-test`) | row "refused/deferred: a held dependent is in no wave and no batch", plus in-file mutation arm `held-subtraction` | `SURVIVED NULL`, `KILLED replan-held-subtract` |
+| `tools/audit/seat/roster_lib.py` `held_behind_deferred` | `elif a in held and gates(G[a]):` -> `elif a in held:` (spec `--copy-tree`, cmd `python3 tools/audit/seat/roster_lib.py --self-test`) | row "a held group that is itself released (refuted) does not hold its dependent" (fixture P deferred, Q refuted after P, S after Q; expects `{"Q": "P"}`) | `SURVIVED NULL`, `KILLED held-gates-conjunct` |
+
+Null controls: the replan row asserts the released (`refused`) case keeps R10-Y and R10-Z in waves/batches, so it is not satisfied by emptiness; the roster_lib row's null is `chain` (queued Q holds S) in the preceding row. The weakened form (`set(list(held)[:0])`) is the same deletion. Why the old rows missed it: the output loop's `if n in held` branch relabels a scheduled held group, so start/held_behind read the same; only wave/batch membership separates them. Ledger: both sites are `tools/`, outside `mutation-autofix`'s lane; the in-tree harness is replan's `held-subtraction` arm and the roster_lib row; no `tests/mutation_ledger` entry applies.
+
+`tools/pr/prepr.sh` at this head: `rc=0` (gate mode FULL, structure ratchet passed, ci predict clean).
+
 ## Head
 
-5ed671cd3193e00f5b489f2f87a9d6b62493da74: the PR head 3cf879467196df974967d702e2e407b9de068f14 plus this repair. `git merge-tree --write-tree origin/main HEAD` exits 0 against `origin/main` 82a2c142f (2026-11-09T05:57Z), so there is no merge; the one resolution it reports is the `tests/closures.json` ledger merge driver. Main moved after the last `tools/pr/prepr.sh` run; the figures stamped below are at merge base 20e83746fe91.
+5e55b7e4cc87350c7e15f2bca43049fabace6e8f: the PR head 3cf879467196df974967d702e2e407b9de068f14 plus this repair. `git merge-tree --write-tree origin/main HEAD` exits 0 against `origin/main` 82a2c142f (2026-11-09T05:57Z), so there is no merge; the one resolution it reports is the `tests/closures.json` ledger merge driver. Main moved after the last `tools/pr/prepr.sh` run; the figures stamped below are at merge base 20e83746fe91.
 
 ## Owner ruling carried (Carry: R10-FLY-REPLAN-DEFECTS)
 
@@ -33,6 +50,7 @@ Mutants applied to the production line, then the self-tests run; each line is th
 - `RELEASING_STAGES` plus `deferred` (deferred releases): `roster_lib.py` red.
 - `RELEASING_STAGES` without `refuted`, then without `refused`: `roster_lib.py` red, each.
 - `held_behind_deferred` not transitive (`elif a in held and gates(G[a])` -> `elif False`): `roster_lib.py` red.
+- `critical_path` reads every open edge again (`if a in G and gates(G[a])` -> `if a in G`): `roster_lib.py` red.
 - `depth_of` reads `is_open` again: `roster_lib.py` red.
 - `handover_prompt.ready_next` back to `a not in open_`: `handover_prompt.py` red, two rows ("a group after a deferred group is held", "after a refuted group is released").
 - Block 2: `check-ignores-flag` (`if g.get("coordinator") and not g.get("exempt_coordinator")]` -> `if g.get("coordinator")]`), new in-file mutant: KILLED by the new row "--check passes a flagged critical-path start that overlaps a running coordinator group".
@@ -53,7 +71,7 @@ Each command is the instrument; counts are not carried.
   - `closeout.py` (`roster_blockers`, `step_issues` via `closeout_exempt`): fixed in this diff (Block 1).
   - `plan_table.py` (all five `open_groups` calls), `resume_doc.py` open counts and waves, `handover_prompt.py` `in_flight`, `prune_refs.open_group_ids`, `size_durations.py`, `ci_predict.py`, `carry_audit.py`, `merge_throughput.py`, `roster_sync.py`, `roster_edit.py`: read the open set as work still owed; a refused or deferred group dropped from it is the intended reading (deferred stays owed only through the edge rule and closeout). Self-tests of each: 0 failed.
   - After-edge readers, changed to `roster_lib.gates` so they follow the ruling: `resume_doc.py` "Ready next", `handover_prompt.ready_next`, `plan_page.py` `blk`, `orchestrator_tick.py` `blockers` line; `roster_lib.depth_of`. Pinned only for `handover_prompt.ready_next` (rows above) and `depth_of` (`roster_lib.py`).
-  - Not changed: `plan_table.py` mermaid dependency drawing (`a in open_`) and `roster_lib.critical_path` (`a in G`, open groups) still count an edge to a refuted group, and a dependent of a deferred group shows no edge; display only, no scheduling effect. Recorded as a distinct carry below.
+  - `roster_lib.critical_path` and the `plan_table.py` mermaid dependency drawing now skip an edge to a refuted group (`gates`); `critical_path` is pinned by the `roster_lib.py` row "critical_path: an edge to a refuted group is released" (mutant: `if a in G and gates(G[a])` -> `if a in G` goes red), the drawing by no row. Not drawn: an edge to a deferred group (the group is not in the open set), display only.
 - Block 3 closures, `python3 tools/pr/ci_predict.py --base origin/main`: `no closures, fast, governance or instrument red predicted`. Cause of the red: the new `tests/entities.py` edge runs `orchestrator_tick.py --self-test`, opening four INERT files (`orchestrator_tick.py`, `pr_cap.py`, `budget_raise_gate.py`, `app_approve.sh`). Repair, by the route `INERT_EXCEPT` documents: the four join `INERT_EXCEPT` in `tests/closure.py`, then `./tests/derive_closures.sh --single tests/entities.py` twice (the first recording fails its own "every tracked file is measured or classified" check, since the table does not yet list them; the second is the fixed point and records `rc` 0). Alternatives: classify the reads out of the tick edge (drops the edge that catches the CLOSED_STAGES regression), or `--apply-inert` (it files them under `inert_reads`, which the self-test-reads arm names UNDER-SCOPED for a script whose self-test reads them).
 - `tools/pr/prepr.sh --self-test`: `514 passed, 0 failed`; its glob-sibling fixture planted `orchestrator_tick.py` and `pr_cap.py` as INERT siblings, which are no longer INERT, so it now plants `ci_critpath.py` and `plan_audit.py`.
 - Self-tests at this head, all `0 failed`: `replan.py`, `roster_lib.py`, `closeout.py`, `orchestrator_tick.py`, `handover_prompt.py`, `resume_doc.py`, `plan_page.py`, `plan_table.py`, `roster_sync.py`, `roster_edit.py`. `python3 tests/entities.py` prints `ALL 2669 ENTITY CHECKS PASSED`; `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
@@ -61,7 +79,7 @@ Each command is the instrument; counts are not carried.
 
 ## Unpinned sites
 
-The diff's added guards are pinned by the self-test rows above; `prepr.sh` step 6d lists any it finds unpinned and each is named in the Mutation proof section as killed. The `plan_page.py` `blk` and `orchestrator_tick.py` `blockers` edge reads are display and carry no row: triage in Forward-carry.
+The diff's added guards are pinned by the self-test rows above; `prepr.sh` step 6d lists any it finds unpinned and each is named in the Mutation proof section as killed. The `plan_page.py` `blk`, `orchestrator_tick.py` `blockers` and `plan_table.py` drawing edge reads carry no row: Forward-carry.
 
 ## Red checks
 
@@ -71,8 +89,7 @@ The diff's added guards are pinned by the self-test rows above; `prepr.sh` step 
 
 ## Forward-carry
 
-- Display-only edge readers `plan_table.py` mermaid drawing and `roster_lib.critical_path` still count refuted edges and ignore deferred ones (see Figures). Carry: R10-FLY-REPLAN-DEFECTS
-- The `plan_page.py` `blk` and tick `blockers` edge changes have no pinning row. Carry: R10-FLY-REPLAN-DEFECTS
+- The `plan_page.py` `blk`, tick `blockers` and `plan_table.py` drawing edge reads follow `roster_lib.gates` with no pinning row; they are display text and chart edges with no scheduling effect. Carry: dismissed: display-only, the scheduling and ready-next readers are pinned
 
 ## Friction
 
