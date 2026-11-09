@@ -1,0 +1,4 @@
+ custom_components/heatpump_optimizer/translations/de.json   | 13 +++++++++----
+ .../heatpump_optimizer/www/heatpump-optimizer-card.js       |  2 ++
+ dev/programme/delivery/3378.md                              |  1 +
+ 3 files changed, 12 insertions(+), 4 deletions(-)
