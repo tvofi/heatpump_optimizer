@@ -1,0 +1,12 @@
+42469369199 skipped 10 latest_nonskipped_completed 2026-11-08T10:21:40Z attempts ['2', '3', '4', '5', '6'] changed non-gate non-skipped per attempt {'2': [], '3': [], '4': [], '5': [], '6': []} changed count {'2': 11, '3': 11, '4': 11, '5': 11, '6': 11}
+  att 2 gate_start 2026-11-08T10:23:22Z skipped_latest_completed 2026-11-08T10:23:18Z
+  att 3 gate_start 2026-11-08T10:25:20Z skipped_latest_completed 2026-11-08T10:25:17Z
+  att 4 gate_start 2026-11-08T10:27:19Z skipped_latest_completed 2026-11-08T10:27:16Z
+  att 5 gate_start 2026-11-08T10:30:17Z skipped_latest_completed 2026-11-08T10:30:00Z
+  att 6 gate_start 2026-11-08T10:34:05Z skipped_latest_completed 2026-11-08T10:34:02Z
+42469369682 skipped 7 latest_nonskipped_completed 2026-11-08T09:59:09Z attempts ['2', '3', '4', '5', '6'] changed non-gate non-skipped per attempt {'2': [], '3': [], '4': [], '5': [], '6': []} changed count {'2': 8, '3': 8, '4': 8, '5': 8, '6': 8}
+  att 2 gate_start 2026-11-08T10:22:32Z skipped_latest_completed 2026-11-08T10:22:29Z
+  att 3 gate_start 2026-11-08T10:24:27Z skipped_latest_completed 2026-11-08T10:24:24Z
+  att 4 gate_start 2026-11-08T10:26:25Z skipped_latest_completed 2026-11-08T10:26:23Z
+  att 5 gate_start 2026-11-08T10:28:35Z skipped_latest_completed 2026-11-08T10:28:14Z
+  att 6 gate_start 2026-11-08T10:33:00Z skipped_latest_completed 2026-11-08T10:32:39Z
