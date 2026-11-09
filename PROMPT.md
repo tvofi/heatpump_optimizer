@@ -6,17 +6,18 @@ Never write to any branch except your return refs and refs/heads/handoff-wip/r10
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires; at most 5 inline search operations per prompt; never set FRUGAL_ALLOW_INLINE.
 
 Brief (snapshotted when this payload was rendered):
-Repair of CRITICAL-PATH PR #3299 (R10-GENERIC-HEAT-CURVE, branch fix/r10-generic-heat-curve, head 7ff8d4848a3ebeb46f5ed1135ee4a45d9b8d725d). Topic r10-generic-heat-curve. A delta reviewer (p-3299r5) is reviewing this head now. Do not move the head under it; push only to handoff-wip until it returns, then hand off. The relay holds the update while the review is in flight.
+CRITICAL PATH. Main-merge of PR #3299 (R10-GENERIC-HEAT-CURVE, branch fix/r10-generic-heat-curve, head 7ff8d4848a3ebeb46f5ed1135ee4a45d9b8d725d). The head holds merge verdict 7ff8d484 (comment 6749465994) and the orchestrator's mandate approval.
 
-New red: `tests / replay` (job 129354517194). Main is green on it, so the cause is this branch. The log, verbatim:
-  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): cpu_ratio 1.784: budget 3.754 cannot see a 2x cycle; re-record 2.523]
-  FAIL synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu  [cpu_ratio 3.6997 against clean 1.7838: loop_cpu_ratio 0.6671 over its budget 0.1527]
-  2 of 197 replay checks FAILED
+GitHub reads the PR DIRTY. Merging origin/main (at or after 1cabb845, which carries main-red hotfix #3378 adding German strings for #3372/#3360's keys) conflicts in two files:
+- custom_components/heatpump_optimizer/translations/de.json
+- custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js (its German dictionary)
 
-Establish first, by measurement with a null control (the same check on the merge base), which of two things is happening:
-(a) This branch raised the DHW-only cycle's CPU cost. Then fix the cost, architecturally: no budget loosening.
-(b) The replay's cycle_cost budget calibration is stale for this fixture: "cannot see a 2x cycle" means the recorded budget is too loose to detect a doubled cycle. Then re-record it to the measured value only, with the reason in the commit message.
+Resolve as follows:
+1. Confirm the conflict with `git merge-tree --write-tree origin/main HEAD`, then merge origin/main into the head.
+2. Union both sides' keys. Where both sides translate the SAME key, take main's text unless that key belongs to this branch's own new feature, and say which keys and why in `## Head`.
+3. Read both merged artifacts back, with every key of both parents present (orchestrator.md section 6). Run the card and i18n checks that cover them: tests/entities.py's translation checks, the card's dictionary-parity check and tests/fast's i18n lane, at least those scripts tests/closures.json selects for these two files.
+4. Commit a normal two-parent merge.
 
-Any budget raise follows CLAUDE.md rule 2. Under mandate 6715477401 (scope all), the orchestrator approves it, provided the body's `## Raise justification` records each payment tried and its `Architecture score: dS` line.
+Leave `tests / replay`'s red alone: it is non-required and inherited from main's #3349 (the ref23 cost class went stale). Answer it in `## Red checks` that way, with the measured head/base ratio 1.045 from handoff-wip/r10-generic-heat-curve's BLOCKED.md.
 
-Answer the red in `## Red checks`, with its cheaper detector or the recorded finding that none exists. `tests / fast` is main's inherited red (#3378); answer it as such. Use opus judgement; full prepr except `PREPR_SKIP_CLOSURES=1`.
+Hotfix-scoped prepr: `PREPR_SKIP_CLOSURES=1`. Hand off via handoff/r10-generic-heat-curve plus handoff-body. The resolution delta goes to a delta reviewer. Opus judgement.
