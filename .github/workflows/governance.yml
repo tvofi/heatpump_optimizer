@@ -469,6 +469,8 @@ jobs:
       # rule, each boundary and minimum sample, UNREADABLE, the trip memory and
       # one mutant per rule predicate, offline over planted metrics.
       - name: Show the bottleneck alert tripping each rule once and silent on its null control
+        id: bottleneck-alert
+        if: steps.scope.outputs.bottleneck-alert == 'true'
         run: python3 -I tools/audit/seat/bottleneck_check.py --self-test
 
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
