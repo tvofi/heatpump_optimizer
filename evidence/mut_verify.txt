@@ -1,0 +1,4 @@
+  ok   an unclosed block is refused
+  ok   a malformed marker is refused
+  ok   a body with no block is untouched (null control)
+figure_block self-test: 11 checks, 1 failed

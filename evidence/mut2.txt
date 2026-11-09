@@ -1,2 +1,0 @@
-  FAIL an instrument registered only by the head is refused (null: the base's own mb passes above)
-figure_block self-test: 11 checks, 1 failed

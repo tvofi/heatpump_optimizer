@@ -1,3 +1,0 @@
-  FAIL a block naming another head is refused as stale
-  FAIL a moved head is stale until the writer re-renders it
-figure_block self-test: 11 checks, 2 failed
