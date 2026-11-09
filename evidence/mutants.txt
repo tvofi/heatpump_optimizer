@@ -59,4 +59,4 @@ RESULT mutant=mark-close-no-hold rc=1 fails=1 verdict=killed
 RESULT mutant=mark-legacy-dropped rc=1 fails=1 verdict=killed
     FAIL mark-carry whose only unmarked carry left is legacy writes done 
 RESULT survived=0
-rc=0
+done
