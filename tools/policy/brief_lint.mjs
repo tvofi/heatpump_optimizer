@@ -1092,9 +1092,10 @@ export function lintPlaybook(label, text, findings) {
 const lintPlaybookFile = (file) => lintPlaybook('(playbook)', fs.readFileSync(file, 'utf8'), [])
 
 // The arm's acceptance: the renamed fixture must be refused for exactly the
-// instruments it renames, removes and moves to another directory, and the null fixture -- the same prose
+// instruments it renames, removes and moves to another directory, the directory
+// it renames and the renamed path it cites at a line, and the null fixture -- the same prose
 // with the real paths -- must produce no finding of any severity.
-const REQUIRED_PLAYBOOK = ['tools/release/stamp_renamed.py', 'tools/audit/seat/no_such_beat.py', 'tools/pr/state_docs.py', 'open-PR cap is 16']
+const REQUIRED_PLAYBOOK = ['tools/release/stamp_renamed.py', 'tools/audit/seat/no_such_beat.py', 'tools/pr/state_docs.py', 'tools/audit/seatz/', 'tools/audit/seat/beat_jobz.py', 'open-PR cap is 16']
 function assertPlaybookFixtures() {
   const problems = []
   const red = lintPlaybookFile(path.join(FIXTURES, 'playbook-renamed.md'))
