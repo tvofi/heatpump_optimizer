@@ -10,7 +10,7 @@
 # example "GitHub reported a claim-file conflict it cannot resolve without the
 # claimnotes driver"); the default states none. merge_train.py calls this.
 # The worktree may be detached: it is reset to origin/<branch> before the merge, and left clean there
-# when the merge fails (MERGE CONFLICT).
+# when the merge fails (MERGE CONFLICT, or REMERGE FAILED <pr> at <step> when no conflict caused it).
 set -uo pipefail
 # A stopped run ends the whole tree it started (R10-PUSHER-REAP): pr_args.sh's EXIT
 # trap reaps it, and the push runs asynchronously so an INT does not wait behind it.
@@ -26,9 +26,18 @@ export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.githu
 # origin/main, so the abort, or the reset when no merge is in progress, loses nothing.
 # The fetch rides git's own transient stderr out on gh_read.py's rule, the train's own
 # (R10-TRAIN-MERGE-LOOP-2): unretried, one 502 read as MERGE CONFLICT and stopped the train.
-if ! ( cd "$W" && python3 "$SEAT/gh_read.py" --git-retry git fetch -q origin main "$BR" && git reset -q --hard "origin/$BR" && git merge --no-edit -q origin/main ); then
+# MERGE CONFLICT is printed only for a merge that left unmerged paths (carry f7d2bf7c): a fetch that
+# spent its transient budget or git rejected, a refused reset, or a merge stopped for another reason
+# is REMERGE FAILED naming its step, with git's own words above it, and owes no fixer a resolution.
+step=fetch
+( cd "$W" && python3 "$SEAT/gh_read.py" --git-retry git fetch -q origin main "$BR" ) && step=reset \
+  && git -C "$W" reset -q --hard "origin/$BR" && step=merge && git -C "$W" merge --no-edit -q origin/main
+rc=$?
+if [ "$rc" -ne 0 ]; then
+  why="MERGE CONFLICT $PR"
+  { [ "$step" = merge ] && [ -n "$(git -C "$W" diff --name-only --diff-filter=U)" ]; } || why="REMERGE FAILED $PR at $step (rc=$rc)"  # mut:remergeconflict
   git -C "$W" merge --abort 2>/dev/null || git -C "$W" reset -q --hard "origin/$BR" 2>/dev/null || :  # mut:remergeabort
-  echo "MERGE CONFLICT $PR"; exit 1
+  echo "$why"; exit 1
 fi
 ( cd "$W" && python3 tests/env_drift.py --drop-inherited "$(git rev-parse origin/main)" >/dev/null 2>&1; git diff --quiet || git commit -qam "claims: drop the claims main already carries after the main merge" )
 ISS=$(grep -oiE '\b(fixes|closes|resolves) #[0-9]+' "$B" | grep -oE '[0-9]+' | sort -u | tr '\n' ' ')
