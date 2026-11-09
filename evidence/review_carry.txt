@@ -1,5 +1,0 @@
-  c7f657610  Merge origin/main into r10-generic-heat-curve-resolve
-  678bce461  Merge origin/main 51cd5ec8a into r10-generic-heat-curve-resolve
-  a15234e6a  Merge commit '678bce461c2599bfea735e36d7f2e599e088ed47' into fix/r10-generic-heat-curve
-  e22545159  Merge remote-tracking branch 'origin/main' into fix/r10-generic-heat-curve
-review_carry: FRESH-REVIEW
