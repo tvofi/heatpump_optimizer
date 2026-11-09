@@ -1,20 +1,17 @@
-Fix review: merge a36d0a6e56cc5f5af6754a9dec2cd10e41be919d
+Fix review: merge 0149fd1932c4763d2723fb53023b849d0c7fe00e
 
-bus-nonce: 6769501e6df369db55a12fb9959d412d
-
-Round 1. Measured head a36d0a6e56cc5f5af6754a9dec2cd10e41be919d (PR head at read).
-
-## Findings
-
-- Residual: the countermeasure (driver change, entities test, claim_merge_mutants case, claim-files.md sentence) is not landed and waits on the owner's approval; the RCA records this. Carry: dismissed: proposal for the owner, no stage is waiting on it.
+bus-nonce: d298388eedd210d80c6b4e6087e99ce4
 
 ## Evidence
+- Round: resolution-delta review against the merge verdict at a36d0a6e56cc5f5af6754a9dec2cd10e41be919d. review_carry.py prints FRESH-REVIEW (e5edce38e is not the automatic merge of its parents), so the delta is mine.
+- Resolution delta: merge-tree of the parents 1e87d78d9 and 0a8033305 conflicts only in the generated schema blocks of .claude/workflows/audit-find.js and dev/audit/config/finding.schema.json (bugclasses.json auto-resolved by the ledger driver). The committed resolution differs from the automatic tree only in those two files (ev/resolution-delta.txt), and keeps both N-relay-handoff-starvation (from main) and N-stamp-claim-conflict (from this PR) in CLASS_GUESS and the class_guess enum.
+- fold_ledger.py check at the head: 0 violations. agreement_py.py --run: divergent=0 unregistered=0 dead=0 refused=0, AGREEMENT ok.
+- The head 0149fd193 differs from e5edce38e only by one line in dev/programme/delivery/3351.md.
+- Three-dot diff against the merge base touches no VERSION, manifest, RELEASE_NOTES.md or golden/claim file.
+- git merge-tree --write-tree origin/main 0149fd1932c4763d2723fb53023b849d0c7fe00e exits 0 (clean).
+- CI: merge_train.py classify at the head exited 0: GREEN pending: none red: none (ev/classify.log, polled 08:43-09:06 UTC). The gate failure in the packet digest at render was a stale in-flight run; the final classification is GREEN, so no red check is owed an answer.
+- Not re-run: gate and mutation (CI's heavy runs cited, per the role file). The PR's patch is unchanged from the previously reviewed one apart from the merge-resolved generated blocks.
+- Round: first review of this resolution delta.
 
-- Diff is 5 files (RCA doc, bugclasses.json entry + class, finding.schema.json enum, audit-find.js generated block, delivery row); no production code, VERSION, manifest, notes heading, golden or claim file, budget, closures touched. Carry: dismissed: evidence, not a finding.
-- merge-tree origin/main vs head: rc 0, clean. Carry: dismissed: evidence, not a finding.
-- merge_train classify at head: GREEN (rc 0), pending none, red none. Carry: dismissed: evidence, not a finding.
-- fold_ledger.py check: 0 violations. agreement.mjs: divergent=0 at head and at origin/main (the refused=6 lines are the missing --py-json file, identical at both). Carry: dismissed: evidence, not a finding.
-- Reproduced the RCA's null control myself: branch appending one claim line at the stamp's parent 2a3c05644^ merged into 2a3c05644 prints MERGE-CLAIM: refused with "CONFLICTING CLAIMS: both sides changed claims under different"; same append on a branch cut at v7.1.5 prints MERGE-CLAIM: resolved. Base at 2a3c05644^ holds 6 claim lines. Carry: dismissed: evidence, not a finding.
-- Cited code anchors exist (env_drift.py both_changed / stamps guard lines ~1805-1806; stamp.py rewrite_claims "delete every bare claim"). Carry: dismissed: evidence, not a finding.
-- Not re-derived: the per-stamp refused-branch counts, the ~1 h per branch cost, and the section 5 patched-driver demonstration (prototype not in tree); the RCA marks the durations as estimates. Carry: dismissed: evidence, not a finding.
-- Mutation proof n/a (no production line); no red gate check on the head, so item 11 owes nothing; the body's prepr entities note is environmental and not a gate check. Carry: dismissed: evidence, not a finding.
+## Findings
+None: the resolution delta settles everything it touches.
