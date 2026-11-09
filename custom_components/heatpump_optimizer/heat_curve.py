@@ -350,16 +350,22 @@ async def write_displace(hass: Any, entry: Any, config: Any, displace_int: int) 
     if log_held(entry, "heat_curve_write_cap", len(held.writes) >= cap,
                 "Heat-curve entity %s: %d writes in 24 h reached the guard, refused", entity_id, cap):
         return False
-    if not await off_restore.async_arm(hass, entry, config, CONSUMER):
+    if not await off_restore.async_arm(hass, entry, config, CONSUMER) \
+            or not await _send(hass, entry, entity_id, target):
         return False
+    held.written, held.written_at = target, now
+    held.writes.append(now)
+    return True
+
+
+async def _send(hass: Any, entry: Any, entity_id: str, target: float) -> bool:
+    """The one service call of either kind's arm; a failure latched, never raised."""
     try:
         await write_setpoint(hass, entity_id, target)
     except Exception as err:  # noqa: BLE001 - the entity never breaks a cycle
         log_held(entry, "heat_curve_write", True, "Heat-curve entity %s write failed: %s", entity_id, err)
         return False
     log_held(entry, "heat_curve_write", False)
-    held.written, held.written_at = target, now
-    held.writes.append(now)
     return True
 
 
@@ -510,13 +516,7 @@ async def _write_persistent_target(
     _record_write(state, target, now, reading)
     state["misses"] = 1 if retry else 0
     await off_restore.async_save_state(hass, entry)
-    try:
-        await write_setpoint(hass, entity_id, target)
-    except Exception as err:  # noqa: BLE001 - the entity never breaks a cycle
-        log_held(entry, "heat_curve_write", True, "Heat-curve entity %s write failed: %s", entity_id, err)
-        return False
-    log_held(entry, "heat_curve_write", False)
-    return True
+    return await _send(hass, entry, entity_id, target)
 
 
 def diagnostics(entry: Any, config: Any) -> dict[str, Any]:

@@ -105,8 +105,8 @@ class _Held:
     #: Consumer key -> None for a neutral consumer, else its baseline entry
     #: ``{"entity_id": str, "value": float}``.
     armed: dict[str, Any] = field(default_factory=dict)
-    #: Consumer key -> that consumer's own persisted mapping (C3).
-    state: dict[str, dict[str, Any]] = field(default_factory=dict)
+    #: Consumer key -> that consumer's own persisted mapping (C3), saved as ``state``.
+    consumers: dict[str, dict[str, Any]] = field(default_factory=dict)
     restores: int = 0
     last_restore: str | None = None
 
@@ -130,7 +130,7 @@ async def _armed_record(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry
             held.armed = {str(k): _entry_of(v) for k, v in armed.items()}
         state = raw.get("state")
         if isinstance(state, Mapping):
-            held.state = {str(k): dict(v) for k, v in state.items() if isinstance(v, Mapping)}
+            held.consumers = {str(k): dict(v) for k, v in state.items() if isinstance(v, Mapping)}
     return held
 
 
@@ -146,8 +146,8 @@ def _entry_of(raw: Any) -> Any:
 
 async def _save(held: _Held) -> None:
     data: dict[str, Any] = {"armed": dict(held.armed)}
-    if held.state:  # a neutral consumer's record keeps #3299's one key (I4)
-        data["state"] = held.state
+    if held.consumers:  # a neutral consumer's record keeps #3299's one key (I4)
+        data["state"] = held.consumers
     try:
         await held.store.async_save(data)
     except Exception as err:  # noqa: BLE001 - a store failure never blocks a write
@@ -311,7 +311,7 @@ async def async_consumer_state(hass: HomeAssistant, entry: HeatPumpOptimizerConf
 def consumer_state(entry: HeatPumpOptimizerConfigEntry, key: str) -> dict[str, Any]:
     """C3 for a caller inside a restore (``restored``), whose record is loaded; else empty."""
     held = _RECORDS.get(entry)
-    return {} if held is None else held.state.setdefault(key, {})
+    return {} if held is None else held.consumers.setdefault(key, {})
 
 
 async def async_save_state(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
