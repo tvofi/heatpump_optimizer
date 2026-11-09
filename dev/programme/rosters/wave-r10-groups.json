@@ -20867,6 +20867,50 @@
     "stage": "not-started",
     "branch": null
    }
+  },
+  {
+   "group": "R10-SUITE-ENV-RESIDUE",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [
+    2726,
+    2730
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "tests/nightly_ha.py",
+    "tools/audit/seat/cloud-setup.sh",
+    "tests/harness.py",
+    "dev/audit/harnesses",
+    "tools/ci/README.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Where the suites run: the nightly heartbeat respawn (#3320 left it open), cloud-setup's venv-ha lacking scipy and paho, harnesses that measure the cwd tree instead of the root they were given, and the dispatch form a CI-cost hotfix must use to show its effect. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
