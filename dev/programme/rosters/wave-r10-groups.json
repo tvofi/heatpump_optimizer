@@ -17511,8 +17511,9 @@
     "From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P411 at 0ef02f3cab9eccf6ed8823fa46039c2d561f9096), savings estimate 3.5 to 11 h (central 6 h; instrument tier), the barrier form for this group carry 3 (CARRY-LANDED strands a cloud fixer): two more instances on 2026-11-07, R10-HOTFIX-SELFTEST-TIMEOUT (PR 3275, blocked 13:23Z, folded 13:45Z) and R10-HOTFIX-GATE-BUSY-DEFER (3 carries, blocked 13:36Z, found 14:10Z). Build it in tools/audit/seat/cloud_relay.sh handoff arm: when a fixer BLOCKED.md refusal is CARRY-LANDED alone and its body is kept on handoff-wip/<topic>-body, run tools/audit/seat/carry_fold.py (the designated writer) on that body and then body_push.sh; any other refusal prints a tick line and folds nothing. body_push.sh may exit with a distinct code for CARRY-LANDED-only so the relay keys on it. Fixtures: a CARRY-LANDED-only block is folded and re-pushed; null control: a block naming CARRY-LANDED plus any other refusal is not folded and prints its line; a mutant dropping the CARRY-LANDED-only test folds the mixed block and fails."
    ],
    "resume": {
-    "stage": "in-progress",
-    "pr": 3325
+    "stage": "carries-open",
+    "pr": 3325,
+    "commit": "82a2c142faa3b92a08765d7b9c676ddd6a490631"
    },
    "brief": "Part 2 of R10-CARRY-RESIDUE (#3241), split off by the three-round rule (round 3 is a minimal re-cut that builds only the review_owed blocked-head finding). This group builds what the re-cut routes here: the standing-tick.md policy line naming the `CARRY:` tick line (drafted for the owner's approving review before merging), and anything else the round-3 body routes here with a `Carry: R10-CARRY-RESIDUE-2` line. Each item gets its failing test first, mutation proof and null control where code is involved; defer none; after #3241 merges; files as for R10-CARRY-RESIDUE (set `files` in the body)."
   },
