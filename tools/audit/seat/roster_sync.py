@@ -1157,6 +1157,9 @@ def self_test() -> int:
               "SKIP R9-DEFER: stage deferred is a human disposition" in out, out)
         check("the dry run plans no append of an item the destination holds",
               "carry R9-HELD +=" not in out, out)
+        check("an item the destination holds verbatim is skipped silently, "
+              "not refused as a near-duplicate (M9)",
+              "REFUSED Carry: R9-HELD" not in out, out)
         check("the dry run refuses an item the destination already carries: "
               "same finding, same triage ruling", "REFUSED Carry: R9-FROM "
               "from #15: already carried" in out, out)
