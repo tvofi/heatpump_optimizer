@@ -2940,7 +2940,7 @@ EOF
     && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ('record_row','roster_lib','tmp_paths')];c.write_closures(c.CLOSURES,p)" \
     && $G commit -qam pexsib \
     && $G checkout -q -b pglobsib pexsib \
-    && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ("plan_audit","pulse","sweep_render")];c.write_closures(c.CLOSURES,p)" \
+    && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ('plan_audit','pulse','sweep_render')];c.write_closures(c.CLOSURES,p)" \
     && $G commit -qam pglobsib \
     && $G checkout -q -b pleft origin/main \
     && PYTHONPATH=tests/hastub python3 -c "import sys,json,pathlib as P;sys.path[:0]=['tests'];import closure as c;t=json.loads(c.CLOSURES.read_text());h='tests/harness_headers.py';f=next(x for x in t['inert_reads'][h] if x.startswith('dev/audit/harnesses/') and x not in t['closures'][h] and c.is_inert(x));p=P.Path('tests/closure.py');s=p.read_text();p.write_text(s.replace('INERT_EXCEPT = (\\n','INERT_EXCEPT = (\\n    \\'%s\\',\\n'%f,1));P.Path('$PDX/left').write_text(f)" \
