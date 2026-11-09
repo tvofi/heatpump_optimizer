@@ -1,0 +1,13 @@
+.github/workflows/nightly.yml:186:  # started_at and completed_at). The 60 minutes left cover the runs in
+tools/audit/merge_throughput.py:16:    earlier run's completed_at. The wait predicate is true when the latest
+tools/audit/round4/D11/governance_cost.py:6:  governance_seconds_per_merge  sum of (completed_at - started_at) over the check
+tools/audit/round4/D11/governance_cost.py:76:    if not c.get("started_at") or not c.get("completed_at"):
+tools/audit/round4/D11/governance_cost.py:79:    b = datetime.datetime.fromisoformat(c["completed_at"].replace("Z", "+00:00"))
+tools/audit/seat/probe_bridge.py:94:                and s.get("started_at") and s.get("completed_at"):
+tools/audit/seat/probe_bridge.py:95:            secs = (cr._at(s["completed_at"]) - cr._at(s["started_at"])).total_seconds()
+tools/audit/seat/probe_bridge.py:183:             "started_at": "2026-11-05T00:00:00Z", "completed_at": f"2026-11-05T00:00:{probe:02d}Z"}],
+tools/audit/seat/proof_watch.py:733:                "started_at": "2026-11-07T19:53:08Z", "completed_at": "2026-11-07T19:53:38Z",
+tools/audit/seat/proof_watch.py:737:                      "started_at": "2026-11-07T20:01:55Z", "completed_at": "2026-11-07T20:02:31Z",
+tools/audit/seat/proof_watch.py:751:                                      started_at="2026-11-07T20:05:39Z", completed_at="2026-11-07T20:06:15Z")]
+tools/audit/seat/sweep_driver.py:127:            self.out(f"SWEEP run={rid} attempt={n} completed_at={done_at} started={int(t0)} "
+tools/plan/replan.py:2778:             "-q", ".check_runs[] | [.name,.id,.started_at,.completed_at,.conclusion] | @tsv"],

@@ -1,0 +1,9 @@
+NOTE body item 2c3ab4b1: #201
+NOTE body item 5cac2e6c: #201
+NOTE body item aca32d17: #201
+NOTE review 0 item 7e82ef76: dismissed:evidence, not a finding
+NOTE review 0 item 5f8b41be: dismissed:the block itself, settled by re-running the two gates
+NOTE review 0 item 702e0a03: #201
+NOTE review 0 item 6726cc0a: #201
+CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
+note: --body was the PR body's ## Forward-carry and ## Friction sections only (the packet's carry_audit at the head ran on the full body: 3 routed)

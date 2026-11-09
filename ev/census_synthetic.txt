@@ -1,0 +1,2 @@
+synthetic TSV census arithmetic check (expect runs=2 reattempts=63 at_or_over_alarm=2 at_cap=1 max=44):
+RESULT census runs=2 reattempts=63 at_or_over_alarm=2 at_cap=1 max_attempt=44
