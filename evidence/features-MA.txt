@@ -1,0 +1,3 @@
+  FAIL off the combi option the buffer's store volume, capacity and UA evaluate no combi predicate; null control: with the option on the volume evaluates it and adds the coil  [off: 3 predicate evaluation(s), (504.0, 0.58464, 0.0022852941176470585); on: 1, 544.0]
+1 of 5031 FEATURE CHECKS FAILED
+rc=1
