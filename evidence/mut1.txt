@@ -1,0 +1,2 @@
+  FAIL a reviewer at the handoff returns on probe/revt-<topic>-<nonce8> with the subject `verdict <topic> <head>`
+cloud_dispatch self-test: 147 checks, 1 failed

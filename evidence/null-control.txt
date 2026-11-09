@@ -1,0 +1,2 @@
+  ok   a re-dispatch from a second clone fast-forwards the existing ref
+cloud_dispatch self-test: 147 checks, 0 failed
