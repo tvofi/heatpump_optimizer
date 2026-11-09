@@ -32,7 +32,7 @@ THE METRICS, each compared against its cap plus its band:
   churn_per_kilo_product_lines  nonproduct lines per 1000 product lines,
                                 rounded half up to an integer
 
-THE EXEMPTION (the owner's: a change proving more than a 10% improvement in
+THE EXEMPTION (the owner's: a change proving more than a 20% improvement in
 CI time, programme completion time, right-first-time or token usage). An entry
 in the budgets file's `exemptions` list exempts merge M only when all hold:
   - its `pr` is M's own number (the merge subject's; the event's for the
@@ -41,7 +41,7 @@ in the budgets file's `exemptions` list exempts merge M only when all hold:
     the candidate), and one is at M (the head): it was added by the merge it
     exempts, so an entry appended later for an already-merged PR exempts
     nothing;
-  - its improvement is strictly above 1/10, exactly: (before-after)/before
+  - its improvement is strictly above 1/5, exactly: (before-after)/before
     for a cost, (after-before)/before for right_first_time;
   - its evidence path resolves at M, and before, after and the two commands
     are read from M's tree too.
@@ -75,7 +75,7 @@ MEASURES = {"ci_time": "cost", "programme_completion_time": "cost",
             "token_usage": "cost", "right_first_time": "gain"}
 ENTRY_KEYS = ("pr", "measure", "before", "after", "before_command",
               "after_command", "evidence")
-THRESHOLD = Fraction(1, 10)
+THRESHOLD = Fraction(1, 5)
 SUBJECT = re.compile(r"^Merge pull request #(\d+)\b")
 
 
@@ -181,7 +181,7 @@ def improvement(entry: dict) -> Fraction | None:
 
 
 def entry_grants(repo: str, rev: str, entry: dict) -> tuple[bool, str]:
-    """Whether one entry, read from the tree at `rev`, proves its >10%."""
+    """Whether one entry, read from the tree at `rev`, proves its >20%."""
     missing = [k for k in ENTRY_KEYS if k not in entry]
     if missing:
         return False, f"entry for #{entry.get('pr')} lacks {missing}"
@@ -415,7 +415,7 @@ def self_test() -> int:
                 "nonproduction_merges_band": m1b, "churn_per_kilo_product_lines": m2,
                 "churn_per_kilo_product_lines_band": m2b, EXEMPTIONS_KEY: list(ex)}
 
-    def entry(pr, before=100, after=89, measure_="ci_time", evidence="ev/proof.txt"):
+    def entry(pr, before=100, after=79, measure_="ci_time", evidence="ev/proof.txt"):
         return {"pr": pr, "measure": measure_, "before": before, "after": after,
                 "before_command": "time x", "after_command": "time x", "evidence": evidence}
 
@@ -611,12 +611,12 @@ def self_test() -> int:
             return rc
 
         ok("exemption: no entry refuses", pr_case("ex-none", None), 1)
-        ok("exemption: exactly 10% refuses", pr_case("ex-10", entry(9, 100, 90)), 1)
-        ok("exemption: exactly 10% as floats refuses", pr_case("ex-10f", entry(9, 1.0, 0.9)), 1)
-        ok("exemption: 11% with evidence passes", pr_case("ex-11", entry(9)), 0)
-        ok("exemption: 11% right-first-time (a gain) passes",
-           pr_case("ex-rft", entry(9, 100, 111, "right_first_time")), 0)
-        ok("exemption: 11% with a missing evidence path refuses",
+        ok("exemption: exactly 20% refuses", pr_case("ex-10", entry(9, 100, 80)), 1)
+        ok("exemption: exactly 20% as floats refuses", pr_case("ex-10f", entry(9, 1.0, 0.8)), 1)
+        ok("exemption: 21% with evidence passes", pr_case("ex-11", entry(9)), 0)
+        ok("exemption: 21% right-first-time (a gain) passes",
+           pr_case("ex-rft", entry(9, 100, 121, "right_first_time")), 0)
+        ok("exemption: 21% with a missing evidence path refuses",
            pr_case("ex-noev", entry(9), evidence=False), 1)
         ok("exemption: an entry naming another pull request refuses",
            pr_case("ex-other", entry(8)), 1)
@@ -630,7 +630,7 @@ def self_test() -> int:
             held = {k: v for k, v in entry(9).items() if k != key}
             ok(f"exemption: an entry lacking `{key}` is refused, not raised",
                entry_grants(".", "none", held)[0], False)
-        ok("improvement() is exact: 100 -> 90 is 1/10", improvement(entry(9, 100, 90)), Fraction(1, 10))
+        ok("improvement() is exact: 100 -> 80 is 1/5", improvement(entry(9, 100, 80)), Fraction(1, 5))
 
         # Merged merges, in push mode: an entry its own merge added exempts it
         # (the positive control), one appended later exempts nothing.
