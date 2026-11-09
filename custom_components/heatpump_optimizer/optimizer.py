@@ -1394,7 +1394,7 @@ def _combi_dhw_exo(
     own store walk (``combi_dhw_net_series``), the series the space solve
     takes as ``buffer_exo_kw``; ``None`` off combi (R10-COMBI-TANK, Solver)."""
     p = model.params
-    if not (p.dhw_combi_tank_enabled and p.combi_tank_active):
+    if not p.combi_tank_active:
         return None
     temps = model.simulate_dhw_only(
         initial_temp=float(h.initial_state.dhw_temperature), dhw_power_schedule=schedule,
