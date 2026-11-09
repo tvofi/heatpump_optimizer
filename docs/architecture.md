@@ -250,6 +250,7 @@ custom_components/heatpump_optimizer/
 ├── services.yaml         # The 15 service definitions
 ├── strings.json          # UI strings
 ├── translations/
+│   ├── de.json           # German
 │   ├── en.json           # English
 │   └── sv.json           # Swedish
 └── manifest.json         # Integration manifest
@@ -392,8 +393,8 @@ module set at programme end.
 - Changing what the house *does*: `thermal_model.py`.
 - Adding a setting: `const.py` for the key and default, `config_flow.py` for
   the page it belongs on, then wherever it is read.
-- Adding an entity: the platform module, plus `translations/en.json` and
-  `sv.json` for its name — display names come from the translation key, and
+- Adding an entity: the platform module, plus `strings.json`, `translations/en.json`
+  and every other catalogue under `translations/` for its name — display names come from the translation key, and
   `tests/entities.py` pins the entity counts the README publishes against the
   entities the platforms actually construct.
 - Running or extending the test suite: [tests/README.md](../tests/README.md)

@@ -113,8 +113,8 @@ optional mould guard watches surface humidity. Safety — tank minimums, the
 legionella clock, the comfort floor — releases pinned slots it cannot honour and
 tells you which.
 
-**Fits your Home Assistant.** Entity names are translated (English
-and Swedish) and follow your Home Assistant language, without touching entity ids
+**Fits your Home Assistant.** Entity names are translated (English,
+Swedish and German) and follow your Home Assistant language, without touching entity ids
 or history. Monetary units follow your instance currency.
 
 <picture>
@@ -544,7 +544,7 @@ wood furnace, niche hardware, and the one compatibility duplicate (Upper Floor
 Temperature). They can be enabled from the entity registry,
 and an entity enabled later starts collecting from that moment.
 
-The display names are translated (English and Swedish) and follow
+The display names are translated (English, Swedish and German) and follow
 your Home Assistant language; the tables below show the English names. Entity ids
 and history are unaffected by the language.
 

@@ -112,7 +112,7 @@ sys.path.insert(
 
 import voluptuous as vol  # noqa: E402
 
-from harness import FakeEntry, FakeHass, FakeState, Results  # noqa: E402
+from harness import FakeEntry, FakeHass, FakeState, Results, TRANSLATED_LANGS  # noqa: E402
 
 # The capture itself, imported rather than re-implemented: a fingerprint
 # copied into this file would pin this file's opinion of the golden, not the
@@ -7199,7 +7199,7 @@ async def device_prefill_preview_texts():
         for name, rel in (
             ("strings.json", "strings.json"),
             ("en.json", "translations/en.json"),
-            ("sv.json", "translations/sv.json"),
+            *((f"{l}.json", f"translations/{l}.json") for l in TRANSLATED_LANGS),
         )
     }
 
@@ -7310,14 +7310,14 @@ async def device_prefill_preview_texts():
 
 
 def _shipped_catalogues():
-    """The three shipped string catalogues, keyed as the harnesses name them."""
+    """The shipped string catalogues, keyed as the harnesses name them."""
     root = pathlib.Path(__file__).resolve().parent.parent / "custom_components" / "heatpump_optimizer"
     return {
         name: json.loads((root / rel).read_text())
         for name, rel in (
             ("strings.json", "strings.json"),
             ("en.json", "translations/en.json"),
-            ("sv.json", "translations/sv.json"),
+            *((f"{l}.json", f"translations/{l}.json") for l in TRANSLATED_LANGS),
         )
     }
 
