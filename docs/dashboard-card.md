@@ -562,7 +562,13 @@ month is an estimate until it closes, and is badged as one; a month with no
 settled rows yet says so in words rather than drawing an empty table. The
 baseline has no wood, so where wood is configured the receipt and the table
 both say the saving includes heat from wood and that firewood's cost is not
-counted.
+counted. On a wood house the baseline is scaled to the meter over the hours
+wood did not heat, and only where too few of those were metered is it scaled
+by the whole month, upwards only. A month whose booked baseline used under
+half the energy the meter recorded (`METER_FLOOR` in `ledger.py`, over at least
+1 kWh metered) keeps its two columns and states no saving, with the reason in
+the table and on the receipt. That is a low-side check, not a validation of
+the figure: a baseline above it can still be wrong.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/savings-dark.png">
