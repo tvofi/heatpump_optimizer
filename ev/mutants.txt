@@ -1,0 +1,10 @@
+M1
+ref_privacy self-test: 124 checks, 7 failed
+M2
+ref_privacy self-test: 124 checks, 5 failed
+M3
+ref_privacy self-test: 124 checks, 1 failed
+M4
+ref_privacy self-test: 124 checks, 2 failed
+M5 adopt-any-role
+ref_privacy self-test: 124 checks, 2 failed
