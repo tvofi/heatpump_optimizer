@@ -17423,7 +17423,7 @@
    "resume": {
     "stage": "carries-open",
     "pr": 3288,
-    "commit": "72940b79545ca7ad9e404a4059ac0c34b091784c",
+    "commit": "72940b7954",
     "note": "set-files files ['tools/audit/seat/merge_train.py', 'tools/audit/seat/train.sh'] -> ['tools/audit/seat/merge_train.py', 'tools/audit/seat/train.sh', 'tools/release/stamp.py'] | set-files files ['tools/audit/seat/merge_train.py', 'tools/audit/seat/train.sh', 'tools/release/stamp.py'] -> ['tools/audit/seat/merge_train.py', 'tools/audit/seat/train.sh', 'tools/release/stamp.py', '.claude/workflows/web-stamp.js']"
    },
    "brief": "Part 2 of R10-TRAIN-MERGE-LOOP (#3242), split off by the owner-side ruling of 2026-11-06 to keep part 1 reviewable (three-round rule). Part 1 builds carries 2, 14, 15, 18 and 19 and the same_tree_posting kill; this group builds the seven carries below. Numbering is the #3242 fix review (verdict/3242 220a2112): carry N is the 1-based position in R10-TRAIN-MERGE-LOOP carry list (roster index N-1). Each is carried verbatim in this group's carry list, in order carries 3, 6, 7, 8, 9, 16, 17; build each with its failing test first, mutation proof and null control, defer none, after #3242 merges, files tools/audit/seat/merge_train.py and tools/audit/seat/train.sh."
