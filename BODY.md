@@ -30,8 +30,8 @@ The sentence is approved word for word by the orchestrator's ruling under the ma
 
 ## Forward-carry
 
-- Carry 0 (owner's measure-first on prepr.sh mutant refusal, (a) and (b)) and Carry 1 (coverage term; the review packet's ordinal for it is carry 2, so Carry 2 too, and Carry 3, the roster's third carry for this group, is the playbook-reflection item below) were not measured in this seat: neither the review/* bus window nor the 10-diff mutant runs were executed, so (a) and (b) are not landed and no refusal is recorded. Carry: R10-FIXER-MD-SPELLING-CORPUS (pending owner or orchestrator ruling on re-dispatching the measurement; the owner's saving-versus-time condition stays unmet).
-- Carry 3: R10-ROUND-PLAYBOOK-FINAL is not in the tree, so its reflection of this sentence could not be edited here. Carry: R10-FIXER-MD-SPELLING-CORPUS (pending orchestrator ruling; the playbook file is out of tree).
+- Carry 0 (owner's measure-first on prepr.sh mutant refusal, (a) and (b)) and Carry 1 (coverage term; the review packet's ordinal for it is carry 2, so Carry 2 too) were not measured in this seat: neither the review/* bus window nor the 10-diff mutant runs were executed, so (a) and (b) are not landed and no refusal is recorded. Carry: R10-FIXER-MD-SPELLING-CORPUS (pending owner or orchestrator ruling on re-dispatching the measurement; the owner's saving-versus-time condition stays unmet).
+- R10-ROUND-PLAYBOOK-FINAL is not in the tree, so its reflection of this sentence could not be edited here. (Carry 3.) Carry: R10-FIXER-MD-SPELLING-CORPUS (pending orchestrator ruling; the playbook file is out of tree).
 
 ## Friction
 
