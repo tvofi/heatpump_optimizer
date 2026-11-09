@@ -242,6 +242,7 @@ act on" — pricing and planning without actuating anything.
 | **On/off switch** | a `switch` that turns the heat pump on and off | may turn it off during expensive hours |
 | **ECL110 heat curve** | a Danfoss ECL110-compatible weather-compensated controller, reachable over MQTT | a heat-pump on/off decision and an integer parallel shift (*displace*) onto the controller's own heat curve |
 | **Heat-curve offset entity** | a controller whose volatile whole-curve offset is a `number` entity (for example a Luxtronik SHI heating offset) | the same displace as a temperature difference via `number.set_value`, bounded to ±3 K by default; 0 again when the optimizer is turned off or unloaded |
+| **Heat-curve stored parameter** | a controller with no volatile offset, whose stored curve setting is a `number` entity (kind *persistent*) | its value before the first write plus the displace, within ±3 K and at most 12 writes a day by default; that value written back when the optimizer is turned off or unloaded |
 | **Compressor frequency** | the compressor frequency exposed as a `number` entity (typically from Modbus or ESPHome) | the recommended frequency via `number.set_value` — but only once you switch the mode to Control |
 
 The boundaries of each path — what it can reach and what it cannot — are
@@ -370,8 +371,9 @@ things are left behind on purpose, because deleting them is your call:
 - **The heat pump keeps its last command.** The last setpoint the optimizer
   wrote to your thermostat, or the last ECL110 displacement it published, stays
   in force until you set the pump's own controls back. Nothing else is restored on
-  removal: a heat-curve offset entity is the one exception, written 0 when the
-  integration unloads.
+  removal: a heat-curve entity is the one exception, written back when the
+  integration unloads (0 for an offset, the value it held before the first
+  write for a stored parameter).
 - **The learned state.** Every entry keeps its learners and ledgers in twelve files
   under `.storage/` in your configuration directory, and Home Assistant does not
   delete an integration's store files with the entry:

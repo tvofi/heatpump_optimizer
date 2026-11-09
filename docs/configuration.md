@@ -1012,9 +1012,12 @@ is set — an install without an ECL110 never touches these topics. See
 | Largest downward offset | −20 °C | −30–0, 0.5 steps | How far the curve may be shifted down during expensive hours. |
 | Largest upward offset | 20 °C | 0–30, 0.5 steps | How far it may be shifted up when storing cheap heat. |
 | Controller response time | 1.5 h | 0.25–6.0, 0.25 steps | Roughly how long the controller takes to act on a new offset, so the optimizer does not ask for changes faster than the system can follow. |
-| Heat-curve offset entity | *(empty)* | a `number` or `input_number` | The same offset written to an entity instead of, or as well as, MQTT: a whole-curve offset, 0 neutral, that the controller forgets on a restart. Turning the optimizer off, or unloading it, writes 0. Refused when it is an entity the optimizer already writes, or when its own range excludes 0. |
-| What the entity is | Offset | Offset | The only kind in this version: a temperature difference, not stored by the controller. |
+| Heat-curve offset entity | *(empty)* | a `number` or `input_number` | The same offset written to an entity instead of, or as well as, MQTT. Kind offset: a whole-curve offset, 0 neutral, that the controller forgets on a restart; turning the optimizer off, or unloading it, writes 0; refused when its own range excludes 0. Kind persistent: a curve setting the controller stores; off and unload write back the value it held before the first write; refused when it reads no value or one outside its own range. Refused when it is an entity the optimizer already writes. |
+| What the entity is | Offset | Offset, Persistent | Offset: a temperature difference, not stored by the controller; prefer it where the controller has one. Persistent: a stored curve setting, displaced from its own value with a daily write cap; see [ecl110.md](ecl110.md#kind-persistent-a-stored-curve-parameter). |
 | Largest offset written to the entity | 3 K | 0.5–5, 0.5 steps | The entity's offset stays within this many kelvin either way, whatever the MQTT range allows. 3 K is an estimate; see [ecl110.md](ecl110.md#without-mqtt-a-number-entity). |
+| Largest displacement of a stored parameter | 3 K | 0.5–5, 0.5 steps | Kind persistent only: the stored setting stays within this many kelvin of its value before the first write. 3 K is an estimate. |
+| Most writes a day to a stored parameter | 12 | 0–48 | Kind persistent only: writes in one local day, the write back on off included, one always kept for it; 0 writes nothing. 12 rests partly on forum figures and estimates; see [ecl110.md](ecl110.md#kind-persistent-a-stored-curve-parameter). |
+| Least time between writes to a stored parameter | 60 min | 15–360, 15 steps | Kind persistent only: after a write, the next waits at least this long. 60 min is an estimate of three radiator response times. |
 
 ### Reset to factory defaults
 
