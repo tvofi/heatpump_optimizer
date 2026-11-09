@@ -41,7 +41,8 @@ commit as `PLAN-TABLE.md` -- one ref, one durable path. A page that refuses
 (a stale or violating plan, an unreadable roster) is the UNAVAILABLE page: the
 ref keeps the last good PLAN.html, with its own snapshot time, when it holds
 one, and carries the UNAVAILABLE page when it holds none; either way the call
-publishes the other docs and exits 1, so the caller sees the plan unread. The
+publishes the other docs and exits 1, so the caller sees the plan unread.
+`--train-log` is handed on to `plan_page.py` (its flow section's skips). The
 beat runs no replan, so it never passes `--plan`.
 
 `beat` is the recurring half of tvofi's 2026-10-09 instruction that the state
@@ -453,6 +454,8 @@ def draw_plan_page(a, staging: Path, page_path: str, prev: str | None):
         cmd += ["--roster-path", a.roster_path]
     if a.github_snapshot:
         cmd += ["--github-snapshot", a.github_snapshot]
+    if a.train_log:
+        cmd += ["--train-log", a.train_log]
     r = subprocess.run(cmd, cwd=a.checkout, capture_output=True, text=True)
     text = target.read_text(encoding="utf-8") if target.exists() else ""
     if r.returncode == 0 and text.strip():
@@ -503,6 +506,8 @@ def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
                        help="plan.json to draw as PLAN.html (plan_page.py)")
         p.add_argument("--github-snapshot",
                        help="GitHub state for the plan page instead of gh")
+        p.add_argument("--train-log",
+                       help="the live train.log the plan page's flow section reads")
     if beat_mode:
         p.add_argument("--watch-ref", default=WATCH_REF,
                        help="the full ref name a pass reads at origin")
@@ -631,8 +636,12 @@ def plan_page_arms(root: Path, ok, git) -> None:
                      encoding="utf-8")
     mirror, prs = root / "pmirror", root / "pprs.json"
     prs.write_text("[]", encoding="utf-8")
+    train = root / "train.log"  # handed on to plan_page.py, whose flow section reads it
+    train.write_text("BATCH 20261107-143937 pid=2 base=main queue=1 (#11) --overlap --skip-bad\n"
+                     "SKIP #11 ci: #11 red at the head: gate\nSKIP REPORT: 1 skipped of 1\n",
+                     encoding="utf-8")
     argv = ["--checkout", str(drv), "--roster-ref", "main", "--pr-state", str(prs),
-            "--plan", str(planf),
+            "--plan", str(planf), "--train-log", str(train),
             "--github-snapshot", str(snapf), "--mirror", str(mirror), "--push"]
     state_ref, sdir, write_set = state_of(9)
     page_path = f"{sdir}/{PLAN_PAGE}"
@@ -655,9 +664,13 @@ def plan_page_arms(root: Path, ok, git) -> None:
         return
     tip1 = tip_of(state_ref)
     good = at(tip1, page_path) or ""
+    # Keyed on the refusal page's own heading, as publish's crash guard is: a
+    # drawn page may carry a flow metric's UNAVAILABLE cell (plan_page's Flow).
     ok("plan page: a fresh plan draws PLAN.html in the plan table's commit",
-       rc == 0 and "Fix Plan" in good and "UNAVAILABLE" not in good
+       rc == 0 and "Fix Plan" in good and "PLAN UNAVAILABLE" not in good
        and at(tip1, write_set[0]) is not None, (rc, good[:200]))
+    ok("plan page: --train-log reaches plan_page.py: the page's train skips name its batch",
+       "20261107-143937" in good, good[good.find("Flow"):good.find("Flow") + 300])
     ok("plan page: the mirror carries PLAN.html",
        (mirror / PLAN_PAGE).read_text(encoding="utf-8") == good)
     ok("plan page: without --plan the write set holds no PLAN.html (null control)",
