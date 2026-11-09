@@ -7524,7 +7524,8 @@
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/INSTRUMENTS.md",
-    "tools/release/stamp.py"
+    "tools/release/stamp.py",
+    "tools/audit/seat/gh_calls.py"
    ],
    "hot_files": [
     "tools/audit/seat/merge_train.py"
@@ -7567,7 +7568,7 @@
     "commit": "57b7b4994ac7ba3d1b4786edee3ed0e153c50fad",
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in, lane F)",
-    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec. | set-files files ['tools/pr/app_approve.sh', 'tools/audit/seat/merge_train.py', 'tools/audit/seat/record_row.py', 'tools/audit/seat/INSTRUMENTS.md'] -> ['tools/pr/app_approve.sh', 'tools/audit/seat/merge_train.py', 'tools/audit/seat/record_row.py', 'tools/audit/seat/INSTRUMENTS.md', 'tools/release/stamp.py'] (cite origin/main@59d717699618a6c41b25b0d6251ffc0e67eb1e2e)",
+    "note": "Fly-in registered by the orchestrator (session s4) under mandate 6319294694; pack ORCHESTRATOR-PROMPT.md revision 19 names the spec. | set-files files ['tools/pr/app_approve.sh', 'tools/audit/seat/merge_train.py', 'tools/audit/seat/record_row.py', 'tools/audit/seat/INSTRUMENTS.md'] -> ['tools/pr/app_approve.sh', 'tools/audit/seat/merge_train.py', 'tools/audit/seat/record_row.py', 'tools/audit/seat/INSTRUMENTS.md', 'tools/release/stamp.py'] (cite origin/main@59d717699618a6c41b25b0d6251ffc0e67eb1e2e) | set-files files ['tools/pr/app_approve.sh', 'tools/audit/seat/merge_train.py', 'tools/audit/seat/record_row.py', 'tools/audit/seat/INSTRUMENTS.md', 'tools/release/stamp.py'] -> ['tools/pr/app_approve.sh', 'tools/audit/seat/merge_train.py', 'tools/audit/seat/record_row.py', 'tools/audit/seat/INSTRUMENTS.md', 'tools/release/stamp.py', 'tools/audit/seat/gh_calls.py']",
     "pr": 2639
    },
    "priority": "high"
