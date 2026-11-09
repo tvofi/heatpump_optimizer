@@ -589,6 +589,11 @@ INERT_EXCEPT = (
     # CI's closures-autofix refused: INERT and read. Same route as the files below:
     # the tools/audit/seat/ files stay INERT, this one moves to the recorded closure.
     "tools/audit/seat/orchestrator_tick.py",
+    # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
+    # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
+    "tools/audit/seat/pr_cap.py",
+    "tools/policy/budget_raise_gate.py",
+    "tools/pr/app_approve.sh",
     # #2216: tests/entities.py reads the coverage stage, one of the three
     # HPO_CI_METRICS emitters, to pin that it keeps the metrics file from the
     # scripts it runs; left inside the tools/coverage/ prefix it would be
