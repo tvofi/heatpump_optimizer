@@ -519,6 +519,9 @@ def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
     return p
 
 
+_RACE = [0]
+
+
 def main(argv=None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -586,8 +589,18 @@ def main(argv=None) -> int:
             cargs += ["-p", prev]
         commit = run(cargs + ["-m", message], cwd=a.checkout).strip()
         if a.push:
-            run(["git", "push", "-q", "origin",
-                 f"{commit}:refs/heads/{state_ref}"], cwd=a.checkout)
+            try:
+                run(["git", "push", "-q", "origin",
+                     f"{commit}:refs/heads/{state_ref}"], cwd=a.checkout)
+            except Refuse:
+                now = remote_tip(a.checkout, f"refs/heads/{state_ref}")
+                if now == prev or _RACE[0] >= 2:
+                    raise
+                _RACE[0] += 1
+                print(f"state_docs: lost a race: {state_ref} moved "
+                      f"{(prev or '-')[:12]} -> {now[:12]}; regenerating on "
+                      f"the new tip (attempt {_RACE[0] + 1} of 3)", file=sys.stderr)
+                return main(argv)
             print(f"pushed {state_ref} at {commit}")
         else:
             print(f"ready: would push {state_ref} at {commit} (no --push)")
