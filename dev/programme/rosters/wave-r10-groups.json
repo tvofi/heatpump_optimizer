@@ -18588,7 +18588,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-friction-ci-red",
     "commit": "092941b7ef5993f324ab23135e99687b44403b51",
     "last_step": null,
