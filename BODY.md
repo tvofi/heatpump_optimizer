@@ -1,4 +1,4 @@
-R10-HOTFIX-GATE-BUSY-DEFER, the carries part (topic r10-hotfix-gate-busy-defer-p5). Every one of the 12 carries ends below in a fix with its controls, a `covered by <sha>` line naming the code and test that prove it, or the owner's recorded dismissal.
+R10-HOTFIX-GATE-BUSY-DEFER, the carries part (topic r10-hotfix-gate-busy-defer-p5). Every one of the 13 carries ends below in a fix with its controls, a `covered by <sha>` line naming the code and test that prove it, or the owner's recorded dismissal.
 
 **Carry numbering.** Each carry line names the roster's 1-based number and the brief's 0-based one. Everywhere else in this body, "carry N" is the brief's number.
 
@@ -70,7 +70,49 @@ Carry 11 (the brief's carry 10): measured first, then fixed here through carry 1
 
 Carry 12 (the brief's carry 11): fixed here (source order, above).
 
+Carry 13 (the brief's carry 12; item 453f6578, the settle loop, Cause 2 of r10-rca-gate-busy-defer-p5): covered by 34b98bbdb6 (#3327, R10-HOTFIX-SWEEP-SETTLE-LOOP), which this repair's merge brings into the branch and composes with the stale-pin rule (`## Head`).
+- The carry's second fix shape is the one main took: `undecided()` reads `sources()`, which drops `skipped` jobs, and `settled()` leaves a gate attempt the bot started unless a source finished after it (the overlap of the sweep's own re-runs).
+- Failing test first and null control: #3327's `#3308` replays (settle re-runs nothing) and its `#3308 null` (a real source finishing late still re-runs that gate, once), all passing here; M1-M4 under `## Merge repair` each fail them. The carry's `loop` arm (`predicted_listed`) is in the RCA harness of #3354, not in this tree (`git grep -n predicted_listed` returns nothing at b6c6a067), so it was not re-run.
+- #3274's runs at attempt 44: #3274 merged 2026-11-08T05:21Z, so no dispatch is owed. A run at the cap still prints `SWEEP left run ...: attempt ... at the cap` (`judge()`, unchanged).
+
 ## Head
+
+`b6c6a067f0dd644aee1fdb65bb4ed5a9a811dba3` (this repair): two commits on `25811b2ec3b38ecff4128e66e787725068bff8c7`, the handoff tip already in the PR head `4cab619c132a214926ca27fb211220d1976a9f63`.
+- `88aaad0b2a28a68a4081ef1d109449dd765baa3a` merges origin/main `6457496aba7b1076b1ed60c374c5badafdf66fc1` (`git merge`, never rebase), resolving the content conflicts with #3327 (R10-HOTFIX-SWEEP-SETTLE-LOOP, fdc8d21a: 34b98bbdb6 and 6158186e11) in `tools/ci/sweep.py` and `tools/ci/sweep_selftest.py`. `tools/ci/gate.py` auto-merged.
+- `b6c6a067f0` adds one self-test case that pins the point where the two rules compose (below).
+- origin/main was fetched again at 2026-11-09T02:07Z and still read 6457496a, an ancestor of this head, so prepr ran once, on this head. `git merge-tree --write-tree origin/main HEAD` exits 0.
+- `4cab619c1`'s extra commit over the handoff tip is the orchestrator's delivery row (`dev/programme/delivery/3348.md`); the relay applies this head to #3348.
+
+**The merge of main (this repair).** Both behaviours hold, composed in `Sweep.settle`'s loop:
+- `sweep.py`'s constants keep both sides: `PINNED_EVENTS`, `PINNED_PROGRAMS` (this branch) and `SWEEP_ACTOR` (main).
+- `settle`'s loop is main's (`others`, `undecided`, then `settled()` leaves a bot-started gate attempt that no source finished after), and the gate it does re-judge goes through `self.judge(r, g, ..., runs)` (this branch), so a stale-pinned red is re-judged by one dispatched run rather than re-run. `SWEEP-DONE` prints `dispatches=` as this branch's did.
+- `sources()`, `source_after()`, `settled()` and `undecided()` are main's, unchanged; `stale_pin()`, `fresh()` and `judge()` are this branch's, unchanged.
+- `sweep_selftest.py` keeps every case: the merge base's 52, this branch's 10 stale-pin cases, main's 8 settle-loop cases (the `#3308` replays, its nulls, `SWEEP_ACTOR`, and the bot/human overlapping pair). 52 + 10 + 8 = 70, and the merged self-test read `70 checks, 0 failed` before b6c6a067.
+- **The composed call was unpinned.** Dropping `runs` from the settle loop's `judge` call survived all 70 cases: `fresh()` then sees no dispatched run and dispatches again. It survived at 25811b2e too (`62 checks, 0 failed`), so the gap was there before the merge. b6c6a067 adds `stale pin, settle, no loop`: the #3261 pair beside a dispatched run created after both gates concluded, swept from the settle path, posts nothing.
+
+## Merge repair: null control and mutants
+
+Run by a one-off scratch driver (not in the tree, fixer step 18): each mutant replaces exactly one string in a fresh copy of `tools/ci` (it asserts the string occurs once), then runs `python3 -I -B sweep.py --self-test` there.
+- Unmutated: `sweep self-test: 71 checks, 0 failed`, rc=0.
+- **main's predicates (#3327's M1-M4):**
+  - M1, a skipped job counts as a source (`sources` drops `and j.get("conclusion") != "skipped"`): 5 failed, the three `#3308: skipped jobs re-stamped ... settle re-runs nothing` replays and both `#3308 null` cases.
+  - M2, `settled()` returns False: 1 failed, `settle: an overlapping pair of re-run gates, re-run by github-actions[bot], with no source after them, is final`.
+  - M3, `settled()` drops `not source_after(...)`: 1 failed, `#3308 null: a non-skipped source (codeql python) finishing after a sibling gate started re-runs that gate, once`.
+  - M4, settle skips `settled()` (`if False:`): 1 failed, the overlapping-pair case as M2.
+- **this branch's predicates (S1-S8):**
+  - S1, the stale branch in `judge()` deleted: 8 failed, every dispatching or no-loop stale-pin case, the new settle case included.
+  - S2, the `tools/ci/*.py` filter replaced by True: 2 failed, `stale pin null: a base that moved without touching tools/ci/*.py ...` and `stale pin null: a fork head ...` (a fork head reads an empty file list, which S2's True still marks stale, so it dispatches instead of re-running).
+  - S3, the fresh-run guard off: 3 failed, both `stale pin, no loop` cases and the new `stale pin, settle, no loop`.
+  - S4, one dispatch per sweep off: 2 failed, `two stale reds ...` and `stale pin, settle: the #3261 pair ...`.
+  - S5, the event key dropped: 1 failed, `stale pin null: a dispatched run's gate ...`.
+  - S6, created-vs-concluded replaced by True: 1 failed, `stale pin null: a dispatched run created before the stale gate concluded is no fresh judge: dispatch`.
+  - S7, the 300-file cap dropped: 1 failed, `stale pin: a compare listing at GitHub's 300-file cap ...`.
+  - S8, the fork guard off: 1 failed, `stale pin null: a fork head ...`.
+- **the composition:** C1, the settle loop's `judge` called without `runs`: 1 failed, `stale pin, settle, no loop: ...`. At b6c6a067's parent it read `70 checks, 0 failed`.
+- The brief's null control: main's settle-loop cases and this branch's busy-defer/stale-pin cases all pass in the merged file (unmutated row), and M2 (main's predicate removed) and S1 (this branch's) each fail their own cases.
+
+## Earlier heads
+
 
 `25811b2ec3b38ecff4128e66e787725068bff8c7` merges origin/main `daf8b349fd30cc60786eeca333a426b693aa4c5f` into the previous head `2b2e7a7b37c4f87fc1792b1a21e709667bd6d3bc` (`git merge`, no conflict). This is the repair's only commit: the red-check answer needed no code change. main's two commits since `51cd5ec8a4` touch only `tests/card_browser.mjs` and `dev/programme/delivery/3346.md`, no file this branch changes, and no `tools/ci/` file. origin/main moved after the first `tools/pr/prepr.sh` run at 2b2e7a7b3 (rc=0), so prepr was run again on this head with this body (`PREPR_SKIP_CLOSURES=1`); its result is under `## Mutation proof`.
 
@@ -89,7 +131,7 @@ Carry 12 (the brief's carry 11): fixed here (source order, above).
 - `jobs_all()` (both the `filter=all` read and the per-attempt fallback) and `main()`'s run listing call main's `pages()` as merged. `grep -n 'MAX_PAGES' r10_codescan_wait_race.py` returns the one loop in `pages()`, and there is no second paging loop.
 - Outside `selftest()`, the harness differs from the tip only in main's `pages()` hunk, which changes behaviour only when a 5xx persists past ghapi's retries.
 
-## Merge repair: null control and mutants
+**The earlier merge repair (r10_codescan_wait_race.py), null control and mutants.**
 
 Each was run on a scratch copy in `dev/audit/harnesses/`, removed afterwards, with `python3 <copy> --selftest`:
 - unmutated: `selftest: 15 checks, 0 failed`, exit 0.
@@ -100,7 +142,7 @@ Each was run on a scratch copy in `dev/audit/harnesses/`, removed afterwards, wi
 
 ## Mutation proof
 
-**This repair's prepr, at 25811b2ec3b3 against daf8b349fd30** (`PREPR_SKIP_CLOSURES=1`, this body): `rc=0`. `ci predict`: no closures, fast, governance or instrument red predicted against daf8b349fd30. `merged structure`: STRUCTURE RATCHET PASSED (tests/structure.py at 25811b2ec3b3). `pr-body`: 0 error(s). The earlier run at 2b2e7a7b3 against 51cd5ec8a42a was also rc=0.
+**This repair's prepr:** under `## Figures`. **The previous repair's prepr, at 25811b2ec3b3 against daf8b349fd30** (`PREPR_SKIP_CLOSURES=1`): `rc=0`. `ci predict`: no closures, fast, governance or instrument red predicted against daf8b349fd30. `merged structure`: STRUCTURE RATCHET PASSED (tests/structure.py at 25811b2ec3b3). `pr-body`: 0 error(s). The earlier run at 2b2e7a7b3 against 51cd5ec8a42a was also rc=0.
 
 Failing tests first, each committed red before its fix:
 - a23110b7c, over main's `sweep.py`: `sweep self-test: 59 checks, 5 failed`:
@@ -113,7 +155,7 @@ Failing tests first, each committed red before its fix:
   - `source order: a LOWER-id edit run's red arch-score started after the code run's own -> the code gate reads the later start`
   - `source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green`
 
-Sweep mutants, each applied to a `tools/ci` copy and run with `python3 -I <copy>/sweep.py --self-test`:
+Sweep mutants at the authored head (re-run at this head under `## Merge repair`), each applied to a `tools/ci` copy and run with `python3 -I <copy>/sweep.py --self-test`:
 - **S1, the stale branch in `judge()` deleted.** 5 failed, the five above.
 - **S2, the `tools/ci/*.py` filter replaced by True.** 1 failed: `stale pin null: a base that moved without touching tools/ci/*.py re-runs the gate as before`.
 - **S3, the fresh-run guard off.** 1 failed: `stale pin, no loop: a dispatched run created after the stale gate concluded re-judges the head; nothing posted`.
@@ -147,25 +189,25 @@ Every survivor is a constant in a test fixture that no assertion reads, so each 
 
 - **Pin equals base.sha.** For every pull_request-event run at the open PRs' live heads, the gate job log's `programs restored from <sha>` was compared with the PR's live `base.sha`: 19 of 19 SAME. The workflow_dispatch run 42446409559 (PR #3308) read DIFF, pinned 5bc009bc against base d2e4d2d1, because a dispatch rev-parses `origin/<base>` at its start. That is why `stale_pin` keys on the event. Command: `scratchpad pincheck.sh`, whose output is the per-run SAME/DIFF line. A wrong assumption would have printed DIFF on a pull_request row.
 - **`stale_pin` against git, live and read-only** (no post). It returned the pin for #3305 (17e11579), #3291 and #3245 (4b5d771b), and None for #3307 (afc1586a) and #3308 (d2e4d2d1). `git log --oneline <pin>..origin/main -- 'tools/ci/*.py' | wc -l` reads 6 for 4b5d771b and 0 for d2e4d2d1 and afc1586a. Each stale call matches a non-zero count, each None a zero.
-- **The base moved without touching tools/ci** (`custom_components/...`, `tools/ci/fixtures/f.json`, `tools/pr/prepr.sh`): the gate is re-run as before. A dispatched run's gate is re-run, the base never compared. So is a fork head. Every pre-existing sweep check passes unchanged (`sweep self-test: 62 checks, 0 failed`).
+- **The base moved without touching tools/ci** (`custom_components/...`, `tools/ci/fixtures/f.json`, `tools/pr/prepr.sh`): the gate is re-run as before. A dispatched run's gate is re-run, the base never compared. So is a fork head. Every pre-existing sweep check passes unchanged (`sweep self-test: 71 checks, 0 failed` at this head, main's settle-loop cases included).
 - **Source order.** A lower-id edit run whose red started BEFORE the code run's own green leaves the code gate PASS (`source order: ... null: started before it`). Every pre-existing gate case passes, the #3263, #3261 and #3282 recorded replays included (`gate self-test: 81 checks, 0 failed`).
 - **The three-gate scene.** At main, unmutated, all three gates PASS. Its live verdicts are the recording's own `verdict` fields.
 
 ## Figures
 
-- Self-tests at this head (re-run after the merge of main):
+- Self-tests at b6c6a067 (re-run after this repair's merge of main):
   - `python3 -I tools/ci/gate.py --self-test`: 81 checks, 0 failed.
-  - `python3 -I tools/ci/sweep.py --self-test`: 62 checks, 0 failed.
+  - `python3 -I tools/ci/sweep.py --self-test` (as governance.yml runs it): 71 checks, 0 failed. Rule for the count: the merge base daf8b349's file reads 52, 25811b2e's 62, origin/main 6457496a's 60 (each `git archive <sha> tools/ci` run alone), so the merge keeps 52 + 10 + 8 = 70, plus b6c6a067's one.
   - `python3 -I tools/ci/prelude.py --self-test`: 76 checks, 0 failed.
 - RCA replay (dev/audit/harnesses/r10_rca_gate_busy_defer_2.py, sha1 556b35c217d462db2fc89f669f790ada1a7699ee). Fixture scenes `3244-triple` and `3252-nosource` were added by `record --scene <name>`, additions only. Each `--ci` copy is `git archive <sha> tools/ci tools/pr | tar -x -C $D`, run as `python3 dev/audit/harnesses/r10_rca_gate_busy_defer_2.py replay --ci $D/tools/ci`:
   - at 9cbd7dd0 (the triple's live pin, lacking 355d9965a): `3244-triple: DEADLOCK`, each gate `FAIL run(s) [<the other two>] ...`, as live.
   - at afc1586a (main): `3244-triple: DECIDED`, all PASS naps=0; `RESULT ... defects=no`.
-  - at this head (`replay`, no `--ci`; re-run after the merge with `--ci tools/ci`, the same): `3244-triple` the same as main; `3252-nosource: DECIDED`, PASS; `defects=no`, exit 0.
+  - at this head (b6c6a067, `--ci tools/ci`; the harness and fixture are byte-identical to 25811b2e, `git diff --quiet 25811b2e HEAD -- dev/audit/harnesses`): `3244-triple` the same as main; `3252-nosource: DECIDED`, PASS; `defects=no`, exit 0.
   - `3252-nosource` at main: `MISREAD`, `FAIL pr-contract / pr-contract: failure (run 42387066581)`, the recorded live verdict; exit 1. Under M27 on this head: the same `MISREAD`, exit 1.
   - M17 on main: still `DECIDED`. The honest listing is ordered by `judging()`, so the self-test's lagging trio is the case that kills M17.
-- Gate mutants: `python3 dev/audit/harnesses/r10_ci_gate_core.py mutants` (sha1 fcee81f4174409a55f1e57f7bbd4e83904aadbd2): `RESULT mutants=22 survivors=0`. At main it read `mutants=21 survivors=1`, M26 NOT RUN.
+- Gate mutants: `python3 dev/audit/harnesses/r10_ci_gate_core.py mutants` (sha1 fcee81f4174409a55f1e57f7bbd4e83904aadbd2), re-run at b6c6a067: `RESULT mutants=22 survivors=0`. At main it read `mutants=21 survivors=1`, M26 NOT RUN.
 - Diff mutants: 73 mutants, 6 SURVIVED (equivalent, `## Unpinned sites`), wall time 15.8 s (`## Mutation proof`).
-- Codescan harness (dev/audit/harnesses/r10_codescan_wait_race.py, sha1 aa74f7bb2382641d56e1a04cfa3e597d5041259a at this head): `--selftest` 15 checks, 0 failed. At the tip (sha1 b25381629a7f71ee8826435b9d5553a879a4be53) it read 12 checks. The 7-day reading was taken at the tip and is under carry 10. It was not re-taken, because the measuring path changed only by main's `pages()` fallback (`## Head`).
+- Codescan harness (dev/audit/harnesses/r10_codescan_wait_race.py, sha1 aa74f7bb2382641d56e1a04cfa3e597d5041259a at b6c6a067): `--selftest` 15 checks, 0 failed. At the tip (sha1 b25381629a7f71ee8826435b9d5553a879a4be53) it read 12 checks. The 7-day reading was taken at the tip and is under carry 10. It was not re-taken, because the measuring path changed only by main's `pages()` fallback (`## Head`).
 - `rerun-gate.sh`: `git grep -n rerun-gate` over the tree: no hit.
 - Live gate census since #3287 (`r10_rca_gate_busy_defer_2.py census --since 2026-11-07T19:14:31Z`): not taken. The run reads every attempt and gate log in the window and was stopped at this session's 30-minute background limit before printing. No figure in this body rests on it.
 - Class census, the seams where a program orders runs at a head by id (fixer step 8). Rule: `grep -nE "sorted\(.*\"id\"|r\[\"id\"\] [<>]|i [<>] run_id|\"id\"\] [<>]" tools/ci/gate.py tools/ci/sweep.py tools/ci/prelude.py`, self-test lines aside. At the merge base it also returns `gate.gate`'s source loop (`sorted(others + [me], key=lambda r: r["id"], reverse=True)`); at this head it returns 8 lines:
@@ -176,9 +218,9 @@ Every survivor is a constant in a test fixture that no assertion reads, so each 
   - `prelude.waits_on` (`run["id"] < run_id`): a distinct finding, R10-RCA-CODESCAN-WAIT's inverted-pair wait. Not this group's; untouched.
   - `prelude.defer_to`'s `sorted(..., key=id)`: it returns the first unfinished code run whose pr-contract has not started. Any one qualifies, so the order decides nothing.
 - Ratchet and scope:
-  - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
-  - `python3 tools/audit/archscore/score.py --diff afc1586a`: `Architecture score: dS +0.0000 NULL`.
-  - `tests/closure.py select --diff $(git merge-base origin/main HEAD)` reads `MODE: FULL`, with the reason `tools/ci/gate.py changes the gate itself`. The full suite is CI's.
+  - `python3 tests/structure.py` at b6c6a067: STRUCTURE RATCHET PASSED.
+  - `python3 tools/audit/archscore/score.py --diff 6457496a` at b6c6a067: `Architecture score: dS +0.0000 NULL`. (At the authored head, against afc1586a, the same.)
+  - `tests/closure.py select --diff $(git merge-base origin/main HEAD)` at b6c6a067 reads `MODE: FULL`, with the reason `tools/ci/gate.py changes the gate itself`. The full suite is CI's.
   - `VERSION`, the manifest, the `RELEASE_NOTES.md` heading, both claim files and every `*_budgets.json` are byte-identical to the merge base.
 - prepr: `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` with this body and `MUTANT_CMD`/`MUTANT_MAX=0` as under `## Mutation proof`, on the committed merged head 6772efc9, printed `PRE-PR: 6772efc98d49a33fc878deefd7b9a6dcd5cad329 ... rc=0`. Before the merge, the tip 1202efb6 had printed `rc=0` without the skip.
   - Its `ci predict` step: `no closures, fast, governance or instrument red predicted against 17e621f08c4f`.
@@ -187,6 +229,11 @@ Every survivor is a constant in a test fixture that no assertion reads, so each 
   - `PREPR_SKIP_CLOSURES=1` skips only the closures step, which the cloud brief allows. Its null control at main: `tests/closure.py select` at this head reads `MODE: FULL` (`tools/ci/gate.py changes the gate itself`), so CI runs every script and no scoped closure decides this head. The skip also leaves `closures-autofix` the repair, by `ci-autofix.md`.
 
 ## Red checks
+
+- **`gate`, check-run 128871924664 (edit run 42526037423, 21:48:24Z), and check-run 128873239478 (edit run 42526438071, 21:50:45Z), both at the PR head 4cab619c1.** Both are deferrals only, neither a unit failure. The job logs' verdict lines: `FAIL run(s) [42526036839, 42526438071] at this head are still being judged; their gate decides` and `FAIL run(s) [42526036839] at this head are still being judged; their gate decides`, each then exit 1 (main's `gate.deferral()`). The code run 42526036839's `gate`, check-run 128884044704, started 22:33:12Z and concluded `success`, the newest `gate` check-run at 4cab619c1. Cheaper detector: none exists; a deferral is red by design until the code run's gate decides, as for the two deferrals at 2b2e7a7b3 below.
+- **The merge conflict** (the blocked verdict) is no check: it is answered by this repair's merge. Cheaper detector: `git merge-tree --write-tree origin/main HEAD`, which the fixer contract already runs before the handoff (step 6); main moved past the handoff, so no earlier run could have seen it.
+
+At the earlier heads:
 
 - **`gate`, check-run 128854449062 (edit run 42520919046, 20:37:29Z), and check-run 128863146375 (edit run 42523443855, 21:17:53Z), both at the previous head 2b2e7a7b3.** Both are deferrals only. Neither is a unit failure.
   - Each job's log has one verdict line: `FAIL run(s) [42520919204] at this head are still being judged; their gate decides`, then exit 1. That is main's `gate.deferral()`.
