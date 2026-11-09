@@ -74,8 +74,12 @@ MUTANTS = [
     ("train-done-flag", MT, '            out[-1]["done"] = True\n', "            pass\n", ()),
     ("train-skip-first-batch", MT, 'out[-1]["skips"].append(', 'out[0]["skips"].append(', ()),
     ("page-discharged-label", PAGE, 'label += ", every carry discharged" + (', 'label += "" + (', ()),
-    ("page-done-set", PAGE, "done = {g for g in G if not roster_lib.is_open(G[g])} | discharged",
-     "done = {g for g in G if not roster_lib.is_open(G[g])}", ()),
+    # The merge with #3326 moved the discharged edge release from `done` into
+    # build_rows' blocked list; `done`'s own `| discharged` feeds only the
+    # row's wave/start/finish, which replan already nulls for a discharged group.
+    ("page-discharged-edge", PAGE,
+     "if a in G and a not in discharged and roster_lib.gates(G[a])]",
+     "if a in G and roster_lib.gates(G[a])]", ()),
     ("page-merged-set", PAGE,
      "merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES} | discharged",
      "merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES}", ()),
