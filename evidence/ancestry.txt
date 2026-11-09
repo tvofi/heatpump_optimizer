@@ -1,0 +1,11 @@
+aaaec2128 (#3280) is an ancestor of c1c105ebe9d91860249679a85e4f4f68605b1100
+1927:    # live one exits skip-train-hold, so a flush spends no dispatch under it.
+1951:    _hold_log = {"ls": "abc\trefs/heads/train-hold\n", "ct": 1000, "msg": "train hold pid=77"}
+2494:TRAIN_HOLD_REF = "refs/heads/train-hold"
+2517:        if not run("git", "ls-remote", "origin", TRAIN_HOLD_REF).split() or bound is None:
+2519:        run("git", "fetch", "--quiet", "origin", TRAIN_HOLD_REF)
+2544:    A live train hold makes every beat exit `skip-train-hold`, so nothing is
+0
+origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json:3405:    "R10-FLY-STAMP-FLUSH-HOLD",
+origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json:18013:   "group": "R10-FLY-STAMP-FLUSH-HOLD",
+origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json:18171:    "R10-FLY-STAMP-FLUSH-HOLD",
