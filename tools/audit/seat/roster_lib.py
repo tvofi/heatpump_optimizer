@@ -546,6 +546,30 @@ def closing_stage(group: dict, stage: str, legacy: dict) -> tuple[str, list]:
     return ("carries-open" if pending else "done"), pending
 
 
+#: A commit sha as the roster records one (7 to 40 hex); roster_edit.py writes by it.
+SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
+
+
+def discharged(group: dict, legacy: dict) -> bool:
+    """A `carries-open` group whose merge is recorded and that owes no carry:
+    every carry is marked (implemented, moved or dismissed) or legacy.
+
+    Its own deliverable merged -- `closing_stage` writes `carries-open` only
+    where `done` was asked, and `resume.commit` is that merge -- and the carries
+    it held are on main or live in their destinations, so no fixer work is
+    left: the planner counts it closed (tvofi 2026-11-07, proposal 1). The
+    roster stage is NOT rewritten by this predicate: a group the merge held
+    because it owns an open issue nothing else owns (`roster_sync.hold_open`)
+    still owes that record step, and `set-stage done` stays its writer. A
+    group not yet merged (`not-started`, `in-progress`, ...) is never
+    discharged, whatever its carries say: its own brief is undone."""
+    resume = group.get("resume") or {}
+    return (resume.get("stage") == "carries-open"
+            and isinstance(resume.get("commit"), str)
+            and bool(SHA_RE.match(resume["commit"]))
+            and not pending_carries(group, legacy))
+
+
 def stranded(roster: dict, legacy: dict) -> list:
     """(group, stage, index, text) of every pending carry on a closed group."""
     out = []
@@ -908,6 +932,24 @@ def _self_test() -> int:
                         "done", legacy) == ("done", []))
     check("closing (null): a stage other than done is never rewritten",
           closing_stage(cg, "in-progress", legacy) == ("in-progress", []))
+    # discharged (proposal 1): merged, carries-open, nothing pending.
+    co = {"group": "CO", "carry": ["a [moved: R10-X]", "b [implemented: 0123abcd]",
+                                   "c [dismissed: a duplicate]"],
+          "resume": {"stage": "carries-open", "commit": "0123abcd"}}
+    check("discharged: carries-open, a merge commit, every carry marked",
+          discharged(co, {}))
+    check("discharged (null): one unmarked carry keeps it owed",
+          not discharged(co | {"carry": co["carry"] + ["d"]}, {}))
+    check("discharged: a legacy carry is not owed",
+          discharged(co | {"carry": co["carry"] + ["old"]}, {"CO": frozenset({"old"})}))
+    check("discharged (null): an unmerged group's own work is undone, whatever "
+          "its carries say",
+          not any(discharged(co | {"resume": {"stage": s, "commit": "0123abcd"}}, {})
+                  for s in ("not-started", "in-progress", "review", "queued")))
+    check("discharged (null): carries-open with no recorded merge is not",
+          not discharged(co | {"resume": {"stage": "carries-open"}}, {})
+          and not discharged(co | {"resume": {"stage": "carries-open",
+                                              "commit": "not a sha"}}, {}))
     got = [(s[0], s[2]) for s in stranded({"groups": [
         cg, cg | {"group": "AB", "resume": {"stage": "absorbed"}},
         cg | {"group": "CO", "resume": {"stage": "carries-open"}}]}, legacy)]
