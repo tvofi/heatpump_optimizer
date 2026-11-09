@@ -42,7 +42,10 @@ if [ "${1:-}" = "--self-test" ]; then
   CODE=$(git -C "$W/repo" rev-parse HEAD)
   for arm in pred lint packet landed; do
     drop; : > "$W/flags/$arm"; run t; rc=$?
-    st "$rc" 1 "REFUSE $arm: exit code unchanged"
+    want=1; [ "$arm" != landed ] || want=4  # CARRY-LANDED alone is exit 4, so the relay can fold it
+    st "$rc" "$want" "REFUSE $arm: exit code ($want)"
+    tok=$(echo "$arm" | tr a-z A-Z); case $arm in pred) tok=PREDICTOR;; lint) tok=BODY-LINT;; packet) tok=REVIEW-PACKET;; landed) tok=CARRY-LANDED;; esac
+    st "$(grep -c "^body_push: REFUSED $tok\$" "$W/out")" 1 "... and the output names the refusal REFUSED $tok"
     k=$(keepsha)
     st "$(git -C "$W/o.git" show "$k:BODY.md" 2>/dev/null)" "the body" "... and the refused body is kept at handoff-wip/t-body"
     st "$(grep -c "^body_push: refused body kept at handoff-wip/t-body $k\$" "$W/out")" 1 "... and the keep line names the ref and sha"
@@ -122,6 +125,7 @@ ROOT=$(git rev-parse --show-toplevel)
 if ! PRED=$(cd "$ROOT" && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main 2>&1); then
   printf '%s\n' "$PRED" >&2
   echo "body_push: the predictor refuses this head (above); repair it, push the code, then the body" >&2
+  echo "body_push: REFUSED PREDICTOR" >&2
   keep_refused # mut:keep
   exit 1
 fi
@@ -155,6 +159,7 @@ if [ -n "$HREF" ]; then
   if ! LINT=$(cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --body-check "$ABS" $PRB 2>&1); then
     printf '%s\n' "$LINT" >&2
     echo "body_push: the pr-body lint refuses this body (above), as open_pr.sh's prepr step 7 would; repair it and push again" >&2
+    echo "body_push: REFUSED BODY-LINT" >&2
     keep_refused # mut:keep
     exit 1
   fi
@@ -168,6 +173,7 @@ if [ -n "$HREF" ]; then
   printf '%s\n' "$PK"
   if [ "$prc" = 1 ]; then
     echo "body_push: the review packet refuses this head at the handoff (above); answer each, push the code, then the body" >&2
+    echo "body_push: REFUSED REVIEW-PACKET" >&2
     keep_refused # mut:keep
     exit 1
   elif [ "$prc" != 0 ]; then
@@ -183,8 +189,11 @@ if [ -n "$HREF" ]; then
   printf '%s\n' "$LD"
   if [ "$lrc" = 1 ]; then  # mut:landed
     echo "body_push: a carry above is not in its group's brief or carries; land it on the round's roster branch (carry_audit.py land-ops), then push the body" >&2
+    # exit 4, not 1: CARRY-LANDED alone, the one refusal a cloud fixer cannot repair (it may not
+    # write the roster). cloud_relay.sh's carry-fold arm keys on this line in the BLOCKED.md.
+    echo "body_push: REFUSED CARRY-LANDED" >&2
     keep_refused # mut:keep
-    exit 1
+    exit 4
   elif [ "$lrc" != 0 ]; then
     echo "body_push: the carry landing was not checked (rc $lrc, above); bus.sh dispatch checks it again" >&2
   fi
