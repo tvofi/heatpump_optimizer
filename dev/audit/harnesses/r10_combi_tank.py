@@ -33,7 +33,8 @@ same solve with zero exchange rounds (the null), plus the solve's seconds.
 ``equiv``: the two comparison mutants the mutation ledger triages as
 equivalent, each the operator's own text compiled over the head's function
 (``dhw_store_of``'s ``eps >=`` to ``>``, ``store_step``'s ``d_temp >`` to
-``>=``), against the head over a grid holding each comparison's tie; the
+``>=`` and ``new_temp <`` to ``<=``), against the head over a grid holding
+each comparison's tie; the
 cases that differ, the ties the grid reaches, and a tie-only control that
 moves only the tied result (it must differ on every tie, or the grid does not
 reach one).
@@ -277,6 +278,32 @@ def arm_equiv():
     print(f"RESULT equiv_step_differ={differ}")
     print(f"RESULT equiv_step_tie_control_differ_on_ties={tie_hit}")
     print(f"RESULT equiv_step_tie_control_differ_off_ties={tie_off}")
+
+    fl = "    if new_temp < floor:\n        injected, new_temp ="
+    fmut = _swapped(tm.store_step, fl, fl.replace("new_temp < floor", "new_temp <= floor", 1))
+    ftie = _swapped(tm.store_step, fl, "    if new_temp == floor:\n        injected += 1.0\n" + fl)
+    # Floor ties: ambient 8 below the inlet makes the floor 8, and an exact
+    # binary heat over dt lands the step on it.
+    fcases = [(base, temp, (8.0 - temp) / dt, 0.0, 8.0, dt)
+              for temp, dt in ((12.0, 0.5), (9.0, 0.25), (16.0, 1.0))]
+    fcases += cases
+    fties = fdiffer = fhit = foff = 0
+    for c in fcases:
+        head = tm.store_step(*c)
+        pre = c[1] + min((c[2] - c[3] * tm.dhw_draw_scale(c[0].tap_temp_for_store(c[1]), c[0].inlet_c)
+                          - c[0].ua_kw_per_c * (c[1] - c[4])) / c[0].capacity_kwh_per_c,
+                         max(0.0, c[0].rating_max_temp - c[1]) / max(c[5], 1e-6)) * c[5]
+        is_tie = pre == min(c[0].inlet_c, c[4])
+        fties += is_tie
+        fdiffer += not _same(head, fmut(*c))
+        moved = not _same(head, ftie(*c))
+        fhit += moved and is_tie
+        foff += moved and not is_tie
+    print(f"RESULT equiv_floor_cases={len(fcases)}")
+    print(f"RESULT equiv_floor_ties={fties}")
+    print(f"RESULT equiv_floor_differ={fdiffer}")
+    print(f"RESULT equiv_floor_tie_control_differ_on_ties={fhit}")
+    print(f"RESULT equiv_floor_tie_control_differ_off_ties={foff}")
 
 
 ARMS = {
