@@ -1,0 +1,70 @@
+R10-COP-GATE-E (#3106), the two measure-first carries routed from R10-COP-GATE-D.
+
+**Carry 0: the unsensed slab across a mode switch: measured, confirmed, fixed.** `_propagated_slab` (`coordinator.py`) advanced the slab by `draw_range.space_draw_kw` on the draw read at the close, split by `coord._commanded_split()` and gated on the live mode alone (`space_served=signals.space_heat or not signals.mode_observed`). Over an interval whose mode dwell saw both duties, the close's mode decides the whole interval: a switch back from hot water to heating books the whole draw as space heat (over-advance = the draw x the dwell's hot-water share), and the reverse switch books 0 kW (under-advance by the draw x its space share). The second direction is the same seam read the other way; the carry named only the first.
+
+The rule, chosen on the measurement: **prorate by the dwell's space hours.** `_propagated_slab` now splits the draw by `heat_energy.meter_of(coord).attribution(coord._commanded_split())`, the same owner `_interval_measured_heat_kw` beside it already reads: the dwell's (space, hot-water) hours where observed, else the plan's ask exactly as before. Observed, `space_share` of zero space hours is 0, so `space_served` is the live-mode rule only on an unobserved dwell (`a.observed or ...`). A dwell on one duty reads byte-for-byte as before (the all-space null below); an unobserved dwell passes the plan split unchanged.
+
+Why not the plan-trajectory fall-back (`ran_hot_water` skip): on the harness's switch-back interval, against a reference of the same space energy spread over the interval (`truth`: an all-space interval drawing the draw x the space share), the prorate reads the reference's slab exactly, the base's rule is +0.665 K high, and the fall-back is +1.495 K high: worse than the defect it would replace, because the plan's trajectory is the commanded heat #2499 removed from this path. Prorating assumes the pump draws a constant kW while on space heat; on a switch out, the close's draw is the hot-water draw standing in for the space draw, which is the reading the interval has.
+
+**Carry 1: set-point to drawn power between the duty gate and the ceiling: not measurable from the recorded fixtures; stays open on named owner data.** `dev/audit/harnesses/r10_cop_gate_band.py` pairs each flow set-point step strictly inside the band (`pump_arbiter.FLOW_GATE_C` + `draw_range.GATE_TOLERANCE_K` to `thermal_model.configured_flow_heat_c` less `draw_range.CEILING_TOLERANCE_K`, 25.25 to 54.5 degC on the owner fixture) with the last power reading inside that step, counting only steps the mode entity holds on space heat alone. The two recorded fixtures under `tests/replay/` yield one in-band step (`owner-2026-10-30-away.json`: 47 degC, 1.55 kW) and none; a gain and its linearity need at least three distinct set-points, so no fit exists. The 35 degC steps of the owner fixture are excluded because the mode read `Heating + DHW` throughout them (draw 0.0 kW). What closes it: a diagnostics download with the week of debug data on, from an install whose pump ran across the band, carrying the space set-point entity's history, the power entity's history and the mode entity's history, with at least three distinct space-only flow set-points between 25.25 and 54.5 degC each held long enough for one settled power reading. The flat-price null for a fit applies to none, since no fit was computed; the instrument's own null (`--synthetic`, a linear 0.1 kW/K series through the same pairing) reads the gain exactly, so `fit=none` is the data's, not the instrument's. Carry 1 stays open, and so does #3106 with it.
+
+**Predecessor.** The roster sets this group `after` R10-HOTFIX-COP-UNMEASURED (#3297), which is open and unmerged at origin/main ba6fd7e8b. This branch is cut from ba6fd7e8b, the base the dispatch named. #3297's diff touches neither `heat_energy.py` nor `draw_range.py` nor `_propagated_slab` (`git diff origin/main...origin/fix/r10-hotfix-cop-unmeasured -- custom_components/heatpump_optimizer/heat_energy.py custom_components/heatpump_optimizer/draw_range.py` prints nothing), and `git merge-tree --write-tree origin/main origin/fix/r10-hotfix-cop-unmeasured` exits 0.
+
+## Head
+
+85acb2c184e685e2289af52ad39a8def1b3995dc
+
+## Mutation proof
+
+Block command `BLOCK_CMD` (see `## Figures`), at 85acb2c184e685e2289af52ad39a8def1b3995dc. Unmutated: `ALL 17 FEATURES BLOCK PASSED`.
+- M1: `(a.space, a.dhw),` -> `coord._commanded_split(),` in `_propagated_slab`: `2 of 17 FEATURES BLOCK FAILED`: "R10-COP-GATE-E: a switch back from hot water to heating advances the slab by the dwell's space share of the draw, not the whole draw as space heat" `[slab switch-back/half-draw/heating=24.1700/23.5050/24.1700]`, "R10-COP-GATE-E: a switch from heating to hot water books the dwell's space share of the draw, not 0 kW" `[24.1700/23.5050/22.8400]`.
+- M2: `space_served=a.observed or signals.space_heat or ...` -> `space_served=signals.space_heat or ...`: `1 of 17 FEATURES BLOCK FAILED`: the switch-out check `[slab switch-out/half-draw/dhw-only=22.8400/23.5050/22.8400]`.
+Each restored with `git checkout`; `git status --short` printed nothing after.
+
+The two new checks failed at the base before the fix (commit a87133c57 carries them alone): `2 of 17 FEATURES BLOCK FAILED`, the same two names and values as M1/M2 combined (`switch-back 24.1700`, `switch-out 22.8400`).
+
+## Null control
+
+The all-space dwell: heating at both reads. `r10_cop_gate_slab.py` reads `RESULT all_space booked_kw=4.0 space_share=1.0 over_kw=0.0 slab=24.1700` at the base ba6fd7e8b and at 85acb2c184e685e2289af52ad39a8def1b3995dc, identical; the check "R10-COP-GATE-E: a dwell all on space heat advances the slab by the whole draw, as with the live mode alone (null control)" passes at both ends and under both mutants. Every pre-existing #2499 check in the block (hot-water-only 0 kW, immersion, no meter, window bounds) passes unchanged at 85acb2c184e685e2289af52ad39a8def1b3995dc.
+
+Perturbation: `--drawn 6.0`. At the base, `switch_back over_kw=3.0` and `switch_out over_kw=-3.0` (scaled with the draw, from 2.0 / -2.0 at 4.0 kW); at 85acb2c184e685e2289af52ad39a8def1b3995dc both `over_kw=0.0`, `booked_kw=3.0`. At 6.0 kW the head's switch slab (23.8375) and `truth` (23.8475) differ by 0.01 K with equal booked kW (3.0): a scratch probe recording `_replay_interval`'s arguments read every argument equal and the thermal parameters differing in `house_heat_loss_scale` (1.0 vs 0.99583) and `cop_scale` (1.0 vs 1.01), folded by the house and COP learners on `truth`'s clean all-space interval and refused on the switch interval (it ran hot water). Not the slab propagation's.
+
+## Figures
+
+- `BLOCK_CMD`: `PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude 'from datetime import datetime, timedelta, UTC' --prelude 'import asyncio as _r9f12_aio' --prelude 'from harness import FakeEntry as _r9f12_entry' --prelude 'from homeassistant.util import dt as _r9f12_dt' --prelude 'from types import SimpleNamespace as _r9f12_ns' 'R.section("R10-DEMAND-OVERBOOK' 'R.section("R9 P2: stamp owner, plausib'`.
+- `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_cop_gate_slab.py [--drawn 6.0]`: at the base ba6fd7e8b (run from the export, sha1 746454bbf9a3e19b89c263ef7a98bb2f187f5d2d, the file this branch adds), 4.0 kW: `all_space over_kw=0.0 slab=24.1700`, `switch_back booked_kw=4.0 space_share=0.5 over_kw=2.0 slab=24.1700`, `switch_out booked_kw=0.0 over_kw=-2.0 slab=22.8400`, `truth booked_kw=2.0 slab=23.5050 plan=25.0000`. At 85acb2c184e685e2289af52ad39a8def1b3995dc: `all_space` identical, `switch_back` and `switch_out` `booked_kw=2.0 over_kw=0.0 slab=23.5050`. The rule: `over_kw` = booked kW minus the draw x the dwell's space share (`heat_energy.ModeDwell.shares` over the meter's cycle). The orchestrator's earlier "about 2.25 kW" was a figure from another configuration; this rule gives draw x hot-water share, 2.0 kW for 4.0 kW over a half-and-half dwell.
+- Rule comparison (switch_back, 4.0 kW, against `truth` 23.5050): base +0.665 K, plan fall-back (`plan=25.0000`) +1.495 K, prorate 0.000 K.
+- `PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/r10_cop_gate_band.py --synthetic` (sha1 02129ef0ca51334e432e34e50150ea29dd49e2a7), at the base and at 85acb2c184e685e2289af52ad39a8def1b3995dc alike: `owner-2026-10-30-away.json steps=1 distinct_c=1 fit=none`, `synthetic-dhw-only.json steps=0 distinct_c=0 fit=none`, `synthetic-linear steps=4 distinct_c=4 gain_kw_per_k=0.1 max_resid_kw=0.0`.
+- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=ba6fd7e8b0b0502dfcce26df781810e474fc1d2f PYTHONPATH=tests/hastub ./tests/run.sh` at 296e6026a (85acb2c184e685e2289af52ad39a8def1b3995dc differs from it only in `dev/audit/harnesses/r10_cop_gate_band.py`, which `tests/harness_headers.py` alone reads; re-run at 85acb2c184e685e2289af52ad39a8def1b3995dc: `ALL 112 HARNESS HEADER CHECKS PASSED`): `MODE: SCOPED -- 27 script(s) run, 6 scoped out.`, `1 TEST SCRIPT(S) FAILED`, rc=1. Within it: `ALL 4988 FEATURE CHECKS PASSED`, `ALL 2670 ENTITY CHECKS PASSED`, `STRUCTURE RATCHET PASSED`, `NO UNCLAIMED DRIFT: 56 scenario(s) checked against ba6fd7e8b0b0502dfcce26df781810e474fc1d2f`, `NO STALE FIXTURE: 56 committed fixture(s)`, `card_drift.mjs` ok. The one failure is `tests/stress.py`, `1 of 113 STRESS CHECKS FAILED`: "the probed scenarios' memory peaks stay within their recorded budgets" (typical_slab/winter 5.3 MiB vs 3.4, typical_slab/shoulder 4.0 vs 1.8, and four more scenarios at 5.3). Null control, the base itself: `PYTHONPATH=tests/hastub python3 tests/stress.py --memory-probe '{"season":"<s>","building":"typical_slab"}'`, 4 runs per scenario per tree, base ba6fd7e8b winter `5.27 5.27 5.27 5.27`, shoulder `4.03 4.03 4.02 4.02`; 85acb2c184e685e2289af52ad39a8def1b3995dc winter `5.27 5.27 3.44 5.27`, shoulder `4.03 4.03 4.03 4.03`. The upper mode is the base's on this seat (8 of 8), the bimodal traced peak #3297's body recorded at main 20e83746f; this diff touches no solver path. If CI's `tests / fast` reads it, `## Red checks` names it at that run
+- `python3 tests/structure.py` at 85acb2c184e685e2289af52ad39a8def1b3995dc: `STRUCTURE RATCHET PASSED`. At 214c0e22f (before the payment) it read `FAIL class_excess_loc 17560 > 17557 (+3)`; paid in 296e6026a (see `## Architecture score`).
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` at 85acb2c184e685e2289af52ad39a8def1b3995dc: `MODE: SCOPED -- 27 script(s) run, 6 scoped out.`
+- `PREPR_SKIP_CLOSURES=1 MUTANT_CMD=<the block command above> MUTANT_MAX=0 tools/pr/prepr.sh <this body>` at 85acb2c184e685e2289af52ad39a8def1b3995dc, against origin/main ba6fd7e8b: `PRE-PR: 85acb2c184e685e2289af52ad39a8def1b3995dc ... rc=0`, finished 2026-11-09T09:36Z (`date -u`). origin/main has since moved to 79b7356f3; `git merge-tree --write-tree origin/main HEAD` exits 0 with no CONFLICT line, so the branch is not merged (`fixer.md` step 6).
+- Budgets: `git diff --stat $(git merge-base origin/main HEAD)...HEAD -- '*_budgets.json'` prints nothing.
+- Class seams (step 8). Rule: `git grep -n "_commanded_split()" -- custom_components`, every site that pairs the plan's split with a reading. At 85acb2c184e685e2289af52ad39a8def1b3995dc it returns eight sites in `coordinator.py`:
+  - `_propagated_slab`: closed in this diff.
+  - `_interval_measured_heat_kw`, `_fold_flow_lift` (the `dhw_share` gate), `_cop_reference_curve` (the `span or ...` line), `_interval_space_power` (`ran_hot_water`): already route through `meter.attribution`.
+  - `_async_learn_heat_span` (`heat_energy.close_span(meter, clean, split, ...)`): already guarded, the span's own dwell attribution inside `close_span`.
+  - `_commanded_power`: the plan's whole ask, summed; apportions no reading.
+  - `_record_accuracy`'s `"split"` (read by `draw_range.fold`): pairs one instantaneous draw with the instantaneous ask the commanded split already zeroes for a channel the live mode does not serve; no interval integral is apportioned, so not this class.
+
+## Unpinned sites
+
+none: `prepr.sh` step 6d at this head prints "the diff adds no unpinned mutation site"; the two predicate lines M1 and M2 mutate are killed by the block above.
+
+## Architecture score
+
+Instrument: `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`, at 85acb2c184e685e2289af52ad39a8def1b3995dc: `Architecture score: dS -0.0012 WORSENS (inadmissible: coord_footprint 2489->2491)`.
+
+- `coord_footprint` 2489 -> 2491: the slab propagation reads the meter's attribution (one chained statement) and gates `space_served` on one more operand (`a.observed`); the decision itself stays in `heat_energy.attribution` and `draw_range.space_draw_kw`, and the coordinator only passes the attribution through. The payment folded `_interval_measured_heat_kw`'s three statements into one, which the footprint's packing counter reads as the same units (it pays `class_excess_loc` only). Payments considered: moving the `observed` arm into `draw_range.space_draw_kw` (pass the `Attribution`): not taken, it changes a pure function's signature that `tests/features.py` calls with plain tuples and makes `draw_range` read a `heat_energy` type for one boolean; deleting the `space_served` keyword in favour of a zero split: not taken, an unobserved hot-water-only mode would then depend on `_commanded_split` zeroing the space ask, a second rule for the same fact. No budget is raised.
+
+## Red checks
+
+none
+
+## Forward-carry
+
+- Carry 1 (set-point to drawn-power linearity between the gate and the ceiling) stays open on the owner data named above: a week of debug data from an install whose pump ran at three or more distinct space-only flow set-points between 25.25 and 54.5 degC; `dev/audit/harnesses/r10_cop_gate_band.py` reads it committed under `tests/replay/` or named as an argument. Carry: #3106
+
+## Friction
+
+none
