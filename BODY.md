@@ -2,7 +2,7 @@ R10-OUTSIDE-INTAKE part 2: the plan-page closure rule, the Flow section and the 
 
 The owner, verbatim (tvofi 2026-11-07): "1: groups with all it's carries absorbed by another group should be considered closed, if that is not unsound for some reason. 2: Add flow board metrics in the plan HTML and a mechanism to alert you [the orchestrator] on bottlenecks and enable you to decide whether to act on it. Build it locally first and have the public plan page group land it on main."
 
-**A workflow and the sweep template change: this needs tvofi's approving review** (`.github/workflows/governance.yml` gains one self-test step; `tools/audit/seat/sweep_template.md` gains the `train_log` placeholder and one sentence on what a `BOTTLENECK:` line asks of the sweep).
+**A workflow and the sweep template change: this needs tvofi's approving review** (`.github/workflows/governance.yml` gains one self-test step, gated as `bottleneck-alert` under `tools/ci/selftest_scope.py`'s rule, with its measured row in `tools/ci/selftest_closures.json`; `tools/audit/seat/sweep_template.md` gains the `train_log` placeholder and one sentence on what a `BOTTLENECK:` line asks of the sweep).
 
 **Carry 1** (roster `R10-OUTSIDE-INTAKE`, part 2) is discharged by this pull request in full:
 - the closure rule and the record-lag writer (items 1-2 below);
@@ -10,12 +10,14 @@ The owner, verbatim (tvofi 2026-11-07): "1: groups with all it's carries absorbe
 - every mutant it owed (under Mutation proof);
 - the disposition of `r10_plan_page_mutants.py` M0, which is repaired (item 6).
 
+**Carry 2** (roster `R10-OUTSIDE-INTAKE`, the plan-page note under the Projected open issues chart: pluralise the count, drop the zero clause) is **not** discharged by this pull request. It reached the roster from the 2026-11-08 plan-page read, after this branch was cut, and this round is a resolution repair, which changes no feature line. It stays unmarked on the roster, so the group stays `carries-open` and the carry stays owed by its next dispatch.
+
 What lands:
 
 1. **Closure rule (proposal 1).** `roster_lib.discharged`: a group at `carries-open`, with a merge sha in `resume.commit`, that owes no carry (every carry is marked implemented, moved or dismissed, or is legacy at the cut-over). Any other stage is never discharged, because the group's own brief is undone. `replan.dependency_graph` counts a discharged group done, so it takes no slot, pays no batch and clears its after-edges. `plan.json` gains a per-group `discharged` flag and `summary.groups_discharged`. The roster stage is not rewritten. `plan_page.py` renders a discharged group as merged, labelled `every carry discharged; record owed: close or re-own #..., then set-stage done`.
 2. **The record lag, closed at its writer.** `roster_edit.py mark-carry`: when a mark discharges the last pending carry of a `carries-open` group, it applies set-stage done's own closing rule (`roster_lib.closing_stage`, then `hold_done`'s `carry_audit.orphaned` test). It writes `done`, or keeps the group `carries-open`, prints `HELD` and names each open issue that holds it (`close_discharged`). No beat writes `set-stage done`, because the orphan rule would hold it anyway.
 3. **Flow metrics (proposal 2).** These are computed in `tools/audit/merge_throughput.py` and imported by the page and the alert, never copied. They are `flow_merge_wait`, `train_batches`/`read_train_batches` and `bottleneck_metrics`, which composes them with `flow_closed`, `flow_verdicts`, `flow_lead` and `pr_cap.wip_groups`. `plan_page.py` draws a Flow section after the issue chart, and takes `--train-log` and `--no-flow`. The tip also carries the prototype's mobile layout and the issue projection read through `fixes`.
-4. **The alert.** The new `tools/audit/seat/bottleneck_check.py` prints `BOTTLENECK: <metric> <value> vs <threshold> -- <suggested action>` per breach and nothing on success. A source it cannot read gives `BOTTLENECK-UNREADABLE: <metric> -- <why>`. It suggests, and the orchestrator decides. The thresholds and minimum samples are the owner's (`THRESHOLDS`). Throughput keeps `flow_closed`, which counts roster closes rather than merges. The instrument doc says so, and says that a hand record batch reads as a burst.
+4. **The alert.** The new `tools/audit/seat/bottleneck_check.py` prints `BOTTLENECK: <metric> <value> vs <threshold> -- <suggested action>` per breach and nothing on success. A source it cannot read gives `BOTTLENECK-UNREADABLE: <metric> -- <why>`. It suggests, and the orchestrator decides. The thresholds and minimum samples are the owner's (`THRESHOLDS`). Throughput keeps `flow_closed`, which counts roster closes rather than merges. The instrument doc says so, and says that a hand record batch reads as a burst. Its self-test runs in `governance / instrument-self-tests` as step `bottleneck-alert`, selected on a pull request by its measured read set like every other gated step.
 5. **The beat.** `beat_jobs.py` gains a `bottleneck` row after #3262's `outside-intake`, in `ROWS`, `RUN` and `beatd.jobs.json`, every 1800 s. It runs with the beat checkout, the overlay's new `train_log` key, the `plan_slots` cap and `--memory state/bottleneck.json`, so a held breach is new once per trip. A missing key or a failed check is UNREADABLE. `plan-beat` hands `train_log` to `state_docs.py`, whose new `--train-log` passes on to `plan_page.py`, so the page's skip-share and train-skips table read the live log.
 6. **r10_plan_page_mutants.py M0: repaired.** At main `17e621f08`, M0 printed `verdict=null`. On the prototype it failed, because the state_docs self-test check "a fresh plan draws PLAN.html in the plan table's commit" required `"UNAVAILABLE" not in good`, and the Flow section's UNAVAILABLE metric cells are in a healthy page. The check now keys on `PLAN UNAVAILABLE`, the refusal page's own heading, as `draw_plan_page`'s crash guard already does. M0 prints `verdict=null` at this head. The design choice (`fixer.md` step 11): a drawn page may carry an UNAVAILABLE metric, and only the refusal page is the UNAVAILABLE page.
 
@@ -24,16 +26,36 @@ Alternatives, and why each lost (`fixer.md` step 17):
 - **Marks-aware pricing of partly discharged groups** (open carries = the min of the measured count and the unmarked count). The roster carry measured it at 0 h of closure movement, so it is not built.
 - **Copying the flow computations into the page or the alert.** That would create two owners of one metric, so both import `merge_throughput`.
 - **Throughput from group merges.** It would add a second throughput definition beside the flow board's, so it is deferred and documented. The roster's write time is the flow board's rule.
+- **The self-test step on `selftest_scope.UNGATED`** instead of gated. `UNGATED` holds the job's own machinery (`scope`, `strace`, `launch`, `drift`, `unread`: they choose, trace, start, audit); the bottleneck self-test is an ordinary instrument self-test, and listing it there would run it on every pull request for no reason the rule recognises.
 
 ## Head
 
-Repair round at `b99248e2bfb3023d2badd7c4a4a3ed63a479864d` (the `closures-autofix` bot's `ci: re-record closures`). The dispatch seat read four reds there (`tests / closures-autofix`, `tests / coverage-ratchet`, `tests / graders-head-copy`, `tests / lane-proofs`) and the cancelled run 42529990775. None is a failure: each is `conclusion: cancelled` in run 42529990775 (event `workflow_dispatch`, attempt 1), superseded at the same head by run 42529995793 (event `pull_request`, attempt 2, released by `hpo-runs`). No check-run at `b99248e2` carries `conclusion: failure` (read from the PR's check-runs 2026-11-08T23:16Z), so there is no branch-caused red to repair and no production or test line changes.
+`bb84b1bd27dc80118ab088fd2d2b8181e09cea71` is `9f4a1a41078ab70510afe7e2413ac603e0ffdd56` plus one commit, the **selftest_scope fix** (verdict `verdict/3350` `3fe414f2`, `blocked 9f4a1a41 resolution-ungated-step`): the governance.yml step `Show the bottleneck alert tripping each rule once and silent on its null control` gains `id: bottleneck-alert` and `if: steps.scope.outputs.bottleneck-alert == 'true'`, and `tools/ci/selftest_closures.json` gains its `bottleneck-alert` row, recorded by `python3 -I tools/ci/selftest_scope.py record --step bottleneck-alert` (Linux, strace), the re-record that file's docstring and #201 comment 6707834331 name. The row was measured, not written: `files` names `tools/audit/seat/bottleneck_check.py`, `index` and `objects` are false. No other line changed; the rule in `selftest_scope.py` is untouched. **No merge**: `git merge-tree --write-tree origin/main HEAD` at `bb84b1bd` against origin/main `631ac4df34c9` (read 2026-11-09T13:40Z) exited 0, no conflict, so main was not merged in (brief item 2). The merge base stays `f365ce757ded1e64a9ec40102495b7c051055f38`.
 
-`f10cb23fbdf0ca57ecdf784665699b29e463a109` is the new head: `b99248e2` plus a merge of `origin/main` at `425b858495432c8dceb89d8d13866550352ba54f` (read 2026-11-08T23:22Z), taken because main had moved since the last prepr run. `git merge-tree --write-tree origin/main b99248e2` reported no conflict. Main's side touches one file this branch also changes, `tools/audit/seat/roster_edit.py` (auto-merged); its self-test and the owed-mutant harness were re-run at the new head (Figures). Figures without a commit named were taken at `f10cb23fb`.
+`9f4a1a41078ab70510afe7e2413ac603e0ffdd56` merges main `f365ce7` into the previous head: an automatic merge by the orchestrator, no textual resolution; main's selftest_scope rule read the branch's unchanged step as ungated, which this head repairs.
 
-`2fb9b2467dd625dbadcd0bab5cb6c5b3e09fdb04` is the head handed off: `f10cb23fb` plus a clean merge of `origin/main` at `fdc8d21adaa50a7feee534f08ee5edde9bda81ed`, which moved during the first prepr run. That merge touches `dev/governance/roles/fix-review.md`, `dev/programme/delivery/3338.md`, `tools/audit/seat/cloud_dispatch.py` and its instrument doc (`git diff --name-only HEAD^1 HEAD`), none of them this branch's, so the `f10cb23fb` self-test and harness figures describe the same branch files. The scoped gate, `tests/structure.py`, the claims check and prepr were re-run at `2fb9b2467`. The merge base is `fdc8d21ad`.
+`ab236e012dedd0c24039a4b530dcc83ebd20d3b3` merges the authored code head `50d4c7e0e2c64de8bf9523fe1b8723c88669d899`.
+
+`50d4c7e0e2c64de8bf9523fe1b8723c88669d899`: review round 3350r4's head `f3e7fcc32b6100699aaf41213df06353440ccfbb` (tree identical to `db13cc6e69c92c3e5b8dd38ba1b4e1659c4bf640`) plus two commits repairing its follow-up (a self-test case and the harness row for its mutant). Figures marked "this round" were taken at `bb84b1bd`; the rest are earlier rounds' and name their commit.
+
+Earlier rounds' repairs, kept for the figures that name them:
+- **bottleneck_check trip memory keyed by kind and metric** (at `db13cc6e`). `remembered` keyed its memory by `metric_of(line)`, the second word, shared by `BOTTLENECK-UNREADABLE: yield -- ...` and `BOTTLENECK: yield 0.40 ...`, so a real breach on the beat after an UNREADABLE one re-printed the stale UNREADABLE line. The key is now `state_of(line)`, the line's first two words. An old memory file keyed by metric alone misses every key once and prints afresh, the recovery path. Alternative that lost: storing `(kind, line)` per metric and comparing kinds; it keeps the metric as the key and adds a second field for the same distinction the key already carries.
+- **roster_edit mark-carry's read of the cut-over pinned.** A self-test case: on the R9-L fixture (one legacy carry at the cut-over, one post-cut-over carry, `carries-open`), marking the post-cut-over carry writes `done`. Dropping `"mark-carry"` from `make_edit`'s `("set-stage", "set-resume", "mark-carry")` tuple fails it.
+
+Earlier heads, for the figures that name them: `b99248e2` (bot re-record), `f10cb23fb` and `2fb9b2467` (merges of origin/main, no conflict), `9106db479` (merge of `2fb9b2467`, reviewed by 3350r3).
 
 ## Mutation proof
+
+This round (at `bb84b1bd`): **the wiring reverted.** With `.github/workflows/governance.yml` restored to `9f4a1a41`'s step (no `id:`, no `if:`) and the recorded table row kept, `python3 -I tools/ci/selftest_scope.py --self-test` prints `FAIL the live job parses (115 steps) and its gating is consistent` and `selftest_scope self-test: 90 checks, 1 failed`, rc 1; restored, `ok   the live job parses (115 steps) and its gating is consistent`, `90 checks, 0 failed`, rc 0. **The table row reverted.** With `tools/ci/selftest_closures.json` restored to `9f4a1a41`'s and the wiring kept, `python3 -I tools/ci/selftest_scope.py select --change M:tools/audit/seat/bottleneck_check.py` prints `MODE: FULL -- every step runs (the table is stale: its steps differ from the workflow's: missing ['bottleneck-alert'], extra [])`; restored, `MODE: SCOPED -- 20 step(s) run`, naming `run bottleneck-alert`.
+
+Round 5 (at `50d4c7e0`): **`state_of` -> kind only.** New case in bottleneck_check's `self_test`: `memory: two metrics tripped together each print their own line` (throughput and wip tripped in one beat, `--memory` form; asserts two lines, each its own). `python3 -I dev/audit/harnesses/r10_outside_intake_p2_mutants.py M0 state-of-kind-only` (harness row replacing `state_of`'s `return " ".join(line.split()[:2])` with `return line.split()[0]`): `RESULT mutant=M0 rc=0 fails=0 verdict=null`; `RESULT mutant=state-of-kind-only rc=1 fails=4 verdict=killed`, whose first FAIL line is the new behaviour case; `RESULT survived=0`. bottleneck_check's in-file `MEMORY_MUTANTS` gains `memory-key-kind` (same replacement); the self-test prints it `killed`.
+
+At `db13cc6e`:
+- **Failing test first.** With the three new memory cases added and `remembered` unchanged, `python3 -I tools/audit/seat/bottleneck_check.py --self-test` printed `FAIL memory: a breach after UNREADABLE for one metric prints the breach: ['BOTTLENECK-UNREADABLE: throughput -- no source']` and `FAILED: bottleneck_check self-test`; with the fix, `ok: bottleneck_check self-test`.
+- **Key reverted.** bottleneck_check's in-file `MEMORY_MUTANTS` entry `memory-key-metric` replaces `state_of`'s `return " ".join(line.split()[:2])` with `return line.split()[1]` (the pre-fix key); the self-test prints `ok   mutant memory-key-metric killed`. `run_mutants` applies each mutant to its named function (`judge` or `state_of`).
+- **mark-carry legacy read.** `python3 -I dev/audit/harnesses/r10_outside_intake_p2_mutants.py M0 mark-close-off mark-legacy-dropped`: `RESULT mutant=mark-legacy-dropped rc=1 fails=1 verdict=killed`, its one FAIL line `mark-carry whose only unmarked carry left is legacy writes done`; `mark-close-off` also fails that case (3 FAIL lines); M0 `verdict=null`; `RESULT survived=0`.
+
+Earlier rounds:
 
 `python3 dev/audit/harnesses/r10_outside_intake_p2_mutants.py` (in-tree) runs every mutant the carry owes. It applies one replacement, runs the mutated file's own `--self-test` (beat_jobs with `--no-mutants`), and restores the file through `mutant_guard`. At `f10cb23fb` it printed `RESULT survived=0`, every mutant `verdict=killed`:
 
@@ -49,13 +71,34 @@ Repair round at `b99248e2bfb3023d2badd7c4a4a3ed63a479864d` (the `closures-autofi
 
 ## Null control
 
-- Harness M0, nothing replaced, runs all six self-tests and prints `RESULT mutant=M0 rc=0 fails=0 verdict=null` at `f10cb23fb`, so every kill above belongs to its mutant.
+- This round: the failing arm of the wiring proof is `9f4a1a41`'s own tree, where the verdict measured the same `FAIL` line, and main `f365ce757`, where the verdict measured `ok ... (114 steps)`, 90 checks and 0 failed: the self-test separates gated from ungated, not a 115th step from 114. The selection proof's null control is the reverted table, which reads stale; the selection is scoped only with the row present.
+- At `db13cc6e`: "memory: UNREADABLE then UNREADABLE stays its first line (null control)" passes both before and after the fix (a second UNREADABLE beat with a different reason re-prints the first line), so the fix splits only kinds, not every beat. "memory: a still-tripped metric re-prints its first line verbatim" is unchanged and passes. The mark-carry case's null control is the existing "a carry after the cut-over is pending beside a legacy one" on the same group with that carry unmarked, which reads `carries-open`.
+- Harness M0, nothing replaced, runs all six self-tests and prints `RESULT mutant=M0 rc=0 fails=0 verdict=null` (this round, at `bb84b1bd`), so every kill above belongs to its mutant.
 - `r10_plan_page_mutants.py M0` printed `verdict=null` at main `17e621f08` and `verdict=SURVIVED` (1 FAIL, the state_docs check above) at `f34f6ec84`; `verdict=null` at `b87da1699`.
 - For the replan figures, the base arm is main's own `replan.py` (`git archive origin/main`) on the same roster and the same `--start`. Its `groups_discharged` key is absent, and it schedules every group.
 - The mark-carry arm has two null controls: a last mark on an `in-progress` group leaves its stage; a mark that leaves one carry pending keeps `carries-open`.
-- Repair round: the claim "no red at `b99248e2` is a failure" is read from every check-run's `conclusion` field on the PR's check-runs listing; had any job failed, its row would read `failure`, as the four named rows read `cancelled` and the live run's completed rows read `success` or `skipped`.
 
 ## Figures
+
+This round, at `bb84b1bd` (each the command named, run in this worktree, merge base `f365ce757`):
+- `python3 -I tools/ci/selftest_scope.py --self-test`: `selftest_scope self-test: 90 checks, 0 failed`, rc 0; at `9f4a1a41`, the same command: `90 checks, 1 failed`, rc 1 (`FAIL the live job parses (115 steps) and its gating is consistent`).
+- `python3 -I tools/ci/selftest_scope.py select --base origin/main`: `MODE: FULL -- every step runs (a gate file changed: ['.github/workflows/governance.yml'])`, by GATE_FILES' rule, so this pull request's own self-test job runs every step, `bottleneck-alert` among them.
+- `python3 -I tools/ci/selftest_scope.py record --step bottleneck-alert`: `selftest_scope: recorded 1 step(s) into .../tools/ci/selftest_closures.json; 0 failed []`.
+- `python3 -I tools/audit/seat/bottleneck_check.py --self-test`: `ok: bottleneck_check self-test`.
+- `python3 -I dev/audit/harnesses/r10_outside_intake_p2_mutants.py M0`: `RESULT mutant=M0 rc=0 fails=0 verdict=null`, `RESULT survived=0`.
+- `python3 tools/audit/seat/selftest_wiring.py --check`: `selftest_wiring: 0 index gap(s)`.
+- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: FULL -- every test script runs, nothing is scoped out.`, reason `tools/ci/selftest_closures.json changes the gate itself, so every closure is suspect`. Under `fixer.md` step 5 a FULL mode is a diff the gate cannot scope, left to CI rather than reproduced.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`: `Architecture score: dS +0.0000 NULL`.
+- `bash tools/audit/seat/cloud-setup.sh --check`: `cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3`.
+- `VERSION`, `RELEASE_NOTES.md`, the manifest, both claim files and every `*_budgets.json` are untouched by the three-dot diff. No golden was run, because the diff touches none.
+
+At `db13cc6e`:
+- `python3 -I dev/audit/harnesses/r10_outside_intake_p2_mutants.py` (every mutant, including `mark-legacy-dropped`): M0 `verdict=null`, every other `RESULT mutant=` line `verdict=killed`, `RESULT survived=0`.
+- `python3 -I tools/audit/seat/bottleneck_check.py --self-test`: `ok: bottleneck_check self-test`; its 10 rule mutants and `memory-key-metric` each print `killed`.
+- `python3 -I tools/audit/seat/roster_edit.py --self-test`: `roster_edit self-test: 261 checks, 0 failed` (260 at `9106db479`, plus the one new case).
+- Gate scope then: `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`; `scope.run` named `tests/entities.py` and `tests/harness_headers.py`. With `PYTHONPATH=tests/hastub`: `ALL 2668 ENTITY CHECKS PASSED`, `ALL 112 HARNESS HEADER CHECKS PASSED`. `run_always`: `claims hygiene: origin/main ok`, `ALL 118 closure shrink pins PASSED`.
+
+Earlier rounds:
 
 - **Replan, both arms** (taken at `78d409286`). Command: `python3 -I <tree>/tools/plan/replan.py --repo . --roster-ref origin/handoff/audit-r10-roster --start 2026-11-08T20:20:00Z --slots 20 --seats 20 --out plan-<arm>.json`. `<tree>` is `git archive origin/main` (the base, at main `17e621f08`) or `git archive` of this branch at `78d409286`. The roster was `origin/handoff/audit-r10-roster` at `fcc9a1933aa1`, read 2026-11-08T20:20Z. Read from `summary` and `groups[*].discharged`:
   - base: closure 2026-11-15T07:03:00Z, 49 batches, 6075.0 CI minutes, 324 done / 71 open.
@@ -63,33 +106,26 @@ Repair round at `b99248e2bfb3023d2badd7c4a4a3ed63a479864d` (the `closures-autofi
   - The 3 groups are R10-CI-GRADER-BATCH-STUDY, R10-FRICTION-CI-RED and R10-FRICTION-OTHER-FAMILY, each `carries-open` with a recorded commit and no carry. Their wired issues are none, #3156, and #3283 #3313 #3314 respectively; the first owes only `set-stage done`.
   - The critical path is identical in both arms: R10-GENERIC-HEAT-CURVE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE, R10-ARCH-DOCS, R10-CLOSEOUT-CLEANUP, so the closure date does not move on this roster.
   - The figures are a function of the roster tip and `--start`; on another roster, re-run the same command rather than carry them.
-- `python3 dev/audit/harnesses/r10_outside_intake_p2_mutants.py` at `f10cb23fb`: every mutant line `verdict=killed`, M0 `verdict=null`, `RESULT survived=0`.
 - Self-tests at `f10cb23fb` (`python3 -I <file> --self-test`), the files main's merge reaches:
-  - `tools/audit/seat/roster_edit.py`: `roster_edit self-test: 260 checks, 0 failed` (main added cases; it read 246 at `b87da1699`).
+  - `tools/audit/seat/roster_edit.py`: `roster_edit self-test: 260 checks, 0 failed`.
   - `tools/audit/seat/roster_lib.py`: `roster_lib self-test: 72 checks, 0 failed`.
   - `tools/audit/seat/r10_roster_ops_mutants.py`: `r10_roster_ops_mutants self-test: 321 checks, 0 failed`.
-- Self-tests at `b87da1699`, untouched by the merge: `replan.py` `self-test: 0 failed`; `merge_throughput.py` `ok: merge_throughput.py self-test`; `plan_page.py` `plan_page self-test: 75 checks, 0 failed`; `bottleneck_check.py` `ok: bottleneck_check self-test`; `beat_jobs.py` `beat_jobs self-test: 185 checks, 0 failed`; `state_docs.py` `state_docs self-test: all checks passed`; `beatd.py` `beatd self-test: 119 checks, 0 failed`; `hooks_setup.py` `hooks_setup self-test: 39 checks, 0 failed`; `sweep_render.py` `sweep_render self-test: 34 checks, 0 failed`. The harness above re-runs six of them unmutated (M0) at `f10cb23fb`.
+- Self-tests at `b87da1699`: `replan.py` `self-test: 0 failed`; `merge_throughput.py` `ok: merge_throughput.py self-test`; `plan_page.py` `plan_page self-test: 75 checks, 0 failed`; `beat_jobs.py` `beat_jobs self-test: 185 checks, 0 failed`; `state_docs.py` `state_docs self-test: all checks passed`; `beatd.py` `beatd self-test: 119 checks, 0 failed`; `hooks_setup.py` `hooks_setup self-test: 39 checks, 0 failed`; `sweep_render.py` `sweep_render self-test: 34 checks, 0 failed`.
 - `python3 tools/audit/seat/selftest_wiring.py --check` (at `b87da1699`): `125 self-testing, 125 wired, 0 unwired`. Before the governance.yml step it printed `UNWIRED tools/audit/seat/bottleneck_check.py`.
-- **Gate scope.** `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` at `2fb9b2467` printed `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`; `scope.run` names `tests/entities.py` and `tests/harness_headers.py`.
-- **Scoped scripts**, with `PYTHONPATH=tests/hastub`, at `2fb9b2467`:
-  - `tests/entities.py`: `ALL 2668 ENTITY CHECKS PASSED`.
-  - `tests/harness_headers.py`: `ALL 112 HARNESS HEADER CHECKS PASSED`.
-  - The `run_always` lines: `tests/env_drift.py --claims-only` printed `claims hygiene: origin/main ok`, and `tests/closure.py selftest` printed `ALL 118 closure shrink pins PASSED` (at `f10cb23fb`).
-- `python3 tests/structure.py` at `2fb9b2467`: `STRUCTURE RATCHET PASSED`. No `*_budgets.json` is in the three-dot diff.
-- `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`: `Architecture score: dS +0.0000 NULL`.
-- `VERSION`, `RELEASE_NOTES.md`, the manifest and both claim files are untouched by the three-dot diff. No golden was run, because the diff touches none.
-- Toolchain: `bash tools/audit/seat/cloud-setup.sh --check` printed `cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3`.
-- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>` at `f10cb23fb`: `PRE-PR: f10cb23fbdf0ca57ecdf784665699b29e463a109 0000000000000000000000000000000 rc=0`; at `2fb9b2467`: `PRE-PR: 2fb9b2467dd625dbadcd0bab5cb6c5b3e09fdb04 0000000000000000000000000000000 rc=0`; `origin/main` unmoved at `fdc8d21ad` since that run, so no third merge.
 
 ## Red checks
 
-At `b99248e2`, each red and cancelled check by name; none is a failure the branch caused:
-- `gate` (run 42529990775): `cancelled`. Its run was superseded at the same head by run 42529995793 (`cancel-superseded`, the `pull_request` attempt `hpo-runs` released). Cheaper detector: none exists; a cancellation is not a defect.
-- `tests / closures-autofix`, `tests / coverage-ratchet`, `tests / graders-head-copy`, `tests / lane-proofs`, `tests / ci-ratchet`, `tests / claims-autofix` (run 42529990775): `cancelled`, the same supersession. Cheaper detector: none exists, as above.
-- `tests / fast (3.14)`, `tests / coverage`, `tests / closures`, `governance / instrument-self-tests`, `codeql / Analyze (python)` (run 42529990775): `cancelled` by the same supersession; in run 42529995793 at the same head `tests / fast (3.14)` and `governance / instrument-self-tests` completed `success`, and the other three were still running when read (2026-11-08T23:16Z). Cheaper detector: none exists.
-- `tests / closures` was red earlier on this PR as UNDER-SCOPED (predicted in the previous body: `plan_page.py` imports `merge_throughput.py` and `bottleneck_check.py`), repaired by the `closures-autofix` bot commit `b99248e2` (`ci-autofix.md`). Cheaper detector: `ci_predict.py` (prepr step 6d) is it, and it ran before the handoff; `PREPR_SKIP_CLOSURES=1` leaves the re-derivation to the bot by design.
+Only the reds in the set `python3 tools/audit/seat/merge_train.py owed-reds --repo tvofi/heatpump_optimizer` prints are answered here (the owner's ruling of 2026-11-09).
 
-At `2fb9b2467` no check has run yet.
+At `9f4a1a41`: no check in that set went red (every one reads `success` or `skipped` on the PR's check-runs listing). The one red there, `governance / instrument-self-tests` (job 129152227797), is outside the set; it is the failure this head repairs (`## Head`).
+
+At `9106db479`: `gate` job 128917441489 (run 42539681502) and `gate` job 128920205614 (run 42540557389) concluded `failure` as deferrals (`FAIL run(s) [...] at this head are still being judged; their gate decides`), while the code run 42539680047 they deferred to published `gate` `success`. The orchestrator re-ran both at 03:59Z. They are deferrals, not defects. Cheaper detector: none exists; a deferral is the gate waiting on its own code run, and nothing cheaper than that run judges the head.
+
+At `b99248e2`, each red and cancelled check in the set by name; none is a failure the branch caused:
+- `gate` (run 42529990775): `cancelled`. Its run was superseded at the same head by run 42529995793 (`cancel-superseded`, the `pull_request` attempt `hpo-runs` released). Cheaper detector: none exists; a cancellation is not a defect.
+- `tests / coverage-ratchet`, `tests / ci-ratchet` (run 42529990775): `cancelled`, the same supersession. Cheaper detector: none exists, as above.
+- `tests / fast (3.14)`, `tests / coverage`, `tests / closures`, `codeql / Analyze (python)` (run 42529990775): `cancelled` by the same supersession; in run 42529995793 at the same head `tests / fast (3.14)` completed `success`, and the other three were still running when read (2026-11-08T23:16Z). Cheaper detector: none exists.
+- `tests / closures` was red earlier on this PR as UNDER-SCOPED (`plan_page.py` imports `merge_throughput.py` and `bottleneck_check.py`), repaired by the `closures-autofix` bot commit `b99248e2` (`ci-autofix.md`). Cheaper detector: `ci_predict.py` (prepr step 6d) is it, and it ran before the handoff; `PREPR_SKIP_CLOSURES=1` leaves the re-derivation to the bot by design.
 
 ## Unpinned sites
 
