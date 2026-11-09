@@ -701,10 +701,15 @@ CONF_ECL110_PID_TIME_CONSTANT: Final = "ecl110_pid_time_constant_hours"
 CONF_HEAT_CURVE_DISPLACE_ENTITY: Final = "heat_curve_displace_entity"
 CONF_HEAT_CURVE_TARGET_KIND: Final = "heat_curve_target_kind"
 CONF_HEAT_CURVE_OFFSET_BAND_K: Final = "heat_curve_offset_band_k"
-#: What the entity is. ``offset``: a zero-neutral, volatile whole-curve offset,
-#: the first build; ``persistent`` is R10-GENERIC-HEAT-CURVE-PERSISTENT's value.
+CONF_HEAT_CURVE_PERSISTENT_BAND_K: Final = "heat_curve_persistent_band_k"
+CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY: Final = "heat_curve_persistent_writes_per_day"
+CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES: Final = "heat_curve_persistent_min_dwell_minutes"
+#: What the entity is. ``offset``: a zero-neutral, volatile whole-curve offset;
+#: ``persistent``: a curve parameter the controller stores, displaced from the
+#: baseline captured before the first write (R10-GENERIC-HEAT-CURVE-PERSISTENT).
 HEAT_CURVE_KIND_OFFSET: Final = "offset"
-HEAT_CURVE_TARGET_KINDS: Final = (HEAT_CURVE_KIND_OFFSET,)
+HEAT_CURVE_KIND_PERSISTENT: Final = "persistent"
+HEAT_CURVE_TARGET_KINDS: Final = (HEAT_CURVE_KIND_OFFSET, HEAT_CURVE_KIND_PERSISTENT)
 
 # Temperature settings
 CONF_TARGET_TEMP: Final = "target_temperature"
@@ -1510,6 +1515,21 @@ DEFAULT_HEAT_CURVE_TARGET_KIND: Final = HEAT_CURVE_KIND_OFFSET
 # that and SG-Ready's +1/+2 offset steps (NIBE, documented).
 DEFAULT_HEAT_CURVE_OFFSET_BAND_K: Final = 3.0
 HEAT_CURVE_OFFSET_BAND_RANGE_K: Final = (0.5, 5.0)
+# Kind persistent, the same research body's "Recommended defaults" rows. Band
+# (O5a): the offset kind's 3 K and 0.5 to 5 K, for the same reasons. Writes per
+# local day (O5b), restores included: 12, six displace-and-restore episodes,
+# under Daikin's documented 7000 a year (about 19 a day; forum-quoted) and 66 %
+# of a 100k-cycle NAND cell over 15 years (Micron, documented); 12 rather than
+# 19 rests on wear levelling (estimate). 0 writes nothing; 48 is above Daikin's
+# quota. Dwell (O5c): 60 min, about three radiator time constants of ~20 min
+# (forum); SG-Ready's 10 min minimum (documented, secondary) is under the 15 min
+# floor, 6 h covers a slow floor (2 to 3 h, forum).
+DEFAULT_HEAT_CURVE_PERSISTENT_BAND_K: Final = 3.0
+HEAT_CURVE_PERSISTENT_BAND_RANGE_K: Final = (0.5, 5.0)
+DEFAULT_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY: Final = 12
+HEAT_CURVE_PERSISTENT_WRITES_PER_DAY_RANGE: Final = (0, 48)
+DEFAULT_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES: Final = 60
+HEAT_CURVE_PERSISTENT_MIN_DWELL_RANGE_MINUTES: Final = (15, 360)
 
 
 # How long a hand-arranged plan stays pinned, measured from the moment it is

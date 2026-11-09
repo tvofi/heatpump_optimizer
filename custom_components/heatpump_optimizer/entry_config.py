@@ -164,6 +164,11 @@ class EntryConfig(Mapping[str, Any]):
     ecl110_displace_max: float = _key(const.DEFAULT_ECL110_DISPLACE_MAX, finite_float)
     ecl110_displace_min: float = _key(const.DEFAULT_ECL110_DISPLACE_MIN, finite_float)
     heat_curve_offset_band_k: float = _key(const.DEFAULT_HEAT_CURVE_OFFSET_BAND_K, finite_float)
+    heat_curve_persistent_band_k: float = _key(const.DEFAULT_HEAT_CURVE_PERSISTENT_BAND_K, finite_float)
+    heat_curve_persistent_writes_per_day: float = _key(
+        const.DEFAULT_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY, finite_float)
+    heat_curve_persistent_min_dwell_minutes: float = _key(
+        const.DEFAULT_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES, finite_float)
     external_heat_decay_minutes: float = _key(const.DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, finite_float)
     external_heat_min_rise: float = _key(const.DEFAULT_EXTERNAL_HEAT_MIN_RISE, finite_float)
     main_fuse_amperes: float = _key(const.DEFAULT_MAIN_FUSE_A, finite_float)
@@ -219,7 +224,7 @@ class EntryConfig(Mapping[str, Any]):
     freq_control_mode: str = _key(const.DEFAULT_FREQ_CONTROL_MODE, _text)
     mixing_valve_write_target_kind: str = _key(
         const.DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND, _one_of(mixing_valve.WRITE_TARGET_KINDS))
-    # A kind this version does not know falls back to offset, the only one it writes.
+    # A kind this version does not know falls back to offset.
     heat_curve_target_kind: str = _key(
         const.DEFAULT_HEAT_CURVE_TARGET_KIND, _one_of(frozenset(const.HEAT_CURVE_TARGET_KINDS)))
     peak_tariff_hours: str = _key(const.DEFAULT_PEAK_TARIFF_HOURS, _text)

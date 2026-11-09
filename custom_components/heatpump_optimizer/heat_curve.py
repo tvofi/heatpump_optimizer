@@ -24,15 +24,30 @@ rewriting it until the target changes or the reading holds (W3); more than
 latched (W4); the MQTT arms' integer is sent (W5), saturated and latched once
 where the entity's range is narrower (W6).
 
-**Off and unload** restore 0 through :mod:`off_restore`, the shared hook this
-module registers with, which reports the restore back so the record above
-names the 0 as the last write; the arm itself writes nothing while the mode
-is off.
+**Kind ``persistent``** (R10-GENERIC-HEAT-CURVE-PERSISTENT, design note
+``design/R10-GENERIC-HEAT-CURVE-PERSISTENT``). The entity is a curve
+parameter the controller stores, so every write wears it. The arm writes the
+baseline ``b`` plus the displace as a difference, on the entity's step,
+within ``b`` +-``heat_curve_persistent_band_k`` and the entity's range (I1).
+``b`` is the reading :mod:`off_restore` captured with the entity before the
+first write; a reading that is neither the last write nor the one before it,
+after the grace, is the user's edit, and ``b`` moves with it
+(:func:`off_restore.async_rebaseline`). Writes are held for
+``heat_curve_persistent_min_dwell_minutes`` after the last one and capped at
+``heat_curve_persistent_writes_per_day`` a local day, restores included, one
+always kept back for the restore (I2); the record of both lives in
+off_restore's per-entry record, so it survives a restart. W4 is not consulted.
+
+**Off and unload** restore through :mod:`off_restore`, the shared hook this
+module registers with: 0 for kind ``offset``, the captured baseline for kind
+``persistent``. The hook reports the restore back so the record above names
+it as the last write; the arm itself writes nothing while the mode is off.
 """
 from __future__ import annotations
 
 import json
 import logging
+import math
 import time
 from collections import deque
 from dataclasses import dataclass, field
@@ -42,7 +57,7 @@ from weakref import WeakKeyDictionary
 from homeassistant.util import dt as dt_util
 
 from . import off_restore
-from .const import DOMAIN, HEAT_CURVE_KIND_OFFSET
+from .const import DOMAIN, HEAT_CURVE_KIND_OFFSET, HEAT_CURVE_KIND_PERSISTENT
 from .payload import CurrentAction, Ecl110Payload
 from .inputs import NumberReading, number_reading, setpoint_step, write_setpoint
 from .log_latch import log_held
@@ -94,12 +109,17 @@ def state_for(entry: Any) -> HeatCurveState:
 
 def _restorer(config: Any) -> off_restore.Restorer | None:
     entity_id = config.heat_curve_displace_entity
-    if not entity_id or config.heat_curve_target_kind != HEAT_CURVE_KIND_OFFSET:
+    if not entity_id:
+        return None
+    if config.heat_curve_target_kind == HEAT_CURVE_KIND_PERSISTENT:
+        return off_restore.Restorer(entity_id, write_setpoint, baseline_of=_baseline_reading,
+                                    restored=_persistent_restored)
+    if config.heat_curve_target_kind != HEAT_CURVE_KIND_OFFSET:
         return None
     return off_restore.Restorer(entity_id, write_setpoint, neutral=0.0, restored=_restore_recorded)
 
 
-def _restore_recorded(entry: Any, value: float) -> None:
+def _restore_recorded(entry: Any, _entity_id: str, value: float) -> None:
     """The restore wrote ``value``: the entity's last instruction, a new target.
 
     W2 and W3 then judge the next publish against the restore's write, never
@@ -111,7 +131,25 @@ def _restore_recorded(entry: Any, value: float) -> None:
     held.written, held.written_at, held.misses = value, time.monotonic(), 0
 
 
-off_restore.register_consumer(CONSUMER, _restorer)
+def _baseline_reading(hass: Any, entity_id: str) -> float | None:
+    """Kind persistent's baseline: the entity's own reading, before the first write."""
+    reading = number_reading(hass, entity_id)
+    return None if reading is None else reading.value
+
+
+def _persistent_restored(entry: Any, entity_id: str, value: float) -> None:
+    """The restore wrote the baseline: the last write, counted to its local day.
+
+    Persisted by the restore's own save. A restore of an entity this record
+    does not name (rule R, after the option changed) is not this record's.
+    """
+    state = off_restore.consumer_state(entry, CONSUMER)
+    if state.get("entity_id") != entity_id:
+        return
+    _record_write(state, value, dt_util.utcnow())
+
+
+off_restore.register_consumer(CONSUMER, _restorer, write=write_setpoint)
 
 
 def ecl110_legacy_payload(
@@ -221,7 +259,8 @@ async def publish(
         legacy_payload,
     )
     if config.heat_curve_displace_entity and not mode_off:
-        await write_displace(hass, entry, config, displace_int)
+        persistent = config.heat_curve_target_kind == HEAT_CURVE_KIND_PERSISTENT
+        await (write_persistent if persistent else write_displace)(hass, entry, config, displace_int)
 
 
 def range_excludes_zero(reading: NumberReading) -> bool:
@@ -324,12 +363,173 @@ async def write_displace(hass: Any, entry: Any, config: Any, displace_int: int) 
     return True
 
 
+def _age_s(state: dict[str, Any], now: Any) -> float:
+    """Seconds since the record's last write; inf with none.
+
+    A stamp ahead of the clock (a clock stepped back) reads negative, so the
+    grace and the dwell hold until the clock passes it again (ghcp-r4).
+    """
+    stamp = dt_util.parse_datetime(str(state.get("written_at") or ""))
+    return math.inf if stamp is None else (now - stamp).total_seconds()
+
+
+def _record_write(state: dict[str, Any], value: float, now: Any) -> None:
+    """One write to the entity, plan or restore: the record and the day's count."""
+    day = dt_util.as_local(now).date().isoformat()
+    if state.get("day") != day:
+        state["day"], state["count"] = day, 0
+    state["count"] = int(state.get("count", 0)) + 1
+    state["previous"], state["written"] = state.get("written"), value
+    state["written_at"], state["misses"] = now.isoformat(), 0
+
+
+def writes_today(state: dict[str, Any], now: Any) -> int:
+    """The record's writes on the local day of ``now``."""
+    return int(state.get("count", 0)) if state.get("day") == dt_util.as_local(now).date().isoformat() else 0
+
+
+def classify(state: dict[str, Any], reading: float, half_step: float, now: Any) -> str:
+    """What the reading says of the last write: ours, in grace, missed or the user's edit.
+
+    ``missed``: it still reads the write before (a write-ahead crash, or the
+    controller refused it); ``edit``: neither, after the grace.
+    """
+    written = state.get("written")
+    if written is None or abs(reading - written) <= half_step:
+        return "ours"
+    if _age_s(state, now) < HELD_GRACE_S:
+        return "in grace"
+    previous = state.get("previous")
+    return "missed" if previous is not None and abs(reading - previous) <= half_step else "edit"
+
+
+def persistent_target(
+    baseline: float, displace_k: float, band_k: float, reading: NumberReading, per_k: float, step: float
+) -> tuple[float, bool]:
+    """(target in the entity's unit, saturated by its range): ``b + delta`` within the band (I1).
+
+    The difference is whole steps toward the baseline, so rounding never
+    leaves the band; the range then bounds it.
+    """
+    delta = max(-band_k, min(band_k, displace_k)) * per_k
+    banded = baseline + math.copysign(math.floor(abs(delta) / step + 1e-9) * step, delta)
+    target = banded
+    if reading.lo is not None:
+        target = max(reading.lo, target)
+    if reading.hi is not None:
+        target = min(reading.hi, target)
+    return target, target != banded
+
+
+def _persistent_refusal(entity_id: str, reading: NumberReading | None) -> tuple[float | None, str | None]:
+    """(difference per kelvin, None), or (None, why the entity is not written)."""
+    domain = entity_id.split(".", 1)[0]
+    if domain not in DOMAINS:
+        return None, f"is a {domain}, not a number"
+    if reading is None or reading.value is None:
+        return None, "is unavailable"
+    per_k = _DELTA_PER_K.get(reading.unit)
+    if per_k is None:
+        return None, f"states unit {reading.unit!r}, not a temperature"
+    if (reading.lo is not None and reading.value < reading.lo) or (reading.hi is not None and reading.value > reading.hi):
+        return None, f"reads {reading.value}, outside its own range {reading.lo}..{reading.hi}"
+    return per_k, None
+
+
+async def write_persistent(hass: Any, entry: Any, config: Any, displace_int: int) -> bool:
+    """Kind persistent's arm: write baseline + ``displace_int`` K; True when sent.
+
+    Every failure is latched on ``entry`` and swallowed, as the offset arm's.
+    """
+    entity_id = config.heat_curve_displace_entity
+    reading = number_reading(hass, entity_id)
+    per_k, why = _persistent_refusal(entity_id, reading)
+    if log_held(entry, "heat_curve_entity", per_k is None, "Heat-curve entity %s %s: not written", entity_id, why) \
+            or per_k is None or reading is None or reading.value is None:
+        return False
+    armed = await off_restore.async_armed_entry(hass, entry, CONSUMER)
+    if armed is not None and armed["entity_id"] != entity_id:
+        armed = None  # the arm restores the recorded entity first (rule R)
+    state = await off_restore.async_consumer_state(hass, entry, CONSUMER)
+    if state.get("entity_id") != entity_id:
+        day, count = state.get("day"), state.get("count", 0)
+        state.clear()
+        state.update(entity_id=entity_id, day=day, count=count)
+    step = setpoint_step(hass, entity_id)
+    now = dt_util.utcnow()
+    baseline = reading.value if armed is None else armed["value"]
+    seen = "ours" if armed is None else classify(state, reading.value, step / 2.0, now)
+    if seen == "in grace":
+        return False
+    if seen == "edit":
+        baseline = reading.value - (state["written"] - baseline)
+        await off_restore.async_rebaseline(hass, entry, CONSUMER, entity_id, baseline)
+        _LOGGER.info("Heat-curve entity %s was set to %s by hand: its baseline is now %s",
+                     entity_id, reading.value, baseline)
+        state["written"] = reading.value
+    target, saturated = persistent_target(
+        baseline, float(displace_int), float(config.heat_curve_persistent_band_k), reading, per_k, step)
+    log_held(entry, "heat_curve_saturated", saturated,
+             "Heat-curve entity %s range narrower than the displace %s K: sending %s",
+             entity_id, displace_int, target)
+    return await _write_persistent_target(hass, entry, config, state, reading.value, target, seen)
+
+
+async def _write_persistent_target(
+    hass: Any, entry: Any, config: Any, state: dict[str, Any], reading: float, target: float, seen: str
+) -> bool:
+    """W1, the dwell, the W3 latch and the day's budget, then arm and write ahead."""
+    entity_id = config.heat_curve_displace_entity
+    half_step = setpoint_step(hass, entity_id) / 2.0
+    now = dt_util.utcnow()
+    if abs(reading - target) <= half_step:
+        state["misses"] = 0
+        return False  # W1
+    if _age_s(state, now) < 60.0 * float(config.heat_curve_persistent_min_dwell_minutes):
+        return False  # the dwell
+    retry = seen == "missed" and abs(float(state["written"]) - target) <= half_step
+    if log_held(entry, "heat_curve_not_held", retry and int(state.get("misses", 0)) >= 1,
+                "Heat-curve entity %s does not hold %s after a rewrite: not resent until the target changes",
+                entity_id, target):
+        return False
+    # One write is always kept back for the restore that takes it home (I2).
+    budget = int(config.heat_curve_persistent_writes_per_day)
+    if writes_today(state, now) + 2 > budget:
+        today = dt_util.as_local(now).date().isoformat()
+        if state.get("refused_day") != today:
+            state["refused_day"] = today
+            _LOGGER.info("Heat-curve entity %s: %d writes a day reached, refused until tomorrow",
+                         entity_id, budget)
+        return False
+    if not await off_restore.async_arm(hass, entry, config, CONSUMER):
+        return False
+    _record_write(state, target, now)
+    state["misses"] = 1 if retry else 0
+    await off_restore.async_save_state(hass, entry)
+    try:
+        await write_setpoint(hass, entity_id, target)
+    except Exception as err:  # noqa: BLE001 - the entity never breaks a cycle
+        log_held(entry, "heat_curve_write", True, "Heat-curve entity %s write failed: %s", entity_id, err)
+        return False
+    log_held(entry, "heat_curve_write", False)
+    return True
+
+
 def diagnostics(entry: Any, config: Any) -> dict[str, Any]:
     """The entity arm's record, for the diagnostics bundle.
 
     Counts and numbers only: the entity, kind and band are the config
     section's, so nothing the install names is repeated here.
     """
+    if config.heat_curve_target_kind == HEAT_CURVE_KIND_PERSISTENT:
+        held_record = off_restore.consumer_state(entry, CONSUMER)
+        return {
+            "written": held_record.get("written"),
+            "misses": int(held_record.get("misses", 0)),
+            "writes_today": writes_today(held_record, dt_util.utcnow()),
+            "writes_per_day": int(config.heat_curve_persistent_writes_per_day),
+            "restore": off_restore.diagnostics(entry),
+        }
     held = _STATES.get(entry)
     return {
         "written": None if held is None else held.written,
