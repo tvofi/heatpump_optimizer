@@ -4778,6 +4778,27 @@
         "dev/audit/harnesses/r10_rca_cop_unmeasured.py"
       ]
     },
+    "R10-RCA-GATE-DEFER-READ-FINAL": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#3287 (5c1fa41fb) made gate.py's deferral red publish at once and left its re-judging to gate-sweep.yml's settle: five readers of the required gate conclusion at 73365699a (merge_train.py policy_refusal, orchestrator_tick.py one_pr/main, review_packet.py gate_digest, merge_pr.sh, nudge.md step 15) still read that provisional red as final; 41 at-once deferral reds on 18 heads of 13 sampled PRs in 11.8 h, red window median 32.2 min, decider-to-green max 1.5 min after a successful decider. Second finding: sweep.py undecided() counts the skipped jobs a job re-run re-stamps, so settle re-runs two red gates at one head in turn to ATTEMPT_CAP even on content reds (257 bot re-runs of content reds, 159 gate-job minutes, #3274's three runs at attempt 44)",
+      "trigger": "2 (red required check: gate), the third instance of the gate-deferral class (triage batch 136 P436)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "the barrier carried on R10-HOTFIX-TRAIN-DEFER-WAIT (P436): every reader of the gate conclusion through merge_train.py classify_at, with a structural self-test",
+        "settle re-runs only a deferral red, or undecided() ignores skipped jobs (tools/ci/sweep.py, R10-HOTFIX-GATE-BUSY-DEFER)",
+        "fixer step 8's reader rule extended to a writer that changes a conclusion's meaning (policy, the owner's)"
+      ],
+      "process_state": "(a) for the readers: fixer.md step 8's agreement.mjs rule fires on a change to a reader, never to a writer, agreement.mjs registers no gate-conclusion concept, and the brief and review questions were writer-side while the readers' group (#3290) merged 7 h later with no after edge; (c) for the settle loop: #3287's sweep_selftest census, race harness and no-loop argument ran over modelled job listings that never re-stamp a re-run's skipped jobs",
+      "countermeasure": "built: dev/audit/harnesses/r10_gate_defer_read_final.py census (deferral reds by program, red window, decider-to-green lag) and loop (replays #3274's recorded loop through a given sweep.undecided(): 129 of 129 re-runs predicted at 73365699a, 38 with skipped jobs dropped); proposed: P436's barrier and the settle predicate, carried to their owning groups",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-gate-defer-read-final.md",
+      "doc": [
+        "dev/audit/rca/r10-gate-defer-read-final.md",
+        "dev/audit/rca/r10-gate-busy-defer-2.md"
+      ]
+    },
     "R10-RCA-TOPIC-FAMILY": {
       "class": "R10-TOPIC-FAMILY",
       "level": "class",
