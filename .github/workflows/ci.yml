@@ -89,6 +89,8 @@ jobs:
       workset: ${{ steps.derive.outputs.workset }}
       # R10-CI-SLIM C7(a): 'false' idles the machinery lanes (prelude.machinery).
       machinery: ${{ steps.derive.outputs.machinery }}
+      # R10-CI-SELFTEST-SCOPE: instrument-self-tests' steps (prelude.selftest_scope).
+      selftests: ${{ steps.derive.outputs.selftests }}
       # R10-CI-OWN-DELIVERY-ROW: the same with the PR's own delivery row ignored (arch-instrument).
       machinery_rowblind: ${{ steps.derive.outputs.machinery_rowblind }}
     steps:
@@ -214,6 +216,7 @@ jobs:
     with:
       base: ${{ needs.prelude.outputs.base }}
       machinery: ${{ needs.prelude.outputs.machinery }}
+      selftests: ${{ needs.prelude.outputs.selftests }}
     permissions:
       contents: read
       pull-requests: read

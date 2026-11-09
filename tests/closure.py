@@ -803,6 +803,10 @@ INERT_EXCEPT = (
     "tools/policy/rules_sync.mjs",
     "tools/policy/vendor/markdown-it.min.js",
     "tools/policy/vendor/markdown-it.LICENSE",
+    # r10-hotfix-nonrequired-reds: tests/entities.py's _pcr_unrestored rule
+    # reads the source of every python3 program policy_lint.mjs spawns, and
+    # policy_lint.mjs spawns this one. An edit selects entities.py.
+    "tools/policy/budget_raise_gate.py",
     # #1240 (D13-03): tests/entities.py reads the wave script itself to
     # re-derive VERDICT_CLASSES and pin that the stats histogram's block-class
     # set is the one the wave teaches -- the stale-copy class of check this
