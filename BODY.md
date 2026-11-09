@@ -1,55 +1,29 @@
-The 1-based "Carry N" numbers here are the packet's (roster array index N-1). The waste-study ruling (cards 3 and 7) is Carry 18 in that numbering ("Carry 17" in the orchestrator's 0-based wording): `bus.sh dispatch` reads a required-context RED as a repair owed to the fixer, not a refusal a retry loop re-tries. A WAIT head still dispatches and only RED holds. Part 2 also carries the two earlier `review_packet.py` commits already on this branch (head-note asks `policy_lint --pr-body --head`; the packet refuses a figure_lint red and a moved head).
+R10-DISPATCH-AT-HANDOFF: a reviewer is dispatched at the handoff, keyed by topic, with the carries the branch already held (bus.sh dispatch-handoff and rekey, open_pr.sh re-key, the relay's held handoff verdict arm, policy text, review_packet refusals). This repair merges origin/main into the handoff, which the opener had refused over one content conflict in tools/audit/seat/cloud_dispatch.py.
 
-Ruling cited: orchestrator ruling (mandate 6715477401, 2026-11-08): "a PENDING (queued or in-progress) required context does NOT hold a dispatch; WAIT dispatches, only RED holds." That supersedes the brief's pending ruling. Carry 7 (the 0-based "6"; hold on a pending required context) is therefore closed as superseded by this ruling and not built. Card 7's WAIT-dispatches arm is already the code (`0|3) ;;`) and is pinned by the existing "classify WAIT dispatches" self-test arm; I changed nothing there.
+## Head note
 
-Also built on this branch (1-based numbers; the commit subjects use the 0-based ones): Carry 1 (dispatch at the handoff: `bus.sh dispatch-handoff` and `rekey`, `cloud_dispatch.py` topic-keyed reviewer, `open_pr.sh` re-key, the relay's held handoff verdict arm, policy text), Carry 5 (`roster_lib.brief_lines`), Carry 9 (`cloud_dispatch.py` roster model), Carry 12 (`body_patch.sh` Dependabot `--commits-file`), Carry 13 (`cloud_relay.sh` pending-ci verdict). Carry 7 vs 18: resolved as above.
-
-## Approval
-
-Owed, not yet given: this diff changes dev/governance/roles/fix-review.md and dev/governance/roles/standing-dispatch.md (fix-review.md step 7 tells a reviewer to measure the handoff tip as the head when no PR exists yet and drops the script-routing aside; standing-dispatch.md tells the dispatch seat to run `bus.sh dispatch-handoff` then `cloud_dispatch.py --role reviewer --topic` at the handoff, where only a red holds). It merges on the orchestrator's approval under mandate 6715477401 or on tvofi's review. No approval is claimed here.
+Repair merge: origin/main (6457496aba7b1076b1ed60c374c5badafdf66fc1, read at 2026-11-09T02:39Z) is merged into the handoff by e27484ffc9fb1f282974a35f02a470f657795e57, which is the head measured below. The one conflict, cloud_dispatch.py, was resolved by union: main's frugal-routing line, role-pack setup and merge-tree-only block rule (#3338 and its earlier commits) and this branch's handoff reviewer (topic-keyed revt ref, no packet, no CI wait) are all present. The previous merge's tip was 089f1da017e98a697a24e70c308f79beee9b8607. `git merge-tree --write-tree origin/main HEAD` exits 0 and origin/main is an ancestor of the head.
 
 ## Head
 
-e27484ffc9fb1f282974a35f02a470f657795e57 (40 hex, `git rev-parse HEAD`): 092a333d577dbc28e390e8e0979d67b63d9cd9c7 plus a clean merge of origin/main (no conflict, no code edit by this body repair). origin/main has since moved to 3fdaa9da9ab667042338fcf034147bde16b91fe4; it is not merged here, per the brief to change no code.
+e27484ffc9fb1f282974a35f02a470f657795e57
 
 ## Mutation proof
 
-Mutant: `exit 5` changed to `exit 1` in the RED arm of `bus.sh dispatch`. `bash tools/audit/seat/bus.sh --self-test` then fails "a head whose required context concluded failure (classify RED) is not dispatched, owes its fixer a repair (rc 5, REPAIR-OWED, no REFUSE), and nothing is recorded". Restored, the arm passes. Failing-first was done in one step: the arm asserts rc 5, the `REPAIR-OWED` prefix and no `REFUSE`, which the old `die` (rc 1, `bus: REFUSE:`) could not satisfy.
+Two mutants of the merged tools/audit/seat/cloud_dispatch.py, each run against `python3 tools/audit/seat/cloud_dispatch.py --self-test` and restored after:
+- Branch side: `ref_key = f"revt-{topic}" if at_handoff else f"rev-{pr}"` changed to `if False else`. Fails "a reviewer at the handoff returns on probe/revt-<topic>-<nonce8> with the subject `verdict <topic> <head>`" (146 checks, 1 failed).
+- Main side: the reviewer's "block on main only when that reports a conflict" text changed to "block on main whenever main moved, or a". Fails "the reviewer blocks on main only for a merge-tree conflict, never a clean head behind main" (146 checks, 1 failed).
 
 ## Null control
 
-The same self-test keeps the null arms: classify GREEN mints and records, WAIT (rc 3) dispatches, APPROVAL-OWED dispatches, unreadable (rc 2) still refuses with `REFUSE`. A head whose only red is non-required classifies GREEN (classify reads the required set through merge_train.py), so it dispatches; non-required reds never bounce. Environment control: `tests/entities.py` at origin/main in this container fails the same three checks as BLOCKED.md named (coverage job reuse, release ZIP root, Pages tag probe), so they are environment and not this diff's.
+The unmutated merged file: `python3 tools/audit/seat/cloud_dispatch.py --self-test` prints "146 checks, 0 failed". The other instruments the merge touched pass their own self-tests at this head: closeout, machinery_ratchet, roster_edit, roster_lib, roster_queue, roster_sync, prune_refs, postmerge, orchestrator_tick, r10_mandate_guard_mutants and r10_roster_ops_mutants, each 0 failed.
 
 ## Figures
 
-- `bash tools/audit/seat/bus.sh --self-test` at e27484ff: 168 checks, 0 failed. The single failure of the 092a333d run ("an ordinary append with no intervening fetch is the same commit object as before") no longer fails after the main merge.
-- `PREPR_SKIP_CLOSURES=1 MUTANT_CMD="bash tools/audit/seat/bus.sh --self-test" bash tools/pr/prepr.sh` at e27484ff: rc=0 (`PRE-PR: e27484ffc9fb... rc=0`; main had moved to 3fdaa9da after this head, not merged, so this is a run against the merge base 6457496a). The diff-mutant step printed "no survivor: BASELINE FAILS: the command fails on the unedited tree; no mutant was run": the self-test passes standing alone (168 checks, 0 failed) but its baseline run inside prepr failed, so survivor count 0 means none run, and I did not diagnose why the baseline differs. Mutant wall time not applicable.
-- The earlier `tests/entities.py` environment failures (coverage job reuse, release ZIP root, Pages tag probe) were measured at the old main and are not re-claimed here.
-
-## Unpinned sites
-
-The changed `bus.sh` RED-arm lines are pinned by the manual mutation above (the `exit 5` predicate). The Carry 1, 5, 9, 12 and 13 sites are exercised by the self-test arms of `bus.sh`, `cloud_dispatch.py`, `cloud_relay.sh` and `roster_lib.py` that each commit added; the diff-mutant outcome is in Figures.
-
-## Carry dispositions
-
-- Carry 1: built here (dispatch at the handoff, parts 1 and 2, policy text).
-- Carry 2: delivered at main by an earlier PR, no re-fix (survey of afc1586a4).
-- Carry 3: delivered at main, no re-fix.
-- Carry 4: delivered at main, no re-fix.
-- Carry 5: built here (`roster_lib.brief_lines` live consumers and class enumeration).
-- Carry 6: delivered at main, no re-fix.
-- Carry 7: superseded by the orchestrator ruling cited above.
-- Carry 8: delivered at main, no re-fix.
-- Carry 9: built here (`cloud_dispatch.py` reads the roster model; carry-only and record-PR reviews run sonnet).
-- Carry 10: delivered at main, no re-fix.
-- Carry 11: delivered at main, no re-fix.
-- Carry 12: built here (`body_patch.sh` passes a Dependabot PR's commit list as `--commits-file`).
-- Carry 13: built here (`cloud_relay.sh` posts a pending-ci verdict only once classify reads its head green).
-- Carry 14: delivered at main, no re-fix.
-- Carry 15: delivered at main, no re-fix.
-- Carry 16: delivered at main, no re-fix.
-- Carry 17: built on this branch (review_packet.py head-note asks policy_lint --pr-body --head, P405).
-- Carry 18: built here, cards 3 and 7 (REPAIR-OWED on RED; WAIT dispatches).
+- `python3 tools/audit/seat/cloud_dispatch.py --self-test`: 146 checks, 0 failed.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
+- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh`: run at this head, origin/main unmoved since the merge; every step before the closures skip printed ok.
+- `git merge-tree --write-tree origin/main HEAD`: exit 0.
 
 ## Red checks
 
@@ -62,3 +36,30 @@ none
 ## Friction
 
 none
+
+## Approval
+
+Pending, not granted: this diff touches policy files (dev/governance/roles/standing-dispatch.md and dev/governance/roles/fix-review.md, both carried unchanged from the earlier handoff and main), which the owner approves by an approving review before merge (CLAUDE.md, policy section). No approval has been given; none is claimed here.
+
+## Carry dispositions
+
+Carried unchanged from the earlier body at handoff-body/r10-dispatch-at-handoff-p2 (the merge adds no carry work; the roster's 1-based numbering).
+
+- Carry 1: untouched here; it stands as the roster states it.
+- Carry 2: delivered at main, no re-fix.
+- Carry 3: delivered at main, no re-fix.
+- Carry 4: delivered at main, no re-fix.
+- Carry 5: untouched here; it stands as the roster states it.
+- Carry 6: delivered at main, no re-fix.
+- Carry 7: superseded by the orchestrator ruling of 2026-11-08 (WAIT dispatches, only RED holds).
+- Carry 8: delivered at main, no re-fix.
+- Carry 9: untouched here; it stands as the roster states it.
+- Carry 10: delivered at main, no re-fix.
+- Carry 11: delivered at main, no re-fix.
+- Carry 12: untouched here; it stands as the roster states it.
+- Carry 13: untouched here; it stands as the roster states it.
+- Carry 14: delivered at main, no re-fix.
+- Carry 15: delivered at main, no re-fix.
+- Carry 16: delivered at main, no re-fix.
+- Carry 17: built on this branch (review_packet.py head-note asks policy_lint --pr-body --head).
+- Carry 18: built on this branch (REPAIR-OWED on RED; WAIT dispatches).
