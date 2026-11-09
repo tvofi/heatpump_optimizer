@@ -1,0 +1,10 @@
+LEDGER-MERGE: resolved dev/audit/config/bugclasses.json
+f32d086f27d7c01721830d62842aada78cd4c807
+.claude/workflows/audit-find.js
+dev/audit/config/finding.schema.json
+
+Auto-merging .claude/workflows/audit-find.js
+CONFLICT (content): Merge conflict in .claude/workflows/audit-find.js
+Auto-merging dev/audit/config/bugclasses.json
+Auto-merging dev/audit/config/finding.schema.json
+CONFLICT (content): Merge conflict in dev/audit/config/finding.schema.json
