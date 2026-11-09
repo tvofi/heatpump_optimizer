@@ -6050,6 +6050,32 @@
    "objects": false,
    "git": []
   },
+  "selftest-scope-mutants": {
+   "run_sha": "00b691b683d6ff8e9527d535aafec449ad59e72a20cd3c063182d4a30fb9af60",
+   "files": [
+    ".github/workflows/governance.yml",
+    "tests/layout.json",
+    "tests/layout.py",
+    "tests/throwaway_git.py",
+    "tools/ci/selftest_closures.json",
+    "tools/ci/selftest_scope.py",
+    "tools/ci/selftest_scope_mutants.sh",
+    "tools/ci/selftest_step.sh"
+   ],
+   "probes": [
+    ".",
+    "strace",
+    "tests",
+    "tools",
+    "tools/ci"
+   ],
+   "dirs": [
+    "tests"
+   ],
+   "index": true,
+   "objects": false,
+   "git": []
+  },
   "selftest-wiring": {
    "run_sha": "12270ecc61efdff0edc98cfa58e949ce640919b1af72f63631fb59c588cb8f86",
    "files": [

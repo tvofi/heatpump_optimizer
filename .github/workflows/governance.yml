@@ -355,8 +355,11 @@ jobs:
       # started here whose status no step read, so deleting a waiter step,
       # or its bg_wait line, turns the job red rather than leaving that
       # self-test's exit status unread.
+      # !cancelled(): every waiter below runs after an earlier step fails, and
+      # without its launcher each read a lib.sh no step wrote (run 42623897209).
       - name: Start the five slowest self-tests beside the rest of the job
         id: launch
+        if: ${{ !cancelled() }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/bg"
@@ -1438,6 +1441,16 @@ jobs:
           python3 -I tools/ci/selftest_scope.py --self-test | tee "$RUNNER_TEMP/selftest-scope-self-test.txt"
           grep -Eq '^selftest_scope self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/selftest-scope-self-test.txt"
           python3 -I tools/ci/selftest_scope.py static
+
+      # Each trace-completeness and tracing rule of the scope and its wrapper,
+      # mutated, refused by the self-test above (R10-HOTFIX-SELFTEST-SCOPE-HANG).
+      - name: Show the self-test scope refusing each mutant of its trace rules
+        id: selftest-scope-mutants
+        if: ${{ !cancelled() && steps.scope.outputs.selftest-scope-mutants == 'true' }}
+        run: |
+          set -o pipefail
+          sh tools/ci/selftest_scope_mutants.sh --self-test | tee "$RUNNER_TEMP/selftest-scope-mutants.txt"
+          grep -Eq '^SELFTEST-SCOPE MUTANTS: every mutant refused$' "$RUNNER_TEMP/selftest-scope-mutants.txt"
 
       # A push to main: every step ran under strace; refuse a committed read
       # set that misses what this run read. Before `unread`, which stays last.
