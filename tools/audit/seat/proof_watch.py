@@ -64,6 +64,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import datetime
 import fcntl
 import json
 import os
@@ -117,6 +118,20 @@ def parse_verdict(first: str) -> "tuple[str, str] | None":
     return None
 
 
+#: The nonce line bus.sh `dispatch` prints and a verdict carries, read as bus.sh's
+#: `verdict_nonce` reads it: the first WHOLE `bus-nonce: <32 hex>` line. Whole-line,
+#: so a finding quoting another round's nonce in prose is not this text's (PR 2465's
+#: merge verdict quotes round 2's). The one Python reader: cloud_dispatch.py and
+#: merge_train.py's stale-verdict guard call it, never a copy.
+NONCE_LINE = re.compile(r"^bus-nonce: ([0-9a-f]{32})$", re.M)
+
+
+def verdict_nonce(text: str) -> "str | None":
+    """The 32-hex nonce of the first whole `bus-nonce:` line in <text>, or None."""
+    m = NONCE_LINE.search(text)
+    return m.group(1) if m else None
+
+
 def _json_docs(raw: str) -> list:
     """What `gh api` prints: concatenated JSON documents, an array per page
     (plain --paginate) or one object per line (--jq '.check_runs[]')."""
@@ -153,7 +168,7 @@ class Watcher:
                  dry: bool = False, mode: str = "app", state: Path = DEFAULT_STATE,
                  merge_script: Path | None = None, approve_script: Path | None = None,
                  run=None, sleep=time.sleep, clock=time.monotonic, say=print,
-                 mandate: str = "") -> None:
+                 mandate: str = "", wall=time.time) -> None:
         self.repo, self.pr, self.sha, self.check = repo, pr, sha, check
         self.mandate = mandate  # owner mode: merge_pr.sh's --mandate, the comment id it reads live
         self.poll, self.budget_h, self.dry, self.mode = poll, budget_h, dry, mode
@@ -166,6 +181,7 @@ class Watcher:
         self.approve_script = approve_script or (SEAT.parents[1] / "pr" / "app_approve.sh")
         self.run = run or self._run
         self.sleep, self.clock, self.say = sleep, clock, say
+        self.wall = wall  # epoch seconds: classify_at's sweep settle reads check-run stamps
 
     @staticmethod
     def _run(argv: list[str], cwd: Path | None = None) -> tuple[int, str]:
@@ -200,21 +216,28 @@ class Watcher:
             raise Abort(f"could not read #{self.pr}'s mergeable state: {out.strip()[-200:]}")
         return out.strip()
 
-    def latest_by_name(self) -> dict[str, dict]:
+    def check_runs(self) -> list[dict]:
         code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
                               f"repos/{self.repo}/commits/{self.sha}/check-runs?per_page=100"])
         if code:
             raise Abort(f"could not read the check-runs at {self.sha[:12]}: {raw.strip()[-200:]}")
+        return _json_docs(raw)
+
+    def latest_by_name(self) -> dict[str, dict]:
         # The train's own reading, never a copy: `gate` per check suite, the
         # worst suite standing, success only (A5).
-        return _train().latest_runs(_json_docs(raw))
+        return _train().latest_runs(self.check_runs())
+
+    def train(self):
+        """merge_train's Train over this watch's runner: its readers, never copies."""
+        return _train().Train(self.repo, state=self.state, mandate=None,
+                              role="proof-watch", ignore=(), min_runs=0,
+                              run=self.run, sleep=self.sleep, log=self.say, wall=self.wall)
 
     def required_names(self) -> list[str]:
         """The ruleset's required contexts, through merge_train's own reader."""
         merge_train = _train()
-        t = merge_train.Train(self.repo, state=self.state, mandate=None,
-                              role="proof-watch", ignore=(), min_runs=0,
-                              run=self.run, sleep=self.sleep)
+        t = self.train()
         try:
             return t.required()
         except merge_train.Stop as e:
@@ -222,8 +245,9 @@ class Watcher:
                         f"against a guessed list: {e.step}: {e.why}") from e
 
     def required_state(self) -> tuple[list[str], list[str]]:
-        last = self.latest_by_name()
-        _, pending, red = _train().classify(last, self.required_names())
+        # A red gate that is an edit run's deferral, while gate.py's `busy`
+        # names a code run at the head, is pending (merge_train.classify_at).
+        _, pending, red = self.train().classify_at(self.sha, self.check_runs(), self.required_names())
         return red, pending
 
     # -- the verdict -------------------------------------------------------
@@ -480,8 +504,10 @@ def self_test() -> int:
                  "started_at": "2026-10-12T00:01:00Z", "check_suite": {"id": 1}},
             ]
             self.required = "gate"
+            self.ci_runs: list[dict] = []  # the head's ci.yml runs (merge_train's deferral read)
             self.mergeable = "MERGEABLE"
             self.now = [0.0]
+            self.epoch = 0.0  # the wall clock's origin; now[0] advances it
             self.evidence = self.root / "evidence"
             self.evidence.mkdir()
             (self.evidence / "verdict.md").write_text(f"fix review at head {SHA}\n")
@@ -506,6 +532,8 @@ def self_test() -> int:
                 return 0, "23698884\n"
             if any(a.startswith(f"repos/{REPO}/rulesets/") for a in argv):
                 return 0, self.required + "\n"
+            if any("actions/workflows/ci.yml/runs" in a for a in argv):
+                return 0, "".join(json.dumps(r) + "\n" for r in self.ci_runs)
             if any(a.startswith("repos/") and "/check-runs" in a for a in argv):
                 return 0, "".join(json.dumps(c) + "\n" for c in self.checks)
             if "mergeable" in argv:
@@ -526,7 +554,8 @@ def self_test() -> int:
                            state=self.root / "state",
                            merge_script=self.merge, approve_script=self.approve,
                            run=self.run, sleep=self.sleep, clock=self.clock,
-                           say=(out.append if out is not None else print))
+                           say=(out.append if out is not None else print),
+                           wall=lambda: self.epoch + self.now[0])
 
     cases = []
 
@@ -674,6 +703,82 @@ def self_test() -> int:
         except Abort as e:
             st("REQUIRED RED" in str(e) and "gate" in str(e), True, f"(g2) {what}: the red gate is named")
             st(f.merge_calls, [], f"(g2) {what}: no merge")
+
+    # (g3) a red gate that is an edit run's DEFERRAL, while the code run it
+    # defers to is still running (gate.py `busy`), is pending, not red: the
+    # watch waits a poll, and merges once the code run's gate and the swept
+    # edit gate land green (R10-HOTFIX-TRAIN-DEFER-WAIT round 2, #3248's scene).
+    f3 = Fixture(); cases.append(f3); f3.set_verdict()
+    deferral = {"name": "gate", "status": "completed", "conclusion": "failure",
+                "started_at": "2026-10-12T00:02:00Z", "check_suite": {"id": 2},
+                "output": {"title": "run(s) [43] at this head are still being judged; their gate decides"}}
+    f3.checks = [f3.checks[0], deferral,
+                 {"name": "tests / closures", "status": "in_progress", "conclusion": None,
+                  "started_at": "2026-10-12T00:01:30Z", "check_suite": {"id": 3}}]
+    f3.ci_runs = [{"id": 42, "status": "completed", "check_suite_id": 2, "display_title": "CI edit pr=1 base=main sha=a"},
+                  {"id": 43, "status": "in_progress", "check_suite_id": 3, "display_title": "CI code pr=1 base=main sha=a"}]
+    sleeps3: list[float] = []
+
+    def landed(s):
+        sleeps3.append(s)
+        f3.checks = [f3.checks[0], deferral,
+                     dict(deferral, conclusion="success", started_at="2026-10-12T00:09:00Z", output={"title": ""}),
+                     {"name": "gate", "status": "completed", "conclusion": "success",
+                      "started_at": "2026-10-12T00:08:00Z", "check_suite": {"id": 3}}]
+        f3.ci_runs = [dict(r, status="completed") for r in f3.ci_runs]
+    f3.sleep = landed
+    out = []
+    try:
+        f3.watcher(out=out).watch()
+    except Abort as e:
+        st(f"aborted: {e}", "no abort", "(g3) a deferral red while the code run runs is waited on, not REQUIRED RED")
+    st(len(sleeps3) == 1 and len(f3.merge_calls) == 1, True,
+       "(g3) the deferral waits one poll, then merges once the code run's gate lands")
+
+    # (g4) the gate-sweep settle gap (a38bd141, 20:02:31Z-20:05:39Z): the code
+    # run done and its gate green, the edit run's deferral red still the worst
+    # gate until gate-sweep re-runs it. Inside the bound the watch waits and
+    # merges on the swept green; past it, with no re-run, REQUIRED RED.
+    def gap_fixture(after_s):
+        f4 = Fixture(); cases.append(f4); f4.set_verdict()
+        code_done = datetime.datetime.fromisoformat("2026-11-07T20:02:31+00:00").timestamp()
+        f4.epoch = code_done + after_s
+        red4 = {"name": "gate", "id": 128507622651, "status": "completed", "conclusion": "failure",
+                "started_at": "2026-11-07T19:53:08Z", "completed_at": "2026-11-07T19:53:38Z",
+                "check_suite": {"id": 114887946321}}
+        f4.checks = [f4.checks[0], red4,
+                     {"name": "gate", "id": 128512781341, "status": "completed", "conclusion": "success",
+                      "started_at": "2026-11-07T20:01:55Z", "completed_at": "2026-11-07T20:02:31Z",
+                      "check_suite": {"id": 114882433887}}]
+        f4.ci_runs = [{"id": 42404526059, "status": "completed", "check_suite_id": 114882433887,
+                       "display_title": "CI code pr=1 base=main sha=a"},
+                      {"id": 42406706258, "status": "completed", "check_suite_id": 114887946321,
+                       "display_title": "CI edit pr=1 base=main sha=a"}]
+        return f4, red4
+    f4, red4 = gap_fixture(30)
+    sleeps4: list[float] = []
+
+    def swept(s):
+        sleeps4.append(s)
+        f4.now[0] += s
+        f4.checks = f4.checks + [dict(red4, id=128513383466, conclusion="success",
+                                      started_at="2026-11-07T20:05:39Z", completed_at="2026-11-07T20:06:15Z")]
+    f4.sleep = swept
+    out = []
+    try:
+        f4.watcher(out=out).watch()
+    except Abort as e:
+        st(f"aborted: {e}", "no abort", "(g4) the settle gap 30 s after the code gate's green is waited on, not REQUIRED RED")
+    st(len(sleeps4) == 1 and len(f4.merge_calls) == 1, True,
+       "(g4) the settle gap waits one poll, then merges on gate-sweep's swept green")
+    f4, _ = gap_fixture(_train().SWEEP_SETTLE_SECONDS + 1)
+    out = []
+    try:
+        f4.watcher(out=out).watch()
+        st("no-abort", "abort", "(g4) null: past the bound with no re-run, the red stands")
+    except Abort as e:
+        st("REQUIRED RED" in str(e) and "gate" in str(e), True, "(g4) null: past the bound, REQUIRED RED")
+        st(f4.merge_calls, [], "(g4) null: no merge past the bound")
 
     # (h) unmergeable: abort.
     f = Fixture(); cases.append(f); f.set_verdict()
