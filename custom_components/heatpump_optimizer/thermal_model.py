@@ -325,8 +325,8 @@ class ThermalParameters:
 
     @property
     def buffer_store_volume(self) -> float:
-        """The store's water in litres: in combi, the potable water inside it too."""
-        if self.combi_tank_active:
+        """Store litres, combi's potable water included; off, no predicate per step."""
+        if self.dhw_combi_tank_enabled and self.combi_tank_active:
             return self.buffer_tank_volume + self.combi_potable_volume_l
         return self.buffer_tank_volume
 
