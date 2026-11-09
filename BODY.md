@@ -22,6 +22,8 @@ The reviewer's `class_anchor` survivor (`^` and the trailing `:` dropped from `C
 
 ## Head
 
+CI head `06a3478fdbf386278952d741985e5da5ee28bd5c` is `Merge commit 49b9fe55c...` with no change to code. Code head:
+
 `49b9fe55c72af0786ed726a17ef124fa7b7ac59e`, a merge of `origin/main` `6457496aba7b1076b1ed60c374c5badafdf66fc1` (2026-11-09T02:04+01:00) into the reviewed head `41a196a242f20636f9e354ad98c5a401445831d9`, which carries `Fix review: merge 41a196a242f2`. GitHub read #3341 as DIRTY: `git merge-tree --write-tree origin/main 41a196a242f2` named one content conflict, in `dev/governance/roles/fix-review.md` step 13, where main's `bc59a13f63` and this branch both rewrote the same sentence.
 
 Resolution delta (the whole of it, for the reviewer's carry): step 13 keeps this branch's inlined `git merge-tree --write-tree origin/main <head>` form and main's two sentences word for word, "Block on main only on one, never on a head behind main that merges cleanly (tvofi 11-07). A conflict off the two claim files is yours." Union: it replaces the branch's retained old sentence "A conflict on any path other than the two claim files is yours to block on...", which main had itself rewritten. No other file moved.
@@ -69,7 +71,12 @@ Control at the reviewed head `81741e448`, with the same `token_lookbehind_off` s
 
 ## Red checks
 
-none. CI has not run on this head. The reviewed head `81741e448` classified `GREEN ... red: none` (`merge_train.py classify`, in the verdict). The local reds the previous body named (`tests/entities.py` 4 of 2666, and `bus.sh`'s `ordinary append` check) are gone at this head: entities and bus.sh both pass above.
+`governance / delivery-status` (check-run 128955414223, job 128955414223, 2026-11-09T03:01Z, head `06a3478fdbf3`): red, and it is main's, not this diff's.
+- What it graded: `python -I -S tests/delivery_status.py --check` printed `DELIVERY STATUS OVERDUE -- 0 rowed, 12 pending, 1 overdue (overdue at 12 commits)`, naming `#3318 R10-BODY-CONTRACT` as overdue and `#3316` as pending. Those are main's own record rows held for the stamp. The check's own text says it grades main and blocks no merge.
+- Not this diff: the `governance.yml` hunk adds one step to the self-test job (`survivor_list.py --self-test`). It does not touch the `delivery-status` job, `tests/delivery_status.py`, the plan, `HANDOVER.md` or any row. The graded count is a function of main's commit count since each held row, which this diff does not move.
+- Evidence, same failure line on PRs whose diff touches none of its inputs: #3358 (code files only), check-run 128949628159, `DELIVERY STATUS OVERDUE -- 0 rowed, 12 pending, 1 overdue`, and #3360 (code and blueprint only), check-run 128988774945, `... 3 overdue`. #3364 (check-run 128931369503) prints the identical line with `#3318` overdue. The count grows with main's commits (1 overdue at 03:01, 3 at 05:09). The `delivery-status` job is skipped on main's push runs (check-runs 128972499737, 128924112970), so main prints no line of its own; the rows pending for the stamp are what each PR run reads.
+- Cheaper detector and standing cost: `tests/delivery_status.py --check` is itself the detector and is already the cheapest (a local file and git-log read, a few seconds in the governance job). `prepr.sh` deliberately does not copy the exemption (its comment: a second copy would drift) and `policy_lint.mjs --pr-body` already carries it. No cheaper detector exists for a red whose cause is a stamp that has not run; the fix is draining the rows (`web-stamp`), the orchestrator's on main (`defect-root-cause.md`).
+- Other checks at this head: `pr-contract` failed only on this unanswered line.
 
 ## Forward-carry
 
