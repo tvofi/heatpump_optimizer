@@ -17388,7 +17388,8 @@
    ],
    "files": [
     "tools/audit/seat/merge_train.py",
-    "tools/audit/seat/train.sh"
+    "tools/audit/seat/train.sh",
+    "tools/release/stamp.py"
    ],
    "carry": [
     "From #2394 (R10-CI-AUTOFIX-INERT-ROUTE) body friction `merge-train-bot-tip` (item 3b314b26) and review 6253264138 item 4002385c, re-verified by the s9 residual sweep at origin/main 92588d581 (2026-11-01). Measured: tools/audit/seat/merge_train.py `bot_tip` (lines 1199-1210) and `bot_refusal` (1212-1218) still refuse every head whose tip author is github-actions[bot] once no recarry is possible (called after recarry at 1929 and 2456); the comment at 1182-1198 says it outright: \"this train does not read whether it did [approve the held runs], so it still refuses such a tip\". The #2394 body measured hpo-runs[bot] approving held runs at all 28 bot heads in its window. Fix: read the held pull_request runs' state at the head (action_required vs approved and concluded) and refuse only while a required context's run is still held or absent; keep the refusal text for that case. Behaviour change, so measure first: over the train logs since 2026-10-20, count BOT_HEAD stops and how many had their runs approved at refusal time. Failing test first: a fake world where the bot tip's pull_request runs are approved and every required context is green merges (refused today). Null control: a bot tip whose run is still action_required is refused with today's BOT_HEAD line.",
@@ -17413,7 +17414,8 @@
    "resume": {
     "stage": "carries-open",
     "pr": 3288,
-    "commit": "72940b79545ca7ad9e404a4059ac0c34b091784c"
+    "commit": "72940b79545ca7ad9e404a4059ac0c34b091784c",
+    "note": "set-files files ['tools/audit/seat/merge_train.py', 'tools/audit/seat/train.sh'] -> ['tools/audit/seat/merge_train.py', 'tools/audit/seat/train.sh', 'tools/release/stamp.py']"
    },
    "brief": "Part 2 of R10-TRAIN-MERGE-LOOP (#3242), split off by the owner-side ruling of 2026-11-06 to keep part 1 reviewable (three-round rule). Part 1 builds carries 2, 14, 15, 18 and 19 and the same_tree_posting kill; this group builds the seven carries below. Numbering is the #3242 fix review (verdict/3242 220a2112): carry N is the 1-based position in R10-TRAIN-MERGE-LOOP carry list (roster index N-1). Each is carried verbatim in this group's carry list, in order carries 3, 6, 7, 8, 9, 16, 17; build each with its failing test first, mutation proof and null control, defer none, after #3242 merges, files tools/audit/seat/merge_train.py and tools/audit/seat/train.sh."
   },
