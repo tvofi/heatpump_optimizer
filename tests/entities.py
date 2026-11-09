@@ -28670,7 +28670,7 @@ R.check(
     "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
     _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
     and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
-    == ["base", "machinery"],
+    == ["base", "machinery", "selftests"],
     f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
@@ -32215,6 +32215,73 @@ R.check(
     "(its precondition)",
     _TWP_LIVE != [] and _TWP_MATCHER_OFF == [],
     f"restores read: {len(_TWP_LIVE)}; the matcher disagrees with git on: {_TWP_MATCHER_OFF}",
+)
+
+
+# --- R10-HOTFIX-NONREQUIRED-REDS (fix review round 1): A PROGRAM PR-CONTRACT
+# RUNS IS THE BASE'S, SPAWNED ONES INCLUDED. pr-contract restores its check
+# source from the base so it runs no pull-request program (#1515, decision
+# 0013), but `policy_lint.mjs --pr-body` spawns `python3 <ROOT>/...py` for the
+# required set (`requiredFromTrain`: merge_train.py owed-reds). A spawned
+# program outside the restore list is the pull request's copy, and a diff
+# editing it alone answered its own required reds. The rule enumerates the
+# class: every `spawnSync('python3', [path.join(<root>, ...)` in policy_lint, and
+# each one's local closure -- a column-0 `import X`/`from X` with X.py beside
+# it, and a column-0 `NAME = ROOT / "path"` it reads -- must match a pathspec
+# of pr-contract's restore. A file read as text (stamp.py at :4780) is no spawn.
+_PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\((ROOT|root|HERE),\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
+_PCR_IMPORT = re.compile(r"^(?:import|from)\s+([A-Za-z_]\w*)", re.M)
+_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
+
+
+def _pcr_spawned(mjs: str) -> "list[str]":
+    # HERE is policy_lint's own directory; ROOT, and a `root` parameter, the tree.
+    return sorted({"/".join((["tools", "policy"] if m.group(1) == "HERE" else [])
+                            + [t.strip().strip("'") for t in m.group(2).split(",")]) for m in _PCR_SPAWN.finditer(mjs)})
+
+
+def _pcr_closure(roots) -> "list[str]":
+    seen, todo = set(), list(roots)
+    while todo:
+        f = todo.pop()
+        if f in seen:
+            continue
+        seen.add(f)
+        if not f.endswith(".py") or not Path(f).is_file():
+            continue
+        text = Path(f).read_text()
+        todo += [q for q in (str(Path(f).parent / f"{m}.py") for m in _PCR_IMPORT.findall(text))
+                 if Path(q).is_file()]
+        todo += _PCR_READ.findall(text)
+    return sorted(seen)
+
+
+def _pcr_unrestored(texts: dict, mjs: str) -> "tuple[list[str], list[str]]":
+    """(the closure, the files of it no pr-contract restore pathspec matches)."""
+    specs = [p for w, _l, sp, _d, _a in _twp_steps({"pr-contract.yml": texts["pr-contract.yml"]}) for p in sp]
+    files = _pcr_closure(_pcr_spawned(mjs))
+    return files, [f for f in files if not specs or not any(_twp_hit(p, f) for p in specs)]
+
+
+_PCR_MJS = Path("tools/policy/policy_lint.mjs").read_text()
+_PCR_FILES, _PCR_OPEN = _pcr_unrestored(_PRW_TEXTS, _PCR_MJS)
+R.check(
+    "every python3 program policy_lint.mjs spawns, with its local import and ROOT-read closure, is "
+    "restored from the base by pr-contract (merge_train.py owed-reds, gh_read.py, required-contexts.json)",
+    _PCR_OPEN == [] and "tools/audit/seat/merge_train.py" in _PCR_FILES
+    and "tools/audit/seat/gh_read.py" in _PCR_FILES
+    and "tools/policy/fixtures/required-contexts.json" in _PCR_FILES,
+    f"closure: {_PCR_FILES}; not restored: {_PCR_OPEN}",
+)
+_PCR_NULL = {k: _pcr_unrestored({"pr-contract.yml": _PRW_TEXTS["pr-contract.yml"].replace(f"'{k}' \\\n", "")},
+                                _PCR_MJS)[1] for k in ("tools/audit/seat/merge_train.py",
+                                                       "tools/audit/seat/gh_read.py",
+                                                       "tools/policy/fixtures/required-contexts.json")}
+R.check(
+    "and pr-contract with any one of those three pathspecs removed is refused on that file "
+    "(null control); a file read as text, stamp.py, is no spawn",
+    all(v == [k] for k, v in _PCR_NULL.items()) and "tools/release/stamp.py" not in _PCR_FILES,
+    f"refused per removed pathspec: {_PCR_NULL}",
 )
 
 
