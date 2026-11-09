@@ -42187,13 +42187,114 @@ R.check(
     repr(_gpx),
 )
 _gpg = _ghcp_coord(entry_id="ghcp_diag", heat_curve_persistent_writes_per_day=12)
+_gpg_fresh = _ghc.diagnostics(_gpg.entry, _gpg.effective_config)
 _ghc_pub(_gpg, 2.0)
 _gpg_diag = _ghc.diagnostics(_gpg.entry, _gpg.effective_config)
 R.check(
     "the persistent diagnostics: the last write, today's count against the budget, the armed hook",
     _gpg_diag == {"written": 24, "misses": 0, "writes_today": 1, "writes_per_day": 12,
-                  "restore": {"armed": ["heat_curve"], "restores": 0, "last_restore": None}},
-    repr(_gpg_diag),
+                  "restore": {"armed": ["heat_curve"], "restores": 0, "last_restore": None}}
+    and _gpg_fresh == {"written": None, "misses": 0, "writes_today": 0, "writes_per_day": 12,
+                       "restore": {"armed": [], "restores": 0, "last_restore": None}},
+    "fresh=%r after=%r" % (_gpg_fresh, _gpg_diag),
+)
+
+
+# The bounds, each where a mutant moved it (mutant_run.py --diff over this block).
+class _GhcpClock:
+    """heat_curve's dt_util with utcnow fixed, so a wall-clock bound is hit exactly."""
+
+    def __init__(self, real, t):
+        self._real, self.t = real, t
+
+    def utcnow(self):
+        return self.t
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+
+_ghcp_real_dt = _ghc.dt_util
+_ghcp_t0 = _ghc_dt.utcnow().replace(microsecond=0)
+try:
+    _ghc.dt_util = _gclk = _GhcpClock(_ghcp_real_dt, _ghcp_t0)
+    _gbg = _ghcp_coord(entry_id="ghcp_grace_bound")
+    _ghc_pub(_gbg, 2.0)
+    _ghcp_reads(_gbg, "21")
+    _gclk.t = _ghcp_t0 + _ghcp_td(seconds=_ghc.HELD_GRACE_S)
+    _ghc_pub(_gbg, 2.0)
+    _gclk.t = _ghcp_t0
+    _gbd = _ghcp_coord(entry_id="ghcp_dwell_bound")
+    _ghc_pub(_gbd, 2.0)
+    _ghcp_reads(_gbd, "24")
+    _gclk.t = _ghcp_t0 + _ghcp_td(minutes=60)
+    _ghc_pub(_gbd, 3.0)
+finally:
+    _ghc.dt_util = _ghcp_real_dt
+R.check(
+    "at exactly 90 s the grace is over: a differing reading then is the user's edit (the grace's bound)",
+    _asyncio.run(_ghc_restore.async_armed_entry(_gbg.hass, _gbg.entry, "heat_curve"))["value"] == 19.0,
+    repr(_asyncio.run(_ghc_restore.async_armed_entry(_gbg.hass, _gbg.entry, "heat_curve"))),
+)
+R.check(
+    "and at exactly 60 min the dwell is over: the second change is written (the dwell's bound)",
+    _ghc_writes(_gbd) == [24, 25],
+    repr(_ghc_writes(_gbd)),
+)
+_ghb = _ghcp_coord(entry_id="ghcp_half_step_ours")
+_ghc_pub(_ghb, 2.0)
+_ghcp_reads(_ghb, "24.25")
+_ghcp_age(_ghb, _GHCP_DWELL_S)
+_ghc_pub(_ghb, 2.0)
+_ghp = _ghcp_coord(entry_id="ghcp_half_step_previous")
+_gpw_real = _ghp.hass.services
+_ghp.hass.services = _GhcRaising()
+_ghc_pub(_ghp, 2.0)
+_ghp.hass.services = _gpw_real
+_ghcp_reads(_ghp, "22.25")
+_ghcp_age(_ghp, _GHCP_DWELL_S)
+_ghc_pub(_ghp, 2.0)
+R.check(
+    "half a step from the last write is still ours, and half a step from the write before is still "
+    "missed: neither moves the baseline (classify's bounds)",
+    _ghc_writes(_ghb) == [24] and _ghc_writes(_ghp) == [24]
+    and _asyncio.run(_ghc_restore.async_armed_entry(_ghb.hass, _ghb.entry, "heat_curve"))["value"] == 22.0
+    and _asyncio.run(_ghc_restore.async_armed_entry(_ghp.hass, _ghp.entry, "heat_curve"))["value"] == 22.0,
+    "ours=%r missed=%r" % (_ghc_writes(_ghb), _ghc_writes(_ghp)),
+)
+_glo = _ghcp_coord(entry_id="ghcp_low_range", value="6")
+_ghc_pub(_glo, -3.0)
+_glb = _ghcp_coord(entry_id="ghcp_at_low_bound", value="5")
+_ghc_pub(_glb, 2.0)
+R.check(
+    "the range bounds the low side too: -3 K from 6 on 5..35 sends 5; a reading on its own bound is "
+    "inside its range and is written from",
+    _ghc_writes(_glo) == [5] and _ghc_writes(_glb) == [7],
+    "low=%r at_bound=%r" % (_ghc_writes(_glo), _ghc_writes(_glb)),
+)
+_gun = _ghcp_coord(entry_id="ghcp_unit_named", unit="%")
+_gun_warn = _ghc_logged(lambda: _ghc_pub(_gun, 2.0))
+R.check(
+    "a unit refusal names the unit",
+    any("'%'" in m for m in _gun_warn),
+    repr(_gun_warn),
+)
+R.check(
+    "a record with today's day and no count holds no writes",
+    _ghc.writes_today({"day": _ghc_dt.as_local(_ghc_dt.utcnow()).date().isoformat()}, _ghc_dt.utcnow()) == 0,
+    "",
+)
+_gwr = _ghcp_coord(entry_id="ghcp_returns")
+_gwr_cfg = _gwr.effective_config
+_gwr_ret = [_asyncio.run(_ghc.write_persistent(_gwr.hass, _gwr.entry, _gwr_cfg, 2))]
+_ghcp_reads(_gwr, "24")
+_gwr_ret.append(_asyncio.run(_ghc.write_persistent(_gwr.hass, _gwr.entry, _gwr_cfg, 3)))
+_ghcp_reads(_gwr, "unavailable")
+_gwr_ret.append(_asyncio.run(_ghc.write_persistent(_gwr.hass, _gwr.entry, _gwr_cfg, 3)))
+R.check(
+    "the persistent arm answers True only for a write sent: held by the dwell and unreadable are False",
+    _gwr_ret == [True, False, False],
+    repr(_gwr_ret),
 )
 
 # ---- off_restore: C1 rule R, C2, C3, C4 ----
@@ -42222,9 +42323,11 @@ _ghcp_reads(_gar, "40", entity=_GHCP_B, attrs=_GHCP_B_ATTRS)
 _gar2 = _ghcp_coord(hass=_gar.hass, entry_id="ghcp_a_to_b_arm", entity=_GHCP_B, value=None)
 _ghc_pub(_gar2, 2.0)
 R.check(
-    "and with no off between, B's first arm restores A first, then captures B",
-    _ghcp_sent(_gar2) == [(_GHCP_ENT, 24), (_GHCP_ENT, 22), (_GHCP_B, 42)],
-    repr(_ghcp_sent(_gar2)),
+    "and with no off between, B's first arm restores A first, then captures B; the record counts "
+    "B's write alone, never A's restore as B's",
+    _ghcp_sent(_gar2) == [(_GHCP_ENT, 24), (_GHCP_ENT, 22), (_GHCP_B, 42)]
+    and _ghcp_state(_gar2)["count"] == 2 and _ghcp_state(_gar2)["previous"] == 40.0,
+    "sent=%r state=%r" % (_ghcp_sent(_gar2), _ghcp_state(_gar2)),
 )
 
 

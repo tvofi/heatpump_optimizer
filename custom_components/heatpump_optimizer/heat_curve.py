@@ -384,17 +384,17 @@ def _record_write(state: dict[str, Any], value: float, now: Any, before: float |
     ``previous`` is what the entity held before (``before``), so a write that
     never landed reads as missed, never as the user's edit.
     """
-    day = dt_util.as_local(now).date().isoformat()
-    if state.get("day") != day:
-        state["day"], state["count"] = day, 0
-    state["count"] = int(state.get("count", 0)) + 1
-    state["previous"], state["written"] = before, value
-    state["written_at"], state["misses"] = now.isoformat(), 0
+    state.update(day=_local_day(now), count=writes_today(state, now) + 1,
+                 previous=before, written=value, written_at=now.isoformat())
+
+
+def _local_day(now: Any) -> str:
+    return dt_util.as_local(now).date().isoformat()
 
 
 def writes_today(state: dict[str, Any], now: Any) -> int:
-    """The record's writes on the local day of ``now``."""
-    return int(state.get("count", 0)) if state.get("day") == dt_util.as_local(now).date().isoformat() else 0
+    """The record's writes on the local day of ``now``; a record with no count has none."""
+    return int(state.get("count") or 0) if state.get("day") == _local_day(now) else 0
 
 
 def classify(state: dict[str, Any], reading: float, half_step: float, now: Any) -> str:
@@ -432,7 +432,7 @@ def persistent_target(
 
 def _persistent_refusal(entity_id: str, reading: NumberReading | None) -> tuple[float | None, str | None]:
     """(difference per kelvin, None), or (None, why the entity is not written)."""
-    domain = entity_id.split(".", 1)[0]
+    domain = entity_id.partition(".")[0]
     if domain not in DOMAINS:
         return None, f"is a {domain}, not a number"
     if reading is None or reading.value is None:
@@ -497,14 +497,14 @@ async def _write_persistent_target(
     if _age_s(state, now) < 60.0 * float(config.heat_curve_persistent_min_dwell_minutes):
         return False  # the dwell
     retry = seen == "missed" and abs(float(state["written"]) - target) <= half_step
-    if log_held(entry, "heat_curve_not_held", retry and int(state.get("misses", 0)) >= 1,
+    if log_held(entry, "heat_curve_not_held", retry and bool(state.get("misses")),
                 "Heat-curve entity %s does not hold %s after a rewrite: not resent until the target changes",
                 entity_id, target):
         return False
     # One write is always kept back for the restore that takes it home (I2).
     budget = int(config.heat_curve_persistent_writes_per_day)
     if writes_today(state, now) + 2 > budget:
-        today = dt_util.as_local(now).date().isoformat()
+        today = _local_day(now)
         if state.get("refused_day") != today:
             state["refused_day"] = today
             _LOGGER.info("Heat-curve entity %s: %d writes a day reached, refused until tomorrow",
