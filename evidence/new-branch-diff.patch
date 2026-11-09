@@ -1,0 +1,1841 @@
+diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
+index 5c60d88ec..44f3601a5 100644
+--- a/.github/workflows/governance.yml
++++ b/.github/workflows/governance.yml
+@@ -465,6 +465,12 @@ jobs:
+         if: steps.scope.outputs.outside-intake == 'true'
+         run: python3 -I tools/audit/seat/outside_intake.py --self-test
+ 
++      # The bottleneck alert's rules: a null control, one planted breach per
++      # rule, each boundary and minimum sample, UNREADABLE, the trip memory and
++      # one mutant per rule predicate, offline over planted metrics.
++      - name: Show the bottleneck alert tripping each rule once and silent on its null control
++        run: python3 -I tools/audit/seat/bottleneck_check.py --self-test
++
+       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
+       # synthetic registration, offline: `policy-docs` runs the base's copy,
+       # which cannot answer for a change to this one.
+diff --git a/dev/audit/harnesses/r10_outside_intake_p2_mutants.py b/dev/audit/harnesses/r10_outside_intake_p2_mutants.py
+new file mode 100644
+index 000000000..4656c3832
+--- /dev/null
++++ b/dev/audit/harnesses/r10_outside_intake_p2_mutants.py
+@@ -0,0 +1,153 @@
++#!/usr/bin/env python3
++"""R10-OUTSIDE-INTAKE part 2: each behaviour the landing's self-tests pin dies alone.
++
++The roster carry's MUTANTS OWED AT LANDING: roster_lib.discharged (each
++conjunct), replan's discharged arm in dependency_graph, flow_merge_wait (the
++verdict-before-merge comparison and the at-head test), train_batches (the done
++flag and the skip attribution to the current batch), plan_page's discharged
++label and done set, the beat row's memory and UNREADABLE arms, and
++roster_edit mark-carry's closing arm.
++
++Each mutant is one exact one-occurrence replacement in one file. The driver
++applies it, runs that file's own `--self-test` and the extra self-tests the
++row names, restores the file byte for byte (mutant_guard), and refuses to start
++on a file with uncommitted edits. One line per mutant:
++
++  RESULT mutant=<name> rc=<rc> fails=<n> verdict=killed|SURVIVED|CRASHED
++
++then the FAIL lines. A mutant that kills only by crashing (no FAIL line) is
++CRASHED, not killed. Null control: M0, nothing replaced, every self-test run,
++must print rc=0 fails=0; a replacement whose text is not found exactly once
++aborts.
++
++    python3 dev/audit/harnesses/r10_outside_intake_p2_mutants.py [NAME ...]
++"""
++from __future__ import annotations
++
++import subprocess
++import sys
++from pathlib import Path
++
++sys.path.insert(0, str(Path(__file__).resolve().parent))
++from r10_plan_page_mutants import fail_name, repo_root  # noqa: E402 -- the FAIL-line grammar and root walk
++import mutant_guard  # noqa: E402 -- restores the mutated file on a kill and refuses a leftover mutant
++
++ROOT = repo_root(__file__)
++LIB = "tools/audit/seat/roster_lib.py"
++PLAN = "tools/plan/replan.py"
++MT = "tools/audit/merge_throughput.py"
++PAGE = "tools/audit/seat/plan_page.py"
++BEAT = "tools/audit/seat/beat_jobs.py"
++EDIT = "tools/audit/seat/roster_edit.py"
++BOTTLE = "tools/audit/seat/bottleneck_check.py"
++#: The self-test argv per file; beat_jobs' own mutants are its own self-test's.
++SELF = {LIB: ["--self-test"], PLAN: ["--self-test"], MT: ["--self-test"], PAGE: ["--self-test"],
++        BEAT: ["--self-test", "--no-mutants"], EDIT: ["--self-test"], BOTTLE: ["--self-test"]}
++
++#: (name, file, old, new, extra self-tests run besides the file's own)
++MUTANTS = [
++    ("M0", None, None, None, ()),
++    # The memory key reduced to the kind alone: the behaviour case "two metrics
++    # tripped together each print their own line" is among its FAIL lines, apart
++    # from the in-file anchor guard that also fires on any edit of `state_of`.
++    ("state-of-kind-only", BOTTLE,
++     'distinct states."""\n    return " ".join(line.split()[:2])',
++     'distinct states."""\n    return line.split()[0]', ()),
++    ("discharged-any-stage", LIB, 'return (resume.get("stage") == "carries-open"',
++     'return (resume.get("stage") in ("carries-open", "in-progress", "not-started")', ()),
++    ("discharged-no-commit", LIB,
++     '            and isinstance(resume.get("commit"), str)\n'
++     '            and bool(SHA_RE.match(resume["commit"]))\n',
++     "            and True\n", ()),
++    ("discharged-any-commit", LIB, 'and bool(SHA_RE.match(resume["commit"]))',
++     'and bool(resume["commit"])', ()),
++    ("discharged-carries-ignored", LIB, "            and not pending_carries(group, legacy))",
++     "            and True)", ()),
++    ("discharged-legacy-ignored", LIB, "and not pending_carries(group, legacy))",
++     "and not pending_carries(group, {}))", ()),
++    ("replan-discharged-arm", PLAN, "if is_done(g) or roster_lib.discharged(g, legacy or {})}",
++     "if is_done(g)}", ()),
++    ("replan-legacy-dropped", PLAN, "roster_lib.discharged(g, legacy or {})",
++     "roster_lib.discharged(g, {})", ()),
++    ("wait-after-merge-verdict", MT, 'if v[1] <= move["t"]]', "]", ()),
++    ("wait-at-head", MT, '"at_head": last[4] == move["head"]', '"at_head": True', ()),
++    ("train-done-flag", MT, '            out[-1]["done"] = True\n', "            pass\n", ()),
++    ("train-skip-first-batch", MT, 'out[-1]["skips"].append(', 'out[0]["skips"].append(', ()),
++    ("page-discharged-label", PAGE, 'label += ", every carry discharged" + (', 'label += "" + (', ()),
++    ("page-done-set", PAGE, "done = {g for g in G if not roster_lib.is_open(G[g])} | discharged",
++     "done = {g for g in G if not roster_lib.is_open(G[g])}", ()),
++    ("page-merged-set", PAGE,
++     "merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES} | discharged",
++     "merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES}", ()),
++    ("beat-memory-dropped", BEAT,
++     '                          "--memory", str(ctx.digest / "state" / "bottleneck.json"))',
++     "                          )", ()),
++    ("beat-rc-clean", BEAT, '    if rc != 0:\n        return write_job(ctx, "bottleneck"',
++     '    if False:\n        return write_job(ctx, "bottleneck"', ()),
++    ("beat-unreadable-dropped", BEAT, 'ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))',
++     'ln.startswith(("BOTTLENECK: ",))', ()),
++    ("beat-missing-key-runs", BEAT, 'got = ctx.need("bottleneck", "train_log", "plan_slots")',
++     'got = [str(ctx.overlay.get("train_log")), str(ctx.overlay.get("plan_slots"))]', ()),
++    ("mark-close-off", EDIT,
++     'closed = a.op == "mark-carry" and close_discharged(roster, a.group, legacy)',
++     "closed = False", ()),
++    ("mark-close-any-stage", EDIT,
++     'if resume.get("stage") != HOLD_STAGE or roster_lib.pending_carries(g, legacy or {}):',
++     "if roster_lib.pending_carries(g, legacy or {}):", ()),
++    ("mark-close-no-hold", EDIT,
++     "        closed = a.op == \"mark-carry\" and close_discharged(roster, a.group, legacy)\n"
++     "        if closed or a.op == \"set-stage\"",
++     "        closed = a.op == \"mark-carry\" and close_discharged(roster, a.group, legacy)\n"
++     "        if a.op == \"set-stage\"", ()),
++    ("mark-legacy-dropped", EDIT, 'if a.op in ("set-stage", "set-resume", "mark-carry"):',
++     'if a.op in ("set-stage", "set-resume"):', ()),
++]
++
++
++def failures(out: str) -> list[str]:
++    """Every self-test's FAIL lines, at any indent: each self-test run here prints its own."""
++    return [ln.strip() for ln in out.splitlines() if ln.strip().startswith("FAIL")]
++
++
++def main(argv: list[str]) -> int:
++    want = set(argv)
++    mutant_guard.arm(sorted(SELF))
++    survived = 0
++    for name, rel, old, new, extra in MUTANTS:
++        if want and name not in want:
++            continue
++        path = ROOT / rel if rel else None
++        orig = path.read_bytes() if path else b""
++        try:
++            if old is not None:
++                text = orig.decode()
++                if text.count(old) != 1:
++                    print(f"abort: {name}: {old!r} occurs {text.count(old)} times in {rel}")
++                    return 2
++                path.write_text(text.replace(old, new), encoding="utf-8")
++            files = sorted(SELF) if rel is None else [rel, *extra]
++            runs = [subprocess.run([sys.executable, "-I", str(ROOT / f), *SELF[f]], cwd=ROOT,
++                                   capture_output=True, text=True) for f in files]
++        finally:
++            if path:
++                path.write_bytes(orig)
++        fails = [ln for r in runs for ln in failures(r.stdout)]
++        rc = max(r.returncode for r in runs)
++        if name == "M0":
++            verdict = "null" if rc == 0 and not fails else "SURVIVED"
++        elif fails and rc:
++            verdict = "killed"
++        elif rc:
++            verdict = "CRASHED"
++        else:
++            verdict = "SURVIVED"
++        survived += verdict in ("SURVIVED", "CRASHED")
++        print(f"RESULT mutant={name} rc={rc} fails={len(fails)} verdict={verdict}", flush=True)
++        for ln in fails[:6]:
++            print("   ", fail_name(ln))
++    print(f"RESULT survived={survived}")
++    return 1 if survived else 0
++
++
++if __name__ == "__main__":
++    sys.exit(main(sys.argv[1:]))
+diff --git a/dev/programme/delivery/3350.md b/dev/programme/delivery/3350.md
+new file mode 100644
+index 000000000..6a3293d4a
+--- /dev/null
++++ b/dev/programme/delivery/3350.md
+@@ -0,0 +1 @@
++- [#3350](https://github.com/tvofi/heatpump_optimizer/pull/3350) — **open**, R10-OUTSIDE-INTAKE (part 2): plan-page closure rule, flow metrics and bottleneck alert (R10-OUTSIDE-INTAKE)
+diff --git a/tests/closures.json b/tests/closures.json
+index fa125bd8b..d76dac53b 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -3892,6 +3892,7 @@
+    "tools/audit/seat/beat_jobs.py",
+    "tools/audit/seat/beat_jobs_selftest.py",
+    "tools/audit/seat/beatd.py",
++   "tools/audit/seat/bottleneck_check.py",
+    "tools/audit/seat/carry_fold.py",
+    "tools/audit/seat/ci_critpath.py",
+    "tools/audit/seat/ci_probe.py",
+@@ -3917,6 +3918,7 @@
+    "tools/audit/seat/plan_page.py",
+    "tools/audit/seat/plan_public.py",
+    "tools/audit/seat/postmerge.py",
++   "tools/audit/seat/pr_cap.py",
+    "tools/audit/seat/probe_bridge.py",
+    "tools/audit/seat/proof_watch.py",
+    "tools/audit/seat/prune_refs.py",
+@@ -4116,6 +4118,7 @@
+    "dev/audit/harnesses/r10_nightly_status_mutants.py",
+    "dev/audit/harnesses/r10_nonrequired_reds.py",
+    "dev/audit/harnesses/r10_open_driver_mutants.py",
++   "dev/audit/harnesses/r10_outside_intake_p2_mutants.py",
+    "dev/audit/harnesses/r10_partload_pricing.py",
+    "dev/audit/harnesses/r10_partload_residue.py",
+    "dev/audit/harnesses/r10_plan_durations_mutants.py",
+@@ -4943,7 +4946,7 @@
+   },
+   "tests/backtest.py": {
+    "rc": 0,
+-   "seconds": 151.6
++   "seconds": 61.6
+   },
+   "tests/block_duty.py": {
+    "rc": 0,
+@@ -5039,7 +5042,7 @@
+   },
+   "tests/optimality.py": {
+    "rc": 0,
+-   "seconds": 291.9
++   "seconds": 142.5
+   },
+   "tests/plan_view.py": {
+    "rc": 0,
+diff --git a/tools/audit/merge_throughput.py b/tools/audit/merge_throughput.py
+index bfafe4ae5..fea75b9ad 100644
+--- a/tools/audit/merge_throughput.py
++++ b/tools/audit/merge_throughput.py
+@@ -47,6 +47,7 @@ from __future__ import annotations
+ 
+ import argparse
+ import json
++import re
+ import subprocess
+ import sys
+ from collections import Counter
+@@ -61,6 +62,7 @@ from pathlib import Path
+ sys.path.insert(0, str(Path(__file__).resolve().parent / "seat"))
+ import review_strength as rs  # noqa: E402
+ import roster_lib  # noqa: E402
++import pr_cap  # noqa: E402 -- the one owner of the in-progress WIP count
+ 
+ 
+ def load_rows(paths: list[str]) -> list[dict]:
+@@ -333,11 +335,58 @@ def self_test() -> int:
+         check("one listing is one merge (null)", analyze(runs_from_gh(load_rows(paths[:1])))["merges"], 1)
+ 
+     failures += flow_self_test()
++    failures += bottleneck_self_test()
+ 
+     print(f"{'FAILED' if failures else 'ok'}: merge_throughput.py self-test")
+     return 1 if failures else 0
+ 
+ 
++def bottleneck_self_test() -> int:
++    """The train-log reader's arms (proposal 2): a planted log with two batches,
++    the skip reasons classed, the running batch not done; the null control (a
++    log of no batch is UNAVAILABLE, never zero skips); and the literals the
++    reader keys on, pinned in the writer, `merge_train.py`."""
++    failures = 0
++
++    def check(name, got, want):
++        nonlocal failures
++        ok = got == want
++        failures += not ok
++        print(f"  {'ok  ' if ok else 'FAIL'} {name}" + ("" if ok else f": got {got!r}, want {want!r}"))
++
++    log = "\n".join((
++        "train.sh: queue=q.json repo=o/r state=s pid=1 start=2026-11-07T14:39:36Z",
++        "BATCH 20261107-143937 pid=2 base=main queue=3 (#11 #12 #13) --overlap --skip-bad",
++        "SKIP #11 ci: #11 red at the head: gate",
++        "SKIP #12 ci: #12 red at its head: gate",
++        "SKIP #13 merge: [BRANCH-POLICY] not merged after 1 attempt(s) at 6f9cfc89",
++        "SKIP REPORT: 3 skipped of 3",
++        "BATCH 20261107-143937-b2 pid=2 base=main queue=1 (#14) --overlap --skip-bad",
++        "#14 MERGED " + "a" * 40,
++        "SKIP REPORT: 3 skipped of 4",
++        "BATCH 20261107-155156 pid=3 base=main queue=2 (#15 #16) --overlap --skip-bad",
++        "SKIP #15 recarry: #15 main does not merge without a resolution"))
++    got = train_batches(log)
++    check("train: one row per BATCH banner, the tag UTC",
++          [(b["tag"], b["queue"], b["prs"], b["at"].isoformat()) for b in got],
++          [("20261107-143937", 3, [11, 12, 13], "2026-11-07T14:39:37+00:00"),
++           ("20261107-143937-b2", 1, [14], "2026-11-07T14:39:37+00:00"),
++           ("20261107-155156", 2, [15, 16], "2026-11-07T15:51:56+00:00")])
++    check("train: skips by batch, the reason classed without numbers or shas",
++          [b["skips"] for b in got],
++          [[(11, "ci: red at the head: gate"), (12, "ci: red at the head: gate"),
++            (13, "merge: BRANCH-POLICY")], [],
++           [(15, "recarry: main does not merge without a resolution")]])
++    check("train: SKIP REPORT closes a batch; the running one is not done",
++          [b["done"] for b in got], [True, True, False])
++    check("train null control: a log with no BATCH line is UNAVAILABLE, never zero",
++          train_batches("train.sh: queue=q.json\nTRAIN DONE"), [])
++    src = (Path(__file__).resolve().parent / "seat" / "merge_train.py").read_text(encoding="utf-8")
++    for lit in TRAIN_LOG_LITERALS:
++        check(f"train: the writer still prints {lit[:40]!r}...", lit in src, True)
++    return failures
++
++
+ def flow_self_test() -> int:
+     """The flow board's arms, offline over a throwaway repository.
+ 
+@@ -490,6 +539,23 @@ def flow_self_test() -> int:
+         # C/tooling from the roster's own lane, everything else B.
+         check("flow: WIP by flow lane", flow_wip(roster, ctx.critical),
+               {"A": 1, "B": 0, "C": 0, "F": 1})
++        # 6 -- merge-wait (proposal 2): #1's merge verdict at 01:50 at its
++        # head, merged at 02:00; the three merges with no verdict are unmatched.
++        mw = flow_merge_wait(ctx, a, b)[0]
++        check("merge-wait: verdict to merge, at head; no verdict is unmatched",
++              ([(r["pr"], r["hours"], r["at_head"]) for r in mw[0]], mw[1]),
++              ([(1, 0.17, True)], 3))
++        # its perturbation: a verdict after the merge is not the one it waited on
++        verdict(1, "merge", "f" * 40, T(4))
++        mw = flow_merge_wait(ctx, a, b)[0]
++        check("merge-wait: a verdict after the merge is not read",
++              [(r["pr"], r["hours"], r["at_head"]) for r in mw[0]], [(1, 0.17, True)])
++        # and one: the latest verdict before the merge named another head (a
++        # recarry moved it): its wait is read, and it is not at the merged head
++        verdict(1, "merge", "e" * 40, T(1, 55))
++        mw = flow_merge_wait(ctx, a, b)[0]
++        check("merge-wait: a verdict on another head is read, not at head",
++              [(r["pr"], r["hours"], r["at_head"]) for r in mw[0]], [(1, 0.08, False)])
+ 
+         # PERTURBATION 1 -- the record key is `record_prefix`, not a name.
+         ctx_fix = replace(ctx, record_prefix="fix/")
+@@ -957,7 +1023,7 @@ def _bus_verdicts(ctx: FlowCtx):
+         if not m:
+             continue
+         out.append((int(m.group(1)), rs.when(stamp), m.group(2),
+-                    m.group(4) or ""))
++                    m.group(4) or "", m.group(3)))
+     out.sort(key=lambda v: v[1])
+     return out
+ 
+@@ -1088,6 +1154,137 @@ def critical_of(repo: Path, roster_ref: str | None, roster: dict | None) -> set
+     return critical_read(repo, roster_ref, roster)[0] or None
+ 
+ 
++# ------------------------------------------- the merge bottleneck (proposal 2)
++#
++# tvofi 2026-11-07, proposal 2: flow metrics on the plan page and an alert on
++# a bottleneck. Two measures the board lacked, for the bottleneck of the day:
++# how long a PR waits between its merge verdict and its merge, and how many
++# entries of a merge-train batch it skips, and why. Both are read here so the
++# page and the alert import one computation.
++
++def flow_merge_wait(ctx: FlowCtx, a: datetime, b: datetime):
++    """Per pull request merged into the tree in [a, b]: the hours from its
++    latest `merge` verdict on the bus at or before the merge to the merge.
++
++    `at_head` says whether that verdict named the merged head (False when a
++    recarry moved the head and the train carried the verdict). A merge with no
++    merge verdict before it (a record or autofix pull request) is counted as
++    unmatched, never as a zero wait.
++    """
++    moves = flow_moves(ctx, a, b)
++    if moves[0] is None:
++        return moves
++    try:
++        verdicts = _bus_verdicts(ctx)
++    except OSError as e:
++        return _na(f"bus unreadable: {e}")
++    if verdicts is None:
++        return _na("no review/verdict bus refs")
++    by_pr: dict = {}
++    for v in verdicts:
++        if v[2] == "merge":
++            by_pr.setdefault(v[0], []).append(v)
++    rows, unmatched = [], 0
++    for move in moves[0]["moves"]:
++        before = [v for v in by_pr.get(move["pr"], []) if v[1] <= move["t"]]
++        if not before:
++            unmatched += 1
++            continue
++        last = before[-1]
++        rows.append({"pr": move["pr"], "kind": move["kind"],
++                     "hours": round((move["t"] - last[1]).total_seconds() / 3600, 2),
++                     "at_head": last[4] == move["head"], "merged": move["t"]})
++    return _ok((rows, unmatched))
++
++
++#: The train log's lines, as `merge_train.py` writes them (`Train.batch`'s
++#: banner and `Train.skip`); the self-test pins each literal in that file.
++TRAIN_BATCH_RE = re.compile(
++    r"^BATCH (\d{8}-\d{6})(-b\d+)? pid=\d+ base=\S+ queue=(\d+) \(([^)]*)\)")
++TRAIN_SKIP_RE = re.compile(r"^SKIP #(\d+) ([a-z-]+): (.*)$")
++TRAIN_DONE_PREFIX = "SKIP REPORT: "
++TRAIN_LOG_LITERALS = ('f"BATCH {tag} pid={os.getpid()} base={self.base} queue={len(queue)} "',
++                      'self.log(f"SKIP #{pr} {phase}: " + (f"[{cls}] {why}" if cls else why))',
++                      'self.log(f"SKIP REPORT: {len(self.skipped)} skipped of {total}")')
++
++
++def skip_reason(phase: str, why: str) -> str:
++    """A skip's reason class: the phase, then the bracketed block class when the
++    train named one, else the reason with its PR numbers and shas dropped."""
++    m = re.match(r"\[([A-Z-]+)\]", why)
++    if m:
++        return f"{phase}: {m.group(1)}"
++    text = re.sub(r"#\d+\s*", "", why)
++    text = re.sub(r"\b[0-9a-f]{7,40}\b", "<sha>", text)
++    text = re.sub(r"\b(its|the) head\b", "the head", text)
++    return f"{phase}: {' '.join(text.split())[:60]}"
++
++
++def train_batches(text: str) -> list:
++    """Every batch in a train log, oldest first: its tag, start (the tag is
++    UTC), queue size and PRs, the skips logged before the next batch --
++    `(pr, reason class)` each -- and `done`, set by the batch's closing
++    `SKIP REPORT` line: a batch still running has no skip share yet."""
++    out = []
++    for line in text.splitlines():
++        m = TRAIN_BATCH_RE.match(line)
++        if m:
++            at = datetime.strptime(m.group(1), "%Y%m%d-%H%M%S").replace(tzinfo=timezone.utc)
++            out.append({"tag": m.group(1) + (m.group(2) or ""), "at": at,
++                        "queue": int(m.group(3)),
++                        "prs": [int(x) for x in re.findall(r"#(\d+)", m.group(4))],
++                        "skips": [], "done": False})
++            continue
++        if line.startswith(TRAIN_DONE_PREFIX) and out:
++            out[-1]["done"] = True
++            continue
++        m = TRAIN_SKIP_RE.match(line)
++        if m and out:
++            out[-1]["skips"].append((int(m.group(1)), skip_reason(m.group(2), m.group(3))))
++    return out
++
++
++def read_train_batches(log: Path | None):
++    """`train_batches` of the log at `log`, UNAVAILABLE when it cannot be read."""
++    if log is None:
++        return _na("no train log named")
++    try:
++        text = log.read_text(encoding="utf-8", errors="replace")
++    except OSError as e:
++        return _na(f"train log unreadable: {type(e).__name__}")
++    batches = train_batches(text)
++    return _ok(batches) if batches else _na("the train log holds no BATCH line")
++
++
++#: The windows the bottleneck measures use (proposal 2's thresholds name them).
++BOTTLENECK_HOURS = {"throughput": 6.0, "yield": 24.0, "merge_wait": 24.0}
++SKIP_BATCHES = 2
++
++
++def bottleneck_metrics(ctx: FlowCtx, until: datetime | None, train_log: Path | None,
++                       wip_cap: int) -> dict:
++    """The flow metrics the plan page draws and the bottleneck alert judges,
++    each `(value, reason)` and UNAVAILABLE as a None value, never a zero:
++    throughput over 6 h against takt, first-pass yield and the blocked-class mix
++    over 24 h, lead time per size over 24 h, in-progress WIP against `wip_cap`,
++    merge-wait per PR over 24 h, and the train's batches."""
++    out: dict = {"until": until, "wip_cap": wip_cap, "takt": TAKT_PER_HOUR}
++    if until is None:
++        why = "no window end: no readable ref tip"
++        for k in ("closed", "yield", "classes", "lead", "merge_wait"):
++            out[k] = _na(why)
++    else:
++        h = BOTTLENECK_HOURS
++        out["closed"] = flow_closed(ctx, until - timedelta(hours=h["throughput"]), until)
++        day = period(ctx, until - timedelta(hours=h["yield"]), until)
++        out["yield"], out["classes"], out["lead"] = day["yield"], day["classes"], day["lead"]
++        out["merge_wait"] = flow_merge_wait(ctx, until - timedelta(hours=h["merge_wait"]), until)
++    out["wip"] = (_na(ctx.roster_unavailable or "roster unreadable") if ctx.roster is None
++                  else _ok(pr_cap.wip_groups(ctx.roster)))
++    out["batches"] = read_train_batches(train_log)
++    return out
++
++
+ def period(ctx: FlowCtx, a: datetime, b: datetime) -> dict:
+     """Every per-period measure over [a, b]; each value is `(value, reason)`."""
+     if ctx.roster is None:
+diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
+index 6e6d022b2..f44f6c741 100644
+--- a/tools/audit/seat/INSTRUMENTS.md
++++ b/tools/audit/seat/INSTRUMENTS.md
+@@ -113,6 +113,7 @@ sweep's standing-seat liveness step keep them alive.
+ - [`train.sh`](instruments/train.sh.md) — one invocation shape for `merge_train.py batch`
+ - [`state_docs.py`](instruments/state_docs.py.md) — one call regenerates the four state docs (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`, `handover_prompt.py`), commits exactly their outputs to the orphan ref `handoff/audit-r<N>-plan` at `handoff/round<N>/state/`, N the roster's round
+ - [`plan_public.py`](instruments/plan_public.py.md) — stages the ongoing round's plan page from the newest state ref for the public site, refusing a page that would publish a host path or a tool's attribution
++- [`bottleneck_check.py`](instruments/bottleneck_check.py.md) — prints one `BOTTLENECK:` line per flow metric past the owner's threshold, with a suggested action the orchestrator decides on, and nothing when none is
+ - [`outside_intake.py`](instruments/outside_intake.py.md) — lists submissions by outside users since a cursor with what each is owed (triage, answer, reply), and answers or refuses one, marked so none is answered twice
+ - [`postmerge.py`](instruments/postmerge.py.md) — after a merge: the #201 line, the roster stage, the state docs and main's suite state; a failed step is printed OWED and opens the ledger's `postmerge-owed`
+ - [`record_beat.py`](instruments/record_beat.py.md) — one merged pull request's #201 record line from a fixed template, the full merge sha, read back byte-identical
+diff --git a/tools/audit/seat/beat_jobs.py b/tools/audit/seat/beat_jobs.py
+index 42d72d86b..a7e24dcdc 100644
+--- a/tools/audit/seat/beat_jobs.py
++++ b/tools/audit/seat/beat_jobs.py
+@@ -97,6 +97,13 @@ ROWS (the job table's `interval_s` in brackets):
+                      --cursor state/outside-cursor.json`: its `OUTSIDE` lines
+                      (submissions by outside users owed a triage, an answer or
+                      a reply this turn), `outside-intake: UNREADABLE` on rc 2.
++  bottleneck [1800]  bottleneck_check.py `--checkout <repo> --train-log
++                     <train_log> --wip-cap <plan_slots> --memory
++                     state/bottleneck.json`: its `BOTTLENECK:` and
++                     `BOTTLENECK-UNREADABLE:` lines (the flow metrics past the
++                     owner's thresholds, 2026-11-07); a held breach re-prints its
++                     first line, so it is new once per trip. A line suggests; the
++                     orchestrator decides. `bottleneck: UNREADABLE` on a non-zero rc.
+ No row runs `git checkout`, `reset`, `pull` or `merge`; main is read as
+ `git -C <repo> cat-file -e origin/main:<path>`. No row touches a seat's alive
+ file. Every row exits 0 once its lines are written: the digest is the signal,
+@@ -119,7 +126,7 @@ import time
+ from pathlib import Path
+ 
+ ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
+-        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake")
++        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake", "bottleneck")
+ HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
+ #: The board's actionable family (carry 20's list), keyed on the texts
+ #: orchestrator_tick.py and ledger.py print; the self-test pins each literal there.
+@@ -398,7 +405,9 @@ def plan_beat(ctx: Ctx) -> None:
+     if rc != 0:
+         last = (err.strip().splitlines() or [""])[-1]
+         return write_job(ctx, "plan-beat", [f"plan-beat: PLAN UNAVAILABLE replan rc={rc}: {last}"])
+-    rc, out, err = ctx.py("tools/audit/seat/state_docs.py", "--push", "--mirror", mirror, "--plan", plan)
++    # the train log feeds the page's skip-share and train-skips table (UNAVAILABLE without it)
++    train = ["--train-log", str(ctx.overlay["train_log"])] if ctx.overlay.get("train_log") else []
++    rc, out, err = ctx.py("tools/audit/seat/state_docs.py", "--push", "--mirror", mirror, "--plan", plan, *train)
+     lines = []
+     if rc != 0:
+         said = [ln for ln in err.splitlines() if "UNAVAILABLE" in ln or "REFUSED" in ln]
+@@ -590,10 +599,23 @@ def outside_intake(ctx: Ctx) -> None:
+     write_job(ctx, "outside-intake", [why or f"outside-intake: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+ 
+ 
++def bottleneck(ctx: Ctx) -> None:
++    """bottleneck_check.py: one line per flow metric past its threshold, held once per trip by its memory."""
++    got = ctx.need("bottleneck", "train_log", "plan_slots")
++    if got is None:
++        return
++    rc, out, err = ctx.py("tools/audit/seat/bottleneck_check.py", "--checkout", str(ctx.repo),
++                          "--train-log", got[0], "--wip-cap", got[1],
++                          "--memory", str(ctx.digest / "state" / "bottleneck.json"))
++    if rc != 0:
++        return write_job(ctx, "bottleneck", [f"bottleneck: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
++    write_job(ctx, "bottleneck", [ln for ln in out.splitlines() if ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))])
++
++
+ RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
+        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
+        "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
+-       "outside-intake": outside_intake}
++       "outside-intake": outside_intake, "bottleneck": bottleneck}
+ 
+ 
+ def main(argv: list[str]) -> int:
+diff --git a/tools/audit/seat/beat_jobs_selftest.py b/tools/audit/seat/beat_jobs_selftest.py
+index 84edfa0d8..f45bdab5b 100644
+--- a/tools/audit/seat/beat_jobs_selftest.py
++++ b/tools/audit/seat/beat_jobs_selftest.py
+@@ -125,7 +125,7 @@ def cases(bj) -> dict[str, bool]:
+         ov = {"repo": "o/r", "seat_ledger": str(s / "ledger"), "plan_json": str(s / "p.json"),
+               "plan_slots": 10, "plan_seats": 99, "state_mirror": str(s / "mirror"),
+               "disk_floor_gib": 20, "seat_queues": "--seat-queue merge=" + str(s / "q"),
+-              "intake_since": "2026-11-01T00:00:00Z"}
++              "intake_since": "2026-11-01T00:00:00Z", "train_log": str(s / "train.log")}
+         if overlay is not None:
+             ov = overlay
+         (s / "sweep-overlay.json").write_text(json.dumps(ov))
+@@ -415,6 +415,41 @@ def cases(bj) -> dict[str, bool]:
+     bj.outside_intake(c)
+     res["outside-intake: rc 2 is UNREADABLE, never clean"] = digest(c).startswith("outside-intake: UNREADABLE")
+ 
++    # plan-beat hands the train log on to state_docs (the page's skips); none leaves the flag out
++    c, f = fresh()
++    bj.plan_beat(c)
++    sd = next((x for x in f.calls if any(a.endswith("state_docs.py") for a in x)), [])
++    c0, f0 = fresh(overlay={k: v for k, v in json.loads((c.state / "sweep-overlay.json").read_text()).items()
++                            if k != "train_log"})
++    bj.plan_beat(c0)
++    sd0 = next((x for x in f0.calls if any(a.endswith("state_docs.py") for a in x)), [])
++    res["plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)"] = (
++        arg(sd, "--train-log") == str(c.state / "train.log") and sd0 and "--train-log" not in sd0)
++
++    # bottleneck
++    c, f = fresh(answers={"bottleneck_check.py": (0, "", "")})
++    bj.bottleneck(c)
++    bc = next((x for x in f.calls if any(a.endswith("bottleneck_check.py") for a in x)), [])
++    res["bottleneck null: no breach writes nothing"] = not files(c) and f.ran("bottleneck_check.py") == 1
++    res["bottleneck: the checker is handed the checkout, train_log, the plan's slot cap and a memory under state/"] = (
++        arg(bc, "--checkout") == str(c.repo) and arg(bc, "--train-log") == str(c.state / "train.log")
++        and arg(bc, "--wip-cap") == "10" and (arg(bc, "--memory") or "").endswith("state/bottleneck.json"))
++    trip = "BOTTLENECK: wip 20 in-progress vs cap 20 -- dispatch no new group; move review and merge work first"
++    blind = "BOTTLENECK-UNREADABLE: skip-share -- the train log holds no BATCH line"
++    c, f = fresh(answers={"bottleneck_check.py": (0, "noise\n" + trip + "\n" + blind + "\n", "")})
++    absent = "BOTTLENECK" not in digest(c)
++    bj.bottleneck(c)
++    res["bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else"] = (
++        absent and digest(c).splitlines() == [trip, blind] and bj.read(c.digest / "new.txt").splitlines() == [trip, blind])
++    c, f = fresh(answers={"bottleneck_check.py": (1, "", "Traceback\nKeyError: 'slots'\n")})
++    bj.bottleneck(c)
++    res["bottleneck: a failed check is UNREADABLE, never clean"] = digest(c).startswith(
++        "bottleneck: UNREADABLE rc=1: KeyError")
++    c, f = fresh(overlay={"repo": "o/r", "plan_slots": 10}, answers={"bottleneck_check.py": (0, trip + "\n", "")})
++    bj.bottleneck(c)
++    res["bottleneck: an overlay without train_log is UNREADABLE and runs nothing"] = (
++        digest(c) == "bottleneck: UNREADABLE overlay lacks train_log\n" and f.ran("bottleneck_check.py") == 0)
++
+     # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
+     c, f = fresh(answers={"roster_queue.py": (0, "", "")})
+     (c.state / "roster-drain.queue").write_text("set-stage G1 done\n")
+@@ -865,6 +900,16 @@ MUTANTS = {
+                                 "plan-beat null: an already-current state ref dispatches nothing"),
+     "pages_refusal_silent": ("        if drc != 0:\n", "        if False:\n",
+                              "plan-beat: a refused Pages dispatch reaches the digest"),
++    "bottleneck_memory_dropped": ('                          "--memory", str(ctx.digest / "state" / "bottleneck.json"))',
++                                  '                          )',
++                                  "bottleneck: the checker is handed the checkout, train_log, the plan's slot cap and a memory under state/"),
++    "bottleneck_rc_clean": ('    if rc != 0:\n        return write_job(ctx, "bottleneck"', '    if False:\n        return write_job(ctx, "bottleneck"',
++                            "bottleneck: a failed check is UNREADABLE, never clean"),
++    "bottleneck_unreadable_dropped": ('ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))',
++                                      'ln.startswith(("BOTTLENECK: ",))',
++                                      "bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else"),
++    "plan_train_dropped": ('"--plan", plan, *train)', '"--plan", plan)',
++                           "plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)"),
+     "outside_lines_dropped": ('if ln.startswith("OUTSIDE ")]', 'if ln.startswith("OUTSIDEX ")]',
+                               "outside-intake: each OUTSIDE line reaches the digest, nothing else"),
+     "outside_rc2_clean": ("    if rc in (0, 1):\n        return write_job(ctx, \"outside-intake\"",
+@@ -924,7 +969,7 @@ MUTANTS = {
+     "roster_malformed_hold_retried": ('lines.append(f"roster: refused malformed hold line: {text}")\n                done.add(key)',
+                                       'lines.append(f"roster: refused malformed hold line: {text}")',
+                                       "roster-drain: a malformed hold line is refused once and marked, never re-printed"),
+-    "plan_mirror_dropped": ('"--push", "--mirror", mirror, "--plan", plan)', '"--push", "--plan", plan)',
++    "plan_mirror_dropped": ('"--push", "--mirror", mirror, "--plan", plan, *train)', '"--push", "--plan", plan, *train)',
+                             "plan-beat: state_docs is handed the mirror and the plan"),
+     "pulse_ledger_dropped": ('        args += ["--launch-ledger", str(o["launch_ledger"])]', '        pass',
+                              "pulse: launch_ledger is a --launch-ledger argument"),
+diff --git a/tools/audit/seat/beatd.jobs.json b/tools/audit/seat/beatd.jobs.json
+index f2c61ede3..ac748746f 100644
+--- a/tools/audit/seat/beatd.jobs.json
++++ b/tools/audit/seat/beatd.jobs.json
+@@ -261,6 +261,24 @@
+       ],
+       "class": null,
+       "kind": "periodic"
++    },
++    {
++      "name": "bottleneck",
++      "argv": [
++        "python3",
++        "-I",
++        "tools/audit/seat/beat_jobs.py",
++        "bottleneck",
++        "--state",
++        "$S"
++      ],
++      "cwd": "orch",
++      "interval_s": 1800,
++      "timeout_s": 300,
++      "heartbeat_s": null,
++      "env_pass": [],
++      "class": null,
++      "kind": "periodic"
+     }
+   ]
+ }
+diff --git a/tools/audit/seat/bottleneck_check.py b/tools/audit/seat/bottleneck_check.py
+new file mode 100644
+index 000000000..5a86348cb
+--- /dev/null
++++ b/tools/audit/seat/bottleneck_check.py
+@@ -0,0 +1,390 @@
++#!/usr/bin/env python3
++"""Bottleneck alert: one line per flow metric past its threshold, for the digest.
++
++    python3 -I bottleneck_check.py --checkout DIR [--roster-ref REF] \
++        [--train-log PATH] [--wip-cap N] [--until ISO] [--memory PATH]
++    python3 -I bottleneck_check.py --self-test
++
++The owner's proposal 2 (tvofi 2026-11-07): "Add flow board metrics in the plan
++HTML and a mechanism to alert you [the orchestrator] on bottlenecks and enable
++you to decide whether to act on it." This prints, per breach,
++
++    BOTTLENECK: <metric> <value> vs <threshold> -- <suggested action>
++
++and nothing at all when no metric is past its threshold: silence is the
++success, never a zero line. A source the metric cannot read prints
++`BOTTLENECK-UNREADABLE: <metric> -- <why>`, because a blind alert is not a
++quiet one. A line SUGGESTS; it takes no action. The orchestrator decides.
++
++The metrics are `merge_throughput.bottleneck_metrics`, imported: the flow
++board's own computations (`flow_closed`, `flow_verdicts`, `flow_lead`) and two
++added there for this alert (`flow_merge_wait`, `train_batches`). Nothing here
++re-reads a source.
++
++THE THRESHOLDS (THRESHOLDS below; the owner's, 2026-11-07), each with the
++smallest sample that may trip it, so that one verdict or one merge never fires:
++  yield       first-pass review yield < 0.6 over 24 h (at least 5 first passes);
++  skip-share  train skips / entries > 30 % over the last 2 completed batches
++              (at least 3 entries);
++  merge-wait  median merge-verdict-to-merge > 2 h over 24 h (at least 3 PRs);
++  throughput  roster groups closed per hour < 0.7 x takt over 6 h;
++  wip         in-progress groups (pr_cap.wip_groups) at or over the cap;
++  block-class one blocked class > 30 % of blocks over 24 h (at least 5 blocks).
++
++--memory PATH (the beat row's form): a metric that stays past its threshold
++re-prints the line it first printed, verbatim, so the digest's fold sees no
++new line and the wake fires once per trip; a metric back inside its threshold
++is forgotten, and its next trip prints afresh. The memory is keyed by the
++line's kind and metric, so a breach after an UNREADABLE beat for the same
++metric (or the reverse) is a new trip and prints.
++
++--self-test: a planted metrics dict trips each rule exactly once and a null
++control (every metric inside its threshold) prints nothing; each rule's
++boundary, its minimum sample, its UNREADABLE arm and the trip memory are
++cases; and one mutant per rule predicate, and one reverting the memory key,
++must be killed.
++"""
++
++from __future__ import annotations
++
++import argparse
++import json
++import statistics
++import sys
++from collections import Counter
++from datetime import datetime, timezone
++from pathlib import Path
++
++#: (metric, threshold, minimum sample). The comparison is each rule's own.
++THRESHOLDS = {
++    "yield": (0.6, 5),
++    "skip-share": (0.30, 3),
++    "merge-wait": (2.0, 3),
++    "throughput": (0.7, 0),
++    "wip": (1.0, 0),
++    "block-class": (0.30, 5),
++}
++SKIP_BATCHES = 2
++
++
++def _unread(metric: str, why: str) -> str:
++    return f"BOTTLENECK-UNREADABLE: {metric} -- {why}"
++
++
++def judge(m: dict) -> list[str]:
++    """The breach lines for one metrics dict (`bottleneck_metrics`' shape)."""
++    out: list[str] = []
++
++    v, why = m["yield"]
++    if v is None:
++        out.append(_unread("yield", why))
++    else:
++        merged, judged = v
++        lim, n = THRESHOLDS["yield"]
++        if judged >= n and merged / judged < lim:
++            out.append(f"BOTTLENECK: yield {merged / judged:.2f} ({merged}/{judged} first passes, 24 h) "
++                       f"vs {lim} -- read the blocked-class mix; brief its top class into the "
++                       "open fixers' briefs or a prepr check before dispatching more")
++
++    v, why = m["batches"]
++    if v is None:
++        out.append(_unread("skip-share", why))
++    else:
++        done = [b for b in v if b["done"]][-SKIP_BATCHES:]
++        entries = sum(b["queue"] for b in done)
++        skips = [s for b in done for s in b["skips"]]
++        lim, n = THRESHOLDS["skip-share"]
++        if entries >= n and len(skips) / entries > lim:
++            top, k = Counter(r for _, r in skips).most_common(1)[0]
++            out.append(f"BOTTLENECK: skip-share {len(skips) / entries:.0%} ({len(skips)}/{entries}, "
++                       f"batches {' '.join(b['tag'] for b in done)}) vs {lim:.0%} -- {k} of "
++                       f"{len(skips)} are '{top}': re-add a skipped head only once classify "
++                       "reads GREEN, and hold the next launch until the race it names settles")
++
++    v, why = m["merge_wait"]
++    if v is None:
++        out.append(_unread("merge-wait", why))
++    else:
++        rows, _ = v
++        lim, n = THRESHOLDS["merge-wait"]
++        if len(rows) >= n:
++            med = statistics.median(r["hours"] for r in rows)
++            if med > lim:
++                worst = max(rows, key=lambda r: r["hours"])
++                out.append(f"BOTTLENECK: merge-wait {med:.1f} h median ({len(rows)} PRs, 24 h; worst "
++                           f"#{worst['pr']} {worst['hours']:.1f} h) vs {lim:g} h -- the merge stage "
++                           "is the constraint: check the train is live and every verdicted head "
++                           "is queued before dispatching review or fix work")
++
++    v, why = m["closed"]
++    if v is None:
++        out.append(_unread("throughput", why))
++    else:
++        lim, _ = THRESHOLDS["throughput"]
++        rate, want = round(v / 6.0, 6), round(lim * m["takt"], 6)
++        if rate < want:
++            out.append(f"BOTTLENECK: throughput {rate:.2f}/h ({v} groups closed, 6 h) vs "
++                       f"{want:.2f}/h (0.7 x takt {m['takt']:g}) -- find the stage holding the "
++                       "work (merge-wait, skip-share, yield above) and drain it before "
++                       "dispatching new groups")
++
++    v, why = m["wip"]
++    if v is None:
++        out.append(_unread("wip", why))
++    elif len(v) >= m["wip_cap"]:
++        out.append(f"BOTTLENECK: wip {len(v)} in-progress vs cap {m['wip_cap']} -- dispatch no new "
++                   "group; move review and merge work first")
++
++    v, why = m["classes"]
++    if v is None:
++        out.append(_unread("block-class", why))
++    else:
++        total = sum(v.values())
++        lim, n = THRESHOLDS["block-class"]
++        if total >= n:
++            top, k = v.most_common(1)[0]
++            if k / total > lim:
++                out.append(f"BOTTLENECK: block-class {top or 'unclassed'} {k / total:.0%} ({k}/{total} "
++                           f"blocks, 24 h) vs {lim:.0%} -- a recurring class owes a root-cause seat "
++                           "(defect-root-cause.md) or a check that catches it before review")
++    return out
++
++
++def metric_of(line: str) -> str:
++    """The metric a line is about: its second word."""
++    return line.split()[1]
++
++
++def state_of(line: str) -> str:
++    """The memory key of a line: its kind and metric, its first two words, so
++    `BOTTLENECK-UNREADABLE: yield` and `BOTTLENECK: yield` are distinct states."""
++    return " ".join(line.split()[:2])
++
++
++def remembered(lines: list[str], memory: Path | None) -> list[str]:
++    """`lines` with each still-tripped state's FIRST line kept verbatim, and
++    the memory rewritten: tripped states only, so a recovery forgets."""
++    if memory is None:
++        return lines
++    try:
++        old = json.loads(memory.read_text(encoding="utf-8"))
++    except (OSError, ValueError):
++        old = {}
++    now = {state_of(ln): old.get(state_of(ln), ln) for ln in lines}
++    memory.parent.mkdir(parents=True, exist_ok=True)
++    memory.write_text(json.dumps(now, indent=1, sort_keys=True) + "\n", encoding="utf-8")
++    return [now[state_of(ln)] for ln in lines]
++
++
++def live_metrics(checkout: Path, roster_ref: str | None, train_log: Path | None,
++                 wip_cap: int, until: str | None) -> dict:
++    sys.path.insert(0, str(checkout / "tools" / "audit"))
++    import merge_throughput as mt  # the flow board's computations, imported
++    roster_lib = mt.roster_lib
++    ref = roster_lib.reader_ref(str(checkout), roster_ref)
++    why = ""
++    try:
++        roster = roster_lib.show_roster(str(checkout), ref)
++        path = roster_lib.roster_path(str(checkout), ref)
++    except (roster_lib.RosterNotFound, ValueError) as e:
++        roster, path, why = None, None, f"roster unreadable: {e}"
++    crit, cwhy = mt.critical_read(checkout, ref, roster)
++    ctx = mt.FlowCtx(repo=checkout, tree="origin/main", remote="origin", roster=roster,
++                     roster_unavailable=why, roster_ref=ref, roster_path=path, prefix="",
++                     record_prefix="record/", critical=crit, critical_unavailable=cwhy)
++    end = (mt.parse_iso(until) if until else mt.flow_default_until(checkout, "origin/main", ref))
++    if end is not None and end.tzinfo is None:
++        end = end.replace(tzinfo=timezone.utc)
++    return mt.bottleneck_metrics(ctx, end, train_log, wip_cap)
++
++
++# ------------------------------------------------------------------ self-test
++
++def _fixture(**over) -> dict:
++    """Every metric inside its threshold: the null control's input."""
++    batch = lambda tag, q, skips, done=True: {"tag": tag, "queue": q, "done": done,
++                                               "skips": [(i, "ci: red at the head: gate")
++                                                         for i in range(skips)]}
++    m = {"takt": 1.0, "wip_cap": 20,
++         "yield": ((8, 10), ""),
++         "batches": ([batch("a", 9, 9), batch("b", 5, 1), batch("c", 5, 1),
++                      batch("d", 4, 4, done=False)], ""),
++         "merge_wait": (([{"pr": 1, "hours": 1.0}, {"pr": 2, "hours": 2.0},
++                          {"pr": 3, "hours": 9.0}], 0), ""),
++         "closed": (6, ""),
++         "wip": (["G"] * 19, ""),
++         "classes": (Counter({"ci-red": 2, "harness": 2, "defect": 2, "policy": 2, "x": 2}), "")}
++    m.update(over)
++    return m
++
++
++def self_test(mutate: str | None = None) -> int:
++    global judge
++    failures = 0
++
++    def check(name: str, cond: bool, got="") -> None:
++        nonlocal failures
++        failures += not cond
++        if mutate is None:
++            print(f"  {'ok  ' if cond else 'FAIL'} {name}" + ("" if cond else f": {got!r}"))
++
++    def fired(m) -> list[str]:
++        return [metric_of(ln) for ln in judge(m)]
++
++    check("null control: every metric inside its threshold prints nothing",
++          judge(_fixture()) == [], judge(_fixture()))
++    planted = {
++        "yield": {"yield": ((5, 10), "")},
++        "skip-share": {"batches": ([{"tag": "x", "queue": 5, "done": True, "skips": [(1, "r")] * 2},
++                                    {"tag": "y", "queue": 1, "done": True, "skips": []}], "")},
++        "merge-wait": {"merge_wait": (([{"pr": 1, "hours": 2.5}] * 3, 0), "")},
++        "throughput": {"closed": (4, "")},
++        "wip": {"wip": (["G"] * 20, "")},
++        "block-class": {"classes": (Counter({"mutation-vacuous": 4, "a": 3, "b": 3}), "")},
++    }
++    for metric, over in planted.items():
++        got = fired(_fixture(**over))
++        check(f"planted: {metric} past its threshold prints exactly its line", got == [metric], got)
++        line = judge(_fixture(**over))[0] if got else ""
++        check(f"planted: the {metric} line has the grammar",
++              line.startswith(f"BOTTLENECK: {metric} ") and " vs " in line and " -- " in line, line)
++    # boundaries: at the threshold is not past it (the owner's `<`, `>`)
++    edges = {
++        "yield": {"yield": ((6, 10), "")},
++        "skip-share": {"batches": ([{"tag": "x", "queue": 10, "done": True, "skips": [(1, "r")] * 3}], "")},
++        "merge-wait": {"merge_wait": (([{"pr": 1, "hours": 2.0}] * 3, 0), "")},
++        "throughput": {"closed": (4.2, "")},
++        "wip": {"wip": (["G"] * 19, "")},
++        "block-class": {"classes": (Counter({"a": 3, "b": 3, "c": 3, "d": 1}), "")},
++    }
++    for metric, over in edges.items():
++        got = fired(_fixture(**over))
++        check(f"boundary: {metric} exactly at its threshold prints nothing", got == [], got)
++    small = {
++        "yield": {"yield": ((0, 4), "")},
++        "skip-share": {"batches": ([{"tag": "x", "queue": 2, "done": True, "skips": [(1, "r")] * 2}], "")},
++        "merge-wait": {"merge_wait": (([{"pr": 1, "hours": 9.0}] * 2, 0), "")},
++        "block-class": {"classes": (Counter({"a": 4}), "")},
++    }
++    for metric, over in small.items():
++        got = fired(_fixture(**over))
++        check(f"minimum sample: {metric} below its sample prints nothing", got == [], got)
++    check("skip-share: a batch still running is not read",
++          fired(_fixture(batches=([{"tag": "x", "queue": 5, "done": True, "skips": []},
++                                   {"tag": "y", "queue": 5, "done": True, "skips": []},
++                                   {"tag": "z", "queue": 5, "done": False,
++                                    "skips": [(1, "r")] * 5}], ""))) == [])
++    for metric, key in (("yield", "yield"), ("skip-share", "batches"), ("merge-wait", "merge_wait"),
++                        ("throughput", "closed"), ("wip", "wip"), ("block-class", "classes")):
++        lines = judge(_fixture(**{key: (None, "no source")}))
++        check(f"unreadable: {metric} is BOTTLENECK-UNREADABLE, never silent",
++              lines == [_unread(metric, "no source")], lines)
++    import tempfile
++    with tempfile.TemporaryDirectory() as d:
++        mem = Path(d) / "mem.json"
++        first = remembered(judge(_fixture(closed=(4, ""))), mem)
++        again = remembered(judge(_fixture(closed=(3, ""))), mem)
++        check("memory: a still-tripped metric re-prints its first line verbatim",
++              again == first and "4 groups" in first[0], (first, again))
++        remembered(judge(_fixture()), mem)
++        after = remembered(judge(_fixture(closed=(3, ""))), mem)
++        check("memory: a recovery forgets; the next trip prints afresh",
++              after and "3 groups" in after[0], after)
++        # An UNREADABLE line and a breach line for one metric are distinct
++        # memory states: a real breach after an unreadable beat prints itself,
++        # and the reverse prints the UNREADABLE line (review 3350).
++        mem.unlink()
++        blind = judge(_fixture(closed=(None, "no source")))
++        remembered(blind, mem)
++        breach = remembered(judge(_fixture(closed=(4, ""))), mem)
++        check("memory: a breach after UNREADABLE for one metric prints the breach",
++              breach and breach[0].startswith("BOTTLENECK: throughput ") and "4 groups" in breach[0],
++              breach)
++        back = remembered(blind, mem)
++        check("memory: UNREADABLE after a breach for one metric prints the UNREADABLE line",
++              back == blind, back)
++        again = remembered(judge(_fixture(closed=(None, "later reason"))), mem)
++        check("memory: UNREADABLE then UNREADABLE stays its first line (null control)",
++              again == blind, again)
++        # Two metrics tripped in one beat are two memory states: a key of the
++        # kind alone would collapse them and print one line twice.
++        mem.unlink()
++        two = judge(_fixture(closed=(4, ""), wip=(["G"] * 25, "")))
++        got = remembered(two, mem)
++        check("memory: two metrics tripped together each print their own line",
++              len(two) == 2 and got == two and len(set(got)) == 2, (two, got))
++    return failures
++
++
++#: One mutant per rule predicate: (name, source fragment, replacement).
++MUTANTS = (
++    ("yield-cmp", "merged / judged < lim", "merged / judged <= lim"),
++    ("yield-sample", "judged >= n and merged", "judged >= 0 and merged"),
++    ("skip-cmp", "len(skips) / entries > lim", "len(skips) / entries >= lim"),
++    ("skip-done", 'if b["done"]][-SKIP_BATCHES:]', "][-SKIP_BATCHES:]"),
++    ("wait-cmp", "if med > lim:", "if med >= lim:"),
++    ("wait-median", "statistics.median(r[\"hours\"]", "max(r[\"hours\"]"),
++    ("tput-cmp", "if rate < want:", "if rate <= want:"),
++    ("wip-cmp", 'elif len(v) >= m["wip_cap"]:', 'elif len(v) > m["wip_cap"]:'),
++    ("class-cmp", "if k / total > lim:", "if k / total >= lim:"),
++    ("class-sample", "if total >= n:", "if total >= 0:"),
++)
++#: The same, applied to `state_of`: the memory key reverted to the metric alone.
++MEMORY_MUTANTS = (
++    ("memory-key-metric", 'return " ".join(line.split()[:2])', "return line.split()[1]"),
++    ("memory-key-kind", 'return " ".join(line.split()[:2])', "return line.split()[0]"),
++)
++
++
++def run_mutants() -> int:
++    """Each mutant applied to its function's source (`judge`'s, or
++    `state_of`'s) must make the self-test fail."""
++    import inspect
++    import textwrap
++    survived = []
++    g = globals()
++    for fn, name, frag, repl in ([("judge", *m) for m in MUTANTS]
++                                 + [("state_of", *m) for m in MEMORY_MUTANTS]):
++        original = g[fn]
++        src = textwrap.dedent(inspect.getsource(original))
++        if src.count(frag) != 1:
++            print(f"  FAIL mutant {name}: anchor occurs {src.count(frag)} times")
++            survived.append(name)
++            continue
++        ns = dict(g)
++        exec(compile(src.replace(frag, repl), f"<mutant {name}>", "exec"), ns)
++        g[fn] = ns[fn]
++        try:
++            killed = self_test(mutate=name) > 0
++        finally:
++            g[fn] = original
++        print(f"  {'ok  ' if killed else 'FAIL'} mutant {name} {'killed' if killed else 'SURVIVED'}")
++        if not killed:
++            survived.append(name)
++    return len(survived)
++
++
++def main(argv=None) -> int:
++    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
++    ap.add_argument("--checkout", type=Path, default=Path(__file__).resolve().parents[3]
++                    if len(Path(__file__).resolve().parents) > 3 else Path.cwd())
++    ap.add_argument("--roster-ref", default=None)
++    ap.add_argument("--train-log", type=Path, default=None)
++    ap.add_argument("--wip-cap", type=int, default=20)
++    ap.add_argument("--until", default=None)
++    ap.add_argument("--memory", type=Path, default=None)
++    ap.add_argument("--self-test", action="store_true")
++    a = ap.parse_args(argv)
++    if a.self_test:
++        f = self_test()
++        f += run_mutants()
++        print(f"{'FAILED' if f else 'ok'}: bottleneck_check self-test")
++        return 1 if f else 0
++    m = live_metrics(a.checkout, a.roster_ref, a.train_log, a.wip_cap, a.until)
++    for line in remembered(judge(m), a.memory):
++        print(line)
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/tools/audit/seat/instruments/beat_jobs.py.md b/tools/audit/seat/instruments/beat_jobs.py.md
+index cbc71e3c2..fb3eaaac3 100644
+--- a/tools/audit/seat/instruments/beat_jobs.py.md
++++ b/tools/audit/seat/instruments/beat_jobs.py.md
+@@ -19,7 +19,7 @@
+   `disk` (`worktree_gc.sh` under the floor), `opener` (one `open_driver.py
+   --board` pass, its refusals and `STUCK` forwarded) `head-watch`
+   (`HEAD-MOVED` events) and `audit-dispatch` (one `DISPATCH: planted-defect-audit
+-  arm=<arm> cut=<span>` line per sustained `would-trip` of a guardrail arm, never twice while the arm stays tripped; a failed run's `UNREADABLE` clears on the next readable run) and `outside-intake` (`outside_intake.py list` from the overlay's `intake_since`, with a cursor under `state/`: its `OUTSIDE` lines). Each writes only actionable lines to
++  arm=<arm> cut=<span>` line per sustained `would-trip` of a guardrail arm, never twice while the arm stays tripped; a failed run's `UNREADABLE` clears on the next readable run) and `outside-intake` (`outside_intake.py list` from the overlay's `intake_since`, with a cursor under `state/`: its `OUTSIDE` lines) and `bottleneck` (`bottleneck_check.py` with the beat checkout, the overlay's `train_log`, the `plan_slots` cap and `--memory state/bottleneck.json`: its `BOTTLENECK:` and `BOTTLENECK-UNREADABLE:` lines, each new once per trip; a failed run is `bottleneck: UNREADABLE`). `plan-beat` hands the overlay's `train_log` to `state_docs.py --train-log`. Each writes only actionable lines to
+   `S/digest/jobs/<row>`; `fold` concatenates them into `S/digest/digest.txt`,
+   diffs `new.txt` and `gone.txt`, and touches `new.stamp` only on a new line,
+   so the orchestrator's one wake reads `new.stamp` and `events.txt`. A null
+diff --git a/tools/audit/seat/instruments/bottleneck_check.py.md b/tools/audit/seat/instruments/bottleneck_check.py.md
+new file mode 100644
+index 000000000..602cb69bf
+--- /dev/null
++++ b/tools/audit/seat/instruments/bottleneck_check.py.md
+@@ -0,0 +1,24 @@
++# `bottleneck_check.py`
++
++- `bottleneck_check.py` — the bottleneck alert (tvofi 2026-11-07, proposal
++  2): one `BOTTLENECK: <metric> <value> vs <threshold> -- <suggested action>`
++  line per flow metric past its threshold, and nothing at all when none is. A
++  source it cannot read prints `BOTTLENECK-UNREADABLE: <metric> -- <why>`. A
++  line suggests and takes no action; the orchestrator decides. The metrics are
++  `merge_throughput.bottleneck_metrics`, imported. The thresholds and minimum
++  samples are `THRESHOLDS` (the owner's): first-pass yield under 0.6 over
++  24 h (5 first passes), train skip-share over 30 % in the last 2 completed
++  batches (3 entries), median merge-wait over 2 h over 24 h (3 PRs),
++  throughput under 0.7 x takt over 6 h, in-progress WIP at or over the cap,
++  and one blocked class over 30 % of blocks over 24 h (5 blocks). Throughput
++  counts roster groups whose stage entered done in the window
++  (`flow_closed`, the roster write, not the merge), so a hand record batch
++  reads as a burst and record lag as a trough. When: the beat's `bottleneck`
++  row runs it every 30 minutes with `--train-log` (the overlay's
++  `train_log`), `--wip-cap` (`plan_slots`) and `--memory`, which re-prints a
++  held breach's first line verbatim so the digest's wake fires once per trip
++  and again only after a recovery. `--self-test`: a null control, one planted
++  case per rule, each rule's boundary and minimum sample, a running batch not
++  read, the UNREADABLE arm per rule, the trip memory, and one mutant per rule
++  predicate; the beat row's arms are mutated in
++  `dev/audit/harnesses/r10_outside_intake_p2_mutants.py`.
+diff --git a/tools/audit/seat/instruments/merge_throughput.py.md b/tools/audit/seat/instruments/merge_throughput.py.md
+index 12136cc51..7cc7129cd 100644
+--- a/tools/audit/seat/instruments/merge_throughput.py.md
++++ b/tools/audit/seat/instruments/merge_throughput.py.md
+@@ -14,4 +14,14 @@
+   when a source cannot be read. When: any flow change that claims to move
+   throughput. Refusal: `--self-test` — its fixture's exact counts, the
+   unchanged-fixture null control, and a named arm per classification
+-  predicate; `governance.yml`'s self-test step runs it.
++  predicate; `governance.yml`'s self-test step runs it. For the plan page's
++  Flow section and the bottleneck alert (tvofi 2026-11-07, proposal 2) it
++  adds `flow_merge_wait` (per PR merged in a window, the hours from its latest
++  `merge` verdict on the bus at or before the merge, whether that verdict named
++  the merged head, and a count of merges with no verdict, never a zero wait),
++  `train_batches` (each `BATCH` banner of `merge_train.py`'s `train.log`, its
++  queue, its `SKIP` lines with a reason class, and `done` once its `SKIP
++  REPORT` line closes it; the self-test pins each writer literal in
++  `merge_train.py`) and `bottleneck_metrics`, which composes them with
++  `flow_closed`, `flow_verdicts`, `flow_lead` and `pr_cap.wip_groups`. The
++  live train log is `$HOME/.local/state/hpo/merge_train/train.log`.
+diff --git a/tools/audit/seat/instruments/plan_page.py.md b/tools/audit/seat/instruments/plan_page.py.md
+index 3ee9211c0..e9ec4e314 100644
+--- a/tools/audit/seat/instruments/plan_page.py.md
++++ b/tools/audit/seat/instruments/plan_page.py.md
+@@ -19,4 +19,17 @@
+   every figure a dash, no table), never a page of zeros. `--check` of
+   replan.py applies the same freshness rule. `--self-test` carries the
+   scratch generator's five defects as fixtures, each killed by its mutant in
+-  `dev/audit/harnesses/r10_plan_page_mutants.py`.
++  `dev/audit/harnesses/r10_plan_page_mutants.py`. A discharged group
++  (replan.py's per-group `discharged`: merged, `carries-open`, every carry
++  marked) renders merged, labelled with the record step it still owes (close
++  or re-own its open issues, then `set-stage done`), and clears the edges on
++  it. After the issue chart, the Flow section draws
++  `merge_throughput.bottleneck_metrics` (imported, never copied): the
++  critical-path lane as the plan's full set with each group's status,
++  `bottleneck_check.judge`'s lines, the metrics table (a source it cannot read
++  is UNAVAILABLE with its reason, never a zero, and never the UNAVAILABLE
++  page), merge-wait per PR and skips per batch (latest 8). `--train-log PATH`
++  names the live `train.log` (`state_docs.py --train-log`, which the beat's
++  `plan-beat` row passes from the overlay's `train_log`); `--no-flow` draws no
++  flow metrics. Its mutants are in
++  `dev/audit/harnesses/r10_outside_intake_p2_mutants.py`.
+diff --git a/tools/audit/seat/plan_page.py b/tools/audit/seat/plan_page.py
+index 50b3ebeb4..3ba6a8486 100644
+--- a/tools/audit/seat/plan_page.py
++++ b/tools/audit/seat/plan_page.py
+@@ -74,6 +74,9 @@ sys.path.insert(0, str(_SEAT))
+ sys.path.insert(0, str(_SEAT.parents[1] / "plan"))
+ import roster_lib  # noqa: E402 -- the one roster reader
+ import replan  # noqa: E402 -- the one owner of plan.json and its freshness
++sys.path.insert(0, str(_SEAT.parent))
++import merge_throughput as mt  # noqa: E402 -- the flow board's computations
++import bottleneck_check  # noqa: E402 -- the one owner of the alert thresholds
+ 
+ SELF = "tools/audit/seat/plan_page.py"
+ # The round's tracking issue (CLAUDE.md's #201): the open-issue count leaves it
+@@ -187,8 +190,12 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
+     # clears an after-edge and drops a group from the schedule. `merged` is the
+     # narrower class that renders done; an absorbed group stays held, naming
+     # the group it went to.
+-    done = {g for g in G if not roster_lib.is_open(G[g])}
+-    merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES}
++    # A discharged group (replan's `discharged`: merged, carries-open, every
++    # carry marked) is closed in the plan, so it renders merged and clears the
++    # edges on it; the roster's own stage is left as written.
++    discharged = {g for g in G if (PG.get(g) or {}).get("discharged")}
++    done = {g for g in G if not roster_lib.is_open(G[g])} | discharged
++    merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES} | discharged
+ 
+     open_pr: dict = {}
+     for p in sorted(snap["open_prs"], key=lambda p: p["number"]):
+@@ -225,6 +232,12 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
+                 label, pr = f"merged at {commit[:8]}", "merged"
+             else:
+                 label, pr = "folded into another group (no merge of its own)", "merged"
++            if g in discharged:
++                owed = [n for n in entry.get("issues") or []
++                        if (state.get(n) or {}).get("state") == "OPEN"]
++                label += ", every carry discharged" + (
++                    f"; record owed: close or re-own #{', #'.join(map(str, owed))}, "
++                    "then set-stage done" if owed else "; record owed: set-stage done")
+         elif _stage(entry) in roster_lib.DISPOSITION:
+             st = "held"
+             into = entry.get("absorbed_into")
+@@ -390,12 +403,13 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
+     unplanned: set = set()
+     wired: dict = {}
+     for gid, entry in roster_lib.groups_of(roster).items():
+-        for n in entry.get("issues") or []:
++        carried = list(dict.fromkeys([*(entry.get("issues") or []), *(entry.get("fixes") or [])]))
++        for n in carried:
+             wired.setdefault(n, []).append(gid)
+         pg = plan["groups"].get(gid)
+         if not pg or not roster_lib.is_open(entry):
+             continue
+-        for n in entry.get("issues") or []:
++        for n in carried:
+             if n not in open_now:
+                 continue
+             if not pg.get("finish"):
+@@ -483,11 +497,96 @@ def issues_section(roster: dict, plan: dict, snap: dict) -> str:
+ 
+ # --------------------------------------------------------------------- page
+ 
++def _hours(xs) -> str:
++    return "—" if not xs else f"{sorted(xs)[len(xs) // 2]:.1f} h (n {len(xs)})"
++
++
++def pill(st: str, label: str) -> str:
++    """The status pill. A "waiting on A, B, ..." label past three groups shows
++    the first three and "+N more"; the full list stays in `title`."""
++    pre = "waiting on "
++    names = label[len(pre):].split(", ") if label.startswith(pre) else []
++    if len(names) > 3:
++        shown = f'{pre}{", ".join(names[:3])} +{len(names) - 3} more'
++        return (f'<span class="pill {st}" title="{html.escape(label)}">'
++                f'{html.escape(shown)}</span>')
++    return f'<span class="pill {st}">{html.escape(label)}</span>'
++
++
++def flow_section(plan: dict, rows: list, flow: dict | None) -> str:
++    """The flow metrics (proposal 2, tvofi 2026-11-07): throughput against
++    takt, first-pass yield and the blocked-class mix, lead time per size,
++    in-progress WIP against the slot cap, merge-wait per PR and train skips
++    per batch, all `merge_throughput.bottleneck_metrics`; the breaches
++    `bottleneck_check.judge` prints; and the critical-path lane as the full
++    set, each group with its status. A source that cannot be read is
++    UNAVAILABLE with its reason, never a zero."""
++    e = html.escape
++    by = {r["g"]: r for r in rows}
++    lane = "".join(
++        f'<tr><td class="g">{e(short(g))}</td><td class="st">{pill(by[g]["st"], by[g]["label"])}</td><td class="mono">{e(by[g]["pr"])}</td>'
++        f'<td class="mono">{by[g]["finish"] or "—"}</td></tr>'
++        for g in plan["critical_path"] if g in by)
++    head = ('<section>\n  <h2>Flow</h2>\n'
++            f'  <h3>Critical-path lane ({len(plan["critical_path"])} groups, the plan\'s full set)</h3>\n'
++            '  <div class="scroll"><table><thead><tr><th>Group</th><th>Status</th><th>PR</th><th>ETA</th></tr></thead>'
++            f'<tbody>{lane or "<tr><td colspan=4>—</td></tr>"}</tbody></table></div>\n')
++    if flow is None:
++        return head + '  <p class="note">Flow metrics not drawn (--no-flow).</p>\n</section>\n'
++
++    def cell(pair, fmt):
++        v, why = pair
++        return f'<span class="na">UNAVAILABLE — {e(why)}</span>' if v is None else fmt(v)
++
++    takt = flow["takt"]
++    stats = [
++        ("Throughput, 6 h", cell(flow["closed"], lambda v: f"{v / 6:.2f}/h vs takt {takt:g}/h "
++                                 f"({v} groups closed; alert below {0.7 * takt:.2f}/h)")),
++        ("First-pass yield, 24 h", cell(flow["yield"], lambda v: (
++            f"{v[0] / v[1]:.2f} ({v[0]}/{v[1]}; alert below 0.6)" if v[1] else "0/0"))),
++        ("Blocked classes, 24 h", cell(flow["classes"], lambda v: ", ".join(
++            f"{k or 'unclassed'} {n} ({n / sum(v.values()):.0%})" for k, n in v.most_common()) or "none")),
++        ("Lead time per size, 24 h", cell(flow["lead"], lambda v: ", ".join(
++            f"{k} {_hours(xs)}" for k, xs in sorted(v[0].items())) or "no group merge")),
++        ("WIP, in progress", cell(flow["wip"], lambda v: f"{len(v)} vs cap {flow['wip_cap']}")),
++        ("Merge-wait, 24 h", cell(flow["merge_wait"], lambda v: (
++            f"median {_hours([r['hours'] for r in v[0]])}; alert above 2 h; "
++            f"{v[1]} merges with no verdict before them"))),
++    ]
++    strip = "".join(f'<tr><th>{e(k)}</th><td>{v}</td></tr>' for k, v in stats)
++    waits = flow["merge_wait"][0]
++    wait_rows = "".join(
++        f'<tr><td class="mono">#{r["pr"]}</td><td>{e(r["kind"])}</td>'
++        f'<td class="mono">{r["hours"]:.1f} h</td><td>{"yes" if r["at_head"] else "carried"}</td></tr>'
++        for r in sorted(waits[0], key=lambda r: -r["hours"])) if waits else ""
++    batches = flow["batches"][0] or []
++    batch_rows = "".join(
++        f'<tr><td class="mono">{e(b["tag"])}</td><td class="mono">{len(b["skips"])}/{b["queue"]}</td>'
++        f'<td>{e("; ".join(f"#{pr} {why}" for pr, why in b["skips"])) or "—"}</td>'
++        f'<td>{"done" if b["done"] else "running"}</td></tr>' for b in batches[-8:][::-1])
++    alerts = bottleneck_check.judge(flow)
++    alert = ("".join(f"<li class=\"mono\">{e(a)}</li>" for a in alerts)
++             if alerts else "<li>no metric past its threshold</li>")
++    return (head
++            + f'  <h3>Bottlenecks ({len(alerts)})</h3>\n  <ul class="alerts">{alert}</ul>\n'
++            + '  <p class="note">Each line suggests an action and takes none; the orchestrator '
++              'decides. Thresholds and their minimum samples are <code>bottleneck_check.THRESHOLDS</code>.</p>\n'
++            + f'  <h3>Flow metrics (to {e(str(flow["until"]))})</h3>\n  <div class="scroll"><table><tbody>{strip}</tbody></table></div>\n'
++            + '  <h3>Merge-wait per PR, 24 h (merge verdict to merge)</h3>\n'
++            + '  <div class="scroll"><table><thead><tr><th>PR</th><th>Kind</th><th>Wait</th><th>Verdict at merged head</th>'
++              f'</tr></thead><tbody>{wait_rows or "<tr><td colspan=4>—</td></tr>"}</tbody></table></div>\n'
++            + '  <h3>Train skips per batch (latest 8)</h3>\n'
++            + '  <div class="scroll"><table><thead><tr><th>Batch (UTC)</th><th>Skipped</th><th>Why</th><th>State</th>'
++              f'</tr></thead><tbody>{batch_rows or "<tr><td colspan=4>—</td></tr>"}</tbody></table></div>\n'
++            + "</section>\n")
++
++
+ def _when(s: str) -> str:
+     return _t(s).strftime("%a %d %b %H:%M")
+ 
+ 
+-def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
++def render(roster: dict, roster_src: str, plan: dict, snap: dict,
++           flow: dict | None = None) -> str:
+     """The page. Pure: every input is an argument."""
+     rows = build_rows(roster, plan, snap)
+     svg, drawn = swimlanes(plan, rows)
+@@ -515,7 +614,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
+         + ('<span class="cp" title="critical path">◆</span>' if r["crit"] else "")
+         + f'{e(short(r["g"]))}<div class="lanec">{e(r["lane"])}</div></td>'
+         f'<td class="d">{e(r["desc"])}</td>'
+-        f'<td><span class="pill {r["st"]}">{e(r["label"])}</span></td>'
++        f'<td class="st">{pill(r["st"], r["label"])}</td>'
+         f'<td class="tier">{r["tier"] if r["tier"] is not None else "—"}</td>'
+         f'<td class="mono">{e(r["pr"])}</td>'
+         f'<td>{"".join(chip(*i) for i in r["issues"]) or "—"}</td>'
+@@ -544,6 +643,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
+         "source": e(f'{roster_src} @ {gen["roster_blob"][:12]}'),
+         "tracking": str(TRACKING_ISSUE), "open_iss": open_iss,
+         "issues_chart": issues_section(roster, plan, snap),
++        "flow": flow_section(plan, rows, flow),
+         "end": _t(summ["closure"]).strftime("%a %d %b %H:%M"),
+         "svg": svg, "crit": crit or "—", "trs": trs, "stamps": stamps, "waves": waves,
+         "slots": str(slots), "every": str(every),
+@@ -597,6 +697,19 @@ def _refuse(html_out: str, what: str, detail: list) -> int:
+ 
+ # ---------------------------------------------------------------------- cli
+ 
++def flow_metrics(repo: str, ref: str, path: str, roster: dict, plan: dict,
++                 train_log: str | None) -> dict:
++    """`merge_throughput.bottleneck_metrics` over the roster this page drew,
++    WIP against the plan's own slot cap."""
++    crit, cwhy = mt.critical_read(Path(repo), ref, roster)
++    ctx = mt.FlowCtx(repo=Path(repo), tree="origin/main", remote="origin", roster=roster,
++                     roster_unavailable="", roster_ref=ref, roster_path=path, prefix="",
++                     record_prefix="record/", critical=crit, critical_unavailable=cwhy)
++    until = mt.flow_default_until(Path(repo), "origin/main", ref)
++    return mt.bottleneck_metrics(ctx, until, Path(train_log) if train_log else None,
++                                 int(plan["generated"]["caps"]["slots"]))
++
++
+ def main(argv=None, fetch=fetch_github) -> int:
+     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+     p.add_argument("--plan")
+@@ -610,6 +723,9 @@ def main(argv=None, fetch=fetch_github) -> int:
+                    help="read GitHub state from this JSON file instead of gh")
+     p.add_argument("--no-fetch", action="store_true",
+                    help="read an origin/ roster ref as this clone has it")
++    p.add_argument("--train-log", default=None,
++                   help="the live merge train's train.log, for the skip measure")
++    p.add_argument("--no-flow", action="store_true", help="draw no flow metrics")
+     p.add_argument("--self-test", action="store_true")
+     a = p.parse_args(argv)
+     if a.self_test:
+@@ -635,7 +751,8 @@ def main(argv=None, fetch=fetch_github) -> int:
+     roster = roster_lib.show_roster(a.repo, ref, path)
+     snap = (json.loads(Path(a.github_snapshot).read_text(encoding="utf-8"))
+             if a.github_snapshot else _fetch_or_offline(fetch, a.gh_repo))
+-    page = render(roster, f"{ref}:{path}", plan, snap)
++    flow = None if a.no_flow else flow_metrics(a.repo, ref, path, roster, plan, a.train_log)
++    page = render(roster, f"{ref}:{path}", plan, snap, flow)
+     Path(a.html).write_text(page, encoding="utf-8")
+     print(f"wrote {a.html}: {len(roster_lib.groups_of(roster))} groups, "
+           f"closure {plan['summary']['closure']}")
+@@ -729,6 +846,11 @@ def _self_test() -> int:
+     check("an open issue wired only to a done group, or to none, is an unplanned orphan "
+           "naming the groups it was wired to",
+           pr_["orphans"] == {6: ["R9-GONE"], 99: []}, pr_["orphans"])
++    fr = {"groups": [grp("R9-FIXONLY", "CO", fixes=(8,))]}
++    fp = project_issues(fr, {"groups": {"R9-FIXONLY": pg("2026-01-05T10:00:00Z")}}, {8})
++    check("an open issue wired only via `fixes` to an open group closes at its finish, "
++          "not an unplanned orphan",
++          fp["close_at"].get(8) == _t("2026-01-05T10:00:00Z") and not fp["orphans"], fp)
+     check("the tracking issue is never an orphan",
+           TRACKING_ISSUE not in project_issues(ir, ip, {1, TRACKING_ISSUE})["orphans"])
+     osec = issues_section(ir, dict(ip, generated={"start": "2026-01-05T00:00:00Z"},
+@@ -849,6 +971,52 @@ def _self_test() -> int:
+             check("every template field is filled", "{{" not in page,
+                   re.findall(r"\{\{\w+\}\}", page))
+             check("the round comes from the roster path", "<h1>Round 9 Fix Plan</h1>" in page)
++
++            # PROPOSAL 1 (tvofi 2026-11-07): a merged carries-open group with
++            # every carry marked is closed in the plan and renders merged, with
++            # the record step it still owes; one unmarked carry keeps it held.
++            def dis_roster(carry):
++                return {"groups": roster["groups"] + [
++                    dict(grp("R9-DIS", "CO", stage="carries-open", commit="fffffff1",
++                             issues=(12,)), carry=carry),
++                    grp("R9-AFTER", "CO", after=("R9-DIS",))]}
++            for carry, want in ((["a [moved: R9-READY]", "b [dismissed: a duplicate]"], True),
++                                (["a [moved: R9-READY]", "b"], False)):
++                rd = dis_roster(carry)
++                pd = replan.build_plan(rd, durations, dict(replan.DEFAULT_CAPS), start,
++                                       "v1.0.0", round_n=9)
++                rr = {r["g"]: r for r in build_rows(rd, pd, snap)}
++                if want:
++                    check("discharged: rendered merged, naming the record step it owes",
++                          rr["R9-DIS"]["st"] == "done"
++                          and "every carry discharged" in rr["R9-DIS"]["label"]
++                          and "close or re-own #12" in rr["R9-DIS"]["label"]
++                          and rr["R9-AFTER"]["blk"] == [], (rr["R9-DIS"], rr["R9-AFTER"]["blk"]))
++                else:
++                    check("discharged (null): one unmarked carry keeps it held and its "
++                          "dependent blocked", rr["R9-DIS"]["st"] == "held"
++                          and rr["R9-AFTER"]["blk"] == ["R9-DIS"], (rr["R9-DIS"], rr["R9-AFTER"]))
++
++            # PROPOSAL 2: the flow section draws bottleneck_metrics' dict, the
++            # alert's lines, and the critical-path lane as the full set.
++            flow = bottleneck_check._fixture(
++                closed=(4, ""), batches=(None, "no train log named"),
++                merge_wait=(([{"pr": 7, "hours": 3.0, "kind": "group", "at_head": True}], 0), ""))
++            flow.update(until="2026-01-05 00:00:00+00:00", lead=(({"S": [1.5, 2.5]}, 0), ""))
++            fp = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json", plan, snap, flow)
++            check("flow: the alert's breach line is drawn",
++                  "BOTTLENECK: throughput 0.67/h" in fp and "<h3>Bottlenecks (2)</h3>" in fp,
++                  re.findall(r"BOTTLENECK[^<]*", fp))
++            check("flow: an unreadable source is UNAVAILABLE with its reason, the page is not",
++                  "BOTTLENECK-UNREADABLE: skip-share -- no train log named" in fp
++                  and "PLAN UNAVAILABLE" not in fp)
++            check("flow: the critical-path lane lists the plan's full set",
++                  f"Critical-path lane ({len(plan['critical_path'])} groups" in fp
++                  and all(f'<td class="g">{short(g)}</td>' in fp for g in plan["critical_path"]))
++            check("flow: merge-wait and WIP are drawn from the dict",
++                  "#7</td><td>group</td><td class=\"mono\">3.0 h" in fp and "19 vs cap 20" in fp)
++            check("flow (null): with no metrics the section says not drawn, no zero",
++                  "Flow metrics not drawn" in page and "BOTTLENECK" not in page)
+             model = plan["generated"]["model"]
+             check("the methodology states the plan's sizes and live fraction",
+                   f"S {model['sizes_hours']['S']:g} h" in page
+@@ -1021,10 +1189,15 @@ _TEMPLATE = """<!doctype html>
+   --bg:#10171c; --panel:#162028; --fg:#e4ebef; --muted:#93a3ad; --line:#2a3842;
+   --accent:#f07a42; --done:#5cc48a; --live:#5aa7e6; --ready:#d9b440; --blocked:#76848e; --partial:#b78be0;
+   --done-bg:#173226; --live-bg:#152b3d; --ready-bg:#33290f; --blocked-bg:#1e2a32; --partial-bg:#2a1f38; color-scheme:dark}
++html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+ body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--body);margin:0;padding:20px 16px 40px}
+ main{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+ h1{font:700 2.1rem/1 var(--display);letter-spacing:.01em;margin:0}
+ h2{font:600 1.25rem/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px}
++h3{font:600 1rem/1.2 var(--display);letter-spacing:.04em;margin:14px 0 8px}
++.alerts{margin:0;padding-left:1.2em}
++.alerts li{overflow-wrap:break-word}
++pre,code{white-space:pre-wrap;overflow-wrap:break-word}
+ .sub{color:var(--muted);margin:6px 0 0}
+ .strip{display:flex;flex-wrap:wrap;gap:10px}
+ .stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;min-width:120px;flex:1}
+@@ -1032,6 +1205,8 @@ h2{font:600 1.25rem/1.1 var(--display);letter-spacing:.04em;text-transform:upper
+ .stat span{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+ .stat.end b{color:var(--accent);font-size:1.15rem;padding-top:6px}
+ section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
++.scroll{max-width:100%}
++@media (max-width:480px){body{padding:14px 10px 32px}section{padding:12px}h1{font-size:1.7rem}}
+ .scroll{overflow-x:auto}
+ svg{display:block;font-family:var(--mono)}
+ .grid{stroke:var(--line);stroke-width:1}
+@@ -1068,9 +1243,11 @@ td.g{font:600 .85rem var(--mono);white-space:nowrap}
+ td.d{min-width:260px;max-width:440px}
+ .lanec{font:400 .72rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+ .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.82rem}
++.alerts li.mono{white-space:normal}
+ .blk{color:var(--muted);font-size:.82rem;max-width:200px}
+ .cp{color:var(--accent);margin-right:4px}
+-.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:.78rem;white-space:nowrap;border:1px solid}
++.pill{display:inline-block;max-width:100%;box-sizing:border-box;border-radius:999px;padding:1px 9px;font-size:.78rem;line-height:1.35;white-space:normal;overflow-wrap:break-word;word-break:normal;border:1px solid}
++td.st{min-width:11rem}
+ .pill.done{background:var(--done-bg);color:var(--done);border-color:var(--done)}
+ .pill.live{background:var(--live-bg);color:var(--live);border-color:var(--live)}
+ .pill.ready{background:var(--ready-bg);color:var(--ready);border-color:var(--ready)}
+@@ -1107,6 +1284,7 @@ td.d{min-width:260px;max-width:440px}
+ </div>
+ 
+ {{issues_chart}}
++{{flow}}
+ <section>
+   <h2>Swimlanes</h2>
+   <div class="scroll">{{svg}}</div>
+diff --git a/tools/audit/seat/r10_roster_ops_mutants.py b/tools/audit/seat/r10_roster_ops_mutants.py
+index 8795407fb..768440bb7 100644
+--- a/tools/audit/seat/r10_roster_ops_mutants.py
++++ b/tools/audit/seat/r10_roster_ops_mutants.py
+@@ -227,8 +227,8 @@ PLANTS = {
+            '        elif isinstance(x, dict) and isinstance(x.get("number"), int):  # R5\n'),
+     "H1": ("    if held:\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n",
+            "    if False:  # H1\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n"),
+-    "H2": ('        if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
+-           '        if a.op == "set-stage":  # H2\n'),
++    "H2": ('        if closed or a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
++           '        if closed or a.op == "set-stage":  # H2\n'),
+ }
+ 
+ 
+diff --git a/tools/audit/seat/roster_edit.py b/tools/audit/seat/roster_edit.py
+index b46e3ca62..944e09334 100644
+--- a/tools/audit/seat/roster_edit.py
++++ b/tools/audit/seat/roster_edit.py
+@@ -138,7 +138,10 @@ resolve is refused whether or not the text names a proposal.
+                carry already marked. `implemented` records that the sha is
+                on main; it is not a verification. A carry that sat on a
+                closed group at roster_lib.CARRY_CUTOVER is legacy and needs
+-               no mark.
++               no mark. A mark that leaves a `carries-open` group owing no
++               carry writes `done` as set-stage done would, HELD at
++               carries-open while it owns an open issue nothing else owns
++               (`close_discharged`, then the done hold);
+   set-size     writes the group's own `size`, refusing a size the duration
+                model (tools/plan/durations.json) does not key -- the
+                `_size_why` check append-group runs -- and, with --cite, a
+@@ -177,7 +180,7 @@ import carry_audit  # noqa: E402  the one owned-issue test (`orphaned`)
+ import roster_lib  # noqa: E402  which roster: roster_lib.roster_path, the one owner
+ import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
+ TOTAL_OK = re.compile(r"TOTAL: 0 error")
+-SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
++SHA_RE = roster_lib.SHA_RE  # the one sha grammar, roster_lib.discharged reads it too
+ # Historical path first, then the moved one: the same preference as
+ # `test -f` in the graders. Which of the two exists is read from the
+ # checkout being linted.
+@@ -605,6 +608,24 @@ def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
+         op_append_carry(roster, group, value)
+ 
+ 
++def close_discharged(roster, group, legacy) -> bool:
++    """After a mark: a `carries-open` group the mark left owing no carry is
++    written as `set-stage done` writes it (`_closing`; the caller then runs
++    `hold_done`, so a group that would orphan an open issue stays held and the
++    issues are printed). It closes the record lag `roster_lib.discharged`
++    otherwise leaves for a hand `set-stage done` (tvofi 2026-11-07, proposal
++    1). Any other stage is untouched: an unmerged group's brief is undone."""
++    g = _need(roster, group)
++    resume = g.get("resume") or {}
++    if resume.get("stage") != HOLD_STAGE or roster_lib.pending_carries(g, legacy or {}):
++        return False
++    resume["stage"] = _closing(g, "done", legacy, "mark-carry")
++    _drop_stale_note(g, resume["stage"])
++    print(f"mark-carry {group}: the last pending carry is discharged: "
++          f"{HOLD_STAGE} -> {resume['stage']}")
++    return True
++
++
+ #: What a closed stage is written as while its group would orphan an issue.
+ HOLD_STAGE = "carries-open"
+ 
+@@ -1305,7 +1326,7 @@ def make_edit(a, value, rest):
+             apply_files_op(roster, a, value, rel, a.checkout, a.worktree)
+             return True
+         legacy = None
+-        if a.op in ("set-stage", "set-resume"):
++        if a.op in ("set-stage", "set-resume", "mark-carry"):
+             try:
+                 legacy = roster_lib.read_legacy(a.worktree, rel)
+             except roster_lib.RosterNotFound as e:
+@@ -1313,14 +1334,16 @@ def make_edit(a, value, rest):
+                              f"stage is written: {e}")
+         apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match,
+                  rel, sizes, legacy, rest, a.into, a.reason)
+-        if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):
++        closed = a.op == "mark-carry" and close_discharged(roster, a.group, legacy)
++        if closed or a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):
+             try:
+                 held = hold_done(roster, a.group, a.worktree, carry_audit.issue_reader(
+                     roster.get("repo") or carry_audit.REPO, a.issue_state))
+             except (ValueError, SystemExit) as e:  # carry_audit's refusals
+                 raise Refuse(f"the done hold cannot read issue state: {e}")
+             if held:
+-                print(f"roster_edit: HELD {a.group} at {HOLD_STAGE}, not {value}: "
++                print(f"roster_edit: HELD {a.group} at {HOLD_STAGE}, not "
++                      f"{'done' if closed else value}: "
+                       f"it owns open {', '.join(f'#{n}' for n in held)} with no other "
+                       "live owner; wire each to its next owner or close it, then "
+                       "set the stage again", file=sys.stderr)
+@@ -2245,6 +2268,35 @@ def _self_test() -> int:
+     check("mark-carry with a plain value lands (null control)",
+           rc == 0 and at_mark("R9-B")["carry"][4] == "carry five [dismissed: ab]",
+           (rc, out[-300:]))
++    # THE CLOSING ARM (tvofi 2026-11-07, proposal 1): a mark that discharges
++    # the last pending carry of a carries-open group writes what set-stage done
++    # writes -- done, or carries-open HELD while it owns an orphaned open issue.
++    check("mark-carry's last mark on an in-progress group leaves its stage (null control)",
++          at_mark("R9-B")["resume"]["stage"] == "in-progress"
++          and "last pending carry" not in out, (at_mark("R9-B")["resume"], out[-300:]))
++
++    def mark_a(text, issues="closed"):
++        return said(lambda: edit("mark-carry", "R9-A", None, branch="mark-1", match=text,
++                                 rest=("dismissed", "a fixture"), issues=issues))
++    for text in ("a one", "a two"):
++        edit("append-carry", "R9-A", text, branch="mark-1")
++    edit("set-stage", "R9-A", "done", branch="mark-1", at_sha="a" * 40)
++    rc, out = mark_a("a one")
++    check("mark-carry leaving one pending carry keeps carries-open (null control)",
++          rc == 0 and at_mark("R9-A")["resume"]["stage"] == "carries-open"
++          and "last pending carry" not in out, (rc, at_mark("R9-A")["resume"], out[-300:]))
++    rc, out = mark_a("a two")
++    check("mark-carry discharging the last pending carry of a carries-open group writes done",
++          rc == 0 and at_mark("R9-A")["resume"]["stage"] == "done"
++          and "carries-open -> done" in out, (rc, at_mark("R9-A")["resume"], out[-300:]))
++    edit("set-stage", "R9-A", "in-progress", branch="mark-1")
++    edit("append-carry", "R9-A", "a three", branch="mark-1")
++    edit("set-stage", "R9-A", "done", branch="mark-1")
++    rc, out = mark_a("a three", issues="open")
++    check("... and holds it carries-open, naming the issue, while it owns an orphaned open issue",
++          rc == 0 and at_mark("R9-A")["resume"]["stage"] == "carries-open"
++          and "HELD R9-A" in out and "#10" in out, (rc, at_mark("R9-A")["resume"], out[-300:]))
++    edit("set-stage", "R9-A", "in-progress", branch="mark-1")
+     # The cut-over: a carry on a closed group at the cut-over commit is legacy
+     # and never pending; one appended after it is.
+     # A closed group that holds a carry can only be admitted whole (append-group
+@@ -2273,6 +2325,16 @@ def _self_test() -> int:
+         check("set-resume --field stage done reads the same rule",
+               rc == 0 and at_mark("R9-L")["resume"]["stage"] == "carries-open"
+               and "set-resume R9-L: done -> carries-open" in out, (rc, out[-300:]))
++        # mark-carry reads the cut-over too (review 3350): marking the one
++        # post-cut-over carry leaves only the legacy one, which is not
++        # pending, so the group closes. The null control is the check above:
++        # the same group with that carry unmarked stays carries-open.
++        rc, out = said(lambda: edit("mark-carry", "R9-L", None, branch="mark-1",
++                                    match="post-cut-over carry",
++                                    rest=("dismissed", "a fixture")))
++        check("mark-carry whose only unmarked carry left is legacy writes done",
++              rc == 0 and at_mark("R9-L")["resume"]["stage"] == "done"
++              and "carries-open -> done" in out, (rc, at_mark("R9-L")["resume"], out[-300:]))
+         # An unreadable cut-over refuses the stage write and writes nothing
+         # (review X6): read as "no legacy", the legacy carry would be pending.
+         # The readable null is the "legacy carry alone" check above.
+diff --git a/tools/audit/seat/roster_lib.py b/tools/audit/seat/roster_lib.py
+index a510744c4..8e44599fa 100644
+--- a/tools/audit/seat/roster_lib.py
++++ b/tools/audit/seat/roster_lib.py
+@@ -498,6 +498,30 @@ def closing_stage(group: dict, stage: str, legacy: dict) -> tuple[str, list]:
+     return ("carries-open" if pending else "done"), pending
+ 
+ 
++#: A commit sha as the roster records one (7 to 40 hex); roster_edit.py writes by it.
++SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
++
++
++def discharged(group: dict, legacy: dict) -> bool:
++    """A `carries-open` group whose merge is recorded and that owes no carry:
++    every carry is marked (implemented, moved or dismissed) or legacy.
++
++    Its own deliverable merged -- `closing_stage` writes `carries-open` only
++    where `done` was asked, and `resume.commit` is that merge -- and the carries
++    it held are on main or live in their destinations, so no fixer work is
++    left: the planner counts it closed (tvofi 2026-11-07, proposal 1). The
++    roster stage is NOT rewritten by this predicate: a group the merge held
++    because it owns an open issue nothing else owns (`roster_sync.hold_open`)
++    still owes that record step, and `set-stage done` stays its writer. A
++    group not yet merged (`not-started`, `in-progress`, ...) is never
++    discharged, whatever its carries say: its own brief is undone."""
++    resume = group.get("resume") or {}
++    return (resume.get("stage") == "carries-open"
++            and isinstance(resume.get("commit"), str)
++            and bool(SHA_RE.match(resume["commit"]))
++            and not pending_carries(group, legacy))
++
++
+ def stranded(roster: dict, legacy: dict) -> list:
+     """(group, stage, index, text) of every pending carry on a closed group."""
+     out = []
+@@ -805,6 +829,24 @@ def _self_test() -> int:
+                         "done", legacy) == ("done", []))
+     check("closing (null): a stage other than done is never rewritten",
+           closing_stage(cg, "in-progress", legacy) == ("in-progress", []))
++    # discharged (proposal 1): merged, carries-open, nothing pending.
++    co = {"group": "CO", "carry": ["a [moved: R10-X]", "b [implemented: 0123abcd]",
++                                   "c [dismissed: a duplicate]"],
++          "resume": {"stage": "carries-open", "commit": "0123abcd"}}
++    check("discharged: carries-open, a merge commit, every carry marked",
++          discharged(co, {}))
++    check("discharged (null): one unmarked carry keeps it owed",
++          not discharged(co | {"carry": co["carry"] + ["d"]}, {}))
++    check("discharged: a legacy carry is not owed",
++          discharged(co | {"carry": co["carry"] + ["old"]}, {"CO": frozenset({"old"})}))
++    check("discharged (null): an unmerged group's own work is undone, whatever "
++          "its carries say",
++          not any(discharged(co | {"resume": {"stage": s, "commit": "0123abcd"}}, {})
++                  for s in ("not-started", "in-progress", "review", "queued")))
++    check("discharged (null): carries-open with no recorded merge is not",
++          not discharged(co | {"resume": {"stage": "carries-open"}}, {})
++          and not discharged(co | {"resume": {"stage": "carries-open",
++                                              "commit": "not a sha"}}, {}))
+     got = [(s[0], s[2]) for s in stranded({"groups": [
+         cg, cg | {"group": "AB", "resume": {"stage": "absorbed"}},
+         cg | {"group": "CO", "resume": {"stage": "carries-open"}}]}, legacy)]
+diff --git a/tools/audit/seat/state_docs.py b/tools/audit/seat/state_docs.py
+index 1b9ffbd5f..e5c187fca 100644
+--- a/tools/audit/seat/state_docs.py
++++ b/tools/audit/seat/state_docs.py
+@@ -41,7 +41,8 @@ commit as `PLAN-TABLE.md` -- one ref, one durable path. A page that refuses
+ (a stale or violating plan, an unreadable roster) is the UNAVAILABLE page: the
+ ref keeps the last good PLAN.html, with its own snapshot time, when it holds
+ one, and carries the UNAVAILABLE page when it holds none; either way the call
+-publishes the other docs and exits 1, so the caller sees the plan unread. The
++publishes the other docs and exits 1, so the caller sees the plan unread.
++`--train-log` is handed on to `plan_page.py` (its flow section's skips). The
+ beat runs no replan, so it never passes `--plan`.
+ 
+ `beat` is the recurring half of tvofi's 2026-10-09 instruction that the state
+@@ -453,6 +454,8 @@ def draw_plan_page(a, staging: Path, page_path: str, prev: str | None):
+         cmd += ["--roster-path", a.roster_path]
+     if a.github_snapshot:
+         cmd += ["--github-snapshot", a.github_snapshot]
++    if a.train_log:
++        cmd += ["--train-log", a.train_log]
+     r = subprocess.run(cmd, cwd=a.checkout, capture_output=True, text=True)
+     text = target.read_text(encoding="utf-8") if target.exists() else ""
+     if r.returncode == 0 and text.strip():
+@@ -503,6 +506,8 @@ def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
+                        help="plan.json to draw as PLAN.html (plan_page.py)")
+         p.add_argument("--github-snapshot",
+                        help="GitHub state for the plan page instead of gh")
++        p.add_argument("--train-log",
++                       help="the live train.log the plan page's flow section reads")
+     if beat_mode:
+         p.add_argument("--watch-ref", default=WATCH_REF,
+                        help="the full ref name a pass reads at origin")
+@@ -631,8 +636,12 @@ def plan_page_arms(root: Path, ok, git) -> None:
+                      encoding="utf-8")
+     mirror, prs = root / "pmirror", root / "pprs.json"
+     prs.write_text("[]", encoding="utf-8")
++    train = root / "train.log"  # handed on to plan_page.py, whose flow section reads it
++    train.write_text("BATCH 20261107-143937 pid=2 base=main queue=1 (#11) --overlap --skip-bad\n"
++                     "SKIP #11 ci: #11 red at the head: gate\nSKIP REPORT: 1 skipped of 1\n",
++                     encoding="utf-8")
+     argv = ["--checkout", str(drv), "--roster-ref", "main", "--pr-state", str(prs),
+-            "--plan", str(planf),
++            "--plan", str(planf), "--train-log", str(train),
+             "--github-snapshot", str(snapf), "--mirror", str(mirror), "--push"]
+     state_ref, sdir, write_set = state_of(9)
+     page_path = f"{sdir}/{PLAN_PAGE}"
+@@ -655,9 +664,13 @@ def plan_page_arms(root: Path, ok, git) -> None:
+         return
+     tip1 = tip_of(state_ref)
+     good = at(tip1, page_path) or ""
++    # Keyed on the refusal page's own heading, as publish's crash guard is: a
++    # drawn page may carry a flow metric's UNAVAILABLE cell (plan_page's Flow).
+     ok("plan page: a fresh plan draws PLAN.html in the plan table's commit",
+-       rc == 0 and "Fix Plan" in good and "UNAVAILABLE" not in good
++       rc == 0 and "Fix Plan" in good and "PLAN UNAVAILABLE" not in good
+        and at(tip1, write_set[0]) is not None, (rc, good[:200]))
++    ok("plan page: --train-log reaches plan_page.py: the page's train skips name its batch",
++       "20261107-143937" in good, good[good.find("Flow"):good.find("Flow") + 300])
+     ok("plan page: the mirror carries PLAN.html",
+        (mirror / PLAN_PAGE).read_text(encoding="utf-8") == good)
+     ok("plan page: without --plan the write set holds no PLAN.html (null control)",
+diff --git a/tools/audit/seat/sweep_template.md b/tools/audit/seat/sweep_template.md
+index 785b53e5d..db00c46c2 100644
+--- a/tools/audit/seat/sweep_template.md
++++ b/tools/audit/seat/sweep_template.md
+@@ -54,6 +54,7 @@ rendered text that no overlay value supplied.
+ | `gantt_acks` | the Gantt acks file `sweep_gantt.py --acks` reads, one `<ISO> <KEY> act\|defer\|accept [until=<ISO>] <reason>` line per answered slip |
+ | `fire_ledger` | the session's fire ledger, one line per seat fired with its leading UTC stamp, which the `gantt` and `verdict-audit` rows hand on as `--fired` (a line within 12 h holds the pull request or topic it names) |
+ | `train_glob` | the glob of live train logs `verdict_audit.py --train-glob` reads (a log modified within 3 h holds its queued pull requests) |
++| `train_log` | the live merge train's `train.log` (`$HOME/.local/state/hpo/merge_train/train.log`), which the beat's `bottleneck` and `plan-beat` rows hand on as `--train-log` (the skip-share alert and the plan page's train-skips table) |
+ | `unheld_skip` | the skip file `verdict_audit.py --skip` reads, one `#<N> <ruling>` line per pull request held by an owner ruling |
+ 
+ <!-- sweep:begin -->
+@@ -73,7 +74,7 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
+ 
+ (4b) Record beat. The beat's `plan-beat` row runs `python3 tools/plan/replan.py --out {{plan_json}} --slots {{plan_slots}} --seats {{plan_seats}}`, then `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}} --plan {{plan_json}}`, every 30 minutes, merge or none; it publishes the plan page as `PLAN.html` in the plan table's commit at the state ref and mirrors it as {{plan_page}}, republished at the same path. A `plan-beat: PLAN UNAVAILABLE` line in {{digest}}/digest.txt is the page UNAVAILABLE (the other docs are still pushed; the ref keeps the last good page): answer its reason and re-run that replan, never hand-run `plan_page.py` around the refusal; a `plan-beat: REFUSED` line is the docs push's own refusal. A `plan-beat: PLAN MOVED` line is a page that changed since the last beat: republish it at {{plan_page}} this sweep (owner ruling, 2026-11-06: every sweep updates the plan artifact). The beat's `gantt` row compares that plan with the Gantt baseline through `tools/audit/seat/sweep_gantt.py`: it reads the roster at {{gantt_roster}}, the fire ledger {{fire_ledger}} and the acks file {{gantt_acks}}; each `GANTT-SLIP` line of {{digest}}/digest.txt is owed `act`, `defer` or `accept`, appended to {{gantt_acks}} (owner ruling, 2026-11-01).
+ 
+-(4c) Open pull requests. Reconcile every open pull request to one bucket, with its reason: in train, review out, fixer out, CI wait, or owner-held; none waits without one; critical path first. The beat's `verdict-audit` row (`tools/audit/seat/verdict_audit.py`, reading {{fire_ledger}}, the train logs {{train_glob}} and the skip file {{unheld_skip}}) prints an `UNHELD` line in {{digest}}/digest.txt for each pull request whose next step nobody holds: give each a holder this sweep, or put a pull request held by an owner ruling on {{unheld_skip}} (owner ruling, 2026-11-06: no pull request waits unheld).
++(4c) Open pull requests. Reconcile every open pull request to one bucket, with its reason: in train, review out, fixer out, CI wait, or owner-held; none waits without one; critical path first. The beat's `verdict-audit` row (`tools/audit/seat/verdict_audit.py`, reading {{fire_ledger}}, the train logs {{train_glob}} and the skip file {{unheld_skip}}) prints an `UNHELD` line in {{digest}}/digest.txt for each pull request whose next step nobody holds: give each a holder this sweep, or put a pull request held by an owner ruling on {{unheld_skip}} (owner ruling, 2026-11-06: no pull request waits unheld). The beat's `bottleneck` row (`tools/audit/seat/bottleneck_check.py`, reading the train log {{train_log}} and the cap {{plan_slots}}) prints a `BOTTLENECK:` line in {{digest}}/digest.txt once per trip of a flow metric past the owner's threshold, with a suggested action: decide whether to act on it this sweep; the line takes no action itself (owner request, tvofi 2026-11-07). A `BOTTLENECK-UNREADABLE:` line is a metric the alert cannot see.
+ 
+ (4d) Queue priority, for the train, review, fixer and CI queues alike: a push to main; then critical path and hotfix; then production pull requests with instrument pull requests saving 12 h or more; then other instruments by savings. A group's critical-path standing is the roster's `critical` list (`tools/audit/seat/roster_lib.py` `critical_path`); the gate order is `tools/pr/gate_priority.py`'s.
+ 
+diff --git a/tools/plan/replan.py b/tools/plan/replan.py
+index 5520a5401..e7d59255c 100644
+--- a/tools/plan/replan.py
++++ b/tools/plan/replan.py
+@@ -311,14 +311,19 @@ def touches_coordinator(group: dict) -> bool:
+ 
+ # ----------------------------------------------------------------------- graph
+ 
+-def dependency_graph(G: dict) -> tuple[dict, set, set]:
++def dependency_graph(G: dict, legacy: dict | None = None) -> tuple[dict, set, set]:
+     """(open deps per open group, open set, done set).
+ 
+     An `after` edge to a done group is satisfied and drops out. An `after`
+     naming no group in the roster is refused: silently dropping it would make
+-    a dependency look met when the roster has a typo.
++    a dependency look met when the roster has a typo. A discharged group
++    (`roster_lib.discharged` over `legacy`, the roster's cut-over carries: a
++    merged `carries-open` group every carry of which is marked) is done here:
++    no fixer work is left, so it takes no slot and clears its after-edges
++    (tvofi 2026-11-07, proposal 1).
+     """
+-    done = {n for n, g in G.items() if is_done(g)}
++    done = {n for n, g in G.items()
++            if is_done(g) or roster_lib.discharged(g, legacy or {})}
+     open_ = set(G) - done
+     deps = {}
+     for n in open_:
+@@ -891,7 +896,8 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
+     if why:
+         raise PlanError(f"the round-close stamp: {why}")
+     G = groups_of(roster)
+-    deps, open_, done = dependency_graph(G)
++    deps, open_, done = dependency_graph(G, legacy)
++    discharged = {n for n in done if not is_done(G[n])}
+     # Groups after the round's closing stamp are scheduled after it and are
+     # neither inside closure nor in any stamp's carries (carries 10, 11).
+     post = roster_lib.post_closure_groups(G, open_)
+@@ -1232,6 +1238,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
+                 "level": None, "live": False, "inherited": False,
+                 "coordinator": touches_coordinator(G[n]), "batch": None,
+                 "stamp": None, "after": [], "done": True,
++                **({"discharged": True} if n in discharged else {}),
+             }
+             if n in absorbed_by:
+                 groups_out[n]["absorbed_into"] = absorbed_by[n][0]
+@@ -1346,6 +1353,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
+             "stamps": len(stamps),
+             "groups_total": len(G),
+             "groups_done": len(done),
++            "groups_discharged": len(discharged),
+             "groups_open": len(open_all),
+             "post_closure": sorted(post),
+             "post_closure_finish": (iso(start, max(post_end.values())) if post_end else None),
+@@ -1736,6 +1744,29 @@ def selftest() -> int:
+     pa = build_plan(absorbed, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
+     expect("an absorbed group is closed work, not scheduled", pa["groups"]["X"].get("done") is True,
+            str(pa["groups"].get("X")))
++    # Proposal 1 (tvofi 2026-11-07): a merged carries-open group whose every
++    # carry is marked is closed work, and its dependent no longer waits on it.
++    def held(carry):
++        return dict(roster, groups=roster["groups"] + [
++            {"group": "HD", "size": "L", "lane": "Core model", "kind": "defect", "after": [],
++             "carry": carry, "resume": {"stage": "carries-open", "commit": "0123abcd"}},
++            {"group": "HN", "size": "S", "lane": "Core model", "kind": "defect",
++             "after": ["HD"], "resume": {"stage": "not-started"}}])
++    marked = ["x [moved: A]", "y [implemented: 0123abcd]", "z [dismissed: a duplicate]"]
++    pd = build_plan(held(marked), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
++    expect("discharged: a merged carries-open group with every carry marked is closed, "
++           "takes no slot and clears its dependent's edge",
++           pd["groups"]["HD"].get("done") is True and pd["groups"]["HD"].get("discharged") is True
++           and pd["groups"]["HN"]["after"] == [] and pd["summary"]["groups_discharged"] == 1
++           and check_plan(pd) == [], str(pd["groups"]["HD"]))
++    po = build_plan(held(marked + ["w"]), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
++    expect("discharged (null): one unmarked carry keeps it scheduled and its dependent waiting",
++           po["groups"]["HD"].get("done") is False and po["groups"]["HN"]["after"] == ["HD"]
++           and po["summary"]["groups_discharged"] == 0, str(po["groups"]["HD"]))
++    pl = build_plan(held(marked + ["w"]), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND,
++                    legacy={"HD": frozenset({"w"})})
++    expect("discharged: a legacy carry is not owed (the cut-over is read)",
++           pl["groups"]["HD"].get("done") is True, str(pl["groups"]["HD"]))
+     again = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
+     expect("deterministic: two runs are byte-identical",
+            json.dumps(plan, sort_keys=True) == json.dumps(again, sort_keys=True))
