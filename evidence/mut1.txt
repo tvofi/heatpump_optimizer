@@ -1,0 +1,2 @@
+  FAIL a hand-typed value in a block is refused
+figure_block self-test: 11 checks, 1 failed
