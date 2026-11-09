@@ -21844,22 +21844,37 @@ R.check(
     f"matchers={_DEPENDABOT_SCAN.get('manifests')} for {len(_DEPENDABOT_YAML)} entries",
 )
 # `Analyze (python)` is a required context, so a cancelled analysis fails the
-# pull request. Its runtime swings with runner load, and the 30-minute cap sat
-# inside that spread on 2026-10-20: three cancellations at the cap -- 2bd5e90f
-# 30:19, 11 minutes into query evaluation; 4e5801eb 30:09 and 916431ae 30:07,
-# both while uploading results -- while a rerun of 4e5801eb finished in 21.5
-# minutes (job 118701134345). 45 is the 30:19 worst case plus 14:41 of headroom
-# for that variance (45:00 - 30:19); the floor is a measurement, the margin a
-# design choice. The cap is pinned against the YAML (not left as prose in the
-# workflow) because a one-line edit shrinking it back is exactly what no other
-# check reads.
+# pull request. The cap is per leg, read from the matrix's `include` entries
+# (r10-hotfix-codeql-headroom, design note sections 1 and 3): python carries 75
+# because main's python job outgrew the 45-minute cap (extraction of
+# tests/features.py is the critical path; projected uncensored worst case about
+# 51 minutes, so 75 is that plus a deliberate stopgap margin); the two legs that
+# read about 40x under the cap stay at exactly 45, which is the null control
+# (a blanket raise would move them and fails here). The cap is pinned against
+# the YAML, not left as prose in the workflow, because a one-line edit
+# shrinking it back is exactly what no other check reads.
 _CODEQL_JOBS = (_yaml.safe_load(_CODEQL_YML) or {}).get("jobs") or {}
-_analyze_cap = (_CODEQL_JOBS.get("analyze") or {}).get("timeout-minutes")
+_analyze_job = _CODEQL_JOBS.get("analyze") or {}
+_analyze_cap = _analyze_job.get("timeout-minutes")
+_analyze_incl = (((_analyze_job.get("strategy") or {}).get("matrix") or {})
+                 .get("include")) or []
+_leg_caps = {e.get("language"): e.get("timeout") for e in _analyze_incl
+             if isinstance(e, dict)}
+_PY_WORST_CASE_MIN = 51
 R.check(
-    "codeql.yml's analyze cap clears the python leg's measured worst case",
-    isinstance(_analyze_cap, int) and _analyze_cap >= 45,
-    f"analyze timeout-minutes={_analyze_cap!r}; the python leg was cancelled "
-    "at 30:19 before the cap rose (2bd5e90f, 2026-10-20)",
+    "codeql.yml's analyze cap is per leg: python clears the measured worst case, the others stay at 45",
+    _analyze_cap == "${{ matrix.timeout }}"
+    and set(_leg_caps) == {"actions", "javascript-typescript", "python"}
+    and len(_analyze_incl) == 3
+    and type(_leg_caps["python"]) is int
+    and _leg_caps["python"] >= _PY_WORST_CASE_MIN
+    and _leg_caps["actions"] == 45 and type(_leg_caps["actions"]) is int
+    and _leg_caps["javascript-typescript"] == 45
+    and type(_leg_caps["javascript-typescript"]) is int,
+    f"timeout-minutes={_analyze_cap!r}; include caps={_leg_caps!r}; the python "
+    "leg was capped at 45.1 min on main (projected worst case ~51, design "
+    "r10-hotfix-codeql-headroom s1); actions and javascript-typescript read "
+    "p99 <= 2.3 min and stay 45",
 )
 # D-5: O17's INERT list is admitted only with the soundness step, which runs
 # on push and reads the leg's extracted source archive; and the `scope` job
@@ -28662,7 +28677,7 @@ R.check(
     "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
     _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
     and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
-    == ["base", "machinery"],
+    == ["base", "machinery", "selftests"],
     f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.

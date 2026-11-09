@@ -23,13 +23,8 @@ clears `tests/entities.py`'s history reds (#1693, #1699, #1704).
 `SLOT_MIN_SECONDS`; else `none`. `prepr.sh` takes one at its first heavy step. Arrival orders
 each priority band; a dead or expired ticket is skipped. An expired or abandoned lease is
 free, a slot once its pid is gone. A `lease` wait ends at the script's recorded seconds, rc 76: `run.sh` names it unrun. `flock-wrap`
-retakes a lapsed lease. That lease, not the tick's count, is nudge.md §8's cap; hold it with `tests/gate_lock.py`, never `mkdir`:
-
-```
-python3 tests/gate_lock.py take --label <your-label>
-python3 tests/gate_lock.py renew --label <your-label>   # between commands
-python3 tests/gate_lock.py release --label <your-label>
-```
+retakes a lapsed lease. That lease, not the tick's count, is nudge.md §8's cap; hold it with
+`python3 tests/gate_lock.py take|renew|release --label <your-label>` (renew between commands), never `mkdir`.
 
 The owner file carries your label and a 30-minute `expires_at`. `renew` exits 75 while another label
 waits: finish, release, take again behind it. `run.sh` under `HPO_GATE_LOCK_LABEL` renews it, and
@@ -37,6 +32,7 @@ refuses every leased script at once if that label holds none: `take` first (#236
 
 **The mypy census runs here, given pins**: `HPO_TYPING_PYTHON` names one carrying them; unset it prints the install command, unpinned it fails.
 **A gate run rewrites `tools/audit/round4/D6/`**: check it out before any `git add -A`.
+**`instrument-self-tests` is scoped too**: `tools/ci/selftest_scope.py` states its rule and re-record (#201 comment 6707834331).
 
 ## `prepr.sh` is not CI
 

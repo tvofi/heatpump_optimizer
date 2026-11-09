@@ -1886,6 +1886,7 @@
    "tools/ci/ghapi.py",
    "tools/ci/prelude.py",
    "tools/ci/ruleset_cutover.py",
+   "tools/ci/selftest_scope.py",
    "tools/ci/sweep.py",
    "tools/ci/sweep_selftest.py",
    "tools/coverage/coverage_tree.sh",
@@ -4042,6 +4043,8 @@
    "dev/audit/harnesses/r10_configflow_pages.py",
    "dev/audit/harnesses/r10_cop_conversions.py",
    "dev/audit/harnesses/r10_cop_gate.py",
+   "dev/audit/harnesses/r10_cop_gate_band.py",
+   "dev/audit/harnesses/r10_cop_gate_slab.py",
    "dev/audit/harnesses/r10_cop_gate_top.py",
    "dev/audit/harnesses/r10_cop_gate_vent.py",
    "dev/audit/harnesses/r10_cop_partload.py",
@@ -4129,6 +4132,7 @@
    "dev/audit/harnesses/r10_rca_cop_unmeasured.py",
    "dev/audit/harnesses/r10_rca_flush_dispatch.py",
    "dev/audit/harnesses/r10_rca_gate_busy_defer_2.py",
+   "dev/audit/harnesses/r10_rca_gate_busy_defer_4.py",
    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
    "dev/audit/harnesses/r10_rca_sav_estimate.py",
    "dev/audit/harnesses/r10_rca_sweep_settle_loop.py",
@@ -4200,6 +4204,7 @@
    "dev/audit/harnesses/record_api_calls.sh",
    "dev/audit/harnesses/record_batch_measure.py",
    "dev/audit/harnesses/record_burst_replay.py",
+   "dev/audit/harnesses/roster_queue_stale_lint.py",
    "dev/audit/harnesses/sav_reasons_booking.py",
    "dev/audit/harnesses/scale_writer_seams.py",
    "dev/audit/harnesses/silent_peer_waits.py",
@@ -4994,7 +4999,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 598.2
+   "seconds": 1207.9
   },
   "tests/finite_boundary.py": {
    "rc": 0,
@@ -5062,7 +5067,7 @@
   },
   "tests/validate.py": {
    "rc": 0,
-   "seconds": 23.2
+   "seconds": 54.2
   },
   "tests/wood_advisor.py": {
    "rc": 0,
