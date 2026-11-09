@@ -985,9 +985,7 @@ def _interval_measured_heat_kw(coord: Any) -> float | None:
     The one place the substitution is decided, so the two interval learners
     and the slab estimate cannot diverge about what the interval delivered.
     """
-    meter = heat_energy.meter_of(coord)
-    split = coord._commanded_split()
-    a = meter.attribution(split)
+    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
     return heat_energy.space_heat_kw(coord._flow_bias.heat_output_kw, a, integrated=False)
 
 
@@ -1080,12 +1078,14 @@ async def _propagated_slab(coord: Any, prior: Any, prior_at: datetime | None) ->
     now = dt_util.now()
     dt_h = 0.0 if prior_at is None else utc_elapsed_seconds(now, prior_at) / 3600.0
     signals = coord._pump_signals
+    # Observed, the dwell's hours apportion the draw; none on space books 0 kW.
+    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
     kw = draw_range.space_draw_kw(
         coord._accuracy.draw,
         coord._measured_power,
-        coord._commanded_split(),
+        (a.space, a.dhw),
         shared=coord._immersion_active or signals.electric_heat.resistive_heat,
-        space_served=signals.space_heat or not signals.mode_observed,
+        space_served=a.observed or signals.space_heat or not signals.mode_observed,
     )
     if kw is not None and prior_at is not None and 0.0 < dt_h <= HOUSE_LOSS_MAX_SAMPLE_HOURS and (state := await _replay_interval(
         coord, prior, kw, prior.outdoor_temperature, prior_at, dt_h, "Slab estimate",
