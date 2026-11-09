@@ -1,1 +1,0 @@
-selftest: 14 checks, 3 failed pages['fallback', 'over50', 'many1760']
