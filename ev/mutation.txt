@@ -1,0 +1,6 @@
+P424 ACCEPT P425 None
+mut REJECT
+real None
+mut dev/programme/triage/s6-batch135.md#P424 is not an ACCEPT ruling (REJECT)
+absent the triage ruling dev/programme/triage/s6-batch135.md is not on the roster branch or origin/main
+P425 dev/programme/triage/s6-batch135.md#P425 is not an ACCEPT ruling (no such entry)
