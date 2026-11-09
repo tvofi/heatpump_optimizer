@@ -9,7 +9,7 @@ What changes:
 - `class-open` has no mechanical check. There is no driver output to count a seam against: the enumeration rule a body names is free-form, so the obligation stays in the reviewer contract. The body says so here, as the brief asked.
 - The rule text is paid for inside `fix-review.md` by trimming spent prose in steps 2, 4, 8, 9, 11 and 13, with no meaning dropped. The file stays inside its `policy_lint.mjs --budgets` caps (133 of 140 lines, ~2449 of 2451 tokens). No budget was raised.
 
-In-flight edits to `fix-review.md`: R10-PROCESS-SLIM (`handoff/r10-process-slim`), R10-HOTFIX-NONREQUIRED-REDS (`handoff/r10-hotfix-nonrequired-reds`) and R10-DISPATCH-AT-HANDOFF (`handoff/r10-dispatch-at-handoff`, `-p2`). This diff edits steps 1, 2, 4, 6, 8, 9, the GREEN-mutation paragraph of step 11 and step 13. `git merge-tree --write-tree` against each sibling head is in Figures: one sibling, `-p2`, now conflicts in `fix-review.md`.
+In-flight edits to `fix-review.md`: R10-PROCESS-SLIM (`handoff/r10-process-slim`), R10-HOTFIX-NONREQUIRED-REDS (`handoff/r10-hotfix-nonrequired-reds`) and R10-DISPATCH-AT-HANDOFF (`handoff/r10-dispatch-at-handoff`, `-p2`). This diff edits steps 1, 2, 4, 6, 8, 9, the GREEN-mutation paragraph of step 11 and step 13. `git merge-tree --write-tree` against each sibling head is in Figures (taken at the previous head): one sibling, `-p2`, now conflicts in `fix-review.md`.
 
 ## Repair
 
@@ -22,12 +22,13 @@ The reviewer's `class_anchor` survivor (`^` and the trailing `:` dropped from `C
 
 ## Head
 
-`32fbd8338c86f6e66730eb5be9bc880edbe9273c`. The chain to it from the reviewed head `81741e448f32052efde42f2c0fe2605c8083e19f` is:
-- `c7b72252cef4ddd58b22af131c1a4990be016695`: the repair commit, on top of `81741e448`.
-- `ebbc08bfb1d23deea548a6f0c901329d170b4933`: merges `origin/main` `51cd5ec8a42a`. The only resolution was the ledger driver's set merge of `tests/closures.json`.
-- `32fbd8338c86`: merges `origin/main` `daf8b349fd30cc60786eeca333a426b693aa4c5f` (#3346). That moved range touches none of this diff's files.
+`49b9fe55c72af0786ed726a17ef124fa7b7ac59e`, a merge of `origin/main` `6457496aba7b1076b1ed60c374c5badafdf66fc1` (2026-11-09T02:04+01:00) into the reviewed head `41a196a242f20636f9e354ad98c5a401445831d9`, which carries `Fix review: merge 41a196a242f2`. GitHub read #3341 as DIRTY: `git merge-tree --write-tree origin/main 41a196a242f2` named one content conflict, in `dev/governance/roles/fix-review.md` step 13, where main's `bc59a13f63` and this branch both rewrote the same sentence.
 
-Every figure below was taken at `32fbd8338c86`, with merge base and `origin/main` `daf8b349fd30` (2026-11-08T21:06Z). `tools/pr/prepr.sh` ran clean at this head against that base. A `PREPR_SKIP_CLOSURES=1` run also passed at `ebbc08bfb` against `51cd5ec8a42a`, before main moved.
+Resolution delta (the whole of it, for the reviewer's carry): step 13 keeps this branch's inlined `git merge-tree --write-tree origin/main <head>` form and main's two sentences word for word, "Block on main only on one, never on a head behind main that merges cleanly (tvofi 11-07). A conflict off the two claim files is yours." Union: it replaces the branch's retained old sentence "A conflict on any path other than the two claim files is yours to block on...", which main had itself rewritten. No other file moved.
+
+Null control for the resolution: a script normalizes whitespace and requires main's `bc59a13f63` sentence plus one sentence from each of this branch's clauses (steps 1, 6, 11, 13). The merged file passes. The branch-head tree fails it on main's sentence, and main's tree fails it on six of the branch's clauses.
+
+Figures below are re-taken at `49b9fe55c72a` against `origin/main` `6457496aba7b`.
 
 ## Mutation proof
 
@@ -56,7 +57,7 @@ Control at the reviewed head `81741e448`, with the same `token_lookbehind_off` s
 - Scope at this head, by `fixer.md` step 5's command: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 3 script(s) run, 30 scoped out` over 8 changed files, `tests/closures.json` among them, running doc_claims, entities and harness_headers. The reviewer's command, `python3 tests/closure.py select --files $(git diff --name-only $(git merge-base origin/main HEAD)...HEAD)`, prints `MODE: FULL` at the same head. The `tests/closures.json` edit adds one `INERT` entry. The `--diff` selector scopes past it and `--files` does not. The scoped gate in `tests/run.sh` calls `closure.py select --diff`. I have not traced why the two differ, so no cause is claimed. The previous body's `--files ... SCOPED -- 3` was taken before that file entered the diff, and it is withdrawn.
 - `PYTHONPATH=tests/hastub` scoped scripts at this head: `tests/doc_claims.py` printed `ALL 296 checks PASSED`, `tests/entities.py` printed `ALL 2668 ENTITY CHECKS PASSED` and `tests/harness_headers.py` printed `ALL 112 HARNESS HEADER CHECKS PASSED`, each rc 0.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `node tools/policy/policy_lint.mjs --budgets`: `fix-review.md` 133 lines (cap 140), ~2449 tokens (cap 2451). The rule is `Math.round(bytes / 4)`. This repair does not touch that file.
+- `node tools/policy/policy_lint.mjs --budgets`: `dev/governance/roles/fix-review.md` 133 lines (printed by `--budgets` under the path `tools/audit/briefs/fix-review.md`) (cap 140), ~2450 tokens (cap 2451), re-taken at this head. The rule is `Math.round(bytes / 4)`. This repair does not touch that file.
 - `python3 -I tools/audit/seat/selftest_wiring.py --check`: `125 self-testing, 125 wired, 0 unwired`, `0 index gap(s)`.
 - `node tools/policy/agreement.mjs`: `RESULT divergent=0 unregistered=0`. The 6 `REFUSED` lines ask for `--py-json`, which this bare run did not pass.
 - Sibling conflicts, `git merge-tree --write-tree HEAD <sibling handoff head>`:
