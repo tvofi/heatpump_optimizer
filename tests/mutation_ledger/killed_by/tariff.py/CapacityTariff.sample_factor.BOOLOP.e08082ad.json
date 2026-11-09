@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:CapacityTariff.sample_factor BOOLOP e08082ad",
+  "killed_by": "tests/features.py",
+  "old": "        if self.weekdays_only and when.weekday() >= 5:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if self.weekdays_only or when.weekday() >= 5:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}
