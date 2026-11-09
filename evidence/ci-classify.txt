@@ -1,6 +1,0 @@
-rc=3 06:58:33
-rc=3 06:59:50 WAIT 00d12cad0f12bb8eb7da1010a720f7576fd4a552 pending: gate red: none
-rc=3 06:59:50
-rc=3 07:01:22 WAIT 00d12cad0f12bb8eb7da1010a720f7576fd4a552 pending: gate red: none
-rc=3 07:02:53 WAIT 00d12cad0f12bb8eb7da1010a720f7576fd4a552 pending: gate red: none
-rc=1 07:04:26 RED 00d12cad0f12bb8eb7da1010a720f7576fd4a552 pending: none red: gate
