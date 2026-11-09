@@ -1992,7 +1992,7 @@
      "space_setpoint_unit": {
       "config": {
        "mode": "'dropdown'",
-       "options": "['indoor', 'flow']",
+       "options": "['indoor', 'flow', 'return']",
        "translation_key": "'space_setpoint_unit'"
       },
       "default": "'indoor'",
@@ -4623,7 +4623,7 @@
     "space_setpoint_unit": {
      "config": {
       "mode": "'dropdown'",
-      "options": "['indoor', 'flow']",
+      "options": "['indoor', 'flow', 'return']",
       "translation_key": "'space_setpoint_unit'"
      },
      "default": "'indoor'",

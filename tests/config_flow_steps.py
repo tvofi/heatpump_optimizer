@@ -4203,6 +4203,8 @@ REGISTRY_SEED = {
     const.CONF_WOOD_FURNACE_ENABLED: True,
     const.CONF_DHW_WINDOWS_BY_DAY: True,
     const.CONF_HEAT_CURVE_TARGET_KIND: const.HEAT_CURVE_KIND_PERSISTENT,
+    # A water space set-point reveals its lift and ceiling.
+    const.CONF_SPACE_SETPOINT_UNIT: "flow",
 }
 
 
