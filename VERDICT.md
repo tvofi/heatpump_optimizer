@@ -1,20 +1,14 @@
-Fix review: merge 5a5b2c4fca00886ffa425268ee9b604fcaf58045
+Fix review: blocked 54f76620231dab81bc2111b87bebacfaf78992cc main-conflict: dev/audit/harnesses/r10_codescan_wait_race.py conflicts with origin/main 7bdc8aa2e
 
-bus-nonce: c7571fb57dc0bf8718c94e69e931c78c
+bus-nonce: 1c0c05730b9cb9e0abe0785af6966c17
 
-Round 1 of this review. Measured head 5a5b2c4fca00886ffa425268ee9b604fcaf58045, still the PR head when written. Review packet UNAVAILABLE (carry-landed check read a run id as a commit); reviewed without it.
+## Block
 
-## Findings
-
-- Follow-up: the pr-contract.yml wiring of gh_read_run.py (7 reads, base-restore pathspec, dropping both `pending` keys in field_coverage.mjs) is not in this diff and is owed after the merge; body forward-carries it. Carry: #2731
-- Follow-up: the other 17 workflow `gh api` reads, the stale EQUIVALENT entry in r10_gh_read_retry_mutants.py, app_push.sh's push retry, outside_intake.py plan_live and the lagging-red decision are open class seams, each dispositioned in the body's Forward-carry. Carry: #2731
+`git merge-tree --write-tree origin/main 54f76620231dab81bc2111b87bebacfaf78992cc` exits 1 with `CONFLICT (content): Merge conflict in dev/audit/harnesses/r10_codescan_wait_race.py` (`tests/closures.json` resolved by LEDGER-MERGE; no claim file refused). The conflict is off the claim files, so it is the author's. Main commit d23377e1d (landed after this head's base f365ce7) changed the same file: `pages()` region and a new per-attempt read for a run whose `filter=all` listing 502s. That is a third design of the retry in the carry 5 file, overlapping this PR's `MAX_ITEMS` bound and its 14 self-test checks. The author must re-merge main, reconcile the paging designs, and re-take the carry 5 mutation proof and null controls on the merged file. I did not run mutants on the unmergeable head.
 
 ## Evidence
 
-- merge-tree with origin/main: rc 0, clean (LEDGER-MERGE resolved tests/closures.json). ev/mergetree.txt
-- merge_train classify at this head: GREEN, pending none, red none (ev/classify1.txt). The body's red `gate` (edit run, deferral to the code run) is answered in the body; its later attempt and the code run are green.
-- Self-tests at head: gh_read_run 13 checks 0 failed; stamp RESULT stamp_self_test=pass; r10_codescan_wait_race selftest 14 checks 0 failed; r10_red_list_lag 5 checks 0 failed; record_row gh_read 138 checks 0 failed; field_coverage ok; structure ratchet passed; archscore dS +0.0000 NULL.
-- Mutants (mine): deleting the fallback break lines in pages(): selftest 3 failed [fallback, over50, many1760], matching the body. Reverting the item bound to MAX_PAGES: 1 failed [many1760], matching the body. Dropping NON_JSON from gh_transient: gh_read_run 4 failed, gh_read 138-check self-test 3 failed. Replacing get_gh's retry with one read: stamp RESULT stamp_self_test=fail. All restored. ev/m1..m4.txt
-- Enumerators re-run: `git grep -n 'gh api' -- .github/workflows` gives 24 (body: 24 at its base); `git grep -nE "urlopen\(" HEAD -- tools` gives the same 5 lines as the body.
-- VERSION, manifest and RELEASE_NOTES untouched; no golden or claim file in the diff; roles dir unchanged against main.
-- Not re-derived: the 44-minute live red-list lag count (1 in 379), the live 502 null controls, the 118-mutant diff run and the 7m57s sweep figure (heavy or live-API; cited, not re-run).
+- CI at this head: `merge_train.py classify` printed `GREEN 54f76620231dab81bc2111b87bebacfaf78992cc pending: none red: none`, rc 0.
+- `merge_train.py owed-reds` is not invocable with a head or --pr (takes only --repo, --min-runs); its output lists tests/coverage-ratchet, tests/fast (3.14), tests/mutation, tests/typing, validate/validate-hacs. None is red at this head, so no red-check answer is owed.
+- `review_packet.py render` was UNAVAILABLE (`Not a valid object name 42454528717` in the roster ancestry check), so no packet; live checks were re-read directly.
+- Not examined (stopped at the block): mutation re-run, finder-harness measures, claim-file drift, forward-carry open. Round: first review by this seat.
