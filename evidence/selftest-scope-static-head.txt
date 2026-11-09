@@ -1,0 +1,2 @@
+  UNGATED step 'Show the survivor-list check (tools/audit/seat/survivor_list.py) refusing its own fixtures': its if: does not read steps.scope.outputs.<its own id>
+selftest_scope static: 107 gated step(s), 1 problem(s)
