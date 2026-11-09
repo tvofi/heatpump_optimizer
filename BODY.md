@@ -25,7 +25,7 @@ Test names, main versus head: every check name in main's `tests/features.py` is 
 
 ## Red checks
 
-- `prelude`: red on commits of this branch's ancestry, from the earlier head's dispatch with `pr=3266` (that pull request is closed, so `prelude` refused the dispatch). It is not a code failure and no code in this diff touches it. Cheaper detector: none; `prelude` is already the earliest detector, and dispatching without `pr` avoids it. Standing cost: zero.
+- `prelude`: red twice on this branch's ancestry, both times a dispatch carrying `pr=3266` (runs 42380280230 at `f0b215af` and 42473588188 at `eebd7679`), step `Derive kind, PR, base, scope and legs`, log line `FAIL dispatch pr=3266 does not name the open PR headed by eebd767954c5`: #3266 was closed unmerged, so the prelude refused the dispatch. The same dispatches then failed `pr-contract / pr-contract` and `gate` downstream of it. The two later dispatches without `pr` (42384677444, 42473930832) passed `prelude`. Cause is outside this diff and no code here touches `prelude`; the successor pull request has a new number, so the stale `pr=` cannot recur. Cheaper detector: none; `prelude` is already the earliest detector (it fails before any test runs). Standing cost: zero.
 - No other check has run at this head (no PR yet). The check this change targets, `codeql / Analyze (python)`, is unmeasured here. `tools/pr/prepr.sh` (PREPR_SKIP_CLOSURES=1) was run on the committed head; local suites above are green.
 
 ## Forward-carry
