@@ -1,3 +1,10 @@
+  ok   a head recorded as a draft at admission is undrafted once and merges
+  ok   undraft null: a non-draft head at the same step merges with no UNDRAFT line
+  ok   undraft null: a head drafted after admission (no draft:true in the item) is not undrafted
+  ok   undraft null: a draft whose verdict does not carry to the head is not undrafted
+  ok   undraft null: a draft with a pending required context is not undrafted
+  ok   a failed gh pr ready is its own undraft Stop, naming the call and its output, no merge
+  ok   a head re-drafted after the call stops the run before the merge, as a draft again
   ok   a green, carried, non-policy pull request merges (null control)
   ok   a wait that settles on its first poll beats nothing (heartbeat null control)
   ok   a pull request with no dev/programme/delivery/<N>.md row is refused
@@ -128,6 +135,11 @@
   ok   a head whose tip is a GITHUB_TOKEN bot push is refused before CI is even read -- waiting cannot repair it; the required follow-up is an App push
   ok   the bot-head stop is classified BOT-HEAD in the line itself (the remedy text was already exact)
   ok   a bot head behind main is not refused: the recarry's App push IS the follow-up, and the train goes on at the new head (null control for the refusal above)
+  ok   carry 3: a bot head whose pull_request runs are approved (completed/success) is merged
+  ok   carry 3: a bot head whose pull_request runs are still held action_required is refused with the BOT-HEAD line
+  ok   carry 3: a bot head whose pull_request runs are held, status form is refused with the BOT-HEAD line
+  ok   carry 3: a bot head whose pull_request runs are absent (no pull_request run) is refused with the BOT-HEAD line
+  ok   carry 3: a bot head whose pull_request runs are unreadable listing is refused with the BOT-HEAD line
   ok   remerge_main.sh pushes the recarry with app_push.sh --recarry and passes its RECARRY line on
   ok   an absorbed-branch recarry lands in a real fixture repo: the worktree is the branch, the tip gate passes, the merge runs
   ok   a title preflight refusal stops it before the merge
@@ -195,6 +207,35 @@
   ok   read retry: `gh pr view` is a read: a transport error on the head read, then the head
   ok   read retry: a write is never retried: a 502 on a POST is answered after exactly 1 call
   ok   read retry: and neither is a merge
+  ok   git transient: fatal: unable to access 'u': The requested URL ret
+  ok   git transient: error: RPC failed; HTTP 502 curl 22
+  ok   git transient: error: RPC failed; HTTP 500
+  ok   git transient: fatal: the remote end hung up unexpectedly
+  ok   git transient: error: RPC failed; HTTP 504
+  ok   git transient: fatal: unexpected disconnect while reading sideban
+  ok   git transient: fatal: early EOF
+  ok   git transient: Connection reset by peer
+  ok   git transient: Could not resolve host: github.com
+  ok   git transient: Failed to connect to github.com
+  ok   git transient: Operation timed out
+  ok   git transient: GnuTLS recv error (-54)
+  ok   git transient: OpenSSL SSL_ERROR_SYSCALL
+  ok   git transient: returned error: 502
+  ok   git transient: fatal: unable to access 'u': Connection timed out
+  ok   git not transient:  ! [rejected] main -> main (non-fast-forward)
+  ok   git not transient: Permission denied (publickey)
+  ok   git not transient: Authentication failed
+  ok   git not transient: returned error: 403
+  ok   git not transient: returned error: 404
+  ok   git not transient: fatal: couldn't find remote ref x
+  ok   git not transient: remote: error: protected branch hook declined
+  ok   git not transient: ! [rejected] (stale info)
+  ok   git not transient: ! [remote rejected] x
+  ok   git not transient: RPC failed; HTTP 502 but remote rejected
+  ok   git retry: a 502 then success -> success after 2 calls, settling 5 s
+  ok   git retry null: a rejection is 1 call, no settle
+  ok   git retry: permanent failure returns the failure after 3 calls
+  ok   git retry null: a success is 1 call
   ok   P331 (1) #3031's shape: a review run open past the fast polls keeps the merge waiting at POLL_SECONDS, then lands (no SKIP)
   ok   P331 (1) a run that never ends: the wait ends at its budget (polls fast + polls slow reads) and the merge proceeds; the still-running line is logged at most once per POLL_SECONDS
   ok   P331 (1) null: a concluded run is not waited for (one fast read)
@@ -204,6 +245,12 @@
   ok   P331 (2) null: no review run at the head parks
   ok   P331 (2) null: a settling run but no approver approval at that head parks
   ok   P331 (2) null: a required context red parks, never waits
+  ok   a failed gate beside an unfinished sibling run is waited on, then through the cascade re-run's lag, not returned red (the #3248 scene)
+  ok   a sibling run that never finishes ends as TIMEOUT, bounded by the polls
+  ok   null control: a red gate with no unfinished sibling run still returns red on the first poll
+  ok   a held sibling run (action_required) is not unfinished: the red gate returns on the first poll
+  ok   an unreadable runs listing leaves the red standing (today's skip)
+  ok   a failed unit beside an unfinished sibling is final: only the gate defers
   ok   K15 (a): main e7c66485's shape -- required contexts in flight, record and record-autofix red -- reads wait, never red, even with record listed as required
   ok   K15 (a): every required context green reads green; a non-required red is not counted
   ok   K15 (a): a failed required context reads red while another is still in flight
@@ -312,7 +359,7 @@
   ok   carry 2: job_log passes the flag first, reads without it only where gh does not know the flag, and returns None for a read that fails otherwise (one call, no retry)
   ok   carry 2 null: through the same reader, a gate red on a non-infra job is never re-run
   ok   V142 blocking null: a gate that does not qualify is not re-run and main stops red as today
-/tmp/claude-0/-home-user-heatpump-optimizer/f7e4145f-87bf-5ef8-abfb-a3437c1858e6/scratchpad/base/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:914: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+/root/wt-base/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:914: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
   ok   batch null control: two clean pull requests are proved once and both merge, the base's tree equal to P_i after each
   ok   the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch
@@ -437,6 +484,7 @@
   ok   admit_add: a policy head is admitted with the owner's approval at its head, or a --mandate id policy_approve can post under
   ok   add, no train live: ONE train.sh starts over the entry, its pid in queue.open (STARTED)
   ok   add, a train live: the entry is spooled for its NEXT batch, nothing started (ADDED)
+  ok   add records draft:true for a draft head at admission, and nothing for a non-draft
   ok   add is idempotent: a pull request spooled, or in the live train's batches, is ALREADY -- rc 0, nothing spooled twice, nothing started
   ok   add refused: the admission's rule is printed (ADD REFUSED #9 carry: ...), rc 1, nothing spooled
   ok   add, a train live: a CARRIED single (verdict an ancestor of its head, main's merge the gap) passes app_approve.sh --carry under the queue lock and is spooled for the NEXT batch (ADDED)
@@ -462,6 +510,16 @@
   ok   P112 --front null (no lock, the mutant): the concurrent add's line is lost
   ok   P112 --remove under the lock: a concurrent add waits and its line survives
   ok   P112 --remove null (no lock, the mutant): the concurrent add's line is lost
+  ok   post-approval wait: a gate run green BEFORE the approval plus one in progress after it waits (slept), then adds when the new run completes
+  ok   post-approval wait: an approval review with no `Fix review: merge <head>` comment beside it waits to the budget (rc 3), naming the missing verdict
+  ok   post-approval wait: an unparseable comment listing is no verdict: it waits to the budget (rc 3)
+  ok   post-approval wait: a gate run started at the approval's own second counts as the re-run (adds, rc 0)
+  ok   post-approval wait: only a pre-approval run is no re-run: it waits to the budget (rc 3)
+  ok   post-approval wait: a moved head exits 1 (HEAD MOVED), nothing slept
+  ok   post-approval wait: a post-approval failure exits 2 (GATE RED AFTER APPROVAL)
+  ok   post-approval wait: a post-approval cancelled exits 2 (GATE RED AFTER APPROVAL)
+  ok   post-approval wait: past the budget it stops, rc 3, WAIT BUDGET SPENT
+  ok   post-approval wait null: without the flag add never waits, it adds
   ok   queue: the fixture builds exactly #11 (verdict at the head), #12 (carried) and #15 (a budget head), oldest first, each with its verdict comment's id
   ok   queue: a head the carry refuses is left, with the carry's own line (#13)
   ok   queue: a newest verdict that is blocked is left, though an older one was merge (#14)
@@ -507,4 +565,4 @@ REFUSE add: --auto is the started train's flags; give it or `-- <train.sh flags>
   ok   P312 null: no priority and nothing critical keeps arrival order; one entry is untouched
   ok   RECOMMENDED is the owner's six, each a flag batch accepts
   ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
-merge_train self-test: 506 checks, 0 failed
+merge_train self-test: 564 checks, 0 failed

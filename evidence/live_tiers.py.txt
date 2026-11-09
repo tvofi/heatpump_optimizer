@@ -1,0 +1,10 @@
+import sys, json
+from pathlib import Path
+T = Path(sys.argv[1]); sys.path[:0] = [str(T/"tools/plan"), str(T/"tools/audit/seat")]
+import replan, roster_lib
+ros = json.load(open(sys.argv[2])); bad = []; n = 0
+for g in ros["groups"]:
+    if roster_lib.is_hotfix(g) and roster_lib.is_open(g):
+        n += 1
+        if replan.dispatch_tier(g, False, g.get("savings"))[0] != replan.TIER_HOTFIX: bad.append(g["group"])
+print(f"RESULT {sys.argv[3]} open is_hotfix groups {n}; not TIER_HOTFIX in replan {len(bad)} {bad}")

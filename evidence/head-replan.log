@@ -33,6 +33,8 @@ ok   the critical path is the urgent tier
 ok   a user-reported bug (hotfix) is the hotfix tier, off the critical path
 ok   a hotfix ranks ahead of an outside group, which ranks ahead of the critical path
 ok   an outside group that is also a hotfix is a hotfix, and one on the critical path is outside
+ok   an instrument-class R10-HOTFIX group is the hotfix tier and holds the one real slot at t0 ahead of an outside group, the order dispatch_rank gives
+ok   null control: the same instrument without a HOTFIX name stays the instrument tier
 ok   null control: any other source (or none) is internal
 ok   production work is tier 3
 ok   an instrument saving 12 h is tier 3, one saving 11 h tier 4
@@ -175,7 +177,7 @@ ok   self-test fails when coordinator-cap is deleted
 ok   self-test fails when tier-critical-path is deleted
   mutation tier-production: 'return TIER_PRODUCTION_WORK, "production (work_class)"' -> rc=1
 ok   self-test fails when tier-production is deleted
-  mutation tier-hotfix: 'if k == "bug" or "HOTFIX" in g and cls == "production":' -> rc=1
+  mutation tier-hotfix: '    if roster_lib.is_hotfix(group):' -> rc=1
 ok   self-test fails when tier-hotfix is deleted
   mutation tier-outside: '    if roster_lib.is_outside(group):' -> rc=1
 ok   self-test fails when tier-outside is deleted
