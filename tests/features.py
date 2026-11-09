@@ -6684,6 +6684,71 @@ def _vib_memo_arms():
 _vib_memo_arms()
 
 
+def _blas_pin_shared_controller():
+    """R10-HOTFIX-STRESS-MEM-PEAK: the BLAS pin scans the libraries once.
+
+    ``threadpool_limits`` built a fresh ``ThreadpoolController`` per minimize
+    call -- a rescan of every loaded library each time, and on Python 3.14 an
+    import of ``ctypes.util`` inside the first solve, which the stress memory
+    probe charged to the scenario. The pin now goes through the one
+    controller optimizer.py built at import; a call constructs none.
+    """
+    import threadpoolctl
+
+    built: list = []
+    real_init = threadpoolctl.ThreadpoolController.__init__
+
+    def counting_init(self, *a, **k):
+        built.append(1)
+        real_init(self, *a, **k)
+
+    def obj(x, *_a):
+        return float(np.dot(np.asarray(x, dtype=float), np.asarray(x, dtype=float)))
+
+    threadpoolctl.ThreadpoolController.__init__ = counting_init
+    try:
+        for _ in range(3):
+            _grad_optmod._scoped_minimize(
+                obj, np.ones(3), method="L-BFGS-B", bounds=[(-1.0, 1.0)] * 3,
+            )
+        # The null control: the counter does see a construction.
+        threadpoolctl.ThreadpoolController()
+    finally:
+        threadpoolctl.ThreadpoolController.__init__ = real_init
+    R.check(
+        "the BLAS thread pin reuses optimizer.py's one ThreadpoolController: "
+        "three scoped minimize calls build none (and the counter sees a direct "
+        "construction, the null control)",
+        isinstance(getattr(_grad_optmod, "_blas_threads", None), threadpoolctl.ThreadpoolController)
+        and len(built) == 1,
+        f"constructions={len(built)} (want 1: the null control's alone), "
+        f"_blas_threads={type(getattr(_grad_optmod, '_blas_threads', None)).__name__}",
+    )
+
+    # The optional-dependency arm: no threadpoolctl, no pin, the same solve.
+    saved = _grad_optmod._blas_threads
+    _grad_optmod._blas_threads = None
+    try:
+        bare = _grad_optmod._scoped_minimize(
+            obj, np.ones(3), method="L-BFGS-B", bounds=[(-1.0, 1.0)] * 3,
+        )
+        bare_err = None
+    except Exception as err:  # noqa: BLE001 - the raise is the observation
+        bare, bare_err = None, err
+    finally:
+        _grad_optmod._blas_threads = saved
+    R.check(
+        "without threadpoolctl the scoped minimize runs unpinned and still "
+        "solves (x -> 0 on the bowl)",
+        bare_err is None and bare is not None
+        and float(np.max(np.abs(bare.x))) < 1e-6,
+        f"error={bare_err!r} x={None if bare is None else bare.x}",
+    )
+
+
+_blas_pin_shared_controller()
+
+
 def _d0_restart_from_returned_point():
     """R3-D0-01/02: L-BFGS-B is restarted once from its own returned point."""
     x0s: list = []
