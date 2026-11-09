@@ -2568,6 +2568,20 @@ async def options_advanced_pages():
         not (set(_rows) & _hc_keys({})) and set(_rows) <= _hc_keys(_persistent),
         f"offset={sorted(set(_rows) & _hc_keys({}))} persistent={sorted(set(_rows) & _hc_keys(_persistent))}",
     )
+    _hc_sel = {str(k): dict(getattr(v, "config", {})) for k, v in
+               config_flow._page_schema("heat_curve", _persistent, FakeHass()).schema.items()}
+    check(
+        "opt_heat_curve", "happy",
+        "the rows' widgets: the band a box in K, the writes a slider of whole writes, the dwell a "
+        "slider in 15 min steps",
+        _hc_sel.get(const.CONF_HEAT_CURVE_PERSISTENT_BAND_K)
+        == {"min": 0.5, "max": 5.0, "step": "any", "mode": "box", "unit_of_measurement": "K"}
+        and _hc_sel.get(const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY)
+        == {"min": 0, "max": 48, "step": 1, "mode": "slider"}
+        and _hc_sel.get(const.CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES)
+        == {"min": 15, "max": 360, "step": 15, "mode": "slider", "unit_of_measurement": "min"},
+        repr({k: v for k, v in _hc_sel.items() if k in _rows}),
+    )
     _range_rows = {
         "band 0.4 K": {const.CONF_HEAT_CURVE_PERSISTENT_BAND_K: 0.4},
         "band 5.5 K": {const.CONF_HEAT_CURVE_PERSISTENT_BAND_K: 5.5},

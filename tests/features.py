@@ -41982,6 +41982,16 @@ from datetime import timedelta as _ghcp_td  # noqa: E402
 
 _GHCP_DWELL_S = 60 * 60 + 1
 
+# O5's defaults, the research body's "Recommended defaults" rows (52f5a442 BODY.md lines 13-15).
+_gdef_cfg = _ghcp_coord(entity=None, entry_id="ghcp_defaults").effective_config
+R.check(
+    "kind persistent's defaults are the research's: a 3 K band, 12 writes a day, a 60 min dwell (O5)",
+    (_gdef_cfg.heat_curve_persistent_band_k, _gdef_cfg.heat_curve_persistent_writes_per_day,
+     _gdef_cfg.heat_curve_persistent_min_dwell_minutes) == (3.0, 12, 60),
+    repr((_gdef_cfg.heat_curve_persistent_band_k, _gdef_cfg.heat_curve_persistent_writes_per_day,
+          _gdef_cfg.heat_curve_persistent_min_dwell_minutes)),
+)
+
 # I1: the band and the unit.
 _gpb = _ghcp_coord(entry_id="ghcp_band")
 _ghc_pub(_gpb, 8.0)
