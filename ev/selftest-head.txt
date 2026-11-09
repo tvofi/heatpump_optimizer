@@ -1,0 +1,1 @@
+FIXTURE ok: 93 error(s) hold 269 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
