@@ -1,0 +1,1 @@
+self-test ok: fast=2m (green), slow=40m (LATE at 15m), never=uncarried (not scored)
