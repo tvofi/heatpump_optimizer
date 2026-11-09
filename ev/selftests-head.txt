@@ -1,0 +1,3 @@
+gate self-test: 81 checks, 0 failed
+sweep self-test: 71 checks, 0 failed
+prelude self-test: 76 checks, 0 failed
