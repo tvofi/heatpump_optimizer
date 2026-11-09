@@ -51,3 +51,4 @@ M18 KILLED: the rejoin sleeps between reads
 M19 KILLED: the rejoin's sleep is the train's poll grain
     FAIL REJOIN null control (b): a head that never leaves WAIT stops at the cap and does not hold the batch -- #1 merged before the rejoin's first read, #2 stays skipped, the train ends
 MUTANTS: 20 run, 0 not as required
+rc=0

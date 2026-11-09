@@ -4,18 +4,18 @@ base: fdc8d21adaa50a7feee534f08ee5edde9bda81ed
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: green
+## Gate digest: pending
 CodeQL id=128906818810 success
-arch-score / arch-score id=128917487223 success
+arch-score / arch-score id=128961763968 success
 arm id=128905551687 skipped
-budget-raise-gate / budget-raise-gate id=128917487250 success
-cancel-superseded id=128914151547 success
-codeql id=128917488768 skipped
+budget-raise-gate / budget-raise-gate id=128961794967 success
+cancel-superseded id=128961763453 success
+codeql id=128961802944 skipped
 codeql / Analyze (actions) id=128906670858 success
 codeql / Analyze (javascript-typescript) id=128906670819 success
 codeql / Analyze (python) id=128906670864 success
-gate id=128920774162 success
-governance id=128917488260 skipped
+gate id=128961763259 queued
+governance id=128961797389 skipped
 governance / delivery-status id=128906670903 success
 governance / delivery-status-publish id=128906672023 skipped
 governance / env-matrix id=128906670817 success
@@ -23,14 +23,14 @@ governance / instrument-self-tests id=128906670824 success
 governance / policy-docs id=128906670919 success
 governance / record id=128906672084 skipped
 governance / wave-script id=128906670812 success
-hassfest id=128917488309 skipped
+hassfest id=128961798052 skipped
 hassfest / hassfest id=128906670845 success
-kernel-points id=128917488392 skipped
-pr-contract id=128920775376 skipped
+kernel-points id=128961764487 skipped
+pr-contract id=128961764530 skipped
 pr-contract / pr-contract id=128917889353 success
-prelude id=128914151484 success
-refresh id=128914151258 success
-tests id=128917488881 skipped
+prelude id=128961811534 success
+refresh id=128961796287 success
+tests id=128961764169 skipped
 tests / arch-instrument id=128907061079 success
 tests / briefs id=128906670815 success
 tests / browser id=128907061106 success
@@ -51,7 +51,7 @@ tests / nightly-ha id=128907061884 skipped
 tests / nightly-status id=128906670803 success
 tests / replay id=128907062463 skipped
 tests / typing id=128907061045 success
-validate id=128917488442 skipped
+validate id=128961794978 skipped
 validate / validate-hacs id=128906670630 success
 
 ## Refusals

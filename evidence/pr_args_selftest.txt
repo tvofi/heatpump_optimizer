@@ -67,13 +67,11 @@ tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok   the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
 tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
 tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 418: printf: write error: Broken pipe
   ok     the census on the scratch copy passes as it does on the tree
 tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
   ok     a new script that runs app_push.sh is refused as undispositioned
 tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
   ok     a runner without pr_exit_trap is refused
-tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
 tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
 tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok     a runner whose push runs in the foreground is refused (its `2>&1` backgrounds nothing)
@@ -81,7 +79,6 @@ tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
 tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok     a runner under the branch lock whose push holds no push lock is refused
 tools/audit/seat/pr_args.sh: line 411: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok     null control: the same runner without its branch lock needs no push lock
   ok   update_pr: two arguments refuse, naming the count
   ok     mutant mut:arity (its line deleted) fails that arm
@@ -178,7 +175,7 @@ tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok     mutant mut:rowonly (its line deleted): code sha '-' asks for --reuse, not --row-only
   ok   null control: a code sha the head lacks is merged and never asks for --row-only; it asks for --reuse, whose verdict or the full prepr judges its push
   ok     mutant mut:updreuse (its line deleted): a code sha the head lacks asks no reuse verdict, so its push runs the full prepr
-  ok   null control: update_pr with code sha '2943faf' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha 'dde5665' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   update_pr: the run leaves its worktree detached, so no worktree holds the branch
   ok     mutant mut:detach (its line deleted): the worktree still holds fix/x
@@ -209,3 +206,4 @@ tools/audit/seat/pr_args.sh: line 401: printf: write error: Broken pipe
   ok   null control: a # mut: line continued from the line above is named
   ok   pr_cap.py --self-test: its tally says 0 failed
 pr_args self-test: 195 checks, 0 failed
+rc=0
