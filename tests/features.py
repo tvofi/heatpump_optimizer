@@ -11796,6 +11796,32 @@ R.check(
     "combi_store_of / _combi_dhw_exo off, unmet and on",
 )
 
+# The per-step buffer readers -- `buffer_tank_thermal_mass` through `_buffer_capacity`,
+# and the buffer UA's memo key -- read `buffer_store_volume` a few thousand times a
+# solve. Off the option it answers from the option's own field and evaluates no combi
+# predicate: with the predicate alone, stress.py's production-call channel read 1.053x
+# to 1.065x the calls on four valve scenarios (#3358's tests / fast (3.14), at
+# 64d4e7dbc), over its 1.05x allowance. A counting stand-in reads every evaluation.
+_cg_cls = type(_ct_off)
+_cg_pred = _cg_cls.__dict__["combi_tank_active"]
+_cg_hits = []
+_cg_cls.combi_tank_active = property(lambda q: _cg_hits.append(q) or _cg_pred.fget(q))
+try:
+    _cg_off_read = (_ct_off.buffer_store_volume, _ct_off.buffer_tank_thermal_mass,
+                    _ct_off.buffer_tank_heat_loss_coefficient)
+    _cg_off_hits = len(_cg_hits)
+    _cg_on_read = _ct_p.buffer_store_volume
+    _cg_on_hits = len(_cg_hits) - _cg_off_hits
+finally:
+    _cg_cls.combi_tank_active = _cg_pred
+R.check(
+    "off the combi option the buffer's store volume, capacity and UA evaluate no combi "
+    "predicate; null control: with the option on the volume evaluates it and adds the coil",
+    _cg_off_hits == 0 and _cg_off_read[0] == _ct_off.buffer_tank_volume
+    and _cg_on_hits >= 1 and _cg_on_read == _ct_p.buffer_tank_volume + _ct_p.combi_potable_volume_l,
+    f"off: {_cg_off_hits} predicate evaluation(s), {_cg_off_read}; on: {_cg_on_hits}, {_cg_on_read}",
+)
+
 # The store's limits are the tighter of the hot-water and buffer ones: a
 # buffer rated below the hot-water setpoint caps both.
 _cg_low = _ct_params(buffer_max_temp=50.0)
