@@ -90,3 +90,226 @@ The house-side planning is untouched: the plan still decides kW per step; the wa
 - No behaviour change for `space_setpoint_unit: indoor` or without a power entity.
 
 We can run the acceptance test on this install and report the same history tables.
+
+---
+
+<!-- commit 2: designer's extension under dev/governance/roles/designer.md steps 2-7; the text above is unchanged -->
+
+# Design note (designer seat)
+
+**Base.** Code read at `origin/main` 1cabb845d61754d333005b64d3df14d55827d0c6. The predecessor
+R10-WATER-SETPOINT-LIFT merged as #3372 (b944521a2fa01e737372ea7dd81bd3ed3ab00d30), which is an ancestor of the base, so
+there is no separate predecessor handoff head. **No finder harness: contributor report** (outside PR #3380, Runs A–C
+above). The step 6 simulation below is the reproduction. The claim was re-read at the base: `pump_arbiter.py:756`
+recomputes `modulation_floor_flow_c` (`thermal_model.py:1667`) from `_flow_inlet_c` on every pass.
+`ArbiterInputs.measured_power_kw` has one reader, the ledger's run/idle test in `_observe` (`pump_arbiter.py:1196`).
+It is never compared with `_step_kw`.
+
+## 2. Owning seam
+
+- **Owner:** `pump_arbiter.py`. `_flow_target` computes the target. `ArbiterState` (`pump_arbiter.py:256`) holds the
+  loop's state, because it already owns the written record (`written`) and the step ledger (`step`).
+- **Callers only:**
+  - `desired` → `_space_target` → `_flow_target`. `state_for(coord)` is threaded from `desired`, which already holds `coord`.
+  - `coordinator.arbiter_inputs` publishes the snapshot.
+- **Unchanged:** `thermal_model.py`. `flow_setpoint_for_level` and `modulation_floor_flow_c` stay the open-loop
+  feed-forward. One exception: the docstring sentence "The set-point is a power command" at `thermal_model.py:1675`
+  is false for an integrating controller and is corrected.
+- `tests/seam_map.json` maps coordinator methods only (`arbiter_inputs` is `views`), so it names no arbiter seam.
+- **One owner**, so this is not a stop.
+- **Design finding, files list.** Defrost reaches the arbiter only through the coordinator. The arbiter has zero
+  defrost reads; the one predicate is `freq_control.defrost_interval`. So the snapshot needs one field, and
+  `custom_components/heatpump_optimizer/coordinator.py` must be added to the group's `files`.
+  - Fallback, if the coordinator line budget has no headroom: the arbiter reads the defrost entity through its own
+    InputReader, as `live_power_kw` reads power, and passes it to `defrost_interval`.
+  - The orchestrator edits the roster; this seat does not.
+
+## 3. Shape
+
+**Qualifying pass.** The loop runs only when all of these hold:
+- the unit is `flow` or `return` (`_flow_unit`);
+- `heat_pump_power_entity` is configured;
+- the duty is exactly `space`;
+- no system-identification action (`_experiment_kw` is None);
+- the planned level is below the band top;
+- not defrosting;
+- if the owner chooses the option, the option is on.
+
+Any other pass writes today's value and **resets** the loop record.
+
+**State.** A new, unpersisted record on `ArbiterState`:
+- run start;
+- the unrounded set-point W, in °C;
+- a deque of (time, measured kW) covering the filter window;
+- the last adjustment time.
+
+It is unpersisted because `_persist` stores only `written`. A restart re-enters the start-hold, which is today's
+behaviour. W is kept unrounded so that sub-step increments accumulate. With the entity's 0.5 K step in Run B, a
+0.2 K/min nudge would otherwise round away.
+
+**Per qualifying pass**, with `now` the pass time and `base` today's open-loop target from `flow_setpoint_for_level`:
+
+```
+P_plan  = _step_kw(plan, now)                       # electrical kW, same unit as heat_pump_min_power
+P_meas  = mean of deque over WINDOW (3 min); None when the deque is empty or measured_power_kw is None
+running = P_meas is not None and P_meas >= _ran_kw(inp)
+if not running or record empty:      W = base; run start = now            # today's write: start past hysteresis
+elif now - run start < START_HOLD (5 min): W = base                       # start programme
+elif |P_meas - P_plan| <= DEADBAND (max(0.1*P_plan, 0.05 kW)): W unchanged (no re-anchor to the rising inlet)
+else: W += -sign(P_meas - P_plan) * RATE (0.2 K/min) * minutes since last adjustment
+W = clamp(W, lo = max(inlet - DOWN_K (1 K), gate value + one entity step), hi = flow_heat_c ceiling)
+write _bounded(W) as today
+```
+
+The rate is measured in time, not per pass. Passes come from the cycle, the one-minute tick and the entity-change
+listener (`coordinator.arbiter_inputs` docstring), so their count per minute is not fixed. The constants live in
+`pump_arbiter.py` beside `RUN_SETTLE`, and the fixer may tune them only within the acceptance tolerance.
+
+**Interfaces that change:**
+- `_flow_target` and `_space_target` gain the ArbiterState argument.
+- `ArbiterInputs` gains a defrost boolean.
+- Persisted payload keys: none.
+- Entity attributes: none.
+- Under the owner's option answer, one options-flow key.
+
+**Invariants:**
+- **I1.** An `indoor` unit, or no `heat_pump_power_entity`, leaves every slot's write byte-identical to today, for
+  every duty.
+- **I2.** A heating step never writes at or below the gate value (R10-SETPOINT-BOOST), and never above the ceiling.
+- **I3.** The first write of a run equals today's value.
+- **I4.** DHW, both, idle, experiment, defrost, release and full-level passes write today's value.
+- **I5.** The planner and the plan are unchanged, so a flat-price plan is byte-identical.
+
+## 4. Alternatives
+
+- **A1. Anchor the floor once per plan step and hold it.** This is #3372's forward-carry: the fork's start-then-hold
+  sequence.
+  - It stops the re-anchor. It still never reads power, so an integrating controller ramps for as long as the
+    inlet sits below the held value, and the level reached is set by step length rather than by the plan.
+  - It lost: no power reference, so it cannot meet acceptance.
+  - Its useful half, holding instead of re-anchoring, is the deadband branch above.
+- **A2. Reuse the frequency loop in `freq_control.py`.**
+  - That loop owns the compressor-frequency slot, `FrequencyMap` and the watchdog, for installs whose plan writes
+    frequency.
+  - Driving the set-point slot from it would give that slot's state two owners, and its kW-per-Hz map learns
+    nothing about a set-point.
+  - It lost on state ownership.
+- **A3. Run the loop in the coordinator, which already holds `_measured_power`.**
+  - Two modules would then decide one write. The coordinator is the ratcheted core, and the arbiter already
+    receives measured power in its snapshot.
+  - It lost on coupling.
+- **A4. Make `flow_setpoint_for_level` closed-loop.**
+  - That function is pure and is also the pricing-side mapping. Feedback needs state across passes, which would
+    have to be passed in from the arbiter anyway.
+  - It lost on state ownership.
+
+## 5. Sibling sites
+
+Enumerated by
+`git grep -n -E '_flow_target|_flow_inlet_c|modulation_floor_flow_c|_experiment_kw|flow_setpoint_for_level' -- 'custom_components/*.py'`:
+
+| site | covered how |
+|---|---|
+| `flow` unit (`_flow_unit`, `pump_arbiter.py:343`) | Covered by the same path. Today a flow target settles where the condenser ΔT equals the lift: steady, but at a level set by the lift rather than the plan. The loop moves it onto the plan. The simulation covers both units. |
+| `return` unit (`_return_unit`, `_as_target`, `_full_draw_c` `pump_arbiter.py:729`) | Covered. `_full_draw_c` is untouched: the loop never writes above the ceiling, and it is off at full level, so ceiling evidence is unchanged. |
+| `_experiment_kw` (`pump_arbiter.py:548`, used in `_flow_target` and `_band_kw`) | **Out of scope; loop off.** System identification fits the response to a commanded set-point, and the ceiling probe needs the ceiling. A feedback-moved W would corrupt both. |
+| defrost | **Loop frozen and reset.** A reversing cycle's draw is not a response to W (`defrost_interval` docstring). |
+| DHW and `both` (`desired`, `pump_arbiter.py:861`; disinfection promotes space to both) | **Loop off.** The meter then includes the DHW draw. The space slot writes the gate or the share as today. |
+| baseline and `release` (`_flow_target`'s fallback hold) | Unchanged. The loop record is reset. |
+
+## Learners that read measured power
+
+The plan is unchanged. What changes is that measured power moves toward the asked level, so evidence that
+`COP_TRACKING_ERROR_GATE` and `draw_range._disagrees` reject today starts to fold.
+
+- **`coordinator._interval_space_power`.** The gate is \|measured − commanded\| / commanded > `COP_TRACKING_ERROR_GATE`.
+  More intervals will pass.
+- **`_fold_measured_cop`.** Its `judge_floor` and `judge_ratio` compare against `_commanded_power`.
+- **`draw_range.fold`, `observe`, `follows_ask`.** `observe` is asked against drawn. `_flow_command` passes the written
+  value as `FlowCommand.written`, which is the draw_range censoring input.
+- **`_fold_capacity_envelope`.** Only at commanded ≥ 0.95·p_max. The loop is off at full level, so this is unchanged.
+- **Read-only consumers:** accuracy, `_track_realised_peak`, external-heat and immersion detection.
+
+**What the fixer shows** for this set (each in step 6):
+- The draw_range verdicts at full level are unchanged.
+- Its censoring still classifies only ceiling writes as ceiling evidence.
+- `draw_range` learns no set-point-to-power map from a W the loop chose.
+
+## 6. Evidence plan
+
+All checks live in `tests/features.py`, as new check sections beside the R10-SETPOINT-POWER and return-unit sections
+that already exercise `_flow_target`.
+
+1. **Failing test.** A simulated integrating controller:
+   - speed += k·(W − T_in)·dt, clamped;
+   - P = f(speed);
+   - T_in follows a slab first-order lag driven by P.
+
+   It is driven through the real `desired` path, with:
+   - return unit;
+   - plan pinned at 0.53 kW;
+   - `flow_min_lift_k` 0.5;
+   - entity step 0.1 K;
+   - 60 simulated minutes at one-minute ticks, plus random listener passes.
+
+   Asserts:
+   - after the start-hold, the mean P is within ±20 % of plan;
+   - no monotone rise in speed over the last 30 minutes;
+   - one start.
+
+   At the base it fails: P rises past 2× plan, which matches Run B/C. It passes with the fix.
+2. **Repeats of the simulation:**
+   - with a 0.5 K entity step (the quantization case);
+   - for the `flow` unit (today: steady but off-plan; fixed: on-plan);
+   - at a higher planned level (tracks the level).
+3. **Invariant I1 with a null control.** For a matrix of units × duties × levels, replay a pass sequence twice: once
+   with arbitrary measured power, once with power None. The writes must be identical for `indoor`, and for no power
+   entity. The null control is the same replay for `return` with the power entity, which **must differ**; that
+   proves the harness moves.
+4. **I2–I4.** Pins for:
+   - the gate clamp on a tank at or below the gate;
+   - defrost, experiment, DHW, both, full level and release equal to the open-loop value;
+   - a first-of-run write equal to today's.
+5. **Null control for the loop.** With measured power equal to plan, W stays within one entity step of its first
+   post-hold value for 30 minutes. A perturbation that restores the re-anchor makes test 1 fail again.
+6. **Goldens.** No plan golden moves. The fixer runs `GOLDEN_MODE=drift` against the merge base, and it must show
+   none. Under the option answer, `tests/golden/config_flow.json` moves with a `tests/golden/claimed_drift.txt`
+   row, and `tests/config_flow_steps.py` gains the step. These also join the `files` list.
+7. **Mutation proof targets**, all in `pump_arbiter.py`:
+   - the qualifying-pass predicate (each conjunct);
+   - the deadband hold branch (mutated to re-anchor);
+   - the time-based rate;
+   - the start-hold comparison;
+   - the lower clamp's gate term;
+   - the unrounded accumulation (mutated to round W).
+8. **Field acceptance.** The contributor's own history tables on the install above, after merge. This is not a gate.
+
+## 7. Hot files, serial position, carries
+
+- **Hot files:** `pump_arbiter.py` and `const.py`, plus, under the option answer, `config_flow.py`, `strings.json`,
+  translations and `docs/configuration.md`.
+- **Serial position:** after R10-WATER-SETPOINT-LIFT, which is merged. The roster's note admits overlap on
+  `pump_arbiter.py` with R10-ARBITER-OFF-RESTORE (off/unload restore). This group touches the heating-step target
+  and its held state only, so whichever merges second rebases onto `release` and `desired`.
+
+## Decision: owner
+
+`decision: owner`: is the loop on by default for every qualifying install (water unit + power entity), or behind an
+option that is off for one release?
+
+- **Designer's lean: option, off for one release.** The evidence is one controller family (Luxtronik 2.1), measured
+  on one install.
+  - A controller that is proportional rather than integrating may already settle. The loop is harmless there,
+    because it holds inside the deadband, but that is unmeasured.
+  - The option costs one key, the docs and the config_flow golden row listed in step 6.
+- **Default-on** needs no option. Every qualifying install would get the I1-gated behaviour in one release.
+
+## Notes for the fixer
+
+- `Carry: R10-WATER-SETPOINT-FEEDBACK (item 0)` — The fix pull request carries the contributor's Co-authored-by
+  trailer, as the roster's carry states.
+- `Carry: R10-WATER-SETPOINT-FEEDBACK (item 1)` — #3372's start-then-hold and anchor-once-per-step are answered by
+  the start-hold and the deadband hold. A1 above records why neither alone is the fix.
+- `Carry: R10-WATER-SETPOINT-FEEDBACK (item 2)` — Confirm that `power_schedule` is electrical kW, which
+  `heat_pump_min_power` 0.53 against a 0.53 kW plan suggests, before comparing it with the meter. Test 1 pins the
+  unit.
