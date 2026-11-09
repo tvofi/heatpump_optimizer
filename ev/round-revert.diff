@@ -1,0 +1,44 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index c6954961a..0da5f5eff 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -1394,7 +1394,7 @@ def _combi_dhw_exo(
+     own store walk (``combi_dhw_net_series``), the series the space solve
+     takes as ``buffer_exo_kw``; ``None`` off combi (R10-COMBI-TANK, Solver)."""
+     p = model.params
+-    if not p.combi_tank_active:
++    if not (p.dhw_combi_tank_enabled and p.combi_tank_active):
+         return None
+     temps = model.simulate_dhw_only(
+         initial_temp=float(h.initial_state.dhw_temperature), dhw_power_schedule=schedule,
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index ff0358897..f8bfcb561 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -326,7 +326,7 @@ class ThermalParameters:
+     @property
+     def buffer_store_volume(self) -> float:
+         """The store's water in litres: in combi, the potable water inside it too."""
+-        if self.combi_tank_active:
++        if self.dhw_combi_tank_enabled and self.combi_tank_active:
+             return self.buffer_tank_volume + self.combi_potable_volume_l
+         return self.buffer_tank_volume
+ 
+@@ -1924,7 +1924,7 @@ class DhwStore:
+ 
+ def combi_store_of(p: ThermalParameters) -> DhwStore | None:
+     """The combi store, or None off combi: read once per walk, never per step."""
+-    if not p.combi_tank_active:
++    if not (p.dhw_combi_tank_enabled and p.combi_tank_active):
+         return None
+     return dhw_store_of(p)
+ 
+@@ -1938,7 +1938,7 @@ def dhw_store_of(p: ThermalParameters) -> DhwStore:
+     the floor reads as the floor, the guard ``ThermalParameters.clamp`` gives
+     every divisor.
+     """
+-    if not p.combi_tank_active:
++    if not (p.dhw_combi_tank_enabled and p.combi_tank_active):
+         return DhwStore(
+             p.dhw_tank_thermal_mass, p.dhw_tank_heat_loss_coefficient,
+             p.dhw_tank_volume, p.dhw_max_temp, p.dhw_hard_max_temp, 1.0,

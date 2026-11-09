@@ -1,0 +1,36 @@
+
+-- R10-COMBI-TANK-STORE: the combi store, one node for space and hot water
+  ok   combi: the DHW store is the buffer store, potable water included: one capacity, one loss
+  ok   combi off: the store is the separate tank's own values, bitwise, and the transforms return their argument itself
+  ok   combi needs the store: no valve, a small tank, no hot water or the wood coil each leave the separate tank in force
+  ok   the effectiveness is floored and capped, never a divisor of zero or a gain
+  ok   combi battery: no dhw_tank beside the buffer_tank, whose capacity is the store's
+  ok   combi battery null control: off, the separate tank is its own dhw_tank component
+  ok   combi settlement: two-zone counts the store once, as the buffer; single-zone counts it as the DHW term at the store's capacity; off, the separate tank's
+  ok   combi_energy_balance: C * dT equals charge + space flux - draw - loss over a day, to 1e-9 kWh
+  ok   combi_energy_balance null control: with UA = 0 the store conserves its fluxes to 1e-12
+  ok   combi eps null control: with the tap above the mixer, eps 0.6 and 1.0 walk the same store; below it, the colder tap debits less
+  ok   combi: the published hot-water trajectory is the buffer trajectory, step for step; null control: off, the two tanks part
+  ok   combi: a 45 C tap minimum is a 51.18 C store floor at eps 0.85 (inlet 10 C), in the planner's floors and the hold horizon alike
+  ok   combi litres_40c: the heat above the store temperature that gives 40 C at the tap; off, the separate tank's displacement rule
+  ok   legionella_eps: the cycle's step, hour and target are the same at eps 0.6 and 1.0
+  ok   lp_flux: a 2 kW valve draw before the window raises the hot water the plan buys, and the store still meets every floor and the window's ready temperature
+  ok   lp_flux null control: a separate tank's plan is unchanged by the same series
+  ok   combi flux exchange: the joint plan's store meets the hot-water requirement the space side drains, and its published DHW and buffer trajectories are one
+  ok   combi flux exchange null control: with no exchange round the space side drains the store below the requirement
+  ok   combi_store_view census: outside thermal_model.py nothing reads the separate tank's capacity or loss; every reader takes the store view
+  ok   combi_flux_live census: every DHW walk the planner runs, and each of its three affine recursions, carries the space side's flux, and both space walks read the DHW side's
+  ok   combi_tap_limit census: every tap-stated minimum the planner and the hold horizon read enters the store frame, and the legionella target never does
+
+-- R10-COMBI-TANK: the combi store's guards and clamps, at the inputs that move them
+  ok   combi_store_of and the hot-water flux are None off combi and wherever its preconditions fail with the option on; null control: on, the store and an 8-step series
+  ok   combi: a 50 C buffer rating caps the store's charge limit and rating alike; null control: off, the separate tank keeps its own
+  ok   store_step: no capacity holds the temperature and books nothing; a charge below the rating warms the store and refuses nothing; a store above its rating cools by its loss and refuses nothing; a zero-length step from below the floor returns the floor without dividing by zero
+  ok   combi_space_net_kw: a zero-length step books the standing loss and no gain, a finite series
+  ok   combi hold horizon: a store floor above the charge limit coasts from a kelvin above the floor, a positive horizon
+  ok   idle floor: a 50 C idle minimum above a 45 C window minimum floors idle steps at the window minimum's store temperature, combi and off
+  ok   legionella ceilings: with the rating at the charge limit no step's ceiling moves and no run-up floor is set; null control: below the rating the cycle runs up
+  ok   combi flux exchange: a plan that stops moving ends the rounds before the cap; one still moving is published after exactly four plan builds
+  ok   two-zone combi: a 2 kW hot-water flux warms the store in the scalar walk and the batch twin alike; behind no valve the same series moves no output of either
+
+ALL 30 COMBI BLOCK PASSED
