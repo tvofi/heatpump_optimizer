@@ -134,6 +134,18 @@ from .const import (
     CONF_RADIATOR_POWER_FRACTION,
     CONF_UPPER_FLOOR_AREA_RATIO,
     CONF_BUFFER_TANK_VOLUME,
+    COMBI_TANK_CUSTOM,
+    COMBI_TANK_PRESETS,
+    CONF_COMBI_DHW_EFFECTIVENESS,
+    CONF_COMBI_POTABLE_VOLUME_L,
+    CONF_DHW_COMBI_LEGIONELLA_FORCE,
+    CONF_DHW_COMBI_TANK_ENABLED,
+    CONF_DHW_COMBI_TANK_TYPE,
+    DEFAULT_COMBI_DHW_EFFECTIVENESS,
+    DEFAULT_COMBI_POTABLE_VOLUME_L,
+    DEFAULT_DHW_COMBI_LEGIONELLA_FORCE,
+    DEFAULT_DHW_COMBI_TANK_ENABLED,
+    DEFAULT_DHW_COMBI_TANK_TYPE,
     CONF_WINDOW_AREA,
     POSITIVE_PARAM_FLOOR,
     CONF_SOLAR_ORIENTATION_FACTOR,
@@ -567,6 +579,21 @@ def _money(
     to that currency (#1657): 5 SEK/kWh left a 20 HUF/kWh fee unenterable."""
     currency = resolve_currency(hass)
     return _number(0, maximum * money_scale(currency), step, f"{currency}{per}")
+
+
+def _combi_preset_fill(cleaned: dict[str, Any], stored: Mapping[str, Any]) -> dict[str, Any]:
+    """A combi type chosen in this save writes its preset's two numbers (#3225).
+
+    Only a CHANGED type pre-fills, so numbers edited under a kept type stand,
+    and "custom" pre-fills nothing: the type is the flow's shortcut to the
+    two numbers the model reads, never a branch below it.
+    """
+    kind = cleaned.get(CONF_DHW_COMBI_TANK_TYPE)
+    preset = COMBI_TANK_PRESETS.get(kind) if isinstance(kind, str) else None
+    if preset is not None and kind != stored.get(CONF_DHW_COMBI_TANK_TYPE, DEFAULT_DHW_COMBI_TANK_TYPE):
+        cleaned[CONF_COMBI_DHW_EFFECTIVENESS] = preset.effectiveness
+        cleaned[CONF_COMBI_POTABLE_VOLUME_L] = preset.potable_volume_l
+    return cleaned
 
 
 def _number(
@@ -1728,6 +1755,11 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("building", CONF_FLOW_CURVE_COP_ENABLED, DEFAULT_FLOW_CURVE_COP_ENABLED, selector.BooleanSelector(), group="valve"),
     _F("building", CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME, _number(10, 1500, 5, 'L'), group="buffer"),
     _F("building", CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP, _number(40, 90, 1, '°C', slider=True), group="buffer"),
+    _F("building", CONF_DHW_COMBI_TANK_ENABLED, DEFAULT_DHW_COMBI_TANK_ENABLED, selector.BooleanSelector(), group="combi"),
+    _F("building", CONF_DHW_COMBI_TANK_TYPE, DEFAULT_DHW_COMBI_TANK_TYPE, _select([*COMBI_TANK_PRESETS, COMBI_TANK_CUSTOM], 'dhw_combi_tank_type'), group="combi"),
+    _F("building", CONF_COMBI_DHW_EFFECTIVENESS, DEFAULT_COMBI_DHW_EFFECTIVENESS, _number(0.1, 1.0, 0.01), group="combi"),
+    _F("building", CONF_COMBI_POTABLE_VOLUME_L, DEFAULT_COMBI_POTABLE_VOLUME_L, _number(0, 500, 1, 'L'), group="combi"),
+    _F("building", CONF_DHW_COMBI_LEGIONELLA_FORCE, DEFAULT_DHW_COMBI_LEGIONELLA_FORCE, selector.BooleanSelector(), group="combi"),
     _F("building", CONF_WOOD_FURNACE_ENABLED, _Computed(lambda cur, hass: wood_furnace_on(cur)), bool, group="wood"),
     _F("building", CONF_VALVE_OUTLET_TEMP_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_TANK_TOP_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on, group="wood"),
@@ -3319,9 +3351,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         labels = {step: self._MENU_LABELS[step] for step in self._ADVANCED_MENU}
         return self.async_show_menu(
             step_id="advanced",
-            menu_options=await _translated_menu(
-                self.hass, "options", "advanced", labels
-            ),
+            menu_options=await _translated_menu(self.hass, "options", "advanced", labels),
         )
 
     async def async_step_setup_overview(
@@ -3605,7 +3635,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             user_input,
             clear=True,
             check=self._plumbing_errors,
-            finish=self._building_wood_flag,
+            finish=self._building_finish,
         )
 
     async def _plumbing_errors(
@@ -3614,9 +3644,10 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """The write-target kind (#398) and the flow-curve lift (#1067), validated."""
         errors: dict[str, str] = {}
         merged = {**current, **submit}
+        params = ThermalParameters.from_config(merged)
         if (
             submit.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND) == mixing_valve.WRITE_TARGET_FLOW
-            and not ThermalParameters.from_config(merged).two_zone_enabled
+            and not params.two_zone_enabled
         ):
             errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = "flow_target_needs_two_zone"
         elif submit.get(CONF_FLOW_CURVE_COP_ENABLED) and mixing_valve.is_throttling(
@@ -3626,7 +3657,14 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             # the priced flow; the model refuses the curve lift there too, so
             # saving it would be a switch that does nothing.
             errors[CONF_FLOW_CURVE_COP_ENABLED] = "flow_curve_needs_direct_plant"
+        if merged.get(CONF_DHW_COMBI_TANK_ENABLED) and not params.combi_tank_active:
+            # #3225: judged by the model's own predicate, never a copy of it.
+            errors[CONF_DHW_COMBI_TANK_ENABLED] = "combi_needs_store"
         return errors
+
+    def _building_finish(self, cleaned: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
+        """The wood flag, then the combi type's pre-fill of its two numbers."""
+        return _combi_preset_fill(self._building_wood_flag(cleaned, merged), self._current)
 
     @staticmethod
     def _building_wood_flag(cleaned: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
@@ -3677,10 +3715,6 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     ) -> ConfigFlowResult:
         """Danfoss ECL110 heat-curve offset control over MQTT."""
         return await self._page("heat_curve", user_input)
-
-    # ------------------------------------------------------------------
-    # Option pages added in v2.8.0
-    # ------------------------------------------------------------------
 
     async def async_step_building_preset(
         self, user_input: dict[str, Any] | None = None
@@ -3743,15 +3777,10 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     async def _silent_window_errors(
         self, submit: dict[str, Any], _current: dict[str, Any]
     ) -> dict[str, str]:
-        errors: dict[str, str] = {}
         problem = dhw_spec_problem(submit[CONF_SILENT_MODE_WINDOWS])
-        if problem is not None:
-            errors[CONF_SILENT_MODE_WINDOWS] = (
-                "silent_mode_window_too_short"
-                if problem == DHW_ERROR_TOO_SHORT
-                else problem
-            )
-        return errors
+        if problem == DHW_ERROR_TOO_SHORT:
+            problem = "silent_mode_window_too_short"
+        return {} if problem is None else {CONF_SILENT_MODE_WINDOWS: problem}
 
     async def async_step_grid_fees(
         self, user_input: dict[str, Any] | None = None

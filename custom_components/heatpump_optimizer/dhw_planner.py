@@ -475,7 +475,7 @@ class DhwPlanner:
         interval_hours = float(params.dhw_legionella_interval_days) * 24.0
         hours_since = initial_state.dhw_hours_since_legionella
         if (
-            params.dhw_legionella_enabled
+            params.legionella_cycle_active
             and interval_hours > 0
             and hours_since is not None
             and n_steps > 0

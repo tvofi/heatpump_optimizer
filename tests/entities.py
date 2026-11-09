@@ -4207,6 +4207,11 @@ _P2_CENSUSES = {
         "tests/features.py", "combi_flux_live census: every DHW walk the planner runs"),
     "combi_tap_limit": (
         "tests/features.py", "combi_tap_limit census: every tap-stated minimum the planner"),
+    # R10-COMBI-TANK PR B (#3225, design §L and §T.4).
+    "combi_legionella_gate": (
+        "tests/features.py", "combi_legionella_gate census: outside thermal_model.py no behaviour reads"),
+    "combi_type_branch": (
+        "tests/features.py", "combi_type_branch census: no preset slug outside const.py's table"),
     # #1747: the DHW mode block reached the first DHW build and not the
     # co-optimisation replan's (R9-RCA-1747); EG-B8's census holds it.
     "dhw_mode_blocked_at_every_build": (

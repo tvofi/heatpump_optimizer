@@ -2562,6 +2562,45 @@ def _seed_store(
     return reading.value if reading.ok else _open_loop_plan_value(result, trajectory_attr, now)
 
 
+def combi_tank_seed(
+    buffer: InputReading,
+    dhw: InputReading,
+    result: OptimizationResult | None,
+    now: datetime,
+) -> float | None:
+    """The combi store's one level (#3225): a measured tank before any plan.
+
+    One node, so one seed for both fields: the buffer probe, else the hot water
+    probe (the same water), else the previous plan's buffer trajectory, which
+    equals its DHW trajectory in combi. ``_seed_store`` over the DHW reading is
+    that last pair, so the seed path stays the one primitive.
+    """
+    return buffer.value if buffer.ok else _seed_store(dhw, result, "buffer_temp_trajectory", now)
+
+
+def tank_levels(
+    combi: bool,
+    dhw: InputReading,
+    buffer: InputReading,
+    result: OptimizationResult | None,
+    now: datetime,
+) -> tuple[float | None, float | None]:
+    """This cycle's (hot water, buffer) levels; ``None`` leaves a field as it is.
+
+    Without an ok reading a tank is seeded from the previous plan's own
+    trajectory (open-loop propagation); no reading and no plan gives ``None``.
+    A combi store is one node, so both carry its one level (carry 6: a measured
+    tank wherever either probe reads it); otherwise each tank seeds alone.
+    """
+    if combi:
+        level = combi_tank_seed(buffer, dhw, result, now)
+        return level, level
+    return (
+        _seed_store(dhw, result, "dhw_temp_trajectory", now),
+        _seed_store(buffer, result, "buffer_temp_trajectory", now),
+    )
+
+
 def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
     """Picklable diagnose args; the coordinator itself is not picklable."""
     record = coord._last_interval_record
@@ -4384,7 +4423,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #47: what a typical remaining day is expected to bottom out at.
         if (
             params.dhw_elastic_legionella_enabled
-            and params.dhw_legionella_enabled
+            and params.legionella_cycle_active
             and self._legionella.last_cycle is not None
             and self._prices
         ):
@@ -6764,19 +6803,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 self._solar_radiation = observed
                 state.solar_radiation = observed
 
-        # The tank levels. Without an ok reading each tank is seeded from the
-        # previous plan's own trajectory (open-loop propagation, D12-s1-01):
-        # a never-advanced default (55 °C DHW, 40 °C buffer) reached every
-        # solve otherwise. No reading and no plan leaves the field as it is.
+        # The tank levels (``tank_levels``): a never-advanced default (55 °C
+        # DHW, 40 °C buffer) reached every solve otherwise (D12-s1-01).
         dhw = reader.read(CONF_DHW_TEMP_ENTITY)
         buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
         plan, seeded_at = self._optimization_result, dt_util.now()
         if dhw.ok:
             self._dhw_temperature = dhw.value
-        if (level := _seed_store(dhw, plan, "dhw_temp_trajectory", seeded_at)) is not None:
-            state.dhw_temperature = level
-        if (level := _seed_store(buffer_reading, plan, "buffer_temp_trajectory", seeded_at)) is not None:
-            state.buffer_tank_temperature = level
+        combi = _ctx_of(self)._thermal_params.combi_tank_active
+        level, buffer_level = tank_levels(combi, dhw, buffer_reading, plan, seeded_at)
+        state.dhw_temperature = state.dhw_temperature if level is None else level
+        state.buffer_tank_temperature = state.buffer_tank_temperature if buffer_level is None else buffer_level
 
         # Wood tank temperature (issue #40): re-read from the physical tank
         # each cycle through the same stale-aware reader — the model never
@@ -6867,7 +6904,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._track_curve_comfort(dt_util.now())
 
         tank = dhw.value if dhw.ok else None
-        if tank is not None and (frozen := await self._dhw_learner.async_learn_dynamics(tank)):
+        # A combi store's probe (#3225) also moves with the space side's draw.
+        if tank is not None and not combi and (frozen := await self._dhw_learner.async_learn_dynamics(tank)):
             self._learner_freeze_reason = frozen
         hours = await self._legionella.async_observe(tank, reader)
         _ctx_of(self).publish(self, dhw_hours_since_legionella=hours)
@@ -7971,6 +8009,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "dhw_next_window_in_hours": self._dhw_next_window_in_hours(),
             "dhw_idle_min_temperature": params.dhw_idle_min_temp,
             "dhw_legionella_enabled": params.dhw_legionella_enabled,
+            "dhw_legionella_cycle_active": params.legionella_cycle_active,
             "dhw_legionella_due_in_hours": self._legionella.due_in_hours(),
             **self._legionella.disinfect.view(),
             # T3: the inlet actually in force, the tank in shower terms

@@ -810,6 +810,23 @@
               "buffer_tank_volume": "Liter. Der Speicher zwischen Wärmepumpe und Heizkreisen. Größere Speicher nehmen mehr günstige Wärme auf."
             }
           },
+          "combi": {
+            "name": "Kombispeicher (Warmwasser aus dem Pufferspeicher)",
+            "data": {
+              "dhw_combi_tank_enabled": "Warmwasser wird im Pufferspeicher bereitet",
+              "dhw_combi_tank_type": "Wie der Speicher Warmwasser bereitet",
+              "combi_dhw_effectiveness": "Wirkungsgrad des Wärmeübertragers",
+              "combi_potable_volume_l": "Trinkwasser im Speicher",
+              "dhw_combi_legionella_force": "Legionellenzyklus trotzdem ausführen"
+            },
+            "data_description": {
+              "dhw_combi_tank_enabled": "Einschalten, wenn ein Speicher mit Heizungswasser sowohl die Heizung als auch das Warmwasser versorgt und es keinen getrennten Warmwasserspeicher gibt: ein Multifunktions- oder Hygienespeicher, ein Tank-in-Tank-Speicher oder eine Frischwasserstation am Pufferspeicher. Erfordert ein drosselndes Mischventil, einen Pufferspeicher von mindestens 100 L, eingeschaltetes Warmwasser und keine Holzheizschlange. Als Pufferspeichergröße das Heizungswasservolumen des Speichers eintragen. Für die Abkühlrate bevorzugt den ErP-Warmhalteverlust S in Watt bei 65 °C aus dem Datenblatt verwenden: der Verlust pro Kelvin ist S / 45 K (20 °C Raumtemperatur angenommen). Den Temperaturfühler des Pufferspeichers in die mittlere Tauchhülse setzen: ein Fühler wird als Mittelwert des ganzen Speichers gelesen. Zwei Speicher in einem Mantel (ein Pufferteil unter einem Warmwasserteil) sind kein Kombispeicher: als zwei Speicher einrichten.",
+              "dhw_combi_tank_type": "Die Wahl eines Typs füllt die beiden Zahlen unten aus; danach anpassen oder Eigene wählen, um eigene Werte einzugeben. Beispiel: ein Multifunktionsspeicher mit 40 L Wendel ist Innenliegende Wendel mit 40 L.",
+              "combi_dhw_effectiveness": "Wie nahe das Zapfwasser bei deiner üblichen Zapfmenge an die Speichertemperatur herankommt, von 0,1 bis 1: (Zapf − Kaltwasser) / (Speicher − Kaltwasser). Etwa 0,85 für eine Wendel, 0,95 für Tank-in-Tank und 0,75 für eine Frischwasserstation. Der Wirkungsgrad einer Station sinkt mit steigendem Durchfluss, daher ihre Tabelle beim typischen Durchfluss ablesen; Hersteller empfehlen höchstens 60 °C primärseitig gegen Verkalkung.",
+              "combi_potable_volume_l": "Liter Trinkwasser, die im Speicher stehen: der Inhalt der Wendel oder der Innenbehälter (etwa 100–250 L). 0 für eine Frischwasserstation.",
+              "dhw_combi_legionella_force": "Bei 3 L Trinkwasser oder weniger im Speicher steht keines zum Desinfizieren, daher ist der Legionellenzyklus standardmäßig aus; einschalten, um ihn trotzdem auszuführen. Die Trinkwasserregeln erwarten dennoch Warmwasser mit 60 °C in Großanlagen und 50 °C in Kleinanlagen."
+            }
+          },
           "wood": {
             "name": "Holzkessel",
             "data": {
@@ -1553,7 +1570,8 @@
       "flow_target_needs_two_zone": "„Vorlauftemperatur“ leitet sich aus der eigenen Vorlaufkurve des Zwei-Zonen-Gebäudemodells ab, die dieser Eintrag nicht konfiguriert hat. Konfiguriere zuerst das Zwei-Zonen-Modell oder lass es bei „Innentemperatur“.",
       "flow_curve_needs_direct_plant": "Die Bepreisung der Vorlauftemperaturanhebung ist für ein System ohne Mischventil gedacht. Mit Ventil bepreist die Temperatur des Pufferspeichers die Anhebung bereits, sie würde also doppelt gezählt. Stelle das Ventil auf „Kein Mischventil“ oder schalte dies aus.",
       "prefill_device_unreadable": "Dieses Gerät konnte nicht gelesen werden. Seine Integration hat hier noch keine Zuordnung, oder keine seiner Entitäten hat einen Wert. Lass das Gerät leer und nenne stattdessen einen Modbus-Paket-Präfix.",
-      "dhw_windows_day_selector": "Dieses Feld nennt seinen Tag bereits, gib daher nur reine Zeiten ein, z. B. 06:00-08:30. Tagesauswahlen wie 'weekdays' gehören in das normale Zeitfenster-Feld oben."
+      "dhw_windows_day_selector": "Dieses Feld nennt seinen Tag bereits, gib daher nur reine Zeiten ein, z. B. 06:00-08:30. Tagesauswahlen wie 'weekdays' gehören in das normale Zeitfenster-Feld oben.",
+      "combi_needs_store": "Ein Kombispeicher ist der Pufferspeicher selbst: er erfordert ein drosselndes Mischventil, einen Pufferspeicher von mindestens 100 L, eingeschaltetes Warmwasser und keine Holzheizschlange am Warmwasser. Das ändern oder den Kombispeicher ausschalten."
     },
     "abort": {
       "factory_reset_done": "Zurücksetzen abgeschlossen. Die Integration wurde neu geladen und plant wieder. Um das Zurücksetzen rückgängig zu machen, führe die Aktion „Gelernte Momentaufnahme wiederherstellen“ aus.",
@@ -1701,6 +1719,14 @@
         "settings": "Einstellungen",
         "learners": "Gelernte Werte",
         "both": "Einstellungen und gelernte Werte"
+      }
+    },
+    "dhw_combi_tank_type": {
+      "options": {
+        "internal_coil": "Innenliegende Wendel (Multifunktions- oder Hygienespeicher)",
+        "tank_in_tank": "Tank-in-Tank",
+        "external_station": "Frischwasserstation am Pufferspeicher",
+        "custom": "Eigene"
       }
     }
   },

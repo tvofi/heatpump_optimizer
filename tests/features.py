@@ -2039,7 +2039,7 @@ _r10bo_at = (_r10bo_t0 + timedelta(minutes=20), _r10bo_t0 + timedelta(minutes=50
 
 
 def _r10bo_run(*, probe=None, dhw_probe=None, trajectory=_r10bo_traj, wood=False,
-               dhw_trajectory=()):
+               dhw_trajectory=(), extra=None, spy_dhw_learner=None):
     """Two cycles; returns ([buffer level per cycle], [dhw level], [observation])."""
     cfg = {
         "tibber_token": "x",
@@ -2067,8 +2067,16 @@ def _r10bo_run(*, probe=None, dhw_probe=None, trajectory=_r10bo_traj, wood=False
             "valve_outlet_temp_entity": "sensor.outlet",
             "wood_tank_volume": 1000.0,
         })
+    cfg.update(extra or {})
     coord = _r10bo_Coord(FakeHass(), _r9f12_entry(data=cfg))
     coord._snapshots_loaded = True
+    if spy_dhw_learner is not None:
+        # R10-COMBI-TANK: count the DHW learner's samples, and learn nothing.
+        async def _r10bo_learn(tank):
+            spy_dhw_learner.append(tank)
+            return None
+
+        coord._dhw_learner.async_learn_dynamics = _r10bo_learn
     coord._optimization_result = _r9f12_ns(
         buffer_temp_trajectory=list(trajectory),
         dhw_temp_trajectory=list(dhw_trajectory),
@@ -9766,21 +9774,26 @@ def reachable(name: str) -> str | None:
 # Volume is gated on the furnace toggle (#463): a lone CONF_WOOD_TANK_VOLUME
 # does not infer a tank, so the single-key probe cannot see it.
 toggle_gated = {"wood_tank_volume"}
-# R10-COMBI-TANK-STORE (PR A) lands the combi store as parameter fields that
-# only a test sets, so no install can reach combi; PR B (R10-COMBI-TANK)
-# wires the option and the loader. Each entry must stay unreachable, so the
-# set refuses itself the day a loader lands without emptying it.
-unwired_combi = {"dhw_combi_tank_enabled", "combi_dhw_effectiveness", "combi_potable_volume_l"}
 probe = {name: reachable(name) for name in declared - runtime_only - validated_enums}
+# R10-COMBI-TANK (PR B, #3225) wires the combi store PR A landed as test-only
+# fields: each is reached by its own option key, never by another's. PR A's
+# `unwired_combi` exemption is gone, so the reachability check below covers
+# them like every other field.
+combi_keys = {
+    "dhw_combi_tank_enabled": "CONF_DHW_COMBI_TANK_ENABLED",
+    "combi_dhw_effectiveness": "CONF_COMBI_DHW_EFFECTIVENESS",
+    "combi_potable_volume_l": "CONF_COMBI_POTABLE_VOLUME_L",
+    "dhw_combi_legionella_force": "CONF_DHW_COMBI_LEGIONELLA_FORCE",
+}
 R.check(
-    "the combi store's fields are reachable from no config key until PR B wires them",
-    all(probe.get(n, "absent") is None for n in unwired_combi),
-    f"{ {n: probe.get(n, 'absent') for n in unwired_combi} } -- a wired field leaves the set",
+    "the combi store's fields are each reached by their own option key",
+    all(probe.get(n) == k for n, k in combi_keys.items()),
+    f"{ {n: probe.get(n, 'absent') for n in combi_keys} }",
 )
 
 unreachable = sorted(
     n for n, k in probe.items()
-    if k is None and n not in toggle_gated and n not in unwired_combi
+    if k is None and n not in toggle_gated
 )
 R.check(
     "every configurable parameter is reachable from a config key",
@@ -12112,6 +12125,253 @@ R.check(
     _cg_gain[0] > 1.0 and _cg_gain[1] > 1.0 and _cg_same,
     f"store gain scalar {_cg_gain[0]:.4f} C, batch {_cg_gain[1]:.4f} C; unvalved unchanged {_cg_same}",
 )
+
+# --- R10-COMBI-TANK (PR B, #3225): the combi store reachable by an install --
+# PR A landed the store's physics behind fields only a test could set. This
+# block pins what PR B adds: the loader, the seed, the learner gate, the
+# 3-litre legionella default (design §L), the setup description and the
+# advisor's probe price, and the two censuses that keep the type data and the
+# legionella flag behind one owner.
+R.section("R10-COMBI-TANK: the combi option, seed, learners and legionella default")
+from heatpump_optimizer import const as _cb_const  # noqa: E402
+from heatpump_optimizer import coordinator as _cb_coord  # noqa: E402
+from heatpump_optimizer import topology as _cb_topo  # noqa: E402
+import re as _cb_re  # noqa: E402
+
+# The issue's install as an options mapping: 504 l of heating water behind a
+# throttling valve, hot water on, the combi switch and a 40 l coil.
+_CB_CFG = {
+    _cb_const.CONF_MIXING_VALVE_MODE: _mv.MODE_SMART_WRITE,
+    _cb_const.CONF_BUFFER_TANK_VOLUME: 504.0,
+    _cb_const.CONF_DHW_ENABLED: True,
+    _cb_const.CONF_DHW_COMBI_TANK_ENABLED: True,
+    _cb_const.CONF_COMBI_DHW_EFFECTIVENESS: 0.85,
+    _cb_const.CONF_COMBI_POTABLE_VOLUME_L: 40.0,
+}
+_cb_on = ThermalParameters.from_config(_CB_CFG)
+_cb_off_cfg = {k: v for k, v in _CB_CFG.items() if k != _cb_const.CONF_DHW_COMBI_TANK_ENABLED}
+R.check(
+    "combi loader: the option reaches the store, 504 l plus the 40 l coil, eps from the entry; "
+    "null control: without the switch the same mapping loads the separate tank, field for field",
+    _cb_on.combi_tank_active and _cb_on.buffer_store_volume == 544.0
+    and _cb_on.dhw_store.combi and _cb_on.combi_dhw_effectiveness == 0.85
+    and not ThermalParameters.from_config(_cb_off_cfg).combi_tank_active
+    and ThermalParameters.from_config(_cb_off_cfg)
+    == ThermalParameters.from_config({**_cb_off_cfg, _cb_const.CONF_DHW_COMBI_TANK_ENABLED: False}),
+    f"active={_cb_on.combi_tank_active} volume={_cb_on.buffer_store_volume}",
+)
+R.check(
+    "combi implies a throttling valve, so the buffer cooling learner (which returns under one) "
+    "never reads a combi store: every valve mode over 504 l",
+    all(
+        _mv.is_throttling(m)
+        for m in _mv.MODES
+        if ThermalParameters.from_config({**_CB_CFG, _cb_const.CONF_MIXING_VALVE_MODE: m}).combi_tank_active
+    )
+    and any(
+        ThermalParameters.from_config({**_CB_CFG, _cb_const.CONF_MIXING_VALVE_MODE: m}).combi_tank_active
+        for m in _mv.MODES
+    ),
+    "",
+)
+
+# The seed: one node, one level, the measured tank first (carry 6).
+_CB_EXTRA = {"mixing_valve_mode": "manual", "dhw_enabled": True, "dhw_combi_tank_enabled": True}
+_cb_b, _cb_d, _, _ = _r10bo_run(probe=36.5, dhw_probe=48.0, extra=_CB_EXTRA)
+R.check(
+    "combi seed: the buffer probe sets both levels, over the hot water probe",
+    _cb_b == [36.5, 36.5] and _cb_d == [36.5, 36.5],
+    f"buffer={_cb_b} dhw={_cb_d}",
+)
+_cb_b, _cb_d, _, _ = _r10bo_run(dhw_probe=48.0, extra=_CB_EXTRA)
+_cb_nb, _cb_nd, _, _ = _r10bo_run(dhw_probe=48.0)
+R.check(
+    "combi seed: with only the hot water probe, its measured level seeds the buffer too; "
+    "null control: off combi the buffer follows the plan (41, 43) and the hot water its probe",
+    _cb_b == [48.0, 48.0] and _cb_d == [48.0, 48.0]
+    and _cb_nb == [41.0, 43.0] and _cb_nd == [48.0, 48.0],
+    f"combi={_cb_b},{_cb_d} off={_cb_nb},{_cb_nd}",
+)
+_cb_b, _cb_d, _, _ = _r10bo_run(extra=_CB_EXTRA)
+R.check(
+    "combi seed: with no probe both levels follow the plan's buffer trajectory",
+    _cb_b == [41.0, 43.0] and _cb_d == [41.0, 43.0],
+    f"buffer={_cb_b} dhw={_cb_d}",
+)
+_cb_samples, _cb_null = [], []
+_r10bo_run(dhw_probe=48.0, extra=_CB_EXTRA, spy_dhw_learner=_cb_samples)
+_r10bo_run(dhw_probe=48.0, extra={"dhw_enabled": True}, spy_dhw_learner=_cb_null)
+R.check(
+    "combi: the separate tank's DHW learner takes no sample of the shared store; "
+    "null control: off combi it samples the probe every cycle",
+    _cb_samples == [] and _cb_null == [48.0, 48.0],
+    f"combi={_cb_samples} off={_cb_null}",
+)
+
+# §L: the legionella cycle defaults off at or under 3 l of stored potable
+# water, unless forced; off combi it is the flag itself.
+def _cb_leg(volume, *, force=False, combi=True, enabled=True):
+    return ThermalParameters.from_config({
+        **_CB_CFG,
+        _cb_const.CONF_COMBI_POTABLE_VOLUME_L: volume,
+        _cb_const.CONF_DHW_COMBI_LEGIONELLA_FORCE: force,
+        _cb_const.CONF_DHW_COMBI_TANK_ENABLED: combi,
+        _cb_const.CONF_DHW_LEGIONELLA_ENABLED: enabled,
+    })
+
+
+_cb_grid = {
+    "0": _cb_leg(0.0).legionella_cycle_active,
+    "3.0": _cb_leg(3.0).legionella_cycle_active,
+    "3.01": _cb_leg(3.01).legionella_cycle_active,
+    "0 forced": _cb_leg(0.0, force=True).legionella_cycle_active,
+    "0 off combi": _cb_leg(0.0, combi=False).legionella_cycle_active,
+    "40 disabled": _cb_leg(40.0, enabled=False).legionella_cycle_active,
+    "0 forced disabled": _cb_leg(0.0, force=True, enabled=False).legionella_cycle_active,
+}
+R.check(
+    "legionella_potable: a combi store with 0 or 3.0 l of potable water runs no cycle, 3.01 l "
+    "and a forced one do; null control: off combi 0 l runs it, and a disabled cycle never runs",
+    _cb_grid == {"0": False, "3.0": False, "3.01": True, "0 forced": True,
+                 "0 off combi": True, "40 disabled": False, "0 forced disabled": False},
+    f"{_cb_grid}",
+)
+R.check(
+    "legionella_potable: the rating follows the gate: no cycle, no 60 C top over a 50 C setpoint; "
+    "a cycle, the legionella target",
+    _cb_leg(0.0).dhw_hard_max_temp == min(70.0, _cb_leg(0.0).dhw_setpoint)
+    and _cb_leg(40.0).dhw_hard_max_temp
+    == min(70.0, max(_cb_leg(40.0).dhw_setpoint, _cb_leg(40.0).dhw_legionella_temp)),
+    f"{_cb_leg(0.0).dhw_hard_max_temp} {_cb_leg(40.0).dhw_hard_max_temp}",
+)
+
+# The setup description and the advisor.
+_cb_setup = _cb_topo.describe_setup(_CB_CFG)
+_cb_setup_off = _cb_topo.describe_setup(_cb_off_cfg)
+R.check(
+    "combi setup: the hot water source is the buffer, and its edge leaves the buffer; "
+    "null control: off, the separate tank fed by the pump",
+    _cb_setup["dhw_source"] == "combi"
+    and ["buffer_tank", "dhw_tank"] in [list(e) for e in _cb_setup["edges"]]
+    and ["heat_pump", "dhw_tank"] not in [list(e) for e in _cb_setup["edges"]]
+    and _cb_setup_off["dhw_source"] == "tank"
+    and ["heat_pump", "dhw_tank"] in [list(e) for e in _cb_setup_off["edges"]],
+    f"{_cb_setup['dhw_source']} {_cb_setup['edges']}",
+)
+
+
+def _cb_dhw_gap(cfg):
+    rows = _cb_topo.rank_sensor_gaps(cfg, dhw_extra_kwh=10.0, dhw_price=2.0)
+    return next(r["sek_per_month"] for r in rows if r["key"] == _cb_const.CONF_DHW_TEMP_ENTITY)
+
+
+_cb_probed = {**_CB_CFG, _cb_const.CONF_BUFFER_TANK_TEMP_ENTITY: "sensor.buffer"}
+R.check(
+    "combi advisor: with a buffer probe the hot water probe's miss prices nothing; "
+    "null controls: without the buffer probe, and off combi with it, it prices the coast",
+    _cb_dhw_gap(_cb_probed) == 0.0
+    and _cb_dhw_gap(_CB_CFG) > 0.0
+    and _cb_dhw_gap({k: v for k, v in _cb_probed.items() if k != _cb_const.CONF_DHW_COMBI_TANK_ENABLED}) > 0.0,
+    f"{_cb_dhw_gap(_cb_probed)} {_cb_dhw_gap(_CB_CFG)}",
+)
+
+# The pre-fill: the type is the flow's shortcut to two numbers.
+from heatpump_optimizer import config_flow as _cb_flow  # noqa: E402
+
+_cb_stored = {_cb_const.CONF_DHW_COMBI_TANK_TYPE: "internal_coil"}
+_cb_fill = {
+    "changed": _cb_flow._combi_preset_fill(
+        {_cb_const.CONF_DHW_COMBI_TANK_TYPE: "tank_in_tank",
+         _cb_const.CONF_COMBI_POTABLE_VOLUME_L: 40.0}, _cb_stored),
+    "kept": _cb_flow._combi_preset_fill(
+        {_cb_const.CONF_DHW_COMBI_TANK_TYPE: "internal_coil",
+         _cb_const.CONF_COMBI_POTABLE_VOLUME_L: 40.0}, _cb_stored),
+    "custom": _cb_flow._combi_preset_fill(
+        {_cb_const.CONF_DHW_COMBI_TANK_TYPE: "custom",
+         _cb_const.CONF_COMBI_POTABLE_VOLUME_L: 40.0}, _cb_stored),
+}
+R.check(
+    "combi pre-fill: a changed type writes its preset's two numbers; a kept type keeps the "
+    "user's 40 l; custom writes nothing",
+    _cb_fill["changed"][_cb_const.CONF_COMBI_POTABLE_VOLUME_L] == 150.0
+    and _cb_fill["changed"][_cb_const.CONF_COMBI_DHW_EFFECTIVENESS] == 0.95
+    and _cb_fill["kept"] == {_cb_const.CONF_DHW_COMBI_TANK_TYPE: "internal_coil",
+                             _cb_const.CONF_COMBI_POTABLE_VOLUME_L: 40.0}
+    and _cb_const.CONF_COMBI_DHW_EFFECTIVENESS not in _cb_fill["custom"],
+    f"{_cb_fill}",
+)
+R.check(
+    "combi presets: the coil preset's 45 C tap minimum is a 51.2 C store floor (design §T.2)",
+    round(ThermalParameters.from_config({
+        **_CB_CFG,
+        _cb_const.CONF_COMBI_DHW_EFFECTIVENESS: _cb_const.COMBI_TANK_PRESETS["internal_coil"].effectiveness,
+    }).dhw_store.store_temp_for_tap(45.0) - 0.0, 1)
+    == round(_cb_on.dhw_inlet_reference
+             + (45.0 - _cb_on.dhw_inlet_reference) / 0.85, 1),
+    "",
+)
+
+# Censuses (P2, _P2_CENSUSES in tests/entities.py).
+_cb_pkg = _ct_Path(_cb_const.__file__).parent
+_cb_trees = {f.name: _ct_ast.parse(f.read_text()) for f in sorted(_cb_pkg.glob("*.py"))}
+
+
+def _cb_legionella_reads():
+    """Attribute reads of the raw flag outside its owner, and the display reads."""
+    behaviour, display = [], []
+    for name, tree in _cb_trees.items():
+        if name == "thermal_model.py":
+            continue
+        for fn in [n for n in _ct_ast.walk(tree) if isinstance(n, (_ct_ast.FunctionDef, _ct_ast.AsyncFunctionDef))]:
+            for node in _ct_ast.walk(fn):
+                if isinstance(node, _ct_ast.Attribute) and node.attr == "dhw_legionella_enabled":
+                    (display if fn.name == "_dhw_view" else behaviour).append(f"{name}:{node.lineno}")
+    return behaviour, display
+
+
+_cb_beh, _cb_disp = _cb_legionella_reads()
+R.check(
+    "combi_legionella_gate census: outside thermal_model.py no behaviour reads the raw legionella flag, "
+    "only legionella_cycle_active; the census sees the diagnostics read, so it reaches the package",
+    _cb_beh == [] and len(_cb_disp) == 1 and len(_cb_trees) > 40,
+    f"behaviour reads: {_cb_beh}; display: {_cb_disp}",
+)
+
+_CB_SLUGS = set(_cb_const.COMBI_TANK_PRESETS) | {_cb_const.COMBI_TANK_CUSTOM}
+_CB_VENDOR = _cb_re.compile(r"alpha.?innotec|mfs ?[0-9]|luxtronik", _cb_re.IGNORECASE)
+
+
+def _cb_type_branches():
+    """Preset slugs as literals and vendor names, outside the table and the flow."""
+    hits = []
+    for name, tree in _cb_trees.items():
+        if name in ("const.py", "config_flow.py"):
+            continue
+        for node in _ct_ast.walk(tree):
+            if isinstance(node, _ct_ast.Constant) and node.value in _CB_SLUGS:
+                hits.append(f"{name}:{node.lineno}:{node.value}")
+    vendor = [
+        f"{f.name}:{i}" for f in sorted(_cb_pkg.glob("*.py"))
+        for i, line in enumerate(f.read_text().splitlines(), 1) if _CB_VENDOR.search(line)
+    ]
+    return hits, vendor
+
+
+# The base count, recorded at origin/main 2f6d699e: two comments naming a valve
+# controller's return-water target, neither a tank type. The census refuses
+# growth, not those two (design §T.4: "record the base count").
+_CB_VENDOR_BASE = 2
+
+
+_cb_hits, _cb_vendor = _cb_type_branches()
+R.check(
+    "combi_type_branch census: no preset slug outside const.py's table and the options flow, and no "
+    "product or vendor name in the package's Python; the census sees the table's own slugs",
+    _cb_hits == [] and len(_cb_vendor) <= _CB_VENDOR_BASE
+    and _CB_SLUGS <= {n.value for n in _ct_ast.walk(_cb_trees["const.py"]) if isinstance(n, _ct_ast.Constant)},
+    f"slugs: {_cb_hits}; vendor: {_cb_vendor}",
+)
+
 
 # R10-BUFFER-STORE review 1: the savings reference sized its power from the
 # emitters' need as if the step delivered it straight to them, so behind a
@@ -59521,7 +59781,7 @@ R.check(
 def _p8_setpoint(state):
     hass = _FakeHass({"number.dhw_sp": state})
     hass.issues = []
-    params = _p8_ns(dhw_min_temp=55.0, dhw_legionella_enabled=False, dhw_legionella_temp=60.0)
+    params = _p8_ns(dhw_min_temp=55.0, dhw_legionella_enabled=False, legionella_cycle_active=False, dhw_legionella_temp=60.0)
     _p8_sp._dhw(hass, {_SP_DHW_ENT: "number.dhw_sp"}, params)
     return [i for i in hass.issues if i[1] == _SP_ISSUE_DHW]
 
@@ -61183,7 +61443,7 @@ R.check(
 )
 _pa_mbs = _PaCoord(_PA_MODBUS, duties="s")
 _pa_mbs._thermal_params = _PaNS(
-    dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, dhw_legionella_temp=60.0
+    dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, legionella_cycle_active=True, dhw_legionella_temp=60.0
 )
 _pa_settled(_pa_mbs, 1)
 _p8_sp.evaluate(_pa_mbs, lambda pump: _pa.dhw_gated(_pa_mbs, pump))
@@ -74962,7 +75222,7 @@ _df_space_hass = _df_strict_hass({"number.space": FakeState("unavailable")})
 _df_sc.evaluate(_DfNS(
     hass=_df_space_hass,
     effective_config={"space_setpoint_entity": "number.space"},
-    thermal_params=_DfNS(dhw_min_temp=45.0, dhw_legionella_enabled=False,
+    thermal_params=_DfNS(dhw_min_temp=45.0, dhw_legionella_enabled=False, legionella_cycle_active=False,
                          dhw_legionella_temp=60.0),
 ))
 R.check(

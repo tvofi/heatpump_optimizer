@@ -824,6 +824,7 @@ class DhwView(DisinfectionView, total=False):
     dhw_next_window_in_hours: float | None
     dhw_idle_min_temperature: float
     dhw_legionella_enabled: bool
+    dhw_legionella_cycle_active: bool
     dhw_legionella_due_in_hours: float | None
     dhw_inlet_temperature: float
     dhw_mixed: DhwMixed

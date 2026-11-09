@@ -814,6 +814,23 @@
               "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. Larger tanks store more cheap heat."
             }
           },
+          "combi": {
+            "name": "Combi tank (hot water from the buffer)",
+            "data": {
+              "dhw_combi_tank_enabled": "Hot water is made from the buffer tank",
+              "dhw_combi_tank_type": "How the tank makes hot water",
+              "combi_dhw_effectiveness": "Exchanger effectiveness",
+              "combi_potable_volume_l": "Drinking water held inside the tank",
+              "dhw_combi_legionella_force": "Run the legionella cycle anyway"
+            },
+            "data_description": {
+              "dhw_combi_tank_enabled": "Turn on when one tank of heating water serves both the heating and hot water, with no separate hot water tank: a multifunction or hygiene store, a tank-in-tank, or a fresh-water station on the buffer. Needs a throttling mixing valve, a buffer of at least 100 L, hot water on and no wood coil. Enter the tank's heating-water volume as the buffer size. For the buffer cooling rate, prefer the datasheet's ErP standing loss S in watts at 65 °C: the loss per kelvin is S / 45 K (a 20 °C room assumed). Point the buffer temperature sensor at the tank's middle well: one probe is read as the whole tank's mean. Two tanks in one shell (a buffer section under a hot water section) are not a combi tank: set them up as two tanks.",
+              "dhw_combi_tank_type": "Choosing a type fills in the two numbers below; edit them afterwards, or choose Custom to enter your own. Example: a multifunction store with a 40 L coil is Internal coil with 40 L.",
+              "combi_dhw_effectiveness": "How close the tap water gets to the tank temperature at your usual draw flow, from 0.1 to 1: (tap − cold inlet) / (tank − cold inlet). About 0.85 for a coil, 0.95 for a tank-in-tank and 0.75 for a fresh-water station. A station's effectiveness falls as the flow rises, so read its table at your typical flow; manufacturers recommend at most 60 °C on the primary side against scaling.",
+              "combi_potable_volume_l": "Litres of drinking water standing inside the tank: the coil's content, or the inner tank (about 100–250 L). 0 for a fresh-water station.",
+              "dhw_combi_legionella_force": "With 3 L or less of drinking water in the tank there is none standing to disinfect, so the legionella cycle is off by default; turn this on to run it anyway. Drinking-water rules still expect hot water delivered at 60 °C in large systems and 50 °C in small ones."
+            }
+          },
           "wood": {
             "name": "Wood furnace",
             "data": {
@@ -1557,7 +1574,8 @@
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
       "flow_curve_needs_direct_plant": "Pricing the supply temperature lift is for a system with no mixing valve. With a valve the buffer tank's temperature already prices the lift, so this would count it twice. Set the valve to \"No mixing valve\" or turn this off.",
       "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
-      "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above."
+      "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above.",
+      "combi_needs_store": "A combi tank is the buffer store itself: it needs a throttling mixing valve, a buffer tank of at least 100 L, hot water turned on and no wood coil heating the hot water. Change those or turn the combi tank off."
     },
     "abort": {
       "factory_reset_done": "Reset done. The integration has reloaded and is planning again. To undo the reset, run the Restore learned snapshot action.",
@@ -1706,6 +1724,14 @@
         "settings": "Settings",
         "learners": "Learned values",
         "both": "Settings and learned values"
+      }
+    },
+    "dhw_combi_tank_type": {
+      "options": {
+        "internal_coil": "Internal coil (multifunction or hygiene store)",
+        "tank_in_tank": "Tank-in-tank",
+        "external_station": "Fresh-water station on the buffer",
+        "custom": "Custom"
       }
     }
   },

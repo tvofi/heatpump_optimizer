@@ -270,7 +270,7 @@ class LegionellaGuard:
         the observer's rule differs with the free-disinfection flag.
         """
         params = self._params()
-        if not params.dhw_legionella_enabled:
+        if not params.legionella_cycle_active:
             self.boost_active = False
             self.boost_peak = None
             self.boost_started = None
@@ -520,7 +520,7 @@ class LegionellaGuard:
             and setpoint == float(DEFAULT_DHW_SETPOINT)
         )
         active = (
-            bool(params.dhw_enabled and params.dhw_legionella_enabled)
+            bool(params.dhw_enabled and params.legionella_cycle_active)
             and legionella > setpoint
             and not stock
         )
@@ -634,7 +634,7 @@ class LegionellaGuard:
     def due_in_hours(self) -> float | None:
         """Hours left before the next anti-legionella cycle is required."""
         params = self._params()
-        if not params.dhw_legionella_enabled:
+        if not params.legionella_cycle_active:
             return None
         since = self.hours_since()
         if since is None:
@@ -656,7 +656,7 @@ class LegionellaGuard:
             self.last_cycle,
             dt_util.now(),
             float(params.dhw_legionella_interval_days),
-            watched=bool(params.dhw_enabled and params.dhw_legionella_enabled)
+            watched=bool(params.dhw_enabled and params.legionella_cycle_active)
             and self._has_probe(),
         )
         if days == self.overdue_notice:
@@ -694,7 +694,7 @@ class LegionellaGuard:
         if (
             dhw_blocked
             and bool(params.dhw_enabled)
-            and bool(params.dhw_legionella_enabled)
+            and bool(params.legionella_cycle_active)
             and due is not None
             and due < 0.0
         ):

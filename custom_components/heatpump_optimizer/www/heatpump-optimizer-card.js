@@ -705,6 +705,7 @@ const STRINGS = {
     "setup.buffer_too_small": "too small to store",
     "setup.no_valve_caption": "no mixing valve: delivery is not throttled",
     "setup.box_dhw_tank": "Hot water tank",
+    "setup.dhw_combi_caption": "made in the buffer tank (combi)",
     "setup.dhw_coil_caption": "refilled through a wood tank coil",
     "setup.dhw_coil_preheats": "preheats the mains water",
     "setup.dhw_coil_off": "coil configured, not modelled",
@@ -1564,6 +1565,7 @@ const STRINGS = {
     "setup.buffer_too_small": "för liten för att lagra",
     "setup.no_valve_caption": "ingen shuntventil: leveransen stryps inte",
     "setup.box_dhw_tank": "Varmvattentank",
+    "setup.dhw_combi_caption": "görs i ackumulatortanken (kombi)",
     "setup.dhw_coil_caption": "återfylls genom en slinga i vedtanken",
     "setup.dhw_coil_preheats": "förvärmer kallvattnet",
     "setup.dhw_coil_off": "slinga vald, inte modellerad",
@@ -2279,6 +2281,7 @@ const STRINGS = {
     "setup.buffer_too_small": "zu klein zum Speichern",
     "setup.no_valve_caption": "kein Mischventil: Abgabe wird nicht gedrosselt",
     "setup.box_dhw_tank": "Warmwasserspeicher",
+    "setup.dhw_combi_caption": "im Pufferspeicher bereitet (Kombi)",
     "setup.dhw_coil_caption": "wird über eine Holzspeicher-Wendel nachgeladen",
     "setup.dhw_coil_preheats": "wärmt das Leitungswasser vor",
     "setup.dhw_coil_off": "Wendel konfiguriert, nicht modelliert",
@@ -4360,7 +4363,11 @@ function setupSvgHtml(topo, ctx) {
     off: ["setup.dhw_coil_off", "setup.dhw_coil_off_why"],
     none: ["setup.dhw_coil_none", "setup.dhw_coil_none_why"],
   };
-  if (topo.dhw) box(1, L("setup.box_dhw_tank"), ["dhw_tank"], [],
+  // A combi store (#3225) makes hot water from the buffer's own water: the
+  // box says so, and its pipe leaves the buffer rather than the pump.
+  const combi = topo.dhw_source === "combi";
+  if (topo.dhw) box(1, L("setup.box_dhw_tank"), ["dhw_tank"],
+    combi ? [L("setup.dhw_combi_caption")] : [],
     topo.wood && topo.wood.present ? coilWords[coilState].map((k) => L(k)) : []);
   box(2, L(topo.two_zone ? "setup.box_upper_floor" : "setup.box_house"),
     ["upper_zone"]);
@@ -4680,7 +4687,11 @@ function setupSvgHtml(topo, ctx) {
     // Electric hot water: the pump heats the DHW tank on every layout
     // (#40 feedback, item 2) — stale payloads deserve the pipe too.
     if (topo.dhw) {
-      pipe(findPlace("heat_pump"), findPlace("dhw_tank"), "hp-dhw");
+      if (topo.dhw_source === "combi") {
+        pipe(bufferBox, findPlace("dhw_tank"), "buffer-dhw");
+      } else {
+        pipe(findPlace("heat_pump"), findPlace("dhw_tank"), "hp-dhw");
+      }
     }
   }
 
