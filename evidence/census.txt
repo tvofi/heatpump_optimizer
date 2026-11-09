@@ -1,0 +1,30 @@
+.claude/hooks/stop-selfcheck.sh:107:    git -C "$T" -c user.email=t@t -c user.name=t commit -qm seed >/dev/null 2>&1
+.claude/hooks/stop-selfcheck.sh:151:    git -C "$T" -c user.email=t@t -c user.name=t commit -qm arm >/dev/null 2>&1
+.github/workflows/governance.yml:1351:          git -c user.name=ci -c user.email=ci@invalid commit -q --no-verify --allow-empty -m "pinned check source from $PINNED"
+tests/entities.py:23764:    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, env=env, check=True)
+tests/entities.py:23860:    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, env=env, check=True)
+tests/entities.py:23949:    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, env=env, check=True)
+tests/entities.py:24145:    _git("config", "user.email", "t@t")
+tests/entities.py:30303:        _g = ["git", "-C", _td, "-c", "user.name=t", "-c", "user.email=t@invalid"]
+tests/entities.py:30817:    seat = ("seat", "seat@e")
+tests/entities.py:34394:        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+tests/entities.py:36098:    _ll_git = ["git", "-C", str(_LL_DIR), "-c", "user.name=t", "-c", "user.email=t@t",
+tests/entities.py:36785:    return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t",
+tests/entities.py:40532:        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", str(repo)]
+tests/entities.py:41122:        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+tests/entities.py:41336:        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+tests/layout.py:558:    g = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]
+tools/audit/seat/bus.sh:964:  git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q --allow-empty -m base
+tools/audit/seat/bus.sh:975:  git -C "$W/seat" -c user.name=t -c user.email=t@t add -A
+tools/audit/seat/bus.sh:976:  git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q -m "rows for 7, 9, 12, 21, 22, 24"
+tools/audit/seat/bus.sh:978:  git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "a second head, rows inherited"
+tools/audit/seat/bus.sh:1150:  m41=$(printf '%s\n' "$rt41" | git -C "$W/seat" mktree); m41=$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$m41" -p "$mb0" -m "row 41")
+tools/audit/seat/bus.sh:1170:  git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q -m "main moves on"
+tools/audit/seat/bus.sh:1174:  git -C "$W/seat" -c user.name=t -c user.email=t@t merge -q --no-ff \
+tools/audit/seat/bus.sh:1214:  git -C "$W/seat" add carry-code.txt; git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q -m "fix: one code line"
+tools/audit/seat/bus.sh:1833:  git -C "$W/seat" push -q origin "$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$rt" -p "$m0" -m roster):refs/heads/main"
+tools/audit/seat/bus.sh:1969:    git -C "$W/seat" push -q -f origin "$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$rt" -p "$m0" -m roster):refs/heads/main"
+tools/audit/seat/cloud_dispatch.py:867:              judged(SEAT_EMAIL) == (0, SEAT_EMAIL + "\n") and judged("seat@build.local")[0] == 3)
+tools/audit/seat/cloud_relay.sh:1028:  hc() { git -C "$t/pr" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "$1"; }
+tools/audit/seat/cloud_relay.sh:1030:  rm -rf "$t/m"; throwaway_git_init "$t/m" -q; git -C "$t/m" -c user.name=t -c user.email=t@t commit -q --allow-empty -m main
+tools/audit/seat/cloud_relay.sh:1047:  git -C "$t/b" add BODY.md; git -C "$t/b" -c user.name=t -c user.email=t@t commit -qm body; mkref2() { # the body names the handoff tip it is pushed against (HELD-BODY otherwise)
