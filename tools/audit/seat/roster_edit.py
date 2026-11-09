@@ -446,6 +446,11 @@ def op_append_carry(roster, group, text):
     if resume.get("pr"):
         print(f"WARN carry to {group}: PR #{resume['pr']} is open on it")
     entry = _text(text)
+    mark = roster_lib.carry_mark(entry)
+    if mark:
+        raise Refuse(f"append-carry: the text already ends in a [{mark[0]}: "
+                     f"{mark[1]}] mark, which reads as discharged on arrival; "
+                     "strip it and let the discharging op write it")
     carry = g.setdefault("carry", [])
     if entry in carry:
         raise Refuse(f"{group} already carries that entry")
@@ -1607,8 +1612,11 @@ def _self_test() -> int:
         cannot tell this op's refusal from argparse refusing the op itself,
         or one refusal from another that happens to fire first."""
         err = io.StringIO()
-        with contextlib.redirect_stderr(err):
-            rc = sysrc(lambda: edit(*args, **kw))
+        try:
+            with contextlib.redirect_stderr(err):
+                rc = sysrc(lambda: edit(*args, **kw))
+        except Exception:  # a crash is no refusal: a FAIL line, not a traceback that ends the run (C6)
+            return False
         return rc not in (0, None) and why in err.getvalue()
 
     def refusal(*args, **kw):
@@ -1775,6 +1783,9 @@ def _self_test() -> int:
           and branch_roster()["groups"][0]["carry"] == ["carry text one"])
     check("dup carry refused",
           edit("append-carry", "R9-A", "carry text one") == 2)
+    check("append-carry refuses text ending in a mark-shaped suffix",
+          edit("append-carry", "R9-A", "fresh text [implemented: abc123]") == 2
+          and branch_roster()["groups"][0]["carry"] == ["carry text one"])
     check("unknown group refused", edit("set-stage", "R9-ZZ", "done") == 2)
 
     # The triage gate (decision 0015). The ruling batch lands on origin/main;
@@ -1844,7 +1855,7 @@ def _self_test() -> int:
           and edit("drop-carry", "R9-B", None, match="no proposal") == 0
           and edit("drop-carry", "R9-B", None, match="lettered proposal") == 0
           and edit("drop-carry", "R9-B", None, match="P-value") == 0
-          and branch_roster()["groups"][1]["carry"] == [])
+          and branch_roster()["groups"][1].get("carry") == [])  # .get: a dropped key is a FAIL line, never a KeyError crash (C6)
 
     # set-resume: the resume free-text fields a session restarts from, through
     # the same load/modify/dump flow -- never a string splice.
