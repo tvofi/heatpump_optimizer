@@ -1,0 +1,31 @@
+  MACHINERY_IDLE: false
+  pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+  PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+  Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+  Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+  Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+  LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+  PYTHONPATH: tests/hastub
+  SCOPE_CASE: scoped
+##[endgroup]
+INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the
+  committed `inert_reads` does not list for it; the merge fast path
+  would treat a change to it as unread (R9-F10.9d). Re-derive:
+  ./tests/derive_closures.sh --single <script>
+    tests/entities.py: tools/audit/seat/pr_cap.py
+    tests/entities.py: tools/pr/app_approve.sh
+##[error]Process completed with exit code 1.
+##[group]Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+with:
+  name: closure-recordings
+  path: /home/runner/work/_temp/closures
+  if-no-files-found: ignore
+  retention-days: 3
+  compression-level: 6
+  overwrite: false
+  include-hidden-files: false
+  archive: true
+env:
+  DOCS_ONLY_FAST: false
+  MACHINERY_IDLE: false
+  pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64

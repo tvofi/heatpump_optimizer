@@ -1,0 +1,5 @@
+RESULT overlap fixture: {'CP1': ('2026-01-05T02:20:00Z', '2026-01-05T10:40:00Z', True), 'CP2': ('2026-01-05T10:40:00Z', '2026-01-05T18:40:00Z', None), 'D': ('2026-01-05T00:00:00Z', '2026-01-05T02:20:00Z', None), 'X3': ('2026-01-05T00:00:00Z', '2026-01-05T06:20:00Z', None)}
+RESULT check_plan: []
+--- check-ignores-flag mutant:
+RESULT overlap fixture: {'CP1': ('2026-01-05T02:20:00Z', '2026-01-05T10:40:00Z', True), 'CP2': ('2026-01-05T10:40:00Z', '2026-01-05T18:40:00Z', None), 'D': ('2026-01-05T00:00:00Z', '2026-01-05T02:20:00Z', None), 'X3': ('2026-01-05T00:00:00Z', '2026-01-05T06:20:00Z', None)}
+RESULT check_plan: ['coordinator cap: 2 planned groups touching coordinator.py at 2026-01-05T02:20:00Z (cap 1)']

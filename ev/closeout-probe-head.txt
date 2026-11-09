@@ -1,0 +1,3 @@
+RESULT closeout blocker refused+open-host: ['H']
+RESULT closeout blocker refuted+open-host: ['H', 'R']
+RESULT closeout blocker deferred+open-host: ['H']
