@@ -41731,6 +41731,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "_void_heat_loss_learners"): 1,
         ("coordinator.py", "_raise_cop_issue"): 1,
         ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
+        # R10-GENERIC-HEAT-CURVE-PERSISTENT: a baseline with no writer left is
+        # named once and disarmed in the same call, so it cannot repeat.
+        ("off_restore.py", "_restore_baseline"): 1,
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
@@ -41752,6 +41755,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "async_factory_reset"): 1,
         ("coordinator.py", "_thermal_param_changes"): 1, ("coordinator.py", "async_simulate"): 1,
         ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
+        # R10-GENERIC-HEAT-CURVE-PERSISTENT (C4): once per baseline still
+        # owed when the entry is removed.
+        ("off_restore.py", "async_forget"): 1,
     },
     "one record per failed call, an event and not a held condition (the "
     "sweep's actuation handlers, and an unexpected exception per failed update)": {
