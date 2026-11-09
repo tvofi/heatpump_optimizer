@@ -1,3 +1,0 @@
-merge_train self-test: 579 checks, 0 failed
-proof_watch self-test: 47 checks, 0 failed
-cloud_dispatch self-test: 131 checks, 0 failed
