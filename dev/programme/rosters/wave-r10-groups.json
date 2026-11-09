@@ -18466,9 +18466,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-cop-gate-e",
-    "commit": null,
+    "commit": "e02c7015b57ab95a59871bccb6d1001536e85673",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "s12 carry-routing 2026-11-07: created to receive R10-COP-GATE-D carries 3 and 8; overlap admitted (R10-HOTFIX-COP-UNMEASURED): s12 carry routing: production defect deferred by the part D pull request to a part E that was never created; owner closure rule 2026-11-07",
