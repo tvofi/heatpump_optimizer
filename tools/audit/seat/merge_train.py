@@ -436,6 +436,26 @@ def gating_names(required):
     return sorted(set(required) | set(owed))
 
 
+def judged(required) -> "list[str]":
+    """<required> less NOT_GATING: the names whose red the train counts. Over
+    `gating_names` of the live ruleset it is THE required set a red is judged
+    against -- `classify` here, and every `## Red checks` obligation through
+    `owed-reds` (owner ruling tvofi 2026-11-07: a red outside it owes no answer)."""
+    return [n for n in required if n not in NOT_GATING]
+
+
+def owed_reds(train) -> "tuple[int, str]":
+    """`owed-reds`: (rc, output). The names whose red a pull-request body owes
+    an answer, one per line, from the ruleset a PR head is judged against; an
+    unreadable ruleset is rc 2 and a REFUSE line, which policy_lint reads as no
+    set (every red owed, as before the ruling)."""
+    try:
+        req = train.required(pr_head=True)
+    except Stop as s:
+        return 2, f"REFUSE {s.step}: {s.why}"
+    return 0, "\n".join(judged(gating_names(req)))
+
+
 ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!){repository(owner:$o,name:$n){pullRequest(number:$pr){"
             "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100){pageInfo{hasNextPage} "
             "nodes{__typename ... on CheckRun{name status conclusion isRequired(pullRequestNumber:$pr)} "
@@ -483,7 +503,7 @@ def classify(latest: dict, required, busy=()) -> "tuple[str, list[str], list[str
     exactly when `red` is empty."""
     if required is None:
         raise ValueError(f"{RULESET}'s required contexts are unreadable; nothing is judged against a guessed list")
-    names = [n for n in required if n not in NOT_GATING]
+    names = judged(required)
     deferred = {GATE} if busy else set()
     pending = sorted(n for n in names if n not in latest or run_state(latest[n]) == "pending"
                      or (n in deferred and run_state(latest[n]) == "red"))
@@ -6532,6 +6552,26 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           all(classify(latest_runs([gt(c, title=tt)]), [GATE])[0] == "red"
               for c, tt in (("failure", "RATE-LIMITED reset_epoch=1"), ("skipped", ""), ("neutral", "")))
           and classify(latest_runs([cr("fast", conclusion="skipped")]), ["fast"])[0] == "green")
+    owed = judged(gating_names([GATE, "nightly-status"]))
+    check("owed-reds: the required set is the ruleset's plus gate_required less NOT_GATING -- a unit is owed, "
+          "a NOT_GATING reporter the ruleset lists is not (null: tests / nightly-status is in neither)",
+          GATE in owed and "tests / fast (3.14)" in owed and "nightly-status" not in owed
+          and "tests / nightly-status" not in owed)
+    class _Req:  # owed-reds over a stub train: the PR-head ruleset, and a Stop
+        def __init__(self, got=None):
+            self.got, self.asked = got, []
+
+        def required(self, pr_head=False):
+            self.asked.append(pr_head)
+            if self.got is None:
+                raise Stop("ruleset", "unreadable")
+            return self.got
+    ok_t, bad_t = _Req([GATE, "nightly-status"]), _Req()
+    rc_ok, out_ok = owed_reds(ok_t)
+    check("owed-reds: rc 0 prints judged(gating_names) of the PR-head ruleset, one per line "
+          "(null: an unreadable ruleset is rc 2 and a REFUSE line, never an empty set)",
+          (rc_ok, out_ok.split("\n"), ok_t.asked) == (0, owed, [True])
+          and owed_reds(bad_t) == (2, "REFUSE ruleset: unreadable") and bad_t.asked == [True])
     names = gating_names([GATE])
     check("item 11: once the ruleset is [gate], a unit's red is classed REQUIRED by the fixture's gate_required "
           "(null: an old-layout ruleset passes through unchanged)",
@@ -6631,6 +6671,27 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         finally:
             Train._run = saved
         return rc, buf.getvalue()
+
+    def owed_cli(ruleset) -> "tuple[int, str]":  # `owed-reds` through main, the ruleset faked as `cli` fakes it
+        def fake_run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if a.endswith("rulesets --jq " + argv[-1]):
+                return (0, "7") if ruleset else (1, "HTTP 404")
+            return (0, ruleset) if "rulesets/7" in a else (1, "unexpected")
+        saved, buf = Train._run, io.StringIO()
+        Train._run = staticmethod(fake_run)
+        try:
+            with contextlib.redirect_stdout(buf):
+                rc = main(["owed-reds"])
+        finally:
+            Train._run = saved
+        return rc, buf.getvalue()
+    rc_o, out_o = owed_cli(f"{GATE}\nnightly-status\n")
+    rc_u, out_u = owed_cli("")
+    check("owed-reds CLI: rc 0 prints the owed set, one name per line (null: an unreadable ruleset is rc 2, "
+          "a REFUSE line and no name)",
+          rc_o == 0 and out_o.split() and out_o.splitlines() == judged(gating_names([GATE, "nightly-status"]))
+          and rc_u == 2 and out_u.startswith("REFUSE ") and GATE not in out_u.splitlines())
 
     red_pc = [cr("fast"), cr("pr-contract", conclusion="failure")]
     check("K15 (d): a pull request's head with a required context concluded failure is RED, not reviewable "
@@ -8912,6 +8973,11 @@ def _parser() -> argparse.ArgumentParser:
     c.add_argument("sha")
     c.add_argument("--main", action="store_true", help="<sha> is main's tip: PR_ONLY contexts are not judged")
     c.add_argument("--pr", type=int, help="the pull request <sha> heads: lets a RED read as APPROVAL-OWED (rc 4)")
+    # The required set a `## Red checks` obligation is judged against
+    # (policy_lint.mjs --pr-body): the one owner, read live.
+    sub.add_parser("owed-reds", parents=[common],
+                   help="the check names whose red a pull-request body owes an answer, one per line: "
+                        "judged(gating_names(required(pr_head=True))); an unreadable ruleset is rc 2")
     return p
 
 
@@ -8966,6 +9032,10 @@ def main(argv: list[str]) -> int:
         red = Train(a.repo, Path("."), None, "", (), a.min_runs).wait_ci(a.sha)
         print("DONE", a.sha, "red:", " ".join(red) or "none")
         return 1 if red else 0
+    if a.cmd == "owed-reds":
+        rc, out = owed_reds(Train(a.repo, Path("."), None, "", (), a.min_runs))
+        print(out)
+        return rc
     if a.cmd in ("unstale", "classify"):
         # classify's stdout is its one verdict line; its deferral log goes to stderr
         t = Train(a.repo, Path("."), None, "", (), a.min_runs,
