@@ -20143,6 +20143,46 @@
     "note": "orchestrator 2026-11-09T14:28Z: main-red hotfix, fixer f-hotfix-selftest-scope-hang fired (cloud, opus)"
    },
    "brief": "Main-red hotfix (orchestrator, 2026-11-09). governance / instrument-self-tests is cancelled at its 60-minute job timeout on main's push runs (run 42623897209, job 129183022595, main 631ac4df34c9d31f2ca2c6bcf7aeb4097ad5e941; also run 42606134873). The step 'Install strace for the read-set measurement' concludes failure in 0 s through tools/ci/selftest_step.sh, then 'Refuse a self-test read set the committed table misses' (tools/ci/selftest_scope.py check --traces) runs 42 min until the cancel. Both came with R10-CI-SELFTEST-SCOPE (acbdf804). FIX: a failed strace install makes the measurement step skip or fail fast with a named reason, never hang; selftest_scope.py check terminates on missing, partial or empty traces with a refusal naming them; fix the install wiring if it is wrong. Failing test first, a mutant per new predicate with a null control, --self-test wired in governance.yml. Answer defect-root-cause.md's red-check trigger in the body. Only reds merge_train.py owed-reds prints are owed a ## Red checks answer."
+  },
+  {
+   "group": "R10-HOTFIX-NONREQUIRED-REDS-2",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "governance",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/governance/roles/fix-review.md",
+    "dev/governance/roles/fixer.md",
+    "tools/audit/seat/cloud_dispatch.py",
+    "tools/audit/seat/orchestrator_tick.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress",
+    "note": "orchestrator 2026-11-09T15:30Z: owner 11-09 'No pr merge should be blocked on a non-required red', made persistent; overlap admitted (R10-FIXER-MD-SPELLING-CORPUS): owner 11-09: non-required reds never block; make it persistent in role contracts, prompts, tick"
+   },
+   "brief": "Owner rulings tvofi 2026-11-07 and 2026-11-09 ('No pr merge should be blocked on a non-required red'): only a red in the set merge_train.py owed-reds prints is owed an answer or may block. defect-root-cause.md states it, and the instruments comply (owed_reds, policy_lint --pr-body, review_packet.unanswered_reds, classify NOT_GATING). The gaps that kept it from binding: (1) dev/governance/roles/fix-review.md and fixer.md do not state it, so reviewers blocked on non-required reds (#3350 06:46Z delivery-status; #3345 and #3350 instrument-self-tests) and fixers answered them; add one sentence to each that cites defect-root-cause.md, without restating it; (2) tools/audit/seat/cloud_dispatch.py's rendered reviewer and fixer prompts do not carry it; add the rule as one line naming owed-reds, with a self-test arm and a mutant; (3) orchestrator_tick.py's 'RED unanswered in ## Red checks' line lists every red; filter it through merge_train.judged(gating_names(required)), as review_packet does, so an unreadable set keeps every red (the fallback), with a self-test arm, its null control and a mutant. Policy files change, so this is policy under mandate 6715477401."
   }
  ]
 }
