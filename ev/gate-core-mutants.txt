@@ -1,0 +1,8 @@
+    red: #3263: the code run's gate never waits on that deferring edit run (the edge that closed the cycle)
+    red: #3261 (42307798573, its sibling edit run at its gate): judges, never the pair's deferral
+  M27 source order by id alone: KILLED (self-test rc 1, replay rc 0)
+    red: source order: a LOWER-id edit run's red arch-score started after the code run's own -> the code gate reads the later start
+    red: source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green
+  M28 a lagging own unit displaced: KILLED (self-test rc 1, replay rc 0)
+    red: source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green
+RESULT mutants=22 survivors=0
