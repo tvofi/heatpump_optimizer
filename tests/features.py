@@ -11799,9 +11799,9 @@ R.check(
 # The per-step buffer readers -- `buffer_tank_thermal_mass` through `_buffer_capacity`,
 # and the buffer UA's memo key -- read `buffer_store_volume` a few thousand times a
 # solve. Off the option it answers from the option's own field and evaluates no combi
-# predicate: with the predicate alone, stress.py's production-call channel read 6.4 %
-# more calls on four valve scenarios (#3358's tests / fast (3.14), at 64d4e7dbc), over
-# its 5 % allowance. A counting stand-in for the predicate reads every evaluation.
+# predicate: with the predicate alone, stress.py's production-call channel read 1.053x
+# to 1.065x the calls on four valve scenarios (#3358's tests / fast (3.14), at
+# 64d4e7dbc), over its 1.05x allowance. A counting stand-in reads every evaluation.
 _cg_cls = type(_ct_off)
 _cg_pred = _cg_cls.__dict__["combi_tank_active"]
 _cg_hits = []
