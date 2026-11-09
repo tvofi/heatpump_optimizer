@@ -97,7 +97,8 @@ We can run the acceptance test on this install and report the same history table
 
 # Design note (designer seat)
 
-**Base.** Code read at `origin/main` 1cabb845d61754d333005b64d3df14d55827d0c6. The predecessor
+**Base.** Round 1 read the code at `origin/main` 1cabb845d61754d333005b64d3df14d55827d0c6; round 2 is at
+b8f67a775137a8032d5c71b34ea64165c1d4613a, and `git diff --stat` of the two over `custom_components/heatpump_optimizer` prints nothing. The predecessor
 R10-WATER-SETPOINT-LIFT merged as #3372 (b944521a2fa01e737372ea7dd81bd3ed3ab00d30), which is an ancestor of the base, so
 there is no separate predecessor handoff head. **No finder harness: contributor report** (outside PR #3380, Runs A–C
 above). The step 6 simulation below is the reproduction. The claim was re-read at the base: `pump_arbiter.py:756`
@@ -120,8 +121,7 @@ It is never compared with `_step_kw`.
 - **Design finding, files list.** Defrost reaches the arbiter only through the coordinator. The arbiter has zero
   defrost reads; the one predicate is `freq_control.defrost_interval`. So the snapshot needs one field, and
   `custom_components/heatpump_optimizer/coordinator.py` must be added to the group's `files`.
-  - Fallback, if the coordinator line budget has no headroom: the arbiter reads the defrost entity through its own
-    InputReader, as `live_power_kw` reads power, and passes it to `defrost_interval`.
+  - No fallback: a defrost read inside the arbiter is a new read path (round 2; Notes for the fixer, item 3).
   - The orchestrator edits the roster; this seat does not.
 
 ## 3. Shape
@@ -153,11 +153,14 @@ behaviour. W is kept unrounded so that sub-step increments accumulate. With the 
 P_plan  = _step_kw(plan, now)                       # electrical kW, same unit as heat_pump_min_power
 P_meas  = mean of deque over WINDOW (3 min); None when the deque is empty or measured_power_kw is None
 running = P_meas is not None and P_meas >= _ran_kw(inp)
-if not running or record empty:      W = base; run start = now            # today's write: start past hysteresis
+if record empty:                     W = base; run start = now            # today's write (R2: a recorded limitation)
+elif not running and self-caused (R2): raise the stop bound; W = base; run start = now
+elif not running:                    W = base; run start = now
 elif now - run start < START_HOLD (5 min): W = base                       # start programme
 elif |P_meas - P_plan| <= DEADBAND (max(0.1*P_plan, 0.05 kW)): W unchanged (no re-anchor to the rising inlet)
 else: W += -sign(P_meas - P_plan) * RATE (0.2 K/min) * minutes since last adjustment
-W = clamp(W, lo = max(inlet - DOWN_K (1 K), gate value + one entity step), hi = flow_heat_c ceiling)
+W = clamp(W, lo = max(inlet - DOWN_K (0.3 K, R2), stop bound, cut bound low, gate value + one entity step),
+             hi = min(flow_heat_c ceiling, cut bound high))                # cut bounds: R1
 write _bounded(W) as today
 ```
 
@@ -176,7 +179,8 @@ listener (`coordinator.arbiter_inputs` docstring), so their count per minute is 
 - **I1.** An `indoor` unit, or no `heat_pump_power_entity`, leaves every slot's write byte-identical to today, for
   every duty.
 - **I2.** A heating step never writes at or below the gate value (R10-SETPOINT-BOOST), and never above the ceiling.
-- **I3.** The first write of a run equals today's value.
+- **I3.** The first write of a run equals today's value. It starts a stopped compressor only when the controller's
+  heating hysteresis is at most the lift (R2, a recorded limitation, as today).
 - **I4.** DHW, both, idle, experiment, defrost, release and full-level passes write today's value.
 - **I5.** The planner and the plan are unchanged, so a flat-price plan is byte-identical.
 
@@ -286,23 +290,86 @@ that already exercise `_flow_target`.
 
 ## 7. Hot files, serial position, carries
 
-- **Hot files:** `pump_arbiter.py` and `const.py`, plus, under the option answer, `config_flow.py`, `strings.json`,
-  translations and `docs/configuration.md`.
+- **Hot files:** `pump_arbiter.py`, `const.py`, `config_flow.py`, `strings.json`, every file under
+  `custom_components/heatpump_optimizer/translations/`, `docs/configuration.md`, `tests/golden/config_flow.json`,
+  `tests/config_flow_steps.py`, plus `coordinator.py` for the defrost field (§2). The docs file carries R2-R5's lines
+  whatever the option.
 - **Serial position:** after R10-WATER-SETPOINT-LIFT, which is merged. The roster's note admits overlap on
   `pump_arbiter.py` with R10-ARBITER-OFF-RESTORE (off/unload restore). This group touches the heating-step target
   and its held state only, so whichever merges second rebases onto `release` and `desired`.
 
-## Decision: owner
+## Decision: owner (answered)
 
-`decision: owner`: is the loop on by default for every qualifying install (water unit + power entity), or behind an
-option that is off for one release?
+tvofi, 2026-11-09, verbatim: "It should be an on advanced settings option, for qualifying installs it should defaut
+to on". So: one options key on the advanced submenu (`async_step_advanced`), on the page that carries the space
+set-point unit; default ON for a qualifying install (unit `flow` or `return` AND `heat_pump_power_entity`), so a
+qualifying install runs the loop without touching it. A non-qualifying install keeps I1 whatever the option says; the
+option is hidden or shown disabled there, by the advanced pages' existing convention. The designer's lean (off for one
+release) is superseded. Owed with it: the key in `const.py`, `strings.json` and every translation with de.json
+parity, `docs/configuration.md`, the `tests/golden/config_flow.json` row with its `tests/golden/claimed_drift.txt`
+line, and `tests/config_flow_steps.py`. The option is a conjunct of the qualifying predicate (§6 item 7).
 
-- **Designer's lean: option, off for one release.** The evidence is one controller family (Luxtronik 2.1), measured
-  on one install.
-  - A controller that is proportional rather than integrating may already settle. The loop is harmless there,
-    because it holds inside the deadband, but that is unmeasured.
-  - The option costs one key, the docs and the config_flow golden row listed in step 6.
-- **Default-on** needs no option. Every qualifying install would get the I1-gated behaviour in one release.
+## Decision: orchestrator (assumption stated)
+
+`design/R10-GENERIC-HEAT-CURVE` writes the controller's heating offset through its heat-curve displacement entity,
+which acts only with heating mode = offset; this loop's return set-point acts only with heating mode 10000 = 1.
+One Luxtronik SHI cannot hold both. This note assumes config_flow refuses, on one entry, a heat-curve displacement
+entity together with a `flow` or `return` space set-point unit under Pump duty control. Whether that refusal ships,
+in which group, and the merge order are the orchestrator's; the seams are distinct (the heat-curve module that
+note plans, against `pump_arbiter.py`).
+
+## Round 2: answers to revise points R1-R5 (verdict at eb47f184de)
+
+**R1, anti-windup against the controller's clamp (F1), from the existing readback only.** The controller cuts 10001
+to [parameter 979, return limit] silently. Rule, in `hold` for the space slot while the loop record is live and the
+last write was loop-moved (differs from base): after `ECHO_GRACE_S`, a reading that differs from the record and lies
+inside [previous held value, new write] (±`SETPOINT_TOLERANCE`) is a clamp cut, not a miss. Then:
+- W is set to the reading, and a cut bound is set on that side (high when the write was upward, low when downward);
+  W cannot pass it for the rest of the run, so it never winds past the clamp and a sign change moves it at once.
+- The record adopts the reading instead of being dropped, so no rewrite, no miss and no `ISSUE_IGNORED`. A loop-caused
+  cut is exempt because the controller is enforcing its own configured limits, not ignoring HPO.
+- A reading outside that bracket (a person, a revert to 35.0 °C, R3) takes `hold`'s path unchanged. A loop step is
+  at most RATE x minutes, so a 35.0 °C revert falls in the bracket only when W is within that step of 35.0, where
+  adopting it moves nothing.
+- A cut of a base write (first of a run) is today's case and raises `ISSUE_IGNORED` as today (I3).
+- Limitation: with parameter 979 above the inlet, the wind-down stops at 979; the docs line says 979 must sit below
+  the heating-season return. Pinned by §6 R4's clamp repeat: no issue, W frozen at the cut, and a base-write cut
+  still raises the issue.
+
+**R2, the start write against the controller hysteresis (F2): option (a).** Today's start write (inlet + lift) is
+kept as a recorded limitation; `docs/configuration.md` says the controller's heating hysteresis must be at most
+`flow_min_lift_k` (Luxtronik: 0.5 K, or raise the lift). Option (b) needs input 10107, a vendor register and a new
+read path the brief excludes; not routed. **Self-caused stop.** The round-1 lo of inlet − 1 K is replaced by
+inlet − 0.3 K: the firmware's minimum hysteresis 0.5 K less one 0.1 K step and a 0.1 K inlet rise between passes.
+Under the assumed stop condition (return ≥ W + hysteresis, the start's mirror; an assumption, not in F1-F6), lo then
+cannot stop the compressor at any permitted hysteresis, and W = inlet still winds the integrator down (F6: speed falls
+once the return reaches the set-point). If the assumption fails: a running-to-stopped edge while the last write sat
+below base is self-caused; the loop records the gap inlet − W at that edge as a stop bound, lo = inlet − (gap − 0.2 K)
+for the life of this `ArbiterState`, and the restart is today's base write. At most one extra start per restart of
+Home Assistant, and the fixture proves it does not recur.
+
+**R3, the SHI 600 s volatility (F4).** (i) Access guarantee: the integration's own polling, stated as a precondition
+with a docs line (its poll interval must be under 600 s). Not an HPO re-write: that must go around `_write`'s
+equal-value skip and `hold`'s echo grace (verdict's fixer note 5), and buys nothing while the readback HPO's `hold`
+reads is itself that polling. (ii) Recovery: a revert of 10001 to 35.0 °C is outside R1's bracket, so `hold` drops
+the record and rewrites as today; the loop record **resets** on that event (W = base, start-hold re-entered), since a
+controller restart runs a new start programme. A revert of heating mode 10000 to 0 is not an HPO slot: the register
+still echoes W, so HPO cannot see it without a new read path. Recorded limitation, docs line: the integration
+restores heating mode. Under it the loop's W moves without effect, bounded by [lo, ceiling], today's write range (I2).
+
+**R4, the fixture.** §6 item 1's simulated controller gains, each its own repeat: start only when the return is
+below W − hysteresis, at 0.5 K and at 2 K (at 2 K with lift 0.5 the base write must fail to start, pinning R2's
+limitation); a stop when the return reaches W + hysteresis; a [979, return limit] clamp on W with readback of the
+clamped value; a revert of W to 35.0 °C and mode to curve after 600 s with no access. Gain k ≈ 0.9 Hz/min per K, cited
+to #3372's comment of 2026-11-09T20:39:05Z (F6) as an install measurement, not a firmware fact. Item 7's mutants gain:
+the R1 bracket test (mutated to drop-and-rewrite: the clamp repeat raises the issue and W winds up), the cut bound
+(removed: W passes the clamp), the stop bound (removed: a mutant stop model at W + 0.1 K restarts more than once), the
+self-caused test (mutated to always reset: extra starts at 0.5 K), and the revert reset (removed: the revert repeat
+stays in feedback through a new start programme). Each must fail one item 1 repeat.
+
+**R5.** F3: the 0.1 K main run and 0.5 K repeat match the firmware's 0.1 K resolution; no deadband is in kelvin
+(DEADBAND is kW). F5: docs line that no second tool may write 10000/10001 (error 816 silently discards writes); the
+rate limit is per loop, not per writer. F6: START_HOLD 5 min covers the measured 3 min start programme.
 
 ## Notes for the fixer
 
@@ -313,3 +380,12 @@ option that is off for one release?
 - `Carry: R10-WATER-SETPOINT-FEEDBACK (item 2)` — Confirm that `power_schedule` is electrical kW, which
   `heat_pump_min_power` 0.53 against a 0.53 kW plan suggests, before comparing it with the meter. Test 1 pins the
   unit.
+- `Carry: R10-WATER-SETPOINT-FEEDBACK (item 3)` — Defrost: the fallback in §2 (the arbiter reads the defrost entity
+  through its own InputReader) is withdrawn; it is a new read path. If `coordinator.py` has no line headroom for the
+  one `ArbiterInputs` field, stop and ask the owner.
+- `Carry: R10-WATER-SETPOINT-FEEDBACK (item 4)` — A DHW or `both` interlude inside one plan step resets the loop
+  record and re-enters the start-hold at base; pin it with a test (one interlude, then the next space pass).
+- `Carry: R10-WATER-SETPOINT-FEEDBACK (item 5)` — `_write` skips a value equal to the record, which is what keeps a
+  held W silent; R3 keeps it (no re-write), so the skip and `hold`'s echo grace stay as they are.
+- `Carry: R10-WATER-SETPOINT-FEEDBACK (item 6)` — The fix pull request asks the contributor to run §Acceptance and
+  the R2/R3 docs preconditions on the install; it does not wait on the answer.
