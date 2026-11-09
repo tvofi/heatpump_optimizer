@@ -2,9 +2,26 @@ Repair round for the three planner defects of the 2026-11-08 replan study (a nam
 
 (a) `roster_lane` matches `INSTRUMENT_NAME_STEMS` as the exact group or `<stem>-...`, so `R10-I1` no longer takes `R10-I18N-DE`. (b) `roster_lib.CLOSED_STAGES` gains `refused` and `deferred`; `refuted` stays open. (c) `build_plan` exempts a ready critical-path group from the coordinator cap, flags it `exempt_coordinator`, and `check_plan` leaves flagged groups out of its coordinator count.
 
+## Re-cut
+
+Round 3 of review: `Fix review: blocked 8f073db70d18895d0962924ac8da72647a02090a mutation-vacuous`. Two non-equivalent mutants survived; this head adds the owed checks and no production change (neither mutant revealed a defect). Disclosed self-correction: the Mutation proof line below that says `deferred-holds-dependent` was retargeted to the producing line did not kill `open_ = open_ - set(held)`; that site is now killed by its own row.
+
+## Round-3 mutation proof (head 2305095d2b61ccac83157333719f3124bc73be7c)
+
+Driver `tools/audit/seat/mutant_run.py --spec`, NULL mutant first (reported SURVIVED = the command passes unedited), then the mutant.
+
+| site | mutant | check added | result |
+|---|---|---|---|
+| `tools/plan/replan.py` `build_plan` | `open_ = open_ - set(held)` -> `pass` (spec `--in-place`, cmd `python3 tools/plan/replan.py --self-test`) | row "refused/deferred: a held dependent is in no wave and no batch", plus in-file mutation arm `held-subtraction` | `SURVIVED NULL`, `KILLED replan-held-subtract` |
+| `tools/audit/seat/roster_lib.py` `held_behind_deferred` | `elif a in held and gates(G[a]):` -> `elif a in held:` (spec `--copy-tree`, cmd `python3 tools/audit/seat/roster_lib.py --self-test`) | row "a held group that is itself released (refuted) does not hold its dependent" (fixture P deferred, Q refuted after P, S after Q; expects `{"Q": "P"}`) | `SURVIVED NULL`, `KILLED held-gates-conjunct` |
+
+Null controls: the replan row asserts the released (`refused`) case keeps R10-Y and R10-Z in waves/batches, so it is not satisfied by emptiness; the roster_lib row's null is `chain` (queued Q holds S) in the preceding row. The weakened form (`set(list(held)[:0])`) is the same deletion. Why the old rows missed it: the output loop's `if n in held` branch relabels a scheduled held group, so start/held_behind read the same; only wave/batch membership separates them. Ledger: both sites are `tools/`, outside `mutation-autofix`'s lane; the in-tree harness is replan's `held-subtraction` arm and the roster_lib row; no `tests/mutation_ledger` entry applies.
+
+`tools/pr/prepr.sh` at this head: `rc=0` (gate mode FULL, structure ratchet passed, ci predict clean).
+
 ## Head
 
-5e55b7e4cc87350c7e15f2bca43049fabace6e8f: the PR head 3cf879467196df974967d702e2e407b9de068f14 plus this repair. `git merge-tree --write-tree origin/main HEAD` exits 0 against `origin/main` 82a2c142f (2026-11-09T05:57Z), so there is no merge; the one resolution it reports is the `tests/closures.json` ledger merge driver. Main moved after the last `tools/pr/prepr.sh` run; the figures stamped below are at merge base 20e83746fe91.
+2305095d2b61ccac83157333719f3124bc73be7c: the PR head 8f073db70d18895d0962924ac8da72647a02090a plus the round-3 repair (two self-test rows, one in-file mutation arm). `git merge-tree --write-tree origin/main HEAD` exits 0 against `origin/main` 82a2c142f (2026-11-09T05:57Z), so there is no merge; the one resolution it reports is the `tests/closures.json` ledger merge driver. Main moved after the last `tools/pr/prepr.sh` run; the figures stamped below are at merge base 20e83746fe91.
 
 ## Owner ruling carried (Carry: R10-FLY-REPLAN-DEFECTS)
 
@@ -67,6 +84,7 @@ The diff's added guards are pinned by the self-test rows above; `prepr.sh` step 
 ## Red checks
 
 - **tests / closures** (job 128899105839) at the old head: `INERT READS UNDER-APPROXIMATED` on `tests/entities.py` for `tools/audit/seat/pr_cap.py` and `tools/pr/app_approve.sh`, caused by this diff's tick edge (above); also `tests / closures-autofix` (job 128903614688), which refused because `orchestrator_tick.py` is INERT and read. Cheaper detector: `prepr.sh` step 6d / `ci_predict.py --only self-test-reads`, which names the three reads in about 3 minutes against CI's closures at about 15; it did not run at the old head because that head was pushed without a prepr run after the edge was added. It now runs clean here.
+- **tests / closures** and **tests / closures-autofix**, **governance / instrument-self-tests**, **governance / delivery-status** (ancestry reds at earlier heads): closures and closures-autofix are answered above (cause: the tick edge; repaired in 5e55b7e, `ci_predict.py` clean at this head). instrument-self-tests: answered in the first body (cheaper detector is the local `--self-test` of the touched instrument, run by prepr.sh, standing cost seconds); this head's `prepr.sh` self-test step passes. delivery-status grades `main` and is the orchestrator's (a red outside the required set blocks nothing); its row `dev/programme/delivery/3326.md` is untouched here. The code-scanning alerts could not be read in this container (HTTP 403); not claimed clean.
 - **gate** at the old head failed because of `tests / closures`; it clears with it.
 - Earlier-head reds (`governance / instrument-self-tests`, `pr-contract`) were answered in the first body and are unchanged.
 
