@@ -2,11 +2,13 @@ R10-DISPATCH-AT-HANDOFF: a reviewer is dispatched at the handoff, keyed by topic
 
 ## Head note
 
-Repair merge: origin/main (6457496aba7b1076b1ed60c374c5badafdf66fc1, read at 2026-11-09T02:39Z) is merged into the handoff by e27484ffc9fb1f282974a35f02a470f657795e57, which was the previous head; the head below adds a commit registering `handoff-verdict-held` in ledger.py's KINDS (see Red checks) and a merge of origin/main (one conflict, the KINDS table, resolved keeping both entries). The one conflict, cloud_dispatch.py, was resolved by union: main's frugal-routing line, role-pack setup and merge-tree-only block rule (#3338 and its earlier commits) and this branch's handoff reviewer (topic-keyed revt ref, no packet, no CI wait) are all present. The previous merge's tip was 089f1da017e98a697a24e70c308f79beee9b8607. `git merge-tree --write-tree origin/main HEAD` exits 0 and origin/main is an ancestor of the head.
+Repair merge: origin/main (6457496aba7b1076b1ed60c374c5badafdf66fc1, read at 2026-11-09T02:39Z) was merged into the handoff by e27484ffc9fb1f282974a35f02a470f657795e57; the head named under `## Head` is 5f28e55a. The one conflict, cloud_dispatch.py, was resolved by union: main's frugal-routing line, role-pack setup and merge-tree-only block rule (#3338 and its earlier commits) and this branch's handoff reviewer (topic-keyed revt ref, no packet, no CI wait) are all present. The previous merge's tip was 089f1da017e98a697a24e70c308f79beee9b8607. `git merge-tree --write-tree origin/main HEAD` exits 0 at 2026-11-09T14:43Z (origin/main then 53f4a051); main has moved since the merge, which needs no re-merge.
 
 ## Head
 
 5f28e55aae26748ab33274d87c1ab8d79d7e50b2
+
+The four first-parent commits after the earlier measured head e27484ffc9fb1f282974a35f02a470f657795e57 (`git log --first-parent e27484ff..5f28e55a`): 7e61974e2 merged origin/main again (tip 3fdaa9da9); f2ca26a07 recorded the delivery row for #3366; 23a63ff9c registered `handoff-verdict-held` as a derived level kind in tools/audit/seat/ledger.py (one line, a census of cloud_relay.sh writers); 5f28e55aa merged origin/main (82a2c142f, #3325) into the handoff. No code of this topic's own changed since e27484ff; the mutation proof and null control above concern cloud_dispatch.py, which those commits do not touch beyond main's merges.
 
 ## Mutation proof
 
@@ -27,9 +29,7 @@ The unmutated merged file: `python3 tools/audit/seat/cloud_dispatch.py --self-te
 
 ## Red checks
 
-- `governance / instrument-self-tests` (job 128987860550) was red at f2ca26a07: "ledger self-test: 101 checks, 1 failed", FAIL "every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)". Cause: this diff makes cloud_relay.sh write the level kind `handoff-verdict-held`, which tools/audit/seat/ledger.py's KINDS table lacked. Fixed at the head above: the kind is registered as "derived" (a level rewritten each pass); `ledger.py --self-test` prints 101 checks, 0 failed. Mutation proof: deleting the new KINDS entry makes the census fail again (101 checks, 1 failed). The two "FAIL D1/D2 mode=cells" lines in that log belong to another self-test's own fixtures and were not chased.
-- `pr-contract` was red because the body did not name the check above; this section is the answer.
-- Cheaper detector: running `python3 -I tools/audit/seat/ledger.py --self-test` before the handoff, a few seconds. Whenever a diff adds a `level_line` or `ledger_open` kind in cloud_relay.sh it should be run; its standing cost is one extra self-test invocation per such handoff.
+none
 
 ## Forward-carry
 
