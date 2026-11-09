@@ -201,6 +201,8 @@ from .inputs import (
     UNBOUNDED,
     InputHealth,
     InputReader,
+    InputReading,
+    InputReturnWatch,
     age_of,
     normalize_price_per_kwh,
     parse_bool,
@@ -627,6 +629,17 @@ def _peak_tariff_hours(spec: str) -> tuple[Any, ...]:
 #: belongs to the process, not to one coordinator instance, and the set is
 #: bounded by the distinct causes an install actually sees (D1-s2-04).
 _FENCED_CAUSES: set[tuple[str, str]] = set()
+
+
+def _track_states(
+    hass: HomeAssistant, entity_ids: list[str], action: Callable[[Any], None]
+) -> Callable[[], None]:
+    """``async_track_state_change_event`` for a plain callable, run on the loop.
+
+    The tracker ``InputReturnWatch`` is handed, so ``inputs`` imports no
+    Home Assistant; ``@callback`` keeps the action off the executor.
+    """
+    return async_track_state_change_event(hass, entity_ids, callback(lambda event: action(event)))
 
 
 async def _best_effort_cycle_step(step: Callable[[], Any], message: str) -> None:
@@ -2531,6 +2544,22 @@ def _open_loop_plan_value(
     return None if index is None else float(trajectory[index])
 
 
+def _seed_store(
+    reading: InputReading,
+    result: OptimizationResult | None,
+    trajectory_attr: str,
+    now: datetime,
+) -> float | None:
+    """A tank's level for this cycle: the probe, else the plan's own estimate.
+
+    One seed path for every store (R10-BUFFER-OPENLOOP, D12-s1-01): an ok
+    reading wins; without one the previous plan's ``trajectory_attr`` at the
+    step covering ``now``; ``None`` when neither exists, and the caller then
+    leaves its field as it is rather than fabricate a level.
+    """
+    return reading.value if reading.ok else _open_loop_plan_value(result, trajectory_attr, now)
+
+
 def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
     """Picklable diagnose args; the coordinator itself is not picklable."""
     record = coord._last_interval_record
@@ -3127,6 +3156,10 @@ def _apply_result_payload(
             ],
         }
     )
+    # The why-now drivers of the step the action came from; absent when the
+    # action carries none, which the card reads as "no data".
+    if "why_now" in current_action:
+        data["why_now"] = current_action["why_now"]
 
 
 def _apply_unsolved_payload(data: Payload) -> None:
@@ -3589,6 +3622,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self, self._spawn, self._adopt_away_override, config, self._entity_state
         )
         away_mode.watch_away_inputs(hass, entry, config, self.async_request_refresh)
+        self._input_returns = InputReturnWatch(functools.partial(_track_states, hass), lambda:
+            hass.async_create_task(self.async_request_refresh()), 60.0 * config.optimization_interval)
 
     @callback
     def _release_registrations(self) -> None:
@@ -3604,6 +3639,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #1755 r1: a released entry drops its worker-fallback latch, so a removed
         # entry cannot hold the shared repair issue or leak a key after it is gone.
         _clear_worker_fallback(self.hass, self.entry.entry_id)
+        self._input_returns.release()
         for name in ("_unsub_ecl110_state", "_unsub_peak_guard", "_unsub_defrost"):
             unsub = getattr(self, name, None)
             setattr(self, name, None)
@@ -4017,7 +4053,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "dhw_cost": 0.0,
             "total_cost": 0.0,
         }
-        self._last_energy_sample: datetime | None = None
         #: The date the lifetime accumulators started, restored from the
         #: energy store; set on first publish when the store has none.
         self._energy_totals_since: str | None = None
@@ -5213,10 +5248,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         outlet = reader.read(CONF_VALVE_OUTLET_TEMP_ENTITY)
         wood_top = reader.read(CONF_WOOD_TANK_TOP_ENTITY)
         wood_bottom = reader.read(CONF_WOOD_TANK_BOTTOM_ENTITY)
+        # The rise inputs take the probes alone: the published levels may be
+        # the plan's own open-loop seed, whose planned rise is no evidence of
+        # outside heat. ``hp_tank_temp`` is a level, so it keeps the estimate.
+        dhw = reader.read(CONF_DHW_TEMP_ENTITY)
+        buffer = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
         observation = ExternalHeatObservation(
             now=dt_util.now(),
-            dhw_temp=ctx._current_state.dhw_temperature,
-            buffer_temp=ctx._current_state.buffer_tank_temperature,
+            dhw_temp=dhw.value if dhw.ok else None,
+            buffer_temp=buffer.value if buffer.ok else None,
             commanded_power_kw=self._commanded_power(),
             measured_power_kw=self._measured_power,
             dhw_max_rise_c_per_h=self._max_pump_rise("dhw"),
@@ -6327,10 +6367,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 space_pins=space_pins,
                 dhw_pins=dhw_pins,
                 power_caps_extra=quiet.caps,
-                # T5 (#16 #54): the comfort floor's two gated adjustments;
-                # None for both is the byte-inert default path.
+                # T5 (#16 #54): the comfort floor's gated adjustments; None is byte-inert.
                 min_temp_margins=self._confidence_margins(n),
                 min_temp_floors=self._mold_floor_series(horizon.outdoor_temps),
+                away_floor_drop_c=away_mode.floor_drop_c(ctx._opt_config, self._away_state),
                 # v5.3.0: never promise heat the pump's current mode cannot
                 # deliver — symmetrically. Both default False, so an install
                 # with no mode entity plans exactly as before.
@@ -6652,14 +6692,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # ``prior`` is the state the interval started from (the slab seed).
         prior = ctx._current_state
         state = replace(prior)
-        # Indoor temperature
         indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
         if indoor.ok:
             state.room_temperature = indoor.value
             # For two-zone: indoor sensor is typically upper floor
             state.upper_floor_temperature = indoor.value
 
-        # Outdoor temperature
         outdoor = reader.read(CONF_OUTDOOR_TEMP_ENTITY)
         if outdoor.ok:
             state.outdoor_temperature = outdoor.value
@@ -6671,7 +6709,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # None (no forecast) keeps the default: the honest horizon.
             state.outdoor_temperature = forecast_outdoor
 
-        # Floor heating return temperature sensor
         floor_return = reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
         if floor_return.ok:
             self._floor_return_temp = floor_return.value
@@ -6727,25 +6764,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 self._solar_radiation = observed
                 state.solar_radiation = observed
 
-        # DHW temperature sensor. Without an ok reading the tank is seeded
-        # from the previous plan's own trajectory (open-loop propagation,
-        # R9 D12-s1-01); the 55 °C dataclass default reached every solve
-        # otherwise, so every plan believed the tank was just charged.
+        # The tank levels. Without an ok reading each tank is seeded from the
+        # previous plan's own trajectory (open-loop propagation, D12-s1-01):
+        # a never-advanced default (55 °C DHW, 40 °C buffer) reached every
+        # solve otherwise. No reading and no plan leaves the field as it is.
         dhw = reader.read(CONF_DHW_TEMP_ENTITY)
+        buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
+        plan, seeded_at = self._optimization_result, dt_util.now()
         if dhw.ok:
             self._dhw_temperature = dhw.value
-            state.dhw_temperature = self._dhw_temperature
-        elif (
-            seed := _open_loop_plan_value(
-                self._optimization_result, "dhw_temp_trajectory", dt_util.now()
-            )
-        ) is not None:
-            state.dhw_temperature = seed
-
-        # Buffer tank temperature sensor (optional; enables cooling learning)
-        buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
-        if buffer_reading.ok:
-            state.buffer_tank_temperature = buffer_reading.value
+        if (level := _seed_store(dhw, plan, "dhw_temp_trajectory", seeded_at)) is not None:
+            state.dhw_temperature = level
+        if (level := _seed_store(buffer_reading, plan, "buffer_temp_trajectory", seeded_at)) is not None:
+            state.buffer_tank_temperature = level
 
         # Wood tank temperature (issue #40): re-read from the physical tank
         # each cycle through the same stale-aware reader — the model never
@@ -6820,6 +6851,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # The health snapshot has to be complete before any learner runs, since
         # each one consults it to decide whether to freeze.
         self._input_health = reader.health
+        self._input_returns.arm(reader.health)
         self._learner_freeze_reason = None
 
         # The defrost derate's humidity bucket is resolved from this, so it has
