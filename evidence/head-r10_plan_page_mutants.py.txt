@@ -1,0 +1,1 @@
+mutant_guard: signal 15, restored tools/audit/seat/plan_page.py, tools/plan/replan.py, tools/audit/seat/state_docs.py

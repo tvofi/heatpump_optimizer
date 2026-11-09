@@ -1,0 +1,21 @@
+MODE: SCOPED -- 20 step(s) run
+  run policy-lint-mutants
+  run fragment-check
+  run bottleneck-alert
+  run push-script-decisions
+  run app-push
+  run verdict-bus
+  run codeql-leg-scope
+  run temp-or-machine-path
+  run push-names-the-host
+  run orchestrator-tick
+  run critical-path-and-flow
+  run self-tests-outside-seat
+  run cloud-relay
+  run record-row-generator
+  run review-packet
+  run throwaway-git-helper
+  run merge-train
+  run ci-probe-instrument
+  run ci-predictor
+  run prepr

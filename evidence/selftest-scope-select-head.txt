@@ -1,10 +1,11 @@
-MODE: FULL -- every step runs (a gate file changed: ['.github/workflows/governance.yml'])
+MODE: FULL -- every step runs (a gate file changed: ['.github/workflows/governance.yml', 'tools/ci/selftest_closures.json'])
   run policy-lint-mutants
   run fragment-check
   run lane-skip-decision
   run probe-bridge
   run plan-public
   run outside-intake
+  run bottleneck-alert
   run field-coverage
   run comment-poster
   run record-predicate-sweep
@@ -40,6 +41,7 @@ MODE: FULL -- every step runs (a gate file changed: ['.github/workflows/governan
   run post-merge-bookkeeping
   run roster-queue-runner
   run owed-line-reader
+  run topic-grammar
   run detached-launcher
   run delivery-row-writer
   run failure-log-reader
@@ -105,9 +107,3 @@ MODE: FULL -- every step runs (a gate file changed: ['.github/workflows/governan
   run beatd
   run update-pr
   run selftest-scope
-rc=0
-  ok   the committed table names no landed retired path (161 retired; named: [])
-  FAIL the live job parses (115 steps) and its gating is consistent
-selftest_scope self-test: 90 checks, 1 failed
-rc=0
-106
