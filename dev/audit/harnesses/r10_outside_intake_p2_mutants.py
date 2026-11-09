@@ -39,13 +39,20 @@ MT = "tools/audit/merge_throughput.py"
 PAGE = "tools/audit/seat/plan_page.py"
 BEAT = "tools/audit/seat/beat_jobs.py"
 EDIT = "tools/audit/seat/roster_edit.py"
+BOTTLE = "tools/audit/seat/bottleneck_check.py"
 #: The self-test argv per file; beat_jobs' own mutants are its own self-test's.
 SELF = {LIB: ["--self-test"], PLAN: ["--self-test"], MT: ["--self-test"], PAGE: ["--self-test"],
-        BEAT: ["--self-test", "--no-mutants"], EDIT: ["--self-test"]}
+        BEAT: ["--self-test", "--no-mutants"], EDIT: ["--self-test"], BOTTLE: ["--self-test"]}
 
 #: (name, file, old, new, extra self-tests run besides the file's own)
 MUTANTS = [
     ("M0", None, None, None, ()),
+    # The memory key reduced to the kind alone: the behaviour case "two metrics
+    # tripped together each print their own line" is among its FAIL lines, apart
+    # from the in-file anchor guard that also fires on any edit of `state_of`.
+    ("state-of-kind-only", BOTTLE,
+     'distinct states."""\n    return " ".join(line.split()[:2])',
+     'distinct states."""\n    return line.split()[0]', ()),
     ("discharged-any-stage", LIB, 'return (resume.get("stage") == "carries-open"',
      'return (resume.get("stage") in ("carries-open", "in-progress", "not-started")', ()),
     ("discharged-no-commit", LIB,
