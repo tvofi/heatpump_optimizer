@@ -19843,10 +19843,10 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-rca-sweep-settle-loop",
     "pr": 3329,
-    "commit": null,
+    "commit": "d9af08062a611c507537c7ba2c73872c5b6de8ee",
     "last_step": null,
     "next_step": "dispatch fixer",
     "note": null
