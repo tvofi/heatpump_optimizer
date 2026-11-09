@@ -15334,7 +15334,8 @@
    "after": [],
    "files": [
     "tools/audit/seat/merge_train.py",
-    "tools/policy/budget_raise_gate.py"
+    "tools/policy/budget_raise_gate.py",
+    "tools/audit/seat/queue_pre_flight.py"
    ],
    "carry": [
     "From the R10-FLY-MANDATE-REVOKE-GUARD fixer (handoff 86123b4e3, 2026-10-31), gaps it stated rather than built:\n(a) a raw `gh api` or `gh issue comment` post to #201 bypasses the guard, which lives in gh_comment.py only;\n(b) merge_train.py and --check-body still check only the raise justification's shape, not its dS value;\n(c) the budget-raise-gate job's 5-minute timeout is unchanged, while the scorer needs about 59 s of CPU on the mandated path.\nClose (a) at the seat shims (tools/audit/seat/shims has a seat-gh: refuse a #201 comment write that does not go through gh_comment.py). Route (b) through the same revokes()/dS helper. Measure (c) on CI's runner.\nControl: a planted raw `gh api` post of the kill pairing is refused by the shim, and a normal comment through gh_comment.py posts.",
@@ -15353,7 +15354,7 @@
     "commit": "5915e30b4e5e88b69e1c22297285ac10ca8d057b",
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
-    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-MANDATE-REVOKE-GUARD",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-MANDATE-REVOKE-GUARD | set-files files ['tools/audit/seat/merge_train.py', 'tools/policy/budget_raise_gate.py'] -> ['tools/audit/seat/merge_train.py', 'tools/policy/budget_raise_gate.py', 'tools/audit/seat/queue_pre_flight.py']",
     "pr": 3223
    },
    "brief": "Gaps the R10-FLY-MANDATE-REVOKE-GUARD fixer stated after #3064: a raw post to #201 bypasses the gh_comment.py guard (close it at the seat gh shim R10-FLY-GH-CALL-LOG adds), the train and the body check read only the raise justification's shape, and the budget-raise-gate job's timeout is unmeasured on CI's runner. Runs after R10-FLY-GH-CALL-LOG. Single-carry group. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
