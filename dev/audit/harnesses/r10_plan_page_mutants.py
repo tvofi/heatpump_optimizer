@@ -69,8 +69,8 @@ MUTANTS = [
     ("page-refuses-stale", PAGE, "    if stale:\n        bad.append", "    if False:\n        bad.append"),
     ("freshness-rule", PLAN, "if have != want:", "if False:"),
     ("stamp-on-axis", PAGE,
-     "end = max([_t(plan[\"summary\"][\"closure\"])] + [_t(s[\"at\"]) for s in plan[\"stamps\"]])",
-     "end = _t(plan[\"summary\"][\"closure\"])"),
+     "end = max([_t(plan[\"summary\"][\"closure\"])] + [_t(s[\"at\"]) for s in plan[\"stamps\"]]\n",
+     "end = max([_t(plan[\"summary\"][\"closure\"])]\n"),
     # Round 2: the fix review's survivors B to E (probe/rev-2558-e98d4b97).
     # B moved with its rule (2026-11-01): `replan.check_plan` refuses a plan
     # recording no model, which the page reads through C, so the page's own
