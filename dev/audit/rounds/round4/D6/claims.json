@@ -1003,8 +1003,8 @@
   "source": "strings.json + translations/*.json",
   "claim": "every translation file carries exactly the keys strings.json declares",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "languages=['de', 'en', 'sv'], missing={'de': 0, 'en': 0, 'sv': 0}, extra={'de': 0, 'en': 0, 'sv': 0}",
-  "verdict": "true",
+  "result": "languages=['de', 'en', 'sv'], missing={'de': 5, 'en': 0, 'sv': 0}, extra={'de': 0, 'en': 0, 'sv': 0}",
+  "verdict": "false",
   "truth": ""
  },
  {
