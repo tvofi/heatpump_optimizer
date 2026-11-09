@@ -106,7 +106,7 @@ KINDS = {
     "handoff-no-pr": "derived", "handoff-update": "derived", "probe-ref": "derived",
     "handoff-hold-malformed": "derived", "handoff-held": "derived", "handoff-body-stale": "derived", "handoff-body-unapplied": "derived", "handoff-hold-stale": "derived",
     "design-build": "derived", "review-owed": "derived", "record-owed": "derived",
-    "probe-refused": "derived", "confirm-owed": "derived", "push-stuck": "derived",
+    "probe-refused": "derived", "handoff-verdict-held": "derived", "confirm-owed": "derived", "push-stuck": "derived",
     "seat-no-return": "derived",
     "fixer-round": "derived", "recut": "derived", "train-parked": "derived", "dirty": "derived",
     "red-unowned": "derived", "body-ahead": "derived", "fire-owed": "derived",
