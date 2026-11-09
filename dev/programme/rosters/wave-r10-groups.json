@@ -20723,6 +20723,60 @@
     "stage": "not-started",
     "branch": null
    }
+  },
+  {
+   "group": "R10-STANDING-CONTRACTS-P2",
+   "lane": "IN",
+   "kind": "policy",
+   "issues": [
+    3115,
+    3134
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "policy",
+   "severity": "medium",
+   "size": "L",
+   "wave": 1,
+   "files": [
+    "dev/governance/roles/standing-merge.md",
+    "dev/governance/roles/standing-dispatch.md",
+    "dev/governance/roles/standing-roster.md",
+    "dev/governance/roles/standing-tick.md",
+    "dev/governance/roles/orchestrator.md",
+    "dev/governance/roles/fixer.md",
+    "dev/governance/roles/designer.md",
+    "dev/governance/roles/design-review.md",
+    "tools/audit/seat/sweep_template.md",
+    "tools/audit/seat/pulse.py"
+   ],
+   "hot_files": [
+    "dev/governance/roles/orchestrator.md"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "policy: owner approves at merge",
+   "rca": [],
+   "after": [
+    "R10-FIXER-MD-SPELLING-CORPUS"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Design P2 of design/r10-fly-standing-contracts (approved; P1 #3197 and P3 #3294 merged): the standing-*.md contract edits (Wait, Reads, autofix hold, Recycle, merge_pr.sh), the seat retirements whose beat rows already run (tick-digest, roster-drain), the orchestrator reading only the ledger and the plan page, standing.md naming the alive-file directory; plus P371's two-PR grader-first rule in fixer.md/designer.md/design-review.md. Policy: owner approval at merge; pay inside each file's cap. No new design: the approved one covers it. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE, ordered by after-edges where files overlap"
+   }
   }
  ]
 }
