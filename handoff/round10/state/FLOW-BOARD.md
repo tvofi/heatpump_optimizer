@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-09T21:32:25+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-09T21:54:15+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 1 / 1.0 | 12 / 24.0 |
-| fly-ins closed | 0 | 7 |
-| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 0 | 28 / 3 / 0 / 7 |
-| first-pass fix-review yield | 1/1 (1.00) | 9/27 (0.33) |
+| roster groups closed vs takt | 1 / 1.0 | 13 / 24.0 |
+| fly-ins closed | 1 | 8 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 1 | 28 / 3 / 0 / 8 |
+| first-pass fix-review yield | 0/0 (-) | 9/27 (0.33) |
 | blocked-class mix | none | body-stale:1, carry-missing:1, ci-cancelled:2, ci-deferral-red:1, ci-incomplete:1, ci-pending:1, ci-red:22, ci-unsettled:1, claim-refuted:1, class-open:3, defect:1, main-conflict:1, merge-conflict:2, mutation-vacuous:1, resolution-ungated-step:1, root-cause-unanswered:4, root-cause-unrecorded:1, scope-rule-widened:1, selftest-scope-ungated:1, semantic-conflict:1 |
-| lead time per size (h, n/p50/max) | S n=1 p50=2.34 max=2.34 | L n=1 p50=15.27 max=15.27; M n=13 p50=20.17 max=50.34; S n=14 p50=18.49 max=39.24 |
+| lead time per size (h, n/p50/max) | none | L n=1 p50=15.27 max=15.27; M n=13 p50=20.17 max=50.34; S n=14 p50=18.49 max=39.24 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 48 | 10 | 1 |
+| 1 | 48 | 9 | 1 |
 
 ## Rules
 
