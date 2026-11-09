@@ -53,7 +53,7 @@ from typing import Any, Callable, Iterable
 import numpy as np
 from scipy.optimize import minimize
 
-from . import mixing_valve, pv
+from . import mixing_valve, pv, slot_drivers
 from .const import (
     DEFAULT_CYCLING_COST,
     DEFAULT_PRICE_RISK_LAMBDA,
@@ -105,6 +105,7 @@ from .thermal_model import (
     planned_draws_run,
     delivered_heat_kw,
     project_planned_levels,
+    project_space_against,
     valve_charge_demand,
     valve_hold_temperature,
     weather_or_calm,
@@ -154,13 +155,28 @@ def _realize_draw(
     p_max: float,
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """Space and, when present, DHW at the power the write surface can deliver."""
-    return (
-        _published_levels(clamp, space, p_min, p_max),
-        (
-            None if dhw is None
-            else _published_levels(clamp, dhw, p_min, p_max)
-        ),
-    )
+    if dhw is None:
+        return _published_levels(clamp, space, p_min, p_max), None
+    return _realize_joint(clamp, space, dhw, p_min, p_max)
+
+
+def _realize_joint(
+    clamp: bool,
+    space: np.ndarray,
+    dhw: np.ndarray,
+    p_min: float,
+    p_max: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Space and DHW as :func:`_realize_draw` ships them, DHW present.
+
+    On a clamped install one compressor serves both channels: DHW ships as
+    its own projection and space projects against it (#3289), so the total
+    never exceeds ``p_max`` nor runs below ``p_min``.
+    """
+    if not clamp:
+        return space, dhw
+    tank = project_planned_levels(dhw, p_min, p_max)
+    return project_space_against(space, tank, p_min, p_max), tank
 
 
 def _scores_rounded(opt: HeatPumpOptimizer) -> bool:
@@ -832,12 +848,25 @@ _DEEP_LOW_ENERGY_START_FRACTION = 0.20
 # stub distribution exists, so a static import is an `import-untyped` error
 # with no annotation that reaches it -- while the try/except below already
 # says this dependency is optional and looked up at runtime.
+#
+# ONE controller, built here, after numpy and scipy have loaded their BLAS.
+# ``threadpool_limits(limits=1)`` builds a fresh ``ThreadpoolController`` on
+# every call: a rescan of every shared library the process has loaded, CPU
+# paid on each of a solve's minimize calls, and fresh ``ctypes.CDLL`` handles
+# whose runtime-built symbol names (``f"{prefix}openblas_...{suffix}"``) are
+# interned on lookup and freed with the handle. That churn -- and, off Linux
+# on Python 3.14, the first call's ``ctypes.util`` import -- fills the
+# interpreter-wide interned-string table until it is rebuilt in one ~1.8 MiB
+# step, which the stress memory probe charged to whichever scenario's solve
+# crossed it (R10-HOTFIX-STRESS-MEM-PEAK). Built once, the scan and the
+# handles are paid at import, and ``limit`` per call only sets and restores
+# the thread counts through the handles it already holds.
 try:  # pragma: no cover - present via the manifest requirement
-    _threadpool_limits: Any = importlib.import_module(
+    _blas_threads: Any = importlib.import_module(
         "threadpoolctl"
-    ).threadpool_limits
+    ).ThreadpoolController()
 except (ImportError, AttributeError):  # bare test imports without the requirement
-    _threadpool_limits = None
+    _blas_threads = None
 
 
 def _scoped_minimize(*args: Any, **kwargs: Any) -> Any:
@@ -849,13 +878,15 @@ def _scoped_minimize(*args: Any, **kwargs: Any) -> Any:
     CPU a Raspberry-Pi-class host running all of Home Assistant does not
     have. Scoped to the call and never process-wide, because other
     components share this interpreter; a bare environment-variable set would
-    be both process-wide and too late (numpy is long since imported).
+    be both process-wide and too late (numpy is long since imported). The
+    pin reaches the libraries ``_blas_threads`` saw at import -- numpy's and
+    scipy's own, which are the ones this call runs on.
     Identical results by construction: no operation at these sizes is
     threaded, which is precisely why the threads were pure overhead.
     """
-    if _threadpool_limits is None:
+    if _blas_threads is None:
         return minimize(*args, **kwargs)
-    with _threadpool_limits(limits=1):
+    with _blas_threads.limit(limits=1):
         return minimize(*args, **kwargs)
 
 
@@ -1925,6 +1956,9 @@ class OptimizationResult:
     #: Per-step explanation of why the plan does what it does.
     space_reasons: list[str] = field(default_factory=list)
     dhw_reasons: list[str] = field(default_factory=list)
+    #: Driver code -> one signed weight per step, percent of that step's push
+    #: towards running (``slot_drivers.space_drivers``; R10-WHY-NOW-WIDGET).
+    space_drivers: dict[str, list[float]] = field(default_factory=dict)
 
     # --- Price provenance (item 7) -------------------------------------
     #: True where the price came from the published market data, False where
@@ -2289,6 +2323,12 @@ class _Horizon:
     #: Prepended ahead of the usual candidates so the solver can escape the
     #: kink at a lowered ceiling instead of re-descending onto it.
     extra_starts: tuple[np.ndarray, ...] | None = None
+    #: What ``slot_drivers`` reads and the solve does not (R10-WHY-NOW-WIDGET):
+    #: the comfort floor before the mold guard, the mold floor padded to the
+    #: horizon, and the floor the away setback and holiday profile took off.
+    comfort_floors: np.ndarray | None = None
+    mold_floors: np.ndarray | None = None
+    away_floor_drops: np.ndarray | None = None
 
     @property
     def timestamps(self) -> list[datetime]:
@@ -2333,6 +2373,10 @@ class SolveLimits:
     dhw_blocked: bool = False
     off_steps: np.ndarray | None = None
     quiet_actions: np.ndarray | None = None
+    #: The configured floor less the one the away setback solves against, °C;
+    #: None when away is inactive or recovering. Read by the why-now drivers
+    #: only: the setback itself is already in the configuration's bounds.
+    away_floor_drop_c: float | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -3062,7 +3106,7 @@ class HeatPumpOptimizer:
         baseline_load = self.config.baseline_load_array(h.n_steps)
         grid = self._grid_report(total_power, baseline_load, h.dt, h.start_time)
         upper_setpoints, lower_setpoints = self._zone_setpoints(space_power)
-        two_zone = self.model.params.two_zone_enabled
+        room = upper_temps if self.model.params.two_zone_enabled else room_temps
 
         return OptimizationResult(
             power_schedule=space_power.tolist(),
@@ -3126,7 +3170,7 @@ class HeatPumpOptimizer:
                     classify_space_steps(
                         space_power,
                         h.prices,
-                        upper_temps if two_zone else room_temps,
+                        room,
                         h.temp_min_bounds,
                         h.heat_loss_factors,
                         self._pv_surplus,
@@ -3138,6 +3182,7 @@ class HeatPumpOptimizer:
                 ),
                 h.space_blocked,
             ),
+            space_drivers=slot_drivers.space_drivers(h, room, self.model.params.max_electrical_power),
             dhw_reasons=_dhw_reason_list(
                 h, space_power, dhw_power, dhw_temps, dhw_in_window, dhw_ready,
                 dhw_legionella_step, dhw_floors, self._pv_surplus,
@@ -3666,12 +3711,13 @@ class HeatPumpOptimizer:
             step_datetimes, self.config.holiday_dates
         )
 
-        comfort_targets, temp_min_bounds, temp_max_bounds = (
+        comfort_targets, temp_min_bounds, temp_max_bounds, floors = (
             self._build_comfort_bounds(
                 step_hours, n_steps, min_temp_margins, min_temp_floors,
                 step_datetimes,
             )
         )
+        away_drops = slot_drivers.away_floor_drops(self.config, step_hours, step_datetimes, limits.away_floor_drop_c)
 
         # Per-step solar gain, and the wind/rain multiplier on heat loss. Both
         # use the *forecast* at each future step rather than current
@@ -3740,6 +3786,9 @@ class HeatPumpOptimizer:
                 dhw_blocked=dhw_blocked,
                 off_steps=off_steps,
                 extra_starts=extra_starts,
+                comfort_floors=floors[0],
+                mold_floors=floors[1],
+                away_floor_drops=away_drops,
             )
             if dhw_enabled:
                 return self._optimize_with_dhw(horizon, planner)
@@ -3986,8 +4035,9 @@ class HeatPumpOptimizer:
         min_temp_margins: np.ndarray | None,
         min_temp_floors: np.ndarray | None,
         step_times: list[datetime] | None = None,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """The per-step comfort target and the band the solve must stay in."""
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, tuple[np.ndarray, np.ndarray | None]]:
+        """The per-step comfort target and the band the solve must stay in,
+        then the comfort floor before the mold guard and the padded mold floor."""
         times = list(step_times) if step_times is not None else []
         comfort_targets = np.array(
             [
@@ -4005,6 +4055,7 @@ class HeatPumpOptimizer:
         ]
         temp_min_bounds = np.array([low for low, _ in bounds])
         temp_max_bounds = np.array([high for _, high in bounds])
+        comfort_floors, mold_floors = temp_min_bounds, None
 
         # T5 (#16 #54): the comfort floor's two adjustments, both optional
         # and both applied HERE — the single site where the bounds are
@@ -4016,20 +4067,22 @@ class HeatPumpOptimizer:
         if min_temp_margins is not None or min_temp_floors is not None:
             if min_temp_margins is not None:
                 temp_min_bounds = temp_min_bounds + _padded_nonneg(min_temp_margins, n_steps)
+                comfort_floors = temp_min_bounds
             if min_temp_floors is not None:
                 f = np.asarray(min_temp_floors, dtype=float)
                 if f.size < n_steps:
                     f = np.concatenate(
                         [f, np.full(n_steps - f.size, -np.inf)]
                     )
-                temp_min_bounds = np.maximum(temp_min_bounds, f[:n_steps])
+                mold_floors = f[:n_steps]
+                temp_min_bounds = np.maximum(temp_min_bounds, mold_floors)
             # Whatever raised the floor, the band never squeezes shut: a
             # floor at or above the ceiling makes the solve infeasible and
             # the comfort penalty unbounded.
             temp_min_bounds = np.minimum(
                 temp_min_bounds, temp_max_bounds - 0.5
             )
-        return comfort_targets, temp_min_bounds, temp_max_bounds
+        return comfort_targets, temp_min_bounds, temp_max_bounds, (comfort_floors, mold_floors)
 
     def _build_space_power_caps(
         self,
@@ -4779,7 +4832,7 @@ class HeatPumpOptimizer:
         starts = [
             initial_power,
             _price_ranked_start(prices, baseline_energy, p_max, dt),
-            np.clip(seed_power, 0.0, p_max),
+            seed_power,  # inside the bounds: the reference never passes the pump
             _price_ranked_start(
                 prices,
                 baseline_energy * _LOW_ENERGY_START_FRACTION,
@@ -5100,11 +5153,9 @@ class HeatPumpOptimizer:
             p_max=p_max,
             planner=planner,
         )
-        optimal_space = _published_levels(
-            self.config.clamp_planned_levels, optimal_space, p_min, p_max
-        )
-        optimal_dhw = _published_levels(
-            self.config.clamp_planned_levels, optimal_dhw, p_min, p_max
+        optimal_space, optimal_dhw = _realize_joint(
+            self.config.clamp_planned_levels, optimal_space, optimal_dhw,
+            p_min, p_max,
         )
 
         # Simulate with optimal schedule
@@ -5484,26 +5535,21 @@ class HeatPumpOptimizer:
         wood's heat counts in the saving, and firewood's cost is not counted;
         the card says so where wood is configured.
 
-        Returns the power schedule and the final state, the latter so the
-        caller can account for the thermal energy left stored at the end of the
-        horizon.
+        Returns the power schedule and the final state, whose stored heat the
+        caller settles at the horizon's end.
         """
         outdoor_temps = weather.outdoor_temps
         wind_speeds = weather.wind_speeds
         precipitation = weather.precipitation
         solar_radiation = weather.solar_radiation
         humidity = weather.humidity
-        # The thermostat runs the same heat-loss physics as the plan, so its
-        # weather is the horizon's: the series the loss multiplies are
-        # required here, never the record's None default. Both callers hand
-        # it a horizon's series (tests build them concrete).
+        # The plan's heat-loss physics multiplies these: a horizon's, never None.
         assert wind_speeds is not None and precipitation is not None
         assert solar_radiation is not None
         n_steps = len(outdoor_temps)
         p = self.model.params
 
         baseline_power = np.zeros(n_steps)
-        # Read once, not per step: the loop below runs to the horizon's end.
         targets = _baseline_targets(comfort_targets, n_steps, self.config.target_temp)
         hums = [None] * n_steps if humidity is None else np.asarray(humidity, float).tolist()
         k_slab = p.slab_heat_transfer_floored
@@ -5518,11 +5564,9 @@ class HeatPumpOptimizer:
 
             hum_i = hums[i]
             cop = _reference_cop(self.model, state, outdoor_temps[i], hum_i)
-            # No lower clamp to ``min_electrical_power``: a pump that cannot
-            # modulate that low cycles on and off, and over a step the average
-            # power is what determines energy use; a clamp burnt
-            # min_electrical_power * 24 h per day on a house needing no heat.
-            # Nor a clip at 0: the demand is floored at 0 above, the COP at 1.
+            # No clamp to the pump's minimum (below it a pump cycles; a step's energy
+            # is its average power): a clamp burnt min_electrical_power * 24 h per day
+            # on a house needing no heat. No clip at 0: demand floors at 0 above.
             power = min(power_for_heat_per_cop_kw(p, required_thermal / cop), p.max_electrical_power)
             baseline_power[i] = power
 
@@ -5545,7 +5589,8 @@ class HeatPumpOptimizer:
         thermostat's power: a tank above the curve zeroes them, one below it
         overshoots. The settlement books step 0 of a plan re-made every
         interval, so it would book only the transient. The simulation decides
-        how much the horizon draws; the demand decides when.
+        how much the horizon draws; the demand decides when, never past the
+        pump: a step held at it gives its excess to the rest by the same demand.
         """
         assert weather.wind_speeds is not None and weather.precipitation is not None
         assert weather.solar_radiation is not None
@@ -5557,8 +5602,14 @@ class HeatPumpOptimizer:
             ))
             for i in range(len(simulated))
         ])
-        total = float(np.sum(steady))
-        return simulated if total <= 0.0 else steady * (float(np.sum(simulated)) / total)
+        energy, cap = float(np.sum(simulated)), float(self.model.params.max_electrical_power)
+        held = np.zeros(len(steady), dtype=bool)
+        while (total := float(np.sum(steady[~held]))) > 0.0:
+            spread = np.where(held, cap, steady * ((energy - cap * int(np.sum(held))) / total))
+            if not (over := ~held & (spread > cap)).any():
+                return spread
+            held |= over
+        return simulated
 
     def _settle_horizon(
         self,
@@ -5880,22 +5931,13 @@ class HeatPumpOptimizer:
             "power_normalized": round(p_norm, 2),
             "heat_pump_on": bool(heat_pump_on),
             "displace_value": float(displace_value),
-            # T6: the reason codes for THIS step ride with the action, so
-            # the settlement can tag every booked SEK with why the plan
-            # wanted that draw. This method already owns the one search for
-            # the step covering now; re-deriving the index at settle time
-            # would be a second chance to disagree about which step ran.
-            "space_reason": (
-                result.space_reasons[i]
-                if result.space_reasons and i < len(result.space_reasons)
-                else None
-            ),
-            "dhw_reason": (
-                result.dhw_reasons[i]
-                if result.dhw_reasons and i < len(result.dhw_reasons)
-                else None
-            ),
         }
+        # T6: the reason codes for THIS step ride with the action, so
+        # the settlement can tag every booked SEK with why the plan
+        # wanted that draw, and the why-now drivers with them. This method
+        # already owns the one search for the step covering now; re-deriving
+        # the index at settle time would be a second chance to disagree.
+        action.update(slot_drivers.step_reasons(result, i))
 
         # The valve target for *this* step, when a hold schedule is in force.
         # It rides with the rest of the current action rather than being

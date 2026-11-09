@@ -38,7 +38,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
-from throwaway_git import throwaway_git_env, throwaway_git_init
+from throwaway_git import throwaway_git_env, throwaway_git_environ, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
 # is still there, otherwise the path the move map records, so a module import
@@ -46,6 +46,8 @@ from throwaway_git import throwaway_git_env, throwaway_git_init
 _PL_IMPORT = "import('./" + _layout_locate(".claude/workflows/policy_lint.mjs") + "')"
 _COUNTS_IMPORT = "import('./" + _layout_locate(".claude/workflows/counts.mjs") + "')"
 from harness import (
+    SHIPPED_LANGS,
+    TRANSLATED_LANGS,
     EagerHass,
     FakeCoordinator,
     FakeEntry,
@@ -683,7 +685,7 @@ R.check(
 # and its labels are copies. A copy that drifts from the home page's label
 # names one setting two ways, so each is compared, in both shipped languages.
 _prefill_drift = []
-for _lang_file in ("strings.json", "translations/sv.json"):
+for _lang_file in ("strings.json", *(f"translations/{_l}.json" for _l in TRANSLATED_LANGS)):
     _lang_steps = json.loads((ROOT / _lang_file).read_text())["options"]["step"]
     for _pkey, _plabel in _lang_steps["modbus_prefill"]["data"].items():
         # A home page may group the field into a section() (#824-style), which
@@ -2367,6 +2369,21 @@ R.check(
     f"populated={sorted(k for k in _DHW_BLOCK_KEYS if k in _no_dhw_plan_attrs)} "
     "-- the payload carried all five; the gate must keep them off the entity",
 )
+# R10-WHY-NOW-WIDGET: the space-plan sensor is the why-now carrier: it
+# publishes the payload's `why_now` as is, the DHW plan never does, and the
+# key is absent when the payload has none (the card's "no data").
+_WHY_NOW = {"t": "2026-02-01T05:00:00+00:00", "drivers": [
+    {"code": "price_rank", "direction": "run", "weight": 100.0}]}
+_why_data = {**_NO_DHW_DATA, "dhw_enabled": True, "space_plan": _LIVE_SPACE_PLAN,
+             "dhw_plan": _LIVE_SPACE_PLAN, "why_now": _WHY_NOW}
+R.check(
+    "R10-WHY-NOW-WIDGET: the space plan publishes why_now; the DHW plan does not; none without one",
+    sensor.SpaceHeatingPlanSensor(FakeCoordinator(_why_data), ENTRY).extra_state_attributes.get("why_now") == _WHY_NOW
+    and "why_now" not in sensor.DHWHeatingPlanSensor(FakeCoordinator(_why_data), ENTRY).extra_state_attributes
+    and "why_now" not in sensor.SpaceHeatingPlanSensor(
+        FakeCoordinator({**_NO_DHW_DATA, "space_plan": _LIVE_SPACE_PLAN}), ENTRY).extra_state_attributes,
+    "the space-plan sensor's attribute block is the card's only why_now source",
+)
 _no_dhw_on_attrs = sensor.SpaceHeatingPlanSensor(
     FakeCoordinator(
         {**_NO_DHW_DATA, "dhw_enabled": True, "space_plan": _LIVE_SPACE_PLAN}
@@ -2439,6 +2456,11 @@ R.check(
 R.check(
     "and keeps wood_fuel out of the recorder",
     "wood_fuel" in sensor._PlanSensorBase._unrecorded_attributes,
+)
+R.check(
+    "the space plan keeps why_now out of the recorder (R10-WHY-NOW-WIDGET)",
+    "why_now" in sensor.SpaceHeatingPlanSensor._unrecorded_attributes,
+    "card-only, and new at every step: worth no SD-card writes per update",
 )
 
 # Optional inputs must degrade cleanly.
@@ -4887,8 +4909,10 @@ _P6_TREES = {p.name: ast.parse(p.read_text()) for p in sorted(ROOT.glob("*.py"))
 _P6_WALKS = {name: list(ast.walk(tree)) for name, tree in _P6_TREES.items()}
 _P6_CATALOGUES = {
     "strings.json": json.loads((ROOT / "strings.json").read_text()),
-    "en.json": json.loads((ROOT / "translations" / "en.json").read_text()),
-    "sv.json": json.loads((ROOT / "translations" / "sv.json").read_text()),
+    **{
+        f"{_l}.json": json.loads((ROOT / "translations" / f"{_l}.json").read_text())
+        for _l in SHIPPED_LANGS
+    },
 }
 _P6_ICONS = json.loads((ROOT / "icons.json").read_text())
 
@@ -9963,8 +9987,10 @@ R.check(
 # say.)
 _CATALOGUES = {
     "strings.json": json.loads((ROOT / "strings.json").read_text()),
-    "en.json": json.loads((ROOT / "translations" / "en.json").read_text()),
-    "sv.json": json.loads((ROOT / "translations" / "sv.json").read_text()),
+    **{
+        f"{_l}.json": json.loads((ROOT / "translations" / f"{_l}.json").read_text())
+        for _l in SHIPPED_LANGS
+    },
 }
 
 # Home Assistant has no way to grey a field out, so the page says in words
@@ -10000,14 +10026,17 @@ for _name, _data in _CATALOGUES.items():
 # substituted verbatim by the frontend and a step has nowhere valid to keep
 # a free-standing sentence. So the languages have to be checked here.
 R.check(
-    "the warning is carried in code, in both languages",
-    set(config_flow.PRESET_WARNING) == {"en", "sv"}
-    and all(len(v) > 80 for v in config_flow.PRESET_WARNING.values()),
-    "an English-only warning would ship untranslated to every Swedish user",
+    "the warning is carried in code, in every shipped language",
+    set(config_flow.PRESET_WARNING) == set(SHIPPED_LANGS)
+    and all(len(v) > 80 for v in config_flow.PRESET_WARNING.values())
+    and len(set(config_flow.PRESET_WARNING.values())) == len(SHIPPED_LANGS),
+    f"{sorted(config_flow.PRESET_WARNING)} against {SHIPPED_LANGS}: an English-only "
+    "warning would ship untranslated to every user of a translated catalogue",
 )
 R.check(
     "and an unknown language falls back to English rather than a KeyError",
-    config_flow.PRESET_WARNING.get("de", config_flow.PRESET_WARNING["en"])
+    "xx" not in config_flow.PRESET_WARNING
+    and config_flow.PRESET_WARNING.get("xx", config_flow.PRESET_WARNING["en"])
     == config_flow.PRESET_WARNING["en"],
     "a form must never fail to render",
 )
@@ -10060,7 +10089,7 @@ def all_keys(data, prefix=""):
 strings = json.loads((ROOT / "strings.json").read_text())
 files = {
     name: json.loads((ROOT / "translations" / f"{name}.json").read_text())
-    for name in ("en", "sv")
+    for name in SHIPPED_LANGS
 }
 # #1067 W1067-G5: the disinfection switch's repair, mode options and refusal.
 for _lang, _texts in (("strings", strings), *files.items()):
@@ -10097,7 +10126,7 @@ def leaf_values(data, prefix=""):
 # English text shipped is en.json's, not strings.json's. The key check above
 # read "exactly" while comparing keys only, and en.json's pump_duty_mode text
 # went stale beside an edited source. en.json is a copy of strings.json leaf
-# for leaf; sv.json is a translation, so only its keys are pinned.
+# for leaf; every other catalogue is a translation, so only its keys are pinned.
 def en_value_drift(source, en):
     """The dotted paths where en's leaf differs from the source's."""
     a, b = leaf_values(source), leaf_values(en)
@@ -10164,7 +10193,18 @@ _HISTORY_MARKERS = {
     "sv": re.compile(
         r"\b(?:som tidigare|som förut|dessförinnan var|fungerade tidigare|tidigare fungerade"
         r"|(?:den|det) gamla (?:regeln|beteendet|sättet)|förut|numera)\b", re.IGNORECASE),
+    # de: bare "früher" is excluded, because it is also "earlier" in time
+    # ("heats earlier"), which is current behaviour.
+    "de": re.compile(
+        r"\b(?:wie (?:bisher|zuvor|früher)|vormals|ehemals|bislang"
+        r"|(?:die|das) alte (?:Regel|Verhalten|Weise)|(?:der|dem) alten (?:Regel|Weise))\b",
+        re.IGNORECASE),
 }
+R.check(
+    "every shipped language names its change-history markers",
+    set(_HISTORY_MARKERS) == set(SHIPPED_LANGS),
+    f"{sorted(_HISTORY_MARKERS)} against {SHIPPED_LANGS}",
+)
 
 
 def _history_leaves(data, marker, prefix=""):
@@ -10212,27 +10252,29 @@ R.check(
     == "Create one at developer.tibber.com.",
     "the setup step already carries that pointer; reauth is the screen that needs it",
 )
-R.check(
-    "and the Swedish reauth pointer is actually translated",
-    files["sv"]["config"]["step"]["reauth_confirm"]["data_description"][
-        "tibber_token"
-    ]
-    != files["en"]["config"]["step"]["reauth_confirm"]["data_description"][
-        "tibber_token"
-    ],
-    "English copied into sv.json passes the key check and fails the user",
-)
+for _lang in TRANSLATED_LANGS:
+    R.check(
+        f"and the {_lang} reauth pointer is actually translated",
+        files[_lang]["config"]["step"]["reauth_confirm"]["data_description"][
+            "tibber_token"
+        ]
+        != files["en"]["config"]["step"]["reauth_confirm"]["data_description"][
+            "tibber_token"
+        ],
+        f"English copied into {_lang}.json passes the key check and fails the user",
+    )
 
 # #1534: the ECL110 MQTT QoS label was byte-identical English left in sv.json
 # (the key-identity check above passes on an untranslated copy the same way
 # the tibber_token case above does -- this is that same class of gap, named
 # by its own field).
-R.check(
-    "the ECL110 MQTT QoS label is actually translated in Swedish",
-    files["sv"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"]
-    != files["en"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"],
-    "English copied into sv.json passes the key check and fails the user",
-)
+for _lang in TRANSLATED_LANGS:
+    R.check(
+        f"the ECL110 MQTT QoS label is actually translated in {_lang}",
+        files[_lang]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"]
+        != files["en"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"],
+        f"English copied into {_lang}.json passes the key check and fails the user",
+    )
 
 # The stored-value warning is rendered on a form the user merely opened, so
 # an untranslated one is especially visible. It has to exist for both flows —
@@ -10244,12 +10286,13 @@ for _flow_name in ("config", "options"):
         strings[_flow_name]["error"].get(_warning),
         "a missing error string renders as the raw key",
     )
-    R.check(
-        f"and the Swedish {_flow_name} message is actually translated",
-        files["sv"][_flow_name]["error"].get(_warning)
-        not in (None, files["en"][_flow_name]["error"].get(_warning)),
-        "placeholder English left in a translation is worse than no translation",
-    )
+    for _lang in TRANSLATED_LANGS:
+        R.check(
+            f"and the {_lang} {_flow_name} message is actually translated",
+            files[_lang][_flow_name]["error"].get(_warning)
+            not in (None, files["en"][_flow_name]["error"].get(_warning)),
+            "placeholder English left in a translation is worse than no translation",
+        )
 
 menu = strings["options"]["step"]["init"]["menu_options"]
 advanced_menu = strings["options"]["step"]["advanced"]["menu_options"]
@@ -10261,12 +10304,13 @@ R.check(
 )
 
 for _step_id, _base in (("init", menu), ("advanced", advanced_menu)):
-    _sv_menu = files["sv"]["options"]["step"][_step_id]["menu_options"]
-    R.check(
-        f"the Swedish {_step_id} menu is actually translated",
-        sum(1 for k in _sv_menu if _sv_menu[k] == _base[k]) < len(_base) / 2,
-        "placeholder English left in a translation is worse than no translation",
-    )
+    for _lang in TRANSLATED_LANGS:
+        _tr_menu = files[_lang]["options"]["step"][_step_id]["menu_options"]
+        R.check(
+            f"the {_lang} {_step_id} menu is actually translated",
+            sum(1 for k in _tr_menu if _tr_menu[k] == _base[k]) < len(_base) / 2,
+            "placeholder English left in a translation is worse than no translation",
+        )
 
 # Every field a flow page presents needs a label and a description the
 # frontend actually finds, in every catalogue it may load. The frontend's rule
@@ -10365,7 +10409,7 @@ R.check(
     not _setup_render_errors,
     "; ".join(_setup_render_errors[:4]),
 )
-_catalogues = {"strings.json": strings, "en.json": files["en"], "sv.json": files["sv"]}
+_catalogues = {"strings.json": strings, **{f"{_l}.json": files[_l] for _l in SHIPPED_LANGS}}
 _sectioned_fields = sorted(f for f in _flow_fields if f[2])
 R.check(
     "the label walk reaches grouped fields in both flows",
@@ -10425,15 +10469,16 @@ for _section in ("data", "data_description"):
         bool(_wood_coil_en),
         f"missing from options.step.building at {_wood_coil_path}.{_section}",
     )
-    R.check(
-        f"and its Swedish {_section} is a real translation",
-        _frontend_flow_text(
-            files["sv"], "options", "building", _wood_coil_path, _section,
-            const.CONF_DHW_WOOD_COIL_ENABLED,
+    for _lang in TRANSLATED_LANGS:
+        R.check(
+            f"and its {_lang} {_section} is a real translation",
+            _frontend_flow_text(
+                files[_lang], "options", "building", _wood_coil_path, _section,
+                const.CONF_DHW_WOOD_COIL_ENABLED,
+            )
+            not in (None, _wood_coil_en),
+            f"English copied into {_lang}.json passes the key check and fails the user",
         )
-        not in (None, _wood_coil_en),
-        "English copied into sv.json passes the key check and fails the user",
-    )
 
 selectors = strings.get("selector", {})
 for key in ("building_structure", "building_era", "building_foundation", "emitter"):
@@ -12478,6 +12523,24 @@ R.check(
     ) is not None,
     _sav_bp_msg,
 )
+# R10-SAV-METER-FLOOR: the receipt states why a month under the meter floor has
+# no saving, in the card's savings.meter_floor_note words, guarded by the
+# event's own flag; the null leg is a month above the floor, which gets none.
+_sav_bp_floor = re.search(
+    r'"savings\.meter_floor_note": "([^"]+)"',
+    (_sav_bp_root / ROOT / "www/heatpump-optimizer-card.js").read_text(),
+).group(1)
+R.check(
+    "The notifications blueprint's monthly receipt says why a month under the meter floor states no saving, "
+    "in the card's words, and only for that month",
+    "saving_below_meter_floor" in _sav_notifier.EVENT_DATA[_sav_notifier.EVENT_MONTHLY_RECEIPT]
+    and _sav_bp_msg.count(_sav_bp_floor) == 1
+    and re.search(
+        r"\{%-? if data\.saving_below_meter_floor %\}\s*" + re.escape(_sav_bp_floor) + r"\s*\{%-? endif %\}",
+        _sav_bp_msg,
+    ) is not None,
+    _sav_bp_msg,
+)
 
 
 #: The one publisher whose attribute KEYS are data rather than API:
@@ -12997,21 +13060,24 @@ R.check(
     set(_ENTITY_STRINGS) == set(_used_keys),
     str(set(_ENTITY_STRINGS) ^ set(_used_keys)),
 )
-_sv_entities = json.loads(
-    (ROOT / "translations" / "sv.json").read_text()
-)["entity"]
-_untranslated = sum(
-    1
-    for _platform, _entries in _ENTITY_STRINGS.items()
-    for _key, _val in _entries.items()
-    if _sv_entities[_platform][_key]["name"] == _val["name"]
-)
+_tr_entities = {
+    _lang: json.loads((ROOT / "translations" / f"{_lang}.json").read_text())["entity"]
+    for _lang in TRANSLATED_LANGS
+}
+_sv_entities = _tr_entities["sv"]
 _total_names = sum(len(v) for v in _ENTITY_STRINGS.values())
-R.check(
-    "the Swedish entity names are actually translated",
-    _untranslated < _total_names / 4,
-    f"{_untranslated} of {_total_names} identical to English",
-)
+for _lang, _ents in _tr_entities.items():
+    _untranslated = sum(
+        1
+        for _platform, _entries in _ENTITY_STRINGS.items()
+        for _key, _val in _entries.items()
+        if _ents[_platform][_key]["name"] == _val["name"]
+    )
+    R.check(
+        f"the {_lang} entity names are actually translated",
+        _untranslated < _total_names / 4,
+        f"{_untranslated} of {_total_names} identical to English",
+    )
 
 # #797: English entity names follow one house style. The D8-03 instrument
 # (dev/audit/rounds/round3/D8/d8_ordering.py `_sentence_case`) counts a name as
@@ -13148,7 +13214,22 @@ _FAM_SV_TAIL = str.maketrans({"å": "z\u0001", "ä": "z\u0002", "ö": "z\u0003"}
 _FAM_COLLATION = {
     "en": lambda _n: _n.casefold(),
     "sv": lambda _n: _n.casefold().translate(_FAM_SV_TAIL),
+    # DIN 5007-1, the order HA's de frontend gives: an umlaut sorts as its
+    # base vowel (casefold already folds ß to ss).
+    "de": lambda _n: _n.casefold().translate(str.maketrans("äöü", "aou")),
 }
+R.check(
+    "every shipped language has a collation for the family check",
+    set(_FAM_COLLATION) == set(SHIPPED_LANGS),
+    f"{sorted(_FAM_COLLATION)} against {SHIPPED_LANGS}",
+)
+
+
+def _fam_name(_lang: str, _row: tuple) -> str:
+    """The row's entity name in ``_lang``, as the frontend shows it."""
+    if _lang == "en":
+        return _row[2]
+    return _tr_entities[_lang].get(_row[0], {}).get(_row[1], {}).get("name", f"~{_row[1]}")
 _FAM_OVERRIDES = const.ENTITY_FAMILY_OVERRIDES
 _FAM_UNKNOWN = sorted(
     _key for _key in _FAM_OVERRIDES if _key not in {k for _, k, _, _ in _FAM_ROWS}
@@ -13220,23 +13301,22 @@ R.check(
 # in either of these again -- still fails until its owner rules on it here.
 _FAM_SPLIT_ALLOWED = frozenset()
 _FAM_SPLIT = []
-for _lang in ("en", "sv"):
-    _name_at = 2 if _lang == "en" else 3
+for _lang in SHIPPED_LANGS:
     _order = [
         (_p, _k)
         for _p, _k, *_ in sorted(
-            _FAM_ROWS, key=lambda _r: _FAM_COLLATION[_lang](_r[_name_at])
+            _FAM_ROWS, key=lambda _r: _FAM_COLLATION[_lang](_fam_name(_lang, _r))
         )
     ]
     for _tok, _m in sorted(_FAM_FAMILIES.items()):
         _runs_n = _fam_runs(_order, _m)
         if _runs_n > 1 and (_lang, _tok) not in _FAM_SPLIT_ALLOWED:
             _names = sorted(
-                _r[_name_at] for _r in _FAM_ROWS if (_r[0], _r[1]) in _m
+                _fam_name(_lang, _r) for _r in _FAM_ROWS if (_r[0], _r[1]) in _m
             )
             _FAM_SPLIT.append(f"{_lang} {_tok!r}: {_runs_n} runs: {_names}")
 R.check(
-    "every declared family sorts as one contiguous run in en and sv (#1760)",
+    "every declared family sorts as one contiguous run in every shipped language (#1760)",
     not _FAM_SPLIT,
     "; ".join(_FAM_SPLIT),
 )
@@ -13536,26 +13616,28 @@ for _plat, _pins in sorted(_CLUSTER_PREFIXES.items()):
     for _prefix, _keys in sorted(_clusters.items()):
         if len(_keys) < 2:
             continue
-        _sv_names = [_sv_entities[_plat][_k]["name"] for _k in sorted(_keys)]
-        R.check(
-            f"the Swedish {_plat} names {_prefix!r} leads keep a lead token too (#1334)",
-            len(_lead_token(_sv_names)) >= 3,
-            f"lcp={_lead_token(_sv_names)!r} over {_sv_names}",
-        )
+        for _lang, _lang_ents in _tr_entities.items():
+            _tr_names = [_lang_ents[_plat][_k]["name"] for _k in sorted(_keys)]
+            R.check(
+                f"the {_lang} {_plat} names {_prefix!r} leads keep a lead token too (#1334)",
+                len(_lead_token(_tr_names)) >= 3,
+                f"lcp={_lead_token(_tr_names)!r} over {_tr_names}",
+            )
 for _key_prefix in ("dhw_", "learning_", "ecl110_", "solar_"):
-    _prefix_names = sorted(
-        _body["name"]
-        for _ents in _sv_entities.values()
-        for _key, _body in _ents.items()
-        if _key.startswith(_key_prefix)
-    )
-    if len(_prefix_names) < 2:
-        continue
-    R.check(
-        f"the Swedish {_key_prefix}* family's names keep a lead token (#1334)",
-        len(_lead_token(_prefix_names)) >= 3,
-        f"lcp={_lead_token(_prefix_names)!r} over {_prefix_names}",
-    )
+    for _lang, _lang_ents in _tr_entities.items():
+        _prefix_names = sorted(
+            _body["name"]
+            for _ents in _lang_ents.values()
+            for _key, _body in _ents.items()
+            if _key.startswith(_key_prefix)
+        )
+        if len(_prefix_names) < 2:
+            continue
+        R.check(
+            f"the {_lang} {_key_prefix}* family's names keep a lead token (#1334)",
+            len(_lead_token(_prefix_names)) >= 3,
+            f"lcp={_lead_token(_prefix_names)!r} over {_prefix_names}",
+        )
 
 # Belt-and-braces for the future: the four headline sensors advertise a
 # stable stat_kind attribute, same contract as plan_kind on the plan sensors.
@@ -18746,18 +18828,69 @@ def _hb_stdlib_reads(spin: bool) -> str:
         child.wait()
 
 
+def _hb_stdlib_arm(reads, platform):
+    """The (spinning, idle) stdlib samples, or None where macOS refuses the task port.
+
+    One platform rule: only a ``PermissionError`` on darwin is a skip, printed with
+    its reason. Any other platform or exception still fails the run, and a bad
+    sample is not an exception at all, so the arm's checks still judge it.
+    """
+    try:
+        return reads(True), reads(False)
+    except PermissionError as exc:
+        if platform != "darwin":
+            raise
+        print(f"SKIP stdlib sampler control: macOS denies the task port ({exc})")
+        return None
+
+
+def _hb_denied(_spin):
+    raise PermissionError(1, "task_for_pid denied")
+
+
+def _hb_other(_spin):
+    raise OSError("other")
+
+
+def _hb_arm_run(reads, platform):
+    out, seen = _io.StringIO(), None
+    try:
+        with _hb_contextlib.redirect_stdout(out):
+            seen = _hb_stdlib_arm(reads, platform)
+    except Exception as exc:  # noqa: BLE001 - the control reads which one escaped
+        seen = type(exc).__name__
+    return seen, out.getvalue()
+
+
 if _nightly.importlib.util.find_spec("_remote_debugging") is not None:
-    _hb_in, _hb_out = _hb_stdlib_reads(True), _hb_stdlib_reads(False)
-    _hb_reads = (
-        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
-        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
-    )
+    _hb_skip, _hb_skip_out = _hb_arm_run(_hb_denied, "darwin")
+    _hb_lin, _ = _hb_arm_run(_hb_denied, "linux")
+    _hb_oth, _ = _hb_arm_run(_hb_other, "darwin")
+    _hb_bad, _ = _hb_arm_run(lambda spin: "in nothing" if spin else "", "linux")
     R.check(
-        "the stdlib sample of a real spinning process reads as the spin to the control, "
-        "and of the same process outside it does not",
-        _hb_reads[0] == (True, True, True) and _hb_reads[1] == (True, True, False),
-        f"spinning: {_hb_reads[0]} {_hb_in[-160:]!r}; idle: {_hb_reads[1]} {_hb_out[-160:]!r}",
+        "a task-port refusal is a printed skip on darwin only: linux and any other "
+        "exception still fail, and a bad sample is still judged by the arm",
+        _hb_skip is None and _hb_skip_out.count("SKIP stdlib sampler control:") == 1
+        and _hb_lin == "PermissionError" and _hb_oth == "OSError"
+        and _hb_bad == ("in nothing", "")
+        and _nightly.hb_control_reading(
+            {"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_bad[0]]})
+        != (True, True, True),
+        f"darwin={_hb_skip!r}/{_hb_skip_out!r} linux={_hb_lin!r} other={_hb_oth!r} bad={_hb_bad!r}",
     )
+    _hb_pair = _hb_stdlib_arm(_hb_stdlib_reads, sys.platform)
+    if _hb_pair is not None:
+        _hb_in, _hb_out = _hb_pair
+        _hb_reads = (
+            _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
+            _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
+        )
+        R.check(
+            "the stdlib sample of a real spinning process reads as the spin to the control, "
+            "and of the same process outside it does not",
+            _hb_reads[0] == (True, True, True) and _hb_reads[1] == (True, True, False),
+            f"spinning: {_hb_reads[0]} {_hb_in[-160:]!r}; idle: {_hb_reads[1]} {_hb_out[-160:]!r}",
+        )
 else:
     R.check(
         "the stdlib sample of a real spinning process reads as the spin to the control "
@@ -21773,22 +21906,37 @@ R.check(
     f"matchers={_DEPENDABOT_SCAN.get('manifests')} for {len(_DEPENDABOT_YAML)} entries",
 )
 # `Analyze (python)` is a required context, so a cancelled analysis fails the
-# pull request. Its runtime swings with runner load, and the 30-minute cap sat
-# inside that spread on 2026-10-20: three cancellations at the cap -- 2bd5e90f
-# 30:19, 11 minutes into query evaluation; 4e5801eb 30:09 and 916431ae 30:07,
-# both while uploading results -- while a rerun of 4e5801eb finished in 21.5
-# minutes (job 118701134345). 45 is the 30:19 worst case plus 14:41 of headroom
-# for that variance (45:00 - 30:19); the floor is a measurement, the margin a
-# design choice. The cap is pinned against the YAML (not left as prose in the
-# workflow) because a one-line edit shrinking it back is exactly what no other
-# check reads.
+# pull request. The cap is per leg, read from the matrix's `include` entries
+# (r10-hotfix-codeql-headroom, design note sections 1 and 3): python carries 75
+# because main's python job outgrew the 45-minute cap (extraction of
+# tests/features.py is the critical path; projected uncensored worst case about
+# 51 minutes, so 75 is that plus a deliberate stopgap margin); the two legs that
+# read about 40x under the cap stay at exactly 45, which is the null control
+# (a blanket raise would move them and fails here). The cap is pinned against
+# the YAML, not left as prose in the workflow, because a one-line edit
+# shrinking it back is exactly what no other check reads.
 _CODEQL_JOBS = (_yaml.safe_load(_CODEQL_YML) or {}).get("jobs") or {}
-_analyze_cap = (_CODEQL_JOBS.get("analyze") or {}).get("timeout-minutes")
+_analyze_job = _CODEQL_JOBS.get("analyze") or {}
+_analyze_cap = _analyze_job.get("timeout-minutes")
+_analyze_incl = (((_analyze_job.get("strategy") or {}).get("matrix") or {})
+                 .get("include")) or []
+_leg_caps = {e.get("language"): e.get("timeout") for e in _analyze_incl
+             if isinstance(e, dict)}
+_PY_WORST_CASE_MIN = 51
 R.check(
-    "codeql.yml's analyze cap clears the python leg's measured worst case",
-    isinstance(_analyze_cap, int) and _analyze_cap >= 45,
-    f"analyze timeout-minutes={_analyze_cap!r}; the python leg was cancelled "
-    "at 30:19 before the cap rose (2bd5e90f, 2026-10-20)",
+    "codeql.yml's analyze cap is per leg: python clears the measured worst case, the others stay at 45",
+    _analyze_cap == "${{ matrix.timeout }}"
+    and set(_leg_caps) == {"actions", "javascript-typescript", "python"}
+    and len(_analyze_incl) == 3
+    and type(_leg_caps["python"]) is int
+    and _leg_caps["python"] >= _PY_WORST_CASE_MIN
+    and _leg_caps["actions"] == 45 and type(_leg_caps["actions"]) is int
+    and _leg_caps["javascript-typescript"] == 45
+    and type(_leg_caps["javascript-typescript"]) is int,
+    f"timeout-minutes={_analyze_cap!r}; include caps={_leg_caps!r}; the python "
+    "leg was capped at 45.1 min on main (projected worst case ~51, design "
+    "r10-hotfix-codeql-headroom s1); actions and javascript-typescript read "
+    "p99 <= 2.3 min and stay 45",
 )
 # D-5: O17's INERT list is admitted only with the soundness step, which runs
 # on push and reads the leg's extracted source archive; and the `scope` job
@@ -23546,6 +23694,23 @@ R.check(
     _lm_ok,
     "run `python3 tools/merge/ledger_merge.py --self-test` for the failing "
     "check names:\n" + _lm_detail,
+)
+
+# --- the orchestrator tick's self-test runs where roster_lib changes --------
+#
+# The tick reads roster_lib (`open_groups`, `groups_of`), and tools/ is INERT, so
+# no scoped script ran its self-test on a roster_lib.py change: CLOSED_STAGES
+# gaining `deferred` broke "PLAN: deferred E stays deferred" and only
+# governance's instrument-self-tests saw it (#3326). tests/closures.json puts
+# roster_lib.py in this script's closure, so running it here is the edge.
+_tick_run = subprocess.run(
+    [sys.executable, "-I", str(_closure.ROOT / "tools" / "audit" / "seat" / "orchestrator_tick.py"),
+     "--self-test"],
+    capture_output=True, text=True, cwd=str(_closure.ROOT), check=False)
+R.check(
+    "orchestrator_tick.py --self-test passes (it reads roster_lib's closed set)",
+    _tick_run.returncode == 0 and ", 0 failed" in _tick_run.stdout,
+    (_tick_run.stdout + _tick_run.stderr).strip()[-400:],
 )
 
 # --- #493: inherited card claims on a roster-only three-dot -----------------
@@ -26211,23 +26376,23 @@ R.check(
 # And the translations themselves, in all three files. A missing state entry
 # renders the raw token -- exactly the defect D3 exists to remove.
 _state_string_errors = []
-_sv_ent = json.loads((ROOT / "translations" / "sv.json").read_text())["entity"]
 for _key, (_c, _states, _m) in _ENUM_SENSORS.items():
     _en_states = (_ENTITY_STRINGS["sensor"].get(_key) or {}).get("state") or {}
-    _sv_states = (_sv_ent["sensor"].get(_key) or {}).get("state") or {}
     if set(_en_states) != set(_states):
         _state_string_errors.append(
             f"{_key}: strings.json states {sorted(set(_en_states) ^ set(_states))}"
         )
-    if set(_sv_states) != set(_states):
-        _state_string_errors.append(
-            f"{_key}: sv.json states {sorted(set(_sv_states) ^ set(_states))}"
-        )
-    for _s in sorted(set(_en_states) & set(_sv_states)):
-        if _sv_states[_s] == _en_states[_s]:
-            _state_string_errors.append(f"{_key}.{_s} is identical in sv")
+    for _lang, _lang_ents in _tr_entities.items():
+        _tr_states = (_lang_ents["sensor"].get(_key) or {}).get("state") or {}
+        if set(_tr_states) != set(_states):
+            _state_string_errors.append(
+                f"{_key}: {_lang}.json states {sorted(set(_tr_states) ^ set(_states))}"
+            )
+        for _s in sorted(set(_en_states) & set(_tr_states)):
+            if _tr_states[_s] == _en_states[_s]:
+                _state_string_errors.append(f"{_key}.{_s} is identical in {_lang}")
 R.check(
-    "every enum option has an English and a translated Swedish state name",
+    "every enum option has an English and a translated state name in every language",
     not _state_string_errors,
     "; ".join(_state_string_errors[:6]),
 )
@@ -26768,28 +26933,29 @@ R.check(
 # Placeholder English left in a translation is worse than no translation: it
 # looks translated. Applied to descriptions as well as names, because the
 # descriptions are the long text and the easiest half to skip.
-_sv_services = _CATALOGUES["sv.json"].get("services") or {}
 _en_services = _CATALOGUES["en.json"].get("services") or {}
-_untranslated = []
-for _svc in sorted(set(_sv_services) & set(_en_services)):
-    for _k in _SERVICE_TEXT_KEYS:
-        if _sv_services[_svc].get(_k) == _en_services[_svc].get(_k):
-            _untranslated.append(f"{_svc}.{_k}")
-    _sv_f = _sv_services[_svc].get("fields") or {}
-    _en_f = _en_services[_svc].get("fields") or {}
-    for _fname in sorted(set(_sv_f) & set(_en_f)):
+for _lang in TRANSLATED_LANGS:
+    _tr_services = _CATALOGUES[f"{_lang}.json"].get("services") or {}
+    _untranslated = []
+    for _svc in sorted(set(_tr_services) & set(_en_services)):
         for _k in _SERVICE_TEXT_KEYS:
-            if _sv_f[_fname].get(_k) == _en_f[_fname].get(_k):
-                _untranslated.append(f"{_svc}.{_fname}.{_k}")
-R.check(
-    "the Swedish service text is actually translated",
-    # Non-emptiness is part of the claim: with no services section at all this
-    # compares two empty mappings and passes while saying nothing, which is the
-    # shape of check this repository keeps having to refute.
-    bool(_sv_services) and bool(_en_services) and not _untranslated,
-    f"{len(_untranslated)} identical of {len(_sv_services)} services: "
-    f"{_untranslated[:4]}",
-)
+            if _tr_services[_svc].get(_k) == _en_services[_svc].get(_k):
+                _untranslated.append(f"{_svc}.{_k}")
+        _tr_f = _tr_services[_svc].get("fields") or {}
+        _en_f = _en_services[_svc].get("fields") or {}
+        for _fname in sorted(set(_tr_f) & set(_en_f)):
+            for _k in _SERVICE_TEXT_KEYS:
+                if _tr_f[_fname].get(_k) == _en_f[_fname].get(_k):
+                    _untranslated.append(f"{_svc}.{_fname}.{_k}")
+    R.check(
+        f"the {_lang} service text is actually translated",
+        # Non-emptiness is part of the claim: with no services section at all this
+        # compares two empty mappings and passes while saying nothing, which is the
+        # shape of check this repository keeps having to refute.
+        bool(_tr_services) and bool(_en_services) and not _untranslated,
+        f"{len(_untranslated)} identical of {len(_tr_services)} services: "
+        f"{_untranslated[:4]}",
+    )
 
 # The catalogue describes services that exist. A row for a service nothing
 # registers is text no user can reach; one registered with no row is the
@@ -27113,6 +27279,7 @@ def _ns_nightly_lanes(text: str) -> "list[str]":
 
     def _runs(_n, _ev):
         _ctx = {"github.event_name": _ev, "github.ref": "refs/heads/main",
+                "inputs.lanes": "all",
                 **{f"needs.{_m}.result": _v for _m, _v in _ok.items()}}
         return _gh_eval(_gh_if(_workflow_job(_body, _n)), _ctx)
     return sorted(_n for _n in _ids if _runs(_n, "schedule") and not _runs(_n, "push"))
@@ -27134,7 +27301,7 @@ R.check(
 # The derivation's null control: a lane whose `if:` admits the push too (the
 # record beat's shape) is not a nightly lane, and one added on the schedule is.
 _NS_PLANT = _NIGHTLY_YML.replace(
-    "\n  slow:\n    if: github.event_name != 'push'\n",
+    "\n  slow:\n    if: github.event_name != 'push' && inputs.lanes != 'beat'\n",
     "\n  slow:\n    if: github.event_name != 'pull_request'\n", 1) + (
     "\n  planted-lane:\n    if: github.event_name == 'schedule'\n    runs-on: x\n")
 R.check(
@@ -27142,6 +27309,33 @@ R.check(
     _ns_nightly_lanes(_NS_PLANT)
     == sorted({*_nstatus.REQUIRED_LANES, "planted-lane"} - {"slow"}),
     f"planted={_ns_nightly_lanes(_NS_PLANT)}",
+)
+
+# The record flush dispatches lanes=beat (stamp.py RECORD_BEAT_PAYLOAD): every
+# heavy job skips and record-autofix alone runs. A dispatch with no input (a
+# hand probe) runs every lane; schedule and push evaluate as before.
+def _nightly_runs_on(_text: str, _ev: str, _lanes: str) -> "dict[str, bool]":
+    _body = _text.split("\njobs:", 1)[1]
+    _ids = re.findall(r"^  ([A-Za-z][\w-]*):$", _body, re.M)
+    _ctx = {"github.event_name": _ev, "github.ref": "refs/heads/main", "inputs.lanes": _lanes,
+            **{f"needs.{_m}.result": "success" for _m in _ids}}
+    return {_n: _gh_eval(_gh_if(_workflow_job(_body, _n)), _ctx) for _n in _ids}
+
+
+_NS_BEAT = _nightly_runs_on(_NIGHTLY_YML, "workflow_dispatch", "beat")
+_NS_HAND = _nightly_runs_on(_NIGHTLY_YML, "workflow_dispatch", "")
+R.check(
+    "lanes=beat skips every heavy nightly lane and runs record-autofix; no input runs every lane",
+    sorted(_n for _n, _v in _NS_BEAT.items() if _v) == ["record-autofix"]
+    and all(_NS_HAND[_n] for _n in _nstatus.REQUIRED_LANES)
+    and _NS_HAND["record-autofix"],
+    f"beat={_NS_BEAT} hand={_NS_HAND}",
+)
+R.check(
+    "nightly.yml declares the lanes choice input (all, beat) defaulting to all",
+    re.search(r"workflow_dispatch:\n    inputs:\n(?:      #.*\n)*      lanes:\n(?:.*\n)*?"
+              r"        options: \[all, beat\]\n        default: all\n", _NIGHTLY_YML) is not None,
+    "lanes input missing",
 )
 
 # --- the four states --------------------------------------------------------
@@ -27749,6 +27943,70 @@ R.check(
     f"a run: record={_ns_wf_some is not None} reads={_ns_wf_reads_some}",
 )
 
+# The record beat is never the graded nightly (R10-FLY-STAMP-FLUSH-COST). The
+# stamp's flush dispatches nightly.yml with lanes=beat, which skips every
+# REQUIRED_LANES job; graded, it reads ABSENT after every stamp and hides the
+# last real nightly. nightly.yml's own `run-name:` is evaluated here, so the
+# title the reporter drops is the title the workflow gives, and the null
+# control is a lanes=all dispatch, which stays the graded run.
+_NS_RUN_NAME = _re.search(r"^run-name: \$\{\{ (.*) \}\}$", _NIGHTLY_YML, _re.M)
+
+
+def _ns_title(_lanes: str) -> "str | None":
+    if _NS_RUN_NAME is None:
+        return None
+    _e = (_NS_RUN_NAME.group(1).replace("inputs.lanes", repr(_lanes))
+          .replace("&&", " and ").replace("||", " or "))
+    return eval(_e, {"__builtins__": {}})  # noqa: S307 -- literals only
+
+
+_ns_bt_real_get, _ns_bt_real_sleep = _nstatus._get, _nstatus._sleep
+_ns_bt_sched = {**_ns_run(81, "2026-10-21T00:40:00Z"), "event": "schedule",
+                "head_branch": "main", "display_title": _ns_title("")}
+
+
+def _ns_bt_graded(_dispatch_lanes: str):
+    _disp = {**_ns_run(82, "2026-10-21T09:00:00Z"), "event": "workflow_dispatch",
+             "head_branch": "main", "display_title": _ns_title(_dispatch_lanes)}
+
+    def _fake_get(url, _token):
+        if "/jobs" in url:
+            return {"total_count": len(_NS_LIVE), "jobs": _NS_LIVE}
+        if "/actions/runs/" in url:
+            return _disp
+        return {"workflow_runs": [r for r in (_disp, _ns_bt_sched)
+                                  if r["event"] == url.split("event=")[1].split("&")[0]]}
+
+    _nstatus._get, _nstatus._sleep = _fake_get, lambda _s: None
+    try:
+        _c = _nstatus.collect("o/r", "nightly.yml", None, None,
+                              now=datetime(2026, 10, 21, 12, 0, tzinfo=UTC))[0]
+        try:
+            _nstatus.collect("o/r", "nightly.yml", None, 82)
+            _by_id = "read"
+        except _nstatus.Unreadable:
+            _by_id = "refused"
+    finally:
+        _nstatus._get, _nstatus._sleep = _ns_bt_real_get, _ns_bt_real_sleep
+    return (_c or {}).get("id"), _by_id
+
+
+_ns_bt_beat, _ns_bt_all = _ns_bt_graded("beat"), _ns_bt_graded("all")
+R.check(
+    "nightly.yml titles a lanes=beat run nightly_status.BEAT_TITLE, and no other run",
+    _ns_title("beat") == _nstatus.BEAT_TITLE
+    and _ns_title("all") != _nstatus.BEAT_TITLE and _ns_title("") != _nstatus.BEAT_TITLE,
+    f"run-name={_NS_RUN_NAME and _NS_RUN_NAME.group(1)!r} beat={_ns_title('beat')!r} "
+    f"all={_ns_title('all')!r} schedule={_ns_title('')!r}",
+)
+R.check(
+    "a lanes=beat dispatch is never the graded nightly, by discovery or by "
+    "--run-id; a newer lanes=all dispatch still is (null control)",
+    _ns_bt_beat == (81, "refused") and _ns_bt_all == (82, "read"),
+    f"beat: graded {_ns_bt_beat}, want (81, 'refused'); all: graded "
+    f"{_ns_bt_all}, want (82, 'read')",
+)
+
 # --- the delivery ledger, and why it replaced a red tick --------------------
 #
 # `record` refuses a merged pull request with no disposition row, and it is
@@ -28191,7 +28449,54 @@ def _ds_rc(ledger, *flags):
             sys.argv = argv
 
 
-_DS_ROWS_RCS = {v: _ds_rc(l, "--require-rows") for v, l in (
+def _ds_head_window():
+    """gather() over a throwaway repo: A (tagged), then merges #101 and #102."""
+    with _tempfile.TemporaryDirectory() as td:
+        repo = Path(td) / "r"
+        env = throwaway_git_init(repo, "-q", "-b", "main")
+
+        def g(*a):
+            return subprocess.run(["git", *a], cwd=repo, env=env, check=True,
+                                  capture_output=True, text=True).stdout.strip()
+        (repo / "f").write_text("a")
+        g("add", "-A")
+        g("commit", "-q", "-m", "A")
+        g("tag", "v0.0.1")
+        shas = []
+        for n, side in ((101, "a"), (102, "b")):
+            g("checkout", "-q", "-b", side)
+            (repo / f"{side}.txt").write_text(side)
+            g("add", "-A")
+            g("commit", "-q", "-m", side)
+            g("checkout", "-q", "main")
+            g("merge", "-q", "--no-ff", "-m", f"Merge pull request #{n} from x/{side}", side)
+            shas.append(g("rev-parse", "HEAD"))
+        g("update-ref", "refs/remotes/origin/main", shas[1])
+        saved, _ds.ROOT = _ds.ROOT, repo
+        try:
+            nums = lambda *a, **k: [m["number"] for m in _ds.gather("r", *a, **k)[0]]
+            return (nums("v0.0.1", head=shas[0]), nums("v0.0.1", head=shas[1]),
+                    nums("v0.0.1"))
+        finally:
+            _ds.ROOT = saved
+
+
+_ds_h1, _ds_h2, _ds_hdef = _ds_head_window()
+R.check(
+    "delivery_status --head selects its window",
+    _ds_h1 == [101],
+    f"gather(head=M1) returned {_ds_h1}, expected [101]")
+R.check(
+    "delivery_status --head at the tip is unchanged (null control)",
+    _ds_h2 == [102, 101],
+    f"gather(head=M2) returned {_ds_h2}, expected [102, 101]")
+R.check(
+    "delivery_status default head is origin/main",
+    _ds_hdef == _ds_h2,
+    f"default {_ds_hdef} != head=M2 {_ds_h2}")
+
+
+_DS_ROWS_RCS ={v: _ds_rc(l, "--require-rows") for v, l in (
     ("OVERDUE", _ds_overdue), ("UNCHECKED", _ds_unchecked),
     ("OK", _ds_all_rowed), ("EMPTY", _ds_empty), ("PENDING", _ds_pending))}
 R.check(
@@ -28452,7 +28757,7 @@ R.check(
     "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
     _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
     and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
-    == ["base", "machinery"],
+    == ["base", "machinery", "selftests"],
     f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
@@ -28796,7 +29101,27 @@ try:
     # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
     _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
     _ba_fixed = _ba_head + 'x | python3 -I ledger.py landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads\n'
+    # This row judges HEAD's blobs, not the working tree (a tree read would open every
+    # tools/*.sh and join this script's closure); `bare_array.py --check` with no ref
+    # reads the working tree. Planted control: one temp repo, a clean commit and an
+    # uncommitted bare edit -- HEAD reads clean, the tree reads red.
+    with _tempfile.TemporaryDirectory() as _ba_tmp:
+        _ba_cwd = os.getcwd()
+        try:
+            _ba_env = throwaway_git_init(_ba_tmp, "-q")
+            Path(_ba_tmp, "tools").mkdir()
+            Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + "f x\n")
+            for _ba_args in (["add", "."], ["commit", "-qm", "c"]):
+                subprocess.run(["git", *_ba_args], cwd=_ba_tmp, env=_ba_env, check=True, capture_output=True)
+            Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + 'f "${a[@]}"\n')
+            os.chdir(_ba_tmp)
+            with throwaway_git_environ():
+                _ba_uncommitted = (_ba.scan("HEAD"), _ba.scan())
+        finally:
+            os.chdir(_ba_cwd)
     _ba_rows = (
+        (_ba_uncommitted[0] == [] and len(_ba_uncommitted[1]) == 1,
+         "an uncommitted bare site is invisible to the HEAD scan this row runs and red to the tree scan"),
         (len(_ba.sites(_ba_base)) == 1, "the base bus.sh call is refused"),
         (_ba.sites(_ba_fixed) == [], "the guarded form passes (control)"),
         (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
@@ -28815,7 +29140,7 @@ try:
 except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
     _ba_hits, _ba_rows = [f"{type(_ba_exc).__name__}: {_ba_exc}"], ()
 R.check(
-    "no tracked tools/**/*.sh script expands a bare \"${array[@]}\"",
+    "no tools/**/*.sh script, as committed at HEAD, expands a bare \"${array[@]}\"",
     not _ba_hits,
     "bash 3.2 (macOS) dies on an empty array under -u; guard with ${a[@]+\"${a[@]}\"} or "
     "put `# never-empty: <reason>` on the line, or on the line above when it ends in `# mut:<name>`:\n" + "\n".join(_ba_hits),
@@ -31977,6 +32302,73 @@ R.check(
     "(its precondition)",
     _TWP_LIVE != [] and _TWP_MATCHER_OFF == [],
     f"restores read: {len(_TWP_LIVE)}; the matcher disagrees with git on: {_TWP_MATCHER_OFF}",
+)
+
+
+# --- R10-HOTFIX-NONREQUIRED-REDS (fix review round 1): A PROGRAM PR-CONTRACT
+# RUNS IS THE BASE'S, SPAWNED ONES INCLUDED. pr-contract restores its check
+# source from the base so it runs no pull-request program (#1515, decision
+# 0013), but `policy_lint.mjs --pr-body` spawns `python3 <ROOT>/...py` for the
+# required set (`requiredFromTrain`: merge_train.py owed-reds). A spawned
+# program outside the restore list is the pull request's copy, and a diff
+# editing it alone answered its own required reds. The rule enumerates the
+# class: every `spawnSync('python3', [path.join(<root>, ...)` in policy_lint, and
+# each one's local closure -- a column-0 `import X`/`from X` with X.py beside
+# it, and a column-0 `NAME = ROOT / "path"` it reads -- must match a pathspec
+# of pr-contract's restore. A file read as text (stamp.py at :4780) is no spawn.
+_PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\((ROOT|root|HERE),\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
+_PCR_IMPORT = re.compile(r"^(?:import|from)\s+([A-Za-z_]\w*)", re.M)
+_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
+
+
+def _pcr_spawned(mjs: str) -> "list[str]":
+    # HERE is policy_lint's own directory; ROOT, and a `root` parameter, the tree.
+    return sorted({"/".join((["tools", "policy"] if m.group(1) == "HERE" else [])
+                            + [t.strip().strip("'") for t in m.group(2).split(",")]) for m in _PCR_SPAWN.finditer(mjs)})
+
+
+def _pcr_closure(roots) -> "list[str]":
+    seen, todo = set(), list(roots)
+    while todo:
+        f = todo.pop()
+        if f in seen:
+            continue
+        seen.add(f)
+        if not f.endswith(".py") or not Path(f).is_file():
+            continue
+        text = Path(f).read_text()
+        todo += [q for q in (str(Path(f).parent / f"{m}.py") for m in _PCR_IMPORT.findall(text))
+                 if Path(q).is_file()]
+        todo += _PCR_READ.findall(text)
+    return sorted(seen)
+
+
+def _pcr_unrestored(texts: dict, mjs: str) -> "tuple[list[str], list[str]]":
+    """(the closure, the files of it no pr-contract restore pathspec matches)."""
+    specs = [p for w, _l, sp, _d, _a in _twp_steps({"pr-contract.yml": texts["pr-contract.yml"]}) for p in sp]
+    files = _pcr_closure(_pcr_spawned(mjs))
+    return files, [f for f in files if not specs or not any(_twp_hit(p, f) for p in specs)]
+
+
+_PCR_MJS = Path("tools/policy/policy_lint.mjs").read_text()
+_PCR_FILES, _PCR_OPEN = _pcr_unrestored(_PRW_TEXTS, _PCR_MJS)
+R.check(
+    "every python3 program policy_lint.mjs spawns, with its local import and ROOT-read closure, is "
+    "restored from the base by pr-contract (merge_train.py owed-reds, gh_read.py, required-contexts.json)",
+    _PCR_OPEN == [] and "tools/audit/seat/merge_train.py" in _PCR_FILES
+    and "tools/audit/seat/gh_read.py" in _PCR_FILES
+    and "tools/policy/fixtures/required-contexts.json" in _PCR_FILES,
+    f"closure: {_PCR_FILES}; not restored: {_PCR_OPEN}",
+)
+_PCR_NULL = {k: _pcr_unrestored({"pr-contract.yml": _PRW_TEXTS["pr-contract.yml"].replace(f"'{k}' \\\n", "")},
+                                _PCR_MJS)[1] for k in ("tools/audit/seat/merge_train.py",
+                                                       "tools/audit/seat/gh_read.py",
+                                                       "tools/policy/fixtures/required-contexts.json")}
+R.check(
+    "and pr-contract with any one of those three pathspecs removed is refused on that file "
+    "(null control); a file read as text, stamp.py, is no spawn",
+    all(v == [k] for k, v in _PCR_NULL.items()) and "tools/release/stamp.py" not in _PCR_FILES,
+    f"refused per removed pathspec: {_PCR_NULL}",
 )
 
 
@@ -36406,7 +36798,7 @@ _REACH: list = []
 try:
     for _rv in _NIGHTLY_EVENTS:
         for _rr in ("refs/heads/main", "refs/heads/fix/x"):
-            _rx = {"github.event_name": _rv, "github.ref": _rr}
+            _rx = {"github.event_name": _rv, "github.ref": _rr, "inputs.lanes": "all"}
             _r_meas = _gh_eval(_gh_if(_ml_meas), _rx)
             _r_push = _gh_eval(_gh_if(_ml_push), {
                 **_rx, "needs.mutation-ledger.result": "success" if _r_meas else "skipped"})
@@ -36456,7 +36848,7 @@ try:
                                        "needs.closure-scope.outputs.nightly_ha": _nf})
             # nightly.yml lists push, schedule and dispatch alone.
             _ngot_n = _nv in _NIGHTLY_EVENTS and _gh_eval(
-                _NHA_NIGHT_IF, {"github.event_name": _nv})
+                _NHA_NIGHT_IF, {"github.event_name": _nv, "inputs.lanes": "all"})
             _nwant = _nv == "pull_request" and _nf == "true"
             _nwant_n = _nv in ("schedule", "workflow_dispatch")
             if (_ngot, _ngot_n) != (_nwant, _nwant_n):
@@ -39405,11 +39797,29 @@ R.check(
 # RETURN_DEL is pinned to the first; planted on the second, which the cost
 # order would put second, the run must drive it first, find it did not kill,
 # and say so. A real end-to-end `--anchor` run belongs to the mutation lane.
-_MUT_AN = "custom_components/heatpump_optimizer/topology.py:_tr RETURN_DEL 25b21b2f"
+_MUT_AN = "custom_components/heatpump_optimizer/topology.py:_tr RETURN_DEL 86fae85d"
 _MUT_AN_REL = _MUT_AN.split(":")[0]
 _MUT_AN_KILL, _MUT_AN_PASS = "tests/stub_kills.py", "tests/stub_passes.py"
 _MUT_AN_BUDGETS = _mut.load_budgets()
 _MUT_AN_TEXT = (_mut.ROOT / _MUT_AN_REL).read_text()
+# The file a stubbed run clones: the live text, or a variant the check plants.
+_MUT_AN_BASE = {"text": _MUT_AN_TEXT}
+
+
+def _mut_an_nulled(text):
+    # `text` with the production null control written in, as the anchor run
+    # writes its own (`mutation_table.null_control`). The stub killer tells
+    # that edit from a mutant by this text, never by its marker words: the
+    # mutation lane's null control puts the same words into the live file
+    # whenever it lands in topology.py, and a marker search then read every
+    # mutant as a null control and killed none (#3331's null-control red).
+    with tempfile.TemporaryDirectory() as _d:
+        _p = Path(_d) / "anchor.py"
+        _p.write_text(text)
+        _nc = _mut.null_control(_p)
+    _lines = text.splitlines(True)
+    _lines[_nc["line"] - 1] = _nc["new"] + "\n"
+    return "".join(_lines)
 
 
 # The third stub reads no code at all: it is TRIAGE_JUDGE's ledger check in
@@ -39424,7 +39834,7 @@ _MUT_AN_ROWS = _mut.ledger_dir().relative_to(_mut.ROOT)
 
 def _mut_an_clone(dest, row=None):
     (dest / _MUT_AN_REL).parent.mkdir(parents=True, exist_ok=True)
-    (dest / _MUT_AN_REL).write_text(_MUT_AN_TEXT)
+    (dest / _MUT_AN_REL).write_text(_MUT_AN_BASE["text"])
     if row is not None:
         _at = dest / _MUT_AN_ROWS / _mut.ledger_relpath("killed_by", _MUT_AN)
         _at.parent.mkdir(parents=True, exist_ok=True)
@@ -39443,15 +39853,15 @@ def _mut_an_stale(cwd):
 
 def _mut_an_run(script, cwd, timeout, extra_args=None, extra_env=None):
     text = (cwd / _MUT_AN_REL).read_text()
-    red = ((script == _MUT_AN_KILL and text != _MUT_AN_TEXT
-            and "(null control)" not in text)
+    base = _MUT_AN_BASE["text"]
+    red = ((script == _MUT_AN_KILL and text not in (base, _mut_an_nulled(base)))
            or (script == _MUT_AN_JUDGE and _mut_an_stale(cwd)))
     return _mut.ScriptRun(1 if red else 0, 1 if red else 0, 0.1,
                           "  FAIL stub\n1 of 1 STUB CHECKS FAILED\n" if red
                           else "ok\n")
 
 
-def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS)):
+def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS), text=_MUT_AN_TEXT):
     # The one row it re-drives, not the live ledger: main() refuses a ledger
     # that disagrees with the live inventory, so a whole-ledger stub went red
     # on ANY pinned line a mutant rewrote -- the vacuous kill (R10
@@ -39468,6 +39878,7 @@ def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS)):
     _mut.clone_tree = lambda dest: _mut_an_clone(dest, _row)
     _mut.drop_tree = lambda dest: None
     _mut.run_script = _mut_an_run
+    _MUT_AN_BASE["text"] = text
     _log = tempfile.TemporaryFile("w+")
     try:
         with _pv_ctx.redirect_stdout(_log):
@@ -39476,6 +39887,7 @@ def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS)):
     finally:
         for _n, _v in _saved.items():
             setattr(_mut, _n, _v)
+        _MUT_AN_BASE["text"] = _MUT_AN_TEXT
     _log.seek(0)
     return _rc, _log.read()
 
@@ -39505,6 +39917,19 @@ R.check(
     and "PIN RE-VERIFICATION: 0 reproduced, 1 not reproduced, 0 not re-verified" in _MUT_AN_VAC[1],
     f"has pin={_MUT_AN_HAS} judge-pinned={_MUT_AN_VAC!r:.600} -- reproduced "
     "means the ledger judge read the mutant's own stale row as a kill",
+)
+# The same re-drive from a file the mutation lane's null control already
+# commented: every mutant of it carries the null control's words, so the stub
+# killer must still kill the real pin, and must still spare the run's own
+# null control (#3331's null-control red, where topology.py was in the diff).
+_MUT_AN_PRE = (_mut_anchor(_MUT_AN_KILL, text=_mut_an_nulled(_MUT_AN_TEXT))
+               if _MUT_AN_HAS else (None, ""))
+R.check(
+    "--anchor still reproduces the real pin when the anchored file already "
+    "carries the mutation lane's comment-only null control",
+    _MUT_AN_PRE[0] == 0
+    and "PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified" in _MUT_AN_PRE[1],
+    f"has pin={_MUT_AN_HAS} pre-nulled={_MUT_AN_PRE!r:.600}",
 )
 # The rows a rewrite invalidates, on the real ledger: a pinned line rewritten
 # equivalently (a trailing comment) loses exactly the rows pinned to it, and
@@ -41074,6 +41499,78 @@ R.check(
     any("extra=" in d and ".md" in d for d in _PG_NULL_STAGE)
     and any("holding note.Md" in d for d in _PG_NULL_GUARD),
     f"copy-all: {_PG_NULL_STAGE}; no-op guard: {_PG_NULL_GUARD}",
+)
+
+# The round's plan page (R10-OUTSIDE-INTAKE): three steps, pinned by RUNNING
+# the two that move files and by their order. The page is staged from the
+# dispatched ref's tree BEFORE the release is checked out (a tag older than
+# plan_public.py could not stage it), the release checkout is skipped on a tag
+# push and takes the newest `v*` tag by version, never by string order, and
+# the page reaches `_site/plan/` only when a page was staged.
+_PG_PLAN = ("Stage the round's plan page", "Check out the release", "Add the round's plan page")
+
+
+def _pg_plan_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    steps = [s or {} for j in (doc.get("jobs") or {}).values() for s in ((j or {}).get("steps") or [])]
+    idx = {s.get("name"): i for i, s in enumerate(steps)}
+    if any(n not in idx for n in (*_PG_PLAN, _PG_STAGE, _PG_GUARD)):
+        return [f"a plan step is missing: {[n for n in _PG_PLAN if n not in idx]}"]
+    out: "list[str]" = []
+    st, co, add = (steps[idx[n]] for n in _PG_PLAN)
+    if not idx[_PG_PLAN[0]] < idx[_PG_PLAN[1]] < idx[_PG_STAGE] < idx[_PG_PLAN[2]] < idx[_PG_GUARD]:
+        out.append("plan steps out of order: stage the page, check out the release, "
+                   "stage the site, add the page, then the guard")
+    if "tools/audit/seat/plan_public.py stage" not in str(st.get("run", "")):
+        out.append("the plan page is not staged by plan_public.py")
+    if "ref_type != 'tag'" not in str(co.get("if", "")):
+        out.append("the release checkout is not skipped on a tag push")
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+        env = throwaway_git_init(repo, "-q")
+        for tag in ("v1.9.0", "v1.10.0", "x9"):
+            (repo / "f").write_text(tag)
+            subprocess.run(git + ["add", "f"], cwd=repo, check=True, env=env)
+            subprocess.run(git + ["commit", "-qm", tag], cwd=repo, check=True, env=env)
+            subprocess.run(git + ["tag", tag], cwd=repo, check=True, env=env)
+        rc = _pg_run(str(co.get("run", "")), repo)
+        if rc != 0 or (repo / "f").read_text() != "v1.10.0":
+            out.append(f"the release checkout took {(repo / 'f').read_text()!r} (rc={rc}), not v1.10.0")
+        (repo / "_site").mkdir()
+        if _pg_run(str(add.get("run", "")), repo) != 0 or (repo / "_site" / "plan").exists():
+            out.append("with no staged page, the add step put something at _site/plan")
+        # The stage step under the runner's own `-eo pipefail`, over a stub
+        # python3 and git: no page to publish (rc 2) warns and passes, a
+        # refused page (rc 1) is red.
+        stub = Path(tmp) / "bin"
+        stub.mkdir()
+        (stub / "git").write_text("#!/bin/sh\nexit 0\n")
+        for want_rc, py_rc in ((0, 2), (1, 1), (0, 0)):
+            (stub / "python3").write_text(f"#!/bin/sh\nexit {py_rc}\n")
+            for f in stub.iterdir():
+                f.chmod(0o755)
+            env = dict(os.environ, RUNNER_TEMP=tmp, GITHUB_OUTPUT=os.devnull, GITHUB_STEP_SUMMARY=os.devnull,
+                       PATH=f"{stub}{os.pathsep}{os.environ.get('PATH', '')}")
+            rc = subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", str(st.get("run", ""))],
+                                cwd=repo, env=env, capture_output=True, text=True).returncode
+            if (rc != 0) != bool(want_rc):
+                out.append(f"the plan stage step exits {rc} when plan_public.py exits {py_rc}")
+        page = Path(tmp) / "plan-site" / "plan" / "index.html"
+        page.parent.mkdir(parents=True)
+        page.write_text("<!doctype html>plan")
+        if _pg_run(str(add.get("run", "")), repo) != 0 or not (repo / "_site/plan/index.html").is_file():
+            out.append("a staged page did not reach _site/plan/index.html")
+    return out
+
+
+_PG_PLAN_GOT = _pg_plan_defects(_PG_WF.read_text()) if _PG_WF.is_file() else ["no pages.yml"]
+R.check(
+    "the Pages workflow stages the round's plan page before it checks out the newest release, "
+    "and adds it under plan/ only when one was staged",
+    not _PG_PLAN_GOT,
+    "; ".join(_PG_PLAN_GOT[:4]),
 )
 
 # Classified as its siblings are (the `_NON_GATE_WORKFLOWS` loop above): this

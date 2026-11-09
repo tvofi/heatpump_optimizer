@@ -828,6 +828,22 @@ class Tick:
         return bool(re.search(rf"#{n}(?!\d)|payload-(?:fix-)?{n}-r\d+\.json", line)) or any(
             t and re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", line, re.I) for t in topics)
 
+    def _disposed(self, ref: str, sha: str) -> bool:
+        """The obligations ledger holds a disposition for `ref` at exactly `sha` (an older sha
+        owes still). An unreadable ledger disposes nothing; the design-build pass names it."""
+        if getattr(self, "_disp", None) is None:
+            lg = _module("ledger_tick", "tools/audit/seat/ledger.py")
+            try:
+                self._disp = lg.dispositions(Path(self.relay_log).parent)
+            except lg.Unreadable:
+                self._disp = {}
+        return self._disp.get(ref, ("",))[0] == sha
+
+    def _blocked_md(self, sha: str) -> "str | None":
+        """BLOCKED.md at a handoff-wip tip, None when the tip holds none (or the read failed)."""
+        code, text = self.git(["show", f"{sha}:BLOCKED.md"])
+        return text if code == 0 else None
+
     def _seat_on(self, n: int, topics: list, heads: dict, kinds=("handoff-wip", "handoff", "handoff-body")) -> bool:
         """A seat is on a PR when, inside SEAT_WINDOW_MIN, a FIRED line names it, or a
         handoff-wip/, handoff/ or handoff-body/<topic> ref moved (`kinds` narrows the refs)."""
@@ -835,12 +851,20 @@ class Tick:
         for when, l in self._fired():
             if (when is None or when >= cutoff) and self._fire_names(n, topics, l):
                 return True
+        tg = _module("topic_grammar_tick", "tools/audit/seat/topic_grammar.py")
         for t in topics:
             for fam in kinds:
-                sha = heads.get(f"{fam}/{t}")
-                age = self._age_min(f"{fam}/{t}", sha) if sha else None
-                if age is not None and age <= SEAT_WINDOW_MIN:
-                    return True
+                refs = [f"{fam}/{t}"]
+                if fam == "handoff-wip":  # a split seat step-pushes under the family's topic (topic-family.md)
+                    refs += sorted(k for k in heads if k.startswith("handoff-wip/")
+                                   and k != refs[0] and tg.family(t).fullmatch(k[len("handoff-wip/"):]))  # mut:wipfamily
+                for ref in refs:
+                    sha = heads.get(ref)
+                    if fam == "handoff-wip" and sha and self._blocked_md(sha) is not None:  # mut:blockedseat
+                        continue  # a stop on a question is owed by blocked_stops, not a seat on the PR
+                    age = self._age_min(ref, sha) if sha else None
+                    if age is not None and age <= SEAT_WINDOW_MIN:
+                        return True
         return False
 
     @staticmethod
@@ -857,7 +881,8 @@ class Tick:
         fixer-round | waiting-on #M | owed | verdicted (MERGE-READY and its levels own it)
         | review-owed (REVIEW OWED owns it). `owed` prints one `OWED <kind> #N <head12>
         <reason>` line (kinds in ledger.KINDS, derived each pass, so a moved head closes
-        it), the critical-path groups' PRs first, then one count line."""
+        it), hotfix groups' PRs first, then accepted outside groups' (owner ruling tvofi
+        2026-11-07, triage P420), then the critical-path groups', then one count line."""
         heads = self._heads()
         if heads is None:
             self.unreadable(S, "owed buckets", "git ls-remote of the handoff refs failed")
@@ -892,14 +917,57 @@ class Tick:
             if bucket == "unreadable":
                 self.unreadable(S, "owed buckets", f"#{n}: {reason}")
             if bucket == "owed":
-                group = rl.group_for_branch(roster, branch) if rl is not None and roster else None
-                owed.append((0 if group in crit else 1, n, f"OWED {kind} #{n} {head[:12]} {reason}"))
+                # A fork head's branch is no group's; the roster's resume.pr maps it
+                # (as merge_train._roster_group does).
+                group = (rl.group_for_branch(roster, branch) or rl.group_for_pr(roster, n)) if rl is not None and roster else None
+                rank = rl.dispatch_rank(roster, group, {rl.norm_group(str(c)) for c in crit}) if rl is not None and roster else 3
+                owed.append((rank, n, f"OWED {kind} #{n} {head[:12]} {reason}"))
         for _, _, text in sorted(owed):
             self.line(S, text, flag=True)
         self.line(S, "buckets: " + (", ".join(f"{k} {v}" for k, v in sorted(counts.items())) or "none")
                   + ("; not bucketed: " + ", ".join(f"{k} {v}" for k, v in sorted(skipped.items()))
                      if skipped else ""))
         self.payloads(S)
+        self.blocked_stops(S, heads)
+
+    def _dispatch_newer(self, topic: str, sha: str) -> "bool | None":
+        """A `dispatch/fixer-<topic>` tip committed after the handoff-wip tip `sha`; None: a read failed."""
+        ref = f"refs/heads/dispatch/fixer-{topic}"
+        code, o = self.git(["ls-remote", "origin", ref])
+        if code:
+            return None
+        d = o.split()[0] if o.split() else ""
+        if not d:
+            return False
+        if self.git(["fetch", "-q", "origin", ref])[0]:
+            return None
+        times = []
+        for x in (d, sha):
+            c, ct = self.git(["log", "-1", "--format=%ct", x])
+            try:
+                times.append(int(ct.strip()) if c == 0 else None)
+            except ValueError:
+                times.append(None)
+        return None if None in times else times[0] > times[1]
+
+    def blocked_stops(self, S: str, heads: dict) -> None:
+        """A fixer stopped on a question: a handoff-wip/<topic> tip holding BLOCKED.md, with no
+        dispatch/fixer-<topic> newer than it and no ledger disposition at its sha, owes an answer."""
+        for key in sorted(heads):
+            if not key.startswith("handoff-wip/"):
+                continue
+            topic, sha = key[len("handoff-wip/"):], heads[key]
+            text = self._blocked_md(sha)
+            if text is None or self._disposed(f"refs/heads/{key}", sha):  # mut:blockeddisp
+                continue
+            newer = self._dispatch_newer(topic, sha)
+            if newer is None:
+                self.unreadable(S, "blocked stops", f"{topic}: git read of the dispatch ref failed")
+                continue
+            if newer:  # mut:blockednewer
+                continue
+            q = next((l.strip() for l in text.splitlines() if l.strip().lower().startswith("question")), "no Question line")
+            self.line(S, f"OWED blocked-stop {topic} {sha[:12]} {q}", flag=True)
 
     def _bucket(self, n, head, pr, topics, lines, last, ms, queue, parked, dispatched, heads, files,
                 open_n, roster, rl):
@@ -922,7 +990,9 @@ class Tick:
             except ValueError:
                 head_age = None
             in_head = self.git(["merge-base", "--is-ancestor", heads[f"handoff/{topic}"], head])[0] == 0
+            disposed = self._disposed(f"refs/heads/handoff-body/{body}", heads[f"handoff-body/{body}"])  # mut:bodydisp
             if (body_age is not None and head_age is not None and body_age < head_age and in_head
+                    and not disposed
                     and not self._seat_on(n, topics, heads, kinds=("handoff-wip", "handoff"))):
                 return "owed", f"handoff-body/{body} is newer than the head, repair done and unapplied", "body-ahead"
         if verdict_kind(last, head) == "blocked":
@@ -1508,10 +1578,12 @@ class Tick:
         open_g = rl.open_groups(roster)
         self.line(S, f"{len(open_g)} open group(s) of {len(groups)}")
         for gid, g in groups.items():
-            if gid not in open_g:
-                continue
             stage = (g.get("resume") or {}).get("stage")
-            blockers = [a for a in (g.get("after") or []) if a in open_g]
+            # roster_lib closes refused and deferred groups (is_open is
+            # False), yet the tick still reports them: they stay deferred.
+            if gid not in open_g and stage not in DEFERRED_STAGES:
+                continue
+            blockers = [a for a in (g.get("after") or []) if a in groups and rl.gates(groups[a])]
             if stage in DEFERRED_STAGES or g.get("deferred") or g.get("refused"):
                 self.line(S, f"{gid}: deferred/refused (stage {stage}) -- "
                              "stays deferred")
@@ -2237,6 +2309,7 @@ class Tick:
                 self.line(S, f"{len(gated)} group(s) blocked on owner "
                              f"disposition{age} -- surface them to the owner",
                           flag=True)
+            self.roster_invariants(S, rl)
         # throughput stall: verdicted+green entries, no train, no main progress
         if queue and not self._seat_procs(self.proc("merge_train.py"),
                                           "merge_train.py", python_only=True):
@@ -2392,6 +2465,53 @@ class Tick:
             if len(rows) > CAP_CARRY:
                 self.line(S, f"  ... {len(rows) - CAP_CARRY} more; run the command above", flag=True)
         self.line(S, f"carry sweep: {summary[0]} (refs {', '.join(refs)}, last {self.carry_last})")
+
+    def roster_invariants(self, S: str, rl) -> None:
+        """#2733's routing invariants at tick level: `carry_audit.py roster`
+        over the tick's roster ref, with the open issues when `gh issue list`
+        answers. A stranded carry (a pending carry on a closed group) or an
+        unrouted open issue is flagged with the command, so neither
+        accumulates between sweeps. A tool that cannot be read is one
+        UNREADABLE line."""
+        if self._carry is None and not (ROOT / CARRY_AUDIT).is_file():
+            return
+        argv = ["--roster-ref", self._roster_ref(S, rl, announce=False), "roster"]
+        tmp = None
+        code, o = self.gh(["issue", "list", "--repo", self.repo, "--state", "open",
+                           "--limit", "500", "--json", "number"])
+        if code == 0:
+            try:
+                json.loads(o)
+                fd, tmp = tempfile.mkstemp(suffix=".json")
+                with os.fdopen(fd, "w") as fh:
+                    fh.write(o)
+                argv += ["--open-issues", tmp]
+            except ValueError:
+                pass
+        try:
+            rc, out = self.carry_run(argv)
+        except OSError as e:
+            self.unreadable(S, "roster invariants", str(e)[:80])
+            return
+        finally:
+            if tmp:
+                try:
+                    os.unlink(tmp)
+                except OSError:
+                    pass
+        summary = [l for l in out if l.startswith("CARRY-ROSTER:")]
+        if rc not in (0, 1) or not summary:
+            self.unreadable(S, "roster invariants", f"exit {rc}, "
+                            + (out[-1][:100] if out else "no output"))
+            return
+        if rc == 1:
+            rows = [l for l in out if l.startswith(("STRANDED", "ISSUE"))]
+            self.line(S, f"routing invariants broken ({summary[0][:120]}): "
+                         "route each with roster_edit.py "
+                         f"(`python3 -I {CARRY_AUDIT} {' '.join(argv[:3])}`)",
+                      flag=True)
+            for l in rows[:CAP_CARRY]:
+                self.line(S, f"  {l.strip()[:160]}", flag=True)
 
     # ----------------------------------------------------------------- ETA
     def eta(self) -> None:
@@ -2722,6 +2842,8 @@ def self_test() -> int:
         git.on(("cat-file", "-e"), rc=1)  # rows missing unless a stub says otherwise
         kw.setdefault("relay_log", os.devnull)  # hermetic: never the host's relay log
         kw.setdefault("bus_state", str(tmp / "no-bus"))  # nor its dispatch record
+        # hermetic: never the real carry_audit; the routing-invariants read is clean
+        kw.setdefault("carry", lambda argv: (0, ["CARRY-ROSTER: stub; 0 stranded carry(ies)"]))
         t = Tick("o/r", str(kw.pop("checkout", ROOT)), queue=queue,
                  train_log=train_log, workers_file=workers, roster_file=roster,
                  gh=gh, git=git, proc=procs or (lambda pattern: []),
@@ -2839,6 +2961,63 @@ def self_test() -> int:
              not any("issues/7" in " ".join(c) for c in tg_cov._gh.calls)),
             ("an owner gate is flagged blocked on owner",
              any("1 group(s) blocked on owner" in x["text"] for x in tg_own.findings)),
+        ])
+        total, failed = total + a, failed + f
+        ri_calls: list = []
+        ri_out = ["STRANDED R10-X (absorbed) carry[0]: 'c'",
+                  "CARRY-ROSTER: r.json at origin/r10; 1 stranded carry(ies)"]
+        tg_roster_path = str(tmp / "ri-roster.json")
+        Path(tg_roster_path).write_text(json.dumps({"groups": [
+            {"group": "G-RI", "resume": {"stage": "not-started"}}]}))
+        tri = tick(queue=str(q16), roster=tg_roster_path, gh_extra=[(("issue", "list"), 0, '[{"number": 5}]')],
+                   carry=lambda argv: ri_calls.append(argv) or (1, ri_out))
+        tri.replan()
+        tri0 = tick(queue=str(q16), roster=tg_roster_path,
+                    carry=lambda argv: (0, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"]))
+        tri0.replan()
+        a, f = check("REPLAN routing invariants at tick level", [
+            ("a stranded carry flags one line naming the command",
+             any("routing invariants broken" in x["text"] and "carry_audit.py" in x["text"]
+                 for x in tri.findings)),
+            ("the row is printed", any("STRANDED R10-X" in x["text"] for x in tri.findings)),
+            ("the roster call carries --open-issues when gh answers",
+             bool(ri_calls) and "--open-issues" in ri_calls[0] and "roster" in ri_calls[0]),
+            ("null: a clean roster flags nothing from the invariant",
+             not any("routing invariants" in x["text"] for x in tri0.findings)),
+        ])
+        total, failed = total + a, failed + f
+
+        def ri_tick(carry, gh_extra=None):
+            t_ = tick(queue=str(q16), roster=tg_roster_path, gh_extra=gh_extra or [], carry=carry)
+            try:
+                t_.replan()
+            except OSError:  # an escaped tool error is a missing line, read as a FAIL, not a crash
+                pass
+            return t_
+
+        def ri_unreadable(t_):
+            return (any("UNREADABLE: roster invariants" in x["text"] for x in t_.findings)
+                    and not any("routing invariants broken" in x["text"] for x in t_.findings))
+
+        def ri_raise(argv):
+            raise OSError("carry_audit.py: cannot exec")
+
+        ri_bad_calls: list = []
+        t_os = ri_tick(ri_raise)
+        ri_tick(lambda argv: ri_bad_calls.append(argv) or (0, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"]),
+                gh_extra=[(("issue", "list"), 0, "not json")])
+        a, f = check("REPLAN routing invariants: an unreadable tool is never clean", [
+            ("exit 2 with no summary (a REFUSED roster ref) is one UNREADABLE line",
+             ri_unreadable(ri_tick(lambda argv: (2, ["carry_audit: REFUSED cannot list origin/x"])))),
+            ("exit 2 with a summary is still UNREADABLE (the rc arm alone)",
+             ri_unreadable(ri_tick(lambda argv: (2, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"])))),
+            ("exit 0 with no summary is UNREADABLE (the summary arm alone)",
+             ri_unreadable(ri_tick(lambda argv: (0, ["something else"])))),
+            ("an OSError from the tool is one UNREADABLE line naming it",
+             ri_unreadable(t_os) and any("cannot exec" in x["text"] for x in t_os.findings)),
+            ("a non-JSON issue list drops --open-issues and still runs the roster call",
+             len(ri_bad_calls) == 1 and "roster" in ri_bad_calls[0]
+             and "--open-issues" not in ri_bad_calls[0]),
         ])
         total, failed = total + a, failed + f
         t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),
@@ -3848,7 +4027,8 @@ def self_test() -> int:
         h = lambda n: f"{n:040x}"
         def oboard2(specs, red=None, fired=None, refs=(), cts=None, files=None, queue_v=None,
                     train=None, body=None, bodies=None, disp=(), newer=None, newer_fail=(),
-                    extra=(), roster=None, extra_read=(), ancestor=True, via_prs=False):
+                    extra=(), roster=None, extra_read=(), ancestor=True, via_prs=False,
+                    show=None, dref=None, disposed=()):
             """specs [(n, ms, [verdict lines], verdict_age_min)] -> (tick, owed lines).
             disp: PR numbers on bus.sh's dispatch record at their head; newer {n: minutes ago}: a
             handoff/<n> tip committed that long ago; newer_fail: PRs whose handoff ls-remote fails;
@@ -3870,7 +4050,13 @@ def self_test() -> int:
                 Path(fl).write_text(fired)
             board = [dict(pr_obj(n, h(n), ms=ms), body=(bodies or {}).get(n, "")) for n, ms, _, _ in specs]
             board += list(extra)
-            t = tick(prs=board, queue=str(qf), train_log=tl, fired_log=fl, bus_state=str(bus), roster=roster)
+            home = od / "relay"
+            home.mkdir()
+            t = tick(prs=board, queue=str(qf), train_log=tl, fired_log=fl, bus_state=str(bus), roster=roster,
+                     relay_log=str(home / "cloud-relay.log"))
+            lgm = _module("ledger_tick", "tools/audit/seat/ledger.py")
+            for dref_, dsha in disposed:
+                lgm.dispose(home, dref_, dsha, "body-patched")
             t._git.h[:0] = [(("ls-remote", "origin", ref.rsplit("/", 1)[0] + "/*"), 0, f"{sha}\trefs/heads/{ref}\n")
                             for ref, sha in refs] + [(("ls-remote",), 0, "")]
             t._git.h[:0] = [(("log", "-1", "--format=%ct", sha), 0, f"{int((NOW - timedelta(minutes=m)).timestamp())}\n")
@@ -3880,6 +4066,15 @@ def self_test() -> int:
                                for n in (newer or {})]
                             + [(("log", "-1", "--format=%ct", f"{n:x}".rjust(40, "d")), 0,
                                 f"{int((NOW - timedelta(minutes=m)).timestamp())}\n") for n, m in (newer or {}).items()])
+            t._git.h[:0] = [(("show", f"{sha}:BLOCKED.md"), 0, txt) for sha, txt in (show or {}).items()]
+            if dref:  # (topic, sha, minutes ago): the dispatch/fixer-<topic> tip
+                dt_, dsha, dm = dref
+                t._git.h[:0] = [(("ls-remote", "origin", f"refs/heads/dispatch/fixer-{dt_}"), 0,
+                                 f"{dsha}\trefs/heads/dispatch/fixer-{dt_}\n"),
+                                (("log", "-1", "--format=%ct", dsha), 0,
+                                 f"{int((NOW - timedelta(minutes=dm)).timestamp())}\n")]
+            else:
+                t._git.h[:0] = [(("ls-remote", "origin", "refs/heads/dispatch/fixer-"), 0, "")]
             if not ancestor:
                 t._git.h.insert(0, (("merge-base", "--is-ancestor"), 1, ""))
             t._readback = {str(n): ls for n, _, ls, _ in specs}
@@ -3918,6 +4113,21 @@ def self_test() -> int:
         _, o_ba = oboard2([(85, "BLOCKED", [], 0)], **ba)
         _, o_ba0 = oboard2([(85, "BLOCKED", [], 0)], refs=ba["refs"], cts={h(85): 20, "b" * 40: 30})
         _, o_baf = oboard2([(85, "BLOCKED", [], 0)], fired=f"{iso(NOW - timedelta(minutes=10))} FIRED #85 r2\n", **ba)
+        # carry 13: a disposition at the body ref's sha clears BODY-AHEAD; an older sha still owes
+        _, o_bd = oboard2([(85, "BLOCKED", [], 0)], disposed=[("refs/heads/handoff-body/85", "b" * 40)], **ba)
+        _, o_bd0 = oboard2([(85, "BLOCKED", [], 0)], disposed=[("refs/heads/handoff-body/85", "a" * 40)], **ba)
+        # carry 14: a handoff-wip tip holding BLOCKED.md owes; a newer dispatch, a disposition or no file clears it
+        bl_tip, bl_txt = "e" * 40, "# Blocked\nQuestion: which seam owns the cap?\n"
+        bl = dict(refs=[("handoff-wip/blk", bl_tip)], cts={bl_tip: 60}, show={bl_tip: bl_txt})
+        _, o_bl = oboard2([], dref=("blk", "f" * 40, 600), **bl)
+        _, o_bl_new = oboard2([], dref=("blk", "f" * 40, 10), **bl)
+        _, o_bl_disp = oboard2([], dref=("blk", "f" * 40, 600), disposed=[(f"refs/heads/handoff-wip/blk", bl_tip)], **bl)
+        _, o_bl_nofile = oboard2([], refs=bl["refs"], cts=bl["cts"])
+        _, o_bl_red = oboard2([(86, "BLOCKED", [], 0)], red={86: ["gate"]}, dref=("86", "f" * 40, 600),
+                              refs=[("handoff-wip/86", bl_tip)], cts={bl_tip: 5}, show={bl_tip: bl_txt})
+        # carry 7: a family member's handoff-wip is a seat on the PR; a bare -<N> sibling's is not
+        _, o_fam = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]}, refs=[("handoff-wip/82-p1", "e" * 40)], cts={"e" * 40: 5})
+        _, o_fam2 = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]}, refs=[("handoff-wip/82-2", "e" * 40)], cts={"e" * 40: 5})
         # R10-TICK-LEVELS null controls: a DIRTY and red PR a bucket already owns prints no OWED line
         rec = getattr(_module("record_row_tick", "tools/audit/seat/record_row.py"), "RECORD_BRANCH", "record")
         bk_of = lambda t: t.sections["PRS"][-1]["text"]
@@ -3950,6 +4160,27 @@ def self_test() -> int:
                              red=gate_red(91), roster=str(orf))
         _, o_ae0 = oboard2([], extra=[gpr(91, "gb")], extra_read=(91,), red=gate_red(91), roster=str(orf))
         _, o_co = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb")], extra_read=(99, 100), roster=str(orf))
+        orf2 = tmp / "owed-roster-out.json"  # GB critical; GO outside, GH a hotfix, GZ plain
+        orf2.write_text(json.dumps({"groups": [
+            {"group": "GA", "resume": {"stage": "not-started"}},
+            {"group": "GB", "resume": {"stage": "not-started"}, "after": ["GA"]},
+            {"group": "GZ", "resume": {"stage": "not-started"}},
+            {"group": "GO", "source": "outside", "resume": {"stage": "not-started"}},
+            {"group": "GH", "kind": "bug", "resume": {"stage": "not-started"}}]}))
+        _, o_ro = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb"), gpr(102, "go"), gpr(103, "gh")],
+                          extra_read=(99, 100, 102, 103), roster=str(orf2))
+        _, o_rn = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb")], extra_read=(99, 100), roster=str(orf))
+        # A fork-head outside PR: its branch is no group's, the roster's resume.pr maps it (#3304 round 2)
+        def fork_roster(pr):
+            f = tmp / f"owed-roster-fork-{pr}.json"
+            f.write_text(json.dumps({"groups": [
+                {"group": "GA", "resume": {"stage": "not-started"}},
+                {"group": "GB", "resume": {"stage": "not-started"}, "after": ["GA"]},
+                {"group": "GO", "source": "outside", "resume": {"stage": "not-started", "pr": pr}}]}))
+            return str(f)
+        fork = lambda: pr_obj(104, h(104), ms="DIRTY", branch="patch-1")
+        _, o_fk = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 104), roster=fork_roster(104))
+        _, o_fk0 = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 104), roster=fork_roster(None))
         pd = tmp / "payloads"
         pd.mkdir()
         pf = pd / "payload-fix-86-r1.json"
@@ -3989,6 +4220,16 @@ def self_test() -> int:
              and o_r2 == [] and o_rc == [] and o_rm == []),
             ("carry 5 BODY-AHEAD: a body ref newer than the head owes; an older one, or a fire, does not",
              len(o_ba) == 1 and "body-ahead #85" in o_ba[0] and o_ba0 == [] and o_baf == []),
+            ("carry 7: a wip ref of a family member (-p1) is a seat; a bare -<N> sibling's is not",
+             not any("red-unowned" in x for x in o_fam) and any("red-unowned" in x for x in o_fam2)),
+            ("carry 13: a disposition at the body sha clears BODY-AHEAD; one at an older sha still owes",
+             o_bd == [] and len(o_bd0) == 1 and o_bd0[0].startswith("OWED body-ahead #85")),
+            ("carry 14: a BLOCKED.md tip owes, naming topic, sha and Question line",
+             len(o_bl) == 1 and o_bl[0] == f"OWED blocked-stop blk {bl_tip[:12]} Question: which seam owns the cap?"),
+            ("carry 14: a newer dispatch, a disposition at the sha, or a tip without the file owes nothing",
+             o_bl_new == [] and o_bl_disp == [] and o_bl_nofile == []),
+            ("carry 14: a red PR whose only move is a BLOCKED.md tip is still RED-UNOWNED",
+             any(x.startswith("OWED red-unowned #86") for x in o_bl_red)),
             ("carry 5 FIRE-OWED: a rendered payload with no FIRED line owes; one a FIRED line names does not",
              len(fo) == 1 and "payload-fix-86-r1.json" in fo[0] and fo0 == [] and fo_young == []),
             ("null: a DIRTY, red PR in train (a queue verdict, no merge verdict) prints no OWED, names the bucket",
@@ -4012,7 +4253,13 @@ def self_test() -> int:
             ("null: a DIRTY, red PR whose group is after an open group is waiting-on it; with no open PR there it is owed",
              o_ae == [] and "waiting-on 1" in bk_of(t_ae) and len(o_ae0) == 1 and "dirty #91" in o_ae0[0]),
             ("the critical-path group's OWED line prints before a lower-numbered PR's outside it",
-             len(o_co) == 2 and "#100" in o_co[0] and "#99" in o_co[1])])
+             len(o_co) == 2 and "#100" in o_co[0] and "#99" in o_co[1]),
+            ("an outside group's OWED line prints before the critical path's, a hotfix's before both",
+             [x.split()[2] for x in o_ro] == ["#103", "#102", "#100", "#99"]),
+            ("null control: a roster with no outside group and no hotfix orders as the critical path first",
+             [x.split()[2] for x in o_rn] == ["#100", "#99"] and [x.split()[2] for x in o_co] == ["#100", "#99"]),
+            ("a fork-head outside PR, mapped by resume.pr, prints before the critical path's; unrecorded, after it",
+             [x.split()[2] for x in o_fk] == ["#104", "#100"] and [x.split()[2] for x in o_fk0] == ["#100", "#104"])])
         total, failed = total + a, failed + f
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).
