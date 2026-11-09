@@ -45,7 +45,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 11. **A red check owes an answer** (`defect-root-cause.md`'s second
     trigger). Read the PR's own checks (`get_check_runs`, or
     the commit's `check-runs` API), not the body's account, and never a
-    listing that shows one run per check. For each gate check that went red,
+    listing that shows one run per check. For each required check that went red
+    (`defect-root-cause.md`'s Enforcement),
     the body names it and answers: the cheaper detector with its standing cost,
     or the finding that none exists. Both pass; silence is
     `blocked <sha> root-cause-detectable: <check>` where a cheaper detector
@@ -58,9 +59,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     refuses, wait or hand back unverdicted, saying so.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
-    **A red `nightly-status` or `delivery-status` is not this pull request's**
-    unless its diff reaches what they read (`defect-root-cause.md`); deleting a
-    merged row turns `delivery-status` OVERDUE.
+    **A red `nightly-status` or `delivery-status` is not this pull request's**:
+    neither is required (`defect-root-cause.md`).
 
     **The head's runs are not the range's** (#1144). The body check prints
     `record`/`skip red-history` for the range; `skip` means every earlier head
@@ -97,9 +97,9 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     git merge-tree --write-tree origin/main <head>
     ```
 
-    A non-zero exit names the conflicting paths. A conflict on any path other
-    than the two claim files is yours to block on, because you cannot know the
-    merged result is correct.
+    A non-zero exit names the conflicting paths. Block on main only on one,
+    never on a head behind main that merges cleanly (tvofi 11-07). A
+    conflict off the two claim files is yours.
 
     **The driver's verdict is in that command's stderr; read it, never infer it
     from the paths.** `merge-tree` invokes the driver once per conflicting claim
