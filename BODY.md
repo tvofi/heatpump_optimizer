@@ -5,11 +5,11 @@ This repair round answers the three reds at 0f84b0fe8b (`gate`, `tests / mutatio
 - It re-records one replay CPU budget down. The single controller made a replay cycle cheaper, so the old budget could no longer see a doubled cycle.
 - It restores a replay null control that the tighter budget had silenced.
 
-A local Linux finding limits what this PR closes. It is under `## Forward-carry`.
+A local Linux finding limits what this PR closes. It is under `## Forward-carry`, carried to the two live stages that read a stress red. This round changes no code: it repairs the body against the review verdict at 00d12cad0f (verdict/3349 61a90cfce8).
 
 ## Head
 
-`6286dfef5eb4dfd032963197de7610c32bee1d1c`. It merges origin/main `425b858495432c8dceb89d8d13866550352ba54f` into round 2's 0eb862d2 (giving 4dc05fad, where the scoped gate ran), then `fdc8d21adaa50a7feee534f08ee5edde9bda81ed` (#3338: governance and tools only, no file of this diff). Both merges are clean. Main's delta since daf8b349fd is tools-only (`tools/ci/sweep.py`, `tools/policy/budget_raise_gate.py`, `tools/pr/prepr.sh` and others) and touches no file of this diff. The scope is unchanged (`MODE: SCOPED -- 27 script(s) run, 6 scoped out`). `tools/pr/prepr.sh` was re-run on this head.
+`00d12cad0f12bb8eb7da1010a720f7576fd4a552`. Its tree is 6286dfef5e's (`git diff --stat 6286dfef 00d12cad` prints nothing); 6286dfef5e merges origin/main `425b858495432c8dceb89d8d13866550352ba54f` into round 2's 0eb862d2 (giving 4dc05fad, where the scoped gate ran), then `fdc8d21adaa50a7feee534f08ee5edde9bda81ed` (#3338: governance and tools only, no file of this diff). Both merges are clean. No merge this round: `git merge-tree --write-tree origin/main 00d12cad` exits 0 against origin/main 6457496aba (stamped 2026-11-09T02:52Z), so the branch is not re-cut or moved. The merge base stays fdc8d21ada and the scope is unchanged (`MODE: SCOPED -- 27 script(s) run, 6 scoped out`, re-derived at this head).
 
 ## Root cause
 
@@ -26,11 +26,11 @@ A local Linux finding limits what this PR closes. It is under `## Forward-carry`
 - A churn harness (intern a fresh attribute name, then free it) shows the step directly: 1.83 MiB at intervals on both 3.14 and 3.12. With a constant name the peak is 0.002 MiB.
 - So #3297 changed no solve. Its added strings moved the import-time table to just under a rebuild point, and the solve's own interning crossed it.
 
-**What interns inside the solve.** `threadpool_limits(limits=1)` constructs `ThreadpoolController()` per call: 8 calls per typical_slab/shoulder solve, 10 per heavy_old/shoulder. On Linux (`_find_libraries_with_linux`, `/proc/self/maps`) each construction opens fresh `ctypes.CDLL` handles. Their symbol names are built at runtime (`f"{prefix}openblas_get_num_threads{suffix}"`, `_get_symbol`), interned by `CDLL.__getattr__`'s `setattr`, and freed with the handle. Off Linux on 3.14, the first call also imports `ctypes.util` (`dllist`) inside the solve. The Linux arm is read from threadpoolctl 3.7.0's source and is consistent with the CI figures; no Linux box was available to run it. CI's `fast (3.14)` on this head is the measurement.
+**What interns inside the solve.** `threadpool_limits(limits=1)` constructs `ThreadpoolController()` per call: 8 calls per typical_slab/shoulder solve, 10 per heavy_old/shoulder. On Linux (`_find_libraries_with_linux`, `/proc/self/maps`) each construction opens fresh `ctypes.CDLL` handles. Their symbol names are built at runtime (`f"{prefix}openblas_get_num_threads{suffix}"`, `_get_symbol`), interned by `CDLL.__getattr__`'s `setattr`, and freed with the handle. Off Linux on 3.14, the first call also imports `ctypes.util` (`dllist`) inside the solve. The Linux arm is read from threadpoolctl 3.7.0's source; it was not measured on Linux in this seat. The review's Linux measurement does not confirm it: base and head each ran red 1 of 3 interleaved on one box (`## Forward-carry`), so on Linux the harness does not move under the fix. CI's `fast (3.14)` read green at this head (job 128914863009, `ok python3 tests/stress.py`), which is one more sample of that flake, not a confirmation.
 
 **The claim it reached several PRs is not supported.** Of 300 failed CI runs back to 2026-11-06, the only fast-job failures naming this check are #3297's two. The fast reds on #3181 and #3198, and #3299's earlier heads, were `tests/entities.py` and `tests/env_drift.py`. Their stress.py lines read `ok`.
 
-**Process state: (d), sound under a precondition that changed beneath it.** `_memory_probe_main`'s docstring states the precondition: "A fresh process gives each scenario an honest high-water mark". That holds for RSS. It held for the traced arm only while the solve left interpreter-global tables alone and the import-time interned table sat far from a rebuild point. Nothing asserted it, so a tree landing near the rebuild point read as a scenario regression. Green runs print no memory figures (`run.sh` shows only a failing script's output), so the shrinking margin was invisible until the red. The countermeasure makes the probe notice its own precondition: `solve_window_imports` and the check that refuses it. The churn shape has no import to observe, so its one known source is pinned in features.py.
+**Process state: (d), sound under a precondition that changed beneath it.** `_memory_probe_main`'s docstring states the precondition: "A fresh process gives each scenario an honest high-water mark". That holds for RSS. It held for the traced arm only while the solve left interpreter-global tables alone and the import-time interned table sat far from a rebuild point. Nothing asserted it, so a tree landing near the rebuild point read as a scenario regression. Green runs print no memory figures (`run.sh` shows only a failing script's output), so the shrinking margin was invisible until the red. The countermeasure is two checks, and only one reaches Linux. `solve_window_imports` and the stress check that refuses it notice the precondition off Linux only: there the unfixed optimizer imports `ctypes.util` and four `ctypes.macholib` modules inside the window. On Linux it reads `[]` with the unfixed optimizer too (the reviewer's ev/linux-inwindow-imports.txt on verdict/3349: `mutA in-window imports: []`, `wt in-window imports: []`), so it cannot fire there and does not notice this precondition on Linux. The churn shape has no import to observe. On Linux the fix's one guard is the features pin on the shared controller (`_blas_pin_shared_controller`), which the reviewer's mutants A, B and C all fail.
 
 **Class reach.** The rule is `git grep -n "tracemalloc.start"`. It returns 9 windows:
 - `tests/stress.py`: closed here.
@@ -101,6 +101,15 @@ This round, on a 4-core Linux x86_64 container with venv-ci's CPython 3.14.7. Sc
   - The loop figure is this box's, not the diff's. replay.py's `COST_BUDGETS` comment records that a 4-core box reads it higher at the same code, and the interleave above read main's loop figure 0.1474-0.1672 against the head's 0.1464-0.1778.
 - one-scenario probes: `$S/tbprobe.py <tree> <label> 12` (sha1 2e4e334b15b8d2dccdb61dc26fcfbd8191a7c42c) read typical_slab/shoulder at 2.06 with the largest live block 1 KiB. `$S/jumpprobe.py <tree> <label>` (sha1 ca205902471468b1292c1e5f1d8735566dd1bd1e) read winter_extreme/1z/dhw at 3.37 with no jump. Neither reproduced the step.
 
+This round (body-only repair), at 00d12cad0f on a Linux x86_64 container with venv-ci's CPython 3.14.7, origin/main 6457496aba at 2026-11-09T02:52Z:
+- merge: `git merge-tree --write-tree origin/main 00d12cad` exit 0.
+- scope: `python3 tests/closure.py select --diff fdc8d21ada --workdir <d>` gives `MODE: SCOPED -- 27 script(s) run, 6 scoped out`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, exit 0.
+- the pin: `PYTHONPATH=tests/hastub python3 tests/features.py` reads `ok` on both `_blas_pin_shared_controller` arms ("the BLAS thread pin reuses optimizer.py's one ThreadpoolController ..." and "without threadpoolctl the scoped minimize runs unpinned ..."); the reviewer's three mutants fail them (verdict/3349 ev/features-mut*.log), the control.
+- class rule: `git grep -n "tracemalloc.start"` returns 9 windows at the head and 9 at fdc8d21ada, the same files as `## Root cause` lists.
+- production BLAS-pin sites: `git grep -nE "threadpool_limits|ThreadpoolController" -- custom_components` returns one construction (optimizer.py, the module-level `ThreadpoolController()`) and one comment line; at fdc8d21ada the same rule returns the per-call `_threadpool_limits(limits=1)` in `_scoped_minimize`, the control.
+- the Linux in-window import reading and the stress table under `## Forward-carry` are the reviewer's (verdict/3349 61a90cfce8); not re-run here, they are cited by path.
+
 ## Red checks
 
 `gate` (jobs 128867413273, 128867544758 at 0f84b0fe8b): it deferred to the code run. Both logs read `FAIL run(s) [42523460002] at this head are still being judged; their gate decides`. Run 42523460002 is the CI run whose `tests / mutation` and `tests / replay` were then red. Each of those is answered below, so `gate` has no cause of its own. No cheaper detector exists: it is the aggregator.
@@ -109,19 +118,39 @@ This round, on a 4-core Linux x86_64 container with venv-ci's CPython 3.14.7. Sc
 
 `tests / replay` (job 128866186676): `FAIL synthetic-dhw-only.json: cycle_cost [... cpu_ratio 1.551: budget 3.342 cannot see a 2x cycle; re-record 2.193]` and `FAIL ... cycle_cost sees a doubled cycle cpu`. This is the fix's own effect: one controller made each cycle cheaper (ref47 2.26-2.47 -> 1.55; this box 2.58-2.76 -> 2.14-2.20). Answered by the rule's re-record of ref47. A cheaper detector exists: run `replay_one` interleaved on a tree that changes the solve's per-call work before handoff (`$S/interleave.sh`, about 4 minutes). Nothing makes a seat run it, because no scope picks the replay lane for an `optimizer.py` diff.
 
+At 00d12cad0f (this head), three `gate` jobs are red, and every test lane is green (`tests / fast (3.14)` 128914863009, `tests / replay` 128914863112, `tests / mutation` 128913029926, `tests / coverage` 128914863109):
+- `gate` 128913688779 and 128917830783: `FAIL run(s) [42539673685, 42540585921] at this head are still being judged; their gate decides` and `FAIL run(s) [42539673685] ...`. Deferrals to the code run; no cause of their own, and no cheaper detector: it is the aggregator.
+- `gate` 128928635369: `FAIL codeql / Analyze (python): cancelled (this run)`. That job, 128913029832, ran 00:29:48Z to 01:14:53Z, 45 min 5 s, against the job's `timeout-minutes: 45` in `.github/workflows/codeql.yml`: a timeout cancellation, not a finding. No test reads red, so no cheaper detector exists that could have run it earlier; the remedy is a re-run of that analysis, which is the orchestrator's, since the head is frozen.
+
 ## Unpinned sites
 
 - custom_components/heatpump_optimizer/optimizer.py:887 GUARD_OFF: pinned under `killed_by` by `tests/mutation_table.py --pin-killed`, killed by `tests/features.py` (`_blas_pin_shared_controller`'s no-threadpoolctl arm)
 
 ## Forward-carry
 
-- On a 4-core Linux x86_64 container with CPython 3.14.7, the traced arm of `tests/stress.py`'s memory pass still bumps about +1.8 MiB on a run-dependent subset of scenarios.
-  - It happens at both origin/main and this head: 2 of 6 probes at main; 3, 4 and 4 of 6 in three head runs. Every head probe reports no import inside the window.
-  - One scenario is stable rather than run-dependent: typical_slab/shoulder read 3.9 MiB against its 1.8 record (red at 1.5x) in 3 of 3 head runs, and 2.2 in main's 1 run. So on this box this head's `tests/stress.py` is red, where CI's `fast (3.14)` at 0f84b0fe8b was green.
-  - So the per-call controller is one source of in-window interning, not the only one on this box. This PR does not close the stress flake class there; CI's `fast (3.14)` at 0f84b0fe8b read green.
-  - The transient block was gone by the end of `build_case`, and two single-scenario probes did not reproduce it. Its source is unidentified.
-  - This changes how #3297 and any later stress red on 3.14 must be read: a traced bump of about 1.8 MiB is not evidence against the diff.
-  - Carry: R10-HOTFIX-STRESS-MEM-PEAK | dismissed: a reviewer-facing measurement of this PR, whose disposition is the reviewer's verdict at this head; no later stage's procedure changes
+- On Linux with CPython 3.14, a traced bump of about 1.8 MiB in `tests/stress.py`'s memory pass (the check "the probed scenarios' memory peaks stay within their recorded budgets") is not, alone, evidence against a diff; it is open at both ends, at origin/main and at #3349's fix, and its source is unidentified. This stage's #3299 is blocked on a stress mem-peak red, so its fixer and reviewer read that red under this precondition.
+  - The control, the fix reviewer's measurement (its stress summary and six stress logs on the verdict ref verdict/3349 at 61a90cfce8): one 4-core Linux x86_64 container, venv-ci CPython 3.14.7, `PYTHONPATH=tests/hastub python3 tests/stress.py` three times per tree, base fdc8d21ada and head 00d12cad0f run as interleaved parallel pairs. Traced MiB per probe in the order heavy_old/shoulder, winter/cycle, winter/pv+cycle, typical_slab/winter, winter_extreme/1z/dhw, typical_slab/shoulder, recorded 3.5 / 3.5 / 3.5 / 3.4 / 3.4 / 1.8, red above 1.5x the record:
+  - head run 1: 5.2 / 3.3 / 3.3 / 3.3 / 3.3 / 2.1, ALL 114 STRESS CHECKS PASSED
+  - head run 2: 3.3 / 3.3 / 3.3 / 5.1 / 5.1 / 3.9, 1 of 114 STRESS CHECKS FAILED (typical_slab/shoulder 3.9 against 1.8)
+  - head run 3: 5.2 / 5.2 / 3.3 / 5.1 / 3.3 / 2.1, ALL 114 STRESS CHECKS PASSED
+  - base run 1: 3.5 / 3.5 / 3.5 / 3.4 / 3.4 / 2.2, ALL 113 STRESS CHECKS PASSED
+  - base run 2: 3.5 / 3.5 / 3.5 / 3.4 / 3.4 / 2.2, ALL 113 STRESS CHECKS PASSED
+  - base run 3: 5.3 / 3.5 / 5.3 / 3.4 / 3.4 / 2.2, 1 of 113 STRESS CHECKS FAILED
+  - Red runs: head 1 of 3, base 1 of 3. Bumped probes (a reading at least 1.5 MiB over its record): head 7 of 18, base 2 of 18. Every bump is +1.7 to 2.1 MiB. The rule that would have separated a diff's own regression from the flake, a red at head with base green beside it on the same box, did not separate here.
+  - Re-measure before reading a 3.14 stress memory red against a diff: run `PYTHONPATH=tests/hastub python3 tests/stress.py` three times per tree, the merge base beside the head, on one box, interleaved, and compare red counts and bumped probes. Only a head red count or bumped-probe count above the base's beside it is evidence against the diff; the figures above are snapshots from one box and are not a budget.
+  - Carry: R10-GENERIC-HEAT-CURVE
+- On Linux with CPython 3.14, a traced bump of about 1.8 MiB in `tests/stress.py`'s memory pass (the check "the probed scenarios' memory peaks stay within their recorded budgets") is not, alone, evidence against a diff; it is open at both ends, at origin/main and at #3349's fix, and its source is unidentified. Destination for the D9 CPU/memory stage: no live group of the round-10 roster (origin/handoff/audit-r10-roster) owns D9 as a stage; this is the one live group whose brief names the D9 target, and its solver CPU measurements are read by the same stress pass.
+  - The control, the fix reviewer's measurement (its stress summary and six stress logs on the verdict ref verdict/3349 at 61a90cfce8): one 4-core Linux x86_64 container, venv-ci CPython 3.14.7, `PYTHONPATH=tests/hastub python3 tests/stress.py` three times per tree, base fdc8d21ada and head 00d12cad0f run as interleaved parallel pairs. Traced MiB per probe in the order heavy_old/shoulder, winter/cycle, winter/pv+cycle, typical_slab/winter, winter_extreme/1z/dhw, typical_slab/shoulder, recorded 3.5 / 3.5 / 3.5 / 3.4 / 3.4 / 1.8, red above 1.5x the record:
+  - head run 1: 5.2 / 3.3 / 3.3 / 3.3 / 3.3 / 2.1, ALL 114 STRESS CHECKS PASSED
+  - head run 2: 3.3 / 3.3 / 3.3 / 5.1 / 5.1 / 3.9, 1 of 114 STRESS CHECKS FAILED (typical_slab/shoulder 3.9 against 1.8)
+  - head run 3: 5.2 / 5.2 / 3.3 / 5.1 / 3.3 / 2.1, ALL 114 STRESS CHECKS PASSED
+  - base run 1: 3.5 / 3.5 / 3.5 / 3.4 / 3.4 / 2.2, ALL 113 STRESS CHECKS PASSED
+  - base run 2: 3.5 / 3.5 / 3.5 / 3.4 / 3.4 / 2.2, ALL 113 STRESS CHECKS PASSED
+  - base run 3: 5.3 / 3.5 / 5.3 / 3.4 / 3.4 / 2.2, 1 of 113 STRESS CHECKS FAILED
+  - Red runs: head 1 of 3, base 1 of 3. Bumped probes (a reading at least 1.5 MiB over its record): head 7 of 18, base 2 of 18. Every bump is +1.7 to 2.1 MiB. The rule that would have separated a diff's own regression from the flake, a red at head with base green beside it on the same box, did not separate here.
+  - Re-measure before reading a 3.14 stress memory red against a diff: run `PYTHONPATH=tests/hastub python3 tests/stress.py` three times per tree, the merge base beside the head, on one box, interleaved, and compare red counts and bumped probes. Only a head red count or bumped-probe count above the base's beside it is evidence against the diff; the figures above are snapshots from one box and are not a budget.
+  - Carry: R10-PARTLOAD-RESIDUE
+- Disclosed self-correction: the previous body called typical_slab/shoulder's 3.9 MiB on this head stable rather than run-dependent (3 of 3 runs in the fixer's own sample). The reviewer's three head runs read it 2.1 / 3.9 / 2.1, so it is run-dependent like the others; the fixer's readings stay under `## Figures` as recorded. Carry: dismissed: corrected in this body, and the carried precondition above already covers every probe
 - The ref47 re-record rests on one post-fix CI draw. The other six synthetic classes hold only pre-fix draws, and the fix cut the cycle by 0.65x on ref47 and 0.82x on this box. A post-fix ref53 draw near 0.65 x 1.45 would fall under that class's floor of 1.038 (2.076 / 2). The next replay job on another class may then need the same rule-driven re-record (append its rows, re-derive). Carry: R10-HOTFIX-STRESS-MEM-PEAK | dismissed: the existing re-record rule in replay.py's `COST_BUDGETS` comment already prescribes that step, so no stage's procedure changes
 
 ## Friction
