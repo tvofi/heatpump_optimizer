@@ -1,1 +1,0 @@
-RESULT perturbation=git-mv tools/release/stamp.py->stamp_v2.py brief_lint rc=0 readme_stamp_errors=0
