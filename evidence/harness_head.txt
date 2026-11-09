@@ -1,11 +1,9 @@
-== head 0fc051047d3c4bcd842bc687205f10e0166ff1f6
-stale: roster: set-stage G pushed 2d93605aa
-stale: roster: set-stage G pushed 30dd41f51
+stale: roster: set-stage G pushed c74e2c54e
+stale: roster: set-stage G pushed 850f67b08
 stale: RESULT: PASS
 cascade: roster: set-stage G refused rc=4 REFUSED: unrelated
-cascade: roster: set-stage G pushed 30dd41f51
+cascade: roster: set-stage G pushed 850f67b08
 cascade: RESULT: PASS
-follow: refresh_lint='' head=a05e03d29fab origin main=a05e03d29fab
+follow: refresh_lint='' head=29c86e786579 origin main=29c86e786579
 follow: RESULT: PASS
 RESULT: PASS
-rc=0
