@@ -17681,7 +17681,8 @@
    "size": "S",
    "wave": 1,
    "files": [
-    ".github/workflows/codeql.yml"
+    ".github/workflows/codeql.yml",
+    "tests/entities.py"
    ],
    "hot_files": [],
    "fixerModel": "opus",
@@ -17708,7 +17709,7 @@
    "resume": {
     "stage": "in-progress",
     "pr": 3266,
-    "note": "P463 (batch 138): wrap refused, PRs 3266 and 3365 closed unmerged; part 2 topic r10-hotfix-codeql-headroom-p2 is the per-leg cap from design e64e8fdb s3/s7"
+    "note": "P463 (batch 138): wrap refused, PRs 3266 and 3365 closed unmerged; part 2 topic r10-hotfix-codeql-headroom-p2 is the per-leg cap from design e64e8fdb s3/s7 | set-files files ['.github/workflows/codeql.yml'] -> ['.github/workflows/codeql.yml', 'tests/entities.py']"
    },
    "brief": "Orchestrator ruling under mandate comment 6624093439, 2026-11-07: re-scope. The owner ruling of 2026-11-06 (lower priority than #3232) stands for priority, but its cure, restructuring the module-scope try blocks of tests/features.py and tests/entities.py into functions, is REFUTED twice by measurement, so that cure and its instruction not to raise the cap are withdrawn. Measurement 1, wip ref origin/handoff-wip/r10-hotfix-codeql-headroom at 054008c9 (BLOCKED.md): dispatch runs at f0b215af with the wrapped file were cancelled at the 45-minute cap (jobs 128428511054 and 128440898484) against main's 26m27s at the same merge base (job 128423079820); the wrapping slowed features.py and the query phase. Measurement 2, handoff-body/r10-hotfix-codeql-headroom-recut at 3838ebda: main's python job swings from 26.5 to 43.9 minutes with every file's extraction doubling together, so the swing is runner-speed variance and not file structure; python job p50 41.4 minutes, p90 44.4 minutes, and 3 of 21 main runs hit the 45-minute cap with no growth in the files. The group is now the cheapest lever that leaves architecture unchanged: set the timeout of the codeql python job in .github/workflows/codeql.yml from the measured distribution, namely the p99 of the recut sample plus a stated margin, and leave the structure of tests/features.py and tests/entities.py alone (do not edit them). Re-derive the distribution at your merge base from the last main runs of the python job (job durations, not file times), state the sample size, the p50, p90 and p99, and the margin and why, and set the timeout so that the 3 of 21 capped runs would have completed. Scope the timeout to the python leg if the file's matrix allows it, so the actions and javascript-typescript legs keep their current cap; keep each leg its own job. Null control: a leg whose timeout you do not change must show an unchanged value in the diff. A fixer cannot dispatch ci.yml with pr=N from its own ref (carries 93aad749 and e017bcd8); if a CodeQL figure is wanted at the head, dispatch with inputs empty. Every check on the workflow file must still pass with the same counts.\n\nOrchestrator ruling under the mandate, 2026-11-08 (the recut body handoff-body/r10-hotfix-codeql-headroom-recut at 3838ebda, accepted): the group is re-scoped to size S, cloud sonnet. 3 of 21 python-job runs hit the cap and p90 sits at 44.4 min, so the cap is too tight for measured runner variance; parking would leave red CodeQL runs. Scope: raise the CodeQL python job's timeout-minutes in .github/workflows/codeql.yml to clear the measured p90 with margin, state the measured p50 and p90 (and p99) and the rule that gives the new value (fixer.md step 8), and keep a null control showing no other job or leg changes. The structure of tests/features.py and tests/entities.py is not touched."
   },
