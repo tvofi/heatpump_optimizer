@@ -3084,12 +3084,12 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   grep -q 'were not run (rc 3' <<<"$got" && grep -q '^rc=0$' <<<"$got" \
     && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" != "$was" ]
   st $? 0 "and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)"
-  # CARRY 11: body_push runs carry_audit.py landed after the packet; rc 1 pushes nothing, rc 3 pushes.
+  # CARRY 11: body_push runs carry_audit.py landed after the packet; rc 1 pushes nothing and body_push exits 4 (CARRY-LANDED alone, the relay folds it), rc 3 pushes.
   printf '#!/bin/bash\necho "CARRY-MISSING R10-X body item 0123abcd: not in its brief or carries"; exit %s\n' 1 > "$PDX/ld1"
   printf '#!/bin/bash\necho "carry_audit: UNREAD the roster"; exit %s\n' 3 > "$PDX/ld3"
   was=$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)
   got=$(HPO_HANDOFF_LANDED="bash $PDX/ld1" lpush)
-  grep -q '^CARRY-MISSING R10-X body item 0123abcd' <<<"$got" && grep -q '^rc=1$' <<<"$got" \
+  grep -q '^CARRY-MISSING R10-X body item 0123abcd' <<<"$got" && grep -q '^rc=4$' <<<"$got" \
     && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" = "$was" ]
   st $? 0 "and refuses a body whose carry its group does not hold, naming it and pushing nothing (CARRY 11)"
   got=$(HPO_HANDOFF_LANDED="bash $PDX/ld3" lpush)
@@ -3880,10 +3880,13 @@ EOF
   pfh="/$(echo Users)/exampleuser"
   printf 'evidence: %s/proj/log\n' "$pfh" >"$WB/priv-bad.md"
   printf 'evidence: dev/audit/x.md and ~/proj/log\n' >"$WB/priv-ok.md"
-  got=$(HOME=$pfh USER=exampleuser body_privacy_line "$WB/priv-bad.md"); r=$?
+  # python3 may be a seat shim that resolves its venv under $HOME (macOS), so
+  # under the planted HOME it exits 127; the real interpreter's dir goes first.
+  pfp=$(dirname "$(python3 -I -c 'import sys; print(sys.executable)')"):$PATH
+  got=$(HOME=$pfh USER=exampleuser PATH=$pfp body_privacy_line "$WB/priv-bad.md"); r=$?
   st "$r" 1 "a body naming the host home directory is refused by body_privacy_line"
   st "$(printf 'REFUSE ref_privacy (body): %s' "$got" | cut -c1-26)" "REFUSE ref_privacy (body):" "and the line reads REFUSE ref_privacy (body)"
-  HOME=$pfh USER=exampleuser body_privacy_line "$WB/priv-ok.md" >/dev/null
+  HOME=$pfh USER=exampleuser PATH=$pfp body_privacy_line "$WB/priv-ok.md" >/dev/null
   st $? 0 "a body naming only repository-relative paths and ~/ text passes (null control)"
   case "$flow" in *'PRIVACY_LINE=$(privacy_line)
 step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac

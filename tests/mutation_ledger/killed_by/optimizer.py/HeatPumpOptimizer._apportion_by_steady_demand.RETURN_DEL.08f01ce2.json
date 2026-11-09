@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._apportion_by_steady_demand RETURN_DEL 08f01ce2",
-  "killed_by": "tests/features.py",
-  "old": "        return simulated if total <= 0.0 else steady * (float(np.sum(simulated)) / total)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

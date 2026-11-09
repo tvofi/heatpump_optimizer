@@ -280,12 +280,24 @@ def _run_batch(a, sh, rep, py, editor, lines, mark):
         common += ["--branch", a.branch]
     try:
         re_ = load_editor(editor)
-        edits = []
-        for _, (op, g, arg, extra) in items:
-            with contextlib.redirect_stderr(io.StringIO()):  # argparse's usage noise
-                args, value, rest = re_.parse_op(
-                    [op, g] + ([arg] if arg else []) + extra + common)
-            edits.append(re_.make_edit(args, value, rest))
+        edits, good = [], []
+        for ln, (op, g, arg, extra) in items:
+            err = io.StringIO()
+            try:
+                with contextlib.redirect_stderr(err):  # argparse's usage noise
+                    args, value, rest = re_.parse_op(
+                        [op, g] + ([arg] if arg else []) + extra + common)
+                edits.append(re_.make_edit(args, value, rest))
+                good.append((ln, (op, g, arg, extra)))
+            except (SystemExit, re_.Refuse) as e:
+                # one line the parser refuses: name it, batch the rest (P417)
+                why = (err.getvalue().strip().splitlines() or [str(e)])[-1]
+                rep(f"roster: {op} {g} refused rc=2 {why[:300]}")
+                if mark:
+                    mark_line(a.queue, ln, "refused")
+        items = good
+        if not items:
+            return 0
         edit, results = re_.batch_edit(edits)
         _git("fetch", "-q", "origin", cwd=a.lint_clone)
         _git("checkout", "-q", "--detach", "origin/main", cwd=a.lint_clone)
@@ -299,9 +311,8 @@ def _run_batch(a, sh, rep, py, editor, lines, mark):
         m = re.search(r"pushed \S+ at ([0-9a-f]+)", buf.getvalue())
         if rc != 0 or not (m or not any(r is None for r in results)):
             raise RuntimeError(f"batch rc={rc}")
-    except SystemExit as e:  # argparse refused a line: that is a batch-level failure
-        rc, m, results = 1, None, None
-    except Exception as e:  # noqa: BLE001
+    except (SystemExit, Exception) as e:  # noqa: BLE001 - say what, then fall back
+        rep(f"roster: batch failed {type(e).__name__}: {str(e)[:300]}".replace("\n", " "))
         rc, m, results = 1, None, None
     if results is None:
         rep("roster: batch fell back to the single-op path")
@@ -337,6 +348,17 @@ def refresh_lint(a):
     return ""
 
 
+def refusal_tail(out):
+    """What a refused op reports: the last three lines, or, for a lint-gate
+    refusal, the ERROR lines under its banner -- the TOTAL line alone never
+    named the citation (P435)."""
+    lines = out.strip().split("\n")
+    for i, ln in enumerate(lines):
+        if "LINT GATE REFUSED" in ln:
+            return " | ".join(lines[i + 1:i + 6])[:700]
+    return " | ".join(lines[-3:])[:400]
+
+
 def _run_op(a, sh, rep, py, editor, op, g, arg, extra):
     """One op: exactly one report line, or an exception for the caller to report."""
     cmd = [py, editor, op, g] + ([arg] if arg else []) + extra + [
@@ -370,7 +392,7 @@ def _run_op(a, sh, rep, py, editor, op, g, arg, extra):
         if attempt < 4 and (MOVED in out or ("failed to push" in out and "lint gate: TOTAL: 0" in out)):
             sh("git", "worktree", "remove", "--force", a.worktree)
             continue
-        rep(f"roster: {op} {g} refused rc={r.returncode} " + " | ".join(out.strip().split("\n")[-3:])[:400])
+        rep(f"roster: {op} {g} refused rc={r.returncode} " + refusal_tail(out))
         # A refusal leaves the edit as a local commit in the worktree; the next op would meet it as
         # "HEAD is on no origin ref" and be refused for this op's fault (172 such lines in one drain log).
         sh("git", "-C", a.edit_checkout, "worktree", "remove", "--force", a.worktree)
@@ -739,6 +761,30 @@ def _self_test():
         run_queue(argparse.Namespace(**{**vars(base), "first": "all", "last": None, "mark": True}),
                   python=sys.executable)
         ck("a marked line is never applied again", (t / "rep").read_text().count("\n") == 3)
+        # write_roster's real refusal shape: banner, the new ERROR lines, then
+        # the lint's own last three lines (an ERROR, its CARRY line, a blank),
+        # TOTAL, and the commit-is-local line -- the old three-line tail held
+        # only the blank, TOTAL and that last line, never an ERROR.
+        gate = ("lint gate: running\nroster_edit: LINT GATE REFUSED the push\n"
+                "  ERROR   [G-1] cite: a.py:9 moved\n"
+                "  CARRY: G-1 re-pin a.py:9\n\n"
+                "TOTAL: 1 error(s) across 1 file(s)\n"
+                "the commit is local at 0123456789ab in /w (detached); nothing pushed\n")
+        ck("refusal_tail: the fixture's old three-line tail names no ERROR (precondition)",
+           "ERROR" not in " | ".join(gate.strip().split("\n")[-3:]))
+        ck("refusal_tail: a lint-gate refusal reports the ERROR line, not only TOTAL",
+           "[G-1] cite: a.py:9" in refusal_tail(gate) and "TOTAL: 1" in refusal_tail(gate),
+           refusal_tail(gate))
+        stub3 = t / "stub3.py"
+        stub3.write_text("import sys\nsys.stderr.write(" + repr(gate) + ")\nsys.exit(3)\n")
+        fresh("1 set-stage G done\n")
+        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 1,
+                                        "editor": str(stub3)}), python=sys.executable)
+        rr = (t / "rep").read_text().strip()
+        ck("run: a lint-gate refusal's report line names the refused citation",
+           rr.startswith("roster: set-stage G refused rc=3 ") and "[G-1] cite: a.py:9" in rr, rr)
+        ck("refusal_tail: other output is its last three lines (null)",
+           refusal_tail("a\nb\nc\nd") == "b | c | d")
         # inline append-carry readback (LANDED test, first 60 chars)
         ck("readback_text: the carry's first 60 chars are found",
            readback_text(sha, "G", "hello carry", cwd=clone))
@@ -750,8 +796,9 @@ def _self_test():
                   python=sys.executable)
         rr = (t / "rep").read_text().split("\n")
         ck("run --batch: a batch-level failure falls back to the single-op path",
-           rr[0] == "roster: batch fell back to the single-op path"
-           and rr[1] == f"roster: bogus-op G pushed {sha[:9]}", rr)
+           rr[0].startswith("roster: batch failed RuntimeError") and "no batch_edit" in rr[0]
+           and rr[1] == "roster: batch fell back to the single-op path"
+           and rr[2] == f"roster: bogus-op G pushed {sha[:9]}", rr)
         # ONE editor for both paths (resolve_editor), named by what each path ran
         seen = []
         real_load = load_editor
@@ -765,8 +812,8 @@ def _self_test():
                   python=sys.executable)
         globals()["load_editor"] = real_load
         ck("run --batch loads the passed --editor, and its fallback runs that same file",
-           seen == [str(stub)] and (t / "rep").read_text().split("\n")[1]
-           == f"roster: set-stage G pushed {sha[:9]}", seen)
+           seen == [str(stub)] and f"roster: set-stage G pushed {sha[:9]}"
+           in (t / "rep").read_text().split("\n"), seen)
         ck("resolve_editor: no --editor is the roster_edit.py beside this script, never the edit checkout",
            resolve_editor(argparse.Namespace(editor=None, edit_checkout=str(clone)))
            == str(Path(__file__).resolve().parent / "roster_edit.py")
@@ -782,6 +829,22 @@ def _self_test():
                                         "editor": real_ed}), python=sys.executable)
         ck("run --batch: a batch whose every op is refused reports each refused, no fallback",
            (t / "rep").read_text().startswith("roster: set-stage G refused rc=2"))
+        # P417: one malformed line is named and refused; the rest still batch
+        fresh("1 bogus-op G done\n2 set-stage G done\n")
+        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 2, "batch": True,
+                                        "editor": real_ed}), python=sys.executable)
+        rr = (t / "rep").read_text().split("\n")
+        ck("run --batch: a malformed line is named and refused, the rest still batch (no fallback)",
+           rr[0].startswith("roster: bogus-op G refused rc=2")
+           and rr[1].startswith("roster: set-stage G refused rc=2")
+           and "fell back" not in "\n".join(rr), rr)
+        # ... and under --mark the malformed line is marked, so no later pass re-runs it
+        fresh("1 bogus-op G done\n2 set-stage G done\n")
+        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 2, "batch": True,
+                                        "mark": True, "editor": real_ed}), python=sys.executable)
+        got = (t / "q.txt").read_text().split("\n")
+        ck("run --batch --mark: a malformed line is marked `#refused`",
+           got[0] == "#refused 1 bogus-op G done", got)
         # release-held: a held carry waits for its batch file on origin/main
         (t / "q.txt").write_text(
             "#held append-carry G 'x dev/programme/triage/b.md#P1'\n"
