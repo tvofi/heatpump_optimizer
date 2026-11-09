@@ -1,0 +1,5 @@
+head ref47 {'cpu_ratio': 2.7713}
+without job 128866186676 ref47 {'cpu_ratio': 3.3424}
+offenders at head []
+control:cycle_cost:draws True 117 jobs, 570 runs; synthetic-dhw-only.json jobs by class {'ref53': 11, 'ref31': 33, 'ref28': 2, 'ref23': 18, 'ref47': 49, 'ref40': 2, 'ref38': 2}; offenders []; nulls named [['job 127046649273 synthetic-dhw-only.json (ruler 52.12, class ref53): clean cpu_ratio 2.256 over its budget 2.076'], ['job 125051003592 synthetic-dhw-only.json (ruler 41.96, class ref40): clean cpu_ratio 1.444: budget 3.987 cannot see a 2x cycle; re-record 2.042']]
+offenders with ref47=3.3424 ['job 128866186676 synthetic-dhw-only.json (ruler 45.9, class ref47): clean cpu_ratio 1.551: budget 3.342 cannot see a 2x cycle; re-record 2.193', "job 128866186676 synthetic-dhw-only.json (ruler 45.9, class ref47): cpu arm not over budget: ['loop_cpu_ratio 0.5526 over its budget 0.1527']"]
