@@ -1,0 +1,9 @@
+stale: roster: set-stage G pushed c74e2c54e
+stale: roster: set-stage G pushed 850f67b08
+stale: RESULT: PASS
+cascade: roster: set-stage G refused rc=4 REFUSED: unrelated
+cascade: roster: set-stage G pushed 850f67b08
+cascade: RESULT: PASS
+follow: refresh_lint='' head=29c86e786579 origin main=29c86e786579
+follow: RESULT: PASS
+RESULT: PASS

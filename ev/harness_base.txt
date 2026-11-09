@@ -1,0 +1,9 @@
+stale: roster: set-stage G refused rc=3 
+stale: roster: set-stage G refused rc=2 REFUSED: /tmp/tmpfy5y1a1e/wt HEAD 8af8463b9d0e is on no origin ref
+stale: RESULT: FAIL
+cascade: roster: set-stage G refused rc=4 REFUSED: unrelated
+cascade: roster: set-stage G refused rc=2 REFUSED: /tmp/tmparw0npeo/wt HEAD 8af8463b9d0e is on no origin ref
+cascade: RESULT: FAIL
+follow: no refresh_lint
+follow: RESULT: FAIL
+RESULT: FAIL
