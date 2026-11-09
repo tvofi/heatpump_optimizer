@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The fix reviewer's packet: the facts a review gathers, rendered once at the frozen head.
 
-    review_packet.py render --pr N --head SHA --out FILE [--main REF]
+    review_packet.py render --pr N --head SHA --out FILE [--main REF] [--reviewed-head SHA]
                             [--harness PATH | --harness-file FILE] [--harness-arg A]...
     review_packet.py check FILE --head SHA     (rc 1: the packet names another head)
     review_packet.py handoff --topic T --body FILE [--main REF] [--roster-ref REF]
@@ -16,6 +16,13 @@ the reviewer re-reads the live state before a verdict), `carry_audit.py` and
 the head when one is named (`none named` and `not run` otherwise), and the
 mutation-ledger diff. Nothing in it reads a clock, so a second render over the
 same facts is byte-identical.
+
+A LATER ROUND IS ITS DELTA (tvofi, 2026-11-09; fix-review.md step 12). With
+`--reviewed-head <rh>` (`bus.sh dispatch` passes its own), the packet holds
+`git diff <rh> <head>` and the VERDICT.md of the latest verdict/<pr> commit
+whose first line names <rh>, in place of the three-dot diff. A first round, an
+<rh> that is not an ancestor of the head, or one no verdict names keeps the
+three-dot diff and says which (`review_scope`).
 
 WHICH CHECKOUT. Every git read runs in the checkout the WORKING DIRECTORY is in,
 never in the directory this module is installed under: `bus.sh dispatch` runs
@@ -348,6 +355,42 @@ def verdict_merge_head(sha: str, read=None) -> str | None:
     return v[1] if v and v[0] == "merge" else None
 
 
+def previous_verdict(pr: int, rh: str, shas=None, read=None) -> str | None:
+    """VERDICT.md of the newest verdict/<pr> commit whose first line names <rh>,
+    parsed by `proof_watch.parse_verdict`; None when no verdict names it or the
+    ref is absent. An unreadable ref is UNAVAILABLE, never read as no verdict."""
+    if shas is None:
+        r = subprocess.run(["git", "ls-remote", "origin", f"refs/heads/verdict/{pr}"],
+                           cwd=repo(), capture_output=True, text=True)
+        if r.returncode:
+            raise Unavailable(f"git ls-remote verdict/{pr}: {r.stderr.strip()[:200]}")
+        tip = r.stdout.split()[:1]
+        if not tip:
+            return None
+        git("fetch", "-q", "origin", f"refs/heads/verdict/{pr}")
+        shas = git("log", "--format=%H", tip[0]).split()
+    read = read or (lambda s: git("show", f"{s}:VERDICT.md", check=False))
+    for sha in shas:
+        text = read(sha)
+        v = proof_watch.parse_verdict(text.splitlines()[0]) if text.strip() else None
+        if v and v[1] == rh:
+            return text
+    return None
+
+
+def review_scope(rh: str | None, head: str, verdict: str | None, is_anc) -> tuple[str, str]:
+    """("delta" | "full", why): a later round reviews `git diff <rh> <head>`
+    beside the verdict at <rh> (fix-review.md step 12); every other round the
+    three-dot diff."""
+    if not rh:
+        return "full", "first round: no --reviewed-head"
+    if not is_anc(rh, head):
+        return "full", f"the reviewed head {rh} is not an ancestor of {head}, so its delta is no later round's"
+    if verdict is None:
+        return "full", f"no verdict on verdict/<pr> names the reviewed head {rh}, so there is no finding to confirm resolved"
+    return "delta", f"later round over the reviewed head {rh}"
+
+
 def harness_source(harness: str | None, harness_file: str | None, base: str,
                    touched: set[str], cwd: Path | None = None) -> tuple[str, bytes]:
     """(label, bytes) of the finder's harness; SystemExit on the fixer's."""
@@ -530,12 +573,27 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
         f"## Finder's harness: {facts['harness_label']}",
         "### at the base", facts["harness_base"], "### at the head", facts["harness_head"], "",
         "## Mutation-ledger diff", facts["ledger_diff"] or "none", "",
-        "## Three-dot diff", facts["diff"],
+        *scope_parts(facts),
         "## Before you return the verdict (P275)",
         f"Run `{SELF_AUDIT}`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;",
         "an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.",
     ]
     return refusals, advisories, "\n".join(parts) + "\n"
+
+
+def scope_parts(facts: dict) -> list[str]:
+    """The packet's diff sections: the delta and the previous verdict on a later
+    round, else the three-dot diff (a facts dict without a scope is a first round)."""
+    kind, why = facts.get("scope") or ("full", "first round: no --reviewed-head")
+    if kind == "delta":
+        rh = facts["reviewed_head"]
+        return [f"## Review scope: delta ({why})",
+                "Confirm each finding of the previous verdict is resolved, re-read the live required checks, and review "
+                "the delta below; a full re-review only on a named reason the delta reaches code that review relied on, "
+                "recorded in the verdict (fix-review.md step 12).", "",
+                f"## Previous verdict at {rh}", facts["previous_verdict"].rstrip("\n"), "",
+                f"## Delta diff: git diff {rh} {facts['head']}", facts["diff"]]
+    return [f"## Review scope: full ({why})", "", "## Three-dot diff", facts["diff"]]
 
 
 def gather(a) -> dict:
@@ -577,8 +635,17 @@ def gather(a) -> dict:
         "harness_base": run_harness(data, base, a.harness_arg) if data else "not run",
         "harness_head": run_harness(data, head, a.harness_arg) if data else "not run",
         "ledger_diff": git("diff", f"{base}...{head}", "--", LEDGER),
-        "diff": git("diff", f"{base}...{head}"),
+        **scope_facts(a.pr, getattr(a, "reviewed_head", None), base, head),
     }
+
+
+def scope_facts(pr: int, rh: str | None, base: str, head: str, read_verdict=None) -> dict:
+    """gather's scope keys: the round's scope, the verdict at <rh> and the diff it reviews."""
+    verdict = (read_verdict or previous_verdict)(pr, rh) if rh else None
+    scope = review_scope(rh, head, verdict, is_ancestor)
+    delta = scope[0] == "delta"
+    return {"scope": scope, "reviewed_head": rh, "previous_verdict": verdict,
+            "diff": git("diff", rh, head) if delta else git("diff", f"{base}...{head}")}
 
 
 def hot_prs(touched: set[str]) -> tuple[list[dict], set[int]]:
@@ -730,6 +797,31 @@ def _self_test() -> int:
     est, elines, _ = gate_digest([])
     check("a head with no run read is `none`, never `green`",
           est == "none" and elines == [] and build({**clean, "gate": (est, elines, [])})[0] == [])
+
+    # A LATER ROUND IS ITS DELTA (tvofi, 2026-11-09). Null control first: a
+    # first round, with no reviewed head, keeps the three-dot diff.
+    check("scope null: a first round renders the three-dot diff and no delta or previous verdict",
+          "## Review scope: full (first round" in t0 and "## Three-dot diff\nd\n" in t0
+          and "## Delta diff" not in t0 and "## Previous verdict" not in t0)
+    RH = "c" * 40
+    pv = f"Fix review: blocked {RH} class-open: seam X\n\n## Findings\n\n- seam X is open. Carry: #1\n"
+    _, _, td_ = build({**clean, "scope": ("delta", "later round"), "reviewed_head": RH, "previous_verdict": pv,
+                       "diff": "delta-only\n"})
+    check("scope: a later round renders `git diff <rh> <head>` and the previous verdict's findings, not the three-dot diff",
+          f"## Delta diff: git diff {RH} {H}\ndelta-only\n" in td_ and f"## Previous verdict at {RH}" in td_
+          and "- seam X is open." in td_ and "## Three-dot diff" not in td_ and "## Review scope: delta" in td_)
+    anc_yes, anc_no = (lambda a, b: True), (lambda a, b: False)
+    check("review_scope: delta only with a reviewed head that is an ancestor and a verdict naming it; else full, saying why",
+          review_scope(RH, H, pv, anc_yes)[0] == "delta"
+          and review_scope(None, H, pv, anc_yes) == ("full", "first round: no --reviewed-head")
+          and review_scope(RH, H, pv, anc_no)[0] == "full" and "not an ancestor" in review_scope(RH, H, pv, anc_no)[1]
+          and review_scope(RH, H, None, anc_yes)[0] == "full" and "no verdict" in review_scope(RH, H, None, anc_yes)[1])
+    vs = {"s3": f"Fix review: merge {H}\n", "s2": pv, "s1": f"Fix review: blocked {RH} old: first\n", "s0": "not a verdict\n"}
+    check("previous_verdict: the newest verdict whose first line names <rh>; another head's, an older one and a "
+          "malformed line are skipped; none naming it is None",
+          previous_verdict(7, RH, ["s3", "s0", "s2", "s1"], vs.get) == pv
+          and previous_verdict(7, B, ["s3", "s0", "s2", "s1"], vs.get) is None
+          and previous_verdict(7, RH, [], vs.get) is None)
 
     # EVIDENCE IS NEVER WITHHELD: a refusal still writes the packet, except the
     # one signal a written packet would defeat.
@@ -974,6 +1066,27 @@ def _self_test() -> int:
         check("diff_paths -> red-unanswered: the row the diff adds owes main's delivery-status nothing",
               unanswered_reds(unanswering, H, B, ds, *paths, []) == [])
 
+        # The scope over real commits: <rh> on top of pbase, the head on top of <rh>.
+        (t / "kept.txt").write_text("round two\n")
+        tgit("add", "-A")
+        tgit("commit", "-q", "-m", "round two")
+        rhead = tgit("rev-parse", "HEAD").strip()
+        here, _REPO_ROOT = os.getcwd(), None
+        try:
+            os.chdir(t)
+            later = scope_facts(7, phead, pbase, rhead, lambda pr, rh: f"Fix review: blocked {rh} x: y\n")
+            first = scope_facts(7, None, pbase, rhead, lambda pr, rh: f"Fix review: blocked {rh} x: y\n")
+            stray = scope_facts(7, rhead, pbase, phead, lambda pr, rh: f"Fix review: blocked {rh} x: y\n")
+        finally:
+            os.chdir(here)
+            _REPO_ROOT = None
+        check("scope_facts: a later round's diff is `git diff <rh> <head>` alone -- the round-one row is not in it",
+              later["scope"][0] == "delta" and "+round two" in later["diff"] and row not in later["diff"])
+        check("scope_facts null: a first round over the same head reads the three-dot diff, round one's row included",
+              first["scope"][0] == "full" and "+round two" in first["diff"] and row in first["diff"])
+        check("scope_facts null: a reviewed head that is not the head's ancestor reads the three-dot diff",
+              stray["scope"][0] == "full" and row in stray["diff"])
+
         # UNAVAILABLE is a different outcome from a refusal: a seat that cannot
         # read the inputs reports rc 3 and writes nothing, and `bus.sh dispatch`
         # degrades on it. Driven through main(), the path bus.sh calls.
@@ -1027,6 +1140,7 @@ def main(argv: list[str]) -> int:
     r.add_argument("--head", required=True)
     r.add_argument("--out", required=True)
     r.add_argument("--main", default="origin/main")
+    r.add_argument("--reviewed-head", help="the head a previous verdict names: a later round's packet is its delta")
     g = r.add_mutually_exclusive_group()
     g.add_argument("--harness")
     g.add_argument("--harness-file")
@@ -1053,8 +1167,8 @@ def main(argv: list[str]) -> int:
         except Unavailable as e:
             print(f"review_packet: UNAVAILABLE: {e}", file=sys.stderr)
             return 3
-    if not re.fullmatch(r"[0-9a-f]{40}", a.head):
-        print("review_packet: --head takes a 40-hex sha", file=sys.stderr)
+    if not re.fullmatch(r"[0-9a-f]{40}", a.head) or (a.reviewed_head and not re.fullmatch(r"[0-9a-f]{40}", a.reviewed_head)):
+        print("review_packet: --head and --reviewed-head take a 40-hex sha", file=sys.stderr)
         return 2
     try:
         refusals, _, text = build(gather(a))

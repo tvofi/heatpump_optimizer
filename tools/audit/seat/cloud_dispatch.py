@@ -197,7 +197,7 @@ def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, r
 
 
 def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str,
-            design: str = "") -> str:
+            design: str = "", reviewed_head: str = "") -> str:
     first = _seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN
     pin = (f"Before any commit, pin the seat identity: `git config user.name {SEAT_NAME} && git config "
            f"user.email {SEAT_EMAIL}`. ") if role in COMMITTING_ROLES else ""
@@ -218,8 +218,12 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "Start from the review packet, which you render here rather than read from the "
             "dispatcher, whose copy is a path on its own machine: "
             f"`python3 -I tools/audit/seat/review_packet.py render --pr {pr} --head {head} "
+            + (f"--reviewed-head {reviewed_head} " if reviewed_head else "") +
             "--out $HOME/review-packet.md`. A refusal names its signal and the packet is still "
             "written unless the signal is `host-path`; re-read the live checks either way. "
+            + (f"This is a later round over the reviewed head {reviewed_head}: its scope is the packet's "
+               "`## Review scope` line, the delta and the previous verdict's findings when it reads `delta` "
+               "(fix-review.md step 12). " if reviewed_head else "") +
             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
             "every figure in the body at this head. Check that it merges with origin/main "
             "(`git merge-tree --write-tree origin/main <head>`); block on main only when that reports a "
@@ -317,7 +321,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
 
 def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str = "",
            topic: str = "", nonce: str = "", brief: str = "", publish_ref: str = "",
-           design: str = "", pin: str = "") -> dict:
+           design: str = "", pin: str = "", reviewed_head: str = "") -> dict:
     """The payload; with `publish_ref`, its event is the stub naming PROMPT.md at commit
     `pin` of that ref (`publish_seat`)."""
     if role not in ROLES:
@@ -331,6 +335,8 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
             raise Refusal("a reviewer needs --pr <number>")
     elif not topic.strip() or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", topic):
         raise Refusal("a fixer, probe or design seat needs --topic (letters, digits, . _ -)")
+    if reviewed_head and (role != "reviewer" or not is_head(reviewed_head)):
+        raise Refusal("--reviewed-head is a reviewer's: the 40-hex head a previous verdict names")
     if role == "design-reviewer" and not is_head(design or ""):
         raise Refusal("a design reviewer needs --design <the 40-hex design/<topic> tip it reviews>")
     for name, val in (("environment id", env_id), ("model", model), ("repo", repo)):
@@ -341,7 +347,7 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
     if publish_ref and not is_head(pin):
         raise Refusal("a published seat's stub needs the 40-hex commit holding its PROMPT.md")
     text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref, pin) if publish_ref
-            else _prompt(role, repo, pr, head, topic, nonce, brief, design))
+            else _prompt(role, repo, pr, head, topic, nonce, brief, design, reviewed_head))
     payload = {"job_config": {"ccr": {
         "environment_id": env_id,
         "session_context": {
@@ -485,7 +491,8 @@ def design_approved(repo_dir: str, group_id: str) -> bool:
 
 def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
                    roster_ref: str | None = None, head: str = "", pr: str = "", nonce: str = "",
-                   overlay: str | None = None, environ=None, design_exempt: str = "") -> str:
+                   overlay: str | None = None, environ=None, design_exempt: str = "",
+                   reviewed_head: str = "") -> str:
     """Render the seat for `group_id` from the roster, publish it, return its ref name.
 
     The roster at `roster_ref` of `repo_dir` (default: the round's roster
@@ -527,11 +534,11 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
         if not design:
             raise Refusal(f"no design/{group_id} on origin to review")
     args = dict(design=design, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
-                pr=pr, topic=topic, brief=group_brief(group))
+                pr=pr, topic=topic, brief=group_brief(group), reviewed_head=reviewed_head)
     head = head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip()
     if role == "reviewer":
         render(role, head, **args, nonce=BUS_PROBE_NONCE)  # every other refusal, before the bus records
-        nonce = _bus_dispatch(repo_dir, pr, head, model, nonce, environ)
+        nonce = _bus_dispatch(repo_dir, pr, head, model, nonce, environ, reviewed_head)
     ref = dispatch_ref(role, topic, "")
     try:
         publish_seat(repo_dir, ref, role, head, **args, nonce=nonce)
@@ -552,12 +559,14 @@ def _ledger_log(environ) -> list[str]:
     return ["--log", environ["HPO_BUS_LEDGER"]] if environ.get("HPO_BUS_LEDGER") else []
 
 
-def _bus_dispatch(repo_dir: str, pr: str, head: str, model: str, nonce: str, environ) -> str:
+def _bus_dispatch(repo_dir: str, pr: str, head: str, model: str, nonce: str, environ,
+                  reviewed_head: str = "") -> str:
     """The reviewer's nonce through `bus.sh dispatch`, the worker registry: minted, or a nonce
     minted earlier at this pr and head (the relay's) re-recorded with this seat and model. Either
     closes `reviewer-fire <pr> <head>` in the ledger."""
     r = subprocess.run(["bash", str(HERE / "bus.sh"), "dispatch", pr, head, "cloud", "--model", model,
-                        *(["--nonce", nonce] if nonce else [])],
+                        *(["--nonce", nonce] if nonce else []),
+                        *(["--reviewed-head", reviewed_head] if reviewed_head else [])],
                        cwd=repo_dir, env={**os.environ, **environ}, capture_output=True, text=True)
     m = re.search(r"^bus-nonce: ([0-9a-f]{32})$", r.stdout, re.M)
     if r.returncode or not m:
@@ -812,6 +821,20 @@ def _group_checks(check) -> None:
               and git(work, "rev-parse", "origin/main").strip() not in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
         check("the reviewer's brief carries the packet render at the dispatched head for the seat's own machine",
               f"review_packet.py render --pr 7 --head {rhead} " in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
+        rh2 = "c" * 40
+        p_later = _prompt("reviewer", "o/r", "7", rhead, "", "1" * 32, "", "", rh2)
+        p_first = _prompt("reviewer", "o/r", "7", rhead, "", "1" * 32, "")
+        check("a later round's reviewer renders its packet with --reviewed-head and is told its scope is the delta "
+              "(fix-review.md 12); null: a first round's render names no reviewed head",
+              f"render --pr 7 --head {rhead} --reviewed-head {rh2} --out " in p_later
+              and f"later round over the reviewed head {rh2}" in p_later
+              and f"render --pr 7 --head {rhead} --out " in p_first and "--reviewed-head" not in p_first)
+        try:
+            render("fixer", rhead, env_id="e", model="m", repo="o/r", topic="t", reviewed_head=rh2)
+            ok = False
+        except Refusal:
+            ok = True
+        check("--reviewed-head is a reviewer's: a fixer given one is refused", ok)
         check("a nonce no dispatch minted is refused by the bus, and records nothing",
               refused(role="reviewer", head=rhead, pr="7", nonce="0" * 32) and len(registry()) == 1)
         check("a packet the renderer refuses holds the reviewer dispatch, and records nothing",
@@ -1163,7 +1186,7 @@ def self_test() -> int:
 #: self-test drives each entry through main() and refuses a flag missing here.
 GROUP_FLAGS = {
     "role": None, "group": None, "model": None, "head": None, "roster_ref": None,
-    "pr": None, "nonce": None, "overlay": None, "design_exempt": None,
+    "pr": None, "nonce": None, "overlay": None, "design_exempt": None, "reviewed_head": None,
     "design": "dispatch_group reads the tip of design/<group> on origin",
     "topic": "the roster gives the topic (the group's branch)",
     "brief": "the roster gives the brief",
@@ -1185,6 +1208,8 @@ def _parser() -> argparse.ArgumentParser:
     ap.add_argument("--topic", default="")
     ap.add_argument("--nonce", default="")
     ap.add_argument("--design", default="", help="a design reviewer's reviewed design/<topic> tip (flag path)")
+    ap.add_argument("--reviewed-head", default="", help="a later round's reviewer: the head the previous verdict "
+                    "names, so the packet renders its delta (fix-review.md step 12)")
     ap.add_argument("--design-exempt", default="", help="a fixer dispatch for an L/XL group whose approved "
                     "design, pre-study or prototype is already on record: the reason")
     ap.add_argument("--brief")
@@ -1212,7 +1237,7 @@ def main(argv: list[str]) -> int:
                 raise Refusal("--group needs --model")
             print(dispatch_group(args.role, args.group, args.model, roster_ref=args.roster_ref,
                                  head=args.head or "", pr=args.pr, design_exempt=args.design_exempt,
-                                 nonce=args.nonce, overlay=args.overlay))
+                                 nonce=args.nonce, overlay=args.overlay, reviewed_head=args.reviewed_head))
             return 0
         if not args.head:
             raise Refusal("--head is required without --group")
@@ -1222,7 +1247,8 @@ def main(argv: list[str]) -> int:
                 brief = Path(args.brief).read_text()
             except OSError as e:
                 raise Refusal(f"unreadable brief: {e.__class__.__name__}")
-        known = dict(pr=args.pr, topic=args.topic, nonce=args.nonce, brief=brief, design=args.design, **_config(args))
+        known = dict(pr=args.pr, topic=args.topic, nonce=args.nonce, brief=brief, design=args.design,
+                     reviewed_head=args.reviewed_head, **_config(args))
         if args.publish:
             payload = publish_seat(".", dispatch_ref(args.role, args.topic, args.pr), args.role, args.head,
                                    **known)

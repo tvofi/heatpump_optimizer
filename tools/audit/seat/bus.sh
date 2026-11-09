@@ -544,7 +544,8 @@ autofix_inflight() { # head -> prints the autofix bot jobs of the head that are 
 # (ledger.py, beside $HPO_BUS_LEDGER else its default log): a seat started at that head.
 # THE REVIEW PACKET (R10-ORCH-REVIEW-PACKET; tvofi card 8): before recording, `review_packet.py
 # render` writes $S/packets/<pr>-<head>.md, refusing on its mechanical signals, and dispatch
-# names it only once `check` reads that head in it. --harness/--harness-file is the finder's.
+# names it only once `check` reads that head in it. --harness/--harness-file is the finder's;
+# --reviewed-head makes a later round's packet its delta and the verdict there (fix-review.md 12).
 # HPO_BUS_PACKER replaces the renderer (the self-test's stub).
 dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
   local force="" fixing=""
@@ -667,7 +668,7 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
   # told nothing about a packet and one told "no packet, because X" are in different
   # worlds, and only the second is honest (R10-ORCH-REVIEW-PACKET, #2870).
   pmsg=$(${HPO_BUS_PACKER:-python3 -I "$ROOT/tools/audit/seat/review_packet.py"} render \
-           --pr "$pr" --head "$h" --out "$pk" ${hk:+"$hk" "$hv"} 2>&1 >/dev/null) || prc=$?
+           --pr "$pr" --head "$h" --out "$pk" ${rh:+--reviewed-head "$rh"} ${hk:+"$hk" "$hv"} 2>&1 >/dev/null) || prc=$?
   if [ "$prc" = 0 ] && ! python3 -I "$ROOT/tools/audit/seat/review_packet.py" check "$pk" --head "$h" >/dev/null 2>&1; then
     prc=3
     pmsg="review_packet: UNAVAILABLE: the packet written does not name the head $h"
@@ -1195,6 +1196,8 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
     && echo "$out" | grep -qF "review-carry: $h1 was blocked, so a fresh review is owed" \
     && [ "$(grep -c "^31 $hm cmsg_C3 " "$W/state/dispatched")" = 1 ]
   expect "P348: a blocked verdict at the reviewed head over a clean range mints, says why, and records (#3045 r3)" $?
+  tail -n 1 "$W/packs" | grep -q "^render|--pr|31|--head|$hm|--out|[^|]*|--reviewed-head|$h1|\$"
+  expect "a later round's dispatch hands the renderer its --reviewed-head, so the packet is the delta (fix-review.md 12; null: the harness dispatch below passes none)" $?
   vc merge "$h1"; vc blocked "$h2" "harness: another head"; n=$(grep -c . "$W/state/dispatched")
   out=$(seat dispatch 31 "$hm" cmsg_C4 --reviewed-head "$h1"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "review_carry: CARRY" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]

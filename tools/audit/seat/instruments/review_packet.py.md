@@ -1,7 +1,10 @@
 # `review_packet.py`
 
 - `review_packet.py` — the fix reviewer's packet at the frozen head: three-dot
-  diff, the head's check runs as read (red, pending, `none` or green, with run
+  diff (with `--reviewed-head <rh>`, which `bus.sh dispatch` and
+  `cloud_dispatch.py --role reviewer` pass on, a later round's `git diff <rh> <head>`
+  and the verdict naming `rh` instead; a first round, an `rh` not the head's
+  ancestor or one no verdict names keeps the three-dot diff and says which), the head's check runs as read (red, pending, `none` or green, with run
   ids), `carry_audit.py` and `figure_lint.mjs` at the head, the finder's
   harness at both ends when one is named (`--harness`, at the base and
   untouched by the diff, or `--harness-file` outside the tree; `none named`
