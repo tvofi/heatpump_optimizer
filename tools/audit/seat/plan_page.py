@@ -1057,6 +1057,11 @@ def _self_test() -> int:
                       if rows[g]["st"] != "done" and scheduled(g)),
                   {g: rows[g]["why"] for g in rows})
             check("a planned stamp is drawn", 'class="stampline"' in page)
+            check("every planned stamp is drawn on the axis, the round-close one after "
+                  "closure included",
+                  page.count('class="stampline"') == len(plan["stamps"])
+                  and _t(plan["stamps"][-1]["at"]) > _t(plan["summary"]["closure"]),
+                  (page.count('class="stampline"'), plan["stamps"], plan["summary"]["closure"]))
             check("the closure stamp renders as the round's major, kind round-close",
                   '<td class="mono">v9.0.0</td>' in page
                   and f'<td class="mono">{replan.ROUND_CLOSE}</td></tr>' in page
