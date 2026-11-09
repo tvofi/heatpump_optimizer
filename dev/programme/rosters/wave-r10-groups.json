@@ -21037,6 +21037,66 @@
     "branch": null,
     "note": "overlap admitted (R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE): carries-open audit 2026-11-09: distinct seam from R10-ARBITER-OFF-RESTORE, R10-GENERIC-HEAT-CURVE-PERSISTENT, ordered by after-edges where files overlap"
    }
+  },
+  {
+   "group": "R10-COMBI-TANK-PR-B",
+   "lane": "Core model",
+   "kind": "production",
+   "issues": [
+    3225
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "production",
+   "severity": "medium",
+   "size": "L",
+   "wave": 1,
+   "files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/dhw_planner.py",
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/battery.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/topology.py",
+    "custom_components/heatpump_optimizer/config_flow.py",
+    "custom_components/heatpump_optimizer/entry_config.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/setpoint_check.py",
+    "tests/features.py",
+    "docs/configuration.md"
+   ],
+   "hot_files": [
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-COMBI-TANK"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "PR B of the approved R10-COMBI-TANK design (PR 0 #3268 merged, PR A #3358): the loader wiring an install reaches, the combi seed, display and accounting of the exchange, the web-verified figures, and the Co-authored-by trailer crediting the outside contributor. Outside-sourced (#3225): outside tier. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "source": "outside",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R10-USER-DOCS-VERIFY, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE, R10-WATER-SETPOINT-FEEDBACK, R10-SAV-VALUATION-RESIDUE, R10-ADVISOR-STEADY-START): carries-open audit 2026-11-09: distinct seam from R10-ADVISOR-STEADY-START, R10-ARBITER-OFF-RESTORE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-SAV-VALUATION-RESIDUE, R10-USER-DOCS-VERIFY, R10-WATER-SETPOINT-FEEDBACK, ordered by after-edges where files overlap"
+   }
   }
  ]
 }
