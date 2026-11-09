@@ -1,0 +1,11 @@
+RESULT mutant=M1 rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for tools/release/stamp_renamed.py   playbook-renamed.md: no error for tools/audit/seat/no_such_beat.py 
+RESULT mutant=R2 rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for tools/audit/seatz/   playbook-renamed.md: 5 error(s), not 6 
+RESULT mutant=R5 rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for tools/audit/seat/beat_jobz.py   playbook-renamed.md: 5 error(s), not 6 
+RESULT mutant=M2 rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: 8 error(s), not 6   playbook-null.md: error tools/audit/seat/inside_a_fence_is_skipped.py: not in the tree, and not present at its cited tag ref(s) [d5d8c4a] 
+APPLY FAIL M3
+RESULT mutant=M5 rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for tools/pr/state_docs.py   playbook-renamed.md: 5 error(s), not 6 
+RESULT mutant=CAP rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for open-PR cap is 16   playbook-renamed.md: 5 error(s), not 6 
+RESULT mutant=NOLIVE rc=0 :: 
+RESTORED
+RESULT mutant=M3 rc=1 :: PLAYBOOK VACUOUS:   playbook-null.md: warning tools/audit/round2/JUDGE.md: not in the tree and no tag cited; could be shorthand for dev/audit/rounds/round10/CATCHUP-JUDGE.json, dev/audit/rounds/round1
+RESTORED-M3
