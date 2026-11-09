@@ -10,13 +10,13 @@ This programme keeps seat worktrees under `~/hpo-seats`. A reader on another mac
 
 ## Who writes, and what stays shut
 
-You dispatch fixers, reviewers, and root-cause seats. You post verdicts, approve, merge, stamp, and update the roster, the state docs, and issue #201. Do not hand the orchestrator role to a seat.
+You dispatch fixers, reviewers, and root-cause seats. You post verdicts, approve, merge, stamp, and update the roster, the state docs, and issue #3394 (#201's continuation). Do not hand the orchestrator role to a seat.
 
 Opus seats that die are replaced by a new Task on grok-4.7-high. Do not resume a dead Opus agent. Sonnet seats use cursor-grok-4.6-high. Haiku seats use composer-2.5.
 
 Pull requests are authored by the hpo-author App through `tools/pr/app_push.sh`. The login that reads GitHub is tvofi. The hpo-approver App posts verdicts. A code-owned path needs a tvofi review citing the session mandate. `tools/pr/app_approve.sh` refuses those paths. A merge verdict on a path that is not code-owned is approved with that script. A record pull request that only touches `dev/programme/delivery` is not code-owned. The ruleset still requires one approving review, so that record pull request is approved as tvofi and then merged.
 
-Do not push `main` with the deploy key. Do not merge with the admin flag. Do not edit `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading except through `tools/release/stamp.py`. A merge message must not close #201. Write `Leaves #201 open`. Never the negated form. Do not run a full `tests/derive_closures.sh` off Darwin. Use that script's single-script mode. Touch a claim file only when the branch is claiming drift. Compare a branch with three dots, never two. Run the train under `python3 -u` so its log is not block-buffered.
+Do not push `main` with the deploy key. Do not merge with the admin flag. Do not edit `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading except through `tools/release/stamp.py`. A merge message must not close #3394. Write `Leaves #3394 open`. Never the negated form. Do not run a full `tests/derive_closures.sh` off Darwin. Use that script's single-script mode. Touch a claim file only when the branch is claiming drift. Compare a branch with three dots, never two. Run the train under `python3 -u` so its log is not block-buffered.
 
 A timer subscription dedupes by name and answers created false without replacing the prompt. Unsubscribe first, then subscribe. Do not call the two together.
 

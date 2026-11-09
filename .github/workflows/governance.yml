@@ -851,7 +851,7 @@ jobs:
           python3 -I tools/audit/seat/ledger.py --self-test | tee "$RUNNER_TEMP/ledger-self-test.txt"
           grep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"
 
-      # The after-merge bookkeeping (R10-FLY-TRAIN-DEFAULTS part 2): the #201 line from
+      # The after-merge bookkeeping (R10-FLY-TRAIN-DEFAULTS part 2): the record-issue line from
       # its template and the four steps merge_pr.sh and the train run after a merge.
       - name: Show the post-merge record line refusing its own fixtures
         id: post-merge-record-line

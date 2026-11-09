@@ -3,7 +3,7 @@
 # merge_pr.sh --self-test
 #
 # owner mode approves code-owned paths as tvofi's account under the mandate
-# comment <comment-id> on #201, read live at this run by budget_raise_gate.py's
+# comment <comment-id> on a record issue (#201 or its continuation), read live at this run by budget_raise_gate.py's
 # own reading (`_mandate`, `mandate_state` judged now, its scope the gate's
 # MANDATE_COVERS_CODE_OWNED). No --mandate, or one not in force now, refuses before anything is
 # posted: the script never defaults to a mandate, because a stale one is a
@@ -56,7 +56,7 @@ gates() { # <pr> <mode> <mandate-id> <ready 0|1>
     READY_OWED=1
   fi
   [ "$2" = owner ] || return 0
-  [[ "$3" =~ ^[0-9]{6,}$ ]] || { echo "MANDATE REQUIRED: owner mode needs --mandate <comment-id> naming the mandate in force on #201 (got '$3')"; return 1; }
+  [[ "$3" =~ ^[0-9]{6,}$ ]] || { echo "MANDATE REQUIRED: owner mode needs --mandate <comment-id> naming the mandate in force on a record issue (got '$3')"; return 1; }
   MANDATE_WHY=$(mandate_in_force $R "$3") || { echo "MANDATE $MANDATE_WHY"; return 1; }
   MANDATE_WHY=${MANDATE_WHY#IN FORCE: }
 }
@@ -91,7 +91,7 @@ echo "$*" >> "$FAKE_LOG"
 case "$*" in
   *isDraft*) echo "${FAKE_DRAFT:-false}" ;;
   *issues/comments/*) [ -n "${FAKE_MANDATE:-}" ] && cat "$FAKE_MANDATE" || { echo "gh: Not Found (HTTP 404)" >&2; exit 1; } ;;
-  *issues/201/comments*) echo "[[]]" ;;
+  *issues/[0-9]*/comments*) echo "[[]]" ;;
   *check-runs*) cat "$FAKE_RUNS" ;;
   */rerun*) cp "$FAKE_RUNS_AFTER" "$FAKE_RUNS" ;;
   *actions/runs/*) echo "$FAKE_RUN_STATUS" ;;
@@ -299,6 +299,6 @@ gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge
 sleep 8; echo "merged $(gh pr view $PR --json mergeCommit --jq .mergeCommit.oid)"
 for n in "$@"; do echo "issue $n $(gh issue view $n --json state --jq .state)"; done
 bash tools/audit/worktree_gc.sh $R 2>&1 | tail -1; git pull -q --ff-only origin main
-# The rest of nudge.md step 12 (the #201 line, the roster stage, the state docs, main's
+# The rest of nudge.md step 12 (the record-issue line, the roster stage, the state docs, main's
 # suite state): a failure is printed OWED and never undoes the merge, but fails the script.
 python3 -I tools/audit/seat/postmerge.py "$PR" --repo $R --state-dir "${HPO_STATE_DIR:-$HOME/.local/state/hpo}"  # mut:postmerge

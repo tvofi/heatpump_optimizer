@@ -45,7 +45,7 @@ Plants, one per refusal of the two ops and per round-trip property:
          stage without it (Y4), and the dry run's (Y5) and the write path's
          (Y6) projection without it, which decides a same-pass Carry:.
   R1-R5  carry_audit's roster arm: closed-only issues unreported (R1),
-         unlisted issues unreported (R2), #201 reported (R3), absorbed_into
+         unlisted issues unreported (R2), a record issue reported (R3), absorbed_into
          unnamed (R4), pull requests read as issues (R5).
   S1-S7  the vocabulary barrier (R10-ORCH-ROSTER-SCHEMA): each of the three
          stage-writing ops losing its classification check (S1 set-stage, S2
@@ -219,7 +219,7 @@ PLANTS = {
     "R1": (AUDIT, "        elif not any(live for _, live in by):\n",
            "        elif False:  # R1\n"),
     "R2": (AUDIT, "        if not by:\n", "        if False:  # R2\n"),
-    "R3": (AUDIT, "    for n in sorted(open_issues - {LOG_ISSUE}):\n",
+    "R3": (AUDIT, "    for n in sorted(open_issues - LOG_ISSUES):\n",
            "    for n in sorted(open_issues):  # R3\n"),
     "R4": (AUDIT, '        where = f"absorbed into {into}" if stage == "absorbed" and into else stage\n',
            "        where = stage  # R4\n"),

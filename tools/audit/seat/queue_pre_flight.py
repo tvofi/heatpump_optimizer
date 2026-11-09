@@ -359,8 +359,9 @@ def _self_test() -> int:
             if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
                 return (0, json.dumps(world["mandate"])) if world.get("mandate") \
                     else (1, "gh: Not Found (HTTP 404)")
-            if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
-                return 0, json.dumps([world.get("thread", [])])
+            if argv[:2] == ["gh", "api"] and any(f"/issues/{n}/comments" in a for n in mt._mandate_gate().RECORD_ISSUES):
+                # every record issue is read; the fixture's thread is #201's
+                return 0, json.dumps([world.get("thread", []) if "/issues/201/" in a else []])
             if argv[:2] == ["gh", "api"] and "/issues/7/comments" in a:
                 if world.get("comments_fail"):
                     return 1, "gh: HTTP 502"

@@ -79,7 +79,7 @@ with no `Carry:` (the ledger's work-queue OWED lines are tasks, not read).
 routing check over the roster alone: every pending carry on a done or
 absorbed group (STRANDED, by `roster_lib.pending_carries`; a carry a closed
 group held at `roster_lib.CARRY_CUTOVER` is legacy and exempt) and, given
-`--open-issues FILE`, every open issue but #201 that no live group lists
+`--open-issues FILE`, every open issue but the record issues that no live group lists
 (ISSUE-STRANDED when only closed groups do, ISSUE-UNLISTED when none does);
 `CARRY-ROSTER:` is its summary line. EXIT 0 when every finding item
 is routed to a valid destination; `CARRY-AUDIT:` is the summary line;
@@ -104,6 +104,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent / "seat"))
 import roster_lib  # noqa: E402  (the one reader of which roster, and of done)
+sys.path.insert(0, str(ROOT / "tools/policy"))
+from budget_raise_gate import RECORD_ISSUES  # noqa: E402  (the one record-issue definition)
 
 CARRIES_DIR = "dev/programme/carries"
 REPO = "tvofi/heatpump_optimizer"
@@ -845,8 +847,9 @@ def ledger_unrouted(text: str) -> list[str]:
 
 
 # --------------------------------------------------------------- the roster
-#: The one issue every seat writes to and no group owns (the round's log).
-LOG_ISSUE = 201
+#: The issues every seat writes to and no group owns (the round's log): #201,
+#: and its continuation past GitHub's 2,500-comment cap.
+LOG_ISSUES = frozenset(RECORD_ISSUES)
 
 
 def open_issue_numbers(text: str) -> set[int]:
@@ -867,7 +870,7 @@ def roster_report(roster: dict, legacy: dict, open_issues: set[int] | None) -> l
     (`roster_lib.pending_carries`, the predicate set-stage and roster_sync
     close a group by) on a group in `roster_lib.CARRY_CLOSED`. With an issue
     list: ISSUE-STRANDED, an open issue only closed groups list; ISSUE-UNLISTED,
-    one no group lists. #201 is the log and is never reported. Without a list
+    one no group lists. A record issue (LOG_ISSUES) is the log and is never reported. Without a list
     the issue arm says nothing: absence is not a measurement."""
     out = []
     for gid, stage, i, text in roster_lib.stranded(roster, legacy):
@@ -881,7 +884,7 @@ def roster_report(roster: dict, legacy: dict, open_issues: set[int] | None) -> l
         live = (g.get("resume") or {}).get("stage") not in roster_lib.CARRY_CLOSED
         for n in set(g.get("issues") or []) | set(g.get("fixes") or []):
             listing.setdefault(n, []).append((gid, live))
-    for n in sorted(open_issues - {LOG_ISSUE}):
+    for n in sorted(open_issues - LOG_ISSUES):
         by = listing.get(n, [])
         if not by:
             out.append(f"ISSUE-UNLISTED #{n}")
@@ -1989,7 +1992,7 @@ def _self_test() -> int:
         {"group": "S-LIVE", "issues": [2429], "fixes": [2500], "resume": {"stage": "carries-open"},
          "carry": ["live owed"]},
     ]}
-    lines = roster_report(rr, {"S-DONE": frozenset({"legacy owed"})}, {201, 2429, 2500, 2733, 2855, 2875})
+    lines = roster_report(rr, {"S-DONE": frozenset({"legacy owed"})}, {201, 2429, 2500, 2733, 2855, 2875, *LOG_ISSUES})
     stranded_l = [ln for ln in lines if ln.startswith("STRANDED")]
     check("roster: a pending post-cut-over carry on a done group is STRANDED, with its index",
           any(ln.startswith("STRANDED S-DONE (done) carry[1]") for ln in stranded_l))
@@ -2001,8 +2004,9 @@ def _self_test() -> int:
           "ISSUE-STRANDED #2733 listed only by closed group(s): S-DONE" in lines
           and "ISSUE-STRANDED #2855 listed only by closed group(s): S-PAID" in lines)
     check("roster: an open issue no group lists is reported", "ISSUE-UNLISTED #2875" in lines)
-    check("roster (null): an issue a live group lists, in issues or fixes, and #201 are not reported",
-          not [ln for ln in lines if re.search(r"#(2429|2500|201)\b", ln)])
+    check("roster (null): an issue a live group lists, in issues or fixes, and the record issues are not reported",
+          not [ln for ln in lines if re.search(rf"#({'|'.join(map(str, (2429, 2500, *LOG_ISSUES)))})\b", ln)]
+          and 201 in LOG_ISSUES and len(LOG_ISSUES) > 1)
     check("roster: with no issue list the issue arm reports nothing, never a guess",
           not [ln for ln in roster_report(rr, {}, None) if ln.startswith("ISSUE")])
     check("roster: open_issues reads gh's JSON, numbers or objects, and drops pull requests",
