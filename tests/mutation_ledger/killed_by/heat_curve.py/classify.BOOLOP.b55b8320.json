@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_curve.py:classify BOOLOP b55b8320",
+  "killed_by": "tests/features.py",
+  "old": "    return \"missed\" if previous is not None and abs(reading - previous) <= half_step else \"edit\"",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return \"missed\" if previous is not None or abs(reading - previous) <= half_step else \"edit\"`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_heat_curve_errors RETURN_DEL fc97300a",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "        return {}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3."
+}
