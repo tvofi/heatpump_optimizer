@@ -20777,6 +20777,53 @@
     "branch": null,
     "note": "overlap admitted (R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE, ordered by after-edges where files overlap"
    }
+  },
+  {
+   "group": "R10-SEAT-IDENTITY-P5",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/seat_gen.py",
+    "tools/audit/seat/beat_jobs.py",
+    "tools/audit/seat/beatd.jobs.json",
+    "tools/audit/seat/beatd.py",
+    "tools/audit/seat/open_driver.py",
+    "tools/audit/seat/sweep_template.md"
+   ],
+   "hot_files": [
+    "tools/audit/seat/beat_jobs.py"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-TICK-RESIDUE"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Design P5 of design/r10-fly-standing-contracts plus its beat row: the generation token a superseded seat checks before it writes (P63), the session lock keyed on the session binary's pid (P236), the loop-cwd row for long-lived loops outside the job table, and retiring the session-local opener stand-in for open_driver.py under beatd.py. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R10-TICK-RESIDUE, R10-STANDING-CONTRACTS-P2): carries-open audit 2026-11-09: distinct seam from R10-STANDING-CONTRACTS-P2, R10-TICK-RESIDUE, ordered by after-edges where files overlap"
+   }
   }
  ]
 }
