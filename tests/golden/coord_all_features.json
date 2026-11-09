@@ -616,7 +616,8 @@
    "show_whatif": true,
    "slots": [],
    "type": null
-  }
+  },
+  "dhw_legionella_cycle_active": true
  },
  "forecast_outdoor": [
   -5.0,
@@ -1881,7 +1882,8 @@
      "wood": {
       "present": true,
       "volume_l": 500.0
-     }
+     },
+     "dhw_source": "tank"
     },
     "wood_fuel": {
      "cheaper": false,
@@ -2959,7 +2961,8 @@
      "wood": {
       "present": true,
       "volume_l": 500.0
-     }
+     },
+     "dhw_source": "tank"
     },
     "wood_fuel": {
      "cheaper": false,
