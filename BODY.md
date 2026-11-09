@@ -29,13 +29,22 @@ Alternatives, and why each lost (`fixer.md` step 17):
 
 ## Head
 
-Repair round at `b99248e2bfb3023d2badd7c4a4a3ed63a479864d` (the `closures-autofix` bot's `ci: re-record closures`). The dispatch seat read four reds there (`tests / closures-autofix`, `tests / coverage-ratchet`, `tests / graders-head-copy`, `tests / lane-proofs`) and the cancelled run 42529990775. None is a failure: each is `conclusion: cancelled` in run 42529990775 (event `workflow_dispatch`, attempt 1), superseded at the same head by run 42529995793 (event `pull_request`, attempt 2, released by `hpo-runs`). No check-run at `b99248e2` carries `conclusion: failure` (read from the PR's check-runs 2026-11-08T23:16Z), so there is no branch-caused red to repair and no production or test line changes.
+`db13cc6e69c92c3e5b8dd38ba1b4e1659c4bf640` is the head handed off: review round 3350r3's head `9106db4797f1c9b2ab277483977f922982294dd9` plus one commit repairing its block, no merge (`git merge-tree --write-tree origin/main HEAD` at origin/main `3fdaa9da9` reported no conflict). The merge base is `fdc8d21adaa50a7feee534f08ee5edde9bda81ed`. Figures marked "this round" were taken at `db13cc6e`; the rest are the earlier rounds' and name their commit.
 
-`f10cb23fbdf0ca57ecdf784665699b29e463a109` is the new head: `b99248e2` plus a merge of `origin/main` at `425b858495432c8dceb89d8d13866550352ba54f` (read 2026-11-08T23:22Z), taken because main had moved since the last prepr run. `git merge-tree --write-tree origin/main b99248e2` reported no conflict. Main's side touches one file this branch also changes, `tools/audit/seat/roster_edit.py` (auto-merged); its self-test and the owed-mutant harness were re-run at the new head (Figures). Figures without a commit named were taken at `f10cb23fb`.
+**This round's repair** (verdict `verdict/3350`, block 1 and its finding):
+- **bottleneck_check trip memory keyed by kind and metric.** `remembered` keyed its memory by `metric_of(line)`, the second word, shared by `BOTTLENECK-UNREADABLE: yield -- ...` and `BOTTLENECK: yield 0.40 ...`, so a real breach on the beat after an UNREADABLE one re-printed the stale UNREADABLE line. The key is now the new `state_of(line)`, the line's first two words. An old memory file keyed by metric alone misses every key once and prints afresh, the recovery path. Alternative that lost: storing `(kind, line)` per metric and comparing kinds; it keeps the metric as the key and adds a second field for the same distinction the key already carries.
+- **roster_edit mark-carry's read of the cut-over pinned.** A self-test case: on the R9-L fixture (one legacy carry at the cut-over, one post-cut-over carry, `carries-open`), marking the post-cut-over carry writes `done`. Dropping `"mark-carry"` from `make_edit`'s `("set-stage", "set-resume", "mark-carry")` tuple now fails it.
 
-`2fb9b2467dd625dbadcd0bab5cb6c5b3e09fdb04` is the head handed off: `f10cb23fb` plus a clean merge of `origin/main` at `fdc8d21adaa50a7feee534f08ee5edde9bda81ed`, which moved during the first prepr run. That merge touches `dev/governance/roles/fix-review.md`, `dev/programme/delivery/3338.md`, `tools/audit/seat/cloud_dispatch.py` and its instrument doc (`git diff --name-only HEAD^1 HEAD`), none of them this branch's, so the `f10cb23fb` self-test and harness figures describe the same branch files. The scoped gate, `tests/structure.py`, the claims check and prepr were re-run at `2fb9b2467`. The merge base is `fdc8d21ad`.
+Earlier rounds' heads, for the figures that name them: `b99248e2` (bot re-record), `f10cb23fb` and `2fb9b2467` (merges of origin/main, no conflict), `9106db479` (merge of `2fb9b2467`, reviewed by 3350r3).
 
 ## Mutation proof
+
+This round (at `db13cc6e`):
+- **Failing test first.** With the three new memory cases added and `remembered` unchanged, `python3 -I tools/audit/seat/bottleneck_check.py --self-test` printed `FAIL memory: a breach after UNREADABLE for one metric prints the breach: ['BOTTLENECK-UNREADABLE: throughput -- no source']` and `FAILED: bottleneck_check self-test`; with the fix, `ok: bottleneck_check self-test`.
+- **Key reverted.** bottleneck_check's in-file `MEMORY_MUTANTS` entry `memory-key-metric` replaces `state_of`'s `return " ".join(line.split()[:2])` with `return line.split()[1]` (the pre-fix key); the self-test prints `ok   mutant memory-key-metric killed`. `run_mutants` now applies each mutant to its named function (`judge` or `state_of`).
+- **mark-carry legacy read.** `python3 -I dev/audit/harnesses/r10_outside_intake_p2_mutants.py M0 mark-close-off mark-legacy-dropped`: `RESULT mutant=mark-legacy-dropped rc=1 fails=1 verdict=killed`, its one FAIL line `mark-carry whose only unmarked carry left is legacy writes done`; `mark-close-off` also fails that case (3 FAIL lines); M0 `verdict=null`; `RESULT survived=0`.
+
+Earlier rounds:
 
 `python3 dev/audit/harnesses/r10_outside_intake_p2_mutants.py` (in-tree) runs every mutant the carry owes. It applies one replacement, runs the mutated file's own `--self-test` (beat_jobs with `--no-mutants`), and restores the file through `mutant_guard`. At `f10cb23fb` it printed `RESULT survived=0`, every mutant `verdict=killed`:
 
@@ -51,6 +60,8 @@ Repair round at `b99248e2bfb3023d2badd7c4a4a3ed63a479864d` (the `closures-autofi
 
 ## Null control
 
+- This round: "memory: UNREADABLE then UNREADABLE stays its first line (null control)" passes both before and after the fix (a second UNREADABLE beat with a different reason re-prints the first line), so the fix splits only kinds, not every beat. "memory: a still-tripped metric re-prints its first line verbatim" is unchanged and passes. The mark-carry case's null control is the existing "a carry after the cut-over is pending beside a legacy one" on the same group with that carry unmarked, which reads `carries-open`.
+
 - Harness M0, nothing replaced, runs all six self-tests and prints `RESULT mutant=M0 rc=0 fails=0 verdict=null` at `f10cb23fb`, so every kill above belongs to its mutant.
 - `r10_plan_page_mutants.py M0` printed `verdict=null` at main `17e621f08` and `verdict=SURVIVED` (1 FAIL, the state_docs check above) at `f34f6ec84`; `verdict=null` at `b87da1699`.
 - For the replan figures, the base arm is main's own `replan.py` (`git archive origin/main`) on the same roster and the same `--start`. Its `groups_discharged` key is absent, and it schedules every group.
@@ -58,6 +69,16 @@ Repair round at `b99248e2bfb3023d2badd7c4a4a3ed63a479864d` (the `closures-autofi
 - Repair round: the claim "no red at `b99248e2` is a failure" is read from every check-run's `conclusion` field on the PR's check-runs listing; had any job failed, its row would read `failure`, as the four named rows read `cancelled` and the live run's completed rows read `success` or `skipped`.
 
 ## Figures
+
+This round, at `db13cc6e` (each the command named, run in this worktree):
+- `python3 -I dev/audit/harnesses/r10_outside_intake_p2_mutants.py` (every mutant, now including `mark-legacy-dropped`): M0 `verdict=null`, every other `RESULT mutant=` line `verdict=killed`, `RESULT survived=0`.
+- `python3 -I tools/audit/seat/bottleneck_check.py --self-test`: `ok: bottleneck_check self-test`; its 10 rule mutants and `memory-key-metric` each print `killed`.
+- `python3 -I tools/audit/seat/roster_edit.py --self-test`: `roster_edit self-test: 261 checks, 0 failed` (260 at `9106db479`, plus the one new case).
+- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`; `scope.run` names `tests/entities.py` and `tests/harness_headers.py`. With `PYTHONPATH=tests/hastub`: `ALL 2668 ENTITY CHECKS PASSED`, `ALL 112 HARNESS HEADER CHECKS PASSED`. `run_always`: `claims hygiene: origin/main ok`, `ALL 118 closure shrink pins PASSED`.
+- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`: `PRE-PR: db13cc6e69c92c3e5b8dd38ba1b4e1659c4bf640 0000000000000000000000000000000 rc=0`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`: `Architecture score: dS +0.0000 NULL`. `python3 tools/audit/seat/selftest_wiring.py --check`: `selftest_wiring: 0 index gap(s)`.
+
+Earlier rounds:
 
 - **Replan, both arms** (taken at `78d409286`). Command: `python3 -I <tree>/tools/plan/replan.py --repo . --roster-ref origin/handoff/audit-r10-roster --start 2026-11-08T20:20:00Z --slots 20 --seats 20 --out plan-<arm>.json`. `<tree>` is `git archive origin/main` (the base, at main `17e621f08`) or `git archive` of this branch at `78d409286`. The roster was `origin/handoff/audit-r10-roster` at `fcc9a1933aa1`, read 2026-11-08T20:20Z. Read from `summary` and `groups[*].discharged`:
   - base: closure 2026-11-15T07:03:00Z, 49 batches, 6075.0 CI minutes, 324 done / 71 open.
@@ -84,6 +105,9 @@ Repair round at `b99248e2bfb3023d2badd7c4a4a3ed63a479864d` (the `closures-autofi
 - `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>` at `f10cb23fb`: `PRE-PR: f10cb23fbdf0ca57ecdf784665699b29e463a109 0000000000000000000000000000000 rc=0`; at `2fb9b2467`: `PRE-PR: 2fb9b2467dd625dbadcd0bab5cb6c5b3e09fdb04 0000000000000000000000000000000 rc=0`; `origin/main` unmoved at `fdc8d21ad` since that run, so no third merge.
 
 ## Red checks
+
+At `9106db479`: `gate` job 128917441489 (run 42539681502) and `gate` job 128920205614 (run 42540557389) concluded `failure` as deferrals (`FAIL run(s) [...] at this head are still being judged; their gate decides`), while the code run 42539680047 they deferred to published `gate` `success`. The orchestrator re-ran both at 03:59Z. They are deferrals, not defects. Cheaper detector: none exists; a deferral is the gate waiting on its own code run, and nothing cheaper than that run judges the head.
+
 
 At `b99248e2`, each red and cancelled check by name; none is a failure the branch caused:
 - `gate` (run 42529990775): `cancelled`. Its run was superseded at the same head by run 42529995793 (`cancel-superseded`, the `pull_request` attempt `hpo-runs` released). Cheaper detector: none exists; a cancellation is not a defect.
