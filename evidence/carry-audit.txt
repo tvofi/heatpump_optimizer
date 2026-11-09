@@ -1,0 +1,9 @@
+NOTE body item 6e8a430b: dismissed:a deferral is red by design until the code gate decides, and re-reading after it, as here, is the remedy; no new mechanism is owed
+NOTE body item 1376850e: dismissed:a session plugin's guard, not this repository's policy
+NOTE review 0 item b78b556b: R10-HOTFIX-GATE-BUSY-DEFER
+NOTE review 0 item 91af1ca6: R10-HOTFIX-GATE-BUSY-DEFER
+NOTE review 0 item e7e2bdf0: R10-HOTFIX-GATE-BUSY-DEFER
+NOTE review 0 item bfb3be25: R10-HOTFIX-GATE-BUSY-DEFER
+NOTE review 0 item 29824e87: R10-HOTFIX-GATE-BUSY-DEFER
+CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
+rc=0

@@ -1,5 +1,0 @@
-daf8b349 sweep self-test: 52 checks, 0 failed
-25811b2e sweep self-test: 62 checks, 0 failed
-6457496a sweep self-test: 60 checks, 0 failed
-b6c6a067 sweep self-test: 71 checks, 0 failed
-b6c6a067 tree == head tree

@@ -1,3 +1,78 @@
+mutants: unmutated self-test rc 0, replay rc 0
+  M1 prelude conclusion: KILLED (self-test rc 1, replay rc 1)
+    red: 41863133083 shape: prelude listed unfinished, then success -> one re-read, PASS
+    red: 41094975103 shape: prelude listed unfinished, then failure -> its true reason, after the re-read
+    red: null: prelude not listed at all is no lag, no wait (only a listed unfinished prelude waits)
+  M2 prelude cross-check: KILLED (self-test rc 1, replay rc 1)
+    red: prelude cross-check
+    red: a decided red never waits: the prelude cross-check beside a busy run
+  M3 attempt cap: KILLED (self-test rc 1, replay rc 1)
+    red: cap: attempt 45
+  M4 unnamed dispatch at a PR head: KILLED (self-test rc 1, replay rc 1)
+    red: an unnamed dispatch at an open PR's head is refused
+  M5 fork PR (R3-4): KILLED (self-test rc 1, replay rc 1)
+    red: R3-4: a fork PR, every source green
+  M6 live base: KILLED (self-test rc 0, replay rc 1)
+  M7 defer rule: KILLED (self-test rc 1, replay rc 1)
+    red: #2754 shape: a gate beside a busy edit run and a queued review run defers at once, no nap; re-run once they decide, it judges
+    red: simultaneous completion, side A: the other's gate not yet listed -> the deferral at once; re-run, it judges
+    red: simultaneous completion, side B: the same, red-red at once, which settle re-runs (sweep self-test), and each re-run judges
+    red: a deferring gate re-judged after the decider's red is that red, never a PASS
+    red: C3: a deferring edit gate beside a busy code run defers at once, no nap; re-run once the code run ends, it judges its sources
+    red: ... null control: the same gate with the full edit workset defers at once too (no gate holds a runner)
+    red: busy-defer: the higher deferring edit gate defers at once to the lower whose listing lags; re-run, it judges
+    red: prelude/gate order: a deferring gate beside a later edit run still in its prelude defers to it at once (that run's prelude no longer waits on this one); re-run, it judges
+    red: prelude/gate order: a deferring gate beside a later edit run in its prelude, gate listed `waiting` (R3-2) defers to it at once (that run's prelude no longer waits on this one); re-run, it judges
+    red: prelude/gate order: beside an earlier started deferring gate and a later edit run in its prelude, it defers to the later run only; re-run, it judges
+    red: a deferral FAILs at once (for gate-sweep.yml) and holds no runner: no nap
+    red: rerun cascade: three completed red deferring gates, a queued decider, and a re-run of an older gate: it defers to the decider only, at once; re-run once that decides, it judges
+    red: #3263 (42338396358 beside code run 42338396871): the deferring edit gate publishes CI's deferral at once, no nap
+    red: #3282: the deferring edit gate publishes CI's deferral at once and holds no runner
+  M8 judging: listed gate: KILLED (self-test rc 1, replay rc 1)
+    red: simultaneous completion, side A: the other's gate not yet listed -> the deferral at once; re-run, it judges
+    red: simultaneous completion, side B: the same, red-red at once, which settle re-runs (sweep self-test), and each re-run judges
+  M9 judging: owed jobs (R3-2): KILLED (self-test rc 1, replay rc 0)
+    red: R3-2: a run whose gate is listed but an owed job is not still adds a source
+  M10 skipped is not success: KILLED (self-test rc 1, replay rc 1)
+    red: a skipped required job (4.2)
+    red: null: a skipped own unit is unchanged, no wait
+  M11 source must judge the live base: KILLED (self-test rc 0, replay rc 1)
+  M12 own unit always counts: KILLED (self-test rc 1, replay rc 0)
+    red: a run without tests / arch-instrument (U5b): re-read, inside the ABSENT bound, then red
+    red: this run's own unit is never filled from an older run (12(c))
+    red: source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green
+    red: run 41870314676 shape: own jobs read in_progress, then completed -> one re-read, PASS
+    red: null: a unit really failed beside a lagging one stays red, no wait
+    red: null: own jobs still pending past the bound stay red, the wait inside the bound
+    red: a cleared lag is noticed: one note names the job and the wait; a fresh listing notes nothing (null)
+    red: 41289450679 shape: an own job not yet listed, then listed -> one re-read, PASS
+    red: an own job never listed stays red, its wait inside the shorter ABSENT bound
+  M13 D-2 arch-score: KILLED (self-test rc 1, replay rc 1)
+    red: C3: the edit run's red arch-score (the latest body) is the code gate's source, not its own older green
+    red: source order: a LOWER-id edit run's red arch-score started after the code run's own -> the code gate reads the later start
+    red: source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green
+  M14 held run is no source: KILLED (self-test rc 1, replay rc 0)
+    red: a newer held run is neither waited on nor a source
+  M15 unreadable title: KILLED (self-test rc 0, replay rc 1)
+  M16 B3 on push: KILLED (self-test rc 1, replay rc 0)
+    red: B3: push owes the Tests push run's ratchets
+    red: fixture gate_required == REQUIRED's union
+  M17 busy tie-break deleted: KILLED (self-test rc 1, replay rc 0)
+    red: busy-defer: of two started gates at one head the lower id defers to none, the higher to the lower
+    red: busy-defer, three gates (#3244): the lowest defers to none, each other only to the gates below it
+  M18 busy tie-break id inverted: KILLED (self-test rc 1, replay rc 0)
+    red: R3-2: a run whose gate is listed but an owed job is not still adds a source
+    red: busy-defer: of two started gates at one head the lower id defers to none, the higher to the lower
+    red: busy-defer, three gates (#3244): the lowest defers to none, each other only to the gates below it
+    red: busy-defer: the higher deferring edit gate defers at once to the lower whose listing lags; re-run, it judges
+  M19 a listed gate read as started (R3-2 EARLY): KILLED (self-test rc 1, replay rc 0)
+    red: busy-defer null (R3-2 EARLY): a later run whose gate is listed `waiting` beside running units is still deferred to
+    red: prelude/gate order: a deferring gate beside a later edit run in its prelude, gate listed `waiting` (R3-2) defers to it at once (that run's prelude no longer waits on this one); re-run, it judges
+  M25 judging: a skipped caller read as owing its unit: KILLED (self-test rc 1, replay rc 0)
+    red: busy-defer-2: listed as GitHub lists it (`pr-contract` skipped), neither started gate waits on the other
+    red: busy-defer-2: the higher deferring edit gate beside the lower one listed as GitHub lists it judges at once
+    red: prelude/gate order: beside an earlier started deferring gate and a later edit run in its prelude, it defers to the later run only; re-run, it judges
+    red: the cycle's other edge: a deferring run at its gate is judging (its bare `pr-contract` caller skipped), so no prelude or gate waits on it
     red: #3263: the code run's gate never waits on that deferring edit run (the edge that closed the cycle)
     red: #3261 (42307798573, its sibling edit run at its gate): judges, never the pair's deferral
   M27 source order by id alone: KILLED (self-test rc 1, replay rc 0)
@@ -6,3 +81,4 @@
   M28 a lagging own unit displaced: KILLED (self-test rc 1, replay rc 0)
     red: source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green
 RESULT mutants=22 survivors=0
+rc=0

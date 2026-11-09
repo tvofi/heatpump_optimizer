@@ -1,0 +1,18 @@
+== class rule at head
+tools/ci/gate.py:124:    return sorted(r["id"] for r in runs_at_head
+tools/ci/gate.py:126:                  and not (r["id"] > ctx["run_id"] and started(r)))
+tools/ci/sweep.py:114:                or (i > run_id and t0 <= gs <= t1)
+tools/ci/sweep.py:115:                or (i < run_id and g.get("conclusion") == "success" and gs <= t1 and ge >= t0)):
+tools/ci/sweep.py:224:        for r in sorted((r for r in runs if r["id"] != v["id"]), key=lambda r: r["id"]):
+tools/ci/sweep.py:270:        for r in sorted(runs, key=lambda r: r["id"]):
+tools/ci/prelude.py:236:    return run["id"] != run_id and (run["id"] < run_id or t is None or t[0] == "code")
+tools/ci/prelude.py:303:    for r in sorted(doc.get("workflow_runs", []), key=lambda r: r["id"]):
+== untouched files
+(empty above = untouched)
+== structure
+
+STRUCTURE RATCHET PASSED
+== archscore
+Architecture score: dS +0.0000 NULL
+== roles diff vs main
+0

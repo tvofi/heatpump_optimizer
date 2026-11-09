@@ -1,21 +1,14 @@
-R1 own-lag sentinel sorts lowest | gate rc=1 FAIL source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green: got 'PASS', want 'FAIL arch-score / arch-score: PENDING (this run)' ; sweep rc=0 sweep self-test: 71 checks, 0 failed ; prelude rc=1 FAIL C7a: the prelude's output on a product-only pull request: got ('true', 'true'), want ('false', 'false')
-R2 starts not filled | gate rc=1 FAIL source order: a LOWER-id edit run's red arch-score started after the code run's own -> the code gate reads the later start: got 'PASS', want 'FAIL arch-score / arch-score: failure (run 99)' ; sweep rc=0 sweep self-test: 71 checks, 0 failed ; prelude rc=1 FAIL C7a: the prelude's output on a product-only pull request: got ('true', 'true'), want ('false', 'false')
-R3 stale branch off | gate rc=1 ing, encoding, errors, newline)
-           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp1r22e5hg/.github/workflows/ci.yml' ; sweep rc=1 sweep self-test: 71 checks, 8 failed ; prelude rc=1 FAIL C7a: the prelude's output on a product-only pull request: got ('true', 'true'), want ('false', 'false')
-R4 fresh-run guard off | gate rc=1 ing, encoding, errors, newline)
-           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp_9v7ve61/.github/workflows/ci.yml' ; sweep rc=1 sweep self-test: 71 checks, 3 failed ; prelude rc=1 FAIL C7a: the prelude's output on a product-only pull request: got ('true', 'true'), want ('false', 'false')
-R5 cap check off | gate rc=1 ing, encoding, errors, newline)
-           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmpo_wh4fqw/.github/workflows/ci.yml' ; sweep rc=1 sweep self-test: 71 checks, 1 failed ; prelude rc=1 FAIL C7a: the prelude's output on a product-only pull request: got ('true', 'true'), want ('false', 'false')
-R6 event filter off | gate rc=1 p817/tools/ci/sweep.py", line 164, in stale_pin
-    base, head_repo = self.pull["base"], (self.pull["head"].get("repo") or {}).get("full_name")
-                      ~~~~~~~~~^^^^^^^^
-KeyError: 'base' ; sweep rc=1 sweep self-test: 71 checks, 1 failed ; prelude rc=1 FAIL C7a: the prelude's output on a product-only pull request: got ('true', 'true'), want ('false', 'false')
-R8 settle judge without runs | gate rc=1 ing, encoding, errors, newline)
-           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmpm3ghxgl8/.github/workflows/ci.yml' ; sweep rc=1 sweep self-test: 71 checks, 1 failed ; prelude rc=1 FAIL C7a: the prelude's output on a product-only pull request: got ('true', 'true'), want ('false', 'false')
-R7 .py suffix off | gate rc=1 ing, encoding, errors, newline)
-           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmpp_r6u37h/.github/workflows/ci.yml' ; sweep rc=1 sweep self-test: 71 checks, 1 failed ; prelude rc=1 FAIL C7a: the prelude's output on a product-only pull request: got ('true', 'true'), want ('false', 'false')
+CONTROL-unmutated: gate:rc=0 'gate self-test: 81 checks, 0 failed' | sweep:rc=0 'sweep self-test: 71 checks, 0 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+G-max-min: gate:rc=0 'gate self-test: 81 checks, 0 failed' | sweep:rc=0 'sweep self-test: 71 checks, 0 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+G-me-no-starts: gate:rc=1 'gate self-test: 81 checks, 1 failed' | sweep:rc=0 'sweep self-test: 71 checks, 0 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+G-others-no-starts: gate:rc=1 'gate self-test: 81 checks, 1 failed' | sweep:rc=0 'sweep self-test: 71 checks, 0 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+G-api-starts-dropped: gate:rc=1 'gate self-test: 81 checks, 1 failed' | sweep:rc=0 'sweep self-test: 71 checks, 0 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+G-lag-any-all: gate:rc=0 'gate self-test: 81 checks, 0 failed' | sweep:rc=0 'sweep self-test: 71 checks, 0 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+P-starts-not-filled: gate:rc=1 'gate self-test: 81 checks, 1 failed' | sweep:rc=0 'sweep self-test: 71 checks, 0 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+S-later-ge-le: gate:rc=0 'gate self-test: 81 checks, 0 failed' | sweep:rc=1 'sweep self-test: 71 checks, 3 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+S-review-event-dropped: gate:rc=0 'gate self-test: 81 checks, 0 failed' | sweep:rc=0 'sweep self-test: 71 checks, 0 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+S-py-suffix-dropped: gate:rc=0 'gate self-test: 81 checks, 0 failed' | sweep:rc=1 'sweep self-test: 71 checks, 1 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+S-polled-runs-dropped: gate:rc=0 'gate self-test: 81 checks, 0 failed' | sweep:rc=0 'sweep self-test: 71 checks, 0 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+S-run-runs-dropped: gate:rc=0 'gate self-test: 81 checks, 0 failed' | sweep:rc=1 'sweep self-test: 71 checks, 2 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+S-settle-runs-dropped: gate:rc=0 'gate self-test: 81 checks, 0 failed' | sweep:rc=1 'sweep self-test: 71 checks, 1 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
+S-pin-cache-off: gate:rc=0 'gate self-test: 81 checks, 0 failed' | sweep:rc=1 'sweep self-test: 71 checks, 1 failed' | prelude:rc=0 'prelude self-test: 76 checks, 0 failed'
