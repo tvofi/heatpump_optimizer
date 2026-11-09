@@ -50,8 +50,9 @@ MUTANTS = [
     # The memory key reduced to the kind alone: the behaviour case "two metrics
     # tripped together each print their own line" is among its FAIL lines, apart
     # from the in-file anchor guard that also fires on any edit of `state_of`.
-    ("state-of-kind-only", BOTTLE, 'return " ".join(line.split()[:2])',
-     "return line.split()[0]", ()),
+    ("state-of-kind-only", BOTTLE,
+     'distinct states."""\n    return " ".join(line.split()[:2])',
+     'distinct states."""\n    return line.split()[0]', ()),
     ("discharged-any-stage", LIB, 'return (resume.get("stage") == "carries-open"',
      'return (resume.get("stage") in ("carries-open", "in-progress", "not-started")', ()),
     ("discharged-no-commit", LIB,
