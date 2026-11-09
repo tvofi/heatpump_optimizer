@@ -1,0 +1,6 @@
+review_carry: 85acb2c18 -> ce4cdb227  main=origin/main
+  branch-only commits: 2
+  why: 1 of 2 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
+  6d42c5860  Merge remote-tracking branch 'origin/main' into fix/r10-cop-gate-e
+  ce4cdb227  record: the delivery row for #3371
+review_carry: CARRY
