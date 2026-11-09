@@ -103,8 +103,7 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    **A conflict with main after it is resolved by merge, never a re-cut**
    (tvofi, 2026-10-01): the orchestrator merges `origin/main` into the head, or
    hands you a semantic one to merge alike; the same reviewer judges that delta
-   alone (`fix-review.md` step 12). Landing is the **orchestrator's**, or a
-   merge-and-release seat it starts.
+   alone (`fix-review.md` step 12). Landing is the **orchestrator's** or its release seat's.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured
    (a `--carry` head: no re-take; name bot reds), and carries every executed
    number in `## Figures` with its command.
