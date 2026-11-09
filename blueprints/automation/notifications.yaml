@@ -124,6 +124,9 @@ action:
                 {%- if data.saving_sek is not none and data.saving_includes_wood %}
                 The saving includes heat from wood. Firewood's cost is not counted.
                 {%- endif %}
+                {%- if data.saving_below_meter_floor %}
+                No saving is stated for a month whose baseline used under half the energy the meter recorded: a baseline that low is a fault, not a saving.
+                {%- endif %}
       - alias: Comfort at risk
         conditions:
           - "{{ trigger.event.event_type == 'heatpump_optimizer_comfort_at_risk' }}"
