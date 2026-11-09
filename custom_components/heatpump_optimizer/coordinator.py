@@ -1080,12 +1080,15 @@ async def _propagated_slab(coord: Any, prior: Any, prior_at: datetime | None) ->
     now = dt_util.now()
     dt_h = 0.0 if prior_at is None else utc_elapsed_seconds(now, prior_at) / 3600.0
     signals = coord._pump_signals
+    # Observed, the dwell's hours apportion the draw: a mode switch inside the
+    # interval books its space share, none spent on space heat books 0 kW.
+    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
     kw = draw_range.space_draw_kw(
         coord._accuracy.draw,
         coord._measured_power,
-        coord._commanded_split(),
+        (a.space, a.dhw),
         shared=coord._immersion_active or signals.electric_heat.resistive_heat,
-        space_served=signals.space_heat or not signals.mode_observed,
+        space_served=a.observed or signals.space_heat or not signals.mode_observed,
     )
     if kw is not None and prior_at is not None and 0.0 < dt_h <= HOUSE_LOSS_MAX_SAMPLE_HOURS and (state := await _replay_interval(
         coord, prior, kw, prior.outdoor_temperature, prior_at, dt_h, "Slab estimate",
