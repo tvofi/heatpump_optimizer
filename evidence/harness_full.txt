@@ -1,4 +1,9 @@
 RESULT mutant=M0 rc=0 fails=0 verdict=null
+RESULT mutant=state-of-kind-only rc=1 fails=4 verdict=killed
+    FAIL memory: two metrics tripped together each print their own line: (['BOTTLENECK: throughput 0.67/h (4 groups closed, 6 h) vs 0.70/h (0.7 x takt 1) -- find the stage holding the work (merge-wait, skip-share, yield above) and drain it before dispatching new groups', 'BOTTLENECK: wip 25 in-progress vs cap 20 -- dispatch no new group; move review and merge work first'], ['BOTTLENECK: wip 25 in-progress vs cap 20 -- dispatch no new group; move review and merge work first', 'BOTTLENECK: wip 25 in-progress vs cap 20 -- dispatch no new group; move review and merge work first'])
+    FAIL mutant memory-key-metric: anchor occurs 0 times
+    FAIL mutant memory-key-kind: anchor occurs 0 times
+    FAILED: bottleneck_check self-test
 RESULT mutant=discharged-any-stage rc=1 fails=1 verdict=killed
     FAIL discharged (null): an unmerged group's own work is undone, whatever its carries say 
 RESULT mutant=discharged-no-commit rc=1 fails=1 verdict=killed
@@ -54,4 +59,4 @@ RESULT mutant=mark-close-no-hold rc=1 fails=1 verdict=killed
 RESULT mutant=mark-legacy-dropped rc=1 fails=1 verdict=killed
     FAIL mark-carry whose only unmarked carry left is legacy writes done 
 RESULT survived=0
-exit=0
+rc=0

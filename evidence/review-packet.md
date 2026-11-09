@@ -1,37 +1,55 @@
 # Review packet #3350
-head: f3e7fcc32b6100699aaf41213df06353440ccfbb
+head: ab236e012dedd0c24039a4b530dcc83ebd20d3b3
 base: fdc8d21adaa50a7feee534f08ee5edde9bda81ed
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: pending
-CodeQL id=128986086362 neutral
-arch-score / arch-score id=128985523678 success
-arm id=128985171805 skipped
-budget-raise-gate / budget-raise-gate id=128985523720 queued
-cancel-superseded id=128985723424 queued
-codeql / Analyze (actions) id=128985523580 success
-codeql / Analyze (javascript-typescript) id=128985523636 queued
-codeql / Analyze (python) id=128985523629 queued
-governance / delivery-status id=128985523599 queued
-governance / delivery-status-publish id=128985524641 skipped
-governance / env-matrix id=128985523651 queued
-governance / instrument-self-tests id=128985523600 queued
-governance / policy-docs id=128985523866 queued
-governance / record id=128985525098 skipped
-governance / wave-script id=128985523522 queued
-hassfest / hassfest id=128985523660 queued
-kernel-points id=128985525043 skipped
-prelude id=128985723279 queued
-refresh id=128985723140 queued
-tests / briefs id=128985523703 queued
-tests / closure-scope id=128985523684 queued
-tests / mutation id=128985523576 queued
-tests / nightly-status id=128985523657 queued
-validate / validate-hacs id=128985523499 success
+## Gate digest: red
+CodeQL id=129049814513 neutral
+arch-score / arch-score id=129049215363 success
+arm id=129048970907 skipped
+budget-raise-gate / budget-raise-gate id=129049215525 success
+cancel-superseded id=129048978763 success
+codeql id=129049207666 skipped
+codeql / Analyze (actions) id=129049215302 failure
+codeql / Analyze (javascript-typescript) id=129049215281 success
+codeql / Analyze (python) id=129049215391 in_progress
+gate id=129049711327 failure
+governance id=129049206632 skipped
+governance / delivery-status id=129049215315 failure
+governance / delivery-status-publish id=129049216915 skipped
+governance / env-matrix id=129049215325 success
+governance / instrument-self-tests id=129049215563 in_progress
+governance / policy-docs id=129049215399 success
+governance / record id=129049217338 skipped
+governance / wave-script id=129049215343 success
+hassfest id=129049206638 skipped
+hassfest / hassfest id=129049215722 success
+kernel-points id=129049217220 skipped
+pr-contract id=129049712817 skipped
+prelude id=129048978471 success
+refresh id=129048978809 success
+tests id=129049206825 skipped
+tests / arch-instrument id=129049469991 success
+tests / briefs id=129049215260 success
+tests / browser id=129049470115 success
+tests / closure-scope id=129049215357 success
+tests / closures id=129049469984 in_progress
+tests / coverage id=129049470012 in_progress
+tests / fast (3.14) id=129049469964 in_progress
+tests / mutation id=129049215339 success
+tests / mutation-autofix id=129049512407 skipped
+tests / mutation-pins id=129049512255 skipped
+tests / nightly-ha id=129049472050 skipped
+tests / nightly-status id=129049215497 success
+tests / replay id=129049472389 skipped
+tests / typing id=129049470144 success
+validate id=129049207010 skipped
+validate / validate-hacs id=129049215158 success
 
 ## Refusals
-none
+red-unanswered: concluded red check `codeql / Analyze (actions)` is not named in ## Red checks
+required-red: required context `gate` concluded failure at ab236e012dedd0c24039a4b530dcc83ebd20d3b3
 
 ## Advisories
 none
@@ -116,10 +134,10 @@ index dbe456598..56c27705f 100644
        # which cannot answer for a change to this one.
 diff --git a/dev/audit/harnesses/r10_outside_intake_p2_mutants.py b/dev/audit/harnesses/r10_outside_intake_p2_mutants.py
 new file mode 100644
-index 000000000..a58484e1e
+index 000000000..4656c3832
 --- /dev/null
 +++ b/dev/audit/harnesses/r10_outside_intake_p2_mutants.py
-@@ -0,0 +1,146 @@
+@@ -0,0 +1,153 @@
 +#!/usr/bin/env python3
 +"""R10-OUTSIDE-INTAKE part 2: each behaviour the landing's self-tests pin dies alone.
 +
@@ -161,13 +179,20 @@ index 000000000..a58484e1e
 +PAGE = "tools/audit/seat/plan_page.py"
 +BEAT = "tools/audit/seat/beat_jobs.py"
 +EDIT = "tools/audit/seat/roster_edit.py"
++BOTTLE = "tools/audit/seat/bottleneck_check.py"
 +#: The self-test argv per file; beat_jobs' own mutants are its own self-test's.
 +SELF = {LIB: ["--self-test"], PLAN: ["--self-test"], MT: ["--self-test"], PAGE: ["--self-test"],
-+        BEAT: ["--self-test", "--no-mutants"], EDIT: ["--self-test"]}
++        BEAT: ["--self-test", "--no-mutants"], EDIT: ["--self-test"], BOTTLE: ["--self-test"]}
 +
 +#: (name, file, old, new, extra self-tests run besides the file's own)
 +MUTANTS = [
 +    ("M0", None, None, None, ()),
++    # The memory key reduced to the kind alone: the behaviour case "two metrics
++    # tripped together each print their own line" is among its FAIL lines, apart
++    # from the in-file anchor guard that also fires on any edit of `state_of`.
++    ("state-of-kind-only", BOTTLE,
++     'distinct states."""\n    return " ".join(line.split()[:2])',
++     'distinct states."""\n    return line.split()[0]', ()),
 +    ("discharged-any-stage", LIB, 'return (resume.get("stage") == "carries-open"',
 +     'return (resume.get("stage") in ("carries-open", "in-progress", "not-started")', ()),
 +    ("discharged-no-commit", LIB,
@@ -756,10 +781,10 @@ index f2c61ede3..ac748746f 100644
  }
 diff --git a/tools/audit/seat/bottleneck_check.py b/tools/audit/seat/bottleneck_check.py
 new file mode 100644
-index 000000000..ba6898807
+index 000000000..5a86348cb
 --- /dev/null
 +++ b/tools/audit/seat/bottleneck_check.py
-@@ -0,0 +1,382 @@
+@@ -0,0 +1,390 @@
 +#!/usr/bin/env python3
 +"""Bottleneck alert: one line per flow metric past its threshold, for the digest.
 +
@@ -1068,6 +1093,13 @@ index 000000000..ba6898807
 +        again = remembered(judge(_fixture(closed=(None, "later reason"))), mem)
 +        check("memory: UNREADABLE then UNREADABLE stays its first line (null control)",
 +              again == blind, again)
++        # Two metrics tripped in one beat are two memory states: a key of the
++        # kind alone would collapse them and print one line twice.
++        mem.unlink()
++        two = judge(_fixture(closed=(4, ""), wip=(["G"] * 25, "")))
++        got = remembered(two, mem)
++        check("memory: two metrics tripped together each print their own line",
++              len(two) == 2 and got == two and len(set(got)) == 2, (two, got))
 +    return failures
 +
 +
@@ -1087,6 +1119,7 @@ index 000000000..ba6898807
 +#: The same, applied to `state_of`: the memory key reverted to the metric alone.
 +MEMORY_MUTANTS = (
 +    ("memory-key-metric", 'return " ".join(line.split()[:2])', "return line.split()[1]"),
++    ("memory-key-kind", 'return " ".join(line.split()[:2])', "return line.split()[0]"),
 +)
 +
 +

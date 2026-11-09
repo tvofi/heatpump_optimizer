@@ -1,0 +1,12 @@
+RESULT reviewer-mutant=memory-dropped rc=1 fails=3
+  FAIL memory: a still-tripped metric re-prints its first line verbatim: (['BOTTLENECK: throughput 0.67/h (4 groups closed, 6 h) vs 0.70/h (0.7 x takt 1) -- find the stage holding the work (merge-wait, skip-share, yield above) and drain it before dispatching new groups'], ['BOTTLENECK: throughput 0.50/h (3 groups closed, 6 h) vs 0.70/h (0.7 x takt 1) -- find the stage holding the work (merge-wait, skip-share, yield above) and drain it before dispatching new groups'])
+  FAIL memory: UNREADABLE then UNREADABLE stays its first line (null control): ['BOTTLENECK-UNREADABLE: throughput -- later reason']
+FAILED: bottleneck_check self-test
+RESULT reviewer-mutant=make-edit-no-mark rc=1 fails=1
+FAIL mark-carry whose only unmarked carry left is legacy writes done (got: (0, {'stage': 'carries-open', 'branch': 'handoff/l'}, 'roster: dev/programme/rosters/wave-r9-groups.json on mark-1\nlint gate: TOTAL: 0 error(s) from a fresh origin/main checkout\npushed mark-1 at 98e5880f751eec5153735d49f0965504cae56c5c\nTOTAL: 0 error(s) across 1 file(s)\n'))
+UNMUTATED bottleneck_check rc=0 ok: bottleneck_check self-test
+RESULT reviewer-mutant=memory-key-whole-line rc=1 fails=5
+  FAIL memory: a still-tripped metric re-prints its first line verbatim: (['BOTTLENECK: throughput 0.67/h (4 groups closed, 6 h) vs 0.70/h (0.7 x takt 1) -- find the stage holding the work (merge-wait, skip-share, yield above) and drain it before dispatching new groups'], ['BOTTLENECK: throughput 0.50/h (3 groups closed, 6 h) vs 0.70/h (0.7 x takt 1) -- find the stage holding the work (merge-wait, skip-share, yield above) and drain it before dispatching new groups'])
+  FAIL memory: UNREADABLE then UNREADABLE stays its first line (null control): ['BOTTLENECK-UNREADABLE: throughput -- later reason']
+  FAIL mutant memory-key-metric: anchor occurs 0 times
+  FAIL mutant memory-key-kind: anchor occurs 0 times
