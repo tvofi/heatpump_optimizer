@@ -328,6 +328,26 @@ def _run_batch(a, sh, rep, py, editor, lines, mark):
     return 0
 
 
+def refresh_lint(a):
+    """Detach --lint-clone at the SHA roster_edit's lint gate will compare it with: the edit checkout's
+    origin/main after a fetch. Returns "" or why not. The checks of the old pair (fetch, detach, both
+    unchecked) failed silently for four attempts in a row and the gate then refused as the stale-worktree trap."""
+    f = _git("fetch", "-q", "origin", "main", cwd=a.edit_checkout)
+    sha = _git("rev-parse", "origin/main", cwd=a.edit_checkout).stdout.strip()
+    if not sha:
+        return f"edit checkout has no origin/main ({f.stderr.strip()[-120:]})"
+    if not Path(a.lint_clone).is_dir():
+        return f"{a.lint_clone} is not a directory, wanted {sha[:12]}"
+    c = _git("checkout", "-q", "--detach", sha, cwd=a.lint_clone)
+    if c.returncode != 0:  # the object is not in the clone's store yet: fetch it, then retry once
+        _git("fetch", "-q", "origin", "main", cwd=a.lint_clone)
+        c = _git("checkout", "-q", "--detach", sha, cwd=a.lint_clone)
+    head = _git("rev-parse", "HEAD", cwd=a.lint_clone).stdout.strip()
+    if c.returncode != 0 or head != sha:
+        return f"{a.lint_clone} at {head[:12]}, wanted {sha[:12]}: {c.stderr.strip()[-120:]}"
+    return ""
+
+
 def refusal_tail(out):
     """What a refused op reports: the last three lines, or, for a lint-gate
     refusal, the ERROR lines under its banner -- the TOTAL line alone never
@@ -347,8 +367,10 @@ def _run_op(a, sh, rep, py, editor, op, g, arg, extra):
     if a.branch:
         cmd += ["--branch", a.branch]
     for attempt in (1, 2, 3, 4):
-        _git("fetch", "-q", "origin", cwd=a.lint_clone)
-        _git("checkout", "-q", "--detach", "origin/main", cwd=a.lint_clone)
+        err = refresh_lint(a)
+        if err:
+            rep(f"roster: {op} {g} refused rc=2 lint clone not refreshed: {err}"[:400])
+            return False
         r = sh(*cmd)
         out = r.stdout + r.stderr
         m = re.search(r"pushed handoff\S* at ([0-9a-f]+)", out)
@@ -371,6 +393,9 @@ def _run_op(a, sh, rep, py, editor, op, g, arg, extra):
             sh("git", "worktree", "remove", "--force", a.worktree)
             continue
         rep(f"roster: {op} {g} refused rc={r.returncode} " + refusal_tail(out))
+        # A refusal leaves the edit as a local commit in the worktree; the next op would meet it as
+        # "HEAD is on no origin ref" and be refused for this op's fault (172 such lines in one drain log).
+        sh("git", "-C", a.edit_checkout, "worktree", "remove", "--force", a.worktree)
         return False
 
 
@@ -558,6 +583,16 @@ def _self_test():
             ck("readback: unknown group raises", True)
 
         # run_queue against a stub editor and a stub origin
+        _git("update-ref", "refs/remotes/origin/main", sha, cwd=repo, env=env)  # refresh_lint compares with it
+        _git("-c", "user.name=x", "-c", "user.email=x@x", "commit", "-q", "--allow-empty", "-m", "ahead",
+             cwd=repo, env=env)
+        ahead = _git("rev-parse", "HEAD", cwd=repo, env=env).stdout.strip()
+        _git("update-ref", "refs/remotes/origin/main", ahead, cwd=repo, env=env)
+        ck("refresh_lint: detaches the lint clone at the edit checkout's origin/main, with no network",
+           refresh_lint(argparse.Namespace(edit_checkout=str(repo), lint_clone=str(repo))) == ""
+           and _git("rev-parse", "HEAD", cwd=repo, env=env).stdout.strip() == ahead)
+        ck("refresh_lint: names the clone that did not move (null control: a missing clone is refused)",
+           "wanted" in refresh_lint(argparse.Namespace(edit_checkout=str(repo), lint_clone=str(t / "nowhere"))))
         stub = t / "stub.py"
         (t / "calls").write_text("")
         (t / "mode").write_text("moved1")
@@ -592,6 +627,19 @@ def _self_test():
         ck("run: the child editor carries the roster lane marker (roster_edit.LANE_ENV)",
            (t / "lane").read_text() == "queue-runner")
         ck("run: alive touched", (t / "alive").exists())
+        # A clone that exists but cannot reach the SHA (empty store, no origin): the HEAD check refuses
+        # it, and _run_op reports that refusal without running the editor.
+        lc0 = t / "lc_empty"
+        throwaway_git_init(lc0, "-q")
+        why = refresh_lint(argparse.Namespace(edit_checkout=str(repo), lint_clone=str(lc0)))
+        ck("refresh_lint: a clone whose checkout fails is refused, not passed", f"wanted {ahead[:12]}" in why, why)
+        before, r0 = (t / "calls").read_text(), []
+        _run_op(argparse.Namespace(**{**vars(a), "lint_clone": str(lc0)}),
+                lambda *c, **k: subprocess.run(c, capture_output=True, text=True),
+                r0.append, sys.executable, str(stub), "set-stage", "G", "", [])
+        ck("run: an unrefreshed lint clone is reported by name and the editor never runs",
+           len(r0) == 1 and "refused rc=2 lint clone not refreshed" in r0[0]
+           and (t / "calls").read_text() == before, r0)
         # P315 / #3020: a failing op writes its own FAILED line and stops the run;
         # a missing lint clone is refused by name, rc 2, before any op.
         (t / "rep2").write_text("")
