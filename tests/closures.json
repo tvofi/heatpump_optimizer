@@ -1886,6 +1886,7 @@
    "tools/ci/ghapi.py",
    "tools/ci/prelude.py",
    "tools/ci/ruleset_cutover.py",
+   "tools/ci/selftest_scope.py",
    "tools/ci/sweep.py",
    "tools/ci/sweep_selftest.py",
    "tools/coverage/coverage_tree.sh",
@@ -4201,6 +4202,7 @@
    "dev/audit/harnesses/record_api_calls.sh",
    "dev/audit/harnesses/record_batch_measure.py",
    "dev/audit/harnesses/record_burst_replay.py",
+   "dev/audit/harnesses/roster_queue_stale_lint.py",
    "dev/audit/harnesses/sav_reasons_booking.py",
    "dev/audit/harnesses/scale_writer_seams.py",
    "dev/audit/harnesses/silent_peer_waits.py",
@@ -4995,7 +4997,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 598.2
+   "seconds": 1207.9
   },
   "tests/finite_boundary.py": {
    "rc": 0,
@@ -5063,7 +5065,7 @@
   },
   "tests/validate.py": {
    "rc": 0,
-   "seconds": 23.2
+   "seconds": 54.2
   },
   "tests/wood_advisor.py": {
    "rc": 0,
