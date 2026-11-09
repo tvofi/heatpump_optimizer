@@ -174,7 +174,7 @@ async def async_arm(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, co
         if not isinstance(current, dict):
             if current is not None or restorer.neutral is not None:
                 return True  # #3299's entry, unchanged
-            held.armed.pop(key)
+            # A neutral entry under a baseline restorer: replaced below, never written.
         elif restorer.neutral is None and current["entity_id"] == restorer.entity_id:
             return True
         elif not await _restore_baseline(hass, entry, held, key, restorer, "rearm"):
