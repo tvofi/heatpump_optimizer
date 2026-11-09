@@ -1,0 +1,3 @@
+roster_lib self-test: 76 checks, 2 failed
+FAIL an after-edge to a deferred group holds its dependent, and that one's own (got: {'Q': 'P'})
+FAIL a held group that is itself released (refuted) does not hold its dependent (null: the queued Q, in `chain`, does) (got: {'Q': 'P', 'S': 'P'})

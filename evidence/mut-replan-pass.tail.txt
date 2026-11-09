@@ -1,0 +1,40 @@
+  mutation held-open-pending: 'return len(pending), f"{len(pending)} carries' -> rc=1
+ok   self-test fails when held-open-pending is deleted
+  mutation held-measured-pending: 'then = min(int(rec["open"]), sum(1 for i in pending if i < cut))' -> rc=1
+ok   self-test fails when held-measured-pending is deleted
+  mutation absorbed-pending: 'extra = len(pending) - float(' -> rc=1
+ok   self-test fails when absorbed-pending is deleted
+  mutation pending-left-out: 'left_out = f", {left} marked carries left out" if left else ""' -> rc=1
+ok   self-test fails when pending-left-out is deleted
+  mutation legacy-threaded: 'roster_path or roster_ref or "<fixture>", legacy)' -> rc=1
+ok   self-test fails when legacy-threaded is deleted
+  mutation caps-owner-default: '"slots": DEFAULT_CAPS["slots"] if args.slots is None else args.slots,' -> rc=1
+ok   self-test fails when caps-owner-default is deleted
+  mutation model-monotone: '        if hb < ha:' -> rc=1
+ok   self-test fails when model-monotone is deleted
+  mutation savings-validated: 'if isinstance(s, bool) or not isinstance(s, (int, float)):' -> rc=1
+ok   self-test fails when savings-validated is deleted
+  mutation size-refusal: 'if size not in sizes:' -> rc=1
+ok   self-test fails when size-refusal is deleted
+  mutation stamp-cadence: 'while len(carry) >= every:' -> rc=1
+ok   self-test fails when stamp-cadence is deleted
+  mutation round-close-version: 'stamps.append({"version": closing, "at": closure + closure_lead,' -> rc=1
+ok   self-test fails when round-close-version is deleted
+  mutation round-close-check: 'elif closes[0]["version"] != want:' -> rc=1
+ok   self-test fails when round-close-check is deleted
+  mutation round-close-last: ' or plan["stamps"][-1] is not closes[0]:' -> rc=1
+ok   self-test fails when round-close-last is deleted
+  mutation round-close-stray-kind: 'if s["kind"] not in ("patch", ROUND_CLOSE)]' -> rc=1
+ok   self-test fails when round-close-stray-kind is deleted
+  mutation round-n-required: 'roster_path: str = "", *, round_n: int, since_tag' -> rc=1
+ok   self-test fails when round-n-required is deleted
+  mutation round-from-roster: 'round_n = roster_lib.roster_round(src)' -> rc=1
+ok   self-test fails when round-from-roster is deleted
+  mutation ci-formula: 'ci = round((len(batch_rows) + len(stamps)) * gate_report, 1)' -> rc=1
+ok   self-test fails when ci-formula is deleted
+  mutation freshness: 'if have != want:' -> rc=1
+ok   self-test fails when freshness is deleted
+FAIL self-test fails when held-subtraction is deleted: anchor 'open_ = open_ - set(held)' occurs 0 times in 'def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,'
+  mutation gate-cancellation: 'return fast + clo + ana * (1.0 + p_cancel)' -> rc=1
+ok   self-test fails when gate-cancellation is deleted
+self-test: 3 failed
