@@ -4179,9 +4179,9 @@ def self_test() -> int:
                 {"group": "GB", "resume": {"stage": "not-started"}, "after": ["GA"]},
                 {"group": "GO", "source": "outside", "resume": {"stage": "not-started", "pr": pr}}]}))
             return str(f)
-        fork = lambda: pr_obj(104, h(104), ms="DIRTY", branch="patch-1")
-        _, o_fk = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 104), roster=fork_roster(104))
-        _, o_fk0 = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 104), roster=fork_roster(None))
+        fork = lambda: pr_obj(98, h(98), ms="DIRTY", branch="patch-1")
+        _, o_fk = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 98), roster=fork_roster(98))
+        _, o_fk0 = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 98), roster=fork_roster(None))
         pd = tmp / "payloads"
         pd.mkdir()
         pf = pd / "payload-fix-86-r1.json"
@@ -4260,8 +4260,9 @@ def self_test() -> int:
              [x.split()[2] for x in o_ro] == ["#103", "#100", "#102", "#99"]),
             ("null control: a roster with no outside group and no hotfix orders as the critical path first",
              [x.split()[2] for x in o_rn] == ["#100", "#99"] and [x.split()[2] for x in o_co] == ["#100", "#99"]),
-            ("a fork-head outside PR, mapped by resume.pr, prints before the critical path's; unrecorded, after it",
-             [x.split()[2] for x in o_fk] == ["#104", "#100"] and [x.split()[2] for x in o_fk0] == ["#100", "#104"])])
+            ("a fork-head outside PR, mapped by resume.pr, shares the critical path's rank and orders by number "
+             "(#98 first); unrecorded, it is the other rank, after it",
+             [x.split()[2] for x in o_fk] == ["#98", "#100"] and [x.split()[2] for x in o_fk0] == ["#100", "#98"])])
         total, failed = total + a, failed + f
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).
