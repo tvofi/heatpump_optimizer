@@ -2603,7 +2603,8 @@ async def options_advanced_pages():
          {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_out_of_range"}),
         ("kind persistent: a reading below its own range is refused (P7)", ("4", 5.0, 35.0),
          {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_out_of_range"}),
-        ("kind persistent: a reading at its range's bounds saves", ("35", 5.0, 35.0), {}),
+        ("kind persistent: a reading on its range's upper bound saves", ("35", 5.0, 35.0), {}),
+        ("kind persistent: a reading on its range's lower bound saves", ("5", 5.0, 35.0), {}),
     ):
         _, _, hass = fresh_options()
         if _state is not None:

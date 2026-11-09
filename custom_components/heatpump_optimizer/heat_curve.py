@@ -430,6 +430,15 @@ def persistent_target(
     return target, target != banded
 
 
+def outside_own_range(reading: NumberReading) -> bool:
+    """P7: a stored parameter reading outside its own declared range is not displaced.
+
+    One rule for the options flow's save and the persistent arm's every write.
+    """
+    value, lo, hi = reading.value, reading.lo, reading.hi
+    return value is not None and ((lo is not None and value < lo) or (hi is not None and value > hi))
+
+
 def _persistent_refusal(entity_id: str, reading: NumberReading | None) -> tuple[float | None, str | None]:
     """(difference per kelvin, None), or (None, why the entity is not written)."""
     domain = entity_id.partition(".")[0]
@@ -440,7 +449,7 @@ def _persistent_refusal(entity_id: str, reading: NumberReading | None) -> tuple[
     per_k = _DELTA_PER_K.get(reading.unit)
     if per_k is None:
         return None, f"states unit {reading.unit!r}, not a temperature"
-    if (reading.lo is not None and reading.value < reading.lo) or (reading.hi is not None and reading.value > reading.hi):
+    if outside_own_range(reading):
         return None, f"reads {reading.value}, outside its own range {reading.lo}..{reading.hi}"
     return per_k, None
 

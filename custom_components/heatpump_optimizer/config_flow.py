@@ -2216,8 +2216,7 @@ async def _heat_curve_errors(hass: Any, submit: dict[str, Any], current: dict[st
     if entity_id and merged.get(CONF_HEAT_CURVE_TARGET_KIND) == HEAT_CURVE_KIND_PERSISTENT:
         if reading is None or reading.value is None:
             return {CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_unreadable"}
-        if (reading.lo is not None and reading.value < reading.lo) or (
-                reading.hi is not None and reading.value > reading.hi):
+        if heat_curve.outside_own_range(reading):
             return {CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_out_of_range"}
         return {}
     if reading is not None and heat_curve.range_excludes_zero(reading):
