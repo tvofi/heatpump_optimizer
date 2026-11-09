@@ -748,7 +748,7 @@ def _full_draw_c(inp: ArbiterInputs, ceiling_c: float) -> float:
     return ceiling_c if headroom else ceiling_c + FLOW_MIN_LIFT_K
 
 
-def _or_hold(floor_c: float | None, config: Any = None) -> float:
+def _or_hold(floor_c: float | None, config: Any) -> float:
     """``floor_c``, else the rated hold as the entity's own target."""
     return _as_target(config, FLOW_HOLD_C) if floor_c is None else floor_c
 
