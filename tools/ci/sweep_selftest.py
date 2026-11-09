@@ -350,6 +350,12 @@ def run_checks():
     w.sweep()
     ok("stale pin, settle: the #3261 pair (two deferrals under a pre-fix program) takes one dispatch, no re-run",
        w.posts == [dispatch])
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]),
+               run(5, "6", g="success", started="7"), v=2)
+    w.runs[5]["event"] = "workflow_dispatch"
+    rc, out = w.sweep()
+    ok("stale pin, settle, no loop: settle hands judge the head's runs, so a dispatched run created after the "
+       "pair's gates concluded is their fresh judge; nothing posted", w.posts == [] and "run 5 re-judges" in out)
     w = pinned(run(1, "1"), run(5, "3", g="success"), v_run(created="2"))
     w.runs[5]["event"] = "workflow_dispatch"
     rc, out = w.sweep()
