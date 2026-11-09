@@ -590,7 +590,7 @@ def critical_path(roster: dict) -> list:
     best: dict = {}
     order = sorted(G, key=lambda k: depth_of(roster)[k])
     for n in order:
-        deps = [a for a in G[n].get("after") or [] if a in G]
+        deps = [a for a in G[n].get("after") or [] if a in G and gates(G[a])]
         prev = max(deps, key=lambda a: best[a][0], default=None)
         best[n] = (1 + (best[prev][0] if prev else 0),
                    (best[prev][1] if prev else []) + [n])
@@ -890,6 +890,13 @@ def _self_test() -> int:
           and closeout_exempt({"groups": [rg("R", "refused"), rg("H", "in-progress")]})[0] == {"R"},
           closeout_exempt({"groups": [rg("R", "refused", res={"host": "H"}),
                                       rg("H", "in-progress")]}))
+    cp = {"groups": [rg("A", "refuted"), rg("B", "queued", after=["A"]),
+                     rg("F", "queued", after=["B"]), rg("G", "queued", after=["F"])]}
+    check("critical_path: an edge to a refuted group is released, so the chain starts at B "
+          "(null: a queued A leads it)",
+          critical_path(cp) == ["B", "F", "G"]
+          and critical_path({"groups": [rg("A", "queued")] + cp["groups"][1:]}) == ["A", "B", "F", "G"],
+          critical_path(cp))
     ab = {"groups": [{"group": "A", "resume": {"stage": "absorbed"}},
                      {"group": "B", "after": ["A"], "resume": {"stage": "queued"}}]}
     check("an absorbed group is not in the open set or the dependency depth",
