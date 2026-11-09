@@ -469,6 +469,8 @@ jobs:
       # rule, each boundary and minimum sample, UNREADABLE, the trip memory and
       # one mutant per rule predicate, offline over planted metrics.
       - name: Show the bottleneck alert tripping each rule once and silent on its null control
+        id: bottleneck-alert
+        if: steps.scope.outputs.bottleneck-alert == 'true'
         run: python3 -I tools/audit/seat/bottleneck_check.py --self-test
 
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
@@ -882,6 +884,14 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/owed_unactioned.py --self-test | tee "$RUNNER_TEMP/owed-unactioned-self-test.txt"
           grep -Eq '^owed_unactioned self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/owed-unactioned-self-test.txt"
+
+      - name: Show the topic grammar refusing a bare number and a prefix as family members
+        id: topic-grammar
+        if: ${{ !cancelled() && steps.scope.outputs.topic-grammar == 'true' }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/topic_grammar.py --self-test | tee "$RUNNER_TEMP/topic-grammar-self-test.txt"
+          grep -Eq '^topic_grammar self-test: ok$' "$RUNNER_TEMP/topic-grammar-self-test.txt"
 
       - name: Show the detached launcher refusing its own fixtures
         id: detached-launcher
