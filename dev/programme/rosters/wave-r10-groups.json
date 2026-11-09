@@ -19469,7 +19469,7 @@
     "stage": "carries-open",
     "note": "triage batch 134 P419; overlap admitted (R10-HOTFIX-NONREQUIRED-REDS, R10-REVIEW-ENUMERATE): triage batch 134 P419, owner rulings reach dispatched seats; carry 17 moved from R10-TICK-LEVELS",
     "pr": 3338,
-    "commit": "fdc8d21adaa50a7feee534f08ee5edde9bda81ed"
+    "commit": "fdc8d21ada"
    },
    "brief": "From triage batch 134 (triage: dev/programme/triage/s6-batch134.md#P419 at b1f3ce2c73001c509b61a4163d2d08cb946d1518), narrowed by the 2026-11-08 keep test (triage batch 136 entry 427): build carry 0 only, the owner's ruling of 2026-11-07 that a fixer hands off at its first clean prepr.sh head and merges origin/main only when `git merge-tree --write-tree origin/main HEAD` conflicts, and that a reviewer blocks on a merge-tree conflict only. The change is the fixer, repair-round and reviewer text that tools/audit/seat/cloud_dispatch.py renders, plus the merge-tree check in dev/governance/roles/fix-review.md. The --preamble flag is not built: its benefit was unmeasured. Failing test first, controls and the reviewer-side rule are in carry 0. Instrument doc tools/audit/seat/instruments/cloud_dispatch.py.md records the changed text. fix-review.md is code-owned policy: it merges under the mandate in force or on tvofi review."
   },
