@@ -29,7 +29,9 @@ Alternatives, and why each lost (`fixer.md` step 17):
 
 ## Head
 
-`db13cc6e69c92c3e5b8dd38ba1b4e1659c4bf640` is the head handed off: review round 3350r3's head `9106db4797f1c9b2ab277483977f922982294dd9` plus one commit repairing its block, no merge (`git merge-tree --write-tree origin/main HEAD` at origin/main `3fdaa9da9` reported no conflict). The merge base is `fdc8d21adaa50a7feee534f08ee5edde9bda81ed`. Figures marked "this round" were taken at `db13cc6e`; the rest are the earlier rounds' and name their commit.
+`50d4c7e0e2c64de8bf9523fe1b8723c88669d899` is the head handed off: review round 3350r4's head `f3e7fcc32b6100699aaf41213df06353440ccfbb` (tree identical to `db13cc6e69c92c3e5b8dd38ba1b4e1659c4bf640`) plus two commits repairing its follow-up (a self-test case and the harness row for its mutant), no merge. The merge base is `fdc8d21adaa50a7feee534f08ee5edde9bda81ed`. Figures marked "this round" were taken at this head; the rest are earlier rounds' and name their commit.
+
+**Round 5 repair** (verdict `verdict/3350` `blocked f3e7fcc3 ci-red`): the body now answers `governance / delivery-status` under `## Red checks`; the surviving mutant `state_of -> return line.split()[0]` is killed by a new behaviour case (under Mutation proof). No other code changed.
 
 **This round's repair** (verdict `verdict/3350`, block 1 and its finding):
 - **bottleneck_check trip memory keyed by kind and metric.** `remembered` keyed its memory by `metric_of(line)`, the second word, shared by `BOTTLENECK-UNREADABLE: yield -- ...` and `BOTTLENECK: yield 0.40 ...`, so a real breach on the beat after an UNREADABLE one re-printed the stale UNREADABLE line. The key is now the new `state_of(line)`, the line's first two words. An old memory file keyed by metric alone misses every key once and prints afresh, the recovery path. Alternative that lost: storing `(kind, line)` per metric and comparing kinds; it keeps the metric as the key and adds a second field for the same distinction the key already carries.
@@ -38,6 +40,8 @@ Alternatives, and why each lost (`fixer.md` step 17):
 Earlier rounds' heads, for the figures that name them: `b99248e2` (bot re-record), `f10cb23fb` and `2fb9b2467` (merges of origin/main, no conflict), `9106db479` (merge of `2fb9b2467`, reviewed by 3350r3).
 
 ## Mutation proof
+
+Round 5 (this head): **`state_of` -> kind only.** New case in bottleneck_check's `self_test`: `memory: two metrics tripped together each print their own line` (throughput and wip tripped in one beat, `--memory` form; asserts two lines, each its own). `python3 -I dev/audit/harnesses/r10_outside_intake_p2_mutants.py M0 state-of-kind-only` (new harness row replacing `state_of`'s `return " ".join(line.split()[:2])` with `return line.split()[0]`): `RESULT mutant=M0 rc=0 fails=0 verdict=null`; `RESULT mutant=state-of-kind-only rc=1 fails=4 verdict=killed`, whose first FAIL line is the new behaviour case (not only the in-file anchor guards, which also fire on any edit of that return); `RESULT survived=0`. The full harness printed `RESULT survived=0`. bottleneck_check's in-file `MEMORY_MUTANTS` gains `memory-key-kind` (same replacement); the self-test prints it `killed`.
 
 This round (at `db13cc6e`):
 - **Failing test first.** With the three new memory cases added and `remembered` unchanged, `python3 -I tools/audit/seat/bottleneck_check.py --self-test` printed `FAIL memory: a breach after UNREADABLE for one metric prints the breach: ['BOTTLENECK-UNREADABLE: throughput -- no source']` and `FAILED: bottleneck_check self-test`; with the fix, `ok: bottleneck_check self-test`.
@@ -105,6 +109,8 @@ Earlier rounds:
 - `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>` at `f10cb23fb`: `PRE-PR: f10cb23fbdf0ca57ecdf784665699b29e463a109 0000000000000000000000000000000 rc=0`; at `2fb9b2467`: `PRE-PR: 2fb9b2467dd625dbadcd0bab5cb6c5b3e09fdb04 0000000000000000000000000000000 rc=0`; `origin/main` unmoved at `fdc8d21ad` since that run, so no third merge.
 
 ## Red checks
+
+At `f3e7fcc3`: `governance / delivery-status` (job 128985523599) concluded `failure`; this diff touches `.github/workflows/governance.yml`, so the red could be this PR's. It is main's. The job's log (`python -I -S tests/delivery_status.py --check`, a script the job pins from the merge base `fdc8d21a`, not from this diff) prints `DELIVERY STATUS OVERDUE — 0 rowed, 12 pending, 3 overdue` and lists the overdue rows `#3333`, `#3316` and `#3318` (record PRs main holds for the stamp); this PR's `#3350` is not among the 15 rows listed, so its own row is not what the check graded. Null control: had this PR's row or its governance.yml edit caused it, `#3350` would appear in that list, or the pinned script would be this diff's; neither holds. The log also says the check is not a required context. Cheaper detector: none exists; the check is the cheap detector for a stopped drain of delivery rows, and it grades `main`, so its red is the orchestrator's (drain the overdue rows). I did not find a sibling run to cite with the same line; the evidence is this job's own log.
 
 At `9106db479`: `gate` job 128917441489 (run 42539681502) and `gate` job 128920205614 (run 42540557389) concluded `failure` as deferrals (`FAIL run(s) [...] at this head are still being judged; their gate decides`), while the code run 42539680047 they deferred to published `gate` `success`. The orchestrator re-ran both at 03:59Z. They are deferrals, not defects. Cheaper detector: none exists; a deferral is the gate waiting on its own code run, and nothing cheaper than that run judges the head.
 
