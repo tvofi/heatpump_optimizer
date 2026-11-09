@@ -67,12 +67,6 @@
 # v7.1.9: water set-point lift and ceiling (outside #3356). The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-coord_all_features # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
-coord_dhw # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
-coord_grid_fee # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
-coord_minimal # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
-coord_two_zone # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
-config_flow # R10-HOTFIX-COP-UNMEASURED: the metering page gains heat_pump_power_source, heat_pump_thermal_power_source (auto, meter, estimate) and heat_meter_sees_dhw; leaves added only, none moved; float-free, re-recorded in the committed file
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -769,3 +763,9 @@ config_flow # R10-HOTFIX-COP-UNMEASURED: the metering page gains heat_pump_power
 # changes exactly two leaves (the plain and the seeded render of
 # dhw_setpoint_entity.config.filter gain the water_heater domain); no plan reads
 # it, so every other fixture is byte-identical. Re-recorded in the committed file.
+coord_all_features # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
+coord_dhw # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
+coord_grid_fee # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
+coord_minimal # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
+coord_two_zone # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
+config_flow # R10-HOTFIX-COP-UNMEASURED: the metering page gains heat_pump_power_source, heat_pump_thermal_power_source (auto, meter, estimate) and heat_meter_sees_dhw; leaves added only, none moved; float-free, re-recorded in the committed file

@@ -1180,6 +1180,9 @@
               "heat_pump_heat_energy_entity": "Wärmemengenzähler der Wärmepumpe (optional)",
               "heat_pump_power_entity": "Leistungsmesser der Wärmepumpe (optional)",
               "heat_pump_thermal_power_entity": "Thermischer Leistungsmesser der Wärmepumpe (optional)",
+              "heat_pump_power_source": "Leistungsmesser der Wärmepumpe: Messung oder Schätzung",
+              "heat_pump_thermal_power_source": "Thermischer Leistungsmesser der Wärmepumpe: Messung oder Schätzung",
+              "heat_meter_sees_dhw": "Der Wärmewert schließt Warmwasser ein",
               "house_power_entity": "Leistungsmesser des ganzen Hauses (optional)"
             },
             "data_description": {
@@ -1187,6 +1190,9 @@
               "heat_pump_heat_energy_entity": "Ein kumulativer kWh-Zähler für die von der Wärmepumpe abgegebene Wärme, von einem Wärmemengenzähler. Er zählt die Wärme jeder Stunde einschließlich kurzer Verdichterläufe und wird, falls gesetzt, anstelle des thermischen Leistungsmessers und des Durchflusssensors verwendet. Zusammen mit dem Energiezähler macht er die Effizienz zu einer Beobachtung, und der Lernalgorithmus für den Wärmeverlust des Hauses liest die tatsächlich abgegebene Wärme. Ein Zähler, der auch Warmwasser zählt, wird über die Entität des Betriebsmodus aufgeteilt, nach der Zeit, die die Wärmepumpe mit dem Heizen von Haus und Speicher verbracht hat; ohne diese oder in einem kombinierten Modus wird eine Stunde, in der der Speicher geheizt wurde, nicht als Raumheizung gewertet.",
               "heat_pump_power_entity": "Tatsächliche elektrische Aufnahme. Ohne sie weiß die Integration nur, was sie von der Wärmepumpe angefordert hat. Mit ihr wird die Effizienz messbar, vorhergesagte Kosten erhalten ein echtes Gegenstück zum Abgleich, und ein Holzofen lässt sich zuverlässig erkennen. Watt oder Kilowatt funktionieren beide.",
               "heat_pump_thermal_power_entity": "Die von der Wärmepumpe abgegebene Wärme, von einem Wärmemengenzähler, in Watt oder Kilowatt. Zusammen mit dem Leistungsmesser macht sie die Effizienz zu einer Beobachtung statt einer Schlussfolgerung, und der Lernalgorithmus für den Wärmeverlust des Hauses sowie die Leistungskurve lesen die tatsächlich abgegebene Wärme. Wenn gesetzt, wird sie anstelle des Durchflusssensors verwendet.",
+              "heat_pump_power_source": "Ob der Leistungsmesser ein echter Zähler ist oder ein Wert, den die Pumpe oder ihre Integration schätzt, etwa ein Sensor „Estimated Power Draw“. Alles Lernen trainiert mit beiden; nur gemessene Wärme über gemessener Leistung wird als gemessene COP angezeigt und bewertet. Auto liest eine Entität, deren ID „estimat“ enthält, als Schätzung.",
+              "heat_pump_thermal_power_source": "Ob der thermische Leistungsmesser ein echter Wärmemengenzähler ist oder ein Wert, den die Pumpe oder ihre Integration schätzt, etwa ein Sensor „Estimated Heating Output“. Eine Schätzung trainiert das Lernen, ergibt aber nie eine gemessene COP. Auto liest eine Entität, deren ID „estimat“ enthält, als Schätzung.",
+              "heat_meter_sees_dhw": "Nur einschalten, wenn der Wärmemengenzähler oder der thermische Leistungsmesser auch die Wärme für den Warmwasserspeicher erfasst, etwa ein Zähler vor dem Umschaltventil. Ausgeschaltet erhalten Warmwasserläufe keine gemessene COP.",
               "house_power_entity": "Gesamtverbrauch am Zähler. Ein Leistungstarif wird auf das ganze Haus berechnet, nicht nur auf die Wärmepumpe; ohne dies ist die Spitze, die der Optimierer vermeidet, nur ein Teil der echten."
             }
           },
@@ -1660,6 +1666,13 @@
       "options": {
         "observe": "Beobachten (nur lesen und anzeigen)",
         "control": "Steuern (Schalter ein- und ausschalten)"
+      }
+    },
+    "meter_source": {
+      "options": {
+        "auto": "Auto (eine ID, die eine Schätzung angibt, ist eine)",
+        "meter": "Zähler (eine Messung)",
+        "estimate": "Schätzung (ein Herstellermodell)"
       }
     },
     "freq_control_mode": {
