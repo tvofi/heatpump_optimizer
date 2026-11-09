@@ -18,7 +18,10 @@ Per fixture one ``RESULT`` line: ``steps`` (counted), ``distinct_c``
 from that line: linear where it is within the readings' own spread). Fewer
 than three distinct set-points fit no line and its curvature: ``fit=none``.
 
-    PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/r10_cop_gate_band.py [--synthetic]
+    PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/r10_cop_gate_band.py [--synthetic] [FIXTURE.json ...]
+
+Each ``FIXTURE.json`` named is read beside the committed ones (an owner's
+recording in the same format, kept out of the tree).
 
 Null control: ``--synthetic`` adds a fixture made here, four in-band steps
 drawing exactly ``0.1 kW/K`` above the gate, through the same pairing; it
@@ -94,7 +97,8 @@ def synthetic() -> dict:
 
 
 def main() -> None:
-    fixtures = {path: json.load(open(path)) for path in sorted(glob.glob("tests/replay/*.json"))}
+    named = [a for a in sys.argv[1:] if not a.startswith("--")]
+    fixtures = {path: json.load(open(path)) for path in sorted(glob.glob("tests/replay/*.json")) + named}
     if "--synthetic" in sys.argv[1:]:
         fixtures["synthetic-linear"] = synthetic()
     for name, data in fixtures.items():
