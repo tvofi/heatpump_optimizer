@@ -1,0 +1,150 @@
+diff --git a/dev/audit/harnesses/r10_outside_intake_p2_mutants.py b/dev/audit/harnesses/r10_outside_intake_p2_mutants.py
+index bdcc5649e..a58484e1e 100644
+--- a/dev/audit/harnesses/r10_outside_intake_p2_mutants.py
++++ b/dev/audit/harnesses/r10_outside_intake_p2_mutants.py
+@@ -92,6 +92,8 @@ MUTANTS = [
+      "        if closed or a.op == \"set-stage\"",
+      "        closed = a.op == \"mark-carry\" and close_discharged(roster, a.group, legacy)\n"
+      "        if a.op == \"set-stage\"", ()),
++    ("mark-legacy-dropped", EDIT, 'if a.op in ("set-stage", "set-resume", "mark-carry"):',
++     'if a.op in ("set-stage", "set-resume"):', ()),
+ ]
+ 
+ 
+diff --git a/tools/audit/seat/bottleneck_check.py b/tools/audit/seat/bottleneck_check.py
+index 15aafa485..ba6898807 100644
+--- a/tools/audit/seat/bottleneck_check.py
++++ b/tools/audit/seat/bottleneck_check.py
+@@ -34,12 +34,15 @@ smallest sample that may trip it, so that one verdict or one merge never fires:
+ --memory PATH (the beat row's form): a metric that stays past its threshold
+ re-prints the line it first printed, verbatim, so the digest's fold sees no
+ new line and the wake fires once per trip; a metric back inside its threshold
+-is forgotten, and its next trip prints afresh.
++is forgotten, and its next trip prints afresh. The memory is keyed by the
++line's kind and metric, so a breach after an UNREADABLE beat for the same
++metric (or the reverse) is a new trip and prints.
+ 
+ --self-test: a planted metrics dict trips each rule exactly once and a null
+ control (every metric inside its threshold) prints nothing; each rule's
+ boundary, its minimum sample, its UNREADABLE arm and the trip memory are
+-cases; and one mutant per rule predicate must be killed.
++cases; and one mutant per rule predicate, and one reverting the memory key,
++must be killed.
+ """
+ 
+ from __future__ import annotations
+@@ -152,19 +155,25 @@ def metric_of(line: str) -> str:
+     return line.split()[1]
+ 
+ 
++def state_of(line: str) -> str:
++    """The memory key of a line: its kind and metric, its first two words, so
++    `BOTTLENECK-UNREADABLE: yield` and `BOTTLENECK: yield` are distinct states."""
++    return " ".join(line.split()[:2])
++
++
+ def remembered(lines: list[str], memory: Path | None) -> list[str]:
+-    """`lines` with each still-tripped metric's FIRST line kept verbatim, and
+-    the memory rewritten: tripped metrics only, so a recovery forgets."""
++    """`lines` with each still-tripped state's FIRST line kept verbatim, and
++    the memory rewritten: tripped states only, so a recovery forgets."""
+     if memory is None:
+         return lines
+     try:
+         old = json.loads(memory.read_text(encoding="utf-8"))
+     except (OSError, ValueError):
+         old = {}
+-    now = {metric_of(ln): old.get(metric_of(ln), ln) for ln in lines}
++    now = {state_of(ln): old.get(state_of(ln), ln) for ln in lines}
+     memory.parent.mkdir(parents=True, exist_ok=True)
+     memory.write_text(json.dumps(now, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+-    return [now[metric_of(ln)] for ln in lines]
++    return [now[state_of(ln)] for ln in lines]
+ 
+ 
+ def live_metrics(checkout: Path, roster_ref: str | None, train_log: Path | None,
+@@ -281,6 +290,22 @@ def self_test(mutate: str | None = None) -> int:
+         after = remembered(judge(_fixture(closed=(3, ""))), mem)
+         check("memory: a recovery forgets; the next trip prints afresh",
+               after and "3 groups" in after[0], after)
++        # An UNREADABLE line and a breach line for one metric are distinct
++        # memory states: a real breach after an unreadable beat prints itself,
++        # and the reverse prints the UNREADABLE line (review 3350).
++        mem.unlink()
++        blind = judge(_fixture(closed=(None, "no source")))
++        remembered(blind, mem)
++        breach = remembered(judge(_fixture(closed=(4, ""))), mem)
++        check("memory: a breach after UNREADABLE for one metric prints the breach",
++              breach and breach[0].startswith("BOTTLENECK: throughput ") and "4 groups" in breach[0],
++              breach)
++        back = remembered(blind, mem)
++        check("memory: UNREADABLE after a breach for one metric prints the UNREADABLE line",
++              back == blind, back)
++        again = remembered(judge(_fixture(closed=(None, "later reason"))), mem)
++        check("memory: UNREADABLE then UNREADABLE stays its first line (null control)",
++              again == blind, again)
+     return failures
+ 
+ 
+@@ -297,28 +322,34 @@ MUTANTS = (
+     ("class-cmp", "if k / total > lim:", "if k / total >= lim:"),
+     ("class-sample", "if total >= n:", "if total >= 0:"),
+ )
++#: The same, applied to `state_of`: the memory key reverted to the metric alone.
++MEMORY_MUTANTS = (
++    ("memory-key-metric", 'return " ".join(line.split()[:2])', "return line.split()[1]"),
++)
+ 
+ 
+ def run_mutants() -> int:
+-    """Each mutant applied to `judge`'s source must make the self-test fail."""
++    """Each mutant applied to its function's source (`judge`'s, or
++    `state_of`'s) must make the self-test fail."""
+     import inspect
+     import textwrap
+-    src = textwrap.dedent(inspect.getsource(judge))
+     survived = []
+     g = globals()
+-    original = judge
+-    for name, frag, repl in MUTANTS:
++    for fn, name, frag, repl in ([("judge", *m) for m in MUTANTS]
++                                 + [("state_of", *m) for m in MEMORY_MUTANTS]):
++        original = g[fn]
++        src = textwrap.dedent(inspect.getsource(original))
+         if src.count(frag) != 1:
+             print(f"  FAIL mutant {name}: anchor occurs {src.count(frag)} times")
+             survived.append(name)
+             continue
+         ns = dict(g)
+         exec(compile(src.replace(frag, repl), f"<mutant {name}>", "exec"), ns)
+-        g["judge"] = ns["judge"]
++        g[fn] = ns[fn]
+         try:
+             killed = self_test(mutate=name) > 0
+         finally:
+-            g["judge"] = original
++            g[fn] = original
+         print(f"  {'ok  ' if killed else 'FAIL'} mutant {name} {'killed' if killed else 'SURVIVED'}")
+         if not killed:
+             survived.append(name)
+diff --git a/tools/audit/seat/roster_edit.py b/tools/audit/seat/roster_edit.py
+index 53dd4af2f..844dc0554 100644
+--- a/tools/audit/seat/roster_edit.py
++++ b/tools/audit/seat/roster_edit.py
+@@ -2314,6 +2314,16 @@ def _self_test() -> int:
+         check("set-resume --field stage done reads the same rule",
+               rc == 0 and at_mark("R9-L")["resume"]["stage"] == "carries-open"
+               and "set-resume R9-L: done -> carries-open" in out, (rc, out[-300:]))
++        # mark-carry reads the cut-over too (review 3350): marking the one
++        # post-cut-over carry leaves only the legacy one, which is not
++        # pending, so the group closes. The null control is the check above:
++        # the same group with that carry unmarked stays carries-open.
++        rc, out = said(lambda: edit("mark-carry", "R9-L", None, branch="mark-1",
++                                    match="post-cut-over carry",
++                                    rest=("dismissed", "a fixture")))
++        check("mark-carry whose only unmarked carry left is legacy writes done",
++              rc == 0 and at_mark("R9-L")["resume"]["stage"] == "done"
++              and "carries-open -> done" in out, (rc, at_mark("R9-L")["resume"], out[-300:]))
+         # An unreadable cut-over refuses the stage write and writes nothing
+         # (review X6): read as "no legacy", the legacy carry would be pending.
+         # The readable null is the "legacy carry alone" check above.

@@ -1,4 +1,0 @@
-base {'batches': 49, 'ci_minutes': 6075.0, 'closure': '2026-11-15T07:03:00Z', 'closure_stamp': 'v10.0.0', 'gate_minutes': 112.5, 'groups_done': 324, 'groups_open': 71, 'post_closure': ['R10-CATALOG-PR'], 'post_closure_finish': '2026-11-16T08:47:00Z'}
-[]
-wt2 {'batches': 48, 'ci_minutes': 5962.5, 'closure': '2026-11-15T07:03:00Z', 'closure_stamp': 'v10.0.0', 'gate_minutes': 112.5, 'groups_discharged': 3, 'groups_done': 327, 'groups_open': 68, 'post_closure': ['R10-CATALOG-PR'], 'post_closure_finish': '2026-11-16T08:47:00Z'}
-['R10-CI-GRADER-BATCH-STUDY', 'R10-FRICTION-CI-RED', 'R10-FRICTION-OTHER-FAMILY']
