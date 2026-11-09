@@ -1,0 +1,2 @@
+MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory:
+    - custom_components/heatpump_optimizer/config_flow.py:_prefill_errors RETURN_DEL 7451af7c: disposition names no site the inventory generates (old pin '    return errors')

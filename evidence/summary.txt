@@ -1,0 +1,8 @@
+structure rc=0
+claims-only rc=0
+config_flow_steps rc=0 ALL 551 checks PASSED
+mutant range-guard rc=1 2 of 551 checks FAILED
+mutant degF rc=1 1 of 5059 FEATURE CHECKS FAILED
+status lines 0
+env_drift --all rc=0 NO UNCLAIMED DRIFT: 56 scenario(s) checked against 72a2acee55181f0e3da9df691657c905d3b2d119 NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes 
+DONE

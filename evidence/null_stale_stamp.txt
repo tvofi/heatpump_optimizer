@@ -1,7 +1,0 @@
-STALE CLAIM FILE: tests/golden/claimed_drift.txt declares claims for
-v7.1.7 but this tree is v7.1.8. A claim describes one release's diff
-and does not carry forward. Rewrite the file for this release --
-bump the 'claims-for:' line and delete claims this release
-does not move (an empty list is the right answer for a release
-that moves no goldens).
-rc=1
