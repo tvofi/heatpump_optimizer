@@ -6370,6 +6370,28 @@
    "objects": false,
    "git": []
   },
+  "survivor-list": {
+   "run_sha": "644c9178e34209c89b429f7eaa62936c767c0dae6fe9fb2401b395a3c883baed",
+   "files": [
+    "tests/closures.json",
+    "tests/mutation_table.py",
+    "tools/audit/seat/mutant_run.py",
+    "tools/audit/seat/survivor_list.py"
+   ],
+   "probes": [
+    ".",
+    "tests",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tests"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "sweep-driver": {
    "run_sha": "10057cb4d02b01402b05c56cfc3d202f53128d7fa870db82f8b00d41eb2147d3",
    "files": [
