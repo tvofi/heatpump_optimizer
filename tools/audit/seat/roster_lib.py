@@ -80,6 +80,14 @@ LIVE_CLAIM = tuple(w for w, k in STAGE_KIND if k == "live-claim")
 #: records that is not here keeps the group open (and its after-edges
 #: constraining).
 DONE_STAGES = tuple(w for w, k in STAGE_KIND if k == "done")
+#: The stages that end a group's work: the done ones, `absorbed`, whose work
+#: lives in its fold destination, and the two dispositions that decide the work
+#: will not be done, `refused` and `deferred`. `is_open`, the after-edge closure
+#: and the carry destination check read this one set; each stays a disposition
+#: (roster_sync never rewrites it), so DONE_STAGES keeps meaning "merged".
+#: `refuted` stays open: it names a finding, not a group's work.
+FINISHED_STAGES = DONE_STAGES + ("absorbed",)
+CLOSED_STAGES = FINISHED_STAGES + ("refused", "deferred")
 #: Human dispositions: nothing derives, clears or overwrites one.
 DISPOSITION = tuple(w for w, k in STAGE_KIND if k == "disposition")
 #: The stages in which a group's work is under way, for the planner's live
@@ -340,11 +348,135 @@ def groups_of(roster: dict) -> dict:
 
 
 def is_open(group: dict) -> bool:
-    return (group.get("resume") or {}).get("stage") not in DONE_STAGES
+    return (group.get("resume") or {}).get("stage") not in CLOSED_STAGES
 
 
 def open_groups(roster: dict) -> dict:
     return {k: g for k, g in groups_of(roster).items() if is_open(g)}
+
+
+def unfinished_groups(roster: dict) -> dict:
+    """Every group whose work did not finish: `open_groups` plus the `refused`
+    and `deferred` ones it drops. The closeout run reads this set, because a
+    ruled or postponed group naming a still-open `resume.host` keeps the round
+    open (`closeout_exempt`)."""
+    return {k: g for k, g in groups_of(roster).items()
+            if (g.get("resume") or {}).get("stage") not in FINISHED_STAGES}
+
+
+#: The group that cuts the round's closing stamp; a group after it is post-closure.
+CLOSE_STAMP_MARK = "STAMP-ROUND-MAJOR"
+POST_CLOSE_STEP_RE = re.compile(r"after the .*\b(stamp|closeout)\b", re.I)
+#: A disposition that ends a group's claim on the round: a ruling closed it.
+#: `deferred` and `carries-open` still owe work and are not in it.
+RULED_STAGES = ("refused", "refuted")
+#: The stages in which a group's `after`-edge no longer gates a dependent: the
+#: finished ones, and the ruled ones, whose work never lands (owner ruling,
+#: mandate 6715477401). `deferred` is not here: postponed is not done, so a
+#: dependent stays held behind it.
+RELEASING_STAGES = FINISHED_STAGES + RULED_STAGES
+
+
+def gates(group: dict) -> bool:
+    """True when `group` holds back a group that is `after` it."""
+    return (group.get("resume") or {}).get("stage") not in RELEASING_STAGES
+
+
+def held_behind_deferred(G: dict) -> dict:
+    """{open group: the deferred group it waits on}: a group whose `after`
+    names a `deferred` group, or a group held in turn, stays unscheduled until
+    the deferral is lifted. The edge to a refused or refuted group is released
+    (`gates`)."""
+    held: dict = {}
+    grew = True
+    while grew:
+        grew = False
+        for n, g in G.items():
+            if n in held or not is_open(g):
+                continue
+            for a in g.get("after") or []:
+                if a not in G:
+                    continue
+                if (G[a].get("resume") or {}).get("stage") == "deferred":
+                    held[n] = a
+                elif a in held and gates(G[a]):
+                    held[n] = held[a]
+                else:
+                    continue
+                grew = True
+                break
+    return held
+
+
+def post_closure_groups(G: dict, open_: set) -> set:
+    """Open groups that run after the round's closing stamp: an owner-step
+    whose next step is "after the ... stamp", a group whose `after` names the
+    closing-stamp group, and every group after one of those. The one owner of
+    the rule: the planner and the closeout instrument both read it."""
+    post = {n for n in open_
+            if (G[n].get("kind") == "owner-step"
+                and POST_CLOSE_STEP_RE.search(str((G[n].get("resume") or {}).get("next_step") or "")))
+            or any(CLOSE_STAMP_MARK in a for a in G[n].get("after") or [])}
+    grew = True
+    while grew:
+        grew = False
+        for n in open_ - post:
+            if any(a in post for a in G[n].get("after") or []):
+                post.add(n)
+                grew = True
+    return post
+
+
+def closeout_exempt(roster: dict) -> tuple:
+    """(groups, issues) the round's closeout run does not wait for: the open
+    post-closure groups and the issues wired to them, and every group whose
+    stage is a ruled disposition (`RULED_STAGES`) unless its `resume.host`
+    names a group still open. The roster keeps a ruled group open by design."""
+    G, open_ = groups_of(roster), set(unfinished_groups(roster))
+    post = post_closure_groups(G, open_)
+    ruled = {n for n in open_
+             if (G[n].get("resume") or {}).get("stage") in RULED_STAGES
+             and (G[n]["resume"].get("host") not in open_)}
+    return post | ruled, {i for n in post for i in G[n].get("issues") or []}
+
+
+def run_refusing(tool: str, main, argv=None) -> int:
+    """`main(argv)`, a missing roster printed as the one `<tool>: REFUSED ...`
+    line and exit 2, never a traceback: the shared refusal of every reader
+    (carry_audit's own contract)."""
+    try:
+        return main(argv)
+    except RosterNotFound as e:
+        print(f"{tool}: REFUSED {e}")
+        return 2
+
+
+def missing_ref_probe(script: str) -> tuple[int, int, bool]:
+    """(rc, REFUSED lines, traceback seen) of `script` run against a roster ref
+    that does not exist: the self-test row every roster reader owes."""
+    r = subprocess.run([sys.executable, "-I", script, "--roster-ref",
+                        "origin/no-such-ref-xyz"], capture_output=True, text=True)
+    out = r.stdout + r.stderr
+    return r.returncode, out.count("REFUSED"), "Traceback" in out
+
+
+#: Owner-gate classes. A gate is `covered` when it names a mandate id or begins
+#: with a prefix the mandate in force covers (0013); `owner` when it states a
+#: decision still to be taken. The gate's meaning is the roster schema's, so the
+#: tick calls this and holds no pattern of its own.
+_GATE_COVERED = re.compile(r"\bmandate[ds]?\b|\A\s*(?:code-owned|policy|budget):", re.I)
+#: A gate stating a decision still to be taken (today only "owner decision after the probe").
+_GATE_OWNER = re.compile(r"\bowner decision\b", re.I)
+
+
+def gate_kind(text) -> str | None:
+    """None for no gate, `covered` for one the mandate in force covers, `owner`
+    for one stating a decision not yet taken (a mandate or covered prefix wins)."""
+    if not isinstance(text, str) or not text.strip():
+        return None
+    if _GATE_OWNER.search(text) and not _GATE_COVERED.search(text):
+        return "owner"
+    return "covered"
 
 
 # ------------------------------------------------------------ the carry ledger
@@ -361,9 +493,8 @@ def open_groups(roster: dict) -> dict:
 # `implemented` records that the sha is on main; it is not a verification.
 CARRY_MARKS = ("implemented", "moved", "dismissed")
 _CARRY_MARK = re.compile(r" \[(implemented|moved|dismissed): ([^\]\n]+)\]\Z")
-#: The stages in which a group can no longer receive or discharge a carry: the
-#: closed ones, and `absorbed`, whose work lives in its fold destination.
-CARRY_CLOSED = DONE_STAGES + ("absorbed",)
+#: The stages in which a group can no longer receive or discharge a carry.
+CARRY_CLOSED = CLOSED_STAGES
 #: THE CUT-OVER, per roster path: a carry that sat on a closed group at this
 #: roster-branch commit is LEGACY and is never reported, so the invariant
 #: starts at the cut-over with no blanket migration and nothing marked
@@ -445,7 +576,7 @@ def depth_of(roster: dict) -> dict:
         g = G.get(k)
         if g is None:
             raise ValueError(f"after-edge names no group: {k}")
-        oa = [a for a in g.get("after") or [] if is_open(G[a])]
+        oa = [a for a in g.get("after") or [] if gates(G[a])]
         memo[k] = 1 + max((d(a, stack + (k,)) for a in oa), default=0)
         return memo[k]
 
@@ -459,7 +590,7 @@ def critical_path(roster: dict) -> list:
     best: dict = {}
     order = sorted(G, key=lambda k: depth_of(roster)[k])
     for n in order:
-        deps = [a for a in G[n].get("after") or [] if a in G]
+        deps = [a for a in G[n].get("after") or [] if a in G and gates(G[a])]
         prev = max(deps, key=lambda a: best[a][0], default=None)
         best[n] = (1 + (best[prev][0] if prev else 0),
                    (best[prev][1] if prev else []) + [n])
@@ -725,6 +856,70 @@ def _self_test() -> int:
     got = [(s[0], s[2]) for s in stranded({"groups": [
         cg, cg | {"group": "AB", "resume": {"stage": "absorbed"}},
         cg | {"group": "CO", "resume": {"stage": "carries-open"}}]}, legacy)]
+    check("absorbed is closed: not open, and an after-edge on it clears",
+          not is_open({"resume": {"stage": "absorbed"}})
+          and is_open({"resume": {"stage": "queued"}})
+          and "absorbed" not in DONE_STAGES and CARRY_CLOSED == CLOSED_STAGES,
+          (CLOSED_STAGES, CARRY_CLOSED))
+    check("refused and deferred are closed: not open, a carry has no destination "
+          "there; refuted stays open (null)",
+          not is_open({"resume": {"stage": "refused"}})
+          and not is_open({"resume": {"stage": "deferred"}})
+          and is_open({"resume": {"stage": "refuted"}})
+          and "refused" in CARRY_CLOSED and "deferred" not in DONE_STAGES,
+          CLOSED_STAGES)
+    def rg(n, st, **kw):
+        return {"group": n, "resume": {"stage": st, **kw.pop("res", {})}, **kw}
+    chain = {"groups": [rg("P", "deferred"), rg("Q", "queued", after=["P"]),
+                        rg("S", "queued", after=["Q"]), rg("U", "queued")]}
+    check("an after-edge to a deferred group holds its dependent, and that one's own",
+          held_behind_deferred(groups_of(chain)) == {"Q": "P", "S": "P"}
+          and gates(groups_of(chain)["P"]) and depth_of(chain)["Q"] == 2,
+          held_behind_deferred(groups_of(chain)))
+    mid = {"groups": [rg("P", "deferred"), rg("Q", "refuted", after=["P"]),
+                      rg("S", "queued", after=["Q"])]}
+    check("a held group that is itself released (refuted) does not hold its dependent "
+          "(null: the queued Q, in `chain`, does)",
+          held_behind_deferred(groups_of(mid)) == {"Q": "P"}
+          and not gates(groups_of(mid)["Q"]),
+          held_behind_deferred(groups_of(mid)))
+    for st in ("refused", "refuted", "done", "absorbed"):
+        rel = {"groups": [rg("P", st), rg("Q", "queued", after=["P"])]}
+        check(f"an after-edge to a {st} group is released (null: deferred holds, above)",
+              not gates(rel["groups"][0]) and held_behind_deferred(groups_of(rel)) == {}
+              and depth_of(rel)["Q"] == 1, depth_of(rel))
+    check("a refused or deferred group stays unfinished: closeout still waits for it, "
+          "and closeout_exempt exempts it only when its host is not open",
+          set(unfinished_groups({"groups": [rg("R", "refused"), rg("D", "deferred"),
+                                            rg("X", "done"), rg("A", "absorbed")]})) == {"R", "D"}
+          and closeout_exempt({"groups": [rg("R", "refused", res={"host": "H"}),
+                                          rg("H", "in-progress")]})[0] == set()
+          and closeout_exempt({"groups": [rg("R", "refused"), rg("H", "in-progress")]})[0] == {"R"},
+          closeout_exempt({"groups": [rg("R", "refused", res={"host": "H"}),
+                                      rg("H", "in-progress")]}))
+    cp = {"groups": [rg("A", "refuted"), rg("B", "queued", after=["A"]),
+                     rg("F", "queued", after=["B"]), rg("G", "queued", after=["F"])]}
+    check("critical_path: an edge to a refuted group is released, so the chain starts at B "
+          "(null: a queued A leads it)",
+          critical_path(cp) == ["B", "F", "G"]
+          and critical_path({"groups": [rg("A", "queued")] + cp["groups"][1:]}) == ["A", "B", "F", "G"],
+          critical_path(cp))
+    ab = {"groups": [{"group": "A", "resume": {"stage": "absorbed"}},
+                     {"group": "B", "after": ["A"], "resume": {"stage": "queued"}}]}
+    check("an absorbed group is not in the open set or the dependency depth",
+          list(open_groups(ab)) == ["B"] and depth_of(ab)["B"] == 1 and depth_of(ab)["A"] == 1, depth_of(ab))
+    covered_gates = [
+        "code-owned CI: mandated approval under 6329234399",
+        "Policy: tvofi approves or mandate 6329234399",
+        "code-owned: .claude/hooks/",
+        "budget: a measurement change may move a ratchet metric",
+        "D10.md is policy; .github/workflows code-owned (approve under mandate 6329234399)"]
+    check("gate_kind: every gate shape on the roster is covered",
+          all(gate_kind(t) == "covered" for t in covered_gates),
+          [gate_kind(t) for t in covered_gates])
+    check("gate_kind: a pending decision is owner; no gate is None",
+          gate_kind("owner decision after the probe") == "owner"
+          and gate_kind("") is None and gate_kind(None) is None)
     check("stranded: a pending carry on a done or absorbed group, never on an "
           "open one", got == [("G", 1), ("AB", 0), ("AB", 1)], got)
 

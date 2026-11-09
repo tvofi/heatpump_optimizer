@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.4";
+const CARD_VERSION = "7.1.9";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -60,10 +60,11 @@ const BAND_TRACE_KEY = Symbol("band");
 // ---- i18n ------------------------------------------------------------------
 //
 // Every user-visible string lives here, keyed, with an English source text and
-// a Swedish translation. `L(key, vars)` looks the key up in the active
-// language, falls back to English for anything untranslated, and interpolates
-// `{name}` placeholders. The active language follows `hass.language`
-// ("sv-SE" -> "sv"); anything without a dictionary renders in English.
+// a Swedish and a German translation, each key-for-key with `en`.
+// `L(key, vars)` looks the key up in the active language, falls back to
+// English for anything untranslated, and interpolates `{name}` placeholders.
+// The active language follows `hass.language` ("sv-SE" -> "sv", "de-DE" ->
+// "de"); anything without a dictionary renders in English.
 //
 // Deliberately NOT translated: entity ids, config keys, service and attribute
 // names, CSS classes, data-* attributes, wire enums (reason codes, place ids,
@@ -328,6 +329,8 @@ const STRINGS = {
     "savings.col_pct": "%",
     "savings.estimated": "estimated",
     "savings.old_basis": "old basis",
+    "savings.below_meter_floor": "no saving stated",
+    "savings.meter_floor_note": "No saving is stated for a month whose baseline used under half the energy the meter recorded: a baseline that low is a fault, not a saving.",
     "savings.wood_note": "The saving includes heat from wood. Firewood's cost is not counted.",
     "savings.empty": "No settled savings months yet.",
     "receipt.closed": "{month} \u00b7 closed",
@@ -895,6 +898,30 @@ const STRINGS = {
     // The percent is a template because the spacing is orthographic:
     // English sets "(8%)", Swedish "(8 %)".
     "headline.savings_pct": "({pct}%)",
+    "whynow.title": "Why now",
+    "whynow.metric":
+      "The reasons weighing on this hour's plan. Each row is one reason: the arrow shows whether it pushes the heat pump to run or to idle, and the percentage is its share of the total push this hour. A high share means that reason pushes hardest; the plan weighs the whole day's hours together, so the heat pump can still do the opposite this hour. No data means the optimizer has no plan for this hour yet, for example before the first solve or while the price forecast is missing.",
+    "whynow.no_data": "No data",
+    "whynow.all_neutral": "No effect now from any reason.",
+    "whynow.dir_run": "pushes toward running",
+    "whynow.dir_idle": "pushes toward idle",
+    "whynow.dir_neutral": "no effect now",
+    "whynow.weight": "{sign}{w}%",
+    "whynow.driver_price_rank": "Price rank",
+    "whynow.explain_price_rank":
+      "How cheap this slot is against the rest of the plan: the cheapest slot pushes fully toward running, the dearest toward idle.",
+    "whynow.driver_comfort_floor": "Comfort floor",
+    "whynow.explain_comfort_floor":
+      "How far the room is from the middle of its comfort band, above the comfort floor: below the middle pushes toward running, above it toward idle.",
+    "whynow.driver_mold_guard": "Mold guard",
+    "whynow.explain_mold_guard":
+      "How far the mold guard lifts the lowest allowed temperature above the comfort minimum in this slot; it only ever pushes toward running.",
+    "whynow.driver_away": "Away",
+    "whynow.explain_away":
+      "How far away mode or the holiday schedule lowers the lowest allowed temperature; it only ever pushes toward idle.",
+    "whynow.driver_forecast": "Forecast",
+    "whynow.explain_forecast":
+      "This slot's weather against the next 8 hours: colder, windier or wetter ahead pushes toward running now, more sun ahead toward idle.",
     // The tile row and the header's status pill (R9-UI-3, #1791).
     "tiles.price_now": "Price now",
     "tiles.planned": "Planned heating",
@@ -1185,6 +1212,8 @@ const STRINGS = {
     "savings.col_pct": "%",
     "savings.estimated": "uppskattat",
     "savings.old_basis": "gammalt underlag",
+    "savings.below_meter_floor": "inget sparande anges",
+    "savings.meter_floor_note": "Inget sparande anges för en månad vars referens använde under hälften av den energi mätaren registrerade: en så låg referens är ett fel, inte ett sparande.",
     "savings.wood_note": "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte.",
     "savings.empty": "Inga avräknade sparandemånader ännu.",
     "receipt.closed": "{month} \u00b7 avslutad",
@@ -1712,6 +1741,30 @@ const STRINGS = {
     "score.label_machine": "Värmepumpen",
     "score.label_operation": "Körningen",
     "headline.savings_pct": "({pct} %)",
+    "whynow.title": "Varför nu",
+    "whynow.metric":
+      "Skälen som väger på den här timmens plan. Varje rad är ett skäl: pilen visar om det driver värmepumpen att gå eller vila, och procenten är dess andel av den totala påverkan den här timmen. Hög andel betyder att skälet driver hårdast; planen väger hela dygnets timmar mot varandra, så värmepumpen kan ändå göra tvärtom den här timmen. Ingen data betyder att optimeraren ännu inte har någon plan för timmen, till exempel före första beräkningen eller när prisprognosen saknas.",
+    "whynow.no_data": "Ingen data",
+    "whynow.all_neutral": "Ingen påverkan nu från något skäl.",
+    "whynow.dir_run": "driver mot drift",
+    "whynow.dir_idle": "driver mot vila",
+    "whynow.dir_neutral": "ingen påverkan nu",
+    "whynow.weight": "{sign}{w} %",
+    "whynow.driver_price_rank": "Prisrang",
+    "whynow.explain_price_rank":
+      "Hur billig luckan är mot resten av planen: den billigaste luckan driver helt mot drift, den dyraste mot vila.",
+    "whynow.driver_comfort_floor": "Komfortgolv",
+    "whynow.explain_comfort_floor":
+      "Hur långt rummet ligger från mitten av sitt komfortintervall, ovanför komfortgolvet: under mitten driver mot drift, över mot vila.",
+    "whynow.driver_mold_guard": "Mögelskydd",
+    "whynow.explain_mold_guard":
+      "Hur mycket mögelskyddet lyfter den lägsta tillåtna temperaturen över komfortminimum i luckan; det driver bara mot drift.",
+    "whynow.driver_away": "Bortaläge",
+    "whynow.explain_away":
+      "Hur mycket bortaläget eller helgschemat sänker den lägsta tillåtna temperaturen; det driver bara mot vila.",
+    "whynow.driver_forecast": "Prognos",
+    "whynow.explain_forecast":
+      "Luckans väder mot de kommande 8 timmarna: kallare, blåsigare eller blötare framöver driver mot drift nu, mer sol framöver mot vila.",
     // The tile row and the header's status pill (R9-UI-3, #1791).
     "tiles.price_now": "Pris nu",
     "tiles.planned": "Planerad uppvärmning",
@@ -1748,6 +1801,654 @@ const STRINGS = {
     "editor.currency": "Valuta",
     "editor.series": "Serier som visas som standard",
   },
+
+  de: {
+    "header.default_title": "Wärmepumpenplan",
+    "header.enlarge": "Vergrößern",
+    "header.enlarge_chart": "Diagramm vergrößern",
+    "header.tab_plan": "Plan",
+    "header.tab_setup": "Anlage",
+    "header.tab_savings": "Einsparungen",
+    "header.tab_advisor": "Ratgeber",
+    "header.tab_health": "Zustand",
+    "health.inputs": "Eingänge",
+    "health.plan": "Plan",
+    "health.learning": "Lernt noch",
+    "health.checklist": "Checkliste für den ersten Plan",
+    "health.fresh": "Aktuell",
+    "health.stale": "Veraltet",
+    "health.p_unavailable": "Nicht verfügbar",
+    "health.p_missing_entity": "Entität nicht gefunden",
+    "health.p_not_numeric": "Keine Zahl",
+    "health.p_implausible": "Außerhalb des Bereichs",
+    "health.p_unknown_value": "Unbekannter Zustand",
+    "health.p_not_boolean": "Kein Ja/Nein-Wert",
+    "health.p_unknown_unit": "Unbekannte Einheit",
+    "health.p_not_configured": "Nicht eingerichtet",
+    "health.ago": "vor {age}",
+    "health.limit": "Grenzwert {limit}",
+    "health.no_age": "kein Messwert",
+    "health.pill_ok": "Alle Eingänge aktuell",
+    "health.pill_one": "1 Eingang veraltet",
+    "health.pill_other": "{n} Eingänge veraltet",
+    "health.solved": "Berechnet vor {age}",
+    "health.next_solve": "Nächste Berechnung in {age}",
+    "health.next_due": "Nächste Berechnung jetzt fällig",
+    "health.steps": "{n} Schritte",
+    "health.solve_time": "{s} s",
+    "health.input_away_presence_entity": "Abwesenheitsanzeige",
+    "health.input_buffer_tank_temp_entity": "Temperatursensor Pufferspeicher",
+    "health.input_compressor_freq_entity": "Entität der Verdichterfrequenz",
+    "health.input_dhw_disinfection_switch_entity": "Desinfektionsschalter der Pumpe",
+    "health.input_dhw_inlet_entity": "Sensor für Kaltwasserzulauf",
+    "health.input_dhw_setpoint_entity": "Warmwasser-Sollwert-Entität der Wärmepumpe",
+    "health.input_dhw_temp_entity": "Temperatursensor Warmwasserspeicher",
+    "health.input_external_heat_entity": "Kaminofen- oder Abgassensor",
+    "health.input_floor_return_temp_entity": "Rücklauftemperatursensor Fußbodenheizung",
+    "health.input_flow_meter_entity": "Wasserdurchflusssensor",
+    "health.input_grid_fee_entity": "Live-Entgelt-Sensor",
+    "health.input_heat_pump_backup_heater_entity": "Zuheizer für Raumheizung",
+    "health.input_heat_pump_capacity_limited_entity": "Leistung begrenzt (Nachtmodus)",
+    "health.input_heat_pump_defrost_entity": "Abtauen",
+    "health.input_heat_pump_dhw_booster_entity": "Heizstab im Warmwasserspeicher",
+    "health.input_heat_pump_energy_entity": "Energiezähler der Wärmepumpe",
+    "health.input_heat_pump_fault_entity": "Störungsmeldung",
+    "health.input_heat_pump_heat_energy_entity": "Wärmemengenzähler der Wärmepumpe",
+    "health.input_heat_pump_mode_entity": "Betriebsart der Wärmepumpe",
+    "health.input_heat_pump_online_entity": "Pumpe online",
+    "health.input_heat_pump_power_entity": "Leistungsmesser der Wärmepumpe",
+    "health.input_heat_pump_return_temp_entity": "Rücklauftemperatur",
+    "health.input_heat_pump_supply_temp_entity": "Vorlauftemperatur",
+    "health.input_heat_pump_switch_entity": "Ein/Aus-Schalter der Wärmepumpe",
+    "health.input_heat_pump_thermal_power_entity": "Thermischer Leistungsmesser der Wärmepumpe",
+    "health.input_holiday_calendar_entity": "Kalender für Feiertagsprofil",
+    "health.input_house_power_entity": "Leistungsmesser des ganzen Hauses",
+    "health.input_indoor_humidity_entity": "Raumfeuchtesensor",
+    "health.input_indoor_temp_entity": "Innentemperatursensor",
+    "health.input_lower_floor_temp_entity": "Temperatursensor Untergeschoss",
+    "health.input_mixing_valve_target_entity": "Zielwert-Sensor des Ventils",
+    "health.input_mixing_valve_write_entity": "Steuerentität des Ventils",
+    "health.input_outdoor_temp_entity": "Außentemperatursensor",
+    "health.input_price_entity": "Preissensor (Nord Pool oder ähnlich)",
+    "health.input_pv_export_price_entity": "Entität der Einspeisevergütung",
+    "health.input_pv_production_entity": "Sensor der Solarerzeugung",
+    "health.input_solar_radiation_entity": "Sensor für Sonneneinstrahlung",
+    "health.input_space_circulation_pump_entity": "Schalter der Heizungsumwälzpumpe",
+    "health.input_space_setpoint_entity": "Sollwert-Entität der Raumheizung",
+    "health.input_valve_outlet_temp_entity": "Temperatur nach dem Mischventil Holz/Wärmepumpe",
+    "health.input_vvc_pump_entity": "Schalter der Warmwasser-Zirkulationspumpe",
+    "health.input_weather_entity": "Wettervorhersage",
+    "health.input_wood_tank_bottom_entity": "Fühler unten am Holzspeicher",
+    "health.input_wood_tank_top_entity": "Fühler oben am Holzspeicher",
+    "health.learn_savings": "Einsparungen diesen Monat",
+    "health.learn_savings_why": "Wartet auf den ersten abgeschlossenen Monat",
+    "health.learn_cop": "COP der Wärmepumpe",
+    "health.learn_accuracy": "Prognosegenauigkeit",
+    "health.learn_accuracy_why": "Wartet auf das erste bewertete Intervall",
+    "health.learn_score": "Optimierungswert",
+    "health.learn_score_why": "Wartet auf den ersten bewerteten Tag",
+    "health.model": "Was das Modell gelernt hat",
+    "health.model_heat_loss": "Wärmeverlust des Hauses",
+    "health.model_solar": "Solargewinn",
+    "health.model_lower": "Untergeschoss",
+    "health.model_tank": "Auskühlung des Warmwasserspeichers",
+    "health.model_cop": "Effizienz der Wärmepumpe",
+    "health.model_gains": "Interne Wärmegewinne nach Stunde",
+    "health.model_house": "Das Haus",
+    "health.model_lower_floor": "Das Untergeschoss",
+    "health.model_from": "Aus {n} Messwerten gelernt.",
+    "health.model_estimate": "Noch die Schätzung aus den Einstellungen: noch keine Messwerte.",
+    "health.model_default": "Noch der Standardwert: noch keine Messwerte.",
+    "health.model_learning": "Lernt: {n} von etwa {need} Messwerten.",
+    "health.model_faster": "{what} verliert {pct} % schneller Wärme als in den Einstellungen geschätzt.",
+    "health.model_slower": "{what} verliert {pct} % langsamer Wärme als in den Einstellungen geschätzt.",
+    "health.model_as_set": "{what} verliert Wärme wie in den Einstellungen geschätzt.",
+    "health.model_w_per_k": "{v} W/K",
+    "health.model_window": "Fensterfaktor {v}",
+    "health.model_share": "{v} % der Schätzung aus den Einstellungen",
+    "health.model_per_hour": "{v} °C pro Stunde",
+    "health.model_cop_normal": "Normal (COP-Faktor {v})",
+    "health.model_cop_low": "Unter dem eigenen Verlauf",
+    "health.model_cop_fine": "Keine Anzeichen von Verschlechterung.",
+    "health.model_cop_alarm": "Sie liefert weniger Wärme pro kWh als früher; prüfe Filter, Abtauung und Durchfluss.",
+    "health.model_gains_peak": "Personen, Kochen und Geräte tragen gegen {hh}:00 Uhr zusammen {kw} kW bei.",
+    "health.support_title": "Stimmt etwas nicht?",
+    "health.support_detail": "„Diagnose herunterladen“ speichert eine Datei für einen Fehlerbericht: Sie enthält die letzte Diagnose, Eingangszustände, den aktuellen Plan und das, was das Modell gelernt hat, ohne Token, Namen, Personen, Kalender und Standorte.",
+    "health.act_diagnostics": "Diagnose herunterladen",
+    "health.check_price": "Preisquelle verbunden",
+    "health.check_weather": "Wettervorhersage verfügbar",
+    "health.check_indoor": "Raumtemperatursensor",
+    "health.check_control": "Wärmepumpensteuerung verbunden",
+    "health.check_power": "Leistungsmesser an der Wärmepumpe: macht die Einsparungen gemessen statt modelliert",
+    "health.check_insight": "Einige Analysesensoren sind standardmäßig deaktiviert; „Anzeigen“ listet die Entitäten dieser Integration auf, auch deaktivierte, und dort kannst du sie aktivieren",
+    "health.act_assign": "Zuweisen",
+    "health.act_show": "Anzeigen",
+    "health.input_other": "Eingang",
+    "health.learner_waiting": "Wartet: {why}.",
+    "health.learner_wait_colder": "es lernt, wenn es draußen kalt genug ist",
+    "health.learner_wait_darker": "es lernt in den dunklen Stunden",
+    "health.learner_wait_sunnier": "es lernt bei Sonnenschein",
+    "health.learner_waiting_any": "Wartet auf Bedingungen, unter denen es lernen kann.",
+    "health.learner_counting": "Lernt: {pct} % der benötigten Messwerte.",
+    "health.learner_eta": "Noch etwa {d} Tage bis zum Abschluss des Lernens.",
+    "health.learner_settling": "Pendelt sich auf seinen Wert ein: {pct} %.",
+    "health.learner_settling_any": "Pendelt sich auf seinen Wert ein.",
+    "health.model_unobservable": "Ohne Leistungsmesser nicht beobachtbar.",
+    "health.cop_measured": "Gemessen vor {age}.",
+    "health.cop_reason_heat_metered": "Vom Wärmemengenzähler gemessen.",
+    "health.cop_reason_draw_follows_plan": "Aus der Leistungsaufnahme abgelesen, die dem Plan folgt.",
+    "health.cop_reason_not_measurable": "Hier nicht messbar: Ohne Wärmemengenzähler folgt die Leistungsaufnahme dem Plan nicht genau genug, um daraus die Effizienz abzulesen.",
+    "health.cop_reason_awaiting_draw_evidence": "Wartet darauf, ob die Leistungsaufnahme dem Plan folgt.",
+    "health.cop_reason_no_electric_meter": "Benötigt einen Leistungs- oder Energiezähler an der Wärmepumpe.",
+    "health.cop_reason_no_measured_power": "Wartet auf einen Leistungswert der Wärmepumpe.",
+    "health.cop_reason_learners_frozen": "Das Lernen ist pausiert.",
+    "health.cop_reason_duty_floor": "Die Wärmepumpe lief im Intervall zu wenig für eine Beurteilung.",
+    "health.cop_reason_frost_band": "Im Frostbereich übersprungen, da die Abtauung die Messung verfälscht.",
+    "health.cop_reason_draw_distorted": "Die Leistungsaufnahme wurde im Intervall durch etwas anderes verfälscht.",
+    "health.cop_reason_tracking_gate": "Das Haus folgte dem Plan im Intervall nicht genau genug.",
+    "health.cop_reason_draw_off_ask": "Die Leistungsaufnahme wich von der Planvorgabe ab.",
+    "health.cop_reason_blended_duty": "Raumheizung und Warmwasser teilten sich das Intervall, daher lässt sich keines von beiden beurteilen.",
+    "health.cop_reason_modelled_cop": "Es lag nur eine modellierte, keine gemessene Effizienz vor.",
+    "health.cop_reason_observed_cop": "Die gemessene Effizienz lag außerhalb des plausiblen Bereichs.",
+    "health.cop_reason_span_open": "Wartet darauf, dass der Zählerzeitraum abgeschlossen wird.",
+    "health.cop_reason_unaligned_meters": "Wärme- und Leistungszähler wurden nicht zum selben Zeitpunkt abgelesen.",
+    "health.cop_reason_counter_reset": "Der Zählerstand des Wärmemengenzählers wurde zurückgesetzt.",
+    "health.cop_reason_counter_rollover": "Der Zählerstand des Wärmemengenzählers ist übergelaufen.",
+    "health.cop_reason_counter_resolution": "Der Zähler des Wärmemengenzählers ist für das Intervall zu grob.",
+    "health.cop_reason_span_too_long": "Der Zählerzeitraum war zu lang, um verwendet zu werden.",
+    "health.metric_heat_loss": "Wie schnell das Haus Wärme verliert, in Watt pro Grad Unterschied zwischen innen und außen. Höher bedeutet ein undichteres Haus; ohne Messwerte ist es die Schätzung aus den Einstellungen.",
+    "health.metric_solar": "Wie viel der Sonnenwärme die Fenster durchlassen, verglichen mit den Einstellungen. Über 1 lässt mehr herein; ohne Messwerte ist es der Wert aus den Einstellungen.",
+    "health.metric_lower": "Der Wärmeverlust des Untergeschosses als Anteil der Schätzung aus den Einstellungen. Über 100 % verliert mehr; ohne Messwerte ist es die Schätzung aus den Einstellungen.",
+    "health.metric_tank": "Wie schnell der Warmwasserspeicher bei ausgeschalteter Pumpe auskühlt, in °C pro Stunde. Niedriger bedeutet bessere Dämmung; ohne Messwerte ist es der Standardwert.",
+    "health.metric_cop": "Ob die Wärmepumpe noch so viel Wärme pro kWh liefert wie früher. Ein Strich bedeutet, dass sie noch nicht überwacht wird.",
+    "health.metric_gains": "Wärme von Personen, Kochen und Geräten nach Tagesstunde, in kW, die der Plan als kostenlose Heizung anrechnet. Höhere Balken bedeuten mehr kostenlose Wärme; ohne Messwerte rechnet der Plan nichts an.",
+    "health.debug_title": "Debug-Aufzeichnung",
+    "health.debug_off": "Aus. Wenn ein Fehlerbericht danach fragt, zeichnet „Start“ eine Woche an Zyklen in die Diagnosedatei auf.",
+    "health.debug_active": "Aufzeichnung läuft: bisher {rows} Datensätze, noch etwa {days} Tage.",
+    "health.debug_final": "Mit {rows} Datensätzen abgeschlossen. Lade die Diagnose herunter, um sie zu behalten.",
+    "health.debug_confirm": "Ein erneuter Start verwirft die abgeschlossene Aufzeichnung. Lade zuerst die Diagnose herunter, um sie zu behalten, und drücke dann erneut „Start“.",
+    "health.act_debug_start": "Start",
+    "advisor.heading": "Sensoren, die das Modell genauer machen würden",
+    "advisor.empty": "Jeder optionale Temperatursensor dieser Anlage ist bereits eingerichtet.",
+    "advisor.estimated": "geschätzt",
+    "advisor.basis_history": "Schätzung aus einer Wiedergabe, die auf der gemessenen Wärmeabgabe dieser Installation beruht.",
+    "advisor.basis_config": "Schätzung aus einer Wiedergabe mit den konfigurierten Standardwerten – noch keine gemessene Wärmeabgabe.",
+    "advisor.spread_note": "Wie weit die Temperaturprognosen des Modells auseinanderliegen können, bis dieser Sensor sie festlegt.",
+    "advisor.unpriced_heading": "Von dieser Schätzung nicht bewertet",
+    "advisor.reason_weather_backed": "Die Außentemperatur kommt bereits von der Wetter-Entität; diese Schätzung kann die zusätzliche Genauigkeit eines lokalen Fühlers nicht bewerten.",
+    "advisor.reason_state_estimate": "Speist eine Zustandsschätzung, keinen gelernten Modellparameter.",
+    "advisor.reason_no_clamped_parameter": "Seine Lernmodelle passen Größen an, für die diese Schätzung kein Messband hat.",
+    "advisor.act_hint": "Wähle einen Sensor, um ihn auf der Seite „Anlage“ zuzuweisen.",
+    "advisor.inbox_heading": "Lohnt sich",
+    "advisor.inbox_empty": "Nichts zu tun: Der Plan ist bereits so günstig, wie deine Einstellungen es erlauben.",
+    "advisor.optin_heading": "Mehr Ratschläge, sobald aktiviert",
+    "advisor.value_month": "≈ {value} {currency}/Monat",
+    "advisor.no_value": "keine Schätzung",
+    "advisor.waiting": "Lernt noch: {reason}",
+    "advisor.unavailable": "Dieser Ratschlag ist derzeit nicht verfügbar",
+    "advisor.gap_title": "Sensor „{label}“ hinzufügen",
+    "advisor.gap_detail": "Das Modell bewertet den fehlenden Sensor.",
+    "advisor.act_assign": "Sensor zuweisen",
+    "advisor.dhw_title": "Warmwasser-Sollwert {from} → {to} °C",
+    "advisor.dhw_detail": "Günstigster Sollwert, der deinen höchsten Verbrauch noch deckt.",
+    "advisor.act_schedule": "Zeitplan öffnen",
+    "advisor.valve_title": "Ventil-Sollwert {to} °C",
+    "advisor.valve_detail": "Jetzt {from} °C. {reason}",
+    "advisor.act_apply": "Anwenden",
+    "advisor.act_settings": "Einstellungen öffnen",
+    "advisor.degree_title": "Das Haus ein Grad kühler zu halten ist günstiger",
+    "advisor.degree_detail": "Es ein Grad wärmer zu halten kostet {up} {currency}/Monat mehr (Durchschnitt von {days} Tagen).",
+    "advisor.degree_unsettled": "Noch nicht angezeigt: In den letzten {days} Tagen ergaben ein Grad kühler und ein Grad wärmer nicht die Preisreihenfolge, die beim Heizen üblich ist.",
+    "advisor.act_degree": "Im Was-wäre-wenn testen",
+    "advisor.optin_degree": "Preis eines Grads",
+    "advisor.applied": "Ventil-Sollwert auf {to} °C gesetzt.",
+    "advisor.applied_setpoint": "Warmwasser-Sollwert auf {to} °C gesetzt.",
+    "advisor.apply_failed": "Anwenden nicht möglich: {error}",
+    "advisor.refit_title": "Wärmeverlustmodell bei {to} neu starten (jetzt {from})",
+    "advisor.refit_detail": "Neu angepasst aus {days} abgeschlossenen Tagen ({pairs} Intervalle) seit dem letzten Boost oder der letzten Wiederherstellung; etwa ±7–10 % Unsicherheit. Es ändert sich nichts, bis du zustimmst.",
+    "advisor.refit_wait_title": "Neuanpassung des Wärmeverlusts ausstehend",
+    "advisor.refit_wait_detail": "Die Vorhersagen driften. Eine Neuanpassung benötigt Belege aus {need} abgeschlossenen Tagen; bisher {days}.",
+    "advisor.restore_title": "Modell von {when} wiederherstellen",
+    "advisor.restore_detail": "Der letzte bekannte gute gelernte Zustand, gesichert vor Beginn der Drift.",
+    "advisor.act_adopt": "Neuanpassung übernehmen",
+    "advisor.act_restore": "Wiederherstellen",
+    "advisor.restarted": "Gelerntes Modell neu gestartet.",
+    "advisor.optin_wood": "Zeitpunkt für den Kaminofen",
+    "advisor.optin_fuse": "Sicherungsgröße",
+    "advisor.optin_frequency": "Verdichterfrequenz",
+    "advisor.step_tuning": "Konfigurieren → Einsparungen vs. Komfort",
+    "advisor.step_building": "Konfigurieren → Erweiterte Einstellungen → Heizsystem und Wärmespeicher",
+    "advisor.step_grid": "Konfigurieren → Netz-Spitzentarif",
+    "advisor.step_metering": "Konfigurieren → Erweiterte Einstellungen → Leistungs- und Solarsensoren",
+    "advisor.feedback_title": "Leistungs-, Energie-, Frequenz- oder Durchflusssensor der Wärmepumpe hinzufügen",
+    "advisor.feedback_detail": "Ohne einen solchen Sensor kann der Planer nicht sehen, was die Pumpe tatsächlich aufnimmt, und ohne ihn gibt es keine verlässliche Schätzung. Einer genügt: {list}.",
+    "advisor.feedback_power": "Leistung",
+    "advisor.feedback_energy": "Energie",
+    "advisor.feedback_frequency": "Verdichterfrequenz",
+    "advisor.feedback_flow": "Wassermassenstrom",
+    "advisor.act_dismiss": "Verwerfen",
+    "savings.col_month": "Monat",
+    "savings.col_baseline": "Referenz",
+    "savings.col_actual": "Tatsächlich",
+    "savings.col_savings": "Einsparung",
+    "savings.col_pct": "%",
+    "savings.estimated": "geschätzt",
+    "savings.old_basis": "alte Basis",
+    "savings.below_meter_floor": "keine Einsparung angegeben",
+    "savings.meter_floor_note": "Für einen Monat, dessen Referenz weniger als die Hälfte der vom Zähler erfassten Energie verbraucht hat, wird keine Einsparung angegeben: Eine so niedrige Referenz ist ein Fehler, keine Einsparung.",
+    "savings.wood_note": "Die Einsparung enthält Wärme aus Holz. Die Kosten für das Brennholz sind nicht berücksichtigt.",
+    "savings.empty": "Noch keine abgeschlossenen Einsparungsmonate.",
+    "receipt.closed": "{month} · abgeschlossen",
+    "receipt.saved": "{amount} {unit} ({pct}) gegenüber einem einfachen Thermostat gespart",
+    "receipt.col_line": "Posten",
+    "receipt.col_basis": "Grundlage",
+    "receipt.col_cost": "Kosten",
+    "receipt.line_spot": "Spot-Energie",
+    "receipt.line_grid_fee": "Netzentgelt Energie",
+    "receipt.line_capacity": "Leistungspreis",
+    "receipt.line_immersion": "Heizstab",
+    "receipt.line_dhw_booster": "Zuheizer Speicher",
+    "receipt.line_backup_heater": "Zuheizer",
+    "receipt.line_wear": "Verdichterverschleiß",
+    "receipt.total": "Gesamt",
+    "receipt.not_priced": "nicht bewertet",
+    "receipt.peak": "Spitze {kw} kW",
+    "receipt.starts": "{n} Starts",
+    "receipt.covers": "Umfasst {lines}. Der Einsparungswert vergleicht nur die Spotkosten.",
+    "receipt.by_reason": "Wohin das Geld ging",
+    "replay.title": "Gestern: der Plan gegenüber der Realität",
+    "replay.promised": "Vom Plan um {time} zugesagt",
+    "replay.measured": "Gemessen",
+    "replay.indoor": "Raumtemperatur",
+    "replay.cost": "Kosten",
+    "replay.cost_unit": "{unit}, kumuliert",
+    "replay.summary_temp": "Die Raumtemperatur wich im Mittel um {dev} °C von der Zusage ab.",
+    "replay.summary_cost": "Es kostete {measured} {unit} statt der zugesagten {promised} {unit}.",
+    "replay.no_meter": "Kein Leistungsmesser, daher wurden die Kosten nicht gemessen.",
+    "header.close": "Schließen",
+    "series.price": "Strompreis",
+    "series.dhw_slots": "Warmwasserbereitung",
+    "series.space_slots": "Raumheizung",
+    "series.actioned": "Umgesetzte Leistung",
+    "series.quiet_silent": "Ruhefenster",
+    "series.quiet_off": "Aus-Fenster",
+    "tooltip.actioned": "Umgesetzt",
+    "series.outdoor": "Außentemperatur",
+    "series.dhw_temp": "Temperatur Warmwasserspeicher",
+    "series.house_temp": "Haustemperatur",
+    "series.solar": "Sonneneinstrahlung",
+    "series.wood_slots": "Holzfeuer",
+    "wood.alert": "Holz zu verbrennen ist günstiger als mindestens eine verbleibende Wärmepumpenstunde.",
+    "away.toggle": "Abwesend",
+    "away.return": "Zurück",
+    "away.status_presence": "Abwesend (Anwesenheit)",
+    "setup.tanks": "Speicher",
+    "setup.tank_dhw": "Warmwasserspeicher",
+    "setup.tank_wood": "Holzspeicher",
+    "series.upper_floor": "Obergeschoss",
+    "series.lower_floor": "Untergeschoss",
+    "series.lower_floor_modelled": "Untergeschoss (modelliert)",
+    "legend.multi_trace_title": "{label} ({unit}) – ebenfalls dargestellt: {names}. Fahre über das Diagramm, um jede Kurve abzulesen.",
+    "series.dhw_band": "Warmwasser, erwarteter Fehler",
+    "series.dhw_band_note": "Gestrichelt: der erwartete Fehler des Modells, der weiter in der Zukunft größer wird. Fehlt, bis genug Verlauf vorliegt.",
+    "series.dhw_band_note_floored": "Gestrichelt: der erwartete Fehler des Modells, der weiter in der Zukunft größer wird. Innerhalb eines Bedarfsfensters ist die untere Grenze auf das Fensterminimum begrenzt. Fehlt, bis genug Verlauf vorliegt.",
+    "plan.now": "jetzt",
+    "plan.now_temp": "{temp} °C",
+    "plan.space_blocked": "Nur Warmwasser – keine Raumheizung: Die Hauskurve ist die Zusage des Plans, nicht das, was die Pumpe gerade ausführt.",
+    "plan.estimated_prices": "geschätzte Preise",
+    "plan.zoom_out": "Verkleinern",
+    "plan.zoom_in": "Vergrößern",
+    "plan.show_whole_plan": "Gesamten Plan anzeigen",
+    "plan.history_loading": "Verlauf wird geladen …",
+    "plan.history_unavailable": "Kein aufgezeichneter Verlauf für diese Sensoren – der Recorder ist möglicherweise aus, oder die Vergangenheit wurde nie aufgezeichnet.",
+    "plan.price_estimated": "Preis ist geschätzt, noch nicht veröffentlicht",
+    "plan.shared_step_tooltip": "Gemeinsamer Schritt: Die Pumpe wechselt zwischen den Kreisen – zuerst Warmwasser. Zusammen {kw} kW bleiben unter dem Maximum der Pumpe.",
+    "plan.shared_band_title": "Raumheizung und Warmwasser teilen sich diese Viertelstunden: Die Pumpe wechselt innerhalb jedes Schritts zwischen den Kreisen, zuerst Warmwasser. Deine gemeinsame Leistung überschreitet nie das Maximum der Wärmepumpe – das ist Zeitteilung, keine Doppelbelegung.",
+    "reasons.comfort_floor": "Mindesttemperatur halten",
+    "reasons.cheap_price": "Günstigste Stunden",
+    "reasons.preheat_weather": "Vorheizen vor kälterem Wetter",
+    "reasons.scheduled": "Haus auf Zieltemperatur halten",
+    "reasons.terminal_value": "Haus über den Planungshorizont hinaus warm halten",
+    "reasons.solar_surplus": "Solarüberschuss nutzen",
+    "reasons.dhw_window": "Warmwasser wird jetzt benötigt",
+    "reasons.dhw_ready": "Speicher für ein Bedarfsfenster vorbereiten",
+    "reasons.dhw_preheat": "Speicher laden, solange Strom günstig ist",
+    "reasons.legionella": "Legionellenschaltung",
+    "reasons.manual_plan": "Von dir eingeplant",
+    "reasons.pump_mode": "Durch den Betriebsmodus der Wärmepumpe pausiert (am Gerät selbst eingestellt)",
+    "reasons.pump_mode_dhw": "Kein Warmwasser: Der Betriebsmodus der Wärmepumpe – am Gerät eingestellt – kann kein Wasser erwärmen (nur Heizen oder Kühlen). Stelle das Gerät auf einen Modus mit Warmwasser um.",
+    "reasons.pump_mode_space": "Keine Heizung: Der Betriebsmodus der Wärmepumpe – am Gerät eingestellt – kann keine Räume beheizen (nur Warmwasser oder Kühlen). Stelle das Gerät auf einen Heizmodus um.",
+    "reasons.idle": "Heizt nicht",
+    "reasons.boost": "Ein von dir aktivierter Boost",
+    "reasons.comfort_mode": "Von dir gewählter Komfortmodus",
+    "reasons.system_identification": "Das Haus wird vermessen (Sprungantwort-Test)",
+    "reasons.untagged": "Kein Planschritt als Ursache zuzuordnen",
+    "why.space_off": "Raumheizung aus",
+    "why.dhw_off": "Warmwasser aus",
+    "why.both_off": "Raumheizung und Warmwasser aus",
+    "why.likely": "Wahrscheinlich, weil:",
+    "why.because": "Weil:",
+    "why.sub_other": "der andere Kanal die Kapazität hat",
+    "why.sub_fuse": "die Sicherungsgrenze das Heizen begrenzt",
+    "why.sub_solar": "der Plan auf Solarstrom wartet",
+    "why.sub_dearer": "diese Stunde teurer ist als die Stunden, die der Plan nutzt",
+    "why.sub_coasting": "die Temperatur über der Untergrenze liegt und der Plan daher ausläuft",
+    "why.price_rank": "{price} {unit} gehört zu den teuersten {pct} % des Plans (günstigster {min})",
+    "why.coast_space": "das Haus zehrt von gespeicherter Wärme {from}–{to}",
+    "why.coast_dhw": "der Speicher wurde {from}–{to} aufgeheizt",
+    "why.next_space": "der nächste Heizlauf ist um {time} bei {price} {unit}",
+    "why.next_dhw": "der nächste Warmwasserlauf ist um {time} bei {price} {unit}",
+    "why.tank_above": "der Speicher hat {temp} °C, über dem Warmwasser-Minimum von {min} °C",
+    "why.solar_ahead": "ab {time} wird ein Solarüberschuss von bis zu {kw} kW erwartet",
+    "slots.lane_dhw": "Warmwasser",
+    "slots.lane_space": "Heizung",
+    "slots.lane_wood": "Holz",
+    "menu.remove_slot_dhw": "Diesen Warmwasser-Slot entfernen",
+    "menu.remove_slot_space": "Diesen Heiz-Slot entfernen",
+    "menu.add_slot_dhw": "Hier einen Warmwasser-Slot hinzufügen",
+    "menu.add_slot_space": "Hier einen Heiz-Slot hinzufügen",
+    "menu.add_slot_wood": "Hier einen Holz-Slot hinzufügen",
+    "slots.no_plan_to_pin": "Noch kein Plan zum Fixieren.",
+    "slots.applying": "Wird angewendet …",
+    "slots.until_suffix": " bis {expiry}",
+    "slots.pinned_result": "Fixiert{until}. Diese Slots bleiben erhalten, sofern dadurch das Haus oder der Speicher nicht unter seine Grenzen fällt.",
+    "slots.clearing": "Wird aufgehoben …",
+    "slots.back_to_auto_result": "Zurück zur automatischen Planung.",
+    "slots.released_one": "{n} Slot wurde freigegeben, um das Haus oder den Speicher zu schützen.",
+    "slots.released_other": "{n} Slots wurden freigegeben, um das Haus oder den Speicher zu schützen.",
+    "slots.pinned_status": "Deine Slots sind fixiert{until}.",
+    "whatif.todays_slots": "Heutige Slots",
+    "whatif.slots_hint": "Zieh einen Slot unten im Diagramm entlang seiner Spur, um ihn zu verschieben, zieh eine Kante, um die Größe zu ändern, oder füge per Rechtsklick auf eine Spur Slots hinzu oder entferne sie. Mit „Anwenden“ werden sie für die nächsten {hours} Stunden fixiert.",
+    "whatif.zoom_limit_hint": "Vergrößert – das Bearbeiten endet am sichtbaren Rand. Zieh einen Slot an den Rand, um zu verschieben, oder {button}.",
+    "whatif.show_whole_plan_button": "den ganzen Plan anzeigen",
+    "whatif.apply_plan": "Diesen Plan anwenden",
+    "whatif.undo_changes": "Meine Änderungen verwerfen",
+    "whatif.back_to_auto": "Zurück zu automatisch",
+    "whatif.usual_schedule": "Mein üblicher Zeitplan",
+    "whatif.schedule_hint": "Das sind die wiederkehrenden Zeiten, nach denen der Optimierer jeden Tag plant, nicht nur heute.",
+    "whatif.heating_hours": "Heizzeiten",
+    "whatif.day_from": "Tag von",
+    "whatif.day_start_aria": "Heiztag beginnt",
+    "whatif.day_to": "bis",
+    "whatif.day_end_aria": "Heiztag endet",
+    "whatif.setback_hint": "Außerhalb dieser Zeiten gilt die Nachtabsenkung.",
+    "whatif.dhw_windows": "Warmwasser-Zeitfenster",
+    "whatif.window_start_aria": "Beginn Zeitfenster {n}",
+    "whatif.window_end_aria": "Ende Zeitfenster {n}",
+    "whatif.remove": "Entfernen",
+    "whatif.remove_window_aria": "Zeitfenster {n} entfernen",
+    "whatif.window_days_aria": "Tage Zeitfenster {n}",
+    "whatif.days_daily": "Jeden Tag",
+    "whatif.days_weekdays": "Werktage",
+    "whatif.days_weekend": "Wochenende",
+    "whatif.days_monday": "Montag",
+    "whatif.days_tuesday": "Dienstag",
+    "whatif.days_wednesday": "Mittwoch",
+    "whatif.days_thursday": "Donnerstag",
+    "whatif.days_friday": "Freitag",
+    "whatif.days_saturday": "Samstag",
+    "whatif.days_sunday": "Sonntag",
+    "whatif.no_windows_hint": "Keine Zeitfenster: Warmwasser wird nie verlangt, daher wird der Speicher nur über seinem Ruhe-Minimum gehalten.",
+    "whatif.add_window": "+ Zeitfenster hinzufügen",
+    "whatif.quiet_windows": "Leise Zeitfenster",
+    "whatif.quiet_hint": "„Leise“ begrenzt den Verdichter in diesen Stunden. „Aus“ bedeutet, dass der Plan im Zeitfenster weder Raumheizung noch Warmwasser einplant – es wird nichts zusätzlich geschrieben.",
+    "whatif.quiet_action_silent": "Leise",
+    "whatif.quiet_action_off": "Aus",
+    "whatif.quiet_action_aria": "Aktion Zeitfenster {n}",
+    "whatif.quiet_not_enforced": "nicht erzwungen",
+    "whatif.quiet_frac": "Leistungsanteil im Flüstermodus",
+    "whatif.quiet_frac_note": "Der Leistungsanteil beträgt noch 1,0, daher begrenzen Leise-Zeilen nichts, bis du ihn senkst.",
+    "whatif.add_quiet": "+ Zeitfenster hinzufügen",
+    "whatif.no_quiet_hint": "Keine Leise- oder Aus-Zeitfenster.",
+    "whatif.wood": "Holzfeuer",
+    "whatif.wood_liters": "Liter",
+    "whatif.add_wood_slot": "Holz-Slot hinzufügen",
+    "whatif.simulate": "Diese Slots simulieren",
+    "whatif.save_schedule": "Als meinen Zeitplan speichern",
+    "whatif.reset": "Zurücksetzen",
+    "whatif.idle_status": "Ändere eine Einstellung, um die Kosten zu sehen. Das Simulieren ändert nichts; beim Speichern wird dein konfigurierter Zeitplan ersetzt.",
+    "whatif.temperatures": "Temperaturen",
+    "whatif.temperatures_hint": "Wie warm das Haus während des Heiztags gehalten wird und wie weit der Warmwasserspeicher innerhalb eines Bedarfsfensters abkühlen darf. Beides wird wie der Zeitplan oben bepreist.",
+    "whatif.comfort_temp": "Komforttemperatur",
+    "whatif.dhw_min": "Warmwasser-Minimum",
+    "whatif.dhw_min_aria": "Mindesttemperatur Warmwasser",
+    "whatif.cap_no_setpoint": "Begrenzt auf {t}&nbsp;°C, weit genug unter dem Warmwasser-Sollwert, damit der Speicher Spielraum hat.",
+    "whatif.cap_with_setpoint": "Begrenzt auf {t}&nbsp;°C: ein Band von {band}&nbsp;°C unter dem Sollwert von {setpoint}&nbsp;°C, damit der Speicher Spielraum hat, statt seinem Ziel hinterherzujagen.",
+    "whatif.clamped_warning": "Dein gespeichertes Minimum von {a}&nbsp;°C liegt über dieser Grenze, daher zeigt der Regler {b}&nbsp;°C. Beim Speichern wird der niedrigere Wert übernommen.",
+    "whatif.confirm_overwrite": "Bestätigen: Zeitplan überschreiben",
+    "whatif.confirm_hint": "Dies ersetzt deine konfigurierten Heizzeiten, Warmwasser-Zeitfenster und Temperaturen und lädt die Integration neu. Zum Bestätigen erneut drücken.",
+    "whatif.saving": "Wird gespeichert …",
+    "whatif.saved_result": "Gespeichert. Der Optimierer lädt neu und plant nach dem neuen Zeitplan.",
+    "whatif.simulating": "Kosten werden berechnet …",
+    "whatif.same_cost": "<b>Etwa gleiche Kosten</b> wie der aktuelle Plan.",
+    "whatif.cheaper_per_month": "<b class=\"cheaper\">{amount} weniger pro Monat</b> als der aktuelle Plan.",
+    "whatif.dearer_per_month": "<b class=\"dearer\">{amount} mehr pro Monat</b> als der aktuelle Plan.",
+    "whatif.min_room_temp": "Kältester Wert im Haus: {t} °C",
+    "whatif.min_dhw_temp": "Niedrigste Speichertemperatur: {t} °C",
+    "whatif.compressor_starts_one": "{n} Verdichterstart",
+    "whatif.compressor_starts_other": "{n} Verdichterstarts",
+    "whatif.rate_limited": "<i>(vorherige Schätzung; Simulationen sind begrenzt)</i>",
+    "stats.no_plan_to_compare": "Noch keine Plandaten zum Vergleichen.",
+    "stats.cheaper": "günstiger",
+    "stats.dearer": "teurer",
+    "stats.the_same": "gleich",
+    "stats.delta_detail": "{verdict} als der gespeicherte Plan ({planned} → {edited}&nbsp;{currency}, geschätzt)",
+    "stats.delta_detail_same": "gleich wie der gespeicherte Plan ({planned} → {edited}&nbsp;{currency}, geschätzt)",
+    "time.tomorrow": "{time} morgen",
+    "time.on_weekday": "{time} am {weekday}",
+    "setup.not_published": "Die Anlagenbeschreibung wurde noch nicht veröffentlicht. Sie erscheint mit den Plan-Sensoren, nachdem die Integration geladen ist.",
+    "setup.editing_hint": "Zieh ein Kästchen, um es zu verschieben, zieh einen Anschluss, um zwei Kästchen zu verbinden, oder klicke auf eine Leitung, um sie zu entfernen. Nur eine Zeichnung, die einem unterstützten Aufbau entspricht, kann gespeichert werden.",
+    "setup.assign_hint": "Klicke auf einen Sensor, um ihn zuzuweisen oder zu löschen. Ein leerer Platz ist ein Sensor, den diese Anlage nutzen könnte, aber nicht hat; er wird absichtlich angezeigt.",
+    "setup.done_editing": "Bearbeitung beenden",
+    "setup.edit_layout": "Aufbau bearbeiten",
+    "setup.save_layout": "Aufbau speichern",
+    "setup.undo_layout": "Rückgängig",
+    "setup.undo_layout_aria": "Änderungen verwerfen und zum verwendeten Aufbau zurückkehren, im Editor bleiben",
+    "setup.tidy_layout": "Aufräumen",
+    "setup.tidy_layout_aria": "Die Kästchen wieder ordentlich in ihren Spalten anordnen",
+    "setup.verdict_match": "Entspricht {label}.",
+    "setup.verdict_req": "{label} – {requirement}.",
+    "setup.verdict_not_modelled": "{label} – bekannt, aber noch nicht modelliert, daher nicht auswählbar.",
+    "setup.verdict_needs": "{label} – benötigt {requirement}.",
+    "setup.verdict_cannot_store": "{label} – die aktuelle Konfiguration kann diesen Aufbau nicht speichern.",
+    "setup.no_catalog": "Für dieses System wurde kein Aufbaukatalog veröffentlicht.",
+    "setup.verdict_no_match": "Kein unterstützter Aufbau passt. Am nächsten: {label}.",
+    "setup.verdict_extra_edges": "Nicht enthalten: {edges}.",
+    "setup.verdict_missing_edges": "Fehlt: {edges}.",
+    "setup.saved_reloading": "{label} gespeichert. Wird neu geladen …",
+    "setup.svg_aria": "Konfigurierte Anlage",
+    "setup.pipe_remove_aria": "{label} – Eingabe oder Entf drücken, um diese Verbindung zu entfernen",
+    "setup.box_move_aria": "{label} – Pfeiltasten verschieben dieses Kästchen, Eingabe startet eine Verbindung zu einem anderen Kästchen",
+    "setup.box_connect_from_aria": "{label} – Verbindung wird hergestellt; Eingabe auf einem anderen Kästchen verbindet es, Escape bricht ab",
+    "places.heat_pump": "Wärmepumpe",
+    "places.buffer_tank": "Pufferspeicher",
+    "places.mixing_valve": "Mischventil",
+    "places.upper_zone": "Obergeschoss",
+    "places.lower_zone": "Untergeschoss",
+    "places.wood_tank": "Holzspeicher",
+    "places.wood_valve": "Holz-Mischventil",
+    "places.dhw_tank": "Warmwasserspeicher",
+    "places.slab_shunt": "Estrich-Beimischung",
+    "setup.box_hp_tank": "Wärmepumpenspeicher",
+    "setup.box_buffer_tank": "Pufferspeicher",
+    "setup.box_4way_valve": "4-Wege-Mischventil",
+    "setup.box_mixing_valve": "Mischventil",
+    "setup.box_outside": "Außen",
+    "setup.box_heat_pump": "Wärmepumpe",
+    "setup.box_wood_tank": "Holzkesselspeicher ({v} L)",
+    "setup.wood_caption": "modelliert als Wärmeeintrag in den Wärmepumpenspeicher",
+    "setup.buffer_stores": "speichert bis zu {t} °C",
+    "setup.buffer_too_small": "zu klein zum Speichern",
+    "setup.no_valve_caption": "kein Mischventil: Abgabe wird nicht gedrosselt",
+    "setup.box_dhw_tank": "Warmwasserspeicher",
+    "setup.dhw_coil_caption": "wird über eine Holzspeicher-Wendel nachgeladen",
+    "setup.dhw_coil_preheats": "wärmt das Leitungswasser vor",
+    "setup.dhw_coil_off": "Wendel konfiguriert, nicht modelliert",
+    "setup.dhw_coil_off_why": "benötigt den Zwei-Speicher-Aufbau",
+    "setup.dhw_coil_none": "keine Warmwasser-Wendel",
+    "setup.dhw_coil_none_why": "nur Holzwärme",
+    "setup.box_upper_floor": "Obergeschoss",
+    "setup.box_house": "Haus",
+    "setup.box_lower_floor": "Untergeschoss (Estrich)",
+    "setup.unavailable": "nicht verfügbar",
+    "setup.source_weather": "Wettervorhersage",
+    "setup.not_configured": "nicht konfiguriert",
+    "setup.click_to_assign_title": "{label} – zum Zuweisen klicken",
+    "setup.unset_count": "{n} optionale Eingänge nicht gesetzt",
+    "setup.unset_count_one": "1 optionaler Eingang nicht gesetzt",
+    "setup.fold_show": "Die {n} nicht gesetzten Eingänge anzeigen",
+    "setup.fold_hide": "Die {n} nicht gesetzten Eingänge ausblenden",
+    "setup.configure": "Konfigurieren",
+    "setup.configure_page": "Konfigurieren: {page}",
+    "setup.configure_dest": "„Konfigurieren“ öffnet diese Integration unter Einstellungen → Geräte & Dienste. Home Assistant hat keinen Link direkt auf eine Optionsseite, wähle dort daher Konfigurieren → {advanced} → die auf der Schaltfläche genannte Seite.",
+    "setup.page_advanced": "Erweiterte Einstellungen",
+    "setup.type_outside": "Außenluft",
+    "setup.type_heat_source": "Wärmequelle",
+    "setup.type_valve": "Mischventil",
+    "setup.type_store": "Wärmespeicher",
+    "setup.type_hot_water": "Warmwasserspeicher",
+    "setup.type_coil": "Wärmespeicher mit Warmwasser-Wendel",
+    "setup.type_coil_off": "Wärmespeicher mit nicht modellierter Warmwasser-Wendel",
+    "setup.type_radiator": "Heizkörperkreis",
+    "setup.type_slab": "Fußbodenheizungskreis (Estrich)",
+    "setup.page_entities": "Sensoren und Entitäten",
+    "setup.page_entities_pump": "Wärmepumpen-Telemetrie",
+    "setup.page_building": "Heizsystem und Wärmespeicherung",
+    "setup.page_hot_water_tank": "Warmwasserspeicher und Zulauf",
+    "setup.picker_aria": "Entität für {slot}",
+    "setup.picker_none": "(nicht konfiguriert)",
+    "setup.assign": "Zuweisen",
+    "setup.cancel": "Abbrechen",
+    "setup.picker_count": "{n} passende {domains}-Entitäten.",
+    "setup.picker_filter_placeholder": "Tippen, um die Liste einzugrenzen …",
+    "setup.picker_filter_aria": "Entitäten für {slot} filtern",
+    "setup.picker_showing": "{n} von {total} angezeigt – tippe, um einzugrenzen.",
+    "setup.picker_no_match": "Nichts passt zu „{q}“.",
+    "setup.picker_missing": "derzeit nicht verfügbar",
+    "setup.confirm_clear": "Bestätigen: diesen Sensor löschen",
+    "setup.confirm_clear_hint": "Dies entfernt {entity} aus „{label}“ und lädt die Integration neu. Drücke zum Bestätigen erneut auf Zuweisen.",
+    "setup.assigned_reloading": "{entity} zugewiesen. Wird neu geladen …",
+    "setup.cleared_reloading": "Gelöscht. Wird neu geladen …",
+    "setup.manual_setpoint": "Manueller Sollwert (°C)",
+    "setup.manual_setpoint_aria": "Manueller Ventil-Sollwert in Grad Celsius",
+    "setup.manual_setpoint_hint": "Wird verwendet, wenn kein Zielsensor zugewiesen ist. 0 verwendet die Obergrenze des Komfortbereichs.",
+    "setup.setpoint_reloading": "Sollwert {n} °C. Wird neu geladen …",
+    "errors.not_connected": "Nicht mit Home Assistant verbunden.",
+    "errors.invalid_window_time": "Das Warmwasser-Zeitfenster „{window}“ ist keine gültige Zeit.",
+    "errors.day_start_equals_end": "Der Heiztag beginnt und endet zur selben Stunde, sodass es gar keine Komfortzeit gäbe.",
+    "errors.could_not_apply": "Anwenden nicht möglich: {err}",
+    "errors.could_not_clear": "Aufheben nicht möglich: {err}",
+    "errors.could_not_save": "Speichern nicht möglich: {err}",
+    "errors.could_not_simulate": "Simulieren nicht möglich: {err}",
+    "errors.no_answer": "Keine Antwort vom Optimierer.",
+    "errors.could_not_save_layout": "Aufbau konnte nicht gespeichert werden: {err}",
+    "errors.could_not_assign": "Zuweisen nicht möglich: {err}",
+    "errors.diag_space": "Raumheizung",
+    "errors.diag_dhw": "Warmwasser",
+    "errors.no_plan_data": "Noch keine Plandaten verfügbar.",
+    "errors.diag_not_found": "{label}: keine Entität gefunden. Gesucht wurde <code>{id}</code>. Prüfe die Entitäts-ID unter Entwicklerwerkzeuge &gt; Zustände und setze <code>{kind}_entity</code> in der Kartenkonfiguration.",
+    "errors.diag_unavailable": "{label}: <code>{id}</code> ist {state}.",
+    "errors.diag_no_forecast": "{label}: <code>{id}</code> hat noch kein Prognose-Attribut. Es erscheint nach dem ersten Optimierungslauf.",
+    "errors.diag_empty_forecast": "{label}: <code>{id}</code> hat eine leere Prognose veröffentlicht.",
+    "errors.diag_out_of_window": "{label}: <code>{id}</code> hat {n} Punkte, aber keiner liegt im gewählten Zeitfenster.",
+    "errors.cfg_not_object": "heatpump-optimizer-card: Konfiguration muss ein Objekt sein",
+    "errors.cfg_space_entity": "heatpump-optimizer-card: 'space_entity' muss eine Entitäts-ID als Zeichenkette sein",
+    "errors.cfg_dhw_entity": "heatpump-optimizer-card: 'dhw_entity' muss eine Entitäts-ID als Zeichenkette sein",
+    "errors.cfg_solar_entity": "heatpump-optimizer-card: 'solar_entity' muss eine Entitäts-ID als Zeichenkette sein",
+    "errors.cfg_what_if": "heatpump-optimizer-card: 'what_if' muss true oder false sein",
+    "errors.cfg_hours": "heatpump-optimizer-card: 'hours' muss eine Zahl zwischen 1 und 168 sein",
+    "errors.cfg_title": "heatpump-optimizer-card: 'title' muss eine Zeichenkette sein",
+    "errors.cfg_series": "heatpump-optimizer-card: 'series' muss eine Map sein",
+    "errors.cfg_series_unknown": "heatpump-optimizer-card: unbekannte Serie '{k}' in 'series'",
+    "errors.cfg_series_visibility": "heatpump-optimizer-card: Sichtbarkeit der Serie '{k}' muss true oder false sein",
+    "errors.cfg_show_stats": "heatpump-optimizer-card: 'show_stats' muss true oder false sein",
+    "headline.savings": "Voraussichtliche Einsparung",
+    "headline.savings_title": "Geschätzte Einsparung des aktuellen Plans gegenüber unoptimiertem Heizen.",
+    "headline.savings_caveat": "ggü. unoptimiertem Heizen",
+    "headline.score": "Optimierungswert",
+    "headline.score_title": "Wie gut die gesamte Anlage eingerichtet ist und läuft, 0–100.",
+    "headline.score_click_hint": "Klicken, um zu sehen, woraus sich der Wert zusammensetzt.",
+    "score.part_overall": "Der Durchschnitt aller unten stehenden Werte, für die Belege vorliegen. Kein eigener Wert.",
+    "score.part_envelope": "Haus: der Wärmeverlust der Gebäudehülle in W/K, um die thermische Masse korrigiert, im Vergleich zu dem, was für den konfigurierten Haustyp und das Baujahr typisch ist. 50 ist typisch für diesen Typ und dieses Baujahr; darüber ist dichter, darunter undichter. Nie 0 – das gibt es nur bei fehlenden Daten.",
+    "score.part_machine": "Wärmepumpe: die gemessene Leistungszahl (COP) – abgegebene Wärme pro kWh Strom – in jedem 3-°C-Außentemperaturband im Vergleich zur eigenen Historie der Wärmepumpe in diesem Band. 100 bedeutet Übereinstimmung mit der Historie; jeder Punkt darunter ist ein anhaltendes COP-Defizit (siehe die COP-Zustandsdiagnose). Ein Band wird überwacht, sobald es 20 Messwerte enthält; noch keine Note heißt, dass kein Band so weit ist – keine Null.",
+    "score.part_operation": "Betrieb: ob der Plan in den günstigen Stunden einkauft. Die Energie jedes Tages wird mit dem flachen Mittel-Spotpreis dieses Tages verglichen – 20 % unter dem Flachpreis einzukaufen ergibt 100, auf oder über dem Flachpreis 0 – und die Note mittelt die letzten Tage. Keine Note heißt, dass noch kein bepreister Tag bewertet wurde – keine Null.",
+    "score.no_evidence": "Noch keine Belege – keine Null.",
+    "score.reason_no_house_model": "Kein Hausmodell: thermische Masse oder Wärmeverlust ist nicht konfiguriert.",
+    "score.reason_heat_loss_learning": "Der Wärmeverlust des Hauses wird noch gelernt.",
+    "score.reason_heat_loss_refit_disagrees": "Der gelernte Wärmeverlust weicht von den letzten Tagen ab; eine Neuanpassung steht zur Verfügung.",
+    "score.reason_cop_watch_learning": "Noch nicht genug COP-Daten, um die Wärmepumpe zu überwachen.",
+    "score.reason_no_scored_day": "Warten auf den ersten bewerteten Tag.",
+    "score.reason_free_price_reset": "Zurückgesetzt nach einer Reihe von Tagen mit kostenlosem Strom; warten auf einen bepreisten Tag.",
+    "score.reason_first_scored_day": "Warten auf den ersten bewerteten Tag.",
+    "score.label_envelope": "Haus",
+    "score.driver_loss_vs_typical": "konfigurierter Wärmeverlust im Vergleich zum Typischen für Typ und Baujahr",
+    "score.driver_learned_heat_loss": "gelernter Wärmeverlust im Vergleich zum konfigurierten",
+    "score.driver_thermal_mass": "Korrektur der thermischen Masse",
+    "score.driver_typical": "typisch für Typ und Baujahr",
+    "score.driver_cop_shortfall": "COP unter der eigenen Historie",
+    "score.driver_cheap_hours": "Energie unter dem Tagesmittelpreis eingekauft",
+    "score.driver_dear_hours": "Energie über dem Tagesmittelpreis eingekauft",
+    "score.driver_earlier_days": "Tage, die bewertet wurden, bevor diese Einflussgrößen erfasst wurden",
+    "score.driver_typical_machine": "entspricht der eigenen COP-Historie",
+    "score.driver_typical_operation": "zum flachen Tagesmittelpreis eingekauft",
+    "score.evidence_bands": "Messwerte pro Außentemperaturband, {required} nötig: {bands}",
+    "score.evidence_band": "{lo} bis {hi} °C: {n} Messwerte",
+    "score.evidence_band_dhw": "{lo} bis {hi} °C Warmwasser: {n} Messwerte",
+    "score.evidence_empty": "noch keine COP-Messwerte",
+    "score.evidence_frozen": "{n} abgelehnt, während das Lernen eingefroren war",
+    "score.label_machine": "Wärmepumpe",
+    "score.label_operation": "Betrieb",
+    "headline.savings_pct": "({pct} %)",
+    "whynow.title": "Warum jetzt",
+    "whynow.metric":
+      "Die Gründe, die den Plan dieser Stunde bestimmen. Jede Zeile ist ein Grund: Der Pfeil zeigt, ob er die Wärmepumpe zum Laufen oder zum Pausieren drängt, und der Prozentwert ist sein Anteil am gesamten Einfluss in dieser Stunde. Ein hoher Anteil bedeutet, dass dieser Grund am stärksten drängt; der Plan wägt alle Stunden des Tages gegeneinander ab, daher kann die Wärmepumpe in dieser Stunde trotzdem das Gegenteil tun. Keine Daten bedeutet, dass der Optimierer für diese Stunde noch keinen Plan hat, zum Beispiel vor der ersten Berechnung oder solange die Preisprognose fehlt.",
+    "whynow.no_data": "Keine Daten",
+    "whynow.all_neutral": "Derzeit wirkt kein Grund.",
+    "whynow.dir_run": "drängt zum Laufen",
+    "whynow.dir_idle": "drängt zum Pausieren",
+    "whynow.dir_neutral": "derzeit ohne Einfluss",
+    "whynow.weight": "{sign}{w} %",
+    "whynow.driver_price_rank": "Preisrang",
+    "whynow.explain_price_rank":
+      "Wie günstig dieses Zeitfenster im Vergleich zum Rest des Plans ist: Das günstigste Zeitfenster drängt voll zum Laufen, das teuerste zum Pausieren.",
+    "whynow.driver_comfort_floor": "Komfortuntergrenze",
+    "whynow.explain_comfort_floor":
+      "Wie weit der Raum von der Mitte seines Komfortbereichs entfernt ist, oberhalb der Komfortuntergrenze: Unterhalb der Mitte drängt es zum Laufen, darüber zum Pausieren.",
+    "whynow.driver_mold_guard": "Schimmelschutz",
+    "whynow.explain_mold_guard":
+      "Wie weit der Schimmelschutz die niedrigste zulässige Temperatur in diesem Zeitfenster über das Komfortminimum anhebt; er drängt immer nur zum Laufen.",
+    "whynow.driver_away": "Abwesenheit",
+    "whynow.explain_away":
+      "Wie weit der Abwesenheitsmodus oder das Feiertagsprofil die niedrigste zulässige Temperatur absenkt; er drängt immer nur zum Pausieren.",
+    "whynow.driver_forecast": "Prognose",
+    "whynow.explain_forecast":
+      "Das Wetter dieses Zeitfensters im Vergleich zu den nächsten 8 Stunden: Kälter, windiger oder nasser in Zukunft drängt jetzt zum Laufen, mehr Sonne in Zukunft zum Pausieren.",
+    "tiles.price_now": "Preis jetzt",
+    "tiles.planned": "Geplante Heizung",
+    "tiles.planned_title": "Strom, den der aktuelle Plan über seinen Horizont zum Heizen verbraucht.",
+    "tiles.cost": "Plankosten",
+    "tiles.cost_title": "Was der Strom des aktuellen Plans über seinen Horizont kostet.",
+    "tiles.indoor": "Innen",
+    "status.heating": "Heizt gerade",
+    "status.idle": "Leerlauf",
+    "status.stale": "Plan veraltet",
+    "status.stale_title": "Seit mehr als {minutes} min kein neuer Plan. Im Automatik- und Sparmodus läuft die Wärmepumpe auf ihrer eigenen Kurve, bis eine Berechnung gelingt.",
+    "status.fallback": "Rückfall: eigene Kurve der Wärmepumpe",
+    "status.fallback_title": "Die Integration hat noch keinen Plan, daher läuft die Wärmepumpe auf ihrer eigenen Kurve.",
+    "status.manual": "Manueller Plan bis {time}",
+    "status.manual_open": "Manueller Plan",
+    "slots.slot_aria": "{lane} {start}–{end}. Eingabe für Aktionen, Entf zum Entfernen.",
+    "slots.lane_aria": "Spur {lane}. Eingabe drücken, um einen Slot hinzuzufügen.",
+    "editor.title": "Titel",
+    "editor.space_entity": "Plan-Sensor Raumheizung",
+    "editor.dhw_entity": "Plan-Sensor Warmwasser",
+    "editor.solar_entity": "Sensor Sonneneinstrahlung",
+    "editor.hours": "Anzuzeigende Stunden",
+    "editor.what_if": "Zeitplan-Editor anzeigen",
+    "editor.show_stats": "Kennzahlen im Kopfbereich anzeigen",
+    "editor.currency": "Währung",
+    "editor.series": "Standardmäßig angezeigte Serien",
+  },
 };
 
 // The active language. Module-level rather than per-instance because Home
@@ -1755,7 +2456,7 @@ const STRINGS = {
 // outside the class (fmtExpiry, edgeLabel) need it too.
 let ACTIVE_LANG = "en";
 
-/** "sv-SE" -> "sv"; anything without a dictionary falls back to English. */
+/** "sv-SE" -> "sv", "de-AT" -> "de"; anything without a dictionary falls back to English. */
 function setLanguage(raw) {
   const code = String(raw || "en").toLowerCase().split(/[-_]/)[0];
   ACTIVE_LANG = STRINGS[code] ? code : "en";
@@ -8939,13 +9640,19 @@ function scoreParts(plan) {
  * none to show; an unknown code is skipped rather than shown raw. */
 function scoreDrivers(part, drivers) {
   if (part !== "envelope" && !Array.isArray(drivers)) return "";
-  const shown = (Array.isArray(drivers) ? drivers : [])
-    .filter((d) => STRINGS.en[`score.driver_${d.code}`] !== undefined)
+  const shown = knownCodes(drivers, "score.driver_")
     .map((d) => ({ code: d.code, pts: Math.round(Number(d.points) || 0) }))
     .filter((d) => d.pts !== 0)
     .map((d) => `${L(`score.driver_${d.code}`)} ${d.pts > 0 ? "+" : "−"}${Math.abs(d.pts)}`);
   return shown.length ? shown.join("; ")
     : L(part === "envelope" ? "score.driver_typical" : `score.driver_typical_${part}`);
+}
+
+/** The entries of a published code list the card has words for under
+ * `prefix`; an unknown code is skipped rather than shown raw. Shared by the
+ * score's drivers and the why-now block. */
+function knownCodes(list, prefix) {
+  return (Array.isArray(list) ? list : []).filter((d) => STRINGS.en[`${prefix}${d.code}`] !== undefined);
 }
 
 /** What an ungraded heat pump waits on (`machine_evidence`): the four
@@ -8978,23 +9685,59 @@ function scoreReasonText(code) {
  */
 function scoreBreakdownHtml(plan) {
   const rows = scoreParts(plan)
-    .map((p) => {
-      const value =
-        p.value === null
-          ? `<span class="sb-na">— ${esc(p.reason)}</span>`
-          : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
-      const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
-      return (
-        `<div class="sb-row" data-part="${p.key}" title="${esc(scoreRowTitle(p))}">` +
-        `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
-        `${bar}${value}</div>` +
-        (p.drivers ? `<div class="sb-text sb-drivers">${esc(p.drivers)}</div>` : "") +
-        `<div class="sb-text">${esc(L(`score.part_${p.key}`))}</div>` +
-        `</div>`
-      );
-    })
+    .map((p) => breakdownRow({
+      key: p.key,
+      label: p.label,
+      valueText: p.value === null ? `— ${p.reason}` : `${Math.round(p.value)}/100`,
+      muted: p.value === null,
+      barPct: p.value,
+      sub: [["sb-text sb-drivers", p.drivers], ["sb-text", L(`score.part_${p.key}`)]],
+      title: scoreRowTitle(p),
+    }))
     .join("");
   return `<div class="score-breakdown">${rows}</div>`;
+}
+
+/** One breakdown row, shared by the score panel and the why-now block: a
+ * name, an optional 0-100 bar, a value (muted when it is a reason rather
+ * than a figure), each non-empty `[class, text]` sub-line, and a hover. */
+function breakdownRow({ key, label, valueText, muted = false, barPct = null, sub = [], title }) {
+  const bar = barPct === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, barPct))}%"></span></span>`;
+  return (
+    `<div class="sb-row" data-part="${key}" title="${esc(title)}">` +
+    `<div class="sb-head"><span class="sb-name">${esc(label)}</span>` +
+    `${bar}<span class="${muted ? "sb-na" : "sb-val"}">${esc(valueText)}</span></div>` +
+    sub.filter(([, text]) => text).map(([cls, text]) => `<div class="${cls}">${esc(text)}</div>`).join("") +
+    `</div>`
+  );
+}
+
+/** The "Why now" block (R10-WHY-NOW-WIDGET): the current step's drivers as
+ * the space-plan sensor publishes them in `why_now`, one row each with its
+ * direction mark and signed share of the push; one line when every driver
+ * is neutral, the no-data line when the attribute is absent. Derives
+ * nothing: the weights and directions are the solver's. */
+function whyNowHtml(plan) {
+  const why = plan.attrRaw("why_now", null);
+  const drivers = knownCodes(why && why.drivers, "whynow.driver_");
+  const mark = { run: "↑", idle: "↓" };
+  const rows = !drivers.length
+    ? `<div class="sb-text">${esc(L("whynow.no_data"))}</div>`
+    : drivers.every((d) => d.direction === "neutral")
+      ? `<div class="sb-text">${esc(L("whynow.all_neutral"))}</div>`
+      : drivers.map((d) => {
+        const w = Math.round(Number(d.weight) || 0);
+        const label = L(`whynow.driver_${d.code}`);
+        const valueText = `${mark[d.direction] || "·"} ${L("whynow.weight", { sign: w > 0 ? "+" : w < 0 ? "−" : "", w: Math.abs(w) })}`;
+        const dir = L(`whynow.dir_${mark[d.direction] ? d.direction : "neutral"}`);
+        return breakdownRow({
+          key: d.code, label, valueText, muted: d.direction === "neutral",
+          barPct: Math.abs(w), sub: [["sb-text", dir]],
+          title: `${label}: ${dir}, ${valueText}\n${L(`whynow.explain_${d.code}`)}\n${L("whynow.metric")}`,
+        });
+      }).join("");
+  return `<div class="score-breakdown why-now" data-block="why-now" title="${esc(L("whynow.metric"))}">` +
+    `<div class="sb-head"><span class="sb-name">${esc(L("whynow.title"))}</span></div>${rows}</div>`;
 }
 
 /** One sub-score's hover: its grade or reason, its drivers or what it
@@ -9144,6 +9887,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
       ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
       ${scoreOpen && score !== null ? scoreBreakdownHtml(plan) : ""}
       ${rows ? `<ul class="hl-narrative">${rows}</ul>` : ""}
+      ${whyNowHtml(plan)}
     </div>`;
 }
 
@@ -9922,7 +10666,7 @@ const RECEIPT_CSS = `
 const finiteNum = (n) => typeof n === "number" && Number.isFinite(n);
 
 /** The latest receipt's lines, its total and where its spot money went. */
-function receiptHtml(st, rows, cur) {
+function receiptHtml(st, rows, cur, wood) {
   const list = Array.isArray(st.attributes.receipts) ? st.attributes.receipts : [];
   const r = list.length ? list[list.length - 1] : null;
   if (!r || !r.lines || typeof r.lines !== "object") return "";
@@ -9948,8 +10692,12 @@ function receiptHtml(st, rows, cur) {
     ? `<div>${esc(L("receipt.saved", {
         amount: row.savings_sek.toFixed(2), unit: cur,
         pct: finiteNum(row.savings_pct) ? `${row.savings_pct.toFixed(0)} %` : "—",
-      }))}</div>`
-    : "";
+      }))}</div>${wood
+        ? `<div class="receipt-sub receipt-wood-note">${esc(L("savings.wood_note"))}</div>`
+        : ""}`
+    : row && row.below_meter_floor
+      ? `<div class="receipt-sub receipt-floor-note">${esc(L("savings.meter_floor_note"))}</div>`
+      : "";
   const covers = basis.map((n) => L(`receipt.line_${n}`).toLowerCase()).join(", ");
   const reasons = Object.entries(r.reasons || {})
     .filter(([, e]) => e && finiteNum(e.sek) && e.sek > 0)
@@ -14925,7 +15673,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const cur = savingsUnit(this.plan, "_plan_monthly_savings");
     // R9-UX-6: the closed month's receipt and yesterday's replay come first;
     // the table of every month below them is unchanged.
-    const drawn = `${receiptHtml(st, rows, cur)}${replayHtml(st, cur)}`;
+    // The reference has no wood: on a house with wood configured every saving
+    // the page states, the receipt's and the table's, says so (owner ruling,
+    // 2026-11-04).
+    const fuel = this.plan.woodFuel();
+    const wood = !!(fuel && fuel.show_whatif);
+    const drawn = `${receiptHtml(st, rows, cur, wood)}${replayHtml(st, cur)}`;
     const top = drawn ? `<style>${RECEIPT_CSS}</style>${drawn}` : "";
     const money = (n) => (finiteNum(n) ? n.toFixed(2) : "—");
     const pct = (n) => (finiteNum(n) ? `${n.toFixed(0)}%` : "—");
@@ -14947,8 +15700,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const old = row.old_basis
         ? ` <span class="savings-est savings-old">${esc(L("savings.old_basis"))}</span>`
         : "";
+      const floor = row.below_meter_floor
+        ? ` <span class="savings-est savings-floor">${esc(L("savings.below_meter_floor"))}</span>`
+        : "";
       return `<tr class="${row.estimated ? "estimated" : ""}">
-        <td>${esc(String(row.month || ""))}${est}${old}</td>
+        <td>${esc(String(row.month || ""))}${est}${old}${floor}</td>
         <td class="num">${money(row.baseline_sek)}</td>
         <td class="num">${money(row.actual_sek)}</td>
         <td class="num">${mag(row.savings_sek)}<span class="sv-val">${money(row.savings_sek)}</span></td>
@@ -14959,9 +15715,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // the same unit down the whole column, and repeating it is what pushed
     // the decimal points out of line.
     const head = (key) => `${esc(L(key))} (${esc(cur)})`;
-    const fuel = this.plan.woodFuel();
-    const woodNote = fuel && fuel.show_whatif
+    const woodNote = wood
       ? `<div class="savings-wood-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.wood_note"))}</div>`
+      : "";
+    // R10-SAV-METER-FLOOR: a month withheld under the meter floor says why.
+    const floorNote = rows.some((r) => r && r.below_meter_floor)
+      ? `<div class="savings-floor-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.meter_floor_note"))}</div>`
       : "";
     return `${top}<table class="savings-table">
       <thead><tr>
@@ -14972,7 +15731,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         <th class="num">${esc(L("savings.col_pct"))}</th>
       </tr></thead>
       <tbody>${rows.map(tr).join("")}</tbody>
-    </table>${woodNote}`;
+    </table>${woodNote}${floorNote}`;
   }
 
   // The sensor advisor page's renderer and wiring live at module level

@@ -4,7 +4,7 @@ You review one fix PR adversarially, fresh, from a worktree at
 the PR's head SHA. You check that the numbers are real, not that the code looks right.
 **Its copy of this contract is frozen with the tree, so can be old**; start from the dispatch's `review-packet:`, whose check digest is as rendered: re-read live checks before a verdict.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
-Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then your brief's `bus-nonce: <nonce>`. It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
+Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. Evidence names differ beyond case. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then your brief's `bus-nonce: <nonce>`. It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
 Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between rounds through refs, never mid-review, by ~150 k tokens.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
@@ -42,10 +42,13 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     carry at the body's `handoff/audit-r<N>-roster` SHA) and confirm it states
     its control as a precondition (`finding-propagation.md`). One only
     in this PR's comments is `blocked <sha> carry-missing: not carried to <stage>`.
+    An own-group `Carry:` naming neither `fixer.md` exception is
+    `blocked <sha> carry-missing: own-group`.
 11. **A red check owes an answer** (`defect-root-cause.md`'s second
     trigger). Read the PR's own checks (`get_check_runs`, or
     the commit's `check-runs` API), not the body's account, and never a
-    listing that shows one run per check. For each gate check that went red,
+    listing that shows one run per check. For each required check that went red
+    (`defect-root-cause.md`'s Enforcement),
     the body names it and answers: the cheaper detector with its standing cost,
     or the finding that none exists. Both pass; silence is
     `blocked <sha> root-cause-detectable: <check>` where a cheaper detector
@@ -58,9 +61,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     refuses, wait or hand back unverdicted, saying so.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
-    **A red `nightly-status` or `delivery-status` is not this pull request's**
-    unless its diff reaches what they read (`defect-root-cause.md`); deleting a
-    merged row turns `delivery-status` OVERDUE.
+    **A red `nightly-status` or `delivery-status` is not this pull request's**:
+    neither is required (`defect-root-cause.md`).
 
     **The head's runs are not the range's** (#1144). The body check prints
     `record`/`skip red-history` for the range; `skip` means every earlier head
@@ -97,9 +99,9 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     git merge-tree --write-tree origin/main <head>
     ```
 
-    A non-zero exit names the conflicting paths. A conflict on any path other
-    than the two claim files is yours to block on, because you cannot know the
-    merged result is correct.
+    A non-zero exit names the conflicting paths. Block on main only on one,
+    never on a head behind main that merges cleanly (tvofi 11-07). A
+    conflict off the two claim files is yours.
 
     **The driver's verdict is in that command's stderr; read it, never infer it
     from the paths.** `merge-tree` invokes the driver once per conflicting claim
@@ -121,10 +123,9 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     mechanism the body names; a movement that survives is not earned:
     `blocked <sha> metric-gamed: <instrument>: <how>`. Then plant the diff's own
     kind of move on the same instrument with nothing improved, and on its
-    neighbouring rules, not only the counter's own re-spelled (#2373). If it reproduces
+    neighbouring rules, not only the counter's own re-spelled. If it reproduces
     the movement, block only where the diff's change is that shape; under a sound
-    change it is an instrument finding, carried by `finding-propagation.md`
-    (#1874, #1867, #1868). On a raise, judge each listed payment and
+    change it is an instrument finding, carried by `finding-propagation.md`. On a raise, judge each listed payment and
     hunt one it missed: one that truly improves the code is `metric-gamed` too.
 15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
     from the architect or approved design note, is `blocked <sha> architecture-unsound: <how>`.
@@ -134,4 +135,3 @@ in the grammar above; one that does not parse is refused. Before you return one,
 
 **Say which round this is**: from the fourth, `fixer.md` owes a re-cut.
 
-A ruling naming a destination stage states it as a `Carry:` marker.

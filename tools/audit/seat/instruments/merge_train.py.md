@@ -77,6 +77,22 @@
   CI judges the new head, and a recarry that reproduces the same red tree
   stops instead of looping. A one-car batch (the #2595 repair car onto a red
   main) cannot move a base, so the grade never fires there.
+  Card 5 (tvofi 2026-11-07, `Train.merges_as_is`): a head that lacks
+  origin/main is recarried only when `main-protect-checks` requires an
+  up-to-date branch (`strict_update`, read live; unreadable counts as
+  required), when git's merge of origin/main and the head conflicts, when the
+  head is a GITHUB_TOKEN tip, or when a graded red holds it; otherwise it is
+  logged `#<pr> no recarry:` and merges at its proven head, its merge tree
+  graded against its merge base at the merge, as the overlap grade does.
+  Card 1 (`Train.rejoin`): under `--skip-bad`, an entry skipped on a head red
+  holding `gate` (`HeadRed`) rejoins the same train after the batch's own
+  merges, through the serial path, once its skipped head classifies GREEN
+  (`classify_at`), with no `add`; RED, a head still WAIT `wait_cap_s` (polls
+  x 305 s, 7320 s at the default) after its skip, or a head the branch moved
+  off stays skipped, each logged `REJOIN #<pr>: ...`; a rejoin that merges
+  is CURED. Residual: the rejoin's wait delays the next spooled batch, never
+  a merge of its own batch. `dev/audit/harnesses/r10_train_rejoin_no_recarry_mutants.py`
+  holds one mutant per arm of both cards.
   `batch` also takes several batches in one queue (a list of lists), run in
   order on one train, each with its own admission, proof and merges; between
   two it drains what `train.sh add` spooled into one more batch, never into a
@@ -113,7 +129,16 @@
   judged on the latest run of each required context (`main-protect-checks`,
   read live; `record`, `record-autofix`, `nightly-status` and
   `delivery-status` never count): a queued or in-progress run is a wait,
-  never red, and an unreadable ruleset refuses. `--overlap` logs main RED,
+  never red, and an unreadable ruleset refuses. A red `gate` in a head wait
+  is a wait while `tools/ci/gate.py`'s own `busy` (imported) names a ci.yml
+  run at the head, or `gate_rerunning` names one re-running its gate (a run
+  unfinished past its completed `gate`: gate-sweep's attempt 2), read from one
+  runs listing per poll, so an edit run's
+  at-once deferral red is not read final while its code run runs; a red
+  beside a green `gate` suite gets one settle poll for gate-sweep's re-run,
+  and an unreadable listing leaves the red standing, logged
+  (R10-HOTFIX-TRAIN-DEFER-WAIT). `polls` still bounds the wait (TIMEOUT); `wait-ci
+  <sha>` (no `only`) takes the same settle once every run concluded. `--overlap` logs main RED,
   or still running, by that rule. Before a merge attempt a check-run still
   queued or in progress over a completed workflow run is stale: its run is
   re-run once, logged `STALE <context> ... run <id>` (a third recurrence goes
@@ -121,7 +146,13 @@
   `classify <sha>` prints GREEN (rc 0), RED (rc 1) or WAIT (rc 3) over a pull
   request's required contexts (`--main`: less the PR-only ones), rc 2 when
   unreadable — a head is reviewable unless RED, which `bus.sh dispatch`
-  enforces. `--pr N` asks `approval_owed(train, pr, head, runs, required)`, the one
+  enforces. Its one read goes through `Train.classify_at`: a red `gate` while
+  gate.py's `busy` or `gate_rerunning` names a ci.yml run at the head is
+  WAIT, and so is one beside a green `gate` suite completed at most
+  `SWEEP_SETTLE_SECONDS` before the read (`sweep_settling`, the poller's one
+  settle poll on the wall clock: none of the one-read callers re-reads a RED);
+  past the bound, or on a stamp ahead of the clock, the red stands. Its
+  deferral log goes to stderr. `--pr N` asks `approval_owed(train, pr, head, runs, required)`, the one
   owner of a budget raise's pre-approval red (P345): when the red set over
   `gating_names` is `gate` and `budget-raise-gate / budget-raise-gate` alone,
   every red gate suite's own log (`gate_raise_only`, through `gate_outcome`)

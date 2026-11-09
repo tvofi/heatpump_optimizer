@@ -81,7 +81,7 @@ def render(roster: dict, source: str, prs: list, traps: str) -> str:
     ready = []
     for g, gr in open_.items():
         deps = gr.get("after") or []
-        if all(a not in open_ for a in deps):
+        if not any(roster_lib.gates(G[a]) for a in deps if a in G):
             ready.append((depth[g], g, len(deps)))
     L += ["", "## Ready next", "",
           "Open groups whose after-edges are all done (or absent); "
@@ -237,6 +237,9 @@ def _self_test() -> int:
 
     import shutil
     shutil.rmtree(d, ignore_errors=True)
+    rc, refused, tb = roster_lib.missing_ref_probe(__file__)
+    check("a missing roster ref is one REFUSED line, rc 2, no traceback",
+          rc == 2 and refused == 1 and not tb, (rc, refused, tb))
     print(f"resume_doc self-test: {n_checks[0]} checks, {len(failed)} failed")
     for f in failed:
         print("FAIL", f)
@@ -244,4 +247,4 @@ def _self_test() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(roster_lib.run_refusing("resume_doc", main))
