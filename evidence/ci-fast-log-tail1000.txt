@@ -1,0 +1,1000 @@
+2026-11-09T18:51:33.3032093Z   ok    and it is the tank's own single chip that says so, not a second one
+2026-11-09T18:51:33.3032218Z   ok    the explanation is a row of its own, not text inside the chip
+2026-11-09T18:51:33.3032316Z   ok    and it names the pair once, not once per edge
+2026-11-09T18:51:33.3032462Z   ok    with the high edge absent the card draws no band at all, not half of one
+2026-11-09T18:51:33.3034893Z   ok    and offers no expected-error chip for a band it is not drawing
+2026-11-09T18:51:33.3034988Z   ok    and the tank curve itself is untouched
+2026-11-09T18:51:33.3035129Z   ok    with the low edge absent the card draws no band at all, not half of one
+2026-11-09T18:51:33.3035254Z   ok    and offers no expected-error chip for a band it is not drawing
+2026-11-09T18:51:33.3035343Z   ok    and the tank curve itself is untouched
+2026-11-09T18:51:33.3035502Z   ok    with the high edge null throughout the card draws no band at all, not half of one
+2026-11-09T18:51:33.3035625Z   ok    and offers no expected-error chip for a band it is not drawing
+2026-11-09T18:51:33.3035714Z   ok    and the tank curve itself is untouched
+2026-11-09T18:51:33.3035866Z   ok    with the low edge null throughout the card draws no band at all, not half of one
+2026-11-09T18:51:33.3035991Z   ok    and offers no expected-error chip for a band it is not drawing
+2026-11-09T18:51:33.3036081Z   ok    and the tank curve itself is untouched
+2026-11-09T18:51:33.3036181Z   ok    turning the tank series off takes its band with it
+2026-11-09T18:51:33.3036313Z   ok    while the room's own traces are untouched -- one chip, one series
+2026-11-09T18:51:33.3036438Z   ok    and the chip count is unchanged: the room keeps its own chips
+2026-11-09T18:51:33.3036560Z   ok    and turning it back on restores the curve and both band edges
+2026-11-09T18:51:33.3036785Z   ok    a hidden tank series contributes no band row to the tooltip either
+2026-11-09T18:51:33.3036899Z   ok    the band is ONE named trace, however many paths draw it
+2026-11-09T18:51:33.3037005Z   ok    and it stays one when a hole splits both edges in two
+2026-11-09T18:51:33.3037120Z   ok    neither edge ever answers to the tank curve's own name
+2026-11-09T18:51:33.3037242Z   ok    while the room's two floors stay two separately named traces
+2026-11-09T18:51:33.3037451Z   ok    and a series with no band is unaffected by any of it
+2026-11-09T18:51:33.3037607Z   ok    the explanation is fetched per trace too, so a one-chip legend can reach it
+2026-11-09T18:51:33.3037691Z   ok    the band is named in Swedish too
+2026-11-09T18:51:33.3037783Z   ok    the Swedish legend explains the dashed pair
+2026-11-09T18:51:33.3037896Z   ok    and no English band string leaks into the Swedish render
+2026-11-09T18:51:33.3038045Z   ok    overlayDhwDisplay is the display-layer overlay
+2026-11-09T18:51:33.3038162Z   ok    with no probe the published centres and edges are unchanged
+2026-11-09T18:51:33.3038247Z   ok    and the input forecast is not mutated
+2026-11-09T18:51:33.3038383Z   ok    a live probe replaces the first displayed centre and omits the band
+2026-11-09T18:51:33.3038531Z   ok    later published centres stay on the live overlay when there is no clip
+2026-11-09T18:51:33.3038694Z   ok    a stale now prepends a display-only probe sample and leaves the first plan step
+2026-11-09T18:51:33.3038800Z   ok    an unavailable probe does not invent a tank sample
+2026-11-09T18:51:33.3038932Z   ok    an in-window heating step floors displayed lo at the window minimum
+2026-11-09T18:51:33.3039053Z   ok    idle-in-window is clipped too, not only reason==dhw_window
+2026-11-09T18:51:33.3039156Z   ok    a step outside the windows keeps its published lo
+2026-11-09T18:51:33.3039276Z   ok    a centre below the window minimum is not inverted by the clip
+2026-11-09T18:51:33.3039357Z   ok    empty windows do not clip
+2026-11-09T18:51:33.3039465Z   ok    the clip does not put a band back on the probe sample
+2026-11-09T18:51:33.3039575Z   ok    a Saturday hour inside the weekend window is clipped
+2026-11-09T18:51:33.3039691Z   ok    a Saturday hour inside the weekday window is not clipped
+2026-11-09T18:51:33.3039822Z   ok    a full-day window clips the whole horizon
+2026-11-09T18:51:33.3039995Z   ok    collapse-after-heat is not applied: later published σ stays
+2026-11-09T18:51:33.3040154Z   ok    without a tank sensor the first plotted sample is the published first point
+2026-11-09T18:51:33.3040277Z   ok    with a live tank sensor the first displayed sample is the probe
+2026-11-09T18:51:33.3040371Z   ok    and that probe sample has no dashed extras
+2026-11-09T18:51:33.3040488Z   ok    the tooltip at the probe sample has no expected-error row
+2026-11-09T18:51:33.3040600Z   ok    the published HA forecast is not rewritten by the overlay
+2026-11-09T18:51:33.3040750Z   ok    an unavailable tank sensor leaves the published first point on the chart
+2026-11-09T18:51:33.3040888Z   ok    an unknown tank sensor leaves the published first point on the chart
+2026-11-09T18:51:33.3041021Z   ok    the card floors every in-window plotted lo at the window minimum
+2026-11-09T18:51:33.3041149Z   ok    and a step outside the windows keeps its published lo on the card
+2026-11-09T18:51:33.3041261Z   ok    the floored-band legend names the window-minimum floor
+2026-11-09T18:51:33.3041384Z   ok    the plan-tab band floors the hours the RESOLVED schedule names
+2026-11-09T18:51:33.3041518Z   ok    and hours only the CONFIGURED schedule names keep their published lo
+2026-11-09T18:51:33.3041636Z   ok    the what-if editor still pre-fills from the configured spec
+2026-11-09T18:51:33.3041750Z   ok    the editor seeds one window from the published schedule
+2026-11-09T18:51:33.3041843Z   ok    a 20:00-24:00 household reaches simulate_plan
+2026-11-09T18:51:33.3041964Z   ok    and the panel does not call the house's own schedule invalid
+2026-11-09T18:51:33.3042078Z   ok    and the window it prices is still the one the house runs
+2026-11-09T18:51:33.3042178Z   ok    a genuinely malformed window still stops the run
+2026-11-09T18:51:33.3042273Z   ok    and the error names the window that is wrong
+2026-11-09T18:51:33.3042358Z   ok    without naming the windows that are fine
+2026-11-09T18:51:33.3042473Z   ok    no card leaves a document keydown listener behind at rest
+2026-11-09T18:51:33.3042598Z   ok    an open slot menu parks exactly one document keydown listener
+2026-11-09T18:51:33.3042777Z   ok    a re-render takes the menu's document listener with the menu
+2026-11-09T18:51:33.3042873Z   ok    and leaves no menu state behind on the card
+2026-11-09T18:51:33.3042967Z   ok    five open-and-refresh cycles leak nothing
+2026-11-09T18:51:33.3043056Z   ok    the menu is open before the card goes away
+2026-11-09T18:51:33.3043177Z   ok    disconnecting the card releases the document listener too
+2026-11-09T18:51:33.3043326Z   ok    and the whole page is back to no parked keydown listeners
+2026-11-09T18:51:33.3043426Z   ok    with no plan the card still says there is no plan
+2026-11-09T18:51:33.3043528Z   ok    but it still offers a way in to the setup page
+2026-11-09T18:51:33.3043628Z   ok    expanding before the first solve opens the dialog
+2026-11-09T18:51:33.3043739Z   ok    and it lands on the setup page rather than an empty plan
+2026-11-09T18:51:33.3043839Z   ok    the diagram is drawn from the published topology
+2026-11-09T18:51:33.3043963Z   ok    so an unassigned sensor can be assigned without a plan first
+2026-11-09T18:51:33.3044038Z   ok    the Plan tab is still offered
+2026-11-09T18:51:33.3044175Z   ok    and switching to it explains the absence rather than drawing nothing
+2026-11-09T18:51:33.3044295Z   ok    an install with nothing published still offers no expansion
+2026-11-09T18:51:33.3044419Z   ok    a slot that wants a temperature ranks one above 250 power meters
+2026-11-09T18:51:33.3044515Z   ok    and hides none of the ones it did not ask for
+2026-11-09T18:51:33.3044624Z   ok    an assignment 200 places past the cap is still offered
+2026-11-09T18:51:33.3044735Z   ok    and it is the one and only option the picker comes up on
+2026-11-09T18:51:33.3044843Z   ok    a filter that excludes the assignment does not drop it
+2026-11-09T18:51:33.3044993Z   ok    an assignment that is not a candidate at all is still shown
+2026-11-09T18:51:33.3045108Z   ok    and it is labelled with its raw id, and said to be unavailable
+2026-11-09T18:51:33.3045241Z   ok    and Assign on an untouched picker writes it back, not a clearance
+2026-11-09T18:51:33.3045392Z   ok    the editor pre-fills from the configured spec, not the plan's flat reading
+2026-11-09T18:51:33.3045478Z   ok    every window row carries a day selector
+2026-11-09T18:51:33.3045562Z   ok    with the window's own days selected
+2026-11-09T18:51:33.3045663Z   ok    and the selector is labelled for a screen reader
+2026-11-09T18:51:33.3045794Z   ok    simulating sends the weekly spec back in the integration's grammar
+2026-11-09T18:51:33.3045897Z   ok    a window switched to every day drops its selector
+2026-11-09T18:51:33.3045973Z   ok    a new window applies every day
+2026-11-09T18:51:33.3046076Z   ok    a day list is read as one selector, its comma and all
+2026-11-09T18:51:33.3046162Z   ok    and offered as the row's own option
+2026-11-09T18:51:33.3046301Z   ok    and sent back exactly as configured after a pass through the editors
+2026-11-09T18:51:33.3046381Z   ok    the day sets are named in Swedish too
+2026-11-09T18:51:33.3046527Z   ok    without a published spec the plan's windows still pre-fill the editor
+2026-11-09T18:51:33.3046726Z   ok    an empty spec defers to the learned windows the plan runs on
+2026-11-09T18:51:33.3046806Z   ok    a flat schedule is sent back flat
+2026-11-09T18:51:33.3046907Z   ok    a single-day window pre-fills its own day token
+2026-11-09T18:51:33.3047040Z   ok    the selector offers Monday through Sunday, the day token selected
+2026-11-09T18:51:33.3047146Z   ok    a window switched to a weekday keeps that day's token
+2026-11-09T18:51:33.3047260Z   ok    quietOverlapProblem is the card's overlap predicate
+2026-11-09T18:51:33.3047414Z   ok    an off window overlapping a hot-water window is refused with the overlap named
+2026-11-09T18:51:33.3047553Z   ok    a silent window may overlap a hot-water window; silent and off may not
+2026-11-09T18:51:33.3047668Z   ok    an off window on a disjoint day of a weekly spec is allowed
+2026-11-09T18:51:33.3047781Z   ok    the silent windows list sits under the hot-water windows
+2026-11-09T18:51:33.3047985Z   ok    each silent row is the hot-water row plus an action select
+2026-11-09T18:51:33.3048089Z   ok    the draft splits the two published specs by action
+2026-11-09T18:51:33.3048231Z   ok    a Silent row shows the fraction slider, pre-filled from the plan sensor
+2026-11-09T18:51:33.3048354Z   ok    the fraction-unset note is absent when the fraction is not 1.0
+2026-11-09T18:51:33.3048435Z   ok    a silent window can be added
+2026-11-09T18:51:33.3048555Z   ok    a silent window can be removed
+2026-11-09T18:51:33.3048657Z   ok    simulating sends both quiet specs and the fraction
+2026-11-09T18:51:33.3048760Z   ok    the fraction slider is absent when no row is Silent
+2026-11-09T18:51:33.3048871Z   ok    a Silent row at fraction 1.0 says the fraction is unset
+2026-11-09T18:51:33.3048968Z   ok    a not-enforced silent row says so on the row
+2026-11-09T18:51:33.3049091Z   ok    the not-enforced marker is on the Silent row, not the Off row
+2026-11-09T18:51:33.3049221Z   ok    an off/hot-water overlap is refused on the card before any call
+2026-11-09T18:51:33.3049335Z   ok    a silent/off overlap is refused on the card before any call
+2026-11-09T18:51:33.3049468Z   ok    a silent window overlapping a hot-water window is sent, not refused
+2026-11-09T18:51:33.3049579Z   ok    quietServiceFields sends both specs and the fraction
+2026-11-09T18:51:33.3049696Z   ok    clearing the last silent window sends an empty silent spec
+2026-11-09T18:51:33.3049801Z   ok    clearing every quiet window sends both empty specs
+2026-11-09T18:51:33.3049957Z   ok    an empty quiet schedule is sent explicitly, matching a Python empty-spec write
+2026-11-09T18:51:33.3050074Z   ok    Save sends empty quiet specs so a stored schedule is cleared
+2026-11-09T18:51:33.3050221Z   ok    the silent-window labels are named in Swedish too
+2026-11-09T18:51:33.3050352Z   ok    the chart draws silent and off steps as a band in the power panel
+2026-11-09T18:51:33.3050455Z   ok    the quiet band stays inside the heating-power panel
+2026-11-09T18:51:33.3050606Z   ok    the quiet band's series sit in the power panel for the colour-vision pairs
+2026-11-09T18:51:33.3050696Z   ok    a rendered plan records the lane geometry
+2026-11-09T18:51:33.3050823Z   ok    a render with no plan forgets it, as it forgets the hover geometry
+2026-11-09T18:51:33.3050948Z   ok    a drag parks its handlers on window and arms the edge auto-pan
+2026-11-09T18:51:33.3051048Z   ok    removing the card mid-drag takes them off again
+2026-11-09T18:51:33.3051133Z   ok    a pan parks its handlers on window
+2026-11-09T18:51:33.3051233Z   ok    removing the card mid-pan takes them off again
+2026-11-09T18:51:33.3051310Z   ok    a view change waits on a frame
+2026-11-09T18:51:33.3051403Z   ok    removing the card cancels the pending redraw
+2026-11-09T18:51:33.3051527Z   ok    an unavailable channel has no forecast for the editor either
+2026-11-09T18:51:33.3051609Z   ok    while the other channel still does
+2026-11-09T18:51:33.3051710Z   ok    and Apply omits it instead of pinning stale slots
+2026-11-09T18:51:33.3051882Z   ok    a forecast published as a JSON string reaches the editor as the chart already saw it
+2026-11-09T18:51:33.3051986Z   ok    rendering the setup page keeps no memo of a slot
+2026-11-09T18:51:33.3052097Z   ok    the open picker's slot is the one the topology holds now
+2026-11-09T18:51:33.3052179Z   ok    the picker survives the republish
+2026-11-09T18:51:33.3052336Z   ok    Assign on an untouched picker writes the slot's current entity, not a stale memo
+2026-11-09T18:51:33.3052430Z   ok    the two charts of one render get distinct ids
+2026-11-09T18:51:33.3052529Z   ok    and a second render hands out the same ids again
+2026-11-09T18:51:33.3052673Z   ok    a second card on the page starts from the same ids, not after the first's
+2026-11-09T18:51:33.3052749Z   ok    the page-global counter is gone
+2026-11-09T18:51:33.3052825Z   ok    two chart copies, two geometries
+2026-11-09T18:51:33.3052921Z   ok    and the one the event's chart gets is its own
+2026-11-09T18:51:33.3053143Z   ok    a redraw draws the inline lanes at the inline font and the dialog's at the dialog's
+2026-11-09T18:51:33.3053251Z   ok    the compact copy's margins differ from the dialog's
+2026-11-09T18:51:33.3053357Z   ok    a point on the inline chart maps back to its own time
+2026-11-09T18:51:33.3053473Z   ok    every series colour clears WCAG 1.4.11's 3:1 on a light card
+2026-11-09T18:51:33.3053591Z   ok    every series colour clears WCAG 1.4.11's 3:1 on a dark card
+2026-11-09T18:51:33.3053709Z   ok    the chart draws a 'now' marker at all
+2026-11-09T18:51:33.3053835Z   ok    the 'now' marker clears WCAG 1.4.11's 3:1 on a light card (#558 C1)
+2026-11-09T18:51:33.3053960Z   ok    the 'now' marker clears WCAG 1.4.11's 3:1 on a dark card (#558 C1)
+2026-11-09T18:51:33.3054066Z   ok    the 'now' label clears 4.5:1 on a light card (#558 C1)
+2026-11-09T18:51:33.3054168Z   ok    the 'now' label clears 4.5:1 on a dark card (#558 C1)
+2026-11-09T18:51:33.3054255Z   ok    the estimated-price region is drawn
+2026-11-09T18:51:33.3054393Z   ok    the estimated-price wash is perceptible on a light card (#558 C1)
+2026-11-09T18:51:33.3054520Z   ok    the estimated-price wash is perceptible on a dark card (#558 C1)
+2026-11-09T18:51:33.3054641Z   ok    the estimated-price region has a delimiting edge (#558 C1)
+2026-11-09T18:51:33.3054764Z   ok    the estimated-price edge clears 3:1 on a light card (#558 C1)
+2026-11-09T18:51:33.3054880Z   ok    the estimated-price edge clears 3:1 on a dark card (#558 C1)
+2026-11-09T18:51:33.3055027Z   ok    the chart draws horizontal gridlines to compare values against (#558 C1)
+2026-11-09T18:51:33.3055156Z   ok    every vertical gridline is perceptible on a light card (#558 C1)
+2026-11-09T18:51:33.3055314Z   ok    every vertical gridline is perceptible on a dark card (#558 C1)
+2026-11-09T18:51:33.3055448Z   ok    every horizontal gridline is perceptible on a light card (#558 C1)
+2026-11-09T18:51:33.3055581Z   ok    every horizontal gridline is perceptible on a dark card (#558 C1)
+2026-11-09T18:51:33.3055767Z   ok    every series token carries its own theme's colour
+2026-11-09T18:51:33.3055918Z   ok    every series is painted through its token
+2026-11-09T18:51:33.3056089Z   ok    the colour-vision checks have series pairs to compare
+2026-11-09T18:51:33.3056310Z   ok    no two series in one panel are the same colour to a deuteranope (#558 C1)
+2026-11-09T18:51:33.3056452Z   ok    no two series in one panel are the same colour to a protanope (D4, #1791)
+2026-11-09T18:51:33.3056592Z   ok    no two series in one panel are the same colour to a tritanope (D4, #1791)
+2026-11-09T18:51:33.3056918Z   ok    series sharing a draw style are separated by more than colour (#558 C1)
+2026-11-09T18:51:33.3057020Z   ok    no English delta sentence reads 'the same than'
+2026-11-09T18:51:33.3057148Z   ok    Swedish delta sentences stay grammatical for all three verdicts
+2026-11-09T18:51:33.3057219Z   ok    wood alert when cheaper
+2026-11-09T18:51:33.3057296Z   ok    no wood alert when not cheaper
+2026-11-09T18:51:33.3057381Z   ok    Wood lane renders one detected slot
+2026-11-09T18:51:33.3057481Z   ok    laneSpecs length stays 2 with a Wood display lane
+2026-11-09T18:51:33.3057565Z   ok    what-if wood editor when show_whatif
+2026-11-09T18:51:33.3057653Z   ok    no what-if wood editor when furnace off
+2026-11-09T18:51:33.3057732Z   ok    expanded plan shows the away toggle
+2026-11-09T18:51:33.3057811Z   ok    collapsed card has no away toggle
+2026-11-09T18:51:33.3057910Z   ok    return datetime is hidden while the switch is off
+2026-11-09T18:51:33.3058009Z   ok    return datetime is shown while the switch is on
+2026-11-09T18:51:33.3058086Z   ok    setup page has no away strip
+2026-11-09T18:51:33.3058160Z   ok    savings page has no away strip
+2026-11-09T18:51:33.3058248Z   ok    collapsed card still has no away toggle
+2026-11-09T18:51:33.3058363Z   ok    person-away while the switch is off shows a status line
+2026-11-09T18:51:33.3058444Z   ok    the plan page has a tick box to bind
+2026-11-09T18:51:33.3058683Z   ok    ticking Away shows the return-time field before hass flips the switch
+2026-11-09T18:51:33.3058783Z   ok    and the tick calls set_away with active true
+2026-11-09T18:51:33.3058904Z   ok    (setup) return field absent before the switch entity turns on
+2026-11-09T18:51:33.3059028Z   ok    a hass update of the away switch reveals the return-time field
+2026-11-09T18:51:33.3059152Z   ok    every legend chip publishes its toggle state as aria-pressed
+2026-11-09T18:51:33.3059283Z   ok    aria-pressed is the state, not a constant
+2026-11-09T18:51:33.3059374Z   ok    clicking a chip flips its aria-pressed
+2026-11-09T18:51:33.3059454Z   ok    and clicking it again flips it back
+2026-11-09T18:51:33.3059594Z   ok    the hot-water band's note is rendered as text, not only as a hover title
+2026-11-09T18:51:33.3059709Z   ok    and the chip it belongs to names it as its description
+2026-11-09T18:51:33.3059841Z   ok    the dialog really does render a second legend beside the inline one
+2026-11-09T18:51:33.3059930Z   ok    every note id in the shadow root is unique
+2026-11-09T18:51:33.3060052Z   ok    and each chip describes the note in its own copy of the legend
+2026-11-09T18:51:33.3060154Z   ok    a card with no expected-error band renders no note
+2026-11-09T18:51:33.3060254Z   ok    and no chip claims a description that is not there
+2026-11-09T18:51:33.3060349Z   ok    the null control really did remove the band
+2026-11-09T18:51:33.3060452Z   ok    the hot-water band is drawn as a filled envelope
+2026-11-09T18:51:33.3060524Z   ok    the envelope is a closed region
+2026-11-09T18:51:33.3060601Z   ok    its two edges still delimit it
+2026-11-09T18:51:33.3060686Z   ok    and the tank's own curve is still drawn
+2026-11-09T18:51:33.3060816Z   ok    the envelope is pointer-inert, like every other filled series body
+2026-11-09T18:51:33.3060975Z   ok    the envelope spans exactly the two edges it fills between
+2026-11-09T18:51:33.3061077Z   ok    the envelope's fill is perceptible on a light card
+2026-11-09T18:51:33.3061219Z   ok    the envelope stays quieter than the curve it surrounds on a light card
+2026-11-09T18:51:33.3061320Z   ok    the envelope's fill is perceptible on a dark card
+2026-11-09T18:51:33.3061457Z   ok    the envelope stays quieter than the curve it surrounds on a dark card
+2026-11-09T18:51:33.3061598Z   ok    the shipped envelope leaves the curve at 3:1 against it on a light card
+2026-11-09T18:51:33.3061738Z   ok    the shipped envelope leaves the curve at 3:1 against it on a dark card
+2026-11-09T18:51:33.3061905Z   ok    an old-basis month draws both columns, a dash for saving and percent, and the note
+2026-11-09T18:51:33.3061995Z   ok    the savings table renders one row per month
+2026-11-09T18:51:33.3062094Z   ok    every numeric cell is marked as a numeric column
+2026-11-09T18:51:33.3062173Z   ok    and the month column is not
+2026-11-09T18:51:33.3062258Z   ok    the numeric headers are marked the same way
+2026-11-09T18:51:33.3062400Z   ok    and the stylesheet right-aligns them, so the columns can be read down
+2026-11-09T18:51:33.3062491Z   ok    the savings table asks for tabular figures
+2026-11-09T18:51:33.3062605Z   ok    the currency is named in the column head, not in every cell
+2026-11-09T18:51:33.3062721Z   ok    so every money figure carries the same number of decimals
+2026-11-09T18:51:33.3062832Z   ok    every month's savings carries an in-cell magnitude bar
+2026-11-09T18:51:33.3062936Z   ok    the bar is proportional to the figure it sits behind
+2026-11-09T18:51:33.3063057Z   ok    a month that cost money is marked by more than its minus sign
+2026-11-09T18:51:33.3063135Z   ok    equal savings draw equal bars
+2026-11-09T18:51:33.3063217Z   ok    a month that saved nothing draws no bar
+2026-11-09T18:51:33.3063355Z   ok    the savings figure still clears 4.5:1 over its own bar on a light card
+2026-11-09T18:51:33.3063458Z   ok    and the bar itself is perceptible on a light card
+2026-11-09T18:51:33.3063590Z   ok    the savings figure still clears 4.5:1 over its own bar on a dark card
+2026-11-09T18:51:33.3063751Z   ok    and the bar itself is perceptible on a dark card
+2026-11-09T18:51:33.3063932Z   ok    #2492: the Savings tab's every cell is ledger.savings_months's, from the sensor's payload
+2026-11-09T18:51:33.3064088Z   ok    #2492: and each row's cells are one basis: baseline less actual is the saving shown
+2026-11-09T18:51:33.3064206Z   ok    a card currency does not relabel the savings table's figures
+2026-11-09T18:51:33.3064403Z   ok    so one screen names one currency, as the headline already did
+2026-11-09T18:51:33.3064543Z   ok    a savings sensor that declares no unit still takes the card's currency
+2026-11-09T18:51:33.3064668Z   ok    the history rig's rows carry the keys a real install's rows carry
+2026-11-09T18:51:33.3064783Z   ok    an untouched card never asks Home Assistant for history
+2026-11-09T18:51:33.3064892Z   ok    panning back before now moves the window into the past
+2026-11-09T18:51:33.3064997Z   ok    the measured indoor temperature renders left of now
+2026-11-09T18:51:33.3065126Z   ok    the recorded past and the forecast never double-book a timestamp
+2026-11-09T18:51:33.3065230Z   ok    the measured outdoor temperature renders left of now
+2026-11-09T18:51:33.3065322Z   ok    the measured spot price renders left of now
+2026-11-09T18:51:33.3065412Z   ok    the measured irradiance renders left of now
+2026-11-09T18:51:33.3065517Z   ok    the pump's own action record renders as past slot bars
+2026-11-09T18:51:33.3065605Z   ok    the actioned series has a legend chip
+2026-11-09T18:51:33.3065705Z   ok    the legend offers exactly one chip per series
+2026-11-09T18:51:33.3065823Z   ok    history loads lazily, one call pair per 12 h chunk entered
+2026-11-09T18:51:33.3065954Z   ok    the numeric history call is lean (minimal_response, no attributes)
+2026-11-09T18:51:33.3066102Z   ok    the action call carries the attributes its power lives in
+2026-11-09T18:51:33.3066206Z   ok    the entity ids are the optimizer's own actual sensors
+2026-11-09T18:51:33.3066295Z   ok    panning back stops at 48 hours before now
+2026-11-09T18:51:33.3066444Z   ok    an unavailable stretch breaks the measured trace rather than zeroing it
+2026-11-09T18:51:33.3066543Z   ok    panning forward still stops at the end of the plan
+2026-11-09T18:51:33.3066715Z   ok    reset snaps the view back to the live window
+2026-11-09T18:51:33.3066819Z   ok    a hass without callApi keeps the forward-only pan
+2026-11-09T18:51:33.3066933Z   ok    history recorder off degrades to a notice, never an error
+2026-11-09T18:51:33.3067054Z   ok    history recorder off snaps the view back to the live edge
+2026-11-09T18:51:33.3067168Z   ok    history api refused degrades to a notice, never an error
+2026-11-09T18:51:33.3067276Z   ok    history api refused snaps the view back to the live edge
+2026-11-09T18:51:33.3067417Z   ok    a renamed install derives its own actual sensors from the plan prefix
+2026-11-09T18:51:33.3067529Z   ok    the realistic fixture produces a path worth asking about
+2026-11-09T18:51:33.3067638Z   ok    the drawn temperature path never runs backward in time
+2026-11-09T18:51:33.3067737Z   ok    mode runs forward-fill between the state changes
+2026-11-09T18:51:33.3067867Z   ok    actioned slots render from state history alone, no power attribute
+2026-11-09T18:51:33.3068047Z   ok    every series, band, wash and grid rule stays inside its own panel (actioned slots, R9-UI-4)
+2026-11-09T18:51:33.3068153Z   ok    the actioned chip reads as having data without power
+2026-11-09T18:51:33.3068257Z   ok    without a power attribute no past slot bar is drawn
+2026-11-09T18:51:33.3068379Z   ok    power_kw, where the attribute exists, draws the past slot bars
+2026-11-09T18:51:33.3068461Z   ok    and the mode band draws beside it
+2026-11-09T18:51:33.3068568Z   ok    an active run's midpoint sits inside the plot to hover
+2026-11-09T18:51:33.3068677Z   ok    the tooltip names the actioned mode under the crosshair
+2026-11-09T18:51:33.3068796Z   ok    an inclusive chunk boundary does not double-book a timestamp
+2026-11-09T18:51:33.3068969Z   ok    the boundary state was in fact served twice
+2026-11-09T18:51:33.3069072Z   ok    a run split across a chunk boundary merges into one
+2026-11-09T18:51:33.3069160Z   ok    the joined trace still never runs backward
+2026-11-09T18:51:33.3069281Z   ok    a foreign sensor sharing the suffix is not asked for history
+2026-11-09T18:51:33.3069384Z   ok    and no foreign band is drawn as the pump's own record
+2026-11-09T18:51:33.3069510Z   ok    a stale live-edge chunk is fetched again, filling the seam hole
+2026-11-09T18:51:33.3069686Z   ok    a step mean is duration-weighted, not a plain average of samples
+2026-11-09T18:51:33.3069803Z   ok    a hole shrinks the step mean's denominator, not its numerator
+2026-11-09T18:51:33.3069945Z   ok    overlays() emits every covered chunk in time order, not insertion order
+2026-11-09T18:51:33.3070057Z   ok    a live-edge gap under one plan step is not read as stale
+2026-11-09T18:51:33.3070182Z   ok    a live-edge gap of a full plan step is read as stale and refetched
+2026-11-09T18:51:33.3070323Z   ok    an indoor sensor with no recorded rows draws no measured indoor trace
+2026-11-09T18:51:33.3070479Z   ok    the outdoor trace carries its own sensor's rows when another entity is dropped
+2026-11-09T18:51:33.3070628Z   ok    the price trace carries its own sensor's rows when another entity is dropped
+2026-11-09T18:51:33.3070765Z   ok    a flat measured temperature keeps a temperature axis of at least 2 K
+2026-11-09T18:51:33.3070930Z   ok    no drawn house_temp path's x coordinates run backward under the held/forecast seam
+2026-11-09T18:51:33.3071073Z   ok    an unavailable action row ends the space slot bar, no bar spans across it
+2026-11-09T18:51:33.3071205Z   ok    a pre-#1227 install's price sensor is asked for under its legacy id
+2026-11-09T18:51:33.3071372Z   ok    and its recorded price draws the past half of the price series
+2026-11-09T18:51:33.3071492Z   ok    with no price sensor under either id, no past price is drawn
+2026-11-09T18:51:33.3071656Z   ok    every recorded past series spans the window with no gap wider than a plan step
+2026-11-09T18:51:33.3071760Z   ok    the recorded past sits on the plan's own step grid
+2026-11-09T18:51:33.3071902Z   ok    the tank and lower-floor probes are asked for when the install has them
+2026-11-09T18:51:33.3072027Z   ok    each past point is the value its own sensor held at that step
+2026-11-09T18:51:33.3072177Z   ok    without the probes neither is asked for, and no past tank trace is drawn
+2026-11-09T18:51:33.3072313Z   ok    the recorded temperatures are drawn with the forecast's smooth curve
+2026-11-09T18:51:33.3072452Z   ok    each past slot step is the time-weighted mean of the recorded power
+2026-11-09T18:51:33.3072615Z   ok    an outage spanning whole steps breaks the past trace, a one-minute blip does not
+2026-11-09T18:51:33.3072734Z   ok    panned into the past, the axes span the live plan's scales
+2026-11-09T18:51:33.3072859Z   ok    and an unpanned card keeps the scales the plan alone gives it
+2026-11-09T18:51:33.3073015Z   ok    the lanes draw the recorded runs, hot water red and heating blue, left of now
+2026-11-09T18:51:33.3073112Z   ok    and a card with no recorded history draws none
+2026-11-09T18:51:33.3073261Z   ok    the live-edge chunk is fetched again once the clock has moved a plan step
+2026-11-09T18:51:33.3073380Z   ok    the card element defines at most 26 members of its own (26)
+2026-11-09T18:51:33.3073491Z   ok    the card markup gate's claim file is stamped for v7.1.9
+2026-11-09T18:51:33.3073598Z   ok    a docs-only three-dot moves nothing a claim excuses
+2026-11-09T18:51:33.3073698Z   ok    the card source moves something a claim excuses
+2026-11-09T18:51:33.3073811Z   ok    justifiesCardClaim names the card and nothing beside it
+2026-11-09T18:51:33.3073942Z   ok    integration Python moves something a claim excuses (the union)
+2026-11-09T18:51:33.3074043Z   ok    a capture source moves something a claim excuses
+2026-11-09T18:51:33.3074163Z   ok    a non-Python file under the integration does not, on its own
+2026-11-09T18:51:33.3074326Z   ok    a test script that is not a capture source does not
+2026-11-09T18:51:33.3074446Z   ok    threeDotFiles runs the sibling's three commands in order
+2026-11-09T18:51:33.3074551Z   ok    threeDotFiles de-duplicates, drops blanks and sorts
+2026-11-09T18:51:33.3074655Z   ok    an untracked card makes the three-dot claimable
+2026-11-09T18:51:33.3074771Z   ok    a docs-only three-dot is NOT this branch's claim to judge
+2026-11-09T18:51:33.3074928Z   ok    a solver-only three-dot is NOT this branch's CARD list to judge
+2026-11-09T18:51:33.3075026Z   ok    a card diff IS this branch's card list to judge
+2026-11-09T18:51:33.3075125Z   ok    an unanswerable three-dot judges (fail closed)
+2026-11-09T18:51:33.3075248Z   ok    parseClaims carries every line a state has, not just the last
+2026-11-09T18:51:33.3075387Z   ok    a claim file with one line per state parses to one reason per state
+2026-11-09T18:51:33.3075507Z   ok    an exact copy of the baseline's list still parses its equal
+2026-11-09T18:51:33.3075630Z   ok    a claim added beside an inherited line is not an inherited list
+2026-11-09T18:51:33.3075753Z   ok    an exact copy of a multi-line list still is the inherited list
+2026-11-09T18:51:33.3075892Z   ok    a different reason on the same line is not an inherited list either
+2026-11-09T18:51:33.3076002Z   ok    empty lists claim nothing and are never an inheritance
+2026-11-09T18:51:33.3076119Z   ok    a card claim file the branch never edited is not refused
+2026-11-09T18:51:33.3076222Z   ok    a carried card claim line excuses no moved state
+2026-11-09T18:51:33.3076336Z   ok    a card claim line the branch wrote excuses its moved state
+2026-11-09T18:51:33.3076474Z   ok    an edited card file that kept the baseline's list is still inherited
+2026-11-09T18:51:33.3076702Z   ok    a branch that cannot move the card is reported, not judged
+2026-11-09T18:51:33.3076801Z   ok    a space-blocked plan shows the DHW-only banner
+2026-11-09T18:51:33.3076907Z   ok    a space-blocked plan dims the promised house traces
+2026-11-09T18:51:33.3077027Z   ok    an unblocked plan shows no DHW-only banner and no dimming
+2026-11-09T18:51:33.3077180Z   ok    a live indoor reading shows the corner now temperature, without a second 'now'
+2026-11-09T18:51:33.3077320Z   ok    the default live view draws exactly one 'now' for the current moment
+2026-11-09T18:51:33.3077433Z   ok    without an indoor reading the corner now label is absent
+2026-11-09T18:51:33.3077589Z   ok    the 'now' label, the now-temp reading and the estimated-prices label all render
+2026-11-09T18:51:33.3077727Z   ok    no two of the three top-strip labels share a row (D4-s1-05, P9-rca3)
+2026-11-09T18:51:33.3077876Z   ok    ERROR_READABLE clears WCAG AA's 4.5:1 on a white card and as white-on-it
+2026-11-09T18:51:33.3078024Z   ok    SUCCESS_READABLE clears WCAG AA's 4.5:1 on a white card and as white-on-it
+2026-11-09T18:51:33.3078173Z   ok    WARNING_READABLE clears WCAG AA's 4.5:1 on a white card and as white-on-it
+2026-11-09T18:51:33.3078309Z   ok    ERROR_READABLE_DARK clears WCAG AA's 4.5:1 on a dark (#1c1c1c) card
+2026-11-09T18:51:33.3078443Z   ok    SUCCESS_READABLE_DARK clears WCAG AA's 4.5:1 on a dark (#1c1c1c) card
+2026-11-09T18:51:33.3078578Z   ok    WARNING_READABLE_DARK clears WCAG AA's 4.5:1 on a dark (#1c1c1c) card
+2026-11-09T18:51:33.3078735Z   ok    no prefers-color-scheme media query is left keying these colours to the OS
+2026-11-09T18:51:33.3078867Z   ok    cardStyleBlock(false) paints .dearer with the light-safe literal
+2026-11-09T18:51:33.3079052Z   ok    cardStyleBlock(true) paints .dearer with the dark-safe literal, not var(--error-color)
+2026-11-09T18:51:33.3079204Z   ok    hass.themes.darkMode=true renders the dark-safe .dearer colour end to end
+2026-11-09T18:51:33.3079365Z   ok    toggling hass.themes.darkMode back to false re-renders the light-safe colour
+2026-11-09T18:51:33.3079488Z   ok    slotHitExtents boxed_in: every hit target covers its own ink
+2026-11-09T18:51:33.3079620Z   ok    slotHitExtents boxed_in: no two hit targets in the lane overlap
+2026-11-09T18:51:33.3079830Z   ok    slotHitExtents pair_close: every hit target covers its own ink
+2026-11-09T18:51:33.3079961Z   ok    slotHitExtents pair_close: no two hit targets in the lane overlap
+2026-11-09T18:51:33.3080103Z   ok    slotHitExtents shared_steps_like: every hit target covers its own ink
+2026-11-09T18:51:33.3080251Z   ok    slotHitExtents shared_steps_like: no two hit targets in the lane overlap
+2026-11-09T18:51:33.3080386Z   ok    UI-3 pill: no step heating now reads idle
+2026-11-09T18:51:33.3080491Z   ok    UI-3 pill: a plan step active now reads heating
+2026-11-09T18:51:33.3080647Z   ok    UI-3 pill: a plan last solved 4 h ago, past max(3 x 30 min, 90 min), reads stale
+2026-11-09T18:51:33.3080782Z   ok    UI-3 pill: a plan solved 80 min ago is inside the 90 min floor, not stale
+2026-11-09T18:51:33.3080917Z   ok    UI-3 pill: the stale limit scales with the published solve interval
+2026-11-09T18:51:33.3081032Z   ok    UI-3 pill: one plan sensor still planning is not fallback
+2026-11-09T18:51:33.3081159Z   ok    UI-3 pill: no plan on either sensor reads fallback, ahead of stale
+2026-11-09T18:51:33.3081310Z   ok    UI-3 pill: a manual plan reads 'Manual plan until', ahead of everything else
+2026-11-09T18:51:33.3081413Z   ok    UI-3 pill: no plan sensor at all draws no pill
+2026-11-09T18:51:33.3081540Z   ok    UI-3 pill: crossing the stale limit redraws with no sensor changing
+2026-11-09T18:51:33.3081677Z   ok    UI-3 fills: the price area is drawn at 16% and the solar area at 10%
+2026-11-09T18:51:33.3081827Z   ok    UI-3 tiles: price now, planned heating, plan cost and indoor, in that order
+2026-11-09T18:51:33.3081931Z   ok    UI-3 tiles: the indoor tile shows the sensor's value
+2026-11-09T18:51:33.3082035Z   ok    UI-3 tiles: planned heating sums both plans' kWh
+2026-11-09T18:51:33.3082174Z   ok    UI-3 tiles: plan cost sums both plans' cost
+2026-11-09T18:51:33.3082302Z   ok    UI-3 tiles: an indoor sensor change alone re-renders the indoor tile
+2026-11-09T18:51:33.3082403Z   ok    UI-3 tiles: show_stats: false draws no tile row
+2026-11-09T18:51:33.3082546Z   ok    tiles: the tile and headline rows are two across outside any media rule
+2026-11-09T18:51:33.3082678Z   ok    tiles: the expanded Plan page shows the four tiles above its chart
+2026-11-09T18:51:33.3082826Z   ok    UI-3 tokens (light): every var(--hpo-*) the card uses is declared on :host
+2026-11-09T18:51:33.3082985Z   ok    UI-3 tokens (light): each token is one var() level deep with a literal fallback
+2026-11-09T18:51:33.3083124Z   ok    UI-3 tokens (light): pill, tile and text pairs clear 4.5:1 on the literals
+2026-11-09T18:51:33.3083268Z   ok    UI-3 tokens (dark): every var(--hpo-*) the card uses is declared on :host
+2026-11-09T18:51:33.3083416Z   ok    UI-3 tokens (dark): each token is one var() level deep with a literal fallback
+2026-11-09T18:51:33.3083551Z   ok    UI-3 tokens (dark): pill, tile and text pairs clear 4.5:1 on the literals
+2026-11-09T18:51:33.3083675Z   ok    UI-3 tokens: dark mode resolves the surface to the dark literal
+2026-11-09T18:51:33.3083823Z   ok    UI-3 tokens: no use site in dark mode keeps a light text or surface fallback
+2026-11-09T18:51:33.3083910Z   ok    the dialog has a Health tab after Advisor
+2026-11-09T18:51:33.3083987Z   ok    the Health page renders
+2026-11-09T18:51:33.3084107Z   ok    a stale input says what is wrong with its age and its limit
+2026-11-09T18:51:33.3084192Z   ok    a healthy input shows Fresh with its age
+2026-11-09T18:51:33.3084340Z   ok    no 'plan uses X instead' text is invented (the fallback is not published)
+2026-11-09T18:51:33.3084471Z   ok    the plan block shows solved-ago, next solve, steps and solve time
+2026-11-09T18:51:33.3084562Z   ok    the header pill reads 1 input stale (warn)
+2026-11-09T18:51:33.3084654Z   ok    two failing inputs read 2 inputs stale
+2026-11-09T18:51:33.3084742Z   ok    an unavailable input says so in words
+2026-11-09T18:51:33.3084852Z   ok    with no problems the pill reads All inputs fresh (ok)
+2026-11-09T18:51:33.3085065Z   ok    without the Input Problem sensor there is no health pill and no input rows
+2026-11-09T18:51:33.3085211Z   ok    still learning lists unavailable waiting sensors with a reason in words
+2026-11-09T18:51:33.3085316Z   ok    a sensor that has evidence is not listed as learning
+2026-11-09T18:51:33.3085426Z   ok    when nothing is waiting the learning block is absent
+2026-11-09T18:51:33.3085626Z   ok    the checklist marks price, weather, indoor and heat pump control done from what the card reads
+2026-11-09T18:51:33.3085849Z   ok    a missing power meter is recommended with an Assign action; insight sensors have a Show action
+2026-11-09T18:51:33.3085954Z   ok    the insight-sensor row carries no invented count
+2026-11-09T18:51:33.3086046Z   ok    the price step is not done without prices
+2026-11-09T18:51:33.3086147Z   ok    the diagnostics link goes to the integration page
+2026-11-09T18:51:33.3086345Z   ok    pressing it with no entry to fetch for opens /config/integrations/integration/heatpump_optimizer
+2026-11-09T18:51:33.3086475Z   ok    Assign on the power meter opens the Setup picker for that slot
+2026-11-09T18:51:33.3086566Z   ok    Assign redraws the dialog on the Setup page
+2026-11-09T18:51:33.3086755Z   ok    the render signature follows the Input Problem sensor
+2026-11-09T18:51:33.3086826Z   ok    and the waiting sensors
+2026-11-09T18:51:33.3087002Z   ok    UX-7: the Health page has a 'What the model has learned' block from the model status sensor
+2026-11-09T18:51:33.3087174Z   ok    UX-7: heat loss shows W/K, its evidence and the comparison with the settings' estimate
+2026-11-09T18:51:33.3087336Z   ok    UX-7: solar gain still learning says how far along, against the learner's own need
+2026-11-09T18:51:33.3087451Z   ok    UX-7: tank cooling and heat pump efficiency have their rows
+2026-11-09T18:51:33.3087619Z   ok    UX-7: an unlearned lower floor has no row; a learned one does
+2026-11-09T18:51:33.3087769Z   ok    UX-7: the internal-gains strip draws 24 hourly bars and names the peak hour
+2026-11-09T18:51:33.3087892Z   ok    UX-7: no tank row without a tank, and no strip without a profile
+2026-11-09T18:51:33.3088036Z   ok    UX-7: a heat loss with no evidence says it is still the settings' estimate
+2026-11-09T18:51:33.3088143Z   ok    UX-7: a COP alarm is said in words, with a warn tone
+2026-11-09T18:51:33.3088253Z   ok    UX-7: without the model status sensor the block is absent
+2026-11-09T18:51:33.3088342Z   ok    UX-7: and absent while it is unavailable
+2026-11-09T18:51:33.3088421Z   ok    UX-7: the block speaks Swedish
+2026-11-09T18:51:33.3088533Z   ok    UX-7: the render signature follows the model status sensor
+2026-11-09T18:51:33.3088622Z   ok    the Health page and pill speak Swedish
+2026-11-09T18:51:33.3088764Z   ok    the card never reads a disabled-by-default sensor for the Health page
+2026-11-09T18:51:33.3088895Z   ok    a plan older than its limit shows a warn Stale pill on the plan row
+2026-11-09T18:51:33.3089004Z   ok    a fresh plan shows an ok Fresh pill on the plan row
+2026-11-09T18:51:33.3089152Z   ok    an assigned power meter shows the power step done, with no Assign action
+2026-11-09T18:51:33.3089337Z   ok    with the Input Problem sensor unavailable the header pill does not claim All inputs fresh
+2026-11-09T18:51:33.3089507Z   ok    with the Input Problem sensor unavailable the inputs block claims no healthy inputs
+2026-11-09T18:51:33.3089680Z   ok    with the Input Problem sensor unknown the header pill does not claim All inputs fresh
+2026-11-09T18:51:33.3089834Z   ok    with the Input Problem sensor unknown the inputs block claims no healthy inputs
+2026-11-09T18:51:33.3089974Z   ok    inputs.py publishes problem codes the card can be enumerated against
+2026-11-09T18:51:33.3090114Z   ok    every published problem code has its own words in the card's en table
+2026-11-09T18:51:33.3090257Z   ok    every published problem code has its own words in the card's sv table
+2026-11-09T18:51:33.3090391Z   ok    every published problem code has its own words in the card's de table
+2026-11-09T18:51:33.3090619Z   ok    every published problem code has words in en, none prints as a raw token
+2026-11-09T18:51:33.3090774Z   ok    every published problem code has words in sv-SE, none prints as a raw token
+2026-11-09T18:51:33.3090892Z   ok    an unknown_unit problem reads as words in English and Swedish
+2026-11-09T18:51:33.3091036Z   ok    UX-HEALTH A: input rows carry the options flow's role labels in English
+2026-11-09T18:51:33.3091164Z   ok    UX-HEALTH A: and in Swedish, the wood pair from its owning page
+2026-11-09T18:51:33.3091406Z   ok    UX-HEALTH A: a key the table does not name reads Input with its entity id, never a name from the key
+2026-11-09T18:51:33.3091537Z   ok    UX-HEALTH A: every card language names its optional-field marker
+2026-11-09T18:51:33.3091667Z   ok    UX-HEALTH A: every options-flow entity field has one label in en
+2026-11-09T18:51:33.3091851Z   ok    UX-HEALTH A: the card's en input labels are the options flow's, marker stripped, and no others
+2026-11-09T18:51:33.3091979Z   ok    UX-HEALTH A: every options-flow entity field has one label in sv
+2026-11-09T18:51:33.3092163Z   ok    UX-HEALTH A: the card's sv input labels are the options flow's, marker stripped, and no others
+2026-11-09T18:51:33.3092285Z   ok    UX-HEALTH A: every options-flow entity field has one label in de
+2026-11-09T18:51:33.3092468Z   ok    UX-HEALTH A: the card's de input labels are the options flow's, marker stripped, and no others
+2026-11-09T18:51:33.3092618Z   ok    UX-HEALTH D: a settling learner shows its progress and never a day figure
+2026-11-09T18:51:33.3092771Z   ok    UX-HEALTH D: a counting learner shows its progress and the days until its gate
+2026-11-09T18:51:33.3092894Z   ok    UX-HEALTH D: a waiting learner says what it waits for in words
+2026-11-09T18:51:33.3093025Z   ok    UX-HEALTH D: a learner that is off has no row
+2026-11-09T18:51:33.3093141Z   ok    hover spec: every card language names its no-data wording
+2026-11-09T18:51:33.3093350Z   ok    hover spec (en): every model row's hover says what it measures, what no data means and its current reason
+2026-11-09T18:51:33.3093551Z   ok    hover spec (sv): every model row's hover says what it measures, what no data means and its current reason
+2026-11-09T18:51:33.3093747Z   ok    hover spec (de): every model row's hover says what it measures, what no data means and its current reason
+2026-11-09T18:51:33.3093886Z   ok    UX-HEALTH D: with no power meter the heat loss is not called learned
+2026-11-09T18:51:33.3094059Z   ok    UX-HEALTH D: a metered install's learned heat loss still says learned (null control)
+2026-11-09T18:51:33.3094226Z   ok    UX-HEALTH D: with no power meter the learned heat loss draws no learned bar (#2499)
+2026-11-09T18:51:33.3094501Z   ok    UX-HEALTH D: a metered install's learned heat loss still draws a full bar (null control)
+2026-11-09T18:51:33.3094697Z   ok    UX-HEALTH D: with no power meter a still-learning heat loss draws no learned bar either (#2499)
+2026-11-09T18:51:33.3094890Z   ok    UX-HEALTH D: a metered still-learning heat loss draws its progress as the bar (null control)
+2026-11-09T18:51:33.3095008Z   ok    UX-HEALTH D: the waiting score says its own sensor's reason
+2026-11-09T18:51:33.3095134Z   ok    UX-HEALTH F: the score hover explains every sub-score's metric
+2026-11-09T18:51:33.3095272Z   ok    UX-HEALTH E: an unwatched COP is a dash with the reason, never Normal
+2026-11-09T18:51:33.3095431Z   ok    UX-HEALTH E: not_measurable reads as such even with watched buckets, never Normal
+2026-11-09T18:51:33.3095602Z   ok    UX-HEALTH E: no_electric_meter reads as such even with watched buckets, never Normal
+2026-11-09T18:51:33.3095713Z   ok    UX-HEALTH E: a refusal reads in words, not as its code
+2026-11-09T18:51:33.3095852Z   ok    UX-HEALTH E: an unknown refusal code reads as not enough data, never raw
+2026-11-09T18:51:33.3096027Z   ok    UX-HEALTH E: the learner's own refusal is said before the gate's wait for draw evidence
+2026-11-09T18:51:33.3096164Z   ok    UX-HEALTH E: with no refusal the gate's wait for draw evidence is said
+2026-11-09T18:51:33.3096316Z   ok    UX-HEALTH E: the latched COP shows its age
+2026-11-09T18:51:33.3096443Z   ok    UX-HEALTH E: a watched COP still reads Normal (null control)
+2026-11-09T18:51:33.3096703Z   ok    UX-HEALTH E: a heat-metered COP with an open span stays Normal and names its meter (carry 11)
+2026-11-09T18:51:33.3096841Z   ok    UX-HEALTH E: the learning row says the same COP reason as the model row
+2026-11-09T18:51:33.3097008Z   ok    UX-HEALTH E: every published COP code has its own en words
+2026-11-09T18:51:33.3097126Z   ok    UX-HEALTH E: every published COP code has its own sv words
+2026-11-09T18:51:33.3097241Z   ok    UX-HEALTH E: every published COP code has its own de words
+2026-11-09T18:51:33.3097396Z   ok    UX-HEALTH G: Show opens this entry's entity table, disabled entities included
+2026-11-09T18:51:33.3097537Z   ok    UX-HEALTH G: Download diagnostics fetches the entry's endpoint (200)
+2026-11-09T18:51:33.3097665Z   ok    UX-HEALTH G: a 200 saves the file through navigateTo's download mode
+2026-11-09T18:51:33.3097802Z   ok    UX-HEALTH G: Download diagnostics fetches the entry's endpoint (403)
+2026-11-09T18:51:33.3097917Z   ok    UX-HEALTH G: a refused fetch falls back to the entry page
+2026-11-09T18:51:33.3098083Z   ok    UX-HEALTH G: navigateTo's download mode saves through an anchor and pushes no route
+2026-11-09T18:51:33.3098271Z   ok    UX-HEALTH H: the collection status is asked of debug_collect with a response, for this entry
+2026-11-09T18:51:33.3098405Z   ok    UX-HEALTH H: a finished collection reads finished with its records
+2026-11-09T18:51:33.3098570Z   ok    UX-HEALTH H: the first Start on a finished collection only says it would discard it
+2026-11-09T18:51:33.3098655Z   ok    UX-HEALTH H: the second Start starts it
+2026-11-09T18:51:33.3098834Z   ok    UX-HEALTH H: a status flat at the top level reads off, never finished
+2026-11-09T18:51:33.3098984Z   ok    UX-HEALTH H: a status without the response wrapper reads off, never finished
+2026-11-09T18:51:33.3099118Z   ok    UX-HEALTH H: a status keyed by another entry reads off, never finished
+2026-11-09T18:51:33.3099223Z   ok    UX-HEALTH H: an active collection shows no Start
+2026-11-09T18:51:33.3099358Z   ok    placeLabel names a known place and keeps an unknown id as itself
+2026-11-09T18:51:33.3099545Z   ok    P08/P41: the Configure chip of a place with no options page names the place, never undefined
+2026-11-09T18:51:33.3099635Z   ok    the plan tab still renders beside Health
+2026-11-09T18:51:33.3099728Z   ok    the setup tab still renders beside Health
+2026-11-09T18:51:33.3099818Z   ok    the savings tab still renders beside Health
+2026-11-09T18:51:33.3099910Z   ok    the advisor tab still renders beside Health
+2026-11-09T18:51:33.3100060Z   ok    the census records through the navigation surface the card loaded against
+2026-11-09T18:51:33.3100176Z   ok    haLink builds the three deep links Home Assistant routes
+2026-11-09T18:51:33.3100306Z   ok    haLink refuses an unknown kind and an entity link with no entity
+2026-11-09T18:51:33.3100468Z   ok    haLink without a resolved entry falls back to the domain, never a guessed entry
+2026-11-09T18:51:33.3100606Z   ok    the act set the census declares is the one the card's source dispatches
+2026-11-09T18:51:33.3100726Z   ok    the census pressed every act branch the card can dispatch
+2026-11-09T18:51:33.3100861Z   ok    the event arm has a literal type to allow, so it measures something
+2026-11-09T18:51:33.3101020Z   ok    no primitive this census does not instrument is reached for on a page or a press
+2026-11-09T18:51:33.3101144Z   ok    the census reached every navigateTo and openHaLink mention
+2026-11-09T18:51:33.3101289Z   ok    the census drove a listener from every addEventListener site in the card
+2026-11-09T18:51:33.3101392Z   ok    the card wires no handler outside addEventListener
+2026-11-09T18:51:33.3101455Z   ok    no press throws
+2026-11-09T18:51:33.3101616Z   ok    every link the census records from a press is one haLink builds for this entry
+2026-11-09T18:51:33.3101845Z   ok    every PENDING row still names a button that makes its unconverted navigation
+2026-11-09T18:51:33.3101991Z   ok    openSetupSlot opens the slot's picker, focused only from the keyboard
+2026-11-09T18:51:33.3102083Z   ok    openSetupSlot renders the page it opens
+2026-11-09T18:51:33.3102228Z   ok    openHaLink asks the registry for its own plan sensor and links this entry
+2026-11-09T18:51:33.3102371Z   ok    openHaLink falls back to the whole integration when the registry refuses
+2026-11-09T18:51:33.3102580Z   ok    why-now: a row per known driver, with its mark and signed share, in the published order
+2026-11-09T18:51:33.3102726Z   ok    why-now: the block and each row carry the plain-words metric as their hover
+2026-11-09T18:51:33.3102912Z   ok    why-now: each row names its direction in words: toward running, toward idle, no effect now
+2026-11-09T18:51:33.3103041Z   ok    why-now: no why_now attribute renders the no-data line and no rows
+2026-11-09T18:51:33.3103166Z   ok    why-now: every driver neutral renders the one all-neutral line
+2026-11-09T18:51:33.3103273Z   ok    why-now: Swedish words, hover and percent spacing
+2026-11-09T18:51:33.3103373Z   ok    why-now: German words, hover and percent spacing
+2026-11-09T18:51:33.3103600Z   ok    why-now: every en string has its twin in every card language, and every driver code has a label and an explanation
+2026-11-09T18:51:33.3103608Z 
+2026-11-09T18:51:33.3103680Z 2 CARD CHECK(S) FAILED
+2026-11-09T18:51:33.3103770Z >>> FAILED: node tests/card.mjs
+2026-11-09T18:51:33.3103775Z 
+2026-11-09T18:51:33.3103879Z ########## node tests/setup_qa_render.mjs ##########
+2026-11-09T18:51:33.3104010Z   SLOT: tests/setup_qa_render.mjs joins a heavy slot as run.sh-2312
+2026-11-09T18:51:33.3104096Z  heatpump-optimizer-card  v7.1.9 
+2026-11-09T18:51:33.3104261Z coil: /home/runner/work/heatpump_optimizer/setup-qa/coil.svg
+2026-11-09T18:51:33.3105054Z   boxes: [{"place":"outdoor","x":16,"y":16,"w":200,"h":98,"col":0},{"place":"heat_pump","x":16,"y":128,"w":200,"h":81,"col":0},{"place":"wood_tank","x":16,"y":223,"w":200,"h":93,"col":0},{"place":"mixing_valve","x":260,"y":16,"w":200,"h":93,"col":1},{"place":"buffer_tank","x":260,"y":123,"w":200,"h":127,"col":1},{"place":"dhw_tank","x":260,"y":264,"w":200,"h":115,"col":1},{"place":"upper_zone","x":504,"y":16,"w":200,"h":81,"col":2},{"place":"lower_zone","x":504,"y":111,"w":200,"h":81,"col":2}]
+2026-11-09T18:51:33.3105212Z two-tank: /home/runner/work/heatpump_optimizer/setup-qa/two-tank.svg
+2026-11-09T18:51:33.3105978Z   boxes: [{"place":"outdoor","x":16,"y":16,"w":200,"h":98,"col":0},{"place":"heat_pump","x":16,"y":128,"w":200,"h":81,"col":0},{"place":"wood_tank","x":16,"y":223,"w":200,"h":93,"col":0},{"place":"mixing_valve","x":260,"y":16,"w":200,"h":93,"col":1},{"place":"buffer_tank","x":260,"y":123,"w":200,"h":127,"col":1},{"place":"dhw_tank","x":260,"y":264,"w":200,"h":98,"col":1},{"place":"upper_zone","x":504,"y":16,"w":200,"h":81,"col":2},{"place":"lower_zone","x":504,"y":111,"w":200,"h":81,"col":2}]
+2026-11-09T18:51:33.3106163Z single-buffer: /home/runner/work/heatpump_optimizer/setup-qa/single-buffer.svg
+2026-11-09T18:51:33.3107001Z   boxes: [{"place":"outdoor","x":16,"y":16,"w":200,"h":98,"col":0},{"place":"heat_pump","x":16,"y":128,"w":200,"h":81,"col":0},{"place":"wood_tank","x":16,"y":223,"w":200,"h":127,"col":0},{"place":"mixing_valve","x":260,"y":16,"w":200,"h":76,"col":1},{"place":"buffer_tank","x":260,"y":106,"w":200,"h":127,"col":1},{"place":"dhw_tank","x":260,"y":247,"w":200,"h":98,"col":1},{"place":"upper_zone","x":504,"y":16,"w":200,"h":81,"col":2},{"place":"lower_zone","x":504,"y":111,"w":200,"h":81,"col":2}]
+2026-11-09T18:51:33.3107070Z QA RENDERS WRITTEN
+2026-11-09T18:51:33.3107075Z 
+2026-11-09T18:51:33.3107261Z ########## node tests/card_drift.mjs 2f6d699e504d6dc0bb6040d99c21c5b015a290e4 ##########
+2026-11-09T18:51:33.3107344Z  heatpump-optimizer-card  v7.1.9 
+2026-11-09T18:51:33.3107420Z  heatpump-optimizer-card  v7.1.9 
+2026-11-09T18:51:33.3107768Z card_drift: 2f6d699e504d6dc0bb6040d99c21c5b015a290e4 = 2f6d699e504d, tree = d53e328cc1f7, 45 states
+2026-11-09T18:51:33.3107831Z   identical  no_plan
+2026-11-09T18:51:33.3107896Z   identical  no_plan_expanded
+2026-11-09T18:51:33.3107964Z   identical  plan_inline
+2026-11-09T18:51:33.3108027Z   identical  plan_inline_sv
+2026-11-09T18:51:33.3108104Z   identical  plan_short_window
+2026-11-09T18:51:33.3108184Z   identical  custom_title_currency
+2026-11-09T18:51:33.3108244Z   identical  hidden_series
+2026-11-09T18:51:33.3108353Z   identical  score_open
+2026-11-09T18:51:33.3108418Z   identical  expanded_plan
+2026-11-09T18:51:33.3108476Z   identical  what_if_off
+2026-11-09T18:51:33.3108543Z   identical  expanded_zoomed
+2026-11-09T18:51:33.3108622Z   identical  draft_dirty_menu_open
+2026-11-09T18:51:33.3108682Z   identical  draft_mid_drag
+2026-11-09T18:51:33.3108743Z   identical  whatif_edited
+2026-11-09T18:51:33.3108800Z   identical  whatif_weekly
+2026-11-09T18:51:33.3108862Z   identical  override_active
+2026-11-09T18:51:33.3108926Z   identical  shared_steps
+2026-11-09T18:51:33.3108999Z   identical  shared_steps_hover
+2026-11-09T18:51:33.3109064Z   identical  tooltip_hover
+2026-11-09T18:51:33.3109125Z   identical  coarse_pointer
+2026-11-09T18:51:33.3109182Z   identical  reduced_motion
+2026-11-09T18:51:33.3109257Z   identical  setup_single_buffer
+2026-11-09T18:51:33.3109318Z   identical  setup_two_tank
+2026-11-09T18:51:33.3109376Z   identical  setup_coil
+2026-11-09T18:51:33.3109437Z   identical  advisor_page
+2026-11-09T18:51:33.3109496Z   identical  savings_page
+2026-11-09T18:51:33.3109562Z   identical  savings_empty
+2026-11-09T18:51:33.3109623Z   identical  health_page
+2026-11-09T18:51:33.3109694Z   identical  setup_not_published
+2026-11-09T18:51:33.3109757Z   identical  advisor_empty
+2026-11-09T18:51:33.3109877Z   identical  layout_editing_dragged
+2026-11-09T18:51:33.3109946Z   identical  layout_editing_tidy
+2026-11-09T18:51:33.3110022Z   identical  picker_open_filtered
+2026-11-09T18:51:33.3110086Z   identical  wood_alert
+2026-11-09T18:51:33.3110140Z   identical  wood_lane
+2026-11-09T18:51:33.3110204Z   identical  wood_whatif
+2026-11-09T18:51:33.3110269Z   identical  away_toggle
+2026-11-09T18:51:33.3110326Z   identical  away_return
+2026-11-09T18:51:33.3110385Z   identical  away_status
+2026-11-09T18:51:33.3110443Z   identical  editor_schema
+2026-11-09T18:51:33.3110506Z   identical  history_panned
+2026-11-09T18:51:33.3110579Z   identical  history_deep_panned
+2026-11-09T18:51:33.3110643Z   identical  history_no_power
+2026-11-09T18:51:33.3110722Z   identical  history_unavailable
+2026-11-09T18:51:33.3110786Z   identical  history_pending
+2026-11-09T18:51:33.3110790Z 
+2026-11-09T18:51:33.3110878Z card_drift: identical in all 45 states
+2026-11-09T18:51:33.3110883Z 
+2026-11-09T18:51:33.3110984Z ########## python3 tests/stress.py ##########
+2026-11-09T18:51:33.3111116Z   LEASE: tests/stress.py runs under the gate lease as run.sh-2312
+2026-11-09T18:51:33.3111120Z 
+2026-11-09T18:51:33.3111185Z === Stress and economics ===
+2026-11-09T18:51:33.3111190Z 
+2026-11-09T18:51:33.3111293Z -- Plant-axis coverage (round 9, D9-s2-71)
+2026-11-09T18:51:33.3111369Z   54 built plants read in 0.0 s
+2026-11-09T18:51:33.3111486Z   ok   every production plant axis value is sampled by the sweep
+2026-11-09T18:51:33.3111597Z   ok   plant-axis coverage: an axis nobody samples is named
+2026-11-09T18:51:33.3111821Z   ok   a timing miss fails a graded run and only prints under the closure recorder, where a pass still counts (#1987)
+2026-11-09T18:51:33.3112085Z   ok   with HPO_CLOSURE_RECORDING unset a timing miss fails, and only "1" exempts it -- the environment, not a default, decides (#2018)
+2026-11-09T18:51:33.3112094Z 
+2026-11-09T18:51:33.3112183Z -- Single-scenario detection (#346, #387)
+2026-11-09T18:51:33.3112289Z   ok   production calls: an identical count is not over
+2026-11-09T18:51:33.3112434Z   ok   production calls: #985's per-row twin against its vectorised fix is over
+2026-11-09T18:51:33.3112574Z   ok   production calls: growth the evaluation count vouches for is not over
+2026-11-09T18:51:33.3112917Z   ok   production calls: a spec the baseline cannot build is new, and a capture that counted nothing is unmetered
+2026-11-09T18:51:33.3113061Z   ok   production calls: the population is one member of every sweep family
+2026-11-09T18:51:33.3113332Z   ok   coverage floors: an override lowers the production-call floor with the solver-work floor, and a malformed one is the literal for both
+2026-11-09T18:51:33.3113577Z   ok   coverage floors: an override naming both floors is held to both, and a malformed production-call floor is the share rule
+2026-11-09T18:51:33.3113867Z   ok   coverage floors: both coverage checks take their floor from coverage_floors, so an override cannot reach one and not the other
+2026-11-09T18:51:33.3113992Z   ok   the live ceiling covers the measured CI ruler-vs-real expansion
+2026-11-09T18:51:33.3114134Z   ok   and the wobble still leaves a 2x detection floor on the recorded worst
+2026-11-09T18:51:33.3114322Z   ok   an unchanged sweep fires the work check on no scenario, on any channel, and covers all of them
+2026-11-09T18:51:33.3114422Z   ok   a 2x regression confined to one scenario is seen
+2026-11-09T18:51:33.3114641Z   ok   ...and it is still under the per-scenario CPU factor, so this is the gap #346 records and not a different one
+2026-11-09T18:51:33.3114883Z   ok   a cost-only regression confined to one scenario is seen on the simulate channel, with the evaluation count flat (#1229)
+2026-11-09T18:51:33.3115148Z   ok   a per-call kernel slowdown confined to one scenario is seen on the kernel-cost channel, with both count channels flat (round-5 D9-07)
+2026-11-09T18:51:33.3115385Z   ok   ...and kernel seconds that grow only with the counts do not fire it: the vouching is what makes this a per-CALL channel
+2026-11-09T18:51:33.3115668Z   ok   a 2x whole-solve slowdown with every count flat fires the solve-CPU channel, and an unchanged sweep does not (R10 D9-s3-01)
+2026-11-09T18:51:33.3115888Z   ok   ...solve CPU that grows only with the counts does not fire it, and one scenario's reading does not move the median
+2026-11-09T18:51:33.3116136Z   ok   a kernel reading between the doubt floor and the factor is sent to the re-solve and fails nothing on its own (round-5 D9-07)
+2026-11-09T18:51:33.3116435Z   ok   a single kernel reading over the factor whose re-measured medians read clean on both trees fails nothing (round-9 #1947: the nightly's 2.13x null)
+2026-11-09T18:51:33.3116892Z   ok   ...and a reading over the factor whose re-measured medians sit over it still fails, so a genuinely slower kernel is caught through the same path (round-5 D9-07's intent)
+2026-11-09T18:51:33.3117253Z   ok   an over-budget budget-channel reading whose re-solves read within the budget on their median is reported, not failed (round-9 #1947: the nightly's 8.0x against a 7.9x budget)
+2026-11-09T18:51:33.3117476Z   ok   ...and a scenario that re-measures over its own budget still fails it, its over line naming the confirming median
+2026-11-09T18:51:33.3117801Z   ok   the budget re-measure takes a fresh reference sample before each re-solve and divides by the unit as it then stands, not one frozen at call time (round-9 #1954)
+2026-11-09T18:51:33.3118147Z   ok   the per-call-cost arm solves one batch outside the kernel doubt band and up to KERNEL_ARM_BATCHES inside it, on the medians of every round (round-5 D9-07, stubbed readings)
+2026-11-09T18:51:33.3118272Z   ok   a runner whose basins are in no table changes no verdict at all
+2026-11-09T18:51:33.3118522Z   ok   ...and it still sees the one-scenario 2x from there, which is what makes it a check rather than a machine that always says yes
+2026-11-09T18:51:33.3118729Z   ok   ...and every scenario moving at once is still not a coverage collapse, however far the objectives move
+2026-11-09T18:51:33.3118863Z   ok   a scenario this branch re-planned is exempted and named, not judged
+2026-11-09T18:51:33.3119108Z   ok   ...and 2.28x is still inside the loose per-scenario CPU factor, so the gate stays green on it rather than exempting it twice
+2026-11-09T18:51:33.3119348Z   ok   the basin tolerance sits between float drift and the smallest measured flip
+2026-11-09T18:51:33.3119489Z   ok   a missing or non-finite fingerprint is 'cannot tell', never 'agrees'
+2026-11-09T18:51:33.3119603Z   ok   a comparison with no baseline covers nothing, and says so
+2026-11-09T18:51:33.3119734Z   ok   a scenario on only one side is named, not judged against nothing
+2026-11-09T18:51:33.3119854Z   ok   a figure more than the stale factor cheaper is still caught
+2026-11-09T18:51:33.3120015Z   ok   ...and one less than the stale factor cheaper is still allowed
+2026-11-09T18:51:33.3120196Z   ok   a memory peak more than the stale factor cheaper is caught, on both axes (round-5 D9-08)
+2026-11-09T18:51:33.3120352Z   ok   ...and one less than the stale factor cheaper is still allowed on the memory axes
+2026-11-09T18:51:33.3120816Z   ok   ...and an attributable RSS at the instrument's floor reads nothing: a probe clamped to 0.00 MiB against the empty probe is the RSS arm's blindness, not a >3.5x cheaper tree, so it fires nothing against a positive record (round-5 D9-08)
+2026-11-09T18:51:33.3121319Z   ok   ...and a tick above that floor is the same blindness, not a third thing: the CI reading of 0.50 MiB against a 12.90 MiB record is the platform's import floor, because the probe did not fall below its own record's 82.3 MiB (round-5 D9-08, round-1 follow-up)
+2026-11-09T18:51:33.3121641Z   ok   ...and the same attributable with a fallen watermark DOES fire, which is what keeps this a check: a scenario whose own RSS fell lowers the probe watermark with it
+2026-11-09T18:51:33.3121892Z   ok   ...and a regression back to a stale record passes the over side, which is why the stale rule has to fire while the tree is cheap
+2026-11-09T18:51:33.3122019Z   ok   the solver-work counter sees a real solve, and doubles with it
+2026-11-09T18:51:33.3122297Z   ok   the simulate-work meter sees a real solve, and doubles on the cost-only arm the evaluation count is blind to (#1229)
+2026-11-09T18:51:33.3122426Z   ok   ...and the hook is restored, so nothing downstream is left wrapped
+2026-11-09T18:51:33.3122642Z   ok   the simulation surface is non-empty -- the source scan found the model's state-advancing methods to cut over
+2026-11-09T18:51:33.3122876Z   ok   every call-graph leaf of the simulation surface is metered, or reached only through metered seams (round-6 D9-02)
+2026-11-09T18:51:33.3123090Z   ok   ...and dropping a metered seam from the hook set moves its leaves to uncovered (green is not unconditional)
+2026-11-09T18:51:33.3123321Z   ok   ...and a leaf primitive added to the model is reported even with the DHW seam metered (it is a closure, not one seam)
+2026-11-09T18:51:33.3123498Z   ok   a real 2x on one scenario reaches the rule the sweep applies, and an unchanged one does not
+2026-11-09T18:51:33.3123688Z   ok   the cost-only arm reaches the rule the sweep applies, and an unchanged solve does not (#1229)
+2026-11-09T18:51:33.3123967Z   ok   the per-call-cost arm reaches the rule the sweep applies, with both count channels flat, and an unchanged solve does not (round-5 D9-07)
+2026-11-09T18:51:33.3124296Z   ok   a real per-call regression read once inside the kernel doubt band is re-solved on both trees and confirmed by the rule the sweep applies (round-5 D9-07)
+2026-11-09T18:51:33.3124628Z   ok   ...and one whose single reading is over the factor -- the nightly null's 2.13x (#1947) -- takes the same real re-solve and is confirmed on the medians, not waved through
+2026-11-09T18:51:33.3124635Z 
+2026-11-09T18:51:33.3124701Z -- Combination sweep
+2026-11-09T18:51:33.3125090Z   solver-work baseline: solving 54 scenarios from 2f6d699e504d6dc0bb6040d99c21c5b015a290e4 in a pristine worktree, to compare computed against computed (#387); this is the sweep's cost again
+2026-11-09T18:51:33.3125353Z   solver-work baseline: 54 scenarios from 2f6d699e504d6dc0bb6040d99c21c5b015a290e4 (2f6d699e504d), captured in 46 s on this machine
+2026-11-09T18:51:33.3125724Z   solve-time guard: reference solve 19.3 ms of CPU on this machine, budget 268x that per scenario (= 5.2 s of CPU), sweep budget 52x, absolute wall ceiling 600000 ms
+2026-11-09T18:51:33.3125819Z   ok   all 54 combinations satisfy the invariants
+2026-11-09T18:51:33.3125941Z   ok   the comfort floor is never breached beyond what physics forces
+2026-11-09T18:51:33.3126026Z   ok   hot water is available when promised
+2026-11-09T18:51:33.3126170Z   ok   the solve-time guard calibrated against a reference solve per scenario
+2026-11-09T18:51:33.3126710Z   reference solve over the sweep: 19.2 / 20.5 / 37.4 ms of CPU (min/median/max of 61 samples); the same samples in wall clock: 19.2 / 20.5 / 37.4 ms -- the wall spread is the machine's load, the CPU spread is all the guard has to tolerate
+2026-11-09T18:51:33.3126823Z   calibration overhead: 1.3 s of wall clock for 61 samples
+2026-11-09T18:51:33.3127040Z   worst scenario: shoulder/tariff+pv+cycle used 2461 ms of CPU = 119.0x its 20.7 ms reference; budget is 268x
+2026-11-09T18:51:33.3127180Z   ok   every scenario's solve costs what it should, in CPU, for this machine
+2026-11-09T18:51:33.3127284Z   ok   every scenario has a per-scenario budget on record
+2026-11-09T18:51:33.3127408Z   ok   no scenario exceeds its own recorded cost by the budget factor
+2026-11-09T18:51:33.3127525Z   ok   no scenario got dramatically cheaper without a re-record
+2026-11-09T18:51:33.3127599Z   no scenario in the kernel doubt band
+2026-11-09T18:51:33.3127772Z   ok   every scenario in the kernel doubt band was re-measured on both trees (round-5 D9-07)
+2026-11-09T18:51:33.3128059Z   solver work: 54 of 54 scenarios judged against the baseline captured beside this run, at 1.80x; 0 re-planned by this branch, 0 new here, 0 dropped
+2026-11-09T18:51:33.3128183Z   ok   the solver-work counter counted something for every scenario
+2026-11-09T18:51:33.3128448Z   ok   the simulate-work meter and the kernel-cost meter counted something for every scenario (#1229, round-5 D9-07)
+2026-11-09T18:51:33.3128568Z   ok   this tree's solver work has a baseline to be judged against
+2026-11-09T18:51:33.3128831Z   ok   the baseline capture carries simulate counts, kernel seconds and solve CPU this meter can read (#1229, round-5 D9-07, R10 D9-s3-01)
+2026-11-09T18:51:33.3128939Z   ok   no scenario's solver work grew on an unchanged plan
+2026-11-09T18:51:33.3129060Z   ok   no scenario's simulate work grew on an unchanged plan (#1229)
+2026-11-09T18:51:33.3129231Z   ok   no scenario's simulate kernel got slower per call on an unchanged plan (round-5 D9-07)
+2026-11-09T18:51:33.3129504Z   whole-solve CPU: median 1.009x of the baseline beside this run over 54 of 54 covered scenarios, on work the counts vouch for; factor 1.414x
+2026-11-09T18:51:33.3129652Z   ok   the whole-solve CPU channel judged every covered scenario (R10 D9-s3-01)
+2026-11-09T18:51:33.3129871Z   ok   the sweep's solves did not get slower per unit of counted work, median over the covered scenarios (R10 D9-s3-01)
+2026-11-09T18:51:33.3130000Z   ok   production calls were captured on this tree and the baseline
+2026-11-09T18:51:33.3130330Z   production calls: 20 of 20 family members judged against 2f6d699e504d6dc0bb6040d99c21c5b015a290e4 (2f6d699e504d) in 15 s; re-planned: []; new on this branch: []
+2026-11-09T18:51:33.3130459Z   ok   the production-call meter counted every scenario on both trees
+2026-11-09T18:51:33.3130664Z   ok   no scenario's production calls grew past what its work counts vouch for, on an unchanged plan (round 9)
+2026-11-09T18:51:33.3130782Z   ok   the production-call check covers at least 15 of 20 families
+2026-11-09T18:51:33.3130894Z   ok   the solver-work check still covers most of the sweep
+2026-11-09T18:51:33.3131016Z   ok   the solver-work floor is a literal, not an environment override
+2026-11-09T18:51:33.3131021Z 
+2026-11-09T18:51:33.3131086Z -- Memory (D9-04)
+2026-11-09T18:51:33.3131287Z   empty-probe baseline (same imports, no scenario): 118.5 MiB of RSS, subtracted from every probe below
+2026-11-09T18:51:33.3131502Z   heavy_old/shoulder                 RSS peak   118.5 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 82 / 13 / 3.5)
+2026-11-09T18:51:33.3131792Z   winter/cycle                       RSS peak   118.5 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 84 / 9 / 3.5)
+2026-11-09T18:51:33.3132000Z   winter/pv+cycle                    RSS peak   118.5 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 82 / 13 / 3.5)
+2026-11-09T18:51:33.3132207Z   typical_slab/winter                RSS peak   118.5 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 92 / 14 / 3.4)
+2026-11-09T18:51:33.3132462Z   winter_extreme/1z/dhw              RSS peak   118.5 MiB, attributable   0.0 MiB, traced   3.3 MiB (recorded 88 / 12 / 3.4)
+2026-11-09T18:51:33.3132677Z   typical_slab/shoulder              RSS peak   118.5 MiB, attributable   0.0 MiB, traced   2.1 MiB (recorded 85 / 9 / 1.8)
+2026-11-09T18:51:33.3132917Z   ok   no probed solve imports a module inside the traced window (first-call setup is the import's cost, not the scenario's)
+2026-11-09T18:51:33.3133193Z   parent RSS watermark growth over the memory pass: 0.0 MiB (ru_maxrss is a high-water mark; growth here means the pass itself retained memory)
+2026-11-09T18:51:33.3133417Z   coverage: this pass probed 6 of 54 recorded memory budgets; the unprobed ones are compared only at recording time
+2026-11-09T18:51:33.3133965Z   attributable RSS: 6 of 6 probe(s) read at this platform's import floor, so the stale arm says nothing about them (probe watermark not below the record): heavy_old/shoulder; winter/cycle; winter/pv+cycle; typical_slab/winter; winter_extreme/1z/dhw; typical_slab/shoulder
+2026-11-09T18:51:33.3134081Z   ok   the memory pass probes the recorded peak on each axis
+2026-11-09T18:51:33.3134218Z   ok   the probed scenarios' memory peaks stay within their recorded budgets
+2026-11-09T18:51:33.3134366Z   ok   no probed scenario's memory got dramatically cheaper without a re-record
+2026-11-09T18:51:33.3134502Z   ok   every memory-pass scenario has recorded peaks
+2026-11-09T18:51:33.3134625Z   ok   the memory pass retains less than 512 MiB of RSS in the parent
+2026-11-09T18:51:33.3134805Z   whole sweep: 41.4 s of solver CPU against 1.1 s of reference CPU = 36.31x; budget is 52.44x
+2026-11-09T18:51:33.3134957Z   ok   the sweep as a whole costs what it has always cost, relative to this machine
+2026-11-09T18:51:33.3135730Z   detection against the RECORDED costs: per-scenario ceiling 1.32x, sweep budget 1.49x, per-scenario table 3.00x -- the smallest of those is the smallest UNIFORM regression this gate can see where it was recorded; a regression confined to one scenario is seen at 1.80x of that scenario's recorded solver work instead, or at 1.80x of the kernel CPU the baseline spent beside it (round-5 D9-07)
+2026-11-09T18:51:33.3136156Z   detection for MEMORY: attributable-RSS budget 1.50x, traced budget 1.50x of the recorded peak, over the 6 scenario(s) this pass probes -- a regression smaller than these multiples passes the memory section green
+2026-11-09T18:51:33.3136807Z   detection on THIS machine: per-scenario ceiling 2.26x (244x x 1.1 wobble), sweep budget 1.44x -- these move with the machine because the reference solve does not scale with the real ones (measured 1.7x of ratio compression between an M1 and a CI runner); re-record here to get the figures above
+2026-11-09T18:51:33.3136989Z   ok   the budgets are tight enough to see a 2x regression, uniform or confined to one scenario
+2026-11-09T18:51:33.3137330Z   thread factor (process CPU / this-thread CPU): reference 1.000, scenarios 1.000 -- these must match for the ratio above to be a pure work ratio that travels to another machine
+2026-11-09T18:51:33.3137534Z   ok   the reference and the scenarios are parallelised alike, so the thread factor cancels in the ratio
+2026-11-09T18:51:33.3137701Z   ok   no scenario hits the absolute pathological-solve ceiling
+2026-11-09T18:51:33.3137710Z 
+2026-11-09T18:51:33.3137801Z -- Economics
+2026-11-09T18:51:33.3137935Z   ok   winter: cheaper than holding the setpoint
+2026-11-09T18:51:33.3138093Z   ok   winter_extreme: cheaper than holding the setpoint
+2026-11-09T18:51:33.3138334Z   ok   shoulder: cheaper than holding the setpoint
+2026-11-09T18:51:33.3138487Z   ok   a flat price curve produces no fictitious saving
+2026-11-09T18:51:33.3138627Z   ok   a flat price curve still respects comfort
+2026-11-09T18:51:33.3138768Z   ok   a wider price spread yields a larger saving
+2026-11-09T18:51:33.3138922Z   ok   a higher comfort weight is warmer, across the documented range
+2026-11-09T18:51:33.3139048Z   ok   a higher comfort weight saves less, across the documented range
+2026-11-09T18:51:33.3139189Z   ok   the README's comfort-weight table still holds
+2026-11-09T18:51:33.3139316Z   ok   solver noise under an economically nil perturbation stays small
+2026-11-09T18:51:33.3139410Z   ok   a capacity tariff lowers the projected peak
+2026-11-09T18:51:33.3139493Z   ok   and does not wreck comfort doing it
+2026-11-09T18:51:33.3139586Z   ok   a cycling cost reduces compressor starts
+2026-11-09T18:51:33.3139666Z   ok   PV surplus is self-consumed
+2026-11-09T18:51:33.3139794Z   ok   a more efficient heat pump is never worse, and is better somewhere
+2026-11-09T18:51:33.3139890Z   ok   a leakier, larger house costs more to heat
+2026-11-09T18:51:33.3139895Z 
+2026-11-09T18:51:33.3139959Z -- Edge conditions
+2026-11-09T18:51:33.3140048Z   ok   all 17 edge conditions produce a sound plan
+2026-11-09T18:51:33.3140160Z   ok   an undersized pump runs flat out rather than giving up
+2026-11-09T18:51:33.3140264Z   ok   negative prices are exploited rather than ignored
+2026-11-09T18:51:33.3140404Z   ok   the baseline scenario plans electric hot water inside the 2 h horizon
+2026-11-09T18:51:33.3140515Z   ok   an external heat source suppresses electric hot water
+2026-11-09T18:51:33.3140643Z   ok   suppression lowers total electric DHW energy, not just moves it
+2026-11-09T18:51:33.3140690Z 
+2026-11-09T18:51:33.3140759Z ALL 114 STRESS CHECKS PASSED
+2026-11-09T18:51:33.3140767Z 
+2026-11-09T18:51:33.3140873Z ########## python3 tests/harness_headers.py ##########
+2026-11-09T18:51:33.3141015Z   LEASE: tests/harness_headers.py runs under the gate lease as run.sh-2312
+2026-11-09T18:51:33.3141023Z 
+2026-11-09T18:51:33.3141126Z === harness header EXPECTED vs RESULT (#817) ===
+2026-11-09T18:51:33.3141232Z   ok   repo_root finds the checkout that holds the manifest
+2026-11-09T18:51:33.3141340Z   ok   repo_root finds the checkout from one segment deeper
+2026-11-09T18:51:33.3141435Z   ok   repo_root refuses a directory with no manifest
+2026-11-09T18:51:33.3141584Z   ok   every inlined walk matches the canonical helper and no depth root remains
+2026-11-09T18:51:33.3141725Z   ok   every harness declaring live-header anywhere in its file is executed
+2026-11-09T18:51:33.3141878Z   ok   every per-harness CPU bound names an executed harness, under the wall cap
+2026-11-09T18:51:33.3141989Z   ok   dev/audit/rounds/round3/D2/dst_window_factors.py exists
+2026-11-09T18:51:33.3142177Z   ok   dev/audit/rounds/round3/D2/dst_window_factors.py header names at least one EXPECTED RESULT
+2026-11-09T18:51:33.3142326Z   dev/audit/rounds/round3/D2/dst_window_factors.py: cpu=0.3s of the 60s bound
+2026-11-09T18:51:33.3142441Z   ok   dev/audit/rounds/round3/D2/dst_window_factors.py exits 0
+2026-11-09T18:51:33.3142608Z   ok   dev/audit/rounds/round3/D2/dst_window_factors.py costs at most 50% of its CPU bound
+2026-11-09T18:51:33.3142796Z   ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT default_horizon_hours matches header
+2026-11-09T18:51:33.3142946Z   ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT cells matches header
+2026-11-09T18:51:33.3143139Z   ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT total_mismatched_cells matches header
+2026-11-09T18:51:33.3143353Z   ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT mismatches_autumn_60min_peak_hours matches header
+2026-11-09T18:51:33.3143566Z   ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT null_control_non_dst_day_mismatches matches header
+2026-11-09T18:51:33.3143750Z   ok   dev/audit/rounds/round3/D2/dst_window_factors.py RESULT no_mask_returns_none matches header
+2026-11-09T18:51:33.3143924Z   ok   dev/audit/rounds/round3/D2/window_size_sweep.py exists
+2026-11-09T18:51:33.3144104Z   ok   dev/audit/rounds/round3/D2/window_size_sweep.py header names at least one EXPECTED RESULT
+2026-11-09T18:51:33.3144255Z   dev/audit/rounds/round3/D2/window_size_sweep.py: cpu=0.3s of the 60s bound
+2026-11-09T18:51:33.3144374Z   ok   dev/audit/rounds/round3/D2/window_size_sweep.py exits 0
+2026-11-09T18:51:33.3144536Z   ok   dev/audit/rounds/round3/D2/window_size_sweep.py costs at most 50% of its CPU bound
+2026-11-09T18:51:33.3144780Z   ok   dev/audit/rounds/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_autumn_15min matches header
+2026-11-09T18:51:33.3144990Z   ok   dev/audit/rounds/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_autumn_90min matches header
+2026-11-09T18:51:33.3145207Z   ok   dev/audit/rounds/round3/D2/window_size_sweep.py RESULT live_tracker_mismatch_control_15min matches header
+2026-11-09T18:51:33.3145392Z   ok   dev/audit/rounds/round3/D2/window_size_sweep.py RESULT catalog_window_minutes matches header
+2026-11-09T18:51:33.3145584Z   ok   dev/audit/rounds/round3/D2/window_size_sweep.py RESULT options_selector_choices matches header
+2026-11-09T18:51:33.3145701Z   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py exists
+2026-11-09T18:51:33.3145883Z   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py header names at least one EXPECTED RESULT
+2026-11-09T18:51:33.3146036Z   dev/audit/rounds/round3/D5/option_doc_coverage.py: cpu=0.2s of the 60s bound
+2026-11-09T18:51:33.3146153Z   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py exits 0
+2026-11-09T18:51:33.3146320Z   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py costs at most 50% of its CPU bound
+2026-11-09T18:51:33.3146545Z   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py RESULT option_fields_rendered matches header
+2026-11-09T18:51:33.3146933Z   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py RESULT option_fields_undocumented matches header
+2026-11-09T18:51:33.3147136Z   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py RESULT option_schema_keys_rendered matches header
+2026-11-09T18:51:33.3147344Z   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py RESULT wood_economics_fields_rendered matches header
+2026-11-09T18:51:33.3147543Z   ok   dev/audit/rounds/round3/D5/option_doc_coverage.py RESULT wood_economics_doc_lines matches header
+2026-11-09T18:51:33.3147637Z   ok   dev/audit/rounds/round4/D10/qs_rules.py exists
+2026-11-09T18:51:33.3147805Z   ok   dev/audit/rounds/round4/D10/qs_rules.py header names at least one EXPECTED RESULT
+2026-11-09T18:51:33.3147934Z   dev/audit/rounds/round4/D10/qs_rules.py: cpu=0.4s of the 60s bound
+2026-11-09T18:51:33.3148029Z   ok   dev/audit/rounds/round4/D10/qs_rules.py exits 0
+2026-11-09T18:51:33.3148182Z   ok   dev/audit/rounds/round4/D10/qs_rules.py costs at most 50% of its CPU bound
+2026-11-09T18:51:33.3148329Z   ok   dev/audit/rounds/round4/D10/qs_rules.py RESULT rules_total matches header
+2026-11-09T18:51:33.3148485Z   ok   dev/audit/rounds/round4/D10/qs_rules.py RESULT declared_mismatch matches header
+2026-11-09T18:51:33.3148578Z   ok   dev/audit/rounds/round4/D6/claims.py exists
+2026-11-09T18:51:33.3148737Z   ok   dev/audit/rounds/round4/D6/claims.py header names at least one EXPECTED RESULT
+2026-11-09T18:51:33.3148861Z   dev/audit/rounds/round4/D6/claims.py: cpu=1.3s of the 60s bound
+2026-11-09T18:51:33.3148958Z   ok   dev/audit/rounds/round4/D6/claims.py exits 0
+2026-11-09T18:51:33.3149103Z   ok   dev/audit/rounds/round4/D6/claims.py costs at most 50% of its CPU bound
+2026-11-09T18:51:33.3149251Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_extracted matches header
+2026-11-09T18:51:33.3149398Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_checked matches header
+2026-11-09T18:51:33.3149539Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_true matches header
+2026-11-09T18:51:33.3149684Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_false matches header
+2026-11-09T18:51:33.3149906Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_stale matches header
+2026-11-09T18:51:33.3150065Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_unverifiable matches header
+2026-11-09T18:51:33.3150236Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT config_defaults_compared matches header
+2026-11-09T18:51:33.3150399Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT config_ranges_compared matches header
+2026-11-09T18:51:33.3150601Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT arch_modules_on_disk matches header
+2026-11-09T18:51:33.3150750Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT arch_map_listed matches header
+2026-11-09T18:51:33.3150897Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT arch_map_missing matches header
+2026-11-09T18:51:33.3151072Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT ha_module_level_importers matches header
+2026-11-09T18:51:33.3151203Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py exists
+2026-11-09T18:51:33.3151400Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py header names at least one EXPECTED RESULT
+2026-11-09T18:51:33.3151560Z   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py: cpu=96.3s of the 480s bound
+2026-11-09T18:51:33.3151687Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py exits 0
+2026-11-09T18:51:33.3151866Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py costs at most 50% of its CPU bound
+2026-11-09T18:51:33.3152057Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT gatepass_plants matches header
+2026-11-09T18:51:33.3152248Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT draws_per_cell matches header
+2026-11-09T18:51:33.3152439Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT fitted_typical_s001 matches header
+2026-11-09T18:51:33.3152685Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT within10_typical_s001 matches header
+2026-11-09T18:51:33.3152878Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT fitted_heavy_s001 matches header
+2026-11-09T18:51:33.3153072Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT within10_heavy_s001 matches header
+2026-11-09T18:51:33.3153282Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT interval_refused_typical_s005 matches header
+2026-11-09T18:51:33.3153494Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT interval_refused_heavy_s005 matches header
+2026-11-09T18:51:33.3153694Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT shipped_presets_armed matches header
+2026-11-09T18:51:33.3153903Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT shipped_presets_gate_named matches header
+2026-11-09T18:51:33.3154118Z   ok   dev/audit/rounds/round4/D7/sysid_estimator_frontier.py RESULT unridged_fitted_typical_s001 matches header
+2026-11-09T18:51:33.3154216Z   ok   dev/audit/rounds/round4/D9/h2_cycle.py exists
+2026-11-09T18:51:33.3154377Z   ok   dev/audit/rounds/round4/D9/h2_cycle.py header names at least one EXPECTED RESULT
+2026-11-09T18:51:33.3154505Z   dev/audit/rounds/round4/D9/h2_cycle.py: cpu=2.5s of the 60s bound
+2026-11-09T18:51:33.3154603Z   ok   dev/audit/rounds/round4/D9/h2_cycle.py exits 0
+2026-11-09T18:51:33.3154747Z   ok   dev/audit/rounds/round4/D9/h2_cycle.py costs at most 50% of its CPU bound
+2026-11-09T18:51:33.3154912Z   ok   dev/audit/rounds/round4/D9/h2_cycle.py RESULT msm_entries_per_cycle matches header
+2026-11-09T18:51:33.3155019Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py exists
+2026-11-09T18:51:33.3155188Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py header names at least one EXPECTED RESULT
+2026-11-09T18:51:33.3155328Z   dev/audit/rounds/round4/D9/h7_memory_gate.py: cpu=2.7s of the 60s bound
+2026-11-09T18:51:33.3155435Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py exits 0
+2026-11-09T18:51:33.3155592Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py costs at most 50% of its CPU bound
+2026-11-09T18:51:33.3155868Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT scenarios_recorded matches header
+2026-11-09T18:51:33.3156026Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT memory_top_n matches header
+2026-11-09T18:51:33.3156196Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT memory_budget_factor matches header
+2026-11-09T18:51:33.3156365Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT detection_target matches header
+2026-11-09T18:51:33.3156612Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT min_attrib_rss_multiple_required_to_fail matches header
+2026-11-09T18:51:33.3156926Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT max_attrib_rss_multiple_required_to_fail matches header
+2026-11-09T18:51:33.3157128Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT scenarios_where_2x_attrib_rss_fails matches header
+2026-11-09T18:51:33.3157332Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT min_traced_multiple_required_to_fail matches header
+2026-11-09T18:51:33.3157537Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT max_traced_multiple_required_to_fail matches header
+2026-11-09T18:51:33.3157731Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT scenarios_where_2x_traced_fails matches header
+2026-11-09T18:51:33.3157913Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT scenarios_memory_probed matches header
+2026-11-09T18:51:33.3158102Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT scenarios_never_memory_probed matches header
+2026-11-09T18:51:33.3158270Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT attrib_leader_label matches header
+2026-11-09T18:51:33.3158455Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT attrib_fail_threshold_mb matches header
+2026-11-09T18:51:33.3158680Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT traced_fail_threshold_mb matches header
+2026-11-09T18:51:33.3158860Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT clean_attrib_rule_fires matches header
+2026-11-09T18:51:33.3159044Z   ok   dev/audit/rounds/round4/D9/h7_memory_gate.py RESULT inject2x_attrib_rule_fires matches header
+2026-11-09T18:51:33.3159159Z   ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py exists
+2026-11-09T18:51:33.3159341Z   ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py header names at least one EXPECTED RESULT
+2026-11-09T18:51:33.3159483Z   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py: cpu=4.0s of the 60s bound
+2026-11-09T18:51:33.3159599Z   ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py exits 0
+2026-11-09T18:51:33.3159764Z   ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py costs at most 50% of its CPU bound
+2026-11-09T18:51:33.3159971Z   ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py RESULT cost_terms_batch_calls_per_gradient matches header
+2026-11-09T18:51:33.3160162Z   ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py RESULT batch_rows_per_gradient matches header
+2026-11-09T18:51:33.3160400Z   ok   dev/audit/rounds/round4/D9/h9_batch_cost_loop.py RESULT null_control_batched_calls_per_gradient_delta matches header
+2026-11-09T18:51:33.3160505Z   ok   an idle child past the CPU limit is not killed by it
+2026-11-09T18:51:33.3160601Z   ok   a spinning child is killed at the CPU limit
+2026-11-09T18:51:33.3160697Z   ok   an idle child past the wall cap reports 124
+2026-11-09T18:51:33.3160822Z   ok   a bounded child runs with every BLAS pool pinned to one thread
+2026-11-09T18:51:33.3160958Z   ok   a recorded run does not grade the CPU headroom (closure.py's flag)
+2026-11-09T18:51:33.3161114Z   ok   an unrecorded run past half its bound still fails the headroom (null control)
+2026-11-09T18:51:33.3161200Z   ok   and an unrecorded run within it passes
+2026-11-09T18:51:33.3161339Z   ok   the executed harnesses leave their committed output byte-identical
+2026-11-09T18:51:33.3161344Z 
+2026-11-09T18:51:33.3161432Z ALL 112 HARNESS HEADER CHECKS PASSED
+2026-11-09T18:51:33.3161437Z 
+2026-11-09T18:51:33.3161517Z ########## wall clock ##########
+2026-11-09T18:51:33.3161787Z        0s  python3 tests/env_drift.py --claims-only 2f6d699e504d6dc0bb6040d99c21c5b015a290e4
+2026-11-09T18:51:33.3161875Z        4s  python3 tests/closure.py selftest
+2026-11-09T18:51:33.3161953Z      363s  python3 tests/features.py
+2026-11-09T18:51:33.3162034Z      372s  python3 tests/entities.py
+2026-11-09T18:51:33.3162115Z        0s  python3 tests/block_duty.py
+2026-11-09T18:51:33.3162191Z        7s  python3 tests/doc_claims.py
+2026-11-09T18:51:33.3162311Z        0s  node tests/md_tables.mjs
+2026-11-09T18:51:33.3162393Z        1s  python3 tests/wood_advisor.py
+2026-11-09T18:51:33.3162477Z       13s  python3 tests/config_flow_steps.py
+2026-11-09T18:51:33.3162556Z       14s  python3 tests/structure.py
+2026-11-09T18:51:33.3162638Z        0s  python3 tests/typing_ruler.py
+2026-11-09T18:51:33.3162713Z        0s  python3 tests/ha_contract.py
+2026-11-09T18:51:33.3162791Z        5s  python3 tests/manual_plan.py
+2026-11-09T18:51:33.3162864Z        0s  python3 tests/open_meteo.py
+2026-11-09T18:51:33.3162948Z        0s  python3 tests/solar_alignment.py
+2026-11-09T18:51:33.3163024Z        1s  python3 tests/guard_pins.py
+2026-11-09T18:51:33.3163098Z        1s  python3 tests/debug_collect.py
+2026-11-09T18:51:33.3163182Z       46s  python3 tests/finite_boundary.py
+2026-11-09T18:51:33.3163256Z        3s  python3 tests/layout.py
+2026-11-09T18:51:33.3163335Z        2s  python3 tests/deployment_shape.py
+2026-11-09T18:51:33.3163498Z      203s  python3 tests/env_drift.py --all 2f6d699e504d6dc0bb6040d99c21c5b015a290e4
+2026-11-09T18:51:33.3163576Z       19s  python3 tests/validate.py
+2026-11-09T18:51:33.3163646Z       20s  python3 tests/edge.py
+2026-11-09T18:51:33.3163721Z       62s  python3 tests/backtest.py
+2026-11-09T18:51:33.3163809Z      152s  python3 tests/boost_drift_replay.py
+2026-11-09T18:51:33.3163915Z       83s  python3 tests/optimality.py
+2026-11-09T18:51:33.3163995Z        1s  python3 tests/plan_view.py
+2026-11-09T18:51:33.3164072Z        0s  python3 tests/frontend.py
+2026-11-09T18:51:33.3164144Z       68s  node tests/card.mjs
+2026-11-09T18:51:33.3164224Z        0s  node tests/setup_qa_render.mjs
+2026-11-09T18:51:33.3164364Z        3s  node tests/card_drift.mjs 2f6d699e504d6dc0bb6040d99c21c5b015a290e4
+2026-11-09T18:51:33.3164436Z      178s  python3 tests/stress.py
+2026-11-09T18:51:33.3164519Z      115s  python3 tests/harness_headers.py
+2026-11-09T18:51:33.3164580Z     1126s  TOTAL (3 lane(s))
+2026-11-09T18:51:33.3164588Z 
+2026-11-09T18:51:33.3164654Z 1 TEST SCRIPT(S) FAILED
+2026-11-09T18:51:33.3175379Z ##[error]Process completed with exit code 1.
+2026-11-09T18:51:33.3231979Z ##[group]Run actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+2026-11-09T18:51:33.3232042Z with:
+2026-11-09T18:51:33.3232106Z   name: ci-metrics-fast
+2026-11-09T18:51:33.3232195Z   path: /home/runner/work/_temp/ci-metrics-fast.tsv
+2026-11-09T18:51:33.3232255Z   if-no-files-found: ignore
+2026-11-09T18:51:33.3232313Z   retention-days: 7
+2026-11-09T18:51:33.3232368Z   compression-level: 6
+2026-11-09T18:51:33.3232425Z   overwrite: false
+2026-11-09T18:51:33.3232485Z   include-hidden-files: false
+2026-11-09T18:51:33.3232538Z   archive: true
+2026-11-09T18:51:33.3232596Z env:
+2026-11-09T18:51:33.3232695Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-09T18:51:33.3232815Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib/pkgconfig
+2026-11-09T18:51:33.3232903Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-09T18:51:33.3233000Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-09T18:51:33.3233131Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.10/x64
+2026-11-09T18:51:33.3233225Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.10/x64/lib
+2026-11-09T18:51:33.3233311Z   CLAIM_HEAD: 3377b5f0660d421e6c8eb01a5f50c9ef114a6c4b
+2026-11-09T18:51:33.3233396Z   GOLDEN_REF: 2f6d699e504d6dc0bb6040d99c21c5b015a290e4
+2026-11-09T18:51:33.3233450Z ##[endgroup]
+2026-11-09T18:51:33.4274977Z With the provided path, there will be 1 file uploaded
+2026-11-09T18:51:33.4277982Z Artifact name is valid!
+2026-11-09T18:51:33.4278261Z Root directory input is valid!
+2026-11-09T18:51:33.7112759Z Uploading artifact: ci-metrics-fast.zip
+2026-11-09T18:51:33.7137514Z Beginning upload of artifact content to blob storage
+2026-11-09T18:51:33.8777095Z Uploaded bytes 198
+2026-11-09T18:51:33.9152596Z Finished uploading artifact content to blob storage!
+2026-11-09T18:51:33.9153141Z SHA256 digest of uploaded artifact is cc844b737f662afb6546eed1e687a65bd7f89b5d96ffdd10f6a179e0196d585c
+2026-11-09T18:51:33.9153713Z Finalizing artifact upload
+2026-11-09T18:51:34.3502327Z Artifact ci-metrics-fast successfully finalized. Artifact ID 13700872252
+2026-11-09T18:51:34.3502917Z Artifact ci-metrics-fast has been successfully uploaded! Final size is 198 bytes. Artifact ID is 13700872252
+2026-11-09T18:51:34.3505184Z Artifact download URL: https://github.com/tvofi/heatpump_optimizer/actions/runs/42674500178/artifacts/13700872252
+2026-11-09T18:51:34.3676860Z Post job cleanup.
+2026-11-09T18:51:34.4434726Z [command]/usr/bin/git version
+2026-11-09T18:51:34.4478009Z git version 2.56.0
+2026-11-09T18:51:34.4500369Z Temporarily overriding HOME='/home/runner/work/_temp/934db2f4-f5c7-4c78-961d-77e33a7679b9' before making global git config changes
+2026-11-09T18:51:34.4500863Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-09T18:51:34.4504478Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-09T18:51:34.4536460Z Removing SSH command configuration
+2026-11-09T18:51:34.4540365Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-09T18:51:34.4573031Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-09T18:51:34.4974680Z Removing HTTP extra header
+2026-11-09T18:51:34.4976784Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-09T18:51:34.5029124Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-09T18:51:34.5287390Z Removing includeIf entries pointing to credentials config files
+2026-11-09T18:51:34.5292879Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-09T18:51:34.5316464Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-09T18:51:34.5317470Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-09T18:51:34.5317947Z includeif.gitdir:/github/workspace/.git.path
+2026-11-09T18:51:34.5318360Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-09T18:51:34.5323999Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-09T18:51:34.5344147Z /home/runner/work/_temp/git-credentials-66c73c08-2d1d-444f-bf8c-aa7f49969135.config
+2026-11-09T18:51:34.5351648Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-66c73c08\-2d1d\-444f\-bf8c\-aa7f49969135\.config
+2026-11-09T18:51:34.5420181Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-09T18:51:34.5440076Z /home/runner/work/_temp/git-credentials-66c73c08-2d1d-444f-bf8c-aa7f49969135.config
+2026-11-09T18:51:34.5446574Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-66c73c08\-2d1d\-444f\-bf8c\-aa7f49969135\.config
+2026-11-09T18:51:34.5473848Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-09T18:51:34.5493143Z /github/runner_temp/git-credentials-66c73c08-2d1d-444f-bf8c-aa7f49969135.config
+2026-11-09T18:51:34.5497854Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-66c73c08\-2d1d\-444f\-bf8c\-aa7f49969135\.config
+2026-11-09T18:51:34.5525638Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-09T18:51:34.5547395Z /github/runner_temp/git-credentials-66c73c08-2d1d-444f-bf8c-aa7f49969135.config
+2026-11-09T18:51:34.5555948Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-66c73c08\-2d1d\-444f\-bf8c\-aa7f49969135\.config
+2026-11-09T18:51:34.5582528Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-09T18:51:34.5815807Z Removing credentials config '/home/runner/work/_temp/git-credentials-66c73c08-2d1d-444f-bf8c-aa7f49969135.config'
+2026-11-09T18:51:34.5950915Z Cleaning up orphan processes

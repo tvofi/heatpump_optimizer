@@ -1,6 +1,0 @@
-job 129152227797 governance / instrument-self-tests, run 42614818040, head 9f4a1a41078ab70510afe7e2413ac603e0ffdd56: conclusion failure
-2026-11-09T12:24:20.4990634Z   ok   the committed table names no landed retired path (161 retired; named: [])
-2026-11-09T12:24:20.4991347Z   FAIL the live job parses (115 steps) and its gating is consistent
-2026-11-09T12:24:20.4991938Z selftest_scope self-test: 90 checks, 1 failed
-2026-11-09T12:24:20.5036241Z ##[error]Process completed with exit code 1.
-gate job 129152782003 (run 42614818094): failure, "FAIL run(s) [42614818040] at this head are still being judged; their gate decides" (deferral)

@@ -87,5 +87,5 @@
   ok   static: an unreadable table is refused
   ok   an unknown command is a usage error
   ok   the committed table names no landed retired path (161 retired; named: [])
-  FAIL the live job parses (115 steps) and its gating is consistent
-selftest_scope self-test: 90 checks, 1 failed
+  ok   the live job parses (116 steps) and its gating is consistent
+selftest_scope self-test: 90 checks, 0 failed

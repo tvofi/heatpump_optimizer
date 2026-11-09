@@ -1,8 +1,126 @@
+# Review packet #3350
+head: 3377b5f0660d421e6c8eb01a5f50c9ef114a6c4b
+base: 2f6d699e504d6dc0bb6040d99c21c5b015a290e4
+
+Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
+
+## Gate digest: red
+CodeQL id=129353321527 neutral
+arch-score / arch-score id=129352818081 success
+budget-raise-gate / budget-raise-gate id=129352818202 success
+cancel-superseded id=129352300742 success
+codeql / Analyze (actions) id=129352818145 success
+codeql / Analyze (javascript-typescript) id=129352818665 success
+codeql / Analyze (python) id=129352818680 in_progress
+gate id=129353418962 failure
+governance / delivery-status id=129352818520 success
+governance / env-matrix id=129352818159 success
+governance / instrument-self-tests id=129352818254 in_progress
+governance / policy-docs id=129352818006 success
+governance / wave-script id=129352818532 success
+hassfest / hassfest id=129352817876 success
+pr-contract id=129353422068 skipped
+prelude id=129352300313 success
+refresh id=129352300946 success
+tests / arch-instrument id=129353236339 in_progress
+tests / briefs id=129352818174 success
+tests / browser id=129353236225 success
+tests / closure-scope id=129352817939 success
+tests / closures id=129353236556 in_progress
+tests / coverage id=129353236303 in_progress
+tests / fast (3.14) id=129353236613 in_progress
+tests / mutation id=129352818427 success
+tests / mutation-pins id=129353236006 skipped
+tests / nightly-status id=129352818074 success
+tests / typing id=129353236919 success
+validate / validate-hacs id=129352817918 success
+
+## Refusals
+required-red: required context `gate` concluded failure at 3377b5f0660d421e6c8eb01a5f50c9ef114a6c4b
+
+## Advisories
+none
+
+## carry_audit at the head
+NOTE body item 4b38e418: dismissed:no stage's method changes; a cancelled row is read by its conclusion field, which this body records
+NOTE body item 6da95fc9: dismissed:repaired in this pull request, and the carry is consumed by this landing
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+
+## figure_lint at the head
+unverified git merge-tree --write-tree origin/main bb84b1bd
+             `git merge-tree` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         python3 tools/plan/replan.py --self-test
+             `tools/plan/replan.py` is in the tree at this head
+  ok         python3 -I dev/audit/harnesses/r10_outside_intake_p2_mutants.py
+             `dev/audit/harnesses/r10_outside_intake_p2_mutants.py` is in the tree at this head
+  ok         python3 -I dev/audit/harnesses/r10_plan_page_mutants.py
+             `dev/audit/harnesses/r10_plan_page_mutants.py` is in the tree at this head
+  ok         python3 -I tools/audit/seat/plan_page.py --self-test
+             `tools/audit/seat/plan_page.py` is in the tree at this head
+  ok         python3 -I tools/audit/seat/roster_lib.py --self-test
+             `tools/audit/seat/roster_lib.py` is in the tree at this head
+  ok         python3 -I tools/ci/selftest_scope.py --self-test
+             `tools/ci/selftest_scope.py` is in the tree at this head
+  ok         python3 -I tools/audit/seat/bottleneck_check.py --self-test
+             `tools/audit/seat/bottleneck_check.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"
+             `tests/closure.py` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)
+             `tools/audit/archscore/score.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py
+             `dev/audit/rounds/round4/D6/claims.py` is in the tree at this head
+  unverified PYTHONPATH=tests/hastub python3 tests/<script>.py
+             the path `tests/<script>.py` is a template or an expansion, not a literal
+  ok         python3 -I tools/ci/selftest_scope.py select --base origin/main
+             `tools/ci/selftest_scope.py` is in the tree at this head
+  ok         python3 -I tools/ci/selftest_scope.py record --step bottleneck-alert
+             `tools/ci/selftest_scope.py` is in the tree at this head
+  ok         python3 -I dev/audit/harnesses/r10_outside_intake_p2_mutants.py M0
+             `dev/audit/harnesses/r10_outside_intake_p2_mutants.py` is in the tree at this head
+  ok         python3 tools/audit/seat/selftest_wiring.py --check
+             `tools/audit/seat/selftest_wiring.py` is in the tree at this head
+  ok         bash tools/audit/seat/cloud-setup.sh --check
+             `tools/audit/seat/cloud-setup.sh` is in the tree at this head
+  ok         python3 -I tools/audit/seat/roster_edit.py --self-test
+             `tools/audit/seat/roster_edit.py` is in the tree at this head
+  ok         tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         tests/harness_headers.py
+             `tests/harness_headers.py` is in the tree at this head
+  unverified python3 -I <tree>/tools/plan/replan.py --repo . --roster-ref origin/handoff/audit-r10-roster --start 2026-11-08T20:20:00Z --slots 20 --seats 20 --out plan-<arm>.json
+             the path `<tree>/tools/plan/replan.py` is a template or an expansion, not a literal
+  unverified git archive origin/main
+             `git archive` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified git archive
+             `git archive` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified python3 -I <file> --self-test
+             the path `<file>` is a template or an expansion, not a literal
+  ok         tools/audit/seat/roster_edit.py
+             `tools/audit/seat/roster_edit.py` is in the tree at this head
+  ok         tools/audit/seat/roster_lib.py
+             `tools/audit/seat/roster_lib.py` is in the tree at this head
+  ok         tools/audit/seat/r10_roster_ops_mutants.py
+             `tools/audit/seat/r10_roster_ops_mutants.py` is in the tree at this head
+
+FIGURES: 22 resolved, 6 not verified, 0 refused
+
+## Finder's harness: none named
+### at the base
+not run
+### at the head
+not run
+
+## Mutation-ledger diff
+none
+
+## Three-dot diff
 diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
-index 5c60d88ec..44f3601a5 100644
+index 712c475ed..eb8e596be 100644
 --- a/.github/workflows/governance.yml
 +++ b/.github/workflows/governance.yml
-@@ -465,6 +465,12 @@ jobs:
+@@ -465,6 +465,14 @@ jobs:
          if: steps.scope.outputs.outside-intake == 'true'
          run: python3 -I tools/audit/seat/outside_intake.py --self-test
  
@@ -10,17 +128,53 @@ index 5c60d88ec..44f3601a5 100644
 +      # rule, each boundary and minimum sample, UNREADABLE, the trip memory and
 +      # one mutant per rule predicate, offline over planted metrics.
 +      - name: Show the bottleneck alert tripping each rule once and silent on its null control
++        id: bottleneck-alert
++        if: steps.scope.outputs.bottleneck-alert == 'true'
 +        run: python3 -I tools/audit/seat/bottleneck_check.py --self-test
 +
        # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
        # synthetic registration, offline: `policy-docs` runs the base's copy,
        # which cannot answer for a change to this one.
+diff --git a/custom_components/heatpump_optimizer/translations/de.json b/custom_components/heatpump_optimizer/translations/de.json
+index 8a6871b79..66d4e9889 100644
+--- a/custom_components/heatpump_optimizer/translations/de.json
++++ b/custom_components/heatpump_optimizer/translations/de.json
+@@ -581,13 +581,17 @@
+               "indoor_temp_entity": "Innentemperatursensor",
+               "outdoor_temp_entity": "Außentemperatursensor",
+               "space_setpoint_entity": "Sollwert-Entität der Raumheizung (optional)",
+-              "space_setpoint_unit": "Was diese Sollwert-Entität erwartet"
++              "space_setpoint_unit": "Was diese Sollwert-Entität erwartet",
++              "flow_min_lift_k": "Mindestanhebung über das zulaufende Wasser (K)",
++              "flow_heat_c": "Obergrenze des Heizwassers (°C)"
+             },
+             "data_description": {
+               "indoor_temp_entity": "Optional. Die tatsächliche Raumtemperatur. Ohne sie vertraut der Optimierer seinem eigenen Modell, das mit der Zeit abdriftet.",
+               "outdoor_temp_entity": "Optional. Ein lokales Außenthermometer ist für die aktuelle Stunde genauer als die Vorhersage.",
+               "space_setpoint_entity": "Optional. Eine Zahl, ein Helfer oder eine Climate-Entität, die der Sollwert der Raumheizung der Pumpe ist. Dient nur dazu zu bemerken, wenn die Entität nicht gelesen werden kann. Der Optimierer schreibt nie einen empfohlenen Raumheizungs-Sollwert.",
+-              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert."
++              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert.",
++              "flow_min_lift_k": "Mit Steuerung der Pumpenfunktion auf Steuern ist der Wasser-Sollwert, der bei der niedrigsten Leistung des Plans geschrieben wird, das gemessene zulaufende Wasser plus dieser Wert: Rücklauf der Wärmepumpe, Pufferspeicher, Fußbodenrücklauf oder Ventilausgang, und für eine Rücklauftemperatur-Entität nur die ersten drei. 5 K passen zu einem Regler, der seinen Vorlauf auf dem Sollwert hält. Bei einem Regler, der die Zahl als Ziel für das Rücklaufwasser nimmt, wird angenommen, dass er den Verdichter umso stärker laufen lässt, je weiter das Ziel über dem Rücklauf liegt; er will daher wahrscheinlich weniger. 1–2 K sind ein Ausgangspunkt, der an der gemessenen Frequenz und Leistung des Verdichters zu prüfen ist, kein gemessener Wert.",
++              "flow_heat_c": "Der Wasser-Sollwert, der bei voller geplanter Leistung geschrieben wird, und der höchste, der geschrieben wird, solange der Plan steuert. 55 °C passen zu einem Vorlaufziel. Für eine Rücklauftemperatur-Entität wählen Sie ihn über dem höchsten Rücklauf, den Sie im normalen Heizbetrieb sehen, plus der Anhebung, und nicht höher, als der Regler annimmt; bei einer Niedertemperatur-Fußbodenheizung können 35–40 °C ein Ausgangspunkt sein, der an Messungen zu prüfen ist. Unter 30 °C wird nicht angeboten: Die Schwelle, die Aus bedeutet, ist 25 °C für ein Vorlaufziel und 20 °C für ein Rücklaufziel."
+             }
+           },
+           "plant": {
+@@ -1686,7 +1690,8 @@
+     "space_setpoint_unit": {
+       "options": {
+         "indoor": "Innentemperatur",
+-        "flow": "Vorlauftemperatur"
++        "flow": "Vorlauftemperatur",
++        "return": "Rücklauftemperatur"
+       }
+     },
+     "pump_duty_mode": {
 diff --git a/dev/audit/harnesses/r10_outside_intake_p2_mutants.py b/dev/audit/harnesses/r10_outside_intake_p2_mutants.py
 new file mode 100644
-index 000000000..4656c3832
+index 000000000..52cea5351
 --- /dev/null
 +++ b/dev/audit/harnesses/r10_outside_intake_p2_mutants.py
-@@ -0,0 +1,153 @@
+@@ -0,0 +1,157 @@
 +#!/usr/bin/env python3
 +"""R10-OUTSIDE-INTAKE part 2: each behaviour the landing's self-tests pin dies alone.
 +
@@ -97,8 +251,12 @@ index 000000000..4656c3832
 +    ("train-done-flag", MT, '            out[-1]["done"] = True\n', "            pass\n", ()),
 +    ("train-skip-first-batch", MT, 'out[-1]["skips"].append(', 'out[0]["skips"].append(', ()),
 +    ("page-discharged-label", PAGE, 'label += ", every carry discharged" + (', 'label += "" + (', ()),
-+    ("page-done-set", PAGE, "done = {g for g in G if not roster_lib.is_open(G[g])} | discharged",
-+     "done = {g for g in G if not roster_lib.is_open(G[g])}", ()),
++    # The merge with #3326 moved the discharged edge release from `done` into
++    # build_rows' blocked list; `done`'s own `| discharged` feeds only the
++    # row's wave/start/finish, which replan already nulls for a discharged group.
++    ("page-discharged-edge", PAGE,
++     "if a in G and a not in discharged and roster_lib.gates(G[a])]",
++     "if a in G and roster_lib.gates(G[a])]", ()),
 +    ("page-merged-set", PAGE,
 +     "merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES} | discharged",
 +     "merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES}", ()),
@@ -174,6 +332,44 @@ index 000000000..4656c3832
 +
 +if __name__ == "__main__":
 +    sys.exit(main(sys.argv[1:]))
+diff --git a/dev/audit/harnesses/r10_plan_page_mutants.py b/dev/audit/harnesses/r10_plan_page_mutants.py
+index 6f2a6374d..eb15cf345 100644
+--- a/dev/audit/harnesses/r10_plan_page_mutants.py
++++ b/dev/audit/harnesses/r10_plan_page_mutants.py
+@@ -51,8 +51,8 @@ MUTANTS = [
+     ("blocked", PAGE, "elif blk and not part:", "elif False:"),
+     ("partial", PAGE, "if m and m.group(1) in G:", "if False:"),
+     ("blocked-by-less-done", PAGE,
+-     "blk = [a for a in entry.get(\"after\") or [] if a in G and a not in done]",
+-     "blk = [a for a in entry.get(\"after\") or [] if a in G]"),
++     "if a in G and a not in discharged and roster_lib.gates(G[a])]",
++     "if a in G]"),
+     ("pr-by-merge-commit", PAGE,
+      "if sha.startswith(commit) or commit.startswith(sha[:len(commit)]):", "if False:"),
+     ("pr-by-branch", PAGE, "            by_group[g] = p[\"number\"]", "            pass"),
+@@ -69,8 +69,8 @@ MUTANTS = [
+     ("page-refuses-stale", PAGE, "    if stale:\n        bad.append", "    if False:\n        bad.append"),
+     ("freshness-rule", PLAN, "if have != want:", "if False:"),
+     ("stamp-on-axis", PAGE,
+-     "end = max([_t(plan[\"summary\"][\"closure\"])] + [_t(s[\"at\"]) for s in plan[\"stamps\"]])",
+-     "end = _t(plan[\"summary\"][\"closure\"])"),
++     "end = max([_t(plan[\"summary\"][\"closure\"])] + [_t(s[\"at\"]) for s in plan[\"stamps\"]]\n",
++     "end = max([_t(plan[\"summary\"][\"closure\"])]\n"),
+     # Round 2: the fix review's survivors B to E (probe/rev-2558-e98d4b97).
+     # B moved with its rule (2026-11-01): `replan.check_plan` refuses a plan
+     # recording no model, which the page reads through C, so the page's own
+@@ -93,9 +93,8 @@ MUTANTS = [
+      "    G = roster_lib.groups_of(roster)\n    G.update({g: {**G[g], \"resume\": "
+      "{\"stage\": \"not-started\"}} for g in list(G)[:1]})\n    PG = plan[\"groups\"]"),
+     ("defect-2-scratch-graph", PAGE,
+-     "blk = [a for a in entry.get(\"after\") or [] if a in G and a not in done]",
+-     "blk = [a for a in {\"R9-READY\": [\"R9-LIVE\"]}.get(g, entry.get(\"after\") or [])"
+-     " if a in G and a not in done]"),
++     "blk = [a for a in entry.get(\"after\") or []\n",
++     "blk = [a for a in {\"R9-READY\": [\"R9-LIVE\"]}.get(g, entry.get(\"after\") or [])\n"),
+     ("defect-3-count-wrong-set", PAGE,
+      "open_iss = (\"—\" if snap.get(\"offline\") else str(sum(",
+      "open_iss = (\"—\" if snap.get(\"offline\") else str(len(snap[\"issues\"]) - 1 + 0 * sum("),
 diff --git a/dev/programme/delivery/3350.md b/dev/programme/delivery/3350.md
 new file mode 100644
 index 000000000..6a3293d4a
@@ -182,10 +378,10 @@ index 000000000..6a3293d4a
 @@ -0,0 +1 @@
 +- [#3350](https://github.com/tvofi/heatpump_optimizer/pull/3350) — **open**, R10-OUTSIDE-INTAKE (part 2): plan-page closure rule, flow metrics and bottleneck alert (R10-OUTSIDE-INTAKE)
 diff --git a/tests/closures.json b/tests/closures.json
-index fa125bd8b..d76dac53b 100644
+index 6c37c0fde..d370bc9ad 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -3892,6 +3892,7 @@
+@@ -3906,6 +3906,7 @@
     "tools/audit/seat/beat_jobs.py",
     "tools/audit/seat/beat_jobs_selftest.py",
     "tools/audit/seat/beatd.py",
@@ -193,15 +389,7 @@ index fa125bd8b..d76dac53b 100644
     "tools/audit/seat/carry_fold.py",
     "tools/audit/seat/ci_critpath.py",
     "tools/audit/seat/ci_probe.py",
-@@ -3917,6 +3918,7 @@
-    "tools/audit/seat/plan_page.py",
-    "tools/audit/seat/plan_public.py",
-    "tools/audit/seat/postmerge.py",
-+   "tools/audit/seat/pr_cap.py",
-    "tools/audit/seat/probe_bridge.py",
-    "tools/audit/seat/proof_watch.py",
-    "tools/audit/seat/prune_refs.py",
-@@ -4116,6 +4118,7 @@
+@@ -4135,6 +4136,7 @@
     "dev/audit/harnesses/r10_nightly_status_mutants.py",
     "dev/audit/harnesses/r10_nonrequired_reds.py",
     "dev/audit/harnesses/r10_open_driver_mutants.py",
@@ -209,7 +397,7 @@ index fa125bd8b..d76dac53b 100644
     "dev/audit/harnesses/r10_partload_pricing.py",
     "dev/audit/harnesses/r10_partload_residue.py",
     "dev/audit/harnesses/r10_plan_durations_mutants.py",
-@@ -4943,7 +4946,7 @@
+@@ -4964,7 +4966,7 @@
    },
    "tests/backtest.py": {
     "rc": 0,
@@ -218,7 +406,7 @@ index fa125bd8b..d76dac53b 100644
    },
    "tests/block_duty.py": {
     "rc": 0,
-@@ -5039,7 +5042,7 @@
+@@ -5060,7 +5062,7 @@
    },
    "tests/optimality.py": {
     "rc": 0,
@@ -1145,7 +1333,7 @@ index 3ee9211c0..e9ec4e314 100644
 +  flow metrics. Its mutants are in
 +  `dev/audit/harnesses/r10_outside_intake_p2_mutants.py`.
 diff --git a/tools/audit/seat/plan_page.py b/tools/audit/seat/plan_page.py
-index 50b3ebeb4..3ba6a8486 100644
+index e3a061eae..27d5185f7 100644
 --- a/tools/audit/seat/plan_page.py
 +++ b/tools/audit/seat/plan_page.py
 @@ -74,6 +74,9 @@ sys.path.insert(0, str(_SEAT))
@@ -1173,7 +1361,19 @@ index 50b3ebeb4..3ba6a8486 100644
  
      open_pr: dict = {}
      for p in sorted(snap["open_prs"], key=lambda p: p["number"]):
-@@ -225,6 +232,12 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
+@@ -211,7 +218,10 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
+     rows = []
+     for g, entry in G.items():
+         pg = PG[g]
+-        blk = [a for a in entry.get("after") or [] if a in G and roster_lib.gates(G[a])]
++        # An edge gates by the predecessor's stage (`roster_lib.gates`), except
++        # that a discharged predecessor is closed work, as replan reads it.
++        blk = [a for a in entry.get("after") or []
++               if a in G and a not in discharged and roster_lib.gates(G[a])]
+         part = sorted(delivered.get(g) or [])
+         sfx = f", part merged #{', #'.join(map(str, part))}" if part else ""
+         pr = ", ".join(f"#{n}" for n in open_pr.get(g, [])) or "—"
+@@ -225,6 +235,12 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
                  label, pr = f"merged at {commit[:8]}", "merged"
              else:
                  label, pr = "folded into another group (no merge of its own)", "merged"
@@ -1186,7 +1386,7 @@ index 50b3ebeb4..3ba6a8486 100644
          elif _stage(entry) in roster_lib.DISPOSITION:
              st = "held"
              into = entry.get("absorbed_into")
-@@ -390,12 +403,13 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
+@@ -390,12 +406,13 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
      unplanned: set = set()
      wired: dict = {}
      for gid, entry in roster_lib.groups_of(roster).items():
@@ -1202,7 +1402,7 @@ index 50b3ebeb4..3ba6a8486 100644
              if n not in open_now:
                  continue
              if not pg.get("finish"):
-@@ -483,11 +497,96 @@ def issues_section(roster: dict, plan: dict, snap: dict) -> str:
+@@ -483,11 +500,96 @@ def issues_section(roster: dict, plan: dict, snap: dict) -> str:
  
  # --------------------------------------------------------------------- page
  
@@ -1300,7 +1500,7 @@ index 50b3ebeb4..3ba6a8486 100644
      """The page. Pure: every input is an argument."""
      rows = build_rows(roster, plan, snap)
      svg, drawn = swimlanes(plan, rows)
-@@ -515,7 +614,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
+@@ -515,7 +617,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
          + ('<span class="cp" title="critical path">◆</span>' if r["crit"] else "")
          + f'{e(short(r["g"]))}<div class="lanec">{e(r["lane"])}</div></td>'
          f'<td class="d">{e(r["desc"])}</td>'
@@ -1309,7 +1509,7 @@ index 50b3ebeb4..3ba6a8486 100644
          f'<td class="tier">{r["tier"] if r["tier"] is not None else "—"}</td>'
          f'<td class="mono">{e(r["pr"])}</td>'
          f'<td>{"".join(chip(*i) for i in r["issues"]) or "—"}</td>'
-@@ -544,6 +643,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
+@@ -544,6 +646,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
          "source": e(f'{roster_src} @ {gen["roster_blob"][:12]}'),
          "tracking": str(TRACKING_ISSUE), "open_iss": open_iss,
          "issues_chart": issues_section(roster, plan, snap),
@@ -1317,7 +1517,7 @@ index 50b3ebeb4..3ba6a8486 100644
          "end": _t(summ["closure"]).strftime("%a %d %b %H:%M"),
          "svg": svg, "crit": crit or "—", "trs": trs, "stamps": stamps, "waves": waves,
          "slots": str(slots), "every": str(every),
-@@ -597,6 +697,19 @@ def _refuse(html_out: str, what: str, detail: list) -> int:
+@@ -597,6 +700,19 @@ def _refuse(html_out: str, what: str, detail: list) -> int:
  
  # ---------------------------------------------------------------------- cli
  
@@ -1337,7 +1537,7 @@ index 50b3ebeb4..3ba6a8486 100644
  def main(argv=None, fetch=fetch_github) -> int:
      p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
      p.add_argument("--plan")
-@@ -610,6 +723,9 @@ def main(argv=None, fetch=fetch_github) -> int:
+@@ -610,6 +726,9 @@ def main(argv=None, fetch=fetch_github) -> int:
                     help="read GitHub state from this JSON file instead of gh")
      p.add_argument("--no-fetch", action="store_true",
                     help="read an origin/ roster ref as this clone has it")
@@ -1347,7 +1547,7 @@ index 50b3ebeb4..3ba6a8486 100644
      p.add_argument("--self-test", action="store_true")
      a = p.parse_args(argv)
      if a.self_test:
-@@ -635,7 +751,8 @@ def main(argv=None, fetch=fetch_github) -> int:
+@@ -635,7 +754,8 @@ def main(argv=None, fetch=fetch_github) -> int:
      roster = roster_lib.show_roster(a.repo, ref, path)
      snap = (json.loads(Path(a.github_snapshot).read_text(encoding="utf-8"))
              if a.github_snapshot else _fetch_or_offline(fetch, a.gh_repo))
@@ -1357,7 +1557,7 @@ index 50b3ebeb4..3ba6a8486 100644
      Path(a.html).write_text(page, encoding="utf-8")
      print(f"wrote {a.html}: {len(roster_lib.groups_of(roster))} groups, "
            f"closure {plan['summary']['closure']}")
-@@ -729,6 +846,11 @@ def _self_test() -> int:
+@@ -729,6 +849,11 @@ def _self_test() -> int:
      check("an open issue wired only to a done group, or to none, is an unplanned orphan "
            "naming the groups it was wired to",
            pr_["orphans"] == {6: ["R9-GONE"], 99: []}, pr_["orphans"])
@@ -1369,7 +1569,7 @@ index 50b3ebeb4..3ba6a8486 100644
      check("the tracking issue is never an orphan",
            TRACKING_ISSUE not in project_issues(ir, ip, {1, TRACKING_ISSUE})["orphans"])
      osec = issues_section(ir, dict(ip, generated={"start": "2026-01-05T00:00:00Z"},
-@@ -849,6 +971,52 @@ def _self_test() -> int:
+@@ -849,6 +974,52 @@ def _self_test() -> int:
              check("every template field is filled", "{{" not in page,
                    re.findall(r"\{\{\w+\}\}", page))
              check("the round comes from the roster path", "<h1>Round 9 Fix Plan</h1>" in page)
@@ -1422,7 +1622,19 @@ index 50b3ebeb4..3ba6a8486 100644
              model = plan["generated"]["model"]
              check("the methodology states the plan's sizes and live fraction",
                    f"S {model['sizes_hours']['S']:g} h" in page
-@@ -1021,10 +1189,15 @@ _TEMPLATE = """<!doctype html>
+@@ -886,6 +1057,11 @@ def _self_test() -> int:
+                       if rows[g]["st"] != "done" and scheduled(g)),
+                   {g: rows[g]["why"] for g in rows})
+             check("a planned stamp is drawn", 'class="stampline"' in page)
++            check("every planned stamp is drawn on the axis, the round-close one after "
++                  "closure included",
++                  page.count('class="stampline"') == len(plan["stamps"])
++                  and _t(plan["stamps"][-1]["at"]) > _t(plan["summary"]["closure"]),
++                  (page.count('class="stampline"'), plan["stamps"], plan["summary"]["closure"]))
+             check("the closure stamp renders as the round's major, kind round-close",
+                   '<td class="mono">v9.0.0</td>' in page
+                   and f'<td class="mono">{replan.ROUND_CLOSE}</td></tr>' in page
+@@ -1021,10 +1197,15 @@ _TEMPLATE = """<!doctype html>
    --bg:#10171c; --panel:#162028; --fg:#e4ebef; --muted:#93a3ad; --line:#2a3842;
    --accent:#f07a42; --done:#5cc48a; --live:#5aa7e6; --ready:#d9b440; --blocked:#76848e; --partial:#b78be0;
    --done-bg:#173226; --live-bg:#152b3d; --ready-bg:#33290f; --blocked-bg:#1e2a32; --partial-bg:#2a1f38; color-scheme:dark}
@@ -1438,7 +1650,7 @@ index 50b3ebeb4..3ba6a8486 100644
  .sub{color:var(--muted);margin:6px 0 0}
  .strip{display:flex;flex-wrap:wrap;gap:10px}
  .stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;min-width:120px;flex:1}
-@@ -1032,6 +1205,8 @@ h2{font:600 1.25rem/1.1 var(--display);letter-spacing:.04em;text-transform:upper
+@@ -1032,6 +1213,8 @@ h2{font:600 1.25rem/1.1 var(--display);letter-spacing:.04em;text-transform:upper
  .stat span{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
  .stat.end b{color:var(--accent);font-size:1.15rem;padding-top:6px}
  section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
@@ -1447,7 +1659,7 @@ index 50b3ebeb4..3ba6a8486 100644
  .scroll{overflow-x:auto}
  svg{display:block;font-family:var(--mono)}
  .grid{stroke:var(--line);stroke-width:1}
-@@ -1068,9 +1243,11 @@ td.g{font:600 .85rem var(--mono);white-space:nowrap}
+@@ -1068,9 +1251,11 @@ td.g{font:600 .85rem var(--mono);white-space:nowrap}
  td.d{min-width:260px;max-width:440px}
  .lanec{font:400 .72rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
  .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.82rem}
@@ -1460,7 +1672,7 @@ index 50b3ebeb4..3ba6a8486 100644
  .pill.done{background:var(--done-bg);color:var(--done);border-color:var(--done)}
  .pill.live{background:var(--live-bg);color:var(--live);border-color:var(--live)}
  .pill.ready{background:var(--ready-bg);color:var(--ready);border-color:var(--ready)}
-@@ -1107,6 +1284,7 @@ td.d{min-width:260px;max-width:440px}
+@@ -1107,6 +1292,7 @@ td.d{min-width:260px;max-width:440px}
  </div>
  
  {{issues_chart}}
@@ -1615,10 +1827,10 @@ index b46e3ca62..944e09334 100644
          # (review X6): read as "no legacy", the legacy carry would be pending.
          # The readable null is the "legacy carry alone" check above.
 diff --git a/tools/audit/seat/roster_lib.py b/tools/audit/seat/roster_lib.py
-index a510744c4..8e44599fa 100644
+index b26cf866b..e8abe132d 100644
 --- a/tools/audit/seat/roster_lib.py
 +++ b/tools/audit/seat/roster_lib.py
-@@ -498,6 +498,30 @@ def closing_stage(group: dict, stage: str, legacy: dict) -> tuple[str, list]:
+@@ -546,6 +546,30 @@ def closing_stage(group: dict, stage: str, legacy: dict) -> tuple[str, list]:
      return ("carries-open" if pending else "done"), pending
  
  
@@ -1649,7 +1861,7 @@ index a510744c4..8e44599fa 100644
  def stranded(roster: dict, legacy: dict) -> list:
      """(group, stage, index, text) of every pending carry on a closed group."""
      out = []
-@@ -805,6 +829,24 @@ def _self_test() -> int:
+@@ -853,6 +877,24 @@ def _self_test() -> int:
                          "done", legacy) == ("done", []))
      check("closing (null): a stage other than done is never rewritten",
            closing_stage(cg, "in-progress", legacy) == ("in-progress", []))
@@ -1756,11 +1968,38 @@ index 785b53e5d..db00c46c2 100644
  
  (4d) Queue priority, for the train, review, fixer and CI queues alike: a push to main; then critical path and hotfix; then production pull requests with instrument pull requests saving 12 h or more; then other instruments by savings. A group's critical-path standing is the roster's `critical` list (`tools/audit/seat/roster_lib.py` `critical_path`); the gate order is `tools/pr/gate_priority.py`'s.
  
+diff --git a/tools/ci/selftest_closures.json b/tools/ci/selftest_closures.json
+index e6250cad1..3c357a537 100644
+--- a/tools/ci/selftest_closures.json
++++ b/tools/ci/selftest_closures.json
+@@ -894,6 +894,22 @@
+    "objects": false,
+    "git": []
+   },
++  "bottleneck-alert": {
++   "run_sha": "ed4dead33c2d118cec7a83aa53d6448d96c28ed9b4b8f3880bc9fb7d275eb144",
++   "files": [
++    "tools/audit/seat/bottleneck_check.py"
++   ],
++   "probes": [
++    ".",
++    "tools",
++    "tools/audit",
++    "tools/audit/seat"
++   ],
++   "dirs": [],
++   "index": false,
++   "objects": false,
++   "git": []
++  },
+   "budget-raise-gate": {
+    "run_sha": "8e2afa7d1084b7223a39f0ef593e419b78e3a724781a06ccb99196801427962a",
+    "files": [
 diff --git a/tools/plan/replan.py b/tools/plan/replan.py
-index 5520a5401..e7d59255c 100644
+index bd3a9a9d8..9a73948f0 100644
 --- a/tools/plan/replan.py
 +++ b/tools/plan/replan.py
-@@ -311,14 +311,19 @@ def touches_coordinator(group: dict) -> bool:
+@@ -319,14 +319,19 @@ def touches_coordinator(group: dict) -> bool:
  
  # ----------------------------------------------------------------------- graph
  
@@ -1783,17 +2022,24 @@ index 5520a5401..e7d59255c 100644
      open_ = set(G) - done
      deps = {}
      for n in open_:
-@@ -891,7 +896,8 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
+@@ -899,9 +904,13 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
      if why:
          raise PlanError(f"the round-close stamp: {why}")
      G = groups_of(roster)
 -    deps, open_, done = dependency_graph(G)
+-    # A group `after` a deferred one stays held behind it, unscheduled.
+-    held = roster_lib.held_behind_deferred(G)
 +    deps, open_, done = dependency_graph(G, legacy)
 +    discharged = {n for n in done if not is_done(G[n])}
++    # A group `after` a deferred one stays held behind it, unscheduled. A
++    # discharged group is closed work here as in `dependency_graph`: it is
++    # neither held nor holds, so it is left out of the view the hold reads.
++    live = {n: g for n, g in G.items() if n not in discharged}
++    held = roster_lib.held_behind_deferred(live)
+     open_ = open_ - set(held)
      # Groups after the round's closing stamp are scheduled after it and are
      # neither inside closure nor in any stamp's carries (carries 10, 11).
-     post = roster_lib.post_closure_groups(G, open_)
-@@ -1232,6 +1238,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
+@@ -1257,6 +1266,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                  "level": None, "live": False, "inherited": False,
                  "coordinator": touches_coordinator(G[n]), "batch": None,
                  "stamp": None, "after": [], "done": True,
@@ -1801,7 +2047,7 @@ index 5520a5401..e7d59255c 100644
              }
              if n in absorbed_by:
                  groups_out[n]["absorbed_into"] = absorbed_by[n][0]
-@@ -1346,6 +1353,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
+@@ -1373,6 +1383,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
              "stamps": len(stamps),
              "groups_total": len(G),
              "groups_done": len(done),
@@ -1809,33 +2055,89 @@ index 5520a5401..e7d59255c 100644
              "groups_open": len(open_all),
              "post_closure": sorted(post),
              "post_closure_finish": (iso(start, max(post_end.values())) if post_end else None),
-@@ -1736,6 +1744,29 @@ def selftest() -> int:
+@@ -1774,6 +1785,29 @@ def selftest() -> int:
      pa = build_plan(absorbed, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
      expect("an absorbed group is closed work, not scheduled", pa["groups"]["X"].get("done") is True,
             str(pa["groups"].get("X")))
 +    # Proposal 1 (tvofi 2026-11-07): a merged carries-open group whose every
 +    # carry is marked is closed work, and its dependent no longer waits on it.
-+    def held(carry):
++    def carrying(carry):
 +        return dict(roster, groups=roster["groups"] + [
 +            {"group": "HD", "size": "L", "lane": "Core model", "kind": "defect", "after": [],
 +             "carry": carry, "resume": {"stage": "carries-open", "commit": "0123abcd"}},
 +            {"group": "HN", "size": "S", "lane": "Core model", "kind": "defect",
 +             "after": ["HD"], "resume": {"stage": "not-started"}}])
 +    marked = ["x [moved: A]", "y [implemented: 0123abcd]", "z [dismissed: a duplicate]"]
-+    pd = build_plan(held(marked), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
++    pd = build_plan(carrying(marked), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
 +    expect("discharged: a merged carries-open group with every carry marked is closed, "
 +           "takes no slot and clears its dependent's edge",
 +           pd["groups"]["HD"].get("done") is True and pd["groups"]["HD"].get("discharged") is True
 +           and pd["groups"]["HN"]["after"] == [] and pd["summary"]["groups_discharged"] == 1
 +           and check_plan(pd) == [], str(pd["groups"]["HD"]))
-+    po = build_plan(held(marked + ["w"]), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
++    po = build_plan(carrying(marked + ["w"]), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
 +    expect("discharged (null): one unmarked carry keeps it scheduled and its dependent waiting",
 +           po["groups"]["HD"].get("done") is False and po["groups"]["HN"]["after"] == ["HD"]
 +           and po["summary"]["groups_discharged"] == 0, str(po["groups"]["HD"]))
-+    pl = build_plan(held(marked + ["w"]), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND,
++    pl = build_plan(carrying(marked + ["w"]), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND,
 +                    legacy={"HD": frozenset({"w"})})
 +    expect("discharged: a legacy carry is not owed (the cut-over is read)",
 +           pl["groups"]["HD"].get("done") is True, str(pl["groups"]["HD"]))
      again = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
      expect("deterministic: two runs are byte-identical",
             json.dumps(plan, sort_keys=True) == json.dumps(again, sort_keys=True))
+@@ -2343,6 +2377,33 @@ def selftest() -> int:
+            rq["groups"]["R10-A"]["after"] == ["R10-Q"]
+            and rq["groups"]["R10-A"]["start"] > rq["groups"]["R10-Q"]["start"],
+            str(rq["groups"]))
++    # 3d. merge resolution of the two rulings: a discharged group (proposal 1)
++    # behind a deferred one is closed work, so it is neither held nor holds its
++    # own dependent; one unmarked carry (null) leaves it open and held, and
++    # its dependent held in turn.
++    co = {"res": {"commit": "0123abcd"}, "carry": ["x [moved: A]"]}
++    dh = mk([fx("R10-A"), fx("R10-X", stage="deferred"),
++             fx("R10-D", stage="carries-open", after=["R10-X"], **co),
++             fx("R10-N", after=["R10-D"])])
++    expect("discharged behind deferred: closed and not held; its dependent released",
++           dh["groups"]["R10-D"].get("discharged") is True
++           and not dh["groups"]["R10-D"].get("held_behind")
++           and not dh["groups"]["R10-N"].get("held_behind")
++           and dh["groups"]["R10-N"]["start"] == iso(start, 0)
++           and dh["summary"]["groups_discharged"] == 1 and check_plan(dh) == [],
++           str({n: (g["start"], g.get("held_behind"), g.get("discharged"))
++                for n, g in dh["groups"].items()}))
++    co["carry"] = co["carry"] + ["w"]
++    dn = mk([fx("R10-A"), fx("R10-X", stage="deferred"),
++             fx("R10-D", stage="carries-open", after=["R10-X"], **co),
++             fx("R10-N", after=["R10-D"])])
++    expect("discharged behind deferred (null): one unmarked carry keeps it held, "
++           "and its dependent held behind the deferral",
++           dn["groups"]["R10-D"].get("held_behind") == "R10-X"
++           and dn["groups"]["R10-N"].get("held_behind") == "R10-X"
++           and dn["summary"]["groups_discharged"] == 0,
++           str({n: (g["start"], g.get("held_behind")) for n, g in dn["groups"].items()}))
++
+ 
+     # 4. stamp cadence counts groups, not pull requests (carry 9)
+     cad = [fx("P1", stage="done"), fx("P2", stage="done"), fx("Q1"), fx("Q2")]
+@@ -2626,11 +2687,15 @@ def selftest() -> int:
+              'g.get("coordinator") and not g.get("exempt_coordinator")]',
+              'g.get("coordinator")]'),
+             ("edge-releases-ruled",
+-             _m("def dependency_graph(G: ", "dict) -> tuple[dict, set, set]:"),
++             _m("def dependency_graph(G: ", "dict, legacy: dict | None = None) -> tuple[dict, set, set]:"),
+              "if a in open_ and roster_lib.gates(G[a]):", "if a in open_:"),
+             ("deferred-holds-dependent",
+              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+-             "held = roster_lib.held_behind_deferred(G)", "held = {}"),
++             "held = roster_lib.held_behind_deferred(live)", "held = {}"),
++            ("discharged-not-held",
++             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
++             _m("held = roster_lib.held_behind_deferred(", "live)"),
++             "held = roster_lib.held_behind_deferred(G)"),
+             ("overflow-exempt",
+              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+              "exempt.add(n)", "pass"),
+
+## Before you return the verdict (P275)
+Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;
+an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.

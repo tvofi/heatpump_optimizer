@@ -1,0 +1,49 @@
+  ok   null control: every metric inside its threshold prints nothing
+  ok   planted: yield past its threshold prints exactly its line
+  ok   planted: the yield line has the grammar
+  ok   planted: skip-share past its threshold prints exactly its line
+  ok   planted: the skip-share line has the grammar
+  ok   planted: merge-wait past its threshold prints exactly its line
+  ok   planted: the merge-wait line has the grammar
+  ok   planted: throughput past its threshold prints exactly its line
+  ok   planted: the throughput line has the grammar
+  ok   planted: wip past its threshold prints exactly its line
+  ok   planted: the wip line has the grammar
+  ok   planted: block-class past its threshold prints exactly its line
+  ok   planted: the block-class line has the grammar
+  ok   boundary: yield exactly at its threshold prints nothing
+  ok   boundary: skip-share exactly at its threshold prints nothing
+  ok   boundary: merge-wait exactly at its threshold prints nothing
+  ok   boundary: throughput exactly at its threshold prints nothing
+  ok   boundary: wip exactly at its threshold prints nothing
+  ok   boundary: block-class exactly at its threshold prints nothing
+  ok   minimum sample: yield below its sample prints nothing
+  ok   minimum sample: skip-share below its sample prints nothing
+  ok   minimum sample: merge-wait below its sample prints nothing
+  ok   minimum sample: block-class below its sample prints nothing
+  ok   skip-share: a batch still running is not read
+  ok   unreadable: yield is BOTTLENECK-UNREADABLE, never silent
+  ok   unreadable: skip-share is BOTTLENECK-UNREADABLE, never silent
+  ok   unreadable: merge-wait is BOTTLENECK-UNREADABLE, never silent
+  ok   unreadable: throughput is BOTTLENECK-UNREADABLE, never silent
+  ok   unreadable: wip is BOTTLENECK-UNREADABLE, never silent
+  ok   unreadable: block-class is BOTTLENECK-UNREADABLE, never silent
+  ok   memory: a still-tripped metric re-prints its first line verbatim
+  ok   memory: a recovery forgets; the next trip prints afresh
+  ok   memory: a breach after UNREADABLE for one metric prints the breach
+  ok   memory: UNREADABLE after a breach for one metric prints the UNREADABLE line
+  ok   memory: UNREADABLE then UNREADABLE stays its first line (null control)
+  ok   memory: two metrics tripped together each print their own line
+  ok   mutant yield-cmp killed
+  ok   mutant yield-sample killed
+  ok   mutant skip-cmp killed
+  ok   mutant skip-done killed
+  ok   mutant wait-cmp killed
+  ok   mutant wait-median killed
+  ok   mutant tput-cmp killed
+  ok   mutant wip-cmp killed
+  ok   mutant class-cmp killed
+  ok   mutant class-sample killed
+  ok   mutant memory-key-metric killed
+  ok   mutant memory-key-kind killed
+ok: bottleneck_check self-test
