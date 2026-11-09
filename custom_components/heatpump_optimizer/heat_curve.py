@@ -470,7 +470,7 @@ async def write_persistent(hass: Any, entry: Any, config: Any, displace_int: int
         armed = None  # the arm restores the recorded entity first (rule R)
     state = await off_restore.async_consumer_state(hass, entry, CONSUMER)
     if state.get("entity_id") != entity_id:  # another entity: only the day's count carries over
-        kept = {key: state[key] for key in ("day", "count") if key in state}
+        kept: dict[str, Any] = {key: state[key] for key in ("day", "count") if key in state}
         state.clear()
         state.update(kept, entity_id=entity_id)
     step = setpoint_step(hass, entity_id)
