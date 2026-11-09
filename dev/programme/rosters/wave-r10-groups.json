@@ -20199,6 +20199,46 @@
     "note": "orchestrator 2026-11-09T15:30Z: owner 11-09 'No pr merge should be blocked on a non-required red', made persistent; overlap admitted (R10-FIXER-MD-SPELLING-CORPUS): owner 11-09: non-required reds never block; make it persistent in role contracts, prompts, tick"
    },
    "brief": "Owner rulings tvofi 2026-11-07 and 2026-11-09 ('No pr merge should be blocked on a non-required red'): only a red in the set merge_train.py owed-reds prints is owed an answer or may block. defect-root-cause.md states it, and the instruments comply (owed_reds, policy_lint --pr-body, review_packet.unanswered_reds, classify NOT_GATING). The gaps that kept it from binding: (1) dev/governance/roles/fix-review.md and fixer.md do not state it, so reviewers blocked on non-required reds (#3350 06:46Z delivery-status; #3345 and #3350 instrument-self-tests) and fixers answered them; add one sentence to each that cites defect-root-cause.md, without restating it; (2) tools/audit/seat/cloud_dispatch.py's rendered reviewer and fixer prompts do not carry it; add the rule as one line naming owed-reds, with a self-test arm and a mutant; (3) orchestrator_tick.py's 'RED unanswered in ## Red checks' line lists every red; filter it through merge_train.judged(gating_names(required)), as review_packet does, so an unreadable set keeps every red (the fallback), with a self-test arm, its null control and a mutant. Policy files change, so this is policy under mandate 6715477401."
+  },
+  {
+   "group": "R10-HOTFIX-DELTA-REVIEW",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "governance",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/governance/roles/fix-review.md",
+    "dev/governance/roles/standing-dispatch.md",
+    "tools/audit/seat/review_packet.py"
+   ],
+   "hot_files": [
+    "dev/governance/roles/fix-review.md"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress"
+   },
+   "brief": "Owner ruling tvofi 2026-11-09: every review round after the first reviews only the delta since the last reviewed head, never the whole PR again. Change dev/governance/roles/fix-review.md step 12 (and standing-dispatch.md if it states the scope) so a later round's scope is `git diff <reviewed-head> <head>`, plus confirming that each finding of the previous verdict is resolved, plus the live required-check state at the head. A full re-review happens only when the reviewer names a concrete reason the delta reaches code the earlier review relied on. Make tools/audit/seat/review_packet.py render that delta, together with the previous verdict's findings, when bus.sh dispatch gets --reviewed-head, with a self-test. Policy change: the PR is approved under mandate 6715477401."
   }
  ]
 }
