@@ -6,7 +6,7 @@ R10-PROCESS-SLIM: cards C4, C5, C8 and C6 (a) of the slip study, plus the merge 
 
 R10-FLY-STAMP-FLUSH-COST (#3296) is changing that flush now, so the beat's deletion is forward-carried to it (Forward-carry). `.github/workflows/nightly.yml` is byte-identical to origin/main again (`git diff --quiet origin/main HEAD -- .github/workflows/nightly.yml` exits 0).
 
-Deletion over machinery throughout: 39 files changed, 557 insertions, 743 deletions (`git diff --shortstat fdc8d21adaa50a7feee534f08ee5edde9bda81ed...HEAD` at the head below). The diff writes 0 files under `custom_components/` (`git diff --name-only fdc8d21adaa50a7feee534f08ee5edde9bda81ed...HEAD -- custom_components` is empty). One cap pair is removed, for a deleted file (Raise justification). Claim files, `VERSION`, the manifest version and the notes heading are byte-identical to the merge base (prepr steps `no version edit` and `claim files`).
+Deletion over machinery throughout: 39 files changed, 576 insertions, 762 deletions (`git diff --shortstat 6457496aba7b1076b1ed60c374c5badafdf66fc1...HEAD` at the head below). The diff writes 0 files under `custom_components/` (`git diff --name-only 6457496aba7b1076b1ed60c374c5badafdf66fc1...HEAD -- custom_components` is empty). One cap pair is removed, for a deleted file (Raise justification). Claim files, `VERSION`, the manifest version and the notes heading are byte-identical to the merge base (prepr steps `no version edit` and `claim files`).
 
 ### What changes, per card
 
@@ -21,12 +21,30 @@ Deletion over machinery throughout: 39 files changed, 557 insertions, 743 deleti
   - `governance / record`'s refusal step is report-only;
   - **kept, unlike the earlier rounds:** Nightly's `record-autofix` beat, its `push:` trigger and `HOLD_MAX_AGE_S`. The beat still rows each merge from API facts. `record_row.py`'s plan covers both a rowless merge and a merged PR whose row reads `**open**`, so a PR that `handoff_push.sh` no longer rows is still rowed for rule 5.
 - **C8 (review after the cheap checks):** `bus.sh dispatch` on a WAIT head refuses while any of `CHEAP_CHECKS` is still in flight. `bus.sh post` refuses a `merge` verdict at a head that `merge_train.py classify` calls RED, or whose classification it cannot read.
-- **C6 (a):** `dev/governance/roles/proposal-triage.md` is deleted. Its two cap keys and its phantom `tests/closures.json` entry go with it.
+- **C6 (a):** `dev/governance/roles/proposal-triage.md` is deleted. Its two cap keys and its phantom `tests/closures.json` entry go with it. The triage-bar clauses main added to it since (R10-FLY-TRIAGE-BAR) now live in `orchestrator.md` section 5's proposal bullet (Merge resolution, origin/main 6457496a).
 - **Train docs step: removed** from `postmerge.py`. `release_worktrees` logs `released <wt> (already collected)` for a worktree that `worktree_gc.sh` already collected.
 - **Train carry ancestry: fixed** in `app_approve.sh carry()`.
 - **Carry 2, superseded by main:** main's R10-HOTFIX-SELFTEST-TIMEOUT now starts the slow self-tests detached (timeout 30), so this branch's timeout-40 hunk and its `open_pr.sh`/`update_pr.sh` change are dropped in favour of main's (Merge resolution).
 
-### This round's commits
+### This round's commit
+
+- b5ddb2a577cfffcc1569103ed4d1aa1b6021a2e2: merges origin/main 6457496aba7b1076b1ed60c374c5badafdf66fc1 into 491177c4b361a6a75a18e1e9e1d0f1533d630dc6. `git merge-tree --write-tree origin/main 491177c4` exits 1, so the merge was owed (`fixer.md` step 6). After it, `git merge-tree --write-tree origin/main HEAD` exits 0.
+
+### Merge resolution (origin/main 6457496a)
+
+- **One conflict, `dev/governance/roles/proposal-triage.md` (modify/delete).** This branch deletes it (card C6 (a)). Main modified it in c7f4535dc, eda3592e3 and 546513323 (the triage bar). The deletion stays. Every clause those commits added is carried, word for word except the two marked, into `orchestrator.md` section 5's "A proposal is ruled directly" bullet, the place this branch folded the triage gate into:
+  - "A countermeasure policy requires (root cause, red-check carry, finding fix; see Machinery) keeps its route." Main reads "see below"; the pointer names the paragraph it points to.
+  - "An exemption ACCEPT (over 20% on a `ratchet-budgets.md` measure) says so; its PR records it." The 20% threshold in `ratchet-budgets.md` itself (and its generated `.claude`/`.cursor` copies), `machinery_ratchet.py` and its instrument page auto-merged and are byte-identical to origin/main (`git diff --quiet origin/main HEAD -- <those five files>` exits 0).
+  - "**Machinery:** a planned instrument/machinery group, or existing non-production CI lane or seat, stays only on a measured gain of at least 10% on them." Main reads "**Machinery.** A planned".
+  - "Repair of such code (outside `custom_components/`) with roster `severity` `low` or `normal` meets both (over 20% to add);"
+  - "`medium`, `high`, `major`, `critical`, root-cause countermeasure, closeout, owner directive skip them;"
+  - "unset is classified first, never assumed major."
+  - Main's remaining text in that file restates the base's obligations (the Bar's cost list, verdicts, ruling format, the "you never" line) that card C6 (a) already retired with the seat; it is not re-added.
+- **`orchestrator.md` and `INSTRUMENTS.md` do not conflict at this base.** `git diff --quiet fdc8d21a origin/main -- dev/governance/roles/orchestrator.md tools/audit/seat/INSTRUMENTS.md` exits 0: main has not touched either since 491177c4's merge base, so the merge takes this branch's side unchanged and no union is owed. The brief's two content conflicts were measured against `origin/fix/r10-process-slim` (565f9f2b), whose resolution 97c49a85 already holds (previous Head note below).
+- **The fold's cap payment.** The fold took `orchestrator.md` to 301 lines and about 4386 tokens, over its caps of 295 and 4251 (`node tools/policy/policy_lint.mjs`: 2 errors). Paid inside the file, no budget change, by deleting motivation-only text (`fixer.md` step 9): the "(empty means identical)" anecdote in section 1 (the rule stays, citing `fixer.md` step 3); section 2's duty list, which the contract's opening already states; the relative-scratch anecdote in section 5; section 6's word-level-diff anecdote; section 3's "three symptoms recorded separately are worth less than one analysis" clause; "restated three times" in the critical-path bullet; and a shorter wording of section 4's GitHub-tool-surface clause, same fact. Result: 294/295 lines, 4248/4251 tokens, `0 error(s) across 49 policy file(s)`.
+- **Not in this head:** `refs/heads/handoff-wip/r10-process-slim` holds 6b1472f52, a previous seat's step ref left undeleted, whose tree equals 491177c4's (`git log -1 --format=%T` prints 3c428084 for both). This head does not descend from it, so it could not be fast-forwarded; replacing it was refused by this container's permission guard, so this seat pushed no step ref and left that ref untouched (Friction r10-process-slim-5).
+
+### Previous round's commits
 
 - 5fa6b6a9c: merges origin/main 17e1157925908bd69addb58ed824c1ac22bfa82f. `git merge-tree --write-tree origin/main b2381acd` reported a conflict (rc 1), so the merge was owed under the 2026-11-07 ruling.
 - d70186a59: restores main's pins on the beat, unchanged, failing first:
@@ -37,7 +55,7 @@ Deletion over machinery throughout: 39 files changed, 557 insertions, 743 deleti
 - 2600a6b28: the record text corrected. `delivery-status-tracking.md` item 1, CLAUDE.md's index row, `orchestrator.md` section 9 and `dev/README.md` said that no row is written and that merged rows gate nothing. Both claims are false while the beat runs. They now say that no seat writes a row and that the beat does, which the stamp reads.
 - e6a4a7dd3: a test-only repair of a semantic merge interaction in `merge_train.py`'s unwind self-test (Merge resolution).
 
-### Merge resolution (origin/main 17e11579)
+### Previous merge resolution (origin/main 17e11579)
 
 - **`.github/workflows/governance.yml` (three hunks).** Main's R10-HOTFIX-SELFTEST-TIMEOUT runs `open_pr.sh`, `pr_args.sh` and `update_pr.sh`'s self-tests detached, and its read steps grep `pr_args self-test` in the output of `open_pr.sh` and `update_pr.sh`.
   - Kept: main's timeout comment and `timeout-minutes: 30`, and main's removal of the in-line open-pr and update-pr steps.
@@ -52,9 +70,11 @@ Deletion over machinery throughout: 39 files changed, 557 insertions, 743 deleti
 
 ## Head
 
-491177c4b361a6a75a18e1e9e1d0f1533d630dc6 (`handoff/r10-process-slim`).
+b5ddb2a577cfffcc1569103ed4d1aa1b6021a2e2 (`handoff/r10-process-slim`).
 
-**Head note: this round is a merge-only resolution, for the same reviewer** (`fixer.md` step 6; no re-cut).
+**Head note: this round is a merge-only resolution, for the same reviewer** (`fixer.md` step 6; no re-cut). b5ddb2a577cfffcc1569103ed4d1aa1b6021a2e2 merges origin/main 6457496aba7b1076b1ed60c374c5badafdf66fc1 into 491177c4b361a6a75a18e1e9e1d0f1533d630dc6, the previous handoff head, with one hand resolution (Merge resolution, origin/main 6457496a). 491177c4 and the PR head 565f9f2b8a5efd9de1d260c241ee657aedc52576 are ancestors of this head. The previous head note follows unchanged.
+
+**Previous head note (491177c4):**
 - 491177c4b361a6a75a18e1e9e1d0f1533d630dc6 merges origin/main fdc8d21adaa50a7feee534f08ee5edde9bda81ed into f30fb9a9f0c7e54587844adda6a2d75a37da3280 (no conflict), which merged origin/main 425b858495432c8dceb89d8d13866550352ba54f into 53ceaf58b04d110386afbb334e08bb471037a168 (no conflict), which merged origin/main daf8b349fd30cc60786eeca333a426b693aa4c5f (no conflict) into 97c49a85813a4971a5ba6bc537ef4481f51e15fd, the previous resolution head, which merged origin/main bb7dfb9b into the PR head 565f9f2b8a5efd9de1d260c241ee657aedc52576. The PR head is an ancestor of this head.
 - The conflict, confirmed first: `git merge-tree --write-tree origin/main 565f9f2b` exits 1 with `CONFLICT (content)` in `dev/governance/roles/orchestrator.md` and `tools/audit/seat/INSTRUMENTS.md`; `git merge-tree --write-tree origin/main 97c49a85` exits 0, so none of this seat's three merges needed a hand edit (main moved to 425b8584, then fdc8d21a, while prepr ran, so it was merged again each time and prepr re-run). The resolution is 97c49a85's union, re-verified in this seat:
   - `orchestrator.md`: main's section-5 bullet "Each outside submission reaches a disposition" (tvofi 2026-11-06) is kept, followed by this branch's "A proposal is ruled directly" bullet, which replaces main's unchanged proposal-triage bullet (card C6 deletes `proposal-triage.md`). Main's two trims (the 2026-09-07 sentences in the preamble, the Round-10 sentences under "Look the instrument up") are kept; this branch's section-9 and L6 rewordings are kept.
@@ -88,31 +108,36 @@ Each changed line was mutated by hand. A mutant was graded by the self-test or c
 
 ## Figures
 
-All re-taken in this seat at 491177c4b361a6a75a18e1e9e1d0f1533d630dc6, origin/main fdc8d21adaa50a7feee534f08ee5edde9bda81ed (read 2026-11-08T23:45Z):
+All re-taken in this seat at b5ddb2a577cfffcc1569103ed4d1aa1b6021a2e2, origin/main 6457496aba7b1076b1ed60c374c5badafdf66fc1 (read 2026-11-09T01:27:29Z):
 - `python3 -I tools/release/stamp.py --self-test`: `RESULT stamp_self_test=pass`.
-- `python3 tools/audit/seat/orchestrator_tick.py --self-test`: `283 checks, 0 failed`.
-- `python3 tools/audit/seat/merge_train.py --self-test`: `567 checks, 0 failed` (the count is main's, which grew since the previous head's 475).
+- `python3 tools/audit/seat/orchestrator_tick.py --self-test`: `292 checks, 0 failed` (main's count grew from 283).
+- `python3 tools/audit/seat/merge_train.py --self-test`: `567 checks, 0 failed`.
 - `bash tools/audit/seat/handoff_push.sh --self-test`: `6 checks, 0 failed`.
 - `bash tools/audit/seat/body_push.sh --self-test`: `35 checks, 0 failed`.
-- `python3 tools/audit/seat/postmerge.py --self-test`: `18 checks, 0 failed` (main's count; 15 at daf8b349).
-- `python3 tools/pr/ci_predict.py --self-test`: `0 failed` at 53ceaf58 (with `/opt/hpo/runner-temp` created; Friction 3); at this head it runs inside prepr's `ci predict` step.
+- `python3 tools/audit/seat/postmerge.py --self-test`: `18 checks, 0 failed`.
+- `python3 tools/audit/seat/roster_edit.py --self-test`: `257 checks, 0 failed`.
+- `python3 tools/audit/machinery_ratchet.py --self-test`: `54 checks, 0 failed` (main's 20% threshold, auto-merged).
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
-- `node tools/policy/policy_lint.mjs --budgets`: exit 0. `node tools/policy/policy_lint.mjs`: `0 error(s) across 49 policy file(s)`.
+- `node tools/policy/policy_lint.mjs --budgets`: exit 0, `dev/governance/roles/orchestrator.md` (budget key `tools/audit/briefs/orchestrator.md`) at 294/295 lines, 4248/4251 tokens. `node tools/policy/policy_lint.mjs`: `0 error(s) across 49 policy file(s)`. Control: the unpaid fold printed `2 error(s)` (301 > 295 lines, 4386 > 4251 tokens).
 - `python3 tools/audit/seat/selftest_wiring.py --check`: `124 self-testing, 124 wired, 0 unwired`, `0 index gap(s)`.
 - `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
-- `python3 tools/audit/archscore/score.py --diff fdc8d21adaa50a7feee534f08ee5edde9bda81ed HEAD`: `Architecture score: dS +0.0000 NULL`.
-- `python3 tests/closure.py select --diff fdc8d21a...`: `MODE: FULL` (`.github/workflows/tests.yml changes the gate itself`), so CI runs the suite.
-- **Resolution check, both conflicted files.** Rule: every `^#` heading of origin/main and of origin/fix/r10-process-slim is in the merged file (`comm -23` of sorted headings): all present for both sides in both files. Then every non-blank line of each side absent from the merged file was listed, and each one is the other side's deliberate edit since the merge base 4fe7d5934 (main's lines absent are this branch's rewrites of the proposal bullet, section 9 and L6, and the old `postmerge.py` line; this branch's lines absent are main's two trims). Null control: at the conflicted state those listings would include conflict markers and one side's whole hunk.
-- **The merge carries the branch's delta unchanged.** Rule: `git diff --name-only origin/main HEAD` equals `git diff --name-only 4fe7d5934 origin/fix/r10-process-slim` (39 files each, `diff` exits 0), and for each of the 39 files the added and removed lines of `origin/main..HEAD` equal those of `4fe7d5934..565f9f2b`: `same delta` for 39 of 39. A file where the resolution dropped or added a line prints `DELTA DIFFERS`.
-- `bash tools/pr/prepr.sh <body>`: clean at this head, `PRE-PR: 491177c4b361a6a75a18e1e9e1d0f1533d630dc6 00000000000000000000000000000000 rc=0` (gate mode `MODE: FULL`). origin/main read again at 2026-11-09T00:07:06Z: fdc8d21adaa5; unmoved since that run, so no second run is owed.
-  - At 491177c4 the preceding run at f30fb9a9 refused in `ci predict` with `OSError: [Errno 39] Directory not empty: '/tmp/.../bg'`: orphaned background self-test processes of the replay (killed by PID) were still writing the directory being cleaned; the run below is clean.
-  - Its `ci predict` step first refused at 53ceaf58 (`GRADER carry_audit.py check ... REFUSED by the base's copy ... 1 bad destination(s)`): the item `Carry: R10-FLY-STAMP-FLUSH-COST`, a group that exists only on the round's roster branch `handoff/audit-r10-roster` (05437723a). pr-contract's own step fetches that branch before `carry_audit.py check` (`.github/workflows/pr-contract.yml`, "Every finding the body records names its destination"), and `finding-propagation.md` counts it as in the tree; ci_predict's `ci_tree_run` grades in a `--shared` throwaway clone whose `origin/*` are the local repository's branches, so the ref was absent there. Control, a clone of origin/main daf8b349 alone: `carry_audit.py check` prints `BAD-DEST body item ada60feb: R10-FLY-STAMP-FLUSH-COST ... is not a group of the roster`; after fetching the round ref into it: `4 routed, 0 unrouted, 0 bad destination(s)`. The local branch `handoff/audit-r10-roster` was set to that ref (mirroring CI's fetch, nothing pushed) and prepr re-run. Friction r10-process-slim-4 records it.
+- `node tools/policy/brief_lint.mjs`: exit 0.
+- `python3 tools/audit/archscore/score.py --diff 6457496aba7b1076b1ed60c374c5badafdf66fc1 HEAD`: `Architecture score: dS +0.0000 NULL`.
+- `python3 tests/closure.py select --diff 6457496aba7b1076b1ed60c374c5badafdf66fc1`: `MODE: FULL` (`.github/workflows/tests.yml changes the gate itself`), so CI runs the suite.
+- `git merge-tree --write-tree origin/main HEAD`: exit 0.
+- **Triage-bar clause check (the null-controlled check for this merge).** Rule: `clause_check.py <file> <clauses>` collapses whitespace in `<file>` and prints `MISSING n` and exits 1 unless every line of `<clauses>` (the seven clause fragments quoted under Merge resolution, one per line: the countermeasure-route sentence split at "see", "keeps its route.", and the five others) is a substring. The script is three lines of Python: `t=re.sub(r"\s+"," ",open(f).read()); miss=[c for c in clauses if re.sub(r"\s+"," ",c) not in t]; sys.exit(1 if miss else 0)`; a one-off probe kept in scratch (`fixer.md` step 18).
+  - merged `dev/governance/roles/orchestrator.md`: `ALL-PRESENT`, rc 0;
+  - main's `proposal-triage.md` (`git show origin/main:...`), the source: `ALL-PRESENT`, rc 0, so every fragment is main's text;
+  - null control 1, 491177c4's `orchestrator.md`: `MISSING 7`, rc 1;
+  - null control 2, the merged file with "unset is classified" perturbed to "unset is assumed": `MISSING 1: ['unset is classified first, never assumed major.']`, rc 1. A tree dropping any one clause fails it.
+- **The merge carries the branch's delta unchanged except the resolution.** Rule: `git diff --name-only origin/main HEAD` equals `git diff --name-only fdc8d21a 491177c4` (39 files each, `diff` exits 0), and per file the `+`/`-` lines of `origin/main..HEAD` are compared by sha1 with those of `fdc8d21a..491177c4`: `same` for 37 of 39; `DELTA DIFFERS` for exactly `orchestrator.md` (the fold and its payment) and `proposal-triage.md` (the deleted text is now main's version).
+- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`: clean at this head, `PRE-PR: b5ddb2a577cfffcc1569103ed4d1aa1b6021a2e2 000000000000000000000000000000000 rc=0` (gate mode `MODE: FULL`; `closures` skipped, closures-autofix is the only check left). origin/main read again at 2026-11-09T02:07:09Z: 6457496aba7b; unmoved since that run, so no second run is owed.
 
 ## Red checks
 
-At 491177c4b361a6a75a18e1e9e1d0f1533d630dc6 no check has run: a handoff ref runs no workflow.
+At b5ddb2a577cfffcc1569103ed4d1aa1b6021a2e2 no check has run: a handoff ref runs no workflow.
 
-The PR's present head is 565f9f2b8a5efd9de1d260c241ee657aedc52576, an ancestor of this head. Its check-runs (`pull_request_read get_check_runs`, 53 runs, one page):
+The PR's present head is 565f9f2b8a5efd9de1d260c241ee657aedc52576, an ancestor of this head. Its check-runs (`pull_request_read get_check_runs`, re-read 2026-11-09T01:2xZ: 53 runs, one page, unchanged since the previous round):
 - `gate` (128732022666, run 42472252325, `KIND: edit`) failed in 34 s with `FAIL run(s) [42472252157] at this head are still being judged; their gate decides`. It is the umbrella gate refusing to judge while the PR's main run was in flight; `gate` 128732517765 in that run 42472252157 passed two minutes later. Root-cause trigger: no cheaper detector exists — it is no defect of this diff but the gate's own wait answer, superseded by its pass.
 - Every other concluded check is success or skipped, including `tests / fast (3.14)` (128731752355), `governance / instrument-self-tests` (128731775155), `pr-contract / pr-contract` (128732077508), `budget-raise-gate / budget-raise-gate` (128731750783) and `tests / nightly-status` (128731751712).
 - The required gate reads red because the PR is `DIRTY` against main: GitHub cannot build the merge ref, so main's newer commits have not run against it. This head resolves that.
@@ -132,6 +157,9 @@ Content approved by tvofi in chat 2026-11-05 (cards C2-C9 accepted; C4, C5, C8 a
 - `orchestrator.md` section 9: "no per-PR row (card C5)" becomes "no per-PR row from you (card C5)".
 - `fix-review.md`: main's "Evidence names differ beyond case." is unioned in, and "(card C5, tvofi 2026-11-05)" and "(card C4, tvofi 2026-11-05; #1667, 2026-10-27)" lose their dates. That is the cap payment.
 
+- **This round, `orchestrator.md` section 5's proposal bullet** gains main's triage-bar clauses (Merge resolution, origin/main 6457496a): the countermeasure route, the over-20% exemption ACCEPT, the 10% Machinery keep test and the roster-severity mapping. These change what a ruler of proposals must do, as main's R10-FLY-TRIAGE-BAR already did in the deleted contract.
+- **This round's cap payment deletes text from `orchestrator.md`**: the "(empty means identical)" anecdote (section 1), the duty list in section 2 ("— sequencing, merging, the record, the freeze, stamps, and speaking to the owner"), "A relative one resolves against the seat's cwd, which was yours for three seats." (section 5), "A word-level diff licensed a union that silently dropped a clause, in a commit claiming nothing was dropped." (section 6), "three symptoms recorded separately are worth less than one analysis of why they were possible" (section 3) and "restated three times" (section 5); section 4's "no method on the GitHub tool surface here exposes them at all" reads "no GitHub tool method here exposes them". No obligation is among them; each is motivation for a rule that stays.
+
 The round-2 sentences that said the beat is deleted are no longer in the diff.
 
 ## Raise justification
@@ -142,8 +170,8 @@ Raise approved under mandate (comment 6624093439, scope all) by the orchestrator
 
 Payments tried: keeping the caps (refused by `policy_lint.mjs --budgets`); keeping the file as an on-demand contract (rejected, because card C6 retires the seat and an unread contract is spent prose).
 
-- **The other policy files:** each one this diff touches is paid inside its own cap. This round's `fix-review.md` union is paid by the two dates.
-- **The score:** re-run in this seat at 491177c4b361a6a75a18e1e9e1d0f1533d630dc6 (`python3 tools/audit/archscore/score.py --diff fdc8d21adaa50a7feee534f08ee5edde9bda81ed HEAD`).
+- **The other policy files:** each one this diff touches is paid inside its own cap. The previous round's `fix-review.md` union is paid by the two dates; this round's `orchestrator.md` fold by the deletions listed under Approval. Payment considered and not taken: carrying the 489-token cap of the deleted file to `orchestrator.md` (a per-file raise, owner-confirmed before the push under rule 2, which this unattended seat could not obtain, and unneeded once the motivation text paid it).
+- **The score:** re-run in this seat at b5ddb2a577cfffcc1569103ed4d1aa1b6021a2e2 (`python3 tools/audit/archscore/score.py --diff 6457496aba7b1076b1ed60c374c5badafdf66fc1 HEAD`).
 Architecture score: dS +0.0000 NULL
 
 ## Forward-carry
@@ -167,3 +195,4 @@ Architecture score: dS +0.0000 NULL
 - r10-process-slim-2: unenforced: `bus.sh`'s C8 gate cannot see a cheap check GitHub has not yet created. Carry: dismissed: the card's risk line accepts review starting early, never a merge at red.
 - r10-process-slim-3: unenforced: the container's `BASH_ENV` sets a `RUNNER_TEMP` it does not create, so `ci_predict.py`'s STEP REPLAY self-test reads red in a fresh cloud seat until the directory exists. Carry: dismissed: environment setup, not this diff's code; the measured fix is one `mkdir`.
 - r10-process-slim-4: unenforced: `tools/pr/ci_predict.py`'s grader replay clones the local repository with `--shared`, so a carry to a group that lives only on the round's roster branch reads `BAD-DEST` there unless the seat holds a local `handoff/audit-r<N>-roster` branch, while pr-contract's own step fetches that ref and routes it (Figures, prepr). Carry: dismissed: a predictor false red with a one-command local remedy, outside this group's cards; the orchestrator may route it.
+- r10-process-slim-5: unenforced: a repair seat's step ref `handoff-wip/r10-process-slim` (6b1472f52, tree-identical to 491177c4) outlived its handoff, so the next seat's step push is not a fast-forward and replacing it needs a delete this container's guard refuses; this seat pushed no step ref. The seat that pushed it owed the ref's deletion after its body push (brief's Output step). Carry: dismissed: one stale ref with nothing lost (tree equals the handoff), the delete is the orchestrator's one command `git push origin :refs/heads/handoff-wip/r10-process-slim`.
