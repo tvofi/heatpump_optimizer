@@ -1,0 +1,2 @@
+  FAIL memory: a still-tripped metric re-prints its first line verbatim: (['BOTTLENECK: throughput 0.67/h (4 groups closed, 6 h) vs 0.70/h (0.7 x takt 1) -- find the stage holding the work (merge-wait, skip-share, yield above) and drain it before dispatching new groups'], ['BOTTLENECK: throughput 0.50/h (3 groups closed, 6 h) vs 0.70/h (0.7 x takt 1) -- find the stage holding the work (merge-wait, skip-share, yield above) and drain it before dispatching new groups'])
+FAILED: bottleneck_check self-test
