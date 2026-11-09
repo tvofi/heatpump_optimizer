@@ -1,13 +1,2 @@
-## replay merge 17e891bf + 16f3d9cc
-rc=0 LEDGER-MERGE: resolved tests/structure_budgets.json
-  class_excess_loc: 17560 + both deltas = 17557
-  re-run the gate that owns this file before pushing
-LEDGER-MERGE: resolved tests/closures.json
-  inert_reads.tests/harness_headers.py: merged as a set (973 entries)
-  re-run the gate that owns this file before pushing
-0e5b9d05b3a8260a1dddf4c570dca6b5a90668cf
-head tree: 0e5b9d05b3a8260a1dddf4c570dca6b5a90668cf
-fatal: invalid object name 'LEDGER-MERGE'.
-## merge-tree origin/main 996ded2a6dc52816bd4c7dd873c048d85fc6adad vs head
-317504cce62e5000c0522f09a6ad880fa50d9c2e
-rc=0
+8731d22505baa76468ad17433832e5dcb819b7e5
+rc=0 origin/main=19865e5a866ce066eaa52f7167a7d901fd1d5968
