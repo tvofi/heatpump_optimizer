@@ -2314,6 +2314,16 @@ def _self_test() -> int:
         check("set-resume --field stage done reads the same rule",
               rc == 0 and at_mark("R9-L")["resume"]["stage"] == "carries-open"
               and "set-resume R9-L: done -> carries-open" in out, (rc, out[-300:]))
+        # mark-carry reads the cut-over too (review 3350): marking the one
+        # post-cut-over carry leaves only the legacy one, which is not
+        # pending, so the group closes. The null control is the check above:
+        # the same group with that carry unmarked stays carries-open.
+        rc, out = said(lambda: edit("mark-carry", "R9-L", None, branch="mark-1",
+                                    match="post-cut-over carry",
+                                    rest=("dismissed", "a fixture")))
+        check("mark-carry whose only unmarked carry left is legacy writes done",
+              rc == 0 and at_mark("R9-L")["resume"]["stage"] == "done"
+              and "carries-open -> done" in out, (rc, at_mark("R9-L")["resume"], out[-300:]))
         # An unreadable cut-over refuses the stage write and writes nothing
         # (review X6): read as "no legacy", the legacy carry would be pending.
         # The readable null is the "legacy carry alone" check above.
