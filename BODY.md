@@ -2,7 +2,11 @@ R10-HOTFIX-AUTHOR-EMAIL (triage s6-batch133 P408, owner hotfix tier, 2026-11-07)
 
 ## Head
 
-Repair round: the `governance / instrument-self-tests` red at `10962d566a02b4f02db412e7a7aa1c3dcba8083b` is repaired by two commits (the first, `0e178baa0`, from an earlier seat's step ref, covers the stubbed commit read; the second the fast-import fixture's committer) over a merge of origin/main `fdc8d21adaa5`; new code head `26506fa75e10ee9ec35ee7a98697043c532fdc0f`. Code from the first round is unchanged (`ref_privacy.py`, `tests/throwaway_git.*`).
+Second repair round: `governance / instrument-self-tests` (job 128917294764) failed `plan_audit self-test: 27 checks, 1 failed`: `tools/audit/seat/plan_audit.py` asserted `git var GIT_AUTHOR_IDENT` starts with the literal `t <t@t>`, the fixture's old address. Code head: `84bd4fb40e87530ea6b27ba2ec0d97f4d235fb00`, on `45339147f9fbeffb50df4cbcf047ac248b94efb4`. Code from the first round is unchanged (`ref_privacy.py`, `tests/throwaway_git.*`).
+
+## Mutation proof (plan_audit repair)
+
+The assertion now builds its expected prefix from `throwaway_git.IDENTITY`, the fixture's one definition (alternatives: a second literal `1+t@users...` in plan_audit, which recurs at the next identity change; or dropping the assertion, which loses the check that the harness identity beats the box's). `delivery_row.sh`'s stale comment now names `IDENTITY` and no address. Null controls: with `IDENTITY` emails changed to `2+t@...`, `python3 tools/audit/seat/plan_audit.py --self-test` still ends `27 checks, 0 failed` (reads the definition); with the pre-fix `plan_audit.py` and the same change it ends `27 checks, 1 failed` (the hard-coded literal). Unchanged tree: `27 checks, 0 failed`; `bash tools/audit/seat/delivery_row.sh --self-test` `6 checks, 0 failed`.
 
 ## Mutation proof
 
@@ -26,12 +30,16 @@ On the unmodified tree the guard admits `seat@users.noreply.github.com` (self-te
 
 ## Figures
 
+- Census (class: a consumer that hard-codes the fixture identity string), run at the code head: `git grep -nIE '(^|[^[:alnum:]_.+-])t@t([^[:alnum:]]|$)' -- . ':!dev/audit/rounds' ':!dev/programme'` prints 47 lines in 12 files; `git grep -nE 'GIT_AUTHOR_IDENT|GIT_COMMITTER_IDENT' -- tests tools .claude` prints the `plan_audit.py` read alone. Dispositions: `plan_audit.py` (the one reader of the fixture identity): closed in this diff; `delivery_row.sh` comment: closed in this diff; 3 lines in `ref_privacy.py` (docs and the refused-placeholder list): the guard's own subject, kept; the remaining 42 in `stop-selfcheck.sh`, `git_auto_maintenance_race.sh`, `entities.py`, `layout.py`, `bus.sh`, `cloud_relay.sh`, `open_driver_selftest.py`, `r9_rc_bus_fetchhead.sh`, `review_carry.py`, `brief_lint.mjs`, `prepr.sh`: each sets its own `-c user.email=t@t` (or `git config`) on a git call and reads no fixture identity: already guarded, none reaches `ref_privacy`'s guard (CI shows only app_push and plan_audit failing). Null control: the census's pattern is blind to `1+t@users` (the `+` is excluded before `t`), so it counts only the old spelling.
+
 - `python3 tools/audit/seat/ref_privacy.py --self-test` prints 124 checks, 0 failed at the head (113 at origin/main).
 - Writers: `git grep -nIE "(seat|hpo-fixer|noreply)@users\.noreply" -- tools .claude .github` finds none outside ref_privacy.py fixtures and the roster text.
 - Other guarded self-tests at the head: `cloud_dispatch.py --self-test` 127 checks 0 failed; `ci_probe.py --self-test` 55 checks 0 failed; `prune_refs.py --self-test` 74 checks pass; `plan_public.py --self-test` pass; `delivery_row.sh --self-test` 6 checks 0 failed.
 - `tools/pr/prepr.sh` at the head: every step ok except `self-test` (513 passed, 1 failed), the arm "a body naming only repository-relative paths and ~/ text passes (null control)". It sets `HOME` to a planted `/Users/exampleuser` and the pinned-python shim then exits 127 looking for `$HOME/.local/state/hpo/venv-ci`; the same `ref_privacy.py body-lines` call exits 127 on `git archive origin/main` as well as on the head, so it is a property of this macOS host, not of the diff.
 
 ## Red checks
+
+- `governance / instrument-self-tests` (job 128917294764, `plan_audit self-test: 27 checks, 1 failed`): red at 45339147f, answered here. Cheaper detector: the census `git grep -nIE '(^|[^[:alnum:]_.+-])t@t([^[:alnum:]]|$)' -- . ':!dev/audit/rounds' ':!dev/programme'` plus `git grep -n 'GIT_AUTHOR_IDENT'`, run whenever `tests/throwaway_git.*`'s identity changes; standing cost about 1 s per such change, which happens rarely (this is its first move). No hook built: the consumer set is now one reader of the definition, so a further move cannot recur on this class.
 
 - `governance / instrument-self-tests` (job 128808974627): red, answered above. Cheaper detector: `bash tools/pr/app_push.sh --self-test` runs in about a minute locally, and `tests/closures.json` does not select it from a `ref_privacy.py` diff; the closure that reaches `app_push.sh`'s stub is only the governance job. Standing cost: a guarded-stub census (`git grep -n "t@t" -- tools tests`) at each change to the guard's grammar, seconds; no hook built, since the guard is changed rarely. Other guarded stubs with `t@t` (`bus.sh`, `cloud_relay.sh`, `open_driver_selftest.py`, `review_carry.py`) pass `-c user.email` to git commits and never reach the guard; CI shows only app_push failing.
 - `gate` (128814942428, 128809302557): aggregate of `pr-contract`, which this body fixes by naming the red; no code cause of its own.
