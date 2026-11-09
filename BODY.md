@@ -98,7 +98,7 @@ Re-check only these hunks; every other file auto-merged. The conflict is with #3
 
 c09a9acb7a7d5806c5db8881404ebd808a23daf0 (`handoff/r10-process-slim`).
 
-**Head note: main merged, conflicts resolved by union** (`fixer.md` step 6; no re-cut, for the same reviewer). c09a9acb7a7d5806c5db8881404ebd808a23daf0 merges origin/main 806e952ca into 0aa9d4f2fba26e5ec93c42bec570f5faddbaa19b (one conflict, `governance.yml`: Merge resolution, origin/main 806e952c). 0712679bfda0da7f7445ee191da94bcc049a4eee merges origin/main 0a8033305d7b03494eb63453e6181a13ffa55c05 into f5af5b513b1978d732fd41902c203890e3a0247b, the PR head holding the merge verdict, with two hand-written hunks; 0aa9d4f2fba26e5ec93c42bec570f5faddbaa19b pays their caps (Merge resolution, origin/main 0a803330). f5af5b51 and b5ddb2a5 are ancestors of this head. The previous head notes follow unchanged.
+**Head note: main merged, conflicts resolved by union** (`fixer.md` step 6; no re-cut, for the same reviewer). This handoff changes no code from c09a9acb: only the Forward-carry marker for item ada60feb moves to R10-CLOSEOUT-INSTRUMENTS (orchestrator re-route; R10-FLY-STAMP-FLUSH-COST is done and the stamp still reads the rows: `git grep -c -- '--require-rows' origin/main -- tools/release/stamp.py` prints 8 at main f365ce75). c09a9acb7a7d5806c5db8881404ebd808a23daf0 merges origin/main 806e952ca into 0aa9d4f2fba26e5ec93c42bec570f5faddbaa19b (one conflict, `governance.yml`: Merge resolution, origin/main 806e952c). 0712679bfda0da7f7445ee191da94bcc049a4eee merges origin/main 0a8033305d7b03494eb63453e6181a13ffa55c05 into f5af5b513b1978d732fd41902c203890e3a0247b, the PR head holding the merge verdict, with two hand-written hunks; 0aa9d4f2fba26e5ec93c42bec570f5faddbaa19b pays their caps (Merge resolution, origin/main 0a803330). f5af5b51 and b5ddb2a5 are ancestors of this head. The previous head notes follow unchanged.
 
 **Previous head note (b5ddb2a5):** b5ddb2a577cfffcc1569103ed4d1aa1b6021a2e2 merges origin/main 6457496aba7b1076b1ed60c374c5badafdf66fc1 into 491177c4b361a6a75a18e1e9e1d0f1533d630dc6, with one hand resolution (Merge resolution, origin/main 6457496a).
 
@@ -231,7 +231,7 @@ Architecture score: dS +0.0000 NULL
   - `record_row.py`'s `governance / delivery-status` red name (that job is deleted by this PR);
   - the pins this PR restored in `tests/entities.py`, `merge_train.py` and `orchestrator_tick.py`.
 
-  The stamp's flush (rules 3-4) and rule 5 (`--require-rows`) still read the beat, and that group is changing the flush now (orchestrator ruling 2026-11-08). Carry: R10-FLY-STAMP-FLUSH-COST
+  The stamp's flush (rules 3-4) and rule 5 (`--require-rows`) still read the beat, and that group is changing the flush now (orchestrator ruling 2026-11-08). Carry: R10-CLOSEOUT-INSTRUMENTS
 
 ## Carries
 
