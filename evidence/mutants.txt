@@ -1,4 +1,0 @@
-head 18656e4c23a664ca9c58de75f3c5589078631a1c; detector dev/audit/rca/relay_handoff_lag.py
-mutant 's/> a.limit/< a.limit/'  (LATE flag inverted)         -> --self-test rc=0  SURVIVES
-mutant 's/\/ 60.0/\/ 6.0/'       (lag unit)                    -> --self-test rc=1  killed
-mutant 's/!= 0:/== 0:/'          (is-ancestor test inverted)   -> --self-test rc=1  killed
