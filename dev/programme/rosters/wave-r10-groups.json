@@ -20092,9 +20092,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-water-setpoint-lift",
-    "commit": null,
+    "commit": "b944521a2fa01e737372ea7dd81bd3ed3ab00d30",
     "last_step": null,
     "next_step": "dispatch a fixer when R10-GENERIC-HEAT-CURVE (PR 3299) merges; independent fix-review of fork head e9dc72be09b9fc16fdde3508b1816ca5b4f5c9d5 first",
     "note": "outside PR 3356 (Bankaifan, fork head e9dc72be09b9fc16fdde3508b1816ca5b4f5c9d5), s13 outside-intake triage 2026-11-08; overlap admitted by seam (R10-GENERIC-HEAT-CURVE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE, R10-MIN-POWER-FLOOR): outside-intake ruling tvofi 2026-11-06; overlap admitted (R10-USER-DOCS-VERIFY, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE): outside PR 3356 accepted by triage; distinct seams from R10-GENERIC-HEAT-CURVE and R10-ARBITER-OFF-RESTORE, ordered by after-edges",
