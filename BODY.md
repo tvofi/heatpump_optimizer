@@ -13,6 +13,14 @@ In-flight edits to `fix-review.md`: R10-PROCESS-SLIM (`handoff/r10-process-slim`
 
 ## Repair
 
+Round 2 repair. `governance / instrument-self-tests` was red at `c9ba955f30fc` because the step this PR adds to `.github/workflows/governance.yml` (`Show the survivor-list check ...`) had no `id:` and an unconditional `if: ${{ !cancelled() }}`.
+- Failing check first, at `c9ba955f30fc`: `python3 tools/ci/selftest_scope.py static` printed `UNGATED step 'Show the survivor-list check (tools/audit/seat/survivor_list.py) refusing its own fixtures': its if: does not read steps.scope.outputs.<its own id>` and `107 gated step(s), 1 problem(s)`.
+- Fix, as its neighbours are gated: `id: survivor-list` and `if: ${{ !cancelled() && steps.scope.outputs.survivor-list == 'true' }}`. The scope table `tools/ci/selftest_closures.json` is measured, not hand-written, so the entry came from `python3 tools/ci/selftest_scope.py record --step survivor-list` (strace, Linux): it reads `tests/closures.json`, `tests/mutation_table.py`, `tools/audit/seat/mutant_run.py` and `tools/audit/seat/survivor_list.py`. `selftest_scope.py` is unchanged.
+- Null control, same command at the fix `419fa71b56bd`: `selftest_scope static: 108 gated step(s), 0 problem(s)`, and `python3 tools/ci/selftest_scope.py --self-test` prints `selftest_scope self-test: 90 checks, 0 failed`. Before the table entry was recorded, `static` printed `STALE tools/ci/selftest_closures.json: its steps differ from the workflow's: missing ['survivor-list']`, so the table check is live too.
+- The round-1 repair below stands; no production file changed in round 2. Carry: R10-REVIEW-ENUMERATE
+
+### Round 1
+
 Round 1 repair of the blocked verdict `Fix review: blocked 81741e448f32052efde42f2c0fe2605c8083e19f mutation-vacuous: tools/audit/seat/survivor_list.py:77 left-boundary lookbehind unpinned`. The verdict lists two items, and this repair answers both.
 
 - Survivor `tools/audit/seat/survivor_list.py:77`, the left-boundary lookbehind `(?<![\w./-])` of the whole-token rule in `unlisted`. Fixed in `c7b72252c`. This commit adds the self-test arm `a key is a whole token: tools/setup.py:3 does not list setup.py:3`, which is the reviewer's own example: a verdict that names only `tools/setup.py:3` must leave survivor `setup.py:3` unlisted. The mutant `token_lookbehind_off` survives at `81741e448` and is killed at this head (Mutation proof). No production line changed. Carry: R10-REVIEW-ENUMERATE
@@ -22,15 +30,7 @@ The reviewer's `class_anchor` survivor (`^` and the trailing `:` dropped from `C
 
 ## Head
 
-CI head `06a3478fdbf386278952d741985e5da5ee28bd5c` is `Merge commit 49b9fe55c...` with no change to code. Code head:
-
-`49b9fe55c72af0786ed726a17ef124fa7b7ac59e`, a merge of `origin/main` `6457496aba7b1076b1ed60c374c5badafdf66fc1` (2026-11-09T02:04+01:00) into the reviewed head `41a196a242f20636f9e354ad98c5a401445831d9`, which carries `Fix review: merge 41a196a242f2`. GitHub read #3341 as DIRTY: `git merge-tree --write-tree origin/main 41a196a242f2` named one content conflict, in `dev/governance/roles/fix-review.md` step 13, where main's `bc59a13f63` and this branch both rewrote the same sentence.
-
-Resolution delta (the whole of it, for the reviewer's carry): step 13 keeps this branch's inlined `git merge-tree --write-tree origin/main <head>` form and main's two sentences word for word, "Block on main only on one, never on a head behind main that merges cleanly (tvofi 11-07). A conflict off the two claim files is yours." Union: it replaces the branch's retained old sentence "A conflict on any path other than the two claim files is yours to block on...", which main had itself rewritten. No other file moved.
-
-Null control for the resolution: a script normalizes whitespace and requires main's `bc59a13f63` sentence plus one sentence from each of this branch's clauses (steps 1, 6, 11, 13). The merged file passes. The branch-head tree fails it on main's sentence, and main's tree fails it on six of the branch's clauses.
-
-Figures below are re-taken at `49b9fe55c72a` against `origin/main` `6457496aba7b`.
+Code head `419fa71b56bdd45556ce2ea8eafe99405c948481`: the reviewed-and-merged `c9ba955f30fc8f64b2e0c3865dcfe9dd609ef822` plus one commit changing `.github/workflows/governance.yml` and `tools/ci/selftest_closures.json` only. Figures other than those under Repair describe `c9ba955f30fc` and its predecessors; no file they read moved.
 
 ## Mutation proof
 
@@ -70,6 +70,10 @@ Control at the reviewed head `81741e448`, with the same `token_lookbehind_off` s
 - The brief's motivating counts come from `python3 -I tools/audit/seat/review_strength.py --by class`. It reads live verdict refs, so it is named here and not quoted (`fixer.md` step 3).
 
 ## Red checks
+
+`governance / instrument-self-tests`: red at `c9ba955f30fc`, and this PR's own. Cause: the step this PR adds was UNGATED (see Repair). Cheaper detector: `python3 tools/ci/selftest_scope.py static`, a workflow-and-table read, about 0.1 s (the `record` run for one step took 0.2 s). It existed and ran only in CI's `instrument-self-tests`; run it in prepr for any diff touching `.github/workflows/governance.yml` or `tools/ci/selftest_closures.json`. I ran it at this head: `0 problem(s)`. Standing cost: that fraction of a second per prepr; a prepr.sh edit is a separate change and is not in this diff.
+
+`tests / fast (3.14)`: red, inherited from main at `2f6d699e` (de.json keys and D6 claim C112) and fixed by #3378. Not this PR's: this diff touches neither `de.json` nor any D6 claim.
 
 `governance / delivery-status` (check-run 128955414223, job 128955414223, 2026-11-09T03:01Z, head `06a3478fdbf3`): red, and it is main's, not this diff's.
 - What it graded: `python -I -S tests/delivery_status.py --check` printed `DELIVERY STATUS OVERDUE -- 0 rowed, 12 pending, 1 overdue (overdue at 12 commits)`, naming `#3318 R10-BODY-CONTRACT` as overdue and `#3316` as pending. Those are main's own record rows held for the stamp. The check's own text says it grades main and blocks no merge.
