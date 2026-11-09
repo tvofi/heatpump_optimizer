@@ -2,7 +2,7 @@ R10-HOTFIX-DELTA-REVIEW, repair of #3379 after its blocked verdict (scope-rule-w
 
 ## Head
 
-e03c12274504ad7ede68b6f09b235029b990e404
+71b95e42daf4d32031ce116b01c469b81f2a23a0, which merges authored code head e03c12274504ad7ede68b6f09b235029b990e404 with main; no code delta since the blocked review. The block was ci-red: pr-contract refused the body because its red-checks section named the raise gate by a short name. Answered below.
 
 ## Mutation proof
 
@@ -31,7 +31,9 @@ This change to `dev/governance/roles/fix-review.md` step 12 carries out the owne
 
 ## Red checks
 
-`budget-raise-gate` is red by design: two cap raises (lines 140 to 143, files_tokens 2451 to 2549 for tools/audit/briefs/fix-review.md) stay red until tvofi approves at the head, which the code-owner rule requires. The cheaper detector is \`node tools/policy/policy_lint.mjs --budgets\`, which already prints the measured figures and the cap; it cannot approve a raise, so the standing cost is one owner review per raise. No cheaper detector for the approval exists: the finding is that the step 12 rule cannot be stated in fewer lines without the compression the blocked verdict refused.
+`budget-raise-gate / budget-raise-gate` is red by design: two cap raises (lines 140 to 143, files_tokens 2451 to 2549 for tools/audit/briefs/fix-review.md) stay red until tvofi approves at the head, which the code-owner rule requires; this body does not claim that approval. The cheaper detector is `node tools/policy/policy_lint.mjs --budgets`, which already prints the measured figures and the cap; it cannot approve a raise, so the standing cost is one owner review per raise. No cheaper detector for the approval exists: the finding is that the step 12 rule cannot be stated in fewer lines without the compression the blocked verdict refused.
+
+`pr-contract / pr-contract` was red at 71b95e42daf4d32031ce116b01c469b81f2a23a0 for one reason: the body's Red checks section named `budget-raise-gate` by its short name, so `policy_lint.mjs --pr-body` found no answer for `budget-raise-gate / budget-raise-gate`. The cheaper detector is `node tools/policy/policy_lint.mjs --pr-body <body.md> --red 'budget-raise-gate / budget-raise-gate'`, run before posting (prepr.sh runs it too). This body names both contexts by their full names; the repair touches the body only.
 
 ## Forward-carry
 
