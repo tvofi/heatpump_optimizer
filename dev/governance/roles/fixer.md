@@ -299,11 +299,11 @@ split part the approved plan names.
 
 ## Before you hand off: answer any check your branch turned red
 
-`defect-root-cause.md`'s second trigger fires on your own PR: name each check
-that went red in the body and answer it there — the cheaper detector and its
-standing cost, or the finding that none exists. `UNDER-SCOPED` and `INHERITED
-CLAIMS` are answered by naming them (`ci-autofix.md`). You are naming the
-trigger, not analysing it; the analysis is `root-cause.md`'s seat.
+`defect-root-cause.md`'s second trigger fires on your own PR: name each red in
+`merge_train.py owed-reds`' set, and no other, in the body and answer it there:
+the cheaper detector and its standing cost, or the finding that none exists.
+`UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
+(`ci-autofix.md`); the analysis is `root-cause.md`'s seat.
 
 ## Past three rounds, re-cut rather than repair
 

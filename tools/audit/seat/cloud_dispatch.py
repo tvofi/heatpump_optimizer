@@ -139,6 +139,14 @@ FRUGAL_LINE = ("Discovery reads (search, list, read across files) go through Age
                "frugal routing guard requires; at most 5 inline search operations per prompt; never "
                "set FRUGAL_ALLOW_INLINE.")
 
+#: Who owes a red an answer (owner rulings tvofi 2026-11-07, 2026-11-09: no merge is
+#: blocked on a non-required red), stated to the two seats that meet check runs, in one
+#: line naming the instrument that prints the set; the rule itself is defect-root-cause.md's.
+OWED_REDS_ROLES = ("reviewer", "fixer")
+OWED_REDS_LINE = ("A red is owed a `## Red checks` answer, and may block, only when its name is in the set "
+                  "`python3 tools/audit/seat/merge_train.py owed-reds` prints (defect-root-cause.md); any "
+                  "other red is neither answered nor a block.")
+
 #: The policy pack (tools/policy/role_pack.py) a role reads once in place of its
 #: contract and INSTRUMENTS.md. The payload schema has no per-seat environment, so
 #: the seat renders it itself, with the same renderer the SessionStart hook runs;
@@ -305,6 +313,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"Output: write your result as a body file and run `bash tools/audit/seat/body_push.sh "
             f"{topic} <result.md>`, which pushes refs/heads/handoff-body/{topic}; that push is the "
             "return signal. A return push carries only your own result tokens.")
+    if role in OWED_REDS_ROLES:
+        body += "\n" + OWED_REDS_LINE
     refs = f"your return refs and refs/heads/{WIP_NS}/{topic} and refs/heads/{WIP_NS}/{topic}-body" if role == "fixer" else "your return refs"
     tail = (f"Never write to any branch except {refs}. Never work around a hook or a refusal; "
             "report it in your result instead.")
@@ -1057,6 +1067,13 @@ def self_test() -> int:
     check("every role's prompt carries the frugal-routing line once, verbatim (P398)",
           all(sum(line == FRUGAL_LINE for line in t.splitlines()) == 1 for t in prompts.values())
           and FRUGAL_LINE.startswith("Discovery reads (search, list, read across files) go through Agent subagents"))
+    owed_roles = ("reviewer", "fixer")  # literal: a mutant of OWED_REDS_ROLES must not move the test too
+    check("the reviewer and the fixer are told, in one line citing its rule, that only a red "
+          "`merge_train.py owed-reds` prints is owed an answer or blocks (tvofi 2026-11-07, 2026-11-09)",
+          all(sum("`python3 tools/audit/seat/merge_train.py owed-reds`" in line and "defect-root-cause.md" in line
+                  for line in prompts[r].splitlines()) == 1 for r in owed_roles))
+    check("and no other role is (null control: a seat that never meets a check run)",
+          not any("owed-reds" in prompts[r] for r in ROLES if r not in owed_roles))
     check("every role with a contract is told to render its pack, the probe is not",
           all(f"role_pack.py render {PACK_ROLE[r]} " in prompts[r] for r in PACK_ROLE)
           and "role_pack.py" not in prompts["probe"])

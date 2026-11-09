@@ -61,8 +61,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     refuses, wait or hand back unverdicted, saying so.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
-    **A red `nightly-status` or `delivery-status` is not this pull request's**:
-    neither is required (`defect-root-cause.md`).
+    **A red outside `merge_train.py owed-reds`' set is not this pull request's**
+    and blocks nothing (`defect-root-cause.md`).
 
     **The head's runs are not the range's** (#1144). The body check prints
     `record`/`skip red-history` for the range; `skip` means every earlier head

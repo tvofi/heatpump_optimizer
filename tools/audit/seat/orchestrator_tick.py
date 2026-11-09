@@ -27,8 +27,9 @@ Sections, each measured:
           sibling .rc; prepr.sh slots (nudge.md step 8's cap, mechanically).
   PRS     every open PR: the latest check-run per name at its head (transport
           truth: lowercase conclusions, latest-run-wins) as GREEN / RUN / RED;
-          RED not answered in the body's ## Red checks; missing delivery row
-          in the three-dot diff; a queue verdict with the head moved past it
+          a RED in `merge_train.py owed-reds`' set not answered in the body's
+          ## Red checks (every RED when that set is unreadable); missing
+          delivery row in the three-dot diff; a queue verdict with the head moved past it
           and no carry; DIRTY/BLOCKED mergeable state; ZERO check runs at a
           head (the bot-push shape -- approve_held_runs.sh, nudge.md step 11);
           required contexts absent at the head; twin open PRs at one head
@@ -1184,13 +1185,18 @@ class Tick:
         state = "GREEN" if not run and not red else (
             f"RUN:{','.join(run)}" if run else f"RED:{','.join(red)}")
         self.line(S, f"#{n} [{pr.get('headRefName')}] {state}")
-        if red:
+        # Only a red in the set `merge_train.py owed-reds` prints is owed an
+        # answer (defect-root-cause.md); an unreadable set keeps every red.
+        req = (getattr(self, "_req_pr", None) or required) if required is not None else None
+        owed = mt.judged(mt.gating_names(req)) if req is not None else red
+        owed_red = [r for r in red if r in owed]
+        if owed_red:
             code, o = self.gh(["pr", "view", str(n), "--repo", self.repo,
                                "--json", "body", "--jq", ".body"])
             if code:
                 self.unreadable(S, f"body of #{n}", o.strip()[-100:])
             else:
-                missing = [r for r in red
+                missing = [r for r in owed_red
                            if r not in self.body_section(o, "Red checks")]
                 if missing:
                     self.line(S, f"#{n}: RED unanswered in ## Red checks: "
@@ -3868,6 +3874,25 @@ def self_test() -> int:
             a, f = check(f"K15 (d) PRS {label}", [
                 (f"NOT REVIEWABLE {'present' if want else 'absent'}",
                  any(x["text"].startswith("#71: NOT REVIEWABLE") for x in t.findings) == want)])
+            total, failed = total + a, failed + f
+        # PRS: `RED unanswered` names only a red the body owes an answer (owner
+        # ruling tvofi 2026-11-07, defect-root-cause.md): merge_train's
+        # judged(gating_names(required)), as review_packet.unanswered_reds reads
+        # it. A NOT_GATING name in the ruleset owes none; under GATE a unit name
+        # does. An unreadable set keeps every red (the fallback; null control).
+        unit = json.loads(mt.REQUIRED_CONTEXTS.read_text())["gate_required"][0]
+        for label, req, reds, want in (
+                ("required set read", ["tests"], ["tests", "codeql"], {"tests"}),
+                ("NOT_GATING in the ruleset", ["tests", "delivery-status"],
+                 ["tests", "delivery-status"], {"tests"}),
+                ("a gate unit under GATE", [mt.GATE], [unit, "codeql"], {unit}),
+                ("unreadable set: every red (null control)", None, ["tests", "codeql"], {"tests", "codeql"})):
+            t = tick(prs=[pr_obj(77, H1)], runs_at={H1: [run_obj(r, conclusion="failure") for r in reds]},
+                     bodies={77: "## Red checks\n\nnone\n"})
+            t.one_pr("PRS", pr_obj(77, H1), None, req)
+            ru = [x["text"] for x in t.findings if x["text"].startswith("#77: RED unanswered")]
+            got = set(ru[0].split("## Red checks: ", 1)[1].split(", ")) if len(ru) == 1 else set()
+            a, f = check(f"PRS owed reds: {label}", [(f"RED unanswered names {sorted(want)}", got == want)])
             total, failed = total + a, failed + f
         # PRS (d): a pull request's head is judged on every live required
         # context: a red pr-contract, read live from the ruleset, is not
