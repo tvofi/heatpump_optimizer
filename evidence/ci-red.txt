@@ -1,0 +1,8 @@
+head ce4cdb2271c3a3883c422e228f55d526d93827e2, PR #3371 draft=true at read
+merge_train.py classify: RED ce4cdb2271c3a3883c422e228f55d526d93827e2 pending: none red: gate (10:26:31Z)
+run 42597670888: pr-contract job 129104132920 failure: "FAIL closed: no run at this head owns a finished codeql unit for base 'main' after 600 s"
+  gate job 129104131623 (KIND: edit, WORKSET: arch-score budget-raise-gate pr-contract) failure:
+  "FAIL tests: no run at this head judged base 'main' / codeql / governance / hassfest / validate: no run at this head judged base 'main' / pr-contract / pr-contract: failure (run 42598782881)"
+run 42598782881: pr-contract job 129099859572 failure; gate job 129103774515 failure
+both runs: tests, codeql, governance, hassfest, validate, kernel-points = skipped
+arch-score success (both runs), budget-raise-gate success (both runs)

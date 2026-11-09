@@ -1,0 +1,8 @@
+custom_components/heatpump_optimizer/coordinator.py:956:    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
+custom_components/heatpump_optimizer/coordinator.py:988:    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
+custom_components/heatpump_optimizer/coordinator.py:1082:    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
+custom_components/heatpump_optimizer/coordinator.py:1161:    split = coord._commanded_split()
+custom_components/heatpump_optimizer/coordinator.py:5050:        space, dhw = self._commanded_split()
+custom_components/heatpump_optimizer/coordinator.py:5072:        commanded_space, dhw_share = self._commanded_split()
+custom_components/heatpump_optimizer/coordinator.py:5335:        heat_kw, a = span or (bias.heat_output_kw, heat_energy.meter_of(self).attribution(self._commanded_split()))
+custom_components/heatpump_optimizer/coordinator.py:10170:            "split": self._commanded_split(),
