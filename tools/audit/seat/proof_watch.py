@@ -118,6 +118,20 @@ def parse_verdict(first: str) -> "tuple[str, str] | None":
     return None
 
 
+#: The nonce line bus.sh `dispatch` prints and a verdict carries, read as bus.sh's
+#: `verdict_nonce` reads it: the first WHOLE `bus-nonce: <32 hex>` line. Whole-line,
+#: so a finding quoting another round's nonce in prose is not this text's (PR 2465's
+#: merge verdict quotes round 2's). The one Python reader: cloud_dispatch.py and
+#: merge_train.py's stale-verdict guard call it, never a copy.
+NONCE_LINE = re.compile(r"^bus-nonce: ([0-9a-f]{32})$", re.M)
+
+
+def verdict_nonce(text: str) -> "str | None":
+    """The 32-hex nonce of the first whole `bus-nonce:` line in <text>, or None."""
+    m = NONCE_LINE.search(text)
+    return m.group(1) if m else None
+
+
 def _json_docs(raw: str) -> list:
     """What `gh api` prints: concatenated JSON documents, an array per page
     (plain --paginate) or one object per line (--jq '.check_runs[]')."""

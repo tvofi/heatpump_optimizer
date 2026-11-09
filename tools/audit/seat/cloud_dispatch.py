@@ -86,6 +86,7 @@ def _sibling(name: str):
 
 ref_privacy = _sibling("ref_privacy")
 roster_lib = _sibling("roster_lib")
+proof_watch = _sibling("proof_watch")  # the bus-nonce line's one Python reader
 HOME = re.compile(ref_privacy.HOME_DIR)
 LOWER_HEX = frozenset("0123456789abcdef")
 
@@ -267,7 +268,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "`tools/pr/prepr.sh` head (the body check included), fixing what it refuses; a main that has moved "
             "since that run needs no re-merge and no second run, because the train re-proves the head on the "
             "current main. Merge origin/main and rerun prepr.sh only when "
-            "`git merge-tree --write-tree origin/main HEAD` reports a conflict. Then push the code to "
+            "`git merge-tree --write-tree origin/main HEAD` reports a conflict. If you must stop on a question, "
+            f"first push `BLOCKED.md` with a `Question:` line to refs/heads/{WIP_NS}/{topic}, even with no code. Then push the code to "
             f"refs/heads/handoff/{topic}, then write the PR body and run "
             f"`bash tools/audit/seat/body_push.sh {topic} <body.md>`, which pushes "
             f"refs/heads/handoff-body/{topic}; that second push is the return signal. Once it succeeds, "
@@ -558,10 +560,10 @@ def _bus_dispatch(repo_dir: str, pr: str, head: str, model: str, nonce: str, env
     r = subprocess.run(["bash", str(HERE / "bus.sh"), "dispatch", pr, head, "cloud", "--model", model,
                         *(["--nonce", nonce] if nonce else [])],
                        cwd=repo_dir, env={**os.environ, **environ}, capture_output=True, text=True)
-    m = re.search(r"^bus-nonce: ([0-9a-f]{32})$", r.stdout, re.M)
-    if r.returncode or not m:
+    n = proof_watch.verdict_nonce(r.stdout)
+    if r.returncode or not n:
         raise Refusal(f"bus.sh dispatch refused: {(r.stderr or r.stdout).strip()[-300:]}")
-    return m.group(1)
+    return n
 
 
 def _config(args: argparse.Namespace, environ=None) -> dict:
@@ -920,8 +922,7 @@ def _group_checks(check) -> None:
                                env={**os.environ, **env}, capture_output=True, text=True).stdout
         # Search, never strip a prefix: `dispatch` prints its `review-packet:` line
         # above the nonce, and `_bus_dispatch` reads it the same way.
-        _m = re.search(r"^bus-nonce: ([0-9a-f]{32})$", relay, re.M)
-        nonce81 = _m.group(1) if _m else ""
+        nonce81 = proof_watch.verdict_nonce(relay) or ""
         check("a relay dispatch at a second pull request mints its nonce", len(nonce81) == 32)
         out = io.StringIO()
         with contextlib.chdir(work), contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()), \
@@ -1090,6 +1091,9 @@ def self_test() -> int:
     check("the reviewer blocks on main only for a merge-tree conflict, never a clean head behind main",
           "`git merge-tree --write-tree origin/main <head>`); block on main only when that reports a conflict" in rv
           and "never on a head that is behind main but merges cleanly" in rv)
+    check("the fixer is told to push BLOCKED.md with a Question line before stopping on a question",
+          f"first push `BLOCKED.md` with a `Question:` line to refs/heads/{WIP_NS}/t-1" in fx
+          and all("BLOCKED.md" not in t for r, t in prompts.items() if r != "fixer"))
     check("no other role is told the merge-tree block rule (null control)",
           all("behind main but merges cleanly" not in t for r, t in prompts.items() if r != "reviewer"))
     check("no other role is licensed a step ref (null control)",
