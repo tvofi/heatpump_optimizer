@@ -77,12 +77,34 @@
   CI judges the new head, and a recarry that reproduces the same red tree
   stops instead of looping. A one-car batch (the #2595 repair car onto a red
   main) cannot move a base, so the grade never fires there.
+  Card 5 (tvofi 2026-11-07, `Train.merges_as_is`): a head that lacks
+  origin/main is recarried only when `main-protect-checks` requires an
+  up-to-date branch (`strict_update`, read live; unreadable counts as
+  required), when git's merge of origin/main and the head conflicts, when the
+  head is a GITHUB_TOKEN tip, or when a graded red holds it; otherwise it is
+  logged `#<pr> no recarry:` and merges at its proven head, its merge tree
+  graded against its merge base at the merge, as the overlap grade does.
+  Card 1 (`Train.rejoin`): under `--skip-bad`, an entry skipped on a head red
+  holding `gate` (`HeadRed`) rejoins the same train after the batch's own
+  merges, through the serial path, once its skipped head classifies GREEN
+  (`classify_at`), with no `add`; RED, a head still WAIT `wait_cap_s` (polls
+  x 305 s, 7320 s at the default) after its skip, or a head the branch moved
+  off stays skipped, each logged `REJOIN #<pr>: ...`; a rejoin that merges
+  is CURED. Residual: the rejoin's wait delays the next spooled batch, never
+  a merge of its own batch. `dev/audit/harnesses/r10_train_rejoin_no_recarry_mutants.py`
+  holds one mutant per arm of both cards.
   `batch` also takes several batches in one queue (a list of lists), run in
   order on one train, each with its own admission, proof and merges; between
   two it drains what `train.sh add` spooled into one more batch, never into a
   batch in proof, and a batch that stops ends the train (`NOT RUN` lines);
   an `add` that starts a train orders its first batch, the entry and what a
-  stopped train left spooled, by the same `Train.drain_order`.
+  stopped train left spooled, by the same `Train.drain_order`: entries added
+  with `--priority` (HOTFIX), a roster hotfix (`roster_lib.is_hotfix`, flag
+  or not) or `--front` first, then outside entries
+  (`roster_lib.is_outside`, owner ruling tvofi 2026-11-07, triage P420), then
+  critical-path entries, then arrival order; an entry maps to its group by
+  branch, else by its pull request (`roster_lib.group_for_pr`), so a fork head
+  ranks as its group does.
   `add` and that drain apply one admission rule (`already_held`, over the
   live train's `queue.seen.json`): a pull request still to run, spooled,
   merged or run by this train is `ALREADY` on both sides; one it skipped is
@@ -94,7 +116,7 @@
   one mutant per arm of that rule. The spool is edited only through the
   instrument: `add --front <pr>` puts an entry first in the next batch (a
   spooled one is moved there, and the drain keeps it in the `--priority` tier
-  ahead of critical-path entries) and `add --remove <pr>` drops a spooled one
+  ahead of outside and critical-path entries) and `add --remove <pr>` drops a spooled one
   (rc 1, nothing written, when it is absent), both under the queue's flock
   and each printing the spool order read back. A batch's admission waits
   each head on the required set a pull request's head carries

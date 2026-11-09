@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_gate_c RETURN_DEL cf852334",
+  "killed_by": "tests/features.py",
+  "old": "    return _bounded(inp, \"space_setpoint\", gate, gate, rounding=\"down\")",
+  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (gate fix, over e0d2751f6): RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 of 4991 to rc=1 failed=12 and a TypeError (a None gate compared as the floor): the hot-water-only, idle and off rows no longer write the space gate, and a flow gate no longer stays at 25 degC."
+}
