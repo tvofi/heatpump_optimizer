@@ -20636,6 +20636,50 @@
     "branch": null,
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER): carries-open audit 2026-11-09: distinct seam from R10-GATE-DEFER-BARRIER, ordered by after-edges where files overlap"
    }
+  },
+  {
+   "group": "R10-GH-READ-RESIDUE",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [
+    2731
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/pr/app_push.sh",
+    "tools/ci/codescan_wait.py",
+    "tools/audit/seat/gh_calls.py",
+    "tools/audit/seat/shims"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-FLY-GH-READ-RETRY"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "GitHub-read residue after #3361: app_push.sh push retry on git_transient (reuse gh_read.run_git_retry), the unattributed core-bucket drain (P449), and codescan_wait.settled() failing closed on a partial re-run whose carried-over jobs list no steps. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
