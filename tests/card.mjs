@@ -2848,6 +2848,34 @@ check("the hand-scheduled reason has a label",
     rcpWoodNote(rcpWood("sv-SE")) === "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte." &&
     !/receipt-wood-note/.test(rcpPage),
     `${rcpWoodNote(rcpWood("en"))} | ${rcpWoodNote(rcpWood("sv-SE"))}`);
+  // R10-SAV-METER-FLOOR: a month whose booked reference fell under the meter
+  // floor states no saving; the receipt and the table say why, in en and sv.
+  // The null control is the page above: no row under the floor, no note.
+  const rcpFloor = (lang) => {
+    const st = JSON.parse(JSON.stringify(rcpStates));
+    Object.assign(st["sensor.heat_pump_optimizer_monthly_savings"].attributes.savings_months[0],
+      { savings_sek: null, savings_pct: null, below_meter_floor: true });
+    const c = build(st);
+    c.hass = { states: st, language: lang };
+    c._onCardClick({});
+    c.dialog.page = "savings";
+    c._render();
+    return collect(c.shadowRoot).join("\n");
+  };
+  const rcpFloorNotes = (page) => [
+    (page.match(/receipt-floor-note">([^<]*)/) || [])[1] || "",
+    (page.match(/savings-floor-note"[^>]*>([^<]*)/) || [])[1] || "",
+    (page.match(/savings-floor">([^<]*)/) || [])[1] || "",
+  ];
+  const rcpFloorEn = rcpFloorNotes(rcpFloor("en"));
+  const rcpFloorSv = rcpFloorNotes(rcpFloor("sv-SE"));
+  const floorEn = "No saving is stated for a month whose baseline used under half the energy the meter recorded: a baseline that low is a fault, not a saving.";
+  const floorSv = "Inget sparande anges för en månad vars referens använde under hälften av den energi mätaren registrerade: en så låg referens är ett fel, inte ett sparande.";
+  check("a month under the meter floor states no saving and says why on the receipt and the table (en, sv); none above it",
+    rcpFloorEn[0] === floorEn && rcpFloorEn[1] === floorEn && rcpFloorEn[2] === "no saving stated" &&
+    rcpFloorSv[0] === floorSv && rcpFloorSv[1] === floorSv && rcpFloorSv[2] === "inget sparande anges" &&
+    !/floor-note|savings-floor/.test(rcpPage) && !/Saved 148\.00/.test(rcpFloor("en")),
+    JSON.stringify([rcpFloorEn, rcpFloorSv]));
   check("UX-6: the money goes by reason, largest first",
     /Where the money went/.test(rcpPage) &&
     rcpPage.indexOf("Cheapest hours") < rcpPage.indexOf("Keeping the house at target"));
