@@ -25,7 +25,7 @@ Root cause (defect-root-cause.md, second trigger; `instrument-self-tests` is not
 
 ## Head
 
-f27e09c3846e12aa65631b41210331e86e4ecef3, merge base 72a2acee55181f0e3da9df691657c905d3b2d119 (origin/main at 2026-11-09T14:50Z).
+4f167ab4b1526378e2ce8d28187a3d4964d42a36 (measured head; no code change since the red runs), merge base 7bdc8aa2ec92934b96b77d3fd8d331b1c23d3769.
 
 ## Mutation proof
 
@@ -64,7 +64,8 @@ It ends `SELFTEST-SCOPE MUTANTS: every mutant refused`. It was also run under `s
 
 ## Red checks
 
-none
+- `tests / fast (3.14)`: the one failing check inside `python3 tests/stress.py` was "the probed scenarios' memory peaks stay within their recorded budgets" (typical_slab/shoulder traced peak 3.9 MiB against 1.8 MiB recorded, x1.5 threshold). This diff touches only `tools/ci/`, `.github/workflows/governance.yml` and a delivery row, none of which stress.py's probe imports. Re-run of `PYTHONPATH=tests/hastub python3 tests/stress.py` on this same head, Python 3.14.7: `ALL 114 STRESS CHECKS PASSED`, the same scenario reading traced 2.1 MiB. Same code, 3.9 then 2.1 MiB: a run-to-run spread of the traced peak, not a regression from this diff. Cheaper detector: none; the traced probe inside stress.py is the detector that found it, and the spread is a distinct finding in the stress memory-probe seam, not this PR's group. Carry: dismissed: not caused by this diff, no cheaper detector.
+- `pr-contract / pr-contract`: red only because the line above was missing from this section; answered here.
 
 ## Forward-carry
 
