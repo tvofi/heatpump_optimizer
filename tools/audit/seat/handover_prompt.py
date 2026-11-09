@@ -45,8 +45,9 @@ NOT_STARTED = "not-started"
 def ready_next(roster: dict) -> list:
     open_ = roster_lib.open_groups(roster)
     depth = roster_lib.depth_of(roster)
+    G = roster_lib.groups_of(roster)
     return sorted((depth[g], g) for g, gr in open_.items()
-                  if all(a not in open_ for a in gr.get("after") or []))
+                  if not any(roster_lib.gates(G[a]) for a in gr.get("after") or [] if a in G))
 
 
 def in_flight(roster: dict) -> list:

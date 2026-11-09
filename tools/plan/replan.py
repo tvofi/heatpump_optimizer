@@ -334,7 +334,7 @@ def dependency_graph(G: dict) -> tuple[dict, set, set]:
         for a in G[n].get("after") or []:
             if a not in G:
                 raise PlanError(f"{n}: after-edge names no group: {a}")
-            if a in open_:
+            if a in open_ and roster_lib.gates(G[a]):
                 out.append(a)
         deps[n] = out
     return deps, open_, done
@@ -900,6 +900,9 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         raise PlanError(f"the round-close stamp: {why}")
     G = groups_of(roster)
     deps, open_, done = dependency_graph(G)
+    # A group `after` a deferred one stays held behind it, unscheduled.
+    held = roster_lib.held_behind_deferred(G)
+    open_ = open_ - set(held)
     # Groups after the round's closing stamp are scheduled after it and are
     # neither inside closure nor in any stamp's carries (carries 10, 11).
     post = roster_lib.post_closure_groups(G, open_)
@@ -1233,6 +1236,16 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                 "coordinator": touches_coordinator(G[n]), "batch": None,
                 "stamp": None, "after": sorted(deps_post[n]), "done": False,
                 "post_closure": True,
+            }
+            continue
+        if n in held:
+            groups_out[n] = {
+                "wave": None, "start": None, "finish": None, "slot": None,
+                "duration_minutes": 0, "size": G[n].get("size"), "lane": lane[n],
+                "tier": None, "level": None, "live": False, "inherited": False,
+                "coordinator": touches_coordinator(G[n]), "batch": None,
+                "stamp": None, "after": [], "done": True,
+                "held_behind": held[n],
             }
             continue
         if n in done:
@@ -2279,19 +2292,50 @@ def selftest() -> int:
            "flight when the critical-path one is unflagged",
            any("coordinator cap" in b for b in check_plan(nocp)), str(check_plan(nocp)))
 
-    # 3c. a refused or deferred group is a human disposition, never scheduled
-    # (roster_lib.CLOSED_STAGES); a refuted one names a finding and stays open.
+    # 3b'. the flagged group overlaps a running one: --check must exclude it from
+    # the coordinator count (X3 runs while CP1, fed by D, starts flagged).
+    ov2 = mk([fx("D"), cfx("CP1", "XL", after=["D"]), fx("CP2", "XL", after=["CP1"]),
+              cfx("X3", "L")], caps_=dict(caps, coordinator_cap=1))
+    c1, x3 = ov2["groups"]["CP1"], ov2["groups"]["X3"]
+    expect("coordinator: --check passes a flagged critical-path start that overlaps "
+           "a running coordinator group (the flag is read)",
+           c1.get("exempt_coordinator") is True and x3["start"] < c1["start"] < x3["finish"]
+           and check_plan(ov2) == [], str((c1, x3, check_plan(ov2))))
+    ov3 = json.loads(json.dumps(ov2))
+    ov3["groups"]["CP1"].pop("exempt_coordinator")
+    expect("coordinator (null): the same overlap unflagged is refused",
+           any("coordinator cap" in b for b in check_plan(ov3)), str(check_plan(ov3)))
+
+    # 3c. after-edges by predecessor stage (owner ruling, mandate 6715477401): a
+    # refused or refuted predecessor never lands, so its dependent is released;
+    # a deferred one is postponed, not done, so its dependent (and that one's
+    # own) stays held behind it, unscheduled. refused and deferred are closed
+    # groups (roster_lib.CLOSED_STAGES), never scheduled; refuted stays open.
     for st in ("refused", "deferred"):
-        rf = mk([fx("R10-A"), fx("R10-X", stage=st), fx("R10-Y", after=["R10-X"])])
-        expect(f"{st}: the group is done and not scheduled, and its dependent is "
-               "not held behind it",
-               rf["groups"]["R10-X"]["done"] and rf["groups"]["R10-X"]["start"] is None
-               and rf["groups"]["R10-Y"]["start"] == iso(start, 0),
-               str({n: g["start"] for n, g in rf["groups"].items()}))
-    rt = mk([fx("R10-A"), fx("R10-X", stage="refuted")])
-    expect("refused (null): a refuted group is still scheduled",
-           not rt["groups"]["R10-X"]["done"] and rt["groups"]["R10-X"]["start"] is not None,
-           str(rt["groups"]["R10-X"]))
+        rf = mk([fx("R10-A"), fx("R10-X", stage=st), fx("R10-Y", after=["R10-X"]),
+                 fx("R10-Z", after=["R10-Y"])])
+        held = st == "deferred"
+        expect(f"{st}: the group is closed and not scheduled",
+               rf["groups"]["R10-X"]["done"] and rf["groups"]["R10-X"]["start"] is None,
+               str(rf["groups"]["R10-X"]))
+        expect(f"{st}: its dependent is " + ("held behind it, with its own dependent"
+                                             if held else "released, not held"),
+               (rf["groups"]["R10-Y"]["start"] is None
+                and rf["groups"]["R10-Y"].get("held_behind") == "R10-X"
+                and rf["groups"]["R10-Z"].get("held_behind") == "R10-X") if held
+               else (rf["groups"]["R10-Y"]["start"] == iso(start, 0)
+                     and not rf["groups"]["R10-Y"].get("held_behind")),
+               str({n: (g["start"], g.get("held_behind")) for n, g in rf["groups"].items()}))
+    rt = mk([fx("R10-A"), fx("R10-X", stage="refuted"), fx("R10-Y", after=["R10-X"])])
+    expect("refuted: the group is still scheduled and its dependent is released",
+           not rt["groups"]["R10-X"]["done"] and rt["groups"]["R10-X"]["start"] is not None
+           and rt["groups"]["R10-Y"]["start"] == iso(start, 0)
+           and rt["groups"]["R10-Y"]["after"] == [], str(rt["groups"]))
+    rq = mk([fx("R10-A", after=["R10-Q"]), fx("R10-Q", stage="queued")])
+    expect("after (null): a queued predecessor still gates its dependent",
+           rq["groups"]["R10-A"]["after"] == ["R10-Q"]
+           and rq["groups"]["R10-A"]["start"] > rq["groups"]["R10-Q"]["start"],
+           str(rq["groups"]))
 
     # 4. stamp cadence counts groups, not pull requests (carry 9)
     cad = [fx("P1", stage="done"), fx("P2", stage="done"), fx("Q1"), fx("Q2")]
@@ -2570,6 +2614,16 @@ def selftest() -> int:
             ("coordinator-cp-flag",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              "exempt_coord.add(n)", "pass"),
+            ("check-ignores-flag",
+             _m("def check_plan(plan: ", "dict) -> list:"),
+             'g.get("coordinator") and not g.get("exempt_coordinator")]',
+             'g.get("coordinator")]'),
+            ("edge-releases-ruled",
+             _m("def dependency_graph(G: ", "dict) -> tuple[dict, set, set]:"),
+             "if a in open_ and roster_lib.gates(G[a]):", "if a in open_:"),
+            ("deferred-holds-dependent",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "held = roster_lib.held_behind_deferred(G)", "held = {}"),
             ("overflow-exempt",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              "exempt.add(n)", "pass"),

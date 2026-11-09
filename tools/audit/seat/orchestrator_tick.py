@@ -1513,7 +1513,7 @@ class Tick:
             # False), yet the tick still reports them: they stay deferred.
             if gid not in open_g and stage not in DEFERRED_STAGES:
                 continue
-            blockers = [a for a in (g.get("after") or []) if a in open_g]
+            blockers = [a for a in (g.get("after") or []) if a in groups and rl.gates(groups[a])]
             if stage in DEFERRED_STAGES or g.get("deferred") or g.get("refused"):
                 self.line(S, f"{gid}: deferred/refused (stage {stage}) -- "
                              "stays deferred")
