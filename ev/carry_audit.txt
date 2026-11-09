@@ -1,0 +1,5 @@
+NOTE stale tree: f3e7fcc32b6100699aaf41213df06353440ccfbb lacks origin/main 82a2c142faa3b92a08765d7b9c676ddd6a490631; roster read at origin/main
+NOTE body item 4b38e418: dismissed:no stage's method changes; a cancelled row is read by its conclusion field, which this body records
+NOTE body item 6da95fc9: dismissed:repaired in this pull request, and the carry is consumed by this landing
+NOTE review 0 item f6b54703: R10-OUTSIDE-INTAKE: R10-OUTSIDE-INTAKE resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)

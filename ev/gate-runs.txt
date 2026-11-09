@@ -1,0 +1,5 @@
+129001071653 gate completed failure 2026-11-09T05:41:50Z 2026-11-09T05:42:31Z https://github.com/tvofi/heatpump_optimizer/actions/runs/42563607267/job/129001071653
+129000784304 pr-contract / pr-contract completed failure 2026-11-09T05:40:50Z 2026-11-09T05:41:47Z https://github.com/tvofi/heatpump_optimizer/actions/runs/42563607267/job/129000784304
+128993428289 gate completed failure 2026-11-09T05:16:16Z 2026-11-09T05:16:54Z https://github.com/tvofi/heatpump_optimizer/actions/runs/42563781363/job/128993428289
+128992825933 gate completed failure 2026-11-09T05:15:39Z 2026-11-09T05:16:13Z https://github.com/tvofi/heatpump_optimizer/actions/runs/42563607435/job/128992825933
+128985523599 governance / delivery-status completed failure 2026-11-09T04:59:56Z 2026-11-09T05:00:33Z https://github.com/tvofi/heatpump_optimizer/actions/runs/42563607267/job/128985523599
