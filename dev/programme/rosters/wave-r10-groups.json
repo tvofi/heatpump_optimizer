@@ -20680,6 +20680,49 @@
     "stage": "not-started",
     "branch": null
    }
+  },
+  {
+   "group": "R10-PLAN-PAGE-RESIDUE",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "tools/plan/replan.py",
+    "tools/plan/durations.json",
+    "tools/audit/seat/plan_page.py"
+   ],
+   "hot_files": [
+    "tools/audit/seat/plan_page.py"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-OUTSIDE-INTAKE"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "The next plan-page group the owner named on 2026-11-09: the closure rule (later of v10.0.0 and R10-CATALOG-PR), the pre-publish plan.html findings, and the plan_page render defects (#3350 left them: count sentence, wave None leak, part-merged count). Failing fixture first, a mutant per predicate. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
