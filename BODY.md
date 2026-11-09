@@ -45,3 +45,25 @@ none
 ## Approval
 
 Not yet given. This diff touches policy files (dev/governance/roles/fix-review.md, dev/governance/roles/standing-dispatch.md), all from the branch's original change; the merge adds none. It merges only on `@tvofi`'s approving review at its head (CLAUDE.md, "Where the policy is"). No approval is claimed here.
+
+## Carry dispositions
+
+- Carry 1: untouched here; it stands as the roster states it.
+- Carry 2: delivered at main by an earlier PR, no re-fix (survey of afc1586a4).
+- Carry 3: delivered at main, no re-fix.
+- Carry 4: delivered at main, no re-fix.
+- Carry 5: untouched here; it stands as the roster states it.
+- Carry 6: delivered at main, no re-fix.
+- Carry 7: superseded by the orchestrator ruling cited above.
+- Carry 8: delivered at main, no re-fix.
+- Carry 9: untouched here; it stands as the roster states it.
+- Carry 10: delivered at main, no re-fix.
+- Carry 11: delivered at main, no re-fix.
+- Carry 12: untouched here; it stands as the roster states it.
+- Carry 13: untouched here; it stands as the roster states it.
+- Carry 14: delivered at main, no re-fix.
+- Carry 15: delivered at main, no re-fix.
+- Carry 16: delivered at main, no re-fix.
+- Carry 17: built on this branch (review_packet.py head-note asks policy_lint --pr-body --head, P405).
+- Carry 18: built here, cards 3 and 7 (REPAIR-OWED on RED; WAIT dispatches).
+
