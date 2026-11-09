@@ -1276,6 +1276,7 @@ class InstallCapability:
     measured_heat: bool = False
     heat_counter: bool = False
     electric_counter: bool = False
+    on_off: bool = False
 
     def cop_electric(self) -> bool:
         """An electrical figure a COP divides by: a heat counter's span reads
@@ -1289,8 +1290,12 @@ class InstallCapability:
         that is not exactly a power switch plus a setpoint is not known to
         be unable to, so the duty-cycle reading stands. Switch plus setpoint
         and no frequency cannot: the compressor runs at or above its
-        modulation floor whenever the switch is on.
+        modulation floor whenever the switch is on. Neither can a compressor
+        declared on/off (``on_off``, from :func:`declared_modulation`),
+        whatever the surface.
         """
+        if self.on_off:
+            return False
         return (
             True
             if self.frequency or "frequency" in self.writes
@@ -1360,6 +1365,30 @@ def probe_install(config: Any) -> InstallCapability:
         ),
         heat_counter=bool(cfg.get(const.CONF_HEAT_ENERGY_ENTITY)),
         electric_counter=bool(cfg.get(const.CONF_ENERGY_ENTITY)),
+        on_off=declared_modulation(cfg) is False,
+    )
+
+
+def declared_modulation(config: Any) -> bool | None:
+    """Whether the user declared the compressor modulating, ``None`` undeclared.
+
+    The one reader of ``compressor_modulation`` and of the legacy
+    ``clamp_planned_levels`` (#3289): ``on_off`` -> ``False``,
+    ``modulating`` -> ``True``. ``auto`` or absent reads the legacy key,
+    ``true`` clamping (on/off) and ``false`` opting out (modulating); any
+    other value of either is undeclared, and the probe decides.
+    """
+    cfg = config or {}
+    mode = cfg.get(
+        const.CONF_COMPRESSOR_MODULATION, const.DEFAULT_COMPRESSOR_MODULATION
+    )
+    legacy = cfg.get(const.CONF_CLAMP_PLANNED_LEVELS)
+    return (
+        False if mode == const.COMPRESSOR_MODULATION_ON_OFF
+        else True if mode == const.COMPRESSOR_MODULATION_MODULATING
+        else False if legacy is True
+        else True if legacy is False
+        else None
     )
 
 
@@ -1375,7 +1404,7 @@ def flow_setpoint_driven(config: Any) -> bool:
     cfg = EntryConfig.from_mapping(config or {})
     return (
         cfg.pump_duty_mode == const.PUMP_DUTY_MODES[2]
-        and cfg.space_setpoint_unit == "flow"
+        and cfg.space_setpoint_unit in const.SPACE_SETPOINT_WATER_UNITS
         and not probe_install(cfg).plan_writes_power()
     )
 
@@ -1434,8 +1463,8 @@ def feedback_gaps(config: Any) -> list[dict[str, str]]:
 def duty_cycle_realizable(config: Any) -> bool:
     """The duty-cycle reading stands for this config.
 
-    ``clamp_planned_levels: false`` is the opt-out. Otherwise the probe
-    decides, and an absent key follows the probe.
+    A compressor declared modulating (:func:`declared_modulation`) is the
+    opt-out. Otherwise the probe decides, and an undeclared one follows it.
     """
     cfg = config or {}
     cap = probe_install(cfg)
@@ -1443,7 +1472,7 @@ def duty_cycle_realizable(config: Any) -> bool:
     # frequency-plus-power plant stay byte-identical (#1955).
     return (
         True
-        if cfg.get(const.CONF_CLAMP_PLANNED_LEVELS) is False
+        if declared_modulation(cfg) is True
         else True if cap.fully_metered() else cap.can_duty_cycle()
     )
 
@@ -1499,14 +1528,14 @@ def learner_unmetered(config: Any) -> str | None:
 
     No measured power, and the probe says the write surface cannot
     duty-cycle. A frequency install still learns from the commanded figure
-    (the compressor can realize it); an explicit clamp opt-out keeps
-    today's learner. Ranked with the boost freeze, after ventilation.
+    (the compressor can realize it); a compressor declared modulating
+    keeps today's learner. Ranked with the boost freeze, after ventilation.
     """
     cfg = config or {}
     cap = probe_install(cfg)
     return (
         None
-        if cfg.get(const.CONF_CLAMP_PLANNED_LEVELS) is False
+        if declared_modulation(cfg) is True
         else None
         if cap.measured_power or cap.can_duty_cycle()
         else UNMETERED_POWER_FREEZE
@@ -1572,15 +1601,43 @@ def project_planned_levels(power: Any, p_min: float, p_max: float) -> np.ndarray
     set is not the closed interval ``[p_min, p_max]``, which would force
     the pump on for the whole horizon.
     """
-    arr = np.asarray(power, dtype=float)
-    lo = float(p_min)
-    hi = float(p_max)
+    return _onto_band(np.asarray(power, dtype=float), float(p_min), float(p_max))
+
+
+def _onto_band(arr: np.ndarray, lo: Any, hi: Any) -> np.ndarray:
+    """``arr`` clipped to ``[0, hi]``, a value in ``(0, lo)`` raised to ``lo``.
+
+    ``lo`` and ``hi`` are floats or arrays broadcasting against ``arr``.
+    """
     capped = np.where(np.greater(arr, hi), hi, arr)
     nonneg = np.where(np.less(capped, 0.0), 0.0, capped)
     return np.where(
         np.logical_and(np.greater(nonneg, 0.0), np.less(nonneg, lo)),
         lo,
         nonneg,
+    )
+
+
+def project_space_against(
+    space: Any, dhw: Any, p_min: float, p_max: float
+) -> np.ndarray:
+    """Space heating onto what one on/off compressor leaves beside ``dhw``.
+
+    ``dhw`` is the DHW schedule already projected by
+    :func:`project_planned_levels`, an ``N`` vector; ``space`` is an ``N``
+    vector or a ``B x N`` matrix, broadcast row by row (#3289). One
+    compressor serves both channels, so per step space is clipped to
+    ``[0, p_max - dhw]`` and a value in ``(0, p_min - dhw)`` is raised to
+    that bound: the total lands in ``{0} ∪ [p_min, p_max]`` and DHW keeps
+    the level its planner booked. A negative bound needs no floor at 0: a
+    cap below 0 clips to 0, and a raise below 0 matches no running level.
+    With ``dhw`` zero this is :func:`project_planned_levels`. Design choice:
+    a shared scale on the total lost because it writes into the DHW plan the
+    space solve treats as fixed.
+    """
+    other = np.asarray(dhw, dtype=float)
+    return _onto_band(
+        np.asarray(space, dtype=float), float(p_min) - other, float(p_max) - other
     )
 
 
@@ -1607,11 +1664,14 @@ def _span_when(left: float | None, right: float | None, ready: bool) -> float:
 FLOW_MIN_LIFT_K = 5.0
 
 
-def modulation_floor_flow_c(inlet_c: Any, gate_c: Any = None) -> float | None:
+def modulation_floor_flow_c(
+    inlet_c: Any, gate_c: Any = None, lift_k: float = FLOW_MIN_LIFT_K
+) -> float | None:
     """The flow set-point for the modulation floor, °C, or ``None``.
 
     The measured inlet (the buffer tank behind a mixing valve, else the
-    return) plus :data:`FLOW_MIN_LIFT_K`. The set-point is a power
+    return) plus ``lift_k``: :data:`FLOW_MIN_LIFT_K`, or the configured
+    lift (:func:`configured_flow_min_lift_k`). The set-point is a power
     command (tvofi, 2026-10-19): the system water behind it rises slowly,
     so a set-point anchored anywhere but the water it heats commands a
     power the plan never booked. ``gate_c`` is the set-point a step that
@@ -1624,7 +1684,7 @@ def modulation_floor_flow_c(inlet_c: Any, gate_c: Any = None) -> float | None:
     if inlet is None:
         return None
     gate = finite_float(gate_c)
-    return (inlet if gate is None or inlet > gate else gate) + FLOW_MIN_LIFT_K
+    return (inlet if gate is None or inlet > gate else gate) + float(lift_k)
 
 
 def flow_setpoint_for_level(
@@ -1685,12 +1745,38 @@ def flow_setpoint_for_level(
 
 
 def configured_flow_heat_c(config: Any, default: float | None = None) -> float:
-    """The heating-flow ceiling from config, else ``default`` (°C)."""
+    """The heating-flow ceiling from config, else ``default`` (°C).
+
+    An absent key reads as :data:`const.DEFAULT_FLOW_HEAT_C`, the value the
+    options flow shows for it, named at the read so the untouched-page proof
+    (``tests/config_flow_steps.py``) can see that storing it changes
+    nothing; ``default`` stands in for a stored value that is not a number.
+    Every caller passes ``pump_arbiter.FLOW_HEAT_C``, the same 55 °C.
+    """
     fallback = const.DEFAULT_FLOW_HEAT_C if default is None else default
-    raw = (config or {}).get(const.CONF_FLOW_HEAT_C, fallback)
+    raw = (config or {}).get(const.CONF_FLOW_HEAT_C, const.DEFAULT_FLOW_HEAT_C)
     number = finite_float(raw)
     return (
         float(fallback) if number is None else number
+    )
+
+
+def configured_flow_min_lift_k(config: Any) -> float:
+    """The modulation floor's lift over the measured inlet from config, K.
+
+    :data:`FLOW_MIN_LIFT_K` when absent, unreadable or not positive: a lift
+    of zero or less writes the inlet itself at the floor, which commands no
+    heat on a step the plan heats -- the value the floor exists to keep off
+    the entity. The options flow offers 0.5-15 K. A controller that takes
+    the set-point as its return-water target (Luxtronik through its Smart
+    Home Interface, for one) modulates its compressor on the gap between
+    target and return, so the rated 5 K drives it to near full speed at the
+    plan's lowest level; such a controller wants about 1-2 K.
+    """
+    raw = (config or {}).get(const.CONF_FLOW_MIN_LIFT_K, FLOW_MIN_LIFT_K)
+    number = finite_float(raw)
+    return (
+        number if number is not None and number > 0.0 else FLOW_MIN_LIFT_K
     )
 
 def on_threshold_kw(params: ThermalParameters) -> float:

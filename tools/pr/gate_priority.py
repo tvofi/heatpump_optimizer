@@ -16,8 +16,12 @@ integer wins; a channel that yields none is skipped, never fatal.
 1. ``$HPO_GATE_PRIORITY`` -- the caller's explicit override.
 2. ``.gate-priority`` in the worktree root -- one line, the group's override.
 3. The derived default: the group this branch answers for in the round roster
-   (``roster_lib.group_for_branch``, which matches ``resume.branch``) is named
-   in the round's critical-path set -> 1; otherwise 0.
+   (``roster_lib.group_for_branch``, which matches ``resume.branch``) is a
+   hotfix or an accepted outside group (``roster_lib.dispatch_rank`` 0 or 1;
+   owner ruling tvofi 2026-11-07, triage P420) -> 2; is named in the round's
+   critical-path set -> 1; otherwise 0. The lease has three bands
+   (``gate_lock.PRIORITY_MAX`` is 2), so a hotfix and an outside group share
+   the top band and arrival orders them; splitting that band is the lease's.
 
 THE FETCH IS AT CALL TIME. The roster ref is refreshed before it is read, so a
 stale local mirror cannot decide a group is off the critical path. Every
@@ -52,6 +56,7 @@ import roster_lib  # noqa: E402  (after the path insert, as the seat tools do)
 PRIORITY_ENV = "HPO_GATE_PRIORITY"
 PRIORITY_NORMAL = 0
 CRITICAL_PRIORITY = 1
+OUTSIDE_PRIORITY = 2  # hotfix and outside: the lease's top band
 MARKER_NAME = ".gate-priority"
 FETCH_TIMEOUT = 20
 
@@ -96,7 +101,9 @@ def _roster_ref(repo: str) -> str | None:
 
 def derived_priority(branch: str, *, repo: str = ".", ref: str | None = None,
                      fetch: bool = True) -> int:
-    """1 when ``branch``'s group is in the critical-path set at the roster ref.
+    """2 for a hotfix or outside group, 1 when ``branch``'s group is in the
+    critical-path set at the roster ref (a missing or malformed set only drops
+    the 1; a hotfix or outside group still answers 2).
 
     0 for every other answer, including every failure. ``ref`` overrides the
     live roster ref (the self-test's fixture); ``fetch=False`` reads the local
@@ -112,11 +119,14 @@ def derived_priority(branch: str, *, repo: str = ".", ref: str | None = None,
             roster_lib.show_roster(repo, roster_ref), branch)
         if group is None:
             return PRIORITY_NORMAL
+        roster = roster_lib.show_roster(repo, roster_ref)
         critical = roster_lib.critical_path_groups(repo, roster_ref)
         if critical is None:
-            return PRIORITY_NORMAL
-        listed = roster_lib.norm_group(str(group)) in critical
-        return CRITICAL_PRIORITY if listed else PRIORITY_NORMAL
+            critical = set()
+        rank = roster_lib.dispatch_rank(roster, group, critical)
+        if rank <= 1:
+            return OUTSIDE_PRIORITY
+        return CRITICAL_PRIORITY if rank == 2 else PRIORITY_NORMAL
     except Exception:  # noqa: BLE001 -- a pre-pr helper must never crash a run
         return PRIORITY_NORMAL
 
@@ -188,19 +198,22 @@ def _self_test() -> int:
         roster = {"groups": [
             {"group": "R10-CRIT", "resume": {"branch": "handoff/r10-crit"}},
             {"group": "R10-OTHER", "resume": {"branch": "handoff/r10-other"}},
+            {"group": "R10-OUT", "source": "outside", "resume": {"branch": "handoff/r10-out"}},
+            {"group": "R10-HOT", "kind": "bug", "resume": {"branch": "handoff/r10-hot"}},
+            {"group": "R10-OUTCRIT", "source": "outside", "resume": {"branch": "handoff/r10-outcrit"}},
         ]}
         (rosters / "wave-r10-groups.json").write_text(json.dumps(roster))
         no_set = commit("roster only")
 
         (repo / roster_lib.CRITICAL_PATH_NAME).write_text(json.dumps(
-            {"at": "2026-10-20T00:00:00Z", "critical": ["R10-CRIT"]}))
+            {"at": "2026-10-20T00:00:00Z", "critical": ["R10-CRIT", "R10-OUTCRIT"]}))
         good = commit("the critical-path set")
 
         (repo / roster_lib.CRITICAL_PATH_NAME).write_text('{"critical": "R10-CRIT"}')
         malformed = commit("a malformed set")
 
         (repo / roster_lib.CRITICAL_PATH_NAME).write_text(json.dumps(
-            {"at": "2026-10-20T00:00:00Z", "critical": ["R10-CRIT"]}))
+            {"at": "2026-10-20T00:00:00Z", "critical": ["R10-CRIT", "R10-OUTCRIT"]}))
         live = commit("republished")
 
         for name, sha in (("main", live), ("handoff/audit-r10-roster", live)):
@@ -213,6 +226,23 @@ def _self_test() -> int:
 
         check("a listed group gets priority with no env and no marker",
               derived("handoff/r10-crit") == 1, derived("handoff/r10-crit"))
+        check("an outside group and a hotfix group outrank the critical path (owner ruling 2026-11-07)",
+              derived("handoff/r10-out") == 2 and derived("handoff/r10-hot") == 2
+              and derived("handoff/r10-out") > derived("handoff/r10-crit")
+              and derived("handoff/r10-outcrit") == 2,
+              [derived(b) for b in ("handoff/r10-out", "handoff/r10-hot", "handoff/r10-outcrit")])
+        check("an outside group needs no critical-path set; a malformed set drops only the critical 1",
+              derived("handoff/r10-out", at=no_set) == 2 and derived("handoff/r10-hot", at=malformed) == 2
+              and derived("handoff/r10-crit", at=malformed) == 0)
+        # Null control: a roster with no outside group and no hotfix orders as at the base.
+        plain = {"groups": [g for g in roster["groups"] if g["group"] in ("R10-CRIT", "R10-OTHER")]}
+        (rosters / "wave-r10-groups.json").write_text(json.dumps(plain))
+        (repo / roster_lib.CRITICAL_PATH_NAME).write_text(json.dumps({"critical": ["R10-CRIT"]}))
+        plain_sha = commit("no outside group, no hotfix")
+        check("null control: with no outside group and no hotfix, the derived priority is the base's 1 / 0",
+              [derived(b, at=plain_sha) for b in ("handoff/r10-crit", "handoff/r10-other", "fix/none")] == [1, 0, 0],
+              [derived(b, at=plain_sha) for b in ("handoff/r10-crit", "handoff/r10-other", "fix/none")])
+        (rosters / "wave-r10-groups.json").write_text(json.dumps(roster))
         check("a group that resolves but is not listed stays normal (null control)",
               derived("handoff/r10-other") == 0, derived("handoff/r10-other"))
         check("a branch that maps to no group stays normal",

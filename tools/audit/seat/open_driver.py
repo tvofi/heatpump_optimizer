@@ -14,7 +14,8 @@ SKIPPED (`SKIP <topic> <sha8> <reason>`): `moved` (origin's handoff tip is not
 the board's sha), `no-body` (no handoff-body/<topic>), `landed` (`ledger.py
 landed`, the classifier cloud_relay.sh and bus.sh orphans use), `fix-branch`
 (fix/<topic> or fix/<topic>-pr exists), `seen` (opened at this sha), `live`
-(its run is still going), `backoff` (a failed open waiting its turn), `cap`.
+(its run is still going), `backoff` (a failed open waiting its turn), `stuck` (three
+runs failed), `cap`.
 
 TOPIC -> GROUP (P337 rule 3, P363), each candidate checked against the roster:
 the override in open-titles.json first; `triage-s<N>-batch<M>` -> R10-TRIAGE-S<N>
@@ -28,20 +29,31 @@ a stripped match, `<GROUP>: <topic words>` for an exact one.
 
 ORDER (P337 rule 2, P350): `open-priority.txt` lists topics, one per line (`#`
 comments), `open-cap.txt` the cap (default 2); both are re-read every pass. A
-critical-path topic (`roster_lib.critical_path`) is never behind a non-critical
-one, whatever the file says. Within the critical and the non-critical part a
-listed topic keeps its file order, and an OMITTED topic is slotted after the
-last listed topic of equal or higher default class (critical, R10-HOTFIX-*,
-record topics `triage-*`/`roster-*`, the rest), never after every listed topic.
+hotfix topic (R10-HOTFIX-*, or a group `roster_lib.is_hotfix` counts, which
+includes `kind` "bug"), then an outside one (`roster_lib.is_outside`:
+owner ruling tvofi 2026-11-07, triage P420), then a critical-path one
+(`roster_lib.critical_path`) is never behind a topic of a later class,
+whatever the file says. Within a class a listed topic keeps its file order, and
+an OMITTED topic is slotted after the last listed topic of equal or higher
+default class (hotfix, outside, critical, record topics `triage-*`/`roster-*`,
+the rest), never after every listed topic.
 A board topic unstarted for more than 2 h prints `STARVED <topic> <sha8> <h>h`
 (age = now minus the handoff commit's ct).
 
 RUNS (P337 rule 4, carry 4): a run is `bash open_pr.sh` in its own session; its
 PID and result file live in `$HPO_STATE_DIR/open-driver/`, and live runs are
 counted from those PIDs alone. A (topic, sha) is marked seen ONLY on rc=0; a
-failed one is retried with backoff (5 min doubling to 2 h) and prints
-`OWED <utc> open-refused <topic> <sha8> rc=<n> <reason>` every pass until it
-opens. Log lines: START / RESULT rc=<n> / SKIP / NEEDS-TITLE / STARVED.
+failed one is retried with backoff 30 min, then 60 min (doubling, capped at 2 h),
+for THREE runs in all. The standing-contracts design's 30 min replaced the old
+5-minute start: three fast retries of a content refusal only repeat it. While
+fewer than three runs have failed every pass prints
+`OWED <utc> open-refused <topic> <sha8> rc=<n> <reason>`; after the third the
+(topic, sha) is `stuck`, never relaunched, and every pass prints exactly one
+`STUCK <topic> <sha8> rc=<n> <reason>` line instead (beat_jobs.py's OPENER
+regex reads the `STUCK ` prefix). A new sha is a new key and starts fresh.
+Per-topic files are `t-<stem>.log`/`.rc`, so no topic name can equal
+`open-driver.log`; `stem` escapes `%` before `/` so two topics never share a stem.
+Log lines: START / RESULT rc=<n> / SKIP / NEEDS-TITLE / STARVED.
 """
 from __future__ import annotations
 
@@ -56,11 +68,12 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import roster_lib  # noqa: E402
+import topic_grammar  # noqa: E402
 
 REPO = "tvofi/heatpump_optimizer"
 BOARD_RE = re.compile(r"^OWED \S+ handoff-no-pr refs/heads/handoff/(\S+) ([0-9a-f]{40})(?: ct=(\d+|\?))?")
 STARVE_S = 2 * 3600
-BACKOFF_S, BACKOFF_MAX_S = 300, 7200
+BACKOFF_S, BACKOFF_MAX_S, MAX_TRIES = 1800, 7200, 3
 DEFAULT_CAP = 2
 
 
@@ -80,60 +93,53 @@ def parse_board(text: str) -> list:
     return out
 
 
-def names_group(body_head: str, group: str) -> bool:
-    """`group` appears as a whole name in the text: not inside a longer one."""
-    return re.search(r"(?<![A-Za-z0-9_-])%s(?![A-Za-z0-9_-])" % re.escape(group), body_head, re.I) is not None
+names_group, resolve = topic_grammar.names_group, topic_grammar.group_of  # the grammar's one owner
 
 
-def resolve(topic: str, groups, body_head: str, titles: dict | None = None) -> tuple:
-    """(group, title) or (None, why). `groups` are the roster's group ids."""
-    words = topic.replace("-", " ")
-    t = (titles or {}).get(topic)
-    if isinstance(t, dict) and t.get("group") and t.get("title"):
-        return t["group"], t["title"]
-    m = re.fullmatch(r"triage-s(\d+)-batch(\d+)", topic)
-    if m:
-        for g in (f"R10-TRIAGE-S{m.group(1)}", f"R10-TRIAGE-B{m.group(2)}"):
-            if g in groups:
-                return g, f"{g}: {words}"
-        return None, "NEEDS-TITLE"
-    up = topic.upper()
-    if up in groups:  # exact match always wins
-        return up, f"{up}: {words}"
-    for rx in (r"-p(\d+)", r"-(\d+)"):  # (ii) one trailing -p<N>, then (iii) one trailing -<N>
-        m = re.fullmatch(r"(.+)" + rx, topic)
-        if m and m.group(1).upper() in groups and names_group(body_head, m.group(1).upper()):
-            g = m.group(1).upper()
-            return g, f"{g} (part {m.group(2)}): {words}"
-    return None, "NEEDS-TITLE"
+SKIP_TOPIC_PREFIXES = ("triage-", "roster-")
 
 
-def default_class(topic: str, group: str | None, critical) -> int:
-    if group and roster_lib.norm_group(group) in critical:
-        return 0
+def default_class(topic: str, group: str | None, critical, outside=frozenset(),
+                  hotfix=frozenset()) -> int:
+    """0 hotfix, 1 outside, 2 critical, 3 record, 4 the rest. Owner ruling tvofi
+    2026-11-07 (triage P420): hotfix, then outside, then today's order. A hotfix
+    is a hotfix topic or group name, or a group in `hotfix` (`roster_lib.is_hotfix`,
+    which also counts `kind` "bug")."""
     if topic.startswith("r10-hotfix-") or (group or "").startswith("R10-HOTFIX-"):
+        return 0
+    if group and roster_lib.norm_group(group) in hotfix:
+        return 0
+    if group and roster_lib.norm_group(group) in outside:
         return 1
-    return 2 if topic.startswith(("triage-", "roster-")) else 3
+    if group and roster_lib.norm_group(group) in critical:
+        return 2
+    return 3 if topic.startswith(("triage-", "roster-")) else 4
 
 
-def order(items, priority: list, critical) -> list:
-    """items: [(topic, group, ct)]. Critical first; a listed topic keeps its file order;
-    an omitted one slots after the last listed topic of equal or higher class."""
-    cls = {t: default_class(t, g, critical) for t, g, _ in items}
+#: Classes at or below this are fenced ahead of every other topic, in class
+#: order, whatever the priority file says: hotfix, outside, critical.
+FENCED = 2
+
+
+def order(items, priority: list, critical, outside=frozenset(), hotfix=frozenset()) -> list:
+    """items: [(topic, group, ct)]. Hotfix, outside, critical first, in that order;
+    a listed topic keeps its file order within a class; an omitted one slots after
+    the last listed topic of equal or higher class."""
+    cls = {t: default_class(t, g, critical, outside, hotfix) for t, g, _ in items}
     idx = {t: i for i, t in enumerate(priority)}
 
     def pos(t):
         if t in idx:
             return float(idx[t])
-        above = [idx[u] for u in idx if u in cls and cls[u] <= cls[t] and (cls[u] == 0) == (cls[t] == 0)]
+        above = [idx[u] for u in idx if u in cls and cls[u] <= cls[t] and (cls[u] <= FENCED) == (cls[t] <= FENCED)]
         return max(above, default=-1) + 0.5
 
-    return sorted(items, key=lambda x: (cls[x[0]] != 0, pos(x[0]), cls[x[0]], x[2] or 0, x[0]))
+    return sorted(items, key=lambda x: (min(cls[x[0]], FENCED + 1), pos(x[0]), cls[x[0]], x[2] or 0, x[0]))
 
 
 def stem(topic: str) -> str:
     """The topic as one file name: a ref may hold a slash, a file name may not."""
-    return topic.replace("/", "%2F")
+    return topic.replace("%", "%25").replace("/", "%2F")
 
 
 def backoff(n: int) -> int:
@@ -170,11 +176,11 @@ class World:
 
     def launch(self, topic, sha, title, group) -> int:
         d = self.sd / "open-driver"
-        rc = d / f"{stem(topic)}.rc"
+        rc = d / f"t-{stem(topic)}.rc"
         rc.unlink(missing_ok=True)
         # Paths and the topic travel as arguments, never as shell text: a ref name may hold `$(...)`.
         cmd = 'o=$0; l=$1; r=$2; shift 2; bash "$o" "$@" > "$l" 2>&1; echo $? > "$r"'
-        argv = ["bash", "-c", cmd, str(self.opener), str(d / f"{stem(topic)}.log"), str(rc), topic, sha, title, group]
+        argv = ["bash", "-c", cmd, str(self.opener), str(d / f"t-{stem(topic)}.log"), str(rc), topic, sha, title, group]
         return subprocess.Popen(argv, cwd=self.repo, start_new_session=True, stdin=subprocess.DEVNULL,
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).pid
 
@@ -224,12 +230,12 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
             fh.write(f"{stamp} {msg}\n")
 
     for t, r in list(runs.items()):  # reap: a result file settles a run; a vanished PID without one is a kill
-        rcf = d / f"{stem(t)}.rc"
+        rcf = d / f"t-{stem(t)}.rc"
         rc = int(rcf.read_text().strip() or -1) if rcf.exists() else (None if world.alive(r["pid"]) else -1)
         if rc is None:
             continue
         key = f"{t} {r['sha']}"
-        log(f"RESULT {t} {r['sha'][:8]} rc={rc} {reason(d / (stem(t) + '.log'))}")
+        log(f"RESULT {t} {r['sha'][:8]} rc={rc} {reason(d / f"t-{stem(t)}.log")}")
         if rc == 0:
             seen.add(key)
             fails.pop(key, None)
@@ -237,19 +243,24 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
                 fh.write(key + "\n")
         else:
             n = fails.get(key, {}).get("n", 0) + 1
-            fails[key] = {"n": n, "next": now + backoff(n), "rc": rc, "why": reason(d / (stem(t) + ".log"))}
+            fails[key] = {"n": n, "next": now + backoff(n), "rc": rc, "why": reason(d / f"t-{stem(t)}.log")}
         del runs[t]
     (d / "fails.json").write_text(json.dumps(fails))
 
     for key, f in sorted(fails.items()):
         t, sha = key.split()
-        out(f"OWED {stamp} open-refused {t} {sha[:8]} rc={f['rc']} {f['why']}")
+        if f["n"] >= MAX_TRIES:
+            out(f"STUCK {t} {sha[:8]} rc={f['rc']} {f['why']}")
+        else:
+            out(f"OWED {stamp} open-refused {t} {sha[:8]} rc={f['rc']} {f['why']}")
 
     tips = world.tips()
     main = tips.get("refs/heads/main", "")
     ros = world.roster()
     groups = set(roster_lib.groups_of(ros))
     critical = {roster_lib.norm_group(g) for g in roster_lib.critical_path(ros)}
+    outside = {roster_lib.norm_group(str(g.get("group") or "")) for g in ros.get("groups", []) if roster_lib.is_outside(g)}
+    hotfix = {roster_lib.norm_group(str(g.get("group") or "")) for g in ros.get("groups", []) if roster_lib.is_hotfix(g)}
     titles = _load(sd / "open-titles.json", {})
     priority = _lines(sd / "open-priority.txt")
     try:
@@ -261,7 +272,9 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
         def skip(why):
             skipped[topic] = why
             log(f"SKIP {topic} {sha[:8]} {why}")
-        if tips.get(f"refs/heads/handoff/{topic}") != sha:
+        if topic.startswith(SKIP_TOPIC_PREFIXES):  # mut:optopicskip
+            skip("batched")  # triage and roster changes wait and merge together with stamps (tvofi 2026-11-04)
+        elif tips.get(f"refs/heads/handoff/{topic}") != sha:
             skip("moved")
         elif f"refs/heads/handoff-body/{topic}" not in tips:
             skip("no-body")
@@ -273,6 +286,8 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
             skip("fix-branch")
         elif topic in runs:
             skip("live")
+        elif fails.get(f"{topic} {sha}", {}).get("n", 0) >= MAX_TRIES:
+            skip("stuck")
         elif fails.get(f"{topic} {sha}", {}).get("next", 0) > now:
             skip("backoff")
         else:
@@ -285,7 +300,7 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
     started = []
     live = len(runs)
     by_topic = {c[0]: c for c in cands}
-    for topic, g, ct in order([(c[0], c[1], c[2]) for c in cands], priority, critical):
+    for topic, g, ct in order([(c[0], c[1], c[2]) for c in cands], priority, critical, outside, hotfix):
         _, _, _, sha, title = by_topic[topic]
         if live >= cap:
             skipped[topic] = "cap"

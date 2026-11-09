@@ -237,6 +237,7 @@ if (!Card) { console.error("FAIL: card not registered"); process.exit(1); }
 // Module-level functions the tests call directly, reached the way the setup
 // constants already are: by name, in the card's own realm (#136, PR 9).
 const fn = (name) => vm.runInContext(name, ctx);
+
 const reasonHtml = fn("reasonHtml");
 const sharedTooltipHtml = fn("sharedTooltipHtml");
 const extraFields = fn("extraFields");
@@ -361,6 +362,67 @@ function check(name, cond, detail) {
     if (detail) console.log("        " + detail);
     fails++;
   }
+}
+
+// R10-I18N-DE: every dictionary in STRINGS is key-for-key with `en`, names
+// every one of en's {placeholders}, and adds none but a listed one. L() falls back to English per key, so a key a
+// translation lacks renders English mid-sentence and no render check sees it;
+// an extra key is a translation nobody can reach; a dropped placeholder loses
+// a number. The languages are STRINGS' own keys, never a list kept here.
+{
+  const names = (s) => new Set([...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]));
+  // A translation may word a sentence around a placeholder English leaves
+  // out, but only one the call site fills: each such extra is listed here by
+  // language, key and placeholder, so an entry cannot excuse any other.
+  // (Design choice: dropping one of en's placeholders is always refused.)
+  const EXTRA_OK = new Set([
+    // L(detailKey, { verdict, ... }) passes verdict to both detail keys; sv
+    // words the unchanged case "oförändrad jämfört med ...".
+    "sv:stats.delta_detail_same:verdict",
+  ]);
+  const parity = (tables) => {
+    const out = [];
+    for (const [lang, t] of Object.entries(tables)) {
+      if (lang === "en") continue;
+      for (const k of Object.keys(tables.en)) {
+        if (!(k in t)) out.push(`${lang}: missing ${k}`);
+        else {
+          const want = names(tables.en[k]), have = names(t[k]);
+          for (const n of want) if (!have.has(n)) out.push(`${lang}: ${k} drops {${n}}`);
+          for (const n of have) if (!want.has(n) && !EXTRA_OK.has(`${lang}:${k}:${n}`)) out.push(`${lang}: ${k} adds {${n}}`);
+        }
+      }
+      for (const k of Object.keys(t)) if (!(k in tables.en)) out.push(`${lang}: extra ${k}`);
+    }
+    return out;
+  };
+  const tables = JSON.parse(JSON.stringify(fn("STRINGS")));
+  const langs = Object.keys(tables).filter((l) => l !== "en");
+  const bad = parity(tables);
+  check("every card language is key-for-key with en and keeps en's placeholders",
+    langs.length >= 2 && bad.length === 0, `${langs.join(",")}: ${bad.slice(0, 6).join("; ")}`);
+  // Null controls: a planted missing key, dropped placeholder and extra key in
+  // each translated table fail the same function, and the unplanted copy passes.
+  const fails = (mut) => { const c = JSON.parse(JSON.stringify(tables)); mut(c); return parity(c).length > 0; };
+  const k0 = Object.keys(tables.en).find((k) => /\{\w+\}/.test(tables.en[k]));
+  check("and a planted missing key, dropped or unlisted extra placeholder, or extra key in any language fails it (null controls)",
+    !fails(() => {}) && langs.every((lang) =>
+      fails((c) => { delete c[lang][k0]; })
+      && fails((c) => { c[lang][k0] = c[lang][k0].replace(/\{\w+\}/, ""); })
+      && fails((c) => { c[lang]["zz.planted"] = "x"; })
+      && fails((c) => { c[lang][k0] += " {zz_planted}"; })),
+    `planted on ${k0} in ${langs.join(",")}`);
+  // hass.language carries a region ("de-DE"); setLanguage must reach every
+  // dictionary through the prefix, and an unknown one must fall back to en.
+  const active = (raw) => { vm.runInContext(`setLanguage(${JSON.stringify(raw)})`, ctx); return vm.runInContext("ACTIVE_LANG", ctx); };
+  const reached = Object.keys(tables).filter((lang) => active(`${lang}-XX`) === lang);
+  const deTab = active("de-DE") === "de" ? vm.runInContext('L("header.tab_setup")', ctx) : null;
+  const fallback = active("xx-YY");
+  active("en");
+  check("a region-tagged hass.language reaches every card dictionary, de-DE included, and an unknown one falls back to en",
+    reached.length === Object.keys(tables).length && deTab === tables.de["header.tab_setup"]
+    && deTab !== tables.en["header.tab_setup"] && fallback === "en",
+    `reached ${reached.join(",")}; de-DE tab ${deTab}; xx-YY -> ${fallback}`);
 }
 
 // --- The navigation surface, declared once (R10-DEEPLINK) ------------------
@@ -2848,6 +2910,34 @@ check("the hand-scheduled reason has a label",
     rcpWoodNote(rcpWood("sv-SE")) === "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte." &&
     !/receipt-wood-note/.test(rcpPage),
     `${rcpWoodNote(rcpWood("en"))} | ${rcpWoodNote(rcpWood("sv-SE"))}`);
+  // R10-SAV-METER-FLOOR: a month whose booked reference fell under the meter
+  // floor states no saving; the receipt and the table say why, in en and sv.
+  // The null control is the page above: no row under the floor, no note.
+  const rcpFloor = (lang) => {
+    const st = JSON.parse(JSON.stringify(rcpStates));
+    Object.assign(st["sensor.heat_pump_optimizer_monthly_savings"].attributes.savings_months[0],
+      { savings_sek: null, savings_pct: null, below_meter_floor: true });
+    const c = build(st);
+    c.hass = { states: st, language: lang };
+    c._onCardClick({});
+    c.dialog.page = "savings";
+    c._render();
+    return collect(c.shadowRoot).join("\n");
+  };
+  const rcpFloorNotes = (page) => [
+    (page.match(/receipt-floor-note">([^<]*)/) || [])[1] || "",
+    (page.match(/savings-floor-note"[^>]*>([^<]*)/) || [])[1] || "",
+    (page.match(/savings-floor">([^<]*)/) || [])[1] || "",
+  ];
+  const rcpFloorEn = rcpFloorNotes(rcpFloor("en"));
+  const rcpFloorSv = rcpFloorNotes(rcpFloor("sv-SE"));
+  const floorEn = "No saving is stated for a month whose baseline used under half the energy the meter recorded: a baseline that low is a fault, not a saving.";
+  const floorSv = "Inget sparande anges för en månad vars referens använde under hälften av den energi mätaren registrerade: en så låg referens är ett fel, inte ett sparande.";
+  check("a month under the meter floor states no saving and says why on the receipt and the table (en, sv); none above it",
+    rcpFloorEn[0] === floorEn && rcpFloorEn[1] === floorEn && rcpFloorEn[2] === "no saving stated" &&
+    rcpFloorSv[0] === floorSv && rcpFloorSv[1] === floorSv && rcpFloorSv[2] === "inget sparande anges" &&
+    !/floor-note|savings-floor/.test(rcpPage) && !/Saved 148\.00/.test(rcpFloor("en")),
+    JSON.stringify([rcpFloorEn, rcpFloorSv]));
   check("UX-6: the money goes by reason, largest first",
     /Where the money went/.test(rcpPage) &&
     rcpPage.indexOf("Cheapest hours") < rcpPage.indexOf("Keeping the house at target"));
@@ -4768,7 +4858,7 @@ const restartStates = (patch = {}) => {
       check("the Undo label goes through the translation layer, both ways",
         /"setup\.undo_layout": "Undo"/.test(cardSrc) &&
         /"setup\.undo_layout": "Ångra"/.test(cardSrc) &&
-        (cardSrc.match(/"setup\.undo_layout_aria":/g) || []).length === 2,
+        (cardSrc.match(/"setup\.undo_layout_aria":/g) || []).length === Object.keys(fn("STRINGS")).length,
         "a hard-coded English string is a string the Swedish card keeps");
 
       // One drag and one new pipe: both halves of the working set moved.
@@ -5039,7 +5129,7 @@ const restartStates = (patch = {}) => {
     check("the Tidy up label goes through the translation layer, both ways",
       /"setup\.tidy_layout": "Tidy up"/.test(cardSrc) &&
       /"setup\.tidy_layout": "Städa upp"/.test(cardSrc) &&
-      (cardSrc.match(/"setup\.tidy_layout_aria":/g) || []).length === 2);
+      (cardSrc.match(/"setup\.tidy_layout_aria":/g) || []).length === Object.keys(fn("STRINGS")).length);
   }
 }
 
@@ -5284,16 +5374,18 @@ const restartStates = (patch = {}) => {
       })()
     ));
 
-  // A language without a dictionary falls back to English wholesale.
-  const de = new Card();
-  de.setConfig({ type: "custom:heatpump-optimizer-card" });
-  de.hass = { states: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
-    language: "de-DE" };
-  const deDump = collect(de.shadowRoot).join("\n");
+  // A language without a dictionary falls back to English wholesale. (This
+  // used German as the unknown language until R10-I18N-DE gave it one.)
+  const unk = new Card();
+  unk.setConfig({ type: "custom:heatpump-optimizer-card" });
+  unk.hass = { states: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    language: "xx-YY" };
+  const unkDump = collect(unk.shadowRoot).join("\n");
   check("an unknown language falls back to English",
-    deDump.includes("Electricity price") &&
-    deDump.includes("Heat pump plan") &&
-    !/Elpris/.test(deDump));
+    !fn("STRINGS").xx &&
+    unkDump.includes("Electricity price") &&
+    unkDump.includes("Heat pump plan") &&
+    !/Elpris|Strompreis/.test(unkDump));
 
   // Currency: published by the plan sensor as `currency`, shown on the price
   // axis and in the legend chip; absent, the SEK fallback holds.
@@ -12219,7 +12311,7 @@ check("without an indoor reading the corner now label is absent",
   // the English table. So each code's own key is read from both tables directly.
   const strings = fn("STRINGS");
   const keyOf = (code) => (code === "stale" ? "health.stale" : `health.p_${code}`);
-  for (const lang of ["en", "sv"]) {
+  for (const lang of Object.keys(strings)) {
     const missing = codes.filter((k) => !(typeof strings[lang][keyOf(k)] === "string" && strings[lang][keyOf(k)].trim()));
     check(`every published problem code has its own words in the card's ${lang} table`,
       missing.length === 0, missing.join(","));
@@ -12265,11 +12357,13 @@ check("without an indoor reading the corner now label is absent",
     // owning page's (never the quick_setup / modbus_prefill shortcuts), and
     // the card's label is it less the language's optional marker.
     const SHORTCUT = new Set(["quick_setup", "modbus_prefill"]);
-    const STRIP = { en: [" (optional)"], sv: [" (valfri)", " (valfritt)"] };
-    const FILES = { en: "custom_components/heatpump_optimizer/strings.json",
-      sv: "custom_components/heatpump_optimizer/translations/sv.json" };
+    const STRIP = { en: [" (optional)"], sv: [" (valfri)", " (valfritt)"], de: [" (optional)"] };
+    const FILES = { en: "custom_components/heatpump_optimizer/strings.json" };
     const tbl = fn("STRINGS");
-    for (const lang of ["en", "sv"]) {
+    for (const lang of Object.keys(tbl)) if (lang !== "en") FILES[lang] = `custom_components/heatpump_optimizer/translations/${lang}.json`;
+    check("UX-HEALTH A: every card language names its optional-field marker",
+      Object.keys(tbl).every((lang) => STRIP[lang]), `${Object.keys(tbl).join(",")} against ${Object.keys(STRIP).join(",")}`);
+    for (const lang of Object.keys(tbl).filter((l) => STRIP[l])) {
       const json = JSON.parse(fs.readFileSync(FILES[lang], "utf8"));
       const fields = {};
       const walk = (n, path) => {
@@ -12337,7 +12431,10 @@ check("without an indoor reading the corner now label is absent",
         },
       });
       const esc = fn("esc");
-      for (const [lang, noData] of [["en", /with no samples|dash means/], ["sv", /utan mätningar|streck betyder/]]) {
+      const NO_DATA = { en: /with no samples|dash means/, sv: /utan mätningar|streck betyder/, de: /ohne Messwerte|Strich bedeutet/ };
+      check("hover spec: every card language names its no-data wording",
+        Object.keys(fn("STRINGS")).every((lang) => NO_DATA[lang]), Object.keys(NO_DATA).join(","));
+      for (const [lang, noData] of Object.entries(NO_DATA)) {
         const m = modelOf(bare, lang);
         const strings = fn("STRINGS")[lang];
         const ids = [...m.matchAll(/data-model-row="([^"]+)"/g)].map((x) => x[1]);
@@ -12434,7 +12531,7 @@ check("without an indoor reading the corner now label is absent",
     // languages; the count is asserted non-zero so a grep miss cannot pass.
     const pySrc = ["accuracy.py", "heat_energy.py"].map((f) => fs.readFileSync(`custom_components/heatpump_optimizer/${f}`, "utf8")).join("\n");
     const copCodes = [...pySrc.matchAll(/^(?:COP_(?:HEAT|DRAW|NOT|NO_ELECTRIC)[A-Z_]*|COP_REFUSED_[A-Z_]+|SPAN_REFUSED_[A-Z_]+) = "(\w+)"/gm)].map((m) => m[1]);
-    for (const lang of ["en", "sv"]) {
+    for (const lang of Object.keys(fn("STRINGS"))) {
       const missing = copCodes.filter((c) => !fn("STRINGS")[lang][`health.cop_reason_${c}`]);
       check(`UX-HEALTH E: every published COP code has its own ${lang} words`,
         copCodes.length > 0 && missing.length === 0, `${copCodes.length} codes; missing ${missing.join(",")}`);
@@ -13299,6 +13396,81 @@ check("without an indoor reading the corner now label is absent",
     `${JSON.stringify(asked)} -> ${viaEntry} | ${viaEntity}`);
   check("openHaLink falls back to the whole integration when the registry refuses",
     fallback.length === 1 && fallback[0] === haLink("options", null), String(fallback));
+}
+
+// --- R10-WHY-NOW-WIDGET: the "Why now" block ---------------------------------
+// Rendered from the space-plan sensor's `why_now` attribute alone, after the
+// headline narrative: one row per driver with its mark and signed share, one
+// line when every driver is neutral, the no-data line when it is absent. The
+// block and every row carry the metric in plain words as their hover.
+{
+  const stats = {
+    "sensor.heat_pump_optimizer_optimization_score": {
+      state: "82", attributes: { envelope: 90, machine: 75 } },
+    "sensor.heat_pump_optimizer_plan_narrative": {
+      state: "cheap_price", attributes: { lines: ["Most heating is placed in the cheapest hours."], language: "en" } },
+  };
+  const withWhy = (why, lang) => {
+    const st = { ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), ...stats };
+    if (why !== undefined) st[DEFAULT_SPACE] = { ...st[DEFAULT_SPACE], attributes: { ...st[DEFAULT_SPACE].attributes, why_now: why } };
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: st, ...(lang ? { language: lang } : {}) };
+    if (c.connectedCallback) c.connectedCallback();
+    c.hass = { states: st, ...(lang ? { language: lang } : {}) };
+    const dump = collect(c.shadowRoot).join("\n");
+    return (dump.match(/<div class="score-breakdown why-now"[\s\S]*?<\/div><\/div>\s*<\/div>/) || dump.match(/<div class="score-breakdown why-now"[\s\S]{0,4000}/) || [""])[0];
+  };
+  const why = { t: "2026-01-15T12:00:00+00:00", drivers: [
+    { code: "price_rank", direction: "run", weight: 57.1 },
+    { code: "away", direction: "idle", weight: -42.9 },
+    { code: "mold_guard", direction: "neutral", weight: 0.0 },
+    { code: "not_a_code", direction: "run", weight: 99 },
+  ] };
+  const fed = withWhy(why);
+  const EN = fn("STRINGS.en");
+  check("why-now: a row per known driver, with its mark and signed share, in the published order",
+    /data-part="price_rank"[\s\S]*sb-val">↑ \+57%<[\s\S]*data-part="away"[\s\S]*sb-val">↓ −43%<[\s\S]*data-part="mold_guard"[\s\S]*sb-na">· 0%</.test(fed)
+    && !/not_a_code/.test(fed), fed);
+  check("why-now: the block and each row carry the plain-words metric as their hover",
+    fed.includes(`title="${fn("esc")(EN["whynow.metric"])}"`)
+    && fed.includes(fn("esc")(`Price rank: pushes toward running, ↑ +57%\n${EN["whynow.explain_price_rank"]}\n${EN["whynow.metric"]}`)), fed.slice(0, 600));
+  check("why-now: each row names its direction in words: toward running, toward idle, no effect now",
+    /data-part="price_rank"[\s\S]*?sb-text">pushes toward running</.test(fed)
+    && /data-part="away"[\s\S]*?sb-text">pushes toward idle</.test(fed)
+    && /data-part="mold_guard"[\s\S]*?sb-text">no effect now</.test(fed), fed);
+  const absent = withWhy(undefined);
+  check("why-now: no why_now attribute renders the no-data line and no rows",
+    absent.includes(`<div class="sb-text">${EN["whynow.no_data"]}</div>`) && !/sb-row/.test(absent), absent);
+  const neutral = withWhy({ t: why.t, drivers: [
+    { code: "price_rank", direction: "neutral", weight: 0 }, { code: "forecast", direction: "neutral", weight: 0 }] });
+  check("why-now: every driver neutral renders the one all-neutral line",
+    neutral.includes(`<div class="sb-text">${EN["whynow.all_neutral"]}</div>`) && !/sb-row/.test(neutral), neutral);
+  const sv = withWhy(why, "sv-SE");
+  const SV = fn("STRINGS.sv");
+  check("why-now: Swedish words, hover and percent spacing",
+    sv.includes(SV["whynow.title"]) && sv.includes("↑ +57 %") && sv.includes(fn("esc")(SV["whynow.metric"]))
+    && sv.includes("Prisrang") && sv.includes("Bortaläge") && sv.includes("driver mot drift") && sv.includes("driver mot vila"), sv.slice(0, 600));
+  const de = withWhy(why, "de-DE");
+  const DE = fn("STRINGS.de");
+  check("why-now: German words, hover and percent spacing",
+    de.includes(DE["whynow.title"]) && de.includes("↑ +57 %") && de.includes(fn("esc")(DE["whynow.metric"]))
+    && de.includes("Preisrang") && de.includes("Abwesenheit") && de.includes("drängt zum Laufen") && de.includes("drängt zum Pausieren"), de.slice(0, 600));
+  build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)); // leave the module back in English
+  const whyKeys = (lang) => Object.keys(fn(`STRINGS.${lang}`)).filter((k) => k.startsWith("whynow.")).sort();
+  const whyLangs = Object.keys(fn("STRINGS"));
+  check("why-now: every en string has its twin in every card language, and every driver code has a label and an explanation",
+    whyLangs.every((lang) => JSON.stringify(whyKeys("en")) === JSON.stringify(whyKeys(lang)))
+    && ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].every((c) => EN[`whynow.driver_${c}`] && EN[`whynow.explain_${c}`])
+    // The roster brief's wording, verbatim (R10-WHY-NOW-WIDGET carry 1).
+    && ["Price rank", "Comfort floor", "Mold guard", "Away", "Forecast"].join() === ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].map((c) => EN[`whynow.driver_${c}`]).join()
+    && ["Prisrang", "Komfortgolv", "Mögelskydd", "Bortaläge", "Prognos"].join() === ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].map((c) => fn("STRINGS.sv")[`whynow.driver_${c}`]).join()
+    && EN["whynow.metric"].startsWith("The reasons weighing on this hour's plan.") && fn("STRINGS.sv")["whynow.metric"].startsWith("Skälen som väger på den här timmens plan.")
+    // The rows are pushes on the plan, not the decision: the text may not
+    // claim a share decides the hour (fix review of #3274, finding 1).
+    && !/decides the hour/.test(EN["whynow.metric"]) && EN["whynow.metric"].includes("can still do the opposite")
+    && fn("STRINGS.sv")["whynow.metric"].includes("ändå göra tvärtom"),
+    whyLangs.map((lang) => `${lang}: ${whyKeys(lang)}`).join(" | "));
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");

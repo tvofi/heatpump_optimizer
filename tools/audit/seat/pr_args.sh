@@ -59,6 +59,7 @@ pr_code_in_handoff() { # <sha> <topic>: after the fetch of handoff/<topic>; PR_H
   [ "$1" != "$PR_BT" ] || pr_refuse "code sha $1 is not an ancestor of origin/handoff/$2 ($PR_HT); it is the tip of handoff-body/$2: that is the BODY sha; pass the CODE sha"  # mut:body
   pr_refuse "code sha $1 is not an ancestor of origin/handoff/$2 ($PR_HT), and it is not the tip of handoff-body/$2 (${PR_BT:-absent})"  # mut:ancestor
 }
+pr_busy() { printf '%s: BUSY: %s; nothing was changed, run again when it ends\n' "${PR_NAME:-pr}" "$*" >&2; exit 75; }  # a stop that is a live run's, not a permanent refusal (carry 8)
 pr_lock_busy() { # <lock-file> <branch> <worktree>: the holder did not take the lock: BUSY (75) when another holder has it
   local rc=0 o
   kill -0 "$LKP" 2>/dev/null && pr_refuse "the lock holder for $1 did not report within 20 s"
@@ -156,6 +157,16 @@ pr_release_wt() { # <worktree> <branch> <pushed sha|''>: detach, remove or keep 
   git branch -q -D "$br" 2>/dev/null || :
   printf '%s: removed %s and its local branch %s, which origin never had\n' "${PR_NAME:-pr}" "$wt" "$br" >&2
 }
+pr_collect_wt() { # <worktree> <pushed sha>: remove the run's worktree once pr_release_wt left it detached, clean, at the sha origin holds
+  local wt=$1 sha=$2 c
+  [ -n "$sha" ] && [ -d "$wt" ] || return 0
+  [ -z "$(git -C "$wt" symbolic-ref -q HEAD 2>/dev/null)" ] || return 0  # still on its branch: pr_release_wt kept it and named why
+  [ "$(git -C "$wt" rev-parse HEAD 2>/dev/null)" = "$sha" ] || return 0
+  [ -z "$(git -C "$wt" status --porcelain 2>/dev/null)" ] || { pr_kept "$wt" detached "it is dirty"; return 0; }
+  c=$(git -C "$wt" rev-parse --path-format=absolute --git-common-dir) && cd "$c"
+  git worktree remove "$wt" 2>/dev/null || { pr_kept "$wt" detached "git worktree remove refused it"; return 0; }  # mut:colremove
+  printf '%s: collected %s (the PR exists with its row; update_pr.sh keeps the per-PR checkout from here)\n' "${PR_NAME:-pr}" "$wt" >&2
+}
 pr_kept() { printf '%s: KEPT %s on %s: %s\n' "${PR_NAME:-pr}" "$1" "$2" "$3" >&2; }
 
 # ---- the tools' freshness (P-P) ----------------------------------------------
@@ -166,9 +177,10 @@ pr_kept() { printf '%s: KEPT %s on %s: %s\n' "${PR_NAME:-pr}" "$1" "$2" "$3" >&2
 # HPO_ALLOW_STALE_TOOLS=1 names the staleness and goes on.
 # Top-relative (`:/`): git runs in the tools' own directory, where a bare path would be read below it.
 PR_FRESH_PATHS=(:/tools/audit/seat :/tools/pr)  # mut:freshpaths
+# This file's own directory, absolute, fixed once at source time. A caller that sourced it by a relative path and then changed directory (update_pr.sh and open_pr.sh `cd "$M"`) would otherwise resolve the relative BASH_SOURCE against the new directory and measure the main checkout, not the one holding these tools: a false STALE CHECKOUT (P362, P401). Every reader uses this, never BASH_SOURCE at call time.
+PR_ARGS_DIR=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)  # mut:argsdir
 pr_tools_fresh() { # after `git fetch origin main`: refuse when this file's checkout is behind it in PR_FRESH_PATHS
-  local d n h o why
-  d=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+  local d=${PR_ARGS_DIR:-} n h o why
   h=$(git -C "$d" rev-parse --short=12 HEAD 2>/dev/null) && o=$(git -C "$d" rev-parse --short=12 origin/main 2>/dev/null) \
     && n=$(git -C "$d" rev-list --count HEAD..origin/main -- ${PR_FRESH_PATHS[@]+"${PR_FRESH_PATHS[@]}"} 2>/dev/null) \
     || pr_refuse "could not count what origin/main adds over the checkout holding $d"
@@ -372,7 +384,7 @@ tools/pr/prepr.sh mention: comments; it honours the receipt app_push.sh --reuse 
 tools/pr/app_mint.sh mention: comments; sourced by app_push.sh, it launches nothing
 tools/policy/policy_lint.mjs mention: a refusal message'
 pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any OPEN
-  local root=${1:-$(cd "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)} rev=${2:-} f kind txt bad=0
+  local root=${1:-$(cd "$PR_ARGS_DIR/../../.." && pwd)} rev=${2:-} f kind txt bad=0
   local found
   if [ -n "$rev" ]; then
     found=$(git -C "$root" grep -lE "$PR_PUSHER_RULE" "$rev" -- 'tools/*.sh' 'tools/*.py' 'tools/*.mjs' 'tools/*.js' | sed "s|^$rev:||")
@@ -421,7 +433,7 @@ pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any 
 # fails closed without it, so its reap arms never reached a push (#2668's CI).
 pr_args_self_test() (
   local src t f=0 n=0 o m base code side body i reapsha UNREL
-  src=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+  src=$PR_ARGS_DIR
   t=$(mktemp -d) || { echo "pr_args self-test: no temporary directory"; return 1; }
   # The pusher stubs the reap arms drive read this directory ($T is open_pr's topic).
   REAP_DIR=$t; export REAP_DIR
@@ -476,7 +488,7 @@ STUB
   # line), a fresh state root, the output in $t/out and the status in $t/rc.
   copyin() { # <mutant|->: copies of the scripts, less the named mutant's line
     local g
-    for g in open_pr.sh update_pr.sh handoff_push.sh remerge_main.sh delivery_row.sh pr_args.sh pr_cap.py ref_privacy.py; do
+    for g in open_pr.sh update_pr.sh handoff_push.sh remerge_main.sh delivery_row.sh pr_args.sh pr_cap.py ref_privacy.py gh_read.py; do
       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
       else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
     done
@@ -621,6 +633,36 @@ STUB
   cp "$t/body.md" "$t/b.md"; fresh - tools/pr/zz update_pr.sh fix/x - "$t/b.md"
   [ "$(cat "$t/rc")" != 0 ] && grep -qF "update_pr: REFUSE: STALE CHECKOUT" "$t/out" && ! grep -qF "the push failed" "$t/out"
   ck "update_pr: tools behind origin/main under tools/pr refuse too" $?
+  # P362/P401: the directory is fixed at source time. (A) a fresh clone sourced by a relative path, then a cd into a stale sibling checkout, passes; (B, null control) the same clone made stale still refuses; (C) update_pr.sh run by a relative path from a fresh worktree whose common checkout is behind origin/main passes the check, where call-time resolution measured that common checkout.
+  mkdir -p "$o/tools/audit/seat" && printf 's\n' > "$o/tools/audit/seat/zzr" && git -C "$o" add tools/audit/seat/zzr && git -C "$o" commit -q -m "main: zzr"
+  throwaway_git_clone -q "$o" "$t/fr" && throwaway_git_clone -q "$o" "$t/st" && git -C "$t/st" reset -q --hard "$base"
+  git -C "$o" reset -q --hard "$base"
+  relsrc() { # <mutant|-> <fresh clone> <sibling>: source by a relative path, cd to the sibling, ask
+    mkdir -p "$2/tools/audit/seat"
+    if [ "$1" = - ]; then cp "$src/pr_args.sh" "$2/tools/audit/seat/pr_args.sh"
+    else grep -v "# mut:$1\$" "$src/pr_args.sh" > "$2/tools/audit/seat/pr_args.sh"; fi
+    ( unset PR_ARGS_DIR; cd "$2" && . ./tools/audit/seat/pr_args.sh && cd "$3" && PR_NAME=fresh pr_tools_fresh ) > "$t/out" 2>&1
+  }
+  relsrc - "$t/fr" "$t/st"; ck "pr_args: sourced by a relative path from a fresh clone, then cd'd into a stale sibling, passes" $?
+  ! relsrc argsdir "$t/fr" "$t/st"
+  ck "  mutant mut:argsdir (its line deleted): call-time resolution reads the sibling and refuses" $?
+  git -C "$t/fr" reset -q --hard "$base"
+  ! relsrc - "$t/fr" "$t/st" && grep -qF "STALE CHECKOUT" "$t/out"
+  ck "null control: the same clone made stale refuses STALE CHECKOUT" $?
+  mkdir -p "$o/tools/audit/seat" && printf 's\n' > "$o/tools/audit/seat/zzw" && git -C "$o" add tools/audit/seat/zzw && git -C "$o" commit -q -m "main: zzw"
+  git -C "$m" fetch -q origin main; rm -rf "$t/wtf"; git -C "$m" worktree prune
+  git -C "$m" worktree add -q --detach "$t/wtf" origin/main
+  relupd() { # <mutant|->: update_pr.sh by a relative path from the fresh worktree; the common checkout $m is behind
+    copyin "$1"; mkdir -p "$t/wtf/tools/audit/seat" "$t/wtf/tools/pr"
+    cp "$m"/tools/audit/seat/*.sh "$m"/tools/audit/seat/*.py "$t/wtf/tools/audit/seat/"; cp "$m/tools/pr/head_note.py" "$t/wtf/tools/pr/"
+    i=$((i + 1)); ( cd "$t/wtf" && HPO_STATE_DIR=$t/s$i BR=fix/x-$i BR_FIXED=1 bash tools/audit/seat/update_pr.sh fix/x - "$t/b.md" ) > "$t/out" 2>&1
+  }
+  cp "$t/body.md" "$t/b.md"
+  relupd -; ! grep -qF "STALE CHECKOUT" "$t/out"
+  ck "update_pr: run by a relative path from a fresh worktree, the common checkout behind origin/main, passes the freshness check" $?
+  relupd argsdir; grep -qF "STALE CHECKOUT" "$t/out"
+  ck "  mutant mut:argsdir (its line deleted): the common checkout is measured and refuses" $?
+  git -C "$m" worktree remove --force "$t/wtf"; git -C "$o" reset -q --hard "$base"; git -C "$m" fetch -q origin main
   # ---- a stopped pusher reaps its whole descendant tree (R10-PUSHER-REAP) ----
   # The stub app_push above leaves a two-level sleep tree recorded by pid, so
   # each arm counts what is still alive after the signal. The bystander sleeper
@@ -886,9 +928,15 @@ STUB
     local sd=$t/sd-$1 hk=$m/.git/hooks/post-checkout
     rm -rf "$t/s$i"; git -C "$m" worktree prune  # the last run's worktree holds fix/x
     copyin "$1"
+    # mut:unlock leaves the holder to its own 0.2 s parent poll, so reading it alive at the run's return raced that
+    # poll under CPU load (1 FAIL in 9 with five self-tests at once): that copy polls every 30 s, so it is alive at the
+    # read whatever the load, and is ended and awaited below (a bound, not one kill -0 inside the poll).
+    [ "$1" != unlock ] || sed -i 's/time.sleep(0.2)  # mut:watch/time.sleep(30)  # mut:watch/' "$m/tools/audit/seat/pr_args.sh"
     printf '#!/bin/sh\nsleep 30 </dev/null >/dev/null 2>&1 &\necho $! >> "%s/sleepers"\n' "$t" > "$hk"; chmod +x "$hk"
     cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out1" 2>&1
-    if kill -0 "$(cut -d' ' -f2 "$sd/pr/upd-fix-x.lock")" 2>/dev/null; then echo 1 > "$t/hold1"; else echo 0 > "$t/hold1"; fi
+    hp=$(cut -d' ' -f2 "$sd/pr/upd-fix-x.lock")
+    if kill -0 "$hp" 2>/dev/null; then echo 1 > "$t/hold1"; kill -USR1 "$hp" 2>/dev/null; else echo 0 > "$t/hold1"; fi
+    for _ in $(seq 100); do kill -0 "$hp" 2>/dev/null || break; sleep 0.1; done  # the holder's exit, bounded (10 s)
     rm -f "$hk"; git -C "$m" worktree remove --force "$sd/pr/upd-fix-x" 2>/dev/null
     cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out" 2>&1
     echo $? > "$t/rc"
@@ -904,6 +952,36 @@ STUB
   ck "update_pr: the lock holder has exited by the time a run returns" $?
   detrun unlock; [ "$(cat "$t/hold1")" = 1 ]
   ck "  mutant mut:unlock (its line deleted): the holder is still alive when the run returns" $?
+  # Carry 8: a branch checked out in a worktree that is not the run's own (outside the PR scratch root, so
+  # never detached for it) is BUSY (75), not a permanent refusal. Null control: with none, the run reaches its push.
+  elserun() { # <mutant> <worktree: 1|0>
+    local sd=$t/else-$1-$2
+    rm -rf "$t/s$i"; git -C "$m" worktree prune; copyin "$1"
+    [ "$2" = 0 ] || git -C "$m" worktree add -q -B fix/x "$t/else-wt" "$base" || return 1
+    cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out" 2>&1; echo $? > "$t/rc"
+    reap; git -C "$m" worktree remove --force "$t/else-wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-x" 2>/dev/null; git -C "$m" worktree prune; rm -rf "$sd"
+  }
+  elserun - 1; [ "$(cat "$t/rc")" = 75 ] && grep -qF "update_pr: BUSY: branch fix/x checked out elsewhere" "$t/out"
+  ck "update_pr: a branch checked out in a worktree that is not the run's own is BUSY (75), nothing changed" $?
+  elserun elsewhere 1; [ "$(cat "$t/rc")" != 75 ] && ! grep -qF "update_pr: BUSY: branch" "$t/out"
+  ck "  mutant mut:elsewhere (its line deleted): the run goes on past a branch held elsewhere" $?
+  elserun - 0; [ "$(cat "$t/rc")" != 75 ] && ! grep -qF "update_pr: BUSY" "$t/out" && grep -qF "update_pr: REFUSE: the push failed" "$t/out"
+  ck "null control: with the branch checked out nowhere else, the run reaches its push" $?
+  # Carry 6: one checkout per pull request. A second update finds the first's worktree, resets it onto the branch
+  # (leftovers cleaned) and reuses it instead of removing and cutting it again.
+  reuserun() { # <mutant>
+    local sd=$t/ru-$1 gd
+    rm -rf "$t/s$i"; git -C "$m" worktree prune; copyin "$1"
+    cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out1" 2>&1
+    gd=$(git -C "$sd/pr/upd-fix-x" rev-parse --absolute-git-dir) && : > "$gd/reuse-marker" && echo scratch > "$sd/pr/upd-fix-x/leftover.txt"
+    cp "$t/body.md" "$t/b.md"; HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/x - "$t/b.md" > "$t/out" 2>&1
+    { [ -e "$gd/reuse-marker" ] && echo 1 || echo 0; } > "$t/reused"; { [ -e "$sd/pr/upd-fix-x/leftover.txt" ] && echo 1 || echo 0; } > "$t/leftover"
+    reap; git -C "$m" worktree remove --force "$sd/pr/upd-fix-x" 2>/dev/null; git -C "$m" worktree prune; rm -rf "$sd"
+  }
+  reuserun -; [ "$(cat "$t/reused")" = 1 ] && [ "$(cat "$t/leftover")" = 0 ] && grep -qF "update_pr: REFUSE: the push failed" "$t/out"
+  ck "update_pr: a second update reuses the first's checkout (same worktree), cleaned of leftovers, and reaches its push" $?
+  reuserun updreusewt; [ "$(cat "$t/reused")" = 0 ] && grep -qF "update_pr: REFUSE: the push failed" "$t/out"
+  ck "  mutant mut:updreusewt (its line deleted): the checkout is removed and cut again, a second one per update" $?
   # A stopped run reaps its whole descendant tree (R10-PUSHER-REAP): branch fix/t
   # carries the same stub app_push, so a TERM is judged by what survives it.
   # SIGKILL runs no trap, so sigrun below judges that case by the lock alone.
@@ -1131,9 +1209,11 @@ STUB
     HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1 & op=$!
     while [ ! -e "$sdir/p2started" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
     HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/update_pr.sh" fix/r - "$t/bR.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+    [ -z "${RDIRTY:-}" ] || echo scratch > "$sd/pr/r/wt/scratch.txt"  # a dirty opener checkout (carry 6's third control)
     touch "$sdir/release"; wait "$op"; echo $? > "$t/rco"
     git -C "$o" cat-file -e fix/r:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/rowpushed" || echo 0 > "$t/rowpushed"
     git -C "$sd/pr/r/wt" symbolic-ref -q HEAD >/dev/null 2>&1 && echo branch > "$t/opwt" || echo detached > "$t/opwt"
+    { [ -d "$sd/pr/r/wt" ] && echo 1 || echo 0; } > "$t/opdir"; git -C "$m" worktree list > "$t/opwtl"
     cp "$sdir/argv" "$t/argv" 2>/dev/null || : > "$t/argv"
     reap; git -C "$m" worktree remove --force "$sd/pr/r/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-r" 2>/dev/null; true
   }
@@ -1154,6 +1234,16 @@ STUB
   ck "  mutant mut:opreuse (its line deleted): the code push asks no reuse verdict, so it runs the full prepr" $?
   racerun release; [ "$(cat "$t/opwt")" = branch ] && [ "$(cat "$t/rowpushed")" = 1 ]
   ck "  mutant mut:release (its line deleted): the opened PR's worktree still holds its branch" $?
+  # Carry 6: once the PR exists with its row, the opener's checkout is collected (update_pr.sh keeps the one
+  # per-PR checkout); one holding work is kept and named, as before.
+  racerun -; [ "$(cat "$t/opdir")" = 0 ] && ! grep -qF "/pr/r/wt" "$t/opwtl" && grep -qF "open_pr: collected " "$t/outo" && [ "$(cat "$t/rowpushed")" = 1 ]
+  ck "open_pr: after the PR opens with its row, no opener checkout remains (collected, and no worktree registered)" $?
+  RDIRTY=1 racerun -; [ "$(cat "$t/opdir")" = 1 ] && grep -qF "open_pr: KEPT " "$t/outo" && grep -qF "it is dirty" "$t/outo" && ! grep -qF "open_pr: collected " "$t/outo"
+  ck "  null control: a dirty opener checkout is kept on its branch and reported, not collected" $?
+  racerun colremove; [ "$(cat "$t/opdir")" = 1 ] && [ "$(cat "$t/rowpushed")" = 1 ]
+  ck "  mutant mut:colremove (its line deleted): the opener's checkout stays after the PR opens (the defect)" $?
+  racerun opcollect; [ "$(cat "$t/opdir")" = 1 ] && [ "$(cat "$t/rowpushed")" = 1 ]
+  ck "  mutant mut:opcollect (its line deleted): open_pr.sh never asks for the collection" $?
   racerun oprowonly; [ "$(sed -n 2p "$t/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ]
   ck "  mutant mut:oprowonly (its line deleted): the row push runs the full prepr" $?
   # R10-FLOW-BODY-ONLY parts (a) and (b), ruling R4: update_pr.sh merges origin/main only when the PR
@@ -1348,7 +1438,7 @@ GH
   [ "$(cat "$t/wtq")" = kept ] && grep -qF "it is dirty" "$t/outq"
   ck "  mutant mut:mergeabort (its line deleted): the conflicted worktree is kept as dirty work (the defect)" $?
   git -C "$o" reset -q --hard HEAD~1; git -C "$o" branch -qD handoff/q; git -C "$o" update-ref -d refs/heads/handoff-body/q
-  racerun oplock; [ "$(cat "$t/rcu")" != 75 ] && ! grep -qF "update_pr: BUSY" "$t/outu" && [ "$(cat "$t/rco")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ]
+  racerun oplock; ! grep -qF "update_pr: BUSY: the lock" "$t/outu" && grep -qF "(unpushed work" "$t/outu" && [ "$(cat "$t/rco")" = 0 ] && [ "$(cat "$t/rowpushed")" = 1 ]
   ck "  mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row" $?
   racerun oplock+unpushed; [ "$(cat "$t/rco")" != 0 ] && grep -qF "is not the committed tip" "$t/outo" && [ "$(cat "$t/rowpushed")" = 0 ]
   ck "  mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)" $?
@@ -1369,9 +1459,11 @@ GH
     reap; git -C "$m" worktree remove --force "$sd/pr/u/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-u" 2>/dev/null; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; true
   }
   unpushed - 1
-  [ "$(cat "$t/rcu")" != 0 ] && grep -qF "update_pr: REFUSE: worktree" "$t/outu" && grep -qF "(unpushed work" "$t/outu" \
+  [ "$(cat "$t/rcu")" != 0 ] && grep -qF "update_pr: BUSY: worktree" "$t/outu" && grep -qF "(unpushed work" "$t/outu" \
     && [ "$(cat "$t/attached")" = refs/heads/fix/u ]
   ck "update_pr: a worktree holding the branch with a commit origin lacks is refused and stays on its branch" $?
+  [ "$(cat "$t/rcu")" = 75 ] && grep -qF "update_pr: BUSY: worktree" "$t/outu"
+  ck "  and that refusal is BUSY (75), as a live run's worktree is, so the relay retries it (carry 8)" $?
   unpushed unpushed 1; [ "$(cat "$t/attached")" = detached ] && ! grep -qF "(unpushed work" "$t/outu"
   ck "  mutant mut:unpushed (its line deleted): the worktree is detached under its unpushed commit" $?
   unpushed - 0
@@ -1451,9 +1543,9 @@ GH
   fi
   rmrun() { # <mutant|-> <branch>: remerge_main.sh on <branch> in worktree $t/rmw; the output in $t/out
     local g; git -C "$t/rmm" worktree remove --force "$t/rmw" 2>/dev/null; rm -rf "$t/rmw"; git -C "$t/rmm" worktree prune
-    for g in remerge_main.sh pr_args.sh; do grep -v "# mut:$1\$" "$src/$g" > "$t/rmm/tools/audit/seat/$g"; done
+    for g in remerge_main.sh pr_args.sh gh_read.py; do grep -v "# mut:$1\$" "$src/$g" > "$t/rmm/tools/audit/seat/$g"; done
     git -C "$t/rmm" fetch -q origin "$2" && git -C "$t/rmm" worktree add -q -B "$2" "$t/rmw" "origin/$2" \
-      && bash "$t/rmm/tools/audit/seat/remerge_main.sh" 7 "$t/rmw" "$2" "$t/body.md" > "$t/out" 2>&1
+      && PATH="$t/rmgit:$PATH" bash "$t/rmm/tools/audit/seat/remerge_main.sh" 7 "$t/rmw" "$2" "$t/body.md" > "$t/out" 2>&1
     echo $? > "$t/rc"
   }
   rmfree() { # MERGE CONFLICT named, the worktree clean at origin/rk, removed unforced, and rk free for a second worktree
@@ -1462,6 +1554,10 @@ GH
       && git -C "$t/rmm" worktree remove "$t/rmw" 2>/dev/null \
       && git -C "$t/rmm" worktree add -q -B rk "$t/rmadd" origin/rk 2>/dev/null && git -C "$t/rmm" worktree remove "$t/rmadd"
   }
+  # `git` on remerge_main's PATH is the real one, unless $t/rmgitfail queues one stderr line per
+  # failing `git fetch`: the recarry's transport failure, without a network.
+  mkdir -p "$t/rmgit"; printf '#!/bin/bash\nq=%q\nif [ "$1" = fetch ] && [ -s "$q" ]; then head -1 "$q" >&2; sed -i.bak 1d "$q"; exit 128; fi\nexec %q "$@"\n' \
+    "$t/rmgitfail" "$(command -v git)" > "$t/rmgit/git"; chmod +x "$t/rmgit/git"
   [ -e "$t/rmo-ok" ]; ck "remerge_main fixture: an origin whose main conflicts with rk" $?
   rmrun - rk; rmfree
   ck "remerge_main: a conflicting main is named MERGE CONFLICT and leaves the worktree clean at origin/rk, released unforced, rk free" $?
@@ -1470,6 +1566,35 @@ GH
   rmrun - rc; ! grep -qF "MERGE CONFLICT" "$t/out" && [ "$(git -C "$t/rmw" rev-parse HEAD^2)" = "$(git -C "$t/rmm" rev-parse origin/main)" ] \
     && [ "$(git -C "$t/rmw" rev-parse HEAD^1)" = "$(git -C "$t/rmm" rev-parse origin/rc)" ]
   ck "null control: remerge_main on a clean merge keeps that merge (HEAD's parents origin/rc and origin/main), nothing aborted" $?
+  # R10-TRAIN-MERGE-LOOP-2: the recarry's fetch rides git's transient stderr out on gh_read.py's rule;
+  # unretried, one 502 printed MERGE CONFLICT and the train stopped on a merge that was clean.
+  printf '%s\n' "fatal: unable to access 'https://github.com/o/r/': The requested URL returned error: 502" > "$t/rmgitfail"
+  rmrun - rc; ! grep -qF "MERGE CONFLICT" "$t/out" && [ ! -s "$t/rmgitfail" ] \
+    && [ "$(git -C "$t/rmw" rev-parse HEAD^2)" = "$(git -C "$t/rmm" rev-parse origin/main)" ]
+  ck "remerge_main: a fetch failing once with git's 502 is fetched again, and the clean merge is kept" $?
+  printf '%s\n' "fatal: couldn't find remote ref rc" > "$t/rmgitfail"
+  rmrun - rc; ! grep -qF "MERGE CONFLICT" "$t/out" && grep -qF "REMERGE FAILED 7 at fetch" "$t/out" && [ ! -s "$t/rmgitfail" ] \
+    && grep -qF "couldn't find remote ref" "$t/out"
+  ck "null control: a fetch git rejected is not fetched again (a second fetch would have succeeded), and is named REMERGE FAILED at fetch, never MERGE CONFLICT (carry f7d2bf7c)" $?
+  printf '%s\n' "fatal: couldn't find remote ref rc" > "$t/rmgitfail"
+  rmrun remergeconflict rc; grep -qF "MERGE CONFLICT 7" "$t/out"
+  ck "  mutant mut:remergeconflict (its line deleted): a rejected fetch is misreported as MERGE CONFLICT" $?
+  : > "$t/rmgitfail"
+  # The push's FAIL lines and prepr's `full log:` line reach the train's Stop message, and a push that
+  # printed no PUSHED keeps its log (carry 16): the old grep kept only RECARRY|REFUSE|PUSHED and the trap
+  # deleted the log, so a prepr refusal named neither its failing arm nor its log.
+  rmstub() { printf '#!/bin/bash\n%s\n' "$1" > "$t/rmm/tools/pr/app_push.sh"; }
+  rmstub 'echo "app_push: REFUSE: prepr step self-test"; echo "  FAIL arm-x (got 1, wanted 0)"; echo "PRE-PR: self-test deadbeef rc=1; full log: prepr-log.zz (PREPR_VERBOSE=1 prints it on stdout)"; exit 1'
+  rm -f "$t/body.md.push.log"; rmrun - rc
+  grep -qF "REFUSE: prepr step self-test" "$t/out" && grep -qF "FAIL arm-x (got 1, wanted 0)" "$t/out" && grep -qF "full log: prepr-log.zz" "$t/out" \
+    && grep -qxF "remerge: push log kept: $t/body.md.push.log" "$t/out" && [ -f "$t/body.md.push.log" ]
+  ck "remerge_main: a push that pushed nothing prints its REFUSE, FAIL and full-log lines and names its kept log, which exists after exit" $?
+  rmrun remergegrep rc; ! { grep -qF "FAIL arm-x" "$t/out" && grep -qF "full log: prepr-log.zz" "$t/out" && [ -f "$t/body.md.push.log" ]; }
+  ck "  mutant mut:remergegrep (its line deleted): the FAIL and full-log lines are lost" $?
+  rmstub 'echo "app_push: PUSHED abc"; exit 0'; rm -f "$t/body.md.push.log"; rmrun - rc
+  grep -qF "PUSHED abc" "$t/out" && ! grep -qF "push log kept" "$t/out" && [ ! -e "$t/body.md.push.log" ]
+  ck "null control: a push that printed PUSHED prints as before, keeps no log and names none" $?
+  rmstub 'echo stub-push-refused; exit 1'
   # The push's auto-maintenance runs in the foreground (#2825 round 1: a `git fetch` in the push
   # daemonized `git gc --auto`, which kept the push's fd 9, and so its lock, after the push). The
   # fixture's git has auto-maintenance off (throwaway_git); fix/g's stub push turns gc.auto back on
