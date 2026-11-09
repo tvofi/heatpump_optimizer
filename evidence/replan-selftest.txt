@@ -130,9 +130,14 @@ ok   coordinator (null): the non-critical coordinator group still waits and is n
 ok   coordinator (null): inside the cap the critical-path group is not flagged
 ok   coordinator: a critical-path group is flagged exactly when the cap is full (one in flight, cap 1), not only when it is exceeded
 ok   coordinator: --check still refuses two planned coordinator groups in flight when the critical-path one is unflagged
-ok   refused: the group is done and not scheduled, and its dependent is not held behind it
-ok   deferred: the group is done and not scheduled, and its dependent is not held behind it
-ok   refused (null): a refuted group is still scheduled
+ok   coordinator: --check passes a flagged critical-path start that overlaps a running coordinator group (the flag is read)
+ok   coordinator (null): the same overlap unflagged is refused
+ok   refused: the group is closed and not scheduled
+ok   refused: its dependent is released, not held
+ok   deferred: the group is closed and not scheduled
+ok   deferred: its dependent is held behind it, with its own dependent
+ok   refuted: the group is still scheduled and its dependent is released
+ok   after (null): a queued predecessor still gates its dependent
 ok   cadence: the patch stamp lands at the 3rd GROUP, carrying it, not the 3rd PR
 ok   cadence (null): no credit leaves two groups and no patch stamp
 ok   cadence: production groups since the tag, once each; comment-only and instrument groups do not count
@@ -196,6 +201,12 @@ ok   self-test fails when lane-stem-boundary is deleted
 ok   self-test fails when coordinator-cp-exempt is deleted
   mutation coordinator-cp-flag: 'exempt_coord.add(n)' -> rc=1
 ok   self-test fails when coordinator-cp-flag is deleted
+  mutation check-ignores-flag: 'g.get("coordinator") and not g.get("exempt_coordinator")]' -> rc=1
+ok   self-test fails when check-ignores-flag is deleted
+  mutation edge-releases-ruled: 'if a in open_ and roster_lib.gates(G[a]):' -> rc=1
+ok   self-test fails when edge-releases-ruled is deleted
+  mutation deferred-holds-dependent: 'held = roster_lib.held_behind_deferred(G)' -> rc=1
+ok   self-test fails when deferred-holds-dependent is deleted
   mutation overflow-exempt: 'exempt.add(n)' -> rc=1
 ok   self-test fails when overflow-exempt is deleted
   mutation absorbed-done: 'return not roster_lib.is_open(group)' -> rc=1
