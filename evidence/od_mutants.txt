@@ -1,3 +1,0 @@
-rc=1 [if group and roster_lib.norm_group(group) in outside:] FAIL the fence orders hotfix, outside, critical whatever the file lists open_driver self-test: 86 checks, 4 failed
-rc=1 [if group and roster_lib.norm_group(group) in hotfix:] FAIL run_pass: a kind-bug group with no HOTFIX name opens ahead of an outside group, cap 1 open_driver self-test: 86 checks, 1 failed
-rc=1 [FENCED = 2] FAIL critical listed last is still ahead of every non-fenced topic open_driver self-test: 86 checks, 2 failed

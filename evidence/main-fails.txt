@@ -1,0 +1,5 @@
+/tmp/tmp.hRVovHknn0/ent-main.out:  FAIL de.json has exactly strings.json's keys  [options.step.entities.sections.indoor.data.flow_heat_c, options.step.entities.sections.indoor.data.flow_min_lift_k, options.step.entities.sections.indoor.data_description.flow_heat_c, options.step.entities.sections.ind
+/tmp/tmp.hRVovHknn0/ent-main.out:  FAIL every flow field has a label where the frontend looks, in de.json  [2 of 352 render the raw key: options.entities.sections.indoor.data.flow_heat_c, options.entities.sections.indoor.data.flow_min_lift_k]
+/tmp/tmp.hRVovHknn0/ent-main.out:  FAIL every flow field has a description where the frontend looks, in de.json  [2 of 352 render the raw key: options.entities.sections.indoor.data_description.flow_heat_c, options.entities.sections.indoor.data_description.flow_min_lift_k]
+/tmp/tmp.hRVovHknn0/claims-main.out:RESULT claims_true=122 claims
+/tmp/tmp.hRVovHknn0/claims-main.out:RESULT claims_false=1 claims
