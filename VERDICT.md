@@ -1,34 +1,34 @@
-Fix review: blocked 8f073db70d18895d0962924ac8da72647a02090a mutation-vacuous: replan.build_plan open_ = open_ - set(held) and roster_lib.held_behind_deferred gates(G[a]) conjunct survive, non-equivalent
+Fix review: merge 09f0b6d9ce030676bd513e77a8b7318b53632b7c
 
-bus-nonce: 51591997d1813a7dfaa2ba1745825129
+bus-nonce: 50a58d723b2f78338cdee55ce8f92a5f
 
-## Block
+## Round
 
-Round 2 (the previous block was at b59abf37). Head measured: 8f073db70d18895d0962924ac8da72647a02090a.
-
-Two added production lines that the ruling depends on fail no check when I mutate them, and each mutant changes behaviour (step 1):
-
-1. `tools/plan/replan.py` `build_plan`: `open_ = open_ - set(held)` -> `open_ = open_`. The replan self-test still prints `self-test: 0 failed`. The body says the held branch of the output loop masks this mutant. My probe (`ev/probe_held.py`, my own instrument) shows it does not: roster `R10-P` deferred, `R10-Q` (XL, after `R10-P`), `R10-U` (S), slots=1. At the head `R10-U` starts at `2026-01-05T00:00:00Z` and `check_plan` returns `[]`. Under the mutant the held `R10-Q` takes the slot in the simulation, `R10-U` starts at `2026-01-05T08:00:00Z`, and `check_plan` refuses with `stamp cadence ...` and `summary: open-group count disagrees ...`. At slots=6 it refuses too (`ev/probe-held-head.txt`, `ev/probe-held-mutant.txt`). Carry: R10-FLY-REPLAN-DEFECTS
-2. `tools/audit/seat/roster_lib.py` `held_behind_deferred`: `elif a in held and gates(G[a]):` -> `elif a in held:`. `roster_lib.py` and `replan.py` self-tests stay green. Fixture: `P` deferred, `R` refuted after `P`, `D` after `R`. The head returns `{'R': 'P'}`, so `D` is released, as the ruling requires for a refuted predecessor. The mutant returns `{'R': 'P', 'D': 'P'}` and holds `D`. Carry: R10-FLY-REPLAN-DEFECTS
-
-## Findings
-
-- Mutant 1 above: `open_ = open_ - set(held)` needs a row that fails without it. For example, a deferred predecessor whose held dependent would otherwise take a contended slot, asserting the free group's start and `check_plan(...) == []`. The body's statement that it is masked should be corrected. Carry: R10-FLY-REPLAN-DEFECTS
-- Mutant 2 above: the `gates(G[a])` conjunct in `held_behind_deferred` needs a row for a refuted (or other releasing) group held behind a deferred one, with its dependent released. Carry: R10-FLY-REPLAN-DEFECTS
-- `tools/audit/seat/resume_doc.py` "Ready next" (`if not any(roster_lib.gates(G[a]) for a in deps if a in G):` reverted to `if all(a not in open_ for a in deps):`) survives `resume_doc.py --self-test`. It is a ready-next reader, the twin of `handover_prompt.ready_next`. The body's Unpinned-sites list does not name it, and the Forward-carry dismissal reads "the scheduling and ready-next readers are pinned", which is false for this one. It needs a pin or a disposition. Carry: R10-FLY-REPLAN-DEFECTS
-- `orchestrator_tick.py` `blockers` and `plan_page.py` `blk` survive their mutants (`ev/mutants-a.txt`). Both are disclosed in the body and dismissed as display-only. I accept that disposition and do not block on them. Carry: dismissed: disclosed and dispositioned display-only in the PR body's Forward-carry
+Round 4 of review (after blocked b59abf37 and blocked 8f073db7). The body carries a `## Re-cut` section. The delta since 8f073db7 adds test rows and one in-file mutation arm, with no production change: `git diff 8f073db7 09f0b6d9` touches only `_self_test` in `tools/audit/seat/roster_lib.py` and `selftest` in `tools/plan/replan.py`, 17 added lines. The head 09f0b6d9 is a merge whose tree is identical to 2305095d (`git diff --quiet` exit 0), so the body's round-3 proof head and this head are one tree.
 
 ## Evidence
 
-- RESULT self-tests at head, all 0 failed: roster_lib 75, closeout 38, handover_prompt 20, resume_doc 15, plan_page 67, plan_table 26, orchestrator_tick 283, replan `self-test: 0 failed` (`ev/selftests.txt`, `ev/replan-selftest.txt`).
-- RESULT in-file replan mutants, all killed by the in-file harness at head: coordinator-cap, cp-first-in-tier, lane-stem-boundary, coordinator-cp-exempt, coordinator-cp-flag, check-ignores-flag, edge-releases-ruled, deferred-holds-dependent.
-- RESULT my mutants (`ev/mut.py`, my own driver, `ev/mutants-a.txt`, `ev/mutants-b.txt`):
-  - Killed: closed-drops-refused-deferred, closeout_exempt-open, roster_blockers-open, unfinished-reads-closed, releasing-plus-deferred, held-not-transitive, depth-is_open, critpath-all, ready_next-revert, tick-skip-deferred.
-  - Survived: held-ignores-gates, resume_doc-ready-revert, tick-blockers-open, plan_page-blk-done, replan-open-minus-held.
-- Block 1 (closeout class-open) answer verified: the closeout and roster_lib rows go red under the `open_groups` reverts.
-- The tests/entities.py edge: tick-skip-deferred turns `orchestrator_tick.py --self-test` red (283 checks, 1 failed), which the entities check keys on (rc and ", 0 failed").
-- `git merge-tree --write-tree origin/main 8f073db7`: rc 0, `LEDGER-MERGE: resolved tests/closures.json` (`ev/merge-tree.txt`).
-- VERSION, manifest, RELEASE_NOTES.md, both claim files and structure_budgets.json are untouched (three-dot, empty).
-- Figures not re-derived: the count from `prepr.sh --self-test` and `ALL 2669 ENTITY CHECKS PASSED` are left to CI's heavy runs, per step 11.
-- CI: `gate` red at render was a deferral. Its log reads `FAIL run(s) [42580173777] at this head are still being judged; their gate decides`, which is not a defect. `merge_train.py classify 8f073db7 --pr 3326` then went from WAIT to exit 0 at 08:15:21Z: `GREEN 8f073db70d18895d0962924ac8da72647a02090a pending: none red: none` (`ev/classify.txt`, `ev/classify-log.txt`). No required check is red at this head, so step 11 owes nothing. The block does not depend on CI.
-- No finder's harness is named in the packet: the defects come from the replan study. The probes and mutant driver here are my own instruments.
+- Head measured: 09f0b6d9ce030676bd513e77a8b7318b53632b7c. Before writing this verdict, `git ls-remote` showed it is still the head of `fix/r10-fly-replan-defects`.
+- Mutant 1 (prior survivor), `tools/plan/replan.py:905` `open_ = open_ - set(held)`:
+  - Null run: `replan.py --self-test` rc=0, `self-test: 0 failed`.
+  - Mutant `-> pass`: rc=1, `self-test: 3 failed`. The kill is the new row "deferred: a held dependent is in no wave and no batch", which got `['R10-A','R10-Y','R10-Z']`. The other two failures are the in-file arm's own anchor/null checks, which fail because the mutant removed the line they anchor on.
+  - Weakened form `open_ - set(list(held)[:0])`: killed by the same row.
+  - Files: `ev/null-replan.tail.txt`, `ev/mut-replan-pass.tail.txt`, `ev/mut-replan-weak.tail.txt`, `ev/rp.res`.
+- Mutant 2 (prior survivor), `roster_lib.held_behind_deferred` `elif a in held and gates(G[a]):` -> `elif a in held:`:
+  - Null run: rc=0, 76 checks, 0 failed.
+  - Mutant: rc=1. FAIL "a held group that is itself released (refuted) does not hold its dependent", got `{'Q': 'P', 'S': 'P'}`.
+  - Files: `ev/null-roster.out`, `ev/mut-roster-gates.out`.
+- Null control for the roster_lib row: I ran the opposite perturbation, `... and not gates(G[a])`. It turns the `chain` row red, getting `{'Q': 'P'}` (queued Q no longer holds S), so the conjunct is pinned in both directions. File: `ev/mut-roster-inverse.out`.
+- Null control for the replan row: its released (`refused`) arm requires R10-Y and R10-Z to be in waves/batches, and its held arm requires R10-A to be in the plan. A plan that schedules nothing therefore does not satisfy it. The unmutated self-test passes.
+- Self-tests at head, all 0 failed: `closeout.py` (38 checks), `handover_prompt.py` (20), `orchestrator_tick.py` (283). Files: `ev/st-*.out`.
+- Merge with main: `git merge-tree --write-tree origin/main 09f0b6d9` gives rc=0 against origin/main 806e952c. The only resolution is `LEDGER-MERGE: resolved tests/closures.json`. File: `ev/merge-tree.txt`.
+- CI: `merge_train.py classify 09f0b6d9 --pr 3326` exited 0: `GREEN 09f0b6d9ce030676bd513e77a8b7318b53632b7c pending: none red: none`. File: `ev/classify.txt`.
+- `governance / delivery-status` was red in the packet digest. It grades main, is outside the required set, and is not this PR's.
+- Red checks at earlier heads in the branch (closures, closures-autofix, instrument-self-tests, gate) are named and answered in the body's `## Red checks`. Per the role, I checked that an answer exists, not the answer itself.
+- Three-dot diff against merge base 20e83746: VERSION, the manifest, RELEASE_NOTES.md, golden/claim files, `*budgets.json` and the mutation ledger are untouched.
+- The body names no finder's harness. The prior rounds' reviewer probes (`probe_closeout.py`, `probe_check.py`) cover code this delta did not change, so I did not re-run them. That is not re-verified at this head beyond the self-tests above.
+- Figures I did not re-derive here: `ALL 2669 ENTITY CHECKS PASSED`, `prepr.sh --self-test 514 passed` and `STRUCTURE RATCHET PASSED`. CI GREEN at this head stands in for them, per the role's cite-CI's-heavy-runs rule.
+
+## Findings
+
+- Follow-up: the after-edge reads `plan_page.py` `blk`, `orchestrator_tick.py` `blockers` and the `plan_table.py` drawing follow `roster_lib.gates` with no pinning row. The body's Forward-carry dispositions these. Carry: dismissed: display-only, the scheduling and ready-next readers are pinned

@@ -1,0 +1,2 @@
+roster_lib self-test: 76 checks, 1 failed
+FAIL a held group that is itself released (refuted) does not hold its dependent (null: the queued Q, in `chain`, does) (got: {'Q': 'P', 'S': 'P'})
