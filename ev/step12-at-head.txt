@@ -1,0 +1,8 @@
+    (#1667; tvofi 2026-10-27) while `seat/review_carry.py
+    <verdicted> <new>` prints `CARRY`: the PR's patch is the one reviewed
+    (L6), not `head-moved`; a red CI never carries.
+    Else a later round is **its delta** (tvofi 2026-11-09): `git diff <reviewed-head>
+    <head>` (a main merge: its resolution), each prior finding resolved, the live
+    required checks; in full only on a reason the verdict names, that the delta
+    reaches code that review relied on.
+
