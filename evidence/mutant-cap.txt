@@ -1,0 +1,5 @@
+## mutant: payment text restored (2 anecdotes)
+tools/audit/briefs/orchestrator.md
+  ERROR   [budgets] tools/audit/briefs/orchestrator.md: 297 lines exceeds its cap of 295. Cut, or state the case for a higher cap in the pull request body.
+  ERROR   [budgets] tools/audit/briefs/orchestrator.md: about 4298 tokens across its lines exceeds its cap of 4251 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+TOTAL: 2 error(s) across 49 policy file(s)

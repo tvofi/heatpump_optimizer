@@ -1,3 +1,86 @@
+# Review packet #3245
+head: f5af5b513b1978d732fd41902c203890e3a0247b
+base: c782949e345180a10b800dedaf80652114c16d2d
+
+Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
+
+## Gate digest: pending
+arm id=128961613509 skipped
+cancel-superseded id=128961894251 queued
+prelude id=128961894304 queued
+refresh id=128961894035 queued
+
+## Refusals
+none
+
+## Advisories
+hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
+
+## carry_audit at the head
+NOTE body item ada60feb: R10-FLY-STAMP-FLUSH-COST: R10-FLY-STAMP-FLUSH-COST resolved on origin/handoff/audit-r10-roster
+NOTE body item 21f5d930: dismissed:unmeasured, and deleting a live train path is beyond the cards' scope.
+NOTE body item f9a606c8: dismissed:the card's risk line accepts review starting early, never a merge at red.
+NOTE body item 9323e541: dismissed:environment setup, not this diff's code; the measured fix is one `mkdir`.
+NOTE body item 37e09a96: dismissed:a predictor false red with a one-command local remedy, outside this group's cards; the orchestrator may route it.
+NOTE body item 0bde4913: dismissed:one stale ref with nothing lost (tree equals the handoff), the delete is the orchestrator's one command `git push origin :refs/heads/handoff-wip/r10-process-slim`.
+CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)
+
+## figure_lint at the head
+ok         python3 -I tools/release/stamp.py --self-test
+             `tools/release/stamp.py` is in the tree at this head
+  ok         python3 tools/audit/seat/orchestrator_tick.py --self-test
+             `tools/audit/seat/orchestrator_tick.py` is in the tree at this head
+  ok         python3 tools/audit/seat/merge_train.py --self-test
+             `tools/audit/seat/merge_train.py` is in the tree at this head
+  ok         bash tools/audit/seat/handoff_push.sh --self-test
+             `tools/audit/seat/handoff_push.sh` is in the tree at this head
+  ok         bash tools/audit/seat/body_push.sh --self-test
+             `tools/audit/seat/body_push.sh` is in the tree at this head
+  ok         python3 tools/audit/seat/postmerge.py --self-test
+             `tools/audit/seat/postmerge.py` is in the tree at this head
+  ok         python3 tools/audit/seat/roster_edit.py --self-test
+             `tools/audit/seat/roster_edit.py` is in the tree at this head
+  ok         python3 tools/audit/machinery_ratchet.py --self-test
+             `tools/audit/machinery_ratchet.py` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         node tools/policy/policy_lint.mjs --budgets
+             `tools/policy/policy_lint.mjs` is in the tree at this head
+  ok         node tools/policy/policy_lint.mjs
+             `tools/policy/policy_lint.mjs` is in the tree at this head
+  ok         python3 tools/audit/seat/selftest_wiring.py --check
+             `tools/audit/seat/selftest_wiring.py` is in the tree at this head
+  ok         node tools/policy/rules_sync.mjs --check
+             `tools/policy/rules_sync.mjs` is in the tree at this head
+  ok         node tools/policy/brief_lint.mjs
+             `tools/policy/brief_lint.mjs` is in the tree at this head
+  ok         python3 tools/audit/archscore/score.py --diff 6457496aba7b1076b1ed60c374c5badafdf66fc1 HEAD
+             `tools/audit/archscore/score.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff 6457496aba7b1076b1ed60c374c5badafdf66fc1
+             `tests/closure.py` is in the tree at this head
+  unverified git merge-tree --write-tree origin/main HEAD
+             `git merge-tree` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified git show origin/main:...
+             `git show` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified git diff --name-only origin/main HEAD
+             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified git diff --name-only fdc8d21a 491177c4
+             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>
+             `tools/pr/prepr.sh` is in the tree at this head
+
+FIGURES: 17 resolved, 4 not verified, 0 refused
+
+## Finder's harness: none named
+### at the base
+not run
+### at the head
+not run
+
+## Mutation-ledger diff
+none
+
+## Three-dot diff
 diff --git a/.claude/rules/defect-root-cause.md b/.claude/rules/defect-root-cause.md
 index 854ae7e17..6acb79c65 100644
 --- a/.claude/rules/defect-root-cause.md
@@ -227,7 +310,7 @@ index 5ba6a0139..2f8692f5b 100644
  2026-10-18), which lands on main at each stamp and before branch cleanup
  and stays while `git diff origin/main...<branch> -- dev/programme/rosters/`
 diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
-index d0606e0a7..d495c9286 100644
+index dbe456598..f9cc8ee5a 100644
 --- a/.github/workflows/governance.yml
 +++ b/.github/workflows/governance.yml
 @@ -25,7 +25,7 @@ name: Governance
@@ -239,7 +322,7 @@ index d0606e0a7..d495c9286 100644
  #
  # The umbrella's pull_request types carry no `edited`, which the header above
  # explained for this file's own list (#1514): a body edit starts nothing here.
-@@ -775,12 +775,11 @@ jobs:
+@@ -785,12 +785,11 @@ jobs:
            python3 -I tools/audit/seat/mutant_run.py --self-test | tee "$RUNNER_TEMP/mutant-run-self-test.txt"
            grep -Eq '^mutant_run self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mutant-run-self-test.txt"
  
@@ -253,7 +336,7 @@ index d0606e0a7..d495c9286 100644
            grep -Eq '^handoff_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
  
        - name: Show the handover prompt refusing its own fixtures
-@@ -1530,7 +1529,7 @@ jobs:
+@@ -1554,7 +1553,7 @@ jobs:
        # not this file's judgement: #201 comment 5670207248 item 4 approves
        # `issues: write` on this one job. It is declared on the job that uses it
        # rather than the workflow floor precisely so no other lane inherits it:
@@ -262,7 +345,7 @@ index d0606e0a7..d495c9286 100644
        # the read-only floor, `pr-contract` (its own file) keeps what it holds,
        # and the set of overriding jobs is pinned in tests/entities.py as the
        # blast radius.
-@@ -1610,6 +1609,8 @@ jobs:
+@@ -1634,6 +1633,8 @@ jobs:
        # here cannot block an unrelated merge.
        - name: Every merged pull request has a disposition
          id: refusal
@@ -271,7 +354,7 @@ index d0606e0a7..d495c9286 100644
          env:
            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
          run: |
-@@ -1769,162 +1770,3 @@ jobs:
+@@ -1793,162 +1794,3 @@ jobs:
              echo "the record protocol promises, cleared by the next \`record:\` beat writing"
              echo "the row. The job is not a required context and must not become one."
            } | tee /dev/stderr >> "$GITHUB_STEP_SUMMARY"
@@ -435,10 +518,10 @@ index d0606e0a7..d495c9286 100644
 -              print("#201's region updated")
 -          PY
 diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
-index d04be1000..fe000bae1 100644
+index b111f9a97..591a038e2 100644
 --- a/.github/workflows/tests.yml
 +++ b/.github/workflows/tests.yml
-@@ -1447,9 +1447,8 @@ jobs:
+@@ -1451,9 +1451,8 @@ jobs:
            python -I -S tests/nightly_status.py
  
    # THE PULL REQUEST'S OWN COPY OF EACH PINNED GRADER (decision 0013, amended
@@ -450,7 +533,7 @@ index d04be1000..fe000bae1 100644
    # copy the way that job does, so a changed grader still shows red or green
    # on the pull request that changes it. It is not a required context, and
    # `HPO_JOB_GRADES: nothing` tells `codeowners_gap.py` it grades nothing. Its
-@@ -1499,7 +1498,7 @@ jobs:
+@@ -1503,7 +1502,7 @@ jobs:
          run: |
            set -euo pipefail
            python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
@@ -459,7 +542,7 @@ index d04be1000..fe000bae1 100644
              if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
                echo "$g=true" >> "$GITHUB_OUTPUT"
                echo "tests/$g.py changed: its own copy runs below"
-@@ -1553,47 +1552,6 @@ jobs:
+@@ -1557,47 +1556,6 @@ jobs:
            python3 tests/coverage_ratchet.py \
              --coverage "$RUNNER_TEMP/coverage/coverage.json"
  
@@ -707,7 +790,7 @@ index 4cc83f3e0..fea51a969 100644
     cost.
  
 diff --git a/dev/governance/roles/fix-review.md b/dev/governance/roles/fix-review.md
-index 9d4cc79ff..b6c53c59b 100644
+index eb1f7c6cd..d83ecb08f 100644
 --- a/dev/governance/roles/fix-review.md
 +++ b/dev/governance/roles/fix-review.md
 @@ -4,7 +4,8 @@ You review one fix PR adversarially, fresh, from a worktree at
@@ -794,25 +877,108 @@ index 8f7fae7e1..2414861cf 100644
  Name the destination in your PR body — which brief, contract, carry file or
  roster received it — so the reviewer checks the destination rather than takes
 diff --git a/dev/governance/roles/orchestrator.md b/dev/governance/roles/orchestrator.md
-index 0248c8586..719e8bf59 100644
+index 4d0d219e2..82d6693ca 100644
 --- a/dev/governance/roles/orchestrator.md
 +++ b/dev/governance/roles/orchestrator.md
-@@ -110,10 +110,10 @@ whenever you merge.
-   `standing-tick.md`, `standing-merge.md`, `standing-dispatch.md` and
-   `standing-roster.md`. You send queue lines and act on their reports; the
-   sweep restarts any that is absent or stopped with work owed.
+@@ -29,9 +29,7 @@ cannot answer the second, you have not measured — you have expected.
+ 
+ - Describing an artifact without opening it is the same defect. A wrong claim
+   is corrected under `fixer.md` step 9.
+-- **Never print a conclusion beside a command** (`fixer.md` step 3): the
+-  `(empty means identical)` form shipped a commit message asserting untouched
+-  files that carried fourteen changed lines.
++- **Never print a conclusion beside a command** (`fixer.md` step 3).
+ - **Never chain past a check with `;`.** `check; publish` publishes whether or
+   not the check refused. Use `check && publish` — and for the body and the
+   push, that `&&` is already wired as `tools/pr/push.sh` (#678).
+@@ -39,8 +37,7 @@ cannot answer the second, you have not measured — you have expected.
+ ## 2. Delegate what a seat can do; do only what only you can do
+ 
+ **Work a worker can do is dispatched, not performed.** You hold context and
+-authority no seat has — sequencing, merging, the record, the freeze, stamps,
+-and speaking to the owner. Everything else is a seat's.
++authority no seat has; everything else is a seat's.
+ 
+ The reason is **independence** (`fix-review.md` step 2): *a fixer who measures
+ with a harness they wrote is measuring themselves*. Work you perform needs a
+@@ -69,15 +66,14 @@ target or the critical chain would feel goes back to the owner first.
+ ## 3. Repeated errors go to the root-cause seat, not into another issue
+ 
+ `CLAUDE.md`'s *recurring error* rule binds you as it binds a seat, and an
+-instance by you counts toward the third: three symptoms recorded separately are
+-worth less than one analysis of why they were possible. The product, the four
++instance by you counts toward the third. The product, the four
+ process states and the demonstration a check owes are `root-cause.md`'s and
+ `defect-root-cause.md`'s; it runs in **its own seat**, never inside the fix (section 2).
+ 
+ ## 4. The merge message is a second closing surface
+ 
+-A pull request's closing references describe its **body**, and no method on
+-the GitHub tool surface here exposes them at all. The merge message is a separate artifact, written by you at merge
++A pull request's closing references describe its **body**, and no GitHub
++tool method here exposes them. The merge message is a separate artifact, written by you at merge
+ time, and GitHub parses it too; since `main` took to merge commits (`docs/decisions/0010-merge-commits-on-main.md`) its default body is the pull request's **title**, so a keyword in a title reaches `main` too. A pull request can show `[]` forever while its
+ merge commit shuts an issue. **GitHub discards the negation**; only the keyword
+ and the number matter.
+@@ -95,7 +91,7 @@ whenever you merge.
+   refuses at `HPO_WIP_CAP` (default 6) unless `--over-cap "<reason>"` says why.
+   Opening or updating a pull request for an owed handoff is never refused by it.
+ - **A ready critical-path group starts regardless of every cap** (tvofi,
+-  2026-10-22, restated three times): a group in the current plan's
++  2026-10-22): a group in the current plan's
+   `critical_path` whose `after` groups are all done, and whose design verdict
+   is approved where it has one, is dispatched at the WIP cap, a drain-first
+   hold, a coordinator K/2 limit or the seat cap alike, with `pr_cap.py
+@@ -111,10 +107,18 @@ whenever you merge.
+   `OUTSIDE ... owed=triage` line (`tools/audit/seat/outside_intake.py`) is
+   triaged or designed, then wired into a roster group or refused
+   (`outside_intake.py refuse`); `owed=answer` goes to `standing-dispatch.md`.
 -- **A proposal goes to `proposal-triage.md` before it is routed**: a process,
 -  tooling or instrument proposal from the sweep, a seat's result or a verdict.
 -  Where a mandate lets you act on a recommendation absent the owner, that means
 -  sending it to triage; an ACCEPT reaches the roster citing its ruling.
-+- **A proposal is ruled directly, by the owner or by you**: a process,
-+  tooling or instrument proposal from the sweep, a seat's result or a verdict
-+  is wired in only when its measured benefit clearly outweighs its cost; there
-+  is no standing triage seat (card C6, tvofi 2026-11-05).
++- **A proposal is ruled directly, by the owner or by you** (no standing triage
++  seat; card C6, tvofi 2026-11-05): a process, tooling or instrument proposal
++  from the sweep, a seat's result or a verdict is wired in only when its
++  measured benefit clearly outweighs its cost. A countermeasure policy requires
++  (root cause, red-check carry, finding fix; see Machinery) keeps its route. An
++  exemption ACCEPT (over 20% on a `ratchet-budgets.md` measure) says so; its PR
++  records it. **Machinery:** a planned instrument/machinery group, or existing
++  non-production CI lane or seat, stays only on a measured gain of at least 10%
++  on them. Repair of such code (outside `custom_components/`) with roster
++  `severity` `low` or `normal` meets both (over 20% to add); `medium`, `high`,
++  `major`, `critical`, root-cause countermeasure, closeout, owner directive skip
++  them; unset is classified first, never assumed major.
  - **Establish the work is not already done or in flight.** One
    `list_pull_requests` over the open set, and the issue's comments: a seat
    was dispatched to fix what an open pull request fixed.
-@@ -190,8 +190,8 @@ established fact, with nothing gating it. A real finding you must not touch goes
+@@ -137,11 +141,10 @@ whenever you merge.
+   fixer only after `Design review: approve <sha>`, read back from
+   `design-verdict/<group>`. The approved note is its architect note.
+ - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles (`fix-review.md`).
+-- **Name its scratch directory ABSOLUTE, and its own worktree under it.** A
+-  relative one resolves against the seat's cwd, which was yours for three seats.
+-  Seats share one scratchpad, `/tmp` and process table, and a generic name at a
+-  root has destroyed another seat's work. It stops only a PID it started, never
+-  by pattern.
++- **Name its scratch directory ABSOLUTE, and its own worktree under it.** Seats
++  share one scratchpad, `/tmp` and process table, and a generic name at a root
++  has destroyed another seat's work. It stops only a PID it started, never by
++  pattern.
+ 
+ ## 5b. Before dispatching a seat to a lane, read the ref, not the record
+ 
+@@ -150,8 +153,7 @@ opener, never a fresh implementer.
+ 
+ ## 6. A conflict resolution is verified by reading the merged artifact
+ 
+-Not by reading the diff. A word-level diff licensed a union that silently dropped
+-a clause, in a commit claiming nothing was dropped.
++Not by reading the diff.
+ 
+ When both sides carry real content, **union rather than take a side**, and prove
+ it: reconstruct both parents and read the merged result back, confirming each
+@@ -191,8 +193,8 @@ established fact, with nothing gating it. A real finding you must not touch goes
  
  ## 9. The record, and the one living handover
  
@@ -823,7 +989,7 @@ index 0248c8586..719e8bf59 100644
  **The handover is one file and it is not optional** (`writing-for-agents.md`).
  
  Failure shapes already produced, all yours:
-@@ -228,7 +228,7 @@ Through the roster seat, on `standing-roster.md`'s terms.
+@@ -229,7 +231,7 @@ Through the roster seat, on `standing-roster.md`'s terms.
  - A `merge` verdict from a reviewer that measured **this** head, or a **carry**,
    with no reviewer turn (tvofi, 2026-10-01): `tools/pr/app_approve.sh --carry
    <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
@@ -834,46 +1000,48 @@ index 0248c8586..719e8bf59 100644
    `tools/audit/seat/merge_train.py batch` (tvofi, 2026-10-07), the only bypass:
 diff --git a/dev/governance/roles/proposal-triage.md b/dev/governance/roles/proposal-triage.md
 deleted file mode 100644
-index baf91a31a..000000000
+index 2ff7092ae..000000000
 --- a/dev/governance/roles/proposal-triage.md
 +++ /dev/null
-@@ -1,34 +0,0 @@
+@@ -1,36 +0,0 @@
 -# The proposal-triage seat's contract
 -
--Every process, tooling or instrument proposal passes this cost/benefit gate
--before any implementation (owner ruling, tvofi 2026-10-22; decision 0015).
--Proposals come from the orchestrator's sweep, its Proposals line, a seat's
--result and a verdict's optimisation note. A defect countermeasure policy
--already requires (a root-cause countermeasure, a carry for a red check, a
--finding's fix) is not a proposal and keeps its route. One opus seat at
--medium effort: rulings are checked against code.
+-A process, tooling or instrument proposal passes this gate before building
+-(decision 0015). Sources: orchestrator sweep and Proposals line, seat results,
+-verdict optimisation notes. A countermeasure policy requires (root cause,
+-red-check carry, finding fix; see below) keeps its route. One opus seat, medium
+-effort; check rulings against code.
 -
--**The bar is "clearly".** A proposal is wired in only when its measured
--benefit clearly outweighs everything it adds: wall-clock or seat time on the
--critical path; tokens (seat model x effort x expected runs); GitHub API calls;
--standing CPU on the Pi-class target or CI runners; code and policy
--complexity (lines, new files and checks, hot files touched, review rounds);
--and maintenance surface. An even or marginal trade is REJECT; an unmeasured
--benefit is DEFER, never ACCEPT. An ACCEPT on the >10% exemption
--(`ratchet-budgets.md`) says so; its PR records it.
+-**Bar:** measured benefit clearly outweighs cost: critical-path wall-clock/seat
+-time; tokens (model x effort x expected runs); API calls; standing CPU
+-(Pi-class, CI runners); complexity (lines, new files, checks, hot files, review
+-rounds); maintenance. Even or marginal: REJECT; unmeasured: DEFER, never
+-ACCEPT. An exemption ACCEPT (over 20% on a `ratchet-budgets.md` measure) says
+-so; its PR records it.
 -
--**Verdicts:** ACCEPT names a destination (a roster group and carry
--text, or a new group and brief); DEFER, what would change it or the owning
--group; REJECT, the binding cost.
+-**Machinery.** A planned instrument/machinery group, or existing non-production
+-CI lane or seat, stays only on a measured gain of at least 10% on them. Repair
+-of such code (outside `custom_components/`) with roster `severity` `low` or
+-`normal` meets both (over 20% to add); `medium`, `high`, `major`, `critical`,
+-root-cause countermeasure, closeout, owner directive skip them; unset is
+-classified first, never assumed major.
 -
--**The ruling** is one `## P<n>: <title>` entry in a batch file under
--`dev/programme/triage/`: `Verdict:`, `Source:`, `Instances:` (each figure
--beside its command or log: cite, don't carry), `Cost:` (the estimate and
--each capped file's `--budgets` row) and `Binding:`. An ACCEPT runs its rule
--on each instance, result beside it. Git and local logs before the API.
+-**Verdicts:** ACCEPT names a destination (roster group and carry, or new group,
+-brief); DEFER, what would change it or the owning group; REJECT, the binding
+-cost.
 -
--**You do not** implement, edit the roster or merge. The orchestrator routes an
--ACCEPT through `tools/audit/seat/roster_edit.py`, whose text cites the ruling
--as `triage: dev/programme/triage/<file>.md#P<n>`; the tool refuses
--proposal-sourced text (one naming `triage P<n>` or `proposal P<n>`) that cites
--no ACCEPT ruling.
+-**A ruling**: a `## P<n>: <title>` entry in a `dev/programme/triage/` batch
+-file: `Verdict:`, `Source:`, `Instances:` (each figure beside its command or
+-log: cite, don't carry), `Cost:` (estimate, each capped file's `--budgets`
+-row), `Binding:`. An ACCEPT runs its rule per instance, result beside it. Git
+-and local logs before the API.
+-
+-**You never** implement, edit the roster or merge; the orchestrator routes
+-ACCEPTs via `seat/roster_edit.py`, citing
+-`triage: dev/programme/triage/<file>.md#P<n>`; it refuses text naming
+-`triage P<n>` or `proposal P<n>` citing no ACCEPT.
 diff --git a/dev/governance/roles/standing-dispatch.md b/dev/governance/roles/standing-dispatch.md
-index 35ca31403..b32c1127e 100644
+index 7d10678e3..dc8c24b34 100644
 --- a/dev/governance/roles/standing-dispatch.md
 +++ b/dev/governance/roles/standing-dispatch.md
 @@ -4,9 +4,8 @@ One of the four standing seats (`orchestrator.md` section 5); haiku, low
@@ -886,8 +1054,8 @@ index 35ca31403..b32c1127e 100644
 +**Dispatch**, per line: `tools/pr/approve_held_runs.sh`, `tools/audit/seat/bus.sh
 +dispatch` (cards C4, C8 refuse there), `tools/audit/seat/cloud_dispatch.py --role reviewer` at the printed
  head and nonce, and the `dispatch/reviewer-rev-<pr>` publish. Report
- `fire-owed <ref>`: a subagent cannot call RemoteTrigger; the orchestrator
- fires. A `record/autofix` pull request is never dispatched a reviewer.
+ `fire-owed <ref>`: the orchestrator fires (a subagent cannot call
+ RemoteTrigger). A `record/autofix` pull request is never dispatched a reviewer.
 diff --git a/dev/governance/roles/standing-roster.md b/dev/governance/roles/standing-roster.md
 index 5d251bef4..0aea9952d 100644
 --- a/dev/governance/roles/standing-roster.md
@@ -1020,10 +1188,10 @@ index 000000000..622c29618
 @@ -0,0 +1 @@
 +- [#3245](https://github.com/tvofi/heatpump_optimizer/pull/3245) — **open**, R10-PROCESS-SLIM: slip cards C4, C5, C8 and C6 (a), plus the merge train post-merge docs step and carry-ancestry park (R10-PROCESS-SLIM)
 diff --git a/tests/closures.json b/tests/closures.json
-index 3a52294b3..1c2935305 100644
+index 3ad0e8378..810ceacbb 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -1563,7 +1563,6 @@
+@@ -1575,7 +1575,6 @@
     "dev/governance/roles/nudge.md",
     "dev/governance/roles/orchestrator.md",
     "dev/governance/roles/plan-review.md",
@@ -1032,10 +1200,10 @@ index 3a52294b3..1c2935305 100644
     "dev/governance/roles/standing-dispatch.md",
     "dev/governance/roles/standing-merge.md",
 diff --git a/tests/entities.py b/tests/entities.py
-index ff1677f71..7cf69c96d 100644
+index 4a8c8a9d8..851f02cb9 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
-@@ -28245,22 +28245,6 @@ R.check(
+@@ -28455,22 +28455,6 @@ R.check(
      "without bound, and a body-REPLACING version deletes the 2.6 kB of "
      "tracking text that is the reason anyone opens #201 at all",
  )
@@ -1058,7 +1226,7 @@ index ff1677f71..7cf69c96d 100644
  # The permission widening, checked as a PROPERTY rather than as its instance:
  # the whole set of jobs in governance.yml that override the workflow's
  # `contents: read` floor. A job-level block REPLACES the floor for that job and
-@@ -28276,19 +28260,16 @@ R.check(
+@@ -28486,19 +28470,16 @@ R.check(
  # both files: the blast radius did not change because a job changed file.
  _DS_GOV = Path(".github/workflows/governance.yml").read_text()
  _PC_WF = Path(".github/workflows/pr-contract.yml").read_text()
@@ -1081,7 +1249,7 @@ index ff1677f71..7cf69c96d 100644
  )
  # EVERY GOVERNANCE JOB HOLDING A WRITE GRANT RUNS ONLY AT main (U4 resume).
  # Inside the umbrella `ci.yml`, a `workflow_dispatch` at a PR branch (autofix
-@@ -28299,7 +28280,7 @@ R.check(
+@@ -28509,7 +28490,7 @@ R.check(
  # walked the whole `<tag>..origin/main` window on the GITHUB_TOKEN bucket #2629
  # budgets. The guard is read off the registered job and evaluated over literals;
  # the plant is the unguarded text, the null controls are the arms that must run.
@@ -1090,7 +1258,7 @@ index ff1677f71..7cf69c96d 100644
  _RW_OLD_RECORD_IF = (
      "github.event_name != 'pull_request' && github.event_name != 'merge_group'")
  _RW_PR_BRANCH = "refs/heads/claude/some-pr"
-@@ -29912,7 +29893,7 @@ steps:
+@@ -30142,7 +30123,7 @@ steps:
      run: |
        set -euo pipefail
        python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
@@ -1099,7 +1267,7 @@ index ff1677f71..7cf69c96d 100644
          if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
            echo "$g=true" >> "$GITHUB_OUTPUT"
            echo "tests/$g.py changed: its own copy runs below"
-@@ -29961,47 +29942,6 @@ steps:
+@@ -30191,47 +30172,6 @@ steps:
        python3 tests/coverage_ratchet.py \
          --coverage "$RUNNER_TEMP/coverage/coverage.json"
  
@@ -1147,7 +1315,7 @@ index ff1677f71..7cf69c96d 100644
    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
      if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
      with:
-@@ -30178,97 +30118,6 @@ R.check(
+@@ -30408,97 +30348,6 @@ R.check(
  )
  
  
@@ -1245,7 +1413,7 @@ index ff1677f71..7cf69c96d 100644
  # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
  # section as `none` whenever the token stood at its START -- no end anchor, no
  # `m` flag -- so `frictionEntries` tested that against the WHOLE multi-line
-@@ -30786,53 +30635,6 @@ R.check(
+@@ -31016,53 +30865,6 @@ R.check(
      _AH_CONST is not None and not _AH_DRIFT,
      f"disagreeing jobs: {_AH_DRIFT}; constants: {_AH_CONST}",
  )
@@ -1299,7 +1467,7 @@ index ff1677f71..7cf69c96d 100644
  # #959 (option B): the `record` job -- already one of the three overrides for
  # its read grant -- WIDENED that grant with `issues: write` so its filing step
  # can open and edit the recurring-friction issues its own histogram names. Not
-@@ -32900,15 +32702,6 @@ R.check(
+@@ -33130,15 +32932,6 @@ R.check(
      _FK_KEY.get("not-a-policy-file.md") == "not-a-policy-file.md",
      f"key={_FK_KEY.get('not-a-policy-file.md')!r}",
  )
@@ -1315,7 +1483,7 @@ index ff1677f71..7cf69c96d 100644
  R.check(
      "the ledger script is classified: NOT_A_TEST, and not on INERT",
      "delivery_status.py" in _closure.NOT_A_TEST
-@@ -33881,8 +33674,8 @@ _REC_REFUSAL = _REC_JOB.split(
+@@ -34111,8 +33904,8 @@ _REC_REFUSAL = _REC_JOB.split(
      "- name: Every merged pull request has a disposition")[1].split(
          "\n      - name:")[0]
  R.check(
@@ -1350,13 +1518,13 @@ index aa11c3f93..c60a1e91c 100644
  W0 = os.environ.get("D11_WINDOW_START", "2026-09-09T09:37:08Z")
  W1 = os.environ.get("D11_WINDOW_END", L.BASELINE_UTC)
 diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
-index fa3ebbd50..bddcc681e 100644
+index 6e6d022b2..ea79ee301 100644
 --- a/tools/audit/seat/INSTRUMENTS.md
 +++ b/tools/audit/seat/INSTRUMENTS.md
-@@ -111,7 +111,7 @@ sweep's standing-seat liveness step keep them alive.
- - [`beatd_shims/git`](instruments/beatd_shims_git.md) — the beat jobs' `git`, reached only through the `PATH` `beatd.py` builds
- - [`train.sh`](instruments/train.sh.md) — one invocation shape for `merge_train.py batch`
+@@ -114,7 +114,7 @@ sweep's standing-seat liveness step keep them alive.
  - [`state_docs.py`](instruments/state_docs.py.md) — one call regenerates the four state docs (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`, `handover_prompt.py`), commits exactly their outputs to the orphan ref `handoff/audit-r<N>-plan` at `handoff/round<N>/state/`, N the roster's round
+ - [`plan_public.py`](instruments/plan_public.py.md) — stages the ongoing round's plan page from the newest state ref for the public site, refusing a page that would publish a host path or a tool's attribution
+ - [`outside_intake.py`](instruments/outside_intake.py.md) — lists submissions by outside users since a cursor with what each is owed (triage, answer, reply), and answers or refuses one, marked so none is answered twice
 -- [`postmerge.py`](instruments/postmerge.py.md) — after a merge: the #201 line, the roster stage, the state docs and main's suite state; a failed step is printed OWED and opens the ledger's `postmerge-owed`
 +- [`postmerge.py`](instruments/postmerge.py.md) — after a merge: the #201 line, the roster stage and main's suite state (the state docs are the plan-beat's); a failed step is printed OWED and opens the ledger's `postmerge-owed`
  - [`record_beat.py`](instruments/record_beat.py.md) — one merged pull request's #201 record line from a fixed template, the full merge sha, read back byte-identical
@@ -1943,10 +2111,10 @@ index eee7a838c..bf4ca742f 100644
    cause is gone, which closes the ledger event on a clean run. Refusals: a step
    that fails is printed `OWED <step>: <why>`, opens `postmerge-owed` for the pull
 diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
-index e52a79247..d610c9da4 100644
+index a156f1514..962a4b769 100644
 --- a/tools/audit/seat/merge_train.py
 +++ b/tools/audit/seat/merge_train.py
-@@ -2417,7 +2417,12 @@ class Train:
+@@ -2698,7 +2698,12 @@ class Train:
          own worktree holding a branch (train-b5, #2290: PARKed by
          ~/hpo-orch/train-b5/wt/2290). Never forced: one with changes stays,
          logged NOT released; a queue entry's own `worktree` is never touched."""
@@ -1959,7 +2127,7 @@ index e52a79247..d610c9da4 100644
              code, o = self.run(["git", "worktree", "remove", str(wt)])
              self.log(f"released {wt}" if code == 0 else
                       f"NOT released {wt} (rc={code}: {o.strip()[-160:]}); remove it by hand")
-@@ -4779,11 +4784,42 @@ def _self_test() -> int:
+@@ -5110,11 +5115,42 @@ def _self_test() -> int:
      # The train releases the recarry worktrees it made (train-b5 left wt/2290
      # holding the branch, and the next pre-flight PARKed the entry on it).
      own = {k: v for k, v in item.items() if k != "worktree"}
@@ -2003,7 +2171,7 @@ index e52a79247..d610c9da4 100644
      rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
      check("... and a queue entry's own worktree is never touched (null control)",
            rc == 0 and not any(c[:3] == ["git", "worktree", "remove"] for c in calls))
-@@ -5547,6 +5583,8 @@ def _unwind_self_test(check) -> None:
+@@ -5974,6 +6010,8 @@ def _unwind_self_test(check) -> None:
          "rec = open(sys.argv[1], 'a')\n"
          "def run(argv, cwd=None, stdin=None):\n"
          "    rec.write(' '.join(argv) + '\\n'); rec.flush()\n"
@@ -2013,7 +2181,7 @@ index e52a79247..d610c9da4 100644
          "        rec.write('UNWINDING\\n'); rec.flush(); time.sleep(2)\n"
          "    return 0, ''\n")
 diff --git a/tools/audit/seat/postmerge.py b/tools/audit/seat/postmerge.py
-index f3116863a..386c54b16 100644
+index 084020a24..b5be1cdfd 100644
 --- a/tools/audit/seat/postmerge.py
 +++ b/tools/audit/seat/postmerge.py
 @@ -14,11 +14,13 @@ the merge is confirmed. It runs, in order, and a failure in any is printed as
@@ -2039,16 +2207,16 @@ index f3116863a..386c54b16 100644
          ("main", [*PY, f"{seat}/merge_train.py", "classify", sha, "--repo", repo, "--main"], False),
      ]
  
-@@ -134,7 +135,7 @@ def self_test() -> int:
+@@ -148,7 +149,7 @@ def self_test() -> int:
                                        "closingIssuesReferences": [{"number": 5}]})
              if "rev-parse" in j:
                  return 0, full + "\n"
 -            for key in ("gh_comment.py", "roster_sync.py", "state_docs.py", "classify", "ledger.py"):
 +            for key in ("gh_comment.py", "roster_sync.py", "classify", "ledger.py"):
                  if key in j:
-                     return rc.get(key, 0), f"{key} said" + (" REFUSED" if rc.get(key) else "")
+                     return rc.get(key, 0), said.get(key, f"{key} said" + (" REFUSED" if rc.get(key) else ""))
              return 0, ""
-@@ -149,23 +150,23 @@ def self_test() -> int:
+@@ -163,23 +164,23 @@ def self_test() -> int:
  
      code, lines, log = go()
      check("a clean run owes nothing, exits 0 and says so", code == 0 and lines[-1].endswith("nothing owed"), lines)
@@ -2082,7 +2250,7 @@ index f3116863a..386c54b16 100644
                any(f"ledger.py open postmerge-owed 7 {full} " in c for c in log), log)
      code, lines, _ = go({"roster_sync.py": 1})
 diff --git a/tools/audit/seat/roster_edit.py b/tools/audit/seat/roster_edit.py
-index df8cccd8e..43b3c97aa 100644
+index 8cd1f0fff..414a6a6ac 100644
 --- a/tools/audit/seat/roster_edit.py
 +++ b/tools/audit/seat/roster_edit.py
 @@ -115,8 +115,9 @@ naming a host path is refused at the op with a scrub hint, not at the
@@ -2098,10 +2266,10 @@ index df8cccd8e..43b3c97aa 100644
  carries, a changed brief, an appended carry), so every caller of
  `write_roster()` -- this file's ops and roster_sync.py's carries -- passes it.
 diff --git a/tools/audit/seat/sweep_template.md b/tools/audit/seat/sweep_template.md
-index 6e60d5b75..07f7c86b5 100644
+index 785b53e5d..82fd53a2f 100644
 --- a/tools/audit/seat/sweep_template.md
 +++ b/tools/audit/seat/sweep_template.md
-@@ -82,7 +82,7 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
+@@ -85,7 +85,7 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
  
  (6) Verdicts and CI. Read any moved `review/*` or `probe/*` refs and the cloud runs; confirm each verdict at its exact head with `tools/audit/seat/bus.sh confirm` (`dev/governance/roles/nudge.md` step 1). A red required check at an open head goes back to its fixer with the line `tools/audit/seat/failure_logs.sh` prints (`dev/governance/roles/nudge.md` steps 4 and 15).
  
@@ -2111,10 +2279,10 @@ index 6e60d5b75..07f7c86b5 100644
  (8) Disk. The beat's `disk` row runs `tools/audit/worktree_gc.sh {{repo}}` whenever `/` has under {{disk_floor_gib}} GiB free; a `disk:` line in {{digest}}/digest.txt is a floor still not met after it: remove finished seat worktrees under {{seat_root}} by hand.
  
 diff --git a/tools/pr/app_approve.sh b/tools/pr/app_approve.sh
-index 75a4ab62e..a8c263637 100755
+index 0937956d7..a28fd8677 100755
 --- a/tools/pr/app_approve.sh
 +++ b/tools/pr/app_approve.sh
-@@ -279,8 +279,19 @@ driver_wrote() {
+@@ -287,8 +287,19 @@ driver_wrote() {
  
  # carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
  carry() {
@@ -2136,7 +2304,7 @@ index 75a4ab62e..a8c263637 100755
    # Read at main, never at a head: a branch that gave a file a driver would
    # otherwise take it out of the comparisons itself.
    # A read loop and a guarded expansion, not `mapfile`: macOS ships bash 3.2,
-@@ -1650,6 +1661,22 @@ st $? 0 "CARRY: a bot commit that only ADDS a fresh row is still new bot content
+@@ -1673,6 +1684,22 @@ st $? 0 "CARRY: a bot commit that only ADDS a fresh row is still new bot content
  ( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$H_PINGLOB" origin/main ) > "$W/carry.out" 2>&1
  st $? 1 "NO CARRY: a path named '*' is not a wildcard, it is one added file"
  st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison, literal pathspec holding"
@@ -2160,7 +2328,7 @@ index 75a4ab62e..a8c263637 100755
  # branch's change from charge() to discharge(), whose three lines of context
  # are the same, and the header-free comparison alone reads the two as equal.
 diff --git a/tools/pr/ci_predict.py b/tools/pr/ci_predict.py
-index 8ad7b7965..1954d0946 100644
+index f2882e389..bbdd4f4ed 100644
 --- a/tools/pr/ci_predict.py
 +++ b/tools/pr/ci_predict.py
 @@ -60,6 +60,11 @@ so `prepr.sh` step 6d warns and the body owes each one a disposition.
@@ -2328,7 +2496,7 @@ index 8ad7b7965..1954d0946 100644
  def mutant_preds(root: Path, changed: set[str]) -> list[tuple[str, str]]:
      """`instrument-self-tests`'s seat mutant drivers (`r10_*_mutants.py
      --self-test`), run when the diff touches a file a driver plants into.
-@@ -864,7 +1015,8 @@ def unpinned(base):
+@@ -949,7 +1100,8 @@ def unpinned(base):
  # the 5 s budget the seat's checks meet (eight others then; R10-FLOW-JIDOKA's
  # review, 2026-10-26).
  ARMS = ("orphans", "layout", "privacy", "wiring", "mutants", "agreement", "graders", "no-recording",
@@ -2338,7 +2506,7 @@ index 8ad7b7965..1954d0946 100644
  
  
  def is_red(job: str, line: str) -> bool:
-@@ -905,13 +1057,14 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
+@@ -990,13 +1142,14 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
          ("mutation", lambda: unpinned(base)),
          ("self-test-reads", lambda: self_test_reads(root, changed, closures, inert_reads,
                                                      closure, scripts, notes=notes)),
@@ -2354,7 +2522,7 @@ index 8ad7b7965..1954d0946 100644
              preds += arm()
      if body:
          preds += carry_preds(root, body)
-@@ -981,7 +1134,11 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
+@@ -1066,7 +1219,11 @@ def repairs(root: Path, preds, scripts: set) -> list[str]:
                     "graded by the copy it replaces: move it into the data the grader reads (corpus_excluded.json "
                     "for named-docs, #2916's repair), or land the grader change first "
                     "(dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md); the body names it under ## Red checks")
@@ -2367,7 +2535,7 @@ index 8ad7b7965..1954d0946 100644
          out.append("a REF PRIVACY refusal is repaired as `python3 -I tools/audit/seat/ref_privacy.py --check` "
                     "names it: a push site guarded and registered in PUSHERS, a published host path scrubbed")
      if any(j == "fast" and l.startswith("UNCLASSIFIED") for j, l in preds):
-@@ -1307,6 +1464,7 @@ def self_test() -> int:
+@@ -1400,6 +1557,7 @@ def self_test() -> int:
      bad += mutant_self_test(root)
      bad += null_control_self_test(root)
      bad += graders_self_test(root)
@@ -2375,3 +2543,7 @@ index 8ad7b7965..1954d0946 100644
      gate = root / "tools" / "ci" / "gate.py"
      if gate.exists():
          sys.path.insert(0, str(root / "tools" / "ci"))
+
+## Before you return the verdict (P275)
+Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;
+an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.
