@@ -1,5 +1,0 @@
-  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
-STRUCTURE RATCHET PASSED
-fold_ledger: 0 violation(s)
-    from homeassistant.config_entries import ConfigEntryState
-ModuleNotFoundError: No module named 'homeassistant'

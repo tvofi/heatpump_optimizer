@@ -1,2 +1,1 @@
-MUTANT restamp dropped from post(), --ci 4fe7d5934b:
 RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
