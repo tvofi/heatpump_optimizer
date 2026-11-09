@@ -627,6 +627,13 @@ INERT_EXCEPT = (
     # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
     # stays INERT, this file joins the recorded closure.
     "tools/audit/seat/plan_page.py",
+    # R10-TICK-LEVELS P2: roster_sync.py (already a recorded read above) imports
+    # the topic grammar's one owner in-process, so tests/entities.py's load of it
+    # opens this file. CI's closures job 128825445404 was UNDER-SCOPED on it and
+    # closures-autofix ended skip-merge-failed (INERT and read). Same route as
+    # plan_page.py: tools/audit/seat/ stays INERT, this file joins the recorded
+    # closure, so an edit to the grammar selects tests/entities.py.
+    "tools/audit/seat/topic_grammar.py",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
