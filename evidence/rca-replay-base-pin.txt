@@ -1,0 +1,10 @@
+== at 6457496a
+3252-nosource: MISREAD | 42385416529: FAIL pr-contract / pr-contract: failure (run 42387066581) naps=0
+3244-triple: DECIDED | 42286558101: PASS naps=0; 42286624031: PASS naps=0; 42293328283: PASS naps=0
+RESULT replay ci=/tmp/tmp.bWRztbiJnk/tools/ci defects=yes
+rc=0
+== at 9cbd7dd0
+3252-nosource: MISREAD | 42385416529: FAIL pr-contract / pr-contract: failure (run 42387066581) naps=0
+3244-triple: DEADLOCK | 42286558101: FAIL run(s) [42286624031, 42293328283] at this head are stil naps=0; 42286624031: FAIL run(s) [42286558101, 42293328283] at this head are stil naps=0; 42293328283: FAIL run(s) [42286558101, 42286624031] at this head are stil naps=0
+RESULT replay ci=/tmp/tmp.nbLGlNlwKB/tools/ci defects=yes
+rc=0
