@@ -211,6 +211,11 @@ Then three numbers off the heat pump's nameplate:
 | Heat pump max power | 5.0 kW | 1–20, 0.5 steps | Electrical input at full output. Caps how much cheap electricity can be stored per hour. |
 | Heat pump min power | 1.0 kW | 0–10, 0.5 steps | The lowest input the pump can hold without cycling. Must not exceed the maximum. |
 
+A pump that cannot run below its min power at all, only on or off, is
+declared on **Thermal model (expert)** as *Compressor runs below min power:
+No: on/off*; otherwise the plan may book steps below the minimum as averages
+the pump would reach by modulating.
+
 That is the whole questionnaire path — the two-zone and solar pages are skipped
 deliberately. Their fields, once written, are what switches the two-zone model
 on, and a fresh install should not be given a two-zone model it did not ask
@@ -618,7 +623,9 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Lower floor temperature sensor | the setup value | a temperature sensor | As on Optional sensors. Two-zone houses only. |
 | Heat pump on/off switch | the setup value | a `switch` | As on Optional sensors. |
 | Space-heating set-point entity | none | `number` / `input_number` / `climate` | Optional. Used to notice when the entity cannot be read. Written only with **Pump duty control** at Control, and then with the plan's own number (see below), never a recommended optimum. |
-| What that set-point entity expects | Indoor temperature | Indoor temperature / Flow temperature | A declaration, not a write. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. |
+| What that set-point entity expects | Indoor temperature | Indoor temperature / Flow temperature / Return temperature | A declaration, not a write. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. *Return temperature* is a controller that takes the number as its return-water target (see [Pump duty control](#pump-duty-control)). |
+| Minimum lift above the inlet water (`flow_min_lift_k`) | 5 K | 0.5–15 K, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at the plan's lowest power is the measured inlet water plus this (see [Pump duty control](#pump-duty-control)). |
+| Heating flow ceiling (`flow_heat_c`) | 55 °C | 30–70 °C, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at full planned power, and the highest heating value written. A stored value at or below the 25 °C gate is read as 55 °C. |
 
 ### Power and solar sensors
 
@@ -680,8 +687,8 @@ writes, at every 15-minute plan step:
 | Neither (idle) | left as it is | the same | the space gate |
 | Every fallback | *Heating + DHW* | the same | the hold value |
 
-- **For a *Flow temperature* entity** the heating value follows the planned
-  power. At full power it is 55 °C (the `flow_heat_c` option, when set), or
+- **For a *Flow temperature* entity** (and a *Return temperature* one,
+  below) the heating value follows the planned power. At full power it is 55 °C (the `flow_heat_c` option, when set), or
   the entity's maximum if that is lower. A lower planned level moves the
   target toward the return-water temperature, or toward 35 °C when no return
   sensor is configured, so the pump's own water thermostat can deliver that
@@ -691,9 +698,58 @@ writes, at every 15-minute plan step:
   stays below the ceiling. The space gate is the entity's minimum, never
   below 25 °C. The hold value, for when the plan is not in charge, is 35 °C
   (the flow the pump's rated COP assumes), or the model's weather curve where
-  that is higher, and never above the heating ceiling.
+  that is higher. The curve is never written above the heating ceiling; the
+  bare 35 °C is, if you set the ceiling below it.
   The model's weather curve is a pricing curve, not a set-point: written
   as one, it held the pump at 25 °C and underheated the house.
+  The lift at the lowest level is 5 K over the inlet (`flow_min_lift_k`)
+  and the ceiling 55 °C (`flow_heat_c`); both are on **Sensors and
+  entities**, once the unit is *Flow* or *Return temperature* (the two
+  fields appear once that unit is saved). Those defaults suit a controller
+  that holds its **supply** at the set-point.
+- **For a *Return temperature* entity** — a controller that takes the
+  number as its **return-water** target, as a Luxtronik (alpha innotec,
+  Novelan) through its Smart Home Interface is assumed to — everything above
+  applies, with these differences:
+  - The values derived from a supply temperature — the 35 °C hold, the
+    weather curve and the 25 °C gate — are written 5 K lower (the rated
+    supply-over-return spread, an assumption from the W35 rating point), and
+    so is the 35 °C floor used when no inlet sensor reads. The hold is
+    always capped at the heating ceiling. The gate a step that does not heat
+    writes is therefore 20 °C (or the entity's minimum, if higher): a
+    25 °C return target sits above a floor return cooled overnight, and a
+    controller that modulates on target minus return would heat on a step
+    meant to be off. The lift at the lowest level is taken from the measured
+    return or this 20 °C gate, whichever is higher.
+  - The lift is taken only from the heat pump's return, the buffer tank or
+    the floor return, never from the valve outlet, which is house-side
+    supply. With none of them reading, the floor is the 30 °C hold. Map the
+    heat pump's return sensor.
+  - A ceiling write counts as "the pump may draw its maximum" for the
+    learned power range and the ceiling probe only while the measured
+    return sits at least 5 K below the ceiling. Closer than that, the pump
+    is assumed to modulate down, so those draws do not teach the range a
+    lower top.
+  - The lift and the ceiling are written as you set them, and their
+    defaults stay 5 K and 55 °C. Those are assumed to be too high for such
+    a controller: on the install this was written for, a 5 K lift ran the
+    compressor near full speed at the plan's lowest level, and a 55 °C
+    return target would overheat the system water. Choose the lift small
+    enough that the compressor runs near its minimum at the plan's lowest
+    level; check it against the measured frequency and power. Choose the
+    ceiling above the highest return you see in normal heating plus the
+    lift (otherwise a heating step writes a target below the return, and
+    such a controller presumably stops), and no higher than the controller accepts: a Luxtronik
+    clamps the target to its own minimum return target and return limit, so a ceiling above the
+    limit is written but not followed. A controller that starts heating only once the target sits
+    its hysteresis above the return (2 K on a Luxtronik's default) is not started by a smaller lift;
+    it only keeps a running compressor near its minimum. On the install this was written for, a
+    0.5 K lift held 26–31 Hz once running, 1–1.5 K ramped to 73–81 Hz. For a low-temperature floor
+    heating, 0.5–2 K and 30–40 °C may be a starting point; check them against the compressor's
+    frequency and power.
+  - Downgrading: a version before this option reads *Return temperature* as
+    *Indoor temperature* and writes the planned room temperature to the
+    entity. Switch the unit back to *Flow temperature* before downgrading.
 - **For an *Indoor temperature* entity** each of the three is the step's
   planned room temperature, clamped to the entity's range (5 °C as the gate
   where the mode offers no hot-water-only option). An entity whose own
@@ -854,6 +910,7 @@ the per-floor numbers live on **Two-zone model**.
 | Heat pump nominal COP | the setup value | 1.5–6.0 | Units of heat per unit of electricity under normal conditions. |
 | Heat pump max power | the setup value | 1–20 kW | Electrical input at full output. |
 | Heat pump min power | the setup value | 0–10 kW | The lowest input the pump can hold without cycling. |
+| Compressor runs below min power | Automatic | Automatic, No: on/off, Yes: modulating | **No: on/off** plans every step at 0 or between min and max power, hot water and space heating together. **Yes: modulating** plans a level below min power as an average the pump reaches by running part of the step. **Automatic** counts a power switch plus a setpoint with no frequency entity as on/off, anything else as modulating. |
 | Heat pump COP loss at max power | the setup value | 0–0.5 | The share of efficiency lost at max power rather than min power. See [the setup screen](#thermal-model--optimization) for the limit the page enforces. |
 
 **Changing a derived value turns the derivation off.** These fields are what

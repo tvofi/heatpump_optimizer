@@ -353,6 +353,7 @@ from .thermal_model import (
     planned_draw_runs,
     probe_install,
     reanchor_heat_loss,
+    partload_factor,
     power_for_heat_per_cop_kw,
 )
 from .dhw_schedule import (
@@ -986,9 +987,7 @@ def _interval_measured_heat_kw(coord: Any) -> float | None:
     The one place the substitution is decided, so the two interval learners
     and the slab estimate cannot diverge about what the interval delivered.
     """
-    meter = heat_energy.meter_of(coord)
-    split = coord._commanded_split()
-    a = meter.attribution(split)
+    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
     return heat_energy.space_heat_kw(coord._flow_bias.heat_output_kw, a, integrated=False)
 
 
@@ -1081,12 +1080,14 @@ async def _propagated_slab(coord: Any, prior: Any, prior_at: datetime | None) ->
     now = dt_util.now()
     dt_h = 0.0 if prior_at is None else utc_elapsed_seconds(now, prior_at) / 3600.0
     signals = coord._pump_signals
+    # Observed, the dwell's hours apportion the draw; none on space books 0 kW.
+    a = heat_energy.meter_of(coord).attribution(coord._commanded_split())
     kw = draw_range.space_draw_kw(
         coord._accuracy.draw,
         coord._measured_power,
-        coord._commanded_split(),
+        (a.space, a.dhw),
         shared=coord._immersion_active or signals.electric_heat.resistive_heat,
-        space_served=signals.space_heat or not signals.mode_observed,
+        space_served=a.observed or signals.space_heat or not signals.mode_observed,
     )
     if kw is not None and prior_at is not None and 0.0 < dt_h <= HOUSE_LOSS_MAX_SAMPLE_HOURS and (state := await _replay_interval(
         coord, prior, kw, prior.outdoor_temperature, prior_at, dt_h, "Slab estimate",
@@ -8222,6 +8223,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             current_state=ctx._current_state,
             result=result,
             local_tz=dt_util.DEFAULT_TIME_ZONE,
+            partload_at=partload_factor,
         )
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte
@@ -9993,10 +9995,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # coarser configured interval starves forever. A stale, frozen or
         # unconfigured (#2508: the 21.0 C default) indoor sensor scores no
         # room: none is a measurement, and an EWMA poisoned persists weeks.
-        interval_h = (
-            ctx._config.optimization_interval
-            / 60.0
-        )
+        interval_h = ctx._config.optimization_interval / 60.0
         actual_now = None if learner_room_unread(ctx._config) else ctx._current_state.room_temperature
         indoor_frozen = self._learning_frozen(CONF_INDOOR_TEMP_ENTITY)
         if actual_now is not None and indoor_frozen is None:
@@ -10104,6 +10103,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # T6 #52: the assumptions this interval starts under, for the
             # diagnosis re-run when it settles.
             "diag": self._capture_diagnosis_inputs(), **{k: self._current_action.get(k) for k in SETTLEMENT_KEYS},
+            # On a wood house, whether wood heats it: the ledger calibrates from those it does not.
+            "wood_heated": self._external_heat.state.heating() if wood_furnace_on(ctx._config) else None,
         }
     def _dhw_probe_temperature(self) -> float | None:
         """The tank's MEASURED temperature, or ``None`` when there is none.
@@ -10426,9 +10427,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         return wear_price_per_start(
             ctx._config.compressor_replacement_cost,
-            int(
-                ctx._config.compressor_rated_starts
-            ),
+            int(ctx._config.compressor_rated_starts),
         )
     def _effective_cycling_cost(self) -> float:
         """#55 (gated): the cycling penalty, floored by realised wear.

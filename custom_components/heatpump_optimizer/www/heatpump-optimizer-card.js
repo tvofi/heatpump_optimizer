@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.6";
+const CARD_VERSION = "7.1.8";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -329,6 +329,8 @@ const STRINGS = {
     "savings.col_pct": "%",
     "savings.estimated": "estimated",
     "savings.old_basis": "old basis",
+    "savings.below_meter_floor": "no saving stated",
+    "savings.meter_floor_note": "No saving is stated for a month whose baseline used under half the energy the meter recorded: a baseline that low is a fault, not a saving.",
     "savings.wood_note": "The saving includes heat from wood. Firewood's cost is not counted.",
     "savings.empty": "No settled savings months yet.",
     "receipt.closed": "{month} \u00b7 closed",
@@ -1211,6 +1213,8 @@ const STRINGS = {
     "savings.col_pct": "%",
     "savings.estimated": "uppskattat",
     "savings.old_basis": "gammalt underlag",
+    "savings.below_meter_floor": "inget sparande anges",
+    "savings.meter_floor_note": "Inget sparande anges för en månad vars referens använde under hälften av den energi mätaren registrerade: en så låg referens är ett fel, inte ett sparande.",
     "savings.wood_note": "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte.",
     "savings.empty": "Inga avräknade sparandemånader ännu.",
     "receipt.closed": "{month} \u00b7 avslutad",
@@ -10044,7 +10048,9 @@ function receiptHtml(st, rows, cur, wood) {
       }))}</div>${wood
         ? `<div class="receipt-sub receipt-wood-note">${esc(L("savings.wood_note"))}</div>`
         : ""}`
-    : "";
+    : row && row.below_meter_floor
+      ? `<div class="receipt-sub receipt-floor-note">${esc(L("savings.meter_floor_note"))}</div>`
+      : "";
   const covers = basis.map((n) => L(`receipt.line_${n}`).toLowerCase()).join(", ");
   const reasons = Object.entries(r.reasons || {})
     .filter(([, e]) => e && finiteNum(e.sek) && e.sek > 0)
@@ -15047,8 +15053,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const old = row.old_basis
         ? ` <span class="savings-est savings-old">${esc(L("savings.old_basis"))}</span>`
         : "";
+      const floor = row.below_meter_floor
+        ? ` <span class="savings-est savings-floor">${esc(L("savings.below_meter_floor"))}</span>`
+        : "";
       return `<tr class="${row.estimated ? "estimated" : ""}">
-        <td>${esc(String(row.month || ""))}${est}${old}</td>
+        <td>${esc(String(row.month || ""))}${est}${old}${floor}</td>
         <td class="num">${money(row.baseline_sek)}</td>
         <td class="num">${money(row.actual_sek)}</td>
         <td class="num">${mag(row.savings_sek)}<span class="sv-val">${money(row.savings_sek)}</span></td>
@@ -15062,6 +15071,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const woodNote = wood
       ? `<div class="savings-wood-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.wood_note"))}</div>`
       : "";
+    // R10-SAV-METER-FLOOR: a month withheld under the meter floor says why.
+    const floorNote = rows.some((r) => r && r.below_meter_floor)
+      ? `<div class="savings-floor-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.meter_floor_note"))}</div>`
+      : "";
     return `${top}<table class="savings-table">
       <thead><tr>
         <th>${esc(L("savings.col_month"))}</th>
@@ -15071,7 +15084,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         <th class="num">${esc(L("savings.col_pct"))}</th>
       </tr></thead>
       <tbody>${rows.map(tr).join("")}</tbody>
-    </table>${woodNote}`;
+    </table>${woodNote}${floorNote}`;
   }
 
   // The sensor advisor page's renderer and wiring live at module level

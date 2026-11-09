@@ -584,6 +584,16 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/pr/preflight.sh",
+    # R10-FLY-REPLAN-DEFECTS: tests/entities.py runs the orchestrator tick's
+    # self-test, whose closure holds roster_lib.py (a roster_lib edit must run it).
+    # CI's closures-autofix refused: INERT and read. Same route as the files below:
+    # the tools/audit/seat/ files stay INERT, this one moves to the recorded closure.
+    "tools/audit/seat/orchestrator_tick.py",
+    # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
+    # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
+    "tools/audit/seat/pr_cap.py",
+    "tools/policy/budget_raise_gate.py",
+    "tools/pr/app_approve.sh",
     # #2216: tests/entities.py reads the coverage stage, one of the three
     # HPO_CI_METRICS emitters, to pin that it keeps the metrics file from the
     # scripts it runs; left inside the tools/coverage/ prefix it would be
@@ -793,6 +803,10 @@ INERT_EXCEPT = (
     "tools/policy/rules_sync.mjs",
     "tools/policy/vendor/markdown-it.min.js",
     "tools/policy/vendor/markdown-it.LICENSE",
+    # r10-hotfix-nonrequired-reds: tests/entities.py's _pcr_unrestored rule
+    # reads the source of every python3 program policy_lint.mjs spawns, and
+    # policy_lint.mjs spawns this one. An edit selects entities.py.
+    "tools/policy/budget_raise_gate.py",
     # #1240 (D13-03): tests/entities.py reads the wave script itself to
     # re-derive VERDICT_CLASSES and pin that the stats histogram's block-class
     # set is the one the wave teaches -- the stale-copy class of check this
