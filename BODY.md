@@ -17,14 +17,31 @@ Group carries (roster `R10-COMBI-TANK` at `origin/handoff/audit-r10-roster`, num
 - **Carry 5** (the folded report): PR A takes only item 1's UA. The issue fixture in `tests/features.py` and the harness is the manual's store: 504 l heating volume, 40 l coil, and the ErP standing loss 111 W at 65 °C entered as the cooling rate that gives UA 111/45 W/K; the check asserts the store's UA equals it to 1e-12. The preset and help-text items bind PR B.
 - **Carry 6** (open-loop DHW seed from a measured tank temperature): answered by PR 0 (`_seed_store` reads an ok probe first); the combi seed is PR B's `combi_tank_seed`.
 - **Carry 7** (the `Co-authored-by: Bankaifan` trailer on the PR that lands the multi-tank setup): not landed here, because PR A lands no setup an install can reach; carried to PR B below.
+- **Carry 8** (item unwired-combi-set), **Carry 9** (item exchange-accounting), **Carry 10** (item exo-seed-census-only), **Carry 11** (item bankaifan-trailer): this pull request's own four `## Forward-carry` lines, recorded on the roster by the previous handoff; each binds PR B and stands as written below, unchanged by this round (whose checks add no planner stage and leave `combi_flux_live` in place).
+
+**Repair, round 1 (this head): `tests / mutation` at `74df96f1`.** That job (128944437769, 128944332674) refused 23 unpinned sites this diff added after the `mutation-autofix` pin commit, and `tests / mutation-autofix` went red: survivors, triaged by hand (`ci-autofix.md`). Each is now one of: killed by a new check in the `R10-COMBI-TANK: the combi store's guards and clamps, at the inputs that move them` block of `tests/features.py`, or an equivalence triage under `tests/mutation_ledger/survivor_triage/` measured by the harness's new `equiv` arm. One production change rides with it: `combi_store_of`, `dhw_store_of`, `ThermalParameters.buffer_store_volume` and `_combi_dhw_exo` test `combi_tank_active` alone, because that property's own first conjunct is `dhw_combi_tank_enabled`: the `and` repeated it and carried two BOOLOP sites no input could separate from the head. The two-zone space steps keep `if throttled and buffer_exo_kw:` / `if throttled and exo_i:`: the second conjunct skips an array add per step in `simulate_trajectory_batch` off combi, so both sites are killed by a contract check instead (alternative considered: `if throttled:` alone, as the single-zone step reads; lost on that cost).
 
 ## Head
 
-`d28e0e411600e0f3c72eb0de40912ff521b90b9a` is the handoff head: this branch merged with `origin/main` `20e83746f` (merges only, no rebase), origin/main's tip at 2026-11-08T22:52Z and the merge base. The evidence below was taken at `d6a6fb72cd5e998ebae74b84f68ac7cd86672918`, the previous merge (with origin/main `51cd5ec8a42a`, the base the figures name); the last two merges brought tools/CI (prepr.sh and the budget-raise gate among them), a card browser test and delivery records, and `git diff --stat d6a6fb72c d28e0e411 -- custom_components tests/features.py tests/entities.py tests/guard_pins.py dev/audit/harnesses/r10_combi_tank.py` is empty. Re-taken at `d28e0e411`: the scope (`MODE: SCOPED -- 27 script(s) run, 6 scoped out.`), `tests/structure.py` (`STRUCTURE RATCHET PASSED`), `tools/pr/ci_predict.py` (no closures, fast, governance or instrument red against `20e83746f`) and `tools/pr/prepr.sh` on this body. origin/main moved to `fdc8d21ad` after that run (2026-11-08T23:23Z); `git merge-tree --write-tree origin/main HEAD` reports no conflict, so per `fixer.md` step 6 the head was left as it is. Branch start: origin/main `17e621f08`, with the PR-0 tip `0ec5d1852` already its ancestor (#3268), so `handoff/r10-combi-tank` fast-forwards onto this head.
+`5e50b92459e6ac9eb1cce1f485029916e1403a87` is the handoff head: `74df96f104dfd8630894e8b52a11563b80803377` (the `mutation-autofix` pin commit on the previous handoff) plus this round's commits. Every figure below was taken at this head unless it names another SHA. origin/main is `82a2c142faa3b92a08765d7b9c676ddd6a490631` at 2026-11-09T05:46Z; `git merge-tree --write-tree origin/main HEAD` reports no conflict, so per `fixer.md` step 6 main was not merged and the merge base stays `fdc8d21ad`. `tools/pr/prepr.sh` ran once, on this head and this body, with main unmoved since that run.
 
 ## Mutation proof
 
-Each mutant was applied to a detached worktree at the head `d6a6fb72c`, the `R10-COMBI-TANK-STORE` block of `tests/features.py` was run on `tests/features.py`'s own prelude (the block's imports and helpers, check names unchanged), and the file was restored. FAIL lines are check names:
+**This round** (the 23 sites `tests / mutation` named at `74df96f1`, as `tests/mutation_table.py`'s own operators write them; spec built from `mutation_table.unpinned_sites` over `inventory()` of the three files): `tools/audit/seat/mutant_run.py --spec <spec> --cmd 'python3 tools/audit/seat/features_block.py --prelude <helpers> "R10-COMBI-TANK-STORE (#3225" "# R10-BUFFER-STORE review 1: the savings reference"'`, a `git archive` copy of the head per mutant, `SURVIVED NULL` first. 21 KILLED, 3 SURVIVED (the three equivalences, triaged below). The check each kill turns red:
+- `dhw_planner.py:627 CMP_BOUND` (`boost_top >=`): `legionella ceilings: with the rating at the charge limit no step's ceiling moves and no run-up floor is set; null control: below the rating the cycle runs up`.
+- `dhw_planner.py:835 CLAMP_DROP` (idle floor unclamped): `idle floor: a 50 C idle minimum above a 45 C window minimum floors idle steps at the window minimum's store temperature, combi and off`.
+- `optimizer.py:1397 GUARD_OFF`, `thermal_model.py:1927 GUARD_OFF`: `combi_store_of and the hot-water flux are None off combi and wherever its preconditions fail with the option on; null control: on, the store and an 8-step series`.
+- `optimizer.py:1412 CONST` (`_COMBI_EXCHANGE_ROUNDS = 8`) and `optimizer.py:1444 GUARD_OFF` (no break): `combi flux exchange: a plan that stops moving ends the rounds before the cap; one still moving is published after exactly four plan builds`. The literal four is the design value the cap's comment prices (one DHW plan build per round on a Pi-class host): the check pins it, said here because a pin of a tuning constant is a design choice.
+- `thermal_model.py:329 GUARD_OFF`, `thermal_model.py:1941 GUARD_OFF` (the simplified lines' re-pins): the existing `combi: the DHW store is the buffer store, potable water included: one capacity, one loss`.
+- `thermal_model.py:1951`, `:1952 CLAMP_DROP`: `combi: a 50 C buffer rating caps the store's charge limit and rating alike; null control: off, the separate tank keeps its own`.
+- `thermal_model.py:1987 CMP_BOUND` and `GUARD_OFF`, `:1991 CLAMP_DROP` both, `:1999 CLAMP_DROP`: `store_step: no capacity holds the temperature and books nothing; a charge below the rating warms the store and refuses nothing; a store above its rating cools by its loss and refuses nothing; a zero-length step from below the floor returns the floor without dividing by zero`.
+- `thermal_model.py:2068 CLAMP_DROP`: `combi_space_net_kw: a zero-length step books the standing loss and no gain, a finite series`.
+- `thermal_model.py:3373 CLAMP_DROP`: `combi hold horizon: a store floor above the charge limit coasts from a kelvin above the floor, a positive horizon`.
+- `thermal_model.py:3692` and `:4406` BOOLOP and GUARD_OFF: `two-zone combi: a 2 kW hot-water flux warms the store in the scalar walk and the batch twin alike; behind no valve the same series moves no output of either`.
+
+Failing first: HEAD's `tests/features.py` (sha1 `a84cdeab3fb4109ac11e94286ace1e8ee3ef953c`) copied into a detached worktree at the merge base `fdc8d21ad` and the same block run: rc 1, 27 FAIL, 0 ok, the new section's six checks up to the legionella arm among the FAILs, and that arm then raises `TypeError: DhwPlanner._dhw_legionella_ceilings() missing 1 required keyword-only argument: 'c_dhw'` (the base's signature), so nothing after it reads.
+
+**Earlier rounds** (unchanged production since: `git diff --stat d6a6fb72c HEAD -- custom_components` is this round's 4 lines, each `p.dhw_combi_tank_enabled and p.combi_tank_active` → `p.combi_tank_active`, equal on every input because `combi_tank_active` is `self.dhw_combi_tank_enabled and ...`). Each mutant was applied to a detached worktree at `d6a6fb72c`, the `R10-COMBI-TANK-STORE` block run on `tests/features.py`'s own prelude, and the file restored. FAIL lines are check names:
 - **M1** combi branch of `dhw_store_of` dropped (always the separate tank): 9 FAIL, among them `combi: the DHW store is the buffer store, potable water included: one capacity, one loss`; `combi battery: no dhw_tank beside the buffer_tank, whose capacity is the store's`; `lp_flux: a 2 kW valve draw before the window raises the hot water the plan buys, and the store still meets every floor and the window's ready temperature`; `combi flux exchange: the joint plan's store meets the hot-water requirement the space side drains, and its published DHW and buffer trajectories are one`.
 - **M2** exo out of the LP's free recursion: FAIL `combi_flux_live census: every DHW walk the planner runs, and each of its three affine recursions, carries the space side's flux, and both space walks read the DHW side's`. Only the census kills it: the LP is a seed, and the repair and greedy stages, which do carry the flux, close what the seed under-buys. Said, not hidden.
 - **M3** exo out of the capacity clamp's `allowed`: FAIL `lp_flux: ...`.
@@ -39,10 +56,12 @@ Each mutant was applied to a detached worktree at the head `d6a6fb72c`, the `R10
 - **M12** `_dhw_window_floors`' tap transform dropped: FAIL `combi: a 45 C tap minimum is a 51.18 C store floor at eps 0.85 (inlet 10 C), in the planner's floors and the hold horizon alike`; `combi_tap_limit census: ...`.
 - **M13** exo dropped from `_dhw_shortfall`'s walk: FAIL `lp_flux: ...`; `combi_flux_live census: ...`.
 
-Failing first: the block run against the merge base's production tree (a detached worktree at `51cd5ec8a`, this head's `tests/features.py` copied in, sha1 `691b37ce`) printed `21 of 22 COMBI BLOCK FAILED`: every check of the block fails, and the 22nd is the prelude's own. The three censuses there enumerate the class's seams (listed under `## Figures`).
+Failing first, then: the block run against the merge base's production tree (a detached worktree at `51cd5ec8a`, that head's `tests/features.py` copied in, sha1 `691b37ce`) printed `21 of 22 COMBI BLOCK FAILED`. The three censuses there enumerate the class's seams (listed under `## Figures`).
 
 ## Null control
 
+- **This round's kills, before and after:** at `74df96f1`, the parent of this round, `mutant_run.py` with the same block command over three of the sites `tests / mutation` named (`thermal_model.py:1951 CLAMP_DROP`, `thermal_model.py:1987 GUARD_OFF`, `dhw_planner.py:835 CLAMP_DROP`) printed `SURVIVED NULL` then `SURVIVED` for all three; at this head the same three print `KILLED`. Named survivor: `thermal_model.py:1951 CLAMP_DROP` (`min(p.dhw_max_temp, p.buffer_max_temp)` → `(p.dhw_max_temp)`), SURVIVED at `74df96f1`, KILLED here by `combi: a 50 C buffer rating caps the store's charge limit and rating alike; null control: off, the separate tank keeps its own`.
+- **The three equivalences:** each tie-only control in the harness's `equiv` arm moves every tie the grid holds and nothing else (`equiv_eps_tie_control_differ_on_ties=1`, `..._off_ties=0`; `equiv_step_tie_control_differ_on_ties=3`, `..._off_ties=0`), so the mutants' `differ=0` is read on grids that reach the one input where they could differ.
 - **Option off, the whole plan:** golden drift, `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE`, against the merge base (`## Figures`). No claim file is touched.
 - **Option off, field for field:** `combi off: the store is the separate tank's own values, bitwise, and the transforms return their argument itself`; harness `off_store_bitwise=1`.
 - **Preconditions:** `combi needs the store: no valve, a small tank, no hot water or the wood coil each leave the separate tank in force`.
@@ -53,81 +72,29 @@ Failing first: the block run against the merge base's production tree (a detache
 
 ## Unpinned sites
 
-`tools/pr/ci_predict.py` lists 61 sites the diff adds, all under `custom_components/`. Disposition of each: **unmeasured, owed to `mutation-autofix`** (`ci: pin killed mutants`); `--pin-killed` did not run on this head (`ci-autofix.md`). The thirteen hand mutants above cover the fix's own predicates; a survivor the lane names is triaged then, by hand.
-
-- `custom_components/heatpump_optimizer/battery.py:326 BOOLOP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/battery.py:326 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:107 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:264 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:269 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:617 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:624 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:627 CMP_BOUND`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:835 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/dhw_planner.py:1413 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:1386 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:1397 BOOLOP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:1397 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:1404 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:1412 CONST`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:1444 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:1447 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:3294 BOOLOP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:3294 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:5562 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/optimizer.py:5797 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:329 BOOLOP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:329 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:331 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:336 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:636 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1909 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1911 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1915 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1917 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1922 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1927 BOOLOP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1927 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1929 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1941 BOOLOP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1941 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1948 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1948 CMP_BOUND`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1951 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1952 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1987 CMP_BOUND`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1987 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1991 CLAMP_DROP*2`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1993 CMP_BOUND`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1993 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1996 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:1999 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:2000 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:2013 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:2014 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:2015 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:2016 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:2040 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:2068 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:2070 RETURN_DEL`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:3373 CLAMP_DROP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:3692 BOOLOP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:3692 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:4406 BOOLOP`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:4406 GUARD_OFF`: unmeasured, `mutation-autofix`
-- `custom_components/heatpump_optimizer/thermal_model.py:4696 GUARD_OFF`: unmeasured, `mutation-autofix`
+`python3 tools/pr/ci_predict.py` at this head prints `CI PREDICT: no closures, fast, governance or instrument red predicted against fdc8d21adaa5`: no site this diff adds is left without a disposition. `--pin-killed` ran on this head's tree twice (`PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3 --budget-minutes N`): `PIN KILLED: 12 pinned, 11 left unpinned (0 survived, 11 not started for the budget ...)`, then `PIN KILLED: 10 pinned, 1 left unpinned (0 survived, 0 not started for the budget, 1 exclusive tails cut ...)`, every pin `killed by tests/features.py`. The cut tail, `thermal_model.py:1998 CMP_BOUND` (`new_temp < floor`), is triaged equivalent with the other three (`survivor_triage/thermal_model.py/store_step.CMP_BOUND.09c88e0c.json`, `store_step.CMP_BOUND.955429e2.json`, `dhw_store_of.CMP_BOUND.48a1fc65.json`, `survivor_triage/dhw_planner.py/DhwPlanner._dhw_legionella_ceilings.CLAMP_DROP.725a61cf.json`). Five rows the simplified lines made stale (`buffer_store_volume` BOOLOP and GUARD_OFF, `combi_store_of` GUARD_OFF, `dhw_store_of` BOOLOP and GUARD_OFF at the old text) were deleted; the two BOOLOP sites no longer exist, the three GUARD_OFF sites are among the 22 re-pinned.
 
 ## Figures
 
+This round, at the head unless named:
 - Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 27 script(s) run, 6 scoped out.`
+- `PYTHONPATH=tests/hastub python3 tests/features.py` prints `ALL 5008 FEATURE CHECKS PASSED` (at `7c974d04b`; `git diff --stat 09199e9e8 HEAD -- custom_components tests/features.py` is empty, so the head runs the same checks over the same production).
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` prints `ALL 2668 ENTITY CHECKS PASSED`.
+- `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` prints `ALL 112 HARNESS HEADER CHECKS PASSED`; `PYTHONPATH=tests/hastub python3 tests/guard_pins.py` prints `ALL 61 GUARD PIN CHECKS PASSED`.
+- Structure: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`; no budget re-recorded this round.
+- Architecture score: `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)` prints `Architecture score: dS +0.0000 NULL` (at `7c974d04b`; production unchanged since).
+- `python3 tools/pr/ci_predict.py` prints `CI PREDICT: no closures, fast, governance or instrument red predicted against fdc8d21adaa5 (a data-file read is not seen)`.
+- Kills: `tools/audit/seat/mutant_run.py --spec <the 24 mutants> --cmd '<the combi block, as under ## Mutation proof>'` at `09199e9e8` prints `SURVIVED NULL`, 21 `KILLED`, 3 `SURVIVED` (`dhw_planner.py:617 CLAMP_DROP`, `thermal_model.py:1948 CMP_BOUND`, `thermal_model.py:1993 CMP_BOUND`, each triaged); the spec is `mutation_table.unpinned_sites(load_budgets(), inventory(<dhw_planner.py, optimizer.py, thermal_model.py>))` restricted to the job's 23 lines plus the three simplified lines.
+- Before: the same command at `74df96f1` over `thermal_model.py:1951 CLAMP_DROP`, `thermal_model.py:1987 GUARD_OFF`, `dhw_planner.py:835 CLAMP_DROP` prints `SURVIVED NULL` and three `SURVIVED`.
+- Ratchet: `--pin-killed`'s second run printed `2748 unpinned site(s) of 6938 candidate sites, 2755 at the ratchet base fdc8d21adaa50a7feee534f08ee5edde9bda81ed; the ledger agrees with the deterministic inventory`, before its 10 pins and the floor-bound triage (`tests / mutation` at `74df96f1` read 2762 against 2755).
+- Harness `dev/audit/harnesses/r10_combi_tank.py`, sha1 `e47dc605d1d95abd50b796d52730bd3394c36702`, `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_combi_tank.py equiv`: `equiv_eps_cases=11`, `equiv_eps_ties=1`, `equiv_eps_differ=0`, `equiv_eps_tie_control_differ_on_ties=1`, `equiv_eps_tie_control_differ_off_ties=0`; `equiv_step_cases=53`, `equiv_step_ties=3`, `equiv_step_differ=0`, `equiv_step_tie_control_differ_on_ties=3`, `equiv_step_tie_control_differ_off_ties=0`; `equiv_floor_cases=56`, `equiv_floor_ties=3`, `equiv_floor_differ=0`, `equiv_floor_tie_control_differ_on_ties=3`, `equiv_floor_tie_control_differ_off_ties=0`. The arm cannot run at `74df96f1`, which has no `equiv` arm; its reading there is the jobs' 23 unpinned sites.
+- Typing: `env -u PYTHONPATH /opt/hpo/venv-ha/bin/python -m mypy --strict --warn-unused-ignores --show-error-codes --no-error-summary --no-incremental --python-version 3.13 custom_components/heatpump_optimizer` exits 0 and prints nothing.
+- Size: `git diff --shortstat $(git merge-base origin/main HEAD) HEAD -- custom_components` prints `6 files changed, 524 insertions(+), 243 deletions(-)`; this round's share, `git diff --shortstat 74df96f104dfd8630894e8b52a11563b80803377 HEAD -- custom_components`, prints `2 files changed, 4 insertions(+), 4 deletions(-)`.
+
+Earlier rounds (not re-taken; production differs from their trees only by this round's 4 equal-valued lines):
 - Gate: `GATE_SCOPE=auto GOLDEN_MODE=drift bash tests/run.sh` prints `29 TEST SCRIPT(S) PASSED; 5 SCOPED OUT AND NOT RUN`, its golden lane `NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main`; `tests/stress.py` and `tests/entities.py` ran inside it under the lease.
-- `PYTHONPATH=tests/hastub python3 tests/features.py` prints `ALL 4999 FEATURE CHECKS PASSED` (run at `bb3db519e`, whose tree differs from this head only by main's governance merge).
-- Structure: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`; `class_excess_loc` 17558 → 17546 and `max_class_loc` 7933 → 7931 were re-recorded, the reason in the commit message (the shared `store_step`, `dhw_mixed_litres` out of the coordinator, four planner walks onto `_dhw_plan_temps`). Seam map: no coordinator method added or renamed.
-- Architecture score: `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)` prints `Architecture score: dS +0.0000 NULL`.
-- `python3 tools/pr/ci_predict.py` prints `no closures, fast, governance or instrument red predicted`; its three STALE PIN lines were repaired by deleting the pins' files.
 - Typing: `env -u PYTHONPATH /opt/hpo/venv-ha/bin/python -m mypy --strict --warn-unused-ignores --show-error-codes --no-error-summary --no-incremental --python-version 3.13 custom_components/heatpump_optimizer` reports no error (the one `no-any-return` the first gate run found is fixed).
-- Size: `git diff --shortstat $(git merge-base origin/main HEAD) HEAD -- custom_components` prints `6 files changed, 524 insertions(+), 243 deletions(-)`.
-- Harness `dev/audit/harnesses/r10_combi_tank.py`, sha1 `29f43f1ed7e5a945377a643ae9032b2d62e87ad7`, at the head (`PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_combi_tank.py`); at the base it cannot run, the combi fields do not exist, and its checks' base reading is the `21 of 22` above:
+- Harness `dev/audit/harnesses/r10_combi_tank.py`, sha1 `29f43f1ed7e5a945377a643ae9032b2d62e87ad7`, at `74df96f1` (this round only appended the `equiv` arm; `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_combi_tank.py`); at the base it cannot run, the combi fields do not exist, and its checks' base reading is the `21 of 22` above:
   - `issue`: `workaround_tank_components=2`, `workaround_tank_kwh_per_c=1.1693` (504 l counted twice) against `combi_tank_components=1`, `combi_tank_kwh_per_c=0.6310` (one store, 544 l); `combi_store_ua_w_per_k=2.4667` (111/45).
   - `off_identity`: `off_store_bitwise=1`.
   - `balance` / `ua_zero`: `balance_residual_kwh=-7.105e-15`, `ua_zero_residual_kwh=3.553e-15`.
@@ -142,9 +109,11 @@ Failing first: the block run against the merge base's production tree (a detache
 
 ## Red checks
 
-- `tests / mutation`: predicted red, not yet run (no pull request exists, so no check has run on these commits): the 61 unpinned sites the diff adds, listed under `## Unpinned sites`. Cure: `mutation-autofix` drives each site's lane mutant and pins the kills by a `ci: pin killed mutants` commit (`ci-autofix.md`); a survivor it names is triaged by hand. The cheaper detector exists and ran before the handoff: `prepr.sh` step 6d / `tools/pr/ci_predict.py` listed every site, at no standing cost beyond that step. No new detector is owed.
-
-No other check has run on these commits. Locally, the first scoped gate at `a97cd0ed9` read `2 TEST SCRIPT(S) FAILED`: `tests/features.py` (two test stand-ins replacing `extend_dhw_temps` and `_dhw_raise_fits` kept the old signatures, and the #1520 humidity-seam census could not read `humidity` through a star-args call) and `tests/typing_ruler.py` (one `no-any-return`). All three were fixed before this head; the cheaper detector existed and ran, the scoped gate itself, before any push to a handoff ref.
+- `tests / mutation` (jobs 128944437769, 128944332674, and 128949628098 at `74df96f1`): `MUTATION TABLE REFUSED -- 2762 unpinned site(s) against 2755 at the ratchet base`, 23 of them added by this diff, the survivors of the `mutation-autofix` pin drive. Answer: 22 sites killed by `tests/features.py` and pinned by `--pin-killed` run on this head (**pinned**, per `ci-autofix.md`), four triaged equivalent with the harness's measurement; the count is now below the base (`## Figures`). Cheaper detector: the sites were already listed before the previous handoff by `prepr.sh` step 6d / `tools/pr/ci_predict.py` at no standing cost beyond that step, and that body recorded them `unmeasured`; whether a listed site survives is only known by driving it, and `--pin-killed` locally is the same drive CI runs (this round: two runs of about two hours on three cores), so no cheaper survivor detector exists. Finding recorded, nothing built.
+- `tests / mutation-autofix` (red at `d67725b0f`, the pr-contract refusal 128944276092): the survivors above, which the job names and never triages (`ci-autofix.md`, "A survivor is red"); its later run at `74df96f1` (128998394718) concluded success. Same answer as `tests / mutation`.
+- `codeql / Analyze (python)`: no alert. At `74df96f1` check 128944332470 concluded success (02:55:41Z); check 128949628291 (run 42550327729, the merge ref) was cancelled at 03:24:31Z, and pr-contract 128998591226 failed closed on it: `FAIL closed: this run's codeql jobs were not listed finished after 600 s`. pr-contract 128955595412 printed `code-scanning alerts the body must answer: ` with an empty list, so neither this diff nor an evidence file carries an alert, and the #1769 dismissal path (`tools/audit/seat/codeql-triage-poll.sh`) does not apply. Cheaper detector: none; a job that did not finish within pr-contract's wait is a runner-time event, which the next push's run re-measures.
+- `governance / delivery-status` (128949628159): grades `main` (`defect-root-cause.md`); this diff's only file it reads is `dev/programme/delivery/3358.md`, this pull request's own row, which the orchestrator added. No answer owed beyond that; its red is the orchestrator's on `main`.
+- `gate` (128945925511, 128956166906, 129001592589): `FAIL run(s) [...] at this head are still being judged; their gate decides`, the aggregate of the reds above, no cause of its own.
 
 ## Forward-carry
 
@@ -156,3 +125,5 @@ No other check has run on these commits. Locally, the first scoped gate at `a97c
 ## Friction
 
 none
+
+
