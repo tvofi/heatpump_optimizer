@@ -1,0 +1,9 @@
+mutation_table_max0 rc=0
+structure rc=0
+claims_only rc=0
+env_drift_all rc=0
+config_flow_steps rc=0
+deployment_shape rc=0
+card rc=1
+entities rc=0
+ALLDONE
