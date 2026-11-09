@@ -140,6 +140,8 @@ if abs(slot_d - dw) > 0.01:
 # a ledger settled through the production path -- a closed month whose meter
 # exceeds the plan's model by a fixed factor, and an open one priced over a
 # varying profile -- beside the ledger's own rows, which card.mjs compares.
+# The closed month's booked reference stays above ledger.METER_FLOOR of its
+# meter (0.6 kW against 1.56 x a 0.65 kW plan), so its saving publishes.
 from harness import FakeCoordinator, FakeEntry
 from heatpump_optimizer.ledger import MonthlyLedger
 from heatpump_optimizer.sensor import MonthlySavingsSensor
@@ -148,7 +150,7 @@ for _h in range(48):
     for _month, _spot in ((9, 1.0 + 0.5 * (_h % 4)), (10, 0.8 + 0.3 * (_h % 3))):
         _ledger.observe_spot_and_settle_savings(
             datetime(2026, _month, 3 + _h // 24, _h % 24, 0), _spot,
-            {"baseline_kw": 0.5 if _month == 9 else 1.2, "power": 0.9 if _h % 2 else 0.4, "grid_fee": 0.3},
+            {"baseline_kw": 0.6 if _month == 9 else 1.2, "power": 0.9 if _h % 2 else 0.4, "grid_fee": 0.3},
             1.56 * (0.9 if _h % 2 else 0.4), 1.0,
         )
 _savings_now = datetime(2026, 10, 5, 0, 0)
