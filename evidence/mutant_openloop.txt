@@ -1,0 +1,2 @@
+MUTANT open-loop (completion no longer re-fires the sweep), --ci 4fe7d5934b:
+RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
