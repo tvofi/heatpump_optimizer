@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-09T17:28:42+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-09T18:32:30+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -8,16 +8,16 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 |---|---|---|
 | roster groups closed vs takt | 0 / 1.0 | 11 / 24.0 |
 | fly-ins closed | 0 | 7 |
-| main moves: group-carrying / record / roster-edit / fly-in | 4 / 0 / 0 / 0 | 33 / 3 / 0 / 7 |
-| first-pass fix-review yield | 0/0 (-) | 14/36 (0.39) |
-| blocked-class mix | ci-red:1, main-conflict:1 | carry-missing:1, ci-cancelled:2, ci-deferral-red:1, ci-incomplete:1, ci-pending:1, ci-red:22, ci-unsettled:1, claim-refuted:1, class-open:4, defect:1, main-conflict:1, merge-conflict:3, mutant-survives:1, mutation-vacuous:4, resolution-ungated-step:1, root-cause-unanswered:5, root-cause-unrecorded:1, selftest-scope-ungated:1, semantic-conflict:1 |
-| lead time per size (h, n/p50/max) | M n=4 p50=49.07 max=50.34 | L n=2 p50=15.27 max=24.23; M n=17 p50=18.31 max=50.34; S n=14 p50=18.49 max=39.24 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 31 / 3 / 0 / 7 |
+| first-pass fix-review yield | 0/1 (0.00) | 14/36 (0.39) |
+| blocked-class mix | body-stale:1 | body-stale:1, carry-missing:1, ci-cancelled:2, ci-deferral-red:1, ci-incomplete:1, ci-pending:1, ci-red:22, ci-unsettled:1, claim-refuted:1, class-open:4, defect:1, main-conflict:1, merge-conflict:3, mutant-survives:1, mutation-vacuous:3, resolution-ungated-step:1, root-cause-unanswered:5, root-cause-unrecorded:1, selftest-scope-ungated:1, semantic-conflict:1 |
+| lead time per size (h, n/p50/max) | none | L n=1 p50=15.27 max=15.27; M n=16 p50=20.09 max=50.34; S n=14 p50=18.49 max=39.24 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 46 | 10 | 1 |
+| 1 | 47 | 10 | 1 |
 
 ## Rules
 
