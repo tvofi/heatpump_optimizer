@@ -1,84 +1,66 @@
-Fix review: blocked 4cab619c132a214926ca27fb211220d1976a9f63 merge-conflict: tools/ci/sweep.py and tools/ci/sweep_selftest.py conflict with main at fdc8d21a (#3327, R10-HOTFIX-SWEEP-SETTLE-LOOP)
+Fix review: blocked 1ea3a2429ff03b904dacddd1fe7bfcb6485618c2 ci-red: gate 128949537164 (edit run 42551664155) is a deferral no sweep re-judged, gate-sweep.yml is disabled_manually, so classify reads RED
 
-bus-nonce: 66f52d23addd9b64094b3d55c81584e5
+bus-nonce: 417100b4bd29d4200b018d65ddb7fffc
 
-Round 1 (first-round review). Head re-read at 23:35Z by `git ls-remote`: still 4cab619c, unmoved, measured at head `4cab619c132a214926ca27fb211220d1976a9f63` from a detached worktree; merge base `daf8b349fd30cc60786eeca333a426b693aa4c5f` (= origin/main when read). `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so the contract read is current.
-
-## Block
-
-- `git merge-tree --write-tree origin/main 4cab619c132a214926ca27fb211220d1976a9f63`, with origin/main at fdc8d21adaa50a7feee534f08ee5edde9bda81ed (fetched 23:35Z), exits 1 with `CONFLICT (content)` in `tools/ci/sweep.py` and `tools/ci/sweep_selftest.py` (`ev/merge-tree.txt`). Neither is a claim file, so the result cannot be judged correct without a resolution.
-  - Cause: #3327 (merge d4f5a413a at 2026-11-08T22:02:09Z, during this review; commits 34b98bbdb and 6158186e1). It changes `Sweep.settle`, the same method this PR's stale-pin path is called from ("a skipped job is no source, and settle re-runs a bot-started gate only past a new source").
-  - At review start, origin/main was the merge base daf8b349, and merge-tree was clean (tree 63b13037).
-  - Owed: merge origin/main and resolve both files. Then re-run steps 2-8 (`fixer.md`): the sweep self-test with both sides' checks, and the stale-pin arms through the new settle (the S15 scene under `## Findings` belongs there). The resolution delta is then the next review's.
-  - Everything else measured below held at this head. The code is otherwise reviewable as-is.
-  - Carry: R10-HOTFIX-GATE-BUSY-DEFER
+Round: first fix review of #3348 at this head.
 
 ## Evidence
 
-- RESULT replay (finder's harness, `dev/audit/harnesses/r10_rca_gate_busy_defer_2.py replay --ci <git archive of tools/ci tools/pr>`, `ev/replay-both-ends.txt`):
-  - at the merge base daf8b349: `3252-nosource: MISREAD`, `FAIL pr-contract / pr-contract: failure (run 42387066581)`; `3244-triple: DECIDED`, all PASS; `defects=yes`, rc 1.
-  - at afc1586a (the branch's cut point): the same as the merge base.
-  - at 9cbd7dd0 (the triple's live pin), the null control for the three-gate shape: `3244-triple: DEADLOCK`, each gate `FAIL run(s) [<the other two>] ...`.
-  - at the head: `3252-nosource: DECIDED`, PASS; `3244-triple: DECIDED`; `defects=no`, rc 0.
-  - The harness moves under its own perturbation: M27 (the source order put back to id alone) on the head turns `3252-nosource` back to `MISREAD`, rc 1. So the finding is not void.
-  - The harness is the RCA seat's (`r10-gate-busy-defer-2`). This fixer recorded the `3252-nosource` and `3244-triple` scenes with its `record --scene`, additions only. They are measured inputs, not a rebuilt instrument.
-- RESULT self-tests at the head (`ev/selftests-head.txt`): gate 81 checks, 0 failed; sweep 62 checks, 0 failed; prelude 76 checks, 0 failed. These match the body.
-- RESULT gate-core mutants (`python3 dev/audit/harnesses/r10_ci_gate_core.py mutants`, `ev/gate-core-mutants.txt`): `mutants=22 survivors=0`. M17, M18, M25, M27 and M28 are KILLED. This matches the body.
-  - The body says M27 reads `MISREAD` with replay exit 1. That is true of the RCA replay (re-run above). It is not true of `r10_ci_gate_core.py`'s own row, which kills M27 by the self-test and prints `replay rc 0`. This is only the two harnesses being worded alike, not a defect.
-- RESULT reviewer mutants, my own: 26 mutants over every changed production line of `tools/ci/gate.py`, `prelude.py` and `sweep.py` (`ev/reviewer-mutants.txt`, script `mut.py` beside this verdict). Each was applied in place, then the three self-tests and the RCA replay were run, then the file was restored (`git status` clean after). Result: `RESULT reviewer-mutants=26 survivors=5`.
-  - Killed: the lag guard deleted (G1), sort ascending (G4), each `starts` plumbing step dropped (G5, G6, G7, P1), and the stale branch deleted (S1).
-  - Also killed: the event, prefix, `.py`, 300-cap, fork and cache guards (S2-S7), the dispatch-event filter (S8), `>=`->`>` (S9), once per sweep (S11), the dispatch count (S12), the inputs' base (S13), `runs` in `run()` (S14), and the compare range reversed (S17).
-  - S10 (`completed_at or "~"` -> `or ""`) is equivalent. `judge()` reaches `fresh()` only for a completed gate, which always carries `completed_at`.
-  - The other four survivors (G2, G8, S15, S16) are under `## Findings`.
-- Probe of the S15 survivor, my own instrument (`ev/probe-settle-poll.txt`, `probe_settle.py` beside this verdict). The scene is the #3261 pair through `settle`, plus a `workflow_dispatch` run created after both stale gates concluded.
-  - At the head: no post, `run 5 re-judges this head`. The settle path's no-loop guard works as written.
-  - Under S15: one dispatch is posted while a fresh judge already exists.
-  - My poll-path scene did not reach `judge()` through the poll branch, so S16 is unprobed. I say so rather than infer it.
-- Stale pin, attacked for a loop or a hidden red:
-  - The stale branch only swaps a re-run for one dispatch. It never posts a verdict.
-  - The dispatched run's gate is the newest `gate` check run at the head, and it judges with main's programs.
-  - A dispatched run created at or after the stale gate's conclusion suppresses a second dispatch (S8, S9, S14 killed; S15 probed above).
-  - A deferral is still `deferral()`'s red, and `busy()` and `deferral()` are untouched. So no deferral or stale pin can conclude green without a judgement.
-- Source order (`gate.fresh`), attacked for a green over a real red:
-  - Every source must still be completed and green, or it is a FAIL.
-  - The order only picks which run is the source. A later-started red beats an earlier green (self-test, killed under G4, M27).
-  - This run's own pending single-job unit stays the source (M28, G1 killed).
-  - Where `starts` is absent (`{}`), the key falls back to id order, the base's behaviour.
-  - With multi-job units, a sibling can cover this run's own partly pending unit, under G8's shape. Base id order already allowed that for a higher-id sibling, so it is not a regression. It is still unpinned (Findings).
-- Class census: the body's rule at the head returns 8 lines (gate.py 122 and 124; sweep.py 92, 93, 202 and 248; prelude.py 236 and 303), each dispositioned in the body. This matches. `git grep -n rerun-gate`: 0 hits.
-- Merge with main: clean at review start against daf8b349 (rc 0, tree 63b13037386172d2b3b89a12e2ced9e5383d9fe5). It conflicts against fdc8d21a at the verdict, as under `## Block`.
-- Untouched files: `git diff --stat <mb>...HEAD` over VERSION, the manifest, RELEASE_NOTES.md, both claim files, every `*_budgets.json`, `tests/closures.json` and `tests/closure.py` is empty (`ev/static-checks.txt`).
-  - The only new tracked file is `dev/programme/delivery/3348.md`, the delivery row, which `tests/entities.py` classifies (result below).
-  - The PR body's `## Head` names `4cab619c132a214926ca27fb211220d1976a9f63`, the head I measured.
-- Harness sha1s at the head equal the body's: rca 556b35c2, gate_core fcee81f4, codescan aa74f7bb. The codescan `--selftest` prints `15 checks, 0 failed`.
-- Figures I did not re-derive:
-  - The 7-day codescan reading (1821 runs, 5 ORDERED, 3 by the carry's rule). It needs hundreds of REST reads against the shared bucket, and its narrowing probe (`probe10.sh`) is scratch and not in the tree.
-  - The null control's "19 of 19 SAME" pin check (`pincheck.sh`, scratch).
-  - The diff-mutant table's 73 mutants and 6 survivors (CI's heavy run; cited, not re-run). My own 26 mutants above stand beside it. Four survivors there are of operators `mutant_run.py` does not generate.
-- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED, rc 0 (`ev/structure.txt`).
-- `python3 tools/audit/archscore/score.py --diff afc1586a`: `Architecture score: dS +0.0000 NULL` (`ev/archscore.txt`).
-- `tests/closure.py select --diff <mb>`: `MODE: FULL`, reason `tools/ci/gate.py changes the gate itself` (`ev/closure-select.txt`).
-- `tests/entities.py` did NOT run clean here, and the cause is this environment, not the diff. Run plainly (venv-ci python3, no BASH_ENV or skip workaround), it stops at import with `ModuleNotFoundError: homeassistant` (`ev/entities.txt`). Under venv-ha it stops at `ModuleNotFoundError: paho` (`ev/entities-venv-ha.txt`). Neither venv got past imports, so I have no local entities verdict. CI's FULL suite on this head is the evidence for it.
-- CI on this head. `merge_train.py classify 4cab619c --pr 3348` went from WAIT to `RED 4cab619c... pending: none red: gate` at 22:38:29Z (`ev/classify.txt`). The only red is `gate`. Its three check runs (`ev/gate-checkruns.tsv`, `ev/gate-logs.txt`):
-  - 128871924664 (edit run 42526037423, 21:48:24Z) printed `FAIL run(s) [42526036839, 42526438071] at this head are still being judged; their gate decides`.
-  - 128873239478 (edit run 42526438071, 21:50:45Z) printed `FAIL run(s) [42526036839] at this head are still being judged; their gate decides`.
-  - 128884044704 (code run 42526036839, KIND code, 22:33:12Z), the newest `gate` check run at the head, printed `PASS`.
-  - All three printed `programs restored from daf8b349fd30cc60786eeca333a426b693aa4c5f`, so main's gate made both deferrals, not this branch's.
-  - Every other check at the head concluded success or skipped (66 check runs, one page, read at 22:28Z).
-  - I judge the head GREEN on its gate. Both reds are deferrals and no unit failed. The code run they deferred to was judged PASS by its own gate. A deferral is never a verdict (brief).
-  - Root-cause trigger: the two reds are the same class the body's `## Red checks` answers at the previous head 2b2e7a7b3 ("Cheaper detector: none exists"; a deferral is the gate as designed). I read that class answer as covering these two. The body names only the previous head's check-run ids, not these.
-  - The deferral window: waited from 22:38Z for a re-judge. `gate-sweep.yml` is `disabled_manually`, with its workflow updated_at 2026-11-08T11:54:00Z and its newest run 42479944954 at 12:22:30Z. So no sweep re-runs these two gates, and `classify` stays RED until someone re-runs them by hand. See the last finding.
-- Red checks were read across all check-run pages (66 check runs, `total_count` 66, one page at per_page 100). The only concluded reds are the two `gate` deferrals in the CI line above. The deferral reds the body answers by id are at the previous head 2b2e7a7b3.
+- Head measured: 1ea3a2429ff03b904dacddd1fe7bfcb6485618c2 (ev/HEAD.txt). Its tree a71823e5 equals b6c6a067's tree, the SHA the body measured (`git diff --quiet b6c6a067 1ea3a2429`), so every figure the body took at b6c6a067 applies to this head.
+- Role contracts: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- Merge: `git merge-tree --write-tree origin/main 1ea3a242` exits 0, and origin/main 6457496a is an ancestor of the head (ev/merge-tree.txt).
+- Self-tests at the head (ev/selftests-head.txt): gate 81 checks, 0 failed; sweep 71 checks, 0 failed; prelude 76 checks, 0 failed; r10_codescan_wait_race --selftest 15 checks, 0 failed. Each matches the body.
+- Sweep self-test counts re-derived per SHA (ev/sweep-counts.txt): daf8b349 52, 25811b2e 62, 6457496a 60, b6c6a067 71. Each matches the body's rule (52 + 10 + 8 + 1).
+- Gate mutants: `r10_ci_gate_core.py mutants` reads `RESULT mutants=22 survivors=0`; M27 and M28 are KILLED by the named source-order cases (ev/gate-core-mutants.txt).
+- RCA replay, the finder's harness for this group (ev/rca-replay-head.txt, ev/rca-replay-base-pin.txt):
+  - at the head: `3244-triple: DECIDED`, `3252-nosource: DECIDED` PASS, `defects=no`.
+  - at main 6457496a: `3252-nosource: MISREAD` (`FAIL pr-contract / pr-contract: failure (run 42387066581)`), `3244-triple: DECIDED`, `defects=yes`.
+  - at the pin 9cbd7dd0: `3244-triple: DEADLOCK`, as recorded live.
+- Own mutants (ev/reviewer-mutants.txt, driver $HOME/mut.py, which is mine and not the fixer's; it copies `tools/` out of tree, so prelude's C7a and gate's missing `.github/workflows/ci.yml` fail on every row from the copy's location, not from a mutant). Each mutant is read on its owning suite:
+  - R1, the lagging-own-unit sentinel `"~"` changed to `""`: gate fails `source order null` (got PASS). KILLED.
+  - R2, `run_jobs` not filling `starts`: gate fails `source order: a LOWER-id edit run's red arch-score ...` (got PASS). KILLED. This pins the prelude half of the change.
+  - R3, the stale branch in `judge()` off: sweep has 8 failed. KILLED.
+  - R4, the fresh-run guard off: sweep has 3 failed. KILLED.
+  - R5, the 300-file cap clause dropped: sweep has 1 failed. KILLED.
+  - R6, the event filter dropped: sweep has 1 failed. KILLED.
+  - R7, the `.py` suffix test dropped: sweep has 1 failed. KILLED.
+  - R8, the settle loop's `judge` called without `runs` (the body's C1): sweep has 1 failed. KILLED.
+- Class rule (the body's grep, ev/class-rule.txt): at the merge base it returns 9 lines, including `gate.gate`'s `sorted(..., key=lambda r: r["id"], reverse=True)` at gate.py:196. At the head it returns 8. Every remaining line is dispositioned in the body's `## Figures` (busy x2, undecided x2, run and settle sort, prelude waits_on and defer_to). No seam is open.
+- Ratchet: `tests/structure.py` reads STRUCTURE RATCHET PASSED; `archscore --diff 6457496a` reads `dS +0.0000 NULL` (ev/structure.txt, ev/archscore.txt).
+- VERSION, the manifest, RELEASE_NOTES.md, both claim files and every `*_budgets.json` show no three-dot diff (ev/untouched.txt is empty), so claims are unchanged and no fixture drift is owed.
+- Forward-carry: the body states `none`; no finding here changes a later stage.
+- Red checks at this head:
+  - `gate` 128951765188 (edit run, KIND edit) logs `FAIL run(s) [42551663943] at this head are still being judged; their gate decides`. It is a deferral to the code run, read under the pinned 6457496a programs.
+  - `governance / delivery-status` 128948848462 is OVERDUE on #3318's row (main's batch), not this PR's row. The check prints that it is not a required context.
+  - Neither owes this body a root-cause answer. The deferral is the gate's design; the body answers the earlier heads' deferrals in `## Red checks`.
+- Figures I could not re-derive:
+  - the 1821-run / 5-ORDERED / 3-narrowed codescan counts (carry 11's build threshold);
+  - the `19 of 19 SAME` pin census;
+  - the 73-mutant diff-mutant table.
+  
+  The first two rest on the fixer's scratch probes (probe10.sh, pincheck.sh), which are not in the tree; the third is a 15.8 s prepr step I did not re-run. None of them decides the verdict: the fix is pinned by the self-tests, the replay scenes and the mutants above.
+- CI on this head:
+  - `merge_train.py classify 1ea3a242 --pr 3348` read WAIT from 02:50Z to 04:27Z, then `RED ... pending: none red: gate` on every poll from 04:28:42Z to 04:52:30Z (ev/classify-log.txt). That is exit 1.
+  - The three `gate` check runs at the head:
+    - 128964286912 (code run 42551663943, started 04:00:07Z): success.
+    - 128972978867 (edit run 42552152069, attempt 2, re-run by tvofi, started 04:23:31Z): success.
+    - 128949537164 (edit run 42551664155, attempt 1, started 02:38:22Z): failure. Its log reads `FAIL run(s) [42551663943] at this head are still being judged; their gate decides`, under programs restored from 6457496a.
+  - `latest_runs` keeps the worst of each suite's latest gate (A5), so that red stands behind the two greens.
+  - Every non-gate unit of the code run is green, and `pr-contract / pr-contract` 128960506848 is success.
+- Why that red was never re-judged: `gate-sweep.yml` (workflow 394687477) reads `state=disabled_manually`, updated 2026-11-08T11:54Z, and its last run is 42479944954 at 2026-11-08T12:22:30Z (ev/gate-sweep-state.txt, ev/edit-runs.txt). So no `settle` ran at this head.
+
+## Block
+
+- ci-red: classify exits 1 at this head. The only red is the deferral gate 128949537164 of edit run 42551664155, which nothing re-judged because `gate-sweep.yml` is disabled.
+  - It is not a unit failure. The code it deferred to, run 42551663943, has a green gate (128964286912), and the sibling edit gate re-run by tvofi is green (128972978867).
+  - One re-run of job 128949537164's gate, or re-enabling the sweep, should decide it. That is the orchestrator's action: this seat re-runs and approves nothing.
+  - On the work itself every check I ran holds: mutants, replays, self-test counts, class rule, merge-tree, ratchet and untouched files (`## Evidence`). If that gate goes green with the head unchanged, this review's measurements stand for the patch at 1ea3a242. Carry: dismissed: this block is cleared by one re-judge of that gate at the unchanged head; the disabled sweep behind it is carried under ## Findings
 
 ## Findings
 
-- Follow-up (non-blocking): Surviving mutant G2: `gate.fresh`'s `max(...)` over a unit's job starts replaced by `min(...)` passes every self-test and the replay. The aggregation over a multi-job unit (the `tests` unit's several required jobs), "the run whose jobs for it started LAST", is unpinned. Owed: a self-test where two runs' multi-job units interleave their starts. Carry: R10-HOTFIX-GATE-BUSY-DEFER
-- Follow-up (non-blocking): Surviving mutant G8: `fresh`'s own-lag guard `any(... != "completed")` replaced by `all(...)` passes. For a multi-job unit partly pending in this run, the docstring's "never displaced" is then false: a later-started sibling's green covers this run's own pending job. Base id order allowed the same for a higher-id sibling, so this is no regression, but M28 pins only the single-job case. Owed: the multi-job arm of `source order null`. Carry: R10-HOTFIX-GATE-BUSY-DEFER
-- Follow-up (non-blocking): Surviving mutant S15 (probed): `settle()`'s `self.judge(r, g, ..., runs)` with `runs` dropped passes every sweep self-test. Yet in the #3261-pair settle scene with a fresh dispatched judge already present, it posts a second dispatch (`ev/probe-settle-poll.txt`). So the no-loop guard is load-bearing on the settle path and unpinned there. The code at this head is correct. Owed: the `probe_settle.py` scene as a sweep self-test. Carry: R10-HOTFIX-GATE-BUSY-DEFER
-- Follow-up (non-blocking): Surviving mutant S16 (unprobed): the poll path's `self.judge(..., list(listing.values()))` with the listing dropped passes. It is the same guard on the third call site. Carry: R10-HOTFIX-GATE-BUSY-DEFER
-
-- Follow-up (non-blocking): `gate-sweep.yml` is disabled (`disabled_manually`, 2026-11-08T11:54Z). While it stays off, this PR's stale-pin dispatch (`sweep.stale_pin`/`fresh`) and #3287's deferral re-judging reach no PR. This head's two deferral gate reds stay red, and `merge_train classify` reads RED, until a hand re-run of check runs 128871924664 and 128873239478 or a re-enable. The orchestrator decides which. This PR's body says the manual RCA 5.3 dispatch is retired once it merges. That holds only with the sweep enabled. Carry: R10-HOTFIX-GATE-BUSY-DEFER
+- `gate-sweep.yml` is `disabled_manually` (since 2026-11-08T11:54Z). Both this PR's stale-pin countermeasure (`sweep.py` `stale_pin`/`fresh`) and #3287's `settle` live in that workflow. The body's statements that the sweep re-judges deferrals with no human (carries 3, 8, 10) and that "the manual 5.3 dispatch is retired once this merges" (carry 6) hold only while it is enabled. At this head a deferral red stood until a human re-ran it, and the second one still stands. Carry: R10-HOTFIX-GATE-BUSY-DEFER
+- The carry-11 counts (1821 runs, 5 ORDERED, 3 narrowed) and the null control's `19 of 19 SAME` pin census rest on the fixer's scratch probes `probe10.sh` and `pincheck.sh`, which are not in the tree (fix-review step 9 and fixer step 18), so I could not re-derive them. Carry: dismissed: the counts gate the decision to build, not the fix; the fix is pinned by in-tree self-tests, the recorded replay scenes and the mutants I re-ran
 
 ## Friction
 
-- review-frugal-guard: cost: discovery reads were capped at 5 inline searches per prompt, so I read the diff whole and ran no wide search. Carry: dismissed: a session plugin's guard, not this repository's policy
+- review-packet-required-red: cost: the packet refused on `required-red` at render, and CI then sat in WAIT for about 1.6 h behind a queued gate runner. Carry: dismissed: the wait is the brief's prescribed classify loop, and the cost is runner queueing, not a missing mechanism

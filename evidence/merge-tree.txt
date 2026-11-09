@@ -1,23 +1,4 @@
-6158186e1 2026-11-08T13:02:35+01:00 sweep: the module doc's settle arm names a source, not any job
-34b98bbdb 2026-11-08T12:53:13+01:00 sweep: a skipped job is no source, and settle re-runs a bot-started gate only past a new source (R10-HOTFIX-SWEEP-SETTLE-LOOP)
- tools/ci/gate.py           |   6 ++-
- tools/ci/sweep.py          |  58 +++++++++++++++++-------
- tools/ci/sweep_selftest.py | 109 +++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 156 insertions(+), 17 deletions(-)
-== merge-tree origin/main=fdc8d21adaa50a7feee534f08ee5edde9bda81ed
-7ae1f6839f8c09e9072eb3f6e07ccb40226ffb2b
-tools/ci/sweep.py
-tools/ci/sweep_selftest.py
-
-Auto-merging tools/ci/gate.py
-Auto-merging tools/ci/sweep.py
-CONFLICT (content): Merge conflict in tools/ci/sweep.py
-Auto-merging tools/ci/sweep_selftest.py
-CONFLICT (content): Merge conflict in tools/ci/sweep_selftest.py
-rc=1
-fdc8d21ad 2026-11-09T00:21:44+01:00 Merge pull request #3338 from tvofi/fix/r10-fly-dispatch-rulings
-425b85849 2026-11-08T23:57:48+01:00 Merge pull request #3344 from tvofi/fix/r10-roster-write-sweep-p2
-20e83746f 2026-11-08T23:47:17+01:00 Merge pull request #3343 from tvofi/fix/r10-hotfix-prepr-selftest-darwin
-7812357d5 2026-11-08T23:33:30+01:00 Merge pull request #3336 from tvofi/fix/r10-raise-gate-shim-p2
-661d26a5d 2026-11-08T23:09:45+01:00 Merge pull request #3317 from tvofi/fix/r10-handoff-path-p3
-d4f5a413a 2026-11-08T23:02:09+01:00 Merge pull request #3327 from tvofi/fix/r10-hotfix-sweep-settle-loop-pr
+a71823e545d2c822c451d40dd8a3d04d397e30ad
+merge-tree rc=0
+6457496aba7b1076b1ed60c374c5badafdf66fc1
+origin/main ancestor of head
