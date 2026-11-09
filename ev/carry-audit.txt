@@ -1,0 +1,5 @@
+NOTE review 0 item 3ee1540d: R10-FLY-REPLAN-DEFECTS: R10-FLY-REPLAN-DEFECTS resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item 411a5dab: R10-FLY-REPLAN-DEFECTS: R10-FLY-REPLAN-DEFECTS resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item 27ce1fd7: R10-FLY-REPLAN-DEFECTS: R10-FLY-REPLAN-DEFECTS resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item 5c050fe2: R10-FLY-REPLAN-DEFECTS: R10-FLY-REPLAN-DEFECTS resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)

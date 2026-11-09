@@ -1,0 +1,4 @@
+RESULT mutant replan-depgraph: NOT-APPLIED count=2
+RESULT mutant replan-held-empty: NOT-APPLIED count=2
+RESULT mutant replan-open-minus-held: SURVIVED tools/plan/replan.py
+RESULT mutant replan-stem-prefix: NOT-APPLIED count=2

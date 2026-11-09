@@ -1,0 +1,4 @@
+RESULT mutant open-minus-held: probe slots=1: {'R10-P': (None, None), 'R10-Q': (None, 'R10-P'), 'R10-U': ('2026-01-05T08:00:00Z', None)} check: ['stamp cadence: stamped production groups do not equal the merged production groups, in merge order', 'summary: open-group count disagrees with the groups list']
+RESULT mutant open-minus-held: probe slots=6: {'R10-P': (None, None), 'R10-Q': (None, 'R10-P'), 'R10-U': ('2026-01-05T00:00:00Z', None)} check: ['stamp cadence: stamped production groups do not equal the merged production groups, in merge order', 'summary: open-group count disagrees with the groups list', 'summary: closure is not the last group finish']
+RESULT mutant open-minus-held: probe held_behind_deferred(P deferred, R refuted after P, D after R): {'R': 'P'}
+RESULT mutant held-ignores-gates: probe held_behind_deferred(P deferred, R refuted after P, D after R): {'R': 'P', 'D': 'P'}
