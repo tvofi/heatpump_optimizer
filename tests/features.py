@@ -11822,14 +11822,17 @@ _cg_top = _ct_s.rating_max_temp if _ct_s is not None else 0.0
 _cg_empty = _cg_step(_ct_replace(_ct_s, capacity_kwh_per_c=0.0), 55.0, 3.0, 0.25) if _ct_s else None
 _cg_hot = _cg_step(_ct_s, _cg_top + 5.0, 0.0, 0.25) if _ct_s else None
 _cg_dt0 = _cg_step(_ct_s, 5.0, 0.0, 0.0) if _ct_s else None
+_cg_warm = _cg_step(_ct_s, 50.0, 3.0, 0.25) if _ct_s else None
 R.check(
-    "store_step: no capacity holds the temperature and books nothing; a store above its "
-    "rating cools by its loss and refuses nothing; a zero-length step from below the "
-    "floor returns the floor without dividing by zero",
+    "store_step: no capacity holds the temperature and books nothing; a charge below the "
+    "rating warms the store and refuses nothing; a store above its rating cools by its "
+    "loss and refuses nothing; a zero-length step from below the floor returns the floor "
+    "without dividing by zero",
     _cg_empty == (55.0, 0.0, 0.0, 0.0)
+    and isinstance(_cg_warm, tuple) and _cg_warm[1] == 0.0 and _cg_warm[0] > 50.0
     and isinstance(_cg_hot, tuple) and _cg_hot[1] == 0.0 and _cg_top < _cg_hot[0] < _cg_top + 5.0
     and isinstance(_cg_dt0, tuple) and _cg_dt0[0] == min(_ct_s.inlet_c, 20.0) and _cg_dt0[1] == 0.0,
-    f"empty {_cg_empty}; above the rating {_cg_hot}; zero step {_cg_dt0}",
+    f"empty {_cg_empty}; charging {_cg_warm}; above the rating {_cg_hot}; zero step {_cg_dt0}",
 )
 _cg_net = (_ct_tm.combi_space_net_kw(_ct_s, [50.0, 50.0], [0.0], 0.0)
            if _ct_s is not None else None)
