@@ -1,0 +1,42 @@
+"""Reviewer harness, round 3 of #3304 (rebuilt from the round-2 finder's block fixture,
+verdict/3304 evidence/hotfix-predicate.txt): one non-production R10-HOTFIX group and one
+outside group, read by every orderer at <tree>. Prints RESULT lines. Arg 3 'null' drops the
+HOTFIX name (R10-FIX-X), the perturbation under which hotfix must lose its rank."""
+import sys, json, copy, datetime as dt, tempfile
+from pathlib import Path
+T = Path(sys.argv[1]); tag = sys.argv[2]; null = len(sys.argv) > 3 and sys.argv[3] == "null"
+sys.path[:0] = [str(T/"tools/plan"), str(T/"tools/audit/seat")]
+import replan, open_driver as od, merge_train as mt, roster_lib
+HN = "R10-FIX-X" if null else "R10-HOTFIX-X"
+def grp(n, kind, **kw):
+    return {"group": n, "size": "S", "kind": kind, "after": [], "resume": {"stage": "not-started"}, **kw}
+ros = {"groups": [grp(HN, "instrument", resume={"stage": "not-started", "pr": 8}),
+                  grp("R10-OUT", "instrument", source="outside", resume={"stage": "not-started", "pr": 31})]}
+p = replan.build_plan(copy.deepcopy(ros), replan.MEASURED_FIXTURE, dict(replan.DEFAULT_CAPS, slots=1, seats=8),
+                      dt.datetime(2026, 1, 5), "v1.0.0", round_n=2)
+G = p["groups"]
+real = sorted([n for n in G if not G[n].get("exempt")], key=lambda n: G[n]["start"])
+print(f"RESULT {tag} replan tiers {{{', '.join(f'{n}: {replan.dispatch_tier(g, False, None)[0]}' for n in [HN, 'R10-OUT'] for g in ros['groups'] if g['group']==n)}}} real-slot first {real[0]} starts {G[HN]['start']} exempt {G[HN].get('exempt')}")
+print(f"RESULT {tag} dispatch_rank {[roster_lib.dispatch_rank(ros, n, set()) for n in (HN, 'R10-OUT')]}")
+hot = {roster_lib.norm_group(g["group"]) for g in ros["groups"] if roster_lib.is_hotfix(g)}
+out = {roster_lib.norm_group(g["group"]) for g in ros["groups"] if roster_lib.is_outside(g)}
+items = [("r10-out", "R10-OUT", 1), (HN.lower(), HN, 2)]
+try:
+    o = od.order(items, [], set(), out, hot)
+except TypeError:
+    o = od.order(items, [], set(), out)
+print(f"RESULT {tag} open_driver order {[t for t,_,_ in o]}")
+# a kind-bug group with no HOTFIX name (round-2 finding 2)
+bros = {"groups": [grp("R10-BUGFIX", "instrument" if null else "bug"), grp("R10-OUT", "x", source="outside")]}
+bhot = {roster_lib.norm_group(g["group"]) for g in bros["groups"] if roster_lib.is_hotfix(g)}
+bitems = [("r10-out", "R10-OUT", 1), ("r10-bugfix", "R10-BUGFIX", 2)]
+try:
+    bo = od.order(bitems, [], set(), out, bhot)
+except TypeError:
+    bo = od.order(bitems, [], set(), out)
+print(f"RESULT {tag} open_driver kind-bug order {[t for t,_,_ in bo]}")
+ents = [{"pr": 7, "branch": "mine"}, {"pr": 31, "branch": "someone:main"}, {"pr": 8, "branch": "mine"}]
+with tempfile.TemporaryDirectory() as d:
+    t = mt.Train("o/r", Path(d), None, "", (), 1, run=lambda *a, **k: (0, ""), log=lambda m: None)
+    t.cp_read = (ros, set())
+    print(f"RESULT {tag} drain_order {[e['pr'] for e in t.drain_order(copy.deepcopy(ents))]}")

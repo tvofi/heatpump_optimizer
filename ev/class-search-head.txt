@@ -1,0 +1,97 @@
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/merge_throughput.py:347:    hotfix/urgent), and #1's two bus verdicts -- blocked on harness, then
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/merge_throughput.py:433:                "Merge pull request #5 from o/hotfix/urgent", T(3, 10))
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:1442:                 free_holders: bool = False, critical=None, outside=None, hotfix=None,
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:1481:        self.hotfix = hotfix or self._hotfix
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:1748:    def _hotfix(self, item: dict) -> bool:
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:1749:        """Is <item>'s group a hotfix (`roster_lib.is_hotfix`: a HOTFIX name or
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:1750:        kind "bug"), which outranks outside (triage P420) with or without --priority."""
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:1751:        return self._roster_is(item, "is_hotfix")
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:3571:        added with `--priority` (HOTFIX), a roster hotfix (`self.hotfix`) or
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:3586:                                                 or self.hotfix(items[id(e)])),  # mut:drain-hotfix
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:4071:            if "actions/workflows/ci.yml/runs" in a:  # the deferral read (R10-HOTFIX-TRAIN-DEFER-WAIT)
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:5802:                         {"group": "R10-HOTFIX-I", "kind": "instrument", "resume": {"pr": 8}}]}
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:6211:    """R10-HOTFIX-TRAIN-DEFER-WAIT: a red GATE while gate.py's `busy` names a
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:6368:    """The one-read readers' settle (R10-HOTFIX-TRAIN-DEFER-WAIT round 3): the
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:8550:              "starts the train with the HOTFIX first, then the critical #13, then #11",
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:8556:              "then the HOTFIX #11 (the same tier), then the critical #13",
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/merge_train.py:8738:                    help="HOTFIX: the spool's drain puts this entry before critical-path and arrival order (P312)")
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:32:hotfix topic (R10-HOTFIX-*, or a group `roster_lib.is_hotfix` counts, which
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:33:includes `kind` "bug"), then an outside one (`roster_lib.is_outside`:
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:38:default class (hotfix, outside, critical, record topics `triage-*`/`roster-*`,
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:124:                  hotfix=frozenset()) -> int:
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:125:    """0 hotfix, 1 outside, 2 critical, 3 record, 4 the rest. Owner ruling tvofi
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:126:    2026-11-07 (triage P420): hotfix, then outside, then today's order. A hotfix
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:127:    is a hotfix topic or group name, or a group in `hotfix` (`roster_lib.is_hotfix`,
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:128:    which also counts `kind` "bug")."""
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:129:    if topic.startswith("r10-hotfix-") or (group or "").startswith("R10-HOTFIX-"):
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:131:    if group and roster_lib.norm_group(group) in hotfix:
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:145:def order(items, priority: list, critical, outside=frozenset(), hotfix=frozenset()) -> list:
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:149:    cls = {t: default_class(t, g, critical, outside, hotfix) for t, g, _ in items}
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:284:    hotfix = {roster_lib.norm_group(str(g.get("group") or "")) for g in ros.get("groups", []) if roster_lib.is_hotfix(g)}
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/open_driver.py:322:    for topic, g, ct in order([(c[0], c[1], c[2]) for c in cands], priority, critical, outside, hotfix):
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/orchestrator_tick.py:860:        it), hotfix groups' PRs first, then accepted outside groups' (owner ruling tvofi
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/orchestrator_tick.py:3957:        orf2 = tmp / "owed-roster-out.json"  # GB critical; GO outside, GH a hotfix, GZ plain
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/orchestrator_tick.py:3963:            {"group": "GH", "kind": "bug", "resume": {"stage": "not-started"}}]}))
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/orchestrator_tick.py:4041:            ("an outside group's OWED line prints before the critical path's, a hotfix's before both",
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/orchestrator_tick.py:4043:            ("null control: a roster with no outside group and no hotfix orders as the critical path first",
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/plan_page.py:1140:    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: 1 main, 2 hotfix, 3 accepted outside, 4 critical path, 5 production and instruments saving 12 h or more, 6 other instruments by savings">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/plan_page.py:1143:  <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Tier is the plan's dispatch priority: 1 main, 2 hotfix, 3 accepted outside, 4 the computed critical path, 5 production, 6 non-production ranked by its <code>savings</code> (— for a merged group). Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/probe_bridge.py:36:The fleet record (dev/audit/harnesses/r10_hotfix_ci_critpath_4/fleet.json)
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/probe_bridge.py:56:HARNESS = ROOT / "dev/audit/harnesses/r10_hotfix_ci_critpath_4"
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/record_row.py:1057:        neutral = row_line(2053, "policy: hotfix", "451a078f9876", None)
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/record_row.py:1059:           and neutral.endswith("hotfix."))
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:650:    and merged ahead of audit or owner work unless the owner calls it a hotfix."""
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:654:def is_hotfix(group: dict) -> bool:
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:655:    """Whether the group is a hotfix: `kind` "bug" (the user-reported finding) or
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:656:    a `HOTFIX` in its name. A hotfix outranks an outside group (owner ruling
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:657:    tvofi 2026-11-07, triage P420: "unless i call the owner one a hotfix")."""
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:659:        group.get("kind") == "bug" or "HOTFIX" in str(group.get("group") or "").upper())
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:663:    """0 hotfix, 1 outside, 2 critical path, 3 any other group (or none): the
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:670:    if g is not None and is_hotfix(g):
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:938:        rk = {"groups": [{"group": "H1", "kind": "bug"}, {"group": "R10-HOTFIX-N"},
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:939:                         {"group": "O1", "source": "outside"}, {"group": "O2", "source": "outside", "kind": "bug"},
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:942:              [dispatch_rank(rk, g, {"c1", "o1"}) for g in ("H1", "R10-HOTFIX-N", "O1", "O2", "C1", "P1", "ZZ", None)]
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:946:              and dispatch_rank({"groups": [{"group": None, "kind": "bug"}]}, None, set()) == 3)
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:948:              is_hotfix({"group": "X", "kind": "bug"}) and is_hotfix({"group": "r10-hotfix-x"})
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/audit/seat/roster_lib.py:949:              and not is_hotfix({"group": "X"}) and not is_hotfix(None))
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:413:TIER_MAIN, TIER_HOTFIX, TIER_OUTSIDE, TIER_URGENT, TIER_PRODUCTION_WORK, TIER_INSTRUMENT = 1, 2, 3, 4, 5, 6
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:421:    name is main; `roster_lib.is_hotfix` (a `kind` "bug" or a HOTFIX name, of
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:422:    any work class) is a hotfix; `source` "outside" (`roster_lib.is_outside`) is
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:432:    if roster_lib.is_hotfix(group):
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:433:        return TIER_HOTFIX, f"hotfix (kind {k!r}, name)"
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:734:    expect("a user-reported bug (hotfix) is the hotfix tier, off the critical path",
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:735:           tier_of(grp("R10-HOTFIX-X", kind="bug")) == TIER_HOTFIX)
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:738:    expect("a hotfix ranks ahead of an outside group, which ranks ahead of the critical path",
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:739:           TIER_MAIN < tier_of(grp("R10-HOTFIX-X", kind="bug")) < tier_of(grp("OUT", source="outside"))
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:741:           [tier_of(grp("R10-HOTFIX-X", kind="bug")), tier_of(grp("OUT", source="outside"))])
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:742:    expect("an outside group that is also a hotfix is a hotfix, and one on the critical path is outside",
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:743:           tier_of(grp("R10-HOTFIX-O", kind="bug", source="outside")) == tier_of(grp("R10-HOTFIX-X", kind="bug"))
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:748:    hx = build_plan({"groups": [grp("R10-HOTFIX-X", "S", "instrument"), grp("OUT", "S", source="outside")]},
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:751:    expect("an instrument-class R10-HOTFIX group is the hotfix tier and holds the one real slot at t0 "
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:753:           tier_of(grp("R10-HOTFIX-X", kind="instrument")) == TIER_HOTFIX
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:754:           and HX["R10-HOTFIX-X"]["slot"] == 0 and HX["R10-HOTFIX-X"]["start"] == iso(start, 0)
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:755:           and not HX["R10-HOTFIX-X"].get("exempt") and HX["OUT"].get("exempt") is True
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:756:           and [roster_lib.dispatch_rank({"groups": [grp("R10-HOTFIX-X", "S", "instrument"),
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:758:                for n in ("R10-HOTFIX-X", "OUT")] == [0, 1],
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:760:    expect("null control: the same instrument without a HOTFIX name stays the instrument tier",
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:773:        grp("R10-HOTFIX-H", "L", "bug"), grp("OUT", "S", source="outside"), grp("PROD", "M"),
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:782:    expect("dispatch follows the owner's order (tvofi 2026-11-07, triage P420): hotfix, outside, "
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:784:           seq == ["R10-HOTFIX-H", "OUT", "PROD", "HI", "LO", "NONE"], seq)
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:785:    expect("the hotfix takes the free slot at t0 and the ready critical-path group starts "
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:787:           P["R10-HOTFIX-H"]["start"] == iso(start, 0) and P["R10-HOTFIX-H"]["slot"] == 0
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:793:           sorted(keys, key=lambda n: [float("inf") if k is None else k for k in keys[n]])[0] == "R10-HOTFIX-H"
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:2520:            ("tier-hotfix",
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/plan/replan.py:2522:             "    if roster_lib.is_hotfix(group):", "    if False:"),
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/policy/agreement.mjs:590:  // R10-HOTFIX-SAV-ESTIMATE: the blueprint's receipt reuses the card's wood note.
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/policy/field_coverage.mjs:596:  // The #1721 hotfix review's two surviving mutants: (1) env-matrix's "nothing
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/pr/cancel_superseded.py:50:ghosts g`. A critical-path or hotfix superseded run stays cancellable.
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/pr/gate_priority.py:20:   hotfix or an accepted outside group (``roster_lib.dispatch_rank`` 0 or 1;
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/pr/gate_priority.py:23:   (``gate_lock.PRIORITY_MAX`` is 2), so a hotfix and an outside group share
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/pr/gate_priority.py:59:OUTSIDE_PRIORITY = 2  # hotfix and outside: the lease's top band
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/pr/gate_priority.py:104:    """2 for a hotfix or outside group, 1 when ``branch``'s group is in the
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/pr/gate_priority.py:106:    the 1; a hotfix or outside group still answers 2).
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/pr/gate_priority.py:202:            {"group": "R10-HOT", "kind": "bug", "resume": {"branch": "handoff/r10-hot"}},
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/pr/gate_priority.py:241:        plain_sha = commit("no outside group, no hotfix")
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/pr/gh_comment.py:506:             "6329234399.\n- #3045 (R10-HOTFIX-CI-CRITPATH-2, red-main hotfix, critical path): blocked, "
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/release/stamp.py:1036:                          ("ddd4444", 1, "hotfix: bypassed review over the deploy key")]
+43136fbca4b5ba2a6f7f137f60cf67951a305c94:tools/release/stamp.py:1039:              ("ddd4444", "hotfix: bypassed review over the deploy key")])
