@@ -1,0 +1,2 @@
+MODE: FULL -- every step runs (the table is stale: run text changed since it was recorded: ['topic-grammar'])
+  run policy-lint-mutants

@@ -1,0 +1,5 @@
+OK       0.0s launch
+OK       0.0s topic-grammar
+OK       0.0s unread
+selftest_scope: recorded 1 step(s) into /tmp/tmp.nLVznbfz0q/head/tools/ci/selftest_closures.json; 0 failed []
+rc=0
