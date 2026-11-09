@@ -467,6 +467,33 @@ run nobranch "$BP" --repo o/r 7 "$HEAD" "$W/body.md"
 st $? 0 "the branch proved absent on origin: the carry check runs without --roster-ref (null control)"
 st "$(grep -c '^carry_audit check --body ' "$W/nobranch/log")$(grep -c 'NOTE: handoff/audit-r10-roster does not exist' "$W/nobranch/err")" 11 "... and says so"
 git -C "$W/repo" remote set-url origin "$W/orig"
+# The roster ref is read, not just passed (R10-BODY-CONTRACT carry 0): the REAL carry_audit, a worktree
+# roster holding a group the round roster branch lacks, and main holding it too. The body's Carry: names
+# that group: with --roster-ref the branch's roster is the one read, so it is refused; the null control
+# (the branch holds the group) is accepted.
+mkdir -p "$W/orig/dev/programme/rosters"
+ROSTER_NEW='{"groups": [{"group": "R10-NEW", "issues": [], "fixes": [], "after": [], "resume": {"stage": "not-started"}, "brief": "b", "carry": []}]}'
+( cd "$W/orig" && throwaway_git_env && printf '%s' "$ROSTER_NEW" > dev/programme/rosters/wave-r10-groups.json \
+  && git add . && git commit -qm roster-with-new \
+  && cd "$W/repo" && git fetch -q origin main:refs/remotes/origin/main ) >/dev/null 2>&1
+mkdir -p "$W/repo/dev/programme/rosters"; printf '%s' "$ROSTER_NEW" > "$W/repo/dev/programme/rosters/wave-r10-groups.json"
+printf '## Head\n\n`%s`\n\n## Forward-carry\n\n- the store seam is missed by the census. Carry: R10-NEW\n' "$HEAD" > "$W/rbody.md"
+cp "$W/repo/tools/audit/carry_audit.py" "$W/carry_audit.stub"
+real_carry_audit() { cat > "$W/repo/tools/audit/carry_audit.py" <<PY
+import os, subprocess, sys
+sys.exit(subprocess.call([sys.executable, "-I", "$HERE/../carry_audit.py", "--git-dir", os.getcwd()] + sys.argv[1:]))
+PY
+}
+real_carry_audit
+mkcase rr; run rr "$BP" --repo o/r 7 "$HEAD" "$W/rbody.md"
+st $? 1 "REFUSE: the carry names a group the round roster branch lacks, though the worktree roster and main hold it (the real carry_audit reads the ref)"
+st "$(calls rr curl)" 0 "(and nothing minted)"
+git -C "$W/orig" branch -f handoff/audit-r10-roster main >/dev/null 2>&1
+mkcase rr2; run rr2 "$BP" --repo o/r 7 "$HEAD" "$W/rbody.md"
+st $? 0 "the same body, the branch holding the group: the real carry check accepts (null control)"
+cp "$W/carry_audit.stub" "$W/repo/tools/audit/carry_audit.py"
+git -C "$W/orig" branch -f handoff/audit-r10-roster "$(git -C "$W/orig" rev-parse main~1)" >/dev/null 2>&1
+
 mkcase checks; : > "$W/checks/checks-fail"
 run checks "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REFUSE: the check runs cannot be listed (an empty list from a failed read is not 'no reds')"
 st "$(calls checks curl)" 0 "(and nothing minted)"
@@ -585,6 +612,9 @@ mkcase m4; : > "$W/m4/carry-fails"; run m4 "$(MBP carry)" --repo o/r 7 "$HEAD" "
 st "$(calls m4 'curl PATCH')" 1 "MUTANT carry_audit arm deleted: the refused body is now SENT"
 mkcase m4b; run m4b "$(MBP rref)" --repo o/r 7 "$HEAD" "$W/body.md"
 st "$(grep -c '^carry_audit --roster-ref ' "$W/m4b/log")" 0 "MUTANT --roster-ref dropped: the carry check runs without the round roster (first assertion fails)"
+real_carry_audit; mkcase m4c; run m4c "$(MBP rref)" --repo o/r 7 "$HEAD" "$W/rbody.md"
+st $? 0 "MUTANT --roster-ref dropped: the real carry check reads main's roster and accepts the body the ref refuses (the real-roster control catches it)"
+cp "$W/carry_audit.stub" "$W/repo/tools/audit/carry_audit.py"
 mkcase m5; : > "$W/m5/mangle"; run m5 "$(MBP rb)" --repo o/r 7 "$HEAD" "$W/body.md"; rc=$?
 st "$rc$(grep -c '^body_patch: OK' "$W/m5/out")" 01 "MUTANT body read-back deleted: a mangled body now reads OK"
 mkcase m6; : > "$W/m6/move-at-2"; run m6 "$(MBP rbhead)" --repo o/r 7 "$HEAD" "$W/body.md"; rc=$?

@@ -141,11 +141,13 @@
   left unapplied while its body tip is newer than the PR head's commit) are
   published before the serial update loops, so a slow update cannot delay them.
   A failed update is noted in `cloud-handoff-failed` by
-  `<topic> <code-sha>` (a body-only one by `<topic> <code-sha> <body-sha>`, so
-  a new body re-triggers it), its reason, the update's last `REFUSE` line else
+  `<topic> <code-sha> <body-sha>` (so a new body re-triggers it), its reason, the update's last `REFUSE` line else
   its last line, kept beside it in `cloud-handoff-failed.why` (tab-separated),
   owed as `OWED <utc> handoff-update <ref> <sha> <why>` (the `<why>` is the line kept in `cloud-handoff-failed.why`) in `<log>.level` while
-  that entry matches, and retried only when the handoff (or body) moves. The
+  that entry matches, and retried only when the handoff (or body) moves, except a
+  refusal that is not of a body-content step (`ancestry reds`, `ci predict`): it reruns after
+  `HPO_RELAY_RETRY_BACKOFF` (1800 s), three runs at most (`cloud-handoff-failed.tries`), and is then
+  recorded and owed as above. A refusal of `unpinned sites`, `carry`, `figures` or the body contract is recorded at once. The
   update's output is held in a file until it ends, then replayed to the
   relay's stderr. An update that
   exits 75 is BUSY (another `open_pr.sh` or `update_pr.sh` run holds the branch's

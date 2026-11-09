@@ -14,6 +14,9 @@
 # fails says ROWLESS, and update_pr.sh's ensure_row adds the row; #2719). Every exit's last act,
 # under the branch lock, is pr_release_wt (pr_args.sh): the worktree is detached at the pushed head,
 # removed with its branch when origin never had it, or kept and named (P-D, P64, P72).
+# Once the PR exists and its row is pushed (PR_ATTEMPT opened), the opener's checkout is collected
+# (pr_collect_wt, carry 6): update_pr.sh keeps the one per-PR checkout from then on, so a PR holds one
+# ~140 MB checkout, not two; a dirty or unpushed one is kept and named by pr_release_wt.
 # The tools are refused when origin/main is ahead of their checkout under tools/ (pr_tools_fresh).
 # The row is written and committed by delivery_row.sh's commit_row, the one
 # function update_pr.sh's ensure_row also calls (its header says why).
@@ -44,6 +47,7 @@ mkdir -p "$D"; cd "$M"
 # between the two pushes below and left the PR without its row (#2547, #2548); it now answers BUSY.
 pr_branch_lock "$(dirname -- "$D")/upd-${BR//\//-}.lock" "$BR" "$WT"  # mut:oplock
 PR_TIDY='pr_release_wt "$WT" "$BR" "${PR_PUSHED:-}"'  # set once the lock is this run's: a BUSY exit touches nothing
+PR_TIDY="$PR_TIDY"'; case "${PR_ATTEMPT:-}" in opened,PR=*) pr_collect_wt "$WT" "${PR_PUSHED:-}";; esac'  # mut:opcollect
 pr_handoff_tips "$T" 1
 # The attempt is the ledger's (R10-ORCH-LEDGER): `started` now, and on every exit, a stop
 # signal's included, `opened,PR=<n>` or `unopened` (bash's $? in an EXIT trap after a TERM is the
