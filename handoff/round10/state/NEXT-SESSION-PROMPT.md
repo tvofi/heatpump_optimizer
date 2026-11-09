@@ -68,7 +68,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-DISPATCH-RULINGS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-FIRST (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FLY-REPLAN-DEFECTS (stage in-progress, branch `handoff/r10-fly-replan-defects`): `git fetch origin handoff/r10-fly-replan-defects && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-RCA-CLOUD-ENTITIES-ENV (stage in-progress, branch `handoff/r10-rca-cloud-entities-env`): `git fetch origin handoff/r10-rca-cloud-entities-env && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-RCA-CLOUD-ENTITIES-ENV (stage carries-open, branch `handoff/r10-rca-cloud-entities-env`): `git fetch origin handoff/r10-rca-cloud-entities-env && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-SWEEP-SETTLE-LOOP (stage in-progress, branch `handoff/r10-rca-sweep-settle-loop`): `git fetch origin handoff/r10-rca-sweep-settle-loop && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-ROSTER-LINT-REFRESH (stage in-progress, branch `handoff/r10-hotfix-roster-lint-refresh`): `git fetch origin handoff/r10-hotfix-roster-lint-refresh && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RCA-RELAY-HANDOFF-STARVATION (stage in-progress, branch `handoff/r10-rca-relay-handoff-starvation`): `git fetch origin handoff/r10-rca-relay-handoff-starvation && git worktree add --detach $SEAT/wt FETCH_HEAD`
