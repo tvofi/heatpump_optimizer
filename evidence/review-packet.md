@@ -1,42 +1,54 @@
 # Review packet #3350
-head: 3377b5f0660d421e6c8eb01a5f50c9ef114a6c4b
-base: 2f6d699e504d6dc0bb6040d99c21c5b015a290e4
+head: 6948302a4eaf992e221be3786fc2d74d864f7eeb
+base: 1cabb845d61754d333005b64d3df14d55827d0c6
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=129353321527 neutral
-arch-score / arch-score id=129352818081 success
-budget-raise-gate / budget-raise-gate id=129352818202 success
-cancel-superseded id=129352300742 success
-codeql / Analyze (actions) id=129352818145 success
-codeql / Analyze (javascript-typescript) id=129352818665 success
-codeql / Analyze (python) id=129352818680 in_progress
-gate id=129353418962 failure
-governance / delivery-status id=129352818520 success
-governance / env-matrix id=129352818159 success
-governance / instrument-self-tests id=129352818254 in_progress
-governance / policy-docs id=129352818006 success
-governance / wave-script id=129352818532 success
-hassfest / hassfest id=129352817876 success
-pr-contract id=129353422068 skipped
-prelude id=129352300313 success
-refresh id=129352300946 success
-tests / arch-instrument id=129353236339 in_progress
-tests / briefs id=129352818174 success
-tests / browser id=129353236225 success
-tests / closure-scope id=129352817939 success
-tests / closures id=129353236556 in_progress
-tests / coverage id=129353236303 in_progress
-tests / fast (3.14) id=129353236613 in_progress
-tests / mutation id=129352818427 success
-tests / mutation-pins id=129353236006 skipped
-tests / nightly-status id=129352818074 success
-tests / typing id=129353236919 success
-validate / validate-hacs id=129352817918 success
+CodeQL id=129416884957 neutral
+arch-score / arch-score id=129416439576 success
+arm id=129416084790 skipped
+budget-raise-gate / budget-raise-gate id=129416438731 success
+cancel-superseded id=129416084850 success
+codeql id=129416437094 skipped
+codeql / Analyze (actions) id=129416439024 success
+codeql / Analyze (javascript-typescript) id=129416439170 success
+codeql / Analyze (python) id=129416439211 in_progress
+gate id=129417219834 failure
+governance id=129416437736 skipped
+governance / delivery-status id=129416439278 success
+governance / delivery-status-publish id=129416442439 skipped
+governance / env-matrix id=129416439338 in_progress
+governance / instrument-self-tests id=129416439303 in_progress
+governance / policy-docs id=129416439326 in_progress
+governance / record id=129416441718 skipped
+governance / wave-script id=129416439317 success
+hassfest id=129416436320 skipped
+hassfest / hassfest id=129416438587 success
+kernel-points id=129416440876 skipped
+pr-contract id=129417221503 skipped
+prelude id=129416084510 success
+refresh id=129416084134 success
+tests id=129416436602 skipped
+tests / arch-instrument id=129416834914 in_progress
+tests / briefs id=129416439035 success
+tests / browser id=129416834982 in_progress
+tests / closure-scope id=129416439140 success
+tests / closures id=129416834946 in_progress
+tests / coverage id=129416834781 in_progress
+tests / fast (3.14) id=129416834729 in_progress
+tests / mutation id=129416438985 success
+tests / mutation-autofix id=129416870652 skipped
+tests / mutation-pins id=129416871012 skipped
+tests / nightly-ha id=129416837404 skipped
+tests / nightly-status id=129416439037 success
+tests / replay id=129416838532 skipped
+tests / typing id=129416834993 success
+validate id=129416436301 skipped
+validate / validate-hacs id=129416438795 success
 
 ## Refusals
-required-red: required context `gate` concluded failure at 3377b5f0660d421e6c8eb01a5f50c9ef114a6c4b
+required-red: required context `gate` concluded failure at 6948302a4eaf992e221be3786fc2d74d864f7eeb
 
 ## Advisories
 none
@@ -135,40 +147,6 @@ index 712c475ed..eb8e596be 100644
        # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
        # synthetic registration, offline: `policy-docs` runs the base's copy,
        # which cannot answer for a change to this one.
-diff --git a/custom_components/heatpump_optimizer/translations/de.json b/custom_components/heatpump_optimizer/translations/de.json
-index 8a6871b79..66d4e9889 100644
---- a/custom_components/heatpump_optimizer/translations/de.json
-+++ b/custom_components/heatpump_optimizer/translations/de.json
-@@ -581,13 +581,17 @@
-               "indoor_temp_entity": "Innentemperatursensor",
-               "outdoor_temp_entity": "Außentemperatursensor",
-               "space_setpoint_entity": "Sollwert-Entität der Raumheizung (optional)",
--              "space_setpoint_unit": "Was diese Sollwert-Entität erwartet"
-+              "space_setpoint_unit": "Was diese Sollwert-Entität erwartet",
-+              "flow_min_lift_k": "Mindestanhebung über das zulaufende Wasser (K)",
-+              "flow_heat_c": "Obergrenze des Heizwassers (°C)"
-             },
-             "data_description": {
-               "indoor_temp_entity": "Optional. Die tatsächliche Raumtemperatur. Ohne sie vertraut der Optimierer seinem eigenen Modell, das mit der Zeit abdriftet.",
-               "outdoor_temp_entity": "Optional. Ein lokales Außenthermometer ist für die aktuelle Stunde genauer als die Vorhersage.",
-               "space_setpoint_entity": "Optional. Eine Zahl, ein Helfer oder eine Climate-Entität, die der Sollwert der Raumheizung der Pumpe ist. Dient nur dazu zu bemerken, wenn die Entität nicht gelesen werden kann. Der Optimierer schreibt nie einen empfohlenen Raumheizungs-Sollwert.",
--              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert."
-+              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert.",
-+              "flow_min_lift_k": "Mit Steuerung der Pumpenfunktion auf Steuern ist der Wasser-Sollwert, der bei der niedrigsten Leistung des Plans geschrieben wird, das gemessene zulaufende Wasser plus dieser Wert: Rücklauf der Wärmepumpe, Pufferspeicher, Fußbodenrücklauf oder Ventilausgang, und für eine Rücklauftemperatur-Entität nur die ersten drei. 5 K passen zu einem Regler, der seinen Vorlauf auf dem Sollwert hält. Bei einem Regler, der die Zahl als Ziel für das Rücklaufwasser nimmt, wird angenommen, dass er den Verdichter umso stärker laufen lässt, je weiter das Ziel über dem Rücklauf liegt; er will daher wahrscheinlich weniger. 1–2 K sind ein Ausgangspunkt, der an der gemessenen Frequenz und Leistung des Verdichters zu prüfen ist, kein gemessener Wert.",
-+              "flow_heat_c": "Der Wasser-Sollwert, der bei voller geplanter Leistung geschrieben wird, und der höchste, der geschrieben wird, solange der Plan steuert. 55 °C passen zu einem Vorlaufziel. Für eine Rücklauftemperatur-Entität wählen Sie ihn über dem höchsten Rücklauf, den Sie im normalen Heizbetrieb sehen, plus der Anhebung, und nicht höher, als der Regler annimmt; bei einer Niedertemperatur-Fußbodenheizung können 35–40 °C ein Ausgangspunkt sein, der an Messungen zu prüfen ist. Unter 30 °C wird nicht angeboten: Die Schwelle, die Aus bedeutet, ist 25 °C für ein Vorlaufziel und 20 °C für ein Rücklaufziel."
-             }
-           },
-           "plant": {
-@@ -1686,7 +1690,8 @@
-     "space_setpoint_unit": {
-       "options": {
-         "indoor": "Innentemperatur",
--        "flow": "Vorlauftemperatur"
-+        "flow": "Vorlauftemperatur",
-+        "return": "Rücklauftemperatur"
-       }
-     },
-     "pump_duty_mode": {
 diff --git a/dev/audit/harnesses/r10_outside_intake_p2_mutants.py b/dev/audit/harnesses/r10_outside_intake_p2_mutants.py
 new file mode 100644
 index 000000000..52cea5351

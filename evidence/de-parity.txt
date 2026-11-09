@@ -1,2 +1,0 @@
-2f6d699e504d en-de missing ['/options/step/entities/sections/indoor/data/flow_heat_c', '/options/step/entities/sections/indoor/data/flow_min_lift_k', '/options/step/entities/sections/indoor/data_description/flow_heat_c', '/options/step/entities/sections/indoor/data_description/flow_min_lift_k', '/selector/space_setpoint_unit/options/return'] de-en extra [] strings-de missing 5
-3377b5f0660d en-de missing [] de-en extra [] strings-de missing 0

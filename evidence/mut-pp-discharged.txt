@@ -1,4 +1,0 @@
-wrote /tmp/tmpzxync2z1/page.html: 8 groups, closure 2026-01-06T15:14:00Z
-wrote /tmp/tmpzxync2z1/page.html: 8 groups, closure 2026-01-06T15:14:00Z
-plan_page self-test: 76 checks, 1 failed
-FAIL discharged: rendered merged, naming the record step it owes (got: ({'g': 'R9-DIS', 'lane': 'Core model', 'st': 'done', 'label': 'merged at fffffff1, every carry discharged; record owed: close or re-own #12, then set-stage done', 'pr': 'merged', 'tier': None, 'why': '', 'issues': [(12, False, True, 'twelve')], 'blk': [], 'desc': 'Does R9-DIS.', 'crit': False, 'wave)
