@@ -1035,20 +1035,37 @@ const PLAYBOOK_PATH_RE = new RegExp(`^(?:[A-Za-z0-9_.][A-Za-z0-9_.-]*/)*(?:[A-Za
 const PLAYBOOK_CAP_FIGURE_RE = /\b\d+\s+(?:open\s+)?(?:PRs?|pull requests)?\s*in round \d+|\b(?:open-PR|PR|pull-request) cap\s*(?:is|of|at|:|=)\s*\d+|\b\d+-PR cap/gi
 
 export function playbookCitations(text) {
-  const prose = []
+  return playbookCitedAt(text).map((c) => c.token).filter((t, i, a) => a.indexOf(t) === i)
+}
+
+// Each citation with the prose line it stands on, so a tag SHA licenses only
+// the paragraph that cites it (brief-citations.md: a tag carries what is cited
+// "in the same brief"; a document's brief is the paragraph, not the file).
+// A paragraph is a run of lines between blank lines; a table row is its own.
+function playbookCitedAt(text) {
+  const out = []
   let fenced = false
+  let para = []
+  const flush = () => {
+    const joined = para.map((p) => p.line).join('\n')
+    for (const p of para) {
+      const own = p.line.trimStart().startsWith('|') ? p.line : joined
+      for (const m of p.line.matchAll(/`([^`\n]+)`/g)) {
+        const word = m[1].trim().split(/\s+/)[0].replace(/:\d+(?:-\d+)?$/, '')
+        // `../x` is outside the repository by construction: a statement, not a citation.
+        if (PLAYBOOK_PATH_RE.test(word) && !word.startsWith('../')) out.push({ token: word, scope: own })
+      }
+    }
+    para = []
+  }
   for (const line of text.split('\n')) {
     if (/^\s*```/.test(line)) { fenced = !fenced; continue }
     if (fenced || /^ {4}/.test(line)) continue
-    prose.push(line)
+    if (!line.trim()) flush()
+    else para.push({ line })
   }
-  const out = new Set()
-  for (const m of prose.join('\n').matchAll(/`([^`\n]+)`/g)) {
-    const word = m[1].trim().split(/\s+/)[0].replace(/:\d+(?:-\d+)?$/, '')
-    // `../x` is outside the repository by construction: a statement, not a citation.
-    if (PLAYBOOK_PATH_RE.test(word) && !word.startsWith('../')) out.add(word)
-  }
-  return [...out]
+  flush()
+  return out
 }
 
 function playbookLookup(listing, token) {
@@ -1070,8 +1087,12 @@ function rawTree() {
 
 export function lintPlaybook(label, text, findings) {
   const add = (severity, kind, message) => findings.push({ group: label, severity, kind, message })
-  const refs = tagRefsIn(text)
-  for (const token of playbookCitations(text)) {
+  const seen = new Set()
+  for (const { token, scope } of playbookCitedAt(text)) {
+    const refs = tagRefsIn(scope)
+    const key = `${token}\0${refs.join(',')}`
+    if (seen.has(key)) continue
+    seen.add(key)
     if (playbookLookup(rawTree(), token) || playbookLookup(trackedFiles(), canonList([token])[0])) continue
     const tagResult = checkAgainstTags(refs, (ref) => {
       const listing = refFiles(ref)
@@ -1095,7 +1116,7 @@ const lintPlaybookFile = (file) => lintPlaybook('(playbook)', fs.readFileSync(fi
 // instruments it renames, removes and moves to another directory, the directory
 // it renames and the renamed path it cites at a line, and the null fixture -- the same prose
 // with the real paths -- must produce no finding of any severity.
-const REQUIRED_PLAYBOOK = ['tools/release/stamp_renamed.py', 'tools/audit/seat/no_such_beat.py', 'tools/pr/state_docs.py', 'tools/audit/seatz/', 'tools/audit/seat/beat_jobz.py', 'open-PR cap is 16']
+const REQUIRED_PLAYBOOK = ['tools/release/stamp_renamed.py', 'tools/audit/seat/no_such_beat.py', 'tools/pr/state_docs.py', 'tools/audit/seatz/', 'tools/audit/seat/beat_jobz.py', 'tools/audit/round2/JUDGE.md', 'open-PR cap is 16']
 function assertPlaybookFixtures() {
   const problems = []
   const red = lintPlaybookFile(path.join(FIXTURES, 'playbook-renamed.md'))
