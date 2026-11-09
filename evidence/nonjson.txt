@@ -1,2 +1,0 @@
-/root/base_gh_read.py rc=1
-tools/audit/seat/gh_read.py rc=0

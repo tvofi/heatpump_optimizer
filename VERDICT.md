@@ -1,35 +1,20 @@
-Fix review: blocked 5a5b2c4fca00886ffa425268ee9b604fcaf58045 root-cause-unanswered: gate
+Fix review: merge 5a5b2c4fca00886ffa425268ee9b604fcaf58045
 
-bus-nonce: 79332eeac2d420b8b3bf03f9fc68277b
+bus-nonce: c7571fb57dc0bf8718c94e69e931c78c
 
-Round 1 (first review of this PR by this seat). Head measured: 5a5b2c4fca00886ffa425268ee9b604fcaf58045, still the PR head at post time (refs/pull/3361/head).
-
-## Block
-
-Check `gate` (check run 128920160526, ci.yml "CI edit pr=3361", run 42540449051 attempt 1, 00:52Z) concluded failure at this head. Its log: `FAIL run(s) [42539949919] at this head are still being judged; their gate decides`. The body's `## Red checks` says "none" and answers nothing. That is rule 11's silence. I read it as an ordering race between the edit and code runs' gates, not a defect in the diff, and I name no cheaper detector.
-
-Attempt 2 of that run (gate 128931727137) and the code run's gate (128931066114) are both success, so no red remains at this head. `merge_train.py classify` still prints `RED ... red: gate` on 5 runs spread over about 15 minutes, because `latest_runs` keeps the worst gate of each check suite. The attempt-1 suite is still listed under `check-runs?filter=all`. I did not re-run CI or touch it.
-
-To clear: add one line to `## Red checks` naming `gate` (race between the two runs' gates, no cheaper detector, or whatever the author finds), and have the orchestrator run `merge_train.py unstale` so that classify reads GREEN. The code and its measurements need no change. Everything below holds at this head, so a re-review of an unchanged patch can carry (`review_carry.py`).
+Round 1 of this review. Measured head 5a5b2c4fca00886ffa425268ee9b604fcaf58045, still the PR head when written. Review packet UNAVAILABLE (carry-landed check read a run id as a commit); reviewed without it.
 
 ## Findings
 
-- Residual: the review packet could not be rendered. `review_packet.py render` printed `UNAVAILABLE: git merge-base --is-ancestor 42454528717 origin/handoff/audit-r10-roster: fatal: Not a valid object name 42454528717`, and no packet file was written. A 11-digit run id (the 1760-job run in the body) is being passed where a commit is expected. I reviewed from the PR body, the live checks and the diff. Carry: #2731
+- Follow-up: the pr-contract.yml wiring of gh_read_run.py (7 reads, base-restore pathspec, dropping both `pending` keys in field_coverage.mjs) is not in this diff and is owed after the merge; body forward-carries it. Carry: #2731
+- Follow-up: the other 17 workflow `gh api` reads, the stale EQUIVALENT entry in r10_gh_read_retry_mutants.py, app_push.sh's push retry, outside_intake.py plan_live and the lagging-red decision are open class seams, each dispositioned in the body's Forward-carry. Carry: #2731
 
 ## Evidence
 
-- RESULT merge-tree origin/main vs head: clean (rc 0, no conflict; ev/merge_tree.txt). Merge base of head and origin/main: 19865e5a866c.
-- RESULT claim files, VERSION, manifest, RELEASE_NOTES and goldens: none in the 12-file diff (`git diff 19865e5...HEAD --name-only | grep -E 'VERSION|manifest|RELEASE_NOTES|golden|claimed'` prints nothing). No fixture moved, so there is no drift to claim.
-- RESULT gh_read_run.py --self-test: 13 checks, 0 failed (matches the body). RESULT stamp.py --self-test: RESULT stamp_self_test=pass. RESULT r10_codescan_wait_race.py --selftest: 14 checks, 0 failed. RESULT r10_red_list_lag.py --selftest: 5 checks, 0 failed (ev/selftests.txt).
-- RESULT mutation, the fix deleted (two `if st >= 500 and size != 30` lines removed from `pages()`): `selftest: 14 checks, 3 failed pages['fallback', 'over50', 'many1760']`, rc 1. This matches the body (ev/mut_fallback.txt). The file was restored.
-- RESULT mutation, loop bound reverted to `range(1, ghapi.MAX_PAGES + 1)`: `selftest: 14 checks, 1 failed pages['many1760']`. This matches the body's null control (ev/mut_bound.txt). The file was restored.
-- RESULT null control, NON_JSON: the base `gh_read.py` with `invalid character 'S' looking for beginning of value` on stdin `--classify` exits 1, and the head exits 0 (ev/nonjson.txt).
-- RESULT null control, write argv: `gh_read_run.py gh api -X POST ...` exits 2 with "not a read, so not run" (ev/write.txt).
-- RESULT structure.py: STRUCTURE RATCHET PASSED. RESULT field_coverage.mjs: FIELD COVERAGE ok, refused=0. RESULT ci_predict.py: `no closures, fast, governance or instrument red predicted against 19865e5a866c` (ev/predict.txt).
-- No budget file is in the diff, so no raise is owed. The body's `dS +0.0000 NULL` is a CI-green figure (arch-score, budget-raise-gate and closure-scope are success at this head). I did not re-derive it.
-- Figures I did not re-derive: the live Pages and 502 measurements (run 40132661027 and per_page probes), the 1 lagging red in 379 lists, the 118 diff mutants and 26 survivors, the 360-mutant sweep at the old base, and the app_approve.sh 322 checks. They need live GitHub or long runs, and the heavy ones are CI's to cite. The body's bound probe on main's `pages()` is covered only through the mutation above.
-- Forward-carry (rule 10): the body writes every item to #2731 as `Carry: #2731`. I did not open #2731. The roster-branch SHA is not named, and the carries are stated to be in the issue, not in a roster. I treat this as the body's disclosed choice.
-- Enumeration rule (rule 6): the body names `git grep -n 'gh api' -- .github/workflows` (24 reads) and the urllib enumerator, and dispositions every seam in Forward-carry. No seam is left undispositioned. I did not re-run the grep.
-- Version: the PR touches no VERSION, manifest or notes heading.
-- CI at this head: all completed jobs are success or skipped except the attempt-1 `gate` above. classify rc 1, "RED ... red: gate", repeated (ev/classify.txt). The pr-contract job was skipped in every run, so the "pr-contract started after the last red" condition of rule 11 never held. The block is posted on that ground and on the unanswered `gate` red.
-- Head: ev/HEAD.txt holds 5a5b2c4fca00886ffa425268ee9b604fcaf58045.
+- merge-tree with origin/main: rc 0, clean (LEDGER-MERGE resolved tests/closures.json). ev/mergetree.txt
+- merge_train classify at this head: GREEN, pending none, red none (ev/classify1.txt). The body's red `gate` (edit run, deferral to the code run) is answered in the body; its later attempt and the code run are green.
+- Self-tests at head: gh_read_run 13 checks 0 failed; stamp RESULT stamp_self_test=pass; r10_codescan_wait_race selftest 14 checks 0 failed; r10_red_list_lag 5 checks 0 failed; record_row gh_read 138 checks 0 failed; field_coverage ok; structure ratchet passed; archscore dS +0.0000 NULL.
+- Mutants (mine): deleting the fallback break lines in pages(): selftest 3 failed [fallback, over50, many1760], matching the body. Reverting the item bound to MAX_PAGES: 1 failed [many1760], matching the body. Dropping NON_JSON from gh_transient: gh_read_run 4 failed, gh_read 138-check self-test 3 failed. Replacing get_gh's retry with one read: stamp RESULT stamp_self_test=fail. All restored. ev/m1..m4.txt
+- Enumerators re-run: `git grep -n 'gh api' -- .github/workflows` gives 24 (body: 24 at its base); `git grep -nE "urlopen\(" HEAD -- tools` gives the same 5 lines as the body.
+- VERSION, manifest and RELEASE_NOTES untouched; no golden or claim file in the diff; roles dir unchanged against main.
+- Not re-derived: the 44-minute live red-list lag count (1 in 379), the live 502 null controls, the 118-mutant diff run and the 7m57s sweep figure (heavy or live-API; cited, not re-run).

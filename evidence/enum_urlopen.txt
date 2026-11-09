@@ -1,0 +1,5 @@
+HEAD:tools/audit/seat/outside_intake.py:104:        with urllib.request.urlopen(urllib.request.Request(url, method="HEAD"), timeout=20) as r:
+HEAD:tools/audit/seat/record_row.py:894:            with urllib.request.urlopen(req) as resp:  # nosec - fixed https host
+HEAD:tools/audit/seat/record_row.py:1689:        def urlopen(req, *a, **k):
+HEAD:tools/ci/ghapi.py:65:    return urllib.request.urlopen(req, timeout=30)
+HEAD:tools/release/stamp.py:2583:        with urllib.request.urlopen(request, timeout=GATE_TIMEOUT_S) as response:
