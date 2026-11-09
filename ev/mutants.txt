@@ -1,0 +1,9 @@
+head 15e947e8d47fa45fb4446e400508879e0391a16f, worktree detached, tools/policy/brief_lint.mjs mutated and restored (cmp RESTORED)
+RESULT M1 skip-resolution rc=1 no error for tools/release/stamp_renamed.py
+RESULT M7 tagRefsIn(text) rc=1 no error for tools/audit/round2/JUDGE.md
+RESULT R2 dir branch return true rc=1 no error for tools/audit/seatz/
+RESULT R5 :line strip deleted rc=1 no error for tools/audit/seat/beat_jobz.py
+RESULT M5b segment-suffix lookup false rc=1
+RESULT M2 fence/indent skip deleted rc=1 9 error(s), not 7
+RESULT perturb rename stamp.py->stamp_v2.py rc=1 playbook path error (ev/perturb-rename.txt)
+RESULT perturb cap text 'cap of 16 in round 10' rc=ERROR playbook cap (ev/perturb-cap.txt)
