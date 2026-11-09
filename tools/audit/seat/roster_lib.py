@@ -80,11 +80,14 @@ LIVE_CLAIM = tuple(w for w, k in STAGE_KIND if k == "live-claim")
 #: records that is not here keeps the group open (and its after-edges
 #: constraining).
 DONE_STAGES = tuple(w for w, k in STAGE_KIND if k == "done")
-#: The stages that end a group's work: the done ones, and `absorbed`, whose
-#: work lives in its fold destination. `is_open`, the after-edge closure and the
-#: carry destination check read this one set; `absorbed` stays a disposition
+#: The stages that end a group's work: the done ones, `absorbed`, whose work
+#: lives in its fold destination, and the two dispositions that decide the work
+#: will not be done, `refused` and `deferred`. `is_open`, the after-edge closure
+#: and the carry destination check read this one set; each stays a disposition
 #: (roster_sync never rewrites it), so DONE_STAGES keeps meaning "merged".
-CLOSED_STAGES = DONE_STAGES + ("absorbed",)
+#: `refuted` stays open: it names a finding, not a group's work.
+FINISHED_STAGES = DONE_STAGES + ("absorbed",)
+CLOSED_STAGES = FINISHED_STAGES + ("refused", "deferred")
 #: Human dispositions: nothing derives, clears or overwrites one.
 DISPOSITION = tuple(w for w, k in STAGE_KIND if k == "disposition")
 #: The stages in which a group's work is under way, for the planner's live
@@ -352,12 +355,57 @@ def open_groups(roster: dict) -> dict:
     return {k: g for k, g in groups_of(roster).items() if is_open(g)}
 
 
+def unfinished_groups(roster: dict) -> dict:
+    """Every group whose work did not finish: `open_groups` plus the `refused`
+    and `deferred` ones it drops. The closeout run reads this set, because a
+    ruled or postponed group naming a still-open `resume.host` keeps the round
+    open (`closeout_exempt`)."""
+    return {k: g for k, g in groups_of(roster).items()
+            if (g.get("resume") or {}).get("stage") not in FINISHED_STAGES}
+
+
 #: The group that cuts the round's closing stamp; a group after it is post-closure.
 CLOSE_STAMP_MARK = "STAMP-ROUND-MAJOR"
 POST_CLOSE_STEP_RE = re.compile(r"after the .*\b(stamp|closeout)\b", re.I)
 #: A disposition that ends a group's claim on the round: a ruling closed it.
 #: `deferred` and `carries-open` still owe work and are not in it.
 RULED_STAGES = ("refused", "refuted")
+#: The stages in which a group's `after`-edge no longer gates a dependent: the
+#: finished ones, and the ruled ones, whose work never lands (owner ruling,
+#: mandate 6715477401). `deferred` is not here: postponed is not done, so a
+#: dependent stays held behind it.
+RELEASING_STAGES = FINISHED_STAGES + RULED_STAGES
+
+
+def gates(group: dict) -> bool:
+    """True when `group` holds back a group that is `after` it."""
+    return (group.get("resume") or {}).get("stage") not in RELEASING_STAGES
+
+
+def held_behind_deferred(G: dict) -> dict:
+    """{open group: the deferred group it waits on}: a group whose `after`
+    names a `deferred` group, or a group held in turn, stays unscheduled until
+    the deferral is lifted. The edge to a refused or refuted group is released
+    (`gates`)."""
+    held: dict = {}
+    grew = True
+    while grew:
+        grew = False
+        for n, g in G.items():
+            if n in held or not is_open(g):
+                continue
+            for a in g.get("after") or []:
+                if a not in G:
+                    continue
+                if (G[a].get("resume") or {}).get("stage") == "deferred":
+                    held[n] = a
+                elif a in held and gates(G[a]):
+                    held[n] = held[a]
+                else:
+                    continue
+                grew = True
+                break
+    return held
 
 
 def post_closure_groups(G: dict, open_: set) -> set:
@@ -384,7 +432,7 @@ def closeout_exempt(roster: dict) -> tuple:
     post-closure groups and the issues wired to them, and every group whose
     stage is a ruled disposition (`RULED_STAGES`) unless its `resume.host`
     names a group still open. The roster keeps a ruled group open by design."""
-    G, open_ = groups_of(roster), set(open_groups(roster))
+    G, open_ = groups_of(roster), set(unfinished_groups(roster))
     post = post_closure_groups(G, open_)
     ruled = {n for n in open_
              if (G[n].get("resume") or {}).get("stage") in RULED_STAGES
@@ -528,7 +576,7 @@ def depth_of(roster: dict) -> dict:
         g = G.get(k)
         if g is None:
             raise ValueError(f"after-edge names no group: {k}")
-        oa = [a for a in g.get("after") or [] if is_open(G[a])]
+        oa = [a for a in g.get("after") or [] if gates(G[a])]
         memo[k] = 1 + max((d(a, stack + (k,)) for a in oa), default=0)
         return memo[k]
 
@@ -542,7 +590,7 @@ def critical_path(roster: dict) -> list:
     best: dict = {}
     order = sorted(G, key=lambda k: depth_of(roster)[k])
     for n in order:
-        deps = [a for a in G[n].get("after") or [] if a in G]
+        deps = [a for a in G[n].get("after") or [] if a in G and gates(G[a])]
         prev = max(deps, key=lambda a: best[a][0], default=None)
         best[n] = (1 + (best[prev][0] if prev else 0),
                    (best[prev][1] if prev else []) + [n])
@@ -639,6 +687,61 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
         for g in roster.get("groups", []):
             if norm_group(str(g.get("group") or "")) == phase:
                 return g.get("group")
+    return None
+
+
+def is_outside(group: dict) -> bool:
+    """Whether the group serves an accepted outside issue or contribution: its
+    `source` field is the string `outside`. An absent or any other value is
+    internal, so a roster with no `source` field orders as it always did.
+    Owner ruling tvofi 2026-11-07 (triage P420): outside work is dispatched
+    and merged ahead of audit or owner work unless the owner calls it a hotfix."""
+    return isinstance(group, dict) and group.get("source") == "outside"
+
+
+def is_hotfix(group: dict) -> bool:
+    """Whether the group is a hotfix: `kind` "bug" (the user-reported finding) or
+    a `HOTFIX` in its name. A hotfix outranks an outside group (owner ruling
+    tvofi 2026-11-07, triage P420: "unless i call the owner one a hotfix")."""
+    return isinstance(group, dict) and (
+        group.get("kind") == "bug" or "HOTFIX" in str(group.get("group") or "").upper())
+
+
+def dispatch_rank(roster: dict, gid: str | None, critical) -> int:
+    """0 hotfix, 1 outside, 2 critical path, 3 any other group (or none): the
+    one order every queue reader applies (owner ruling tvofi 2026-11-07, triage
+    P420). `critical` is a set of `norm_group` ids; a group the roster does not
+    hold is 3."""
+    if not gid:
+        return 3
+    g = next((x for x in roster.get("groups", []) if x.get("group") == gid), None)
+    if g is not None and is_hotfix(g):
+        return 0
+    if g is not None and is_outside(g):
+        return 1
+    return 2 if norm_group(str(gid)) in critical else 3
+
+
+def group_for_pr(roster: dict, pr) -> str | None:
+    """The roster group id whose `resume.pr` is `pr`, or None. A fork head
+    carries no branch of ours, so `group_for_branch` cannot map it; the
+    roster's own record of the pull request does. `pr` may be an int or a
+    digit string; a bool, a non-number or an unrecorded pull request is None."""
+    try:
+        if isinstance(pr, bool):
+            return None
+        want = int(pr)
+    except (TypeError, ValueError):
+        return None
+    for g in roster.get("groups", []):
+        v = (g.get("resume") or {}).get("pr")
+        if isinstance(v, bool) or v is None:
+            continue
+        try:
+            if int(v) == want:
+                return g.get("group")
+        except (TypeError, ValueError):
+            continue
     return None
 
 
@@ -813,6 +916,49 @@ def _self_test() -> int:
           and is_open({"resume": {"stage": "queued"}})
           and "absorbed" not in DONE_STAGES and CARRY_CLOSED == CLOSED_STAGES,
           (CLOSED_STAGES, CARRY_CLOSED))
+    check("refused and deferred are closed: not open, a carry has no destination "
+          "there; refuted stays open (null)",
+          not is_open({"resume": {"stage": "refused"}})
+          and not is_open({"resume": {"stage": "deferred"}})
+          and is_open({"resume": {"stage": "refuted"}})
+          and "refused" in CARRY_CLOSED and "deferred" not in DONE_STAGES,
+          CLOSED_STAGES)
+    def rg(n, st, **kw):
+        return {"group": n, "resume": {"stage": st, **kw.pop("res", {})}, **kw}
+    chain = {"groups": [rg("P", "deferred"), rg("Q", "queued", after=["P"]),
+                        rg("S", "queued", after=["Q"]), rg("U", "queued")]}
+    check("an after-edge to a deferred group holds its dependent, and that one's own",
+          held_behind_deferred(groups_of(chain)) == {"Q": "P", "S": "P"}
+          and gates(groups_of(chain)["P"]) and depth_of(chain)["Q"] == 2,
+          held_behind_deferred(groups_of(chain)))
+    mid = {"groups": [rg("P", "deferred"), rg("Q", "refuted", after=["P"]),
+                      rg("S", "queued", after=["Q"])]}
+    check("a held group that is itself released (refuted) does not hold its dependent "
+          "(null: the queued Q, in `chain`, does)",
+          held_behind_deferred(groups_of(mid)) == {"Q": "P"}
+          and not gates(groups_of(mid)["Q"]),
+          held_behind_deferred(groups_of(mid)))
+    for st in ("refused", "refuted", "done", "absorbed"):
+        rel = {"groups": [rg("P", st), rg("Q", "queued", after=["P"])]}
+        check(f"an after-edge to a {st} group is released (null: deferred holds, above)",
+              not gates(rel["groups"][0]) and held_behind_deferred(groups_of(rel)) == {}
+              and depth_of(rel)["Q"] == 1, depth_of(rel))
+    check("a refused or deferred group stays unfinished: closeout still waits for it, "
+          "and closeout_exempt exempts it only when its host is not open",
+          set(unfinished_groups({"groups": [rg("R", "refused"), rg("D", "deferred"),
+                                            rg("X", "done"), rg("A", "absorbed")]})) == {"R", "D"}
+          and closeout_exempt({"groups": [rg("R", "refused", res={"host": "H"}),
+                                          rg("H", "in-progress")]})[0] == set()
+          and closeout_exempt({"groups": [rg("R", "refused"), rg("H", "in-progress")]})[0] == {"R"},
+          closeout_exempt({"groups": [rg("R", "refused", res={"host": "H"}),
+                                      rg("H", "in-progress")]}))
+    cp = {"groups": [rg("A", "refuted"), rg("B", "queued", after=["A"]),
+                     rg("F", "queued", after=["B"]), rg("G", "queued", after=["F"])]}
+    check("critical_path: an edge to a refuted group is released, so the chain starts at B "
+          "(null: a queued A leads it)",
+          critical_path(cp) == ["B", "F", "G"]
+          and critical_path({"groups": [rg("A", "queued")] + cp["groups"][1:]}) == ["A", "B", "F", "G"],
+          critical_path(cp))
     ab = {"groups": [{"group": "A", "resume": {"stage": "absorbed"}},
                      {"group": "B", "after": ["A"], "resume": {"stage": "queued"}}]}
     check("an absorbed group is not in the open set or the dependency depth",
@@ -873,6 +1019,30 @@ def _self_test() -> int:
         check("group_for_branch: a phase branch of no group is None (null control)",
               group_for_branch(rg, "handoff/r10-zz-p2") is None
               and group_for_branch(rg, "handoff/r10-ph-px") is None)
+        check("is_outside: source `outside` only; absent or other is internal",
+              is_outside({"group": "G", "source": "outside"})
+              and not is_outside({"group": "G"}) and not is_outside({"group": "G", "source": "Outside"})
+              and not is_outside({"group": "G", "source": True}) and not is_outside({"group": "G", "source": ["outside"]}))
+        rp = {"groups": [{"group": "R10-F", "resume": {"pr": 7}}, {"group": "R10-G", "resume": {"pr": "8"}},
+                         {"group": "R10-H", "resume": {"pr": None}}, {"group": "R10-I"},
+                         {"group": "R10-BOOL", "resume": {"pr": True}}, {"group": "R10-ONE", "resume": {"pr": 1}}]}
+        rk = {"groups": [{"group": "H1", "kind": "bug"}, {"group": "R10-HOTFIX-N"},
+                         {"group": "O1", "source": "outside"}, {"group": "O2", "source": "outside", "kind": "bug"},
+                         {"group": "C1"}, {"group": "P1"}]}
+        check("dispatch_rank: hotfix 0, outside 1, critical 2, other or unknown or none 3; a hotfix beats outside",
+              [dispatch_rank(rk, g, {"c1", "o1"}) for g in ("H1", "R10-HOTFIX-N", "O1", "O2", "C1", "P1", "ZZ", None)]
+              == [0, 0, 1, 0, 2, 3, 3, 3]
+              and dispatch_rank(rk, "C1", set()) == 3
+              # no group id is 3 even where a roster row carries no id and is a hotfix
+              and dispatch_rank({"groups": [{"group": None, "kind": "bug"}]}, None, set()) == 3)
+        check("is_hotfix: kind bug or HOTFIX in the name only",
+              is_hotfix({"group": "X", "kind": "bug"}) and is_hotfix({"group": "r10-hotfix-x"})
+              and not is_hotfix({"group": "X"}) and not is_hotfix(None))
+        check("group_for_pr: resume.pr maps int or digit string; unrecorded, bool, junk are None",
+              group_for_pr(rp, 7) == "R10-F" and group_for_pr(rp, "7") == "R10-F"
+              and group_for_pr(rp, 8) == "R10-G" and group_for_pr(rp, 9) is None
+              and group_for_pr(rp, None) is None and group_for_pr(rp, True) is None and group_for_pr(rp, 1) == "R10-ONE"
+              and group_for_pr(rp, "x") is None and group_for_pr({}, 7) is None)
         check("group_for_branch: -p2 never answers a longer id by prefix",
               group_for_branch({"groups": [{"group": "R10-PH-1"}]},
                                "handoff/r10-ph-p2") is None)

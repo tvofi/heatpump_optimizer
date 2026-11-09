@@ -102,8 +102,13 @@ in time, as they did live, and the arm refuses a fixture where they do not.
 
 In every pre-fix row, the replay gives the same deferral ids the live logs print.
 #3246's program decides all three pairs. The lower gate passes at once beside
-the higher's started gate. In #3261, the higher gate waits one poll, then passes.
+the higher's started gate. Under that program, in #3261, the higher gate waits one poll, then passes.
 Under #3276's `judging()` the higher gate no longer waits at all (naps 0 and 0).
+Since #3287 (`5c1fa41fb`), no deferring gate waits: it publishes the deferral red at once,
+and `gate-sweep.yml`'s `settle` re-runs it. The three pairs still decide through that
+program (naps 0), and the c3 scenes read `C3-AT-ONCE`, which is now its design. The readers
+that take that red as final, and a `settle` loop on content reds, are in
+`dev/audit/rca/r10-gate-defer-read-final.md`.
 None of the six live reds would have happened if the re-run had executed main's
 `gate.py`.
 
@@ -347,6 +352,9 @@ them. A re-run of the old run does not clear them.
   its cause, process state and cost. Another change to busy() or judge() cannot
   remove the six stale reds, because they never ran busy() as it stands on main.
   Re-prove any gate change with `replay --ci <export>`; `C3-AT-ONCE` now fails it.
+  Since #3287 made the at-once deferral the design, `replay` exits 1 at main on the
+  three c3 scenes alone: read their `C3-AT-ONCE` as that design, not a regression
+  (`dev/audit/rca/r10-gate-defer-read-final.md` section 3).
 - To the orchestrator, now: #3265 and #3255 at their recorded heads, and any other
   PR the census lists as stale-red, need a fresh dispatched run (5.3), not a
   re-run.

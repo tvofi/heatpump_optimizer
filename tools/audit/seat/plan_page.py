@@ -211,7 +211,7 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
     rows = []
     for g, entry in G.items():
         pg = PG[g]
-        blk = [a for a in entry.get("after") or [] if a in G and a not in done]
+        blk = [a for a in entry.get("after") or [] if a in G and roster_lib.gates(G[a])]
         part = sorted(delivered.get(g) or [])
         sfx = f", part merged #{', #'.join(map(str, part))}" if part else ""
         pr = ", ".join(f"#{n}" for n in open_pr.get(g, [])) or "—"
@@ -245,8 +245,8 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
         rows.append({
             "g": g, "lane": pg["lane"], "st": st, "label": label, "pr": pr,
             # The tier is the plan's computed dispatch priority (replan.py's
-            # dispatch_tier: 1 main, 2 critical path and hotfixes, 3 production
-            # and instruments saving 12 h or more, 4 other instruments); a done
+            # dispatch_tier: 1 main, 2 hotfixes, 3 outside, 4 critical path, 5
+            # production and instruments saving 12 h or more, 6 other instruments); a done
             # group has none. Why it is that tier and why it starts when it
             # does are the plan's own words (`tier_reason`, `start_reason`).
             "tier": pg.get("tier"),
@@ -875,7 +875,7 @@ def _self_test() -> int:
                   and '<td class="tier">—</td>' in page
                   and '<th title="dispatch tier' in page,
                   {g: rows[g]["tier"] for g in rows})
-            check("the critical path is tier 2 and production tier 3 (the owner's order)",
+            check("the critical path is the urgent tier and production the production tier (the owner's order)",
                   all(rows[g]["tier"] == replan.TIER_URGENT for g in plan["critical_path"])
                   and any(rows[g]["tier"] == replan.TIER_PRODUCTION_WORK
                           for g in rows if scheduled(g)),
@@ -1137,10 +1137,10 @@ td.d{min-width:260px;max-width:440px}
     <label class="chk"><input type="checkbox" id="hide-done"> Hide merged</label>
   </div>
   <div class="scroll"><table>
-    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: 1 main, 2 critical path and hotfixes, 3 production and instruments saving 12 h or more, 4 other instruments by savings">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
+    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: 1 main, 2 hotfix, 3 accepted outside, 4 critical path, 5 production and instruments saving 12 h or more, 6 other instruments by savings">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
     <tbody id="rows">{{trs}}</tbody>
   </table></div>
-  <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Tier is the plan's dispatch priority: 0 the computed critical path, 1 production, 2 non-production ranked by its <code>savings</code> (— for a merged group). Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
+  <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Tier is the plan's dispatch priority: 1 main, 2 hotfix, 3 accepted outside, 4 the computed critical path, 5 production, 6 non-production ranked by its <code>savings</code> (— for a merged group). Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
 </section>
 
 <section>
