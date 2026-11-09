@@ -1,0 +1,2 @@
+SCENE null-red-non-gate want=RED got=RED
+RESULT replay defects=3 settle_gap=1 null_bad=0 scenes=7
