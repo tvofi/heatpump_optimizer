@@ -18727,10 +18727,11 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-i18n-de",
     "note": "owner request 2026-11-07 (tvofi), sized M, folded into round 10; overlap admitted (R10-ARCH-DOCS, R10-USER-DOCS-VERIFY, R10-HOTFIX-COP-UNMEASURED): owner request 2026-11-07 (tvofi): German UI language, sized M, folded into round 10",
-    "pr": 3331
+    "pr": 3331,
+    "commit": "ebf90bd27f979aae62366fffd0d2e00a9871b53c"
    },
    "brief": "R10-I18N-DE (owner request 2026-11-07, tvofi: \"Would an german language option be a small or large group? If M or smaller, fold it into this round.\"; sized M by the orchestrator, so folded in). Add German as a third UI language beside English and Swedish, through the two i18n mechanisms the tree already has. No new mechanism is built. (1) Integration: a German translations file beside custom_components/heatpump_optimizer/translations/sv.json, key-for-key with translations/en.json. Every leaf is translated, every {placeholder} is kept verbatim, and no key is added or dropped. (2) Card: a `de` dictionary in the STRINGS table of custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js, key-for-key with its `en` block. L() already falls back to English per key, and the active language follows hass.language (\"de-DE\" -> \"de\"). Check that the language-prefix mapping reaches a third dictionary. (3) Tests: every check that pins en/sv parity (tests/card.mjs, tests/entities.py, tests/config_flow_steps.py, tests/doc_claims.py; grep for sv.json and the sv dictionary) is widened to iterate over every shipped language, not given a German copy. A planted missing key, dropped placeholder or extra key in the German set must fail each widened check (the null control: the en/sv sets unchanged still pass). (4) Terminology: use the standard German heat-pump and HVAC terms Home Assistant's own de translations and German manufacturers' manuals use, for example Vorlauftemperatur, Heizkurve, Warmwasser, Abtauen, Leistungszahl (COP) and Sperrzeit. Spot-check against the climate and water_heater domains' de strings in the Home Assistant core repository. Keep entity ids, config keys, service and attribute names, reason codes and other wire enums untranslated, as the card's i18n header states. (5) Docs: wherever README.md or docs/ list the supported UI languages, add German. The reviewer checks key and placeholder parity mechanically, and reads at least 60 German strings across config flow, options, repairs, entities and card tabs for idiom and terminology. A figure in the body names its enumerator."
   },
