@@ -20580,6 +20580,62 @@
     "branch": null,
     "note": "overlap admitted (R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, ordered by after-edges where files overlap"
    }
+  },
+  {
+   "group": "R10-REVIEW-DISPATCH-RESIDUE",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [
+    3107,
+    2389,
+    3113
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/bus.sh",
+    "tools/audit/seat/review_packet.py",
+    "tools/audit/seat/cloud_dispatch.py",
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/review_carry.py",
+    "dev/governance/roles/standing-dispatch.md",
+    "dev/governance/roles/fix-review.md"
+   ],
+   "hot_files": [
+    "tools/audit/seat/bus.sh",
+    "tools/audit/seat/cloud_relay.sh"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-DISPATCH-AT-HANDOFF",
+    "R10-REVIEW-ENUMERATE",
+    "R10-HOTFIX-DELTA-REVIEW",
+    "R10-PROCESS-SLIM"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Reviewer dispatch and return residue: dispatch at the handoff ref (owner policy text), the untouched R10-DISPATCH-AT-HANDOFF carries after #3366, the reviewer no-return arm in cloud_relay.sh noreturn_arm (P437 C1) and its prompt side in cloud_dispatch.py (P437 C2), the pending-ci draft verdict (P475), and the block-class count over 10 verdicts. fix-review.md and standing-dispatch.md are policy: owner approval at merge. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R10-GATE-DEFER-BARRIER): carries-open audit 2026-11-09: distinct seam from R10-GATE-DEFER-BARRIER, ordered by after-edges where files overlap"
+   }
   }
  ]
 }
