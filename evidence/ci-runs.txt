@@ -1,0 +1,8 @@
+Check runs at 577c6974205926e7dbaa178b91af96a229ea02f3 (get_check_runs, read 2026-11-09 ~17:51Z), gate and pr-contract rows:
+gate 129247913713 run 42636985416 (edit kind, WORKSET arch-score budget-raise-gate) failure 15:15:48 -- log: "FAIL run(s) [42635950938, 42636336860] at this head are still being judged; their gate decides"
+gate 129283823160 run 42636336860 (code kind) failure 16:16:24 -- log: "FAIL run(s) [42635950938] at this head are still being judged; their gate decides"
+gate 129289094411 run 42635950938 cancelled 16:24:33 (main moved to ebf90bd27 at 16:24:34Z; run re-attempted)
+gate 129334713797 run 42635950938 success 17:44:40
+pr-contract / pr-contract 129283238729 run 42636336860 success 16:15:40
+pr-contract / pr-contract 129328706084 run 42635950938 (re-attempt) failure 17:43:42 -- log: "FAIL closed: this run's codeql jobs were not listed finished after 600 s" (tools/ci/codescan_wait.py); figure_lint 17 resolved/0 refused, preflight "clean no refusal", carry_audit "4 routed, 0 unrouted"
+Every unit job of runs 42636336860 and 42635950938 concluded success or skipped: tests / fast (3.14) 129226098164 and 129228196968 success; tests / mutation 129225705858 success 16:14:42 (42635950938's first attempt 129225757491 cancelled at 16:24:32 by the main move); closures, coverage, coverage-ratchet, typing, browser, replay, arch-instrument, closure-scope, briefs, governance/*, codeql/* (python 129225705931, 129225757278 success), hassfest, validate-hacs, arch-score, budget-raise-gate success.

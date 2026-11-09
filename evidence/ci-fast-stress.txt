@@ -1,3 +1,0 @@
-  production calls: 20 of 20 family members judged against f365ce757ded1e64a9ec40102495b7c051055f38 (f365ce757ded) in 24 s; re-planned: []; new on this branch: []
-  ok   no scenario's production calls grew past what its work counts vouch for, on an unchanged plan (round 9)
-ALL 113 STRESS CHECKS PASSED
