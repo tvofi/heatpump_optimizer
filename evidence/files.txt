@@ -1,8 +1,0 @@
-dev/programme/delivery/3339.md
-tests/throwaway_git.py
-tests/throwaway_git.sh
-tools/audit/seat/delivery_row.sh
-tools/audit/seat/instruments/ref_privacy.py.md
-tools/audit/seat/plan_audit.py
-tools/audit/seat/ref_privacy.py
-tools/pr/app_push.sh
