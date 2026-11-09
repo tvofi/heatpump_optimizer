@@ -1,0 +1,10 @@
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+RESULT mutant=G rc=1
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+  FAIL a last COP stored before measured provenance does not load as measured; one stored since round-trips  [old {'cop': 2.55, 'curve_dhw': True, 'dhw_temp': 48.0, 'at': '2026-11-01T12:00:00+00:00'}; new {'cop': 3.0, 'curve_dhw': False, 'dhw_temp': None, 'at': '2026-11-09T00:40:49.383473+00:00'}; back {'cop': 3.0, 'curve_dhw': False, 'dhw_temp': None, 'at': '2026-11-09T00:40:49.383473+00:00'}]
+1 of 4987 FEATURE CHECKS FAILED
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
