@@ -306,6 +306,13 @@ def self_test(mutate: str | None = None) -> int:
         again = remembered(judge(_fixture(closed=(None, "later reason"))), mem)
         check("memory: UNREADABLE then UNREADABLE stays its first line (null control)",
               again == blind, again)
+        # Two metrics tripped in one beat are two memory states: a key of the
+        # kind alone would collapse them and print one line twice.
+        mem.unlink()
+        two = judge(_fixture(closed=(4, ""), wip=(["G"] * 25, "")))
+        got = remembered(two, mem)
+        check("memory: two metrics tripped together each print their own line",
+              len(two) == 2 and got == two and len(set(got)) == 2, (two, got))
     return failures
 
 
@@ -325,6 +332,7 @@ MUTANTS = (
 #: The same, applied to `state_of`: the memory key reverted to the metric alone.
 MEMORY_MUTANTS = (
     ("memory-key-metric", 'return " ".join(line.split()[:2])', "return line.split()[1]"),
+    ("memory-key-kind", 'return " ".join(line.split()[:2])', "return line.split()[0]"),
 )
 
 
