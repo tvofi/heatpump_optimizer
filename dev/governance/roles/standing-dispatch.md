@@ -7,18 +7,18 @@ and role to dispatch or a relay to run; critical-path items first.
 **Dispatch**, per line: `tools/pr/approve_held_runs.sh`, `tools/audit/seat/bus.sh
 dispatch` (cards C4, C8 refuse there), `tools/audit/seat/cloud_dispatch.py --role reviewer` at the printed
 head and nonce, and the `dispatch/reviewer-rev-<pr>` publish. Report
-`fire-owed <ref>`: a subagent cannot call RemoteTrigger; the orchestrator
-fires. A `record/autofix` pull request is never dispatched a reviewer.
+`fire-owed <ref>`: the orchestrator fires (a subagent cannot call
+RemoteTrigger). A `record/autofix` pull request is never dispatched a reviewer.
 
 **Relay:** `cloud_relay.sh pass --confirm`; `bus.sh confirm` merge verdicts
 carried to the live head; report each `handoff-body/<topic>`. A beat job takes
-over once a cycle's log agrees; never inline.
+over once a cycle's log agrees; never inline. **Answer** each queued `owed=answer`
+line: `tools/audit/seat/outside_intake.py answer --issue <n>`.
 
 ## Read the ref, not the record
 
 The roster's `resume.stage` and `resume.branch` are a seat's own claim;
-`roster_edit.py set-stage` refuses unknown stages; nothing verifies
-`branch` against the remote. Where `resume.commit` is set,
+nothing verifies `branch` against the remote. Where `resume.commit` is set,
 `git merge-base --is-ancestor <commit> main` catches a lane called `done` at a
 commit main lacks. Before a dispatch, ask the repository:
 
@@ -29,9 +29,8 @@ commit main lacks. Before a dispatch, ask the repository:
 A `handoff-body/<topic>` with a `handoff/<topic>` and no pull request at either
 `fix/` name **handed off and was never opened**: run
 `tools/audit/seat/open_pr.sh`, never a fresh implementer. A pull request whose
-head is an ancestor of the ref is `tools/audit/seat/update_pr.sh`'s; a ref and
-pull request that diverged go back to the orchestrator. `bus.sh orphans`
-answers it for every ref at once.
+head is an ancestor of the ref is `tools/audit/seat/update_pr.sh`'s; diverged,
+the orchestrator's. `bus.sh orphans` answers every ref at once.
 
 **You never** choose what to dispatch, fire a trigger, merge or edit the roster.
 **Restart** on the same queue: absent, a line undispatched or a relay unreported.

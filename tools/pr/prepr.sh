@@ -3880,10 +3880,13 @@ EOF
   pfh="/$(echo Users)/exampleuser"
   printf 'evidence: %s/proj/log\n' "$pfh" >"$WB/priv-bad.md"
   printf 'evidence: dev/audit/x.md and ~/proj/log\n' >"$WB/priv-ok.md"
-  got=$(HOME=$pfh USER=exampleuser body_privacy_line "$WB/priv-bad.md"); r=$?
+  # python3 may be a seat shim that resolves its venv under $HOME (macOS), so
+  # under the planted HOME it exits 127; the real interpreter's dir goes first.
+  pfp=$(dirname "$(python3 -I -c 'import sys; print(sys.executable)')"):$PATH
+  got=$(HOME=$pfh USER=exampleuser PATH=$pfp body_privacy_line "$WB/priv-bad.md"); r=$?
   st "$r" 1 "a body naming the host home directory is refused by body_privacy_line"
   st "$(printf 'REFUSE ref_privacy (body): %s' "$got" | cut -c1-26)" "REFUSE ref_privacy (body):" "and the line reads REFUSE ref_privacy (body)"
-  HOME=$pfh USER=exampleuser body_privacy_line "$WB/priv-ok.md" >/dev/null
+  HOME=$pfh USER=exampleuser PATH=$pfp body_privacy_line "$WB/priv-ok.md" >/dev/null
   st $? 0 "a body naming only repository-relative paths and ~/ text passes (null control)"
   case "$flow" in *'PRIVACY_LINE=$(privacy_line)
 step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
