@@ -1,19 +1,27 @@
-Fix review: blocked 06a3478fdbf386278952d741985e5da5ee28bd5c root-cause-unanswered: governance / delivery-status is red, the diff touches governance.yml, and ## Red checks says none
+Fix review: blocked 06a3478fdbf386278952d741985e5da5ee28bd5c ci-red: gate
 
-bus-nonce: a7782a528fcc250a2837a2db690e08fe
+bus-nonce: b659fae0ba18fa95cac6f4ee6dd5190e
+
+Round: first review of this head (no earlier verdict seen by this seat).
 
 ## Block
+merge_train.py classify at 06a3478fdbf386278952d741985e5da5ee28bd5c exits 1: `RED 06a3478fdbf386278952d741985e5da5ee28bd5c pending: none red: gate`, re-run twice, 60 s apart. Cause: classify keeps the worst gate per check suite (A5). Gate runs failed in three older suites at this same head (128975188431 in run 42553904519, 128956599985 in run 42554006009, 128956031126 in run 42553904840). The log of 128975188431 reads `FAIL pr-contract / pr-contract: failure (this run)`, which is the pr-contract failure that the body's Red checks section now answers. The newest suite (run 42567567162) is green: gate 128998167411, pr-contract 128997891670, budget-raise-gate and arch-score success. The code is not at fault. The head cannot go GREEN for the train unless a fresh CI run supersedes those suites. I did not get a green classify, so this is a RED, not a merge. Re-dispatch at a new head whose runs are all green, for example after a no-op main merge. If the orchestrator judges the stale suites superseded, `review_carry.py` should print CARRY for that head, and the code review below carries to it.
 
-- `governance / delivery-status` concluded failure at this head (check 128955414223). Its grader exempts a body only while the diff touches none of what the check reads (defect-root-cause.md, Enforcement). This diff edits `.github/workflows/governance.yml` (the survivor-list self-test step), which that rule names. The body's `## Red checks` reads "none. CI has not run on this head", so the trigger is unanswered. CI says the same: `pr-contract` (job 128967170153) failed with "check `governance / delivery-status` is red and `## Red checks` does not name it", and the required `gate` follows it.
-- To repair: name `governance / delivery-status` in `## Red checks`, with the cheaper detector and its standing cost, or the finding that none exists. If the red belongs to main, say so with evidence. Edit the body only; no code push is needed.
+## Findings
+- Follow-up: the class-open half of the new rule (fix-review.md step 6, every seam in one block) has no mechanical check, only the mutation-vacuous half is enforced by survivor_list.py. The body discloses this as the brief asked. Carry: dismissed: disclosed in the body and what the owner ruling asked for.
 
 ## Evidence
-
-- Merge resolution delta (06a3478fd is the merge of 49b9fe55c into the previously merged 41a196a24): the resolved `dev/governance/roles/fix-review.md` step 13 holds both sides. It has the branch's inlined `git merge-tree --write-tree origin/main <head>` form and `MERGE-CLAIM: resolved|refused` compaction, and main's "Block on main only on one, never on a head behind main that merges cleanly (tvofi 11-07). A conflict off the two claim files is yours." The old retained sentence ("A conflict on any path other than ... yours to block on") is gone. `git diff origin/main HEAD` on the file equals the three-dot PR diff, so main's role-file text is intact and the resolution adds nothing else.
-- `git merge-tree --write-tree origin/main 06a3478fdbf386278952d741985e5da5ee28bd5c`: rc 0 (LEDGER-MERGE resolved tests/closures.json). origin/main's role files are unchanged since the merge base.
-- Mutation proof, re-run here (ev/mutants.txt): five mutants of `survivor_list.py`, each killed by its `--self-test` (rc 1): class gate inverted, left-boundary lookbehind removed, only the first survivor returned, triaged sites not dropped. The sixth, deleting the `survivor_list.py check` call from `bus.sh push-verdict`, fails `bus.sh --self-test` on the arm "push-verdict refuses a mutation-vacuous verdict naming one of two survivors". No survivors.
-- Figures re-taken at this head: `survivor_list.py --self-test` is 20 checks, 0 failed. `tests/doc_claims.py` prints ALL 296 checks PASSED and `tests/entities.py` prints ALL 2668 ENTITY CHECKS PASSED. `tests/structure.py` prints STRUCTURE RATCHET PASSED. `policy_lint.mjs --budgets` gives fix-review.md 133 of 140 lines, 2450 of 2451 tokens. `selftest_wiring.py --check` gives 125 self-testing, 125 wired, 0 unwired. I did not re-run `bus.sh --self-test` in full (the 162-check figure is not re-derived); I ran only its push-verdict arm via mutant 6. The body's `closure.py` --diff versus --files scope discrepancy is as disclosed there; I did not trace it.
-- Step 5: no VERSION, manifest or notes edit (pr-contract's version-edit step: "moves none").
-- `carry_audit.py`: 0 finding items. `review_carry.py 41a196a2 HEAD` prints FRESH-REVIEW (the head is a hand-resolved merge), so this is a fresh review, not a carry.
-- CI at this head: `classify` is WAIT. `gate` was re-queued after `pr-contract` failed, `tests/closures` and `codeql / python` had been in progress earlier, and `governance / delivery-status` is red. The only red attributable to this PR is the unanswered `delivery-status`.
-- This is round 2 or later of this PR's review; the fourth round would owe a re-cut (fixer.md).
+- Head reviewed: 06a3478fdbf386278952d741985e5da5ee28bd5c (ev/HEAD.txt). It is the API head and the `refs/pull/3341/head` tip. The body's `## Head` names it.
+- RESULT merge-tree: `git merge-tree --write-tree origin/main 06a3478fdbf386278952d741985e5da5ee28bd5c` rc 0 (only `LEDGER-MERGE: resolved tests/closures.json`).
+- RESULT survivor_list self-test: 20 checks, 0 failed at the head.
+- RESULT mutation proof, re-run by me with the self-test as the command. Seven mutants of survivor_list.py were each killed: triaged-subtraction dropped, LIVES regex dropped, left token boundary dropped, class guard forced off, NULL exclusion dropped, spec-mode regex dropped, survivor_sites call dropped. The null control was the unmutated file, 0 failed. Production file restored (git status clean).
+- RESULT bus.sh mutant: deleting the survivor_list.py call from push_verdict makes the bus self-test arm "push-verdict refuses a mutation-vacuous verdict naming one of two survivors, and review/7 does not move" FAIL. The arm "proposes it once it lists both" stays ok. The file was restored.
+- RESULT end-to-end: check on a verdict naming a.py:1 against evidence with a.py:1 and b.py:2 prints `UNLISTED b.py:2` and exits 1.
+- RESULT structure: `python3 tests/structure.py` prints STRUCTURE RATCHET PASSED; no budget raised (body says so).
+- VERSION, manifest and RELEASE_NOTES are untouched by the three-dot diff (8 files, none of them those).
+- Claim files and goldens untouched (no env_drift movement possible: the diff has no production or fixture change).
+- The finder's harness is none named. The instrument is the fixer's own, disclosed as such by the body.
+- Packet carry_audit at head: 0 findings. Forward-carry and Friction in the body are "none". A role-contract change binds the reviewer seat and is in the tree.
+- governance / delivery-status red (128955414223): grades main (OVERDUE #3318). The diff touches neither its scripts nor any row but its own new one, and the body names and answers it.
+- Sibling merge-tree: the body reports dispatch-at-handoff-p2 conflicts on fix-review.md with this diff; I did not re-derive it. The second to land merges main.
+- Not re-derived: the body's closure.py `select --files` MODE: FULL versus `--diff` SCOPED -- 3 figure (the body itself withdraws a cause). I ran no gate or mutation table (CI's heavy runs cited).
