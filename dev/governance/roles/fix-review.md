@@ -56,9 +56,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     tell. The wave routes an old `blocked <sha> root-cause-detectable: <check>`.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
-    **A red `nightly-status` is not this pull request's**: it is not required,
-    and where the required set is unreadable, not unless its diff reaches what it
-    reads (`defect-root-cause.md`).
+    **A red `nightly-status` is not this pull request's**: it is not required.
 
     **The head's runs are not the range's** (#1144). The body check prints
     `record`/`skip red-history` for the range; `skip` means every earlier head
