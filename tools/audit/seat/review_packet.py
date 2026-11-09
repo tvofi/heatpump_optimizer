@@ -589,8 +589,10 @@ def scope_parts(facts: dict) -> list[str]:
         rh = facts["reviewed_head"]
         return [f"## Review scope: delta ({why})",
                 "Confirm each finding of the previous verdict is resolved, re-read the live required checks, and review "
-                "the delta below; a full re-review only on a named reason the delta reaches code that review relied on, "
-                "recorded in the verdict (fix-review.md step 12).", "",
+                "the delta below. Widen only to exactly the already-reviewed code a delta touching production code "
+                "(custom_components/) puts at risk of being affected in a non-obvious way CI would not detect, "
+                "naming the path and the risk in the verdict; an instrument, test, policy or body delta never "
+                "justifies a wider review (fix-review.md step 12).", "",
                 f"## Previous verdict at {rh}", facts["previous_verdict"].rstrip("\n"), "",
                 f"## Delta diff: git diff {rh} {facts['head']}", facts["diff"]]
     return [f"## Review scope: full ({why})", "", "## Three-dot diff", facts["diff"]]
@@ -810,6 +812,16 @@ def _self_test() -> int:
     check("scope: a later round renders `git diff <rh> <head>` and the previous verdict's findings, not the three-dot diff",
           f"## Delta diff: git diff {RH} {H}\ndelta-only\n" in td_ and f"## Previous verdict at {RH}" in td_
           and "- seam X is open." in td_ and "## Three-dot diff" not in td_ and "## Review scope: delta" in td_)
+    # The exception's wording (tvofi, 2026-11-09): three qualifiers, no wider trigger.
+    step12 = (ROOT / "dev/governance/roles/fix-review.md").read_text()
+    step12 = step12[step12.index("Else a later round is"):]
+    step12 = step12[:step12.index("\n13. ")]
+    for label, text in (("the packet's scope line", td_), ("fix-review.md step 12", " ".join(step12.split()))):
+        check(f"{label}: the exception names production code, non-obvious risk and CI's blindness, and the wider "
+              "trigger wording is absent",
+              "custom_components/" in text and "non-obvious" in text and "CI would not" in text
+              and "reaches code that review relied on" not in text and "in full" not in text
+              and ("never justifies a wider review" in text or "never widen it" in text))
     anc_yes, anc_no = (lambda a, b: True), (lambda a, b: False)
     check("review_scope: delta only with a reviewed head that is an ancestor and a verdict naming it; else full, saying why",
           review_scope(RH, H, pv, anc_yes)[0] == "delta"
