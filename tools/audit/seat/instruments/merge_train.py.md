@@ -42,6 +42,13 @@
   (tvofi 2026-11-01, batch by default).
   `add`'s admission (`Train.admit_add`) reads the same posted verdict
   first, as its `verdict` rule, and fills an absent comment id from it.
+  That read refuses a stale merge verdict (P393, `stale_merge`): a
+  `blocked` commit at the same head on `verdict/<pr>` whose bus-nonce
+  (its VERDICT.md) bus.sh's registry (`$HPO_BUS_STATE/dispatched`, else
+  `~/.zcode/bus/dispatched`) records as dispatched after the merge
+  verdict's; a missing record or utc refuses with its reason, and a
+  blocked verdict under the merge's own nonce is that reviewer's revision.
+  The registry is host-local, so run the train where bus.sh dispatches.
   bus.sh's post loads the train the moment it posts a merge verdict
   (`merge_train.py add --auto`, with `HPO_BUS_TRAIN_STATE` set);
   `sweep` is the slow backstop (`tick_loop.sh --sweep`, every 1800 s by
