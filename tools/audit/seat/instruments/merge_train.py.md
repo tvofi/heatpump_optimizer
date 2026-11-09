@@ -42,6 +42,13 @@
   (tvofi 2026-11-01, batch by default).
   `add`'s admission (`Train.admit_add`) reads the same posted verdict
   first, as its `verdict` rule, and fills an absent comment id from it.
+  That read refuses a stale merge verdict (P393, `stale_merge`): a
+  `blocked` commit at the same head on `verdict/<pr>` whose bus-nonce
+  (its VERDICT.md) bus.sh's registry (`$HPO_BUS_STATE/dispatched`, else
+  `~/.zcode/bus/dispatched`) records as dispatched after the merge
+  verdict's; a missing record or utc refuses with its reason, and a
+  blocked verdict under the merge's own nonce is that reviewer's revision.
+  The registry is host-local, so run the train where bus.sh dispatches.
   bus.sh's post loads the train the moment it posts a merge verdict
   (`merge_train.py add --auto`, with `HPO_BUS_TRAIN_STATE` set);
   `sweep` is the slow backstop (`tick_loop.sh --sweep`, every 1800 s by
@@ -98,7 +105,13 @@
   two it drains what `train.sh add` spooled into one more batch, never into a
   batch in proof, and a batch that stops ends the train (`NOT RUN` lines);
   an `add` that starts a train orders its first batch, the entry and what a
-  stopped train left spooled, by the same `Train.drain_order`.
+  stopped train left spooled, by the same `Train.drain_order`: entries added
+  with `--priority` (HOTFIX), a roster hotfix (`roster_lib.is_hotfix`, flag
+  or not) or `--front` first, then outside entries
+  (`roster_lib.is_outside`, owner ruling tvofi 2026-11-07, triage P420), then
+  critical-path entries, then arrival order; an entry maps to its group by
+  branch, else by its pull request (`roster_lib.group_for_pr`), so a fork head
+  ranks as its group does.
   `add` and that drain apply one admission rule (`already_held`, over the
   live train's `queue.seen.json`): a pull request still to run, spooled,
   merged or run by this train is `ALREADY` on both sides; one it skipped is
@@ -110,7 +123,7 @@
   one mutant per arm of that rule. The spool is edited only through the
   instrument: `add --front <pr>` puts an entry first in the next batch (a
   spooled one is moved there, and the drain keeps it in the `--priority` tier
-  ahead of critical-path entries) and `add --remove <pr>` drops a spooled one
+  ahead of outside and critical-path entries) and `add --remove <pr>` drops a spooled one
   (rc 1, nothing written, when it is absent), both under the queue's flock
   and each printing the spool order read back. A batch's admission waits
   each head on the required set a pull request's head carries
