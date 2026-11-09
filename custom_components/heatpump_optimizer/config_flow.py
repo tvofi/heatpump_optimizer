@@ -402,6 +402,9 @@ from .const import (
     DEFAULT_DEBUG_COLLECT,
     CONF_COMFORT_LEARNING_ENABLED,
     DEFAULT_COMFORT_LEARNING_ENABLED,
+    CONF_COMPRESSOR_MODULATION,
+    COMPRESSOR_MODULATIONS,
+    COMPRESSOR_MODULATION_AUTO,
     CONF_TWO_ZONE_MODE,
     TWO_ZONE_MODES,
     TWO_ZONE_MODE_AUTO,
@@ -1741,6 +1744,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("thermal_model", CONF_HEAT_PUMP_COP_NOMINAL, _SUGGESTED, _number(1.5, 6.0, 0.1)),
     _F("thermal_model", CONF_HEAT_PUMP_MAX_POWER, _SUGGESTED, _number(1, 20, 0.5, 'kW')),
     _F("thermal_model", CONF_HEAT_PUMP_MIN_POWER, _SUGGESTED, _number(0, 10, 0.5, 'kW')),
+    _F("thermal_model", CONF_COMPRESSOR_MODULATION, _Suggested(COMPRESSOR_MODULATION_AUTO), _select(list(COMPRESSOR_MODULATIONS), 'compressor_modulation')),
     _F("thermal_model", CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, _SUGGESTED, _number(0, MAX_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.01)),
     # -- thermal_model_zones
     _F("thermal_model_zones", CONF_TWO_ZONE_MODE, _Suggested(TWO_ZONE_MODE_AUTO), _select(list(TWO_ZONE_MODES), 'two_zone_mode'), group="mode"),

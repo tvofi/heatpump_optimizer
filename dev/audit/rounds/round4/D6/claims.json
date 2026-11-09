@@ -373,7 +373,7 @@
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented='7.1.6' measured='7.1.6'",
+  "result": "documented='7.1.8' measured='7.1.8'",
   "verdict": "true",
   "truth": ""
  },
@@ -1118,9 +1118,9 @@
  {
   "id": "C125",
   "source": "strings.json:selector",
-  "claim": "every SelectSelector option on every options page has a translated label (47 selects)",
+  "claim": "every SelectSelector option on every options page has a translated label (48 selects)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "47 selects, untranslated=[]",
+  "result": "48 selects, untranslated=[]",
   "verdict": "true",
   "truth": ""
  }

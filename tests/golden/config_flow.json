@@ -3495,6 +3495,16 @@
     "required": "Optional",
     "selector": "SelectSelector"
    },
+   "compressor_modulation": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['auto', 'on_off', 'modulating']",
+     "translation_key": "'compressor_modulation'"
+    },
+    "default": "'auto'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
    "heat_pump_cop_nominal": {
     "config": {
      "max": "6.0",
@@ -6043,6 +6053,16 @@
     "translation_key": "'after_save'"
    },
    "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "compressor_modulation": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['auto', 'on_off', 'modulating']",
+    "translation_key": "'compressor_modulation'"
+   },
+   "default": "'auto'",
    "required": "Optional",
    "selector": "SelectSelector"
   },
