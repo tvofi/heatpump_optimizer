@@ -1,0 +1,2 @@
+6772efc98 Merge remote-tracking branch 'origin/main' into fix-p5
+d23377e1d harness r10_codescan_wait_race: day windows refuse GitHub's silent 1000-run cap; a run whose filter=all listing 502s is read per attempt
