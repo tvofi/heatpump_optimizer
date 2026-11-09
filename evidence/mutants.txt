@@ -1,0 +1,20 @@
+== bus-16 bus.sh: KILLED rc=1 | bus self-test: 170 checks, 2 failed
+== cloud_relay-50 cloud_relay.sh: KILLED rc=1 | ledger: dispose wrote to /tmp/cloud_relay_st.vNOZIi, not the default home; the tick reads /tmp/cloud_relay_st.vNOZIi/state
+== cloud_relay-51 cloud_relay.sh: KILLED rc=1 | ledger: dispose wrote to /tmp/cloud_relay_st.Tye9No, not the default home; the tick reads /tmp/cloud_relay_st.Tye9No/state
+== cloud_relay-52 cloud_relay.sh: KILLED rc=1 | ledger: dispose wrote to /tmp/cloud_relay_st.ApuC1L, not the default home; the tick reads /tmp/cloud_relay_st.ApuC1L/state
+== cloud_relay-53 cloud_relay.sh: KILLED rc=1 | ledger: dispose wrote to /tmp/cloud_relay_st.eb4H0N, not the default home; the tick reads /tmp/cloud_relay_st.eb4H0N/state
+== cloud_relay-54 cloud_relay.sh: KILLED rc=1 | ledger: dispose wrote to /tmp/cloud_relay_st.LOnr9V, not the default home; the tick reads /tmp/cloud_relay_st.LOnr9V/state
+== cloud_dispatch-21 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 147 checks, 1 failed
+== cloud_dispatch-22 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 147 checks, 2 failed
+== cloud_dispatch-23 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 147 checks, 3 failed
+== bus-16 bus.sh: KILLED rc=1 | bus self-test: 170 checks, 3 failed
+== bus-17 bus.sh: KILLED rc=1 | bus self-test: 170 checks, 4 failed
+== bus-18 bus.sh: KILLED rc=1 | remote: warning: deleting a non-existent ref
+== bus-19 bus.sh: KILLED rc=1 | remote: warning: deleting a non-existent ref
+== cloud_relay-50 cloud_relay.sh: KILLED rc=1 | ledger: dispose wrote to /tmp/cloud_relay_st.EAsvxE, not the default home; the tick reads /tmp/cloud_relay_st.EAsvxE/state
+== cloud_relay-51 cloud_relay.sh: KILLED rc=1 | ledger: dispose wrote to /tmp/cloud_relay_st.jY6AXc, not the default home; the tick reads /tmp/cloud_relay_st.jY6AXc/state
+== cloud_relay-52 cloud_relay.sh: KILLED rc=1 | ledger: dispose wrote to /tmp/cloud_relay_st.RYzzkj, not the default home; the tick reads /tmp/cloud_relay_st.RYzzkj/state
+== body_patch-2 body_patch.sh: KILLED rc=1 | FAIL mutant cmta changed nothing
+== cloud_relay-53 cloud_relay.sh: KILLED rc=1 | ledger: dispose wrote to /tmp/cloud_relay_st.2W4nr8, not the default home; the tick reads /tmp/cloud_relay_st.2W4nr8/state
+== cloud_relay-54 cloud_relay.sh: KILLED rc=1 | ledger: dispose wrote to /tmp/cloud_relay_st.P7I0KY, not the default home; the tick reads /tmp/cloud_relay_st.P7I0KY/state
+RESULT survivors=0
