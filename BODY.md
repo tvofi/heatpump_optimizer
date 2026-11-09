@@ -6,7 +6,7 @@ R10-PROCESS-SLIM: cards C4, C5, C8 and C6 (a) of the slip study, plus the merge 
 
 R10-FLY-STAMP-FLUSH-COST (#3296) is changing that flush now, so the beat's deletion is forward-carried to it (Forward-carry). `.github/workflows/nightly.yml` is byte-identical to origin/main again (`git diff --quiet origin/main HEAD -- .github/workflows/nightly.yml` exits 0).
 
-Deletion over machinery throughout: 39 files changed, 557 insertions, 743 deletions (`git diff --shortstat bb7dfb9bd6c68548d1a956adc411be91e02965e0...HEAD` at the head below). The diff writes 0 files under `custom_components/` (`git diff --name-only bb7dfb9bd6c68548d1a956adc411be91e02965e0...HEAD -- custom_components` is empty). One cap pair is removed, for a deleted file (Raise justification). Claim files, `VERSION`, the manifest version and the notes heading are byte-identical to the merge base (prepr steps `no version edit` and `claim files`).
+Deletion over machinery throughout: 39 files changed, 557 insertions, 743 deletions (`git diff --shortstat fdc8d21adaa50a7feee534f08ee5edde9bda81ed...HEAD` at the head below). The diff writes 0 files under `custom_components/` (`git diff --name-only fdc8d21adaa50a7feee534f08ee5edde9bda81ed...HEAD -- custom_components` is empty). One cap pair is removed, for a deleted file (Raise justification). Claim files, `VERSION`, the manifest version and the notes heading are byte-identical to the merge base (prepr steps `no version edit` and `claim files`).
 
 ### What changes, per card
 
@@ -52,11 +52,14 @@ Deletion over machinery throughout: 39 files changed, 557 insertions, 743 deleti
 
 ## Head
 
-97c49a85813a4971a5ba6bc537ef4481f51e15fd (`handoff/r10-process-slim`).
-- It is a merge of origin/main bb7dfb9bd6c68548d1a956adc411be91e02965e0 into the previous handoff head e6a4a7dd3374b97b44dcb5ea1bb52d23d984f628. The merge touches no code of this round's own.
-- Two files conflicted and took a union resolution, keeping both sides' lines: `dev/governance/roles/orchestrator.md` and `tools/audit/seat/INSTRUMENTS.md`. No other file needed a hand edit.
-- `git merge-base origin/main HEAD` is bb7dfb9bd6c68548d1a956adc411be91e02965e0, the diff base for every three-dot figure here. `git diff --shortstat bb7dfb9bd6c68548d1a956adc411be91e02965e0...HEAD` prints `39 files changed, 557 insertions(+), 743 deletions(-)`.
-- The PR's present head, 565f9f2b8a5efd9de1d260c241ee657aedc52576, is an ancestor of this head. GitHub reports the PR `DIRTY`, which this merge resolves.
+491177c4b361a6a75a18e1e9e1d0f1533d630dc6 (`handoff/r10-process-slim`).
+
+**Head note: this round is a merge-only resolution, for the same reviewer** (`fixer.md` step 6; no re-cut).
+- 491177c4b361a6a75a18e1e9e1d0f1533d630dc6 merges origin/main fdc8d21adaa50a7feee534f08ee5edde9bda81ed into f30fb9a9f0c7e54587844adda6a2d75a37da3280 (no conflict), which merged origin/main 425b858495432c8dceb89d8d13866550352ba54f into 53ceaf58b04d110386afbb334e08bb471037a168 (no conflict), which merged origin/main daf8b349fd30cc60786eeca333a426b693aa4c5f (no conflict) into 97c49a85813a4971a5ba6bc537ef4481f51e15fd, the previous resolution head, which merged origin/main bb7dfb9b into the PR head 565f9f2b8a5efd9de1d260c241ee657aedc52576. The PR head is an ancestor of this head.
+- The conflict, confirmed first: `git merge-tree --write-tree origin/main 565f9f2b` exits 1 with `CONFLICT (content)` in `dev/governance/roles/orchestrator.md` and `tools/audit/seat/INSTRUMENTS.md`; `git merge-tree --write-tree origin/main 97c49a85` exits 0, so none of this seat's three merges needed a hand edit (main moved to 425b8584, then fdc8d21a, while prepr ran, so it was merged again each time and prepr re-run). The resolution is 97c49a85's union, re-verified in this seat:
+  - `orchestrator.md`: main's section-5 bullet "Each outside submission reaches a disposition" (tvofi 2026-11-06) is kept, followed by this branch's "A proposal is ruled directly" bullet, which replaces main's unchanged proposal-triage bullet (card C6 deletes `proposal-triage.md`). Main's two trims (the 2026-09-07 sentences in the preamble, the Round-10 sentences under "Look the instrument up") are kept; this branch's section-9 and L6 rewordings are kept.
+  - `INSTRUMENTS.md`: main's `plan_public.py`, `outside_intake.py` and `hooks_setup.py` lines are kept, with this branch's `postmerge.py` wording.
+- `git merge-base origin/main HEAD` is fdc8d21adaa50a7feee534f08ee5edde9bda81ed, the base of every three-dot figure here. `git diff --shortstat fdc8d21adaa50a7feee534f08ee5edde9bda81ed...HEAD`: `39 files changed, 557 insertions(+), 743 deletions(-)`, the same as at 97c49a85 against bb7dfb9b.
 - Not in this head: the earlier step ref's 747e9065b, which moved `HOLD_MAX_AGE_S` into merge_train.py. With the beat kept, the constant stays in nightly.yml, as on main.
 
 ## Mutation proof
@@ -85,29 +88,35 @@ Each changed line was mutated by hand. A mutant was graded by the self-test or c
 
 ## Figures
 
+All re-taken in this seat at 491177c4b361a6a75a18e1e9e1d0f1533d630dc6, origin/main fdc8d21adaa50a7feee534f08ee5edde9bda81ed (read 2026-11-08T23:45Z):
 - `python3 -I tools/release/stamp.py --self-test`: `RESULT stamp_self_test=pass`.
 - `python3 tools/audit/seat/orchestrator_tick.py --self-test`: `283 checks, 0 failed`.
-- `python3 tools/audit/seat/merge_train.py --self-test`: `475 checks, 0 failed`.
+- `python3 tools/audit/seat/merge_train.py --self-test`: `567 checks, 0 failed` (the count is main's, which grew since the previous head's 475).
 - `bash tools/audit/seat/handoff_push.sh --self-test`: `6 checks, 0 failed`.
 - `bash tools/audit/seat/body_push.sh --self-test`: `35 checks, 0 failed`.
-- `python3 tools/audit/seat/postmerge.py --self-test`: `15 checks, 0 failed`.
-- `python3 tools/pr/ci_predict.py --self-test`: `0 failed`.
+- `python3 tools/audit/seat/postmerge.py --self-test`: `18 checks, 0 failed` (main's count; 15 at daf8b349).
+- `python3 tools/pr/ci_predict.py --self-test`: `0 failed` at 53ceaf58 (with `/opt/hpo/runner-temp` created; Friction 3); at this head it runs inside prepr's `ci predict` step.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
-- `python3 -I tools/audit/seat/selftest_wiring.py --check`: `0 index gap(s)`.
-- `node tools/policy/rules_sync.mjs --check`: rc 0. `node tools/policy/policy_lint.mjs`: `0 error(s) across 49 policy file(s)`.
-- `python3 tools/audit/archscore/score.py --diff 17e1157925908bd69addb58ed824c1ac22bfa82f HEAD`: `Architecture score: dS +0.0000 NULL`.
-- `bash tools/audit/seat/cloud-setup.sh --check`: OK, with python3 from venv-ci.
-- `bash tools/pr/prepr.sh`: clean at this head, `PRE-PR: e6a4a7dd3374b97b44dcb5ea1bb52d23d984f628 ... rc=0` (gate mode `MODE: FULL`: governance.yml changes the gate, so CI runs the suite). origin/main then moved to 48af0864a43052a43e9125fa31c2822bac99165d (read 2026-11-08T02:40Z). `git merge-tree --write-tree origin/main HEAD` reports no conflict (rc 0), so under the owner's 2026-11-07 ruling it is not merged and prepr is not re-run; the merge train re-carries the head on the current main.
+- `node tools/policy/policy_lint.mjs --budgets`: exit 0. `node tools/policy/policy_lint.mjs`: `0 error(s) across 49 policy file(s)`.
+- `python3 tools/audit/seat/selftest_wiring.py --check`: `124 self-testing, 124 wired, 0 unwired`, `0 index gap(s)`.
+- `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
+- `python3 tools/audit/archscore/score.py --diff fdc8d21adaa50a7feee534f08ee5edde9bda81ed HEAD`: `Architecture score: dS +0.0000 NULL`.
+- `python3 tests/closure.py select --diff fdc8d21a...`: `MODE: FULL` (`.github/workflows/tests.yml changes the gate itself`), so CI runs the suite.
+- **Resolution check, both conflicted files.** Rule: every `^#` heading of origin/main and of origin/fix/r10-process-slim is in the merged file (`comm -23` of sorted headings): all present for both sides in both files. Then every non-blank line of each side absent from the merged file was listed, and each one is the other side's deliberate edit since the merge base 4fe7d5934 (main's lines absent are this branch's rewrites of the proposal bullet, section 9 and L6, and the old `postmerge.py` line; this branch's lines absent are main's two trims). Null control: at the conflicted state those listings would include conflict markers and one side's whole hunk.
+- **The merge carries the branch's delta unchanged.** Rule: `git diff --name-only origin/main HEAD` equals `git diff --name-only 4fe7d5934 origin/fix/r10-process-slim` (39 files each, `diff` exits 0), and for each of the 39 files the added and removed lines of `origin/main..HEAD` equal those of `4fe7d5934..565f9f2b`: `same delta` for 39 of 39. A file where the resolution dropped or added a line prints `DELTA DIFFERS`.
+- `bash tools/pr/prepr.sh <body>`: clean at this head, `PRE-PR: 491177c4b361a6a75a18e1e9e1d0f1533d630dc6 00000000000000000000000000000000 rc=0` (gate mode `MODE: FULL`). origin/main read again at 2026-11-09T00:07:06Z: fdc8d21adaa5; unmoved since that run, so no second run is owed.
+  - At 491177c4 the preceding run at f30fb9a9 refused in `ci predict` with `OSError: [Errno 39] Directory not empty: '/tmp/.../bg'`: orphaned background self-test processes of the replay (killed by PID) were still writing the directory being cleaned; the run below is clean.
+  - Its `ci predict` step first refused at 53ceaf58 (`GRADER carry_audit.py check ... REFUSED by the base's copy ... 1 bad destination(s)`): the item `Carry: R10-FLY-STAMP-FLUSH-COST`, a group that exists only on the round's roster branch `handoff/audit-r10-roster` (05437723a). pr-contract's own step fetches that branch before `carry_audit.py check` (`.github/workflows/pr-contract.yml`, "Every finding the body records names its destination"), and `finding-propagation.md` counts it as in the tree; ci_predict's `ci_tree_run` grades in a `--shared` throwaway clone whose `origin/*` are the local repository's branches, so the ref was absent there. Control, a clone of origin/main daf8b349 alone: `carry_audit.py check` prints `BAD-DEST body item ada60feb: R10-FLY-STAMP-FLUSH-COST ... is not a group of the roster`; after fetching the round ref into it: `4 routed, 0 unrouted, 0 bad destination(s)`. The local branch `handoff/audit-r10-roster` was set to that ref (mirroring CI's fetch, nothing pushed) and prepr re-run. Friction r10-process-slim-4 records it.
 
 ## Red checks
 
-At 97c49a85813a4971a5ba6bc537ef4481f51e15fd no check has run: a handoff ref runs no workflow.
+At 491177c4b361a6a75a18e1e9e1d0f1533d630dc6 no check has run: a handoff ref runs no workflow.
 
-The PR's present head is 565f9f2b8a5efd9de1d260c241ee657aedc52576, an ancestor of this head. Its check-runs, from the API with `filter=latest`, every page read:
-- Every concluded check is success or skipped, including `tests / fast (3.14)` (128731752355), `governance / instrument-self-tests` (128731775155), `pr-contract / pr-contract` (128732077508), `budget-raise-gate / budget-raise-gate` (128731750783), `tests / nightly-status` (128731751712) and the passing `gate` (128732517765).
-- The one failure is `gate` (128732022666), an earlier umbrella run that completed in 37 seconds, before `gate` 128732517765 passed. It is superseded by that pass.
+The PR's present head is 565f9f2b8a5efd9de1d260c241ee657aedc52576, an ancestor of this head. Its check-runs (`pull_request_read get_check_runs`, 53 runs, one page):
+- `gate` (128732022666, run 42472252325, `KIND: edit`) failed in 34 s with `FAIL run(s) [42472252157] at this head are still being judged; their gate decides`. It is the umbrella gate refusing to judge while the PR's main run was in flight; `gate` 128732517765 in that run 42472252157 passed two minutes later. Root-cause trigger: no cheaper detector exists — it is no defect of this diff but the gate's own wait answer, superseded by its pass.
+- Every other concluded check is success or skipped, including `tests / fast (3.14)` (128731752355), `governance / instrument-self-tests` (128731775155), `pr-contract / pr-contract` (128732077508), `budget-raise-gate / budget-raise-gate` (128731750783) and `tests / nightly-status` (128731751712).
+- The required gate reads red because the PR is `DIRTY` against main: GitHub cannot build the merge ref, so main's newer commits have not run against it. This head resolves that.
 - Earlier reds at b2381acd5004e85a8b85a4643bc0939d25a3bf75 (`tests / fast (3.14)`, `governance / instrument-self-tests`: `stamp.py --self-test`'s hold check) were fixed by keeping the beat (Mutation proof), and are green at the PR head.
-- The PR is `DIRTY` against main bb7dfb9b, so main's later commits have not run against it. This head's merge resolves that, and the merge train re-carries on the current main.
 
 ## Unpinned sites
 
@@ -134,7 +143,7 @@ Raise approved under mandate (comment 6624093439, scope all) by the orchestrator
 Payments tried: keeping the caps (refused by `policy_lint.mjs --budgets`); keeping the file as an on-demand contract (rejected, because card C6 retires the seat and an unread contract is spent prose).
 
 - **The other policy files:** each one this diff touches is paid inside its own cap. This round's `fix-review.md` union is paid by the two dates.
-- **The score:** re-run in this seat at e6a4a7dd3374b97b44dcb5ea1bb52d23d984f628 (`python3 tools/audit/archscore/score.py --diff 17e1157925908bd69addb58ed824c1ac22bfa82f HEAD`).
+- **The score:** re-run in this seat at 491177c4b361a6a75a18e1e9e1d0f1533d630dc6 (`python3 tools/audit/archscore/score.py --diff fdc8d21adaa50a7feee534f08ee5edde9bda81ed HEAD`).
 Architecture score: dS +0.0000 NULL
 
 ## Forward-carry
@@ -157,3 +166,4 @@ Architecture score: dS +0.0000 NULL
 - r10-process-slim-1: cost: with the record stream retired, `merge_train.py --bot-prs` (`sweep_bots`) likely has nothing left to merge; this was not measured here. Carry: dismissed: unmeasured, and deleting a live train path is beyond the cards' scope.
 - r10-process-slim-2: unenforced: `bus.sh`'s C8 gate cannot see a cheap check GitHub has not yet created. Carry: dismissed: the card's risk line accepts review starting early, never a merge at red.
 - r10-process-slim-3: unenforced: the container's `BASH_ENV` sets a `RUNNER_TEMP` it does not create, so `ci_predict.py`'s STEP REPLAY self-test reads red in a fresh cloud seat until the directory exists. Carry: dismissed: environment setup, not this diff's code; the measured fix is one `mkdir`.
+- r10-process-slim-4: unenforced: `tools/pr/ci_predict.py`'s grader replay clones the local repository with `--shared`, so a carry to a group that lives only on the round's roster branch reads `BAD-DEST` there unless the seat holds a local `handoff/audit-r<N>-roster` branch, while pr-contract's own step fetches that ref and routes it (Figures, prepr). Carry: dismissed: a predictor false red with a one-command local remedy, outside this group's cards; the orchestrator may route it.
