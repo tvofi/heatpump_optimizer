@@ -571,12 +571,13 @@ def audit(body: str, comments: list[dict], dests: Dests) -> dict:
 
 
 # ------------------------------------------------------------ the landing
-def group_text(dests: Dests, group: str) -> str:
-    """A group's brief and carries, on main's roster and on the round's branch."""
+def group_text(dests: Dests, group: str, brief: bool = True) -> str:
+    """A group's brief and carries, on main's roster and on the round's branch
+    (`brief=False`: its carries alone)."""
     out = []
     for g in (dests.groups.get(group), dests.round_groups.get(group)):
         if g:
-            out += [str(g.get("brief") or "")] + [str(c) for c in (g.get("carry") or [])]
+            out += ([str(g.get("brief") or "")] if brief else []) + [str(c) for c in (g.get("carry") or [])]
     return "\n".join(out)
 
 
@@ -603,8 +604,9 @@ def own_carry_status(dests: Dests, group: str, text: str) -> bool:
 
 def landed(body: str, dests: Dests, source: str = "", statuses: "list[dict] | None" = None) -> list[dict]:
     """Each (finding item, GROUP destination) of a body whose group's brief or
-    carries hold neither the item id nor the source (`#<pr>` or the handoff
-    topic: P310, an id re-minted by a reword still lands by its source), or
+    carries do not hold the item id and whose carries do not hold the source
+    (`#<pr>` or the handoff topic: P310, an id re-minted by a reword still lands
+    by its source; a brief naming the source lands nothing, #3234), or
     whose group is no valid destination. A `dismissed:` item, a `#N` and an
     O-brief need no landing. Each: {"group", "id", "text", "why"}.
 
@@ -627,9 +629,10 @@ def landed(body: str, dests: Dests, source: str = "", statuses: "list[dict] | No
                 if statuses is not None:
                     statuses.append({"group": tok, "id": r["id"], "text": r["text"]})
                 continue
-            words = set(re.split(r"[^\w#-]+", group_text(dests, tok)))  # whole tokens: #25581 is not #2558
-            keys = [r["id"]] + srcs
-            if not any(k in words for k in keys):  # mut:landed
+            split = lambda t: set(re.split(r"[^\w#-]+", t))  # whole tokens: #25581 is not #2558
+            # the source (`#<pr>`, the topic) lands only through a carry: a group's brief
+            # names the pull requests it was cut from (#3234: --pr hid 7 missing carries)
+            if r["id"] not in split(group_text(dests, tok)) and not any(k in split(group_text(dests, tok, False)) for k in srcs):  # mut:landed
                 out.append({"group": tok, "id": r["id"], "text": r["text"], "why": "not in its brief or carries"})
     return out
 
@@ -1909,6 +1912,12 @@ def _self_test() -> int:
           landed(lb, dl(["From #2558: the census."]), "#2558") == [])
     check("... and another pull request's number does not (null control)",
           len(landed(lb, dl(["From #2558: the census."]), "#25581")) == 1)
+    brief_src = json.loads(json.dumps(Dl_roster))
+    brief_src["groups"][0]["brief"] = "Cut from #2558 (r10-x): the census."
+    check("landed: the source named only in the group's brief does not land it (#3234, before)",
+          len(landed(lb, Dests(brief_src, {300}), "#2558 r10-x")) == 1)
+    check("... and the same source in its carries does (null control)",
+          landed(lb, dl(["From #2558 (r10-x): the census."]), "#2558 r10-x") == [])
     check("landed: a dismissed item and a #N with a carry file need no landing",
           landed(head + "## Forward-carry\n\n- x. Carry: dismissed: no seam remains\n- y. Carry: #300\n", dl()) == [])
     md = landed(head + "## Forward-carry\n\n- x. Carry: R10-DONE\n", dl())

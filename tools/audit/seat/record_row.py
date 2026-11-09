@@ -1012,7 +1012,11 @@ def _body_check(body: str, reds: list[str], workdir: Path,
     The fixture paths are a record pull request's: two delivery rows that
     already existed at the base (so the main-state reporters' exemption is
     void, which is the case this section exists for) and the pull request's
-    own added row.
+    own added row. The required set is given EMPTY (`--required-file` is
+    the null device), which policy_lint reads as unreadable: the pre-ruling rule a record body still
+    answers where the live set is out of reach (`defect-root-cause.md`), and no
+    ruleset read decides this self-test (tvofi 2026-11-07 made a readable set
+    owe these reporters nothing).
     """
     paths = ["dev/programme/delivery/2480.md",
              "dev/programme/delivery/2483.md",
@@ -1029,7 +1033,8 @@ def _body_check(body: str, reds: list[str], workdir: Path,
     argv = ["node", str(_LINT_JS), "--pr-body", str(body_path),
             "--head", "a" * 40, "--title", title,
             "--paths-file", str(paths_path),
-            "--existing-file", str(existing_path)]
+            "--existing-file", str(existing_path),
+            "--required-file", os.devnull]
     for name in reds:
         argv += ["--red", name]
     try:
