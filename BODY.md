@@ -1,5 +1,7 @@
 R10-HOTFIX-GATE-BUSY-DEFER, the carries part (topic r10-hotfix-gate-busy-defer-p5). Every one of the 12 carries ends below in a fix with its controls, a `covered by <sha>` line naming the code and test that prove it, or the owner's recorded dismissal.
 
+**Carry numbering.** Each carry line names the roster's 1-based number and the brief's 0-based one. Everywhere else in this body, "carry N" is the brief's number.
+
 **What the tree already did, and what was left.** The deadlock this group was cut for is closed on main:
 - #3246 (355d9965a) added `busy()`'s id tie-break.
 - #3276 (812bb8747) made `judging()` read a deferring run's skipped caller as judging.
@@ -20,9 +22,9 @@ Three defects were left, and this diff fixes them:
 
 **Order against #3243 (R10-GATE-LEASE-TOCTOU).** #3243 merged first (5421413b). It touches `tests/gate_lock.py` alone, and this diff does not touch that file, so neither order conflicts.
 
-Carry 0: covered by 355d9965a (#3246). `busy()`'s clause `and not (r["id"] > ctx["run_id"] and started(r))`, tools/ci/gate.py. The self-test `busy-defer: of two started gates at one head the lower id defers to none, the higher to the lower` drives runs 42192623509 and 42193153511 and reads `([], [lo])`. Mutant M17 (r10_ci_gate_core.py) is killed by it.
+Carry 1 (the brief's carry 0): covered by 355d9965a (#3246). `busy()`'s clause `and not (r["id"] > ctx["run_id"] and started(r))`, tools/ci/gate.py. The self-test `busy-defer: of two started gates at one head the lower id defers to none, the higher to the lower` drives runs 42192623509 and 42193153511 and reads `([], [lo])`. Mutant M17 (r10_ci_gate_core.py) is killed by it.
 
-Carry 1: partly covered, remainder fixed here.
+Carry 2 (the brief's carry 1): partly covered, remainder fixed here.
 - Covered by 355d9965a (the tie-break) and 812bb8747 (`judging()`). At main the recorded #3244 triple replays `DECIDED`, all three PASS (`## Figures`).
 - Covered by 5c1fa41fb (`sweep.settle`), so a deferral resolves without a hand re-run. Self-test `#3282: the sweep for the code run's completion re-runs that deferring gate, no human`.
 - Covered by 48af0864a: the readers take that transient red as a deferral (`merge_train.classify_at`).
@@ -33,23 +35,23 @@ Carry 1: partly covered, remainder fixed here.
   - The stale-pin dispatch, the reason #3244's and #3261's reds outlived the fix.
 - The scratch `rerun-gate.sh` is in no tree path (grep below). With the sweep re-judging deferrals and dispatching stale pins, nothing is left for it.
 
-Carry 2: covered by 5c1fa41fb. `judge()` re-reads only for `lag_bound(why)`, which is 0 for a deferral, so no deferral waits 720 s. Self-tests `#3282: the deferring edit gate publishes CI's deferral at once and holds no runner` and `C3: a deferring edit gate beside a busy code run defers at once, no nap; re-run once the code run ends, it judges its sources`. A code run longer than any bound is re-judged by the sweep when it completes, so the bound question is moot.
+Carry 3 (the brief's carry 2): covered by 5c1fa41fb. `judge()` re-reads only for `lag_bound(why)`, which is 0 for a deferral, so no deferral waits 720 s. Self-tests `#3282: the deferring edit gate publishes CI's deferral at once and holds no runner` and `C3: a deferring edit gate beside a busy code run defers at once, no nap; re-run once the code run ends, it judges its sources`. A code run longer than any bound is re-judged by the sweep when it completes, so the bound question is moot.
 
-Carry 3: fixed here (stale pin, above). The orchestrator step it proposed ("re-judge only after a fresh event") is now the sweep's own dispatch, so no policy text is owed.
+Carry 4 (the brief's carry 3): fixed here (stale pin, above). The orchestrator step it proposed ("re-judge only after a fresh event") is now the sweep's own dispatch, so no policy text is owed.
 
-Carry 4: covered by afc1586a, the merge base: no defect. `governance / instrument-self-tests` is not a required context. The gate's governance names are `UNITS["governance"] = ("policy-docs", "wave-script", "env-matrix")` (tools/ci/prelude.py), and `REQUIRED` is built from `UNITS` alone. The gate job 128321406871 read `WORKSET: ... governance ...` and printed `PASS` under pinned 294a880d with the same names. The cancelled job is reported under "Not gating" by design. Making it required is the gate owner's call, not raised here.
+Carry 5 (the brief's carry 4): covered by afc1586a, the merge base: no defect. `governance / instrument-self-tests` is not a required context. The gate's governance names are `UNITS["governance"] = ("policy-docs", "wave-script", "env-matrix")` (tools/ci/prelude.py), and `REQUIRED` is built from `UNITS` alone. The gate job 128321406871 read `WORKSET: ... governance ...` and printed `PASS` under pinned 294a880d with the same names. The cancelled job is reported under "Not gating" by design. Making it required is the gate owner's call, not raised here.
 
-Carry 5: fixed here. The first item (re-prove with `replay --ci <export>`) is under `## Figures`. The second item, RCA 5.2's countermeasure, is built in `sweep.py`, so the manual 5.3 dispatch is retired once this merges.
+Carry 6 (the brief's carry 5): fixed here. The first item (re-prove with `replay --ci <export>`) is under `## Figures`. The second item, RCA 5.2's countermeasure, is built in `sweep.py`, so the manual 5.3 dispatch is retired once this merges.
 
-Carry 6: dismissed by the owner (bar 2026-11-08, triage batch 136 entry 425); no work.
+Carry 7 (the brief's carry 6): dismissed by the owner (bar 2026-11-08, triage batch 136 entry 425); no work.
 
-Carry 7: covered by 5c1fa41fb. "Nothing re-judges it" is false by construction: `Sweep.settle` and the green branch re-run a deferring gate with no human. The self-test #3282 replay posts the re-run with tvofi's human re-run removed.
+Carry 8 (the brief's carry 7): covered by 5c1fa41fb. "Nothing re-judges it" is false by construction: `Sweep.settle` and the green branch re-run a deferring gate with no human. The self-test #3282 replay posts the re-run with tvofi's human re-run removed.
 
-Carry 8: dismissed by the owner (the same ruling as carry 6, which it repeats); no work.
+Carry 9 (the brief's carry 8): dismissed by the owner (the same ruling as carry 6, which it repeats); no work.
 
-Carry 9: covered by 5c1fa41fb, the same as carry 7, which it repeats.
+Carry 10 (the brief's carry 9): covered by 5c1fa41fb, the same as carry 7, which it repeats.
 
-Carry 10: measured first, then fixed here through carry 11's source order, not the re-run the carry proposed.
+Carry 11 (the brief's carry 10): measured first, then fixed here through carry 11's source order, not the re-run the carry proposed.
 - **The measurement.** `dev/audit/harnesses/r10_codescan_wait_race.py --since 2026-11-01T06:21:44Z --until 2026-11-08T06:21:44Z --rows`, over the 7 days before the merge base, reads 1821 runs and 5 ORDERED red edit runs. That count is a superset: it counts any failure of the codescan step.
 - **Narrowed to the carry's rule** (an ordered pair; the job log carries `no run at this head owns a finished codeql unit`; a codeql leg of the code run succeeded after that red) by a probe over those runs (scratch `probe10.sh`; its rule is the three conditions just named). It reads **3** edit runs on 2 heads: 42373556850 (head 97786d25), and 42385417686 and 42387066581 (#3252, head 31347980).
 - **The other two** (41952981275, 42246412814) carry the line, but the code run's codeql legs had succeeded before the red, so no source finished later.
@@ -62,17 +64,80 @@ Carry 10: measured first, then fixed here through carry 11's source order, not t
   - The null, a fresher red is still the source, never passed over: self-tests `C3: a body edited after the code run's gate passed is still judged (this run's own pr-contract)` and `source order: ... null`.
   - M27 (id order) reads `MISREAD` on the scene, replay exit 1.
 - **The residual, stated.** The red stands until the code run's own `pr-contract` runs. At #3252 that was the code run's re-run, about 1.5 h after the first red, against 3 h 10 min live.
-- **Two harness defects fixed on the way**, both now in its selftest (12 checks):
+- **Two harness defects fixed on the way**, both now in its selftest (15 checks after the merge of main, below):
   - The run listing truncated silently at GitHub's 1000-run cap, and the 7-day window holds 1821. It now reads day windows and refuses a window at the cap.
   - Run 42425147012's `filter=all` jobs listing answers HTTP 502 on pages 2-6 every time. It is now read per attempt after a 5xx.
 
-Carry 11: fixed here (source order, above).
+Carry 12 (the brief's carry 11): fixed here (source order, above).
 
 ## Head
 
-1202efb64f6bf776c32fc8131c82a8220ec89fe5, cut from origin/main afc1586a4424f997ce70ed2003add9d7de93d6f6. origin/main moved to 2a3c05644d85b7ee5c2c314fde5aca950e4aba91 (v7.1.6's stamp, #3307, #3309) before the handoff. `git merge-tree --write-tree origin/main HEAD` reports no conflict, and `git diff --stat afc1586a 2a3c0564` touches no `tools/ci/`, `.github/workflows/` or harness path this diff changes. Under the owner's ruling of 2026-11-07 the branch is not merged and prepr is not re-run for it; the merge train re-proves this head on current main.
+`b6c6a067f0dd644aee1fdb65bb4ed5a9a811dba3` (this repair): two commits on `25811b2ec3b38ecff4128e66e787725068bff8c7`, the handoff tip already in the PR head `4cab619c132a214926ca27fb211220d1976a9f63`.
+- `88aaad0b2a28a68a4081ef1d109449dd765baa3a` merges origin/main `6457496aba7b1076b1ed60c374c5badafdf66fc1` (`git merge`, never rebase), resolving the content conflicts with #3327 (R10-HOTFIX-SWEEP-SETTLE-LOOP, fdc8d21a: 34b98bbdb6 and 6158186e11) in `tools/ci/sweep.py` and `tools/ci/sweep_selftest.py`. `tools/ci/gate.py` auto-merged.
+- `b6c6a067f0` adds one self-test case that pins the point where the two rules compose (below).
+- origin/main was fetched again at 2026-11-09T02:07Z and still read 6457496a, an ancestor of this head, so prepr ran once, on this head. `git merge-tree --write-tree origin/main HEAD` exits 0.
+- `4cab619c1`'s extra commit over the handoff tip is the orchestrator's delivery row (`dev/programme/delivery/3348.md`); the relay applies this head to #3348.
+
+**The merge of main (this repair).** Both behaviours hold, composed in `Sweep.settle`'s loop:
+- `sweep.py`'s constants keep both sides: `PINNED_EVENTS`, `PINNED_PROGRAMS` (this branch) and `SWEEP_ACTOR` (main).
+- `settle`'s loop is main's (`others`, `undecided`, then `settled()` leaves a bot-started gate attempt that no source finished after), and the gate it does re-judge goes through `self.judge(r, g, ..., runs)` (this branch), so a stale-pinned red is re-judged by one dispatched run rather than re-run. `SWEEP-DONE` prints `dispatches=` as this branch's did.
+- `sources()`, `source_after()`, `settled()` and `undecided()` are main's, unchanged; `stale_pin()`, `fresh()` and `judge()` are this branch's, unchanged.
+- `sweep_selftest.py` keeps every case: the merge base's 52, this branch's 10 stale-pin cases, main's 8 settle-loop cases (the `#3308` replays, its nulls, `SWEEP_ACTOR`, and the bot/human overlapping pair). 52 + 10 + 8 = 70, and the merged self-test read `70 checks, 0 failed` before b6c6a067.
+- **The composed call was unpinned.** Dropping `runs` from the settle loop's `judge` call survived all 70 cases: `fresh()` then sees no dispatched run and dispatches again. It survived at 25811b2e too (`62 checks, 0 failed`), so the gap was there before the merge. b6c6a067 adds `stale pin, settle, no loop`: the #3261 pair beside a dispatched run created after both gates concluded, swept from the settle path, posts nothing.
+
+## Merge repair: null control and mutants
+
+Run by a one-off scratch driver (not in the tree, fixer step 18): each mutant replaces exactly one string in a fresh copy of `tools/ci` (it asserts the string occurs once), then runs `python3 -I -B sweep.py --self-test` there.
+- Unmutated: `sweep self-test: 71 checks, 0 failed`, rc=0.
+- **main's predicates (#3327's M1-M4):**
+  - M1, a skipped job counts as a source (`sources` drops `and j.get("conclusion") != "skipped"`): 5 failed, the three `#3308: skipped jobs re-stamped ... settle re-runs nothing` replays and both `#3308 null` cases.
+  - M2, `settled()` returns False: 1 failed, `settle: an overlapping pair of re-run gates, re-run by github-actions[bot], with no source after them, is final`.
+  - M3, `settled()` drops `not source_after(...)`: 1 failed, `#3308 null: a non-skipped source (codeql python) finishing after a sibling gate started re-runs that gate, once`.
+  - M4, settle skips `settled()` (`if False:`): 1 failed, the overlapping-pair case as M2.
+- **this branch's predicates (S1-S8):**
+  - S1, the stale branch in `judge()` deleted: 8 failed, every dispatching or no-loop stale-pin case, the new settle case included.
+  - S2, the `tools/ci/*.py` filter replaced by True: 2 failed, `stale pin null: a base that moved without touching tools/ci/*.py ...` and `stale pin null: a fork head ...` (a fork head reads an empty file list, which S2's True still marks stale, so it dispatches instead of re-running).
+  - S3, the fresh-run guard off: 3 failed, both `stale pin, no loop` cases and the new `stale pin, settle, no loop`.
+  - S4, one dispatch per sweep off: 2 failed, `two stale reds ...` and `stale pin, settle: the #3261 pair ...`.
+  - S5, the event key dropped: 1 failed, `stale pin null: a dispatched run's gate ...`.
+  - S6, created-vs-concluded replaced by True: 1 failed, `stale pin null: a dispatched run created before the stale gate concluded is no fresh judge: dispatch`.
+  - S7, the 300-file cap dropped: 1 failed, `stale pin: a compare listing at GitHub's 300-file cap ...`.
+  - S8, the fork guard off: 1 failed, `stale pin null: a fork head ...`.
+- **the composition:** C1, the settle loop's `judge` called without `runs`: 1 failed, `stale pin, settle, no loop: ...`. At b6c6a067's parent it read `70 checks, 0 failed`.
+- The brief's null control: main's settle-loop cases and this branch's busy-defer/stale-pin cases all pass in the merged file (unmutated row), and M2 (main's predicate removed) and S1 (this branch's) each fail their own cases.
+
+## Earlier heads
+
+
+`25811b2ec3b38ecff4128e66e787725068bff8c7` merges origin/main `daf8b349fd30cc60786eeca333a426b693aa4c5f` into the previous head `2b2e7a7b37c4f87fc1792b1a21e709667bd6d3bc` (`git merge`, no conflict). This is the repair's only commit: the red-check answer needed no code change. main's two commits since `51cd5ec8a4` touch only `tests/card_browser.mjs` and `dev/programme/delivery/3346.md`, no file this branch changes, and no `tools/ci/` file. origin/main moved after the first `tools/pr/prepr.sh` run at 2b2e7a7b3 (rc=0), so prepr was run again on this head with this body (`PREPR_SKIP_CLOSURES=1`); its result is under `## Mutation proof`.
+
+`2b2e7a7b37c4f87fc1792b1a21e709667bd6d3bc` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/3348.md`. The authored code head is `6772efc98d49a33fc878deefd7b9a6dcd5cad329`.
+
+`aa8c0e7e26f5a385c18e283b4074e5b8382b4887` merges origin/main `51cd5ec8a4` into the authored code head `6772efc98d49a33fc878deefd7b9a6dcd5cad329` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
+
+6772efc98d49a33fc878deefd7b9a6dcd5cad329, the tip 1202efb64f6bf776c32fc8131c82a8220ec89fe5 with origin/main 17e621f08c4feec724478573741fbd8b596ceaba merged in (`git merge`, never rebase; stamped 2026-11-08T19:36Z). The branch was cut from afc1586a4424f997ce70ed2003add9d7de93d6f6. origin/main was fetched again before the handoff and had not moved past 17e621f0, so prepr was run once, on this head.
+
+**The merge of main (this repair).** One conflict, in `dev/audit/harnesses/r10_codescan_wait_race.py`, `selftest()`, right after the shared `rows_ok` line:
+- main's 3220210742 added three `pages()` checks: the 100->30 fallback after a persistent 502, a clean run, and a 404 that raises after one call.
+- the tip added three: `windows()`, `jobs_all()`'s per-attempt read after a 5xx, and `jobs_all()` not reading around a 4xx.
+- Both sides' checks are kept, in that order: the tip's first, then main's. One summary line counts them: `len(want) + 7`. That is 8 `want` keys, `rows_ok`, the tip's 3 and main's 3, so 15. Each side's `+ 4` was the base's `+ 1` plus its own three.
+- The failed count adds `len(bad)`, `not rows_ok` and each of main's three `pages()` flags separately (`[pages_ok, clean_ok, null_ok].count(False)`), not one `not pg`. The return is nonzero when `bad`, `rows_ok` or any `pages()` flag fails.
+- A check whose call raises `ghapi.ApiError` now fails that check through a small `caught()` wrapper. Before, it ended the selftest with a traceback and printed no count. This was needed for the mutants below to raise the count rather than crash.
+- `jobs_all()` (both the `filter=all` read and the per-attempt fallback) and `main()`'s run listing call main's `pages()` as merged. `grep -n 'MAX_PAGES' r10_codescan_wait_race.py` returns the one loop in `pages()`, and there is no second paging loop.
+- Outside `selftest()`, the harness differs from the tip only in main's `pages()` hunk, which changes behaviour only when a 5xx persists past ghapi's retries.
+
+**The earlier merge repair (r10_codescan_wait_race.py), null control and mutants.**
+
+Each was run on a scratch copy in `dev/audit/harnesses/`, removed afterwards, with `python3 <copy> --selftest`:
+- unmutated: `selftest: 15 checks, 0 failed`, exit 0.
+- main's fallback broken (`if st >= 500 and size != 30: break` -> `if st >= 500: raise ghapi.ApiError(path, st, "")`): `selftest: 15 checks, 1 failed pages(fallback False, clean True, 4xx True)`, exit 1.
+- the tip's per-attempt read broken (`if e.status < 500: raise` -> `raise`): `selftest: 15 checks, 1 failed ['jobs_all: no per-attempt read after a 5xx']`, exit 1.
+
+**This part's finding, before and after the merge.** `python3 dev/audit/harnesses/r10_rca_gate_busy_defer_2.py replay --ci <D>/tools/ci`, with `<D>` holding `git archive 1202efb64 tools/ci`, and the same with `--ci tools/ci` at this head. The two outputs differ only in the `RESULT ... ci=<path>` echo: `defects=no`, exit 0 at both. Every scene reads the same, and `3252-nosource: DECIDED`, PASS. The harness file and its fixture JSON are byte-identical between the tip and this head (`git diff --quiet`), and main's merge touches no `tools/ci/` file (`git diff --stat 1202efb64 HEAD -- tools/ci` is empty).
 
 ## Mutation proof
+
+**This repair's prepr:** under `## Figures`. **The previous repair's prepr, at 25811b2ec3b3 against daf8b349fd30** (`PREPR_SKIP_CLOSURES=1`): `rc=0`. `ci predict`: no closures, fast, governance or instrument red predicted against daf8b349fd30. `merged structure`: STRUCTURE RATCHET PASSED (tests/structure.py at 25811b2ec3b3). `pr-body`: 0 error(s). The earlier run at 2b2e7a7b3 against 51cd5ec8a42a was also rc=0.
 
 Failing tests first, each committed red before its fix:
 - a23110b7c, over main's `sweep.py`: `sweep self-test: 59 checks, 5 failed`:
@@ -85,7 +150,7 @@ Failing tests first, each committed red before its fix:
   - `source order: a LOWER-id edit run's red arch-score started after the code run's own -> the code gate reads the later start`
   - `source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green`
 
-Sweep mutants, each applied to a `tools/ci` copy and run with `python3 -I <copy>/sweep.py --self-test`:
+Sweep mutants at the authored head (re-run at this head under `## Merge repair`), each applied to a `tools/ci` copy and run with `python3 -I <copy>/sweep.py --self-test`:
 - **S1, the stale branch in `judge()` deleted.** 5 failed, the five above.
 - **S2, the `tools/ci/*.py` filter replaced by True.** 1 failed: `stale pin null: a base that moved without touching tools/ci/*.py re-runs the gate as before`.
 - **S3, the fresh-run guard off.** 1 failed: `stale pin, no loop: a dispatched run created after the stale gate concluded re-judges the head; nothing posted`.
@@ -119,25 +184,25 @@ Every survivor is a constant in a test fixture that no assertion reads, so each 
 
 - **Pin equals base.sha.** For every pull_request-event run at the open PRs' live heads, the gate job log's `programs restored from <sha>` was compared with the PR's live `base.sha`: 19 of 19 SAME. The workflow_dispatch run 42446409559 (PR #3308) read DIFF, pinned 5bc009bc against base d2e4d2d1, because a dispatch rev-parses `origin/<base>` at its start. That is why `stale_pin` keys on the event. Command: `scratchpad pincheck.sh`, whose output is the per-run SAME/DIFF line. A wrong assumption would have printed DIFF on a pull_request row.
 - **`stale_pin` against git, live and read-only** (no post). It returned the pin for #3305 (17e11579), #3291 and #3245 (4b5d771b), and None for #3307 (afc1586a) and #3308 (d2e4d2d1). `git log --oneline <pin>..origin/main -- 'tools/ci/*.py' | wc -l` reads 6 for 4b5d771b and 0 for d2e4d2d1 and afc1586a. Each stale call matches a non-zero count, each None a zero.
-- **The base moved without touching tools/ci** (`custom_components/...`, `tools/ci/fixtures/f.json`, `tools/pr/prepr.sh`): the gate is re-run as before. A dispatched run's gate is re-run, the base never compared. So is a fork head. Every pre-existing sweep check passes unchanged (`sweep self-test: 62 checks, 0 failed`).
+- **The base moved without touching tools/ci** (`custom_components/...`, `tools/ci/fixtures/f.json`, `tools/pr/prepr.sh`): the gate is re-run as before. A dispatched run's gate is re-run, the base never compared. So is a fork head. Every pre-existing sweep check passes unchanged (`sweep self-test: 71 checks, 0 failed` at this head, main's settle-loop cases included).
 - **Source order.** A lower-id edit run whose red started BEFORE the code run's own green leaves the code gate PASS (`source order: ... null: started before it`). Every pre-existing gate case passes, the #3263, #3261 and #3282 recorded replays included (`gate self-test: 81 checks, 0 failed`).
 - **The three-gate scene.** At main, unmutated, all three gates PASS. Its live verdicts are the recording's own `verdict` fields.
 
 ## Figures
 
-- Self-tests at this head:
+- Self-tests at b6c6a067 (re-run after this repair's merge of main):
   - `python3 -I tools/ci/gate.py --self-test`: 81 checks, 0 failed.
-  - `python3 -I tools/ci/sweep.py --self-test`: 62 checks, 0 failed.
+  - `python3 -I tools/ci/sweep.py --self-test` (as governance.yml runs it): 71 checks, 0 failed. Rule for the count: the merge base daf8b349's file reads 52, 25811b2e's 62, origin/main 6457496a's 60 (each `git archive <sha> tools/ci` run alone), so the merge keeps 52 + 10 + 8 = 70, plus b6c6a067's one.
   - `python3 -I tools/ci/prelude.py --self-test`: 76 checks, 0 failed.
 - RCA replay (dev/audit/harnesses/r10_rca_gate_busy_defer_2.py, sha1 556b35c217d462db2fc89f669f790ada1a7699ee). Fixture scenes `3244-triple` and `3252-nosource` were added by `record --scene <name>`, additions only. Each `--ci` copy is `git archive <sha> tools/ci tools/pr | tar -x -C $D`, run as `python3 dev/audit/harnesses/r10_rca_gate_busy_defer_2.py replay --ci $D/tools/ci`:
   - at 9cbd7dd0 (the triple's live pin, lacking 355d9965a): `3244-triple: DEADLOCK`, each gate `FAIL run(s) [<the other two>] ...`, as live.
   - at afc1586a (main): `3244-triple: DECIDED`, all PASS naps=0; `RESULT ... defects=no`.
-  - at this head (`replay`, no `--ci`): `3244-triple` the same as main; `3252-nosource: DECIDED`, PASS; `defects=no`, exit 0.
+  - at this head (b6c6a067, `--ci tools/ci`; the harness and fixture are byte-identical to 25811b2e, `git diff --quiet 25811b2e HEAD -- dev/audit/harnesses`): `3244-triple` the same as main; `3252-nosource: DECIDED`, PASS; `defects=no`, exit 0.
   - `3252-nosource` at main: `MISREAD`, `FAIL pr-contract / pr-contract: failure (run 42387066581)`, the recorded live verdict; exit 1. Under M27 on this head: the same `MISREAD`, exit 1.
   - M17 on main: still `DECIDED`. The honest listing is ordered by `judging()`, so the self-test's lagging trio is the case that kills M17.
-- Gate mutants: `python3 dev/audit/harnesses/r10_ci_gate_core.py mutants` (sha1 fcee81f4174409a55f1e57f7bbd4e83904aadbd2): `RESULT mutants=22 survivors=0`. At main it read `mutants=21 survivors=1`, M26 NOT RUN.
+- Gate mutants: `python3 dev/audit/harnesses/r10_ci_gate_core.py mutants` (sha1 fcee81f4174409a55f1e57f7bbd4e83904aadbd2), re-run at b6c6a067: `RESULT mutants=22 survivors=0`. At main it read `mutants=21 survivors=1`, M26 NOT RUN.
 - Diff mutants: 73 mutants, 6 SURVIVED (equivalent, `## Unpinned sites`), wall time 15.8 s (`## Mutation proof`).
-- Codescan harness (dev/audit/harnesses/r10_codescan_wait_race.py, sha1 b25381629a7f71ee8826435b9d5553a879a4be53): `--selftest` 12 checks, 0 failed. The 7-day reading is under carry 10.
+- Codescan harness (dev/audit/harnesses/r10_codescan_wait_race.py, sha1 aa74f7bb2382641d56e1a04cfa3e597d5041259a at b6c6a067): `--selftest` 15 checks, 0 failed. At the tip (sha1 b25381629a7f71ee8826435b9d5553a879a4be53) it read 12 checks. The 7-day reading was taken at the tip and is under carry 10. It was not re-taken, because the measuring path changed only by main's `pages()` fallback (`## Head`).
 - `rerun-gate.sh`: `git grep -n rerun-gate` over the tree: no hit.
 - Live gate census since #3287 (`r10_rca_gate_busy_defer_2.py census --since 2026-11-07T19:14:31Z`): not taken. The run reads every attempt and gate log in the window and was stopped at this session's 30-minute background limit before printing. No figure in this body rests on it.
 - Class census, the seams where a program orders runs at a head by id (fixer step 8). Rule: `grep -nE "sorted\(.*\"id\"|r\[\"id\"\] [<>]|i [<>] run_id|\"id\"\] [<>]" tools/ci/gate.py tools/ci/sweep.py tools/ci/prelude.py`, self-test lines aside. At the merge base it also returns `gate.gate`'s source loop (`sorted(others + [me], key=lambda r: r["id"], reverse=True)`); at this head it returns 8 lines:
@@ -148,18 +213,37 @@ Every survivor is a constant in a test fixture that no assertion reads, so each 
   - `prelude.waits_on` (`run["id"] < run_id`): a distinct finding, R10-RCA-CODESCAN-WAIT's inverted-pair wait. Not this group's; untouched.
   - `prelude.defer_to`'s `sorted(..., key=id)`: it returns the first unfinished code run whose pr-contract has not started. Any one qualifies, so the order decides nothing.
 - Ratchet and scope:
-  - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
-  - `python3 tools/audit/archscore/score.py --diff afc1586a`: `Architecture score: dS +0.0000 NULL`.
-  - `tests/closure.py select --diff $(git merge-base origin/main HEAD)` reads `MODE: FULL`, with the reason `tools/ci/gate.py changes the gate itself`. The full suite is CI's.
+  - `python3 tests/structure.py` at b6c6a067: STRUCTURE RATCHET PASSED.
+  - `python3 tools/audit/archscore/score.py --diff 6457496a` at b6c6a067: `Architecture score: dS +0.0000 NULL`. (At the authored head, against afc1586a, the same.)
+  - `tests/closure.py select --diff $(git merge-base origin/main HEAD)` at b6c6a067 reads `MODE: FULL`, with the reason `tools/ci/gate.py changes the gate itself`. The full suite is CI's.
   - `VERSION`, the manifest, the `RELEASE_NOTES.md` heading, both claim files and every `*_budgets.json` are byte-identical to the merge base.
-- prepr: `tools/pr/prepr.sh` with this body and `MUTANT_CMD`/`MUTANT_MAX=0` as under `## Mutation proof`, on the committed head 1202efb6, printed `PRE-PR: 1202efb64f6bf776c32fc8131c82a8220ec89fe5 ... rc=0`.
-  - Its `ci predict` step: `no closures, fast, governance or instrument red predicted against afc1586a4424`.
-  - Its `merged structure` step (HEAD merged with origin/main): `STRUCTURE RATCHET PASSED`.
-  - Its diff-mutant step: `6 survivor(s)`, the six under `## Unpinned sites`.
+- prepr: `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` with this body and `MUTANT_CMD`/`MUTANT_MAX=0` as under `## Mutation proof`, on the committed merged head 6772efc9, printed `PRE-PR: 6772efc98d49a33fc878deefd7b9a6dcd5cad329 ... rc=0`. Before the merge, the tip 1202efb6 had printed `rc=0` without the skip.
+  - Its `ci predict` step: `no closures, fast, governance or instrument red predicted against 17e621f08c4f`.
+  - Its `merged structure` step: `STRUCTURE RATCHET PASSED (tests/structure.py at 6772efc98d49, HEAD merged with origin/main)`.
+  - Its diff-mutant step: `6 survivor(s)`, the same six sites as under `## Unpinned sites` (gate.py trio and source-order-null id, and sweep_selftest.py's four `pinned(run(1, ...` sites).
+  - `PREPR_SKIP_CLOSURES=1` skips only the closures step, which the cloud brief allows. Its null control at main: `tests/closure.py select` at this head reads `MODE: FULL` (`tools/ci/gate.py changes the gate itself`), so CI runs every script and no scoped closure decides this head. The skip also leaves `closures-autofix` the repair, by `ci-autofix.md`.
 
 ## Red checks
 
-none. No pull request exists yet for this head; `tools/pr/prepr.sh`'s `ci predict` step is the prediction (`## Figures`).
+- **`gate`, check-run 128871924664 (edit run 42526037423, 21:48:24Z), and check-run 128873239478 (edit run 42526438071, 21:50:45Z), both at the PR head 4cab619c1.** Both are deferrals only, neither a unit failure. The job logs' verdict lines: `FAIL run(s) [42526036839, 42526438071] at this head are still being judged; their gate decides` and `FAIL run(s) [42526036839] at this head are still being judged; their gate decides`, each then exit 1 (main's `gate.deferral()`). The code run 42526036839's `gate`, check-run 128884044704, started 22:33:12Z and concluded `success`, the newest `gate` check-run at 4cab619c1. Cheaper detector: none exists; a deferral is red by design until the code run's gate decides, as for the two deferrals at 2b2e7a7b3 below.
+- **The merge conflict** (the blocked verdict) is no check: it is answered by this repair's merge. Cheaper detector: `git merge-tree --write-tree origin/main HEAD`, which the fixer contract already runs before the handoff (step 6); main moved past the handoff, so no earlier run could have seen it.
+
+At the earlier heads:
+
+- **`gate`, check-run 128854449062 (edit run 42520919046, 20:37:29Z), and check-run 128863146375 (edit run 42523443855, 21:17:53Z), both at the previous head 2b2e7a7b3.** Both are deferrals only. Neither is a unit failure.
+  - Each job's log has one verdict line: `FAIL run(s) [42520919204] at this head are still being judged; their gate decides`, then exit 1. That is main's `gate.deferral()`.
+  - Each job printed `programs restored from 51cd5ec8a42abde3c223f22e9f4a0d5f35f8844a` before it judged. ci.yml restores `tools/ci/*.py` from the base SHA for every pull_request run. So main's gate, not this branch's, made both deferrals.
+  - Code run 42520919204 (`CI code pr=3348`) finished with every unit green. Its `tests / fast (3.14)` passed at 21:11:39Z and its `pr-contract / pr-contract` (job 128864456676) passed. Its `gate`, check-run 128865410993, started 21:23:09Z and printed `PASS` (KIND code, programs restored from 51cd5ec8a4).
+  - That is the newest `gate` check-run at 2b2e7a7b3. At 21:24Z 2b2e7a7b3 had no failed check-run other than the two deferrals above, and none still running.
+  - Cheaper detector: none exists. A deferral is the gate working as designed: an edit run's gate defers to the code run that is still adding sources, and it reads red until the code run's gate decides. The red was decided by when the packet read the head, not by the code. Its standing cost is a re-read after the code run's gate, which `failure_logs.sh` (newest check-run per name) already does.
+- **Can this change let `gate` go green over a real red?** No, for three reasons:
+  1. **The branch's gate never judges this PR.** Every pull_request gate runs the base's `tools/ci/*.py`, as both job logs above show. The new source order first runs on PRs after it merges.
+  2. **`busy()` and `deferral()` are unchanged.** Over `tools/ci/gate.py` the diff touches only `gate()`'s sort key (`fresh()`) and self-tests. A unit's source still has to be a completed green job; the order picks which run that is, and a red or unfinished source is still a FAIL.
+  3. **The self-tests hold the line.**
+     - `source order: a LOWER-id edit run's red arch-score started after the code run's own -> the code gate reads the later start` expects `FAIL arch-score / arch-score: failure (run 99)`: a later red beats an earlier green.
+     - `source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green` expects `FAIL ... PENDING (this run)`: a sibling's green does not cover this run's own pending unit.
+     - M27 (id order) reads `MISREAD` on the replay.
+     - The `busy-defer, three gates (#3244)` check pins the tie-break, so exactly one gate judges. None passes without judging.
 
 ## Forward-carry
 
@@ -167,4 +251,6 @@ none
 
 ## Friction
 
+- review-packet-deferral-read: cost: the packet refused dispatch on `gate` red at 2b2e7a7b3 while the code run 42520919204 it deferred to was still in `tests / fast`; the code gate passed about 46 min after the first deferral started. Carry: dismissed: a deferral is red by design until the code gate decides, and re-reading after it, as here, is the remedy; no new mechanism is owed
 - frugal-inline-budget: cost: a session guard caps inline searches per prompt, so the carry survey went through one subagent. Carry: dismissed: a session plugin's guard, not this repository's policy
+
