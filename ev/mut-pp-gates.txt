@@ -1,0 +1,10 @@
+wrote /tmp/tmp2qlbgycn/page.html: 8 groups, closure 2026-01-06T15:14:00Z
+wrote /tmp/tmp2qlbgycn/page.html: 8 groups, closure 2026-01-06T15:14:00Z
+plan_page self-test: 76 checks, 7 failed
+FAIL ready: its only after target is done (got: ('blocked', 'waiting on DONE-SHA', '#32'))
+FAIL defect 2: the blockers are the roster's after, never a scratch graph (got: {'R9-DONE-BR': [], 'R9-DONE-NONE': [], 'R9-DONE-SHA': [], 'R9-HELD': [], 'R9-LIVE': [], 'R9-PART': [], 'R9-READY': ['R9-DONE-SHA'], 'R9-BLOCK': ['R9-LIVE']})
+FAIL blocked-by is the roster's after less the done groups (got: (['R9-LIVE'], ['R9-DONE-SHA']))
+FAIL rows carry the ready class (got: 0)
+FAIL the summary strip counts ready (got: )
+FAIL rows carry the blocked class (got: 2)
+FAIL the summary strip counts blocked (got: )
