@@ -251,14 +251,16 @@ STUB
   # The Mac recipe's venv-ha install is cloud-setup.sh's pins call: hashed,
   # --no-deps, the typing lock. Drop this function's body so its own strings
   # cannot satisfy the grep; keep check() above and the pins() call below.
+  # A here-string, not `echo | grep -q`: under pipefail grep's early exit
+  # SIGPIPEs the echo whenever it has not finished writing (seen under strace).
   prod=$(awk '/^self_test\(\)/{p=1; next} p && /^)$/{p=0; next} !p' \
     "$ROOT/tools/audit/seat/seat_venv.sh")
-  echo "$prod" | grep -qF -- '-m pip install -q --require-hashes'
+  grep -qF -- '-m pip install -q --require-hashes' <<< "$prod"
   expect "pins() still hash-pins (venv-ci control)" $?
-  echo "$prod" | grep -qF 'pins "$VENV_HA" --no-deps -r "$ROOT/tests/requirements-typing.txt"'
+  grep -qF 'pins "$VENV_HA" --no-deps -r "$ROOT/tests/requirements-typing.txt"' <<< "$prod"
   expect "the build calls pins() for venv-ha with --no-deps from the typing lock" $?
   assertion='import homeassistant.const as c, sys; assert c.__version__ == sys.argv[1], c.__version__'
-  echo "$prod" | grep -qF "$assertion"
+  grep -qF "$assertion" <<< "$prod"
   expect "check() carries cloud-setup.sh's homeassistant assertion" $?
   grep -qF "$assertion" "$ROOT/tools/audit/seat/cloud-setup.sh"
   expect "cloud-setup.sh asserts the same homeassistant version" $?
