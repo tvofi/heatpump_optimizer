@@ -1,4 +1,0 @@
-8332:2026-11-09T07:55:05.7845720Z [36;1mprintf 'red checks the body must answer: %s\n' \[0m
-8339:2026-11-09T07:55:06.5351017Z red checks the body must answer: ,governance / delivery-status,tests / fast (3.14)
-8369:2026-11-09T07:55:15.4043502Z   record   red-history           21 commit(s) between origin/main and this head, every failure conclusion across them: governance / delivery-status, tests / fast (3.14), tests / mutation, tests / mutation-autofix
-8372:2026-11-09T07:55:15.4046851Z   ERROR   [pr-body] /tmp/pr-body.md: check `tests / fast (3.14)` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
