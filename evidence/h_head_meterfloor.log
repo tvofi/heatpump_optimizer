@@ -124,3 +124,14 @@ RESULT meter_floor_immersion_share1.0: below_meter_floor False pct 0.55936107205
   comfort term +6.18 kWh_e (the reference's warmer house); stored term -5.07 kWh_e (the plan's store change)
   residual: reference less comfort, plus stored, 133.31 kWh against plan 138.52: -3.90 %
 RESULT meter_floor_immersion_share1.5: below_meter_floor True pct None
+  row: baseline 501.46 actual 498.65 saved None pct None
+  floor: booked over metered 0.348 (144.56 / 415.55 kWh); below_meter_floor True; calibration_basis meter
+  row: stored_heat_sek -18.96 comfort_sek 16.5
+  calibration 3.0; uncalibrated baseline 173.48, pct -187.45
+  plan kWh 138.52 at COP 1.910; booked reference 144.56 at COP 1.820; gap +6.05; mean room 18.48 C against 21.00
+  comfort term +6.18 kWh_e (the reference's warmer house); stored term -5.07 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 133.31 kWh against plan 138.52: -3.90 %
+RESULT meter_floor_immersion_share2.0: below_meter_floor True pct None
+meter-floor: SOUND
+arms run 1, defect 0: -
+rc=0

@@ -1,6 +1,0 @@
-4 of 4988 FEATURE CHECKS FAILED
-rc=1
-  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
-  FAIL a wood house whose wood-free hours meter 0.8 of the plan publishes that calibration, not the floor's 1.0  [{'month': '2026-02', 'baseline_sek': 48.0, 'actual_sek': 12.0, 'savings_sek': 36.0, 'savings_pct': 75.0, 'old_basis': False, 'below_meter_floor': False, 'estimated': False, 'meter_calibration': 1.0, 'calibration_basis': 'wood_free', 'stored_heat_sek': 0.0, 'comfort_sek': 0.0}]
-  FAIL a wood house's model that reads the meter low on its wood-free hours is still corrected up  [{'month': '2026-02', 'baseline_sek': 48.0, 'actual_sek': 20.4, 'savings_sek': 27.6, 'savings_pct': 57.50000000000001, 'old_basis': False, 'below_meter_floor': False, 'estimated': False, 'meter_calibration': 1.0, 'calibration_basis': 'wood_free', 'stored_heat_sek': 0.0, 'comfort_sek': 0.0}]
-  FAIL at one flat price the wood-free calibrated row's saving is the volume difference alone  [{'month': '2026-02', 'baseline_sek': 48.0, 'actual_sek': 12.0, 'savings_sek': 36.0, 'savings_pct': 75.0, 'old_basis': False, 'below_meter_floor': False, 'estimated': False, 'meter_calibration': 1.0, 'calibration_basis': 'wood_free', 'stored_heat_sek': 0.0, 'comfort_sek': 0.0}]

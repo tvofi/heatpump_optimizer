@@ -1,4 +1,0 @@
-2 of 4988 FEATURE CHECKS FAILED
-rc=1
-  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
-  FAIL the pending snapshot carries wood_heated from the detector on a wood house, and None on a plain one  [{'plain, fire': None, 'wood, quiet': None, 'wood, active': None, 'wood, fading': None, 'wood, displacing': None, 'wood, free heat': None}]
