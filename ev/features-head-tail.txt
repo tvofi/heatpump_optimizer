@@ -1,0 +1,13 @@
+  ok   R10-CLONE-2238 P8: metering_windows and _window_means_batch both partition through _window_partition
+
+ALL 4987 FEATURE CHECKS PASSED
+
+real	6m10.451s
+user	5m46.012s
+sys	0m2.624s
+rc=0
+  ok   vi-b with no memo the wrapper returns the plain fused fun, working
+  ok   vi-b the memo's served pair is the plain fun's pair, to the bit
+  ok   the BLAS thread pin reuses optimizer.py's one ThreadpoolController: three scoped minimize calls build none (and the counter sees a direct construction, the null control)
+  ok   without threadpoolctl the scoped minimize runs unpinned and still solves (x -> 0 on the bowl)
+  ok   one production start is followed by one restart from the returned point

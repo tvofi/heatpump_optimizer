@@ -1,0 +1,4 @@
+mutant: optimizer.py '    if _blas_threads is None:' -> '    if False:' at 56a214c8bd8f72dfc4839234dc749cc53ec6813c
+  FAIL without threadpoolctl the scoped minimize runs unpinned and still solves (x -> 0 on the bowl)  [error=AttributeError("'NoneType' object has no attribute 'limit'") x=None]
+1 of 4987 FEATURE CHECKS FAILED
+rc=1
