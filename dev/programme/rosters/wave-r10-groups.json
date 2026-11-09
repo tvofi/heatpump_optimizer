@@ -20994,6 +20994,49 @@
     "branch": null,
     "note": "overlap admitted (R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE, R10-WATER-SETPOINT-FEEDBACK): carries-open audit 2026-11-09: distinct seam from R10-ARBITER-OFF-RESTORE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-WATER-SETPOINT-FEEDBACK, ordered by after-edges where files overlap"
    }
+  },
+  {
+   "group": "R10-ADVISOR-STEADY-START",
+   "lane": "Core model",
+   "kind": "production",
+   "issues": [
+    2257
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "production",
+   "severity": "medium",
+   "size": "L",
+   "wave": 1,
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/payload.py"
+   ],
+   "hot_files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "The last open item of #2257: the steady-start estimator the owner ruled on 2026-11-01 (the large fix, not a disclosure). Size L: a designer writes design/r10-advisor-steady-start and it passes design review before any fixer. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE): carries-open audit 2026-11-09: distinct seam from R10-ARBITER-OFF-RESTORE, R10-GENERIC-HEAT-CURVE-PERSISTENT, ordered by after-edges where files overlap"
+   }
   }
  ]
 }
