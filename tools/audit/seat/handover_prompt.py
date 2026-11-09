@@ -210,6 +210,16 @@ def _self_test() -> int:
         if not ok:
             failed.append(f"{name} (got: {got})")
 
+    def rg(gid, stage, after=()):
+        return {"group": gid, "after": list(after), "resume": {"stage": stage}}
+    # An after-edge by predecessor stage (roster_lib.gates): deferred holds,
+    # refused and refuted release.
+    for st, ready in (("deferred", ["P"]), ("refused", ["D", "P"]), ("refuted", ["D", "P"])):
+        rr = {"groups": [rg("P", st), rg("D", "not-started", ["P"])]}
+        got = sorted(g for _, g in ready_next(rr))
+        check(f"ready_next: a group after a {st} group is "
+              + ("held" if st == "deferred" else "released"),
+              got == [g for g in ready if g != "P" or st == "refuted"], got)
     roster = _fixture_roster()
     resume = ("# Resume (fixture)\n\n## Ready next\n\n"
               "- R9-C (wave 1, 0 satisfied edge(s))\n\n## Traps\n\nnone\n")
