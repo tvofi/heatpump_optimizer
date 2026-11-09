@@ -2,11 +2,11 @@ R10-DISPATCH-AT-HANDOFF: a reviewer is dispatched at the handoff, keyed by topic
 
 ## Head note
 
-Repair merge: origin/main (6457496aba7b1076b1ed60c374c5badafdf66fc1, read at 2026-11-09T02:39Z) is merged into the handoff by e27484ffc9fb1f282974a35f02a470f657795e57, which is the head measured below. The one conflict, cloud_dispatch.py, was resolved by union: main's frugal-routing line, role-pack setup and merge-tree-only block rule (#3338 and its earlier commits) and this branch's handoff reviewer (topic-keyed revt ref, no packet, no CI wait) are all present. The previous merge's tip was 089f1da017e98a697a24e70c308f79beee9b8607. `git merge-tree --write-tree origin/main HEAD` exits 0 and origin/main is an ancestor of the head.
+Repair merge: origin/main (6457496aba7b1076b1ed60c374c5badafdf66fc1, read at 2026-11-09T02:39Z) is merged into the handoff by e27484ffc9fb1f282974a35f02a470f657795e57, which was the previous head; the head below adds a commit registering `handoff-verdict-held` in ledger.py's KINDS (see Red checks) and a merge of origin/main (one conflict, the KINDS table, resolved keeping both entries). The one conflict, cloud_dispatch.py, was resolved by union: main's frugal-routing line, role-pack setup and merge-tree-only block rule (#3338 and its earlier commits) and this branch's handoff reviewer (topic-keyed revt ref, no packet, no CI wait) are all present. The previous merge's tip was 089f1da017e98a697a24e70c308f79beee9b8607. `git merge-tree --write-tree origin/main HEAD` exits 0 and origin/main is an ancestor of the head.
 
 ## Head
 
-e27484ffc9fb1f282974a35f02a470f657795e57
+5f28e55aae26748ab33274d87c1ab8d79d7e50b2
 
 ## Mutation proof
 
@@ -27,7 +27,9 @@ The unmutated merged file: `python3 tools/audit/seat/cloud_dispatch.py --self-te
 
 ## Red checks
 
-none
+- `governance / instrument-self-tests` (job 128987860550) was red at f2ca26a07: "ledger self-test: 101 checks, 1 failed", FAIL "every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)". Cause: this diff makes cloud_relay.sh write the level kind `handoff-verdict-held`, which tools/audit/seat/ledger.py's KINDS table lacked. Fixed at the head above: the kind is registered as "derived" (a level rewritten each pass); `ledger.py --self-test` prints 101 checks, 0 failed. Mutation proof: deleting the new KINDS entry makes the census fail again (101 checks, 1 failed). The two "FAIL D1/D2 mode=cells" lines in that log belong to another self-test's own fixtures and were not chased.
+- `pr-contract` was red because the body did not name the check above; this section is the answer.
+- Cheaper detector: running `python3 -I tools/audit/seat/ledger.py --self-test` before the handoff, a few seconds. Whenever a diff adds a `level_line` or `ledger_open` kind in cloud_relay.sh it should be run; its standing cost is one extra self-test invocation per such handoff.
 
 ## Forward-carry
 
@@ -40,3 +42,26 @@ none
 ## Approval
 
 Pending, not granted: this diff touches policy files (dev/governance/roles/standing-dispatch.md and dev/governance/roles/fix-review.md, both carried unchanged from the earlier handoff and main), which the owner approves by an approving review before merge (CLAUDE.md, policy section). No approval has been given; none is claimed here.
+
+## Carry dispositions
+
+Carried unchanged from the earlier body at handoff-body/r10-dispatch-at-handoff-p2 (the merge adds no carry work; the roster's 1-based numbering).
+
+- Carry 1: untouched here; it stands as the roster states it.
+- Carry 2: delivered at main, no re-fix.
+- Carry 3: delivered at main, no re-fix.
+- Carry 4: delivered at main, no re-fix.
+- Carry 5: untouched here; it stands as the roster states it.
+- Carry 6: delivered at main, no re-fix.
+- Carry 7: superseded by the orchestrator ruling of 2026-11-08 (WAIT dispatches, only RED holds).
+- Carry 8: delivered at main, no re-fix.
+- Carry 9: untouched here; it stands as the roster states it.
+- Carry 10: delivered at main, no re-fix.
+- Carry 11: delivered at main, no re-fix.
+- Carry 12: untouched here; it stands as the roster states it.
+- Carry 13: untouched here; it stands as the roster states it.
+- Carry 14: delivered at main, no re-fix.
+- Carry 15: delivered at main, no re-fix.
+- Carry 16: delivered at main, no re-fix.
+- Carry 17: built on this branch (review_packet.py head-note asks policy_lint --pr-body --head).
+- Carry 18: built on this branch (REPAIR-OWED on RED; WAIT dispatches).
