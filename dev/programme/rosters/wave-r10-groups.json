@@ -18674,9 +18674,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-train-stale-verdict-guard",
-    "commit": null,
+    "commit": "01782a1e3c327cbfb69784b8e676359e5bcfa079",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "s12 split 2026-11-07: carry 18 of R10-TRAIN-MERGE-LOOP-2 split out (orchestrator option a); its fixer was blocked by review_packet brief-carries; overlap admitted (R10-CI-PRIORITY-PAUSE, R10-TRAIN-MERGE-LOOP-2, R10-HOTFIX-TRAIN-DEFER-WAIT, R10-CI-GRADER-BATCH-STUDY): orchestrator option (a) 2026-11-07: carry 18 of R10-TRAIN-MERGE-LOOP-2 split out",
@@ -20204,7 +20204,8 @@
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
-    "note": "orchestrator 2026-11-09T15:30Z: owner 11-09 'No pr merge should be blocked on a non-required red', made persistent; overlap admitted (R10-FIXER-MD-SPELLING-CORPUS): owner 11-09: non-required reds never block; make it persistent in role contracts, prompts, tick"
+    "note": "orchestrator 2026-11-09T15:30Z: owner 11-09 'No pr merge should be blocked on a non-required red', made persistent; overlap admitted (R10-FIXER-MD-SPELLING-CORPUS): owner 11-09: non-required reds never block; make it persistent in role contracts, prompts, tick",
+    "pr": 3384
    },
    "brief": "Owner rulings tvofi 2026-11-07 and 2026-11-09 ('No pr merge should be blocked on a non-required red'): only a red in the set merge_train.py owed-reds prints is owed an answer or may block. defect-root-cause.md states it, and the instruments comply (owed_reds, policy_lint --pr-body, review_packet.unanswered_reds, classify NOT_GATING). The gaps that kept it from binding: (1) dev/governance/roles/fix-review.md and fixer.md do not state it, so reviewers blocked on non-required reds (#3350 06:46Z delivery-status; #3345 and #3350 instrument-self-tests) and fixers answered them; add one sentence to each that cites defect-root-cause.md, without restating it; (2) tools/audit/seat/cloud_dispatch.py's rendered reviewer and fixer prompts do not carry it; add the rule as one line naming owed-reds, with a self-test arm and a mutant; (3) orchestrator_tick.py's 'RED unanswered in ## Red checks' line lists every red; filter it through merge_train.judged(gating_names(required)), as review_packet does, so an unreadable set keeps every red (the fallback), with a self-test arm, its null control and a mutant. Policy files change, so this is policy under mandate 6715477401."
   },
