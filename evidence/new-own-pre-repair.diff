@@ -1,126 +1,3 @@
-# Review packet #3345
-head: fd973e035d6044ac55a105a7156af5b46ce5838f
-base: 806e952cadde68bec637a491b4646dd6fb5281d0
-
-Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
-
-## Gate digest: red
-CodeQL id=129104911862 success
-arch-score / arch-score id=129126188032 success
-arm id=129104465767 skipped
-budget-raise-gate / budget-raise-gate id=129126243461 success
-cancel-superseded id=129126185651 success
-codeql id=129126186938 skipped
-codeql / Analyze (actions) id=129104657512 success
-codeql / Analyze (javascript-typescript) id=129104657579 success
-codeql / Analyze (python) id=129104657606 success
-gate id=129126185452 success
-governance id=129126251367 skipped
-governance / delivery-status id=129104657813 failure
-governance / delivery-status-publish id=129104659819 skipped
-governance / env-matrix id=129104657781 success
-governance / instrument-self-tests id=129104657944 failure
-governance / policy-docs id=129104657884 success
-governance / record id=129104660304 skipped
-governance / wave-script id=129104657978 success
-hassfest id=129126186781 skipped
-hassfest / hassfest id=129104657605 success
-kernel-points id=129126221502 skipped
-pr-contract id=129126187689 skipped
-pr-contract / pr-contract id=129125260325 success
-prelude id=129126220764 success
-refresh id=129126228773 success
-tests id=129126187077 skipped
-tests / arch-instrument id=129104908382 success
-tests / briefs id=129104657763 success
-tests / browser id=129104908524 success
-tests / ci-ratchet id=129121039648 skipped
-tests / claims-autofix id=129121040209 skipped
-tests / closure-scope id=129104657873 success
-tests / closures id=129104908439 success
-tests / closures-autofix id=129116592484 skipped
-tests / coverage id=129104908284 success
-tests / coverage-ratchet id=129116219403 success
-tests / fast (3.14) id=129104908324 success
-tests / graders-head-copy id=129116219496 success
-tests / lane-proofs id=129121037747 success
-tests / mutation id=129104657796 success
-tests / mutation-autofix id=129104959096 skipped
-tests / mutation-pins id=129104958941 skipped
-tests / nightly-ha id=129104910051 skipped
-tests / nightly-status id=129104657827 success
-tests / replay id=129104910908 skipped
-tests / typing id=129104908343 success
-validate id=129126186747 skipped
-validate / validate-hacs id=129104657308 success
-
-## Refusals
-hot-file: #3326 holds an unboarded merge verdict and shares tools/audit/seat/orchestrator_tick.py
-
-## Advisories
-hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
-
-## carry_audit at the head
-NOTE body item d3df9924: R10-TICK-LEVELS
-NOTE body item d3df9924: R10-TICK-LEVELS
-NOTE body item becd0c23: R10-TICK-LEVELS
-NOTE body item becd0c23: R10-TICK-LEVELS
-NOTE body item 9af9bd0e: R10-TICK-LEVELS
-NOTE body item 9615f50a: R10-FLY-CIPREDICT-RESTORING
-CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
-
-## figure_lint at the head
-ok         python3 tests/structure.py
-             `tests/structure.py` is in the tree at this head
-  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <D>
-             `tests/closure.py` is in the tree at this head
-  ok         tests/closure.py changes the gate itself
-             `tests/closure.py` is in the tree at this head
-  ok         python3 tools/audit/seat/orchestrator_tick.py --self-test
-             `tools/audit/seat/orchestrator_tick.py` is in the tree at this head
-  ok         python3 tools/audit/seat/topic_grammar.py --self-test
-             `tools/audit/seat/topic_grammar.py` is in the tree at this head
-  ok         python3 -I tools/audit/seat/owed_unactioned.py --self-test
-             `tools/audit/seat/owed_unactioned.py` is in the tree at this head
-  ok         python3 -I tools/audit/seat/open_driver.py --self-test
-             `tools/audit/seat/open_driver.py` is in the tree at this head
-  ok         python3 tools/audit/seat/pr_cap.py --self-test
-             `tools/audit/seat/pr_cap.py` is in the tree at this head
-  ok         python3 tools/audit/seat/cloud_dispatch.py --self-test
-             `tools/audit/seat/cloud_dispatch.py` is in the tree at this head
-  ok         python3 tools/audit/seat/ledger.py --self-test
-             `tools/audit/seat/ledger.py` is in the tree at this head
-  ok         bash tools/audit/seat/cloud_relay.sh --self-test
-             `tools/audit/seat/cloud_relay.sh` is in the tree at this head
-  ok         python3 tests/closure.py selftest
-             `tests/closure.py` is in the tree at this head
-  ok         python3 tools/audit/fold_ledger.py check
-             `tools/audit/fold_ledger.py` is in the tree at this head
-  ok         python3 tests/closure.py check --in-dir <D> --partial
-             `tests/closure.py` is in the tree at this head
-  ok         ./tests/derive_closures.sh --single tests/entities.py --record-only --out-dir <D>
-             `tests/derive_closures.sh` is in the tree at this head
-  ok         ./tests/derive_closures.sh --single tests/entities.py
-             `tests/derive_closures.sh` is in the tree at this head
-  ok         tools/audit/seat/topic_grammar.py
-             `tools/audit/seat/topic_grammar.py` is in the tree at this head
-  ok         tests/entities.py
-             `tests/entities.py` is in the tree at this head
-  ok         tools/audit/seat/mutant_run.py --diff <base>...HEAD --max-mutants 40
-             `tools/audit/seat/mutant_run.py` is in the tree at this head
-
-FIGURES: 19 resolved, 0 not verified, 0 refused
-
-## Finder's harness: none named
-### at the base
-not run
-### at the head
-not run
-
-## Mutation-ledger diff
-none
-
-## Three-dot diff
 diff --git a/.claude/workflows/audit-find.js b/.claude/workflows/audit-find.js
 index 359f1e9d1..6d8673706 100644
 --- a/.claude/workflows/audit-find.js
@@ -155,12 +32,12 @@ index 5c60d88ec..9e9e73511 100644
          id: detached-launcher
          if: ${{ !cancelled() && steps.scope.outputs.detached-launcher == 'true' }}
 diff --git a/dev/audit/config/bugclasses.json b/dev/audit/config/bugclasses.json
-index a7cd387b6..88d3e6b9d 100644
+index 4b9accd49..f45352e77 100644
 --- a/dev/audit/config/bugclasses.json
 +++ b/dev/audit/config/bugclasses.json
-@@ -4832,6 +4832,22 @@
+@@ -4852,6 +4852,22 @@
        "doc": [
-         "dev/audit/rca/r10-relay-handoff-starvation.md"
+         "dev/audit/rca/r10-gate-busy-defer-4.md"
        ]
 +    },
 +    "R10-RCA-TOPIC-FAMILY": {
@@ -181,7 +58,7 @@ index a7cd387b6..88d3e6b9d 100644
      }
    },
    "N-registry-leak": {
-@@ -5435,5 +5451,40 @@
+@@ -5455,5 +5471,40 @@
        "barriered_any": false,
        "class_rca_on_record": false
      }
@@ -482,7 +359,7 @@ index 557ec48bf..52327988d 100644
      # INERT. tests/entities.py and tests/features.py import them, so an edit
      # selects those scripts. Left inside the prefix they would be declared
 diff --git a/tests/closures.json b/tests/closures.json
-index fa125bd8b..8a1fcda31 100644
+index bbdf4b253..72b64162b 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
 @@ -1880,6 +1880,7 @@
@@ -1149,7 +1026,3 @@ index 000000000..40dbc8afb
 +
 +if __name__ == "__main__":
 +    sys.exit(main(sys.argv[1:]))
-
-## Before you return the verdict (P275)
-Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;
-an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.
