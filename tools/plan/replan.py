@@ -2326,6 +2326,13 @@ def selftest() -> int:
                else (rf["groups"]["R10-Y"]["start"] == iso(start, 0)
                      and not rf["groups"]["R10-Y"].get("held_behind")),
                str({n: (g["start"], g.get("held_behind")) for n, g in rf["groups"].items()}))
+        in_plan = {g for w in rf["waves"] for g in w["groups"]}
+        in_plan |= {g for b in rf["batches"] for g in b["groups"]}
+        expect(f"{st}: a held dependent is in no wave and no batch (build_plan drops "
+               "`held` from the open set; null: the released set is scheduled)",
+               ("R10-Y" in in_plan and "R10-Z" in in_plan) if not held
+               else not ({"R10-Y", "R10-Z"} & in_plan) and "R10-A" in in_plan,
+               str(sorted(in_plan)))
     rt = mk([fx("R10-A"), fx("R10-X", stage="refuted"), fx("R10-Y", after=["R10-X"])])
     expect("refuted: the group is still scheduled and its dependent is released",
            not rt["groups"]["R10-X"]["done"] and rt["groups"]["R10-X"]["start"] is not None
@@ -2794,6 +2801,9 @@ def selftest() -> int:
             ("freshness",
              _m("def stale_reason(plan: dict, ", "repo: str, ref: str | None = None,"),
              _m("if have != ", "want:"), "if False:"),
+            ("held-subtraction",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("open_ = open_ ", "- set(held)"), "open_ = open_"),
             ("gate-cancellation",
              _m("def gate_minutes(durations: ", "dict) -> float:"),
              _m("return fast + clo + ana * ", "(1.0 + p_cancel)"), "return fast + clo + ana"),

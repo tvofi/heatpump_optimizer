@@ -876,6 +876,13 @@ def _self_test() -> int:
           held_behind_deferred(groups_of(chain)) == {"Q": "P", "S": "P"}
           and gates(groups_of(chain)["P"]) and depth_of(chain)["Q"] == 2,
           held_behind_deferred(groups_of(chain)))
+    mid = {"groups": [rg("P", "deferred"), rg("Q", "refuted", after=["P"]),
+                      rg("S", "queued", after=["Q"])]}
+    check("a held group that is itself released (refuted) does not hold its dependent "
+          "(null: the queued Q, in `chain`, does)",
+          held_behind_deferred(groups_of(mid)) == {"Q": "P"}
+          and not gates(groups_of(mid)["Q"]),
+          held_behind_deferred(groups_of(mid)))
     for st in ("refused", "refuted", "done", "absorbed"):
         rel = {"groups": [rg("P", st), rg("Q", "queued", after=["P"])]}
         check(f"an after-edge to a {st} group is released (null: deferred holds, above)",
