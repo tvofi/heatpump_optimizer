@@ -1,82 +1,78 @@
-Three planner defects from the 2026-11-08 replan study: (a) a name-prefix lane collision, (b) refused/deferred groups still scheduled, (c) the critical-path cap exemption missing for the coordinator cap.
+Repair round for the three planner defects of the 2026-11-08 replan study (a name-prefix lane collision, b refused/deferred groups still scheduled, c the critical-path coordinator-cap exemption). Group R10-FLY-REPLAN-DEFECTS. Blocks of `Fix review: blocked b59abf37196379f3264b3aaad42e199aaf053207` answered: class-open, mutation-vacuous, red-ci, and the owner question.
 
-(a) `roster_lane` matched stems with `str.startswith`, so `R10-I1` also took `R10-I18N-DE`. The stems are now `INSTRUMENT_NAME_STEMS`, matched as the exact group or `<stem>-...`. Alternatives: classify by files only (loses the name rules for file-less groups), or an exact id set (goes stale with every new group). The boundary match keeps the rule and removes the collision.
-
-(b) `roster_lib.CLOSED_STAGES` now includes `refused` and `deferred`. Every reader of the set follows: `is_open`, `open_groups`, after-edge closure, `CARRY_CLOSED`, `handover_prompt.in_flight`, and the `is_open` callers in `roster_sync`, `roster_edit`, `size_durations` and `ci_predict`. `sweep_gantt.CLOSED_STAGES` is a separate "merged" set and is left alone. `refuted` stays open, because it names a finding rather than a group's work. Side effect: a group that is `after` a refused or deferred group is no longer held behind it. Say so if the owner wants deferred to keep blocking.
-
-(c) `build_plan` already exempted a ready critical-path group from the slot cap. It did not exempt it from the coordinator cap, which `orchestrator.md` section 5 lists ("a coordinator K/2 limit"). `pick` now takes `cap_exempt` in the critical-path loop. A group that starts past a full coordinator cap is flagged `exempt_coordinator`, and `check_plan` leaves flagged groups out of its coordinator count. The in-tree roster's own critical path does not contain `R10-HANDOFF-PATH`: it is a no-dependency M group, and the only chain is `R10-GENERIC-HEAT-CURVE...R10-CLOSEOUT-CLEANUP`. I could not re-derive that group waiting behind the slot cap on the current head. The 2026-11-08 plan's input is not in the tree. What I fixed is the one cap the exemption missed, and I proved it on a fixture.
+(a) `roster_lane` matches `INSTRUMENT_NAME_STEMS` as the exact group or `<stem>-...`, so `R10-I1` no longer takes `R10-I18N-DE`. (b) `roster_lib.CLOSED_STAGES` gains `refused` and `deferred`; `refuted` stays open. (c) `build_plan` exempts a ready critical-path group from the coordinator cap, flags it `exempt_coordinator`, and `check_plan` leaves flagged groups out of its coordinator count.
 
 ## Head
 
-3cf879467196df974967d702e2e407b9de068f14: the repaired head. It is `266ef2802f7b12544435faa10e27a05663d4e076`, merged with `origin/main` 20e83746fe91a1841ab5c4c93aef64eab38335b0 (a merge, no rebase), plus one commit.
+5e55b7e4cc87350c7e15f2bca43049fabace6e8f: the PR head 3cf879467196df974967d702e2e407b9de068f14 plus this repair. `git merge-tree --write-tree origin/main HEAD` exits 0 against `origin/main` 82a2c142f (2026-11-09T05:57Z), so there is no merge; the one resolution it reports is the `tests/closures.json` ledger merge driver. Main moved after the last `tools/pr/prepr.sh` run; the figures stamped below are at merge base 20e83746fe91.
 
-## Head note
+## Owner ruling carried (Carry: R10-FLY-REPLAN-DEFECTS)
 
-Change: `orchestrator_tick.py` `plan()` walked `rl.open_groups`, which (b) made exclude deferred and refused groups, so "E: deferred/refused ... stays deferred" was never printed. It now walks every group and skips a closed one only when its stage is not in `DEFERRED_STAGES`. A deferred or refused group is reported as deferred, unflagged, as before. The fixture `PLAN: deferred E stays deferred` is untouched.
+The open owner question is ruled by the orchestrator under mandate 6715477401: "a group whose `after` names a DEFERRED group stays held behind it (deferred means postponed, not done); a group whose `after` names a REFUSED or REFUTED group is released (that predecessor never lands)." Implemented in `roster_lib.gates` (the one predicate: a predecessor in `RELEASING_STAGES` = finished + `refused` + `refuted` no longer gates), `roster_lib.held_behind_deferred` (transitive), `roster_lib.depth_of`, `replan.dependency_graph` and `replan.build_plan` (a held group is emitted unscheduled with `held_behind`, `done` true so every reader that skips a done group skips it), and the readers named under Figures.
 
-Alternatives: (1) keep `deferred` out of `CLOSED_STAGES` and special-case it in `is_open` callers: loses (b), where a deferred group held its `after` successors, and puts the rule in every reader. (2) Edit the fixture: the owner has not said the line is unwanted. The tick is the one reader whose job is to report on non-open groups, so the reader changes and the set stays one definition.
+## Block 1: class-open (closeout)
 
-Closure edge: `tests/entities.py`, the only closure holding `roster_lib.py` (`tests/closures.json`), now runs `orchestrator_tick.py --self-test` and checks `, 0 failed`. Gate cost measured: the tick self-test takes 0.87 s (`time python3 -I tools/audit/seat/orchestrator_tick.py --self-test`); `entities.py` is already selected by any `roster_lib.py` change, so no script is newly selected. Before the edge, `instrument-self-tests` alone ran it, about 13 minutes of CI.
+Cause: adding `refused` and `deferred` to `CLOSED_STAGES` dropped them from `open_groups`, which `closeout_exempt` and `closeout.roster_blockers` read, so the `resume.host` rule was dead for `refused` and a hosted `deferred` group stopped blocking. Fix: `roster_lib.unfinished_groups` (every group not in `FINISHED_STAGES` = done + `absorbed`), read by `closeout_exempt` and `roster_blockers`. Alternative rejected: reading `groups_of` at each closeout call site duplicates the rule. Closeout therefore behaves as at the merge base for every stage.
+
+Reviewer's harness `evidence/probe_closeout.py` (sha1 123d68927f7c435b15336da810a8dd409433e8f8, verdict/3326), both ends, same fixture, `H` in-progress, `R` hosted by `H`:
+
+| tree | refused | refuted | deferred |
+|---|---|---|---|
+| 3cf879467 (before) | `['H']` | `['H','R']` | `['H']` |
+| this head | `['H','R']` | `['H','R']` | `['H','R']` |
+| merge base 20e83746 (control) | `['H','R']` | `['H','R']` | `['H','R']` |
+
+Self-test rows: `closeout.py` "a refused group whose host is still open blocks", the deferred twin, and "a deferred group with no host still blocks" (its null); `roster_lib.py` "a refused or deferred group stays unfinished ... closeout_exempt exempts it only when its host is not open".
 
 ## Mutation proof
 
-Each mutant was applied to the production line and run against `replan.py --self-test`, with `REPLAN_MUTATION_CHILD=1` so the harness did not recurse. The restored tree is green.
+Mutants applied to the production line, then the self-tests run; each line is the mutant and what it turned red (`$HOME`-local driver `mut2.py`, sha1 not in tree; the `replan.py` ones are the in-file harness).
 
-- `CLOSED_STAGES` without `refused`/`deferred`: replan `refused:` and `deferred:` rows go red, and the `roster_lib` row "refused and deferred are closed" goes red.
-- Plain `startswith(p)` stem match: the row "a stem names its exact group... never a look-alike" goes red.
-- `and cc >= coord_cap and not cap_exempt` reduced to `and cc >= coord_cap`: "coordinator: a ready critical-path group starts at t=0 past a full coordinator cap" goes red. The critical-path group started at +1:24 instead of t=0.
-- `refuted` added to `CLOSED_STAGES`: "refused (null): a refuted group is still scheduled" goes red.
-- `in_flight_coord() >= coord_cap` changed to `>`: "flagged exactly when the cap is full" goes red. This kills the diff-mutant CMP_BOUND survivor at that line.
-- The in-file harness also has three new mutants (`lane-stem-boundary`, `coordinator-cp-exempt`, `coordinator-cp-flag`), all killed. The existing `coordinator-cap` and `cp-first-in-tier` anchors were updated for the new signature.
+- `closeout_exempt` reads `open_groups` (`set(unfinished_groups(roster))` -> `set(open_groups(roster))`): `roster_lib.py`, `closeout.py` red.
+- `roster_blockers` reads `open_groups`: `closeout.py` red (the hosted refused/deferred rows).
+- `RELEASING_STAGES` plus `deferred` (deferred releases): `roster_lib.py` red.
+- `RELEASING_STAGES` without `refuted`, then without `refused`: `roster_lib.py` red, each.
+- `held_behind_deferred` not transitive (`elif a in held and gates(G[a])` -> `elif False`): `roster_lib.py` red.
+- `critical_path` reads every open edge again (`if a in G and gates(G[a])` -> `if a in G`): `roster_lib.py` red.
+- `depth_of` reads `is_open` again: `roster_lib.py` red.
+- `handover_prompt.ready_next` back to `a not in open_`: `handover_prompt.py` red, two rows ("a group after a deferred group is held", "after a refuted group is released").
+- Block 2: `check-ignores-flag` (`if g.get("coordinator") and not g.get("exempt_coordinator")]` -> `if g.get("coordinator")]`), new in-file mutant: KILLED by the new row "--check passes a flagged critical-path start that overlaps a running coordinator group".
+- `edge-releases-ruled` (`dependency_graph` back to `if a in open_:`) and `deferred-holds-dependent` (`held = roster_lib.held_behind_deferred(G)` -> `held = {}`), new in-file mutants: both KILLED. The first version of the second targeted `open_ = open_ - set(held)`, which survived (the held branch of the output loop masks it); retargeted to the producing line.
+- Earlier mutants (`lane-stem-boundary`, `coordinator-cp-exempt`, `coordinator-cp-flag`, the updated `coordinator-cap`/`cp-first-in-tier`) still KILLED: `python3 tools/plan/replan.py --self-test` prints `self-test: 0 failed` with every mutant killed.
 
 ## Null control
 
-- Main, same roster, `--start 2026-11-08T12:00:00Z`, run twice: byte-identical apart from `generated_at`.
-- Fixed tree, run twice: byte-identical apart from `generated_at`.
-- A non-critical coordinator group in the same position still waits and reports "coordinator cap 1". A critical-path group inside the cap is not flagged. A refuted group is still scheduled. `R10-GATEWAY`, a look-alike stem, is Core model.
-- `--check` still refuses two planned coordinator groups in flight when the critical-path one is unflagged.
+- Block 2 fixture: X3 (L, coordinator) runs while CP1 (XL, coordinator, after D) starts flagged; the row asserts `X3.start < CP1.start < X3.finish` so the overlap is real, and its null is the same plan with the flag removed, which `check_plan` refuses with `coordinator cap`. The reviewer's probe `evidence/probe_check.py` gave `[]` at the head and the cap message under the mutant.
+- Ruling arms, replan: `deferred` -> dependent and its own dependent `held_behind` the group, `start` null; `refused` -> dependent starts at 0 and is not held; `refuted` -> the group is still scheduled, its dependent released with `after == []`; null: a `queued` predecessor still gates (`after == ["R10-Q"]`, starts later).
+- Ruling arms, `roster_lib`: `gates` / `held_behind_deferred` / `depth_of` for `refused`, `refuted`, `done`, `absorbed` (released) against `deferred` (held), and the transitive case.
 
 ## Figures
 
-Before/after replan. The roster is `dev/programme/rosters/wave-r10-groups.json` with two edits: `R10-FLY-CLOUD-FRUGAL-OFF` set to `refused`, and an `R10-I18N-DE` product group added. The command is `python3 tools/plan/replan.py --roster-file <copy named wave-r10-groups.json> --start 2026-11-08T12:00:00Z --out <plan>`, run at main and at the head.
+Each command is the instrument; counts are not carried.
 
-| group | main | head |
-|---|---|---|
-| `R10-I18N-DE` | lane Instruments, start 2026-11-11T00:30:00Z | lane Core model, start 2026-11-09T02:37:00Z |
-| `R10-FLY-CLOUD-FRUGAL-OFF` | scheduled, start 2026-11-11T00:08:00Z | done, start null |
-| `summary.groups_open` | 56 | 55 |
-
-`closure` and `wall_hours` are unchanged between the two (2026-11-13T05:16:00Z, 113.27 h).
-
-Instrument at the repaired head: `replan.py`, `roster_lib.py`, `roster_sync.py`, `roster_edit.py`, `handover_prompt.py` and `orchestrator_tick.py` `--self-test` all print 0 failed. Null control for the tick: with the `orchestrator_tick.py` change reverted, it prints `FAIL PLAN: deferred E stays deferred` and `283 checks, 1 failed`; with it, `283 checks, 0 failed`. `python3 tests/entities.py` prints `ALL 2669 ENTITY CHECKS PASSED`, `python3 tests/structure.py` passes, `git merge-tree --write-tree origin/main HEAD` exits 0.
-
-Diff-mutant step: `MUTANT_CMD="env REPLAN_MUTATION_CHILD=1 python3 tools/plan/replan.py --self-test"`. Its wall time was not measured on its own: I did not time the step, and it ran inside one prepr run. There were 4 survivors, listed below.
-
-Seams for class (b), re-run at the repaired head: `grep -rn "is_open\|CLOSED_STAGES\|DONE_STAGES" tools tests .claude dev/audit/harnesses`. That grep does not return `orchestrator_tick.py`, which reaches the set through `rl.open_groups`/`rl.groups_of`; the rule that does is `grep -n "open_groups\|groups_of" tools/audit/seat/orchestrator_tick.py`, added here. Dispositions: `orchestrator_tick.py` is in the diff (fixed above); `roster_lib.py`, `replan.py` in the diff; `roster_sync.py`, `roster_edit.py`, `handover_prompt.py`, `size_durations.py`, `ci_predict.py`, `carry_audit.py`, `plan_page.py`, `merge_throughput.py`, `prune_refs.py` read `is_open` or `DONE_STAGES` and a closed deferred group is the intended reading (already guarded: roster_sync/roster_edit/handover_prompt self-tests 0 failed); `DONE_STAGES` readers (`flow_metrics.py`, `pr_cap.py`, `r10_*_mutants.py`) mean "merged" and are unchanged; `sweep_gantt.py` has its own set, left alone.
+- Seam rule for the changed predicates (`CLOSED_STAGES`, `open_groups`, `is_open`, now also `gates`, `unfinished_groups`): `grep -rnE "open_groups|is_open\(|closeout_exempt|roster_blockers|CLOSED_STAGES|DONE_STAGES" tools tests` (null control: it returns `closeout.py`, which the first body's list lacked). Dispositions:
+  - `closeout.py` (`roster_blockers`, `step_issues` via `closeout_exempt`): fixed in this diff (Block 1).
+  - `plan_table.py` (all five `open_groups` calls), `resume_doc.py` open counts and waves, `handover_prompt.py` `in_flight`, `prune_refs.open_group_ids`, `size_durations.py`, `ci_predict.py`, `carry_audit.py`, `merge_throughput.py`, `roster_sync.py`, `roster_edit.py`: read the open set as work still owed; a refused or deferred group dropped from it is the intended reading (deferred stays owed only through the edge rule and closeout). Self-tests of each: 0 failed.
+  - After-edge readers, changed to `roster_lib.gates` so they follow the ruling: `resume_doc.py` "Ready next", `handover_prompt.ready_next`, `plan_page.py` `blk`, `orchestrator_tick.py` `blockers` line; `roster_lib.depth_of`. Pinned only for `handover_prompt.ready_next` (rows above) and `depth_of` (`roster_lib.py`).
+  - `roster_lib.critical_path` and the `plan_table.py` mermaid dependency drawing now skip an edge to a refuted group (`gates`); `critical_path` is pinned by the `roster_lib.py` row "critical_path: an edge to a refuted group is released" (mutant: `if a in G and gates(G[a])` -> `if a in G` goes red), the drawing by no row. Not drawn: an edge to a deferred group (the group is not in the open set), display only.
+- Block 3 closures, `python3 tools/pr/ci_predict.py --base origin/main`: `no closures, fast, governance or instrument red predicted`. Cause of the red: the new `tests/entities.py` edge runs `orchestrator_tick.py --self-test`, opening four INERT files (`orchestrator_tick.py`, `pr_cap.py`, `budget_raise_gate.py`, `app_approve.sh`). Repair, by the route `INERT_EXCEPT` documents: the four join `INERT_EXCEPT` in `tests/closure.py`, then `./tests/derive_closures.sh --single tests/entities.py` twice (the first recording fails its own "every tracked file is measured or classified" check, since the table does not yet list them; the second is the fixed point and records `rc` 0). Alternatives: classify the reads out of the tick edge (drops the edge that catches the CLOSED_STAGES regression), or `--apply-inert` (it files them under `inert_reads`, which the self-test-reads arm names UNDER-SCOPED for a script whose self-test reads them).
+- `tools/pr/prepr.sh --self-test`: `514 passed, 0 failed`; its glob-sibling fixture planted `orchestrator_tick.py` and `pr_cap.py` as INERT siblings, which are no longer INERT, so it now plants `ci_critpath.py` and `plan_audit.py`.
+- Self-tests at this head, all `0 failed`: `replan.py`, `roster_lib.py`, `closeout.py`, `orchestrator_tick.py`, `handover_prompt.py`, `resume_doc.py`, `plan_page.py`, `plan_table.py`, `roster_sync.py`, `roster_edit.py`. `python3 tests/entities.py` prints `ALL 2669 ENTITY CHECKS PASSED`; `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+- Replan before/after figures of the first body (R10-I18N-DE lane, R10-FLY-CLOUD-FRUGAL-OFF done) are unchanged by this round except that a dependent of a deferred group is now held.
 
 ## Unpinned sites
 
-- `replan.py` `in_flight_coord() > coord_cap` (CMP_BOUND): killed by the added row "flagged exactly when the cap is full", checked by mutation above.
-- `replan.py` `cc["groups"]["X3"]["start"] >= iso(start, 0)` and `> iso(start, 1)`: these mutate a test assertion. The row's other conjunct, the `start_reason` "coordinator cap 1", and the null control carry the pin.
-- `replan.py` `coordinator_cap=3` in the `cq` fixture: a test-fixture constant. The row pins the inside-the-cap behaviour at 2, and the cap-full row pins 1.
+The diff's added guards are pinned by the self-test rows above; `prepr.sh` step 6d lists any it finds unpinned and each is named in the Mutation proof section as killed. The `plan_page.py` `blk`, `orchestrator_tick.py` `blockers` and `plan_table.py` drawing edge reads carry no row: Forward-carry.
 
 ## Red checks
 
-Read from the check-runs of 266ef2802f7b12544435faa10e27a05663d4e076 with filter=all across all pages (68 runs), the job steps and the job logs. Five runs concluded red at the head; they are two causes.
-
-**governance / instrument-self-tests** (job 128731174619, run 42480460139): RED at the old head 266ef2802, caused by this diff: `FAIL PLAN: deferred E stays deferred`. Fixed at this head (see Head note). Cheaper detector: the closure edge built above, 0.87 s standing cost inside an already-selected script, against about 13 minutes per CI run.
-
-**gate** (jobs 128731638734 in run 42480460487, 128732971392 in run 42480946879, 128736246575 in run 42480460139), step "Judge this head": RED three times, class R10-HOTFIX-GATE-BUSY-DEFER for the first two and a consequence for the third. The first two logs say `FAIL run(s) [42480460139] at this head are still being judged; their gate decides`: they are the edit-run and sibling-run deferral, and say nothing about this diff. The code run that decided is run 42480460139, whose gate (job 128736246575) concluded `FAIL pr-contract / pr-contract: failure (this run)`. So the third gate is red because of the two checks below, and clears with them. The deferral's answer is the one it already has: a deferred gate is red by design until the deciding run concludes, and the cheaper detector for that is reading the mode and deciding run from the log rather than the tick.
-
-**pr-contract / pr-contract** (job 128736065819, run 42480460139): RED. Step "Check the body against the contract" refused with `check governance / instrument-self-tests is red and ## Red checks does not name it`. This body names it, which answers the refusal. Cheaper detector: `prepr.sh --body-check`, run on this body.
-
-Earlier pushes of this PR: the push ebb07fad6 had two `gate`, two `refresh` and two `prelude` runs conclude `cancelled`, not red; `cancel-superseded` cancelled them when the next push landed, and no run at ebb07fad6 or at the code handoff 33332e239 concluded red. CodeQL concluded `skipped` at the head, with no infra 504 and no alert, and `tests / closures-autofix` concluded `skipped`; neither is red here.
-
-`tests/entities.py` at this head: `ALL 2669 ENTITY CHECKS PASSED` (the earlier 3-check container failure did not reproduce).
+- **tests / closures** (job 128899105839) at the old head: `INERT READS UNDER-APPROXIMATED` on `tests/entities.py` for `tools/audit/seat/pr_cap.py` and `tools/pr/app_approve.sh`, caused by this diff's tick edge (above); also `tests / closures-autofix` (job 128903614688), which refused because `orchestrator_tick.py` is INERT and read. Cheaper detector: `prepr.sh` step 6d / `ci_predict.py --only self-test-reads`, which names the three reads in about 3 minutes against CI's closures at about 15; it did not run at the old head because that head was pushed without a prepr run after the edge was added. It now runs clean here.
+- **gate** at the old head failed because of `tests / closures`; it clears with it.
+- Earlier-head reds (`governance / instrument-self-tests`, `pr-contract`) were answered in the first body and are unchanged.
 
 ## Forward-carry
 
-none
+- The `plan_page.py` `blk`, tick `blockers` and `plan_table.py` drawing edge reads follow `roster_lib.gates` with no pinning row; they are display text and chart edges with no scheduling effect. Carry: dismissed: display-only, the scheduling and ready-next readers are pinned
 
 ## Friction
 
