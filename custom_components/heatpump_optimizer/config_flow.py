@@ -180,6 +180,11 @@ from .const import (
     CONF_SPACE_SETPOINT_UNIT,
     DEFAULT_SPACE_SETPOINT_UNIT,
     SPACE_SETPOINT_UNITS,
+    SPACE_SETPOINT_WATER_UNITS,
+    CONF_FLOW_HEAT_C,
+    DEFAULT_FLOW_HEAT_C,
+    CONF_FLOW_MIN_LIFT_K,
+    DEFAULT_FLOW_MIN_LIFT_K,
     CONF_WIND_SENSITIVITY,
     CONF_RAIN_HEAT_LOSS_MULTIPLIER,
     CONF_OPTIMIZATION_INTERVAL,
@@ -666,6 +671,7 @@ RANGE_ZONE_HEAT_LOSS: Final = (0.001, 1.0)
 PRESET_WARNING: Final = {
     "en": "Deriving from the building type is switched on, so saving Building type and emitters recalculates the house thermal mass, heat loss, slab mass and slab transfer below (and the two-zone values) from the questionnaire, overwriting whatever is here. Changing any of those fields to a different value switches the derivation off, so your value stays; simply saving this page again does not.",
     "sv": "Härledning från hustypen är påslagen, så när sidan Hustyp och värmesystem sparas räknas husets värmekapacitet, värmeförlust, plattans termiska massa och värmeöverföring nedan (samt tvåzonsvärdena) om från formuläret och skriver över det som står här. Ändrar du något av de fälten till ett annat värde stängs härledningen av, så att ditt värde blir kvar; att bara spara sidan igen gör det inte.",
+    "de": "Die Ableitung aus dem Gebäudetyp ist eingeschaltet. Beim Speichern der Seite „Gebäudetyp und Heizflächen“ werden deshalb die thermische Masse des Hauses, der Wärmeverlust sowie die thermische Masse und der Wärmeübergang des Estrichs unten (und die Zweizonenwerte) aus dem Fragebogen neu berechnet und überschreiben, was hier steht. Änderst du eines dieser Felder auf einen anderen Wert, wird die Ableitung ausgeschaltet und dein Wert bleibt erhalten; die Seite nur erneut zu speichern, genügt dafür nicht.",
 }
 
 # Everything ``presets.derive`` writes into the entry, in the order the
@@ -1593,6 +1599,21 @@ def _single_zone(config: Mapping[str, Any]) -> bool:
     return not ThermalParameters.from_config(config).two_zone_enabled
 
 
+def _water_space_setpoint(config: Mapping[str, Any]) -> bool:
+    """Whether the space set-point is declared a water temperature (a flow or
+    a return target), the only unit the pump-duty arbiter writes a heating
+    flow for, so the only one its lift and ceiling mean anything on. Keyed
+    on the unit alone, as the wood block is on its toggle: the unit select
+    renders beside the entity picker whatever it holds. An unknown stored
+    unit is not a water unit here, as it is not to ``EntryConfig``, which
+    parses it to the indoor default.
+    """
+    return (
+        config.get(CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT)
+        in SPACE_SETPOINT_WATER_UNITS
+    )
+
+
 #: Every field the options flow presents, in the order each page renders them.
 _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- entities
@@ -1611,6 +1632,15 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities", CONF_LOWER_FLOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="plant"),
     _F("entities", CONF_SPACE_SETPOINT_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate']), group="indoor"),
     _F("entities", CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT, _select(list(SPACE_SETPOINT_UNITS), 'space_setpoint_unit'), group="indoor"),
+    # The two ends of the heating flow the arbiter writes (#1955,
+    # R10-SETPOINT-POWER), revealed once the entity is a water set-point:
+    # the lift over the measured inlet at the modulation floor, and the
+    # ceiling at full power. Their defaults are today's constants, so an
+    # untouched page stores neither (``_ABSENT_FALLBACKS``).
+    _F("entities", CONF_FLOW_MIN_LIFT_K, DEFAULT_FLOW_MIN_LIFT_K, _number(0.5, 15, 0.5, 'K'), when=_water_space_setpoint, group="indoor"),
+    # The ceiling's minimum sits above pump_arbiter.FLOW_GATE_C (25 °C): a
+    # ceiling at the gate would write "off" on every heating step.
+    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, 70, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
     # -- entities_metering
     _F("entities_metering", CONF_SOLAR_RADIATION_ENTITY, _STORED, _entity_of('sensor'), group="solar"),
     _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector(), group="solar"),
