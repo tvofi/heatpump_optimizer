@@ -7,3 +7,5 @@ Discovery reads (search, list, read across files) go through Agent subagents, as
 
 Brief (snapshotted when this payload was rendered):
 RED-CHECK RULING (owner, 2026-11-09): no merge may be blocked on a non-required red. Only the reds that `merge_train.py owed-reds` lists for this PR and head are owed a `## Red checks` answer or can block a verdict. A red on delivery-status, nightly-status, record or record-autofix, or on any context outside that set, is never a blocked reason. Run `merge_train.py owed-reds` for the head you review and treat its output as the whole set.
+
+NEW ON MAIN: #3349 (the stress-memory hotfix #3299 waited on) has landed on main as 53f4a051. The prior block on tests / fast (3.14) stress (tests/stress.py traced memory peak) at e2254515 must be re-judged with main's fix in mind: read the newest check-run per context at this head, and where the red predates main's fix say so rather than blocking on it. A merge of main into the branch after your verdict carries it.
