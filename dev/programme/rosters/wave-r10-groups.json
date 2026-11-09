@@ -17475,7 +17475,7 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "carries-open",
+    "stage": "refuted",
     "note": "part 1 merged as PR 3246; part 3 merged as PR 3287; part 4 found its train-skip evidence already covered by PR 3290; 12 carries remain open, fixer part 5 fired by orchestrator s13 2026-11-08",
     "commit": "5c1fa41fb9773048a79d86f741e30dec60fa5253",
     "pr": 3287,
