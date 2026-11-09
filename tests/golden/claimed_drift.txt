@@ -763,3 +763,9 @@
 # changes exactly two leaves (the plain and the seeded render of
 # dhw_setpoint_entity.config.filter gain the water_heater domain); no plan reads
 # it, so every other fixture is byte-identical. Re-recorded in the committed file.
+config_flow  # R10-COMBI-TANK (#3225): the building page gains the combi section's five option fields; additive, no existing leaf moves
+coord_all_features  # R10-COMBI-TANK (#3225): adds dhw_legionella_cycle_active and setup_topology.dhw_source ("tank" off combi); additive
+coord_dhw  # R10-COMBI-TANK (#3225): adds dhw_legionella_cycle_active and setup_topology.dhw_source ("tank" off combi); additive
+coord_grid_fee  # R10-COMBI-TANK (#3225): adds dhw_legionella_cycle_active and setup_topology.dhw_source ("tank" off combi); additive
+coord_minimal  # R10-COMBI-TANK (#3225): adds dhw_legionella_cycle_active and setup_topology.dhw_source ("tank" off combi); additive
+coord_two_zone  # R10-COMBI-TANK (#3225): adds dhw_legionella_cycle_active and setup_topology.dhw_source ("tank" off combi); additive

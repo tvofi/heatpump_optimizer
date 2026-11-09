@@ -263,18 +263,18 @@
  {
   "id": "C30",
   "source": "docs/configuration.md",
-  "claim": "every documented Default (93 rows) is the default the rendered options page actually carries",
+  "claim": "every documented Default (96 rows) is the default the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "93 compared, mismatches=[]",
+  "result": "96 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C31",
   "source": "docs/configuration.md",
-  "claim": "every documented Range (101 rows) is the NumberSelector min/max the rendered options page actually carries",
+  "claim": "every documented Range (103 rows) is the NumberSelector min/max the rendered options page actually carries",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "101 compared, mismatches=[]",
+  "result": "103 compared, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -1118,9 +1118,9 @@
  {
   "id": "C125",
   "source": "strings.json:selector",
-  "claim": "every SelectSelector option on every options page has a translated label (46 selects)",
+  "claim": "every SelectSelector option on every options page has a translated label (47 selects)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "46 selects, untranslated=[]",
+  "result": "47 selects, untranslated=[]",
   "verdict": "true",
   "truth": ""
  }

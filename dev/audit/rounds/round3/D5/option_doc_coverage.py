@@ -94,14 +94,16 @@ EXPECTED on this tree (ae36eff printed option_fields_rendered=174 and
     time on the wood page, with its row in docs/configuration.md in the same
     commit. R10-MIN-POWER-FLOOR moved them once more, 204 -> 205 and
     237 -> 238: the compressor modulation select on the thermal model page,
-    with its row in docs/configuration.md in the same commit. This block is an
+    with its row in docs/configuration.md in the same commit. R10-COMBI-TANK
+    (#3225) moved them 205 -> 210 and 238 -> 244: the building page's combi
+    section (one section key, five fields), each with its row. This block is an
     ASSERTION `tests/harness_headers.py` executes the script against, and it
     is reached by a shell-out the closure recorder cannot see, so it does not
     go red on a pull request: it is re-measured in the commit that changes
     what the script prints, or main's forced-full run finds it):
-    RESULT option_fields_rendered=205 count
+    RESULT option_fields_rendered=210 count
     RESULT option_fields_undocumented=0 count
-    RESULT option_schema_keys_rendered=238 count
+    RESULT option_schema_keys_rendered=244 count
     RESULT wood_economics_fields_rendered=4 count
     RESULT wood_economics_doc_lines=8 count      (tolerance: exact;
     moved 6 -> 8 by #1645/F8.1: the Services section's `simulate_plan`
