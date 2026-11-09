@@ -1,0 +1,3 @@
+trip1: ['BOTTLENECK-UNREADABLE: yield -- source unreadable']
+trip2 (a real breach after UNREADABLE): ['BOTTLENECK-UNREADABLE: yield -- source unreadable']
+MASKED

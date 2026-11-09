@@ -1,58 +1,38 @@
-Fix review: blocked 9106db4797f1c9b2ab277483977f922982294dd9 defect: bottleneck_check's trip memory is keyed by metric alone, so a breach after an UNREADABLE line for the same metric (or the reverse) is masked by the stale line
+Fix review: blocked 9106db4797f1c9b2ab277483977f922982294dd9 defect: bottleneck_check's trip memory is keyed by metric alone, so a breach after an UNREADABLE line for the same metric is masked by the stale line; and merge_train classify reads RED (gate) at this head
 
 bus-nonce: 545f755c666cbcdc9bdaeeafce740724
 
-Round 1 of review for this head. Measured at `9106db4797f1c9b2ab277483977f922982294dd9`, which has the same tree as the handed-off `2fb9b2467` (`git diff 2fb9b2467 9106db479` is empty), with merge base `fdc8d21ad`.
-
 ## Block
 
-- `tools/audit/seat/bottleneck_check.py` `remembered()` keys `--memory` on `metric_of(line)`, the line's second word. That word is the same metric for a `BOTTLENECK:` line and a `BOTTLENECK-UNREADABLE:` line, so a change between the two for one metric re-prints the old line verbatim:
-  - **UNREADABLE, then a breach:** the digest keeps printing `BOTTLENECK-UNREADABLE: yield -- ...`. The breach and its suggested action never print. Because the line text has not changed, the beat's fold sees nothing new and no wake fires.
-  - **A breach, then UNREADABLE:** the stale breach line keeps printing while the source is unreadable. The file's own docstring says "a blind alert is not a quiet one", and this case breaks that.
-  - Probe at this head: `ev/memory_kind_probe.txt`. The null control in the same file shows that with a quiet run in between, the next line prints afresh. The defect is the direct change of kind only.
-  - No self-test case covers this. The two memory cases (`memory: a still-tripped metric re-prints...` and `memory: a recovery forgets...`) both use `BOTTLENECK:` lines. Keying the memory on the line's first word plus its metric would kill no current check.
-  - Production reach: the beat row `bottleneck` in `beat_jobs.py` passes `--memory state/bottleneck.json` and writes both line kinds to the digest. This is the orchestrator's alert path that the owner's proposal 2 asked for.
-  - Repair owed: key the memory on (line kind, metric), add a self-test case for each direction, and add a mutant that collapses the key back to the metric alone.
+1. **defect (patch).** In `tools/audit/seat/bottleneck_check.py`, `remembered` keys its memory by `metric_of(line)`, the line's second word. That word is the same for `BOTTLENECK-UNREADABLE: yield -- ...` and `BOTTLENECK: yield 0.40 ...`. If a metric's source was unreadable on one beat and then really breaches on the next, the run re-prints the stale UNREADABLE line. The breach never reaches the digest, which is the failure the alert exists to prevent. Reproduced at the head (ev/memory_kind_probe_mine.txt): `trip2 (a real breach after UNREADABLE): ['BOTTLENECK-UNREADABLE: yield -- source unreadable']`, MASKED. The reverse direction is the same. The self-test does not cover this. Another run of this seat found it first (commit 981e74722 on this ref, ev/ there), and this run confirmed it independently. Fix: key the memory by (kind, metric), where kind is the line's first word, and add a self-test case for each direction.
+
+2. **ci-red: gate.** `python3 tools/audit/seat/merge_train.py classify 9106db4797f1c9b2ab277483977f922982294dd9 --pr 3350` exited 1 three times (01:45:44Z, 01:46:04Z and 01:47:59Z, ev/classify.txt, ev/classify-2.txt, ev/classify-3.txt): `RED 9106db4797f1c9b2ab277483977f922982294dd9 pending: none red: gate`. The red is not in the patch. Each check suite's latest `gate` is kept and the worst one stands (merge_train.py `latest_runs`/`gate_suites`). Two of those suites at this head carry a deferral `gate` that concluded `failure`:
+- job 128917441489 (run 42539681502), 00:51:18Z: `FAIL run(s) [42539680047, 42540557389] at this head are still being judged; their gate decides`;
+- job 128920205614 (run 42540557389), 00:59:20Z: `FAIL run(s) [42539680047] at this head are still being judged; their gate decides`.
+
+The code run they defer to, 42539680047, published `gate` job 128932794887 with `success` at 01:40:53Z. Every other completed check at the head is success or skipped. `gate_busy` turns a deferral red into a wait only while a ci.yml run is unfinished, and that run has finished, so the deferrals now read as reds. Nothing in the patch needs to change. The way to clear this is with the orchestrator: re-run the two deferral gate jobs (each should now find run 42539680047 judged), or decide that the classifier's reading is wrong. This block stands apart from block 1: even with a patch fix pushed, the new head needs classify to read GREEN.
 
 ## Findings
 
-- defect: `bottleneck_check.remembered` masks a breach that follows UNREADABLE on the same metric, and the reverse (see Block). This PR owes the fix before merge. Carry: R10-OUTSIDE-INTAKE
+- Follow-up: a surviving mutant on a line this PR added, `tools/audit/seat/roster_edit.py:1324`, `if a.op in ("set-stage", "set-resume", "mark-carry"):`. Dropping `"mark-carry"` stops `make_edit` from reading the legacy cut-over for a mark, so `close_discharged` gets `{}`. A group whose only unmarked carries are legacy then stays `carries-open` after its last real mark, instead of being written `done`. `roster_edit self-test: 260 checks, 0 failed` under the mutant (ev/mine-legacy-dropped.txt). The harness's `mark-close-*` mutants do not reach this line. The direction is fail-safe: the group is not closed, and `roster_lib.discharged`/replan still read legacy correctly. It still needs one self-test case: a last mark on a carries-open group that also holds a legacy carry is written done. Carry: R10-OUTSIDE-INTAKE
 
 ## Evidence
 
-- RESULT harness `python3 dev/audit/harnesses/r10_outside_intake_p2_mutants.py` at this head, my run:
-  - M0 printed `rc=0 fails=0 verdict=null`.
-  - The 18 mutants from `discharged-any-stage` through `beat-missing-key-runs` printed `verdict=killed`. That run hit my 230 s call limit before the `mark-*` rows, and `mutant_guard` restored every file; the worktree was clean afterwards.
-  - The three `mark-close-*` mutants, re-run alone, printed `verdict=killed` and `RESULT survived=0`.
-  - Files: `ev/p2_mutants.txt` and `ev/p2_mutants_mark.txt`. This matches the body's claim that all 21 owed mutants are killed with M0 null.
-- RESULT self-tests at this head (`ev/selftests_a.txt`):
-  - `bottleneck_check` printed `ok`, with its 10 rule mutants killed.
-  - `merge_throughput` printed `ok`.
-  - `replan` printed `self-test: 0 failed`.
-  - `plan_page` printed `75 checks, 0 failed`.
-  - `roster_lib` printed `72 checks, 0 failed`.
-- RESULT replan, both arms (`ev/replan_both_arms.txt`): roster `fcc9a1933aa191d4caf3205d8c1bee3f3a479119`, `--start 2026-11-08T20:20:00Z --slots 20 --seats 20`.
-  - base: closure 2026-11-15T07:03:00Z, 49 batches, 6075.0 CI minutes, 324 done / 71 open, no `groups_discharged` key.
-  - head: closure 2026-11-15T07:03:00Z, 48 batches, 5962.5 CI minutes, 327 done / 68 open, `groups_discharged` 3.
-  - The 3 groups are R10-CI-GRADER-BATCH-STUDY, R10-FRICTION-CI-RED and R10-FRICTION-OTHER-FAMILY. Every figure equals the body's.
-  - My base arm was `git archive` of the merge base `fdc8d21ad`, not the body's `17e621f08`. The base figures still match exactly.
-- RESULT cheap checks (`ev/cheap_checks.txt`):
-  - `selftest_wiring --check` printed `125 self-testing, 125 wired, 0 unwired`.
-  - `tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
-  - `env_drift.py --claims-only` printed `claims hygiene: origin/main ok`.
-  - `closure.py select` printed `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`.
-  - The three-dot diff does not touch `VERSION`, `RELEASE_NOTES.md`, the manifest, either claim file or any `*_budgets.json`.
-- RESULT scoped scripts and archscore at this head (`ev/scoped_and_arch.txt`):
-  - `tests/entities.py` printed `ALL 2668 ENTITY CHECKS PASSED`.
-  - `tests/harness_headers.py` printed `ALL 112 HARNESS HEADER CHECKS PASSED`.
-  - `score.py --diff fdc8d21ad` printed `Architecture score: dS +0.0000 NULL`.
-  - All three equal the body's figures.
-- Merge with main: `git merge-tree --write-tree origin/main 9106db479` at origin/main `19865e5a8` exited 0 (tree `d06c336b8`). There is no conflict.
-- Role currency: `git diff fdc8d21ad...origin/main -- dev/governance/roles/` touches only `proposal-triage.md`, so `fix-review.md` is current.
-- CI at this head: `merge_train.py classify` exited 1 with `RED 9106db479... pending: none red: gate`, the same on re-run at 01:45:28Z (`ev/classify.txt`).
-  - The `pull_request` run 42539680047 has `gate` success (job 128932794887, completed 01:40:53Z) and `pr-contract` success (01:38:01Z).
-  - The two red `gate` jobs, 128917441489 (run 42539681502) and 128920205614 (run 42540557389), are edit runs (`KIND: edit`, `WORKSET: arch-score budget-raise-gate`). Job 128920205614's log reads `FAIL run(s) [42539680047] at this head are still being judged; their gate decides`, so the red is an edit-run gate that concluded before the main run finished, not a failing test.
-  - The body's `## Red checks` says "At `2fb9b2467` no check has run yet", so it does not name these two reds. The fixer's re-cut owes them a line (`defect-root-cause.md` second trigger: cheaper detector none, the edit gate defers by design). I did not block on this: the block above stands on its own, and a red CI never carries regardless.
-- Merge with main, re-checked at origin/main `6457496ab`: `git merge-tree --write-tree` exited 0.
-- Enumeration rule: the body names none. The issue is a feature request (proposals 1 and 2), not a defect class with several seams, so step 6's class rule has nothing to return.
-- Head: the body's `## Head` names `9106db4797f1c9b2ab277483977f922982294dd9`, which is the head measured here.
+- Head measured: 9106db4797f1c9b2ab277483977f922982294dd9 (ev/HEAD.txt), the head in the PR body and the live PR head at 01:4xZ. Merge base fdc8d21adaa50a7feee534f08ee5edde9bda81ed. `git diff merge-base...origin/main -- dev/governance/roles/` touches only proposal-triage.md, so fix-review.md is current.
+- Merge with main: `git merge-tree --write-tree origin/main 9106db4797f1c9b2ab277483977f922982294dd9` at origin/main 6457496ab returned rc=0 and tree 82336c751 (ev/merge-tree.txt). There was no conflict and no claim-file driver call.
+- Mutation proof: I re-ran the in-tree `dev/audit/harnesses/r10_outside_intake_p2_mutants.py` at the head (ev/p2_mutants.txt): 22 RESULT mutant lines. M0 printed `rc=0 fails=0 verdict=null`, every other mutant `verdict=killed`, and the run ended `RESULT survived=0`, rc=0.
+- My own mutants, outside the harness list:
+  - bottleneck_check `remembered` with memory ignored (`now = {metric_of(ln): ln ...}`): killed by "memory: a still-tripped metric re-prints its first line verbatim" (ev/mine-memory-fresh.txt).
+  - state_docs `cmd += ["--train-log", a.train_log]` removed: killed by "plan page: --train-log reaches plan_page.py" (ev/mine-statedocs-handon.txt).
+  - roster_edit:1324 legacy read dropped: SURVIVED (see Findings).
+- `bottleneck_check.py --self-test` at the head: `ok: bottleneck_check self-test`, with all 10 rule mutants killed.
+- Replan figures, re-derived at the PR's stated rule: base tree is `git archive` of the merge base fdc8d21ad, not 17e621f08. The head tree is 9106db4797f1c9b2ab277483977f922982294dd9. Roster ref fcc9a1933aa1, `--start 2026-11-08T20:20:00Z --slots 20 --seats 20` (ev/replan-summary.txt, ev/plan-*.json):
+  - base: closure 2026-11-15T07:03:00Z, 49 batches, 6075.0 CI minutes, 324 done / 71 open;
+  - head: the same closure, 48 batches, 5962.5, 327/68, `groups_discharged` 3. The discharged groups are R10-CI-GRADER-BATCH-STUDY, R10-FRICTION-CI-RED and R10-FRICTION-OTHER-FAMILY.
+  - Every figure matches the body. The base arm's tree differs from the body's (main had moved), and the figures reproduce anyway.
+- Figures not re-derived: self-test counts (260/72/321/75/185/119/39/34), `selftest_wiring` 125/125, gate scope `2 script(s) run`, entities 2668, harness_headers 112, archscore dS +0.0000. CI's lanes at this head (`tests / closures`, `tests / fast (3.14)`, `governance / instrument-self-tests`, `arch-score`, `tests / mutation`) concluded success and are cited instead, as fix-review.md 11 requires.
+- VERSION, RELEASE_NOTES.md, the manifest, golden files, claim files and `*_budgets.json` are all absent from the three-dot diff.
+- Red checks (step 11): the body answers the `b99248e2` cancellations and the earlier UNDER-SCOPED `tests / closures`. The two deferral `gate` failures at this head came after the body was set. They are deferrals, not defects. `pr-contract / pr-contract` started at 01:37:08Z, after both, and concluded success.
+- Forward-carry: the body states none. Carry 2 is left unmarked on roster `R10-OUTSIDE-INTAKE` (stage `carries-open`, 2 carries on origin/handoff/audit-r10-roster), as the body says.
+- Review round: this seat cannot tell. A previous run of this seat ended without pushing a verdict.
+- Return ref: `probe/rev-3350-545f755c` already held commit 981e74722bdf1b834f8eb3906b8a753d5ad8f818 (01:45:48Z), a blocked verdict from a run of this same seat that the dispatch did not know about. This verdict is pushed as a fast-forward child of that commit and does not overwrite it. Its first line takes that run's \`defect\` class, which this run reproduced, and adds this run's evidence.
