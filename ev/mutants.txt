@@ -1,0 +1,20 @@
+== if mt < bt:
+  FAIL stale verdict: STALE -- a merge verdict dispatched before a blocked verdict at the same head is refused (PR 3232's times), by posted_verdict and as admit_add's `verdict` rule
+  FAIL stale verdict: a same-second tie is ordered by the registry's append order (refused, then admitted)
+  FAIL stale verdict: the dispatch time decides, not the registry's line order (a merge dispatch recorded after the blocked one but timed before it is refused)
+merge_train self-test: 579 checks, 3 failed
+== if merge is not None and b == merge:
+  ok   queue: an unreadable pull request list stops the builder (no queue from a failed read)
+  ok   queue: an unreadable verdict bus listing stops the builder (no queue from a failed read)
+  FAIL stale verdict: SAME (null control) -- one nonce posted both verdicts, admitted with no dispatch time read
+merge_train self-test: 579 checks, 1 failed
+==         why = self.stale_verdict(n, tip, got[1])
+        if why:
+            return why
+
+  FAIL stale verdict: the dispatch time decides, not the registry's line order (a merge dispatch recorded after the blocked one but timed before it is refused)
+  FAIL stale verdict: a blocked verdict at another head is not this head's finding (admitted, no nonce read)
+  FAIL stale verdict: an unreadable verdict/<pr> history (log or fetch) is refused, never read as no blocked verdict
+merge_train self-test: 579 checks, 13 failed
+
+[killed]
