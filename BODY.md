@@ -2,7 +2,7 @@ R10-HOTFIX-AUTHOR-EMAIL (triage s6-batch133 P408, owner hotfix tier, 2026-11-07)
 
 ## Head
 
-Code head `b8e2901167d1fe2cb676f916ff3fa74c0e6e0bb4` on `handoff/r10-hotfix-author-email`, 4 commits over origin/main `8a4cf2618c53`; all figures measured at it.
+Repair round: the `governance / instrument-self-tests` red at `10962d566a02b4f02db412e7a7aa1c3dcba8083b` is repaired by two commits (the first, `0e178baa0`, from an earlier seat's step ref, covers the stubbed commit read; the second the fast-import fixture's committer) over a merge of origin/main `fdc8d21adaa5`; new code head `26506fa75e10ee9ec35ee7a98697043c532fdc0f`. Code from the first round is unchanged (`ref_privacy.py`, `tests/throwaway_git.*`).
 
 ## Mutation proof
 
@@ -12,6 +12,13 @@ Three mutants of `tools/audit/seat/ref_privacy.py`, each run through `python3 to
 - the committer-only restriction on `noreply@github.com` dropped: 1 arm fails, "noreply@github.com passes as a committer only".
 - the `PIN_HINT` print removed: 2 arms fail (the author and committer guard-CLI arms).
 Each was restored with `git checkout`.
+
+## Repair of the instrument-self-tests red
+
+Cause: `tools/pr/app_push.sh --self-test` stubs `git log` output for ref_privacy's guard with `t@t` author and committer (the stub at the `--not refs/remotes/origin/main` case, and a fast-import fixture's committer). The new `unnumbered-email` rule refuses `t@t`, so prepr's stub exited 2 before the mint and every arm after it failed. This is the branch's own doing (the guard it adds), not main's.
+Fix: the `t@t` stub identities (the commit read's author and committer, and the fast-import fixture's committer) become `1+t@users.noreply.github.com`, as `tests/throwaway_git.*` already did.
+Null control: `bash tools/pr/app_push.sh --self-test` at the red head ends `227 checks, 89 failed` in CI (job 128808974627) and `FAIL` lines locally; at origin/main it ends `227 checks, 0 failed`; at the repaired head it ends `227 checks, 0 failed`.
+Mutation proof: reverting the three stub lines restores the red head's `89 failed`.
 
 ## Null control
 
@@ -26,7 +33,11 @@ On the unmodified tree the guard admits `seat@users.noreply.github.com` (self-te
 
 ## Red checks
 
-none by CI (no PR yet). Note for the orchestrator: live local seats must pin the numbered identity or the guard now refuses their push; that pin is outside the tree. Local: `heartbeat.sh --self-test` has 1 failing arm ("null control: the same host's message naming another path is pushed") on this host; it fails identically at origin/main (run from a detached worktree of origin/main), and heartbeat.sh calls the guard with `--message` only, so the new rule cannot reach it. Carry: dismissed: pre-existing at main. The prepr `self-test` arm above is the same host-shim class. Carry: dismissed: pre-existing at main.
+- `governance / instrument-self-tests` (job 128808974627): red, answered above. Cheaper detector: `bash tools/pr/app_push.sh --self-test` runs in about a minute locally, and `tests/closures.json` does not select it from a `ref_privacy.py` diff; the closure that reaches `app_push.sh`'s stub is only the governance job. Standing cost: a guarded-stub census (`git grep -n "t@t" -- tools tests`) at each change to the guard's grammar, seconds; no hook built, since the guard is changed rarely. Other guarded stubs with `t@t` (`bus.sh`, `cloud_relay.sh`, `open_driver_selftest.py`, `review_carry.py`) pass `-c user.email` to git commits and never reach the guard; CI shows only app_push failing.
+- `gate` (128814942428, 128809302557): aggregate of `pr-contract`, which this body fixes by naming the red; no code cause of its own.
+- `pr-contract` (128814600834): red because this section did not name `governance / instrument-self-tests`; answered here.
+
+Note for the orchestrator: live local seats must pin the numbered identity or the guard now refuses their push; that pin is outside the tree. Local: `heartbeat.sh --self-test` has 1 failing arm on a macOS host, identical at origin/main. Carry: dismissed: pre-existing at main.
 
 ## Forward-carry
 
