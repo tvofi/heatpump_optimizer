@@ -1,0 +1,11 @@
+synthetic-dhw-only.json ERR AttributeError("'tuple' object has no attribute 'items'")
+owner-2026-10-30-away.json ERR AttributeError("'tuple' object has no attribute 'items'")
+table synthetic {'ref23': {'cpu_ratio': 3.7539}, 'ref28': {'cpu_ratio': 3.189}, 'ref31': {'cpu_ratio': 3.2877}, 'ref38': {'cpu_ratio': 3.4579}, 'ref40': {'cpu_ratio': 3.9874}, 'ref47': {'cpu_ratio': 2.7713}, 'ref53': {'cpu_ratio': 2.076}}
+offenders []
+control control:cycle_cost:draws True 117 jobs, 570 runs; synthetic-dhw-only.json jobs by class {'ref53': 11, 'ref31': 33, 'ref28': 2, 'ref23': 18, 'ref47': 49, 'ref40': 2, 'ref38': 2}; offenders []; nulls named [['job 127046649273 synthetic-dhw-only.json (ruler 52.12, class ref53): clean cpu_ratio 2.256 over its budget 2.076'], ['job 1
+derived synthetic: ({'ref23': (19.36, 25.63), 'ref28': (25.63, 29.17), 'ref31': (29.17, 35.81), 'ref38': (35.81, 38.92), 'ref40': (38.92, 42.96), 'ref47': (42.96, 51.12), 'ref53': (51.12, 57.34)}, {'ref23': {'cpu_ratio': 3.7539}, 'ref28': {'cpu_ratio': 3.189}, 'ref31': {'cpu_ratio': 3.2877}, 'ref38': {'cpu_ratio': 3.4579}, 'ref40': {'cpu_ratio': 3.9874}, 'ref47': {'cpu_ratio': 2.7713}, 'ref53': {'cpu_ratio': 2.076}}, {'loop_cpu_ratio': 0.1527})
+offenders at 3.3424: ['job 128866186676 synthetic-dhw-only.json (ruler 45.9, class ref47): clean cpu_ratio 1.551: budget 3.342 cannot see a 2x cycle; re-record 2.193', "job 128866186676 synthetic-dhw-only.json (ruler 45.9, class ref47): cpu arm not over budget: ['loop_cpu_ratio 0.5526 over its budget 0.1527']"]
+rows 219 217
+derived WITHOUT job 128866186676 ref47: {'cpu_ratio': 3.3424}
+old null (125051003592 -> ref53 border-1, i.e. ref47): []
+new null (-> ref40): ['job 125051003592 synthetic-dhw-only.json (ruler 41.96, class ref40): clean cpu_ratio 1.444: budget 3.987 cannot see a 2x cycle; re-record 2.042', "job 125051003592 synthetic-dhw-only.json (ruler 41.96, class ref40): cpu arm not over budget: ['loop_cpu_ratio 0.583 over its budget 0.1527']"]

@@ -1,0 +1,6 @@
+stress-wt.log        5.2 3.3 3.3 3.3 3.3 2.1 ALL 114 STRESS CHECKS PASSED
+stress-wt-2.log      3.3 3.3 3.3 5.1 5.1 3.9 1 of 114 STRESS CHECKS FAILED
+stress-wt-3.log      5.2 5.2 3.3 5.1 3.3 2.1 ALL 114 STRESS CHECKS PASSED
+stress-wtbase.log    3.5 3.5 3.5 3.4 3.4 2.2 ALL 113 STRESS CHECKS PASSED
+stress-wtbase-2.log  3.5 3.5 3.5 3.4 3.4 2.2 ALL 113 STRESS CHECKS PASSED
+stress-wtbase-3.log  5.3 3.5 5.3 3.4 3.4 2.2 1 of 113 STRESS CHECKS FAILED
