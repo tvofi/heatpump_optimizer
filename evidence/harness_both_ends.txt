@@ -12,17 +12,17 @@ RESULT truth booked_kw=3.0 slab=23.8475 plan=25.0000
 RESULT tests/replay/owner-2026-10-30-away.json steps=1 distinct_c=1 fit=none
 RESULT tests/replay/synthetic-dhw-only.json steps=0 distinct_c=0 fit=none
 RESULT synthetic-linear steps=4 distinct_c=4 gain_kw_per_k=0.1 max_resid_kw=0.0
-== head drawn=4.0
+== wt drawn=4.0
 RESULT all_space booked_kw=4.0 space_share=1.0 over_kw=0.0 slab=24.1700
 RESULT switch_back booked_kw=2.0 space_share=0.5 over_kw=0.0 slab=23.5050
 RESULT switch_out booked_kw=2.0 space_share=0.5 over_kw=0.0 slab=23.5050
 RESULT truth booked_kw=2.0 slab=23.5050 plan=25.0000
-== head drawn=6.0
+== wt drawn=6.0
 RESULT all_space booked_kw=6.0 space_share=1.0 over_kw=0.0 slab=24.8350
 RESULT switch_back booked_kw=3.0 space_share=0.5 over_kw=0.0 slab=23.8375
 RESULT switch_out booked_kw=3.0 space_share=0.5 over_kw=0.0 slab=23.8375
 RESULT truth booked_kw=3.0 slab=23.8475 plan=25.0000
-== head band
+== wt band
 RESULT tests/replay/owner-2026-10-30-away.json steps=1 distinct_c=1 fit=none
 RESULT tests/replay/synthetic-dhw-only.json steps=0 distinct_c=0 fit=none
 RESULT synthetic-linear steps=4 distinct_c=4 gain_kw_per_k=0.1 max_resid_kw=0.0

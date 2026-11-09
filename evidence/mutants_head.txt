@@ -1,0 +1,15 @@
+Block command: PR body BLOCK_CMD (features_block.py, R10-DEMAND-OVERBOOK section), run in a worktree at ce4cdb2271c3a3883c422e228f55d526d93827e2.
+Unmutated: ALL 17 FEATURES BLOCK PASSED
+== M1 (a.space, a.dhw), -> coord._commanded_split(), in _propagated_slab
+  FAIL R10-COP-GATE-E: a switch back from hot water to heating advances the slab by the dwell's space share of the draw, not the whole draw as space heat  [slab switch-back/half-draw/heating=24.1700/23.5050/24.1700]
+  FAIL R10-COP-GATE-E: a switch from heating to hot water books the dwell's space share of the draw, not 0 kW  [slab switch-out/half-draw/dhw-only=24.1700/23.5050/22.8400]
+2 of 17 FEATURES BLOCK FAILED
+== M2 space_served=a.observed or signals.space_heat -> space_served=signals.space_heat
+  FAIL R10-COP-GATE-E: a switch from heating to hot water books the dwell's space share of the draw, not 0 kW  [slab switch-out/half-draw/dhw-only=22.8400/23.5050/22.8400]
+1 of 17 FEATURES BLOCK FAILED
+== M3 (reviewer's own) (a.space, a.dhw), -> (a.dhw, a.space),
+  FAIL #2499: the slab rises with the metered draw, below the commanded trajectory while the pump draws less than 4 kW  [slab off/1kW/4kW=22.840/22.840/22.840]
+  FAIL R10-COP-GATE-E: a switch back ... [slab switch-back/half-draw/heating=23.5050/22.8400/22.8400]
+  FAIL R10-COP-GATE-E: a switch from heating to hot water ... [slab switch-out/half-draw/dhw-only=23.5050/22.8400/22.8400]
+3 of 17 FEATURES BLOCK FAILED
+Each restored with git checkout; git status --short empty after.

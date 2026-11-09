@@ -1,2 +1,0 @@
-746454bbf9a3e19b89c263ef7a98bb2f187f5d2d  dev/audit/harnesses/r10_cop_gate_slab.py
-02129ef0ca51334e432e34e50150ea29dd49e2a7  dev/audit/harnesses/r10_cop_gate_band.py
