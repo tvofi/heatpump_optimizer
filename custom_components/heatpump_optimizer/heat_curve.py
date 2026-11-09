@@ -146,7 +146,7 @@ def _persistent_restored(entry: Any, entity_id: str, value: float) -> None:
     state = off_restore.consumer_state(entry, CONSUMER)
     if state.get("entity_id") != entity_id:
         return
-    _record_write(state, value, dt_util.utcnow())
+    _record_write(state, value, dt_util.utcnow(), state.get("written"))
 
 
 off_restore.register_consumer(CONSUMER, _restorer, write=write_setpoint)
@@ -373,13 +373,17 @@ def _age_s(state: dict[str, Any], now: Any) -> float:
     return math.inf if stamp is None else (now - stamp).total_seconds()
 
 
-def _record_write(state: dict[str, Any], value: float, now: Any) -> None:
-    """One write to the entity, plan or restore: the record and the day's count."""
+def _record_write(state: dict[str, Any], value: float, now: Any, before: float | None) -> None:
+    """One write to the entity, plan or restore, ahead of it: the record and the day's count.
+
+    ``previous`` is what the entity held before (``before``), so a write that
+    never landed reads as missed, never as the user's edit.
+    """
     day = dt_util.as_local(now).date().isoformat()
     if state.get("day") != day:
         state["day"], state["count"] = day, 0
     state["count"] = int(state.get("count", 0)) + 1
-    state["previous"], state["written"] = state.get("written"), value
+    state["previous"], state["written"] = before, value
     state["written_at"], state["misses"] = now.isoformat(), 0
 
 
@@ -503,7 +507,7 @@ async def _write_persistent_target(
         return False
     if not await off_restore.async_arm(hass, entry, config, CONSUMER):
         return False
-    _record_write(state, target, now)
+    _record_write(state, target, now, reading)
     state["misses"] = 1 if retry else 0
     await off_restore.async_save_state(hass, entry)
     try:

@@ -927,6 +927,9 @@
           "heat_curve_displace_entity": "Heat-curve offset entity",
           "heat_curve_target_kind": "What the entity is",
           "heat_curve_offset_band_k": "Largest offset written to the entity",
+          "heat_curve_persistent_band_k": "Largest displacement of a stored parameter",
+          "heat_curve_persistent_writes_per_day": "Most writes a day to a stored parameter",
+          "heat_curve_persistent_min_dwell_minutes": "Least time between writes to a stored parameter",
           "after_save": "After saving"
         },
         "data_description": {
@@ -938,9 +941,12 @@
           "ecl110_displace_min": "How far the heat curve may be shifted down during expensive hours.",
           "ecl110_displace_max": "How far the heat curve may be shifted up when storing cheap heat.",
           "ecl110_pid_time_constant_hours": "Roughly how long the controller takes to act on a new offset. Used so the optimizer does not ask for changes faster than the system can follow.",
-          "heat_curve_displace_entity": "A number entity that shifts your controller's whole heat curve, 0 meaning no shift, and that the controller forgets on a restart (for example a Luxtronik SHI heating offset). Never an absolute curve point or a stored parameter. Turning the optimizer off, or unloading it, writes 0.",
-          "heat_curve_target_kind": "Offset: a temperature difference, 0 neutral, not stored by the controller. The only kind in this version.",
+          "heat_curve_displace_entity": "A number entity that shifts your controller's heat curve. Kind offset: a whole-curve offset, 0 meaning no shift, that the controller forgets on a restart (for example a Luxtronik SHI heating offset); turning the optimizer off, or unloading it, writes 0. Kind persistent: a curve setting the controller stores; turning the optimizer off, or unloading it, writes back the value it held before the first write.",
+          "heat_curve_target_kind": "Offset: a temperature difference, 0 neutral, not stored by the controller. Prefer it wherever your controller has one. Persistent: a curve setting the controller stores, displaced from its own value and written back on off; every write wears the controller's memory, so writes are limited per day.",
           "heat_curve_offset_band_k": "The offset written to the entity stays within this many kelvin either way. 3 K is an estimate between a +1 to +2 step SG-Ready boost and Luxtronik's own ±5 K correction.",
+          "heat_curve_persistent_band_k": "The stored setting is moved at most this many kelvin either way from the value it held before the first write. 3 K is an estimate between a +1 to +2 step SG-Ready boost and Luxtronik's own ±5 K correction.",
+          "heat_curve_persistent_writes_per_day": "Writes in one local day, the write back on off included; one is always kept for it. 12 (six shift-and-return episodes) stays under the one documented manufacturer quota found (Daikin, 7000 a year); the margin below it is an estimate. 0 writes nothing. Above 19 exceeds that quota.",
+          "heat_curve_persistent_min_dwell_minutes": "After a write, the next waits at least this long. 60 minutes is about three response times of a radiator system (a forum estimate); a slow floor may want 2 to 3 hours.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -1562,6 +1568,8 @@
       "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
       "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above.",
       "heat_curve_not_offset": "That entity's own range does not include 0, so it is not an offset: it looks like an absolute curve point. Choose the controller's offset entity.",
+      "heat_curve_unreadable": "That entity holds no reading now, so the value it would be returned to on off is unknown. Choose an entity that reports a value, or save again once it does.",
+      "heat_curve_out_of_range": "That entity reads a value outside its own declared range, so it cannot be displaced safely. Check the entity in its integration first.",
       "heat_curve_entity_in_use": "The heat-curve offset entity is already written by the optimizer for another purpose (a set-point, the valve, the compressor or the mode). Choose a different entity for one of them."
     },
     "abort": {
@@ -1714,7 +1722,8 @@
     },
     "heat_curve_target_kind": {
       "options": {
-        "offset": "Offset (0 is neutral, volatile)"
+        "offset": "Offset (0 is neutral, volatile)",
+        "persistent": "Persistent (stored by the controller, written back on off)"
       }
     }
   },

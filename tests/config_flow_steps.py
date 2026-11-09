@@ -2539,16 +2539,89 @@ async def options_advanced_pages():
         (result.get("errors") or {}).get("base") == "heat_curve_entity_in_use",
         repr(result.get("errors")),
     )
-    _kind_rejected = False
-    try:
-        config_flow._page_schema("heat_curve", {}, FakeHass())({const.CONF_HEAT_CURVE_TARGET_KIND: "persistent"})
-    except Exception:  # noqa: BLE001 - voluptuous's Invalid
-        _kind_rejected = True
+    # R10-GENERIC-HEAT-CURVE-PERSISTENT: kind persistent, its three rows and P7.
+    _persistent = {const.CONF_HEAT_CURVE_TARGET_KIND: const.HEAT_CURVE_KIND_PERSISTENT}
+    _rows = (const.CONF_HEAT_CURVE_PERSISTENT_BAND_K, const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY,
+             const.CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES)
+
+    def _hc_keys(current):
+        return {str(k) for k in config_flow._page_schema("heat_curve", current, FakeHass()).schema}
+
+    def _hc_refused(current, values):
+        try:
+            config_flow._page_schema("heat_curve", current, FakeHass())(values)
+        except Exception:  # noqa: BLE001 - voluptuous's Invalid
+            return True
+        return False
+
+    check(
+        "opt_heat_curve", "happy",
+        "kind persistent is accepted, beside offset",
+        not _hc_refused({}, {const.CONF_HEAT_CURVE_TARGET_KIND: "persistent"})
+        and not _hc_refused({}, {const.CONF_HEAT_CURVE_TARGET_KIND: "offset"})
+        and _hc_refused({}, {const.CONF_HEAT_CURVE_TARGET_KIND: "absolute"}),
+        "",
+    )
+    check(
+        "opt_heat_curve", "happy",
+        "its three rows are shown only once the stored kind is persistent",
+        not (set(_rows) & _hc_keys({})) and set(_rows) <= _hc_keys(_persistent),
+        f"offset={sorted(set(_rows) & _hc_keys({}))} persistent={sorted(set(_rows) & _hc_keys(_persistent))}",
+    )
+    _range_rows = {
+        "band 0.4 K": {const.CONF_HEAT_CURVE_PERSISTENT_BAND_K: 0.4},
+        "band 5.5 K": {const.CONF_HEAT_CURVE_PERSISTENT_BAND_K: 5.5},
+        "49 writes a day": {const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY: 49},
+        "-1 writes a day": {const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY: -1},
+        "a 10 min dwell": {const.CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES: 10},
+        "a 7 h dwell": {const.CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES: 420},
+    }
+    _edges = {
+        "band 0.5 and 5 K": ({const.CONF_HEAT_CURVE_PERSISTENT_BAND_K: 0.5},
+                             {const.CONF_HEAT_CURVE_PERSISTENT_BAND_K: 5.0}),
+        "0 and 48 writes a day": ({const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY: 0},
+                                  {const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY: 48}),
+        "a 15 min and a 6 h dwell": ({const.CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES: 15},
+                                     {const.CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES: 360}),
+    }
     check(
         "opt_heat_curve", "error",
-        "kind persistent is not accepted in this build: the selector offers offset only",
-        _kind_rejected,
-        "",
+        "the ranges are enforced: 0.5-5 K, 0-48 writes a day, 15 min-6 h, each edge accepted",
+        all(_hc_refused(_persistent, v) for v in _range_rows.values())
+        and not any(_hc_refused(_persistent, v) for pair in _edges.values() for v in pair),
+        f"accepted={[k for k, v in _range_rows.items() if not _hc_refused(_persistent, v)]} "
+        f"refused={[k for k, pair in _edges.items() if any(_hc_refused(_persistent, v) for v in pair)]}",
+    )
+    _stored = "number.curve_parallel_shift"
+    for _label, _state, _want in (
+        ("kind persistent: a parameter reading 22 inside 5..35 saves, T2 not applied", ("22", 5.0, 35.0), {}),
+        ("kind persistent: an entity with no state is refused (P7)", None,
+         {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_unreadable"}),
+        ("kind persistent: an unavailable entity is refused (P7)", ("unavailable", 5.0, 35.0),
+         {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_unreadable"}),
+        ("kind persistent: a reading above its own range is refused (P7)", ("40", 5.0, 35.0),
+         {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_out_of_range"}),
+        ("kind persistent: a reading below its own range is refused (P7)", ("4", 5.0, 35.0),
+         {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_out_of_range"}),
+        ("kind persistent: a reading at its range's bounds saves", ("35", 5.0, 35.0), {}),
+    ):
+        _, _, hass = fresh_options()
+        if _state is not None:
+            hass.states.set(_stored, _ghc_fs(_state[0], unit="°C", attributes={"min": _state[1], "max": _state[2]}))
+        _ret = await config_flow._heat_curve_errors(
+            hass, {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _stored, **_persistent}, {})
+        check("opt_heat_curve", "error" if _want else "happy", _label,
+              type(_ret) is dict and _ret == _want, f"returned={_ret!r}")
+    flow, entry, hass = fresh_options(_persistent)
+    hass.states.set(_stored, _ghc_fs("40", unit="°C", attributes={"min": 5.0, "max": 35.0}))
+    await flow.async_step_heat_curve(None)
+    result = await submit(flow, "heat_curve", {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _stored})
+    check(
+        "opt_heat_curve", "error",
+        "the page refuses the save with the stored kind persistent, and stores nothing (P7)",
+        (result.get("errors") or {}).get(const.CONF_HEAT_CURVE_DISPLACE_ENTITY) == "heat_curve_out_of_range"
+        and const.CONF_HEAT_CURVE_DISPLACE_ENTITY not in entry.options,
+        f"errors={result.get('errors')!r}",
     )
 
 
@@ -4109,10 +4182,12 @@ async def options_cross_page_save_scope():
 #: revealed by this toggle. Seeded so the pages below cover those rows too;
 #: without it eight of the building page's fields never render and the
 #: assertions pass over a smaller tree than the flow really has. The per-day
-#: block (#1260) reveals on its own toggle the same way.
+#: block (#1260) reveals on its own toggle the same way, and so do the heat
+#: curve's kind persistent rows on their stored kind.
 REGISTRY_SEED = {
     const.CONF_WOOD_FURNACE_ENABLED: True,
     const.CONF_DHW_WINDOWS_BY_DAY: True,
+    const.CONF_HEAT_CURVE_TARGET_KIND: const.HEAT_CURVE_KIND_PERSISTENT,
 }
 
 

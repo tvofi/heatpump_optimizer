@@ -91,10 +91,20 @@ from .const import (
     CONF_ECL110_DISPLACE_SET_TOPIC,
     CONF_HEAT_CURVE_DISPLACE_ENTITY,
     CONF_HEAT_CURVE_OFFSET_BAND_K,
+    CONF_HEAT_CURVE_PERSISTENT_BAND_K,
+    CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES,
+    CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY,
     CONF_HEAT_CURVE_TARGET_KIND,
     DEFAULT_HEAT_CURVE_OFFSET_BAND_K,
+    DEFAULT_HEAT_CURVE_PERSISTENT_BAND_K,
+    DEFAULT_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES,
+    DEFAULT_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY,
     DEFAULT_HEAT_CURVE_TARGET_KIND,
+    HEAT_CURVE_KIND_PERSISTENT,
     HEAT_CURVE_OFFSET_BAND_RANGE_K,
+    HEAT_CURVE_PERSISTENT_BAND_RANGE_K,
+    HEAT_CURVE_PERSISTENT_MIN_DWELL_RANGE_MINUTES,
+    HEAT_CURVE_PERSISTENT_WRITES_PER_DAY_RANGE,
     HEAT_CURVE_TARGET_KINDS,
     CONF_ECL110_STATE_TOPIC,
     CONF_ECL110_QOS,
@@ -1572,6 +1582,11 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
 )
 
 
+def _heat_curve_persistent(config: Mapping[str, Any]) -> bool:
+    """Kind persistent's rows: shown once the stored kind is persistent."""
+    return config.get(CONF_HEAT_CURVE_TARGET_KIND) == HEAT_CURVE_KIND_PERSISTENT
+
+
 def _single_zone(config: Mapping[str, Any]) -> bool:
     """Whether the model runs one zone, the only one reading the whole-house loss.
 
@@ -1775,6 +1790,9 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("heat_curve", CONF_HEAT_CURVE_DISPLACE_ENTITY, _STORED, _entity_of(['number', 'input_number'])),
     _F("heat_curve", CONF_HEAT_CURVE_TARGET_KIND, DEFAULT_HEAT_CURVE_TARGET_KIND, _select(list(HEAT_CURVE_TARGET_KINDS), 'heat_curve_target_kind')),
     _F("heat_curve", CONF_HEAT_CURVE_OFFSET_BAND_K, DEFAULT_HEAT_CURVE_OFFSET_BAND_K, _number(*HEAT_CURVE_OFFSET_BAND_RANGE_K, 0.5, 'K')),
+    _F("heat_curve", CONF_HEAT_CURVE_PERSISTENT_BAND_K, DEFAULT_HEAT_CURVE_PERSISTENT_BAND_K, _number(*HEAT_CURVE_PERSISTENT_BAND_RANGE_K, 0.5, 'K'), when=_heat_curve_persistent),
+    _F("heat_curve", CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY, DEFAULT_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY, _number(*HEAT_CURVE_PERSISTENT_WRITES_PER_DAY_RANGE, 1, slider=True), when=_heat_curve_persistent),
+    _F("heat_curve", CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES, DEFAULT_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES, _number(*HEAT_CURVE_PERSISTENT_MIN_DWELL_RANGE_MINUTES, 15, 'min', slider=True), when=_heat_curve_persistent),
     # -- building_preset
     _F("building_preset", "", _DYNAMIC, _questionnaire_fields, group="questionnaire"),
     _F("building_preset", CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED, bool, group="derivation"),
@@ -2188,10 +2206,20 @@ async def _heat_curve_errors(hass: Any, submit: dict[str, Any], current: dict[st
     A plausibility check, not proof: an absolute curve point is caught only
     where its integration declares a range without 0. An entity with no state
     at save time is not judged here (ghc-r08); the arm refuses it at every
-    write by the same rule (``heat_curve.range_excludes_zero``).
+    write by the same rule (``heat_curve.range_excludes_zero``). Kind
+    persistent instead (P7, a check that stores nothing): the entity must
+    read a value inside its own range, the baseline its first write captures.
     """
-    entity_id = {**current, **submit}.get(CONF_HEAT_CURVE_DISPLACE_ENTITY)
+    merged = {**current, **submit}
+    entity_id = merged.get(CONF_HEAT_CURVE_DISPLACE_ENTITY)
     reading = number_reading(hass, entity_id) if entity_id else None
+    if entity_id and merged.get(CONF_HEAT_CURVE_TARGET_KIND) == HEAT_CURVE_KIND_PERSISTENT:
+        if reading is None or reading.value is None:
+            return {CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_unreadable"}
+        if (reading.lo is not None and reading.value < reading.lo) or (
+                reading.hi is not None and reading.value > reading.hi):
+            return {CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_out_of_range"}
+        return {}
     if reading is not None and heat_curve.range_excludes_zero(reading):
         return {CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_not_offset"}
     return {}
