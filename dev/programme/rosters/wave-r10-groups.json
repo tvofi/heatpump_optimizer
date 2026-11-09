@@ -20239,6 +20239,43 @@
     "stage": "in-progress"
    },
    "brief": "Owner rulings tvofi 2026-11-09: (1) every review round after the first reviews only the delta since the last reviewed head: `git diff <reviewed-head> <head>`, plus confirming each finding of the previous verdict is resolved, plus the live required-check state. (2) verbatim: 'The only exception should be if the delta touches production code in a way such that the functionality of the other already reviewed code has a risk of being affected in a non obvious way that CI would not detect.' Encode exactly that exception and nothing broader in dev/governance/roles/fix-review.md step 12 (and standing-dispatch.md if it states scope); the reviewer then extends only to the affected code and names the path and the risk in the verdict. Make tools/audit/seat/review_packet.py render the delta and the prior findings under --reviewed-head, with a self-test. Policy change: the PR is approved under mandate 6715477401."
+  },
+  {
+   "group": "R10-HOTFIX-MAIN-FAST-1109",
+   "lane": "IN",
+   "kind": "hotfix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "governance",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "custom_components/heatpump_optimizer/translations/de.json",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress"
+   },
+   "brief": "HOTFIX: main red tests/fast at 2f6d699e. de.json and the card de dictionary lack keys #3372 and #3360 added (merge skew with #3331). Add the German strings. Scoped prepr only (owner ruling 2026-11-09)."
   }
  ]
 }
