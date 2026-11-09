@@ -140,7 +140,6 @@ def _entry_of(raw: Any) -> Any:
         entity_id, value = raw.get("entity_id"), raw.get("value")
         if isinstance(entity_id, str) and isinstance(value, (int, float)):
             return {"entity_id": entity_id, "value": float(value)}
-        return None
     return float(raw) if isinstance(raw, (int, float)) else None
 
 

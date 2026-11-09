@@ -42266,11 +42266,30 @@ _glo = _ghcp_coord(entry_id="ghcp_low_range", value="6")
 _ghc_pub(_glo, -3.0)
 _glb = _ghcp_coord(entry_id="ghcp_at_low_bound", value="5")
 _ghc_pub(_glb, 2.0)
+_ghi = _ghcp_coord(entry_id="ghcp_at_high_bound", value="35")
+_ghc_pub(_ghi, -2.0)
 R.check(
-    "the range bounds the low side too: -3 K from 6 on 5..35 sends 5; a reading on its own bound is "
-    "inside its range and is written from",
-    _ghc_writes(_glo) == [5] and _ghc_writes(_glb) == [7],
-    "low=%r at_bound=%r" % (_ghc_writes(_glo), _ghc_writes(_glb)),
+    "the range bounds the low side too: -3 K from 6 on 5..35 sends 5; a reading on either of its own "
+    "bounds is inside its range and is written from",
+    _ghc_writes(_glo) == [5] and _ghc_writes(_glb) == [7] and _ghc_writes(_ghi) == [33],
+    "low=%r at_low=%r at_high=%r" % (_ghc_writes(_glo), _ghc_writes(_glb), _ghc_writes(_ghi)),
+)
+_gri = _ghcp_coord(entry_id="ghcp_refused_once", heat_curve_persistent_writes_per_day=1)
+_gri_cap = _LogCapture()
+_gri_log = _logging.getLogger("heatpump_optimizer.heat_curve")
+_gri_log.addHandler(_gri_cap)
+_gri_level = _gri_log.level
+_gri_log.setLevel(_logging.INFO)
+try:
+    _ghc_pub(_gri, 2.0)
+    _ghc_pub(_gri, 3.0)
+finally:
+    _gri_log.removeHandler(_gri_cap)
+    _gri_log.setLevel(_gri_level)
+R.check(
+    "a refusal by the day's budget is logged once a day, not at every publish",
+    _ghc_writes(_gri) == [] and sum("writes a day reached" in m for _l, m in _gri_cap.records) == 1,
+    repr(_gri_cap.records),
 )
 _gun = _ghcp_coord(entry_id="ghcp_unit_named", unit="%")
 _gun_warn = _ghc_logged(lambda: _ghc_pub(_gun, 2.0))
@@ -42448,6 +42467,27 @@ R.check(
     "ret=%r saves=%r/%r" % ((_grb_wrong, _grb_unarmed, _grb_right), _grb_saves, _grb_saves_after),
 )
 _ghcp_disk["heatpump_optimizer_ghcp_legacy_off_restore"] = '{"armed": {"heat_curve": null}}'
+_ghcp_disk["heatpump_optimizer_ghcp_parse_off_restore"] = _ghcp_json.dumps({"armed": {
+    "no_value": {"entity_id": "number.q"}, "no_entity": {"value": 21}, "bare": 21, "text": "x",
+    "entry": {"entity_id": "number.q", "value": 21}}})
+_gpa_parse = _ghc_coord(entity=None, entry_id="ghcp_parse")
+_gpa_armed = _asyncio.run(_ghc_restore._armed_record(_gpa_parse.hass, _gpa_parse.entry)).armed
+R.check(
+    "a stored entry reads as a baseline only with an entity and a value; a bare number stays #3299's "
+    "number, anything else no baseline",
+    _gpa_armed == {"no_value": None, "no_entity": None, "bare": 21.0, "text": None,
+                   "entry": {"entity_id": "number.q", "value": 21.0}},
+    repr(_gpa_armed),
+)
+_ghcp_disk["heatpump_optimizer_ghcp_legacy_number_off_restore"] = '{"armed": {"stand_in_no_service": 30}}'
+_glnum = _ghcp_coord(entity=None, entry_id="ghcp_legacy_number", no_service=True)
+_glnum_armed = _asyncio.run(_ghc_restore.async_arm(_glnum.hass, _glnum.entry, _glnum.effective_config,
+                                                   "stand_in_no_service"))
+R.check(
+    "a bare-number entry #3299 stored keeps its value at the next arm, never re-captured",
+    _glnum_armed is True and _ghc_restore._RECORDS[_glnum.entry].armed == {"stand_in_no_service": 30.0},
+    repr(_ghc_restore._RECORDS[_glnum.entry].armed),
+)
 _gleg = _ghc_coord(entry_id="ghcp_legacy")
 _ghcp_off(_gleg)
 R.check(

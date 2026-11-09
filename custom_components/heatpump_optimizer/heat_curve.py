@@ -505,7 +505,8 @@ async def _write_persistent_target(
         return False  # W1
     if _age_s(state, now) < 60.0 * float(config.heat_curve_persistent_min_dwell_minutes):
         return False  # the dwell
-    retry = seen == "missed" and abs(float(state["written"]) - target) <= half_step
+    # The same baseline and displace give the same target, to the bit.
+    retry = seen == "missed" and state["written"] == target
     if log_held(entry, "heat_curve_not_held", retry and bool(state.get("misses")),
                 "Heat-curve entity %s does not hold %s after a rewrite: not resent until the target changes",
                 entity_id, target):
