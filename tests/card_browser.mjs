@@ -851,6 +851,7 @@ function instrument() {
     }
     return worst;
   };
+  H.unreachable = unreachable;
   const inShape = (sh, x, y) => {
     try { const m = sh.getScreenCTM(); if (m && sh.isPointInFill) return sh.isPointInFill(new DOMPoint(x, y).matrixTransform(m.inverse())); } catch (e) { /* fall through */ }
     const r = sh.getBoundingClientRect(); return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
@@ -1207,6 +1208,26 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
   const reach = {};
   let measuredRuns = 0, candidates = 0, unknown = 0, n = 0;
   const t0 = Date.now();
+  // The clip walk's own witness (carry 7c609975): a run clipped by its own
+  // box is clipped all the same, so the walk starts at the run's element. A
+  // walk started at its parent reads the first run as clear; the second run,
+  // which nothing clips, is the null control.
+  const probePage = await browser.newPage({ viewport: { width: 375, height: 812 } });
+  await probePage.setContent(`<!doctype html><html><body style="margin:0">` +
+    `<div id="own" style="width:40px;overflow:hidden;white-space:nowrap">a driver line clipped by its own box</div>` +
+    `<div style="width:40px"><div id="free" style="white-space:nowrap">a driver line nothing clips</div></div></body></html>`);
+  await probePage.addScriptTag({ content: `(${instrument.toString()})();` });
+  const probe = await probePage.evaluate(() => {
+    const run = (id) => {
+      const el = document.getElementById(id), r = document.createRange();
+      r.selectNodeContents(el.firstChild);
+      return { el, rect: r.getBoundingClientRect() };
+    };
+    return { own: window.__p9.unreachable(run("own")), free: window.__p9.unreachable(run("free")) };
+  });
+  await probePage.close();
+  check("P9 instrument: a text run clipped by its own box reads as clipped, and an unclipped one as clear",
+    probe.own > 0.5 && probe.free <= 0.5, `own box ${probe.own.toFixed(1)} px, unclipped ${probe.free.toFixed(1)} px`);
   for (const cell of cells) {
     const ctx = await browser.newContext({ viewport: { width: cell.vp[0], height: cell.vp[1] }, deviceScaleFactor: 2,
       // Reduced motion: the card drops its transitions, so every cell measures

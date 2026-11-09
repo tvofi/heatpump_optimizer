@@ -105,6 +105,7 @@ from .thermal_model import (
     planned_draws_run,
     delivered_heat_kw,
     project_planned_levels,
+    project_space_against,
     valve_charge_demand,
     valve_hold_temperature,
     weather_or_calm,
@@ -154,13 +155,28 @@ def _realize_draw(
     p_max: float,
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """Space and, when present, DHW at the power the write surface can deliver."""
-    return (
-        _published_levels(clamp, space, p_min, p_max),
-        (
-            None if dhw is None
-            else _published_levels(clamp, dhw, p_min, p_max)
-        ),
-    )
+    if dhw is None:
+        return _published_levels(clamp, space, p_min, p_max), None
+    return _realize_joint(clamp, space, dhw, p_min, p_max)
+
+
+def _realize_joint(
+    clamp: bool,
+    space: np.ndarray,
+    dhw: np.ndarray,
+    p_min: float,
+    p_max: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Space and DHW as :func:`_realize_draw` ships them, DHW present.
+
+    On a clamped install one compressor serves both channels: DHW ships as
+    its own projection and space projects against it (#3289), so the total
+    never exceeds ``p_max`` nor runs below ``p_min``.
+    """
+    if not clamp:
+        return space, dhw
+    tank = project_planned_levels(dhw, p_min, p_max)
+    return project_space_against(space, tank, p_min, p_max), tank
 
 
 def _scores_rounded(opt: HeatPumpOptimizer) -> bool:
@@ -832,12 +848,25 @@ _DEEP_LOW_ENERGY_START_FRACTION = 0.20
 # stub distribution exists, so a static import is an `import-untyped` error
 # with no annotation that reaches it -- while the try/except below already
 # says this dependency is optional and looked up at runtime.
+#
+# ONE controller, built here, after numpy and scipy have loaded their BLAS.
+# ``threadpool_limits(limits=1)`` builds a fresh ``ThreadpoolController`` on
+# every call: a rescan of every shared library the process has loaded, CPU
+# paid on each of a solve's minimize calls, and fresh ``ctypes.CDLL`` handles
+# whose runtime-built symbol names (``f"{prefix}openblas_...{suffix}"``) are
+# interned on lookup and freed with the handle. That churn -- and, off Linux
+# on Python 3.14, the first call's ``ctypes.util`` import -- fills the
+# interpreter-wide interned-string table until it is rebuilt in one ~1.8 MiB
+# step, which the stress memory probe charged to whichever scenario's solve
+# crossed it (R10-HOTFIX-STRESS-MEM-PEAK). Built once, the scan and the
+# handles are paid at import, and ``limit`` per call only sets and restores
+# the thread counts through the handles it already holds.
 try:  # pragma: no cover - present via the manifest requirement
-    _threadpool_limits: Any = importlib.import_module(
+    _blas_threads: Any = importlib.import_module(
         "threadpoolctl"
-    ).threadpool_limits
+    ).ThreadpoolController()
 except (ImportError, AttributeError):  # bare test imports without the requirement
-    _threadpool_limits = None
+    _blas_threads = None
 
 
 def _scoped_minimize(*args: Any, **kwargs: Any) -> Any:
@@ -849,13 +878,15 @@ def _scoped_minimize(*args: Any, **kwargs: Any) -> Any:
     CPU a Raspberry-Pi-class host running all of Home Assistant does not
     have. Scoped to the call and never process-wide, because other
     components share this interpreter; a bare environment-variable set would
-    be both process-wide and too late (numpy is long since imported).
+    be both process-wide and too late (numpy is long since imported). The
+    pin reaches the libraries ``_blas_threads`` saw at import -- numpy's and
+    scipy's own, which are the ones this call runs on.
     Identical results by construction: no operation at these sizes is
     threaded, which is precisely why the threads were pure overhead.
     """
-    if _threadpool_limits is None:
+    if _blas_threads is None:
         return minimize(*args, **kwargs)
-    with _threadpool_limits(limits=1):
+    with _blas_threads.limit(limits=1):
         return minimize(*args, **kwargs)
 
 
@@ -4801,7 +4832,7 @@ class HeatPumpOptimizer:
         starts = [
             initial_power,
             _price_ranked_start(prices, baseline_energy, p_max, dt),
-            np.clip(seed_power, 0.0, p_max),
+            seed_power,  # inside the bounds: the reference never passes the pump
             _price_ranked_start(
                 prices,
                 baseline_energy * _LOW_ENERGY_START_FRACTION,
@@ -5122,11 +5153,9 @@ class HeatPumpOptimizer:
             p_max=p_max,
             planner=planner,
         )
-        optimal_space = _published_levels(
-            self.config.clamp_planned_levels, optimal_space, p_min, p_max
-        )
-        optimal_dhw = _published_levels(
-            self.config.clamp_planned_levels, optimal_dhw, p_min, p_max
+        optimal_space, optimal_dhw = _realize_joint(
+            self.config.clamp_planned_levels, optimal_space, optimal_dhw,
+            p_min, p_max,
         )
 
         # Simulate with optimal schedule
@@ -5506,26 +5535,21 @@ class HeatPumpOptimizer:
         wood's heat counts in the saving, and firewood's cost is not counted;
         the card says so where wood is configured.
 
-        Returns the power schedule and the final state, the latter so the
-        caller can account for the thermal energy left stored at the end of the
-        horizon.
+        Returns the power schedule and the final state, whose stored heat the
+        caller settles at the horizon's end.
         """
         outdoor_temps = weather.outdoor_temps
         wind_speeds = weather.wind_speeds
         precipitation = weather.precipitation
         solar_radiation = weather.solar_radiation
         humidity = weather.humidity
-        # The thermostat runs the same heat-loss physics as the plan, so its
-        # weather is the horizon's: the series the loss multiplies are
-        # required here, never the record's None default. Both callers hand
-        # it a horizon's series (tests build them concrete).
+        # The plan's heat-loss physics multiplies these: a horizon's, never None.
         assert wind_speeds is not None and precipitation is not None
         assert solar_radiation is not None
         n_steps = len(outdoor_temps)
         p = self.model.params
 
         baseline_power = np.zeros(n_steps)
-        # Read once, not per step: the loop below runs to the horizon's end.
         targets = _baseline_targets(comfort_targets, n_steps, self.config.target_temp)
         hums = [None] * n_steps if humidity is None else np.asarray(humidity, float).tolist()
         k_slab = p.slab_heat_transfer_floored
@@ -5540,11 +5564,9 @@ class HeatPumpOptimizer:
 
             hum_i = hums[i]
             cop = _reference_cop(self.model, state, outdoor_temps[i], hum_i)
-            # No lower clamp to ``min_electrical_power``: a pump that cannot
-            # modulate that low cycles on and off, and over a step the average
-            # power is what determines energy use; a clamp burnt
-            # min_electrical_power * 24 h per day on a house needing no heat.
-            # Nor a clip at 0: the demand is floored at 0 above, the COP at 1.
+            # No clamp to the pump's minimum (below it a pump cycles; a step's energy
+            # is its average power): a clamp burnt min_electrical_power * 24 h per day
+            # on a house needing no heat. No clip at 0: demand floors at 0 above.
             power = min(power_for_heat_per_cop_kw(p, required_thermal / cop), p.max_electrical_power)
             baseline_power[i] = power
 
@@ -5567,7 +5589,8 @@ class HeatPumpOptimizer:
         thermostat's power: a tank above the curve zeroes them, one below it
         overshoots. The settlement books step 0 of a plan re-made every
         interval, so it would book only the transient. The simulation decides
-        how much the horizon draws; the demand decides when.
+        how much the horizon draws; the demand decides when, never past the
+        pump: a step held at it gives its excess to the rest by the same demand.
         """
         assert weather.wind_speeds is not None and weather.precipitation is not None
         assert weather.solar_radiation is not None
@@ -5579,8 +5602,14 @@ class HeatPumpOptimizer:
             ))
             for i in range(len(simulated))
         ])
-        total = float(np.sum(steady))
-        return simulated if total <= 0.0 else steady * (float(np.sum(simulated)) / total)
+        energy, cap = float(np.sum(simulated)), float(self.model.params.max_electrical_power)
+        held = np.zeros(len(steady), dtype=bool)
+        while (total := float(np.sum(steady[~held]))) > 0.0:
+            spread = np.where(held, cap, steady * ((energy - cap * int(np.sum(held))) / total))
+            if not (over := ~held & (spread > cap)).any():
+                return spread
+            held |= over
+        return simulated
 
     def _settle_horizon(
         self,
