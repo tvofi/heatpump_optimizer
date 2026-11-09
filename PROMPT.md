@@ -18,3 +18,13 @@ Required changes:
 (3) Revert the unrelated wording compression in fix-review.md steps 6, 8, 9 and 13 (step 9 must keep "not the finder's"). Keep the diff to the rule.
 
 Hotfix-scoped prepr: `PREPR_SKIP_CLOSURES=1`. Answer any red in `## Red checks`. Hand off via handoff/<topic> plus a handoff-body whose BODY.md describes the new head.
+
+ORCHESTRATOR RULING on your BLOCKED question (handoff-wip/r10-hotfix-delta-review d3c00889), given under mandate 6715477401, scope all, which covers budget-raise per CLAUDE.md rule 2:
+
+RAISE fix-review.md's caps in dev/governance/config/policy_budgets.json to the values `node tools/policy/policy_lint.mjs --budgets` measures at your head, and no higher: about 143 lines and files_tokens about 2549. Use the measured numbers, not these. Do NOT widen `_band`.
+
+The payment considered and refused: compressing other prose in fix-review.md. The blocked verdict on this PR named exactly that compression of steps 6, 8, 9 and 13 as scope creep ("keep the diff to the rule"), so paying with it would re-open the block.
+
+Record this in the body under `## Raise justification`: the payment tried, why it was refused, and the `Architecture score: dS` line from tools/audit/archscore/ run before and after (expect dS 0 for a prose cap). Also put the reason in the commit message.
+
+Start from your WIP at handoff-wip/r10-hotfix-delta-review (d3c00889), where the rewording, self-tests and mutants M7 and M8 are done. Add the raise, run full prepr, and hand off.
