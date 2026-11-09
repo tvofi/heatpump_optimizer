@@ -18889,7 +18889,8 @@
    "after": [
     "R10-GENERIC-HEAT-CURVE",
     "R10-GENERIC-HEAT-CURVE-PERSISTENT",
-    "R10-WATER-SETPOINT-LIFT"
+    "R10-WATER-SETPOINT-LIFT",
+    "R10-WATER-SETPOINT-FEEDBACK"
    ],
    "files": [
     "custom_components/heatpump_optimizer/pump_arbiter.py",
