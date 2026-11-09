@@ -1459,7 +1459,7 @@ def flow_setpoint_driven(config: Any) -> bool:
     cfg = EntryConfig.from_mapping(config or {})
     return (
         cfg.pump_duty_mode == const.PUMP_DUTY_MODES[2]
-        and cfg.space_setpoint_unit == "flow"
+        and cfg.space_setpoint_unit in const.SPACE_SETPOINT_WATER_UNITS
         and not probe_install(cfg).plan_writes_power()
     )
 
@@ -1719,11 +1719,14 @@ def _span_when(left: float | None, right: float | None, ready: bool) -> float:
 FLOW_MIN_LIFT_K = 5.0
 
 
-def modulation_floor_flow_c(inlet_c: Any, gate_c: Any = None) -> float | None:
+def modulation_floor_flow_c(
+    inlet_c: Any, gate_c: Any = None, lift_k: float = FLOW_MIN_LIFT_K
+) -> float | None:
     """The flow set-point for the modulation floor, °C, or ``None``.
 
     The measured inlet (the buffer tank behind a mixing valve, else the
-    return) plus :data:`FLOW_MIN_LIFT_K`. The set-point is a power
+    return) plus ``lift_k``: :data:`FLOW_MIN_LIFT_K`, or the configured
+    lift (:func:`configured_flow_min_lift_k`). The set-point is a power
     command (tvofi, 2026-10-19): the system water behind it rises slowly,
     so a set-point anchored anywhere but the water it heats commands a
     power the plan never booked. ``gate_c`` is the set-point a step that
@@ -1736,7 +1739,7 @@ def modulation_floor_flow_c(inlet_c: Any, gate_c: Any = None) -> float | None:
     if inlet is None:
         return None
     gate = finite_float(gate_c)
-    return (inlet if gate is None or inlet > gate else gate) + FLOW_MIN_LIFT_K
+    return (inlet if gate is None or inlet > gate else gate) + float(lift_k)
 
 
 def flow_setpoint_for_level(
@@ -1797,12 +1800,38 @@ def flow_setpoint_for_level(
 
 
 def configured_flow_heat_c(config: Any, default: float | None = None) -> float:
-    """The heating-flow ceiling from config, else ``default`` (°C)."""
+    """The heating-flow ceiling from config, else ``default`` (°C).
+
+    An absent key reads as :data:`const.DEFAULT_FLOW_HEAT_C`, the value the
+    options flow shows for it, named at the read so the untouched-page proof
+    (``tests/config_flow_steps.py``) can see that storing it changes
+    nothing; ``default`` stands in for a stored value that is not a number.
+    Every caller passes ``pump_arbiter.FLOW_HEAT_C``, the same 55 °C.
+    """
     fallback = const.DEFAULT_FLOW_HEAT_C if default is None else default
-    raw = (config or {}).get(const.CONF_FLOW_HEAT_C, fallback)
+    raw = (config or {}).get(const.CONF_FLOW_HEAT_C, const.DEFAULT_FLOW_HEAT_C)
     number = finite_float(raw)
     return (
         float(fallback) if number is None else number
+    )
+
+
+def configured_flow_min_lift_k(config: Any) -> float:
+    """The modulation floor's lift over the measured inlet from config, K.
+
+    :data:`FLOW_MIN_LIFT_K` when absent, unreadable or not positive: a lift
+    of zero or less writes the inlet itself at the floor, which commands no
+    heat on a step the plan heats -- the value the floor exists to keep off
+    the entity. The options flow offers 0.5-15 K. A controller that takes
+    the set-point as its return-water target (Luxtronik through its Smart
+    Home Interface, for one) modulates its compressor on the gap between
+    target and return, so the rated 5 K drives it to near full speed at the
+    plan's lowest level; such a controller wants about 1-2 K.
+    """
+    raw = (config or {}).get(const.CONF_FLOW_MIN_LIFT_K, FLOW_MIN_LIFT_K)
+    number = finite_float(raw)
+    return (
+        number if number is not None and number > 0.0 else FLOW_MIN_LIFT_K
     )
 
 def on_threshold_kw(params: ThermalParameters) -> float:
