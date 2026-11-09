@@ -581,13 +581,17 @@
               "indoor_temp_entity": "Innentemperatursensor",
               "outdoor_temp_entity": "Außentemperatursensor",
               "space_setpoint_entity": "Sollwert-Entität der Raumheizung (optional)",
-              "space_setpoint_unit": "Was diese Sollwert-Entität erwartet"
+              "space_setpoint_unit": "Was diese Sollwert-Entität erwartet",
+              "flow_heat_c": "Obergrenze der Heizungs-Vorlauftemperatur (°C)",
+              "flow_min_lift_k": "Mindestanhebung über das Eintrittswasser (K)"
             },
             "data_description": {
               "indoor_temp_entity": "Optional. Die tatsächliche Raumtemperatur. Ohne sie vertraut der Optimierer seinem eigenen Modell, das mit der Zeit abdriftet.",
               "outdoor_temp_entity": "Optional. Ein lokales Außenthermometer ist für die aktuelle Stunde genauer als die Vorhersage.",
               "space_setpoint_entity": "Optional. Eine Zahl, ein Helfer oder eine Climate-Entität, die der Sollwert der Raumheizung der Pumpe ist. Dient nur dazu zu bemerken, wenn die Entität nicht gelesen werden kann. Der Optimierer schreibt nie einen empfohlenen Raumheizungs-Sollwert.",
-              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert."
+              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert.",
+              "flow_heat_c": "Der Wasser-Sollwert, der bei voller geplanter Leistung geschrieben wird, und der höchste, der geschrieben wird, solange der Plan die Regelung führt. 55 °C passt zu einem Vorlaufziel. Für eine Rücklauftemperatur-Entität wählen Sie ihn über dem höchsten Rücklauf, den Sie im normalen Heizbetrieb sehen, plus die Anhebung und nicht höher, als der Regler akzeptiert; bei einer Niedertemperatur-Fußbodenheizung können 35–40 °C ein Ausgangspunkt sein, der an Messwerten zu prüfen ist. Unter 30 °C wird nicht angeboten: Die Schwelle für Aus liegt bei 25 °C für ein Vorlaufziel und bei 20 °C für ein Rücklaufziel.",
+              "flow_min_lift_k": "Bei Pumpen-Betriebsregelung auf Regeln ist der bei der niedrigsten Planleistung geschriebene Wasser-Sollwert das gemessene Eintrittswasser plus dieser Wert: Rücklauf der Wärmepumpe, Pufferspeicher, Fußbodenrücklauf oder Ventilauslass, bei einer Rücklauftemperatur-Entität nur die ersten drei. 5 K passt zu einem Regler, der seinen Vorlauf auf dem Sollwert hält. Bei einem Regler, der die Zahl als Rücklaufziel nimmt, wird angenommen, dass er den Verdichter härter fährt, je weiter das Ziel über dem Rücklauf liegt, er will daher wahrscheinlich weniger; 1–2 K sind ein Ausgangspunkt, der an Frequenz und Leistung des Verdichters zu prüfen ist, kein gemessener Wert."
             }
           },
           "plant": {
@@ -1699,7 +1703,8 @@
     "space_setpoint_unit": {
       "options": {
         "indoor": "Innentemperatur",
-        "flow": "Vorlauftemperatur"
+        "flow": "Vorlauftemperatur",
+        "return": "Rücklauftemperatur"
       }
     },
     "pump_duty_mode": {
