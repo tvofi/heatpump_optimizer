@@ -62,7 +62,7 @@ MUTANTS = [
     ("M7", "the packet's scope line carries the exception's production-code qualifier", PACKET,
      '(custom_components/) puts at risk', 'puts at risk'),
     ("M8", "the packet's scope line states a wider trigger", PACKET,
-     'naming the path and the risk in the verdict; an "', 'naming the path and the risk in the verdict, or in full on code that review relied on; an "'),
+     'never "\n                "justifies a wider review', 'never "\n                "justifies a wider review, or in full on code that review relied on'),
     ("M6", "the cloud reviewer renders its packet with --reviewed-head", CLOUD,
      '+ (f"--reviewed-head {reviewed_head} " if reviewed_head else "") +', "+"),
 ]
