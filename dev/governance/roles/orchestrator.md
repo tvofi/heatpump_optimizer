@@ -212,7 +212,7 @@ Failure shapes already produced, all yours:
 `finding-propagation.mdc` binds the producing pull request. It binds you
 additionally, because you write the rosters and you decide the merge order.
 
-- **A comment is not propagation** — including yours on #201.
+- **A comment is not propagation** — including yours on #3394.
 - **The destination must exist**, and creating it is part of the carry.
 - **Land the roster on main only when the tree needs it** (tvofi, 2026-10-18):
   a carry a PR names, a `Closes` needing a `fixes` edit (`pr-contract` reads

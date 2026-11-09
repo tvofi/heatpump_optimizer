@@ -575,9 +575,21 @@ def self_test():
             ("gh extension exec", ["extension", "exec", "x"]))
         for label, args in refused:
             check(f"{label} is refused", run(args).returncode == 1)
-        mut = good.replace("tracker=201", "tracker=0")
+        mut = good.replace("trackers='201 ", "trackers='0 ")
         check("mutant: the guard's issue number changed lets the planted post through",
               mut != good and run(planted, shim_text=mut).returncode == 7)
+        # The record continues past #201's comment cap: the continuation is guarded alike.
+        rec = good.split("trackers='", 1)[1].split("'", 1)[0].split()[-1]
+        on_rec = ["api", "-X", "POST", f"repos/o/r/issues/{rec}/comments", "-f", f"body={kill_body}"]
+        check("planted: a raw `gh api` post to the continuation record issue is refused",
+              rec != "201" and run(on_rec).returncode == 1)
+        check("planted: a `gh issue comment` on the continuation record issue is refused",
+              run(["issue", "comment", rec, "-b", "x"]).returncode == 1)
+        check("null control: a `gh issue comment` on the issue after it reaches the real gh",
+              run(["issue", "comment", str(int(rec) + 1), "-b", "x"]).returncode == 7)
+        mut = good.replace(f" {rec}'\n", "'\n")
+        check("mutant: the continuation dropped from the trackers lets its planted post through",
+              mut != good and run(on_rec, shim_text=mut).returncode == 7)
         install(good)
 
         # mutants of each rule of the guard: each lets one refused spelling (or spoof) through
@@ -594,7 +606,7 @@ def self_test():
                      "*%*) ;; esac\n  while", ["issue", "comment", "%32%30%32", "-b", "x"], rc=1)
         guard_mutant("trailing slash kept on the target", 'while [ "${w%/}" != "$w" ]; do w=${w%/}; done', ":",
                      ["issue", "comment", "https://github.com/o/r/issues/202/", "-b", "x"], rc=1)
-        guard_mutant("an unreadable target passes", "t=$(num \"${pos[1]}\"); [ \"$t\" != '?' ] && [ \"$t\" != \"$tracker\" ]", 't=$(num "${pos[1]}"); [ "$t" != "$tracker" ]',
+        guard_mutant("an unreadable target passes", "t=$(num \"${pos[1]}\"); [ \"$t\" != '?' ] && ! has \"$trackers\" \"$t\"", 't=$(num "${pos[1]}"); ! has "$trackers" "$t"',
                      ["issue", "comment", "main", "-b", "x"])
         guard_mutant("dot segments kept", "      ''|.) ;;\n      ..) [", "      ''|.) ;;\n      zz) [", ["api", "repos/o/r/issues/202/../201/comments", "-f", "body=x"])
         guard_mutant("empty path segments kept", "      ''|.) ;;\n", "      .) ;;\n",
@@ -621,9 +633,10 @@ def self_test():
             spec = importlib.util.spec_from_file_location("budget_raise_gate", SHIM.parents[3] / "policy" / "budget_raise_gate.py")
             g = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(g)
-            check("the shim's tracker number is budget_raise_gate.MANDATE_ISSUE", f"tracker={g.MANDATE_ISSUE}\n" in good)
+            check("the shim's trackers are budget_raise_gate.RECORD_ISSUES",
+                  f"trackers='{' '.join(map(str, g.RECORD_ISSUES))}'\n" in good)
         except (OSError, ImportError, AttributeError):
-            check("the shim's tracker number is budget_raise_gate.MANDATE_ISSUE (gate readable)", False)
+            check("the shim's trackers are budget_raise_gate.RECORD_ISSUES (gate readable)", False)
 
         # a shim is never its own real gh. The PATH is hermetic: no real gh on any host.
         (w / "real" / "gh").unlink()

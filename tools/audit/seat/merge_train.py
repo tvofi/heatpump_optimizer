@@ -1047,7 +1047,7 @@ def policy_fixture_builders():
         created = iso(at + datetime.timedelta(minutes=from_min))
         until = "programme-end" if until_min is None else iso(at + datetime.timedelta(minutes=until_min))
         return {"id": MID, "user": own, "created_at": created, "updated_at": created,
-                "issue_url": f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/{g.MANDATE_ISSUE}",
+                "issue_url": f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/201",
                 "body": f"MANDATE: agents may approve as {g.OWNER_LOGIN}, scope {scope}, "
                         f"from {created} until {until}"}
 
@@ -2026,7 +2026,7 @@ class Train:
         return self.run(filt, stdin="".join(f + "\n" for f in files))[1].split()
 
     def _mandate_read(self, cid: int) -> "tuple[dict | None, list[dict]]":
-        """The cited comment (None on GitHub's 404) and the tracking issue's
+        """The cited comment (None on GitHub's 404) and every record issue's
         comments since it was written, where a revocation would be --
         budget_raise_gate._mandate's routes, run through `self.run` so the
         self-test answers them and nothing here touches the remote elsewhere."""
@@ -2037,14 +2037,17 @@ class Train:
                 return None, []
             raise Stop("policy", f"mandate {cid} could not be read: " + o.strip()[-160:])
         comment = json.loads(o)
-        if not str(comment.get("issue_url") or "").endswith(g.MANDATE_ISSUE_URL):
+        if not g.on_record_issue(comment):
             return comment, []
-        code, o = self.run(["gh", "api", "--paginate", "--slurp",
-                            f"repos/{self.repo}/issues/{g.MANDATE_ISSUE}/comments"
-                            f"?per_page=100&since={comment.get('created_at')}"])
-        if code:
-            raise Stop("policy", "the mandate thread could not be read: " + o.strip()[-160:])
-        return comment, [c for page in json.loads(o) for c in page]
+        thread = []
+        for n in g.RECORD_ISSUES:
+            code, o = self.run(["gh", "api", "--paginate", "--slurp",
+                                f"repos/{self.repo}/issues/{n}/comments"
+                                f"?per_page=100&since={comment.get('created_at')}"])
+            if code:
+                raise Stop("policy", f"the mandate thread on #{n} could not be read: " + o.strip()[-160:])
+            thread += [c for page in json.loads(o) for c in page]
+        return comment, thread
 
     def policy_gate(self, pr: int, h: str, files: list[str]) -> "str | None":
         """THE policy decision, ONE function so the run pass and the batch
@@ -2716,7 +2719,7 @@ class Train:
         return st.split()[-1]
 
     def post_merge(self, pr: int) -> None:
-        """The rest of nudge.md step 12, by `postmerge.py` (the #201 line, the
+        """The rest of nudge.md step 12, by `postmerge.py` (the record-issue line, the
         roster stage, the state docs, main's suite state). Its OWED lines are
         logged and never undo or stop the merge; the tool itself opens the
         ledger's `postmerge-owed` event for a step that failed."""
@@ -4326,8 +4329,9 @@ def _self_test() -> int:
             if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
                 return (0, json.dumps(world["mandate"])) if world.get("mandate") \
                     else (1, "gh: Not Found (HTTP 404)")
-            if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
-                return 0, json.dumps([world.get("thread", [])])
+            if argv[:2] == ["gh", "api"] and any(f"/issues/{n}/comments" in a for n in _mandate_gate().RECORD_ISSUES):
+                # every record issue is read; the fixture's thread is #201's
+                return 0, json.dumps([world.get("thread", []) if "/issues/201/" in a else []])
             if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
                 return (0, "7") if world.get("required", "fast\n") else (1, "HTTP 404")
             if "rulesets/7" in a:
@@ -7591,8 +7595,8 @@ def _batch_self_test(check) -> None:
                 return 0, "reviewed"
             if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
                 return (0, json.dumps(w["mandate"])) if w.get("mandate") else (1, "gh: Not Found (HTTP 404)")
-            if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
-                return 0, json.dumps([w.get("thread", [])])
+            if argv[:2] == ["gh", "api"] and any(f"/issues/{n}/comments" in a for n in _mandate_gate().RECORD_ISSUES):
+                return 0, json.dumps([w.get("thread", []) if "/issues/201/" in a else []])
             if "preflight.sh" in a:
                 return 0, "  clean    no refusal"
             if "worktree_gc.sh" in a:

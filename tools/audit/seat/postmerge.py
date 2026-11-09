@@ -8,7 +8,7 @@ Both merge paths (`merge_pr.sh`, and `merge_train.py`'s landing) call it once
 the merge is confirmed. It runs, in order, and a failure in any is printed as
 `OWED <step>: <why>` and never undoes the merge or stops the next step:
 
-  record   `record_beat.py`: one #201 line from the fixed template, posted by
+  record   `record_beat.py`: one record-issue line from the fixed template, posted by
            `tools/pr/gh_comment.py` with a byte-identical read-back.
   stage    `roster_sync.py --apply` derives the group's `done` stage from the
            merged pull request. A refused sync prints `set-stage owed <GROUP>
@@ -168,7 +168,7 @@ def self_test() -> int:
                                               "merge_train.py classify")] == [1, 1, 1, 1], log)
     code, lines, log = go(dry=True)
     check("the dry run prints the exact comment and every command, runs none, exits 0",
-          code == 0 and lines[0] == f"DRY-RUN comment: Merged #7 {full} (R10-X). Closed issues: #5. Leaves #201 open."
+          code == 0 and lines[0] == f"DRY-RUN comment: Merged #7 {full} (R10-X). Closed issues: #5. Leaves #{rb.RECORD_ISSUE} open."
           and [l.split(":")[0] for l in lines[1:5]] == ["DRY-RUN command", "DRY-RUN stage", "DRY-RUN docs",
                                                          "DRY-RUN main"]
           and not any(k in c for c in log for k in ("gh_comment", "roster_sync", "state_docs", "classify", "ledger")),
