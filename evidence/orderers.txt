@@ -1,0 +1,50 @@
+tools/plan/replan.py:24:    tier 0 is `critical_path()`'s output for the roster graph as it stands
+tools/plan/replan.py:394:def critical_path(deps: dict, dur: dict, order: list) -> list:
+tools/plan/replan.py:431:    outside, ahead of `on_cp` (`critical_path()`'s output, never a stored
+tools/plan/replan.py:1001:    # is `critical_path()`'s output, never a stored list. `savings` is a
+tools/plan/replan.py:1004:    cp = critical_path(deps, dur_h, order)
+tools/plan/replan.py:2063:        # CP -> CP2 is the 10 h chain, so it is `critical_path()`
+tools/pr/gate_priority.py:19:   (``roster_lib.group_for_branch``, which matches ``resume.branch``) is a
+tools/pr/gate_priority.py:118:        group = roster_lib.group_for_branch(
+tools/pr/gate_priority.py:123:        critical = roster_lib.critical_path_groups(repo, roster_ref)
+tools/audit/seat/record_row.py:307:        group = roster_lib.group_for_branch(roster, m.get("head_ref") or "") \
+tools/audit/seat/record_row.py:1294:           roster_lib.group_for_branch(roster, "handoff/r9-fr-4") == "R9-FR-4")
+tools/audit/seat/record_row.py:1296:           roster_lib.group_for_branch(roster, "fix/r9-fr-10") == "R9-FR-10")
+tools/audit/seat/record_row.py:1298:           roster_lib.group_for_branch(roster, "fix/r9-fr-1") is None)
+tools/audit/seat/record_row.py:1300:           roster_lib.group_for_branch(roster, "claude/x") is None)
+tools/audit/seat/review_packet.py:53:carry on the group's roster entry (the round roster, `group_for_branch` of
+tools/audit/seat/review_packet.py:299:            gid = roster_lib.group_for_branch(roster, f"handoff/{t}")
+tools/audit/seat/review_packet.py:615:    gid = roster_lib.group_for_branch(roster, f"handoff/{a.topic}")
+tools/audit/seat/ci_critpath.py:231:def critical_path(g: dict, ends: dict) -> list[str]:
+tools/audit/seat/ci_critpath.py:252:                path=critical_path(g, ends), cf=None if new is None else max(new.values()) - start,
+tools/audit/seat/ci_critpath.py:253:                cf_path=None if new is None else critical_path({n: g[n] for n in new}, new))
+tools/audit/seat/plan_page.py:49:A branch answers for a group by `roster_lib.group_for_branch`, then by its
+tools/audit/seat/plan_page.py:148:    found = roster_lib.group_for_branch(roster, branch)
+tools/audit/seat/plan_page.py:782:                  roster_lib.group_for_branch(roster, "handoff/r9-live-g-pr") is None)
+tools/audit/seat/record_beat.py:19:`resume.branch` or id equals the head branch (`roster_lib.group_for_branch`,
+tools/audit/seat/record_beat.py:61:    g = roster_lib.group_for_branch(roster, branch)
+tools/audit/seat/orchestrator_tick.py:871:        crit = (set(rl.critical_path(roster)) if rl is not None else set()) if roster else set()
+tools/audit/seat/orchestrator_tick.py:898:                group = (rl.group_for_branch(roster, branch) or rl.group_for_pr(roster, n)) if rl is not Non
+tools/audit/seat/orchestrator_tick.py:955:            g = rl.group_for_branch(roster, pr.get("headRefName") or "")
+tools/audit/seat/orchestrator_tick.py:959:                    if rl.group_for_branch(roster, other.get("headRefName") or "") == a:
+tools/audit/seat/orchestrator_tick.py:1085:            return rl.group_for_branch(rost, f"handoff/{t}") if rl else None
+tools/audit/seat/orchestrator_tick.py:1550:        critical = set(rl.critical_path(roster))
+tools/audit/seat/orchestrator_tick.py:1618:            gid = rl.group_for_branch(roster, f"design/{t}")
+tools/audit/seat/merge_train.py:1724:        mapped by roster_lib.group_for_branch, else its pull request by
+tools/audit/seat/merge_train.py:1733:                            roster_lib.critical_path_groups(str(ROOT), ref) or set())
+tools/audit/seat/merge_train.py:1735:        gid = roster_lib.group_for_branch(roster, item.get("branch") or "")
+tools/audit/seat/merge_train.py:4506:        m.critical_path_groups = lambda root, ref: {"r10-a"}
+tools/audit/seat/merge_train.py:4507:        m.group_for_branch = lambda roster, br: next(
+tools/audit/seat/plan_table.py:69:    path = set(roster_lib.critical_path(roster))
+tools/audit/seat/plan_table.py:153:    path = roster_lib.critical_path(roster)
+tools/audit/seat/plan_table.py:217:    path = roster_lib.critical_path(roster)
+tools/audit/seat/r10_roster_ops_mutants.py:68:           branch unresolved in roster_lib.group_for_branch (W15).
+tools/audit/seat/open_driver.py:282:    critical = {roster_lib.norm_group(g) for g in roster_lib.critical_path(ros)}
+tools/audit/merge_throughput.py:442:                      critical=roster_lib.critical_path_groups(
+tools/audit/merge_throughput.py:811:    if roster is not None and roster_lib.group_for_branch(roster, branch):
+tools/audit/merge_throughput.py:1020:        gid = roster_lib.group_for_branch(ctx.roster, move["branch"])
+tools/audit/merge_throughput.py:1076:    return {roster_lib.norm_group(g) for g in roster_lib.critical_path(roster)}, ""
+tools/audit/carry_audit.py:442:    """The roster group a pull request's head branch answers for: `roster_lib.group_for_branch`,
+tools/audit/carry_audit.py:445:    return (roster_lib.group_for_branch(roster, branch)
+tools/audit/carry_audit.py:446:            or roster_lib.group_for_branch(roster, branch[:-3] if branch.endswith("-pr") else ""))
+tests/entities.py:29159:        _rl.group_for_branch(_rl_roster, b) for b in
