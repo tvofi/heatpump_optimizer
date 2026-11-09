@@ -1,0 +1,13 @@
+### python3 tests/structure.py rc=0
+### python3 tools/audit/seat/orchestrator_tick.py --self-test rc=0
+### python3 tools/audit/seat/topic_grammar.py --self-test rc=0
+### python3 -I tools/audit/seat/owed_unactioned.py --self-test rc=0
+### python3 -I tools/audit/seat/open_driver.py --self-test rc=0
+### python3 tools/audit/seat/pr_cap.py --self-test rc=0
+### python3 tools/audit/seat/cloud_dispatch.py --self-test rc=0
+### python3 tools/audit/seat/ledger.py --self-test rc=0
+### bash tools/audit/seat/cloud_relay.sh --self-test rc=0
+### python3 tests/closure.py selftest rc=0
+### python3 tools/audit/fold_ledger.py --self-test rc=0
+### python3 tools/audit/seat/roster_queue.py --self-test rc=0
+### python3 tests/entities.py rc=1
