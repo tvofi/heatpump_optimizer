@@ -19533,9 +19533,10 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "note": "triage batch 134 P420; owner ruling tvofi 2026-11-07T19:40Z outside first; overlap admitted (R10-CI-PRIORITY-PAUSE, R10-TRAIN-STALE-VERDICT-GUARD, R10-TRAIN-REJOIN-NO-RECARRY): triage batch 134 P420, owner ruling tvofi 2026-11-07T19:40Z outside first",
-    "pr": 3304
+    "pr": 3304,
+    "commit": "263b3908b33f351fbbd81f67161b84217ad2e558"
    },
    "brief": "From triage batch 134 (triage: dev/programme/triage/s6-batch134.md#P420 at b1f3ce2c73001c509b61a4163d2d08cb946d1518), owner ruling tvofi 2026-11-07T19:40Z, quote it verbatim in the body: all accepted outside issues or contributions should be prioritized higher than audit or owner submitted ones unless i call the owner one a hotfix. Add roster_lib.is_outside(group), true when the group field source is the string outside, and roster_lib.group_for_pr(roster, pr), which maps a pull request to its group through resume.pr for fork heads. The order everywhere becomes main, then hotfix (an R10-HOTFIX- name or kind bug), then outside, then today's order. (1) replan.py dispatch_tier: an outside group gets its own tier after hotfix and before the critical path; the critical path and the rest keep their relative order; keep the signature its self-test pins. (2) open_driver.py default_class and order: hotfix, outside, critical, record, rest; the fence that keeps critical first, whatever the opener priority file says, covers hotfix, outside and critical in that order. (3) merge_train.py spool drain key (line 3261 at 53273de4d): priority or front, then outside, then critical, then arrival; an entry maps to its group by branch, else by group_for_pr. Failing test first in each self-test: an outside group or entry ranks ahead of a critical-path one and behind a hotfix one. Null control: a roster with no source field orders byte-identically to the base in all three. One mutant per reader, removing the outside term, fails its arm. No policy file states the order: write no policy sentence; the docstrings cite the ruling."
   },
