@@ -43617,6 +43617,16 @@ R.check(
     and _sb_old_low.get("below_meter_floor") is False and _sb_old_low["old_basis"] is True,
     repr((_sb_at_floor, _sb_tiny, _sb_old_low)),
 )
+from heatpump_optimizer.ledger import MIN_CALIBRATION_KWH as _sb_min_cal
+from heatpump_optimizer.ledger import below_meter_floor as _sb_below_floor
+
+R.check(
+    "the meter floor's two bounds: exactly MIN_CALIBRATION_KWH metered is floored, a booked kWh of exactly METER_FLOOR of metered is not",
+    _sb_below_floor(0.25 * _sb_min_cal, _sb_min_cal) is True
+    and _sb_below_floor(_sb_floor * 4.0, 4.0) is False
+    and _sb_below_floor(_sb_floor * 4.0 - 0.25, 4.0) is True,
+    repr((_sb_below_floor(0.25 * _sb_min_cal, _sb_min_cal), _sb_below_floor(_sb_floor * 4.0, 4.0))),
+)
 R.check(
     "wood cannot trip the meter floor: a meter under the plan raises booked over metered",
     all(_sb_meter_row(f, True).get("below_meter_floor") is False for f in (1.0, 0.5, 0.25))
