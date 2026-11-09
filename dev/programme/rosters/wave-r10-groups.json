@@ -19920,10 +19920,10 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-rca-relay-handoff-starvation",
     "pr": 3352,
-    "commit": null,
+    "commit": "0a8033305d7b03494eb63453e6181a13ffa55c05",
     "last_step": null,
     "next_step": "open PR, review",
     "note": null
