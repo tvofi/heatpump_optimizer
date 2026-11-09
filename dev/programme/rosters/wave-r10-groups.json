@@ -20530,6 +20530,56 @@
     "stage": "not-started",
     "branch": null
    }
+  },
+  {
+   "group": "R10-GATE-DEFER-BARRIER",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/review_packet.py",
+    "tools/audit/seat/merge_pr.sh",
+    "tools/ci/sweep.py",
+    "dev/audit/config/bugclasses.json",
+    "dev/governance/roles/nudge.md"
+   ],
+   "hot_files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/orchestrator_tick.py"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-TRAIN-RESIDUE",
+    "R10-TICK-RESIDUE"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "P436's class barrier: every reader of the gate conclusion (merge_train policy_refusal, orchestrator_tick one_pr/main, review_packet gate_digest, merge_pr.sh, nudge.md step 15) treats an at-once deferral red as provisional; the committed finder harness for the gate-race hotfix; RCA 5.2's stale-pin fresh dispatch; then the class recorded barriered in bugclasses.json. nudge.md is policy: owner approval at merge. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, ordered by after-edges where files overlap"
+   }
   }
  ]
 }
