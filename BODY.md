@@ -18,7 +18,7 @@ Roster carries, numbered from 1 as the review packet counts them: **Carry 1** is
 
 ## Head
 
-8ec661b55ea8. It is 5851e507c (`mutation-autofix`'s `ci: pin killed mutants`) plus two commits of this repair: 67dbeabe8 adds one `tests/features.py` check, and 8ec661b55 adds the `--pin-killed` record for `ledger.py:199 CMP_BOUND*2`. From the last handoff's head fce99a860 to 5851e507c the delta is the merge of origin/main 19865e5a8, the #3360 delivery row and the bot's pins. `git diff --stat fce99a860 5851e507c` names no production file, harness or test this diff reads: only governance prose, `tools/audit/machinery_ratchet.py`, delivery rows and `tests/mutation_ledger/`. So the figures below that name an older SHA stand as taken. Every figure this repair takes is at 67dbeabe8 or 8ec661b55. `git merge-tree --write-tree origin/main HEAD` reports no conflict, so origin/main was not merged (the brief and `fixer.md` step 6). `prepr.sh` ran clean (rc 0) at 8ec661b55 against origin/main 6457496ab. Main then moved to 3fdaa9da9, 32 commits past the merge base, at 2026-11-09T04:51:22Z. The merge-tree check against 3fdaa9da9 is also conflict-free, so `prepr.sh` was not re-run on a merge.
+f1156e41ed41. Main merged (origin/main 0a8033305d7b, plus the bot's `ci: merge main` 380dbaacf), plus one structure re-record: `max_class_loc` 7932 -> 7931 in `tests/structure_budgets.json` (only that row and `recorded_at` moved; the reason is in the commit message). `tests/structure.py` on this head merged with origin/main prints no IMPROVED row and no violation, and `prepr.sh` ran clean (rc 0) at f1156e41e. Every other section stands as written for 8ec661b55ea8, which this head contains: the merge brought no change to this fix's production code or tests.
 
 ## Mutation proof
 
