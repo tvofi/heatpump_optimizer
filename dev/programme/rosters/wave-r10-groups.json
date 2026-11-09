@@ -20438,6 +20438,51 @@
     "stage": "not-started",
     "branch": null
    }
+  },
+  {
+   "group": "R10-SEAT-SCRIPT-OUTPUT",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/update_pr.sh",
+    "tools/audit/seat/open_pr.sh",
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/pr_args.sh"
+   ],
+   "hot_files": [
+    "tools/audit/seat/merge_train.py"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-TRAIN-RESIDUE"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Quiet output by default for the seat PR scripts (owner card, 2026-10-24) and the pr_bounded self-test bound in the 12 seat self-tests that lack it. Output calls only in merge_train.py; chained after R10-TRAIN-RESIDUE, which edits its logic. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R10-TRAIN-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-TRAIN-RESIDUE, ordered by after-edges where files overlap"
+   }
   }
  ]
 }
