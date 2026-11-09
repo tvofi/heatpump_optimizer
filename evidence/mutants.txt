@@ -1,10 +1,11 @@
-MUTANT M1-resolve-continue rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for tools/release/stamp_renamed.py   playbook-renamed.md: no error for tools/audit/seat/no_such_beat.py 
-MUTANT M2-fence-skip rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: 6 error(s), not 4   playbook-null.md: error tools/audit/seat/inside_a_fence_is_skipped.py: not in the tree, and not present at its cited tag ref(s) [d5d8c4a] 
-MUTANT M3-tag-accept: first run hit the wrong site (5 occurrences); re-run at the playbook line, see M3_full.txt
-MUTANT M5-suffix rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for tools/pr/state_docs.py   playbook-renamed.md: 3 error(s), not 4 
-MUTANT R1-cap-rule-off rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for open-PR cap is 16   playbook-renamed.md: 3 error(s), not 4 
-MUTANT R2-dir-any rc=0 :: PLAYBOOK ok: the renamed fixture is refused for its 4 moved instruments and the null fixture lints clean 
-MUTANT R3-indent-only rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: 5 error(s), not 4   playbook-null.md: error tools/audit/seat/indented_is_skipped.py: not in the tree, and not present at its cited tag ref(s) [d5d8c4a] 
-MUTANT R4-dotdot rc=1 ::   ERROR   [(playbook)] playbook path: ../setup-qa/: not in the tree, and not present at its cited tag ref(s) [c398fc84, 757e164, d5d8c4a, d5d8c4a72fa7be7aebecc9e58d55002be17cac08, 8542e51, 291ae76, 32f309f, 613bff1b, audit-round2-evidence] PLAYBOOK ok: the renamed fixture is refused for its 4 moved instruments and the null fixture lints clean 
-MUTANT R5-strip-line rc=0 :: PLAYBOOK ok: the renamed fixture is refused for its 4 moved instruments and the null fixture lints clean 
-MUTANT R6-live-call rc=0 :: PLAYBOOK ok: the renamed fixture is refused for its 4 moved instruments and the null fixture lints clean 
+RESULT mutant=M1 rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for tools/release/stamp_renamed.py   playbook-renamed.md: no error for tools/audit/seat/no_such_beat.py 
+RESULT mutant=R2 rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for tools/audit/seatz/   playbook-renamed.md: 5 error(s), not 6 
+RESULT mutant=R5 rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for tools/audit/seat/beat_jobz.py   playbook-renamed.md: 5 error(s), not 6 
+RESULT mutant=M2 rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: 8 error(s), not 6   playbook-null.md: error tools/audit/seat/inside_a_fence_is_skipped.py: not in the tree, and not present at its cited tag ref(s) [d5d8c4a] 
+APPLY FAIL M3
+RESULT mutant=M5 rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for tools/pr/state_docs.py   playbook-renamed.md: 5 error(s), not 6 
+RESULT mutant=CAP rc=1 :: PLAYBOOK VACUOUS:   playbook-renamed.md: no error for open-PR cap is 16   playbook-renamed.md: 5 error(s), not 6 
+RESULT mutant=NOLIVE rc=0 :: 
+RESTORED
+RESULT mutant=M3 rc=1 :: PLAYBOOK VACUOUS:   playbook-null.md: warning tools/audit/round2/JUDGE.md: not in the tree and no tag cited; could be shorthand for dev/audit/rounds/round10/CATCHUP-JUDGE.json, dev/audit/rounds/round1
+RESTORED-M3

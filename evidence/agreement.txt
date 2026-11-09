@@ -1,16 +1,15 @@
   pair rule-frontmatter-paths: 2 readers, 17 items, 0 divergent
   pair finding-class-id: 3 readers, 59 items, 0 divergent
   pair finder-report-form: 2 readers, 222 items, 0 divergent
-  pair merge-subject-pr: 4 readers, 1547 items, 0 divergent
-  merge-subject guard: 784 first-parent commit(s) past 07a09406a, 74 merge call(s) in 12 file(s)
+  pair merge-subject-pr: 4 readers, 1548 items, 0 divergent
+  merge-subject guard: 792 first-parent commit(s) past 07a09406a, 74 merge call(s) in 12 file(s)
   pair dead-member-liveness: 2 readers, 159 items, 0 divergent
   pair governance-workflow-jobs: 2 readers, 55 items, 0 divergent
   pair budget-raise: 2 readers, 64 items, 0 divergent
   pair entity-names: 2 readers, 131 items, 0 divergent
   pair attribution: 2 readers, 319 items, 0 divergent
   pair raise-justification: 2 readers, 50 items, 0 divergent
-  discovery: 597 governance code files, 2293 distinct grammars, 34 shared by two or more files
-RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=5.4
+  discovery: 604 governance code files, 2301 distinct grammars, 34 shared by two or more files
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=9.9
 AGREEMENT ok
 agreement_py restore: 18 closure file(s), 18 covered by the wave-script restore list, 0 missing
-rc=0
