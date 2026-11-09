@@ -1,0 +1,8 @@
+base rc=0
+{'closure': '2026-11-15T07:03:00Z', 'batches': 49, 'ci_minutes': 6075.0, 'groups_done': 324, 'groups_open': 71, 'groups_discharged': None}
+[]
+['batches', 'ci_minutes', 'closure', 'closure_stamp', 'exempt_started', 'expected_arrivals', 'gate_minutes', 'groups_done', 'groups_open', 'groups_total', 'inherited_coordinator', 'inherited_in_progress', 'peak_coordinator_in_flight', 'peak_in_flight', 'peak_working', 'post_closure', 'post_closure_finish', 'production_since_tag', 'stamps', 'wall_hours']
+tree rc=0
+{'closure': '2026-11-15T07:03:00Z', 'batches': 48, 'ci_minutes': 5962.5, 'groups_done': 327, 'groups_open': 68, 'groups_discharged': 3}
+['R10-CI-GRADER-BATCH-STUDY', 'R10-FRICTION-CI-RED', 'R10-FRICTION-OTHER-FAMILY']
+['batches', 'ci_minutes', 'closure', 'closure_stamp', 'exempt_started', 'expected_arrivals', 'gate_minutes', 'groups_discharged', 'groups_done', 'groups_open', 'groups_total', 'inherited_coordinator', 'inherited_in_progress', 'peak_coordinator_in_flight', 'peak_in_flight', 'peak_working', 'post_closure', 'post_closure_finish', 'production_since_tag', 'stamps', 'wall_hours']

@@ -1,0 +1,7 @@
+selftest_wiring: 125 self-testing, 125 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+
+STRUCTURE RATCHET PASSED
+claims hygiene: origin/main ok
+untouched-check-done
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.

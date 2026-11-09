@@ -1,0 +1,19 @@
+== tools/audit/seat/bottleneck_check.py
+  ok   mutant class-sample killed
+ok: bottleneck_check self-test
+rc=0
+== tools/audit/merge_throughput.py
+  ok   train: the writer still prints 'self.log(f"SKIP REPORT: {len(self.skippe'...
+ok: merge_throughput.py self-test
+rc=0
+== tools/plan/replan.py
+ok   self-test fails when gate-cancellation is deleted
+self-test: 0 failed
+rc=0
+== tools/audit/seat/plan_page.py
+wrote /tmp/tmpp0jocixp/page.html: 8 groups, closure 2026-01-06T15:14:00Z
+plan_page self-test: 75 checks, 0 failed
+rc=0
+== tools/audit/seat/roster_lib.py
+roster_lib self-test: 72 checks, 0 failed
+rc=0
