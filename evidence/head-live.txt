@@ -1,7 +1,0 @@
-tools/policy/fixtures/policy-rot/prepr/unnamed-red.md
-  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `tests / typing` is red and `
-  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `tests / fast (3.14)` is red 
-  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `gate` is red and `## Red che
-  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `code-scanning alert 52 (js/i
-  ERROR   [pr-body] tools/policy/fixtures/policy-rot/prepr/unnamed-red.md: check `budget-raise-gate` is red an
-PR-BODY: 5 error(s) in tools/policy/fixtures/policy-rot/prepr/unnamed-red.md
