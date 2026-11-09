@@ -34,7 +34,9 @@ For (d), #3297, whose red is a real `tests / fast` failure, stays `back to its f
 
 ## Red checks
 
-none
+`gate` (job `Judge this head`, step `Judge this head`) was red in CI code run 42540768170 at e1c061cfb1807d8f9891136a3d323bee52f8f2e9. Its log's only `FAIL` line is `FAIL run(s) [42546086673] at this head are still being judged; their gate decides` (`tools/ci/gate.py` `deferral()`): a deferral, not a failed unit. Every other job of that run is success or skipped (`gh api repos/tvofi/heatpump_optimizer/actions/runs/42540768170/jobs`, filtered to a conclusion outside success and skipped, prints only `gate`). Edit run 42540768226 failed at the same step with the mirror line naming 42540768170, and edit run 42546086673 then succeeded. The diff is one markdown file under `dev/audit/` and, at that head, a delivery row, so no unit this branch can move was red. Not this branch's defect; no code change.
+
+Cheaper detector: none that this diff could have run. The only one is the gate's own sweep, which `.github/workflows` shows `disabled_manually` since 2026-11-08T11:54Z (case (d) of the document); re-enabling it is the owner's call and is carried, not built here. Standing cost of the sweep: one scheduled API read per open deferred PR. Carry: R10-TICK-LEVELS
 
 ## Forward-carry
 
