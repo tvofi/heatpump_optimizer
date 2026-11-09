@@ -107,7 +107,7 @@ as a known defect is not a ratchet.
 production, and nonproduct lines per 1000 product lines. Each closes the
 other's hole (splitting production lowers the first, not the second; a pure
 move costs neither). Each cap takes its band as above; the window is frozen.
-**The owner's exemption**: a change proving over 10% improvement in CI time,
+**The owner's exemption**: a change proving over 20% improvement in CI time,
 programme completion time, right-first-time or token usage appends its
 `exemptions` entry (number, measure, before, after, each one's command,
 evidence path) in its own pull request. Recorded, never silently allowed: an

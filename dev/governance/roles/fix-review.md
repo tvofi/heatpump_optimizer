@@ -93,9 +93,9 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
     (`claim-files.md`). Confirm before you block:
-    `git merge-tree --write-tree origin/main <head>`; a non-zero exit names the conflicting paths. A conflict on any path other
-    than the two claim files is yours to block on, because you cannot know the
-    merged result is correct.
+    `git merge-tree --write-tree origin/main <head>`; a non-zero exit names the conflicting paths. Block on main only on one,
+    never on a head behind main that merges cleanly (tvofi 11-07). A
+    conflict off the two claim files is yours.
 
     **The driver's verdict is in that command's stderr; read it, never infer it
     from the paths.** `merge-tree` invokes the driver once per conflicting claim
