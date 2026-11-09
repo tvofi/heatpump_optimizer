@@ -51,8 +51,8 @@ MUTANTS = [
     ("blocked", PAGE, "elif blk and not part:", "elif False:"),
     ("partial", PAGE, "if m and m.group(1) in G:", "if False:"),
     ("blocked-by-less-done", PAGE,
-     "blk = [a for a in entry.get(\"after\") or [] if a in G and a not in done]",
-     "blk = [a for a in entry.get(\"after\") or [] if a in G]"),
+     "if a in G and a not in discharged and roster_lib.gates(G[a])]",
+     "if a in G]"),
     ("pr-by-merge-commit", PAGE,
      "if sha.startswith(commit) or commit.startswith(sha[:len(commit)]):", "if False:"),
     ("pr-by-branch", PAGE, "            by_group[g] = p[\"number\"]", "            pass"),
@@ -69,8 +69,8 @@ MUTANTS = [
     ("page-refuses-stale", PAGE, "    if stale:\n        bad.append", "    if False:\n        bad.append"),
     ("freshness-rule", PLAN, "if have != want:", "if False:"),
     ("stamp-on-axis", PAGE,
-     "end = max([_t(plan[\"summary\"][\"closure\"])] + [_t(s[\"at\"]) for s in plan[\"stamps\"]])",
-     "end = _t(plan[\"summary\"][\"closure\"])"),
+     "end = max([_t(plan[\"summary\"][\"closure\"])] + [_t(s[\"at\"]) for s in plan[\"stamps\"]]\n",
+     "end = max([_t(plan[\"summary\"][\"closure\"])]\n"),
     # Round 2: the fix review's survivors B to E (probe/rev-2558-e98d4b97).
     # B moved with its rule (2026-11-01): `replan.check_plan` refuses a plan
     # recording no model, which the page reads through C, so the page's own
@@ -93,9 +93,8 @@ MUTANTS = [
      "    G = roster_lib.groups_of(roster)\n    G.update({g: {**G[g], \"resume\": "
      "{\"stage\": \"not-started\"}} for g in list(G)[:1]})\n    PG = plan[\"groups\"]"),
     ("defect-2-scratch-graph", PAGE,
-     "blk = [a for a in entry.get(\"after\") or [] if a in G and a not in done]",
-     "blk = [a for a in {\"R9-READY\": [\"R9-LIVE\"]}.get(g, entry.get(\"after\") or [])"
-     " if a in G and a not in done]"),
+     "blk = [a for a in entry.get(\"after\") or []\n",
+     "blk = [a for a in {\"R9-READY\": [\"R9-LIVE\"]}.get(g, entry.get(\"after\") or [])\n"),
     ("defect-3-count-wrong-set", PAGE,
      "open_iss = (\"—\" if snap.get(\"offline\") else str(sum(",
      "open_iss = (\"—\" if snap.get(\"offline\") else str(len(snap[\"issues\"]) - 1 + 0 * sum("),

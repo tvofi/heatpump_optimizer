@@ -140,7 +140,10 @@ resolve is refused whether or not the text names a proposal.
                carry already marked. `implemented` records that the sha is
                on main; it is not a verification. A carry that sat on a
                closed group at roster_lib.CARRY_CUTOVER is legacy and needs
-               no mark.
+               no mark. A mark that leaves a `carries-open` group owing no
+               carry writes `done` as set-stage done would, HELD at
+               carries-open while it owns an open issue nothing else owns
+               (`close_discharged`, then the done hold);
   set-size     writes the group's own `size`, refusing a size the duration
                model (tools/plan/durations.json) does not key -- the
                `_size_why` check append-group runs -- and, with --cite, a
@@ -184,7 +187,7 @@ import carry_audit  # noqa: E402  the one owned-issue test (`orphaned`)
 import roster_lib  # noqa: E402  which roster: roster_lib.roster_path, the one owner
 import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 TOTAL_OK = re.compile(r"TOTAL: 0 error")
-SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
+SHA_RE = roster_lib.SHA_RE  # the one sha grammar, roster_lib.discharged reads it too
 # Historical path first, then the moved one: the same preference as
 # `test -f` in the graders. Which of the two exists is read from the
 # checkout being linted.
@@ -629,6 +632,24 @@ def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
         op_mark_carry(roster, group, value, match, kind, " ".join(arg))
     else:
         op_append_carry(roster, group, value)
+
+
+def close_discharged(roster, group, legacy) -> bool:
+    """After a mark: a `carries-open` group the mark left owing no carry is
+    written as `set-stage done` writes it (`_closing`; the caller then runs
+    `hold_done`, so a group that would orphan an open issue stays held and the
+    issues are printed). It closes the record lag `roster_lib.discharged`
+    otherwise leaves for a hand `set-stage done` (tvofi 2026-11-07, proposal
+    1). Any other stage is untouched: an unmerged group's brief is undone."""
+    g = _need(roster, group)
+    resume = g.get("resume") or {}
+    if resume.get("stage") != HOLD_STAGE or roster_lib.pending_carries(g, legacy or {}):
+        return False
+    resume["stage"] = _closing(g, "done", legacy, "mark-carry")
+    _drop_stale_note(g, resume["stage"])
+    print(f"mark-carry {group}: the last pending carry is discharged: "
+          f"{HOLD_STAGE} -> {resume['stage']}")
+    return True
 
 
 #: What a closed stage is written as while its group would orphan an issue.
@@ -1331,7 +1352,7 @@ def make_edit(a, value, rest):
             apply_files_op(roster, a, value, rel, a.checkout, a.worktree)
             return True
         legacy = None
-        if a.op in ("set-stage", "set-resume"):
+        if a.op in ("set-stage", "set-resume", "mark-carry"):
             try:
                 legacy = roster_lib.read_legacy(a.worktree, rel)
             except roster_lib.RosterNotFound as e:
@@ -1339,14 +1360,16 @@ def make_edit(a, value, rest):
                              f"stage is written: {e}")
         apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match,
                  rel, sizes, legacy, rest, a.into, a.reason)
-        if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):
+        closed = a.op == "mark-carry" and close_discharged(roster, a.group, legacy)
+        if closed or a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):
             try:
                 held = hold_done(roster, a.group, a.worktree, carry_audit.issue_reader(
                     roster.get("repo") or carry_audit.REPO, a.issue_state))
             except (ValueError, SystemExit) as e:  # carry_audit's refusals
                 raise Refuse(f"the done hold cannot read issue state: {e}")
             if held:
-                print(f"roster_edit: HELD {a.group} at {HOLD_STAGE}, not {value}: "
+                print(f"roster_edit: HELD {a.group} at {HOLD_STAGE}, not "
+                      f"{'done' if closed else value}: "
                       f"it owns open {', '.join(f'#{n}' for n in held)} with no other "
                       "live owner; wire each to its next owner or close it, then "
                       "set the stage again", file=sys.stderr)
@@ -2295,6 +2318,35 @@ def _self_test() -> int:
     check("mark-carry with a plain value lands (null control)",
           rc == 0 and at_mark("R9-B")["carry"][4] == "carry five [dismissed: ab]",
           (rc, out[-300:]))
+    # THE CLOSING ARM (tvofi 2026-11-07, proposal 1): a mark that discharges
+    # the last pending carry of a carries-open group writes what set-stage done
+    # writes -- done, or carries-open HELD while it owns an orphaned open issue.
+    check("mark-carry's last mark on an in-progress group leaves its stage (null control)",
+          at_mark("R9-B")["resume"]["stage"] == "in-progress"
+          and "last pending carry" not in out, (at_mark("R9-B")["resume"], out[-300:]))
+
+    def mark_a(text, issues="closed"):
+        return said(lambda: edit("mark-carry", "R9-A", None, branch="mark-1", match=text,
+                                 rest=("dismissed", "a fixture"), issues=issues))
+    for text in ("a one", "a two"):
+        edit("append-carry", "R9-A", text, branch="mark-1")
+    edit("set-stage", "R9-A", "done", branch="mark-1", at_sha="a" * 40)
+    rc, out = mark_a("a one")
+    check("mark-carry leaving one pending carry keeps carries-open (null control)",
+          rc == 0 and at_mark("R9-A")["resume"]["stage"] == "carries-open"
+          and "last pending carry" not in out, (rc, at_mark("R9-A")["resume"], out[-300:]))
+    rc, out = mark_a("a two")
+    check("mark-carry discharging the last pending carry of a carries-open group writes done",
+          rc == 0 and at_mark("R9-A")["resume"]["stage"] == "done"
+          and "carries-open -> done" in out, (rc, at_mark("R9-A")["resume"], out[-300:]))
+    edit("set-stage", "R9-A", "in-progress", branch="mark-1")
+    edit("append-carry", "R9-A", "a three", branch="mark-1")
+    edit("set-stage", "R9-A", "done", branch="mark-1")
+    rc, out = mark_a("a three", issues="open")
+    check("... and holds it carries-open, naming the issue, while it owns an orphaned open issue",
+          rc == 0 and at_mark("R9-A")["resume"]["stage"] == "carries-open"
+          and "HELD R9-A" in out and "#10" in out, (rc, at_mark("R9-A")["resume"], out[-300:]))
+    edit("set-stage", "R9-A", "in-progress", branch="mark-1")
     # The cut-over: a carry on a closed group at the cut-over commit is legacy
     # and never pending; one appended after it is.
     # A closed group that holds a carry can only be admitted whole (append-group
@@ -2323,6 +2375,16 @@ def _self_test() -> int:
         check("set-resume --field stage done reads the same rule",
               rc == 0 and at_mark("R9-L")["resume"]["stage"] == "carries-open"
               and "set-resume R9-L: done -> carries-open" in out, (rc, out[-300:]))
+        # mark-carry reads the cut-over too (review 3350): marking the one
+        # post-cut-over carry leaves only the legacy one, which is not
+        # pending, so the group closes. The null control is the check above:
+        # the same group with that carry unmarked stays carries-open.
+        rc, out = said(lambda: edit("mark-carry", "R9-L", None, branch="mark-1",
+                                    match="post-cut-over carry",
+                                    rest=("dismissed", "a fixture")))
+        check("mark-carry whose only unmarked carry left is legacy writes done",
+              rc == 0 and at_mark("R9-L")["resume"]["stage"] == "done"
+              and "carries-open -> done" in out, (rc, at_mark("R9-L")["resume"], out[-300:]))
         # An unreadable cut-over refuses the stage write and writes nothing
         # (review X6): read as "no legacy", the legacy carry would be pending.
         # The readable null is the "legacy carry alone" check above.
