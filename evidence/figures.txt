@@ -1,0 +1,2 @@
+RESULT figures main: {'R10-I18N-DE': ('Instruments', '2026-11-11T00:30:00Z', False), 'R10-FLY-CLOUD-FRUGAL-OFF': ('Instruments', '2026-11-11T00:08:00Z', False)} groups_open 56 closure 2026-11-13T05:16:00Z wall_hours 113.27 exempt_coordinator []
+RESULT figures head: {'R10-I18N-DE': ('Core model', '2026-11-09T02:37:00Z', False), 'R10-FLY-CLOUD-FRUGAL-OFF': ('Instruments', None, True)} groups_open 55 closure 2026-11-13T05:16:00Z wall_hours 113.27 exempt_coordinator []
