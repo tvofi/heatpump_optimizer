@@ -12506,6 +12506,24 @@ R.check(
     ) is not None,
     _sav_bp_msg,
 )
+# R10-SAV-METER-FLOOR: the receipt states why a month under the meter floor has
+# no saving, in the card's savings.meter_floor_note words, guarded by the
+# event's own flag; the null leg is a month above the floor, which gets none.
+_sav_bp_floor = re.search(
+    r'"savings\.meter_floor_note": "([^"]+)"',
+    (_sav_bp_root / ROOT / "www/heatpump-optimizer-card.js").read_text(),
+).group(1)
+R.check(
+    "The notifications blueprint's monthly receipt says why a month under the meter floor states no saving, "
+    "in the card's words, and only for that month",
+    "saving_below_meter_floor" in _sav_notifier.EVENT_DATA[_sav_notifier.EVENT_MONTHLY_RECEIPT]
+    and _sav_bp_msg.count(_sav_bp_floor) == 1
+    and re.search(
+        r"\{%-? if data\.saving_below_meter_floor %\}\s*" + re.escape(_sav_bp_floor) + r"\s*\{%-? endif %\}",
+        _sav_bp_msg,
+    ) is not None,
+    _sav_bp_msg,
+)
 
 
 #: The one publisher whose attribute KEYS are data rather than API:
