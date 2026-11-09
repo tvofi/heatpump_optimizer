@@ -21266,6 +21266,57 @@
     "branch": "handoff/r10-state-docs-push-race",
     "note": "orchestrator s13 2026-11-09: root-cause seat on the train docs-push class (5th instance #3304)"
    }
+  },
+  {
+   "group": "R10-CARD-COLLAPSE",
+   "lane": "UI",
+   "kind": "feature",
+   "class": "ux",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-HOTFIX-COP-UNMEASURED"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json",
+    "custom_components/heatpump_optimizer/translations/de.json",
+    "tests/card.mjs",
+    "tests/card_browser.mjs",
+    "docs/dashboard-card.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "commit": null,
+    "branch": "fix/r10-card-collapse",
+    "last_step": null,
+    "next_step": "dispatch fixer after R10-HOTFIX-COP-UNMEASURED merges (shared hot file: the card)",
+    "note": "owner request 2026-11-09 ~23:35Z; overlap admitted (R10-USER-DOCS-VERIFY, R10-WATER-SETPOINT-FEEDBACK): owner request 2026-11-09: card collapse UX; overlaps only translations (distinct keys, WATER-SETPOINT-FEEDBACK is backend/options) and docs/dashboard-card.md (USER-DOCS-VERIFY verifies after it, already after-gated on product groups); neither group edits the card JS, the seam this group owns"
+   },
+   "brief": "Owner request (tvofi, 2026-11-09 ~23:35Z), verbatim: \"For the next group touching the card, I want these two sections (first card) collapsible and default to collapsed. Also, I would like the filter toggles and dashed line explanations to only be visible while the card is expanded. The same fixer should go over and polish the look and ordering of the non expanded card, if needed.\" The two sections, read from the owner's screenshot: (1) the per-reason energy/cost breakdown list in the first card (rows such as 'Cheapest hours', 'Leaving the house warm past the horizon', 'Keeping the house at target', 'Hot water needed now', ..., and the idle-reason lines such as 'idle for 10.0 h because the other channel has the capacity'), and (2) the 'Why now' driver panel (Comfort floor, Price rank, Forecast, Mold guard, Away bars). Make both collapsible, collapsed by default, with an accessible header toggle (keyboard and aria-expanded) and a summary line visible while collapsed. The chart's series filter chips (Electricity price, DHW heating, Space heating, Actioned power, Silent window, Outdoor temperature, DHW tank temperature, House temperature, Solar irradiance) and the dashed-line explanation text are rendered only while the card is in its expanded state. Then review the non-expanded card's look and ordering and polish it where needed, recording each change and why in the body. New user-facing strings go in en, sv and de. Nothing is scoped out (no-scoping-out-UX ruling); dark and light themes both. Tests: tests/card.mjs and tests/card_browser.mjs pin the default-collapsed state, the toggle, and chips/legend absent when collapsed and present when expanded, each with a mutant; docs/dashboard-card.md describes the behaviour. Runs after R10-HOTFIX-COP-UNMEASURED because both edit the card file."
   }
  ]
 }
