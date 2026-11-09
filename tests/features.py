@@ -2198,12 +2198,13 @@ R.section("R10-DEMAND-OVERBOOK: the unsensed slab advances by metered heat (#249
 # draw instead. The previous plan says 25 degC after 30 min of 4 kW; the
 # prior slab is 23 degC.
 from heatpump_optimizer import draw_range as _r10do_draw  # noqa: E402
+from heatpump_optimizer import heat_energy as _r10do_energy  # noqa: E402
 from heatpump_optimizer.thermal_model import ThermalState as _r10do_state  # noqa: E402
 
 _r10do_t0 = datetime(2026, 10, 5, 3, 0, tzinfo=UTC)
 
 
-def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5, *, mode=None, immersion=False):
+def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5, *, mode=None, immersion=False, before=None, switched=True):
     cfg = {
         "tibber_token": "x",
         "weather_entity": "weather.home",
@@ -2239,8 +2240,16 @@ def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5, *, mode=None, immersio
             unit = "kW" if entity == "sensor.hp_power" else "°C"
             coord.hass.states.set(entity, FakeState(value, last_updated=now, unit=unit))
         if mode is not None:
-            coord.hass.states.set("select.pump_mode", FakeState(
-                mode, last_updated=now, attributes={"options": [mode]}))
+            mode_state = FakeState(mode, last_updated=now, attributes={"options": [mode]})
+            if before is not None:
+                # The previous cycle read ``before`` live at the interval's
+                # start; the pump switched to ``mode`` halfway through it.
+                start = now - timedelta(hours=gap_h)
+                meter = _r10do_energy.meter_of(coord)
+                meter.observe_mode(start, before, True, start - timedelta(hours=1))
+                meter.cycle = (None, start)
+                mode_state.last_changed = now - timedelta(hours=gap_h / 2 if switched else gap_h + 1)
+            coord.hass.states.set("select.pump_mode", mode_state)
         _r9f12_aio.run(coord._update_current_state())
     finally:
         _r9f12_dt.freeze(None)
@@ -2292,6 +2301,34 @@ R.check(
     _r10do_dhw_only == _r10do_off and _r10do_heating == _r10do_full,
     "slab dhw-only/off=%.3f/%.3f heating/full=%.3f/%.3f"
     % (_r10do_dhw_only, _r10do_off, _r10do_heating, _r10do_full),
+)
+# R10-COP-GATE-E (#3106): a mode switch inside the interval. The draw read at
+# the close is apportioned by the dwell's hours in each duty, not by the live
+# mode alone: hot water for the first half and heating at the close books half
+# the draw as space heat, the slab of a pump that drew half as much all
+# interval long; the reverse switch books the same half, not 0 kW. A dwell
+# all on one duty reads as before (the null control).
+_r10do_half = _r10do_slab(True, 2.0, mode="Heating", before=_r10do_energy.MODE_HEAT, switched=False)
+_r10do_swback = _r10do_slab(True, 4.0, mode="Heating", before=_r10do_energy.MODE_DHW)
+_r10do_out = _r10do_slab(True, 4.0, mode="DHW (Hot Water)", before=_r10do_energy.MODE_HEAT)
+_r10do_still = _r10do_slab(True, 4.0, mode="Heating", before=_r10do_energy.MODE_HEAT, switched=False)
+R.check(
+    "R10-COP-GATE-E: a switch back from hot water to heating advances the slab "
+    "by the dwell's space share of the draw, not the whole draw as space heat",
+    _r10do_swback == _r10do_half and _r10do_swback < _r10do_heating,
+    "slab switch-back/half-draw/heating=%.4f/%.4f/%.4f" % (_r10do_swback, _r10do_half, _r10do_heating),
+)
+R.check(
+    "R10-COP-GATE-E: a switch from heating to hot water books the dwell's "
+    "space share of the draw, not 0 kW",
+    _r10do_out == _r10do_half and _r10do_out > _r10do_dhw_only,
+    "slab switch-out/half-draw/dhw-only=%.4f/%.4f/%.4f" % (_r10do_out, _r10do_half, _r10do_dhw_only),
+)
+R.check(
+    "R10-COP-GATE-E: a dwell all on space heat advances the slab by the whole "
+    "draw, as with the live mode alone (null control)",
+    _r10do_still == _r10do_heating,
+    "slab all-space/heating=%.4f/%.4f" % (_r10do_still, _r10do_heating),
 )
 R.check(
     "#2499: a resistive element sharing the meter gives no space draw; a pump "
