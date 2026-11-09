@@ -1,0 +1,1 @@
+diff rc=0 (0 = PR's own three-dot diff identical at aff9f1393aec11bc0f5fc745d34a9161c09b695a and 62f90fcb3bd8a45775642d290bf86b3274cb040d, modulo hunk offsets)
