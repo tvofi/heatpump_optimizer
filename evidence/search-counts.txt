@@ -1,0 +1,3 @@
+q=[type:comment] {"message":"Query must include 'is:issue' or 'is:pull-request'","documentation_url":"https://docs.github.com/rest/search/search#search-issues-and-pull-requests","status":"422"}gh: Query must include 'is:issue' or 'is:pull-request' (HTTP 422)
+q=[in:comments] {"message":"Query must include 'is:issue' or 'is:pull-request'","documentation_url":"https://docs.github.com/rest/search/search#search-issues-and-pull-requests","status":"422"}gh: Query must include 'is:issue' or 'is:pull-request' (HTTP 422)
+q=[] {"message":"Query must include 'is:issue' or 'is:pull-request'","documentation_url":"https://docs.github.com/rest/search/search#search-issues-and-pull-requests","status":"422"}gh: Query must include 'is:issue' or 'is:pull-request' (HTTP 422)
