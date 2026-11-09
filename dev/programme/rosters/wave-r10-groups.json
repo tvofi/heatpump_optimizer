@@ -17532,7 +17532,7 @@
    "resume": {
     "stage": "carries-open",
     "pr": 3325,
-    "commit": "82a2c142faa3b92a08765d7b9c676ddd6a490631"
+    "commit": "82a2c142fa"
    },
    "brief": "Part 2 of R10-CARRY-RESIDUE (#3241), split off by the three-round rule (round 3 is a minimal re-cut that builds only the review_owed blocked-head finding). This group builds what the re-cut routes here: the standing-tick.md policy line naming the `CARRY:` tick line (drafted for the owner's approving review before merging), and anything else the round-3 body routes here with a `Carry: R10-CARRY-RESIDUE-2` line. Each item gets its failing test first, mutation proof and null control where code is involved; defer none; after #3241 merges; files as for R10-CARRY-RESIDUE (set `files` in the body)."
   },
