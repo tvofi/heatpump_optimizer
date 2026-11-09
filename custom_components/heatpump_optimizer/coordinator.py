@@ -352,6 +352,7 @@ from .thermal_model import (
     planned_draw_runs,
     probe_install,
     reanchor_heat_loss,
+    partload_factor,
     power_for_heat_per_cop_kw,
 )
 from .dhw_schedule import (
@@ -8318,6 +8319,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             current_state=ctx._current_state,
             result=result,
             local_tz=dt_util.DEFAULT_TIME_ZONE,
+            partload_at=partload_factor,
         )
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte
@@ -10522,9 +10524,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         return wear_price_per_start(
             ctx._config.compressor_replacement_cost,
-            int(
-                ctx._config.compressor_rated_starts
-            ),
+            int(ctx._config.compressor_rated_starts),
         )
     def _effective_cycling_cost(self) -> float:
         """#55 (gated): the cycling penalty, floored by realised wear.
