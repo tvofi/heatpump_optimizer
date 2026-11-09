@@ -37,7 +37,9 @@ The claim files hold main's bytes plus this branch's own claims only: `git diff 
 
 ## Head
 
-Code head 9c59a9ea9788b42c0e8794e056a1033ea3f1d541: the PR head 7fe24f9f61f1935fab269f006e126fc6f84184b3 merged with origin/main 20e83746fe91a1841ab5c4c93aef64eab38335b0. The merge delta is "Conflict resolution 3" above. Every figure below was taken at this head unless it names another SHA. `git merge-tree --write-tree origin/main 9c59a9ea9` exits 0 with no CONFLICT line.
+Code head c0bd2c78514ee5e739cb5a7abff81907ef8f5b9e: the PR head 2c8130a1beb084bc9c0686829026122cf2cbaa35 merged with origin/main 7bdc8aa2ec92934b96b77d3fd8d331b1c23d3769 (PR #3372, R10-WATER-SETPOINT-LIFT, made the head DIRTY). `git merge-tree --write-tree origin/main HEAD` exits 0 with no CONFLICT line. `bash tools/pr/prepr.sh` (no body) ended `rc=0` at this head, `CI PREDICT` with no red predicted and `STRUCTURE RATCHET PASSED`.
+
+**Resolution delta (reviewer: judge this alone).** The merge had one conflict, `tests/golden/claimed_drift.txt`: both sides rewrote the `config_flow` claim (main's #3372: `space_setpoint_unit` gains the `return` option, two option-list leaves move; this branch: the metering page gains `heat_pump_power_source`, `heat_pump_thermal_power_source` and `heat_meter_sees_dhw`). Both diffs are now on one tree, so the `config_flow` fixture moves by both; the resolved file holds one `config_flow` line carrying #3372's text, then `; AND [#3297]` and this branch's text, each marked with its PR. `claims-for:` is untouched and equals `VERSION`. Control: `python3 tests/env_drift.py` printed `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE`, and `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh` ran `env_drift.py --all` to `ok` (it printed `MODE: FULL`, because the gate cannot scope a claim file). Figures and mutation results below were measured at 9c59a9ea9 and describe the same production lines; this merge changes no production line of this branch.
 
 ## Mutation proof
 
