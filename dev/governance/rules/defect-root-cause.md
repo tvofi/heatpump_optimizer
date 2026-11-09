@@ -139,12 +139,12 @@ qualify is one line, which is what keeps the obligation from being argued away.
 The reviewer reads the PR's checks, not the body's account; a red check the body
 does not answer is **`blocked: root-cause trigger unanswered for <check>`**.
 
-**`tests / nightly-status` and `governance / delivery-status` grade `main`**, so a body owes them no
-answer **unless its diff touches what they read**: their scripts, `ci.yml`, `tests.yml`,
-`nightly.yml`, `governance.yml`, the plan, `HANDOVER.md` or a row it did not add (`policy_lint.mjs`, from the base). Otherwise their red is
-the orchestrator's on `main`: fix the nightly lane and dispatch Nightly on the
-default branch (its red report carries the call; `web-fragments.md` maps it), or
-drain the overdue rows. A cause outside this repository is named with its owner.
+**Only a red on a required check is owed an answer** (tvofi, 2026-11-07): the set
+`merge_train.py owed-reds` prints, which `policy_lint.mjs --pr-body` reads. A red
+outside it, an alert apart, blocks nothing; `nightly-status` and `delivery-status`
+grade `main`, and their red is the orchestrator's there: fix the nightly lane and
+dispatch Nightly (`web-fragments.md`), or drain the overdue rows. An unreadable set
+keeps the pre-ruling rule. A cause outside this repository is named with its owner.
 
 The first trigger — the defect reached a released version — has no moment
 cheaper than the issue itself, so it is carried by the **Root cause** section

@@ -4759,6 +4759,22 @@
         "dev/audit/rca/r10-gate-busy-defer-2.md"
       ]
     },
+    "R10-RCA-CLOUD-ENTITIES-ENV": {
+      "class": null,
+      "level": "class",
+      "subject": "four cloud fixer handoffs blocked 2026-11-08 at prepr 6b (tests/entities.py exit 1, identical at main): the environment's BASH_ENV sources cloud-setup.sh's profile ahead of every nested bash, and since 44c51bfec7 (#3222) the profile exports RUNNER_TEMP unconditionally, so the Pages probe, release ZIP and covtrust harnesses' children lost their own RUNNER_TEMP; class: a BASH_ENV-sourced profile overwrites a caller-set variable (#2452, #2835 group, this)",
+      "trigger": "2 (red step: prepr closures refused 4 handoffs; dispatch-at-handoff-p2 blocked 4 h 20 min, fly-no-self-carry >= 39 min)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(d) the profile gained an unconditional RUNNER_TEMP export under a BASH_ENV no instruction asks for; the class's barriers (#2452 PATH arm, #2835 _stub_path_env) had units of one variable and the PATH stand-in helpers; shape B (ModuleNotFoundError) is (c), a re-run without PYTHONPATH=tests/hastub",
+      "countermeasure": "cloud-setup.sh's profile sets every variable but PATH only where unset, and a --self-test arm requires every exported name to keep a caller's value under BASH_ENV (red on the base profile, 7 names overwritten; green at head; 0.24-0.39 s); owner: remove BASH_ENV from the environment's variables and re-paste the setup script; prepr base-replay null control refused (868 s per failed recording, and it would have passed all four)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-CLOUD-ENTITIES-ENV.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-CLOUD-ENTITIES-ENV.md"
+      ]
+    },
     "R10-RCA-COP-UNMEASURED": {
       "class": null,
       "level": "instance-or-process",
@@ -4777,6 +4793,45 @@
       "doc": [
         "dev/audit/rca/R10-RCA-COP-UNMEASURED.md",
         "dev/audit/harnesses/r10_rca_cop_unmeasured.py"
+      ]
+    },
+    "R10-RCA-GATE-DEFER-READ-FINAL": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#3287 (5c1fa41fb) made gate.py's deferral red publish at once and left its re-judging to gate-sweep.yml's settle: five readers of the required gate conclusion at 73365699a (merge_train.py policy_refusal, orchestrator_tick.py one_pr/main, review_packet.py gate_digest, merge_pr.sh, nudge.md step 15) still read that provisional red as final; 41 at-once deferral reds on 18 heads of 13 sampled PRs in 11.8 h, red window median 32.2 min, decider-to-green max 1.5 min after a successful decider. Second finding: sweep.py undecided() counts the skipped jobs a job re-run re-stamps, so settle re-runs two red gates at one head in turn to ATTEMPT_CAP even on content reds (257 bot re-runs of content reds, 159 gate-job minutes, #3274's three runs at attempt 44)",
+      "trigger": "2 (red required check: gate), the third instance of the gate-deferral class (triage batch 136 P436)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "the barrier carried on R10-HOTFIX-TRAIN-DEFER-WAIT (P436): every reader of the gate conclusion through merge_train.py classify_at, with a structural self-test",
+        "settle re-runs only a deferral red, or undecided() ignores skipped jobs (tools/ci/sweep.py, R10-HOTFIX-GATE-BUSY-DEFER)",
+        "fixer step 8's reader rule extended to a writer that changes a conclusion's meaning (policy, the owner's)"
+      ],
+      "process_state": "(a) for the readers: fixer.md step 8's agreement.mjs rule fires on a change to a reader, never to a writer, agreement.mjs registers no gate-conclusion concept, and the brief and review questions were writer-side while the readers' group (#3290) merged 7 h later with no after edge; (c) for the settle loop: #3287's sweep_selftest census, race harness and no-loop argument ran over modelled job listings that never re-stamp a re-run's skipped jobs",
+      "countermeasure": "built: dev/audit/harnesses/r10_gate_defer_read_final.py census (deferral reds by program, red window, decider-to-green lag) and loop (replays #3274's recorded loop through a given sweep.undecided(): 129 of 129 re-runs predicted at 73365699a, 38 with skipped jobs dropped); proposed: P436's barrier and the settle predicate, carried to their owning groups",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-gate-defer-read-final.md",
+      "doc": [
+        "dev/audit/rca/r10-gate-defer-read-final.md",
+        "dev/audit/rca/r10-gate-busy-defer-2.md"
+      ]
+    },
+    "R10-RCA-RELAY-HANDOFF-STARVATION": {
+      "class": "N-relay-handoff-starvation",
+      "level": "instance-or-process",
+      "subject": "three returned handoffs (#3299, #3308, #3310) were not carried into their PRs for 20 to 60 minutes behind the relay's serial pass, and #3297's handoff sat HELD-VERDICT at a DIRTY head until released by hand",
+      "trigger": "third instance, 2026-11-08",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "owner decision on the freeze premise check and the relay pass bound; fixer seat to build them"
+      ],
+      "process_state": "(d) the serial relay pass and the verdict freeze were sound for a small round (short reuse updates, a verdicted head that stays mergeable); round 10's rate of main moves made every update a full prepr and left verdicted heads DIRTY, and neither process noticed its own premise change",
+      "countermeasure": "proposed: review_freeze not-frozen when merge-tree against main conflicts; a wall bound on handoff updates with probe_arm/confirm_arm independent of it; built and unwired: dev/audit/rca/relay_handoff_lag.py (red 40 min and real 61 min row, green 2 min, uncarried not scored)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-relay-handoff-starvation.md",
+      "doc": [
+        "dev/audit/rca/r10-relay-handoff-starvation.md"
       ]
     }
   },
@@ -5338,6 +5393,41 @@
     ],
     "rca": [
       "R10-RCA-FLUSH-DISPATCH"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-relay-handoff-starvation": {
+    "kind": "instrument",
+    "mechanism": "A returned handoff waits for the relay's one serial, flock-held pass (handoff_arm waits on each update_pr.sh, whose merge-of-main path runs the full prepr), which also holds the verdict relay and confirm arms and blocks the TICK-STALE restart; and review_freeze holds a PR whose verdict or review is at a head that conflicts with main, so only a hand edit of cloud-handoff-release moves it",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "python3 -I dev/audit/rca/relay_handoff_lag.py --repo . --since <unix> (refs only; --self-test is its null control)",
+    "detector_idea": null,
+    "barrier": null,
+    "barrier_refusal": null,
+    "status": "detector",
+    "nearest_existing": "N-orphaned-handoff",
+    "mechanism_difference": "N-orphaned-handoff's unit is a handoff ref with no pull request; here the PR exists and the obligation is on the level, and the delay is the lag between the handoff tip and the head that carries it, which no class measures",
+    "aliases": [
+      "new: a returned handoff waits behind one serial relay pass; a merge verdict at a DIRTY head freezes the update"
+    ],
+    "non_round_note": "A process defect on 2026-11-08, not an audit finding, not in register_rows.tsv, not counted in total. Reopen on a fourth instance, which owes a barrier decision from the owner (defect-root-cause.md).",
+    "non_round_instances": [
+      "#3308 r10-min-power-floor handoff ac28d7e88 (2026-11-08T09:12Z) carried 61 min later by a hand merge",
+      "#3299 r10-generic-heat-curve handoff 2eb13559c and #3310 r10-fly-triage-bar handoff eda3592e3: orchestrator-recorded 20 to 60 min, not re-derived from refs",
+      "#3297 r10-hotfix-cop-unmeasured handoff 68b0735be held HELD-VERDICT at a DIRTY head (merge-tree conflicts, 367 commits behind main), at least 93 min at 2026-11-08T10:24Z"
+    ],
+    "rca": [
+      "R10-RCA-RELAY-HANDOFF-STARVATION"
     ],
     "rca_planned": [],
     "trigger": {
