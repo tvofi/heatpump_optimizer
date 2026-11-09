@@ -1,0 +1,40 @@
+Traceback (most recent call last):
+    raise RuntimeError(
+RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+  ok   a store loaded at a newer major version with no migration raises NotImplementedError
+  ok   a store saved at a newer major version than the code's raises UnsupportedStorageVersionError, with or without a migration
+Traceback (most recent call last):
+    raise LinAlgError("Singular matrix")
+numpy.linalg.LinAlgError: Singular matrix
+  ok   a zero-UA install yields a finite flow setpoint, not ZeroDivisionError
+Traceback (most recent call last):
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
+Error fetching heatpump_optimizer data: Unexpected error fetching prices: no HTTP session available in the test stub
+Traceback (most recent call last):
+    raise RuntimeError("no HTTP session available in the test stub")
+RuntimeError: no HTTP session available in the test stub
