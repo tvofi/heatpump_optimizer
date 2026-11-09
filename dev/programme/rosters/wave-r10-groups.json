@@ -20387,6 +20387,57 @@
     "stage": "not-started",
     "branch": null
    }
+  },
+  {
+   "group": "R10-TRAIN-RESIDUE",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [
+    2715,
+    3137
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/train.sh",
+    "tools/release/stamp.py",
+    ".claude/workflows/web-stamp.js",
+    "tools/audit/seat/queue_pre_flight.py",
+    "dev/audit/harnesses/livehead_cancels.py",
+    ".github/workflows/nightly.yml",
+    "tools/audit/seat/record_row.py"
+   ],
+   "hot_files": [
+    "tools/audit/seat/merge_train.py"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-TRAIN-STALE-VERDICT-GUARD"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "brief": "Merge-train residue on the merge_train.py / stamp seam: undraft of a train-drafted head, a stamp hold the train honours, the live-head cancel sender and detector, pre-flight order under a policy mandate, the BOT_HEAD measure-first count (needs the orchestrator's local train logs: run that part locally), and the deletion of the record-autofix beat with the train-hold and stamp-hold arms once no stamp rule reads the rows. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
