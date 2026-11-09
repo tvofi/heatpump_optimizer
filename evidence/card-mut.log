@@ -320,7 +320,7 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    UX-6: the saving against a thermostat is the month's own row
   ok    the receipt's saving on a wood house says it includes wood's heat, not firewood's cost (en, sv); none without wood
   FAIL  a month under the meter floor states no saving and says why on the receipt and the table (en, sv); none above it
-        [["No saving is stated for a month whose baseline used under half the energy the meter recorded: a baseline that low is a fault, not a saving.","No saving is stated for a month whose baseline used under half the energy the meter recorded: a baseline that low is a fault, not a saving.",""],["Inget sparande anges för en månad vars referens använde under hälften av den energi mätaren registrerade: en så låg referens är ett fel, inte ett sparande.","Inget sparande anges för en månad vars referens använde under hälften av den energi mätaren registrerade: en så låg referens är ett fel, inte ett sparande.",""]]
+        [["","No saving is stated for a month whose baseline used under half the energy the meter recorded: a baseline that low is a fault, not a saving.","no saving stated"],["","Inget sparande anges för en månad vars referens använde under hälften av den energi mätaren registrerade: en så låg referens är ett fel, inte ett sparande.","inget sparande anges"]]
   ok    UX-6: the money goes by reason, largest first
   ok    UX-6: boost, comfort mode, step-response and unattributed money are named on the receipt
   ok    every reason code payload.py publishes has a card label (idle sub-codes aside)

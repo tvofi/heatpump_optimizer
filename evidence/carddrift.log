@@ -1,6 +1,6 @@
  heatpump-optimizer-card  v7.1.8 
  heatpump-optimizer-card  v7.1.8 
-card_drift: 19865e5a866ce066eaa52f7167a7d901fd1d5968 = 19865e5a866c, tree = 091fc3bf30c0, 45 states
+card_drift: 0a8033305d7b03494eb63453e6181a13ffa55c05 = 0a8033305d7b, tree = c84a5fb197aa, 45 states
   identical  no_plan
   identical  no_plan_expanded
   identical  plan_inline

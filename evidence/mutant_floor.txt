@@ -1,5 +1,0 @@
-3 of 4988 FEATURE CHECKS FAILED
-rc=1
-  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
-  FAIL a booked reference under the meter floor of its metered kWh states no saving, keeps both columns and says why  [{'month': '2026-02', 'baseline_sek': 4.8, 'actual_sek': 24.0, 'savings_sek': -19.2, 'savings_pct': -400.0, 'old_basis': False, 'below_meter_floor': False, 'estimated': False, 'meter_calibration': 1.0, 'calibration_basis': 'meter', 'stored_heat_sek': 0.0, 'comfort_sek': 0.0}]
-  FAIL the meter floor's two bounds: exactly MIN_CALIBRATION_KWH metered is floored, a booked kWh of exactly METER_FLOOR of metered is not  [(False, False)]
