@@ -1,0 +1,7 @@
+ok   self-test fails when gate-cancellation is deleted
+self-test: 0 failed
+orchestrator_tick self-test: 295 checks, 0 failed
+plan_page self-test: 67 checks, 0 failed
+  ok   RECOMMENDED is the owner's six, each a flag batch accepts
+  ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
+merge_train self-test: 577 checks, 0 failed

@@ -1,0 +1,6 @@
+KILLED tools/audit/seat/merge_train.py: or self.hotfix(items[id(e)])),  # mut:drain-hotfix (  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once)
+KILLED tools/audit/seat/merge_train.py: not self.outside(items[id(e)]),  # mut:drain-outside (  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once)
+SURVIVED tools/audit/seat/open_driver.py: if group and roster_lib.norm_group(group) in outside:
+KILLED tools/audit/seat/roster_lib.py: group.get("kind") == "bug" or  (FAIL dispatch_rank: hotfix 0, outside 1, critical 2, other or unknown or none 3; a hotfix beats outside (got: )
+KILLED tools/pr/gate_priority.py: if rank <= 1: (FAIL an outside group and a hotfix group outrank the critical path (owner ruling 2026-11-07) (got: [0, 2, 0]))
+KILLED tools/audit/seat/orchestrator_tick.py: or rl.group_for_pr(roster, n) (  FAIL OWED buckets: a fork-head outside PR, mapped by resume.pr, prints before the critical path's; unrecorde)
