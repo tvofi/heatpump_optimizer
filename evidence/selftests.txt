@@ -1,0 +1,10 @@
+== tools/audit/seat/gh_read_run.py --self-test
+gh_read_run self-test: 13 checks, 0 failed
+== tools/release/stamp.py --self-test
+  ok   last stamp: main() anchors rules flush, 4 and 5 on the last stamped tag
+  ok   round close: main takes the version from next_version, the round from the roster
+RESULT stamp_self_test=pass
+== dev/audit/harnesses/r10_codescan_wait_race.py --selftest
+selftest: 14 checks, 0 failed
+== dev/audit/harnesses/r10_red_list_lag.py --selftest
+selftest: 5 checks, 0 failed
