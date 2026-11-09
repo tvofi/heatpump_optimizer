@@ -1,33 +1,25 @@
-Fix review: blocked 916d0e08cd69e35dc3a19f8381e29e142c32ea41 scope-rule-widened: step 12's exception is "in full ... that the delta reaches code that review relied on", broader than the owner's custom_components/-only, CI-undetectable-risk exception, and it drops the path-and-risk naming
+Fix review: blocked 71b95e42daf4d32031ce116b01c469b81f2a23a0 ci-red: pr-contract refuses the body, whose Red checks section names budget-raise-gate but not the check's full name budget-raise-gate / budget-raise-gate
 
-bus-nonce: a094c5a5e766ffea331ecf2dea1f23fe
+bus-nonce: 07a7e0b1900d4a8ab381fbeba79be7a7
 
 ## Block
 
-Head measured: 916d0e08cd69e35dc3a19f8381e29e142c32ea41 (ev/HEAD.txt). The check was R10-HOTFIX-DELTA-REVIEW: does the role text encode the owner's 2026-11-09 rule in substance and nothing broader?
+Round 2 (a repair after the scope-rule-widened block). Measured head 71b95e42daf4d32031ce116b01c469b81f2a23a0; it is still the PR head.
 
-What the PR gets right: a later round is `git diff <reviewed-head> <head>` (a main merge: its resolution). Each prior finding must be resolved. The live required checks must be read. The old "any other move is re-reviewed" is gone. The packet, bus.sh and cloud_dispatch carry `--reviewed-head` through to a delta packet.
+`merge_train.py classify 71b95e42daf4d32031ce116b01c469b81f2a23a0 --pr 3379` prints `RED 71b95e42daf4d32031ce116b01c469b81f2a23a0 pending: none red: gate` (rc 1), not APPROVAL-OWED (rc 4). `gate` fails on two contexts: `budget-raise-gate / budget-raise-gate` (the raise is waiting for approval, as expected) and `pr-contract / pr-contract`. The pr-contract job (129475298214) gives one error: `[pr-body] check \`budget-raise-gate / budget-raise-gate\` is red and \`## Red checks\` does not name it`. The body's `## Red checks` answers the trigger in substance, but it uses the short name `budget-raise-gate`, so `policy_lint.mjs --pr-body` does not match it. This review_packet render raised the same refusal (`red-unanswered`).
 
-What it gets wrong. fix-review.md step 12 (ev/step12-at-head.txt) and the packet text at review_packet.py:592 both say: "in full only on a reason the verdict names, that the delta reaches code that review relied on" (the packet: "a full re-review only on a named reason the delta reaches code that review relied on"). Against the owner's rule:
-1. Wider trigger. The owner's exception is a delta touching production code (custom_components/) that puts already-reviewed code's functionality at risk in a non-obvious way CI would not detect. The PR's text has no custom_components/ restriction, so an instrument, test, policy or body delta that "reaches code review relied on" justifies a wider review. That is the widening the brief says to block.
-2. Wider scope. The owner's exception extends the review to exactly the affected code. The PR's text says "in full".
-3. No path and risk. The owner requires the verdict to name the path and the risk. The PR requires only "a reason the verdict names".
-4. The CI-undetectable qualifier and the explicit "instrument, test, policy and body deltas never justify a wider review" are absent. The text is open-ended, so "anything the reviewer doubts" fits it.
-
-Duties kept: confirm-previous-findings and live-check-state are present in step 12 and in the packet's delta section.
-
-Required fix: reword step 12, the packet's scope line (review_packet.py:592), cloud_dispatch.py:224 where it paraphrases the scope, and the instrument docs. The exception becomes: only a delta touching custom_components/ in a way that puts already-reviewed code's functionality at risk of being affected in a way CI would not detect. The review then extends to exactly that affected code, and the verdict names the path and the risk. State that instrument, test, policy and body deltas never justify a wider review. Add a mutant or self-test check that the wider-trigger wording is absent.
-
-Side note, not the block: the PR also compresses unrelated wording in steps 6, 8, 9, 12 and 13. Step 9 loses "not the finder's". Please keep the diff to the rule.
-
-## Findings
-
-- Residual: the same too-broad exception wording is also in tools/audit/seat/review_packet.py:592 (the packet's delta section) and cloud_dispatch.py:224 (the reviewer prompt). It is fixed in the PR above. Carry: dismissed: part of this PR's own block, to be fixed on this branch
+The repair touches the body only. In `## Red checks`, name the context exactly as `budget-raise-gate / budget-raise-gate`, and name `pr-contract / pr-contract` with its answer. The cheaper detector is `policy_lint.mjs --pr-body ... --red 'budget-raise-gate / budget-raise-gate'`, run before the body is posted; prepr.sh already runs it. Then re-run pr-contract. Once only the budget raise's approval is red, classify should return 4 and this patch carries: no code delta is owed.
 
 ## Evidence
 
-- merge-tree origin/main with the head: rc 0, no conflict (ev/ci.txt).
-- CI at classify: WAIT, pending, "gate red: none". Not a block reason. This block is substantive and independent of CI.
-- Packet: the carry_audit and figure_lint (14 resolved, 0 refused) lines were clean at render. No refusals, no advisories.
-- I did not run the mutant harness; the block is on the policy text, which the harness does not test. Carry: dismissed: evidence, not a finding
-- `merge_train.py owed-reds` rejected `--pr/--head` (usage error), so the owed-reds set was not read. Carry: dismissed: evidence, not a finding
+- Mutation proof re-run at the head: `python3 dev/audit/harnesses/r10_hotfix_delta_review_mutants.py` ends `MUTANTS: 9 run, 0 not as required` (M0 PASS, M1-M8 KILLED). This matches the body.
+- My own mutant: I removed `(\`custom_components/\`)` from step 12 of fix-review.md and `review_packet.py --self-test` went to `81 checks, 1 failed` (FAIL fix-review.md step 12 ...). After the restore it is `81 checks, 0 failed`, which matches the body.
+- `node tools/policy/policy_lint.mjs --budgets`: the fix-review.md row is `143 143 2549 2549`, at its caps, which matches the body. The raise needs the owner's approving review at the head (code-owned policy file plus the budget raise); this verdict does not stand in for it.
+- `python3 tools/audit/archscore/score.py --diff origin/main`: `Architecture score: dS +0.0000 NULL`, which matches the body.
+- `git merge-tree --write-tree origin/main 71b95e42daf4d32031ce116b01c469b81f2a23a0`: rc 0, tree cc98919842dc252a6bc9ddf64fe287c16684795f, `LEDGER-MERGE: resolved tests/closures.json`. No conflict.
+- VERSION, the manifest version and the notes heading are untouched (three-dot diff is empty for those paths; pr-contract prints `no version edit`).
+- dev/governance/roles/ has not drifted on main since merge base 2f6d699e504d6dc0bb6040d99c21c5b015a290e4.
+- The body's Head section names 71b95e42daf4d32031ce116b01c469b81f2a23a0, which merges the authored code head e03c12274504ad7ede68b6f09b235029b990e404.
+- figure_lint at the head: `FIGURES: 4 resolved, 0 not verified, 0 refused`. carry_audit at the head: 0 finding items.
+- Class rule: the body names one seam, step 12 wording, stated in three places (fix-review.md, review_packet.py, cloud_dispatch.py). The harness pins all three and bus.sh's hand-off of --reviewed-head (M5, M6). I found no unenumerated site.
+- No production code (`custom_components/`) changes, so there is no golden or claim drift to compare.
