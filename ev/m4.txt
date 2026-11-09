@@ -1,0 +1,3 @@
+18
+  ok   round close: main takes the version from next_version, the round from the roster
+RESULT stamp_self_test=fail

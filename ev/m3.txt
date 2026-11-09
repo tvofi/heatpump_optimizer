@@ -1,0 +1,3 @@
+gh_read_run self-test: 13 checks, 4 failed
+gh_read self-test: 138 checks, 3 failed
+1 self-test check(s) failed: gh_read's own self-test passes (the rule record_row reads under)
