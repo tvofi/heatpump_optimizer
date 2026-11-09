@@ -2326,6 +2326,13 @@ def selftest() -> int:
                else (rf["groups"]["R10-Y"]["start"] == iso(start, 0)
                      and not rf["groups"]["R10-Y"].get("held_behind")),
                str({n: (g["start"], g.get("held_behind")) for n, g in rf["groups"].items()}))
+        sched = {g for w in rf["waves"] for g in w["groups"]}
+        sched |= {g for b in rf["batches"] for g in b["groups"]}
+        expect(f"{st}: a held dependent is in no wave and no batch (build_plan drops "
+               "`held` from the open set; null: the released set is scheduled)",
+               ("R10-Y" in sched and "R10-Z" in sched) if not held
+               else not ({"R10-Y", "R10-Z"} & sched) and "R10-A" in sched,
+               str(sorted(sched)))
     rt = mk([fx("R10-A"), fx("R10-X", stage="refuted"), fx("R10-Y", after=["R10-X"])])
     expect("refuted: the group is still scheduled and its dependent is released",
            not rt["groups"]["R10-X"]["done"] and rt["groups"]["R10-X"]["start"] is not None
