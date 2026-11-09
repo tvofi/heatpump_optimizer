@@ -1,0 +1,7 @@
+M1-cmp: rc=1 merge_train self-test: 579 checks, 3 failed | failing: 3
+M5-guard-removed: rc=1 merge_train self-test: 579 checks, 13 failed | failing: 13
+M2-same: rc=1 merge_train self-test: 579 checks, 1 failed | failing: 1
+M6-fetchfail-ignored: MUTATION NOT APPLIED
+M7-headfilter: rc=1 merge_train self-test: 579 checks, 4 failed | failing: 4
+M3-nonce-unanchored: rc=1 merge_train self-test: 579 checks, 5 failed | failing: 5
+ALLDONE
