@@ -140,11 +140,15 @@ The reviewer reads the PR's checks, not the body's account; an unanswered red is
 the note `root-cause-unanswered: <check>`, resolved at merge (card C5); a head
 still red takes no merge verdict (card C8).
 
-**`tests / nightly-status` grades `main`**, so a body owes it no
-answer **unless its diff touches what it reads**: its scripts, `ci.yml`, `tests.yml`,
-`nightly.yml`, `governance.yml`, the plan or `HANDOVER.md` (`policy_lint.mjs`, from the base). Otherwise its red is
-the orchestrator's on `main`: fix the nightly lane and dispatch Nightly on the
-default branch (its red report carries the call; `web-fragments.md` maps it). A cause outside this repository is named with its owner.
+**Only a red on a required check is owed an answer** (tvofi, 2026-11-07): the set
+`merge_train.py owed-reds` prints, which `policy_lint.mjs --pr-body` reads. A red
+outside it, an alert apart, blocks nothing; `nightly-status` grades `main`, and its
+red is the orchestrator's there: fix the nightly lane and dispatch Nightly on the
+default branch (its red report carries the call; `web-fragments.md` maps it). An
+unreadable set keeps the pre-ruling rule: **`tests / nightly-status` is owed no
+answer unless the diff touches what it reads**: its scripts, `ci.yml`, `tests.yml`,
+`nightly.yml`, `governance.yml`, the plan or `HANDOVER.md` (`policy_lint.mjs`, from
+the base). A cause outside this repository is named with its owner.
 
 The first trigger — the defect reached a released version — has no moment
 cheaper than the issue itself, so it is carried by the **Root cause** section
