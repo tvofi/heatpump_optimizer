@@ -15,7 +15,7 @@ at any tree:
 Arms:
 
   ledger BUNDLE   Ratios only, from a diagnostics export: each month's booked
-                  thermostat kWh over its metered kWh, over the row's band.
+                  thermostat kWh over its metered kWh, against the row's floor.
   attrib BUNDLE   The export's snapshots through `_compute_baseline_power`, with
                   the tanks measured, the wood tank cold, the buffer at the
                   curve, and both: step 0 over the horizon mean.
@@ -39,7 +39,7 @@ from datetime import datetime
 
 import numpy as np
 
-from heatpump_optimizer import mixing_valve
+from heatpump_optimizer import ledger, mixing_valve
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.thermal_model import (
     ThermalModel,
@@ -57,9 +57,9 @@ DT = 0.25
 #: differ only by what the measured tanks do to step 0. Wide, because the
 #: reference's first hours may honestly differ; the defect reads 0.00.
 BAND = (0.5, 1.5)
-#: The month row's band: a thermostat cannot use a third of a metered pump's
-#: energy, nor three times it, on one house over a month of the same weather.
-METER_BAND = (0.5, 2.0)
+#: The month row's floor is production's own rule (``ledger.below_meter_floor``,
+#: R10-SAV-METER-FLOOR). It has no ceiling: wood raises the ratio without limit
+#: (triage P387).
 
 
 def _valved(volume: float, **over) -> dict:
@@ -161,8 +161,9 @@ def arm_ledger(path: str) -> int:
         lines = body["lines"]
         if "savings_baseline" not in lines:
             continue
-        ratio = lines["savings_baseline"]["kwh"] / lines["savings_actual"]["kwh"]
-        verdict = "in band" if METER_BAND[0] <= ratio <= METER_BAND[1] else "OUT OF BAND"
+        booked, metered = lines["savings_baseline"]["kwh"], lines["savings_actual"]["kwh"]
+        ratio = booked / metered
+        verdict = "UNDER THE FLOOR" if ledger.below_meter_floor(booked, metered) else "not under the floor"
         print(f"RESULT ledger {month}: booked thermostat over metered {ratio:.2f} {verdict}")
     for snap in data["debug"]["payload_snapshots"]:
         rows = snap["data"].get("savings_months") or []
