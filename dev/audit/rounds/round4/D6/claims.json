@@ -373,7 +373,7 @@
   "source": "manifest.json",
   "claim": "manifest version equals VERSION",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented='7.1.8' measured='7.1.8'",
+  "result": "documented='7.1.9' measured='7.1.9'",
   "verdict": "true",
   "truth": ""
  },
@@ -1003,16 +1003,16 @@
   "source": "strings.json + translations/*.json",
   "claim": "every translation file carries exactly the keys strings.json declares",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "languages=['en', 'sv'], missing={'en': 0, 'sv': 0}, extra={'en': 0, 'sv': 0}",
+  "result": "languages=['de', 'en', 'sv'], missing={'de': 0, 'en': 0, 'sv': 0}, extra={'de': 0, 'en': 0, 'sv': 0}",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C113",
   "source": "README.md",
-  "claim": "entity names are translated into English and Swedish",
+  "claim": "entity names are translated into English, Swedish and German",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=['en', 'sv'] measured=['en', 'sv']",
+  "result": "documented=['de', 'en', 'sv'] measured=['de', 'en', 'sv']",
   "verdict": "true",
   "truth": ""
  },
