@@ -46,6 +46,8 @@ Each forward-carry item goes to #2731, the class's issue, which this group lists
 
 ## Head
 
+5a5b2c4fca00886ffa425268ee9b604fcaf58045 is the pull request's head at this repair. It is the handoff head 65581d2929ca645265262b4d73278be9b4426d62 (code ref handoff/r10-fly-gh-read-retry-p3) plus main merges and one `record:` delivery-row commit; this repair changes no code. The measurements below are those the paragraph that follows states:
+
 65581d2929ca645265262b4d73278be9b4426d62, on merge base 51cd5ec8a42abde3c223f22e9f4a0d5f35f8844a (origin/main's tip, fetched before 2026-11-08T20:37Z). It is two merges onto 2e9a022457f5c943776ccaa76f705b0de6e2eaf1. 07ce17b1d9487b76b44b9d6457747ba6191f72ed merged origin/main 17e621f08 and resolved the conflict in `dev/audit/harnesses/r10_codescan_wait_race.py`. 65581d292 merged origin/main 51cd5ec8a, which had moved after `tools/pr/prepr.sh` passed at 07ce17b1d, with no conflict. Main's 17e621f08..51cd5ec8a delta is 9 files; the only one this diff also changes is `tests/closures.json` (`comm -12` of the two `git diff --name-only` lists), merged by LEDGER-MERGE (`inert_reads.tests/harness_headers.py: merged as a set (974 entries)`). The gate figures (closure select, its three scripts, the run_always lines, structure, archscore, ci_predict, the harness self-test) were re-taken at 65581d292 against 51cd5ec8a. The other self-test and mutant figures were taken at 07ce17b1d against 17e621f08; the second merge changed none of the files they read. `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>` was re-run at 65581d292, the cloud's allowance; its PRE-PR line reads rc=0. The skipped step is the closures re-derivation. Its null control: `python3 tools/pr/ci_predict.py`, which reads the recorded closures, prints `CI PREDICT: no closures, fast, governance or instrument red predicted` at this head against 51cd5ec8a42a, and the same line in a worktree of origin/main 17e621f08.
 
 ## Mutation proof
@@ -116,7 +118,8 @@ All 26 diff-mutant survivors, by site:
 
 ## Red checks
 
-none
+- `gate`, ci.yml "CI edit pr=3361", run 42540449051 attempt 1 (check run 128920160526, 2026-11-09T00:52Z), failed at head 5a5b2c4fca00886ffa425268ee9b604fcaf58045. Its log's last lines are `FAIL run(s) [42539949919] at this head are still being judged; their gate decides` and exit 1. That is the edit run's deferral to the code run's gate (code run 42539949919, started 00:23:46Z), not a defect in the diff. Both runs started within a second of each other, and the code run's gate had not yet concluded when the edit run's gate read it. Attempt 2 of that run (started 00:29:24Z) is success, and so is the code run's own gate. The sibling edit run 42539950908's attempt-1 `gate` concluded `cancelled`, not failure, and its attempt 2 is success. No code changed between attempts.
+- Cheaper detector: none found. The deferral is the gate working as designed (an edit run does not grade what the code run grades), and the only earlier signal is the code run's own gate, which is the check being waited on. Standing cost: one rerun of the edit run's `gate` job (about 30 s) whenever the code run outlasts it. I read both attempt-1 logs and the verdict and found no way to order the two runs that costs less than the rerun, so I record no countermeasure. Carry: #2731
 
 ## Forward-carry
 
