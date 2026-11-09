@@ -65,21 +65,21 @@
   ok   ...and one whose single reading is over the factor -- the nightly null's 2.13x (#1947) -- takes the same real re-solve and is confirmed on the medians, not waved through
 
 -- Combination sweep
-  solver-work baseline: solving 54 scenarios from fdc8d21adaa50a7feee534f08ee5edde9bda81ed in a pristine worktree, to compare computed against computed (#387); this is the sweep's cost again
-  solver-work baseline: 54 scenarios from fdc8d21adaa50a7feee534f08ee5edde9bda81ed (fdc8d21adaa5), captured in 86 s on this machine
-  solve-time guard: reference solve 33.1 ms of CPU on this machine, budget 268x that per scenario (= 8.9 s of CPU), sweep budget 52x, absolute wall ceiling 600000 ms
+  solver-work baseline: solving 54 scenarios from origin/main in a pristine worktree, to compare computed against computed (#387); this is the sweep's cost again
+  solver-work baseline: 54 scenarios from origin/main (806e952cadde), captured in 79 s on this machine
+  solve-time guard: reference solve 27.2 ms of CPU on this machine, budget 268x that per scenario (= 7.3 s of CPU), sweep budget 52x, absolute wall ceiling 600000 ms
   ok   all 54 combinations satisfy the invariants
   ok   the comfort floor is never breached beyond what physics forces
   ok   hot water is available when promised
   ok   the solve-time guard calibrated against a reference solve per scenario
-  reference solve over the sweep: 29.8 / 31.0 / 54.3 ms of CPU (min/median/max of 61 samples); the same samples in wall clock: 29.8 / 31.2 / 54.3 ms -- the wall spread is the machine's load, the CPU spread is all the guard has to tolerate
-  calibration overhead: 2.1 s of wall clock for 61 samples
-  worst scenario: shoulder/tariff+pv+cycle used 4676 ms of CPU = 150.3x its 31.1 ms reference; budget is 268x
+  reference solve over the sweep: 25.3 / 28.1 / 51.4 ms of CPU (min/median/max of 61 samples); the same samples in wall clock: 25.3 / 28.2 / 51.4 ms -- the wall spread is the machine's load, the CPU spread is all the guard has to tolerate
+  calibration overhead: 1.8 s of wall clock for 61 samples
+  worst scenario: shoulder/tariff+pv+cycle used 4508 ms of CPU = 156.5x its 28.8 ms reference; budget is 268x
   ok   every scenario's solve costs what it should, in CPU, for this machine
   ok   every scenario has a per-scenario budget on record
   ok   no scenario exceeds its own recorded cost by the budget factor
   ok   no scenario got dramatically cheaper without a re-record
-  no scenario in the kernel doubt band
+  kernel doubt band: re-solved 1 scenario(s) 3x on both trees in 5.2 s (a worktree of origin/main); winter/1z/space/pin-off median 30 ms against 32 ms
   ok   every scenario in the kernel doubt band was re-measured on both trees (round-5 D9-07)
   solver work: 54 of 54 scenarios judged against the baseline captured beside this run, at 1.80x; 0 re-planned by this branch, 0 new here, 0 dropped
   ok   the solver-work counter counted something for every scenario
@@ -89,25 +89,25 @@
   ok   no scenario's solver work grew on an unchanged plan
   ok   no scenario's simulate work grew on an unchanged plan (#1229)
   ok   no scenario's simulate kernel got slower per call on an unchanged plan (round-5 D9-07)
-  whole-solve CPU: median 0.927x of the baseline beside this run over 54 of 54 covered scenarios, on work the counts vouch for; factor 1.414x
+  whole-solve CPU: median 0.918x of the baseline beside this run over 54 of 54 covered scenarios, on work the counts vouch for; factor 1.414x
   ok   the whole-solve CPU channel judged every covered scenario (R10 D9-s3-01)
   ok   the sweep's solves did not get slower per unit of counted work, median over the covered scenarios (R10 D9-s3-01)
   ok   production calls were captured on this tree and the baseline
-  production calls: 20 of 20 family members judged against fdc8d21adaa50a7feee534f08ee5edde9bda81ed (fdc8d21adaa5) in 28 s; re-planned: []; new on this branch: []
+  production calls: 20 of 20 family members judged against origin/main (806e952cadde) in 26 s; re-planned: []; new on this branch: []
   ok   the production-call meter counted every scenario on both trees
-  FAIL no scenario's production calls grew past what its work counts vouch for, on an unchanged plan (round 9)  [summer/1z/space/valve: 194877 production calls against the baseline's 183071 = 1.064x on work the counts vouch at 1.000x, over the 1.05x allowance (thermal_model.py +11764, optimizer.py +42); summer/2z/space: 94381 production calls against the baseline's 88747 = 1.063x on work the counts vouch at 1.000x, over the 1.05x allowance (thermal_model.py +5604, optimizer.py +30); summer/2z/space/valve-direct-slab: 275914 production calls against the baseline's 259068 = 1.065x on work the counts vouch at 1.000x, over the 1.05x allowance (thermal_model.py +16788, optimizer.py +58); summer/2z/space/wood-two-tank: 126585 production calls against the baseline's 120185 = 1.053x on work the counts vouch at 1.000x, over the 1.05x allowance (thermal_model.py +6386, optimizer.py +14); interpreter work outside the named seams -- a per-row loop, an uncached property, a repeated pass -- moves no evaluation or simulate count and sits under the 3.0x CPU factor, so this is the only channel that sees it]
+  ok   no scenario's production calls grew past what its work counts vouch for, on an unchanged plan (round 9)
   ok   the production-call check covers at least 15 of 20 families
   ok   the solver-work check still covers most of the sweep
   ok   the solver-work floor is a literal, not an environment override
 
 -- Memory (D9-04)
-  empty-probe baseline (same imports, no scenario): 104.0 MiB of RSS, subtracted from every probe below
-  heavy_old/shoulder                 RSS peak   104.0 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 82 / 13 / 3.5)
-  winter/cycle                       RSS peak   104.0 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 84 / 9 / 3.5)
-  winter/pv+cycle                    RSS peak   104.0 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 82 / 13 / 3.5)
-  typical_slab/winter                RSS peak   104.0 MiB, attributable   0.0 MiB, traced   3.4 MiB (recorded 92 / 14 / 3.4)
-  winter_extreme/1z/dhw              RSS peak   104.0 MiB, attributable   0.0 MiB, traced   3.4 MiB (recorded 88 / 12 / 3.4)
-  typical_slab/shoulder              RSS peak   104.0 MiB, attributable   0.0 MiB, traced   2.2 MiB (recorded 85 / 9 / 1.8)
+  empty-probe baseline (same imports, no scenario): 103.8 MiB of RSS, subtracted from every probe below
+  heavy_old/shoulder                 RSS peak   103.8 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 82 / 13 / 3.5)
+  winter/cycle                       RSS peak   103.8 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 84 / 9 / 3.5)
+  winter/pv+cycle                    RSS peak   103.8 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 82 / 13 / 3.5)
+  typical_slab/winter                RSS peak   103.8 MiB, attributable   0.0 MiB, traced   3.4 MiB (recorded 92 / 14 / 3.4)
+  winter_extreme/1z/dhw              RSS peak   103.8 MiB, attributable   0.0 MiB, traced   3.4 MiB (recorded 88 / 12 / 3.4)
+  typical_slab/shoulder              RSS peak   103.8 MiB, attributable   0.0 MiB, traced   2.2 MiB (recorded 85 / 9 / 1.8)
   parent RSS watermark growth over the memory pass: 0.0 MiB (ru_maxrss is a high-water mark; growth here means the pass itself retained memory)
   coverage: this pass probed 6 of 54 recorded memory budgets; the unprobed ones are compared only at recording time
   attributable RSS: 6 of 6 probe(s) read at this platform's import floor, so the stale arm says nothing about them (probe watermark not below the record): heavy_old/shoulder; winter/cycle; winter/pv+cycle; typical_slab/winter; winter_extreme/1z/dhw; typical_slab/shoulder
@@ -116,11 +116,11 @@
   ok   no probed scenario's memory got dramatically cheaper without a re-record
   ok   every memory-pass scenario has recorded peaks
   ok   the memory pass retains less than 512 MiB of RSS in the parent
-  whole sweep: 71.9 s of solver CPU against 1.8 s of reference CPU = 40.59x; budget is 52.44x
+  whole sweep: 64.6 s of solver CPU against 1.6 s of reference CPU = 40.18x; budget is 52.44x
   ok   the sweep as a whole costs what it has always cost, relative to this machine
   detection against the RECORDED costs: per-scenario ceiling 1.32x, sweep budget 1.49x, per-scenario table 3.00x -- the smallest of those is the smallest UNIFORM regression this gate can see where it was recorded; a regression confined to one scenario is seen at 1.80x of that scenario's recorded solver work instead, or at 1.80x of the kernel CPU the baseline spent beside it (round-5 D9-07)
   detection for MEMORY: attributable-RSS budget 1.50x, traced budget 1.50x of the recorded peak, over the 6 scenario(s) this pass probes -- a regression smaller than these multiples passes the memory section green
-  detection on THIS machine: per-scenario ceiling 1.79x (244x x 1.1 wobble), sweep budget 1.29x -- these move with the machine because the reference solve does not scale with the real ones (measured 1.7x of ratio compression between an M1 and a CI runner); re-record here to get the figures above
+  detection on THIS machine: per-scenario ceiling 1.72x (244x x 1.1 wobble), sweep budget 1.31x -- these move with the machine because the reference solve does not scale with the real ones (measured 1.7x of ratio compression between an M1 and a CI runner); re-record here to get the figures above
   ok   the budgets are tight enough to see a 2x regression, uniform or confined to one scenario
   thread factor (process CPU / this-thread CPU): reference 1.000, scenarios 1.000 -- these must match for the ratio above to be a pure work ratio that travels to another machine
   ok   the reference and the scenarios are parallelised alike, so the thread factor cancels in the ratio
@@ -152,5 +152,5 @@
   ok   an external heat source suppresses electric hot water
   ok   suppression lowers total electric DHW energy, not just moves it
 
-1 of 113 STRESS CHECKS FAILED
-rc=1
+ALL 113 STRESS CHECKS PASSED
+rc=0

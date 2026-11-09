@@ -1,0 +1,49 @@
+7bad175e1 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-combi-tank-pr
+f365ce757 tvofi Merge pull request #3367 from tvofi/fix/r10-hotfix-codeql-headroom-p2
+c668197a3 tvofi Merge pull request #3370 from tvofi/record/autofix
+806e952ca tvofi Merge pull request #3337 from tvofi/fix/r10-hotfix-roster-lint-refresh
+a5dce6b9e tvofi Merge pull request #3362 from tvofi/fix/r10-rca-tick-blind
+e363b5abc hpo-author[bot] ci: record delivery rows
+41afe769d hpo-author[bot] ci: record delivery rows
+7b0575e7e tvofi Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-codeql-headroom-p2
+79b7356f3 tvofi Merge pull request #3357 from tvofi/record/autofix
+f123901fb tvofi Merge pull request #3339 from tvofi/fix/r10-hotfix-author-email
+91822074e tvofi Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-author-email
+805f5759c tvofi Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-roster-lint-refresh
+3f0d7083a tvofi Merge commit '778782832170d403103adc051922f63303a7c412' into fix/r10-hotfix-roster-lint-refresh
+0eeb6bdb3 tvofi record: the delivery row for #3367
+ca639739c tvofi Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-codeql-headroom-p2
+778782832 hpo-fixer Merge origin/main into fix/r10-hotfix-roster-lint-refresh
+a325da380 hpo-fixer ci: per-leg CodeQL timeout, python 75, actions and javascript-typescript 45
+8978e0437 tvofi Merge commit '84bd4fb40e87530ea6b27ba2ec0d97f4d235fb00' into fix/r10-hotfix-author-email
+84bd4fb40 hpo-fixer Read the fixture identity from throwaway_git.IDENTITY in plan_audit's self-test
+e1c061cfb tvofi record: the delivery row for #3362
+5f3c3c6c3 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-rca-tick-blind
+45339147f tvofi Merge commit '26506fa75e10ee9ec35ee7a98697043c532fdc0f' into fix/r10-hotfix-author-email
+26506fa75 hpo-fixer Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-author-email
+3f8d2ea14 hpo-fixer app_push self-test: the fast-import fixture's committer carries a numbered identity too
+1526703ed hpo-fixer Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-author-email
+774505d6d hpo-author[bot] ci: record delivery rows
+64e4f6bc0 hpo-author[bot] ci: record delivery rows
+0fc051047 tvofi Merge commit 'd21308c547e09cd298c9f62a6ff52cd436597a8a' into fix/r10-hotfix-roster-lint-refresh
+9dc72ad26 tvofi R10-RCA-TICK-BLIND: why the tick board did not prevent the 11-08 stalls (five cases, states, cost test, routed countermeasures)
+0e178baa0 hpo-fixer app_push: the self-test's stubbed commit read carries a numbered identity
+d21308c54 hpo-fixer Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-roster-lint-refresh
+516f48443 hpo-fixer roster_queue: pin the refusal path, the HEAD check and the refresh refusal
+10962d566 tvofi record: the delivery row for #3339
+a119ca757 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-author-email
+d0db3e30b tvofi record: the delivery row for #3337
+6e7a6f6c2 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-roster-lint-refresh
+b8e290116 tvofi ref_privacy: the refusal names the exact identity pin
+353e852db tvofi closures: record the harness's inert read (ci_predict --apply-inert)
+8a00dd6da tvofi harness: build the throwaway repos with tests/throwaway_git.py
+3741aeada tvofi harness: roster_queue stale lint clone, old FAIL / new PASS
+f34f51fbe tvofi roster_queue: check the lint refresh against edit-checkout origin/main; drop the worktree a refusal leaves behind
+7e5bad7c0 tvofi ref_privacy: document unnumbered-email and --adopt-email
+a840cb327 tvofi ref_privacy: P408 self-test arms
+baa5cdf32 tvofi ref_privacy: refuse unnumbered and placeholder author/committer emails (P408)
+review_carry: f744ac599 -> 7bad175e1  main=origin/main
+  branch-only commits: 1
+  why: 0 of 1 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
+  7bad175e1  Merge remote-tracking branch 'origin/main' into fix/r10-combi-tank-pr
+review_carry: CARRY
