@@ -1896,6 +1896,7 @@
    "tools/plan/replan.py",
    "tools/policy/agreement.mjs",
    "tools/policy/brief_lint.mjs",
+   "tools/policy/budget_raise_gate.py",
    "tools/policy/check-wave-script.mjs",
    "tools/policy/counts.mjs",
    "tools/policy/dependabot_contract.mjs",
@@ -4112,6 +4113,7 @@
    "dev/audit/harnesses/r10_nightly_pyspy_retry.py",
    "dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py",
    "dev/audit/harnesses/r10_nightly_status_mutants.py",
+   "dev/audit/harnesses/r10_nonrequired_reds.py",
    "dev/audit/harnesses/r10_open_driver_mutants.py",
    "dev/audit/harnesses/r10_partload_pricing.py",
    "dev/audit/harnesses/r10_plan_durations_mutants.py",
@@ -4981,7 +4983,7 @@
    "seconds": 55.0
   },
   "tests/entities.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 867.9
   },
   "tests/env_drift.py": {

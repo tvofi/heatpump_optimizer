@@ -907,6 +907,10 @@ body_check() { # body file, head sha, title, paths file, red names...
   # refused here (policy_lint's raise arm reads the diff with the gate's own
   # raises_between), and at body_push.sh's --body-check, not first at the train.
   [ -n "${BASE:-}" ] && args+=(--base "$BASE")
+  # The required set a red is judged against (owner ruling tvofi 2026-11-07):
+  # policy_lint reads it live through `merge_train.py owed-reds` unless
+  # PREPR_REQUIRED_FILE names it -- the self-test's, so no fixture reads a ruleset.
+  [ -n "${PREPR_REQUIRED_FILE:-}" ] && args+=(--required-file "$PREPR_REQUIRED_FILE")
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi  # never-empty: args starts with the literal --pr-body list
   rc=$?
   rm -f "$ex"
@@ -2738,12 +2742,16 @@ EOS
     && echo row > dev/programme/delivery/9999.md && $G add -A && $G commit -qm rowadd \
     && $G checkout -q -b rowedit rowadd && echo edited > dev/programme/delivery/9999.md \
     && $G commit -qam rowedit) >/dev/null 2>&1
+  # An EMPTY required file is an unreadable set, so these two arms drive the
+  # exemption as it stood before the 2026-11-07 ruling; the third gives the set.
+  : > "$CLM/req-unread"; echo gate > "$CLM/req-gate"
   row_red() { (cd "$CLM/r" && git checkout -q "$1" \
     && git diff --no-renames --name-only "$2"...HEAD > "$CLM/rowpaths" \
-    && BASE=$2 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" "governance / delivery-status" \
+    && BASE=$2 PREPR_REQUIRED_FILE=$3 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" "governance / delivery-status" \
     >/dev/null 2>&1; echo $?); }
-  st "$(row_red rowadd fork)" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
-  st "$(row_red rowedit rowadd)" 1 "and still owes it when the diff edits a row the base had (null control)"
+  st "$(row_red rowadd fork "$CLM/req-unread")" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
+  st "$(row_red rowedit rowadd "$CLM/req-unread")" 1 "and still owes it when the diff edits a row the base had (null control)"
+  st "$(row_red rowedit rowadd "$CLM/req-gate")" 0 "under a read required set, delivery-status is owed nothing even on an edited base row (tvofi 2026-11-07)"
 
   mkdir "$CLM/ok" "$CLM/under" "$CLM/dead"
   python3 - "$CLM" <<'PY'
