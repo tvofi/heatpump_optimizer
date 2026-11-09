@@ -79,9 +79,13 @@ import merge_throughput as mt  # noqa: E402 -- the flow board's computations
 import bottleneck_check  # noqa: E402 -- the one owner of the alert thresholds
 
 SELF = "tools/audit/seat/plan_page.py"
-# The round's tracking issue (CLAUDE.md's #201): the open-issue count leaves it
-# out, because it stays open for the whole programme by design.
-TRACKING_ISSUE = 201
+sys.path.insert(0, str(_SEAT.parents[1] / "policy"))
+from budget_raise_gate import RECORD_ISSUES  # noqa: E402 -- the one record-issue definition
+# The programme's record issues (#201, and its continuation past GitHub's
+# 2,500-comment cap): the open-issue count leaves them out, because they stay
+# open for the whole programme by design. The page names the live one.
+TRACKING_ISSUES = frozenset(RECORD_ISSUES)
+TRACKING_ISSUE = RECORD_ISSUES[-1]
 _ROUND_PREFIX = re.compile(r"\AR\d+-")
 _GROUP_ID = re.compile(r"\bR\d+(?:-[A-Z0-9]+)+\b")
 _DELIVERY_TITLE = re.compile(r"\A(R\d+-[A-Z0-9-]+):")
@@ -425,7 +429,7 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
     out = {"close_at": close_at, "unplanned": unplanned,
             "other": open_now - set(close_at) - unplanned}
     out["orphans"] = {n: sorted(wired.get(n, [])) for n in sorted(out["other"])
-                      if n != TRACKING_ISSUE}
+                      if n not in TRACKING_ISSUES}
     return out
 
 
@@ -485,7 +489,7 @@ def issues_section(roster: dict, plan: dict, snap: dict) -> str:
             f"start; each is projected to close at the planned finish of the last group "
             f"carrying it. {len(unplanned)} sit on groups with no planned finish and stay "
             f"flat; {len(proj['other'])} other open issues are on no open group: "
-            f"#{TRACKING_ISSUE} (the tracking issue) and the "
+            f"{', '.join(f'#{n}' for n in RECORD_ISSUES)} (the record issues) and the "
             f"{len(proj['orphans'])} listed below as unplanned.")
     title = {i["number"]: i.get("title") or "" for i in snap["issues"]}
     orphans = "".join(
@@ -602,7 +606,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
               for k in _STRIP}
     open_iss = ("—" if snap.get("offline") else str(sum(
         1 for i in snap["issues"]
-        if i["state"] == "OPEN" and i["number"] != TRACKING_ISSUE)))
+        if i["state"] == "OPEN" and i["number"] not in TRACKING_ISSUES)))
     order = {k: i for i, k in enumerate(("S", "M", "L", "XL"))}
     sizes = ", ".join(f"{k} {v:g} h" for k, v in sorted(
         model["sizes_hours"].items(), key=lambda kv: (order.get(kv[0], 99), kv[0])))
@@ -854,8 +858,8 @@ def _self_test() -> int:
     check("an open issue wired only via `fixes` to an open group closes at its finish, "
           "not an unplanned orphan",
           fp["close_at"].get(8) == _t("2026-01-05T10:00:00Z") and not fp["orphans"], fp)
-    check("the tracking issue is never an orphan",
-          TRACKING_ISSUE not in project_issues(ir, ip, {1, TRACKING_ISSUE})["orphans"])
+    check("no record issue, #201 or its continuation, is ever an orphan",
+          not TRACKING_ISSUES & set(project_issues(ir, ip, {1, *TRACKING_ISSUES})["orphans"]))
     osec = issues_section(ir, dict(ip, generated={"start": "2026-01-05T00:00:00Z"},
                                    summary={"closure": "2026-01-07T00:00:00Z"}),
                           {"issues": [{"number": n, "title": f"t{n}", "state": "OPEN"}
@@ -1287,7 +1291,7 @@ td.st{min-width:11rem}
   <div class="stat"><b>{{n_blocked}}</b><span>waiting on a group</span></div>
   <div class="stat"><b>{{n_partial}}</b><span>part merged, residual open</span></div>
   <div class="stat"><b>{{n_held}}</b><span>held by a disposition</span></div>
-  <div class="stat"><b>{{open_iss}}</b><span>open issues (excl. #{{tracking}})</span></div>
+  <div class="stat"><b>{{open_iss}}</b><span>open issues (excl. the record issues)</span></div>
   <div class="stat end"><b>{{end}}</b><span>projected programme close</span></div>
 </div>
 

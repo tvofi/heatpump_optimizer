@@ -120,18 +120,18 @@ esac
   chmod 600 "$log"
 ) 2>/dev/null || true
 
-# The #201 comment guard (R10-RAISE-GATE-SHIM; tools/pr/gh_comment.py's mandate_guard
+# The record-issue comment guard (R10-RAISE-GATE-SHIM; tools/pr/gh_comment.py's mandate_guard
 # lives in that script alone, so a raw post bypassed it). DENY BY DEFAULT: a call that could
-# write a comment on the tracking issue is refused unless the caller is python running the
+# write a comment on a record issue (#201, or its continuation) is refused unless the caller is python running the
 # tree's own gh_comment.py (by real path); it is let through only when it is on an explicit
 # list of calls that cannot. The list is gh's own command table, not a list of spellings:
 #   - no subcommand, or --version/--help alone: pass; any other leading flag: refused;
 #   - `issue`: view/list/status/create pass; comment, close, reopen, edit, delete, lock,
 #     unlock, pin, unpin, transfer and develop pass only with exactly one target that reads as
-#     a plain number other than the tracker, under gh's own flag table (an unknown flag, or a
+#     a plain number other than a tracker, under gh's own flag table (an unknown flag, or a
 #     short-flag cluster, is refused: it could be a value that moves the target); any other
 #     verb is refused;
-#   - `pr`: refused when any word reads as the tracker's number (a PR cannot be the issue,
+#   - `pr`: refused when any word reads as a tracker's number (a PR cannot be the issue,
 #     so this is belt and braces); otherwise passes;
 #   - `api`: a call with no body field, no --input, no method but GET and no header but
 #     Accept is a read and passes (flags read by gh api's own table, an unknown one refused);
@@ -146,7 +146,9 @@ esac
 # %-decoding and `.`/`..`/empty path segments, matched in lower case. Residual, by design: the caller test reads
 # `ps` args, which a caller writes (`exec -a`), so a deliberate spoof of the parent passes
 # (Carry: R10-RAISE-GATE-SHIM); the shim is a guard against a seat's habit, not an adversary.
-tracker=201
+# The trackers: budget_raise_gate.RECORD_ISSUES, the one definition (gh_calls.py's self-test
+# pins this line to it). #201 hit GitHub's 2,500-comment cap; the record continues in the last.
+trackers='201 3394'
 # gh_comment.py's own path: seat_venv.sh --install-shims bakes the tree's into the next
 # line; a shim run from its place in the tree derives it; anywhere else it stays empty,
 # and then no caller passes.
@@ -171,7 +173,7 @@ num() {
 }
 # norm <path>: the path's segments after %-decoding, dropping a URL's scheme and host, a query
 # or anchor, and `.`/`..`/empty segments, and lower-casing every letter (a path segment is
-# matched in lower case: `ISSUES/201/COMMENTS` is the tracker's), into NSEG; 1 when it cannot be read
+# matched in lower case: `ISSUES/201/COMMENTS` is a tracker's), into NSEG; 1 when it cannot be read
 norm() {
   local w=$1 IFS=/ seg
   local -a segs
@@ -223,7 +225,7 @@ issue_gate() {
     ''|view|list|status|create) return 0 ;;
     comment|close|reopen|edit|delete|lock|unlock|pin|unpin|transfer|develop)
       [ -z "$bad" ] && [ "${#pos[@]}" -eq 2 ] || return 1
-      t=$(num "${pos[1]}"); [ "$t" != '?' ] && [ "$t" != "$tracker" ] ;;
+      t=$(num "${pos[1]}"); [ "$t" != '?' ] && ! has "$trackers" "$t" ;;
     *) return 1 ;;
   esac
 }
@@ -231,7 +233,7 @@ pr_gate() {
   local a
   shift
   for a in "$@"; do
-    case $a in -*) ;; *) [ "$(num "$a")" = "$tracker" ] && return 1 ;; esac
+    case $a in -*) ;; *) has "$trackers" "$(num "$a")" && return 1 ;; esac
   done
   return 0
 }
@@ -286,7 +288,7 @@ api_gate() {
         nxt=${NSEG[$((k + 1))]:-}
         [ "$nxt" = comments ] && return 1
         if [ "${NSEG[$((k + 2))]:-}" = comments ]; then
-          t=$(num "$nxt"); { [ "$t" != '?' ] && [ "$t" != "$tracker" ]; } || return 1
+          t=$(num "$nxt"); { [ "$t" != '?' ] && ! has "$trackers" "$t"; } || return 1
         fi ;;
     esac
     k=$((k + 1))
@@ -336,7 +338,7 @@ if [ -n "${hit:-}" ]; then
       a=$(rp "$script") && b=$(rp "$gcpy") && [ "$a" = "$b" ] && ok=1
     fi ;;
   esac
-  [ -n "$ok" ] || { echo "gh shim: a comment write on #$tracker goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused" >&2; exit 1; }
+  [ -n "$ok" ] || { echo "gh shim: a comment write on a record issue (#${trackers// /, #}) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused" >&2; exit 1; }
 fi
 
 exec "$real" "$@"

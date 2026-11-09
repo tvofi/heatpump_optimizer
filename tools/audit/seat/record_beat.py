@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The #201 record comment of a merge: from a fixed template, read back.
+"""The record-issue comment of a merge: from a fixed template, read back.
 
     python3 tools/audit/seat/record_beat.py [--repo O/R] [--state-dir D] [--dry-run] <PR>...
     python3 tools/audit/seat/record_beat.py --self-test
@@ -9,8 +9,10 @@ GitHub names, then `git rev-parse --verify <oid>^{commit}`; a sha is never
 typed), renders one line from `TEMPLATE`, writes it to a body file under the
 state directory (`gh_comment.py` refuses a shared root) and posts it with
 `tools/pr/gh_comment.py post`, which exits non-zero unless the comment read
-back off the API is byte-identical. The orchestrator tick finds a merge's
-record by searching #201's comments for the 40-character sha
+back off the API is byte-identical. It posts to
+`budget_raise_gate.RECORD_ISSUE`, the one definition of the record issue
+(#201 until its 2,500-comment cap; its continuation since). The orchestrator tick finds a merge's
+record by searching its comments for the 40-character sha
 (`orchestrator_tick.py`'s `unrecorded`), so the template carries it whole: ten
 merges once read unrecorded because their comments cited a short sha.
 
@@ -37,12 +39,13 @@ SEAT = Path(__file__).resolve().parent
 ROOT = SEAT.parents[2]
 sys.path.insert(0, str(SEAT))
 import roster_lib  # noqa: E402
+sys.path.insert(0, str(ROOT / "tools/policy"))
+from budget_raise_gate import RECORD_ISSUE  # noqa: E402  the one record-issue definition
 
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
-RECORD_ISSUE = 201
 NO_GROUP = "no-group"
 SHA = re.compile(r"^[0-9a-f]{40}$")
-TEMPLATE = "Merged #{pr} {sha} ({group}). Closed issues: {issues}. Leaves #201 open."
+TEMPLATE = "Merged #{pr} {sha} ({group}). Closed issues: {issues}. Leaves #{record} open."
 
 
 class Owed(Exception):
@@ -107,7 +110,7 @@ def facts(pr: int, repo: str, run=sh) -> dict:
 
 
 def render(pr: int, sha: str, group: str, issues: list) -> str:
-    return TEMPLATE.format(pr=pr, sha=sha, group=group,
+    return TEMPLATE.format(pr=pr, sha=sha, group=group, record=RECORD_ISSUE,
                            issues=" ".join(f"#{n}" for n in issues) or "none") + "\n"
 
 
@@ -131,7 +134,7 @@ def record(pr: int, repo: str, state_dir: Path, f: dict, group: str, dry: bool, 
         return text
     code, o = run(cmd)
     if code != 0:
-        raise Owed(f"the #201 comment was refused ({o.strip()[-160:] or 'no output'})")
+        raise Owed(f"the #{RECORD_ISSUE} comment was refused ({o.strip()[-160:] or 'no output'})")
     return text
 
 
@@ -212,16 +215,18 @@ def self_test() -> int:
         lines = []
         text = record(7, DEFAULT_REPO, Path(td), f, "R9-FR-1", True, run, lines.append)
         check("the dry run prints the exact comment", lines[0] == "DRY-RUN comment: " + text.rstrip("\n")
-              and text == f"Merged #7 {full} (R9-FR-1). Closed issues: #3 #9. Leaves #201 open.\n", lines)
+              and text == f"Merged #7 {full} (R9-FR-1). Closed issues: #3 #9. Leaves #{RECORD_ISSUE} open.\n", lines)
+        check("the comment goes to the record issue, never #201 (closed to comments at its cap)",
+              RECORD_ISSUE != 201 and f"--issue {RECORD_ISSUE} " in lines[1], lines)
         check("the dry run prints the exact command and posts nothing",
-              "gh_comment.py post --repo " + DEFAULT_REPO + " --issue 201 --body-file " in lines[1]
+              "gh_comment.py post --repo " + DEFAULT_REPO + f" --issue {RECORD_ISSUE} --body-file " in lines[1]
               and not any("gh_comment.py" in " ".join(a) for a in log), lines)
         check("the body file lives under the state directory",
               (Path(td) / "postmerge/record-7.md").read_text() == text)
         record(7, DEFAULT_REPO, Path(td), f, "R9-FR-1", False, run)
         check("a real run posts through gh_comment.py", any("gh_comment.py" in " ".join(a) for a in log))
         # the tick's finder searches the comment text for the full sha
-        short = f"Merged #7 {full[:7]} (R9-FR-1). Leaves #201 open."
+        short = f"Merged #7 {full[:7]} (R9-FR-1). Leaves #{RECORD_ISSUE} open."
         check("the tick's finder (full sha in the comment) matches the new comment, not a short-sha one",
               full in text and full not in short)
         bad, _ = fake(rc_comment=1)

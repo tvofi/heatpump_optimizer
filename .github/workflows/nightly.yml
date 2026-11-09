@@ -576,7 +576,7 @@ jobs:
   # Delivery-status table and the handover are a seat's dispositions, never
   # this job's), commits under the `ci:` subject the loop guard keys on, pushes
   # the record branch, and opens or updates the record pull request as the
-  # hpo-author App with a generated body, then posts its #201 coordination
+  # hpo-author App with a generated body, then posts its record-issue coordination
   # comment. The pull request number exists only after that open or lookup.
   # The same write set then gains dev/programme/delivery/<that number>.md. The line
   # anchors the number and carries no merge SHA: the SHA does not exist until
@@ -623,7 +623,7 @@ jobs:
     timeout-minutes: 10
     # No permissions block, deliberately, so the workflow's read-only floor is
     # what GITHUB_TOKEN holds: the enumeration reads public-repo pull-request
-    # data, and every write -- branch push, pull request, #201 comment --
+    # data, and every write -- branch push, pull request, record-issue comment --
     # rides the App installation token minted below, never GITHUB_TOKEN. The
     # four-jobs floor pin in tests/entities.py stays at four, where a fifth
     # override has to be argued for rather than land.
@@ -684,7 +684,7 @@ jobs:
           gh api rate_limit --jq '"RATE_LIMIT enumerate after: \(.resources.core)"' || true
 
       # Two installation tokens from one minting routine. The author App's
-      # writes the rows, the pull request and the #201 comment, and merges
+      # writes the rows, the pull request and the record-issue comment, and merges
       # its own pull request, so the merge is the App's and its push to main
       # fires main's workflows (a GITHUB_TOKEN merge would not).
       # The approver App's, minted only when HPO_APPROVER_PEM/APPID are set in
@@ -982,15 +982,18 @@ jobs:
           write_payload "$(git rev-parse HEAD)"
           curl_json "record-pr update" PATCH \
             "$RUNNER_TEMP/payload.json" "$API/repos/$REPO/pulls/$NUM"
-          # The beat's #201 coordination comment, naming the pull request it
-          # opened (delivery-status-tracking item 3); one per beat.
+          # The beat's coordination comment on the record issue (#201 until
+          # its 2,500-comment cap; budget_raise_gate.RECORD_ISSUE, the one
+          # definition, since), naming the pull request it opened
+          # (delivery-status-tracking item 3); one per beat.
+          RECORD_ISSUE=$(python3 -I -c 'import sys; sys.path.insert(0, "tools/policy"); from budget_raise_gate import RECORD_ISSUE; print(RECORD_ISSUE)')
           python3 -I tools/audit/seat/record_row.py \
             --print-comment --plan-file "$RUNNER_TEMP/plan.json" --pr "$NUM" \
             > "$RUNNER_TEMP/comment.md"
           python3 -I -c 'import json,os; print(json.dumps({"body": open(os.environ["RUNNER_TEMP"]+"/comment.md").read()}))' \
             > "$RUNNER_TEMP/comment.json"
           curl_json "record-pr comment" POST \
-            "$RUNNER_TEMP/comment.json" "$API/repos/$REPO/issues/201/comments"
+            "$RUNNER_TEMP/comment.json" "$API/repos/$REPO/issues/$RECORD_ISSUE/comments"
           echo "pr=$NUM" >> "$GITHUB_OUTPUT"
 
       # THE MERGE IS A PREDICATE (tvofi, 2026-10-07). A record pull request

@@ -29770,7 +29770,9 @@ def _raf_job_ok(job: str) -> bool:
         and job.find("--write-self-row") > job.find("NUM=$(")
         and "docs/HANDOVER.md" not in job
         and "for try in 1 2 3" in job
-        and "issues/201/comments" in job
+        and "from budget_raise_gate import RECORD_ISSUE" in job
+        and "issues/$RECORD_ISSUE/comments" in job
+        and "issues/201/comments" not in job
         and "if: always()" in job
         and pushes
         and all(_RAF_LEASE in p for p in pushes)
