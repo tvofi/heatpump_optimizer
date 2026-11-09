@@ -1,9 +1,0 @@
-roster_edit self-test: 261 checks, 0 failed
-selftest_wiring: 0 index gap(s)
-STRUCTURE RATCHET PASSED
-claims hygiene: origin/main ok
-(empty line above = untouched)
-Architecture score: dS +0.0000 NULL
-  f3e7fcc32  Merge commit 'db13cc6e69c92c3e5b8dd38ba1b4e1659c4bf640' into fix/r10-outside-intake-p2
-  ab236e012  Merge commit '50d4c7e0e2c64de8bf9523fe1b8723c88669d899' into fix/r10-outside-intake-p2
-review_carry: CARRY
