@@ -4773,6 +4773,26 @@
       "doc": [
         "dev/audit/rca/R10-RCA-CLOUD-ENTITIES-ENV.md"
       ]
+    },
+    "R10-RCA-COP-UNMEASURED": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "R10-HOTFIX-COP-UNMEASURED (#3297): with no heat input cop_evidence infers COP as model x ask/draw, and a vendor-estimated thermal power entity was read as metered heat; both were recorded as the measured COP and fed the COP health watch, so the Health tab graded the model against itself from v4.0.0 (a63b576cd) to v7.1.5",
+      "trigger": "1 (release)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "the D1 provenance method step (owner-gated policy)",
+        "the planning counterpart: a study's 'not observable' ruling carried to every reader of the quantity (owner-gated)"
+      ],
+      "process_state": "(c) D1 hunts 'fabricated data as measured' with no method step; the round-10 P5 sweep read _cop_health_cusum and cleared it as 'an empirical per-bucket ... baseline, not a model residual'; STUDY R10-IDENT Q2 found 'COP is not observable without a heat meter' and R10-COP-GATE's brief carried it as a draw-follows-plan state whose null control named the learner only; each judged the sample clean, none traced its inputs",
+      "countermeasure": "built: dev/audit/harnesses/r10_rca_cop_unmeasured.py --check (rc 1 at v7.1.5 and main 73365699a, rc 0 at the fix 2d010b091, rc 2 on the skip control); proposed: a D1 provenance step, about 10 min a round against 1.2-1.5 h expected; refused: a CI-wide provenance type",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-COP-UNMEASURED.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-COP-UNMEASURED.md",
+        "dev/audit/harnesses/r10_rca_cop_unmeasured.py"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5329,7 +5349,7 @@
     ],
     "non_round_note": "A process defect ruled by the owner on 2026-11-07, not an audit finding, not in register_rows.tsv, not counted in total. Reopen on a second code caller whose dispatch runs jobs it does not want.",
     "non_round_instances": [
-      "6b1aa629f stamp.py dispatch_record_beat dispatches all of nightly.yml for record-autofix (26 dispatches, at most 15909 runner-min, 2026-10-26 to 2026-11-07)"
+      "6b1aa629f stamp.py dispatch_record_beat dispatches all of nightly.yml for record-autofix (27 dispatches, at most 16916 runner-min, 2026-10-26 to 2026-11-07; re-measured at 73365699a, dev/audit/rca/r10-rca-flush-dispatch.md section 7)"
     ],
     "rca": [
       "R10-RCA-FLUSH-DISPATCH"
