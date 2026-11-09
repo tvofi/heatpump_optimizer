@@ -1,0 +1,2 @@
+PROBE n 96 sum_sim 288.0 sum_out 288.0 out_is_sim True at_pump 96 sim_at_pump 96 zero_out 0 sim_s0..3 [3.0, 3.0, 3.0, 3.0] out_s0..3 [3.0, 3.0, 3.0, 3.0]
+ALL 14 FEATURES BLOCK PASSED
