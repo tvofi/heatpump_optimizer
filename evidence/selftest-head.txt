@@ -22,6 +22,6 @@ ok   control: without the exports the config identity authors the commit
 ok   a commit made under the exports is authored and committed as the seat even with a conflicting user.name in config
 cloud_setup self-test: 22 checks, 0 failed
 
-real	0m0.174s
-user	0m0.139s
-sys	0m0.030s
+real	0m0.141s
+user	0m0.119s
+sys	0m0.021s

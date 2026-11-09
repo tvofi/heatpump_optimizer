@@ -1,0 +1,7 @@
+ dev/audit/config/bugclasses.json                  |  16 ++
+ dev/audit/rca/R10-RCA-CLOUD-ENTITIES-ENV.md       | 277 ++++++++++++++++++++++
+ dev/programme/delivery/3334.md                    |   1 +
+ tools/audit/seat/cloud-setup.sh                   |  30 ++-
+ tools/audit/seat/instruments/cloud-setup.sh.md    |   7 +-
+ tools/audit/seat/instruments/cloud_dispatch.py.md |  13 +-
+ 6 files changed, 331 insertions(+), 13 deletions(-)
