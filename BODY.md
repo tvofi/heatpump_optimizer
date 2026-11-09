@@ -6,7 +6,7 @@ Repair merge: origin/main (6457496aba7b1076b1ed60c374c5badafdf66fc1, read at 202
 
 ## Head
 
-5f28e55aae26748ab33274d87c1ab8d79d7e50b2
+9aa206952798f3db97440f9b17dcf41827a84cd2
 
 The four first-parent commits after the earlier measured head e27484ffc9fb1f282974a35f02a470f657795e57 (`git log --first-parent e27484ff..5f28e55a`): 7e61974e2 merged origin/main again (tip 3fdaa9da9); f2ca26a07 recorded the delivery row for #3366; 23a63ff9c registered `handoff-verdict-held` as a derived level kind in tools/audit/seat/ledger.py (one line, a census of cloud_relay.sh writers); 5f28e55aa merged origin/main (82a2c142f, #3325) into the handoff. No code of this topic's own changed since e27484ff; the mutation proof and null control above concern cloud_dispatch.py, which those commits do not touch beyond main's merges.
 
