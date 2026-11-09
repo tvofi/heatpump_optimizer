@@ -391,7 +391,8 @@
       "min_power_above_max": "Die Mindestleistung der Wärmepumpe liegt über ihrer maximalen Leistung.",
       "stored_value_out_of_range": "Dieser Wert liegt außerhalb des Bereichs, den dieses Feld normalerweise akzeptiert. Der Bereich wurde erweitert, damit die Seite dennoch gespeichert werden kann – prüfe den Wert und korrigiere ihn, falls er falsch aussieht.",
       "flow_target_needs_two_zone": "„Vorlauftemperatur“ wird aus der eigenen Vorlaufkurve des Zwei-Zonen-Gebäudemodells abgeleitet, die bei diesem Eintrag nicht konfiguriert ist. Konfiguriere zuerst das Zwei-Zonen-Modell oder belasse dies auf „Innentemperatur“.",
-      "prefill_device_unreadable": "Dieses Gerät konnte nicht gelesen werden. Seine Integration hat hier noch keine Zuordnung, oder keine seiner Entitäten enthält einen Wert. Lass das Gerät leer und gib stattdessen ein Modbus-Paket-Präfix an."
+      "prefill_device_unreadable": "Dieses Gerät konnte nicht gelesen werden. Seine Integration hat hier noch keine Zuordnung, oder keine seiner Entitäten enthält einen Wert. Lass das Gerät leer und gib stattdessen ein Modbus-Paket-Präfix an.",
+      "heat_curve_entity_in_use": "Die Offset-Entität der Heizkurve wird vom Optimierer bereits für einen anderen Zweck geschrieben (einen Sollwert, das Ventil, den Verdichter oder den Modus). Wähle für einen davon eine andere Entität."
     },
     "abort": {
       "already_configured": "Diese Integration ist bereits eingerichtet.",
@@ -581,13 +582,17 @@
               "indoor_temp_entity": "Innentemperatursensor",
               "outdoor_temp_entity": "Außentemperatursensor",
               "space_setpoint_entity": "Sollwert-Entität der Raumheizung (optional)",
-              "space_setpoint_unit": "Was diese Sollwert-Entität erwartet"
+              "space_setpoint_unit": "Was diese Sollwert-Entität erwartet",
+              "flow_min_lift_k": "Mindestanhebung über das Eintrittswasser (K)",
+              "flow_heat_c": "Obergrenze der Heizungsvorlauftemperatur (°C)"
             },
             "data_description": {
               "indoor_temp_entity": "Optional. Die tatsächliche Raumtemperatur. Ohne sie vertraut der Optimierer seinem eigenen Modell, das mit der Zeit abdriftet.",
               "outdoor_temp_entity": "Optional. Ein lokales Außenthermometer ist für die aktuelle Stunde genauer als die Vorhersage.",
               "space_setpoint_entity": "Optional. Eine Zahl, ein Helfer oder eine Climate-Entität, die der Sollwert der Raumheizung der Pumpe ist. Dient nur dazu zu bemerken, wenn die Entität nicht gelesen werden kann. Der Optimierer schreibt nie einen empfohlenen Raumheizungs-Sollwert.",
-              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert."
+              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert.",
+              "flow_min_lift_k": "Wenn die Pumpenleistungssteuerung auf Steuern steht, ist der Wasser-Sollwert, der bei der niedrigsten Leistung des Plans geschrieben wird, das gemessene Eintrittswasser plus dieser Wert: Rücklauf der Wärmepumpe, Pufferspeicher, Fußbodenrücklauf oder Ventilausgang, und für eine Entität vom Typ Rücklauftemperatur nur die ersten drei. 5 K passt zu einem Regler, der seinen Vorlauf auf dem Sollwert hält. Von einem Regler, der die Zahl als Rücklaufziel nimmt, wird angenommen, dass er seinen Verdichter umso stärker laufen lässt, je weiter das Ziel über dem Rücklauf liegt; er will also wahrscheinlich weniger. 1–2 K sind ein Ausgangspunkt, den du mit der gemessenen Frequenz und Leistung des Verdichters abgleichst, kein Messwert.",
+              "flow_heat_c": "Der Wasser-Sollwert, der bei voller geplanter Leistung geschrieben wird, und der höchste, der geschrieben wird, solange der Plan steuert. 55 °C passt zu einem Vorlaufziel. Für eine Entität vom Typ Rücklauftemperatur wähle ihn über dem höchsten Rücklauf, den du im normalen Heizbetrieb siehst, plus die Anhebung, und nicht höher, als der Regler annimmt; bei einer Niedertemperatur-Fußbodenheizung können 35–40 °C ein Ausgangspunkt sein, den du mit Messungen abgleichst. Unter 30 °C wird nicht angeboten: Die Schwelle, die Aus bedeutet, liegt bei 25 °C für ein Vorlaufziel und bei 20 °C für ein Rücklaufziel."
             }
           },
           "plant": {
@@ -923,6 +928,9 @@
           "ecl110_displace_min": "Größte Verschiebung nach unten",
           "ecl110_displace_max": "Größte Verschiebung nach oben",
           "ecl110_pid_time_constant_hours": "Reaktionszeit des Reglers",
+          "heat_curve_displace_entity": "Offset-Entität der Heizkurve",
+          "heat_curve_target_kind": "Was die Entität ist",
+          "heat_curve_offset_band_k": "Größter Offset, der auf die Entität geschrieben wird",
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
@@ -934,6 +942,9 @@
           "ecl110_displace_min": "Wie weit die Heizkurve in teuren Stunden nach unten verschoben werden darf.",
           "ecl110_displace_max": "Wie weit die Heizkurve nach oben verschoben werden darf, wenn günstige Wärme gespeichert wird.",
           "ecl110_pid_time_constant_hours": "Ungefähr, wie lange der Regler braucht, um auf eine neue Verschiebung zu reagieren. Damit fordert der Optimierer keine schnelleren Änderungen an, als das System umsetzen kann.",
+          "heat_curve_displace_entity": "Eine Zahl-Entität, die die ganze Heizkurve deines Reglers verschiebt, wobei 0 keine Verschiebung bedeutet, und die der Regler bei einem Neustart vergisst (zum Beispiel ein Heizungs-Offset der Luxtronik-SHI). Nie ein absoluter Kurvenpunkt oder ein gespeicherter Parameter. Das Ausschalten oder Entladen des Optimierers schreibt 0.",
+          "heat_curve_target_kind": "Offset: eine Temperaturdifferenz, 0 neutral, vom Regler nicht gespeichert. Die einzige Art in dieser Version.",
+          "heat_curve_offset_band_k": "Der auf die Entität geschriebene Offset bleibt in beide Richtungen innerhalb so vieler Kelvin. 3 K ist eine Schätzung zwischen einer SG-Ready-Anhebung um +1 bis +2 Stufen und Luxtroniks eigener Korrektur von ±5 K.",
           "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
@@ -1553,7 +1564,9 @@
       "flow_target_needs_two_zone": "„Vorlauftemperatur“ leitet sich aus der eigenen Vorlaufkurve des Zwei-Zonen-Gebäudemodells ab, die dieser Eintrag nicht konfiguriert hat. Konfiguriere zuerst das Zwei-Zonen-Modell oder lass es bei „Innentemperatur“.",
       "flow_curve_needs_direct_plant": "Die Bepreisung der Vorlauftemperaturanhebung ist für ein System ohne Mischventil gedacht. Mit Ventil bepreist die Temperatur des Pufferspeichers die Anhebung bereits, sie würde also doppelt gezählt. Stelle das Ventil auf „Kein Mischventil“ oder schalte dies aus.",
       "prefill_device_unreadable": "Dieses Gerät konnte nicht gelesen werden. Seine Integration hat hier noch keine Zuordnung, oder keine seiner Entitäten hat einen Wert. Lass das Gerät leer und nenne stattdessen einen Modbus-Paket-Präfix.",
-      "dhw_windows_day_selector": "Dieses Feld nennt seinen Tag bereits, gib daher nur reine Zeiten ein, z. B. 06:00-08:30. Tagesauswahlen wie 'weekdays' gehören in das normale Zeitfenster-Feld oben."
+      "dhw_windows_day_selector": "Dieses Feld nennt seinen Tag bereits, gib daher nur reine Zeiten ein, z. B. 06:00-08:30. Tagesauswahlen wie 'weekdays' gehören in das normale Zeitfenster-Feld oben.",
+      "heat_curve_not_offset": "Der eigene Wertebereich dieser Entität enthält 0 nicht, sie ist also kein Offset: Sie sieht wie ein absoluter Kurvenpunkt aus. Wähle die Offset-Entität des Reglers.",
+      "heat_curve_entity_in_use": "Die Offset-Entität der Heizkurve wird vom Optimierer bereits für einen anderen Zweck geschrieben (einen Sollwert, das Ventil, den Verdichter oder den Modus). Wähle für einen davon eine andere Entität."
     },
     "abort": {
       "factory_reset_done": "Zurücksetzen abgeschlossen. Die Integration wurde neu geladen und plant wieder. Um das Zurücksetzen rückgängig zu machen, führe die Aktion „Gelernte Momentaufnahme wiederherstellen“ aus.",
@@ -1686,7 +1699,8 @@
     "space_setpoint_unit": {
       "options": {
         "indoor": "Innentemperatur",
-        "flow": "Vorlauftemperatur"
+        "flow": "Vorlauftemperatur",
+        "return": "Rücklauftemperatur"
       }
     },
     "pump_duty_mode": {
@@ -1701,6 +1715,11 @@
         "settings": "Einstellungen",
         "learners": "Gelernte Werte",
         "both": "Einstellungen und gelernte Werte"
+      }
+    },
+    "heat_curve_target_kind": {
+      "options": {
+        "offset": "Offset (0 ist neutral, flüchtig)"
       }
     }
   },
