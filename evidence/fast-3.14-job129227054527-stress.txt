@@ -1,2 +1,0 @@
-8623:2026-11-09T15:03:28.5766087Z   [15:03:28] FAILED python3 tests/stress.py (190s)
-2026-11-09T15:05:27.5807254Z   FAIL the probed scenarios' memory peaks stay within their recorded budgets  [heavy_old/shoulder traced peak 5.3 MiB vs recorded 3.5 MiB (x1.5); winter/cycle traced peak 5.3 MiB vs recorded 3.5 MiB (x1.5); typical_slab/winter traced peak 5.3 MiB vs recorded 3.4 MiB (x1.5); winter_extreme/1z/dhw traced peak 5.3 MiB vs recorded 3.4 MiB (x1.5); typical_slab/shoulder traced peak 4.0 MiB vs recorded 1.8 MiB (x1.5)]

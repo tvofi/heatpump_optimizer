@@ -1,9 +1,0 @@
-review_carry: e22545159 -> 83b0be72a  main=origin/main
-  branch-only commits: 2
-  why: 0 of 2 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
-  e066a630d  ci: merge main
-  83b0be72a  ci: merge main
-review_carry: CARRY
-
-e066a630d auto=5297822e4903cce614c09c6786309319f85362dc actual=5297822e4903cce614c09c6786309319f85362dc
-83b0be72a auto=e2d7dc4e9527798caea08edff032ba96fbea3fef actual=e2d7dc4e9527798caea08edff032ba96fbea3fef

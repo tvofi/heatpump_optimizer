@@ -468,7 +468,7 @@ Invalid per-day DHW window 'x' for dhw_windows_fri (Invalid window 'x' (expected
 Invalid per-day DHW window 'x' for dhw_windows_sat (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
 Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
   ok   positive control: a non-default stored value is seen
-  .. 198 candidate key(s): 184 behave identically, 14 differ, 32 unobserved by the refresh, 78 with a named read not proven; 181 proven safe
+  .. 200 candidate key(s): 186 behave identically, 14 differ, 34 unobserved by the refresh, 78 with a named read not proven; 183 proven safe
   .. differs when stored at its default: comfort_temp_day_weekend: .after._ctx._config.comfort_temp_day_weekend: None != 21.0
   .. differs when stored at its default: comfort_temp_night_weekend: .after._ctx._config.comfort_temp_night_weekend: None != 19.5
   .. differs when stored at its default: day_end_hour_weekend: .after._ctx._config.day_end_hour_weekend: None != 22
@@ -492,7 +492,7 @@ Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected
   ok   every listed fallback is the value the form shows while the key is absent
 
 -- options: an untouched page does not reload
-/root/rev3299/tests/harness.py:575: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/root/wt/tests/harness.py:593: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   never saved page by page: only the pages posting a behaviour-changing default reload
@@ -576,6 +576,8 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   and each preview label is a copy of the options pre-fill page's, in strings.json
   ok   every previewed field has a label where the frontend looks, in en.json
   ok   and each preview label is a copy of the options pre-fill page's, in en.json
+  ok   every previewed field has a label where the frontend looks, in de.json
+  ok   and each preview label is a copy of the options pre-fill page's, in de.json
   ok   every previewed field has a label where the frontend looks, in sv.json
   ok   and each preview label is a copy of the options pre-fill page's, in sv.json
   ok   a name-matched role is named by its friendly name, the state's friendly_name winning over the registry's original name
@@ -593,6 +595,11 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   and each label is a copy of the options pre-fill page's, in en.json
   ok   null control: the options twin of the same page passes the same walk, in en.json
   ok   every error code the flow can raise is translated, in en.json
+  ok   every field the pre-fill can render is labelled where the frontend looks, in de.json
+  ok   and every field carries a description where the frontend looks, in de.json
+  ok   and each label is a copy of the options pre-fill page's, in de.json
+  ok   null control: the options twin of the same page passes the same walk, in de.json
+  ok   every error code the flow can raise is translated, in de.json
   ok   every field the pre-fill can render is labelled where the frontend looks, in sv.json
   ok   and every field carries a description where the frontend looks, in sv.json
   ok   and each label is a copy of the options pre-fill page's, in sv.json
@@ -612,6 +619,8 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   null control: the single-zone page above it ships the placeholder
   ok   the zones description carries the warning its step computes, in en.json
   ok   null control: the single-zone page above it ships the placeholder
+  ok   the zones description carries the warning its step computes, in de.json
+  ok   null control: the single-zone page above it ships the placeholder
   ok   the zones description carries the warning its step computes, in sv.json
   ok   null control: the single-zone page above it ships the placeholder
   ok   the step hands the warning text to the frontend as a placeholder
@@ -626,6 +635,7 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   its own presets are exactly auto and economy (the rest are Home Assistant's)
   ok   both own presets have a display name where the frontend looks, in strings.json
   ok   both own presets have a display name where the frontend looks, in en.json
+  ok   both own presets have a display name where the frontend looks, in de.json
   ok   both own presets have a display name where the frontend looks, in sv.json
   ok   and both own presets have an icon translation
 
@@ -664,7 +674,7 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   replacing the stored price entity saves the new one
   ok   switching to Tibber with a token saves it and nulls the cleared price entity
 
-RESULT flow_checks_covered=526/526 checks
+RESULT flow_checks_covered=535/535 checks
 RESULT step_user happy=7/7 error_branches=11/11
 RESULT step_user_sensors happy=2/2 error_branches=0/0
 RESULT step_finish_setup happy=5/5 error_branches=0/0
@@ -691,8 +701,8 @@ RESULT step_opt_hot_water happy=17/17 error_branches=9/9
 RESULT step_opt_hot_water_tank happy=11/11 error_branches=3/3
 RESULT step_opt_hot_water_pumps happy=6/6 error_branches=0/0
 RESULT step_opt_building happy=35/35 error_branches=6/6
-RESULT step_opt_thermal_model happy=9/9 error_branches=2/2
-RESULT step_opt_thermal_model_zones happy=6/6 error_branches=0/0
+RESULT step_opt_thermal_model happy=10/10 error_branches=2/2
+RESULT step_opt_thermal_model_zones happy=7/7 error_branches=0/0
 RESULT step_opt_tuning happy=3/3 error_branches=0/0
 RESULT step_opt_heat_curve happy=9/9 error_branches=4/4
 RESULT step_opt_building_preset happy=3/3 error_branches=0/0
@@ -712,4 +722,5 @@ RESULT reconfigure_round_trips=1
 RESULT options_close_round_trips=1
 RESULT duplicate_aborts=1
 
-ALL 551 checks PASSED
+ALL 561 checks PASSED
+rc=0 secs=21
