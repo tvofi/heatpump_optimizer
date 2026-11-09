@@ -439,22 +439,27 @@ def tool(argv: list[str], body: str) -> tuple[int, str]:
 
 
 def unanswered_reds(body: str, head: str, base: str, reds: list[str],
-                    touched: set[str], existing: set[str]) -> list[str]:
+                    touched: set[str], existing: set[str],
+                    required: "list[str] | None" = None) -> list[str]:
     """The concluded reds the body's `## Red checks` leaves unanswered, as
-    `policy_lint.mjs --pr-body` decides over the diff's own paths (P282). A
-    reporter that grades main is owed no answer while the diff leaves its inputs
-    alone, and policy_lint reads that from `--paths-file` and `--existing-file`:
-    without them the obligation is restored on purpose, so every pull request
-    would owe one for main's red. The exemption stays policy_lint's alone, as
-    prepr.sh's body_check keeps it."""
+    `policy_lint.mjs --pr-body` decides (cancelled and timed-out reds included,
+    RED). Only a red in the required set is owed (owner ruling tvofi 2026-11-07):
+    policy_lint reads that set through `merge_train.py owed-reds`, or from
+    <required> when given (the self-test's, so it reads no ruleset). Where the
+    set cannot be read, the rule as it stood holds: a reporter that grades main
+    is owed no answer while the diff leaves its inputs alone (P282), read from
+    `--paths-file` and `--existing-file`. Every exemption stays policy_lint's
+    alone, as prepr.sh's body_check keeps it."""
     if not reds:
         return []
     with tempfile.TemporaryDirectory() as td:
-        pf, ef = Path(td, "paths"), Path(td, "existing")
+        pf, ef, rf = Path(td, "paths"), Path(td, "existing"), Path(td, "required")
         pf.write_text("".join(f"{x}\n" for x in sorted(touched)))
         ef.write_text("".join(f"{x}\n" for x in sorted(existing)))
+        rf.write_text("".join(f"{x}\n" for x in required or ()))
         rc, out = tool(["node", "tools/policy/policy_lint.mjs", "--pr-body", "{BODY}", "--head", head,
                         "--base", base, "--paths-file", str(pf), "--existing-file", str(ef),
+                        *(("--required-file", str(rf)) if required is not None else ()),
                         *[x for n in reds for x in ("--red", n)]], body)
     # A path list policy_lint refuses is not "no unanswered red": the run
     # stopped before any rule read the body, so the outcome is unknown.
@@ -874,30 +879,48 @@ def _self_test() -> int:
     check("hot-file reader null: a verdict-ref commit subject is not a verdict",
           verdict_merge_head("d" * 40, read=lambda s: f"verdict 7 {H}\n") is None)
 
-    # red-unanswered over the diff's paths (P282), through policy_lint itself:
-    # main's `nightly-status` red is owed no answer by a diff that leaves its
-    # inputs alone, `typing` beside it is (the arm); a diff touching the
-    # reporter's own script owes both (the null control), and so does #2954's,
-    # which touched the workflow that schedules it.
+    # red-unanswered, through policy_lint itself. ONLY A REQUIRED RED IS OWED
+    # (owner ruling tvofi 2026-11-07): with the train's set given, main's
+    # `nightly-status` red goes unnamed even on a diff touching the reporter's
+    # own script, and so does a non-required check (a cancelled run is RED and
+    # reaches here by name), while a required unit beside them is owed (the arm). The mutant treating every concluded
+    # red as required owes all three. `req` is the train's set at the recorded
+    # ruleset ([gate]): merge_train's judged(gating_names([gate])).
+    import merge_train  # noqa: E402  (the one owner of the required set)
+    req = merge_train.judged(merge_train.gating_names([merge_train.GATE]))
     unanswering = f"## Head\n{H}\n\n## Red checks\nnone\n"
+    mixed = ["tests / nightly-status", "docs / links", "tests / typing"]
+    rs = {"tests/nightly_status.py"}
+    check("red-unanswered: with the required set read, only the required unit is owed, on a diff touching "
+          "the reporter's own script", unanswered_reds(unanswering, H, B, mixed, rs, rs, req) == ["tests / typing"])
+    check("red-unanswered null: a body naming every red is owed nothing",
+          unanswered_reds(unanswering.replace("none", "\n".join(f"- `{n}`: answered" for n in mixed)),
+                          H, B, mixed, rs, rs, req) == [])
+    # Where the set cannot be read (an empty --required-file), the rule as it
+    # stood (P282): main's `nightly-status` red is owed no answer by a diff
+    # that leaves its inputs alone, `typing` beside it is (the arm); a diff
+    # touching the reporter's own script owes both, and so does #2954's,
+    # which touched the workflow that schedules it.
     both = ["tests / nightly-status", "typing"]
-    check("red-unanswered: main's nightly-status red is not owed by a diff touching only a test file",
-          unanswered_reds(unanswering, H, B, both, {"tests/x.py"}, set()) == ["typing"])
-    check("red-unanswered null: a diff touching tests/nightly_status.py owes both",
-          unanswered_reds(unanswering, H, B, both, {"tests/nightly_status.py"}, {"tests/nightly_status.py"}) == both)
+    check("red-unanswered unread set: main's nightly-status red is not owed by a diff touching only a test file",
+          unanswered_reds(unanswering, H, B, both, {"tests/x.py"}, set(), []) == ["typing"])
+    check("red-unanswered unread set: a diff touching tests/nightly_status.py owes both",
+          unanswered_reds(unanswering, H, B, both, {"tests/nightly_status.py"}, {"tests/nightly_status.py"}, []) == both)
     wf = {".github/workflows/nightly.yml", ".github/workflows/governance.yml"}
-    check("red-unanswered null: #2954's workflow diff still owes nightly-status",
-          unanswered_reds(unanswering, H, B, both, wf, wf) == both)
+    check("red-unanswered unread set: #2954's workflow diff still owes nightly-status",
+          unanswered_reds(unanswering, H, B, both, wf, wf, []) == both)
     check("red-unanswered null: no concluded red reads nothing", unanswered_reds(unanswering, H, B, [], {"tests/x.py"}, set()) == [])
     # main's other reporter: every pull request adds its own delivery row, which
     # `--existing-file` keeps from reading as an input of `delivery-status`.
     ds, row = ["governance / delivery-status"], "dev/programme/delivery/9999.md"
-    check("red-unanswered: main's delivery-status red is not owed by a diff adding only its own delivery row",
-          unanswered_reds(unanswering, H, B, ds, {row}, set()) == [])
-    check("red-unanswered null: a delivery row the base already had owes delivery-status",
-          unanswered_reds(unanswering, H, B, ds, {row}, {row}) == ds)
+    check("red-unanswered unread set: main's delivery-status red is not owed by a diff adding only its own row",
+          unanswered_reds(unanswering, H, B, ds, {row}, set(), []) == [])
+    check("red-unanswered unread set: a delivery row the base already had owes delivery-status",
+          unanswered_reds(unanswering, H, B, ds, {row}, {row}, []) == ds)
+    check("red-unanswered: under the train's set, a delivery row the base had owes delivery-status nothing",
+          unanswered_reds(unanswering, H, B, ds, {row}, {row}, req) == [])
     try:
-        unanswered_reds(unanswering, H, B, both, set(), set())
+        unanswered_reds(unanswering, H, B, both, set(), set(), [])
         ok = False
     except Unavailable:
         ok = True
@@ -1008,7 +1031,7 @@ def _self_test() -> int:
         check("diff_paths: an added delivery row is touched, and only a file the base had is existing",
               paths == ({"kept.txt", row}, {"kept.txt"}))
         check("diff_paths -> red-unanswered: the row the diff adds owes main's delivery-status nothing",
-              unanswered_reds(unanswering, H, B, ds, *paths) == [])
+              unanswered_reds(unanswering, H, B, ds, *paths, []) == [])
 
         # UNAVAILABLE is a different outcome from a refusal: a seat that cannot
         # read the inputs reports rc 3 and writes nothing, and `bus.sh dispatch`

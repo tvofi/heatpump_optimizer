@@ -52,7 +52,7 @@ delivery_row_self_test() ( # a subshell: the throwaway git environment stays in 
   ck() { n=$((n + 1)); if [ "$2" = 0 ]; then echo "  ok   $1"; else f=$((f + 1)); echo "  FAIL $1"; fi; }
   p=$(write_row "$t/w" 7 "- [#7] row"); [ "$p" = "$ROW_DIR/7.md" ] && [ -f "$t/w/$p" ] && [ ! -e "$t/w/docs" ]
   ck "a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/" $?
-  # Hermetic through the shared helper, whose identity variables (t <t@t>) are
+  # Hermetic through the shared helper, whose identity variables (`IDENTITY` in tests/throwaway_git.py) are
   # exactly the ones the row's commit must not inherit.
   . "$(cd "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)/tests/throwaway_git.sh" && throwaway_git_env
   { throwaway_git_init "$t/r" -q && printf 'x\n' > "$t/r/x" && git -C "$t/r" add x \
