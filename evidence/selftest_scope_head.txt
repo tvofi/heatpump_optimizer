@@ -1,0 +1,2 @@
+  FAIL the live job parses (115 steps) and its gating is consistent
+selftest_scope self-test: 90 checks, 1 failed
