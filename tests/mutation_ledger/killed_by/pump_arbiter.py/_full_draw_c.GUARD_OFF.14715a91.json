@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_full_draw_c GUARD_OFF 14715a91",
+  "killed_by": "tests/features.py",
+  "old": "    if not _return_unit(inp.config):",
+  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (review fixes): GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 of 4990 to rc=1 failed=2: a flow target's command takes the return headroom rule (the per-cycle fold records ceiling 60 instead of 55, and the flow-unchanged arm of the D1 check)."
+}
