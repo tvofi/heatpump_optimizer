@@ -907,6 +907,10 @@ body_check() { # body file, head sha, title, paths file, red names...
   # refused here (policy_lint's raise arm reads the diff with the gate's own
   # raises_between), and at body_push.sh's --body-check, not first at the train.
   [ -n "${BASE:-}" ] && args+=(--base "$BASE")
+  # The required set a red is judged against (owner ruling tvofi 2026-11-07):
+  # policy_lint reads it live through `merge_train.py owed-reds` unless
+  # PREPR_REQUIRED_FILE names it -- the self-test's, so no fixture reads a ruleset.
+  [ -n "${PREPR_REQUIRED_FILE:-}" ] && args+=(--required-file "$PREPR_REQUIRED_FILE")
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi  # never-empty: args starts with the literal --pr-body list
   rc=$?
   rm -f "$ex"
@@ -2738,12 +2742,16 @@ EOS
     && echo row > dev/programme/delivery/9999.md && $G add -A && $G commit -qm rowadd \
     && $G checkout -q -b rowedit rowadd && echo edited > dev/programme/delivery/9999.md \
     && $G commit -qam rowedit) >/dev/null 2>&1
+  # An EMPTY required file is an unreadable set, so these two arms drive the
+  # exemption as it stood before the 2026-11-07 ruling; the third gives the set.
+  : > "$CLM/req-unread"; echo gate > "$CLM/req-gate"
   row_red() { (cd "$CLM/r" && git checkout -q "$1" \
     && git diff --no-renames --name-only "$2"...HEAD > "$CLM/rowpaths" \
-    && BASE=$2 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" "governance / delivery-status" \
+    && BASE=$2 PREPR_REQUIRED_FILE=$3 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" "governance / delivery-status" \
     >/dev/null 2>&1; echo $?); }
-  st "$(row_red rowadd fork)" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
-  st "$(row_red rowedit rowadd)" 1 "and still owes it when the diff edits a row the base had (null control)"
+  st "$(row_red rowadd fork "$CLM/req-unread")" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
+  st "$(row_red rowedit rowadd "$CLM/req-unread")" 1 "and still owes it when the diff edits a row the base had (null control)"
+  st "$(row_red rowedit rowadd "$CLM/req-gate")" 0 "under a read required set, delivery-status is owed nothing even on an edited base row (tvofi 2026-11-07)"
 
   mkdir "$CLM/ok" "$CLM/under" "$CLM/dead"
   python3 - "$CLM" <<'PY'
@@ -3084,12 +3092,12 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   grep -q 'were not run (rc 3' <<<"$got" && grep -q '^rc=0$' <<<"$got" \
     && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" != "$was" ]
   st $? 0 "and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)"
-  # CARRY 11: body_push runs carry_audit.py landed after the packet; rc 1 pushes nothing, rc 3 pushes.
+  # CARRY 11: body_push runs carry_audit.py landed after the packet; rc 1 pushes nothing and body_push exits 4 (CARRY-LANDED alone, the relay folds it), rc 3 pushes.
   printf '#!/bin/bash\necho "CARRY-MISSING R10-X body item 0123abcd: not in its brief or carries"; exit %s\n' 1 > "$PDX/ld1"
   printf '#!/bin/bash\necho "carry_audit: UNREAD the roster"; exit %s\n' 3 > "$PDX/ld3"
   was=$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)
   got=$(HPO_HANDOFF_LANDED="bash $PDX/ld1" lpush)
-  grep -q '^CARRY-MISSING R10-X body item 0123abcd' <<<"$got" && grep -q '^rc=1$' <<<"$got" \
+  grep -q '^CARRY-MISSING R10-X body item 0123abcd' <<<"$got" && grep -q '^rc=4$' <<<"$got" \
     && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" = "$was" ]
   st $? 0 "and refuses a body whose carry its group does not hold, naming it and pushing nothing (CARRY 11)"
   got=$(HPO_HANDOFF_LANDED="bash $PDX/ld3" lpush)
@@ -3880,10 +3888,13 @@ EOF
   pfh="/$(echo Users)/exampleuser"
   printf 'evidence: %s/proj/log\n' "$pfh" >"$WB/priv-bad.md"
   printf 'evidence: dev/audit/x.md and ~/proj/log\n' >"$WB/priv-ok.md"
-  got=$(HOME=$pfh USER=exampleuser body_privacy_line "$WB/priv-bad.md"); r=$?
+  # python3 may be a seat shim that resolves its venv under $HOME (macOS), so
+  # under the planted HOME it exits 127; the real interpreter's dir goes first.
+  pfp=$(dirname "$(python3 -I -c 'import sys; print(sys.executable)')"):$PATH
+  got=$(HOME=$pfh USER=exampleuser PATH=$pfp body_privacy_line "$WB/priv-bad.md"); r=$?
   st "$r" 1 "a body naming the host home directory is refused by body_privacy_line"
   st "$(printf 'REFUSE ref_privacy (body): %s' "$got" | cut -c1-26)" "REFUSE ref_privacy (body):" "and the line reads REFUSE ref_privacy (body)"
-  HOME=$pfh USER=exampleuser body_privacy_line "$WB/priv-ok.md" >/dev/null
+  HOME=$pfh USER=exampleuser PATH=$pfp body_privacy_line "$WB/priv-ok.md" >/dev/null
   st $? 0 "a body naming only repository-relative paths and ~/ text passes (null control)"
   case "$flow" in *'PRIVACY_LINE=$(privacy_line)
 step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac

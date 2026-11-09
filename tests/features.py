@@ -44012,6 +44012,17 @@ for _out, _want_c in ((10.0, [0.05, -0.15, -0.55]), (20.2, [0.0, 0.0, -0.38])):
         len(_got_c) == 3 and all(abs(g - w) < 1e-9 for g, w in zip(_got_c, _want_c)),
         f"{_got_c} want {_want_c}",
     )
+# Two-zone the slab-fed zone is the lower floor: 0.1 K-to-kW and a quarter of
+# the gains (0.25 kW), its temperature ramping 20, 24, 36, 56 (midpoints 22,
+# 30, 46) while the room ramps as above. Read off the room instead (carry
+# 435eb685's surviving mutant), the delivered comfort is the room's.
+for _out, _want_c in ((10.0, [-0.05, -0.45, -1.25]), (20.2, [0.0, -0.365, -1.165])):
+    _got_c = [x["comfort_kw"] for x in _sw_run(True, None, None, outdoor=_out)]
+    R.check(
+        f"R10-SAV-COMFORT: two-zone, the comfort shortfall is the lower floor's (outdoor {_out})",
+        len(_got_c) == 3 and all(abs(g - w) < 1e-9 for g, w in zip(_got_c, _want_c)),
+        f"{_got_c} want {_want_c}",
+    )
 _sw_floor = _sw_run(False, None, None, cop=0.0)
 R.check(
     "R10-SAV-COMFORT: a COP below the floor settles at the floor, and one above it is kept",
@@ -44168,9 +44179,11 @@ R.check(
 )
 
 # Behind a valve the reference spreads its energy by steady demand, and on a
-# small pump in a cold night with a sunny day that spread asks more than the
-# pump has (measured 1.23x on this house). The solve's seed from it is clamped,
-# so every start the space solve is handed lies inside its bounds.
+# small pump in a cold night with a sunny day the plain spread asked more than
+# the pump has (measured 1.23x on this house; R10-SAV-COMFORT carry fc24128d).
+# The spread holds such a step at the pump and gives its excess to the others
+# by the same demand, keeping the horizon's energy; the solve is seeded from
+# that reference unclamped, so every start lies inside its bounds.
 from heatpump_optimizer import optimizer as _hz_omod
 
 _hz_n = 96
@@ -44197,6 +44210,14 @@ def _hz_spy_ms(objective, starts, bounds, **kw):
 
 _hz_baselines = []
 _hz_orig_bp = _HbOpt._compute_baseline_power
+_hz_spreads = []
+_hz_orig_ap = _HbOpt._apportion_by_steady_demand
+
+
+def _hz_spy_ap(self, simulated, *a, **kw):
+    out = _hz_orig_ap(self, simulated, *a, **kw)
+    _hz_spreads.append((np.array(simulated, float), np.array(out, float)))
+    return out
 
 
 def _hz_spy_bp(self, *a, **kw):
@@ -44207,6 +44228,7 @@ def _hz_spy_bp(self, *a, **kw):
 
 _hz_omod._multi_start_minimize = _hz_spy_ms
 _HbOpt._compute_baseline_power = _hz_spy_bp
+_HbOpt._apportion_by_steady_demand = _hz_spy_ap
 try:
     _hz_copt.optimize(inputs=solve_inputs(
         initial_state=_HbState(
@@ -44222,14 +44244,82 @@ try:
 finally:
     _hz_omod._multi_start_minimize = _hz_orig_ms
     _HbOpt._compute_baseline_power = _hz_orig_bp
+    _HbOpt._apportion_by_steady_demand = _hz_orig_ap
 _hz_pmax = float(_hz_cpar.max_electrical_power)
 R.check(
-    "behind a valve, a reference spread past the pump seeds the space solve "
-    "only inside its bounds",
-    bool(_hz_seen) and max(_hz_seen) <= 1e-12
-    and max(_hz_baselines, default=0.0) > _hz_pmax,
-    f"worst excess over a bound {max(_hz_seen, default=None)!r}, "
-    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}",
+    "behind a valve, the reference seeds the space solve only inside its bounds",
+    bool(_hz_seen) and max(_hz_seen) <= 1e-12,
+    f"worst excess over a bound {max(_hz_seen, default=None)!r}",
+)
+R.check(
+    "behind a valve, the spread reference holds a step at the pump, never past it, "
+    "and keeps the simulated horizon's energy",
+    bool(_hz_spreads)
+    and all(float(np.max(o)) <= _hz_pmax + 1e-12 for _, o in _hz_spreads)
+    and all(abs(float(np.sum(o)) - float(np.sum(s))) < 1e-9 for s, o in _hz_spreads)
+    and any(int(np.sum(o >= _hz_pmax - 1e-12)) >= 2 for _, o in _hz_spreads)
+    and max(_hz_baselines, default=0.0) <= _hz_pmax + 1e-12,
+    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}; "
+    f"steps at the pump {[int(np.sum(o >= _hz_pmax - 1e-12)) for _, o in _hz_spreads]}",
+)
+# Under the pump the spread keeps the demand's shape. Four steps, the last one
+# a -30 C step whose plain share of 0.8 pump-steps each would pass the pump:
+# it is held at the pump, and the other three share the rest as the same
+# multiple of their steady demand at target (read from the production helper).
+_hz_mws = _HbWSeries(
+    outdoor_temps=np.array([5.0, 0.0, -5.0, -30.0]), wind_speeds=np.zeros(4),
+    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+)
+_hz_mcap = float(_hz_par.max_electrical_power)
+_hz_msim = np.full(4, 0.8 * _hz_mcap)
+_hz_mout = _hz_opt._apportion_by_steady_demand(_hz_msim, _hz_mws, [21.0] * 4)
+_hz_mdem = np.array([_hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0)
+                     for t in _hz_mws.outdoor_temps])
+_hz_mr = _hz_mout[:3] / _hz_mdem[:3]
+# A horizon demanding little (under 1 kW summed) still has a shape: three
+# zero-demand steps and one mild one put all the energy on the mild one.
+_hz_lo = 21.0 - (_hz_par.internal_gains + 0.2) / _hz_par.heat_loss_coefficient
+_hz_lws = _HbWSeries(
+    outdoor_temps=np.array([30.0, 30.0, 30.0, _hz_lo]), wind_speeds=np.zeros(4),
+    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+)
+_hz_ldem = [max(0.0, _hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0))
+            for t in _hz_lws.outdoor_temps]
+_hz_lout = _hz_opt._apportion_by_steady_demand(np.array([0.1, 0.2, 0.05, 0.0]), _hz_lws, [21.0] * 4)
+R.check(
+    "behind a valve, a horizon with a small steady demand spreads by it, not by the simulation",
+    0.0 < sum(_hz_ldem) < 1.0 and _hz_ldem[:3] == [0.0, 0.0, 0.0]
+    and np.allclose(_hz_lout, [0.0, 0.0, 0.0, 0.35], atol=1e-12),
+    f"demand {_hz_ldem!r} spread {_hz_lout!r}",
+)
+# A step whose share lands exactly at the pump is at it, not past it: three
+# zero-demand steps and one cold one, the horizon's energy one pump-step, keep
+# the spread (all of it on the cold step) rather than handing the horizon back
+# to the simulation, as a step held with no demand left to share would.
+_hz_eout = _hz_opt._apportion_by_steady_demand(
+    np.full(4, 0.25 * _hz_mcap), _HbWSeries(
+        outdoor_temps=np.array([30.0, 30.0, 30.0, -5.0]), wind_speeds=np.zeros(4),
+        precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+    ), [21.0] * 4,
+)
+R.check(
+    "behind a valve, a step spread exactly to the pump keeps the spread",
+    _hz_eout.tolist() == [0.0, 0.0, 0.0, _hz_mcap],
+    repr(_hz_eout),
+)
+R.check(
+    "precondition: the cold step's plain share of the horizon passes the pump",
+    bool(np.all(_hz_mdem > 0.0))
+    and float(np.sum(_hz_msim)) * _hz_mdem[3] / float(np.sum(_hz_mdem)) > _hz_mcap,
+    repr(_hz_mdem),
+)
+R.check(
+    "behind a valve, a step spread past the pump is held there and the uncapped steps "
+    "share the rest by their steady demand",
+    _hz_mout[3] == _hz_mcap and float(np.max(_hz_mout[:3])) < _hz_mcap
+    and abs(float(np.sum(_hz_mout)) - float(np.sum(_hz_msim))) < 1e-9
+    and float(np.ptp(_hz_mr)) <= 1e-12 * float(np.max(_hz_mr)),
+    repr(_hz_mout),
 )
 
 # The start's settlement, at its limits (#2255, #2492). A pre-heated start
@@ -44851,9 +44941,8 @@ R.check(
 _wf_not_ready = _wf_view(
     {"wood_tank_volume": 500.0},
     prices=[4.0],
-    outdoor=[-5.0],
+    cops=[2.0],
     runs=[True],
-    cop_at=lambda _t: 2.0,
     timestamps=[],
     forecast_kw=[],
 )
@@ -44969,6 +45058,34 @@ R.check(
     and _wf_off_pub["wood_fuel"].get("cheaper") is False,
     repr(_wf_off_pub.get("wood_fuel")),
 )
+# R10-PARTLOAD-RESIDUE: the published advisor prices pump heat at the derated
+# COP of the plan's own draw, wired by the coordinator (``partload_at``). The
+# step runs at max power, priced so the linear pump heat is 2 % below wood's
+# and the derated one (d = 0.1, factor 0.9) about 8.9 % above it. Null: the
+# same plan at derate 0 counts no cheaper step.
+_wf_tp = _wf_ready_coord._thermal_params
+_wf_sek = _wf_pub["wood_fuel"]["sek_per_kwh"]
+_wf_cop = float(_wf_ready_coord._thermal_model.compute_cop(-5.0))
+_wf_ready_coord._optimization_result = _wf_replace(
+    _wf_result, prices=[0.98 * _wf_sek * _wf_cop],
+    power_schedule=[_wf_tp.max_electrical_power])
+_wf_kept_derate = _wf_tp.cop_partload_derate
+_wf_partload = []
+try:
+    _dt_wf.now = lambda: NOW
+    for _wf_d in (0.1, 0.0):
+        _wf_tp.cop_partload_derate = _wf_d
+        _wf_partload.append(
+            _wf_ready_coord._build_data_dict()["wood_fuel"].get("cheaper_hour_count"))
+finally:
+    _dt_wf.now = _real_now_wf
+    _wf_tp.cop_partload_derate = _wf_kept_derate
+R.check(
+    "the published wood advisor prices a max-power step's pump heat at the "
+    "derated COP (cheaper at d = 0.1, not at d = 0; R10-PARTLOAD-RESIDUE)",
+    _wf_partload == [1, 0],
+    repr(_wf_partload),
+)
 _wf_idle = _WfOR(
     power_schedule=[0.0],
     room_temp_trajectory=[21.0, 21.0],
@@ -45004,9 +45121,8 @@ R.check(
 
 _wf_soc_kwargs = dict(
     prices=_wf_cheap_night,
-    outdoor=[0.0] * 48,
+    cops=[3.0] * 48,
     runs=[False] * 48,
-    cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
 )
@@ -45055,9 +45171,8 @@ R.check(
 _wf_skip_view = _wf_view(
     _wf_cfg,
     prices=_wf_skip_prices,
-    outdoor=[0.0] * 48,
+    cops=[3.0] * 48,
     runs=[False] * 48,
-    cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
     wood_tank_temperature=87.4,
@@ -69107,6 +69222,192 @@ R.check(
     f"{_pp_low}",
 )
 
+# --- #3289 a declared on/off compressor; space projected against the DHW ------
+# R10-MIN-POWER-FLOOR. ``compressor_modulation`` declares whether the
+# compressor can run below p_min; ``thermal_model.declared_modulation`` is its
+# only reader. On a clamped install one compressor serves space and DHW, so
+# space ships projected against the DHW the step already carries
+# (``project_space_against``): every step's total is 0 or in [p_min, p_max].
+# The solve cell is the finder's (dev/audit/harnesses/r10_min_power_floor.py):
+# a 2.5-3.5 kW pump, spread prices, DHW on, outdoor mean -4 degC.
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_CLAMP_PLANNED_LEVELS as _MPF_CLAMP_KEY,
+    CONF_COMPRESSOR_FREQ_ENTITY as _MPF_FREQ,
+    CONF_HEAT_PUMP_SWITCH_ENTITY as _MPF_SWITCH,
+    CONF_POWER_ENTITY as _MPF_POWER,
+    CONF_SPACE_SETPOINT_ENTITY as _MPF_SETPOINT,
+    COMPRESSOR_MODULATION_AUTO as _MPF_AUTO,
+    COMPRESSOR_MODULATION_MODULATING as _MPF_MOD,
+    COMPRESSOR_MODULATION_ON_OFF as _MPF_ON_OFF,
+    CONF_COMPRESSOR_FREQ_SENSOR as _MPF_FREQ_SENSOR,
+    CONF_COMPRESSOR_MODULATION as _MPF_KEY,
+    CONF_FREQ_CONTROL_MODE as _MPF_FREQ_MODE,
+    FREQ_MODE_CONTROL as _MPF_FREQ_CONTROL,
+)
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _MpfOpt,
+    OptimizationConfig as _MpfCfg,
+    _realize_draw as _mpf_realize,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    UNMETERED_POWER_FREEZE as _MPF_FREEZE,
+    ThermalModel as _MpfTM,
+    ThermalParameters as _MpfTP,
+    ThermalState as _MpfTS,
+    declared_modulation as _mpf_declared,
+    InstallCapability as _MpfCap,
+    learner_unmetered as _mpf_unmetered,
+    probe_install as _mpf_probe,
+    project_planned_levels as _mpf_project,
+    project_space_against as _mpf_against,
+)
+
+# The #1955 block's two surfaces, restated so this block runs alone
+# (``tools/audit/seat/features_block.py``): switch plus setpoint, and that
+# surface with a power entity and a frequency write.
+_MPF_UNMETERED = {_MPF_SWITCH: "switch.hp", _MPF_SETPOINT: "number.flow"}
+_MPF_METERED = {**_MPF_UNMETERED, _MPF_POWER: "sensor.hp_power", _MPF_FREQ: "number.hz"}
+
+_MPF_SETPOINT_ONLY = {_MPF_SETPOINT: "number.flow"}
+_MPF_FREQ_ONLY = {_MPF_FREQ_SENSOR: "sensor.hz"}
+
+
+def _mpf_on_off(cfg):
+    return {**cfg, _MPF_KEY: _MPF_ON_OFF}
+
+
+R.check(
+    "a declared on/off compressor clamps on every write surface, metered or not",
+    all(
+        _MpfCfg.from_mapping(_mpf_on_off(m)).clamp_planned_levels is True
+        for m in (_MPF_METERED, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY, {})
+    )
+    and _mpf_probe(_mpf_on_off(_MPF_METERED)).fully_metered() is False,
+    f"{[_MpfCfg.from_mapping(_mpf_on_off(m)).clamp_planned_levels for m in (_MPF_METERED, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY, {})]}",
+)
+_mpf_bare_cap = _MpfCap(writes=frozenset({"setpoint"}), measured_power=False, frequency=False)
+R.check(
+    "null control: a capability built without the declaration is not on/off, and a "
+    "setpoint-only surface it describes can duty-cycle",
+    _mpf_bare_cap.on_off is False and _mpf_bare_cap.can_duty_cycle() is True
+    and _mpf_probe(_MPF_SETPOINT_ONLY).on_off is False,
+    f"{_mpf_bare_cap}",
+)
+_mpf_base_rows = (_MPF_UNMETERED, _MPF_METERED, {}, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY)
+R.check(
+    "null control: auto and an absent key keep the probe's clamp on every surface, "
+    "legacy false and modulating opt out, legacy true clamps",
+    all(
+        _MpfCfg.from_mapping({**m, _MPF_KEY: _MPF_AUTO}).clamp_planned_levels
+        is _MpfCfg.from_mapping(m).clamp_planned_levels
+        for m in _mpf_base_rows
+    )
+    and [_MpfCfg.from_mapping(m).clamp_planned_levels for m in _mpf_base_rows]
+    == [True, False, False, False, False]
+    and _MpfCfg.from_mapping({**_MPF_UNMETERED, _MPF_KEY: _MPF_MOD}).clamp_planned_levels is False
+    and _MpfCfg.from_mapping({**_MPF_UNMETERED, _MPF_CLAMP_KEY: False}).clamp_planned_levels is False
+    and _MpfCfg.from_mapping({**_MPF_METERED, _MPF_CLAMP_KEY: True}).clamp_planned_levels is True
+    and _MpfCfg.from_mapping(
+        {**_MPF_UNMETERED, _MPF_KEY: _MPF_AUTO, _MPF_CLAMP_KEY: False}
+    ).clamp_planned_levels is False,
+)
+R.check(
+    "declared_modulation reads the select first, the legacy key only under auto or absent, "
+    "and anything else as undeclared",
+    _mpf_declared({}) is None
+    and _mpf_declared({_MPF_KEY: _MPF_ON_OFF, _MPF_CLAMP_KEY: False}) is False
+    and _mpf_declared({_MPF_KEY: _MPF_MOD, _MPF_CLAMP_KEY: True}) is True
+    and _mpf_declared({_MPF_KEY: _MPF_AUTO, _MPF_CLAMP_KEY: True}) is False
+    and _mpf_declared({_MPF_CLAMP_KEY: False}) is True
+    and _mpf_declared({_MPF_KEY: "bogus"}) is None
+    and _mpf_declared({_MPF_CLAMP_KEY: "false"}) is None,
+)
+R.check(
+    "an unmetered on/off install freezes the house learner; a metered one, or a "
+    "declared modulating one, learns",
+    _mpf_unmetered(_mpf_on_off(_MPF_SETPOINT_ONLY)) == _MPF_FREEZE
+    and _mpf_unmetered(_MPF_SETPOINT_ONLY) is None
+    and _mpf_unmetered(_mpf_on_off(_MPF_METERED)) is None
+    and _mpf_unmetered({**_MPF_UNMETERED, _MPF_KEY: _MPF_MOD}) is None
+    and _mpf_unmetered(_MPF_UNMETERED) == _MPF_FREEZE,
+)
+
+_mpf_space = np.array([0.0, 0.3, 2.8, 4.0, 1.0, 2.8, 0.05, -0.2])
+_mpf_dhw = np.array([0.0, 0.0, 2.5, 0.0, 3.5, 0.0, 2.5, 0.0])
+_mpf_proj = _mpf_against(_mpf_space, _mpf_dhw, 2.5, 3.5)
+_mpf_rows = _mpf_against(np.vstack([_mpf_space, _mpf_space[::-1]]), _mpf_dhw, 2.5, 3.5)
+R.check(
+    "space projects against the DHW in its step: capped at p_max - dhw, a sub-minimum "
+    "level raised to p_min only where DHW is off, identity where the total already fits",
+    np.allclose(_mpf_proj, [0.0, 2.5, 1.0, 3.5, 0.0, 2.8, 0.05, 0.0])
+    and np.array_equal(_mpf_against(_mpf_space, np.zeros(8), 2.5, 3.5),
+                       _mpf_project(_mpf_space, 2.5, 3.5))
+    and np.array_equal(_mpf_rows[0], _mpf_proj)
+    and np.array_equal(_mpf_rows[1], _mpf_against(_mpf_space[::-1], _mpf_dhw, 2.5, 3.5)),
+    f"{_mpf_proj.tolist()}",
+)
+_mpf_r_space, _mpf_r_dhw = _mpf_realize(True, _mpf_space, np.array([0.0, 1.0, 2.5, 4.0, 0, 0, 0, 0]), 2.5, 3.5)
+R.check(
+    "a clamped install realizes DHW as its own projection and space against it; "
+    "unclamped and DHW-less draws are unchanged",
+    np.allclose(_mpf_r_dhw, [0.0, 2.5, 2.5, 3.5, 0, 0, 0, 0])
+    and np.allclose(_mpf_r_space, [0.0, 0.3, 1.0, 0.0, 2.5, 2.8, 2.5, 0.0])
+    and _mpf_realize(False, _mpf_space, _mpf_dhw, 2.5, 3.5)[0] is _mpf_space
+    and _mpf_realize(False, _mpf_space, _mpf_dhw, 2.5, 3.5)[1] is _mpf_dhw
+    and _mpf_realize(True, _mpf_space, None, 2.5, 3.5)[1] is None
+    and np.array_equal(_mpf_realize(True, _mpf_space, None, 2.5, 3.5)[0],
+                       _mpf_project(_mpf_space, 2.5, 3.5)),
+    f"space {_mpf_r_space.tolist()} dhw {_mpf_r_dhw.tolist()}",
+)
+
+_MPF_STEPS = np.arange(96)
+_MPF_SPREAD = 1.3 + 0.9 * np.sin(2 * np.pi * (_MPF_STEPS - 30) / 96.0)
+
+
+def _mpf_totals(cfg):
+    """Per-step space+DHW of the finder's spread/DHW/-4 degC cell under ``cfg``."""
+    params = _MpfTP()
+    params.mixing_valve_mode, params.buffer_tank_volume = "none", 0.0
+    params.min_electrical_power, params.max_electrical_power = 2.5, 3.5
+    params.dhw_enabled = True
+    out = -4.0 + 3 * np.sin(2 * np.pi * (_MPF_STEPS - 50) / 96)
+    opt = _MpfOpt(_MpfTM(params), _MpfCfg(
+        clamp_planned_levels=_MpfCfg.from_mapping(cfg).clamp_planned_levels,
+    ))
+    res = opt.optimize(inputs=solve_inputs(
+        initial_state=_MpfTS(
+            room_temperature=20.5, upper_floor_temperature=20.5,
+            lower_floor_temperature=20.5, slab_temperature=21.0,
+            outdoor_temperature=float(out[0]), dhw_temperature=50.0,
+        ),
+        prices=_MPF_SPREAD, outdoor_temps=out,
+        start_time=datetime(2026, 1, 10, tzinfo=UTC),
+    ))
+    return (np.asarray(res.power_schedule, float)
+            + np.asarray(res.dhw_power_schedule or np.zeros(96), float))
+
+
+def _mpf_off_or_band(tot):
+    return bool(np.all((tot == 0.0) | ((tot >= 2.5 - 1e-9) & (tot <= 3.5 + 1e-9))))
+
+
+_mpf_declared_tot = _mpf_totals(_mpf_on_off(_MPF_METERED))
+_mpf_probed_tot = _mpf_totals(_MPF_UNMETERED)
+R.check(
+    "per step, a declared on/off pump on a fully metered install plans every step off "
+    "or between min and max power (#3289)",
+    _mpf_off_or_band(_mpf_declared_tot),
+    f"steps below 2.5 {int(np.sum((_mpf_declared_tot > 0) & (_mpf_declared_tot < 2.5 - 1e-9)))}, "
+    f"max {_mpf_declared_tot.max():.2f}",
+)
+R.check(
+    "per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW "
+    "above max power, nor a running step below min power",
+    _mpf_off_or_band(_mpf_probed_tot),
+    f"max {_mpf_probed_tot.max():.2f}, steps below 2.5 "
+    f"{int(np.sum((_mpf_probed_tot > 0) & (_mpf_probed_tot < 2.5 - 1e-9)))}",
+)
+
 # --- R10-SETPOINT-POWER: the set-point is a power command (tvofi, 2026-10-19)
 # The modulation floor's flow sits FLOW_MIN_LIFT_K above the measured water
 # the pump heats, read from whichever sensors are configured, in the
@@ -69236,7 +69537,9 @@ R.check(
 # moved between arm64 and CI's x86_64. So the checks pin what the mechanism
 # guarantees on every platform -- a strictly lower objective where it wins,
 # never a higher one, and a plan that books above the floor -- not a cell's
-# basin.
+# basin. In the hot-water cells space ships projected against the DHW plan
+# (#3289, ``project_space_against``): before that, two cells shipped space
+# plus DHW above their 5.5 kW p_max; the checks' predicates hold either way.
 import heatpump_optimizer.optimizer as _sp_opt_mod  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer as _SpOpt,
@@ -70818,6 +71121,21 @@ R.check(
 R.check(
     "S4 where the install can duty-cycle: the min end stays configured",
     _dr.planned_range(_dr_live, _dr_params(), _DR_DUTY) == (_DR_MIN, _dr_live_seen[1]),
+)
+_dr_duty_cfg = {_MPF_SETPOINT: "number.flow", _MPF_POWER: "sensor.hp_power"}
+R.check(
+    "S4 on a setpoint-only install declared on/off: the metered floor raises the min "
+    "end, as on a switch-plus-setpoint one (#3289); undeclared it stays configured",
+    _dr.planned_range(_dr_live, _dr_params(), _dr_probe(_mpf_on_off(_dr_duty_cfg)))
+    == _dr_live_seen
+    and _dr.planned_range(_dr_live, _dr_params(), _dr_probe(_dr_duty_cfg))
+    == (_DR_MIN, _dr_live_seen[1]),
+)
+R.check(
+    "S4 a declared on/off install whose plan writes the frequency still reads None",
+    _dr.planned_range(_dr_live, _dr_params(), _dr_probe(_mpf_on_off(
+        {_MPF_SWITCH: "switch.hp", _MPF_FREQ: "number.hz", _MPF_FREQ_MODE: _MPF_FREQ_CONTROL}
+    ))) is None,
 )
 _dr_below_min = _dr_learner("live", cfg=(2.0, _DR_MAX))
 _dr_below_seen = _dr_below_min.observed()
