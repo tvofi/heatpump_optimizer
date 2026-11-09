@@ -1,0 +1,34 @@
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT mutant=ge_over rc=1 2 FAIL-lines
+  FAIL behind a valve, a step spread exactly to the pump keeps the spread  [array([1.5, 1.5, 1.5, 1.5])]
+1 of 14 FEATURES BLOCK FAILED
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT mutant=held_assign rc=124 0 FAIL-lines
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT mutant=no_subtract rc=1 2 FAIL-lines
+  FAIL behind a valve, a step spread past the pump is held there and the uncapped steps share the rest by their steady demand  [array([4.8, 4.8, 4.8, 4.8])]
+1 of 14 FEATURES BLOCK FAILED
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT mutant=uncapped rc=1 4 FAIL-lines
+  FAIL behind a valve, the reference seeds the space solve only inside its bounds  [worst excess over a bound 0.6783317465109251]
+  FAIL behind a valve, the spread reference holds a step at the pump, never past it, and keeps the simulated horizon's energy  [reference peak 3.678331746510925 kW against 3.0; steps at the pump [73]]
+  FAIL behind a valve, a step spread past the pump is held there and the uncapped steps share the rest by their steady demand  [array([2.53584906, 3.44150943, 4.34716981, 8.8754717 ])]
+3 of 14 FEATURES BLOCK FAILED
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT mutant=held_not_cap rc=1 2 FAIL-lines
+  FAIL behind a valve, a step spread past the pump is held there and the uncapped steps share the rest by their steady demand  [array([3.24210526, 4.4       , 5.55789474, 0.        ])]
+1 of 14 FEATURES BLOCK FAILED
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT mutant=return_sim_fallback_zero rc=1 3 FAIL-lines
+  FAIL behind a valve at zero demand the held tank keeps its measured temperature, and a horizon with no steady demand keeps its simulated schedule  [(37.5, array([0., 0., 0., 0.]))]
+  FAIL behind a valve, the spread reference holds a step at the pump, never past it, and keeps the simulated horizon's energy  [reference peak 0.0 kW against 3.0; steps at the pump [0]]
+2 of 14 FEATURES BLOCK FAILED
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT mutant=seed_reclip rc=0 0 FAIL-lines
+ 1 file changed, 2 insertions(+), 7 deletions(-)
+RESULT mutant=old_code rc=1 4 FAIL-lines
+  FAIL behind a valve, the reference seeds the space solve only inside its bounds  [worst excess over a bound 0.6783317465109251]
+  FAIL behind a valve, the spread reference holds a step at the pump, never past it, and keeps the simulated horizon's energy  [reference peak 3.678331746510925 kW against 3.0; steps at the pump [73]]
+  FAIL behind a valve, a step spread past the pump is held there and the uncapped steps share the rest by their steady demand  [array([2.53584906, 3.44150943, 4.34716981, 8.8754717 ])]
+3 of 14 FEATURES BLOCK FAILED
+DONE

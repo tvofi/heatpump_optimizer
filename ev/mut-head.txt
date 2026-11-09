@@ -1,0 +1,18 @@
+
+=== features block ===
+  ok   the booked thermostat step is independent of the plan's start state (single-zone)
+  ok   the predicted saving moves less with the start state than the plan's cost (single-zone)
+  ok   the booked thermostat step is the steady holding power at target
+  ok   the held house at the booked power is a steady state of the plant model
+  ok   past the comfort schedule's end the thermostat holds the default setpoint; with no weather the held state is the measured one
+  ok   the booked thermostat step is independent of the plan's start state (two-zone, DHW)
+  ok   the predicted saving moves less with the start state than the plan's cost (two-zone, DHW)
+  ok   behind a valve at zero demand the held tank keeps its measured temperature, and a horizon with no steady demand keeps its simulated schedule
+  ok   behind a valve, the reference seeds the space solve only inside its bounds
+  ok   behind a valve, the spread reference holds a step at the pump, never past it, and keeps the simulated horizon's energy
+  ok   behind a valve, a horizon with a small steady demand spreads by it, not by the simulation
+  ok   behind a valve, a step spread exactly to the pump keeps the spread
+  ok   precondition: the cold step's plain share of the horizon passes the pump
+  ok   behind a valve, a step spread past the pump is held there and the uncapped steps share the rest by their steady demand
+
+ALL 14 FEATURES BLOCK PASSED
