@@ -491,10 +491,10 @@ verdict_log() { # pr -> verdict/<pr>'s commit subjects, newest first (nothing wh
   git log --format=%s "$tip"
 }
 
-blocked_rounds() { # pr -> the count of blocked verdict commits in verdict/<pr>'s history; rc 1 unreadable
+blocked_rounds() { # pr -> the count of distinct heads with a blocked verdict in verdict/<pr>'s history (a re-post at one head is no round); rc 1 unreadable
   local subj
   subj=$(verdict_log "$1") || return 1
-  printf '%s\n' "$subj" | grep -c "^verdict: #$1 Fix review: blocked " || :
+  printf '%s\n' "$subj" | sed -n "s/^verdict: #$1 Fix review: blocked \([0-9a-f]\{7,40\}\)\([ ].*\)\{0,1\}\$/\1/p" | sort -u | grep -c . || :
 }
 
 verdict_at() { # pr sha -> the latest verdict word naming <sha> on verdict/<pr> (merge, blocked), or nothing; rc 1 unreadable
@@ -504,7 +504,8 @@ verdict_at() { # pr sha -> the latest verdict word naming <sha> on verdict/<pr> 
 }
 
 # THE THREE-ROUND RULE (fixer.md, "Past three rounds"). Each round's verdict stays in
-# verdict/<pr>'s history, so its blocked commits are the rounds already reviewed. After three,
+# verdict/<pr>'s history, so its distinct blocked heads are the rounds already reviewed
+# (#3247: five re-posts at one head were one round). After three,
 # a dispatch needs the body's `## Re-cut` note (read only then, through $HPO_BUS_GH) or
 # `--past-three <reason>`, logged in $S/past-three; after a fourth -- a re-cut blocked again --
 # only `--past-three`: the split-or-close is the orchestrator's, never a silent re-dispatch.
@@ -974,7 +975,7 @@ self_test() {
   # 7, 9, 12, 21, 22 and 24 (21-24 are the FETCHHEAD/poster arms' pull
   # requests); h2 (a child) inherits them; norow is the base, with none.
   mkdir -p "$W/seat/$ROW_DIR"
-  for n in 7 9 12 21 22 24 30 31 32 33 34; do
+  for n in 7 9 12 21 22 24 30 31 32 33 34 35; do
     printf -- '- [#%s](https://github.com/o/r/pull/%s) — **open**\n' "$n" "$n" > "$W/seat/$ROW_DIR/$n.md"
   done
   git -C "$W/seat" -c user.name=t -c user.email=t@t add -A
@@ -1879,7 +1880,7 @@ B
   # THE THREE-ROUND RULE (fixer.md, "Past three rounds"): verdict/<pr>'s history keeps every
   # round, so the blocked commits on it are the rounds a dispatch would follow.
   blk() { git -C "$W/seat" commit-tree "$(git -C "$W/seat" rev-parse "$h1^{tree}")" ${2:+-p "$2"} \
-            -m "verdict: #31 Fix review: blocked $h1 harness: round $1"; }
+            -m "verdict: #${3:-31} Fix review: blocked ${4:-$(printf '%040d' "$1")} harness: round $1"; }
   printf '#!/bin/bash\nprintf "%%s|" "$@" >> "%s/gh-argv"; echo >> "%s/gh-argv"; cat "%s/body31"\n' "$W" "$W" "$W" > "$W/ghstub"
   printf '## Summary\nround four, repaired\n' > "$W/body31"
   f1=$(blk 1); f2=$(blk 2 "$f1"); git -C "$W/seat" push -q origin "$f2:refs/heads/verdict/31"
@@ -1906,6 +1907,16 @@ B
   expect "a re-cut body blocked again is refused for the orchestrator's split-or-close" $?
   out=$(run dispatch 31 "$h1" cmsg_T --past-three); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "past-three needs a reason"; expect "--past-three without a reason is refused" $?
+  # #3247: five re-posts of one verdict at one head are one review round
+  rp=$(blk 1 "" 32 "$h1"); for i in 2 3 4 5; do rp=$(blk $i "$rp" 32 "$h1"); done
+  git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/32"
+  out=$(run dispatch 32 "$h1" cmsg_T); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '; expect "five re-posts at one head count as one round and dispatch (#3247)" $?
+  rp=$(blk 1 "" 35 "$(printf '%040d' 1)"); rp=$(blk 2 "$rp" 35 "$(printf '%040d' 2)")
+  rp=$(blk 3 "$rp" 35 "$(printf "%040d" 3)"); git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/35"
+  printf "## Summary\nno note\n" > "$W/body31"
+  out=$(run dispatch 35 "$h1" cmsg_T); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "3 blocked round(s).*## Re-cut"; expect "null control: three distinct blocked heads are three rounds and refuse without a note" $?
 
   # THE REVIEW PACKET: dispatch names the packet rendered at its head and passes the
   # finder's harness through; a REFUSED head records nothing; a seat that cannot render

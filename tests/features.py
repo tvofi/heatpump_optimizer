@@ -14,7 +14,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime, timedelta, timezone
 
-from harness import FakeHass, FakeState, Results, UTC, minutes_ago, with_config
+from harness import FakeHass, FakeState, Results, UTC, SHIPPED_CATALOGUES, TRANSLATED_LANGS, minutes_ago, with_config
 from profiles import solve_inputs  # noqa: E402
 
 import numpy as np
@@ -2198,12 +2198,13 @@ R.section("R10-DEMAND-OVERBOOK: the unsensed slab advances by metered heat (#249
 # draw instead. The previous plan says 25 degC after 30 min of 4 kW; the
 # prior slab is 23 degC.
 from heatpump_optimizer import draw_range as _r10do_draw  # noqa: E402
+from heatpump_optimizer import heat_energy as _r10do_energy  # noqa: E402
 from heatpump_optimizer.thermal_model import ThermalState as _r10do_state  # noqa: E402
 
 _r10do_t0 = datetime(2026, 10, 5, 3, 0, tzinfo=UTC)
 
 
-def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5, *, mode=None, immersion=False):
+def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5, *, mode=None, immersion=False, before=None, switched=True):
     cfg = {
         "tibber_token": "x",
         "weather_entity": "weather.home",
@@ -2239,8 +2240,16 @@ def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5, *, mode=None, immersio
             unit = "kW" if entity == "sensor.hp_power" else "°C"
             coord.hass.states.set(entity, FakeState(value, last_updated=now, unit=unit))
         if mode is not None:
-            coord.hass.states.set("select.pump_mode", FakeState(
-                mode, last_updated=now, attributes={"options": [mode]}))
+            mode_state = FakeState(mode, last_updated=now, attributes={"options": [mode]})
+            if before is not None:
+                # The previous cycle read ``before`` live at the interval's
+                # start; the pump switched to ``mode`` halfway through it.
+                start = now - timedelta(hours=gap_h)
+                meter = _r10do_energy.meter_of(coord)
+                meter.observe_mode(start, before, True, start - timedelta(hours=1))
+                meter.cycle = (None, start)
+                mode_state.last_changed = now - timedelta(hours=gap_h / 2 if switched else gap_h + 1)
+            coord.hass.states.set("select.pump_mode", mode_state)
         _r9f12_aio.run(coord._update_current_state())
     finally:
         _r9f12_dt.freeze(None)
@@ -2292,6 +2301,34 @@ R.check(
     _r10do_dhw_only == _r10do_off and _r10do_heating == _r10do_full,
     "slab dhw-only/off=%.3f/%.3f heating/full=%.3f/%.3f"
     % (_r10do_dhw_only, _r10do_off, _r10do_heating, _r10do_full),
+)
+# R10-COP-GATE-E (#3106): a mode switch inside the interval. The draw read at
+# the close is apportioned by the dwell's hours in each duty, not by the live
+# mode alone: hot water for the first half and heating at the close books half
+# the draw as space heat, the slab of a pump that drew half as much all
+# interval long; the reverse switch books the same half, not 0 kW. A dwell
+# all on one duty reads as before (the null control).
+_r10do_half = _r10do_slab(True, 2.0, mode="Heating", before=_r10do_energy.MODE_HEAT, switched=False)
+_r10do_swback = _r10do_slab(True, 4.0, mode="Heating", before=_r10do_energy.MODE_DHW)
+_r10do_out = _r10do_slab(True, 4.0, mode="DHW (Hot Water)", before=_r10do_energy.MODE_HEAT)
+_r10do_still = _r10do_slab(True, 4.0, mode="Heating", before=_r10do_energy.MODE_HEAT, switched=False)
+R.check(
+    "R10-COP-GATE-E: a switch back from hot water to heating advances the slab "
+    "by the dwell's space share of the draw, not the whole draw as space heat",
+    _r10do_swback == _r10do_half and _r10do_swback < _r10do_heating,
+    "slab switch-back/half-draw/heating=%.4f/%.4f/%.4f" % (_r10do_swback, _r10do_half, _r10do_heating),
+)
+R.check(
+    "R10-COP-GATE-E: a switch from heating to hot water books the dwell's "
+    "space share of the draw, not 0 kW",
+    _r10do_out == _r10do_half and _r10do_out > _r10do_dhw_only,
+    "slab switch-out/half-draw/dhw-only=%.4f/%.4f/%.4f" % (_r10do_out, _r10do_half, _r10do_dhw_only),
+)
+R.check(
+    "R10-COP-GATE-E: a dwell all on space heat advances the slab by the whole "
+    "draw, as with the live mode alone (null control)",
+    _r10do_still == _r10do_heating,
+    "slab all-space/heating=%.4f/%.4f" % (_r10do_still, _r10do_heating),
 )
 R.check(
     "#2499: a resistive element sharing the meter gives no space draw; a pump "
@@ -5811,7 +5848,7 @@ import json as _rt_json  # noqa: E402
 import re as _rt_re  # noqa: E402
 
 _rt_examples = {}
-for _rt_f in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _rt_f in ("strings.json", *SHIPPED_CATALOGUES):
     with open(f"custom_components/heatpump_optimizer/{_rt_f}", encoding="utf-8") as _fh:
         _rt_doc = _rt_json.load(_fh)
 
@@ -6645,6 +6682,71 @@ def _vib_memo_arms():
 
 
 _vib_memo_arms()
+
+
+def _blas_pin_shared_controller():
+    """R10-HOTFIX-STRESS-MEM-PEAK: the BLAS pin scans the libraries once.
+
+    ``threadpool_limits`` built a fresh ``ThreadpoolController`` per minimize
+    call -- a rescan of every loaded library each time, and on Python 3.14 an
+    import of ``ctypes.util`` inside the first solve, which the stress memory
+    probe charged to the scenario. The pin now goes through the one
+    controller optimizer.py built at import; a call constructs none.
+    """
+    import threadpoolctl
+
+    built: list = []
+    real_init = threadpoolctl.ThreadpoolController.__init__
+
+    def counting_init(self, *a, **k):
+        built.append(1)
+        real_init(self, *a, **k)
+
+    def obj(x, *_a):
+        return float(np.dot(np.asarray(x, dtype=float), np.asarray(x, dtype=float)))
+
+    threadpoolctl.ThreadpoolController.__init__ = counting_init
+    try:
+        for _ in range(3):
+            _grad_optmod._scoped_minimize(
+                obj, np.ones(3), method="L-BFGS-B", bounds=[(-1.0, 1.0)] * 3,
+            )
+        # The null control: the counter does see a construction.
+        threadpoolctl.ThreadpoolController()
+    finally:
+        threadpoolctl.ThreadpoolController.__init__ = real_init
+    R.check(
+        "the BLAS thread pin reuses optimizer.py's one ThreadpoolController: "
+        "three scoped minimize calls build none (and the counter sees a direct "
+        "construction, the null control)",
+        isinstance(getattr(_grad_optmod, "_blas_threads", None), threadpoolctl.ThreadpoolController)
+        and len(built) == 1,
+        f"constructions={len(built)} (want 1: the null control's alone), "
+        f"_blas_threads={type(getattr(_grad_optmod, '_blas_threads', None)).__name__}",
+    )
+
+    # The optional-dependency arm: no threadpoolctl, no pin, the same solve.
+    saved = _grad_optmod._blas_threads
+    _grad_optmod._blas_threads = None
+    try:
+        bare = _grad_optmod._scoped_minimize(
+            obj, np.ones(3), method="L-BFGS-B", bounds=[(-1.0, 1.0)] * 3,
+        )
+        bare_err = None
+    except Exception as err:  # noqa: BLE001 - the raise is the observation
+        bare, bare_err = None, err
+    finally:
+        _grad_optmod._blas_threads = saved
+    R.check(
+        "without threadpoolctl the scoped minimize runs unpinned and still "
+        "solves (x -> 0 on the bowl)",
+        bare_err is None and bare is not None
+        and float(np.max(np.abs(bare.x))) < 1e-6,
+        f"error={bare_err!r} x={None if bare is None else bare.x}",
+    )
+
+
+_blas_pin_shared_controller()
 
 
 def _d0_restart_from_returned_point():
@@ -12625,9 +12727,29 @@ R.check(
     and "Värmepump" in _sv_text and "Ute" in _sv_text,
     _sv_text,
 )
+# Every language the setup text ships (R10-I18N-DE): each table's slot
+# labels differ from English, and its summary carries no English heading.
+for _tr_lang in _topo._TRANSLATIONS:
+    _tr_full = _topo.describe_setup(_full_cfg, f"{_tr_lang}-XX")
+    _tr_labels = {s["key"]: s["label"] for s in _tr_full["slots"]}
+    _tr_text = _topo.render_text_summary(_tr_full)
+    R.check(
+        f"every slot label and no summary heading is English on a {_tr_lang} install",
+        _tr_labels.keys() == _en_labels.keys()
+        and all(_tr_labels[k] != _en_labels[k] for k in _en_labels)
+        and not any(w in _tr_text for w in _en_words)
+        and all(e["label"] != n["label"]
+                for e, n in zip(_full["catalog"], _tr_full["catalog"])),
+        f"unchanged: {[k for k in _en_labels if _tr_labels.get(k) == _en_labels[k]]}; {_tr_text[:200]}",
+    )
+R.check(
+    "setup text ships every translated catalogue's language, and no other",
+    set(_topo._TRANSLATIONS) == set(TRANSLATED_LANGS),
+    str(sorted(_topo._TRANSLATIONS)),
+)
 R.check(
     "null control: English and an unknown language read as before",
-    _topo.render_text_summary(_topo.describe_setup(_full_cfg, "de"))
+    _topo.render_text_summary(_topo.describe_setup(_full_cfg, "xx"))
     == _text_en_ref
     if (_text_en_ref := _topo.render_text_summary(_full)) else False,
 )
@@ -13876,8 +13998,7 @@ R.check(
     and all(_fi_json.loads(_FrPath(p).read_text())["options"]["abort"].get("factory_reset_not_applied")
             and _fi_json.loads(_FrPath(p).read_text())["exceptions"]["factory_reset_not_applied"]["message"]
             for p in ("custom_components/heatpump_optimizer/strings.json",
-                      "custom_components/heatpump_optimizer/translations/en.json",
-                      "custom_components/heatpump_optimizer/translations/sv.json")),
+                      *(f"custom_components/heatpump_optimizer/{c}" for c in SHIPPED_CATALOGUES))),
     f"{_fr_refused[0]}, raised {_fr_refused[1]!r}",
 )
 _fr_off = _aio.run(_fr_flow_case({"scope": "both", "confirm": True}, "fr_flow_off", loaded=False))
@@ -13892,8 +14013,7 @@ R.check(
     "factory_reset" in _fr_flow.HeatPumpOptimizerOptionsFlow._ADVANCED_MENU
     and all(_fi_json.loads(_FrPath(p).read_text())["options"]["step"]["advanced"]["menu_options"].get("factory_reset")
             for p in ("custom_components/heatpump_optimizer/strings.json",
-                      "custom_components/heatpump_optimizer/translations/en.json",
-                      "custom_components/heatpump_optimizer/translations/sv.json")),
+                      *(f"custom_components/heatpump_optimizer/{c}" for c in SHIPPED_CATALOGUES))),
 )
 
 _fr_svc_refused = []
@@ -24636,16 +24756,18 @@ for _lang6 in narrative_mod.TEMPLATES:  # the languages the narratives ship
         f"every template language carries every reason key ({_lang6})",
         set(narrative_mod.TEMPLATES[_lang6]) == set(narrative_mod.TEMPLATES["en"]),
     )
-_par_ok = all(
-    set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES["en"][key]))
-    == set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES["sv"][key]))
+_par_bad = [
+    f"{_lang6}:{key}"
+    for _lang6 in narrative_mod.TEMPLATES
     for key in narrative_mod.TEMPLATES["en"]
-)
+    if set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES["en"][key]))
+    != set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES[_lang6].get(key, "")))
+]
 R.check(
-    "en and sv templates use identical placeholders per key",
-    _par_ok,
-    "a placeholder present in one language and absent in the other is a "
-    "sentence that cannot be said",
+    "every template language uses en's placeholders per key, one per shipped catalogue",
+    set(narrative_mod.TEMPLATES) == {"en", *TRANSLATED_LANGS} and not _par_bad,
+    f"{sorted(narrative_mod.TEMPLATES)}: {_par_bad[:6]} -- a placeholder present "
+    "in one language and absent in the other is a sentence that cannot be said",
 )
 _n_items = narrative_mod.build(
     {
@@ -26625,7 +26747,7 @@ R.check(
     f"{_svc_valid_entry.runtime_data._thermal_params.dhw_windows}",
 )
 
-# The translations: every new key in all three files, each message naming
+# The translations: every new key in every file, each message naming
 # exactly the placeholders its raise passes, strings.json parity with
 # en.json (hassfest), and no single-quoted placeholder anywhere (hassfest).
 import json as _svc_json  # noqa: E402
@@ -26635,7 +26757,10 @@ _SVC_FILES = {}
 for _svc_label, _svc_path in (
     ("strings", "custom_components/heatpump_optimizer/strings.json"),
     ("en", "custom_components/heatpump_optimizer/translations/en.json"),
-    ("sv", "custom_components/heatpump_optimizer/translations/sv.json"),
+    *(
+        (_l, f"custom_components/heatpump_optimizer/translations/{_l}.json")
+        for _l in TRANSLATED_LANGS
+    ),
 ):
     with open(_svc_path, encoding="utf-8") as _svc_fh:
         _SVC_FILES[_svc_label] = _svc_json.load(_svc_fh).get("exceptions", {})
@@ -26647,7 +26772,7 @@ _svc_missing = {
     if key not in block
 }
 R.check(
-    "every operational-failure key exists in strings.json, en.json and sv.json",
+    "every operational-failure key exists in strings.json and every translation",
     not _svc_missing,
     f"missing: {sorted(_svc_missing)}",
 )
@@ -26659,7 +26784,7 @@ def _svc_names(message):
 
 _svc_bad = []
 for _svc_key, (_svc_want, _svc_cls) in _SVC_KEYS.items():
-    for _svc_label in ("strings", "en", "sv"):
+    for _svc_label in _SVC_FILES:
         _svc_msg = _SVC_FILES[_svc_label].get(_svc_key, {}).get("message", "")
         if _svc_names(_svc_msg) != _svc_want:
             _svc_bad.append(
@@ -31023,10 +31148,19 @@ for _lang_cl in narrative_mod.TEMPLATES:  # every shipped language
 _card_src_cl = _Path(
     "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
 ).read_text(encoding="utf-8")
+# One label per dictionary in the card's STRINGS table, plus the code's map.
+import re as _re_cl  # noqa: E402
+_card_langs_cl = _re_cl.findall(
+    r"^  ([a-z]{2}): \{$",
+    _card_src_cl.split("const STRINGS = {", 1)[1].split("\n};", 1)[0],
+    _re_cl.M,
+)
 R.check(
-    "and a card label in both languages, wired to the code",
-    _card_src_cl.count('"reasons.scheduled"') == 3
+    "and a card label in every card language, wired to the code",
+    set(_card_langs_cl) == {"en", *TRANSLATED_LANGS}
+    and _card_src_cl.count('"reasons.scheduled"') == len(_card_langs_cl) + 1
     and "scheduled: \"reasons.scheduled\"," in _card_src_cl,
+    f"{_card_src_cl.count(chr(34) + 'reasons.scheduled' + chr(34))} uses over {_card_langs_cl}",
 )
 
 
@@ -36469,7 +36603,7 @@ R.check(
     and abs(_lg_skew_past - 2.0) < 1e-3,
     f"future {_lg_skew_future!r} h, past {_lg_skew_past!r} h",
 )
-for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _lang_file in ("strings.json", *SHIPPED_CATALOGUES):
     _lg_doc = _json.loads(
         (_PKG_DIR / _lang_file).read_text(encoding="utf-8")
     )
@@ -36767,7 +36901,7 @@ R.check(
     60.0 < MODE_LAST_GOOD_MAX_AGE_MINUTES < 360.0,
     f"{MODE_LAST_GOOD_MAX_AGE_MINUTES} min",
 )
-for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _lang_file in ("strings.json", *SHIPPED_CATALOGUES):
     _ex_doc = _json.loads((_PKG_DIR / _lang_file).read_text(encoding="utf-8"))
     R.check(
         f"the mode-unreadable notice is translated in {_lang_file}",
@@ -39390,7 +39524,7 @@ for _wx_key in ("solar_irradiance", "native_solar_irradiance"):
 # D10-17 (#217, Gold `exception-translations`): every user-facing
 # ServiceValidationError must carry translation_domain + translation_key and
 # placeholders for exactly the values the old English f-string interpolated,
-# and strings.json / en.json / sv.json must carry an exceptions section
+# and strings.json / every translation must carry an exceptions section
 # covering them. Each of the 13 raise sites is driven with input that reaches
 # it -- through hass.services.async_call, which dispatches the real schema to
 # the real handler the way Home Assistant does, and for the coordinator's
@@ -39800,26 +39934,28 @@ _et_check(
     "set_temperature_comfort_band_violation",
 )
 
-# The translations themselves: same key set in all three files, each message
+# The translations themselves: same key set in every file, each message
 # naming exactly the placeholders its raise site passes, and strings.json
 # staying parity-identical with translations/en.json (hassfest).
 _ET_FILES = {}
 for _et_label, _et_path in (
     ("strings", "custom_components/heatpump_optimizer/strings.json"),
     ("en", "custom_components/heatpump_optimizer/translations/en.json"),
-    ("sv", "custom_components/heatpump_optimizer/translations/sv.json"),
+    *(
+        (_l, f"custom_components/heatpump_optimizer/translations/{_l}.json")
+        for _l in TRANSLATED_LANGS
+    ),
 ):
     with open(_et_path, encoding="utf-8") as _et_fh:
         _ET_FILES[_et_label] = _et_json.load(_et_fh).get("exceptions", {})
 
 R.check(
-    "every raised exception key exists in strings.json, en.json and sv.json",
+    "every raised exception key exists in strings.json and every translation",
     set(_ET_KEYS)
     == set(_ET_FILES["strings"])
     == set(_ET_FILES["en"])
-    == set(_ET_FILES["sv"]),
-    f"strings={sorted(_ET_FILES['strings'])} en={sorted(_ET_FILES['en'])} "
-    f"sv={sorted(_ET_FILES['sv'])}",
+    and all(set(_ET_FILES[_l]) == set(_ET_KEYS) for _l in TRANSLATED_LANGS),
+    " ".join(f"{_l}={sorted(_b)}" for _l, _b in _ET_FILES.items()),
 )
 
 
@@ -39829,7 +39965,7 @@ def _et_names(message):
 
 _et_bad = []
 for _et_key, _et_want in _ET_KEYS.items():
-    for _et_label in ("strings", "en", "sv"):
+    for _et_label in _ET_FILES:
         _et_msg = _ET_FILES[_et_label].get(_et_key, {}).get("message", "")
         if _et_names(_et_msg) != _et_want:
             _et_bad.append(
@@ -43088,7 +43224,7 @@ R.check(
     f"got {_sp_clim_fix.hass.services.calls!r}",
 )
 
-for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _lang_file in ("strings.json", *SHIPPED_CATALOGUES):
     _sp_doc = _json.loads((_PKG_DIR / _lang_file).read_text(encoding="utf-8"))
     R.check(
         f"the DHW consistency notice is translated in {_lang_file}",
@@ -43525,6 +43661,114 @@ R.check(
     and _sb_meter_row(0.5, True)["meter_calibration"] == 1.0,
     repr(_sb_up),
 )
+# R10-SAV-METER-FLOOR carry 1: the floor above also kept a model that reads the
+# meter high from being corrected. A wood house calibrates from the intervals
+# wood did not heat (the pending snapshot's ``wood_heated``), floored only where
+# too few of those were metered.
+def _sb_wood_free_row(free_meter, fire_meter, *, wood=True, flag=True, free_hours=12, price=1.0):
+    led = _SavLedger()
+    for hour in range(24):
+        fire = hour >= free_hours
+        pending = {"baseline_kw": 2.0, "power": 1.0, **({"wood_heated": fire} if flag else {})}
+        led.observe_spot_and_settle_savings(
+            _SavDT(2026, 2, 9, hour, 0), price, pending, fire_meter if fire else free_meter, 1.0
+        )
+    return led.savings_months(_SavDT(2026, 3, 2, 0, 0), wood_configured=wood)[0]
+
+
+_sb_wf = _sb_wood_free_row(0.8, 0.2)
+R.check(
+    "a wood house whose wood-free hours meter 0.8 of the plan publishes that calibration, not the floor's 1.0",
+    _sb_wf["meter_calibration"] == 0.8 and _sb_wf.get("calibration_basis") == "wood_free"
+    and _sb_wf["baseline_sek"] == round(48.0 * 0.8, 2),
+    repr(_sb_wf),
+)
+_sb_wf_low = _sb_wood_free_row(1.5, 0.2)
+R.check(
+    "a wood house's model that reads the meter low on its wood-free hours is still corrected up",
+    _sb_wf_low["meter_calibration"] == 1.5 and _sb_wf_low.get("calibration_basis") == "wood_free",
+    repr(_sb_wf_low),
+)
+# Null (a): at one flat price the saving is volume alone, the calibrated
+# reference's kWh less the metered kWh, priced at 1.0.
+R.check(
+    "at one flat price the wood-free calibrated row's saving is the volume difference alone",
+    _sb_wf["savings_sek"] == round(48.0 * 0.8 - (12 * 0.8 + 12 * 0.2), 2) and _sb_wf["actual_sek"] == 12.0,
+    repr(_sb_wf),
+)
+# Null (b) and the fallback: each row as it read before the pair existed, field by field.
+_sb_fields = ("meter_calibration", "baseline_sek", "actual_sek", "savings_sek", "savings_pct")
+_sb_plain_rows = {f: {k: _sb_meter_row(f, False)[k] for k in _sb_fields} for f in (1.0, 0.5, 0.25)}
+R.check(
+    "a no-wood row is unchanged field by field at a meter of 1.0, 0.5 and 0.25 of the plan, the pair or not",
+    _sb_plain_rows == {f: {"meter_calibration": f, "baseline_sek": 48.0 * f, "actual_sek": 24.0 * f,
+                           "savings_sek": 24.0 * f, "savings_pct": 50.0} for f in (1.0, 0.5, 0.25)}
+    and {k: _sb_wood_free_row(0.8, 0.2, wood=False)[k] for k in _sb_fields}
+    == {k: _sb_wood_free_row(0.8, 0.2, wood=False, flag=False)[k] for k in _sb_fields},
+    repr(_sb_plain_rows),
+)
+_sb_fallback = {k: _sb_wood_free_row(0.8, 0.2, free_hours=0)[k] for k in _sb_fields}
+R.check(
+    "a wood month with too few wood-free kWh, or booked before the pair existed, keeps the floor's row exactly",
+    _sb_fallback == {"meter_calibration": 1.0, "baseline_sek": 48.0, "actual_sek": 4.8,
+                     "savings_sek": 43.2, "savings_pct": 90.0}
+    and {k: _sb_wood_free_row(0.8, 0.2, flag=False)[k] for k in _sb_fields}
+    == {"meter_calibration": 1.0, "baseline_sek": 48.0, "actual_sek": 12.0, "savings_sek": 36.0, "savings_pct": 75.0}
+    and _sb_wood_free_row(0.8, 0.2, free_hours=0).get("calibration_basis") == "wood_floor"
+    and _sb_meter_row(1.0, False).get("calibration_basis") == "meter",
+    repr(_sb_fallback),
+)
+# R10-SAV-METER-FLOOR: a row whose booked reference is under METER_FLOOR of its
+# metered kWh states no saving and says why. The booked lines decide, because
+# the calibrated column cancels the meter.
+from heatpump_optimizer.ledger import METER_FLOOR as _sb_floor
+
+
+def _sb_floor_row(baseline_kw, meter_kwh, *, old=False):
+    led = _SavLedger()
+    for hour in range(24):
+        led.observe_spot_and_settle_savings(
+            _SavDT(2026, 2, 9, hour, 0), 1.0, {"baseline_kw": baseline_kw, "power": 1.0}, meter_kwh, 1.0
+        )
+    if old:
+        led.months["2026-02"]["meta"]["reference_basis"] = {"sum": 0.0, "count": 1}
+    return led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
+
+
+_sb_collapsed = _sb_floor_row(0.2, 1.0)
+_sb_at_floor = _sb_floor_row(_sb_floor, 1.0)
+_sb_tiny = _sb_floor_row(0.001, 0.04)
+_sb_old_low = _sb_floor_row(0.2, 1.0, old=True)
+R.check(
+    "a booked reference under the meter floor of its metered kWh states no saving, keeps both columns and says why",
+    _sb_floor == 0.5 and _sb_collapsed.get("below_meter_floor") is True
+    and _sb_collapsed["savings_sek"] is None and _sb_collapsed["savings_pct"] is None
+    and _sb_collapsed["baseline_sek"] == 4.8 and _sb_collapsed["actual_sek"] == 24.0,
+    repr(_sb_collapsed),
+)
+R.check(
+    "the meter floor is strict, skips a month under MIN_CALIBRATION_KWH metered, and leaves an old-basis row as old basis",
+    _sb_at_floor.get("below_meter_floor") is False and _sb_at_floor["savings_sek"] == -12.0
+    and _sb_tiny.get("below_meter_floor") is False and _sb_tiny["savings_sek"] is not None
+    and _sb_old_low.get("below_meter_floor") is False and _sb_old_low["old_basis"] is True,
+    repr((_sb_at_floor, _sb_tiny, _sb_old_low)),
+)
+from heatpump_optimizer.ledger import MIN_CALIBRATION_KWH as _sb_min_cal
+from heatpump_optimizer.ledger import below_meter_floor as _sb_below_floor
+
+R.check(
+    "the meter floor's two bounds: exactly MIN_CALIBRATION_KWH metered is floored, a booked kWh of exactly METER_FLOOR of metered is not",
+    _sb_below_floor(0.25 * _sb_min_cal, _sb_min_cal) is True
+    and _sb_below_floor(_sb_floor * 4.0, 4.0) is False
+    and _sb_below_floor(_sb_floor * 4.0 - 0.25, 4.0) is True,
+    repr((_sb_below_floor(0.25 * _sb_min_cal, _sb_min_cal), _sb_below_floor(_sb_floor * 4.0, 4.0))),
+)
+R.check(
+    "wood cannot trip the meter floor: a meter under the plan raises booked over metered",
+    all(_sb_meter_row(f, True).get("below_meter_floor") is False for f in (1.0, 0.5, 0.25))
+    and _sb_wf.get("below_meter_floor") is False,
+    repr([_sb_meter_row(f, True).get("below_meter_floor") for f in (1.0, 0.5, 0.25)]),
+)
 from heatpump_optimizer.notifier import _monthly_receipt as _sb_receipt
 
 
@@ -43543,6 +43787,14 @@ R.check(
     and _sb_ev_new["saving_pct"] == -300.0 and _sb_ev_new["saving_old_basis"] is False
     and _sb_ev_new["saving_includes_wood"] is False,
     repr((_sb_ev_old, _sb_ev_new)),
+)
+_sb_ev_floor = _sb_event({"month": "2026-09", "savings_sek": None, "savings_pct": None, "old_basis": False,
+                          "below_meter_floor": True}, False)
+R.check(
+    "the receipt event says a row under the meter floor states no saving, and an ordinary row says it is not",
+    _sb_ev_floor["saving_sek"] is None and _sb_ev_floor.get("saving_below_meter_floor") is True
+    and _sb_ev_new.get("saving_below_meter_floor") is False,
+    repr(_sb_ev_floor),
 )
 _sb_plain = _sb_first_steps(True, False)[(20.0, None)]
 _sb_wood = _sb_first_steps(True, True)
@@ -43768,8 +44020,8 @@ _cal_gapless_model = _sav_cal_month(_sav_vary, _sav_therm, _sav_plan, 1.0, with_
 R.check(
     "#2492: an install whose meter reads its model keeps the modelled figures byte-identical",
     _cal_gapless["meter_calibration"] == 1.0
-    and {k: v for k, v in _cal_gapless.items() if k != "meter_calibration"}
-    == {k: v for k, v in _cal_gapless_model.items() if k != "meter_calibration"},
+    and {k: v for k, v in _cal_gapless.items() if k not in ("meter_calibration", "calibration_basis")}
+    == {k: v for k, v in _cal_gapless_model.items() if k not in ("meter_calibration", "calibration_basis")},
     f"{_cal_gapless} / {_cal_gapless_model}",
 )
 # A month whose savings lines began before the plan line existed (an upgrade
@@ -43851,8 +44103,8 @@ R.check(
     "R10-SAV-COMFORT null control: an interval without either reading settles nothing",
     _st_null.savings_months(_SavDT(2026, 2, 10))[0]
     == {"month": "2026-01", "baseline_sek": 4.0, "actual_sek": 3.0, "savings_sek": 1.0,
-        "savings_pct": 25.0, "old_basis": False, "estimated": False, "meter_calibration": None,
-        "stored_heat_sek": 0.0, "comfort_sek": 0.0},
+        "savings_pct": 25.0, "old_basis": False, "below_meter_floor": False, "estimated": False,
+        "meter_calibration": None, "calibration_basis": None, "stored_heat_sek": 0.0, "comfort_sek": 0.0},
     repr(_st_null.savings_months(_SavDT(2026, 2, 10))),
 )
 _st_z = _SavLedger()
@@ -44012,6 +44264,17 @@ for _out, _want_c in ((10.0, [0.05, -0.15, -0.55]), (20.2, [0.0, 0.0, -0.38])):
         len(_got_c) == 3 and all(abs(g - w) < 1e-9 for g, w in zip(_got_c, _want_c)),
         f"{_got_c} want {_want_c}",
     )
+# Two-zone the slab-fed zone is the lower floor: 0.1 K-to-kW and a quarter of
+# the gains (0.25 kW), its temperature ramping 20, 24, 36, 56 (midpoints 22,
+# 30, 46) while the room ramps as above. Read off the room instead (carry
+# 435eb685's surviving mutant), the delivered comfort is the room's.
+for _out, _want_c in ((10.0, [-0.05, -0.45, -1.25]), (20.2, [0.0, -0.365, -1.165])):
+    _got_c = [x["comfort_kw"] for x in _sw_run(True, None, None, outdoor=_out)]
+    R.check(
+        f"R10-SAV-COMFORT: two-zone, the comfort shortfall is the lower floor's (outdoor {_out})",
+        len(_got_c) == 3 and all(abs(g - w) < 1e-9 for g, w in zip(_got_c, _want_c)),
+        f"{_got_c} want {_want_c}",
+    )
 _sw_floor = _sw_run(False, None, None, cop=0.0)
 R.check(
     "R10-SAV-COMFORT: a COP below the floor settles at the floor, and one above it is kept",
@@ -44168,9 +44431,11 @@ R.check(
 )
 
 # Behind a valve the reference spreads its energy by steady demand, and on a
-# small pump in a cold night with a sunny day that spread asks more than the
-# pump has (measured 1.23x on this house). The solve's seed from it is clamped,
-# so every start the space solve is handed lies inside its bounds.
+# small pump in a cold night with a sunny day the plain spread asked more than
+# the pump has (measured 1.23x on this house; R10-SAV-COMFORT carry fc24128d).
+# The spread holds such a step at the pump and gives its excess to the others
+# by the same demand, keeping the horizon's energy; the solve is seeded from
+# that reference unclamped, so every start lies inside its bounds.
 from heatpump_optimizer import optimizer as _hz_omod
 
 _hz_n = 96
@@ -44197,6 +44462,14 @@ def _hz_spy_ms(objective, starts, bounds, **kw):
 
 _hz_baselines = []
 _hz_orig_bp = _HbOpt._compute_baseline_power
+_hz_spreads = []
+_hz_orig_ap = _HbOpt._apportion_by_steady_demand
+
+
+def _hz_spy_ap(self, simulated, *a, **kw):
+    out = _hz_orig_ap(self, simulated, *a, **kw)
+    _hz_spreads.append((np.array(simulated, float), np.array(out, float)))
+    return out
 
 
 def _hz_spy_bp(self, *a, **kw):
@@ -44207,6 +44480,7 @@ def _hz_spy_bp(self, *a, **kw):
 
 _hz_omod._multi_start_minimize = _hz_spy_ms
 _HbOpt._compute_baseline_power = _hz_spy_bp
+_HbOpt._apportion_by_steady_demand = _hz_spy_ap
 try:
     _hz_copt.optimize(inputs=solve_inputs(
         initial_state=_HbState(
@@ -44222,14 +44496,82 @@ try:
 finally:
     _hz_omod._multi_start_minimize = _hz_orig_ms
     _HbOpt._compute_baseline_power = _hz_orig_bp
+    _HbOpt._apportion_by_steady_demand = _hz_orig_ap
 _hz_pmax = float(_hz_cpar.max_electrical_power)
 R.check(
-    "behind a valve, a reference spread past the pump seeds the space solve "
-    "only inside its bounds",
-    bool(_hz_seen) and max(_hz_seen) <= 1e-12
-    and max(_hz_baselines, default=0.0) > _hz_pmax,
-    f"worst excess over a bound {max(_hz_seen, default=None)!r}, "
-    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}",
+    "behind a valve, the reference seeds the space solve only inside its bounds",
+    bool(_hz_seen) and max(_hz_seen) <= 1e-12,
+    f"worst excess over a bound {max(_hz_seen, default=None)!r}",
+)
+R.check(
+    "behind a valve, the spread reference holds a step at the pump, never past it, "
+    "and keeps the simulated horizon's energy",
+    bool(_hz_spreads)
+    and all(float(np.max(o)) <= _hz_pmax + 1e-12 for _, o in _hz_spreads)
+    and all(abs(float(np.sum(o)) - float(np.sum(s))) < 1e-9 for s, o in _hz_spreads)
+    and any(int(np.sum(o >= _hz_pmax - 1e-12)) >= 2 for _, o in _hz_spreads)
+    and max(_hz_baselines, default=0.0) <= _hz_pmax + 1e-12,
+    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}; "
+    f"steps at the pump {[int(np.sum(o >= _hz_pmax - 1e-12)) for _, o in _hz_spreads]}",
+)
+# Under the pump the spread keeps the demand's shape. Four steps, the last one
+# a -30 C step whose plain share of 0.8 pump-steps each would pass the pump:
+# it is held at the pump, and the other three share the rest as the same
+# multiple of their steady demand at target (read from the production helper).
+_hz_mws = _HbWSeries(
+    outdoor_temps=np.array([5.0, 0.0, -5.0, -30.0]), wind_speeds=np.zeros(4),
+    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+)
+_hz_mcap = float(_hz_par.max_electrical_power)
+_hz_msim = np.full(4, 0.8 * _hz_mcap)
+_hz_mout = _hz_opt._apportion_by_steady_demand(_hz_msim, _hz_mws, [21.0] * 4)
+_hz_mdem = np.array([_hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0)
+                     for t in _hz_mws.outdoor_temps])
+_hz_mr = _hz_mout[:3] / _hz_mdem[:3]
+# A horizon demanding little (under 1 kW summed) still has a shape: three
+# zero-demand steps and one mild one put all the energy on the mild one.
+_hz_lo = 21.0 - (_hz_par.internal_gains + 0.2) / _hz_par.heat_loss_coefficient
+_hz_lws = _HbWSeries(
+    outdoor_temps=np.array([30.0, 30.0, 30.0, _hz_lo]), wind_speeds=np.zeros(4),
+    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+)
+_hz_ldem = [max(0.0, _hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0))
+            for t in _hz_lws.outdoor_temps]
+_hz_lout = _hz_opt._apportion_by_steady_demand(np.array([0.1, 0.2, 0.05, 0.0]), _hz_lws, [21.0] * 4)
+R.check(
+    "behind a valve, a horizon with a small steady demand spreads by it, not by the simulation",
+    0.0 < sum(_hz_ldem) < 1.0 and _hz_ldem[:3] == [0.0, 0.0, 0.0]
+    and np.allclose(_hz_lout, [0.0, 0.0, 0.0, 0.35], atol=1e-12),
+    f"demand {_hz_ldem!r} spread {_hz_lout!r}",
+)
+# A step whose share lands exactly at the pump is at it, not past it: three
+# zero-demand steps and one cold one, the horizon's energy one pump-step, keep
+# the spread (all of it on the cold step) rather than handing the horizon back
+# to the simulation, as a step held with no demand left to share would.
+_hz_eout = _hz_opt._apportion_by_steady_demand(
+    np.full(4, 0.25 * _hz_mcap), _HbWSeries(
+        outdoor_temps=np.array([30.0, 30.0, 30.0, -5.0]), wind_speeds=np.zeros(4),
+        precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+    ), [21.0] * 4,
+)
+R.check(
+    "behind a valve, a step spread exactly to the pump keeps the spread",
+    _hz_eout.tolist() == [0.0, 0.0, 0.0, _hz_mcap],
+    repr(_hz_eout),
+)
+R.check(
+    "precondition: the cold step's plain share of the horizon passes the pump",
+    bool(np.all(_hz_mdem > 0.0))
+    and float(np.sum(_hz_msim)) * _hz_mdem[3] / float(np.sum(_hz_mdem)) > _hz_mcap,
+    repr(_hz_mdem),
+)
+R.check(
+    "behind a valve, a step spread past the pump is held there and the uncapped steps "
+    "share the rest by their steady demand",
+    _hz_mout[3] == _hz_mcap and float(np.max(_hz_mout[:3])) < _hz_mcap
+    and abs(float(np.sum(_hz_mout)) - float(np.sum(_hz_msim))) < 1e-9
+    and float(np.ptp(_hz_mr)) <= 1e-12 * float(np.max(_hz_mr)),
+    repr(_hz_mout),
 )
 
 # The start's settlement, at its limits (#2255, #2492). A pre-heated start
@@ -44851,9 +45193,8 @@ R.check(
 _wf_not_ready = _wf_view(
     {"wood_tank_volume": 500.0},
     prices=[4.0],
-    outdoor=[-5.0],
+    cops=[2.0],
     runs=[True],
-    cop_at=lambda _t: 2.0,
     timestamps=[],
     forecast_kw=[],
 )
@@ -44969,6 +45310,34 @@ R.check(
     and _wf_off_pub["wood_fuel"].get("cheaper") is False,
     repr(_wf_off_pub.get("wood_fuel")),
 )
+# R10-PARTLOAD-RESIDUE: the published advisor prices pump heat at the derated
+# COP of the plan's own draw, wired by the coordinator (``partload_at``). The
+# step runs at max power, priced so the linear pump heat is 2 % below wood's
+# and the derated one (d = 0.1, factor 0.9) about 8.9 % above it. Null: the
+# same plan at derate 0 counts no cheaper step.
+_wf_tp = _wf_ready_coord._thermal_params
+_wf_sek = _wf_pub["wood_fuel"]["sek_per_kwh"]
+_wf_cop = float(_wf_ready_coord._thermal_model.compute_cop(-5.0))
+_wf_ready_coord._optimization_result = _wf_replace(
+    _wf_result, prices=[0.98 * _wf_sek * _wf_cop],
+    power_schedule=[_wf_tp.max_electrical_power])
+_wf_kept_derate = _wf_tp.cop_partload_derate
+_wf_partload = []
+try:
+    _dt_wf.now = lambda: NOW
+    for _wf_d in (0.1, 0.0):
+        _wf_tp.cop_partload_derate = _wf_d
+        _wf_partload.append(
+            _wf_ready_coord._build_data_dict()["wood_fuel"].get("cheaper_hour_count"))
+finally:
+    _dt_wf.now = _real_now_wf
+    _wf_tp.cop_partload_derate = _wf_kept_derate
+R.check(
+    "the published wood advisor prices a max-power step's pump heat at the "
+    "derated COP (cheaper at d = 0.1, not at d = 0; R10-PARTLOAD-RESIDUE)",
+    _wf_partload == [1, 0],
+    repr(_wf_partload),
+)
 _wf_idle = _WfOR(
     power_schedule=[0.0],
     room_temp_trajectory=[21.0, 21.0],
@@ -45004,9 +45373,8 @@ R.check(
 
 _wf_soc_kwargs = dict(
     prices=_wf_cheap_night,
-    outdoor=[0.0] * 48,
+    cops=[3.0] * 48,
     runs=[False] * 48,
-    cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
 )
@@ -45055,9 +45423,8 @@ R.check(
 _wf_skip_view = _wf_view(
     _wf_cfg,
     prices=_wf_skip_prices,
-    outdoor=[0.0] * 48,
+    cops=[3.0] * 48,
     runs=[False] * 48,
-    cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
     wood_tank_temperature=87.4,
@@ -68952,7 +69319,7 @@ R.check(
 _dbg_rows = [f for f in _dbg_flow._OPTION_FIELDS if f.key == _dbg_const.CONF_DEBUG_COLLECT]
 _dbg_texts = {
     name: _dbg_json.loads((_DBG_ROOT / "custom_components/heatpump_optimizer" / name).read_text())
-    for name in ("strings.json", "translations/en.json", "translations/sv.json")
+    for name in ("strings.json", *SHIPPED_CATALOGUES)
 }
 R.check(
     "DBG-1 the option is one boolean on the learning page, off by default, with a label "
@@ -69323,9 +69690,10 @@ _SP_READ = {
 }
 
 
-def _sp_write(kw, slots, stale=()):
-    """What the arbiter writes for a space step at ``kw`` with ``slots`` set."""
-    config = {_PP_FLOW_KEY: 48.0, "space_setpoint_entity": "number.flow"}
+def _sp_write(kw, slots, stale=(), extra=None):
+    """What the arbiter writes for a space step at ``kw`` with ``slots`` set,
+    ``extra`` merged over the config."""
+    config = {_PP_FLOW_KEY: 48.0, "space_setpoint_entity": "number.flow", **(extra or {})}
     states = {"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}
     for key in slots:
         config[key] = f"sensor.sp_{key}"
@@ -69400,6 +69768,193 @@ R.check(
     "the floor helper refuses an unmeasured inlet rather than guessing one",
     _sp_floor_of(None) is None and _sp_floor_of(float("nan")) is None
     and _sp_floor_of(30.0) == 30.0 + _SP_LIFT,
+)
+
+# --- The configurable lift and ceiling of a water set-point (flow_min_lift_k,
+# flow_heat_c). A controller that takes the set-point as its return-water
+# target modulates on target minus return, so the rated 5 K lift ran one
+# (Luxtronik through its Smart Home Interface) near full speed at the plan's
+# lowest level. The production readers, never a copy of their rule.
+from heatpump_optimizer import config_flow as _wl_flow  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_FLOW_MIN_LIFT_K as _WL_LIFT_KEY,
+    CONF_SPACE_SETPOINT_UNIT as _WL_UNIT_KEY,
+    DEFAULT_FLOW_MIN_LIFT_K as _WL_LIFT_DEFAULT,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    configured_flow_min_lift_k as _wl_lift_of,
+)
+
+_WL_RETURN = (_SP_PUMP_RETURN,)
+# A whole-degree lift: the stub entity has no step attribute, so the write is
+# on a 1 degC step and the floor rounds up (``quantise_setpoint_c``).
+_WL_TUNED = {_WL_LIFT_KEY: 2.0, _PP_FLOW_KEY: 38.0}
+_wl_low = _sp_write(1.5, _WL_RETURN, extra=_WL_TUNED)
+_wl_mid = _sp_write(3.5, _WL_RETURN, extra=_WL_TUNED)
+_wl_full = _sp_write(5.5, _WL_RETURN, extra=_WL_TUNED)
+R.check(
+    "null control: an absent lift is the rated FLOW_MIN_LIFT_K, the const default is "
+    "the same number, and the floor write is unchanged",
+    _wl_lift_of({}) == _SP_LIFT == _WL_LIFT_DEFAULT == 5.0
+    and _wl_lift_of(None) == _SP_LIFT
+    and _sp_write(1.5, _WL_RETURN) == _SP_READ[_SP_PUMP_RETURN] + _SP_LIFT
+    and _sp_write(1.5, _WL_RETURN, extra={_WL_LIFT_KEY: _WL_LIFT_DEFAULT})
+    == _sp_write(1.5, _WL_RETURN),
+    f"{_wl_lift_of({})} {_sp_write(1.5, _WL_RETURN)}",
+)
+R.check(
+    "a configured lift and ceiling move the floor to return + lift and full power to "
+    "the ceiling, with a partial level between them",
+    _wl_low == _SP_READ[_SP_PUMP_RETURN] + 2.0
+    and _wl_full == 38.0
+    and _wl_low < _wl_mid < _wl_full,
+    f"low {_wl_low} mid {_wl_mid} full {_wl_full}",
+)
+R.check(
+    "a ceiling under return + lift writes the ceiling, never above it",
+    _sp_write(1.5, _WL_RETURN, extra={_WL_LIFT_KEY: 1.5, _PP_FLOW_KEY: 26.0}) == 26.0,
+    f"{_sp_write(1.5, _WL_RETURN, extra={_WL_LIFT_KEY: 1.5, _PP_FLOW_KEY: 26.0})}",
+)
+_wl_refused = {
+    repr(v): _wl_lift_of({_WL_LIFT_KEY: v})
+    for v in (0.0, -2.0, float("nan"), float("inf"), "warm", None, True)
+}
+R.check(
+    "a lift that is not a positive finite number reads as the rated lift, and text "
+    "that is one is read",
+    all(v == _SP_LIFT for v in _wl_refused.values())
+    and _wl_lift_of({_WL_LIFT_KEY: "1.5"}) == 1.5
+    and _wl_lift_of({_WL_LIFT_KEY: 2}) == 2.0,
+    f"{_wl_refused}",
+)
+R.check(
+    "the floor helper takes the lift it is given, and its default is the rated one",
+    _sp_floor_of(30.0, None, 1.0) == 31.0
+    and _sp_floor_of(20.0, 25.0, 1.0) == 26.0
+    and _sp_floor_of(30.0) == _sp_floor_of(30.0, None, _SP_LIFT),
+)
+
+
+def _wl_keys(config):
+    return {row.key: row for row in _wl_flow._page_rows("entities", config)}
+
+
+_wl_none = _wl_keys({})
+_wl_indoor = _wl_keys({"space_setpoint_entity": "number.flow", _WL_UNIT_KEY: "indoor"})
+_wl_unknown = _wl_keys({"space_setpoint_entity": "number.flow", _WL_UNIT_KEY: "kelvin"})
+_wl_water = _wl_keys({"space_setpoint_entity": "number.flow", _WL_UNIT_KEY: "flow"})
+_wl_ret = _wl_keys({"space_setpoint_entity": "number.flow", _WL_UNIT_KEY: "return"})
+R.check(
+    "the entities page offers the lift and ceiling only for a water unit, flow or return",
+    _WL_LIFT_KEY not in _wl_none and _PP_FLOW_KEY not in _wl_none
+    and _WL_LIFT_KEY not in _wl_indoor and _PP_FLOW_KEY not in _wl_indoor
+    and _WL_LIFT_KEY not in _wl_unknown
+    and _WL_LIFT_KEY in _wl_water and _PP_FLOW_KEY in _wl_water
+    and _WL_LIFT_KEY in _wl_ret and _PP_FLOW_KEY in _wl_ret,
+    f"{sorted(k for k in _wl_water if k not in _wl_none)}",
+)
+_wl_lift_row = _wl_water.get(_WL_LIFT_KEY)
+_wl_heat_row = _wl_water.get(_PP_FLOW_KEY)
+R.check(
+    "the two fields sit with the set-point, default to today's constants, carry their "
+    "ranges, and an untouched page stores neither",
+    _wl_lift_row is not None and _wl_heat_row is not None
+    and _wl_lift_row.group == _wl_heat_row.group
+    == _wl_water[_WL_UNIT_KEY].group
+    and _wl_lift_row.default == _SP_LIFT and _wl_heat_row.default == _pa.FLOW_HEAT_C
+    and (_wl_lift_row.widget.config["min"], _wl_lift_row.widget.config["max"]) == (0.5, 15)
+    and (_wl_heat_row.widget.config["min"], _wl_heat_row.widget.config["max"]) == (30, 70)
+    and _wl_heat_row.widget.config["min"] > _pa.FLOW_GATE_C
+    and _wl_flow._omit_unstored_defaults(
+        {_WL_LIFT_KEY: _WL_LIFT_DEFAULT, _PP_FLOW_KEY: _PP_FLOW_DEFAULT}, {}
+    ) == {}
+    and _wl_flow._omit_unstored_defaults({_WL_LIFT_KEY: 1.5}, {}) == {_WL_LIFT_KEY: 1.5},
+    f"lift {_wl_lift_row} heat {_wl_heat_row}",
+)
+
+# --- space_setpoint_unit "return": the entity is the pump's return-water
+# target. Written as a flow set-point is -- the inlet plus the lift at the
+# floor, the ceiling at full power, the gate when idle -- except that the
+# two supply-derived values, the rated hold and the weather curve, sit the
+# rated spread lower.
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_PUMP_DUTY_MODE as _RT_DUTY_KEY,
+    PUMP_DUTY_MODES as _RT_DUTIES,
+    SPACE_SETPOINT_UNITS as _RT_UNITS,
+)
+from heatpump_optimizer.entry_config import EntryConfig as _RtEC  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ceiling_probe_install as _rt_probe_install,
+    flow_setpoint_driven as _rt_driven,
+)
+
+_RT = {_WL_UNIT_KEY: "return"}
+_RT_FLOW = {_WL_UNIT_KEY: "flow"}
+R.check(
+    "return is a declared unit, parsed as itself, and an unknown one is still indoor",
+    "return" in _RT_UNITS
+    and _RtEC.from_mapping(_RT).space_setpoint_unit == "return"
+    and _RtEC.from_mapping({_WL_UNIT_KEY: "kelvin"}).space_setpoint_unit == "indoor",
+)
+_rt_tuned = {**_RT, **_WL_TUNED}
+R.check(
+    "a return target is written from the measured return like a flow one: return + lift "
+    "at the floor, the ceiling at full power, the same partial level between",
+    _sp_write(1.5, _WL_RETURN, extra=_rt_tuned) == _SP_READ[_SP_PUMP_RETURN] + 2.0
+    and _sp_write(5.5, _WL_RETURN, extra=_rt_tuned) == 38.0
+    and _sp_write(3.5, _WL_RETURN, extra=_rt_tuned) == _wl_mid
+    and _sp_write(1.5, _WL_RETURN, extra=_RT) == _sp_write(1.5, _WL_RETURN, extra=_RT_FLOW),
+    f"{_sp_write(1.5, _WL_RETURN, extra=_rt_tuned)} {_sp_write(5.5, _WL_RETURN, extra=_rt_tuned)}",
+)
+R.check(
+    "with no inlet reading a return target's floor is the rated hold in return terms, "
+    "the hold less the rated spread; a flow target keeps the hold",
+    _sp_write(1.5, (), extra=_RT) == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K
+    and _sp_write(1.5, (), extra=_RT_FLOW) == _pa.FLOW_HOLD_C
+    and _sp_write(1.5, (), extra={**_RT, _WL_LIFT_KEY: 1.0}) == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K,
+    f"{_sp_write(1.5, (), extra=_RT)} {_sp_write(1.5, (), extra=_RT_FLOW)}",
+)
+
+
+def _rt_baseline(unit, curve, heat=48.0):
+    return _pa._flow_target(
+        _PaNS(
+            config={_PP_FLOW_KEY: heat, "space_setpoint_entity": "number.flow", _WL_UNIT_KEY: unit},
+            hass=FakeHass({"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}),
+            state=_PaNS(outdoor_temperature=-5.0, return_temperature=35.0,
+                        floor_return_temperature=None),
+            thermal=_PaNS(curve_flow_temp=lambda _o: curve),
+            plan=None,
+        ),
+        None,
+        _PA_T0,
+    )
+
+
+R.check(
+    "the baseline hold of a return target is the curve or rated hold less the rated "
+    "spread, still capped at the ceiling; a flow target's is unchanged",
+    _rt_baseline("flow", 40.0) == 40.0 and _rt_baseline("return", 40.0) == 40.0 - _pa.RETURN_SUPPLY_OFFSET_K
+    and _rt_baseline("flow", 20.0) == _pa.FLOW_HOLD_C
+    and _rt_baseline("return", 20.0) == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K
+    and _rt_baseline("return", 60.0) == 48.0
+    and _rt_baseline("return", 60.0, heat=38.0) == 38.0,
+    f"{_rt_baseline('flow', 40.0)} {_rt_baseline('return', 40.0)} {_rt_baseline('return', 20.0)}",
+)
+_rt_control = {_RT_DUTY_KEY: _RT_DUTIES[2]}
+R.check(
+    "a return target drives the pump through a water set-point exactly as a flow one: "
+    "the arbiter's water unit, the flow-command gate and the ceiling probe",
+    _pa._flow_unit(_RT) and _pa._flow_unit(_RT_FLOW) and not _pa._flow_unit({})
+    and _rt_driven({**_rt_control, **_RT}) and _rt_driven({**_rt_control, **_RT_FLOW})
+    and not _rt_driven({**_rt_control, _WL_UNIT_KEY: "indoor"})
+    and _rt_probe_install({**_rt_control, **_RT, "heat_pump_power_entity": "sensor.p"})
+    == _rt_probe_install({**_rt_control, **_RT_FLOW, "heat_pump_power_entity": "sensor.p"}),
+)
+R.check(
+    "null control: the supply-to-target conversion moves nothing but a return target",
+    _pa._as_target({}, 35.0) == 35.0 and _pa._as_target(_RT_FLOW, 35.0) == 35.0
+    and _pa._as_target(_RT, 35.0) == 35.0 - _pa.RETURN_SUPPLY_OFFSET_K,
 )
 
 # The objective scores the rounded levels a clamped install ships, so it is
@@ -70410,6 +70965,36 @@ R.check(
     "2 hours old, both ends included; a re-run sooner or a gap longer pairs nothing",
     _cg_pairs(0.05) and _cg_pairs(2.0) and _cg_pairs(1.0)
     and not _cg_pairs(0.049) and not _cg_pairs(2.001),
+)
+
+
+# R10-SAV-METER-FLOOR: the interval's pending snapshot carries whether wood
+# heats it, read from the detector's own predicate, on a wood house only.
+def _cg_wood_flag(wood, **detector):
+    cfg = dict(_L5_CFG, heat_pump_max_power=14.0, heat_pump_min_power=1.0)
+    if wood:
+        cfg["wood_furnace_enabled"] = True
+    coord = _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+    for key, value in detector.items():
+        setattr(coord._external_heat.state, key, value)
+    coord._current_action = {"power": 1.0, "dhw_power": 0.0}
+    coord._record_accuracy()
+    return coord._pending_prediction.get("wood_heated", "absent")
+
+
+_cg_flags = {
+    "plain, fire": _cg_wood_flag(False, active=True),
+    "wood, quiet": _cg_wood_flag(True),
+    "wood, active": _cg_wood_flag(True, active=True),
+    "wood, fading": _cg_wood_flag(True, fading=True),
+    "wood, displacing": _cg_wood_flag(True, displacement=0.3),
+    "wood, free heat": _cg_wood_flag(True, free_heat_kw=0.5),
+}
+R.check(
+    "the pending snapshot carries wood_heated from the detector on a wood house, and None on a plain one",
+    _cg_flags == {"plain, fire": None, "wood, quiet": False, "wood, active": True, "wood, fading": True,
+                  "wood, displacing": True, "wood, free heat": True},
+    repr(_cg_flags),
 )
 
 
@@ -71628,6 +72213,383 @@ R.check(
     f"{_bst_flow_of((40.0, _BST_T0), states={})}",
 )
 
+# --- Review of the return unit (flow_min_lift_k / space_setpoint_unit
+# "return"): the paths the developer's checks reach only through
+# ``_flow_target``'s heating branch -- the held command draw_range and the
+# ceiling probe read, the non-heating duties, the gate ordering under a
+# small lift, and that the rated spread the hold moves by is not the lift.
+
+
+def _wrr_command(unit, extra=None, inlet=None, inlet_key=None):
+    """``_flow_command`` for a held 40 degC on a ``unit`` water set-point,
+    with ``inlet`` read on ``inlet_key`` (the pump return by default)."""
+    states = {_BST_ENTITY: FakeState("40", attributes={"min": 20, "max": 70})}
+    data = {
+        "tibber_token": "x", "weather_entity": "weather.home",
+        "space_setpoint_entity": _BST_ENTITY,
+        "pump_duty_mode": "control", "space_setpoint_unit": unit,
+        **(extra or {})}
+    if inlet is not None:
+        data[inlet_key or _SP_PUMP_RETURN] = "sensor.wrr_inlet"
+        states["sensor.wrr_inlet"] = FakeState(str(inlet), unit="°C")
+    coord = _DrCoord(FakeHass(states), _dr_entry(data=data))
+    coord._current_action = {"power": 6.0, "dhw_power": 0.0}
+    coord._measured_power = 2.3
+    _bst_pa.state_for(coord).written["space_setpoint"] = (40.0, _BST_T0)
+    return _bst_pa._flow_command(coord.arbiter_inputs(), _bst_pa.state_for(coord))
+
+
+_WRR_CMD = {"flow_heat_c": 38.0, "flow_min_lift_k": 1.5}
+_wrr_ret = _wrr_command("return", _WRR_CMD, inlet=30.0)
+_wrr_flow = _wrr_command("flow", _WRR_CMD, inlet=30.0)
+_wrr_indoor = _wrr_command("indoor", {"flow_heat_c": 38.0})
+R.check(
+    "a return target with headroom publishes the held command in the entity's own terms "
+    "-- the configured ceiling, not 55, and the gate moved down by the rated spread, "
+    "20 degC against a flow target's 25 -- and an indoor one publishes none",
+    _wrr_ret is not None and _wrr_ret.written_c == _wrr_flow.written_c == 40.0
+    and _wrr_ret.ceiling_c == _wrr_flow.ceiling_c == 38.0
+    and _wrr_ret.gate_c == _bst_pa.FLOW_GATE_C - _bst_pa.RETURN_SUPPLY_OFFSET_K == 20.0
+    and _wrr_flow.gate_c == _bst_pa.FLOW_GATE_C
+    and _wrr_indoor is None,
+    f"return {_wrr_ret} flow {_wrr_flow} indoor {_wrr_indoor}",
+)
+# D1 (review): a return target at the ceiling commands the pump's top only
+# while the measured return sits at least the rated lift below the ceiling.
+_WRR_FULL_OFF = 38.0 + _SP_LIFT
+_wrr_edge = _wrr_command("return", _WRR_CMD, inlet=38.0 - _SP_LIFT)
+_wrr_tight = _wrr_command("return", _WRR_CMD, inlet=38.0 - _SP_LIFT + 0.5)
+_wrr_blind = _wrr_command("return", _WRR_CMD)
+_wrr_valve = _wrr_command("return", _WRR_CMD, inlet=30.0, inlet_key=_SP_VALVE)
+_wrr_flow_tight = _wrr_command("flow", _WRR_CMD, inlet=37.0)
+R.check(
+    "a return target's ceiling is a max-draw set-point only with the rated lift of "
+    "headroom over the measured return: at exactly that headroom it is, with less, with "
+    "no return-side reading, or with only the valve outlet it is reported one lift above "
+    "the ceiling, where no write reaches; a flow target's never moves",
+    _wrr_edge.ceiling_c == 38.0
+    and _wrr_tight.ceiling_c == _WRR_FULL_OFF
+    and _wrr_blind.ceiling_c == _WRR_FULL_OFF
+    and _wrr_valve.ceiling_c == _WRR_FULL_OFF
+    and _wrr_flow_tight.ceiling_c == 38.0
+    and _wrr_tight.gate_c == _wrr_ret.gate_c and _wrr_tight.written_c == 40.0,
+    f"edge {_wrr_edge} tight {_wrr_tight} blind {_wrr_blind} valve {_wrr_valve}",
+)
+
+
+def _wrr_folded(command, experiment_s=None):
+    """A fresh store after one running 3.0 kW space interval held at ``command``."""
+    d = _dr.DrawRange()
+    _dr.fold(d, 3.0, (5.0, 0.0), _dr_params(1.5, 5.5), frozen=False, distorted=False,
+             defrost=False, command=command, experiment_s=experiment_s)
+    return d
+
+
+from dataclasses import replace as _wrr_replace  # noqa: E402
+
+_wrr_edge_c = _wrr_replace(_wrr_edge, written_c=38.0)
+_wrr_tight_c = _wrr_replace(_wrr_tight, written_c=38.0)
+_wrr_e_probe = _wrr_folded(_wrr_edge_c, experiment_s=1.0)
+_wrr_t_probe = _wrr_folded(_wrr_tight_c, experiment_s=1.0)
+_wrr_e_run = _wrr_folded(_wrr_edge_c)
+_wrr_t_run = _wrr_folded(_wrr_tight_c)
+R.check(
+    "draw_range folds a ceiling write on a return target as ceiling-probe evidence and as "
+    "a full sample only with headroom; without it the probe interval goes to the window "
+    "and the sample is not full",
+    len(_wrr_e_probe.ceiling) == 1 and len(_wrr_t_probe.ceiling) == 0
+    and [e[2] for e in _wrr_e_run._evidence()] == [True]
+    and [e[2] for e in _wrr_t_run._evidence()] == [False],
+    f"probe {len(_wrr_e_probe.ceiling)}/{len(_wrr_t_probe.ceiling)} "
+    f"full {[e[2] for e in _wrr_e_run._evidence()]}/{[e[2] for e in _wrr_t_run._evidence()]}",
+)
+
+
+def _wrr_write(unit, duty, inlet, extra=None, curve=None):
+    """``_flow_target`` for ``duty`` on a ``unit`` entity whose pump return reads ``inlet``."""
+    config = {"space_setpoint_entity": "number.wrr", "space_setpoint_unit": unit,
+              **(extra or {})}
+    states = {"number.wrr": FakeState("30", attributes={"min": 20, "max": 70})}
+    if inlet is not None:
+        config[_SP_PUMP_RETURN] = "sensor.wrr_return"
+        states["sensor.wrr_return"] = FakeState(str(inlet), unit="°C")
+    return _pa._flow_target(
+        _PaNS(
+            config=config, hass=FakeHass(states),
+            state=_PaNS(outdoor_temperature=0.0, buffer_tank_temperature=40.0,
+                        floor_return_temperature=None),
+            thermal=_PaNS(params=None, curve_flow_temp=lambda _o: curve),
+            params=_PaNS(min_electrical_power=1.5, max_electrical_power=5.5),
+            plan=_PaNS(timestamps=[_PA_T0], power_schedule=[1.5]),
+            action=None,
+        ),
+        duty, _PA_T0,
+    )
+
+
+_WRR_SMALL = {"flow_min_lift_k": 1.5, "flow_heat_c": 37.0}
+# The gate is a supply number (25 degC is below any heated supply) and so is
+# moved to return terms like the hold and the curve: as a return target 25 degC
+# sits above a floor return cooled overnight (23-24 degC measured on the
+# install this was written for), and a controller modulating on target minus
+# return would heat on a step meant to be off. 20 degC is also what that
+# Luxtronik reports as its own idle return target.
+_WRR_GATE = _pa.FLOW_GATE_C - _pa.RETURN_SUPPLY_OFFSET_K
+R.check(
+    "a return target's non-heating duties write the gate in return terms, 20 degC, "
+    "whatever the lift and ceiling; a flow target's write the 25 degC gate (null control)",
+    all(
+        _wrr_write("return", duty, 30.0, _WRR_SMALL) == _WRR_GATE == 20.0
+        and _wrr_write("flow", duty, 30.0, _WRR_SMALL) == _pa.FLOW_GATE_C
+        for duty in ("dhw", "idle")
+    ),
+    f"{[_wrr_write('return', d, 30.0, _WRR_SMALL) for d in ('dhw', 'idle')]} "
+    f"{[_wrr_write('flow', d, 30.0, _WRR_SMALL) for d in ('dhw', 'idle')]}",
+)
+_wrr_cold = _wrr_write("return", "space", 22.0, _WRR_SMALL)
+_wrr_cold_flow = _wrr_write("flow", "space", 22.0, _WRR_SMALL)
+R.check(
+    "a 1.5 K lift over a 22 degC return takes the lift from the return, above the 20 degC "
+    "return gate, and rounds up on a whole-degree entity to 24; a flow target's floor "
+    "is still taken from its 25 degC gate, 27 -- so a heating step never writes either gate",
+    _wrr_cold == 24.0 and _wrr_cold > _WRR_GATE
+    and _wrr_cold_flow == 27.0 and _wrr_cold_flow > _pa.FLOW_GATE_C,
+    f"return {_wrr_cold} flow {_wrr_cold_flow}",
+)
+_wrr_colder = _wrr_write("return", "space", 18.0, _WRR_SMALL)
+R.check(
+    "a return below the return gate takes the lift from that gate: 20 + 1.5, rounded up "
+    "to 22 on a whole-degree entity",
+    _wrr_colder == 22.0,
+    f"{_wrr_colder}",
+)
+R.check(
+    "a return above the ceiling writes the ceiling, never above it, on a return target",
+    _wrr_write("return", "space", 39.0, _WRR_SMALL) == 37.0,
+    f"{_wrr_write('return', 'space', 39.0, _WRR_SMALL)}",
+)
+R.check(
+    "the hold moves by the rated spread, not by the configured lift: a 1.5 K lift "
+    "leaves the return baseline at curve - 5 K and the no-curve hold at 30",
+    _wrr_write("return", None, 30.0, {**_WRR_SMALL, "flow_heat_c": 48.0}, curve=40.0)
+    == 40.0 - _pa.RETURN_SUPPLY_OFFSET_K
+    and _wrr_write("return", None, 30.0, _WRR_SMALL, curve=None)
+    == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K
+    and _wrr_write("flow", None, 30.0, {**_WRR_SMALL, "flow_heat_c": 48.0}, curve=40.0)
+    == 40.0,
+    f"{_wrr_write('return', None, 30.0, {**_WRR_SMALL, 'flow_heat_c': 48.0}, curve=40.0)}",
+)
+
+_wrr_tr_root = _FrPath(__file__).resolve().parent.parent / "custom_components" / "heatpump_optimizer"
+_wrr_tr_missing = []
+for _wrr_name in ("strings.json", "translations/en.json", "translations/sv.json"):
+    _wrr_doc = _fi_json.loads((_wrr_tr_root / _wrr_name).read_text(encoding="utf-8"))
+    _wrr_opts = _wrr_doc["selector"]["space_setpoint_unit"]["options"]
+    _wrr_ind = _wrr_doc["options"]["step"]["entities"]["sections"]["indoor"]
+    _wrr_tr_missing += [f"{_wrr_name}:unit:{u}" for u in _RT_UNITS if not _wrr_opts.get(u)]
+    _wrr_tr_missing += [
+        f"{_wrr_name}:{part}:{key}"
+        for part in ("data", "data_description")
+        for key in ("flow_min_lift_k", "flow_heat_c")
+        if not _wrr_ind.get(part, {}).get(key)
+    ]
+R.check(
+    "every set-point unit, return included, has a label, and both new fields a label "
+    "and a description, in strings.json, en and sv",
+    not _wrr_tr_missing,
+    f"{_wrr_tr_missing}",
+)
+
+# --- Review fixes D3, D5, D6 (return unit) ---------------------------------
+R.check(
+    "D3: a stored ceiling at or below the gate reads as the default heating flow, so a "
+    "heating step never writes the gate; one above the gate is kept",
+    _pa._heat_ceiling_c({_PP_FLOW_KEY: _pa.FLOW_GATE_C}) == _pa.FLOW_HEAT_C
+    and _pa._heat_ceiling_c({_PP_FLOW_KEY: 20.0}) == _pa.FLOW_HEAT_C
+    and _pa._heat_ceiling_c({_PP_FLOW_KEY: 30.0}) == 30.0
+    and _pa._heat_ceiling_c({}) == _pa.FLOW_HEAT_C
+    and _sp_write(5.5, _WL_RETURN, extra={_PP_FLOW_KEY: 25.0}) == _pa.FLOW_HEAT_C,
+    f"{_sp_write(5.5, _WL_RETURN, extra={_PP_FLOW_KEY: 25.0})}",
+)
+R.check(
+    "D5: a return target's bare hold (no curve) is capped at its ceiling; a flow "
+    "target's stays the uncapped rated hold, as on the base",
+    _rt_baseline("return", None, heat=28.0) == 28.0
+    and _rt_baseline("return", None, heat=48.0) == 30.0
+    and _pa.RETURN_SUPPLY_OFFSET_K == 5.0
+    and _rt_baseline("flow", None, heat=28.0) == _pa.FLOW_HOLD_C,
+    f"{_rt_baseline('return', None, heat=28.0)} {_rt_baseline('flow', None, heat=28.0)}",
+)
+R.check(
+    "D6: a return target's floor never anchors on the valve outlet: alone it leaves the "
+    "no-inlet floor, behind a tank the tank wins; a flow target still takes it",
+    _sp_write(1.5, (_SP_VALVE,), extra=_RT) == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K
+    and _sp_write(1.5, (_SP_TANK, _SP_VALVE), extra=_RT) == _SP_READ[_SP_TANK] + _SP_LIFT
+    and _sp_write(1.5, (_SP_FLOOR, _SP_VALVE), extra=_RT) == _SP_READ[_SP_FLOOR] + _SP_LIFT
+    and _sp_write(1.5, (_SP_VALVE,), extra=_RT_FLOW) == _SP_READ[_SP_VALVE] + _SP_LIFT
+    and _pa.RETURN_SKIPPED_RUNG == _SP_VALVE,
+    f"{_sp_write(1.5, (_SP_VALVE,), extra=_RT)}",
+)
+
+# --- Null control (R10-WATER-SETPOINT-LIFT): with default options (no
+# flow_min_lift_k, no flow_heat_c) an indoor or flow unit writes exactly what
+# main wrote before the return unit landed. Every cell drives the production
+# ``desired`` (each duty and the baseline) and ``_flow_command`` through a
+# real coordinator, over the inlet rungs a return target treats differently
+# (the pump return, the skipped valve outlet), inlets either side of the gate
+# and the ceiling, four plan levels, and the weather curve absent, under the
+# hold, between hold and ceiling and over the ceiling. _NC_AT_MAIN is this
+# same block's output recorded on origin/main ba6fd7e8b's production code.
+from heatpump_optimizer import pump_arbiter as _nc_pa  # noqa: E402
+
+_NC_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+_NC_RUNGS = ((), ("heat_pump_return_temp_entity",), ("valve_outlet_temp_entity",),
+             ("heat_pump_return_temp_entity", "valve_outlet_temp_entity"))
+
+
+def _nc_cell(cmd):
+    if cmd is None:
+        return "-"
+    if isinstance(cmd, _nc_pa.FlowCommand):
+        return f"{cmd.written_c:g}/{cmd.gate_c:g}/{cmd.ceiling_c:g}"
+    assert cmd.mode is None and cmd.dhw_setpoint is None and cmd.silent is None, cmd
+    return "-" if cmd.space_setpoint is None else f"{cmd.space_setpoint:g}"
+
+
+def _nc_cells():
+    cells = []
+    for unit in ("indoor", "flow"):
+        for rungs in _NC_RUNGS:
+            for inlet_c in ("18.0", "27.0", "52.0", "60.0"):
+                states = {"number.nc": FakeState("40", attributes={"min": 5, "max": 70})}
+                data = {"tibber_token": "x", "weather_entity": "weather.home",
+                        "space_setpoint_entity": "number.nc", "pump_duty_mode": "control",
+                        "space_setpoint_unit": unit}
+                for key in rungs:
+                    data[key] = f"sensor.nc_{key}"
+                    states[data[key]] = FakeState(inlet_c, unit="°C")
+                coord = _DrCoord(FakeHass(states), _dr_entry(data=data))
+                for kw in (0.0, 1.5, 3.5, 6.0):
+                    coord._optimization_result = _PaNS(
+                        timestamps=[_NC_T0], power_schedule=[kw], optimal_setpoints=[21.0],
+                        dhw_schedule=[0.0])
+                    coord._current_action = {"power": kw, "dhw_power": 0.0}
+                    for curve in (None, 30.0, 42.0, 61.0):
+                        coord._thermal_model.curve_flow_temp = lambda _o, c=curve: c
+                        inp = coord.arbiter_inputs()
+                        cells += [_nc_cell(_nc_pa.desired(coord, inp, duty, _NC_T0))
+                                  for duty in (None, "space", "both", "dhw", "idle")]
+                    _nc_pa.state_for(coord).written["space_setpoint"] = (40.0, _NC_T0)
+                    cells.append(_nc_cell(_nc_pa._flow_command(
+                        coord.arbiter_inputs(), _nc_pa.state_for(coord))))
+    return cells
+
+
+_NC_AT_MAIN = (
+    "21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 "
+    "21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 "
+    "21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 "
+    "21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 "
+    "21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 "
+    "5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 "
+    "5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 "
+    "21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 "
+    "21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 "
+    "21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 "
+    "21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 "
+    "21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 "
+    "21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 "
+    "21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 "
+    "21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 "
+    "5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 "
+    "5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 "
+    "21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 "
+    "21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 "
+    "- 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 "
+    "21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - "
+    "21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 "
+    "21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 "
+    "21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 "
+    "21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 "
+    "21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 "
+    "5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 "
+    "5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 "
+    "21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 "
+    "21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 "
+    "21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 "
+    "21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 "
+    "21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 "
+    "21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 "
+    "21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 "
+    "21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 "
+    "5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 "
+    "5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 "
+    "21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 "
+    "21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 "
+    "- 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 "
+    "21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - "
+    "35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 38 38 25 25 35 "
+    "38 38 25 25 42 38 38 25 25 55 38 38 25 25 40/25/55 35 48 48 25 25 35 48 48 25 25 42 48 "
+    "48 25 25 55 48 48 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 "
+    "25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 "
+    "38 38 25 25 35 38 38 25 25 42 38 38 25 25 55 38 38 25 25 40/25/55 35 48 48 25 25 35 48 "
+    "48 25 25 42 48 48 25 25 55 48 48 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 "
+    "25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 "
+    "25 40/25/55 35 38 38 25 25 35 38 38 25 25 42 38 38 25 25 55 38 38 25 25 40/25/55 35 48 "
+    "48 25 25 35 48 48 25 25 42 48 48 25 25 55 48 48 25 25 40/25/55 35 55 55 25 25 35 55 55 "
+    "25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 "
+    "25 55 55 55 25 25 40/25/55 35 38 38 25 25 35 38 38 25 25 42 38 38 25 25 55 38 38 25 25 "
+    "40/25/55 35 48 48 25 25 35 48 48 25 25 42 48 48 25 25 55 48 48 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 33 33 25 25 35 33 33 25 25 42 33 33 25 25 "
+    "55 33 33 25 25 40/25/55 35 46 46 25 25 35 46 46 25 25 42 46 46 25 25 55 46 46 25 25 "
+    "40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 35 35 25 25 35 35 35 25 "
+    "25 42 35 35 25 25 55 35 35 25 25 40/25/55 35 46 46 25 25 35 46 46 25 25 42 46 46 25 25 "
+    "55 46 46 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 "
+    "40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 "
+    "40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 33 33 25 25 35 33 33 25 25 42 33 33 25 25 55 33 33 25 25 "
+    "40/25/55 35 46 46 25 25 35 46 46 25 25 42 46 46 25 25 55 46 46 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 35 35 25 25 35 35 35 25 25 42 35 35 25 25 "
+    "55 35 35 25 25 40/25/55 35 46 46 25 25 35 46 46 25 25 42 46 46 25 25 55 46 46 25 25 "
+    "40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 "
+    "40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 "
+    "40/25/55 35 33 33 25 25 35 33 33 25 25 42 33 33 25 25 55 33 33 25 25 40/25/55 35 46 46 "
+    "25 25 35 46 46 25 25 42 46 46 25 25 55 46 46 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 35 35 25 25 35 35 35 25 25 42 35 35 25 25 55 35 35 25 25 "
+    "40/25/55 35 46 46 25 25 35 46 46 25 25 42 46 46 25 25 55 46 46 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 "
+    "40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 "
+    "40/25/55 "
+).split()
+_nc_head = _nc_cells()
+_nc_moved = [i for i, (a, b) in enumerate(zip(_nc_head, _NC_AT_MAIN)) if a != b]
+R.check(
+    "null control: with default options every set-point an indoor or flow unit writes, "
+    "and every held FlowCommand, is main's, cell for cell",
+    len(_nc_head) == len(_NC_AT_MAIN) == 2688 and not _nc_moved,
+    f"{len(_nc_head)} cells, moved at {_nc_moved[:8]}",
+)
+
 # --- #1956 the card recommends a feedback sensor on an unmetered install ---
 # The probe is #1955's own: power and frequency come from ``probe_install``;
 # the energy and flow entities are the classes the probe does not carry. The
@@ -72065,7 +73027,7 @@ R.check(
     str(_frs_wiring()),
 )
 _FRS_PKG = _frs_Path(__file__).resolve().parent.parent / "custom_components/heatpump_optimizer"
-for _frs_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _frs_file in ("strings.json", *SHIPPED_CATALOGUES):
     _frs_doc = _frs_json.loads((_FRS_PKG / _frs_file).read_text(encoding="utf-8"))
     _frs_text = _frs_doc.get("issues", {}).get(_frs_mod.ISSUE_FLOOR_RETURN_SILENT, {})
     R.check(
@@ -78481,7 +79443,7 @@ _cpd_codes = {
                               "not_below_configured", "measured_below_configured"},
 }
 _cpd_tr_missing = []
-for _cpd_name in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _cpd_name in ("strings.json", *SHIPPED_CATALOGUES):
     _cpd_tr = _cpd_json.loads((_CpdPath(__file__).resolve().parents[1] / "custom_components/heatpump_optimizer" / _cpd_name).read_text())
     _cpd_attrs_tr = _cpd_tr["entity"]["sensor"]["learning_model_status"].get("state_attributes", {})
     for _cpd_attr, _cpd_vals in _cpd_codes.items():
