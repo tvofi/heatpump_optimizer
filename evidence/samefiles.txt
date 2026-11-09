@@ -1,6 +1,0 @@
-DIFF tools/audit/seat/roster_lib.py
-same tools/audit/seat/open_driver.py
-DIFF tools/plan/replan.py
-same tools/pr/gate_priority.py
-DIFF tools/audit/seat/orchestrator_tick.py
-DIFF tools/audit/seat/merge_train.py
