@@ -1,0 +1,3 @@
+pinned _NC_AT_MAIN cells: 2688
+reviewer recording on origin/main c668197a production tree: 2688
+RESULT nc_main_rerecord_cells=2688 nc_main_rerecord_mismatches=0 identical=True

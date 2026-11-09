@@ -1,0 +1,62 @@
+1:  8a6f70a06 ! 1:  9fab06f0e Water space set-point: configurable lift and ceiling, and a return unit
+    @@ Commit message
+         (modulation_floor_flow_c's return, _flow_target's hold) move: their pins are
+         re-measured on this branch and the CMP_BOUND triage verdict is carried.
+     
+    -    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+    -    Claude-Session: https://claude.ai/code/session_01HT5VvygzeFerYorqfGy7hL
+    -
+      ## custom_components/heatpump_optimizer/config_flow.py ##
+     @@ custom_components/heatpump_optimizer/config_flow.py: from .const import (
+          CONF_SPACE_SETPOINT_UNIT,
+    @@ tests/features.py: R.check(
+      # flat between 0 and p_min and a start descending into that band stalls
+      # there. The relaxed candidate (``_relaxed_starts``) is the fix; the
+     
+    - ## tests/golden/claimed_drift.txt ##
+    -@@
+    - # v7.1.7: The round's plan page is public. The stamp empties the list; the
+    - # next branch restates its own footprint, claims included.
+    - #
+    --config_flow # R10-MIN-POWER-FLOOR (#3289): the thermal_model options page gains the compressor_modulation select (auto/on_off/modulating, pre-filled auto); ADD-ONLY, one 10-line field leaf in the plain and one in the seeded render (git diff --numstat 20 insertions, 0 deletions), no existing leaf moves; re-recorded with --record --only config_flow because env_drift compares config_flow exactly
+    -+config_flow # R10-MIN-POWER-FLOOR (#3289): the thermal_model options page gains the compressor_modulation select (auto/on_off/modulating, pre-filled auto); ADD-ONLY, one 10-line field leaf in the plain and one in the seeded render (git diff --numstat 20 insertions, 0 deletions), no existing leaf moves; re-recorded with --record --only config_flow because env_drift compares config_flow exactly; and, restated on the branch that merged second (claim-files.md, one claim per scenario): water set-point lift and ceiling: the space_setpoint_unit select gains a third option, return (indoor/flow/return), in the plain and the seeded render; two option-list leaves move (git diff --numstat 2 insertions, 2 deletions), no leaf is added or removed (the new flow_min_lift_k and flow_heat_c fields render only for a water unit, which neither render seeds); re-recorded with --record --only config_flow because env_drift compares config_flow exactly
+    - # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+    - # (option (a)): the move's margin is inside the noise band (objective rel
+    - # -1.2171e-03, deterministic on one box), so which runner sees it move is the
+    -
+      ## tests/golden/config_flow.json ##
+     @@
+           "space_setpoint_unit": {
+2:  c73b0e015 ! 2:  2d6b81d5d tests: review checks for the return set-point unit
+    @@ Commit message
+         _as_target subtracting the configured lift, 4 of 4985 checks fail, two
+         of them these; unmutated, ALL 4985 FEATURE CHECKS PASSED.
+     
+    -    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+    -    Claude-Session: https://claude.ai/code/session_01HT5VvygzeFerYorqfGy7hL
+    -
+      ## tests/features.py ##
+     @@ tests/features.py: R.check(
+          f"{_bst_flow_of((40.0, _BST_T0), states={})}",
+3:  4c2222809 ! 3:  ad3a1b4e1 Return set-point: ceiling headroom for max-draw evidence, own offset constant, review fixes
+    @@ Commit message
+         _as_target RETURN_DEL d1efa407) are dropped, and the unpinned counts of
+         every ratcheted operator equal the base's.
+     
+    -    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+    -    Claude-Session: https://claude.ai/code/session_01HT5VvygzeFerYorqfGy7hL
+    -
+      ## custom_components/heatpump_optimizer/config_flow.py ##
+     @@ custom_components/heatpump_optimizer/config_flow.py: _OPTION_FIELDS: Final[tuple[_F, ...]] = (
+          # ceiling at full power. Their defaults are today's constants, so an
+4:  e9dc72be0 ! 4:  96ab870f0 Return set-point: the gate in the entity's own terms (20 °C), review fix
+    @@ Commit message
+         pins of the rewritten lines (a82d03a2, 5db5a312) are dropped. strings.json,
+         en, sv and docs/configuration.md name the return gate.
+     
+    -    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+    -    Claude-Session: https://claude.ai/code/session_01HT5VvzQ9PyAzziUfqN6amG
+    -
+      ## custom_components/heatpump_optimizer/pump_arbiter.py ##
+     @@ custom_components/heatpump_optimizer/pump_arbiter.py: def _as_target(config: Any, supply_c: float) -> float:
+          ``return``) sits :data:`RETURN_SUPPLY_OFFSET_K` below it: the rated hold
