@@ -41914,7 +41914,7 @@ R.section("R10-GENERIC-HEAT-CURVE-PERSISTENT — kind persistent: a stored curve
 # PERSISTENT a64af2b3) binds: the baseline is captured once into off_restore's
 # record with its entity, the arm writes baseline + displace within the band.
 import json as _ghcp_json  # noqa: E402
-from homeassistant.helpers.storage import _DISK as _ghcp_disk  # noqa: E402
+from homeassistant.helpers.storage import SAVE_COUNTS as _ghcp_saves, _DISK as _ghcp_disk  # noqa: E402
 
 _GHCP_ENT = "number.x"
 _GHCP_ATTRS = {"step": 0.5, "min": 5.0, "max": 35.0}
@@ -42012,6 +42012,16 @@ _ghc_pub(_gp1, 2.0)
 _ghcp_reads(_gp1, "24")
 _ghcp_age(_gp1, _GHCP_DWELL_S)
 _ghc_pub(_gp1, 2.0)
+_gp1_key = f"heatpump_optimizer_{_gp1.entry.entry_id}_off_restore"
+_gp1_saves = _ghcp_saves.get(_gp1_key)
+_ghc_pub(_gp1, 2.0)
+R.check(
+    "a reading that holds the last write is ours, never an edit: the baseline is not re-saved",
+    _ghcp_saves.get(_gp1_key) == _gp1_saves
+    and _asyncio.run(_ghc_restore.async_armed_entry(_gp1.hass, _gp1.entry, "heat_curve"))
+    == {"entity_id": _GHCP_ENT, "value": 22.0},
+    "saves=%r/%r" % (_gp1_saves, _ghcp_saves.get(_gp1_key)),
+)
 R.check(
     "a reading already at the target is not written, armed or not (W1)",
     _ghc_writes(_gp0) == [] and _ghc_writes(_gp1) == [24]
@@ -42301,7 +42311,6 @@ R.check(
     and any("climate.no_service" in m and "failed" in m for m in _gns_warn),
     "sent=%r diag=%r warn=%r" % (_gns_sent, _ghc_restore.diagnostics(_gns.entry), _gns_warn),
 )
-from homeassistant.helpers.storage import SAVE_COUNTS as _ghcp_saves  # noqa: E402
 _grb = _ghcp_coord(entry_id="ghcp_rebaseline")
 _ghc_pub(_grb, 2.0)
 _grb_key = f"heatpump_optimizer_{_grb.entry.entry_id}_off_restore"
