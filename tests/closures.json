@@ -3906,6 +3906,7 @@
    "tools/audit/seat/beat_jobs.py",
    "tools/audit/seat/beat_jobs_selftest.py",
    "tools/audit/seat/beatd.py",
+   "tools/audit/seat/bottleneck_check.py",
    "tools/audit/seat/carry_fold.py",
    "tools/audit/seat/ci_critpath.py",
    "tools/audit/seat/ci_probe.py",
@@ -4135,6 +4136,7 @@
    "dev/audit/harnesses/r10_nightly_status_mutants.py",
    "dev/audit/harnesses/r10_nonrequired_reds.py",
    "dev/audit/harnesses/r10_open_driver_mutants.py",
+   "dev/audit/harnesses/r10_outside_intake_p2_mutants.py",
    "dev/audit/harnesses/r10_partload_pricing.py",
    "dev/audit/harnesses/r10_partload_residue.py",
    "dev/audit/harnesses/r10_plan_durations_mutants.py",
@@ -4152,6 +4154,7 @@
    "dev/audit/harnesses/r10_rca_gate_busy_defer_4.py",
    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
    "dev/audit/harnesses/r10_rca_sav_estimate.py",
+   "dev/audit/harnesses/r10_rca_sweep_settle_loop.py",
    "dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs",
    "dev/audit/harnesses/r10_recarry_head.py",
    "dev/audit/harnesses/r10_registry_leak.py",
@@ -4964,7 +4967,7 @@
   },
   "tests/backtest.py": {
    "rc": 0,
-   "seconds": 151.6
+   "seconds": 61.6
   },
   "tests/block_duty.py": {
    "rc": 0,
@@ -5060,7 +5063,7 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 291.9
+   "seconds": 142.5
   },
   "tests/plan_view.py": {
    "rc": 0,
