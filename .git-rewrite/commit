@@ -1,0 +1,6 @@
+tree f8fea5086b5a34eeae6415de085584c5ac7191cd
+parent b717bb5066531b05f4c47f593475709ebc0c4b13
+author tvofi <70032254+tvofi@users.noreply.github.com> 1794194195 +0100
+committer tvofi <70032254+tvofi@users.noreply.github.com> 1794194195 +0100
+
+roster_edit append-carry R10-GENERIC-HEAT-CURVE (tools/audit/seat/roster_edit.py)
