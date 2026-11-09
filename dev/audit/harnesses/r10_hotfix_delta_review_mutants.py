@@ -59,6 +59,10 @@ MUTANTS = [
      "        if v and v[1] == rh:", "        if v:"),
     ("M5", "bus.sh dispatch hands the renderer --reviewed-head", BUS,
      ' ${rh:+--reviewed-head "$rh"} ', " "),
+    ("M7", "the packet's scope line carries the exception's production-code qualifier", PACKET,
+     '(custom_components/) puts at risk', 'puts at risk'),
+    ("M8", "the packet's scope line states a wider trigger", PACKET,
+     'naming the path and the risk in the verdict; an "', 'naming the path and the risk in the verdict, or in full on code that review relied on; an "'),
     ("M6", "the cloud reviewer renders its packet with --reviewed-head", CLOUD,
      '+ (f"--reviewed-head {reviewed_head} " if reviewed_head else "") +', "+"),
 ]

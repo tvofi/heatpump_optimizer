@@ -222,8 +222,10 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "--out $HOME/review-packet.md`. A refusal names its signal and the packet is still "
             "written unless the signal is `host-path`; re-read the live checks either way. "
             + (f"This is a later round over the reviewed head {reviewed_head}: its scope is the packet's "
-               "`## Review scope` line, the delta and the previous verdict's findings when it reads `delta` "
-               "(fix-review.md step 12). " if reviewed_head else "") +
+               "`## Review scope` line, the delta and the previous verdict's findings when it reads `delta`, "
+               "widened only to the exact already-reviewed code a production (custom_components/) delta puts "
+               "at non-obvious risk that CI would not detect, the verdict naming path and risk; an "
+               "instrument, test, policy or body delta never widens it (fix-review.md step 12). " if reviewed_head else "") +
             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
             "every figure in the body at this head. Check that it merges with origin/main "
             "(`git merge-tree --write-tree origin/main <head>`); block on main only when that reports a "
@@ -829,6 +831,9 @@ def _group_checks(check) -> None:
               f"render --pr 7 --head {rhead} --reviewed-head {rh2} --out " in p_later
               and f"later round over the reviewed head {rh2}" in p_later
               and f"render --pr 7 --head {rhead} --out " in p_first and "--reviewed-head" not in p_first)
+        check("the later-round reviewer prompt carries the exception's three qualifiers and no wider trigger",
+              "custom_components/" in p_later and "non-obvious" in p_later and "CI would not" in p_later
+              and "reaches code that review relied on" not in p_later and "in full" not in p_later)
         try:
             render("fixer", rhead, env_id="e", model="m", repo="o/r", topic="t", reviewed_head=rh2)
             ok = False

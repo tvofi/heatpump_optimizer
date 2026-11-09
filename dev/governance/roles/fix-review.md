@@ -25,14 +25,15 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
    population.** Run the enumeration rule the body names and compare its output with
    the diff: a seam it returns that is neither in the diff nor dispositioned in the body
    is `blocked <sha> class-open: <seam>`, a site or a predicate's unguarded
-   domain. A body whose issue states more than one seam and names no rule is `blocked <sha> harness: class-rule-missing`. A rule returning
-   nothing makes the class one seam: say so, never read the absence as compliance.
+   domain. A body whose issue states more than one seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
+   returns nothing is a body whose class is one seam — say so rather than treating the absence as compliance.
 7. Confirm the head SHA in the PR body is the head you measured, or `--carry`s to it.
 8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
-   built your own definition to check it, say so in the verdict.
+   if you had to build your own definition to check it, write that in the verdict.
 9. **When the finding has no committed harness, that is itself a finding**.
-   A fixer's own instrument is disclosed as such, and so is yours;
+   A fixer who builds their own instrument must
+   disclose it as their own, not the finder's -- so do you, if you built one;
    one rebuilt because a copy lived out of tree is named, and lands (`fixer.md` 18).
    A feature's harness is its judge's design: a requirement or on-device measurement it names and neither tests nor tvofi waived is `blocked <sha> harness: design-trace-missing <item>` (#1588).
 
@@ -78,20 +79,24 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     test, claims) and your targeted mutants stay yours.
 
 12. **Re-read the head before you post.** Name the SHA you measured in the
-    verdict and check it is still the head at posting; if it moved, say
-    which numbers survive and which you re-took.
+    verdict, and check it is still the head when you post it; if it moved, say
+    which of your numbers survive and which you re-took.
 
     The handoff makes the head yours, so one that moved under you is a broken
     rule: `blocked <sha> head-moved: measured <sha>, head is <other>`.
 
     **A `merge` verdict attaches to the head its first line names and carries**
-    (#1667; tvofi 2026-10-27) while `seat/review_carry.py
+    (#1667; tvofi 2026-10-27) while `tools/audit/seat/review_carry.py
     <verdicted> <new>` prints `CARRY`: the PR's patch is the one reviewed
     (L6), not `head-moved`; a red CI never carries.
     Else a later round is **its delta** (tvofi 2026-11-09): `git diff <reviewed-head>
     <head>` (a main merge: its resolution), each prior finding resolved, the live
-    required checks; in full only on a reason the verdict names, that the delta
-    reaches code that review relied on.
+    required checks. The one exception is a delta touching production code
+    (`custom_components/`) in a way that puts the functionality of already-reviewed
+    code at risk of being affected in a non-obvious way that CI would not detect; the
+    review then extends to exactly that affected code, never the whole PR, and the
+    verdict names the path and the risk. An instrument, test, policy or body delta
+    never justifies a wider review.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
@@ -108,8 +113,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     **The driver's verdict is in that command's stderr; read it, never infer it
     from the paths.** `merge-tree` invokes the driver once per conflicting claim
     file if you installed it (`claim-files.md`). Key on the marker,
-    `MERGE-CLAIM: resolved <path>` or `MERGE-CLAIM: refused <path>`, not the
-    wording after it. A `resolved` line settles
+    `MERGE-CLAIM: resolved <path>` or `MERGE-CLAIM: refused <path>`, not on the
+    wording after it, which several checks supply. A `resolved` line settles
     that file, and a non-zero exit beside it is about another path. A `refused`
     line is the orchestrator's to resolve by hand, not a defect in the authored
     work — say which file refused and why.
