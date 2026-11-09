@@ -64,8 +64,9 @@ It ends `SELFTEST-SCOPE MUTANTS: every mutant refused`. It was also run under `s
 
 ## Red checks
 
-- `tests / fast (3.14)`: the one failing check inside `python3 tests/stress.py` was "the probed scenarios' memory peaks stay within their recorded budgets" (typical_slab/shoulder traced peak 3.9 MiB against 1.8 MiB recorded, x1.5 threshold). This diff touches only `tools/ci/`, `.github/workflows/governance.yml` and a delivery row, none of which stress.py's probe imports. Re-run of `PYTHONPATH=tests/hastub python3 tests/stress.py` on this same head, Python 3.14.7: `ALL 114 STRESS CHECKS PASSED`, the same scenario reading traced 2.1 MiB. Same code, 3.9 then 2.1 MiB: a run-to-run spread of the traced peak, not a regression from this diff. Cheaper detector: none; the traced probe inside stress.py is the detector that found it, and the spread is a distinct finding in the stress memory-probe seam, not this PR's group. Carry: dismissed: not caused by this diff, no cheaper detector.
-- `pr-contract / pr-contract`: red only because the line above was missing from this section; answered here.
+- `tests / fast (3.14)`: inherited from main at 2f6d699e (de.json keys and D6 claim C112), not caused by this diff, which touches only `tools/ci/`, `.github/workflows/governance.yml` and a delivery row. Fixed by #3378. Cheaper detector: none beyond the gate that found it. Carry: dismissed: inherited from main, fixed by #3378.
+- `gate`: follows from `tests / fast (3.14)` above and from nothing else at this head. Carry: dismissed: follows from the inherited red.
+- `pr-contract / pr-contract`: was red on a body that did not answer the checks above; answered here. Carry: dismissed: body-only repair.
 
 ## Forward-carry
 
