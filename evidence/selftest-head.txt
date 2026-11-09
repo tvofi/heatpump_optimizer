@@ -1,0 +1,3 @@
+  ok   body_lines passes the same body with the path written ~/... (null control)
+  ok   body_lines still names a host path on the first line
+ref_privacy self-test: 124 checks, 0 failed
