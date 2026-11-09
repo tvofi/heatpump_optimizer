@@ -20483,6 +20483,53 @@
     "branch": null,
     "note": "overlap admitted (R10-TRAIN-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-TRAIN-RESIDUE, ordered by after-edges where files overlap"
    }
+  },
+  {
+   "group": "R10-TICK-RESIDUE",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [
+    3136
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/beat_jobs.py",
+    "tools/audit/seat/beatd.jobs.json",
+    "tools/audit/seat/postmerge.py",
+    "tools/audit/seat/record_beat.py",
+    "dev/programme/HANDOVER.md"
+   ],
+   "hot_files": [
+    "tools/audit/seat/orchestrator_tick.py"
+   ],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "The tick levels #3345 left unbuilt: NOT REVIEWABLE naming deferral-only, OUTSIDE-CHAIN-IDLE, probe-refused by reason, the unrecorded-merge query, the repair-discharges-line barrier, postmerge idempotence on issue 201, OWED handoff opener results, UNDISPATCHED for a carries-open or not-started group with its gate open and no seat (P438), the CI-attempt alarm row (P445), red-unowned reading classify (P455), and the OWED cap line (P456). Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
