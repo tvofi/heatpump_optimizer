@@ -77,6 +77,22 @@
   CI judges the new head, and a recarry that reproduces the same red tree
   stops instead of looping. A one-car batch (the #2595 repair car onto a red
   main) cannot move a base, so the grade never fires there.
+  Card 5 (tvofi 2026-11-07, `Train.merges_as_is`): a head that lacks
+  origin/main is recarried only when `main-protect-checks` requires an
+  up-to-date branch (`strict_update`, read live; unreadable counts as
+  required), when git's merge of origin/main and the head conflicts, when the
+  head is a GITHUB_TOKEN tip, or when a graded red holds it; otherwise it is
+  logged `#<pr> no recarry:` and merges at its proven head, its merge tree
+  graded against its merge base at the merge, as the overlap grade does.
+  Card 1 (`Train.rejoin`): under `--skip-bad`, an entry skipped on a head red
+  holding `gate` (`HeadRed`) rejoins the same train after the batch's own
+  merges, through the serial path, once its skipped head classifies GREEN
+  (`classify_at`), with no `add`; RED, a head still WAIT `wait_cap_s` (polls
+  x 305 s, 7320 s at the default) after its skip, or a head the branch moved
+  off stays skipped, each logged `REJOIN #<pr>: ...`; a rejoin that merges
+  is CURED. Residual: the rejoin's wait delays the next spooled batch, never
+  a merge of its own batch. `dev/audit/harnesses/r10_train_rejoin_no_recarry_mutants.py`
+  holds one mutant per arm of both cards.
   `batch` also takes several batches in one queue (a list of lists), run in
   order on one train, each with its own admission, proof and merges; between
   two it drains what `train.sh add` spooled into one more batch, never into a
