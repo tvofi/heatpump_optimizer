@@ -1,0 +1,30 @@
+['Train', 'gate_raise_only']
+(train: "'Train'", runs) -> 'bool'
+== 128978623669
+2026-11-09T04:47:26.7198195Z Removing HTTP extra header
+2026-11-09T04:47:44.7711458Z Removing HTTP extra header
+2026-11-09T04:47:44.8681721Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-09T04:47:49.7225875Z FAIL run(s) [42555968032, 42556058045] at this head are still being judged; their gate decides
+2026-11-09T04:47:49.7344320Z ##[error]Process completed with exit code 1.
+== 128987722711
+2026-11-09T04:57:34.1152852Z Removing HTTP extra header
+2026-11-09T04:57:51.2787967Z Removing HTTP extra header
+2026-11-09T04:57:51.3646443Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-09T04:57:55.8748335Z FAIL run(s) [42555968032] at this head are still being judged; their gate decides
+2026-11-09T04:57:55.8855305Z ##[error]Process completed with exit code 1.
+== 128995014829
+2026-11-09T05:21:26.6293832Z Removing HTTP extra header
+2026-11-09T05:21:49.0726676Z Removing HTTP extra header
+2026-11-09T05:21:49.1743852Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-09T05:21:55.6119037Z FAIL budget-raise-gate / budget-raise-gate: failure (run 42556058045)
+2026-11-09T05:21:55.6240605Z ##[error]Process completed with exit code 1.
+128995014829 gate completed failure 2026-11-09T05:21:24Z https://github.com/tvofi/heatpump_optimizer/actions/runs/42555968032/job/128995014829
+128987722711 gate completed failure 2026-11-09T04:57:32Z https://github.com/tvofi/heatpump_optimizer/actions/runs/42556058045/job/128987722711
+128985406952 budget-raise-gate / budget-raise-gate completed failure 2026-11-09T04:49:30Z https://github.com/tvofi/heatpump_optimizer/actions/runs/42556058045/job/128985406952
+128978623669 gate completed failure 2026-11-09T04:47:25Z https://github.com/tvofi/heatpump_optimizer/actions/runs/42555968038/job/128978623669
+128970652152 budget-raise-gate / budget-raise-gate completed failure 2026-11-09T04:22:03Z https://github.com/tvofi/heatpump_optimizer/actions/runs/42555968038/job/128970652152
+128968794644 budget-raise-gate / budget-raise-gate completed failure 2026-11-09T04:20:04Z https://github.com/tvofi/heatpump_optimizer/actions/runs/42555968032/job/128968794644
+42556058045 CI edit pr=3245 base=main sha=04179086e116ddac3724ec9ad0d5f57a785a0810 pull_request completed failure
+42555968038 CI edit pr=3245 base=main sha=04179086e116ddac3724ec9ad0d5f57a785a0810 pull_request completed failure
+42555967864 Dependabot auto-merge pull_request_target completed skipped
+42555968032 CI code pr=3245 base=main sha=04179086e116ddac3724ec9ad0d5f57a785a0810 pull_request completed failure

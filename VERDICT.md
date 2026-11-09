@@ -1,104 +1,35 @@
-Fix review: merge 34f4afac0852fa09091263a05a36c50b624caec5
+Fix review: merge f5af5b513b1978d732fd41902c203890e3a0247b
 
-bus-nonce: 8e498178108f67022b3c1438f54a5b44
+bus-nonce: ba9735aa36b9e38353300b586bc75814
 
-## Round
+## Scope
 
-This is the third fix review of #3245 (R10-PROCESS-SLIM); the brief calls it ROUND 3. It is measured at head 34f4afac0852fa09091263a05a36c50b624caec5. That head merges the code head e6a4a7dd3374b97b44dcb5ea1bb52d23d984f628, which is `handoff/r10-process-slim` per ls-remote. Earlier verdicts:
-- 481c7750: blocked, ci-red (the handoff_push delivery_row grep);
-- 6289321a: blocked, ci-red (ref_privacy author guard masked by head-stale).
-
-Both causes are repaired at this head (Evidence). This round's own-diff delta against 6289321a's own diff is:
-- nightly.yml back to the base (the record-autofix beat is kept);
-- its pins restored in tests/entities.py, merge_train.py and orchestrator_tick.py;
-- the record-text corrections;
-- the release_worktrees fix and its self-tests;
-- the roster_edit.py docstring and the sweep_template.md text for C6;
-- main's R10-HOTFIX-SELFTEST-TIMEOUT taken in the merge.
-
-This is not the fourth round, so no re-cut is owed.
-
-## CI state at this head
-
-`merge_train.py classify` exits 1: `RED 34f4afac... pending: none red: gate`. The final `gate` (128695594031) prints exactly one failure: `FAIL codeql / Analyze (python): cancelled (run 42464275029)`.
-- `codeql / Analyze (python)` (128693917445) ran from 08:46:10Z to 09:31:13Z and was cancelled at codeql.yml's `timeout-minutes: 45`. Its last step reached was "Waiting for processing to finish". This diff leaves codeql.yml byte-identical to the merge base.
-- **Null control:** main's current head 2a3c05644 cancels the same job the same way (08:21:13Z to 09:06:19Z). Main f9a963203 took 36 min, so the job is near its timeout on main itself. The cancel is main-wide CodeQL headroom, not this diff. It is carried below to the existing R10-HOTFIX-CODEQL-HEADROOM.
-- This merge verdict judges the code, tests and harness. It does not declare the head green. `codeql / Analyze (python)` is a required context (`tools/ci/fixtures/ruleset/ruleset_23698884.json`). The train must see it re-run to success at this head before merging, and its own classify enforces that. Run 42464275029's later attempts (12 to 17) re-ran only the gate, never the cancelled CodeQL job.
-- The only other red is `budget-raise-gate / budget-raise-gate`, the expected approval-owed red for the two proposal-triage.md caps. The body's `## Raise justification` carries the mandate line (comment 6624093439, scope all) and `Architecture score: dS +0.0000 NULL`. I re-derived the score here: `dS +0.0000 NULL`.
-
-## Owner constraint
-
-The diff writes 0 files under `custom_components/`, and `tools/ci/`, `ci.yml`, `codeql.yml` and `nightly.yml` are byte-identical to the merge base (ev/untouched.txt). So the gate's workset rules for production-only, machinery-only and mixed diffs are main's, unchanged. Per change, the production path touched and the check that still guards it:
-- **C4** (bus.sh derives `--reviewed-head` from the last merge verdict; fix-review.md step 12): no production path. Mutation, goldens, features and CodeQL still run on every head, and a red never carries.
-- **C5** (paperwork becomes a note; no seat writes a delivery row; the `governance / delivery-status` and `delivery-status-publish` jobs and tests.yml's PR copy of the delivery_status grader are deleted; record's refusal step is report-only):
-  - no production path, and a note on `custom_components/` still blocks (fix-review.md at the head);
-  - `governance / delivery-status` is not in the required set;
-  - **this round keeps Nightly's record-autofix beat**, so the stamp's flush and `--require-rows` still read real rows. This is narrower than earlier rounds.
-- **C8** (bus.sh dispatch waits on `CHEAP_CHECKS`, and post refuses `merge` at RED): no production path. A production review waits at most for checks that themselves gate production.
-- **C6 (a)** (proposal-triage.md deleted, with its two caps and its phantom closure entry): no production path.
-- **Train fixes** (postmerge docs step removed, app_approve carry() ancestry, merge_train release_worktrees): no production path.
-- **Planted production defect, with a null control** (ev/plant/): `grid_fee.fee_bound` made to return -1.0 (grid_fee.py:81).
-  - `tests/config_flow_steps.py` refuses it with **rc 1, `2 of 539 checks FAILED`**, at this head and at origin/main 2a3c05644 alike.
-  - `tests/closure.py select --files custom_components/heatpump_optimizer/grid_fee.py` gives `MODE: SCOPED -- 22 script(s) run, 11 scoped out` at both ends. The set of selected scripts is identical. The only differences are scoped-out closure sizes from main's newer recording (ev/plant/select.diff).
-- The body states per card why the risk is acceptable and names the remaining guard. No cut goes beyond cards C4, C5, C8 and C6 (a) as written. I found no large unforeseen risk with a measurement behind it.
-
-## Policy text changed (for the coordinator to surface to tvofi)
-
-The round-2 list in verdict 1cddf8fd0 still holds, except that the sentences saying the beat is deleted are gone. New this round (ev/policy-delta-r2-to-r3.txt):
-- **delivery-status-tracking.md item 1:** "There is no per-PR ... row and no record pull request ... rows already merged ... read by nothing that gates" becomes "No seat writes a per-PR `dev/programme/delivery/<N>.md` row (card C5 ...). Nightly's `record-autofix` beat still rows each merge from API facts, because `tools/release/stamp.py`'s flush and `--require-rows` read those rows (orchestrator ruling 2026-11-08, until R10-FLY-STAMP-FLUSH-COST retires them)."
-- **CLAUDE.md's delivery-status-tracking row:** "no per-PR row" becomes "no seat writes a per-PR row".
-- **orchestrator.md section 9:** "no per-PR row (card C5)" becomes "no per-PR row from you (card C5)".
-- **orchestrator.md record item:** "no per-PR row is written" becomes "No seat writes a per-PR row; `tools/audit/seat/record_row.py` drives the record-autofix job that rows each merge, which the stamp reads".
-- **fix-review.md:**
-  - main's "Evidence names differ beyond case." is unioned in;
-  - "(card C5, tvofi 2026-11-05)" becomes "(card C5)";
-  - "(card C4, tvofi 2026-11-05; #1667, 2026-10-27)" becomes "(card C4; #1667)".
-- **tools/audit/seat/roster_edit.py docstring and sweep_template.md (7):** a proposal now goes to the orchestrator, who rules it directly (card C6), instead of to proposal-triage.md.
-
-The body says `Content approved by tvofi in chat 2026-11-05`.
+This is the fourth review of #3245: blocked at 481c7750, blocked at 6289321a, merge at 34f4afac, and now this one. `tools/audit/seat/review_carry.py 34f4afac f5af5b51` prints FRESH-REVIEW, because b5ddb2a5 is a hand resolution. Compared per file by sha1 of the +/- lines, `c782949e..f5af5b51` matches the verdicted `17e11579..34f4afac` in 37 of 39 files. The two that differ are `dev/governance/roles/orchestrator.md` and `dev/governance/roles/proposal-triage.md` (ev/delta-vs-verdicted.txt). The review therefore went deepest on that resolution delta and cites CI for the rest.
 
 ## Findings
 
-- `codeql / Analyze (python)`, a required context, is cancelled at its 45-minute timeout at this head (128693917445). It is cancelled identically at main 2a3c05644, and main f9a963203 needed 36 min. That is main-wide CodeQL headroom, not this diff (codeql.yml is unchanged). The train owes a re-run of that job to success at this head before the merge, and the cure is the headroom group's. Carry: R10-HOTFIX-CODEQL-HEADROOM
-- `dev/programme/delivery/3245.md` is in the diff, written by the orchestrator at 481c77507 under the pre-C5 rule. It reads `**open**`. The kept record-autofix beat's plan upgrades an open row of a merged PR, so the stamp's `--require-rows` is still satisfied, and this needs no change here. Carry: dismissed: a pre-C5 row the kept beat reconciles after the merge; nothing to change in this diff
+- Follow-up: `tools/audit/seat/outside_intake.py:35` came from main after 34f4afac, and its docstring still sends an `OUTSIDE ... owed=triage` submission to "`proposal-triage.md`, `designer.md`". This PR deletes `proposal-triage.md`, and the body's Merge resolution does not list this reference. It is a semantic merge interaction in help text only. The governing rule, orchestrator.md section 5 "Each outside submission reaches a disposition", is intact. The fix is to point it at orchestrator.md section 5's "A proposal is ruled directly" bullet. Control: `git grep -n proposal-triage -- tools/audit/seat/outside_intake.py` prints line 35 at this head and nothing at 17e11579, where the file does not exist. Carry: R10-OUTSIDE-INTAKE
+- Follow-up: some owed countermeasures name a destination that this PR deletes. `dev/audit/rca/r10-rca-flush-dispatch.md:262,348` (the one-line dispatch-pricing addition to "`proposal-triage.md`'s cost paragraph", whose owner decision is still owed) and the `N-dispatch-overreach` proposed entry in `dev/audit/config/bugclasses.json` both point at that file. Once it is gone, that line belongs in orchestrator.md section 5's proposal bullet, priced inside the file's 295-line / 4251-token cap. Control: `git grep -c proposal-triage f5af5b51 -- dev/audit/rca/r10-rca-flush-dispatch.md` prints 5, and `git cat-file -e f5af5b51:dev/governance/roles/proposal-triage.md` fails. Carry: R10-FLY-STAMP-FLUSH-COST
+- Out of scope: the fold drops three clauses that main's `proposal-triage.md` holds: "Even or marginal: REJECT", "unmeasured: DEFER, never ACCEPT" and "An ACCEPT runs its rule per instance, result beside it." The last of these is the landed countermeasure that the claim-false proposed class in `bugclasses.json` (line 4646) and `R10-RCA-FRICTION-CLAIM-FALSE.md` cite. ev/clause-check.txt shows the body's 7 clauses ALL-PRESENT in the merged orchestrator.md and these 3 MISSING; all 10 are present in main's file. The body calls them base restatements that card C6 (a) retired. All three were already in the base at 17e11579, and the merge verdict at 34f4afac passed their removal. They are recorded here so that the owner's approving review at this head rules on them knowingly. Carry: dismissed: owner-approved card C6 (a) scope, decided by tvofi's approving review at the head, not by a reviewer
+- Follow-up: `merge_train.py classify f5af5b51 --pr 3245` exits 1 (RED) where the head is approval-owed only. `gate_raise_only` requires every red gate suite's log to list only the raise reason. Two red `gate` jobs come from the superseded body-edit runs, 128978623669 (run 42555968038) and 128987722711 (run 42556058045). Each prints only `FAIL run(s) [...] at this head are still being judged; their gate decides`, a deferral to the code run. That makes the predicate fail closed. The code run's own gate, 128995014829 (run 42555968032), prints only `FAIL budget-raise-gate / budget-raise-gate: failure (run 42556058045)` (ev/approval-owed-debug.txt). Carry: dismissed: an instrument false-red recorded with its job ids for the orchestrator, who owns the train and can re-run the two edit-run gates; there is no live roster group for approval_owed
 
 ## Evidence
 
-- **Head measured:** 34f4afac0852fa09091263a05a36c50b624caec5 (ev/HEAD.txt). It is the PR head and `refs/pull/3245/head` per ls-remote at 09:55Z, and the body's `## Head` names it. The merge base is 17e1157925908bd69addb58ed824c1ac22bfa82f.
-- **review_packet.py render:** REFUSE required-red `gate`. That was an early edit-run deferral ("FAIL run(s) [42464275029] at this head are still being judged; their gate decides", ev/gate-128680432033.log). I waited, then re-read all check-runs across pages (ev/checkruns-1.tsv, ev/checkruns-final.tsv, ev/checkruns-final2.tsv).
-- **Concluded success at this head:** `tests / fast (3.14)`, `tests / mutation`, `tests / closures`, `tests / coverage`, `tests / arch-instrument`, `tests / typing`, `tests / browser`, `tests / briefs`, `tests / closure-scope`, `governance / instrument-self-tests` (08:58:35Z, step success, no timeout), `governance / env-matrix`, `governance / policy-docs`, `hassfest / hassfest`, `validate / validate-hacs`, `codeql / Analyze (actions)` and `codeql / Analyze (javascript-typescript)`.
-- **pr-contract:** `pr-contract / pr-contract` 128693918847 succeeded. It started at 09:31:16Z, after the last red concluded (CodeQL cancel, 09:31:13Z), so it is the root-cause-answer evidence under fix-review.md step 11.
-- **classify:** ev/classify-log.txt; final `RED ... red: gate`, rc 1.
-- **Round-1 and round-2 causes:** both repaired.
-  - `handoff_push.sh --self-test`: 6 checks, 0 failed. instrument-self-tests is green in CI.
-  - `ref_privacy.py --self-test` at this head: 113 checks, 1 failed, the machine-email arm only. The same arm fails identically at origin/main 2a3c05644 in this container (ev/ref_privacy-main.log), and CI's instrument-self-tests passed. The runner-default arm round 2 blocked on now passes.
-- **Self-tests at the head** (ev/checks-head/summary.txt):
-  - `stamp.py --self-test`: `RESULT stamp_self_test=pass`;
-  - `orchestrator_tick.py --self-test`: 283 checks, 0 failed;
-  - `merge_train.py --self-test`: 475 checks, 0 failed;
-  - `body_push.sh --self-test`: 35 checks, 0 failed;
-  - `postmerge.py --self-test`: 15 checks, 0 failed;
-  - `ci_predict.py --self-test`: 0 failed (after `mkdir /opt/hpo/runner-temp`, as the body says);
-  - `app_approve.sh --self-test`: 324 checks, 0 failed;
-  - `tests/structure.py`: STRUCTURE RATCHET PASSED;
-  - `selftest_wiring.py --check`: 0 index gaps;
-  - `rules_sync.mjs --check` rc 0, `policy_lint.mjs` `0 error(s) across 49 policy file(s)`, and `--budgets` rc 0.
-- **bus.sh --self-test:** 166 checks, 1 failed (`an ordinary append with no intervening fetch is the same commit object as before`). The body names this as the container's at origin/main; I did not re-run it at main.
-- **entities.py:** `2 of 2648 ENTITY CHECKS FAILED` at the head and `2 of 2656` at the base 17e11579 (ev/entities-base.summary). It is the same two at both ends (the coverage-cache reuse and the release ZIP), which matches the body's figure exactly.
-- **Mutants**, my own, in a detached worktree at the head (ev/mutants/summary.txt). All were KILLED:
-  - M1: release_worktrees never skips a collected worktree. merge_train: 1 failed, "already collected ... not removed again".
-  - M2: skip without the registered check. merge_train: 4 failed.
-  - M3: nightly.yml HOLD_MAX_AGE_S renamed. `stamp_self_test=fail`.
-  - M4: body_push head-stale moved before the identity guard. ref_privacy: 2 failed, the runner-default arm among them.
-  - M5b: head-stale never fires. body_push: 2 failed.
-  - M5, my first attempt, was a malformed mutant that broke the script's syntax. It is disclosed and superseded by M5b.
-- **merge-tree:** `git merge-tree --write-tree origin/main 34f4afac0`: rc 0, `LEDGER-MERGE: resolved tests/closures.json` (set merge), no conflict, no MERGE-CLAIM line (ev/mergetree.*). That is origin/main 2a3c05644.
-- **Untouched files:** VERSION, the manifest, RELEASE_NOTES.md, tests/golden/claimed_drift.txt, card_claimed_drift.txt, nightly.yml, ci.yml and codeql.yml are byte-identical to the merge base. The `*_budgets.json` diff is only the two proposal-triage.md keys (36, 489). Diffstat: 39 files, +557/-743, as the body says.
-- **Forward-carry:** the beat-deletion carry is on `handoff/audit-r10-roster` under R10-FLY-STAMP-FLUSH-COST ("From r10-process-slim, body item ada60feb ..."), and carry_audit at the head reads it resolved.
-- **Role currency:** `git diff 17e11579...origin/main -- dev/governance/roles/ .claude/rules/` is empty, so the role text is current.
-- **Finder's harness:** none named, because this is a process group with no finding harness. The planted production defect and the mutants above are this seat's own controls.
-- **Not re-derived:**
-  - the card savings figures, which the body cites from earlier rounds;
-  - main's merge_train figure of 472 checks;
-  - `orchestrator_tick`'s mutant counts at d70186a59.
-- **Not pushed:** handoff-wip was not pushed for liveness, because the payload says to push nothing but the probe ref.
+- Head measured: f5af5b513b1978d732fd41902c203890e3a0247b, the PR head at 2026-11-09T03:2xZ and again at the verdict (ev/HEAD.txt). It is the merge of origin/main c782949e into 16597c8a, which contains the body's handoff b5ddb2a5. The body's `## Head` names f5af5b51.
+- Roles current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
+- Merge with main: `git merge-tree --write-tree origin/main f5af5b51` exits 0 (tree 2a57c747). origin/main 3fdaa9da is 14 commits ahead and merges cleanly.
+- CI at this head:
+  - `merge_train.py classify` was polled every ~90 s from 03:31Z and ended `RED f5af5b51 pending: none red: gate` (rc 1) at 05:22:45Z (ev/classify-log.txt).
+  - The red units are only `budget-raise-gate` (jobs 128968794644, 128970652152, 128985406952), which prints `RAISE .claude/workflows/policy_budgets.json: files_tokens.dev/governance/roles/proposal-triage.md: 489 -> None` and `REFUSED: tvofi's approval is on 565f9f2b8a5e, not this head f5af5b513b19`, plus the umbrella `gate`.
+  - Every other check run is success or skipped (ev/check-runs.txt).
+  - I judge the head GREEN with the approval owed, the case the brief routes as rc 4. The rc-1 misread is the last Findings item.
+- Red-check answers: budget-raise-gate's red is the approval owed after this verdict. The body's `## Raise justification` answers it: the cap is removed for a deleted file, `policy_lint.mjs --budgets` refuses a cap on a missing file, and payments were tried. The edit-run `gate` deferrals are the gate's own wait answer, as the body's `## Red checks` describes for 565f9f2b. `pr-contract / pr-contract` 128994276179 started 05:19:46Z, after the last unit red (04:50:04Z), and passed.
+- RESULT policy_lint=pass: `node tools/policy/policy_lint.mjs` prints `TOTAL: 0 error(s) across 49 policy file(s)`. `--budgets` shows orchestrator.md (key tools/audit/briefs/orchestrator.md) at 294/295 lines and 4248/4251 tokens, matching the body (ev/cheap-checks.txt).
+- RESULT cap_payment_mutant=bites: restoring two of the deleted anecdotes, the `(empty means identical)` one and the Round-10 instruments one, prints `297 lines exceeds its cap of 295` and `about 4298 tokens ... exceeds its cap of 4251`, 2 errors (ev/mutant-cap.txt). The payment is real and needed.
+- RESULT clause_check: the merged orchestrator.md holds all 7 clauses the body quotes; main's source file holds all 10 lines checked (ev/clause-check.txt). My script mirrors the body's described rule but is my own instrument (scratch).
+- RESULT mutation body_push head-stale: with `tools/audit/seat/body_push.sh:157`'s head-stale case made never to match, `body_push.sh --self-test` prints `35 checks, 2 failed`; restored, it prints `35 checks, 0 failed` (ev/mutant-body_push.txt, ev/body_push-selftest-head.txt). The other cards' mutants were proven at 34f4afac, and their patch is byte-identical here. I cite CI's `tests / mutation` rather than re-running the table.
+- RESULT rules_sync=ok, brief_lint rc=0, `tests/structure.py`: STRUCTURE RATCHET PASSED.
+- RESULT archscore: `score.py --diff c782949e HEAD` prints `Architecture score: dS +0.0000 NULL`. `git diff --shortstat c782949e...HEAD` prints `39 files changed, 576 insertions(+), 762 deletions(-)`, as the body states against 6457496a. There are 0 files under `custom_components/` (ev/archscore.txt).
+- `VERSION`, `RELEASE_NOTES.md`, `custom_components` (manifest) and both claim files are unchanged against the merge base. `.github/workflows/nightly.yml` is byte-identical to origin/main.
+- Finder's harness: none was named. This is a process/governance group under owner-approved cards, and its harnesses are the instruments' self-tests and the policy lint, both run above.
+- Figures I could not re-derive at this head: the self-test counts the body quotes at b5ddb2a5 (orchestrator_tick 292, merge_train 567, roster_edit 257, machinery_ratchet 54, selftest_wiring 124/124). They come from CI's green `governance / instrument-self-tests` at this head, not from a local re-run.

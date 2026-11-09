@@ -1,0 +1,5 @@
+## clause check (7 body clauses + 3 main clauses the body calls base restatements)
+== /tmp/tmp.Km3qQsRlgt/wt/dev/governance/roles/orchestrator.md
+MISSING 3: ['Even or marginal', 'unmeasured: DEFER, never ACCEPT', 'An ACCEPT runs its rule per instance, result beside it.']
+== /tmp/tmp.Km3qQsRlgt/triage-main.md
+ALL-PRESENT
