@@ -4676,10 +4676,11 @@
       "parts_missing": [
         "the census's pass at the fix's head",
         "wiring the census as a tests/ script",
-        "the meter band"
+        "the meter floor",
+        "an inflated reference on a wood house has no meter oracle (owner ruling)"
       ],
       "process_state": "(c) step 6 ran and recorded 12/12 SOUND on the fixer's metric and population: the spread of step 0 across room and slab starts reads SOUND on a constant zero, no savings harness names a valve or a wood tank, and #2887's valved arm reads the horizon sum while the ledger books step 0",
-      "countermeasure": "proposed barrier: census of installs and tank states booked through get_current_action (red at v7.0.4, v7.1.1 and main), plus a meter band on the published row; at most 2.1 h/release against 6.8 h/release",
+      "countermeasure": "proposed barrier: census of installs and tank states booked through get_current_action (red at v7.0.4, v7.1.1 and main), plus a meter floor on the published row (R10-SAV-METER-FLOOR: booked reference kWh under METER_FLOOR 0.5 of metered kWh states no saving; its ceiling rejected by the owner's no-wood ruling, triage P387), so the high side has no meter oracle; at most 2.1 h/release against 6.8 h/release",
       "landed": null,
       "in_tree_home": "dev/audit/rca/R10-RCA-SAV-ESTIMATE.md",
       "doc": [
@@ -5333,7 +5334,7 @@
     "total": 6,
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_rca_sav_estimate.py census",
-    "detector_idea": "The census of installs and tank states as a tests/ script once the fix lands, plus a meter band on the published row (dev/audit/rca/R10-RCA-SAV-ESTIMATE.md)",
+    "detector_idea": "The census of installs and tank states as a tests/ script once the fix lands, plus a meter floor on the published row (dev/audit/rca/R10-RCA-SAV-ESTIMATE.md)",
     "barrier": null,
     "status": "detector",
     "nearest_existing": "P11",

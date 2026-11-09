@@ -10082,10 +10082,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # coarser configured interval starves forever. A stale, frozen or
         # unconfigured (#2508: the 21.0 C default) indoor sensor scores no
         # room: none is a measurement, and an EWMA poisoned persists weeks.
-        interval_h = (
-            ctx._config.optimization_interval
-            / 60.0
-        )
+        interval_h = ctx._config.optimization_interval / 60.0
         actual_now = None if learner_room_unread(ctx._config) else ctx._current_state.room_temperature
         indoor_frozen = self._learning_frozen(CONF_INDOOR_TEMP_ENTITY)
         if actual_now is not None and indoor_frozen is None:
@@ -10193,6 +10190,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # T6 #52: the assumptions this interval starts under, for the
             # diagnosis re-run when it settles.
             "diag": self._capture_diagnosis_inputs(), **{k: self._current_action.get(k) for k in SETTLEMENT_KEYS},
+            # On a wood house, whether wood heats it: the ledger calibrates from those it does not.
+            "wood_heated": self._external_heat.state.heating() if wood_furnace_on(ctx._config) else None,
         }
     def _dhw_probe_temperature(self) -> float | None:
         """The tank's MEASURED temperature, or ``None`` when there is none.
