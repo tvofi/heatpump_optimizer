@@ -1,0 +1,4 @@
+head 06a3478fdbf386278952d741985e5da5ee28bd5c
+pr-contract (job 128967170153) failed: ERROR [pr-body] check governance / delivery-status is red and ## Red checks does not name it. It grades main, but this diff touches what it reads (.github/workflows/governance.yml)
+gate (128956599985, earlier run) failure: "FAIL run(s) ... still being judged"; re-queued as 128975188431 at 04:21 UTC
+merge_train.py classify: WAIT (pending) at 04:21 UTC

@@ -1,0 +1,8 @@
+survivor_list self-test:
+survivor_list self-test: 20 checks, 0 failed
+
+LEDGER-MERGE: resolved tests/closures.json
+a7a275304edb53e1ffb609d88ef753c117837bab
+merge-tree rc=0
+tools/audit/briefs/fix-review.md                 133  140     2450  2451 
+STRUCTURE RATCHET PASSED

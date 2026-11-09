@@ -1,0 +1,13 @@
+self-test rc=1
+self-test rc=1
+self-test rc=1
+self-test rc=1
+  FAIL push-verdict refuses a mutation-vacuous verdict naming one of two survivors, and review/7 does not move
+  ok   and proposes the mutation-vacuous verdict once it lists both survivors
+done
+head 06a3478fdbf386278952d741985e5da5ee28bd5c
+M1 class gate inverted -> survivor_list self-test rc=1 (killed)
+M2 left-boundary lookbehind removed -> rc=1 (killed)
+M3 only first survivor returned -> rc=1 (killed)
+M4 triaged sites not dropped -> rc=1 (killed)
+M5 bus.sh call removed -> bus.sh --self-test FAIL "push-verdict refuses a mutation-vacuous verdict naming one of two survivors" (killed)
