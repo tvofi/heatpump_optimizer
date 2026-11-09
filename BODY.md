@@ -2,11 +2,13 @@ R10-DISPATCH-AT-HANDOFF: a reviewer is dispatched at the handoff, keyed by topic
 
 ## Head note
 
-Repair merge: origin/main (6457496aba7b1076b1ed60c374c5badafdf66fc1, read at 2026-11-09T02:39Z) is merged into the handoff by e27484ffc9fb1f282974a35f02a470f657795e57, which is the head measured below. The one conflict, cloud_dispatch.py, was resolved by union: main's frugal-routing line, role-pack setup and merge-tree-only block rule (#3338 and its earlier commits) and this branch's handoff reviewer (topic-keyed revt ref, no packet, no CI wait) are all present. The previous merge's tip was 089f1da017e98a697a24e70c308f79beee9b8607. `git merge-tree --write-tree origin/main HEAD` exits 0 and origin/main is an ancestor of the head.
+Repair merge: origin/main (6457496aba7b1076b1ed60c374c5badafdf66fc1, read at 2026-11-09T02:39Z) was merged into the handoff by e27484ffc9fb1f282974a35f02a470f657795e57; the head named under `## Head` is 5f28e55a. The one conflict, cloud_dispatch.py, was resolved by union: main's frugal-routing line, role-pack setup and merge-tree-only block rule (#3338 and its earlier commits) and this branch's handoff reviewer (topic-keyed revt ref, no packet, no CI wait) are all present. The previous merge's tip was 089f1da017e98a697a24e70c308f79beee9b8607. `git merge-tree --write-tree origin/main HEAD` exits 0 at 2026-11-09T14:43Z (origin/main then 53f4a051); main has moved since the merge, which needs no re-merge.
 
 ## Head
 
-e27484ffc9fb1f282974a35f02a470f657795e57
+9aa206952798f3db97440f9b17dcf41827a84cd2
+
+The four first-parent commits after the earlier measured head e27484ffc9fb1f282974a35f02a470f657795e57 (`git log --first-parent e27484ff..5f28e55a`): 7e61974e2 merged origin/main again (tip 3fdaa9da9); f2ca26a07 recorded the delivery row for #3366; 23a63ff9c registered `handoff-verdict-held` as a derived level kind in tools/audit/seat/ledger.py (one line, a census of cloud_relay.sh writers); 5f28e55aa merged origin/main (82a2c142f, #3325) into the handoff. No code of this topic's own changed since e27484ff; the mutation proof and null control above concern cloud_dispatch.py, which those commits do not touch beyond main's merges.
 
 ## Mutation proof
 
@@ -63,3 +65,4 @@ Carried unchanged from the earlier body at handoff-body/r10-dispatch-at-handoff-
 - Carry 16: delivered at main, no re-fix.
 - Carry 17: built on this branch (review_packet.py head-note asks policy_lint --pr-body --head).
 - Carry 18: built on this branch (REPAIR-OWED on RED; WAIT dispatches).
+- Carry 19: untouched here; it stands as the roster states it (it directs carry 12 to be built next, which this branch does not build).
