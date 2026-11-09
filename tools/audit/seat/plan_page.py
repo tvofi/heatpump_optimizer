@@ -218,7 +218,7 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
     rows = []
     for g, entry in G.items():
         pg = PG[g]
-        blk = [a for a in entry.get("after") or [] if a in G and a not in done]
+        blk = [a for a in entry.get("after") or [] if a in G and roster_lib.gates(G[a])]
         part = sorted(delivered.get(g) or [])
         sfx = f", part merged #{', #'.join(map(str, part))}" if part else ""
         pr = ", ".join(f"#{n}" for n in open_pr.get(g, [])) or "—"

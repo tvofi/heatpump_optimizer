@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:configured_flow_min_lift_k BOOLOP aae2aa8c",
+  "killed_by": "tests/features.py",
+  "old": "        number if number is not None and number > 0.0 else FLOW_MIN_LIFT_K",
+  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling. BOOLOP (`number is not None or number > 0.0`) took tests/features.py from rc=0 failed=0 of 4979 to rc=1 with an uncaught TypeError (failing_count reads the traceback as one): an absent or unreadable lift reaches `None > 0.0` in the null-control check of the configurable lift."
+}
