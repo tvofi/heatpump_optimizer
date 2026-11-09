@@ -460,16 +460,16 @@ async def write_persistent(hass: Any, entry: Any, config: Any, displace_int: int
     if armed is not None and armed["entity_id"] != entity_id:
         armed = None  # the arm restores the recorded entity first (rule R)
     state = await off_restore.async_consumer_state(hass, entry, CONSUMER)
-    if state.get("entity_id") != entity_id:
-        day, count = state.get("day"), state.get("count", 0)
+    if state.get("entity_id") != entity_id:  # another entity: only the day's count carries over
+        kept = {key: state[key] for key in ("day", "count") if key in state}
         state.clear()
-        state.update(entity_id=entity_id, day=day, count=count)
+        state.update(kept, entity_id=entity_id)
     step = setpoint_step(hass, entity_id)
     now = dt_util.utcnow()
     baseline = reading.value if armed is None else armed["value"]
+    # "in grace" needs no exit of its own: the dwell, 15 min at least, holds
+    # every write inside the 90 s grace.
     seen = "ours" if armed is None else classify(state, reading.value, step / 2.0, now)
-    if seen == "in grace":
-        return False
     if seen == "edit":
         baseline = reading.value - (state["written"] - baseline)
         await off_restore.async_rebaseline(hass, entry, CONSUMER, entity_id, baseline)

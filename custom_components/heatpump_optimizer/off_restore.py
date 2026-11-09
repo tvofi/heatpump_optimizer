@@ -179,8 +179,7 @@ async def async_arm(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, co
         elif restorer.neutral is None and current["entity_id"] == restorer.entity_id:
             return True
         elif not await _restore_baseline(hass, entry, held, key, restorer, "rearm"):
-            await _save(held)
-            return False
+            return False  # latched, still armed: nothing to save
     baseline = None
     if restorer.neutral is None:
         baseline = restorer.baseline_of(hass, restorer.entity_id) if restorer.baseline_of else None
