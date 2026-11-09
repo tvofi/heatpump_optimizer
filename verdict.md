@@ -1,67 +1,64 @@
-Design review: revise e2d81a61c0f668c0a382575fd1212cb7206d4900 architecture-unsound
+Design review: revise c52e37824a6c1b4e503295583c242e1dee977e53 harness
 
-Design round 1. I reviewed the note at e2d81a61 from a detached worktree. I judged it against base 4b5d771b, origin/main 2a3c0564, and the predecessor's #3299 head d7d4c511 (refs/pull/3299/head, the same as handoff/r10-generic-heat-curve 070cff63 in heat_curve.py and off_restore.py). The note was written before #3299 had a head, so it reads heat_curve.py as a module still to be created. At #3299 head, that module and a separate restore owner, off_restore.py, both exist. The note's seam does not match them.
+Design round 2. Reviewed `design.md` at c52e3782 from a detached worktree. The base was judged against c668197a, and the predecessor against #3299 head e066a630.
 
-## Revise points
+The note reads 85ba6cda. Between 85ba6cda and e066a630 the following files are byte-identical: off_restore.py, heat_curve.py, `__init__.py` and entry_config.py (`git diff --stat 85ba6cda e066a630` on those paths prints nothing). The only production changes are main merges: coordinator.py ±3 lines, const.py and config_flow.py. So the note's off_restore, heat_curve and `__init__` citations hold at e066a630.
 
-1. architecture-unsound. In design.md §Owning seam and §Shape "The record" (lines 18-40), heat_curve.py gets a second per-entry QuarantiningStore holding a baseline and a restore. At #3299 head, off_restore.py already owns all of this:
-   - the per-entry store `{DOMAIN}_{entry_id}_off_restore` (off_restore.py:96-97);
-   - the baseline capture before the first write (`async_arm`, `Restorer.neutral=None` with `baseline_of`, :51-67 and :123-146);
-   - the MODE_OFF and unload restore (`async_restore` :149, `async_mode_change` :184);
-   - the remove-entry path (`async_forget` :197, called from `__init__.py`:434-438).
+## Revise point
 
-   The note's record therefore makes a second owner of the persisted baseline. That breaks the group brief ("no second owner of unload, remove or MODE_OFF") and carries 73eb63bd ("register a consumer and arm before the first write, never a second owner") and 67895f89 ("the baseline is persisted per entry by `async_arm`").
+1. harness. `design.md`:118 (I4) and `design.md`:207-208 (null control) contradict `design.md`:46-58 (C1) and `design.md`:200 (the arm "entity cleared with A armed → A restored").
 
-   Fix wanted: re-cut the record so that kind `persistent` registers an off_restore consumer with `neutral=None` and keeps its baseline in off_restore's armed record. Only the consumer-private write state (written/previous, day, count, dwell) belongs in heat_curve.py, persisted there or as an extension of the consumer entry in off_restore's record. Then name the off_restore API changes the shape needs, each with its one owner:
-   - edit adoption (P6) needs a re-baseline call, because `async_arm` keeps the first baseline forever (:135);
-   - the write-ahead "previous" needs a home.
+   C1 replaces `armed[key]: float | None` (off_restore.py:88) with `{"entity_id", "value"}` for every key, and keeps the legacy reader only for records already stored. So a fresh kind-`offset` arm persists `{"heat_curve": {"entity_id": …, "value": 0.0}}`, where #3299 persists `{"heat_curve": null}`.
 
-2. architecture-unsound. In design.md "Restore hook" and the flow's `remove entry` line (lines 57-60 and 51), the note adds `heat_curve.async_remove`, which restores from a dirty record at `async_remove_entry`. #3299 has already settled this site: `async_forget` deletes the record and writes nothing (off_restore.py:197, "The unload before it restored what it could"). A restore at remove would be a second owner of the remove path.
+   C1 also reverses #3299's "a consumer no longer configured is disarmed unwritten" (off_restore.py:153-154, :163-165) for every key. For kind `offset`, a crash, then the entity cleared, then a restart now writes 0 to A instead of disarming. That is the same move the note justifies for `persistent` in Alternative C (`design.md`:158-160).
 
-   Fix wanted: keep remove as off_restore's alone. If a dirty-record retry at remove is wanted, specify it as a change to `async_forget`, with its reason. Do not add a call in heat_curve.py.
+   Yet I4 promises "with kind `offset` or no entity, no behaviour, payload, golden or record shape moves". The null control asserts "the stored record is byte-identical to #3299's for kind `offset`". As written, the null control fails on the design's own C1. A fixer must either break C1 or break the null control, and the fix review would judge against a control that cannot pass.
 
-3. class-open. The entity-keying follow-up binds this group: fix review 1 of #3299, VERDICT.md:18, roster carry a2b5f107. The note does not answer it.
-   - At #3299 head, `_Held.armed` maps consumer key → baseline with no entity id (off_restore.py:88).
-   - `async_restore` writes to the entity that `factory(config)` names now (:160-167).
-   - So if a write is armed on entity A, then a crash or restart happens, then an options change to B, the restore writes A's baseline into B and leaves A displaced. If the entity is cleared instead, the consumer is disarmed and A stays displaced.
+   Fix wanted: choose one and state it.
+   - (a) C1's entity record and rule R bind only `neutral=None` consumers. A neutral consumer keeps `float | None` and #3299's disarm-on-unconfigured rule, so I4 and the null control stand. The arbiter, also `neutral=None`, still gets C1.
+   - (b) C1 binds every key, as I5 (`design.md`:119) reads. Then restate I4 and the null control: kind `offset`'s writes, MQTT payloads and goldens stay unchanged. Its record entry becomes `{entity_id, value: 0}`. Its cleared-entity crash path now restores 0 to the recorded entity, for Alternative C's reason. And add that arm to §Evidence plan for kind `offset`.
 
-   The note's record holds `entity_id` (line 36), but no line says which entity the restore writes, or what classify does when the recorded entity differs from the configured one.
+   Either choice is a few lines in §Shape C1, I4 and §Evidence plan. Nothing else in the note needs to move.
 
-   Fix wanted: persist the armed entity id beside the baseline in off_restore's record. State the rule: restore to the recorded entity, or disarm with an INFO when it no longer matches. Add the arm "armed on A, options to B, restart → A restored (or disarmed, logged), B untouched" to §Evidence plan. R10-ARBITER-OFF-RESTORE needs the same rule (VERDICT.md:19), so the off_restore change belongs to whichever group lands first, `decision: orchestrator`.
+## Round 1 (ae96e235): answered
 
-4. architecture-unsound. §Shared baseline (lines 69-76) proposes a new `baseline.py`. With point 1, the shared baseline is off_restore's armed record, and the arbiter is its second consumer. A pure `classify` helper is sound only where off_restore does not already hold the logic.
+- Point 1: the baseline lives only in off_restore's armed record (C1). The consumer state is C3's `state` section of the same Store. There is no second Store.
+- Point 2: there is no heat_curve remove call. `async_forget` logs and writes nothing (C4), with the reason given.
+- Point 3: the entity is persisted, rule R is stated, and the A→B arm is in §Evidence plan (`design.md`:198-199).
+- Point 4: `baseline.py` is dropped. classify stays beside the write state it reads.
 
-   Fix wanted: re-derive whether `baseline.py` is still needed once the record lives in off_restore. If it is, its single owner is off_restore (the classify belongs beside the record it reads), not a third module. The note's D7 argument against sharing the Store (alternative D) is already moot at #3299 head: the Store is shared, per entry and keyed by consumer.
-
-## Dependency on #3299 still moving
-
-#3299's fix review 1 verdict (eb61f80c) is `blocked`. The repair of its block 1 added the `restored(entry, value)` callback (070cff63) that this group's write record would use. No second fix-review verdict exists yet. Points 1-4 depend on off_restore.py's shape at #3299 head: `Restorer`, `async_arm`, `async_restore`, `async_forget` and `restored`. The re-cut should be read against #3299's merged diff (carry ghcp-03 already says so).
+The predecessor is built on, not ignored. The note names what its fixer re-checks once #3299 merges: ghcp-03 (`Restorer`, `async_arm`, `async_restore`, `async_forget`, `restored`, `state_for`) and ghcp-r3 (the line citations).
 
 ## Routed, not revise
 
-- decision: orchestrator. The off rule on a Home Assistant stop now differs between siblings. This note drops P3's stop exception, which matches #3299: `__init__.py` unload says "a Home Assistant stop included". R10-ARBITER-OFF-RESTORE's roster brief still says "on unload (while Home Assistant is not stopping)". One hook should carry one rule, so the arbiter brief should be re-read against the 2026-11-07 ruling.
-- decision: orchestrator. The serial order for the off_restore entity-id change (point 3) and for `baseline.py`, between this group and R10-ARBITER-OFF-RESTORE.
+- decision: orchestrator. Which of this group and R10-ARBITER-OFF-RESTORE lands C1 and C2 first (`design.md`:240-242).
+- decision: orchestrator. The arbiter brief's "while Home Assistant is not stopping" against the hook's restore on stop (`design.md`:246-248).
+- decision: owner. ghc-d02, the MQTT displace 0 on off and unload (`design.md`:249-250).
 
 ## Checked and sound
 
-- The shape follows the owner's ruling and the request in #3284. P1-P7 and O1-O5 are answered as far as the record goes.
-- The reserve rule bounds restores inside the budget.
-- I4 (kind `offset` unchanged) and no golden moving are the right null control and goldens. No claim file is touched.
-- Cost fits size L, and no coordinator line is added.
-- Sibling grep (step 3): the off guards and other writers' MODE_OFF sites are dispositioned correctly. No missed heat-curve writer was found at main or at #3299 head.
-- Step 5: no other open design/* ref claims heat_curve.py or off_restore.py.
+- Seam (step 1): one owner per concern, checked at e066a630.
+  - off_restore owns the record, arm, restore, MODE_OFF and remove.
+  - heat_curve registers on the existing key `heat_curve` with the existing writer `write_setpoint` (heat_curve.py:95-114), so one per-key writer serves both kinds.
+  - `__init__.py`:424-427 restores on unload with `effective_config`, and :438 calls `async_forget`. Neither is touched.
+- Shape (step 2): every moved behaviour traces to the owner rulings, PR 3284's P1-P7 and O1-O5, carries a2b5f107, 67895f89 and 73eb63bd, or review round 1.
+- Sibling sites (step 3): the arbiter's Store and off rule (pump_arbiter.py) are dispositioned to R10-ARBITER-OFF-RESTORE. No other off-restore consumer exists at e066a630.
+- Evidence plan (step 4), apart from point 1: the failing test is red at #3299 for the stated reason (an unknown kind falls back to offset, entry_config.py:222-224, then `range_excludes_zero`, heat_curve.py:227). No golden or claim file moves.
+- Siblings in flight (step 5): `design/R10-HEAT-METER` does not name off_restore.py or heat_curve.py.
+- Cost (step 6): no coordinator line is added, and about 40 lines go to off_restore. This fits size L.
+- O5 defaults are restated with their sources and tags (`design.md`:134-149).
 
 ## Notes for the fixer (carried)
 
-- At #3299 head, an unknown kind falls back to offset (entry_config.py:223-224), so the failing test is red because `range_excludes_zero` refuses 5..35 as "not an offset", not because the kind is refused. The test stays red, but its stated reason should be corrected. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-r1)
-- #3299 already has an in-memory write cap W4 (`write_cap_per_day`, heat_curve.py:274, `HeatCurveState.writes`). Kind persistent's persisted budget must replace W4 for that kind, not stack on it. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-r2)
-- Stale citations to refresh at the predecessor's merged head:
-  - coordinator.py:6509/6579, now 6566/6636 at main and 6483/6554 at #3299;
-  - inputs.py:596, now 597;
-  - `__init__.py`:429, now 434 at #3299;
-  - `__init__.py`:372-398, now 373-399;
-  - entry_config.py:284, now 289 at #3299.
+- `inputs.write_setpoint` (inputs.py:597-616) returns False without raising for a domain with no set-point service, and `async_restore` (off_restore.py:166-176) counts only a raise as failure. C1's "A restored only on success" before arming B must treat a False return as a failure. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-r5)
+- The publish flow reads `armed.value` (`design.md`:86-87), but C1-C4 name no read accessor of the armed entry. Add one beside C2 in off_restore, its one owner. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-r6)
+- The legacy reader resolves "the configured entity" (`design.md`:56-58), but `_armed_record` (off_restore.py:100-113) has no config. Resolve the legacy entry lazily at arm or restore, against the config passed in. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-r7)
+- At e066a630 the coordinator citations are one line later than the note's 85ba6cda figures:
+  - `async_set_mode` at 6484, with `async_mode_change` at 6491;
+  - `async_shutdown` at 6555;
+  - `heat_curve.publish` at 7670.
 
-  Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-r3)
+  Re-anchor them at the merged head. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-r8)
+- C3's `restored` callback bumps `count` for the restore. Key that count to the day of the restore write, not the day of the displace, so I2 holds across midnight. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT (item ghcp-r9)
 
 Seat token count: not reported by the harness.
