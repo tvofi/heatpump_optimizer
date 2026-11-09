@@ -1,23 +1,24 @@
-Fix review: blocked ad8658c26ad6e9a7d4d0fdbbcce3b07e19b63be7 ci-red: required check gate is red at this head only because codeql / Analyze (python) was cancelled; the diff has no defect, re-run that job
+Fix review: blocked 0a02619939e72e83cd52702aaf319e98049c4ba9 selftest-scope-ungated: the new governance.yml step 'Show the figure-block renderer refusing its own fixtures' uses `if: ${{ !cancelled() }}`, so governance / instrument-self-tests is red at this head
 
-bus-nonce: 4b653fcf7de38b29c76598e2f8dc8fec
-
-Round 2 (resolution-delta review against the merge verdict at 1d6414078555e396b0fa5e23327be31050c5ce2a). Measured at ad8658c26ad6e9a7d4d0fdbbcce3b07e19b63be7.
+bus-nonce: e7b962b6ace004193dd70c45ab7de058
 
 ## Block
 
-`merge_train.py classify ad8658c26ad6e9a7d4d0fdbbcce3b07e19b63be7 --pr 3355` polled from 09:24 to 10:03Z: WAIT until 10:03:20, then RED (rc 1), "red: gate". Both gate jobs at this head (129094469779, run 42591662384, and 129094916756, run 42591663354) log one line, "FAIL codeql / Analyze (python): cancelled". Every other check at the head, including tests / fast, closures, browser, arch-instrument, coverage-ratchet, mutation, typing, pr-contract, arch-score and budget-raise-gate, is success or skipped. I judge the cause infrastructure (a cancelled CodeQL job), not this diff, but a red required gate is not mine to waive and I cannot re-run it. Re-run codeql / Analyze (python) at this head; if gate then concludes green, the review below stands and the head is merge-ready.
+`governance / instrument-self-tests` (job 129141009751) concluded failure at this head. Log tail: `FAIL the live job parses (115 steps) and its gating is consistent` / `selftest_scope self-test: 90 checks, 1 failed`. Reproduced locally in a worktree at the head: `python3 -I tools/ci/selftest_scope.py static` prints `UNGATED step 'Show the figure-block renderer refusing its own fixtures': its if: does not read steps.scope.outputs.<its own id>`; the same self-test on origin/main prints `90 checks, 0 failed`. So the diff causes it. Every other step in that job reads `steps.scope.outputs.<id>`; this one needs a scope id registered in tools/ci/selftest_closures.json (see tools/ci/selftest_scope.py) and an `if:` that reads it.
 
-## Evidence
-
-- Head reviewed: `ev/HEAD.txt`.
-- Resolution delta: V=1d64140 is an ancestor of the head. `review_carry.py V head` prints FRESH-REVIEW (main merges in the range). I compared the PR's own patch: name-only diffs are the same 15 files, and per file the +/- changed lines (md5 of the changed lines) at the old merge base d4f5a413a..V and at ba6fd7e8b..head are identical for all 15 files. The main merges changed the PR's patch nowhere, so the earlier review of the patch holds.
-- `git merge-tree --write-tree origin/main ad8658c26ad6e9a7d4d0fdbbcce3b07e19b63be7`: rc 0, no conflict (`ev/merge_tree.txt`).
-- `python3 -I tools/pr/figure_block.py --self-test` at the head: 11 checks, 0 failed (`ev/selftest.txt`). `node tools/policy/policy_lint.mjs --self-test`: FIXTURE ok.
-- Mutant at the head, verify's `if body != want:` replaced by `if False:`: self-test 11 checks, 1 failed (`ev/mut_verify.txt`); restored, 0 failed.
-- Red checks: `governance / delivery-status` is red and the body answers it (main's overdue rows; not a required context). The earlier policy-docs red is answered in the body. The gate red above is a cancellation, not a check this diff turned red.
-- Not re-derived: the body's entities (2668) and field_coverage counts; the packet's figure_lint reads 8 resolved, 0 not verified. The packet also printed REFUSE red-unanswered / required-red for `gate` at render time, the same gate red.
+The body's `## Red checks` names only `governance / delivery-status`; it does not name this red. `governance / instrument-self-tests` is not in `merge_train.py owed-reds` (that listing has `tests / arch-instrument` and others), so this is not a root-cause-trigger block; it is blocked as a real red the diff caused, which would also turn the main push (forced FULL) red. Cheaper detector: `selftest_scope.py static` runs in seconds and is in no prepr step (`git grep selftest_scope tools/pr` is empty), so the fixer cannot have seen it before the handoff.
 
 ## Findings
 
-- Follow-up: re-run codeql / Analyze (python) at ad8658c26ad6e9a7d4d0fdbbcce3b07e19b63be7 so gate concludes green before the train merges; no change to the diff is owed. Carry: dismissed: CodeQL job cancellation, orchestrator-side CI mechanics, not a defect in this diff
+- Surviving mutant: deleting the base-overlay line `_git(wt, "checkout", base, "--", f)` in `run_instrument` leaves `figure_block.py --self-test` at `11 checks, 0 failed`; every registry entry the self-test builds has `"files": []`, so nothing pins the property the header and body claim (the program is the base's, the tree is the head's). Needs a check whose registered instrument has a `files` entry that the head modifies and whose output differs. Carry: dismissed: fold into the re-cut of this PR, which owes the fix above anyway
+- Residual: `pr-contract` runs `python3 -I tools/pr/figure_block.py verify` on the head's checkout, and `scope-line`/`structure-ratchet` execute `tests/closure.py` and `tests/structure.py` (base copies overlaid) which import head modules from the head's tree; the overlay covers only the listed files, so the base-program guarantee is partial. Judge whether that is within the card-7 ruling. Carry: dismissed: design observation for the owner, not a defect this PR claims to have closed
+
+## Evidence
+
+- Merge with main: `git merge-tree --write-tree origin/main 0a026199...` exits 0, tree 9d58cd0aa822ab0f53229479236badc32e611757; no conflict.
+- `python3 -I tools/pr/figure_block.py --self-test`: `figure_block self-test: 11 checks, 0 failed` at the head, matches the body's figure.
+- Mutants on figure_block.py at the head: `if body != want:` -> `if False:` fails 1 (hand-typed value); stale head/mb check -> `if False:` fails 2; `if name not in reg:` -> `if False:` crashes the self-test (no summary line, KeyError); overlay checkout removed: survives (finding above); `ok_rc` check removed: survives, but an empty output is then still refused (`printed nothing`), so it is near-equivalent for the `bad` fixture.
+- `bash tools/audit/seat/body_push.sh --self-test`: `38 checks, 0 failed`, including the `MUTANT refresh deleted` arm. `node tools/policy/policy_lint.mjs --self-test`: `FIXTURE ok`.
+- Review packet: refusals none, advisories none, `CARRY-AUDIT: 0 finding item(s)`, `FIGURES: 8 resolved, 0 not verified, 0 refused`.
+- CI at read time: instrument-self-tests failure (above); `tests / closures`, `coverage`, `fast (3.14)`, `arch-instrument` and `codeql / Analyze (python)` still in progress; all other checks success or skipped. `merge_train.py classify` printed `WAIT ... pending: gate red: none` (rc=3) on each poll, since it does not list this non-required red.
+- Not examined: the figure-block mutation of the pr-contract wiring and `prepr.sh` step wiring beyond their own self-test arms; VERSION/manifest/notes untouched per the packet's three-dot diff (no such path in the diff). Round: first review by this seat.
