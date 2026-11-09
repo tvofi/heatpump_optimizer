@@ -2237,6 +2237,7 @@ class Tick:
                 self.line(S, f"{len(gated)} group(s) blocked on owner "
                              f"disposition{age} -- surface them to the owner",
                           flag=True)
+            self.roster_invariants(S, rl)
         # throughput stall: verdicted+green entries, no train, no main progress
         if queue and not self._seat_procs(self.proc("merge_train.py"),
                                           "merge_train.py", python_only=True):
@@ -2392,6 +2393,53 @@ class Tick:
             if len(rows) > CAP_CARRY:
                 self.line(S, f"  ... {len(rows) - CAP_CARRY} more; run the command above", flag=True)
         self.line(S, f"carry sweep: {summary[0]} (refs {', '.join(refs)}, last {self.carry_last})")
+
+    def roster_invariants(self, S: str, rl) -> None:
+        """#2733's routing invariants at tick level: `carry_audit.py roster`
+        over the tick's roster ref, with the open issues when `gh issue list`
+        answers. A stranded carry (a pending carry on a closed group) or an
+        unrouted open issue is flagged with the command, so neither
+        accumulates between sweeps. A tool that cannot be read is one
+        UNREADABLE line."""
+        if self._carry is None and not (ROOT / CARRY_AUDIT).is_file():
+            return
+        argv = ["--roster-ref", self._roster_ref(S, rl, announce=False), "roster"]
+        tmp = None
+        code, o = self.gh(["issue", "list", "--repo", self.repo, "--state", "open",
+                           "--limit", "500", "--json", "number"])
+        if code == 0:
+            try:
+                json.loads(o)
+                fd, tmp = tempfile.mkstemp(suffix=".json")
+                with os.fdopen(fd, "w") as fh:
+                    fh.write(o)
+                argv += ["--open-issues", tmp]
+            except ValueError:
+                pass
+        try:
+            rc, out = self.carry_run(argv)
+        except OSError as e:
+            self.unreadable(S, "roster invariants", str(e)[:80])
+            return
+        finally:
+            if tmp:
+                try:
+                    os.unlink(tmp)
+                except OSError:
+                    pass
+        summary = [l for l in out if l.startswith("CARRY-ROSTER:")]
+        if rc not in (0, 1) or not summary:
+            self.unreadable(S, "roster invariants", f"exit {rc}, "
+                            + (out[-1][:100] if out else "no output"))
+            return
+        if rc == 1:
+            rows = [l for l in out if l.startswith(("STRANDED", "ISSUE"))]
+            self.line(S, f"routing invariants broken ({summary[0][:120]}): "
+                         "route each with roster_edit.py "
+                         f"(`python3 -I {CARRY_AUDIT} {' '.join(argv[:3])}`)",
+                      flag=True)
+            for l in rows[:CAP_CARRY]:
+                self.line(S, f"  {l.strip()[:160]}", flag=True)
 
     # ----------------------------------------------------------------- ETA
     def eta(self) -> None:
@@ -2722,6 +2770,8 @@ def self_test() -> int:
         git.on(("cat-file", "-e"), rc=1)  # rows missing unless a stub says otherwise
         kw.setdefault("relay_log", os.devnull)  # hermetic: never the host's relay log
         kw.setdefault("bus_state", str(tmp / "no-bus"))  # nor its dispatch record
+        # hermetic: never the real carry_audit; the routing-invariants read is clean
+        kw.setdefault("carry", lambda argv: (0, ["CARRY-ROSTER: stub; 0 stranded carry(ies)"]))
         t = Tick("o/r", str(kw.pop("checkout", ROOT)), queue=queue,
                  train_log=train_log, workers_file=workers, roster_file=roster,
                  gh=gh, git=git, proc=procs or (lambda pattern: []),
@@ -2839,6 +2889,63 @@ def self_test() -> int:
              not any("issues/7" in " ".join(c) for c in tg_cov._gh.calls)),
             ("an owner gate is flagged blocked on owner",
              any("1 group(s) blocked on owner" in x["text"] for x in tg_own.findings)),
+        ])
+        total, failed = total + a, failed + f
+        ri_calls: list = []
+        ri_out = ["STRANDED R10-X (absorbed) carry[0]: 'c'",
+                  "CARRY-ROSTER: r.json at origin/r10; 1 stranded carry(ies)"]
+        tg_roster_path = str(tmp / "ri-roster.json")
+        Path(tg_roster_path).write_text(json.dumps({"groups": [
+            {"group": "G-RI", "resume": {"stage": "not-started"}}]}))
+        tri = tick(queue=str(q16), roster=tg_roster_path, gh_extra=[(("issue", "list"), 0, '[{"number": 5}]')],
+                   carry=lambda argv: ri_calls.append(argv) or (1, ri_out))
+        tri.replan()
+        tri0 = tick(queue=str(q16), roster=tg_roster_path,
+                    carry=lambda argv: (0, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"]))
+        tri0.replan()
+        a, f = check("REPLAN routing invariants at tick level", [
+            ("a stranded carry flags one line naming the command",
+             any("routing invariants broken" in x["text"] and "carry_audit.py" in x["text"]
+                 for x in tri.findings)),
+            ("the row is printed", any("STRANDED R10-X" in x["text"] for x in tri.findings)),
+            ("the roster call carries --open-issues when gh answers",
+             bool(ri_calls) and "--open-issues" in ri_calls[0] and "roster" in ri_calls[0]),
+            ("null: a clean roster flags nothing from the invariant",
+             not any("routing invariants" in x["text"] for x in tri0.findings)),
+        ])
+        total, failed = total + a, failed + f
+
+        def ri_tick(carry, gh_extra=None):
+            t_ = tick(queue=str(q16), roster=tg_roster_path, gh_extra=gh_extra or [], carry=carry)
+            try:
+                t_.replan()
+            except OSError:  # an escaped tool error is a missing line, read as a FAIL, not a crash
+                pass
+            return t_
+
+        def ri_unreadable(t_):
+            return (any("UNREADABLE: roster invariants" in x["text"] for x in t_.findings)
+                    and not any("routing invariants broken" in x["text"] for x in t_.findings))
+
+        def ri_raise(argv):
+            raise OSError("carry_audit.py: cannot exec")
+
+        ri_bad_calls: list = []
+        t_os = ri_tick(ri_raise)
+        ri_tick(lambda argv: ri_bad_calls.append(argv) or (0, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"]),
+                gh_extra=[(("issue", "list"), 0, "not json")])
+        a, f = check("REPLAN routing invariants: an unreadable tool is never clean", [
+            ("exit 2 with no summary (a REFUSED roster ref) is one UNREADABLE line",
+             ri_unreadable(ri_tick(lambda argv: (2, ["carry_audit: REFUSED cannot list origin/x"])))),
+            ("exit 2 with a summary is still UNREADABLE (the rc arm alone)",
+             ri_unreadable(ri_tick(lambda argv: (2, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"])))),
+            ("exit 0 with no summary is UNREADABLE (the summary arm alone)",
+             ri_unreadable(ri_tick(lambda argv: (0, ["something else"])))),
+            ("an OSError from the tool is one UNREADABLE line naming it",
+             ri_unreadable(t_os) and any("cannot exec" in x["text"] for x in t_os.findings)),
+            ("a non-JSON issue list drops --open-issues and still runs the roster call",
+             len(ri_bad_calls) == 1 and "roster" in ri_bad_calls[0]
+             and "--open-issues" not in ri_bad_calls[0]),
         ])
         total, failed = total + a, failed + f
         t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),

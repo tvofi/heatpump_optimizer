@@ -38,7 +38,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
-from throwaway_git import throwaway_git_env, throwaway_git_init
+from throwaway_git import throwaway_git_env, throwaway_git_environ, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
 # is still there, otherwise the path the move map records, so a module import
@@ -18766,18 +18766,69 @@ def _hb_stdlib_reads(spin: bool) -> str:
         child.wait()
 
 
+def _hb_stdlib_arm(reads, platform):
+    """The (spinning, idle) stdlib samples, or None where macOS refuses the task port.
+
+    One platform rule: only a ``PermissionError`` on darwin is a skip, printed with
+    its reason. Any other platform or exception still fails the run, and a bad
+    sample is not an exception at all, so the arm's checks still judge it.
+    """
+    try:
+        return reads(True), reads(False)
+    except PermissionError as exc:
+        if platform != "darwin":
+            raise
+        print(f"SKIP stdlib sampler control: macOS denies the task port ({exc})")
+        return None
+
+
+def _hb_denied(_spin):
+    raise PermissionError(1, "task_for_pid denied")
+
+
+def _hb_other(_spin):
+    raise OSError("other")
+
+
+def _hb_arm_run(reads, platform):
+    out, seen = _io.StringIO(), None
+    try:
+        with _hb_contextlib.redirect_stdout(out):
+            seen = _hb_stdlib_arm(reads, platform)
+    except Exception as exc:  # noqa: BLE001 - the control reads which one escaped
+        seen = type(exc).__name__
+    return seen, out.getvalue()
+
+
 if _nightly.importlib.util.find_spec("_remote_debugging") is not None:
-    _hb_in, _hb_out = _hb_stdlib_reads(True), _hb_stdlib_reads(False)
-    _hb_reads = (
-        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
-        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
-    )
+    _hb_skip, _hb_skip_out = _hb_arm_run(_hb_denied, "darwin")
+    _hb_lin, _ = _hb_arm_run(_hb_denied, "linux")
+    _hb_oth, _ = _hb_arm_run(_hb_other, "darwin")
+    _hb_bad, _ = _hb_arm_run(lambda spin: "in nothing" if spin else "", "linux")
     R.check(
-        "the stdlib sample of a real spinning process reads as the spin to the control, "
-        "and of the same process outside it does not",
-        _hb_reads[0] == (True, True, True) and _hb_reads[1] == (True, True, False),
-        f"spinning: {_hb_reads[0]} {_hb_in[-160:]!r}; idle: {_hb_reads[1]} {_hb_out[-160:]!r}",
+        "a task-port refusal is a printed skip on darwin only: linux and any other "
+        "exception still fail, and a bad sample is still judged by the arm",
+        _hb_skip is None and _hb_skip_out.count("SKIP stdlib sampler control:") == 1
+        and _hb_lin == "PermissionError" and _hb_oth == "OSError"
+        and _hb_bad == ("in nothing", "")
+        and _nightly.hb_control_reading(
+            {"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_bad[0]]})
+        != (True, True, True),
+        f"darwin={_hb_skip!r}/{_hb_skip_out!r} linux={_hb_lin!r} other={_hb_oth!r} bad={_hb_bad!r}",
     )
+    _hb_pair = _hb_stdlib_arm(_hb_stdlib_reads, sys.platform)
+    if _hb_pair is not None:
+        _hb_in, _hb_out = _hb_pair
+        _hb_reads = (
+            _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
+            _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
+        )
+        R.check(
+            "the stdlib sample of a real spinning process reads as the spin to the control, "
+            "and of the same process outside it does not",
+            _hb_reads[0] == (True, True, True) and _hb_reads[1] == (True, True, False),
+            f"spinning: {_hb_reads[0]} {_hb_in[-160:]!r}; idle: {_hb_reads[1]} {_hb_out[-160:]!r}",
+        )
 else:
     R.check(
         "the stdlib sample of a real spinning process reads as the spin to the control "
@@ -21793,22 +21844,37 @@ R.check(
     f"matchers={_DEPENDABOT_SCAN.get('manifests')} for {len(_DEPENDABOT_YAML)} entries",
 )
 # `Analyze (python)` is a required context, so a cancelled analysis fails the
-# pull request. Its runtime swings with runner load, and the 30-minute cap sat
-# inside that spread on 2026-10-20: three cancellations at the cap -- 2bd5e90f
-# 30:19, 11 minutes into query evaluation; 4e5801eb 30:09 and 916431ae 30:07,
-# both while uploading results -- while a rerun of 4e5801eb finished in 21.5
-# minutes (job 118701134345). 45 is the 30:19 worst case plus 14:41 of headroom
-# for that variance (45:00 - 30:19); the floor is a measurement, the margin a
-# design choice. The cap is pinned against the YAML (not left as prose in the
-# workflow) because a one-line edit shrinking it back is exactly what no other
-# check reads.
+# pull request. The cap is per leg, read from the matrix's `include` entries
+# (r10-hotfix-codeql-headroom, design note sections 1 and 3): python carries 75
+# because main's python job outgrew the 45-minute cap (extraction of
+# tests/features.py is the critical path; projected uncensored worst case about
+# 51 minutes, so 75 is that plus a deliberate stopgap margin); the two legs that
+# read about 40x under the cap stay at exactly 45, which is the null control
+# (a blanket raise would move them and fails here). The cap is pinned against
+# the YAML, not left as prose in the workflow, because a one-line edit
+# shrinking it back is exactly what no other check reads.
 _CODEQL_JOBS = (_yaml.safe_load(_CODEQL_YML) or {}).get("jobs") or {}
-_analyze_cap = (_CODEQL_JOBS.get("analyze") or {}).get("timeout-minutes")
+_analyze_job = _CODEQL_JOBS.get("analyze") or {}
+_analyze_cap = _analyze_job.get("timeout-minutes")
+_analyze_incl = (((_analyze_job.get("strategy") or {}).get("matrix") or {})
+                 .get("include")) or []
+_leg_caps = {e.get("language"): e.get("timeout") for e in _analyze_incl
+             if isinstance(e, dict)}
+_PY_WORST_CASE_MIN = 51
 R.check(
-    "codeql.yml's analyze cap clears the python leg's measured worst case",
-    isinstance(_analyze_cap, int) and _analyze_cap >= 45,
-    f"analyze timeout-minutes={_analyze_cap!r}; the python leg was cancelled "
-    "at 30:19 before the cap rose (2bd5e90f, 2026-10-20)",
+    "codeql.yml's analyze cap is per leg: python clears the measured worst case, the others stay at 45",
+    _analyze_cap == "${{ matrix.timeout }}"
+    and set(_leg_caps) == {"actions", "javascript-typescript", "python"}
+    and len(_analyze_incl) == 3
+    and type(_leg_caps["python"]) is int
+    and _leg_caps["python"] >= _PY_WORST_CASE_MIN
+    and _leg_caps["actions"] == 45 and type(_leg_caps["actions"]) is int
+    and _leg_caps["javascript-typescript"] == 45
+    and type(_leg_caps["javascript-typescript"]) is int,
+    f"timeout-minutes={_analyze_cap!r}; include caps={_leg_caps!r}; the python "
+    "leg was capped at 45.1 min on main (projected worst case ~51, design "
+    "r10-hotfix-codeql-headroom s1); actions and javascript-typescript read "
+    "p99 <= 2.3 min and stay 45",
 )
 # D-5: O17's INERT list is admitted only with the soundness step, which runs
 # on push and reads the leg's extracted source archive; and the `scope` job
@@ -28611,7 +28677,7 @@ R.check(
     "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
     _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
     and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
-    == ["base", "machinery"],
+    == ["base", "machinery", "selftests"],
     f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
@@ -28955,7 +29021,27 @@ try:
     # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
     _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
     _ba_fixed = _ba_head + 'x | python3 -I ledger.py landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads\n'
+    # This row judges HEAD's blobs, not the working tree (a tree read would open every
+    # tools/*.sh and join this script's closure); `bare_array.py --check` with no ref
+    # reads the working tree. Planted control: one temp repo, a clean commit and an
+    # uncommitted bare edit -- HEAD reads clean, the tree reads red.
+    with _tempfile.TemporaryDirectory() as _ba_tmp:
+        _ba_cwd = os.getcwd()
+        try:
+            _ba_env = throwaway_git_init(_ba_tmp, "-q")
+            Path(_ba_tmp, "tools").mkdir()
+            Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + "f x\n")
+            for _ba_args in (["add", "."], ["commit", "-qm", "c"]):
+                subprocess.run(["git", *_ba_args], cwd=_ba_tmp, env=_ba_env, check=True, capture_output=True)
+            Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + 'f "${a[@]}"\n')
+            os.chdir(_ba_tmp)
+            with throwaway_git_environ():
+                _ba_uncommitted = (_ba.scan("HEAD"), _ba.scan())
+        finally:
+            os.chdir(_ba_cwd)
     _ba_rows = (
+        (_ba_uncommitted[0] == [] and len(_ba_uncommitted[1]) == 1,
+         "an uncommitted bare site is invisible to the HEAD scan this row runs and red to the tree scan"),
         (len(_ba.sites(_ba_base)) == 1, "the base bus.sh call is refused"),
         (_ba.sites(_ba_fixed) == [], "the guarded form passes (control)"),
         (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
@@ -28974,7 +29060,7 @@ try:
 except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
     _ba_hits, _ba_rows = [f"{type(_ba_exc).__name__}: {_ba_exc}"], ()
 R.check(
-    "no tracked tools/**/*.sh script expands a bare \"${array[@]}\"",
+    "no tools/**/*.sh script, as committed at HEAD, expands a bare \"${array[@]}\"",
     not _ba_hits,
     "bash 3.2 (macOS) dies on an empty array under -u; guard with ${a[@]+\"${a[@]}\"} or "
     "put `# never-empty: <reason>` on the line, or on the line above when it ends in `# mut:<name>`:\n" + "\n".join(_ba_hits),
@@ -32136,6 +32222,73 @@ R.check(
     "(its precondition)",
     _TWP_LIVE != [] and _TWP_MATCHER_OFF == [],
     f"restores read: {len(_TWP_LIVE)}; the matcher disagrees with git on: {_TWP_MATCHER_OFF}",
+)
+
+
+# --- R10-HOTFIX-NONREQUIRED-REDS (fix review round 1): A PROGRAM PR-CONTRACT
+# RUNS IS THE BASE'S, SPAWNED ONES INCLUDED. pr-contract restores its check
+# source from the base so it runs no pull-request program (#1515, decision
+# 0013), but `policy_lint.mjs --pr-body` spawns `python3 <ROOT>/...py` for the
+# required set (`requiredFromTrain`: merge_train.py owed-reds). A spawned
+# program outside the restore list is the pull request's copy, and a diff
+# editing it alone answered its own required reds. The rule enumerates the
+# class: every `spawnSync('python3', [path.join(<root>, ...)` in policy_lint, and
+# each one's local closure -- a column-0 `import X`/`from X` with X.py beside
+# it, and a column-0 `NAME = ROOT / "path"` it reads -- must match a pathspec
+# of pr-contract's restore. A file read as text (stamp.py at :4780) is no spawn.
+_PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\((ROOT|root|HERE),\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
+_PCR_IMPORT = re.compile(r"^(?:import|from)\s+([A-Za-z_]\w*)", re.M)
+_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
+
+
+def _pcr_spawned(mjs: str) -> "list[str]":
+    # HERE is policy_lint's own directory; ROOT, and a `root` parameter, the tree.
+    return sorted({"/".join((["tools", "policy"] if m.group(1) == "HERE" else [])
+                            + [t.strip().strip("'") for t in m.group(2).split(",")]) for m in _PCR_SPAWN.finditer(mjs)})
+
+
+def _pcr_closure(roots) -> "list[str]":
+    seen, todo = set(), list(roots)
+    while todo:
+        f = todo.pop()
+        if f in seen:
+            continue
+        seen.add(f)
+        if not f.endswith(".py") or not Path(f).is_file():
+            continue
+        text = Path(f).read_text()
+        todo += [q for q in (str(Path(f).parent / f"{m}.py") for m in _PCR_IMPORT.findall(text))
+                 if Path(q).is_file()]
+        todo += _PCR_READ.findall(text)
+    return sorted(seen)
+
+
+def _pcr_unrestored(texts: dict, mjs: str) -> "tuple[list[str], list[str]]":
+    """(the closure, the files of it no pr-contract restore pathspec matches)."""
+    specs = [p for w, _l, sp, _d, _a in _twp_steps({"pr-contract.yml": texts["pr-contract.yml"]}) for p in sp]
+    files = _pcr_closure(_pcr_spawned(mjs))
+    return files, [f for f in files if not specs or not any(_twp_hit(p, f) for p in specs)]
+
+
+_PCR_MJS = Path("tools/policy/policy_lint.mjs").read_text()
+_PCR_FILES, _PCR_OPEN = _pcr_unrestored(_PRW_TEXTS, _PCR_MJS)
+R.check(
+    "every python3 program policy_lint.mjs spawns, with its local import and ROOT-read closure, is "
+    "restored from the base by pr-contract (merge_train.py owed-reds, gh_read.py, required-contexts.json)",
+    _PCR_OPEN == [] and "tools/audit/seat/merge_train.py" in _PCR_FILES
+    and "tools/audit/seat/gh_read.py" in _PCR_FILES
+    and "tools/policy/fixtures/required-contexts.json" in _PCR_FILES,
+    f"closure: {_PCR_FILES}; not restored: {_PCR_OPEN}",
+)
+_PCR_NULL = {k: _pcr_unrestored({"pr-contract.yml": _PRW_TEXTS["pr-contract.yml"].replace(f"'{k}' \\\n", "")},
+                                _PCR_MJS)[1] for k in ("tools/audit/seat/merge_train.py",
+                                                       "tools/audit/seat/gh_read.py",
+                                                       "tools/policy/fixtures/required-contexts.json")}
+R.check(
+    "and pr-contract with any one of those three pathspecs removed is refused on that file "
+    "(null control); a file read as text, stamp.py, is no spawn",
+    all(v == [k] for k, v in _PCR_NULL.items()) and "tools/release/stamp.py" not in _PCR_FILES,
+    f"refused per removed pathspec: {_PCR_NULL}",
 )
 
 
