@@ -14,9 +14,11 @@ Cost test: defect about 5 min hand-landing plus about 20 min pass delay per stal
 
 ## Head
 
-d21308c547e09cd298c9f62a6ff52cd436597a8a
+778782832170d403103adc051922f63303a7c412
 
-Measured at that head: the repair commit 516f48443 plus a merge of origin/main at 17e621f08c (fetched 2026-11-08 19:38 UTC; main touched no file this PR reads: `git diff --stat 8a4974d15 17e621f08 -- tools/audit/seat/roster_queue.py tests/throwaway_git.py` is empty). The merge re-ran steps 2-8: harness, self-test, mutation table, `tests/entities.py`, `tests/structure.py`.
+Merge round (PR was DIRTY): merged origin/main (fetched 2026-11-09, `date -u`) into d21308c54; conflict only in tools/audit/seat/roster_queue.py, resolved as a union. Null control: `git merge-tree --write-tree origin/main HEAD | grep -c CONFLICT` prints 0. Re-run on the merged tree: `roster_queue.py --self-test` (62 checks, 0 failed), `roster_edit.py --self-test` (257, 0 failed), `dev/audit/harnesses/roster_queue_stale_lint.py` (stale, cascade, follow PASS), mutant M4 re-applied by hand (cascade FAIL, killed), `tools/pr/prepr.sh` rc=0.
+
+Resolution delta (review only these): in `_run_op`, the refusal report line is `refusal_tail(out)` (main's P435) followed by the PR's `worktree remove --force` of the edit worktree; `refresh_lint` (PR) and `refusal_tail` (main) both sit between `run_batch` and `_run_op`, kept verbatim. Main's P417 batch changes merged without conflict. tests/closures.json resolved by its driver.
 
 ## Mutation proof
 
