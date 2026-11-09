@@ -42,6 +42,13 @@
   (tvofi 2026-11-01, batch by default).
   `add`'s admission (`Train.admit_add`) reads the same posted verdict
   first, as its `verdict` rule, and fills an absent comment id from it.
+  That read refuses a stale merge verdict (P393, `stale_merge`): a
+  `blocked` commit at the same head on `verdict/<pr>` whose bus-nonce
+  (its VERDICT.md) bus.sh's registry (`$HPO_BUS_STATE/dispatched`, else
+  `~/.zcode/bus/dispatched`) records as dispatched after the merge
+  verdict's; a missing record or utc refuses with its reason, and a
+  blocked verdict under the merge's own nonce is that reviewer's revision.
+  The registry is host-local, so run the train where bus.sh dispatches.
   bus.sh's post loads the train the moment it posts a merge verdict
   (`merge_train.py add --auto`, with `HPO_BUS_TRAIN_STATE` set);
   `sweep` is the slow backstop (`tick_loop.sh --sweep`, every 1800 s by
@@ -77,12 +84,34 @@
   CI judges the new head, and a recarry that reproduces the same red tree
   stops instead of looping. A one-car batch (the #2595 repair car onto a red
   main) cannot move a base, so the grade never fires there.
+  Card 5 (tvofi 2026-11-07, `Train.merges_as_is`): a head that lacks
+  origin/main is recarried only when `main-protect-checks` requires an
+  up-to-date branch (`strict_update`, read live; unreadable counts as
+  required), when git's merge of origin/main and the head conflicts, when the
+  head is a GITHUB_TOKEN tip, or when a graded red holds it; otherwise it is
+  logged `#<pr> no recarry:` and merges at its proven head, its merge tree
+  graded against its merge base at the merge, as the overlap grade does.
+  Card 1 (`Train.rejoin`): under `--skip-bad`, an entry skipped on a head red
+  holding `gate` (`HeadRed`) rejoins the same train after the batch's own
+  merges, through the serial path, once its skipped head classifies GREEN
+  (`classify_at`), with no `add`; RED, a head still WAIT `wait_cap_s` (polls
+  x 305 s, 7320 s at the default) after its skip, or a head the branch moved
+  off stays skipped, each logged `REJOIN #<pr>: ...`; a rejoin that merges
+  is CURED. Residual: the rejoin's wait delays the next spooled batch, never
+  a merge of its own batch. `dev/audit/harnesses/r10_train_rejoin_no_recarry_mutants.py`
+  holds one mutant per arm of both cards.
   `batch` also takes several batches in one queue (a list of lists), run in
   order on one train, each with its own admission, proof and merges; between
   two it drains what `train.sh add` spooled into one more batch, never into a
   batch in proof, and a batch that stops ends the train (`NOT RUN` lines);
   an `add` that starts a train orders its first batch, the entry and what a
-  stopped train left spooled, by the same `Train.drain_order`.
+  stopped train left spooled, by the same `Train.drain_order`: entries added
+  with `--priority` (HOTFIX), a roster hotfix (`roster_lib.is_hotfix`, flag
+  or not) or `--front` first, then outside entries
+  (`roster_lib.is_outside`, owner ruling tvofi 2026-11-07, triage P420), then
+  critical-path entries, then arrival order; an entry maps to its group by
+  branch, else by its pull request (`roster_lib.group_for_pr`), so a fork head
+  ranks as its group does.
   `add` and that drain apply one admission rule (`already_held`, over the
   live train's `queue.seen.json`): a pull request still to run, spooled,
   merged or run by this train is `ALREADY` on both sides; one it skipped is
@@ -94,7 +123,7 @@
   one mutant per arm of that rule. The spool is edited only through the
   instrument: `add --front <pr>` puts an entry first in the next batch (a
   spooled one is moved there, and the drain keeps it in the `--priority` tier
-  ahead of critical-path entries) and `add --remove <pr>` drops a spooled one
+  ahead of outside and critical-path entries) and `add --remove <pr>` drops a spooled one
   (rc 1, nothing written, when it is absent), both under the queue's flock
   and each printing the spool order read back. A batch's admission waits
   each head on the required set a pull request's head carries
@@ -113,7 +142,16 @@
   judged on the latest run of each required context (`main-protect-checks`,
   read live; `record`, `record-autofix`, `nightly-status` and
   `delivery-status` never count): a queued or in-progress run is a wait,
-  never red, and an unreadable ruleset refuses. `--overlap` logs main RED,
+  never red, and an unreadable ruleset refuses. A red `gate` in a head wait
+  is a wait while `tools/ci/gate.py`'s own `busy` (imported) names a ci.yml
+  run at the head, or `gate_rerunning` names one re-running its gate (a run
+  unfinished past its completed `gate`: gate-sweep's attempt 2), read from one
+  runs listing per poll, so an edit run's
+  at-once deferral red is not read final while its code run runs; a red
+  beside a green `gate` suite gets one settle poll for gate-sweep's re-run,
+  and an unreadable listing leaves the red standing, logged
+  (R10-HOTFIX-TRAIN-DEFER-WAIT). `polls` still bounds the wait (TIMEOUT); `wait-ci
+  <sha>` (no `only`) takes the same settle once every run concluded. `--overlap` logs main RED,
   or still running, by that rule. Before a merge attempt a check-run still
   queued or in progress over a completed workflow run is stale: its run is
   re-run once, logged `STALE <context> ... run <id>` (a third recurrence goes
@@ -121,7 +159,13 @@
   `classify <sha>` prints GREEN (rc 0), RED (rc 1) or WAIT (rc 3) over a pull
   request's required contexts (`--main`: less the PR-only ones), rc 2 when
   unreadable — a head is reviewable unless RED, which `bus.sh dispatch`
-  enforces. `--pr N` asks `approval_owed(train, pr, head, runs, required)`, the one
+  enforces. Its one read goes through `Train.classify_at`: a red `gate` while
+  gate.py's `busy` or `gate_rerunning` names a ci.yml run at the head is
+  WAIT, and so is one beside a green `gate` suite completed at most
+  `SWEEP_SETTLE_SECONDS` before the read (`sweep_settling`, the poller's one
+  settle poll on the wall clock: none of the one-read callers re-reads a RED);
+  past the bound, or on a stamp ahead of the clock, the red stands. Its
+  deferral log goes to stderr. `--pr N` asks `approval_owed(train, pr, head, runs, required)`, the one
   owner of a budget raise's pre-approval red (P345): when the red set over
   `gating_names` is `gate` and `budget-raise-gate / budget-raise-gate` alone,
   every red gate suite's own log (`gate_raise_only`, through `gate_outcome`)

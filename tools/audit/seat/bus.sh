@@ -261,6 +261,15 @@ carry_gate() { # verdict-file -> rc 0 when each finding item routes, else why, n
   return 1
 }
 
+# Names that differ only by case collide on a case-insensitive checkout (ancestors count: file
+# `a` against dir `A/x`). Prints "<one> and <other>" for the first pair, rc 0; rc 1 if none.
+case_collision_names() { # reads one path per line on stdin
+  LC_ALL=C sort | awk '{ n=split($0,p,"/"); q=""; for(i=1;i<=n;i++){ q=(i==1?p[i]:q "/" p[i]); k=tolower(q); if((k in s)&&s[k]!=q){print s[k] " and " q; f=1; exit} s[k]=q } } END { exit !f }'
+}
+case_collision() { # dir
+  (cd "$1" && find . -mindepth 1 | sed 's|^\./||' | case_collision_names)
+}
+
 push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on review/<pr>
   local pr=${1:-} v=${2:-} ev=${3:-} first hsha t gd tree why
   numeric "$pr" || die "push-verdict: the pull request '$pr' is not a number"
@@ -273,6 +282,7 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
   [ -n "$ev" ] && [ -d "$ev" ] || die "push-verdict: no evidence directory (a verdict cites one; fix-review.md)"
   grep -rqF -- "$hsha" "$ev" \
     || die "push-verdict: no file under $ev names the head $hsha"
+  why=$(case_collision "$ev") && die "push-verdict: evidence names collide case-insensitively under $ev: $why; rename one"
   [ -z "$(find "$ev" -type f -size +50M 2>/dev/null)" ] \
     || die "push-verdict: a file under $ev is over 50 MB; cite it by path instead"
   # Verify the nonce against the dispatcher's record before proposing: a
@@ -362,7 +372,7 @@ kind_of() { # ref name -> "<kind> <name>"
 }
 
 unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS refused, rc 1
-  local fam=$1 want=${3:-} why=""
+  local fam=$1 want=${3:-} why="" cc
   pr=$2
   numeric "$pr" || { printf 'BUS refused %s: %s/%s is not a pull-request number\n' "$pr" "$fam" "$pr"; return 1; }
   if ! git fetch -q "$REMOTE" "+refs/heads/$fam/$pr:refs/hpo-bus/$fam/$pr" 2>/dev/null; then
@@ -375,7 +385,11 @@ unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS r
   d=$S/${fam}s/$pr/$c
   rm -rf "$d" && mkdir -p "$d" && git archive "$c" | tar -x -C "$d" \
     || { printf 'BUS refused %s %s: could not unpack the verdict tree\n' "$pr" "$c"; return 1; }
-  if [ ! -f "$d/VERDICT.md" ]; then why="the tree has no VERDICT.md"
+  # Names come from the commit, not from the extracted directory: tar on a case-insensitive
+  # filesystem (APFS) has already folded HEAD.txt and head.txt into one file by then.
+  if cc=$(git ls-tree -r --name-only "$c" -- evidence 2>/dev/null | case_collision_names); then
+    why="evidence/ names collide case-insensitively: $cc"
+  elif [ ! -f "$d/VERDICT.md" ]; then why="the tree has no VERDICT.md"
   else
     first=$(head -n 1 "$d/VERDICT.md")
     if ! hsha=$(verdict_sha "$first"); then why="the first line is outside fix-review.md's grammar: '$first'"
@@ -472,10 +486,10 @@ verdict_log() { # pr -> verdict/<pr>'s commit subjects, newest first (nothing wh
   git log --format=%s "$tip"
 }
 
-blocked_rounds() { # pr -> the count of blocked verdict commits in verdict/<pr>'s history; rc 1 unreadable
+blocked_rounds() { # pr -> the count of distinct heads with a blocked verdict in verdict/<pr>'s history (a re-post at one head is no round); rc 1 unreadable
   local subj
   subj=$(verdict_log "$1") || return 1
-  printf '%s\n' "$subj" | grep -c "^verdict: #$1 Fix review: blocked " || :
+  printf '%s\n' "$subj" | sed -n "s/^verdict: #$1 Fix review: blocked \([0-9a-f]\{7,40\}\)\([ ].*\)\{0,1\}\$/\1/p" | sort -u | grep -c . || :
 }
 
 verdict_at() { # pr sha -> the latest verdict word naming <sha> on verdict/<pr> (merge, blocked), or nothing; rc 1 unreadable
@@ -485,7 +499,8 @@ verdict_at() { # pr sha -> the latest verdict word naming <sha> on verdict/<pr> 
 }
 
 # THE THREE-ROUND RULE (fixer.md, "Past three rounds"). Each round's verdict stays in
-# verdict/<pr>'s history, so its blocked commits are the rounds already reviewed. After three,
+# verdict/<pr>'s history, so its distinct blocked heads are the rounds already reviewed
+# (#3247: five re-posts at one head were one round). After three,
 # a dispatch needs the body's `## Re-cut` note (read only then, through $HPO_BUS_GH) or
 # `--past-three <reason>`, logged in $S/past-three; after a fourth -- a re-cut blocked again --
 # only `--past-three`: the split-or-close is the orchestrator's, never a silent re-dispatch.
@@ -955,7 +970,7 @@ self_test() {
   # 7, 9, 12, 21, 22 and 24 (21-24 are the FETCHHEAD/poster arms' pull
   # requests); h2 (a child) inherits them; norow is the base, with none.
   mkdir -p "$W/seat/$ROW_DIR"
-  for n in 7 9 12 21 22 24 30 31 32 33 34; do
+  for n in 7 9 12 21 22 24 30 31 32 33 34 35; do
     printf -- '- [#%s](https://github.com/o/r/pull/%s) — **open**\n' "$n" "$n" > "$W/seat/$ROW_DIR/$n.md"
   done
   git -C "$W/seat" -c user.name=t -c user.email=t@t add -A
@@ -1048,6 +1063,12 @@ P
   [ $rc != 0 ] && echo "$out" | grep -q "names the head $h1"; expect "push-verdict refuses evidence that names no head" $?
   out=$(seat push-verdict 7 "$W/merge0.md"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "no evidence directory"; expect "push-verdict refuses a verdict with no evidence directory" $?
+  mkdir -p "$W/evcc" "$W/evok" && echo "$h1" > "$W/evcc/HEAD.txt" && echo "$h1" > "$W/evcc/head.txt" \
+    && echo "$h1" > "$W/evok/HEAD.txt" && echo "$h1" > "$W/evok/other.txt"
+  out=$(seat push-verdict 7 "$W/merge0.md" "$W/evcc"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "collide case-insensitively.*HEAD.txt and head.txt"; expect "push-verdict refuses evidence names that differ only by case, naming both" $?
+  out=$(seat push-verdict 7 "$W/merge0.md" "$W/evok"); rc=$?
+  ! echo "$out" | grep -q "collide case-insensitively"; expect "push-verdict lets distinct evidence names past the case check (null control)" $?
   out=$(seat push-verdict 7x "$W/merge0.md" "$W/ev1"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "not a number"; expect "push-verdict refuses a non-numeric pull request" $?
   git -C "$W/seat" ls-remote --exit-code origin 'refs/heads/review/*' >/dev/null 2>&1
@@ -1354,6 +1375,41 @@ B
   out=$(run watch --once --post)
   echo "$out" | grep -q "^BUS refused 10 $t: no file under evidence/ names the head" && [ "$(calls)" = 2 ]
   expect "watch refuses a raw proposal whose only naming file is VERDICT.md" $?
+  # The read side of the case check (unpack): a review/<pr> commit whose evidence/ holds HEAD.txt
+  # and head.txt is refused on read, not only on push-verdict; distinct names are the null control.
+  rawev() { # names... : VERDICT.md from stdin, evidence/<each name> naming $h1
+    local b e tr n ents=""
+    b=$(git -C "$W/seat" hash-object -w --stdin)
+    e=$(printf '%s\n' "${EVBODY-measured at $h1}" | git -C "$W/seat" hash-object -w --stdin)
+    for n in "$@"; do ents="$ents$(printf '100644 blob %s\t%s\n' "$e" "$n")"$'\n'; done
+    e=$(printf '%s' "$ents" | git -C "$W/seat" mktree)
+    tr=$(printf '100644 blob %s\tVERDICT.md\n040000 tree %s\tevidence\n' "$b" "$e" | git -C "$W/seat" mktree)
+    git -C "$W/seat" commit-tree "$tr" -m x
+  }
+  t=$(printf 'Fix review: merge %s\n' "$h1" | rawev HEAD.txt head.txt)
+  git -C "$W/seat" push -q origin "$t:refs/heads/review/40"
+  out=$(run watch --once --post)
+  echo "$out" | grep -q "^BUS refused 40 $t: evidence/ names collide case-insensitively: .*HEAD.txt and evidence/head.txt"
+  expect "unpack refuses a proposal whose evidence names differ only by case, naming both (read side)" $?
+  # Folded-source row: on APFS the extract has folded HEAD.txt and head.txt into one file that
+  # may not name the head, so the refusal must come from the commit's own name list (ls-tree),
+  # and name both, not "no file under evidence/ names the head".
+  t=$(printf 'Fix review: merge %s\n' "$h1" | EVBODY="no head here" rawev HEAD.txt head.txt)
+  git -C "$W/seat" push -q origin "$t:refs/heads/review/42"
+  out=$(run watch --once --post)
+  echo "$out" | grep -q "^BUS refused 42 $t: evidence/ names collide case-insensitively: .*HEAD.txt and evidence/head.txt" \
+    && ! echo "$out" | grep -q "no file under evidence/ names the head"
+  expect "unpack names both colliding names when the folded file would not name the head (ls-tree read)" $?
+  got=$(git -C "$W/seat" ls-tree -r --name-only "$t" -- evidence | case_collision_names); r=$?
+  [ "$r" = 0 ] && echo "$got" | grep -q "HEAD.txt and evidence/head.txt"
+  expect "case_collision_names refuses a folded-source ls-tree name list, naming both" $?
+  got=$(printf 'evidence/HEAD.txt\nevidence/other.txt\nevidence/sub/a\nevidence/sub/b\n' | case_collision_names); r=$?
+  [ "$r" = 1 ] && [ -z "$got" ]; expect "case_collision_names lets a distinct ls-tree name list past (null control)" $?
+  t=$(printf 'Fix review: merge %s\n' "$h1" | rawev HEAD.txt other.txt)
+  git -C "$W/seat" push -q origin "$t:refs/heads/review/41"
+  out=$(run watch --once --post)
+  ! echo "$out" | grep -q "^BUS refused 41 .*collide case-insensitively" && echo "$out" | grep -q "^BUS undispatched 41 $t"
+  expect "unpack lets distinct evidence names past the case check (null control, read side)" $?
 
   N9=$(run dispatch 9 "$h1" cmsg_S | sed -n 's/^bus-nonce: //p')
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N9" > "$W/merge9.md"
@@ -1803,7 +1859,7 @@ B
   # THE THREE-ROUND RULE (fixer.md, "Past three rounds"): verdict/<pr>'s history keeps every
   # round, so the blocked commits on it are the rounds a dispatch would follow.
   blk() { git -C "$W/seat" commit-tree "$(git -C "$W/seat" rev-parse "$h1^{tree}")" ${2:+-p "$2"} \
-            -m "verdict: #31 Fix review: blocked $h1 harness: round $1"; }
+            -m "verdict: #${3:-31} Fix review: blocked ${4:-$(printf '%040d' "$1")} harness: round $1"; }
   printf '#!/bin/bash\nprintf "%%s|" "$@" >> "%s/gh-argv"; echo >> "%s/gh-argv"; cat "%s/body31"\n' "$W" "$W" "$W" > "$W/ghstub"
   printf '## Summary\nround four, repaired\n' > "$W/body31"
   f1=$(blk 1); f2=$(blk 2 "$f1"); git -C "$W/seat" push -q origin "$f2:refs/heads/verdict/31"
@@ -1830,6 +1886,16 @@ B
   expect "a re-cut body blocked again is refused for the orchestrator's split-or-close" $?
   out=$(run dispatch 31 "$h1" cmsg_T --past-three); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "past-three needs a reason"; expect "--past-three without a reason is refused" $?
+  # #3247: five re-posts of one verdict at one head are one review round
+  rp=$(blk 1 "" 32 "$h1"); for i in 2 3 4 5; do rp=$(blk $i "$rp" 32 "$h1"); done
+  git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/32"
+  out=$(run dispatch 32 "$h1" cmsg_T); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '; expect "five re-posts at one head count as one round and dispatch (#3247)" $?
+  rp=$(blk 1 "" 35 "$(printf '%040d' 1)"); rp=$(blk 2 "$rp" 35 "$(printf '%040d' 2)")
+  rp=$(blk 3 "$rp" 35 "$(printf "%040d" 3)"); git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/35"
+  printf "## Summary\nno note\n" > "$W/body31"
+  out=$(run dispatch 35 "$h1" cmsg_T); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "3 blocked round(s).*## Re-cut"; expect "null control: three distinct blocked heads are three rounds and refuse without a note" $?
 
   # THE REVIEW PACKET: dispatch names the packet rendered at its head and passes the
   # finder's harness through; a REFUSED head records nothing; a seat that cannot render

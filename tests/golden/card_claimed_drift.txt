@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.5
+# claims-for: 7.1.9
 #
-# v7.1.5: Bounded process worker wait (outside contribution #3232); round-10 machinery. The stamp empties the list; the
+# v7.1.9: water set-point lift and ceiling (outside #3356). The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -772,3 +772,7 @@
 # not only the house's when it has drivers (the owner's hover spec, carry 14);
 # it is the state that renders the score with its hover. The other 43 states
 # were rendered and stayed identical.
+# R10-WHY-NOW-WIDGET: the headline gains the "Why now" block after its
+# narrative list; planStates publishes no `why_now`, so the block shows its
+# no-data line. Only score_open renders a headline with a narrative here;
+# card_drift reports the other 44 states identical.

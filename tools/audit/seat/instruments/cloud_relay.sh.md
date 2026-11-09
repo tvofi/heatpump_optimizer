@@ -133,12 +133,21 @@
   `<topic> <body-sha>` for every body applied, by an update or body-only; a pass
   that finds no such file records every contained topic's body and runs
   nothing (the seed), and a contained body with no `Code:` line is recorded
-  and left alone. A failed update is noted in `cloud-handoff-failed` by
-  `<topic> <code-sha>` (a body-only one by `<topic> <code-sha> <body-sha>`, so
-  a new body re-triggers it), its reason, the update's last `REFUSE` line else
+  and left alone. A handoff ahead of a body that does not name its first 8
+  characters is partial work: `cloud_relay: HELD-BODY #<pr> <tip8>`, owed as
+  `handoff-held ... BODY`, retried next pass. Levels `handoff-no-pr`,
+  `handoff-hold-stale` (a hold-file line whose PR is not open) and
+  `handoff-body-unapplied` (`cloud_relay: BODY-ONLY` line: a body-only handoff
+  left unapplied while its body tip is newer than the PR head's commit) are
+  published before the serial update loops, so a slow update cannot delay them.
+  A failed update is noted in `cloud-handoff-failed` by
+  `<topic> <code-sha> <body-sha>` (so a new body re-triggers it), its reason, the update's last `REFUSE` line else
   its last line, kept beside it in `cloud-handoff-failed.why` (tab-separated),
-  owed as `OWED <utc> handoff-update <ref> <sha> <why>` in `<log>.level` while
-  that entry matches, and retried only when the handoff (or body) moves. The
+  owed as `OWED <utc> handoff-update <ref> <sha> <why>` (the `<why>` is the line kept in `cloud-handoff-failed.why`) in `<log>.level` while
+  that entry matches, and retried only when the handoff (or body) moves, except a
+  refusal that is not of a body-content step (`ancestry reds`, `ci predict`): it reruns after
+  `HPO_RELAY_RETRY_BACKOFF` (1800 s), three runs at most (`cloud-handoff-failed.tries`), and is then
+  recorded and owed as above. A refusal of `unpinned sites`, `carry`, `figures` or the body contract is recorded at once. The
   update's output is held in a file until it ends, then replayed to the
   relay's stderr. An update that
   exits 75 is BUSY (another `open_pr.sh` or `update_pr.sh` run holds the branch's
@@ -158,6 +167,13 @@
   each passed push-verdict, `reviewer-fire`, `approve-held-runs`, `dispatch`)
   is opened in the ledger, never appended to the log, which keeps only the
   `POSTED` journal.
+  Relay guards (R10-RELAY-REPLAY): each pass prints `cloud_relay: state dir
+  <dir>, ledger <path>, log <path>` once, so a loop restarted without
+  `HPO_STATE_DIR` shows the wrong ledger. `relay` pushes nothing when
+  `review/<pr>` already has a commit with the probe's tree (the delivered
+  guard): the probe is recorded as relayed. A probe whose `ev/` holds names
+  differing only in case (`ev/HEAD.txt` and `ev/head.txt`; a file `ev/a` and a
+  directory `ev/A/x` too) is refused rc 2, naming both, and nothing is pushed.
   No-return line (triage P-E): each pass, a `dispatch/fixer-<topic>` tip older
   than `HPO_RELAY_NORETURN_SECS` (default 7200) and younger than
   `HPO_RELAY_NORETURN_WINDOW_SECS` (default 172800), with no `handoff-wip/`,

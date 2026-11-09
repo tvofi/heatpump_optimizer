@@ -4,7 +4,8 @@
     python3 -I tools/ci/prelude.py [--changed-from FILE] >> "$GITHUB_OUTPUT"
     python3 -I tools/ci/prelude.py --self-test
 
-Prints `key=value` lines: kind, pr, base, head, scope, legs, workset. It reads
+Prints `key=value` lines: kind, pr, base, head, scope, legs, workset,
+machinery, selftests. It reads
 the event from GITHUB_EVENT_NAME / GITHUB_EVENT_PATH and nothing else of the
 run. `derive` and `title` are also the gate's (gate.py derives the event's kind
 itself and only cross-checks this job's outputs) and `run-name`'s: ci.yml's
@@ -67,8 +68,24 @@ STARTED = ("in_progress", "completed")
 # pins). Anything else -- tools/, .github/, dev/, policy, tests
 # infrastructure, a new or unmeasured script, an unknown root file -- runs
 # them, and every push runs them.
+#
+# R10-CI-OWN-DELIVERY-ROW: every pull request carries its own delivery row
+# (DELIVERY_ROW with its number), which is not product, so the rule above
+# idled no pull request. `machinery_rowblind` ignores exactly that row, for
+# the lanes that read no row; another pull request's row stays machinery.
+# dev/audit/harnesses/lane_reads_delivery.recording.json traced each lane's
+# steps: tests / arch-instrument reads no row, while tests / closures (its
+# re-record), governance / env-matrix and governance / instrument-self-tests do
+# (policy_lint and its tree-wide `git grep`), so those three keep `machinery`.
 PRODUCT_PREFIXES = ("custom_components/", "docs/", "tests/golden/", "tests/mutation_ledger/")
 PRODUCT_FILES = frozenset({"README.md"})
+DELIVERY_ROW = "dev/programme/delivery/{}.md"
+# (workflow, job) -> the prelude output its steps gate on; the split is
+# lane_reads_delivery.py's recording, above. `lane_gates` pins it.
+LANE_GATE = {("tests.yml", "arch-instrument"): "machinery_rowblind",
+             ("tests.yml", "closures"): "machinery",
+             ("governance.yml", "env-matrix"): "machinery",
+             ("governance.yml", "instrument-self-tests"): "machinery"}
 CLOSURES_JSON = HERE.parents[1] / "tests" / "closures.json"
 KP = "kernel-points"
 UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
@@ -99,7 +116,8 @@ def context(event_name: str, ev: dict, env: dict) -> dict:
         "changes_base": bool((ev.get("changes") or {}).get("base")),
         "label": (ev.get("label") or {}).get("name", ""),
         "labels": [x.get("name") for x in pr.get("labels") or []],
-        "pr_number": str(pr.get("number") or ""), "base_ref": (pr.get("base") or {}).get("ref")
+        "pr_number": str(pr.get("number") or ""), "base_sha": (pr.get("base") or {}).get("sha") or "",
+        "base_ref": (pr.get("base") or {}).get("ref")
         or (mg.get("base_ref") or "").removeprefix("refs/heads/"),
         "queue_pr": q.group(1) if q else "",
         "input_pr": inputs.get("pr") or "", "input_base": inputs.get("base") or "",
@@ -177,10 +195,13 @@ def verify_dispatch(ctx: dict, get) -> str:
     return ""
 
 
-def run_jobs(get, repo: str, run_id) -> dict:
-    """A run's latest jobs, name -> (status, conclusion)."""
-    return {j["name"]: (j["status"], j["conclusion"]) for j in
-            ghapi.paginate(f"repos/{repo}/actions/runs/{run_id}/jobs", {"filter": "latest"}, get=get)}
+def run_jobs(get, repo: str, run_id, starts=None) -> dict:
+    """A run's latest jobs, name -> (status, conclusion); `starts`, when given, is filled
+    name -> started_at (gate.gate's source order)."""
+    rows = ghapi.paginate(f"repos/{repo}/actions/runs/{run_id}/jobs", {"filter": "latest"}, get=get)
+    if starts is not None:
+        starts.update((j["name"], j.get("started_at")) for j in rows)
+    return {j["name"]: (j["status"], j["conclusion"]) for j in rows}
 
 
 def judging(run: dict) -> bool:
@@ -252,12 +273,25 @@ def _product(closures_json: Path):
     return lambda f: f.startswith(PRODUCT_PREFIXES) or f in PRODUCT_FILES or f in scripts
 
 
-def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON) -> bool:
-    """Whether the machinery lanes run: False only for a non-empty changed list
-    that is all product (C7(a)); an unreadable script table runs them."""
-    files = [f for f in (changed or []) if f.strip()]
+def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON, pr: str = "") -> bool:
+    """Whether the machinery lanes run: False only for a changed list that,
+    less pull request `pr`'s own delivery row, is non-empty and all product
+    (C7(a)); an unreadable script table runs them."""
+    own = DELIVERY_ROW.format(pr) if pr.isdigit() else None
+    files = [f for f in (changed or []) if f.strip() and f != own]
     is_product = _product(closures_json)
     return not files or is_product is None or not all(map(is_product, files))
+
+
+def lane_gates(workflows: Path = HERE.parents[1] / ".github" / "workflows") -> dict:
+    """(workflow, job) -> the set of machinery inputs the job's text names
+    (`inputs.machinery`, `inputs.machinery_rowblind`), for each LANE_GATE job."""
+    got = {}
+    for wf, job in LANE_GATE:
+        text = (workflows / wf).read_text()
+        m = re.search(rf"\n  {re.escape(job)}:\n(.*?)(?=\n  [A-Za-z][\w-]*:\n|\Z)", text, re.S)
+        got[(wf, job)] = set(re.findall(r"inputs\.(machinery\w*)", m.group(1))) if m else set()
+    return got
 
 
 def defer_to(ctx: dict, pr: str, get) -> "int | None":
@@ -309,7 +343,17 @@ def proof_scope(ctx: dict, get, entries=None, changed=None) -> tuple[list[str], 
     return files, proven
 
 
-def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope) -> tuple[dict, str]:
+def selftest_scope(ctx: dict) -> str:
+    """instrument-self-tests' steps for a pull request (selftest_scope.py's rule):
+    'all', 'none' or their ids, from the PR's base...head diff and the table."""
+    import selftest_scope as st
+    if not ctx.get("base_sha") or not ctx.get("head"):
+        return "all"
+    return st.selection(ctx["base_sha"], ctx["head"])
+
+
+def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope,
+            selftests=selftest_scope) -> tuple[dict, str]:
     """(the outputs, '' or why the prelude fails)."""
     kind, pr, base = derive(ctx)
     ev = ctx["event_name"]
@@ -321,6 +365,10 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     if ev == "workflow_dispatch" and ref.startswith(codeql_scope.PROOF_REF):
         changed, proven = proof(ctx, get)
     out["machinery"] = "true" if ev != "pull_request" or machinery(changed) else "false"
+    # R10-CI-SELFTEST-SCOPE: only a pull request is scoped; every other event,
+    # a push to main above all, runs every step and re-measures them.
+    out["selftests"] = selftests(ctx) if ev == "pull_request" else "all"
+    out["machinery_rowblind"] = "true" if ev != "pull_request" or machinery(changed, pr=pr) else "false"
     out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
@@ -507,12 +555,58 @@ def self_test() -> int:
             check(f"C7a: ... and {f} beside it runs them", machinery([cc, f], cj), True)
         check("C7a: an empty list runs them (fail closed)", machinery([], cj), True)
         check("C7a: an unreadable script table runs them (fail closed)", machinery([cc], Path(td) / "none.json"), True)
+        # The pull request's own delivery row is ignored: neither product nor
+        # machinery. Exactly that row, keyed on the number the event names.
+        own = "dev/programme/delivery/3300.md"
+        check("C7a-row: a package file plus its own delivery row idles them",
+              machinery([cc, own], cj, "3300"), False)
+        check("C7a-row: ... the row beside tools/ still runs them (null control)",
+              machinery([cc, own, "tools/ci/gate.py"], cj, "3300"), True)
+        check("C7a-row: ANOTHER pull request's row still counts as machinery",
+              machinery([cc, "dev/programme/delivery/3299.md"], cj, "3300"), True)
+        check("C7a-row: ... and so does the row when the event names no number",
+              machinery([cc, own], cj, ""), True)
+        check("C7a-row: the own row alone is nothing product to stand on: runs them",
+              machinery([own], cj, "3300"), True)
+        check("C7a-row: an empty list still runs them", machinery([], cj, "3300"), True)
+        check("C7a-row: an unread changed list still runs them", machinery(None, cj, "3300"), True)
+        check("C7a-row: an unreadable script table still runs them",
+              machinery([cc, own], Path(td) / "none.json", "3300"), True)
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
+                     ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/7.md"], g(live))
+    check("C7a-row: the prelude passes the event's number: package + row 7 on pull request 7 idles the row-blind lanes",
+          out["machinery_rowblind"], "false")
+    check("C7a-row: ... and runs the lanes that read rows", out["machinery"], "true")
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
+                     ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/8.md"], g(live))
+    check("C7a-row: ... and row 8 on pull request 7 runs them", (out["machinery_rowblind"], out["machinery"]), ("true", "true"))
+    out = outputs(ctx("push"), ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/7.md"],
+                  g(live))[0]
+    check("C7a-row: a push with the row still runs them", (out["machinery_rowblind"], out["machinery"]), ("true", "true"))
     out, why = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
                        ["custom_components/heatpump_optimizer/coordinator.py"], g(live))
-    check("C7a: the prelude's output on a product-only pull request", out["machinery"], "false")
+    check("C7a: the prelude's output on a product-only pull request", (out["machinery"], out["machinery_rowblind"]),
+          ("false", "false"))
     check("C7a: a push always runs them (null control)", outputs(ctx("push"), None, g(live))[0]["machinery"], "true")
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
+    # R10-CI-SELFTEST-SCOPE: the self-test steps are scoped on a pull request only.
+    seen = []
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live),
+                     selftests=lambda c: seen.append(c["head"]) or "none")
+    check("selftests: a pull request takes the scope rule's answer", (out["selftests"], seen), ("none", ["H"]))
+    check("selftests: a push runs every step (null control)",
+          outputs(ctx("push"), None, g(live), selftests=lambda c: "none")[0]["selftests"], "all")
+    import selftest_scope as _st
+    _real, _st.selection = _st.selection, lambda base, head: f"chosen {base} {head}"
+    try:
+        check("selftests: a pull request with no base sha runs every step (fail closed)",
+              selftest_scope(context("pull_request", {"pull_request": pr}, {})), "all")
+        check("selftests: with a base sha the PR's base...head goes to the scope rule",
+              selftest_scope(context("pull_request", {"pull_request": {**pr, "base": {"ref": "main", "sha": "B"}}},
+                                     {})), "chosen B H")
+    finally:
+        _st.selection = _real
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live))
     check("legs from codeql_scope", json.loads(out["legs"]), {"actions": "skip", "javascript-typescript": "skip", "python": "skip"})
 
@@ -578,6 +672,17 @@ def self_test() -> int:
         check("rate limit fails closed", (rc, err.getvalue().split()[:1]), (3, ["RATE-LIMITED"]))
     finally:
         os.unlink(path)
+    # The wiring: each machinery lane gates on exactly the output its
+    # recording earned, so a row-reading lane cannot drift to the row-blind one.
+    check("C7a-row: each machinery lane's job names exactly its own machinery input",
+          lane_gates(), {k: {v} for k, v in LANE_GATE.items()})
+    with tempfile.TemporaryDirectory() as td:
+        wd = Path(td)
+        for wf in {w for w, _ in LANE_GATE}:
+            (wd / wf).write_text((HERE.parents[1] / ".github" / "workflows" / wf).read_text()
+                                 .replace("inputs.machinery ", "inputs.machinery_rowblind "))
+        check("C7a-row: ... and a row-reading lane moved to the row-blind input is seen (null control)",
+              lane_gates(wd)[("tests.yml", "closures")] >= {"machinery_rowblind"}, True)
     print(f"prelude self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
