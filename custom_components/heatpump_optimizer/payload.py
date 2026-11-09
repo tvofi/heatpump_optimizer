@@ -273,10 +273,17 @@ class SavingsMonth(TypedDict, total=False):
     savings_pct: float | None
     # Booked against a retired reference: the two columns stand, no saving does.
     old_basis: bool
+    # Booked reference kWh under ``ledger.METER_FLOOR`` of metered kWh: the
+    # reference collapsed, so the two columns stand and no saving does.
+    below_meter_floor: bool
     estimated: bool
     # Metered over modelled kWh on the row's intervals: the factor the
     # thermostat's cost is scaled by; None where it was left at modelled.
     meter_calibration: float | None
+    # Which kWh it came from: "meter" (the month's), "wood_free" (the
+    # intervals wood did not heat) or "wood_floor" (the month's, only
+    # raising the thermostat); None with the calibration.
+    calibration_basis: str | None
     # The plan's stored-heat change over the row, priced at the row's
     # metered kWh price: already inside ``baseline_sek`` (R10-SAV-COMFORT).
     stored_heat_sek: float

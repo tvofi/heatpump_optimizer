@@ -55,7 +55,7 @@ EVENT_MANUAL_PLAN_RELEASED = f"{DOMAIN}_manual_plan_released"
 EVENT_DATA: dict[str, tuple[str, ...]] = {
     EVENT_MONTHLY_RECEIPT: (
         "entry_id", "month", "total_sek", "saving_sek", "saving_pct", "currency",
-        "saving_old_basis", "saving_includes_wood",
+        "saving_old_basis", "saving_includes_wood", "saving_below_meter_floor",
     ),
     EVENT_COMFORT_AT_RISK: (
         "entry_id", "predicted_min_c", "at", "floor_c",
@@ -102,6 +102,8 @@ def _monthly_receipt(data: Payload) -> Detected:
         # and not its cost.
         "saving_old_basis": bool(saving and saving.get("old_basis")),
         "saving_includes_wood": saving_includes_wood(data),
+        # The reference booked under the meter floor: no saving, and why.
+        "saving_below_meter_floor": bool(saving and saving.get("below_meter_floor")),
     })}
 
 
