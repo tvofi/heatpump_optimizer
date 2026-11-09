@@ -1,0 +1,7 @@
+M1: harness-FAIL-lines=4 selftest=[roster_queue self-test: 62 checks, 3 failed]
+M2: harness-FAIL-lines=4 selftest=[roster_queue self-test: 62 checks, 0 failed]
+M3: harness-FAIL-lines=2 selftest=[roster_queue self-test: 62 checks, 0 failed]
+M4: harness-FAIL-lines=2 selftest=[roster_queue self-test: 62 checks, 0 failed]
+M5: harness-FAIL-lines=0 selftest=[roster_queue self-test: 62 checks, 2 failed]
+M6: harness-FAIL-lines=0 selftest=[roster_queue self-test: 62 checks, 1 failed]
+M7: harness-FAIL-lines=2 selftest=[roster_queue self-test: 62 checks, 0 failed]
