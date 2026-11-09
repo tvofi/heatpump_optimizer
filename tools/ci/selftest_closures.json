@@ -2307,6 +2307,25 @@
    "objects": false,
    "git": []
   },
+  "figure-block": {
+   "run_sha": "7295269b8e4ede5ee5449b86ec2276c56cbd36e12d6e4d0de3373e49703b1cc9",
+   "files": [
+    "tests/throwaway_git.py",
+    "tools/pr/figure_block.py"
+   ],
+   "probes": [
+    ".",
+    "tests",
+    "tools",
+    "tools/pr"
+   ],
+   "dirs": [
+    "tests"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "figure-census": {
    "run_sha": "740c9b07ed8530eb237326010160ac6b0a36a741f8dd09a41ce91c3a78aaacb7",
    "files": [
