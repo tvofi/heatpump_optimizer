@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerOptionsFlow._plumbing_errors GUARD_OFF d40d0771",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "        if merged.get(CONF_DHW_COMBI_TANK_ENABLED) and not params.combi_tank_active:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}
