@@ -1,0 +1,6 @@
+# same window, no fetch, --real-extra semantic-conflict,selftest-scope-ungated,resolution-ungated-step,mutation-survivors,mutation-unpinned,null-control-unpinned,figure-false,citation-false,countermeasure-unsound,cutover-unsound,policy-loosened,predicate-over-fire,over-fire,retry-rule-unsound,skip-abusable,merge-semantics,d-unbounded,nondeterministic-arm,harness-nondeterministic,unpinned-site,control-missing,instrument-broken,rule-lost,docs-code-mismatch,record-contradicts-diff,requirement-unmet,spec-unmet,robustness,ratchet-grown,structure-breach,raise-unjustified,scope-rule-widened,claim-stronger-than-check,closures-under-approximated,swap-void-undone,countermeasure-silenced,pin-wrong
+GUARDRAIL all last 30 PRs (first verdict 11-08T20:59Z..11-09T22:45Z): incidence 5/30; P(X<=5|30,0.28) = 0.1161 -> ok (report-only)
+GUARDRAIL cloud last 20 PRs (first verdict 11-09T01:44Z..11-09T22:45Z): incidence 4/20; P(X<=4|20,0.28) = 0.3019 -> ok (report-only)
+GUARDRAIL local last 20 PRs (first verdict 10-27T20:40Z..10-29T13:44Z): incidence 5/20; P(X<=5|20,0.28) = 0.4952 -> ok (report-only)
+GUARDRAIL model:opus last 20 PRs (first verdict 11-08T13:43Z..11-09T18:04Z): incidence 6/20; P(X<=6|20,0.28) = 0.6831 -> ok (report-only)
+GUARDRAIL model:sonnet last 20 PRs (first verdict 11-08T13:17Z..11-09T22:45Z): incidence 2/20; P(X<=2|20,0.28) = 0.0526 -> ok (report-only)

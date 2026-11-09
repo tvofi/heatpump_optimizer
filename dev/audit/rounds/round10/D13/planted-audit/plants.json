@@ -1,0 +1,160 @@
+[
+ {
+  "sid": "k3",
+  "pr": 3349,
+  "head": "56a214c8bd8f72dfc4839234dc749cc53ec6813c",
+  "kind": "plant",
+  "cls": "defect",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    with _blas_threads.limit(limits=1):\n",
+  "new": "    with _blas_threads.limit(limits=None):\n",
+  "truth": "the BLAS pin becomes a no-op: limit(limits=None) sets no limit, so the solve runs on every BLAS thread the Pi has, while the docstring and body still claim a one-thread pin",
+  "keys": [
+   "limits=None",
+   "limit(",
+   "no limit",
+   "unpinned",
+   "not pinned",
+   "no-op",
+   "thread"
+  ],
+  "verify": [
+   "{py} tests/features.py"
+  ]
+ },
+ {
+  "sid": "q7",
+  "pr": 3371,
+  "head": "ce4cdb2271c3a3883c422e228f55d526d93827e2",
+  "kind": "plant",
+  "cls": "defect",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "        (a.space, a.dhw),\n",
+  "new": "        (a.dhw, a.space),\n",
+  "truth": "the slab estimate's split is passed as (dhw, space): the space draw is apportioned by the hot-water dwell's weight",
+  "keys": [
+   "a.dhw, a.space",
+   "swapped",
+   "reversed",
+   "order",
+   "(dhw, space)"
+  ],
+  "verify": [
+   "{py} tests/features.py"
+  ]
+ },
+ {
+  "sid": "m2",
+  "pr": 3347,
+  "head": "a942da87b28a2ec60cf29717754c6a663c9f4efe",
+  "kind": "plant",
+  "cls": "defect",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "            held |= over\n",
+  "new": "            held = over\n",
+  "truth": "a step held at the pump on one pass is released on the next: held = over forgets earlier held steps, so the spread can pass the pump again and the energy is no longer conserved when two passes hold",
+  "keys": [
+   "held = over",
+   "held |=",
+   "forgets",
+   "released",
+   "accumulat"
+  ],
+  "verify": [
+   "{py} tests/features.py"
+  ]
+ },
+ {
+  "sid": "t5",
+  "pr": 3344,
+  "head": "d96b14c349acc69869183552071adbaf7ece498e",
+  "kind": "plant",
+  "cls": "defect",
+  "file": "tools/audit/seat/roster_edit.py",
+  "old": "    return errs, bool(m) and int(m.group(1)) == len(errs)\n",
+  "new": "    return errs, bool(m) and int(m.group(1)) >= len(errs)\n",
+  "truth": "_lint_errors reads a lint run as fully accounted for when its TOTAL is at least the ERROR lines (>=, was ==): a failure printed in another shape is no longer refused whole, so the base comparison can wave through an error no ERROR line names",
+  "keys": [
+   ">= len(errs)",
+   ">=",
+   "_lint_errors",
+   "accounted",
+   "whole",
+   "TOTAL"
+  ],
+  "verify": [
+   "{py} -I tools/audit/seat/roster_edit.py --self-test"
+  ],
+  "replaced": "first plant (_on_origin `return held()` -> `return True`) was caught by roster_edit --self-test (2 failed), excluded"
+ },
+ {
+  "sid": "w9",
+  "pr": 3337,
+  "head": "805f5759c9f396a3fa7e88b2605cee0164685906",
+  "kind": "plant",
+  "cls": "defect",
+  "file": "tools/audit/seat/roster_queue.py",
+  "old": "lines in one drain log).\n        sh(\"git\", \"-C\", a.edit_checkout, \"worktree\", \"remove\", \"--force\", a.worktree)\n",
+  "new": "lines in one drain log).\n        sh(\"git\", \"-C\", a.edit_checkout, \"worktree\", \"remove\", \"--force\", a.lint_clone)\n",
+  "truth": "after a refused op the code removes --lint-clone (not a worktree, so the call fails silently) instead of --worktree: the refused edit's local commit survives and the next op is refused as 'HEAD is on no origin ref', the defect the PR claims to fix",
+  "keys": [
+   "a.lint_clone",
+   "lint_clone",
+   "wrong path",
+   "wrong worktree",
+   "worktree remove"
+  ],
+  "verify": [
+   "{py} -I tools/audit/seat/roster_queue.py --self-test"
+  ]
+ },
+ {
+  "sid": "b4",
+  "pr": 3342,
+  "head": "04efeb4a8e175392acb0f780252ad177ccaef9ed",
+  "kind": "plant",
+  "cls": "defect",
+  "file": "tools/audit/seat/orchestrator_tick.py",
+  "old": "        finally:\n            if tmp:\n                try:\n                    os.unlink(tmp)\n                except OSError:\n                    pass\n        summary = [",
+  "new": "        summary = [",
+  "truth": "the open-issues temp file from mkstemp is never removed: every tick leaks one file in the temp dir",
+  "keys": [
+   "unlink",
+   "mkstemp",
+   "leak",
+   "temp file",
+   "tempfile",
+   "never removed",
+   "not removed"
+  ],
+  "verify": [
+   "{py} -I tools/audit/seat/orchestrator_tick.py --self-test"
+  ]
+ },
+ {
+  "sid": "h6",
+  "pr": 3371,
+  "head": "ce4cdb2271c3a3883c422e228f55d526d93827e2",
+  "kind": "control",
+  "cls": null,
+  "file": null,
+  "old": null,
+  "new": null,
+  "truth": "unplanted: the merge-verdicted head, re-committed",
+  "keys": [],
+  "verify": []
+ },
+ {
+  "sid": "r1",
+  "pr": 3344,
+  "head": "d96b14c349acc69869183552071adbaf7ece498e",
+  "kind": "control",
+  "cls": null,
+  "file": null,
+  "old": null,
+  "new": null,
+  "truth": "unplanted: the merge-verdicted head, re-committed",
+  "keys": [],
+  "verify": []
+ }
+]

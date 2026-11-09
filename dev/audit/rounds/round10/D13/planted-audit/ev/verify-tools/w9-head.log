@@ -1,0 +1,12 @@
++ H
+~ G carry +second carry
+~ G resume.stage: null -> done
+~ G resume.pr: null -> 7
+no difference
+roster_queue self-test: 62 checks, 0 failed
+
+--- stderr ---
+roster: --lint-clone /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp8d4efm9r/no-such-clone is not a directory; no op attempted, provision it
+roster: `all` needs --mark (a cursor-less run must mark what it applied)
+no group NOPE in the roster at adb255eab8b8a57a06dfabc2349294048a5e0716
+no dev/programme/rosters/wave-r10-groups.json at nosuchref: fatal: invalid object name 'nosuchref'.

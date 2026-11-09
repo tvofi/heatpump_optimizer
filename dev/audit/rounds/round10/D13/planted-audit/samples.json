@@ -1,0 +1,34 @@
+{
+ "k3": {
+  "sample": "02954c6aa76b64f0bbf904f233f954c5d0cbb168",
+  "base": "f365ce757ded1e64a9ec40102495b7c051055f38"
+ },
+ "q7": {
+  "sample": "bb2ab4b3b54485ba07ad4fb4ae5f7faf58a7bbd2",
+  "base": "a5dce6b9ed4588e3be4fb67305aa09b34074b3a4"
+ },
+ "m2": {
+  "sample": "19dff27fe599c934aa0441ae5c5f98035fc30914",
+  "base": "661d26a5d2e655f32391048605db5970d133db1d"
+ },
+ "t5": {
+  "sample": "36dae707a6176f1dd554c8319f8f6851bf2528ec",
+  "base": "51cd5ec8a42abde3c223f22e9f4a0d5f35f8844a"
+ },
+ "w9": {
+  "sample": "3e02ec82ddb548512adbdbed658106cef2cb57ff",
+  "base": "0a8033305d7b03494eb63453e6181a13ffa55c05"
+ },
+ "b4": {
+  "sample": "3447a165f6eaa8945bc5077b518845f3b0db7f4c",
+  "base": "daf8b349fd30cc60786eeca333a426b693aa4c5f"
+ },
+ "h6": {
+  "sample": "31969d9cd47906e73b2e0daa93e445cc61881574",
+  "base": "a5dce6b9ed4588e3be4fb67305aa09b34074b3a4"
+ },
+ "r1": {
+  "sample": "81ef6d1901f92cac95d49f9f886c58f0041ee425",
+  "base": "51cd5ec8a42abde3c223f22e9f4a0d5f35f8844a"
+ }
+}
