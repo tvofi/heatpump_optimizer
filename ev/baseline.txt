@@ -1,0 +1,8 @@
+  ok   with no outdoor forecast the night advice prices pump heat at a flat COP of 3: light at 3.3 SEK/kWh, no advice at 2.7
+
+ALL 25 wood-advisor checks PASSED
+rc=0
+  ok   wood_fuel_from_parts is the publish helper
+
+ALL 31 FEATURES BLOCK PASSED
+rc=0
