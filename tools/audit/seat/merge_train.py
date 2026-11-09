@@ -1468,7 +1468,7 @@ class Train:
                  skip_bad: bool = False, overlap: bool = False,
                  approval_carry: bool = False, main_moved_tries: int = 0,
                  bot_prs: bool = False, pre_flight: bool = False,
-                 free_holders: bool = False, critical=None,
+                 free_holders: bool = False, critical=None, outside=None, hotfix=None,
                  clock: "callable" = time.monotonic, wall: "callable" = time.time, stamp: bool = False) -> None:
         self.repo, self.state, self.mandate, self.role = repo, state, mandate, role
         if base != "main" and not base.startswith("batch/"):
@@ -1502,6 +1502,12 @@ class Train:
         # P289: is an entry on the critical path (item -> bool); the roster's
         # reading by default, a fixture's in the self-test.
         self.critical = critical or self._critical
+        # Is an entry an accepted outside contribution (item -> bool): its group by
+        # branch, else by `resume.pr` for a fork head; the roster's by default.
+        self.outside = outside or self._outside
+        # Is an entry's group a hotfix (`roster_lib.is_hotfix`), the --priority
+        # tier without the flag; the roster's by default.
+        self.hotfix = hotfix or self._hotfix
         self.cp_read: "tuple[dict, set] | None" = None  # (roster, critical ids), read once per run
         self.skipped: list[dict] = []
         self.approved: dict[int, str] = {}  # {pr: head} this run approved (P86: never twice at one head)
@@ -1722,23 +1728,56 @@ class Train:
         self.log(f"BOT #{n} not merged at {h[:8]} ({st[:80]}) refused: {said[:200]}")
         return None
 
+    def _roster_group(self, item: dict) -> "tuple[str | None, set]":
+        """(<item>'s roster group id or None, the critical-path ids): its branch
+        mapped by roster_lib.group_for_branch, else its pull request by
+        roster_lib.group_for_pr (a fork head carries no branch of ours); the
+        roster and the path read once per run at the roster's reader ref. A read
+        that raises is not retried per entry and is the caller's to catch."""
+        import roster_lib
+        if self.cp_read is None:
+            self.cp_read = ({}, set())  # first: a read that raises is not retried per entry
+            ref = roster_lib.reader_ref(str(ROOT), None)
+            self.cp_read = (roster_lib.show_roster(str(ROOT), ref),
+                            roster_lib.critical_path_groups(str(ROOT), ref) or set())
+        roster, crit = self.cp_read
+        gid = roster_lib.group_for_branch(roster, item.get("branch") or "")
+        if not gid and item.get("pr") is not None:
+            gid = roster_lib.group_for_pr(roster, item["pr"])
+        return gid, crit
+
     def _critical(self, item: dict) -> bool:
-        """P289: is <item>'s group on the critical path -- its branch mapped
-        by roster_lib.group_for_branch, the path read by critical_path_groups,
-        both at the roster's reader ref, once per run. Anything unread is
-        nothing critical: today's order, the record PR first."""
+        """P289: is <item>'s group on the critical path (`_roster_group`'s group
+        against its path). Anything unread is nothing critical: today's order,
+        the record PR first."""
         try:
             import roster_lib
-            if self.cp_read is None:
-                self.cp_read = ({}, set())  # first: a read that raises is not retried per entry
-                ref = roster_lib.reader_ref(str(ROOT), None)
-                self.cp_read = (roster_lib.show_roster(str(ROOT), ref),
-                                roster_lib.critical_path_groups(str(ROOT), ref) or set())
-            roster, crit = self.cp_read
-            gid = roster_lib.group_for_branch(roster, item.get("branch") or "")
+            gid, crit = self._roster_group(item)
             return bool(gid) and roster_lib.norm_group(gid) in crit
         except Exception:
             return False
+
+    def _roster_is(self, item: dict, pred: str) -> bool:
+        """Does `roster_lib.<pred>` hold for <item>'s group (`_roster_group`'s).
+        Anything unread is False: today's order."""
+        try:
+            import roster_lib
+            gid, _ = self._roster_group(item)
+            roster = self.cp_read[0]
+            return bool(gid) and any(getattr(roster_lib, pred)(g) for g in roster.get("groups", [])
+                                     if g.get("group") == gid)
+        except Exception:
+            return False
+
+    def _outside(self, item: dict) -> bool:
+        """Is <item>'s group an accepted outside contribution (owner ruling tvofi
+        2026-11-07, triage P420: `roster_lib.is_outside`)."""
+        return self._roster_is(item, "is_outside")
+
+    def _hotfix(self, item: dict) -> bool:
+        """Is <item>'s group a hotfix (`roster_lib.is_hotfix`: a HOTFIX name or
+        kind "bug"), which outranks outside (triage P420) with or without --priority."""
+        return self._roster_is(item, "is_hotfix")
 
     def carry_refusal(self, pr: int, verdict: str, h: str, o: str) -> Stop:
         """The `--carry` refusal, classified when its shape is the known one:
@@ -3655,17 +3694,24 @@ class Train:
 
     def drain_order(self, added: "list[dict]") -> "list[dict]":
         """P312: a spool drains into the next batch in an explicit order: entries
-        added with `--priority` (HOTFIX) or `--front` (P112: the entry the spool
-        puts first) first, in spool order, then critical-path entries
+        added with `--priority` (HOTFIX), a roster hotfix (`self.hotfix`) or
+        `--front` (P112: the entry the spool puts first) first, in spool order,
+        then outside entries (owner ruling tvofi
+        2026-11-07, triage P420: `self.outside`), then critical-path entries
         (`self.critical`, the branch read only when two or more wait), then
-        arrival order. Python's sort is stable, so ties keep the spool's order."""
+        arrival order. An entry maps to its group by branch, else by its pull
+        request. Python's sort is stable, so ties keep the spool's order."""
         if len(added) < 2:
             return added
-        def crit(e: dict) -> bool:
+        def item(e: dict) -> dict:
             b = e.get("branch") or self.out("gh", "pr", "view", str(e["pr"]), "--repo", self.repo,
                                            "--json", "headRefName", "--jq", ".headRefName").strip()
-            return bool(self.critical({"branch": b}))
-        return sorted(added, key=lambda e: (not (e.get("priority") or e.get("front")), not crit(e)))  # mut:drain
+            return {"branch": b, "pr": e["pr"]}
+        items = {id(e): item(e) for e in added}
+        return sorted(added, key=lambda e: (not (e.get("priority") or e.get("front")
+                                                 or self.hotfix(items[id(e)])),  # mut:drain-hotfix
+                                            not self.outside(items[id(e)]),  # mut:drain-outside
+                                            not self.critical(items[id(e)])))  # mut:drain
 
     def queue_take(self, batches: "list[list[dict]]", k: int) -> bool:
         """Between batches: drain the spool into ONE new batch after those still
@@ -4243,6 +4289,7 @@ def _self_test() -> int:
         world.setdefault("contains", [])
         world.setdefault("runs", green)
         opts.setdefault("critical", lambda it: False)  # never the live roster in a fixture
+        opts.setdefault("outside", lambda it: False)
         lines: list[str] = []
         timeline: list[tuple[str, str]] = []  # calls and log lines, in order
         run, calls = fake(world)
@@ -5873,6 +5920,61 @@ def _queue_self_test(check) -> None:
           drain312(mk312(1, 4, prio=(4,))) == [4, 1])
     check("P312: priority, then critical path, then arrival: #4 (priority), #3 (critical), #1, #2",
           drain312(mk312(1, 2, 3, 4, prio=(4,))) == [4, 3, 1, 2])
+    # Owner ruling tvofi 2026-11-07 (triage P420): priority or front, then outside, then critical.
+    def drain420(entries, out=("out",), cp=("cp",), heads=None):
+        heads = heads or {1: "plain", 2: "cp", 3: "out", 4: "plain", 5: "out"}
+        def run(argv, cwd=ROOT, stdin=None):
+            return 0, heads[int(argv[3])] + "\n"
+        with tempfile.TemporaryDirectory() as dd:
+            t = Train("o/r", Path(dd), None, "", (), 1, run=run, log=lambda m: None,
+                      critical=lambda it: it["branch"] in cp, outside=lambda it: it["branch"] in out)
+            return [e["pr"] for e in t.drain_order(entries)]
+    check("P420: an outside entry (#3) drains ahead of a critical-path one (#2) and behind a priority one (#4)",
+          drain420(mk312(1, 2, 3, 4, prio=(4,))) == [4, 3, 2, 1])
+    check("P420: outside entries keep arrival order among themselves, ahead of the critical path",
+          drain420(mk312(1, 2, 3, 5)) == [3, 5, 2, 1])
+    check("P420 null: no outside entry orders byte-identically to P312's priority, critical, arrival",
+          drain420(mk312(1, 2, 3, 4, prio=(4,)), out=()) == [4, 2, 1, 3])
+    # The live read: a fork head (a branch no group claims) maps through resume.pr.
+    ros420 = {"groups": [{"group": "R10-OUT", "source": "outside", "resume": {"pr": 31, "branch": "handoff/r10-out"}},
+                         {"group": "R10-INT", "resume": {"pr": 32}}]}
+    def live420(roster, *items):
+        with tempfile.TemporaryDirectory() as dd:
+            tl = Train("o/r", Path(dd), None, "", (), 1, run=lambda *a, **k: (0, ""), log=lambda m: None)
+            tl.cp_read = (roster, set())
+            return [tl._outside(it) for it in items]
+    forks = ({"branch": "handoff/r10-out", "pr": 99}, {"branch": "someone:main", "pr": 31},
+             {"branch": "someone:main", "pr": 32}, {"branch": "someone:main", "pr": 77}, {"branch": "someone:main"})
+    check("P420 _outside: a branch maps to its group, a fork head through resume.pr; an internal group, "
+          "an unrecorded pull request and no pull request are not outside",
+          live420(ros420, *forks) == [True, True, False, False, False])
+    check("P420 _outside: a roster that cannot be read is internal, never outside",
+          live420(None, {"branch": "handoff/r10-out", "pr": 31}) == [False])
+    check("P420 _outside null: a roster with no source field has no outside entry",
+          live420({"groups": [{k: v for k, v in g.items() if k != "source"} for g in ros420["groups"]]}, *forks)
+          == [False] * 5)
+    # drain_order through the live reader: an entry with no branch of ours (a fork head)
+    # keeps its outside rank through `resume.pr`, so the item must carry the pull request.
+    def drain_live420(roster, entries, heads):
+        def run(argv, cwd=ROOT, stdin=None):
+            return 0, heads[int(argv[3])] + "\n"
+        with tempfile.TemporaryDirectory() as dd:
+            t = Train("o/r", Path(dd), None, "", (), 1, run=run, log=lambda m: None)
+            t.cp_read = (roster, set())
+            return [e["pr"] for e in t.drain_order(entries)]
+    ros_fork = {"groups": [{"group": "R10-F", "source": "outside", "resume": {"pr": 31}}]}
+    ent_fork = [{"pr": 7, "branch": "mine"}, {"pr": 31, "branch": "someone:main"}, {"pr": 8, "branch": "mine"}]
+    check("P420 drain_order: a fork-head outside entry (#31, branch no group claims) drains first through resume.pr",
+          drain_live420(ros_fork, ent_fork, {}) == [31, 7, 8])
+    ros_hf = {"groups": [{"group": "R10-F", "source": "outside", "resume": {"pr": 31}},
+                         {"group": "R10-HOTFIX-I", "kind": "instrument", "resume": {"pr": 8}}]}
+    check("P420 drain_order: a roster hotfix with no --priority flag (#8) drains ahead of an outside entry (#31)",
+          drain_live420(ros_hf, ent_fork, {}) == [8, 31, 7])
+    check("P420 drain_order null: the same group without a HOTFIX name drains behind the outside entry",
+          drain_live420({"groups": [ros_hf["groups"][0], {"group": "R10-I", "kind": "instrument", "resume": {"pr": 8}}]},
+                        ent_fork, {}) == [31, 7, 8])
+    check("P420 drain_order null: the same entries with no outside group keep arrival order",
+          drain_live420({"groups": [{"group": "R10-F", "resume": {"pr": 31}}]}, ent_fork, {}) == [7, 31, 8])
     check("P312 null: no priority and nothing critical keeps arrival order; one entry is untouched",
           drain312(mk312(1, 2, 4), cp=()) == [1, 2, 4] and drain312(mk312(2)) == [2])
     check("RECOMMENDED is the owner's six, each a flag batch accepts",
@@ -7369,6 +7471,7 @@ def _batch_self_test(check) -> None:
             w["base_sha"] = g(w["R"], "rev-parse", base)[1]
             lines: list[str] = []
             opts.setdefault("critical", lambda it: False)  # never the live roster in a fixture
+            opts.setdefault("outside", lambda it: False)
             t = Train("o/r", Path(d) / "state", mandate, "the orchestrator", ignore, 1, run=stub(w),
                       sleep=lambda s: (w.setdefault("slept", []).append(s), w.get("on_sleep", lambda: None)()),
                       log=lambda ln: (lines.append(ln), w.get("on_log", lambda _ln: None)(ln)),
