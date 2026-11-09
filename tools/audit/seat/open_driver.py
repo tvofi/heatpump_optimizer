@@ -29,11 +29,14 @@ a stripped match, `<GROUP>: <topic words>` for an exact one.
 
 ORDER (P337 rule 2, P350): `open-priority.txt` lists topics, one per line (`#`
 comments), `open-cap.txt` the cap (default 2); both are re-read every pass. A
-critical-path topic (`roster_lib.critical_path`) is never behind a non-critical
-one, whatever the file says. Within the critical and the non-critical part a
-listed topic keeps its file order, and an OMITTED topic is slotted after the
-last listed topic of equal or higher default class (critical, R10-HOTFIX-*,
-record topics `triage-*`/`roster-*`, the rest), never after every listed topic.
+hotfix topic (R10-HOTFIX-*, or a group `roster_lib.is_hotfix` counts, which
+includes `kind` "bug"), then an outside one (`roster_lib.is_outside`:
+owner ruling tvofi 2026-11-07, triage P420), then a critical-path one
+(`roster_lib.critical_path`) is never behind a topic of a later class,
+whatever the file says. Within a class a listed topic keeps its file order, and
+an OMITTED topic is slotted after the last listed topic of equal or higher
+default class (hotfix, outside, critical, record topics `triage-*`/`roster-*`,
+the rest), never after every listed topic.
 A board topic unstarted for more than 2 h prints `STARVED <topic> <sha8> <h>h`
 (age = now minus the handoff commit's ct).
 
@@ -96,27 +99,42 @@ names_group, resolve = topic_grammar.names_group, topic_grammar.group_of  # the 
 SKIP_TOPIC_PREFIXES = ("triage-", "roster-")
 
 
-def default_class(topic: str, group: str | None, critical) -> int:
-    if group and roster_lib.norm_group(group) in critical:
-        return 0
+def default_class(topic: str, group: str | None, critical, outside=frozenset(),
+                  hotfix=frozenset()) -> int:
+    """0 hotfix, 1 outside, 2 critical, 3 record, 4 the rest. Owner ruling tvofi
+    2026-11-07 (triage P420): hotfix, then outside, then today's order. A hotfix
+    is a hotfix topic or group name, or a group in `hotfix` (`roster_lib.is_hotfix`,
+    which also counts `kind` "bug")."""
     if topic.startswith("r10-hotfix-") or (group or "").startswith("R10-HOTFIX-"):
+        return 0
+    if group and roster_lib.norm_group(group) in hotfix:
+        return 0
+    if group and roster_lib.norm_group(group) in outside:
         return 1
-    return 2 if topic.startswith(("triage-", "roster-")) else 3
+    if group and roster_lib.norm_group(group) in critical:
+        return 2
+    return 3 if topic.startswith(("triage-", "roster-")) else 4
 
 
-def order(items, priority: list, critical) -> list:
-    """items: [(topic, group, ct)]. Critical first; a listed topic keeps its file order;
-    an omitted one slots after the last listed topic of equal or higher class."""
-    cls = {t: default_class(t, g, critical) for t, g, _ in items}
+#: Classes at or below this are fenced ahead of every other topic, in class
+#: order, whatever the priority file says: hotfix, outside, critical.
+FENCED = 2
+
+
+def order(items, priority: list, critical, outside=frozenset(), hotfix=frozenset()) -> list:
+    """items: [(topic, group, ct)]. Hotfix, outside, critical first, in that order;
+    a listed topic keeps its file order within a class; an omitted one slots after
+    the last listed topic of equal or higher class."""
+    cls = {t: default_class(t, g, critical, outside, hotfix) for t, g, _ in items}
     idx = {t: i for i, t in enumerate(priority)}
 
     def pos(t):
         if t in idx:
             return float(idx[t])
-        above = [idx[u] for u in idx if u in cls and cls[u] <= cls[t] and (cls[u] == 0) == (cls[t] == 0)]
+        above = [idx[u] for u in idx if u in cls and cls[u] <= cls[t] and (cls[u] <= FENCED) == (cls[t] <= FENCED)]
         return max(above, default=-1) + 0.5
 
-    return sorted(items, key=lambda x: (cls[x[0]] != 0, pos(x[0]), cls[x[0]], x[2] or 0, x[0]))
+    return sorted(items, key=lambda x: (min(cls[x[0]], FENCED + 1), pos(x[0]), cls[x[0]], x[2] or 0, x[0]))
 
 
 def stem(topic: str) -> str:
@@ -241,6 +259,8 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
     ros = world.roster()
     groups = set(roster_lib.groups_of(ros))
     critical = {roster_lib.norm_group(g) for g in roster_lib.critical_path(ros)}
+    outside = {roster_lib.norm_group(str(g.get("group") or "")) for g in ros.get("groups", []) if roster_lib.is_outside(g)}
+    hotfix = {roster_lib.norm_group(str(g.get("group") or "")) for g in ros.get("groups", []) if roster_lib.is_hotfix(g)}
     titles = _load(sd / "open-titles.json", {})
     priority = _lines(sd / "open-priority.txt")
     try:
@@ -280,7 +300,7 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
     started = []
     live = len(runs)
     by_topic = {c[0]: c for c in cands}
-    for topic, g, ct in order([(c[0], c[1], c[2]) for c in cands], priority, critical):
+    for topic, g, ct in order([(c[0], c[1], c[2]) for c in cands], priority, critical, outside, hotfix):
         _, _, _, sha, title = by_topic[topic]
         if live >= cap:
             skipped[topic] = "cap"
