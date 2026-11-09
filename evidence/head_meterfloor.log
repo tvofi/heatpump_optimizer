@@ -1,0 +1,126 @@
+meter-floor
+  row: baseline 167.15 actual 166.22 saved 0.93 pct 0.5563864792102902
+  floor: booked over metered 1.044 (144.56 / 138.52 kWh); below_meter_floor False; calibration_basis meter
+  row: stored_heat_sek -6.32 comfort_sek 5.5
+  calibration 1.0; uncalibrated baseline 173.48, pct 4.18
+  plan kWh 138.52 at COP 1.910; booked reference 144.56 at COP 1.820; gap +6.05; mean room 18.48 C against 21.00
+  comfort term +6.18 kWh_e (the reference's warmer house); stored term -5.07 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 133.31 kWh against plan 138.52: -3.90 %
+  valve-flat: published (expected published) pct 0.5563864792102902
+  row: baseline 200.64 actual 149.95 saved 50.69 pct 25.26415470494418
+  floor: booked over metered 1.027 (144.56 / 140.78 kWh); below_meter_floor False; calibration_basis meter
+  row: stored_heat_sek -9.09 comfort_sek 7.11
+  calibration 1.0; uncalibrated baseline 209.73, pct 28.50
+  plan kWh 140.78 at COP 1.846; booked reference 144.56 at COP 1.820; gap +3.79; mean room 18.64 C against 21.00
+  comfort term +5.74 kWh_e (the reference's warmer house); stored term -8.49 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 130.33 kWh against plan 140.78: -8.02 %
+  valve-vary: published (expected published) pct 25.26415470494418
+  row: baseline 164.79 actual 99.2 saved 65.59 pct 39.80217246192124
+  floor: booked over metered 1.749 (144.56 / 82.67 kWh); below_meter_floor False; calibration_basis wood_free
+  row: stored_heat_sek -6.92 comfort_sek 5.48
+  calibration 0.99; uncalibrated baseline 173.48, pct 42.82
+  plan kWh 90.78 at COP 1.823; booked reference 144.56 at COP 1.820; gap +53.78; mean room 18.46 C against 21.00
+  comfort term +6.21 kWh_e (the reference's warmer house); stored term -7.85 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 130.50 kWh against plan 90.78: +30.43 %
+  wood-unforeseen: published (expected published) pct 39.80217246192124
+  row: baseline 166.9 actual 166.12 saved 0.78 pct 0.4673457159976034
+  floor: booked over metered 1.044 (144.56 / 138.44 kWh); below_meter_floor False; calibration_basis wood_free
+  row: stored_heat_sek -6.57 comfort_sek 5.49
+  calibration 1.0; uncalibrated baseline 173.48, pct 4.24
+  plan kWh 138.44 at COP 1.909; booked reference 144.56 at COP 1.820; gap +6.13; mean room 18.49 C against 21.00
+  comfort term +6.18 kWh_e (the reference's warmer house); stored term -4.73 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 133.66 kWh against plan 138.44: -3.57 %
+  wood-cold: published (expected published) pct 0.4673457159976034
+  row: baseline 182.8 actual 12.82 saved 169.98 pct 92.98687089715536
+  floor: booked over metered 13.532 (144.56 / 10.68 kWh); below_meter_floor False; calibration_basis wood_floor
+  row: stored_heat_sek 9.32 comfort_sek 2.18
+  calibration 1.0; uncalibrated baseline 173.48, pct 92.61
+  plan kWh 10.68 at COP 1.919; booked reference 144.56 at COP 1.820; gap +133.88; mean room 19.70 C against 21.00
+  comfort term +3.25 kWh_e (the reference's warmer house); stored term +5.81 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 147.12 kWh against plan 10.68: +92.74 %
+  wood-full: published (expected published) pct 92.98687089715536
+  row: baseline 170.24 actual 106.62 saved 63.62 pct 37.37077067669173
+  floor: booked over metered 1.627 (144.56 / 88.85 kWh); below_meter_floor False; calibration_basis wood_free
+  row: stored_heat_sek -3.23 comfort_sek 5.65
+  calibration 1.0; uncalibrated baseline 173.48, pct 38.54
+  plan kWh 88.85 at COP 1.828; booked reference 144.56 at COP 1.820; gap +55.71; mean room 18.42 C against 21.00
+  comfort term +6.32 kWh_e (the reference's warmer house); stored term -9.23 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 129.02 kWh against plan 88.85: +31.13 %
+  wood-fire: published (expected published) pct 37.37077067669173
+  row: baseline 167.82 actual 160.99 saved 6.83 pct 4.0698367298295794
+  floor: booked over metered 1.078 (144.56 / 134.16 kWh); below_meter_floor False; calibration_basis wood_free
+  row: stored_heat_sek -5.66 comfort_sek 5.6
+  calibration 1.0; uncalibrated baseline 173.48, pct 7.20
+  plan kWh 134.16 at COP 1.915; booked reference 144.56 at COP 1.820; gap +10.41; mean room 18.44 C against 21.00
+  comfort term +6.28 kWh_e (the reference's warmer house); stored term -8.81 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 129.48 kWh against plan 134.16: -3.61 %
+  wood-stale: published (expected published) pct 4.0698367298295794
+  row: baseline 166.89 actual 134.62 saved 32.27 pct 19.336089639882562
+  floor: booked over metered 1.289 (144.56 / 112.18 kWh); below_meter_floor False; calibration_basis wood_free
+  row: stored_heat_sek -6.58 comfort_sek 4.93
+  calibration 1.0; uncalibrated baseline 173.48, pct 22.40
+  plan kWh 112.18 at COP 1.945; booked reference 144.56 at COP 1.820; gap +32.38; mean room 18.67 C against 21.00
+  comfort term +5.69 kWh_e (the reference's warmer house); stored term -30.38 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 108.49 kWh against plan 112.18: -3.40 %
+  wood-coast: published (expected published) pct 19.336089639882562
+  wood-plant no fire m 0.8: published (expected published) pct 31.143962075848304
+  wood-plant no fire m 1.0: published (expected published) pct 31.147704590818364
+  wood-plant no fire m 1.2: published (expected published) pct 31.146041250831676
+  wood-plant fire 12 kW 17:00 m 0.8: published (expected published) pct 53.224330425233354
+  wood-plant fire 12 kW 17:00 m 1.0: published (expected published) pct 53.22368099956074
+  wood-plant fire 12 kW 17:00 m 1.2: published (expected published) pct 53.22324805791679
+  row: baseline 167.15 actual 166.22 saved 0.93 pct 0.5563864792102902
+  floor: booked over metered 1.044 (144.56 / 138.52 kWh); below_meter_floor False; calibration_basis meter
+  row: stored_heat_sek -6.32 comfort_sek 5.5
+  calibration 1.0; uncalibrated baseline 173.48, pct 4.18
+  plan kWh 138.52 at COP 1.910; booked reference 144.56 at COP 1.820; gap +6.05; mean room 18.48 C against 21.00
+  comfort term +6.18 kWh_e (the reference's warmer house); stored term -5.07 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 133.31 kWh against plan 138.52: -3.90 %
+  row: baseline -6.32 actual 166.22 saved None pct None
+  floor: booked over metered 0.000 (0.00 / 138.52 kWh); below_meter_floor True; calibration_basis meter
+  row: stored_heat_sek -6.32 comfort_sek 5.5
+  calibration 1.0; uncalibrated baseline 0.00, pct nan
+  plan kWh 138.52 at COP 1.910; booked reference 144.56 at COP 1.820; gap +6.05; mean room 18.48 C against 21.00
+  comfort term +6.18 kWh_e (the reference's warmer house); stored term -5.07 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 133.31 kWh against plan 138.52: -3.90 %
+  mutant: booked reference zeroed: withheld (expected withheld) pct None
+  row: baseline -6.32 actual 166.22 saved -172.54 pct None
+  floor: booked over metered 0.000 (0.00 / 138.52 kWh); below_meter_floor False; calibration_basis meter
+  row: stored_heat_sek -6.32 comfort_sek 5.5
+  calibration 1.0; uncalibrated baseline 0.00, pct nan
+  plan kWh 138.52 at COP 1.910; booked reference 144.56 at COP 1.820; gap +6.05; mean room 18.48 C against 21.00
+  comfort term +6.18 kWh_e (the reference's warmer house); stored term -5.07 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 133.31 kWh against plan 138.52: -3.90 %
+  mutant: booked reference zeroed, check dropped (METER_FLOOR 0): published (expected published) pct None
+  row: baseline -0.02 actual 0.6 saved -0.62 pct None
+  floor: booked over metered 0.000 (0.00 / 0.50 kWh); below_meter_floor False; calibration_basis meter
+  row: stored_heat_sek -0.02 comfort_sek 0.02
+  calibration 0.004; uncalibrated baseline 0.00, pct nan
+  plan kWh 138.52 at COP 1.910; booked reference 144.56 at COP 1.820; gap +6.05; mean room 18.48 C against 21.00
+  comfort term +6.18 kWh_e (the reference's warmer house); stored term -5.07 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 133.31 kWh against plan 138.52: -3.90 %
+  booked reference zeroed, metered under MIN_CALIBRATION_KWH: published (expected published) pct None
+  row: baseline 250.73 actual 249.33 saved 1.4 pct 0.5583695608822239
+  floor: booked over metered 0.696 (144.56 / 207.77 kWh); below_meter_floor False; calibration_basis meter
+  row: stored_heat_sek -9.48 comfort_sek 8.25
+  calibration 1.5; uncalibrated baseline 173.48, pct -43.73
+  plan kWh 138.52 at COP 1.910; booked reference 144.56 at COP 1.820; gap +6.05; mean room 18.48 C against 21.00
+  comfort term +6.18 kWh_e (the reference's warmer house); stored term -5.07 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 133.31 kWh against plan 138.52: -3.90 %
+RESULT meter_floor_immersion_share0.5: below_meter_floor False pct 0.5583695608822239
+  row: baseline 334.31 actual 332.44 saved 1.87 pct 0.5593610720588675
+  floor: booked over metered 0.522 (144.56 / 277.03 kWh); below_meter_floor False; calibration_basis meter
+  row: stored_heat_sek -12.64 comfort_sek 11.0
+  calibration 2.0; uncalibrated baseline 173.48, pct -91.64
+  plan kWh 138.52 at COP 1.910; booked reference 144.56 at COP 1.820; gap +6.05; mean room 18.48 C against 21.00
+  comfort term +6.18 kWh_e (the reference's warmer house); stored term -5.07 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 133.31 kWh against plan 138.52: -3.90 %
+RESULT meter_floor_immersion_share1.0: below_meter_floor False pct 0.5593610720588675
+  row: baseline 417.89 actual 415.55 saved None pct None
+  floor: booked over metered 0.417 (144.56 / 346.29 kWh); below_meter_floor True; calibration_basis meter
+  row: stored_heat_sek -15.8 comfort_sek 13.75
+  calibration 2.5; uncalibrated baseline 173.48, pct -139.54
+  plan kWh 138.52 at COP 1.910; booked reference 144.56 at COP 1.820; gap +6.05; mean room 18.48 C against 21.00
+  comfort term +6.18 kWh_e (the reference's warmer house); stored term -5.07 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 133.31 kWh against plan 138.52: -3.90 %
+RESULT meter_floor_immersion_share1.5: below_meter_floor True pct None

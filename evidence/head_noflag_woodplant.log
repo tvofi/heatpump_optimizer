@@ -1,0 +1,39 @@
+wood-plant
+  no fire (winter_typical): plan 133.79 kWh, drawn 133.79 kWh
+    m 0.8: pct 44.91516966067864 calibration 1.0 (wood_floor) error +25.00 %; flat pct 26.071108455333135
+    m 1.0: pct 31.147704590818364 calibration 1.0 (wood_floor) error +0.00 %; flat pct 7.588885569166417
+    m 1.2: pct 31.146041250831676 calibration 1.2 (wood_floor) error +0.00 %; flat pct 7.593865152873221
+  fire  4.0 kW from 06:00 (32.0 kWh_th): plan 123.44 drawn 122.55; m 0.8: calibration 1.0 (wood_floor) pct 52.4863264589292 (no fire 44.91516966067864); booking error from the heat +0.00 %
+  fire  4.0 kW from 06:00 (32.0 kWh_th): plan 123.44 drawn 122.55; m 1.0: calibration 1.0 (wood_floor) pct 40.60916252697075 (no fire 31.147704590818364); booking error from the heat +0.00 %
+  fire  4.0 kW from 06:00 (32.0 kWh_th): plan 123.44 drawn 122.55; m 1.2: calibration 1.191 (wood_floor) pct 40.17353213714093 (no fire 31.146041250831676); booking error from the heat -0.75 %
+  fire  4.0 kW from 17:00 (32.0 kWh_th): plan 123.77 drawn 122.82; m 0.8: calibration 1.0 (wood_floor) pct 52.56043017237047 (no fire 44.91516966067864); booking error from the heat +0.00 %
+  fire  4.0 kW from 17:00 (32.0 kWh_th): plan 123.77 drawn 122.82; m 1.0: calibration 1.0 (wood_floor) pct 40.700537715463085 (no fire 31.147704590818364); booking error from the heat +0.00 %
+  fire  4.0 kW from 17:00 (32.0 kWh_th): plan 123.77 drawn 122.82; m 1.2: calibration 1.191 (wood_floor) pct 40.243079000675216 (no fire 31.146041250831676); booking error from the heat -0.75 %
+  fire  4.0 kW from 22:00 (32.0 kWh_th): plan 128.08 drawn 125.41; m 0.8: calibration 1.0 (wood_floor) pct 50.33161750148486 (no fire 44.91516966067864); booking error from the heat +0.00 %
+  fire  4.0 kW from 22:00 (32.0 kWh_th): plan 128.08 drawn 125.41; m 1.0: calibration 1.0 (wood_floor) pct 37.91328449811918 (no fire 31.147704590818364); booking error from the heat +0.00 %
+  fire  4.0 kW from 22:00 (32.0 kWh_th): plan 128.08 drawn 125.41; m 1.2: calibration 1.175 (wood_floor) pct 36.58957833101647 (no fire 31.146041250831676); booking error from the heat -2.08 %
+  fire  8.0 kW from 06:00 (64.0 kWh_th): plan 110.05 drawn 107.97; m 0.8: calibration 1.0 (wood_floor) pct 59.09159575003776 (no fire 44.91516966067864); booking error from the heat +0.00 %
+  fire  8.0 kW from 06:00 (64.0 kWh_th): plan 110.05 drawn 107.97; m 1.0: calibration 1.0 (wood_floor) pct 48.86449468754721 (no fire 31.147704590818364); booking error from the heat +0.00 %
+  fire  8.0 kW from 06:00 (64.0 kWh_th): plan 110.05 drawn 107.97; m 1.2: calibration 1.177 (wood_floor) pct 47.87852865697177 (no fire 31.146041250831676); booking error from the heat -1.92 %
+  fire  8.0 kW from 17:00 (64.0 kWh_th): plan 112.82 drawn 112.07; m 0.8: calibration 1.0 (wood_floor) pct 58.26582658265826 (no fire 44.91516966067864); booking error from the heat +0.00 %
+  fire  8.0 kW from 17:00 (64.0 kWh_th): plan 112.82 drawn 112.07; m 1.0: calibration 1.0 (wood_floor) pct 47.83478347834784 (no fire 31.147704590818364); booking error from the heat +0.00 %
+  fire  8.0 kW from 17:00 (64.0 kWh_th): plan 112.82 drawn 112.07; m 1.2: calibration 1.192 (wood_floor) pct 47.48301031965769 (no fire 31.146041250831676); booking error from the heat -0.67 %
+  fire  8.0 kW from 22:00 (64.0 kWh_th): plan 118.13 drawn 112.77; m 0.8: calibration 1.0 (wood_floor) pct 55.779681762545906 (no fire 44.91516966067864); booking error from the heat +0.00 %
+  fire  8.0 kW from 22:00 (64.0 kWh_th): plan 118.13 drawn 112.77; m 1.0: calibration 1.0 (wood_floor) pct 44.72460220318237 (no fire 31.147704590818364); booking error from the heat +0.00 %
+  fire  8.0 kW from 22:00 (64.0 kWh_th): plan 118.13 drawn 112.77; m 1.2: calibration 1.146 (wood_floor) pct 42.10188905034619 (no fire 31.146041250831676); booking error from the heat -4.50 %
+  fire 12.0 kW from 06:00 (96.0 kWh_th): plan 93.29 drawn 90.28; m 0.8: calibration 1.0 (wood_floor) pct 68.1078431372549 (no fire 44.91516966067864); booking error from the heat +0.00 %
+  fire 12.0 kW from 06:00 (96.0 kWh_th): plan 93.29 drawn 90.28; m 1.0: calibration 1.0 (wood_floor) pct 60.13235294117647 (no fire 31.147704590818364); booking error from the heat +0.00 %
+  fire 12.0 kW from 06:00 (96.0 kWh_th): plan 93.29 drawn 90.28; m 1.2: calibration 1.161 (wood_floor) pct 58.80888063481344 (no fire 31.146041250831676); booking error from the heat -3.25 %
+  fire 12.0 kW from 17:00 (96.0 kWh_th): plan 105.27 drawn 105.24; m 0.8: calibration 1.0 (wood_floor) pct 62.579920933183665 (no fire 44.91516966067864); booking error from the heat +0.00 %
+  fire 12.0 kW from 17:00 (96.0 kWh_th): plan 105.27 drawn 105.24; m 1.0: calibration 1.0 (wood_floor) pct 53.22368099956074 (no fire 31.147704590818364); booking error from the heat +0.00 %
+  fire 12.0 kW from 17:00 (96.0 kWh_th): plan 105.27 drawn 105.24; m 1.2: calibration 1.2 (wood_floor) pct 53.21373362623058 (no fire 31.146041250831676); booking error from the heat +0.00 %
+  fire 12.0 kW from 22:00 (96.0 kWh_th): plan 101.90 drawn 98.13; m 0.8: calibration 1.0 (wood_floor) pct 61.12028760202099 (no fire 44.91516966067864); booking error from the heat +0.00 %
+  fire 12.0 kW from 22:00 (96.0 kWh_th): plan 101.90 drawn 98.13; m 1.0: calibration 1.0 (wood_floor) pct 51.39914496696463 (no fire 31.147704590818364); booking error from the heat +0.00 %
+  fire 12.0 kW from 22:00 (96.0 kWh_th): plan 101.90 drawn 98.13; m 1.2: calibration 1.156 (wood_floor) pct 49.531256568714 (no fire 31.146041250831676); booking error from the heat -3.67 %
+RESULT wood_plant_error_m0.8: mean +0.00 % min +0.00 max +0.00 sd 0.00 over 9 fires
+RESULT wood_plant_error_m1.0: mean +0.00 % min +0.00 max +0.00 sd 0.00 over 9 fires
+RESULT wood_plant_error_m1.2: mean -1.95 % min -4.50 max +0.00 sd 1.47 over 9 fires
+  perturbation (pump blind to the fire): m 0.8 error +0.00 %, m 1.0 error +0.00 %, m 1.2 error +0.00 %
+wood-plant: measured, not asserted (the saving includes wood's heat; firewood not counted)
+arms run 1, defect 0: -
+rc=0
