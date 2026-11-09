@@ -1880,6 +1880,7 @@
    "tools/audit/seat/roster_sync.py",
    "tools/audit/seat/state_docs.py",
    "tools/audit/seat/tmp_paths.py",
+   "tools/audit/seat/topic_grammar.py",
    "tools/ci/alert_list.py",
    "tools/ci/codescan_wait.py",
    "tools/ci/gate.py",

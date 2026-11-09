@@ -133,6 +133,20 @@ SETUP_CHECK = "bash tools/audit/seat/cloud-setup.sh --check"
 WAIT_LINE = "Never wait in one tool call longer than 240 s; poll again instead."
 
 
+#: The owner's frugal-routing directive (tvofi 2026-11-06, triage s6-batch127 P398),
+#: stated to every role in one line, verbatim.
+FRUGAL_LINE = ("Discovery reads (search, list, read across files) go through Agent subagents, as the "
+               "frugal routing guard requires; at most 5 inline search operations per prompt; never "
+               "set FRUGAL_ALLOW_INLINE.")
+
+#: The policy pack (tools/policy/role_pack.py) a role reads once in place of its
+#: contract and INSTRUMENTS.md. The payload schema has no per-seat environment, so
+#: the seat renders it itself, with the same renderer the SessionStart hook runs;
+#: the probe has no contract and so no pack.
+PACK_ROLE = {"reviewer": "fix-review", "fixer": "fixer", "designer": "designer",
+             "design-reviewer": "design-review"}
+
+
 class Refusal(Exception):
     pass
 
@@ -193,6 +207,10 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
              f"`{SETUP_CHECK}`, and on REFUSE stop: report its line as your result and start no work. "
              "Run anything heavy in "
              "the background with Monitor and no timeout. " + WAIT_LINE)
+    if role in PACK_ROLE:
+        setup += (f" Read your policy once, verbatim: `python3 -I tools/policy/role_pack.py render "
+                  f"{PACK_ROLE[role]} --out $HOME/role-pack.md`, then that file in place of your role "
+                  "contract and INSTRUMENTS.md; on REFUSE read those files as before.")
     if role == "reviewer":
         body = (
             "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
@@ -204,8 +222,9 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "written unless the signal is `host-path`; re-read the live checks either way. "
             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
             "every figure in the body at this head. Check that it merges with origin/main "
-            f"(`git merge-tree --write-tree origin/main {head}`): block on main only when that reports a "
-            "conflict, never on a head that is behind main but merges cleanly (the train recarries it). Wait for CI on this head only by re-running "
+            "(`git merge-tree --write-tree origin/main <head>`); block on main only when that reports a "
+            "conflict, never on a head that is behind main but merges cleanly (the train re-proves it on "
+            "the current main). Wait for CI on this head only by re-running "
             f"`python3 tools/audit/seat/merge_train.py classify {head} --pr {pr}` in the background, at least "
             "60 s between runs, until it exits 0 (GREEN), 1 (RED), 2 (unreadable: say so in the verdict) "
             "or 4 (APPROVAL-OWED: the only red is the budget raise's approval, which follows your verdict; "
@@ -245,11 +264,11 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"Output: push each verified step, fast-forward only, to refs/heads/{WIP_NS}/{topic} before "
             f"any wait on a background run, so an idle container loses nothing; never step-push to "
             f"handoff/{topic}, whose move updates the pull request. Hand off at your first clean "
-            "`tools/pr/prepr.sh` head (the body check included): do not merge a moved origin/main or rerun "
-            "prepr because main moved; the merge train recarries and re-proves your head on the current main. "
-            "Merge origin/main only when `git merge-tree --write-tree origin/main HEAD` reports a conflict, "
-            "then rerun `tools/pr/prepr.sh`. If you must stop on a question, first push `BLOCKED.md` with a "
-            f"`Question:` line to refs/heads/{WIP_NS}/{topic}, even with no code. Then push the code to "
+            "`tools/pr/prepr.sh` head (the body check included), fixing what it refuses; a main that has moved "
+            "since that run needs no re-merge and no second run, because the train re-proves the head on the "
+            "current main. Merge origin/main and rerun prepr.sh only when "
+            "`git merge-tree --write-tree origin/main HEAD` reports a conflict. If you must stop on a question, "
+            f"first push `BLOCKED.md` with a `Question:` line to refs/heads/{WIP_NS}/{topic}, even with no code. Then push the code to "
             f"refs/heads/handoff/{topic}, then write the PR body and run "
             f"`bash tools/audit/seat/body_push.sh {topic} <body.md>`, which pushes "
             f"refs/heads/handoff-body/{topic}; that second push is the return signal. Once it succeeds, "
@@ -287,7 +306,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
     refs = f"your return refs and refs/heads/{WIP_NS}/{topic} and refs/heads/{WIP_NS}/{topic}-body" if role == "fixer" else "your return refs"
     tail = (f"Never write to any branch except {refs}. Never work around a hook or a refusal; "
             "report it in your result instead.")
-    text = "\n".join([first, setup, body, tail]) + "\n"
+    text = "\n".join([first, setup, body, tail, FRUGAL_LINE]) + "\n"
     if brief:
         text += "\nBrief (snapshotted when this payload was rendered):\n" + brief.rstrip("\n") + "\n"
     return text
@@ -1031,6 +1050,12 @@ def self_test() -> int:
           all(ref_privacy.attribution(t) == [] for t in prompts.values()))
     check("every role's prompt caps one tool call's wait under the 5-minute prompt-cache TTL (R10-FLY-CACHE-PROMPTS)",
           all(WAIT_LINE in t and "240 s" in WAIT_LINE for t in prompts.values()))
+    check("every role's prompt carries the frugal-routing line once, verbatim (P398)",
+          all(sum(line == FRUGAL_LINE for line in t.splitlines()) == 1 for t in prompts.values())
+          and FRUGAL_LINE.startswith("Discovery reads (search, list, read across files) go through Agent subagents"))
+    check("every role with a contract is told to render its pack, the probe is not",
+          all(f"role_pack.py render {PACK_ROLE[r]} " in prompts[r] for r in PACK_ROLE)
+          and "role_pack.py" not in prompts["probe"])
     check("the fixer reads its role file, not CLAUDE.md, which the harness already loaded",
           "dev/governance/roles/fixer.md" in prompts["fixer"] and "CLAUDE.md" not in prompts["fixer"])
     check("every role's setup line runs the toolchain check and stops on its REFUSE (#2709)",
@@ -1052,17 +1077,20 @@ def self_test() -> int:
           and f"except your return refs and {wip} and {wip}-body." in fx)
     check("the fixer deletes the step ref only after body_push.sh succeeds",
           0 <= fx.find("body_push.sh t-1") < fx.find(f"`git push origin :{wip}`"))
-    check("the fixer hands off at its first clean prepr.sh head and merges main only on a merge-tree conflict",
-          0 <= fx.find("Hand off at your first clean `tools/pr/prepr.sh` head")
-          < fx.find("Merge origin/main only when `git merge-tree --write-tree origin/main HEAD` reports a conflict")
+    check("the fixer hands off at its first clean prepr.sh head and re-merges main only on a merge-tree conflict",
+          "Hand off at your first clean `tools/pr/prepr.sh` head" in fx
+          and "needs no re-merge and no second run" in fx
+          and 0 <= fx.find("Merge origin/main and rerun prepr.sh only when `git merge-tree --write-tree origin/main HEAD` reports a conflict")
           < fx.find("push the code to refs/heads/handoff/t-1")
-          and "when origin/main has moved since your last" not in fx.replace("\n", " ")
           and "`git merge origin/main`, rerun" not in fx)
+    check("the reviewer blocks on main only for a merge-tree conflict, never a clean head behind main",
+          "`git merge-tree --write-tree origin/main <head>`); block on main only when that reports a conflict" in rv
+          and "never on a head that is behind main but merges cleanly" in rv)
     check("the fixer is told to push BLOCKED.md with a Question line before stopping on a question",
           f"first push `BLOCKED.md` with a `Question:` line to refs/heads/{WIP_NS}/t-1" in fx
           and all("BLOCKED.md" not in t for r, t in prompts.items() if r != "fixer"))
-    check("the reviewer blocks on main only on a merge-tree conflict, never on a head merely behind main",
-          "block on main only when that reports a conflict, never on a head that is behind main" in rv)
+    check("no other role is told the merge-tree block rule (null control)",
+          all("behind main but merges cleanly" not in t for r, t in prompts.items() if r != "reviewer"))
     check("no other role is licensed a step ref (null control)",
           all(WIP_NS not in t for r, t in prompts.items() if r != "fixer"))
     ident = f"`git config user.name {SEAT_NAME} && git config user.email {SEAT_EMAIL}`"
