@@ -37,7 +37,7 @@
   patch; the brief is snapshotted at `run`, so it is inlined at render time
   (into the event, or into PROMPT.md at the pinned commit), an edit afterwards
   reaches no running seat, and overlapping runs are fine;
-  the toolchain (`PATH` with `/opt/hpo/venv-ci/bin`, `BASH_ENV`,
+  the toolchain (`PATH` with `/opt/hpo/venv-ci/bin`,
   `HPO_TYPING_PYTHON`, `OPENBLAS_CORETYPE`) comes from the environment's
   variables, not from a profile the seat sources, so the prompt says only
   that it is on `PATH`, and the setup line runs `cloud-setup.sh --check`
@@ -66,10 +66,13 @@
   refusal against a rendering that passes, offline.
   Two measured traps when driving the runner: an update and a run fired in
   parallel start the run on the PREVIOUS config, so a launch is update, wait
-  for it, then run, sequentially; and, until the pasted setup script writes
-  `cloud-setup.sh`'s idempotent profile, the container's `BASH_ENV` puts the venv
-  python ahead of the test stubs, so a cloud seat runs `tests/entities.py` (and
-  anything else resolving `homeassistant`) with `env -u BASH_ENV`.
+  for it, then run, sequentially; and a `BASH_ENV` in the environment's
+  variables, which no seat's Bash call reads, runs the profile ahead of every
+  nested bash: a profile that overwrote a caller's variable reached each
+  test's child (a stub's `PATH`, #2835; `RUNNER_TEMP`, three
+  `tests/entities.py` checks, `dev/audit/rca/R10-RCA-CLOUD-ENTITIES-ENV.md`).
+  Until a session's setup script writes the profile that sets nothing a caller
+  set, a cloud seat runs `tests/entities.py` with `env -u BASH_ENV`.
 
 Design roles (decision 0014): `--role designer` and `--role design-reviewer`
 take the roster group id as the topic (`dispatch/designer-<group>`,
