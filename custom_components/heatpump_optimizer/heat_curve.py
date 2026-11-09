@@ -523,7 +523,7 @@ async def _write_persistent_target(
     if not await off_restore.async_arm(hass, entry, config, CONSUMER):
         return False
     _record_write(state, target, now, reading)
-    state["misses"] = 1 if retry else 0
+    state["misses"] = int(retry)
     await off_restore.async_save_state(hass, entry)
     return await _send(hass, entry, entity_id, target)
 

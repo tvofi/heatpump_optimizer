@@ -42132,7 +42132,9 @@ _ghcp_age(_gpw, _GHCP_DWELL_S)
 _ghc_pub(_gpw, 2.0)
 _gpw_retry = (list(_ghc_writes(_gpw)), _asyncio.run(_ghc_restore.async_armed_entry(_gpw.hass, _gpw.entry, "heat_curve")))
 _ghcp_age(_gpw, _GHCP_DWELL_S)
-_gpw_warn = _ghc_logged(lambda: _ghc_pub(_gpw, 2.0))
+_gpw_ret = []
+_gpw_warn = _ghc_logged(lambda: _gpw_ret.append(
+    _asyncio.run(_ghc.write_persistent(_gpw.hass, _gpw.entry, _gpw.effective_config, 2))))
 R.check(
     "a reading still at the write before is the write missing, never the user's edit: rewritten "
     "once from the kept baseline 22",
@@ -42141,8 +42143,25 @@ R.check(
 )
 R.check(
     "and a second miss of the same target latches a warning and sends nothing (W3)",
-    _ghc_writes(_gpw) == [24] and any("does not hold" in m for m in _gpw_warn),
-    "writes=%r warn=%r" % (_ghc_writes(_gpw), _gpw_warn),
+    _ghc_writes(_gpw) == [24] and any("does not hold" in m for m in _gpw_warn) and _gpw_ret == [False],
+    "writes=%r warn=%r ret=%r" % (_ghc_writes(_gpw), _gpw_warn, _gpw_ret),
+)
+_gmr = _ghcp_coord(entry_id="ghcp_miss_reset")
+_gmr_real = _gmr.hass.services
+_gmr.hass.services = _GhcRaising()
+_ghc_pub(_gmr, 2.0)
+_gmr.hass.services = _gmr_real
+_ghcp_age(_gmr, _GHCP_DWELL_S)
+_ghc_pub(_gmr, 2.0)  # the miss, rewritten once
+_ghcp_reads(_gmr, "24")
+_ghc_pub(_gmr, 2.0)  # and it held
+_ghcp_reads(_gmr, "22")
+_ghcp_age(_gmr, _GHCP_DWELL_S)
+_ghc_pub(_gmr, 2.0)
+R.check(
+    "a rewrite that held clears the miss: a later revert is rewritten once more, not latched (W1, W3)",
+    _ghc_writes(_gmr) == [24, 24],
+    repr(_ghc_writes(_gmr)),
 )
 
 # P6: the user's edit moves the baseline.
@@ -42307,12 +42326,25 @@ _gwr = _ghcp_coord(entry_id="ghcp_returns")
 _gwr_cfg = _gwr.effective_config
 _gwr_ret = [_asyncio.run(_ghc.write_persistent(_gwr.hass, _gwr.entry, _gwr_cfg, 2))]
 _ghcp_reads(_gwr, "24")
+_ghcp_age(_gwr, _GHCP_DWELL_S)
+_gwr_ret.append(_asyncio.run(_ghc.write_persistent(_gwr.hass, _gwr.entry, _gwr_cfg, 2)))
+_ghcp_state(_gwr)["written_at"] = _ghc_dt.utcnow().isoformat()
 _gwr_ret.append(_asyncio.run(_ghc.write_persistent(_gwr.hass, _gwr.entry, _gwr_cfg, 3)))
 _ghcp_reads(_gwr, "unavailable")
 _gwr_ret.append(_asyncio.run(_ghc.write_persistent(_gwr.hass, _gwr.entry, _gwr_cfg, 3)))
+_gwb = _ghcp_coord(entry_id="ghcp_returns_budget", heat_curve_persistent_writes_per_day=1)
+_gwr_ret.append(_asyncio.run(_ghc.write_persistent(_gwb.hass, _gwb.entry, _gwb.effective_config, 2)))
+_gwa = _ghcp_coord(entry_id="ghcp_returns_arm")
+_ghcp_real_factory = _ghc_restore._CONSUMERS[_ghc.CONSUMER]
+_ghc_restore.register_consumer(_ghc.CONSUMER, lambda cfg: None)
+try:
+    _gwr_ret.append(_asyncio.run(_ghc.write_persistent(_gwa.hass, _gwa.entry, _gwa.effective_config, 2)))
+finally:
+    _ghc_restore.register_consumer(_ghc.CONSUMER, _ghcp_real_factory)
 R.check(
-    "the persistent arm answers True only for a write sent: held by the dwell and unreadable are False",
-    _gwr_ret == [True, False, False],
+    "the persistent arm answers True only for a write sent: held (W1), held by the dwell, unreadable, "
+    "over the budget and refused by the hook are False, and the refused arm writes nothing",
+    _gwr_ret == [True, False, False, False, False, False] and _ghc_writes(_gwb) == [] and _ghc_writes(_gwa) == [],
     repr(_gwr_ret),
 )
 
