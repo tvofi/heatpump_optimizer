@@ -40267,6 +40267,26 @@ R.check(
         for i in getattr(_lg_edited_leg.hass, "issues", [])
     ),
 )
+# R10-COMBI-TANK (#3225): the card reads the cycle's gate, not the raw flag.
+# A combi store holding no potable water runs no cycle, so the same edited
+# pair raises no card there, with hot water on and the flag still set.
+_lg_combi_none = _lg_coord(
+    dhw_setpoint=55.0, dhw_legionella_temperature=65.0, dhw_enabled=True,
+    mixing_valve_mode="manual", buffer_tank_volume=504.0,
+    dhw_combi_tank_enabled=True, combi_potable_volume_l=0.0,
+)
+_lg_combi_none._legionella.check_ceiling()
+R.check(
+    "…but a combi store with no potable water runs no cycle and gets no card",
+    _lg_combi_none._thermal_params.dhw_legionella_enabled
+    and _lg_combi_none._thermal_params.dhw_enabled
+    and not _lg_combi_none._thermal_params.legionella_cycle_active
+    and not any(
+        i[1] == "dhw_legionella_above_setpoint"
+        for i in getattr(_lg_combi_none.hass, "issues", [])
+    ),
+    f"issues {[i[1] for i in getattr(_lg_combi_none.hass, 'issues', [])]}",
+)
 
 
 # --- M2: a weather outage is surfaced, never silently papered over ---------
