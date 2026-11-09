@@ -1,2 +1,2 @@
-RED 43136fbca4b5ba2a6f7f137f60cf67951a305c94 pending: none red: gate
-rc=1 2026-11-09T00:12:39Z
+GREEN aff9f1393aec11bc0f5fc745d34a9161c09b695a pending: none red: none
+rc=0

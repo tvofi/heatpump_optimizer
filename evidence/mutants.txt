@@ -1,11 +1,6 @@
-RESULT mutant replan-base-arm: KILLED rc=1 ["FAIL an instrument-class R10-HOTFIX group is the hotfix tier and holds the one real slot at t0 ahead of an outside group, the order dispatch_rank gives: {'OUT': ('2026-01-05T00:00:00Z', 0, None, 3), '", "FAIL the unmutated copy's self-test exits 0 (null control): rc=1"] | self-test: 2 failed
-RESULT mutant replan-arm-off: KILLED rc=1 ['FAIL a user-reported bug (hotfix) is the hotfix tier, off the critical path:', 'FAIL a hotfix ranks ahead of an outside group, which ranks ahead of the critical path: [5, 3]'] | self-test: 2 failed
-RESULT mutant od-hotfix-set-off: KILLED rc=1 ['FAIL run_pass: a kind-bug group with no HOTFIX name opens ahead of an outside group, cap 1'] | open_driver self-test: 86 checks, 1 failed
-RESULT mutant od-order-drop: KILLED rc=1 ['FAIL run_pass: a kind-bug group with no HOTFIX name opens ahead of an outside group, cap 1'] | open_driver self-test: 86 checks, 1 failed
-RESULT mutant od-runpass-empty: KILLED rc=1 ['FAIL run_pass: a kind-bug group with no HOTFIX name opens ahead of an outside group, cap 1'] | open_driver self-test: 86 checks, 1 failed
-RESULT mutant od-runpass-drop: KILLED rc=1 ['FAIL run_pass: a kind-bug group with no HOTFIX name opens ahead of an outside group, cap 1'] | open_driver self-test: 86 checks, 1 failed
-RESULT mutant ot-fork-fallback: KILLED rc=1 ["FAIL OWED buckets: a fork-head outside PR, mapped by resume.pr, prints before the critical path's; unrecorded, after it"] | orchestrator_tick self-test: 286 checks, 1 failed
-RESULT mutant mt-drain-hotfix: KILLED rc=1 ['FAIL P420 drain_order: a roster hotfix with no --priority flag (#8) drains ahead of an outside entry (#31)'] | roster_lib: no roster readable at origin/main; reading origin/main
-RESULT mutant mt-hotfix-default: KILLED rc=1 ['FAIL P420 drain_order: a roster hotfix with no --priority flag (#8) drains ahead of an outside entry (#31)'] | roster_lib: no roster readable at origin/main; reading origin/main
-RESULT mutant mt-hotfix-pred: KILLED rc=1 ['FAIL P420 drain_order: a roster hotfix with no --priority flag (#8) drains ahead of an outside entry (#31)'] | roster_lib: no roster readable at origin/main; reading origin/main
-RESULT mutant mt-roster-is-const: KILLED rc=1 ['FAIL P420 drain_order: a roster hotfix with no --priority flag (#8) drains ahead of an outside entry (#31)'] | roster_lib: no roster readable at origin/main; reading origin/main
+KILLED tools/audit/seat/merge_train.py: or self.hotfix(items[id(e)])),  # mut:drain-hotfix (  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once)
+KILLED tools/audit/seat/merge_train.py: not self.outside(items[id(e)]),  # mut:drain-outside (  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once)
+SURVIVED tools/audit/seat/open_driver.py: if group and roster_lib.norm_group(group) in outside:
+KILLED tools/audit/seat/roster_lib.py: group.get("kind") == "bug" or  (FAIL dispatch_rank: hotfix 0, outside 1, critical 2, other or unknown or none 3; a hotfix beats outside (got: )
+KILLED tools/pr/gate_priority.py: if rank <= 1: (FAIL an outside group and a hotfix group outrank the critical path (owner ruling 2026-11-07) (got: [0, 2, 0]))
+KILLED tools/audit/seat/orchestrator_tick.py: or rl.group_for_pr(roster, n) (  FAIL OWED buckets: a fork-head outside PR, mapped by resume.pr, prints before the critical path's; unrecorde)
