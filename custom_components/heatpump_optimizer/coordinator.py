@@ -1083,7 +1083,7 @@ async def _propagated_slab(coord: Any, prior: Any, prior_at: datetime | None) ->
     kw = draw_range.space_draw_kw(
         coord._accuracy.draw,
         coord._measured_power,
-        (a.space, a.dhw),
+        (a.dhw, a.space),
         shared=coord._immersion_active or signals.electric_heat.resistive_heat,
         space_served=a.observed or signals.space_heat or not signals.mode_observed,
     )
