@@ -1,3 +1,0 @@
-RESULT head replan slots=1 order ['OUT', 'R10-HOTFIX-X'] {'OUT': 3, 'R10-HOTFIX-X': 6}
-RESULT head dispatch_rank {'R10-HOTFIX-X': 0, 'OUT': 1}
-RESULT head open_driver order ['r10-hotfix-x', 'r10-out']
