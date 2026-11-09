@@ -1,0 +1,4 @@
+state_docs: REFUSED: git push -q origin 2210d67cc934d2354964ab1e04501f78eccfc78e:refs/heads/handoff/audit-r9-plan (in /tmp/tmpyzvc_9ip/beat-drv) failed: To /tmp/tmpyzvc_9ip/origin.git
+error: failed to push some refs to '/tmp/tmpyzvc_9ip/origin.git'
+roster_sync: REFUSED: git -C /tmp/tmpr8l_mw49/sync-drv fetch -q origin +refs/heads/*:refs/remotes/origin/* (in .) failed: error: cannot lock ref 'refs/remotes/origin/train-hold': is at aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa but expected bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+1 self-test check(s) failed: plan page: --train-log reaches plan_page.py: the page's train skips name its batch (got: Flow</h2>
