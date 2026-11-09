@@ -1,0 +1,20 @@
+.claude/hooks/session-start.sh:22:#                           environment, which no profile or BASH_ENV reaches;
+.github/workflows/governance.yml:114:      # $GITHUB_ENV -- `BASH_ENV`, `NODE_OPTIONS` -- and so run inside every
+.github/workflows/governance.yml:1866:      # overwrite the file, put a shim on `$GITHUB_PATH`, set `BASH_ENV`
+.github/workflows/tests.yml:1010:      # overwrite the file, put a shim on `$GITHUB_PATH`, set `BASH_ENV`
+.github/workflows/tests.yml:1436:      # overwrite the file, put a shim on `$GITHUB_PATH`, set `BASH_ENV`
+tools/audit/seat/cloud-setup.sh:25:# this script writes nor BASH_ENV reaches it (a first-level bash on a socket
+tools/audit/seat/cloud-setup.sh:26:# stdin, as the agent's is, reads ~/.bashrc in place of BASH_ENV, and the stock
+tools/audit/seat/cloud-setup.sh:32:# sets every other variable only where it is unset: a BASH_ENV naming it runs
+tools/audit/seat/cloud-setup.sh:101:# first-level bash on a socket stdin (the agent's) skips BASH_ENV.
+tools/audit/seat/cloud-setup.sh:146:  out=$(run BASH_ENV="$W/profile.sh" bash -c 'PATH="$1:$PATH" bash -c python3' _ "$W/stub")
+tools/audit/seat/cloud-setup.sh:147:  [ "$out" = stub ]; expect "under BASH_ENV a nested bash keeps a stub its caller put ahead of the venv (#2452)" $?
+tools/audit/seat/cloud-setup.sh:154:  # a BASH_ENV-sourced nested bash (R10-RCA-CLOUD-ENTITIES-ENV).
+tools/audit/seat/cloud-setup.sh:157:  out=$(run BASH_ENV="$W/profile.sh" bash -c 'echo "$RUNNER_TEMP"')
+tools/audit/seat/cloud-setup.sh:158:  [ "$out" = "$P/runner-temp" ]; expect "control: a nested bash under BASH_ENV runs the profile" $?
+tools/audit/seat/cloud-setup.sh:161:    out=$(run "$n=caller" BASH_ENV="$W/profile.sh" bash -c 'printf %s "${!1}"' _ "$n")
+tools/audit/seat/cloud-setup.sh:165:  [ -z "$kept" ]; expect "under BASH_ENV a nested bash keeps every variable its caller set" $?
+tools/audit/seat/instruments/cloud-setup.sh.md:7:  agent's environment and reads neither the profile nor `BASH_ENV`, so the
+tools/audit/seat/instruments/cloud-setup.sh.md:13:  variable only where it is unset, so a `BASH_ENV` naming it changes no value a
+tools/audit/seat/instruments/cloud-setup.sh.md:16:  `BASH_ENV`. Refusal: a missing checkout warns and
+tools/audit/seat/instruments/cloud_dispatch.py.md:69:  for it, then run, sequentially; and a `BASH_ENV` in the environment's
