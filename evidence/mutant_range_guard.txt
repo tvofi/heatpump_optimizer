@@ -1,5 +1,0 @@
- custom_components/heatpump_optimizer/config_flow.py | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-  FAIL an entity whose own range excludes 0 is refused (T2)  [errors=None type='menu']
-  FAIL null control: a range excluding 0 returns the refusal  [returned={}]
-2 of 551 checks FAILED
