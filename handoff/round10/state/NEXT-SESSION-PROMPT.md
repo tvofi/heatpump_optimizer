@@ -48,7 +48,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-COP-UNMEASURED (stage in-progress, branch `handoff/r10-hotfix-cop-unmeasured`): `git fetch origin handoff/r10-hotfix-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-TRAIN-DEFER-WAIT (stage carries-open, branch `handoff/r10-hotfix-train-defer-wait`): `git fetch origin handoff/r10-hotfix-train-defer-wait && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CI-SELFTEST-SCOPE (stage carries-open, branch `handoff/r10-ci-selftest-scope`): `git fetch origin handoff/r10-ci-selftest-scope && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-COP-GATE-E (stage in-progress, branch `handoff/r10-cop-gate-e`): `git fetch origin handoff/r10-cop-gate-e && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-COP-GATE-E (stage carries-open, branch `handoff/r10-cop-gate-e`): `git fetch origin handoff/r10-cop-gate-e && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PARTLOAD-RESIDUE (stage carries-open, branch `handoff/r10-partload-residue`): `git fetch origin handoff/r10-partload-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CI-EDIT-RUNNER (stage refused, branch `handoff/r10-ci-edit-runner`): `git fetch origin handoff/r10-ci-edit-runner && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TRAIN-STALE-VERDICT-GUARD (stage in-progress, branch `handoff/r10-train-stale-verdict-guard`): `git fetch origin handoff/r10-train-stale-verdict-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
