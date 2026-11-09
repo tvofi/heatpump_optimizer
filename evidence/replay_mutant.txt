@@ -1,8 +1,2 @@
-SCENE #3267-edit-gate-just-failed want=WAIT got=RED pending=[] red=['gate']
-SCENE #3268-edit-gate-just-failed want=WAIT got=RED pending=[] red=['gate']
-SCENE #3293-edit-gate-just-failed want=WAIT got=RED pending=[] red=['gate']
-SCENE #3293-settle-gap(synthetic) want=WAIT got=RED pending=[] red=['gate']
-SCENE null-code-run-red(synthetic) want=RED got=RED pending=[] red=['gate']
-SCENE null-all-green(synthetic) want=GREEN got=GREEN pending=[] red=[]
 SCENE null-red-non-gate want=RED got=RED
 RESULT replay defects=3 settle_gap=1 null_bad=0 scenes=7
