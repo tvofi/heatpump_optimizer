@@ -1,0 +1,2 @@
+00d12cad0f12bb8eb7da1010a720f7576fd4a552:custom_components/heatpump_optimizer/optimizer.py:853:# ``threadpool_limits(limits=1)`` builds a fresh ``ThreadpoolController`` on
+00d12cad0f12bb8eb7da1010a720f7576fd4a552:custom_components/heatpump_optimizer/optimizer.py:867:    ).ThreadpoolController()
