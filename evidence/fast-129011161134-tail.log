@@ -1,0 +1,71 @@
+2026-11-09T06:50:02.0030063Z   ok   no scenario's simulate work grew on an unchanged plan (#1229)
+2026-11-09T06:50:02.0030478Z   ok   no scenario's simulate kernel got slower per call on an unchanged plan (round-5 D9-07)
+2026-11-09T06:50:02.0030958Z   whole-solve CPU: median 1.035x of the baseline beside this run over 54 of 54 covered scenarios, on work the counts vouch for; factor 1.414x
+2026-11-09T06:50:02.0031211Z   ok   the whole-solve CPU channel judged every covered scenario (R10 D9-s3-01)
+2026-11-09T06:50:02.0031721Z   ok   the sweep's solves did not get slower per unit of counted work, median over the covered scenarios (R10 D9-s3-01)
+2026-11-09T06:50:02.0031938Z   ok   production calls were captured on this tree and the baseline
+2026-11-09T06:50:02.0032516Z   production calls: 20 of 20 family members judged against 82a2c142faa3b92a08765d7b9c676ddd6a490631 (82a2c142faa3) in 31 s; re-planned: []; new on this branch: []
+2026-11-09T06:50:02.0032735Z   ok   the production-call meter counted every scenario on both trees
+2026-11-09T06:50:02.0036737Z   FAIL no scenario's production calls grew past what its work counts vouch for, on an unchanged plan (round 9)  [summer/1z/space/valve: 194885 production calls against the baseline's 183079 = 1.064x on work the counts vouch at 1.000x, over the 1.05x allowance (thermal_model.py +11764, optimizer.py +42); summer/2z/space: 94380 production calls against the baseline's 88746 = 1.063x on work the counts vouch at 1.000x, over the 1.05x allowance (thermal_model.py +5604, optimizer.py +30); summer/2z/space/valve-direct-slab: 275930 production calls against the baseline's 259084 = 1.065x on work the counts vouch at 1.000x, over the 1.05x allowance (thermal_model.py +16788, optimizer.py +58); summer/2z/space/wood-two-tank: 126591 production calls against the baseline's 120191 = 1.053x on work the counts vouch at 1.000x, over the 1.05x allowance (thermal_model.py +6386, optimizer.py +14); interpreter work outside the named seams -- a per-row loop, an uncached property, a repeated pass -- moves no evaluation or simulate count and sits under the 3.0x CPU factor, so this is the only channel that sees it]
+2026-11-09T06:50:02.0037018Z   ok   the production-call check covers at least 15 of 20 families
+2026-11-09T06:50:02.0037200Z   ok   the solver-work check still covers most of the sweep
+2026-11-09T06:50:02.0037414Z   ok   the solver-work floor is a literal, not an environment override
+2026-11-09T06:50:02.0037422Z 
+2026-11-09T06:50:02.0037521Z -- Memory (D9-04)
+2026-11-09T06:50:02.0037870Z   empty-probe baseline (same imports, no scenario): 117.3 MiB of RSS, subtracted from every probe below
+2026-11-09T06:50:02.0038252Z   heavy_old/shoulder                 RSS peak   117.3 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 82 / 13 / 3.5)
+2026-11-09T06:50:02.0038598Z   winter/cycle                       RSS peak   117.3 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 84 / 9 / 3.5)
+2026-11-09T06:50:02.0039021Z   winter/pv+cycle                    RSS peak   117.3 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 82 / 13 / 3.5)
+2026-11-09T06:50:02.0039389Z   typical_slab/winter                RSS peak   117.3 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 92 / 14 / 3.4)
+2026-11-09T06:50:02.0039751Z   winter_extreme/1z/dhw              RSS peak   117.3 MiB, attributable   0.0 MiB, traced   3.5 MiB (recorded 88 / 12 / 3.4)
+2026-11-09T06:50:02.0040118Z   typical_slab/shoulder              RSS peak   117.3 MiB, attributable   0.0 MiB, traced   2.2 MiB (recorded 85 / 9 / 1.8)
+2026-11-09T06:50:02.0040613Z   parent RSS watermark growth over the memory pass: 0.0 MiB (ru_maxrss is a high-water mark; growth here means the pass itself retained memory)
+2026-11-09T06:50:02.0041004Z   coverage: this pass probed 6 of 54 recorded memory budgets; the unprobed ones are compared only at recording time
+2026-11-09T06:50:02.0042072Z   attributable RSS: 6 of 6 probe(s) read at this platform's import floor, so the stale arm says nothing about them (probe watermark not below the record): heavy_old/shoulder; winter/cycle; winter/pv+cycle; typical_slab/winter; winter_extreme/1z/dhw; typical_slab/shoulder
+2026-11-09T06:50:02.0042381Z   ok   the memory pass probes the recorded peak on each axis
+2026-11-09T06:50:02.0042629Z   ok   the probed scenarios' memory peaks stay within their recorded budgets
+2026-11-09T06:50:02.0042874Z   ok   no probed scenario's memory got dramatically cheaper without a re-record
+2026-11-09T06:50:02.0043044Z   ok   every memory-pass scenario has recorded peaks
+2026-11-09T06:50:02.0043251Z   ok   the memory pass retains less than 512 MiB of RSS in the parent
+2026-11-09T06:50:02.0043537Z   whole sweep: 85.6 s of solver CPU against 2.4 s of reference CPU = 35.83x; budget is 52.44x
+2026-11-09T06:50:02.0043794Z   ok   the sweep as a whole costs what it has always cost, relative to this machine
+2026-11-09T06:50:02.0045201Z   detection against the RECORDED costs: per-scenario ceiling 1.32x, sweep budget 1.49x, per-scenario table 3.00x -- the smallest of those is the smallest UNIFORM regression this gate can see where it was recorded; a regression confined to one scenario is seen at 1.80x of that scenario's recorded solver work instead, or at 1.80x of the kernel CPU the baseline spent beside it (round-5 D9-07)
+2026-11-09T06:50:02.0045958Z   detection for MEMORY: attributable-RSS budget 1.50x, traced budget 1.50x of the recorded peak, over the 6 scenario(s) this pass probes -- a regression smaller than these multiples passes the memory section green
+2026-11-09T06:50:02.0046995Z   detection on THIS machine: per-scenario ceiling 2.21x (244x x 1.1 wobble), sweep budget 1.46x -- these move with the machine because the reference solve does not scale with the real ones (measured 1.7x of ratio compression between an M1 and a CI runner); re-record here to get the figures above
+2026-11-09T06:50:02.0047363Z   ok   the budgets are tight enough to see a 2x regression, uniform or confined to one scenario
+2026-11-09T06:50:02.0047967Z   thread factor (process CPU / this-thread CPU): reference 1.000, scenarios 1.000 -- these must match for the ratio above to be a pure work ratio that travels to another machine
+2026-11-09T06:50:02.0048318Z   ok   the reference and the scenarios are parallelised alike, so the thread factor cancels in the ratio
+2026-11-09T06:50:02.0048511Z   ok   no scenario hits the absolute pathological-solve ceiling
+2026-11-09T06:50:02.0048528Z 
+2026-11-09T06:50:02.0048608Z -- Economics
+2026-11-09T06:50:02.0048756Z   ok   winter: cheaper than holding the setpoint
+2026-11-09T06:50:02.0048921Z   ok   winter_extreme: cheaper than holding the setpoint
+2026-11-09T06:50:02.0049077Z   ok   shoulder: cheaper than holding the setpoint
+2026-11-09T06:50:02.0049243Z   ok   a flat price curve produces no fictitious saving
+2026-11-09T06:50:02.0049381Z   ok   a flat price curve still respects comfort
+2026-11-09T06:50:02.0049529Z   ok   a wider price spread yields a larger saving
+2026-11-09T06:50:02.0049805Z   ok   a higher comfort weight is warmer, across the documented range
+2026-11-09T06:50:02.0050009Z   ok   a higher comfort weight saves less, across the documented range
+2026-11-09T06:50:02.0050169Z   ok   the README's comfort-weight table still holds
+2026-11-09T06:50:02.0050387Z   ok   solver noise under an economically nil perturbation stays small
+2026-11-09T06:50:02.0050533Z   ok   a capacity tariff lowers the projected peak
+2026-11-09T06:50:02.0050667Z   ok   and does not wreck comfort doing it
+2026-11-09T06:50:02.0050813Z   ok   a cycling cost reduces compressor starts
+2026-11-09T06:50:02.0050932Z   ok   PV surplus is self-consumed
+2026-11-09T06:50:02.0051162Z   ok   a more efficient heat pump is never worse, and is better somewhere
+2026-11-09T06:50:02.0051309Z   ok   a leakier, larger house costs more to heat
+2026-11-09T06:50:02.0051317Z 
+2026-11-09T06:50:02.0051413Z -- Edge conditions
+2026-11-09T06:50:02.0051666Z   ok   all 17 edge conditions produce a sound plan
+2026-11-09T06:50:02.0051852Z   ok   an undersized pump runs flat out rather than giving up
+2026-11-09T06:50:02.0052015Z   ok   negative prices are exploited rather than ignored
+2026-11-09T06:50:02.0052248Z   ok   the baseline scenario plans electric hot water inside the 2 h horizon
+2026-11-09T06:50:02.0052543Z   ok   an external heat source suppresses electric hot water
+2026-11-09T06:50:02.0052763Z   ok   suppression lowers total electric DHW energy, not just moves it
+2026-11-09T06:50:02.0052771Z 
+2026-11-09T06:50:02.0052887Z 1 of 113 STRESS CHECKS FAILED
+2026-11-09T06:50:02.0053031Z >>> FAILED: python3 tests/stress.py
+2026-11-09T06:50:02.0053039Z 
+2026-11-09T06:50:02.0053215Z ########## python3 tests/harness_headers.py ##########
+2026-11-09T06:50:02.0053459Z   LEASE: tests/harness_headers.py runs under the gate lease as run.sh-2572
+2026-11-09T06:50:02.0053467Z 
