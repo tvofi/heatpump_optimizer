@@ -29,8 +29,9 @@ a stripped match, `<GROUP>: <topic words>` for an exact one.
 
 ORDER (P337 rule 2, P350): `open-priority.txt` lists topics, one per line (`#`
 comments), `open-cap.txt` the cap (default 2); both are re-read every pass. A
-hotfix topic (R10-HOTFIX-*), then an outside one (`roster_lib.is_outside`) or
-a critical-path one (`roster_lib.critical_path`), one class unordered between
+hotfix topic (R10-HOTFIX-*, or a group `roster_lib.is_hotfix` counts, which
+includes `kind` "bug"), then an outside one (`roster_lib.is_outside`) or a
+critical-path one (`roster_lib.critical_path`), one class unordered between
 them (owner rulings tvofi 2026-11-07, triage P420, and 2026-11-08), is never
 behind a topic of a later class, whatever the file says. Within a class a
 listed topic keeps its file order, and an OMITTED topic is slotted after the
@@ -68,6 +69,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import roster_lib  # noqa: E402
+import topic_grammar  # noqa: E402
 
 REPO = "tvofi/heatpump_optimizer"
 BOARD_RE = re.compile(r"^OWED \S+ handoff-no-pr refs/heads/handoff/(\S+) ([0-9a-f]{40})(?: ct=(\d+|\?))?")
@@ -92,40 +94,22 @@ def parse_board(text: str) -> list:
     return out
 
 
-def names_group(body_head: str, group: str) -> bool:
-    """`group` appears as a whole name in the text: not inside a longer one."""
-    return re.search(r"(?<![A-Za-z0-9_-])%s(?![A-Za-z0-9_-])" % re.escape(group), body_head, re.I) is not None
+names_group, resolve = topic_grammar.names_group, topic_grammar.group_of  # the grammar's one owner
 
 
-def resolve(topic: str, groups, body_head: str, titles: dict | None = None) -> tuple:
-    """(group, title) or (None, why). `groups` are the roster's group ids."""
-    words = topic.replace("-", " ")
-    t = (titles or {}).get(topic)
-    if isinstance(t, dict) and t.get("group") and t.get("title"):
-        return t["group"], t["title"]
-    m = re.fullmatch(r"triage-s(\d+)-batch(\d+)", topic)
-    if m:
-        for g in (f"R10-TRIAGE-S{m.group(1)}", f"R10-TRIAGE-B{m.group(2)}"):
-            if g in groups:
-                return g, f"{g}: {words}"
-        return None, "NEEDS-TITLE"
-    up = topic.upper()
-    if up in groups:  # exact match always wins
-        return up, f"{up}: {words}"
-    for rx in (r"-p(\d+)", r"-(\d+)"):  # (ii) one trailing -p<N>, then (iii) one trailing -<N>
-        m = re.fullmatch(r"(.+)" + rx, topic)
-        if m and m.group(1).upper() in groups and names_group(body_head, m.group(1).upper()):
-            g = m.group(1).upper()
-            return g, f"{g} (part {m.group(2)}): {words}"
-    return None, "NEEDS-TITLE"
+SKIP_TOPIC_PREFIXES = ("triage-", "roster-")
 
 
-def default_class(topic: str, group: str | None, critical, outside=frozenset()) -> int:
+def default_class(topic: str, group: str | None, critical, outside=frozenset(),
+                  hotfix=frozenset()) -> int:
     """0 hotfix, 1 outside or critical (one class, unordered between them), 2
     record, 3 the rest. Owner rulings tvofi 2026-11-07 (triage P420) and
     2026-11-08: hotfix, then the outside requests with the critical path, then
-    today's order."""
+    today's order. A hotfix is a hotfix topic or group name, or a group in
+    `hotfix` (`roster_lib.is_hotfix`, which also counts `kind` "bug")."""
     if topic.startswith("r10-hotfix-") or (group or "").startswith("R10-HOTFIX-"):
+        return 0
+    if group and roster_lib.norm_group(group) in hotfix:
         return 0
     if group and roster_lib.norm_group(group) in outside | critical:
         return 1
@@ -137,11 +121,11 @@ def default_class(topic: str, group: str | None, critical, outside=frozenset()) 
 FENCED = 1
 
 
-def order(items, priority: list, critical, outside=frozenset()) -> list:
+def order(items, priority: list, critical, outside=frozenset(), hotfix=frozenset()) -> list:
     """items: [(topic, group, ct)]. Hotfix, then outside or critical, first;
     a listed topic keeps its file order within a class; an omitted one slots after
     the last listed topic of equal or higher class."""
-    cls = {t: default_class(t, g, critical, outside) for t, g, _ in items}
+    cls = {t: default_class(t, g, critical, outside, hotfix) for t, g, _ in items}
     idx = {t: i for i, t in enumerate(priority)}
 
     def pos(t):
@@ -276,6 +260,7 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
     groups = set(roster_lib.groups_of(ros))
     critical = {roster_lib.norm_group(g) for g in roster_lib.critical_path(ros)}
     outside = {roster_lib.norm_group(str(g.get("group") or "")) for g in ros.get("groups", []) if roster_lib.is_outside(g)}
+    hotfix = {roster_lib.norm_group(str(g.get("group") or "")) for g in ros.get("groups", []) if roster_lib.is_hotfix(g)}
     titles = _load(sd / "open-titles.json", {})
     priority = _lines(sd / "open-priority.txt")
     try:
@@ -287,7 +272,9 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
         def skip(why):
             skipped[topic] = why
             log(f"SKIP {topic} {sha[:8]} {why}")
-        if tips.get(f"refs/heads/handoff/{topic}") != sha:
+        if topic.startswith(SKIP_TOPIC_PREFIXES):  # mut:optopicskip
+            skip("batched")  # triage and roster changes wait and merge together with stamps (tvofi 2026-11-04)
+        elif tips.get(f"refs/heads/handoff/{topic}") != sha:
             skip("moved")
         elif f"refs/heads/handoff-body/{topic}" not in tips:
             skip("no-body")
@@ -313,7 +300,7 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
     started = []
     live = len(runs)
     by_topic = {c[0]: c for c in cands}
-    for topic, g, ct in order([(c[0], c[1], c[2]) for c in cands], priority, critical, outside):
+    for topic, g, ct in order([(c[0], c[1], c[2]) for c in cands], priority, critical, outside, hotfix):
         _, _, _, sha, title = by_topic[topic]
         if live >= cap:
             skipped[topic] = "cap"

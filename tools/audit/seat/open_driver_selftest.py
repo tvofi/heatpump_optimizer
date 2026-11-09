@@ -120,6 +120,9 @@ def run():
     check("file order among listed (outside the fence)", names(["r10-inst", "triage-s6-batch1"]).index("r10-inst") < names(["r10-inst", "triage-s6-batch1"]).index("triage-s6-batch1"))
     check("the fence beats the file: a listed instrument is behind an omitted hotfix", names(["r10-inst", "r10-hotfix-x"]).index("r10-hotfix-x") < names(["r10-inst", "r10-hotfix-x"]).index("r10-inst"))
     check("omitted record sorts after listed hotfix", names(["r10-hotfix-x"]).index("triage-s6-batch1") > names(["r10-hotfix-x"]).index("r10-hotfix-x"))
+    same = [("r10-a", "R10-A", 1), ("r10-b", "R10-B", 2)]
+    check("an omitted topic slots after a listed one of its own class, never before it",
+          [t for t, _, _ in od.order(same, ["r10-b"], set())] == ["r10-b", "r10-a"])
     check("critical listed last is still ahead of every non-fenced topic", names(["r10-inst", "triage-s6-batch1", "r10-cp"])[:2] == ["r10-hotfix-x", "r10-cp"])
     check("the fence puts a hotfix first, then outside and critical in the file's order",
           [t for t, _, _ in od.order(items + [("r10-out", "R10-OUT", 5)], ["r10-cp", "r10-out", "r10-hotfix-x", "r10-inst"], {"r10-cp"}, {"r10-out"})][:3]
@@ -168,6 +171,24 @@ def run():
     go(osd, ow, oboard)
     check("run_pass: an outside group opens in the critical path's class, cap 2",
           [t for t, _, _ in ow.launched] == ["r10-a-out", "r10-cp"])
+    # A kind "bug" group is a hotfix by roster_lib.is_hotfix with no HOTFIX in its
+    # name (#3304 round 2): it opens ahead of the outside group, as the plan and
+    # dispatch_rank order it; with no kind it is the rest and the outside opens first.
+    bros = roster("R10-OUT", "R10-BUGFIX")
+    bros["groups"][0]["source"], bros["groups"][1]["kind"] = "outside", "bug"
+    bheads = [("r10-out", sha("1")), ("r10-bugfix", sha("2"))]
+    bboard = "\n".join(line(t, s) for t, s in bheads)
+    bsd, bw = world(bboard, ros=bros, heads=bheads)
+    (bsd / "open-cap.txt").write_text("1\n")
+    go(bsd, bw, bboard)
+    check("run_pass: a kind-bug group with no HOTFIX name opens ahead of an outside group, cap 1",
+          [t for t, _, _ in bw.launched] == ["r10-bugfix"])
+    bros["groups"][1].pop("kind")
+    bsd, bw = world(bboard, ros=bros, heads=bheads)
+    (bsd / "open-cap.txt").write_text("1\n")
+    go(bsd, bw, bboard)
+    check("run_pass null: the same group with no kind waits behind the outside group",
+          [t for t, _, _ in bw.launched] == ["r10-out"])
     nros = roster("R10-CP", "R10-INST", "R10-A-OUT", after={"R10-INST": ["R10-CP"]})
     nsd, nw = world(oboard, ros=nros, heads=oheads)
     go(nsd, nw, oboard)
@@ -188,6 +209,13 @@ def run():
     sd, w = world("", heads=[("r10-cp", sha("2"))])
     go(sd, w, line("r10-cp", sha("7")))
     check("moved handoff skipped", w.launched == [])
+    for tp in ("triage-s9-batch4", "roster-carry-fold"):
+        sd, w = world("", ros=roster("ROSTER-CARRY-FOLD", "R10-TRIAGE-S9"), heads=[(tp, sha("2"))])
+        go(sd, w, line(tp, sha("2")))
+        check(f"{tp} is batched, not opened", w.launched == [] and od.resolve(tp, {"ROSTER-CARRY-FOLD", "R10-TRIAGE-S9"}, "")[0])
+    sd, w = world("", heads=[("r10-cp", sha("2"))])
+    go(sd, w, line("r10-cp", sha("2")))
+    check("null: a production topic is opened as before", len(w.launched) == 1)
     sd, w = world("", heads=[("r10-cp", sha("2"))], extra=["refs/heads/fix/r10-cp-pr"])
     go(sd, w, line("r10-cp", sha("2")))
     check("existing fix branch skipped", w.launched == [])

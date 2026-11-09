@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_flow_target CLAMP_DROP edfc96c1",
+  "killed_by": "tests/features.py",
+  "old": "    target = _as_target(inp.config, FLOW_HOLD_C if curve is None else max(curve, FLOW_HOLD_C))",
+  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling. Dropping the max (`... else (curve))`) took tests/features.py from rc=0 failed=0 of 4979 to rc=1 failed=5: a curve under the rated hold writes the curve (25 degC) instead of 35, in the boost, lease and real-curve baseline checks, and 15 instead of 30 on a return target."
+}

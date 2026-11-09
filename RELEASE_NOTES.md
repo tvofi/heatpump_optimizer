@@ -1,3 +1,51 @@
+## v7.1.9
+
+**Patch stamp: 38 merges since v7.1.8, stamped early so outside users can try the water set-point fix.** The user-visible changes are the water set-point lift and ceiling options, the part-load and savings-meter fixes, and the COP gate. The rest of the window is round-10 tooling and audit machinery.
+
+### #3372 Water set-point lift and ceiling (R10-WATER-SETPOINT-LIFT)
+
+Adopts outside pull request #3356 by Bankaifan, with thanks. When Pump duty control is set to Control and the space set-point is a water temperature, the Sensors and entities page now offers two options: the modulation floor's lift over the measured inlet, and the full-power flow ceiling. The space set-point unit can now also be `return`, for a controller that takes the number as its return-water target. A stored ceiling at or below 25 °C, which only a hand-edited entry can produce, now reads as 55 °C instead of switching heating off.
+
+### Product fixes
+
+- #3291 Part-load residue (R10-PARTLOAD-RESIDUE).
+- #3360 Savings-meter floor (R10-SAV-METER-FLOOR).
+- #3347 Savings comfort, part 4 (R10-SAV-COMFORT).
+- #3371 COP gate, part E (R10-COP-GATE-E).
+- #3346 "Why now" widget, part 2 (R10-WHY-NOW-WIDGET).
+
+### Developer tooling, CI and audit machinery only
+
+#3349, #3348, #3367, #3337, #3339, #3315, #3305, #3343, #3327, #3326, #3330, #3310, #3338, #3363 (closes #3283), #3325, #3342, #3344, #3336, #3317, #3340, #3333, #3318: round-10 hotfixes and tooling, which include one BLAS controller per process, the gate-busy deferral, per-leg CodeQL timeouts, roster read and write sweeps, the relay sweep and the body contract. #3353, #3354, #3352, #3334, #3362, #3316: root-cause records. #3319: the round playbook (R10-ROUND-PLAYBOOK). #3373, #3370, #3357: delivery-status rows (record only).
+
+## v7.1.8
+
+**Patch stamp: 6 merges since v7.1.7.** The user-visible change is that the heat-pump plan now respects the "Heat pump min power" setting. The rest of the window is round-10 tooling and audit machinery.
+
+### #3308 The plan respects "Heat pump min power" (R10-MIN-POWER-FLOOR)
+
+The heat-pump plan now respects the "Heat pump min power" setting. A pump that cannot modulate is no longer planned at steps below its minimum, and a pump that also heats hot water no longer has space heating and hot water planned together above its maximum power. A new "compressor modulation" option (auto, on/off, modulating) on the thermal model page lets you declare how your pump behaves. Closes #3289.
+
+### #3294 Standing contracts for the orchestrator's sessions, part 2 (R10-FLY-STANDING-CONTRACTS)
+
+The hooks that the orchestrator's sessions depend on are now tracked, described and installable, including a guard on the orchestrator's shell commands. Developer tooling only.
+
+### #3320 Suite host determinism, part 2 (R10-SUITE-HOST-DETERMINISM)
+
+The entity test script gives the same answer on any host. Test tooling only.
+
+### #3335 Root-cause record for the stamp flush cost (R10-RCA-STAMP-FLUSH-COST)
+
+Records that the existing root-cause note on stamps dispatching a whole Nightly run already covers the owner's ruling. No code changed.
+
+### #3324 Closeout instruments (R10-CLOSEOUT-INSTRUMENTS)
+
+The instruments for closing out an audit round: worktree collection, closeout exemptions and tag pruning. Developer tooling only.
+
+### #3328 Delivery rows recorded (autofix)
+
+Delivery-status rows for #3262, #3288, #3301, #3311 and #3312. Record only.
+
 ## v7.1.7
 
 **Patch stamp: 5 merges since v7.1.6.** The user-visible change is that the round's plan page is now public: the developer documentation links it, and outside contributors have a stated intake route. The rest of the window is round-10 engineering and audit machinery.

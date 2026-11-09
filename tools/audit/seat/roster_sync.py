@@ -91,6 +91,7 @@ import carry_audit  # noqa: E402  the one `Carry:` parser; a second is refused
 import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 import roster_edit  # noqa: E402  the one write path: dump, commit, lint gate
 import roster_lib  # noqa: E402  which roster, and what a done stage is
+import topic_grammar  # noqa: E402  the topic grammar's one owner
 
 #: The stages a repository measurement may touch: the registry's closeable
 #: view, imported rather than declared, so the reconciler and the writer cannot
@@ -266,13 +267,8 @@ def matches(roster: dict, prs: list[PR]) -> dict[str, list[PR]]:
     out: dict[str, list[PR]] = {gid: [] for gid, t in topics.items() if t}
     for pr in prs:
         name = norm_head(pr.head)
-        hits = [(len(t), gid) for gid, t in topics.items()
-                if t and (name == t or name.startswith(t + "-"))]
-        if hits:
-            longest = max(n for n, _ in hits)
-            for n, gid in hits:
-                if n == longest:
-                    out[gid].append(pr)
+        for gid in topic_grammar.owner_topic(name, topics):
+            out[gid].append(pr)
     return {gid: sorted(v, key=lambda p: p.number) for gid, v in out.items()}
 
 
@@ -1161,6 +1157,9 @@ def self_test() -> int:
               "SKIP R9-DEFER: stage deferred is a human disposition" in out, out)
         check("the dry run plans no append of an item the destination holds",
               "carry R9-HELD +=" not in out, out)
+        check("an item the destination holds verbatim is skipped silently, "
+              "not refused as a near-duplicate (M9)",
+              "REFUSED Carry: R9-HELD" not in out, out)
         check("the dry run refuses an item the destination already carries: "
               "same finding, same triage ruling", "REFUSED Carry: R9-FROM "
               "from #15: already carried" in out, out)

@@ -469,6 +469,11 @@ def op_append_carry(roster, group, text):
     if resume.get("pr"):
         print(f"WARN carry to {group}: PR #{resume['pr']} is open on it")
     entry = _text(text)
+    mark = roster_lib.carry_mark(entry)
+    if mark:
+        raise Refuse(f"append-carry: the text already ends in a [{mark[0]}: "
+                     f"{mark[1]}] mark, which reads as discharged on arrival; "
+                     "strip it and let the discharging op write it")
     carry = g.setdefault("carry", [])
     if entry in carry:
         raise Refuse(f"{group} already carries that entry")
@@ -913,6 +918,22 @@ def ruling_reader(worktree, checkout):
 
 
 # ----------------------------------------------------------------- flow
+def _on_origin(checkout, wt, sha, branch) -> bool:
+    """Whether some origin ref holds `sha`. The local tracking refs go stale
+    when a rival writer pushes the roster branch, so a miss fetches the
+    branch once and asks again before an unpushed edit is declared."""
+    def held():
+        return bool(run(["git", "-C", str(wt), "for-each-ref", "--contains",
+                         sha, "--format=%(refname)",
+                         "refs/remotes/origin/"]).strip())
+    if held():
+        return True
+    subprocess.run(["git", "-C", str(checkout), "fetch", "-q", "origin",
+                    f"+refs/heads/{branch}:refs/remotes/origin/{branch}"],
+                   capture_output=True)
+    return held()
+
+
 def prepare_worktree(checkout, ref, branch, wt, discard=None) -> str:
     """A throwaway DETACHED worktree at the branch's remote tip when one
     exists (so sequential edits accumulate), else at origin/<ref>; returns
@@ -935,9 +956,7 @@ def prepare_worktree(checkout, ref, branch, wt, discard=None) -> str:
         if run(["git", "-C", str(wt), "status", "--porcelain"]).strip():
             raise Refuse(f"{wt} has uncommitted changes; refusing to reuse it")
         old = run(["git", "-C", str(wt), "rev-parse", "HEAD"]).strip()
-        if old != discard and not run(
-                ["git", "-C", str(wt), "for-each-ref", "--contains", old,
-                 "--format=%(refname)", "refs/remotes/origin/"]).strip():
+        if old != discard and not _on_origin(checkout, wt, old, branch):
             raise Refuse(f"{wt} HEAD {old[:12]} is on no origin ref; an "
                          "unpushed edit would be lost")
         run(["git", "-C", str(wt), "checkout", "-q", "--detach", base_sha])
@@ -1023,8 +1042,27 @@ def brief_lint_script(lint_cwd) -> str | None:
     return None
 
 
-def lint_gate(checkout, lint_cwd, roster_path):
-    """brief_lint from a fresh origin/main checkout. Returns (ok, detail)."""
+ERROR_LINE = re.compile(r"^\s*ERROR\b.*$", re.M)
+TOTAL_N = re.compile(r"TOTAL: (\d+) error")
+
+
+def _lint_errors(out):
+    """(the ERROR lines of one lint run, whether they account for its TOTAL).
+    A failure the lines do not account for (a problem printed in another
+    shape) cannot be attributed to a write, so the gate refuses it whole."""
+    errs = [m.group(0).strip() for m in ERROR_LINE.finditer(out)]
+    m = TOTAL_N.search(out)
+    return errs, bool(m) and int(m.group(1)) == len(errs)
+
+
+def lint_gate(checkout, lint_cwd, roster_path, base_text=None):
+    """brief_lint from a fresh origin/main checkout. Returns (ok, detail).
+
+    With `base_text` (the roster as the write found it) the gate refuses only
+    the ERROR lines the same lint over that base does not print: a merge to
+    main that moves a line one brief cites must not stop a write that never
+    touches that brief (P435). Each pre-existing error is returned in `detail`
+    as a WARN naming its group, for the owner to re-pin."""
     run(["git", "-C", str(checkout), "fetch", "-q", "origin", "main"])
     main_sha = run(["git", "-C", str(checkout), "rev-parse", "origin/main"]).strip()
     made = None
@@ -1049,7 +1087,25 @@ def lint_gate(checkout, lint_cwd, roster_path):
         out = r.stdout + r.stderr
         ok = bool(TOTAL_OK.search(out))
         tail = "\n".join(out.strip().splitlines()[-3:])
-        return ok, tail
+        if ok or base_text is None:
+            return ok, tail
+        errs, whole = _lint_errors(out)
+        if not whole:
+            return False, tail
+        bdir = tempfile.mkdtemp(prefix="hpo-lint-base-")
+        try:
+            bpath = Path(bdir) / Path(roster_path).name
+            bpath.write_text(base_text, encoding="utf-8")
+            br = subprocess.run(["node", script, str(bpath)], cwd=lint_cwd,
+                                capture_output=True, text=True)
+            base_errs, _ = _lint_errors(br.stdout + br.stderr)
+        finally:
+            shutil.rmtree(bdir, ignore_errors=True)
+        new = [e for e in errs if e not in base_errs]
+        if new:
+            return False, "\n".join(new + [tail])
+        warn = "\n".join(f"WARN pre-existing, re-pin owed: {e}" for e in errs)
+        return True, warn
     finally:
         if made:
             run(["git", "-C", str(checkout), "worktree", "remove",
@@ -1093,8 +1149,9 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
             raise Refuse(str(e))
         path = Path(worktree) / rel
         print(f"roster: {rel} on {branch}")
-        roster = json.loads(path.read_text(encoding="utf-8"))
-        before = json.loads(path.read_text(encoding="utf-8"))
+        base_text = path.read_text(encoding="utf-8")
+        roster = json.loads(base_text)
+        before = json.loads(base_text)
         if not edit(roster, rel):
             return 0
         why = triage_refusal(added_texts(before, roster),
@@ -1112,7 +1169,9 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
         run(["git", "-C", str(worktree), "commit", "-q", "-am", msg])
         head = run(["git", "-C", str(worktree), "rev-parse", "HEAD"]).strip()
         refspec = f"{head}:refs/heads/{branch}"
-        ok, detail = lint_gate(checkout, lint_cwd, path)
+        ok, detail = lint_gate(checkout, lint_cwd, path, base_text)
+        if ok and detail:
+            print(detail, file=sys.stderr)
         if not ok:
             print(f"roster_edit: LINT GATE REFUSED the push\n{detail}\n"
                   f"the commit is local at {head[:12]} in {worktree} "
@@ -1127,6 +1186,11 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
                             "origin", refspec],
                            capture_output=True, text=True)
         if r.returncode == 0:
+            # our own push: the tracking ref must follow it, or the next op
+            # in this run finds HEAD on no origin ref
+            subprocess.run(["git", "-C", str(checkout), "update-ref",
+                            f"refs/remotes/origin/{branch}", head],
+                           capture_output=True)
             print(f"pushed {branch} at {head}")
             return 0
         why = (r.stderr or r.stdout).strip()[:400]
@@ -1174,7 +1238,9 @@ def build_parser():
                         "containing it")
     p.add_argument("--cite", help="set-size / set-files: <ref>@<sha>, a ref "
                    "that must hold the sha; recorded in resume.note")
-    p.add_argument("--add", nargs="+", help="set-files: paths appended to files")
+    p.add_argument("--add", nargs="+", action="extend",
+                   help="set-files: paths appended to files; repeatable "
+                        "(the default store action kept only the last list)")
     p.add_argument("--set-files", help="set-files: replace files whole "
                    "(comma list, - for none)")
     p.add_argument("--set-hot", help="set-files: replace hot_files whole "
@@ -1450,6 +1516,35 @@ def _self_test() -> int:
     finally:
         os.chdir(here)
 
+    # --- the gate refuses only errors the base roster does not already carry (P435)
+    errlint = (
+        "import {readFileSync} from 'node:fs';\n"
+        "const t=readFileSync(process.argv[2],'utf8');\n"
+        "const e=[...t.matchAll(/__bad_(\\w+)__/g)].map(m=>m[1]);\n"
+        "for (const x of e) console.log(`  ERROR   [G-${x}] cite: a.py:${x} moved`);\n"
+        "console.log(`TOTAL: ${e.length} error(s) across 1 file(s)`);\n")
+    drv_e, lint_e = planted("gate-base", {new_rel: errlint})
+    rpath = lint_e / "roster-under-lint.json"
+    cur = "{}\n__bad_one__\n"
+    def base_gate(text, base):
+        rpath.write_text(text, encoding="utf-8")
+        return lint_gate(drv_e, str(lint_e), rpath, base)
+    ok, why = base_gate(cur + "other edit\n", cur)
+    check("lint gate: an unrelated write passes beside a pre-existing error, warning it",
+          ok and "WARN pre-existing" in why and "G-one" in why, why[:200])
+    ok, why = base_gate(cur + "__bad_two__\n", cur)
+    check("lint gate: the same write adding a bad citation is refused, naming it",
+          not ok and "G-two" in why.splitlines()[0], why[:200])
+    ok, why = base_gate("{}\nclean\n", "{}\nclean\n")
+    check("lint gate: a clean roster writes as before (null control)",
+          ok and why.startswith("TOTAL: 0"), why[:200])
+    ok, why = base_gate(cur, None)
+    check("lint gate: with no base text every error refuses (the old gate)",
+          not ok and "G-one" in why, why[:200])
+    ok, why = base_gate(cur, "{}\n")
+    check("lint gate: an error the base lacks refuses (an empty base set would pass it)",
+          not ok and "G-one" in why, why[:200])
+
     # The fixture's roster: one round, so the newest IS this path.
     FIXTURE_ROSTER = f"{roster_lib.ROSTERS_DIR}/wave-r9-groups.json"
     seed = Path(tmp, "seed")
@@ -1542,8 +1637,11 @@ def _self_test() -> int:
         cannot tell this op's refusal from argparse refusing the op itself,
         or one refusal from another that happens to fire first."""
         err = io.StringIO()
-        with contextlib.redirect_stderr(err):
-            rc = sysrc(lambda: edit(*args, **kw))
+        try:
+            with contextlib.redirect_stderr(err):
+                rc = sysrc(lambda: edit(*args, **kw))
+        except Exception:  # a crash is no refusal: a FAIL line, not a traceback that ends the run (C6)
+            return False
         return rc not in (0, None) and why in err.getvalue()
 
     def refusal(*args, **kw):
@@ -1710,6 +1808,9 @@ def _self_test() -> int:
           and branch_roster()["groups"][0]["carry"] == ["carry text one"])
     check("dup carry refused",
           edit("append-carry", "R9-A", "carry text one") == 2)
+    check("append-carry refuses text ending in a mark-shaped suffix",
+          edit("append-carry", "R9-A", "fresh text [implemented: abc123]") == 2
+          and branch_roster()["groups"][0]["carry"] == ["carry text one"])
     check("unknown group refused", edit("set-stage", "R9-ZZ", "done") == 2)
 
     # The triage gate (decision 0015). The ruling batch lands on origin/main;
@@ -1779,7 +1880,7 @@ def _self_test() -> int:
           and edit("drop-carry", "R9-B", None, match="no proposal") == 0
           and edit("drop-carry", "R9-B", None, match="lettered proposal") == 0
           and edit("drop-carry", "R9-B", None, match="P-value") == 0
-          and branch_roster()["groups"][1]["carry"] == [])
+          and branch_roster()["groups"][1].get("carry") == [])  # .get: a dropped key is a FAIL line, never a KeyError crash (C6)
 
     # set-resume: the resume free-text fields a session restarts from, through
     # the same load/modify/dump flow -- never a string splice.
@@ -2549,7 +2650,7 @@ def _self_test() -> int:
     def racing(times):
         busy = []
 
-        def hooked(checkout, lint_cwd, roster_path):
+        def hooked(checkout, lint_cwd, roster_path, *rest):
             if not busy and len(rivals) < times:
                 rivals.append(f"rival carry {next(serial)}")
                 busy.append(1)
@@ -2562,7 +2663,7 @@ def _self_test() -> int:
                     busy.clear()
                 if rc_r != 0:
                     raise Refuse(f"self-test rival edit failed rc={rc_r}")
-            return real_lint(checkout, lint_cwd, roster_path)
+            return real_lint(checkout, lint_cwd, roster_path, *rest)
         return hooked
 
     def race_tip():
@@ -2754,7 +2855,84 @@ def _self_test() -> int:
     check("fetch_origin: several raced refs in one fetch are one race",
           got[0] == "ok" and got[1] == 2, got)
 
+    # --- a stale tracking ref is not an unpushed edit (P409)
+    wt_ = Path(tmp, "wt")
+    run(["git", "-C", str(drv), "fetch", "-q", "origin"])
+    head_ = tip()
+    run(["git", "-C", str(wt_), "checkout", "-q", "--detach", head_])
+    check("P409: the worktree head is on origin before the tracking ref goes stale",
+          _on_origin(drv, wt_, head_, "edit-1"))
+    for ref_ in run(["git", "-C", str(drv), "for-each-ref", "--format=%(refname)",
+                     "refs/remotes/origin/"]).split():
+        run(["git", "-C", str(drv), "update-ref", "-d", ref_])
+    check("P409: a stale tracking ref (a rival's push) passes after the one fetch",
+          _on_origin(drv, wt_, head_, "edit-1"))
+    run(["git", "-C", str(wt_), "commit", "-q", "--allow-empty", "-m", "unpushed"])
+    check("P409: a real unpushed commit still refuses (null control)",
+          not _on_origin(drv, wt_, run(["git", "-C", str(wt_), "rev-parse",
+                                        "HEAD"]).strip(), "edit-1"))
+    run(["git", "-C", str(wt_), "reset", "-q", "--hard", head_])
+    run(["git", "-C", str(drv), "update-ref", "-d", "refs/remotes/origin/edit-1"])
+    check("P409: two ops in one run both land after our own push",
+          more("set-resume", "R9-A", "first", "--field", "note") == 0
+          and more("set-resume", "R9-A", "second", "--field", "note") == 0
+          and "second" in (grp("R9-A").get("resume") or {}).get("note", "")
+          and subprocess.run(["git", "-C", str(drv), "rev-parse",
+                              "refs/remotes/origin/edit-1"],
+                             capture_output=True, text=True).stdout.strip() == tip())
+
+    # --- P435 through an op: write_roster hands the gate the roster it found,
+    # so a not-done brief already failing the lint (a merge moved the line it
+    # cites) does not stop an unrelated write; the same op adding a new bad
+    # citation still refuses. The lint is `errlint` (one ERROR per plant).
+    seed4 = Path(tmp, "seed4")
+    seed4.mkdir()
+    throwaway_git_init(seed4, "-q", "-b", "main")
+    (seed4 / BRIEF_LINT_NEW).parent.mkdir(parents=True)
+    (seed4 / BRIEF_LINT_NEW).write_text(errlint, encoding="utf-8")
+    r4 = {"groups": [{"group": "R9-A", "lane": "L1", "issues": [], "after": [],
+                      "brief": "cites __bad_one__", "resume": {}}]}
+    (seed4 / FIXTURE_ROSTER).parent.mkdir(parents=True, exist_ok=True)
+    (seed4 / FIXTURE_ROSTER).write_text(dump(r4), encoding="utf-8")
+    run(["git", "-C", str(seed4), "add", "-A"])
+    run(["git", "-C", str(seed4), "commit", "-q", "-m", "a pre-existing lint error"])
+    origin4 = Path(tmp, "origin4.git")
+    throwaway_git_clone(seed4, origin4, "-q", "--bare")
+    drv4 = Path(tmp, "drv4")
+    throwaway_git_clone(origin4, drv4, "-q")
+
+    def resume4(value, wt):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            rc = sysrc(lambda: main(
+                ["set-resume", "R9-A", value, "--field", "note",
+                 "--checkout", str(drv4), "--roster-ref", "main",
+                 "--branch", "edit-4", "--worktree", str(Path(tmp, wt)),
+                 "--lint-cwd", str(seed4), "--push"]))
+        return rc, err.getvalue()
+
+    def at4():
+        return subprocess.run(["git", "-C", str(origin4), "rev-parse", "-q", "--verify",
+                               "refs/heads/edit-4"], capture_output=True,
+                              text=True).stdout.strip()
+
+    rc, said = resume4("an unrelated note", "wt-p435")
+    landed = at4()
+    check("P435 op: set-resume beside a pre-existing lint error lands rc 0, warning it",
+          rc == 0 and bool(landed) and "WARN pre-existing" in said and "G-one" in said,
+          (rc, said[-300:]))
+    rc, said = resume4("adds __bad_two__", "wt-p435b")
+    named = said.split("LINT GATE REFUSED the push\n", 1)[-1].splitlines()[:1]
+    check("P435 op: the same op adding a new bad citation refuses rc 3, naming it first (null)",
+          rc == 3 and at4() == landed and named and "G-two" in named[0],
+          (rc, said[-300:]))
     shutil.rmtree(tmp, ignore_errors=True)
+    # --- repeated --add (P418): extend, never keep only the last list
+    for argv_, want_ in ((["--add", "a", "--add", "b"], ["a", "b"]),
+                         (["--add", "a", "b", "--add", "c"], ["a", "b", "c"]),
+                         (["--add", "a"], ["a"])):
+        check(f"set-files {' '.join(argv_)} parses to {want_}",
+              parse_op(["set-files", "G", "--worktree", "w"] + argv_)[0].add == want_)
     # --- the roster seat's lane (P215): structural ops need the queue runner's marker
     saved_lane = os.environ.pop(LANE_ENV, None)
     try:
