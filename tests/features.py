@@ -44941,9 +44941,8 @@ R.check(
 _wf_not_ready = _wf_view(
     {"wood_tank_volume": 500.0},
     prices=[4.0],
-    outdoor=[-5.0],
+    cops=[2.0],
     runs=[True],
-    cop_at=lambda _t: 2.0,
     timestamps=[],
     forecast_kw=[],
 )
@@ -45059,6 +45058,34 @@ R.check(
     and _wf_off_pub["wood_fuel"].get("cheaper") is False,
     repr(_wf_off_pub.get("wood_fuel")),
 )
+# R10-PARTLOAD-RESIDUE: the published advisor prices pump heat at the derated
+# COP of the plan's own draw, wired by the coordinator (``partload_at``). The
+# step runs at max power, priced so the linear pump heat is 2 % below wood's
+# and the derated one (d = 0.1, factor 0.9) about 8.9 % above it. Null: the
+# same plan at derate 0 counts no cheaper step.
+_wf_tp = _wf_ready_coord._thermal_params
+_wf_sek = _wf_pub["wood_fuel"]["sek_per_kwh"]
+_wf_cop = float(_wf_ready_coord._thermal_model.compute_cop(-5.0))
+_wf_ready_coord._optimization_result = _wf_replace(
+    _wf_result, prices=[0.98 * _wf_sek * _wf_cop],
+    power_schedule=[_wf_tp.max_electrical_power])
+_wf_kept_derate = _wf_tp.cop_partload_derate
+_wf_partload = []
+try:
+    _dt_wf.now = lambda: NOW
+    for _wf_d in (0.1, 0.0):
+        _wf_tp.cop_partload_derate = _wf_d
+        _wf_partload.append(
+            _wf_ready_coord._build_data_dict()["wood_fuel"].get("cheaper_hour_count"))
+finally:
+    _dt_wf.now = _real_now_wf
+    _wf_tp.cop_partload_derate = _wf_kept_derate
+R.check(
+    "the published wood advisor prices a max-power step's pump heat at the "
+    "derated COP (cheaper at d = 0.1, not at d = 0; R10-PARTLOAD-RESIDUE)",
+    _wf_partload == [1, 0],
+    repr(_wf_partload),
+)
 _wf_idle = _WfOR(
     power_schedule=[0.0],
     room_temp_trajectory=[21.0, 21.0],
@@ -45094,9 +45121,8 @@ R.check(
 
 _wf_soc_kwargs = dict(
     prices=_wf_cheap_night,
-    outdoor=[0.0] * 48,
+    cops=[3.0] * 48,
     runs=[False] * 48,
-    cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
 )
@@ -45145,9 +45171,8 @@ R.check(
 _wf_skip_view = _wf_view(
     _wf_cfg,
     prices=_wf_skip_prices,
-    outdoor=[0.0] * 48,
+    cops=[3.0] * 48,
     runs=[False] * 48,
-    cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
     wood_tank_temperature=87.4,
