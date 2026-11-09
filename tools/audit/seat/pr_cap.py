@@ -70,12 +70,12 @@ def counted(prs: list) -> list:
     """The open pull requests the open count reports, in the order given.
 
     This is the tick's M and `info`'s N, not a gate: the cap counts roster
-    groups (`wip_groups`), so a record: title and another bot's pull request
+    groups (`wip_groups`), so a record:, triage: or roster: title and another bot's pull request
     are excluded here without being excluded from anywhere that decides.
     """
     out = []
     for pr in prs:
-        if str(pr.get("title") or "").startswith("record:"): continue  # mut:caprecord
+        if str(pr.get("title") or "").startswith(("record:", "triage:", "roster:")): continue  # mut:caprecord
         if is_bot(pr): continue  # mut:capbot
         out.append(pr)
     return out
@@ -287,6 +287,11 @@ def self_test() -> int:
                                            "author": human}])) == 6)
     twenty = [{"number": i, "title": "t", "author": app} for i in range(20)]
     rc, line = open_info(twenty, "")
+    ck("a triage: and a roster: title do not count either; a production title does (null)",
+       [p["number"] for p in counted([
+           {"number": 1, "title": "triage: s9 batch 3", "author": app},
+           {"number": 2, "title": "roster: carry fold", "author": app},
+           {"number": 3, "title": "R10-X: t", "author": app}])] == [3])
     ck("null control: 20 open pull requests are information; opening is not refused",
        rc == 0 and line == "open_pr: 20 open PRs; the cap gates dispatch, not opening")
     rc, line = open_info(None, "gh exited 1: HTTP 403")

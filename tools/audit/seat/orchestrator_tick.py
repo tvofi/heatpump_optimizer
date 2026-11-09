@@ -828,6 +828,22 @@ class Tick:
         return bool(re.search(rf"#{n}(?!\d)|payload-(?:fix-)?{n}-r\d+\.json", line)) or any(
             t and re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", line, re.I) for t in topics)
 
+    def _disposed(self, ref: str, sha: str) -> bool:
+        """The obligations ledger holds a disposition for `ref` at exactly `sha` (an older sha
+        owes still). An unreadable ledger disposes nothing; the design-build pass names it."""
+        if getattr(self, "_disp", None) is None:
+            lg = _module("ledger_tick", "tools/audit/seat/ledger.py")
+            try:
+                self._disp = lg.dispositions(Path(self.relay_log).parent)
+            except lg.Unreadable:
+                self._disp = {}
+        return self._disp.get(ref, ("",))[0] == sha
+
+    def _blocked_md(self, sha: str) -> "str | None":
+        """BLOCKED.md at a handoff-wip tip, None when the tip holds none (or the read failed)."""
+        code, text = self.git(["show", f"{sha}:BLOCKED.md"])
+        return text if code == 0 else None
+
     def _seat_on(self, n: int, topics: list, heads: dict, kinds=("handoff-wip", "handoff", "handoff-body")) -> bool:
         """A seat is on a PR when, inside SEAT_WINDOW_MIN, a FIRED line names it, or a
         handoff-wip/, handoff/ or handoff-body/<topic> ref moved (`kinds` narrows the refs)."""
@@ -835,12 +851,20 @@ class Tick:
         for when, l in self._fired():
             if (when is None or when >= cutoff) and self._fire_names(n, topics, l):
                 return True
+        tg = _module("topic_grammar_tick", "tools/audit/seat/topic_grammar.py")
         for t in topics:
             for fam in kinds:
-                sha = heads.get(f"{fam}/{t}")
-                age = self._age_min(f"{fam}/{t}", sha) if sha else None
-                if age is not None and age <= SEAT_WINDOW_MIN:
-                    return True
+                refs = [f"{fam}/{t}"]
+                if fam == "handoff-wip":  # a split seat step-pushes under the family's topic (topic-family.md)
+                    refs += sorted(k for k in heads if k.startswith("handoff-wip/")
+                                   and k != refs[0] and tg.family(t).fullmatch(k[len("handoff-wip/"):]))  # mut:wipfamily
+                for ref in refs:
+                    sha = heads.get(ref)
+                    if fam == "handoff-wip" and sha and self._blocked_md(sha) is not None:  # mut:blockedseat
+                        continue  # a stop on a question is owed by blocked_stops, not a seat on the PR
+                    age = self._age_min(ref, sha) if sha else None
+                    if age is not None and age <= SEAT_WINDOW_MIN:
+                        return True
         return False
 
     @staticmethod
@@ -900,6 +924,46 @@ class Tick:
                   + ("; not bucketed: " + ", ".join(f"{k} {v}" for k, v in sorted(skipped.items()))
                      if skipped else ""))
         self.payloads(S)
+        self.blocked_stops(S, heads)
+
+    def _dispatch_newer(self, topic: str, sha: str) -> "bool | None":
+        """A `dispatch/fixer-<topic>` tip committed after the handoff-wip tip `sha`; None: a read failed."""
+        ref = f"refs/heads/dispatch/fixer-{topic}"
+        code, o = self.git(["ls-remote", "origin", ref])
+        if code:
+            return None
+        d = o.split()[0] if o.split() else ""
+        if not d:
+            return False
+        if self.git(["fetch", "-q", "origin", ref])[0]:
+            return None
+        times = []
+        for x in (d, sha):
+            c, ct = self.git(["log", "-1", "--format=%ct", x])
+            try:
+                times.append(int(ct.strip()) if c == 0 else None)
+            except ValueError:
+                times.append(None)
+        return None if None in times else times[0] > times[1]
+
+    def blocked_stops(self, S: str, heads: dict) -> None:
+        """A fixer stopped on a question: a handoff-wip/<topic> tip holding BLOCKED.md, with no
+        dispatch/fixer-<topic> newer than it and no ledger disposition at its sha, owes an answer."""
+        for key in sorted(heads):
+            if not key.startswith("handoff-wip/"):
+                continue
+            topic, sha = key[len("handoff-wip/"):], heads[key]
+            text = self._blocked_md(sha)
+            if text is None or self._disposed(f"refs/heads/{key}", sha):  # mut:blockeddisp
+                continue
+            newer = self._dispatch_newer(topic, sha)
+            if newer is None:
+                self.unreadable(S, "blocked stops", f"{topic}: git read of the dispatch ref failed")
+                continue
+            if newer:  # mut:blockednewer
+                continue
+            q = next((l.strip() for l in text.splitlines() if l.strip().lower().startswith("question")), "no Question line")
+            self.line(S, f"OWED blocked-stop {topic} {sha[:12]} {q}", flag=True)
 
     def _bucket(self, n, head, pr, topics, lines, last, ms, queue, parked, dispatched, heads, files,
                 open_n, roster, rl):
@@ -922,7 +986,9 @@ class Tick:
             except ValueError:
                 head_age = None
             in_head = self.git(["merge-base", "--is-ancestor", heads[f"handoff/{topic}"], head])[0] == 0
+            disposed = self._disposed(f"refs/heads/handoff-body/{body}", heads[f"handoff-body/{body}"])  # mut:bodydisp
             if (body_age is not None and head_age is not None and body_age < head_age and in_head
+                    and not disposed
                     and not self._seat_on(n, topics, heads, kinds=("handoff-wip", "handoff"))):
                 return "owed", f"handoff-body/{body} is newer than the head, repair done and unapplied", "body-ahead"
         if verdict_kind(last, head) == "blocked":
@@ -1508,10 +1574,12 @@ class Tick:
         open_g = rl.open_groups(roster)
         self.line(S, f"{len(open_g)} open group(s) of {len(groups)}")
         for gid, g in groups.items():
-            if gid not in open_g:
-                continue
             stage = (g.get("resume") or {}).get("stage")
-            blockers = [a for a in (g.get("after") or []) if a in open_g]
+            # roster_lib closes refused and deferred groups (is_open is
+            # False), yet the tick still reports them: they stay deferred.
+            if gid not in open_g and stage not in DEFERRED_STAGES:
+                continue
+            blockers = [a for a in (g.get("after") or []) if a in groups and rl.gates(groups[a])]
             if stage in DEFERRED_STAGES or g.get("deferred") or g.get("refused"):
                 self.line(S, f"{gid}: deferred/refused (stage {stage}) -- "
                              "stays deferred")
@@ -3955,7 +4023,8 @@ def self_test() -> int:
         h = lambda n: f"{n:040x}"
         def oboard2(specs, red=None, fired=None, refs=(), cts=None, files=None, queue_v=None,
                     train=None, body=None, bodies=None, disp=(), newer=None, newer_fail=(),
-                    extra=(), roster=None, extra_read=(), ancestor=True, via_prs=False):
+                    extra=(), roster=None, extra_read=(), ancestor=True, via_prs=False,
+                    show=None, dref=None, disposed=()):
             """specs [(n, ms, [verdict lines], verdict_age_min)] -> (tick, owed lines).
             disp: PR numbers on bus.sh's dispatch record at their head; newer {n: minutes ago}: a
             handoff/<n> tip committed that long ago; newer_fail: PRs whose handoff ls-remote fails;
@@ -3977,7 +4046,13 @@ def self_test() -> int:
                 Path(fl).write_text(fired)
             board = [dict(pr_obj(n, h(n), ms=ms), body=(bodies or {}).get(n, "")) for n, ms, _, _ in specs]
             board += list(extra)
-            t = tick(prs=board, queue=str(qf), train_log=tl, fired_log=fl, bus_state=str(bus), roster=roster)
+            home = od / "relay"
+            home.mkdir()
+            t = tick(prs=board, queue=str(qf), train_log=tl, fired_log=fl, bus_state=str(bus), roster=roster,
+                     relay_log=str(home / "cloud-relay.log"))
+            lgm = _module("ledger_tick", "tools/audit/seat/ledger.py")
+            for dref_, dsha in disposed:
+                lgm.dispose(home, dref_, dsha, "body-patched")
             t._git.h[:0] = [(("ls-remote", "origin", ref.rsplit("/", 1)[0] + "/*"), 0, f"{sha}\trefs/heads/{ref}\n")
                             for ref, sha in refs] + [(("ls-remote",), 0, "")]
             t._git.h[:0] = [(("log", "-1", "--format=%ct", sha), 0, f"{int((NOW - timedelta(minutes=m)).timestamp())}\n")
@@ -3987,6 +4062,15 @@ def self_test() -> int:
                                for n in (newer or {})]
                             + [(("log", "-1", "--format=%ct", f"{n:x}".rjust(40, "d")), 0,
                                 f"{int((NOW - timedelta(minutes=m)).timestamp())}\n") for n, m in (newer or {}).items()])
+            t._git.h[:0] = [(("show", f"{sha}:BLOCKED.md"), 0, txt) for sha, txt in (show or {}).items()]
+            if dref:  # (topic, sha, minutes ago): the dispatch/fixer-<topic> tip
+                dt_, dsha, dm = dref
+                t._git.h[:0] = [(("ls-remote", "origin", f"refs/heads/dispatch/fixer-{dt_}"), 0,
+                                 f"{dsha}\trefs/heads/dispatch/fixer-{dt_}\n"),
+                                (("log", "-1", "--format=%ct", dsha), 0,
+                                 f"{int((NOW - timedelta(minutes=dm)).timestamp())}\n")]
+            else:
+                t._git.h[:0] = [(("ls-remote", "origin", "refs/heads/dispatch/fixer-"), 0, "")]
             if not ancestor:
                 t._git.h.insert(0, (("merge-base", "--is-ancestor"), 1, ""))
             t._readback = {str(n): ls for n, _, ls, _ in specs}
@@ -4025,6 +4109,21 @@ def self_test() -> int:
         _, o_ba = oboard2([(85, "BLOCKED", [], 0)], **ba)
         _, o_ba0 = oboard2([(85, "BLOCKED", [], 0)], refs=ba["refs"], cts={h(85): 20, "b" * 40: 30})
         _, o_baf = oboard2([(85, "BLOCKED", [], 0)], fired=f"{iso(NOW - timedelta(minutes=10))} FIRED #85 r2\n", **ba)
+        # carry 13: a disposition at the body ref's sha clears BODY-AHEAD; an older sha still owes
+        _, o_bd = oboard2([(85, "BLOCKED", [], 0)], disposed=[("refs/heads/handoff-body/85", "b" * 40)], **ba)
+        _, o_bd0 = oboard2([(85, "BLOCKED", [], 0)], disposed=[("refs/heads/handoff-body/85", "a" * 40)], **ba)
+        # carry 14: a handoff-wip tip holding BLOCKED.md owes; a newer dispatch, a disposition or no file clears it
+        bl_tip, bl_txt = "e" * 40, "# Blocked\nQuestion: which seam owns the cap?\n"
+        bl = dict(refs=[("handoff-wip/blk", bl_tip)], cts={bl_tip: 60}, show={bl_tip: bl_txt})
+        _, o_bl = oboard2([], dref=("blk", "f" * 40, 600), **bl)
+        _, o_bl_new = oboard2([], dref=("blk", "f" * 40, 10), **bl)
+        _, o_bl_disp = oboard2([], dref=("blk", "f" * 40, 600), disposed=[(f"refs/heads/handoff-wip/blk", bl_tip)], **bl)
+        _, o_bl_nofile = oboard2([], refs=bl["refs"], cts=bl["cts"])
+        _, o_bl_red = oboard2([(86, "BLOCKED", [], 0)], red={86: ["gate"]}, dref=("86", "f" * 40, 600),
+                              refs=[("handoff-wip/86", bl_tip)], cts={bl_tip: 5}, show={bl_tip: bl_txt})
+        # carry 7: a family member's handoff-wip is a seat on the PR; a bare -<N> sibling's is not
+        _, o_fam = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]}, refs=[("handoff-wip/82-p1", "e" * 40)], cts={"e" * 40: 5})
+        _, o_fam2 = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]}, refs=[("handoff-wip/82-2", "e" * 40)], cts={"e" * 40: 5})
         # R10-TICK-LEVELS null controls: a DIRTY and red PR a bucket already owns prints no OWED line
         rec = getattr(_module("record_row_tick", "tools/audit/seat/record_row.py"), "RECORD_BRANCH", "record")
         bk_of = lambda t: t.sections["PRS"][-1]["text"]
@@ -4096,6 +4195,16 @@ def self_test() -> int:
              and o_r2 == [] and o_rc == [] and o_rm == []),
             ("carry 5 BODY-AHEAD: a body ref newer than the head owes; an older one, or a fire, does not",
              len(o_ba) == 1 and "body-ahead #85" in o_ba[0] and o_ba0 == [] and o_baf == []),
+            ("carry 7: a wip ref of a family member (-p1) is a seat; a bare -<N> sibling's is not",
+             not any("red-unowned" in x for x in o_fam) and any("red-unowned" in x for x in o_fam2)),
+            ("carry 13: a disposition at the body sha clears BODY-AHEAD; one at an older sha still owes",
+             o_bd == [] and len(o_bd0) == 1 and o_bd0[0].startswith("OWED body-ahead #85")),
+            ("carry 14: a BLOCKED.md tip owes, naming topic, sha and Question line",
+             len(o_bl) == 1 and o_bl[0] == f"OWED blocked-stop blk {bl_tip[:12]} Question: which seam owns the cap?"),
+            ("carry 14: a newer dispatch, a disposition at the sha, or a tip without the file owes nothing",
+             o_bl_new == [] and o_bl_disp == [] and o_bl_nofile == []),
+            ("carry 14: a red PR whose only move is a BLOCKED.md tip is still RED-UNOWNED",
+             any(x.startswith("OWED red-unowned #86") for x in o_bl_red)),
             ("carry 5 FIRE-OWED: a rendered payload with no FIRED line owes; one a FIRED line names does not",
              len(fo) == 1 and "payload-fix-86-r1.json" in fo[0] and fo0 == [] and fo_young == []),
             ("null: a DIRTY, red PR in train (a queue verdict, no merge verdict) prints no OWED, names the bucket",

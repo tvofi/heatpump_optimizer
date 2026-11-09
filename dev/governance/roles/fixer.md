@@ -273,14 +273,11 @@ never a pull-request body — decision 0010, true under either merge method).
 the single class named by `COORDINATOR_CLASS_NAME`; the rest from every parsed
 module. A method added outside that **class** moves none of the first group, so
 the payment question does not arise there. *Class*, not file: `coordinator.py`
-holds several, and adding a method, call and attribute to `CoordinatorContext` moves no row.
-Derive the split (what `measure()` keys by that name) at your merge base; never carry it.
-`max_class_loc` is a span: a docstring line costs what a code line does.
+holds several; `CoordinatorContext` additions move no row. Derive the split at your merge base.
 
 **An empty payment pool is a halt only where a payment was owed.** Let
 `python3 tests/structure.py` name what moved at your merge base. Outside the
-coordinator class a split usually moves the maxima *down* -- which the gate still
-refuses until you re-record them.
+coordinator class a split moves the maxima *down*; re-record them.
 
 A raise is the owner's, confirmed before the push (`CLAUDE.md` rule 2); zero
 headroom is no veto on new functionality or the better fix (#398). **The ask and the PR body list every
@@ -295,6 +292,10 @@ what to write and where it goes, and a comment on this PR discharges none of it.
 Name the destination in your PR body — which brief, contract, carry file or
 roster received it — so the reviewer checks the destination rather than takes
 your word.
+
+**A finding in your own group's seam is built in this PR, not carried.**
+`Carry: <own group>` only names a pending owner or orchestrator ruling, or a
+split part the approved plan names.
 
 ## Before you hand off: answer any check your branch turned red
 
