@@ -673,6 +673,7 @@ RANGE_ZONE_HEAT_LOSS: Final = (0.001, 1.0)
 PRESET_WARNING: Final = {
     "en": "Deriving from the building type is switched on, so saving Building type and emitters recalculates the house thermal mass, heat loss, slab mass and slab transfer below (and the two-zone values) from the questionnaire, overwriting whatever is here. Changing any of those fields to a different value switches the derivation off, so your value stays; simply saving this page again does not.",
     "sv": "Härledning från hustypen är påslagen, så när sidan Hustyp och värmesystem sparas räknas husets värmekapacitet, värmeförlust, plattans termiska massa och värmeöverföring nedan (samt tvåzonsvärdena) om från formuläret och skriver över det som står här. Ändrar du något av de fälten till ett annat värde stängs härledningen av, så att ditt värde blir kvar; att bara spara sidan igen gör det inte.",
+    "de": "Die Ableitung aus dem Gebäudetyp ist eingeschaltet. Beim Speichern der Seite „Gebäudetyp und Heizflächen“ werden deshalb die thermische Masse des Hauses, der Wärmeverlust sowie die thermische Masse und der Wärmeübergang des Estrichs unten (und die Zweizonenwerte) aus dem Fragebogen neu berechnet und überschreiben, was hier steht. Änderst du eines dieser Felder auf einen anderen Wert, wird die Ableitung ausgeschaltet und dein Wert bleibt erhalten; die Seite nur erneut zu speichern, genügt dafür nicht.",
 }
 
 # Everything ``presets.derive`` writes into the entry, in the order the
