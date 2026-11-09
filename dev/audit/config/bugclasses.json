@@ -4676,10 +4676,11 @@
       "parts_missing": [
         "the census's pass at the fix's head",
         "wiring the census as a tests/ script",
-        "the meter band"
+        "the meter floor",
+        "an inflated reference on a wood house has no meter oracle (owner ruling)"
       ],
       "process_state": "(c) step 6 ran and recorded 12/12 SOUND on the fixer's metric and population: the spread of step 0 across room and slab starts reads SOUND on a constant zero, no savings harness names a valve or a wood tank, and #2887's valved arm reads the horizon sum while the ledger books step 0",
-      "countermeasure": "proposed barrier: census of installs and tank states booked through get_current_action (red at v7.0.4, v7.1.1 and main), plus a meter band on the published row; at most 2.1 h/release against 6.8 h/release",
+      "countermeasure": "proposed barrier: census of installs and tank states booked through get_current_action (red at v7.0.4, v7.1.1 and main), plus a meter floor on the published row (R10-SAV-METER-FLOOR: booked reference kWh under METER_FLOOR 0.5 of metered kWh states no saving; its ceiling rejected by the owner's no-wood ruling, triage P387), so the high side has no meter oracle; at most 2.1 h/release against 6.8 h/release",
       "landed": null,
       "in_tree_home": "dev/audit/rca/R10-RCA-SAV-ESTIMATE.md",
       "doc": [
@@ -4851,6 +4852,22 @@
       "in_tree_home": "dev/audit/rca/r10-gate-busy-defer-4.md",
       "doc": [
         "dev/audit/rca/r10-gate-busy-defer-4.md"
+      ]
+    },
+    "R10-RCA-TOPIC-FAMILY": {
+      "class": "R10-TOPIC-FAMILY",
+      "level": "class",
+      "subject": "R10-TOPIC-FAMILY class: instruments keyed on an exact topic miss its split parts (3 instances, round 10)",
+      "trigger": "class (3 instances: triage P363, P370, P376)",
+      "date": "2026-11-02",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a) the process did not exist: no policy or instrument defined the topic grammar",
+      "countermeasure": "tools/audit/seat/topic_grammar.py: one module owning pr_topic, family, family_refs, group_of and owner_topic, read by noreturn_arm, open_driver.py and roster_sync.py; self-test rows for a part return, a bare -<N> and a sibling-prefix topic, with a mutant for each",
+      "in_tree_home": "dev/audit/rca/topic-family.md",
+      "landed": null,
+      "doc": [
+        "dev/audit/rca/topic-family.md"
       ]
     },
     "R10-RCA-STAMP-CLAIM-CONFLICT": {
@@ -5351,7 +5368,7 @@
     "total": 6,
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_rca_sav_estimate.py census",
-    "detector_idea": "The census of installs and tank states as a tests/ script once the fix lands, plus a meter band on the published row (dev/audit/rca/R10-RCA-SAV-ESTIMATE.md)",
+    "detector_idea": "The census of installs and tank states as a tests/ script once the fix lands, plus a meter floor on the published row (dev/audit/rca/R10-RCA-SAV-ESTIMATE.md)",
     "barrier": null,
     "status": "detector",
     "nearest_existing": "P11",
@@ -5472,6 +5489,41 @@
       "cross_round": false,
       "barriered_any": false,
       "class_rca_on_record": false
+    }
+  },
+  "R10-TOPIC-FAMILY": {
+    "kind": "instrument",
+    "mechanism": "The topic is the join key between dispatch, return, PR and roster records, and nothing defined its grammar in one place: each instrument parsed the relation it needed from the exact string, so a split into <topic>-p<N> parts, which renames the topic partway through the work, missed at every join that crossed it (noreturn_arm false-fired SEAT ENDED NO RETURN after a seat returned on handoff/<topic>-p1; the opener logged NEEDS-TITLE for part topics)",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 P363",
+      "R10 P370",
+      "R10 P376"
+    ],
+    "per_round": {
+      "R10": 3
+    },
+    "total": 3,
+    "max_per_round": 3,
+    "detector": "tools/audit/seat/topic_grammar.py --self-test: its rows drive the family rule over the bare -<N> and sibling-prefix topics",
+    "detector_idea": null,
+    "barrier": "tools/audit/seat/topic_grammar.py, read by tools/audit/seat/cloud_relay.sh (noreturn_arm and the PR-topic strip), tools/audit/seat/open_driver.py and tools/audit/seat/roster_sync.py",
+    "status": "barriered",
+    "nearest_existing": null,
+    "mechanism_difference": "a join keyed on an exact string misses a renamed part; no value is stale or wrong, the key itself changed",
+    "aliases": [],
+    "non_round_instances": [],
+    "rca": [
+      "R10-RCA-TOPIC-FAMILY"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
     }
   },
   "N-stamp-claim-conflict": {
