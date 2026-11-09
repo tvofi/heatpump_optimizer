@@ -1,4 +1,0 @@
-  ok   the null control: a later merge of one module alone lowers the rate
-  ok   a rename alone is one module, so it adds no co-change pair
-plan_audit self-test: 27 checks, 1 failed
-plan_audit self-test: 27 checks, 0 failed

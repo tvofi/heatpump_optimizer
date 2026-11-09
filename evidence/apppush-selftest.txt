@@ -1,2 +1,1 @@
-ok   and nothing was minted or pushed
 app_push self-test: 227 checks, 0 failed

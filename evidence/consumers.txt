@@ -1,3 +1,0 @@
-tools/audit/seat/delivery_row.sh:55:  # Hermetic through the shared helper, whose identity variables (t <t@t>) are
-tools/audit/seat/plan_audit.py:569:          git("var", "GIT_AUTHOR_IDENT", cwd=repo).startswith("t <t@t>"),
-tools/audit/seat/ref_privacy.py:803:               "noreply@users.noreply.github.com", "t@t", "x@x", "fixer@invalid", "noreply@anthropic.com",
