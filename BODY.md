@@ -17,7 +17,7 @@ Sound, adopted. Judged on the added production lines (238 added, 39 deleted unde
 
 ## Head
 
-ee9138f1c3e7f0f01cdc553e521768273b860f07, branch `handoff/r10-water-setpoint-lift`, cut from origin/main ba6fd7e8b0b0502dfcce26df781810e474fc1d2f (measured 2026-11-09). Every measurement below ran at 8fb1858d75fc, whose tree is this head's tree byte for byte (`git rev-parse HEAD^{tree}` equal before and after): the re-authoring above rewrote one author field and the SHAs after it, no file. origin/main has since moved to 79b7356f3 without a conflict (`git merge-tree --write-tree origin/main HEAD` exit 0); R10-GENERIC-HEAT-CURVE (#3299) is not among the new commits.
+ec2d173c7a4835d646eddca4367559f16f5c9dde, branch `handoff/r10-water-setpoint-lift`, cut from origin/main ba6fd7e8b0b0502dfcce26df781810e474fc1d2f (measured 2026-11-09). Re-authored again at open (orchestrator, 2026-11-09): the contributor's three commits carried the unnumbered noreply `bankaifan@users.noreply.github.com`, which `ref_privacy.py guard` refuses as `unnumbered-email`; they now carry the contributor's numbered noreply `476059+Bankaifan@users.noreply.github.com` (the address their own c3ac6099 already used), each of the five trees byte-identical to its predecessor at ee9138f1 (`git rev-parse <c>^{tree}` compared commit for commit). Every measurement below ran at 8fb1858d75fc, whose tree is this head's tree byte for byte (`git rev-parse HEAD^{tree}` equal before and after): the re-authoring above rewrote one author field and the SHAs after it, no file. origin/main has since moved to 79b7356f3 without a conflict (`git merge-tree --write-tree origin/main HEAD` exit 0); R10-GENERIC-HEAT-CURVE (#3299) is not among the new commits.
 
 ## Mutation proof
 
