@@ -74,8 +74,9 @@ not at all.
   not yet started, so a running stage's seam has none (#1345's fifth seam).
 
 **While two copies disagree, the newer one is right and the other is the bug.**
-Say which is which in the carry; the out-of-tree copy needs no pull request, so
-it is usually the newer.
+Say which is which in the carry; the out-of-tree copy is usually the newer.
+
+A carry routes to another stage or seam's owner, never the fixer's own (`fixer.md`).
 
 ## Enforcement
 
@@ -96,6 +97,5 @@ done (`pr-contract`; the train's pre-flight).
 **Name a destination that exists.** A carry to a file `git grep` cannot find is
 not a carry.
 
-**Verify the write landed.** A scripted edit matching nothing reports success
-(`str.replace`, `sed`); seven of nine carries once went missing. Read the destination back: `brief_lint.mjs` does it for a roster and a
+**Verify the write landed.** A scripted edit matching nothing reports success; read the destination back: `brief_lint.mjs` does it for a roster and a
 carry file, and nothing for a role contract.

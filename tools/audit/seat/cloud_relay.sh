@@ -595,7 +595,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
   handoff_level
   while IFS=$'\t' read -r pr br head; do
     [ -n "$pr" ] || continue
-    topic=${br#fix/}; topic=${topic%-pr}
+    topic=$(python3 -I "$HERE/topic_grammar.py" pr-topic "$br")
     hs=$(awk -v r="refs/heads/handoff/$topic" '$2 == r { print $1; exit }' "$state/cloud-hrefs.$$")
     bs=$(awk -v r="refs/heads/handoff-body/$topic" '$2 == r { print $1; exit }' "$state/cloud-hrefs.$$")
     [ -n "$hs" ] && [ -n "$bs" ] || continue
@@ -784,6 +784,16 @@ noreturn_arm() {
       git cat-file -e "$rs^{commit}" 2>/dev/null || git fetch -q origin "refs/heads/$r" 2>/dev/null
       [ "$(git log -1 --format=%ct "$rs" 2>/dev/null || echo 0)" -gt "$t" ] && { moved=1; break; }  # mut:noreturnmoved
     done
+    if [ -z "$moved" ]; then  # a split seat returns under <base>-p<N>: only a full-matching family member counts
+      { git ls-remote origin "refs/heads/handoff/${topic%-p[0-9]*}-p*" "refs/heads/handoff-wip/${topic%-p[0-9]*}-p*" \
+          "refs/heads/handoff-body/${topic%-p[0-9]*}-p*" "refs/heads/handoff/${topic%-p[0-9]*}" "refs/heads/handoff-wip/${topic%-p[0-9]*}" \
+          "refs/heads/handoff-body/${topic%-p[0-9]*}" 2>/dev/null || moved=unread; } > "$state/cloud-nrf.$$"
+      while read -r rs r; do  # mut:noreturnfamily
+        git cat-file -e "$rs^{commit}" 2>/dev/null || git fetch -q origin "$r" 2>/dev/null
+        [ "$(git log -1 --format=%ct "$rs" 2>/dev/null || echo 0)" -gt "$t" ] && { moved=1; break; }
+      done < <(python3 -I "$HERE/topic_grammar.py" family-refs "$topic" handoff,handoff-wip,handoff-body < "$state/cloud-nrf.$$")
+      rm -f "$state/cloud-nrf.$$"
+    fi
     [ -n "$moved" ] && continue
     echo "cloud_relay: SEAT ENDED NO RETURN $topic (dispatch ${sha:0:12}, $((age / 3600))h, no return ref or PR head moved since)"
     level_line seat-no-return "$ref" "$sha" "SEAT ENDED NO RETURN $topic $((age / 3600))h" >> "$state/cloud-level-nr.$$"
@@ -1716,7 +1726,7 @@ $cfo2") $(calls 67)" = "1 1"
   # so the relay's own launch runs it from its levelled tools tree (tools_level, P283). The relay
   # is a copy, so no route (a mutant's included) reaches the real update_pr.sh.
   cp "$t/lead.sh" "$t/tm/tools/audit/seat/update_pr.sh"; tmc lead; git -C "$t/o.git" fetch -qf "$t/tm" "HEAD:refs/heads/main"
-  mkdir -p "$t/seat" && cp "$HERE/cloud_relay.sh" "$HERE/pr_args.sh" "$t/seat/" && cp "$t/lead.sh" "$t/seat/update_pr.sh"
+  mkdir -p "$t/seat" && cp "$HERE/cloud_relay.sh" "$HERE/pr_args.sh" "$HERE/topic_grammar.py" "$t/seat/" && cp "$t/lead.sh" "$t/seat/update_pr.sh"
   HPO_RELAY_UPDATE= stoprelay "$t/seat/cloud_relay.sh" 2
   git worktree remove --force "$t/state/relay-tools"; rm -rf "$t/state/relay-tools.lock"
   git -C "$t/o.git" fetch -qf "$t/m" "HEAD:refs/heads/main"; git fetch -q origin main 2>/dev/null
@@ -1798,6 +1808,15 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   chk "a dispatch younger than the bound is not reported" 1 grep -q " nr-young " <<< "$nro"
   chk "a dispatch past the window is not reported (its refs may be gone with a merged branch)" 1 grep -q " nr-old " <<< "$nro"
   chk "a return ref older than the dispatch (an earlier round's) does not count as a return" 0 grep -q " nr-e " <<< "$nro"
+  nrc dispatch/fixer-r10-agreement-bootstrap 10800; nrc handoff/r10-agreement-bootstrap-p1 3600
+  nrc dispatch/fixer-r10-roster-ops 10800; nrc handoff/r10-roster-ops-2 3600
+  nrc dispatch/fixer-r10-deeplink 10800; nrc handoff/r10-deeplink-census 3600
+  nrc dispatch/fixer-r10-quiet 10800; nrc handoff/r10-quiet-p1 20000
+  nro=$(noreturn_arm 2>&1)
+  chk "a seat that returned only on handoff/<topic>-p1 after its dispatch is not reported (topic family)" 1 grep -q " r10-agreement-bootstrap " <<< "$nro"
+  chk "a bare -<N> topic is no family member: handoff/r10-roster-ops-2 moving still fires r10-roster-ops" 0 grep -q " r10-roster-ops " <<< "$nro"
+  chk "a sibling topic is no family member by prefix: handoff/r10-deeplink-census moving still fires r10-deeplink" 0 grep -q " r10-deeplink " <<< "$nro"
+  chk "null control: a family that moved nothing since the dispatch still fires" 0 grep -q " r10-quiet " <<< "$nro"
   git -C "$t/nro.git" update-ref -d refs/heads/dispatch/fixer-nr-a; git -C "$t/nro.git" update-ref -d refs/heads/dispatch/fixer-nr-e
   noreturn_arm >/dev/null 2>&1
   chk "deleting the dispatch ref takes its line off the level (the disposal)" 1 grep -q "fixer-nr-a\|fixer-nr-e" "$LOG.level"
