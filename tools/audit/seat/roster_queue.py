@@ -395,7 +395,7 @@ def _run_op(a, sh, rep, py, editor, op, g, arg, extra):
         rep(f"roster: {op} {g} refused rc={r.returncode} " + refusal_tail(out))
         # A refusal leaves the edit as a local commit in the worktree; the next op would meet it as
         # "HEAD is on no origin ref" and be refused for this op's fault (172 such lines in one drain log).
-        sh("git", "-C", a.edit_checkout, "worktree", "remove", "--force", a.worktree)
+        sh("git", "-C", a.edit_checkout, "worktree", "remove", "--force", a.lint_clone)
         return False
 
 
