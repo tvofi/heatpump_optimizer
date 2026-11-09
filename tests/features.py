@@ -44128,6 +44128,17 @@ for _out, _want_c in ((10.0, [0.05, -0.15, -0.55]), (20.2, [0.0, 0.0, -0.38])):
         len(_got_c) == 3 and all(abs(g - w) < 1e-9 for g, w in zip(_got_c, _want_c)),
         f"{_got_c} want {_want_c}",
     )
+# Two-zone the slab-fed zone is the lower floor: 0.1 K-to-kW and a quarter of
+# the gains (0.25 kW), its temperature ramping 20, 24, 36, 56 (midpoints 22,
+# 30, 46) while the room ramps as above. Read off the room instead (carry
+# 435eb685's surviving mutant), the delivered comfort is the room's.
+for _out, _want_c in ((10.0, [-0.05, -0.45, -1.25]), (20.2, [0.0, -0.365, -1.165])):
+    _got_c = [x["comfort_kw"] for x in _sw_run(True, None, None, outdoor=_out)]
+    R.check(
+        f"R10-SAV-COMFORT: two-zone, the comfort shortfall is the lower floor's (outdoor {_out})",
+        len(_got_c) == 3 and all(abs(g - w) < 1e-9 for g, w in zip(_got_c, _want_c)),
+        f"{_got_c} want {_want_c}",
+    )
 _sw_floor = _sw_run(False, None, None, cop=0.0)
 R.check(
     "R10-SAV-COMFORT: a COP below the floor settles at the floor, and one above it is kept",
@@ -44284,9 +44295,11 @@ R.check(
 )
 
 # Behind a valve the reference spreads its energy by steady demand, and on a
-# small pump in a cold night with a sunny day that spread asks more than the
-# pump has (measured 1.23x on this house). The solve's seed from it is clamped,
-# so every start the space solve is handed lies inside its bounds.
+# small pump in a cold night with a sunny day the plain spread asked more than
+# the pump has (measured 1.23x on this house; R10-SAV-COMFORT carry fc24128d).
+# The spread holds such a step at the pump and gives its excess to the others
+# by the same demand, keeping the horizon's energy; the solve is seeded from
+# that reference unclamped, so every start lies inside its bounds.
 from heatpump_optimizer import optimizer as _hz_omod
 
 _hz_n = 96
@@ -44313,6 +44326,14 @@ def _hz_spy_ms(objective, starts, bounds, **kw):
 
 _hz_baselines = []
 _hz_orig_bp = _HbOpt._compute_baseline_power
+_hz_spreads = []
+_hz_orig_ap = _HbOpt._apportion_by_steady_demand
+
+
+def _hz_spy_ap(self, simulated, *a, **kw):
+    out = _hz_orig_ap(self, simulated, *a, **kw)
+    _hz_spreads.append((np.array(simulated, float), np.array(out, float)))
+    return out
 
 
 def _hz_spy_bp(self, *a, **kw):
@@ -44323,6 +44344,7 @@ def _hz_spy_bp(self, *a, **kw):
 
 _hz_omod._multi_start_minimize = _hz_spy_ms
 _HbOpt._compute_baseline_power = _hz_spy_bp
+_HbOpt._apportion_by_steady_demand = _hz_spy_ap
 try:
     _hz_copt.optimize(inputs=solve_inputs(
         initial_state=_HbState(
@@ -44338,14 +44360,82 @@ try:
 finally:
     _hz_omod._multi_start_minimize = _hz_orig_ms
     _HbOpt._compute_baseline_power = _hz_orig_bp
+    _HbOpt._apportion_by_steady_demand = _hz_orig_ap
 _hz_pmax = float(_hz_cpar.max_electrical_power)
 R.check(
-    "behind a valve, a reference spread past the pump seeds the space solve "
-    "only inside its bounds",
-    bool(_hz_seen) and max(_hz_seen) <= 1e-12
-    and max(_hz_baselines, default=0.0) > _hz_pmax,
-    f"worst excess over a bound {max(_hz_seen, default=None)!r}, "
-    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}",
+    "behind a valve, the reference seeds the space solve only inside its bounds",
+    bool(_hz_seen) and max(_hz_seen) <= 1e-12,
+    f"worst excess over a bound {max(_hz_seen, default=None)!r}",
+)
+R.check(
+    "behind a valve, the spread reference holds a step at the pump, never past it, "
+    "and keeps the simulated horizon's energy",
+    bool(_hz_spreads)
+    and all(float(np.max(o)) <= _hz_pmax + 1e-12 for _, o in _hz_spreads)
+    and all(abs(float(np.sum(o)) - float(np.sum(s))) < 1e-9 for s, o in _hz_spreads)
+    and any(int(np.sum(o >= _hz_pmax - 1e-12)) >= 2 for _, o in _hz_spreads)
+    and max(_hz_baselines, default=0.0) <= _hz_pmax + 1e-12,
+    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}; "
+    f"steps at the pump {[int(np.sum(o >= _hz_pmax - 1e-12)) for _, o in _hz_spreads]}",
+)
+# Under the pump the spread keeps the demand's shape. Four steps, the last one
+# a -30 C step whose plain share of 0.8 pump-steps each would pass the pump:
+# it is held at the pump, and the other three share the rest as the same
+# multiple of their steady demand at target (read from the production helper).
+_hz_mws = _HbWSeries(
+    outdoor_temps=np.array([5.0, 0.0, -5.0, -30.0]), wind_speeds=np.zeros(4),
+    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+)
+_hz_mcap = float(_hz_par.max_electrical_power)
+_hz_msim = np.full(4, 0.8 * _hz_mcap)
+_hz_mout = _hz_opt._apportion_by_steady_demand(_hz_msim, _hz_mws, [21.0] * 4)
+_hz_mdem = np.array([_hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0)
+                     for t in _hz_mws.outdoor_temps])
+_hz_mr = _hz_mout[:3] / _hz_mdem[:3]
+# A horizon demanding little (under 1 kW summed) still has a shape: three
+# zero-demand steps and one mild one put all the energy on the mild one.
+_hz_lo = 21.0 - (_hz_par.internal_gains + 0.2) / _hz_par.heat_loss_coefficient
+_hz_lws = _HbWSeries(
+    outdoor_temps=np.array([30.0, 30.0, 30.0, _hz_lo]), wind_speeds=np.zeros(4),
+    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+)
+_hz_ldem = [max(0.0, _hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0))
+            for t in _hz_lws.outdoor_temps]
+_hz_lout = _hz_opt._apportion_by_steady_demand(np.array([0.1, 0.2, 0.05, 0.0]), _hz_lws, [21.0] * 4)
+R.check(
+    "behind a valve, a horizon with a small steady demand spreads by it, not by the simulation",
+    0.0 < sum(_hz_ldem) < 1.0 and _hz_ldem[:3] == [0.0, 0.0, 0.0]
+    and np.allclose(_hz_lout, [0.0, 0.0, 0.0, 0.35], atol=1e-12),
+    f"demand {_hz_ldem!r} spread {_hz_lout!r}",
+)
+# A step whose share lands exactly at the pump is at it, not past it: three
+# zero-demand steps and one cold one, the horizon's energy one pump-step, keep
+# the spread (all of it on the cold step) rather than handing the horizon back
+# to the simulation, as a step held with no demand left to share would.
+_hz_eout = _hz_opt._apportion_by_steady_demand(
+    np.full(4, 0.25 * _hz_mcap), _HbWSeries(
+        outdoor_temps=np.array([30.0, 30.0, 30.0, -5.0]), wind_speeds=np.zeros(4),
+        precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+    ), [21.0] * 4,
+)
+R.check(
+    "behind a valve, a step spread exactly to the pump keeps the spread",
+    _hz_eout.tolist() == [0.0, 0.0, 0.0, _hz_mcap],
+    repr(_hz_eout),
+)
+R.check(
+    "precondition: the cold step's plain share of the horizon passes the pump",
+    bool(np.all(_hz_mdem > 0.0))
+    and float(np.sum(_hz_msim)) * _hz_mdem[3] / float(np.sum(_hz_mdem)) > _hz_mcap,
+    repr(_hz_mdem),
+)
+R.check(
+    "behind a valve, a step spread past the pump is held there and the uncapped steps "
+    "share the rest by their steady demand",
+    _hz_mout[3] == _hz_mcap and float(np.max(_hz_mout[:3])) < _hz_mcap
+    and abs(float(np.sum(_hz_mout)) - float(np.sum(_hz_msim))) < 1e-9
+    and float(np.ptp(_hz_mr)) <= 1e-12 * float(np.max(_hz_mr)),
+    repr(_hz_mout),
 )
 
 # The start's settlement, at its limits (#2255, #2492). A pre-heated start
@@ -44967,9 +45057,8 @@ R.check(
 _wf_not_ready = _wf_view(
     {"wood_tank_volume": 500.0},
     prices=[4.0],
-    outdoor=[-5.0],
+    cops=[2.0],
     runs=[True],
-    cop_at=lambda _t: 2.0,
     timestamps=[],
     forecast_kw=[],
 )
@@ -45085,6 +45174,34 @@ R.check(
     and _wf_off_pub["wood_fuel"].get("cheaper") is False,
     repr(_wf_off_pub.get("wood_fuel")),
 )
+# R10-PARTLOAD-RESIDUE: the published advisor prices pump heat at the derated
+# COP of the plan's own draw, wired by the coordinator (``partload_at``). The
+# step runs at max power, priced so the linear pump heat is 2 % below wood's
+# and the derated one (d = 0.1, factor 0.9) about 8.9 % above it. Null: the
+# same plan at derate 0 counts no cheaper step.
+_wf_tp = _wf_ready_coord._thermal_params
+_wf_sek = _wf_pub["wood_fuel"]["sek_per_kwh"]
+_wf_cop = float(_wf_ready_coord._thermal_model.compute_cop(-5.0))
+_wf_ready_coord._optimization_result = _wf_replace(
+    _wf_result, prices=[0.98 * _wf_sek * _wf_cop],
+    power_schedule=[_wf_tp.max_electrical_power])
+_wf_kept_derate = _wf_tp.cop_partload_derate
+_wf_partload = []
+try:
+    _dt_wf.now = lambda: NOW
+    for _wf_d in (0.1, 0.0):
+        _wf_tp.cop_partload_derate = _wf_d
+        _wf_partload.append(
+            _wf_ready_coord._build_data_dict()["wood_fuel"].get("cheaper_hour_count"))
+finally:
+    _dt_wf.now = _real_now_wf
+    _wf_tp.cop_partload_derate = _wf_kept_derate
+R.check(
+    "the published wood advisor prices a max-power step's pump heat at the "
+    "derated COP (cheaper at d = 0.1, not at d = 0; R10-PARTLOAD-RESIDUE)",
+    _wf_partload == [1, 0],
+    repr(_wf_partload),
+)
 _wf_idle = _WfOR(
     power_schedule=[0.0],
     room_temp_trajectory=[21.0, 21.0],
@@ -45120,9 +45237,8 @@ R.check(
 
 _wf_soc_kwargs = dict(
     prices=_wf_cheap_night,
-    outdoor=[0.0] * 48,
+    cops=[3.0] * 48,
     runs=[False] * 48,
-    cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
 )
@@ -45171,9 +45287,8 @@ R.check(
 _wf_skip_view = _wf_view(
     _wf_cfg,
     prices=_wf_skip_prices,
-    outdoor=[0.0] * 48,
+    cops=[3.0] * 48,
     runs=[False] * 48,
-    cop_at=lambda _t: 3.0,
     timestamps=_wf_stamps,
     forecast_kw=[],
     wood_tank_temperature=87.4,
