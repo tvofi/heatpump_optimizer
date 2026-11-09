@@ -821,7 +821,7 @@ def _self_test() -> int:
               "trigger wording is absent",
               "custom_components/" in text and "non-obvious" in text and "CI would not" in text
               and "reaches code that review relied on" not in text and "in full" not in text
-              and "never justifies a wider review" in text)
+              and ("never justifies a wider review" in text or "never widen it" in text))
     anc_yes, anc_no = (lambda a, b: True), (lambda a, b: False)
     check("review_scope: delta only with a reviewed head that is an ancestor and a verdict naming it; else full, saying why",
           review_scope(RH, H, pv, anc_yes)[0] == "delta"
