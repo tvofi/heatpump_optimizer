@@ -21232,7 +21232,7 @@
    "brief": "PR B of the approved R10-COMBI-TANK design (PR 0 #3268 merged, PR A #3358): the loader wiring an install reaches, the combi seed, display and accounting of the exchange, the web-verified figures, and the Co-authored-by trailer crediting the outside contributor. Outside-sourced (#3225): outside tier. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "source": "outside",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "note": "overlap admitted (R10-USER-DOCS-VERIFY, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE, R10-WATER-SETPOINT-FEEDBACK, R10-SAV-VALUATION-RESIDUE, R10-ADVISOR-STEADY-START): carries-open audit 2026-11-09: distinct seam from R10-ADVISOR-STEADY-START, R10-ARBITER-OFF-RESTORE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-SAV-VALUATION-RESIDUE, R10-USER-DOCS-VERIFY, R10-WATER-SETPOINT-FEEDBACK, ordered by after-edges where files overlap"
    }
