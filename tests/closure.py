@@ -584,6 +584,16 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/pr/preflight.sh",
+    # R10-FLY-REPLAN-DEFECTS: tests/entities.py runs the orchestrator tick's
+    # self-test, whose closure holds roster_lib.py (a roster_lib edit must run it).
+    # CI's closures-autofix refused: INERT and read. Same route as the files below:
+    # the tools/audit/seat/ files stay INERT, this one moves to the recorded closure.
+    "tools/audit/seat/orchestrator_tick.py",
+    # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
+    # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
+    "tools/audit/seat/pr_cap.py",
+    "tools/policy/budget_raise_gate.py",
+    "tools/pr/app_approve.sh",
     # #2216: tests/entities.py reads the coverage stage, one of the three
     # HPO_CI_METRICS emitters, to pin that it keeps the metrics file from the
     # scripts it runs; left inside the tools/coverage/ prefix it would be
@@ -617,6 +627,13 @@ INERT_EXCEPT = (
     # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
     # stays INERT, this file joins the recorded closure.
     "tools/audit/seat/plan_page.py",
+    # R10-TICK-LEVELS P2: roster_sync.py (already a recorded read above) imports
+    # the topic grammar's one owner in-process, so tests/entities.py's load of it
+    # opens this file. CI's closures job 128825445404 was UNDER-SCOPED on it and
+    # closures-autofix ended skip-merge-failed (INERT and read). Same route as
+    # plan_page.py: tools/audit/seat/ stays INERT, this file joins the recorded
+    # closure, so an edit to the grammar selects tests/entities.py.
+    "tools/audit/seat/topic_grammar.py",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
