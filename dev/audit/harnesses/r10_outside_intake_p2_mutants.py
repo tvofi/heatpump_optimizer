@@ -92,6 +92,8 @@ MUTANTS = [
      "        if closed or a.op == \"set-stage\"",
      "        closed = a.op == \"mark-carry\" and close_discharged(roster, a.group, legacy)\n"
      "        if a.op == \"set-stage\"", ()),
+    ("mark-legacy-dropped", EDIT, 'if a.op in ("set-stage", "set-resume", "mark-carry"):',
+     'if a.op in ("set-stage", "set-resume"):', ()),
 ]
 
 
