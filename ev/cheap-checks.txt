@@ -1,0 +1,11 @@
+## head f5af5b513b1978d732fd41902c203890e3a0247b
+TOTAL: 0 error(s) across 49 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 269 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+tools/audit/briefs/orchestrator.md               294  295     4248  4251 
+RULES-SYNC ok: every generated rule is the generated form of its source
+brief_lint rc=0
+STRUCTURE RATCHET PASSED
+294 dev/governance/roles/orchestrator.md
+VERSION/notes/manifest/claims untouched vs base

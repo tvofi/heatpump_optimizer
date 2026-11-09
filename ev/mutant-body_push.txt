@@ -1,0 +1,4 @@
+## mutant: body_push.sh:157 head-stale case never matches
+FAIL REFUSE head-stale: a stale ## Head is refused, naming both shas (got '00', want '11')
+FAIL ... and nothing is pushed to handoff-body/t (got '074b89a6a95c71ce6579911fd946c7b6a12b43b2', want 'none')
+body_push self-test: 35 checks, 2 failed
