@@ -2198,12 +2198,13 @@ R.section("R10-DEMAND-OVERBOOK: the unsensed slab advances by metered heat (#249
 # draw instead. The previous plan says 25 degC after 30 min of 4 kW; the
 # prior slab is 23 degC.
 from heatpump_optimizer import draw_range as _r10do_draw  # noqa: E402
+from heatpump_optimizer import heat_energy as _r10do_energy  # noqa: E402
 from heatpump_optimizer.thermal_model import ThermalState as _r10do_state  # noqa: E402
 
 _r10do_t0 = datetime(2026, 10, 5, 3, 0, tzinfo=UTC)
 
 
-def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5, *, mode=None, immersion=False):
+def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5, *, mode=None, immersion=False, before=None, switched=True):
     cfg = {
         "tibber_token": "x",
         "weather_entity": "weather.home",
@@ -2239,8 +2240,16 @@ def _r10do_slab(meter, drawn_kw, sampled=True, gap_h=0.5, *, mode=None, immersio
             unit = "kW" if entity == "sensor.hp_power" else "°C"
             coord.hass.states.set(entity, FakeState(value, last_updated=now, unit=unit))
         if mode is not None:
-            coord.hass.states.set("select.pump_mode", FakeState(
-                mode, last_updated=now, attributes={"options": [mode]}))
+            mode_state = FakeState(mode, last_updated=now, attributes={"options": [mode]})
+            if before is not None:
+                # The previous cycle read ``before`` live at the interval's
+                # start; the pump switched to ``mode`` halfway through it.
+                start = now - timedelta(hours=gap_h)
+                meter = _r10do_energy.meter_of(coord)
+                meter.observe_mode(start, before, True, start - timedelta(hours=1))
+                meter.cycle = (None, start)
+                mode_state.last_changed = now - timedelta(hours=gap_h / 2 if switched else gap_h + 1)
+            coord.hass.states.set("select.pump_mode", mode_state)
         _r9f12_aio.run(coord._update_current_state())
     finally:
         _r9f12_dt.freeze(None)
@@ -2292,6 +2301,34 @@ R.check(
     _r10do_dhw_only == _r10do_off and _r10do_heating == _r10do_full,
     "slab dhw-only/off=%.3f/%.3f heating/full=%.3f/%.3f"
     % (_r10do_dhw_only, _r10do_off, _r10do_heating, _r10do_full),
+)
+# R10-COP-GATE-E (#3106): a mode switch inside the interval. The draw read at
+# the close is apportioned by the dwell's hours in each duty, not by the live
+# mode alone: hot water for the first half and heating at the close books half
+# the draw as space heat, the slab of a pump that drew half as much all
+# interval long; the reverse switch books the same half, not 0 kW. A dwell
+# all on one duty reads as before (the null control).
+_r10do_half = _r10do_slab(True, 2.0, mode="Heating", before=_r10do_energy.MODE_HEAT, switched=False)
+_r10do_swback = _r10do_slab(True, 4.0, mode="Heating", before=_r10do_energy.MODE_DHW)
+_r10do_out = _r10do_slab(True, 4.0, mode="DHW (Hot Water)", before=_r10do_energy.MODE_HEAT)
+_r10do_still = _r10do_slab(True, 4.0, mode="Heating", before=_r10do_energy.MODE_HEAT, switched=False)
+R.check(
+    "R10-COP-GATE-E: a switch back from hot water to heating advances the slab "
+    "by the dwell's space share of the draw, not the whole draw as space heat",
+    _r10do_swback == _r10do_half and _r10do_swback < _r10do_heating,
+    "slab switch-back/half-draw/heating=%.4f/%.4f/%.4f" % (_r10do_swback, _r10do_half, _r10do_heating),
+)
+R.check(
+    "R10-COP-GATE-E: a switch from heating to hot water books the dwell's "
+    "space share of the draw, not 0 kW",
+    _r10do_out == _r10do_half and _r10do_out > _r10do_dhw_only,
+    "slab switch-out/half-draw/dhw-only=%.4f/%.4f/%.4f" % (_r10do_out, _r10do_half, _r10do_dhw_only),
+)
+R.check(
+    "R10-COP-GATE-E: a dwell all on space heat advances the slab by the whole "
+    "draw, as with the live mode alone (null control)",
+    _r10do_still == _r10do_heating,
+    "slab all-space/heating=%.4f/%.4f" % (_r10do_still, _r10do_heating),
 )
 R.check(
     "#2499: a resistive element sharing the meter gives no space draw; a pump "
@@ -44355,6 +44392,114 @@ R.check(
     and _sb_meter_row(0.5, True)["meter_calibration"] == 1.0,
     repr(_sb_up),
 )
+# R10-SAV-METER-FLOOR carry 1: the floor above also kept a model that reads the
+# meter high from being corrected. A wood house calibrates from the intervals
+# wood did not heat (the pending snapshot's ``wood_heated``), floored only where
+# too few of those were metered.
+def _sb_wood_free_row(free_meter, fire_meter, *, wood=True, flag=True, free_hours=12, price=1.0):
+    led = _SavLedger()
+    for hour in range(24):
+        fire = hour >= free_hours
+        pending = {"baseline_kw": 2.0, "power": 1.0, **({"wood_heated": fire} if flag else {})}
+        led.observe_spot_and_settle_savings(
+            _SavDT(2026, 2, 9, hour, 0), price, pending, fire_meter if fire else free_meter, 1.0
+        )
+    return led.savings_months(_SavDT(2026, 3, 2, 0, 0), wood_configured=wood)[0]
+
+
+_sb_wf = _sb_wood_free_row(0.8, 0.2)
+R.check(
+    "a wood house whose wood-free hours meter 0.8 of the plan publishes that calibration, not the floor's 1.0",
+    _sb_wf["meter_calibration"] == 0.8 and _sb_wf.get("calibration_basis") == "wood_free"
+    and _sb_wf["baseline_sek"] == round(48.0 * 0.8, 2),
+    repr(_sb_wf),
+)
+_sb_wf_low = _sb_wood_free_row(1.5, 0.2)
+R.check(
+    "a wood house's model that reads the meter low on its wood-free hours is still corrected up",
+    _sb_wf_low["meter_calibration"] == 1.5 and _sb_wf_low.get("calibration_basis") == "wood_free",
+    repr(_sb_wf_low),
+)
+# Null (a): at one flat price the saving is volume alone, the calibrated
+# reference's kWh less the metered kWh, priced at 1.0.
+R.check(
+    "at one flat price the wood-free calibrated row's saving is the volume difference alone",
+    _sb_wf["savings_sek"] == round(48.0 * 0.8 - (12 * 0.8 + 12 * 0.2), 2) and _sb_wf["actual_sek"] == 12.0,
+    repr(_sb_wf),
+)
+# Null (b) and the fallback: each row as it read before the pair existed, field by field.
+_sb_fields = ("meter_calibration", "baseline_sek", "actual_sek", "savings_sek", "savings_pct")
+_sb_plain_rows = {f: {k: _sb_meter_row(f, False)[k] for k in _sb_fields} for f in (1.0, 0.5, 0.25)}
+R.check(
+    "a no-wood row is unchanged field by field at a meter of 1.0, 0.5 and 0.25 of the plan, the pair or not",
+    _sb_plain_rows == {f: {"meter_calibration": f, "baseline_sek": 48.0 * f, "actual_sek": 24.0 * f,
+                           "savings_sek": 24.0 * f, "savings_pct": 50.0} for f in (1.0, 0.5, 0.25)}
+    and {k: _sb_wood_free_row(0.8, 0.2, wood=False)[k] for k in _sb_fields}
+    == {k: _sb_wood_free_row(0.8, 0.2, wood=False, flag=False)[k] for k in _sb_fields},
+    repr(_sb_plain_rows),
+)
+_sb_fallback = {k: _sb_wood_free_row(0.8, 0.2, free_hours=0)[k] for k in _sb_fields}
+R.check(
+    "a wood month with too few wood-free kWh, or booked before the pair existed, keeps the floor's row exactly",
+    _sb_fallback == {"meter_calibration": 1.0, "baseline_sek": 48.0, "actual_sek": 4.8,
+                     "savings_sek": 43.2, "savings_pct": 90.0}
+    and {k: _sb_wood_free_row(0.8, 0.2, flag=False)[k] for k in _sb_fields}
+    == {"meter_calibration": 1.0, "baseline_sek": 48.0, "actual_sek": 12.0, "savings_sek": 36.0, "savings_pct": 75.0}
+    and _sb_wood_free_row(0.8, 0.2, free_hours=0).get("calibration_basis") == "wood_floor"
+    and _sb_meter_row(1.0, False).get("calibration_basis") == "meter",
+    repr(_sb_fallback),
+)
+# R10-SAV-METER-FLOOR: a row whose booked reference is under METER_FLOOR of its
+# metered kWh states no saving and says why. The booked lines decide, because
+# the calibrated column cancels the meter.
+from heatpump_optimizer.ledger import METER_FLOOR as _sb_floor
+
+
+def _sb_floor_row(baseline_kw, meter_kwh, *, old=False):
+    led = _SavLedger()
+    for hour in range(24):
+        led.observe_spot_and_settle_savings(
+            _SavDT(2026, 2, 9, hour, 0), 1.0, {"baseline_kw": baseline_kw, "power": 1.0}, meter_kwh, 1.0
+        )
+    if old:
+        led.months["2026-02"]["meta"]["reference_basis"] = {"sum": 0.0, "count": 1}
+    return led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
+
+
+_sb_collapsed = _sb_floor_row(0.2, 1.0)
+_sb_at_floor = _sb_floor_row(_sb_floor, 1.0)
+_sb_tiny = _sb_floor_row(0.001, 0.04)
+_sb_old_low = _sb_floor_row(0.2, 1.0, old=True)
+R.check(
+    "a booked reference under the meter floor of its metered kWh states no saving, keeps both columns and says why",
+    _sb_floor == 0.5 and _sb_collapsed.get("below_meter_floor") is True
+    and _sb_collapsed["savings_sek"] is None and _sb_collapsed["savings_pct"] is None
+    and _sb_collapsed["baseline_sek"] == 4.8 and _sb_collapsed["actual_sek"] == 24.0,
+    repr(_sb_collapsed),
+)
+R.check(
+    "the meter floor is strict, skips a month under MIN_CALIBRATION_KWH metered, and leaves an old-basis row as old basis",
+    _sb_at_floor.get("below_meter_floor") is False and _sb_at_floor["savings_sek"] == -12.0
+    and _sb_tiny.get("below_meter_floor") is False and _sb_tiny["savings_sek"] is not None
+    and _sb_old_low.get("below_meter_floor") is False and _sb_old_low["old_basis"] is True,
+    repr((_sb_at_floor, _sb_tiny, _sb_old_low)),
+)
+from heatpump_optimizer.ledger import MIN_CALIBRATION_KWH as _sb_min_cal
+from heatpump_optimizer.ledger import below_meter_floor as _sb_below_floor
+
+R.check(
+    "the meter floor's two bounds: exactly MIN_CALIBRATION_KWH metered is floored, a booked kWh of exactly METER_FLOOR of metered is not",
+    _sb_below_floor(0.25 * _sb_min_cal, _sb_min_cal) is True
+    and _sb_below_floor(_sb_floor * 4.0, 4.0) is False
+    and _sb_below_floor(_sb_floor * 4.0 - 0.25, 4.0) is True,
+    repr((_sb_below_floor(0.25 * _sb_min_cal, _sb_min_cal), _sb_below_floor(_sb_floor * 4.0, 4.0))),
+)
+R.check(
+    "wood cannot trip the meter floor: a meter under the plan raises booked over metered",
+    all(_sb_meter_row(f, True).get("below_meter_floor") is False for f in (1.0, 0.5, 0.25))
+    and _sb_wf.get("below_meter_floor") is False,
+    repr([_sb_meter_row(f, True).get("below_meter_floor") for f in (1.0, 0.5, 0.25)]),
+)
 from heatpump_optimizer.notifier import _monthly_receipt as _sb_receipt
 
 
@@ -44373,6 +44518,14 @@ R.check(
     and _sb_ev_new["saving_pct"] == -300.0 and _sb_ev_new["saving_old_basis"] is False
     and _sb_ev_new["saving_includes_wood"] is False,
     repr((_sb_ev_old, _sb_ev_new)),
+)
+_sb_ev_floor = _sb_event({"month": "2026-09", "savings_sek": None, "savings_pct": None, "old_basis": False,
+                          "below_meter_floor": True}, False)
+R.check(
+    "the receipt event says a row under the meter floor states no saving, and an ordinary row says it is not",
+    _sb_ev_floor["saving_sek"] is None and _sb_ev_floor.get("saving_below_meter_floor") is True
+    and _sb_ev_new.get("saving_below_meter_floor") is False,
+    repr(_sb_ev_floor),
 )
 _sb_plain = _sb_first_steps(True, False)[(20.0, None)]
 _sb_wood = _sb_first_steps(True, True)
@@ -44598,8 +44751,8 @@ _cal_gapless_model = _sav_cal_month(_sav_vary, _sav_therm, _sav_plan, 1.0, with_
 R.check(
     "#2492: an install whose meter reads its model keeps the modelled figures byte-identical",
     _cal_gapless["meter_calibration"] == 1.0
-    and {k: v for k, v in _cal_gapless.items() if k != "meter_calibration"}
-    == {k: v for k, v in _cal_gapless_model.items() if k != "meter_calibration"},
+    and {k: v for k, v in _cal_gapless.items() if k not in ("meter_calibration", "calibration_basis")}
+    == {k: v for k, v in _cal_gapless_model.items() if k not in ("meter_calibration", "calibration_basis")},
     f"{_cal_gapless} / {_cal_gapless_model}",
 )
 # A month whose savings lines began before the plan line existed (an upgrade
@@ -44681,8 +44834,8 @@ R.check(
     "R10-SAV-COMFORT null control: an interval without either reading settles nothing",
     _st_null.savings_months(_SavDT(2026, 2, 10))[0]
     == {"month": "2026-01", "baseline_sek": 4.0, "actual_sek": 3.0, "savings_sek": 1.0,
-        "savings_pct": 25.0, "old_basis": False, "estimated": False, "meter_calibration": None,
-        "stored_heat_sek": 0.0, "comfort_sek": 0.0},
+        "savings_pct": 25.0, "old_basis": False, "below_meter_floor": False, "estimated": False,
+        "meter_calibration": None, "calibration_basis": None, "stored_heat_sek": 0.0, "comfort_sek": 0.0},
     repr(_st_null.savings_months(_SavDT(2026, 2, 10))),
 )
 _st_z = _SavLedger()
@@ -71365,6 +71518,36 @@ R.check(
     "2 hours old, both ends included; a re-run sooner or a gap longer pairs nothing",
     _cg_pairs(0.05) and _cg_pairs(2.0) and _cg_pairs(1.0)
     and not _cg_pairs(0.049) and not _cg_pairs(2.001),
+)
+
+
+# R10-SAV-METER-FLOOR: the interval's pending snapshot carries whether wood
+# heats it, read from the detector's own predicate, on a wood house only.
+def _cg_wood_flag(wood, **detector):
+    cfg = dict(_L5_CFG, heat_pump_max_power=14.0, heat_pump_min_power=1.0)
+    if wood:
+        cfg["wood_furnace_enabled"] = True
+    coord = _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+    for key, value in detector.items():
+        setattr(coord._external_heat.state, key, value)
+    coord._current_action = {"power": 1.0, "dhw_power": 0.0}
+    coord._record_accuracy()
+    return coord._pending_prediction.get("wood_heated", "absent")
+
+
+_cg_flags = {
+    "plain, fire": _cg_wood_flag(False, active=True),
+    "wood, quiet": _cg_wood_flag(True),
+    "wood, active": _cg_wood_flag(True, active=True),
+    "wood, fading": _cg_wood_flag(True, fading=True),
+    "wood, displacing": _cg_wood_flag(True, displacement=0.3),
+    "wood, free heat": _cg_wood_flag(True, free_heat_kw=0.5),
+}
+R.check(
+    "the pending snapshot carries wood_heated from the detector on a wood house, and None on a plain one",
+    _cg_flags == {"plain, fire": None, "wood, quiet": False, "wood, active": True, "wood, fading": True,
+                  "wood, displacing": True, "wood, free heat": True},
+    repr(_cg_flags),
 )
 
 
