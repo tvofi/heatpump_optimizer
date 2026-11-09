@@ -25,7 +25,7 @@ throwaway_git_env() {
   for v in $(compgen -v GIT_CONFIG_KEY_; compgen -v GIT_CONFIG_VALUE_); do
     unset "$v"
   done
-  export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t \
+  export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=1+t@users.noreply.github.com GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=1+t@users.noreply.github.com \
     GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_COUNT=2 \
     GIT_CONFIG_KEY_0=maintenance.auto GIT_CONFIG_VALUE_0=false \
     GIT_CONFIG_KEY_1=gc.auto GIT_CONFIG_VALUE_1=0

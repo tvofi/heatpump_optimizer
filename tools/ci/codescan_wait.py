@@ -71,7 +71,13 @@ def source(get, repo, run_id, pr, base, stop, sleep=time.sleep, now=time.monoton
     """(S's run object, S's jobs): step 1, polled until `stop`."""
     me = _get(get, f"repos/{repo}/actions/runs/{run_id}", "this run")
     if owns_codeql(me, pr):
-        return me, _jobs(get, repo, me["id"])
+        while True:                                # a listing under load lags: poll it settled, as the other path does
+            jobs = _jobs(get, repo, me["id"])
+            if settled(jobs):
+                return me, jobs
+            if now() + POLL_S > stop:
+                raise Fail(f"this run's codeql jobs were not listed finished after {WAIT_MAX_S} s")
+            sleep(POLL_S)
     if pr:
         base = _get(get, f"repos/{repo}/pulls/{pr}", f"pull request {pr}")["base"]["ref"]
     while True:
@@ -87,6 +93,21 @@ def source(get, repo, run_id, pr, base, stop, sleep=time.sleep, now=time.monoton
         if now() + POLL_S > stop:
             raise Fail(f"no run at this head owns a finished codeql unit for base {base!r} after {WAIT_MAX_S} s")
         sleep(POLL_S)
+
+
+def settled(jobs):
+    """Every codeql job listed completed, and each either skipped outright or with its analysis step concluded:
+    a leg whose step row lags reads as stood down in `legs_uploaded`, and goes unread."""
+    by = {j["name"]: j for j in jobs}
+    for n in CODEQL:
+        j = by.get(n)
+        if j is None or j.get("status") != "completed":
+            return False
+        if j.get("conclusion") in ("skipped", "cancelled"):
+            continue
+        if not any(s["name"] == STEP and s.get("conclusion") for s in j.get("steps") or []):
+            return False
+    return True
 
 
 def legs_uploaded(jobs):
@@ -275,6 +296,31 @@ def self_test() -> int:
         got = f"FAIL {e}"
     check("17 WAIT_MAX_S bounds steps 1 and 4 together, not each", str(got).startswith("FAIL no analysis")
           and clock[0] <= WAIT_MAX_S, f" (waited {clock[0]} s: {got!r})")
+    # 18-20: the own-run path polls a listing whose step rows lag (R10-HOTFIX-GATE-STALE-JOBS part 2, e350d851)
+    lag = lambda: [{"name": n, "status": "completed", "steps": [{"name": STEP, "conclusion": None}]} for n in CODEQL]   # noqa: E731
+    reads.clear()
+
+    def stale_then_fresh(path, params=None, headers=None):    # this run's step rows lag for two reads, then settle
+        if path.endswith("/runs/100/jobs"):
+            reads.append(path)
+        return world(A.THREE, plant, live, run_jobs={100: jobs() if len(reads) > 2 else lag()})(path, params, headers)
+
+    naps = []
+    try:
+        got = run(stale_then_fresh, repo, 100, pr, "main", False, sleep=naps.append, now=iter(range(0, 10_000, 1)).__next__)
+    except Fail as e:
+        got = f"FAIL {e}"
+    check("18 own run: a lagging step row is polled at the 60 s poll, then the leg is read, not dropped",
+          got == one and naps == [POLL_S, POLL_S], f" (got {got!r}, slept {naps})")
+    try:
+        got = run(world(A.THREE, plant, live, run_jobs={100: lag()}), repo, 100, pr, "main", False, **nosleep,
+                  now=iter(range(0, 10_000, 100)).__next__)
+    except Fail as e:
+        got = f"FAIL {e}"
+    check("19 own run: a step row still lagging at the bound FAILs, never passes", str(got).startswith("FAIL this run's codeql"), f" ({got!r})")
+    reads.clear()
+    check("20 null: a settled stand-down (step skipped) is not waited for",
+          go(world(A.THREE[1:], A.EMPTY, [], run_jobs={100: jobs(skip=("python",))})) == [])
     print(f"codescan_wait self-test: {n} checks, {bad} failed")
     return 1 if bad else 0
 

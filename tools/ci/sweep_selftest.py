@@ -1,10 +1,12 @@
 """sweep.py's self-test: the decision program driven over a fake GitHub (no network)."""
 from __future__ import annotations
 
+import itertools
 import re
 import sys
 
 import sweep
+from sweep import POLL_FLOOR
 
 
 class World:
@@ -14,13 +16,15 @@ class World:
         self.runs, self.v_id, self.script = {r["id"]: r for r in runs}, v_id, script or {}
         self.live_head, self.posts, self.listings, self.sleeps, self.t = "H", [], 0, [], 0
         self.limit, self.post_limit = limit, post_limit
+        self.base_files, self.bodies, self.compares = [], [], 0     # the base's changes since the PR's pin
+        self.head_repo = "o/r"
 
     def get(self, path, params=None):
         if self.limit:
             raise sweep.RateLimited(self.limit)
         if m := re.search(r"/actions/runs/(\d+)/jobs", path):
             r = self.runs[int(m[1])]
-            return 200, {}, {"jobs": [r["gate"]] if r.get("gate") else []}
+            return 200, {}, {"jobs": ([r["gate"]] if r.get("gate") else []) + r.get("units", [])}
         if m := re.search(r"/actions/runs/(\d+)$", path):
             r = self.runs[int(m[1])]
             return 200, {}, dict(r, head_sha="H", pull_requests=[{"number": 7}])
@@ -28,14 +32,19 @@ class World:
             self.listings += 1
             return 200, {}, {"workflow_runs": [dict(r, path=sweep.CI_PATH) for r in self.runs.values()]}
         if re.search(r"/pulls/7$", path):
-            return 200, {}, {"head": {"sha": self.live_head}}
+            return 200, {}, {"head": {"sha": self.live_head, "ref": "fix/b", "repo": {"full_name": self.head_repo}},
+                             "base": {"sha": "P0", "ref": "main"}}
+        if path.endswith("/compare/P0...main"):
+            self.compares += 1
+            return 200, {}, {"files": [{"filename": f} for f in self.base_files]}
         return 404, {}, {}
 
     def post(self, path, body=None):
         if self.post_limit:
             raise sweep.RateLimited(self.post_limit)
         self.posts.append(path)
-        return 201, {}, {}
+        self.bodies.append(body)
+        return (204 if path.endswith("/dispatches") else 201), {}, {}
 
     def sleep(self, s):
         self.sleeps.append(s)
@@ -50,10 +59,12 @@ class World:
         return rc, "\n".join(out)
 
 
-def run(rid, created, status="completed", attempt=1, g="failure", gstatus="completed", started="2"):
+def run(rid, created, status="completed", attempt=1, g="failure", gstatus="completed", started="2", units=None):
+    """`units`: the run's other jobs' completion stamps (None: still running)."""
     gate = {"id": rid * 10, "name": "gate", "status": gstatus, "conclusion": g if gstatus == "completed" else None,
-            "started_at": started}
-    return {"id": rid, "created_at": created, "status": status, "run_attempt": attempt, "gate": gate}
+            "started_at": started, "completed_at": started if gstatus == "completed" else None}
+    return {"id": rid, "created_at": created, "status": status, "run_attempt": attempt, "gate": gate,
+            "units": [{"name": f"u{k}", "completed_at": c} for k, c in enumerate(units or ())]}
 
 
 def v_run(rid=9, created="3"):
@@ -64,8 +75,80 @@ def finish(rid, g):
     def fn(w):
         r = w.runs[rid]
         r["status"] = "completed"
-        r["gate"].update(status="completed", conclusion=g)
+        r["gate"].update(status="completed", conclusion=g, completed_at=r["gate"]["started_at"])
     return fn
+
+
+BOT = "github-actions[bot]"     # the login of gate-sweep.yml's github.token, the recorded runs' triggering_actor
+
+# #3308 at head 6016f9dd, recorded 2026-11-08 from `gh api repos/tvofi/heatpump_optimizer/actions/runs/<id>/attempts/<n>/jobs`
+# (the state the sweep for run 42471173865's attempt 24 read at 11:48:1x, after which runs 42470642055 and
+# 42470643072 were re-run at 11:48:33). Trimmed: run 42470642055's 41 jobs to its gate, its skipped jobs, and
+# five sources; the edit runs whole. Rows: (job id, name, conclusion, started, completed), times on 2026-11-08 UTC.
+# A skipped job's stamps are GitHub's re-stamp at its run's last gate re-run, not a source finishing.
+REC3308 = {
+    42470642055: ("10:15:21", 38, [
+        (128721141457, "kernel-points", "skipped", "11:46:40", "11:46:40"),
+        (128721141679, "cancel-superseded", "success", "10:15:24", "10:15:36"),
+        (128721142283, "governance / delivery-status-publish", "skipped", "11:46:41", "10:15:55"),
+        (128721142833, "tests / mutation-pins", "skipped", "11:46:41", "10:45:32"),
+        (128721143058, "tests / mutation-autofix", "skipped", "11:46:41", "10:45:32"),
+        (128721143069, "gate", "failure", "11:46:44", "11:47:23"),
+        (128721143188, "tests / claims-autofix", "skipped", "11:46:41", "10:40:04"),
+        (128721143295, "tests / ci-ratchet", "skipped", "11:46:41", "10:55:41"),
+        (128721143592, "tests / closures-autofix", "skipped", "11:46:41", "10:55:41"),
+        (128721164571, "prelude", "success", "10:15:24", "10:15:55"),
+        (128721166777, "codeql / Analyze (python)", "success", "10:15:58", "10:46:54"),
+        (128721168852, "governance / record", "skipped", "11:46:48", "10:15:55"),
+        (128721175140, "codeql / Analyze (actions)", "failure", "10:15:58", "10:17:21"),
+        (128721177543, "refresh", "success", "10:15:24", "10:15:51"),
+    ]),
+    42470643072: ("10:15:22", 24, [
+        (128721143207, "cancel-superseded", "success", "10:15:25", "10:15:36"),
+        (128721143539, "gate", "failure", "11:46:43", "11:47:13"),
+        (128721143587, "refresh", "success", "10:15:25", "10:16:00"),
+        (128721143691, "hassfest", "skipped", "11:46:41", "11:46:41"),
+        (128721143984, "arch-score / arch-score", "success", "10:15:54", "10:17:08"),
+        (128721144134, "codeql", "skipped", "11:46:41", "11:46:41"),
+        (128721144270, "governance", "skipped", "11:46:41", "11:46:41"),
+        (128721144288, "kernel-points", "skipped", "11:46:41", "11:46:41"),
+        (128721144361, "budget-raise-gate / budget-raise-gate", "success", "10:15:55", "10:16:20"),
+        (128721144413, "tests", "skipped", "11:46:41", "11:46:41"),
+        (128721144462, "pr-contract", "skipped", "11:46:41", "11:46:41"),
+        (128721164089, "prelude", "success", "10:15:25", "10:15:52"),
+        (128721177333, "validate", "skipped", "11:46:50", "11:46:41"),
+    ]),
+    42471173865: ("10:22:40", 24, [
+        (128721349953, "hassfest", "skipped", "11:47:37", "11:47:37"),
+        (128721349979, "gate", "failure", "11:47:39", "11:48:10"),
+        (128721350133, "prelude", "success", "10:22:43", "10:23:06"),
+        (128721350617, "tests", "skipped", "11:47:37", "11:47:37"),
+        (128721350659, "arch-score / arch-score", "success", "10:23:09", "10:24:24"),
+        (128721370684, "kernel-points", "skipped", "11:47:43", "11:47:37"),
+        (128721376633, "codeql", "skipped", "11:47:44", "11:47:37"),
+        (128721378973, "budget-raise-gate / budget-raise-gate", "success", "10:23:09", "10:23:41"),
+        (128721379915, "refresh", "success", "10:22:44", "10:23:21"),
+        (128721380679, "governance", "skipped", "11:47:46", "11:47:37"),
+        (128721382358, "validate", "skipped", "11:47:46", "11:47:37"),
+        (128721384599, "pr-contract", "skipped", "11:47:47", "11:47:37"),
+        (128721384912, "cancel-superseded", "success", "10:22:43", "10:22:52"),
+    ]),
+}
+
+
+def world3308(v_id=42471173865, edit=None):
+    """The #3308 recording as a World; `edit(runs)` perturbs it first. Every attempt past the first was the bot's."""
+    stamp = lambda t: f"2026-11-08T{t}Z"
+    runs = []
+    for rid, (created, attempt, jobs) in REC3308.items():
+        js = [{"id": i, "name": n, "status": "completed", "conclusion": c, "started_at": stamp(s), "completed_at": stamp(e)}
+              for i, n, c, s, e in jobs]
+        runs.append({"id": rid, "created_at": stamp(created), "status": "completed", "run_attempt": attempt,
+                     "triggering_actor": {"login": BOT},
+                     "gate": next(j for j in js if j["name"] == "gate"), "units": [j for j in js if j["name"] != "gate"]})
+    if edit:
+        edit({r["id"]: r for r in runs})
+    return World(runs, v_id)
 
 
 def run_checks():
@@ -87,7 +170,8 @@ def run_checks():
     ok("a HIGHER-id gate still waiting is polled, and re-run once it expires red", w.posts == ["repos/o/r/actions/jobs/20/rerun"])
     w = World([run(1, "1"), run(9, "3", g="failure", started="4")], 9)
     rc, out = w.sweep()
-    ok("a triggering run whose gate is red re-runs nothing", w.posts == [] and out.startswith("SKIP"))
+    ok("a triggering run whose gate is red re-runs nothing (no source finished after either gate started)",
+       w.posts == [] and "reruns=0" in out)
     for att, want in ((43, 1), (44, 0), (46, 0)):
         w = World([run(1, "1", attempt=att), v_run()], 9)
         w.sweep()
@@ -100,7 +184,7 @@ def run_checks():
     rc, out = w.sweep()
     ok("a rate limit on a re-run stops after it", rc == 1 and w.posts == [] and "RATE-LIMITED" in out)
     w = World([run(1, "5"), v_run(created="3")], 9)     # V's gate started at "4", before run 1 was created
-    ok("a gate that does not cover the newest event sweeps nothing", w.sweep()[1].startswith("SKIP") and w.posts == [])
+    ok("a gate that does not cover the newest event sweeps nothing", "reruns=0" in w.sweep()[1] and w.posts == [])
     for st in ("queued", "waiting", "pending", "requested", "in_progress"):
         w = World([run(1, "1", status=st, gstatus=st), v_run()], 9, {2: finish(1, "failure")})
         w.runs[1]["status"] = "in_progress"
@@ -125,6 +209,206 @@ def run_checks():
     w.runs[1]["gate"]["status"] = "completed"
     out = w.sweep()[1]
     ok("a red gate in a still-running run is left, not re-run (GitHub refuses it)", w.posts == [] and "left run 1" in out)
+    # r10-gate-busy-defer-3: settle, where no green gate covers the newest event. Stamps compare as
+    # strings, as GitHub's ISO times do; a unit stamp after a gate's start is a source it could not read.
+    w = World([run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"])], 2)
+    rc, out = w.sweep()
+    ok("settle: two gates that deferred to each other (each started before the other's units finished) are "
+       "both re-run, the triggering run's included", sorted(w.posts) == ["repos/o/r/actions/jobs/10/rerun",
+                                                                         "repos/o/r/actions/jobs/20/rerun"])
+    for v in (1, 2):
+        w = World([run(1, "1", started="5", units=["4"]), run(2, "1", started="5", units=["4"])], v)
+        for r in w.runs.values():
+            r["gate"]["completed_at"] = "6"
+        w.sweep()
+        ok(f"settle: a lagging-listing pair (sources done, gates overlapping) re-runs the lower id only, "
+           f"swept from run {v}", w.posts == ["repos/o/r/actions/jobs/10/rerun"])
+    w = World([run(1, "1", started="9", units=["4"]), run(2, "1", started="5", units=["4"])], 1)
+    w.runs[1]["gate"]["completed_at"], w.runs[2]["gate"]["completed_at"] = "9", "6"
+    rc, out = w.sweep()
+    ok("settle null: that lower gate re-judged red after the pair is final, and the higher is not re-run (no loop)",
+       w.posts == [] and "reruns=0" in out)
+    for v in (1, 2):    # verdict/3287: the higher deferred to a lagging lower that ended green, created after its start
+        w = World([run(1, "10", g="success", started="50", units=["40"]), run(2, "52", started="55", units=["53"])], v)
+        w.runs[1]["gate"]["completed_at"], w.runs[2]["gate"]["completed_at"] = "60", "56"
+        rc, out = w.sweep()
+        ok(f"settle: the higher of a lagging pair, deferred to a lower gate that ended green but does not cover "
+           f"the newest event, is re-run, swept from run {v}", w.posts == ["repos/o/r/actions/jobs/20/rerun"])
+        w.runs[2]["run_attempt"], w.posts = 2, []
+        w.runs[2]["gate"].update(started_at="70", completed_at="71")    # its re-run, red on its own sources
+        rc, out = w.sweep()
+        ok(f"settle null: that higher re-judged red after the lower's gate concluded is final, swept again from "
+           f"run {v} (no loop)", w.posts == [] and "reruns=0" in out)
+    w = World([run(1, "10", g="success", started="50", units=["40"]), run(2, "61", started="65", units=["63"])], 2)
+    w.runs[1]["gate"]["completed_at"], w.runs[2]["gate"]["completed_at"] = "60", "66"
+    rc, out = w.sweep()
+    ok("settle null: a higher red gate that started after the lower's green gate concluded is final, never re-run",
+       w.posts == [] and "reruns=0" in out)
+    for v, want in ((2, []), (1, ["repos/o/r/actions/jobs/20/rerun"])):
+        w = World([run(1, "10", g="success", started="70", units=["40"]), run(2, "52", started="55", units=["53"])], v)
+        w.runs[1]["gate"]["completed_at"], w.runs[2]["gate"]["completed_at"] = "80", "56"
+        w.sweep()
+        ok(f"a lower green gate that started after the higher red concluded: settle from run 2 re-runs nothing, "
+           f"the lower's own newest-covering sweep re-runs it (swept from run {v})", w.posts == want)
+    # The census of a lagging pair's orderings (verdict/3287): the lower's conclusion, the higher created
+    # before or after the lower gate started, the higher gate inside or after it. Every overlapping red
+    # deferral is re-run by some sweep, the lower where it is red, else the higher; once each re-run
+    # judges after both gates concluded (kept red, the worst case), the sweeps its completions fire
+    # (a sweep runs per CI completion, so only a re-run run sweeps again) post nothing.
+    for lo_g, hi_created, hi_gate in itertools.product(("success", "failure"), ("45", "52"), (("55", "56"), ("65", "66"))):
+        def pair():
+            w = World([run(1, "10", g=lo_g, started="50", units=["40"]),
+                       run(2, hi_created, started=hi_gate[0], units=["44"])], 1)
+            w.runs[1]["gate"]["completed_at"], w.runs[2]["gate"]["completed_at"] = "60", hi_gate[1]
+            return w
+        posts = set()
+        for v in (1, 2):
+            w = pair()
+            w.v_id = v
+            w.sweep()
+            posts |= set(w.posts)
+        overlap = hi_gate[0] <= "60"
+        want = "repos/o/r/actions/jobs/10/rerun" if lo_g == "failure" else "repos/o/r/actions/jobs/20/rerun"
+        tag = f"lower {lo_g}, higher created {hi_created}, its gate {'-'.join(hi_gate)}"
+        if overlap:
+            ok(f"census: an overlapping deferral is re-run ({tag})", want in posts)
+        again = set()
+        for v in sorted({int(re.search(r"/jobs/(\d+)/", p)[1]) // 10 for p in posts}):
+            w = pair()
+            for t, path in enumerate(sorted(posts)):
+                r = w.runs[int(re.search(r"/jobs/(\d+)/", path)[1]) // 10]
+                r["run_attempt"] = 2
+                r["gate"].update(started_at=f"{7 + t}0", completed_at=f"{7 + t}1")
+            w.v_id = v
+            w.sweep()
+            again |= set(w.posts)
+        ok(f"census: the second round posts nothing ({tag}; first {sorted(posts)})", not again)
+    w = World([run(1, "1", started="7", units=["6"]), run(2, "1", started="8", units=["6"])], 2)
+    rc, out = w.sweep()
+    ok("settle null: the same reds judged after every source finished, apart, are final, never re-run (no loop)",
+       w.posts == [] and "reruns=0" in out)
+    w = World([run(1, "1", started="2", units=["1"]), run(9, "1", started="8", units=["7"])], 9)
+    w.sweep()
+    ok("settle: a decider that ended red re-runs the gate that deferred to it, not itself",
+       w.posts == ["repos/o/r/actions/jobs/10/rerun"])
+    for st in ("queued", "waiting"):
+        w = World([run(1, "1", started="2", units=["1"]), run(9, "1", status="in_progress", gstatus=st, units=[None])],
+                  1)
+        rc, out = w.sweep()
+        ok(f"settle: a run whose gate is still {st} owns convergence (SKIP, nothing re-run)",
+           w.posts == [] and out.startswith("SKIP") and w.sleeps == [])
+    w = World([run(1, "1", started="2", units=["1"]),
+               run(9, "1", status="in_progress", gstatus="in_progress", started="8", units=["7"])], 1,
+              {1: finish(9, "failure")})
+    w.sweep()
+    ok("settle: a gate still running is polled, then the deferral it leaves red is re-judged",
+       w.posts == ["repos/o/r/actions/jobs/10/rerun"] and w.sleeps == [POLL_FLOOR])
+    w = World([run(1, "1", started="2", units=["1"])], 1)
+    rc, out = w.sweep()
+    ok("settle null: a lone red gate at its head is never re-run", w.posts == [] and "reruns=0" in out)
+    # Stale pin (RCA r10-gate-busy-defer-2 5.2; carries 3 and 5): a pull_request run's gate restores
+    # tools/ci/*.py from the event's base.sha, and a re-run replays that event, so it runs the programs
+    # of that pin however far the base has moved. Where the base changed tools/ci since, a fresh run.
+    dispatch = "repos/o/r/actions/workflows/ci.yml/dispatches"
+
+    def pinned(*rs, v=9, files=("tools/ci/gate.py",)):
+        for r in rs:
+            r.setdefault("event", "pull_request")
+        w = World(list(rs), v)
+        w.base_files = list(files)
+        return w
+    w = pinned(run(1, "1"), v_run())
+    rc, out = w.sweep()
+    ok("stale pin: a red gate pinned before a tools/ci change on its base is re-judged by ONE dispatched run "
+       "(pr, base), never re-run", w.posts == [dispatch] and w.bodies == [{"ref": "fix/b",
+       "inputs": {"pr": "7", "base": "main"}}] and "STALE-PIN P0" in out and "(HTTP 204)" in out
+       and "dispatches=1" in out)
+    w = pinned(run(1, "1"), v_run(), files=("custom_components/heatpump_optimizer/x.py", "tools/ci/fixtures/f.json",
+                                            "tools/pr/prepr.sh"))
+    w.sweep()
+    ok("stale pin null: a base that moved without touching tools/ci/*.py re-runs the gate as before",
+       w.posts == ["repos/o/r/actions/jobs/10/rerun"])
+    w = pinned(run(1, "1"), v_run(), files=[f"docs/f{k}.md" for k in range(300)])
+    w.sweep()
+    ok("stale pin: a compare listing at GitHub's 300-file cap may hide a tools/ci change: a fresh run",
+       w.posts == [dispatch])
+    w = pinned(run(1, "1"), v_run())
+    w.head_repo = "fork/r"
+    w.sweep()
+    ok("stale pin null: a fork head (no branch here to dispatch on) is re-run as before, the base never compared",
+       w.posts == ["repos/o/r/actions/jobs/10/rerun"] and w.compares == 0)
+    w = pinned(run(1, "1"), v_run())
+    w.runs[1]["event"] = "workflow_dispatch"
+    w.sweep()
+    ok("stale pin null: a dispatched run's gate (it rev-parses origin/<base> at its re-run) is re-run, the "
+       "base never compared", w.posts == ["repos/o/r/actions/jobs/10/rerun"] and w.compares == 0)
+    w = pinned(run(1, "1"), run(2, "2"), v_run())
+    rc, out = w.sweep()
+    ok("stale pin: two stale reds at one head take one dispatch, one compare, and the second says so",
+       w.posts == [dispatch] and w.compares == 1 and "run 2 left to this sweep's dispatched run" in out)
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]), v=2)
+    w.sweep()
+    ok("stale pin, settle: the #3261 pair (two deferrals under a pre-fix program) takes one dispatch, no re-run",
+       w.posts == [dispatch])
+    w = pinned(run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"]),
+               run(5, "6", g="success", started="7"), v=2)
+    w.runs[5]["event"] = "workflow_dispatch"
+    rc, out = w.sweep()
+    ok("stale pin, settle, no loop: settle hands judge the head's runs, so a dispatched run created after the "
+       "pair's gates concluded is their fresh judge; nothing posted", w.posts == [] and "run 5 re-judges" in out)
+    w = pinned(run(1, "1"), run(5, "3", g="success"), v_run(created="2"))
+    w.runs[5]["event"] = "workflow_dispatch"
+    rc, out = w.sweep()
+    ok("stale pin, no loop: a dispatched run created after the stale gate concluded re-judges the head; "
+       "nothing posted", w.posts == [] and "run 5 re-judges" in out)
+    w = pinned(run(1, "1"), run(5, "2", g="success"), v_run())
+    w.runs[5]["event"] = "workflow_dispatch"
+    rc, out = w.sweep()
+    ok("stale pin, no loop: a dispatched run created in the second the stale gate concluded is that fresh judge",
+       w.posts == [] and "run 5 re-judges" in out)
+    w = pinned(run(1, "1"), run(5, "1"), v_run())
+    w.runs[5]["event"] = "workflow_dispatch"
+    w.runs[1]["gate"]["completed_at"] = "2"
+    w.sweep()
+    ok("stale pin null: a dispatched run created before the stale gate concluded is no fresh judge: dispatch",
+       dispatch in w.posts)
+    # R10-HOTFIX-SWEEP-SETTLE-LOOP: the recorded #3308 loop. Run 42471173865's gate re-run re-stamped its
+    # skipped jobs past the two sibling gates' starts; on main settle read them as sources and re-ran both,
+    # whose re-runs re-stamped theirs, each pair re-running the other up to the attempt cap.
+    for v in REC3308:
+        w = world3308(v)
+        rc, out = w.sweep()
+        ok(f"#3308: skipped jobs re-stamped by a sibling's gate re-run are no source; settle re-runs nothing "
+           f"(swept from run {v})", rc == 0 and w.posts == [] and "reruns=0" in out)
+
+    def late_codeql(runs):     # null: a real source, codeql python, finishing after run 42470643072's gate started
+        u = next(j for j in runs[42470642055]["units"] if j["name"] == "codeql / Analyze (python)")
+        u["completed_at"] = "2026-11-08T11:47:30Z"
+    w = world3308(edit=late_codeql)
+    w.sweep()
+    ok("#3308 null: a non-skipped source (codeql python) finishing after a sibling gate started re-runs that gate, once",
+       w.posts == ["repos/o/r/actions/jobs/128721143539/rerun"])
+    w.posts, r = [], w.runs[42470643072]
+    r["run_attempt"] += 1
+    r["gate"].update(started_at="2026-11-08T11:48:40Z", completed_at="2026-11-08T11:49:10Z")
+    for u in r["units"]:
+        if u["conclusion"] == "skipped":
+            u.update(started_at="2026-11-08T11:48:38Z", completed_at="2026-11-08T11:48:38Z")
+    for v in REC3308:
+        w.v_id = v
+        w.sweep()
+    ok("#3308 null: that re-run, judged after the source, re-stamping its own skips, is final; no sweep re-runs a gate",
+       w.posts == [])
+    ok("sweep.SWEEP_ACTOR is the recorded bot login", getattr(sweep, "SWEEP_ACTOR", None) == BOT)
+    # Fix (2): a gate attempt the bot itself started, with no non-skipped source finishing after it, is not
+    # re-run again by settle, whichever arm reads it undecided (here the lagging-pair arm).
+    for actor, want in ((BOT, []), ("tvofi", ["repos/o/r/actions/jobs/10/rerun"])):
+        w = World([run(1, "1", attempt=2, started="5", units=["4"]), run(2, "1", attempt=2, started="5", units=["4"])], 2)
+        for r in w.runs.values():
+            r["gate"]["completed_at"], r["triggering_actor"] = "6", {"login": actor}
+        w.sweep()
+        ok(f"settle: an overlapping pair of re-run gates, re-run by {actor}, with no source after them, "
+           f"{'is final' if not want else 'is re-judged (the lower id, null)'}", w.posts == want)
     return checks
 
 
