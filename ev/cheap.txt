@@ -1,0 +1,32 @@
+version/budgets diff: (empty above = untouched)
+RESULT option_pages_rendered=24 count
+RESULT option_schema_keys_rendered=241 count
+RESULT option_section_or_unlabelled_keys=33 count
+RESULT option_fields_rendered=208 count
+RESULT option_fields_undocumented=0 count
+RESULT wood_economics_fields_rendered=4 count
+RESULT wood_economics_doc_lines=8 count
+RESULT thread_factor=1.000
+RESULT load1=0.57
+RESULT swapins=0
+RESULT claims_extracted=125 claims
+RESULT claims_checked=125 claims
+RESULT claims_true=123 claims
+RESULT claims_false=0 claims
+RESULT claims_stale=0 claims
+RESULT claims_unverifiable=2 claims
+RESULT arch_modules_on_disk=86 modules
+RESULT arch_map_listed=86 modules
+RESULT arch_map_missing=0 modules
+RESULT ha_module_level_importers=28 modules
+RESULT config_defaults_compared=93 rows
+RESULT config_ranges_compared=101 rows
+RESULT thread_factor=1.0
+RESULT load1=0.85
+RESULT swapins=0
+
+STRUCTURE RATCHET PASSED
+custom_components/heatpump_optimizer/coordinator.py:5467:            self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp, dt_util.now())
+custom_components/heatpump_optimizer/coordinator.py:5468:            self._observe_cop_health(float(observed_cop), cop_curve_dhw)
+custom_components/heatpump_optimizer/coordinator.py:9516:    def _observe_cop_health(
+custom_components/heatpump_optimizer/thermal_model.py:1385:    return InstallCapability(

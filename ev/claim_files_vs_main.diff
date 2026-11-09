@@ -1,0 +1,31 @@
+diff --git a/tests/golden/card_claimed_drift.txt b/tests/golden/card_claimed_drift.txt
+index a60eb4b75..be88914d9 100644
+--- a/tests/golden/card_claimed_drift.txt
++++ b/tests/golden/card_claimed_drift.txt
+@@ -776,3 +776,9 @@
+ # narrative list; planStates publishes no `why_now`, so the block shows its
+ # no-data line. Only score_open renders a headline with a narrative here;
+ # card_drift reports the other 44 states identical.
++
++# R10-HOTFIX-COP-UNMEASURED: the heat pump grade's explanation says a measured
++# COP is metered heat over a power meter, neither an estimate, and that without
++# a metered heat reading there is no grade at all. Only score_open moves; the
++# other 44 states are identical.
++score_open  # R10-HOTFIX-COP-UNMEASURED: grade explanation says measured COP is metered heat, no grade without it
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index 436c067fe..02a035a1c 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -67,6 +67,12 @@
+ # v7.1.8: The plan respects Heat pump min power. The stamp empties the list; the
+ # next branch restates its own footprint, claims included.
+ #
++coord_all_features # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
++coord_dhw # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
++coord_grid_fee # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
++coord_minimal # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
++coord_two_zone # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
++config_flow # R10-HOTFIX-COP-UNMEASURED: the metering page gains heat_pump_power_source, heat_pump_thermal_power_source (auto, meter, estimate) and heat_meter_sees_dhw; leaves added only, none moved; float-free, re-recorded in the committed file
+ # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+ # (option (a)): the move's margin is inside the noise band (objective rel
+ # -1.2171e-03, deterministic on one box), so which runner sees it move is the
