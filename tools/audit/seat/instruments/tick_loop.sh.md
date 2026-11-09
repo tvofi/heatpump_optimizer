@@ -11,6 +11,10 @@
   left running, never killed, reported `relay=running`, and no second starts
   while it holds the lock, so a long `update_pr.sh` push never holds the
   board; the next pass reaps it, printing its output and a `TICK-RELAY` line.
+  The relay holder makes itself the leader of its own process group
+  (`os.setpgid(0, 0)` in `RELAY_HOLDER`), so a TERM or KILL to the stopped
+  loop's group leaves an in-flight relay pass to finish and write
+  `<out>.relay.rc` under its flock; the self-test pins it.
   When: run detached (`daemonize.py`) in place of a seat looping the tick;
   `--once` makes one pass, `--interval` defaults to 300 s. Refusal: a
   non-numeric `--interval` or an unknown option; a failing relay pass or tick
