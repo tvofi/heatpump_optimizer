@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.savings_months CLAMP_DROP c2367089",
-  "killed_by": "tests/features.py",
-  "old": "                calibration = max(1.0, calibration)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`calibration = (1.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

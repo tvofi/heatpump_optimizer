@@ -102,6 +102,18 @@ SAVINGS_COMFORT_LINE = "savings_comfort"
 #: the plan's power levels, so the thermostat stays at modelled power.
 MIN_CALIBRATION_KWH = 1.0
 
+#: The plan's and the meter's kWh on the intervals wood did not heat (the
+#: pending snapshot's ``wood_heated`` False), booked on a wood house only: its
+#: month calibrates from this pair, which no fire moves (R10-SAV-METER-FLOOR).
+SAVINGS_WOOD_FREE_LINES = ("savings_plan_wood_free", "savings_actual_wood_free")
+
+#: Booked reference kWh over metered kWh below which a row states no saving.
+#: A thermostat that used under half the pump's metered energy over a month of
+#: the same weather is a collapsed reference, not a saving. The reference holds
+#: no wood term and wood only lowers the meter, so wood cannot trip it. A
+#: low-side check only: a ratio above it validates nothing (triage P387).
+METER_FLOOR = 0.5
+
 #: The lines that are metered energy at the spot price: what every contract
 #: settles on. The resistive lines are spot energy carved out of ``spot``
 #: (#11), one per source (#2729).
@@ -157,6 +169,34 @@ def savings_pct(baseline_sek: float, savings_sek: float) -> float | None:
     if baseline_sek <= 0.01:
         return None
     return savings_sek / baseline_sek * 100.0
+
+
+def applied_calibration(
+    measured: float | None, wood_free: float | None, wood_configured: bool
+) -> tuple[float | None, str | None]:
+    """A row's applied calibration and its basis, from ``meter_calibration``'s two reads.
+
+    With no wood, the month's meter (``"meter"``). With wood, the intervals wood
+    did not heat (``"wood_free"``), so a model that reads the meter high is
+    corrected down and one that reads it low up. Where those booked under
+    ``MIN_CALIBRATION_KWH`` of plan (``wood_free`` None), the month's meter,
+    only ever raising the thermostat (``"wood_floor"``): a meter under the plan
+    there is what an unforeseen fire looks like, and scaling down by it would
+    cancel wood's heat from the saving.
+    """
+    if measured is None:
+        return None, None
+    if not wood_configured:
+        return measured, "meter"
+    if wood_free is not None:
+        return wood_free, "wood_free"
+    return max(1.0, measured), "wood_floor"
+
+
+def below_meter_floor(booked_kwh: float, metered_kwh: float) -> bool:
+    """Whether a row's booked reference kWh is under ``METER_FLOOR`` of its
+    metered kWh, over at least ``MIN_CALIBRATION_KWH`` metered."""
+    return metered_kwh >= MIN_CALIBRATION_KWH and booked_kwh < METER_FLOOR * metered_kwh
 
 
 def migrate_ledger_v1(stored: dict[str, Any]) -> dict[str, Any]:
@@ -228,8 +268,7 @@ class MonthlyLedger:
         return month
 
     def _prune(self) -> None:
-        extra = sorted(self.months)[: max(0, len(self.months) - KEEP_MONTHS)]
-        for key in extra:
+        for key in sorted(self.months)[: max(0, len(self.months) - KEEP_MONTHS)]:
             del self.months[key]
 
     # -- writing ------------------------------------------------------------
@@ -292,7 +331,8 @@ class MonthlyLedger:
         fee_per_kwh = float(fee) if isinstance(fee, (int, float)) and math.isfinite(fee) else 0.0
         self.add_savings_settlement(
             when, actual_kwh=actual_kwh, spot=spot + fee_per_kwh, dt=dt,
-            planned_kw=pending.get("power"), **{key: pending.get(key) for key in SETTLEMENT_KEYS},
+            planned_kw=pending.get("power"), wood_free=pending.get("wood_heated") is False,
+            **{key: pending.get(key) for key in SETTLEMENT_KEYS},
         )
 
     def add_savings_settlement(
@@ -307,6 +347,7 @@ class MonthlyLedger:
         stored_kw_th: float | None = None,
         comfort_kw: float | None = None,
         steady_cop: float | None = None,
+        wood_free: bool = False,
     ) -> None:
         """Book the savings lines, or none.
 
@@ -317,6 +358,8 @@ class MonthlyLedger:
         month whose savings lines began without it never gains one, which
         would calibrate a share of its thermostat only. The plan step's
         ``stored_kw_th`` (with its ``steady_cop``) and ``comfort_kw`` book theirs.
+        ``wood_free`` (wood did not heat it) also books the ``SAVINGS_WOOD_FREE_LINES`` pair.
+        Every line is priced at the interval's ``spot``.
         """
         if baseline_kw is None or not all(np.isfinite(v) for v in (baseline_kw, actual_kwh, spot, dt)):
             return
@@ -325,24 +368,22 @@ class MonthlyLedger:
         calibrated = SAVINGS_PLAN_LINE in lines or "savings_baseline" not in lines
         if "savings_baseline" not in lines:
             month["meta"].setdefault(REFERENCE_BASIS_META, {"sum": float(REFERENCE_BASIS), "count": 1})
-        base_kwh = float(baseline_kw) * float(dt)
-        self.add(
-            when, "savings_baseline", kwh=base_kwh, sek=base_kwh * float(spot)
-        )
-        self.add(
-            when,
-            "savings_actual",
-            kwh=float(actual_kwh),
-            sek=float(actual_kwh) * float(spot),
-        )
+
+        def book(name: str, kwh: float) -> None:
+            self.add(when, name, kwh=kwh, sek=kwh * float(spot))
+
+        book("savings_baseline", float(baseline_kw) * float(dt))
+        book("savings_actual", float(actual_kwh))
         if calibrated and planned_kw is not None and np.isfinite(planned_kw):
-            plan_kwh = float(planned_kw) * float(dt)
-            self.add(when, SAVINGS_PLAN_LINE, kwh=plan_kwh, sek=plan_kwh * float(spot))
+            book(SAVINGS_PLAN_LINE, plan_kwh := float(planned_kw) * float(dt))
+            if wood_free:
+                book(SAVINGS_WOOD_FREE_LINES[0], plan_kwh)
+                book(SAVINGS_WOOD_FREE_LINES[1], float(actual_kwh))
         if stored_kw_th is not None and steady_cop is not None and np.isfinite(steady_cop):
             self.add(when, SAVINGS_STORED_LINE, kwh=float(stored_kw_th) * float(dt), sek=0.0)
             self.observe_meta_mean(when, STEADY_COP_META, max(float(steady_cop), 1e-3))
         if comfort_kw is not None:
-            self.add(when, SAVINGS_COMFORT_LINE, kwh=comfort_kw * dt, sek=comfort_kw * dt * spot)
+            book(SAVINGS_COMFORT_LINE, comfort_kw * dt)
 
     # -- reading ------------------------------------------------------------
 
@@ -351,10 +392,7 @@ class MonthlyLedger:
         entry = self.months.get(month, {}).get("lines", {}).get(name)
         if not isinstance(entry, dict):
             return {"kwh": 0.0, "sek": 0.0}
-        return {
-            "kwh": float(entry.get("kwh", 0.0)),
-            "sek": float(entry.get("sek", 0.0)),
-        }
+        return {"kwh": float(entry.get("kwh", 0.0)), "sek": float(entry.get("sek", 0.0))}
 
     def meta_mean(self, month: str, name: str) -> float | None:
         entry = self.months.get(month, {}).get("meta", {}).get(name)
@@ -415,19 +453,19 @@ class MonthlyLedger:
             "sek": sum(part["sek"] for part in parts),
         }
 
-    def meter_calibration(self, month: str) -> float | None:
+    def meter_calibration(self, month: str, *, wood_free: bool = False) -> float | None:
         """Metered kWh over the plan's modelled kWh, on the same intervals.
 
         The factor that puts the modelled thermostat at the power levels the
-        pump recorded (owner specification, 2026-10-24). ``None`` where the
-        month has no plan line (booked before it existed) or the plan booked
-        under ``MIN_CALIBRATION_KWH``.
+        pump recorded (owner specification, 2026-10-24); ``wood_free``, on the
+        ``SAVINGS_WOOD_FREE_LINES``. ``None`` where the plan booked under
+        ``MIN_CALIBRATION_KWH``, or nothing (a month older than its line).
         """
-        lines = self.months.get(month, {}).get("lines") or {}
-        plan_kwh = self.line(month, SAVINGS_PLAN_LINE)["kwh"]
-        if SAVINGS_PLAN_LINE not in lines or plan_kwh < MIN_CALIBRATION_KWH:
+        plan_line, actual_line = SAVINGS_WOOD_FREE_LINES if wood_free else (SAVINGS_PLAN_LINE, "savings_actual")
+        plan_kwh = self.line(month, plan_line)["kwh"]  # 0.0 where never booked
+        if plan_kwh < MIN_CALIBRATION_KWH:
             return None
-        return self.line(month, "savings_actual")["kwh"] / plan_kwh
+        return self.line(month, actual_line)["kwh"] / plan_kwh
 
     def savings_months(self, now: datetime, *, wood_configured: bool = False) -> list[SavingsMonth]:
         """Published rows: months that booked savings_baseline, oldest first.
@@ -435,9 +473,8 @@ class MonthlyLedger:
         One basis for every cell: the intervals a plan covered, priced at
         spot plus the per-kWh grid fee on both sides. ``actual_sek`` is the
         metered energy's cost; ``baseline_sek`` is the modelled thermostat's,
-        scaled to the meter by ``meter_calibration``, so its power levels
-        are the pump's recorded ones and a model that under-reads the meter
-        is not booked as a loss; ``savings_sek`` is the one less the other.
+        scaled to the pump's recorded power levels by ``applied_calibration``;
+        ``savings_sek`` is the one less the other.
         At one flat price the saving is the volume difference alone. The
         reference has no wood, so wood's heat counts in the saving and firewood's
         cost nowhere; the plan's stored-heat change settles into ``baseline_sek``
@@ -448,8 +485,8 @@ class MonthlyLedger:
 
         The open month is an estimate: every figure is scaled by
         ``coverage_factor``. A month booked against another reference
-        (``REFERENCE_BASIS_META``) states its two columns and no saving. With
-        wood configured the calibration only raises the thermostat.
+        (``REFERENCE_BASIS_META``) states its two columns and no saving, as does
+        one ``below_meter_floor`` reads.
         """
         open_key = month_key(now)
         rows: list[SavingsMonth] = []
@@ -457,12 +494,8 @@ class MonthlyLedger:
             lines = self.months[key].get("lines") or {}
             if "savings_baseline" not in lines:
                 continue
-            calibration = self.meter_calibration(key)
-            if wood_configured and calibration is not None:
-                # A meter under the plan is what a fire the plan did not foresee
-                # looks like; scaling down by it would cancel wood's heat from
-                # the saving. Only an under-read model is corrected here.
-                calibration = max(1.0, calibration)
+            calibration, calibration_basis = applied_calibration(
+                self.meter_calibration(key), self.meter_calibration(key, wood_free=True), wood_configured)
             scale = 1.0 if calibration is None else calibration
             actual, cop = self.line(key, "savings_actual"), self.meta_mean(key, STEADY_COP_META)
             stored_sek = 0.0 if cop is None or actual["kwh"] <= 0 else scale * (
@@ -478,16 +511,21 @@ class MonthlyLedger:
             baseline_sek, actual_sek = round(baseline_sek, 2), round(actual_sek, 2)
             saved = round(baseline_sek - actual_sek, 2)
             old_basis = self.meta_mean(key, REFERENCE_BASIS_META) != REFERENCE_BASIS
+            # The booked lines, never the calibrated column, which cancels the meter.
+            below_floor = not old_basis and below_meter_floor(self.line(key, "savings_baseline")["kwh"], actual["kwh"])
+            withheld = old_basis or below_floor
             rows.append(
                 {
                     "month": key,
                     "baseline_sek": baseline_sek,
                     "actual_sek": actual_sek,
-                    "savings_sek": None if old_basis else saved,
-                    "savings_pct": None if old_basis else savings_pct(baseline_sek, saved),
+                    "savings_sek": None if withheld else saved,
+                    "savings_pct": None if withheld else savings_pct(baseline_sek, saved),
                     "old_basis": old_basis,
+                    "below_meter_floor": below_floor,
                     "estimated": estimated,
                     "meter_calibration": None if calibration is None else round(calibration, 3),
+                    "calibration_basis": calibration_basis,
                     "stored_heat_sek": round(stored_sek, 2),
                     "comfort_sek": round(comfort_sek, 2),
                 }

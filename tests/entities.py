@@ -12498,6 +12498,24 @@ R.check(
     ) is not None,
     _sav_bp_msg,
 )
+# R10-SAV-METER-FLOOR: the receipt states why a month under the meter floor has
+# no saving, in the card's savings.meter_floor_note words, guarded by the
+# event's own flag; the null leg is a month above the floor, which gets none.
+_sav_bp_floor = re.search(
+    r'"savings\.meter_floor_note": "([^"]+)"',
+    (_sav_bp_root / ROOT / "www/heatpump-optimizer-card.js").read_text(),
+).group(1)
+R.check(
+    "The notifications blueprint's monthly receipt says why a month under the meter floor states no saving, "
+    "in the card's words, and only for that month",
+    "saving_below_meter_floor" in _sav_notifier.EVENT_DATA[_sav_notifier.EVENT_MONTHLY_RECEIPT]
+    and _sav_bp_msg.count(_sav_bp_floor) == 1
+    and re.search(
+        r"\{%-? if data\.saving_below_meter_floor %\}\s*" + re.escape(_sav_bp_floor) + r"\s*\{%-? endif %\}",
+        _sav_bp_msg,
+    ) is not None,
+    _sav_bp_msg,
+)
 
 
 #: The one publisher whose attribute KEYS are data rather than API:
@@ -23632,6 +23650,23 @@ R.check(
     _lm_ok,
     "run `python3 tools/merge/ledger_merge.py --self-test` for the failing "
     "check names:\n" + _lm_detail,
+)
+
+# --- the orchestrator tick's self-test runs where roster_lib changes --------
+#
+# The tick reads roster_lib (`open_groups`, `groups_of`), and tools/ is INERT, so
+# no scoped script ran its self-test on a roster_lib.py change: CLOSED_STAGES
+# gaining `deferred` broke "PLAN: deferred E stays deferred" and only
+# governance's instrument-self-tests saw it (#3326). tests/closures.json puts
+# roster_lib.py in this script's closure, so running it here is the edge.
+_tick_run = subprocess.run(
+    [sys.executable, "-I", str(_closure.ROOT / "tools" / "audit" / "seat" / "orchestrator_tick.py"),
+     "--self-test"],
+    capture_output=True, text=True, cwd=str(_closure.ROOT), check=False)
+R.check(
+    "orchestrator_tick.py --self-test passes (it reads roster_lib's closed set)",
+    _tick_run.returncode == 0 and ", 0 failed" in _tick_run.stdout,
+    (_tick_run.stdout + _tick_run.stderr).strip()[-400:],
 )
 
 # --- #493: inherited card claims on a roster-only three-dot -----------------

@@ -848,12 +848,25 @@ _DEEP_LOW_ENERGY_START_FRACTION = 0.20
 # stub distribution exists, so a static import is an `import-untyped` error
 # with no annotation that reaches it -- while the try/except below already
 # says this dependency is optional and looked up at runtime.
+#
+# ONE controller, built here, after numpy and scipy have loaded their BLAS.
+# ``threadpool_limits(limits=1)`` builds a fresh ``ThreadpoolController`` on
+# every call: a rescan of every shared library the process has loaded, CPU
+# paid on each of a solve's minimize calls, and fresh ``ctypes.CDLL`` handles
+# whose runtime-built symbol names (``f"{prefix}openblas_...{suffix}"``) are
+# interned on lookup and freed with the handle. That churn -- and, off Linux
+# on Python 3.14, the first call's ``ctypes.util`` import -- fills the
+# interpreter-wide interned-string table until it is rebuilt in one ~1.8 MiB
+# step, which the stress memory probe charged to whichever scenario's solve
+# crossed it (R10-HOTFIX-STRESS-MEM-PEAK). Built once, the scan and the
+# handles are paid at import, and ``limit`` per call only sets and restores
+# the thread counts through the handles it already holds.
 try:  # pragma: no cover - present via the manifest requirement
-    _threadpool_limits: Any = importlib.import_module(
+    _blas_threads: Any = importlib.import_module(
         "threadpoolctl"
-    ).threadpool_limits
+    ).ThreadpoolController()
 except (ImportError, AttributeError):  # bare test imports without the requirement
-    _threadpool_limits = None
+    _blas_threads = None
 
 
 def _scoped_minimize(*args: Any, **kwargs: Any) -> Any:
@@ -865,13 +878,15 @@ def _scoped_minimize(*args: Any, **kwargs: Any) -> Any:
     CPU a Raspberry-Pi-class host running all of Home Assistant does not
     have. Scoped to the call and never process-wide, because other
     components share this interpreter; a bare environment-variable set would
-    be both process-wide and too late (numpy is long since imported).
+    be both process-wide and too late (numpy is long since imported). The
+    pin reaches the libraries ``_blas_threads`` saw at import -- numpy's and
+    scipy's own, which are the ones this call runs on.
     Identical results by construction: no operation at these sizes is
     threaded, which is precisely why the threads were pure overhead.
     """
-    if _threadpool_limits is None:
+    if _blas_threads is None:
         return minimize(*args, **kwargs)
-    with _threadpool_limits(limits=1):
+    with _blas_threads.limit(limits=1):
         return minimize(*args, **kwargs)
 
 
