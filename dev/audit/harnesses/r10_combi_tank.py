@@ -29,6 +29,14 @@ valve draw over the four hours before a 19-21 window, combi and separate.
 ``exchange``: a joint solve at a two-tier price day: the rounds the flux
 exchange took, the worst shortfall below the hot-water requirement, and the
 same solve with zero exchange rounds (the null), plus the solve's seconds.
+
+``equiv``: the two comparison mutants the mutation ledger triages as
+equivalent, each the operator's own text compiled over the head's function
+(``dhw_store_of``'s ``eps >=`` to ``>``, ``store_step``'s ``d_temp >`` to
+``>=``), against the head over a grid holding each comparison's tie; the
+cases that differ, the ties the grid reaches, and a tie-only control that
+moves only the tied result (it must differ on every tie, or the grid does not
+reach one).
 """
 from __future__ import annotations
 
@@ -206,10 +214,76 @@ def arm_exchange():
         print(f"RESULT {label}_solve_s={secs:.2f}")
 
 
+def _swapped(fn, old, new):
+    """``fn`` recompiled with ``old`` replaced once in its source, over its globals."""
+    import inspect
+    import textwrap
+    src = textwrap.dedent(inspect.getsource(fn))
+    assert src.count(old) == 1, (fn.__name__, old)
+    ns: dict = {}
+    exec(compile(src.replace(old, new), f"<{fn.__name__} mutant>", "exec"), fn.__globals__, ns)
+    return ns[fn.__name__]
+
+
+def _same(a, b):
+    return all(x == y or (x != x and y != y) for x, y in zip(a, b))
+
+
+def arm_equiv():
+    floor = tm.COMBI_DHW_EFFECTIVENESS_FLOOR
+    cond = "eps = min(1.0, eps) if eps >= COMBI_DHW_EFFECTIVENESS_FLOOR else COMBI_DHW_EFFECTIVENESS_FLOOR"
+    mut = _swapped(tm.dhw_store_of, cond, cond.replace(" >= ", " > ", 1))
+    tie = _swapped(tm.dhw_store_of, cond, cond.replace(
+        "min(1.0, eps) if", "(min(1.0, eps) if eps != COMBI_DHW_EFFECTIVENESS_FLOOR else 0.5) if", 1))
+    grid = [0.0, -1.0, math.nextafter(floor, 0.0), floor, math.nextafter(floor, 1.0), 0.5, 0.85,
+            1.0, 1.5, math.inf, math.nan]
+    rows = [(tm.dhw_store_of(params(eps=e)).effectiveness, mut(params(eps=e)).effectiveness,
+             tie(params(eps=e)).effectiveness, e == floor) for e in grid]
+    print(f"RESULT equiv_eps_cases={len(rows)}")
+    print(f"RESULT equiv_eps_ties={sum(r[3] for r in rows)}")
+    print(f"RESULT equiv_eps_differ={sum(not _same((r[0],), (r[1],)) for r in rows)}")
+    print(f"RESULT equiv_eps_tie_control_differ_on_ties="
+          f"{sum(not _same((r[0],), (r[2],)) for r in rows if r[3])}")
+    print(f"RESULT equiv_eps_tie_control_differ_off_ties="
+          f"{sum(not _same((r[0],), (r[2],)) for r in rows if not r[3])}")
+
+    step = "    if d_temp > cap:\n        refused, d_temp = (d_temp - cap) * capacity, cap"
+    smut = _swapped(tm.store_step, step, step.replace("d_temp > cap", "d_temp >= cap", 1))
+    stie = _swapped(tm.store_step, step, "    if d_temp == cap:\n        refused += 1.0\n" + step)
+    base = replace(params().dhw_store, capacity_kwh_per_c=1.0, ua_kw_per_c=0.0)
+    cases = []
+    # Ties: C = 1, no loss and no draw make d_temp the heat in, and the
+    # rating's distance over dt an exact binary fraction, so heat == cap exactly.
+    for below, dt in ((10.0, 0.5), (4.0, 0.25), (1.0, 1.0)):
+        cases.append((base, base.rating_max_temp - below, below / dt, 0.0, 20.0, dt))
+    store = params().dhw_store
+    for temp in (10.0, 45.0, 60.0, store.rating_max_temp, store.rating_max_temp + 3.0):
+        for heat in (-2.0, 0.0, 1.5, 6.0, 40.0):
+            for draw in (0.0, 2.0):
+                cases.append((store, temp, heat, draw, 15.0, 0.25))
+    ties = differ = tie_hit = tie_off = 0
+    for c in cases:
+        head = tm.store_step(*c)
+        d_temp = ((c[2] - c[3] * tm.dhw_draw_scale(c[0].tap_temp_for_store(c[1]), c[0].inlet_c)
+                   - c[0].ua_kw_per_c * (c[1] - c[4])) / c[0].capacity_kwh_per_c)
+        is_tie = d_temp == max(0.0, c[0].rating_max_temp - c[1]) / max(c[5], 1e-6)
+        ties += is_tie
+        differ += not _same(head, smut(*c))
+        moved = not _same(head, stie(*c))
+        tie_hit += moved and is_tie
+        tie_off += moved and not is_tie
+    print(f"RESULT equiv_step_cases={len(cases)}")
+    print(f"RESULT equiv_step_ties={ties}")
+    print(f"RESULT equiv_step_differ={differ}")
+    print(f"RESULT equiv_step_tie_control_differ_on_ties={tie_hit}")
+    print(f"RESULT equiv_step_tie_control_differ_off_ties={tie_off}")
+
+
 ARMS = {
     "issue": arm_issue, "off_identity": arm_off_identity, "balance": arm_balance,
     "ua_zero": lambda: arm_balance(ua_zero=True), "eps_null": arm_eps_null,
     "legionella_eps": arm_legionella_eps, "lp_flux": arm_lp_flux, "exchange": arm_exchange,
+    "equiv": arm_equiv,
 }
 
 if __name__ == "__main__":
