@@ -1,2 +1,0 @@
-RESULT day=2026-10-24 record=21 of=56 null=0
-RESULT day=2026-10-27 record=3 of=22 null=0
