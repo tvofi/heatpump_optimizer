@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/tariff.py:_window_partition RETURN_DEL b25dd300",
-  "killed_by": "tests/features.py",
-  "old": "    return per_window, int(offset_steps) % per_window",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

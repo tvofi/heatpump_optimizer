@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sysid.py:adoption_decision CMP_BOUND 95ec67b4",
-  "killed_by": "tests/features.py",
-  "old": "    if not hw <= UA_ADOPTION_HALFWIDTH_BAR:",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if not hw < UA_ADOPTION_HALFWIDTH_BAR:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

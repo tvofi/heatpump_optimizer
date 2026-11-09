@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_worker_env GUARD_OFF 9f8312c5",
-  "killed_by": "tests/features.py",
-  "old": "    if tests_dir.is_dir():",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_schedule.py:space_pump_should_run BOOLOP af86f618",
-  "killed_by": "tests/features.py",
-  "old": "        if temp is not None and float(temp) < float(floor_temp) + margin:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if temp is not None or float(temp) < float(floor_temp) + margin:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

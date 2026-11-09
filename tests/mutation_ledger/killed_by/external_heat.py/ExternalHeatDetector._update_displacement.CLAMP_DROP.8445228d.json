@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/external_heat.py:ExternalHeatDetector._update_displacement CLAMP_DROP 8445228d",
-  "killed_by": "tests/features.py",
-  "old": "        state.displacement = min(1.0, max(0.0, fraction))",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`state.displacement = (1.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4. Each of the 2 sites under this anchor was killed."
-}

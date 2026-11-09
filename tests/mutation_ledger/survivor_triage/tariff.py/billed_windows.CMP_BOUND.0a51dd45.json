@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/tariff.py:billed_windows CMP_BOUND 0a51dd45",
-  "old": "    if factors.size < n:",
-  "reason": "R10-CLONE-2238 P4: the pad guard of the one owner of the billed-equivalent scaling, the line _peak_excess, peak_cost_batch and _grid_report each carried as a copy before. `<` -> `<=` differs only when the sliced factors already have one per window, where the moved branch concatenates np.ones(0) and leaves the same float64 values, so the product is bit-identical. Equivalent by construction; survival not measured locally (CI's mutation lane runs it).",
-  "verdict": "equivalent"
-}

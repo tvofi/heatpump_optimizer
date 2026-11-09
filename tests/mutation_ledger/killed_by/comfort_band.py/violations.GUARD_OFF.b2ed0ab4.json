@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/comfort_band.py:violations GUARD_OFF b2ed0ab4",
-  "killed_by": "tests/config_flow_steps.py",
-  "old": "    if minimum > target:",
-  "reason": "Recorded by `mutation_table.py --drain` against 994695e06c4c2b78d6420f82c322188317817f91: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
-}

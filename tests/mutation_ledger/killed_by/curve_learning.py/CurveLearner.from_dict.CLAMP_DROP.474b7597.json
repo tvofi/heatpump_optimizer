@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/curve_learning.py:CurveLearner.from_dict CLAMP_DROP 474b7597",
-  "killed_by": "tests/features.py",
-  "old": "            learner.comfortable_days = max(0, int(data.get(\"comfortable_days\", 0)))",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`learner.comfortable_days = (0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

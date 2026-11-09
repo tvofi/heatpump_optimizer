@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/external_heat.py:ExternalHeatDetector._rate GUARD_OFF 9092b9b8",
-  "killed_by": "tests/features.py",
-  "old": "        if previous is None:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

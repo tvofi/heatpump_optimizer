@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/slot_drivers.py:space_drivers CLAMP_DROP da64fd94",
-  "killed_by": "tests/structure.py",
-  "old": "    half = np.maximum((ceiling - floor) / 2.0, MIN_HALF_BAND_C)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`half = ((ceiling - floor) / 2.0)`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
-}

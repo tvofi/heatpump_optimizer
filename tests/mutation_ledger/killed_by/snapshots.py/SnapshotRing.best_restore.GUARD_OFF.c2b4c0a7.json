@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.best_restore GUARD_OFF c2b4c0a7",
-  "killed_by": "tests/features.py",
-  "old": "                if not taken_day or taken_day >= self._streak_started:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

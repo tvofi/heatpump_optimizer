@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fetch_weather_forecast BOOLOP 0c8a6b4c",
-  "killed_by": "tests/features.py",
-  "old": "            if state and not self._weather_forecast:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if state or not self._weather_forecast:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}
