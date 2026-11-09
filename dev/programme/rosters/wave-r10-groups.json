@@ -19772,7 +19772,7 @@
    "after": [],
    "carry": [
     "From r10-hotfix-codeql-headroom, body item bac1b3fe: seat-tooling: stale: cloud-setup's venv-ha lacks scipy and paho and its homeassistant breaks tests/harness.py, so the suites cannot run in a cloud seat. Carry: R10-RCA-CLOUD-ENTITIES-ENV (dev/programme/rosters/wave-r10-groups.json) (items bac1b3fe)",
-    "From this pull request, body item 1f04ec01: Carry 1 (item bac1b3fe: cloud-setup's venv-ha lacks scipy and paho, so suites cannot run in a cloud seat): not touched by this resolution-only delta; the verdicted change is unchanged. Carry: R10-RCA-CLOUD-ENTITIES-ENV (dev/programme/rosters/wave-r10-groups.json) (items 1f04ec01)",
+    "From this pull request, body item 1f04ec01: Carry 1 (item bac1b3fe: cloud-setup's venv-ha lacks scipy and paho, so suites cannot run in a cloud seat): not touched by this resolution-only delta; the verdicted change is unchanged. Carry: R10-RCA-CLOUD-ENTITIES-ENV (dev/programme/rosters/wave-r10-groups.json) (items 1f04ec01) [dismissed: duplicate of carry 0; triage batch 140 entry 487]",
     "Carry 1 (item bac1b3fe: cloud-setup's venv-ha lacks scipy and paho, so suites cannot run in a cloud seat): not touched by this resolution-only delta; the verdicted change is unchanged. Carry: R10-RCA-CLOUD-ENTITIES-ENV (dev/programme/rosters/wave-r10-groups.json)"
    ],
    "architect_note": "",
