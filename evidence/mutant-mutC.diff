@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index e253f95cd..a8031639b 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -884,7 +884,7 @@ def _scoped_minimize(*args: Any, **kwargs: Any) -> Any:
+     Identical results by construction: no operation at these sizes is
+     threaded, which is precisely why the threads were pure overhead.
+     """
+-    if _blas_threads is None:
++    if False:
+         return minimize(*args, **kwargs)
+     with _blas_threads.limit(limits=1):
+         return minimize(*args, **kwargs)
