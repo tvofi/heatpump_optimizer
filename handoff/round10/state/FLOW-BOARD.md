@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-09T06:14:48+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-09T06:35:15+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -8,10 +8,10 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 |---|---|---|
 | roster groups closed vs takt | 0 / 1.0 | 6 / 24.0 |
 | fly-ins closed | 1 | 4 |
-| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 1 | 26 / 2 / 0 / 4 |
-| first-pass fix-review yield | 0/0 (-) | 19/47 (0.40) |
-| blocked-class mix | ci-red:1, ci-unsettled:1, root-cause-unanswered:1 | carry-missing:1, carry-unmet:1, ci-cancelled:2, ci-incomplete:1, ci-pending:1, ci-red:14, ci-unsettled:1, claim-refuted:1, class-open:6, countermeasure-unsound:1, defect:1, gate-red:1, merge-conflict:3, mutant-survives:1, mutation-survivor:1, mutation-vacuous:3, own-row-not-generated:1, robustness:1, root-cause-detectable:1, root-cause-unanswered:5, rule-conflict:1 |
-| lead time per size (h, n/p50/max) | none | L n=4 p50=24.59 max=27.32; M n=11 p50=17.91 max=38.55; S n=11 p50=13.01 max=50.20 |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 1 | 26 / 2 / 0 / 4 |
+| first-pass fix-review yield | 0/0 (-) | 19/46 (0.41) |
+| blocked-class mix | ci-red:1, ci-unsettled:1 | carry-missing:1, carry-unmet:1, ci-cancelled:2, ci-incomplete:1, ci-pending:1, ci-red:14, ci-unsettled:1, claim-refuted:1, class-open:6, countermeasure-unsound:1, defect:1, gate-red:1, merge-conflict:3, mutant-survives:1, mutation-survivor:1, mutation-vacuous:3, own-row-not-generated:1, root-cause-detectable:1, root-cause-unanswered:5, rule-conflict:1 |
+| lead time per size (h, n/p50/max) | M n=1 p50=21.98 max=21.98 | L n=3 p50=24.23 max=24.59; M n=12 p50=20.17 max=38.55; S n=11 p50=13.01 max=50.20 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
