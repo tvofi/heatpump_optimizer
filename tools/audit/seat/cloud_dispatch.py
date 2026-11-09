@@ -271,7 +271,10 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"refs/heads/handoff/{topic}, then write the PR body and run "
             f"`bash tools/audit/seat/body_push.sh {topic} <body.md>`, which pushes "
             f"refs/heads/handoff-body/{topic}; that second push is the return signal. Once it succeeds, "
-            f"delete the step ref: `git push origin :refs/heads/{WIP_NS}/{topic}`. Push nothing "
+            f"delete the step ref: `git push origin :refs/heads/{WIP_NS}/{topic}`. When body_push.sh "
+            f"exits 4 (its output ends `body_push: REFUSED CARRY-LANDED`), the carry lands on the roster "
+            f"you may not write: push a BLOCKED.md holding that output to refs/heads/{WIP_NS}/{topic} and stop; "
+            "the relay folds the carries and re-runs body_push.sh. Push nothing "
             "else, open no pull request and write no delivery row. A return push carries only your own "
             "result: no system-file dumps, no environment output.")
     elif role == "designer":
@@ -844,7 +847,9 @@ def _group_checks(check) -> None:
         check("_publish itself refuses a ref that would publish the host, and pushes nothing",
               not published and "someone" not in git(work, "ls-remote", str(origin)))
         # A step push matches no glob the handoff machinery lists, read from its own source.
-        globs = (re.findall(r"'(refs/heads/handoff[^'*]*\*)'", (HERE / "cloud_relay.sh").read_text())
+        # (carry_fold_arm lists handoff-wip/* on purpose, to read a BLOCKED.md; it moves no PR, so it is not a handoff glob)
+        globs = ([g for g in re.findall(r"'(refs/heads/handoff[^'*]*\*)'", (HERE / "cloud_relay.sh").read_text())
+                  if not g.startswith(f"refs/heads/{WIP_NS}/")]
                  + re.findall(r'"\+(refs/heads/handoff[^:"*]*\*):', (HERE / "bus.sh").read_text()))
         git(work, "push", "-q", str(origin), f"{tip}:refs/heads/{WIP_NS}/r10-x", f"{tip}:refs/heads/handoff/r10-x")
         listed = git(work, "ls-remote", str(origin), *globs)
