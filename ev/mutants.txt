@@ -1,0 +1,54 @@
+M0 PASS: the unmutated head
+M1 KILLED: a rejoin fires on GREEN only, never on RED
+    FAIL REJOIN null control (b): a head whose classify reads RED stays SKIPped -- never re-run, never recarried, reported, rc 1
+M2 KILLED: the batch runs the rejoin
+    FAIL REJOIN (a): an entry SKIPped on a red gate whose head turns GREEN within the cap rejoins the train and merges, with no add; the skip is CURED and the train exits 0
+    FAIL REJOIN null control (b): a head whose classify reads RED stays SKIPped -- never re-run, never recarried, reported, rc 1
+    FAIL REJOIN null control (b): a head that never leaves WAIT stops at the cap and does not hold the batch -- #1 merged before the rejoin's first read, #2 stays skipped, the train ends
+    FAIL REJOIN: a rejoin refused again (red at its own CI wait) is skipped again, its row replaced, one row and one skip for #2
+M3 KILLED: only a red holding GATE is a rejoin candidate
+    FAIL REJOIN null control: a skip on a red that is not GATE is no rejoin candidate at all
+M4 KILLED: the rejoin waits, bounded by the train's cap (cap 0)
+    FAIL REJOIN (a): an entry SKIPped on a red gate whose head turns GREEN within the cap rejoins the train and merges, with no add; the skip is CURED and the train exits 0
+M5 KILLED: the rejoin's bound is the train's cap (cap x100)
+    FAIL REJOIN null control (b): a head that never leaves WAIT stops at the cap and does not hold the batch -- #1 merged before the rejoin's first read, #2 stays skipped, the train ends
+M6 KILLED: a head the branch moved off does not rejoin
+    FAIL REJOIN: a skipped head the branch moved off does not rejoin -- a new head owes a new verdict
+M7 KILLED: a serial rejoin candidate is queued too
+    FAIL REJOIN (a), serial: a serial entry SKIPped on a red gate at its turn rejoins once GREEN and merges
+M8 KILLED: a clean merge tree merges with no recarry (a recarry on every main move)
+    FAIL NO RECARRY (c) --overlap: a clean merge tree against origin/main and an unchanged proven head merge with no recarry, at the verdicted heads, each graded at its merge
+    FAIL NO RECARRY (c): a clean merge tree against origin/main and an unchanged proven head merge with no recarry, at the verdicted heads, each graded at its merge
+    FAIL NO RECARRY grades the un-recarried car against its merge base even when the batch moved nothing: the merge tree with the foreign main is read before it lands
+    FAIL NO RECARRY null control (d): a merge-tree conflict against origin/main still recarries (the recarry names the conflict), while the clean head beside it does not
+M9 KILLED: a strict or unreadable policy recarries
+    FAIL on main: entries are approved ONCE, at admission (P86: the dropped #2 too, at the head it was admitted at), and the dropped one goes through the serial run (here its recarry stops)
+    FAIL ... and a green run there lets the serial entry go on (null control: its recarry stops here)
+    FAIL --overlap: every serial entry is re-carried UP FRONT -- both recarries happen before the first merge, and the entries still land in queue order
+    FAIL the recarry worktrees the batch made in the real clone are gone when it ends (the next run's pre-flight finds no train worktree holding a branch)
+M10 KILLED: a merge-tree conflict recarries
+    FAIL NO RECARRY null control (d): a merge-tree conflict against origin/main still recarries (the recarry names the conflict), while the clean head beside it does not
+M11 KILLED: a bot head recarries
+    FAIL NO RECARRY keeps a bot head's cure: under a non-strict ruleset a GITHUB_TOKEN tip with a clean merge tree is still recarried (the App push), and lands
+M12 KILLED: a held grade recarries
+    FAIL NO RECARRY never skips the recarry a graded red holds: under a non-strict ruleset the held car is still recarried for CI, then stopped on the same tree
+M13 KILLED: the non-recarried head is graded against its merge base (serial)
+    FAIL NO RECARRY (c): a clean merge tree against origin/main and an unchanged proven head merge with no recarry, at the verdicted heads, each graded at its merge
+    FAIL REJOIN (a), serial: a serial entry SKIPped on a red gate at its turn rejoins once GREEN and merges
+M14 KILLED: the non-recarried head is graded against its merge base (--overlap)
+    FAIL NO RECARRY grades the un-recarried car against its merge base even when the batch moved nothing: the merge tree with the foreign main is read before it lands
+M15 KILLED: strict_update reads the policy
+    FAIL on main: entries are approved ONCE, at admission (P86: the dropped #2 too, at the head it was admitted at), and the dropped one goes through the serial run (here its recarry stops)
+    FAIL ... and a green run there lets the serial entry go on (null control: its recarry stops here)
+    FAIL --overlap: every serial entry is re-carried UP FRONT -- both recarries happen before the first merge, and the entries still land in queue order
+    FAIL the recarry worktrees the batch made in the real clone are gone when it ends (the next run's pre-flight finds no train worktree holding a branch)
+M16 KILLED: a REMERGE FAILED recarry stops as a git failure
+    FAIL carry f7d2bf7c: a remerge that failed before any conflict stops as a git failure -- never a conflict, never read as a push that landed
+M17 KILLED: a rejoin refused again is skipped again
+    FAIL REJOIN: a rejoin refused again (red at its own CI wait) is skipped again, its row replaced, one row and one skip for #2
+M18 KILLED: the rejoin sleeps between reads
+    FAIL REJOIN null control (b): a head that never leaves WAIT stops at the cap and does not hold the batch -- #1 merged before the rejoin's first read, #2 stays skipped, the train ends
+M19 KILLED: the rejoin's sleep is the train's poll grain
+    FAIL REJOIN null control (b): a head that never leaves WAIT stops at the cap and does not hold the batch -- #1 merged before the rejoin's first read, #2 stays skipped, the train ends
+MUTANTS: 20 run, 0 not as required
+rc=0
