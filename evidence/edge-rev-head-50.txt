@@ -1,0 +1,2 @@
+tree=rev-head === Stress and economics ===
+tree=rev-head RESULT edge label=typical_slab/shoulder short=50 interns_to_rebuild=43600 traced_mib=2.05

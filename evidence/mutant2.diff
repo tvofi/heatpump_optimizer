@@ -1,0 +1,13 @@
+diff --git a/tests/stress.py b/tests/stress.py
+index d7841ed32..d5add7db6 100644
+--- a/tests/stress.py
++++ b/tests/stress.py
+@@ -3206,7 +3206,7 @@ def _memory_probe_main(argv: list[str]) -> int:
+     if "--intern-fill-short" in argv:
+         short = int(argv[argv.index("--intern-fill-short") + 1])
+         interns_to_rebuild = _count_interns_to_rebuild()
+-        _intern_until_rebuild("fill", limit=interns_to_rebuild - short)
++        pass  # MUTANT: fill dropped
+     if "--no-intern-headroom" not in argv:
+         give_interned_table_headroom()
+     modules_before = set(sys.modules)

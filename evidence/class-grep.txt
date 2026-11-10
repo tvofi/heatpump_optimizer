@@ -1,0 +1,13 @@
+dev/audit/harnesses/r10_stress_intern_fill.py:68:    tracemalloc.start()
+dev/audit/harnesses/r10_stress_intern_fill.py:167:        real_start, real_get = tracemalloc.start, tracemalloc.get_traced_memory
+dev/audit/harnesses/r10_stress_intern_fill.py:184:        tracemalloc.start, tracemalloc.get_traced_memory = start, get
+dev/audit/rounds/round10/D9/s2/retained.py:115:tracemalloc.start()
+dev/audit/rounds/round3/D9/h3_memory.py:122:        tracemalloc.start()
+dev/audit/rounds/round4/D9/h4_retained.py:206:    tracemalloc.start()
+dev/audit/rounds/round4/D9/h7_memory_gate.py:143:tracemalloc.start()
+dev/audit/rounds/round4/D9/h8_leak_attrib.py:67:    tracemalloc.start(1)
+dev/audit/rounds/round4/D9/verify3_h7_mmap.py:59:tracemalloc.start()
+dev/audit/rounds/round8/evidence/D9/s2_cycle.py:222:        tracemalloc.start(1)
+tests/replay.py:2471:            tracemalloc.start()
+tests/stress.py:3213:    tracemalloc.start()
+tests/stress.py:3255:    tracemalloc.start()
