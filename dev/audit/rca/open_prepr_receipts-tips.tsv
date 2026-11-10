@@ -1,0 +1,153 @@
+# python3 -I dev/audit/rca/open_prepr_receipts.py tips --since 2026-11-06T00:00:00Z --until 2026-11-10T03:30:00Z --main origin/main; origin/main 5d09dedf69eb, 2026-11-10T08:38:55Z, refs fetched from origin with handoff-body/*, fix/*, handoff/* and archive tags
+audit-r10-roster	74a63f200	never	
+pda-1109-b4	0946e92de	result	
+pda-1109-gate	33724daba	result	
+pda-1109-h6	f06d6c30c	result	
+pda-1109-k3	9a8005758	result	
+pda-1109-m2	6c392ad23	result	
+pda-1109-q7	c8dbc7f8d	result	
+pda-1109-r1	a518edd5a	result	
+pda-1109-w9	e2b5b59b0	result	
+r10-arbiter-off-restore	5a373e346	never	
+r10-arch-docs-study	14c47bcee	result	
+r10-body-contract-p2	2d0773dd6	never	
+r10-body-contract-p3	a60d21d6f	non-merge	conflict
+r10-body-contract-p3-bootstrap	4c8ab1b53	trailer	
+r10-body-contract-p4	f116936fd	never	
+r10-briefs-fold-d0	55d733b74	never	
+r10-carry-residue	173b1c4bd	trailer	
+r10-carry-residue-2	2f42c06b7	non-merge	no
+r10-ci-edit-runner	11d6e8b63	never	
+r10-ci-grader-batch-study	34ed8ee70	result	
+r10-ci-own-delivery-row	3952d4053	trailer	
+r10-ci-selftest-scope	0909fe2ee	trailer	
+r10-ci-selftest-scope-fixtures	2b268bbfe	trailer	
+r10-ci-slim	ada2f7eaa	trailer	
+r10-clone-2238	6cc2797da	same	
+r10-closeout-instruments	09ed0669d	never	
+r10-combi-tank	e1748a5a8	trailer	
+r10-combi-tank-pr	890d003df	trailer	
+r10-cop-gate-e	5450b2fb0	trailer	
+r10-dependabot-3323-compat	46011b7df	trailer	
+r10-dispatch-at-handoff	c88bceb7f	non-merge	no
+r10-ext-3224	457442bcb	non-merge	no
+r10-ext-3226	48cc0b602	non-merge	no
+r10-fixer-md-spelling-corpus	4f8e253e8	never	
+r10-flow-toolkit-model	66544ba83	non-merge	conflict
+r10-fly-cipredict-restoring	aed9b7d8b	never	
+r10-fly-dispatch-rulings	60035db52	never	
+r10-fly-gh-read-retry-p3	5b0defc91	non-merge	conflict
+r10-fly-no-self-carry	83b111f6c	never	
+r10-fly-replan-defects	4551139c6	non-merge	no
+r10-fly-replan-top-tier	f530d381a	never	
+r10-fly-stamp-flush-cost	8b933f22b	non-merge	no
+r10-fly-stamp-flush-hold	c0548f09c	non-merge	no
+r10-fly-standing-contracts-p2	b8ca70c7b	non-merge	conflict
+r10-fly-triage-bar	d08d7cae6	never	
+r10-friction-ci-red	8c12aa071	non-merge	no
+r10-friction-other-family	8b03b6a67	never	
+r10-friction-other-family-p2	b3f76490a	never	
+r10-friction-records	ccaa53b3f	non-merge	no
+r10-gate-busy-defer	e0281a790	trailer	
+r10-gate-busy-defer-2	a885de004	never	
+r10-gate-busy-defer-3	6ef08fa54	trailer	
+r10-gate-lease-toctou	af6edfda1	never	
+r10-gate-stale-jobs-p2	834107af8	never	
+r10-generic-heat-curve	5198b1daf	trailer	
+r10-ghc-research	52f5a4425	result	
+r10-handoff-path-p2	ce4423375	trailer	
+r10-handoff-path-p3	0a3b93392	never	
+r10-hotfix-author-email	c32caab1f	trailer	
+r10-hotfix-codeql-headroom	42108817b	same	
+r10-hotfix-codeql-headroom-p2	ffaa1a544	trailer	
+r10-hotfix-codeql-headroom-recut	3838ebda4	result	
+r10-hotfix-delta-review	a2ddd9013	merge-only	yes
+r10-hotfix-gate-busy-defer-p5	c3eb33b43	trailer	
+r10-hotfix-main-fast-1109	15e96c00c	trailer	
+r10-hotfix-main-ist-red	0aa6ec831	trailer	
+r10-hotfix-nightly-pin-throughput	315cbf197	never	
+r10-hotfix-nightly-status	6390e600f	trailer	
+r10-hotfix-nonrequired-reds	7fe78c47b	same	
+r10-hotfix-nonrequired-reds-2	12652ef3b	never	
+r10-hotfix-opener-board-prefix	5bbfe1cfc	trailer	
+r10-hotfix-packet-approval-owed	4fdf89267	never	
+r10-hotfix-plan-lanes	b18ff06e5	same	
+r10-hotfix-prepr-selftest-darwin	e39ee33b7	trailer	
+r10-hotfix-roster-lint-refresh	64826bf81	merge-only	conflict
+r10-hotfix-selftest-scope-hang	162bf2bd5	never	
+r10-hotfix-selftest-timeout	fbf8b8da3	non-merge	no
+r10-hotfix-stamp-base	abbaa2cdc	non-merge	no
+r10-hotfix-stress-mem-peak	e9e361e85	merge-only	yes
+r10-hotfix-sweep-settle-loop	804e81db6	trailer	
+r10-hotfix-sweep-token-actor	892897dd2	trailer	
+r10-hotfix-train-defer-wait	4995e9524	non-merge	no
+r10-i18n-de	031bc4dad	trailer	
+r10-input-reappear	b8bd1d008	never	
+r10-ledger-residue	b2ba8f65f	never	
+r10-min-power-floor	1a3b025c7	trailer	
+r10-outside-first	9cc78fff9	trailer	
+r10-outside-intake	596a6dab0	non-merge	conflict
+r10-outside-intake-p2	186155edc	trailer	
+r10-partload-residue	cc9fcd256	trailer	
+r10-planted-defect-audit	879efeb91	trailer	
+r10-policy-role-pack	1618633fb	trailer	
+r10-policy-role-pack-p2	63f8dfaf0	never	
+r10-process-slim	fe73024e1	trailer	
+r10-process-slim-p2	6fbf46c2f	never	
+r10-raise-gate-shim-p2	16410fd2a	never	
+r10-rca-cloud-entities-env	9edf6b32b	non-merge	conflict
+r10-rca-cop-unmeasured	7a7ca268b	trailer	
+r10-rca-flush-dispatch	6358cf0f9	trailer	
+r10-rca-gate-busy-defer-2	6a35d2633	trailer	
+r10-rca-gate-busy-defer-4	75b84e548	never	
+r10-rca-gate-busy-defer-p5	4d89ca990	never	
+r10-rca-livehead-cancel	76ca858b4	never	
+r10-rca-process-worker-hang	91e0f100d	non-merge	no
+r10-rca-relay-handoff-starvation	ac42c3ea9	trailer	
+r10-rca-stamp-claim-conflict	0bb4195a3	never	
+r10-rca-stamp-flush-cost	ba9bebf26	never	
+r10-rca-sweep-settle-loop	67a488af7	trailer	
+r10-rca-tick-blind	f512cc004	trailer	
+r10-record-dependabot-rows	214910186	never	
+r10-ref-privacy-cloud	233b59469	trailer	
+r10-relay-sweep	b4487adad	trailer	
+r10-relay-sweep-p2	074af84f4	never	
+r10-replay-cost-budget-r2	5e2b774a3	non-merge	no
+r10-review-enumerate	5cc1b0d09	non-merge	no
+r10-roster-read-sweep	9304f7f09	non-merge	no
+r10-roster-read-sweep-p2	154d90c39	trailer	
+r10-roster-write-sweep	776c3fe51	never	
+r10-roster-write-sweep-p2	3d85c37e6	trailer	
+r10-round-playbook	257a74ddc	never	
+r10-sav-comfort-p4	68ec423c1	trailer	
+r10-sav-meter-floor	c550fe6a9	non-merge	no
+r10-sav-wood-heat	93a431df7	same	
+r10-state-docs-push-race	da471cc31	trailer	
+r10-suite-host-determinism-p2	54df3fab1	never	
+r10-sweep-template-sync	91d86c008	non-merge	no
+r10-tick-levels-p2	0843bb24a	trailer	
+r10-train-merge-loop	e2ece8b47	trailer	
+r10-train-merge-loop-2	cccf1e488	never	
+r10-train-rejoin-no-recarry	637915eda	trailer	
+r10-train-stale-verdict-guard	dda45d8ae	trailer	
+r10-water-setpoint-lift	4044cf526	never	
+r10-why-now-widget	c1a5b8952	trailer	
+r10-why-now-widget-p2	407ad37fb	trailer	
+triage-s12-batch122	5e1828241	trailer	
+triage-s12-batch126	6e8b6c43f	never	
+triage-s12-batch127	af48e80a0	never	
+triage-s12-batch128	1a6b67dc9	never	
+triage-s12-batch129	3eedf4208	never	
+triage-s12-batch130	950fdd2ac	trailer	
+triage-s12-batch131	856212b98	trailer	
+triage-s12-batch133	749287273	never	
+triage-s13-batch134	3f6354214	never	
+triage-s13-batch135	5a28e5233	never	
+triage-s13-batch136	fdaf526ea	never	
+triage-s13-batch137	9dd9930e9	trailer	
+triage-s13-batch138	6df31d6d2	trailer	
+triage-s13-batch139	cd5d93da3	trailer	
+triage-s13-batch140	e96498882	trailer	
+RESULT tips=149 result=12 code=137 trailer=57 no_trailer=80
+RESULT split same=5 merge-only=3 non-merge=24 not-ancestor=0 never=48 missing=0
+RESULT tree_equal=2 of=27
