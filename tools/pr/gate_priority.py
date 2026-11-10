@@ -16,12 +16,12 @@ integer wins; a channel that yields none is skipped, never fatal.
 1. ``$HPO_GATE_PRIORITY`` -- the caller's explicit override.
 2. ``.gate-priority`` in the worktree root -- one line, the group's override.
 3. The derived default: the group this branch answers for in the round roster
-   (``roster_lib.group_for_branch``, which matches ``resume.branch``) is a
-   hotfix or an accepted outside group (``roster_lib.dispatch_rank`` 0 or 1;
-   owner ruling tvofi 2026-11-07, triage P420) -> 2; is named in the round's
-   critical-path set -> 1; otherwise 0. The lease has three bands
-   (``gate_lock.PRIORITY_MAX`` is 2), so a hotfix and an outside group share
-   the top band and arrival orders them; splitting that band is the lease's.
+   (``roster_lib.group_for_branch``, which matches ``resume.branch``) maps
+   through ``roster_lib.dispatch_rank``: a hotfix -> 2; an accepted outside
+   group or one named in the round's critical-path set, one rank unordered
+   between them (owner rulings tvofi 2026-11-07, triage P420, and
+   2026-11-08) -> 1; otherwise 0. The lease's three bands
+   (``gate_lock.PRIORITY_MAX`` is 2) are exactly those ranks.
 
 THE FETCH IS AT CALL TIME. The roster ref is refreshed before it is read, so a
 stale local mirror cannot decide a group is off the critical path. Every
@@ -55,8 +55,8 @@ import roster_lib  # noqa: E402  (after the path insert, as the seat tools do)
 
 PRIORITY_ENV = "HPO_GATE_PRIORITY"
 PRIORITY_NORMAL = 0
-CRITICAL_PRIORITY = 1
-OUTSIDE_PRIORITY = 2  # hotfix and outside: the lease's top band
+TOP_PRIORITY = 1  # an outside group or the critical path, one band
+HOTFIX_PRIORITY = 2
 MARKER_NAME = ".gate-priority"
 FETCH_TIMEOUT = 20
 
@@ -101,9 +101,9 @@ def _roster_ref(repo: str) -> str | None:
 
 def derived_priority(branch: str, *, repo: str = ".", ref: str | None = None,
                      fetch: bool = True) -> int:
-    """2 for a hotfix or outside group, 1 when ``branch``'s group is in the
-    critical-path set at the roster ref (a missing or malformed set only drops
-    the 1; a hotfix or outside group still answers 2).
+    """2 for a hotfix group, 1 for an outside group or one in the
+    critical-path set at the roster ref (a missing or malformed set drops only
+    the critical path's 1; an outside group still answers 1).
 
     0 for every other answer, including every failure. ``ref`` overrides the
     live roster ref (the self-test's fixture); ``fetch=False`` reads the local
@@ -124,9 +124,8 @@ def derived_priority(branch: str, *, repo: str = ".", ref: str | None = None,
         if critical is None:
             critical = set()
         rank = roster_lib.dispatch_rank(roster, group, critical)
-        if rank <= 1:
-            return OUTSIDE_PRIORITY
-        return CRITICAL_PRIORITY if rank == 2 else PRIORITY_NORMAL
+        return {roster_lib.RANK_HOTFIX: HOTFIX_PRIORITY,
+                roster_lib.RANK_TOP: TOP_PRIORITY}.get(rank, PRIORITY_NORMAL)
     except Exception:  # noqa: BLE001 -- a pre-pr helper must never crash a run
         return PRIORITY_NORMAL
 
@@ -226,13 +225,14 @@ def _self_test() -> int:
 
         check("a listed group gets priority with no env and no marker",
               derived("handoff/r10-crit") == 1, derived("handoff/r10-crit"))
-        check("an outside group and a hotfix group outrank the critical path (owner ruling 2026-11-07)",
-              derived("handoff/r10-out") == 2 and derived("handoff/r10-hot") == 2
-              and derived("handoff/r10-out") > derived("handoff/r10-crit")
-              and derived("handoff/r10-outcrit") == 2,
+        check("a hotfix outranks an outside group, which shares the critical path's band "
+              "(owner rulings 2026-11-07, 2026-11-08)",
+              derived("handoff/r10-hot") == 2 and derived("handoff/r10-out") == 1
+              and derived("handoff/r10-out") == derived("handoff/r10-crit")
+              and derived("handoff/r10-outcrit") == 1,
               [derived(b) for b in ("handoff/r10-out", "handoff/r10-hot", "handoff/r10-outcrit")])
         check("an outside group needs no critical-path set; a malformed set drops only the critical 1",
-              derived("handoff/r10-out", at=no_set) == 2 and derived("handoff/r10-hot", at=malformed) == 2
+              derived("handoff/r10-out", at=no_set) == 1 and derived("handoff/r10-hot", at=malformed) == 2
               and derived("handoff/r10-crit", at=malformed) == 0)
         # Null control: a roster with no outside group and no hotfix orders as at the base.
         plain = {"groups": [g for g in roster["groups"] if g["group"] in ("R10-CRIT", "R10-OTHER")]}

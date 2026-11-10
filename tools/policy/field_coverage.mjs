@@ -350,6 +350,8 @@ const DECLARED = {
   'pinned tools/pr/figure_block.py': { none: 'reads the figures a pull-request body states against the commands that produced them; graded by its own self-test, no arm here' },
   'pinned tools/audit/machinery_ratchet.py': { none: 'reads machinery_budgets.json through load_budgets(), which refuses a key it does not read and requires each it does (its --self-test pins both), and merge history; no arm here' },
   'pinned tools/audit/round6/D11/fix/codeowners_gap.py': { none: 'reads CODEOWNERS and workflows; residual (D11-s1-03), no arm here' },
+  'pinned tools/audit/seat/gh_read.py': { none: 'the read rule gh_read_run.py imports: classifies gh stderr, grades no input field; its self_test, run inside record_row.py\'s, pins every classifier alternative from both sides', pending: 'R10-FLY-GH-READ-RETRY\'s follow-up adding it to pr-contract.yml\'s base restore' },
+  'pinned tools/audit/seat/gh_read_run.py': { none: 'runs one gh read under gh_read\'s rule and passes its answer through unchanged; reads no input field of its own, graded by its --self-test', pending: 'R10-FLY-GH-READ-RETRY\'s follow-up adding it to pr-contract.yml\'s base restore' },
   'stamp rule 4': { none: 'reads commit parents and subjects; residual (D11-s1-02), no arm here' },
   'carry_audit owed-carry': { none: 'reads the prose of a body item (a carry index beside a not-done phrase), not a structured input; graded by carry_audit --self-test, whose rows fail under the arm\'s two mutants' },
 }

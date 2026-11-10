@@ -47,15 +47,22 @@ def pr_of(run):
     return parts[2] if len(parts) > 2 else ""
 
 
+#: The item ceiling ghapi.MAX_PAGES gives at 100 a page, kept at every page size.
+MAX_ITEMS = ghapi.MAX_PAGES * 100
+
+
 def pages(get, path, params):
     """Every item, paged by `page=` rather than the Link header (whose
     repositories/<id> form some proxies refuse); ghapi.paginate's one-list rule.
     ghapi.get already retries a 5xx twice with backoff; one that persists
     (run 40126133450: page 2 of per_page=100 answered 502, per_page=30 answered
-    200) restarts the listing at the next smaller page size; a 4xx raises."""
+    200) restarts the listing at the next smaller page size; a 4xx raises.
+    Each size is bounded by MAX_ITEMS items, not MAX_PAGES pages: at 30 a page
+    MAX_PAGES is 1500 items, and a re-run run lists every attempt's jobs (run
+    42454528717: 1760)."""
     for size in (100, 30):
         out = []
-        for n in range(1, ghapi.MAX_PAGES + 1):
+        for n in range(1, -(-MAX_ITEMS // size) + 1):
             st, _, doc = get(path, dict(params, per_page=size, page=n))
             if st >= 500 and size != 30:
                 break
@@ -215,10 +222,29 @@ def selftest():
         null_ok = False
     except ghapi.ApiError as e:
         null_ok = e.status == 404 and len(calls) == 1
-    pg = pages_ok and clean_ok and null_ok
-    print(f"selftest: {len(want) + 7} checks, {len(bad) + (not rows_ok) + [pages_ok, clean_ok, null_ok].count(False)} failed{' ' + str(bad) if bad else ''}"
-          f"{'' if pg else f' pages(fallback {pages_ok}, clean {clean_ok}, 4xx {null_ok})'}")
-    return 1 if bad or not rows_ok or not pg else 0
+    # carry 5: the measured server, a 502 for any page over 50 jobs, serving 70 jobs.
+    asked = []
+
+    def server(total):
+        def get(path, params):
+            asked.append(params["per_page"])
+            if params["per_page"] > 50:
+                return 502, {}, None
+            lo = (params["page"] - 1) * params["per_page"]
+            return 200, {}, {"jobs": list(range(total))[lo:lo + params["per_page"]]}
+        return get
+
+    def paged(total):
+        asked.clear()
+        return caught(lambda: pages(server(total), "repos/o/r/actions/runs/1/jobs", {"filter": "all"}))
+    over50_ok = paged(70) == list(range(70)) and asked == [100, 30, 30, 30]
+    # run 42454528717's 1760 jobs, every attempt listed, behind the same 502 at 100 a page.
+    many_ok = paged(1760) == list(range(1760)) and asked == [100] + [30] * 59
+    pg = dict(fallback=pages_ok, clean=clean_ok, **{"4xx": null_ok}, over50=over50_ok, many1760=many_ok)
+    pbad = [k for k, v in pg.items() if not v]
+    print(f"selftest: {len(want) + 4 + len(pg)} checks, {len(bad) + (not rows_ok) + len(pbad)} failed"
+          f"{' ' + str(bad) if bad else ''}{'' if rows_ok else ' rows'}{' pages' + str(pbad) if pbad else ''}")
+    return 1 if bad or not rows_ok or pbad else 0
 
 
 def main(argv):
