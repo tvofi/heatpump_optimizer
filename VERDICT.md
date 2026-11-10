@@ -1,20 +1,22 @@
-Fix review: merge 97839ed60f8b59cd59adc99d106b4e94ac4dccab
+Fix review: merge 4660c050e431dde01c6b4d889f9d6b7572b90166
 
-bus-nonce: 72b6ef1bf2d112a15eb226632d0456dd
+bus-nonce: d2847c205c5682c7a8ca3bbb8ff9d6dd
 
-Round: first review of this head.
+Round: second review (later round, scoped to the delta 97839ed6..4660c050 per the owner ruling of 2026-11-09).
 
 ## Evidence
-- RESULT head measured: 97839ed60f8b59cd59adc99d106b4e94ac4dccab (ev/HEAD.txt); the PR body's `## Head` names the same head.
-- RESULT CI: `merge_train.py classify 97839ed6... --pr 3366` exit 0, `GREEN ... pending: none red: none`. The `gate` red in the render-time packet was still in progress and has since concluded green. Body's `## Red checks: none` stands.
-- RESULT merge: `git merge-tree --write-tree origin/main <head>` exit 0 (tree 70a8d057), no conflict.
-- RESULT mutation proof (body's two mutants, re-run): unmutated `cloud_dispatch.py --self-test` 147 checks, 0 failed (ev/null-control.txt). `ref_key ... if False else` gives 1 failed, "a reviewer at the handoff returns on probe/revt-..." (ev/mut1.txt). Main-side text mutant (line 266) gives 1 failed, "the reviewer blocks on main only for a merge-tree conflict" (ev/mut2.txt). Files restored.
-- RESULT new mutants this PR adds to dev/audit/harnesses/r10_seat_selftests_mutants.py (cloud_dispatch-21..23, bus-16..19, cloud_relay-50..54, body_patch-2): `RESULT survivors=0`, all KILLED (ev/mutants.txt; the harness was started twice by mistake, so the file holds duplicate lines for some ids).
-- Figure not re-derivable as quoted: the body says `--self-test` prints "146 checks"; at this head it prints 147 checks, 0 failed (main's merges added one).
-- body_patch-2 is killed by the self-test message "mutant cmta changed nothing" (the self-test's own mutant finds its target line already replaced), not by a behavioural assertion on the commits-file argument. It counts as KILLED under the harness's rule; I built no stronger probe.
-- Claim files, goldens, structure/policy budgets, closures.json, VERSION, manifest and RELEASE_NOTES are untouched by the three-dot diff.
-- Policy approval: the diff changes dev/governance/roles/fix-review.md and standing-dispatch.md. The body says approval is pending; the owner's approving review is required before merge and is not mine to give.
-- Forward-carry: body states a repair merge with carries unchanged from the earlier body; no new forward-carry owed.
+- RESULT head measured: 4660c050e431dde01c6b4d889f9d6b7572b90166 (ev/HEAD.txt). It is still the PR head at verdict time. The body's `## Head` names code head 3a633040ae79c3db452e7d21c91ee5a7e631155f, and `git diff 3a633040 4660c050e431dde01c6b4d889f9d6b7572b90166` is empty, so the two trees are identical.
+- RESULT delta is a merge resolution only: auto-merging 97839ed6 with origin/main 0362916a conflicts only in tools/audit/seat/review_packet.py. The head tree differs from that auto-merge tree only inside that file's one conflict hunk, the dict `gather()` returns (ev/resolution.diff). No production code (custom_components/) is in the delta, so the review was not widened.
+- RESULT union check on review_packet.py: every line either parent added since merge base 1cabb845 is present verbatim in the head file. The resolution keeps main's rename `approval_owed` -> `required_read` (with `required_reading()` and its `(word, why)` reader at line 544) and keeps this branch's `head_named`, `figure_rc` and `pr_head` keys. The only dropped line is `"approval_owed": owed`, which main itself removed. No head line still references `approval_owed` or the removed `owed` variable. Neither parent's change was lost.
+- RESULT `python3 tools/audit/seat/review_packet.py --self-test` at head: 85 checks, 0 failed (ev/review_packet-selftest.txt). This matches the body.
+- RESULT `bash tools/audit/seat/bus.sh --self-test` at head: 170 checks, 0 failed (ev/bus-selftest-tail.txt). This matches the body.
+- RESULT `python3 tests/structure.py` at head: STRUCTURE RATCHET PASSED. `tests/closure.py select`: MODE: SCOPED, running tests/doc_claims.py and tests/entities.py, as the body states.
+- RESULT merge: `git merge-tree --write-tree origin/main 4660c050e431dde01c6b4d889f9d6b7572b90166` exits 0 (tree 895f2149) at origin/main 699f4d9e, with no conflict.
+- RESULT CI: `merge_train.py classify 4660c050e431dde01c6b4d889f9d6b7572b90166 --pr 3366` exits 0, `GREEN 4660c050e431dde01c6b4d889f9d6b7572b90166 pending: none red: none` (ev/classify.txt). The body's `## Red checks: none` stands for the required set (ev/owed-reds.txt).
+- Inherited red, not this PR's: `governance / instrument-self-tests` concluded failure at this head on `selftest_scope self-test: 103 checks, 1 failed` ("the live job parses (118 steps) and its gating is consistent"). The same self-test fails identically at origin/main 699f4d9e, and the context is outside the `merge_train.py owed-reds` set (ev/instrument-self-tests-tail.txt). Under the owner's 2026-11-09 rulings this is not a blocking reason.
+- Previous verdict (probe/rev-3366-72b6ef1b, merge at 97839ed6) had one finding: the body's self-test count was stale by one. It was dismissed there, and this body's figures are re-taken at this head (85 and 170), so it is resolved.
+- Policy approval: the delta carries policy files from the earlier head unchanged. The owner's approving review is still required before merge, and it is not mine to give.
+- VERSION, manifest, RELEASE_NOTES, the claim files and the budgets are untouched by the delta.
 
 ## Findings
-- Residual: the body's quoted self-test count (146) is one below the head's 147; informational only. Carry: dismissed: stale by one after main's merges, no effect on the claim.
+none
