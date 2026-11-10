@@ -17742,7 +17742,7 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "done",
+    "stage": "in-progress",
     "branch": "handoff/r10-combi-tank",
     "note": "size L is provisional; the design sets the final size and owning seam | set-files files [] -> ['custom_components/heatpump_optimizer/thermal_model.py', 'custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/battery.py', 'custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/dhw_learning.py', 'custom_components/heatpump_optimizer/sensor.py', 'custom_components/heatpump_optimizer/topology.py', 'custom_components/heatpump_optimizer/config_flow.py', 'custom_components/heatpump_optimizer/entry_config.py', 'custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/legionella.py', 'custom_components/heatpump_optimizer/setpoint_check.py', 'tests/features.py', 'docs/configuration.md']; hot_files [] -> ['coordinator.py']",
     "pr": 3268,
