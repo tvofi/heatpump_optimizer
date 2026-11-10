@@ -1,0 +1,89 @@
+== body_push prepr_trailer
+prepr_trailer() { # checkout root, code head -> `Prepr: <sha> <tree>`, or nothing
+  local f s t
+  f=$(git -C "$1" rev-parse --absolute-git-dir 2>/dev/null)/hpo-prepr-receipt
+  [ -f "$f" ] && read -r s t _ < "$f" || return 0
+  [[ $s =~ ^[0-9a-f]{40}$ && $t =~ ^[0-9a-f]{40}$ ]] || return 0
+  [ "$s" = "$2" ] && [ "$t" = "$(git -C "$1" rev-parse "$2^{tree}" 2>/dev/null)" ] || return 0
+  printf 'Prepr: %s %s' "$s" "$t"
+}
+== app_push reuse_verdict
+reuse_verdict() { # worktree listing branch -> RV_*; rc 0 = the receipt replaces prepr's code steps
+  local wt=$1 listing=$2 br=$3 topic tip tr c t live="" num="" mb x y mt d xs n row=""
+  RV_C="" RV_TITLE="" RV_HEAD=$(git -C "$wt" rev-parse HEAD 2>/dev/null) || RV_HEAD=""
+  _rv_no() { RV_WHY=$*; echo "$*"; }
+  [[ $RV_HEAD =~ ^[0-9a-f]{40}$ ]] || { _rv_no "HEAD does not read back"; return 1; }
+  topic=${br#fix/}
+  [ "$topic" != "$br" ] && [ -n "$topic" ] || { _rv_no "$br is not fix/<topic>, so no handoff-body ref holds its receipt"; return 1; }
+  # open_pr.sh names the branch fix/<topic>-pr when the seat holds fix/<topic>; the
+  # trailer, not the name, decides, so a wrong ref only fails (b) to (e).
+  tip=$(git -C "$wt" ls-remote origin "refs/heads/handoff-body/$topic" 2>/dev/null | awk 'NF { print $1; exit }')
+  if [ -z "$tip" ] && [ "${topic%-pr}" != "$topic" ]; then
+    topic=${topic%-pr}; tip=$(git -C "$wt" ls-remote origin "refs/heads/handoff-body/$topic" 2>/dev/null | awk 'NF { print $1; exit }')
+  fi
+  [[ $tip =~ ^[0-9a-f]{40}$ ]] || { _rv_no "origin holds no handoff-body/$topic, so no receipt"; return 1; }
+  git -C "$wt" fetch -q origin "refs/heads/handoff-body/$topic" 2>/dev/null || { _rv_no "handoff-body/$topic could not be fetched"; return 1; }
+  tr=$(git -C "$wt" log -1 --format='%(trailers:key=Prepr,valueonly)' "$tip" 2>/dev/null | sed '/^[[:space:]]*$/d')
+  [ "$(printf '%s\n' "$tr" | grep -c .)" = 1 ] && read -r c t <<<"$tr" && [[ $c =~ ^[0-9a-f]{40}$ && $t =~ ^[0-9a-f]{40}$ ]] \
+    || { _rv_no "handoff-body/$topic's tip ${tip:0:8} carries no one \`Prepr: <sha> <tree>\` trailer, so no receipt"; return 1; }
+  [ "$(git -C "$wt" rev-parse "$c^{tree}" 2>/dev/null)" = "$t" ] \
+    || { _rv_no "the receipt's tree ${t:0:8} is not code ${c:0:8}'s tree, so the run it records was not over this code"; return 1; }
+  git -C "$wt" merge-base --is-ancestor "$c" "$RV_HEAD" 2>/dev/null \
+    || { _rv_no "the receipted code ${c:0:8} is not in HEAD ${RV_HEAD:0:8}"; return 1; }
+  read -r live num RV_TITLE < <(printf '%s' "$listing" | python3 -c 'import sys, json
+l = json.load(sys.stdin)
+if not l: print("none")
+else: d = l[0]; print(d["head"]["sha"], int(d["number"]), " ".join(str(d.get("title") or "").split()))' 2>/dev/null)
+  if [ "$live" = none ]; then live=""
+  else
+    [[ $live =~ ^[0-9a-f]{40}$ ]] || { _rv_no "the open-pull-request listing names no live head that reads back"; return 1; }
+    . "$(dirname -- "$0")/../audit/seat/delivery_row.sh" || { _rv_no "delivery_row.sh did not load, so the row's path is unknown"; return 1; }
+    row=$ROW_DIR/$num.md
+  fi
+  git -C "$wt" fetch -q origin main 2>/dev/null || { _rv_no "origin/main could not be fetched"; return 1; }
+  mb=$(git -C "$wt" merge-base "$RV_HEAD" refs/remotes/origin/main 2>/dev/null) || { _rv_no "HEAD has no merge base with origin/main"; return 1; }
+  git -C "$wt" rev-list --first-parent refs/remotes/origin/main 2>/dev/null | grep -x "$mb" >/dev/null \
+    || { _rv_no "the main HEAD holds, ${mb:0:8}, is not on the freshly fetched origin/main's first-parent chain"; return 1; }
+  x=$c
+  for y in $live $mb; do
+    mt=$(git -C "$wt" merge-tree --write-tree "$x" "$y" 2>/dev/null) \
+      || { _rv_no "code ${c:0:8} does not merge cleanly with ${y:0:8}; a resolution goes through the full prepr"; return 1; }
+    x=$(git -C "$wt" -c user.name=app_push -c user.email=app_push@invalid commit-tree "$mt" -p "$x" -p "$y" -m "app_push: reuse verdict merge" 2>/dev/null) \
+      || { _rv_no "the clean merge could not be written"; return 1; }
+  done
+  d=$(git -C "$wt" diff --no-renames --name-status "$x" "$RV_HEAD" 2>/dev/null) || { _rv_no "the diff against the clean merge could not be read"; return 1; }
+  [ -z "$d" ] || { [ -n "$row" ] && { [ "$d" = "$(printf 'A\t%s' "$row")" ] || [ "$d" = "$(printf 'M\t%s' "$row")" ]; }; } \
+    || { _rv_no "HEAD's tree is not the clean merge of code ${c:0:8}${live:+, the live head ${live:0:8}} and main's ${mb:0:8}${row:+ plus $row} (git diff --name-status: $(printf '%s' "$d" | tr '\t' ' ' | paste -sd';' -))"; return 1; }
+  xs=$(git -C "$wt" rev-list --no-merges "$RV_HEAD" --not "$c" $live "$mb" 2>/dev/null) || { _rv_no "HEAD's own commits could not be listed"; return 1; }
+  n=$(printf '%s' "$xs" | grep -c .)
+  [ "$n" = 0 ] || { [ "$n" = 1 ] && [ -n "$row" ] && [ "$(git -C "$wt" diff-tree --no-commit-id --no-renames --name-only -r "$xs" 2>/dev/null)" = "$row" ]; } \
+    || { _rv_no "HEAD carries $n commit(s) beyond code ${c:0:8}, the live head and main, not only this pull request's own row"; return 1; }
+  RV_C=$c
+  _rv_no "HEAD ${RV_HEAD:0:8} is the clean merge of the receipted code ${c:0:8} (tree ${t:0:8})${live:+, the live head ${live:0:8}} and main's ${mb:0:8}${row:+, plus at most its own row}"
+}
+eval "$(sed -n '/^reuse_verdict() {/,/^}/p' "$SELF")"
+. "$(dirname -- "$SELF")/../audit/seat/delivery_row.sh" || { echo "FAIL delivery_row.sh did not load"; exit 1; }
+U="$W/reuse"; mkdir -p "$U"
+throwaway_git_init "$U/origin.git" -q --bare -b main && throwaway_git_clone -q "$U/origin.git" "$U/wt" >/dev/null 2>&1 \
+  && (cd "$U/wt" && printf 'a\n' > a && rgit add a && rgit commit -qm base && rgit tag B && rgit push -q origin HEAD:main \
+      && rgit checkout -q -b fix/t && printf 'code\n' > c && printf 'a2\n' > a && rgit add c a && rgit commit -qm code && rgit tag C \
+      && rgit checkout -q main && printf 'm\n' > m && rgit add m && rgit commit -qm main2 && rgit push -q origin main \
+      && rgit checkout -q fix/t && rgit merge -q --no-edit origin/main)
+uc=$(git -C "$U/wt" rev-parse C); ut=$(git -C "$U/wt" rev-parse 'C^{tree}')
+ubody() { # [trailer line] -> handoff-body/t on origin, one commit carrying it
+  local m; m=$(printf 'body: t\n\nCode: %s%s' "$uc" "${1:+$(printf '\n%s' "$1")}")
+  rgit -C "$U/wt" push -q -f origin "$(git -C "$U/wt" commit-tree "$(git -C "$U/wt" mktree </dev/null)" -m "$m"):refs/heads/handoff-body/t"
+}
+sed '/^reuse_verdict() {/,/^}/c\
+function reuse_verdict { RV_HEAD=$(git -C "$1" rev-parse HEAD); RV_C=$RV_HEAD; RV_TITLE=""; RV_WHY="stub reuse"; echo "$RV_WHY"; }' "$SELF" > "$W/tool/app_push_reuse.sh"
+rucase() { mkcase "$1"; cp "$W/body.md" "$W/$1/body.md"; ( export STUB="$W/$1" PATH="$W/bin:$PATH" TMPDIR="$W/$1/tmp" HPO_IDENTITY_DIR="$W/id"
+  bash "$W/tool/app_push_reuse.sh" --reuse o/r "$W/tool-wt" "$BR" "$W/$1/body.md" > "$W/$1/out" 2> "$W/$1/err" ); }
+rucase ureused; st $? 0 "--reuse, the verdict reusing: pushed"
+st "$(grep -c "^prepr PREPR_SKIP_CODE=$SHA " "$W/ureused/log")$(grep -c '^node tools/policy/policy_lint.mjs --pr-body ' "$W/ureused/log")$(grep -c '^carry_audit check --body ' "$W/ureused/log")" 111 "and prepr ran under PREPR_SKIP_CODE, then the body contract and the carry check"
+mkcase ufail; : > "$W/ufail/node-fails"; cp "$W/body.md" "$W/ufail/body.md"
+( export STUB="$W/ufail" PATH="$W/bin:$PATH" TMPDIR="$W/ufail/tmp" HPO_IDENTITY_DIR="$W/id"
+  bash "$W/tool/app_push_reuse.sh" --reuse o/r "$W/tool-wt" "$BR" "$W/ufail/body.md" > "$W/ufail/out" 2> "$W/ufail/err" ); st $? 1 "--reuse, the verdict reusing: a body the contract refuses refuses after the reduced prepr"
+st "$(grep -c '^git .*push' "$W/ufail/log")$(calls ufail curl)" 00 "and nothing was minted or pushed"
+
+echo "app_push self-test: $N checks, $FAILS failed"
+[ "$FAILS" -eq 0 ]
