@@ -1,0 +1,9 @@
+=== Golden characterization ===
+
+  GOLDEN_MODE=strict (--only names committed fixtures, and only
+  the strict comparison reads those; GOLDEN_MODE is unset)
+  GOLDEN_REF=origin/main (unset, defaulting to the fork point; unused in strict mode)
+
+  ok   config_flow
+
+ALL 1 GOLDEN SCENARIOS UNCHANGED

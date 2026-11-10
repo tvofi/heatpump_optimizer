@@ -1,17 +1,7 @@
-review_carry: 699491f23 -> 9c92e927b  main=origin/main
-  branch-only commits: 13
-  why: ca57a8133f1f7eb6c493bbde2309a79b9c80b868 is not the automatic merge of its parents
-  909f1abcd  Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-cop-unmeasured
-  2c8130a1b  Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-cop-unmeasured
-  c0bd2c785  Merge origin/main into fix/r10-hotfix-cop-unmeasured-pr
-  9ba3b5bec  Merge origin/main into r10-hotfix-cop-unmeasured; restate this branch's claims under 7.1.9
-  5400ce09d  Claim config_flow metering-page leaves for this branch under 7.1.9
-  8f9e1da3e  Add the German strings for this branch's new keys (de.json, card de block); drop the retired draw_follows_plan line
-  2ea5b75e2  Add the German strings main's flow_heat_c, flow_min_lift_k and return option lack, so de.json carries exactly strings.json's keys
-  c7925638d  Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-cop-unmeasured
-  ca57a8133  Merge origin/main into handoff/r10-hotfix-cop-unmeasured
-  7b18a5581  Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-cop-unmeasured
-  ad3d8a561  Merge handoff/r10-hotfix-cop-unmeasured (ca57a813) back in: restore the de.json, card de block and claim commits the 7b18a558 main-merge dropped
-  4efa6166f  Merge commit 'ca57a8133f1f7eb6c493bbde2309a79b9c80b868' into fix/r10-hotfix-cop-unmeasured
-  9c92e927b  Merge commit 'ad3d8a56178f9f0aa81232749130ac111219d791' into fix/r10-hotfix-cop-unmeasured
+review_carry: 9c92e927b -> b72efecda  main=origin/main
+  branch-only commits: 3
+  why: 1002809eaefd53be30ca0583f98ce4d19dffbe67 is not the automatic merge of its parents
+  1002809ea  Merge origin/main (b0762725) into fix/r10-hotfix-cop-unmeasured: resolve five conflicts
+  18aa1b862  Merge commit '1002809eaefd53be30ca0583f98ce4d19dffbe67' into fix/r10-hotfix-cop-unmeasured
+  b72efecda  Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-cop-unmeasured
 review_carry: FRESH-REVIEW
