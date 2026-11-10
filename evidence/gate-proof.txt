@@ -1,0 +1,26 @@
+406 ACCEPT
+407 ACCEPT
+408 ACCEPT
+409 ACCEPT
+410 REJECT
+411 ACCEPT
+412 ACCEPT
+413 ACCEPT
+414 REJECT
+415 DEFER
+416 ACCEPT
+417 ACCEPT
+418 ACCEPT
+P419 None
+n texts 8
+REFUSAL None
+REFUSAL None
+REFUSAL None
+REFUSAL None
+REFUSAL None
+REFUSAL None
+REFUSAL None
+REFUSAL None
+flip P409: dev/programme/triage/s6-batch133.md#P409 is not an ACCEPT ruling (REJECT)
+P410 cite: dev/programme/triage/s6-batch133.md#P410 is not an ACCEPT ruling (REJECT)
+absent: the triage ruling dev/programme/triage/s6-batch133.md is not on the roster branch or origin/main
