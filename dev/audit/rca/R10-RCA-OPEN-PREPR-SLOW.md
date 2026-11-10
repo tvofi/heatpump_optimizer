@@ -171,7 +171,7 @@ measured (2026-11-06 00:00Z to 2026-11-10 03:30Z).
 
 ## 6. Countermeasures, routed
 
-- **C1 (state c), R10-HANDOFF-PATH.** `tools/audit/seat/body_push.sh`
+- **C1 (state c), R10-PREPR-RESIDUE.** `tools/audit/seat/body_push.sh`
   `prepr_trailer`: take the candidate receipt from the local
   `hpo-prepr-receipt`, else from the one `Prepr:` trailer on the parent tip
   `body_push.sh` already fetches (`tip`); write it when the receipt's sha is
@@ -184,15 +184,15 @@ measured (2026-11-06 00:00Z to 2026-11-10 03:30Z).
   (trailer kept, `reuse_verdict` rc 0), a non-merge commit past it (trailer
   kept, `reuse_verdict` rc 1: the null control), and a receipt on a
   non-ancestor (no trailer).
-- **C2 (state c, for the unestablished 49), R10-HANDOFF-PATH.** The
+- **C2 (state c, for the unestablished 49), R10-PREPR-RESIDUE.** The
   no-trailer line names which of: no receipt file in this checkout; a receipt
   at `<sha>`, not an ancestor of the code head; a receipt whose tree is not
   its sha's; the parent tip's trailer absent.
-- **C3 (state d), R10-PREPR-CAP.** `tools/pr/prepr.sh`'s step line carries
+- **C3 (state d), R10-PREPR-RESIDUE.** `tools/pr/prepr.sh`'s step line carries
   the step's elapsed seconds, and the final `PRE-PR:` line the run's, so
   `p1.log` answers "which step, how long" and a later seat can cost a cap
   change from real per-step numbers.
-- **C4 (state d), R10-PREPR-CAP.** Step 6d's `--record-self-tests` is the one
+- **C4 (state d), R10-PREPR-RESIDUE.** Step 6d's `--record-self-tests` is the one
   hung-looking step: 64+ min on slim-p2 against a comment that prices it in
   seconds. It is progressing, not hung (its leaf changed between samples). The
   fixer measures per-arm and per-grader wall time on slim-p2's head
@@ -217,3 +217,9 @@ measured (2026-11-06 00:00Z to 2026-11-10 03:30Z).
   slim-p2 open was killed at 50 minutes in the self-test; its retry needed
   more than 99 minutes (still running at 04:05Z). No tool sets that bound (`grep -rnE 'timeout (3000|7200)'
   tools/ dev/governance/ .claude/` prints nothing); the orchestrator chose it.
+
+All four carries go to R10-PREPR-RESIDUE. On the round roster
+(`handoff/audit-r10-roster`), that is the open group whose files hold
+`body_push.sh`, `prepr.sh`, `ci_predict.py` and `gate_lock.py`. R10-HANDOFF-PATH
+built P386 and R10-PREPR-CAP built the slot pool, but both are `done`, and
+`carry_audit.py` refuses a carry to a done group.
