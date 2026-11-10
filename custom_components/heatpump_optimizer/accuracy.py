@@ -810,38 +810,39 @@ COP_REFUSED_OBSERVED = "observed_cop"
 #: ``heat_energy``'s ``SPAN_REFUSED_*`` codes.
 COP_REFUSED_SPAN_OPEN = "span_open"
 COP_REFUSED_UNALIGNED = "unaligned_meters"
+#: A thermal power entity is configured and read no heat this interval
+#: (unavailable, or negative): the plan's inference does not stand in for it.
+COP_REFUSED_NO_HEAT = "no_heat_reading"
 
 #: How far the metered draw may depart from the plan's ask, as a share of the
 #: ask, before the interval is judged on ``draw_range.follows_ask``'s evidence
 #: (``MeasuredCop.judge_ratio``).
 COP_ASK_TOLERANCE = 0.15
 
-#: Whether this install can observe its COP at all (#2262; ``cop_observability``):
-#: a heat reading over an electrical one measures it; without a heat reading
-#: the ratio of draw to ask is an efficiency reading only where the draw follows
-#: the ask, which ``draw_range.follows_ask`` judges.
+#: Whether this install can measure its COP at all (#2262,
+#: R10-HOTFIX-COP-UNMEASURED; ``cop_observability``): only a heat reading over
+#: an electrical one, neither of them a vendor's model, measures it. Without a
+#: heat reading the ratio of draw to ask still trains the COP scale, but it is
+#: the model's own COP scaled by plan tracking, never a measurement.
 COP_HEAT_METERED = "heat_metered"
-COP_DRAW_FOLLOWS = "draw_follows_plan"
+COP_ESTIMATED = "estimated_inputs"
 COP_NOT_MEASURABLE = "not_measurable"
 COP_NO_ELECTRIC = "no_electric_meter"
 
 
-def cop_observability(*, electric: bool, measured_heat: bool, follows: bool | None) -> str:
-    """This install's COP observability: one of the ``COP_*`` states above, or
-    ``COP_REFUSED_NO_EVIDENCE`` while the draw window cannot say yet.
+def cop_observability(*, electric: bool, measured_heat: bool, estimated: bool) -> str:
+    """This install's COP observability: one of the ``COP_*`` states above.
 
     ``electric``: an electrical figure the COP divides by (the power entity,
     or the electric counter a heat counter's span reads); ``measured_heat``:
     ``probe_install(...).measured_heat``, the heat counter or the thermal power
-    entity; ``follows``: ``follows_ask`` on the running-draw window.
+    entity; ``estimated``: either side is a vendor's estimate.
     """
     if not electric:
         return COP_NO_ELECTRIC
-    if measured_heat:
-        return COP_HEAT_METERED
-    if follows is None:
-        return COP_REFUSED_NO_EVIDENCE
-    return COP_DRAW_FOLLOWS if follows else COP_NOT_MEASURABLE
+    if not measured_heat:
+        return COP_NOT_MEASURABLE
+    return COP_ESTIMATED if estimated else COP_HEAT_METERED
 
 
 @dataclass

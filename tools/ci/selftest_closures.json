@@ -13,9 +13,9 @@
     "."
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "app-approval": {
    "run_sha": "3ef1d085ae4e19ef74bdbdc0ca3474ec99634299b24b819a9239ec197b09ef16",
@@ -31,9 +31,9 @@
     ".",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "app-push": {
    "run_sha": "26cc360dafe7a744810e0897ce086c705735b348b8f5bc4834ff9f42326ae45b",
@@ -80,11 +80,11 @@
     "tools/policy/vendor",
     "tools/pr"
    ],
-   "index": true,
-   "objects": true,
    "git": [
     "merge-base"
-   ]
+   ],
+   "index": true,
+   "objects": true
   },
   "app-verdict-poster": {
    "run_sha": "c71974e46a67a03947b4fa59b07a99c75e6a8895c556223f837636fe1440ae70",
@@ -115,9 +115,9 @@
     "tools/policy",
     "tools/pr"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "bare-array-expansion": {
    "run_sha": "88034369e109a71b0f038cb5eea66a1b3947a7c215421e4cd0f53cff38d2578b",
@@ -151,6 +151,7 @@
     "tools/audit/seat/wt_sync.sh",
     "tools/audit/worktree_gc.sh",
     "tools/ci/alert_list_mutants.sh",
+    "tools/ci/selftest_scope_mutants.sh",
     "tools/ci/selftest_step.sh",
     "tools/coverage/coverage_tree.sh",
     "tools/pr/app_approve.sh",
@@ -166,9 +167,9 @@
     "."
    ],
    "dirs": [],
+   "git": [],
    "index": true,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "beat-job-rows": {
    "run_sha": "277c2a90e900de88586526a82d6e3ca9ae9f278481064ce379d931a1d7e36364",
@@ -191,679 +192,39 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "beatd": {
    "run_sha": "890c4cc0063250459d54f074ae06e1953ddfa0feb7148a64ef54276c2a968407",
    "files": [
-    ".gitignore",
     "tests/throwaway_git.py",
     "tools/audit/seat/beatd.py",
     "tools/audit/seat/beatd_shims/git"
    ],
-   "probes": [],
-   "dirs": [
+   "probes": [
     ".",
-    ".claude",
-    ".claude/hooks",
-    ".claude/rules",
-    ".claude/skills",
-    ".claude/skills/steward",
-    ".claude/workflows",
-    ".cursor",
-    ".cursor/rules",
-    ".github",
-    ".github/actions",
-    ".github/actions/nightly-ha",
-    ".github/workflows",
-    "blueprints",
-    "blueprints/automation",
-    "custom_components",
-    "custom_components/heatpump_optimizer",
-    "custom_components/heatpump_optimizer/brand",
-    "custom_components/heatpump_optimizer/translations",
-    "custom_components/heatpump_optimizer/www",
-    "dev",
-    "dev/archive",
-    "dev/archive/audits",
-    "dev/archive/carries",
-    "dev/archive/experiments",
-    "dev/archive/experiments/ledger-layout",
-    "dev/archive/handoff",
-    "dev/archive/handoff/r9-f2-solver-4",
-    "dev/archive/handoff/r9-f2-solver-4/ev",
-    "dev/archive/handoff/r9-f2-solver-5",
-    "dev/archive/handoff/r9-f2-solver-5/ev",
-    "dev/archive/handoff/r9-frictions",
-    "dev/archive/handoff/round9",
-    "dev/archive/handoff/round9/fix",
-    "dev/archive/handoff/round9/fix/resume",
-    "dev/archive/plans",
-    "dev/archive/rosters",
-    "dev/audit",
-    "dev/audit/harnesses",
-    "dev/audit/harnesses/ci-version-edit",
-    "dev/audit/harnesses/r10_ci_layout_p1",
-    "dev/audit/harnesses/r10_ci_layout_p2_u1u2u7",
-    "dev/audit/harnesses/r10_ci_layout_u0c",
-    "dev/audit/harnesses/r10_ci_layout_u10",
-    "dev/audit/harnesses/r10_ci_layout_u11",
-    "dev/audit/harnesses/r10_ci_layout_u3",
-    "dev/audit/harnesses/r10_ci_layout_u4",
-    "dev/audit/harnesses/r10_ci_layout_u5",
-    "dev/audit/harnesses/r10_ci_layout_u6",
-    "dev/audit/harnesses/r10_ci_layout_u8",
-    "dev/audit/harnesses/r10_ci_slim",
-    "dev/audit/harnesses/r10_gate_stale_jobs",
-    "dev/audit/harnesses/r10_hotfix_ci_critpath_3",
-    "dev/audit/harnesses/r10_hotfix_ci_critpath_4",
-    "dev/audit/harnesses/r10_mutant_skip",
-    "dev/audit/harnesses/r10_rca_ci_critpath_3",
-    "dev/audit/rca",
-    "dev/audit/rca/1985",
-    "dev/audit/rca/2028",
-    "dev/audit/rca/bugclasses",
-    "dev/audit/rca/claim-false",
-    "dev/audit/rca/gate-scoping",
-    "dev/audit/rca/harness-friction",
-    "dev/audit/rca/headmoved",
-    "dev/audit/rca/merge-subject-class-open",
-    "dev/audit/rca/mutation-survivor",
-    "dev/audit/rca/owed-unactioned",
-    "dev/audit/rca/owed-unactioned/boards",
-    "dev/audit/rca/prepr-head-graders",
-    "dev/audit/rca/regression",
-    "dev/audit/rounds",
-    "dev/audit/rounds/round10",
-    "dev/audit/rounds/round10/D0",
-    "dev/audit/rounds/round10/D0/leads",
-    "dev/audit/rounds/round10/D0/s1",
-    "dev/audit/rounds/round10/D0/s2",
-    "dev/audit/rounds/round10/D0/s3",
-    "dev/audit/rounds/round10/D1",
-    "dev/audit/rounds/round10/D1/s1",
-    "dev/audit/rounds/round10/D1/s2",
-    "dev/audit/rounds/round10/D1/s3",
-    "dev/audit/rounds/round10/D10",
-    "dev/audit/rounds/round10/D10/leads",
-    "dev/audit/rounds/round10/D10/s1",
-    "dev/audit/rounds/round10/D10/s2",
-    "dev/audit/rounds/round10/D10/s3",
-    "dev/audit/rounds/round10/D11",
-    "dev/audit/rounds/round10/D11/leads",
-    "dev/audit/rounds/round10/D11/s1",
-    "dev/audit/rounds/round10/D11/s2",
-    "dev/audit/rounds/round10/D11/s3",
-    "dev/audit/rounds/round10/D12",
-    "dev/audit/rounds/round10/D12/s1",
-    "dev/audit/rounds/round10/D12/s2",
-    "dev/audit/rounds/round10/D12/s3",
-    "dev/audit/rounds/round10/D12/verify-harness",
-    "dev/audit/rounds/round10/D13",
-    "dev/audit/rounds/round10/D13/leads",
-    "dev/audit/rounds/round10/D13/s1",
-    "dev/audit/rounds/round10/D13/s2",
-    "dev/audit/rounds/round10/D13/s3",
-    "dev/audit/rounds/round10/D14",
-    "dev/audit/rounds/round10/D14/I3",
-    "dev/audit/rounds/round10/D14/I5",
-    "dev/audit/rounds/round10/D14/N-registry-leak",
-    "dev/audit/rounds/round10/D14/log_flood",
-    "dev/audit/rounds/round10/D14/s1",
-    "dev/audit/rounds/round10/D14/s2",
-    "dev/audit/rounds/round10/D14/s3",
-    "dev/audit/rounds/round10/D14/sweep",
-    "dev/audit/rounds/round10/D14/sweep-I1",
-    "dev/audit/rounds/round10/D14/sweep-I1/hook",
-    "dev/audit/rounds/round10/D14/sweep-I1/logs",
-    "dev/audit/rounds/round10/D14/sweep-I4",
-    "dev/audit/rounds/round10/D14/sweep-I4/fixture-clean",
-    "dev/audit/rounds/round10/D14/sweep-I4/fixture-clean/tools",
-    "dev/audit/rounds/round10/D14/sweep-I4/fixture-clean/tools/policy",
-    "dev/audit/rounds/round10/D14/sweep-N-confounded-learner",
-    "dev/audit/rounds/round10/D14/sweep-N-gate-yield",
-    "dev/audit/rounds/round10/D14/sweep-N-move-stale-path",
-    "dev/audit/rounds/round10/D14/sweep-N-shared-config",
-    "dev/audit/rounds/round10/D14/sweep-N-silent-zero",
-    "dev/audit/rounds/round10/D14/sweep-N-staleness",
-    "dev/audit/rounds/round10/D14/sweep-N-structure-blind",
-    "dev/audit/rounds/round10/D14/sweep-P1",
-    "dev/audit/rounds/round10/D14/sweep-P10",
-    "dev/audit/rounds/round10/D14/sweep-P2",
-    "dev/audit/rounds/round10/D14/sweep-P3",
-    "dev/audit/rounds/round10/D14/sweep-P3/fixture_clean",
-    "dev/audit/rounds/round10/D14/sweep-P4",
-    "dev/audit/rounds/round10/D14/sweep-P5",
-    "dev/audit/rounds/round10/D14/sweep-P5/fixture_clean",
-    "dev/audit/rounds/round10/D14/sweep-P6",
-    "dev/audit/rounds/round10/D14/sweep-P8",
-    "dev/audit/rounds/round10/D14/verify",
-    "dev/audit/rounds/round10/D15",
-    "dev/audit/rounds/round10/D15/s1",
-    "dev/audit/rounds/round10/D15/s2",
-    "dev/audit/rounds/round10/D15/s3",
-    "dev/audit/rounds/round10/D15/verify",
-    "dev/audit/rounds/round10/D2",
-    "dev/audit/rounds/round10/D2/s1",
-    "dev/audit/rounds/round10/D2/s2",
-    "dev/audit/rounds/round10/D2/s3",
-    "dev/audit/rounds/round10/D3",
-    "dev/audit/rounds/round10/D3/s1",
-    "dev/audit/rounds/round10/D3/s1/prescreen",
-    "dev/audit/rounds/round10/D3/s2",
-    "dev/audit/rounds/round10/D3/s3",
-    "dev/audit/rounds/round10/D4",
-    "dev/audit/rounds/round10/D4/s1",
-    "dev/audit/rounds/round10/D4/s2",
-    "dev/audit/rounds/round10/D4/s3",
-    "dev/audit/rounds/round10/D4/verify",
-    "dev/audit/rounds/round10/D5",
-    "dev/audit/rounds/round10/D5/leads",
-    "dev/audit/rounds/round10/D5/s1",
-    "dev/audit/rounds/round10/D5/s2",
-    "dev/audit/rounds/round10/D5/s3",
-    "dev/audit/rounds/round10/D6",
-    "dev/audit/rounds/round10/D6/s1",
-    "dev/audit/rounds/round10/D6/s2",
-    "dev/audit/rounds/round10/D6/s3",
-    "dev/audit/rounds/round10/D7",
-    "dev/audit/rounds/round10/D7/arch-s1",
-    "dev/audit/rounds/round10/D7/arch-s2",
-    "dev/audit/rounds/round10/D7/arch-s2/patches",
-    "dev/audit/rounds/round10/D7/arch-s3",
-    "dev/audit/rounds/round10/D7/arch2-s5",
-    "dev/audit/rounds/round10/D7/s1",
-    "dev/audit/rounds/round10/D7/s2",
-    "dev/audit/rounds/round10/D7/s3",
-    "dev/audit/rounds/round10/D7/verify-tools",
-    "dev/audit/rounds/round10/D8",
-    "dev/audit/rounds/round10/D8/s1",
-    "dev/audit/rounds/round10/D8/s2",
-    "dev/audit/rounds/round10/D8/s3",
-    "dev/audit/rounds/round10/D9",
-    "dev/audit/rounds/round10/D9/s1",
-    "dev/audit/rounds/round10/D9/s2",
-    "dev/audit/rounds/round10/D9/s3",
-    "dev/audit/rounds/round10/catchup",
-    "dev/audit/rounds/round10/catchup/arch-a",
-    "dev/audit/rounds/round10/catchup/arch-b",
-    "dev/audit/rounds/round10/catchup/arch-s2",
-    "dev/audit/rounds/round10/catchup/arch-s6",
-    "dev/audit/rounds/round10/catchup/d9",
-    "dev/audit/rounds/round10/catchup/d9/out",
-    "dev/audit/rounds/round10/catchup/leads",
-    "dev/audit/rounds/round10/catchup/study",
-    "dev/audit/rounds/round10/intake",
-    "dev/audit/rounds/round10/intake/out",
-    "dev/audit/rounds/round10/study-ident",
-    "dev/audit/rounds/round10/study-reseed",
-    "dev/audit/rounds/round3",
-    "dev/audit/rounds/round3/D0",
-    "dev/audit/rounds/round3/D0/reports",
-    "dev/audit/rounds/round3/D1",
-    "dev/audit/rounds/round3/D1/reports",
-    "dev/audit/rounds/round3/D10",
-    "dev/audit/rounds/round3/D10/reports",
-    "dev/audit/rounds/round3/D11",
-    "dev/audit/rounds/round3/D11/reports",
-    "dev/audit/rounds/round3/D2",
-    "dev/audit/rounds/round3/D2/reports",
-    "dev/audit/rounds/round3/D3",
-    "dev/audit/rounds/round3/D3/reports",
-    "dev/audit/rounds/round3/D4",
-    "dev/audit/rounds/round3/D4/reports",
-    "dev/audit/rounds/round3/D5",
-    "dev/audit/rounds/round3/D5/reports",
-    "dev/audit/rounds/round3/D6",
-    "dev/audit/rounds/round3/D6/reports",
-    "dev/audit/rounds/round3/D7",
-    "dev/audit/rounds/round3/D7/reports",
-    "dev/audit/rounds/round3/D8",
-    "dev/audit/rounds/round3/D8/reports",
-    "dev/audit/rounds/round3/D9",
-    "dev/audit/rounds/round3/D9/reports",
-    "dev/audit/rounds/round3/ledger",
-    "dev/audit/rounds/round3/reports",
-    "dev/audit/rounds/round4",
-    "dev/audit/rounds/round4/D0",
-    "dev/audit/rounds/round4/D0/reports",
-    "dev/audit/rounds/round4/D1",
-    "dev/audit/rounds/round4/D1/reports",
-    "dev/audit/rounds/round4/D10",
-    "dev/audit/rounds/round4/D10/reports",
-    "dev/audit/rounds/round4/D10/verify3",
-    "dev/audit/rounds/round4/D11",
-    "dev/audit/rounds/round4/D11/reports",
-    "dev/audit/rounds/round4/D12",
-    "dev/audit/rounds/round4/D12/reports",
-    "dev/audit/rounds/round4/D2",
-    "dev/audit/rounds/round4/D2/reports",
-    "dev/audit/rounds/round4/D3",
-    "dev/audit/rounds/round4/D3/reports",
-    "dev/audit/rounds/round4/D4",
-    "dev/audit/rounds/round4/D4/lib",
-    "dev/audit/rounds/round4/D4/out",
-    "dev/audit/rounds/round4/D4/reports",
-    "dev/audit/rounds/round4/D4/shots",
-    "dev/audit/rounds/round4/D5",
-    "dev/audit/rounds/round4/D5/reports",
-    "dev/audit/rounds/round4/D6",
-    "dev/audit/rounds/round4/D6/reports",
-    "dev/audit/rounds/round4/D7",
-    "dev/audit/rounds/round4/D7/reports",
-    "dev/audit/rounds/round4/D8",
-    "dev/audit/rounds/round4/D8/reports",
-    "dev/audit/rounds/round4/D9",
-    "dev/audit/rounds/round4/D9/reports",
-    "dev/audit/rounds/round4/ledger",
-    "dev/audit/rounds/round5",
-    "dev/audit/rounds/round5-fix",
-    "dev/audit/rounds/round5-fix/R5-D7",
-    "dev/audit/rounds/round5-fix/R5-INST-01",
-    "dev/audit/rounds/round5/D0",
-    "dev/audit/rounds/round5/D0/seat-a",
-    "dev/audit/rounds/round5/D0/seat-b",
-    "dev/audit/rounds/round5/D0/seat-c",
-    "dev/audit/rounds/round5/D1",
-    "dev/audit/rounds/round5/D1/seat-a",
-    "dev/audit/rounds/round5/D1/seat-b",
-    "dev/audit/rounds/round5/D11",
-    "dev/audit/rounds/round5/D11/fixtures",
-    "dev/audit/rounds/round5/D11/fixtures/api",
-    "dev/audit/rounds/round5/D11/seat-b",
-    "dev/audit/rounds/round5/D12",
-    "dev/audit/rounds/round5/D12/seat-b",
-    "dev/audit/rounds/round5/D13",
-    "dev/audit/rounds/round5/D13/seat-a",
-    "dev/audit/rounds/round5/D13/seat-a/fixtures",
-    "dev/audit/rounds/round5/D2",
-    "dev/audit/rounds/round5/D2/seat-a",
-    "dev/audit/rounds/round5/D2/seat-b",
-    "dev/audit/rounds/round5/D3",
-    "dev/audit/rounds/round5/D3/seat-b",
-    "dev/audit/rounds/round5/D4",
-    "dev/audit/rounds/round5/D4/seat-a",
-    "dev/audit/rounds/round5/D7",
-    "dev/audit/rounds/round5/D7/seat-a",
-    "dev/audit/rounds/round5/D7/seat-b",
-    "dev/audit/rounds/round5/D8",
-    "dev/audit/rounds/round5/D8/seat-b",
-    "dev/audit/rounds/round5/D9",
-    "dev/audit/rounds/round5/D9/seat-b",
-    "dev/audit/rounds/round6",
-    "dev/audit/rounds/round6/D0",
-    "dev/audit/rounds/round6/D1",
-    "dev/audit/rounds/round6/D10",
-    "dev/audit/rounds/round6/D11",
-    "dev/audit/rounds/round6/D11/fix",
-    "dev/audit/rounds/round6/D12",
-    "dev/audit/rounds/round6/D13",
-    "dev/audit/rounds/round6/D13/fixtures",
-    "dev/audit/rounds/round6/D2",
-    "dev/audit/rounds/round6/D3",
-    "dev/audit/rounds/round6/D3/scratch",
-    "dev/audit/rounds/round6/D4",
-    "dev/audit/rounds/round6/D5",
-    "dev/audit/rounds/round6/D6",
-    "dev/audit/rounds/round6/D7",
-    "dev/audit/rounds/round6/D8",
-    "dev/audit/rounds/round6/D9",
-    "dev/audit/rounds/round7",
-    "dev/audit/rounds/round7-fix",
-    "dev/audit/rounds/round7-fix/governance",
-    "dev/audit/rounds/round7/D0",
-    "dev/audit/rounds/round7/D1",
-    "dev/audit/rounds/round7/D10",
-    "dev/audit/rounds/round7/D11",
-    "dev/audit/rounds/round7/D11/tmp",
-    "dev/audit/rounds/round7/D12",
-    "dev/audit/rounds/round7/D13",
-    "dev/audit/rounds/round7/D2",
-    "dev/audit/rounds/round7/D3",
-    "dev/audit/rounds/round7/D4",
-    "dev/audit/rounds/round7/D5",
-    "dev/audit/rounds/round7/D6",
-    "dev/audit/rounds/round7/D7",
-    "dev/audit/rounds/round7/D8",
-    "dev/audit/rounds/round7/D9",
-    "dev/audit/rounds/round8",
-    "dev/audit/rounds/round8-fix",
-    "dev/audit/rounds/round8-fix/F1",
-    "dev/audit/rounds/round8/D0",
-    "dev/audit/rounds/round8/D0/s1_logs",
-    "dev/audit/rounds/round8/D0/v1_logs",
-    "dev/audit/rounds/round8/D1",
-    "dev/audit/rounds/round8/D10",
-    "dev/audit/rounds/round8/D11",
-    "dev/audit/rounds/round8/D12",
-    "dev/audit/rounds/round8/D13",
-    "dev/audit/rounds/round8/D2",
-    "dev/audit/rounds/round8/D3",
-    "dev/audit/rounds/round8/D4",
-    "dev/audit/rounds/round8/D5",
-    "dev/audit/rounds/round8/D6",
-    "dev/audit/rounds/round8/D7",
-    "dev/audit/rounds/round8/D8",
-    "dev/audit/rounds/round8/D9",
-    "dev/audit/rounds/round8/D9/s1_out",
-    "dev/audit/rounds/round8/D9/s2_evidence",
-    "dev/audit/rounds/round8/D9/v1_out",
-    "dev/audit/rounds/round8/evidence",
-    "dev/audit/rounds/round8/evidence/D0",
-    "dev/audit/rounds/round8/evidence/D1",
-    "dev/audit/rounds/round8/evidence/D10",
-    "dev/audit/rounds/round8/evidence/D11",
-    "dev/audit/rounds/round8/evidence/D12",
-    "dev/audit/rounds/round8/evidence/D13",
-    "dev/audit/rounds/round8/evidence/D2",
-    "dev/audit/rounds/round8/evidence/D3",
-    "dev/audit/rounds/round8/evidence/D4",
-    "dev/audit/rounds/round8/evidence/D5",
-    "dev/audit/rounds/round8/evidence/D6",
-    "dev/audit/rounds/round8/evidence/D7",
-    "dev/audit/rounds/round8/evidence/D8",
-    "dev/audit/rounds/round8/evidence/D9",
-    "dev/audit/rounds/round9",
-    "dev/audit/rounds/round9/D0",
-    "dev/audit/rounds/round9/D0/s1",
-    "dev/audit/rounds/round9/D0/s2",
-    "dev/audit/rounds/round9/D0/s2/evidence",
-    "dev/audit/rounds/round9/D0/s3",
-    "dev/audit/rounds/round9/D0/s3/out",
-    "dev/audit/rounds/round9/D1",
-    "dev/audit/rounds/round9/D1/leads",
-    "dev/audit/rounds/round9/D1/s1",
-    "dev/audit/rounds/round9/D1/s2",
-    "dev/audit/rounds/round9/D1/s2/leads",
-    "dev/audit/rounds/round9/D1/s3",
-    "dev/audit/rounds/round9/D1/s4",
-    "dev/audit/rounds/round9/D1/s5",
-    "dev/audit/rounds/round9/D10",
-    "dev/audit/rounds/round9/D10/s1",
-    "dev/audit/rounds/round9/D10/s2",
-    "dev/audit/rounds/round9/D11",
-    "dev/audit/rounds/round9/D11/leads",
-    "dev/audit/rounds/round9/D11/s1",
-    "dev/audit/rounds/round9/D11/s2",
-    "dev/audit/rounds/round9/D12",
-    "dev/audit/rounds/round9/D12/leads",
-    "dev/audit/rounds/round9/D12/s1",
-    "dev/audit/rounds/round9/D12/s2",
-    "dev/audit/rounds/round9/D12/s3",
-    "dev/audit/rounds/round9/D13",
-    "dev/audit/rounds/round9/D13/s1",
-    "dev/audit/rounds/round9/D14",
-    "dev/audit/rounds/round9/D14/s1",
-    "dev/audit/rounds/round9/D14/s1/runs",
-    "dev/audit/rounds/round9/D14/s2",
-    "dev/audit/rounds/round9/D14/s3",
-    "dev/audit/rounds/round9/D14/s3/out",
-    "dev/audit/rounds/round9/D14/s4",
-    "dev/audit/rounds/round9/D14/s4/out",
-    "dev/audit/rounds/round9/D14/s5",
-    "dev/audit/rounds/round9/D2",
-    "dev/audit/rounds/round9/D2/leads",
-    "dev/audit/rounds/round9/D2/s1",
-    "dev/audit/rounds/round9/D2/s2",
-    "dev/audit/rounds/round9/D2/s3",
-    "dev/audit/rounds/round9/D2/s4",
-    "dev/audit/rounds/round9/D3",
-    "dev/audit/rounds/round9/D3/s1",
-    "dev/audit/rounds/round9/D3/s1/leads",
-    "dev/audit/rounds/round9/D3/s1/logs",
-    "dev/audit/rounds/round9/D3/s2",
-    "dev/audit/rounds/round9/D3/s2/leads",
-    "dev/audit/rounds/round9/D3/s3",
-    "dev/audit/rounds/round9/D4",
-    "dev/audit/rounds/round9/D4/leads",
-    "dev/audit/rounds/round9/D4/s1",
-    "dev/audit/rounds/round9/D4/s1/shots",
-    "dev/audit/rounds/round9/D4/s2",
-    "dev/audit/rounds/round9/D5",
-    "dev/audit/rounds/round9/D5/leads",
-    "dev/audit/rounds/round9/D5/s1",
-    "dev/audit/rounds/round9/D5/s2",
-    "dev/audit/rounds/round9/D6",
-    "dev/audit/rounds/round9/D6/leads",
-    "dev/audit/rounds/round9/D6/s1",
-    "dev/audit/rounds/round9/D6/s2",
-    "dev/audit/rounds/round9/D7",
-    "dev/audit/rounds/round9/D7/leads",
-    "dev/audit/rounds/round9/D7/s1",
-    "dev/audit/rounds/round9/D7/s2",
-    "dev/audit/rounds/round9/D7/s3",
-    "dev/audit/rounds/round9/D8",
-    "dev/audit/rounds/round9/D8/leads",
-    "dev/audit/rounds/round9/D8/s1",
-    "dev/audit/rounds/round9/D8/s2",
-    "dev/audit/rounds/round9/D8/s3",
-    "dev/audit/rounds/round9/D9",
-    "dev/audit/rounds/round9/D9/leads",
-    "dev/audit/rounds/round9/D9/s1",
-    "dev/audit/rounds/round9/D9/s2",
-    "dev/audit/rounds/round9/EG-B5",
-    "dev/audit/rounds/round9/F10",
-    "dev/audit/rounds/round9/F10/f10_3",
-    "dev/audit/rounds/round9/F10/f10_6",
-    "dev/audit/rounds/round9/F10/gate-infra-4",
-    "dev/audit/rounds/round9/SW1",
-    "dev/audit/rounds/round9/fixplan",
-    "dev/audit/rounds/round9/prestudy",
-    "dev/audit/rounds/round9/prestudy/runs",
-    "dev/audit/rounds/round9/prestudy/runs/week",
-    "dev/audit/rounds/round9/rca",
-    "dev/audit/rounds/round9/rca/1747",
-    "dev/audit/rounds/round9/verify",
-    "dev/audit/waves",
-    "dev/audit/waves/w5-g5-195-coverage",
-    "dev/audit/waves/w5-g5-195-coverage/coverage",
-    "dev/audit/waves/w5-g5-195-coverage/coverage/logs",
-    "dev/governance",
-    "dev/governance/decisions",
-    "dev/governance/dimensions",
-    "dev/governance/roles",
-    "dev/governance/rules",
-    "dev/programme",
-    "dev/programme/carries",
-    "dev/programme/delivery",
-    "dev/programme/register",
-    "dev/programme/rosters",
-    "dev/programme/round10",
-    "dev/programme/round10/rechain",
-    "dev/programme/round9",
-    "dev/programme/round9/state",
-    "dev/programme/triage",
-    "docs",
-    "docs/design",
-    "docs/design/2026-09-05-away-plan-toggle",
-    "docs/design/2026-09-05-monthly-savings-history",
-    "docs/design/2026-09-05-wood-furnace-economics",
-    "docs/img",
-    "docs/img/brand",
-    "docs/img/card",
-    "docs/img/model",
-    "docs/img/readme",
-    "docs/img/setup",
-    "docs/site",
-    "docs/site/fonts",
+    "config",
+    "objects",
+    "refs",
     "tests",
-    "tests/fixtures",
-    "tests/golden",
-    "tests/hastub",
-    "tests/hastub/homeassistant",
-    "tests/hastub/homeassistant/components",
-    "tests/hastub/homeassistant/components/recorder",
-    "tests/hastub/homeassistant/helpers",
-    "tests/hastub/homeassistant/util",
-    "tests/mutation_ledger",
-    "tests/mutation_ledger/killed_by",
-    "tests/mutation_ledger/killed_by/__init__.py",
-    "tests/mutation_ledger/killed_by/accuracy.py",
-    "tests/mutation_ledger/killed_by/away.py",
-    "tests/mutation_ledger/killed_by/batchmath.py",
-    "tests/mutation_ledger/killed_by/battery.py",
-    "tests/mutation_ledger/killed_by/binary_sensor.py",
-    "tests/mutation_ledger/killed_by/boost.py",
-    "tests/mutation_ledger/killed_by/button.py",
-    "tests/mutation_ledger/killed_by/climate.py",
-    "tests/mutation_ledger/killed_by/comfort_band.py",
-    "tests/mutation_ledger/killed_by/comfort_learning.py",
-    "tests/mutation_ledger/killed_by/config_flow.py",
-    "tests/mutation_ledger/killed_by/const.py",
-    "tests/mutation_ledger/killed_by/coordinator.py",
-    "tests/mutation_ledger/killed_by/currency.py",
-    "tests/mutation_ledger/killed_by/curve_learning.py",
-    "tests/mutation_ledger/killed_by/datetime.py",
-    "tests/mutation_ledger/killed_by/debugger.py",
-    "tests/mutation_ledger/killed_by/defrost.py",
-    "tests/mutation_ledger/killed_by/device_prefill.py",
-    "tests/mutation_ledger/killed_by/dhw_draws.py",
-    "tests/mutation_ledger/killed_by/dhw_learning.py",
-    "tests/mutation_ledger/killed_by/dhw_planner.py",
-    "tests/mutation_ledger/killed_by/dhw_schedule.py",
-    "tests/mutation_ledger/killed_by/diagnosis.py",
-    "tests/mutation_ledger/killed_by/diagnostics.py",
-    "tests/mutation_ledger/killed_by/disinfection.py",
-    "tests/mutation_ledger/killed_by/draw_range.py",
-    "tests/mutation_ledger/killed_by/drift.py",
-    "tests/mutation_ledger/killed_by/driving_grade.py",
-    "tests/mutation_ledger/killed_by/early_cutoff.py",
-    "tests/mutation_ledger/killed_by/entity.py",
-    "tests/mutation_ledger/killed_by/entry_config.py",
-    "tests/mutation_ledger/killed_by/external_heat.py",
-    "tests/mutation_ledger/killed_by/flow_lift.py",
-    "tests/mutation_ledger/killed_by/flow_meter.py",
-    "tests/mutation_ledger/killed_by/freq_control.py",
-    "tests/mutation_ledger/killed_by/frontend.py",
-    "tests/mutation_ledger/killed_by/grid_fee.py",
-    "tests/mutation_ledger/killed_by/heat_energy.py",
-    "tests/mutation_ledger/killed_by/inputs.py",
-    "tests/mutation_ledger/killed_by/issues.py",
-    "tests/mutation_ledger/killed_by/learner_progress.py",
-    "tests/mutation_ledger/killed_by/ledger.py",
-    "tests/mutation_ledger/killed_by/legionella.py",
-    "tests/mutation_ledger/killed_by/log_latch.py",
-    "tests/mutation_ledger/killed_by/manual_plan.py",
-    "tests/mutation_ledger/killed_by/mixing_valve.py",
-    "tests/mutation_ledger/killed_by/modbus_prefill.py",
-    "tests/mutation_ledger/killed_by/name_match.py",
-    "tests/mutation_ledger/killed_by/narrative.py",
-    "tests/mutation_ledger/killed_by/notifier.py",
-    "tests/mutation_ledger/killed_by/open_meteo.py",
-    "tests/mutation_ledger/killed_by/optimizer.py",
-    "tests/mutation_ledger/killed_by/plan_slots.py",
-    "tests/mutation_ledger/killed_by/plan_step.py",
-    "tests/mutation_ledger/killed_by/power_guard.py",
-    "tests/mutation_ledger/killed_by/prefill_offer.py",
-    "tests/mutation_ledger/killed_by/presets.py",
-    "tests/mutation_ledger/killed_by/price_model.py",
-    "tests/mutation_ledger/killed_by/price_tiles.py",
-    "tests/mutation_ledger/killed_by/process_worker.py",
-    "tests/mutation_ledger/killed_by/pump_arbiter.py",
-    "tests/mutation_ledger/killed_by/pump_mode.py",
-    "tests/mutation_ledger/killed_by/pump_schedule.py",
-    "tests/mutation_ledger/killed_by/pump_signals.py",
-    "tests/mutation_ledger/killed_by/pv.py",
-    "tests/mutation_ledger/killed_by/quick_setup.py",
-    "tests/mutation_ledger/killed_by/quiet_windows.py",
-    "tests/mutation_ledger/killed_by/repairs.py",
-    "tests/mutation_ledger/killed_by/replay_doc.py",
-    "tests/mutation_ledger/killed_by/sensor.py",
-    "tests/mutation_ledger/killed_by/services.py",
-    "tests/mutation_ledger/killed_by/setpoint_check.py",
-    "tests/mutation_ledger/killed_by/silent_mode.py",
-    "tests/mutation_ledger/killed_by/snapshots.py",
-    "tests/mutation_ledger/killed_by/store.py",
-    "tests/mutation_ledger/killed_by/switch.py",
-    "tests/mutation_ledger/killed_by/sysid.py",
-    "tests/mutation_ledger/killed_by/tariff.py",
-    "tests/mutation_ledger/killed_by/thermal_model.py",
-    "tests/mutation_ledger/killed_by/topology.py",
-    "tests/mutation_ledger/killed_by/wear.py",
-    "tests/mutation_ledger/killed_by/wood_fuel.py",
-    "tests/mutation_ledger/survivor_triage",
-    "tests/mutation_ledger/survivor_triage/accuracy.py",
-    "tests/mutation_ledger/survivor_triage/away.py",
-    "tests/mutation_ledger/survivor_triage/battery.py",
-    "tests/mutation_ledger/survivor_triage/binary_sensor.py",
-    "tests/mutation_ledger/survivor_triage/boost.py",
-    "tests/mutation_ledger/survivor_triage/config_flow.py",
-    "tests/mutation_ledger/survivor_triage/coordinator.py",
-    "tests/mutation_ledger/survivor_triage/debugger.py",
-    "tests/mutation_ledger/survivor_triage/dhw_planner.py",
-    "tests/mutation_ledger/survivor_triage/dhw_schedule.py",
-    "tests/mutation_ledger/survivor_triage/draw_range.py",
-    "tests/mutation_ledger/survivor_triage/drift.py",
-    "tests/mutation_ledger/survivor_triage/early_cutoff.py",
-    "tests/mutation_ledger/survivor_triage/entry_config.py",
-    "tests/mutation_ledger/survivor_triage/heat_energy.py",
-    "tests/mutation_ledger/survivor_triage/inputs.py",
-    "tests/mutation_ledger/survivor_triage/ledger.py",
-    "tests/mutation_ledger/survivor_triage/manual_plan.py",
-    "tests/mutation_ledger/survivor_triage/notifier.py",
-    "tests/mutation_ledger/survivor_triage/optimizer.py",
-    "tests/mutation_ledger/survivor_triage/payload.py",
-    "tests/mutation_ledger/survivor_triage/pump_arbiter.py",
-    "tests/mutation_ledger/survivor_triage/pump_mode.py",
-    "tests/mutation_ledger/survivor_triage/quiet_windows.py",
-    "tests/mutation_ledger/survivor_triage/repairs.py",
-    "tests/mutation_ledger/survivor_triage/sensor.py",
-    "tests/mutation_ledger/survivor_triage/store.py",
-    "tests/mutation_ledger/survivor_triage/sysid.py",
-    "tests/mutation_ledger/survivor_triage/tariff.py",
-    "tests/mutation_ledger/survivor_triage/thermal_model.py",
-    "tests/mutation_ledger/survivor_triage/wood_fuel.py",
-    "tests/pwlane",
-    "tests/replay",
     "tools",
     "tools/audit",
-    "tools/audit/archscore",
-    "tools/audit/archscore/calibration",
-    "tools/audit/archscore/metrics",
-    "tools/audit/archscore/planted",
-    "tools/audit/archscore/planted/perturb",
-    "tools/audit/archscore/planted/redteam",
-    "tools/audit/round4",
-    "tools/audit/round4/D11",
     "tools/audit/seat",
-    "tools/audit/seat/beatd_shims",
-    "tools/audit/seat/fixtures",
-    "tools/audit/seat/fixtures/beat_jobs",
-    "tools/audit/seat/fixtures/ci_critpath",
-    "tools/audit/seat/instruments",
-    "tools/audit/seat/shims",
-    "tools/ci",
-    "tools/ci/fixtures",
-    "tools/ci/fixtures/ruleset",
-    "tools/coverage",
-    "tools/devices",
-    "tools/merge",
-    "tools/plan",
-    "tools/policy",
-    "tools/policy/fixtures",
-    "tools/policy/fixtures/figures",
-    "tools/policy/fixtures/policy-loop",
-    "tools/policy/fixtures/policy-rot",
-    "tools/policy/fixtures/policy-rot/hooks",
-    "tools/policy/fixtures/policy-rot/prepr",
-    "tools/policy/fixtures/policy-rot/prepr/raise",
-    "tools/policy/fixtures/policy-rot/prepr/raise/recorded",
-    "tools/policy/fixtures/policy-rot/prepr/upstream",
-    "tools/policy/fixtures/red-ancestry",
-    "tools/policy/fixtures/red-ancestry/bare",
-    "tools/policy/fixtures/red-ancestry/green",
-    "tools/policy/fixtures/red-ancestry/red",
-    "tools/policy/fixtures/roster-probe",
-    "tools/policy/record-predicate",
-    "tools/policy/vendor",
-    "tools/pr",
-    "tools/release",
-    "tools/replay",
-    "tools/site"
+    "tools/audit/seat/beatd_shims/bash",
+    "tools/audit/seat/beatd_shims/cat",
+    "tools/audit/seat/beatd_shims/date",
+    "tools/audit/seat/beatd_shims/env",
+    "tools/audit/seat/beatd_shims/grep",
+    "tools/audit/seat/beatd_shims/mktemp",
+    "tools/audit/seat/beatd_shims/rm",
+    "tools/audit/seat/beatd_shims/sleep"
    ],
-   "index": true,
+   "dirs": [
+    "tests"
+   ],
+   "index": false,
    "objects": false,
    "git": []
   },
@@ -890,9 +251,25 @@
     "tools/audit",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
+  },
+  "bottleneck-alert": {
+   "run_sha": "ed4dead33c2d118cec7a83aa53d6448d96c28ed9b4b8f3880bc9fb7d275eb144",
+   "files": [
+    "tools/audit/seat/bottleneck_check.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [],
+   "git": [],
+   "index": false,
+   "objects": false
   },
   "budget-raise-gate": {
    "run_sha": "8e2afa7d1084b7223a39f0ef593e419b78e3a724781a06ccb99196801427962a",
@@ -922,9 +299,9 @@
     "tests",
     "tools/policy"
    ],
+   "git": [],
    "index": true,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "carry-check-and-the": {
    "run_sha": "f974a043ac14814d7a3782bea1f5b9cfe6a2c26dbba0f5a88b81031484603058",
@@ -958,14 +335,15 @@
     "tools/audit",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "ci-predictor": {
    "run_sha": "e06a8fb9b8d49bc863a2e947c030db8b387e81a3f5d114bcb83c22f22534e174",
    "files": [
-    ".github/workflows/governance.yml",
+    ".gitattributes",
+    ".github/workflows/**",
     "custom_components/heatpump_optimizer/button.py",
     "custom_components/heatpump_optimizer/flow_meter.py",
     "dev/programme/carries/**",
@@ -988,6 +366,7 @@
    ],
    "probes": [
     ".",
+    ".github/.gitattributes",
     ".mailmap",
     "config",
     "dev/audit/rca/R10-RCA-INERT-PREDICT.md",
@@ -1001,9 +380,12 @@
     "tools/ci",
     "tools/policy",
     "tools/pr",
+    "tools/pr/preflight.sh",
+    "tools/pr/prepr.sh",
     "tools/release"
    ],
    "dirs": [
+    ".github/workflows",
     "dev/programme/carries",
     "dev/programme/rosters",
     "tests",
@@ -1015,8 +397,6 @@
     "tools/policy",
     "tools/release"
    ],
-   "index": true,
-   "objects": true,
    "git": [
     "?",
     "add",
@@ -1035,7 +415,9 @@
     "stash",
     "update-ref",
     "write-tree"
-   ]
+   ],
+   "index": true,
+   "objects": true
   },
   "ci-prelude": {
    "run_sha": "493783248b75a0de7544a6396b62a2bc2021aee6f8aa2b790cbfc7183cf607f0",
@@ -1058,9 +440,9 @@
     "tools/ci",
     "tools/pr"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "ci-probe-instrument": {
    "run_sha": "80189dc4b271d2c5242734dec361f9fa8920e2beb5a67d7965c979630570ca57",
@@ -1093,13 +475,13 @@
     "tests",
     "tools/audit/seat"
    ],
-   "index": true,
-   "objects": true,
    "git": [
     "fetch",
     "maintenance",
     "rev-list"
-   ]
+   ],
+   "index": true,
+   "objects": true
   },
   "ci-watcher": {
    "run_sha": "820b4913eacfeeee41bc39a41bfb2b5cf11e5d7350295ebc90b3b3dc65d18da7",
@@ -1118,9 +500,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "cloud-dispatcher": {
    "run_sha": "e49c5d629ee31f1ed994740ee1ca890f3771bd1c231c59a91cab8b879ac0191e",
@@ -1156,9 +538,9 @@
     "tests",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "cloud-relay": {
    "run_sha": "3b48ec7e71b49eae06fc284309966260011f2c4017ab49fd6a752c95b149868f",
@@ -1187,12 +569,13 @@
     "tools/audit/seat/fixtures",
     "tools/audit/seat/fixtures/beat_jobs",
     "tools/audit/seat/fixtures/ci_critpath",
+    "tools/audit/seat/hooks",
     "tools/audit/seat/instruments",
     "tools/audit/seat/shims"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "cloud-setup-profile": {
    "run_sha": "0a2fb43948f79c43c90c697eeff8b63e4c98d7ab176a35b3e06398f29fcd69a8",
@@ -1207,9 +590,9 @@
     "tools/audit/seat"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "code-scanning-alert-lister": {
    "run_sha": "4c9e65ae7052e1b039877a4cfeed610ecaf150af983cf72654f5abbf6c161cad",
@@ -1220,9 +603,9 @@
     "."
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "code-scanning-wait": {
    "run_sha": "919a02871862a9dee51633b9df10d74fea148fd920c3f71e01a60aec416a14ee",
@@ -1241,9 +624,9 @@
    "dirs": [
     "tools/ci"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "codeql-leg-scope": {
    "run_sha": "949543911e071c99df910451558db232c5be07b3c50fd8b5c797aa510e2660e0",
@@ -1261,11 +644,11 @@
    "dirs": [
     "tests"
    ],
-   "index": false,
-   "objects": true,
    "git": [
     "diff"
-   ]
+   ],
+   "index": false,
+   "objects": true
   },
   "comment-poster": {
    "run_sha": "9991c3bb0ea6050b48c71c087bd66e39bd2058e14bc412b8e0191c56fb27febe",
@@ -1290,9 +673,9 @@
     "tools/policy",
     "tools/pr"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "critical-path-and-flow": {
    "run_sha": "0ba2529c06b1249ce07c70b8c93a13dea43c594e2cae1de8dc3daf1e3a2e2d1a",
@@ -1318,11 +701,11 @@
     "tools/audit/seat",
     "tools/audit/seat/fixtures/ci_critpath"
    ],
-   "index": false,
-   "objects": true,
    "git": [
     "show"
-   ]
+   ],
+   "index": false,
+   "objects": true
   },
   "delivery-row-writer": {
    "run_sha": "250157e503be273a2d938292fa7922442be673437b627fbd61a9d039dab24208",
@@ -1340,9 +723,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "dependabot-merge-decision": {
    "run_sha": "a7d826e0398adb40091c4957951beec5a48cd9edba2f8729f222b5c07f562291",
@@ -1356,9 +739,9 @@
     "tools/pr"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "dependency-graph-census": {
    "run_sha": "2fc275964d5628cecf27226ec91672f83abf35c8fd29a39db34fe589e240479d",
@@ -1438,6 +821,7 @@
     "dev/audit/rca/1985",
     "dev/audit/rca/2028",
     "dev/audit/rca/bugclasses",
+    "dev/audit/rca/ci-red",
     "dev/audit/rca/claim-false",
     "dev/audit/rca/gate-scoping",
     "dev/audit/rca/harness-friction",
@@ -1912,6 +1296,7 @@
     "tests/mutation_ledger/killed_by/freq_control.py",
     "tests/mutation_ledger/killed_by/frontend.py",
     "tests/mutation_ledger/killed_by/grid_fee.py",
+    "tests/mutation_ledger/killed_by/heat_curve.py",
     "tests/mutation_ledger/killed_by/heat_energy.py",
     "tests/mutation_ledger/killed_by/inputs.py",
     "tests/mutation_ledger/killed_by/issues.py",
@@ -1925,6 +1310,7 @@
     "tests/mutation_ledger/killed_by/name_match.py",
     "tests/mutation_ledger/killed_by/narrative.py",
     "tests/mutation_ledger/killed_by/notifier.py",
+    "tests/mutation_ledger/killed_by/off_restore.py",
     "tests/mutation_ledger/killed_by/open_meteo.py",
     "tests/mutation_ledger/killed_by/optimizer.py",
     "tests/mutation_ledger/killed_by/plan_slots.py",
@@ -1948,6 +1334,7 @@
     "tests/mutation_ledger/killed_by/services.py",
     "tests/mutation_ledger/killed_by/setpoint_check.py",
     "tests/mutation_ledger/killed_by/silent_mode.py",
+    "tests/mutation_ledger/killed_by/slot_drivers.py",
     "tests/mutation_ledger/killed_by/snapshots.py",
     "tests/mutation_ledger/killed_by/store.py",
     "tests/mutation_ledger/killed_by/switch.py",
@@ -1972,11 +1359,13 @@
     "tests/mutation_ledger/survivor_triage/drift.py",
     "tests/mutation_ledger/survivor_triage/early_cutoff.py",
     "tests/mutation_ledger/survivor_triage/entry_config.py",
+    "tests/mutation_ledger/survivor_triage/heat_curve.py",
     "tests/mutation_ledger/survivor_triage/heat_energy.py",
     "tests/mutation_ledger/survivor_triage/inputs.py",
     "tests/mutation_ledger/survivor_triage/ledger.py",
     "tests/mutation_ledger/survivor_triage/manual_plan.py",
     "tests/mutation_ledger/survivor_triage/notifier.py",
+    "tests/mutation_ledger/survivor_triage/off_restore.py",
     "tests/mutation_ledger/survivor_triage/optimizer.py",
     "tests/mutation_ledger/survivor_triage/payload.py",
     "tests/mutation_ledger/survivor_triage/pump_arbiter.py",
@@ -1984,6 +1373,7 @@
     "tests/mutation_ledger/survivor_triage/quiet_windows.py",
     "tests/mutation_ledger/survivor_triage/repairs.py",
     "tests/mutation_ledger/survivor_triage/sensor.py",
+    "tests/mutation_ledger/survivor_triage/slot_drivers.py",
     "tests/mutation_ledger/survivor_triage/store.py",
     "tests/mutation_ledger/survivor_triage/sysid.py",
     "tests/mutation_ledger/survivor_triage/tariff.py",
@@ -2006,6 +1396,7 @@
     "tools/audit/seat/fixtures",
     "tools/audit/seat/fixtures/beat_jobs",
     "tools/audit/seat/fixtures/ci_critpath",
+    "tools/audit/seat/hooks",
     "tools/audit/seat/instruments",
     "tools/audit/seat/shims",
     "tools/ci",
@@ -2037,9 +1428,11 @@
     "tools/replay",
     "tools/site"
    ],
+   "git": [
+    "?"
+   ],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": true
   },
   "detached-launcher": {
    "run_sha": "9939770d9063bef477dcb8e556f4dbde93b73d8dadb3cdc2b2d95f458f2bba0f",
@@ -2050,9 +1443,9 @@
     "."
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "dispatch-cap": {
    "run_sha": "e142fa84a5fb375179e966f5d9a0bf6c3b83fe2ca152c16f90a04bc8c8ee2085",
@@ -2064,9 +1457,9 @@
     "."
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "failure-log-reader": {
    "run_sha": "79b967aa875bee34c43b9c4194bda86510bdb0f9e98c3df4174bb87462f8852b",
@@ -2085,9 +1478,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "features-block": {
    "run_sha": "b7aa6fd84535cc431422519c2871f860cb64a70b49eda145e6c5e9df4937aefc",
@@ -2098,9 +1491,9 @@
     "."
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "field-coverage": {
    "run_sha": "20b86cfd3342a7bd463505753b1c3622b295268086573b43619714b2fc13c09e",
@@ -2155,6 +1548,7 @@
     "tools/audit/seat/beatd.py",
     "tools/audit/seat/body_patch.sh",
     "tools/audit/seat/body_push.sh",
+    "tools/audit/seat/bottleneck_check.py",
     "tools/audit/seat/bus.sh",
     "tools/audit/seat/carry_fold.py",
     "tools/audit/seat/ci-watch.sh",
@@ -2169,11 +1563,14 @@
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/features_block.py",
     "tools/audit/seat/flow_metrics.py",
+    "tools/audit/seat/gantt_drift.py",
     "tools/audit/seat/gh_calls.py",
     "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/gh_read_run.py",
     "tools/audit/seat/handoff_push.sh",
     "tools/audit/seat/handover_prompt.py",
     "tools/audit/seat/heartbeat.sh",
+    "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/ledger.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
@@ -2184,9 +1581,12 @@
     "tools/audit/seat/open_driver_selftest.py",
     "tools/audit/seat/open_pr.sh",
     "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/outside_intake.py",
+    "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
+    "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
@@ -2222,6 +1622,7 @@
     "tools/audit/seat/sweep_render.py",
     "tools/audit/seat/tick_loop.sh",
     "tools/audit/seat/tmp_paths.py",
+    "tools/audit/seat/topic_grammar.py",
     "tools/audit/seat/train.sh",
     "tools/audit/seat/update_pr.sh",
     "tools/audit/seat/verdict_audit.py",
@@ -2234,6 +1635,7 @@
     "tools/ci/prelude.py",
     "tools/ci/ruleset_cutover.py",
     "tools/ci/selftest_scope.py",
+    "tools/ci/selftest_scope_mutants.sh",
     "tools/ci/selftest_step.sh",
     "tools/ci/sweep.py",
     "tools/ci/sweep_selftest.py",
@@ -2303,9 +1705,9 @@
    "dirs": [
     "tests"
    ],
+   "git": [],
    "index": true,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "figure-census": {
    "run_sha": "740c9b07ed8530eb237326010160ac6b0a36a741f8dd09a41ce91c3a78aaacb7",
@@ -2324,9 +1726,9 @@
     "tools/policy/fixtures/figures"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "figure-check": {
    "run_sha": "385940e6e44c968a26113faff8251f21802f10fc64d3fecfbed2011e28f66b58",
@@ -2349,9 +1751,9 @@
     "tools/pr/prepr.sh"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "fragment-check": {
    "run_sha": "90a2ee3e4d234a1f84217fe48e0e88ef1d01dafc9a49c331c518bf0a43063d7b",
@@ -2440,9 +1842,9 @@
    "dirs": [
     ".claude/workflows"
    ],
+   "git": [],
    "index": true,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "gantt-and-verdict-audit": {
    "run_sha": "d1f9161e487c99eb5be4378579e90ac6800a56240f6f3d5a8bd71abdc277e1ae",
@@ -2454,9 +1856,9 @@
     "."
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "gantt-drift": {
    "run_sha": "166a86552d93555728edf76ea5296105cfd058e20150f8cc1dcd4d417cf9f209",
@@ -2467,9 +1869,9 @@
     "."
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "gate-predicate": {
    "run_sha": "dbd1cf4a4f40114a4869ab0943a911f0f65164587b81ebe19d3336a05aae01d7",
@@ -2490,9 +1892,9 @@
    "dirs": [
     "tools/ci"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "gate-sweep": {
    "run_sha": "14332389bd39165ea708fc743382f9b3ce8bb13b261a96f1394443e1dabbf103",
@@ -2507,9 +1909,9 @@
    "dirs": [
     "tools/ci"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "gh-call-log-shim": {
    "run_sha": "f7b00abdc16649eff7027d19450a7c15669e548a86651f6ef8562e43e4c31489",
@@ -2524,6 +1926,25 @@
     ".",
     "tests"
    ],
+   "git": [],
+   "index": false,
+   "objects": false
+  },
+  "gh-read-run": {
+   "run_sha": "e1e5f1991f49a10657c6a31af7ad709b63607e00b2da49b7313f4c8b05cb2214",
+   "files": [
+    "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/gh_read_run.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tools/audit/seat"
+   ],
    "index": false,
    "objects": false,
    "git": []
@@ -2537,9 +1958,9 @@
     "."
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "handoff-push": {
    "run_sha": "6f2675909677bd166b3afeb42900c406946ff121e3decd3f80bb1927db92c038",
@@ -2566,9 +1987,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "handover-prompt": {
    "run_sha": "978bb964bf6f2b3577322b27c19093a8d35e6e9ed1da21d05f37a4dd47b0644f",
@@ -2590,9 +2011,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "heartbeat-andon": {
    "run_sha": "c37a5295c81af9650f42bdf9a55da123d3989f942b8d748425ffabd644f2cf47",
@@ -2612,9 +2033,9 @@
     "tools/audit/seat"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "hooks-setup": {
    "run_sha": "9f46638b450f0c1c11914f0ab66e131f73054dd3ce75d039a317d7657bb4a921",
@@ -2634,6 +2055,7 @@
     "tools/audit/seat/beatd_shims/git",
     "tools/audit/seat/body_patch.sh",
     "tools/audit/seat/body_push.sh",
+    "tools/audit/seat/bottleneck_check.py",
     "tools/audit/seat/bus.sh",
     "tools/audit/seat/carry_fold.py",
     "tools/audit/seat/ci-watch.sh",
@@ -2653,6 +2075,7 @@
     "tools/audit/seat/gantt_drift.py",
     "tools/audit/seat/gh_calls.py",
     "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/gh_read_run.py",
     "tools/audit/seat/handoff_push.sh",
     "tools/audit/seat/handover_prompt.py",
     "tools/audit/seat/heartbeat.sh",
@@ -2719,6 +2142,7 @@
     "tools/audit/seat/sweep_template.md",
     "tools/audit/seat/tick_loop.sh",
     "tools/audit/seat/tmp_paths.py",
+    "tools/audit/seat/topic_grammar.py",
     "tools/audit/seat/train.sh",
     "tools/audit/seat/update_pr.sh",
     "tools/audit/seat/verdict_audit.py",
@@ -2735,9 +2159,9 @@
     "tools/audit/seat/instruments",
     "tools/audit/seat/shims"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "lane-skip-decision": {
    "run_sha": "93637fa3725f392f833de33b8fae0b336cf07368c62ed558f20de81a51e82d82",
@@ -2753,9 +2177,9 @@
    "dirs": [
     "tests"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "ledger-mutation-harness": {
    "run_sha": "0638a2c8c16dd37e4ee44287fd87c16b49ab5cf7999594462d4e205c0b71558d",
@@ -2776,9 +2200,9 @@
     "tools/audit/seat"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "local-alert-lister": {
    "run_sha": "310e0c54c961574777d44e6d821ca44ee2415edd85fdb4ba2baa5653bf7b55ca",
@@ -2794,9 +2218,9 @@
    "dirs": [
     "tools/ci"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "machinery-ratchet": {
    "run_sha": "27ea83021c2a8528abd0f1b88a9ebdb9dfa7346b4a8ca0609d11f72e80f2888d",
@@ -2813,9 +2237,9 @@
    "dirs": [
     "tests"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "mandate-guard-mutation-harness": {
    "run_sha": "27411fc800ebfa05d4598e2d1740983a5e83e1f46a2a31148907b16d01d310a6",
@@ -2831,9 +2255,9 @@
     "tools/audit/seat"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "merge-fast-path": {
    "run_sha": "6fc9020ca7715276e8de746b245c014d20a362b7392d89a8b8b4051850beafb2",
@@ -2863,9 +2287,9 @@
     "tests",
     "tools/audit"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "merge-main-bot": {
    "run_sha": "f78803bb77a7d5e82fc4e2272d206f64c6e029e0003fbbee5defebfcb90f295a",
@@ -2900,9 +2324,9 @@
     "tests",
     "tools/pr"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "merge-train": {
    "run_sha": "f79ca10ea5b68ac69e0666ca998dae7e3a7a0d3f7c9f1b9bfe1a52f010667c36",
@@ -2947,13 +2371,13 @@
     "tools/ci",
     "tools/release"
    ],
-   "index": false,
-   "objects": true,
    "git": [
     "diff",
     "ls-tree",
     "show"
-   ]
+   ],
+   "index": false,
+   "objects": true
   },
   "moved-path-reader": {
    "run_sha": "5375b0fa5ad187f70df1285f4fc746f92b11055f02ad8c6d4361a43ec0781392",
@@ -2971,9 +2395,9 @@
    "dirs": [
     "tests"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "mutant-driver": {
    "run_sha": "8a12b8665684a89b1d235783bfcda1ebb1ccafa0299a5b924e594cc3ed18e62b",
@@ -2996,9 +2420,9 @@
     "tests",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "obligations-ledger": {
    "run_sha": "eefbac7949accaf538b201aac6c234820c587f6842cf136cd59d51e031e6e9de",
@@ -3027,9 +2451,9 @@
     "tests",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "offline-spy": {
    "run_sha": "a51b4727e58f96a4e0a1789ef50339ed073e735eea6652a342706135df2012ba",
@@ -3047,9 +2471,9 @@
     "tools/audit/seat"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "open-driver": {
    "run_sha": "a40d900542b0c730d047b4001cadd56bed0c7c18e86c0ec66e9065f0f75f5f64",
@@ -3060,7 +2484,8 @@
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/open_driver.py",
     "tools/audit/seat/open_driver_selftest.py",
-    "tools/audit/seat/roster_lib.py"
+    "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/topic_grammar.py"
    ],
    "probes": [
     ".",
@@ -3077,9 +2502,9 @@
     "tests",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "open-pr": {
    "run_sha": "2e72b01d52ab1335bcc6a6db4394748eb22981395369e23d9d38c81e856bc2a4",
@@ -3116,6 +2541,7 @@
     "tools/audit/seat/beatd.py",
     "tools/audit/seat/body_patch.sh",
     "tools/audit/seat/body_push.sh",
+    "tools/audit/seat/bottleneck_check.py",
     "tools/audit/seat/bus.sh",
     "tools/audit/seat/carry_fold.py",
     "tools/audit/seat/ci-watch.sh",
@@ -3132,11 +2558,15 @@
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/features_block.py",
     "tools/audit/seat/flow_metrics.py",
+    "tools/audit/seat/gantt_drift.py",
     "tools/audit/seat/gh_calls.py",
     "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/gh_read_run.py",
     "tools/audit/seat/handoff_push.sh",
     "tools/audit/seat/handover_prompt.py",
     "tools/audit/seat/heartbeat.sh",
+    "tools/audit/seat/hooks/**",
+    "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/ledger.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
@@ -3147,9 +2577,12 @@
     "tools/audit/seat/open_driver_selftest.py",
     "tools/audit/seat/open_pr.sh",
     "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/outside_intake.py",
+    "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
+    "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
@@ -3192,6 +2625,7 @@
     "tools/audit/seat/sweep_render.py",
     "tools/audit/seat/tick_loop.sh",
     "tools/audit/seat/tmp_paths.py",
+    "tools/audit/seat/topic_grammar.py",
     "tools/audit/seat/train.sh",
     "tools/audit/seat/update_pr.sh",
     "tools/audit/seat/verdict_audit.py",
@@ -3206,6 +2640,7 @@
     "tools/ci/prelude.py",
     "tools/ci/ruleset_cutover.py",
     "tools/ci/selftest_scope.py",
+    "tools/ci/selftest_scope_mutants.sh",
     "tools/ci/selftest_step.sh",
     "tools/ci/sweep.py",
     "tools/ci/sweep_selftest.py",
@@ -3258,6 +2693,7 @@
    ],
    "probes": [
     "-",
+    "-c",
     ".",
     "config",
     "objects",
@@ -3291,9 +2727,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": true,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "orchestrator-tick": {
    "run_sha": "3d6d9b5492e86cf277695081249b8930a14cd223f8b17a1a2a162c5e2337c19f",
@@ -3312,6 +2748,7 @@
     "tools/audit/seat/proof_watch.py",
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/topic_grammar.py",
     "tools/ci/gate.py",
     "tools/ci/ghapi.py",
     "tools/ci/prelude.py",
@@ -3340,11 +2777,11 @@
     "tools/audit/seat",
     "tools/ci"
    ],
-   "index": false,
-   "objects": true,
    "git": [
     "merge-base"
-   ]
+   ],
+   "index": false,
+   "objects": true
   },
   "outside-intake": {
    "run_sha": "b1886dcd342b9193dbbf0aaac201f4682a3d288dae24feb1275aaba678eecf4d",
@@ -3357,7 +2794,8 @@
     "tools/audit/seat/roster_edit.py",
     "tools/audit/seat/roster_lib.py",
     "tools/audit/seat/roster_sync.py",
-    "tools/audit/seat/state_docs.py"
+    "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/topic_grammar.py"
    ],
    "probes": [
     ".",
@@ -3368,9 +2806,9 @@
     "tools/audit",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "owed-line-reader": {
    "run_sha": "188ebdb9f5731a219d6cc2d96a08494415aeb1b5d68c579f1c25d4c697992e2d",
@@ -3381,9 +2819,9 @@
     "."
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "p3-move-ledger-and": {
    "run_sha": "e7e5dd164671c2df456aec3377e7e82b9a039b6acef2d838ba2325504fb28eee",
@@ -3401,9 +2839,9 @@
    "dirs": [
     "tests"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "pin-rule": {
    "run_sha": "b6dfcf435a5771251bbbd2085b46d16057ce68105bf3fc4e891aefb63dd9dcde",
@@ -3428,15 +2866,19 @@
    "dirs": [
     "tests"
    ],
+   "git": [],
    "index": true,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "plan-page": {
    "run_sha": "87be7bdeb72cf26e61fa3d08fdbf093158083de1b44904cad7a2b2f150cf5736",
    "files": [
     "tests/throwaway_git.py",
+    "tools/audit/merge_throughput.py",
+    "tools/audit/seat/bottleneck_check.py",
     "tools/audit/seat/plan_page.py",
+    "tools/audit/seat/pr_cap.py",
+    "tools/audit/seat/review_strength.py",
     "tools/audit/seat/roster_lib.py",
     "tools/plan/durations.json",
     "tools/plan/replan.py",
@@ -3447,19 +2889,19 @@
     "tests",
     "tools",
     "tools/audit",
-    "tools/audit/seat",
     "tools/plan",
     "tools/release"
    ],
    "dirs": [
     "tests",
+    "tools/audit",
     "tools/audit/seat",
     "tools/plan",
     "tools/release"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "plan-public": {
    "run_sha": "abc70dfd4be9ad00009e8ed57e464993780ee62569627840b5783c3ad3b70b6f",
@@ -3471,7 +2913,8 @@
     "tools/audit/seat/roster_edit.py",
     "tools/audit/seat/roster_lib.py",
     "tools/audit/seat/roster_sync.py",
-    "tools/audit/seat/state_docs.py"
+    "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/topic_grammar.py"
    ],
    "probes": [
     ".",
@@ -3484,9 +2927,9 @@
     "tools/audit",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "plan-table": {
    "run_sha": "2d928df151f580316fcbf48a195ec5c1d6b9dd3aefdaa7ba1a8334e19f930565",
@@ -3503,9 +2946,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "policy-lint-mutants": {
    "run_sha": "3e1b10dc363352e2251bc6cdc07107e2356a527ac64ad9c790f61a2c37015d9f",
@@ -3696,6 +3139,7 @@
     "dev/audit/rca/1985/.gitattributes",
     "dev/audit/rca/2028/.gitattributes",
     "dev/audit/rca/bugclasses/.gitattributes",
+    "dev/audit/rca/ci-red/.gitattributes",
     "dev/audit/rca/claim-false/.gitattributes",
     "dev/audit/rca/gate-scoping/.gitattributes",
     "dev/audit/rca/harness-friction/.gitattributes",
@@ -4154,6 +3598,7 @@
     "tools/audit/seat/fixtures/.gitattributes",
     "tools/audit/seat/fixtures/beat_jobs/.gitattributes",
     "tools/audit/seat/fixtures/ci_critpath/.gitattributes",
+    "tools/audit/seat/hooks/.gitattributes",
     "tools/audit/seat/instruments/.gitattributes",
     "tools/audit/seat/shims/.gitattributes",
     "tools/ci/.gitattributes",
@@ -4179,8 +3624,6 @@
     "tools/policy/fixtures/policy-rot",
     "tools/policy/fixtures/policy-rot/prepr"
    ],
-   "index": true,
-   "objects": true,
    "git": [
     "?",
     "cat-file",
@@ -4188,7 +3631,9 @@
     "log",
     "ls-tree",
     "merge-base"
-   ]
+   ],
+   "index": true,
+   "objects": true
   },
   "post-merge-bookkeeping": {
    "run_sha": "7f9730626bce97831ee61c879e8b929c037930447bf2bd8c202bbac5e13ade99",
@@ -4207,9 +3652,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "post-merge-record-line": {
    "run_sha": "f0f980b0b4885b93951ea498acfffac8c721e177169e6cef1a0cf54ac6ae6c3f",
@@ -4226,9 +3671,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "pr-args": {
    "run_sha": "899b6b6134adb436b9d10b4079f0d6107dc774ba0b279abe835eef473262ec0f",
@@ -4265,6 +3710,7 @@
     "tools/audit/seat/beatd.py",
     "tools/audit/seat/body_patch.sh",
     "tools/audit/seat/body_push.sh",
+    "tools/audit/seat/bottleneck_check.py",
     "tools/audit/seat/bus.sh",
     "tools/audit/seat/carry_fold.py",
     "tools/audit/seat/ci-watch.sh",
@@ -4281,11 +3727,15 @@
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/features_block.py",
     "tools/audit/seat/flow_metrics.py",
+    "tools/audit/seat/gantt_drift.py",
     "tools/audit/seat/gh_calls.py",
     "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/gh_read_run.py",
     "tools/audit/seat/handoff_push.sh",
     "tools/audit/seat/handover_prompt.py",
     "tools/audit/seat/heartbeat.sh",
+    "tools/audit/seat/hooks/**",
+    "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/ledger.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
@@ -4296,9 +3746,12 @@
     "tools/audit/seat/open_driver_selftest.py",
     "tools/audit/seat/open_pr.sh",
     "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/outside_intake.py",
+    "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
+    "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
@@ -4341,6 +3794,7 @@
     "tools/audit/seat/sweep_render.py",
     "tools/audit/seat/tick_loop.sh",
     "tools/audit/seat/tmp_paths.py",
+    "tools/audit/seat/topic_grammar.py",
     "tools/audit/seat/train.sh",
     "tools/audit/seat/update_pr.sh",
     "tools/audit/seat/verdict_audit.py",
@@ -4355,6 +3809,7 @@
     "tools/ci/prelude.py",
     "tools/ci/ruleset_cutover.py",
     "tools/ci/selftest_scope.py",
+    "tools/ci/selftest_scope_mutants.sh",
     "tools/ci/selftest_step.sh",
     "tools/ci/sweep.py",
     "tools/ci/sweep_selftest.py",
@@ -4407,6 +3862,7 @@
    ],
    "probes": [
     "-",
+    "-c",
     ".",
     "config",
     "objects",
@@ -4425,6 +3881,7 @@
     "tools/audit/round4/**",
     "tools/audit/seat",
     "tools/audit/seat/.gitattributes",
+    "tools/audit/seat/hooks/.gitattributes",
     "tools/ci/.gitattributes",
     "tools/coverage/.gitattributes",
     "tools/devices/.gitattributes",
@@ -4439,9 +3896,9 @@
     "tools/site/.gitattributes"
    ],
    "dirs": [],
+   "git": [],
    "index": true,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "pr-merger": {
    "run_sha": "49a4573210ed0ee90b52759978d16a2c1f80c901a1e4dca863184a8daaaa8890",
@@ -4473,15 +3930,16 @@
     "tools/audit/seat",
     "tools/policy"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "prepr": {
    "run_sha": "81b5b27a77597fc4f4cc0ef7df3f26ae0c869c3a9ef9ae7a0b76c3db2b8af521",
    "files": [
     ".claude/hooks/**",
     ".claude/settings.json",
+    ".gitattributes",
     ".github/workflows/**",
     ".gitignore",
     "CLAUDE.md",
@@ -4500,6 +3958,7 @@
     "tests/card_drift.mjs",
     "tests/closure.py",
     "tests/closures.json",
+    "tests/env_drift.py",
     "tests/gate_lock.py",
     "tests/harness_headers.py",
     "tests/layout.json",
@@ -4511,11 +3970,14 @@
     "tools/audit/seat/INSTRUMENTS.md",
     "tools/audit/seat/body_push.sh",
     "tools/audit/seat/cloud-setup.sh",
+    "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/merge_train.py",
     "tools/audit/seat/proof_watch.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/review_packet.py",
     "tools/audit/seat/roster_lib.py",
     "tools/audit/worktree_gc.sh",
+    "tools/merge/ledger_merge.py",
     "tools/policy/brief_lint.mjs",
     "tools/policy/budget_raise_gate.py",
     "tools/policy/counts.mjs",
@@ -4624,6 +4086,7 @@
     "dev/audit/rca/1985",
     "dev/audit/rca/2028",
     "dev/audit/rca/bugclasses",
+    "dev/audit/rca/ci-red",
     "dev/audit/rca/claim-false",
     "dev/audit/rca/gate-scoping",
     "dev/audit/rca/harness-friction",
@@ -5097,6 +4560,7 @@
     "tests/mutation_ledger/killed_by/freq_control.py",
     "tests/mutation_ledger/killed_by/frontend.py",
     "tests/mutation_ledger/killed_by/grid_fee.py",
+    "tests/mutation_ledger/killed_by/heat_curve.py",
     "tests/mutation_ledger/killed_by/heat_energy.py",
     "tests/mutation_ledger/killed_by/inputs.py",
     "tests/mutation_ledger/killed_by/issues.py",
@@ -5110,6 +4574,7 @@
     "tests/mutation_ledger/killed_by/name_match.py",
     "tests/mutation_ledger/killed_by/narrative.py",
     "tests/mutation_ledger/killed_by/notifier.py",
+    "tests/mutation_ledger/killed_by/off_restore.py",
     "tests/mutation_ledger/killed_by/open_meteo.py",
     "tests/mutation_ledger/killed_by/optimizer.py",
     "tests/mutation_ledger/killed_by/plan_slots.py",
@@ -5133,6 +4598,7 @@
     "tests/mutation_ledger/killed_by/services.py",
     "tests/mutation_ledger/killed_by/setpoint_check.py",
     "tests/mutation_ledger/killed_by/silent_mode.py",
+    "tests/mutation_ledger/killed_by/slot_drivers.py",
     "tests/mutation_ledger/killed_by/snapshots.py",
     "tests/mutation_ledger/killed_by/store.py",
     "tests/mutation_ledger/killed_by/switch.py",
@@ -5157,11 +4623,13 @@
     "tests/mutation_ledger/survivor_triage/drift.py",
     "tests/mutation_ledger/survivor_triage/early_cutoff.py",
     "tests/mutation_ledger/survivor_triage/entry_config.py",
+    "tests/mutation_ledger/survivor_triage/heat_curve.py",
     "tests/mutation_ledger/survivor_triage/heat_energy.py",
     "tests/mutation_ledger/survivor_triage/inputs.py",
     "tests/mutation_ledger/survivor_triage/ledger.py",
     "tests/mutation_ledger/survivor_triage/manual_plan.py",
     "tests/mutation_ledger/survivor_triage/notifier.py",
+    "tests/mutation_ledger/survivor_triage/off_restore.py",
     "tests/mutation_ledger/survivor_triage/optimizer.py",
     "tests/mutation_ledger/survivor_triage/payload.py",
     "tests/mutation_ledger/survivor_triage/pump_arbiter.py",
@@ -5169,6 +4637,7 @@
     "tests/mutation_ledger/survivor_triage/quiet_windows.py",
     "tests/mutation_ledger/survivor_triage/repairs.py",
     "tests/mutation_ledger/survivor_triage/sensor.py",
+    "tests/mutation_ledger/survivor_triage/slot_drivers.py",
     "tests/mutation_ledger/survivor_triage/store.py",
     "tests/mutation_ledger/survivor_triage/sysid.py",
     "tests/mutation_ledger/survivor_triage/tariff.py",
@@ -5191,6 +4660,7 @@
     "tools/audit/seat/fixtures",
     "tools/audit/seat/fixtures/beat_jobs",
     "tools/audit/seat/fixtures/ci_critpath",
+    "tools/audit/seat/hooks",
     "tools/audit/seat/instruments",
     "tools/audit/seat/shims",
     "tools/ci",
@@ -5222,8 +4692,6 @@
     "tools/replay",
     "tools/site"
    ],
-   "index": true,
-   "objects": true,
    "git": [
     "?",
     "add",
@@ -5248,7 +4716,9 @@
     "rev-list",
     "show",
     "update-ref"
-   ]
+   ],
+   "index": true,
+   "objects": true
   },
   "probe-bridge": {
    "run_sha": "e800b265b68d9dcb6f4afbfbe05d49e2f3ebd3842b235ef2997e664d9434e7df",
@@ -5264,9 +4734,9 @@
     "tests",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "programme-pulse": {
    "run_sha": "9727fc2f45263c9c62fb3d38e423f05fc851d3f7df647baa2ae57be613cfc41f",
@@ -5284,9 +4754,9 @@
    "dirs": [
     "dev/governance/roles"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "proof-watcher": {
    "run_sha": "015c72cf518e118b335fc365aae0b198358f3c7e7ff14d3f4ceeef2d07f01271",
@@ -5310,9 +4780,9 @@
     "tools/audit/seat",
     "tools/ci"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "push-names-the-host": {
    "run_sha": "a492e10b008367971423622e5d3d5f84f6c9302f39c7a7504905ba3080bae85d",
@@ -5386,14 +4856,14 @@
     "tests",
     "tools/audit/seat"
    ],
-   "index": false,
-   "objects": true,
    "git": [
     "?",
     "diff",
     "merge-base",
     "show"
-   ]
+   ],
+   "index": false,
+   "objects": true
   },
   "push-script-decisions": {
    "run_sha": "0d4cd267739feebe0afed25ac121e3abdf84137cf5bed215350242d96518f514",
@@ -5440,12 +4910,12 @@
    "dirs": [
     "dev/governance/dimensions"
    ],
-   "index": true,
-   "objects": true,
    "git": [
     "merge-base",
     "show"
-   ]
+   ],
+   "index": true,
+   "objects": true
   },
   "record-predicate-sweep": {
    "run_sha": "f092f3910b4b4b6c698000cd683d2c7a0843a4a3788bfa108ae63f5b6f81d705",
@@ -5459,9 +4929,9 @@
     "tools/policy/record-predicate"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "record-row-generator": {
    "run_sha": "9a9a4ca26cb18dee16f8e861a3fc734dbb6ea002a7db16b4316b99ecbad449ec",
@@ -5513,11 +4983,11 @@
     "tools/audit/seat",
     "tools/release"
    ],
-   "index": true,
-   "objects": true,
    "git": [
     "diff"
-   ]
+   ],
+   "index": true,
+   "objects": true
   },
   "ref-pruner": {
    "run_sha": "e9a4011f002b3591593de2307fd743aa0477052bc058be6cff2970467a11f0b9",
@@ -5541,9 +5011,9 @@
     "tests",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "resume-renderer": {
    "run_sha": "78b863f6f1c6616877dd271c57f41953f997c677d1c4c4adfd177ccb35892f75",
@@ -5560,9 +5030,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "review-carry": {
    "run_sha": "02aaf8bcf11f88f6d26667091882c9f79e22ecdc327f914b0686f1d3f81f657d",
@@ -5584,9 +5054,9 @@
    "dirs": [
     "tests"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "review-packet": {
    "run_sha": "5cd83d880b60b227f269115fd2e37e970b8eb1970bd7639d87faf881775b4155",
@@ -5603,6 +5073,8 @@
     "tests/structure_budgets.json",
     "tests/throwaway_git.py",
     "tools/audit/carry_audit.py",
+    "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/merge_train.py",
     "tools/audit/seat/proof_watch.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/review_packet.py",
@@ -5610,6 +5082,7 @@
     "tools/policy/brief_lint.mjs",
     "tools/policy/counts.mjs",
     "tools/policy/dependabot_contract.mjs",
+    "tools/policy/fixtures/required-contexts.json",
     "tools/policy/policy_lint.mjs",
     "tools/policy/render_md.mjs",
     "tools/policy/vendor/markdown-it.min.js"
@@ -5638,13 +5111,13 @@
     "tests",
     "tools/audit/seat"
    ],
-   "index": true,
-   "objects": true,
    "git": [
     "ls-tree",
     "merge-base",
     "show"
-   ]
+   ],
+   "index": true,
+   "objects": true
   },
   "review-strength-enumerator": {
    "run_sha": "dd4e2d95f02c3d09150bf9b6b3f512aec576ab8ca32cc18a0cc6aa174e0234dd",
@@ -5667,9 +5140,9 @@
    "dirs": [
     "tests"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "roster-editor": {
    "run_sha": "69d134ca93555d9ce85205a52a5eb7ef397b6bf559866955924dc0fee3152065",
@@ -5694,9 +5167,9 @@
     "tools/audit",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "roster-library": {
    "run_sha": "ef4cbcbdebfe734c9270dab5c152611820d5f1abdb65bb51f459535bf08e8287",
@@ -5714,14 +5187,15 @@
    "dirs": [
     "tests"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "roster-ops-mutation-harness": {
    "run_sha": "ff64ecaef9c502f634ec498485bc646c76e67e625d81961b0ab116701e85812d",
    "files": [
     "tools/audit/carry_audit.py",
+    "tools/audit/seat/orchestrator_tick.py",
     "tools/audit/seat/r10_roster_ops_mutants.py",
     "tools/audit/seat/roster_edit.py",
     "tools/audit/seat/roster_lib.py",
@@ -5735,9 +5209,9 @@
     "tools/audit/seat"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "roster-queue-runner": {
    "run_sha": "d5cd705b4d2a5ded00be29cdd0c36a43a31afc42011bdb9205b6cf665468041f",
@@ -5763,9 +5237,9 @@
     "tools/audit",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "roster-sync-reconciler": {
    "run_sha": "176c372108c490c2302baaa98ecc0a8a8317d1cd8e51f20abe4f257ad0ee74ea",
@@ -5778,6 +5252,7 @@
     "tools/audit/seat/roster_edit.py",
     "tools/audit/seat/roster_lib.py",
     "tools/audit/seat/roster_sync.py",
+    "tools/audit/seat/topic_grammar.py",
     "tools/plan/durations.json"
    ],
    "probes": [
@@ -5795,9 +5270,9 @@
     "tools/audit",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "round-closeout": {
    "run_sha": "e63320b15f7e6afe184cddd447296bdc858f072014643de2b7db1af60929a6da",
@@ -5810,7 +5285,8 @@
     "tools/audit/seat/roster_edit.py",
     "tools/audit/seat/roster_lib.py",
     "tools/audit/seat/roster_sync.py",
-    "tools/audit/seat/state_docs.py"
+    "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/topic_grammar.py"
    ],
    "probes": [
     ".",
@@ -5827,9 +5303,9 @@
     "tools/audit",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "ruleset-cut-over-instrument": {
    "run_sha": "8eade8ef98320d326fd120c27f5825f3096030e499f8d8be5f51a2f9a91e073e",
@@ -5848,9 +5324,9 @@
    "dirs": [
     "tools/ci"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "seat-venv-recipe": {
    "run_sha": "0737fc74c297df24dcc3f058fa3564008fd5443912d9d4bc06f747a5aff2edf1",
@@ -5865,9 +5341,9 @@
    "dirs": [
     "."
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "self-tests-outside-seat": {
    "run_sha": "f74f563517915a57fe460412e738e310a7b60174f1d47ff211e4ed8e856a3c3b",
@@ -6013,8 +5489,6 @@
     "tools/policy/fixtures/policy-rot/prepr",
     "tools/release"
    ],
-   "index": true,
-   "objects": true,
    "git": [
     "?",
     "cat-file",
@@ -6024,7 +5498,9 @@
     "merge-base",
     "rev-list",
     "show"
-   ]
+   ],
+   "index": true,
+   "objects": true
   },
   "selftest-scope": {
    "run_sha": "f5ec792ec3efe1110346aa55286c78476472afa3a83a128272f5e87587085203",
@@ -6046,9 +5522,35 @@
    "dirs": [
     "tests"
    ],
+   "git": [],
    "index": true,
-   "objects": false,
-   "git": []
+   "objects": false
+  },
+  "selftest-scope-mutants": {
+   "run_sha": "00b691b683d6ff8e9527d535aafec449ad59e72a20cd3c063182d4a30fb9af60",
+   "files": [
+    ".github/workflows/governance.yml",
+    "tests/layout.json",
+    "tests/layout.py",
+    "tests/throwaway_git.py",
+    "tools/ci/selftest_closures.json",
+    "tools/ci/selftest_scope.py",
+    "tools/ci/selftest_scope_mutants.sh",
+    "tools/ci/selftest_step.sh"
+   ],
+   "probes": [
+    ".",
+    "strace",
+    "tests",
+    "tools",
+    "tools/ci"
+   ],
+   "dirs": [
+    "tests"
+   ],
+   "git": [],
+   "index": true,
+   "objects": false
   },
   "selftest-wiring": {
    "run_sha": "12270ecc61efdff0edc98cfa58e949ce640919b1af72f63631fb59c588cb8f86",
@@ -6087,6 +5589,7 @@
     "tools/audit/seat/beatd_shims/git",
     "tools/audit/seat/body_patch.sh",
     "tools/audit/seat/body_push.sh",
+    "tools/audit/seat/bottleneck_check.py",
     "tools/audit/seat/bus.sh",
     "tools/audit/seat/carry_fold.py",
     "tools/audit/seat/ci-watch.sh",
@@ -6104,11 +5607,15 @@
     "tools/audit/seat/features_block.py",
     "tools/audit/seat/fixtures/beat_jobs/**",
     "tools/audit/seat/flow_metrics.py",
+    "tools/audit/seat/gantt_drift.py",
     "tools/audit/seat/gh_calls.py",
     "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/gh_read_run.py",
     "tools/audit/seat/handoff_push.sh",
     "tools/audit/seat/handover_prompt.py",
     "tools/audit/seat/heartbeat.sh",
+    "tools/audit/seat/hooks/**",
+    "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/instruments/**",
     "tools/audit/seat/ledger.py",
     "tools/audit/seat/merge_pr.sh",
@@ -6120,9 +5627,12 @@
     "tools/audit/seat/open_driver_selftest.py",
     "tools/audit/seat/open_pr.sh",
     "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/outside_intake.py",
+    "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
+    "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
@@ -6166,6 +5676,7 @@
     "tools/audit/seat/sweep_render.py",
     "tools/audit/seat/tick_loop.sh",
     "tools/audit/seat/tmp_paths.py",
+    "tools/audit/seat/topic_grammar.py",
     "tools/audit/seat/train.sh",
     "tools/audit/seat/update_pr.sh",
     "tools/audit/seat/verdict_audit.py",
@@ -6180,6 +5691,7 @@
     "tools/ci/prelude.py",
     "tools/ci/ruleset_cutover.py",
     "tools/ci/selftest_scope.py",
+    "tools/ci/selftest_scope_mutants.sh",
     "tools/ci/selftest_step.sh",
     "tools/ci/sweep.py",
     "tools/ci/sweep_selftest.py",
@@ -6258,6 +5770,7 @@
     "tools/audit/seat/fixtures",
     "tools/audit/seat/fixtures/beat_jobs",
     "tools/audit/seat/fixtures/ci_critpath",
+    "tools/audit/seat/hooks",
     "tools/audit/seat/instruments",
     "tools/audit/seat/shims",
     "tools/ci",
@@ -6289,9 +5802,9 @@
     "tools/replay",
     "tools/site"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "stamp-round-close-mutation": {
    "run_sha": "cbebd8930d74d0d4b42e51386b58cf9d8cef34662c52b45463b62d5588a7da88",
@@ -6307,9 +5820,9 @@
     "tools/release"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "state-doc-writer": {
    "run_sha": "78e714c49c75381ec173e957096d960d7899d651c3167a99cbf70097d17ee208",
@@ -6317,9 +5830,11 @@
     "tests/throwaway_git.py",
     "tools/audit/carry_audit.py",
     "tools/audit/merge_throughput.py",
+    "tools/audit/seat/bottleneck_check.py",
     "tools/audit/seat/handover_prompt.py",
     "tools/audit/seat/plan_page.py",
     "tools/audit/seat/plan_table.py",
+    "tools/audit/seat/pr_cap.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/review_strength.py",
@@ -6327,6 +5842,7 @@
     "tools/audit/seat/roster_lib.py",
     "tools/audit/seat/roster_sync.py",
     "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/topic_grammar.py",
     "tools/plan/durations.json",
     "tools/plan/replan.py",
     "tools/release/stamp.py"
@@ -6349,9 +5865,9 @@
     "tools/plan",
     "tools/release"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "superseded-run-canceller": {
    "run_sha": "9d9c67b9ee56ec126ff04839b0521157973902359bf2934fe831626812b75f5d",
@@ -6366,9 +5882,9 @@
    "dirs": [
     "tools/pr"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "sweep-driver": {
    "run_sha": "10057cb4d02b01402b05c56cfc3d202f53128d7fa870db82f8b00d41eb2147d3",
@@ -6388,9 +5904,9 @@
     "tools/audit/seat",
     "tools/ci"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "sweep-template": {
    "run_sha": "1d49f84bb509400c39fadeae7a53e0c6b2f3c504729c313b927bdc034000604c",
@@ -6415,6 +5931,7 @@
     "tools/audit",
     "tools/audit/seat",
     "tools/audit/worktree_gc.sh",
+    "tools/plan/replan.py",
     "tools/pr/approve_held_runs.sh",
     "tools/pr/cancel_superseded.py",
     "tools/pr/gate_priority.py",
@@ -6423,9 +5940,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "temp-or-machine-path": {
    "run_sha": "5de9df182b392af5fbf8cfe28d3fb7d5c980b09492dc638523bde313ec1770fb",
@@ -6497,6 +6014,7 @@
     "tests/mutation_ledger/killed_by/freq_control.py/.gitattributes",
     "tests/mutation_ledger/killed_by/frontend.py/.gitattributes",
     "tests/mutation_ledger/killed_by/grid_fee.py/.gitattributes",
+    "tests/mutation_ledger/killed_by/heat_curve.py/.gitattributes",
     "tests/mutation_ledger/killed_by/heat_energy.py/.gitattributes",
     "tests/mutation_ledger/killed_by/inputs.py/.gitattributes",
     "tests/mutation_ledger/killed_by/issues.py/.gitattributes",
@@ -6510,6 +6028,7 @@
     "tests/mutation_ledger/killed_by/name_match.py/.gitattributes",
     "tests/mutation_ledger/killed_by/narrative.py/.gitattributes",
     "tests/mutation_ledger/killed_by/notifier.py/.gitattributes",
+    "tests/mutation_ledger/killed_by/off_restore.py/.gitattributes",
     "tests/mutation_ledger/killed_by/open_meteo.py/.gitattributes",
     "tests/mutation_ledger/killed_by/optimizer.py/.gitattributes",
     "tests/mutation_ledger/killed_by/plan_slots.py/.gitattributes",
@@ -6533,6 +6052,7 @@
     "tests/mutation_ledger/killed_by/services.py/.gitattributes",
     "tests/mutation_ledger/killed_by/setpoint_check.py/.gitattributes",
     "tests/mutation_ledger/killed_by/silent_mode.py/.gitattributes",
+    "tests/mutation_ledger/killed_by/slot_drivers.py/.gitattributes",
     "tests/mutation_ledger/killed_by/snapshots.py/.gitattributes",
     "tests/mutation_ledger/killed_by/store.py/.gitattributes",
     "tests/mutation_ledger/killed_by/switch.py/.gitattributes",
@@ -6557,11 +6077,13 @@
     "tests/mutation_ledger/survivor_triage/drift.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/early_cutoff.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/entry_config.py/.gitattributes",
+    "tests/mutation_ledger/survivor_triage/heat_curve.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/heat_energy.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/inputs.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/ledger.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/manual_plan.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/notifier.py/.gitattributes",
+    "tests/mutation_ledger/survivor_triage/off_restore.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/optimizer.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/payload.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/pump_arbiter.py/.gitattributes",
@@ -6569,6 +6091,7 @@
     "tests/mutation_ledger/survivor_triage/quiet_windows.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/repairs.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/sensor.py/.gitattributes",
+    "tests/mutation_ledger/survivor_triage/slot_drivers.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/store.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/sysid.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/tariff.py/.gitattributes",
@@ -6620,12 +6143,12 @@
    "dirs": [
     "tools/audit/seat"
    ],
-   "index": false,
-   "objects": true,
    "git": [
     "?",
     "merge-base"
-   ]
+   ],
+   "index": false,
+   "objects": true
   },
   "throwaway-git-helper": {
    "run_sha": "68c3bdf117aad5a466e83779a2b5f643b465304ea3009e5867df077a08b6a7f9",
@@ -6716,6 +6239,7 @@
     "tests/mutation_ledger/killed_by/freq_control.py/.gitattributes",
     "tests/mutation_ledger/killed_by/frontend.py/.gitattributes",
     "tests/mutation_ledger/killed_by/grid_fee.py/.gitattributes",
+    "tests/mutation_ledger/killed_by/heat_curve.py/.gitattributes",
     "tests/mutation_ledger/killed_by/heat_energy.py/.gitattributes",
     "tests/mutation_ledger/killed_by/inputs.py/.gitattributes",
     "tests/mutation_ledger/killed_by/issues.py/.gitattributes",
@@ -6729,6 +6253,7 @@
     "tests/mutation_ledger/killed_by/name_match.py/.gitattributes",
     "tests/mutation_ledger/killed_by/narrative.py/.gitattributes",
     "tests/mutation_ledger/killed_by/notifier.py/.gitattributes",
+    "tests/mutation_ledger/killed_by/off_restore.py/.gitattributes",
     "tests/mutation_ledger/killed_by/open_meteo.py/.gitattributes",
     "tests/mutation_ledger/killed_by/optimizer.py/.gitattributes",
     "tests/mutation_ledger/killed_by/plan_slots.py/.gitattributes",
@@ -6752,6 +6277,7 @@
     "tests/mutation_ledger/killed_by/services.py/.gitattributes",
     "tests/mutation_ledger/killed_by/setpoint_check.py/.gitattributes",
     "tests/mutation_ledger/killed_by/silent_mode.py/.gitattributes",
+    "tests/mutation_ledger/killed_by/slot_drivers.py/.gitattributes",
     "tests/mutation_ledger/killed_by/snapshots.py/.gitattributes",
     "tests/mutation_ledger/killed_by/store.py/.gitattributes",
     "tests/mutation_ledger/killed_by/switch.py/.gitattributes",
@@ -6776,11 +6302,13 @@
     "tests/mutation_ledger/survivor_triage/drift.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/early_cutoff.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/entry_config.py/.gitattributes",
+    "tests/mutation_ledger/survivor_triage/heat_curve.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/heat_energy.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/inputs.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/ledger.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/manual_plan.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/notifier.py/.gitattributes",
+    "tests/mutation_ledger/survivor_triage/off_restore.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/optimizer.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/payload.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/pump_arbiter.py/.gitattributes",
@@ -6788,6 +6316,7 @@
     "tests/mutation_ledger/survivor_triage/quiet_windows.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/repairs.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/sensor.py/.gitattributes",
+    "tests/mutation_ledger/survivor_triage/slot_drivers.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/store.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/sysid.py/.gitattributes",
     "tests/mutation_ledger/survivor_triage/tariff.py/.gitattributes",
@@ -6809,6 +6338,7 @@
     "tools/audit/seat/fixtures/.gitattributes",
     "tools/audit/seat/fixtures/beat_jobs/.gitattributes",
     "tools/audit/seat/fixtures/ci_critpath/.gitattributes",
+    "tools/audit/seat/hooks/.gitattributes",
     "tools/audit/seat/instruments/.gitattributes",
     "tools/audit/seat/shims/.gitattributes",
     "tools/ci/.gitattributes",
@@ -6841,11 +6371,11 @@
     "tools/site/.gitattributes"
    ],
    "dirs": [],
-   "index": false,
-   "objects": true,
    "git": [
     "?"
-   ]
+   ],
+   "index": false,
+   "objects": true
   },
   "tick-loop": {
    "run_sha": "5f955a1a0af7d2c83832dac4de5dfa3ad2fe9112ea4c94d88f749650d9f7ded8",
@@ -6865,9 +6395,9 @@
     "tools/audit/seat"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "topic-grammar": {
    "run_sha": "40ac264ceeb40c59d850cd2d025f52a4c92776ec61b0806bd6c52bd159cec58d",
@@ -6878,9 +6408,9 @@
     "."
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "train-launcher": {
    "run_sha": "355bdc1a9838e18c3149643e9127300c16aec234aa95e15e88d57bb5da836aeb",
@@ -6902,9 +6432,9 @@
     "tools/audit/seat/HEAD"
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "twin-run-reader": {
    "run_sha": "05d5e8a0774d34d43a926f9e8f18f1f73669f536617125148a2486baaf87907b",
@@ -6915,9 +6445,9 @@
     "."
    ],
    "dirs": [],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "update-pr": {
    "run_sha": "dfbf8038803e4743ee467e3e656bf0f20c07675e47ed36302f4cef35a276b277",
@@ -6954,6 +6484,7 @@
     "tools/audit/seat/beatd.py",
     "tools/audit/seat/body_patch.sh",
     "tools/audit/seat/body_push.sh",
+    "tools/audit/seat/bottleneck_check.py",
     "tools/audit/seat/bus.sh",
     "tools/audit/seat/carry_fold.py",
     "tools/audit/seat/ci-watch.sh",
@@ -6970,11 +6501,15 @@
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/features_block.py",
     "tools/audit/seat/flow_metrics.py",
+    "tools/audit/seat/gantt_drift.py",
     "tools/audit/seat/gh_calls.py",
     "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/gh_read_run.py",
     "tools/audit/seat/handoff_push.sh",
     "tools/audit/seat/handover_prompt.py",
     "tools/audit/seat/heartbeat.sh",
+    "tools/audit/seat/hooks/**",
+    "tools/audit/seat/hooks_setup.py",
     "tools/audit/seat/ledger.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
@@ -6985,9 +6520,12 @@
     "tools/audit/seat/open_driver_selftest.py",
     "tools/audit/seat/open_pr.sh",
     "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/outside_intake.py",
+    "tools/audit/seat/outside_intake_selftest.py",
     "tools/audit/seat/owed_unactioned.py",
     "tools/audit/seat/plan_audit.py",
     "tools/audit/seat/plan_page.py",
+    "tools/audit/seat/plan_public.py",
     "tools/audit/seat/plan_table.py",
     "tools/audit/seat/policy_reread_check.py",
     "tools/audit/seat/postmerge.py",
@@ -7030,6 +6568,7 @@
     "tools/audit/seat/sweep_render.py",
     "tools/audit/seat/tick_loop.sh",
     "tools/audit/seat/tmp_paths.py",
+    "tools/audit/seat/topic_grammar.py",
     "tools/audit/seat/train.sh",
     "tools/audit/seat/update_pr.sh",
     "tools/audit/seat/verdict_audit.py",
@@ -7044,6 +6583,7 @@
     "tools/ci/prelude.py",
     "tools/ci/ruleset_cutover.py",
     "tools/ci/selftest_scope.py",
+    "tools/ci/selftest_scope_mutants.sh",
     "tools/ci/selftest_step.sh",
     "tools/ci/sweep.py",
     "tools/ci/sweep_selftest.py",
@@ -7096,6 +6636,7 @@
    ],
    "probes": [
     "-",
+    "-c",
     ".",
     "config",
     "objects",
@@ -7129,9 +6670,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
+   "git": [],
    "index": true,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "verdict-bus": {
    "run_sha": "a781e6b79a8ef1a37712210f6277a5db65f5e0347994818965eac6f5d54e737d",
@@ -7184,6 +6725,7 @@
     "tools/policy/brief_lint.mjs",
     "tools/policy/counts.mjs",
     "tools/policy/dependabot_contract.mjs",
+    "tools/policy/fixtures/required-contexts.json",
     "tools/policy/policy_lint.mjs",
     "tools/policy/render_md.mjs",
     "tools/policy/vendor/markdown-it.min.js",
@@ -7218,13 +6760,13 @@
     "tests",
     "tools/audit/seat"
    ],
-   "index": true,
-   "objects": true,
    "git": [
     "ls-tree",
     "merge-base",
     "show"
-   ]
+   ],
+   "index": true,
+   "objects": true
   }
  }
 }

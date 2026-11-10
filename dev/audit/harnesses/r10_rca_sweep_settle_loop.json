@@ -1,0 +1,1250 @@
+{
+ "head": "8d4ff2f257655fb11e837c0c96a203abfdbab928",
+ "note": "attempt1_jobs: the full listing of attempt 1. later_attempts_changed_jobs: per attempt 2-6, only the jobs whose status, conclusion or stamps differ from attempt 1 (job ids differ on every attempt and are not compared)",
+ "pr": 3319,
+ "repo": "tvofi/heatpump_optimizer",
+ "runs": [
+  {
+   "attempt1_jobs": [
+    {
+     "completed_at": "2026-11-08T09:58:04Z",
+     "conclusion": "success",
+     "id": 128696313760,
+     "name": "cancel-superseded",
+     "started_at": "2026-11-08T09:57:54Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:26Z",
+     "conclusion": "success",
+     "id": 128696313815,
+     "name": "refresh",
+     "started_at": "2026-11-08T09:57:53Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:27Z",
+     "conclusion": "success",
+     "id": 128696313877,
+     "name": "prelude",
+     "started_at": "2026-11-08T09:57:54Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:45Z",
+     "conclusion": "success",
+     "id": 128696450304,
+     "name": "codeql / Analyze (python)",
+     "started_at": "2026-11-08T09:58:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:06Z",
+     "conclusion": "success",
+     "id": 128696450312,
+     "name": "validate / validate-hacs",
+     "started_at": "2026-11-08T09:58:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:40Z",
+     "conclusion": "success",
+     "id": 128696450343,
+     "name": "tests / nightly-status",
+     "started_at": "2026-11-08T09:58:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:03Z",
+     "conclusion": "success",
+     "id": 128696450352,
+     "name": "tests / mutation",
+     "started_at": "2026-11-08T09:58:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:51Z",
+     "conclusion": "success",
+     "id": 128696450357,
+     "name": "governance / delivery-status",
+     "started_at": "2026-11-08T09:58:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:05:36Z",
+     "conclusion": "success",
+     "id": 128696450370,
+     "name": "governance / env-matrix",
+     "started_at": "2026-11-08T09:58:29Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:04Z",
+     "conclusion": "failure",
+     "id": 128696450376,
+     "name": "budget-raise-gate / budget-raise-gate",
+     "started_at": "2026-11-08T09:58:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:00:02Z",
+     "conclusion": "success",
+     "id": 128696450379,
+     "name": "codeql / Analyze (javascript-typescript)",
+     "started_at": "2026-11-08T09:58:35Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:25Z",
+     "conclusion": "success",
+     "id": 128696450414,
+     "name": "governance / wave-script",
+     "started_at": "2026-11-08T09:58:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:39Z",
+     "conclusion": "success",
+     "id": 128696450425,
+     "name": "arch-score / arch-score",
+     "started_at": "2026-11-08T09:58:35Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:41Z",
+     "conclusion": "success",
+     "id": 128696450427,
+     "name": "tests / briefs",
+     "started_at": "2026-11-08T09:58:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:03Z",
+     "conclusion": "success",
+     "id": 128696450436,
+     "name": "tests / closure-scope",
+     "started_at": "2026-11-08T09:58:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:00:07Z",
+     "conclusion": "success",
+     "id": 128696450446,
+     "name": "codeql / Analyze (actions)",
+     "started_at": "2026-11-08T09:58:39Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:02:36Z",
+     "conclusion": "success",
+     "id": 128696450482,
+     "name": "governance / policy-docs",
+     "started_at": "2026-11-08T09:58:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:10:51Z",
+     "conclusion": "success",
+     "id": 128696450536,
+     "name": "governance / instrument-self-tests",
+     "started_at": "2026-11-08T09:58:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:50Z",
+     "conclusion": "success",
+     "id": 128696450640,
+     "name": "hassfest / hassfest",
+     "started_at": "2026-11-08T09:58:30Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:27Z",
+     "conclusion": "skipped",
+     "id": 128696451428,
+     "name": "governance / record",
+     "started_at": "2026-11-08T09:58:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:27Z",
+     "conclusion": "skipped",
+     "id": 128696451565,
+     "name": "governance / delivery-status-publish",
+     "started_at": "2026-11-08T09:58:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:27Z",
+     "conclusion": "skipped",
+     "id": 128696451584,
+     "name": "kernel-points",
+     "started_at": "2026-11-08T09:58:27Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:00:10Z",
+     "conclusion": "success",
+     "id": 128696580333,
+     "name": "tests / typing",
+     "started_at": "2026-11-08T09:59:06Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:07:50Z",
+     "conclusion": "success",
+     "id": 128696580346,
+     "name": "tests / fast (3.14)",
+     "started_at": "2026-11-08T09:59:06Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:15:04Z",
+     "conclusion": "success",
+     "id": 128696580378,
+     "name": "tests / coverage",
+     "started_at": "2026-11-08T09:59:06Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:00:31Z",
+     "conclusion": "success",
+     "id": 128696580382,
+     "name": "tests / arch-instrument",
+     "started_at": "2026-11-08T09:59:06Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:20:00Z",
+     "conclusion": "success",
+     "id": 128696580421,
+     "name": "tests / closures",
+     "started_at": "2026-11-08T09:59:06Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:03:21Z",
+     "conclusion": "success",
+     "id": 128696580476,
+     "name": "tests / browser",
+     "started_at": "2026-11-08T09:59:06Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:03Z",
+     "conclusion": "skipped",
+     "id": 128696581092,
+     "name": "tests / replay",
+     "started_at": "2026-11-08T09:59:04Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:03Z",
+     "conclusion": "skipped",
+     "id": 128696581651,
+     "name": "tests / nightly-ha",
+     "started_at": "2026-11-08T09:59:04Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:04Z",
+     "conclusion": "skipped",
+     "id": 128696582380,
+     "name": "tests / mutation-pins",
+     "started_at": "2026-11-08T09:59:04Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:04Z",
+     "conclusion": "skipped",
+     "id": 128696582412,
+     "name": "tests / mutation-autofix",
+     "started_at": "2026-11-08T09:59:04Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:07:50Z",
+     "conclusion": "skipped",
+     "id": 128698613072,
+     "name": "tests / claims-autofix",
+     "started_at": "2026-11-08T10:07:51Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:15:12Z",
+     "conclusion": "success",
+     "id": 128700269935,
+     "name": "tests / lane-proofs",
+     "started_at": "2026-11-08T10:15:07Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:15:15Z",
+     "conclusion": "success",
+     "id": 128700269989,
+     "name": "tests / coverage-ratchet",
+     "started_at": "2026-11-08T10:15:07Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:18:13Z",
+     "conclusion": "success",
+     "id": 128700270044,
+     "name": "tests / graders-head-copy",
+     "started_at": "2026-11-08T10:15:07Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:21:40Z",
+     "conclusion": "failure",
+     "id": 128701391467,
+     "name": "pr-contract / pr-contract",
+     "started_at": "2026-11-08T10:20:18Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:20:01Z",
+     "conclusion": "skipped",
+     "id": 128701391875,
+     "name": "tests / closures-autofix",
+     "started_at": "2026-11-08T10:20:01Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:20:01Z",
+     "conclusion": "skipped",
+     "id": 128701392588,
+     "name": "tests / ci-ratchet",
+     "started_at": "2026-11-08T10:20:01Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T10:22:13Z",
+     "conclusion": "failure",
+     "id": 128701778866,
+     "name": "gate",
+     "started_at": "2026-11-08T10:21:43Z",
+     "status": "completed"
+    }
+   ],
+   "created_at": "2026-11-08T09:57:48Z",
+   "id": 42469369199,
+   "later_attempts_changed_jobs": {
+    "2": [
+     {
+      "completed_at": "2026-11-08T09:58:27Z",
+      "conclusion": "skipped",
+      "id": 128702161050,
+      "name": "governance / delivery-status-publish",
+      "started_at": "2026-11-08T10:23:19Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:58:27Z",
+      "conclusion": "skipped",
+      "id": 128702161666,
+      "name": "governance / record",
+      "started_at": "2026-11-08T10:23:19Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:04Z",
+      "conclusion": "skipped",
+      "id": 128702161856,
+      "name": "tests / mutation-pins",
+      "started_at": "2026-11-08T10:23:19Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:03Z",
+      "conclusion": "skipped",
+      "id": 128702162094,
+      "name": "tests / nightly-ha",
+      "started_at": "2026-11-08T10:23:19Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:04Z",
+      "conclusion": "skipped",
+      "id": 128702162202,
+      "name": "tests / mutation-autofix",
+      "started_at": "2026-11-08T10:23:19Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:03Z",
+      "conclusion": "skipped",
+      "id": 128702162305,
+      "name": "tests / replay",
+      "started_at": "2026-11-08T10:23:19Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:24:00Z",
+      "conclusion": "failure",
+      "id": 128702162496,
+      "name": "gate",
+      "started_at": "2026-11-08T10:23:22Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:20:01Z",
+      "conclusion": "skipped",
+      "id": 128702162570,
+      "name": "tests / closures-autofix",
+      "started_at": "2026-11-08T10:23:19Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:20:01Z",
+      "conclusion": "skipped",
+      "id": 128702162583,
+      "name": "tests / ci-ratchet",
+      "started_at": "2026-11-08T10:23:19Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:07:50Z",
+      "conclusion": "skipped",
+      "id": 128702162690,
+      "name": "tests / claims-autofix",
+      "started_at": "2026-11-08T10:23:19Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:23:18Z",
+      "conclusion": "skipped",
+      "id": 128702197924,
+      "name": "kernel-points",
+      "started_at": "2026-11-08T10:23:29Z",
+      "status": "completed"
+     }
+    ],
+    "3": [
+     {
+      "completed_at": "2026-11-08T09:58:27Z",
+      "conclusion": "skipped",
+      "id": 128702609522,
+      "name": "governance / delivery-status-publish",
+      "started_at": "2026-11-08T10:25:17Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:03Z",
+      "conclusion": "skipped",
+      "id": 128702609833,
+      "name": "tests / replay",
+      "started_at": "2026-11-08T10:25:17Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:25:17Z",
+      "conclusion": "skipped",
+      "id": 128702609859,
+      "name": "kernel-points",
+      "started_at": "2026-11-08T10:25:17Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:04Z",
+      "conclusion": "skipped",
+      "id": 128702610101,
+      "name": "tests / mutation-pins",
+      "started_at": "2026-11-08T10:25:17Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:04Z",
+      "conclusion": "skipped",
+      "id": 128702610128,
+      "name": "tests / mutation-autofix",
+      "started_at": "2026-11-08T10:25:17Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:03Z",
+      "conclusion": "skipped",
+      "id": 128702610265,
+      "name": "tests / nightly-ha",
+      "started_at": "2026-11-08T10:25:17Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:25:56Z",
+      "conclusion": "failure",
+      "id": 128702610370,
+      "name": "gate",
+      "started_at": "2026-11-08T10:25:20Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:07:50Z",
+      "conclusion": "skipped",
+      "id": 128702610401,
+      "name": "tests / claims-autofix",
+      "started_at": "2026-11-08T10:25:17Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:20:01Z",
+      "conclusion": "skipped",
+      "id": 128702610803,
+      "name": "tests / closures-autofix",
+      "started_at": "2026-11-08T10:25:18Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:20:01Z",
+      "conclusion": "skipped",
+      "id": 128702610806,
+      "name": "tests / ci-ratchet",
+      "started_at": "2026-11-08T10:25:18Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:58:27Z",
+      "conclusion": "skipped",
+      "id": 128702634004,
+      "name": "governance / record",
+      "started_at": "2026-11-08T10:25:24Z",
+      "status": "completed"
+     }
+    ],
+    "4": [
+     {
+      "completed_at": "2026-11-08T10:27:16Z",
+      "conclusion": "skipped",
+      "id": 128703051291,
+      "name": "kernel-points",
+      "started_at": "2026-11-08T10:27:16Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:58:27Z",
+      "conclusion": "skipped",
+      "id": 128703051496,
+      "name": "governance / record",
+      "started_at": "2026-11-08T10:27:16Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:58:27Z",
+      "conclusion": "skipped",
+      "id": 128703051519,
+      "name": "governance / delivery-status-publish",
+      "started_at": "2026-11-08T10:27:16Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:03Z",
+      "conclusion": "skipped",
+      "id": 128703051940,
+      "name": "tests / nightly-ha",
+      "started_at": "2026-11-08T10:27:16Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:04Z",
+      "conclusion": "skipped",
+      "id": 128703052173,
+      "name": "tests / mutation-pins",
+      "started_at": "2026-11-08T10:27:16Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:03Z",
+      "conclusion": "skipped",
+      "id": 128703052523,
+      "name": "tests / replay",
+      "started_at": "2026-11-08T10:27:16Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:04Z",
+      "conclusion": "skipped",
+      "id": 128703052730,
+      "name": "tests / mutation-autofix",
+      "started_at": "2026-11-08T10:27:17Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:27:50Z",
+      "conclusion": "failure",
+      "id": 128703052746,
+      "name": "gate",
+      "started_at": "2026-11-08T10:27:19Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:07:50Z",
+      "conclusion": "skipped",
+      "id": 128703052872,
+      "name": "tests / claims-autofix",
+      "started_at": "2026-11-08T10:27:17Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:20:01Z",
+      "conclusion": "skipped",
+      "id": 128703052896,
+      "name": "tests / ci-ratchet",
+      "started_at": "2026-11-08T10:27:17Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:20:01Z",
+      "conclusion": "skipped",
+      "id": 128703052917,
+      "name": "tests / closures-autofix",
+      "started_at": "2026-11-08T10:27:17Z",
+      "status": "completed"
+     }
+    ],
+    "5": [
+     {
+      "completed_at": "2026-11-08T10:30:52Z",
+      "conclusion": "failure",
+      "id": 128703652225,
+      "name": "gate",
+      "started_at": "2026-11-08T10:30:17Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:03Z",
+      "conclusion": "skipped",
+      "id": 128703652239,
+      "name": "tests / replay",
+      "started_at": "2026-11-08T10:30:01Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:58:27Z",
+      "conclusion": "skipped",
+      "id": 128703652284,
+      "name": "governance / record",
+      "started_at": "2026-11-08T10:30:01Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:04Z",
+      "conclusion": "skipped",
+      "id": 128703652298,
+      "name": "tests / mutation-pins",
+      "started_at": "2026-11-08T10:30:01Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:04Z",
+      "conclusion": "skipped",
+      "id": 128703652674,
+      "name": "tests / mutation-autofix",
+      "started_at": "2026-11-08T10:30:01Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:07:50Z",
+      "conclusion": "skipped",
+      "id": 128703652797,
+      "name": "tests / claims-autofix",
+      "started_at": "2026-11-08T10:30:01Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:20:01Z",
+      "conclusion": "skipped",
+      "id": 128703652892,
+      "name": "tests / ci-ratchet",
+      "started_at": "2026-11-08T10:30:01Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:03Z",
+      "conclusion": "skipped",
+      "id": 128703653055,
+      "name": "tests / nightly-ha",
+      "started_at": "2026-11-08T10:30:01Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:20:01Z",
+      "conclusion": "skipped",
+      "id": 128703653430,
+      "name": "tests / closures-autofix",
+      "started_at": "2026-11-08T10:30:01Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:30:00Z",
+      "conclusion": "skipped",
+      "id": 128703679995,
+      "name": "kernel-points",
+      "started_at": "2026-11-08T10:30:07Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:58:27Z",
+      "conclusion": "skipped",
+      "id": 128703690194,
+      "name": "governance / delivery-status-publish",
+      "started_at": "2026-11-08T10:30:10Z",
+      "status": "completed"
+     }
+    ],
+    "6": [
+     {
+      "completed_at": "2026-11-08T10:34:02Z",
+      "conclusion": "skipped",
+      "id": 128704607903,
+      "name": "kernel-points",
+      "started_at": "2026-11-08T10:34:02Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:58:27Z",
+      "conclusion": "skipped",
+      "id": 128704607999,
+      "name": "governance / delivery-status-publish",
+      "started_at": "2026-11-08T10:34:02Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:58:27Z",
+      "conclusion": "skipped",
+      "id": 128704608254,
+      "name": "governance / record",
+      "started_at": "2026-11-08T10:34:02Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:03Z",
+      "conclusion": "skipped",
+      "id": 128704608936,
+      "name": "tests / replay",
+      "started_at": "2026-11-08T10:34:02Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:03Z",
+      "conclusion": "skipped",
+      "id": 128704608944,
+      "name": "tests / nightly-ha",
+      "started_at": "2026-11-08T10:34:02Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:04Z",
+      "conclusion": "skipped",
+      "id": 128704609335,
+      "name": "tests / mutation-pins",
+      "started_at": "2026-11-08T10:34:02Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T09:59:04Z",
+      "conclusion": "skipped",
+      "id": 128704609340,
+      "name": "tests / mutation-autofix",
+      "started_at": "2026-11-08T10:34:02Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:07:50Z",
+      "conclusion": "skipped",
+      "id": 128704609894,
+      "name": "tests / claims-autofix",
+      "started_at": "2026-11-08T10:34:03Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:20:01Z",
+      "conclusion": "skipped",
+      "id": 128704610123,
+      "name": "tests / closures-autofix",
+      "started_at": "2026-11-08T10:34:03Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:20:01Z",
+      "conclusion": "skipped",
+      "id": 128704610164,
+      "name": "tests / ci-ratchet",
+      "started_at": "2026-11-08T10:34:03Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:34:40Z",
+      "conclusion": "failure",
+      "id": 128704610341,
+      "name": "gate",
+      "started_at": "2026-11-08T10:34:05Z",
+      "status": "completed"
+     }
+    ]
+   },
+   "restamped_on_gate_rerun": [
+    "governance / delivery-status-publish",
+    "governance / record",
+    "kernel-points",
+    "tests / ci-ratchet",
+    "tests / claims-autofix",
+    "tests / closures-autofix",
+    "tests / mutation-autofix",
+    "tests / mutation-pins",
+    "tests / nightly-ha",
+    "tests / replay"
+   ]
+  },
+  {
+   "attempt1_jobs": [
+    {
+     "completed_at": "2026-11-08T09:58:21Z",
+     "conclusion": "success",
+     "id": 128696315815,
+     "name": "prelude",
+     "started_at": "2026-11-08T09:57:58Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:12Z",
+     "conclusion": "success",
+     "id": 128696316023,
+     "name": "cancel-superseded",
+     "started_at": "2026-11-08T09:58:01Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:40Z",
+     "conclusion": "success",
+     "id": 128696316317,
+     "name": "refresh",
+     "started_at": "2026-11-08T09:58:01Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:02Z",
+     "conclusion": "failure",
+     "id": 128696428038,
+     "name": "budget-raise-gate / budget-raise-gate",
+     "started_at": "2026-11-08T09:58:24Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:09Z",
+     "conclusion": "success",
+     "id": 128696428053,
+     "name": "arch-score / arch-score",
+     "started_at": "2026-11-08T09:58:23Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:21Z",
+     "conclusion": "skipped",
+     "id": 128696428832,
+     "name": "kernel-points",
+     "started_at": "2026-11-08T09:58:21Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:21Z",
+     "conclusion": "skipped",
+     "id": 128696428871,
+     "name": "governance",
+     "started_at": "2026-11-08T09:58:21Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:21Z",
+     "conclusion": "skipped",
+     "id": 128696428875,
+     "name": "tests",
+     "started_at": "2026-11-08T09:58:21Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:21Z",
+     "conclusion": "skipped",
+     "id": 128696428953,
+     "name": "validate",
+     "started_at": "2026-11-08T09:58:21Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:21Z",
+     "conclusion": "skipped",
+     "id": 128696429050,
+     "name": "codeql",
+     "started_at": "2026-11-08T09:58:21Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:58:21Z",
+     "conclusion": "skipped",
+     "id": 128696429116,
+     "name": "hassfest",
+     "started_at": "2026-11-08T09:58:21Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:36Z",
+     "conclusion": "failure",
+     "id": 128696602195,
+     "name": "gate",
+     "started_at": "2026-11-08T09:59:12Z",
+     "status": "completed"
+    },
+    {
+     "completed_at": "2026-11-08T09:59:09Z",
+     "conclusion": "skipped",
+     "id": 128696602725,
+     "name": "pr-contract",
+     "started_at": "2026-11-08T09:59:10Z",
+     "status": "completed"
+    }
+   ],
+   "created_at": "2026-11-08T09:57:49Z",
+   "id": 42469369682,
+   "later_attempts_changed_jobs": {
+    "2": [
+     {
+      "completed_at": "2026-11-08T10:23:02Z",
+      "conclusion": "failure",
+      "id": 128701970171,
+      "name": "gate",
+      "started_at": "2026-11-08T10:22:32Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:22:29Z",
+      "conclusion": "skipped",
+      "id": 128701970574,
+      "name": "validate",
+      "started_at": "2026-11-08T10:22:29Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:22:29Z",
+      "conclusion": "skipped",
+      "id": 128701970647,
+      "name": "codeql",
+      "started_at": "2026-11-08T10:22:29Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:22:29Z",
+      "conclusion": "skipped",
+      "id": 128701970746,
+      "name": "hassfest",
+      "started_at": "2026-11-08T10:22:29Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:22:29Z",
+      "conclusion": "skipped",
+      "id": 128701970856,
+      "name": "governance",
+      "started_at": "2026-11-08T10:22:29Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:22:29Z",
+      "conclusion": "skipped",
+      "id": 128701971552,
+      "name": "pr-contract",
+      "started_at": "2026-11-08T10:22:29Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:22:29Z",
+      "conclusion": "skipped",
+      "id": 128701989831,
+      "name": "tests",
+      "started_at": "2026-11-08T10:22:34Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:22:29Z",
+      "conclusion": "skipped",
+      "id": 128702004115,
+      "name": "kernel-points",
+      "started_at": "2026-11-08T10:22:38Z",
+      "status": "completed"
+     }
+    ],
+    "3": [
+     {
+      "completed_at": "2026-11-08T10:24:55Z",
+      "conclusion": "failure",
+      "id": 128702411727,
+      "name": "gate",
+      "started_at": "2026-11-08T10:24:27Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:24:24Z",
+      "conclusion": "skipped",
+      "id": 128702412190,
+      "name": "codeql",
+      "started_at": "2026-11-08T10:24:25Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:24:24Z",
+      "conclusion": "skipped",
+      "id": 128702412453,
+      "name": "governance",
+      "started_at": "2026-11-08T10:24:25Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:24:24Z",
+      "conclusion": "skipped",
+      "id": 128702412495,
+      "name": "kernel-points",
+      "started_at": "2026-11-08T10:24:25Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:24:24Z",
+      "conclusion": "skipped",
+      "id": 128702412534,
+      "name": "validate",
+      "started_at": "2026-11-08T10:24:25Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:24:24Z",
+      "conclusion": "skipped",
+      "id": 128702413001,
+      "name": "pr-contract",
+      "started_at": "2026-11-08T10:24:25Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:24:24Z",
+      "conclusion": "skipped",
+      "id": 128702435477,
+      "name": "hassfest",
+      "started_at": "2026-11-08T10:24:31Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:24:24Z",
+      "conclusion": "skipped",
+      "id": 128702439586,
+      "name": "tests",
+      "started_at": "2026-11-08T10:24:32Z",
+      "status": "completed"
+     }
+    ],
+    "4": [
+     {
+      "completed_at": "2026-11-08T10:26:54Z",
+      "conclusion": "failure",
+      "id": 128702855390,
+      "name": "gate",
+      "started_at": "2026-11-08T10:26:25Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:26:22Z",
+      "conclusion": "skipped",
+      "id": 128702855968,
+      "name": "hassfest",
+      "started_at": "2026-11-08T10:26:23Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:26:22Z",
+      "conclusion": "skipped",
+      "id": 128702855975,
+      "name": "kernel-points",
+      "started_at": "2026-11-08T10:26:23Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:26:22Z",
+      "conclusion": "skipped",
+      "id": 128702855993,
+      "name": "codeql",
+      "started_at": "2026-11-08T10:26:23Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:26:23Z",
+      "conclusion": "skipped",
+      "id": 128702856128,
+      "name": "pr-contract",
+      "started_at": "2026-11-08T10:26:23Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:26:22Z",
+      "conclusion": "skipped",
+      "id": 128702856166,
+      "name": "validate",
+      "started_at": "2026-11-08T10:26:23Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:26:22Z",
+      "conclusion": "skipped",
+      "id": 128702882149,
+      "name": "governance",
+      "started_at": "2026-11-08T10:26:30Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:26:22Z",
+      "conclusion": "skipped",
+      "id": 128702884040,
+      "name": "tests",
+      "started_at": "2026-11-08T10:26:31Z",
+      "status": "completed"
+     }
+    ],
+    "5": [
+     {
+      "completed_at": "2026-11-08T10:29:13Z",
+      "conclusion": "failure",
+      "id": 128703265781,
+      "name": "gate",
+      "started_at": "2026-11-08T10:28:35Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:28:14Z",
+      "conclusion": "skipped",
+      "id": 128703266054,
+      "name": "hassfest",
+      "started_at": "2026-11-08T10:28:15Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:28:14Z",
+      "conclusion": "skipped",
+      "id": 128703266141,
+      "name": "kernel-points",
+      "started_at": "2026-11-08T10:28:15Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:28:14Z",
+      "conclusion": "skipped",
+      "id": 128703266251,
+      "name": "validate",
+      "started_at": "2026-11-08T10:28:15Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:28:14Z",
+      "conclusion": "skipped",
+      "id": 128703266252,
+      "name": "codeql",
+      "started_at": "2026-11-08T10:28:15Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:28:14Z",
+      "conclusion": "skipped",
+      "id": 128703266291,
+      "name": "pr-contract",
+      "started_at": "2026-11-08T10:28:15Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:28:14Z",
+      "conclusion": "skipped",
+      "id": 128703266321,
+      "name": "governance",
+      "started_at": "2026-11-08T10:28:15Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:28:14Z",
+      "conclusion": "skipped",
+      "id": 128703286972,
+      "name": "tests",
+      "started_at": "2026-11-08T10:28:20Z",
+      "status": "completed"
+     }
+    ],
+    "6": [
+     {
+      "completed_at": "2026-11-08T10:33:39Z",
+      "conclusion": "failure",
+      "id": 128704274133,
+      "name": "gate",
+      "started_at": "2026-11-08T10:33:00Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:32:38Z",
+      "conclusion": "skipped",
+      "id": 128704274474,
+      "name": "governance",
+      "started_at": "2026-11-08T10:32:39Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:32:39Z",
+      "conclusion": "skipped",
+      "id": 128704274967,
+      "name": "pr-contract",
+      "started_at": "2026-11-08T10:32:39Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:32:38Z",
+      "conclusion": "skipped",
+      "id": 128704275012,
+      "name": "tests",
+      "started_at": "2026-11-08T10:32:39Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:32:38Z",
+      "conclusion": "skipped",
+      "id": 128704275013,
+      "name": "hassfest",
+      "started_at": "2026-11-08T10:32:39Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:32:38Z",
+      "conclusion": "skipped",
+      "id": 128704300440,
+      "name": "kernel-points",
+      "started_at": "2026-11-08T10:32:45Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:32:38Z",
+      "conclusion": "skipped",
+      "id": 128704304893,
+      "name": "validate",
+      "started_at": "2026-11-08T10:32:46Z",
+      "status": "completed"
+     },
+     {
+      "completed_at": "2026-11-08T10:32:38Z",
+      "conclusion": "skipped",
+      "id": 128704307122,
+      "name": "codeql",
+      "started_at": "2026-11-08T10:32:47Z",
+      "status": "completed"
+     }
+    ]
+   },
+   "restamped_on_gate_rerun": [
+    "codeql",
+    "governance",
+    "hassfest",
+    "kernel-points",
+    "pr-contract",
+    "tests",
+    "validate"
+   ]
+  }
+ ],
+ "source": "gh api repos/tvofi/heatpump_optimizer/actions/runs/<id>/attempts/<n>/jobs, read 2026-11-08T11:50Z"
+}

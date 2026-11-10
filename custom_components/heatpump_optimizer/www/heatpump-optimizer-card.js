@@ -139,6 +139,7 @@ const STRINGS = {
     "health.input_lower_floor_temp_entity": "Lower floor temperature sensor",
     "health.input_mixing_valve_target_entity": "Valve target sensor",
     "health.input_mixing_valve_write_entity": "Valve control entity",
+    "health.input_heat_curve_displace_entity": "Heat-curve offset entity",
     "health.input_outdoor_temp_entity": "Outdoor temperature sensor",
     "health.input_price_entity": "Price sensor (Nord Pool or similar)",
     "health.input_pv_export_price_entity": "Export compensation entity",
@@ -210,8 +211,9 @@ const STRINGS = {
     "health.model_unobservable": "Not observable without a power meter.",
     "health.cop_measured": "Measured {age} ago.",
     "health.cop_reason_heat_metered": "Measured by the heat meter.",
-    "health.cop_reason_draw_follows_plan": "Read from the power draw, which follows the plan.",
-    "health.cop_reason_not_measurable": "Not measurable here: without a heat meter the power draw does not follow the plan closely enough to read efficiency from.",
+    "health.cop_reason_not_measurable": "COP cannot be measured on this install: it has no heat reading, and without one the efficiency shown is the model's own. A heat energy meter or a thermal power meter covering the heating circuit, hot water included, would measure it.",
+    "health.cop_reason_estimated_inputs": "COP cannot be measured on this install: its power or heat reading is the pump's own estimate, so heat over power is the vendor model's COP. A real heat meter and power meter, the hot-water circuit included, would measure it.",
+    "health.cop_reason_no_heat_reading": "The heat meter gave no usable reading in the interval.",
     "health.cop_reason_awaiting_draw_evidence": "Waiting to see whether the power draw follows the plan.",
     "health.cop_reason_no_electric_meter": "Needs a power or energy meter on the heat pump.",
     "health.cop_reason_no_measured_power": "Waiting for a power reading from the heat pump.",
@@ -848,11 +850,13 @@ const STRINGS = {
       "era. 50 is typical for that type and era; above is tighter, below " +
       "leakier. Never 0 — that is only for no data.",
     "score.part_machine":
-      "Heat pump: the measured COP — heat delivered per kWh of electricity " +
-      "— in each 3 °C outdoor band, against the pump's own history in that " +
-      "band. 100 is matching its history; each point below is a lasting " +
-      "COP shortfall (see the COP health diagnostics). A band is watched " +
-      "once it holds 20 samples; no grade yet means no band does — not a zero.",
+      "Heat pump: the measured COP — heat delivered per kWh of electricity, " +
+      "from a heat meter over a power meter, neither an estimate — in each " +
+      "3 °C outdoor band, against the pump's own history in that band. 100 " +
+      "is matching its history; each point below is a lasting COP shortfall " +
+      "(see the COP health diagnostics). A band is watched once it holds 20 " +
+      "samples; no grade yet means no band does — not a zero. Without a " +
+      "metered heat reading there is no grade at all.",
     "score.part_operation":
       "Driving: whether the plan buys at the cheap hours. Each day's " +
       "energy is priced against that day's flat mean spot price — buying " +
@@ -867,6 +871,8 @@ const STRINGS = {
     "score.reason_heat_loss_refit_disagrees":
       "The learned heat loss disagrees with recent days; a refit is on offer.",
     "score.reason_cop_watch_learning": "Not enough COP data yet to watch the heat pump.",
+    "score.reason_cop_unmeasurable":
+      "COP cannot be measured on this install, so the heat pump is not graded: it needs a heat energy meter or a thermal power meter covering the heating circuit, hot water included, and a power meter, neither an estimate.",
     "score.reason_no_scored_day": "Waiting for the first scored day.",
     "score.reason_free_price_reset":
       "Reset after a run of free-price days; waiting for a priced day.",
@@ -1026,6 +1032,7 @@ const STRINGS = {
     "health.input_lower_floor_temp_entity": "Givare för temperaturen på nedre plan",
     "health.input_mixing_valve_target_entity": "Givare för ventilens börvärde",
     "health.input_mixing_valve_write_entity": "Ventilens styrenhet",
+    "health.input_heat_curve_displace_entity": "Entitet för värmekurvans förskjutning",
     "health.input_outdoor_temp_entity": "Utomhusgivare",
     "health.input_price_entity": "Prissensor (Nord Pool eller liknande)",
     "health.input_pv_export_price_entity": "Entitet för ersättning",
@@ -1097,8 +1104,9 @@ const STRINGS = {
     "health.model_unobservable": "Går inte att observera utan effektmätare.",
     "health.cop_measured": "Mätt för {age} sedan.",
     "health.cop_reason_heat_metered": "Mätt med värmemängdsmätaren.",
-    "health.cop_reason_draw_follows_plan": "Avläst från effektuttaget, som följer planen.",
-    "health.cop_reason_not_measurable": "Går inte att mäta här: utan värmemängdsmätare följer effektuttaget inte planen tillräckligt nära för att verkningsgraden ska kunna avläsas.",
+    "health.cop_reason_not_measurable": "COP går inte att mäta i den här installationen: den saknar värmeavläsning, och utan en sådan är verkningsgraden modellens egen. En värmemängdsmätare eller värmeeffektmätare som omfattar värmekretsen, varmvattnet inräknat, skulle mäta den.",
+    "health.cop_reason_estimated_inputs": "COP går inte att mäta i den här installationen: dess effekt- eller värmeavläsning är pumpens egen uppskattning, så värme genom effekt är tillverkarmodellens COP. En verklig värmemätare och effektmätare, varmvattenkretsen inräknad, skulle mäta den.",
+    "health.cop_reason_no_heat_reading": "Värmemätaren gav ingen användbar avläsning under intervallet.",
     "health.cop_reason_awaiting_draw_evidence": "Väntar på att se om effektuttaget följer planen.",
     "health.cop_reason_no_electric_meter": "Behöver en effekt- eller energimätare på värmepumpen.",
     "health.cop_reason_no_measured_power": "Väntar på en effektavläsning från värmepumpen.",
@@ -1701,11 +1709,13 @@ const STRINGS = {
       "byggperioden. 50 är typiskt för den typen och perioden; över är " +
       "tätare, under läckigare. Aldrig 0 — det betyder bara inget underlag.",
     "score.part_machine":
-      "Värmepumpen: uppmätt COP — levererad värme per kWh el — i varje " +
-      "utomhusband om 3 °C, mot pumpens egen historik i det bandet. 100 är " +
-      "som historiken; varje poäng under är ett bestående COP-underskott " +
-      "(se COP-hälsodiagnostiken). Ett band bevakas när det har 20 prov; " +
-      "inget betyg ännu betyder att inget band har det — inte noll.",
+      "Värmepumpen: uppmätt COP — levererad värme per kWh el, från en " +
+      "värmemätare genom en effektmätare, ingen av dem en uppskattning — i " +
+      "varje utomhusband om 3 °C, mot pumpens egen historik i det bandet. " +
+      "100 är som historiken; varje poäng under är ett bestående " +
+      "COP-underskott (se COP-hälsodiagnostiken). Ett band bevakas när det " +
+      "har 20 prov; inget betyg ännu betyder att inget band har det — inte " +
+      "noll. Utan uppmätt värme finns inget betyg alls.",
     "score.part_operation":
       "Körningen: om planen köper på de billiga timmarna. Varje dags " +
       "energi prissätts mot dagens platta medelspotpris — 20 % under platt " +
@@ -1718,6 +1728,8 @@ const STRINGS = {
     "score.reason_heat_loss_refit_disagrees":
       "Den inlärda värmeförlusten stämmer inte med de senaste dagarna; en omanpassning erbjuds.",
     "score.reason_cop_watch_learning": "Ännu för lite COP-data för att bevaka värmepumpen.",
+    "score.reason_cop_unmeasurable":
+      "COP går inte att mäta i den här installationen, så värmepumpen betygsätts inte: det krävs en värmemängdsmätare eller värmeeffektmätare som omfattar värmekretsen, varmvattnet inräknat, och en effektmätare, ingen av dem en uppskattning.",
     "score.reason_no_scored_day": "Väntar på den första bedömda dagen.",
     "score.reason_free_price_reset":
       "Nollställd efter en rad dagar med gratis el; väntar på en dag med pris.",
@@ -1868,6 +1880,7 @@ const STRINGS = {
     "health.input_lower_floor_temp_entity": "Temperatursensor Untergeschoss",
     "health.input_mixing_valve_target_entity": "Zielwert-Sensor des Ventils",
     "health.input_mixing_valve_write_entity": "Steuerentität des Ventils",
+    "health.input_heat_curve_displace_entity": "Offset-Entität der Heizkurve",
     "health.input_outdoor_temp_entity": "Außentemperatursensor",
     "health.input_price_entity": "Preissensor (Nord Pool oder ähnlich)",
     "health.input_pv_export_price_entity": "Entität der Einspeisevergütung",
@@ -1936,8 +1949,9 @@ const STRINGS = {
     "health.model_unobservable": "Ohne Leistungsmesser nicht beobachtbar.",
     "health.cop_measured": "Gemessen vor {age}.",
     "health.cop_reason_heat_metered": "Vom Wärmemengenzähler gemessen.",
-    "health.cop_reason_draw_follows_plan": "Aus der Leistungsaufnahme abgelesen, die dem Plan folgt.",
-    "health.cop_reason_not_measurable": "Hier nicht messbar: Ohne Wärmemengenzähler folgt die Leistungsaufnahme dem Plan nicht genau genug, um daraus die Effizienz abzulesen.",
+    "health.cop_reason_not_measurable": "Die Leistungszahl (COP) lässt sich in dieser Installation nicht messen: Es gibt keinen Wärmewert, und ohne ihn ist die angezeigte Effizienz die des Modells. Ein Wärmemengenzähler oder ein Wärmeleistungszähler am Heizkreis, Warmwasser eingeschlossen, würde sie messen.",
+    "health.cop_reason_estimated_inputs": "Die Leistungszahl (COP) lässt sich in dieser Installation nicht messen: Der Leistungs- oder Wärmewert ist die eigene Schätzung der Wärmepumpe, Wärme geteilt durch Leistung ist also die COP des Herstellermodells. Ein echter Wärmemengenzähler und Leistungszähler, Warmwasserkreis eingeschlossen, würde sie messen.",
+    "health.cop_reason_no_heat_reading": "Der Wärmemengenzähler lieferte im Intervall keinen brauchbaren Wert.",
     "health.cop_reason_awaiting_draw_evidence": "Wartet darauf, ob die Leistungsaufnahme dem Plan folgt.",
     "health.cop_reason_no_electric_meter": "Benötigt einen Leistungs- oder Energiezähler an der Wärmepumpe.",
     "health.cop_reason_no_measured_power": "Wartet auf einen Leistungswert der Wärmepumpe.",
@@ -2031,9 +2045,13 @@ const STRINGS = {
     "savings.col_baseline": "Referenz",
     "savings.col_actual": "Tatsächlich",
     "savings.col_savings": "Einsparung",
+    "savings.below_meter_floor": "keine Einsparung angegeben",
+    "savings.meter_floor_note": "Für einen Monat, dessen Referenz weniger als die Hälfte der vom Zähler erfassten Energie verbrauchte, wird keine Einsparung angegeben: Eine so niedrige Referenz ist ein Fehler, keine Einsparung.",
     "savings.col_pct": "%",
     "savings.estimated": "geschätzt",
     "savings.old_basis": "alte Basis",
+    "savings.below_meter_floor": "keine Einsparung angegeben",
+    "savings.meter_floor_note": "Für einen Monat, dessen Referenz weniger als die Hälfte der vom Zähler erfassten Energie verbraucht hat, wird keine Einsparung angegeben: Eine so niedrige Referenz ist ein Fehler, keine Einsparung.",
     "savings.wood_note": "Die Einsparung enthält Wärme aus Holz. Die Kosten für das Brennholz sind nicht berücksichtigt.",
     "savings.empty": "Noch keine abgeschlossenen Einsparungsmonate.",
     "receipt.closed": "{month} · abgeschlossen",
@@ -2368,13 +2386,15 @@ const STRINGS = {
     "headline.score_click_hint": "Klicken, um zu sehen, woraus sich der Wert zusammensetzt.",
     "score.part_overall": "Der Durchschnitt aller unten stehenden Werte, für die Belege vorliegen. Kein eigener Wert.",
     "score.part_envelope": "Haus: der Wärmeverlust der Gebäudehülle in W/K, um die thermische Masse korrigiert, im Vergleich zu dem, was für den konfigurierten Haustyp und das Baujahr typisch ist. 50 ist typisch für diesen Typ und dieses Baujahr; darüber ist dichter, darunter undichter. Nie 0 – das gibt es nur bei fehlenden Daten.",
-    "score.part_machine": "Wärmepumpe: die gemessene Leistungszahl (COP) – abgegebene Wärme pro kWh Strom – in jedem 3-°C-Außentemperaturband im Vergleich zur eigenen Historie der Wärmepumpe in diesem Band. 100 bedeutet Übereinstimmung mit der Historie; jeder Punkt darunter ist ein anhaltendes COP-Defizit (siehe die COP-Zustandsdiagnose). Ein Band wird überwacht, sobald es 20 Messwerte enthält; noch keine Note heißt, dass kein Band so weit ist – keine Null.",
+    "score.part_machine": "Wärmepumpe: die gemessene Leistungszahl (COP) – abgegebene Wärme pro kWh Strom, aus einem Wärmemengenzähler über einem Leistungszähler, keiner davon eine Schätzung – in jedem 3-°C-Außentemperaturband im Vergleich zur eigenen Historie der Wärmepumpe in diesem Band. 100 bedeutet Übereinstimmung mit der Historie; jeder Punkt darunter ist ein anhaltendes COP-Defizit (siehe die COP-Zustandsdiagnose). Ein Band wird überwacht, sobald es 20 Messwerte enthält; noch keine Note heißt, dass kein Band so weit ist – keine Null. Ohne gemessenen Wärmewert gibt es gar keine Note.",
     "score.part_operation": "Betrieb: ob der Plan in den günstigen Stunden einkauft. Die Energie jedes Tages wird mit dem flachen Mittel-Spotpreis dieses Tages verglichen – 20 % unter dem Flachpreis einzukaufen ergibt 100, auf oder über dem Flachpreis 0 – und die Note mittelt die letzten Tage. Keine Note heißt, dass noch kein bepreister Tag bewertet wurde – keine Null.",
     "score.no_evidence": "Noch keine Belege – keine Null.",
     "score.reason_no_house_model": "Kein Hausmodell: thermische Masse oder Wärmeverlust ist nicht konfiguriert.",
     "score.reason_heat_loss_learning": "Der Wärmeverlust des Hauses wird noch gelernt.",
     "score.reason_heat_loss_refit_disagrees": "Der gelernte Wärmeverlust weicht von den letzten Tagen ab; eine Neuanpassung steht zur Verfügung.",
     "score.reason_cop_watch_learning": "Noch nicht genug COP-Daten, um die Wärmepumpe zu überwachen.",
+    "score.reason_cop_unmeasurable":
+      "Die Leistungszahl (COP) lässt sich in dieser Installation nicht messen, daher wird die Wärmepumpe nicht bewertet: Nötig sind ein Wärmemengenzähler oder ein Wärmeleistungszähler am Heizkreis, Warmwasser eingeschlossen, und ein Leistungszähler, keiner davon eine Schätzung.",
     "score.reason_no_scored_day": "Warten auf den ersten bewerteten Tag.",
     "score.reason_free_price_reset": "Zurückgesetzt nach einer Reihe von Tagen mit kostenlosem Strom; warten auf einen bepreisten Tag.",
     "score.reason_first_scored_day": "Warten auf den ersten bewerteten Tag.",
@@ -10465,16 +10485,16 @@ function copState(cop) {
   const words = (code) => (STRINGS.en[`health.cop_reason_${code}`] !== undefined ? L(`health.cop_reason_${code}`) : null);
   const scale = readNumber(c.scale);
   if (c.alarm) return { value: L("health.model_cop_low"), reason: L("health.model_cop_alarm"), tone: "warn", watched: true };
-  if (obs === "not_measurable" || obs === "no_electric_meter") {
+  if (obs === "not_measurable" || obs === "no_electric_meter" || obs === "estimated_inputs") {
     return { value: "—", reason: words(obs), tone: "ok", watched: false };
   }
   if (readNumber(c.watched_buckets) > 0 && scale !== null) {
-    const source = obs === "heat_metered" || obs === "draw_follows_plan" ? words(obs) : "";
+    const source = obs === "heat_metered" ? words(obs) : "";
     return { value: L("health.model_cop_normal", { v: scale.toFixed(2) }),
       reason: [L("health.model_cop_fine"), source].filter(Boolean).join(" "), tone: "ok", watched: true };
   }
   return { value: "—", tone: "ok", watched: false,
-    reason: words(c.cop_refusal) || (obs === "awaiting_draw_evidence" && words(obs)) || scoreReasonText("cop_watch_learning") };
+    reason: words(c.cop_refusal) || scoreReasonText("cop_watch_learning") };
 }
 
 /** "What the model has learned" (R9-UX-7): the model status sensor's rows. */
