@@ -1,0 +1,4 @@
+01:35:56 rc=3 WAIT 70461316332c060932e77577e392aeaf40123dbc pending: gate red: none
+01:37:28 rc=3 WAIT 70461316332c060932e77577e392aeaf40123dbc pending: gate red: none
+01:38:59 rc=3 WAIT 70461316332c060932e77577e392aeaf40123dbc pending: gate red: none
+01:40:31 rc=0 GREEN 70461316332c060932e77577e392aeaf40123dbc pending: none red: none
