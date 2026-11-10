@@ -17791,7 +17791,7 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "pr": 3262,
     "commit": "4a9d2d5425ea13e728dca20aff15d7f76345dc73",
     "note": "set-files files ['tools/audit/seat/state_docs.py', 'dev/governance/roles/orchestrator.md', 'dev/governance/roles/standing-dispatch.md'] -> ['tools/audit/seat/state_docs.py', 'dev/governance/roles/orchestrator.md', 'dev/governance/roles/standing-dispatch.md', 'tools/audit/seat/plan_page.py']"
