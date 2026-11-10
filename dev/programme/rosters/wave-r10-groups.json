@@ -21680,10 +21680,10 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
     "pr": 3406,
-    "commit": null,
+    "commit": "ddd2f8b273c485e29fcf10913ad5d4f9014006c8",
     "last_step": null,
     "next_step": "dispatch fixer",
     "note": "overlap admitted (R10-ARBITER-OFF-RESTORE, R10-WATER-SETPOINT-FEEDBACK, R10-SAV-VALUATION-RESIDUE): main red tests/fast (3.14) on two consecutive main pushes: stress.py typical_slab/shoulder traced peak 3.9 vs 1.8 MiB; second instance of the R10-HOTFIX-STRESS-MEM-PEAK class (that group done)"
@@ -21817,7 +21817,7 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-dependabot-3323-compat",
-    "pr": null,
+    "pr": 3408,
     "commit": null,
     "last_step": null,
     "next_step": "open PR, review",
@@ -21866,7 +21866,7 @@
    "resume": {
     "stage": "in-progress",
     "note": "orchestrator 2026-11-10T05:36Z: main-red hotfix; local fix d2f3db22 on handoff-wip, cloud receipt round trig_01CM889s records gh-read-run on Linux",
-    "pr": null,
+    "pr": 3409,
     "commit": null
    },
    "brief": "Main-red hotfix (orchestrator, 2026-11-10). governance / instrument-self-tests red on every main push since #3315 (ba6fd7e8b0). Three causes: (1) tools/audit/seat/ref_privacy.py added_lines ran git show REV:path on an absent diff side, so the push-names-the-host step read each merge's added files (a read set that moves every merge); (2) tools/ci/selftest_closures.json drifted after #3315; (3) #3361 (e79a0e78bc) added the step 'Show the workflow read runner refusing its own fixtures' with an if: not gated on its own scope output. FIX: show only diff sides that exist (name-status); re-record the table as the union of main's measurements; gate the step on its own id (precedent d9990a12f2) with a Linux-recorded entry. Check whether the beatd step's read set is timing-dependent. Root cause owed in its own seat: R10-RCA-MAIN-SELFTESTS-RED."
@@ -21903,7 +21903,7 @@
    "resume": {
     "stage": "in-progress",
     "note": "orchestrator 2026-11-10T05:36Z: root-cause seat trig_019DF7kA fired (cloud, opus)",
-    "pr": null,
+    "pr": 3410,
     "commit": null
    },
    "brief": "Root-cause seat (root-cause.md) beside R10-HOTFIX-MAIN-SELFTESTS: main governance / instrument-self-tests red on every push from #3315 (ba6fd7e8b0) on, three causes (ref_privacy absent-side git show, table drift, #3361 ungated step). Owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal. Known process gap: nothing commits the selftest-closures artifact when main goes red. Writes the round's RCA document named after this group under the RCA directory; no production code."
