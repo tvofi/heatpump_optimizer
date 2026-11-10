@@ -81977,4 +81977,201 @@ R.check(
     f"written {_fb_other_held.written}, run kept {_fb_other_held.feedback is _fb_other_run}",
 )
 
+
+# The loop's own arithmetic at each boundary it draws, through the production
+# functions on a fixture run (#3405's fix review: fourteen mutation sites the
+# replays above leave alive). ``_fb_unit`` returns a pass's coordinator, state
+# and inputs with the return at ``inlet`` and the meter at ``power``.
+def _fb_unit(power=1.5, inlet=26.0, **kw):
+    coord = _FbCoord(**kw)
+    coord.power = power
+    coord.hass.states.get(_FB_RETURN).state = f"{inlet:.2f}"
+    return coord, _fb_pa.state_for(coord), coord.arbiter_inputs()
+
+
+def _fb_running(start_s, seen_s, samples=(), now=_FB_T0 + timedelta(hours=1), **fields):
+    """A running FeedbackRun started ``start_s`` and last seen ``seen_s``
+    seconds before ``now``, its window holding ``samples`` of (age s, kW)."""
+    run = _fb_pa.FeedbackRun(now - timedelta(seconds=start_s), fields.pop("w_c", 26.4),
+                             now - timedelta(seconds=seen_s))
+    run.running = True
+    run.samples.extend((now - timedelta(seconds=age), kw) for age, kw in samples)
+    for name, value in fields.items():
+        setattr(run, name, value)
+    return run
+
+
+_FB_NOW = _FB_T0 + timedelta(hours=1)
+_FB_WIN_S = _fb_pa.FEEDBACK_WINDOW.total_seconds()
+_FB_HOLD_S = _fb_pa.FEEDBACK_START_HOLD.total_seconds()
+# A run last seen exactly one averaging window ago is the same run (the reset
+# is for a gap longer than the window), and a sample exactly one window old
+# is still averaged.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_r = _fb_h.feedback = _fb_running(3600, _FB_WIN_S, [(_FB_WIN_S, 1.5)])
+_fb_pa._feedback(_fb_h, _fb_i, _FB_NOW, 26.4, True)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a run last seen exactly one averaging window ago is "
+    "kept, and its sample exactly one window old stays in the average",
+    _fb_h.feedback is _fb_r and len(_fb_r.samples) == 2
+    and _fb_r.samples[0][0] == _FB_NOW - _fb_pa.FEEDBACK_WINDOW,
+    f"kept {_fb_h.feedback is _fb_r}, samples {len(_fb_r.samples)}",
+)
+# The run's threshold is the meter's (``_ran_kw``): a draw exactly at it runs.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_ran = _fb_pa._ran_kw(_fb_i)
+_fb_c.power = _fb_ran
+_fb_pa._feedback(_fb_h, _fb_c.arbiter_inputs(), _FB_NOW, 26.4, True)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a measured draw exactly at the run threshold "
+    "(ran_kw) is a running compressor, sampled into the window",
+    _fb_h.feedback is not None and _fb_h.feedback.running
+    and [kw for _at, kw in _fb_h.feedback.samples] == [_fb_ran],
+    f"run {_fb_h.feedback}",
+)
+# A stopped compressor writes today's target and opens a fresh, not running,
+# run with nothing sampled -- no pass through the loop's sampling.
+_fb_c, _fb_h, _fb_i = _fb_unit(power=0.0)
+_fb_stopped = _fb_pa._feedback(_fb_h, _fb_i, _FB_NOW, 26.4, True)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a stopped compressor writes today's target and "
+    "leaves a fresh run that is not running and holds no sample",
+    _fb_stopped == 26.4 and _fb_h.feedback is not None and not _fb_h.feedback.running
+    and not _fb_h.feedback.samples and _fb_h.feedback.start == _FB_NOW,
+    f"wrote {_fb_stopped}, run {_fb_h.feedback}",
+)
+# The start hold ends exactly FEEDBACK_START_HOLD after the run's start: that
+# pass is the loop's, and a draw far over plan winds the target down 0.2 K over
+# the minute since the last pass (FEEDBACK_RATE_K_PER_MIN, the design value).
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_r = _fb_h.feedback = _fb_running(_FB_HOLD_S, 60, [(60, 1.5)])
+_fb_out = _fb_pa._feedback(_fb_h, _fb_i, _FB_NOW, 26.4, True)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: the pass exactly one start hold after the run's start "
+    "is the loop's, and over plan one minute moves the target 0.2 K down (26.4 -> 26.2)",
+    abs(_fb_r.w_c - 26.2) < 1e-9 and _fb_out == 26.2 and _fb_r.sent_c == 26.2,
+    f"W {_fb_r.w_c}, wrote {_fb_out}, sent {_fb_r.sent_c}",
+)
+# Inside the hold the loop forgets what it last sent (a clock stepped back
+# re-enters it), so a stop there is not read as the loop's.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_r = _fb_h.feedback = _fb_running(60, 30, [(30, 1.5)], sent_c=25.8, w_c=25.8)
+_fb_out = _fb_pa._feedback(_fb_h, _fb_i, _FB_NOW, 26.4, True)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a pass inside the start hold writes today's target "
+    "and clears the loop's last sent target and its own",
+    _fb_out == 26.4 and _fb_r.sent_c is None and _fb_r.w_c == 26.4,
+    f"wrote {_fb_out}, sent {_fb_r.sent_c}, W {_fb_r.w_c}",
+)
+# The rate is per minute of elapsed time: two and a half minutes over plan
+# move 0.5 K, under plan the same up.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_rates = (
+    _fb_pa._nudged(_fb_running(3600, 0, [(0, 1.5)], w_c=26.4), _fb_i, _FB_NOW, 2.5),
+    _fb_pa._nudged(_fb_running(3600, 0, [(0, 0.2)], w_c=26.4), _fb_i, _FB_NOW, 2.5),
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: the loop moves its target 0.2 K a minute outside the "
+    "deadband, down over plan and up under it (2.5 minutes: 26.4 -> 25.9, 26.9)",
+    abs(_fb_rates[0] - 25.9) < 1e-9 and abs(_fb_rates[1] - 26.9) < 1e-9,
+    f"over {_fb_rates[0]}, under {_fb_rates[1]}",
+)
+# The deadband's edge is held: a 1.25 kW plan's band is 0.125 kW, both exact in
+# binary, so a mean of 1.375 kW sits on it; 1.5 kW is past it (the control).
+_fb_c, _fb_h, _fb_i = _fb_unit(plan_kw=1.25)
+_fb_edge = _fb_pa.FEEDBACK_DEADBAND_SHARE * 1.25
+_fb_on_edge = _fb_pa._nudged(_fb_running(3600, 0, [(0, 1.375)]), _fb_i, _FB_NOW, 1.0)
+_fb_past = _fb_pa._nudged(_fb_running(3600, 0, [(0, 1.5)]), _fb_i, _FB_NOW, 1.0)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a draw error exactly at the deadband (10 % of a "
+    "1.25 kW plan) holds the target; 0.25 kW over moves it",
+    1.375 - 1.25 == _fb_edge and _fb_on_edge == 26.4 and _fb_past < 26.4,
+    f"edge {_fb_edge}, on it {_fb_on_edge}, past it {_fb_past}",
+)
+
+
+# A stop bound is learned from a stop the loop caused alone: its last sent
+# target below today's. One at or above today's, or none, teaches nothing; of
+# two learned gaps the smaller holds.
+def _fb_stop(sent_c, base=26.4, inlet=26.2, held=None):
+    held = held or _fb_pa.ArbiterState()
+    try:
+        _fb_pa._note_stop(held, _fb_running(3600, 0, sent_c=sent_c), inlet, base)
+    except TypeError as err:  # a stop with nothing sent must not reach the gap
+        held.stop_gap_k = f"raised {err}"
+    return held
+
+
+_fb_gaps = {
+    "none sent": _fb_stop(None).stop_gap_k,
+    "sent today's": _fb_stop(26.4).stop_gap_k,
+    "sent above": _fb_stop(26.8).stop_gap_k,
+    "sent below": _fb_stop(25.9).stop_gap_k,
+}
+_fb_two = _fb_stop(25.7, inlet=26.0, held=_fb_stop(25.9, inlet=26.4))
+_fb_two_rev = _fb_stop(25.9, inlet=26.4, held=_fb_stop(25.7, inlet=26.0))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK R2: only a stop under a loop target below today's "
+    "learns a stop gap (inlet - sent); a stop with none sent, today's sent or a higher "
+    "one learns none; of two stops the smaller gap holds, either order",
+    _fb_gaps["none sent"] is None and _fb_gaps["sent today's"] is None
+    and _fb_gaps["sent above"] is None and abs(_fb_gaps["sent below"] - 0.3) < 1e-9
+    and abs(_fb_two.stop_gap_k - 0.3) < 1e-9 and abs(_fb_two_rev.stop_gap_k - 0.3) < 1e-9,
+    f"gaps {_fb_gaps}, two {_fb_two.stop_gap_k}, reversed {_fb_two_rev.stop_gap_k}",
+)
+# The bounds: a learned 0.4 K stop gap holds the target 0.2 K closer to the
+# inlet (FEEDBACK_STOP_MARGIN_K, two 0.1 K steps), 25.8 over a 26.0 inlet; a
+# return far below the gate bounds it 0.01 K over the 20 degC gate
+# (FEEDBACK_GATE_CLEAR_K); a minimum-return cut (parameter 979) above both is
+# the lower bound, and a return-limit cut the upper.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_h.stop_gap_k = 0.4
+_fb_stop_lo = _fb_pa._feedback_bounds(_fb_h, _fb_running(3600, 0), _fb_i, 26.0)[0]
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_gate_lo = _fb_pa._feedback_bounds(_fb_h, _fb_running(3600, 0), _fb_i, 15.0)[0]
+_fb_cuts = _fb_pa._feedback_bounds(
+    _fb_h, _fb_running(3600, 0, cut_lo_c=26.5, cut_hi_c=27.6), _fb_i, 26.0)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: the loop's lower bound is the inlet - 0.4 K stop gap "
+    "+ 0.2 K (25.8 at a 26.0 inlet), the gate + 0.01 K (20.01) under a 15 degC return, "
+    "and a 26.5 degC minimum-return cut over both; a 27.6 degC return-limit cut is the "
+    "upper bound",
+    abs(_fb_stop_lo - 25.8) < 1e-9 and abs(_fb_gate_lo - 20.01) < 1e-9
+    and _fb_cuts == (26.5, 27.6),
+    f"stop {_fb_stop_lo}, gate {_fb_gate_lo}, cuts {_fb_cuts}",
+)
+# R1's bracket is closed at both ends: a reading exactly SETPOINT_TOLERANCE
+# under the replaced record, or over the write, is a cut.
+def _fb_bracket(observed):
+    held = _fb_pa.ArbiterState()
+    held.feedback = _fb_running(3600, 0, prev_c=26.6, sent_c=27.0)
+    return _fb_pa._clamp_cut(held, "space_setpoint", 27.0, observed, _FB_NOW)
+
+
+_fb_ends = (_fb_bracket(26.6 - _fb_pa.SETPOINT_TOLERANCE), _fb_bracket(27.0 + _fb_pa.SETPOINT_TOLERANCE))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK R1 bracket: a reading exactly the hold tolerance "
+    "under the replaced record or over the write is a cut",
+    _fb_ends == (True, True),
+    f"low end {_fb_ends[0]}, high end {_fb_ends[1]}",
+)
+# R1's lower side in the replay: a 26.4 degC minimum return target (parameter
+# 979) clamps the loop's first wind-down, whose writes stay under it until a
+# reading leaves the hold tolerance and is adopted as a cut; the cut then
+# bounds the run, so the writes under it are that one unbroken wind-down.
+_fb_floor = _fb_sim(clamp=(26.4, 50.0))
+_fb_floor_run = _fb_floor["held"].feedback
+_fb_under_at = [i for i, w in enumerate(_fb_floor["writes"]) if w[1] < 26.4]
+_fb_under = [_fb_floor["writes"][i] for i in _fb_under_at]
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, minimum return target 26.4 degC: the cut is "
+    "the run's lower bound -- the writes under it are one unbroken wind-down before "
+    "it is adopted, none after -- and nothing is repaired",
+    _fb_floor_run is not None and _fb_floor_run.cut_lo_c == 26.4 and bool(_fb_under_at)
+    and _fb_under_at == list(range(_fb_under_at[0], _fb_under_at[-1] + 1))
+    and not _fb_floor["issues"],
+    f"cut {None if _fb_floor_run is None else _fb_floor_run.cut_lo_c}, under {_fb_under}, "
+    f"issues {_fb_floor['issues'][:3]}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
