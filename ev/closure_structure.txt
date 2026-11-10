@@ -1,0 +1,4 @@
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+  A skipped script is a claim that no changed file is in its measured
+
+STRUCTURE RATCHET PASSED

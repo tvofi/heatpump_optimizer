@@ -1,0 +1,17 @@
+RESULT mutant=M1-waitgreen-off KILLED review_packet self-test: 76 checks, 2 failed
+  FAIL #3379: a required red that classify --pr reads WAIT renders: no refusal, a `required-wait` advisory naming classify's line (classify 
+  FAIL a required red that classify --pr reads GREEN renders, with a `required-green` advisory
+RESULT mutant=M2-unread-failopen KILLED review_packet self-test: 76 checks, 2 failed
+  FAIL P345: the reason is classify --pr's own APPROVAL-OWED line at rc 4, asked with the pull request; RED (rc 1), a line naming another he
+  FAIL #3379: classify's WAIT line at rc 3 is WAIT; a REFUSE at rc 2 (unread) fails closed as RED, naming it
+RESULT mutant=M3-anyhead KILLED review_packet self-test: 76 checks, 1 failed
+  FAIL P345: the reason is classify --pr's own APPROVAL-OWED line at rc 4, asked with the pull request; RED (rc 1), a line naming another he
+RESULT mutant=M4-red-advisory KILLED review_packet self-test: 76 checks, 2 failed
+  FAIL required-red: the required context's latest run concluded failure refuses
+  FAIL null control: a required red that classify --pr reads RED still refuses, naming classify's line
+RESULT mutant=M5-default-green KILLED review_packet self-test: 76 checks, 1 failed
+  FAIL required-red: the required context's latest run concluded failure refuses
+RESULT mutant=M6-oserror-failopen SURVIVED review_packet self-test: 76 checks, 0 failed
+RESULT mutant=M7-rc1-as-wait KILLED review_packet self-test: 76 checks, 1 failed
+  FAIL P345: the reason is classify --pr's own APPROVAL-OWED line at rc 4, asked with the pull request; RED (rc 1), a line naming another he
+RESULT mutant=M8-gather-never-reads SURVIVED review_packet self-test: 76 checks, 0 failed
