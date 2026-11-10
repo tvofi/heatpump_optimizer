@@ -1,0 +1,36 @@
+MUTANT A feedback call removed: failing=9 | AttributeError: 'NoneType' object has no attribute 'start'
+      FAIL R10-WATER-SETPOINT-FEEDBACK: a return target on an integrating controller, plan pinned at 0.53 kW, lift 0.5 K, 0.1 K steps: over a th
+      FAIL R10-WATER-SETPOINT-FEEDBACK repeat, flow unit: every minute of the last 30 within 20 % of plan, one start  [mean 2.222 kW, every minu
+      FAIL R10-WATER-SETPOINT-FEEDBACK repeat, plan 1.2 kW, four-and-a-half-hour block: every minute of the last 30 within 20 % of plan, one sta
+      FAIL R10-WATER-SETPOINT-FEEDBACK repeat, 0.5 K entity step: one start, the speed falls over the last 30 minutes, and the draw is below the
+      FAIL R10-WATER-SETPOINT-FEEDBACK repeat, stop at register + 0.1 K: one extra start at most, and the stop bound is learned  [starts 1, stop
+      FAIL R10-WATER-SETPOINT-FEEDBACK repeat, return limit 27.6 degC under a loop write: no miss and no repair, the cut is the run's upper boun
+      FAIL R10-WATER-SETPOINT-FEEDBACK repeat, register reverted to 35.0 degC at minute 150: the next pass restarts the run, and every write in 
+      FAIL R10-WATER-SETPOINT-FEEDBACK repeat, defrost at minutes 150-154: the loop stands down (today's inlet + lift) and a new run starts afte
+      FAIL R10-WATER-SETPOINT-FEEDBACK I1 null control: a return unit with a power entity moves on the same replay, and only on space below the 
+MUTANT B option conjunct ignored: failing=3 | 3 of 24 FEATURE CHECKS FAILED
+      FAIL R10-WATER-SETPOINT-FEEDBACK null control: the same block with the option off (today's inlet + lift) ramps monotonically past twice th
+      FAIL R10-WATER-SETPOINT-FEEDBACK repeat, 0.5 K entity step: one start, the speed falls over the last 30 minutes, and the draw is below the
+      FAIL R10-WATER-SETPOINT-FEEDBACK I1: an indoor unit, no power entity or the option off writes the same with any measured draw as with none
+MUTANT B2 power-entity conjunct ignored: failing=1 | 1 of 24 FEATURE CHECKS FAILED
+      FAIL R10-WATER-SETPOINT-FEEDBACK I1: an indoor unit, no power entity or the option off writes the same with any measured draw as with none
+MUTANT C band top < -> <=: failing=1 | 1 of 24 FEATURE CHECKS FAILED
+      FAIL R10-WATER-SETPOINT-FEEDBACK I4: a step at the band top (2.2 kW) writes the same with a draw above it as with none
+MUTANT D stale reset disabled: failing=1 | 1 of 24 FEATURE CHECKS FAILED
+      FAIL R10-WATER-SETPOINT-FEEDBACK: a run not seen for longer than its averaging window starts over with today's target  [wrote [25.7]]
+MUTANT E deadband <= -> <: failing=0 | ALL 24 FEATURE CHECKS PASSED
+MUTANT F note_stop >= -> >: failing=0 | ALL 24 FEATURE CHECKS PASSED
+MUTANT G cut_lo bound dropped: failing=0 | ALL 24 FEATURE CHECKS PASSED
+MUTANT H clamp direction > -> >=: failing=0 | ALL 24 FEATURE CHECKS PASSED
+MUTANT I ran_kw < -> <=: failing=0 | ALL 24 FEATURE CHECKS PASSED
+MUTANT J start-hold sent_c kept: failing=0 | ALL 24 FEATURE CHECKS PASSED
+MUTANT K default False: 9 failing | AttributeError: 'NoneType' object has no attribute 'start'
+  FAIL R10-WATER-SETPOINT-FEEDBACK: a return target on an integrating controller, plan pinned at 0.53 kW, lift 0.5 K, 0.1 K steps: over a three-hour b
+  FAIL R10-WATER-SETPOINT-FEEDBACK repeat, flow unit: every minute of the last 30 within 20 % of plan, one start  [mean 2.222 kW, every minute within 
+  FAIL R10-WATER-SETPOINT-FEEDBACK repeat, plan 1.2 kW, four-and-a-half-hour block: every minute of the last 30 within 20 % of plan, one start  [mean 
+  FAIL R10-WATER-SETPOINT-FEEDBACK repeat, 0.5 K entity step: one start, the speed falls over the last 30 minutes, and the draw is below the option-of
+  FAIL R10-WATER-SETPOINT-FEEDBACK repeat, stop at register + 0.1 K: one extra start at most, and the stop bound is learned  [starts 1, stop gap None]
+  FAIL R10-WATER-SETPOINT-FEEDBACK repeat, return limit 27.6 degC under a loop write: no miss and no repair, the cut is the run's upper bound and the 
+  FAIL R10-WATER-SETPOINT-FEEDBACK repeat, register reverted to 35.0 degC at minute 150: the next pass restarts the run, and every write in its start 
+  FAIL R10-WATER-SETPOINT-FEEDBACK repeat, defrost at minutes 150-154: the loop stands down (today's inlet + lift) and a new run starts after it  [wri
+  FAIL R10-WATER-SETPOINT-FEEDBACK I1 null control: a return unit with a power entity moves on the same replay, and only on space below the band top  
