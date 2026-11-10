@@ -1,2 +1,7 @@
+== static at c9ba955f30fc8f64b2e0c3865dcfe9dd609ef822
   UNGATED step 'Show the survivor-list check (tools/audit/seat/survivor_list.py) refusing its own fixtures': its if: does not read steps.scope.outputs.<its own id>
 selftest_scope static: 107 gated step(s), 1 problem(s)
+rc=1
+== static at 60a26fee42f52571c681410c27e14a98415a9132
+selftest_scope static: 109 gated step(s), 0 problem(s)
+rc=0
