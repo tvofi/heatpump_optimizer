@@ -1,0 +1,3 @@
+FAIL parse_board: the tick board's flagged `-> OWED: ` line is read
+open_driver self-test: 91 checks, 1 failed
+open_driver self-test: 89 checks, 0 failed
