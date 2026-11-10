@@ -1,0 +1,37 @@
+47,63d46
+<              total = 150
+<              return 200, {}, {"jobs": list(range((n - 1) * size, min(n * size, total)))}
+<          return get
+< -    got = pages(fake(100), "x", {})
+< +    def listed(get):  # a raise is a failed check the summary counts, not a crash before it
+< +        try:
+< +            return pages(get, "x", {})
+< +        except ghapi.ApiError:
+< +            return None
+< +    got = listed(fake(100))
+<      pages_ok = got == list(range(150)) and calls == [(100, 1), (100, 2)] + [(30, i) for i in range(1, 7)]
+<      calls.clear()
+< -    clean_ok = pages(fake(0), "x", {}) == list(range(150)) and calls == [(100, 1), (100, 2)]
+< +    clean_ok = listed(fake(0)) == list(range(150)) and calls == [(100, 1), (100, 2)]
+<      calls.clear()
+<      try:
+<          pages(fake(0), "404", {})
+68c51
+< -    print(f"selftest: {len(want) + 4} checks, {len(bad) + (not rows_ok) + (not pg)} failed{' ' + str(bad) if bad else ''}"
+---
+> -    print(f"selftest: {len(want) + 7} checks, {len(bad) + (not rows_ok) + [pages_ok, clean_ok, null_ok].count(False)} failed{' ' + str(bad) if bad else ''}"
+85,88c68
+< +        try:
+< +            return pages(server(total), "repos/o/r/actions/runs/1/jobs", {"filter": "all"})
+< +        except ghapi.ApiError:
+< +            return None
+---
+> +        return caught(lambda: pages(server(total), "repos/o/r/actions/runs/1/jobs", {"filter": "all"}))
+94c74
+< +    print(f"selftest: {len(want) + 1 + len(pg)} checks, {len(bad) + (not rows_ok) + len(pbad)} failed"
+---
+> +    print(f"selftest: {len(want) + 4 + len(pg)} checks, {len(bad) + (not rows_ok) + len(pbad)} failed"
+241c221
+<     "dev/audit/harnesses/r10_rca_sav_estimate.py",
+---
+>     "dev/audit/harnesses/r10_rca_sweep_settle_loop.py",

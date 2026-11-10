@@ -1,0 +1,24 @@
+== head
+selftest: 17 checks, 0 failed
+rc=0
+== mutant M1: loop bounded by MAX_PAGES pages (pre-fix)
+1
+selftest: 17 checks, 1 failed pages['many1760']
+rc=1
+== mutant M2: no fallback to 30 on 5xx
+selftest: 17 checks, 3 failed pages['fallback', 'over50', 'many1760']
+rc=1
+== mutant M3: caught() re-raises
+    def caught(f):                         # a check whose call raises fails, it does not end the selftest
+        try:
+            return f()
+        except ghapi.ApiError as e:
+            return e
+    if caught(lambda: [j["name"] for j in jobs_all(flaky, 5, 3)]) != ["1", "2", "3"]:
+        bad.ap
+== null control: identical file, re-run
+selftest: 17 checks, 0 failed
+rc=0
+== prior head 54f766
+selftest: 14 checks, 0 failed
+rc=0
