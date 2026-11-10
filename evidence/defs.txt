@@ -1,0 +1,35 @@
+153:def utc(t: float | None = None) -> str:
+157:def norm(line: str) -> str:
+162:def sh(argv: list[str], cwd: Path, env: dict) -> tuple[int, str, str]:
+170:def atomic(path: Path, text: str) -> None:
+177:def read(path: Path) -> str:
+187:    def __init__(self, state: Path, repo: Path, overlay: Path | None = None, board: Path | None = None,
+201:    def py(self, tool: str, *args: str) -> tuple[int, str, str]:
+204:    def need(self, row: str, *keys: str) -> list[str] | None:
+212:    def memory(self, name: str, default):
+218:    def remember(self, name: str, value, default=None) -> None:
+230:    def __init__(self, ctx: Ctx):
+233:    def __enter__(self):
+238:    def __exit__(self, *_):
+243:def write_job(ctx: Ctx, row: str, lines: list[str]) -> None:
+254:def fold_locked(ctx: Ctx) -> None:
+269:def fold(ctx: Ctx) -> None:
+274:def event(ctx: Ctx, line: str) -> None:
+291:def actionable(board: str) -> list[str]:
+295:def tick_digest(ctx: Ctx) -> None:
+318:def owed_check(ctx: Ctx) -> None:
+334:def on_main(ctx: Ctx, path: str) -> bool:
+339:def roster_drain(ctx: Ctx) -> None:
+349:    def save() -> None:  # after every op, not only at the pass's end: a killed pass keeps what it applied
+413:def plan_beat(ctx: Ctx) -> None:
+446:def gantt(ctx: Ctx) -> None:
+483:def verdict_audit(ctx: Ctx) -> None:
+499:def pulse(ctx: Ctx) -> None:
+516:def cancel_sweep(ctx: Ctx) -> None:
+528:def disk(ctx: Ctx) -> None:
+541:def opener(ctx: Ctx) -> None:
+552:def head_watch(ctx: Ctx) -> None:
+576:def audit_dispatch(ctx: Ctx) -> None:
+604:def outside_intake(ctx: Ctx) -> None:
+616:def bottleneck(ctx: Ctx) -> None:
+635:def main(argv: list[str]) -> int:
