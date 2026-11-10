@@ -78,4 +78,4 @@ none
 
 ## Friction
 
-none
+finding-propagation.md: unenforced: `tools/audit/carry_audit.py` `landed` printed `CARRY-LANDED: 0 missing` for this body because R10-PREPR-RESIDUE's carries 8 to 11 already name this topic as their source, although they still hold round 1's text without controls. It matches on the source, not the text. The orchestrator owes these roster ops on `handoff/audit-r10-roster`: replace carries 8 to 11 with the C1 to C4 items above, append the "never" follow-up, and set the group's `rca` to `R10-RCA-OPEN-PREPR-SLOW`. Carry: R10-PREPR-RESIDUE
