@@ -2653,6 +2653,25 @@
    "index": false,
    "objects": false
   },
+  "gh-read-run": {
+   "run_sha": "e1e5f1991f49a10657c6a31af7ad709b63607e00b2da49b7313f4c8b05cb2214",
+   "files": [
+    "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/gh_read_run.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tools/audit/seat"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "github-rest-client": {
    "run_sha": "7626d3fc5a86c738abe40456936eb0f56ba64dbf43bfb6a2042316f882415811",
    "files": [
