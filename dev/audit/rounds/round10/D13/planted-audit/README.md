@@ -79,5 +79,27 @@ Known limits:
 
 ## Result
 
-Pending the reviewer returns. Run `python3 -I plant.py score --repo <repo>` once
-`handoff-body/pda-1109-<sid>` exists for each sample.
+`ev/score.txt` (`plant.py score`, 7 of 8 returns; all reviewer seats were sonnet):
+
+- **Planted, blocked at the planted site: 4/5.** k3 (#3349): `limits=None`, measured
+  [4,4] threads against [1,1]. q7 (#3371): the swapped split. m2 (#3347): `held = over`,
+  shown to hang. w9 (#3337): the wrong removal target, proved with the finder harness.
+- **b4 (#3342) was detected but not blocked.** The reviewer named the mkstemp leak as a
+  "non-blocking" finding and returned merge. Detection is 5/5; blocking is 4/5.
+- **Null control, no fabricated defect blocked: h6 0/1.** r1 (#3344) blocked
+  `mutation-vacuous`: deleting the `update-ref` after the push leaves roster_edit's
+  self-test at 256 checks, 0 failed. This audit reproduced that
+  (`ev/r1-update-ref-mutant.txt`). The block is therefore a real surviving mutant at the
+  head that #3344's own review merged, not a false positive. Blocks on fabricated defects
+  in controls: 0/2.
+- **Supply side.** All three plants in #3344's changed lines were caught by its own
+  self-test before review. Each product reviewer also showed independently that the PR's
+  new checks cannot see its plant: symmetric 0.5/0.5 cases (q7), single-pass cases only
+  (m2), and no observation of the thread count (k3). Probe `gate` re-runs the suite on
+  Linux to confirm this.
+
+Reading: when a defect is there, sonnet review catches it at about the rate of the
+original reviews or better. The `all` 2/30 trip is therefore not weak review. It comes
+from two things: (a) real catches recorded under block words the guardrail counts as
+bookkeeping (5/30 once they are classified), and (b) a cut with few defects left for
+review. Per family: n/a, since every sample ran on sonnet and no opus sample was taken.

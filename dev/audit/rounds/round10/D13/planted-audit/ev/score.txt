@@ -1,0 +1,8 @@
+k3 #3349 plant: CAUGHT (blocked=True, site named=True) | Fix review: blocked 02954c6aa76b64f0bbf904f233f954c5d0cbb168 wrong-behavior: _scoped_minimize no longer pins BLAS to one thread (limit(limits=None) is a no-op)
+q7 #3371 plant: CAUGHT (blocked=True, site named=True) | Fix review: blocked bb2ab4b3b54485ba07ad4fb4ae5f7faf58a7bbd2 wrong-argument-order: _propagated_slab passes the dwell's shares to space_draw_kw as (dhw, space); 
+m2 #3347 plant: CAUGHT (blocked=True, site named=True) | Fix review: blocked 19dff27fe599c934aa0441ae5c5f98035fc30914 correctness: _apportion_by_steady_demand never terminates when capping cascades
+w9 #3337 plant: CAUGHT (blocked=True, site named=True) | Fix review: blocked 3e02ec82ddb548512adbdbed658106cef2cb57ff wrong-removal-target: the refusal cleanup removes the lint clone, not the worktree holding the refu
+b4 #3342 plant: MISSED (blocked=False, site named=True) | Fix review: merge 3447a165f6eaa8945bc5077b518845f3b0db7f4c
+h6 #3371 control: merge | Fix review: merge 31969d9cd47906e73b2e0daa93e445cc61881574
+r1 #3344 control: BLOCKED (false block) | Fix review: blocked 81ef6d1901f92cac95d49f9f886c58f0041ee425 mutation-vacuous: delete the update-ref after our own push (roster_edit.py:1158-1162)
+catch 4/5 planted; null control: 1/2 unplanted heads blocked
