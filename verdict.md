@@ -1,0 +1,28 @@
+Fix review: merge 1c82a4352a3b55e2e2fe0a4d202ef89a2ed52ea3
+
+bus-nonce: 630c8030ab5b44a50c71de3e9d4d7de2
+
+## Evidence
+
+Round 1: no earlier probe/rev-3397 or review ref found on origin. Head measured: 1c82a4352a3b55e2e2fe0a4d202ef89a2ed52ea3 (the PR's head at review, and the head the body's `## Head` names). Merge base b8f67a775137a8032d5c71b34ea64165c1d4613a. Role contract current: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty (ev/roles-current.txt).
+
+- RESULT sentence-verbatim: the joined text of dev/governance/roles/fixer.md at the head contains the brief's approved sentence, exact string match, 1 time; at the merge base the phrase "generated spelling corpus" occurs 0 times (ev/lints-head.txt). Matches the R10-FIXER-MD-SPELLING-CORPUS brief on handoff/audit-r10-roster (8b252fde90) word for word.
+- RESULT placement: in step 2 beside the mutation-proof rules, as the body argues; the brief allowed the step that now governs how a fixer tests a guard.
+- RESULT tightening is meaning-preserving: a word-level diff of fixer.md, merge base against head (ev/fixer-word-diff.txt), was read hunk by hunk. Apart from the added sentence, every change is a compression that keeps the obligation: steps 5, 6, 7, 8, 10, 11, 12, 13, 14, 17 and the red-check section. Two things were dropped, and neither changes what a seat must do. (1) "`handoff_push.sh` opens the PR and writes the row" now reads "opens the PR". handoff_push.sh still writes the row (its header, lines 4-5), and delivery-status-tracking.md is still the binding rule. (2) "if you must extend the stub" now reads "if you extend the stub". The fidelity obligation that follows is unchanged. The brief directs this tightening ("pay for the sentence by tightening fixer.md text first").
+- RESULT budgets: `node tools/policy/policy_lint.mjs --budgets` rc=0 at both ends. The fixer line is 315 lines at base and head, with its third column 5210 -> 5180. `role fixer ~6265 tokens, cap 5852 +band 500 = 6352` is the same at both ends. No budget file is touched, so the movement is flat and earned by the prose compression (step 14).
+- RESULT body figures: `rules_sync.mjs --check` rc=0, `brief_lint.mjs` rc=0, `policy_lint.mjs` rc=0 at the head (ev/lints-head.txt). The null-control figures (0 at base, 1 at head) re-derived as stated.
+- RESULT mutation (step 1): n/a. The diff writes no production line, so it draws no mutant. The control is the sentence's absence at the base, re-derived above.
+- RESULT VERSION, custom_components/heatpump_optimizer/manifest.json and RELEASE_NOTES.md are untouched (step 5). No claim or golden file is in the diff (step 4).
+- RESULT merge: `git merge-tree --write-tree origin/main <head>` rc=0, against origin/main 3aac11dfba (ev/merge-tree.txt). It merges cleanly.
+- RESULT CI: `merge_train.py classify ... --pr 3397` gave `GREEN 1c82a4352a3b55e2e2fe0a4d202ef89a2ed52ea3 pending: none red: none`, rc=0 (ev/classify.txt). No required check went red, and the body's `## Red checks: none` agrees (step 11).
+- RESULT forward-carry (step 10): the body's two `Carry: R10-FIXER-MD-SPELLING-CORPUS` items each name a pending owner or orchestrator ruling, which is a fixer.md own-group exception. Both are on the roster as group carries 3 and 4 at handoff/audit-r10-roster 8b252fde90. The review packet's carry_audit routed both, 0 unrouted.
+- RESULT owner gate: this is policy under mandate 6624093439. The PR's mergeable_state is `blocked` pending the code-owner (tvofi) review, which this verdict does not replace.
+- Harness (step 9): the finder named none. This is a policy-prose group with no finder harness. My instruments are the word diff and the lints above, nothing out of tree.
+
+## Findings
+
+- Follow-up: the new sentence binds the fixer to add "a spelling the reviewer finds", but fix-review.md tells the reviewer neither to check the body's named corpus size nor to probe the guard with spellings outside it, so the reviewer half of the loop is unstated in the reviewer's own contract. fix-review.md is outside this group's files and is policy. Carry: R10-FIXER-MD-SPELLING-CORPUS (pending orchestrator ruling on whether fix-review.md mirrors the sentence; it is outside this group's files and needs the owner's review)
+
+## Friction
+
+none
