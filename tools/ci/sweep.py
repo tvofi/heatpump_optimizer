@@ -30,6 +30,17 @@ are bounded by the sources that finish, never by the arms, which looped on re-st
 A rate limit prints `RATE-LIMITED`, re-runs nothing further and exits 1: reset_epoch is
 printed, a caller re-runs nothing before it.
 
+SWEEP-SELF (R10-HOTFIX-SWEEP-TOKEN-ACTOR; dev/audit/rca/R10-RCA-SWEEP-TOKEN-ACTOR.md): GitHub
+starts no workflow from an event its GITHUB_TOKEN caused, so gate-sweep.yml's `workflow_run`
+never fires for a ci.yml run whose actor is the bot (a token push's approved pull_request run, a
+github.token dispatch). ci.yml's `sweep-self` job (SELF_JOB, after `gate`) sweeps such a run
+from inside it: the caller's GITHUB_RUN_ID is V. V is then still in_progress (its SELF_JOB runs),
+so settle never waits on V itself, and a SELF_JOB is never a source. From inside V, settle never
+waits on another gate still judging either (that run's own completion sweeps: SKIP, no runner
+held); it does poll a run whose gate has completed and whose run has not (its own sweep-self,
+seconds), as a red gate in such a run is polled on the green branch: GitHub refuses a re-run
+inside a running run.
+
 A STALE PIN is never re-run (`stale_pin`; dev/audit/rca/r10-gate-busy-defer-2.md 5.2). A
 pull_request or review run's gate restores tools/ci/*.py from the event's `base.sha`, and a
 job re-run replays that event, so it judges with the programs of that pin however far the
@@ -61,6 +72,7 @@ CI_PATH = ".github/workflows/ci.yml"
 PINNED_EVENTS = ("pull_request", "pull_request_review")   # ci.yml's restore reads github.event.pull_request.base.sha
 PINNED_PROGRAMS = "tools/ci/"                             # its pathspec 'tools/ci/*.py' (a git glob crosses '/')
 SWEEP_ACTOR = "github-actions[bot]"   # gate-sweep.yml's github.token; ci.yml's refresh posts as it too
+SELF_JOB = "sweep-self"               # ci.yml's job sweeping its own run from inside it (module doc)
 
 
 class RateLimited(Exception):
@@ -81,8 +93,8 @@ def latest_gate(jobs):
 
 
 def sources(jobs):
-    """The jobs of a listing a gate reads as sources: never a gate, never a skipped job (module doc)."""
-    return [j for j in jobs if j.get("name") != "gate" and j.get("conclusion") != "skipped"]
+    """The jobs of a listing a gate reads as sources: never a gate, a SELF_JOB or a skipped job (module doc)."""
+    return [j for j in jobs if j.get("name") not in ("gate", SELF_JOB) and j.get("conclusion") != "skipped"]
 
 
 def source_after(t0, others):
@@ -135,8 +147,9 @@ def pollable(gate):
 
 
 class Sweep:
-    def __init__(self, repo, get, post, out=print, sleep=time.sleep, clock=time.monotonic):
+    def __init__(self, repo, get, post, out=print, sleep=time.sleep, clock=time.monotonic, caller=None):
         self.repo, self.get, self.post, self.out, self.sleep, self.clock = repo, get, post, out, sleep, clock
+        self.caller = caller          # the calling run's id: V's own is sweep-self (module doc)
         self.reruns, self.rerun_ids = 0, set()
         self.pull, self.pin, self.dispatches = None, (), 0
 
@@ -223,8 +236,10 @@ class Sweep:
         polled = {}
         for r in sorted((r for r in runs if r["id"] != v["id"]), key=lambda r: r["id"]):
             g = self.gate_of(r["id"])
-            if g and g.get("status") == "completed":
+            if g and g.get("status") == "completed" and (r["status"] == "completed" or g.get("conclusion") == "success"):
                 self.judge(r, g, "completed red", runs)
+            elif g and g.get("status") == "completed":     # its run still busy (its sweep-self): GitHub refuses a re-run
+                polled[r["id"]] = r["status"]
             elif pollable(g):
                 polled[r["id"]] = r["status"]
         deadline = self.clock() + POLL_WAIT
@@ -254,9 +269,10 @@ class Sweep:
             runs = self.runs_at(head)
             jobs = {r["id"]: self.jobs_of(r["id"]) for r in runs}
             gates = {i: latest_gate(js) or {} for i, js in jobs.items()}
-            finishing = [r["id"] for r in runs if gates[r["id"]].get("status") == "in_progress"
-                         or (gates[r["id"]].get("status") == "completed" and r["status"] != "completed")]
-            if not finishing or self.clock() + POLL_FLOOR > deadline:
+            finishing = [r["id"] for r in runs if r["id"] != self.caller and (gates[r["id"]].get("status") == "in_progress"
+                         or (gates[r["id"]].get("status") == "completed" and r["status"] != "completed"))]
+            judging = self.caller == run_id and any(gates[i].get("status") == "in_progress" for i in finishing)
+            if not finishing or judging or self.clock() + POLL_FLOOR > deadline:
                 break
             self.sleep(POLL_FLOOR)
             if not self.live(pr, head):
@@ -282,9 +298,10 @@ class Sweep:
         return 0
 
 
-def main(argv, get, post, out=print, sleep=time.sleep, clock=time.monotonic):
+def main(argv, get, post, out=print, sleep=time.sleep, clock=time.monotonic, env=None):
+    env = os.environ if env is None else env
     run_id = None
-    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    repo = env.get("GITHUB_REPOSITORY", "")
     it = iter(argv)
     for a in it:
         if a == "--run":
@@ -294,7 +311,7 @@ def main(argv, get, post, out=print, sleep=time.sleep, clock=time.monotonic):
     if not run_id or not str(run_id).isdigit() or not repo:
         out("FAIL usage: --run <id> (and GITHUB_REPOSITORY or --repo)")
         return 2
-    s = Sweep(repo, get, post, out, sleep, clock)
+    s = Sweep(repo, get, post, out, sleep, clock, caller=int(run_id) if env.get("GITHUB_RUN_ID") == str(run_id) else None)
     try:
         return s.run(int(run_id))
     except Exception as exc:  # noqa: BLE001 - a rate limit is told apart by name below
