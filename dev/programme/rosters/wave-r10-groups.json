@@ -21424,6 +21424,48 @@
     "note": "split from R10-CLOSEOUT-CLEANUP by the s13 orchestrator (2026-11-10, mandate 6715477401; cp-compress spec L6/L6b): CLEANUP carries 6 and 9 re-routed here; CLEANUP's --apply run stays the round's final act and runs after this group; overlap admitted (R10-ARCH-DOCS): s13 closeout split (cp-compress L6/L6b, mandate 6715477401): shares dev/README.md with R10-ARCH-DOCS only, and runs after it (after-edge), so the two never edit the file at once"
    },
    "brief": "Closeout preparation, split from R10-CLOSEOUT-CLEANUP so that its two document-side carries run beside R10-ROUND-PLAYBOOK-FINAL instead of serially inside the round's final act. Two deliverables, one pull request: (1) every carry file under dev/programme/carries/ at origin/main gets its destination (a roster group's carry) or its answering commit, and the file is removed or marked, so no carry is left outside the roster before the closure stamp (carry 0 below, moved verbatim from CLEANUP carry 6, with its control); (2) dev/README.md is refreshed against the tooling and process groups that merged after R10-ARCH-DOCS (carry 1 below, moved verbatim from CLEANUP carry 9). Writes no production code and no instrument; R10-CLOSEOUT-CLEANUP keeps the closeout instrument and its --apply run, which stays the round's final act and runs after this group. dev/README.md is under writing-for-agents.md; any line that changes what a seat must do is policy and merges on the owner's approving review (or a mandate in force)."
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "group": "R10-HOTFIX-OPENER-BOARD-PREFIX",
+   "files": [
+    "tools/audit/seat/open_driver.py",
+    "tools/audit/seat/open_driver_selftest.py"
+   ],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-hotfix-opener-board-prefix",
+    "commit": "7d6540509c884772cfbf0739ed876a6a619f9669",
+    "last_step": "fixer",
+    "next_step": "open PR, review",
+    "note": "owed-lines seat s13 2026-11-09T23:50Z under mandate 6715477401: open arm opened nothing; overlap admitted (R10-SEAT-IDENTITY-P5): owed-lines seat s13 (mandate 6715477401): open_driver read no topic from the flagged tick board; hotfix handoff/r10-hotfix-opener-board-prefix 7d654050"
+   },
+   "brief": "Hotfix (owed-lines seat, s13, 2026-11-09, mandate 6715477401): the beat's opener passes open_driver.py the tick board, whose owed level lines are flagged `-> OWED: OWED ... handoff-no-pr ...`; BOARD_RE was anchored at a bare `^OWED`, so parse_board read zero topics and the open arm opened nothing (state `{}`, seven handoffs with no PR, one critical path). Fix: BOARD_RE accepts the flag; self-test carries the board's flagged form and an unflagged null."
   }
  ]
 }
