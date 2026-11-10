@@ -19439,9 +19439,10 @@
    ],
    "after": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "note": "owner waste-study ruling 2026-11-07, card 2, narrowed; overlap admitted (R10-HOTFIX-NONREQUIRED-REDS): owner ruling tvofi 2026-11-07 waste-study card 2",
-    "pr": 3341
+    "pr": 3341,
+    "commit": "f0bfadeb8cc2f2f3e6f32b1feccc879ecf9e6f19"
    },
    "brief": "Owner ruling (tvofi, 2026-11-07, waste-study decision cards, card 2, ruled NARROW): in dev/governance/roles/fix-review.md, a reviewer returning blocked with class mutation-vacuous or class-open must enumerate every survivor or every open class it found at that head in the same verdict, not one per round. The repair fixer then answers the whole list in one repair. Scope is the narrow form the owner ruled: the complete list of what the review itself found at that head (survivors the mutation driver reports over the diff; every surface of an open class that the review identified); it does NOT require the reviewer to hunt further than the review already ran, and it leaves class sweeps beyond what was found to judgement. Keep the judge's void rule: a listed finding whose harness does not move under its own perturbation is void, so padding the list with weak findings buys nothing; say so in the rule text. Measured: python3 -I tools/audit/seat/review_strength.py --window last3d=2026-11-04T19:00:00Z..2026-11-07T19:00:00Z --by class counts mutation-vacuous 25 verdicts on 19 PRs and class-open 23 verdicts on 13 PRs, 16 repeat rounds in 3 days; #3262 had four consecutive mutation-vacuous blocks, each a new survivor in the same files (blocked cycles 3.7, 4.2 and 4.5 h, 12.4 h of extra rounds); #3244 had two class-open rounds, the sensor and then the blueprint (7.2 h); about 54 h across the window at the sample median blocked cycle of 3.4 h (n=24, rounds table in the waste-study timelines). Controls: a verdict of class mutation-vacuous that names one survivor while the driver output at that head shows two is refused by whichever check the rule text names, or the rule text states the review packet shows both; null control: a blocked verdict of another class is unchanged. If a mechanical check is cheap (the verdict's survivor count against the driver output), add it and pin it with a mutant; if not, say so in the body and leave it to the reviewer contract. This is policy: it changes what a seat must do, so it merges only on tvofi's approving review. Open the pull request and surface it. Check dev/governance/roles/fix-review.md for edits in flight (R10-PROCESS-SLIM, R10-HOTFIX-NONREQUIRED-REDS, R10-DISPATCH-AT-HANDOFF all name it) and rebase onto whichever landed first. Hand off at the first clean prepr.sh head; merge origin/main only on a merge-tree conflict (owner ruling 2026-11-07)."
   },
@@ -21897,10 +21898,10 @@
    "files": [],
    "hot_files": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "note": "orchestrator 2026-11-10T05:36Z: root-cause seat trig_019DF7kA fired (cloud, opus)",
     "pr": 3410,
-    "commit": null
+    "commit": "58d8e829da04c78e1692f377c6117796d8639007"
    },
    "brief": "Root-cause seat (root-cause.md) beside R10-HOTFIX-MAIN-SELFTESTS: main governance / instrument-self-tests red on every push from #3315 (ba6fd7e8b0) on, three causes (ref_privacy absent-side git show, table drift, #3361 ungated step). Owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal. Known process gap: nothing commits the selftest-closures artifact when main goes red. Writes the round's RCA document named after this group under the RCA directory; no production code."
   },
