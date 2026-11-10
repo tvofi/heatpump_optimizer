@@ -21582,9 +21582,9 @@
     "tools/audit/seat/instruments/review_packet.py.md"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-hotfix-packet-approval-owed-pr",
-    "commit": null,
+    "commit": "5ab6030d70",
     "last_step": null,
     "next_step": null,
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER, R10-REVIEW-DISPATCH-RESIDUE): hotfix under mandate 6715477401: review_packet refused a WAIT head as required-red, deadlocking #3379; handoff 44467af5"
