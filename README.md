@@ -241,6 +241,7 @@ act on" — pricing and planning without actuating anything.
 |---|---|---|
 | **On/off switch** | a `switch` that turns the heat pump on and off | may turn it off during expensive hours |
 | **ECL110 heat curve** | a Danfoss ECL110-compatible weather-compensated controller, reachable over MQTT | a heat-pump on/off decision and an integer parallel shift (*displace*) onto the controller's own heat curve |
+| **Heat-curve offset entity** | a controller whose volatile whole-curve offset is a `number` entity (for example a Luxtronik SHI heating offset) | the same displace as a temperature difference via `number.set_value`, bounded to ±3 K by default; 0 again when the optimizer is turned off or unloaded |
 | **Compressor frequency** | the compressor frequency exposed as a `number` entity (typically from Modbus or ESPHome) | the recommended frequency via `number.set_value` — but only once you switch the mode to Control |
 
 The boundaries of each path — what it can reach and what it cannot — are
@@ -270,11 +271,14 @@ installing rather than discover it after:
   broadest path — any on/off `switch` will do, and the only one of the three
   that needs nothing from the pump's electronics — but any control finer than
   on-and-off needs one of the other paths.
-- **ECL110 control is MQTT-only.** The ECL110 path is for installs that have
-  such a controller on MQTT, and publishing goes through Home Assistant's own
-  `mqtt.publish` service, "so the MQTT integration has to be set up". The two
-  command topics ship empty, so an install without an ECL110 has nothing to
-  clear on the options page. Details in
+- **ECL110 control is MQTT-only; other controllers need an offset entity.** The
+  ECL110 path is for installs that have such a controller on MQTT, and
+  publishing goes through Home Assistant's own `mqtt.publish` service, "so the
+  MQTT integration has to be set up". The two command topics ship empty, so an
+  install without an ECL110 has nothing to clear on the options page. Without
+  MQTT, the displace reaches only a controller whose heat-curve offset is a
+  volatile `number` entity, 0 neutral; an absolute or stored curve parameter
+  is not supported in this version. Details in
   [ECL110 heat-curve control](#ecl110-heat-curve-control) and
   [docs/ecl110.md](./docs/ecl110.md).
 - **Frequency control needs a `number` entity and your explicit say-so.** The
@@ -365,8 +369,9 @@ things are left behind on purpose, because deleting them is your call:
 
 - **The heat pump keeps its last command.** The last setpoint the optimizer
   wrote to your thermostat, or the last ECL110 displacement it published, stays
-  in force until you set the pump's own controls back. Nothing is restored on
-  removal.
+  in force until you set the pump's own controls back. Nothing else is restored on
+  removal: a heat-curve offset entity is the one exception, written 0 when the
+  integration unloads.
 - **The learned state.** Every entry keeps its learners and ledgers in twelve files
   under `.storage/` in your configuration directory, and Home Assistant does not
   delete an integration's store files with the entry:
@@ -948,7 +953,7 @@ typically set once lives one click further, under **Advanced settings**.
 | Advanced learning features | Outage recovery, weather/plant learners, curve learning |
 | Fuse and peak guards | Main fuse, the fuse cap, the live peak guard |
 | Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
-| Heat curve control (ECL110) | MQTT topics, displace limits and the controller time constant |
+| Heat curve control | MQTT topics, the offset entity, displace limits and the controller time constant |
 | Reset to factory defaults | The settings, the learned values or both back to a fresh installation, the sensors and wiring kept; `restore_learned_snapshot` undoes it |
 
 Every sensor you picked during setup can be re-pointed here, and clearing a field
@@ -1073,7 +1078,7 @@ Each clears itself once the cause is gone.
 The integration can drive a Danfoss ECL110-compatible controller over MQTT,
 publishing a heat-pump on/off decision and an integer parallel shift (*displace*)
 onto the controller's own heat curve. The ECL110 settings live only
-on the **Heat curve control (ECL110)** options page, not in initial setup, and
+on the **Heat curve control** options page, not in initial setup, and
 both ECL110 sensors are disabled by default. The MQTT topics ship empty;
 nothing is published or subscribed until you set a topic, so an install without
 an ECL110 never touches the topics at all. Topics, payloads, options and the

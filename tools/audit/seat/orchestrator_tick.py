@@ -881,8 +881,9 @@ class Tick:
         fixer-round | waiting-on #M | owed | verdicted (MERGE-READY and its levels own it)
         | review-owed (REVIEW OWED owns it). `owed` prints one `OWED <kind> #N <head12>
         <reason>` line (kinds in ledger.KINDS, derived each pass, so a moved head closes
-        it), hotfix groups' PRs first, then accepted outside groups' (owner ruling tvofi
-        2026-11-07, triage P420), then the critical-path groups', then one count line."""
+        it), hotfix groups' PRs first, then accepted outside groups' and the critical-path
+        groups' as one rank, by number (`roster_lib.dispatch_rank`; owner rulings tvofi
+        2026-11-07, triage P420, and 2026-11-08), then the rest, then one count line."""
         heads = self._heads()
         if heads is None:
             self.unreadable(S, "owed buckets", "git ls-remote of the handoff refs failed")
@@ -920,7 +921,7 @@ class Tick:
                 # A fork head's branch is no group's; the roster's resume.pr maps it
                 # (as merge_train._roster_group does).
                 group = (rl.group_for_branch(roster, branch) or rl.group_for_pr(roster, n)) if rl is not None and roster else None
-                rank = rl.dispatch_rank(roster, group, {rl.norm_group(str(c)) for c in crit}) if rl is not None and roster else 3
+                rank = rl.dispatch_rank(roster, group, {rl.norm_group(str(c)) for c in crit}) if rl is not None and roster else 2  # RANK_OTHER, roster unread
                 owed.append((rank, n, f"OWED {kind} #{n} {head[:12]} {reason}"))
         for _, _, text in sorted(owed):
             self.line(S, text, flag=True)
@@ -4178,9 +4179,9 @@ def self_test() -> int:
                 {"group": "GB", "resume": {"stage": "not-started"}, "after": ["GA"]},
                 {"group": "GO", "source": "outside", "resume": {"stage": "not-started", "pr": pr}}]}))
             return str(f)
-        fork = lambda: pr_obj(104, h(104), ms="DIRTY", branch="patch-1")
-        _, o_fk = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 104), roster=fork_roster(104))
-        _, o_fk0 = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 104), roster=fork_roster(None))
+        fork = lambda: pr_obj(98, h(98), ms="DIRTY", branch="patch-1")
+        _, o_fk = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 98), roster=fork_roster(98))
+        _, o_fk0 = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 98), roster=fork_roster(None))
         pd = tmp / "payloads"
         pd.mkdir()
         pf = pd / "payload-fix-86-r1.json"
@@ -4254,12 +4255,14 @@ def self_test() -> int:
              o_ae == [] and "waiting-on 1" in bk_of(t_ae) and len(o_ae0) == 1 and "dirty #91" in o_ae0[0]),
             ("the critical-path group's OWED line prints before a lower-numbered PR's outside it",
              len(o_co) == 2 and "#100" in o_co[0] and "#99" in o_co[1]),
-            ("an outside group's OWED line prints before the critical path's, a hotfix's before both",
-             [x.split()[2] for x in o_ro] == ["#103", "#102", "#100", "#99"]),
+            ("a hotfix's OWED line prints first, then the outside and critical-path groups' as one "
+             "rank by number, then the rest",
+             [x.split()[2] for x in o_ro] == ["#103", "#100", "#102", "#99"]),
             ("null control: a roster with no outside group and no hotfix orders as the critical path first",
              [x.split()[2] for x in o_rn] == ["#100", "#99"] and [x.split()[2] for x in o_co] == ["#100", "#99"]),
-            ("a fork-head outside PR, mapped by resume.pr, prints before the critical path's; unrecorded, after it",
-             [x.split()[2] for x in o_fk] == ["#104", "#100"] and [x.split()[2] for x in o_fk0] == ["#100", "#104"])])
+            ("a fork-head outside PR, mapped by resume.pr, shares the critical path's rank and orders by number "
+             "(#98 first); unrecorded, it is the other rank, after it",
+             [x.split()[2] for x in o_fk] == ["#98", "#100"] and [x.split()[2] for x in o_fk0] == ["#100", "#98"])])
         total, failed = total + a, failed + f
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).

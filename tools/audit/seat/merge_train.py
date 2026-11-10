@@ -3770,11 +3770,12 @@ class Train:
         """P312: a spool drains into the next batch in an explicit order: entries
         added with `--priority` (HOTFIX), a roster hotfix (`self.hotfix`) or
         `--front` (P112: the entry the spool puts first) first, in spool order,
-        then outside entries (owner ruling tvofi
-        2026-11-07, triage P420: `self.outside`), then critical-path entries
-        (`self.critical`, the branch read only when two or more wait), then
-        arrival order. An entry maps to its group by branch, else by its pull
-        request. Python's sort is stable, so ties keep the spool's order."""
+        then outside entries (`self.outside`) and critical-path entries
+        (`self.critical`, the branch read only when two or more wait) as one
+        rank, unordered between them (owner rulings tvofi 2026-11-07, triage
+        P420, and 2026-11-08), then arrival order. An entry maps to its group by
+        branch, else by its pull request. Python's sort is stable, so ties keep
+        the spool's order."""
         if len(added) < 2:
             return added
         def item(e: dict) -> dict:
@@ -3784,8 +3785,8 @@ class Train:
         items = {id(e): item(e) for e in added}
         return sorted(added, key=lambda e: (not (e.get("priority") or e.get("front")
                                                  or self.hotfix(items[id(e)])),  # mut:drain-hotfix
-                                            not self.outside(items[id(e)]),  # mut:drain-outside
-                                            not self.critical(items[id(e)])))  # mut:drain
+                                            not (self.outside(items[id(e)])  # mut:drain-outside
+                                                 or self.critical(items[id(e)]))))  # mut:drain
 
     def queue_take(self, batches: "list[list[dict]]", k: int) -> bool:
         """Between batches: drain the spool into ONE new batch after those still
@@ -6077,7 +6078,8 @@ def _queue_self_test(check) -> None:
           drain312(mk312(1, 4, prio=(4,))) == [4, 1])
     check("P312: priority, then critical path, then arrival: #4 (priority), #3 (critical), #1, #2",
           drain312(mk312(1, 2, 3, 4, prio=(4,))) == [4, 3, 1, 2])
-    # Owner ruling tvofi 2026-11-07 (triage P420): priority or front, then outside, then critical.
+    # Owner rulings tvofi 2026-11-07 (triage P420) and 2026-11-08: priority or front,
+    # then outside and critical as one rank in arrival order, then the rest.
     def drain420(entries, out=("out",), cp=("cp",), heads=None):
         heads = heads or {1: "plain", 2: "cp", 3: "out", 4: "plain", 5: "out"}
         def run(argv, cwd=ROOT, stdin=None):
@@ -6086,10 +6088,12 @@ def _queue_self_test(check) -> None:
             t = Train("o/r", Path(dd), None, "", (), 1, run=run, log=lambda m: None,
                       critical=lambda it: it["branch"] in cp, outside=lambda it: it["branch"] in out)
             return [e["pr"] for e in t.drain_order(entries)]
-    check("P420: an outside entry (#3) drains ahead of a critical-path one (#2) and behind a priority one (#4)",
-          drain420(mk312(1, 2, 3, 4, prio=(4,))) == [4, 3, 2, 1])
-    check("P420: outside entries keep arrival order among themselves, ahead of the critical path",
-          drain420(mk312(1, 2, 3, 5)) == [3, 5, 2, 1])
+    check("P420: an outside entry (#3) drains with a critical-path one (#2), in arrival order, behind "
+          "a priority one (#4) and ahead of a plain one (#1)",
+          drain420(mk312(1, 2, 3, 4, prio=(4,))) == [4, 2, 3, 1]
+          and drain420(mk312(1, 3, 2, 4, prio=(4,))) == [4, 3, 2, 1])
+    check("P420: outside and critical entries keep arrival order among themselves, ahead of the rest",
+          drain420(mk312(1, 2, 3, 5)) == [2, 3, 5, 1])
     check("P420 null: no outside entry orders byte-identically to P312's priority, critical, arrival",
           drain420(mk312(1, 2, 3, 4, prio=(4,)), out=()) == [4, 2, 1, 3])
     # The live read: a fork head (a branch no group claims) maps through resume.pr.
