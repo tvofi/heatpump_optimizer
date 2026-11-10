@@ -1,0 +1,14 @@
+Check runs at d07f8e9ea5a78bf44ea405ef233ae11ad7e1c211 (read 2026-11-10 after classify exited 1 at 04:36:33Z), 55 runs.
+RED (required):
+  pr-contract / pr-contract 129632709530 (run 42745781214) failure, 04:34:35-04:35:29Z
+    step policy_lint: "ERROR   [pr-body] the red history could not be derived: check-runs at 5e50b92: HTTP 502 from /repos/tvofi/heatpump_optimizer/commits/5e50b92459e6ac9eb1cce1f485029916e1403a87/check-runs?per_page=100&page=1"
+    every other step passed: codescan_wait (no alerts), red-check list (empty), figure_lint "FIGURES: 8 resolved, 4 not verified, 0 refused",
+    preflight "clean no refusal", version-edit "no version edit", carry_audit "5 routed, 0 unrouted, 0 bad destination(s)"
+  gate 129633034164 (run 42745781214, code kind) failure 04:35:32-04:36:04Z, after the pr-contract red
+  gate 129602434404 (run 42745781450, edit kind) failure 03:09Z: "FAIL run(s) [42745781214] at this head are still being judged; their gate decides"
+SUCCESS (required units): arch-score/arch-score, budget-raise-gate/budget-raise-gate, codeql/Analyze (actions|javascript-typescript|python),
+  governance/env-matrix, governance/policy-docs, governance/wave-script, hassfest/hassfest, tests/arch-instrument, tests/briefs,
+  tests/browser, tests/closure-scope, tests/closures, tests/coverage, tests/coverage-ratchet, tests/fast (3.14) 129602133122,
+  tests/mutation 129599532966, tests/typing, validate/validate-hacs
+SKIPPED: tests/ci-ratchet 129615446008 (skipped), mutation-pins, mutation-autofix, claims-autofix, closures-autofix, nightly-ha
+Not required, success: governance/delivery-status, tests/nightly-status, tests/replay, tests/lane-proofs, governance/instrument-self-tests

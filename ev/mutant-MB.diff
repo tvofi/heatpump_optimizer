@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index d0b36e7c6..c1d97b3a7 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -326,7 +326,7 @@ class ThermalParameters:
+     @property
+     def buffer_store_volume(self) -> float:
+         """Store litres, combi's potable water included; off, no predicate per step."""
+-        if self.dhw_combi_tank_enabled and self.combi_tank_active:
++        if self.dhw_combi_tank_enabled:
+             return self.buffer_tank_volume + self.combi_potable_volume_l
+         return self.buffer_tank_volume
+ 
