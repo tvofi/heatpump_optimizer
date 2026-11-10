@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index d9250b37f..133b7d84b 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -1454,7 +1454,7 @@ def _combi_flux_exchange(
+         plan, opt._dhw_requirement = planner._build_dhw_requirements(
+             h, p_max=p_max, space_demand=space_power,
+             p_run_cap=None if h.power_caps_extra is None else float(np.min(h.power_caps_extra)),
+-            blocked=h.dhw_blocked, off_steps=h.off_steps, tank_exo_kw=space_net,
++            blocked=h.dhw_blocked, off_steps=h.off_steps, tank_exo_kw=None,
+         )
+         if np.allclose(plan.schedule, dhw_power, atol=1e-4):
+             break
