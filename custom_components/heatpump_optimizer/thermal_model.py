@@ -1267,6 +1267,9 @@ class InstallCapability:
     entity or sensor, read or write. ``measured_heat`` is a thermal power
     entity or a heat counter (fold e). ``heat_counter`` is the heat counter
     alone and ``electric_counter`` the electric counter its span divides by.
+    ``heat_estimated`` and ``power_estimated``: the heat and the electrical
+    figure a COP divides are a vendor's model, not a meter; ``heat_sees_dhw``:
+    the heat reading covers the hot-water circuit (``cop_measured``).
     (a), (c), (d) and (e) all read this probe.
     """
 
@@ -1276,12 +1279,47 @@ class InstallCapability:
     measured_heat: bool = False
     heat_counter: bool = False
     electric_counter: bool = False
+    heat_estimated: bool = False
+    power_estimated: bool = False
+    heat_sees_dhw: bool = False
     on_off: bool = False
 
     def cop_electric(self) -> bool:
         """An electrical figure a COP divides by: a heat counter's span reads
         the electric counter, every other reading the power entity (#2262)."""
         return self.electric_counter if self.heat_counter else self.measured_power
+
+    def cop_measured(self, dhw: bool) -> bool:
+        """Heat over electricity on this install is a measured COP.
+
+        Both sides metered, neither a vendor's model: estimated heat over
+        estimated power is the vendor's own fitted COP, and either one alone is
+        the model on that side. A hot-water interval also needs a heat reading
+        declared to see that circuit. The interval's own heat reading is the
+        caller's to check: this is what the install can measure at all.
+        """
+        return (
+            self.measured_heat
+            and self.cop_electric()
+            and not (self.heat_estimated or self.power_estimated)
+            and (self.heat_sees_dhw or not dhw)
+        )
+
+    def cop_sample(self, heat_kw: float | None, dhw: bool) -> bool | None:
+        """Whether one folded interval is a measured COP (R10-HOTFIX-COP-UNMEASURED).
+
+        ``True`` for an interval's heat reading where this install measures
+        that curve (``cop_measured``): recorded and graded. ``False`` for no
+        heat slot, or an estimate: the plan's inference or the vendor's fitted
+        COP trains the COP scale alone (tvofi, 2026-11-07: "Training on
+        estimated power should be good enough and better than nothing though
+        so retain that"). ``None`` -- refuse -- for a configured thermal power
+        that read no heat, unavailable or negative: a missing input, never an
+        inference.
+        """
+        if heat_kw is None:
+            return None if self.measured_heat and not self.heat_counter else False
+        return self.cop_measured(dhw)
 
     def can_duty_cycle(self) -> bool:
         """A sub-minimum average is realizable.
@@ -1365,6 +1403,14 @@ def probe_install(config: Any) -> InstallCapability:
         ),
         heat_counter=bool(cfg.get(const.CONF_HEAT_ENERGY_ENTITY)),
         electric_counter=bool(cfg.get(const.CONF_ENERGY_ENTITY)),
+        # A counter outranks the entity on its side, and is read as metered.
+        heat_estimated=not cfg.get(const.CONF_HEAT_ENERGY_ENTITY) and _estimated(
+            cfg.get(const.CONF_THERMAL_POWER_SOURCE, const.DEFAULT_METER_SOURCE),
+            cfg.get(const.CONF_THERMAL_POWER_ENTITY)),
+        power_estimated=not cfg.get(const.CONF_HEAT_ENERGY_ENTITY) and _estimated(
+            cfg.get(const.CONF_POWER_SOURCE, const.DEFAULT_METER_SOURCE),
+            cfg.get(const.CONF_POWER_ENTITY)),
+        heat_sees_dhw=bool(cfg.get(const.CONF_HEAT_METER_SEES_DHW, const.DEFAULT_HEAT_METER_SEES_DHW)),
         on_off=declared_modulation(cfg) is False,
     )
 
@@ -1390,6 +1436,15 @@ def declared_modulation(config: Any) -> bool | None:
         else True if legacy is False
         else None
     )
+
+
+def _estimated(source: Any, entity_id: Any) -> bool:
+    """Whether ``entity_id`` is a vendor's estimate, by its ``source`` answer (``CONF_POWER_SOURCE``)."""
+    if source == const.METER_SOURCE_ESTIMATE:
+        return True
+    if source == const.METER_SOURCE_METER:
+        return False
+    return const.ESTIMATE_ID_MARK in str(entity_id or "").lower()
 
 
 def flow_setpoint_driven(config: Any) -> bool:
