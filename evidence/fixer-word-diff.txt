@@ -1,0 +1,224 @@
+236a237,273
+> guard
+> that
+> classifies
+> text
+> by
+> shape
+> is
+> driven
+> over
+> a
+> generated
+> spelling
+> corpus
+> (case,
+> quoting,
+> glued
+> options,
+> delimiters,
+> wrapping)
+> with
+> the
+> corpus
+> size
+> named
+> in
+> the
+> body;
+> a
+> spelling
+> the
+> reviewer
+> finds
+> is
+> added
+> to
+> it.
+> A
+837c874
+< 3).
+---
+> 3);
+840d876
+< runs
+898,902c934,936
+< moves.
+< Stamp
+< such
+< a
+< figure
+---
+> moves;
+> stamp
+> it
+923,926c957
+< which
+< runs
+< `review_packet.py
+< handoff`'s
+---
+> whose
+928c959,962
+< refusals;
+---
+> `review_packet.py
+> handoff`
+> refusals
+> you
+930,933c964
+< each
+< before
+< the
+< push.
+---
+> first.
+942,946c973
+< PR
+< and
+< writes
+< the
+< row.
+---
+> PR.
+1024,1026d1050
+< head
+< that
+< moves
+1028,1031c1052,1053
+< invalidates
+< measurements
+< taken,
+< and
+---
+> move
+> leaves
+1034c1056,1057
+< cannot
+---
+> unable
+> to
+1037,1038d1059
+< of
+< its
+1086,1088d1106
+< the
+< pull
+< request
+1091c1109
+< **orchestrator's**,
+---
+> **orchestrator's**
+1093,1097c1111,1113
+< a
+< merge-and-release
+< seat
+< it
+< starts.
+---
+> its
+> release
+> seat's.
+1124,1125c1140
+< number,
+< each
+---
+> number
+1249d1263
+< returned
+1264c1278
+< so,
+---
+> so
+1266d1279
+< say
+1526,1527c1539
+< it
+< and
+---
+> it,
+1533,1535c1545
+< with
+< the
+< same
+---
+> and
+1536a1547
+> it
+1544,1545c1555
+< Distinguish
+< text
+---
+> Text
+1547a1558
+> differs
+1552,1553c1563
+< *recounts*
+< —
+---
+> *recounts*:
+1651,1655c1661
+< authoritative).
+< Prejudging
+< is
+< legitimate
+< —
+---
+> authoritative):
+1658,1659d1663
+< is
+< what
+1736d1739
+< method
+1766d1768
+< both
+1787,1788d1788
+< is
+< what
+1810d1809
+< must
+1818,1823c1817,1818
+< upstream
+< rather
+< than
+< shaping
+< it
+< to
+---
+> upstream,
+> not
+1831,1835d1825
+< is
+< exactly
+< the
+< one
+< that
+1996d1985
+< own
+2001,2004d1989
+< finds
+< them
+< unchanged
+< and
+2553,2555c2538
+< that
+< cannot
+< be
+---
+> not
+3135,3136c3118
+< are
+< naming
+---
+> name
+3138,3139c3120
+< trigger,
+< not
+---
+> trigger;
+3141,3143c3122
+< it;
+< the
+< analysis
+---
+> it
