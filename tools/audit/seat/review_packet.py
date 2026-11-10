@@ -695,6 +695,24 @@ def _self_test() -> int:
           "`approval-owed` advisory naming the reason, in the packet",
           r_o == [] and len(adv_o) == 1 and adv_o[0].startswith("approval-owed: required context `gate`")
           and "1 budget raise(s), planted" in t_o)
+    # #3379 at 71b95e42, 00:03Z on 11-10: the gate's latest run concluded failure while the
+    # budget-raise-gate re-run was in progress, so classify --pr read WAIT (rc 3) and bus.sh
+    # dispatched it, but the packet asked only "is it APPROVAL-OWED?" and refused required-red.
+    raise_rerun = [*redgate, {"id": 3, "name": "budget-raise-gate / budget-raise-gate",
+                              "status": "in_progress", "conclusion": None}]
+    r_w, adv_w, t_w = build({**clean, "gate": gate_digest(raise_rerun),
+                             "required_read": ("WAIT", "pending: budget-raise-gate red: none")})
+    check("#3379: a required red that classify --pr reads WAIT renders: no refusal, a `required-wait` "
+          "advisory naming classify's line (classify decides; a pending check never refuses)",
+          r_w == [] and len(adv_w) == 1 and adv_w[0].startswith("required-wait: required context `gate`")
+          and "pending: budget-raise-gate" in t_w)
+    r_g, adv_g, _ = build({**clean, "gate": gate_digest(redgate), "required_read": ("GREEN", "pending: none red: none")})
+    check("a required red that classify --pr reads GREEN renders, with a `required-green` advisory",
+          r_g == [] and len(adv_g) == 1 and adv_g[0].startswith("required-green: required context `gate`"))
+    r_r, adv_r, _ = build({**clean, "gate": gate_digest(redgate), "required_read": ("RED", "pending: none red: gate")})
+    check("null control: a required red that classify --pr reads RED still refuses, naming classify's line",
+          len(r_r) == 1 and r_r[0].startswith("required-red: required context `gate`")
+          and "RED pending: none red: gate" in r_r[0] and adv_r == [])
     with tempfile.TemporaryDirectory() as d:
         stub = Path(d) / "classify.sh"
         stub.write_text('echo "$*" > "$(dirname "$0")/argv"; echo "${PK_OUT:-}"; exit "${PK_RC:-1}"\n')
