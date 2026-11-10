@@ -1,0 +1,3 @@
+  UNGATED step 'Show the figure-block renderer refusing its own fixtures': its if: does not read steps.scope.outputs.<its own id>
+  STALE tools/ci/selftest_closures.json: its steps differ from the workflow's: missing [], extra ['figure-block'] -- re-record the changed step(s) with `python3 tools/ci/selftest_scope.py record --step ID`
+selftest_scope static: 107 gated step(s), 2 problem(s)

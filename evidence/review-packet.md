@@ -5,56 +5,59 @@ base: 01782a1e3c327cbfb69784b8e676359e5bcfa079
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=129557070912 neutral
-arch-score / arch-score id=129556022661 success
+CodeQL id=129557070912 success
+arch-score / arch-score id=129684185419 success
 arm id=129555378546 skipped
-budget-raise-gate / budget-raise-gate id=129556022464 success
-cancel-superseded id=129555389781 success
+budget-raise-gate / budget-raise-gate id=129684186156 success
+cancel-superseded id=129684212397 success
 codeql id=129555864717 skipped
-codeql / Analyze (actions) id=129556022565 success
-codeql / Analyze (javascript-typescript) id=129556023153 success
-codeql / Analyze (python) id=129556022566 in_progress
+codeql / Analyze (actions) id=129684185561 success
+codeql / Analyze (javascript-typescript) id=129684223092 success
+codeql / Analyze (python) id=129684185501 success
 gate id=129556518452 failure
 governance id=129555865613 skipped
-governance / delivery-status id=129556022674 success
-governance / delivery-status-publish id=129556025260 skipped
-governance / env-matrix id=129556022783 success
-governance / instrument-self-tests id=129556022687 success
-governance / policy-docs id=129556022729 success
-governance / record id=129556024462 skipped
-governance / wave-script id=129556022693 success
+governance / delivery-status id=129684185599 skipped
+governance / delivery-status-publish id=129684185301 skipped
+governance / env-matrix id=129684185114 success
+governance / instrument-self-tests id=129684183674 in_progress
+governance / policy-docs id=129684229290 success
+governance / record id=129684229354 skipped
+governance / wave-script id=129684183721 failure
 hassfest id=129555864993 skipped
-hassfest / hassfest id=129556022521 success
-kernel-points id=129556023877 skipped
+hassfest / hassfest id=129684185788 success
+kernel-points id=129684220830 skipped
 pr-contract id=129556519887 skipped
-prelude id=129555390124 success
-refresh id=129555390046 success
+prelude id=129684183977 success
+refresh id=129684184532 skipped
 tests id=129555864695 skipped
-tests / arch-instrument id=129557348449 in_progress
-tests / briefs id=129556022308 success
-tests / browser id=129557348390 success
-tests / claims-autofix id=129566833536 success
-tests / closure-scope id=129556022459 success
-tests / closures id=129557348599 in_progress
-tests / coverage id=129557348441 success
-tests / coverage-ratchet id=129566145580 success
-tests / fast (3.14) id=129557348420 failure
-tests / graders-head-copy id=129566145505 success
-tests / mutation id=129556022273 success
-tests / mutation-autofix id=129556947237 skipped
-tests / mutation-pins id=129556946888 skipped
-tests / nightly-ha id=129557349889 skipped
-tests / nightly-status id=129556022405 success
-tests / replay id=129557351389 skipped
-tests / typing id=129557348406 success
+tests / arch-instrument id=129684186648 success
+tests / briefs id=129684224549 success
+tests / browser id=129684187245 success
+tests / ci-ratchet id=129684187770 skipped
+tests / claims-autofix id=129684187984 skipped
+tests / closure-scope id=129684185911 success
+tests / closures id=129684186919 success
+tests / closures-autofix id=129684187590 skipped
+tests / coverage id=129684186978 success
+tests / coverage-ratchet id=129684187860 success
+tests / fast (3.14) id=129684187013 success
+tests / graders-head-copy id=129684187719 skipped
+tests / lane-proofs id=129684188359 skipped
+tests / mutation id=129684185987 success
+tests / mutation-autofix id=129684186743 skipped
+tests / mutation-pins id=129684185738 skipped
+tests / nightly-ha id=129684186552 skipped
+tests / nightly-status id=129684185569 skipped
+tests / replay id=129684186657 skipped
+tests / typing id=129684186801 success
 validate id=129555865832 skipped
-validate / validate-hacs id=129556022277 success
+validate / validate-hacs id=129684220953 success
 
 ## Refusals
-required-red: required context `gate` concluded failure at 46f0637251e85de671f9870b60fbb852515c0989
+red-unanswered: concluded red check `governance / wave-script` is not named in ## Red checks
 
 ## Advisories
-none
+required-wait: required context `gate` reads concluded failure at 46f0637251e85de671f9870b60fbb852515c0989 in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
 
 ## carry_audit at the head
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
