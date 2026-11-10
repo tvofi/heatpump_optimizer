@@ -984,6 +984,15 @@ class MainMoved(Stop):
         super().__init__(step, why, cls=MAIN_MOVED)
 
 
+class HeadRed(Stop):
+    """A head's required contexts concluded red (step "ci"): <red> the names, <head> the sha.
+    Under --skip-bad a skip whose red holds GATE is the rejoin's candidate (`Train.rejoin`)."""
+
+    def __init__(self, why: str, head: str, red: "list[str]") -> None:
+        super().__init__("ci", why)
+        self.head, self.red = head, red
+
+
 def classified(s: Stop) -> str:
     """<why>, prefixed `[<class>] ` when the stop is one of the known shapes."""
     return f"[{s.cls}] {s.why}" if s.cls else s.why
@@ -1219,6 +1228,51 @@ def spool_edit_locked(t: "Train", pr: int, op: str) -> int:
     spool_rewrite(t.state, (mine + rest) if op == "front" else rest)
     t.log(f"{'FRONT' if op == 'front' else 'REMOVED'} #{pr}: spool read back: {spool_order(t.state)}")
     return 0
+
+
+def bus_registry() -> Path:
+    """bus.sh's worker registry, `$S/dispatched`, where `S=${HPO_BUS_STATE:-$HOME/.zcode/bus}`."""
+    return Path(os.environ.get("HPO_BUS_STATE") or Path.home() / ".zcode" / "bus") / "dispatched"
+
+
+def dispatch_order(registry: str, pr: int, head: str, nonce: str) -> "tuple[str, int] | None":
+    """(utc, line index) of <nonce>'s FIRST record for <pr> at <head> in bus.sh's
+    registry (`<pr> <head> <reviewer> <nonce> <utc> <model>`), its mint: a
+    `--nonce` re-record later is the same dispatch. None when no such record
+    exists or it predates the utc field. The registry is append-only, so the
+    index orders a same-second pair. A mint with no time is not dated by a
+    later re-record: the dispatch happened before that."""
+    for i, ln in enumerate(registry.splitlines()):
+        f = ln.split() + ["", ""]  # a short line reads as empty fields, never an IndexError
+        if f[:2] == [str(pr), head] and f[3] == nonce:
+            try:  # bus.sh writes `date -u +%FT%TZ`; anything else is no time
+                datetime.datetime.strptime(f[4], "%Y-%m-%dT%H:%M:%SZ")
+            except ValueError:
+                return None
+            return f[4], i
+    return None
+
+
+def stale_merge(pr: int, head: str, merge: "str | None", blocked: "list[str | None]", registry: str) -> "str | None":
+    """P393 (triage batch 127): the merge verdict at <head>, nonce <merge>, is
+    refused when a blocked verdict at the same head carries a different nonce
+    dispatched after it (a later reviewer's finding stands), and refused with
+    the reason when either dispatch time is missing. A blocked verdict posted
+    under the merge's own nonce is that reviewer's revision; None admits."""
+    for b in blocked:
+        if merge is not None and b == merge:
+            continue
+        mt = dispatch_order(registry, pr, head, merge) if merge else None
+        bt = dispatch_order(registry, pr, head, b) if b else None
+        if mt is None or bt is None:
+            return (f"stale merge verdict undecidable: a blocked verdict at {head[:12]} carries nonce "
+                    f"{(b or 'none')[:8]} and the merge verdict {(merge or 'none')[:8]}; "
+                    f"{'the merge' if mt is None else 'the blocked'} verdict's dispatch time is not in "
+                    f"bus.sh's registry ({bus_registry()})")
+        if mt < bt:
+            return (f"stale merge verdict: its nonce {merge[:8]} was dispatched at {mt[0]}, before the blocked "
+                    f"verdict's {b[:8]} at {bt[0]}, at the same head {head[:12]}: the later finding stands")
+    return None
 
 
 def already_held(pr: int, verdict: "str | None", seen: dict, spooled: "set[int]") -> "str | None":
@@ -1459,7 +1513,7 @@ class Train:
                  skip_bad: bool = False, overlap: bool = False,
                  approval_carry: bool = False, main_moved_tries: int = 0,
                  bot_prs: bool = False, pre_flight: bool = False,
-                 free_holders: bool = False, critical=None,
+                 free_holders: bool = False, critical=None, outside=None, hotfix=None,
                  clock: "callable" = time.monotonic, wall: "callable" = time.time, stamp: bool = False) -> None:
         self.repo, self.state, self.mandate, self.role = repo, state, mandate, role
         if base != "main" and not base.startswith("batch/"):
@@ -1493,6 +1547,12 @@ class Train:
         # P289: is an entry on the critical path (item -> bool); the roster's
         # reading by default, a fixture's in the self-test.
         self.critical = critical or self._critical
+        # Is an entry an accepted outside contribution (item -> bool): its group by
+        # branch, else by `resume.pr` for a fork head; the roster's by default.
+        self.outside = outside or self._outside
+        # Is an entry's group a hotfix (`roster_lib.is_hotfix`), the --priority
+        # tier without the flag; the roster's by default.
+        self.hotfix = hotfix or self._hotfix
         self.cp_read: "tuple[dict, set] | None" = None  # (roster, critical ids), read once per run
         self.skipped: list[dict] = []
         self.approved: dict[int, str] = {}  # {pr: head} this run approved (P86: never twice at one head)
@@ -1713,23 +1773,56 @@ class Train:
         self.log(f"BOT #{n} not merged at {h[:8]} ({st[:80]}) refused: {said[:200]}")
         return None
 
+    def _roster_group(self, item: dict) -> "tuple[str | None, set]":
+        """(<item>'s roster group id or None, the critical-path ids): its branch
+        mapped by roster_lib.group_for_branch, else its pull request by
+        roster_lib.group_for_pr (a fork head carries no branch of ours); the
+        roster and the path read once per run at the roster's reader ref. A read
+        that raises is not retried per entry and is the caller's to catch."""
+        import roster_lib
+        if self.cp_read is None:
+            self.cp_read = ({}, set())  # first: a read that raises is not retried per entry
+            ref = roster_lib.reader_ref(str(ROOT), None)
+            self.cp_read = (roster_lib.show_roster(str(ROOT), ref),
+                            roster_lib.critical_path_groups(str(ROOT), ref) or set())
+        roster, crit = self.cp_read
+        gid = roster_lib.group_for_branch(roster, item.get("branch") or "")
+        if not gid and item.get("pr") is not None:
+            gid = roster_lib.group_for_pr(roster, item["pr"])
+        return gid, crit
+
     def _critical(self, item: dict) -> bool:
-        """P289: is <item>'s group on the critical path -- its branch mapped
-        by roster_lib.group_for_branch, the path read by critical_path_groups,
-        both at the roster's reader ref, once per run. Anything unread is
-        nothing critical: today's order, the record PR first."""
+        """P289: is <item>'s group on the critical path (`_roster_group`'s group
+        against its path). Anything unread is nothing critical: today's order,
+        the record PR first."""
         try:
             import roster_lib
-            if self.cp_read is None:
-                self.cp_read = ({}, set())  # first: a read that raises is not retried per entry
-                ref = roster_lib.reader_ref(str(ROOT), None)
-                self.cp_read = (roster_lib.show_roster(str(ROOT), ref),
-                                roster_lib.critical_path_groups(str(ROOT), ref) or set())
-            roster, crit = self.cp_read
-            gid = roster_lib.group_for_branch(roster, item.get("branch") or "")
+            gid, crit = self._roster_group(item)
             return bool(gid) and roster_lib.norm_group(gid) in crit
         except Exception:
             return False
+
+    def _roster_is(self, item: dict, pred: str) -> bool:
+        """Does `roster_lib.<pred>` hold for <item>'s group (`_roster_group`'s).
+        Anything unread is False: today's order."""
+        try:
+            import roster_lib
+            gid, _ = self._roster_group(item)
+            roster = self.cp_read[0]
+            return bool(gid) and any(getattr(roster_lib, pred)(g) for g in roster.get("groups", [])
+                                     if g.get("group") == gid)
+        except Exception:
+            return False
+
+    def _outside(self, item: dict) -> bool:
+        """Is <item>'s group an accepted outside contribution (owner ruling tvofi
+        2026-11-07, triage P420: `roster_lib.is_outside`)."""
+        return self._roster_is(item, "is_outside")
+
+    def _hotfix(self, item: dict) -> bool:
+        """Is <item>'s group a hotfix (`roster_lib.is_hotfix`: a HOTFIX name or
+        kind "bug"), which outranks outside (triage P420) with or without --priority."""
+        return self._roster_is(item, "is_hotfix")
 
     def carry_refusal(self, pr: int, verdict: str, h: str, o: str) -> Stop:
         """The `--carry` refusal, classified when its shape is the known one:
@@ -2351,7 +2444,8 @@ class Train:
         h = self.head(pr)
         if not is_sha(h):
             raise Stop("head", f"could not read the head: {h[:120]}")
-        if not self.contains_main(h):
+        item.pop("nr_base", None)
+        if not self.contains_main(h) and not self.merges_as_is(item, h):
             self.hold_refresh()  # a recarry is 5-15 min in app_push's prepr; --overlap's up-front loop is not a wait
             br = item.get("branch") or self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "headRefName", "--jq", ".headRefName")
             wt = Path(item.get("worktree") or self.state / "wt" / str(pr))
@@ -2376,6 +2470,9 @@ class Train:
             code, o = self.run(["bash", tool("remerge_main"), str(pr), str(wt), br, str(body)])
             if "MERGE CONFLICT" in o:
                 raise Stop("recarry", "main does not merge without a resolution; that is a fixer's, and a re-review")
+            failed = next((ln.strip() for ln in o.splitlines() if ln.startswith("REMERGE FAILED")), None)
+            if failed:  # carry f7d2bf7c: git failed before any conflict, so nothing is owed a fixer
+                raise Stop("recarry", f"{failed}; run the train again once git answers")
             if "PUSHED" not in o:
                 # R9-RC-RECARRY-READBACK: app_push.sh --recarry confirms a race
                 # inside its own bounded read-back, so no PUSHED here is a real
@@ -2407,9 +2504,31 @@ class Train:
             raise self.bot_refusal(pr, h, bot)
         return h
 
+    def merges_as_is(self, item: dict, h: str) -> bool:
+        """Card 5 (tvofi, 2026-11-07): whether <h>, which lacks origin/main,
+        merges as it stands -- no recarry and no fresh CI run. True only when
+        RULESET requires no up-to-date branch (`strict_update` False: a strict
+        or unreadable policy recarries as before), no grade holds the car (a
+        held red is answered by a recarry and CI), git's merge of origin/main
+        and <h> is clean (a conflict is the one content reason to recarry), and
+        <h> is no GITHUB_TOKEN tip (whose cure is the recarry's App push). Then
+        item["nr_base"] is the merge base, the tree <h>'s CI read, and the
+        merge is graded against it at the merge (`grade_merge`)."""
+        pr = item["pr"]
+        if item.get("grade_held") or self.strict_update() is not False:
+            return False
+        got = self.merge_tree(self.git("rev-parse", "origin/main"), h)
+        if got is None or got[1] or self.bot_tip(h):
+            return False
+        item["nr_base"] = self.git("merge-base", "origin/main", h)
+        self.log(f"#{pr} no recarry: {h[:8]} merges with origin/main cleanly (merge tree {got[0][:8]}) and "
+                 f"{RULESET} requires no up-to-date branch; the proven head merges, graded at the merge")
+        return True
+
     def one(self, item: dict) -> None:
         self.hold_refresh()  # per item: a long item must not age the hold stale
-        self.serial(item, self.recarry(item), None)
+        h = self.recarry(item)
+        self.serial(item, h, item.get("nr_base"))
 
     def serial(self, item: dict, h: str, rb: "str | None") -> None:
         """`at_head`, recovering a MainMoved up to --main-moved-tries times: a
@@ -2433,7 +2552,8 @@ class Train:
                     raise
                 self.log(f"#{item['pr']} [MAIN-MOVED] {s.step}: {s.why}; recarry "
                          f"{n + 1}/{self.main_moved_tries} onto the new main, then CI again")
-                h, rb = self.recarry(item), None
+                h = self.recarry(item)
+                rb = item.get("nr_base")
             except Stop:
                 if item.pop("sweep_after", False):
                     self.sweep_bots()  # the entry stopped: the record PR waits no longer
@@ -2447,7 +2567,7 @@ class Train:
         caller lands entries one at a time, an earlier still-pending entry
         never jumped by a later eligible one."""
         h = item.get("rc_head") or self.recarry(item)
-        self.serial(item, h, item.get("rc_base"))
+        self.serial(item, h, item.get("rc_base") or item.get("nr_base"))
 
     def at_head(self, item: dict, h: str, rb: "str | None", req: "list[str] | None") -> None:
         """Steps 2-7 at a settled head: wait its CI, carry the verdict, land
@@ -2468,7 +2588,7 @@ class Train:
         red = [n for n in self.wait_ci(h, only=req) if n not in self.ignore]
         self.log(f"#{item['pr']} {h[:8]} ci red={red}")
         if red:
-            raise Stop("ci", "red at the head: " + ", ".join(red))
+            raise HeadRed("red at the head: " + ", ".join(red), h, red)
         if GATE in req:
             self.cross_check(item["pr"], h)
         self.run(["git", "fetch", "-q", "origin", h])
@@ -2709,7 +2829,7 @@ class Train:
             if not last_logged or waited - last_logged >= POLL_SECONDS:
                 last_logged = waited
                 self.log(f"#{pr} review run(s) {', '.join(open_)} at {h[:8]} still running; the merge waits "
-                         f"({int(waited)} s of {self.polls * (REVIEW_POLL_SECONDS + POLL_SECONDS)} s)")
+                         f"({int(waited)} s of {self.wait_cap_s()} s)")
 
     def release_worktrees(self) -> None:
         """Before the run's closing line (and again, a no-op, in `train`/`batch`'s
@@ -3016,7 +3136,41 @@ class Train:
         got = proof_watch.parse_verdict(first)
         if got is None or got[0] != "merge":
             return f"the newest verdict is {got[0] if got else 'unparsed'}: {first[:120]}"
+        why = self.stale_verdict(n, tip, got[1])
+        if why:
+            return why
         return got[1], str(v.get("id"))
+
+    def stale_verdict(self, n: int, tip: str, head: str) -> "str | None":
+        """P393: None, or why the merge verdict at verdict/<n>'s <tip> is stale. Every
+        older `blocked <head>` commit on verdict/<n> is a finding at the same head;
+        `stale_merge` rules on their bus-nonces (VERDICT.md, which each verdict
+        commit carries as its review tree) against bus.sh's dispatch registry. An
+        unreadable history refuses: it is never read as no blocked verdict."""
+        import proof_watch
+        if self.run(["git", "fetch", "-q", "origin", f"verdict/{n}"])[0]:
+            return f"stale merge verdict undecidable: verdict/{n}'s history could not be read (fetch failed)"
+        code, o = self.run(["git", "log", "--format=%H%x00%s", tip])
+        if code:
+            return f"stale merge verdict undecidable: verdict/{n}'s history could not be read: {o.strip()[-120:]}"
+        blocked = []
+        for ln in o.splitlines():
+            c, _, subj = ln.partition("\x00")
+            m = re.match(rf"verdict: #{n} (.*)$", subj)
+            if c != tip and m and proof_watch.parse_verdict(m.group(1)) == ("blocked", head):
+                blocked.append(c)
+        if not blocked:
+            return None
+
+        def nonce(c: str) -> "str | None":
+            code, o = self.run(["git", "show", f"{c}:VERDICT.md"])
+            return None if code else proof_watch.verdict_nonce(o)
+
+        try:
+            registry = bus_registry().read_text()
+        except OSError:
+            registry = ""
+        return stale_merge(n, head, nonce(tip), [nonce(c) for c in blocked], registry)
 
     # ------------------------------------------------------------- the batch
     def git(self, *argv: str) -> str:
@@ -3028,16 +3182,27 @@ class Train:
     def tree(self, rev: str) -> str:
         return self.git("rev-parse", f"{rev}^{{tree}}")
 
-    def required(self, pr_head: bool = False) -> list[str]:
-        """The ruleset's required contexts, read live; less PR_ONLY unless
-        <pr_head> (a pull request's head carries those; main and a proof never)."""
+    def _checks_rule(self, field: str) -> "tuple[bool, str]":
+        """RULESET's required_status_checks rule's <field> (a jq path under
+        .parameters), read live: (read ok, the jq output)."""
         code, rid = self.run(["gh", "api", f"repos/{self.repo}/rulesets", "--jq",
                               f'.[] | select(.name == "{RULESET}") | .id'])
         code2, o = self.run(["gh", "api", f"repos/{self.repo}/rulesets/{rid.strip()}", "--jq",
-                             '.rules[] | select(.type == "required_status_checks")'
-                             ' | .parameters.required_status_checks[].context'])
+                             '.rules[] | select(.type == "required_status_checks") | .parameters' + field])
+        return not (code or code2 or not rid.strip().isdigit()), o
+
+    def strict_update(self) -> "bool | None":
+        """Whether RULESET requires a branch up to date before its merge
+        (`strict_required_status_checks_policy`), read live; None unreadable."""
+        ok, o = self._checks_rule(".strict_required_status_checks_policy")
+        return {"true": True, "false": False}.get(o.strip()) if ok else None
+
+    def required(self, pr_head: bool = False) -> list[str]:
+        """The ruleset's required contexts, read live; less PR_ONLY unless
+        <pr_head> (a pull request's head carries those; main and a proof never)."""
+        ok, o = self._checks_rule(".required_status_checks[].context")
         names = sorted({n.strip() for n in o.splitlines() if n.strip()} - set(() if pr_head else PR_ONLY))
-        if code or code2 or not rid.strip().isdigit() or not names:
+        if not ok or not names:
             raise Stop("proof", f"could not read {RULESET}'s required contexts; no proof is judged against a guessed list")
         return names
 
@@ -3072,7 +3237,7 @@ class Train:
         # composed-proof) must never hold a batch whose required set is green.
         red = [n for n in self.wait_ci(h, only=head_req) if n not in self.ignore]
         if red:
-            raise Stop("ci", f"#{pr} red at its head: " + ", ".join(red))
+            raise HeadRed(f"#{pr} red at its head: " + ", ".join(red), h, red)
         if self.real:
             o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]
             if "CARRY: yes" not in o:
@@ -3486,6 +3651,60 @@ class Train:
             if read_pid(self.state / QUEUE_OPEN) == os.getpid():
                 queue_seen_write(self.state, self._seen)
 
+    def rejoin_candidate(self, item: dict, s: Stop, rejoin: list) -> None:
+        """Card 1: queue a skip for `rejoin` when its Stop is a head red holding
+        GATE -- the deferral-shaped red a later read can turn GREEN; any other
+        skip is final, as before. The entry is kept as queued: a recarry it
+        rejoins with is its own."""
+        if isinstance(s, HeadRed) and GATE in s.red:
+            keep = {k: v for k, v in item.items() if k not in ("rc_head", "rc_base", "nr_base")}
+            rejoin.append((keep, s.head, self.clock()))
+
+    def wait_cap_s(self) -> int:
+        """The train's one wait cap in seconds, `polls` x (REVIEW_POLL_SECONDS +
+        POLL_SECONDS): the review-run wait's ceiling and the rejoin's bound."""
+        return self.polls * (REVIEW_POLL_SECONDS + POLL_SECONDS)
+
+    def rejoin(self, waiting: "list[tuple[dict, str, float]]", req: "list[str]") -> None:
+        """Card 1 (tvofi, 2026-11-07): each entry this batch SKIPped on a red
+        GATE rejoins the train, through the serial path, once its skipped head
+        classifies GREEN (`classify_at`, the reading `classify` prints) -- no
+        add and no merge seat. RED stays skipped (a real red never rejoins), and
+        so does a head still WAIT `wait_cap_s` after its skip, or one the branch
+        moved off (a new head owes a new verdict). It runs after the batch's own
+        merges, so no wait here holds one; a rejoin refused again is skipped
+        again, its earlier row replaced."""
+        cap = self.wait_cap_s()
+        while waiting:
+            later = []
+            for item, h, since in waiting:
+                pr = int(item["pr"])
+                if self.head(pr) != h:
+                    self.log(f"REJOIN #{pr}: the head moved off {h[:8]}; stays skipped")
+                    continue
+                runs = self._check_runs(h)
+                state = "wait" if runs is None else self.classify_at(h, runs, req)[0]
+                if state == "green":
+                    self.log(f"REJOIN #{pr}: GREEN at {h[:8]}, {int(self.clock() - since)} s after its skip; "
+                             "it rejoins this train")
+                    try:
+                        self.one(item)
+                    except Stop as s:
+                        if s.step == "main":
+                            raise
+                        self.skipped = [r for r in self.skipped if r["pr"] != pr]
+                        self.skip(pr, "post-merge" if self.is_merged(pr) else s.step, f"#{pr} {s.why}", s.cls)
+                elif state == "red":
+                    self.log(f"REJOIN #{pr}: RED at {h[:8]}; stays skipped (a real red never rejoins)")
+                elif self.clock() - since >= cap:
+                    self.log(f"REJOIN #{pr}: still WAIT at {h[:8]} past the {cap} s cap; stays skipped")
+                else:
+                    later.append((item, h, since))
+            waiting = later
+            if waiting:
+                self.hold_refresh()  # the rejoin's wait is a train wait: the record beat stays held
+                self.sleep(min(POLL_SECONDS, HEARTBEAT_SECONDS))
+
     def skip_report(self, total: int) -> None:
         """`--skip-bad`'s closing report: the skipped list under the state dir
         and one line the orchestrator's tooling can grep. An entry this train
@@ -3554,17 +3773,24 @@ class Train:
 
     def drain_order(self, added: "list[dict]") -> "list[dict]":
         """P312: a spool drains into the next batch in an explicit order: entries
-        added with `--priority` (HOTFIX) or `--front` (P112: the entry the spool
-        puts first) first, in spool order, then critical-path entries
+        added with `--priority` (HOTFIX), a roster hotfix (`self.hotfix`) or
+        `--front` (P112: the entry the spool puts first) first, in spool order,
+        then outside entries (owner ruling tvofi
+        2026-11-07, triage P420: `self.outside`), then critical-path entries
         (`self.critical`, the branch read only when two or more wait), then
-        arrival order. Python's sort is stable, so ties keep the spool's order."""
+        arrival order. An entry maps to its group by branch, else by its pull
+        request. Python's sort is stable, so ties keep the spool's order."""
         if len(added) < 2:
             return added
-        def crit(e: dict) -> bool:
+        def item(e: dict) -> dict:
             b = e.get("branch") or self.out("gh", "pr", "view", str(e["pr"]), "--repo", self.repo,
                                            "--json", "headRefName", "--jq", ".headRefName").strip()
-            return bool(self.critical({"branch": b}))
-        return sorted(added, key=lambda e: (not (e.get("priority") or e.get("front")), not crit(e)))  # mut:drain
+            return {"branch": b, "pr": e["pr"]}
+        items = {id(e): item(e) for e in added}
+        return sorted(added, key=lambda e: (not (e.get("priority") or e.get("front")
+                                                 or self.hotfix(items[id(e)])),  # mut:drain-hotfix
+                                            not self.outside(items[id(e)]),  # mut:drain-outside
+                                            not self.critical(items[id(e)])))  # mut:drain
 
     def queue_take(self, batches: "list[list[dict]]", k: int) -> bool:
         """Between batches: drain the spool into ONE new batch after those still
@@ -3717,6 +3943,7 @@ class Train:
         self.hold_refresh()  # before the sweep: the record beat waits for the batch
         self.branches: list[str] = []
         mine = len(self.skipped)  # this batch's skips start here: an earlier batch's never filter a re-added entry
+        rejoin: "list[tuple[dict, str, float]]" = []  # card 1: (entry, head, skipped at) per red-GATE skip
         try:
             mf = _fastpath()
             # P289: a batch holding a critical-path entry reads its base without
@@ -3750,6 +3977,7 @@ class Train:
                     if s.step == "main":
                         raise
                     self.skip(int(item["pr"]), s.step, s.why, s.cls)
+                    self.rejoin_candidate(item, s, rejoin)
             serial = [a for a in entries if a["route"]]
             # --overlap: re-carry every serial entry UP FRONT, before anything
             # merges, pushing each branch so all their pull_request runs fire
@@ -3768,7 +3996,8 @@ class Train:
                 for a in todo:
                     self.log(f"#{a['pr']} overlap: recarry start")
                     try:
-                        a["rc_head"], a["rc_base"] = self.recarry(a), rb
+                        a["rc_head"] = self.recarry(a)
+                        a["rc_base"] = a.get("nr_base") or rb
                     except Stop as s:
                         if s.step == "main" or not self.skip_bad:
                             raise
@@ -3855,6 +4084,9 @@ class Train:
                             raise Stop(s.step, f"#{a['pr']} {s.why}", cls=s.cls) from None
                         self.skip(a["pr"], "post-merge" if self.is_merged(a["pr"]) else s.step,
                                   f"#{a['pr']} {s.why}", s.cls)
+                        self.rejoin_candidate(a, s, rejoin)
+            if rejoin and self.real:
+                self.rejoin(rejoin, head_req)
         except Stop as s:
             self.release_worktrees()  # before the closing lines, which stay last
             self.hold_release()
@@ -4136,6 +4368,7 @@ def _self_test() -> int:
         world.setdefault("contains", [])
         world.setdefault("runs", green)
         opts.setdefault("critical", lambda it: False)  # never the live roster in a fixture
+        opts.setdefault("outside", lambda it: False)
         lines: list[str] = []
         timeline: list[tuple[str, str]] = []  # calls and log lines, in order
         run, calls = fake(world)
@@ -4968,6 +5201,11 @@ def _self_test() -> int:
     check("a missing-evidence refusal is not overridden by a mandate", rc == 1 and "app_approve.sh refused: REFUSE: the verdict cites" in lines[-1] and not approved(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "MERGE CONFLICT 7"})
     check("a recarry conflict stops it, named as one", rc == 1 and "without a resolution" in lines[-1] and not merged(calls))
+    rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "REMERGE FAILED 7 at fetch (rc=128)"})
+    check("carry f7d2bf7c: a remerge that failed before any conflict stops as a git failure -- never a "
+          "conflict, never read as a push that landed",
+          rc == 1 and "REMERGE FAILED 7 at fetch" in lines[-1] and "without a resolution" not in lines[-1]
+          and not merged(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0], "remerge": "REFUSE: body"})
     check("a recarry that pushed nothing and left the head where it was stops it (the refusal is real)",
           rc == 1 and "pushed nothing" in lines[-1] and not merged(calls))
@@ -5331,8 +5569,122 @@ def _self_test() -> int:
     _failed_marker_self_test(check)
     _add_self_test(check)
     _queue_self_test(check)
+    _stale_verdict_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _stale_verdict_self_test(check) -> None:
+    """P393 (R10-TRAIN-STALE-VERDICT-GUARD): a merge verdict at <head> whose
+    dispatch is older than a blocked verdict's at the same head is refused by
+    `posted_verdict`, so by the queue builder and `admit_add` alike. The bus is a
+    stubbed verdict/7 history; bus.sh's registry is a real file under a
+    temporary HPO_BUS_STATE."""
+    sys.modules.setdefault("merge_train", sys.modules[__name__])
+    import proof_watch
+    login, vid = (lambda a: (sorted(a[0])[0], a[1]))(proof_watch.verdict_allowlist(ROOT / "tools/pr/app_approve.sh"))
+    H, OTHER, T, BC, MC = "1" * 40, "3" * 40, "7" * 40, "b" * 40, "a" * 40
+    NM, NB = "a" * 32, "b" * 32
+    tmp = tempfile.TemporaryDirectory()
+
+    calls: list = []
+
+    def world(registry=None, blocked_head=H, blocked_nonce=NB, merge_nonce=NM, log_code=0, fetch_code=0):
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(argv)
+            if argv[:2] == ["git", "fetch"]:
+                # a successful fetch may still print (a redirect warning): its exit code decides
+                return (fetch_code, "fatal: couldn't find remote ref" if fetch_code else "warning: redirecting to https://x/")
+            if argv[:2] == ["git", "ls-remote"]:
+                return 0, f"{T}\trefs/heads/verdict/7\n"
+            if argv[:2] == ["gh", "api"] and "/comments" in a:
+                return 0, json.dumps([[{"id": 42, "created_at": "2026-11-06T23:00:00Z",
+                                        "user": {"login": login, "id": vid},
+                                        "body": f"Fix review: merge {H}\n\nbus: verdict/7 at {T}, confirmed\n"}]])
+            if argv[:2] == ["git", "log"]:  # verdict/7, newest first: the merge tip over a blocked one
+                return (log_code, "fatal: bad object" if log_code else
+                        f"{T}\x00verdict: #7 Fix review: merge {H}\n"
+                        f"{BC}\x00verdict: #7 Fix review: blocked {blocked_head} tests: red\n"
+                        f"{MC}\x00verdict: #7 Fix review: merge {OTHER}\n")
+            if argv[:2] == ["git", "show"] and argv[2].endswith(":VERDICT.md"):
+                n = {T: merge_nonce, BC: blocked_nonce}.get(argv[2].split(":")[0])
+                # A finding quoting the OTHER verdict's nonce in prose (PR 2465's shape) is not this one's.
+                quote = f"- a note on round 2's `bus-nonce: {NB if n != NB else NM}` line\n"
+                return (0, f"Fix review: x\n\n{quote}\nbus-nonce: {n}\n") if n else (0, f"Fix review: x\n\n{quote}")
+            if argv[:3] == ["gh", "pr", "view"]:
+                return 0, json.dumps({"state": "OPEN", "baseRefName": "main", "headRefOid": H})
+            if argv[:2] == ["git", "diff"]:
+                return 0, f"a.py\n{ROW_DIR}/7.md"
+            if "--corpus-filter" in a:  # admit_add's policy read: no fixture file is policy
+                return 0, "\n".join(f for f in (stdin or "").split() if f == "CLAUDE.md")
+            return 0, ""
+        d = Path(tempfile.mkdtemp(dir=tmp.name))
+        if registry is not None:
+            (d / "dispatched").write_text("".join(ln + "\n" for ln in registry))
+        return run, d
+
+    def posted(**w):
+        run, d = world(**w)
+        was = os.environ.get("HPO_BUS_STATE")
+        os.environ["HPO_BUS_STATE"] = str(d)
+        try:
+            t = Train("o/r", Path("."), None, "", (), 1, run=run, log=lambda m: None)
+            return t.posted_verdict(7, T, ({login}, vid)), t.admit_add({"pr": 7, "verdict": H, "verdict_comment": "42"})
+        finally:
+            if was is None:
+                os.environ.pop("HPO_BUS_STATE", None)
+            else:
+                os.environ["HPO_BUS_STATE"] = was
+
+    rec = lambda n, at, h=H: f"7 {h} cmsg_R {n} {at} opus"  # noqa: E731  bus.sh dispatch's six fields
+    stale, stale_add = posted(registry=[rec(NM, "2026-11-06T20:50:26Z"), rec(NB, "2026-11-06T22:13:28Z")])
+    check("stale verdict: STALE -- a merge verdict dispatched before a blocked verdict at the same head is refused "
+          "(PR 3232's times), by posted_verdict and as admit_add's `verdict` rule",
+          isinstance(stale, str) and stale.startswith("stale merge verdict:") and "aaaaaaaa" in stale
+          and "bbbbbbbb" in stale and (stale_add or "").startswith("verdict: stale merge verdict:"))
+    later, later_add = posted(registry=[rec(NB, "2026-11-06T22:13:28Z"), rec(NM, "2026-11-06T23:40:00Z")])
+    check("stale verdict: LATER (null control) -- the merge verdict's dispatch after the blocked one's is admitted",
+          later == (H, "42") and later_add is None)
+    same, same_add = posted(registry=[], blocked_nonce=NM)
+    check("stale verdict: SAME (null control) -- one nonce posted both verdicts, admitted with no dispatch time read",
+          same == (H, "42") and same_add is None)
+    for name, w in (("the merge verdict's nonce has no registry record", {"registry": [rec(NB, "2026-11-06T22:13:28Z")]}),
+                    ("the blocked verdict's nonce has no registry record", {"registry": [rec(NM, "2026-11-06T20:50:26Z")]}),
+                    ("a pre-R10-ORCH-DISPATCH-REG record stops at the nonce",
+                     {"registry": [f"7 {H} cmsg_R {NM}", rec(NB, "2026-11-06T22:13:28Z")]}),
+                    ("a mint before the utc field is not dated by a later --nonce re-record",
+                     {"registry": [f"7 {H} cmsg_R {NM}", rec(NM, "2026-11-06T23:40:00Z"),
+                                   rec(NB, "2026-11-06T22:13:28Z")]}),
+                    ("a malformed time is no time", {"registry": [rec(NM, "2026-11-06T25:61:00Z"),
+                                                                 rec(NB, "2026-11-06T22:13:28Z")]}),
+                    ("no registry file on this machine", {"registry": None}),
+                    ("the blocked verdict carries no bus-nonce", {"registry": [rec(NM, "2026-11-06T23:40:00Z")],
+                                                                  "blocked_nonce": None}),
+                    ("a record at another head is not this nonce's dispatch",
+                     {"registry": [rec(NM, "2026-11-06T23:40:00Z", OTHER), rec(NB, "2026-11-06T22:13:28Z")]})):
+        got = posted(**w)[0]
+        check(f"stale verdict: a missing dispatch time is refused with its reason ({name})",
+              isinstance(got, str) and got.startswith("stale merge verdict undecidable:"))
+    tie = posted(registry=[rec(NM, "2026-11-06T22:13:28Z"), rec(NB, "2026-11-06T22:13:28Z")])[0]
+    tie_later = posted(registry=[rec(NB, "2026-11-06T22:13:28Z"), rec(NM, "2026-11-06T22:13:28Z")])[0]
+    check("stale verdict: a same-second tie is ordered by the registry's append order (refused, then admitted)",
+          isinstance(tie, str) and tie.startswith("stale merge verdict:") and tie_later == (H, "42"))
+    skew = posted(registry=[rec(NB, "2026-11-06T22:13:28Z"), rec(NM, "2026-11-06T20:50:26Z")])[0]
+    check("stale verdict: the dispatch time decides, not the registry's line order (a merge dispatch recorded "
+          "after the blocked one but timed before it is refused)",
+          isinstance(skew, str) and skew.startswith("stale merge verdict:"))
+    calls.clear()
+    other = posted(registry=None, blocked_head=OTHER)[0]
+    check("stale verdict: a blocked verdict at another head is not this head's finding (admitted, no nonce read)",
+          other == (H, "42") and any(c[:2] == ["git", "log"] for c in calls)  # the read ran: the null below is not vacuous
+          and not any(c[:2] == ["git", "show"] for c in calls))
+    unread = posted(registry=[], log_code=128)[0]
+    unfetched = posted(registry=[], fetch_code=128)[0]
+    check("stale verdict: an unreadable verdict/<pr> history (log or fetch) is refused, never read as no blocked verdict",
+          isinstance(unread, str) and "history could not be read" in unread
+          and isinstance(unfetched, str) and "could not be read (fetch failed)" in unfetched)
+    tmp.cleanup()
 
 
 def _failed_marker_self_test(check) -> None:
@@ -5761,6 +6113,61 @@ def _queue_self_test(check) -> None:
           drain312(mk312(1, 4, prio=(4,))) == [4, 1])
     check("P312: priority, then critical path, then arrival: #4 (priority), #3 (critical), #1, #2",
           drain312(mk312(1, 2, 3, 4, prio=(4,))) == [4, 3, 1, 2])
+    # Owner ruling tvofi 2026-11-07 (triage P420): priority or front, then outside, then critical.
+    def drain420(entries, out=("out",), cp=("cp",), heads=None):
+        heads = heads or {1: "plain", 2: "cp", 3: "out", 4: "plain", 5: "out"}
+        def run(argv, cwd=ROOT, stdin=None):
+            return 0, heads[int(argv[3])] + "\n"
+        with tempfile.TemporaryDirectory() as dd:
+            t = Train("o/r", Path(dd), None, "", (), 1, run=run, log=lambda m: None,
+                      critical=lambda it: it["branch"] in cp, outside=lambda it: it["branch"] in out)
+            return [e["pr"] for e in t.drain_order(entries)]
+    check("P420: an outside entry (#3) drains ahead of a critical-path one (#2) and behind a priority one (#4)",
+          drain420(mk312(1, 2, 3, 4, prio=(4,))) == [4, 3, 2, 1])
+    check("P420: outside entries keep arrival order among themselves, ahead of the critical path",
+          drain420(mk312(1, 2, 3, 5)) == [3, 5, 2, 1])
+    check("P420 null: no outside entry orders byte-identically to P312's priority, critical, arrival",
+          drain420(mk312(1, 2, 3, 4, prio=(4,)), out=()) == [4, 2, 1, 3])
+    # The live read: a fork head (a branch no group claims) maps through resume.pr.
+    ros420 = {"groups": [{"group": "R10-OUT", "source": "outside", "resume": {"pr": 31, "branch": "handoff/r10-out"}},
+                         {"group": "R10-INT", "resume": {"pr": 32}}]}
+    def live420(roster, *items):
+        with tempfile.TemporaryDirectory() as dd:
+            tl = Train("o/r", Path(dd), None, "", (), 1, run=lambda *a, **k: (0, ""), log=lambda m: None)
+            tl.cp_read = (roster, set())
+            return [tl._outside(it) for it in items]
+    forks = ({"branch": "handoff/r10-out", "pr": 99}, {"branch": "someone:main", "pr": 31},
+             {"branch": "someone:main", "pr": 32}, {"branch": "someone:main", "pr": 77}, {"branch": "someone:main"})
+    check("P420 _outside: a branch maps to its group, a fork head through resume.pr; an internal group, "
+          "an unrecorded pull request and no pull request are not outside",
+          live420(ros420, *forks) == [True, True, False, False, False])
+    check("P420 _outside: a roster that cannot be read is internal, never outside",
+          live420(None, {"branch": "handoff/r10-out", "pr": 31}) == [False])
+    check("P420 _outside null: a roster with no source field has no outside entry",
+          live420({"groups": [{k: v for k, v in g.items() if k != "source"} for g in ros420["groups"]]}, *forks)
+          == [False] * 5)
+    # drain_order through the live reader: an entry with no branch of ours (a fork head)
+    # keeps its outside rank through `resume.pr`, so the item must carry the pull request.
+    def drain_live420(roster, entries, heads):
+        def run(argv, cwd=ROOT, stdin=None):
+            return 0, heads[int(argv[3])] + "\n"
+        with tempfile.TemporaryDirectory() as dd:
+            t = Train("o/r", Path(dd), None, "", (), 1, run=run, log=lambda m: None)
+            t.cp_read = (roster, set())
+            return [e["pr"] for e in t.drain_order(entries)]
+    ros_fork = {"groups": [{"group": "R10-F", "source": "outside", "resume": {"pr": 31}}]}
+    ent_fork = [{"pr": 7, "branch": "mine"}, {"pr": 31, "branch": "someone:main"}, {"pr": 8, "branch": "mine"}]
+    check("P420 drain_order: a fork-head outside entry (#31, branch no group claims) drains first through resume.pr",
+          drain_live420(ros_fork, ent_fork, {}) == [31, 7, 8])
+    ros_hf = {"groups": [{"group": "R10-F", "source": "outside", "resume": {"pr": 31}},
+                         {"group": "R10-HOTFIX-I", "kind": "instrument", "resume": {"pr": 8}}]}
+    check("P420 drain_order: a roster hotfix with no --priority flag (#8) drains ahead of an outside entry (#31)",
+          drain_live420(ros_hf, ent_fork, {}) == [8, 31, 7])
+    check("P420 drain_order null: the same group without a HOTFIX name drains behind the outside entry",
+          drain_live420({"groups": [ros_hf["groups"][0], {"group": "R10-I", "kind": "instrument", "resume": {"pr": 8}}]},
+                        ent_fork, {}) == [31, 7, 8])
+    check("P420 drain_order null: the same entries with no outside group keep arrival order",
+          drain_live420({"groups": [{"group": "R10-F", "resume": {"pr": 31}}]}, ent_fork, {}) == [7, 31, 8])
     check("P312 null: no priority and nothing critical keeps arrival order; one entry is untouched",
           drain312(mk312(1, 2, 4), cp=()) == [1, 2, 4] and drain312(mk312(2)) == [2])
     check("RECOMMENDED is the owner's six, each a flag batch accepts",
@@ -7066,6 +7473,12 @@ def _batch_self_test(check) -> None:
         runs = [{"name": n, "id": i, "status": "in_progress" if pend else "completed", "started_at": "1",
                  "conclusion": "failure" if over and n == w["ci_red"] else "success"}
                 for i, n in ((11, R0), (12, "policy-docs"))]
+        if w.get("gate_seq") is not None:  # the rejoin arms: GATE is required, its state per read
+            seq = w["gate_seq"].get(sha) or ["green"]
+            st = seq[min(w.get("cr_reads", {}).get(sha, 1), len(seq)) - 1]
+            runs.append({"name": GATE, "id": 17, "started_at": "1", "check_suite": {"id": 17},
+                         "status": "in_progress" if st == "wait" else "completed",
+                         "conclusion": None if st == "wait" else "failure" if st == "red" else "success"})
         if sha == w["base_sha"]:  # main's own push run writes every required context
             runs += [{"name": n, "id": 15, "status": "completed", "started_at": "1", "conclusion": "success"}
                      for n in w["required"].split() if n == "never-dispatched"]
@@ -7178,6 +7591,14 @@ def _batch_self_test(check) -> None:
                 return 0, "no script here"
             if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
                 return (0, "7") if w["required"] else (1, "HTTP 404")
+            if argv[:3] == ["gh", "api", "graphql"] and "statusCheckRollup" in a:  # A5's rollup: GitHub agrees
+                n = int(next(x for x in argv if x.startswith("pr="))[3:])
+                return 0, json.dumps({"data": {"repository": {"pullRequest": {"commits": {"nodes": [{"commit": {
+                    "oid": w["heads"][n], "statusCheckRollup": {"contexts": {"pageInfo": {"hasNextPage": False},
+                        "nodes": [{"__typename": "CheckRun", "name": GATE, "status": "COMPLETED",
+                                   "conclusion": "SUCCESS", "isRequired": True}]}}}}]}}}}})
+            if "rulesets/7" in a and "strict_required_status_checks_policy" in a:
+                return 0, w.get("strict", "true")  # today's world: an up-to-date branch is required
             if "rulesets/7" in a:
                 return 0, w["required"]
             if argv[:3] == ["gh", "workflow", "run"]:
@@ -7243,6 +7664,7 @@ def _batch_self_test(check) -> None:
             w["base_sha"] = g(w["R"], "rev-parse", base)[1]
             lines: list[str] = []
             opts.setdefault("critical", lambda it: False)  # never the live roster in a fixture
+            opts.setdefault("outside", lambda it: False)
             t = Train("o/r", Path(d) / "state", mandate, "the orchestrator", ignore, 1, run=stub(w),
                       sleep=lambda s: (w.setdefault("slept", []).append(s), w.get("on_sleep", lambda: None)()),
                       log=lambda ln: (lines.append(ln), w.get("on_log", lambda _ln: None)(ln)),
@@ -7607,6 +8029,47 @@ def _batch_self_test(check) -> None:
           "happens only after the earlier entries merged (recarry one, wait, merge, next)",
           w["rc"] == 0 and list(w["merged"]) == [3, 1, 2]
           and merges and recarries and min(merges) < min(recarries))
+    # CARD 5, NO RECARRY (R10-TRAIN-REJOIN-NO-RECARRY; tvofi 2026-11-07): under a ruleset requiring
+    # no up-to-date branch, a head whose merge with origin/main is clean merges as it stands -- the
+    # proven head, graded at the merge -- and only a merge-tree conflict (or a strict or unreadable
+    # policy) recarries.
+    for ov in (True, False):
+        v = dict(ovl)
+        w = go(v, base="main", setup=lambda w: (main_moved(w), w.update(remerge=True, strict="false",
+                                                                         verdicts=dict(w["heads"]))),
+               overlap=ov)
+        check(f"NO RECARRY (c){' --overlap' if ov else ''}: a clean merge tree against origin/main and an "
+              "unchanged proven head merge with no recarry, at the verdicted heads, each graded at its merge",
+              w["rc"] == 0 and list(w["merged"]) == [3, 1, 2] and not w.get("recarries")
+              and not any("recarry: main merged" in ln for ln in w["lines"])
+              and w["heads"] == w["verdicts"]
+              and all(any(ln.startswith(f"#{p} no recarry:") for ln in w["lines"]) for p in (1, 2))
+              and all(any(ln.startswith(f"#{p} grade: merge tree") and ln.endswith("green") for ln in w["lines"])
+                      for p in (1, 2)))
+    w = go({1: {".github/workflows/t.yml": "x\n"}}, base="main", overlap=True,
+           setup=lambda w: (main_moved(w), w.update(strict="false")))
+    check("NO RECARRY grades the un-recarried car against its merge base even when the batch moved nothing: "
+          "the merge tree with the foreign main is read before it lands",
+          w["rc"] == 0 and list(w["merged"]) == [1] and not w.get("recarries")
+          and any(ln.startswith("#1 grade: merge tree") and ln.endswith("green") for ln in w["lines"]))
+    for strict, why in (("true", "a strict policy"), ("", "an unreadable policy")):
+        w = go(ovl, base="main", setup=lambda w, s=strict: (main_moved(w), w.update(remerge=True, strict=s)),
+               overlap=True)
+        check(f"NO RECARRY null control: under {why} every serial head that lacks main is recarried, as today",
+              w["rc"] == 0 and list(w["merged"]) == [3, 1, 2] and sorted(w.get("recarries", [])) == [1, 2]
+              and not any(" no recarry:" in ln for ln in w["lines"]))
+
+    def main_conflicts(w):
+        (w["R"] / ".github/workflows/t.yml").write_text("main\n")
+        g(w["R"], "commit", "-qam", "main moved t.yml")
+    w = go({1: {".github/workflows/t.yml": "x\n"}, 2: {".github/workflows/u.yml": "y\n"}}, base="main",
+           setup=lambda w: (main_conflicts(w), w.update(remerge=True, strict="false")), overlap=True, skip_bad=True)
+    check("NO RECARRY null control (d): a merge-tree conflict against origin/main still recarries (the "
+          "recarry names the conflict), while the clean head beside it does not",
+          any("remerge_main.sh 1 " in c for c in w["calls_flat"])
+          and any(ln.startswith("SKIP #1 recarry:") and "main does not merge" in ln for ln in w["lines"])
+          and any(ln.startswith("#2 no recarry:") for ln in w["lines"]) and 2 in w["merged"]
+          and w.get("recarries", []) == [])
     w = go(ovl, base="main", setup=lambda w: (main_moved(w), w.update(remerge=True, pending_prs={1})),
            overlap=True)
     m1 = next((i for i, ln in enumerate(w["lines"]) if ln.startswith("#1 MERGED")), None)
@@ -7637,6 +8100,13 @@ def _batch_self_test(check) -> None:
           "none is possible); it recarries at its turn, after the earlier merges, and lands",
           w["rc"] == 0 and list(w["merged"]) == [3, 1, 2] and w.get("recarries") == [2]
           and any(ln.startswith("OVERLAP: recarrying #1 up front") for ln in w["lines"]))
+    w = go({1: {".github/workflows/t.yml": "x\n"}, 2: {"b.txt": "B\n"}, 3: {"a.txt": "A\n"}}, base="main",
+           setup=lambda w: w.update(remerge=True, strict="false", bot_heads={w["heads"][2]: "ci: pin killed mutants"}),
+           overlap=True)
+    check("NO RECARRY keeps a bot head's cure: under a non-strict ruleset a GITHUB_TOKEN tip with a clean "
+          "merge tree is still recarried (the App push), and lands",
+          w["rc"] == 0 and list(w["merged"]) == [3, 1, 2] and w.get("recarries") == [2]
+          and not any(ln.startswith("#2 no recarry:") for ln in w["lines"]))
 
     # THE OVERLAP GRADE (R10-TRAIN-OVERLAP-GRADE): the third-instance barrier
     # (6077bf70e, 143e2d0ac, a2576fcb2 -- #2586 landed on a tree no CI had
@@ -7654,6 +8124,13 @@ def _batch_self_test(check) -> None:
           list(w["merged"]) == [1, 2] and w["rc"] == 1 and w.get("recarries") == [3]
           and any(ln.startswith("TRAIN STOPPED grade") for ln in w["lines"])
           and any("the recarry produced the same tree, so the car is held" in ln for ln in w["lines"]))
+    w2 = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "w\n"},
+             3: {"tests/golden/claimed_drift.txt": "c\n", "red.txt": "x\n"}},
+            base="main", setup=lambda w: w.update(remerge=True, strict="false"), overlap=True, main_moved_tries=1)
+    check("NO RECARRY never skips the recarry a graded red holds: under a non-strict ruleset the held car is "
+          "still recarried for CI, then stopped on the same tree",
+          list(w2["merged"]) == [1, 2] and w2["rc"] == 1 and w2.get("recarries") == [3]
+          and any("the recarry produced the same tree, so the car is held" in ln for ln in w2["lines"]))
     check("THE OVERLAP GRADE: the red arm read the MERGE tree -- #3's own file was in the graded "
           "worktree, and the grade ran once per moved base (the recarry's identical tree is cached, "
           "not re-run)",
@@ -7775,6 +8252,74 @@ def _batch_self_test(check) -> None:
           "merges (the default did not change)",
           w["rc"] == 1 and not w["merged"] and not w["pushed"]
           and any(ln.startswith("TRAIN STOPPED ci:") and "#2" in ln for ln in w["lines"]))
+    # CARD 1, THE REJOIN (R10-TRAIN-REJOIN-NO-RECARRY; tvofi 2026-11-07): an entry SKIPped on a red
+    # GATE rejoins this train once its head classifies GREEN, within `wait_cap_s` of the skip, with
+    # no add; a head reading RED, or still WAIT at the cap, stays skipped and holds no merge.
+    def gated(seq):
+        def setup(w):
+            w.update(required=f"{R0}\npolicy-docs\n{GATE}\n", gate_seq={w["heads"][2]: seq},
+                     remerge=True, h2=w["heads"][2])
+        return setup
+
+    def ticking():
+        t = [0.0]
+
+        def clock() -> float:
+            t[0] += 60.0
+            return t[0]
+        return clock
+    two = {1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}
+    w = go(two, base="main", skip_bad=True, setup=gated(["red", "wait", "green"]), clock=ticking())
+    rj = [ln for ln in w["lines"] if ln.startswith("REJOIN #2")]
+    check("REJOIN (a): an entry SKIPped on a red gate whose head turns GREEN within the cap rejoins the "
+          "train and merges, with no add; the skip is CURED and the train exits 0",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and any("GREEN" in ln for ln in rj)
+          and any(ln.startswith("SKIP #2 ci:") and "red at its head: gate" in ln for ln in w["lines"])
+          and any(ln.startswith("CURED #2") for ln in w["lines"]) and w["skip_json"] == []
+          and w["cr_reads"].get(w["h2"], 0) >= 3 and w["lines"][-1] == "TRAIN DONE")
+    w = go(two, base="main", skip_bad=True, setup=gated(["red"]), clock=ticking())
+    rj = [ln for ln in w["lines"] if ln.startswith("REJOIN #2")]
+    check("REJOIN null control (b): a head whose classify reads RED stays SKIPped -- never re-run, "
+          "never recarried, reported, rc 1",
+          w["rc"] == 1 and sorted(w["merged"]) == [1] and len(rj) == 1 and "RED" in rj[0]
+          and "stays skipped" in rj[0] and sum(ln.startswith("SKIP #2 ") for ln in w["lines"]) == 1
+          and not any(ln.startswith("#2 recarry") for ln in w["lines"])
+          and [s["pr"] for s in (w["skip_json"] or [])] == [2])
+    w = go(two, base="main", skip_bad=True, setup=gated(["red", "wait"]), clock=ticking())
+    rj = [i for i, ln in enumerate(w["lines"]) if ln.startswith("REJOIN #2")]
+    m1 = next((i for i, ln in enumerate(w["lines"]) if ln.startswith("#1 MERGED")), None)
+    check("REJOIN null control (b): a head that never leaves WAIT stops at the cap and does not hold the "
+          "batch -- #1 merged before the rejoin's first read, #2 stays skipped, the train ends",
+          w["rc"] == 1 and sorted(w["merged"]) == [1] and bool(rj) and m1 is not None and m1 < rj[0]
+          and "cap" in w["lines"][rj[-1]] and "stays skipped" in w["lines"][rj[-1]]
+          and w["cr_reads"].get(w["h2"], 0) <= 3 + 2 * (2 * (REVIEW_POLL_SECONDS + POLL_SECONDS)) // 60
+          and w["slept"].count(min(POLL_SECONDS, HEARTBEAT_SECONDS)) == w["cr_reads"].get(w["h2"], 0) - 2
+          and w["lines"][-1] == "TRAIN DONE" and [s["pr"] for s in (w["skip_json"] or [])] == [2])
+    w = go(two, base="main", skip_bad=True, setup=lambda w: (gated(["red", "green", "red"])(w), w.update(strict="false")),
+           clock=ticking())
+    check("REJOIN: a rejoin refused again (red at its own CI wait) is skipped again, its row replaced, "
+          "one row and one skip for #2",
+          w["rc"] == 1 and sorted(w["merged"]) == [1] and any(ln.startswith("REJOIN #2: GREEN") for ln in w["lines"])
+          and [s["pr"] for s in (w["skip_json"] or [])] == [2]
+          and "red at the head: gate" in (w["skip_json"] or [{}])[0].get("reason", "")
+          and any(ln == "SKIP REPORT: 1 skipped of 2" for ln in w["lines"]) and w["lines"][-1] == "TRAIN DONE")
+    w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "x\n"}}, base="main", skip_bad=True,
+           setup=lambda w: (gated(["red", "green"])(w), w.update(strict="false")), clock=ticking())
+    check("REJOIN (a), serial: a serial entry SKIPped on a red gate at its turn rejoins once GREEN and merges",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2]
+          and any(ln.startswith("SKIP #2 ci: #2 red at the head: gate") for ln in w["lines"])
+          and any(ln.startswith("REJOIN #2: GREEN") for ln in w["lines"]))
+    w = go(two, base="main", skip_bad=True, clock=ticking(),
+           setup=lambda w: (gated(["red", "green"])(w), w.update(on_log=lambda ln: ln.startswith("SKIP #2")
+                                                                  and w["heads"].update({2: "f" * 40}))))
+    check("REJOIN: a skipped head the branch moved off does not rejoin -- a new head owes a new verdict",
+          w["rc"] == 1 and sorted(w["merged"]) == [1]
+          and any(ln.startswith("REJOIN #2: the head moved off") for ln in w["lines"])
+          and not any("GREEN" in ln for ln in w["lines"] if ln.startswith("REJOIN")))
+    w = go(two, base="main", skip_bad=True, setup=lambda w: (gated(["green"])(w), w["red"].add(w["h2"])),
+           clock=ticking())
+    check("REJOIN null control: a skip on a red that is not GATE is no rejoin candidate at all",
+          w["rc"] == 1 and sorted(w["merged"]) == [1] and not any(ln.startswith("REJOIN") for ln in w["lines"]))
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, cap=1, setup=redmain, skip_bad=True)
     w2 = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
             setup=lambda w: w.update(on_sleep=lambda: w["red"].add(w["base_sha"])), skip_bad=True)
