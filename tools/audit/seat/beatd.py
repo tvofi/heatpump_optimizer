@@ -914,13 +914,15 @@ def case6(prog, w, shim=SHIM):
     e = _shim_env(w / "plain")
     (w / "plain").mkdir()
     e["PATH"] = f"{sd}:{e['PATH']}"
-    st = subprocess.run(["git", "-C", str(ROOT), "status", "--short"], env=e,
-                        capture_output=True, text=True)
-    res["git status through the shim logs no retry"] = (
-        st.returncode == 0 and not (w / "plain" / "retry.log").exists())
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_init
     throwaway_git_init(w / "plain", "-q")
+    # A throwaway repo, never ROOT: status re-reads each racily clean entry,
+    # so on the live checkout its read set follows the checkout's mtimes.
+    st = subprocess.run(["git", "-C", str(w / "plain"), "status", "--short"], env=e,
+                        capture_output=True, text=True)
+    res["git status through the shim logs no retry"] = (
+        st.returncode == 0 and not (w / "plain" / "retry.log").exists())
     fe = subprocess.run(["git", "-C", str(w / "plain"), "fetch", "nowhere"], env=e,
                         capture_output=True, text=True)
     res["a missing remote fails once, git's message, no retry"] = (
