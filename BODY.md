@@ -39,7 +39,7 @@ none
 
 - Countermeasure A, the mechanical commit of the `selftest-closures` artifact on a push whose `drift` refuses only `UNDER-SCOPED` or missing-entry lines, through the `record/autofix` route. It changes `.github/workflows/` (code-owned), so it is a proposal for the owner, addressing state (c); its detector demonstration is owed by whoever builds it (section 5). Carry: dismissed: proposal for the owner, no stage brief changes before approval.
 - Countermeasure B, a `tools/pr/ci_predict.py` arm predicting an `instrument-self-tests` red per `selftest_scope.wiring_gaps` gap on a diff touching `governance.yml`. Carry: dismissed: proposal for the owner, no stage brief changes before approval.
-- Shape 2's instances (`ref_privacy.added_lines`, and beatd's suspected timing-dependent read set) are the live hotfix's own items (its brief's FIX line and step 4); nothing new to carry. Carry: R10-HOTFIX-MAIN-SELFTESTS
+- Shape 2's instances (`ref_privacy.added_lines`, and beatd's suspected timing-dependent read set) are the live hotfix's own items (its brief's FIX line and step 4); nothing new to carry. Carry: dismissed: the hotfix's own items, delivered by #3409 (merge 0c868b7d)
 
 ## Friction
 
