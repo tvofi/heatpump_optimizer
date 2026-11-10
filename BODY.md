@@ -1,31 +1,34 @@
-R10-DISPATCH-AT-HANDOFF: a reviewer is dispatched at the handoff, keyed by topic, with the carries the branch already held (bus.sh dispatch-handoff and rekey, open_pr.sh re-key, the relay's held handoff verdict arm, policy text, review_packet refusals). This repair merges origin/main into the handoff, which the opener had refused over one content conflict in tools/audit/seat/cloud_dispatch.py.
+R10-DISPATCH-AT-HANDOFF: a reviewer is dispatched at the handoff, keyed by topic, with the carries the branch already held (bus.sh dispatch-handoff and rekey, open_pr.sh re-key, the relay's held handoff verdict arm, policy text, review_packet refusals). This repair merges origin/main into the handoff, which was DIRTY over one content conflict in tools/audit/seat/review_packet.py.
+
+## Merge resolution only
+
+origin/main (0362916ac7c1daf994e042c41d79b7e4083414e3, #3403, read at 2026-11-10T05:31Z) was merged into the previous head 97839ed60f8b59cd59adc99d106b4e94ac4dccab; no other change. The one conflict, the dict `gather()` returns in tools/audit/seat/review_packet.py, was resolved by union: main's rename of `approval_owed_line` to `required_reading` (key `required_read`, with its `(word, why)` reader) and this branch's `head_named`, `figure_rc` and `pr_head` keys are all present. Read back against both parents: every line the merged file drops relative to the branch is main's `approval_owed` form, and every line it adds relative to main is this branch's head-note, figure-lint or moved-head work.
 
 ## Head note
 
-Repair merge: origin/main (6457496aba7b1076b1ed60c374c5badafdf66fc1, read at 2026-11-09T02:39Z) was merged into the handoff by e27484ffc9fb1f282974a35f02a470f657795e57; the head named under `## Head` is 5f28e55a. The one conflict, cloud_dispatch.py, was resolved by union: main's frugal-routing line, role-pack setup and merge-tree-only block rule (#3338 and its earlier commits) and this branch's handoff reviewer (topic-keyed revt ref, no packet, no CI wait) are all present. The previous merge's tip was 089f1da017e98a697a24e70c308f79beee9b8607. `git merge-tree --write-tree origin/main HEAD` exits 0 at 2026-11-09T14:43Z (origin/main then 53f4a051); main has moved since the merge, which needs no re-merge.
+Merge resolution of #3366 at origin/main 0362916ac7c1daf994e042c41d79b7e4083414e3. No code of this topic's own changed; the earlier mutation proof concerns cloud_dispatch.py and review_packet.py's own checks, both re-run green below at the merged head.
 
 ## Head
 
-9aa206952798f3db97440f9b17dcf41827a84cd2
-
-The four first-parent commits after the earlier measured head e27484ffc9fb1f282974a35f02a470f657795e57 (`git log --first-parent e27484ff..5f28e55a`): 7e61974e2 merged origin/main again (tip 3fdaa9da9); f2ca26a07 recorded the delivery row for #3366; 23a63ff9c registered `handoff-verdict-held` as a derived level kind in tools/audit/seat/ledger.py (one line, a census of cloud_relay.sh writers); 5f28e55aa merged origin/main (82a2c142f, #3325) into the handoff. No code of this topic's own changed since e27484ff; the mutation proof and null control above concern cloud_dispatch.py, which those commits do not touch beyond main's merges.
+3a633040ae79c3db452e7d21c91ee5a7e631155f
 
 ## Mutation proof
 
-Two mutants of the merged tools/audit/seat/cloud_dispatch.py, each run against `python3 tools/audit/seat/cloud_dispatch.py --self-test` and restored after:
-- Branch side: `ref_key = f"revt-{topic}" if at_handoff else f"rev-{pr}"` changed to `if False else`. Fails "a reviewer at the handoff returns on probe/revt-<topic>-<nonce8> with the subject `verdict <topic> <head>`" (146 checks, 1 failed).
-- Main side: the reviewer's "block on main only when that reports a conflict" text changed to "block on main whenever main moved, or a". Fails "the reviewer blocks on main only for a merge-tree conflict, never a clean head behind main" (146 checks, 1 failed).
+Unchanged from the earlier body: no production line of this topic changed in the merge. The merged review_packet.py self-test carries this branch's figure-lint, moved-head and P405 head-note checks alongside main's required-reading checks.
 
 ## Null control
 
-The unmutated merged file: `python3 tools/audit/seat/cloud_dispatch.py --self-test` prints "146 checks, 0 failed". The other instruments the merge touched pass their own self-tests at this head: closeout, machinery_ratchet, roster_edit, roster_lib, roster_queue, roster_sync, prune_refs, postmerge, orchestrator_tick, r10_mandate_guard_mutants and r10_roster_ops_mutants, each 0 failed.
+The unmutated merged tree's self-tests, listed under Figures, each report 0 failed.
 
 ## Figures
 
-- `python3 tools/audit/seat/cloud_dispatch.py --self-test`: 146 checks, 0 failed.
+- `python3 tools/audit/seat/review_packet.py --self-test` at 3a633040: 85 checks, 0 failed.
+- `bash tools/audit/seat/bus.sh --self-test` at 3a633040: 170 checks, 0 failed.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: MODE: SCOPED, running tests/doc_claims.py and tests/entities.py.
+- Scoped gate at 3a633040 with PYTHONPATH=tests/hastub: tests/doc_claims.py "ALL 297 checks PASSED"; tests/entities.py "ALL 2707 ENTITY CHECKS PASSED"; the run_always lines tests/env_drift.py --claims-only, tests/closure.py selftest, tests/layout.py and tests/harness_headers.py each rc 0.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
-- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh`: run at this head, origin/main unmoved since the merge; every step before the closures skip printed ok.
-- `git merge-tree --write-tree origin/main HEAD`: exit 0.
+- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` at 3a633040: rc 0, every step ok or skip, the closures step skipped by PREPR_SKIP_CLOSURES.
+- `git merge-tree --write-tree origin/main HEAD`: exit 0 at origin/main 0362916a.
 
 ## Red checks
 
@@ -41,11 +44,11 @@ none
 
 ## Approval
 
-Pending, not granted: this diff touches policy files (dev/governance/roles/standing-dispatch.md and dev/governance/roles/fix-review.md, both carried unchanged from the earlier handoff and main), which the owner approves by an approving review before merge (CLAUDE.md, policy section). No approval has been given; none is claimed here.
+Pending, not granted: this diff touches policy files (dev/governance/roles/standing-dispatch.md and dev/governance/roles/fix-review.md, carried unchanged), which the owner approves by an approving review before merge (CLAUDE.md, policy section). No approval has been given; none is claimed here.
 
 ## Carry dispositions
 
-Carried unchanged from the earlier body at handoff-body/r10-dispatch-at-handoff-p2 (the merge adds no carry work; the roster's 1-based numbering).
+Carried unchanged from the earlier body (the merge adds no carry work; the roster's 1-based numbering).
 
 - Carry 1: untouched here; it stands as the roster states it.
 - Carry 2: delivered at main, no re-fix.
