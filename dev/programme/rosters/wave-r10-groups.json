@@ -21864,6 +21864,43 @@
     "commit": null
    },
    "brief": "Main-red hotfix (orchestrator, 2026-11-10). governance / instrument-self-tests red on every main push since #3315 (ba6fd7e8b0). Three causes: (1) tools/audit/seat/ref_privacy.py added_lines ran git show REV:path on an absent diff side, so the push-names-the-host step read each merge's added files (a read set that moves every merge); (2) tools/ci/selftest_closures.json drifted after #3315; (3) #3361 (e79a0e78bc) added the step 'Show the workflow read runner refusing its own fixtures' with an if: not gated on its own scope output. FIX: show only diff sides that exist (name-status); re-record the table as the union of main's measurements; gate the step on its own id (precedent d9990a12f2) with a Linux-recorded entry. Check whether the beatd step's read set is timing-dependent. Root cause owed in its own seat: R10-RCA-MAIN-SELFTESTS-RED."
+  },
+  {
+   "lane": "IN",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "group": "R10-RCA-MAIN-SELFTESTS-RED",
+   "kind": "rca",
+   "class": "rca",
+   "files": [],
+   "hot_files": [],
+   "resume": {
+    "stage": "in-progress",
+    "note": "orchestrator 2026-11-10T05:36Z: root-cause seat trig_019DF7kA fired (cloud, opus)",
+    "pr": null,
+    "commit": null
+   },
+   "brief": "Root-cause seat (root-cause.md) beside R10-HOTFIX-MAIN-SELFTESTS: main governance / instrument-self-tests red on every push from #3315 (ba6fd7e8b0) on, three causes (ref_privacy absent-side git show, table drift, #3361 ungated step). Owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal. Known process gap: nothing commits the selftest-closures artifact when main goes red. Writes the round's RCA document named after this group under the RCA directory; no production code."
   }
  ]
 }
