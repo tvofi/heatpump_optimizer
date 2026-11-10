@@ -1,0 +1,3 @@
+in-window unmoved tips: result=12 trailer=57 none=81 code=138; refs with tip after 03:30Z=10
+{'same': 5, 'ancestor_merge_only': 25, 'new_nonmerge': 2, 'never': 49}
+earlier-trailer, different code: tree-equal=25 conflict=1 differ=1
