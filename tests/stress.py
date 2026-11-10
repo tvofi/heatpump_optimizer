@@ -1715,6 +1715,13 @@ def record_memory_table(combos: list[dict]) -> None:
         )
         rss_peak = float(probe["rss_mb"])
         traced_peak = float(probe["traced_mb"])
+        if probe.get("imported"):
+            # The record would carry first-call setup as the scenario's peak
+            # (solve_window_imports): refuse it rather than write it.
+            raise SystemExit(
+                f"--record-memory: {label}'s solve imported "
+                f"{', '.join(probe['imported'])} inside the traced window"
+            )
         return rss_peak, max(0.0, rss_peak - baseline), traced_peak
 
     for i, label in enumerate(ordered, 1):
@@ -3154,6 +3161,7 @@ def _memory_probe_main(argv: list[str]) -> int:
     the watermark it rides on.
     """
     spec = json.loads(argv[argv.index("--memory-probe") + 1])
+    modules_before = set(sys.modules)
     tracemalloc.start()
     build_case(**spec)
     _cur, traced_peak = tracemalloc.get_traced_memory()
@@ -3163,10 +3171,32 @@ def _memory_probe_main(argv: list[str]) -> int:
             {
                 "rss_mb": round(rss_mb(), 1),
                 "traced_mb": round(traced_peak / (1024.0 * 1024.0), 2),
+                "imported": solve_window_imports(modules_before, sys.modules),
             }
         )
     )
     return 0
+
+
+def solve_window_imports(before: set, after) -> list[str]:
+    """The modules a probe's traced window imported, sorted: owed empty.
+
+    The traced arm's precondition, asserted rather than assumed. An import
+    inside the window is not the scenario's memory: it is process-wide
+    first-call setup, and it grows interpreter-global tables -- the
+    interned-string table above all, which unmarshalling a module's code
+    fills. That table is rebuilt in one step, so a tree that sits just under
+    the rebuild point is charged the whole new table, ~1.8 MiB, by whichever
+    probe crosses it (R10-HOTFIX-STRESS-MEM-PEAK: threadpoolctl's per-call
+    ``ThreadpoolController`` imported ``ctypes.util`` in the first solve off
+    Linux, and churned fresh interned symbol names on every call on Linux,
+    until optimizer.py built one at import; a diff that added strings
+    anywhere then read 3.47 -> 5.31 MiB on scenarios it never touched). The
+    churn shape has no import to see: tests/features.py pins its one known
+    source (``_blas_pin_shared_controller``). The budget is per solve;
+    first-call setup belongs to the import, which no probe budgets.
+    """
+    return sorted(set(after) - set(before))
 
 
 def _memory_baseline_main(argv: list[str]) -> int:
@@ -5177,6 +5207,7 @@ if __name__ == "__main__":
     rss_before_mb = rss_mb()
     mem_over: list[str] = []
     mem_stale: list[str] = []
+    mem_imported: list[str] = []
     mem_unrecorded: list[str] = []
     # Readings the attributable stale arm declines because the difference
     # is the platform's import floor rather than the scenario
@@ -5213,6 +5244,8 @@ if __name__ == "__main__":
             continue
         rss_peak = float(probe["rss_mb"])
         traced_peak = float(probe["traced_mb"])
+        if probe.get("imported"):
+            mem_imported.append(f"{label}: {', '.join(probe['imported'])}")
         rss_attrib = max(0.0, rss_peak - baseline_rss)
         entry = new_table.get(label) if record_mode else budget_table.get(label)
         recorded_rss = float(entry.get("rss_peak_mb", 0.0)) if entry else 0.0
@@ -5285,6 +5318,13 @@ if __name__ == "__main__":
                 else " (unrecorded)"
             )
         )
+    R.check(
+        "no probed solve imports a module inside the traced window "
+        "(first-call setup is the import's cost, not the scenario's)",
+        not mem_imported,
+        "; ".join(mem_imported)
+        + " -- see solve_window_imports: build it at import time",
+    )
     rss_growth_mb = rss_mb() - rss_before_mb
     print(
         f"  parent RSS watermark growth over the memory pass: "

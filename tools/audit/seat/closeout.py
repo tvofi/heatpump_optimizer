@@ -104,7 +104,7 @@ def roster_blockers(roster: dict, self_group: str = SELF_GROUP) -> list:
     the groups the roster exempts (`roster_lib.closeout_exempt`): the post-stamp
     owner step, which starts only after this run's stamp, and a ruled group."""
     exempt = roster_lib.closeout_exempt(roster)[0]
-    return sorted(g for g in roster_lib.open_groups(roster)
+    return sorted(g for g in roster_lib.unfinished_groups(roster)
                   if g != self_group and g not in exempt)
 
 
@@ -594,6 +594,16 @@ def self_test() -> int:
         check("a ruled group whose host is still open blocks",
               roster_blockers({"groups": [hosted, gr("H", "in-progress"),
                                           gr(SELF_GROUP, "not-started")]}) == ["H", "R"])
+        for st in ("refused", "deferred"):
+            hosted_st = gr("R", st)
+            hosted_st["resume"]["host"] = "H"
+            check(f"a {st} group whose host is still open blocks (roster_lib.CLOSED_STAGES "
+                  "drops it from open_groups)",
+                  roster_blockers({"groups": [hosted_st, gr("H", "in-progress"),
+                                              gr(SELF_GROUP, "not-started")]}) == ["H", "R"])
+        check("a deferred group with no host still blocks, as before CLOSED_STAGES grew",
+              roster_blockers({"groups": [gr("D", "deferred"),
+                                          gr(SELF_GROUP, "not-started")]}) == ["D"])
         check("null control: an ordinary not-started group still refuses beside the exempt ones",
               roster_blockers({"groups": [cat, gr("N", "not-started"), gr("R", "refused"),
                                           gr(SELF_GROUP, "not-started")]}) == ["N"])

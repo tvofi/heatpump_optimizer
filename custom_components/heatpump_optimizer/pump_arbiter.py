@@ -30,7 +30,9 @@ flow set-point it follows the planned level, from the return temperature
 (or :data:`FLOW_HOLD_C`) up to :data:`FLOW_HEAT_C` at full power, on a step
 that heats the house; the gate on one that does not; and on the baseline
 :data:`FLOW_HOLD_C` or the weather curve where that is higher
-(:func:`_flow_target`). A space-only step is heating
+(:func:`_flow_target`). A return set-point (a controller that takes the
+number as its return-water target) is written the same way, the hold and
+the curve moved to return terms (:func:`_as_target`). A space-only step is heating
 only (tvofi, 2026-09-24): the cheapest hours for the house need not be the
 ones that keep the tank ready for its next hot-water window, so the pump's
 own tank thermostat must not spend them. A disinfection cycle the
@@ -156,6 +158,7 @@ from .const import (
     MODE_ECONOMY,
     MODE_OFF,
     PUMP_DUTY_MODES,
+    SPACE_SETPOINT_WATER_UNITS,
 )
 from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
@@ -171,6 +174,8 @@ from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
 from .thermal_model import (
     configured_flow_heat_c,
+    configured_flow_min_lift_k,
+    FLOW_MIN_LIFT_K,
     flow_setpoint_driven,
     flow_setpoint_for_level,
     modulation_floor_flow_c,
@@ -202,6 +207,15 @@ DHW_GATE_C = 30.0
 FLOW_HEAT_C = 55.0
 #: The fallback's flow set-point: the W35 point the nameplate COP is rated at.
 FLOW_HOLD_C = 35.0
+#: How far a return-water target sits below the supply temperature the
+#: arbiter derives it from, K: the rated supply-over-return spread of
+#: :data:`FLOW_HOLD_C`'s W35 point (EN 14511, 30/35 °C). Applied only to the
+#: supply-side values a ``return`` set-point is written from -- the hold and
+#: the weather curve (:func:`_as_target`). An assumption carried from the
+#: rating point, not measured on a return-target controller; deliberately
+#: not ``thermal_model.FLOW_MIN_LIFT_K``, which is the floor's default lift
+#: and may change on its own.
+RETURN_SUPPLY_OFFSET_K = 5.0
 SETPOINT_TOLERANCE = 0.3
 #: The v6.6.12 stand-down repair, cleared wherever a record from then loads.
 ISSUE_MANUAL = "pump_manual_change"
@@ -327,7 +341,44 @@ def _slot_entity(config: Any, slot: str) -> Any:
 
 
 def _flow_unit(config: Any) -> bool:
-    return EntryConfig.from_mapping(config).space_setpoint_unit == "flow"
+    """The space set-point is a water temperature: a flow or a return target."""
+    return EntryConfig.from_mapping(config).space_setpoint_unit in SPACE_SETPOINT_WATER_UNITS
+
+
+def _return_unit(config: Any) -> bool:
+    """The space set-point is the pump's return-water target."""
+    return EntryConfig.from_mapping(config).space_setpoint_unit == "return"
+
+
+def _as_target(config: Any, supply_c: float) -> float:
+    """A supply temperature as the space entity's own water target, °C.
+
+    Unchanged for a flow target. A return target (``space_setpoint_unit``
+    ``return``) sits :data:`RETURN_SUPPLY_OFFSET_K` below it: the rated hold
+    :data:`FLOW_HOLD_C` is the W35 point at 30/35 °C, and the weather curve
+    is a supply curve, so written unchanged as a return target each would
+    run the system water that spread hotter than meant. The gate
+    :data:`FLOW_GATE_C` is a supply number too (a 25 °C supply target is
+    below any heated water); as a return target, 25 °C sits above a cooled
+    floor return (the install this was written for reads 23-24 °C after a
+    blocked night), and a controller that modulates on target minus return
+    would then heat on a step meant to be off, so it is moved as well
+    (:func:`_gate_c`). Values already in the entity's own terms -- the
+    measured inlet plus the lift, the configured ceiling -- are not moved.
+    """
+    return supply_c - RETURN_SUPPLY_OFFSET_K if _return_unit(config) else supply_c
+
+
+def _heat_ceiling_c(config: Any) -> float:
+    """The configured heating ceiling, °C, or :data:`FLOW_HEAT_C`.
+
+    A stored ceiling at or below :data:`FLOW_GATE_C` would write the gate,
+    the value that means off, on every heating step, so it reads as the
+    default instead. The options flow offers nothing that low; this is the
+    runtime half for a hand-edited entry.
+    """
+    ceiling = configured_flow_heat_c(config, FLOW_HEAT_C)
+    return ceiling if ceiling > FLOW_GATE_C else FLOW_HEAT_C
 
 
 def state_for(coord: Any) -> ArbiterState:
@@ -560,6 +611,12 @@ FLOW_INLET_KEYS = (
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
 )
+#: The rung a return target is not anchored on: the valve outlet is
+#: house-side supply, and supply plus a lift written as a return target
+#: over-commands by about the spread. A return target reads the other rungs
+#: in the same precedence; none read leaves the no-inlet floor, the hold in
+#: return terms.
+RETURN_SKIPPED_RUNG = CONF_VALVE_OUTLET_TEMP_ENTITY
 
 
 def _reader(hass: Any, config: Mapping[str, Any]) -> InputReader:
@@ -585,27 +642,47 @@ def live_power_kw(hass: Any, config: Mapping[str, Any]) -> float | None:
 
 
 def _flow_inlet_c(inp: ArbiterInputs) -> float | None:
-    """The first fresh reading of :data:`FLOW_INLET_KEYS`, °C, or ``None``.
+    """The first fresh reading of :data:`FLOW_INLET_KEYS` (without
+    :data:`RETURN_SKIPPED_RUNG` for a return target), °C, or ``None``.
 
     Read through :class:`~.inputs.InputReader`, so a stale, implausible or
     unconfigured slot is absent rather than guessed, and a slot left unset
     falls to the next rung.
     """
     reader = _reader(inp.hass, inp.config)
-    readings = (reader.read(key) for key in FLOW_INLET_KEYS)
+    skip = RETURN_SKIPPED_RUNG if _return_unit(inp.config) else None
+    readings = (reader.read(key) for key in FLOW_INLET_KEYS if key != skip)
     return next(
         (reading.value for reading in readings if reading.ok), None
     )
 
 
+def _gate_floor_c(config: Any) -> float:
+    """The gate in the entity's own terms, °C: :data:`FLOW_GATE_C`, or that
+    less the rated spread for a return target (:func:`_as_target`)."""
+    return _as_target(config, FLOW_GATE_C)
+
+
 def _gate_c(inp: ArbiterInputs) -> float | None:
-    """The flow set-point a step that does not heat writes, °C."""
-    return _bounded(inp, "space_setpoint", FLOW_GATE_C, FLOW_GATE_C, rounding="down")
+    """The water set-point a step that does not heat writes, °C.
+
+    The entity's minimum, never below the gate in its own terms
+    (:func:`_gate_floor_c`): 25 °C for a flow target, 20 °C for a return
+    target. The floor the lift is taken from on a heating step, and the
+    floor every heating write is bounded by, are the same number.
+    """
+    gate = _gate_floor_c(inp.config)
+    return _bounded(inp, "space_setpoint", gate, gate, rounding="down")
 
 
 @dataclass(frozen=True)
 class FlowCommand:
-    """The space flow set-point the arbiter holds, beside its two ends, °C."""
+    """The space flow set-point the arbiter holds, beside its two ends, °C.
+
+    ``ceiling_c`` is the set-point that commands the pump's maximum draw,
+    the meaning ``draw_range`` reads it with: the configured ceiling (see
+    :func:`_full_draw_c` for a return target).
+    """
 
     written_c: float
     gate_c: float
@@ -641,16 +718,39 @@ def _flow_command(inp: ArbiterInputs, state: Any) -> FlowCommand | None:
         return None
     gate = _gate_c(inp)
     ceiling = _bounded(
-        inp, "space_setpoint", configured_flow_heat_c(inp.config, FLOW_HEAT_C), FLOW_GATE_C,
+        inp, "space_setpoint", _heat_ceiling_c(inp.config), _gate_floor_c(inp.config),
         rounding="down",
     )
     if gate is None or ceiling is None or not isinstance(written[0], (int, float)):
         return None
-    return FlowCommand(float(written[0]), gate, ceiling)
+    return FlowCommand(float(written[0]), gate, _full_draw_c(inp, ceiling))
 
 
-def _or_hold(floor_c: float | None) -> float:
-    return FLOW_HOLD_C if floor_c is None else floor_c
+def _full_draw_c(inp: ArbiterInputs, ceiling_c: float) -> float:
+    """The set-point that commands the pump's maximum draw, °C.
+
+    ``ceiling_c`` for a flow target: a supply target at the ceiling sits far
+    above the water, so the pump may draw its top. A return target's
+    controller is assumed to run harder the further the target sits above
+    the measured return, so the ceiling commands the top only while the
+    return-side inlet (:func:`_flow_inlet_c`) reads at least
+    ``thermal_model.FLOW_MIN_LIFT_K`` below it. With less headroom, or no
+    such reading, no writable set-point is known to command the top, and the
+    answer is one lift above the ceiling: no write reaches it, so
+    ``draw_range`` folds none of those draws as ceiling evidence, as a
+    "full" sample or as an overdraw (R10-CEILING-PROBE), while the gate
+    reading is untouched.
+    """
+    if not _return_unit(inp.config):
+        return ceiling_c
+    inlet = _flow_inlet_c(inp)
+    headroom = inlet is not None and ceiling_c - inlet >= FLOW_MIN_LIFT_K
+    return ceiling_c if headroom else ceiling_c + FLOW_MIN_LIFT_K
+
+
+def _or_hold(floor_c: float | None, config: Any) -> float:
+    """``floor_c``, else the rated hold as the entity's own target."""
+    return _as_target(config, FLOW_HOLD_C) if floor_c is None else floor_c
 
 
 def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float | None:
@@ -660,10 +760,14 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     the emitters to the pump's full output at ``emitter_design_delta_t``, so
     it runs 22-26 degC and a pump told to hold it barely heats (tvofi,
     2026-09-26). A step that heats writes a flow that follows the planned
-    level: :data:`FLOW_HEAT_C` (or the configured ceiling) at full power,
-    sliding to the measured inlet plus a minimum lift at the modulation
-    floor, so the pump's own water thermostat can realize a lower level.
-    With no inlet reading the floor is the rated :data:`FLOW_HOLD_C`. A
+    level: :data:`FLOW_HEAT_C` (or the configured ceiling, ``flow_heat_c``)
+    at full power, sliding to the measured inlet plus a minimum lift
+    (``flow_min_lift_k``, else ``thermal_model.FLOW_MIN_LIFT_K``) at the
+    modulation floor, so the pump's own water thermostat can realize a
+    lower level.
+    With no inlet reading the floor is the rated :data:`FLOW_HOLD_C`, in
+    return terms on a return target (:func:`_as_target`), as is the
+    fallback's hold below. A
     fixed 55 °C never cycles, and a sub-minimum slot then delivers the
     modulation floor. A
     step that does not heat writes the gate. The fallback leaves the pump
@@ -672,8 +776,10 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     """
     if duty in ("space", "both"):
         p_min, p_max = _band_kw(inp)
-        heat_c = configured_flow_heat_c(inp.config, FLOW_HEAT_C)
-        floor_c = _or_hold(modulation_floor_flow_c(_flow_inlet_c(inp), _gate_c(inp)))
+        heat_c = _heat_ceiling_c(inp.config)
+        floor_c = _or_hold(modulation_floor_flow_c(
+            _flow_inlet_c(inp), _gate_c(inp), configured_flow_min_lift_k(inp.config),
+        ), inp.config)
         return _bounded(
             inp,
             "space_setpoint",
@@ -681,7 +787,7 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
                 _step_kw(inp.plan, now) if (kw := _experiment_kw(inp)) is None else kw,
                 p_min, p_max, heat_c, floor_c,
             ),
-            FLOW_GATE_C,
+            _gate_floor_c(inp.config),
             lo=min(floor_c, heat_c),
             hi=heat_c,
         )
@@ -689,9 +795,15 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
         return _gate_c(inp)
     outdoor = float(inp.state.outdoor_temperature)
     curve = inp.thermal.curve_flow_temp(outdoor)
-    ceiling = configured_flow_heat_c(inp.config, FLOW_HEAT_C)
-    hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), ceiling)
-    return _bounded(inp, "space_setpoint", hold, FLOW_GATE_C)
+    ceiling = _heat_ceiling_c(inp.config)
+    # The hold and the curve are supply temperatures: moved to the entity's
+    # own terms before the ceiling, which already is in them, caps the curve.
+    # A flow target's bare hold stays uncapped, as it always was; a return
+    # target's is capped too, so it never sits above the ceiling it was given.
+    target = _as_target(inp.config, FLOW_HOLD_C if curve is None else max(curve, FLOW_HOLD_C))
+    capped = curve is not None or _return_unit(inp.config)
+    hold = min(target, ceiling) if capped else target
+    return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config))
 
 
 def _silent_rows(spec: Any) -> TypeGuard[str]:

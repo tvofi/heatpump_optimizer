@@ -9,13 +9,17 @@ live gate ran (its `programs restored from <sha>` line), so it can answer the qu
 harnesses could not ask: which program judged the red.
 
 Arms:
-  record OUT.json        read the scenes below from the GitHub API (gh api), write the fixture
+  record OUT.json [--scene NAME]
+                         read the scenes below from the GitHub API (gh api), write the fixture;
+                         with --scene, re-read that one scene into the existing fixture only
   replay --ci DIR        judge every scene's gates with DIR's gate.py; print one line per scene
                          and exit 1 on a defect class: a pair scene's gate defers to its partner
-                         (DEADLOCK: both do; HALF-DEFERRED: one does; the live #3241/#3246 defect), or
-                         a single edit gate publishes its deferral to a code run at once, naps 0
-                         (C3-AT-ONCE; the #3263 defect #3276 removed). A single gate that waited and
-                         then deferred is DEFERRED, not a defect: the bounded wait. The single-gate
+                         (DEADLOCK: every one does; HALF-DEFERRED: some do; the live #3241/#3246/#3244
+                         defect), or a scene in WANT reads another verdict (MISREAD: 3252-nosource's
+                         gate took a stale red as its source). A single edit gate that publishes its deferral to a code run at once,
+                         naps 0, is C3-AT-ONCE: #3263's defect under #3276, the design since #3287
+                         (5c1fa41f: a deferral holds no runner, gate-sweep.yml re-judges it), so no
+                         defect; nor is a gate that waited and then deferred (DEFERRED). The single-gate
                          scenes judge one gate beside a code run listed as recorded, so they see the
                          at-once bound and not the wait cycle judging() once made (#3276's fixture
                          self-test in gate.py pins that)
@@ -54,6 +58,11 @@ SCENES = [
     ("3261-pair", "3261", "e17fadc1795ebbaaf0f01ed067fbb59aeba90dee", [(42307493684, 8), (42307798573, 8)]),
     ("3265-pair", "3265", "c7c5cef52a49bed59ee4c8a42e495ef2dae30db5", [(42332777827, 4), (42333388705, 4)]),
     ("3255-pair", "3255", "2ad28ecb50906877b34a378cacd8085e6afca029", [(42321825054, 5), (42322943199, 4)]),
+    # three edit gates, attempt 2, started within 2 s after the code run's gate went green (r10-hotfix-gate-busy-defer-p5)
+    # the code run's re-run gate (attempt 2, 17:14:38Z) beside two edit runs whose pr-contract failed
+    # closed on codescan_wait's no-source refusal before its own pr-contract ran green (carry 10)
+    ("3252-nosource", "3252", "3134798017b1d26994c410206349b06d187559a0", [(42385416529, 2)]),
+    ("3244-triple", "3244", "a258212553e123d735c7eff139a8e347a1a52ea3", [(42286558101, 2), (42286624031, 2), (42293328283, 2)]),
     ("3263-c3", "3263", "02e92e7cbcb95c32fbb2ad3a7a46a8d465a436d8", [(42338396358, 1)]),
     ("3261-c3", "3261", "61187afe6cfdc4416f161e23111571bc50d25d9c", [(42338828285, 1)]),
     ("3241-c3", "3241", "3720667a319cca90628a6b4167e3774408cb60a3", [(42338898175, 1)]),
@@ -90,9 +99,14 @@ def gate_log(job_id):
     return {"pin": pin, "workset": workset, "verdict": verdict}
 
 
-def record(out):
+def record(out, only=None):
     doc = {"repo": REPO, "recorded_at": iso(datetime.now(timezone.utc)), "scenes": []}
+    if only:
+        doc = json.loads(Path(out).read_text())
+        doc["scenes"] = [s for s in doc["scenes"] if s["name"] != only]
     for name, pr, head, gates in SCENES:
+        if only and name != only:
+            continue
         runs = gh(f"repos/{REPO}/actions/workflows/ci.yml/runs?head_sha={head}&per_page=100")["workflow_runs"]
         rec = []
         for r in runs:
@@ -112,6 +126,7 @@ def record(out):
             live.append({"run": rid, "attempt": n, "job": g["id"], "started_at": g["started_at"],
                          "completed_at": g["completed_at"], "conclusion": g["conclusion"], **gate_log(g["id"])})
         doc["scenes"].append({"name": name, "pr": pr, "head": head, "runs": rec, "gates": live})
+    doc["scenes"].sort(key=lambda s: [x[0] for x in SCENES].index(s["name"]))
     Path(out).write_text(json.dumps(doc, indent=1) + "\n")
     print(f"recorded {len(doc['scenes'])} scenes to {out}")
     return 0
@@ -128,8 +143,10 @@ def snapshot(scene, t, sim):
         att = [a for a in r["attempts"] if ts(a["run_started_at"]) <= t]
         if not att:
             continue
-        jobs = {}
+        jobs, starts = {}, {}
         for j in att[-1]["jobs"]:
+            if ts(j["started_at"]) and ts(j["started_at"]) <= t:
+                starts[j["name"]] = j["started_at"]     # the gate's source order reads it (r10-hotfix-gate-busy-defer-p5)
             if ts(j["created_at"]) and ts(j["created_at"]) > t:
                 continue
             if j["name"] == "gate" and r["id"] in sim:
@@ -142,7 +159,7 @@ def snapshot(scene, t, sim):
             else:
                 jobs[j["name"]] = ("queued", None)
         status = "completed" if jobs and all(s == "completed" for s, _ in jobs.values()) else "in_progress"
-        out.append({"id": r["id"], "title": r["title"], "status": status, "jobs": jobs})
+        out.append({"id": r["id"], "title": r["title"], "status": status, "jobs": jobs, "starts": starts})
     return out
 
 
@@ -174,10 +191,11 @@ def judge_one(gate, scene, g, t0, sim):
         if "/actions/runs/" in path and path.endswith("/jobs"):
             rid = int(path.split("/actions/runs/")[1].split("/")[0])
             r = next((x for x in listing if x["id"] == rid), None)
-            jobs = dict(r["jobs"]) if r else {}
+            jobs, starts = (dict(r["jobs"]), r["starts"]) if r else ({}, {})
             if rid == g["run"]:
                 jobs["gate"] = ("in_progress", None)        # this gate is the one judging
-            return 200, {}, {"jobs": [{"name": k, "status": s, "conclusion": c} for k, (s, c) in jobs.items()]}
+            return 200, {}, {"jobs": [{"name": k, "status": s, "conclusion": c, "started_at": starts.get(k)}
+                                      for k, (s, c) in jobs.items()]}
         return 404, {}, {"message": f"fixture serves no {path}"}
 
     def sleep(s):
@@ -200,10 +218,13 @@ def judge_one(gate, scene, g, t0, sim):
     return outcome, clock["t"], clock["naps"]
 
 
-# Classes that make replay exit 1. C3-AT-ONCE is a defect since #3276 (812bb8747) deleted gate.py's at-once
+# Classes that make replay exit 1. C3-AT-ONCE was a defect from #3276 (812bb8747), which deleted gate.py's at-once
 # bound for a deferring edit gate (the cause was prelude.judging() reading the deferring run's skipped
 # `pr-contract` caller as owed); DEFERRED after naps is the bounded wait, a designed outcome.
-DEFECTS = ("DEADLOCK", "HALF-DEFERRED", "C3-AT-ONCE")
+# A scene whose every gate must read one verdict once its sources are judged by their freshest read:
+# 3252-nosource's code run gate, its own pr-contract started after both edit runs' no-source reds.
+WANT = {"3252-nosource": "PASS"}
+DEFECTS = ("DEADLOCK", "HALF-DEFERRED", "MISREAD")    # C3-AT-ONCE left them at #3287 (5c1fa41f): the at-once deferral is its design
 
 
 def classify(scene, verdicts):
@@ -249,6 +270,8 @@ def replay(fixture, ci):
             verdicts = {g["run"]: (verdicts[g["run"]] if verdicts[g["run"]][2] == 0 else judge_one(
                 gate, scene, g, ts(g["started_at"]) + timedelta(seconds=READ_AFTER_S), sim)) for g in gates}
         cls = classify(scene, verdicts)
+        if scene["name"] in WANT and any(out != WANT[scene["name"]] for out, _, _ in verdicts.values()):
+            cls = "MISREAD"
         rc |= cls in DEFECTS
         detail = "; ".join(f"{rid}: {out[:60]} naps={n}" for rid, (out, _, n) in sorted(verdicts.items()))
         print(f"{scene['name']}: {cls} | {detail}")
@@ -314,9 +337,10 @@ def main(argv):
     ap.add_argument("--since", default="2026-11-07T03:45:14Z")    # 355d9965's merge
     ap.add_argument("--until", default="9999")
     ap.add_argument("--fix", default=FIX)
+    ap.add_argument("--scene")
     a = ap.parse_args(argv)
     if a.arm == "record":
-        return record(a.out or a.fixture)
+        return record(a.out or a.fixture, a.scene)
     if a.arm == "census":
         return census(a.since, a.until, a.fix)
     if a.arm == "pins":

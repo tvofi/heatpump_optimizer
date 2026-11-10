@@ -190,10 +190,20 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         u, n = name.split(" / ", 1)
         required.setdefault(u, []).append(n)
     me = {"id": ctx["run_id"], "title": title(kind, pr, base, ctx.get("sha", "")), "status": "completed",
-          "jobs": api["jobs"]}
+          "jobs": api["jobs"], "starts": api.get("starts") or {}}
+
+    def fresh(r, names):
+        """A unit's source order: the run whose jobs for it started LATEST read the head's live
+        state last (arch-score and budget-raise-gate read the PR at their start), then the higher
+        id. GitHub numbers a same-second push and body edit out of order (r10-ci-edit-runner:
+        the edit run lower in 27 of 94 pairs), and a re-run executes a lower run's unit afresh.
+        This run's own unit while its listing lags is never displaced: its needs ran it."""
+        if r is me and any((r["jobs"].get(f"{unit} / {n}") or ("",))[0] != "completed" for n in names):
+            return "~", r["id"]
+        return max(((r.get("starts") or {}).get(f"{unit} / {n}") or "" for n in names), default=""), r["id"]
     for unit, names in required.items():
         src = None
-        for r in sorted(others + [me], key=lambda r: r["id"], reverse=True):
+        for r in sorted(others + [me], key=lambda r: fresh(r, names), reverse=True):
             if r["status"] == "action_required":
                 continue
             t = parse_title(r["title"])
@@ -235,9 +245,10 @@ def _pull(get, repo: str, pr: str) -> dict:
 def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
     """Every Actions and pulls read the predicate needs, in one place: the last step."""
     repo, (_, pr, _) = ctx["repo"], derive(ctx)
-    jobs = run_jobs(get, repo, ctx["run_id"])
+    starts: dict = {}
+    jobs = run_jobs(get, repo, ctx["run_id"], starts)
     status, conclusion = jobs.get("prelude") or (None, None)
-    api = {"prelude": {"status": status, "conclusion": conclusion, **claim},
+    api = {"prelude": {"status": status, "conclusion": conclusion, **claim}, "starts": starts,
            "jobs": jobs, "reaches_cc": reaches_cc, "live_pr": None, "open_pr_heads": set()}
     if pr and ctx["event_name"] != "merge_group":
         lp = _pull(get, repo, pr)
@@ -246,9 +257,13 @@ def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
     elif ctx["event_name"] == "workflow_dispatch":
         api["open_pr_heads"] = {p["head"]["sha"] for p in ghapi.paginate(f"repos/{repo}/pulls", {"state": "open"}, get=get)}
     runs = ghapi.paginate(f"repos/{repo}/actions/workflows/ci.yml/runs", {"head_sha": ctx["head"]}, get=get)
-    api["runs_at_head"] = [{"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
-                            "jobs": {} if r["status"] == "action_required" else run_jobs(get, repo, r["id"])}
-                           for r in runs if r["id"] != ctx["run_id"]]
+    api["runs_at_head"] = []
+    for r in runs:
+        if r["id"] != ctx["run_id"]:
+            st: dict = {}
+            api["runs_at_head"].append({"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
+                                        "starts": st, "jobs": {} if r["status"] == "action_required"
+                                        else run_jobs(get, repo, r["id"], st)})
     return api
 
 
@@ -536,6 +551,13 @@ def self_test() -> int:
              "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in lagging}} for i in (lo, hi)]
     check("busy-defer: of two started gates at one head the lower id defers to none, the higher to the lower",
           (busy({**ctx, "run_id": lo}, pair), busy({**ctx, "run_id": hi}, pair)), ([], [lo]))
+    # #3244 at a2582125, attempt 2: three edit gates started 21:46:18-20Z, after the code run's gate
+    # went green (21:45:53Z), and each deferred to the other two under pinned program 9cbd7dd0 (before
+    # #3246), so none judged. With every caller's listing lagging, the ids still leave one judging.
+    trio = [{**pair[0], "id": i} for i in (42286558101, 42286624031, 42293328283)]
+    check("busy-defer, three gates (#3244): the lowest defers to none, each other only to the gates below it",
+          [busy({**ctx, "run_id": r["id"]}, trio) for r in trio],
+          [[], [trio[0]["id"]], [trio[0]["id"], trio[1]["id"]]])
     honest = [{**r, "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in at_gate}} for r in pair]
     check("busy-defer-2: listed as GitHub lists it (`pr-contract` skipped), neither started gate waits on the other",
           (busy({**ctx, "run_id": lo}, honest), busy({**ctx, "run_id": hi}, honest)), ([], []))
@@ -610,6 +632,24 @@ def self_test() -> int:
     get, naps, nap, now = scene([red_edit])
     check("C3: the edit run's red arch-score (the latest body) is the code gate's source, not its own older green",
           verdict(ctx, get, nap, now), "FAIL arch-score / arch-score: failure (run 101)")
+    # r10-ci-edit-runner 27233708: GitHub numbered the edit run BELOW its code run (27 of 94 same-second
+    # pairs), so the code run's own arch-score shadowed the edit run's read of the latest body by id alone.
+    def stamped(jobs, at):
+        return [dict(j, started_at=at.get(j["name"], "2026-11-01T10:00:00Z")) for j in jobs]
+    arch = "arch-score / arch-score"
+    for label, at, want in (("started after the code run's own", "2026-11-01T10:05:00Z",
+                             "FAIL arch-score / arch-score: failure (run 99)"),
+                            ("null: started before it", "2026-11-01T09:55:00Z", "PASS")):
+        get, naps, nap, now = scene([{**red_edit, "id": 99, "jobs": stamped(red_edit["jobs"], {arch: at})}],
+                                    mine=stamped(green, {}))
+        check(f"source order: a LOWER-id edit run's red arch-score {label} -> the code gate reads the later start",
+              verdict(ctx, get, nap, now), want)
+    lagged = [dict(j, status="queued", conclusion=None, started_at=None) if j["name"] == arch else j
+              for j in stamped(green, {})]
+    get, naps, nap, now = scene([{**done_edit, "id": 101, "jobs": stamped(done_edit["jobs"], {arch: "2026-11-01T10:05:00Z"})}],
+                                mine=lagged)
+    check("source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green",
+          verdict(ctx, get, nap, now), "FAIL arch-score / arch-score: PENDING (this run)")
     for label, red, want in (("green", (), "PASS"),
                              ("its pr-contract red", ("pr-contract / pr-contract",),
                               "FAIL pr-contract / pr-contract: failure (run 99)")):

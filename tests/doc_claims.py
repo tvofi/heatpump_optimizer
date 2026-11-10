@@ -64,7 +64,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 for _extra in ("tools/audit", "tests/hastub", "tests", "custom_components"):
     sys.path.insert(0, str(ROOT / _extra))
 
-from harness import Results  # noqa: E402
+from harness import Results, SHIPPED_CATALOGUES, TRANSLATED_LANGS  # noqa: E402
 from throwaway_git import throwaway_git_init  # noqa: E402
 
 R = Results("doc claims vs code facts (#1413)")
@@ -1569,7 +1569,7 @@ def check_quality_scale() -> None:
     for label, path in (
         ("strings.json", PKG / "strings.json"),
         ("translations/en.json", PKG / "translations" / "en.json"),
-        ("translations/sv.json", PKG / "translations" / "sv.json"),
+        *((f"translations/{l}.json", PKG / "translations" / f"{l}.json") for l in TRANSLATED_LANGS),
     ):
         absent = sorted(keys - _exception_keys(path))
         R.check(f"{label} has an exceptions entry for every raised key", not absent, repr(absent))
@@ -2055,7 +2055,7 @@ def check_unit_typography() -> None:
     R.section("translated text writes units as the selectors do (I5)")
     hits: list[str] = []
     leaves = 0
-    for rel in ("strings.json", "translations/en.json", "translations/sv.json"):
+    for rel in ("strings.json", *SHIPPED_CATALOGUES):
         stack = [((rel,), json.loads((PKG / rel).read_text()))]
         while stack:
             path, node = stack.pop()

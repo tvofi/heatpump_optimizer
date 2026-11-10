@@ -27,6 +27,24 @@ from homeassistant.helpers.typing import UNDEFINED
 
 UTC = timezone.utc
 
+# Every UI language the integration ships: one catalogue per file under
+# translations/ (R10-I18N-DE). A check that pins what a translation says
+# iterates these, never a literal language list, so a language that lands is
+# checked without anyone remembering to add it to each script. Read relative
+# to the working directory, as every suite path is (tests/run.sh runs from
+# the repository root).
+SHIPPED_LANGS: tuple[str, ...] = tuple(
+    sorted(p[:-5] for p in os.listdir("custom_components/heatpump_optimizer/translations")
+           if p.endswith(".json"))
+)
+TRANSLATED_LANGS: tuple[str, ...] = tuple(lang for lang in SHIPPED_LANGS if lang != "en")
+# The catalogue paths relative to the package, en first: what a loop over
+# "strings.json and every translation" reads after strings.json.
+SHIPPED_CATALOGUES: tuple[str, ...] = tuple(
+    f"translations/{lang}.json" for lang in ("en", *TRANSLATED_LANGS)
+)
+assert "en" in SHIPPED_LANGS and TRANSLATED_LANGS, SHIPPED_LANGS
+
 
 class Results:
     """A tiny pass/fail recorder shared by the test scripts."""

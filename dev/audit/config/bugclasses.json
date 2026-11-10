@@ -4853,6 +4853,41 @@
       "doc": [
         "dev/audit/rca/r10-gate-busy-defer-4.md"
       ]
+    },
+    "R10-RCA-TOPIC-FAMILY": {
+      "class": "R10-TOPIC-FAMILY",
+      "level": "class",
+      "subject": "R10-TOPIC-FAMILY class: instruments keyed on an exact topic miss its split parts (3 instances, round 10)",
+      "trigger": "class (3 instances: triage P363, P370, P376)",
+      "date": "2026-11-02",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a) the process did not exist: no policy or instrument defined the topic grammar",
+      "countermeasure": "tools/audit/seat/topic_grammar.py: one module owning pr_topic, family, family_refs, group_of and owner_topic, read by noreturn_arm, open_driver.py and roster_sync.py; self-test rows for a part return, a bare -<N> and a sibling-prefix topic, with a mutant for each",
+      "in_tree_home": "dev/audit/rca/topic-family.md",
+      "landed": null,
+      "doc": [
+        "dev/audit/rca/topic-family.md"
+      ]
+    },
+    "R10-RCA-SWEEP-SETTLE-LOOP": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#3287 (52f9fc5b34, v7.1.6) added sweep.settle(); undecided() arm 1 reads a re-run's re-stamped SKIPPED jobs (GitHub re-stamps every skipped job of a run whose gate is re-run) as a source finishing after the sibling gate started, so two real-red gates at one head re-run each other to attempt 44 (1618 ci.yml re-attempts and 17 runs at the cap in the 16.6 h after the merge, against 428 and 0 in the 21.2 h before; the closed-loop replay of #3319's recorded attempts gives reruns=86 at origin/main and reruns=1 with arm 1 ignoring skipped jobs)",
+      "trigger": "1 (released: v7.1.6)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "A: the closed-loop convergence check in the sweep's self-test, carried to the R10-SWEEP-SETTLE-LOOP fixer",
+        "B: the attempt-watch beat row (attempt >= 20), to proposal triage"
+      ],
+      "process_state": "(c) #3287's self-test pinned 'the branch cannot loop' with one-pass nulls over hand-written units that carry no conclusion field and that a re-run never moves; its recorded replay ran one open-loop sweep over one attempt per run, though that fixture's attempt-10 rows showed the re-stamp; the review accepted the no-loop nulls and its live head re-ran green, which ends the loop at the first step",
+      "countermeasure": "built: dev/audit/harnesses/r10_rca_sweep_settle_loop.py replay (closed loop over recorded attempt transitions: reruns=86 max_attempt=44 at origin/main and 52f9fc5b34, reruns=1 on the candidate arm-1 copy and in the --no-restamp null, 0 before #3287) and its census arm (alarm 20: 0 runs before the merge, 32 after); proposed: A carried into the fix, B a beat row at 2.84 s per 1800 s pass",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-SWEEP-SETTLE-LOOP.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-SWEEP-SETTLE-LOOP.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5455,6 +5490,41 @@
       "cross_round": false,
       "barriered_any": false,
       "class_rca_on_record": false
+    }
+  },
+  "R10-TOPIC-FAMILY": {
+    "kind": "instrument",
+    "mechanism": "The topic is the join key between dispatch, return, PR and roster records, and nothing defined its grammar in one place: each instrument parsed the relation it needed from the exact string, so a split into <topic>-p<N> parts, which renames the topic partway through the work, missed at every join that crossed it (noreturn_arm false-fired SEAT ENDED NO RETURN after a seat returned on handoff/<topic>-p1; the opener logged NEEDS-TITLE for part topics)",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 P363",
+      "R10 P370",
+      "R10 P376"
+    ],
+    "per_round": {
+      "R10": 3
+    },
+    "total": 3,
+    "max_per_round": 3,
+    "detector": "tools/audit/seat/topic_grammar.py --self-test: its rows drive the family rule over the bare -<N> and sibling-prefix topics",
+    "detector_idea": null,
+    "barrier": "tools/audit/seat/topic_grammar.py, read by tools/audit/seat/cloud_relay.sh (noreturn_arm and the PR-topic strip), tools/audit/seat/open_driver.py and tools/audit/seat/roster_sync.py",
+    "status": "barriered",
+    "nearest_existing": null,
+    "mechanism_difference": "a join keyed on an exact string misses a renamed part; no value is stale or wrong, the key itself changed",
+    "aliases": [],
+    "non_round_instances": [],
+    "rca": [
+      "R10-RCA-TOPIC-FAMILY"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
     }
   }
 }

@@ -14,4 +14,14 @@
   when a source cannot be read. When: any flow change that claims to move
   throughput. Refusal: `--self-test` — its fixture's exact counts, the
   unchanged-fixture null control, and a named arm per classification
-  predicate; `governance.yml`'s self-test step runs it.
+  predicate; `governance.yml`'s self-test step runs it. For the plan page's
+  Flow section and the bottleneck alert (tvofi 2026-11-07, proposal 2) it
+  adds `flow_merge_wait` (per PR merged in a window, the hours from its latest
+  `merge` verdict on the bus at or before the merge, whether that verdict named
+  the merged head, and a count of merges with no verdict, never a zero wait),
+  `train_batches` (each `BATCH` banner of `merge_train.py`'s `train.log`, its
+  queue, its `SKIP` lines with a reason class, and `done` once its `SKIP
+  REPORT` line closes it; the self-test pins each writer literal in
+  `merge_train.py`) and `bottleneck_metrics`, which composes them with
+  `flow_closed`, `flow_verdicts`, `flow_lead` and `pr_cap.wip_groups`. The
+  live train log is `$HOME/.local/state/hpo/merge_train/train.log`.

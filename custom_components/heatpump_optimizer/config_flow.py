@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections.abc import Awaitable, Callable, Iterable, Mapping
+from functools import partial
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, Protocol, cast
 
 import aiohttp
@@ -88,6 +89,13 @@ from .const import (
     CONF_DHW_TEMP_ENTITY,
     CONF_ECL110_COMMAND_TOPIC,
     CONF_ECL110_DISPLACE_SET_TOPIC,
+    CONF_HEAT_CURVE_DISPLACE_ENTITY,
+    CONF_HEAT_CURVE_OFFSET_BAND_K,
+    CONF_HEAT_CURVE_TARGET_KIND,
+    DEFAULT_HEAT_CURVE_OFFSET_BAND_K,
+    DEFAULT_HEAT_CURVE_TARGET_KIND,
+    HEAT_CURVE_OFFSET_BAND_RANGE_K,
+    HEAT_CURVE_TARGET_KINDS,
     CONF_ECL110_STATE_TOPIC,
     CONF_ECL110_QOS,
     CONF_ECL110_RETAIN,
@@ -180,6 +188,11 @@ from .const import (
     CONF_SPACE_SETPOINT_UNIT,
     DEFAULT_SPACE_SETPOINT_UNIT,
     SPACE_SETPOINT_UNITS,
+    SPACE_SETPOINT_WATER_UNITS,
+    CONF_FLOW_HEAT_C,
+    DEFAULT_FLOW_HEAT_C,
+    CONF_FLOW_MIN_LIFT_K,
+    DEFAULT_FLOW_MIN_LIFT_K,
     CONF_WIND_SENSITIVITY,
     CONF_RAIN_HEAT_LOSS_MULTIPLIER,
     CONF_OPTIMIZATION_INTERVAL,
@@ -413,6 +426,8 @@ from .const import (
     DEFAULT_BUILDING_PRESET_ENABLED,
     DEFAULT_HEATED_AREA,
 )
+from . import heat_curve
+from .inputs import number_reading
 from . import (
     comfort_band,
     device_prefill,
@@ -658,6 +673,7 @@ RANGE_ZONE_HEAT_LOSS: Final = (0.001, 1.0)
 PRESET_WARNING: Final = {
     "en": "Deriving from the building type is switched on, so saving Building type and emitters recalculates the house thermal mass, heat loss, slab mass and slab transfer below (and the two-zone values) from the questionnaire, overwriting whatever is here. Changing any of those fields to a different value switches the derivation off, so your value stays; simply saving this page again does not.",
     "sv": "Härledning från hustypen är påslagen, så när sidan Hustyp och värmesystem sparas räknas husets värmekapacitet, värmeförlust, plattans termiska massa och värmeöverföring nedan (samt tvåzonsvärdena) om från formuläret och skriver över det som står här. Ändrar du något av de fälten till ett annat värde stängs härledningen av, så att ditt värde blir kvar; att bara spara sidan igen gör det inte.",
+    "de": "Die Ableitung aus dem Gebäudetyp ist eingeschaltet. Beim Speichern der Seite „Gebäudetyp und Heizflächen“ werden deshalb die thermische Masse des Hauses, der Wärmeverlust sowie die thermische Masse und der Wärmeübergang des Estrichs unten (und die Zweizonenwerte) aus dem Fragebogen neu berechnet und überschreiben, was hier steht. Änderst du eines dieser Felder auf einen anderen Wert, wird die Ableitung ausgeschaltet und dein Wert bleibt erhalten; die Seite nur erneut zu speichern, genügt dafür nicht.",
 }
 
 # Everything ``presets.derive`` writes into the entry, in the order the
@@ -1555,7 +1571,7 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
     _P("learning_features", "Advanced learning features", _ADVANCED),
     _P("grid_connection", "Fuse and peak guards", _ADVANCED),
     _P("grid_fees", "Transfer fees and contract", _ADVANCED),
-    _P("heat_curve", "Heat curve control (ECL110)", _ADVANCED),
+    _P("heat_curve", "Heat curve control", _ADVANCED),
     # R10-FACTORY-RESET: an action behind a confirmation, not a settings page;
     # last, so no one meets it on the way to a setting.
     _P("factory_reset", "Reset to factory defaults", _ADVANCED),
@@ -1572,6 +1588,21 @@ def _single_zone(config: Mapping[str, Any]) -> bool:
     entry follows the zone keys exactly as the solve does.
     """
     return not ThermalParameters.from_config(config).two_zone_enabled
+
+
+def _water_space_setpoint(config: Mapping[str, Any]) -> bool:
+    """Whether the space set-point is declared a water temperature (a flow or
+    a return target), the only unit the pump-duty arbiter writes a heating
+    flow for, so the only one its lift and ceiling mean anything on. Keyed
+    on the unit alone, as the wood block is on its toggle: the unit select
+    renders beside the entity picker whatever it holds. An unknown stored
+    unit is not a water unit here, as it is not to ``EntryConfig``, which
+    parses it to the indoor default.
+    """
+    return (
+        config.get(CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT)
+        in SPACE_SETPOINT_WATER_UNITS
+    )
 
 
 #: Every field the options flow presents, in the order each page renders them.
@@ -1592,6 +1623,15 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities", CONF_LOWER_FLOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="plant"),
     _F("entities", CONF_SPACE_SETPOINT_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate']), group="indoor"),
     _F("entities", CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT, _select(list(SPACE_SETPOINT_UNITS), 'space_setpoint_unit'), group="indoor"),
+    # The two ends of the heating flow the arbiter writes (#1955,
+    # R10-SETPOINT-POWER), revealed once the entity is a water set-point:
+    # the lift over the measured inlet at the modulation floor, and the
+    # ceiling at full power. Their defaults are today's constants, so an
+    # untouched page stores neither (``_ABSENT_FALLBACKS``).
+    _F("entities", CONF_FLOW_MIN_LIFT_K, DEFAULT_FLOW_MIN_LIFT_K, _number(0.5, 15, 0.5, 'K'), when=_water_space_setpoint, group="indoor"),
+    # The ceiling's minimum sits above pump_arbiter.FLOW_GATE_C (25 °C): a
+    # ceiling at the gate would write "off" on every heating step.
+    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, 70, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
     # -- entities_metering
     _F("entities_metering", CONF_SOLAR_RADIATION_ENTITY, _STORED, _entity_of('sensor'), group="solar"),
     _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector(), group="solar"),
@@ -1760,6 +1800,11 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("heat_curve", CONF_ECL110_DISPLACE_MIN, DEFAULT_ECL110_DISPLACE_MIN, _number(-30, 0, 0.5, '°C')),
     _F("heat_curve", CONF_ECL110_DISPLACE_MAX, DEFAULT_ECL110_DISPLACE_MAX, _number(0, 30, 0.5, '°C')),
     _F("heat_curve", CONF_ECL110_PID_TIME_CONSTANT, DEFAULT_ECL110_PID_TIME_CONSTANT, _number(0.25, 6.0, 0.25, 'h')),
+    # R10-GENERIC-HEAT-CURVE: the same displace through a number entity. Not
+    # climate: its target is absolute, and a whole-curve offset is a difference.
+    _F("heat_curve", CONF_HEAT_CURVE_DISPLACE_ENTITY, _STORED, _entity_of(['number', 'input_number'])),
+    _F("heat_curve", CONF_HEAT_CURVE_TARGET_KIND, DEFAULT_HEAT_CURVE_TARGET_KIND, _select(list(HEAT_CURVE_TARGET_KINDS), 'heat_curve_target_kind')),
+    _F("heat_curve", CONF_HEAT_CURVE_OFFSET_BAND_K, DEFAULT_HEAT_CURVE_OFFSET_BAND_K, _number(*HEAT_CURVE_OFFSET_BAND_RANGE_K, 0.5, 'K')),
     # -- building_preset
     _F("building_preset", "", _DYNAMIC, _questionnaire_fields, group="questionnaire"),
     _F("building_preset", CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED, bool, group="derivation"),
@@ -2167,6 +2212,44 @@ def _prefill_offer_stored(hass: HomeAssistant) -> bool:
     )
 
 
+async def _heat_curve_errors(hass: Any, submit: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
+    """T2: an offset entity whose own range excludes 0 is no offset.
+
+    A plausibility check, not proof: an absolute curve point is caught only
+    where its integration declares a range without 0. An entity with no state
+    at save time is not judged here (ghc-r08); the arm refuses it at every
+    write by the same rule (``heat_curve.range_excludes_zero``).
+    """
+    entity_id = {**current, **submit}.get(CONF_HEAT_CURVE_DISPLACE_ENTITY)
+    reading = number_reading(hass, entity_id) if entity_id else None
+    if reading is not None and heat_curve.range_excludes_zero(reading):
+        return {CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_not_offset"}
+    return {}
+
+
+#: The entities the optimizer writes besides the heat-curve one (ghc-r03).
+_WRITTEN_ENTITY_KEYS = (
+    CONF_SPACE_SETPOINT_ENTITY,
+    CONF_DHW_SETPOINT_ENTITY,
+    CONF_MIXING_VALVE_WRITE_ENTITY,
+    CONF_COMPRESSOR_FREQ_ENTITY,
+    CONF_HEAT_PUMP_MODE_ENTITY,
+)
+
+
+def _written_entity_collision(merged: Mapping[str, Any]) -> dict[str, str]:
+    """The heat-curve entity may not be one the optimizer writes for another purpose.
+
+    Judged over the save merged onto the stored config, on every page that
+    saves either half (``_page``) and on the pre-fill save, so the refusal holds
+    whichever half was saved last (ghc-r03).
+    """
+    entity_id = merged.get(CONF_HEAT_CURVE_DISPLACE_ENTITY)
+    if entity_id and any(merged.get(key) == entity_id for key in _WRITTEN_ENTITY_KEYS):
+        return {"base": "heat_curve_entity_in_use"}
+    return {}
+
+
 def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
     """The refusals of the pages the suggested keys live on, for this save.
 
@@ -2201,7 +2284,7 @@ def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str,
             _power_errors(saved, current) or _partload_errors(saved, current)
         ).values():
             errors["base"] = problem
-    return errors
+    return errors or _written_entity_collision({**current, **saved})
 
 
 def _omit_unstored_computed(
@@ -3225,6 +3308,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             cleaned = _clear_absent(flat, step_id, merged) if clear else flat
             if check is not None:
                 errors = await check(cleaned, current)
+            errors = errors or _written_entity_collision(merged)
             if not errors:
                 return await self._save_or_menu(
                     finish(cleaned, merged) if finish is not None else cleaned
@@ -3645,8 +3729,8 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     async def async_step_heat_curve(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Danfoss ECL110 heat-curve offset control over MQTT."""
-        return await self._page("heat_curve", user_input)
+        """Heat-curve offset control: ECL110 over MQTT, or a number entity."""
+        return await self._page("heat_curve", user_input, clear=True, check=partial(_heat_curve_errors, self.hass))
 
     # ------------------------------------------------------------------
     # Option pages added in v2.8.0

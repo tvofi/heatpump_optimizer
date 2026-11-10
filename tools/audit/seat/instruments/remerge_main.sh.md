@@ -6,4 +6,7 @@
   on a clean 2-parent merge of the live head and main under the live body.
   When: main moved under an open PR. Refusal: a conflict is not
   auto-resolved — it stops loudly instead, the merge aborted, so the worktree
-  is left clean at origin/<branch> for the train to release.
+  is left clean at origin/<branch> for the train to release. `MERGE CONFLICT
+  <pr>` names only a merge that left unmerged paths; a fetch, reset or merge
+  that failed otherwise prints `REMERGE FAILED <pr> at <step> (rc=N)` under
+  git's own words, which the train stops on as a failure, never a conflict.

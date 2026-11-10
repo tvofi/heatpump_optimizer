@@ -195,10 +195,13 @@ def verify_dispatch(ctx: dict, get) -> str:
     return ""
 
 
-def run_jobs(get, repo: str, run_id) -> dict:
-    """A run's latest jobs, name -> (status, conclusion)."""
-    return {j["name"]: (j["status"], j["conclusion"]) for j in
-            ghapi.paginate(f"repos/{repo}/actions/runs/{run_id}/jobs", {"filter": "latest"}, get=get)}
+def run_jobs(get, repo: str, run_id, starts=None) -> dict:
+    """A run's latest jobs, name -> (status, conclusion); `starts`, when given, is filled
+    name -> started_at (gate.gate's source order)."""
+    rows = ghapi.paginate(f"repos/{repo}/actions/runs/{run_id}/jobs", {"filter": "latest"}, get=get)
+    if starts is not None:
+        starts.update((j["name"], j.get("started_at")) for j in rows)
+    return {j["name"]: (j["status"], j["conclusion"]) for j in rows}
 
 
 def judging(run: dict) -> bool:

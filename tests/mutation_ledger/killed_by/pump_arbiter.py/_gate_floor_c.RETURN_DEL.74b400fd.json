@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_gate_floor_c RETURN_DEL 74b400fd",
+  "killed_by": "tests/features.py",
+  "old": "    return _as_target(config, FLOW_GATE_C)",
+  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (gate fix, over e0d2751f6): RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 of 4991 to rc=1 failed=1 and a TypeError in _bounded (a None gate as the floor): the hot-water-only step no longer writes the space gate."
+}

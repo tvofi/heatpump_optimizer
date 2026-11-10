@@ -78,7 +78,7 @@ def gantt(roster: dict) -> str:
     for lane in lanes:
         lines.append(f"  section {lane}")
         for g in [k for k in open_ if (open_[k].get("lane") or "?") == lane]:
-            deps = [ids[a] for a in open_[g].get("after") or [] if a in open_]
+            deps = [ids[a] for a in open_[g].get("after") or [] if a in open_ and roster_lib.gates(open_[a])]
             start = GANTT_BASE if not deps else None
             tag = "crit, " if g in path else ""
             when = (f"{start}, 1d" if start

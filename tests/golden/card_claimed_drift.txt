@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.8
+# claims-for: 7.1.9
 #
-# v7.1.8: The plan respects Heat pump min power. The stamp empties the list; the
+# v7.1.9: water set-point lift and ceiling (outside #3356). The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 

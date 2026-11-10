@@ -14,7 +14,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime, timedelta, timezone
 
-from harness import FakeHass, FakeState, Results, UTC, minutes_ago, with_config
+from harness import FakeHass, FakeState, Results, UTC, SHIPPED_CATALOGUES, TRANSLATED_LANGS, minutes_ago, with_config
 from profiles import solve_inputs  # noqa: E402
 
 import numpy as np
@@ -5853,7 +5853,7 @@ import json as _rt_json  # noqa: E402
 import re as _rt_re  # noqa: E402
 
 _rt_examples = {}
-for _rt_f in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _rt_f in ("strings.json", *SHIPPED_CATALOGUES):
     with open(f"custom_components/heatpump_optimizer/{_rt_f}", encoding="utf-8") as _fh:
         _rt_doc = _rt_json.load(_fh)
 
@@ -6687,6 +6687,71 @@ def _vib_memo_arms():
 
 
 _vib_memo_arms()
+
+
+def _blas_pin_shared_controller():
+    """R10-HOTFIX-STRESS-MEM-PEAK: the BLAS pin scans the libraries once.
+
+    ``threadpool_limits`` built a fresh ``ThreadpoolController`` per minimize
+    call -- a rescan of every loaded library each time, and on Python 3.14 an
+    import of ``ctypes.util`` inside the first solve, which the stress memory
+    probe charged to the scenario. The pin now goes through the one
+    controller optimizer.py built at import; a call constructs none.
+    """
+    import threadpoolctl
+
+    built: list = []
+    real_init = threadpoolctl.ThreadpoolController.__init__
+
+    def counting_init(self, *a, **k):
+        built.append(1)
+        real_init(self, *a, **k)
+
+    def obj(x, *_a):
+        return float(np.dot(np.asarray(x, dtype=float), np.asarray(x, dtype=float)))
+
+    threadpoolctl.ThreadpoolController.__init__ = counting_init
+    try:
+        for _ in range(3):
+            _grad_optmod._scoped_minimize(
+                obj, np.ones(3), method="L-BFGS-B", bounds=[(-1.0, 1.0)] * 3,
+            )
+        # The null control: the counter does see a construction.
+        threadpoolctl.ThreadpoolController()
+    finally:
+        threadpoolctl.ThreadpoolController.__init__ = real_init
+    R.check(
+        "the BLAS thread pin reuses optimizer.py's one ThreadpoolController: "
+        "three scoped minimize calls build none (and the counter sees a direct "
+        "construction, the null control)",
+        isinstance(getattr(_grad_optmod, "_blas_threads", None), threadpoolctl.ThreadpoolController)
+        and len(built) == 1,
+        f"constructions={len(built)} (want 1: the null control's alone), "
+        f"_blas_threads={type(getattr(_grad_optmod, '_blas_threads', None)).__name__}",
+    )
+
+    # The optional-dependency arm: no threadpoolctl, no pin, the same solve.
+    saved = _grad_optmod._blas_threads
+    _grad_optmod._blas_threads = None
+    try:
+        bare = _grad_optmod._scoped_minimize(
+            obj, np.ones(3), method="L-BFGS-B", bounds=[(-1.0, 1.0)] * 3,
+        )
+        bare_err = None
+    except Exception as err:  # noqa: BLE001 - the raise is the observation
+        bare, bare_err = None, err
+    finally:
+        _grad_optmod._blas_threads = saved
+    R.check(
+        "without threadpoolctl the scoped minimize runs unpinned and still "
+        "solves (x -> 0 on the bowl)",
+        bare_err is None and bare is not None
+        and float(np.max(np.abs(bare.x))) < 1e-6,
+        f"error={bare_err!r} x={None if bare is None else bare.x}",
+    )
+
+
+_blas_pin_shared_controller()
 
 
 def _d0_restart_from_returned_point():
@@ -13362,9 +13427,29 @@ R.check(
     and "Värmepump" in _sv_text and "Ute" in _sv_text,
     _sv_text,
 )
+# Every language the setup text ships (R10-I18N-DE): each table's slot
+# labels differ from English, and its summary carries no English heading.
+for _tr_lang in _topo._TRANSLATIONS:
+    _tr_full = _topo.describe_setup(_full_cfg, f"{_tr_lang}-XX")
+    _tr_labels = {s["key"]: s["label"] for s in _tr_full["slots"]}
+    _tr_text = _topo.render_text_summary(_tr_full)
+    R.check(
+        f"every slot label and no summary heading is English on a {_tr_lang} install",
+        _tr_labels.keys() == _en_labels.keys()
+        and all(_tr_labels[k] != _en_labels[k] for k in _en_labels)
+        and not any(w in _tr_text for w in _en_words)
+        and all(e["label"] != n["label"]
+                for e, n in zip(_full["catalog"], _tr_full["catalog"])),
+        f"unchanged: {[k for k in _en_labels if _tr_labels.get(k) == _en_labels[k]]}; {_tr_text[:200]}",
+    )
+R.check(
+    "setup text ships every translated catalogue's language, and no other",
+    set(_topo._TRANSLATIONS) == set(TRANSLATED_LANGS),
+    str(sorted(_topo._TRANSLATIONS)),
+)
 R.check(
     "null control: English and an unknown language read as before",
-    _topo.render_text_summary(_topo.describe_setup(_full_cfg, "de"))
+    _topo.render_text_summary(_topo.describe_setup(_full_cfg, "xx"))
     == _text_en_ref
     if (_text_en_ref := _topo.render_text_summary(_full)) else False,
 )
@@ -14127,8 +14212,8 @@ _FR_LISTED = {
     "wood_furnace_enabled", "dhw_wood_coil_enabled", "mixing_valve_mode",
     "mixing_valve_write_target_kind", "space_setpoint_unit", "topology_layout",
     "topology_positions", "ecl110_command_topic", "ecl110_displace_set_topic",
-    "ecl110_state_topic", "ecl110_mqtt_qos", "ecl110_mqtt_retain", "modbus_prefill_prefix",
-    "main_fuse_amperes", "main_fuse_phases",
+    "ecl110_state_topic", "ecl110_mqtt_qos", "ecl110_mqtt_retain", "heat_curve_target_kind",
+    "modbus_prefill_prefix", "main_fuse_amperes", "main_fuse_phases",
 }
 #: Every key a ``CONF_`` constant names (a tuple names several: the weekday
 #: hot-water windows), and Home Assistant's own ``name``.
@@ -14613,8 +14698,7 @@ R.check(
     and all(_fi_json.loads(_FrPath(p).read_text())["options"]["abort"].get("factory_reset_not_applied")
             and _fi_json.loads(_FrPath(p).read_text())["exceptions"]["factory_reset_not_applied"]["message"]
             for p in ("custom_components/heatpump_optimizer/strings.json",
-                      "custom_components/heatpump_optimizer/translations/en.json",
-                      "custom_components/heatpump_optimizer/translations/sv.json")),
+                      *(f"custom_components/heatpump_optimizer/{c}" for c in SHIPPED_CATALOGUES))),
     f"{_fr_refused[0]}, raised {_fr_refused[1]!r}",
 )
 _fr_off = _aio.run(_fr_flow_case({"scope": "both", "confirm": True}, "fr_flow_off", loaded=False))
@@ -14629,8 +14713,7 @@ R.check(
     "factory_reset" in _fr_flow.HeatPumpOptimizerOptionsFlow._ADVANCED_MENU
     and all(_fi_json.loads(_FrPath(p).read_text())["options"]["step"]["advanced"]["menu_options"].get("factory_reset")
             for p in ("custom_components/heatpump_optimizer/strings.json",
-                      "custom_components/heatpump_optimizer/translations/en.json",
-                      "custom_components/heatpump_optimizer/translations/sv.json")),
+                      *(f"custom_components/heatpump_optimizer/{c}" for c in SHIPPED_CATALOGUES))),
 )
 
 _fr_svc_refused = []
@@ -14678,6 +14761,7 @@ _FR_STORES = {
     "notifier": "kept: which notices were sent",
     "pump_duty": "kept: what was last written to the pump",
     "debug": "kept: a diagnostics collection",
+    "off_restore": "kept: what the optimizer still owes an entity it wrote, at off or unload",
 }
 _fr_found = set()
 for _fr_p in sorted(_FrPath("custom_components/heatpump_optimizer").glob("*.py")):
@@ -25373,16 +25457,18 @@ for _lang6 in narrative_mod.TEMPLATES:  # the languages the narratives ship
         f"every template language carries every reason key ({_lang6})",
         set(narrative_mod.TEMPLATES[_lang6]) == set(narrative_mod.TEMPLATES["en"]),
     )
-_par_ok = all(
-    set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES["en"][key]))
-    == set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES["sv"][key]))
+_par_bad = [
+    f"{_lang6}:{key}"
+    for _lang6 in narrative_mod.TEMPLATES
     for key in narrative_mod.TEMPLATES["en"]
-)
+    if set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES["en"][key]))
+    != set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES[_lang6].get(key, "")))
+]
 R.check(
-    "en and sv templates use identical placeholders per key",
-    _par_ok,
-    "a placeholder present in one language and absent in the other is a "
-    "sentence that cannot be said",
+    "every template language uses en's placeholders per key, one per shipped catalogue",
+    set(narrative_mod.TEMPLATES) == {"en", *TRANSLATED_LANGS} and not _par_bad,
+    f"{sorted(narrative_mod.TEMPLATES)}: {_par_bad[:6]} -- a placeholder present "
+    "in one language and absent in the other is a sentence that cannot be said",
 )
 _n_items = narrative_mod.build(
     {
@@ -27362,7 +27448,7 @@ R.check(
     f"{_svc_valid_entry.runtime_data._thermal_params.dhw_windows}",
 )
 
-# The translations: every new key in all three files, each message naming
+# The translations: every new key in every file, each message naming
 # exactly the placeholders its raise passes, strings.json parity with
 # en.json (hassfest), and no single-quoted placeholder anywhere (hassfest).
 import json as _svc_json  # noqa: E402
@@ -27372,7 +27458,10 @@ _SVC_FILES = {}
 for _svc_label, _svc_path in (
     ("strings", "custom_components/heatpump_optimizer/strings.json"),
     ("en", "custom_components/heatpump_optimizer/translations/en.json"),
-    ("sv", "custom_components/heatpump_optimizer/translations/sv.json"),
+    *(
+        (_l, f"custom_components/heatpump_optimizer/translations/{_l}.json")
+        for _l in TRANSLATED_LANGS
+    ),
 ):
     with open(_svc_path, encoding="utf-8") as _svc_fh:
         _SVC_FILES[_svc_label] = _svc_json.load(_svc_fh).get("exceptions", {})
@@ -27384,7 +27473,7 @@ _svc_missing = {
     if key not in block
 }
 R.check(
-    "every operational-failure key exists in strings.json, en.json and sv.json",
+    "every operational-failure key exists in strings.json and every translation",
     not _svc_missing,
     f"missing: {sorted(_svc_missing)}",
 )
@@ -27396,7 +27485,7 @@ def _svc_names(message):
 
 _svc_bad = []
 for _svc_key, (_svc_want, _svc_cls) in _SVC_KEYS.items():
-    for _svc_label in ("strings", "en", "sv"):
+    for _svc_label in _SVC_FILES:
         _svc_msg = _SVC_FILES[_svc_label].get(_svc_key, {}).get("message", "")
         if _svc_names(_svc_msg) != _svc_want:
             _svc_bad.append(
@@ -31760,10 +31849,19 @@ for _lang_cl in narrative_mod.TEMPLATES:  # every shipped language
 _card_src_cl = _Path(
     "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
 ).read_text(encoding="utf-8")
+# One label per dictionary in the card's STRINGS table, plus the code's map.
+import re as _re_cl  # noqa: E402
+_card_langs_cl = _re_cl.findall(
+    r"^  ([a-z]{2}): \{$",
+    _card_src_cl.split("const STRINGS = {", 1)[1].split("\n};", 1)[0],
+    _re_cl.M,
+)
 R.check(
-    "and a card label in both languages, wired to the code",
-    _card_src_cl.count('"reasons.scheduled"') == 3
+    "and a card label in every card language, wired to the code",
+    set(_card_langs_cl) == {"en", *TRANSLATED_LANGS}
+    and _card_src_cl.count('"reasons.scheduled"') == len(_card_langs_cl) + 1
     and "scheduled: \"reasons.scheduled\"," in _card_src_cl,
+    f"{_card_src_cl.count(chr(34) + 'reasons.scheduled' + chr(34))} uses over {_card_langs_cl}",
 )
 
 
@@ -37206,7 +37304,7 @@ R.check(
     and abs(_lg_skew_past - 2.0) < 1e-3,
     f"future {_lg_skew_future!r} h, past {_lg_skew_past!r} h",
 )
-for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _lang_file in ("strings.json", *SHIPPED_CATALOGUES):
     _lg_doc = _json.loads(
         (_PKG_DIR / _lang_file).read_text(encoding="utf-8")
     )
@@ -37504,7 +37602,7 @@ R.check(
     60.0 < MODE_LAST_GOOD_MAX_AGE_MINUTES < 360.0,
     f"{MODE_LAST_GOOD_MAX_AGE_MINUTES} min",
 )
-for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _lang_file in ("strings.json", *SHIPPED_CATALOGUES):
     _ex_doc = _json.loads((_PKG_DIR / _lang_file).read_text(encoding="utf-8"))
     R.check(
         f"the mode-unreadable notice is translated in {_lang_file}",
@@ -40127,7 +40225,7 @@ for _wx_key in ("solar_irradiance", "native_solar_irradiance"):
 # D10-17 (#217, Gold `exception-translations`): every user-facing
 # ServiceValidationError must carry translation_domain + translation_key and
 # placeholders for exactly the values the old English f-string interpolated,
-# and strings.json / en.json / sv.json must carry an exceptions section
+# and strings.json / every translation must carry an exceptions section
 # covering them. Each of the 13 raise sites is driven with input that reaches
 # it -- through hass.services.async_call, which dispatches the real schema to
 # the real handler the way Home Assistant does, and for the coordinator's
@@ -40537,26 +40635,28 @@ _et_check(
     "set_temperature_comfort_band_violation",
 )
 
-# The translations themselves: same key set in all three files, each message
+# The translations themselves: same key set in every file, each message
 # naming exactly the placeholders its raise site passes, and strings.json
 # staying parity-identical with translations/en.json (hassfest).
 _ET_FILES = {}
 for _et_label, _et_path in (
     ("strings", "custom_components/heatpump_optimizer/strings.json"),
     ("en", "custom_components/heatpump_optimizer/translations/en.json"),
-    ("sv", "custom_components/heatpump_optimizer/translations/sv.json"),
+    *(
+        (_l, f"custom_components/heatpump_optimizer/translations/{_l}.json")
+        for _l in TRANSLATED_LANGS
+    ),
 ):
     with open(_et_path, encoding="utf-8") as _et_fh:
         _ET_FILES[_et_label] = _et_json.load(_et_fh).get("exceptions", {})
 
 R.check(
-    "every raised exception key exists in strings.json, en.json and sv.json",
+    "every raised exception key exists in strings.json and every translation",
     set(_ET_KEYS)
     == set(_ET_FILES["strings"])
     == set(_ET_FILES["en"])
-    == set(_ET_FILES["sv"]),
-    f"strings={sorted(_ET_FILES['strings'])} en={sorted(_ET_FILES['en'])} "
-    f"sv={sorted(_ET_FILES['sv'])}",
+    and all(set(_ET_FILES[_l]) == set(_ET_KEYS) for _l in TRANSLATED_LANGS),
+    " ".join(f"{_l}={sorted(_b)}" for _l, _b in _ET_FILES.items()),
 )
 
 
@@ -40566,7 +40666,7 @@ def _et_names(message):
 
 _et_bad = []
 for _et_key, _et_want in _ET_KEYS.items():
-    for _et_label in ("strings", "en", "sv"):
+    for _et_label in _ET_FILES:
         _et_msg = _ET_FILES[_et_label].get(_et_key, {}).get("message", "")
         if _et_names(_et_msg) != _et_want:
             _et_bad.append(
@@ -41709,9 +41809,9 @@ R.check(
 # ---------------------------------------------------------------------------
 R.section("#193 S3 — the ECL110 publish helpers, over plain values")
 
-from heatpump_optimizer.coordinator import (  # noqa: E402
-    _ecl110_legacy_payload as _s3_ecl_payload,
-    _publish_ecl110_topics as _s3_ecl_publish,
+from heatpump_optimizer.heat_curve import (  # noqa: E402
+    ecl110_legacy_payload as _s3_ecl_payload,
+    publish_ecl110_topics as _s3_ecl_publish,
 )
 
 # The helpers take plain values, never ``self``. A module-level helper handed
@@ -41720,7 +41820,7 @@ from heatpump_optimizer.coordinator import (  # noqa: E402
 _act_s3 = {"price": 1.5, "mode": "boost", "pre_heat_urgency": 0.25}
 _pay_s3 = _s3_ecl_payload("optimizer", True, 4, _act_s3)
 R.check(
-    "_ecl110_legacy_payload builds its context from the action passed in (#193)",
+    "ecl110_legacy_payload builds its context from the action passed in (#193)",
     _pay_s3.get("context") == _act_s3
     and _pay_s3.get("command")
     == {"type": "ecl110_control", "heat_pump_on": True, "displace": 4}
@@ -41765,7 +41865,7 @@ def _s3_publish_calls(set_topic, command_topic, services=None):
 
 _t_none, _p_none, _log_none = _s3_publish_calls("", "")
 R.check(
-    "_publish_ecl110_topics writes nothing when neither topic is configured (#193)",
+    "publish_ecl110_topics writes nothing when neither topic is configured (#193)",
     _t_none == [],
     repr(_t_none),
 )
@@ -41811,6 +41911,835 @@ R.check(
     ),
     repr(_log_flaky),
 )
+
+
+class _S3Kwargs:
+    """MQTT that records each publish's keyword arguments."""
+
+    def __init__(self) -> None:
+        self.calls, self.kwargs = [], []
+
+    async def async_call(self, domain, service, data=None, **kwargs):
+        self.calls.append((domain, service, data))
+        self.kwargs.append(kwargs)
+
+
+_s3_kw = _S3Kwargs()
+_s3_publish_calls("ecl/set", "ecl/cmd", services=_s3_kw)
+R.check(
+    "both arms publish blocking, so a broker failure reaches the arm's own except (#193)",
+    _s3_kw.kwargs == [{"blocking": True}, {"blocking": True}],
+    repr(_s3_kw.kwargs),
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("R10-GENERIC-HEAT-CURVE — the displace through a number entity, kind offset")
+
+# The owner's ruling (tvofi, #201, 2026-11-07): build it, kind offset first,
+# and turning the optimizer off restores the baseline. Every check drives the
+# production chokepoint, ``async_publish_ecl110_command``, or the shared
+# restore hook, never a copy of the arm's arithmetic.
+import time as _time  # noqa: E402
+from harness import FakeEntry as _ghc_entry, FakeHass as _ghc_hass, FakeState as _ghc_state  # noqa: E402
+from heatpump_optimizer import heat_curve as _ghc, off_restore as _ghc_restore  # noqa: E402
+from heatpump_optimizer import async_unload_entry as _ghc_unload  # noqa: E402
+from heatpump_optimizer.const import MODE_AUTO as _ghc_auto, MODE_OFF as _ghc_off  # noqa: E402
+from heatpump_optimizer.entry_config import FACTORY_KEPT as _ghc_kept  # noqa: E402
+
+_GHC_ENT = "number.heating_offset"
+_ghc_seq = iter(range(10**6))
+
+
+def _ghc_coord(unit="K", lo=-20.0, hi=20.0, step=0.5, value="0", entity=_GHC_ENT, hass=None, entry_id=None, **extra):
+    """A coordinator whose heat-curve entity is ``entity``, in ``unit`` over lo..hi."""
+    attrs = {"step": step}
+    if lo is not None:
+        attrs["min"] = lo
+    if hi is not None:
+        attrs["max"] = hi
+    hass = hass or _ghc_hass()
+    if value is not None:
+        hass.states.set(_GHC_ENT, _ghc_state(value, unit=unit, attributes=attrs))
+    cfg = {"tibber_token": "x", "weather_entity": "weather.home", **extra}
+    if entity:
+        cfg["heat_curve_displace_entity"] = entity
+    return Coord(hass, _ghc_entry(data=cfg, entry_id=entry_id or f"ghc_{next(_ghc_seq)}"))
+
+
+def _ghc_writes(coord):
+    """The values the number arm sent, in order."""
+    return [d.get("value") for _, s, d in coord.hass.services.calls if s == "set_value"]
+
+
+def _ghc_mqtt(coord):
+    return [(d.get("topic"), d.get("payload")) for dom, _, d in coord.hass.services.calls if dom == "mqtt"]
+
+
+def _ghc_pub(coord, value, on=True):
+    _asyncio.run(coord.async_publish_ecl110_command(value, on))
+
+
+def _ghc_logged(fn):
+    """Run ``fn``, returning what the integration logged at WARNING and up."""
+    logger = _logging.getLogger("heatpump_optimizer")
+    capture, real_prop = _LogCapture(), logger.propagate
+    logger.addHandler(capture)
+    logger.propagate = False
+    try:
+        fn()
+    finally:
+        logger.propagate = real_prop
+        logger.removeHandler(capture)
+    return [msg for lvl, msg in capture.records if lvl >= _logging.WARNING]
+
+
+# The failing test first: red at the base, which has no such option.
+_g = _ghc_coord(heat_curve_offset_band_k=5.0)
+_ghc_pub(_g, 5.0)
+R.check(
+    "no topic and an offset entity: one publish of 5 sends one set_value of 5 (R10-GENERIC-HEAT-CURVE)",
+    _ghc_writes(_g) == [5] and _ghc_mqtt(_g) == [],
+    "writes=%r mqtt=%r" % (_ghc_writes(_g), _ghc_mqtt(_g)),
+)
+# Null control: the option empty, the same publish -- no number call, and the
+# MQTT arms exactly as before (W7).
+_g0 = _ghc_coord(entity=None, ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_g0, 5.0)
+R.check(
+    "the entity option empty: no set_value, and the /set topic still carries the integer (W7)",
+    _ghc_writes(_g0) == [] and _ghc_mqtt(_g0) == [("ecl/set", "5")],
+    "writes=%r mqtt=%r" % (_ghc_writes(_g0), _ghc_mqtt(_g0)),
+)
+_gb = _ghc_coord(ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gb, 5.0)
+R.check(
+    "both configured: MQTT first with the full integer, the entity bounded by the 3 K default band",
+    _ghc_mqtt(_gb) == [("ecl/set", "5")] and _ghc_writes(_gb) == [3]
+    and [s for _, s, _d in _gb.hass.services.calls] == ["publish", "set_value"],
+    repr(_gb.hass.services.calls),
+)
+_gk = _ghc_coord(unit="K")
+_ghc_pub(_gk, -2.0)
+R.check(
+    "a kelvin entity is sent -2 for -2, never 271.15 through the absolute helpers (T1)",
+    _ghc_writes(_gk) == [-2],
+    repr(_ghc_writes(_gk)),
+)
+_gf = _ghc_coord(unit="°F", step=0.1, lo=-36.0, hi=36.0)
+_ghc_pub(_gf, 2.0)
+R.check(
+    "a Fahrenheit entity is sent the difference x9/5: 2 K is 3.6 °F (T1)",
+    _ghc_writes(_gf) == [3.6],
+    repr(_ghc_writes(_gf)),
+)
+_gs = _ghc_coord(lo=-2.0, hi=2.0)
+_gs_warn = _ghc_logged(lambda: _ghc_pub(_gs, 3.0))
+R.check(
+    "an entity range narrower than the displace saturates and is latched once, naming it (W6)",
+    _ghc_writes(_gs) == [2] and any("narrower" in m for m in _gs_warn),
+    "writes=%r warn=%r" % (_ghc_writes(_gs), _gs_warn),
+)
+_g1 = _ghc_coord(value="3")
+_ghc_pub(_g1, 3.0)
+R.check(
+    "a reading already at the target is not written (W1)",
+    _ghc_writes(_g1) == [],
+    repr(_ghc_writes(_g1)),
+)
+
+# W2 and W3: the reading stays 0 whatever is written.
+_g2 = _ghc_coord()
+_ghc_pub(_g2, 2.0)
+_ghc_pub(_g2, 2.0)
+_w2_grace = list(_ghc_writes(_g2))
+_ghc.state_for(_g2.entry).written_at -= _ghc.HELD_GRACE_S + 1
+_ghc_pub(_g2, 2.0)
+_w2_after = list(_ghc_writes(_g2))
+_ghc.state_for(_g2.entry).written_at -= _ghc.HELD_GRACE_S + 1
+_w3_warn = _ghc_logged(lambda: _ghc_pub(_g2, 2.0))
+_w3_gave_up = list(_ghc_writes(_g2))
+_ghc_pub(_g2, 1.0)
+R.check(
+    "inside the grace a differing reading proves nothing: no second write (W2)",
+    _w2_grace == [2],
+    repr(_w2_grace),
+)
+R.check(
+    "after the grace the first miss is written once more (W2)",
+    _w2_after == [2, 2],
+    repr(_w2_after),
+)
+R.check(
+    "a second miss for the same target latches a warning and sends nothing (W3)",
+    _w3_gave_up == [2, 2] and any("does not hold" in m for m in _w3_warn),
+    "writes=%r warn=%r" % (_w3_gave_up, _w3_warn),
+)
+R.check(
+    "and a new target is written again (W3)",
+    _ghc_writes(_g2) == [2, 2, 1],
+    repr(_ghc_writes(_g2)),
+)
+_g4 = _ghc_coord()
+_cap = _ghc.write_cap_per_day(_g4.effective_config)
+_ghc.state_for(_g4.entry).writes.extend([_time.monotonic()] * _cap)
+_w4_warn = _ghc_logged(lambda: _ghc_pub(_g4, 2.0))
+_g4b = _ghc_coord()
+_ghc.state_for(_g4b.entry).writes.extend([_time.monotonic()] * (_cap - 1))
+_ghc_pub(_g4b, 2.0)
+R.check(
+    "the 24 h write guard is 2 x 1440 / interval: 96 at the default 30 min (W4)",
+    _cap == 96,
+    repr(_cap),
+)
+R.check(
+    "at the guard nothing is written and it is latched; one below it the write goes (W4)",
+    _ghc_writes(_g4) == [] and any("guard" in m for m in _w4_warn) and _ghc_writes(_g4b) == [2],
+    "at=%r below=%r warn=%r" % (_ghc_writes(_g4), _ghc_writes(_g4b), _w4_warn),
+)
+
+
+class _GhcRaising:
+    """MQTT accepted; every set_value raises."""
+
+    def __init__(self) -> None:
+        self.calls = []
+
+    async def async_call(self, domain, service, data=None, **kwargs):
+        self.calls.append((domain, service, data))
+        if service == "set_value":
+            raise RuntimeError("integration gone")
+
+
+_bad = {}
+for _name, _kw in (
+    ("absent", {"value": None}),
+    ("unavailable", {"value": "unavailable"}),
+    ("unit %", {"unit": "%"}),
+    ("sensor domain", {"entity": "sensor.heating_offset"}),
+    ("range excluding 0", {"lo": 20.0, "hi": 70.0, "value": "30"}),
+):
+    _c = _ghc_coord(ecl110_displace_set_topic="ecl/set", **_kw)
+    _warn = _ghc_logged(lambda: _ghc_pub(_c, 2.0))
+    _bad[_name] = (_ghc_writes(_c), _ghc_mqtt(_c), bool(_warn))
+_cr = _ghc_coord(ecl110_displace_set_topic="ecl/set")
+_cr.hass.services = _GhcRaising()
+_cr_warn = _ghc_logged(lambda: _ghc_pub(_cr, 2.0))
+_bad["raising service"] = (
+    [], _ghc_mqtt(_cr), bool(_cr_warn) and _ghc.state_for(_cr.entry).written is None,
+)
+R.check(
+    "absent, unavailable, a non-temperature unit, a sensor, a range without 0 or a raising "
+    "service: no value lands, the failure is latched, the MQTT arm still publishes",
+    all(w == [] and m == [("ecl/set", "2")] and warned for w, m, warned in _bad.values()),
+    repr(_bad),
+)
+
+# The off rule (tvofi, 2026-11-07): off and unload write 0; nothing written,
+# nothing restored.
+_go = _ghc_coord()
+_ghc_pub(_go, 2.0)
+_asyncio.run(_go.async_set_mode(_ghc_off, refresh=False))
+_go_off = list(_ghc_writes(_go))
+_ghc_pub(_go, 2.0)
+_asyncio.run(_go.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "MODE_OFF after a write writes one 0 (the off rule)",
+    _go_off == [2, 0],
+    repr(_go_off),
+)
+R.check(
+    "and while off the arm writes nothing, nor does a second off",
+    _ghc_writes(_go) == [2, 0],
+    repr(_ghc_writes(_go)),
+)
+_gn = _ghc_coord()
+_asyncio.run(_gn.async_set_mode(_ghc_off, refresh=False))
+_gu = _ghc_coord(entity=None, ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gu, 2.0)
+_asyncio.run(_gu.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "nothing written, nothing restored; an unconfigured entity is never written",
+    _ghc_writes(_gn) == [] and _ghc_writes(_gu) == [],
+    "%r %r" % (_ghc_writes(_gn), _ghc_writes(_gu)),
+)
+
+_gl = _ghc_coord()
+_ghc_pub(_gl, -3.0)
+_gl.entry.runtime_data = _gl
+_unloaded = _asyncio.run(_ghc_unload(_gl.hass, _gl.entry))
+R.check(
+    "unload after a write writes one 0, through async_unload_entry (the off rule)",
+    _unloaded and _ghc_writes(_gl) == [-3, 0]
+    and _ghc_restore.diagnostics(_gl.entry)["restores"] == 1,
+    "ok=%r writes=%r" % (_unloaded, _ghc_writes(_gl)),
+)
+
+# A crash: the write was armed and persisted, the process died unrestored. The
+# next coordinator for the same entry restores it at its first off, before
+# writing anything itself.
+_gc = _ghc_coord(entry_id="ghc_crash")
+_ghc_pub(_gc, 2.0)
+_gc2 = _ghc_coord(hass=_gc.hass, entry_id="ghc_crash")
+_asyncio.run(_gc2.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a write left armed by a crash is restored by the next run's first off",
+    _ghc_writes(_gc2) == [2, 0],
+    repr(_ghc_writes(_gc2)),
+)
+
+# The hook's reuse (R10-ARBITER-OFF-RESTORE): a second consumer with a captured
+# baseline registers its own factory and edits nothing in off_restore.
+_ghc_base = {"v": 42.0}
+
+
+async def _ghc_stand_in_write(hass, entity_id, value):
+    hass.services.calls.append(("number", "set_value", {"entity_id": entity_id, "value": value}))
+
+
+_ghc_restore.register_consumer(
+    "stand_in_space_setpoint",
+    lambda cfg: _ghc_restore.Restorer(
+        "number.space_setpoint", _ghc_stand_in_write, baseline_of=lambda hass, eid: _ghc_base["v"],
+    ) if cfg.get("stand_in") else None,
+)
+_si = _ghc_coord(entity=None, entry_id="ghc_stand_in", stand_in=True)
+_si_cfg = _si.effective_config
+_armed = _asyncio.run(_ghc_restore.async_arm(_si.hass, _si.entry, _si_cfg, "stand_in_space_setpoint"))
+_ghc_base["v"] = 46.0  # the consumer's own write moved the entity
+_asyncio.run(_ghc_restore.async_arm(_si.hass, _si.entry, _si_cfg, "stand_in_space_setpoint"))
+_si2 = _ghc_coord(entity=None, hass=_si.hass, entry_id="ghc_stand_in", stand_in=True)
+_si_sent = _asyncio.run(_ghc_restore.async_restore(_si2.hass, _si2.entry, _si2.effective_config, "unload"))
+R.check(
+    "a stand-in second consumer registers without editing the hook: its baseline, captured "
+    "before its first write, survives a restart and is what the restore writes",
+    _armed and _si_sent == 1 and _ghc_writes(_si2) == [42.0],
+    "armed=%r sent=%r writes=%r" % (_armed, _si_sent, _ghc_writes(_si2)),
+)
+_ghc_base["v"] = None
+_si3 = _ghc_coord(entity=None, entry_id="ghc_stand_in_unreadable", stand_in=True)
+R.check(
+    "and an unreadable baseline refuses the consumer's write: nothing to restore it to",
+    _asyncio.run(_ghc_restore.async_arm(_si3.hass, _si3.entry,
+                                        _si3.effective_config, "stand_in_space_setpoint")) is False,
+    "",
+)
+
+# The hook's failure edges, each through the production function: a consumer
+# that refuses before any record exists, a restore whose write raises and is
+# retried, one whose consumer is no longer configured, and a store that cannot
+# save or be removed. None of them may raise into the caller.
+_ghc_fail = {"write": True}
+
+
+async def _ghc_flaky_write(hass, entity_id, value):
+    if _ghc_fail["write"]:
+        raise RuntimeError("integration gone")
+    hass.services.calls.append(("number", "set_value", {"entity_id": entity_id, "value": value}))
+
+
+_ghc_restore.register_consumer(
+    "stand_in_flaky",
+    lambda cfg: _ghc_restore.Restorer("number.flaky", _ghc_flaky_write, neutral=0.0)
+    if cfg.get("flaky") else None,
+)
+_ge = _ghc_coord(entity=None, entry_id="ghc_edges")
+_ge_refused = (
+    _asyncio.run(_ghc_restore.async_arm(_ge.hass, _ge.entry, _ge.effective_config, "no_such_consumer")),
+    _asyncio.run(_ghc_restore.async_arm(_ge.hass, _ge.entry, _ge.effective_config, "stand_in_flaky")),
+)
+R.check(
+    "an unregistered consumer, or one its factory reads as unconfigured, refuses the write "
+    "and leaves no record behind",
+    _ge_refused == (False, False) and _ge.entry not in _ghc_restore._RECORDS,
+    "refused=%r recorded=%r" % (_ge_refused, _ge.entry in _ghc_restore._RECORDS),
+)
+_gw = _ghc_coord(entity=None, entry_id="ghc_flaky", flaky=True)
+_gw_cfg = _gw.effective_config
+_gw_armed = _asyncio.run(_ghc_restore.async_arm(_gw.hass, _gw.entry, _gw_cfg, "stand_in_flaky"))
+_gw_sent = []
+_gw_warn = _ghc_logged(lambda: _gw_sent.append(
+    _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload"))))
+_gw_after_fail = (list(_gw_sent), _ghc_restore.diagnostics(_gw.entry))
+_ghc_fail["write"] = False
+_gw_retry = _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "mode_off"))
+R.check(
+    "a restore whose write raises sends nothing, stays armed and latches a warning naming the entity",
+    _gw_armed is True
+    and _gw_after_fail == ([0], {"armed": ["stand_in_flaky"], "restores": 0, "last_restore": None})
+    and any("number.flaky" in m and "failed" in m for m in _gw_warn),
+    "armed=%r after=%r warn=%r" % (_gw_armed, _gw_after_fail, _gw_warn),
+)
+R.check(
+    "and the next off retries it: one write of the neutral 0, disarmed and counted",
+    _gw_retry == 1 and _ghc_writes(_gw) == [0.0]
+    and _ghc_restore.diagnostics(_gw.entry) == {"armed": [], "restores": 1, "last_restore": "mode_off"},
+    "sent=%r writes=%r diag=%r" % (_gw_retry, _ghc_writes(_gw), _ghc_restore.diagnostics(_gw.entry)),
+)
+_gx = _ghc_coord(entity=None, entry_id="ghc_unconfigured", flaky=True)
+_asyncio.run(_ghc_restore.async_arm(_gx.hass, _gx.entry, _gx.effective_config, "stand_in_flaky"))
+_gx2 = _ghc_coord(entity=None, hass=_gx.hass, entry_id="ghc_unconfigured")
+_gx_sent = _asyncio.run(_ghc_restore.async_restore(_gx2.hass, _gx2.entry, _gx2.effective_config, "unload"))
+R.check(
+    "an armed consumer no longer configured is disarmed unwritten: its entity is not the optimizer's",
+    _gx_sent == 0 and _ghc_writes(_gx2) == [] and _ghc_restore.diagnostics(_gx2.entry)["armed"] == [],
+    "sent=%r writes=%r diag=%r" % (_gx_sent, _ghc_writes(_gx2), _ghc_restore.diagnostics(_gx2.entry)),
+)
+
+
+async def _ghc_store_gone(*_a, **_k):
+    raise RuntimeError("store gone")
+
+
+class _GhcDeadStore:
+    async_save = async_remove = staticmethod(_ghc_store_gone)
+
+
+_gd = _ghc_coord(entity=None, entry_id="ghc_dead_store", flaky=True)
+_asyncio.run(_ghc_restore._armed_record(_gd.hass, _gd.entry))
+_ghc_restore._RECORDS[_gd.entry].store = _GhcDeadStore()
+_gd_armed = _asyncio.run(_ghc_restore.async_arm(_gd.hass, _gd.entry, _gd.effective_config, "stand_in_flaky"))
+_ghc_real_store = _ghc_restore._store
+_ghc_restore._store = lambda hass, entry_id: _GhcDeadStore()
+try:
+    _gd_forgot = _asyncio.run(_ghc_restore.async_forget(_gd.hass, "ghc_dead_store"))
+finally:
+    _ghc_restore._store = _ghc_real_store
+R.check(
+    "a store that cannot save still arms the write, and one that cannot be removed does not raise",
+    _gd_armed is True and _ghc_restore.diagnostics(_gd.entry)["armed"] == ["stand_in_flaky"]
+    and _gd_forgot is None,
+    "armed=%r diag=%r" % (_gd_armed, _ghc_restore.diagnostics(_gd.entry)),
+)
+
+# The arm's own edges, each pinning a line the diff mutants left alive at
+# e330a768 (tools/audit/seat/mutant_run.py --diff over this block).
+from heatpump_optimizer.inputs import NumberReading as _NR  # noqa: E402
+R.check(
+    "T2 at its bounds: a range starting or ending at 0 is an offset, one starting at 0.5 or ending at "
+    "-0.5 is not",
+    [_ghc.range_excludes_zero(_NR(0.0, "K", lo, hi)) for lo, hi in
+     ((0.0, 20.0), (-20.0, 0.0), (0.5, 20.0), (-20.0, -0.5), (None, None))]
+    == [False, False, True, True, False],
+    "",
+)
+R.check(
+    "every refusal of the pure convert names why and is never read as saturated",
+    _ghc.offset_target(None, 2.0, 3.0) == (None, "is unavailable", False)
+    and _ghc.offset_target(_NR(0.0, "%", None, None), 2.0, 3.0)[0::2] == (None, False)
+    and _ghc.offset_target(_NR(30.0, "K", 20.0, 70.0), 2.0, 3.0)[0::2] == (None, False)
+    and _ghc.offset_target(_NR(0.0, "K", None, None), 2.0, 3.0) == (2.0, None, False),
+    "",
+)
+_glo = _ghc_coord(lo=-2.0, hi=2.0)
+_ghc_pub(_glo, -3.0)
+R.check(
+    "a range narrower than the displace saturates on the low side too: -3 K sends -2 (W6)",
+    _ghc_writes(_glo) == [-2],
+    repr(_ghc_writes(_glo)),
+)
+_gh = _ghc_coord(value="2.25")
+_ghc_pub(_gh, 2.0)
+R.check(
+    "a reading exactly half a step from the target holds: 2.25 against 2 at step 0.5 is not written (W1)",
+    _ghc_writes(_gh) == [],
+    repr(_ghc_writes(_gh)),
+)
+_gstep = _ghc_coord(step=2.0)
+_ghc_pub(_gstep, 2.0)
+_ghc_pub(_gstep, 3.0)
+R.check(
+    "a target within half a step of the last write is that write, still in its grace: 3 after 2 "
+    "at step 2 sends nothing (W2)",
+    _ghc_writes(_gstep) == [2],
+    repr(_ghc_writes(_gstep)),
+)
+_gm = _ghc_coord()
+_ghc_pub(_gm, 2.0)
+_gm.hass.states.set(_GHC_ENT, _ghc_state("2", unit="K", attributes={"step": 0.5, "min": -20.0, "max": 20.0}))
+_ghc_pub(_gm, 2.0)
+_gm.hass.states.set(_GHC_ENT, _ghc_state("0", unit="K", attributes={"step": 0.5, "min": -20.0, "max": 20.0}))
+_ghc.state_for(_gm.entry).written_at -= 91.0
+_ghc_pub(_gm, 2.0)
+R.check(
+    "a reading that held clears the misses, and the grace is 90 s: a miss 91 s after the write is "
+    "written once more, not given up (W1, W2)",
+    _ghc_writes(_gm) == [2, 2] and _ghc.state_for(_gm.entry).misses == 1,
+    "writes=%r misses=%r" % (_ghc_writes(_gm), _ghc.state_for(_gm.entry).misses),
+)
+_gp = _ghc_coord()
+_ghc.state_for(_gp.entry).writes.extend([_time.monotonic() - 86401.0] * _cap)
+_ghc_pub(_gp, 2.0)
+R.check(
+    "writes older than 24 h leave the guard: a full day of them 24 h and 1 s old blocks nothing (W4)",
+    _ghc_writes(_gp) == [2] and len(_ghc.state_for(_gp.entry).writes) == 1,
+    "writes=%r kept=%r" % (_ghc_writes(_gp), len(_ghc.state_for(_gp.entry).writes)),
+)
+
+
+class _GhcClock:
+    """A fixed monotonic clock for heat_curve, so a boundary is hit exactly."""
+
+    def __init__(self, now: float) -> None:
+        self.now = now
+
+    def monotonic(self) -> float:
+        return self.now
+
+
+_ghc_real_time = _ghc.time
+try:
+    _ghc.time = _gclk = _GhcClock(1000.0)
+    _gb90 = _ghc_coord()
+    _ghc_pub(_gb90, 2.0)
+    _gclk.now = 1090.0
+    _ghc_pub(_gb90, 2.0)
+    _gclk.now = 100000.0
+    _gb24 = _ghc_coord()
+    _ghc.state_for(_gb24.entry).writes.extend([100000.0 - 86400.0] * _cap)
+    _ghc_pub(_gb24, 2.0)
+finally:
+    _ghc.time = _ghc_real_time
+R.check(
+    "at exactly 90 s the grace is over: a miss then is written once more (W2's bound)",
+    _ghc_writes(_gb90) == [2, 2],
+    repr(_ghc_writes(_gb90)),
+)
+R.check(
+    "and a write exactly 24 h old still counts: a full day of them at that age blocks the write (W4's bound)",
+    _ghc_writes(_gb24) == [] and len(_ghc.state_for(_gb24.entry).writes) == _cap,
+    "writes=%r kept=%r" % (_ghc_writes(_gb24), len(_ghc.state_for(_gb24.entry).writes)),
+)
+_gr = _ghc_coord()
+_gr_cfg = _gr.effective_config
+_gr_sent = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 2))
+_gr_held = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 2))
+_ghc.state_for(_gr.entry).writes.extend([_time.monotonic()] * _cap)
+_gr_capped = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 1))
+_gr.hass.states.set(_GHC_ENT, _ghc_state("unavailable", unit="K"))
+_gr_absent = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 1))
+R.check(
+    "the entity arm answers True only for a write sent: held, capped and unreadable are False",
+    (_gr_sent, _gr_held, _gr_capped, _gr_absent) == (True, False, False, False),
+    repr((_gr_sent, _gr_held, _gr_capped, _gr_absent)),
+)
+_gfr = _ghc_coord(ecl110_displace_set_topic="ecl/set")
+_gfr.hass.services = _GhcRaising()
+_gfr_cfg = _gfr.effective_config
+_gfr_refused = _asyncio.run(_ghc.write_displace(_gfr.hass, _gfr.entry, _gfr_cfg, 2))
+_gfr_warn = []
+for _svc in ("ok", "raising"):  # the refused write above already latched
+    if _svc == "ok":
+        _gfr.hass.services = _ghc_hass().services
+    else:
+        _gfr.hass.services = _GhcRaising()
+    _ghc.state_for(_gfr.entry).written = None
+    _gfr_warn.append(len(_ghc_logged(lambda: _asyncio.run(
+        _ghc.write_displace(_gfr.hass, _gfr.entry, _gfr_cfg, 2)))))
+_gfa = _ghc_coord()
+_gfa_warn = []
+for _val in ("unavailable", "0", "unavailable"):
+    _gfa.hass.states.set(_GHC_ENT, _ghc_state(_val, unit="K", attributes={"step": 0.5, "min": -20.0, "max": 20.0}))
+    _ghc.state_for(_gfa.entry).written = None
+    _gfa_warn.append(len(_ghc_logged(lambda: _ghc_pub(_gfa, 2.0))))
+R.check(
+    "a write that succeeds clears the failure latch, and so does a readable entity: the next "
+    "failure is warned again, not swallowed",
+    _gfr_refused is False and _gfr_warn[0] == 0 and _gfr_warn[1] >= 1
+    and _gfa_warn[0] >= 1 and _gfa_warn[1] == 0 and _gfa_warn[2] >= 1,
+    "write=%r entity=%r" % (_gfr_warn, _gfa_warn),
+)
+_gdg = _ghc_coord()
+_gdg_fresh = _ghc.diagnostics(_gdg.entry, _gdg.effective_config)
+_ghc_pub(_gdg, 2.0)
+_gdg_after = _ghc.diagnostics(_gdg.entry, _gdg.effective_config)
+R.check(
+    "the heat-curve diagnostics: zeros before any write, the write and its 24 h count after one",
+    _gdg_fresh == {"written": None, "misses": 0, "writes_24h": 0, "write_cap_per_day": 96,
+                   "restore": {"armed": [], "restores": 0, "last_restore": None}}
+    and _gdg_after["written"] == 2 and _gdg_after["writes_24h"] == 1
+    and _gdg_after["restore"]["armed"] == ["heat_curve"],
+    "fresh=%r after=%r" % (_gdg_fresh, _gdg_after),
+)
+_gpd = _ghc_coord()
+_asyncio.run(_ghc.publish(_gpd.hass, _gpd.entry, _gpd.effective_config, 2,
+                          _ghc.ecl110_legacy_payload("t", True, 2, {})))
+R.check(
+    "publish called without mode_off writes the entity: only the off mode suppresses the arm",
+    _ghc_writes(_gpd) == [2],
+    repr(_ghc_writes(_gpd)),
+)
+
+# The restore's own edges.
+_ghc_fail["write"] = True
+_asyncio.run(_ghc_restore.async_arm(_gw.hass, _gw.entry, _gw_cfg, "stand_in_flaky"))
+_gw_rewarn = _ghc_logged(lambda: _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload")))
+_ghc_fail["write"] = False
+R.check(
+    "a restore that succeeded cleared its latch: the next failed restore is warned again",
+    any("number.flaky" in m and "failed" in m for m in _gw_rewarn),
+    repr(_gw_rewarn),
+)
+_asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload"))
+from heatpump_optimizer.log_latch import _HELD_CONDITIONS as _ghc_latches  # noqa: E402
+R.check(
+    "and after the retry succeeds no failure is held for that consumer",
+    "off_restore_stand_in_flaky" not in _ghc_latches.get(_gw.entry, {}),
+    repr(_ghc_latches.get(_gw.entry)),
+)
+# The kind option is normalised to offset, so the hook's refusal is driven
+# through its contract: a factory that answers None for the arm's key.
+_gk2 = _ghc_coord()
+_ghc_real_factory = _ghc_restore._CONSUMERS[_ghc.CONSUMER]
+_ghc_restore.register_consumer(_ghc.CONSUMER, lambda cfg: None)
+try:
+    _gk2_sent = _asyncio.run(_ghc.write_displace(_gk2.hass, _gk2.entry, _gk2.effective_config, 2))
+finally:
+    _ghc_restore.register_consumer(_ghc.CONSUMER, _ghc_real_factory)
+R.check(
+    "a write the restore hook refuses to arm is never sent: the arm refuses before the write",
+    _gk2_sent is False and _ghc_writes(_gk2) == [],
+    "sent=%r writes=%r" % (_gk2_sent, _ghc_writes(_gk2)),
+)
+_gcl = _ghc_coord(entry_id="ghc_cleared")
+_ghc_pub(_gcl, 2.0)
+_gcl2 = _ghc_coord(entity=None, hass=_gcl.hass, entry_id="ghc_cleared")
+_asyncio.run(_gcl2.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a heat-curve write armed before its entity option was cleared is disarmed unwritten at the next off",
+    _ghc_writes(_gcl2) == [2] and _ghc_restore.diagnostics(_gcl2.entry)["armed"] == [],
+    "writes=%r diag=%r" % (_ghc_writes(_gcl2), _ghc_restore.diagnostics(_gcl2.entry)),
+)
+_gmc = _ghc_coord(entry_id="ghc_mode_change")
+_ghc_pub(_gmc, 2.0)
+_gmc_cfg = _gmc.effective_config
+_gmc_ret = (
+    _asyncio.run(_ghc_restore.async_mode_change(_gmc.hass, _gmc.entry, _gmc_cfg, _ghc_auto, "comfort")),
+    _asyncio.run(_ghc_restore.async_mode_change(_gmc.hass, _gmc.entry, _gmc_cfg, _ghc_off, _ghc_off)),
+)
+R.check(
+    "a mode change that is not into off, or off to off, restores nothing and answers 0",
+    _gmc_ret == (0, 0) and _ghc_writes(_gmc) == [2]
+    and _ghc_restore.diagnostics(_gmc.entry)["armed"] == ["heat_curve"],
+    "ret=%r writes=%r" % (_gmc_ret, _ghc_writes(_gmc)),
+)
+_gsv = _ghc_coord(entry_id="ghc_saved")
+_ghc_pub(_gsv, 2.0)
+_asyncio.run(_gsv.async_set_mode(_ghc_off, refresh=False))
+_gsv2 = _ghc_coord(hass=_gsv.hass, entry_id="ghc_saved")
+_asyncio.run(_gsv2.async_set_mode(_ghc_off, refresh=False))
+_gfg = _ghc_coord(entry_id="ghc_forgotten")
+_ghc_pub(_gfg, 2.0)
+_asyncio.run(_ghc_restore.async_forget(_gfg.hass, "ghc_forgotten"))
+_gfg2 = _ghc_coord(hass=_gfg.hass, entry_id="ghc_forgotten")
+_asyncio.run(_gfg2.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a restore is persisted, so the next run does not restore it again; a forgotten entry's armed "
+    "set is gone from the store",
+    _ghc_writes(_gsv2) == [2, 0] and _ghc_writes(_gfg2) == [2],
+    "saved=%r forgotten=%r" % (_ghc_writes(_gsv2), _ghc_writes(_gfg2)),
+)
+_gld = _ghc_coord(entry_id="ghc_loads")
+_gld_store = _asyncio.run(_ghc_restore._armed_record(_gld.hass, _gld.entry)).store
+_gld_loads = []
+_gld_real_load = _gld_store.async_load
+
+
+async def _ghc_counted_load():
+    _gld_loads.append(1)
+    return await _gld_real_load()
+
+
+_ghc_restore._RECORDS[_gld.entry].loaded = False
+_gld_store.async_load = _ghc_counted_load
+for _ in range(3):
+    _asyncio.run(_ghc_restore._armed_record(_gld.hass, _gld.entry))
+R.check(
+    "the persisted armed set is read once per entry, not at every arm",
+    len(_gld_loads) == 1,
+    repr(_gld_loads),
+)
+R.check(
+    "the off-restore store is at version 1: a bump strands every persisted armed set without a migration",
+    _ghc_restore.OFF_RESTORE_STORE_VERSION == 1,
+    repr(_ghc_restore.OFF_RESTORE_STORE_VERSION),
+)
+R.check(
+    "a factory reset keeps the heat-curve kind beside its entity (ghc-d03)",
+    "heat_curve_target_kind" in _ghc_kept and "heat_curve_displace_entity" in _ghc_kept,
+    repr(sorted(k for k in _ghc_kept if k.startswith("heat_curve"))),
+)
+# The restore and the arm's record (fix review 1 of PR 3299, block 1): the
+# restore's neutral write is the entity's last instruction, so W2 and W3 judge
+# a re-enable against it, never against the plan's write before the off. Probe
+# A: off then on inside the grace, plan unchanged. Probe B: a first-miss
+# rewrite that held, then off and on at the same target. The fake entity holds
+# what it is told only where the probe sets the reading.
+_GHC_ATTRS = {"step": 0.5, "min": -20.0, "max": 20.0}
+
+
+def _ghc_reads(coord, value):
+    coord.hass.states.set(_GHC_ENT, _ghc_state(value, unit="K", attributes=_GHC_ATTRS))
+
+
+_gpa = _ghc_coord(entry_id="ghc_probe_a")
+_ghc_pub(_gpa, 2.0)
+_asyncio.run(_gpa.async_set_mode(_ghc_off, refresh=False))
+_asyncio.run(_gpa.async_set_mode(_ghc_auto, refresh=False))
+_gpa_warn = _ghc_logged(lambda: _ghc_pub(_gpa, 2.0))
+R.check(
+    "off then on inside the grace, plan unchanged: the re-enable rewrites 2 over the restore's 0, "
+    "never held as W2's grace of the write before the off",
+    _ghc_writes(_gpa) == [2, 0, 2] and _gpa_warn == [],
+    "writes=%r warn=%r" % (_ghc_writes(_gpa), _gpa_warn),
+)
+
+
+def _ghc_probe_b(toggle):
+    coord = _ghc_coord(entry_id=f"ghc_probe_b_{toggle}")
+    _ghc_pub(coord, 2.0)
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    _ghc_pub(coord, 2.0)  # the first miss, rewritten once
+    _ghc_reads(coord, "2")  # and it held
+    if toggle:
+        _asyncio.run(coord.async_set_mode(_ghc_off, refresh=False))
+        _ghc_reads(coord, "0")  # the restore held too
+        _asyncio.run(coord.async_set_mode(_ghc_auto, refresh=False))
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    warn = _ghc_logged(lambda: _ghc_pub(coord, 2.0))
+    return _ghc_writes(coord), warn
+
+
+_gpb, _gpb_warn = _ghc_probe_b(True)
+_gpbn, _gpbn_warn = _ghc_probe_b(False)
+R.check(
+    "a rewrite that held, then off and on at the same target: 2 is written again and W3 does not "
+    "latch against the restore's own 0",
+    _gpb == [2, 2, 0, 2] and not any("does not hold" in m for m in _gpb_warn),
+    "writes=%r warn=%r" % (_gpb, _gpb_warn),
+)
+R.check(
+    "null control, the same history without the off and on: the held 2 is not rewritten, nothing warned",
+    _gpbn == [2, 2] and _gpbn_warn == [],
+    "writes=%r warn=%r" % (_gpbn, _gpbn_warn),
+)
+# The unload path, and the options reload behind it: the record is keyed on
+# the entry, so the next coordinator for the same entry inherits it.
+_gpu = _ghc_coord(entry_id="ghc_probe_unload")
+_ghc_pub(_gpu, 2.0)
+_gpu.entry.runtime_data = _gpu
+_asyncio.run(_ghc_unload(_gpu.hass, _gpu.entry))
+_gpu2 = Coord(_gpu.hass, _gpu.entry)
+_ghc_pub(_gpu2, 2.0)
+R.check(
+    "unload, then the reloaded coordinator for the same entry inside the grace: 2 is written over "
+    "the restore's 0",
+    _ghc_writes(_gpu2) == [2, 0, 2] and _ghc.state_for(_gpu.entry).written == 2,
+    "writes=%r" % (_ghc_writes(_gpu2),),
+)
+# A restore that did not hold, and a re-enable at its own 0: W2 and W3 judge
+# the 0 afresh, from its own stamp, with no miss inherited from the plan's 2.
+def _ghc_restore_missed(aged_rewrite):
+    coord = _ghc_coord(entry_id=f"ghc_restore_missed_{aged_rewrite}")
+    _ghc_pub(coord, 2.0)
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    if aged_rewrite:
+        _ghc_pub(coord, 2.0)  # a first miss: misses 1
+    _ghc_reads(coord, "2")  # held, and the restore below does not land
+    _asyncio.run(coord.async_set_mode(_ghc_off, refresh=False))
+    _asyncio.run(coord.async_set_mode(_ghc_auto, refresh=False))
+    if aged_rewrite:
+        _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    warn = _ghc_logged(lambda: _ghc_pub(coord, 0.0))
+    return _ghc_writes(coord), warn
+
+
+_grm_grace, _ = _ghc_restore_missed(False)
+_grm_miss, _grm_warn = _ghc_restore_missed(True)
+R.check(
+    "a re-enable at 0 right after a restore that did not hold is inside the restore's own grace (W2)",
+    _grm_grace == [2, 0],
+    repr(_grm_grace),
+)
+R.check(
+    "and after its grace the restore's first miss is written once more, not given up on the plan's "
+    "earlier miss (W3)",
+    _grm_miss == [2, 2, 0, 0] and not any("does not hold" in m for m in _grm_warn),
+    "writes=%r warn=%r" % (_grm_miss, _grm_warn),
+)
+# A failed restore told the entity nothing, so the record stays the plan's write.
+_gpf = _ghc_coord(entry_id="ghc_probe_failed_restore")
+_ghc_pub(_gpf, 2.0)
+_gpf.hass.services = _GhcRaising()
+_asyncio.run(_gpf.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a restore whose write raised leaves the arm's record at the plan's write",
+    _ghc.state_for(_gpf.entry).written == 2,
+    repr(_ghc.state_for(_gpf.entry).written),
+)
+
+# The design's evidence plan, arms bullet (fix review 1, block 2): every
+# displace the chokepoint forms reaches the entity arm -- the peak guard's
+# engage (plan minus the nudge) and release (the plan), boost's maximum, and
+# the learned curve bias.
+from heatpump_optimizer import boost as _ghc_boost  # noqa: E402
+from homeassistant.util import dt as _ghc_dt  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    MODE_BOOST as _ghc_boost_mode,
+    PEAK_GUARD_DISPLACE_NUDGE_C as _ghc_nudge,
+)
+
+_gpg = _ghc_coord(entry_id="ghc_peak_guard", heat_curve_offset_band_k=5.0)
+_gpg._current_action = {"displace_value": 3.0, "heat_pump_on": True}
+_gpg._peak_guard.suppressing = True
+_asyncio.run(_gpg._async_peak_guard_transition())
+_gpg._peak_guard.suppressing = False
+_asyncio.run(_gpg._async_peak_guard_transition())
+R.check(
+    "the peak guard's engage writes the plan less the nudge to the entity, its release the plan again",
+    _ghc_nudge == 2.0 and _ghc_writes(_gpg) == [1, 3],
+    "nudge=%r writes=%r" % (_ghc_nudge, _ghc_writes(_gpg)),
+)
+_gbm = _ghc_coord(entry_id="ghc_boost_mode", heat_curve_offset_band_k=10.0, ecl110_displace_max=4.0)
+_asyncio.run(_gbm.async_set_mode(_ghc_boost_mode, refresh=False))
+_gbm._current_action = _gbm._fixed_mode_action()
+_asyncio.run(_gbm.async_publish_current_action())
+_gbo = _ghc_coord(entry_id="ghc_boost_overlay", heat_curve_offset_band_k=10.0, ecl110_displace_max=4.0)
+_gbo_action = {"displace_value": 0.0, "heat_pump_on": False}
+_ghc_boost.overlay(
+    _gbo_action, _ghc_boost.BoostState(until={_ghc_boost.CHANNEL_SPACE: _ghc_dt.utcnow()}),
+    max_power=3.0, max_temp=23.0, ecl_max=_gbo._ecl110_displace_max,
+)
+_gbo._current_action = _gbo_action
+_asyncio.run(_gbo.async_publish_current_action())
+_ghc_max = int(round(_gbm._ecl110_displace_max))
+R.check(
+    "boost writes the displace maximum to the entity, the boost mode and the space boost overlay alike",
+    _ghc_writes(_gbm) == [_ghc_max] and _ghc_writes(_gbo) == [_ghc_max] and _ghc_max == 4,
+    "max=%r mode=%r overlay=%r" % (_ghc_max, _ghc_writes(_gbm), _ghc_writes(_gbo)),
+)
+_gcb = _ghc_coord(entry_id="ghc_curve_bias", curve_learning_enabled=True)
+_gcb._curve_learner.bias = -1.0
+_ghc_pub(_gcb, 3.0)
+_gcb0 = _ghc_coord(entry_id="ghc_curve_bias_off")
+_gcb0._curve_learner.bias = -1.0
+_ghc_pub(_gcb0, 3.0)
+R.check(
+    "the learned curve bias reaches the entity: 3 with a -1 bias sends 2; with curve learning off, 3",
+    _ghc_writes(_gcb) == [2] and _ghc_writes(_gcb0) == [3],
+    "on=%r off=%r" % (_ghc_writes(_gcb), _ghc_writes(_gcb0)),
+)
+# The arm's own off guard (fix review 1, residual): the chokepoint called while
+# off still publishes MQTT and never writes the entity.
+_gmo = _ghc_coord(entry_id="ghc_chokepoint_off", ecl110_displace_set_topic="ecl/set")
+_asyncio.run(_gmo.async_set_mode(_ghc_off, refresh=False))
+_ghc_pub(_gmo, 2.0)
+R.check(
+    "the chokepoint called while off writes no entity value; the MQTT arm still carries the integer",
+    _ghc_writes(_gmo) == [] and _ghc_mqtt(_gmo) == [("ecl/set", "2")],
+    "writes=%r mqtt=%r" % (_ghc_writes(_gmo), _ghc_mqtt(_gmo)),
+)
+_ = _ghc_auto
 
 
 # ---------------------------------------------------------------------------
@@ -41873,10 +42802,10 @@ R.check(
     "and reports no command or state topic it would ever write or read "
     "(R5-D12-01)",
     _unconf._ecl110_command_topic == ""
-    and _unconf._ecl110_displace_set_topic == ""
+    and _unconf.effective_config.ecl110_displace_set_topic == ""
     and _unconf._ecl110_state_topic == "",
     "set=%r command=%r state=%r" % (
-        _unconf._ecl110_displace_set_topic,
+        _unconf.effective_config.ecl110_displace_set_topic,
         _unconf._ecl110_command_topic,
         _unconf._ecl110_state_topic,
     ),
@@ -43829,7 +44758,7 @@ R.check(
     f"got {_sp_clim_fix.hass.services.calls!r}",
 )
 
-for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _lang_file in ("strings.json", *SHIPPED_CATALOGUES):
     _sp_doc = _json.loads((_PKG_DIR / _lang_file).read_text(encoding="utf-8"))
     R.check(
         f"the DHW consistency notice is translated in {_lang_file}",
@@ -63657,8 +64586,18 @@ async def _p6_mode(eid):
     return coord.hass.services.calls
 
 
+async def _p6_heat_curve(eid):
+    coord = _p6_coord(
+        {eid: FakeState("0", unit="K", attributes={"min": -20, "max": 20, "step": 0.5})},
+        **{hp_const.CONF_HEAT_CURVE_DISPLACE_ENTITY: eid},
+    )
+    await coord.async_publish_ecl110_command(2.0, True)
+    return coord.hass.services.calls
+
+
 #: Every slot a consumer writes, and that consumer, driven for real.
 _P6_WRITERS = {
+    hp_const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _p6_heat_curve,
     hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY: _p6_switch,
     hp_const.CONF_SPACE_PUMP_ENTITY: _p6_pump,
     hp_const.CONF_VVC_PUMP_ENTITY: _p6_pump,
@@ -69924,7 +70863,7 @@ R.check(
 _dbg_rows = [f for f in _dbg_flow._OPTION_FIELDS if f.key == _dbg_const.CONF_DEBUG_COLLECT]
 _dbg_texts = {
     name: _dbg_json.loads((_DBG_ROOT / "custom_components/heatpump_optimizer" / name).read_text())
-    for name in ("strings.json", "translations/en.json", "translations/sv.json")
+    for name in ("strings.json", *SHIPPED_CATALOGUES)
 }
 R.check(
     "DBG-1 the option is one boolean on the learning page, off by default, with a label "
@@ -70295,9 +71234,10 @@ _SP_READ = {
 }
 
 
-def _sp_write(kw, slots, stale=()):
-    """What the arbiter writes for a space step at ``kw`` with ``slots`` set."""
-    config = {_PP_FLOW_KEY: 48.0, "space_setpoint_entity": "number.flow"}
+def _sp_write(kw, slots, stale=(), extra=None):
+    """What the arbiter writes for a space step at ``kw`` with ``slots`` set,
+    ``extra`` merged over the config."""
+    config = {_PP_FLOW_KEY: 48.0, "space_setpoint_entity": "number.flow", **(extra or {})}
     states = {"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}
     for key in slots:
         config[key] = f"sensor.sp_{key}"
@@ -70372,6 +71312,193 @@ R.check(
     "the floor helper refuses an unmeasured inlet rather than guessing one",
     _sp_floor_of(None) is None and _sp_floor_of(float("nan")) is None
     and _sp_floor_of(30.0) == 30.0 + _SP_LIFT,
+)
+
+# --- The configurable lift and ceiling of a water set-point (flow_min_lift_k,
+# flow_heat_c). A controller that takes the set-point as its return-water
+# target modulates on target minus return, so the rated 5 K lift ran one
+# (Luxtronik through its Smart Home Interface) near full speed at the plan's
+# lowest level. The production readers, never a copy of their rule.
+from heatpump_optimizer import config_flow as _wl_flow  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_FLOW_MIN_LIFT_K as _WL_LIFT_KEY,
+    CONF_SPACE_SETPOINT_UNIT as _WL_UNIT_KEY,
+    DEFAULT_FLOW_MIN_LIFT_K as _WL_LIFT_DEFAULT,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    configured_flow_min_lift_k as _wl_lift_of,
+)
+
+_WL_RETURN = (_SP_PUMP_RETURN,)
+# A whole-degree lift: the stub entity has no step attribute, so the write is
+# on a 1 degC step and the floor rounds up (``quantise_setpoint_c``).
+_WL_TUNED = {_WL_LIFT_KEY: 2.0, _PP_FLOW_KEY: 38.0}
+_wl_low = _sp_write(1.5, _WL_RETURN, extra=_WL_TUNED)
+_wl_mid = _sp_write(3.5, _WL_RETURN, extra=_WL_TUNED)
+_wl_full = _sp_write(5.5, _WL_RETURN, extra=_WL_TUNED)
+R.check(
+    "null control: an absent lift is the rated FLOW_MIN_LIFT_K, the const default is "
+    "the same number, and the floor write is unchanged",
+    _wl_lift_of({}) == _SP_LIFT == _WL_LIFT_DEFAULT == 5.0
+    and _wl_lift_of(None) == _SP_LIFT
+    and _sp_write(1.5, _WL_RETURN) == _SP_READ[_SP_PUMP_RETURN] + _SP_LIFT
+    and _sp_write(1.5, _WL_RETURN, extra={_WL_LIFT_KEY: _WL_LIFT_DEFAULT})
+    == _sp_write(1.5, _WL_RETURN),
+    f"{_wl_lift_of({})} {_sp_write(1.5, _WL_RETURN)}",
+)
+R.check(
+    "a configured lift and ceiling move the floor to return + lift and full power to "
+    "the ceiling, with a partial level between them",
+    _wl_low == _SP_READ[_SP_PUMP_RETURN] + 2.0
+    and _wl_full == 38.0
+    and _wl_low < _wl_mid < _wl_full,
+    f"low {_wl_low} mid {_wl_mid} full {_wl_full}",
+)
+R.check(
+    "a ceiling under return + lift writes the ceiling, never above it",
+    _sp_write(1.5, _WL_RETURN, extra={_WL_LIFT_KEY: 1.5, _PP_FLOW_KEY: 26.0}) == 26.0,
+    f"{_sp_write(1.5, _WL_RETURN, extra={_WL_LIFT_KEY: 1.5, _PP_FLOW_KEY: 26.0})}",
+)
+_wl_refused = {
+    repr(v): _wl_lift_of({_WL_LIFT_KEY: v})
+    for v in (0.0, -2.0, float("nan"), float("inf"), "warm", None, True)
+}
+R.check(
+    "a lift that is not a positive finite number reads as the rated lift, and text "
+    "that is one is read",
+    all(v == _SP_LIFT for v in _wl_refused.values())
+    and _wl_lift_of({_WL_LIFT_KEY: "1.5"}) == 1.5
+    and _wl_lift_of({_WL_LIFT_KEY: 2}) == 2.0,
+    f"{_wl_refused}",
+)
+R.check(
+    "the floor helper takes the lift it is given, and its default is the rated one",
+    _sp_floor_of(30.0, None, 1.0) == 31.0
+    and _sp_floor_of(20.0, 25.0, 1.0) == 26.0
+    and _sp_floor_of(30.0) == _sp_floor_of(30.0, None, _SP_LIFT),
+)
+
+
+def _wl_keys(config):
+    return {row.key: row for row in _wl_flow._page_rows("entities", config)}
+
+
+_wl_none = _wl_keys({})
+_wl_indoor = _wl_keys({"space_setpoint_entity": "number.flow", _WL_UNIT_KEY: "indoor"})
+_wl_unknown = _wl_keys({"space_setpoint_entity": "number.flow", _WL_UNIT_KEY: "kelvin"})
+_wl_water = _wl_keys({"space_setpoint_entity": "number.flow", _WL_UNIT_KEY: "flow"})
+_wl_ret = _wl_keys({"space_setpoint_entity": "number.flow", _WL_UNIT_KEY: "return"})
+R.check(
+    "the entities page offers the lift and ceiling only for a water unit, flow or return",
+    _WL_LIFT_KEY not in _wl_none and _PP_FLOW_KEY not in _wl_none
+    and _WL_LIFT_KEY not in _wl_indoor and _PP_FLOW_KEY not in _wl_indoor
+    and _WL_LIFT_KEY not in _wl_unknown
+    and _WL_LIFT_KEY in _wl_water and _PP_FLOW_KEY in _wl_water
+    and _WL_LIFT_KEY in _wl_ret and _PP_FLOW_KEY in _wl_ret,
+    f"{sorted(k for k in _wl_water if k not in _wl_none)}",
+)
+_wl_lift_row = _wl_water.get(_WL_LIFT_KEY)
+_wl_heat_row = _wl_water.get(_PP_FLOW_KEY)
+R.check(
+    "the two fields sit with the set-point, default to today's constants, carry their "
+    "ranges, and an untouched page stores neither",
+    _wl_lift_row is not None and _wl_heat_row is not None
+    and _wl_lift_row.group == _wl_heat_row.group
+    == _wl_water[_WL_UNIT_KEY].group
+    and _wl_lift_row.default == _SP_LIFT and _wl_heat_row.default == _pa.FLOW_HEAT_C
+    and (_wl_lift_row.widget.config["min"], _wl_lift_row.widget.config["max"]) == (0.5, 15)
+    and (_wl_heat_row.widget.config["min"], _wl_heat_row.widget.config["max"]) == (30, 70)
+    and _wl_heat_row.widget.config["min"] > _pa.FLOW_GATE_C
+    and _wl_flow._omit_unstored_defaults(
+        {_WL_LIFT_KEY: _WL_LIFT_DEFAULT, _PP_FLOW_KEY: _PP_FLOW_DEFAULT}, {}
+    ) == {}
+    and _wl_flow._omit_unstored_defaults({_WL_LIFT_KEY: 1.5}, {}) == {_WL_LIFT_KEY: 1.5},
+    f"lift {_wl_lift_row} heat {_wl_heat_row}",
+)
+
+# --- space_setpoint_unit "return": the entity is the pump's return-water
+# target. Written as a flow set-point is -- the inlet plus the lift at the
+# floor, the ceiling at full power, the gate when idle -- except that the
+# two supply-derived values, the rated hold and the weather curve, sit the
+# rated spread lower.
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_PUMP_DUTY_MODE as _RT_DUTY_KEY,
+    PUMP_DUTY_MODES as _RT_DUTIES,
+    SPACE_SETPOINT_UNITS as _RT_UNITS,
+)
+from heatpump_optimizer.entry_config import EntryConfig as _RtEC  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ceiling_probe_install as _rt_probe_install,
+    flow_setpoint_driven as _rt_driven,
+)
+
+_RT = {_WL_UNIT_KEY: "return"}
+_RT_FLOW = {_WL_UNIT_KEY: "flow"}
+R.check(
+    "return is a declared unit, parsed as itself, and an unknown one is still indoor",
+    "return" in _RT_UNITS
+    and _RtEC.from_mapping(_RT).space_setpoint_unit == "return"
+    and _RtEC.from_mapping({_WL_UNIT_KEY: "kelvin"}).space_setpoint_unit == "indoor",
+)
+_rt_tuned = {**_RT, **_WL_TUNED}
+R.check(
+    "a return target is written from the measured return like a flow one: return + lift "
+    "at the floor, the ceiling at full power, the same partial level between",
+    _sp_write(1.5, _WL_RETURN, extra=_rt_tuned) == _SP_READ[_SP_PUMP_RETURN] + 2.0
+    and _sp_write(5.5, _WL_RETURN, extra=_rt_tuned) == 38.0
+    and _sp_write(3.5, _WL_RETURN, extra=_rt_tuned) == _wl_mid
+    and _sp_write(1.5, _WL_RETURN, extra=_RT) == _sp_write(1.5, _WL_RETURN, extra=_RT_FLOW),
+    f"{_sp_write(1.5, _WL_RETURN, extra=_rt_tuned)} {_sp_write(5.5, _WL_RETURN, extra=_rt_tuned)}",
+)
+R.check(
+    "with no inlet reading a return target's floor is the rated hold in return terms, "
+    "the hold less the rated spread; a flow target keeps the hold",
+    _sp_write(1.5, (), extra=_RT) == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K
+    and _sp_write(1.5, (), extra=_RT_FLOW) == _pa.FLOW_HOLD_C
+    and _sp_write(1.5, (), extra={**_RT, _WL_LIFT_KEY: 1.0}) == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K,
+    f"{_sp_write(1.5, (), extra=_RT)} {_sp_write(1.5, (), extra=_RT_FLOW)}",
+)
+
+
+def _rt_baseline(unit, curve, heat=48.0):
+    return _pa._flow_target(
+        _PaNS(
+            config={_PP_FLOW_KEY: heat, "space_setpoint_entity": "number.flow", _WL_UNIT_KEY: unit},
+            hass=FakeHass({"number.flow": FakeState("40", attributes={"min": 20, "max": 70})}),
+            state=_PaNS(outdoor_temperature=-5.0, return_temperature=35.0,
+                        floor_return_temperature=None),
+            thermal=_PaNS(curve_flow_temp=lambda _o: curve),
+            plan=None,
+        ),
+        None,
+        _PA_T0,
+    )
+
+
+R.check(
+    "the baseline hold of a return target is the curve or rated hold less the rated "
+    "spread, still capped at the ceiling; a flow target's is unchanged",
+    _rt_baseline("flow", 40.0) == 40.0 and _rt_baseline("return", 40.0) == 40.0 - _pa.RETURN_SUPPLY_OFFSET_K
+    and _rt_baseline("flow", 20.0) == _pa.FLOW_HOLD_C
+    and _rt_baseline("return", 20.0) == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K
+    and _rt_baseline("return", 60.0) == 48.0
+    and _rt_baseline("return", 60.0, heat=38.0) == 38.0,
+    f"{_rt_baseline('flow', 40.0)} {_rt_baseline('return', 40.0)} {_rt_baseline('return', 20.0)}",
+)
+_rt_control = {_RT_DUTY_KEY: _RT_DUTIES[2]}
+R.check(
+    "a return target drives the pump through a water set-point exactly as a flow one: "
+    "the arbiter's water unit, the flow-command gate and the ceiling probe",
+    _pa._flow_unit(_RT) and _pa._flow_unit(_RT_FLOW) and not _pa._flow_unit({})
+    and _rt_driven({**_rt_control, **_RT}) and _rt_driven({**_rt_control, **_RT_FLOW})
+    and not _rt_driven({**_rt_control, _WL_UNIT_KEY: "indoor"})
+    and _rt_probe_install({**_rt_control, **_RT, "heat_pump_power_entity": "sensor.p"})
+    == _rt_probe_install({**_rt_control, **_RT_FLOW, "heat_pump_power_entity": "sensor.p"}),
+)
+R.check(
+    "null control: the supply-to-target conversion moves nothing but a return target",
+    _pa._as_target({}, 35.0) == 35.0 and _pa._as_target(_RT_FLOW, 35.0) == 35.0
+    and _pa._as_target(_RT, 35.0) == 35.0 - _pa.RETURN_SUPPLY_OFFSET_K,
 )
 
 # The objective scores the rounded levels a clamped install ships, so it is
@@ -72630,6 +73757,383 @@ R.check(
     f"{_bst_flow_of((40.0, _BST_T0), states={})}",
 )
 
+# --- Review of the return unit (flow_min_lift_k / space_setpoint_unit
+# "return"): the paths the developer's checks reach only through
+# ``_flow_target``'s heating branch -- the held command draw_range and the
+# ceiling probe read, the non-heating duties, the gate ordering under a
+# small lift, and that the rated spread the hold moves by is not the lift.
+
+
+def _wrr_command(unit, extra=None, inlet=None, inlet_key=None):
+    """``_flow_command`` for a held 40 degC on a ``unit`` water set-point,
+    with ``inlet`` read on ``inlet_key`` (the pump return by default)."""
+    states = {_BST_ENTITY: FakeState("40", attributes={"min": 20, "max": 70})}
+    data = {
+        "tibber_token": "x", "weather_entity": "weather.home",
+        "space_setpoint_entity": _BST_ENTITY,
+        "pump_duty_mode": "control", "space_setpoint_unit": unit,
+        **(extra or {})}
+    if inlet is not None:
+        data[inlet_key or _SP_PUMP_RETURN] = "sensor.wrr_inlet"
+        states["sensor.wrr_inlet"] = FakeState(str(inlet), unit="°C")
+    coord = _DrCoord(FakeHass(states), _dr_entry(data=data))
+    coord._current_action = {"power": 6.0, "dhw_power": 0.0}
+    coord._measured_power = 2.3
+    _bst_pa.state_for(coord).written["space_setpoint"] = (40.0, _BST_T0)
+    return _bst_pa._flow_command(coord.arbiter_inputs(), _bst_pa.state_for(coord))
+
+
+_WRR_CMD = {"flow_heat_c": 38.0, "flow_min_lift_k": 1.5}
+_wrr_ret = _wrr_command("return", _WRR_CMD, inlet=30.0)
+_wrr_flow = _wrr_command("flow", _WRR_CMD, inlet=30.0)
+_wrr_indoor = _wrr_command("indoor", {"flow_heat_c": 38.0})
+R.check(
+    "a return target with headroom publishes the held command in the entity's own terms "
+    "-- the configured ceiling, not 55, and the gate moved down by the rated spread, "
+    "20 degC against a flow target's 25 -- and an indoor one publishes none",
+    _wrr_ret is not None and _wrr_ret.written_c == _wrr_flow.written_c == 40.0
+    and _wrr_ret.ceiling_c == _wrr_flow.ceiling_c == 38.0
+    and _wrr_ret.gate_c == _bst_pa.FLOW_GATE_C - _bst_pa.RETURN_SUPPLY_OFFSET_K == 20.0
+    and _wrr_flow.gate_c == _bst_pa.FLOW_GATE_C
+    and _wrr_indoor is None,
+    f"return {_wrr_ret} flow {_wrr_flow} indoor {_wrr_indoor}",
+)
+# D1 (review): a return target at the ceiling commands the pump's top only
+# while the measured return sits at least the rated lift below the ceiling.
+_WRR_FULL_OFF = 38.0 + _SP_LIFT
+_wrr_edge = _wrr_command("return", _WRR_CMD, inlet=38.0 - _SP_LIFT)
+_wrr_tight = _wrr_command("return", _WRR_CMD, inlet=38.0 - _SP_LIFT + 0.5)
+_wrr_blind = _wrr_command("return", _WRR_CMD)
+_wrr_valve = _wrr_command("return", _WRR_CMD, inlet=30.0, inlet_key=_SP_VALVE)
+_wrr_flow_tight = _wrr_command("flow", _WRR_CMD, inlet=37.0)
+R.check(
+    "a return target's ceiling is a max-draw set-point only with the rated lift of "
+    "headroom over the measured return: at exactly that headroom it is, with less, with "
+    "no return-side reading, or with only the valve outlet it is reported one lift above "
+    "the ceiling, where no write reaches; a flow target's never moves",
+    _wrr_edge.ceiling_c == 38.0
+    and _wrr_tight.ceiling_c == _WRR_FULL_OFF
+    and _wrr_blind.ceiling_c == _WRR_FULL_OFF
+    and _wrr_valve.ceiling_c == _WRR_FULL_OFF
+    and _wrr_flow_tight.ceiling_c == 38.0
+    and _wrr_tight.gate_c == _wrr_ret.gate_c and _wrr_tight.written_c == 40.0,
+    f"edge {_wrr_edge} tight {_wrr_tight} blind {_wrr_blind} valve {_wrr_valve}",
+)
+
+
+def _wrr_folded(command, experiment_s=None):
+    """A fresh store after one running 3.0 kW space interval held at ``command``."""
+    d = _dr.DrawRange()
+    _dr.fold(d, 3.0, (5.0, 0.0), _dr_params(1.5, 5.5), frozen=False, distorted=False,
+             defrost=False, command=command, experiment_s=experiment_s)
+    return d
+
+
+from dataclasses import replace as _wrr_replace  # noqa: E402
+
+_wrr_edge_c = _wrr_replace(_wrr_edge, written_c=38.0)
+_wrr_tight_c = _wrr_replace(_wrr_tight, written_c=38.0)
+_wrr_e_probe = _wrr_folded(_wrr_edge_c, experiment_s=1.0)
+_wrr_t_probe = _wrr_folded(_wrr_tight_c, experiment_s=1.0)
+_wrr_e_run = _wrr_folded(_wrr_edge_c)
+_wrr_t_run = _wrr_folded(_wrr_tight_c)
+R.check(
+    "draw_range folds a ceiling write on a return target as ceiling-probe evidence and as "
+    "a full sample only with headroom; without it the probe interval goes to the window "
+    "and the sample is not full",
+    len(_wrr_e_probe.ceiling) == 1 and len(_wrr_t_probe.ceiling) == 0
+    and [e[2] for e in _wrr_e_run._evidence()] == [True]
+    and [e[2] for e in _wrr_t_run._evidence()] == [False],
+    f"probe {len(_wrr_e_probe.ceiling)}/{len(_wrr_t_probe.ceiling)} "
+    f"full {[e[2] for e in _wrr_e_run._evidence()]}/{[e[2] for e in _wrr_t_run._evidence()]}",
+)
+
+
+def _wrr_write(unit, duty, inlet, extra=None, curve=None):
+    """``_flow_target`` for ``duty`` on a ``unit`` entity whose pump return reads ``inlet``."""
+    config = {"space_setpoint_entity": "number.wrr", "space_setpoint_unit": unit,
+              **(extra or {})}
+    states = {"number.wrr": FakeState("30", attributes={"min": 20, "max": 70})}
+    if inlet is not None:
+        config[_SP_PUMP_RETURN] = "sensor.wrr_return"
+        states["sensor.wrr_return"] = FakeState(str(inlet), unit="°C")
+    return _pa._flow_target(
+        _PaNS(
+            config=config, hass=FakeHass(states),
+            state=_PaNS(outdoor_temperature=0.0, buffer_tank_temperature=40.0,
+                        floor_return_temperature=None),
+            thermal=_PaNS(params=None, curve_flow_temp=lambda _o: curve),
+            params=_PaNS(min_electrical_power=1.5, max_electrical_power=5.5),
+            plan=_PaNS(timestamps=[_PA_T0], power_schedule=[1.5]),
+            action=None,
+        ),
+        duty, _PA_T0,
+    )
+
+
+_WRR_SMALL = {"flow_min_lift_k": 1.5, "flow_heat_c": 37.0}
+# The gate is a supply number (25 degC is below any heated supply) and so is
+# moved to return terms like the hold and the curve: as a return target 25 degC
+# sits above a floor return cooled overnight (23-24 degC measured on the
+# install this was written for), and a controller modulating on target minus
+# return would heat on a step meant to be off. 20 degC is also what that
+# Luxtronik reports as its own idle return target.
+_WRR_GATE = _pa.FLOW_GATE_C - _pa.RETURN_SUPPLY_OFFSET_K
+R.check(
+    "a return target's non-heating duties write the gate in return terms, 20 degC, "
+    "whatever the lift and ceiling; a flow target's write the 25 degC gate (null control)",
+    all(
+        _wrr_write("return", duty, 30.0, _WRR_SMALL) == _WRR_GATE == 20.0
+        and _wrr_write("flow", duty, 30.0, _WRR_SMALL) == _pa.FLOW_GATE_C
+        for duty in ("dhw", "idle")
+    ),
+    f"{[_wrr_write('return', d, 30.0, _WRR_SMALL) for d in ('dhw', 'idle')]} "
+    f"{[_wrr_write('flow', d, 30.0, _WRR_SMALL) for d in ('dhw', 'idle')]}",
+)
+_wrr_cold = _wrr_write("return", "space", 22.0, _WRR_SMALL)
+_wrr_cold_flow = _wrr_write("flow", "space", 22.0, _WRR_SMALL)
+R.check(
+    "a 1.5 K lift over a 22 degC return takes the lift from the return, above the 20 degC "
+    "return gate, and rounds up on a whole-degree entity to 24; a flow target's floor "
+    "is still taken from its 25 degC gate, 27 -- so a heating step never writes either gate",
+    _wrr_cold == 24.0 and _wrr_cold > _WRR_GATE
+    and _wrr_cold_flow == 27.0 and _wrr_cold_flow > _pa.FLOW_GATE_C,
+    f"return {_wrr_cold} flow {_wrr_cold_flow}",
+)
+_wrr_colder = _wrr_write("return", "space", 18.0, _WRR_SMALL)
+R.check(
+    "a return below the return gate takes the lift from that gate: 20 + 1.5, rounded up "
+    "to 22 on a whole-degree entity",
+    _wrr_colder == 22.0,
+    f"{_wrr_colder}",
+)
+R.check(
+    "a return above the ceiling writes the ceiling, never above it, on a return target",
+    _wrr_write("return", "space", 39.0, _WRR_SMALL) == 37.0,
+    f"{_wrr_write('return', 'space', 39.0, _WRR_SMALL)}",
+)
+R.check(
+    "the hold moves by the rated spread, not by the configured lift: a 1.5 K lift "
+    "leaves the return baseline at curve - 5 K and the no-curve hold at 30",
+    _wrr_write("return", None, 30.0, {**_WRR_SMALL, "flow_heat_c": 48.0}, curve=40.0)
+    == 40.0 - _pa.RETURN_SUPPLY_OFFSET_K
+    and _wrr_write("return", None, 30.0, _WRR_SMALL, curve=None)
+    == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K
+    and _wrr_write("flow", None, 30.0, {**_WRR_SMALL, "flow_heat_c": 48.0}, curve=40.0)
+    == 40.0,
+    f"{_wrr_write('return', None, 30.0, {**_WRR_SMALL, 'flow_heat_c': 48.0}, curve=40.0)}",
+)
+
+_wrr_tr_root = _FrPath(__file__).resolve().parent.parent / "custom_components" / "heatpump_optimizer"
+_wrr_tr_missing = []
+for _wrr_name in ("strings.json", "translations/en.json", "translations/sv.json"):
+    _wrr_doc = _fi_json.loads((_wrr_tr_root / _wrr_name).read_text(encoding="utf-8"))
+    _wrr_opts = _wrr_doc["selector"]["space_setpoint_unit"]["options"]
+    _wrr_ind = _wrr_doc["options"]["step"]["entities"]["sections"]["indoor"]
+    _wrr_tr_missing += [f"{_wrr_name}:unit:{u}" for u in _RT_UNITS if not _wrr_opts.get(u)]
+    _wrr_tr_missing += [
+        f"{_wrr_name}:{part}:{key}"
+        for part in ("data", "data_description")
+        for key in ("flow_min_lift_k", "flow_heat_c")
+        if not _wrr_ind.get(part, {}).get(key)
+    ]
+R.check(
+    "every set-point unit, return included, has a label, and both new fields a label "
+    "and a description, in strings.json, en and sv",
+    not _wrr_tr_missing,
+    f"{_wrr_tr_missing}",
+)
+
+# --- Review fixes D3, D5, D6 (return unit) ---------------------------------
+R.check(
+    "D3: a stored ceiling at or below the gate reads as the default heating flow, so a "
+    "heating step never writes the gate; one above the gate is kept",
+    _pa._heat_ceiling_c({_PP_FLOW_KEY: _pa.FLOW_GATE_C}) == _pa.FLOW_HEAT_C
+    and _pa._heat_ceiling_c({_PP_FLOW_KEY: 20.0}) == _pa.FLOW_HEAT_C
+    and _pa._heat_ceiling_c({_PP_FLOW_KEY: 30.0}) == 30.0
+    and _pa._heat_ceiling_c({}) == _pa.FLOW_HEAT_C
+    and _sp_write(5.5, _WL_RETURN, extra={_PP_FLOW_KEY: 25.0}) == _pa.FLOW_HEAT_C,
+    f"{_sp_write(5.5, _WL_RETURN, extra={_PP_FLOW_KEY: 25.0})}",
+)
+R.check(
+    "D5: a return target's bare hold (no curve) is capped at its ceiling; a flow "
+    "target's stays the uncapped rated hold, as on the base",
+    _rt_baseline("return", None, heat=28.0) == 28.0
+    and _rt_baseline("return", None, heat=48.0) == 30.0
+    and _pa.RETURN_SUPPLY_OFFSET_K == 5.0
+    and _rt_baseline("flow", None, heat=28.0) == _pa.FLOW_HOLD_C,
+    f"{_rt_baseline('return', None, heat=28.0)} {_rt_baseline('flow', None, heat=28.0)}",
+)
+R.check(
+    "D6: a return target's floor never anchors on the valve outlet: alone it leaves the "
+    "no-inlet floor, behind a tank the tank wins; a flow target still takes it",
+    _sp_write(1.5, (_SP_VALVE,), extra=_RT) == _pa.FLOW_HOLD_C - _pa.RETURN_SUPPLY_OFFSET_K
+    and _sp_write(1.5, (_SP_TANK, _SP_VALVE), extra=_RT) == _SP_READ[_SP_TANK] + _SP_LIFT
+    and _sp_write(1.5, (_SP_FLOOR, _SP_VALVE), extra=_RT) == _SP_READ[_SP_FLOOR] + _SP_LIFT
+    and _sp_write(1.5, (_SP_VALVE,), extra=_RT_FLOW) == _SP_READ[_SP_VALVE] + _SP_LIFT
+    and _pa.RETURN_SKIPPED_RUNG == _SP_VALVE,
+    f"{_sp_write(1.5, (_SP_VALVE,), extra=_RT)}",
+)
+
+# --- Null control (R10-WATER-SETPOINT-LIFT): with default options (no
+# flow_min_lift_k, no flow_heat_c) an indoor or flow unit writes exactly what
+# main wrote before the return unit landed. Every cell drives the production
+# ``desired`` (each duty and the baseline) and ``_flow_command`` through a
+# real coordinator, over the inlet rungs a return target treats differently
+# (the pump return, the skipped valve outlet), inlets either side of the gate
+# and the ceiling, four plan levels, and the weather curve absent, under the
+# hold, between hold and ceiling and over the ceiling. _NC_AT_MAIN is this
+# same block's output recorded on origin/main ba6fd7e8b's production code.
+from heatpump_optimizer import pump_arbiter as _nc_pa  # noqa: E402
+
+_NC_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+_NC_RUNGS = ((), ("heat_pump_return_temp_entity",), ("valve_outlet_temp_entity",),
+             ("heat_pump_return_temp_entity", "valve_outlet_temp_entity"))
+
+
+def _nc_cell(cmd):
+    if cmd is None:
+        return "-"
+    if isinstance(cmd, _nc_pa.FlowCommand):
+        return f"{cmd.written_c:g}/{cmd.gate_c:g}/{cmd.ceiling_c:g}"
+    assert cmd.mode is None and cmd.dhw_setpoint is None and cmd.silent is None, cmd
+    return "-" if cmd.space_setpoint is None else f"{cmd.space_setpoint:g}"
+
+
+def _nc_cells():
+    cells = []
+    for unit in ("indoor", "flow"):
+        for rungs in _NC_RUNGS:
+            for inlet_c in ("18.0", "27.0", "52.0", "60.0"):
+                states = {"number.nc": FakeState("40", attributes={"min": 5, "max": 70})}
+                data = {"tibber_token": "x", "weather_entity": "weather.home",
+                        "space_setpoint_entity": "number.nc", "pump_duty_mode": "control",
+                        "space_setpoint_unit": unit}
+                for key in rungs:
+                    data[key] = f"sensor.nc_{key}"
+                    states[data[key]] = FakeState(inlet_c, unit="°C")
+                coord = _DrCoord(FakeHass(states), _dr_entry(data=data))
+                for kw in (0.0, 1.5, 3.5, 6.0):
+                    coord._optimization_result = _PaNS(
+                        timestamps=[_NC_T0], power_schedule=[kw], optimal_setpoints=[21.0],
+                        dhw_schedule=[0.0])
+                    coord._current_action = {"power": kw, "dhw_power": 0.0}
+                    for curve in (None, 30.0, 42.0, 61.0):
+                        coord._thermal_model.curve_flow_temp = lambda _o, c=curve: c
+                        inp = coord.arbiter_inputs()
+                        cells += [_nc_cell(_nc_pa.desired(coord, inp, duty, _NC_T0))
+                                  for duty in (None, "space", "both", "dhw", "idle")]
+                    _nc_pa.state_for(coord).written["space_setpoint"] = (40.0, _NC_T0)
+                    cells.append(_nc_cell(_nc_pa._flow_command(
+                        coord.arbiter_inputs(), _nc_pa.state_for(coord))))
+    return cells
+
+
+_NC_AT_MAIN = (
+    "21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 "
+    "21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 "
+    "21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 "
+    "21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 "
+    "21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 "
+    "5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 "
+    "5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 "
+    "21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 "
+    "21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 "
+    "21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 "
+    "21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 "
+    "21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 "
+    "21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 "
+    "21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 "
+    "21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 "
+    "5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 "
+    "5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 "
+    "21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 "
+    "21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 "
+    "- 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 "
+    "21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - "
+    "21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 "
+    "21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 "
+    "21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 "
+    "21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 "
+    "21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 "
+    "5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 "
+    "5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 "
+    "21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 "
+    "21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 "
+    "21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 "
+    "21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 "
+    "21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 "
+    "21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 "
+    "21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 "
+    "21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 "
+    "5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 "
+    "5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 "
+    "21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 "
+    "21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 "
+    "- 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 "
+    "21 21 21 5 21 21 21 21 5 21 - 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 21 21 21 5 21 - "
+    "35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 38 38 25 25 35 "
+    "38 38 25 25 42 38 38 25 25 55 38 38 25 25 40/25/55 35 48 48 25 25 35 48 48 25 25 42 48 "
+    "48 25 25 55 48 48 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 "
+    "25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 "
+    "38 38 25 25 35 38 38 25 25 42 38 38 25 25 55 38 38 25 25 40/25/55 35 48 48 25 25 35 48 "
+    "48 25 25 42 48 48 25 25 55 48 48 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 "
+    "25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 "
+    "25 40/25/55 35 38 38 25 25 35 38 38 25 25 42 38 38 25 25 55 38 38 25 25 40/25/55 35 48 "
+    "48 25 25 35 48 48 25 25 42 48 48 25 25 55 48 48 25 25 40/25/55 35 55 55 25 25 35 55 55 "
+    "25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 "
+    "25 55 55 55 25 25 40/25/55 35 38 38 25 25 35 38 38 25 25 42 38 38 25 25 55 38 38 25 25 "
+    "40/25/55 35 48 48 25 25 35 48 48 25 25 42 48 48 25 25 55 48 48 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 33 33 25 25 35 33 33 25 25 42 33 33 25 25 "
+    "55 33 33 25 25 40/25/55 35 46 46 25 25 35 46 46 25 25 42 46 46 25 25 55 46 46 25 25 "
+    "40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 35 35 25 25 35 35 35 25 "
+    "25 42 35 35 25 25 55 35 35 25 25 40/25/55 35 46 46 25 25 35 46 46 25 25 42 46 46 25 25 "
+    "55 46 46 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 "
+    "40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 "
+    "40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 33 33 25 25 35 33 33 25 25 42 33 33 25 25 55 33 33 25 25 "
+    "40/25/55 35 46 46 25 25 35 46 46 25 25 42 46 46 25 25 55 46 46 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 35 35 25 25 35 35 35 25 25 42 35 35 25 25 "
+    "55 35 35 25 25 40/25/55 35 46 46 25 25 35 46 46 25 25 42 46 46 25 25 55 46 46 25 25 "
+    "40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 "
+    "40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 "
+    "40/25/55 35 33 33 25 25 35 33 33 25 25 42 33 33 25 25 55 33 33 25 25 40/25/55 35 46 46 "
+    "25 25 35 46 46 25 25 42 46 46 25 25 55 46 46 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 35 35 25 25 35 35 35 25 25 42 35 35 25 25 55 35 35 25 25 "
+    "40/25/55 35 46 46 25 25 35 46 46 25 25 42 46 46 25 25 55 46 46 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 "
+    "40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 "
+    "25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 "
+    "25 42 55 55 25 25 55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 "
+    "55 55 55 25 25 40/25/55 35 55 55 25 25 35 55 55 25 25 42 55 55 25 25 55 55 55 25 25 "
+    "40/25/55 "
+).split()
+_nc_head = _nc_cells()
+_nc_moved = [i for i, (a, b) in enumerate(zip(_nc_head, _NC_AT_MAIN)) if a != b]
+R.check(
+    "null control: with default options every set-point an indoor or flow unit writes, "
+    "and every held FlowCommand, is main's, cell for cell",
+    len(_nc_head) == len(_NC_AT_MAIN) == 2688 and not _nc_moved,
+    f"{len(_nc_head)} cells, moved at {_nc_moved[:8]}",
+)
+
 # --- #1956 the card recommends a feedback sensor on an unmetered install ---
 # The probe is #1955's own: power and frequency come from ``probe_install``;
 # the energy and flow entities are the classes the probe does not carry. The
@@ -73067,7 +74571,7 @@ R.check(
     str(_frs_wiring()),
 )
 _FRS_PKG = _frs_Path(__file__).resolve().parent.parent / "custom_components/heatpump_optimizer"
-for _frs_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _frs_file in ("strings.json", *SHIPPED_CATALOGUES):
     _frs_doc = _frs_json.loads((_FRS_PKG / _frs_file).read_text(encoding="utf-8"))
     _frs_text = _frs_doc.get("issues", {}).get(_frs_mod.ISSUE_FLOOR_RETURN_SILENT, {})
     R.check(
@@ -79483,7 +80987,7 @@ _cpd_codes = {
                               "not_below_configured", "measured_below_configured"},
 }
 _cpd_tr_missing = []
-for _cpd_name in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _cpd_name in ("strings.json", *SHIPPED_CATALOGUES):
     _cpd_tr = _cpd_json.loads((_CpdPath(__file__).resolve().parents[1] / "custom_components/heatpump_optimizer" / _cpd_name).read_text())
     _cpd_attrs_tr = _cpd_tr["entity"]["sensor"]["learning_model_status"].get("state_attributes", {})
     for _cpd_attr, _cpd_vals in _cpd_codes.items():
