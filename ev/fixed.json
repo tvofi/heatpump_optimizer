@@ -1,0 +1,39 @@
+{
+ "_comment": "MEASURED, not written by hand. Regenerate with `python3 tools/ci/selftest_scope.py record` on Linux with strace; every push to main re-measures each step and fails if an entry misses what the run read (R10-CI-SELFTEST-SCOPE).",
+ "workflow": ".github/workflows/governance.yml",
+ "job": "instrument-self-tests",
+ "steps": {
+  "beatd": {
+   "run_sha": "890c4cc0063250459d54f074ae06e1953ddfa0feb7148a64ef54276c2a968407",
+   "files": [
+    "tests/throwaway_git.py",
+    "tools/audit/seat/beatd.py",
+    "tools/audit/seat/beatd_shims/git"
+   ],
+   "probes": [
+    ".",
+    "config",
+    "objects",
+    "refs",
+    "tests",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat",
+    "tools/audit/seat/beatd_shims/bash",
+    "tools/audit/seat/beatd_shims/cat",
+    "tools/audit/seat/beatd_shims/date",
+    "tools/audit/seat/beatd_shims/env",
+    "tools/audit/seat/beatd_shims/grep",
+    "tools/audit/seat/beatd_shims/mktemp",
+    "tools/audit/seat/beatd_shims/rm",
+    "tools/audit/seat/beatd_shims/sleep"
+   ],
+   "dirs": [
+    "tests"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  }
+ }
+}
