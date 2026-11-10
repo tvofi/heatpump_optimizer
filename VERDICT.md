@@ -1,17 +1,16 @@
-Fix review: merge 0149fd1932c4763d2723fb53023b849d0c7fe00e
+Fix review: merge 36c7b25f9b5fab1e9496dee7814160de37bf8461
 
-bus-nonce: d298388eedd210d80c6b4e6087e99ce4
+bus-nonce: 0cb4ed3697f16a310029ee65d282a8f3
+
+Round: resolution-delta review (scope per owner ruling 2026-11-09), head 36c7b25f9b5fab1e9496dee7814160de37bf8461, delta from c671154342fbb2949fd670d30065a7228e172466.
 
 ## Evidence
-- Round: resolution-delta review against the merge verdict at a36d0a6e56cc5f5af6754a9dec2cd10e41be919d. review_carry.py prints FRESH-REVIEW (e5edce38e is not the automatic merge of its parents), so the delta is mine.
-- Resolution delta: merge-tree of the parents 1e87d78d9 and 0a8033305 conflicts only in the generated schema blocks of .claude/workflows/audit-find.js and dev/audit/config/finding.schema.json (bugclasses.json auto-resolved by the ledger driver). The committed resolution differs from the automatic tree only in those two files (ev/resolution-delta.txt), and keeps both N-relay-handoff-starvation (from main) and N-stamp-claim-conflict (from this PR) in CLASS_GUESS and the class_guess enum.
-- fold_ledger.py check at the head: 0 violations. agreement_py.py --run: divergent=0 unregistered=0 dead=0 refused=0, AGREEMENT ok.
-- The head 0149fd193 differs from e5edce38e only by one line in dev/programme/delivery/3351.md.
-- Three-dot diff against the merge base touches no VERSION, manifest, RELEASE_NOTES.md or golden/claim file.
-- git merge-tree --write-tree origin/main 0149fd1932c4763d2723fb53023b849d0c7fe00e exits 0 (clean).
-- CI: merge_train.py classify at the head exited 0: GREEN pending: none red: none (ev/classify.log, polled 08:43-09:06 UTC). The gate failure in the packet digest at render was a stale in-flight run; the final classification is GREEN, so no red check is owed an answer.
-- Not re-run: gate and mutation (CI's heavy runs cited, per the role file). The PR's patch is unchanged from the previously reviewed one apart from the merge-resolved generated blocks.
-- Round: first review of this resolution delta.
-
-## Findings
-None: the resolution delta settles everything it touches.
+- Head measured: 36c7b25f9b5fab1e9496dee7814160de37bf8461 (ev/HEAD.txt). review_carry.py prints FRESH-REVIEW (two main merges), so this is a resolution-delta review.
+- finding.schema.json union: the class_guess enum at the head holds both main's R10-TOPIC-FAMILY and this PR's N-stamp-claim-conflict, and no id twice (54 entries, 54 distinct). `node tools/policy/check-wave-script.mjs`: 226 passed, 0 failed, so the enum equals bugclasses.json plus new (ev/check-wave-script.txt).
+- audit-find.js: `fold_ledger.py sync` at the head prints "already carries dev/audit/config/finding.schema.json" and leaves the tree clean, so the file is byte-identical to the committed one (ev/sync.txt).
+- Head merge 36c7b25f9 (parents 3e8998600, b8f67a775) hand-resolved one file, dev/audit/config/bugclasses.json: both R10-RCA-SWEEP-SETTLE-LOOP (main) and R10-RCA-STAMP-CLAIM-CONFLICT (this PR) are kept, separated by a comma, JSON valid (ev/head-merge-cc.txt).
+- custom_components/ differs between c671154 and the head only through main's own merged changes: the PR adds none against its merge base (three-dot diff origin/main...head over custom_components/ is empty, checked). No wider review.
+- Merges with origin/main: git merge-tree --write-tree exits 0 (ev/merge-tree.txt).
+- CI at this head: `merge_train.py classify` prints "GREEN 36c7b25f9b5fab1e9496dee7814160de37bf8461 pending: none red: none" (ev/classify.txt).
+- Not re-derived: the previous verdict at c671154342fbb2949fd670d30065a7228e172466 is not on verdict/3351 or any probe/rev-3351 ref I could fetch (only 0149fd19 and a36d0a6e), so I could not list its findings. I judged only the two resolution points and the live checks; main's own changes stand on that verdict.
+- carry_audit: no findings recorded.
