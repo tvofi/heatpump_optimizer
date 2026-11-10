@@ -1,0 +1,4 @@
+== nocd
+pr: REFUSE: STALE CHECKOUT e8c3fe927bb9 behind origin/main 96346fdec3ad by 48 commit(s) touching tools/audit/seat tools/pr: update the checkout holding /home/user/heatpump_optimizer/tools/audit/seat, or set HPO_ALLOW_STALE_TOOLS=1
+== cd
+pr: REFUSE: STALE CHECKOUT e8c3fe927bb9 behind origin/main 96346fdec3ad by 48 commit(s) touching tools/audit/seat tools/pr: update the checkout holding /home/user/heatpump_optimizer/tools/audit/seat, or set HPO_ALLOW_STALE_TOOLS=1
