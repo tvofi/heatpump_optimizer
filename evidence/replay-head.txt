@@ -1,0 +1,1 @@
+RESULT replay fixture=synthetic-dhw-only.json memory_cycles=24 slots=[0] total=0
