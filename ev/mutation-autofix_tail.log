@@ -1,0 +1,49 @@
+Python/3.13.18/x64
+2026-11-10T05:46:09.9579213Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-10T05:46:09.9579543Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-10T05:46:09.9579880Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+2026-11-10T05:46:09.9580185Z   REPO: tvofi/heatpump_optimizer
+2026-11-10T05:46:09.9580462Z   HEAD_REF: fix/r10-water-setpoint-feedback
+2026-11-10T05:46:09.9589270Z   PUSH_SHA: a550c3cac98e4bd513f41cde9f24f6f0dc01dd9d
+2026-11-10T05:46:09.9593339Z   RUNS_PEM: ***
+2026-11-10T05:46:09.9593566Z   RUNS_APPID: ***
+2026-11-10T05:46:09.9593789Z ##[endgroup]
+2026-11-10T05:46:22.1971951Z {
+2026-11-10T05:46:22.1972174Z 
+2026-11-10T05:46:22.1972307Z }
+2026-11-10T05:46:22.1992496Z approved run 42764189845 (CI)
+2026-11-10T05:46:23.1115760Z ##[group]Run python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job mutation-autofix \
+2026-11-10T05:46:23.1116250Z [36;1mpython3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job mutation-autofix \[0m
+2026-11-10T05:46:23.1116584Z [36;1m  --status "changed"[0m
+2026-11-10T05:46:23.1155710Z shell: /usr/bin/bash -e {0}
+2026-11-10T05:46:23.1155929Z env:
+2026-11-10T05:46:23.1156171Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-10T05:46:23.1156514Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+2026-11-10T05:46:23.1156855Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-10T05:46:23.1157165Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-10T05:46:23.1157480Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-10T05:46:23.1157796Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+2026-11-10T05:46:23.1159646Z   AUTOFIX_SURVIVORS: custom_components/heatpump_optimizer/pump_arbiter.py:1000 CLAMP_DROP; custom_components/heatpump_optimizer/pump_arbiter.py:1019 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:1022 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:260 CONST; custom_components/heatpump_optimizer/pump_arbiter.py:276 CONST; custom_components/heatpump_optimizer/pump_arbiter.py:279 CONST; custom_components/heatpump_optimizer/pump_arbiter.py:920 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:922 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:926 RETURN_DEL; custom_components/heatpump_optimizer/pump_arbiter.py:930 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:934 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:953 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:997 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:997 GUARD_OFF
+2026-11-10T05:46:23.1161569Z ##[endgroup]
+2026-11-10T05:46:23.1700083Z mutation-autofix: changed -- 14 added site(s) left alive: custom_components/heatpump_optimizer/pump_arbiter.py:1000 CLAMP_DROP; custom_components/heatpump_optimizer/pump_arbiter.py:1019 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:1022 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:260 CONST; custom_components/heatpump_optimizer/pump_arbiter.py:276 CONST; custom_components/heatpump_optimizer/pump_arbiter.py:279 CONST; custom_components/heatpump_optimizer/pump_arbiter.py:920 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:922 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:926 RETURN_DEL; custom_components/heatpump_optimizer/pump_arbiter.py:930 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:934 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:953 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:997 CMP_BOUND; custom_components/heatpump_optimizer/pump_arbiter.py:997 GUARD_OFF.
+2026-11-10T05:46:23.1702184Z Every kill the measurement made is pinned; these are not, and
+2026-11-10T05:46:23.1702531Z no tool disposes a survivor. Each needs a killing check or a
+2026-11-10T05:46:23.1702860Z survivor_triage verdict, written by a seat (ci-autofix.md).
+2026-11-10T05:46:23.1703049Z 
+2026-11-10T05:46:23.1765899Z ##[error]Process completed with exit code 1.
+2026-11-10T05:46:23.1865615Z Post job cleanup.
+2026-11-10T05:46:23.2430258Z [command]/usr/bin/git version
+2026-11-10T05:46:23.2462675Z git version 2.56.0
+2026-11-10T05:46:23.2485841Z Temporarily overriding HOME='/home/runner/work/_temp/b90f3796-fc8d-4985-bf88-e74a7b2c907b' before making global git config changes
+2026-11-10T05:46:23.2487074Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-10T05:46:23.2489547Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-10T05:46:23.2520913Z Removing SSH command configuration
+2026-11-10T05:46:23.2524885Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-10T05:46:23.2553957Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-10T05:46:23.2787576Z Removing HTTP extra header
+2026-11-10T05:46:23.2791702Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-10T05:46:23.2820898Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-10T05:46:23.3046183Z Removing includeIf entries pointing to credentials config files
+2026-11-10T05:46:23.3051077Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-10T05:46:23.3079594Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-10T05:46:23.3477239Z Cleaning up orphan processes
