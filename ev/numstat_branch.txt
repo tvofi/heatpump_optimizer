@@ -1,0 +1,4 @@
+22c22
+< 6	0	tests/golden/claimed_drift.txt
+---
+> 6	1	tests/golden/claimed_drift.txt

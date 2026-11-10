@@ -1,0 +1,28 @@
+346,349c346,349
+< -    RESULT option_fields_rendered=205 count
+< +    RESULT option_fields_rendered=208 count
+< -    RESULT option_schema_keys_rendered=238 count
+< +    RESULT option_schema_keys_rendered=241 count
+---
+> -    RESULT option_fields_rendered=208 count   (205 until R10-GENERIC-HEAT-CURVE's three heat_curve fields)
+> +    RESULT option_fields_rendered=211 count   (208 until R10-GENERIC-HEAT-CURVE's three heat_curve fields)
+> -    RESULT option_schema_keys_rendered=241 count   (238 until R10-GENERIC-HEAT-CURVE)
+> +    RESULT option_schema_keys_rendered=244 count   (241 until R10-GENERIC-HEAT-CURVE)
+352,355c352,355
+< -  "claim": "every SelectSelector option on every options page has a translated label (46 selects)",
+< +  "claim": "every SelectSelector option on every options page has a translated label (48 selects)",
+< -  "result": "46 selects, untranslated=[]",
+< +  "result": "48 selects, untranslated=[]",
+---
+> -  "claim": "every SelectSelector option on every options page has a translated label (47 selects)",
+> +  "claim": "every SelectSelector option on every options page has a translated label (49 selects)",
+> -  "result": "47 selects, untranslated=[]",
+> +  "result": "49 selects, untranslated=[]",
+358,359c358,359
+< -| C125 | `strings.json:selector` | every SelectSelector option on every options page has a translated label (46 selects) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 46 selects, untranslated=[] | **true** |  |
+< +| C125 | `strings.json:selector` | every SelectSelector option on every options page has a translated label (48 selects) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 48 selects, untranslated=[] | **true** |  |
+---
+> -| C125 | `strings.json:selector` | every SelectSelector option on every options page has a translated label (47 selects) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 47 selects, untranslated=[] | **true** |  |
+> +| C125 | `strings.json:selector` | every SelectSelector option on every options page has a translated label (49 selects) | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 49 selects, untranslated=[] | **true** |  |
+770a771
+> -config_flow # R10-GENERIC-HEAT-CURVE: the heat_curve page gains heat_curve_target_kind, heat_curve_displace_entity and heat_curve_offset_band_k, and the advanced menu label reads 'Heat curve control'; float-free, recorded by golden.py --record --only config_flow
