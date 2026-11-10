@@ -21846,7 +21846,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From r10-rca-main-selftests-red, body item 22f9186f: Shape 2's instances (`ref_privacy.added_lines`, and beatd's suspected timing-dependent read set) are the live hotfix's own items (its brief's FIX line and step 4); nothing new to carry. Carry: R10-HOTFIX-MAIN-SELFTESTS (items 22f9186f)"
+   ],
    "architect_note": "",
    "group": "R10-HOTFIX-MAIN-SELFTESTS",
    "kind": "instrument",
