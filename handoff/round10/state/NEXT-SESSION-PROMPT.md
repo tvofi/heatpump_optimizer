@@ -21,7 +21,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-COP-UNMEASURED (stage carries-open, branch `handoff/r10-hotfix-cop-unmeasured`): `git fetch origin handoff/r10-hotfix-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GENERIC-HEAT-CURVE-PERSISTENT (stage in-progress, branch `handoff/r10-generic-heat-curve-persistent`): `git fetch origin handoff/r10-generic-heat-curve-persistent && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ARBITER-OFF-RESTORE (stage in-progress, branch `handoff/r10-arbiter-off-restore`): `git fetch origin handoff/r10-arbiter-off-restore && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FIXER-MD-SPELLING-CORPUS (stage in-progress, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REVIEW-ENUMERATE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-NONREQUIRED-REDS-2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-DELTA-REVIEW (stage in-progress): no branch pushed yet, so nothing to fetch
