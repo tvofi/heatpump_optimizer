@@ -1,0 +1,36 @@
+== M4 drop closed_record_guard call
+FAIL arm7_a_post_to_201_is_refused_naming_the_record_issue
+TOTAL: 1 failed
+FAILED: arm7_a_post_to_201_is_refused_naming_the_record_issue
+== M5 shim trackers='201'
+ tools/audit/seat/shims/seat-gh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL mutant: the guard's issue number changed lets the planted post through
+  FAIL planted: a raw `gh api` post to the continuation record issue is refused
+  FAIL mutant: the continuation dropped from the trackers lets its planted post through
+  FAIL the shim's trackers are budget_raise_gate.RECORD_ISSUES
+gh_calls self-test: 199 checks, 4 failed
+== M5b shim trackers='3394' only
+  FAIL planted: a raw `gh api` post of a revocation to #201 is refused, the real gh never run
+  FAIL a shell that merely names gh_comment.py is not gh_comment.py
+  FAIL parent check: python -X taking gh_comment.py as its value, then -c code
+  FAIL parent check: another file of the basename gh_comment.py
+  FAIL parent check: a symlink named for another file to the tree's script
+  FAIL parent check: python -c code naming gh_comment.py in its text
+  FAIL gh issue comment 201 is refused
+  FAIL gh issue comment on a #201 URL is refused
+  FAIL gh issue comment on a #201 URL with a trailing slash is refused
+  FAIL gh issue comment on a #201 URL with an anchor is refused
+== M6 carry_audit log_issues -> {201}
+ tools/audit/carry_audit.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+FAIL roster (null): an issue a live group lists, in issues or fixes, and the record issues are not reported
+carry_audit self-test: 402 checks, 1 failed
+== REPAIR control: pre-repair carry_audit + base budget_raise_gate
+    ^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'roster_lib'
+pre-repair rc=1
+    ^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'roster_lib'
+repaired rc=1
+status lines: 0
