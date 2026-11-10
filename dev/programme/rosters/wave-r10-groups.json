@@ -22013,10 +22013,10 @@
    ],
    "hot_files": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "note": "orchestrator 2026-11-10T08:35Z: roster-drain replayed queued ops; 18 carries lost to replayed index drops; overlap admitted (R10-TICK-RESIDUE, R10-SEAT-IDENTITY-P5): orchestrator 2026-11-10: roster-drain replay destroyed carries (re-queued, brief cites no untracked path)",
     "pr": 3416,
-    "commit": null
+    "commit": "5437702fc391019c31d465d9bd8d8e40e16cf9d8"
    },
    "brief": "Hotfix (orchestrator, 2026-11-10). beat_jobs.py roster_drain records its done set (the drain's done-record file, the drain's queue-lines file) only at the END of a pass. Under beatd the row has timeout_s 900, and each op takes about 45 s through roster_queue.py's lint gate, so a pass with more than about 20 pending ops is killed before it saves. The next pass then replays every op from the top. Observed 2026-11-10 08:54-09:29 local on handoff/audit-r10-roster: the same drop-carry ops landed every ~14 min, and index-based drops removed 18 unintended carries. FIX: persist the done set after every op (atomic write), so a killed pass resumes at the first unapplied op; consider also bounding ops per pass under the timeout. Failing test first in beat_jobs_selftest.py: a pass killed mid-queue must not re-apply an op on the next pass (null control: a pass that completes applies each op exactly once). Mutation proof. Root cause owed in its own seat (it reached a live state document): R10-RCA-ROSTER-DRAIN-REPLAY."
   }
