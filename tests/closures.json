@@ -269,6 +269,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/de.json",
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
@@ -604,6 +605,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/de.json",
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
@@ -839,6 +841,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/de.json",
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
@@ -1093,6 +1096,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/de.json",
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
@@ -1222,6 +1226,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/de.json",
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
@@ -1521,6 +1526,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/de.json",
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
@@ -1868,8 +1874,10 @@
    "tools/audit/seat/handover_prompt.py",
    "tools/audit/seat/ledger.py",
    "tools/audit/seat/merge_train.py",
+   "tools/audit/seat/orchestrator_tick.py",
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/plan_table.py",
+   "tools/audit/seat/pr_cap.py",
    "tools/audit/seat/proof_watch.py",
    "tools/audit/seat/queue_pre_flight.py",
    "tools/audit/seat/record_row.py",
@@ -1880,6 +1888,7 @@
    "tools/audit/seat/roster_sync.py",
    "tools/audit/seat/state_docs.py",
    "tools/audit/seat/tmp_paths.py",
+   "tools/audit/seat/topic_grammar.py",
    "tools/ci/alert_list.py",
    "tools/ci/codescan_wait.py",
    "tools/ci/gate.py",
@@ -1914,6 +1923,7 @@
    "tools/policy/vendor/markdown-it.LICENSE",
    "tools/policy/vendor/markdown-it.min.js",
    "tools/pr/README.md",
+   "tools/pr/app_approve.sh",
    "tools/pr/cancel_superseded.py",
    "tools/pr/codeql_scope.py",
    "tools/pr/preflight.sh",
@@ -2026,6 +2036,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/de.json",
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
@@ -2213,6 +2224,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/de.json",
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
@@ -2505,6 +2517,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/de.json",
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
@@ -2852,6 +2865,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/de.json",
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
@@ -3892,6 +3906,7 @@
    "tools/audit/seat/beat_jobs.py",
    "tools/audit/seat/beat_jobs_selftest.py",
    "tools/audit/seat/beatd.py",
+   "tools/audit/seat/bottleneck_check.py",
    "tools/audit/seat/carry_fold.py",
    "tools/audit/seat/ci_critpath.py",
    "tools/audit/seat/ci_probe.py",
@@ -3917,6 +3932,7 @@
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/plan_public.py",
    "tools/audit/seat/postmerge.py",
+   "tools/audit/seat/pr_cap.py",
    "tools/audit/seat/probe_bridge.py",
    "tools/audit/seat/proof_watch.py",
    "tools/audit/seat/prune_refs.py",
@@ -3943,6 +3959,7 @@
    "tools/audit/seat/sweep_gantt.py",
    "tools/audit/seat/sweep_render.py",
    "tools/audit/seat/tmp_paths.py",
+   "tools/audit/seat/topic_grammar.py",
    "tools/audit/seat/verdict_audit.py",
    "tools/policy/budget_raise_gate.py",
    "tools/policy/figure_lint.mjs",
@@ -3950,6 +3967,7 @@
    "tools/policy/fixtures/policy-rot/prepr/raise/good.md",
    "tools/policy/fixtures/policy-rot/prepr/raise/score-no-verdict.md",
    "tools/policy/fixtures/policy-rot/prepr/raise/verdict-outside.md",
+   "tools/pr/app_approve.sh",
    "tools/pr/codeql_scope.py"
   ],
   "tests/harness_headers.py": [
@@ -4118,6 +4136,7 @@
    "dev/audit/harnesses/r10_nightly_status_mutants.py",
    "dev/audit/harnesses/r10_nonrequired_reds.py",
    "dev/audit/harnesses/r10_open_driver_mutants.py",
+   "dev/audit/harnesses/r10_outside_intake_p2_mutants.py",
    "dev/audit/harnesses/r10_partload_pricing.py",
    "dev/audit/harnesses/r10_partload_residue.py",
    "dev/audit/harnesses/r10_plan_durations_mutants.py",
@@ -4135,6 +4154,7 @@
    "dev/audit/harnesses/r10_rca_gate_busy_defer_4.py",
    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
    "dev/audit/harnesses/r10_rca_sav_estimate.py",
+   "dev/audit/harnesses/r10_rca_sweep_settle_loop.py",
    "dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs",
    "dev/audit/harnesses/r10_recarry_head.py",
    "dev/audit/harnesses/r10_registry_leak.py",
@@ -4182,6 +4202,7 @@
    "dev/audit/harnesses/r10_train_overlap_grade_p4_mutants.py",
    "dev/audit/harnesses/r10_train_raise_hold_mutants.sh",
    "dev/audit/harnesses/r10_train_raise_hold_replay.py",
+   "dev/audit/harnesses/r10_train_rejoin_no_recarry_mutants.py",
    "dev/audit/harnesses/r10_train_upgrade_mutants.py",
    "dev/audit/harnesses/r10_triage_gate_replay.py",
    "dev/audit/harnesses/r10_triage_p391.py",
@@ -4942,11 +4963,11 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 88.0
+   "seconds": 28.6
   },
   "tests/backtest.py": {
    "rc": 0,
-   "seconds": 151.6
+   "seconds": 61.6
   },
   "tests/block_duty.py": {
    "rc": 0,
@@ -4958,7 +4979,7 @@
   },
   "tests/card.mjs": {
    "rc": 0,
-   "seconds": 166.0
+   "seconds": 80.8
   },
   "tests/card_drift.mjs": {
    "rc": 0,
@@ -4966,7 +4987,7 @@
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
-   "seconds": 37.1
+   "seconds": 13.6
   },
   "tests/debug_collect.py": {
    "rc": 0,
@@ -5010,7 +5031,7 @@
   },
   "tests/golden.py": {
    "rc": 0,
-   "seconds": 0.9
+   "seconds": 0.4
   },
   "tests/guard_pins.py": {
    "rc": 0,
@@ -5022,7 +5043,7 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 241.1
+   "seconds": 118.2
   },
   "tests/layout.py": {
    "rc": 0,
@@ -5042,7 +5063,7 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 291.9
+   "seconds": 142.5
   },
   "tests/plan_view.py": {
    "rc": 0,
