@@ -21467,6 +21467,78 @@
     "note": "owed-lines seat s13 2026-11-09T23:50Z under mandate 6715477401: open arm opened nothing; overlap admitted (R10-SEAT-IDENTITY-P5): owed-lines seat s13 (mandate 6715477401): open_driver read no topic from the flagged tick board; hotfix handoff/r10-hotfix-opener-board-prefix 7d654050"
    },
    "brief": "Hotfix (owed-lines seat, s13, 2026-11-09, mandate 6715477401): the beat's opener passes open_driver.py the tick board, whose owed level lines are flagged `-> OWED: OWED ... handoff-no-pr ...`; BOARD_RE was anchored at a bare `^OWED`, so parse_board read zero topics and the open arm opened nothing (state `{}`, seven handoffs with no PR, one critical path). Fix: BOARD_RE accepts the flag; self-test carries the board's flagged form and an unflagged null."
+  },
+  {
+   "group": "R10-ARCH-DOCS-DELTA",
+   "lane": "DOCS",
+   "kind": "feature",
+   "class": "docs",
+   "severity": "medium",
+   "size": "S",
+   "issues": [
+    2395
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 28,
+   "files": [
+    "docs/architecture.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-ARCH-DOCS",
+    "R10-OVERBOOK-RESIDUAL",
+    "R10-CLONE-2238",
+    "R10-SAV-COMFORT",
+    "R10-COP-GATE-D",
+    "R10-GRADE-DRIVERS",
+    "R10-WHY-NOW-WIDGET",
+    "R10-PARTLOAD-PRICING",
+    "R10-TWO-ZONE-HHL",
+    "R10-ARCH-SHAPES-CLASSIFIER",
+    "R10-ADVISOR-WHATIF",
+    "R10-LEARNED-STORE-LOAD",
+    "R10-PROD-RESIDUE-PINS",
+    "R10-LIVE-BUNDLE-READS",
+    "R10-SAV-METER-FLOOR",
+    "R10-HOTFIX-COP-UNMEASURED",
+    "R10-COP-GATE-E",
+    "R10-PARTLOAD-RESIDUE",
+    "R10-I18N-DE",
+    "R10-GENERIC-HEAT-CURVE",
+    "R10-GENERIC-HEAT-CURVE-PERSISTENT",
+    "R10-ARBITER-OFF-RESTORE",
+    "R10-COMBI-TANK",
+    "R10-MIN-POWER-FLOOR",
+    "R10-INPUT-REAPPEAR",
+    "R10-SAV-VALUATION-RESIDUE",
+    "R10-ADVISOR-STEADY-START",
+    "R10-COMBI-TANK-PR-B"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "commit": null,
+    "branch": "handoff/r10-arch-docs-delta",
+    "last_step": null,
+    "next_step": "dispatch a fixer once R10-ARCH-DOCS and every product group in after have merged",
+    "note": "split from R10-ARCH-DOCS by owner ruling tvofi 2026-11-10 \"Yes on 1 and 2\" (lever 1, cp-compress spec L4-archdocs-split; s13 orchestrator under mandate 6715477401): R10-ARCH-DOCS now runs after its non-product predecessors only; this group re-reads docs/architecture.md after the last product merge; overlap admitted (R10-ARCH-DOCS): owner ruling tvofi 2026-11-10 'Yes on 1 and 2' lever 1 (s13, mandate 6715477401; cp-compress spec L4-archdocs-split): shares docs/architecture.md with R10-ARCH-DOCS only and runs after it (after-edge), so the two never edit the file at once"
+   },
+   "brief": "Owner ruling (tvofi, 2026-11-10, verbatim \"Yes on 1 and 2\", lever 1 of the s13 critical-path compression study): R10-ARCH-DOCS is split. R10-ARCH-DOCS now runs after its non-product predecessors only and verifies docs/architecture.md at its own merge base. This size-S group is the delta pass after the product groups land, and it replaces the 2026-10-30 ruling that R10-ARCH-DOCS is the round's last stage. Start only when R10-ARCH-DOCS and every product group in this group's after list have merged. Re-read docs/architecture.md against origin/main at the true merge base, after the last product merge. Fix only the delta: claims, figures, tables and diagram boxes or arrows that the product merges after R10-ARCH-DOCS's merge made wrong. Find them with `git diff $(git merge-base origin/main <R10-ARCH-DOCS's merge commit>)...origin/main -- custom_components/`, three-dot, against what the document names. Name each departure in the body with the group whose merge caused it. Run R10-ARCH-DOCS-WIRING's checker and `python3 tests/doc_claims.py --markers` at this base. No unresolved target marker may survive on main. Re-verify nothing R10-ARCH-DOCS already verified and the product merges did not touch. Diagrams keep the visual language that origin/main defines at the base. If no product merge changed anything the document states, the pull request records that null result with the diff it read. Issue #2395. Part of #201."
   }
  ]
 }
