@@ -35,6 +35,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-WATER-SETPOINT-FEEDBACK (stage in-progress, branch `handoff/r10-water-setpoint-feedback`): `git fetch origin handoff/r10-water-setpoint-feedback && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COMBI-TANK-PR-B (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-PACKET-APPROVAL-OWED (stage in-progress, branch `fix/r10-hotfix-packet-approval-owed-pr`): `git fetch origin fix/r10-hotfix-packet-approval-owed-pr && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-HOTFIX-STRESS-MEM-PEAK-2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-SWEEP-TOKEN-ACTOR (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-TRAIN-POLICY-MANDATE (stage in-progress, branch `handoff/r10-hotfix-train-policy-mandate`): `git fetch origin handoff/r10-hotfix-train-policy-mandate && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DEPENDABOT-3323-COMPAT (stage in-progress, branch `handoff/r10-dependabot-3323-compat`): `git fetch origin handoff/r10-dependabot-3323-compat && git worktree add --detach $SEAT/wt FETCH_HEAD`
