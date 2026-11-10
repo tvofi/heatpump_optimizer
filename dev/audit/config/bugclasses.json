@@ -4600,6 +4600,24 @@
         "dev/audit/rca/R10-RCA-CLOSURE-ARGV.md"
       ]
     },
+    "R10-RCA-OPEN-PREPR-SLOW": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "open_pr.sh ran the full prepr on three opens of 2026-11-10 (r10-process-slim-p2, r10-hotfix-record-issue-continuation, r10-arbiter-off-restore) where no Prepr: receipt reached the handoff-body tip, and the full prepr has outgrown the four-slot heavy cap set for it",
+      "trigger": "orchestrator-dispatched RCA: three opens past the caller's 3000 s bound or near it, 2026-11-10",
+      "date": "2026-11-10",
+      "status": "proposed",
+      "parts_missing": [
+        "fixer seat R10-PREPR-RESIDUE to build C1 to C4"
+      ],
+      "process_state": "C-A (c): body_push.sh's prepr_trailer keys the receipt to one checkout's git dir and to sha equality, so it drops receipts app_push.sh's reuse_verdict would accept (re-push from another checkout; a code head moved only by a clean merge of main); the never-receipted tips are not established. C-B (d): HEAVY_SLOTS = 4 was set in c09cf12010 for a prepr.sh under half its size at b0762725099f, and nothing the cap reads sees the growth",
+      "countermeasure": "proposed, routed to R10-PREPR-RESIDUE: C1 body_push.sh carries an ancestor receipt from the parent body tip (null control: a non-merge commit past it, reuse_verdict rc 1); C2 a Prepr-absent reason trailer; C3 elapsed seconds on prepr.sh step lines; C4 bound step 6d's GRADER replays (dev/audit/rca/open_prepr_6d.sh before and after). Refused for now: lowering HEAVY_SLOTS. Measured by dev/audit/rca/open_prepr_receipts.py (--self-test)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md"
+      ]
+    },
     "R10-RCA-PREPR-HEAD-GRADERS": {
       "class": "I3",
       "level": "instance-or-process",

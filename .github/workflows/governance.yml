@@ -1050,7 +1050,8 @@ jobs:
           grep -Eq '^record_row self-test: all checks passed$' "$RUNNER_TEMP/record-row-self-test.txt"
 
       - name: Show the workflow read runner refusing its own fixtures
-        if: ${{ !cancelled() }}
+        id: gh-read-run
+        if: ${{ !cancelled() && steps.scope.outputs.gh-read-run == 'true' }}
         run: |
           set -o pipefail
           python3 -I tools/audit/seat/gh_read_run.py --self-test | tee "$RUNNER_TEMP/gh-read-run-self-test.txt"
@@ -1363,6 +1364,14 @@ jobs:
           grep -Eq '^sweep_gantt self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-gantt-self-test.txt"
           python3 -I tools/audit/seat/verdict_audit.py --self-test | tee "$RUNNER_TEMP/verdict-audit-self-test.txt"
           grep -Eq '^verdict_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/verdict-audit-self-test.txt"
+
+      - name: Show the survivor-list check (tools/audit/seat/survivor_list.py) refusing its own fixtures
+        id: survivor-list
+        if: ${{ !cancelled() && steps.scope.outputs.survivor-list == 'true' }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/survivor_list.py --self-test | tee "$RUNNER_TEMP/survivor-list-self-test.txt"
+          grep -Eq '^survivor_list self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/survivor-list-self-test.txt"
 
       - name: Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
         id: ci-probe-instrument
