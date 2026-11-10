@@ -30,13 +30,14 @@ a stripped match, `<GROUP>: <topic words>` for an exact one.
 ORDER (P337 rule 2, P350): `open-priority.txt` lists topics, one per line (`#`
 comments), `open-cap.txt` the cap (default 2); both are re-read every pass. A
 hotfix topic (R10-HOTFIX-*, or a group `roster_lib.is_hotfix` counts, which
-includes `kind` "bug"), then an outside one (`roster_lib.is_outside`:
-owner ruling tvofi 2026-11-07, triage P420), then a critical-path one
-(`roster_lib.critical_path`) is never behind a topic of a later class,
-whatever the file says. Within a class a listed topic keeps its file order, and
-an OMITTED topic is slotted after the last listed topic of equal or higher
-default class (hotfix, outside, critical, record topics `triage-*`/`roster-*`,
-the rest), never after every listed topic.
+includes `kind` "bug"), then an outside one (`roster_lib.is_outside`) or a
+critical-path one (`roster_lib.critical_path`), one class unordered between
+them (owner rulings tvofi 2026-11-07, triage P420, and 2026-11-08), is never
+behind a topic of a later class, whatever the file says. Within a class a
+listed topic keeps its file order, and an OMITTED topic is slotted after the
+last listed topic of equal or higher default class (hotfix, outside or
+critical, record topics `triage-*`/`roster-*`, the rest), never after every
+listed topic.
 A board topic unstarted for more than 2 h prints `STARVED <topic> <sha8> <h>h`
 (age = now minus the handoff commit's ct).
 
@@ -102,28 +103,27 @@ SKIP_TOPIC_PREFIXES = ("triage-", "roster-")
 
 def default_class(topic: str, group: str | None, critical, outside=frozenset(),
                   hotfix=frozenset()) -> int:
-    """0 hotfix, 1 outside, 2 critical, 3 record, 4 the rest. Owner ruling tvofi
-    2026-11-07 (triage P420): hotfix, then outside, then today's order. A hotfix
-    is a hotfix topic or group name, or a group in `hotfix` (`roster_lib.is_hotfix`,
-    which also counts `kind` "bug")."""
+    """0 hotfix, 1 outside or critical (one class, unordered between them), 2
+    record, 3 the rest. Owner rulings tvofi 2026-11-07 (triage P420) and
+    2026-11-08: hotfix, then the outside requests with the critical path, then
+    today's order. A hotfix is a hotfix topic or group name, or a group in
+    `hotfix` (`roster_lib.is_hotfix`, which also counts `kind` "bug")."""
     if topic.startswith("r10-hotfix-") or (group or "").startswith("R10-HOTFIX-"):
         return 0
     if group and roster_lib.norm_group(group) in hotfix:
         return 0
-    if group and roster_lib.norm_group(group) in outside:
+    if group and roster_lib.norm_group(group) in outside | critical:
         return 1
-    if group and roster_lib.norm_group(group) in critical:
-        return 2
-    return 3 if topic.startswith(("triage-", "roster-")) else 4
+    return 2 if topic.startswith(("triage-", "roster-")) else 3
 
 
 #: Classes at or below this are fenced ahead of every other topic, in class
-#: order, whatever the priority file says: hotfix, outside, critical.
-FENCED = 2
+#: order, whatever the priority file says: hotfix, then outside or critical.
+FENCED = 1
 
 
 def order(items, priority: list, critical, outside=frozenset(), hotfix=frozenset()) -> list:
-    """items: [(topic, group, ct)]. Hotfix, outside, critical first, in that order;
+    """items: [(topic, group, ct)]. Hotfix, then outside or critical, first;
     a listed topic keeps its file order within a class; an omitted one slots after
     the last listed topic of equal or higher class."""
     cls = {t: default_class(t, g, critical, outside, hotfix) for t, g, _ in items}
