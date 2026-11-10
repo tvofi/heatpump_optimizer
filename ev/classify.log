@@ -1,0 +1,12 @@
+12:25:14 rc=3 WAIT 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: gate red: none
+12:26:26 rc=3 WAIT 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: gate red: none
+12:27:39 rc=3 WAIT 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: gate red: none
+12:28:51 rc=3 WAIT 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: gate red: none
+12:30:04 rc=3 WAIT 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: gate red: none
+12:31:17 rc=3 WAIT 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: gate red: none
+12:32:30 rc=3 WAIT 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: gate red: none
+12:33:42 rc=3 WAIT 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: gate red: none
+12:34:55 rc=3 WAIT 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: gate red: none
+12:36:07 rc=3 WAIT 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: gate red: none
+12:37:19 rc=0 GREEN 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: none red: none
+DONE rc=0
