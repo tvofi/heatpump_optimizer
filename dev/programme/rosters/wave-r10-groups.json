@@ -21721,10 +21721,11 @@
     "Counter-instance to this group's premise, measured 2026-11-10 by the orchestrator: on #3400 at head 7326025c, the gate run's job 129568450982 failed at 01:38:17Z, deferring with \"run(s) [42734628856] at this head are still being judged; their gate decides\". Decider run 42734628856 completed with success at 01:50:11Z, and its actor was hpo-author[bot] (the App), not github-actions[bot]. No gate-sweep re-run followed by 02:5xZ; the stale red was cleared by hand (gh run rerun 42735879081 --failed). So a sweep-self job keyed on github.actor == 'github-actions[bot]' does not cover this case. Before handing off, establish why gate-sweep's workflow_run did not fire or did not re-run for an App-actor decider: check the gate-sweep.yml runs for 42734628856's completion event. Control: the fix must re-run #3400's gate in this exact shape, and must not re-run when the decider is still in progress."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER, R10-HOTFIX-GATE-BUSY-DEFER): tools/ci/sweep.py. Distinct seam: the sweep's trigger coverage, not the readers of a deferral red (BARRIER) or the settle/busy tie-break (BUSY-DEFER).; overlap admitted (R10-GATE-DEFER-BARRIER): root-cause seat s13 (mandate 6715477401): gate-sweep never fires for token-actor CI runs; 31 deferral reds ~1089 head-minutes in 43 h; distinct seam from R10-GATE-DEFER-BARRIER (readers) and R10-HOTFIX-GATE-BUSY-DEFER (settle) on tools/ci/sweep.py; re-queued with not-yet-existing paths named in prose",
-    "pr": 3403
+    "pr": 3403,
+    "commit": "0362916ac7c1daf994e042c41d79b7e4083414e3"
    }
   },
   {
