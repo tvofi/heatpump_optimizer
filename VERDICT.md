@@ -1,16 +1,16 @@
-Fix review: blocked c1c105ebe9d91860249679a85e4f4f68605b1100 stale-premise: P402's ACCEPT creates R10-FLY-STAMP-FLUSH-HOLD, which already exists and merged as #3280 (aaaec2128, 2026-11-07T18:26+01) before this PR's base
+Fix review: merge b6a6c0271e3c017d179c32facd39a1fc5f386d1c
 
-bus-nonce: e3c35a8d23a97c2fe31bf958e3ac96e4
+bus-nonce: 5bc3953c2c08cdb89f4d94b8814d2548
 
-## Block
+Round: re-review (delta c1c105eb..b6a6c0271e3c017d179c32facd39a1fc5f386d1c). Scope: the delta touches only dev/programme/triage/s6-batch131.md (no custom_components/ code), so no widening.
 
-The ruling reads its facts at origin/main be813ecd4 (2026-11-07 06:51), where stamp.py holds 0 train-hold references. #3280 (R10-FLY-STAMP-FLUSH-HOLD, "fly stamp flush hold") merged at 18:26 the same day and is an ancestor of both this PR's base 263b3908 and this head. At the head's base, record_flush already takes a held collaborator, prints a line when a hold appears, changes or clears, spends no dispatch under a live hold, and names a live hold at timeout (stamp.py TRAIN_HOLD_REF, record_flush docstring). The roster branch handoff/audit-r10-roster already carries a group with that exact name. The ruling's Binding therefore directs a fixer to build a landed change and its claim that no open group owns stamp.py's flush is not true. Re-triage at current main: the flush half is a non-finding (landed); only the unverified second-TERM-during-unwind probe on merge_train.py (the ruling's "first" step) may still be open, and #3280 also touched merge_train.py, so it needs re-measuring there before any ACCEPT.
+## Findings
+none.
 
 ## Evidence
-
-- merge-tree origin/main vs head: rc=0, no conflict.
-- merge_train.py classify: GREEN, pending none, red none. owed-reds takes no --pr/--head flags in this checkout, so I did not obtain its list; no required red exists.
-- Diff: two new docs files (triage/s6-batch131.md, delivery/3385.md); no production, VERSION or claim change. Mutation proof and null control (roster_edit ruling_verdict/triage_refusal) not re-run; moot given the block.
-- ev/ancestry.txt holds the ancestry and grep outputs above; ev/HEAD.txt holds c1c105ebe9d91860249679a85e4f4f68605b1100.
-- Not re-derived: the ruling's line numbers, ledger SLIP and 23 min figures (host-local logs).
-- Round: first review.
+- Prior finding (stale-premise: P402 ACCEPT creates R10-FLY-STAMP-FLUSH-HOLD, already merged as #3280): resolved. The entry is now REJECT, already landed; roster_edit.ruling_verdict(..., 'P402') prints REJECT at this head.
+- Re-derived at origin/main: aaaec2128 is an ancestor of main (prints anc); stamp.py has record_flush held=train_hold and the "if not hold and count < FLUSH_MAX_DISPATCHES" line, train_hold and hold_bound_s exist; git grep -c train-hold stamp.py = 4 (first ruling: 0); merge_train.py has stop_ignored with # mut:stopign and # mut:deferdeliver markers, used in Train.unwind at line 2911; commit 6cc9aa30b has the quoted subject; origin/handoff/audit-r10-roster carries the group citing s6-batch131 and delivery/3280.md reads merged aaaec21. I did not re-run the self-test arms stamp.py is said to hold; the note's claim of them is unverified by me, the code paths above are confirmed present.
+- The note discloses the cause as process state (d) and records the roster citation conflict as the orchestrator's to reconcile, without writing the roster.
+- Merge with origin/main: git merge-tree --write-tree origin/main b6a6c0271e3c017d179c32facd39a1fc5f386d1c exits 0, clean.
+- CI: merge_train.py classify at this head exits 0: GREEN (pending: none red: none). The packet's early "gate failure" digest line was from render time; the live state settled green. VERSION, manifest and notes untouched (diff is the triage note and a delivery row).
+- 4 figure_lint "unverified" commands are inline git/python calls the linter does not resolve; I ran each by hand above.
