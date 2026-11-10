@@ -44,6 +44,7 @@ import tempfile
 import textwrap
 import time
 import tracemalloc
+import warnings
 from datetime import datetime, timedelta
 
 from harness import Results
@@ -2197,14 +2198,14 @@ def rss_attrib_fail_threshold(recorded_attrib: float) -> float:
 
 
 #: How many slots short of its rebuild `intern_fill_readings` leaves the
-#: interned-string table before a probe's traced window. A probed solve
-#: consumes 5-7 slots traced (1-4 untraced) on the cloud seat's image, so
-#: three is crossed by the solve, with two slots of slack for the count and
-#: the fill processes disagreeing.
-INTERN_FILL_SHORT = 3
+#: interned-string table before a probe's traced window. The cheapest probed
+#: solve consumes three, traced, on the cloud seat's image (filled 1-3 short
+#: it crossed in 9 of 9 forked runs, 4 or 6 short in none of 4), so one is
+#: the edge any solve that interns at all crosses.
+INTERN_FILL_SHORT = 1
 #: How far a fill-perturbed probe may read from the clean probe of the same
 #: scenario, in MiB: under a third of the smallest table step measured (1.83
-#: MiB, CI) and over ten times the same-box spread (2.05-2.07, three probes).
+#: MiB, CI) and over ten times the same-box spread (2.05-2.07, five probes).
 INTERN_FILL_TOLERANCE_MIB = 0.5
 
 
@@ -2212,28 +2213,27 @@ def intern_fill_readings(spec: dict, env: dict) -> dict:
     """One scenario's traced peak with the interned table left nearly full.
 
     The traced arm's second precondition: the reading belongs to the tree,
-    not to where the runner's import-time fill left the interpreter's
-    interned-string table. A solve interns a handful of fresh strings; on a
-    runner whose fill sits that close to the table's rebuild, the probe is
-    charged the whole new table (1.83 MiB on CI), so one tree read 2.1 MiB
-    on one runner and 3.9 on the next (R10-HOTFIX-STRESS-MEM-PEAK-2). This
-    puts every runner on that edge: count the interns to the rebuild in one
-    probe process, then fill a second to INTERN_FILL_SHORT short of it.
-    ``bare`` is the same fill with the probe's headroom step skipped -- the
-    null control that shows the fill lands.
+    not to where the probe process's import fill left the interpreter's
+    interned-string table. A solve interns a handful of fresh strings; a
+    probe whose fill sits that close to the table's rebuild is charged the
+    whole new table (1.83 MiB on CI), and the fill moves a few slots from
+    one process to the next, so one tree read 2.1 MiB in one run and 3.9 in
+    the next (R10-HOTFIX-STRESS-MEM-PEAK-2). This puts the probe on that
+    edge: INTERN_FILL_SHORT slots short of the rebuild, counted in the
+    probe's own forked child. ``bare`` is the same fill with the probe's
+    headroom step skipped -- the null control that shows the fill lands.
     """
-    args = ["--memory-probe", json.dumps(spec)]
-    count = int(
-        _run_memory_probe(args + ["--intern-count"], env)["interns_to_rebuild"]
-    )
-    fill = ["--intern-prefill", str(count - INTERN_FILL_SHORT)]
-    filled = float(_run_memory_probe(args + fill, env)["traced_mb"])
-    bare = float(
-        _run_memory_probe(args + fill + ["--no-intern-headroom"], env)[
-            "traced_mb"
-        ]
-    )
-    return {"interns_to_rebuild": count, "filled_mb": filled, "bare_mb": bare}
+    args = [
+        "--memory-probe", json.dumps(spec),
+        "--intern-fill-short", str(INTERN_FILL_SHORT),
+    ]
+    filled = _run_memory_probe(args, env)
+    bare = _run_memory_probe(args + ["--no-intern-headroom"], env)
+    return {
+        "interns_to_rebuild": int(filled["interns_to_rebuild"]),
+        "filled_mb": float(filled["traced_mb"]),
+        "bare_mb": float(bare["traced_mb"]),
+    }
 
 
 def traced_fail_threshold(recorded_traced: float) -> float:
@@ -3201,15 +3201,11 @@ def _memory_probe_main(argv: list[str]) -> int:
     the watermark it rides on.
     """
     spec = json.loads(argv[argv.index("--memory-probe") + 1])
-    if "--intern-count" in argv:
-        count, _rebuilt, _kept = _intern_until_rebuild("fill")
-        print(json.dumps({"interns_to_rebuild": count}))
-        return 0
-    prefill: list[str] = []
-    if "--intern-prefill" in argv:
-        _n, _rebuilt, prefill = _intern_until_rebuild(
-            "fill", limit=int(argv[argv.index("--intern-prefill") + 1])
-        )
+    interns_to_rebuild = None
+    if "--intern-fill-short" in argv:
+        short = int(argv[argv.index("--intern-fill-short") + 1])
+        interns_to_rebuild = _count_interns_to_rebuild()
+        _intern_until_rebuild("fill", limit=interns_to_rebuild - short)
     if "--no-intern-headroom" not in argv:
         give_interned_table_headroom()
     modules_before = set(sys.modules)
@@ -3217,13 +3213,13 @@ def _memory_probe_main(argv: list[str]) -> int:
     build_case(**spec)
     _cur, traced_peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    del prefill  # held across the traced window: the fill is the perturbation
     print(
         json.dumps(
             {
                 "rss_mb": round(rss_mb(), 1),
                 "traced_mb": round(traced_peak / (1024.0 * 1024.0), 2),
                 "imported": solve_window_imports(modules_before, sys.modules),
+                "interns_to_rebuild": interns_to_rebuild,
             }
         )
     )
@@ -3240,51 +3236,82 @@ INTERN_REBUILD_STEP_BYTES = 512 * 1024
 INTERN_REBUILD_SEARCH_LIMIT = 2_000_000
 
 
-def _intern_until_rebuild(
-    tag: str, limit: int | None = None
-) -> tuple[int, bool, list[str]]:
-    """Intern fresh strings until the interned-string table rebuilds.
+def _intern_until_rebuild(tag: str, limit: int | None = None) -> tuple[int, bool]:
+    """Intern fresh strings, one at a time, until the interned table rebuilds.
 
-    Returns how many were interned, whether the rebuild was seen, and the
-    strings themselves (alive while the caller holds them). ``limit`` stops
-    short of the search bound: ``--intern-prefill`` uses it to leave the
-    table a chosen number of slots short of its rebuild. Detected under
-    tracemalloc, the one instrument that sees the table's allocation.
+    Returns how many were interned and whether the rebuild was seen. Each
+    string is dropped as soon as it is interned: the table deletes a mortal
+    interned string's key on its free and leaves a dummy, so the slot stays
+    spent while the memory is reused for the next string. Keeping them
+    instead held ~11 MiB of strings and trace records under the probe's RSS
+    watermark, which hid every solve's growth below it (attributable
+    8.6-8.9 -> 0.7-0.9 MiB on three probed scenarios). ``limit`` stops
+    short of the search bound: ``--intern-fill-short`` leaves the table that
+    many slots short of its rebuild. Seen under tracemalloc, the one
+    instrument that sees the table's allocation.
     """
     bound = INTERN_REBUILD_SEARCH_LIMIT if limit is None else limit
-    kept: list[str] = []
     tracemalloc.start()
     try:
         prev = tracemalloc.get_traced_memory()[0]
-        while len(kept) < bound:
-            kept.append(sys.intern(f"__stress_intern_{tag}_{len(kept)}"))
+        for count in range(1, bound + 1):
+            sys.intern(f"__stress_intern_{tag}_{count}")
             cur = tracemalloc.get_traced_memory()[0]
             if cur - prev > INTERN_REBUILD_STEP_BYTES:
-                return len(kept), True, kept
+                return count, True
             prev = cur
-        return len(kept), False, kept
+        return bound, False
     finally:
         tracemalloc.stop()
+
+
+def _count_interns_to_rebuild() -> int:
+    """How many fresh interns this process's table takes to its rebuild.
+
+    Counted in a forked child, which shares this process's exact table and
+    leaves it untouched: a second process lands its own import fill a few
+    slots either side (43669-43674 over ten processes of one tree, the
+    hash seed fixed or not), more than a solve consumes, so a count taken
+    there cannot place this one's fill.
+    """
+    if not hasattr(os, "fork"):
+        raise RuntimeError("--intern-fill-short needs os.fork")
+    read_fd, write_fd = os.pipe()
+    with warnings.catch_warnings():
+        # 3.12+ warns on forking a process with threads (BLAS pools here);
+        # the child only interns strings and leaves through os._exit.
+        warnings.simplefilter("ignore", DeprecationWarning)
+        pid = os.fork()
+    if pid == 0:
+        os.close(read_fd)
+        count, rebuilt = _intern_until_rebuild("fill")
+        os.write(write_fd, str(count if rebuilt else -1).encode())
+        os._exit(0)
+    os.close(write_fd)
+    with os.fdopen(read_fd) as reader:
+        count = int(reader.read() or "-1")
+    os.waitpid(pid, 0)
+    if count < 0:
+        raise RuntimeError("the forked count never saw the table rebuild")
+    return count
 
 
 def give_interned_table_headroom() -> int:
     """Rebuild the interned-string table now, before a probe's traced window.
 
     The table is interpreter-global and is rebuilt in one step when its free
-    slots run out; a solve interns a handful of fresh strings (5-7 slots,
+    slots run out; a solve interns a handful of fresh strings (three slots,
     traced, on the cloud seat's image), so whichever traced window crosses
     the rebuild is charged the whole new table. Where the import-time fill
-    leaves the table depends on the runner -- one extra PYTHONPATH entry
-    moved it by two slots, CI's environment by one -- which is how one tree
-    read 2.1 MiB on one runner and 3.9 on the next
+    leaves the table moves a few slots from one process to the next, so
+    one tree read 2.1 MiB in one run and 3.9 in the next
     (R10-HOTFIX-STRESS-MEM-PEAK-2). Interning fresh strings until the
-    rebuild is seen, then dropping them, leaves the table freshly sized:
-    their slots stay spent (a deleted key leaves a dummy), and the rest --
-    tens of thousands -- is headroom no probed solve comes near. Returns
-    the interns it took; refuses a search that never saw the rebuild.
+    rebuild is seen leaves the table freshly rebuilt, and the slots it then
+    has free -- tens of thousands -- are headroom no probed solve comes
+    near. Returns the interns it took; refuses a search that never saw the
+    rebuild.
     """
-    count, rebuilt, kept = _intern_until_rebuild("room")
-    del kept
+    count, rebuilt = _intern_until_rebuild("room")
     if not rebuilt:
         raise RuntimeError(
             f"no interned-table rebuild in {count} fresh interns: the "
