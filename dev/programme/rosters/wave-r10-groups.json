@@ -21930,6 +21930,43 @@
     "commit": null
    },
    "brief": "Owner-approved barrier (tvofi 2026-11-10). Rule: a carry goes to the live group owning the seam; if none exists, the producing group owns the fix. Defect: the roster holds 10 groups at stage carries-open with 116 unabsorbed carries, because carry_audit.py refuses only a destination that is gone or done, so seats park carries on groups whose PR already merged (carries-open), and sink groups were created only to receive carries. FIX in carry_audit.py: refuse a Carry destination whose roster stage is carries-open, absorbed, refused, refuted or done, and a destination with no PR and no live brief work created only as a receiver; the refusal names the rule and tells the seat to route to a live owning group or keep the fix. Failing test first, mutation proof, null control (a carry to an in-progress group still passes). This changes what seats must do: it is policy, merged under the mandate and surfaced to tvofi."
+  },
+  {
+   "lane": "IN",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "critical",
+   "size": "S",
+   "wave": 1,
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "group": "R10-RCA-ROSTER-DRAIN-REPLAY",
+   "kind": "rca",
+   "class": "rca",
+   "files": [],
+   "hot_files": [],
+   "resume": {
+    "stage": "in-progress",
+    "note": "orchestrator 2026-11-10T08:35Z: root-cause seat beside R10-HOTFIX-ROSTER-DRAIN-REPLAY",
+    "pr": null,
+    "commit": null
+   },
+   "brief": "Root-cause seat (root-cause.md) beside R10-HOTFIX-ROSTER-DRAIN-REPLAY: the beat's roster-drain replayed already-applied queue ops after a timeout-killed pass, and index-based drop-carry ops removed 18 carries on handoff/audit-r10-roster (2026-11-10). Owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal. Note why drop-carry by index exists at all when replay is possible. No production code."
   }
  ]
 }
