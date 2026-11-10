@@ -31,8 +31,8 @@ baseline ``b`` plus the displace as a difference, on the entity's step,
 within ``b`` +-``heat_curve_persistent_band_k`` and the entity's range (I1).
 ``b`` is the reading :mod:`off_restore` captured with the entity before the
 first write; a reading that is neither the last write nor the one before it,
-after the grace, is the user's edit, and ``b`` moves with it
-(:func:`off_restore.async_rebaseline`). Writes are held for
+after the grace, is the user's edit, and ``b`` moves with it, bounded to the
+entity's range (:func:`off_restore.async_rebaseline`). Writes are held for
 ``heat_curve_persistent_min_dwell_minutes`` after the last one and capped at
 ``heat_curve_persistent_writes_per_day`` a local day, restores included, one
 always kept back for the restore (I2); the record of both lives in
@@ -422,12 +422,17 @@ def persistent_target(
     """
     delta = max(-band_k, min(band_k, displace_k)) * per_k
     banded = baseline + math.copysign(math.floor(abs(delta) / step + 1e-9) * step, delta)
-    target = banded
-    if reading.lo is not None:
-        target = max(reading.lo, target)
-    if reading.hi is not None:
-        target = min(reading.hi, target)
+    target = _within_range(banded, reading)
     return target, target != banded
+
+
+def _within_range(value: float, reading: NumberReading) -> float:
+    """``value`` bounded to the entity's declared range, each side that it declares."""
+    if reading.lo is not None:
+        value = max(reading.lo, value)
+    if reading.hi is not None:
+        value = min(reading.hi, value)
+    return value
 
 
 def outside_own_range(reading: NumberReading) -> bool:
@@ -480,7 +485,9 @@ async def write_persistent(hass: Any, entry: Any, config: Any, displace_int: int
     # every write inside the 90 s grace.
     seen = "ours" if armed is None else classify(state, reading.value, step / 2.0, now)
     if seen == "edit":
-        baseline = reading.value - (state["written"] - baseline)
+        # The edit's own difference, bounded to what the entity holds: off
+        # restores this baseline, and a value outside the range is refused.
+        baseline = _within_range(reading.value - (state["written"] - baseline), reading)
         await off_restore.async_rebaseline(hass, entry, CONSUMER, entity_id, baseline)
         _LOGGER.info("Heat-curve entity %s was set to %s by hand: its baseline is now %s",
                      entity_id, reading.value, baseline)

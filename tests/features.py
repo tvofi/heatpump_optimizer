@@ -42206,13 +42206,18 @@ R.check(
     _gpq_before_off == [24] and _ghc_writes(_gpq) == [24, 22] and _ghcp_state(_gpq)["count"] == 2,
     "writes=%r state=%r" % (_ghc_writes(_gpq), _ghcp_state(_gpq)),
 )
-_gpz = _ghcp_coord(entry_id="ghcp_budget_zero", heat_curve_persistent_writes_per_day=0)
-_ghc_pub(_gpz, 2.0)
-_ghcp_off(_gpz)
+_gpz = {}
+for _budget in (0, 1):
+    _c = _ghcp_coord(entry_id=f"ghcp_budget_{_budget}", heat_curve_persistent_writes_per_day=_budget)
+    _ghc_pub(_c, 2.0)
+    _ghcp_off(_c)
+    _gpz[_budget] = (_ghc_writes(_c), (_ghcp_record(_c) or {}).get("armed", {}))
 R.check(
-    "budget 0 writes nothing, so nothing is armed and nothing restored",
-    _ghc_writes(_gpz) == [] and (_ghcp_record(_gpz) or {}).get("armed", {}) == {},
-    "writes=%r record=%r" % (_ghc_writes(_gpz), _ghcp_record(_gpz)),
+    "budget 0, and budget 1 whose one write is the one kept back, write nothing, so nothing is "
+    "armed and nothing restored, as the docs say (fix review 1 of #3402). Null control: budget 2 "
+    "writes 24 above",
+    _gpz == {0: ([], {}), 1: ([], {})},
+    repr(_gpz),
 )
 _gpn = _ghcp_coord(entry_id="ghcp_midnight", heat_curve_persistent_writes_per_day=2)
 _ghcp_state(_gpn).update(entity_id=_GHCP_ENT, day="2000-01-01", count=2)
@@ -42333,6 +42338,58 @@ R.check(
     _asyncio.run(_ghc_restore.async_armed_entry(_gpe_in_grace.hass, _gpe_in_grace.entry, "heat_curve"))
     == {"entity_id": _GHCP_ENT, "value": 22.0} and _ghc_writes(_gpe_in_grace) == [24],
     repr(_ghc_writes(_gpe_in_grace)),
+)
+# P6 at the range's edge (fix review 1 of #3402, the blocked verdict's probe):
+# an edit whose difference would put the baseline outside the entity's own
+# range adopts the range's edge, so off restores a value the entity holds.
+_GHCP_EDGE = {"step": 0.5, "min": 20.0, "max": 35.0}
+
+
+def _ghcp_edge_edit(name, start, displace, edit, then=None):
+    """Displace ``start`` by ``displace``, edit it to ``edit`` by hand, publish
+    ``displace`` again after the dwell, then ``then`` (when given) once more
+    after the dwell; (armed after the edit, writes, warned at ``then``), then off."""
+    coord = _ghcp_coord(value=start, entry_id=name, attrs=_GHCP_EDGE)
+    _ghc_pub(coord, displace)
+    _ghcp_reads(coord, edit, attrs=_GHCP_EDGE)
+    _ghcp_age(coord, _GHCP_DWELL_S)
+    _ghc_pub(coord, displace)
+    armed = _asyncio.run(_ghc_restore.async_armed_entry(coord.hass, coord.entry, "heat_curve"))
+    warned = None
+    if then is not None:
+        _ghcp_reads(coord, str(_ghcp_state(coord)["written"]), attrs=_GHCP_EDGE)
+        _ghcp_age(coord, _GHCP_DWELL_S)
+        warned = bool(_ghc_logged(lambda: _ghc_pub(coord, then)))
+    _ghcp_off(coord)
+    return (armed or {}).get("value"), _ghc_writes(coord), warned
+
+
+_gpf = {
+    "floor": _ghcp_edge_edit("ghcp_floor", "22", 3.0, "21"),
+    "floor null": _ghcp_edge_edit("ghcp_floor_null", "22", 3.0, "24"),
+    "ceiling": _ghcp_edge_edit("ghcp_ceiling", "32", -3.0, "34"),
+    "ceiling null": _ghcp_edge_edit("ghcp_ceiling_null", "32", -3.0, "31"),
+    "neutral": _ghcp_edge_edit("ghcp_floor_neutral", "22", 3.0, "21", then=0.0),
+    "neutral null": _ghcp_edge_edit("ghcp_floor_neutral_null", "22", 3.0, "24", then=0.0),
+}
+R.check(
+    "range 20..35, 22 displaced +3 to 25, set to 21 by hand: the baseline is the floor 20, not 18, "
+    "and off restores 20; the plan's +3 then writes 23, the floor's own +3 (P6 bounded by I1). "
+    "Null control: an edit to 24 adopts 21, holds 24 unwritten and off restores 21",
+    _gpf["floor"] == (20.0, [25, 23, 20], None) and _gpf["floor null"] == (21.0, [25, 21], None),
+    repr(_gpf),
+)
+R.check(
+    "range 20..35, 32 displaced -3 to 29, set to 34 by hand: the baseline is the ceiling 35, not 37, "
+    "and off restores 35. Null control: an edit to 31 adopts 34 and off restores 34",
+    _gpf["ceiling"] == (35.0, [29, 32, 35], None) and _gpf["ceiling null"] == (34.0, [29, 34], None),
+    repr(_gpf),
+)
+R.check(
+    "after the floor edit the neutral writes the baseline off restores, 20, unsaturated: "
+    "displace 0 and off agree. Null control: after an edit to 24 the neutral writes 21 and off restores 21",
+    _gpf["neutral"] == (20.0, [25, 23, 20, 20], False) and _gpf["neutral null"] == (21.0, [25, 21, 21], False),
+    repr(_gpf),
 )
 _gpx = {}
 for _name, _kw in (
