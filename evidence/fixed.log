@@ -1,0 +1,4 @@
+OK       0.1s launch
+OK     290.5s beatd
+OK       0.0s unread
+selftest_scope: recorded 1 step(s) into /root/f4/fixed.json; 0 failed [], 0 broken trace(s)
