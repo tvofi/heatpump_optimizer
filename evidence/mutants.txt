@@ -1,0 +1,44 @@
+== a missing bg trace skipped: self-test rc 1
+     FAIL check: missing trace bg-slow.trace is refused, naming it (None)
+   selftest_scope self-test: 103 checks, 1 failed
+== an empty trace read whole: self-test rc 1
+     FAIL record: an empty trace fails the record, naming it
+     FAIL check: empty trace bg-slow.trace is refused, naming it ('')
+     FAIL check: empty trace bg-slow.trace is refused, naming it ('--- SIGCHLD {si_sig)
+     FAIL check: empty trace step-a.trace is refused, naming it ('')
+   selftest_scope self-test: 103 checks, 4 failed
+== a partial trace read whole: self-test rc 1
+     FAIL check: partial trace bg-slow.trace is refused, naming it ('5 execve("/bin/true)
+     FAIL check: partial trace bg-slow.trace is refused, naming it ('5 execve("/bin/true)
+   selftest_scope self-test: 103 checks, 2 failed
+== a signal death read as partial: self-test rc 1
+     FAIL fold: a first process killed by a signal ended its trace (null control: whole)
+   selftest_scope self-test: 103 checks, 1 failed
+== check drops the trace refusals: self-test rc 1
+     FAIL check: missing trace bg-slow.trace is refused, naming it (None)
+     FAIL check: empty trace bg-slow.trace is refused, naming it ('')
+     FAIL check: empty trace bg-slow.trace is refused, naming it ('--- SIGCHLD {si_sig)
+     FAIL check: partial trace bg-slow.trace is refused, naming it ('5 execve("/bin/true)
+     FAIL check: partial trace bg-slow.trace is refused, naming it ('5 execve("/bin/true)
+     FAIL check: empty trace step-a.trace is refused, naming it ('')
+   selftest_scope self-test: 103 checks, 6 failed
+== record passes over a broken trace: self-test rc 1
+     FAIL record: an empty trace fails the record, naming it
+   selftest_scope self-test: 103 checks, 1 failed
+== only launch untraced (the incident's wrapper): self-test rc 1
+     FAIL wrapper: the ungated steps ['scope', 'strace', 'launch', 'drift', 'unread'] run untraced
+   selftest_scope self-test: 103 checks, 1 failed
+== no strace exec'd anyway: self-test rc 1
+     FAIL wrapper: no strace on PATH runs the step and the --as command untraced, saying so
+   selftest_scope self-test: 103 checks, 1 failed
+== exit lines suppressed (-qq): self-test rc 1
+     FAIL record: a traced run of the job writes one entry per gated step (rc=1)
+     FAIL record --step --out: the step is re-measured into that file, the other entries kept
+     FAIL wrapper: a gated step runs under strace -q into step-ID.trace (null control)
+     FAIL wrapper: --as NAME runs under strace -q into bg-NAME.trace
+   selftest_scope self-test: 103 checks, 4 failed
+== drift traced again: self-test rc 1
+     FAIL wrapper: the ungated steps ['scope', 'strace', 'launch', 'drift', 'unread'] run untraced
+     FAIL wrapper: its UNTRACED list is UNGATED
+   selftest_scope self-test: 103 checks, 2 failed
+SELFTEST-SCOPE MUTANTS: every mutant refused
