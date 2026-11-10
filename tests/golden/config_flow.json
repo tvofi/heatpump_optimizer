@@ -1064,6 +1064,7 @@
   "fuse_guard_enabled": true,
   "grid_fee_entity": "sensor.seed_grid_fee_entity",
   "heat_curve_displace_entity": "sensor.seed_heat_curve_displace_entity",
+  "heat_meter_sees_dhw": true,
   "heat_pump_backup_heater_entity": "sensor.seed_heat_pump_backup_heater_entity",
   "heat_pump_capacity_limited_entity": "sensor.seed_heat_pump_capacity_limited_entity",
   "heat_pump_defrost_entity": "sensor.seed_heat_pump_defrost_entity",
@@ -2139,6 +2140,12 @@
     },
     "default": null,
     "fields": {
+     "heat_meter_sees_dhw": {
+      "config": null,
+      "default": "True",
+      "required": "Optional",
+      "selector": "BooleanSelector"
+     },
      "heat_pump_energy_entity": {
       "config": {
        "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
@@ -2163,6 +2170,16 @@
       "required": "Optional",
       "selector": "EntitySelector"
      },
+     "heat_pump_power_source": {
+      "config": {
+       "mode": "'dropdown'",
+       "options": "['auto', 'meter', 'estimate']",
+       "translation_key": "'meter_source'"
+      },
+      "default": "'auto'",
+      "required": "Optional",
+      "selector": "SelectSelector"
+     },
      "heat_pump_thermal_power_entity": {
       "config": {
        "filter": "[{'domain': ['sensor'], 'device_class': ['power']}]"
@@ -2170,6 +2187,16 @@
       "default": "'sensor.seed_heat_pump_thermal_power_entity'",
       "required": "Optional",
       "selector": "EntitySelector"
+     },
+     "heat_pump_thermal_power_source": {
+      "config": {
+       "mode": "'dropdown'",
+       "options": "['auto', 'meter', 'estimate']",
+       "translation_key": "'meter_source'"
+      },
+      "default": "'auto'",
+      "required": "Optional",
+      "selector": "SelectSelector"
      },
      "house_power_entity": {
       "config": {
@@ -4770,6 +4797,12 @@
    },
    "default": null,
    "fields": {
+    "heat_meter_sees_dhw": {
+     "config": null,
+     "default": "False",
+     "required": "Optional",
+     "selector": "BooleanSelector"
+    },
     "heat_pump_energy_entity": {
      "config": {
       "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
@@ -4794,6 +4827,16 @@
      "required": "Optional",
      "selector": "EntitySelector"
     },
+    "heat_pump_power_source": {
+     "config": {
+      "mode": "'dropdown'",
+      "options": "['auto', 'meter', 'estimate']",
+      "translation_key": "'meter_source'"
+     },
+     "default": "'auto'",
+     "required": "Optional",
+     "selector": "SelectSelector"
+    },
     "heat_pump_thermal_power_entity": {
      "config": {
       "filter": "[{'domain': ['sensor'], 'device_class': ['power']}]"
@@ -4801,6 +4844,16 @@
      "default": null,
      "required": "Optional",
      "selector": "EntitySelector"
+    },
+    "heat_pump_thermal_power_source": {
+     "config": {
+      "mode": "'dropdown'",
+      "options": "['auto', 'meter', 'estimate']",
+      "translation_key": "'meter_source'"
+     },
+     "default": "'auto'",
+     "required": "Optional",
+     "selector": "SelectSelector"
     },
     "house_power_entity": {
      "config": {

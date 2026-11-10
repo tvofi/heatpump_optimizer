@@ -1050,7 +1050,8 @@ jobs:
           grep -Eq '^record_row self-test: all checks passed$' "$RUNNER_TEMP/record-row-self-test.txt"
 
       - name: Show the workflow read runner refusing its own fixtures
-        if: ${{ !cancelled() }}
+        id: gh-read-run
+        if: ${{ !cancelled() && steps.scope.outputs.gh-read-run == 'true' }}
         run: |
           set -o pipefail
           python3 -I tools/audit/seat/gh_read_run.py --self-test | tee "$RUNNER_TEMP/gh-read-run-self-test.txt"
