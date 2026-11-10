@@ -15114,7 +15114,7 @@
     "From triage batch 139 (triage: dev/programme/triage/s6-batch139.md#P475), queue line REVIEWER-BLOCKS-ON-WAIT, classified medium, the class countermeasure at its third instance: build this group's carry 12 (a reviewer whose review is complete pushes its drafted verdict with a pending-ci marker; the relay posts it once classify reads GREEN at that head and reports, not posts, when the head moves) next. The 2026-11-08 orchestrator ruling that #3366 cites against carry 7 ('WAIT dispatches, only RED holds') fires reviewers at WAIT heads, and without carry 12 their only exits are an unbounded wait or a blocked verdict. Failing cases (verdict refs): #3345 4a6e3e6a 'blocked 1c29e5ab ci-pending: classify still WAIT (rc 3) after ~50 min'; #3362 ce35fbd4 'blocked e1c061cf ci-unsettled ... no defect found in the diff'; #3329 419fef3a 'blocked 1310d182 ci-incomplete ... code run cancelled' (a cancelled code run is reported for a re-run, not blocked). Since 2026-11-08 00:00Z, 26 of 58 blocked verdicts were CI-class; re-measure at the merge base. Whether a CI-only block counts toward the three-round rule is fix-review.md text: policy, state it in the body for the owner to approve at the merge. Null control: a head whose classify reads RED on a required context still returns blocked. Mutant: dropping the pending-ci arm makes the #3345 fixture block again. [moved: R10-REVIEW-DISPATCH-RESIDUE]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "in-progress",
     "branch": "handoff/r10-dispatch-at-handoff",
     "commit": "387c74217c27f68f791228fa668274aaaa34c085",
     "last_step": null,
