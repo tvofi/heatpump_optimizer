@@ -1,0 +1,4 @@
+ALL 9 typing-ruler checks PASSED
+  ok   the pinned census passed under HPO_TYPING_PYTHON
+
+ALL 12 typing-ruler source checks PASSED
