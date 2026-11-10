@@ -1,0 +1,283 @@
+.claude/rules/gate-scoping.md:36:**`instrument-self-tests` is scoped too**: `tools/ci/selftest_scope.py` states its rule and re-record (#201 comment 6707834331).
+.github/CODEOWNERS:2:# repository owner (decision 0009 as amended 2026-09-16; #201 comments
+.github/workflows/codeql.yml:4:# (e), part of #201). Default setup is not a workflow, so a pull request whose
+.github/workflows/governance.yml:1819:      # not this file's judgement: #201 comment 5670207248 item 4 approves
+.github/workflows/governance.yml:2150:  # #201's region, regenerated on every push to main. The ledger itself needs
+.github/workflows/governance.yml:2153:  # `python3 tests/delivery_status.py --emit <path>`, and #201's body carries
+.github/workflows/governance.yml:2163:  # (#201 root cause of 2026-09-17). An issue-body edit fires no workflow in
+.github/workflows/governance.yml:2171:    # `issues: write` edits #201's region; `contents: read` restates the
+.github/workflows/governance.yml:2176:    # Ledger finding (b) (#201, W4D-G6): pushes to main arrive in bursts, and
+.github/workflows/governance.yml:2177:    # two runs' read-modify-write of #201's body must not interleave. Each run
+.github/workflows/governance.yml:2193:      - name: Regenerate the ledger and put it in #201's region
+.github/workflows/governance.yml:2207:              ["gh", "issue", "view", "201", "--json", "body", "--jq", ".body"],
+.github/workflows/governance.yml:2212:              print("#201's region is already current")
+.github/workflows/governance.yml:2216:                  ["gh", "issue", "edit", "201", "--body-file",
+.github/workflows/governance.yml:2218:              print("#201's region updated")
+.github/workflows/hassfest.yml:26:      # each to recover by hand (root-cause section on #201).
+.github/workflows/kernel-points.yml:4:# D2-s2-01's ruling, #201 comment 6240984157 step 2). The stop-rule gap moves
+.github/workflows/nightly.yml:985:          # The beat's coordination comment on the record issue (#201 until
+.github/workflows/release.yml:53:    # owner-approved attestation grant (#201 comment 5670207248, item 5:
+.github/workflows/tests.yml:69:#   docs-only FAST ARM inside the job rather than a skip (#201 item 8):
+.github/workflows/tests.yml:1979:    # THE DOCS-ONLY FAST LANE (#201 item 8, ledger finding (c)). This job no
+dev/governance/config/cfr_exclusions.json:15:      "citation": "tests/mutation_table.py, the refusal this name meets: \"MUTATION TABLE REFUSED -- {len(unpinned)} unpinned site(s) against a recorded {record}\" (line ~806), whose count is `unpinned_sites(budgets, sites)`, an inventory of the tree, while `scope_files` only chooses which mutants to DRIVE. On a push to `main` that scoping base IS `HEAD` (.github/workflows/tests.yml, job `mutation`), which is the whole mechanism. Both keyings are reported together by tools/audit/round4/D11/dora_keys.py (`cfr_keyings`, and per name by `cfr_by_name`), and .claude/workflows/carry-201.json carries the constraint to the next round."
+dev/governance/decisions/0007-after-this-session-owner-approval-per-pull-request.md:78:The owner approved this in session (#201 comments 5702359298, *"Approved"*, and
+dev/governance/decisions/0007-after-this-session-owner-approval-per-pull-request.md:93:it (#201 comment 5708908916). **A session grant becomes a code-owner exception
+dev/governance/decisions/0008-a-seat-identity-distinct-from-the-owner.md:11:> session (#201 comment 5670207248; decision `0009` carries the revision).
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:4:(#201 comment 5670207248, the D11 wave's decision on #954). **Every GitHub-side
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:19:> branches and rulesets (#201 comments 5701766255 and 5701850207). The approver
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:24:> `tvofi-seat-author` (#1065's force-push at 19:37:11Z, #201 comment
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:30:> `github-actions[bot]`, is not the demonstration: #201 comment 5703923412); step 5,
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:37:> - **Step 5 landed at 21:18Z** (#201 comment 5704665628), after #1077 merged
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:58:>   machine account authored; #1083 merged as `9b462d7` at 22:23:06Z (#201
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:70:> - **Step 6's first attempt was rolled back**, 2026-09-16 23:47–23:52Z (#201
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:114:The owner's words, #201 comment 5670207248: **the author identity is the fixer
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:215:The session grant of 2026-09-14 (#201 comment 5670246622) is recorded here
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:250:The owner approved this in session (#201 comments 5702359298, *"Approved"*,
+dev/governance/decisions/0011-app-authored-identity.md:3:Status: recorded 2026-09-19 from the repository owner's decision, #201
+dev/governance/decisions/0011-app-authored-identity.md:13:- its pull request **#1256** returned `201 Created` and then `404` within
+dev/governance/decisions/0011-app-authored-identity.md:30:The owner's words, #201 comment 5744682317 — **the three-identity model**:
+dev/governance/decisions/0012-process-diet-and-round-cadence.md:135:The owner revoked this whole record (ruling R16 and its addendum, #201
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:251:  pinned as for reviews) on the tracking issue #201 whose first line is
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:258:  same account on #201 that names the mandate's id beside any form of
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:282:- The workflow gains `issues: read` for the #201 read.
+dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md:286:  comment on #201.
+dev/governance/decisions/0014-design-seats-and-the-end-of-0012s-moratorium.md:4:date (owner ruling 2026-10-21, `dev/programme/flow-study/RULINGS-201-3.md` at
+dev/governance/decisions/0014-design-seats-and-the-end-of-0012s-moratorium.md:6:`claude/dazzling-gauss-7l3u2b`) and the owner's addendum to R16 (#201 comment
+dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md:10:with scope all (#201 comment 6329234399).
+dev/governance/decisions/0016-a-major-version-is-a-closed-audit-round.md:5:scope all (#201 comment 6329234399), and merges before round 10's closeout
+dev/governance/roles/nudge.md:13:You dispatch fixers, reviewers, and root-cause seats. You post verdicts, approve, merge, stamp, and update the roster, the state docs, and issue #3394 (#201's continuation). Do not hand the orchestrator role to a seat.
+dev/governance/rules/gate-scoping.md:36:**`instrument-self-tests` is scoped too**: `tools/ci/selftest_scope.py` states its rule and re-record (#201 comment 6707834331).
+tests/card.mjs:10650:// --- The history pan (owner request, part of #201) ---------------------------
+tests/card_drift.mjs:570:  // The history pan (owner request, part of #201). A hass whose callApi
+tests/closure.py:422:    # ledger finding (e), #201) made the same move for decision 0009 step 3b
+tests/closure.py:886:    # web-fix-wave.js route. carry-201 commands this one; the other cited
+tests/closures.json:1615:   "dev/programme/carries/carry-201.json",
+tests/config_flow_steps.py:1580:    # The owner's rename + lift (Part of #201): a Tuya device is the primary
+tests/delivery_status.py:77:a pull request re-opened one after each of its own merges (#201's root cause of
+tests/delivery_status.py:80:The same content goes into #201's body, inside the delimited region below, and
+tests/delivery_status.py:83:singular, is the first thing `gh issue view 201` prints, and editing it notifies
+tests/delivery_status.py:113:#: Where the ledger lands in #201's body. The region is delimited so the
+tests/delivery_status.py:414:    """The human form, for #201's delimited region. No figure about itself."""
+tests/delivery_status.py:657:                    help="print the #201 region instead of the ledger")
+tests/entities.py:28143:    (Path(_ds_tmp) / _ds.ROW_DIR / "201.md").write_text(
+tests/entities.py:28144:        "- [#201](https://github.com/o/r/pull/201) merged\n")
+tests/entities.py:28148:        _ds_merges((201, 0), (202, 0), (203, 0), (204, 0)), _ds.read_texts())
+tests/entities.py:28180:    _ds_commit("bbbbbbb", "record: leftover rows for #201", parents=1),
+tests/entities.py:28197:    f"`record:` direct push naming #201 and a release stamp naming #996; "
+tests/entities.py:28202:    "stamp are not merges and must not be collected; #201 and #996 in their "
+tests/entities.py:28576:    "the #201 region is replaced in place, and the issue's own text survives",
+tests/entities.py:28592:    "tracking text that is the reason anyone opens #201 at all",
+tests/entities.py:28615:# argument: the ledger's #201 splice is back in the publishing lane, whose
+tests/entities.py:29507:# #201 comment, and the report step that reddens a beat owed and not landed.
+tests/entities.py:29816:        and "issues/201/comments" not in job
+tests/entities.py:31166:    "`issues: write` edits #201's region and `contents: read` restates the "
+tests/entities.py:31169:# THE FIXED POINT (#201 root cause, 2026-09-17). Merging a ledger PR was a push
+tests/entities.py:31197:    and "#201's region is already current" in _DS_PUB_CODE,
+tests/entities.py:31208:# count pin does not move. The write itself is owner-approved (#201 comment
+tests/entities.py:31231:    "#201 comment 5670207248 item 4) and nothing else",
+tests/entities.py:33757:# the brief of a stage with no roster group, and carry-201 told seats to run
+tests/entities.py:34103:# carry-201 told a seat to run corpus_churn.py at its pre-move path, which
+tests/entities.py:34462:# `dev/programme/carries/carry-201.json`.
+tests/entities.py:34481:# Option B, owner-approved this wave (#201 comment 5670207248, item 5: "add
+tests/entities.py:34502:    "owner signed off (#201 comment 5670207248, item 5: job-scoped, "
+tests/features.py:41239:# The owner's ruling (tvofi, #201, 2026-11-07): build it, kind offset first,
+tests/features.py:72244:# The foundation of the plan's clamp to the meter (#201 decision 6067353918):
+tests/features.py:74713:# 201 release: the room listener is unsubscribed and release is idempotent.
+tests/golden/card_claimed_drift.txt:500:# The history pan (owner request, part of #201): the plan chart pans back
+tests/golden/claimed_drift.txt:418:# The pre-fill rename and menu lift (owner request, Part of #201): this
+tests/layout.json:356:   "old": ".claude/workflows/carry-201.json",
+tests/layout.json:357:   "new": "dev/programme/carries/carry-201.json",
+tests/optimality.py:290:# one lift law there (#201 comment 6240984157), every loosening, both
+tests/stress.py:562:    the production-call meter (#201 comment 6240984157, step 3).
+tests/stress.py:3661:    # The owner's coverage-floor override reaches BOTH coverage floors (#201
+tests/stress.py:3688:    # the orchestrator's ruling on #201 comment 6240984157 step 3): CI judged
+tools/audit/carry_audit.py:850:    #201, and its continuation past GitHub's 2,500-comment cap --
+tools/audit/carry_audit.py:1990:    # lists is reported, #201 never. Pure: the CLI only reads the roster, its
+tools/audit/carry_audit.py:2002:    lines = roster_report(rr, {"S-DONE": frozenset({"legacy owed"})}, {201, 2429, 2500, 2733, 2855, 2875, *log_issues()})
+tools/audit/carry_audit.py:2016:          and 201 in log_issues() and len(log_issues()) > 1)
+tools/audit/seat/cloud_relay.sh:1103:  rm -rf "$t/b"; throwaway_git_init "$t/b" -q; printf 'Part of #201\n\nCloses #77 and fixes #78.\n' > "$t/b/BODY.md"
+tools/audit/seat/cloud_relay.sh:1111:  chk "the body handed to update_pr is the handoff-body BODY.md" 0 grep -q "^Part of #201" "$t/body.seen"
+tools/audit/seat/gh_calls.py:457:        # The #201 comment guard (R10-RAISE-GATE-SHIM): a comment write on the tracking issue
+tools/audit/seat/gh_calls.py:464:        planted = ["api", "-X", "POST", "repos/o/r/issues/201/comments", "-f", f"body={kill_body}"]
+tools/audit/seat/gh_calls.py:466:        check("planted: a raw `gh api` post of a revocation to #201 is refused, the real gh never run",
+tools/audit/seat/gh_calls.py:471:        via_close = run([], via=f"{py} -I {gcs} issue close 201 --comment x")
+tools/audit/seat/gh_calls.py:472:        check("control: the known poster's own `issue close 201 --comment` reaches the real gh",
+tools/audit/seat/gh_calls.py:474:        spoof = run([], via=f"{py} -c 'pass' gh_comment.py; gh api repos/o/r/issues/201/comments -f body=x")
+tools/audit/seat/gh_calls.py:479:        post = "import subprocess, sys; sys.exit(subprocess.run(['gh', 'api', '-X', 'POST', 'repos/o/r/issues/201/comments', '-f', 'body=x']).returncode)"
+tools/audit/seat/gh_calls.py:481:        W = "api -X POST repos/o/r/issues/201/comments -f body=x"
+tools/audit/seat/gh_calls.py:487:                ("null control: -X dev -W ignore -I before the tree's script", f"{py} -X dev -W ignore -I {gcs} api -X POST repos/o/r/issues/201/comments -f body=x", 7),
+tools/audit/seat/gh_calls.py:488:                ("null control: the tree's script by a relative path", f"cd {w} && {py} gh_comment.py api -X POST repos/o/r/issues/201/comments -f body=x", 7),
+tools/audit/seat/gh_calls.py:489:                ("null control: -Wignore attached before the script", f"{py} -Wignore -B {gcs} api -X POST repos/o/r/issues/201/comments -f body=x", 7)):
+tools/audit/seat/gh_calls.py:491:        for label, args in (("a GET of #201's comments", ["api", "repos/o/r/issues/201/comments"]),
+tools/audit/seat/gh_calls.py:495:                            ("a post to dot segments that resolve to another issue", ["api", "repos/o/r/issues/201/../202/comments", "-f", "body=x"]),
+tools/audit/seat/gh_calls.py:498:                            ("a gh issue comment --body on another issue, number first", ["issue", "comment", "202", "--body", "201"]),
+tools/audit/seat/gh_calls.py:499:                            ("a gh issue comment --body-file on another issue", ["issue", "comment", "--body-file", "201", "202"]),
+tools/audit/seat/gh_calls.py:502:                            ("a gh issue view of #201", ["issue", "view", "201"]),
+tools/audit/seat/gh_calls.py:519:            ("gh issue comment 201", ["issue", "comment", "201", "-b", f"{kill.lower()} {fixture_id}"]),
+tools/audit/seat/gh_calls.py:520:            ("gh issue comment on a #201 URL", ["issue", "comment", "https://github.com/o/r/issues/201", "-b", "x"]),
+tools/audit/seat/gh_calls.py:521:            ("gh issue comment on a #201 URL with a trailing slash", ["issue", "comment", "https://github.com/o/r/issues/201/", "-b", "x"]),
+tools/audit/seat/gh_calls.py:522:            ("gh issue comment on a #201 URL with an anchor", ["issue", "comment", "https://github.com/o/r/issues/201#issuecomment-1", "-b", "x"]),
+tools/audit/seat/gh_calls.py:523:            ("gh issue comment --body x 201", ["issue", "comment", "--body", "x", "201"]),
+tools/audit/seat/gh_calls.py:524:            ("gh issue comment --body=x 201", ["issue", "comment", "--body=x", "201"]),
+tools/audit/seat/gh_calls.py:525:            ("gh issue comment -bx 201", ["issue", "comment", "-bx", "201"]),
+tools/audit/seat/gh_calls.py:526:            ("gh issue comment --body-file f 201", ["issue", "comment", "--body-file", "f", "201"]),
+tools/audit/seat/gh_calls.py:527:            ("gh issue comment -F f 201", ["issue", "comment", "-F", "f", "201"]),
+tools/audit/seat/gh_calls.py:528:            ("gh issue comment -R o/r -b x 201", ["issue", "comment", "-R", "o/r", "-b", "x", "201"]),
+tools/audit/seat/gh_calls.py:529:            ("gh issue comment --repo o/r --body x 201", ["issue", "comment", "--repo", "o/r", "--body", "x", "201"]),
+tools/audit/seat/gh_calls.py:531:            ("gh issue comment #201", ["issue", "comment", "#201", "-b", "x"]),
+tools/audit/seat/gh_calls.py:535:            ("gh api --method=POST", ["api", "--method=POST", "repos/o/r/issues/201/comments"]),
+tools/audit/seat/gh_calls.py:536:            ("gh api -XPOST", ["api", "-XPOST", "repos/o/r/issues/201/comments"]),
+tools/audit/seat/gh_calls.py:537:            ("gh api --input", ["api", "repos/o/r/issues/201/comments", "--input", "f.json"]),
+tools/audit/seat/gh_calls.py:538:            ("gh api an upper-cased issues segment", ["api", "repos/o/r/ISSUES/201/comments", "-f", "body=x"]),
+tools/audit/seat/gh_calls.py:539:            ("gh api an upper-cased comments segment", ["api", "repos/o/r/issues/201/COMMENTS", "-f", "body=x"]),
+tools/audit/seat/gh_calls.py:540:            ("gh api a trailing slash", ["api", "repos/o/r/issues/201/comments/", "-f", "body=x"]),
+tools/audit/seat/gh_calls.py:544:            ("gh api an unresolved percent-escape (fail closed)", ["api", "repos/o/r/issues/201/comments%252F", "-f", "body=x"]),
+tools/audit/seat/gh_calls.py:545:            ("gh api dot segments resolving to #201", ["api", "repos/o/r/issues/202/../201/comments", "-f", "body=x"]),
+tools/audit/seat/gh_calls.py:546:            ("gh api doubled slashes", ["api", "repos//o/r/issues//201/comments", "-f", "body=x"]),
+tools/audit/seat/gh_calls.py:547:            ("gh api a full URL", ["api", "https://api.github.com/repos/o/r/issues/201/comments", "-f", "body=x"]),
+tools/audit/seat/gh_calls.py:548:            ("gh api a query string", ["api", "repos/o/r/issues/201/comments?per_page=1", "-f", "body=x"]),
+tools/audit/seat/gh_calls.py:549:            ("gh api an anchor", ["api", "repos/o/r/issues/201/comments#x", "-f", "body=x"]),
+tools/audit/seat/gh_calls.py:551:            ("gh issue close 201 --comment", ["issue", "close", "201", "--comment", "x"]),
+tools/audit/seat/gh_calls.py:552:            ("gh issue close 201 -c", ["issue", "close", "201", "-c", "x"]),
+tools/audit/seat/gh_calls.py:553:            ("gh issue close 201 -cx", ["issue", "close", "201", "-cx"]),
+tools/audit/seat/gh_calls.py:554:            ("gh issue close 201 --comment=x", ["issue", "close", "201", "--comment=x"]),
+tools/audit/seat/gh_calls.py:555:            ("gh issue reopen 201 --comment", ["issue", "reopen", "201", "--comment", "x"]),
+tools/audit/seat/gh_calls.py:556:            ("gh issue close with no comment on #201", ["issue", "close", "201"]),
+tools/audit/seat/gh_calls.py:557:            ("gh issue edit 201", ["issue", "edit", "201", "--title", "x"]),
+tools/audit/seat/gh_calls.py:561:            ("an unknown flag before a #201 target", ["issue", "comment", "--zzz", "201", "-b", "x"]),
+tools/audit/seat/gh_calls.py:562:            ("a short-flag cluster on gh issue close", ["issue", "close", "-wc", "x", "201"]),
+tools/audit/seat/gh_calls.py:563:            ("two targets on gh issue close", ["issue", "close", "202", "201"]),
+tools/audit/seat/gh_calls.py:565:            ("a flag before the subcommand", ["-R", "o/r", "issue", "comment", "201"]),
+tools/audit/seat/gh_calls.py:566:            ("gh pr comment 201", ["pr", "comment", "201", "-b", "x"]),
+tools/audit/seat/gh_calls.py:567:            ("gh pr close 201 --comment", ["pr", "close", "201", "--comment", "x"]),
+tools/audit/seat/gh_calls.py:573:            ("an api call with an unknown flag", ["api", "--zzz", "repos/o/r/issues/201/comments", "-f", "body=x"]),
+tools/audit/seat/gh_calls.py:574:            ("an api call with a non-Accept header", ["api", "-H", "X-HTTP-Method-Override: POST", "repos/o/r/issues/201/comments"]),
+tools/audit/seat/gh_calls.py:578:        mut = good.replace("trackers='201 ", "trackers='0 ")
+tools/audit/seat/gh_calls.py:581:        # The record continues past #201's comment cap: the continuation is guarded alike.
+tools/audit/seat/gh_calls.py:585:              rec != "201" and run(on_rec).returncode == 1)
+tools/audit/seat/gh_calls.py:603:                     ["issue", "comment", "202", "--body", "201"], rc=1)
+tools/audit/seat/gh_calls.py:611:        guard_mutant("dot segments kept", "      ''|.) ;;\n      ..) [", "      ''|.) ;;\n      zz) [", ["api", "repos/o/r/issues/202/../201/comments", "-f", "body=x"])
+tools/audit/seat/gh_calls.py:613:                     ["api", "repos//o/r/issues//201/comments", "-f", "body=x"])
+tools/audit/seat/gh_calls.py:621:                     ["api", "repos/o/r/ISSUES/201/comments", "-f", "body=x"])
+tools/audit/seat/gh_calls.py:623:                     ["api", "repos/o/r/issues/201/COMMENTS", "-f", "body=x"])
+tools/audit/seat/gh_calls.py:627:                     ["issue", "close", "202", "--comment", "201"], rc=1)
+tools/audit/seat/handover_prompt.py:248:    # neither (#201 comment 6310616463: `git fetch origin None`).
+tools/audit/seat/handover_prompt.py:273:          and f"#{RECORD_ISSUE}" in text and "#201 " not in text)
+tools/audit/seat/instruments/record_beat.py.md:4:  #201's comment cap) per merged pull request from a
+tools/audit/seat/instruments/shims_seat-gh.md:15:  issue (#201 or #3394: `budget_raise_gate.RECORD_ISSUES`, the shim's `trackers`, pinned by the self-test)
+tools/audit/seat/merge_pr.sh:6:# comment <comment-id> on a record issue (#201 or its continuation), read live at this run by budget_raise_gate.py's
+tools/audit/seat/merge_pr.sh:110:                  "issue_url": "https://api.github.com/repos/tvofi/heatpump_optimizer/issues/201",
+tools/audit/seat/merge_train.py:68:                 as it did before one existed (tvofi, 2026-10-09, #201 comment 6083743563:
+tools/audit/seat/merge_train.py:1050:                "issue_url": f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/201",
+tools/audit/seat/merge_train.py:2054:        cannot drift (step 5; tvofi's ruling of 2026-10-09, #201 comment
+tools/audit/seat/merge_train.py:4334:                # every record issue is read; the fixture's thread is #201's
+tools/audit/seat/merge_train.py:4335:                return 0, json.dumps([world.get("thread", []) if "/issues/201/" in a else []])
+tools/audit/seat/merge_train.py:4891:           (str(MID), f"mandate {MID} (tvofi, #201)", f"mandate {MID} and mandate {MID + 1}", "label", None)]
+tools/audit/seat/merge_train.py:4911:    rc, lines, calls = go(w, mandate="mandate 5951564627 (tvofi, #201)")
+tools/audit/seat/merge_train.py:4915:          all(s in b for s in ("mandate 5951564627 (tvofi, #201)", "the orchestrator", "`tests/run.sh`", "comment 42", H0, V)))
+tools/audit/seat/merge_train.py:4925:    CB = "mandate 5951564627 (tvofi, #201)"
+tools/audit/seat/merge_train.py:5341:                return 1, "OWED record: the #201 comment was refused\nset-stage owed R10-X " + "e" * 40
+tools/audit/seat/merge_train.py:7603:                return 0, json.dumps([w.get("thread", []) if "/issues/201/" in a else []])
+tools/audit/seat/orchestrator_tick.py:2737:           f"issue_url": f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/201"}
+tools/audit/seat/orchestrator_tick.py:2788:            gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
+tools/audit/seat/orchestrator_tick.py:3358:        gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
+tools/audit/seat/orchestrator_tick.py:3394:        gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
+tools/audit/seat/orchestrator_tick.py:3421:            gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
+tools/audit/seat/orchestrator_tick.py:3463:            gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
+tools/audit/seat/orchestrator_tick.py:3487:        gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
+tools/audit/seat/orchestrator_tick.py:3533:                gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
+tools/audit/seat/orchestrator_tick.py:3648:        # ---- unrecorded: a single-parent `<title> (#N)` merge owes a #201 comment ----
+tools/audit/seat/orchestrator_tick.py:3661:            ("a single-parent `(#N)` merge with no #201 comment is named; a "
+tools/audit/seat/orchestrator_tick.py:3674:                 bodies={77: "Closes #201\n\nproper sentence."},
+tools/audit/seat/orchestrator_tick.py:3675:                 graphql={77: [{"number": 201}, {"number": 202}]})
+tools/audit/seat/orchestrator_tick.py:3685:                 bodies={77: "Closes #201\n\nproper sentence."},
+tools/audit/seat/orchestrator_tick.py:3686:                 graphql={77: [{"number": 201}]})
+tools/audit/seat/orchestrator_tick.py:3738:            gh.on("issues/201/comments", out=json.dumps([[man_soon]])).on("/comments?per_page", out="[[]]")
+tools/audit/seat/orchestrator_tick.py:3749:        # ---- the record past #201's comment cap: every record issue is read ----
+tools/audit/seat/orchestrator_tick.py:3759:                gh.on("issues/201/comments", out=json.dumps([old]))
+tools/audit/seat/orchestrator_tick.py:3771:                ("a #201 grant revoked on the continuation issue is not in force",
+tools/audit/seat/orchestrator_tick.py:3773:                ("null control: the same #201 grant with no revocation is in force",
+tools/audit/seat/orchestrator_tick.py:3816:        t = tick(open_issues="201", grep_rows="x #201 y")
+tools/audit/seat/orchestrator_tick.py:4417:        gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
+tools/audit/seat/orchestrator_tick.py:4586:                             "open; closes #201.\n"},
+tools/audit/seat/orchestrator_tick.py:4587:                 graphql={81: [{"number": 201}]})
+tools/audit/seat/plan_page.py:84:# The programme's record issues (#201, and its continuation past GitHub's
+tools/audit/seat/plan_page.py:861:    check("no record issue, #201 or its continuation, is ever an orphan",
+tools/audit/seat/queue_pre_flight.py:363:                # every record issue is read; the fixture's thread is #201's
+tools/audit/seat/queue_pre_flight.py:364:                return 0, json.dumps([world.get("thread", []) if "/issues/201/" in a else []])
+tools/audit/seat/r10_mandate_guard_mutants.py:16:  G2  a patch is never judged as a #201 comment (the patch path unguarded).
+tools/audit/seat/record_beat.py:14:(#201 until its 2,500-comment cap; its continuation since). The orchestrator tick finds a merge's
+tools/audit/seat/record_beat.py:219:        check("the comment goes to the record issue, never #201 (closed to comments at its cap)",
+tools/audit/seat/record_beat.py:220:              RECORD_ISSUE != 201 and f"--issue {RECORD_ISSUE} " in lines[1], lines)
+tools/audit/seat/shims/seat-gh:125:# write a comment on a record issue (#201, or its continuation) is refused unless the caller is python running the
+tools/audit/seat/shims/seat-gh:150:# pins this line to it). #201 hit GitHub's 2,500-comment cap; the record continues in the last.
+tools/audit/seat/shims/seat-gh:151:trackers='201 3394'
+tools/audit/seat/shims/seat-gh:176:# matched in lower case: `ISSUES/201/COMMENTS` is a tracker's), into NSEG; 1 when it cannot be read
+tools/audit/seat/sweep_template.md:31:| `mandate` | the comment id of the owner's mandate in force on #201 or #3394 |
+tools/audit/seat/tmp_paths.py:109:    ("tools/pr/gh_comment.py", "/private/tmp/claude-501/heatpump-optimizer-orchestrator/out/sync-201.md",
+tools/audit/seat/verify_eight.py:14:driven (early_cutoff.py:201/215/259/266/275/293 GUARD_OFF|CMP_BOUND|RETURN_DEL
+tools/audit/seat/verify_eight.py:36:DEFAULT_TARGETS = [(201, "GUARD_OFF"), (215, "GUARD_OFF"), (259, "GUARD_OFF"),
+tools/ci/gate.py:321:        log.append(f"{'RERUN' if st in (201, 204) else 'FAIL rerun'} run {r['id']} gate job {g[0]['id']}: HTTP {st}")
+tools/ci/gate.py:322:        rc |= st not in (201, 204)
+tools/ci/gate.py:799:                   lambda path, body=None: (posts3282.append(path), (201, {}, {}))[1], lambda x: None,
+tools/ci/gate.py:906:    rc, log = refresh(ctx, fake(runs=done), lambda p, b=None: (posted.append(p), (201, {}, None))[1])
+tools/ci/selftest_closures.json:2425:    "dev/programme/carries/carry-201.json",
+tools/ci/selftest_closures.json:4110:    "dev/programme/carries/carry-201.json",
+tools/ci/selftest_scope.py:11:WHY (R10-CI-SELFTEST-SCOPE, owner lever 3, #201 comment 6707834331).
+tools/ci/sweep_selftest.py:48:        return (204 if path.endswith("/dispatches") else 201), {}, {}
+tools/plan/replan.py:126:CAPS_PROVENANCE = ("tvofi 2026-10-31 (#201 comment 6544047621): 16 open pull "
+tools/policy/brief_lint.mjs:868:// in W4D-G9's done brief for #954. The owner's ruling (#201, 5708947495) sends
+tools/policy/brief_lint.mjs:969:  'carry-1659.json', 'carry-1660.json', 'carry-201.json', 'carry-752.json',
+tools/policy/brief_lint.mjs:1410:  const legacy = carryControlFindings('the FUTURE-STATE section 2 figures', 'carry-201.json')
+tools/policy/budget_raise_gate.py:117:# pinned to it by a self-test). #201 was the record until GitHub's
+tools/policy/budget_raise_gate.py:119:# continuation issue. #201's comments stay the record and are still read: a
+tools/policy/budget_raise_gate.py:122:RECORD_ISSUES = (201, 3394)
+tools/policy/budget_raise_gate.py:138:# tvofi's ruling of 2026-10-09 on #201): only `all`. A `code-owned` scope
+tools/policy/budget_raise_gate.py:1094:          rcm([agent(cite=f"mandate https://github.com/{DEFAULT_REPO}/issues/201#issuecomment-{MID}")])[0], 0)
+tools/policy/budget_raise_gate.py:1122:    check("mandate: a mandate on #201, the record before the comment cap, still passes",
+tools/policy/budget_raise_gate.py:1123:          rcm([agent()], mandate(issue=201))[0], 0)
+tools/policy/budget_raise_gate.py:1125:          rcm([agent()], mandate(issue=201), thread=[revoke()])[0], 1)
+tools/policy/budget_raise_gate.py:1126:    check("mandate: the record issue is the last of RECORD_ISSUES, and #201 one of them",
+tools/policy/budget_raise_gate.py:1127:          (RECORD_ISSUE == RECORD_ISSUES[-1], 201 in RECORD_ISSUES, RECORD_ISSUE != 201), (True, True, True))
+tools/policy/budget_raise_gate.py:1129:    check("mandate: a mandate comment on #201 of another repository fails",
+tools/policy/budget_raise_gate.py:1130:          rcm([agent()], {**mandate(), "issue_url": "https://api.github.com/repos/evil/other/issues/201"})[0], 1)
+tools/policy/budget_raise_gate.py:1167:                 f"I revoke mandate https://github.com/{DEFAULT_REPO}/issues/201#issuecomment-{MID}"):
+tools/policy/budget_raise_gate.py:1482:                "issue_url": f"https://api.github.com/repos/{DEFAULT_REPO}/issues/201",
+tools/policy/fixtures/policy-loop/pr-payloads.json:8:    "body": "Closes #9101. Part of #201.\n\n## Friction\n\n- `CLAUDE.md#budgets`: `cost`: twenty minutes, because the cap was measured at the wrong merge base.\n- `tests/README.md#scoped-gate`: `unclear`: read as if MODE: SCOPED and MODE: FULL were comparable.\n\n## Evidence\n\nNothing in this section is friction.\n",
+tools/policy/fixtures/policy-rot/prepr/raise/recorded/84e2aaf66.md:3:Mandate 6175172275 (#201, scope `all`, until 2026-10-28T18:14Z), read from
+tools/policy/fixtures/policy-rot/prepr/raise/recorded/8f564875d.md:3:Mandate 6175172275 (#201, scope `all`, until 2026-10-28T18:14Z), read from
+tools/policy/fixtures/policy-rot/prepr/raise/recorded/f2b98c1df.md:3:Mandate 6175172275 (#201, scope `all`, until 2026-10-28T18:14Z), read from
+tools/policy/fixtures/wave-1b-931dffe.json:169:   "brief": "The batched jacobian re-evaluates f(x) that scipy has just computed: 2n scalar simulate_steps per gradient where n would do. The judge measured f0_x_identity = 1.000 -- 103 of 103 _batch_fd_gradient calls arrive at an x byte-identical to scipy's immediately preceding objective call -- so the second evaluation is pure waste, not a different point. Wrap the objective in a one-entry cache keyed on x.tobytes() plus the args, shared by scipy's fun and the jac's f0; the closure is around optimizer.py:366-373, inside module-level _multi_start_minimize. About 15 production lines. The panel already implemented and measured this: trajectories per gradient 201.32 -> 100.66, and 0 of 49 fixtures change with 8 fields bit-identical, so a moved fixture means the fix is wrong, not that the fixture drifted.\n\n_multi_start_minimize MUST STAY TOP-LEVEL in optimizer.py: tests/optimality.py mocks it by that path in three places.\n\nW1-G7 (#346, the stress ruler) has ALREADY MERGED before this wave started -- that is why it is not an after-edge here. It matters for one reason: halving the scalar step count makes the sweep about twice as cheap, and SCENARIO_STALE_FACTOR (3.0) fails a scenario that gets more than 3x CHEAPER as well as one that gets slower. If a stress re-record is needed it must happen under W1-G7's replacement statistic, or the budget is refitted around the old ruler."
+tools/policy/friction_issues.mjs:9:// threshold in silence. The owner's option B (#201 comment 5670207248, item 4)
+tools/policy/friction_issues.mjs:441:    `(#959, option B; owner approval #201 comment 5670207248, item 4). The bot`,
+tools/policy/friction_issues.mjs:1093:    { number: 201, title: 'Open-issues programme' },
+tools/policy/friction_issues.mjs:1115:  st(swept.some((e) => e.number === 201), false, 'an issue that is not a friction issue is not touched')
+tools/policy/policy_lint.mjs:474:  // (#201 comment 5702401684): it carries state, not rules, changes with nearly
+tools/policy/policy_lint.mjs:540:  // grant (#201 comment 5670246622), which covers the policy change. An
+tools/policy/policy_lint.mjs:563:  // The author-identity record (#201 comment 5744682317): pull requests are
+tools/policy/policy_lint.mjs:1974:// living handover. #3394 (#201 before it) is deliberately NOT one of them -- it is the volatile
+tools/policy/policy_lint.mjs:1981:// #201 (comment 5704121269) of the countermeasure costed in 5704098870. Every
+tools/policy/record-predicate/row_files_replay.py:4:The harness behind the root cause on #201 (comment 5704098870) and the pull
+tools/pr/app_push.sh:12:# its #1256 returned 201 then 404 within about a minute and left branch
+tools/pr/app_push.sh:88:# request (merge_train.py's recarry; decision on #201, comment 6070202495).
+tools/pr/app_push.sh:355:# (comment-readback.md, decision 0011's #1256 incident: a mint returned 201
+tools/pr/app_push.sh:1020:# --recarry (decision on #201, comment 6070202495). Every case has its own
+tools/pr/gh_comment.py:39:#201 and its continuation) whose CURRENT body pairs a form of "revoke" with
+tools/pr/gh_comment.py:46:GitHub closed #201 to comments at its 2,500-comment cap, and the refusal names
+tools/pr/gh_comment.py:116:    the #201 root-cause comment for the pull request that added this counts the
+tools/pr/gh_comment.py:239:    """Refuse a post to a record issue that is no longer RECORD_ISSUE (#201, at
+tools/pr/gh_comment.py:298:# 5621913580 on #201 (2026-09-10, since deleted; reconstructed from the record).
+tools/pr/gh_comment.py:299:DEFECT_BODY = "@/private/tmp/claude-501/heatpump-optimizer-orchestrator/out/sync-201.md"
+tools/pr/gh_comment.py:308:    "#201",
+tools/pr/gh_comment.py:310:    "leaves #201 open.",
+tools/pr/gh_comment.py:358:        "## Sync to #201\n\n"
+tools/pr/gh_comment.py:489:    # The fake #201 thread holds the grants the rows name; the field text is
+tools/pr/gh_comment.py:490:    # an excerpt of #201 comment 6546832523 as first posted (2026-10-31), which
+tools/pr/gh_comment.py:494:    on201 = f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/201"
+tools/pr/gh_comment.py:517:        return THREAD if issue == 201 else [grant(NEW_ID, url=onrec)] if issue == g.RECORD_ISSUE else []
+tools/pr/gh_comment.py:560:    # The record moved to RECORD_ISSUE at #201's comment cap: a grant on either
+tools/pr/gh_comment.py:566:          g.RECORD_ISSUES[0] == 201 and g.RECORD_ISSUE == g.RECORD_ISSUES[-1] != 201)
+tools/pr/gh_comment.py:567:    hit, _, msg = guarded("old-issue", "plain text", target=("post", "--issue", "201"))
+tools/pr/gh_comment.py:570:          not guarded("old-repo", "plain text", target=("post", "--issue", "201"), repo="o/r")[0])
+tools/pr/prepr.sh:1476:# in the root-cause comment on #201 for the pull request that added this.
+tools/release/stamp.py:274:    """The GIT_SSH_COMMAND the deploy-key push runs under, as measured on #201."""

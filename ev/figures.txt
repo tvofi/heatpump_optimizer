@@ -1,0 +1,141 @@
+$ python3 tools/audit/seat/postmerge.py --self-test
+postmerge self-test: 19 checks, 0 failed
+rc=0
+$ python3 tools/audit/seat/record_beat.py --dry-run 3350
+rc=1
+$ python3 tools/audit/seat/merge_train.py --self-test
+  ok   stale verdict: a missing dispatch time is refused with its reason (a record at another head is not this nonce's dispatch)
+  ok   stale verdict: a same-second tie is ordered by the registry's append order (refused, then admitted)
+  ok   stale verdict: the dispatch time decides, not the registry's line order (a merge dispatch recorded after the blocked one but timed before it is refused)
+  ok   stale verdict: a blocked verdict at another head is not this head's finding (admitted, no nonce read)
+  ok   stale verdict: an unreadable verdict/<pr> history (log or fetch) is refused, never read as no blocked verdict
+merge_train self-test: 608 checks, 0 failed
+rc=0
+$ python3 tools/audit/seat/queue_pre_flight.py --self-test
+  ok   the queue prints one line per entry and the summary, and is not clean
+  ok   an all-PASS queue is clean (the summary's null control)
+  ok   the train this instrument mirrors is in the tree
+  ok   the delivery-row directory the train requires, dev/programme/delivery/, is in the tree
+  ok   the mandate reader the budget arm reads is in the tree
+queue_pre_flight self-test: 45 checks, 0 failed
+rc=0
+$ bash tools/audit/seat/merge_pr.sh --self-test
+  ok   a refused merge fails the script (the line's own exit)
+  ok   null control: a verdict for the head posts as today
+  ok   a verdict for another head refuses CARRIED HEAD, naming the train, and posts nothing
+  ok   the merge runs postmerge.py once, for the merged pull request
+  ok   an owed post-merge step prints OWED after the merge line and fails the script
+merge_pr self-test: 22 checks, 0 failed
+rc=0
+$ python3 tools/audit/seat/gh_calls.py --self-test
+  ok   top ranks callers and endpoints by count
+  ok   --since drops earlier lines
+  ok   a malformed --since is refused
+  ok   coverage reads the shim marker, not the name
+  ok   a real gh ahead of the shim reads as not logged
+gh_calls self-test: 199 checks, 0 failed
+rc=0
+$ python3 tools/audit/seat/plan_page.py --self-test
+plan_page self-test: 77 checks, 0 failed
+rc=0
+$ python3 -I tools/audit/carry_audit.py --self-test
+carry_audit self-test: 402 checks, 0 failed
+rc=0
+$ python3 tools/audit/seat/handover_prompt.py --self-test
+handover_prompt self-test: 20 checks, 0 failed
+rc=0
+$ python3 tools/audit/seat/record_row.py --self-test
+gh_read self-test: 138 checks, 0 failed
+record_row self-test: all checks passed
+rc=0
+$ python3 tools/audit/seat/proof_watch.py --self-test
+ok   (j) no MERGE line is logged for a merge that did not land
+ok   (k) skipped reads as not-succeeded
+ok   (k) no merge on a skipped check
+ok   (l) a pending required context waits a poll, then merges when it lands
+ok   (l) the wait polls at the configured cadence
+proof_watch self-test: 47 checks, 0 failed
+rc=0
+$ python3 tools/audit/seat/pulse.py --self-test
+  ok   a ledger line with fewer than three fields is unreadable
+  ok   the CLI accepts --seat-alive and --launch-ledger and prints a seat-alive-merge arm
+  ok   --seat-alive refuses a seat no contract defines
+  ok   --snapshot exits 1 on a stop, 2 on unreadable, 0 on a healthy board
+  ok   the summary line counts the arms
+pulse self-test: 58 checks, 0 failed
+rc=0
+$ python3 tools/audit/seat/r10_roster_ops_mutants.py --self-test
+  ok   a survivor prints fails=0 and no tail
+  ok   an indented FAIL line is read; an ok line naming FAIL is not
+  ok   no names selects every plant
+  ok   a named plant is kept
+  ok   an unknown plant is returned for refusal
+r10_roster_ops_mutants self-test: 343 checks, 0 failed
+rc=0
+$ python3 tools/audit/seat/r10_mandate_guard_mutants.py --self-test
+  ok   G4: its anchor occurs exactly once and the plant compiles
+  ok   B1: its anchor occurs exactly once and the plant compiles
+  ok   B2: its anchor occurs exactly once and the plant compiles
+  ok   B3: its anchor occurs exactly once and the plant compiles
+  ok   B4: its anchor occurs exactly once and the plant compiles
+r10_mandate_guard_mutants self-test: 8 checks, 0 failed
+rc=0
+$ python3 dev/audit/harnesses/r10_plan_issues_chart_mutants.py M0 orphans-dropped tracking-orphan
+RESULT mutant=M0 rc=0 fails=0 verdict=null
+RESULT mutant=orphans-dropped rc=1 fails=2 verdict=killed
+RESULT mutant=tracking-orphan rc=1 fails=3 verdict=killed
+RESULT survived=0
+rc=0
+$ python3 dev/audit/harnesses/r10_plan_page_mutants.py tracking-excluded
+RESULT mutant=tracking-excluded rc=1 fails=1 verdict=killed
+RESULT survived=0
+rc=0
+$ node tools/policy/policy_lint.mjs --budgets
+.claude/rules/delivery-status-tracking.md         35   35      765   766 
+always-loaded: ~3605 tokens, cap 3349 +band 500 = 3849
+corpus:        ~68582 tokens, cap 68618 +band 500 = 69118
+role fixer     ~6265 tokens, cap 5852 +band 500 = 6352
+role record    ~7422 tokens, cap 7405 +band 500 = 7905
+role policy    ~9993 tokens, cap 9958 +band 500 = 10458
+rc=0
+$ node tools/policy/rules_sync.mjs --check
+RULES-SYNC ok: every generated rule is the generated form of its source
+rc=0
+$ python3 tools/audit/seat/selftest_wiring.py --check
+selftest_wiring: 129 self-testing, 129 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+rc=0
+$ node tools/policy/brief_lint.mjs
+  ERROR   [carry-990002.json] carry: `issue` is 990009 but the filename says 990002; a seat looking for its own stage opens the filename
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+CONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not; the legacy files are left out
+LEGACY-CONTROL ok: the default roster refuses a live-group collision and accepts an uncovered carry; the legacy set is within its cap and each member still needs the exemption
+TREEREV ok: treeListing lists the named revision (adds and deletes), differs from the checkout, and throws on an unresolvable one
+PLAYBOOK ok: the renamed fixture is refused for its 7 moved instruments and the null fixture lints clean
+rc=0
+$ python3 tools/audit/archscore/score.py --diff ddd2f8b273c485e29fcf10913ad5d4f9014006c8 HEAD
+Architecture score: dS +0.0000 NULL
+rc=0
+$ python3 tests/structure.py
+  ok   max_method_loc 373 <= 373
+  ok   methods_over_150 15 <= 15
+  ok   methods_over_200 8 <= 8
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 421 <= 421
+STRUCTURE RATCHET PASSED
+rc=0
+$ python3 tests/closure.py select
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: no changed files could be determined
+rc=0
+$ python3 tests/env_drift.py --all
+  ok    valve_storage_flat_prices is byte-identical to origin/main here
+  ok    valve_storage_low_target is byte-identical to origin/main here
+  ok    valve_storage_small_tank is byte-identical to origin/main here
+  ok    wide_band is byte-identical to origin/main here
+  ok    winter_single_dhw is byte-identical to origin/main here
+  ok    winter_single_no_dhw is byte-identical to origin/main here
+rc=0
+== VERSION/manifest/notes
+(empty above = untouched)
+FIGDONE
