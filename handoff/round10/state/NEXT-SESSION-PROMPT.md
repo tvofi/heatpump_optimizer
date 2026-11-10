@@ -29,7 +29,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FIXER-MD-SPELLING-CORPUS (stage in-progress, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REVIEW-ENUMERATE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-RCA-STAMP-CLAIM-CONFLICT (stage in-progress, branch `handoff/r10-rca-stamp-claim-conflict`): `git fetch origin handoff/r10-rca-stamp-claim-conflict && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-HOTFIX-SELFTEST-SCOPE-HANG (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-NONREQUIRED-REDS-2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-DELTA-REVIEW (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-COMBI-TANK-PR-B (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -37,7 +36,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-PACKET-APPROVAL-OWED (stage in-progress, branch `fix/r10-hotfix-packet-approval-owed-pr`): `git fetch origin fix/r10-hotfix-packet-approval-owed-pr && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-REPLAN-TOP-TIER (stage in-progress, branch `fix/r10-fly-replan-top-tier-pr`): `git fetch origin fix/r10-fly-replan-top-tier-pr && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-COMBI-TANK, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-FLY-GH-READ-RETRY, R10-FLY-REPLAN-TOP-TIER, R10-FRICTION-OTHER-FAMILY, R10-GENERIC-HEAT-CURVE, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-DELTA-REVIEW, R10-HOTFIX-GATE-BUSY-DEFER, R10-HOTFIX-NONREQUIRED-REDS-2, R10-HOTFIX-OPENER-BOARD-PREFIX, R10-HOTFIX-PACKET-APPROVAL-OWED, R10-HOTFIX-SELFTEST-SCOPE-HANG, R10-OUTSIDE-INTAKE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-RCA-STAMP-CLAIM-CONFLICT, R10-REVIEW-ENUMERATE, R10-SAV-VALUATION-RESIDUE, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-COMBI-TANK, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-FLY-GH-READ-RETRY, R10-FLY-REPLAN-TOP-TIER, R10-FRICTION-OTHER-FAMILY, R10-GENERIC-HEAT-CURVE, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-DELTA-REVIEW, R10-HOTFIX-GATE-BUSY-DEFER, R10-HOTFIX-NONREQUIRED-REDS-2, R10-HOTFIX-OPENER-BOARD-PREFIX, R10-HOTFIX-PACKET-APPROVAL-OWED, R10-OUTSIDE-INTAKE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-RCA-STAMP-CLAIM-CONFLICT, R10-REVIEW-ENUMERATE, R10-SAV-VALUATION-RESIDUE, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
 
 ## Resume steps
 
