@@ -1,0 +1,5 @@
+tools/audit/seat/merge_train.py:2049:    def policy_gate(self, pr: int, h: str, files: list[str], posting: "dict | None" = None) -> "str | None":
+tools/audit/seat/merge_train.py:2462:            return self.policy_gate(pr, h, files, posting=posting)
+tools/audit/seat/merge_train.py:2695:            under = self.policy_gate(pr, h, files)  # step 5, re-read at the merge itself
+tools/audit/seat/merge_train.py:3291:            under = self.policy_gate(pr, h, files)  # early refusal; land re-reads at the merge
+tools/audit/seat/queue_pre_flight.py:166:            self.t.policy_admits(pr, h, item, files)
