@@ -62030,8 +62030,11 @@ R.check(
 )
 
 
-def _pa_between(reading, switch_off=False):
-    """Baseline 53; the gate 25, then a space step's target; then the entity reads ``reading``."""
+def _pa_between(reading, switch_off=False, then=None):
+    """Baseline 53; the gate 25, then a space step's target; then the entity reads ``reading``.
+
+    ``then``: a second differing reading, after the rewrite the pump did not take.
+    """
     coord = _PaCoord(_PA_TUYA, duties="dds-s")
     _pa_settled(coord)
     _pa_settled(coord, 30)
@@ -62042,6 +62045,9 @@ def _pa_between(reading, switch_off=False):
         coord.device("switch.hp", "on")
     coord.device("number.water_set", reading)
     _pa_run(coord, 33)
+    if then is not None:
+        coord.device("number.water_set", then)
+        _pa_run(coord, 35)
     coord.hass.services.calls.clear()
     return _pa_turn_off(coord), _pa_space(coord)
 
@@ -62053,6 +62059,50 @@ R.check(
     _pa_between("40") == (1, [40.0]) and _pa_between("25") == (1, [53.0])
     and _pa_between("40", switch_off=True) == (1, [53.0]),
     f"{_pa_between('40')=} {_pa_between('25')=} {_pa_between('40', switch_off=True)=}",
+)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a second differing reading is a write the pump does not take, never a "
+    "second edit: off restores the first edit, 40, not 41",
+    _pa_between("40", then="41") == (1, [40.0]),
+    f"{_pa_between('40', then='41')=}",
+)
+
+
+def _pa_restored_twice(via):
+    """A baseline equal to the plan's own value (25), restored by ``via``, then a restart.
+
+    The restore drops the space slot from the arbiter's persisted record, so
+    after the restart the next arm captures 25 again rather than refusing it
+    as the optimizer's own last write. ``off`` runs a space-only install, whose
+    record holds nothing else.
+    """
+    coord = _PaCoord(_PA_TUYA, duties="dds-s")
+    if via == "off":
+        with_config(coord, {"heat_pump_mode_entity": "", "dhw_setpoint_entity": ""})
+    coord.device("number.water_set", "25")
+    _pa_settled(coord)                       # 25 captured; nothing to write over it
+    _pa_settled(coord, 30)                   # a space step: armed with 25, its target written
+    coord.entry.runtime_data = coord
+    if via == "off":
+        _pa_turn_off(coord)
+    else:
+        _pa_aio.run(_pa_or.async_restore(coord.hass, coord.entry, coord._config, "unload"))
+        _pa_aio.run(_pa.release(coord))
+    again = _PaCoord(_PA_TUYA, duties="dds-s")
+    again._config = coord._config
+    again.entry = _pa_entry(entry_id=coord.entry.entry_id)
+    again.device("number.water_set", "25")
+    _pa_run(again, 0)
+    _pa_run(again, 30)
+    again.hass.services.calls.clear()
+    return _pa_turn_off(again)
+
+
+R.check(
+    "R10-ARBITER-OFF-RESTORE: after an off or an unload restored a baseline equal to the plan's value, "
+    "a restart captures it again and the next off restores it",
+    _pa_restored_twice("unload") == 1 and _pa_restored_twice("off") == 1,
+    f"{_pa_restored_twice('unload')=} {_pa_restored_twice('off')=}",
 )
 _pa_subs = _PaCoord(_PA_TUYA)
 _pa_run(_pa_subs, 1)
