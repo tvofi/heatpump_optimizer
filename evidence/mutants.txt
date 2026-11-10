@@ -1,0 +1,23 @@
+== M1-per-op-save-deleted
+  FAIL roster-drain: a pass killed mid-queue keeps its applied ops; the next applies each once
+beat_jobs self-test: 112 checks, 1 failed
+== M2-budget-break-deleted
+  FAIL roster-drain: a pass past ROSTER_PASS_BUDGET_S starts no op; the next pass resumes
+beat_jobs self-test: 112 checks, 1 failed
+== M3-both
+  FAIL roster-drain: a pass past ROSTER_PASS_BUDGET_S starts no op; the next pass resumes
+beat_jobs self-test: 112 checks, 1 failed
+== M4-final-save-deleted
+  FAIL roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases
+  FAIL roster-drain: a malformed hold line is refused once and marked, never re-printed
+beat_jobs self-test: 112 checks, 2 failed
+== M5-budget-continue-not-break
+beat_jobs self-test: 112 checks, 0 failed
+== M6-save-before-done
+  FAIL roster-drain: a pass killed mid-queue keeps its applied ops; the next applies each once
+beat_jobs self-test: 112 checks, 1 failed
+== M7-budget-900
+  FAIL roster-drain: ROSTER_PASS_BUDGET_S is at most half the row's timeout_s
+beat_jobs self-test: 112 checks, 1 failed
+== M8-clock-wall
+beat_jobs self-test: 112 checks, 0 failed

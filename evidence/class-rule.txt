@@ -1,0 +1,22 @@
+170:def atomic(path: Path, text: str) -> None:
+224:            atomic(self.digest / "state" / name, text)
+250:        atomic(path, text)
+262:    atomic(ctx.digest / "digest.txt", text)
+263:    atomic(ctx.digest / "new.txt", "".join(ln + "\n" for ln in new))  # empty when the fold added nothing
+264:    atomic(ctx.digest / "gone.txt", "".join(ln + "\n" for ln in gone))
+266:        atomic(ctx.digest / "new.stamp", utc(ctx.now) + "\n")
+302:        ctx.remember("tick.json", {"pass": "", "transient": seen_before["transient"]}, {"pass": "", "transient": []})
+314:    ctx.remember("tick.json", {"pass": first, "transient": transient})
+350:        ctx.remember("roster-queue-lines.json", len(whole), 0)
+351:        ctx.remember("roster-done.json", sorted(done), [])
+352:        ctx.remember("roster-hold.json", holds, {})
+354:        ctx.remember("roster-shrank.json", True, False)  # sticky: the op queued after the clear must not vanish
+384:        atomic(one, op + "\n")
+434:        ctx.remember("plan-page.json", sha, "")
+464:    atomic(d / "roster.json", out)
+467:    atomic(d / "handoff-rows.tsv", out.replace("\trefs/gantt/", "\trefs/heads/"))
+472:    atomic(d / "prs.json", out)
+474:    atomic(d / "fired.txt", read(Path(str(ledger))) if ledger else "")
+511:    atomic(ctx.state / "beatd" / "pulse.txt", out)
+568:        atomic(path, text)
+599:    ctx.remember("audit-dispatch.json", tripped, [])

@@ -1,0 +1,5 @@
+ dev/programme/delivery/3416.md               |  1 +
+ tools/audit/seat/beat_jobs.py                | 26 ++++++++++---
+ tools/audit/seat/beat_jobs_selftest.py       | 57 ++++++++++++++++++++++++++++
+ tools/audit/seat/instruments/beat_jobs.py.md |  4 +-
+ 4 files changed, 81 insertions(+), 7 deletions(-)
