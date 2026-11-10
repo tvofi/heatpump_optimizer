@@ -21821,6 +21821,49 @@
     "note": null
    },
    "brief": "Replacement for Dependabot #3323 (pip group): Dependabot rewrote versions but kept stale --hash lines on five pins (coverage, acme, python-dateutil, sqlalchemy, uv), and bumped homeassistant-stubs past the deliberate 2026.9.3 hold that typing_ruler.py enforces. Built handoff regenerates both locks with their header commands, keeps the stubs and the homeassistant-pinned zeroconf/cronsim, and corrects the dependabot.yml comment. Review: every pin hash matches PyPI (null control: #3323 files mismatch on exactly the five), typing_ruler passes, and #3323 is closed as superseded after the merge."
+  },
+  {
+   "lane": "IN",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "group": "R10-HOTFIX-MAIN-SELFTESTS",
+   "kind": "instrument",
+   "class": "instrument",
+   "files": [
+    "tools/audit/seat/ref_privacy.py",
+    "tools/ci/selftest_closures.json",
+    ".github/workflows/governance.yml"
+   ],
+   "hot_files": [
+    ".github/workflows/governance.yml"
+   ],
+   "resume": {
+    "stage": "in-progress",
+    "note": "orchestrator 2026-11-10T05:36Z: main-red hotfix; local fix d2f3db22 on handoff-wip, cloud receipt round trig_01CM889s records gh-read-run on Linux",
+    "pr": null,
+    "commit": null
+   },
+   "brief": "Main-red hotfix (orchestrator, 2026-11-10). governance / instrument-self-tests red on every main push since #3315 (ba6fd7e8b0). Three causes: (1) tools/audit/seat/ref_privacy.py added_lines ran git show REV:path on an absent diff side, so the push-names-the-host step read each merge's added files (a read set that moves every merge); (2) tools/ci/selftest_closures.json drifted after #3315; (3) #3361 (e79a0e78bc) added the step 'Show the workflow read runner refusing its own fixtures' with an if: not gated on its own scope output. FIX: show only diff sides that exist (name-status); re-record the table as the union of main's measurements; gate the step on its own id (precedent d9990a12f2) with a Linux-recorded entry. Check whether the beatd step's read set is timing-dependent. Root cause owed in its own seat: R10-RCA-MAIN-SELFTESTS-RED."
   }
  ]
 }
