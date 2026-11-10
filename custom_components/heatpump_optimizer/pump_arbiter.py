@@ -877,10 +877,10 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
 
 
 def _feedback_on(inp: ArbiterInputs, duty: str | None, now: datetime, boosts: Any) -> bool:
-    """Whether this pass's space target is the power-feedback loop's.
+    """Whether this pass's water target (the caller's water unit) is the loop's.
 
-    A space-only step below the band top, on an install with a water unit, a
-    power meter and the option on, outside a boost (``boosts``, the
+    A space-only step below the band top, on an install with a power meter
+    and the option on, outside a boost (``boosts``, the
     coordinator's ``boost.BoostState``), an experiment and a defrost. Space
     only comes from a fresh plan in Auto or Economy, an experiment or a
     boost (:func:`_planned_duty`). Anywhere else the meter reads a draw that
@@ -889,8 +889,6 @@ def _feedback_on(inp: ArbiterInputs, duty: str | None, now: datetime, boosts: An
     """
     cfg = EntryConfig.from_mapping(inp.config)
     if duty != "space" or not (cfg.space_setpoint_power_feedback and cfg.heat_pump_power_entity):
-        return False
-    if not _flow_unit(inp.config):
         return False
     planned, top = _step_kw(inp.plan, now), _band_kw(inp)[1]
     return bool(
@@ -1096,7 +1094,8 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     if duty == "space" and inp.disinfecting:
         duty = "both"
     space = _space_target(inp, result, now, duty)
-    space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
+    if _flow_unit(inp.config):
+        space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "idle":
         # No mode write. The mode last written served the duty that just
         # finished, whose thermostat the plan has just satisfied, so it is
