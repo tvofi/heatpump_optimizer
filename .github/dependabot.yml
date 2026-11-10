@@ -15,7 +15,11 @@
 version: 2
 updates:
   # Hash-locked (`pip install --require-hashes`): Dependabot rewrites the
-  # version line and every hash line of the package it bumps.
+  # version line and the hash lines of most packages it bumps, but not all:
+  # #3088 and #3323 each moved pins whose hash lines it left at the old
+  # version (the typing lock's overrides, and requirements-coverage.txt's
+  # coverage), which pip's hash-checking mode refuses. Such a pull request is
+  # re-applied on a branch through each lock header's compile, never edited.
   - package-ecosystem: "pip"
     directory: "/tests"
     schedule:
