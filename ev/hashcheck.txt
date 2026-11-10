@@ -1,0 +1,20 @@
+tests/requirements-build.txt pins 4 parsed 4 nohash 0
+  CHANGED cython 3.3.0 -> 3.3.1 hashes 39 upstream 39 not-upstream 0 missing-from-lock 0
+tests/requirements-ci.txt pins 14 parsed 14 nohash 0
+  CHANGED threadpoolctl 3.7.0 -> 3.8.0 hashes 2 upstream 2 not-upstream 0 missing-from-lock 0
+tests/requirements-coverage.txt pins 1 parsed 1 nohash 0
+  CHANGED coverage 7.17.0 -> 7.17.2 hashes 119 upstream 119 not-upstream 0 missing-from-lock 0
+tests/requirements-nightly-ha.txt pins 1 parsed 1 nohash 0
+  CHANGED py-spy 0.4.2 -> 0.4.3 hashes 2 upstream 9 not-upstream 0 missing-from-lock 7
+tests/requirements-typing.txt pins 112 parsed 112 nohash 0
+  CHANGED acme 5.8.0 -> 5.9.0 hashes 2 upstream 2 not-upstream 0 missing-from-lock 0
+  CHANGED anyio 4.15.1 -> 4.16.0 hashes 2 upstream 2 not-upstream 0 missing-from-lock 0
+  CHANGED boto3 1.43.121 -> 1.43.124 hashes 2 upstream 2 not-upstream 0 missing-from-lock 0
+  CHANGED botocore 1.43.121 -> 1.43.124 hashes 2 upstream 2 not-upstream 0 missing-from-lock 0
+  CHANGED grpcio 1.85.0 -> 1.85.1 hashes 61 upstream 61 not-upstream 0 missing-from-lock 0
+  CHANGED mypy-extensions 1.1.0 -> 1.2.0 hashes 2 upstream 2 not-upstream 0 missing-from-lock 0
+  CHANGED python-dateutil 3.0.0 -> 4.0.0 hashes 2 upstream 2 not-upstream 0 missing-from-lock 0
+  CHANGED sqlalchemy 2.1.6 -> 2.1.8 hashes 72 upstream 72 not-upstream 0 missing-from-lock 0
+  CHANGED threadpoolctl 3.7.0 -> 3.8.0 hashes 2 upstream 2 not-upstream 0 missing-from-lock 0
+  CHANGED uv 0.13.6 -> 0.13.7 hashes 19 upstream 19 not-upstream 0 missing-from-lock 0
+bad 0
