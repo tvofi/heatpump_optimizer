@@ -1,0 +1,9 @@
+NOTE body item 8755bcb3: R10-ARBITER-OFF-RESTORE: R10-ARBITER-OFF-RESTORE resolved on origin/handoff/audit-r10-roster
+NOTE body item 76ae476a: R10-ARBITER-OFF-RESTORE: R10-ARBITER-OFF-RESTORE resolved on origin/handoff/audit-r10-roster
+NOTE body item dca642fc: dismissed:an open owner decision, unchanged here by the orchestrator's instruction
+NOTE body item 4f4b3e72: dismissed:the orchestrator's stacked-start ruling prices this; recorded for it
+NOTE body item 87f09131: dismissed:main's own red, named for the orchestrator; main's #3378 (`1cabb845d`) has since repaired it, with wording this head keeps
+NOTE body item 2bcac34a: R10-ARBITER-OFF-RESTORE: R10-ARBITER-OFF-RESTORE resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item 08a552ea: R10-ARBITER-OFF-RESTORE: R10-ARBITER-OFF-RESTORE resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item f0225ac0: dismissed:owed by this same PR's re-cut under the block above, not a later stage
+CARRY-AUDIT: 8 finding item(s): 8 routed, 0 unrouted, 0 bad destination(s)
