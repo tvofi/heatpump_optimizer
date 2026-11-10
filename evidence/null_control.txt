@@ -1,0 +1,10 @@
+# ghcp_offset_record.py sha1 cbbd5d172c0c; base e066a630 vs head b10beaad55c9fdb50ec8446bb3593c3ca11d8bd0
+## e066a630
+(i) {"armed": {"heat_curve": null}}
+(ii) [('number.o', 2), ('number.o', 0)] {"armed": {}}
+(iii) [] {"armed": {}}
+## head
+(i) {"armed": {"heat_curve": null}}
+(ii) [('number.o', 2), ('number.o', 0)] {"armed": {}}
+(iii) [] {"armed": {}}
+cmp: IDENTICAL
