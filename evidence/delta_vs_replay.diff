@@ -1,0 +1,25 @@
+replay tree (merge-tree cd36e797 b163dc32) = 095c569a79cf357c4423e1ded6ba94c3936c1b07
+ tests/golden/claimed_drift.txt | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+index e16ee203c..192761a13 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -67,16 +67,12 @@
+ # v7.1.9: water set-point lift and ceiling (outside #3356). The stamp empties the list; the
+ # next branch restates its own footprint, claims included.
+ #
+-<<<<<<< tests/golden/claimed_drift.txt (this branch)
+ coord_all_features # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
+ coord_dhw # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
+ coord_grid_fee # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
+ coord_minimal # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
+ coord_two_zone # R10-HOTFIX-COP-UNMEASURED: no heat reading is no measured COP: the machine grade's reason (insight and optimization-score attributes) moves cop_watch_learning -> cop_unmeasurable; two string leaves, no float moved; edited in the committed file, never recorded
+-config_flow # R10-HOTFIX-COP-UNMEASURED: the metering page gains heat_pump_power_source, heat_pump_thermal_power_source (auto, meter, estimate) and heat_meter_sees_dhw; leaves added only, none moved; float-free, re-recorded in the committed file
+-=======
+-config_flow # R10-GENERIC-HEAT-CURVE: the heat_curve page gains heat_curve_target_kind, heat_curve_displace_entity and heat_curve_offset_band_k, and the advanced menu label reads 'Heat curve control'; R10-GENERIC-HEAT-CURVE-PERSISTENT: heat_curve_target_kind offers 'persistent' beside 'offset'; float-free, recorded by golden.py --record --only config_flow
+->>>>>>> tests/golden/claimed_drift.txt (incoming)
++config_flow # R10-GENERIC-HEAT-CURVE-PERSISTENT: the heat_curve page's heat_curve_target_kind offers 'persistent' beside 'offset' (two options leaves, the seeded and the live page); float-free, recorded by golden.py --record --only config_flow
+ # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+ # (option (a)): the move's margin is inside the noise band (objective rel
+ # -1.2171e-03, deterministic on one box), so which runner sees it move is the
