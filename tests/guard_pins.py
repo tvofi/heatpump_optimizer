@@ -665,6 +665,7 @@ def _service_dispatch_pins() -> dict[str, bool]:
     def one(slot, value):
         coord = Coord()
         coord.hass = FakeHass(dict(states))
+        coord.entry = FakeEntry(entry_id=f"gp-write-{slot}")  # _write hands it to off_restore's arm
         inp = pump_arbiter.ArbiterInputs(
             hass=coord.hass, config=config, mode="auto", plan=None,
             plan_stale=False, entry_released=False, state=None, thermal=None,
