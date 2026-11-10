@@ -81070,6 +81070,15 @@ R.check(
     max(_fb_held_run[6:36]) - min(_fb_held_run[6:36]) <= 0.1 + 1e-9,
     f"{_fb_held_run[6]} .. {_fb_held_run[35]}",
 )
+# Below the band floor the deadband is the floor's: a 0.3 kW plan on a 0.53 kW
+# floor holds against a 0.34 kW draw (inside 0.053 kW, outside 10 % of 0.3).
+_fb_sub = _fb_passes(_FbCoord(plan_kw=0.3), [(m, 0.34, 25.0 + 0.02 * m) for m in range(40)])
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: below the band floor the deadband is 10 % of the floor, "
+    "so a sub-minimum plan holds its target against a draw at the floor",
+    max(_fb_sub[6:36]) - min(_fb_sub[6:36]) <= 0.1 + 1e-9,
+    f"{_fb_sub[6]} .. {_fb_sub[35]}",
+)
 # Carry item 4: a hot-water interlude inside the step resets the run.
 _fb_inter = _FbCoord()
 _fb_passes(_fb_inter, _FB_STEPS[:30])

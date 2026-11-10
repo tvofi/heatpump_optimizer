@@ -163,6 +163,7 @@ from .const import (
     SPACE_SETPOINT_WATER_UNITS,
 )
 from .entry_config import EntryConfig
+from .freq_control import defrost_interval
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
@@ -257,11 +258,11 @@ FEEDBACK_START_HOLD = timedelta(minutes=5)
 #: How far the target moves per minute outside the deadband, K. Time-based,
 #: not per pass: passes come from the cycle, the tick and the listener.
 FEEDBACK_RATE_K_PER_MIN = 0.2
-#: The deadband on the draw error: this share of the planned level, never
-#: under :data:`FEEDBACK_DEADBAND_MIN_KW`. Inside it the target is held, not
-#: re-anchored to the rising inlet.
+#: The deadband on the draw error: this share of the planned level, or of
+#: the band's floor where the plan asks less, so a sub-minimum level gets no
+#: narrower band than the modulation floor's. Inside it the target is held,
+#: not re-anchored to the rising inlet.
 FEEDBACK_DEADBAND_SHARE = 0.1
-FEEDBACK_DEADBAND_MIN_KW = 0.05
 #: How far below the inlet the loop may wind the target down, K. A controller
 #: stops a running compressor when its inlet reaches target plus its heating
 #: hysteresis, 0.5 K at the least on the reporting firmware; less one 0.1 K
@@ -364,9 +365,10 @@ class ArbiterInputs:
     action: CurrentAction
     measured_power_kw: float | None
     disinfecting: bool
-    #: ``freq_control.defrost_interval`` of the pump's defrost flag: no flag
-    #: or no evidence is not a defrost.
-    defrosting: bool = False
+    #: The pump's defrost flag as read (``PumpSignals.defrosting``); what it
+    #: means is ``freq_control.defrost_interval``'s, and ``None`` is no flag
+    #: or no evidence.
+    defrosting: bool | None = None
 
 
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
@@ -892,7 +894,7 @@ def _feedback_on(inp: ArbiterInputs, duty: str | None, now: datetime, boosts: An
         return False
     planned, top = _step_kw(inp.plan, now), _band_kw(inp)[1]
     return bool(
-        not inp.defrosting and _experiment_kw(inp) is None
+        not defrost_interval(inp.defrosting) and _experiment_kw(inp) is None
         and not boosts.active(boost.CHANNEL_SPACE, now)
         and planned is not None and top is not None and planned < float(top)
     )
@@ -911,25 +913,28 @@ def _feedback(held: ArbiterState, inp: ArbiterInputs, now: datetime, base: float
     today's. Any other pass, a stopped compressor or a missing inlet resets
     the run.
     """
-    inlet = _flow_inlet_c(inp) if on and base is not None else None
+    inlet = _flow_inlet_c(inp) if on else None
+    if base is None or inlet is None:
+        held.feedback = None
+        return base
     power = finite_float(inp.measured_power_kw)
     rec = held.feedback
     if rec is not None and utc_elapsed_seconds(now, rec.seen) > FEEDBACK_WINDOW.total_seconds():
         rec = None  # passes that skipped the loop: a cooling or switched-off pump
-    if inlet is None or power is None or power < _ran_kw(inp):
-        if inlet is not None and rec is not None and rec.running:
+    if power is None or power < _ran_kw(inp):
+        if rec is not None and rec.running:
             _note_stop(held, rec, inlet, base)
-        held.feedback = None if inlet is None else FeedbackRun(now, float(base), now)
+        held.feedback = FeedbackRun(now, base, now)
         return base
     if rec is None:
-        rec = held.feedback = FeedbackRun(now, float(base), now)
+        rec = held.feedback = FeedbackRun(now, base, now)
     rec.samples.append((now, power))
     while utc_elapsed_seconds(now, rec.samples[0][0]) > FEEDBACK_WINDOW.total_seconds():
         rec.samples.popleft()
     minutes = max(0.0, utc_elapsed_seconds(now, rec.seen)) / 60.0
     rec.running, rec.seen = True, now
     if utc_elapsed_seconds(now, rec.start) < FEEDBACK_START_HOLD.total_seconds():
-        rec.w_c, rec.sent_c = float(base), None
+        rec.w_c, rec.sent_c = base, None
         return base
     lo, hi = _feedback_bounds(held, rec, inp, inlet)
     rec.w_c = min(max(_nudged(rec, inp, now, minutes), lo), hi)
@@ -945,8 +950,9 @@ def _nudged(rec: FeedbackRun, inp: ArbiterInputs, now: datetime, minutes: float)
     is mapped on (:func:`_band_kw`) and of the meter.
     """
     planned = float(_step_kw(inp.plan, now) or 0.0)
+    floor = finite_float(_band_kw(inp)[0]) or 0.0
     error = sum(kw for _at, kw in rec.samples) / len(rec.samples) - planned
-    if abs(error) <= max(FEEDBACK_DEADBAND_SHARE * planned, FEEDBACK_DEADBAND_MIN_KW):
+    if abs(error) <= FEEDBACK_DEADBAND_SHARE * max(planned, floor):
         return rec.w_c
     return rec.w_c - math.copysign(FEEDBACK_RATE_K_PER_MIN * minutes, error)
 
@@ -983,14 +989,14 @@ def _note_sent(held: ArbiterState, rec: FeedbackRun, out: float | None, base: fl
     held.written.pop("space_setpoint", None)
 
 
-def _note_stop(held: ArbiterState, rec: FeedbackRun, inlet: float, base: float | None) -> None:
+def _note_stop(held: ArbiterState, rec: FeedbackRun, inlet: float, base: float) -> None:
     """A run stopped under a loop target below today's: the loop caused it.
 
     The inlet-to-target gap it stopped at bounds the target from then on,
     :data:`FEEDBACK_STOP_MARGIN_K` closer to the inlet, so a controller whose
     stop hysteresis is smaller than assumed restarts at most once.
     """
-    if rec.sent_c is None or base is None or rec.sent_c >= base:
+    if rec.sent_c is None or rec.sent_c >= base:
         return
     gap = inlet - rec.sent_c
     held.stop_gap_k = gap if held.stop_gap_k is None else min(held.stop_gap_k, gap)

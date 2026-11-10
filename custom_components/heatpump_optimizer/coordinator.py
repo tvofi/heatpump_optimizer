@@ -4178,7 +4178,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             params=ctx._thermal_params,
             action=self._current_action,
             measured_power_kw=pump_arbiter.live_power_kw(self.hass, ctx._config),
-            defrosting=defrost_interval(self._pump_signals.defrosting),
+            defrosting=self._pump_signals.defrosting,
             disinfecting=getattr(
                 getattr(self._legionella, "disinfect", None), "memo", None
             )
