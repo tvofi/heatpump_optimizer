@@ -21570,6 +21570,60 @@
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER, R10-REVIEW-DISPATCH-RESIDUE): hotfix under mandate 6715477401: review_packet refused a WAIT head as required-red, deadlocking #3379; handoff 44467af5"
    },
    "brief": "Hotfix: review_packet.py refused required-red on a head classify read WAIT (a red gate while a unit re-runs), deadlocking #3379. required_reading() returns classify's whole verdict; refuse only on RED or an unreadable/mismatched answer; WAIT/GREEN/APPROVAL-OWED are advisories. Handoff handoff/r10-hotfix-packet-approval-owed 44467af5. Closes the packet row of dev/audit/rca/r10-gate-defer-read-final.md."
+  },
+  {
+   "group": "R10-FLY-REPLAN-TOP-TIER",
+   "lane": "Instruments",
+   "kind": "fix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "N-planner-priority",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/instruments/open_driver.py.md",
+    "tools/audit/seat/instruments/outside_intake.py.md",
+    "tools/audit/seat/instruments/roster_edit.py.md",
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/open_driver.py",
+    "tools/audit/seat/open_driver_selftest.py",
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/plan_page.py",
+    "tools/audit/seat/roster_edit.py",
+    "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/sweep_template.md",
+    "tools/plan/replan.py",
+    "tools/pr/gate_priority.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "fix/r10-fly-replan-top-tier-pr",
+    "pr": 3399,
+    "commit": null,
+    "last_step": null,
+    "next_step": "first review",
+    "note": "overlap admitted (R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE, R10-GATE-DEFER-BARRIER, R10-PLAN-PAGE-RESIDUE, R10-STANDING-CONTRACTS-P2, R10-SEAT-IDENTITY-P5): orchestrator s13 under mandate 6715477401: #3399 opened from handoff/r10-fly-replan-top-tier with no roster group; shares replan.py/roster_lib.py with done R10-FLY-REPLAN-DEFECTS only"
+   },
+   "brief": "Outside requests share replan top tier with the critical path, behind main and hotfixes, unordered between them (height decides within the tier); owner statement tvofi 2026-11-08 \"outside requests and the critical path, all top priority, in no particular order\", read over #3304 strict order. dispatch_tier TIER_TOP for either; roster_lib.dispatch_rank RANK_HOTFIX/RANK_TOP/RANK_OTHER; gate_priority bands 2/1/0; orchestrator_tick orders OWED lines by rank then PR number. Handoff handoff/r10-fly-replan-top-tier 09260b7a, opened as #3399 before its group was queued."
   }
  ]
 }
