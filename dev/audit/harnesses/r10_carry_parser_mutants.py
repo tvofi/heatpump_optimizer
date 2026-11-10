@@ -134,8 +134,8 @@ MUTANTS = [
     # P296: drop the old-must-be-invalid test; drop the item-id scoping
     # CARRY 0 / P310: landed and land-ops
     ("L-landed", "            if r[\"id\"] not in split(group_text(dests, tok)) and not any(", "            if False and not any("),
-    ("L-words", 'words = set(re.split(r"[^\\w#-]+", group_text(dests, tok)))', 'words = set(group_text(dests, tok).split())'),
-    ("L-source", "            keys = [r[\"id\"]] + srcs", "            keys = [r[\"id\"]]"),
+    ("L-words", 'split = lambda t: set(re.split(r"[^\\w#-]+", t))', 'split = lambda t: set(t.split())'),
+    ("L-source", " and not any(k in split(group_text(dests, tok, False)) for k in srcs):", " and True:"),
     ("L-bad", "            if not ok:\n                out.append(", "            if False:\n                out.append("),
     ("L-group", "            if not GROUP_TOK.match(tok):\n                continue", "            if False:\n                continue"),
     ("L-ops-bad", 'if m["why"].startswith("bad destination") or', 'if'),
