@@ -1002,6 +1002,19 @@ def _self_test() -> int:
           and is_open({"resume": {"stage": "refuted"}})
           and "refused" in CARRY_CLOSED and "deferred" not in DONE_STAGES,
           CLOSED_STAGES)
+    # THE SINK BARRIER (R10-CARRY-SINK-BARRIER): the carry-destination test.
+    def cr(st, **kw):
+        return carry_receivable(dict({"group": "G", "files": ["x.py"], "resume": {"stage": st}}, **kw))
+    check("carry_receivable: carries-open, refuted and every CARRY_CLOSED stage take no carry",
+          not any(cr(st) for st in ("carries-open", "refuted") + CARRY_CLOSED))
+    check("carry_receivable: a receiver-only sink (no PR, issue or fix; files []) takes none",
+          not cr("not-started", files=[], brief="Receives carries."))
+    check("carry_receivable (null): live stages take a carry, and so does a group with an "
+          "empty files list but a PR, an issue or a fix, or no files key",
+          all(cr(st) for st in ("not-started", "in-progress", "queued", "review"))
+          and cr("not-started", files=[], issues=[1]) and cr("not-started", files=[], fixes=[2])
+          and carry_receivable({"group": "G", "files": [], "resume": {"stage": "in-progress", "pr": 3}})
+          and carry_receivable({"group": "G", "resume": {"stage": "in-progress"}}))
     def rg(n, st, **kw):
         return {"group": n, "resume": {"stage": st, **kw.pop("res", {})}, **kw}
     chain = {"groups": [rg("P", "deferred"), rg("Q", "queued", after=["P"]),
