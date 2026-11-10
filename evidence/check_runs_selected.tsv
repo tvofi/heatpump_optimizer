@@ -1,0 +1,11 @@
+129776936433	pr-contract	completed	skipped	2026-11-10T10:36:56Z	2026-11-10T10:36:55Z
+129776935568	budget-raise-gate / budget-raise-gate	completed	success	2026-11-10T10:12:27Z	2026-11-10T10:12:51Z
+129776934419	gate	completed	success	2026-11-10T10:40:22Z	2026-11-10T10:40:59Z
+129776923110	pr-contract	completed	skipped	2026-11-10T10:36:54Z	2026-11-10T10:36:53Z
+129776921361	gate	completed	success	2026-11-10T10:37:24Z	2026-11-10T10:38:05Z
+129776920638	budget-raise-gate / budget-raise-gate	completed	success	2026-11-10T10:09:20Z	2026-11-10T10:09:56Z
+129776007347	gate	completed	success	2026-11-10T10:35:02Z	2026-11-10T10:35:42Z
+129775501411	pr-contract / pr-contract	completed	success	2026-11-10T10:34:05Z	2026-11-10T10:34:59Z
+129764076450	tests / arch-instrument	completed	success	2026-11-10T10:10:16Z	2026-11-10T10:11:13Z
+129763664627	budget-raise-gate / budget-raise-gate	completed	success	2026-11-10T10:09:25Z	2026-11-10T10:10:05Z
+129763664492	governance / instrument-self-tests	completed	failure	2026-11-10T10:09:24Z	2026-11-10T10:22:23Z
