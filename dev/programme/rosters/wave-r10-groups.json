@@ -21445,12 +21445,12 @@
     "tools/audit/seat/open_driver_selftest.py"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-hotfix-opener-board-prefix",
-    "commit": "7d6540509c884772cfbf0739ed876a6a619f9669",
+    "commit": "9b1bb58db713a8a13148f98148fa8eb4fd796980",
     "last_step": "fixer",
     "next_step": "open PR, review",
-    "note": "owed-lines seat s13 2026-11-09T23:50Z under mandate 6715477401: open arm opened nothing; overlap admitted (R10-SEAT-IDENTITY-P5): owed-lines seat s13 (mandate 6715477401): open_driver read no topic from the flagged tick board; hotfix handoff/r10-hotfix-opener-board-prefix 7d654050",
+    "note": null,
     "pr": 3396
    },
    "brief": "Hotfix (owed-lines seat, s13, 2026-11-09, mandate 6715477401): the beat's opener passes open_driver.py the tick board, whose owed level lines are flagged `-> OWED: OWED ... handoff-no-pr ...`; BOARD_RE was anchored at a bare `^OWED`, so parse_board read zero topics and the open arm opened nothing (state `{}`, seven handoffs with no PR, one critical path). Fix: BOARD_RE accepts the flag; self-test carries the board's flagged form and an unflagged null."
