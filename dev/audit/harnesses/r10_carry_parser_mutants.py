@@ -133,7 +133,7 @@ MUTANTS = [
      'why = ("lead" if LEAD.match(first) else "evidence" if NONBLOCK.search(t) else "under lead" if inherited\n                   else "carry"'),
     # P296: drop the old-must-be-invalid test; drop the item-id scoping
     # CARRY 0 / P310: landed and land-ops
-    ("L-landed", "            if not any(k in words for k in keys):", "            if False:"),
+    ("L-landed", "            if r[\"id\"] not in split(group_text(dests, tok)) and not any(", "            if False and not any("),
     ("L-words", 'words = set(re.split(r"[^\\w#-]+", group_text(dests, tok)))', 'words = set(group_text(dests, tok).split())'),
     ("L-source", "            keys = [r[\"id\"]] + srcs", "            keys = [r[\"id\"]]"),
     ("L-bad", "            if not ok:\n                out.append(", "            if False:\n                out.append("),
