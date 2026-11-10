@@ -40,23 +40,34 @@ refusals and exited 1.
    cause-1 probe `dev/programme/delivery/3399.md`. The union keeps the
    committed over-approximation, which drift reports and never refuses.
 3. `.github/workflows/governance.yml`: the step gets `id: gh-read-run` and is
-   gated on `steps.scope.outputs.gh-read-run` (precedent d9990a12f2). **Owed
-   before handoff:** its table entry, recorded on Linux with
-   `python3 -I tools/ci/selftest_scope.py record --step gh-read-run`; until
-   then `static` prints `STALE ... missing ['gh-read-run']`.
-
-**Open for the cloud round:** main's later measurements (artifacts
-13735714488 and 13737089304) show further drift against this table:
-`tools/audit/seat/gh_read_run.py` is missing from field-coverage,
-selftest-wiring, hooks-setup, open-pr, pr-args and update-pr (real drift from
-#3361, so union it in). `beatd`'s files also swing from run to run (80, 20
-and
-235 files across the three runs, mostly `dev/audit/**` logs and PNGs), a
-timing-dependent read set that may be a third non-reproducible source.
+   gated on `steps.scope.outputs.gh-read-run` (precedent d9990a12f2). Its table
+   entry recorded on Linux by
+   `python3 -I tools/ci/selftest_scope.py record --step gh-read-run`
+   (`0 failed [], 0 broken trace(s)`).
+4. **A timing-dependent read set, fixed at its cause.** `beatd.py`'s self-test
+   case (a)6 ran `git status --short` on `ROOT`. Status re-reads the content of
+   every racily clean index entry (mtime not older than the index), so the
+   files it reads follow the checkout's timing: main's measurements recorded
+   80, 20 and 235 `beatd` files, mostly `dev/audit/**` logs and PNGs, for one
+   unchanged step. The status now runs in the case's own throwaway repo
+   (`w / "plain"`, initialised before it); the check, that a non-fetch command
+   through the shim logs no retry, is unchanged. Fixed rather than narrowed:
+   a narrowed recording would still need the step to read `ROOT`'s index and
+   665 dirs, and any file a later checkout leaves racy would refuse again.
+   The `beatd` entry is re-recorded from the fixed code.
+5. Union with main's later measurements (artifacts 13735714488 and
+   13737089304 of `selftest-closures`): `tools/audit/seat/gh_read_run.py`
+   added to field-coverage, hooks-setup, open-pr, pr-args, selftest-wiring and
+   update-pr (real drift from #3361). Not unioned: their `beatd` sets (the old
+   case (a)6, fix 4) and `push-names-the-host`'s probes
+   `dev/programme/delivery/3400.md`, `3361.md` and
+   `dev/audit/harnesses/r10_red_list_lag.py`, each a path the measured push
+   added (`git log --diff-filter=A`: 7326025c8, 5a5b2c4fc, d3deec006), i.e.
+   cause 1, fixed by fix 1.
 
 ## Head
 
-d2f3db226841114198ec126f3ec8148559435e82
+79f25fdb3bc296091a1b48d64549927f5391c262
 
 ## Mutation proof
 
@@ -73,6 +84,15 @@ refuses any `git show` of an absent side.
 - Fix 3: before it, `FAIL the live job parses (118 steps) and its gating is consistent`
   (main's job 129633096425); after it, `selftest_scope self-test: 96 checks, 0 failed`.
 
+- Fix 4, perturbation: two tracked files touched
+  (`dev/audit/rounds/round9/D4/s1/shots/expanded_plan__1280__light__en.png`,
+  `dev/audit/waves/w5-g5-195-coverage/coverage/logs/entities.log`), then
+  `selftest_scope.py record --step beatd --out <scratch>`. Old case (a)6:
+  the entry reads both touched files, `index: true`, 665 dirs. Fixed: neither,
+  `index: false`, 1 dir. Unperturbed control, bare `git status --short` under
+  `strace -e openat` on this checkout: 0 opens of `dev/audit/*.{png,log,tsv}`
+  on a fresh index, 2 after touching those two files, 0 on the next run.
+
 ## Null control
 
 On the unmodified tree the new check fails (above), and the other 124 checks
@@ -84,24 +104,29 @@ once the cause-1 probe is removed from the measurement.
 ## Figures
 
 - `python3 -I tools/audit/seat/ref_privacy.py --self-test` -> `ref_privacy self-test: 125 checks, 0 failed`
-- `python3 -I tools/ci/selftest_scope.py --self-test` -> `selftest_scope self-test: 96 checks, 0 failed`
+- `python3 -I tools/ci/selftest_scope.py --self-test` -> `selftest_scope self-test: 103 checks, 0 failed` (at 79f25fdb3)
+- `python3 -I tools/ci/selftest_scope.py static` -> `selftest_scope static: 110 gated step(s), 0 problem(s)` (at 79f25fdb3)
+- `python3 -I tools/audit/seat/beatd.py --self-test` -> `beatd self-test: 119 checks, 0 failed` (at 79f25fdb3)
+- Union check: each artifact's steps against this table, by `selftest_scope.covers` and the dirs rule `drift` uses, misses only in `beatd` (old code) and `push-names-the-host` (the three cause-1 probes above); every other step 0.
+- Scoped gate: `tests/closure.py select` -> `MODE: FULL` (`tools/ci/selftest_closures.json changes the gate itself`); left to CI.
 
 ## Red checks
 
-TO FILL from the cloud run. The red check is
 `governance / instrument-self-tests` on main (steps `Refuse a self-test read
 set the committed table misses`, `Show the self-test scope
 (tools/ci/selftest_scope.py) refusing its own fixtures`, `Show the self-test
-scope refusing each mutant of its trace rules`). Draft root-cause answer:
-the drift is visible only to the strace measurement of the whole job, which
-runs only on a push to main, so no cheaper detector reaches cause 2. Cause 2b
-was reachable on #3361's own PR: `selftest_scope.py --self-test` and
-`static` refuse it in under a second. Cause 1 was reachable with a second
-recording at a different head diff. The process state: nothing repairs the
-table when main goes red. `closures-autofix` repairs `tests/closures.json`,
-but nothing commits the `selftest-closures` artifact, and main stayed red over
-several merges with the repair already uploaded. The root cause is owed in a
-separate seat (`defect-root-cause.md`).
+scope refusing each mutant of its trace rules`). Cheaper detector:
+- Cause 2 (table drift) and fix 4 (beatd's timing): none cheaper; only the
+  strace measurement of the whole job sees a read set, and it runs on a push
+  to main.
+- Cause 2b (ungated step): `selftest_scope.py static` / `--self-test`, under a
+  second each, would have refused it on #3361's own PR.
+- Cause 1 (absent-side probe): a second recording at a different head diff.
+Process state (a), no such process: nothing commits main's uploaded `selftest-closures`
+artifact when the drift step goes red (`closures-autofix` repairs
+`tests/closures.json` only), so main stayed red across merges with the repair
+already uploaded. The root cause is owed in a separate seat
+(`defect-root-cause.md`).
 
 ## Forward-carry
 
