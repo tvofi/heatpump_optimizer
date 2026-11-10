@@ -501,6 +501,21 @@ CARRY_CLOSED = CLOSED_STAGES
 #: `refuted`, which names a finding, not work. Not CARRY_CLOSED itself: a
 #: carries-open group still holds and discharges the carries it owes.
 CARRY_DEST_CLOSED = CARRY_CLOSED + ("carries-open", "refuted")
+
+
+def carry_receivable(group: dict) -> bool:
+    """THE carry-destination test: a group a carry may be routed or moved to.
+    Its stage is outside CARRY_DEST_CLOSED, and it is no receiver-only sink:
+    a group with no pull request, issue or fix and a recorded `files` list
+    that is empty owns no seam to build the carry in. A brief does not count:
+    every group has one (append-group requires it), a sink's included; a group
+    with no `files` key has an unrecorded seam, not an empty one.
+    carry_audit.py's destination check and roster_edit.py's append-carry,
+    mark-carry moved and absorb --into all read it."""
+    res = group.get("resume") or {}
+    sink = (group.get("files") == [] and not res.get("pr")
+            and not group.get("issues") and not group.get("fixes"))
+    return res.get("stage") not in CARRY_DEST_CLOSED and not sink
 #: THE CUT-OVER, per roster path: a carry that sat on a closed group at this
 #: roster-branch commit is LEGACY and is never reported, so the invariant
 #: starts at the cut-over with no blanket migration and nothing marked

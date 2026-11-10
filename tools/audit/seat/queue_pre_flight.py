@@ -377,7 +377,7 @@ def _self_test() -> int:
         w = {} if world is None else world  # the caller's own dict: a read the fake records is visible to it
         with tempfile.TemporaryDirectory() as d:
             opts.setdefault("dests", ca.Dests({"groups": [
-                {"group": "R10-LIVE", "issues": [], "fixes": [], "brief": "Build it.", "resume": {"stage": "planned"}},
+                {"group": "R10-LIVE", "issues": [], "fixes": [], "resume": {"stage": "planned"}},
                 {"group": "R10-OVER", "issues": [], "fixes": [], "resume": {"stage": "done"}}]}, set()))
             # sleep: a broken read's `gh: HTTP 502` is transient, so the train's
             # read retry settles 5/15/45 s before it answers the failure here.
@@ -505,7 +505,7 @@ def _self_test() -> int:
     # extra ref (its own new carry file), never one set cached for the train.
     seen, real = [], ca.load_dests
     ca.load_dests = lambda *a, **k: seen.append(k.get("extra_ref")) or ca.Dests(
-        {"groups": [{"group": "R10-LIVE", "issues": [], "fixes": [], "brief": "Build it.", "resume": {"stage": "planned"}}]}, set())
+        {"groups": [{"group": "R10-LIVE", "issues": [], "fixes": [], "resume": {"stage": "planned"}}]}, set())
     try:
         go({"body": FR + " Carry: R10-LIVE"}, dests=None)
         go({"body": FR + " Carry: R10-LIVE", "pr_head": H1}, dests=None)

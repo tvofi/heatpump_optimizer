@@ -67,7 +67,7 @@ not at all.
   N the destination issue, and **creating it is part of the finding**. A group
   at `resume.stage: done` is not a destination: nothing dispatches or lints it.
   Nor is one at `carries-open`, `absorbed`, `refused`, `refuted` or `deferred`,
-  or one created only to receive carries (no PR, brief, issue or fix): a carry
+  or one created only to receive carries (no PR, issue or fix, and an empty `files`): a carry
   goes to the live group owning the seam, and where none exists the producing
   group keeps the fix (tvofi 2026-11-10).
   `brief_lint.mjs` states the fields and refuses a carry at an issue a live

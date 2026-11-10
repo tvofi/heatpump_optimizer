@@ -42,7 +42,7 @@ starts an item without a bullet. A FINDING item:
 
 A DESTINATION (`Dests.check`):
   GROUP      a group of the newest roster (`roster_lib`), at no `roster_lib.CARRY_DEST_CLOSED`
-             stage and no receiver-only sink (no PR, brief, issue or fix) (a refusal
+             stage and no receiver-only sink (no PR, issue or fix; files []) (a refusal
              lists the live groups after-edged on `check --pr-group G` as valid targets); with no
              --roster-ref, also one open on the round's roster branch
              (`roster_lib.round_ref`), printed NOTE ... resolved on <ref>;
@@ -423,19 +423,15 @@ class Dests:
         res = (g or r).get("resume") or {}
         stage = res.get("stage")
         into = f" into {res['absorbed_into']}" if stage == "absorbed" and res.get("absorbed_into") else ""
-        what = ("a receiver only (no PR, brief, issue or fix)" if stage not in roster_lib.CARRY_DEST_CLOSED
+        what = ("a receiver only (no PR, issue or fix; files [])" if stage not in roster_lib.CARRY_DEST_CLOSED
                 else "done" if stage in roster_lib.DONE_STAGES else stage)
         return False, (f"{tok} is {what}{into} (resume.stage {stage}); a carry goes to the live group owning "
                        f"the seam, else the producing group keeps the fix; valid targets: {self.consumers()}")
 
     @staticmethod
     def live(group: dict) -> bool:
-        """A group that can still take a carry: its stage is not in
-        `roster_lib.CARRY_DEST_CLOSED`, and it is no receiver-only sink -- a
-        group with no pull request, brief, issue or fix owns no seam."""
-        res = group.get("resume") or {}
-        return res.get("stage") not in roster_lib.CARRY_DEST_CLOSED and bool(
-            res.get("pr") or (group.get("brief") or "").strip() or group.get("issues") or group.get("fixes"))
+        """A group that can still take a carry (`roster_lib.carry_receivable`)."""
+        return roster_lib.carry_receivable(group)
 
     def consumers(self) -> str:
         """The live groups after-edged on the pull request's group, for a refusal to print."""
@@ -1210,7 +1206,7 @@ def _self_test() -> int:
     # A closed destination (done, absorbed; the sink barrier below adds the rest) is refused, and the refusal lists the live groups
     # after-edged on the pull request's own group as the valid targets.
     def gr(name, stage, after=()):
-        return {"group": name, "after": list(after), "brief": f"Build {name}.", "resume": {"stage": stage}}
+        return {"group": name, "after": list(after), "resume": {"stage": stage}}
     Dcl = Dests({"groups": [gr("R10-PR", "in-progress"), gr("R10-GONE", "done"), dict(gr("R10-ABS", "absorbed"), resume={"stage": "absorbed", "absorbed_into": "R10-CONS"}),
                             gr("R10-CONS", "not-started", ["R10-PR"]), gr("R10-DEAD", "done", ["R10-PR"]),
                             gr("R10-OTHER", "not-started", ["R10-LIVE"]), gr("R10-NS", "not-started")]},
@@ -1231,15 +1227,15 @@ def _self_test() -> int:
     # THE SINK BARRIER (R10-CARRY-SINK-BARRIER, tvofi 2026-11-10): a carry goes to the
     # live group owning the seam, else the producing group keeps the fix. A group whose
     # PR merged (carries-open), a ruled one (refused, refuted) and a receiver-only group
-    # (no PR, no brief, no issue, no fix) are refused, naming the rule.
+    # (no PR, issue or fix, and `files: []`; a brief is no seam) are refused, naming the rule.
     def sg(name, stage, **kw):
-        return dict({"group": name, "issues": [], "fixes": [], "brief": "", "after": ["R10-PR"],
+        return dict({"group": name, "issues": [], "fixes": [], "brief": "Build it.", "after": ["R10-PR"],
                      "resume": {"stage": stage}}, **kw)
     Dsk = Dests({"groups": [sg("R10-PR", "in-progress", brief="Build the PR arm.", after=[]),
                             sg("R10-CO", "carries-open", issues=[900],
                                resume={"stage": "carries-open", "pr": 3000}),
                             sg("R10-RFS", "refused", brief="Ruled out."), sg("R10-RFT", "refuted", brief="A finding."),
-                            sg("R10-SINK", "not-started"),
+                            sg("R10-SINK", "not-started", files=[], brief="Receives the carries of R10-PR."),
                             sg("R10-WORK", "in-progress", brief="Build the seam.", resume={"stage": "in-progress", "pr": 3001}),
                             sg("R10-NEXT", "not-started", brief="Build the next arm.")]},
                 set(), None, pr_group="R10-PR")
@@ -1341,7 +1337,7 @@ def _self_test() -> int:
                    {"issues": [2353, 7]}) == [7])
     rnd = ("origin/handoff/audit-r10-roster", {"groups": [
         dict(g, resume={"stage": "done"}) if g["group"] == "R10-STALE" else g for g in roster["groups"]] + [
-        {"group": "R10-BRANCH", "brief": "Build it.", "resume": {"stage": "not-started"}},
+        {"group": "R10-BRANCH", "resume": {"stage": "not-started"}},
         {"group": "R10-BRDONE", "resume": {"stage": "done"}}]})
     Drr = Dests(roster, {300}, tmp.name, round_roster=rnd)
     r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=Drr)
@@ -1403,14 +1399,14 @@ def _self_test() -> int:
     r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
     check("... and a clone without that ref refuses it (null control)", r["b"] == 1)
     # body_patch passes --roster-ref <fetched round branch>: that ref, not the tree's roster, is read.
-    rp.write_text(json.dumps({"groups": roster["groups"] + [{"group": "R10-WTONLY", "brief": "Build it.", "resume": {"stage": "not-started"}}]}))
+    rp.write_text(json.dumps({"groups": roster["groups"] + [{"group": "R10-WTONLY", "resume": {"stage": "not-started"}}]}))
     r = run(plant.rstrip() + " Carry: R10-WTONLY\n", d=load_dests(Path(gtmp.name), "origin/main"))
     check("a group only in the worktree roster is refused when --roster-ref names a ref lacking it", r["b"] == 1)
     r = run(plant.rstrip() + " Carry: R10-WTONLY\n", d=load_dests(Path(gtmp.name)))
     check("... and passes with no --roster-ref, the tree's roster read (null control)", r["b"] == 0)
     rp.write_text(json.dumps(roster))
     # P98 arm (b2): a tree behind origin/main reads the roster at origin/main.
-    main_only = {"groups": roster["groups"] + [{"group": "R10-MAINONLY", "brief": "Build it.", "resume": {"stage": "not-started"}}]}
+    main_only = {"groups": roster["groups"] + [{"group": "R10-MAINONLY", "resume": {"stage": "not-started"}}]}
     rp.write_text(json.dumps(main_only))
     git("commit", "-qam", "main gains R10-MAINONLY")
     git("update-ref", "refs/remotes/origin/main", "HEAD")
@@ -1435,7 +1431,7 @@ def _self_test() -> int:
     check("... and a group on neither is still a bad destination (null control)", r["b"] == 1)
     git("reset", "-q", "--hard", "origin/main")
     rp.write_text(json.dumps({"groups": main_only["groups"] + [
-        {"group": "R10-PRONLY", "brief": "Build it.", "resume": {"stage": "not-started"}}]}))
+        {"group": "R10-PRONLY", "resume": {"stage": "not-started"}}]}))
     git("commit", "-qam", "the pull request adds R10-PRONLY")
     d_, out = dests_out()
     r = run(plant.rstrip() + " Carry: R10-PRONLY\n", d=d_)

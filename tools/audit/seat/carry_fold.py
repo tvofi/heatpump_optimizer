@@ -111,7 +111,7 @@ def _self_test() -> int:
         return {"group": name, "after": [], "resume": {"stage": stage}, "brief": "", "carry": list(carry)}
 
     body = ("## Summary\n\nx\n\n## Forward-carry\n\n- the lost ask. Carry: R10-DEST\n")
-    state = {"R10-DEST": dict(gr("R10-DEST", "not-started"), brief="Build the seam."), "R10-GONE": gr("R10-GONE", "done")}
+    state = {"R10-DEST": gr("R10-DEST", "not-started"), "R10-GONE": gr("R10-GONE", "done")}
 
     def load():
         return carry_audit.Dests({"groups": list(state.values())}, set(), None)
