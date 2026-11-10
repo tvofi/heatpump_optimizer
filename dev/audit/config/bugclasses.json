@@ -4869,6 +4869,25 @@
       "doc": [
         "dev/audit/rca/topic-family.md"
       ]
+    },
+    "R10-RCA-SWEEP-SETTLE-LOOP": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#3287 (52f9fc5b34, v7.1.6) added sweep.settle(); undecided() arm 1 reads a re-run's re-stamped SKIPPED jobs (GitHub re-stamps every skipped job of a run whose gate is re-run) as a source finishing after the sibling gate started, so two real-red gates at one head re-run each other to attempt 44 (1618 ci.yml re-attempts and 17 runs at the cap in the 16.6 h after the merge, against 428 and 0 in the 21.2 h before; the closed-loop replay of #3319's recorded attempts gives reruns=86 at origin/main and reruns=1 with arm 1 ignoring skipped jobs)",
+      "trigger": "1 (released: v7.1.6)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "A: the closed-loop convergence check in the sweep's self-test, carried to the R10-SWEEP-SETTLE-LOOP fixer",
+        "B: the attempt-watch beat row (attempt >= 20), to proposal triage"
+      ],
+      "process_state": "(c) #3287's self-test pinned 'the branch cannot loop' with one-pass nulls over hand-written units that carry no conclusion field and that a re-run never moves; its recorded replay ran one open-loop sweep over one attempt per run, though that fixture's attempt-10 rows showed the re-stamp; the review accepted the no-loop nulls and its live head re-ran green, which ends the loop at the first step",
+      "countermeasure": "built: dev/audit/harnesses/r10_rca_sweep_settle_loop.py replay (closed loop over recorded attempt transitions: reruns=86 max_attempt=44 at origin/main and 52f9fc5b34, reruns=1 on the candidate arm-1 copy and in the --no-restamp null, 0 before #3287) and its census arm (alarm 20: 0 runs before the merge, 32 after); proposed: A carried into the fix, B a beat row at 2.84 s per 1800 s pass",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-SWEEP-SETTLE-LOOP.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-SWEEP-SETTLE-LOOP.md"
+      ]
     }
   },
   "N-registry-leak": {
