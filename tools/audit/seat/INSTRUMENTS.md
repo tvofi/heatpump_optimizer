@@ -67,6 +67,7 @@ sweep's standing-seat liveness step keep them alive.
 - [`flow_metrics.py`](instruments/flow_metrics.py.md) — a round's flow over one window
 - [`gantt_drift.py`](instruments/gantt_drift.py.md) — compares the replanned gantt with the real state and prints one `GANTT-SLIP` line per unacknowledged IDLE, LATE or CLOSURE slip
 - [`gh_read.py`](instruments/gh_read.py.md) — the read rule every seat instrument's GitHub READS are under
+- [`gh_read_run.py`](instruments/gh_read_run.py.md) — runs one `gh` read under `gh_read.py`'s rule, for a workflow step
 - [`handoff_push.sh`](instruments/handoff_push.sh.md) — the legacy one-shot
 - [`handover_prompt.py`](instruments/handover_prompt.py.md) — generates the next-session prompt from the roster (and optionally a resume doc)
 - [`merge_pr.sh`](instruments/merge_pr.sh.md) — merges one PR after its evidence checks
