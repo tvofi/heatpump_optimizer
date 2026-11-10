@@ -13,6 +13,10 @@ What changes:
 
 Departure, disclosed: `origin/main` was merged at the start (`fa38b58c2`) although `git merge-tree` reported no conflict, because the brief's de translations need the de catalogue and `SHIPPED_LANGS`, which exist only on main (`git ls-tree origin/main custom_components/heatpump_optimizer/translations/` lists de.json; PR A's head does not). It was merged again (`baac8a0a2`) when `git merge-tree --write-tree origin/main HEAD` reported CONFLICT in de.json and the card, the de-gap keys above, and a third time (`27fa6918c`) for the merge train's skip, `## Merge resolution only`.
 
+## Head
+
+`1d4aec21aa0828412077708a9e74453acaef12e2`: the merge `9f2f00266` of `origin/main` `5d09dedf69eb` into the previous head `c2ba62946a8ce4a63c6ad0df3ca022c6aa299886`, then one commit deleting a stale mutation-ledger pin (`## Repair round`); `e020a1d23d87c707f2a3070e0e77a724fff4b127` merged it into the PR head with no code change. The current head is named in `## Head note` below. The mutation runs and harness figures below were taken at the earlier heads they name.
+
 ## Head note
 
 `a1b268838ee527fa669abcaba5c97ba542b03d3c` is this PR's head: the merge of `origin/main` `b37b85c18ec8d3a2987ea169891fdcc1019cb196` into `e020a1d23d87c707f2a3070e0e77a724fff4b127`, taken because `git merge-tree --write-tree origin/main e020a1d23` reported a conflict after #3297 (`d9bec09f`, R10-HOTFIX-COP-UNMEASURED), #3401 and the merges before them. `tools/pr/prepr.sh` at this head exits 0 (`PRE-PR: a1b268838ee5... rc=0`; `MODE: SCOPED`, `STRUCTURE RATCHET PASSED`, `CI PREDICT: no closures, fast, governance or instrument red predicted against b37b85c18ec8`, `claims register ... byte-identical`). The merge changed no production file by hand; every figure below that reads 213 / 247 / 48 is the figure at `27fa6918c` and is superseded by the Resolution section.
