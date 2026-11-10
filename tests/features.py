@@ -14472,8 +14472,8 @@ _FR_LISTED = {
     "wood_furnace_enabled", "dhw_wood_coil_enabled", "mixing_valve_mode",
     "mixing_valve_write_target_kind", "space_setpoint_unit", "topology_layout",
     "topology_positions", "ecl110_command_topic", "ecl110_displace_set_topic",
-    "ecl110_state_topic", "ecl110_mqtt_qos", "ecl110_mqtt_retain", "modbus_prefill_prefix",
-    "main_fuse_amperes", "main_fuse_phases",
+    "ecl110_state_topic", "ecl110_mqtt_qos", "ecl110_mqtt_retain", "heat_curve_target_kind",
+    "modbus_prefill_prefix", "main_fuse_amperes", "main_fuse_phases",
 }
 #: Every key a ``CONF_`` constant names (a tuple names several: the weekday
 #: hot-water windows), and Home Assistant's own ``name``.
@@ -15021,6 +15021,7 @@ _FR_STORES = {
     "notifier": "kept: which notices were sent",
     "pump_duty": "kept: what was last written to the pump",
     "debug": "kept: a diagnostics collection",
+    "off_restore": "kept: what the optimizer still owes an entity it wrote, at off or unload",
 }
 _fr_found = set()
 for _fr_p in sorted(_FrPath("custom_components/heatpump_optimizer").glob("*.py")):
@@ -42088,9 +42089,9 @@ R.check(
 # ---------------------------------------------------------------------------
 R.section("#193 S3 — the ECL110 publish helpers, over plain values")
 
-from heatpump_optimizer.coordinator import (  # noqa: E402
-    _ecl110_legacy_payload as _s3_ecl_payload,
-    _publish_ecl110_topics as _s3_ecl_publish,
+from heatpump_optimizer.heat_curve import (  # noqa: E402
+    ecl110_legacy_payload as _s3_ecl_payload,
+    publish_ecl110_topics as _s3_ecl_publish,
 )
 
 # The helpers take plain values, never ``self``. A module-level helper handed
@@ -42099,7 +42100,7 @@ from heatpump_optimizer.coordinator import (  # noqa: E402
 _act_s3 = {"price": 1.5, "mode": "boost", "pre_heat_urgency": 0.25}
 _pay_s3 = _s3_ecl_payload("optimizer", True, 4, _act_s3)
 R.check(
-    "_ecl110_legacy_payload builds its context from the action passed in (#193)",
+    "ecl110_legacy_payload builds its context from the action passed in (#193)",
     _pay_s3.get("context") == _act_s3
     and _pay_s3.get("command")
     == {"type": "ecl110_control", "heat_pump_on": True, "displace": 4}
@@ -42144,7 +42145,7 @@ def _s3_publish_calls(set_topic, command_topic, services=None):
 
 _t_none, _p_none, _log_none = _s3_publish_calls("", "")
 R.check(
-    "_publish_ecl110_topics writes nothing when neither topic is configured (#193)",
+    "publish_ecl110_topics writes nothing when neither topic is configured (#193)",
     _t_none == [],
     repr(_t_none),
 )
@@ -42190,6 +42191,835 @@ R.check(
     ),
     repr(_log_flaky),
 )
+
+
+class _S3Kwargs:
+    """MQTT that records each publish's keyword arguments."""
+
+    def __init__(self) -> None:
+        self.calls, self.kwargs = [], []
+
+    async def async_call(self, domain, service, data=None, **kwargs):
+        self.calls.append((domain, service, data))
+        self.kwargs.append(kwargs)
+
+
+_s3_kw = _S3Kwargs()
+_s3_publish_calls("ecl/set", "ecl/cmd", services=_s3_kw)
+R.check(
+    "both arms publish blocking, so a broker failure reaches the arm's own except (#193)",
+    _s3_kw.kwargs == [{"blocking": True}, {"blocking": True}],
+    repr(_s3_kw.kwargs),
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("R10-GENERIC-HEAT-CURVE — the displace through a number entity, kind offset")
+
+# The owner's ruling (tvofi, #201, 2026-11-07): build it, kind offset first,
+# and turning the optimizer off restores the baseline. Every check drives the
+# production chokepoint, ``async_publish_ecl110_command``, or the shared
+# restore hook, never a copy of the arm's arithmetic.
+import time as _time  # noqa: E402
+from harness import FakeEntry as _ghc_entry, FakeHass as _ghc_hass, FakeState as _ghc_state  # noqa: E402
+from heatpump_optimizer import heat_curve as _ghc, off_restore as _ghc_restore  # noqa: E402
+from heatpump_optimizer import async_unload_entry as _ghc_unload  # noqa: E402
+from heatpump_optimizer.const import MODE_AUTO as _ghc_auto, MODE_OFF as _ghc_off  # noqa: E402
+from heatpump_optimizer.entry_config import FACTORY_KEPT as _ghc_kept  # noqa: E402
+
+_GHC_ENT = "number.heating_offset"
+_ghc_seq = iter(range(10**6))
+
+
+def _ghc_coord(unit="K", lo=-20.0, hi=20.0, step=0.5, value="0", entity=_GHC_ENT, hass=None, entry_id=None, **extra):
+    """A coordinator whose heat-curve entity is ``entity``, in ``unit`` over lo..hi."""
+    attrs = {"step": step}
+    if lo is not None:
+        attrs["min"] = lo
+    if hi is not None:
+        attrs["max"] = hi
+    hass = hass or _ghc_hass()
+    if value is not None:
+        hass.states.set(_GHC_ENT, _ghc_state(value, unit=unit, attributes=attrs))
+    cfg = {"tibber_token": "x", "weather_entity": "weather.home", **extra}
+    if entity:
+        cfg["heat_curve_displace_entity"] = entity
+    return Coord(hass, _ghc_entry(data=cfg, entry_id=entry_id or f"ghc_{next(_ghc_seq)}"))
+
+
+def _ghc_writes(coord):
+    """The values the number arm sent, in order."""
+    return [d.get("value") for _, s, d in coord.hass.services.calls if s == "set_value"]
+
+
+def _ghc_mqtt(coord):
+    return [(d.get("topic"), d.get("payload")) for dom, _, d in coord.hass.services.calls if dom == "mqtt"]
+
+
+def _ghc_pub(coord, value, on=True):
+    _asyncio.run(coord.async_publish_ecl110_command(value, on))
+
+
+def _ghc_logged(fn):
+    """Run ``fn``, returning what the integration logged at WARNING and up."""
+    logger = _logging.getLogger("heatpump_optimizer")
+    capture, real_prop = _LogCapture(), logger.propagate
+    logger.addHandler(capture)
+    logger.propagate = False
+    try:
+        fn()
+    finally:
+        logger.propagate = real_prop
+        logger.removeHandler(capture)
+    return [msg for lvl, msg in capture.records if lvl >= _logging.WARNING]
+
+
+# The failing test first: red at the base, which has no such option.
+_g = _ghc_coord(heat_curve_offset_band_k=5.0)
+_ghc_pub(_g, 5.0)
+R.check(
+    "no topic and an offset entity: one publish of 5 sends one set_value of 5 (R10-GENERIC-HEAT-CURVE)",
+    _ghc_writes(_g) == [5] and _ghc_mqtt(_g) == [],
+    "writes=%r mqtt=%r" % (_ghc_writes(_g), _ghc_mqtt(_g)),
+)
+# Null control: the option empty, the same publish -- no number call, and the
+# MQTT arms exactly as before (W7).
+_g0 = _ghc_coord(entity=None, ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_g0, 5.0)
+R.check(
+    "the entity option empty: no set_value, and the /set topic still carries the integer (W7)",
+    _ghc_writes(_g0) == [] and _ghc_mqtt(_g0) == [("ecl/set", "5")],
+    "writes=%r mqtt=%r" % (_ghc_writes(_g0), _ghc_mqtt(_g0)),
+)
+_gb = _ghc_coord(ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gb, 5.0)
+R.check(
+    "both configured: MQTT first with the full integer, the entity bounded by the 3 K default band",
+    _ghc_mqtt(_gb) == [("ecl/set", "5")] and _ghc_writes(_gb) == [3]
+    and [s for _, s, _d in _gb.hass.services.calls] == ["publish", "set_value"],
+    repr(_gb.hass.services.calls),
+)
+_gk = _ghc_coord(unit="K")
+_ghc_pub(_gk, -2.0)
+R.check(
+    "a kelvin entity is sent -2 for -2, never 271.15 through the absolute helpers (T1)",
+    _ghc_writes(_gk) == [-2],
+    repr(_ghc_writes(_gk)),
+)
+_gf = _ghc_coord(unit="°F", step=0.1, lo=-36.0, hi=36.0)
+_ghc_pub(_gf, 2.0)
+R.check(
+    "a Fahrenheit entity is sent the difference x9/5: 2 K is 3.6 °F (T1)",
+    _ghc_writes(_gf) == [3.6],
+    repr(_ghc_writes(_gf)),
+)
+_gs = _ghc_coord(lo=-2.0, hi=2.0)
+_gs_warn = _ghc_logged(lambda: _ghc_pub(_gs, 3.0))
+R.check(
+    "an entity range narrower than the displace saturates and is latched once, naming it (W6)",
+    _ghc_writes(_gs) == [2] and any("narrower" in m for m in _gs_warn),
+    "writes=%r warn=%r" % (_ghc_writes(_gs), _gs_warn),
+)
+_g1 = _ghc_coord(value="3")
+_ghc_pub(_g1, 3.0)
+R.check(
+    "a reading already at the target is not written (W1)",
+    _ghc_writes(_g1) == [],
+    repr(_ghc_writes(_g1)),
+)
+
+# W2 and W3: the reading stays 0 whatever is written.
+_g2 = _ghc_coord()
+_ghc_pub(_g2, 2.0)
+_ghc_pub(_g2, 2.0)
+_w2_grace = list(_ghc_writes(_g2))
+_ghc.state_for(_g2.entry).written_at -= _ghc.HELD_GRACE_S + 1
+_ghc_pub(_g2, 2.0)
+_w2_after = list(_ghc_writes(_g2))
+_ghc.state_for(_g2.entry).written_at -= _ghc.HELD_GRACE_S + 1
+_w3_warn = _ghc_logged(lambda: _ghc_pub(_g2, 2.0))
+_w3_gave_up = list(_ghc_writes(_g2))
+_ghc_pub(_g2, 1.0)
+R.check(
+    "inside the grace a differing reading proves nothing: no second write (W2)",
+    _w2_grace == [2],
+    repr(_w2_grace),
+)
+R.check(
+    "after the grace the first miss is written once more (W2)",
+    _w2_after == [2, 2],
+    repr(_w2_after),
+)
+R.check(
+    "a second miss for the same target latches a warning and sends nothing (W3)",
+    _w3_gave_up == [2, 2] and any("does not hold" in m for m in _w3_warn),
+    "writes=%r warn=%r" % (_w3_gave_up, _w3_warn),
+)
+R.check(
+    "and a new target is written again (W3)",
+    _ghc_writes(_g2) == [2, 2, 1],
+    repr(_ghc_writes(_g2)),
+)
+_g4 = _ghc_coord()
+_cap = _ghc.write_cap_per_day(_g4.effective_config)
+_ghc.state_for(_g4.entry).writes.extend([_time.monotonic()] * _cap)
+_w4_warn = _ghc_logged(lambda: _ghc_pub(_g4, 2.0))
+_g4b = _ghc_coord()
+_ghc.state_for(_g4b.entry).writes.extend([_time.monotonic()] * (_cap - 1))
+_ghc_pub(_g4b, 2.0)
+R.check(
+    "the 24 h write guard is 2 x 1440 / interval: 96 at the default 30 min (W4)",
+    _cap == 96,
+    repr(_cap),
+)
+R.check(
+    "at the guard nothing is written and it is latched; one below it the write goes (W4)",
+    _ghc_writes(_g4) == [] and any("guard" in m for m in _w4_warn) and _ghc_writes(_g4b) == [2],
+    "at=%r below=%r warn=%r" % (_ghc_writes(_g4), _ghc_writes(_g4b), _w4_warn),
+)
+
+
+class _GhcRaising:
+    """MQTT accepted; every set_value raises."""
+
+    def __init__(self) -> None:
+        self.calls = []
+
+    async def async_call(self, domain, service, data=None, **kwargs):
+        self.calls.append((domain, service, data))
+        if service == "set_value":
+            raise RuntimeError("integration gone")
+
+
+_bad = {}
+for _name, _kw in (
+    ("absent", {"value": None}),
+    ("unavailable", {"value": "unavailable"}),
+    ("unit %", {"unit": "%"}),
+    ("sensor domain", {"entity": "sensor.heating_offset"}),
+    ("range excluding 0", {"lo": 20.0, "hi": 70.0, "value": "30"}),
+):
+    _c = _ghc_coord(ecl110_displace_set_topic="ecl/set", **_kw)
+    _warn = _ghc_logged(lambda: _ghc_pub(_c, 2.0))
+    _bad[_name] = (_ghc_writes(_c), _ghc_mqtt(_c), bool(_warn))
+_cr = _ghc_coord(ecl110_displace_set_topic="ecl/set")
+_cr.hass.services = _GhcRaising()
+_cr_warn = _ghc_logged(lambda: _ghc_pub(_cr, 2.0))
+_bad["raising service"] = (
+    [], _ghc_mqtt(_cr), bool(_cr_warn) and _ghc.state_for(_cr.entry).written is None,
+)
+R.check(
+    "absent, unavailable, a non-temperature unit, a sensor, a range without 0 or a raising "
+    "service: no value lands, the failure is latched, the MQTT arm still publishes",
+    all(w == [] and m == [("ecl/set", "2")] and warned for w, m, warned in _bad.values()),
+    repr(_bad),
+)
+
+# The off rule (tvofi, 2026-11-07): off and unload write 0; nothing written,
+# nothing restored.
+_go = _ghc_coord()
+_ghc_pub(_go, 2.0)
+_asyncio.run(_go.async_set_mode(_ghc_off, refresh=False))
+_go_off = list(_ghc_writes(_go))
+_ghc_pub(_go, 2.0)
+_asyncio.run(_go.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "MODE_OFF after a write writes one 0 (the off rule)",
+    _go_off == [2, 0],
+    repr(_go_off),
+)
+R.check(
+    "and while off the arm writes nothing, nor does a second off",
+    _ghc_writes(_go) == [2, 0],
+    repr(_ghc_writes(_go)),
+)
+_gn = _ghc_coord()
+_asyncio.run(_gn.async_set_mode(_ghc_off, refresh=False))
+_gu = _ghc_coord(entity=None, ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gu, 2.0)
+_asyncio.run(_gu.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "nothing written, nothing restored; an unconfigured entity is never written",
+    _ghc_writes(_gn) == [] and _ghc_writes(_gu) == [],
+    "%r %r" % (_ghc_writes(_gn), _ghc_writes(_gu)),
+)
+
+_gl = _ghc_coord()
+_ghc_pub(_gl, -3.0)
+_gl.entry.runtime_data = _gl
+_unloaded = _asyncio.run(_ghc_unload(_gl.hass, _gl.entry))
+R.check(
+    "unload after a write writes one 0, through async_unload_entry (the off rule)",
+    _unloaded and _ghc_writes(_gl) == [-3, 0]
+    and _ghc_restore.diagnostics(_gl.entry)["restores"] == 1,
+    "ok=%r writes=%r" % (_unloaded, _ghc_writes(_gl)),
+)
+
+# A crash: the write was armed and persisted, the process died unrestored. The
+# next coordinator for the same entry restores it at its first off, before
+# writing anything itself.
+_gc = _ghc_coord(entry_id="ghc_crash")
+_ghc_pub(_gc, 2.0)
+_gc2 = _ghc_coord(hass=_gc.hass, entry_id="ghc_crash")
+_asyncio.run(_gc2.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a write left armed by a crash is restored by the next run's first off",
+    _ghc_writes(_gc2) == [2, 0],
+    repr(_ghc_writes(_gc2)),
+)
+
+# The hook's reuse (R10-ARBITER-OFF-RESTORE): a second consumer with a captured
+# baseline registers its own factory and edits nothing in off_restore.
+_ghc_base = {"v": 42.0}
+
+
+async def _ghc_stand_in_write(hass, entity_id, value):
+    hass.services.calls.append(("number", "set_value", {"entity_id": entity_id, "value": value}))
+
+
+_ghc_restore.register_consumer(
+    "stand_in_space_setpoint",
+    lambda cfg: _ghc_restore.Restorer(
+        "number.space_setpoint", _ghc_stand_in_write, baseline_of=lambda hass, eid: _ghc_base["v"],
+    ) if cfg.get("stand_in") else None,
+)
+_si = _ghc_coord(entity=None, entry_id="ghc_stand_in", stand_in=True)
+_si_cfg = _si.effective_config
+_armed = _asyncio.run(_ghc_restore.async_arm(_si.hass, _si.entry, _si_cfg, "stand_in_space_setpoint"))
+_ghc_base["v"] = 46.0  # the consumer's own write moved the entity
+_asyncio.run(_ghc_restore.async_arm(_si.hass, _si.entry, _si_cfg, "stand_in_space_setpoint"))
+_si2 = _ghc_coord(entity=None, hass=_si.hass, entry_id="ghc_stand_in", stand_in=True)
+_si_sent = _asyncio.run(_ghc_restore.async_restore(_si2.hass, _si2.entry, _si2.effective_config, "unload"))
+R.check(
+    "a stand-in second consumer registers without editing the hook: its baseline, captured "
+    "before its first write, survives a restart and is what the restore writes",
+    _armed and _si_sent == 1 and _ghc_writes(_si2) == [42.0],
+    "armed=%r sent=%r writes=%r" % (_armed, _si_sent, _ghc_writes(_si2)),
+)
+_ghc_base["v"] = None
+_si3 = _ghc_coord(entity=None, entry_id="ghc_stand_in_unreadable", stand_in=True)
+R.check(
+    "and an unreadable baseline refuses the consumer's write: nothing to restore it to",
+    _asyncio.run(_ghc_restore.async_arm(_si3.hass, _si3.entry,
+                                        _si3.effective_config, "stand_in_space_setpoint")) is False,
+    "",
+)
+
+# The hook's failure edges, each through the production function: a consumer
+# that refuses before any record exists, a restore whose write raises and is
+# retried, one whose consumer is no longer configured, and a store that cannot
+# save or be removed. None of them may raise into the caller.
+_ghc_fail = {"write": True}
+
+
+async def _ghc_flaky_write(hass, entity_id, value):
+    if _ghc_fail["write"]:
+        raise RuntimeError("integration gone")
+    hass.services.calls.append(("number", "set_value", {"entity_id": entity_id, "value": value}))
+
+
+_ghc_restore.register_consumer(
+    "stand_in_flaky",
+    lambda cfg: _ghc_restore.Restorer("number.flaky", _ghc_flaky_write, neutral=0.0)
+    if cfg.get("flaky") else None,
+)
+_ge = _ghc_coord(entity=None, entry_id="ghc_edges")
+_ge_refused = (
+    _asyncio.run(_ghc_restore.async_arm(_ge.hass, _ge.entry, _ge.effective_config, "no_such_consumer")),
+    _asyncio.run(_ghc_restore.async_arm(_ge.hass, _ge.entry, _ge.effective_config, "stand_in_flaky")),
+)
+R.check(
+    "an unregistered consumer, or one its factory reads as unconfigured, refuses the write "
+    "and leaves no record behind",
+    _ge_refused == (False, False) and _ge.entry not in _ghc_restore._RECORDS,
+    "refused=%r recorded=%r" % (_ge_refused, _ge.entry in _ghc_restore._RECORDS),
+)
+_gw = _ghc_coord(entity=None, entry_id="ghc_flaky", flaky=True)
+_gw_cfg = _gw.effective_config
+_gw_armed = _asyncio.run(_ghc_restore.async_arm(_gw.hass, _gw.entry, _gw_cfg, "stand_in_flaky"))
+_gw_sent = []
+_gw_warn = _ghc_logged(lambda: _gw_sent.append(
+    _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload"))))
+_gw_after_fail = (list(_gw_sent), _ghc_restore.diagnostics(_gw.entry))
+_ghc_fail["write"] = False
+_gw_retry = _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "mode_off"))
+R.check(
+    "a restore whose write raises sends nothing, stays armed and latches a warning naming the entity",
+    _gw_armed is True
+    and _gw_after_fail == ([0], {"armed": ["stand_in_flaky"], "restores": 0, "last_restore": None})
+    and any("number.flaky" in m and "failed" in m for m in _gw_warn),
+    "armed=%r after=%r warn=%r" % (_gw_armed, _gw_after_fail, _gw_warn),
+)
+R.check(
+    "and the next off retries it: one write of the neutral 0, disarmed and counted",
+    _gw_retry == 1 and _ghc_writes(_gw) == [0.0]
+    and _ghc_restore.diagnostics(_gw.entry) == {"armed": [], "restores": 1, "last_restore": "mode_off"},
+    "sent=%r writes=%r diag=%r" % (_gw_retry, _ghc_writes(_gw), _ghc_restore.diagnostics(_gw.entry)),
+)
+_gx = _ghc_coord(entity=None, entry_id="ghc_unconfigured", flaky=True)
+_asyncio.run(_ghc_restore.async_arm(_gx.hass, _gx.entry, _gx.effective_config, "stand_in_flaky"))
+_gx2 = _ghc_coord(entity=None, hass=_gx.hass, entry_id="ghc_unconfigured")
+_gx_sent = _asyncio.run(_ghc_restore.async_restore(_gx2.hass, _gx2.entry, _gx2.effective_config, "unload"))
+R.check(
+    "an armed consumer no longer configured is disarmed unwritten: its entity is not the optimizer's",
+    _gx_sent == 0 and _ghc_writes(_gx2) == [] and _ghc_restore.diagnostics(_gx2.entry)["armed"] == [],
+    "sent=%r writes=%r diag=%r" % (_gx_sent, _ghc_writes(_gx2), _ghc_restore.diagnostics(_gx2.entry)),
+)
+
+
+async def _ghc_store_gone(*_a, **_k):
+    raise RuntimeError("store gone")
+
+
+class _GhcDeadStore:
+    async_save = async_remove = staticmethod(_ghc_store_gone)
+
+
+_gd = _ghc_coord(entity=None, entry_id="ghc_dead_store", flaky=True)
+_asyncio.run(_ghc_restore._armed_record(_gd.hass, _gd.entry))
+_ghc_restore._RECORDS[_gd.entry].store = _GhcDeadStore()
+_gd_armed = _asyncio.run(_ghc_restore.async_arm(_gd.hass, _gd.entry, _gd.effective_config, "stand_in_flaky"))
+_ghc_real_store = _ghc_restore._store
+_ghc_restore._store = lambda hass, entry_id: _GhcDeadStore()
+try:
+    _gd_forgot = _asyncio.run(_ghc_restore.async_forget(_gd.hass, "ghc_dead_store"))
+finally:
+    _ghc_restore._store = _ghc_real_store
+R.check(
+    "a store that cannot save still arms the write, and one that cannot be removed does not raise",
+    _gd_armed is True and _ghc_restore.diagnostics(_gd.entry)["armed"] == ["stand_in_flaky"]
+    and _gd_forgot is None,
+    "armed=%r diag=%r" % (_gd_armed, _ghc_restore.diagnostics(_gd.entry)),
+)
+
+# The arm's own edges, each pinning a line the diff mutants left alive at
+# e330a768 (tools/audit/seat/mutant_run.py --diff over this block).
+from heatpump_optimizer.inputs import NumberReading as _NR  # noqa: E402
+R.check(
+    "T2 at its bounds: a range starting or ending at 0 is an offset, one starting at 0.5 or ending at "
+    "-0.5 is not",
+    [_ghc.range_excludes_zero(_NR(0.0, "K", lo, hi)) for lo, hi in
+     ((0.0, 20.0), (-20.0, 0.0), (0.5, 20.0), (-20.0, -0.5), (None, None))]
+    == [False, False, True, True, False],
+    "",
+)
+R.check(
+    "every refusal of the pure convert names why and is never read as saturated",
+    _ghc.offset_target(None, 2.0, 3.0) == (None, "is unavailable", False)
+    and _ghc.offset_target(_NR(0.0, "%", None, None), 2.0, 3.0)[0::2] == (None, False)
+    and _ghc.offset_target(_NR(30.0, "K", 20.0, 70.0), 2.0, 3.0)[0::2] == (None, False)
+    and _ghc.offset_target(_NR(0.0, "K", None, None), 2.0, 3.0) == (2.0, None, False),
+    "",
+)
+_glo = _ghc_coord(lo=-2.0, hi=2.0)
+_ghc_pub(_glo, -3.0)
+R.check(
+    "a range narrower than the displace saturates on the low side too: -3 K sends -2 (W6)",
+    _ghc_writes(_glo) == [-2],
+    repr(_ghc_writes(_glo)),
+)
+_gh = _ghc_coord(value="2.25")
+_ghc_pub(_gh, 2.0)
+R.check(
+    "a reading exactly half a step from the target holds: 2.25 against 2 at step 0.5 is not written (W1)",
+    _ghc_writes(_gh) == [],
+    repr(_ghc_writes(_gh)),
+)
+_gstep = _ghc_coord(step=2.0)
+_ghc_pub(_gstep, 2.0)
+_ghc_pub(_gstep, 3.0)
+R.check(
+    "a target within half a step of the last write is that write, still in its grace: 3 after 2 "
+    "at step 2 sends nothing (W2)",
+    _ghc_writes(_gstep) == [2],
+    repr(_ghc_writes(_gstep)),
+)
+_gm = _ghc_coord()
+_ghc_pub(_gm, 2.0)
+_gm.hass.states.set(_GHC_ENT, _ghc_state("2", unit="K", attributes={"step": 0.5, "min": -20.0, "max": 20.0}))
+_ghc_pub(_gm, 2.0)
+_gm.hass.states.set(_GHC_ENT, _ghc_state("0", unit="K", attributes={"step": 0.5, "min": -20.0, "max": 20.0}))
+_ghc.state_for(_gm.entry).written_at -= 91.0
+_ghc_pub(_gm, 2.0)
+R.check(
+    "a reading that held clears the misses, and the grace is 90 s: a miss 91 s after the write is "
+    "written once more, not given up (W1, W2)",
+    _ghc_writes(_gm) == [2, 2] and _ghc.state_for(_gm.entry).misses == 1,
+    "writes=%r misses=%r" % (_ghc_writes(_gm), _ghc.state_for(_gm.entry).misses),
+)
+_gp = _ghc_coord()
+_ghc.state_for(_gp.entry).writes.extend([_time.monotonic() - 86401.0] * _cap)
+_ghc_pub(_gp, 2.0)
+R.check(
+    "writes older than 24 h leave the guard: a full day of them 24 h and 1 s old blocks nothing (W4)",
+    _ghc_writes(_gp) == [2] and len(_ghc.state_for(_gp.entry).writes) == 1,
+    "writes=%r kept=%r" % (_ghc_writes(_gp), len(_ghc.state_for(_gp.entry).writes)),
+)
+
+
+class _GhcClock:
+    """A fixed monotonic clock for heat_curve, so a boundary is hit exactly."""
+
+    def __init__(self, now: float) -> None:
+        self.now = now
+
+    def monotonic(self) -> float:
+        return self.now
+
+
+_ghc_real_time = _ghc.time
+try:
+    _ghc.time = _gclk = _GhcClock(1000.0)
+    _gb90 = _ghc_coord()
+    _ghc_pub(_gb90, 2.0)
+    _gclk.now = 1090.0
+    _ghc_pub(_gb90, 2.0)
+    _gclk.now = 100000.0
+    _gb24 = _ghc_coord()
+    _ghc.state_for(_gb24.entry).writes.extend([100000.0 - 86400.0] * _cap)
+    _ghc_pub(_gb24, 2.0)
+finally:
+    _ghc.time = _ghc_real_time
+R.check(
+    "at exactly 90 s the grace is over: a miss then is written once more (W2's bound)",
+    _ghc_writes(_gb90) == [2, 2],
+    repr(_ghc_writes(_gb90)),
+)
+R.check(
+    "and a write exactly 24 h old still counts: a full day of them at that age blocks the write (W4's bound)",
+    _ghc_writes(_gb24) == [] and len(_ghc.state_for(_gb24.entry).writes) == _cap,
+    "writes=%r kept=%r" % (_ghc_writes(_gb24), len(_ghc.state_for(_gb24.entry).writes)),
+)
+_gr = _ghc_coord()
+_gr_cfg = _gr.effective_config
+_gr_sent = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 2))
+_gr_held = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 2))
+_ghc.state_for(_gr.entry).writes.extend([_time.monotonic()] * _cap)
+_gr_capped = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 1))
+_gr.hass.states.set(_GHC_ENT, _ghc_state("unavailable", unit="K"))
+_gr_absent = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 1))
+R.check(
+    "the entity arm answers True only for a write sent: held, capped and unreadable are False",
+    (_gr_sent, _gr_held, _gr_capped, _gr_absent) == (True, False, False, False),
+    repr((_gr_sent, _gr_held, _gr_capped, _gr_absent)),
+)
+_gfr = _ghc_coord(ecl110_displace_set_topic="ecl/set")
+_gfr.hass.services = _GhcRaising()
+_gfr_cfg = _gfr.effective_config
+_gfr_refused = _asyncio.run(_ghc.write_displace(_gfr.hass, _gfr.entry, _gfr_cfg, 2))
+_gfr_warn = []
+for _svc in ("ok", "raising"):  # the refused write above already latched
+    if _svc == "ok":
+        _gfr.hass.services = _ghc_hass().services
+    else:
+        _gfr.hass.services = _GhcRaising()
+    _ghc.state_for(_gfr.entry).written = None
+    _gfr_warn.append(len(_ghc_logged(lambda: _asyncio.run(
+        _ghc.write_displace(_gfr.hass, _gfr.entry, _gfr_cfg, 2)))))
+_gfa = _ghc_coord()
+_gfa_warn = []
+for _val in ("unavailable", "0", "unavailable"):
+    _gfa.hass.states.set(_GHC_ENT, _ghc_state(_val, unit="K", attributes={"step": 0.5, "min": -20.0, "max": 20.0}))
+    _ghc.state_for(_gfa.entry).written = None
+    _gfa_warn.append(len(_ghc_logged(lambda: _ghc_pub(_gfa, 2.0))))
+R.check(
+    "a write that succeeds clears the failure latch, and so does a readable entity: the next "
+    "failure is warned again, not swallowed",
+    _gfr_refused is False and _gfr_warn[0] == 0 and _gfr_warn[1] >= 1
+    and _gfa_warn[0] >= 1 and _gfa_warn[1] == 0 and _gfa_warn[2] >= 1,
+    "write=%r entity=%r" % (_gfr_warn, _gfa_warn),
+)
+_gdg = _ghc_coord()
+_gdg_fresh = _ghc.diagnostics(_gdg.entry, _gdg.effective_config)
+_ghc_pub(_gdg, 2.0)
+_gdg_after = _ghc.diagnostics(_gdg.entry, _gdg.effective_config)
+R.check(
+    "the heat-curve diagnostics: zeros before any write, the write and its 24 h count after one",
+    _gdg_fresh == {"written": None, "misses": 0, "writes_24h": 0, "write_cap_per_day": 96,
+                   "restore": {"armed": [], "restores": 0, "last_restore": None}}
+    and _gdg_after["written"] == 2 and _gdg_after["writes_24h"] == 1
+    and _gdg_after["restore"]["armed"] == ["heat_curve"],
+    "fresh=%r after=%r" % (_gdg_fresh, _gdg_after),
+)
+_gpd = _ghc_coord()
+_asyncio.run(_ghc.publish(_gpd.hass, _gpd.entry, _gpd.effective_config, 2,
+                          _ghc.ecl110_legacy_payload("t", True, 2, {})))
+R.check(
+    "publish called without mode_off writes the entity: only the off mode suppresses the arm",
+    _ghc_writes(_gpd) == [2],
+    repr(_ghc_writes(_gpd)),
+)
+
+# The restore's own edges.
+_ghc_fail["write"] = True
+_asyncio.run(_ghc_restore.async_arm(_gw.hass, _gw.entry, _gw_cfg, "stand_in_flaky"))
+_gw_rewarn = _ghc_logged(lambda: _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload")))
+_ghc_fail["write"] = False
+R.check(
+    "a restore that succeeded cleared its latch: the next failed restore is warned again",
+    any("number.flaky" in m and "failed" in m for m in _gw_rewarn),
+    repr(_gw_rewarn),
+)
+_asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload"))
+from heatpump_optimizer.log_latch import _HELD_CONDITIONS as _ghc_latches  # noqa: E402
+R.check(
+    "and after the retry succeeds no failure is held for that consumer",
+    "off_restore_stand_in_flaky" not in _ghc_latches.get(_gw.entry, {}),
+    repr(_ghc_latches.get(_gw.entry)),
+)
+# The kind option is normalised to offset, so the hook's refusal is driven
+# through its contract: a factory that answers None for the arm's key.
+_gk2 = _ghc_coord()
+_ghc_real_factory = _ghc_restore._CONSUMERS[_ghc.CONSUMER]
+_ghc_restore.register_consumer(_ghc.CONSUMER, lambda cfg: None)
+try:
+    _gk2_sent = _asyncio.run(_ghc.write_displace(_gk2.hass, _gk2.entry, _gk2.effective_config, 2))
+finally:
+    _ghc_restore.register_consumer(_ghc.CONSUMER, _ghc_real_factory)
+R.check(
+    "a write the restore hook refuses to arm is never sent: the arm refuses before the write",
+    _gk2_sent is False and _ghc_writes(_gk2) == [],
+    "sent=%r writes=%r" % (_gk2_sent, _ghc_writes(_gk2)),
+)
+_gcl = _ghc_coord(entry_id="ghc_cleared")
+_ghc_pub(_gcl, 2.0)
+_gcl2 = _ghc_coord(entity=None, hass=_gcl.hass, entry_id="ghc_cleared")
+_asyncio.run(_gcl2.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a heat-curve write armed before its entity option was cleared is disarmed unwritten at the next off",
+    _ghc_writes(_gcl2) == [2] and _ghc_restore.diagnostics(_gcl2.entry)["armed"] == [],
+    "writes=%r diag=%r" % (_ghc_writes(_gcl2), _ghc_restore.diagnostics(_gcl2.entry)),
+)
+_gmc = _ghc_coord(entry_id="ghc_mode_change")
+_ghc_pub(_gmc, 2.0)
+_gmc_cfg = _gmc.effective_config
+_gmc_ret = (
+    _asyncio.run(_ghc_restore.async_mode_change(_gmc.hass, _gmc.entry, _gmc_cfg, _ghc_auto, "comfort")),
+    _asyncio.run(_ghc_restore.async_mode_change(_gmc.hass, _gmc.entry, _gmc_cfg, _ghc_off, _ghc_off)),
+)
+R.check(
+    "a mode change that is not into off, or off to off, restores nothing and answers 0",
+    _gmc_ret == (0, 0) and _ghc_writes(_gmc) == [2]
+    and _ghc_restore.diagnostics(_gmc.entry)["armed"] == ["heat_curve"],
+    "ret=%r writes=%r" % (_gmc_ret, _ghc_writes(_gmc)),
+)
+_gsv = _ghc_coord(entry_id="ghc_saved")
+_ghc_pub(_gsv, 2.0)
+_asyncio.run(_gsv.async_set_mode(_ghc_off, refresh=False))
+_gsv2 = _ghc_coord(hass=_gsv.hass, entry_id="ghc_saved")
+_asyncio.run(_gsv2.async_set_mode(_ghc_off, refresh=False))
+_gfg = _ghc_coord(entry_id="ghc_forgotten")
+_ghc_pub(_gfg, 2.0)
+_asyncio.run(_ghc_restore.async_forget(_gfg.hass, "ghc_forgotten"))
+_gfg2 = _ghc_coord(hass=_gfg.hass, entry_id="ghc_forgotten")
+_asyncio.run(_gfg2.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a restore is persisted, so the next run does not restore it again; a forgotten entry's armed "
+    "set is gone from the store",
+    _ghc_writes(_gsv2) == [2, 0] and _ghc_writes(_gfg2) == [2],
+    "saved=%r forgotten=%r" % (_ghc_writes(_gsv2), _ghc_writes(_gfg2)),
+)
+_gld = _ghc_coord(entry_id="ghc_loads")
+_gld_store = _asyncio.run(_ghc_restore._armed_record(_gld.hass, _gld.entry)).store
+_gld_loads = []
+_gld_real_load = _gld_store.async_load
+
+
+async def _ghc_counted_load():
+    _gld_loads.append(1)
+    return await _gld_real_load()
+
+
+_ghc_restore._RECORDS[_gld.entry].loaded = False
+_gld_store.async_load = _ghc_counted_load
+for _ in range(3):
+    _asyncio.run(_ghc_restore._armed_record(_gld.hass, _gld.entry))
+R.check(
+    "the persisted armed set is read once per entry, not at every arm",
+    len(_gld_loads) == 1,
+    repr(_gld_loads),
+)
+R.check(
+    "the off-restore store is at version 1: a bump strands every persisted armed set without a migration",
+    _ghc_restore.OFF_RESTORE_STORE_VERSION == 1,
+    repr(_ghc_restore.OFF_RESTORE_STORE_VERSION),
+)
+R.check(
+    "a factory reset keeps the heat-curve kind beside its entity (ghc-d03)",
+    "heat_curve_target_kind" in _ghc_kept and "heat_curve_displace_entity" in _ghc_kept,
+    repr(sorted(k for k in _ghc_kept if k.startswith("heat_curve"))),
+)
+# The restore and the arm's record (fix review 1 of PR 3299, block 1): the
+# restore's neutral write is the entity's last instruction, so W2 and W3 judge
+# a re-enable against it, never against the plan's write before the off. Probe
+# A: off then on inside the grace, plan unchanged. Probe B: a first-miss
+# rewrite that held, then off and on at the same target. The fake entity holds
+# what it is told only where the probe sets the reading.
+_GHC_ATTRS = {"step": 0.5, "min": -20.0, "max": 20.0}
+
+
+def _ghc_reads(coord, value):
+    coord.hass.states.set(_GHC_ENT, _ghc_state(value, unit="K", attributes=_GHC_ATTRS))
+
+
+_gpa = _ghc_coord(entry_id="ghc_probe_a")
+_ghc_pub(_gpa, 2.0)
+_asyncio.run(_gpa.async_set_mode(_ghc_off, refresh=False))
+_asyncio.run(_gpa.async_set_mode(_ghc_auto, refresh=False))
+_gpa_warn = _ghc_logged(lambda: _ghc_pub(_gpa, 2.0))
+R.check(
+    "off then on inside the grace, plan unchanged: the re-enable rewrites 2 over the restore's 0, "
+    "never held as W2's grace of the write before the off",
+    _ghc_writes(_gpa) == [2, 0, 2] and _gpa_warn == [],
+    "writes=%r warn=%r" % (_ghc_writes(_gpa), _gpa_warn),
+)
+
+
+def _ghc_probe_b(toggle):
+    coord = _ghc_coord(entry_id=f"ghc_probe_b_{toggle}")
+    _ghc_pub(coord, 2.0)
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    _ghc_pub(coord, 2.0)  # the first miss, rewritten once
+    _ghc_reads(coord, "2")  # and it held
+    if toggle:
+        _asyncio.run(coord.async_set_mode(_ghc_off, refresh=False))
+        _ghc_reads(coord, "0")  # the restore held too
+        _asyncio.run(coord.async_set_mode(_ghc_auto, refresh=False))
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    warn = _ghc_logged(lambda: _ghc_pub(coord, 2.0))
+    return _ghc_writes(coord), warn
+
+
+_gpb, _gpb_warn = _ghc_probe_b(True)
+_gpbn, _gpbn_warn = _ghc_probe_b(False)
+R.check(
+    "a rewrite that held, then off and on at the same target: 2 is written again and W3 does not "
+    "latch against the restore's own 0",
+    _gpb == [2, 2, 0, 2] and not any("does not hold" in m for m in _gpb_warn),
+    "writes=%r warn=%r" % (_gpb, _gpb_warn),
+)
+R.check(
+    "null control, the same history without the off and on: the held 2 is not rewritten, nothing warned",
+    _gpbn == [2, 2] and _gpbn_warn == [],
+    "writes=%r warn=%r" % (_gpbn, _gpbn_warn),
+)
+# The unload path, and the options reload behind it: the record is keyed on
+# the entry, so the next coordinator for the same entry inherits it.
+_gpu = _ghc_coord(entry_id="ghc_probe_unload")
+_ghc_pub(_gpu, 2.0)
+_gpu.entry.runtime_data = _gpu
+_asyncio.run(_ghc_unload(_gpu.hass, _gpu.entry))
+_gpu2 = Coord(_gpu.hass, _gpu.entry)
+_ghc_pub(_gpu2, 2.0)
+R.check(
+    "unload, then the reloaded coordinator for the same entry inside the grace: 2 is written over "
+    "the restore's 0",
+    _ghc_writes(_gpu2) == [2, 0, 2] and _ghc.state_for(_gpu.entry).written == 2,
+    "writes=%r" % (_ghc_writes(_gpu2),),
+)
+# A restore that did not hold, and a re-enable at its own 0: W2 and W3 judge
+# the 0 afresh, from its own stamp, with no miss inherited from the plan's 2.
+def _ghc_restore_missed(aged_rewrite):
+    coord = _ghc_coord(entry_id=f"ghc_restore_missed_{aged_rewrite}")
+    _ghc_pub(coord, 2.0)
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    if aged_rewrite:
+        _ghc_pub(coord, 2.0)  # a first miss: misses 1
+    _ghc_reads(coord, "2")  # held, and the restore below does not land
+    _asyncio.run(coord.async_set_mode(_ghc_off, refresh=False))
+    _asyncio.run(coord.async_set_mode(_ghc_auto, refresh=False))
+    if aged_rewrite:
+        _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    warn = _ghc_logged(lambda: _ghc_pub(coord, 0.0))
+    return _ghc_writes(coord), warn
+
+
+_grm_grace, _ = _ghc_restore_missed(False)
+_grm_miss, _grm_warn = _ghc_restore_missed(True)
+R.check(
+    "a re-enable at 0 right after a restore that did not hold is inside the restore's own grace (W2)",
+    _grm_grace == [2, 0],
+    repr(_grm_grace),
+)
+R.check(
+    "and after its grace the restore's first miss is written once more, not given up on the plan's "
+    "earlier miss (W3)",
+    _grm_miss == [2, 2, 0, 0] and not any("does not hold" in m for m in _grm_warn),
+    "writes=%r warn=%r" % (_grm_miss, _grm_warn),
+)
+# A failed restore told the entity nothing, so the record stays the plan's write.
+_gpf = _ghc_coord(entry_id="ghc_probe_failed_restore")
+_ghc_pub(_gpf, 2.0)
+_gpf.hass.services = _GhcRaising()
+_asyncio.run(_gpf.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a restore whose write raised leaves the arm's record at the plan's write",
+    _ghc.state_for(_gpf.entry).written == 2,
+    repr(_ghc.state_for(_gpf.entry).written),
+)
+
+# The design's evidence plan, arms bullet (fix review 1, block 2): every
+# displace the chokepoint forms reaches the entity arm -- the peak guard's
+# engage (plan minus the nudge) and release (the plan), boost's maximum, and
+# the learned curve bias.
+from heatpump_optimizer import boost as _ghc_boost  # noqa: E402
+from homeassistant.util import dt as _ghc_dt  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    MODE_BOOST as _ghc_boost_mode,
+    PEAK_GUARD_DISPLACE_NUDGE_C as _ghc_nudge,
+)
+
+_gpg = _ghc_coord(entry_id="ghc_peak_guard", heat_curve_offset_band_k=5.0)
+_gpg._current_action = {"displace_value": 3.0, "heat_pump_on": True}
+_gpg._peak_guard.suppressing = True
+_asyncio.run(_gpg._async_peak_guard_transition())
+_gpg._peak_guard.suppressing = False
+_asyncio.run(_gpg._async_peak_guard_transition())
+R.check(
+    "the peak guard's engage writes the plan less the nudge to the entity, its release the plan again",
+    _ghc_nudge == 2.0 and _ghc_writes(_gpg) == [1, 3],
+    "nudge=%r writes=%r" % (_ghc_nudge, _ghc_writes(_gpg)),
+)
+_gbm = _ghc_coord(entry_id="ghc_boost_mode", heat_curve_offset_band_k=10.0, ecl110_displace_max=4.0)
+_asyncio.run(_gbm.async_set_mode(_ghc_boost_mode, refresh=False))
+_gbm._current_action = _gbm._fixed_mode_action()
+_asyncio.run(_gbm.async_publish_current_action())
+_gbo = _ghc_coord(entry_id="ghc_boost_overlay", heat_curve_offset_band_k=10.0, ecl110_displace_max=4.0)
+_gbo_action = {"displace_value": 0.0, "heat_pump_on": False}
+_ghc_boost.overlay(
+    _gbo_action, _ghc_boost.BoostState(until={_ghc_boost.CHANNEL_SPACE: _ghc_dt.utcnow()}),
+    max_power=3.0, max_temp=23.0, ecl_max=_gbo._ecl110_displace_max,
+)
+_gbo._current_action = _gbo_action
+_asyncio.run(_gbo.async_publish_current_action())
+_ghc_max = int(round(_gbm._ecl110_displace_max))
+R.check(
+    "boost writes the displace maximum to the entity, the boost mode and the space boost overlay alike",
+    _ghc_writes(_gbm) == [_ghc_max] and _ghc_writes(_gbo) == [_ghc_max] and _ghc_max == 4,
+    "max=%r mode=%r overlay=%r" % (_ghc_max, _ghc_writes(_gbm), _ghc_writes(_gbo)),
+)
+_gcb = _ghc_coord(entry_id="ghc_curve_bias", curve_learning_enabled=True)
+_gcb._curve_learner.bias = -1.0
+_ghc_pub(_gcb, 3.0)
+_gcb0 = _ghc_coord(entry_id="ghc_curve_bias_off")
+_gcb0._curve_learner.bias = -1.0
+_ghc_pub(_gcb0, 3.0)
+R.check(
+    "the learned curve bias reaches the entity: 3 with a -1 bias sends 2; with curve learning off, 3",
+    _ghc_writes(_gcb) == [2] and _ghc_writes(_gcb0) == [3],
+    "on=%r off=%r" % (_ghc_writes(_gcb), _ghc_writes(_gcb0)),
+)
+# The arm's own off guard (fix review 1, residual): the chokepoint called while
+# off still publishes MQTT and never writes the entity.
+_gmo = _ghc_coord(entry_id="ghc_chokepoint_off", ecl110_displace_set_topic="ecl/set")
+_asyncio.run(_gmo.async_set_mode(_ghc_off, refresh=False))
+_ghc_pub(_gmo, 2.0)
+R.check(
+    "the chokepoint called while off writes no entity value; the MQTT arm still carries the integer",
+    _ghc_writes(_gmo) == [] and _ghc_mqtt(_gmo) == [("ecl/set", "2")],
+    "writes=%r mqtt=%r" % (_ghc_writes(_gmo), _ghc_mqtt(_gmo)),
+)
+_ = _ghc_auto
 
 
 # ---------------------------------------------------------------------------
@@ -42252,10 +43082,10 @@ R.check(
     "and reports no command or state topic it would ever write or read "
     "(R5-D12-01)",
     _unconf._ecl110_command_topic == ""
-    and _unconf._ecl110_displace_set_topic == ""
+    and _unconf.effective_config.ecl110_displace_set_topic == ""
     and _unconf._ecl110_state_topic == "",
     "set=%r command=%r state=%r" % (
-        _unconf._ecl110_displace_set_topic,
+        _unconf.effective_config.ecl110_displace_set_topic,
         _unconf._ecl110_command_topic,
         _unconf._ecl110_state_topic,
     ),
@@ -64036,8 +64866,18 @@ async def _p6_mode(eid):
     return coord.hass.services.calls
 
 
+async def _p6_heat_curve(eid):
+    coord = _p6_coord(
+        {eid: FakeState("0", unit="K", attributes={"min": -20, "max": 20, "step": 0.5})},
+        **{hp_const.CONF_HEAT_CURVE_DISPLACE_ENTITY: eid},
+    )
+    await coord.async_publish_ecl110_command(2.0, True)
+    return coord.hass.services.calls
+
+
 #: Every slot a consumer writes, and that consumer, driven for real.
 _P6_WRITERS = {
+    hp_const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _p6_heat_curve,
     hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY: _p6_switch,
     hp_const.CONF_SPACE_PUMP_ENTITY: _p6_pump,
     hp_const.CONF_VVC_PUMP_ENTITY: _p6_pump,

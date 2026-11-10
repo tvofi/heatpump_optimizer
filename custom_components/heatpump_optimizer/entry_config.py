@@ -110,6 +110,7 @@ class EntryConfig(Mapping[str, Any]):
     indoor_temp_entity: str | None = _entity_slot()
     lower_floor_temp_entity: str | None = _entity_slot()
     mixing_valve_write_entity: str | None = _entity_slot()
+    heat_curve_displace_entity: str | None = _entity_slot()
     price_entity: str | None = _entity_slot()
     pv_export_price_entity: str | None = _entity_slot()
     pv_production_entity: str | None = _entity_slot()
@@ -162,6 +163,7 @@ class EntryConfig(Mapping[str, Any]):
     dhw_tank_volume: float = _key(const.DEFAULT_DHW_TANK_VOLUME, _nonzero_number)
     ecl110_displace_max: float = _key(const.DEFAULT_ECL110_DISPLACE_MAX, finite_float)
     ecl110_displace_min: float = _key(const.DEFAULT_ECL110_DISPLACE_MIN, finite_float)
+    heat_curve_offset_band_k: float = _key(const.DEFAULT_HEAT_CURVE_OFFSET_BAND_K, finite_float)
     external_heat_decay_minutes: float = _key(const.DEFAULT_EXTERNAL_HEAT_DECAY_MINUTES, finite_float)
     external_heat_min_rise: float = _key(const.DEFAULT_EXTERNAL_HEAT_MIN_RISE, finite_float)
     main_fuse_amperes: float = _key(const.DEFAULT_MAIN_FUSE_A, finite_float)
@@ -217,6 +219,9 @@ class EntryConfig(Mapping[str, Any]):
     freq_control_mode: str = _key(const.DEFAULT_FREQ_CONTROL_MODE, _text)
     mixing_valve_write_target_kind: str = _key(
         const.DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND, _one_of(mixing_valve.WRITE_TARGET_KINDS))
+    # A kind this version does not know falls back to offset, the only one it writes.
+    heat_curve_target_kind: str = _key(
+        const.DEFAULT_HEAT_CURVE_TARGET_KIND, _one_of(frozenset(const.HEAT_CURVE_TARGET_KINDS)))
     peak_tariff_hours: str = _key(const.DEFAULT_PEAK_TARIFF_HOURS, _text)
     peak_tariff_months: str = _key(const.DEFAULT_PEAK_TARIFF_MONTHS, _text)
     price_source: str = _key(const.DEFAULT_PRICE_SOURCE, _text)
@@ -304,6 +309,9 @@ _WIRING: dict[str, str] = {
     const.CONF_ECL110_STATE_TOPIC: "the controller's MQTT wiring",
     const.CONF_ECL110_QOS: "the controller's MQTT wiring",
     const.CONF_ECL110_RETAIN: "the controller's MQTT wiring",
+    # ghc-d03: FACTORY_KEPT keeps the _entity key; without its kind a reset
+    # would keep the entity and drop what it is.
+    const.CONF_HEAT_CURVE_TARGET_KIND: "what the heat-curve entity is",
     const.CONF_MODBUS_PREFILL_PREFIX: "the heat pump device the entities came from",
     const.CONF_MAIN_FUSE_A: "the house's main fuse: a default arms the fuse guard "
     "against a fuse the house does not have",
