@@ -4,9 +4,9 @@ R10-PROCESS-SLIM: cards C4, C5, C8 and C6 (a) of the slip study, plus the merge 
 - its flush (rules 3-4) dispatches nightly.yml so that the beat merges a record pull request;
 - its rule 5 (`--require-rows`) refuses a merged PR without the row the beat writes.
 
-R10-FLY-STAMP-FLUSH-COST (#3296) merged without retiring that read (`git grep -c -- '--require-rows' HEAD -- tools/release/stamp.py` prints 8 at the head below), so the beat's deletion is forward-carried to R10-TRAIN-RESIDUE, whose roster brief owns it (Forward-carry). `.github/workflows/nightly.yml` is byte-identical to origin/main again (`git diff --quiet origin/main HEAD -- .github/workflows/nightly.yml` exits 0).
+R10-FLY-STAMP-FLUSH-COST (#3296) is changing that flush now, so the beat's deletion is forward-carried to it (Forward-carry). `.github/workflows/nightly.yml` is byte-identical to origin/main again (`git diff --quiet origin/main HEAD -- .github/workflows/nightly.yml` exits 0).
 
-Deletion over machinery throughout: 41 files changed, 581 insertions, 765 deletions (`git diff --shortstat b8f67a775137a8032d5c71b34ea64165c1d4613a...HEAD` at the head below; the merge base moved, so the count is against the new base). The diff writes 0 files under `custom_components/` (`git diff --name-only b8f67a775137a8032d5c71b34ea64165c1d4613a...HEAD -- custom_components` is empty). One cap pair is removed, for a deleted file (Raise justification). Claim files, `VERSION`, the manifest version and the notes heading are byte-identical to the merge base (prepr steps `no version edit` and `claim files`).
+Deletion over machinery throughout: 39 files changed, 578 insertions, 761 deletions (`git diff --shortstat 0a8033305d7b03494eb63453e6181a13ffa55c05...HEAD` at the head below). The diff writes 0 files under `custom_components/` (`git diff --name-only 0a8033305d7b03494eb63453e6181a13ffa55c05...HEAD -- custom_components` is empty). One cap pair is removed, for a deleted file (Raise justification). Claim files, `VERSION`, the manifest version and the notes heading are byte-identical to the merge base (prepr steps `no version edit` and `claim files`).
 
 ### What changes, per card
 
@@ -96,13 +96,11 @@ Re-check only these hunks; every other file auto-merged. The conflict is with #3
 
 ## Head
 
-6671786843048c52ea7c11373c1e074e4aa8f187 (`handoff/r10-process-slim-p2`).
+6671786843048c52ea7c11373c1e074e4aa8f187 (`handoff/r10-process-slim-p2`), a merge of origin/main b8f67a775137a8032d5c71b34ea64165c1d4613a (receipt round: prepr run on this head).
 
-**Head note (66717868): repair of open_pr.sh's two prepr refusals at 0c12e36e** (`fixer.md` step 6; no re-cut, no hand-written code). 6671786843048c52ea7c11373c1e074e4aa8f187 merges origin/main b8f67a775137a8032d5c71b34ea64165c1d4613a into 0c12e36ea4875d5f76aa3f6a7b8781c7e23807c1 with the repo's merge drivers installed (`claimnotes`, `ledgermerge`); it auto-merged, `tests/closures.json` through `ledgermerge`, and no file was hand-edited. `git merge-base origin/main HEAD` is now b8f67a775137a8032d5c71b34ea64165c1d4613a, the base of every three-dot figure in this round.
-- **`carry` (BAD-DEST):** the Forward-carry item named R10-CLOSEOUT-INSTRUMENTS, which is `resume.stage: done` at `handoff/audit-r10-roster` 12dd95af5acfd22d29502e9b62731520ff8d9737. It now names R10-TRAIN-RESIDUE (`not-started`), whose roster brief owns "the deletion of the record-autofix beat with the train-hold and stamp-hold arms once no stamp rule reads the rows", and whose carries already hold this item, moved from R10-CLOSEOUT-INSTRUMENTS carry 4 by the s13 carries-open audit. The brief's suggested R10-CLOSEOUT-CLEANUP was checked first and does not own it: its brief is the closeout instrument and the round's `--apply` run. `python3 tools/audit/carry_audit.py check --body BODY.md --branch fix/r10-process-slim-p2` (with a local `handoff/audit-r10-roster` at 12dd95af): `6 routed, 0 unrouted, 0 bad destination(s)`.
-- **`ci predict` (13 reds against 263b3908):** re-run at this head, `python3 tools/pr/ci_predict.py --body BODY.md` prints `CI PREDICT: no closures, fast, governance or instrument red predicted against b8f67a775137`. The five `UNMERGED` arms and the base-copy and step-replay arms read the unmerged 0c12e36e against an older main; none reproduces at the merged head, so no arm is named under Red checks as a base-copy refusal.
+Previous head: 0c12e36ea4875d5f76aa3f6a7b8781c7e23807c1.
 
-**Previous head note (0c12e36e):** 0c12e36ea4875d5f76aa3f6a7b8781c7e23807c1.
+**Receipt round (head 6671786843048c52ea7c11373c1e074e4aa8f187):** R10-CLOSEOUT-INSTRUMENTS is `resume.stage: done` at `handoff/audit-r10-roster` f962d0d5c, so item ada60feb's marker moves to R10-TRAIN-RESIDUE, whose brief names the deletion of the record-autofix beat once no stamp rule reads the rows.
 
 **Head note (0c12e36e): repair of the three prepr refusals at 25bc7471** (`fixer.md` step 6; no re-cut). 0c12e36ea4875d5f76aa3f6a7b8781c7e23807c1 is a commit on a merge of origin/main 1cabb845d61754d333005b64d3df14d55827d0c6 into 25bc7471a0386ad028b02db9feb0b6c89f80210d; the merge auto-merged (`tests/closures.json` through the `ledgermerge` driver). The one hand-written commit drops three citations of `dev/governance/roles/proposal-triage.md`, which card C6 (a) of this PR deletes: two lines in `dev/audit/README.md` and one in `tools/audit/seat/outside_intake.py`. `tools/ci/selftest_closures.json` still lists the path inside a recorded closure and is not a citation. Before: `node tools/policy/policy_lint.mjs` printed `TOTAL: 2 error(s)` (both `[citations]` on `proposal-triage.md`); after: `TOTAL: 0 error(s)`. `brief_lint.mjs` reports 0 errors. The `mutants` refusal was the same citation error: `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` at this head ends `PRE-PR: 0c12e36e... rc=0`, with `mutants`, `claims register` (claims.py rewrites both files byte-identical) and `claim files` (byte-identical to origin/main) all `ok`.
 
@@ -212,7 +210,7 @@ Each changed line was mutated by hand. A mutant was graded by the self-test or c
 
 ## Red checks
 
-At 6671786843048c52ea7c11373c1e074e4aa8f187 no check has run: no pull request is open for it, and a handoff ref runs no workflow. Owed answers are only for reds in the set `python3 tools/audit/seat/merge_train.py owed-reds --repo tvofi/heatpump_optimizer` prints (owner ruling 2026-11-09).
+At 25bc7471a0386ad028b02db9feb0b6c89f80210d no check has run: no pull request is open for it, and a handoff ref runs no workflow. Owed answers are only for reds in the set `python3 tools/audit/seat/merge_train.py owed-reds --repo tvofi/heatpump_optimizer` prints (owner ruling 2026-11-09).
 
 The superseded PR #3245's head is f5af5b513b1978d732fd41902c203890e3a0247b, an ancestor of this head. Its check-runs (`pull_request_read get_check_runs`, read 2026-11-09: 66 runs, one page):
 - `budget-raise-gate / budget-raise-gate` (128968794644, run 42555968032; 128970652152, run 42555968038) failed with `REFUSED: tvofi's approval is on 565f9f2b8a5e, not this head f5af5b513b19: an approval covers only the commit it was given on`; 129024905382 in run 42556058045 passed at 07:09Z. Root-cause trigger: no cheaper detector exists — the refusal is the gate's designed answer to a moved head (`budget-raise-gate`, decision 0013), not a defect of this diff. **This head is predicted the same red** until the raise is approved at it (the proposal-triage cap removal, Raise justification).
@@ -262,7 +260,7 @@ Architecture score: dS +0.0000 NULL
   - `record_row.py`'s `governance / delivery-status` red name (that job is deleted by this PR);
   - the pins this PR restored in `tests/entities.py`, `merge_train.py` and `orchestrator_tick.py`.
 
-  The stamp's flush (rules 3-4) and rule 5 (`--require-rows`) still read the beat (orchestrator ruling 2026-11-08). R10-TRAIN-RESIDUE owns the beat's deletion with the train-hold and stamp-hold arms (its brief at `handoff/audit-r10-roster` 12dd95af, and its carry moved from R10-CLOSEOUT-INSTRUMENTS carry 4). Carry: R10-TRAIN-RESIDUE
+  The stamp's flush (rules 3-4) and rule 5 (`--require-rows`) still read the beat, and that group is changing the flush now (orchestrator ruling 2026-11-08). Carry: R10-TRAIN-RESIDUE
 
 ## Carries
 
