@@ -63,7 +63,7 @@ it writes is recorded. A reading that differs from the record after
 :data:`ECHO_GRACE_S` -- a person, an automation or the pump's own reset --
 is written again at once: while "Optimizer active" is on the optimizer is
 the pump's one writer, and turning it off is how a person takes the pump
-back, and nothing is written from then on. A value the pump
+back, and nothing is written from then on but the restore below. A value the pump
 still does not hold after that rewrite raises a warning repair and is sent
 again every :data:`RETRY_MINUTES`; the first reading that holds it clears
 the repair. Readings inside the grace prove nothing either way: the fork
@@ -77,8 +77,8 @@ row is configured (#1911). Inside a silent window it is held on; outside
 one, off; a boost releases it for the boost and it is held again after.
 An install with no silent rows never has it written. An Off window adds
 no write of its own: those steps are the idle row, and the power switch
-is not one of them. Switching the optimizer off writes nothing and undoes
-nothing, so a switch it turned on stays on. The reading that write causes
+is not one of them. Switching the optimizer off writes nothing to it and
+undoes nothing, so a switch it turned on stays on. The reading that write causes
 keeps the learners off the interval, and it is not a further cap on the
 plan: the window's ceiling is the solve's.
 
@@ -102,10 +102,22 @@ house is below the plan's room temperature for the step. A house at or
 above it needs no space heat, so the lease does not hand the pump's own
 space thermostat a warm house (tvofi, v6.6.12). A stale or
 missing plan, comfort, an experiment and the end of the lease all get
-the baseline row above, and so does unloading while the optimizer is on.
-A boost adds its duty to the plan step's (Boost Space Heating alone is
+the baseline row above, and so does unloading while the optimizer is on,
+the space set-point apart. A boost adds its duty to the plan step's (Boost Space Heating alone is
 space only, DHW boost alone hot water only), and the global boost mode is
-both (:func:`_planned_duty`). Turning it off writes nothing.
+both (:func:`_planned_duty`). Turning it off writes nothing but the restore.
+
+**Off restores the space set-point** (tvofi, 2026-11-07, "Arbiter too",
+retracting 2026-09-26's "off writes nothing" for this slot). Before its first
+write the arbiter arms :mod:`off_restore` (:data:`CONSUMER`), which captures
+the entity's reading, persisted, as the person's baseline and writes it back
+on the change into Off and on every unload, a reload and a Home Assistant
+stop included (the hook's one rule). A reading equal to the arbiter's own
+last write is never captured (:func:`_arm_space`). What a person sets while
+the optimizer is off is captured at the next arm; one set between writes is
+adopted as the baseline (:func:`_edited`) and, while active, still written
+over. The mode, the hot-water set-point and the silent switch are not
+restored.
 
 It acts at step boundaries: a one-minute tick (only while the option is not
 off) re-derives the step, since the solve runs every 30 minutes and a plan
@@ -145,7 +157,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, issues, pump_mode, quiet_windows
+from . import boost, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -274,6 +286,10 @@ class ArbiterState:
     supply: tuple[datetime, bool] | None = None
     #: The step tick's listener; dropped only at unload, never by duty mode.
     supply_unsub: Callable[[], None] | None = None
+    #: The space set-point's reading when the arbiter last armed a write to
+    #: it; ``None`` unknown (a restart, or the power switch read off since).
+    #: A later reading that is neither this nor the write is a person's edit.
+    space_before: float | None = None
 
 
 @dataclass(frozen=True)
@@ -1048,14 +1064,16 @@ def _observed(inp: ArbiterInputs, slot: str) -> Any:
     return read_setpoint(inp.hass, entity)
 
 
-def hold(coord: Any, now: datetime) -> None:
+def hold(coord: Any, now: datetime) -> float | None:
     """Drop the record of every slot the pump does not hold, so it is rewritten.
 
     The first differing reading is rewritten at once; one that still differs
-    after that rewrite is warned about and retried every few minutes.
+    after that rewrite is warned about and retried every few minutes. Returns
+    the space set-point a person set (:func:`_edited`), which off restores.
     """
     held = state_for(coord)
     inp = coord.arbiter_inputs()
+    edit = None
     for slot, (value, at) in list(held.written.items()):
         observed = _observed(inp, slot)
         if observed is None or utc_elapsed_seconds(now, at) < ECHO_GRACE_S:
@@ -1065,11 +1083,27 @@ def hold(coord: Any, now: datetime) -> None:
             if held.retry.pop(slot, None) is not None and not held.retry:
                 issues.clear_issue(coord.hass, ISSUE_IGNORED)
             continue
+        if slot == "space_setpoint" and _edited(held, observed):
+            edit = observed
         del held.written[slot]
         held.misses[slot] = held.misses.get(slot, 0) + 1
         if held.misses[slot] > 1:
             entity = _slot_entity(inp.config, slot)
             _not_held(coord, held, slot, f"{entity}: {observed} (set by the optimizer: {value})", now)
+    return edit
+
+
+def _edited(held: ArbiterState, observed: float) -> bool:
+    """A differing space reading is a person's edit, not the pump's.
+
+    Only on the first miss (a second is a write the pump does not take), and
+    only where it is not what the entity read when the write was sent (a
+    refused write falls back to that) and that reading is known: after a
+    restart or a power cycle (the pump's own reset) nothing is adopted.
+    """
+    before = held.space_before
+    return not held.misses.get("space_setpoint") and before is not None \
+        and _differs("space_setpoint", observed, before)
 
 
 def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datetime) -> None:
@@ -1088,7 +1122,7 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
 
 
 def _forget(held: ArbiterState) -> None:
-    held.written, held.misses, held.retry = {}, {}, {}
+    held.written, held.misses, held.retry, held.space_before = {}, {}, {}, None
 
 
 def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | None:
@@ -1114,11 +1148,9 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
         recorded and not _differs(slot, recorded[0], value)
     ):
         return
-    if slot in held.retry and utc_elapsed_seconds(now, held.retry[slot]) < 0:
+    if await _held_back(coord, inp, held, slot, entity, now):
         return
     domain = entity.split(".", 1)[0]
-    if slot == "mode" and domain not in _MODE_DOMAINS:
-        return  # a read-only mode slot is read, never written (D12-s2-02)
     service = _service(slot, state, value)
     try:
         if service is None:
@@ -1132,6 +1164,41 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
         return
     held.written[slot] = (int(value) if slot in _NIGHT_KEYS else value, now)
     await _persist(coord)
+
+
+async def _held_back(
+    coord: Any, inp: ArbiterInputs, held: ArbiterState, slot: str, entity: str, now: datetime,
+) -> bool:
+    """A write that differs but is not sent this pass: its retry is not due, the
+    mode slot is read-only (D12-s2-02), or the space restore is not armed."""
+    if slot in held.retry and utc_elapsed_seconds(now, held.retry[slot]) < 0:
+        return True
+    if slot == "mode" and entity.split(".", 1)[0] not in _MODE_DOMAINS:
+        return True
+    return slot == "space_setpoint" and not await _arm_space(coord, inp, held, entity)
+
+
+async def _arm_space(coord: Any, inp: ArbiterInputs, held: ArbiterState, entity: str) -> bool:
+    """Arm the off restore before a space write; False holds the write.
+
+    The first arm captures the entity's reading as the baseline off restores
+    (:mod:`off_restore`), but never one equal to the arbiter's own last write
+    -- a record from before this restore existed: that number is the
+    optimizer's, not the person's, so the write is held, latched, until the
+    controller reads anything else.
+    """
+    armed = await off_restore.async_armed_entry(inp.hass, coord.entry, CONSUMER)
+    reading = read_setpoint(inp.hass, entity)
+    last = held.written.get("space_setpoint")
+    own = (armed is None or armed["entity_id"] != entity) and last is not None \
+        and reading is not None and not _differs("space_setpoint", reading, last[0])
+    if log_held(inp.hass, f"space_baseline_own:{entity}", own,
+                "Pump duty: %s reads %s, the optimizer's own last write, which is no "
+                "baseline to restore on off; not writing it until it is set at the controller",
+                entity, reading):
+        return False
+    held.space_before = reading
+    return await off_restore.async_arm(inp.hass, coord.entry, inp.config, CONSUMER)
 
 
 async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: datetime) -> None:
@@ -1241,9 +1308,11 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
 
 async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: str, now: datetime) -> None:
     if inp.mode == MODE_OFF or mode != DUTY_CONTROL:
-        # Off writes nothing, not even the baseline (tvofi, 2026-09-26): the
-        # pump is the person's the moment the optimizer lets go of it.
-        if held.written or held.retry:
+        # Off writes nothing here, not even the baseline row: the pump is the
+        # person's the moment the optimizer lets go of it. The space
+        # set-point's baseline is restored by off_restore (tvofi, 2026-11-07,
+        # "Arbiter too"), before this pass; its record is dropped here.
+        if held.written or held.retry or held.space_before is not None:
             # A pending retry dies with control, and so does its warning.
             _forget(held)
             issues.clear_issue(coord.hass, ISSUE_IGNORED)
@@ -1256,9 +1325,16 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now,
     )
     _observe(held, inp, duty, now)
-    if mode != DUTY_CONTROL or _pump_off(inp):
+    if mode != DUTY_CONTROL:
         return
-    hold(coord, now)
+    if _pump_off(inp):
+        held.space_before = None  # its reset on power-up is no person's edit
+        return
+    edit = hold(coord, now)
+    entity = _entities(inp.config)["space_setpoint"]
+    if edit is not None and await off_restore.async_rebaseline(inp.hass, coord.entry, CONSUMER, entity, edit):
+        _LOGGER.info("Pump duty: %s was set to %s by hand; turning the optimizer off restores that",
+                     entity, edit)
     await _command(
         coord, inp,
         desired(coord, inp, _without_block(coord, _share(coord, inp, duty, now), now), now),
@@ -1425,13 +1501,20 @@ def _pump_off(inp: ArbiterInputs) -> bool:
 
 
 async def release(coord: Any) -> None:
-    """Unload: write the baseline over anything still owned, then let go."""
+    """Unload: write the baseline row over anything still owned, then let go.
+
+    Not the space set-point: the unload's restore (:mod:`off_restore`) has
+    written its baseline back already, and the record of it is saved here.
+    """
     release_listeners(coord)
     held = state_for(coord)
     release_supply(held)
     inp = coord.arbiter_inputs()
     if held.written and duty_mode(inp.config) == DUTY_CONTROL and inp.mode != MODE_OFF:
-        await _command(coord, inp, desired(coord, inp, None, dt_util.now()), dt_util.now())
+        now = dt_util.now()
+        await _command(coord, inp, replace(desired(coord, inp, None, now), space_setpoint=None), now)
+    if held.loaded:
+        await _persist(coord)
 
 
 def release_listeners(coord: Any) -> None:
@@ -1520,6 +1603,34 @@ def _writable(slot: str, value: Any) -> bool:
 
 
 boost.bind_cold_lease(block_cold_lease)
+
+#: The off-restore hook's key for the space set-point (R10-ARBITER-OFF-RESTORE).
+CONSUMER = "pump_arbiter_space"
+
+
+def _restorer(config: Any) -> off_restore.Restorer | None:
+    """The space set-point's restore: the reading captured before the first write, degC."""
+    entity = EntryConfig.from_mapping(config).space_setpoint_entity
+    if not entity:
+        return None
+    return off_restore.Restorer(entity, write_setpoint_c, baseline_of=read_setpoint,
+                                restored=_space_restored)
+
+
+def _space_restored(entry: Any, _entity_id: str, _value: float) -> None:
+    """The restore wrote the baseline: the slot is the arbiter's no longer.
+
+    Its record goes, so the next arm captures what the entity reads and
+    :func:`hold` compares nothing against a write the entity was told over.
+    """
+    coord = getattr(entry, "runtime_data", None)
+    held = None if coord is None else _STATES.get(coord)
+    if held is not None:
+        for record in (held.written, held.misses, held.retry):
+            record.pop("space_setpoint", None)
+
+
+off_restore.register_consumer(CONSUMER, _restorer, write=write_setpoint_c)
 
 
 def diagnostics_view(coord: Any) -> dict[str, Any]:

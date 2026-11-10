@@ -61318,6 +61318,7 @@ import asyncio as _pa_aio  # noqa: E402
 from types import SimpleNamespace as _PaNS  # noqa: E402
 
 from heatpump_optimizer import pump_arbiter as _pa  # noqa: E402
+from harness import FakeEntry as _pa_entry  # noqa: E402
 from heatpump_optimizer.const import MODE_AUTO as _PA_AUTO, MODE_OFF as _PA_OFF  # noqa: E402
 
 _PA_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
@@ -61362,7 +61363,9 @@ class _PaCoord:
         self._thermal_params = _PaNS(dhw_setpoint=48.0)
         self._current_state = _PaNS(outdoor_temperature=2.0)
         # One store key per coordinator: the storage stub outlives FakeHass.
-        self.entry = _PaNS(entry_id=f"pa{next(_PA_IDS)}")
+        # A FakeEntry, weak-referenceable as a real entry is: off_restore
+        # keys its record on it (R10-ARBITER-OFF-RESTORE).
+        self.entry = _pa_entry(entry_id=f"pa{next(_PA_IDS)}")
         self.set_modes = []
 
     def _plan_is_stale(self):
@@ -61936,6 +61939,120 @@ R.check(
     _pa_offun.writes() == []
     and ("select", "select_option", "Heating + DHW") in _pa_onun.writes(),
     f"{_pa_offun.writes()} / {_pa_onun.writes()}",
+)
+
+# R10-ARBITER-OFF-RESTORE (tvofi, 2026-11-07, "Arbiter too"): off and unload
+# restore the space set-point to the person's baseline, through off_restore.
+from heatpump_optimizer import off_restore as _pa_or  # noqa: E402
+
+
+def _pa_space(coord):
+    """The values written to the space set-point, in order."""
+    return [data["value"] for _d, _sv, data in coord.hass.services.calls
+            if data.get("entity_id") == "number.water_set"]
+
+
+def _pa_turn_off(coord):
+    """The coordinator's own path into Off: the hook's restore, then the mode, then a pass."""
+    coord.entry.runtime_data = coord
+    sent = _pa_aio.run(_pa_or.async_mode_change(coord.hass, coord.entry, coord._config, coord._mode, _PA_OFF))
+    coord._mode = _PA_OFF
+    _pa_run(coord, 45)
+    return sent
+
+
+_pa_ro = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_ro)                          # baseline 53 captured, the gate 25 written
+_pa_ro_sent = _pa_turn_off(_pa_ro)
+_pa_ro_written = dict(_pa.state_for(_pa_ro).written)
+_pa_ro_null = _PaCoord(_PA_TUYA, duty="observe")
+_pa_settled(_pa_ro_null)
+_pa_ro_null_sent = _pa_turn_off(_pa_ro_null)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: switching the optimizer off writes the space set-point's baseline back, "
+    "once, and nothing else; null control: with the arbiter not controlling, off writes nothing",
+    _pa_ro_sent == 1 and _pa_space(_pa_ro) == [53.0] and len(_pa_ro.writes()) == 1
+    and _pa_ro_written == {}
+    and _pa_ro_null_sent == 0 and _pa_ro_null.writes() == [],
+    f"{_pa_ro_sent=} {_pa_ro.writes()=} {_pa_ro_written=} / {_pa_ro_null_sent=} {_pa_ro_null.writes()=}",
+)
+_pa_ru = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_ru)
+_pa_ru.entry.runtime_data = _pa_ru
+_pa_ru_sent = _pa_aio.run(_pa_or.async_restore(_pa_ru.hass, _pa_ru.entry, _pa_ru._config, "unload"))
+_pa_aio.run(_pa.release(_pa_ru))
+R.check(
+    "R10-ARBITER-OFF-RESTORE: unloading restores the space baseline and the release writes the "
+    "fallback row without the space set-point over it",
+    _pa_ru_sent == 1 and _pa_space(_pa_ru) == [53.0]
+    and ("select", "select_option", "Heating + DHW") in _pa_ru.writes(),
+    f"{_pa_ru_sent=} {_pa_ru.writes()=}",
+)
+# Persisted: a restart's new coordinator, entry and hass restore the baseline
+# read before the first write, never the optimizer's own value it now reads.
+_pa_rr = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_rr)
+_pa_rr2 = _PaCoord(_PA_TUYA)
+_pa_rr2.entry = _pa_entry(entry_id=_pa_rr.entry.entry_id)
+_pa_rr2.device("number.water_set", "25")
+_pa_rr2_sent = _pa_turn_off(_pa_rr2)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: the baseline survives a restart: off after it restores 53, not the 25 "
+    "the optimizer wrote",
+    _pa_rr2_sent == 1 and _pa_space(_pa_rr2) == [53.0],
+    f"{_pa_rr2_sent=} {_pa_rr2.writes()=}",
+)
+
+
+def _pa_upgraded(reading):
+    """A record from before the restore existed: the arbiter wrote 30, the entity reads ``reading``."""
+    coord = _PaCoord(_PA_TUYA)
+    held = _pa.state_for(coord)
+    held.loaded = True
+    held.written["space_setpoint"] = (30.0, _PA_T0 - timedelta(hours=1))
+    coord.device("number.water_set", reading)
+    _pa_run(coord, 2)
+    first = _pa_space(coord)
+    coord.hass.services.calls.clear()
+    return coord, first, _pa_turn_off(coord)
+
+
+_pa_up, _pa_up_first, _pa_up_sent = _pa_upgraded("30")
+_pa_up_n, _pa_up_n_first, _pa_up_n_sent = _pa_upgraded("31")
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a reading equal to the arbiter's own last write is never captured as "
+    "the baseline, and the write waits; null control: a reading of the person's own is captured, "
+    "written over, and restored on off",
+    _pa_up_first == [] and _pa_up_sent == 0 and _pa_space(_pa_up) == []
+    and _pa_up_n_first == [25.0] and _pa_up_n_sent == 1 and _pa_space(_pa_up_n) == [31.0],
+    f"{_pa_up_first=} {_pa_up_sent=} {_pa_up.writes()=} / {_pa_up_n_first=} {_pa_up_n_sent=} "
+    f"{_pa_up_n.writes()=}",
+)
+
+
+def _pa_between(reading, switch_off=False):
+    """Baseline 53; the gate 25, then a space step's target; then the entity reads ``reading``."""
+    coord = _PaCoord(_PA_TUYA, duties="dds-s")
+    _pa_settled(coord)
+    _pa_settled(coord, 30)
+    if switch_off:
+        with_config(coord, {"heat_pump_switch_entity": "switch.hp"})
+        coord.hass.states.set("switch.hp", FakeState("off"))
+        _pa_settled(coord, 31)
+        coord.device("switch.hp", "on")
+    coord.device("number.water_set", reading)
+    _pa_run(coord, 33)
+    coord.hass.services.calls.clear()
+    return _pa_turn_off(coord), _pa_space(coord)
+
+
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a space set-point a person sets between writes becomes the baseline off "
+    "restores; null controls: the reading the entity held before the write (a refused write) and a "
+    "reading after the pump was switched off (its own reset) leave the baseline at 53",
+    _pa_between("40") == (1, [40.0]) and _pa_between("25") == (1, [53.0])
+    and _pa_between("40", switch_off=True) == (1, [53.0]),
+    f"{_pa_between('40')=} {_pa_between('25')=} {_pa_between('40', switch_off=True)=}",
 )
 _pa_subs = _PaCoord(_PA_TUYA)
 _pa_run(_pa_subs, 1)
@@ -75538,7 +75655,7 @@ def _df_write(slot, entity, state, instance, value_c):
     """What the arbiter's ``_write`` hands the service for ``value_c`` degC."""
     hass = _df_hass({entity: state}, instance)
     coord = _DfCoord()
-    coord.hass, coord.entry = hass, _DfNS(entry_id=f"df{next(_df_ids)}")
+    coord.hass, coord.entry = hass, _pa_entry(entry_id=f"df{next(_df_ids)}")
     inp = _DfNS(hass=hass, config={f"{slot}_entity": entity})
     _df_aio.run(_df_pa._write(coord, inp, slot, value_c, _DF_T0))
     calls = [c for c in hass.services.calls if (c[2] or {}).get("entity_id") == entity]
@@ -80068,7 +80185,7 @@ class _CpArb:
         )
         self._thermal_params = _CpNS(dhw_setpoint=48.0, min_electrical_power=1.0, max_electrical_power=5.0)
         self._thermal_model = _CpNS(params=self._thermal_params, curve_flow_temp=lambda _o: 34.2)
-        self.entry = _CpNS(entry_id=f"cp{id(self)}")
+        self.entry = _pa_entry(entry_id=f"cp{id(self)}")
 
     def _plan_is_stale(self):
         return False

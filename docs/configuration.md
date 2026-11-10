@@ -788,7 +788,7 @@ writes, at every 15-minute plan step:
   returns — unless the room is already at or above the step's planned room
   temperature, when a warm house needs no space heat. A stale plan, comfort
   mode, a system-identification experiment and unloading the integration
-  all get the fallback row. A boost switch adds its own duty to the plan's
+  all get the fallback row, the space set-point apart (see below). A boost switch adds its own duty to the plan's
   step: *Boost Space Heating* alone writes *Heating*, *DHW Boost* alone
   writes *DHW (Hot Water)*, and a step that also wants the other duty
   writes *Heating + DHW*. Boost mode writes *Heating + DHW* with the
@@ -798,9 +798,21 @@ writes, at every 15-minute plan step:
   a change made on the pump, in an app, by a schedule, or the pump's own reset —
   is written back at once. To change the pump by hand, turn **Optimizer
   active** off first: from then on nothing is written to the pump, not even
-  the fallback row, until you turn it back on. Readings in the first
+  the fallback row, until you turn it back on — except the space set-point,
+  restored once as described next. Readings in the first
   20 seconds after a write are not counted: the tuya_heat_pump integration
   shows the value it sent for about 8 seconds whatever the pump reports.
+- **Turning it off restores your space set-point.** Before its first write
+  to the space-heating set-point entity, the optimizer reads the value there
+  and keeps it, across restarts too. Turning **Optimizer active** off, and
+  every unload (a reload after an options change, a disable, Home Assistant
+  stopping), writes that value back. A value you set on the pump while the
+  optimizer is on becomes the one restored, though the optimizer still writes
+  over it until you turn it off; a value set while it is off is read again
+  when it next writes. A reading equal to the optimizer's own last write is
+  never taken as yours: after an upgrade from a version without this, the
+  set-point is not written until it reads anything else, so set it on the
+  pump once. The mode and the hot-water set-point are not restored.
 - **A write the pump does not hold is retried.** If the value written back
   still does not hold, a warning repair notice is raised and the value is sent
   again every 5 minutes; the notice clears on the first write that holds, or

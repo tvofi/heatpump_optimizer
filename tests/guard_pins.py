@@ -21,7 +21,7 @@ sys.path.insert(0, "tests")
 sys.path.insert(0, "custom_components")
 
 import heatpump_optimizer.legionella as legionella_mod
-from harness import FakeHass, FakeState, Results, UTC
+from harness import FakeEntry, FakeHass, FakeState, Results, UTC
 from heatpump_optimizer.dhw_learning import DhwProfileLearner
 from heatpump_optimizer.optimizer import _Horizon
 from heatpump_optimizer.thermal_model import ThermalState
@@ -378,7 +378,7 @@ def _gchv_night_mode_pins() -> dict[str, bool]:
             )
             self._thermal_params = NS(dhw_setpoint=48.0)
             self._current_state = NS(outdoor_temperature=2.0)
-            self.entry = NS(entry_id=f"gp{next(ids)}")
+            self.entry = FakeEntry(entry_id=f"gp{next(ids)}")
             self.hass.states.set(flag, FakeState("off"))
             for eid, st in states.items():
                 if eid != flag:
