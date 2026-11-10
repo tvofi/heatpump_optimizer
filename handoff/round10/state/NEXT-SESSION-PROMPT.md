@@ -17,6 +17,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-BODY-CONTRACT (stage in-progress, branch `handoff/r10-body-contract`): `git fetch origin handoff/r10-body-contract && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DISPATCH-AT-HANDOFF (stage in-progress, branch `handoff/r10-dispatch-at-handoff`): `git fetch origin handoff/r10-dispatch-at-handoff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-COMBI-TANK (stage in-progress, branch `handoff/r10-combi-tank`): `git fetch origin handoff/r10-combi-tank && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-COP-UNMEASURED (stage in-progress, branch `handoff/r10-hotfix-cop-unmeasured`): `git fetch origin handoff/r10-hotfix-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GENERIC-HEAT-CURVE-PERSISTENT (stage in-progress, branch `handoff/r10-generic-heat-curve-persistent`): `git fetch origin handoff/r10-generic-heat-curve-persistent && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ARBITER-OFF-RESTORE (stage in-progress, branch `handoff/r10-arbiter-off-restore`): `git fetch origin handoff/r10-arbiter-off-restore && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -33,7 +34,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-RCA-ROSTER-DRAIN-REPLAY (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-ROSTER-DRAIN-REPLAY (stage in-progress): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-CARRY-SINK-BARRIER, R10-COMBI-TANK-PR-B, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-GH-READ-RESIDUE, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-DELTA-REVIEW, R10-HOTFIX-MAIN-SELFTESTS, R10-HOTFIX-NONREQUIRED-REDS-2, R10-HOTFIX-ROSTER-DRAIN-REPLAY, R10-HOTFIX-TRAIN-POLICY-MANDATE, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-RCA-MAIN-SELFTESTS-RED, R10-RCA-ROSTER-DRAIN-REPLAY, R10-REVIEW-ENUMERATE, R10-SAV-VALUATION-RESIDUE, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-CARRY-SINK-BARRIER, R10-COMBI-TANK, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-GH-READ-RESIDUE, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-DELTA-REVIEW, R10-HOTFIX-MAIN-SELFTESTS, R10-HOTFIX-NONREQUIRED-REDS-2, R10-HOTFIX-ROSTER-DRAIN-REPLAY, R10-HOTFIX-TRAIN-POLICY-MANDATE, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-RCA-MAIN-SELFTESTS-RED, R10-RCA-ROSTER-DRAIN-REPLAY, R10-REVIEW-ENUMERATE, R10-SAV-VALUATION-RESIDUE, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
 
 ## Resume steps
 
