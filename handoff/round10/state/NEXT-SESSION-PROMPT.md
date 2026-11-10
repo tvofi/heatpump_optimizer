@@ -24,6 +24,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-COP-UNMEASURED (stage in-progress, branch `handoff/r10-hotfix-cop-unmeasured`): `git fetch origin handoff/r10-hotfix-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GENERIC-HEAT-CURVE (stage carries-open, branch `handoff/r10-generic-heat-curve`): `git fetch origin handoff/r10-generic-heat-curve && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GENERIC-HEAT-CURVE-PERSISTENT (stage in-progress, branch `handoff/r10-generic-heat-curve-persistent`): `git fetch origin handoff/r10-generic-heat-curve-persistent && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-ARBITER-OFF-RESTORE (stage in-progress, branch `handoff/r10-arbiter-off-restore`): `git fetch origin handoff/r10-arbiter-off-restore && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-MIN-POWER-FLOOR (stage carries-open, branch `handoff/r10-min-power-floor`): `git fetch origin handoff/r10-min-power-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FRICTION-OTHER-FAMILY (stage carries-open, branch `handoff/r10-friction-other-family`): `git fetch origin handoff/r10-friction-other-family && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FIXER-MD-SPELLING-CORPUS (stage in-progress, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -31,8 +32,10 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-RCA-STAMP-CLAIM-CONFLICT (stage in-progress, branch `handoff/r10-rca-stamp-claim-conflict`): `git fetch origin handoff/r10-rca-stamp-claim-conflict && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-NONREQUIRED-REDS-2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-DELTA-REVIEW (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-WATER-SETPOINT-FEEDBACK (stage in-progress, branch `handoff/r10-water-setpoint-feedback`): `git fetch origin handoff/r10-water-setpoint-feedback && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COMBI-TANK-PR-B (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-PACKET-APPROVAL-OWED (stage in-progress, branch `fix/r10-hotfix-packet-approval-owed-pr`): `git fetch origin fix/r10-hotfix-packet-approval-owed-pr && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-HOTFIX-SWEEP-TOKEN-ACTOR (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-TRAIN-POLICY-MANDATE (stage in-progress, branch `handoff/r10-hotfix-train-policy-mandate`): `git fetch origin handoff/r10-hotfix-train-policy-mandate && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DEPENDABOT-3323-COMPAT (stage in-progress, branch `handoff/r10-dependabot-3323-compat`): `git fetch origin handoff/r10-dependabot-3323-compat && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
