@@ -22060,7 +22060,7 @@
    "resume": {
     "stage": "in-progress",
     "note": "orchestrator 2026-11-10: main red on instrument-self-tests UNDER-SCOPED prepr (racily clean index)",
-    "pr": null,
+    "pr": 3419,
     "commit": null
    },
    "brief": "Hotfix (orchestrator, 2026-11-10). governance / instrument-self-tests red on main at 5d09dedf (run 42780661829): UNDER-SCOPED step prepr, files misses a checkout tail. Cause: a racily clean git index after checkout; the first index-refreshing git status inside a traced step opens every racy file, so the recorded read set moves with scheduling. Fix: a settle step in tools/ci/selftest_scope.py run untraced before tracing starts, refusing when any entry stays racy. Failing test first, mutation proof, null control (a settled index records no checkout tail). Root cause in its own seat: R10-RCA-MAIN-SELFTESTS-RED."
