@@ -1,0 +1,6 @@
+review_carry: 226818f59 -> 5c6233314  main=origin/main
+  branch-only commits: 2
+  why: 1 of 2 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
+  27bece5d5  Merge remote-tracking branch 'origin/main' into fix/triage-s13-batch138
+  5c6233314  record: the delivery row for #3392
+review_carry: CARRY
