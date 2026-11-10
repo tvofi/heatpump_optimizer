@@ -1,0 +1,1 @@
+(empty = main's four PRs touch no custom_components/ or tests/golden/)

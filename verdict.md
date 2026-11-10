@@ -1,0 +1,25 @@
+Fix review: merge 757291b601c70798c92d71368cb5b53ff1db8dcc
+
+bus-nonce: 97bd64943cd48d0dee5d2588850b8847
+
+## Scope
+
+This is a delta review of the main-merge resolution only, after the merge verdict at 7ff8d4848a3ebeb46f5ed1135ee4a45d9b8d725d. The delta is 7ff8d4848..757291b60, less main's own changes. I did not re-review the feature. I worked from a detached worktree at 757291b601c70798c92d71368cb5b53ff1db8dcc and used my own harness (ev/threeway.py, written in this seat, not the fixer's scratch readback.py). `git diff merge-base...origin/main -- dev/governance/roles/` is empty, so the contract I read is current.
+
+## Evidence
+
+- RESULT remerge af9112edd: `git show --remerge-diff af9112edd` has exactly three hunks. Two are in translations/de.json: `data.flow_min_lift_k`, and the `data_description` block holding space_setpoint_unit, flow_min_lift_k and flow_heat_c. One is in the card's `de` dictionary: savings.below_meter_floor and savings.meter_floor_note. Each hunk resolves to the 1cabb845d side (main) and nothing else changed. This matches the body's "Resolution delta" item 1 (ev/remerge-af9112edd.txt).
+- RESULT remerge c3dd57a85: the only output is `LEDGER-MERGE: resolved tests/closures.json`, so the commit equals git's automatic merge plus the repository's ledger driver (ev/remerge-c3dd57a85.txt). 757291b60's remerge-diff is also empty, and its tree equals c3dd57a85's.
+- RESULT f7ecda023: its tree equals af9112edd's (`git diff af9112edd f7ecda023` is empty). Its remerge-diff shows only that it deletes BLOCKED.md, which its wip parent b7196b54e had added.
+- RESULT closures.json at c3dd57a85, compared per entry three ways against f7ecda023, b8f67a775 and the base 1cabb845d: no entry was changed by both sides. `closures` takes 22 entries from the branch. `inert_reads` takes entities.py and harness_headers.py from main. `recorded` takes backtest.py and optimality.py from main and arch_score_head.py, card.mjs, manual_plan.py, plan_view.py, structure.py, typing_ruler.py and wood_advisor.py from the branch. Violations: none (ev/closures.txt). This is exactly what the body states.
+- RESULT parity at the head: the flattened keys of strings.json, en.json and de.json number 1457 each, and all set differences are empty (EQUAL). `node --check` parses the card (OK), and de.json parses as JSON (ev/parity.txt).
+- RESULT three-way, branch-only keys (present on the branch, absent from both the base and main): de.json has 10 heat-curve keys and the card has 1 key in each of en, sv and de (`health.input_heat_curve_displace_entity`). None is missing and no value changed, at af9112edd (parents 7ff8d4848 and 1cabb845d, base 2f6d699e5) or at the head (against b8f67a775). No main key is missing. Null control: dropping one feature key from the merged map is reported as missing, in de.json and in the card (DETECTS). Files: ev/threeway-af9112edd.txt and ev/threeway-head.txt.
+- RESULT head versus main values: in de.json and in the card, every key the head shares with main has main's value. The head adds exactly the 10 + 3 feature keys. So the conflict resolution keeps none of this branch's competing wording.
+- RESULT claim files: the delta 7ff8d4848..head changes neither tests/golden/claimed_drift.txt nor card_claimed_drift.txt (0 diff lines), and main did not change them between 2f6d699e5 and b8f67a775. Against main, the head adds only the one R10-GENERIC-HEAT-CURVE `config_flow` line, which predates this delta (ev/claims.txt).
+- RESULT main side: `git diff --stat 1cabb845d b8f67a775 -- custom_components tests/golden` is empty.
+- RESULT merge-tree: `git merge-tree --write-tree origin/main 757291b60` exits 0 at origin/main 96346fdec, and again at 2cf0f129b (ev/merge-tree*.txt). No conflict and no claim driver line.
+- Mutation proof (step 1): not applicable to this delta. Besides main's own text, it writes no production line: the three hunks take main's strings, and the feature lines are unchanged from the reviewed head. I ran no mutants.
+- CI: `merge_train.py classify 757291b60... --pr 3299` printed WAIT (rc=3) until 01:48Z, then `GREEN 757291b601c70798c92d71368cb5b53ff1db8dcc pending: none red: none`, rc=0 (ev/classify-40.txt). At render time the review packet reported `required-red: gate`. That run (job 129549839463) failed with "FAIL run(s) [42731055817] at this head are still being judged; their gate decides", which was a provisional state, not a defect. The later `gate` runs 129572308284, 129572677824 and 129572688992 concluded success, and `tests / mutation` concluded success (ev/checks-final.txt). No required check is red at this head, so no root-cause answer is owed.
+- Head: the PR branch still reads 757291b601c70798c92d71368cb5b53ff1db8dcc at verdict time, and so does the body's `## Head`.
+- Figures I did not re-derive: the body's patch-ids (card f6ef71a0, de.json e311317d) and the card's 1717/1714 pair counts. My parser counts the card at 1717 at the head and 1714 at main, which agrees, but I did not compute the patch-ids.
+- Round: this is the delta review after the 7ff8d4848 merge verdict, not a new feature round.

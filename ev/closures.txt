@@ -1,0 +1,5 @@
+top keys ['_comment', 'closures', 'inert_reads', 'recorded']
+_comment scalar: head==ours True head==main True
+closures entries 33 from-main [] from-branch ['tests/arch_score_head.py', 'tests/block_duty.py', 'tests/boost_drift_replay.py', 'tests/card.mjs', 'tests/card_drift.mjs', 'tests/config_flow_steps.py', 'tests/debug_collect.py', 'tests/deployment_shape.py', 'tests/doc_claims.py', 'tests/entities.py', 'tests/env_drift.py', 'tests/features.py', 'tests/finite_boundary.py', 'tests/golden.py', 'tests/guard_pins.py', 'tests/harness_headers.py', 'tests/manual_plan.py', 'tests/plan_view.py', 'tests/solar_alignment.py', 'tests/structure.py', 'tests/typing_ruler.py', 'tests/wood_advisor.py'] both-changed [] violations []
+inert_reads entries 3 from-main ['tests/entities.py', 'tests/harness_headers.py'] from-branch [] both-changed [] violations []
+recorded entries 34 from-main ['tests/backtest.py', 'tests/optimality.py'] from-branch ['tests/arch_score_head.py', 'tests/card.mjs', 'tests/manual_plan.py', 'tests/plan_view.py', 'tests/structure.py', 'tests/typing_ruler.py', 'tests/wood_advisor.py'] both-changed [] violations []
