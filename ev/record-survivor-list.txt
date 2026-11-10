@@ -1,0 +1,6 @@
+OK       0.0s launch
+OK       0.3s survivor-list
+OK       0.0s unread
+selftest_scope: recorded 1 step(s) into /tmp/tmp.bzBPZHnYpV/rec.json; 0 failed []
+re-recorded == committed: True
+survivor_list self-test: 20 checks, 0 failed

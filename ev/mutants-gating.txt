@@ -1,0 +1,31 @@
+== M1: drop the scope read from the if: (restore c9ba955 shape)
+  UNGATED step 'Show the survivor-list check (tools/audit/seat/survivor_list.py) refusing its own fixtures': its if: does not read steps.scope.outputs.<its own id>
+  STALE tools/ci/selftest_closures.json: its steps differ from the workflow's: missing [], extra ['survivor-list'] -- re-record the changed step(s) with `python3 tools/ci/selftest_scope.py record --step ID`
+selftest_scope static: 108 gated step(s), 2 problem(s)
+rc=0
+== M2: read another step's output
+  UNGATED step 'Show the survivor-list check (tools/audit/seat/survivor_list.py) refusing its own fixtures': its if: does not read steps.scope.outputs.<its own id>
+  STALE tools/ci/selftest_closures.json: its steps differ from the workflow's: missing [], extra ['survivor-list'] -- re-record the changed step(s) with `python3 tools/ci/selftest_scope.py record --step ID`
+selftest_scope static: 108 gated step(s), 2 problem(s)
+== M3: drop the closure entry
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+KeyError: 'survivor-list'
+selftest_scope static: 109 gated step(s), 0 problem(s)
+== M4: change run text (run_sha stale)
+  STALE tools/ci/selftest_closures.json: run text changed since it was recorded: ['survivor-list'] -- re-record the changed step(s) with `python3 tools/ci/selftest_scope.py record --step ID`
+selftest_scope static: 109 gated step(s), 1 problem(s)
+== select: survivor_list.py changed
+  run survivor-list
+  run ci-probe-instrument
+  run ci-predictor
+  run prepr
+== select: mutation_table.py changed
+MODE: SCOPED -- 19 step(s) run
+  run survivor-list
+== null control: docs/README change
+MODE: SCOPED -- 17 step(s) run
+(no survivor-list line above = not selected)
+== M3: drop the closure entry
+  STALE tools/ci/selftest_closures.json: its steps differ from the workflow's: missing ['survivor-list'], extra [] -- re-record the changed step(s) with `python3 tools/ci/selftest_scope.py record --step ID`
+selftest_scope static: 109 gated step(s), 1 problem(s)
