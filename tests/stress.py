@@ -2198,10 +2198,11 @@ def rss_attrib_fail_threshold(recorded_attrib: float) -> float:
 
 
 #: How many slots short of its rebuild `intern_fill_readings` leaves the
-#: interned-string table before a probe's traced window. The cheapest probed
-#: solve consumes three, traced, on the cloud seat's image (filled 1-3 short
-#: it crossed in 9 of 9 forked runs, 4 or 6 short in none of 4), so one is
-#: the edge any solve that interns at all crosses.
+#: interned-string table before a probe's traced window. Each of the seven
+#: probed solves consumes three slots on the cloud seat's image (forked counts
+#: around build_case; filled 1-3 short a traced solve crossed in 9 of 9 runs,
+#: 4 or 6 short in none of 4), so one is the edge any solve that interns at
+#: all crosses.
 INTERN_FILL_SHORT = 1
 #: How far a fill-perturbed probe may read from the clean probe of the same
 #: scenario, in MiB: under a third of the smallest table step measured (1.83
