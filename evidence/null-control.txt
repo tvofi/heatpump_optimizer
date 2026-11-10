@@ -1,0 +1,8 @@
+  FAIL record: a traced run of the job writes one entry per gated step (rc=1)
+  FAIL record --step --out: the step is re-measured into that file, the other entries kept
+  FAIL wrapper: the ungated steps ['scope', 'strace', 'launch', 'drift', 'unread'] run untraced
+  FAIL wrapper: a gated step runs under strace -q into step-ID.trace (null control)
+  FAIL wrapper: --as NAME runs under strace -q into bg-NAME.trace
+  FAIL wrapper: no strace on PATH runs the step and the --as command untraced, saying so
+  FAIL wrapper: its UNTRACED list is UNGATED
+selftest_scope self-test: 103 checks, 7 failed
