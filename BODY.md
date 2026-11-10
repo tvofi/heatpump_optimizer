@@ -2,8 +2,8 @@ R10-CARRY-SINK-BARRIER: the owner-approved barrier (tvofi 2026-11-10). A carry g
 
 This is policy (`finding-propagation.md` changes what a seat must do). It is merged under the mandate and surfaced to tvofi.
 
-The fix is one predicate, `roster_lib.carry_receivable`, read by all five destination readers:
-- `carry_audit.Dests.live`, which `Dests.check` and the refusal's valid-target list use;
+The fix is one predicate, `roster_lib.carry_receivable`, read by every destination reader:
+- `carry_audit.Dests.live`, which `Dests.check` uses for the group token, for the issue token (`Dests.receiving`, round 2) and for the refusal's valid-target list;
 - `roster_edit.py` `append-carry`, `mark-carry moved` and `set-stage absorbed --into`;
 - `roster_sync.carry_plan`.
 
@@ -25,6 +25,16 @@ Alternatives considered:
 
 Closes no issue: the group lists none.
 
+## Round 2
+
+Answers verdict/3417 (blocked 34a9cf1251fa6046f3182a21aea60a84b477609f, class-open).
+
+- **The block.** `Dests.check` accepted `Carry: #N` whenever `owns(n)`, and `Dests.__init__` fills `owned` from every `is_open` group, carries-open and refuted included. So a carry refused on the group token passed when re-spelled as the group's issue (#3313, #2728). The round-1 census below misfiled `Dests.__init__` as "issue ownership"; it is also the destination test for `#N`.
+- **The fix.** `Dests.__init__` now also builds `receiving`: the issues of every group `Dests.live` (that is, `roster_lib.carry_receivable`) accepts, plus every carry-file issue and every issue an O-brief names. `check` refuses an owned `#N` outside `receiving`, naming the owner, its stage and the rule. There is one rule and no second copy: the issue arm calls the group arm's `self.live`. `owned` and `owns` are unchanged, so `sweep --issues` and `orphaned` behave as before.
+  - **A design choice to check:** an issue counts as receivable if *any* open group listing it is live, a carry file owns it, or an O-brief names it. A carries-open group that shares an issue with a live group does not block a carry, because that issue has a live owner.
+- **Merge.** origin/main was merged into the handoff (44c77b585, claimnotes driver, no conflict). That brings in #3409/#3410's selftest-closures changes.
+- **The reviewer's ci_predict.py finding** (Carry: R10-CARRY-SINK-BARRIER) is in this group's own seam, so it is built here. `ci_predict.self_test` picked the first `is_open` group as the carry destination it predicts green. It now picks with `carry_audit.Dests.live`. Commit a8563e945 restores that line: a mutant-restore race in this seat's own run left the `is_open` mutant in 27a61185f's copy of `ci_predict.py`. The three-dot diff at the head carries the fix.
+
 ## Approval
 
 This is a policy change: `dev/governance/rules/finding-propagation.md` and its generated copies. The barrier is owner-approved per the group's brief (tvofi 2026-11-10), which says it merges under the mandate and is surfaced to tvofi. The approval itself is recorded at merge, by one of:
@@ -35,11 +45,19 @@ This seat holds no approval.
 
 ## Head
 
-22f3ba79a7a6f2832bb37d4bfa97b627459226db, on base 699f4d9ef40f4eaf62397e81ae000680e417baf3 (origin/main at the cut).
+a8563e94535f3838b0f43ff4ce2dfe6645c0fdb0, merge base 04dfcafccdde1ee5df21a02fe4f06a5bc1083ea0 (origin/main at 2026-11-10T11:18:11Z). Round 1 was measured at 22f3ba79a7a6f2832bb37d4bfa97b627459226db and reviewed at 34a9cf1251fa6046f3182a21aea60a84b477609f.
 
 ## Mutation proof
 
-Each mutant is run against the named file's `--self-test`, then the file is restored.
+Round 2, tree a8563e945 plus each mutant (`carry_audit.py --self-test`, 415 checks; restored after each):
+- Failing first: the two new arms, written before the fix, failed against the merged round-1 code. FAIL `sink barrier: a carry to #900, owned only by R10-CO, is refused naming the owner and the rule` and the same for `#901 ... R10-RFT` (2 failed of 415).
+- M1, the issue-token predicate `if n not in self.receiving` changed to `if False`: the same 2 FAIL, rc 1.
+- M2, `receiving` filled by `roster_lib.is_open` (the base rule) instead of `self.live`: the same 2 FAIL, rc 1.
+- M3, an O-brief's issue not added to `receiving`: 2 FAIL, `an O-brief owns the issues its file name carries` and `sink barrier (null control): a carry to #906 passes, an O-brief names it`, rc 1.
+- M4, carry-file issues not in `receiving` (`set()`): 3 FAIL, `an issue with a carry file is a destination`, `... #905 passes, a carry file owns it` and `P43: ... and routes once the head is the extra ref (after)`, rc 1.
+- ci_predict.py mutant, the pick back on `roster_lib.is_open`: FAIL `a carry to a live group of the roster is predicted green`, `ci_predict self-test: 1 failed`. With the fix it reads `0 failed`. This mutant is killed only while the in-tree roster's first open group is not receivable. At this merge base that group is R10-PREPR-CAP, at carries-open.
+
+Round 1, each mutant is run against the named file's `--self-test`, then the file is restored.
 
 Tree 1c6a77a6a (before the predicate moved to `roster_lib`):
 - `CARRY_DEST_CLOSED = CARRY_CLOSED`: FAIL `sink barrier: a carry to R10-CO / R10-RFS / R10-RFT / R10-SINK is refused, naming the rule and the live targets` (4 failed of 409).
@@ -67,10 +85,13 @@ MUTANT-SYNC, tree 22f3ba79a: `roster_sync.carry_plan` reads `is_open` again. `ro
 - `roster_lib.carry_receivable`: L7, L8.
 - `roster_edit.py` sites: K10, W6, W12.
 - `carry_audit.Dests.live`: the four carry_audit mutants above.
+- `carry_audit.Dests.__init__` `receiving` and the `Dests.check` issue-token refusal (round 2): M1-M4.
+- `ci_predict.self_test`'s pick: the ci_predict mutant (a self-test's own fixture, not a production site).
 - `roster_sync.carry_plan`: MUTANT-SYNC below.
 
 ## Null control
 
+- Round 2: `sink barrier (null control): a carry to #902 passes, a live group lists it`, `#903 ... a live group also lists it` (shared with a carries-open group), `#905 ... a carry file owns it` and `#906 ... an O-brief names it`. Every issue-token arm that was there before still passes (415 checks, 0 failed). At the live roster, harness `issue_accepted[live]` is the same at both ends (Figures).
 - The unmodified base tree accepts a carry to every carries-open group: harness at the base, below.
 - The new self-test arms check that a carry to a live group still passes:
   - `sink barrier (null control): a carry to the live group R10-WORK / R10-NEXT / R10-PR still passes`;
@@ -79,6 +100,29 @@ MUTANT-SYNC, tree 22f3ba79a: `roster_sync.carry_plan` reads `is_open` again. `ro
 
 ## Figures
 
+Round 2 (head a8563e94535f3838b0f43ff4ce2dfe6645c0fdb0):
+- Rule for the reviewer's instrument, re-run at both ends: `python3 <rev's tools/audit/carry_audit.py> --roster-ref <ref> check --body <body>`, where the body is one `## Forward-carry` item ending `Carry: <tok>`. Roster refs: 5076c9e6caad07d561929555bba5078a14fde713 (the verdict's) and 2e749ce5f2f2bb756badaa13561b2e7559e91a54 (origin/handoff/audit-r10-roster at this run). Rev 34a9cf125 is the reviewed head; "fix" is this head. Both refs read the same:
+  - `R10-REVIEW-ENUMERATE`: rc 1 at both ends (the group token, the round-1 arm).
+  - `#3313`: rc 0 at 34a9cf125 (`1 routed`); rc 1 here, `BAD-DEST ... #3313's roster owner R10-REVIEW-ENUMERATE (resume.stage carries-open), which takes no carry; a carry goes to the live group owning the seam, else the producing group keeps the fix`.
+  - `R10-CLOSEOUT-CLEANUP`: rc 1 at both ends.
+  - `#2728`: rc 0 at 34a9cf125; rc 1 here, owner R10-CLOSEOUT-CLEANUP (carries-open).
+- Class census (fixer.md step 8), the issue arm added to `dev/audit/harnesses/r10_carry_sink_barrier.py`. Rule: `Carry: #N` is driven through `Dests.check` for every `n` in `Dests.owned` (every issue an open group lists; no carry file or O-brief), keyed by owner stage, with `live` meaning some `carry_receivable` group lists it. That is every issue a group token's refusal could be re-spelled as.
+  - `python3 dev/audit/harnesses/r10_carry_sink_barrier.py 34a9cf1251fa6046f3182a21aea60a84b477609f 2e749ce5f2f2bb756badaa13561b2e7559e91a54`: `RESULT issue_accepted[carries-open]=5 of 5`, `RESULT issue_accepted[live]=23 of 23`.
+  - `python3 dev/audit/harnesses/r10_carry_sink_barrier.py 27a61185f446ee15f91024bcd03902c01dab56a9 2e749ce5f2f2bb756badaa13561b2e7559e91a54` (the fix commit; the harness reads only `carry_audit.py` and `roster_lib.py`, which are unchanged since): `RESULT issue_accepted[carries-open]=0 of 5`, `RESULT issue_accepted[live]=23 of 23` (null control, flat).
+  - At 5076c9e6, `python3 dev/audit/harnesses/r10_carry_sink_barrier.py 9ecbd4f6371de662ad7fa731d22b06dc38806903 5076c9e6caad07d561929555bba5078a14fde713` (the round-1 merge base): `RESULT issue_accepted[carries-open]=5 of 5`. At `HEAD`: `RESULT issue_accepted[carries-open]=0 of 5`, `RESULT issue_accepted[live]=23 of 23`. The verdict's own census also found 5.
+  - No refuted group lists an issue on either ref, so the refuted arm is pinned by the self-test (`#901`) and not by the harness.
+- Seam census re-run, round 2: `git grep -nE "CARRY_CLOSED|CARRY_DEST_CLOSED|carry_receivable\(|is_open\(|Dests\.live|self\.live\(" HEAD -- 'tools/**.py' ':!tools/audit/seat/r10_*mutants.py'`. Changes from round 1:
+  - `carry_audit.py` `Dests.__init__` (`is_open`, then `self.live`) is a destination reader and is closed in this diff.
+  - `ci_predict.py` `self_test` picks a destination and is closed in this diff.
+  - `carry_audit.roster_report` (`CARRY_CLOSED`, ISSUE-STRANDED) is on the holding side: it reports an issue only closed groups list, which is ownership and not a destination.
+  - `tools/ci/sweep.py`'s `self.live` is a PR-liveness method of another class and not a destination.
+  - The rest is as in round 1.
+- `python3 tools/audit/archscore/score.py --diff 04dfcafccdde1ee5df21a02fe4f06a5bc1083ea0 HEAD`: `Architecture score: dS +0.0000 NULL`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- Scope: `python3 tests/closure.py select --diff 04dfcafccdde1ee5df21a02fe4f06a5bc1083ea0`: `MODE: SCOPED -- 1 script(s) run`, `tests/entities.py`; `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2707 ENTITY CHECKS PASSED`.
+- Self-tests at head: `carry_audit.py --self-test` `415 checks, 0 failed`; `ci_predict.py --self-test` `0 failed`; `tools/ci/selftest_scope.py --self-test` `103 checks, 0 failed`.
+
+Round 1 (head 22f3ba79a):
 Rule for the harness: `Dests.check` from each rev's own `carry_audit.py` + `roster_lib.py`, over every group of `origin/handoff/audit-r10-roster` at 43495fb6113e902630a0ac60b8012683c7cac97e. `pending_on_accepted_closed` is `roster_lib.pending_carries` (unmarked, no legacy exemption) summed over the carries-open, refused and refuted groups that rev still accepts. The brief's 116 counts every carry on the 10 carries-open groups, marked or not.
 
 - `python3 dev/audit/harnesses/r10_carry_sink_barrier.py 699f4d9ef40f4eaf62397e81ae000680e417baf3` (base):
@@ -110,7 +154,9 @@ Rule for the harness: `Dests.check` from each rev's own `carry_audit.py` + `rost
 
 ## Red checks
 
-none
+- `governance / instrument-self-tests`, red at 34a9cf125. It is outside `merge_train.py owed-reds` (owner ruling 2026-11-07), so no answer is owed. It is answered anyway, for two causes:
+  - **Stale base.** The branch predated main's #3409/#3410 selftest-closures changes. The merged tree passes `tools/ci/selftest_scope.py --self-test` (`103 checks, 0 failed`). The cheaper detector is `git merge-tree` plus a re-merge before handoff. Its standing cost is one merge per stale branch. fixer.md step 6 forbids a merge without a conflict, so no countermeasure is built: the train re-proves heads on current main.
+  - **This PR's own `ci_predict.py --self-test` failure**, fixed in round 2. The cheaper detector was running locally the self-test of every tool that imports a changed module (`ci_predict.py` imports `carry_audit`). Measured standing cost: one `ci_predict.py --self-test` run took real 1m29.7s here. `prepr.sh` step 6d lists predicted reds but not importer self-tests. No countermeasure is built in this PR: the cost test needs the class frequency, and the root-cause seat owns that analysis (`defect-root-cause.md`).
 
 ## Forward-carry
 
