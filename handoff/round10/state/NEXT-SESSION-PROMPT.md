@@ -36,7 +36,7 @@ Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-ST
 ## Resume steps
 
 1. Read the resume doc's Roster and Ready next sections.
-2. Claim one ready group and announce it on the tracking issue #201 before opening work -- before each PR, merge and release, not only after a state change.
+2. Claim one ready group and announce it on the record issue #3394 before opening work -- before each PR, merge and release, not only after a state change.
 3. Work at your own merge base; re-derive every figure you quote there. A figure from another seat's run is a claim, not a measurement.
 
 ## Identity and merge (from the roster)
