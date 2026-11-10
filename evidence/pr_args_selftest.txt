@@ -1,0 +1,12 @@
+  ok   pr_bounded: a self-test past its bound is ended, its whole session with it, and exits 124 saying so
+  ok     mutant mut:dogend (its line deleted): the bound passes and nothing ends the self-test, which runs on
+  ok   pr_bounded: a self-test that exits leaving a child is reaped on exit, keeping its status
+  ok     mutant mut:boundreap (its line deleted): the child outlives the self-test
+  ok   pr_bounded: a SIGKILLed supervisor's self-test is ended all the same, by its watchdog
+  ok     mutant mut:dogend (its line deleted): the SIGKILLed supervisor's self-test runs on
+  ok   pr_bounded: a SIGKILL to its caller's whole group still ends the self-test, 0 survivors in either session
+  ok     mutant mut:dogsid (its line deleted): the group kill takes the watchdog too and the self-test runs on
+  ok   every # mut: line is a whole statement, never one continued from the line above
+  ok   null control: a # mut: line continued from the line above is named
+  ok   pr_cap.py --self-test: its tally says 0 failed
+pr_args self-test: 195 checks, 0 failed
