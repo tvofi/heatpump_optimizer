@@ -21907,6 +21907,45 @@
     "commit": null
    },
    "brief": "Root-cause seat (root-cause.md) beside R10-HOTFIX-MAIN-SELFTESTS: main governance / instrument-self-tests red on every push from #3315 (ba6fd7e8b0) on, three causes (ref_privacy absent-side git show, table drift, #3361 ungated step). Owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal. Known process gap: nothing commits the selftest-closures artifact when main goes red. Writes the round's RCA document named after this group under the RCA directory; no production code."
+  },
+  {
+   "group": "R10-CARRY-SINK-BARRIER",
+   "lane": "IN",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "kind": "instrument",
+   "class": "instrument",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "files": [
+    "tools/audit/carry_audit.py"
+   ],
+   "hot_files": [],
+   "resume": {
+    "stage": "in-progress",
+    "note": "orchestrator 2026-11-10T07:12Z: tvofi approved 2026-11-10 ('Both should be done'): barrier against carries parked on merged groups; overlap admitted (R10-CARRY-AUDIT-P5): tvofi 2026-11-10 approved the carry barrier",
+    "pr": null,
+    "commit": null
+   },
+   "brief": "Owner-approved barrier (tvofi 2026-11-10). Rule: a carry goes to the live group owning the seam; if none exists, the producing group owns the fix. Defect: the roster holds 10 groups at stage carries-open with 116 unabsorbed carries, because carry_audit.py refuses only a destination that is gone or done, so seats park carries on groups whose PR already merged (carries-open), and sink groups were created only to receive carries. FIX in carry_audit.py: refuse a Carry destination whose roster stage is carries-open, absorbed, refused, refuted or done, and a destination with no PR and no live brief work created only as a receiver; the refusal names the rule and tells the seat to route to a live owning group or keep the fix. Failing test first, mutation proof, null control (a carry to an in-progress group still passes). This changes what seats must do: it is policy, merged under the mandate and surfaced to tvofi."
   }
  ]
 }
