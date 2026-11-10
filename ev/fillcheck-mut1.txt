@@ -1,0 +1,2 @@
+RESULT fillcheck tree=mut1 label=typical_slab/winter clean=3.30 filled=6.97 bare=6.97 interns=43654 perturbation_lands=ok independence=FAIL
+RESULT fillcheck tree=mut1 label=typical_slab/winter clean=3.30 filled=6.96 bare=6.97 interns=43654 perturbation_lands=ok independence=FAIL

@@ -1,0 +1,2 @@
+RESULT fillcheck tree=rev-head label=typical_slab/winter clean=3.30 filled=3.30 bare=6.97 interns=43653 perturbation_lands=ok independence=ok
+RESULT fillcheck tree=rev-head label=typical_slab/winter clean=3.30 filled=3.30 bare=6.97 interns=43652 perturbation_lands=ok independence=ok
