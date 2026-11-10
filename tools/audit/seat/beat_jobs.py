@@ -48,8 +48,11 @@ ROWS (the job table's `interval_s` in brackets):
   roster-drain [120] each pending op of `S/roster-drain.queue` through
                      roster_queue.py `run`, one at a time; every `roster:` line
                      it reports goes to the digest and the exact line (text and
-                     occurrence) is marked done in `state/`, refused or not: a
-                     refusal is never retried. `hold <tree-path> <op...>` waits
+                     occurrence) is marked done in `state/` as soon as it ran,
+                     refused or not: a refusal is never retried, and a pass
+                     killed mid-queue replays at most the op it was killed in.
+                     No op starts past ROSTER_PASS_BUDGET_S into a pass; the
+                     rest wait for the next. `hold <tree-path> <op...>` waits
                      until `origin/main:<tree-path>` exists, and is
                      `roster: HOLD-STALE` after HOLD_STALE_S. Done or refused is
                      read from the exact line roster_queue's `--mark` rewrites
@@ -128,6 +131,10 @@ from pathlib import Path
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
         "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake", "bottleneck")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
+#: roster-drain starts no op past this many seconds into a pass; the rest wait for the next pass. At
+#: most half the row's timeout_s in beatd.jobs.json (the self-test pins it), so an op started just
+#: before it has as long again (the orchestrator saw ~45 s an op through roster_queue's lint gate).
+ROSTER_PASS_BUDGET_S = 450
 #: The board's actionable family (carry 20's list), keyed on the texts
 #: orchestrator_tick.py and ledger.py print; the self-test pins each literal there.
 FAMILY = re.compile(
@@ -179,7 +186,7 @@ class Ctx:
 
     def __init__(self, state: Path, repo: Path, overlay: Path | None = None, board: Path | None = None,
                  run=sh, free_gib=None, now: float | None = None):
-        self.state, self.repo, self.run = state, repo, run
+        self.state, self.repo, self.run, self.clock = state, repo, run, time.monotonic
         self.digest = state / "digest"
         self.now = time.time() if now is None else now
         self.free_gib = free_gib or (lambda: shutil.disk_usage("/").free / 2 ** 30)
@@ -338,12 +345,18 @@ def roster_drain(ctx: Ctx) -> None:
     # rotated, which would silently skip a re-queued op under its occurrence key: refuse it visibly.
     whole = read(ctx.state / "roster-drain.queue").split("\n")[:-1]
     seen = int(ctx.memory("roster-queue-lines.json", 0))
+
+    def save() -> None:  # after every op, not only at the pass's end: a killed pass keeps what it applied
+        ctx.remember("roster-queue-lines.json", len(whole), 0)
+        ctx.remember("roster-done.json", sorted(done), [])
+        ctx.remember("roster-hold.json", holds, {})
     if len(whole) < seen or ctx.memory("roster-shrank.json", False):
         ctx.remember("roster-shrank.json", True, False)  # sticky: the op queued after the clear must not vanish
         return write_job(ctx, "roster-drain", [
             f"roster: QUEUE-SHRANK {len(whole)} terminated line(s) now, {seen} drained before; the queue is "
             "append-only; nothing ran. Rebaseline by deleting roster-done.json, roster-hold.json, "
             "roster-queue-lines.json and roster-shrank.json under the digest state"])
+    start = ctx.clock()
     for raw in whole:
         text = raw.strip()
         if not text or text.startswith("#"):
@@ -365,6 +378,8 @@ def roster_drain(ctx: Ctx) -> None:
                     lines.append(f"roster: HOLD-STALE {parts[2]} waits on {parts[1]}")
                 continue
             op = parts[2]
+        if ctx.clock() - start >= ROSTER_PASS_BUDGET_S:
+            break  # beatd kills the pass at timeout_s; this op and the rest run next pass
         one, report = ctx.digest / "state" / "roster-one.queue", ctx.digest / "state" / "roster-report.txt"
         atomic(one, op + "\n")
         report.unlink(missing_ok=True)
@@ -385,13 +400,12 @@ def roster_drain(ctx: Ctx) -> None:
         if mark != op or not any("no op attempted" in ln for ln in said):
             done.add(key)  # applied or refused: never retried past the lint gate
             holds.pop(key, None)
+            save()
     if cascade:
         lines.append(f"roster: CASCADE {cascade} op(s) stay pending: the worktree "
                      f"{ctx.digest / 'state' / 'roster-wt'} is on no origin ref after an earlier refusal; "
                      "remove it to release them")
-    ctx.remember("roster-queue-lines.json", len(whole), 0)
-    ctx.remember("roster-done.json", sorted(done), [])
-    ctx.remember("roster-hold.json", holds, {})
+    save()
     if lines or ran or "HOLD-STALE" in read(ctx.digest / "jobs" / "roster-drain"):
         write_job(ctx, "roster-drain", lines)  # an idle pass keeps the last drain's lines
 

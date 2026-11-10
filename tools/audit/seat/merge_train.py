@@ -2046,7 +2046,7 @@ class Train:
             raise Stop("policy", "the mandate thread could not be read: " + o.strip()[-160:])
         return comment, [c for page in json.loads(o) for c in page]
 
-    def policy_gate(self, pr: int, h: str, files: list[str]) -> "str | None":
+    def policy_gate(self, pr: int, h: str, files: list[str], posting: "dict | None" = None) -> "str | None":
         """THE policy decision, ONE function so the run pass and the batch
         cannot drift (step 5; tvofi's ruling of 2026-10-09, #201 comment
         6083743563: the train lands policy under a valid mandate and falls
@@ -2072,7 +2072,9 @@ class Train:
              keeps the landing from reading as self-approval.
 
     Every refusal names which of these it found, and returns None; success
-    returns the mandate's own line for the log."""
+    returns the mandate's own line for the log. <posting>: the review
+    `policy_approve` would post at <h> (`policy_admits`, the pre-flight's
+    read), judged after the reviews read, as GitHub would list it."""
         pol = self.policy_paths(files)
         if not pol:
             return None
@@ -2095,7 +2097,7 @@ class Train:
                                 f"repos/{self.repo}/pulls/{pr}/reviews?per_page=100"])
             if code:
                 raise Stop("policy", head_pol + ": the reviews could not be read: " + o.strip()[-160:])
-            reviews = [r for page in json.loads(o) for r in page]
+            reviews = [r for page in json.loads(o) for r in page] + ([posting] if posting else [])
             ok, why = g.approval(reviews, h, mandate_fn, merge_mandate)
             if not ok:
                 raise Stop("policy", head_pol + ": " + (self._policy_move(h, pol, reviews) or why))
@@ -2356,6 +2358,14 @@ class Train:
         self._post_agent_approval(pr, h, item, "code-owned", owned.group(1).split(), self.mandate, "approve")
         return "mandate"
 
+    def _agent_approval_body(self, h: str, item: dict, what: str, paths: "list[str]", under: str) -> str:
+        """The body `_post_agent_approval` posts, and the one `policy_admits` judges unposted."""
+        listed = ", ".join(f"`{p}`" for p in paths)
+        return (f"Agent approval for {what} {listed}, given by {self.role} under {under}, at head {h}.\n\n"
+                f"Basis: `Fix review: merge {item['verdict']}` (comment {item.get('verdict_comment', '?')}), carried to {h} "
+                f"by `app_approve.sh --carry` (the pull request's patch is the verdicted one's). CI at {h} is green"
+                + (f" apart from {', '.join('`%s`' % n for n in self.ignore)}, which grade main." if self.ignore else ".") + "\n")
+
     def _post_agent_approval(self, pr: int, h: str, item: dict, what: str, paths: "list[str]",
                              under: str, name: str) -> None:
         """THE one writer of an agent approval the train posts under a mandate
@@ -2363,11 +2373,7 @@ class Train:
         R10-TRAIN-UPGRADE): its body names the paths, the role, the mandate it
         is given under, the verdict and the head; the head is re-checked right
         before the post, and a refused post is a Stop."""
-        listed = ", ".join(f"`{p}`" for p in paths)
-        body = (f"Agent approval for {what} {listed}, given by {self.role} under {under}, at head {h}.\n\n"
-                f"Basis: `Fix review: merge {item['verdict']}` (comment {item.get('verdict_comment', '?')}), carried to {h} "
-                f"by `app_approve.sh --carry` (the pull request's patch is the verdicted one's). CI at {h} is green"
-                + (f" apart from {', '.join('`%s`' % n for n in self.ignore)}, which grade main." if self.ignore else ".") + "\n")
+        body = self._agent_approval_body(h, item, what, paths, under)
         bf = self.state / f"{name}{pr}.md"
         bf.write_text(body)
         if self.head(pr) != h:
@@ -2386,6 +2392,33 @@ class Train:
         cited = {int(a or b) for a, b in _mandate_gate().MANDATE_CITE.findall(label)}
         return cited.pop() if len(cited) == 1 else None
 
+    def policy_approval_due(self, pr: int, h: str, files: list[str]) -> "tuple[int | None, list[str], str]":
+        """Whether `policy_approve` posts step 5's approval at <h>: (mandate id,
+        policy paths, why). The id is None when nothing is posted, and <why>
+        then says why ('' when there is nothing to say: no policy path, no
+        --mandate, or the owner's approval already at <h>). A read only -- the
+        one decision `policy_approve` posts on and `policy_admits` (the
+        pre-flight) judges with, so the two cannot drift."""
+        cid = self.mandate_id()
+        pol = self.policy_paths(files) if cid else []
+        if not pol:
+            return None, pol, ""
+        g = _mandate_gate()
+        if any(f.endswith(g.SUFFIX) for f in files):
+            # A budget file beside the policy: whether it raises is the owner's
+            # (0013, `raise_hold`), and this post must never stand in for that.
+            return None, pol, "the head changes a budget file, which stays the owner's"
+        if any(g._is_owner(r.get("user")) and r.get("state") == "APPROVED" and r.get("commit_id") == h
+               for r in self._reviews(pr, "the policy approval")):
+            return None, pol, ""  # the owner's approval is at the head already: never re-posted
+        now = datetime.datetime.now(datetime.timezone.utc)
+        try:
+            live, why = g.mandate_state(cid, *self._mandate_read(cid), now, now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                                        "merge", g.MANDATE_COVERS_POLICY, "policy merging")
+        except Exception as e:  # fail closed: an unread mandate posts nothing, and policy_gate stops it
+            live, why = False, f"mandate {cid} could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})"
+        return (cid if live else None), pol, why
+
     def policy_approve(self, pr: int, h: str, item: dict, files: list[str]) -> None:
         """Step 5's approval, posted (R10-TRAIN-UPGRADE, triage P84): a head
         changing policy paths lands only on the owner's APPROVED review at
@@ -2393,34 +2426,44 @@ class Train:
         this nothing in the train posted one -- so a policy head left the train
         for a hand-run merge loop. Under a --mandate naming one comment id that
         `mandate_state` reads in force NOW for policy merging, with no owner
-        approval at <h> yet, the train posts one as the `gh` account, citing
-        `mandate comment <id>` (MANDATE_CITE's form). Every other case posts
-        nothing and `policy_gate` -- unchanged, the only judge, re-read at the
-        merge -- stops it exactly as before."""
-        cid = self.mandate_id()
-        pol = self.policy_paths(files) if cid else []
-        if not pol:
-            return
-        g = _mandate_gate()
-        if any(f.endswith(g.SUFFIX) for f in files):
-            # A budget file beside the policy: whether it raises is the owner's
-            # (0013, `raise_hold`), and this post must never stand in for that.
-            self.log(f"#{pr} no policy approval posted: the head changes a budget file, which stays the owner's")
-            return
-        if any(g._is_owner(r.get("user")) and r.get("state") == "APPROVED" and r.get("commit_id") == h
-               for r in self._reviews(pr, "the policy approval")):
-            return  # the owner's approval is at the head already: never re-posted
-        now = datetime.datetime.now(datetime.timezone.utc)
-        try:
-            live, why = g.mandate_state(cid, *self._mandate_read(cid), now, now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                                        "merge", g.MANDATE_COVERS_POLICY, "policy merging")
-        except Exception as e:  # fail closed: an unread mandate posts nothing, and policy_gate stops it
-            live, why = False, f"mandate {cid} could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})"
-        if not live:
-            self.log(f"#{pr} no policy approval posted: {why}")
+        approval at <h> yet (`policy_approval_due`), the train posts one as the
+        `gh` account, citing `mandate comment <id>` (MANDATE_CITE's form). Every
+        other case posts nothing and `policy_gate` -- unchanged, the only judge,
+        re-read at the merge -- stops it exactly as before."""
+        cid, pol, why = self.policy_approval_due(pr, h, files)
+        if cid is None:
+            if why:
+                self.log(f"#{pr} no policy approval posted: {why}")
             return
         self._post_agent_approval(pr, h, item, "policy", pol, f"mandate comment {cid}", "policy")
         self.log(f"#{pr} policy approval posted at {h[:8]} under {why}")
+
+    def policy_admits(self, pr: int, h: str, item: dict, files: list[str]) -> "str | None":
+        """The pre-flight's policy read (R10-HOTFIX-TRAIN-POLICY-MANDATE, #3366):
+        `policy_gate` as admission will reach it, AFTER `policy_approve` -- with
+        the review the train is due to post (`policy_approval_due`) judged as
+        though posted, under the gh account the post would use, read as the
+        owner's as `policy_approve` itself relies on. Before this the train's
+        `--pre-flight` ran policy_gate alone, so a policy head the --mandate
+        carries PARKED on "no decisive review" before any approval could be
+        posted, and the re-add's re-run of the pre-flight refused it again at
+        the same verdict. Posts nothing; `land` re-reads the real reviews at
+        the merge. A refusal while a --mandate is set but posts nothing names
+        the mandate's own reason beside the gate's."""
+        cid, pol, why = self.policy_approval_due(pr, h, files)
+        posting = None
+        if cid is not None:
+            g = _mandate_gate()
+            posting = {"user": {"login": g.OWNER_LOGIN, "id": g.OWNER_ID, "type": g.OWNER_TYPE},
+                       "state": "APPROVED", "commit_id": h,
+                       "submitted_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                       "body": self._agent_approval_body(h, item, "policy", pol, f"mandate comment {cid}")}
+        try:
+            return self.policy_gate(pr, h, files, posting=posting)
+        except Stop as s:
+            if cid is None and why:
+                s.why = f"{s.why}; the train posts no approval under its --mandate: {why}"
+            raise
 
     def recarry(self, item: dict) -> str:
         """Step 1: the pull request's head, with `origin/main` merged in by
@@ -3775,11 +3818,12 @@ class Train:
         """P312: a spool drains into the next batch in an explicit order: entries
         added with `--priority` (HOTFIX), a roster hotfix (`self.hotfix`) or
         `--front` (P112: the entry the spool puts first) first, in spool order,
-        then outside entries (owner ruling tvofi
-        2026-11-07, triage P420: `self.outside`), then critical-path entries
-        (`self.critical`, the branch read only when two or more wait), then
-        arrival order. An entry maps to its group by branch, else by its pull
-        request. Python's sort is stable, so ties keep the spool's order."""
+        then outside entries (`self.outside`) and critical-path entries
+        (`self.critical`, the branch read only when two or more wait) as one
+        rank, unordered between them (owner rulings tvofi 2026-11-07, triage
+        P420, and 2026-11-08), then arrival order. An entry maps to its group by
+        branch, else by its pull request. Python's sort is stable, so ties keep
+        the spool's order."""
         if len(added) < 2:
             return added
         def item(e: dict) -> dict:
@@ -3789,8 +3833,8 @@ class Train:
         items = {id(e): item(e) for e in added}
         return sorted(added, key=lambda e: (not (e.get("priority") or e.get("front")
                                                  or self.hotfix(items[id(e)])),  # mut:drain-hotfix
-                                            not self.outside(items[id(e)]),  # mut:drain-outside
-                                            not self.critical(items[id(e)])))  # mut:drain
+                                            not (self.outside(items[id(e)])  # mut:drain-outside
+                                                 or self.critical(items[id(e)]))))  # mut:drain
 
     def queue_take(self, batches: "list[list[dict]]", k: int) -> bool:
         """Between batches: drain the spool into ONE new batch after those still
@@ -6113,7 +6157,8 @@ def _queue_self_test(check) -> None:
           drain312(mk312(1, 4, prio=(4,))) == [4, 1])
     check("P312: priority, then critical path, then arrival: #4 (priority), #3 (critical), #1, #2",
           drain312(mk312(1, 2, 3, 4, prio=(4,))) == [4, 3, 1, 2])
-    # Owner ruling tvofi 2026-11-07 (triage P420): priority or front, then outside, then critical.
+    # Owner rulings tvofi 2026-11-07 (triage P420) and 2026-11-08: priority or front,
+    # then outside and critical as one rank in arrival order, then the rest.
     def drain420(entries, out=("out",), cp=("cp",), heads=None):
         heads = heads or {1: "plain", 2: "cp", 3: "out", 4: "plain", 5: "out"}
         def run(argv, cwd=ROOT, stdin=None):
@@ -6122,10 +6167,12 @@ def _queue_self_test(check) -> None:
             t = Train("o/r", Path(dd), None, "", (), 1, run=run, log=lambda m: None,
                       critical=lambda it: it["branch"] in cp, outside=lambda it: it["branch"] in out)
             return [e["pr"] for e in t.drain_order(entries)]
-    check("P420: an outside entry (#3) drains ahead of a critical-path one (#2) and behind a priority one (#4)",
-          drain420(mk312(1, 2, 3, 4, prio=(4,))) == [4, 3, 2, 1])
-    check("P420: outside entries keep arrival order among themselves, ahead of the critical path",
-          drain420(mk312(1, 2, 3, 5)) == [3, 5, 2, 1])
+    check("P420: an outside entry (#3) drains with a critical-path one (#2), in arrival order, behind "
+          "a priority one (#4) and ahead of a plain one (#1)",
+          drain420(mk312(1, 2, 3, 4, prio=(4,))) == [4, 2, 3, 1]
+          and drain420(mk312(1, 3, 2, 4, prio=(4,))) == [4, 3, 2, 1])
+    check("P420: outside and critical entries keep arrival order among themselves, ahead of the rest",
+          drain420(mk312(1, 2, 3, 5)) == [2, 3, 5, 1])
     check("P420 null: no outside entry orders byte-identically to P312's priority, critical, arrival",
           drain420(mk312(1, 2, 3, 4, prio=(4,)), out=()) == [4, 2, 1, 3])
     # The live read: a fork head (a branch no group claims) maps through resume.pr.

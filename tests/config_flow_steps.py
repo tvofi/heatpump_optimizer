@@ -2476,6 +2476,81 @@ async def options_advanced_pages():
         str({k: entry.options.get(k) for k in HEAT_CURVE_ANSWERS}),
     )
 
+    # R10-GENERIC-HEAT-CURVE: the offset entity's refusals. T2 is a
+    # plausibility check over the entity's own range; the collision refusal
+    # holds on whichever page saves the second half (ghc-r03).
+    from harness import FakeState as _ghc_fs
+    _offset = "number.heating_offset"
+    for _label, _attrs, _want in (
+        ("an offset whose range includes 0 saves", {"min": -20.0, "max": 20.0}, None),
+        ("an entity whose own range excludes 0 is refused (T2)", {"min": 20.0, "max": 70.0},
+         "heat_curve_not_offset"),
+        ("an entity with no state at save time is not judged at save (ghc-r08)", None, None),
+    ):
+        flow, entry, hass = fresh_options()
+        if _attrs is not None:
+            hass.states.set(_offset, _ghc_fs("0" if _want is None else "30", unit="K", attributes=_attrs))
+        await flow.async_step_heat_curve(None)
+        result = await submit(flow, "heat_curve", {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _offset})
+        _got = (result.get("errors") or {}).get(const.CONF_HEAT_CURVE_DISPLACE_ENTITY)
+        check(
+            "opt_heat_curve", "error" if _want else "happy", _label,
+            _got == _want and (shows_menu(result, "advanced") == (_want is None)),
+            f"errors={result.get('errors')!r} type={result.get('type')!r}",
+        )
+    # The check's own return value, not the page's: the page reads a None
+    # from a deleted fall-through as "no errors", so only an equality with {}
+    # on the check itself tells "no error" from "no answer". The refusal row
+    # is the null control: the same call does return a non-empty dict.
+    for _label, _attrs, _want in (
+        ("no offset entity configured: the check returns exactly {}", False, {}),
+        ("an offset whose range includes 0: the check returns exactly {}",
+         {"min": -20.0, "max": 20.0}, {}),
+        ("null control: a range excluding 0 returns the refusal",
+         {"min": 20.0, "max": 70.0},
+         {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_not_offset"}),
+    ):
+        _, _, hass = fresh_options()
+        _submit = {}
+        if _attrs is not False:
+            hass.states.set(_offset, _ghc_fs("0", unit="K", attributes=_attrs))
+            _submit = {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _offset}
+        _ret = await config_flow._heat_curve_errors(hass, _submit, {})
+        check(
+            "opt_heat_curve", "error" if _want else "happy", _label,
+            type(_ret) is dict and _ret == _want,
+            f"returned={_ret!r}",
+        )
+    flow, entry, hass = fresh_options({const.CONF_SPACE_SETPOINT_ENTITY: _offset})
+    await flow.async_step_heat_curve(None)
+    result = await submit(flow, "heat_curve", {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _offset})
+    check(
+        "opt_heat_curve", "error",
+        "the heat-curve entity may not be an entity the optimizer already writes (ghc-r03)",
+        (result.get("errors") or {}).get("base") == "heat_curve_entity_in_use",
+        repr(result.get("errors")),
+    )
+    flow, entry, hass = fresh_options({const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _offset})
+    await flow.async_step_building(None)
+    result = await submit(flow, "building", {const.CONF_MIXING_VALVE_WRITE_ENTITY: _offset})
+    check(
+        "opt_building", "error",
+        "and the same refusal where the other half is saved, on the building page (ghc-r03)",
+        (result.get("errors") or {}).get("base") == "heat_curve_entity_in_use",
+        repr(result.get("errors")),
+    )
+    _kind_rejected = False
+    try:
+        config_flow._page_schema("heat_curve", {}, FakeHass())({const.CONF_HEAT_CURVE_TARGET_KIND: "persistent"})
+    except Exception:  # noqa: BLE001 - voluptuous's Invalid
+        _kind_rejected = True
+    check(
+        "opt_heat_curve", "error",
+        "kind persistent is not accepted in this build: the selector offers offset only",
+        _kind_rejected,
+        "",
+    )
+
 
 #: Distinguishable from every value a field could legitimately default to,
 #: ``None`` included.

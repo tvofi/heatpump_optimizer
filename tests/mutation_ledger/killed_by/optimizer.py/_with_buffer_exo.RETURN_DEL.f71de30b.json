@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_with_buffer_exo RETURN_DEL f71de30b",
+  "killed_by": "tests/plan_view.py",
+  "old": "    return weather if buffer_exo_kw is None else replace(weather, buffer_exo_kw=buffer_exo_kw)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}
