@@ -1,0 +1,9 @@
+== 54f76620231dab81bc2111b87bebacfaf78992cc
+  UNGATED step 'Show the workflow read runner refusing its own fixtures': its if: does not read steps.scope.outputs.<its own id>
+selftest_scope static: 106 gated step(s), 1 problem(s)
+== e0d381a29
+  UNGATED step 'Show the workflow read runner refusing its own fixtures': its if: does not read steps.scope.outputs.<its own id>
+selftest_scope static: 106 gated step(s), 1 problem(s)
+== 825f5492709accfd80792fcf151f1459b0dca554
+  UNGATED step 'Show the workflow read runner refusing its own fixtures': its if: does not read steps.scope.outputs.<its own id>
+selftest_scope static: 108 gated step(s), 1 problem(s)

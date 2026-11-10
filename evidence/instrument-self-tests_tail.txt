@@ -1,0 +1,121 @@
+2026-11-10T02:42:58.7961863Z env:
+2026-11-10T02:42:58.7961958Z   HPO_JOB_GRADES: nothing
+2026-11-10T02:42:58.7962036Z   SELFTEST_TRACE: 
+2026-11-10T02:42:58.7962114Z ##[endgroup]
+2026-11-10T02:42:59.5270929Z   ok   the parser reads the job's steps and stops at the next job
+2026-11-10T02:42:59.5271700Z   ok   a block run is dedented, an inline one kept
+2026-11-10T02:42:59.5272403Z   ok   run_sha is the sha256 of the step's own run text
+2026-11-10T02:42:59.5273028Z   ok   a workflow without the job has no steps
+2026-11-10T02:42:59.5273669Z   ok   a job with no steps key, last in its file, has no steps
+2026-11-10T02:42:59.5274811Z   ok   a job last in its file, steps: right under its header, keeps its last block run
+2026-11-10T02:42:59.5275985Z   ok   gated steps are those whose if reads their own scope output
+2026-11-10T02:42:59.5276717Z   ok   a consistent job has no wiring gap (null control)
+2026-11-10T02:42:59.5277297Z   ok   a run step with no gate is named
+2026-11-10T02:42:59.5277878Z   ok   a launcher start without its sel guard is named
+2026-11-10T02:42:59.5278478Z   ok   a waiter whose id is not its name is named
+2026-11-10T02:42:59.5279150Z   ok   a diff touching no tools/ file and no measured read selects zero steps
+2026-11-10T02:42:59.5279865Z   ok   a diff touching a file in one step's closure selects that step alone
+2026-11-10T02:42:59.5280514Z   ok   ... and a file outside tools/ that a step read selects it
+2026-11-10T02:42:59.5281086Z   ok   an added file at a probed path selects the prober
+2026-11-10T02:42:59.5281619Z   ok   a modified file that is only a probe selects nothing
+2026-11-10T02:42:59.5282332Z   ok   an added file in a listed directory selects the lister; the index reader takes any add
+2026-11-10T02:42:59.5283195Z   ok   a modified file in a listed directory selects only the index reader's add rule: none
+2026-11-10T02:42:59.5284270Z   ok   collapse: a directory whose every tracked file was read is written D/**, a partly-read one file by file
+2026-11-10T02:42:59.5285170Z   ok   covers: D/** covers a file under D, added later too, and not a sibling of D
+2026-11-10T02:42:59.5285864Z   ok   a modified file under a collapsed directory selects the reader
+2026-11-10T02:42:59.5286445Z   ok   a step that read the object store takes every diff
+2026-11-10T02:42:59.5286999Z   ok   a new tools/ file with no recorded closure runs every step
+2026-11-10T02:42:59.5287708Z   ok   ... even under a directory a step read whole (D/** names no file D did not hold)
+2026-11-10T02:42:59.5288375Z   ok   a gate file runs every step: .github/workflows/ci.yml
+2026-11-10T02:42:59.5288974Z   ok   a gate file runs every step: .github/workflows/governance.yml
+2026-11-10T02:42:59.5289488Z   ok   a gate file runs every step: tools/ci/prelude.py
+2026-11-10T02:42:59.5289931Z   ok   a gate file runs every step: tools/ci/selftest_closures.json
+2026-11-10T02:42:59.5290387Z   ok   a gate file runs every step: tools/ci/selftest_scope.py
+2026-11-10T02:42:59.5290813Z   ok   a gate file runs every step: tools/ci/selftest_step.sh
+2026-11-10T02:42:59.5291220Z   ok   an unreadable table runs every step (fail closed)
+2026-11-10T02:42:59.5291589Z   ok   a table missing a step is stale: every step
+2026-11-10T02:42:59.5292038Z   ok   a table whose run_sha lags the workflow is stale: every step
+2026-11-10T02:42:59.5292438Z   ok   an empty diff runs every step (fail closed)
+2026-11-10T02:42:59.5292792Z   ok   a table that does not parse loads as None
+2026-11-10T02:42:59.5293347Z   ok   a table whose entries are not objects loads as None
+2026-11-10T02:42:59.5293828Z   ok   fold: opens and execs of tracked files are files, a resumed open joined
+2026-11-10T02:42:59.5294493Z   ok   fold: a failed stat is a probe, an fd's own stat and an outside path are nothing
+2026-11-10T02:42:59.5294958Z   ok   fold: a listed tracked directory is a dir
+2026-11-10T02:42:59.5295423Z   ok   fold: strings that name no file are not probes; a name in a tracked directory is
+2026-11-10T02:42:59.5295894Z   ok   fold: the index open is flagged, no object read
+2026-11-10T02:42:59.5296297Z   ok   fold: an object-store open is flagged and names no file
+2026-11-10T02:42:59.5296790Z   ok   fold: a worktree git command (grep) opening the object store does not flag it
+2026-11-10T02:42:59.5297378Z   ok   fold: ... and `git show` opening it does (null control), naming the subcommand
+2026-11-10T02:42:59.5297959Z   ok   fold: a root reached through a symlink takes resolved and unresolved paths alike
+2026-11-10T02:42:59.5298534Z   ok   drift: a table naming every measured read refuses nothing (null control)
+2026-11-10T02:42:59.5299067Z   ok   drift: a table that omits a file a step reads is refused, naming it
+2026-11-10T02:42:59.5299533Z   ok   drift: a table that drops a flag the run set is refused
+2026-11-10T02:42:59.5300071Z   ok   drift: a gated step with no entry is refused
+2026-11-10T02:42:59.5300463Z   ok   drift: an over-scoped entry is a note, not a refusal
+2026-11-10T02:42:59.5300907Z   ok   drift: a collapsed D/** entry covers the files measured under D
+2026-11-10T02:42:59.5301416Z   ok   drift: nine misses name eight and count the ninth, eight name all eight
+2026-11-10T02:42:59.5302020Z   ok   drift: a new probe and a new listed directory are refused; a probe under a listed dir is not
+2026-11-10T02:42:59.5302682Z   ok   drift: a directory and a D/** no longer measured are notes (ab/** does not cover abc/x.py)
+2026-11-10T02:42:59.5303248Z   ok   drift: a lagging run_sha and an entry no gated step has are refused
+2026-11-10T02:42:59.5303652Z   ok   drift: no table is refused
+2026-11-10T02:42:59.5304096Z   ok   drift: a step this run did not trace is refused
+2026-11-10T02:42:59.5304454Z   ok   a duplicated step id is named
+2026-11-10T02:42:59.5304783Z   ok   a launcher start no step waits on is named
+2026-11-10T02:42:59.5305178Z   ok   mode lines: FULL carries its reason, SCOPED its count
+2026-11-10T02:42:59.5305610Z   ok   ancestors run from the parent up to the root, once each
+2026-11-10T02:42:59.5306085Z   ok   collapse takes a two-file directory read whole, not a one-file one
+2026-11-10T02:42:59.5306620Z   ok   compact_probes drops a probe under a listed directory and keeps the rest
+2026-11-10T02:42:59.5307077Z   ok   an undecodable escape is kept as written
+2026-11-10T02:42:59.5307399Z   ok   a well-formed table loads
+2026-11-10T02:42:59.5307747Z   ok   diff_changes reads status and path, one row per file
+2026-11-10T02:42:59.5308137Z   ok   diff_changes is None when git cannot diff
+2026-11-10T02:42:59.5308602Z   ok   selection: the PR's diff picks its steps (b, and the index reader on the add)
+2026-11-10T02:42:59.5309097Z   ok   selection: a base git cannot resolve runs every step
+2026-11-10T02:42:59.5309477Z   ok   selection: with no workflow, every step
+2026-11-10T02:42:59.5309904Z   ok   select --base/--head reads the diff; a base git cannot diff is FULL
+2026-11-10T02:42:59.5310369Z   ok   git dirs: a plain repository's git dir is its common dir
+2026-11-10T02:42:59.5310856Z   ok   git dirs: a linked worktree's git dir is its own, its common dir the main one
+2026-11-10T02:42:59.5311476Z   ok   trace_events skips non-syscall lines and orphan resumes, and takes an open's result path
+2026-11-10T02:42:59.5312066Z   ok   record: a traced run of the job writes one entry per gated step (rc=0)
+2026-11-10T02:42:59.5312604Z   ok   record: a step's open is a file, its failed test -f a probe, its ls a dir
+2026-11-10T02:42:59.5313074Z   ok   record: a detached self-test's reads are its waiter's
+2026-11-10T02:42:59.5313609Z   ok   record: it leaves no trace directory behind
+2026-11-10T02:42:59.5314255Z   ok   record --step --out: the step is re-measured into that file, the other entries kept
+2026-11-10T02:42:59.5314995Z   ok   record refuses with no strace (2), an unknown step (2), an inconsistent job (1), and fails a failing step (1), naming it
+2026-11-10T02:42:59.5315580Z   ok   _traced: False untraced, True under strace
+2026-11-10T02:42:59.5315963Z   ok   record: an empty trace fails the record, naming it
+2026-11-10T02:42:59.5316441Z   ok   fold: an ungated step's trace is no entry; a gated one with no trace is absent
+2026-11-10T02:42:59.5316963Z   ok   check: missing trace bg-slow.trace is refused, naming it (None)
+2026-11-10T02:42:59.5317433Z   ok   check: empty trace bg-slow.trace is refused, naming it ('')
+2026-11-10T02:42:59.5317937Z   ok   check: empty trace bg-slow.trace is refused, naming it ('--- SIGCHLD {si_sig)
+2026-11-10T02:42:59.5318516Z   ok   check: partial trace bg-slow.trace is refused, naming it ('5 execve("/bin/true)
+2026-11-10T02:42:59.5319090Z   ok   check: partial trace bg-slow.trace is refused, naming it ('5 execve("/bin/true)
+2026-11-10T02:42:59.5319595Z   ok   check: empty trace step-a.trace is refused, naming it ('')
+2026-11-10T02:42:59.5320101Z   ok   fold: a first process killed by a signal ended its trace (null control: whole)
+2026-11-10T02:42:59.5320789Z   ok   check: a table naming every read passes, and --write saves the measurement
+2026-11-10T02:42:59.5321312Z   ok   check: a read the table misses fails, naming the step and the file
+2026-11-10T02:42:59.5321729Z   ok   static, ids and select over a fresh table
+2026-11-10T02:42:59.5322139Z   ok   static: a step whose run text changed since the record is refused
+2026-11-10T02:42:59.5322544Z   ok   static: an unreadable table is refused
+2026-11-10T02:42:59.5322865Z   ok   an unknown command is a usage error
+2026-11-10T02:42:59.5323349Z   ok   wrapper: the ungated steps ['scope', 'strace', 'launch', 'drift', 'unread'] run untraced
+2026-11-10T02:42:59.5323957Z   ok   wrapper: a gated step runs under strace -q into step-ID.trace (null control)
+2026-11-10T02:42:59.5324578Z   ok   wrapper: --as NAME runs under strace -q into bg-NAME.trace
+2026-11-10T02:42:59.5325101Z   ok   wrapper: no strace on PATH runs the step and the --as command untraced, saying so
+2026-11-10T02:42:59.5325567Z   ok   wrapper: its UNTRACED list is UNGATED
+2026-11-10T02:42:59.5326010Z   ok   the committed table names no landed retired path (161 retired; named: [])
+2026-11-10T02:42:59.5326574Z   FAIL the live job parses (118 steps) and its gating is consistent
+2026-11-10T02:42:59.5327023Z selftest_scope self-test: 103 checks, 1 failed
+2026-11-10T02:42:59.5368195Z ##[error]Process completed with exit code 1.
+2026-11-10T02:42:59.5418174Z ##[group]Run set -o pipefail
+2026-11-10T02:42:59.5418472Z [36;1mset -o pipefail[0m
+2026-11-10T02:42:59.5418942Z [36;1msh tools/ci/selftest_scope_mutants.sh --self-test | tee "$RUNNER_TEMP/selftest-scope-mutants.txt"[0m
+2026-11-10T02:42:59.5419684Z [36;1mgrep -Eq '^SELFTEST-SCOPE MUTANTS: every mutant refused$' "$RUNNER_TEMP/selftest-scope-mutants.txt"[0m
+2026-11-10T02:42:59.5466933Z shell: /usr/bin/bash --noprofile --norc tools/ci/selftest_step.sh {0}
+2026-11-10T02:42:59.5467303Z env:
+2026-11-10T02:42:59.5467496Z   HPO_JOB_GRADES: nothing
+2026-11-10T02:42:59.5467735Z   SELFTEST_TRACE: 
+2026-11-10T02:42:59.5467938Z ##[endgroup]
+2026-11-10T02:43:00.2032910Z BASELINE RED: the unmutated self-test fails
+2026-11-10T02:43:00.2054173Z ##[error]Process completed with exit code 1.
+2026-11-10T02:43:00.2092263Z ##[group]Run . "$RUNNER_TEMP/bg/lib.sh"
