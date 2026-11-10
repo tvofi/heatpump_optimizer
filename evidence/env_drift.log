@@ -1,9 +1,9 @@
 ==========================================================================
 DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing origin/main from scratch
-  key       23b4edaf4c857dd9d21706ebc2462c10f2eb338471d3ee8edc98847d3c72a1a7
-  entry     /root/.cache/heatpump_optimizer/drift-baseline/23b4edaf4c857dd9d21706ebc2462c10f2eb338471d3ee8edc98847d3c72a1a7.json
-    baseline_commit  ec32a2c879e4
-    baseline_tree    53b0e8613d39
+  key       8bf04040c66f0d567035033512e06bb48930518af5b1f0c6b91ca521c3127cb9
+  entry     /root/.cache/heatpump_optimizer/drift-baseline/8bf04040c66f0d567035033512e06bb48930518af5b1f0c6b91ca521c3127cb9.json
+    baseline_commit  1c2256e26d06
+    baseline_tree    00f97dc9372d
     cache_format     391552c099c1
     driver_sha256    b1cf91aa5f06
     environment      6c0b911d7e89
@@ -17,7 +17,7 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing origin/main from 
 ==========================================================================
   captured 56 scenarios from branch
   captured 56 scenarios from baseline
-  cached   the origin/main baseline under key 23b4edaf4c857dd9 in /root/.cache/heatpump_optimizer/drift-baseline/23b4edaf4c857dd9d21706ebc2462c10f2eb338471d3ee8edc98847d3c72a1a7.json
+  cached   the origin/main baseline under key 8bf04040c66f0d56 in /root/.cache/heatpump_optimizer/drift-baseline/8bf04040c66f0d567035033512e06bb48930518af5b1f0c6b91ca521c3127cb9.json
 
 ########## committed fixtures: staleness (#347) ##########
   56 fixture(s) compared against this tree's capture; 1 of them float-free and compared exactly.
@@ -32,7 +32,7 @@ DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing origin/main from 
   ok    capacity_tariff is byte-identical to origin/main here
   may-drift capacity_tariff_15min: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
   ok    confidence_margins is byte-identical to origin/main here
-  CLAIMED config_flow: 2 leaves moved (R10-GENERIC-HEAT-CURVE: the heat_curve page gains heat_curve_target_kind, heat_curve_displace_entity and heat_curve_offset_band_k, and the advanced menu label reads 'Heat curve control'; R10-GENERIC-HEAT-CURVE-PERSISTENT: heat_curve_target_kind offers 'persistent' beside 'offset'; float-free, recorded by golden.py --record --only config_flow)
+  CLAIMED config_flow: 2 leaves moved (R10-GENERIC-HEAT-CURVE-PERSISTENT: the heat_curve page's heat_curve_target_kind offers 'persistent' beside 'offset' (two options leaves, the seeded and the live page); float-free, recorded by golden.py --record --only config_flow)
          config_flow._seeded.heat_curve.heat_curve_target_kind.config.options: "['offset']" vs "['offset', 'persistent']"
          config_flow.heat_curve.heat_curve_target_kind.config.options: "['offset']" vs "['offset', 'persistent']"
   ok    cool_rainy_summer is byte-identical to origin/main here

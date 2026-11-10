@@ -125,3 +125,4 @@ Heat-curve entity number.x is unavailable: not written
   ok   the consumer's state section survives the restore that pops its arm, and remove drops it (C3)
 
 ALL 106 FEATURES BLOCK PASSED
+rc=0
