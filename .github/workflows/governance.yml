@@ -1355,7 +1355,8 @@ jobs:
           grep -Eq '^verdict_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/verdict-audit-self-test.txt"
 
       - name: Show the survivor-list check (tools/audit/seat/survivor_list.py) refusing its own fixtures
-        if: ${{ !cancelled() }}
+        id: survivor-list
+        if: ${{ !cancelled() && steps.scope.outputs.survivor-list == 'true' }}
         run: |
           set -o pipefail
           python3 -I tools/audit/seat/survivor_list.py --self-test | tee "$RUNNER_TEMP/survivor-list-self-test.txt"
