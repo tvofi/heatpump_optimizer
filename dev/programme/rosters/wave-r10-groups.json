@@ -21627,6 +21627,50 @@
     "note": "overlap admitted (R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE, R10-GATE-DEFER-BARRIER, R10-PLAN-PAGE-RESIDUE, R10-STANDING-CONTRACTS-P2, R10-SEAT-IDENTITY-P5): orchestrator s13 under mandate 6715477401: #3399 opened from handoff/r10-fly-replan-top-tier with no roster group; shares replan.py/roster_lib.py with done R10-FLY-REPLAN-DEFECTS only"
    },
    "brief": "Outside requests share replan top tier with the critical path, behind main and hotfixes, unordered between them (height decides within the tier); owner statement tvofi 2026-11-08 \"outside requests and the critical path, all top priority, in no particular order\", read over #3304 strict order. dispatch_tier TIER_TOP for either; roster_lib.dispatch_rank RANK_HOTFIX/RANK_TOP/RANK_OTHER; gate_priority bands 2/1/0; orchestrator_tick orders OWED lines by rank then PR number. Handoff handoff/r10-fly-replan-top-tier 09260b7a, opened as #3399 before its group was queued."
+  },
+  {
+   "group": "R10-HOTFIX-STRESS-MEM-PEAK-2",
+   "lane": "C",
+   "kind": "production",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "tests/stress.py",
+    "tests/features.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "pr": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch fixer",
+    "note": "overlap admitted (R10-ARBITER-OFF-RESTORE, R10-WATER-SETPOINT-FEEDBACK, R10-SAV-VALUATION-RESIDUE): main red tests/fast (3.14) on two consecutive main pushes: stress.py typical_slab/shoulder traced peak 3.9 vs 1.8 MiB; second instance of the R10-HOTFIX-STRESS-MEM-PEAK class (that group done)"
+   },
+   "brief": "Main red, tests / fast (3.14) on main pushes 96346fdec3 and 3aac11dfba (job 129554889319): tests/stress.py FAIL typical_slab/shoulder traced peak 3.9 MiB vs recorded 1.8 MiB (x1.5 ceiling 2.73); b8f67a7751 passed at 2.1 MiB; the window between them touched only dev/programme/delivery rows, so no code moved the number. The other probed scenarios record ~3.4-3.5 MiB and read 3.3/5.1/5.1. 17bb738485 (R10-HOTFIX-STRESS-MEM-PEAK) fixed an earlier form of this class without re-recording. Establish why the traced peak for this scenario varies 2.1 -> 3.9 MiB across hosted runners (stress.py 246 s vs 357 s): measure it repeatedly at main on the CI image, with a null control of the other scenarios. Prefer a measurement fix (what is traced, warm-up, allocator noise) over a budget move; a budget re-record is a raise and needs the mandate approval with ## Raise justification and an archscore dS line. Failing check first, mutation proof, the finder harness at both ends."
   }
  ]
 }
