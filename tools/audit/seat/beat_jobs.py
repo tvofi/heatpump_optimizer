@@ -48,8 +48,11 @@ ROWS (the job table's `interval_s` in brackets):
   roster-drain [120] each pending op of `S/roster-drain.queue` through
                      roster_queue.py `run`, one at a time; every `roster:` line
                      it reports goes to the digest and the exact line (text and
-                     occurrence) is marked done in `state/`, refused or not: a
-                     refusal is never retried. `hold <tree-path> <op...>` waits
+                     occurrence) is marked done in `state/` as soon as it ran,
+                     refused or not: a refusal is never retried, and a pass
+                     killed mid-queue replays at most the op it was killed in.
+                     No op starts past ROSTER_PASS_BUDGET_S into a pass; the
+                     rest wait for the next. `hold <tree-path> <op...>` waits
                      until `origin/main:<tree-path>` exists, and is
                      `roster: HOLD-STALE` after HOLD_STALE_S. Done or refused is
                      read from the exact line roster_queue's `--mark` rewrites
@@ -97,6 +100,13 @@ ROWS (the job table's `interval_s` in brackets):
                      --cursor state/outside-cursor.json`: its `OUTSIDE` lines
                      (submissions by outside users owed a triage, an answer or
                      a reply this turn), `outside-intake: UNREADABLE` on rc 2.
+  bottleneck [1800]  bottleneck_check.py `--checkout <repo> --train-log
+                     <train_log> --wip-cap <plan_slots> --memory
+                     state/bottleneck.json`: its `BOTTLENECK:` and
+                     `BOTTLENECK-UNREADABLE:` lines (the flow metrics past the
+                     owner's thresholds, 2026-11-07); a held breach re-prints its
+                     first line, so it is new once per trip. A line suggests; the
+                     orchestrator decides. `bottleneck: UNREADABLE` on a non-zero rc.
 No row runs `git checkout`, `reset`, `pull` or `merge`; main is read as
 `git -C <repo> cat-file -e origin/main:<path>`. No row touches a seat's alive
 file. Every row exits 0 once its lines are written: the digest is the signal,
@@ -119,8 +129,12 @@ import time
 from pathlib import Path
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
-        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake")
+        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake", "bottleneck")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
+#: roster-drain starts no op past this many seconds into a pass; the rest wait for the next pass. At
+#: most half the row's timeout_s in beatd.jobs.json (the self-test pins it), so an op started just
+#: before it has as long again (the orchestrator saw ~45 s an op through roster_queue's lint gate).
+ROSTER_PASS_BUDGET_S = 450
 #: The board's actionable family (carry 20's list), keyed on the texts
 #: orchestrator_tick.py and ledger.py print; the self-test pins each literal there.
 FAMILY = re.compile(
@@ -172,7 +186,7 @@ class Ctx:
 
     def __init__(self, state: Path, repo: Path, overlay: Path | None = None, board: Path | None = None,
                  run=sh, free_gib=None, now: float | None = None):
-        self.state, self.repo, self.run = state, repo, run
+        self.state, self.repo, self.run, self.clock = state, repo, run, time.monotonic
         self.digest = state / "digest"
         self.now = time.time() if now is None else now
         self.free_gib = free_gib or (lambda: shutil.disk_usage("/").free / 2 ** 30)
@@ -331,12 +345,18 @@ def roster_drain(ctx: Ctx) -> None:
     # rotated, which would silently skip a re-queued op under its occurrence key: refuse it visibly.
     whole = read(ctx.state / "roster-drain.queue").split("\n")[:-1]
     seen = int(ctx.memory("roster-queue-lines.json", 0))
+
+    def save() -> None:  # after every op, not only at the pass's end: a killed pass keeps what it applied
+        ctx.remember("roster-queue-lines.json", len(whole), 0)
+        ctx.remember("roster-done.json", sorted(done), [])
+        ctx.remember("roster-hold.json", holds, {})
     if len(whole) < seen or ctx.memory("roster-shrank.json", False):
         ctx.remember("roster-shrank.json", True, False)  # sticky: the op queued after the clear must not vanish
         return write_job(ctx, "roster-drain", [
             f"roster: QUEUE-SHRANK {len(whole)} terminated line(s) now, {seen} drained before; the queue is "
             "append-only; nothing ran. Rebaseline by deleting roster-done.json, roster-hold.json, "
             "roster-queue-lines.json and roster-shrank.json under the digest state"])
+    start = ctx.clock()
     for raw in whole:
         text = raw.strip()
         if not text or text.startswith("#"):
@@ -358,6 +378,8 @@ def roster_drain(ctx: Ctx) -> None:
                     lines.append(f"roster: HOLD-STALE {parts[2]} waits on {parts[1]}")
                 continue
             op = parts[2]
+        if ctx.clock() - start >= ROSTER_PASS_BUDGET_S:
+            break  # beatd kills the pass at timeout_s; this op and the rest run next pass
         one, report = ctx.digest / "state" / "roster-one.queue", ctx.digest / "state" / "roster-report.txt"
         atomic(one, op + "\n")
         report.unlink(missing_ok=True)
@@ -378,13 +400,12 @@ def roster_drain(ctx: Ctx) -> None:
         if mark != op or not any("no op attempted" in ln for ln in said):
             done.add(key)  # applied or refused: never retried past the lint gate
             holds.pop(key, None)
+            save()
     if cascade:
         lines.append(f"roster: CASCADE {cascade} op(s) stay pending: the worktree "
                      f"{ctx.digest / 'state' / 'roster-wt'} is on no origin ref after an earlier refusal; "
                      "remove it to release them")
-    ctx.remember("roster-queue-lines.json", len(whole), 0)
-    ctx.remember("roster-done.json", sorted(done), [])
-    ctx.remember("roster-hold.json", holds, {})
+    save()
     if lines or ran or "HOLD-STALE" in read(ctx.digest / "jobs" / "roster-drain"):
         write_job(ctx, "roster-drain", lines)  # an idle pass keeps the last drain's lines
 
@@ -398,7 +419,9 @@ def plan_beat(ctx: Ctx) -> None:
     if rc != 0:
         last = (err.strip().splitlines() or [""])[-1]
         return write_job(ctx, "plan-beat", [f"plan-beat: PLAN UNAVAILABLE replan rc={rc}: {last}"])
-    rc, out, err = ctx.py("tools/audit/seat/state_docs.py", "--push", "--mirror", mirror, "--plan", plan)
+    # the train log feeds the page's skip-share and train-skips table (UNAVAILABLE without it)
+    train = ["--train-log", str(ctx.overlay["train_log"])] if ctx.overlay.get("train_log") else []
+    rc, out, err = ctx.py("tools/audit/seat/state_docs.py", "--push", "--mirror", mirror, "--plan", plan, *train)
     lines = []
     if rc != 0:
         said = [ln for ln in err.splitlines() if "UNAVAILABLE" in ln or "REFUSED" in ln]
@@ -590,10 +613,23 @@ def outside_intake(ctx: Ctx) -> None:
     write_job(ctx, "outside-intake", [why or f"outside-intake: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
 
 
+def bottleneck(ctx: Ctx) -> None:
+    """bottleneck_check.py: one line per flow metric past its threshold, held once per trip by its memory."""
+    got = ctx.need("bottleneck", "train_log", "plan_slots")
+    if got is None:
+        return
+    rc, out, err = ctx.py("tools/audit/seat/bottleneck_check.py", "--checkout", str(ctx.repo),
+                          "--train-log", got[0], "--wip-cap", got[1],
+                          "--memory", str(ctx.digest / "state" / "bottleneck.json"))
+    if rc != 0:
+        return write_job(ctx, "bottleneck", [f"bottleneck: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+    write_job(ctx, "bottleneck", [ln for ln in out.splitlines() if ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))])
+
+
 RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
        "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
-       "outside-intake": outside_intake}
+       "outside-intake": outside_intake, "bottleneck": bottleneck}
 
 
 def main(argv: list[str]) -> int:

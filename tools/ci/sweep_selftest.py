@@ -18,6 +18,7 @@ class World:
         self.limit, self.post_limit = limit, post_limit
         self.base_files, self.bodies, self.compares = [], [], 0     # the base's changes since the PR's pin
         self.head_repo = "o/r"
+        self.caller = None      # GITHUB_RUN_ID of the job calling the sweep: V's own id is ci.yml's sweep-self
 
     def get(self, path, params=None):
         if self.limit:
@@ -55,7 +56,7 @@ class World:
     def sweep(self):
         out = []
         rc = sweep.main(["--run", str(self.v_id), "--repo", "o/r"], self.get, self.post, out.append,
-                        self.sleep, lambda: self.t)
+                        self.sleep, lambda: self.t, env={"GITHUB_RUN_ID": str(self.caller or 0)})
         return rc, "\n".join(out)
 
 
@@ -208,7 +209,56 @@ def run_checks():
     w = World([run(1, "1", status="in_progress", g="failure"), v_run()], 9)
     w.runs[1]["gate"]["status"] = "completed"
     out = w.sweep()[1]
-    ok("a red gate in a still-running run is left, not re-run (GitHub refuses it)", w.posts == [] and "left run 1" in out)
+    ok("a red gate in a still-running run is not re-run while it runs (GitHub refuses it): polled, left at the bound",
+       w.posts == [] and "left run 1 still in_progress" in out and len(w.sleeps) == 10)
+    w = World([run(1, "1", status="in_progress", g="failure"), v_run()], 9, {1: finish(1, "failure")})
+    w.runs[1]["gate"]["status"] = "completed"
+    w.sweep()
+    ok("a red gate whose run was still running (its own sweep-self) is re-run once the run completes",
+       w.posts == ["repos/o/r/actions/jobs/10/rerun"] and w.sleeps == [POLL_FLOOR])
+    # R10-HOTFIX-SWEEP-TOKEN-ACTOR: ci.yml's sweep-self sweeps a run whose actor is the bot, from inside it
+    # (gate-sweep.yml's workflow_run never fires for one). Its run is still in_progress, its sweep-self running.
+    selfjob = {"name": sweep.SELF_JOB, "completed_at": None}
+    def self_world(e_gate_started, caller=9):
+        v = run(9, "1", status="in_progress", g="success", started="4", units=["3"])
+        v["gate"]["completed_at"] = "7"
+        v["units"].append(dict(selfjob))
+        e = run(10, "5", started=e_gate_started)
+        w = World([v, e], 9)
+        w.caller = caller
+        return w
+    w = self_world("6")
+    rc, out = w.sweep()
+    ok("sweep-self: called from inside V (in_progress, gate green), it re-runs the edit gate that deferred to V, "
+       "without polling", rc == 0 and w.posts == ["repos/o/r/actions/jobs/100/rerun"] and w.sleeps == [])
+    w = self_world("8")
+    rc, out = w.sweep()
+    ok("sweep-self null: a red gate judged after V's gate concluded is final; V's running sweep-self is no source",
+       w.posts == [] and w.sleeps == [] and "reruns=0" in out)
+    w = self_world("6", caller=None)
+    w.runs[9]["status"] = "completed"
+    w.runs[9]["units"][-1].update(completed_at="9", conclusion="skipped")
+    w.sweep()
+    ok("sweep-self null: the workflow_run sweep of the same head (V completed, sweep-self skipped) re-runs alike",
+       w.posts == ["repos/o/r/actions/jobs/100/rerun"] and w.sleeps == [])
+    w = self_world("6")
+    w.runs[11] = run(11, "5", status="in_progress", gstatus="in_progress", started="9")
+    rc, out = w.sweep()
+    ok("sweep-self: a gate still running elsewhere is not waited on from inside V (its completion sweeps)",
+       w.posts == [] and w.sleeps == [] and out.startswith("SKIP"))
+    w = self_world("6", caller=None)
+    w.runs[9]["status"] = "completed"
+    w.runs[9]["units"][-1].update(completed_at="9", conclusion="skipped")
+    w.runs[11] = run(11, "5", status="in_progress", gstatus="in_progress", started="9")
+    w.script[1] = finish(11, "success")
+    w.sweep()
+    ok("sweep-self null: the workflow_run sweep polls that gate as before", w.sleeps == [POLL_FLOOR])
+    w = self_world("6")
+    w.runs[10]["status"] = "in_progress"        # the edit run's own sweep-self still running
+    w.script[1] = lambda w: w.runs[10].update(status="completed")
+    w.sweep()
+    ok("sweep-self: an edit run busy only past its gate is polled from inside V, then its deferral re-run",
+       w.posts == ["repos/o/r/actions/jobs/100/rerun"] and w.sleeps == [POLL_FLOOR])
     # r10-gate-busy-defer-3: settle, where no green gate covers the newest event. Stamps compare as
     # strings, as GitHub's ISO times do; a unit stamp after a gate's start is a source it could not read.
     w = World([run(1, "1", started="5", units=["6"]), run(2, "1", started="5", units=["6"])], 2)
@@ -372,6 +422,33 @@ def run_checks():
     w.sweep()
     ok("stale pin null: a dispatched run created before the stale gate concluded is no fresh judge: dispatch",
        dispatch in w.posts)
+    # #3400 at 7326025c (roster carry 1, R10-HOTFIX-SWEEP-TOKEN-ACTOR): the App-actor decider's sweep left the stale
+    # edit red "to this sweep's dispatched run"; that run (actor the bot) went green, its check replaced no other
+    # run's red, and its completion fired no workflow_run. Its own sweep-self re-runs the stale reds, once.
+    def shape3400():
+        f = run(5, "5", status="in_progress", g="success", started="6", units=["5"])
+        f["event"] = "workflow_dispatch"
+        f["units"].append({"name": sweep.SELF_JOB, "completed_at": None})
+        w = pinned(run(1, "1"), run(2, "1", started="3"), run(3, "1", g="success", started="4"), f, v=5)
+        w.caller = 5
+        return w
+    w = shape3400()
+    rc, out = w.sweep()
+    ok("stale pin, #3400: the dispatched fresh judge, green, re-runs from inside itself the stale reds it was "
+       "left, once each, dispatching nothing", w.posts == ["repos/o/r/actions/jobs/10/rerun", "repos/o/r/actions/jobs/20/rerun"]
+       and w.sleeps == [] and "dispatches=0" in out)
+    w = shape3400()
+    w.runs[5]["gate"].update(status="in_progress", conclusion=None, completed_at=None)
+    w.v_id, w.caller = 3, None
+    w.script[1] = finish(5, "success")
+    rc, out = w.sweep()
+    ok("stale pin, #3400 null: the decider's own sweep, while the fresh judge runs and after it completes, re-runs "
+       "nothing (the fresh judge's sweep owns it)", w.posts == [] and "run 5 re-judges" in out)
+    w = shape3400()
+    w.runs[5]["gate"]["conclusion"] = "failure"
+    w.sweep()
+    ok("stale pin, #3400 null: a fresh judge that ended red re-runs no stale red from inside itself",
+       w.posts == [])
     # R10-HOTFIX-SWEEP-SETTLE-LOOP: the recorded #3308 loop. Run 42471173865's gate re-run re-stamped its
     # skipped jobs past the two sibling gates' starts; on main settle read them as sources and re-ran both,
     # whose re-runs re-stamped theirs, each pair re-running the other up to the attempt cap.
