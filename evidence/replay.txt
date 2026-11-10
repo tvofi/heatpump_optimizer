@@ -1,0 +1,6 @@
+INDEX drop-carry G 1, run twice: ['applied', 'applied']; removed=2 left=['entry 0', 'entry 3', 'entry 4']
+MATCH drop-carry G --match 'entry 1', run twice: ['applied', "refused: drop-carry: no carry entry matches 'entry 1' in G"]; removed=1 left=['entry 0', 'entry 2', 'entry 3', 'entry 4']
+GATE 'drop-carry G 1': drop-carry by index is refused in a queue: a replay re-resolves the index on the shifted carry list; key it --match TEXT
+GATE 'mark-carry G 1 dismissed x': mark-carry by index is refused in a queue: a replay re-resolves the index on the shifted carry list; key it --match TEXT
+GATE "drop-carry G --match 'entry 1'": runs
+GATE "mark-carry G --match 'entry 1' dismissed x": runs
