@@ -1,0 +1,21 @@
+Fix review: merge ee109e265c0c7d8dc5c956355c84d407f2c611da
+
+bus-nonce: b18672ac11974a726a3da9269fc8019e
+
+Round 3 on this PR, scoped to the delta 0884509a0..ee109e265c0c7d8dc5c956355c84d407f2c611da (owner ruling 2026-11-09): one file, `dev/audit/rca/R10-RCA-MAIN-SELFTESTS-RED.md` (+266/-127), via repair f25c518da and a merge commit. No production code (`custom_components/`), test, check or policy line changed, so no wider review and no mutant can be drawn.
+
+## Evidence
+
+- Previous block resolved. The round-1 block (`figure-wrong`: P1 is 28 pushes with 24 cancelled, not 27 and 23) is corrected in the section 1 table, 2d and section 5. I re-ran the enumerators (ev/pushes.tsv): 37 first-parent pushes, 0 `success`; rows 1-28 are 24 `cancelled` and 4 `failure`; rows 29-33 are 5 `failure`; rows 34-35 are 2 `failure`; rows 36-37 are 2 `failure`. 28+5+2 = 35, plus the tail of 2 = 37. The `git rev-list --first-parent --count` figures are 37, 28, 5 and 2.
+- Re-derived and matching from the cited measurement: E2 refusal counts per push (job logs): 39/39/39/47 (P1's four, 33+6 and 34+13 UNMEASURED+UNDER-SCOPED), 37/37/37/38/38 (P2), 39 and 38 (P3: 38+1 and 37+1), 39 and 46 (tail), plus the 106, 108 and 109 gated-step counts. "Install strace" is `failure` in all 28 P1 jobs; all 24 cancelled jobs stop in "Refuse a self-test read set the committed table misses"; five "Show ..." steps fail on `bg/lib.sh`. `exists on disk, but not in` and `ref_privacy: REFUSE` occur 0 times and `ref_privacy self-test:` 8 times over the 37 logs. The `push-names-the-host` count is 1 at `2cf0f129b`, `5ab6030d7` and `8652aa65c` and 0 at `57091a694`. The P3 quoted lines are 0 in P2 and 1 at `8652aa65c` and `57091a694`.
+- E3 on artifact 13737009763 against the committed table: 37 entries, 6 globs, 31 files; the 4 absent at `a751546c5` are topic_grammar.py, bottleneck_check.py, selftest_scope_mutants.sh and gh_read_run.py, with add dates 16:23Z, 22:19Z, 01:47Z and 04:34Z (the five add commits re-derive, UTC). E4 prints 23 lines (4 dirs x 5 steps = 20, plus 3 `-c` probes). The class enumerator prints 23 files. E5 prints 4 commits (115, 116, 117, 118 steps). E6 prints 6 groups. The roster has the 5 hotfixes named.
+- Table history: three first-parent commits touched it (2cf0f129b, b8f67a775, 2b777aad7: +26, +16, +13, 0 deletions); steps 106 to 109; `a751546c5` is the last recording; 7 commits on #3315's branch, 3 of them "main's". `git grep -c "event_name == 'push'"` is 1+3+1+14 = 19 in 4 files; 75 days; `ci_predict.py` has 3 `instrument-self-tests`'s arms and 0 `selftest_scope` hits.
+- Spans: #3315 08:16:10Z to run 42758119155 04:47:59Z = 20.5 h; to #3375 01:47:42Z = 17.5 h. #3393 22:20:14Z to 00:48:48Z = 148 min. Artifact upload 05:24:30.757 to 05:24:31.180 = 0.42 s and 34857 bytes. 13 of 13 `failure` rows hold exactly one `selftest-closures` artifact. `b07627250`'s diff includes tools/plan/replan.py and sweep_template.md. 2c's null control is `--self-test` at `8652aa65c`: `103 checks, 1 failed`.
+- Not re-derivable to the digit: the quoted wall clocks 0.53 s (`selftest_scope.py --self-test`) and 2.2 s (`ci_predict.py`), one run on the author's container. On mine: 0.70 s and 0.91 s for the self-test, 2.50 s for `ci_predict.py`. A wall clock is machine-dependent, the document says so ("one run on this seat's container"), and the cost-test conclusion does not turn on it. I did not re-run Countermeasure B's scratch-gated third case; the first two (rc 1 at `8652aa65c`, rc 0 at `5ab6030d7`) were measured in round 1.
+- The delta's disclosed corrections (4 PRs added a step after #3315, not 3; 1 of 4 ungated) match E5.
+- Merge with origin/main: `git merge-tree --write-tree origin/main ee109e265c0c7d8dc5c956355c84d407f2c611da` exits 0 (ev/merge-tree.txt). `dev/governance/roles/` has no drift against main. `VERSION`, the manifest, `RELEASE_NOTES.md` and `custom_components/` are untouched; no claim or golden file moves.
+- CI at this head: `merge_train.py classify` exits 0, `GREEN ee109e265c0c7d8dc5c956355c84d407f2c611da pending: none red: none` (ev/classify.txt). The body's `## Red checks` answers the earlier `gate` deferral; `owed-reds` (ev/owed-reds.txt) lists required contexts, none red here.
+
+## Findings
+
+none
