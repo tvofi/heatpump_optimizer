@@ -19244,7 +19244,8 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-fixer-md-spelling-corpus",
-    "note": "queued by orchestrator s12 (roster-audit4) for triage queue line 86's ruling, comment 6708543123"
+    "note": "queued by orchestrator s12 (roster-audit4) for triage queue line 86's ruling, comment 6708543123",
+    "pr": 3397
    },
    "brief": "Orchestrator ruling under the mandate (comment 6624093439, scope all), coordination issue comment 6708543123, 2026-11-07, and the owner's 2026-11-07 order to act on every roster-audit2 finding (M6): the fixer.md sentence drafted in dev/audit/rca/R10-RCA-CLASS-OPEN.md section 6 is approved, verbatim: \"A guard that classifies text by shape is driven over a generated spelling corpus (case, quoting, glued options, delimiters, wrapping) with the corpus size named in the body; a spelling the reviewer finds is added to it.\" Land that sentence in dev/governance/roles/fixer.md. The draft names step 5; read the role at this group's merge base and place it in the step that governs how a fixer tests a guard (step 5 if it still does, otherwise the step that now does), and state the placement and why in the body. The sentence is approved word for word: do not reword it. If the role is mirrored by a generated file, regenerate it with node tools/policy/rules_sync.mjs and run its --check. policy_lint --budgets must not grow beyond fixer.md's cap; pay for the sentence by tightening fixer.md text first, and a raise goes only through the budget-raise gate. Control: brief_lint and policy_lint pass at the head; the sentence appears exactly once in the role (null control: the merge base has none). It merges as policy under the mandate, and R10-ROUND-PLAYBOOK-FINAL reflects it."
   },
@@ -21245,9 +21246,10 @@
    "carry": [],
    "brief": "tools/audit/seat/state_docs.py main() reads the tip of the round's state-doc ref once, generates for about half a minute, then pushes once with no re-read and no retry, so a second writer landing in that window refuses the push non-fast-forward. The train's postmerge reports it as the recurring `OWED docs: rc 2` (12 instances on the ledgers since 2026-11-04; 10 had a rival push 4-31 s before the refusal, all from a second postmerge run or a --retry, never the plan beat). Process state (d): the push assumed one writer while writers were added. Fix, in the shape of roster_edit.py's push-race retry (R10-ROSTER-PUSH-RACE): fetch the tip after reading it (this also cures 'failed to unpack tree object' for a tip the checkout lacks); on a refused push where the tip moved, regenerate on the new tip, at most 3 attempts, then refuse loudly; a refused push where the tip did not move refuses at once as not a race; never force. The failing test first: a --self-test case with a rival push landing during generation, which must fail at the merge base and pass at the head; the current self-test passes on both. Null control: no rival gives rc 0 on both. Mutation-prove the retry and the moved-tip predicate.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-state-docs-push-race",
-    "note": "orchestrator s13 2026-11-09: root-cause seat on the train docs-push class (5th instance #3304)"
+    "note": "orchestrator s13 2026-11-09: root-cause seat on the train docs-push class (5th instance #3304)",
+    "commit": "3aac11dfba2a252f329159af0f1c15b48d79818b"
    }
   },
   {
@@ -21443,7 +21445,8 @@
     "commit": "7d6540509c884772cfbf0739ed876a6a619f9669",
     "last_step": "fixer",
     "next_step": "open PR, review",
-    "note": "owed-lines seat s13 2026-11-09T23:50Z under mandate 6715477401: open arm opened nothing; overlap admitted (R10-SEAT-IDENTITY-P5): owed-lines seat s13 (mandate 6715477401): open_driver read no topic from the flagged tick board; hotfix handoff/r10-hotfix-opener-board-prefix 7d654050"
+    "note": "owed-lines seat s13 2026-11-09T23:50Z under mandate 6715477401: open arm opened nothing; overlap admitted (R10-SEAT-IDENTITY-P5): owed-lines seat s13 (mandate 6715477401): open_driver read no topic from the flagged tick board; hotfix handoff/r10-hotfix-opener-board-prefix 7d654050",
+    "pr": 3396
    },
    "brief": "Hotfix (owed-lines seat, s13, 2026-11-09, mandate 6715477401): the beat's opener passes open_driver.py the tick board, whose owed level lines are flagged `-> OWED: OWED ... handoff-no-pr ...`; BOARD_RE was anchored at a bare `^OWED`, so parse_board read zero topics and the open arm opened nothing (state `{}`, seven handoffs with no PR, one critical path). Fix: BOARD_RE accepts the flag; self-test carries the board's flagged form and an unflagged null."
   },
