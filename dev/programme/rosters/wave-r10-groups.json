@@ -14138,7 +14138,7 @@
     "From handoff/r10-rca-tick-blind, body item 17fba752: carry_audit: indented Carry continuation and quoted Carry phrase, pinned by the seven refused verdicts. Carry: R10-BODY-CONTRACT (items 17fba752) [moved: R10-CARRY-AUDIT-P5]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "in-progress",
     "branch": "handoff/r10-body-contract",
     "commit": "2dc960f4a92b1ebf56ed5aa33f55400d8e269a10",
     "last_step": null,
