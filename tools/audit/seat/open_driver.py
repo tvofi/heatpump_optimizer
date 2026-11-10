@@ -5,7 +5,7 @@
     python3 -I tools/audit/seat/open_driver.py --self-test
 
 A pass reads the board's `OWED <utc> handoff-no-pr refs/heads/handoff/<topic>
-<sha> [ct=<epoch>]` lines (an `OWED ... handoff-update` line or a
+<sha> [ct=<epoch>]` lines, bare or as the tick board flags them (`-> OWED: OWED ...`) (an `OWED ... handoff-update` line or a
 `handoff-body/` ref is not an open and is ignored), drops what must not open,
 orders the rest, and launches `open_pr.sh` detached for as many as the cap
 allows. The OPEN arm only: cloud_relay.sh's handoff arm owns update_pr.sh.
@@ -71,7 +71,8 @@ import roster_lib  # noqa: E402
 import topic_grammar  # noqa: E402
 
 REPO = "tvofi/heatpump_optimizer"
-BOARD_RE = re.compile(r"^OWED \S+ handoff-no-pr refs/heads/handoff/(\S+) ([0-9a-f]{40})(?: ct=(\d+|\?))?")
+# `-> OWED: ` is the tick board's flag on an owed level line (orchestrator_tick.py), the board the beat passes.
+BOARD_RE = re.compile(r"^(?:-> OWED: )?OWED \S+ handoff-no-pr refs/heads/handoff/(\S+) ([0-9a-f]{40})(?: ct=(\d+|\?))?")
 STARVE_S = 2 * 3600
 BACKOFF_S, BACKOFF_MAX_S, MAX_TRIES = 1800, 7200, 3
 DEFAULT_CAP = 2

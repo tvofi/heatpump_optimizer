@@ -104,6 +104,12 @@ def run():
     check("null: triage with neither group", od.resolve("triage-s6-batch105", {"R10-TRIAGE-S7"}, "")[0] is None)
     pb = od.parse_board(line("r10-a", sha("1")) + "\n" + line("r10-a", sha("2")) + "\n" + line("r10-b", sha("3")))
     check("parse_board: one per topic, the first line wins", pb == [("r10-a", sha("1"), None), ("r10-b", sha("3"), None)])
+    # The board the beat passes is the tick's (beat_jobs.py opener: the overlay's tick_log), where
+    # every owed level line is flagged `-> OWED: <line>` (orchestrator_tick.py renders `"-> " + "OWED: " + row`).
+    # Read only bare lines, the driver parsed nothing from the live board and opened nothing (2026-11-09).
+    flagged = "-> OWED: " + line("r10-c", sha("4"), 1794262974) + "\n-> OWED: OWED x handoff-update refs/heads/handoff/r10-d " + sha("5")
+    check("parse_board: the tick board's flagged `-> OWED: ` line is read", od.parse_board(flagged) == [("r10-c", sha("4"), 1794262974)])
+    check("null: an unflagged board line is not owed", od.parse_board("   OWED: " + line("r10-e", sha("6"))) == [])
     check("override wins", od.resolve("r10-x", G, "", {"r10-x": {"group": "R10-UX-HEALTH", "title": "T"}}) == ("R10-UX-HEALTH", "T"))
 
     # order: hotfix > outside > critical > record > rest by default (owner ruling
