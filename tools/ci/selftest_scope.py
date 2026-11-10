@@ -6,6 +6,7 @@
     python3 -I tools/ci/selftest_scope.py ids
     python3 -I tools/ci/selftest_scope.py record [--step ID]... [--out PATH]
     python3 -I tools/ci/selftest_scope.py check --traces DIR [--write PATH]
+    python3 -I tools/ci/selftest_scope.py settle
     python3 -I tools/ci/selftest_scope.py --self-test
 
 WHY (R10-CI-SELFTEST-SCOPE, owner lever 3, #201 comment 6707834331).
@@ -48,6 +49,10 @@ entry. Over-approximation (an entry naming a file no longer read) is safe
 and is reported, not refused. `--write` saves the run's own measurement,
 which main uploads as the `selftest-closures` artifact: commit that file, or
 re-record with `record` (Linux, strace).
+THE SETTLED INDEX, `settle`, runs untraced before any step is (CI's strace
+step; `record` itself): a fresh checkout leaves racily clean index entries,
+whose content the first index-refreshing git command re-reads, so without it
+those reads land in whichever traced step refreshes first.
 
 BLIND SPOTS, stated: a path a process named relative to a working directory
 the trace does not decorate (a non-*at syscall after a chdir) is resolved
@@ -621,10 +626,63 @@ def drift(table: dict | None, measured: dict[str, dict], steps: list[Step]) -> t
 # ---------------------------------------------------------------------------
 # recording: the job, replayed through the same wrapper CI uses
 
+def _index_path(root: Path, env: dict | None = None) -> Path:
+    out = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-path", "index"],
+                         cwd=root, env=env, capture_output=True, text=True).stdout.strip()
+    return Path(out) if out else root / ".git" / "index"
+
+
+def racy_entries(root: Path, env: dict | None = None) -> list[str]:
+    """Tracked files whose mtime second is not before the index's own: git
+    cannot vouch for them from stat data, so the next index-refreshing
+    command (`git status`, `git diff`) opens and hashes each one. The second
+    is the coarser of git's two racy tests (with and without USE_NSEC)."""
+    try:
+        stamp = int(_index_path(root, env).stat().st_mtime)
+    except OSError:
+        return []
+    listed = subprocess.run(["git", "ls-files", "-z"], cwd=root, env=env,
+                            capture_output=True, text=True).stdout.split("\0")
+    racy = []
+    for rel in filter(None, listed):
+        with contextlib.suppress(OSError):
+            if int((root / rel).lstat().st_mtime) >= stamp:
+                racy.append(rel)
+    return sorted(racy)
+
+
+def settle_index(root: Path, env: dict | None = None) -> int:
+    """Rewrite the index in a second later than every tracked file's mtime,
+    so no entry is racily clean when a traced step starts. Without it the
+    content reads of a fresh checkout's last-written files fall to whichever
+    traced process first refreshes the index -- a read set that moves with
+    scheduling, not with the tree (R10-HOTFIX-PREPR-READSET)."""
+    racy = racy_entries(root, env)
+    if not racy:
+        return 0
+    newest = max(int((root / r).lstat().st_mtime) for r in racy if (root / r).exists())
+    if newest > time.time() + 5:
+        print(f"selftest_scope: settle: {racy[0]} is stamped in the future, so no index can vouch for it",
+              file=sys.stderr)
+        return 1
+    while time.time() < newest + 1:
+        time.sleep(0.05)
+    subprocess.run(["git", "update-index", "-q", "--really-refresh", "--force-write-index"],
+                   cwd=root, env=env, capture_output=True)
+    left = racy_entries(root, env)
+    if left:
+        print(f"selftest_scope: settle left {len(left)} racily clean index entr(ies), e.g. {left[0]}",
+              file=sys.stderr)
+        return 1
+    return 0
+
+
 def record(root: Path, only: list[str] | None, out: Path) -> int:
     if shutil.which("strace") is None:
         print("selftest_scope: record needs strace (Linux)", file=sys.stderr)
         return 2
+    if settle_index(root):
+        return 1
     steps = workflow_steps(root)
     gaps = wiring_gaps(steps)
     if gaps:
@@ -1116,6 +1174,9 @@ def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
         if shutil.which("strace") is None or _traced():
             print("  skip the recorder end to end: no strace here, or this run is itself traced")
         else:
+            ns = _index_path(root).stat().st_mtime_ns
+            os.utime(root / "tools/x/a.py", ns=(ns, ns))
+            racy_before = racy_entries(root)
             out = io.StringIO()
             scratch, tempfile.tempdir = tempfile.tempdir, str(root.parent / f"{root.name}-tmp")
             os.makedirs(tempfile.tempdir)
@@ -1136,6 +1197,8 @@ def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
             ck("record: a detached self-test's reads are its waiter's",
                "tools/x/slow.sh" in slow_e.get("files", ()) and "tools/x/slow.sh" not in a_e.get("files", ()))
             ck("record: it leaves no trace directory behind", left == [])
+            ck("record: it settles a racy index before tracing (racy before, none after)",
+               "tools/x/a.py" in racy_before and racy_entries(root) == [])
             part = root / "part.json"
             part.write_text(json.dumps({"steps": {"slow": {"run_sha": "old", "files": [], "probes": [],
                                                            "dirs": [], "index": False, "objects": False}}}))
@@ -1312,6 +1375,51 @@ def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
         m = re.search(r'^UNTRACED="([^"]*)"$', wrapper.read_text(), re.M)
         ck("wrapper: its UNTRACED list is UNGATED", bool(m) and sorted(m.group(1).split()) == sorted(UNGATED))
 
+    # A racily clean index (R10-HOTFIX-PREPR-READSET): entries whose file
+    # mtime second is not before the index's, which a fresh checkout leaves
+    # for the files it wrote last. The first index-refreshing git command
+    # re-reads each one's content, so those reads land in whichever traced
+    # step runs it first (main run 42780661829: prepr's `git status`).
+    # `settle` clears them before any step is traced; a racy fixture is its
+    # control.
+    with tempfile.TemporaryDirectory() as td, throwaway_git_environ():
+        root = Path(os.path.realpath(td))
+        env = throwaway_git_init(root, "-q")
+        names = [f"docs/f{n}.md" for n in range(3)]
+        for rel in names:
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text(f"{rel}\n")
+        subprocess.run(["git", "add", "-A"], cwd=root, env=env, check=True)
+
+        def make_racy() -> None:   # every file stamped with the index's own mtime
+            ns = _index_path(root, env).stat().st_mtime_ns
+            for rel in names:
+                os.utime(root / rel, ns=(ns, ns))
+        make_racy()
+        ck("racy_entries: files stamped in the index's own second are named (the control)",
+           racy_entries(root, env) == names)
+        traced_status = shutil.which("strace") is not None and not _traced()
+
+        def status_reads() -> set[str]:
+            log = root.parent / f"{root.name}-status.trace"
+            subprocess.run(["strace", "-f", "-q", "-y", "-e", "trace=%file", "-o", str(log),
+                            "git", "status", "--porcelain"], cwd=root, env=env, capture_output=True)
+            got = fold_trace(log.read_text().splitlines(), root, set(names), {"docs"}, *_git_dirs(root))
+            log.unlink()
+            return got["files"]
+        if traced_status:
+            make_racy()
+            ck("a git status over that racy index opens every racy file (the control)",
+               status_reads() == set(names))
+            make_racy()
+        rc = settle_index(root, env)
+        ck(f"settle: no index entry is left racily clean (rc={rc})", rc == 0 and racy_entries(root, env) == [])
+        if traced_status:
+            ck("and a git status after it opens no tracked file", status_reads() == set())
+        else:
+            print("  skip the traced git status over a racy index: no strace here, or this run is itself traced")
+        ck("settle over an index with no racy entry changes nothing (rc 0)", settle_index(root, env) == 0)
+
     # The live table names no landed retired path (tests/layout.py's guard
     # refuses a new reference to one, and a diff re-adding one), and the
     # list it is checked against is not empty (the check's own precondition).
@@ -1343,6 +1451,8 @@ def main(argv: list[str], root: Path = ROOT) -> int:
         return 0
     if argv == ["static"]:
         return static_check(root)
+    if argv == ["settle"]:
+        return settle_index(root)
     if argv[:1] == ["select"] and ("--base" in argv or "--change" in argv):
         steps = workflow_steps(root)
         if "--change" in argv:          # a hypothetical diff: STATUS:PATH ...

@@ -39,6 +39,7 @@ scope_mutant "a partial trace read whole" 'return "" if seen["root"] in seen["en
 scope_mutant "a signal death read as partial" '(?:exited with|killed by) ' '(?:exited with) '
 scope_mutant "check drops the trace refusals" 'refuse = broken + refuse' 'refuse = refuse'
 scope_mutant "record passes over a broken trace" 'return 1 if failed or broken else 0' 'return 1 if failed else 0'
+scope_mutant "settle never rewrites the index" '["git", "update-index", "-q", "--really-refresh", "--force-write-index"]' '["true"]'
 wrapper_mutant "only launch untraced (the incident's wrapper)" 'case "$UNTRACED" in *" ${GITHUB_ACTION:-} "*)' 'case " launch " in *" ${GITHUB_ACTION:-} "*)'
 wrapper_mutant "no strace exec'd anyway" 'if ! command -v strace > /dev/null 2>&1; then' 'if false; then'
 wrapper_mutant "exit lines suppressed (-qq)" 'exec strace -f -q -y' 'exec strace -f -qq -y'
