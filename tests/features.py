@@ -62079,12 +62079,11 @@ def _pa_restored_twice(via):
 
     The restore drops the space slot from the arbiter's persisted record, so
     after the restart the next arm captures 25 again rather than refusing it
-    as the optimizer's own last write. ``off`` runs a space-only install, whose
-    record holds nothing else.
+    as the optimizer's own last write. A space-only install, whose record holds
+    nothing else, so no other slot's write saves it.
     """
     coord = _PaCoord(_PA_TUYA, duties="dds-s")
-    if via == "off":
-        with_config(coord, {"heat_pump_mode_entity": "", "dhw_setpoint_entity": ""})
+    with_config(coord, {"heat_pump_mode_entity": "", "dhw_setpoint_entity": ""})
     coord.device("number.water_set", "25")
     _pa_settled(coord)                       # 25 captured, and the gate 25 written: the last write
     coord.entry.runtime_data = coord
