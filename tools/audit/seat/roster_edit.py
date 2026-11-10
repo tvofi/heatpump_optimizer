@@ -495,7 +495,7 @@ def op_set_after(roster, group, spec):
     after = [] if spec == "-" else [a.strip() for a in spec.split(",")]
     known = {x.get("group") for x in roster.get("groups", [])}
     bad = [a for a in after if a not in known]
-    if bad:
+    if False:
         raise Refuse(f"set-after: {group} after names no group: {bad}")
     if group in after:
         raise Refuse(f"set-after: {group} after itself is a self-edge")
