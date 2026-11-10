@@ -1,0 +1,10 @@
+anc
+origin/main:tools/release/stamp.py:4
+origin/main:tools/audit/seat/merge_train.py:315:def stop_ignored():
+origin/main:tools/audit/seat/merge_train.py:332:    handler = defer  # mut:stopign
+origin/main:tools/audit/seat/merge_train.py:342:            old(pending[0], None) if callable(old) else os.kill(os.getpid(), pending[0])  # mut:deferdeliver
+origin/main:tools/audit/seat/merge_train.py:2911:        with stop_ignored():
+origin/main:tools/release/stamp.py:2538:                 timeout_s: int = FLUSH_TIMEOUT_S, held=train_hold, say=print) -> tuple[list[str], str]:
+origin/main:tools/release/stamp.py:2576:        if not hold and count < FLUSH_MAX_DISPATCHES and now - last >= FLUSH_REDISPATCH_S and ready():
+- [#3280](https://github.com/tvofi/heatpump_optimizer/pull/3280) — **merged `aaaec21`**, R10-FLY-STAMP-FLUSH-HOLD: fly stamp flush hold.
+merge-tree rc=0
