@@ -1,0 +1,24 @@
+== tools/audit/seat/roster_lib.py:     if g is not None and is_outside(g):
+        return RANK_TOP ->     if g is not None and is_outside(g):
+        return RANK_OTHER
+rc=1 2 FAIL dispatch_rank: hotfix, then outside and critical as one rank, then other, unknown or none; a hotfix beats outside (
+== tools/plan/replan.py: return (t, sav, -height[n], -dur_min[n], n) -> return (t, 0 if tier_why.get(n,'').startswith('critical') else 1, sav, -height[n], -dur_min[n], n)
+rc=1 0 NameError: name 'tier_why' is not defined
+== tools/plan/replan.py:     if roster_lib.is_outside(group):
+        return TIER_TOP, outside ->     if False:
+        return TIER_TOP, outside
+rc=1 79 self-test: 2 failed
+== tools/pr/gate_priority.py: roster_lib.RANK_TOP: TOP_PRIORITY} -> roster_lib.RANK_TOP: HOTFIX_PRIORITY}
+rc=1 7 FAIL with neither override the derived default still answers (got: )
+== tools/audit/seat/open_driver.py: in outside | critical:
+        return 1 -> in outside:
+        return 1
+rc=0 0 
+== tools/audit/seat/merge_train.py:                                             not (self.outside(items[id(e)])  # mut:drain-outside
+                                                 or self.critical(items[id(e)]))))  # mut:drain ->                                             not self.outside(items[id(e)]),
+                                            not self.critical(items[id(e)])))
+rc=1 54 merge_train self-test: 608 checks, 2 failed
+== tools/audit/seat/roster_edit.py:     if new is not None and new not in roster_lib.SOURCES: ->     if False:
+rc=1 3 FAIL set-source - removes the key, and the old value is in resume.note (got: )
+
+[exited with code 0]
