@@ -1,0 +1,9 @@
+de merge=757291b601c70798c92d71368cb5b53ff1db8dcc |M|=1457 |O|=1457 |T|=1447 |B|=1442 branch-only-keys=10 missing=[] value-changed=[] main-keys-missing=[]
+  de branch-only keys: ['config.error.heat_curve_entity_in_use', 'options.step.heat_curve.data.heat_curve_displace_entity', 'options.step.heat_curve.data.heat_curve_target_kind', 'options.step.heat_curve.data.heat_curve_offset_band_k', 'options.step.heat_curve.data_description.heat_curve_displace_entity', 'options.step.heat_curve.data_description.heat_curve_target_kind', 'options.step.heat_curve.data_description.heat_curve_offset_band_k', 'options.error.heat_curve_not_offset', 'options.error.heat_curve_entity_in_use', 'selector.heat_curve_target_kind.options.offset']
+de merge=757291b601c70798c92d71368cb5b53ff1db8dcc |M|=1456 |O|=1457 |T|=1447 |B|=1442 branch-only-keys=10 missing=['config.error.heat_curve_entity_in_use'] value-changed=[] main-keys-missing=[]
+  NULL CONTROL DETECTS
+card merge=757291b601c70798c92d71368cb5b53ff1db8dcc |M|=1717 |O|=1717 |T|=1714 |B|=1712 branch-only-keys=3 missing=[] value-changed=[] main-keys-missing=[]
+  card branch-only per language: {'en': 1, 'sv': 1, 'de': 1} ['health.input_heat_curve_displace_entity', 'health.input_heat_curve_displace_entity', 'health.input_heat_curve_displace_entity']
+card merge=757291b601c70798c92d71368cb5b53ff1db8dcc |M|=1716 |O|=1717 |T|=1714 |B|=1712 branch-only-keys=3 missing=[('en', 'health.input_heat_curve_displace_entity')] value-changed=[] main-keys-missing=[]
+  NULL CONTROL DETECTS
+RESULT threeway PASS

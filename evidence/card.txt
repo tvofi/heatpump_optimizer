@@ -1,2 +1,0 @@
-FAIL: plan payload /tmp/plandata-822e9fee8627.json not found — run tests/plan_view.py first
-rc=1 secs=0
