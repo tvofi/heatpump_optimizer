@@ -21967,6 +21967,45 @@
     "commit": null
    },
    "brief": "Root-cause seat (root-cause.md) beside R10-HOTFIX-ROSTER-DRAIN-REPLAY: the beat's roster-drain replayed already-applied queue ops after a timeout-killed pass, and index-based drop-carry ops removed 18 carries on handoff/audit-r10-roster (2026-11-10). Owes a named cause, a process state (a-d), a cost test with numbers, and a countermeasure or a recorded refusal. Note why drop-carry by index exists at all when replay is possible. No production code."
+  },
+  {
+   "lane": "IN",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "critical",
+   "size": "S",
+   "wave": 1,
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "group": "R10-HOTFIX-ROSTER-DRAIN-REPLAY",
+   "kind": "instrument",
+   "class": "instrument",
+   "files": [
+    "tools/audit/seat/beat_jobs.py"
+   ],
+   "hot_files": [],
+   "resume": {
+    "stage": "in-progress",
+    "note": "orchestrator 2026-11-10T08:35Z: roster-drain replayed queued ops; 18 carries lost to replayed index drops; overlap admitted (R10-TICK-RESIDUE, R10-SEAT-IDENTITY-P5): orchestrator 2026-11-10: roster-drain replay destroyed carries (re-queued, brief cites no untracked path)",
+    "pr": null,
+    "commit": null
+   },
+   "brief": "Hotfix (orchestrator, 2026-11-10). beat_jobs.py roster_drain records its done set (the drain's done-record file, the drain's queue-lines file) only at the END of a pass. Under beatd the row has timeout_s 900, and each op takes about 45 s through roster_queue.py's lint gate, so a pass with more than about 20 pending ops is killed before it saves. The next pass then replays every op from the top. Observed 2026-11-10 08:54-09:29 local on handoff/audit-r10-roster: the same drop-carry ops landed every ~14 min, and index-based drops removed 18 unintended carries. FIX: persist the done set after every op (atomic write), so a killed pass resumes at the first unapplied op; consider also bounding ops per pass under the timeout. Failing test first in beat_jobs_selftest.py: a pass killed mid-queue must not re-apply an op on the next pass (null control: a pass that completes applies each op exactly once). Mutation proof. Root cause owed in its own seat (it reached a live state document): R10-RCA-ROSTER-DRAIN-REPLAY."
   }
  ]
 }
