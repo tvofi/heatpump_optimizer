@@ -21618,10 +21618,10 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-fly-replan-top-tier-pr",
     "pr": 3399,
-    "commit": null,
+    "commit": "b0762725099fefd337fc74ecff161cb487a992bc",
     "last_step": null,
     "next_step": "first review",
     "note": "overlap admitted (R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE, R10-GATE-DEFER-BARRIER, R10-PLAN-PAGE-RESIDUE, R10-STANDING-CONTRACTS-P2, R10-SEAT-IDENTITY-P5): orchestrator s13 under mandate 6715477401: #3399 opened from handoff/r10-fly-replan-top-tier with no roster group; shares replan.py/roster_lib.py with done R10-FLY-REPLAN-DEFECTS only"
