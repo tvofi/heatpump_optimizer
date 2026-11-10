@@ -1,0 +1,198 @@
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2345 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1038 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 518 bytes
+ready: would push handoff/audit-r9-plan at 2a059b0b9b63985043ff7f079a18559f5d467535 (no --push)
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp7edk9u4a/mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp7edk9u4a/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp7edk9u4a/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp7edk9u4a/mirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2345 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1038 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 518 bytes
+pushed handoff/audit-r9-plan at 2a059b0b9b63985043ff7f079a18559f5d467535
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp7edk9u4a/mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp7edk9u4a/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp7edk9u4a/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp7edk9u4a/mirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2469 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 1959 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 838 bytes
+generated handoff/round9/state/PLAN.html: 22841 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 485 bytes
+pushed handoff/audit-r9-plan at db0205c55ea1ef2a651fc0e228f3421b7f2665de
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp7edk9u4a/pmirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp7edk9u4a/pmirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp7edk9u4a/pmirror/PLAN-TABLE.md
+mirrored handoff/round9/state/PLAN.html -> /tmp/tmp7edk9u4a/pmirror/PLAN.html
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp7edk9u4a/pmirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2469 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2122 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 838 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 485 bytes
+pushed handoff/audit-r9-plan at 30c687534653b65d85259609664483eaac23b3e8
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp7edk9u4a/pmirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp7edk9u4a/pmirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp7edk9u4a/pmirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp7edk9u4a/pmirror/RESUME-CURRENT.md
+round state: fresh-state at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2469 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2122 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 838 bytes
+generated handoff/round9/state/PLAN.html: 993 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 485 bytes
+pushed fresh-state at cbc489190f61b3b365b6ba9dffc5740efccde4e3
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp7edk9u4a/pmirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp7edk9u4a/pmirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp7edk9u4a/pmirror/PLAN-TABLE.md
+mirrored handoff/round9/state/PLAN.html -> /tmp/tmp7edk9u4a/pmirror/PLAN.html
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp7edk9u4a/pmirror/RESUME-CURRENT.md
+round state: crash-state at handoff/round9/state/
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2345 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1038 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 518 bytes
+already current: handoff/audit-r9-plan at 2a059b0b9b63 carries these bytes; nothing to commit or push
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp7edk9u4a/mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp7edk9u4a/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp7edk9u4a/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp7edk9u4a/mirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2128 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 957 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 510 bytes
+state_docs: REFUSED: host-path in the message would publish this host (#2310); nothing committed
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2128 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 957 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 510 bytes
+pushed handoff/audit-r9-plan at 41409a5bc97b7c5ed051d3b2dbe95f3e2a480dee
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp7edk9u4a/mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp7edk9u4a/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp7edk9u4a/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp7edk9u4a/mirror/RESUME-CURRENT.md
+beat: fetched origin/handoff/audit-r9-fixplan
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2496 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2045 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 817 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 536 bytes
+pushed handoff/audit-r9-plan at 6329935b21773cf3f06f2bfdf1e9ab3f9e972b14
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmpkf9c0vol/beat-mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpkf9c0vol/beat-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpkf9c0vol/beat-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpkf9c0vol/beat-mirror/RESUME-CURRENT.md
+beat: refs/heads/main at fd5f57ad699b and origin/handoff/audit-r9-fixplan at 04c7299033b2 unchanged; nothing written
+beat: fetched origin/handoff/audit-r9-fixplan
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2496 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2261 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 911 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 525 bytes
+pushed handoff/audit-r9-plan at d6507680f754aa8899fc1900300121574aeea701
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmpkf9c0vol/beat-mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpkf9c0vol/beat-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpkf9c0vol/beat-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpkf9c0vol/beat-mirror/RESUME-CURRENT.md
+beat: fetched origin/handoff/audit-r9-fixplan
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2496 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2271 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 921 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 535 bytes
+state_docs: handoff/audit-r9-plan moved during generation; regenerating on the new tip (attempt 2 of 3)
+generated handoff/round9/state/FLOW-BOARD.md: 2496 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2271 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 921 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 535 bytes
+state_docs: handoff/audit-r9-plan moved during generation; regenerating on the new tip (attempt 3 of 3)
+generated handoff/round9/state/FLOW-BOARD.md: 2496 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2271 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 921 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 535 bytes
+state_docs: REFUSED: handoff/audit-r9-plan moved under the push 3 times running; nothing of this regeneration reached origin (never forced)
+beat: refs/heads/main at c48523a4d46a not recorded (rc 2); the next pass retries
+beat: fetched origin/handoff/audit-r9-fixplan
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2496 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2271 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 921 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 535 bytes
+pushed handoff/audit-r9-plan at 4c30d1d1ef8dd864a848d57d8ff3aeeedc38c05d
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmpkf9c0vol/beat-mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpkf9c0vol/beat-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpkf9c0vol/beat-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpkf9c0vol/beat-mirror/RESUME-CURRENT.md
+beat: fetched origin/handoff/audit-r9-roster
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2495 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2285 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1100 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 676 bytes
+pushed handoff/audit-r9-plan at 10f22f954927c8d7cbe3272438aae2a0f4f7604a
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmpsnzqr6oo/sync-mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpsnzqr6oo/sync-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpsnzqr6oo/sync-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpsnzqr6oo/sync-mirror/RESUME-CURRENT.md
+roster_sync: pull requests: 3 read offline from --pr-state
+roster_sync: R9-MERGED: stage not-started -> done at ffffffffffff (PR #41 MERGED)
+roster_sync: R9-OPEN: stage queued -> in-progress (PR #42 OPEN)
+roster_sync: SKIP R9-DEFER: stage deferred is a human disposition (PR #43 MERGED); left alone
+roster: dev/programme/rosters/wave-r9-groups.json on handoff/audit-r9-roster
+TOTAL: 0 error(s) across 1 file(s)
+lint gate: TOTAL: 0 error(s) from a fresh origin/main checkout
+pushed handoff/audit-r9-roster at 87696e301bcab699fd9de4a5d8ecb0b38016e516
+beat: fetched origin/handoff/audit-r9-roster
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2495 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2279 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1043 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 632 bytes
+pushed handoff/audit-r9-plan at 8dc1602bb4a588b6c06065f3b821b4495f1a2491
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmpsnzqr6oo/sync-mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpsnzqr6oo/sync-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpsnzqr6oo/sync-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpsnzqr6oo/sync-mirror/RESUME-CURRENT.md
+roster_sync: pull requests: 3 read offline from --pr-state
+roster_sync: RECORD-INVALID R9-MERGED ffffffffffffffffffffffffffffffffffffffff does not resolve to a commit
+roster_sync: SKIP R9-DEFER: stage deferred is a human disposition (PR #43 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r9-roster; nothing written
+beat: fetched origin/handoff/audit-r9-roster
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2495 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2279 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1043 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 632 bytes
+already current: handoff/audit-r9-plan at 8dc1602bb4a5 carries these bytes; nothing to commit or push
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmpsnzqr6oo/sync-mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpsnzqr6oo/sync-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpsnzqr6oo/sync-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpsnzqr6oo/sync-mirror/RESUME-CURRENT.md
+roster_sync: pull requests: 3 read offline from --pr-state
+roster_sync: RECORD-INVALID R9-MERGED ffffffffffffffffffffffffffffffffffffffff does not resolve to a commit
+roster_sync: SKIP R9-DEFER: stage deferred is a human disposition (PR #43 MERGED); left alone
+roster_sync: no derived change on handoff/audit-r9-roster; nothing written
+beat: fetched origin/handoff/audit-r9-roster
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2495 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2279 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1043 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 632 bytes
+already current: handoff/audit-r9-plan at 8dc1602bb4a5 carries these bytes; nothing to commit or push
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmpsnzqr6oo/sync-mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmpsnzqr6oo/sync-mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmpsnzqr6oo/sync-mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmpsnzqr6oo/sync-mirror/RESUME-CURRENT.md
+roster_sync: pull requests: 3 read offline from --pr-state
+roster_sync: REFUSED: git -C /tmp/tmpsnzqr6oo/sync-drv fetch -q origin +refs/heads/*:refs/remotes/origin/* (in .) failed: error: cannot lock ref 'refs/remotes/origin/train-hold': is at aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa but expected bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+beat: roster-sync returned 2; nothing recorded, the next pass retries
+state_docs: REFUSED: which round: no dev/programme/rosters/wave-r<N>-groups.json at main in /tmp/tmpmuo3g2m0/two; pass --roster-path or --roster-ref
+1 self-test check(s) failed: non-race refusal: rc 2 at once, named not a race (got: (2, 'd9/state/NEXT-SESSION-PROMPT.md: 2128 bytes\ngenerated handoff/round9/state/PLAN-TABLE.md: 958 bytes\ngenerated handoff/round9/state/RESUME-CURRENT.md: 510 bytes\nstate_docs: REFUSED: handoff/audit-r9-plan moved under the push 3 times running; nothing of this regeneration reached origin (never forced)\n'))

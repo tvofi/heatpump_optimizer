@@ -1,0 +1,105 @@
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2345 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1038 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 518 bytes
+ready: would push handoff/audit-r9-plan at a81bfa216a50d468a862cd9a9270a30c5807b9e2 (no --push)
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp9laykp_6/mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp9laykp_6/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp9laykp_6/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp9laykp_6/mirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2345 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1038 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 518 bytes
+pushed handoff/audit-r9-plan at a81bfa216a50d468a862cd9a9270a30c5807b9e2
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp9laykp_6/mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp9laykp_6/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp9laykp_6/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp9laykp_6/mirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2469 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 1959 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 838 bytes
+generated handoff/round9/state/PLAN.html: 22841 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 485 bytes
+pushed handoff/audit-r9-plan at 42cf5b486a239af7232bda940a011049acffe0d4
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp9laykp_6/pmirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp9laykp_6/pmirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp9laykp_6/pmirror/PLAN-TABLE.md
+mirrored handoff/round9/state/PLAN.html -> /tmp/tmp9laykp_6/pmirror/PLAN.html
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp9laykp_6/pmirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2469 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2122 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 838 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 485 bytes
+pushed handoff/audit-r9-plan at e23fb7b0f32ea88d8611c1909e5c967aa982b31d
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp9laykp_6/pmirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp9laykp_6/pmirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp9laykp_6/pmirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp9laykp_6/pmirror/RESUME-CURRENT.md
+round state: fresh-state at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2469 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2122 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 838 bytes
+generated handoff/round9/state/PLAN.html: 993 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 485 bytes
+pushed fresh-state at 5e1c019c08d38900bc155e90216ddbf06f67214e
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp9laykp_6/pmirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp9laykp_6/pmirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp9laykp_6/pmirror/PLAN-TABLE.md
+mirrored handoff/round9/state/PLAN.html -> /tmp/tmp9laykp_6/pmirror/PLAN.html
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp9laykp_6/pmirror/RESUME-CURRENT.md
+round state: crash-state at handoff/round9/state/
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2345 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1038 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 518 bytes
+already current: handoff/audit-r9-plan at a81bfa216a50 carries these bytes; nothing to commit or push
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp9laykp_6/mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp9laykp_6/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp9laykp_6/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp9laykp_6/mirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2128 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 957 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 510 bytes
+state_docs: REFUSED: host-path in the message would publish this host (#2310); nothing committed
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2128 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 957 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 510 bytes
+pushed handoff/audit-r9-plan at d23a07c8b41ad3da3cc72c6f4121d228e55345d3
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp9laykp_6/mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp9laykp_6/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp9laykp_6/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp9laykp_6/mirror/RESUME-CURRENT.md
+Traceback (most recent call last):
+  File "/root/wt/tools/audit/seat/state_docs.py", line 1441, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/root/wt/tools/audit/seat/state_docs.py", line 578, in main
+    return run_self_test()
+  File "/root/wt/tools/audit/seat/state_docs.py", line 485, in run_self_test
+    return self_test()
+  File "/root/wt/tools/audit/seat/state_docs.py", line 955, in self_test
+    rc, out = race_run(1)
+              ~~~~~~~~^^^
+  File "/root/wt/tools/audit/seat/state_docs.py", line 940, in race_run
+    return main(common + ["--push", "--message",
+           ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                          f"state: race {times}"]), buf.getvalue()
+                          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/wt/tools/audit/seat/state_docs.py", line 595, in main
+    return publish_once(a, roster_args, st8, state_ref)
+  File "/root/wt/tools/audit/seat/state_docs.py", line 657, in publish_once
+    push_state(a.checkout, commit, state_ref, prev)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/wt/tools/audit/seat/state_docs.py", line 284, in push_state
+    raise Raced(state_ref)
+Raced: handoff/audit-r9-plan
