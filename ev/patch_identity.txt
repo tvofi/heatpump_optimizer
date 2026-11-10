@@ -1,0 +1,11 @@
+577c697 patch (72a2acee..577c6974) vs 20d96598...d07f8e9: 2399 +/- lines each; differs only in the 4 budget lines below (main's own budget moved; delta identical -12/-2)
+2396,2399c2396,2399
+< - "class_excess_loc": 17554,
+< + "class_excess_loc": 17542,
+< - "max_class_loc": 7931,
+< + "max_class_loc": 7929,
+---
+> - "class_excess_loc": 17549,
+> + "class_excess_loc": 17537,
+> - "max_class_loc": 7925,
+> + "max_class_loc": 7923,
