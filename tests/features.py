@@ -80682,4 +80682,416 @@ R.check(
 )
 
 
+# --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380, adopted by design
+# note design/R10-WATER-SETPOINT-FEEDBACK at 1442f906, approved d3623f5b):
+# a water set-point under Pump duty control was inlet + lift, re-anchored on
+# every pass and never compared with the measured draw, so a controller that
+# integrates on set-point minus return ramped for the whole heating block.
+# No finder harness: the contributor's Luxtronik 2.1 runs A-C are the report,
+# and this simulated integrating controller is the reproduction, driven
+# through the production ``_arbitrate`` (``hold``, ``desired``, ``_write``).
+# The controller: start when return <= register - hysteresis; a 3-minute start
+# programme at 52 Hz; then speed += k (register - return) dt, k = 0.9 Hz/min
+# per K (measured on the reporting install, #3372 comment 2026-11-09T20:39Z,
+# not a firmware fact); stop when return >= register + stop hysteresis; the
+# register clamped to [minimum return target (parameter 979), return limit]
+# and read back clamped. Draw P = 0.5 kW at 26 Hz rising 0.0269 kW/Hz (1.2 kW
+# at 52 Hz, 1.95 kW at 80 Hz, Run A); the return relaxes toward
+# 25 degC + 3 K/kW x P with a 60-minute lag (Run B's 26.0 -> 27.7 degC in
+# 35 minutes at 1.1-1.5 kW).
+import asyncio as _fb_aio  # noqa: E402
+import random as _fb_random  # noqa: E402
+
+from heatpump_optimizer import pump_arbiter as _fb_pa  # noqa: E402
+
+_FB_T0 = datetime(2026, 1, 12, 8, 0, tzinfo=UTC)
+_FB_SET = "number.fb_return_set"
+_FB_RETURN = "sensor.fb_return"
+_FB_IDS = __import__("itertools").count()
+
+
+class _FbCoord:
+    """The published surface the arbiter reads, with the meter and defrost
+    flag the simulation sets each pass."""
+
+    def __init__(self, *, unit="return", power_entity=True, feedback=None, lift=0.5,
+                 ceiling=32.0, plan_kw=0.53, step=0.1, mode=None):
+        self.hass = FakeHass({
+            _FB_SET: FakeState("26.0", attributes={"min": 15, "max": 45, "step": step}),
+            _FB_RETURN: FakeState("25.9", unit="°C"),
+        })
+        config = {
+            "pump_duty_mode": "control", "space_setpoint_entity": _FB_SET,
+            "space_setpoint_unit": unit, "heat_pump_return_temp_entity": _FB_RETURN,
+            "flow_min_lift_k": lift, "flow_heat_c": ceiling,
+        }
+        if power_entity:
+            config["heat_pump_power_entity"] = "sensor.fb_power"
+        if feedback is not None:
+            config["space_setpoint_power_feedback"] = feedback
+        self._config = EntryConfig.from_mapping(config)
+        self._mode = mode or _PA_AUTO
+        self._current_action = {"mode": "eco"}
+        stamps = [_FB_T0 + timedelta(minutes=15 * i) for i in range(24)]
+        plan = list(plan_kw) if isinstance(plan_kw, (list, tuple)) else [plan_kw] * 24
+        self._optimization_result = _PaNS(
+            timestamps=stamps, power_schedule=plan,
+            dhw_power_schedule=[0.0] * 24, optimal_setpoints=[21.0] * 24)
+        self._thermal_model = _PaNS(
+            params=_PaNS(min_electrical_power=0.53), curve_flow_temp=lambda _o: 34.0)
+        self._thermal_params = _PaNS(
+            dhw_setpoint=48.0, min_electrical_power=0.53, max_electrical_power=2.2)
+        self._current_state = _PaNS(outdoor_temperature=4.0, room_temperature=21.0)
+        self.entry = _PaNS(entry_id=f"fb{next(_FB_IDS)}")
+        self.power = None
+        self.defrosting = False
+
+    def arbiter_inputs(self):
+        return _fb_pa.ArbiterInputs(
+            hass=self.hass, config=self._config, mode=self._mode,
+            plan=self._optimization_result, plan_stale=False, entry_released=False,
+            state=self._current_state, thermal=self._thermal_model,
+            params=self._thermal_params, action=self._current_action,
+            measured_power_kw=self.power, disinfecting=False, defrosting=self.defrosting)
+
+
+def _fb_draw_kw(hz):
+    return 0.0 if hz <= 0 else 0.5 + (hz - 26.0) * 0.0269
+
+
+def _fb_sim(*, minutes=180, hyst=0.5, stop_hyst=None, clamp=(10.0, 50.0), revert_at=None,
+            defrost=(), seed=7, **coord_kw):
+    """Run the controller and the arbiter for ``minutes``; a dict of traces.
+
+    One pass at each minute, plus a listener pass at a random second in about
+    a third of the minutes; the physics steps every 10 s. ``revert_at`` (min)
+    drops the register to 35.0 degC with the compressor still running (the
+    SHI's 600 s volatility); ``defrost`` is a set of minutes the flag reads on.
+    """
+    rng = _fb_random.Random(seed)
+    coord = _FbCoord(**coord_kw)
+    held = _fb_pa.state_for(coord)
+    held.loaded = True
+    stop_hyst = hyst if stop_hyst is None else stop_hyst
+    ret, reg, hz, prog = 25.9, 26.0, 0.0, 0.0
+    starts, writes, trace, issues_seen = 0, [], [], []
+    seen = 0
+    for minute in range(minutes):
+        passes = [0] + ([rng.randint(5, 55)] if rng.random() < 0.34 else [])
+        for second in range(0, 60, 10):
+            now = _FB_T0 + timedelta(minutes=minute, seconds=second)
+            for at in passes:
+                if second <= at < second + 10:
+                    coord.power = round(_fb_draw_kw(hz), 3)
+                    coord.defrosting = minute in defrost
+                    coord.hass.states.get(_FB_RETURN).state = f"{ret:.2f}"
+                    _fb_aio.run(_fb_pa._arbitrate(
+                        coord, held, coord.arbiter_inputs(), "control",
+                        now + timedelta(seconds=at - second)))
+                    for _d, _s, data in coord.hass.services.calls[seen:]:
+                        if (data or {}).get("entity_id") == _FB_SET:
+                            sent = float(data["value"])
+                            reg = min(max(sent, clamp[0]), clamp[1])
+                            writes.append((minute, sent, round(ret, 2)))
+                            coord.hass.states.get(_FB_SET).state = f"{reg:.1f}"
+                    seen = len(coord.hass.services.calls)
+                    if held.retry:
+                        issues_seen.append(minute)
+            if revert_at is not None and minute == revert_at and second == 0:
+                reg = 35.0
+                coord.hass.states.get(_FB_SET).state = "35.0"
+            dt = 10.0 / 60.0
+            if hz <= 0 and ret <= reg - hyst + 1e-9:
+                hz, prog, starts = 52.0, 3.0, starts + 1
+            elif hz > 0 and ret >= reg + stop_hyst - 1e-9:
+                hz = 0.0
+            elif hz > 0 and prog > 0:
+                prog -= dt
+            elif hz > 0:
+                hz = min(max(hz + 0.9 * (reg - ret) * dt, 26.0), 90.0)
+            ret += (25.0 + 3.0 * _fb_draw_kw(hz) - ret) * dt / 60.0
+        run = held.feedback
+        trace.append((minute, hz, _fb_draw_kw(hz), reg, ret,
+                      None if run is None else run.start))
+    return {"coord": coord, "held": held, "starts": starts, "writes": writes,
+            "trace": trace, "issues": issues_seen}
+
+
+def _fb_after_hold(sim, plan_kw=0.53):
+    """Over the last 30 minutes: the mean draw, whether every minute's draw
+    is within 20 % of plan (no ramp away from it), and whether the mean is."""
+    tail = sim["trace"][-30:]
+    mean = sum(row[2] for row in tail) / len(tail)
+    every = all(abs(row[2] - plan_kw) <= 0.2 * plan_kw for row in tail)
+    return mean, every, abs(mean - plan_kw) <= 0.2 * plan_kw
+
+
+# The wind-down from the 52 Hz start programme (1.2 kW, 2.3x a 0.53 kW plan) is
+# bounded by k x the 0.3 K the target may sit below the inlet without stopping
+# the compressor: about 0.27 Hz/min, so the check reads the last 30 minutes of
+# a three-hour heating block, not the minutes after the start hold.
+_fb_main = _fb_sim()
+_fb_mean, _fb_every, _fb_within = _fb_after_hold(_fb_main)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a return target on an integrating controller, plan "
+    "pinned at 0.53 kW, lift 0.5 K, 0.1 K steps: over a three-hour block's last 30 "
+    "minutes every minute's draw is within 20 % of plan (no ramp), and the compressor "
+    "starts once",
+    _fb_every and _fb_main["starts"] == 1,
+    f"mean {_fb_mean:.3f} kW, every minute within {_fb_every}, starts {_fb_main['starts']}, "
+    f"last speed {_fb_main['trace'][-1][1]:.1f} Hz",
+)
+# The fixture's own null control: the same block with the option off is the
+# open-loop target the report describes, and must ramp past twice the plan.
+_fb_open = _fb_sim(feedback=False)
+_fb_om, _fb_or, _fb_ow = _fb_after_hold(_fb_open)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK null control: the same block with the option off "
+    "(today's inlet + lift) ramps monotonically past twice the plan, as runs A-C did",
+    _fb_om > 2 * 0.53 and not _fb_ow and _fb_open["trace"][-1][1] > _fb_open["trace"][30][1],
+    f"mean {_fb_om:.3f} kW, speed {_fb_open['trace'][30][1]:.1f} -> "
+    f"{_fb_open['trace'][-1][1]:.1f} Hz",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: the first write of a run is today's, the inlet plus "
+    "the lift (I3)",
+    bool(_fb_main["writes"]) and abs(_fb_main["writes"][0][1] - (25.9 + 0.5)) < 0.05,
+    f"first write {_fb_main['writes'][:1]}",
+)
+# At 1.2 kW the start hold writes the level map's 31.9 degC, which drives the
+# compressor to 90 Hz before the loop starts: the wind-down from there takes
+# the longer block.
+for _fb_label, _fb_kw, _fb_plan in (
+    ("flow unit", {"unit": "flow"}, 0.53),
+    ("plan 1.2 kW, four-and-a-half-hour block", {"plan_kw": 1.2, "ceiling": 40.0, "minutes": 270}, 1.2),
+):
+    _fb_run = _fb_sim(**_fb_kw)
+    _fb_m, _fb_r, _fb_w = _fb_after_hold(_fb_run, _fb_plan)
+    R.check(
+        f"R10-WATER-SETPOINT-FEEDBACK repeat, {_fb_label}: every minute of the last 30 "
+        "within 20 % of plan, one start",
+        _fb_r and _fb_run["starts"] == 1,
+        f"mean {_fb_m:.3f} kW, every minute within {_fb_r}, starts {_fb_run['starts']}",
+    )
+# A 0.5 K entity step (Run B's) rounds the target onto a grid as coarse as the
+# 0.5 K the controller allows below its inlet: the loop still stops the ramp,
+# but winds down slower than on the 0.1 K steps the firmware has (F3).
+_fb_coarse = _fb_sim(step=0.5)
+_fb_cm, _fb_cr, _fb_cw = _fb_after_hold(_fb_coarse)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, 0.5 K entity step: one start, the speed falls "
+    "over the last 30 minutes, and the draw is below the option-off block's",
+    _fb_coarse["starts"] == 1 and _fb_cm < _fb_om
+    and _fb_coarse["trace"][-1][1] < _fb_coarse["trace"][-30][1],
+    f"mean {_fb_cm:.3f} kW (option off {_fb_om:.3f}), speed "
+    f"{_fb_coarse['trace'][-30][1]:.1f} -> {_fb_coarse['trace'][-1][1]:.1f} Hz, "
+    f"starts {_fb_coarse['starts']}",
+)
+# R2: a 2 K heating hysteresis with a 0.5 K lift never starts, as today -- a
+# recorded limitation, not something the loop changes.
+_fb_cold = _fb_sim(hyst=2.0, minutes=60)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, 2 K hysteresis: the first write (inlet + 0.5 K) "
+    "starts nothing, as today (R2's recorded limitation)",
+    _fb_cold["starts"] == 0,
+    f"starts {_fb_cold['starts']}",
+)
+# A controller that stops at register + 0.1 K (below the assumed hysteresis):
+# the loop's first wind-down stops it once, the stop bound keeps it running.
+_fb_tight = _fb_sim(stop_hyst=0.1)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, stop at register + 0.1 K: one extra start "
+    "at most, and the stop bound is learned",
+    _fb_tight["starts"] <= 2 and _fb_tight["held"].stop_gap_k is not None,
+    f"starts {_fb_tight['starts']}, stop gap {_fb_tight['held'].stop_gap_k}",
+)
+# R1: the controller clamps its register to [minimum return target, return
+# limit]. A step to 1.2 kW at minute 120 drives the loop up into a 27.6 degC
+# limit: the cut is adopted -- no miss, no repair, the target frozen at it.
+_fb_clamped = _fb_sim(plan_kw=[0.53] * 8 + [1.2] * 16, clamp=(10.0, 27.6))
+_fb_run = _fb_clamped["held"].feedback
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, return limit 27.6 degC under a loop write: no "
+    "miss and no repair, the cut is the run's upper bound and the target stays at it",
+    not _fb_clamped["issues"] and "space_setpoint" not in _fb_clamped["held"].misses
+    and _fb_run is not None and _fb_run.cut_hi_c == 27.6 and _fb_run.w_c <= 27.6,
+    f"issues at {_fb_clamped['issues'][:3]}, misses {_fb_clamped['held'].misses}, "
+    f"cut {None if _fb_run is None else _fb_run.cut_hi_c}, "
+    f"W {None if _fb_run is None else round(_fb_run.w_c, 2)}",
+)
+_fb_basecut = _fb_sim(clamp=(10.0, 26.0), minutes=20)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, return limit below the first (today's) write: "
+    "the miss and the repair are today's",
+    bool(_fb_basecut["issues"]),
+    f"issues at {_fb_basecut['issues'][:3]}",
+)
+
+
+def _fb_run_start_after(sim, minute):
+    """The first minute at or after ``minute`` whose run began then."""
+    for row in sim["trace"]:
+        if row[0] >= minute and row[5] is not None and row[5] >= _FB_T0 + timedelta(minutes=minute):
+            return row[0]
+    return None
+
+
+def _fb_writes_in(sim, first, last):
+    return [w for w in sim["writes"] if first <= w[0] <= last]
+
+
+# R3: the SHI drops its register to 35.0 degC (600 s without access) while the
+# compressor runs. ``hold`` drops the record and the run starts over: today's
+# inlet + lift until the start hold ends, not the loop's target.
+_fb_revert = _fb_sim(revert_at=150)
+_fb_rw = _fb_writes_in(_fb_revert, 150, 155)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, register reverted to 35.0 degC at minute 150: "
+    "the next pass restarts the run, and every write in its start hold is today's "
+    "inlet + lift",
+    _fb_run_start_after(_fb_revert, 150) == 151 and bool(_fb_rw)
+    and all(abs(sent - (ret + 0.5)) <= 0.06 for _m, sent, ret in _fb_rw),
+    f"run start {_fb_run_start_after(_fb_revert, 150)}, writes {_fb_rw}",
+)
+_fb_thaw = _fb_sim(defrost=range(150, 155))
+_fb_tw = _fb_writes_in(_fb_thaw, 150, 154)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, defrost at minutes 150-154: the loop stands "
+    "down (today's inlet + lift) and a new run starts after it",
+    bool(_fb_tw) and all(abs(sent - (ret + 0.5)) <= 0.06 for _m, sent, ret in _fb_tw)
+    and _fb_run_start_after(_fb_thaw, 155) == 155,
+    f"writes {_fb_tw}, run start {_fb_run_start_after(_fb_thaw, 155)}",
+)
+
+
+def _fb_passes(coord, steps, duty="space"):
+    """``desired``'s space target over ``steps`` of (minute, measured kW,
+    return degC), one pass each, on ``coord``."""
+    out = []
+    for minute, power, ret in steps:
+        coord.power = power
+        coord.hass.states.get(_FB_RETURN).state = f"{ret:.2f}"
+        now = _FB_T0 + timedelta(minutes=minute)
+        out.append(_fb_pa.desired(coord, coord.arbiter_inputs(), duty, now).space_setpoint)
+    return out
+
+
+_fb_rng = _fb_random.Random(11)
+_FB_STEPS = [(m, round(_fb_rng.uniform(0.3, 2.0), 3), 25.0 + 0.05 * m) for m in range(40)]
+_FB_DARK = [(m, None, ret) for m, _p, ret in _FB_STEPS]
+
+
+# I1 with its null control: measured power against none, replayed on each
+# configuration and duty and level; only a qualifying install may differ.
+def _fb_i1(levels=(0.53, 1.2, 2.2), duties=("space", "both", "dhw", "idle", None), **kw):
+    moved = []
+    for kw_level in levels:
+        for duty in duties:
+            lit = _fb_passes(_FbCoord(plan_kw=kw_level, **kw), _FB_STEPS, duty)
+            dark = _fb_passes(_FbCoord(plan_kw=kw_level, **kw), _FB_DARK, duty)
+            if lit != dark:
+                moved.append((kw_level, duty))
+    return moved
+
+
+_fb_i1_cells = {
+    "indoor": _fb_i1(unit="indoor"),
+    "return, no power entity": _fb_i1(power_entity=False),
+    "flow, no power entity": _fb_i1(unit="flow", power_entity=False),
+    "return, option off": _fb_i1(feedback=False),
+}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK I1: an indoor unit, no power entity or the option off "
+    "writes the same with any measured draw as with none, for every duty and level",
+    not any(_fb_i1_cells.values()),
+    f"moved {_fb_i1_cells}",
+)
+_fb_i1_live = _fb_i1()
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK I1 null control: a return unit with a power entity "
+    "moves on the same replay, and only on space below the band top",
+    _fb_i1_live == [(0.53, "space"), (1.2, "space")],
+    f"moved {_fb_i1_live}",
+)
+# I4: the loop is off on an experiment and in a boost.
+_fb_exp = _FbCoord()
+_fb_exp._current_action = {"mode": "system_identification", "power": 1.0}
+_fb_exp_dark = _FbCoord()
+_fb_exp_dark._current_action = {"mode": "system_identification", "power": 1.0}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK I4: a system-identification step writes the same with "
+    "any measured draw as with none",
+    _fb_passes(_fb_exp, _FB_STEPS) == _fb_passes(_fb_exp_dark, _FB_DARK),
+)
+_fb_boosted = _FbCoord()
+_fb_boost_dark = _FbCoord()
+for _fb_c in (_fb_boosted, _fb_boost_dark):
+    boost_mod.held_for(_fb_c).until[boost_mod.CHANNEL_SPACE] = _FB_T0 + timedelta(hours=2)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK I4: a space boost writes the same with any measured "
+    "draw as with none",
+    _fb_passes(_fb_boosted, _FB_STEPS) == _fb_passes(_fb_boost_dark, _FB_DARK),
+)
+# I2: a return at 15 degC, below the 20 degC gate, with the draw far over plan:
+# the loop winds down, but never to the gate.
+_fb_low = _fb_passes(_FbCoord(), [(m, 2.0, 15.0) for m in range(40)])
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK I2: winding down over a return below the gate never "
+    "writes the gate (20 degC) or below",
+    all(v is not None and v > 20.0 for v in _fb_low) and min(_fb_low) < _fb_low[0],
+    f"writes {sorted(set(_fb_low))[:4]}",
+)
+# The loop's null control: a draw on plan holds the target after the start
+# hold, under a return that rises 0.02 K a minute (never near the bound below
+# the inlet) -- no re-anchor to it.
+_fb_held_run = _fb_passes(_FbCoord(), [(m, 0.53, 25.0 + 0.02 * m) for m in range(40)])
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a draw on plan holds the target within one 0.1 K "
+    "step of its first post-hold value for 30 minutes while the return rises 0.6 K",
+    max(_fb_held_run[6:36]) - min(_fb_held_run[6:36]) <= 0.1 + 1e-9,
+    f"{_fb_held_run[6]} .. {_fb_held_run[35]}",
+)
+# Carry item 4: a hot-water interlude inside the step resets the run.
+_fb_inter = _FbCoord()
+_fb_passes(_fb_inter, _FB_STEPS[:30])
+_fb_passes(_fb_inter, [(30, 1.5, 26.5)], duty="dhw")
+_fb_after = _fb_passes(_fb_inter, [(31, 1.5, 26.5)])
+_fb_base_now = _fb_pa._flow_target(_fb_inter.arbiter_inputs(), "space", _FB_T0 + timedelta(minutes=31))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a hot-water pass inside a step resets the run; the next "
+    "space pass writes today's target and starts a new start hold",
+    _fb_after == [_fb_base_now] and _fb_pa.state_for(_fb_inter).feedback is not None
+    and _fb_pa.state_for(_fb_inter).feedback.start == _FB_T0 + timedelta(minutes=31),
+    f"wrote {_fb_after}, today's {_fb_base_now}",
+)
+
+
+# R1's bracket, both sides of the hold tolerance (design review note 10): a
+# reading within SETPOINT_TOLERANCE of a loop write is held and changes
+# nothing; one past it inside [replaced record, write] is a cut.
+def _fb_cut(observed):
+    coord = _FbCoord()
+    held = _fb_pa.state_for(coord)
+    run = held.feedback = _fb_pa.FeedbackRun(_FB_T0, 27.0, _FB_T0)
+    run.running, run.prev_c, run.sent_c = True, 26.6, 27.0
+    held.written["space_setpoint"] = (27.0, _FB_T0)
+    coord.hass.states.get(_FB_SET).state = f"{observed:.1f}"
+    _fb_pa.hold(coord, _FB_T0 + timedelta(minutes=1))
+    return held.written.get("space_setpoint"), run.cut_hi_c, run.cut_lo_c, held.feedback, held.misses
+
+
+_fb_within_tol = _fb_cut(26.8)
+_fb_beyond = _fb_cut(26.6)
+_fb_outside = _fb_cut(35.0)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK R1 bracket: a reading 0.2 K under an upward loop write "
+    "is held (record kept, no cut); 0.4 K under, inside the bracket, is a cut adopted "
+    "as the record with no miss; 35.0 degC drops the record and resets the run",
+    _fb_within_tol[0] == (27.0, _FB_T0) and _fb_within_tol[1] is None
+    and _fb_beyond[0] == (26.6, _FB_T0) and _fb_beyond[1] == 26.6 and not _fb_beyond[4]
+    and _fb_outside[0] is None and _fb_outside[3] is None and _fb_outside[4],
+    f"within {_fb_within_tol[:3]}, beyond {_fb_beyond[:3]}, outside {_fb_outside[0]}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))

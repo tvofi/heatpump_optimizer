@@ -4163,8 +4163,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         the entity-change listener all enter through ``pump_arbiter.apply``,
         which asks for a fresh snapshot, so a boost set or a mode change
         between passes is seen by the next one. ``plan_stale`` is the gate
-        ``_plan_is_stale`` owns; the plan itself rides along because the
-        share split and the baseline read it ungated.
+        ``_plan_is_stale`` owns (``ArbiterInputs`` says why the plan rides along).
         """
         ctx = _ctx_of(self)
         return pump_arbiter.ArbiterInputs(
@@ -4179,6 +4178,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             params=ctx._thermal_params,
             action=self._current_action,
             measured_power_kw=pump_arbiter.live_power_kw(self.hass, ctx._config),
+            defrosting=defrost_interval(self._pump_signals.defrosting),
             disinfecting=getattr(
                 getattr(self._legionella, "disinfect", None), "memo", None
             )

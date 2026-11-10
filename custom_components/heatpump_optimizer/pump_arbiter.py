@@ -130,6 +130,7 @@ from __future__ import annotations
 import asyncio
 import bisect
 import logging
+import math
 from collections import Counter, deque
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
@@ -151,6 +152,7 @@ from .const import (
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
     CONF_POWER_ENTITY,
+    CONF_SPACE_SETPOINT_POWER_FEEDBACK,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
     DOMAIN,
     MODE_AUTO,
@@ -240,6 +242,41 @@ _TICK = timedelta(minutes=1)
 #: arbiter's tick in that same minute reads the draw from before the write.
 RUN_SETTLE = _TICK
 
+#: The power-feedback loop on a water set-point (R10-WATER-SETPOINT-FEEDBACK,
+#: outside report #3380): a controller that integrates on target minus inlet
+#: ramps for as long as the target sits above the water, so the open-loop
+#: inlet-plus-lift target never settles at the planned level. The window the
+#: measured draw is averaged over before it is compared with the plan; the
+#: meter updates every few seconds and the arbiter passes at least once a
+#: minute (:data:`_TICK`).
+FEEDBACK_WINDOW = timedelta(minutes=3)
+#: How long a run writes today's target before the loop moves it: the
+#: controller's start programme (about 3 minutes at a fixed speed, measured
+#: on the reporting Luxtronik install) is not a response to the target.
+FEEDBACK_START_HOLD = timedelta(minutes=5)
+#: How far the target moves per minute outside the deadband, K. Time-based,
+#: not per pass: passes come from the cycle, the tick and the listener.
+FEEDBACK_RATE_K_PER_MIN = 0.2
+#: The deadband on the draw error: this share of the planned level, never
+#: under :data:`FEEDBACK_DEADBAND_MIN_KW`. Inside it the target is held, not
+#: re-anchored to the rising inlet.
+FEEDBACK_DEADBAND_SHARE = 0.1
+FEEDBACK_DEADBAND_MIN_KW = 0.05
+#: How far below the inlet the loop may wind the target down, K. A controller
+#: stops a running compressor when its inlet reaches target plus its heating
+#: hysteresis, 0.5 K at the least on the reporting firmware; less one 0.1 K
+#: entity step and a 0.1 K inlet rise between passes, 0.3 K cannot stop it at
+#: any permitted hysteresis, because a loop write is sent even when it moves
+#: less than :data:`SETPOINT_TOLERANCE` (:func:`_note_sent`).
+FEEDBACK_DOWN_K = 0.3
+#: After a stop the loop caused, how much closer to the inlet than the gap
+#: that stopped the compressor the target is held for the rest of this
+#: arbiter state's life, K: two 0.1 K entity steps.
+FEEDBACK_STOP_MARGIN_K = 0.2
+#: Past the gate by any amount the entity's step rounding does not absorb,
+#: so the loop's lowest write is the gate plus one entity step (I2).
+FEEDBACK_GATE_CLEAR_K = 0.01
+
 
 @dataclass(frozen=True)
 class PumpCommand:
@@ -250,6 +287,30 @@ class PumpCommand:
     space_setpoint: float | None
     #: On or off for the silent switch; ``None`` writes nothing there.
     silent: bool | None = None
+
+
+@dataclass
+class FeedbackRun:
+    """One compressor run under the power-feedback loop; never persisted.
+
+    A restart re-enters the start-hold, which writes today's target. The
+    target ``w_c`` is kept unrounded, so a move smaller than the entity's
+    step accumulates instead of rounding away.
+    """
+
+    start: datetime
+    w_c: float
+    seen: datetime
+    #: (when, measured kW) over :data:`FEEDBACK_WINDOW`.
+    samples: deque[tuple[datetime, float]] = field(default_factory=deque)
+    running: bool = False
+    #: The last value the loop sent that differs from today's target, and
+    #: the record it replaced: the bracket ``hold`` reads a clamp cut in.
+    sent_c: float | None = None
+    prev_c: float | None = None
+    #: Where the controller cut a loop write: the target never passes it.
+    cut_lo_c: float | None = None
+    cut_hi_c: float | None = None
 
 
 @dataclass
@@ -274,6 +335,10 @@ class ArbiterState:
     supply: tuple[datetime, bool] | None = None
     #: The step tick's listener; dropped only at unload, never by duty mode.
     supply_unsub: Callable[[], None] | None = None
+    #: The power-feedback loop's live run, and the inlet-to-target gap at
+    #: which a loop-lowered target stopped the compressor (:func:`_feedback`).
+    feedback: FeedbackRun | None = None
+    stop_gap_k: float | None = None
 
 
 @dataclass(frozen=True)
@@ -299,6 +364,9 @@ class ArbiterInputs:
     action: CurrentAction
     measured_power_kw: float | None
     disinfecting: bool
+    #: ``freq_control.defrost_interval`` of the pump's defrost flag: no flag
+    #: or no evidence is not a defrost.
+    defrosting: bool = False
 
 
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
@@ -806,6 +874,151 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config))
 
 
+def _feedback_on(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> bool:
+    """Whether this pass's water target is the power-feedback loop's.
+
+    A plan-driven space-only step below the band top, on an install with a
+    water unit, a power meter and the option on, outside a boost, an
+    experiment and a defrost. Anywhere else the meter reads a draw that is
+    not this target's response (hot water, a reversed cycle), the step wants
+    the ceiling, or the target is someone else's to set.
+    """
+    cfg = EntryConfig.from_mapping(inp.config)
+    if duty != "space" or not (cfg.space_setpoint_power_feedback and cfg.heat_pump_power_entity):
+        return False
+    held = boost.held_for(coord)
+    planned, top = _step_kw(inp.plan, now), _band_kw(inp)[1]
+    return bool(
+        _flow_unit(inp.config) and inp.mode in (MODE_AUTO, MODE_ECONOMY)
+        and not inp.plan_stale and not inp.defrosting and _experiment_kw(inp) is None
+        and not held.active(boost.CHANNEL_SPACE, now)
+        and planned is not None and top is not None and 0.0 < planned < float(top)
+    )
+
+
+def _feedback(held: ArbiterState, inp: ArbiterInputs, now: datetime, base: float | None, on: bool) -> float | None:
+    """The space water target under the power-feedback loop, else ``base``.
+
+    ``base`` is today's open-loop target (:func:`_flow_target`). While the
+    compressor runs on a qualifying pass (``on``, :func:`_feedback_on`), the
+    target moves by :data:`FEEDBACK_RATE_K_PER_MIN` against the error
+    between the windowed measured draw and the planned level, is held inside
+    the deadband instead of re-anchored to the rising inlet, and stays
+    within :func:`_feedback_bounds`. A run's first
+    :data:`FEEDBACK_START_HOLD` writes ``base``, so its first write is
+    today's. Any other pass, a stopped compressor or a missing inlet resets
+    the run.
+    """
+    inlet = _flow_inlet_c(inp) if on and base is not None else None
+    power = finite_float(inp.measured_power_kw)
+    rec = held.feedback
+    if rec is not None and utc_elapsed_seconds(now, rec.seen) > FEEDBACK_WINDOW.total_seconds():
+        rec = None  # passes that skipped the loop: a cooling or switched-off pump
+    if inlet is None or power is None or power < _ran_kw(inp):
+        if inlet is not None and rec is not None and rec.running:
+            _note_stop(held, rec, inlet, base)
+        held.feedback = None if inlet is None else FeedbackRun(now, float(base), now)
+        return base
+    if rec is None:
+        rec = held.feedback = FeedbackRun(now, float(base), now)
+    rec.samples.append((now, power))
+    while utc_elapsed_seconds(now, rec.samples[0][0]) > FEEDBACK_WINDOW.total_seconds():
+        rec.samples.popleft()
+    minutes = max(0.0, utc_elapsed_seconds(now, rec.seen)) / 60.0
+    rec.running, rec.seen = True, now
+    if utc_elapsed_seconds(now, rec.start) < FEEDBACK_START_HOLD.total_seconds():
+        rec.w_c, rec.sent_c = float(base), None
+        return base
+    lo, hi = _feedback_bounds(held, rec, inp, inlet)
+    rec.w_c = min(max(_nudged(rec, inp, now, minutes), lo), hi)
+    gate = (_gate_c(inp) or _gate_floor_c(inp.config)) + FEEDBACK_GATE_CLEAR_K
+    out = _bounded(inp, "space_setpoint", rec.w_c, _gate_floor_c(inp.config), lo=max(gate, lo), hi=hi)
+    _note_sent(held, rec, out, base)
+    return out
+
+
+def _nudged(rec: FeedbackRun, inp: ArbiterInputs, now: datetime, minutes: float) -> float:
+    """``rec.w_c`` moved against the draw error, or held inside the deadband.
+
+    The plan's ``power_schedule`` is electrical kW, the unit of the band it
+    is mapped on (:func:`_band_kw`) and of the meter.
+    """
+    planned = float(_step_kw(inp.plan, now) or 0.0)
+    error = sum(kw for _at, kw in rec.samples) / len(rec.samples) - planned
+    if abs(error) <= max(FEEDBACK_DEADBAND_SHARE * planned, FEEDBACK_DEADBAND_MIN_KW):
+        return rec.w_c
+    return rec.w_c - math.copysign(FEEDBACK_RATE_K_PER_MIN * minutes, error)
+
+
+def _feedback_bounds(held: ArbiterState, rec: FeedbackRun, inp: ArbiterInputs, inlet: float) -> tuple[float, float]:
+    """``(lo, hi)`` the loop's target stays within, °C.
+
+    Never more than :data:`FEEDBACK_DOWN_K` below the inlet, nor past a stop
+    bound or a controller cut; never above the ceiling. The gate floor is
+    the write's own (:func:`_feedback`).
+    """
+    lows = [inlet - FEEDBACK_DOWN_K, rec.cut_lo_c]
+    if held.stop_gap_k is not None:
+        lows.append(inlet - held.stop_gap_k + FEEDBACK_STOP_MARGIN_K)
+    highs = [_heat_ceiling_c(inp.config), rec.cut_hi_c]
+    return (max(v for v in lows if v is not None), min(v for v in highs if v is not None))
+
+
+def _note_sent(held: ArbiterState, rec: FeedbackRun, out: float | None, base: float | None) -> None:
+    """Send a loop target whenever it moves; remember it and what it replaces.
+
+    ``_write`` skips a value within :data:`SETPOINT_TOLERANCE` of its record,
+    which keeps a held target silent. A loop move is smaller than that, and
+    skipped it would leave the controller on a value up to the tolerance
+    from the loop's: enough past the inlet to stop a running compressor
+    (:data:`FEEDBACK_DOWN_K`), or to stall the wind-down. So a target that
+    moves at all drops the record, and an equal one is still not sent.
+    """
+    recorded = held.written.get("space_setpoint")
+    if out is None or (recorded is not None and recorded[0] == out):
+        return
+    rec.prev_c = None if recorded is None else recorded[0]
+    rec.sent_c = out if out != base else None
+    held.written.pop("space_setpoint", None)
+
+
+def _note_stop(held: ArbiterState, rec: FeedbackRun, inlet: float, base: float | None) -> None:
+    """A run stopped under a loop target below today's: the loop caused it.
+
+    The inlet-to-target gap it stopped at bounds the target from then on,
+    :data:`FEEDBACK_STOP_MARGIN_K` closer to the inlet, so a controller whose
+    stop hysteresis is smaller than assumed restarts at most once.
+    """
+    if rec.sent_c is None or base is None or rec.sent_c >= base:
+        return
+    gap = inlet - rec.sent_c
+    held.stop_gap_k = gap if held.stop_gap_k is None else min(held.stop_gap_k, gap)
+
+
+def _clamp_cut(held: ArbiterState, value: Any, observed: Any, at: datetime) -> bool:
+    """Whether a differing space reading is the controller clamping a loop write.
+
+    A reading between the record the loop write replaced and the write
+    (each within :data:`SETPOINT_TOLERANCE`) is the controller's own limit,
+    not a person: the record adopts it, the run's target stops there for
+    the rest of the run, and no rewrite, miss or repair follows. A cut of
+    today's target, or any other reading, is ``hold``'s as before.
+    """
+    rec = held.feedback
+    if rec is None or rec.sent_c is None or rec.prev_c is None or value != rec.sent_c:
+        return False
+    low, high = sorted((rec.prev_c, value))
+    if not low - SETPOINT_TOLERANCE <= observed <= high + SETPOINT_TOLERANCE:
+        return False
+    if value > rec.prev_c:
+        rec.cut_hi_c = observed
+    else:
+        rec.cut_lo_c = observed
+    rec.w_c, rec.sent_c = observed, None
+    held.written["space_setpoint"] = (observed, at)
+    return True
+
+
 def _silent_rows(spec: Any) -> TypeGuard[str]:
     """Whether ``spec`` names a silent window the week can reach.
 
@@ -872,6 +1085,8 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     if duty == "space" and inp.disinfecting:
         duty = "both"
     space = _space_target(inp, result, now, duty)
+    if _flow_unit(inp.config):
+        space = _feedback(state_for(coord), inp, now, space, _feedback_on(coord, inp, duty, now))
     if duty == "idle":
         # No mode write. The mode last written served the duty that just
         # finished, whose thermostat the plan has just satisfied, so it is
@@ -1065,7 +1280,11 @@ def hold(coord: Any, now: datetime) -> None:
             if held.retry.pop(slot, None) is not None and not held.retry:
                 issues.clear_issue(coord.hass, ISSUE_IGNORED)
             continue
+        if slot == "space_setpoint" and _clamp_cut(held, value, observed, at):
+            continue
         del held.written[slot]
+        if slot == "space_setpoint":
+            held.feedback = None  # a revert or a person: the run starts over
         held.misses[slot] = held.misses.get(slot, 0) + 1
         if held.misses[slot] > 1:
             entity = _slot_entity(inp.config, slot)

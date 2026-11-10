@@ -1674,7 +1674,10 @@ def modulation_floor_flow_c(
     lift (:func:`configured_flow_min_lift_k`). The set-point is a power
     command (tvofi, 2026-10-19): the system water behind it rises slowly,
     so a set-point anchored anywhere but the water it heats commands a
-    power the plan never booked. ``gate_c`` is the set-point a step that
+    power the plan never booked. It is the open-loop half: a controller
+    that integrates on set-point minus inlet keeps ramping while the inlet
+    lags this value, so the arbiter closes it on measured power
+    (R10-WATER-SETPOINT-FEEDBACK). ``gate_c`` is the set-point a step that
     does not heat writes; the lift is taken from whichever of the two is
     higher, so a step that heats never writes the value that means off --
     on a tank at or below the gate it did (R10-SETPOINT-BOOST). ``None``

@@ -813,6 +813,11 @@ DEFAULT_FLOW_HEAT_C: Final = 55.0
 #: supply-over-return spread a supply target is anchored at.
 CONF_FLOW_MIN_LIFT_K: Final = "flow_min_lift_k"
 DEFAULT_FLOW_MIN_LIFT_K: Final = 5.0
+#: Close the water set-point on measured power (R10-WATER-SETPOINT-FEEDBACK):
+#: on by default, as tvofi ruled (2026-11-09) for an install with a water
+#: unit and a power meter, the only installs it acts on.
+CONF_SPACE_SETPOINT_POWER_FEEDBACK: Final = "space_setpoint_power_feedback"
+DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK: Final = True
 #: ``false`` keeps the duty-cycle reading on a switch-plus-setpoint
 #: install. Absent follows the install probe (#1955).
 CONF_CLAMP_PLANNED_LEVELS: Final = "clamp_planned_levels"
