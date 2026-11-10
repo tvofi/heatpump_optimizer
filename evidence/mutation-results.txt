@@ -1,0 +1,8 @@
+RESULT mutant=M1-bound-never rc=1 failed_checks=0
+RESULT mutant=M2-pred-inverted rc=1 failed_checks=0
+RESULT mutant=M3-always-raced rc=1 failed_checks=0
+RESULT mutant=M4-no-fetch rc=1 failed_checks=0
+RESULT mutant=M5-no-retry rc=1 failed_checks=0
+RESULT mutant=M6-stale-prev rc=1 failed_checks=0
+RESULT mutant=M7-push-ignores-rc rc=1 failed_checks=0
+RESULT baseline-with-arms rc=1

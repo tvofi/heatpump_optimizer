@@ -1,0 +1,88 @@
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2345 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1038 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 518 bytes
+ready: would push handoff/audit-r9-plan at 83af7e89969590d84b35b5cc54dadde7d73b2bdf (no --push)
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp6045didh/mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp6045didh/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp6045didh/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp6045didh/mirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2345 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1038 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 518 bytes
+pushed handoff/audit-r9-plan at bda356b24c81256f4a41120daabc53e7d04a91a4
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp6045didh/mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp6045didh/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp6045didh/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp6045didh/mirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2469 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 1959 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 838 bytes
+generated handoff/round9/state/PLAN.html: 22841 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 485 bytes
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2345 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 1038 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 518 bytes
+pushed handoff/audit-r9-plan at bda356b24c81256f4a41120daabc53e7d04a91a4
+mirrored handoff/round9/state/FLOW-BOARD.md -> /tmp/tmp6045didh/mirror/FLOW-BOARD.md
+mirrored handoff/round9/state/NEXT-SESSION-PROMPT.md -> /tmp/tmp6045didh/mirror/NEXT-SESSION-PROMPT.md
+mirrored handoff/round9/state/PLAN-TABLE.md -> /tmp/tmp6045didh/mirror/PLAN-TABLE.md
+mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp6045didh/mirror/RESUME-CURRENT.md
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2128 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 957 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 510 bytes
+state_docs: REFUSED: host-path in the message would publish this host (#2310); nothing committed
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2128 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 957 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 510 bytes
+state_docs: handoff/audit-r9-plan moved during generation; regenerating on the new tip (attempt 2 of 3)
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2128 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 957 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 510 bytes
+state_docs: handoff/audit-r9-plan moved during generation; regenerating on the new tip (attempt 3 of 3)
+generated handoff/round9/state/FLOW-BOARD.md: 2585 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2128 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 957 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 510 bytes
+state_docs: REFUSED: handoff/audit-r9-plan moved under the push 3 times running; nothing of this regeneration reached origin (never forced)
+beat: fetched origin/handoff/audit-r9-fixplan
+round state: handoff/audit-r9-plan at handoff/round9/state/
+generated handoff/round9/state/FLOW-BOARD.md: 2496 bytes
+generated handoff/round9/state/NEXT-SESSION-PROMPT.md: 2045 bytes
+generated handoff/round9/state/PLAN-TABLE.md: 817 bytes
+generated handoff/round9/state/RESUME-CURRENT.md: 536 bytes
+state_docs: REFUSED: git read-tree 8c64afbaa6c1233b6acf1222dd16eff2131eb0b4 (in /tmp/tmp_tiqnlun/beat-drv) failed: fatal: failed to unpack tree object 8c64afbaa6c1233b6acf1222dd16eff2131eb0b4
+beat: refs/heads/main at f37eed6fe56b not recorded (rc 2); the next pass retries
+Traceback (most recent call last):
+  File "/root/wt/tools/audit/seat/state_docs.py", line 1443, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/root/wt/tools/audit/seat/state_docs.py", line 578, in main
+    return run_self_test()
+  File "/root/wt/tools/audit/seat/state_docs.py", line 485, in run_self_test
+    return self_test()
+  File "/root/wt/tools/audit/seat/state_docs.py", line 1118, in self_test
+    "done" in git("-C", str(bare), "show",
+              ~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+                  f"{state_tip()}:{WRITE_SET[0]}"))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/wt/tools/audit/seat/state_docs.py", line 786, in git
+    return run(["git", *args], cwd=cwd, env=env,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               input_text=input_text).strip()
+               ^^^^^^^^^^^^^^^^^^^^^^
+  File "/root/wt/tools/audit/seat/state_docs.py", line 143, in run
+    raise Refuse(f"{' '.join(cmd)} (in {cwd or '.'}) failed: "
+                 f"{(r.stderr or r.stdout).strip()[:400]}")
+Refuse: git -C /tmp/tmp_tiqnlun/origin.git show 7e1ff3e728c11f4e5bcb7312843d15f70623cfd5:handoff/round9/state/PLAN-TABLE.md (in .) failed: fatal: path 'handoff/round9/state/PLAN-TABLE.md' does not exist in '7e1ff3e728c11f4e5bcb7312843d15f70623cfd5'
