@@ -40,11 +40,15 @@ Plants, one per refusal of the two ops and per round-trip property:
          the cut-over (L3), absorbed not closed (L4), closing never
          downgrades (L5), a mark read anywhere in the text (L6), a carry
          routed to a carries-open or refuted group (L7) or a sink (L8).
-  Y1-Y6  roster_sync: the merge bypassing the shared rule (Y1), an
+  Y1-Y5  roster_sync: the merge bypassing the shared rule (Y1), an
          unreadable cut-over read as no legacy (Y2), the write path's
          re-derive without the legacy set (Y3), apply_plan writing the
-         stage without it (Y4), and the dry run's (Y5) and the write path's
-         (Y6) projection without it, which decides a same-pass Carry:.
+         stage without it (Y4), and the dry run's (Y5) projection without it,
+         which names a same-pass Carry:'s refusal. Y6, the write path's
+         projection without it, is retired as equivalent: since
+         R10-CARRY-SINK-BARRIER both stages it chooses between (done,
+         carries-open) refuse the carry, and the write path drops the
+         refusal text, so no output moves.
   R1-R5  carry_audit's roster arm: closed-only issues unreported (R1),
          unlisted issues unreported (R2), #201 reported (R3), absorbed_into
          unnamed (R4), pull requests read as issues (R5).
@@ -219,8 +223,6 @@ PLANTS = {
            "  # Y4\n"),
     "Y5": (SYNC, "        apply_plan(projected, changes, [], legacy)\n        appends, refusals",
            "        apply_plan(projected, changes, [])  # Y5\n        appends, refusals"),
-    "Y6": (SYNC, "            apply_plan(projected, changes, [], legacy)\n            appends, _",
-           "            apply_plan(projected, changes, [])  # Y6\n            appends, _"),
     "R1": (AUDIT, "        elif not any(live for _, live in by):\n",
            "        elif False:  # R1\n"),
     "R2": (AUDIT, "        if not by:\n", "        if False:  # R2\n"),
