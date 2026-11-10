@@ -1,0 +1,4 @@
+ dev/programme/delivery/3400.md                   |   1 +
+ tools/audit/seat/instruments/review_packet.py.md |   5 +-
+ tools/audit/seat/review_packet.py                | 102 ++++++++++++++++-------
+ 3 files changed, 78 insertions(+), 30 deletions(-)

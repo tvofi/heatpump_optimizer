@@ -1,0 +1,31 @@
+Fix review: merge 7326025c8472fbe155a46f9edd57530fd9b4be7d
+
+bus-nonce: fb844fe38f10c96524679034a9bae6ac
+
+Round 1. Measured head `7326025c8472fbe155a46f9edd57530fd9b4be7d`, still the PR head at 02:36Z (`git ls-remote origin refs/pull/3400/head`). Roles diff `merge-base...origin/main -- dev/governance/roles/` is empty.
+
+## Evidence
+
+- RESULT self-test: `review_packet self-test: 72 checks, 0 failed` at b8f67a775137a8032d5c71b34ea64165c1d4613a; `75 checks, 3 failed` at 650cf3b4376636c21e5a7ad6893f85243e999001 (the WAIT, GREEN and RED-null arms); `76 checks, 0 failed` at the head. All three body figures re-derived (ev/selftest.txt).
+- RESULT mutants (ev/mutants.txt), each run with `python3 -I tools/audit/seat/review_packet.py --self-test` then restored: M1 WAIT/GREEN arm `elif False:` KILLED (2 failed); M2 unreadable answer reads WAIT KILLED (2); M3 regex accepts any head KILLED (1); M4 RED moved into the advisory arm KILLED (2, the body's M3, figure matches); M5 missing `required_read` defaults GREEN KILLED (1); M7 rc 1 mapped to WAIT KILLED (1); M6 OSError path reads WAIT SURVIVED; M8 gather never reads classify SURVIVED (declared in the body). M1, M2, M3 reproduce the body's review_packet-16/17/18 failure counts exactly.
+- Null control: the RED arm and the no-answer required-red arm both pass at the head and both fail under M4/M5.
+- Finder's harness: none named (packet). The defect is the packet's own refusal, pinned by its self-test with the #3379 shape; the body's 00:03Z packet replay and the live `APPROVAL-OWED` classify of #3379 at 71b95e42 could not be re-derived here: the packet file lives in the orchestrator's bus state and #3379's checks have since moved. Not verified, stated as such.
+- Class (step 6): the body's rule is `dev/audit/rca/r10-gate-defer-read-final.md` section 4. Its table returns `review_packet.py` `gate_digest` (this diff), `merge_train.py` `policy_refusal`, `orchestrator_tick.py` `one_pr`/`main`, `merge_pr.sh`, and `nudge.md` step 15 (policy). All but this diff's are in live group R10-GATE-DEFER-BARRIER (roster `handoff/audit-r10-roster` at 08cd11605b38fab28453f30e22c2b4339af6ce59, resume `not-started`, files include all five, carry bdc1d62a moved there). The body's "orchestrator re-routes" is stale: the move already happened. Class not open.
+- Merge with main: `git merge-tree --write-tree origin/main 7326025c8472fbe155a46f9edd57530fd9b4be7d` rc 0 (ev/merge-tree.txt).
+- Claim files, `VERSION`, manifest, release notes: untouched (3-file diff, ev/diffstat.txt). `tests/closure.py select`: `MODE: SCOPED -- 0 script(s) run, 33 scoped out`; `tests/structure.py`: `STRUCTURE RATCHET PASSED` (ev/closure_structure.txt).
+- CI: `merge_train.py classify 7326025c8472fbe155a46f9edd57530fd9b4be7d --pr 3400` read WAIT (rc 3) from 01:22Z to 01:52Z, then rc 2 `REFUSE ci: the check runs at 7326025c8472 could not be read` on every run after: unreadable. The cause is this seat's environment: 104 check runs need a second page, and the `--paginate` next link uses `repositories/{id}/...`, which the cloud proxy refuses (HTTP 403). Read instead page by page via `repos/.../commits/7326025c8472fbe155a46f9edd57530fd9b4be7d/check-runs?page=N` (ev/check-runs.tsv): all 104 completed, 65 success, 41 skipped, 2 failure; latest `gate` success at 02:33:04Z, latest `pr-contract / pr-contract` success at 02:32:09Z.
+- Red checks (step 11): the two failures are `gate` at 01:26:53Z and 01:38:20Z. Both logs print `FAIL run(s) [42734628856] at this head are still being judged; their gate decides`, the by-design deferral red. Run 42734628856's gate then concluded success at 01:50:11Z. `pr-contract` runs started after the last red (01:48:54Z, 02:31:26Z) concluded success, so the body's `## Red checks: none` was checked and passed. That run is the evidence.
+- Forward-carry: body states none. Its open seams are already on R10-GATE-DEFER-BARRIER (above).
+- Architecture (step 15): the change sits at the packet's one classify reader and removes the packet's independent decision. That one owner, classify, now decides for both bus.sh and the packet. No departure.
+
+## Findings
+
+- Surviving mutant M6: `required_reading`'s OSError arm returning WAIT instead of RED (fail open) passes the self-test, `76 checks, 0 failed`. No arm stubs a classifier that cannot be spawned. Before this PR the same path returned None, which refused. Now it is an unpinned fail-closed claim. Pin by a stub command that does not exist. Carry: R10-GATE-DEFER-BARRIER
+- Surviving mutant M8: `gather` with `read = None` passes. This is the body's declared gather-wiring survivor (needs a live `gh` read, same kind as #2962's M6/M8/M9). Carry: dismissed: declared in the body's Unpinned sites, gather wiring needs a live gh read
+- Follow-up: the three harness mutants review_packet-16/17/18 were reverted from `dev/audit/harnesses/r10_seat_selftests_mutants.py` because #3366 holds that hot file. They are owed back once it leaves, and are the barrier group's to land with its own packet work. Carry: R10-GATE-DEFER-BARRIER
+- Follow-up: R10-GATE-DEFER-BARRIER's carry bdc1d62a still lists `review_packet.py` `gate_digest` as an open final reader. After this merge, the `required-red` refusal defers to classify, but `gate_digest` still computes reds from `conclusion == failure`. The barrier's structural self-test must treat this delegated read as guarded, not re-fix it. Carry: R10-GATE-DEFER-BARRIER
+- Out of scope: `merge_train.py` `_check_runs` uses `gh api --paginate`. Behind the cloud agent proxy, the next-page link (`repositories/{id}/...`) is refused with 403, so any head with more than 100 check runs reads as unreadable (rc 2) in a cloud seat. Under this PR, the packet then fails closed on `required-red` in a cloud render whenever a required red is present. Page-numbered `repos/{owner}/{repo}` reads work. Carry: dismissed: cloud-proxy limitation outside the repository, reported to the orchestrator here; fails closed, not open
+
+## Friction
+
+- classify's paginated read is unusable from this cloud seat past 100 check runs (finding above), so the brief's wait loop could not end on 0/1/4. CI was read page by page instead. Carry: dismissed: duplicate of the Out of scope finding above
