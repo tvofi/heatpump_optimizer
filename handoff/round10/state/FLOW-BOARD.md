@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-10T08:59:59+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-10T09:49:32+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 2 / 1.0 | 48 / 24.0 |
-| fly-ins closed | 1 | 7 |
-| main moves: group-carrying / record / roster-edit / fly-in | 2 / 1 / 0 / 1 | 27 / 5 / 0 / 7 |
-| first-pass fix-review yield | 1/3 (0.33) | 25/36 (0.69) |
-| blocked-class mix | carry-missing:1, ci-red:1, figure-wrong:1 | body-stale:1, carry-missing:1, ci-red:10, config-attack:1, figure-wrong:1, main-conflict:1, mutation-survivors:1, mutation-vacuous:1, resolution-ungated-step:1, root-cause-detectable:1, root-cause-unrecorded:1, scope-rule-widened:1, selftest-scope-ungated:1, semantic-conflict:1, stale-base:1, stale-premise:1 |
-| lead time per size (h, n/p50/max) | S n=2 p50=4.66 max=4.73 | L n=1 p50=57.37 max=57.37; M n=10 p50=32.22 max=54.36; S n=16 p50=18.49 max=45.25 |
+| roster groups closed vs takt | 2 / 1.0 | 50 / 24.0 |
+| fly-ins closed | 2 | 8 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 2 | 26 / 5 / 0 / 8 |
+| first-pass fix-review yield | 1/2 (0.50) | 25/35 (0.71) |
+| blocked-class mix | carry-missing:1 | body-stale:1, carry-missing:1, ci-red:9, config-attack:1, figure-wrong:1, main-conflict:1, mutation-survivors:1, resolution-ungated-step:1, root-cause-detectable:1, root-cause-unrecorded:1, scope-rule-widened:1, selftest-scope-ungated:1, semantic-conflict:1, stale-base:1, stale-premise:1 |
+| lead time per size (h, n/p50/max) | none | L n=1 p50=57.37 max=57.37; M n=9 p50=34.15 max=54.36; S n=16 p50=18.49 max=45.25 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 39 | 6 | 1 |
+| 1 | 38 | 6 | 1 |
 
 ## Rules
 
