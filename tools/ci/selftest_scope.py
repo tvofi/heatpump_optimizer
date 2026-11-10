@@ -665,16 +665,21 @@ def settle_index(root: Path, env: dict | None = None) -> int:
         print(f"selftest_scope: settle: {racy[0]} is stamped in the future, so no index can vouch for it",
               file=sys.stderr)
         return 1
-    while time.time() < newest + 1:
-        time.sleep(0.05)
-    subprocess.run(["git", "update-index", "-q", "--really-refresh", "--force-write-index"],
-                   cwd=root, env=env, capture_output=True)
-    left = racy_entries(root, env)
-    if left:
-        print(f"selftest_scope: settle left {len(left)} racily clean index entr(ies), e.g. {left[0]}",
-              file=sys.stderr)
-        return 1
-    return 0
+    # File and index stamps come from the kernel's coarse clock, which lags
+    # time.time() by up to a tick: a rewrite just past the second boundary
+    # can still be stamped in the old second, so wait past it and retry.
+    for _ in range(3):
+        while time.time() < newest + 1.1:
+            time.sleep(0.05)
+        subprocess.run(["git", "update-index", "-q", "--really-refresh", "--force-write-index"],
+                       cwd=root, env=env, capture_output=True)
+        left = racy_entries(root, env)
+        if not left:
+            return 0
+        newest = max(int((root / r).lstat().st_mtime) for r in left if (root / r).exists())
+    print(f"selftest_scope: settle left {len(left)} racily clean index entr(ies), e.g. {left[0]}",
+          file=sys.stderr)
+    return 1
 
 
 def record(root: Path, only: list[str] | None, out: Path) -> int:
