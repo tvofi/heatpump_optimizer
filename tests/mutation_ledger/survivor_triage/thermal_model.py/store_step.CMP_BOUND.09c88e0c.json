@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:store_step CMP_BOUND 09c88e0c",
+  "old": "    if new_temp < floor:",
+  "reason": "Equivalent (CMP_BOUND, `new_temp < floor` -> `new_temp <= floor`): the arms differ only at new_temp == floor, where the mutant's branch books `(floor - new_temp) * capacity / max(dt_hours, 1e-6)` = 0.0 injected and sets new_temp to the floor it already equals, so `store_step` returns the head's tuple bitwise. Measured by `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_combi_tank.py equiv`: the operator's own text compiled over `store_step`, against the head, over 56 steps of which 3 land exactly on the floor (C = 1, no loss or draw, ambient 8 below the inlet, an exact binary heat over dt): equiv_floor_differ=0. The tie-only control (`if new_temp == floor: injected += 1.0` ahead of the floor branch) differs on all 3 ties and 0 of the 53 others. `mutation_table.py --pin-killed` at this site cut tests/features.py's run as an exclusive tail (skip-budget-tail), so no driver verdict was read; the equivalence is the disposition.",
+  "verdict": "equivalent"
+}

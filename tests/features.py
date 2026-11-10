@@ -173,17 +173,22 @@ def _dhw_horizon(*, prices, outdoor, n, dt, step_hours=None, state=None,
     )
 
 
-def _dhw_ctx(*, prices, outdoor, n, dt, c_dhw, p_dhw_max,
+from dataclasses import replace as _dhw_store_with  # noqa: E402
+
+
+def _dhw_ctx(*, prices, outdoor, n, dt, c_dhw, p_dhw_max, params,
              min_run_power=0.1, max_lead_steps=24, humidity=None,
-             import_prices=None):
+             import_prices=None, tank_exo_kw=None):
     """The DHW planners' shared record for direct calls (#1776). The floor
-    repair ranks at ``import_prices``, defaulting to the same series."""
+    repair ranks at ``import_prices``, defaulting to the same series. The
+    store is ``params``' own (its UA and limits) at capacity ``c_dhw``."""
     return _DhwPlanContext(
         prices=prices, import_prices=prices if import_prices is None
         else import_prices,
         outdoor_temps=outdoor, humidity=humidity,
-        n_steps=n, dt=dt, c_dhw=c_dhw, p_dhw_max=p_dhw_max,
-        min_run_power=min_run_power, max_lead_steps=max_lead_steps)
+        n_steps=n, dt=dt, store=_dhw_store_with(params.dhw_store, capacity_kwh_per_c=c_dhw),
+        p_dhw_max=p_dhw_max, min_run_power=min_run_power,
+        max_lead_steps=max_lead_steps, tank_exo_kw=tank_exo_kw)
 
 
 def _solve_record_now(coord):
@@ -9781,10 +9786,21 @@ def reachable(name: str) -> str | None:
 # Volume is gated on the furnace toggle (#463): a lone CONF_WOOD_TANK_VOLUME
 # does not infer a tank, so the single-key probe cannot see it.
 toggle_gated = {"wood_tank_volume"}
+# R10-COMBI-TANK-STORE (PR A) lands the combi store as parameter fields that
+# only a test sets, so no install can reach combi; PR B (R10-COMBI-TANK)
+# wires the option and the loader. Each entry must stay unreachable, so the
+# set refuses itself the day a loader lands without emptying it.
+unwired_combi = {"dhw_combi_tank_enabled", "combi_dhw_effectiveness", "combi_potable_volume_l"}
 probe = {name: reachable(name) for name in declared - runtime_only - validated_enums}
+R.check(
+    "the combi store's fields are reachable from no config key until PR B wires them",
+    all(probe.get(n, "absent") is None for n in unwired_combi),
+    f"{ {n: probe.get(n, 'absent') for n in unwired_combi} } -- a wired field leaves the set",
+)
 
 unreachable = sorted(
-    n for n, k in probe.items() if k is None and n not in toggle_gated
+    n for n, k in probe.items()
+    if k is None and n not in toggle_gated and n not in unwired_combi
 )
 R.check(
     "every configurable parameter is reachable from a config key",
@@ -11431,6 +11447,690 @@ R.check(
     not _cap_bad and _cap_refused > 1.0 and _cap_peak <= 70.0 + 1e-9,
     f"diverged tracks: {_cap_bad}; peak refused {_cap_refused:.4f} kW; "
     f"tank peaked at {_cap_peak:.4f} C",
+)
+
+# R10-COMBI-TANK-STORE (#3225; design/r10-combi-tank a605014b): one body of
+# heating water serves the space circuit and hot water through an exchanger.
+# Every arm builds its parameters through `_ct_params`, which returns None
+# where the combi fields do not exist (the base), so each arm fails there by
+# construction rather than crashing the script.
+import ast as _ct_ast  # noqa: E402
+import math as _ct_math  # noqa: E402
+from dataclasses import replace as _ct_replace  # noqa: E402
+from pathlib import Path as _ct_Path  # noqa: E402
+from heatpump_optimizer import thermal_model as _ct_tm  # noqa: E402
+from heatpump_optimizer.dhw_schedule import parse_windows as _ct_windows  # noqa: E402
+
+R.section("R10-COMBI-TANK-STORE: the combi store, one node for space and hot water")
+_CT_CP = _ct_tm.WATER_SPECIFIC_HEAT
+_CT_MIX = _ct_tm.DHW_MIXED_USE_TEMP
+
+
+# The issue's MFS 600 S, per the manufacturer manual (carry 4, item 1): 504 l of
+# heating water, a 40 l coil, and an ErP standing loss of 111 W at 65 C, so a
+# UA of 111/45 W/K, entered as the cooling rate it gives at the code's 25 K.
+_CT_UA_KW = 0.111 / 45.0
+_CT_RATE = _CT_UA_KW * 25.0 / (_ct_tm.WATER_SPECIFIC_HEAT * 544.0)
+
+
+def _ct_params(combi=True, eps=0.85, potable=40.0, **kw):
+    base = dict(buffer_tank_volume=504.0, mixing_valve_mode=_mv.MODE_SMART_WRITE,
+                dhw_enabled=True, dhw_tank_volume=200.0, buffer_cooling_rate=_CT_RATE)
+    base.update(kw)
+    try:
+        return ThermalParameters(dhw_combi_tank_enabled=combi, combi_dhw_effectiveness=eps,
+                                 combi_potable_volume_l=potable, **base)
+    except TypeError:
+        return None
+
+
+def _ct_store(p):
+    return getattr(p, "dhw_store", None) if p is not None else None
+
+
+# The issue's install (#3225): 504 l of heating water and a 40 l potable coil
+# in ONE vessel. The only configuration base offers counts it twice.
+_ct_p = _ct_params()
+_ct_off = _ct_params(combi=False)
+_ct_s = _ct_store(_ct_p)
+R.check(
+    "combi: the DHW store is the buffer store, potable water included: one capacity, one loss",
+    _ct_s is not None and _ct_s.combi
+    and abs(_ct_s.capacity_kwh_per_c - _CT_CP * 544.0) < 1e-12
+    and _ct_s.capacity_kwh_per_c == _ct_p.buffer_tank_thermal_mass
+    and _ct_s.ua_kw_per_c == _ct_p.buffer_tank_heat_loss_coefficient
+    and abs(_ct_s.ua_kw_per_c / _CT_UA_KW - 1.0) < 1e-12
+    and _ct_p.buffer_store_volume == 544.0
+    and _ct_s.rating_max_temp == min(_ct_p.dhw_hard_max_temp, _ct_p.buffer_max_temp)
+    and _ct_s.charge_max_temp == min(_ct_p.dhw_max_temp, _ct_p.buffer_max_temp),
+    f"store {_ct_s}",
+)
+_ct_so = _ct_store(_ct_off)
+R.check(
+    "combi off: the store is the separate tank's own values, bitwise, and the "
+    "transforms return their argument itself",
+    _ct_so is not None and not _ct_so.combi
+    and _ct_so.capacity_kwh_per_c == _ct_off.dhw_tank_thermal_mass
+    and _ct_so.ua_kw_per_c == _ct_off.dhw_tank_heat_loss_coefficient
+    and _ct_so.rating_max_temp == _ct_off.dhw_hard_max_temp
+    and _ct_so.charge_max_temp == _ct_off.dhw_max_temp
+    and _ct_so.inlet_c == _ct_off.dhw_inlet_reference
+    and _ct_off.buffer_store_volume is _ct_off.buffer_tank_volume
+    and all(_ct_so.store_temp_for_tap(t) is t and _ct_so.tap_temp_for_store(t) is t
+            for t in (40.0, 45.123456789, 61.7)),
+    f"store {_ct_so}",
+)
+R.check(
+    "combi needs the store: no valve, a small tank, no hot water or the wood coil "
+    "each leave the separate tank in force",
+    all(_ct_store(q) is not None and not _ct_store(q).combi for q in (
+        _ct_params(mixing_valve_mode=_mv.MODE_NONE),
+        _ct_params(buffer_tank_volume=50.0),
+        _ct_params(dhw_enabled=False),
+    )),
+    "a combi predicate reached without its preconditions",
+)
+R.check(
+    "the effectiveness is floored and capped, never a divisor of zero or a gain",
+    _ct_params(eps=0.0) is not None
+    and _ct_store(_ct_params(eps=0.0)).effectiveness == _ct_tm.COMBI_DHW_EFFECTIVENESS_FLOOR
+    and _ct_store(_ct_params(eps=float("nan"))).effectiveness
+    == _ct_tm.COMBI_DHW_EFFECTIVENESS_FLOOR
+    and _ct_store(_ct_params(eps=1.5)).effectiveness == 1.0,
+    "eps 0 / nan / 1.5",
+)
+
+# The battery and the settlement count the one store once (invariant 2).
+_ct_state = ThermalState(room_temperature=21.0, slab_temperature=23.0,
+                         buffer_tank_temperature=55.0, dhw_temperature=55.0,
+                         outdoor_temperature=0.0)
+
+
+def _ct_battery(p):
+    return battery_view.build(p, _ct_state, comfort_min=20.0, comfort_max=23.0,
+                              dhw_min=45.0, dhw_max=60.0, cop=3.0)
+
+
+_ct_bat = _ct_battery(_ct_p) if _ct_p is not None else None
+_ct_bat_off = _ct_battery(_ct_off) if _ct_off is not None else None
+_ct_names = [c.name for c in _ct_bat.components] if _ct_bat else []
+_ct_buf = [c for c in (_ct_bat.components if _ct_bat else []) if c.name == "buffer_tank"]
+R.check(
+    "combi battery: no dhw_tank beside the buffer_tank, whose capacity is the store's",
+    _ct_bat is not None and "dhw_tank" not in _ct_names and len(_ct_buf) == 1
+    and _ct_buf[0].capacity_kwh_per_c == _ct_s.capacity_kwh_per_c,
+    f"components {_ct_names}",
+)
+R.check(
+    "combi battery null control: off, the separate tank is its own dhw_tank component",
+    _ct_bat_off is not None
+    and [c.capacity_kwh_per_c for c in _ct_bat_off.components if c.name == "dhw_tank"]
+    == [_ct_off.dhw_tank_thermal_mass],
+    f"components {[c.name for c in _ct_bat_off.components] if _ct_bat_off else None}",
+)
+
+
+def _ct_stored(p):
+    opt = _StoreOpt(ThermalModel(p), _StoreCfg(horizon_hours=24, time_step_minutes=15))
+    return (opt._stored_thermal_energy(_ct_state, include_dhw=True)
+            - opt._stored_thermal_energy(_ct_state, include_dhw=False))
+
+
+_ct_two = _ct_params(two_zone_enabled=True)
+_ct_two_off = _ct_params(combi=False, two_zone_enabled=True)
+_ct_terms_st = (
+    (_ct_stored(_ct_two), _ct_stored(_ct_p), _ct_stored(_ct_off), _ct_stored(_ct_two_off))
+    if _ct_two is not None else None)
+R.check(
+    "combi settlement: two-zone counts the store once, as the buffer; single-zone "
+    "counts it as the DHW term at the store's capacity; off, the separate tank's",
+    _ct_terms_st is not None and _ct_terms_st[0] == 0.0 and _ct_terms_st[2] > 0.0
+    and _ct_terms_st[3] == _ct_terms_st[2]
+    and abs(_ct_terms_st[1] * _ct_off.dhw_tank_thermal_mass
+            - _ct_terms_st[2] * _ct_s.capacity_kwh_per_c) < 1e-12,
+    f"the DHW term (two-zone combi, combi, off, two-zone off): {_ct_terms_st}",
+)
+
+# The store step balances to the kWh (invariant 2's trajectory form, design T.3):
+# a 48-step day of charge, valve draw (negative heat in) and hot-water draw,
+# with a cold stretch below the mixer threshold.
+_ct_heat = [3.0 * _ct_math.sin(i / 5.0) - 1.0 for i in range(48)]
+_ct_draw = [0.0 if i % 7 else 6.0 for i in range(48)]
+
+
+def _ct_walk(store, t0=58.0, heat=_ct_heat, draw=_ct_draw, dt=0.5):
+    temps, terms = [t0], []
+    for q_in, q_draw in zip(heat, draw):
+        t = temps[-1]
+        new, refused, injected, debited = _ct_tm.store_step(store, t, q_in, q_draw, 20.0, dt)
+        terms.append((q_in - debited - store.ua_kw_per_c * (t - 20.0) - refused + injected) * dt)
+        temps.append(new)
+    return temps, terms
+
+
+if _ct_s is not None:
+    _ct_t, _ct_terms = _ct_walk(_ct_s)
+    _ct_gap = abs(_ct_s.capacity_kwh_per_c * (_ct_t[-1] - _ct_t[0]) - _ct_math.fsum(_ct_terms))
+    _ct_zero = _ct_replace(_ct_s, ua_kw_per_c=0.0)
+    _ct_t0, _ct_terms0 = _ct_walk(_ct_zero)
+    _ct_rhs0 = _ct_math.fsum(_ct_terms0)
+    _ct_rel0 = abs(_ct_zero.capacity_kwh_per_c * (_ct_t0[-1] - _ct_t0[0]) - _ct_rhs0) / max(
+        abs(_ct_rhs0), 1.0)
+else:
+    _ct_t, _ct_gap, _ct_rel0 = [], float("inf"), float("inf")
+R.check(
+    "combi_energy_balance: C * dT equals charge + space flux - draw - loss over a day, to 1e-9 kWh",
+    _ct_gap <= 1e-9 and min(_ct_t or [0.0]) < 51.0,
+    f"gap {_ct_gap:.3e} kWh; coldest {min(_ct_t or [0.0]):.2f} C (the debit's scaled band)",
+)
+R.check(
+    "combi_energy_balance null control: with UA = 0 the store conserves its fluxes to 1e-12",
+    _ct_rel0 <= 1e-12,
+    f"relative residual {_ct_rel0:.3e}",
+)
+# Above the mixer the debit is nominal, so eps cannot move the trajectory; below
+# it the debit is read at the tap, so eps must (the liveness leg).
+# A 65 C setpoint puts the rating above the 60 C store that gives 40 C at the
+# tap at eps 0.6, so the walk cools freely inside the mixed band.
+_ct_hot_heat = [1.6] * 6
+_ct_hot_draw = [2.0] * 6
+_ct_e6, _ct_e10 = _ct_params(eps=0.6, dhw_setpoint=65.0), _ct_params(eps=1.0, dhw_setpoint=65.0)
+_ct_hot6 = _ct_walk(_ct_store(_ct_e6), 64.5, _ct_hot_heat, _ct_hot_draw)[0] if _ct_e6 else None
+_ct_hot10 = _ct_walk(_ct_store(_ct_e10), 64.5, _ct_hot_heat, _ct_hot_draw)[0] if _ct_e10 else None
+_ct_cold6 = _ct_walk(_ct_store(_ct_e6), 45.0, [0.0] * 4, [3.0] * 4)[0] if _ct_e6 else None
+_ct_cold10 = _ct_walk(_ct_store(_ct_e10), 45.0, [0.0] * 4, [3.0] * 4)[0] if _ct_e10 else None
+R.check(
+    "combi eps null control: with the tap above the mixer, eps 0.6 and 1.0 walk the same "
+    "store; below it, the colder tap debits less",
+    _ct_hot6 is not None and _ct_hot6 == _ct_hot10 and _ct_hot6[-1] < _ct_hot6[0] - 1.0
+    and min(_ct_hot6) > _ct_store(_ct_e6).store_temp_for_tap(_CT_MIX)
+    and _ct_cold6[-1] > _ct_cold10[-1],
+    f"hot {(_ct_hot6 or [None])[-1]} vs {(_ct_hot10 or [None])[-1]}; "
+    f"cold {(_ct_cold6 or [None])[-1]} vs {(_ct_cold10 or [None])[-1]}",
+)
+
+# One node: the published walk's hot-water trajectory IS its buffer trajectory.
+_CT_N = 96
+
+
+def _ct_published(p):
+    m = ThermalModel(p)
+    out = np.full(_CT_N, 0.0)
+    space = np.full(_CT_N, 1.5)
+    dhw = np.zeros(_CT_N)
+    dhw[8:12] = 3.0
+    *_, dhw_t, buf_t, _ = m.simulate_trajectory_with_dhw(
+        initial_state=ThermalState(room_temperature=21.0, slab_temperature=23.0,
+                                   buffer_tank_temperature=55.0, dhw_temperature=55.0,
+                                   outdoor_temperature=0.0),
+        space_power_schedule=space, dhw_power_schedule=dhw, weather=_WS(out))
+    return dhw_t, buf_t
+
+
+_ct_pub = _ct_published(_ct_p) if _ct_p is not None else None
+_ct_pub_off = _ct_published(_ct_off) if _ct_off is not None else None
+R.check(
+    "combi: the published hot-water trajectory is the buffer trajectory, step for step; "
+    "null control: off, the two tanks part",
+    _ct_pub is not None and np.array_equal(_ct_pub[0], _ct_pub[1])
+    and not np.array_equal(_ct_pub_off[0], _ct_pub_off[1]),
+    "dhw_temps vs buffer_temps",
+)
+
+# Tap-stated minimums enter the store frame; the legionella target never does.
+_ct_tap = _ct_params(eps=0.85, dhw_min_temp=45.0, dhw_idle_min_temp=30.0)
+if _ct_tap is not None:
+    _ct_fl = _dhw_planner(_StoreOpt(ThermalModel(_ct_tap), _StoreCfg()))._dhw_window_floors(
+        _ct_tap, [(0.0, 24.0)], np.arange(24) * 1.0, None, 1.0, 24, None)
+    _ct_floor = float(_ct_fl[5][3])
+    _ct_hold = ThermalModel(_ct_tap).dhw_hold_hours()
+    _ct_need = 10.0 + 35.0 / 0.85
+    _ct_hold_ref = ThermalModel(_ct_tap).dhw_coast_hours(
+        max(_ct_store(_ct_tap).charge_max_temp, _ct_need + 1.0), _ct_need)
+else:
+    _ct_floor = _ct_hold = _ct_need = _ct_hold_ref = None
+R.check(
+    "combi: a 45 C tap minimum is a 51.18 C store floor at eps 0.85 (inlet 10 C), "
+    "in the planner's floors and the hold horizon alike",
+    _ct_floor is not None and abs(_ct_floor - _ct_need) < 1e-9 and abs(_ct_need - 51.176) < 1e-3
+    and _ct_hold == _ct_hold_ref,
+    f"floor {_ct_floor}, need {_ct_need}, hold {_ct_hold} vs {_ct_hold_ref}",
+)
+R.check(
+    "combi litres_40c: the heat above the store temperature that gives 40 C at the tap; "
+    "off, the separate tank's displacement rule",
+    _ct_p is not None
+    and abs(_ct_tm.dhw_mixed_litres(_ct_p, 60.0, 40.0)
+            - _ct_s.capacity_kwh_per_c * (60.0 - (10.0 + 30.0 / 0.85)) / (_CT_CP * 30.0)) < 1e-9
+    and _ct_tm.dhw_mixed_litres(_ct_off, 60.0, 40.0) == 200.0 * 50.0 / 30.0,
+    "litres at 60 C",
+)
+
+# The legionella target is a store temperature (standing water reaches the
+# store's own), so eps cannot move the cycle (legionella_eps, design T.2a).
+_CT_LEG = dict(dhw_legionella_enabled=True, dhw_legionella_temp=60.0,
+               dhw_legionella_interval_days=7.0, dhw_daily_consumption=0.0,
+               dhw_min_temp=30.0, dhw_idle_min_temp=20.0, dhw_schedule_enabled=True,
+               dhw_windows=_ct_windows("18:00-19:00"))
+
+
+def _ct_cycle(eps):
+    p = _ct_params(eps=eps, **_CT_LEG)
+    if p is None:
+        return None
+    opt = _StoreOpt(ThermalModel(p), _StoreCfg(horizon_hours=24, time_step_minutes=15))
+    plan, _ = _dhw_planner(opt)._build_dhw_requirements(
+        _dhw_horizon(prices=np.full(96, 1.0), outdoor=np.full(96, 0.0), n=96, dt=0.25,
+                     state=ThermalState(room_temperature=21.0, slab_temperature=22.0,
+                                        outdoor_temperature=0.0, dhw_temperature=50.0,
+                                        buffer_tank_temperature=50.0,
+                                        dhw_hours_since_legionella=7 * 24.0 - 6.0)),
+        p_max=4.0)
+    step = plan.legionella_step
+    return (plan.legionella_due, step, plan.legionella_hour,
+            None if step is None else float(np.max(plan.ready_temps)))
+
+
+_ct_leg6, _ct_leg10 = _ct_cycle(0.6), _ct_cycle(1.0)
+R.check(
+    "legionella_eps: the cycle's step, hour and target are the same at eps 0.6 and 1.0",
+    _ct_leg6 is not None and _ct_leg6 == _ct_leg10 and _ct_leg6[0] and _ct_leg6[3] == 60.0,
+    f"eps 0.6 {_ct_leg6}, eps 1.0 {_ct_leg10}",
+)
+
+# lp_flux: the planner buys hot water against the space side's draw on the
+# shared store, and a separate tank ignores the series (it is dead off).
+_CT_FLUX = dict(dhw_schedule_enabled=True, dhw_windows=_ct_windows("19:00-21:00"),
+                dhw_min_temp=40.0, dhw_idle_min_temp=20.0)
+_ct_exo = np.zeros(96)
+_ct_exo[60:76] = -2.0  # a 2 kW valve draw over the four hours before the window
+
+
+def _ct_flux_plan(combi, exo):
+    p = _ct_params(combi=combi, **_CT_FLUX)
+    if p is None:
+        return None, None, None
+    opt = _StoreOpt(ThermalModel(p), _StoreCfg(horizon_hours=24, time_step_minutes=15))
+    h = _dhw_horizon(prices=np.full(96, 1.0), outdoor=np.full(96, 0.0), n=96, dt=0.25,
+                     state=ThermalState(room_temperature=21.0, slab_temperature=22.0,
+                                        outdoor_temperature=0.0, dhw_temperature=50.0,
+                                        buffer_tank_temperature=50.0,
+                                        dhw_hours_since_legionella=1.0))
+    plan, _ = _dhw_planner(opt)._build_dhw_requirements(h, p_max=4.0, tank_exo_kw=exo)
+    temps = opt.model.simulate_dhw_only(
+        initial_temp=50.0, dhw_power_schedule=plan.schedule, outdoor_temps=np.full(96, 0.0),
+        draw_rates=plan.draw_rates, dt_hours=0.25,
+        exo_kw=exo if _ct_store(p).combi else None)
+    gap = float(np.max(np.maximum(plan.floor_temps, plan.ready_temps) - temps[1:]))
+    return float(np.sum(plan.schedule)) * 0.25, gap, plan.schedule
+
+
+_ct_f0 = _ct_flux_plan(True, np.zeros(96))
+_ct_f2 = _ct_flux_plan(True, _ct_exo)
+_ct_o0 = _ct_flux_plan(False, None)
+_ct_o2 = _ct_flux_plan(False, _ct_exo)
+R.check(
+    "lp_flux: a 2 kW valve draw before the window raises the hot water the plan buys, "
+    "and the store still meets every floor and the window's ready temperature",
+    _ct_f0[0] is not None and _ct_f2[0] > _ct_f0[0] + 1.0 and _ct_f2[1] <= 0.05,
+    f"kWh {_ct_f0[0]} -> {_ct_f2[0]}, worst shortfall {_ct_f2[1]}",
+)
+R.check(
+    "lp_flux null control: a separate tank's plan is unchanged by the same series",
+    _ct_o0[2] is not None and np.array_equal(_ct_o0[2], _ct_o2[2]),
+    f"kWh {_ct_o0[0]} vs {_ct_o2[0]}",
+)
+
+# The flux exchange, end to end: the joint solve's store meets the hot-water
+# requirement the space side drains; with no exchange rounds it does not.
+_CT_PRICES = np.full(96, 1.5)
+_CT_PRICES[:20] = 0.8
+_CT_PRICES[64:80] = 4.0
+
+
+def _ct_solve(rounds=None):
+    p = _ct_params()
+    if p is None:
+        return None, None
+    opt = _StoreOpt(ThermalModel(p), _StoreCfg(horizon_hours=24, time_step_minutes=15,
+                                               target_temp=21.0, min_temp=19.0, max_temp=23.0))
+    saved = getattr(_optmod, "_COMBI_EXCHANGE_ROUNDS", None)
+    if rounds is not None:
+        _optmod._COMBI_EXCHANGE_ROUNDS = rounds
+    try:
+        r = opt.optimize(inputs=solve_inputs(
+            initial_state=ThermalState(room_temperature=21.0, slab_temperature=23.0,
+                                       buffer_tank_temperature=50.0, dhw_temperature=50.0,
+                                       outdoor_temperature=0.0),
+            prices=_CT_PRICES, outdoor_temps=np.full(96, 0.0), wind_speeds=np.zeros(96),
+            precipitation=np.zeros(96), solar_radiation=np.zeros(96),
+            start_time=datetime(2026, 1, 15)))
+    finally:
+        if rounds is not None:
+            _optmod._COMBI_EXCHANGE_ROUNDS = saved
+    req = np.asarray(opt._dhw_requirement)
+    traj = np.asarray(r.dhw_temp_trajectory)[1:req.size + 1]
+    return float(np.max(req - traj)), r
+
+
+_ct_gap_x, _ct_res = _ct_solve()
+_ct_gap_0, _ = _ct_solve(rounds=0)
+R.check(
+    "combi flux exchange: the joint plan's store meets the hot-water requirement the "
+    "space side drains, and its published DHW and buffer trajectories are one",
+    _ct_gap_x is not None and _ct_gap_x <= 0.05
+    and list(_ct_res.dhw_temp_trajectory) == list(_ct_res.buffer_temp_trajectory),
+    f"worst shortfall {_ct_gap_x}",
+)
+R.check(
+    "combi flux exchange null control: with no exchange round the space side drains "
+    "the store below the requirement",
+    _ct_gap_0 is not None and _ct_gap_0 > 1.0,
+    f"worst shortfall without the exchange {_ct_gap_0}",
+)
+
+# Censuses (P2, _P2_CENSUSES in tests/entities.py). Each asserts its own reach.
+_CT_PKG = _ct_Path(_ct_tm.__file__).parent
+_ct_sources = {f.name: f.read_text() for f in sorted(_CT_PKG.glob("*.py"))}
+_ct_view = sorted(
+    f"{name}:{i}" for name, src in _ct_sources.items() if name != "thermal_model.py"
+    for i, line in enumerate(src.splitlines(), 1)
+    if "dhw_tank_thermal_mass" in line or "dhw_tank_heat_loss_coefficient" in line
+)
+R.check(
+    "combi_store_view census: outside thermal_model.py nothing reads the separate tank's "
+    "capacity or loss; every reader takes the store view",
+    len(_ct_sources) > 20 and "dhw_tank_heat_loss_coefficient" in _ct_sources["thermal_model.py"]
+    and not _ct_view,
+    f"readers {_ct_view} over {len(_ct_sources)} modules",
+)
+_ct_plan_tree = _ct_ast.parse(_ct_sources["dhw_planner.py"])
+_CT_WALKS = {"simulate_dhw_only", "extend_dhw_temps", "simulate_dhw_step", "_dhw_plan_temps"}
+_ct_walk_calls = [n for n in _ct_ast.walk(_ct_plan_tree) if isinstance(n, _ct_ast.Call)
+                  and isinstance(n.func, _ct_ast.Attribute) and n.func.attr in _CT_WALKS]
+_ct_blind = [n.lineno for n in _ct_walk_calls
+             if not any(k.arg == "exo_kw" for k in n.keywords)
+             and not (n.func.attr == "_dhw_plan_temps"
+                      and (len(n.args) == 7 or any(isinstance(a, _ct_ast.Starred) for a in n.args)))]
+_ct_fns = {n.name: _ct_ast.get_source_segment(_ct_sources["dhw_planner.py"], n)
+           for n in _ct_ast.walk(_ct_plan_tree) if isinstance(n, _ct_ast.FunctionDef)}
+_ct_affine = [f for f in ("_plan_dhw_min_cost", "_dhw_legionella_ceilings", "_clamp_dhw_to_capacity")
+              if "_exo_at(" not in _ct_fns.get(f, "")]
+_ct_space = [f for f in ("def simulate_trajectory(", "def simulate_trajectory_batch(")
+             if f not in _ct_sources["thermal_model.py"]
+             or "buffer_exo = weather.buffer_exo_kw" not in _ct_sources["thermal_model.py"].split(f)[1][:4000]]
+R.check(
+    "combi_flux_live census: every DHW walk the planner runs, and each of its three affine "
+    "recursions, carries the space side's flux, and both space walks read the DHW side's",
+    len(_ct_walk_calls) >= 10 and not _ct_blind and not _ct_affine and not _ct_space,
+    f"{len(_ct_walk_calls)} walks, blind at {_ct_blind}, affine without flux {_ct_affine}, "
+    f"space walks without it {_ct_space}",
+)
+_ct_tap_reads, _ct_tap_raw, _ct_leg_routed = 0, [], []
+for _ct_name, _ct_src in (("dhw_planner.py", _ct_sources["dhw_planner.py"]),
+                          ("thermal_model.py", _ct_sources["thermal_model.py"])):
+    _ct_tree = _ct_ast.parse(_ct_src)
+    _ct_routed = set()
+    for _ct_n in _ct_ast.walk(_ct_tree):
+        if isinstance(_ct_n, _ct_ast.Call) and isinstance(_ct_n.func, _ct_ast.Attribute) \
+                and _ct_n.func.attr == "store_temp_for_tap":
+            for _ct_a in _ct_ast.walk(_ct_n):
+                if isinstance(_ct_a, _ct_ast.Attribute):
+                    _ct_routed.add(id(_ct_a))
+                    if _ct_a.attr == "dhw_legionella_temp":
+                        _ct_leg_routed.append(f"{_ct_name}:{_ct_a.lineno}")
+    _ct_scope = _ct_tree if _ct_name == "dhw_planner.py" else next(
+        n for n in _ct_ast.walk(_ct_tree)
+        if isinstance(n, _ct_ast.FunctionDef) and n.name == "dhw_hold_hours")
+    for _ct_n in _ct_ast.walk(_ct_scope):
+        if isinstance(_ct_n, _ct_ast.Attribute) and _ct_n.attr in ("dhw_min_temp", "dhw_idle_min_temp") \
+                and isinstance(_ct_n.value, _ct_ast.Name) and _ct_n.value.id in ("params", "p"):
+            _ct_tap_reads += 1
+            if id(_ct_n) not in _ct_routed:
+                _ct_tap_raw.append(f"{_ct_name}:{_ct_n.lineno}")
+R.check(
+    "combi_tap_limit census: every tap-stated minimum the planner and the hold horizon read "
+    "enters the store frame, and the legionella target never does",
+    _ct_tap_reads >= 4 and not _ct_tap_raw and not _ct_leg_routed,
+    f"{_ct_tap_reads} reads; raw {_ct_tap_raw}; legionella routed {_ct_leg_routed}",
+)
+
+# R10-COMBI-TANK repair (#3358's tests / mutation): each guard and clamp the
+# combi store added, driven at the one input that separates it from its mutant.
+R.section("R10-COMBI-TANK: the combi store's guards and clamps, at the inputs that move them")
+import heatpump_optimizer.dhw_planner as _cg_dp  # noqa: E402
+
+_cg_unmet = [_ct_params(mixing_valve_mode=_mv.MODE_NONE), _ct_params(buffer_tank_volume=50.0),
+             _ct_params(dhw_enabled=False)]
+_cg_h8 = _dhw_horizon(prices=np.full(8, 1.0), outdoor=np.zeros(8), n=8, dt=0.25)
+
+
+def _cg_exo(p):
+    return _optmod._combi_dhw_exo(ThermalModel(p), _cg_h8, np.zeros(8), np.zeros(8))
+
+
+R.check(
+    "combi_store_of and the hot-water flux are None off combi and wherever its preconditions "
+    "fail with the option on; null control: on, the store and an 8-step series",
+    _ct_p is not None and all(q.dhw_combi_tank_enabled for q in _cg_unmet)
+    and all(_ct_tm.combi_store_of(q) is None and _cg_exo(q) is None for q in _cg_unmet + [_ct_off])
+    and _ct_tm.combi_store_of(_ct_p) == _ct_s and np.shape(_cg_exo(_ct_p)) == (8,),
+    "combi_store_of / _combi_dhw_exo off, unmet and on",
+)
+
+# The per-step buffer readers -- `buffer_tank_thermal_mass` through `_buffer_capacity`,
+# and the buffer UA's memo key -- read `buffer_store_volume` a few thousand times a
+# solve. Off the option it answers from the option's own field and evaluates no combi
+# predicate: with the predicate alone, stress.py's production-call channel read 1.053x
+# to 1.065x the calls on four valve scenarios (#3358's tests / fast (3.14), at
+# 64d4e7dbc), over its 1.05x allowance. A counting stand-in reads every evaluation.
+_cg_cls = type(_ct_off)
+_cg_pred = _cg_cls.__dict__["combi_tank_active"]
+_cg_hits = []
+_cg_cls.combi_tank_active = property(lambda q: _cg_hits.append(q) or _cg_pred.fget(q))
+try:
+    _cg_off_read = (_ct_off.buffer_store_volume, _ct_off.buffer_tank_thermal_mass,
+                    _ct_off.buffer_tank_heat_loss_coefficient)
+    _cg_off_hits = len(_cg_hits)
+    _cg_on_read = _ct_p.buffer_store_volume
+    _cg_on_hits = len(_cg_hits) - _cg_off_hits
+finally:
+    _cg_cls.combi_tank_active = _cg_pred
+R.check(
+    "off the combi option the buffer's store volume, capacity and UA evaluate no combi "
+    "predicate; null control: with the option on the volume evaluates it and adds the coil",
+    _cg_off_hits == 0 and _cg_off_read[0] == _ct_off.buffer_tank_volume
+    and _cg_on_hits >= 1 and _cg_on_read == _ct_p.buffer_tank_volume + _ct_p.combi_potable_volume_l,
+    f"off: {_cg_off_hits} predicate evaluation(s), {_cg_off_read}; on: {_cg_on_hits}, {_cg_on_read}",
+)
+
+# The store's limits are the tighter of the hot-water and buffer ones: a
+# buffer rated below the hot-water setpoint caps both.
+_cg_low = _ct_params(buffer_max_temp=50.0)
+_cg_low_off = _ct_params(combi=False, buffer_max_temp=50.0)
+R.check(
+    "combi: a 50 C buffer rating caps the store's charge limit and rating alike; "
+    "null control: off, the separate tank keeps its own",
+    _cg_low is not None and _ct_store(_cg_low).charge_max_temp == 50.0
+    and _ct_store(_cg_low).rating_max_temp == 50.0
+    and _ct_store(_cg_low_off).charge_max_temp == _cg_low_off.dhw_max_temp > 50.0
+    and _ct_store(_cg_low_off).rating_max_temp == _cg_low_off.dhw_hard_max_temp > 50.0,
+    f"combi {_ct_store(_cg_low)}; off {_ct_store(_cg_low_off)}",
+)
+
+
+def _cg_step(store, temp, heat, dt):
+    try:
+        return _ct_tm.store_step(store, temp, heat, 0.0, 20.0, dt)
+    except ZeroDivisionError as err:
+        return repr(err)
+
+
+_cg_top = _ct_s.rating_max_temp if _ct_s is not None else 0.0
+_cg_empty = _cg_step(_ct_replace(_ct_s, capacity_kwh_per_c=0.0), 55.0, 3.0, 0.25) if _ct_s else None
+_cg_hot = _cg_step(_ct_s, _cg_top + 5.0, 0.0, 0.25) if _ct_s else None
+_cg_dt0 = _cg_step(_ct_s, 5.0, 0.0, 0.0) if _ct_s else None
+_cg_warm = _cg_step(_ct_s, 50.0, 3.0, 0.25) if _ct_s else None
+R.check(
+    "store_step: no capacity holds the temperature and books nothing; a charge below the "
+    "rating warms the store and refuses nothing; a store above its rating cools by its "
+    "loss and refuses nothing; a zero-length step from below the floor returns the floor "
+    "without dividing by zero",
+    _cg_empty == (55.0, 0.0, 0.0, 0.0)
+    and isinstance(_cg_warm, tuple) and _cg_warm[1] == 0.0 and _cg_warm[0] > 50.0
+    and isinstance(_cg_hot, tuple) and _cg_hot[1] == 0.0 and _cg_top < _cg_hot[0] < _cg_top + 5.0
+    and isinstance(_cg_dt0, tuple) and _cg_dt0[0] == min(_ct_s.inlet_c, 20.0) and _cg_dt0[1] == 0.0,
+    f"empty {_cg_empty}; charging {_cg_warm}; above the rating {_cg_hot}; zero step {_cg_dt0}",
+)
+_cg_net = (_ct_tm.combi_space_net_kw(_ct_s, [50.0, 50.0], [0.0], 0.0)
+           if _ct_s is not None else None)
+R.check(
+    "combi_space_net_kw: a zero-length step books the standing loss and no gain, a finite series",
+    _cg_net is not None and bool(np.all(np.isfinite(_cg_net)))
+    and abs(float(_cg_net[0]) - _ct_s.ua_kw_per_c * (50.0 - _ct_tm.TANK_ROOM_AMBIENT_TEMP)) < 1e-12,
+    f"net {_cg_net}",
+)
+
+# A tap minimum whose store floor sits above the charge limit: eps 0.6 puts a
+# 45 C tap at a 68.3 C store, above the 55 C limit, and the hold horizon still
+# coasts the kelvin above the floor.
+_cg_steep = _ct_params(eps=0.6, dhw_min_temp=45.0)
+if _cg_steep is not None:
+    _cg_floor = _ct_store(_cg_steep).store_temp_for_tap(45.0)
+    _cg_hold = ThermalModel(_cg_steep).dhw_hold_hours()
+    _cg_coast = ThermalModel(_cg_steep).dhw_coast_hours(_cg_floor + 1.0, _cg_floor)
+else:
+    _cg_floor = _cg_hold = _cg_coast = None
+R.check(
+    "combi hold horizon: a store floor above the charge limit coasts from a kelvin above "
+    "the floor, a positive horizon",
+    _cg_floor is not None and _cg_floor > _ct_store(_cg_steep).charge_max_temp + 1.0
+    and _cg_hold == _cg_coast and _cg_hold > 0.0,
+    f"floor {_cg_floor}, limit {_ct_store(_cg_steep).charge_max_temp if _cg_steep else None}, "
+    f"hold {_cg_hold} vs {_cg_coast}",
+)
+
+# An idle minimum stated above the window minimum never raises the idle floor
+# past it, in the store frame (combi) and the tank's own (off).
+_cg_idle = []
+for _cg_combi in (True, False):
+    _cg_q = _ct_params(combi=_cg_combi, dhw_min_temp=45.0, dhw_idle_min_temp=50.0)
+    if _cg_q is None:
+        break
+    _cg_fl = _dhw_planner(_StoreOpt(ThermalModel(_cg_q), _StoreCfg()))._dhw_window_floors(
+        _cg_q, [(18.0, 19.0)], np.arange(24) * 1.0, None, 1.0, 24, None)
+    _cg_idle.append((float(_cg_fl[5][3]), _ct_store(_cg_q).store_temp_for_tap(45.0),
+                     _ct_store(_cg_q).store_temp_for_tap(50.0)))
+R.check(
+    "idle floor: a 50 C idle minimum above a 45 C window minimum floors idle steps at the "
+    "window minimum's store temperature, combi and off",
+    len(_cg_idle) == 2 and all(f == lo < hi for f, lo, hi in _cg_idle),
+    f"(idle floor, window minimum, idle minimum) per arm {_cg_idle}",
+)
+
+
+# A rating with no headroom above the charge limit leaves the cycle no boost:
+# the ceilings stay the everyday ones and no run-up floor is set. Null
+# control: a 55 C limit under a 60 C rating runs up to the cycle's step.
+def _cg_ceilings(setpoint):
+    p = ThermalParameters(dhw_enabled=True, dhw_setpoint=setpoint, dhw_legionella_enabled=True,
+                          dhw_legionella_temp=60.0, dhw_legionella_interval_days=7.0)
+    leg = _dhw_planner(_StoreOpt(ThermalModel(p), _StoreCfg()))._dhw_legionella_ceilings(
+        _dhw_horizon(prices=np.full(96, 1.0), outdoor=np.zeros(96), n=96, dt=0.25),
+        params=p, draw_rates=np.zeros(96), floor_temps=np.full(96, 20.0), p_dhw_run=4.0,
+        legionella_due=True, legionella_hour=10.0, legionella_step=40)
+    return p.dhw_store, leg
+
+
+_cg_flat_store, _cg_flat = _cg_ceilings(60.0)
+_cg_room_store, _cg_room = _cg_ceilings(55.0)
+R.check(
+    "legionella ceilings: with the rating at the charge limit no step's ceiling moves and "
+    "no run-up floor is set; null control: below the rating the cycle runs up",
+    _cg_flat_store.rating_max_temp == _cg_flat_store.charge_max_temp == 60.0
+    and not np.any(_cg_flat.runup_temps) and bool(np.all(_cg_flat.lp_max_temp == 60.0))
+    and _cg_room_store.rating_max_temp > _cg_room_store.charge_max_temp
+    and float(np.max(_cg_room.runup_temps[:40])) > 20.0,
+    f"flat run-up max {float(np.max(_cg_flat.runup_temps))}; "
+    f"null run-up max {float(np.max(_cg_room.runup_temps[:40]))}",
+)
+
+# The flux exchange's rounds: a plan that stops moving stops the rounds, and a
+# plan still moving at the cap is published after four DHW plan builds (the
+# cap prices the exchange on a Pi-class host).
+_cg_real_build = _cg_dp.DhwPlanner._build_dhw_requirements
+_cg_real_x = _optmod._combi_flux_exchange
+
+
+def _cg_rounds(moving):
+    runs = []
+
+    def build(self, *a, **k):
+        plan, req = _cg_real_build(self, *a, **k)
+        if runs and k.get("tank_exo_kw") is not None:
+            runs[-1] += 1
+            if moving:
+                plan = _ct_replace(plan, schedule=plan.schedule + 1e-3 * runs[-1])
+        return plan, req
+
+    def exchange(*a, **k):
+        runs.append(0)
+        return _cg_real_x(*a, **k)
+
+    _cg_dp.DhwPlanner._build_dhw_requirements = build
+    _optmod._combi_flux_exchange = exchange
+    try:
+        _ct_solve()
+    finally:
+        _cg_dp.DhwPlanner._build_dhw_requirements = _cg_real_build
+        _optmod._combi_flux_exchange = _cg_real_x
+    return runs
+
+
+_cg_still = _cg_rounds(False) if _ct_p is not None else []
+_cg_moving = _cg_rounds(True) if _ct_p is not None else []
+R.check(
+    "combi flux exchange: a plan that stops moving ends the rounds before the cap; one still "
+    "moving is published after exactly four plan builds",
+    bool(_cg_still) and all(0 < n < 4 for n in _cg_still)
+    and bool(_cg_moving) and all(n == 4 for n in _cg_moving),
+    f"builds per exchange: converging {_cg_still}, moving {_cg_moving}",
+)
+
+
+# Two-zone: the hot-water side's flux enters the store behind a throttling
+# valve, in the scalar walk and its batch twin, and moves nothing without one.
+def _cg_two_zone(p, exo):
+    m = ThermalModel(p)
+    n = 16
+    w = _ct_replace(_WS(np.zeros(n)), buffer_exo_kw=exo)
+    st = ThermalState(room_temperature=21.0, slab_temperature=23.0, upper_floor_temperature=21.0,
+                      lower_floor_temperature=21.0, buffer_tank_temperature=50.0,
+                      dhw_temperature=50.0, outdoor_temperature=0.0)
+    scalar = m.simulate_trajectory(initial_state=st, power_schedule=np.full(n, 1.5), weather=w)
+    batch = m.simulate_trajectory_batch(st, np.full((1, n), 1.5), w)
+    return [np.asarray(a) for a in scalar], {k: np.asarray(v) for k, v in batch.items()}
+
+
+_cg_tz = _ct_params(two_zone_enabled=True)
+_cg_tz_open = _ct_params(combi=False, two_zone_enabled=True, mixing_valve_mode=_mv.MODE_NONE)
+if _cg_tz is not None:
+    _cg_exo16 = np.full(16, 2.0)
+    _cg_on0, _cg_on0b = _cg_two_zone(_cg_tz, None)
+    _cg_on2, _cg_on2b = _cg_two_zone(_cg_tz, _cg_exo16)
+    _cg_op0, _cg_op0b = _cg_two_zone(_cg_tz_open, None)
+    _cg_op2, _cg_op2b = _cg_two_zone(_cg_tz_open, _cg_exo16)
+    _cg_gain = (float(_cg_on2[4][-1] - _cg_on0[4][-1]), float(_cg_on2b["buffer"][0, -1]
+                                                              - _cg_on0b["buffer"][0, -1]))
+    _cg_same = (all(np.array_equal(a, b) for a, b in zip(_cg_op0, _cg_op2))
+                and all(np.array_equal(_cg_op0b[k], _cg_op2b[k]) for k in _cg_op0b))
+else:
+    _cg_gain, _cg_same = (0.0, 0.0), False
+R.check(
+    "two-zone combi: a 2 kW hot-water flux warms the store in the scalar walk and the batch "
+    "twin alike; behind no valve the same series moves no output of either",
+    _cg_gain[0] > 1.0 and _cg_gain[1] > 1.0 and _cg_same,
+    f"store gain scalar {_cg_gain[0]:.4f} C, batch {_cg_gain[1]:.4f} C; unvalved unchanged {_cg_same}",
 )
 
 # R10-BUFFER-STORE review 1: the savings reference sized its power from the
@@ -38940,7 +39640,7 @@ R.check(
 
 _fr_fixed = _dhw_planner(_fr_opt)._repair_dhw_floor(
     _dhw_ctx(prices=_fr_prices, outdoor=_fr_outdoor,
-             n=_fr_plan.size, dt=_FR_DT, c_dhw=_fr_c, p_dhw_max=_FR_RUN,
+             n=_fr_plan.size, dt=_FR_DT, params=_fr_opt.model.params, c_dhw=_fr_c, p_dhw_max=_FR_RUN,
              min_run_power=_FR_MIN),
     plan=_fr_plan.copy(), initial_temp=52.0,
     draw_rates=_fr_draws, requirement=_fr_req, max_temp=_fr_ceiling,
@@ -42306,6 +43006,7 @@ _g2_saved_extend = _G2Tm.extend_dhw_temps
 
 def _g2_extend_via_full_sim(
     self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25, humidity=None,
+    exo_kw=None,
 ):
     _G2Tm.extend_dhw_temps = _g2_saved_extend
     try:
@@ -42316,6 +43017,7 @@ def _g2_extend_via_full_sim(
             draw_rates=draws,
             dt_hours=dt_hours,
             humidity=humidity,
+            exo_kw=exo_kw,
         )
     finally:
         _G2Tm.extend_dhw_temps = _g2_extend_via_full_sim
@@ -42476,6 +43178,7 @@ _mr_saved_extend = _G2Tm.extend_dhw_temps
 
 def _mr_extend_via_full_sim(
     self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25, humidity=None,
+    exo_kw=None,
 ):
     _G2Tm.extend_dhw_temps = _mr_saved_extend
     try:
@@ -42486,6 +43189,7 @@ def _mr_extend_via_full_sim(
             draw_rates=draws,
             dt_hours=dt_hours,
             humidity=humidity,
+            exo_kw=exo_kw,
         )
     finally:
         _G2Tm.extend_dhw_temps = _mr_extend_via_full_sim
@@ -60112,7 +60816,7 @@ def _r7d203_window_capacity(volume):
     res = _dhw_planner(opt)._dhw_window_floors(
         params, windows, np.arange(96) * 0.25, None, 0.25, 96, None
     )
-    return res[0], params.dhw_tank_thermal_mass
+    return res[0].capacity_kwh_per_c, params.dhw_tank_thermal_mass
 
 
 # The three planners below each took the floored capacity as a whole, so a
@@ -60127,7 +60831,7 @@ def _r7d203_min_cost(c_dhw, n=12, dt=1.0):
     opt, _ = _r7d203_opt(200.0, dhw_cooling_rate=0.3)
     plan = _dhw_planner(opt)._plan_dhw_min_cost(
         _dhw_ctx(prices=np.full(n, 1.0), outdoor=np.full(n, -5.0),
-                 n=n, dt=dt, c_dhw=c_dhw, p_dhw_max=3.0),
+                 n=n, dt=dt, params=opt.model.params, c_dhw=c_dhw, p_dhw_max=3.0),
         45.0, np.full(n, 60.0), np.zeros(n), np.full(n, 60.0),
     )
     return None if plan is None else float(plan.sum())
@@ -60146,7 +60850,7 @@ def _r7d203_greedy_steps(c_dhw, volume=43.1, req=50.0, ceiling=55.0, n=12):
     opt, _ = _r7d203_opt(volume, dhw_cooling_rate=0.3)
     plan = _dhw_planner(opt)._plan_dhw_cheapest_first(
         _dhw_ctx(prices=np.linspace(0.2, 2.0, n), outdoor=np.full(n, -5.0),
-                 n=n, dt=1.0, c_dhw=c_dhw, p_dhw_max=3.0),
+                 n=n, dt=1.0, params=opt.model.params, c_dhw=c_dhw, p_dhw_max=3.0),
         45.0, np.full(n, req), np.zeros(n), np.full(n, ceiling),
     )
     return [i for i, value in enumerate(plan) if value > 0.0]
@@ -60173,7 +60877,7 @@ def _r7d203_repair_steps(c_dhw, ceiling, requirement, volume=17.24, n=12):
     opt, _ = _r7d203_opt(volume, dhw_cooling_rate=3.0)
     plan = _dhw_planner(opt)._repair_dhw_floor(
         _dhw_ctx(prices=np.linspace(0.5, 1.5, n), outdoor=np.full(n, -5.0),
-                 n=n, dt=1.0, c_dhw=c_dhw, p_dhw_max=3.0),
+                 n=n, dt=1.0, params=opt.model.params, c_dhw=c_dhw, p_dhw_max=3.0),
         plan=np.zeros(n), initial_temp=45.0, draw_rates=np.zeros(n),
         requirement=np.asarray(requirement, dtype=float),
         max_temp=np.asarray(ceiling, dtype=float),
@@ -60320,29 +61024,29 @@ def _r7d203_zero_capacity():
     try:
         window = float(_dhw_planner(opt)._dhw_window_floors(
             params, windows, np.arange(24) * 1.0, None, 1.0, 24, None
-        )[0])
+        )[0].capacity_kwh_per_c)
         legionella = _dhw_planner(opt)._dhw_legionella_ceilings(
             _dhw_horizon(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
                          n=12, dt=1.0),
-            params=params, c_dhw=0.0,
+            params=params,
             draw_rates=np.zeros(12), floor_temps=np.full(12, 45.0),
             p_dhw_run=3.0,
             legionella_due=True, legionella_hour=6.0, legionella_step=5,
         )
         min_cost = _dhw_planner(opt)._plan_dhw_min_cost(
             _dhw_ctx(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
-                     n=12, dt=1.0, c_dhw=0.0, p_dhw_max=3.0),
+                     n=12, dt=1.0, params=opt.model.params, c_dhw=0.0, p_dhw_max=3.0),
             45.0, np.full(12, 55.0), np.zeros(12), np.full(12, 55.0),
         )
         repair = _dhw_planner(opt)._repair_dhw_floor(
             _dhw_ctx(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
-                     n=12, dt=1.0, c_dhw=0.0, p_dhw_max=3.0),
+                     n=12, dt=1.0, params=opt.model.params, c_dhw=0.0, p_dhw_max=3.0),
             plan=np.zeros(12), initial_temp=45.0, draw_rates=np.zeros(12),
             requirement=np.full(12, 55.0), max_temp=np.full(12, 55.0),
         )
         greedy = _dhw_planner(opt)._plan_dhw_cheapest_first(
             _dhw_ctx(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
-                     n=12, dt=1.0, c_dhw=0.0, p_dhw_max=3.0,
+                     n=12, dt=1.0, params=opt.model.params, c_dhw=0.0, p_dhw_max=3.0,
                      max_lead_steps=6),
             45.0, np.full(12, 55.0), np.zeros(12), np.full(12, 55.0),
         )
@@ -60452,7 +61156,7 @@ _r7pin_opt, _ = _r7d203_opt(200.0)
 try:
     _r7pin_plan = _dhw_planner(_r7pin_opt)._plan_dhw_min_cost(
         _dhw_ctx(prices=np.array([0.1] * 4 + [1.0] * 4),
-                 outdoor=np.full(8, -5.0), n=8, dt=1.0, c_dhw=0.232,
+                 outdoor=np.full(8, -5.0), n=8, dt=1.0, params=_r7pin_opt.model.params, c_dhw=0.232,
                  p_dhw_max=3.0),
         45.0, np.array([45.0] * 7 + [55.0]), np.zeros(8), np.full(8, 60.0),
         space_demand=np.array([5.0] * 4 + [0.0] * 4), p_total_max=5.0,
@@ -60504,7 +61208,7 @@ def _r7ua_min_cost(volume):
     n = 12
     plan = _dhw_planner(opt)._plan_dhw_min_cost(
         _dhw_ctx(prices=np.linspace(0.5, 1.5, n), outdoor=np.full(n, -5.0),
-                 n=n, dt=1.0, c_dhw=c, p_dhw_max=50.0 * c),
+                 n=n, dt=1.0, params=opt.model.params, c_dhw=c, p_dhw_max=50.0 * c),
         45.0, np.array([45.0] * 8 + [55.0] * 4), np.zeros(n),
         np.full(n, 60.0),
     )
@@ -60517,7 +61221,7 @@ def _r7ua_repair(volume):
     n = 12
     plan = _dhw_planner(opt)._repair_dhw_floor(
         _dhw_ctx(prices=np.linspace(0.5, 1.5, n), outdoor=np.full(n, -5.0),
-                 n=n, dt=1.0, c_dhw=c, p_dhw_max=50.0 * c,
+                 n=n, dt=1.0, params=opt.model.params, c_dhw=c, p_dhw_max=50.0 * c,
                  min_run_power=5.0 * c),
         plan=np.zeros(n), initial_temp=45.0, draw_rates=np.zeros(n),
         requirement=np.array([45.0] * 9 + [60.0] * 3),
@@ -60533,7 +61237,7 @@ def _r7ua_legionella(volume):
     res = _dhw_planner(opt)._dhw_legionella_ceilings(
         _dhw_horizon(prices=np.zeros(n), outdoor=np.full(n, -5.0),
                      n=n, dt=1.0),
-        params=params, c_dhw=c, draw_rates=np.zeros(n),
+        params=params, draw_rates=np.zeros(n),
         floor_temps=np.full(n, 20.0),
         p_dhw_run=2.0 * c, legionella_due=True, legionella_hour=20.0,
         legionella_step=20,
@@ -65531,10 +66235,10 @@ _f22_breach_offsets: list[int] = []
 
 
 def _f22_whole_suffix_fits(
-    self, candidate, base, ceiling, slot, plan, outdoor, draws, dt, humidity
+    self, candidate, base, ceiling, slot, plan, outdoor, draws, dt, humidity, exo_kw=None
 ):
     self.model.extend_dhw_temps(
-        candidate, slot, plan, outdoor, draws, dt_hours=dt, humidity=humidity
+        candidate, slot, plan, outdoor, draws, dt_hours=dt, humidity=humidity, exo_kw=exo_kw
     )
     limit = np.maximum(ceiling[: candidate.size], base)
     bad = np.nonzero(candidate[slot + 1:] > limit[slot + 1:] + 1e-9)[0]
@@ -78069,7 +78773,7 @@ def _pli_lp_end(derate, p_dhw_max=3.0, dt=1.0):
     req[-1] = 58.0
     prices = np.array([5.0] * (n - 1) + [1.0])
     ctx = _dhw_ctx(prices=prices, outdoor=np.full(n, 5.0), n=n, dt=dt,
-                   c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=p_dhw_max)
+                   params=opt.model.params, c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=p_dhw_max)
     planner = _dhw_planner(opt)
     plan = planner._plan_dhw_min_cost(ctx, 45.0, req, np.zeros(n), np.full(n, 65.0))
     temps = opt.model.simulate_dhw_only(
@@ -78148,7 +78852,7 @@ def _pli_greedy(derate, need=50.0, n=4, dt=0.5, p_dhw_max=3.0):
     req[-1] = need
     plan = _dhw_planner(opt)._plan_dhw_cheapest_first(
         _dhw_ctx(prices=np.linspace(2.0, 1.0, n), outdoor=out, n=n, dt=dt,
-                 c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=p_dhw_max),
+                 params=opt.model.params, c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=p_dhw_max),
         45.0, req, np.zeros(n), np.full(n, 65.0))
     temps = opt.model.simulate_dhw_only(
         initial_temp=45.0, dhw_power_schedule=plan, outdoor_temps=out,
@@ -78180,7 +78884,7 @@ def _pli_runup(derate):
     n = 24
     res = _dhw_planner(opt)._dhw_legionella_ceilings(
         _dhw_horizon(prices=np.zeros(n), outdoor=np.full(n, -5.0), n=n, dt=1.0),
-        params=params, c_dhw=params.dhw_tank_thermal_mass, draw_rates=np.zeros(n),
+        params=params, draw_rates=np.zeros(n),
         floor_temps=np.full(n, 20.0), p_dhw_run=3.0, legionella_due=True,
         legionella_hour=20.0, legionella_step=20)
     return [round(float(x), 4) for x in res.runup_temps]
@@ -78206,7 +78910,7 @@ def _pli_repair(derate, need=52.0, ceiling=(65.0,) * 4, prices=(2.0, 1.6667, 1.3
     req = np.full(n, 40.0)
     req[-1] = need
     ctx = _dhw_ctx(prices=np.array(prices), outdoor=out, n=n, dt=0.5,
-                   c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=5.0)
+                   params=opt.model.params, c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=5.0)
     plan = _dhw_planner(opt)._repair_dhw_floor(
         ctx, plan=np.zeros(n), initial_temp=45.0, draw_rates=np.zeros(n),
         requirement=req, max_temp=np.array(ceiling))
