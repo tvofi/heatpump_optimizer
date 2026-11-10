@@ -1,0 +1,20 @@
+P0 PASS: the unmutated head
+P1 KILLED: the pre-flight reads policy_admits, not policy_gate alone (the #3366 defect itself)
+    FAIL a policy head with no review yet passes under the train's --mandate in force for policy merging (the approval policy_approve posts, judged by policy_gate)
+    FAIL null control: under a --mandate tvofi revoked it still PARKs, named as revoked
+P2 KILLED: policy_admits judges the approval the --mandate is due to post
+    FAIL a policy head with no review yet passes under the train's --mandate in force for policy merging (the approval policy_approve posts, judged by policy_gate)
+P3 KILLED: null arm: a mandate not in force for policy merging (revoked, expired, scope) posts nothing
+    FAIL policy_approval_due names the mandate in force for policy merging; revoked, expired or scope code-owned it names none (the one decision the post and the pre-flight share)
+P4 KILLED: null arm: a train with no --mandate posts nothing
+    FAIL a policy head with no owner review at its head PARKs, named as the review
+    FAIL null control: the same head with no --mandate still PARKs on the review
+P5 KILLED: a park under a --mandate that posts nothing names the mandate's reason
+    FAIL null control: under a --mandate tvofi revoked it still PARKs, named as revoked
+P6 KILLED: the unposted approval is judged beside the reviews read, never instead of them
+    FAIL an owner CHANGES_REQUESTED at the head still PARKs under the --mandate (a mandated approval does not override it: policy_gate's own judgement, with the posted one added)
+P7 KILLED: the pre-flight posts nothing
+    FAIL a policy head with no review yet passes under the train's --mandate in force for policy merging (the approval policy_approve posts, judged by policy_gate)
+    FAIL an owner CHANGES_REQUESTED at the head still PARKs under the --mandate (a mandated approval does not override it: policy_gate's own judgement, with the posted one added)
+8 mutant(s), 0 not as required
+rc=0
