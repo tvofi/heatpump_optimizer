@@ -15,13 +15,18 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-BODY-CONTRACT (stage in-progress, branch `handoff/r10-body-contract`): `git fetch origin handoff/r10-body-contract && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-CI-PRIORITY-PAUSE (stage refused, branch `handoff/r10-ci-priority-pause`): `git fetch origin handoff/r10-ci-priority-pause && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DISPATCH-AT-HANDOFF (stage in-progress, branch `handoff/r10-dispatch-at-handoff`): `git fetch origin handoff/r10-dispatch-at-handoff && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-CLOUD-FRUGAL-OFF (stage refused): no branch pushed yet, so nothing to fetch
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-REPLAY-COST-2 (stage refused): no branch pushed yet, so nothing to fetch
 - R10-COMBI-TANK (stage in-progress, branch `handoff/r10-combi-tank`): `git fetch origin handoff/r10-combi-tank && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-COP-UNMEASURED (stage carries-open, branch `handoff/r10-hotfix-cop-unmeasured`): `git fetch origin handoff/r10-hotfix-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-CI-EDIT-RUNNER (stage refused, branch `handoff/r10-ci-edit-runner`): `git fetch origin handoff/r10-ci-edit-runner && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GENERIC-HEAT-CURVE-PERSISTENT (stage in-progress, branch `handoff/r10-generic-heat-curve-persistent`): `git fetch origin handoff/r10-generic-heat-curve-persistent && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ARBITER-OFF-RESTORE (stage in-progress, branch `handoff/r10-arbiter-off-restore`): `git fetch origin handoff/r10-arbiter-off-restore && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-KEYED-MERGE-DRIVERS (stage refused): no branch pushed yet, so nothing to fetch
 - R10-REVIEW-ENUMERATE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-NONREQUIRED-REDS-2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-DELTA-REVIEW (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -31,12 +36,12 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-CARRY-SINK-BARRIER (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-PREPR-READSET (stage in-progress): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-CARRY-SINK-BARRIER, R10-COMBI-TANK, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-GH-READ-RESIDUE, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-DELTA-REVIEW, R10-HOTFIX-MAIN-SELFTESTS, R10-HOTFIX-NONREQUIRED-REDS-2, R10-HOTFIX-PREPR-READSET, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REVIEW-ENUMERATE, R10-SAV-VALUATION-RESIDUE, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-CARRY-SINK-BARRIER, R10-CI-EDIT-RUNNER, R10-CI-PRIORITY-PAUSE, R10-COMBI-TANK, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-FLY-CLOUD-FRUGAL-OFF, R10-FLY-KEYED-MERGE-DRIVERS, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-GH-READ-RESIDUE, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-DELTA-REVIEW, R10-HOTFIX-MAIN-SELFTESTS, R10-HOTFIX-NONREQUIRED-REDS-2, R10-HOTFIX-PREPR-READSET, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REPLAY-COST-2, R10-REVIEW-ENUMERATE, R10-SAV-VALUATION-RESIDUE, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
 
 ## Resume steps
 
 1. Read the resume doc's Roster and Ready next sections.
-2. Claim one ready group and announce it on the record issue #3394 before opening work -- before each PR, merge and release, not only after a state change.
+2. Claim one ready group and announce it on the tracking issue #201 before opening work -- before each PR, merge and release, not only after a state change.
 3. Work at your own merge base; re-derive every figure you quote there. A figure from another seat's run is a claim, not a measurement.
 
 ## Identity and merge (from the roster)
