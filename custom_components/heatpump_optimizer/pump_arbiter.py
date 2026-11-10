@@ -874,11 +874,12 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config))
 
 
-def _feedback_on(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> bool:
-    """Whether this pass's water target (the caller's water unit) is the loop's.
+def _feedback_on(inp: ArbiterInputs, duty: str | None, now: datetime, boosts: Any) -> bool:
+    """Whether this pass's space target is the power-feedback loop's.
 
-    A space-only step below the band top, on an install with a power meter
-    and the option on, outside a boost, an experiment and a defrost. Space
+    A space-only step below the band top, on an install with a water unit, a
+    power meter and the option on, outside a boost (``boosts``, the
+    coordinator's ``boost.BoostState``), an experiment and a defrost. Space
     only comes from a fresh plan in Auto or Economy, an experiment or a
     boost (:func:`_planned_duty`). Anywhere else the meter reads a draw that
     is not this target's response (hot water, a reversed cycle), the step
@@ -887,10 +888,12 @@ def _feedback_on(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime
     cfg = EntryConfig.from_mapping(inp.config)
     if duty != "space" or not (cfg.space_setpoint_power_feedback and cfg.heat_pump_power_entity):
         return False
+    if not _flow_unit(inp.config):
+        return False
     planned, top = _step_kw(inp.plan, now), _band_kw(inp)[1]
     return bool(
         not inp.defrosting and _experiment_kw(inp) is None
-        and not boost.held_for(coord).active(boost.CHANNEL_SPACE, now)
+        and not boosts.active(boost.CHANNEL_SPACE, now)
         and planned is not None and top is not None and planned < float(top)
     )
 
@@ -1000,14 +1003,16 @@ def _clamp_cut(held: ArbiterState, value: Any, observed: Any, at: datetime) -> b
     (each within :data:`SETPOINT_TOLERANCE`) is the controller's own limit,
     not a person: the record adopts it, the run's target stops there for
     the rest of the run, and no rewrite, miss or repair follows. A cut of
-    today's target, or any other reading, is ``hold``'s as before.
+    today's target, or any other reading (a person, a revert to the
+    controller's default), is ``hold``'s as before and starts the run over.
     """
-    rec = held.feedback
+    rec, held.feedback = held.feedback, None
     if rec is None or rec.sent_c is None or rec.prev_c is None or value != rec.sent_c:
         return False
     low, high = sorted((rec.prev_c, value))
     if not low - SETPOINT_TOLERANCE <= observed <= high + SETPOINT_TOLERANCE:
         return False
+    held.feedback = rec
     if value > rec.prev_c:
         rec.cut_hi_c = observed
     else:
@@ -1083,8 +1088,7 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     if duty == "space" and inp.disinfecting:
         duty = "both"
     space = _space_target(inp, result, now, duty)
-    if _flow_unit(inp.config):
-        space = _feedback(state_for(coord), inp, now, space, _feedback_on(coord, inp, duty, now))
+    space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "idle":
         # No mode write. The mode last written served the duty that just
         # finished, whose thermostat the plan has just satisfied, so it is
@@ -1281,8 +1285,6 @@ def hold(coord: Any, now: datetime) -> None:
         if slot == "space_setpoint" and _clamp_cut(held, value, observed, at):
             continue
         del held.written[slot]
-        if slot == "space_setpoint":
-            held.feedback = None  # a revert or a person: the run starts over
         held.misses[slot] = held.misses.get(slot, 0) + 1
         if held.misses[slot] > 1:
             entity = _slot_entity(inp.config, slot)
