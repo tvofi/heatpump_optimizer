@@ -1,0 +1,3 @@
+  why: 0 of 1 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
+  d705f0900  Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-selftest-scope-hang
+review_carry: CARRY
