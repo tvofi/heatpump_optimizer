@@ -97,6 +97,13 @@ ROWS (the job table's `interval_s` in brackets):
                      --cursor state/outside-cursor.json`: its `OUTSIDE` lines
                      (submissions by outside users owed a triage, an answer or
                      a reply this turn), `outside-intake: UNREADABLE` on rc 2.
+  bottleneck [1800]  bottleneck_check.py `--checkout <repo> --train-log
+                     <train_log> --wip-cap <plan_slots> --memory
+                     state/bottleneck.json`: its `BOTTLENECK:` and
+                     `BOTTLENECK-UNREADABLE:` lines (the flow metrics past the
+                     owner's thresholds, 2026-11-07); a held breach re-prints its
+                     first line, so it is new once per trip. A line suggests; the
+                     orchestrator decides. `bottleneck: UNREADABLE` on a non-zero rc.
 No row runs `git checkout`, `reset`, `pull` or `merge`; main is read as
 `git -C <repo> cat-file -e origin/main:<path>`. No row touches a seat's alive
 file. Every row exits 0 once its lines are written: the digest is the signal,
@@ -119,7 +126,7 @@ import time
 from pathlib import Path
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
-        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake")
+        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake", "bottleneck")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: The board's actionable family (carry 20's list), keyed on the texts
 #: orchestrator_tick.py and ledger.py print; the self-test pins each literal there.
@@ -398,7 +405,9 @@ def plan_beat(ctx: Ctx) -> None:
     if rc != 0:
         last = (err.strip().splitlines() or [""])[-1]
         return write_job(ctx, "plan-beat", [f"plan-beat: PLAN UNAVAILABLE replan rc={rc}: {last}"])
-    rc, out, err = ctx.py("tools/audit/seat/state_docs.py", "--push", "--mirror", mirror, "--plan", plan)
+    # the train log feeds the page's skip-share and train-skips table (UNAVAILABLE without it)
+    train = ["--train-log", str(ctx.overlay["train_log"])] if ctx.overlay.get("train_log") else []
+    rc, out, err = ctx.py("tools/audit/seat/state_docs.py", "--push", "--mirror", mirror, "--plan", plan, *train)
     lines = []
     if rc != 0:
         said = [ln for ln in err.splitlines() if "UNAVAILABLE" in ln or "REFUSED" in ln]
@@ -590,10 +599,23 @@ def outside_intake(ctx: Ctx) -> None:
     write_job(ctx, "outside-intake", [why or f"outside-intake: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
 
 
+def bottleneck(ctx: Ctx) -> None:
+    """bottleneck_check.py: one line per flow metric past its threshold, held once per trip by its memory."""
+    got = ctx.need("bottleneck", "train_log", "plan_slots")
+    if got is None:
+        return
+    rc, out, err = ctx.py("tools/audit/seat/bottleneck_check.py", "--checkout", str(ctx.repo),
+                          "--train-log", got[0], "--wip-cap", got[1],
+                          "--memory", str(ctx.digest / "state" / "bottleneck.json"))
+    if rc != 0:
+        return write_job(ctx, "bottleneck", [f"bottleneck: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+    write_job(ctx, "bottleneck", [ln for ln in out.splitlines() if ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))])
+
+
 RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
        "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
-       "outside-intake": outside_intake}
+       "outside-intake": outside_intake, "bottleneck": bottleneck}
 
 
 def main(argv: list[str]) -> int:

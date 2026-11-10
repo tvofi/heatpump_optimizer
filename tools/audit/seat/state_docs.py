@@ -41,7 +41,8 @@ commit as `PLAN-TABLE.md` -- one ref, one durable path. A page that refuses
 (a stale or violating plan, an unreadable roster) is the UNAVAILABLE page: the
 ref keeps the last good PLAN.html, with its own snapshot time, when it holds
 one, and carries the UNAVAILABLE page when it holds none; either way the call
-publishes the other docs and exits 1, so the caller sees the plan unread. The
+publishes the other docs and exits 1, so the caller sees the plan unread.
+`--train-log` is handed on to `plan_page.py` (its flow section's skips). The
 beat runs no replan, so it never passes `--plan`.
 
 `beat` is the recurring half of tvofi's 2026-10-09 instruction that the state
@@ -239,6 +240,50 @@ def remote_tip(checkout: str, refspec: str) -> str | None:
                      f"{(r.stderr or r.stdout).strip()[:200]}")
     out = r.stdout.strip()
     return out.split()[0] if out else None
+
+
+# THE PUSH RACE (R10-STATE-DOCS-PUSH-RACE). Generation takes ~30 s; a second
+# writer (another postmerge run, a --retry) can land on the state ref inside
+# that window. The push is then refused non-fast-forward. The shape is
+# roster_edit.py's (R10-ROSTER-PUSH-RACE): re-read the tip, regenerate on it,
+# at most PUSH_ATTEMPTS times, then refuse loudly; a refusal at an unmoved tip
+# is not a race and refuses at once; never force.
+PUSH_ATTEMPTS = 3
+
+
+class Raced(Exception):
+    """The push was refused and the state ref's tip had moved meanwhile."""
+
+
+def fetched_tip(checkout: str, state_ref: str) -> str | None:
+    """The state ref's tip at origin, fetched so its objects are local.
+
+    One read: the sha is what `git fetch` landed in FETCH_HEAD, so the tip
+    this run builds on is the tip it holds, and a tip the checkout lacked
+    (`failed to unpack tree object`) is no longer a failure. None when the
+    remote has no such ref.
+    """
+    if remote_tip(checkout, f"refs/heads/{state_ref}") is None:
+        return None
+    run(["git", "fetch", "-q", "origin", f"refs/heads/{state_ref}"],
+        cwd=checkout)
+    return run(["git", "rev-parse", "FETCH_HEAD"], cwd=checkout).strip()
+
+
+def push_state(checkout: str, commit: str, state_ref: str,
+               prev: str | None) -> None:
+    """Push `commit` fast-forward only. Raises Raced when the push is refused
+    and the tip is no longer `prev`; Refuse when it is refused at an unmoved
+    tip (not a race: a hook, a permission, a network fault)."""
+    r = subprocess.run(["git", "push", "-q", "origin",
+                        f"{commit}:refs/heads/{state_ref}"], cwd=checkout,
+                       capture_output=True, text=True)
+    if r.returncode == 0:
+        return
+    if remote_tip(checkout, f"refs/heads/{state_ref}") != prev:
+        raise Raced(state_ref)
+    raise Refuse(f"push to {state_ref} refused at an unmoved tip, so not a "
+                 f"race: {(r.stderr or r.stdout).strip()[:300]}")
 
 
 def mirror_files(staged: dict, mirror: str | None) -> None:
@@ -453,6 +498,8 @@ def draw_plan_page(a, staging: Path, page_path: str, prev: str | None):
         cmd += ["--roster-path", a.roster_path]
     if a.github_snapshot:
         cmd += ["--github-snapshot", a.github_snapshot]
+    if a.train_log:
+        cmd += ["--train-log", a.train_log]
     r = subprocess.run(cmd, cwd=a.checkout, capture_output=True, text=True)
     text = target.read_text(encoding="utf-8") if target.exists() else ""
     if r.returncode == 0 and text.strip():
@@ -503,6 +550,8 @@ def parser(beat_mode: bool = False) -> argparse.ArgumentParser:
                        help="plan.json to draw as PLAN.html (plan_page.py)")
         p.add_argument("--github-snapshot",
                        help="GitHub state for the plan page instead of gh")
+        p.add_argument("--train-log",
+                       help="the live train.log the plan page's flow section reads")
     if beat_mode:
         p.add_argument("--watch-ref", default=WATCH_REF,
                        help="the full ref name a pass reads at origin")
@@ -541,61 +590,76 @@ def main(argv=None) -> int:
         st8 = state_of(roster_round_of(a))
         state_ref = a.state_ref or st8.ref
         print(f"round state: {state_ref} at {st8.dir}/")
-        write_set = st8.write_set
-        prev = remote_tip(a.checkout, f"refs/heads/{state_ref}")
-        unread = None
-        with tempfile.TemporaryDirectory() as st:
-            staged = generate(a.repo, roster_args, a.checkout, a.pr_state,
-                              Path(st), st8.dir)
-            if a.plan:
-                write_set += (f"{st8.dir}/{PLAN_PAGE}",)
-                page, unread = draw_plan_page(a, Path(st), write_set[-1], prev)
-                staged.update(page)
-        rc = 1 if unread else 0
-        for path in sorted(staged):
-            print(f"generated {path}: "
-                  f"{len(staged[path].encode('utf-8'))} bytes")
-        tree = write_tree(a.checkout, staged, prev, write_set)
-        if prev:
-            changed = run(["git", "diff-tree", "-r", "--name-only", prev,
-                           tree], cwd=a.checkout).split()
-            bad = sorted(p for p in changed if p not in write_set)
-            if bad:  # unreachable while write_tree's guard holds; checked
-                raise Refuse(  # again here, before any commit exists to push
-                    f"the commit would touch paths outside the write set: "
-                    f"{', '.join(bad)}")
-            if not changed:
-                print(f"already current: {state_ref} at {prev[:12]} carries "
-                      "these bytes; nothing to commit or push")
-                mirror_files(staged, a.mirror)
-                return rc
-        else:
-            names = run(["git", "ls-tree", "-r", "--name-only", tree],
-                        cwd=a.checkout).split()
-            if sorted(names) != sorted(write_set):
-                raise Refuse(f"the first commit on {state_ref} would carry "
-                             f"{sorted(names)}, not exactly the write set")
-        message = a.message or (
-            "state: " + ", ".join(Path(p).name for p in sorted(staged))
-            + " regenerated (state_docs.py)")
-        why = ref_privacy.refusal(state_ref, (("the message", message),))
-        if why:
-            raise Refuse(f"{why} would publish this host (#2310); nothing committed")
-        cargs = ["git", "commit-tree", tree]
-        if prev:
-            cargs += ["-p", prev]
-        commit = run(cargs + ["-m", message], cwd=a.checkout).strip()
-        if a.push:
-            run(["git", "push", "-q", "origin",
-                 f"{commit}:refs/heads/{state_ref}"], cwd=a.checkout)
-            print(f"pushed {state_ref} at {commit}")
-        else:
-            print(f"ready: would push {state_ref} at {commit} (no --push)")
-        mirror_files(staged, a.mirror)
-        return rc
+        for attempt in range(1, PUSH_ATTEMPTS + 1):
+            try:
+                return publish_once(a, roster_args, st8, state_ref)
+            except Raced:
+                if attempt == PUSH_ATTEMPTS:
+                    raise Refuse(
+                        f"{state_ref} moved under the push {PUSH_ATTEMPTS} "
+                        "times running; nothing of this regeneration reached "
+                        "origin (never forced)")
+                print(f"state_docs: {state_ref} moved during generation; "
+                      f"regenerating on the new tip (attempt {attempt + 1} "
+                      f"of {PUSH_ATTEMPTS})")
     except Refuse as e:
         print(f"state_docs: REFUSED: {e}", file=sys.stderr)
         return 2
+
+
+def publish_once(a, roster_args: list, st8: State, state_ref: str) -> int:
+    """One read-generate-push pass at the tip read now; Raced if it lost."""
+    write_set = st8.write_set
+    prev = fetched_tip(a.checkout, state_ref)
+    unread = None
+    with tempfile.TemporaryDirectory() as st:
+        staged = generate(a.repo, roster_args, a.checkout, a.pr_state,
+                          Path(st), st8.dir)
+        if a.plan:
+            write_set += (f"{st8.dir}/{PLAN_PAGE}",)
+            page, unread = draw_plan_page(a, Path(st), write_set[-1], prev)
+            staged.update(page)
+    rc = 1 if unread else 0
+    for path in sorted(staged):
+        print(f"generated {path}: "
+              f"{len(staged[path].encode('utf-8'))} bytes")
+    tree = write_tree(a.checkout, staged, prev, write_set)
+    if prev:
+        changed = run(["git", "diff-tree", "-r", "--name-only", prev,
+                       tree], cwd=a.checkout).split()
+        bad = sorted(p for p in changed if p not in write_set)
+        if bad:  # unreachable while write_tree's guard holds; checked
+            raise Refuse(  # again here, before any commit exists to push
+                f"the commit would touch paths outside the write set: "
+                f"{', '.join(bad)}")
+        if not changed:
+            print(f"already current: {state_ref} at {prev[:12]} carries "
+                  "these bytes; nothing to commit or push")
+            mirror_files(staged, a.mirror)
+            return rc
+    else:
+        names = run(["git", "ls-tree", "-r", "--name-only", tree],
+                    cwd=a.checkout).split()
+        if sorted(names) != sorted(write_set):
+            raise Refuse(f"the first commit on {state_ref} would carry "
+                         f"{sorted(names)}, not exactly the write set")
+    message = a.message or (
+        "state: " + ", ".join(Path(p).name for p in sorted(staged))
+        + " regenerated (state_docs.py)")
+    why = ref_privacy.refusal(state_ref, (("the message", message),))
+    if why:
+        raise Refuse(f"{why} would publish this host (#2310); nothing committed")
+    cargs = ["git", "commit-tree", tree]
+    if prev:
+        cargs += ["-p", prev]
+    commit = run(cargs + ["-m", message], cwd=a.checkout).strip()
+    if a.push:
+        push_state(a.checkout, commit, state_ref, prev)
+        print(f"pushed {state_ref} at {commit}")
+    else:
+        print(f"ready: would push {state_ref} at {commit} (no --push)")
+    mirror_files(staged, a.mirror)
+    return rc
 
 
 # ---------------------------------------------------------------- self-test
@@ -631,8 +695,12 @@ def plan_page_arms(root: Path, ok, git) -> None:
                      encoding="utf-8")
     mirror, prs = root / "pmirror", root / "pprs.json"
     prs.write_text("[]", encoding="utf-8")
+    train = root / "train.log"  # handed on to plan_page.py, whose flow section reads it
+    train.write_text("BATCH 20261107-143937 pid=2 base=main queue=1 (#11) --overlap --skip-bad\n"
+                     "SKIP #11 ci: #11 red at the head: gate\nSKIP REPORT: 1 skipped of 1\n",
+                     encoding="utf-8")
     argv = ["--checkout", str(drv), "--roster-ref", "main", "--pr-state", str(prs),
-            "--plan", str(planf),
+            "--plan", str(planf), "--train-log", str(train),
             "--github-snapshot", str(snapf), "--mirror", str(mirror), "--push"]
     state_ref, sdir, write_set = state_of(9)
     page_path = f"{sdir}/{PLAN_PAGE}"
@@ -655,9 +723,13 @@ def plan_page_arms(root: Path, ok, git) -> None:
         return
     tip1 = tip_of(state_ref)
     good = at(tip1, page_path) or ""
+    # Keyed on the refusal page's own heading, as publish's crash guard is: a
+    # drawn page may carry a flow metric's UNAVAILABLE cell (plan_page's Flow).
     ok("plan page: a fresh plan draws PLAN.html in the plan table's commit",
-       rc == 0 and "Fix Plan" in good and "UNAVAILABLE" not in good
+       rc == 0 and "Fix Plan" in good and "PLAN UNAVAILABLE" not in good
        and at(tip1, write_set[0]) is not None, (rc, good[:200]))
+    ok("plan page: --train-log reaches plan_page.py: the page's train skips name its batch",
+       "20261107-143937" in good, good[good.find("Flow"):good.find("Flow") + 300])
     ok("plan page: the mirror carries PLAN.html",
        (mirror / PLAN_PAGE).read_text(encoding="utf-8") == good)
     ok("plan page: without --plan the write set holds no PLAN.html (null control)",
@@ -824,6 +896,94 @@ def self_test() -> int:
         ok("plan table reflects the roster",
            "done" in git("-C", str(bare), "show",
                          f"{tip_at_origin()}:{WRITE_SET[0]}"))
+
+        # --- the push race (R10-STATE-DOCS-PUSH-RACE) ---------------------------
+        # A rival lands on the state ref INSIDE this run's generation window (the
+        # real one takes ~30 s): the hook below pushes a rival commit to origin
+        # from a second clone each time generate() runs, up to `times` times.
+        rival = root / "rival"
+        throwaway_git_clone(bare, rival, "-q")
+        rivals: list[str] = []
+        serial = iter(range(1, 1000))
+        real_generate = generate
+
+        def rival_lands(times: int):
+            def hooked(*args, **kw):
+                if len(rivals) < times:
+                    git("-C", str(rival), "fetch", "-q", "origin",
+                        f"refs/heads/{STATE_REF}")
+                    git("-C", str(rival), "checkout", "-q", "-B", "rival",
+                        "FETCH_HEAD")
+                    name = f"rival-{next(serial)}.md"
+                    (rival / name).write_text(name + "\n", encoding="utf-8")
+                    git("-C", str(rival), "add", name)
+                    git("-C", str(rival), "commit", "-q", "-m", f"rival {name}")
+                    git("-C", str(rival), "push", "-q", "origin",
+                        f"HEAD:refs/heads/{STATE_REF}")
+                    rivals.append(name)
+                return real_generate(*args, **kw)
+            return hooked
+
+        def race_run(times: int) -> tuple[int, str]:
+            """main(--push) under `times` rivals; (rc, stdout+stderr). The
+            roster changes first, so the docs differ from the tip and a push
+            is owed (identical bytes would end at "already current")."""
+            r = json.loads(roster_path.read_text(encoding="utf-8"))
+            r["groups"][1]["brief"] = f"fixture group B, race run {next(serial)}."
+            roster_path.write_text(json.dumps(r, indent=1) + "\n",
+                                   encoding="utf-8")
+            globals()["generate"] = rival_lands(times)
+            buf = io.StringIO()
+            try:
+                with contextlib.redirect_stdout(buf), \
+                        contextlib.redirect_stderr(buf):
+                    return main(common + ["--push", "--message",
+                                          f"state: race {times}"]), buf.getvalue()
+            finally:
+                globals()["generate"] = real_generate
+
+        tracked = lambda: set(git("-C", str(bare), "ls-tree", "-r", "--name-only",
+                                  tip_at_origin()).split())
+        # null control: no rival -> rc 0, no race said.
+        rivals.clear()
+        pre = tip_at_origin()
+        rc, out = race_run(0)
+        ok("race null control: no rival, rc 0, no race said",
+           rc == 0 and "moved during generation" not in out, (rc, out[-300:]))
+        # one rival inside the window: rc 0, rival kept, regeneration on top.
+        rivals.clear()
+        rc, out = race_run(1)
+        ok("race: one rival inside generation -> rc 0 after regenerating",
+           rc == 0 and "moved during generation" in out, (rc, out[-400:]))
+        ok("race: the rival's commit survives under the regeneration",
+           rivals and rivals[0] in tracked()
+           and git("-C", str(bare), "merge-base", "--is-ancestor",
+                   pre, tip_at_origin()) == "", (rivals, tracked()))
+        # a rival on every attempt: bounded, refused loudly, never forced.
+        rivals.clear()
+        before = tip_at_origin()
+        rc, out = race_run(PUSH_ATTEMPTS)
+        ok("race on every attempt: refused rc 2, said loudly",
+           rc == 2 and "nothing of this regeneration reached origin" in out,
+           (rc, out[-300:]))
+        ok("race on every attempt: bounded at PUSH_ATTEMPTS rivals",
+           len(rivals) == PUSH_ATTEMPTS, rivals)
+        ok("race on every attempt: every rival kept, history only extended",
+           set(rivals) <= tracked() and git(
+               "-C", str(bare), "merge-base", "--is-ancestor", before,
+               tip_at_origin()) == "", (rivals, tracked()))
+        # a refusal at an UNMOVED tip is not a race: refused at once, one pass.
+        hook = bare / "hooks" / "pre-receive"
+        hook.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+        hook.chmod(0o755)
+        try:
+            rivals.clear()
+            rc, out = race_run(0)
+            ok("non-race refusal: rc 2 at once, named not a race",
+               rc == 2 and "not a race" in out
+               and "moved during generation" not in out, (rc, out[-300:]))
+        finally:
+            hook.unlink()
 
     # --- the beat (R9-RO-14) -----------------------------------------------
     # The three arms the issue names, each driven through `beat --once` with
