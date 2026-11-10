@@ -1,0 +1,7 @@
+== at head 55dfa880d1cd779356cef493eb59cf73ca7818bc, unmutated
+
+inline_scan rc=0
+== mutant: delete the line '    from pathlib import Path' inside repo_root
+
+inline_scan rc=1
+== restored; git status --porcelain:

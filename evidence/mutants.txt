@@ -18,3 +18,4 @@ P7 KILLED: the pre-flight posts nothing
     FAIL an owner CHANGES_REQUESTED at the head still PARKs under the --mandate (a mandated approval does not override it: policy_gate's own judgement, with the posted one added)
 8 mutant(s), 0 not as required
 rc=0
+porcelain:[]

@@ -1,55 +1,44 @@
-Fix review: blocked f0b7564596d2725f87090f921e0d3ceb51ceec8b root-cause-detectable: tests / fast (3.14) is red on this PR's own new harness (harness_headers: its inlined repo_root drops the canonical helper's `from pathlib import Path`) and ## Red checks says none; PYTHONPATH=tests/hastub python3 tests/harness_headers.py shows it locally
+Fix review: merge 55dfa880d1cd779356cef493eb59cf73ca7818bc
 
-bus-nonce: 30df47c3b32489a3d0981e3a26c58093
+bus-nonce: 553142a29591e83af3b2f190f26f50c8
 
 ## Summary
 
-Round 1 (no earlier `Fix review:` on #3401). I measured head f0b7564596d2725f87090f921e0d3ceb51ceec8b, the head the PR body names, in a detached worktree; the head was re-read before return and is unchanged. The fix itself survives my attack. All five null controls the brief names still PARK at the pre-flight and in the real path. My differential harness finds no pre-flight PASS that the real gate refuses, except under an unchecked precondition carried below. The block is CI: a required check is red because of a file this PR adds, and the body does not answer it.
+This is round 2. Round 1 was the blocked verdict at f0b7564596d2725f87090f921e0d3ceb51ceec8b (comment 6758409766). I measured head 55dfa880d1cd779356cef493eb59cf73ca7818bc in a detached worktree and re-read it before returning; it had not moved. The scope is the owner ruling of 2026-11-09: the delta `git diff f0b7564596d2725f87090f921e0d3ceb51ceec8b 55dfa880d1cd779356cef493eb59cf73ca7818bc`, the previous findings, and the live required checks. The delta is one added line, `    from pathlib import Path`, inside the inlined `repo_root` of `dev/audit/harnesses/r10_hotfix_train_policy_mandate_mutants.py`. It does not touch `custom_components/`, so the review is not widened.
 
-## Block
-
-- `tests / fast (3.14)` concluded `failure` at this head (job 129597668418, run 42743953498): `1 of 112 HARNESS HEADER CHECKS FAILED`, `>>> FAILED: python3 tests/harness_headers.py`. It is in `merge_train.py owed-reds` (`ev/owed_reds.txt`). It is not inherited: main's CI at the merge base b0762725 (run 42741176573) has one failed job, `governance / instrument-self-tests`, and its `tests / fast` passed.
-- Reproduced locally at this head: `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` gives `FAIL every inlined walk matches the canonical helper and no depth root remains  [FAIL python copies=174 differ=['dev/audit/harnesses/r10_hotfix_train_policy_mandate_mutants.py']`, then `1 of 112 HARNESS HEADER CHECKS FAILED`, rc 1 (`ev/harness_headers_local.txt`).
-- Cause: the new harness's inlined `repo_root` lacks the canonical `tools/audit/repo_root.py` body's line `    from pathlib import Path` (`ev/repo_root_diff.txt`: `3d2 <     from pathlib import Path`). Fix: copy the canonical function verbatim. That is a harness-only change, so the fix's code and its proofs stand.
-- Unanswered: `pr-contract / pr-contract` (job 129613603373) started at 03:38:44Z, after `fast` concluded red at 03:12:47Z. Its output was `ERROR   [pr-body] /tmp/pr-body.md: check `tests / fast (3.14)` is red and `## Red checks` does not name it` and `PR-BODY: 1 error(s)`. `gate` is red on both rollups (jobs 129614067930 and 129614060688) only through these two checks. merge_train classify gives `RED f0b7564596d2725f87090f921e0d3ceb51ceec8b pending: none red: gate`, rc 1 (`ev/classify.txt`).
-- Cheaper detector: `tests/harness_headers.py` is `run_always` and ran in 188 s in CI's fast lane (`wall clock` block). Run locally before the handoff, it shows this red, against the fast lane's roughly 13 minutes. The body's own `ci_predict --apply-inert` predicted no fast red, so the predictor missed it (see Findings).
-
-## Findings
-
-- Follow-up: `python3 tools/pr/ci_predict.py --apply-inert` printed `CI PREDICT: no closures, fast, governance or instrument red predicted` for this branch, beside `APPLIED inert_reads tests/harness_headers.py: dev/audit/harnesses/r10_hotfix_train_policy_mandate_mutants.py`. It added the new harness to `harness_headers`' inert reads but did not run that `run_always` script's canonical-helper check, which is red at this head. So a new harness whose inlined `repo_root` drifts gets a clean prediction. Control: predicting on this head (or on any harness whose `repo_root` lacks `from pathlib import Path`) must predict the fast red. Carry: R10-FLY-CIPREDICT-RESTORING
-- Follow-up: the pre-flight's simulated review (`policy_admits`, merge_train.py:2457) is built with the owner's pinned identity, and nothing checks that the train's ambient `gh` account is that owner. `_post_agent_approval` (merge_train.py:2381) posts with whatever account `gh` is logged in as, and no `gh api user` read happens anywhere in the train. Under a non-owner account, world A17 in `ev/reviewer_differential_a17.txt` gives `preflight=PASS real=PARK posted=1  <-- SLIP`. Before this diff that head parked at the pre-flight before anything was posted. Now it is admitted, a stray approval is posted, and `land`'s `policy_gate` then refuses it, so the merge still fails closed. A cheap barrier already exists: `ci_probe.py:154-161` `owner_check` refuses when `GET /user` is not tvofi. Applying it once per train run, before `policy_approve` or `policy_admits` runs, would close this. Control: world A17 must PARK at the pre-flight. Carry: R10-TRAIN-MERGE-LOOP-2
-- Follow-up (pre-existing, outside this diff): the real path posts the mandated owner-account approval even when the owner's own latest decisive review is CHANGES_REQUESTED. Worlds N5 and A1 give `real=PARK posted=1`: `policy_approval_due` does not consult `approval()`'s CHANGES_REQUESTED rule. The train still refuses at `policy_gate`. But GitHub now reads the owner account's latest review as APPROVED, so the PR's GitHub-side code-owner state no longer shows the owner's request for changes. This diff's pre-flight posts nothing in those worlds (`posted=0` in pre-flight runs; check "... and the pre-flight posts nothing"). Control: worlds N5 and A1 must give `posted=0` in the real path. Carry: R10-TRAIN-MERGE-LOOP-2
-- Out of scope: the body's class-rule figure says `git grep -n "policy_gate(\|\.policy_admits(" -- tools .github` gives "4 lines at e414ab71". At both e414ab71 and f0b75645 the enumerator prints 5 (`ev/class_rule.txt`). The fifth line is `policy_gate`'s own `def` (merge_train.py:2049), not a caller. The body's four dispositions cover every call site, so the class is closed and only the stated count is wrong. Carry: dismissed: a miscounted figure with a complete disposition set; nothing downstream reads the count
+The previous block is resolved. The harness's `repo_root` is now byte-identical to the canonical one, `tests/harness_headers.py` passes, and `tests / fast (3.14)` is green at this head. Every check in the head's required set concluded success or skipped. The five null controls the brief names still PARK at both the pre-flight and the real path, and my differential harness finds no world where the pre-flight admits a PR that the real gate refuses.
 
 ## Evidence
 
-- Null controls. Command: a reviewer copy of the pre-flight self-test (`ev/reviewer_harness_README.txt`), `python3 tools/audit/seat/_rev3401_pf.py --self-test` at f0b75645. Output in `ev/reviewer_differential.txt`:
-  - `SCEN N1 no --mandate: preflight=PARK(policy) real=PARK posted=0`, why `no decisive review by tvofi (id 70032254)`
-  - `SCEN N2 revoked mandate: preflight=PARK(policy) real=PARK posted=0`, why `... the train posts no approval under its --mandate: mandate 4100000001 was revoked by tvofi's comment 4100000002`
-  - `SCEN N3 mandate scope code-owned: preflight=PARK(policy) real=PARK posted=0`, why `... has scope code-owned, which does not cover p[olicy merging]`
-  - `SCEN N4 expired mandate: preflight=PARK(policy) real=PARK posted=0`, why `... expired at ...`
-  - `SCEN N5 owner CHANGES_REQUESTED at head: preflight=PARK(policy) real=PARK posted=1`, why `tvofi's own latest decisive review is CHANGES_REQUESTED, and a mandated approval does not override it`
-- Attacks. Same run, 18 more worlds, all agreeing between the pre-flight and the real path:
-  - Owner CR on an older commit: PARK/PARK.
-  - Owner CR, then an uncited owner APPROVED on an older commit: PASS/PASS.
-  - Uncited owner APPROVED at the head: PARK/PARK, "cites no mandate".
-  - Mandate not yet in force, edited, written by a look-alike account, or absent (404): PARK/PARK.
-  - A `--mandate` label naming two ids, or no id: PARK/PARK.
-  - Reviews unreadable: PARK(approve)/PARK.
-  - A budget file beside the policy: PARK/PARK.
-  - Look-alike-account CR: PASS/PASS. Owner DISMISSED: PASS/PASS. Look-alike revocation: PASS/PASS.
-  - Owner CR, then a mandated agent approval at the head: PARK/PARK.
-  - Positive arms, a live mandate and a programme-end window: PASS/PASS.
-  - Result: `ok   REVIEWER: no world where the pre-flight PASSes and the real path parks (0 slips)`, `queue_pre_flight self-test: 54 checks, 0 failed`. A4 is not relied on (fixture limit in the README).
-- Mutation proof: `python3 dev/audit/harnesses/r10_hotfix_train_policy_mandate_mutants.py` at f0b75645 gives `8 mutant(s), 0 not as required`, rc 0 (`ev/mutants.txt`). The tree was clean afterwards and the throwaway copy was deleted (`git status --porcelain` empty).
-- `python3 tools/audit/seat/queue_pre_flight.py --self-test` at f0b75645 gives `queue_pre_flight self-test: 53 checks, 0 failed`, rc 0 (`ev/pf_selftest.txt`). This matches the body's figure, which was taken at e414ab71.
-- `python3 tests/structure.py` gives `STRUCTURE RATCHET PASSED` (`ev/structure.txt`).
-- Not re-run: the body's `merge_train.py --self-test` 608 checks, `entities.py` 1-of-2706 and `ci_predict` figures. These are CI's heavy runs (fix-review step 11), and CI's verdict at this head is cited below.
-- Head: f0b7564596d2725f87090f921e0d3ceb51ceec8b is the head the body's `## Head` names. Since e414ab71 the only commits are a main merge and `dev/programme/delivery/3401.md`.
-- Merge: `git merge-tree --write-tree origin/main f0b75645...` printed `272565d1...` with rc 0, a clean merge (`ev/merge_tree.txt`).
-- `VERSION`, the manifest, `RELEASE_NOTES.md` and `tests/golden/` are untouched in the three-dot diff from b0762725. No claim file moved, and no solver code changed, so `env_drift` has nothing to compare.
-- Roles: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so the contract is current.
-- Owed reds: `merge_train.py owed-reds` (`ev/owed_reds.txt`) lists the required set. The body's `## Red checks: none`.
-- Class: the body's enumeration rule returns the land, batch, `policy_admits` and queue_pre_flight call sites. All are dispositioned, and no seam lies outside the diff.
-- Forward-carry: the body has none, and this PR creates no later-stage constraint. The two follow-ups above are routed by their own `Carry:`.
-- CI: settled RED at this head, per the Block. Every other context in `owed-reds` that ran at this head concluded success or skipped.
+- Repair, step 1. `diff` between the `def repo_root` through `raise` span of `tools/audit/repo_root.py` and the same span of the harness is empty, `diff-rc=0` (`ev/repo_root_diff.txt`). Local `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` at this head printed `ok   every inlined walk matches the canonical helper and no depth root remains`, then `ALL 112 HARNESS HEADER CHECKS PASSED`, rc 0 (`ev/harness_headers_local.txt`). Round 1 got `1 of 112 ... FAILED` at f0b75645.
+- Repair mutant. I deleted the added line in place and ran `harness_headers.inline_scan()`: rc went from 0 to 1. The file was then restored and `git status --porcelain` was empty (`ev/repair_mutant.txt`). The check is not vacuous.
+- The receipt round changed no code. `git diff --stat 593a28c96e54a64c3ce25d99dfd4850be6094e4b 55dfa880d1cd779356cef493eb59cf73ca7818bc` is empty: the merge commit's tree equals the authored head's. The parents of 55dfa880 are f0b75645 and 593a28c9, so there is no main merge in this round. The only tree change since f0b75645 is the one harness line (`ev/delta.txt`). I found no `Prepr:` trailer on either new commit. The body's `## Head` names 55dfa880 as merging the authored code head 593a28c9, and that matches the graph. I verified that no code changed by tree comparison, not by a trailer.
+- Null controls at this head. Command: `python3 tools/audit/seat/_rev3401_pf.py --self-test`. This is round 1's reviewer harness `ev/reviewer_differential_inject.py`, the reviewer's own and not the finder's, disclosed in `ev/reviewer_harness_README.txt`. I spliced it into a throwaway copy of `queue_pre_flight.py`, then deleted the copy; the tree was clean after (`ev/reviewer_differential.txt`):
+  - `SCEN N1 no --mandate: preflight=PARK(policy) real=PARK posted=0`
+  - `SCEN N2 revoked mandate: preflight=PARK(policy) real=PARK posted=0`
+  - `SCEN N3 mandate scope code-owned: preflight=PARK(policy) real=PARK posted=0`
+  - `SCEN N4 expired mandate: preflight=PARK(policy) real=PARK posted=0`
+  - `SCEN N5 owner CHANGES_REQUESTED at head: preflight=PARK(policy) real=PARK posted=1`. The `posted=1` is in the real path, which is round 1's pre-existing finding. Its carry is checked below.
+  - 18 attack worlds (A1 to A16, P1, P2) agree between the pre-flight and the real path.
+  - `ok   REVIEWER: no world where the pre-flight PASSes and the real path parks (0 slips)`, then `queue_pre_flight self-test: 54 checks, 0 failed`, rc 0.
+- `python3 tools/audit/seat/queue_pre_flight.py --self-test` at this head printed `queue_pre_flight self-test: 53 checks, 0 failed`, rc 0. That run includes the body's null-control checks, lines 37 to 42 of `ev/pf_selftest.txt`.
+- Mutation proof: `python3 dev/audit/harnesses/r10_hotfix_train_policy_mandate_mutants.py` at this head printed `8 mutant(s), 0 not as required`, rc 0. P1 to P7 were KILLED. The tree was clean afterwards, `porcelain:[]` (`ev/mutants.txt`). This matches the body's figure at 593a28c9, and the production code is identical between the two.
+- Merge with main: `git merge-tree --write-tree origin/main 55dfa880...` against origin/main 699f4d9e printed `LEDGER-MERGE: resolved tests/closures.json` and tree `641717b8...`, rc 0. The merge is clean (`ev/merge_tree.txt`).
+- `VERSION`, the manifest, `RELEASE_NOTES.md` and `tests/golden/` are untouched in the three-dot diff. `dev/governance/roles/` has no drift between the merge base and origin/main, so the contract is current (`ev/delta.txt`).
+- Previous findings:
+  - The block (harness_headers) is resolved, as above.
+  - The `ci_predict` follow-up and the two train follow-ups are now in the body's `## Forward-carry` with `Carry: R10-PREPR-RESIDUE` / `R10-TRAIN-RESIDUE`. The packet's carry_audit reports `3 routed, 0 unrouted` and each one `resolved on origin/handoff/audit-r10-roster`. The roster at that ref holds the `[moved: R10-PREPR-RESIDUE]` entries.
+  - The `fast` red at f0b75645 is answered under `## Red checks` (cheaper detector `harness_headers.py`, about 188 s), and `pr-contract / pr-contract` is green at this head.
+  - The class-rule count now reads 5 lines, which matches round 1's count.
+- Owed reds: `merge_train.py owed-reds` at this head (`ev/owed_reds.txt`) lists 23 contexts. On the latest run of each (`ev/ci_latest_runs.tsv`, 111 check runs), every one that ran concluded success, and `tests / ci-ratchet` was skipped. This includes `gate` success (job 129721985443, started 08:40:07Z), `pr-contract / pr-contract` success (129721624350, started 08:39:15Z, after the last required job concluded), `tests / fast (3.14)` success (129707027507), `tests / closures`, `tests / coverage`, `tests / coverage-ratchet` and `tests / mutation` success. Earlier `gate` failures, 129687180717 and 129704030104, printed `FAIL run(s) [...] at this head are still being judged; their gate decides`, which is the early-judging pass and not a red outcome.
+- `governance / instrument-self-tests` failed on the first run (129686057277, `FAIL the live job parses (118 steps) and its gating is consistent`, a workflow-level check this diff does not touch). It passed on the re-run (129705081494). It is not in `owed-reds`, so it is not a blocking reason.
+- CI classify: `merge_train.py classify 55dfa880... --pr 3401` printed `WAIT` (rc 3) until 08:03:52Z. From 08:05:08Z it printed `REFUSE ci: the check runs at 55dfa880d1cd could not be read`, rc 2 (unreadable), and kept doing so through the final run (`ev/classify.txt`). The cause is this session's proxy, not CI. Once the head passed 100 check runs, the API's `Link` header points page 2 at `repositories/1341087606/...`, and the proxy refuses that with HTTP 403 `Numeric-ID repository paths ... are not supported` (`ev/pagination_link.txt`). I read both pages through `repos/tvofi/heatpump_optimizer/...?page=N` instead (`ev/ci_poll.txt`, which ends `pending_owed=0 red_owed=[]`) and judged the owed set from that. classify's own GREEN is therefore not available as evidence. The train re-reads it on its own host.
+- Head: `git ls-remote origin refs/pull/3401/head` returned 55dfa880d1cd779356cef493eb59cf73ca7818bc at return time (`ev/HEAD.txt`).
+
+## Findings
+
+- Follow-up: `merge_train.py classify` (and so the cloud reviewer's CI wait) returns rc 2 unreadable on any head with more than 100 check runs when run behind the cloud agent proxy. `gh api --paginate` follows GitHub's `Link` header to `repositories/<id>/...`, which the proxy refuses with HTTP 403. Reading `repos/<owner>/<repo>/commits/<sha>/check-runs?per_page=100&page=N` explicitly works. Control: classify on a head with more than 100 check runs, behind the proxy, returns GREEN, RED or WAIT, not REFUSE. Carry: R10-TRAIN-RESIDUE
+
+## Friction
+
+- My first CI waiter was stopped at the harness's 30-minute background bound, so I re-armed it. classify then went unreadable for the reason above, and I polled the owed set by hand.
