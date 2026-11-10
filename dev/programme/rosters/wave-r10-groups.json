@@ -21409,7 +21409,9 @@
     "R10-GATE-DEFER-BARRIER",
     "R10-WORKTREE-GC-LIVE"
    ],
-   "carry": [],
+   "carry": [
+    "Moved from R10-CLOSEOUT-CLEANUP carry 6 (0-based) by the s13 closeout split (orchestrator, 2026-11-10, under mandate 6715477401; cp-compress spec L6/L6b), verbatim below: Closure check, s11 replan: dev/programme/carries/ holds nine carry files at origin/main (carry-1645, 1774, 1795, 1922, 201, 2065, 2066, 2075, 2674; #3091 drops the 2674 one). Each is a constraint on a later stage, read by no live group's seat. Before the closure stamp, give each entry its destination or its answering commit, so no carry is left outside the roster. Control: `git ls-tree origin/main dev/programme/carries/` lists only files every entry of which names a live destination or a landed commit."
+   ],
    "resume": {
     "stage": "not-started",
     "commit": null,
