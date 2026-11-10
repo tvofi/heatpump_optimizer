@@ -1064,16 +1064,14 @@ def _observed(inp: ArbiterInputs, slot: str) -> Any:
     return read_setpoint(inp.hass, entity)
 
 
-def hold(coord: Any, now: datetime) -> float | None:
+def hold(coord: Any, now: datetime) -> None:
     """Drop the record of every slot the pump does not hold, so it is rewritten.
 
     The first differing reading is rewritten at once; one that still differs
-    after that rewrite is warned about and retried every few minutes. Returns
-    the space set-point a person set (:func:`_edited`), which off restores.
+    after that rewrite is warned about and retried every few minutes.
     """
     held = state_for(coord)
     inp = coord.arbiter_inputs()
-    edit = None
     for slot, (value, at) in list(held.written.items()):
         observed = _observed(inp, slot)
         if observed is None or utc_elapsed_seconds(now, at) < ECHO_GRACE_S:
@@ -1083,26 +1081,27 @@ def hold(coord: Any, now: datetime) -> float | None:
             if held.retry.pop(slot, None) is not None and not held.retry:
                 issues.clear_issue(coord.hass, ISSUE_IGNORED)
             continue
-        if slot == "space_setpoint" and _edited(held, observed):
-            edit = observed
         del held.written[slot]
         held.misses[slot] = held.misses.get(slot, 0) + 1
         if held.misses[slot] > 1:
             entity = _slot_entity(inp.config, slot)
             _not_held(coord, held, slot, f"{entity}: {observed} (set by the optimizer: {value})", now)
-    return edit
 
 
-def _edited(held: ArbiterState, observed: float) -> bool:
-    """A differing space reading is a person's edit, not the pump's.
+def _edited(held: ArbiterState, observed: float, now: datetime) -> bool:
+    """The space reading is a person's edit, read before :func:`hold` rewrites it.
 
-    Only on the first miss (a second is a write the pump does not take), and
-    only where it is not what the entity read when the write was sent (a
-    refused write falls back to that) and that reading is known: after a
-    restart or a power cycle (the pump's own reset) nothing is adopted.
+    One that differs from the arbiter's write after the grace, on the first
+    miss (a second is a write the pump does not take), and not what the
+    entity read when the write was sent (a refused write falls back to that),
+    that reading known: after a restart or a power cycle (the pump's own
+    reset) nothing is adopted.
     """
-    before = held.space_before
-    return not held.misses.get("space_setpoint") and before is not None \
+    record, before = held.written.get("space_setpoint"), held.space_before
+    return record is not None and before is not None \
+        and utc_elapsed_seconds(now, record[1]) >= ECHO_GRACE_S \
+        and not held.misses.get("space_setpoint") \
+        and _differs("space_setpoint", observed, record[0]) \
         and _differs("space_setpoint", observed, before)
 
 
@@ -1148,7 +1147,7 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
         recorded and not _differs(slot, recorded[0], value)
     ):
         return
-    if await _held_back(coord, inp, held, slot, entity, now):
+    if await _held_back(inp, coord.entry, held, slot, entity, now):
         return
     domain = entity.split(".", 1)[0]
     service = _service(slot, state, value)
@@ -1166,8 +1165,17 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
     await _persist(coord)
 
 
+async def _adopt(inp: ArbiterInputs, entry: Any, held: ArbiterState, now: datetime) -> None:
+    """A space set-point a person set (:func:`_edited`) becomes the baseline off restores."""
+    entity = _entities(inp.config)["space_setpoint"]
+    edit = _observed(inp, "space_setpoint")
+    if edit is not None and _edited(held, edit, now) and await off_restore.async_rebaseline(inp.hass, entry, CONSUMER, entity, edit):
+        _LOGGER.info("Pump duty: %s was set to %s by hand; turning the optimizer off restores that",
+                     entity, edit)
+
+
 async def _held_back(
-    coord: Any, inp: ArbiterInputs, held: ArbiterState, slot: str, entity: str, now: datetime,
+    inp: ArbiterInputs, entry: Any, held: ArbiterState, slot: str, entity: str, now: datetime,
 ) -> bool:
     """A write that differs but is not sent this pass: its retry is not due, the
     mode slot is read-only (D12-s2-02), or the space restore is not armed."""
@@ -1175,10 +1183,10 @@ async def _held_back(
         return True
     if slot == "mode" and entity.split(".", 1)[0] not in _MODE_DOMAINS:
         return True
-    return slot == "space_setpoint" and not await _arm_space(coord, inp, held, entity)
+    return slot == "space_setpoint" and not await _arm_space(inp, entry, held, entity)
 
 
-async def _arm_space(coord: Any, inp: ArbiterInputs, held: ArbiterState, entity: str) -> bool:
+async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity: str) -> bool:
     """Arm the off restore before a space write; False holds the write.
 
     The first arm captures the entity's reading as the baseline off restores
@@ -1187,7 +1195,7 @@ async def _arm_space(coord: Any, inp: ArbiterInputs, held: ArbiterState, entity:
     optimizer's, not the person's, so the write is held, latched, until the
     controller reads anything else.
     """
-    armed = await off_restore.async_armed_entry(inp.hass, coord.entry, CONSUMER)
+    armed = await off_restore.async_armed_entry(inp.hass, entry, CONSUMER)
     reading = read_setpoint(inp.hass, entity)
     last = held.written.get("space_setpoint")
     own = (armed is None or armed["entity_id"] != entity) and last is not None \
@@ -1198,7 +1206,7 @@ async def _arm_space(coord: Any, inp: ArbiterInputs, held: ArbiterState, entity:
                 entity, reading):
         return False
     held.space_before = reading
-    return await off_restore.async_arm(inp.hass, coord.entry, inp.config, CONSUMER)
+    return await off_restore.async_arm(inp.hass, entry, inp.config, CONSUMER)
 
 
 async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: datetime) -> None:
@@ -1325,16 +1333,10 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now,
     )
     _observe(held, inp, duty, now)
-    if mode != DUTY_CONTROL:
+    if mode != DUTY_CONTROL or _pump_off(inp, held):
         return
-    if _pump_off(inp):
-        held.space_before = None  # its reset on power-up is no person's edit
-        return
-    edit = hold(coord, now)
-    entity = _entities(inp.config)["space_setpoint"]
-    if edit is not None and await off_restore.async_rebaseline(inp.hass, coord.entry, CONSUMER, entity, edit):
-        _LOGGER.info("Pump duty: %s was set to %s by hand; turning the optimizer off restores that",
-                     entity, edit)
+    await _adopt(inp, coord.entry, held, now)
+    hold(coord, now)
     await _command(
         coord, inp,
         desired(coord, inp, _without_block(coord, _share(coord, inp, duty, now), now), now),
@@ -1488,16 +1490,20 @@ def release_supply(held: ArbiterState) -> None:
         unsub()
 
 
-def _pump_off(inp: ArbiterInputs) -> bool:
+def _pump_off(inp: ArbiterInputs, held: ArbiterState) -> bool:
     """Whether the configured power switch reads off.
 
     Switched off, the pump reports set-points of its own (tvofi's reads 25
     degC), so nothing is compared or written until it is on again; then a
-    reset that is still there is rewritten like any other difference.
+    reset that is still there is rewritten like any other difference, and
+    never adopted as a person's edit: the space reading before the next
+    write is forgotten here (:func:`_edited`).
     """
     entity = EntryConfig.from_mapping(inp.config).heat_pump_switch_entity
     power = inp.hass.states.get(entity) if entity else None
-    return bool(getattr(power, "state", None) == "off")
+    off = getattr(power, "state", None) == "off"
+    held.space_before = None if off else held.space_before
+    return off
 
 
 async def release(coord: Any) -> None:
@@ -1511,8 +1517,8 @@ async def release(coord: Any) -> None:
     release_supply(held)
     inp = coord.arbiter_inputs()
     if held.written and duty_mode(inp.config) == DUTY_CONTROL and inp.mode != MODE_OFF:
-        now = dt_util.now()
-        await _command(coord, inp, replace(desired(coord, inp, None, now), space_setpoint=None), now)
+        await _command(coord, inp, replace(desired(coord, inp, None, dt_util.now()), space_setpoint=None),
+                       dt_util.now())
     if held.loaded:
         await _persist(coord)
 

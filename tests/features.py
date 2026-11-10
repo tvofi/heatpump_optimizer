@@ -62066,6 +62066,29 @@ R.check(
     and _pa_between("40", switch_off=True) == (1, [53.0]),
     f"{_pa_between('40')=} {_pa_between('25')=} {_pa_between('40', switch_off=True)=}",
 )
+_pa_echo = _PaCoord(_PA_TUYA, duties="dds-s")
+_pa_settled(_pa_echo)
+_pa_settled(_pa_echo, 30)
+_pa_echo_target = _pa.state_for(_pa_echo).written["space_setpoint"][0]
+_pa_echo.device("number.water_set", "40")
+_pa_aio.run(_pa.apply(_pa_echo, _PA_T0 + timedelta(minutes=30, seconds=10)))
+_pa_echo.device("number.water_set", str(_pa_echo_target))
+_pa_run(_pa_echo, 33)
+_pa_echo.hass.services.calls.clear()
+_pa_echo_sent = _pa_turn_off(_pa_echo)
+_pa_same = _PaCoord(_PA_TUYA, duties="dds-s")
+_pa_settled(_pa_same)
+_pa_settled(_pa_same, 30)
+_pa_run(_pa_same, 33)
+_pa_same.hass.services.calls.clear()
+_pa_same_sent = _pa_turn_off(_pa_same)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a reading inside the echo grace, and one that holds the write, are no "
+    "edit: off restores 53",
+    _pa_echo_sent == 1 and _pa_space(_pa_echo) == [53.0]
+    and _pa_same_sent == 1 and _pa_space(_pa_same) == [53.0],
+    f"{_pa_echo_target=} {_pa_space(_pa_echo)=} {_pa_space(_pa_same)=}",
+)
 R.check(
     "R10-ARBITER-OFF-RESTORE: a second differing reading is a write the pump does not take, never a "
     "second edit: off restores the first edit, 40, not 41",
