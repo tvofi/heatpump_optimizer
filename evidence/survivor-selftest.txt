@@ -1,1 +1,0 @@
-survivor_list self-test: 20 checks, 0 failed
