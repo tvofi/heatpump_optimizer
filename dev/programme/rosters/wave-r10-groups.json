@@ -19043,7 +19043,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-friction-other-family",
     "note": "s12 roster audit 2026-11-07: created to receive issue 3283; overlap admitted (R10-FRICTION-CI-RED): issue 3283 filed by the friction cron 2026-11-07 with no owning group",
     "pr": 3311,
