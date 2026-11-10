@@ -1,4 +1,0 @@
-ImportError: cannot import name 'RECORD_ISSUES' from 'budget_raise_gate' (/tmp/tmp.lWLp53z2h3/tools/policy/budget_raise_gate.py)
-pre-repair carry_audit (f583ccfc9a^) + base budget_raise_gate (ddd2f8b) rc=1
-CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
-head carry_audit + base budget_raise_gate rc=0

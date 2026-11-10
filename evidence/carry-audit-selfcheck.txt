@@ -1,5 +1,0 @@
-NOTE stale tree: 9b903a91ab9e1ed5d439729aa09b67766492ff5f lacks origin/main 699f4d9ef40f4eaf62397e81ae000680e417baf3; roster read at origin/main
-NOTE review 0 item a9153440: R10-ARCH-DOCS
-NOTE review 0 item 08d2f40a: dismissed:an orchestrator host action the body already lists, with no destination in the tree
-NOTE review 0 item 2426d8a1: dismissed:it closes by itself once this merge is on main, and no grant is affected today
-CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
