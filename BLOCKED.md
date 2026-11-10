@@ -1,0 +1,3 @@
+Question: body_push.sh refuses the review packet at head 7d3c52b79c72de161350a2c4728aa84779758a24 -- "REFUSE hot-file: #3366 holds an unboarded merge verdict and shares dev/audit/harnesses/r10_seat_selftests_mutants.py". That file is in this PR's own diff (#3384), not in the merge resolution (the only conflict, dev/governance/roles/fixer.md, is resolved by union and verified). Should #3366's verdict be boarded first, or is the hot-file refusal to be overridden for this head?
+
+State: merge resolved; prepr.sh rc=0 at 7d3c52b79c72; policy_lint, `--budgets` and rules_sync clean. Code is pushed at handoff/r10-hotfix-nonrequired-reds-2; the body is at handoff-wip/r10-hotfix-nonrequired-reds-2-body (refused, not returned).
