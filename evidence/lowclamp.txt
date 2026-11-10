@@ -1,0 +1,15 @@
+== head, option default
+min-return clamp 26.0: writes 18 issues 0 mean 0.526 kW starts 1 cut_lo None
+min-return clamp 26.4: writes 15 issues 0 mean 0.531 kW starts 1 cut_lo 26.4
+min-return clamp 26.8: writes 20 issues 19 mean 0.519 kW starts 1 cut_lo 26.8
+min-return clamp 27.2: writes 21 issues 28 mean 0.712 kW starts 1 cut_lo 27.2
+== head, option off
+min-return clamp 26.0: writes 17 issues 0 mean 2.222 kW starts 1 cut_lo None
+min-return clamp 26.4: writes 17 issues 0 mean 2.222 kW starts 1 cut_lo None
+min-return clamp 26.8: writes 18 issues 11 mean 2.222 kW starts 1 cut_lo None
+min-return clamp 27.2: writes 18 issues 19 mean 2.222 kW starts 1 cut_lo None
+== mutant G (cut_lo dropped from bounds), option default
+min-return clamp 26.0: writes 18 issues 0 mean 0.526 kW starts 1 cut_lo None
+min-return clamp 26.4: writes 20 issues 0 mean 0.531 kW starts 1 cut_lo 26.4
+min-return clamp 26.8: writes 29 issues 19 mean 0.519 kW starts 1 cut_lo 26.8
+min-return clamp 27.2: writes 33 issues 28 mean 0.712 kW starts 1 cut_lo 27.2
