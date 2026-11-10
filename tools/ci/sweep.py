@@ -49,7 +49,11 @@ changed tools/ci/*.py after the pin, the sweep instead dispatches ONE fresh ci.y
 head (`pr`, `base`: that run rev-parses origin/<base> when its job starts) and prints
 `STALE-PIN`; that run's gate is the newest at the head, and its completion sweeps. A dispatched
 run created after the stale gate concluded is that fresh judge already, so nothing is
-dispatched twice for one red and the branch cannot loop. This sweep runs main's copy
+dispatched twice for one red and the branch cannot loop. That run's green `gate` is a check of its
+own suite and replaces no other run's red (#3400 at 7326025c: the edit run's stale red stood until
+re-run by hand), so the sweep of the fresh run itself -- ci.yml's sweep-self, its actor being the
+token's -- re-runs each stale red once (`fresh` returns False); the re-run's completion settles,
+where V is no green judge, and is left. This sweep runs main's copy
 (gate-sweep.yml), so the countermeasure reaches every PR at once; gate.py's `refresh` runs
 the pinned copy itself, which is why it lives here.
 
@@ -150,6 +154,7 @@ class Sweep:
     def __init__(self, repo, get, post, out=print, sleep=time.sleep, clock=time.monotonic, caller=None):
         self.repo, self.get, self.post, self.out, self.sleep, self.clock = repo, get, post, out, sleep, clock
         self.caller = caller          # the calling run's id: V's own is sweep-self (module doc)
+        self.green = None             # V, once its gate is green and covers the newest event
         self.reruns, self.rerun_ids = 0, set()
         self.pull, self.pin, self.dispatches = None, (), 0
 
@@ -184,21 +189,28 @@ class Sweep:
         return self.pin
 
     def fresh(self, run, gate, runs, pin):
-        """Re-judge a stale-pinned red gate by one dispatched run at the head, unless one exists."""
+        """Re-judge a stale-pinned red gate by one dispatched run at the head, unless one exists: True.
+        False where V is that fresh judge and green: its check replaces no other run's red (#3400), so
+        the stale gate is re-run, once, the run judging after every run here concluded."""
         later = [r["id"] for r in runs if r.get("event") == "workflow_dispatch"
                  and r.get("created_at", "") >= (gate.get("completed_at") or "~")]
+        if self.green in later:
+            self.out(f"STALE-PIN {pin}: run {self.green}, this head's fresh judge, is green and replaces no "
+                     f"other run's red; run {run['id']}'s gate is re-run")
+            return False
         if later:
             self.out(f"STALE-PIN {pin}: run {later[0]} re-judges this head with fresh programs; run {run['id']} left")
-            return
+            return True
         if self.dispatches:
             self.out(f"STALE-PIN {pin}: run {run['id']} left to this sweep's dispatched run")
-            return
+            return True
         base, ref = self.pull["base"]["ref"], self.pull["head"]["ref"]
         st, _, _ = self.post(f"repos/{self.repo}/actions/workflows/ci.yml/dispatches",
                              {"ref": ref, "inputs": {"pr": str(self.pull_number), "base": base}})
         self.dispatches += 1
         self.out(f"STALE-PIN {pin}: run {run['id']}'s gate restores programs older than {base}'s tools/ci; "
                  f"re-judged by a fresh run dispatched on {ref} (HTTP {st})")
+        return True
 
     def runs_at(self, head):
         runs = self.j("actions/runs", {"head_sha": head, "per_page": 100})["workflow_runs"]
@@ -213,8 +225,7 @@ class Sweep:
             self.out(f"SWEEP left run {run['id']}: attempt {run['run_attempt']} at the cap, or the run still busy; push a new commit")
             return
         pin = self.stale_pin(run)
-        if pin:
-            self.fresh(run, gate, runs, pin)
+        if pin and self.fresh(run, gate, runs, pin):
             return
         self.rerun_ids.add(run["id"])
         self.post(f"repos/{self.repo}/actions/jobs/{gate['id']}/rerun")
@@ -233,6 +244,7 @@ class Sweep:
         vg = self.gate_of(run_id)
         if not covers_newest(vg, runs):
             return self.settle(run_id, pr, head)
+        self.green = v["id"]
         polled = {}
         for r in sorted((r for r in runs if r["id"] != v["id"]), key=lambda r: r["id"]):
             g = self.gate_of(r["id"])

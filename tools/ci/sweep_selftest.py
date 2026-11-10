@@ -422,6 +422,33 @@ def run_checks():
     w.sweep()
     ok("stale pin null: a dispatched run created before the stale gate concluded is no fresh judge: dispatch",
        dispatch in w.posts)
+    # #3400 at 7326025c (roster carry 1, R10-HOTFIX-SWEEP-TOKEN-ACTOR): the App-actor decider's sweep left the stale
+    # edit red "to this sweep's dispatched run"; that run (actor the bot) went green, its check replaced no other
+    # run's red, and its completion fired no workflow_run. Its own sweep-self re-runs the stale reds, once.
+    def shape3400():
+        f = run(5, "5", status="in_progress", g="success", started="6", units=["5"])
+        f["event"] = "workflow_dispatch"
+        f["units"].append({"name": sweep.SELF_JOB, "completed_at": None})
+        w = pinned(run(1, "1"), run(2, "1", started="3"), run(3, "1", g="success", started="4"), f, v=5)
+        w.caller = 5
+        return w
+    w = shape3400()
+    rc, out = w.sweep()
+    ok("stale pin, #3400: the dispatched fresh judge, green, re-runs from inside itself the stale reds it was "
+       "left, once each, dispatching nothing", w.posts == ["repos/o/r/actions/jobs/10/rerun", "repos/o/r/actions/jobs/20/rerun"]
+       and w.sleeps == [] and "dispatches=0" in out)
+    w = shape3400()
+    w.runs[5]["gate"].update(status="in_progress", conclusion=None, completed_at=None)
+    w.v_id, w.caller = 3, None
+    w.script[1] = finish(5, "success")
+    rc, out = w.sweep()
+    ok("stale pin, #3400 null: the decider's own sweep, while the fresh judge runs and after it completes, re-runs "
+       "nothing (the fresh judge's sweep owns it)", w.posts == [] and "run 5 re-judges" in out)
+    w = shape3400()
+    w.runs[5]["gate"]["conclusion"] = "failure"
+    w.sweep()
+    ok("stale pin, #3400 null: a fresh judge that ended red re-runs no stale red from inside itself",
+       w.posts == [])
     # R10-HOTFIX-SWEEP-SETTLE-LOOP: the recorded #3308 loop. Run 42471173865's gate re-run re-stamped its
     # skipped jobs past the two sibling gates' starts; on main settle read them as sources and re-ran both,
     # whose re-runs re-stamped theirs, each pair re-running the other up to the attempt cap.

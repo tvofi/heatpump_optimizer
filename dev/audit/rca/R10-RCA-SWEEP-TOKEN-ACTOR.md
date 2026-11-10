@@ -28,6 +28,20 @@ log names it with `RUN_ID: <id>`, or a `sweep-self` job of its own ran):
 |---|---|---|
 | 2026-11-09 22:21 to 2026-11-10 01:19 | 61 of 61 | 0 of 3 (#3351's 42711494947 and 42711632468; #3358's 42636336860, which tvofi re-ran: still no sweep) |
 
+**The same cause one hop removed: #3400 at 7326025c.** The edit run
+42735879081's gate deferred at 01:38:20Z to the code run 42734628856, whose
+actor is the App. That run's completion did fire a sweep (gate-sweep run
+42738574607, its log naming `RUN_ID: 42734628856`), which took the stale-pin
+arm: it dispatched a fresh ci.yml run with `github.token` and printed `run
+42735879081 left to this sweep's dispatched run`. The dispatched run,
+42738604293, has the bot as actor: its gate went green at 02:33:04Z, its
+completion fired no sweep, and its green `gate` check, in a check suite of
+its own, replaced no other run's red. The red stood until a person re-ran it
+(gate green 02:52:55Z). So the stale-pin arm's premise, that the dispatched
+run re-judges the head, held for the gate it ran and not for the red it was
+left. The countermeasure covers it: the dispatched run's own `sweep-self`
+re-runs each stale red it was left, once (`sweep.py` `fresh`).
+
 **Control.** A deferral red whose decider is an App-actor run is re-run by
 the sweep within a minute of the decider's gate going green: #3399 at
 70461316, decider gate green 01:25:24Z, edit gate re-run 01:26:10Z.
@@ -74,7 +88,10 @@ the swept run): settle never waits on the caller, which is still
 `in_progress`, nor on another gate still judging (that run's completion
 sweeps); a `sweep-self` job is never a source; and a red gate whose run is
 still busy past its gate is polled to the run's completion, because GitHub
-refuses a re-run inside a running run.
+refuses a re-run inside a running run. Where V is the stale-pin arm's fresh
+dispatched run and green, each stale red left to it is re-run once instead of
+left: the re-run's own completion settles, where no green fresh judge is V,
+so it is left there and the arm cannot loop.
 
 Rejected: dispatching ci.yml with an App token. That covers the dispatched
 runs, not the approved `pull_request` runs of token pushes, which carry the
