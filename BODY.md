@@ -14,17 +14,15 @@ R10-GENERIC-HEAT-CURVE-PERSISTENT, kind `persistent` of the heat-curve number-en
 
 ## Head
 
+The code head is `9e4ad065c7ca248008de7d65d943f0b3c02d32b3`, measured by `prepr.sh` (`## Figures`). Over `f483180ffa75b0eb464666f359ed2c9bad22532b` it holds a fourth merge of origin/main, `1cabb845d61754d333005b64d3df14d55827d0c6` (`428c6d075`, forced by a `git merge-tree --write-tree origin/main HEAD` conflict), and two `--pin-killed` commits (`232e51895`, `9e4ad065c`; `## Unpinned sites`). The merge's two conflicts were German strings both sides translated: main's #3378 hotfix and this branch's `2fbf885ef` (`translations/de.json`: `flow_min_lift_k`'s label and the descriptions of `space_setpoint_unit`, `flow_min_lift_k`, `flow_heat_c`; the card's `savings.below_meter_floor` and `savings.meter_floor_note`). Main's text is kept in each hunk: it matches the current en.json (which mentions the Return temperature option this branch's older German omitted) and the card's neighbouring "Einsparung" keys. No production line of this group moved (`git diff f483180ff 428c6d075 -- custom_components/heatpump_optimizer/heat_curve.py custom_components/heatpump_optimizer/off_restore.py` prints nothing).
+
 `f483180ffa75b0eb464666f359ed2c9bad22532b`, built on #3299's head `e066a630d3cd6a1d75e92088712b196541c5ff2a` (`fix/r10-generic-heat-curve`), then merged with #3299's new head `83b0be72a116b3c09872c37deb0ca122a9922bb2` (`ci: merge main`, a merge of main only) and later its head `7ff8d48486` (its own merge of main and its German strings), as the orchestrator's addendum requires when #3299's head moves, then with origin/main `7bdc8aa2ec92934b96b77d3fd8d331b1c23d3769`, `e9e0908e803f` and `2f6d699e504d` because `git merge-tree --write-tree origin/main HEAD` reported a conflict (`tests/config_flow_steps.py`'s `REGISTRY_SEED`: both seeds kept; `tests/golden/claimed_drift.txt`'s `config_flow` scenario, refused by the `claimnotes` driver: main's R10-WATER-SETPOINT-LIFT line and this branch's line both kept, which `parse_claim_map` reads as a list of reasons; `tests/golden.py --only config_flow` reads `ALL 1 GOLDEN SCENARIOS UNCHANGED` on the merge). Main then stamped v7.1.9 (`e9e0908e8`), which empties its claim list, and the claim file conflicted again ("both sides changed claims under different stamps"); merged at `e9e0908e8`, the file is main's with this branch's one `config_flow` line restated under `claims-for: 7.1.9` (`tests/env_drift.py --claims-only origin/main`: `claims hygiene: origin/main ok`; `tests/golden.py --only config_flow`: unchanged). The stamp moved only the manifest version and the card's version string in production. #3299's head `83b0be72` conflicts with main on that claim file by itself (`git merge-tree --write-tree origin/main 83b0be72`). #3299 has NOT merged: `git merge-base --is-ancestor e066a630 origin/main` exits 1 at origin/main `2f6d699e504d` (2026-11-09T19:26:53Z); `git merge-tree --write-tree origin/main HEAD` exits 0. This pull request therefore shows #3299's diff as well until #3299 lands; the orchestrator holds its merge until then.
 
 **A third merge of main, and the German catalogue.** After the prepr run on the second merge, origin/main moved to `2f6d699e504d6dc0bb6040d99c21c5b015a290e4` and the head no longer merged (`tests/deployment_shape.py`, three docstring hunks of package-file counts; `git merge-tree --write-tree origin/main 83b0be72` reports the same conflict at #3299's head), and `body_push.sh` refused the handoff (`AGREEMENT UNMERGED`). Merged: the count is 107 (104, then #3331's `translations/de.json`, then #3299's two modules), `tests/deployment_shape.py` passes. That main brings #3331's German catalogue, which three checks key on full parity with the English one (`tests/entities.py` "de.json has exactly strings.json's keys" and its label, description and error-table rows; `node tests/card.mjs` "every card language is key-for-key with en"; the D6 claims register's C112). The merged tree lacked German for 24 catalogue keys and 3 card keys: this group's nine, #3299's ten and one card key, and main's own five and two card keys (R10-WATER-SETPOINT-LIFT's `flow_heat_c`, `flow_min_lift_k` and the `return` option; R10-SAV-METER-FLOOR's `savings.below_meter_floor` and `savings.meter_floor_note`; the symmetric difference of the two catalogues at origin/main `2f6d699e5` is exactly those five, so main is red on these checks by itself). `d3b5d26f4` added this group's nine and `2fbf885ef` the rest (CLAUDE.md: fix it); #3299 then landed its own German for its keys and main's on its head `7ff8d48486`, and the merge of that head (`f483180ff`) keeps #3299's wording for every key but this group's eleven (its nine new keys and the two descriptions it reworded, `heat_curve_displace_entity` and `heat_curve_target_kind`), and #3299's card. The catalogues are at full parity (`tests/entities.py`, `node tests/card.mjs` and the D6 register in the gate under `## Figures`).
 
 The note's re-check list (ghcp-03, ghcp-r3), re-read at `e066a630` and again at `83b0be72` and `7ff8d48486`: `off_restore.py`, `heat_curve.py`, `__init__.py`, `entry_config.py` and `inputs.py` are byte-identical across the three (`git diff --quiet e066a630 7ff8d4848 -- <file>`), so `Restorer`, `async_arm`, `async_restore`, `async_forget`, `restored`, `state_for` and the delta conversion are as the note read them, and the cited lines hold at both (coordinator.py:6484 `async_set_mode`, :6491 `async_mode_change`, :6555 `async_shutdown`, :7670 `heat_curve.publish`; inputs.py:597 `write_setpoint`; `__init__.py`:426 `async_restore`, :438 `async_forget`; entry_config.py:289 `_WIRING`).
 
-Where each figure was taken: `heat_curve.py`, `off_restore.py` and `entry_config.py` are byte-identical at `e120d602b` and at `f483180ffa75b0eb464666f359ed2c9bad22532b`, and `config_flow.py` and `const.py` differ only by main's own lines (R10-WATER-SETPOINT-LIFT: the changed-line sets of `git diff -U0 e120d602b HEAD` and `git diff -U0 72a2acee5 origin/main` on each file are equal), so the mutation figures taken at `e120d602b` describe this head's code, the six options-flow sites the merge moved re-driven at their new lines (`- base-churn: cost: during this seat origin/main moved five times and #3299's head twice; five merges into this branch followed (two of #3299's heads, three of main's, each main merge forced by a `git merge-tree` conflict, the last also by `body_push.sh`'s `AGREEMENT UNMERGED` refusal), each costing a scoped gate (~32 min) and a prepr run (~17 min); a stacked start inherits every conflict and every crossing of the unmerged predecessor. Carry: dismissed: the orchestrator's stacked-start ruling prices this; recorded for it
-
-- i18n-crossing: unenforced: origin/main `2f6d699e5` lacks German for five catalogue keys and two card keys that landed beside #3331 (R10-WATER-SETPOINT-LIFT, R10-SAV-METER-FLOOR), so `tests/entities.py`, `node tests/card.mjs` and the D6 claims register are red on main by themselves; nothing made the later of the crossing merges re-run those checks against the other. Carry: dismissed: main's own red, named for the orchestrator; #3299's head `7ff8d48486` repairs it, and this head carries that repair
-
-## Unpinned sites`); the block, the null control, the scoped gate, the ratchet, the score, the CI prediction and prepr were re-taken at `f483180ffa75b0eb464666f359ed2c9bad22532b`.
+Where each figure was taken: `heat_curve.py`, `off_restore.py` and `entry_config.py` are byte-identical at `e120d602b` and at `f483180ffa75b0eb464666f359ed2c9bad22532b`, and `config_flow.py` and `const.py` differ only by main's own lines (R10-WATER-SETPOINT-LIFT: the changed-line sets of `git diff -U0 e120d602b HEAD` and `git diff -U0 72a2acee5 origin/main` on each file are equal), so the mutation figures taken at `e120d602b` describe this head's code, the six options-flow sites the merge moved re-driven at their new lines (`## Unpinned sites`); the block, the null control, the scoped gate, the ratchet, the score, the CI prediction and prepr were re-taken at `f483180ffa75b0eb464666f359ed2c9bad22532b`.
 
 ## Mutation proof
 
@@ -72,11 +70,11 @@ At `f483180ff` unless named; the mutation figures at `e120d602b` (`## Head` says
 - `PYTHONPATH=tests/hastub python3 tests/golden.py --only config_flow` at `47ea232ac`: `DIFF config_flow`, two leaves, `heat_curve.heat_curve_target_kind.config.options: "['offset']" -> "['offset', 'persistent']"` and its `_seeded` twin; recorded by `--record --only config_flow` and claimed beside #3299's line (`55db6d1cf`). `tests/env_drift.py --all origin/main` ok in the gate.
 - Kind offset's record: `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/ghcp_offset_record.py` (sha1 `cbbd5d172c0c`), output byte-identical at `e066a630` and here (`## Null control`).
 - Diff mutants, the tracked driver: `python3 tools/audit/seat/mutant_run.py --diff e066a630...HEAD --path custom_components/heatpump_optimizer/heat_curve.py --path custom_components/heatpump_optimizer/off_restore.py --cmd "$MUTANT_CMD" --max-mutants 400 --report-only`: 1 SURVIVED, `heat_curve.py:424 CONST_SWAP` (`1e-9` -> `1e-10`, the floor's tolerance; equivalent over the option ranges: the two tolerances floor alike for every step in 0.1, 0.2, 0.5, 1, band 0.5 to 5 K in 0.1, displace -30 to 30 and both K and °F, 0 differing cases of 22 448, by `python3 -c` over `math.floor(q + 1e-9) != math.floor(q + 1e-10)` with `q = abs(max(-band, min(band, d)) * per_k) / step`; and `CONST` in the ratcheted inventory takes module-level assignments only, so CI does not generate it). The same with `--path` config_flow.py, const.py, entry_config.py and `--cmd "env PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py"`: 2 SURVIVED, `config_flow.py:1793 CONST_SWAP` (1823 at `f483180ff`; the band row's step 0.5 -> 1.0: equivalent, a box field's step renders as `"any"`, #1679, pinned by the widget check) and `const.py:1529 CONST_SWAP` (1543 at `f483180ff`; the 12 writes default -> 13: that driver does not read it; `MUTANT_CMD` kills it, "kind persistent's defaults are the research's" `[(3.0, 13.0, 60.0)]`). Rule: the `SURVIVED` lines each run prints, over every mutant its operators generate on the lines the three-dot diff adds.
-- Inventory-keyed drive (`## Unpinned sites`): every one of the 77 sites `ci_predict.py` lists was killed: 71 by `MUTANT_CMD`, 6 by `tests/config_flow_steps.py`. Null control: both drivers pass unmutated (above).
+- Inventory-keyed drive at `f483180ff`: every one of the 77 sites `ci_predict.py` listed was killed: 71 by `MUTANT_CMD`, 6 by `tests/config_flow_steps.py`. Re-driven on this head by `tests/mutation_table.py --pin-killed` against `1cabb845d` and pinned, 79 of 79, 0 survived (`## Unpinned sites`).
 - Coverage, a local probe with `coverage` 7 in a scratch path (not this host's toolchain): `coverage run` over `MUTANT_CMD`'s block and `tests/config_flow_steps.py`: off_restore.py 100 %, heat_curve.py 98 % (the four uncovered lines are #3299's MQTT except-arms, which the #193 S3 block of `tests/features.py` drives).
 - #3299's state: `git merge-base --is-ancestor e066a630 origin/main` exits 1 at origin/main `2f6d699e5`; `git merge-tree --write-tree origin/main HEAD` exits 0.
 - prepr step 6d's diff mutants (`mutant_run.py --diff` over the three-dot diff from origin/main, so #3299's lines too, with `MUTANT_CMD`, cap 40) printed 26 SURVIVED, each answered (keys at `f483180ff`; the main merges moved config_flow.py's and const.py's lines): config_flow.py 1593, 1824, 1825, 2246, 2247, 2248, 2249, 2250, 2251, 2252, 2253, 2254 and const.py 1542, 1544, 1546 are this group's options-flow sites, which the block does not run: the `--cmd "env PYTHONPATH=tests/hastub python3 tests/config_flow_steps.py"` diff-mutant run above kills every one (at `e120d602b`, the same code at other line numbers); config_flow.py 1823 is the equivalent box step (above, there 1793); config_flow.py 1822, 2275, 2276, 2277, 2314, 3760 RETURN_DEL, 3760 CONST_SWAP, const.py 1531 and heat_curve.py 93 and 95 are #3299's lines at #3299's text, answered in its body (killed by `tests/config_flow_steps.py`, `tests/typing_ruler.py` and `tests/golden.py --only config_flow`; the dataclass-default CONST_SWAPs equivalent). Rule: the run's `SURVIVED` lines, `path:line OPERATOR`.
-- `MUTANT_CMD="$MUTANT_CMD" PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>` at `f483180ffa75b0eb464666f359ed2c9bad22532b`: `PRE-PR: f483180ffa75b0eb464666f359ed2c9bad22532b ... rc=0`, wall 18 min. Its two warnings are answered here: the 77 unpinned sites (`## Unpinned sites`, "disposes of all 77") and the 26 diff-mutant survivors (the bullet above). `PREPR_SKIP_CLOSURES` because the scoped gate above ran every script the scope names.
+- `MUTANT_CMD="$MUTANT_CMD" PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <this body>` at `9e4ad065c7ca248008de7d65d943f0b3c02d32b3` (merge base `1cabb845d`): `PRE-PR: 9e4ad065c7ca248008de7d65d943f0b3c02d32b3 ... rc=0`. Its one warning, 26 diff-mutant survivors, is the same 26 `path:line OPERATOR` keys the bullet above answers (the main merge moved no line of config_flow.py, const.py or heat_curve.py); `unpinned sites` skips (`the diff adds no unpinned mutation site`); `ci predict`: no closures, fast, governance or instrument red against `1cabb845d617`. At `f483180ff` the same command had read rc=0 with 77 unpinned sites. `PREPR_SKIP_CLOSURES` per the dispatch brief.
 
 ## Architecture score
 
@@ -84,8 +82,8 @@ At `f483180ff` unless named; the mutation figures at `e120d602b` (`## Head` says
 
 ## Red checks
 
-No CI check has run on this branch: its commits were pushed only to `handoff-wip/r10-generic-heat-curve-persistent`, which runs no job. Predicted by `python3 tools/pr/ci_predict.py` at `f483180ff` against main's merge base `2f6d699e5`:
-- `tests / mutation`: ADDED UNPINNED, the 77 sites under `## Unpinned sites`. Red by construction until `mutation-autofix` pins the killed sites after the PR opens; every site was driven and killed here, so no survivor is expected. Its cheaper detector is this seat's own drive (prepr step 6d and the inventory probe), which ran.
+No CI check has run on this branch: its commits were pushed only to `handoff-wip/r10-generic-heat-curve-persistent`, which runs no job. `python3 tools/pr/ci_predict.py` at this head against origin/main `1cabb845d617`: `no closures, fast, governance or instrument red predicted`, and no `ADDED UNPINNED` line. At `f483180ff` against `2f6d699e5` it had predicted one `governance / wave-script` red (the AGREEMENT-lane refusal of `dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md` cause 3, a red of the BASE's copy of the lane) and 77 unpinned sites; against `1cabb845d` the base's lane refuses nothing, so no head-only registration is owed here. Earlier predictions, kept for the record:
+- `tests / mutation`: ADDED UNPINNED, no longer predicted: every added site is pinned in this branch by `tests/mutation_table.py --pin-killed` (`## Unpinned sites`), so `mutation-autofix` has nothing to do. Cheaper detector: that same command, run here before the handoff.
 - `ledger`: STALE PIN `config_flow.py:_prefill_errors RETURN_DEL 7451af7c`, predicted at `e120d602b` and at #3299's head `e066a630` alike: #3299 rewrote the pinned `return errors`. Repaired here by deleting the pin file (`1fda2495b`), as `ci_predict.py` prescribes; `ci_predict.py` now predicts no closures, fast, governance or instrument red. #3299 owes the same deletion; both deleting it merges clean.
 - Local gate reds at `d3b5d26f4` (`3 TEST SCRIPT(S) FAILED`: `node tests/card.mjs`, `tests/entities.py`, `tests/harness_headers.py`, and prepr's claims-register refusal), all on German keys main or #3299 lacked after #3331's catalogue arrived (`## Head`), none on a key of this group; repaired in `2fbf885ef`, then by #3299's own German, merged in `f483180ff`. Cheaper detector: none cheaper than those checks, which ran here before the handoff; the crossing of #3331 with R10-WATER-SETPOINT-LIFT and R10-SAV-METER-FLOOR on main is main's, named for the orchestrator.
 - Reds in this branch's ancestry, all on #3299's commits (`policy_lint.mjs --pr-body`'s red-history over the 65 commits from origin/main: `governance / delivery-status`, `tests / coverage-ratchet`, `tests / fast (3.14)`, `tests / mutation`, `tests / mutation-autofix`), each answered in #3299's own body: `tests / coverage-ratchet` (off_restore.py under 95 % at a #3299 commit; covered there, and 100 % here by the coverage probe under `## Figures`; cheaper detector: `coverage run` over the module's driver, one block run, not in prepr), `tests / fast (3.14)` (`env_drift.py --all` STALE and UNCLAIMED `config_flow` at a #3299 commit; re-recorded and claimed there; the same script is in the scoped gate, which ran `ok` here), `tests / mutation` and `tests / mutation-autofix` (ADDED UNPINNED until the autofix pinned, and the pin shards' measure on that red `fast`), `governance / delivery-status` (outside the required set, the owner's 2026-11-07 ruling). None is on a commit of this group.
@@ -114,87 +112,91 @@ ghcp-01 (trailer: Carry 1), ghcp-02 (Carry 2), ghcp-03 and ghcp-r3 (re-checked a
 
 ## Friction
 
+- base-churn: cost: during this seat origin/main moved five times and #3299's head twice; five merges into this branch followed (two of #3299's heads, three of main's, each main merge forced by a `git merge-tree` conflict, the last also by `body_push.sh`'s `AGREEMENT UNMERGED` refusal), each costing a scoped gate (~32 min) and a prepr run (~17 min); a stacked start inherits every conflict and every crossing of the unmerged predecessor. Carry: dismissed: the orchestrator's stacked-start ruling prices this; recorded for it
+
+- i18n-crossing: unenforced: origin/main `2f6d699e5` lacks German for five catalogue keys and two card keys that landed beside #3331 (R10-WATER-SETPOINT-LIFT, R10-SAV-METER-FLOOR), so `tests/entities.py`, `node tests/card.mjs` and the D6 claims register are red on main by themselves; nothing made the later of the crossing merges re-run those checks against the other. Carry: dismissed: main's own red, named for the orchestrator; main's #3378 (`1cabb845d`) has since repaired it, with wording this head keeps
+
 - design-note: contradiction: the note's reserve rule `count + 1 + (target ≠ b)` admits a return-to-baseline write that its own restore repeats, breaking its own I2 (departure 1, check and M02 named there). Built to I2. Carry: R10-ARBITER-OFF-RESTORE
 
 ## Unpinned sites
 
-Each site `python3 tools/pr/ci_predict.py` lists as added and unpinned at `f483180ff`, all under `custom_components/`, which `mutation-autofix` mutates. Each was driven as the inventory generates it (`tests/mutation_table.py`'s `candidates`, on the lines `changed_lines(e066a630)` names) by the block, plus `tests/config_flow_steps.py` for `config_flow.py`, `const.py` and `entry_config.py`; the two `_send` returns, moved from `write_displace`, were driven the same way by hand, at `e120d602b`; the six `config_flow.py` sites the main merges moved were driven again at their new lines at `d3b5d26f4`, each killed by `tests/config_flow_steps.py`. The driver is a one-off scratch probe (fixer.md step 18), not in the tree.
-- custom_components/heatpump_optimizer/config_flow.py:1593 RETURN_DEL: pinned by mutation-autofix; killed here by tests/config_flow_steps.py
-- custom_components/heatpump_optimizer/config_flow.py:2246 BOOLOP: pinned by mutation-autofix; killed here by tests/config_flow_steps.py
-- custom_components/heatpump_optimizer/config_flow.py:2246 GUARD_OFF: pinned by mutation-autofix; killed here by tests/config_flow_steps.py
-- custom_components/heatpump_optimizer/config_flow.py:2247 GUARD_OFF: pinned by mutation-autofix; killed here by tests/config_flow_steps.py
-- custom_components/heatpump_optimizer/config_flow.py:2249 GUARD_OFF: pinned by mutation-autofix; killed here by tests/config_flow_steps.py
-- custom_components/heatpump_optimizer/config_flow.py:2251 RETURN_DEL: pinned by mutation-autofix; killed here by tests/config_flow_steps.py
-- custom_components/heatpump_optimizer/heat_curve.py:112 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:114 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:136 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:146 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:366 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:368 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:378 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:397 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:407 CMP_BOUND: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:407 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:409 CMP_BOUND: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:409 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:412 BOOLOP: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:412 CMP_BOUND: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:412 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:423 CLAMP_DROP*2: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:426 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:427 CLAMP_DROP: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:428 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:429 CLAMP_DROP: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:430 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:439 CMP_BOUND*2: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:439 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:445 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:447 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:450 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:452 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:454 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:469 BOOLOP: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:469 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:472 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:482 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:493 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:503 CMP_BOUND: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:503 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:505 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:506 CMP_BOUND: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:506 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:509 BOOLOP: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:510 BOOLOP: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:516 CMP_BOUND: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:516 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:518 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:522 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:523 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:528 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/heat_curve.py:537 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:95 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:132 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:139 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:141 BOOLOP: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:141 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:143 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:148 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:174 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:175 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:178 BOOLOP: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:178 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:180 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:205 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:209 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:218 BOOLOP: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:218 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:222 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:237 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:279 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:292 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:296 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:306 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:312 RETURN_DEL: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
-- custom_components/heatpump_optimizer/off_restore.py:333 GUARD_OFF: pinned by mutation-autofix; killed here by tests/features.py (its R10-GENERIC-HEAT-CURVE block, `MUTANT_CMD`)
+None remain: `python3 tools/pr/ci_predict.py` at this head prints no `ADDED UNPINNED` line. Every site the diff adds against `1cabb845d` (79, the inventory's count after the main merge; 77 at `f483180ff` against `2f6d699e5`) is pinned in-tree under `tests/mutation_ledger/killed_by/` by `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base 1cabb845d61754d333005b64d3df14d55827d0c6 --jobs 3 --scripts tests/config_flow_steps.py,tests/typing_ruler.py,tests/features.py --budget-minutes <M>`, run twice (pass 1, M 108: `34 pinned, 45 left unpinned (0 survived, 45 not started for the budget ...)`; pass 2, M 112: `45 pinned, 0 left unpinned`). Null control: each pass's `NULL_COMMENT` mutant at `config_flow.py:259` survived every driver, and each driver's unmutated baseline was `rc=0 failed=0`. A first unbudgeted run with every recorded driver in play was stopped by this host's 2 h background limit before it pinned anything (`tests/features.py` costs ~415 s per mutant). The listing below is the 77 sites as `ci_predict.py` printed them at `f483180ff`, each now pinned by this branch. Killers, read from the `killed_by` field of the 77 ledger files the two pin commits add (79 sites; a `*2` site shares one file): heat_curve.py 45 by `tests/features.py` and 2 by `tests/config_flow_steps.py`, off_restore.py 24 by `tests/features.py`, config_flow.py 6 by `tests/config_flow_steps.py`.
+- custom_components/heatpump_optimizer/config_flow.py:1593 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/config_flow.py:2246 BOOLOP: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/config_flow.py:2246 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/config_flow.py:2247 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/config_flow.py:2249 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/config_flow.py:2251 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:112 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:114 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:136 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:146 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:366 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:368 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:378 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:397 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:407 CMP_BOUND: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:407 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:409 CMP_BOUND: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:409 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:412 BOOLOP: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:412 CMP_BOUND: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:412 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:423 CLAMP_DROP*2: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:426 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:427 CLAMP_DROP: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:428 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:429 CLAMP_DROP: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:430 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:439 CMP_BOUND*2: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:439 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:445 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:447 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:450 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:452 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:454 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:469 BOOLOP: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:469 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:472 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:482 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:493 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:503 CMP_BOUND: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:503 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:505 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:506 CMP_BOUND: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:506 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:509 BOOLOP: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:510 BOOLOP: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:516 CMP_BOUND: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:516 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:518 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:522 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:523 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:528 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/heat_curve.py:537 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:95 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:132 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:139 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:141 BOOLOP: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:141 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:143 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:148 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:174 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:175 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:178 BOOLOP: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:178 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:180 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:205 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:209 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:218 BOOLOP: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:218 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:222 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:237 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:279 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:292 GUARD_OFF: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:296 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:306 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:312 RETURN_DEL: pinned in this branch (`--pin-killed`)
+- custom_components/heatpump_optimizer/off_restore.py:333 GUARD_OFF: pinned in this branch (`--pin-killed`)
 
 Co-authored-by: Bankaifan <476059+Bankaifan@users.noreply.github.com>
