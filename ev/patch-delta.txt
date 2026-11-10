@@ -1,0 +1,1 @@
+diff rc=0 (0 = PR's own patch identical at 01782a1e..46f0637 vs cd36e797..dee7a1fa45bb9a4b2843ef0ce6c26fac6094bae8)
