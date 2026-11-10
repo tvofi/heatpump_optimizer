@@ -1,0 +1,16 @@
+3612,3613c3612,3613
+< - "class_excess_loc": 17554,
+< + "class_excess_loc": 17542,
+---
+> - "class_excess_loc": 17549,
+> + "class_excess_loc": 17537,
+3615c3615
+<   "coordinator_attrs": 141,
+---
+>   "coordinator_attrs": 139,
+3620,3621c3620,3621
+< - "max_class_loc": 7931,
+< + "max_class_loc": 7929,
+---
+> - "max_class_loc": 7925,
+> + "max_class_loc": 7923,
