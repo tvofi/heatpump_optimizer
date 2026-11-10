@@ -1,0 +1,3 @@
+Link: <https://api.github.com/repositories/1341087606/commits/55dfa880d1cd779356cef493eb59cf73ca7818bc/check-runs?per_page=100&page=1>; rel="prev", <https://api.github.com/repositories/1341087606/commits/55dfa880d1cd779356cef493eb59cf73ca7818bc/check-runs?per_page=100&page=1>; rel="first"
+111
+{"message":"Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead.","documentation_url":"https://docs.anthropic.com/en/docs/claude-code/github-actions"}gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)
