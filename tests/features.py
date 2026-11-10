@@ -81111,5 +81111,21 @@ R.check(
     and _fb_outside[0] is None and _fb_outside[3] is None and _fb_outside[4],
     f"within {_fb_within_tol[:3]}, beyond {_fb_beyond[:3]}, outside {_fb_outside[0]}",
 )
+# The bracket reads the space slot alone: another slot's miss (a hot-water
+# set-point a person changed) is hold's as before and leaves the run alone.
+_fb_other = _FbCoord()
+_fb_other._config = EntryConfig.from_mapping(
+    {**_fb_other._config.raw, "dhw_setpoint_entity": "number.fb_dhw"})
+_fb_other.hass.states.set("number.fb_dhw", FakeState("40", attributes={"min": 30, "max": 60}))
+_fb_other_held = _fb_pa.state_for(_fb_other)
+_fb_other_run = _fb_other_held.feedback = _fb_pa.FeedbackRun(_FB_T0, 27.0, _FB_T0)
+_fb_other_held.written["dhw_setpoint"] = (48.0, _FB_T0)
+_fb_pa.hold(_fb_other, _FB_T0 + timedelta(minutes=1))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a hot-water set-point read differing from its record "
+    "is dropped for a rewrite and leaves the space run as it was",
+    "dhw_setpoint" not in _fb_other_held.written and _fb_other_held.feedback is _fb_other_run,
+    f"written {_fb_other_held.written}, run kept {_fb_other_held.feedback is _fb_other_run}",
+)
 
 sys.exit(R.close("FEATURE CHECKS"))

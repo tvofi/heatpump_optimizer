@@ -996,16 +996,18 @@ def _note_stop(held: ArbiterState, rec: FeedbackRun, inlet: float, base: float |
     held.stop_gap_k = gap if held.stop_gap_k is None else min(held.stop_gap_k, gap)
 
 
-def _clamp_cut(held: ArbiterState, value: Any, observed: Any, at: datetime) -> bool:
-    """Whether a differing space reading is the controller clamping a loop write.
+def _clamp_cut(held: ArbiterState, slot: str, value: Any, observed: Any, at: datetime) -> bool:
+    """Whether a differing reading is the controller clamping a loop write.
 
     A reading between the record the loop write replaced and the write
     (each within :data:`SETPOINT_TOLERANCE`) is the controller's own limit,
     not a person: the record adopts it, the run's target stops there for
-    the rest of the run, and no rewrite, miss or repair follows. A cut of
+    the rest of the run, and ``hold`` reads it as held. A cut of
     today's target, or any other reading (a person, a revert to the
     controller's default), is ``hold``'s as before and starts the run over.
     """
+    if slot != "space_setpoint":
+        return False
     rec, held.feedback = held.feedback, None
     if rec is None or rec.sent_c is None or rec.prev_c is None or value != rec.sent_c:
         return False
@@ -1277,12 +1279,10 @@ def hold(coord: Any, now: datetime) -> None:
         observed = _observed(inp, slot)
         if observed is None or utc_elapsed_seconds(now, at) < ECHO_GRACE_S:
             continue
-        if not _differs(slot, observed, value):
+        if not _differs(slot, observed, value) or _clamp_cut(held, slot, value, observed, at):
             held.misses.pop(slot, None)
             if held.retry.pop(slot, None) is not None and not held.retry:
                 issues.clear_issue(coord.hass, ISSUE_IGNORED)
-            continue
-        if slot == "space_setpoint" and _clamp_cut(held, value, observed, at):
             continue
         del held.written[slot]
         held.misses[slot] = held.misses.get(slot, 0) + 1
