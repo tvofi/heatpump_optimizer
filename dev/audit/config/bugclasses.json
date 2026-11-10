@@ -4916,7 +4916,7 @@
       "status": "proposed",
       "parts_missing": [],
       "process_state": "(d) drop-carry by index (9969e3ca8, 2026-10-18) was sound for a run-once hand caller; the beat's automatic drain made delivery at-least-once and nothing records which ops are replay-safe; the replay half is (c), roster_queue --mark's per-op barrier written to the beat's scratch queue, the hotfix's",
-      "countermeasure": "roster_queue.replay_unsafe refuses an index-keyed drop-carry/mark-carry on the single-op and batch paths (0.094 us a line, at most one 120 s requeue per index line written, against >=600 s per occurrence at 8 of 14 index drops replayed); hand runs keep the index",
+      "countermeasure": "roster_queue.replay_unsafe refuses an index-keyed drop-carry/mark-carry on the single-op and batch paths (sub-microsecond a line by the harness's cost arm, at most one 120 s requeue per index line written, against >=600 s per occurrence at 8 of 14 index drops replayed); hand runs keep the index",
       "landed": null,
       "in_tree_home": "dev/audit/rca/r10-rca-roster-drain-replay.md",
       "doc": [

@@ -4,6 +4,8 @@
     python3 -I dev/audit/harnesses/r10_rca_roster_drain_replay.py replay
     python3 -I dev/audit/harnesses/r10_rca_roster_drain_replay.py census BASE TIP
     python3 -I dev/audit/harnesses/r10_rca_roster_drain_replay.py mutants
+    python3 -I dev/audit/harnesses/r10_rca_roster_drain_replay.py contained REF
+    python3 -I dev/audit/harnesses/r10_rca_roster_drain_replay.py cost
 
 `replay` applies one op twice to a five-entry fixture through roster_edit's
 own `apply_op`, which is what a drain replay does: `drop-carry G 1` removes
@@ -24,6 +26,12 @@ count of first drops that were restored is printed too.
 `mutants` plants four mutants in a copy of `roster_queue.py` and runs that
 copy's `--self-test`. Each mutant must turn the self-test red, and the
 unmutated copy must pass.
+
+`contained REF` counts the carry entries at REF that `--match` cannot name:
+an entry whose full text is also inside a sibling entry of the same group
+matches both, which `_carry_index` refuses as ambiguous. Only the index
+names those. `cost` times `roster_queue.replay_unsafe` per queue line over
+100000 calls.
 
 Read-only: it reads git objects and writes only under a temp directory.
 """
@@ -119,6 +127,21 @@ def census(base, tip):
           f"firsts={len(firsts)} firsts_restored={sum(map(restored, firsts))}")
 
 
+def contained(ref):
+    n = total = 0
+    for g, carry in _carries(ref).items():
+        total += len(carry)
+        n += sum(any(j != i and a in b for j, b in enumerate(carry)) for i, a in enumerate(carry))
+    print(f"RESULT ref={ref} entries={total} contained_in_a_sibling={n}")
+
+
+def cost():
+    import timeit
+    rq = _seat("roster_queue")
+    us = timeit.timeit(lambda: rq.replay_unsafe("drop-carry", ["--match", "x"]), number=100000) / 100000 * 1e6
+    print(f"RESULT replay_unsafe_us_per_line={us:.3f}")
+
+
 MUTANTS = {
     "M1 predicate never refuses": ('if op in ("drop-carry", "mark-carry") and "--match" not in extra:',
                                    "if False:"),
@@ -161,6 +184,10 @@ if __name__ == "__main__":
         replay()
     elif cmd == ["census"] and len(sys.argv) == 4:
         census(sys.argv[2], sys.argv[3])
+    elif cmd == ["contained"] and len(sys.argv) == 3:
+        contained(sys.argv[2])
+    elif cmd == ["cost"]:
+        cost()
     elif cmd == ["mutants"]:
         sys.exit(mutants())
     else:

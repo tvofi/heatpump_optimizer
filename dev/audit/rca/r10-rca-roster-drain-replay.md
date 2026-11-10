@@ -132,8 +132,8 @@ That cause needs both halves.
   older `roster_drain.py` into it on 2026-11-07.
 - The index form is still the only way to name some entries. At the roster
   tip, 23 of 1690 carry entries are substrings of a sibling entry in their own
-  group, so `--match` with their full text is ambiguous. The command that
-  measured this is in `## Figures` of the PR body.
+  group, so `--match` with their full text is ambiguous. The command is
+  `python3 -I dev/audit/harnesses/r10_rca_roster_drain_replay.py contained c444a6995`.
 
 ## 3. The process state: (d)
 
@@ -224,7 +224,7 @@ fallback and the push race remain at-least-once.
 
 ### Cost of the countermeasure
 
-- **Compute:** 0.094 µs per queue line (timeit).
+- **Compute:** under a microsecond per queue line, as `python3 -I dev/audit/harnesses/r10_rca_roster_drain_replay.py cost` prints.
 - **A refused index line:** at most one drain interval (120 s) before the
   writer queues it again with `--match`. That is paid once per line written
   the old way, not on every run.
@@ -294,5 +294,5 @@ editor.
 >
 > - **Cause:** the beat's `roster-drain` (#3197) runs each queue line at least once. A pass killed at its 900 s `timeout_s` pushed ops but never wrote `roster-done.json`, so the next pass replayed them. `drop-carry <group> <index>` is not idempotent: a replay deletes whatever entry now sits at that index. Census `43495fb61..c444a6995`: 32 drops, of which 18 are replays. 14 of those 18 were restored by hand. 4 in R10-HOTFIX-GATE-BUSY-DEFER were not.
 > - **State (d):** the index form (`9969e3ca8`, 2026-10-18) was sound for a run-once caller, a human reading `jq '.carry[N]'`. The automatic drain made delivery at-least-once, and nothing records which ops are safe to replay. The replay half is state (c): `roster_queue --mark`'s per-op barrier writes into the beat's scratch queue. That half belongs to R10-HOTFIX-ROSTER-DRAIN-REPLAY, and even a full fix of it leaves a one-op window.
-> - **Cost test:** the defect costs at least 600 s per occurrence, the 10 minutes of hand restoration, plus unnoticed loss. There were 3 replay episodes in 10 days, and 8 of 14 index drops replayed in the incident. The countermeasure costs 0.094 µs per line, plus at most 120 s per index line written. **Passes.**
+> - **Cost test:** the defect costs at least 600 s per occurrence, the 10 minutes of hand restoration, plus unnoticed loss. There were 3 replay episodes in 10 days, and 8 of 14 index drops replayed in the incident. The countermeasure costs under a microsecond per line (the harness's `cost`), plus at most 120 s per index line written. **Passes.**
 > - **Countermeasure (built):** `roster_queue.replay_unsafe` refuses an index-keyed `drop-carry`/`mark-carry` on both run paths: `refused rc=2 ... key it --match TEXT`. It has been shown refusing the index form and passing `--match`, and 4 of 4 mutants are killed. A hand run keeps the index form.
