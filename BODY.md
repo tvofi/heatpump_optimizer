@@ -1,35 +1,32 @@
-Triage batch 130 rules on one queue line, P401, `s12-update-pr-tools-root`.
+Repairs the batch 130 ruling after verdict/3383 (blocked, stale-base). P401 is re-ruled **REJECT, a duplicate of P362**: `1e994e484` (in this PR's merge base and on main) already fixes the directory at source time, so the defect no longer reproduces and the first ACCEPT would have re-dispatched landed work.
 
-**P401: ACCEPT narrowed**, to R10-HANDOFF-PATH.
+- **Measured at origin/main `b07627250`:** a fresh worktree sources `pr_args.sh` by a relative path, then `cd`s into a stale sibling and calls `pr_tools_fresh`. The tree passes; the same probe with the `# mut:argsdir` line deleted refuses `STALE CHECKOUT`. `PR_ARGS_DIR` is in `pr_args.sh` at origin/main and absent at `294a880da`, the base the first ruling read.
+- **Dropped:** the 175-commit lag and the 77-notice count, taken before `1e994e484`.
+- **Not a repo change:** the dispatch seat's `HPO_ALLOW_STALE_TOOLS=1` exports are host-local script state.
 
-- **The defect is real:** `pr_tools_fresh` in `pr_args.sh` resolves its directory from `BASH_SOURCE` when it is called. `update_pr.sh` (line 53) and `open_pr.sh` (line 42) have already run `cd "$M"` into the main checkout by then. A relative invocation from a fresh tools worktree therefore measures the main checkout, which is 175 commits behind under the tools directories, and refuses.
-- **Reproduced at origin/main `294a880da`:** with a relative `$0` followed by the `cd`, the check refuses. With no `cd`, or with an absolute `$0`, it passes. The dispatch seat's tools worktree is 0 behind, yet its update runs print `NOTICE: STALE CHECKOUT 5a04096d1711`. All 47 of its run scripts set `HPO_ALLOW_STALE_TOOLS=1`, and 77 notices since 11-04 name the main checkout. The guard is effectively off.
-- **Narrowed:** the queue line says the check measures the common-dir parent. It already measures the sourced file's own checkout, but it resolves that path too late. The fix resolves the directory once, at source time, which is about 3 lines plus one self-test arm. A probe patch passed the instance and still refused a really stale checkout (the null control).
-- **Not the defect:** the 118 refusals that name `orch-wt` or `orch-wt2` were correct firings, and so is the relay, which runs from its levelled tools tree.
-
-The diff is one file against the merge base: `dev/programme/triage/s6-batch130.md`, the ruling. No product behaviour changes.
+The diff is the ruling and the delivery row. No product behaviour changes.
 
 ## Head
 
-`65c333b2f25e03cb0953ec77784cf55933beb9ba`
+`9fe80a402e9122b3a3e2ade8816c4070f7946886`
 
 ## Mutation proof
 
-This file's only consumer is the triage gate in `tools/audit/seat/roster_edit.py`. `ruling_verdict` reads P401 `ACCEPT`, and a carry citing it passes `triage_refusal`. With the verdict flipped to REJECT, the same carry is refused as "not an ACCEPT ruling (REJECT)".
+The ruling's consumer is the triage gate in `tools/audit/seat/roster_edit.py`. `triage_refusal` on a carry citing `s6-batch130.md#P401` is refused as "not an ACCEPT ruling (REJECT)". With the verdict line flipped to ACCEPT, the same carry passes (returns None), so the gate reads the verdict.
 
 ## Null control
 
-P402 reads `None`, and a carry citing it is refused as "no such entry". With the file absent, the carry is refused as "not on the roster branch or origin/main".
+P402 reads `None` from `ruling_verdict`. For the reproduction, the mutant with `# mut:argsdir` deleted refuses where the tree passes, so a clean run can fail.
 
 ## Figures
 
-- `git diff --stat 294a880da...65c333b2f25e03cb0953ec77784cf55933beb9ba`: 1 file.
-- Every ruling figure is printed by the command the ruling names beside it.
+- `git diff --stat origin/main...9fe80a402e9122b3a3e2ade8816c4070f7946886`: the ruling and the delivery row.
+- Reproduction: the probe described above, run at origin/main `b07627250` on 2026-11-10; its mutant names the line it deletes.
 - No capped file is touched.
 
 ## Red checks
 
-`none`. The merge base is main `294a880da`. This head's checks run after its push.
+`none`. Verdict/3383 (stale-base) is a review verdict, not a check.
 
 ## Forward-carry
 
