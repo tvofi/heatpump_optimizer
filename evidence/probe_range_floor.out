@@ -1,5 +1,0 @@
-REVIEW-PROBE range 20..35 b=22 d=+3: writes before off [25] armed after edit {'entity_id': 'number.x', 'value': 18.0} all writes [25, 18]
-REVIEW-PROBE null (edit to 24): armed {'entity_id': 'number.x', 'value': 21.0}
-REVIEW-PROBE budget1 writes [] budget2 writes [24]
-REVIEW-PROBE floor, then displace 0: writes [25, 20]
-ALL 102 FEATURES BLOCK PASSED
