@@ -931,8 +931,7 @@ def _feedback(held: ArbiterState, inp: ArbiterInputs, now: datetime, base: float
         return base
     lo, hi = _feedback_bounds(held, rec, inp, inlet)
     rec.w_c = min(max(_nudged(rec, inp, now, minutes), lo), hi)
-    gate = (_gate_c(inp) or _gate_floor_c(inp.config)) + FEEDBACK_GATE_CLEAR_K
-    out = _bounded(inp, "space_setpoint", rec.w_c, _gate_floor_c(inp.config), lo=max(gate, lo), hi=hi)
+    out = _bounded(inp, "space_setpoint", rec.w_c, _gate_floor_c(inp.config), lo=lo, hi=hi)
     _note_sent(held, rec, out, base)
     return out
 
@@ -954,10 +953,10 @@ def _feedback_bounds(held: ArbiterState, rec: FeedbackRun, inp: ArbiterInputs, i
     """``(lo, hi)`` the loop's target stays within, °C.
 
     Never more than :data:`FEEDBACK_DOWN_K` below the inlet, nor past a stop
-    bound or a controller cut; never above the ceiling. The gate floor is
-    the write's own (:func:`_feedback`).
+    bound or a controller cut, nor at the gate (I2); never above the ceiling.
     """
-    lows = [inlet - FEEDBACK_DOWN_K, rec.cut_lo_c]
+    gate = _gate_c(inp) or _gate_floor_c(inp.config)
+    lows = [inlet - FEEDBACK_DOWN_K, rec.cut_lo_c, gate + FEEDBACK_GATE_CLEAR_K]
     if held.stop_gap_k is not None:
         lows.append(inlet - held.stop_gap_k + FEEDBACK_STOP_MARGIN_K)
     highs = [_heat_ceiling_c(inp.config), rec.cut_hi_c]
