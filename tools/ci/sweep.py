@@ -30,6 +30,17 @@ are bounded by the sources that finish, never by the arms, which looped on re-st
 A rate limit prints `RATE-LIMITED`, re-runs nothing further and exits 1: reset_epoch is
 printed, a caller re-runs nothing before it.
 
+SWEEP-SELF (R10-HOTFIX-SWEEP-TOKEN-ACTOR; dev/audit/rca/R10-RCA-SWEEP-TOKEN-ACTOR.md): GitHub
+starts no workflow from an event its GITHUB_TOKEN caused, so gate-sweep.yml's `workflow_run`
+never fires for a ci.yml run whose actor is the bot (a token push's approved pull_request run, a
+github.token dispatch). ci.yml's `sweep-self` job (SELF_JOB, after `gate`) sweeps such a run
+from inside it: the caller's GITHUB_RUN_ID is V. V is then still in_progress (its SELF_JOB runs),
+so settle never waits on V itself, and a SELF_JOB is never a source. From inside V, settle never
+waits on another gate still judging either (that run's own completion sweeps: SKIP, no runner
+held); it does poll a run whose gate has completed and whose run has not (its own sweep-self,
+seconds), as a red gate in such a run is polled on the green branch: GitHub refuses a re-run
+inside a running run.
+
 A STALE PIN is never re-run (`stale_pin`; dev/audit/rca/r10-gate-busy-defer-2.md 5.2). A
 pull_request or review run's gate restores tools/ci/*.py from the event's `base.sha`, and a
 job re-run replays that event, so it judges with the programs of that pin however far the
@@ -38,7 +49,11 @@ changed tools/ci/*.py after the pin, the sweep instead dispatches ONE fresh ci.y
 head (`pr`, `base`: that run rev-parses origin/<base> when its job starts) and prints
 `STALE-PIN`; that run's gate is the newest at the head, and its completion sweeps. A dispatched
 run created after the stale gate concluded is that fresh judge already, so nothing is
-dispatched twice for one red and the branch cannot loop. This sweep runs main's copy
+dispatched twice for one red and the branch cannot loop. That run's green `gate` is a check of its
+own suite and replaces no other run's red (#3400 at 7326025c: the edit run's stale red stood until
+re-run by hand), so the sweep of the fresh run itself -- ci.yml's sweep-self, its actor being the
+token's -- re-runs each stale red once (`fresh` returns False); the re-run's completion settles,
+where V is no green judge, and is left. This sweep runs main's copy
 (gate-sweep.yml), so the countermeasure reaches every PR at once; gate.py's `refresh` runs
 the pinned copy itself, which is why it lives here.
 
@@ -61,6 +76,7 @@ CI_PATH = ".github/workflows/ci.yml"
 PINNED_EVENTS = ("pull_request", "pull_request_review")   # ci.yml's restore reads github.event.pull_request.base.sha
 PINNED_PROGRAMS = "tools/ci/"                             # its pathspec 'tools/ci/*.py' (a git glob crosses '/')
 SWEEP_ACTOR = "github-actions[bot]"   # gate-sweep.yml's github.token; ci.yml's refresh posts as it too
+SELF_JOB = "sweep-self"               # ci.yml's job sweeping its own run from inside it (module doc)
 
 
 class RateLimited(Exception):
@@ -81,8 +97,8 @@ def latest_gate(jobs):
 
 
 def sources(jobs):
-    """The jobs of a listing a gate reads as sources: never a gate, never a skipped job (module doc)."""
-    return [j for j in jobs if j.get("name") != "gate" and j.get("conclusion") != "skipped"]
+    """The jobs of a listing a gate reads as sources: never a gate, a SELF_JOB or a skipped job (module doc)."""
+    return [j for j in jobs if j.get("name") not in ("gate", SELF_JOB) and j.get("conclusion") != "skipped"]
 
 
 def source_after(t0, others):
@@ -135,8 +151,10 @@ def pollable(gate):
 
 
 class Sweep:
-    def __init__(self, repo, get, post, out=print, sleep=time.sleep, clock=time.monotonic):
+    def __init__(self, repo, get, post, out=print, sleep=time.sleep, clock=time.monotonic, caller=None):
         self.repo, self.get, self.post, self.out, self.sleep, self.clock = repo, get, post, out, sleep, clock
+        self.caller = caller          # the calling run's id: V's own is sweep-self (module doc)
+        self.green = None             # V, once its gate is green and covers the newest event
         self.reruns, self.rerun_ids = 0, set()
         self.pull, self.pin, self.dispatches = None, (), 0
 
@@ -171,21 +189,28 @@ class Sweep:
         return self.pin
 
     def fresh(self, run, gate, runs, pin):
-        """Re-judge a stale-pinned red gate by one dispatched run at the head, unless one exists."""
+        """Re-judge a stale-pinned red gate by one dispatched run at the head, unless one exists: True.
+        False where V is that fresh judge and green: its check replaces no other run's red (#3400), so
+        the stale gate is re-run, once, the run judging after every run here concluded."""
         later = [r["id"] for r in runs if r.get("event") == "workflow_dispatch"
                  and r.get("created_at", "") >= (gate.get("completed_at") or "~")]
+        if self.green in later:
+            self.out(f"STALE-PIN {pin}: run {self.green}, this head's fresh judge, is green and replaces no "
+                     f"other run's red; run {run['id']}'s gate is re-run")
+            return False
         if later:
             self.out(f"STALE-PIN {pin}: run {later[0]} re-judges this head with fresh programs; run {run['id']} left")
-            return
+            return True
         if self.dispatches:
             self.out(f"STALE-PIN {pin}: run {run['id']} left to this sweep's dispatched run")
-            return
+            return True
         base, ref = self.pull["base"]["ref"], self.pull["head"]["ref"]
         st, _, _ = self.post(f"repos/{self.repo}/actions/workflows/ci.yml/dispatches",
                              {"ref": ref, "inputs": {"pr": str(self.pull_number), "base": base}})
         self.dispatches += 1
         self.out(f"STALE-PIN {pin}: run {run['id']}'s gate restores programs older than {base}'s tools/ci; "
                  f"re-judged by a fresh run dispatched on {ref} (HTTP {st})")
+        return True
 
     def runs_at(self, head):
         runs = self.j("actions/runs", {"head_sha": head, "per_page": 100})["workflow_runs"]
@@ -200,8 +225,7 @@ class Sweep:
             self.out(f"SWEEP left run {run['id']}: attempt {run['run_attempt']} at the cap, or the run still busy; push a new commit")
             return
         pin = self.stale_pin(run)
-        if pin:
-            self.fresh(run, gate, runs, pin)
+        if pin and self.fresh(run, gate, runs, pin):
             return
         self.rerun_ids.add(run["id"])
         self.post(f"repos/{self.repo}/actions/jobs/{gate['id']}/rerun")
@@ -220,11 +244,14 @@ class Sweep:
         vg = self.gate_of(run_id)
         if not covers_newest(vg, runs):
             return self.settle(run_id, pr, head)
+        self.green = v["id"]
         polled = {}
         for r in sorted((r for r in runs if r["id"] != v["id"]), key=lambda r: r["id"]):
             g = self.gate_of(r["id"])
-            if g and g.get("status") == "completed":
+            if g and g.get("status") == "completed" and (r["status"] == "completed" or g.get("conclusion") == "success"):
                 self.judge(r, g, "completed red", runs)
+            elif g and g.get("status") == "completed":     # its run still busy (its sweep-self): GitHub refuses a re-run
+                polled[r["id"]] = r["status"]
             elif pollable(g):
                 polled[r["id"]] = r["status"]
         deadline = self.clock() + POLL_WAIT
@@ -254,9 +281,10 @@ class Sweep:
             runs = self.runs_at(head)
             jobs = {r["id"]: self.jobs_of(r["id"]) for r in runs}
             gates = {i: latest_gate(js) or {} for i, js in jobs.items()}
-            finishing = [r["id"] for r in runs if gates[r["id"]].get("status") == "in_progress"
-                         or (gates[r["id"]].get("status") == "completed" and r["status"] != "completed")]
-            if not finishing or self.clock() + POLL_FLOOR > deadline:
+            finishing = [r["id"] for r in runs if r["id"] != self.caller and (gates[r["id"]].get("status") == "in_progress"
+                         or (gates[r["id"]].get("status") == "completed" and r["status"] != "completed"))]
+            judging = self.caller == run_id and any(gates[i].get("status") == "in_progress" for i in finishing)
+            if not finishing or judging or self.clock() + POLL_FLOOR > deadline:
                 break
             self.sleep(POLL_FLOOR)
             if not self.live(pr, head):
@@ -282,9 +310,10 @@ class Sweep:
         return 0
 
 
-def main(argv, get, post, out=print, sleep=time.sleep, clock=time.monotonic):
+def main(argv, get, post, out=print, sleep=time.sleep, clock=time.monotonic, env=None):
+    env = os.environ if env is None else env
     run_id = None
-    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    repo = env.get("GITHUB_REPOSITORY", "")
     it = iter(argv)
     for a in it:
         if a == "--run":
@@ -294,7 +323,7 @@ def main(argv, get, post, out=print, sleep=time.sleep, clock=time.monotonic):
     if not run_id or not str(run_id).isdigit() or not repo:
         out("FAIL usage: --run <id> (and GITHUB_REPOSITORY or --repo)")
         return 2
-    s = Sweep(repo, get, post, out, sleep, clock)
+    s = Sweep(repo, get, post, out, sleep, clock, caller=int(run_id) if env.get("GITHUB_RUN_ID") == str(run_id) else None)
     try:
         return s.run(int(run_id))
     except Exception as exc:  # noqa: BLE001 - a rate limit is told apart by name below
