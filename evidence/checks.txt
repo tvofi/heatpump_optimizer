@@ -1,5 +1,0 @@
-selftest_scope static: 108 gated step(s), 0 problem(s)
-selftest_scope self-test: 90 checks, 0 failed
-figure_block self-test: 11 checks, 0 failed
-LEDGER-MERGE: resolved tests/closures.json
-3530aba8bea721e04c18d92f366aaeb7926761c5
