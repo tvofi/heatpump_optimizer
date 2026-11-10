@@ -132,7 +132,11 @@
   mutant per arm of these and of the part-3 review survivors. A
   policy head batches like any other: under a `--mandate` naming the mandate's
   comment id, in force for policy merging, the train posts the citing approval
-  step 5 requires (`policy_approve`); a budget raise still goes serial.
+  step 5 requires (`policy_approve`), and `--pre-flight` and the re-add's
+  re-run of it judge the head with that approval unposted (`policy_admits`),
+  so they admit what the post will carry; a budget raise still goes serial.
+  `dev/audit/harnesses/r10_hotfix_train_policy_mandate_mutants.py` holds one
+  mutant per arm of that read.
   `dev/audit/harnesses/r10_train_upgrade_mutants.py` holds one mutant per arm
   of these three.
   Residual: a proved pair's second merge does not wait for main's run on the
