@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._energy_cost_fn.energy_cost CLAMP_DROP d54db119",
-  "killed_by": "tests/features.py",
-  "old": "                covered = margin * np.minimum(total_power, surplus)",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`covered = margin * (total_power)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

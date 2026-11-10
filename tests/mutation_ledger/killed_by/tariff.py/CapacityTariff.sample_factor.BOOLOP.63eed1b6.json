@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/tariff.py:CapacityTariff.sample_factor BOOLOP 63eed1b6",
-  "killed_by": "tests/features.py",
-  "old": "        if self.months and when.month not in self.months:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if self.months or when.month not in self.months:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=19."
-}

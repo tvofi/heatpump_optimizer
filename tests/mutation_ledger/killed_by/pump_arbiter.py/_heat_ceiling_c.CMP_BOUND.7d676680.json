@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_heat_ceiling_c CMP_BOUND 7d676680",
-  "killed_by": "tests/features.py",
-  "old": "    return ceiling if ceiling > FLOW_GATE_C else FLOW_HEAT_C",
-  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (review fixes): CMP_BOUND (`>=`) took tests/features.py from rc=0 failed=0 of 4990 to rc=1 failed=1: a stored ceiling equal to the 25 degC gate is kept instead of reading as 55, in the check that a ceiling at or below the gate reads as the default."
-}

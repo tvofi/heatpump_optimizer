@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/ledger.py:savings_pct CMP_BOUND 80f46dd8",
-  "killed_by": "tests/features.py",
-  "old": "    if baseline_sek <= 0.01:",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if baseline_sek < 0.01:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

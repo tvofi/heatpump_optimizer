@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_wood_share_vec CLAMP_DROP 3cfb2127",
-  "killed_by": "tests/features.py",
-  "old": "    hotter = np.minimum(1.0, np.maximum(0.0, (wood_temp - hp_temp) / m))",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`hotter = (1.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3. Each of the 2 sites under this anchor was killed."
-}

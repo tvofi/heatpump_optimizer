@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/tariff.py:<module> CONST 40cad2a7",
-  "killed_by": "tests/features.py",
-  "old": "_PEAK_TIE_BAND = 1e-3",
-  "reason": "Recorded by `mutation_table.py --drain`: CONST (`_PEAK_TIE_BAND = 0.002e-3`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sensor.py:MonthlySavingsSensor.native_value RETURN_DEL f0d4f327",
-  "killed_by": "tests/entities.py",
-  "old": "                return None if val is None else round(val, 2)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 99cf51c1a73a5a1a44577021399b7f1cfcab898d: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
-}

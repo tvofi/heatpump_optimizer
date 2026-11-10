@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._on_power_event BOOLOP d3974c03",
-  "killed_by": "tests/features.py",
-  "old": "        if not tariff.enabled and fuse is None:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if not tariff.enabled or fuse is None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

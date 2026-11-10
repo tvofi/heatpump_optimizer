@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:step_duty BOOLOP fe0d2ae4",
-  "killed_by": "tests/features.py",
-  "old": "    d_on = i < len(dhw) and planned_draw_runs(dhw[i], modulation_floor=floor)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 92accb2cff702c910d33ee1a276d38f5b482061c: BOOLOP (`d_on = i < len(dhw) or planned_draw_runs(dhw[i], modulation_floor=floor)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

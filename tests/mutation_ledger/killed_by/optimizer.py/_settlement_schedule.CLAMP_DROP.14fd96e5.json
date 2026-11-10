@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_settlement_schedule CLAMP_DROP 14fd96e5",
-  "killed_by": "tests/features.py",
-  "old": "            \"comfort_kw\": (max(d_t, 0.0) - max(d_d, 0.0)) / cop,",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`\"comfort_kw\": ((d_t) - max(d_d, 0.0)) / cop,`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
-}

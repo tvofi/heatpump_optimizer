@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/driving_grade.py:day_drivers RETURN_DEL de93dde0",
-  "killed_by": "tests/typing_ruler.py",
-  "old": "    return {code: value * scale for code, value in saved.items()}",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/typing_ruler.py from rc=0 failed=0 to rc=1 failed=1."
-}

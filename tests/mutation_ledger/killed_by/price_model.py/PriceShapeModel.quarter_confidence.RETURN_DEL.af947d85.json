@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.quarter_confidence RETURN_DEL af947d85",
-  "killed_by": "tests/features.py",
-  "old": "        return min(1.0, self.quarter_days[idx] / QUARTER_CONFIDENCE_DAYS)",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

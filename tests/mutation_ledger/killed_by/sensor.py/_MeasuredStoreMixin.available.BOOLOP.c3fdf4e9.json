@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sensor.py:_MeasuredStoreMixin.available BOOLOP c3fdf4e9",
-  "killed_by": "tests/entities.py",
-  "old": "        return bool(super().available and battery.get(\"measured_components\"))",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`return bool(super().available or battery.get(\"measured_components\"))`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=5."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sensor.py:WoodBurnAdvisorSensor.native_value RETURN_DEL f570fcc8",
-  "killed_by": "tests/wood_advisor.py",
-  "old": "        return self._advice().get(\"text\") or \"none\"",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/wood_advisor.py from rc=0 failed=0 to rc=1 failed=2."
-}

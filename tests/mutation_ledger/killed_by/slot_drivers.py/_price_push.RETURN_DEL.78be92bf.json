@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/slot_drivers.py:_price_push RETURN_DEL 78be92bf",
-  "killed_by": "tests/plan_view.py",
-  "old": "    return 1.0 - 2.0 * rank",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
-}

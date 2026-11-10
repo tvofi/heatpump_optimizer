@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:wood_slots_to_kw GUARD_OFF 1fb25a2b",
-  "killed_by": "tests/features.py",
-  "old": "        if liters <= 0.0 or start is None or end is None or end <= start:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/accuracy.py:AccuracyTracker.from_dict GUARD_OFF 08cb3b92",
-  "killed_by": "tests/debug_collect.py",
-  "old": "        if isinstance(raw_samples, list):",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
-}

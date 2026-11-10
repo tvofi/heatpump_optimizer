@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:saving_includes_wood RETURN_DEL 62b7ac43",
-  "killed_by": "tests/features.py",
-  "old": "    return bool((data.get(\"wood_fuel\") or {}).get(\"show_whatif\"))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

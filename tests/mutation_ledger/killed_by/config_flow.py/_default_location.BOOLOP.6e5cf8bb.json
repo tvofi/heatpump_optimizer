@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_default_location BOOLOP 6e5cf8bb",
-  "killed_by": "tests/config_flow_steps.py",
-  "old": "    if isinstance(existing, dict) and \"latitude\" in existing:",
-  "reason": "Recorded by `mutation_table.py --drain` against c3530277373ddf87652858f9ecb0ee1cf36f4347: BOOLOP (`if isinstance(existing, dict) or \"latitude\" in existing:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
-}

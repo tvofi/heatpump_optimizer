@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_series BOOLOP 626ab60f",
-  "killed_by": "tests/debug_collect.py",
-  "old": "               or (k in SERIES_VALUE_KEYS and _number(v) is not _DROP)}",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 55dc8d9c2c59c2ab614cb7c5d4b0ae9807401b50: BOOLOP (`or (k in SERIES_VALUE_KEYS or _number(v) is not _DROP)}`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._apply_lower_floor_loss_ratio CLAMP_DROP a4fee2bb",
-  "killed_by": "tests/features.py",
-  "old": "        self._lower_floor_loss_ratio = float(np.clip(ratio, LOWER_FLOOR_LOSS_RATIO_MIN, LOWER_FLOOR_LOSS_RATIO_MAX))",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`self._lower_floor_loss_ratio = float((ratio))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

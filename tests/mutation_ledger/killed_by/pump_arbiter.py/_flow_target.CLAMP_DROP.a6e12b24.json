@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_flow_target CLAMP_DROP a6e12b24",
-  "killed_by": "tests/features.py",
-  "old": "    hold = min(target, ceiling) if capped else target",
-  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (review fixes): CLAMP_DROP (`hold = (target) if capped else target`) took tests/features.py from rc=0 failed=0 of 4990 to rc=1 failed=4: a curve of 60 holds 60 against a configured 48 and 38 degC ceiling, and the return bare hold is not capped (D5), retiring anchor c3f2647f."
-}

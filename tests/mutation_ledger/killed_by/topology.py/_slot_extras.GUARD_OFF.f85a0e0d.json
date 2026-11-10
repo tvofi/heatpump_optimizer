@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/topology.py:_slot_extras GUARD_OFF f85a0e0d",
-  "killed_by": "tests/features.py",
-  "old": "    if key != CONF_MIXING_VALVE_TARGET_ENTITY:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

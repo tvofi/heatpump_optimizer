@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_heating_draws RETURN_DEL 9a136178",
-  "killed_by": "tests/plan_view.py",
-  "old": "    return channel_heating_draw(power, other), channel_heating_draw(other, power)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_widen_to_fit BOOLOP f4680d6b",
-  "killed_by": "tests/config_flow_steps.py",
-  "old": "    if fitted_low == low and fitted_high == high:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if fitted_low == low or fitted_high == high:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3."
-}

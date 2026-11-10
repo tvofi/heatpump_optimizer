@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostWindow.observe BOOLOP 6f9811e6",
-  "killed_by": "tests/features.py",
-  "old": "        if flag and not self._state:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if flag or not self._state:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
-}

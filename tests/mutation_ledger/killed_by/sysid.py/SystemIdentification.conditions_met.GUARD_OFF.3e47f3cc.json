@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met GUARD_OFF 3e47f3cc",
-  "killed_by": "tests/features.py",
-  "old": "        if price_horizon is not None and len(price_horizon):",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

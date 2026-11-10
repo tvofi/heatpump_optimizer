@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_memoized_value_and_gradient GUARD_OFF a5f6c7fe",
-  "killed_by": "tests/features.py",
-  "old": "    if memo is None:",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 4d407a35f5f5e7785d06bebf1e40f2ab9e02ff3b: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
-}

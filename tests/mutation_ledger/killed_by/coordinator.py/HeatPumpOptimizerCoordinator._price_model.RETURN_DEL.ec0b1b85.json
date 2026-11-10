@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._price_model RETURN_DEL ec0b1b85",
-  "killed_by": "tests/features.py",
-  "old": "        return self._price_learner.model",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 9a1ce39c3e901c814fceb015f09eec75f1a5ef5f: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

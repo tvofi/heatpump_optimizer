@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/price_model.py:extend_price_series CLAMP_DROP a85402bd",
-  "killed_by": "tests/features.py",
-  "old": "        prices.append(max(0.0, model.predict(when, level)))",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`prices.append((0.0))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

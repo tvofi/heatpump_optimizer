@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/batchmath.py:row_sums CMP_BOUND 25451906",
-  "killed_by": "tests/features.py",
-  "old": "    if n < 8:",
-  "reason": "Recorded by `mutation_table.py --drain` against 994695e06c4c2b78d6420f82c322188317817f91: CMP_BOUND (`if n <= 8:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}
