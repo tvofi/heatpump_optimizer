@@ -21674,9 +21674,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "pr": null,
+    "pr": 3406,
     "commit": null,
     "last_step": null,
     "next_step": "dispatch fixer",
