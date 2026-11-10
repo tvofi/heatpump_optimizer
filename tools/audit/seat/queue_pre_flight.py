@@ -161,7 +161,9 @@ class PreFlight:
         if holder := self.worktree_holder(branch):
             return "PARK", "recarry", holder
         try:
-            self.t.policy_gate(pr, h, files)  # the batch's early refusal, verbatim
+            # The batch's early refusal as admission reaches it: policy_gate after
+            # policy_approve, the approval the train's --mandate posts judged unposted.
+            self.t.policy_admits(pr, h, item, files)
         except mt.Stop as s:
             return "PARK", s.step, s.why
         try:
@@ -297,6 +299,7 @@ def _self_test() -> int:
     def fake(world: dict):
         def run(argv, cwd=None, stdin=None):
             a = " ".join(argv)
+            world.setdefault("calls", []).append(a)
             got = mt.budget_fixture(world.get("budgets"), argv, "e" * 40)
             if got is not None:
                 return got
@@ -375,13 +378,14 @@ def _self_test() -> int:
 
     def go(world: "dict | None" = None, verdict: str = H0, **opts) -> "tuple[str, str, str]":
         w = {} if world is None else world  # the caller's own dict: a read the fake records is visible to it
+        train_mandate = opts.pop("train_mandate", None)  # the train's --mandate, as train.sh passes it
         with tempfile.TemporaryDirectory() as d:
             opts.setdefault("dests", ca.Dests({"groups": [
                 {"group": "R10-LIVE", "issues": [], "fixes": [], "resume": {"stage": "planned"}},
                 {"group": "R10-OVER", "issues": [], "fixes": [], "resume": {"stage": "done"}}]}, set()))
             # sleep: a broken read's `gh: HTTP 502` is transient, so the train's
             # read retry settles 5/15/45 s before it answers the failure here.
-            pf = PreFlight("o/r", train=mt.Train("o/r", Path(d), None, "", (), 1,
+            pf = PreFlight("o/r", train=mt.Train("o/r", Path(d), train_mandate, "", (), 1,
                                                  run=fake(w), sleep=lambda s: None),
                            checkout=Path(d), **opts)
             return pf.entry({"pr": 7, "verdict": verdict, "branch": "fix/x"})
@@ -452,6 +456,35 @@ def _self_test() -> int:
     check("a policy head whose mandate was revoked PARKS, named as revoked",
           go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW),
               "thread": [revoke()]})[:2] == ("PARK", "policy"))
+    # R10-HOTFIX-TRAIN-POLICY-MANDATE (#3366): the train's own pre-flight ran
+    # policy_gate before any policy_approve, so a policy head the train posts the
+    # citing approval for under its --mandate PARKED on "no decisive review", and
+    # the re-add's re-run (`preflight_entry`) refused it again at the same verdict.
+    # The pre-flight judges the head with the approval the train would post.
+    MANDATED = {**POL, "reviews": [], "mandate": mandate(NOW)}
+    check("a policy head with no review yet passes under the train's --mandate in force for policy "
+          "merging (the approval policy_approve posts, judged by policy_gate)",
+          go(dict(MANDATED), train_mandate=str(mt.MID)) == ("PASS", "", ""))
+    _w = dict(MANDATED)
+    go(_w, train_mandate=str(mt.MID))
+    check("... and the pre-flight posts nothing: it stays a read",
+          not any("pr review" in c for c in _w.get("calls", [])))
+    check("null control: the same head with no --mandate still PARKs on the review",
+          go(dict(MANDATED))[:2] == ("PARK", "policy")
+          and "no decisive review" in go(dict(MANDATED))[2])
+    check("null control: under a --mandate tvofi revoked it still PARKs, named as revoked",
+          go({**MANDATED, "thread": [revoke()]}, train_mandate=str(mt.MID))[:2] == ("PARK", "policy")
+          and "revoked" in go({**MANDATED, "thread": [revoke()]}, train_mandate=str(mt.MID))[2])
+    check("null control: under a --mandate whose scope does not cover policy merging it still PARKs",
+          go({**MANDATED, "mandate": mandate(NOW, scope="code-owned")}, train_mandate=str(mt.MID))[:2]
+          == ("PARK", "policy"))
+    check("null control: under an expired --mandate it still PARKs",
+          go({**MANDATED, "mandate": mandate(NOW, from_min=-120, until_min=-1)},
+             train_mandate=str(mt.MID))[:2] == ("PARK", "policy"))
+    check("an owner CHANGES_REQUESTED at the head still PARKs under the --mandate (a mandated "
+          "approval does not override it: policy_gate's own judgement, with the posted one added)",
+          go({**MANDATED, "reviews": [dict(owner_review(H0, NOW, cite=False, state="CHANGES_REQUESTED"))]},
+             train_mandate=str(mt.MID))[:2] == ("PARK", "policy"))
     # The train judges a mandated raise's body against the gate's measured score (a scorer
     # run on a worktree); the world here answers with the one line JUSTIFIED_BODY names.
     mt.Train._measured_score = lambda self, g, h: "Architecture score: dS +0.4000 IMPROVES"
