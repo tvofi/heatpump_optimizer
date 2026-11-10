@@ -7,7 +7,9 @@
   second board carries it), `owed-check` (`owed_unactioned.py`, once per
   sweep), `roster-drain` (`roster_queue.py run` per pending line of
   `S/roster-drain.queue`, done or refused read from the exact line
-  `roster_queue.py --mark` rewrites, a refusal never retried, an op neither
+  `roster_queue.py --mark` rewrites and saved after each op, so a killed pass
+  replays at most the op it died in, no op started past `ROSTER_PASS_BUDGET_S`
+  into a pass, a refusal never retried, an op neither
   reported nor marked `UNRUN` and pending, a refusal by a worktree on no origin
   ref pending under one `CASCADE` line, `hold <tree-path> <op>` released once
   main carries the path and `HOLD-STALE` after 24 h), `plan-beat` (`replan.py`
