@@ -12359,8 +12359,12 @@ def _cb_type_branches():
 
 # The base count, recorded at origin/main 2f6d699e: two comments naming a valve
 # controller's return-water target, neither a tank type. The census refuses
-# growth, not those two (design §T.4: "record the base count").
-_CB_VENDOR_BASE = 2
+# growth, not those two (design §T.4: "record the base count"). Re-recorded at
+# origin/main b0762725 as 4: R10-GENERIC-HEAT-CURVE added two more, the
+# offset controller's integration name (heat_curve.py) and a research
+# citation for the offset band (const.py), neither a tank type; this branch
+# adds none (`git grep -ciE` over the package's Python sums to 4 on both).
+_CB_VENDOR_BASE = 4
 
 
 _cb_hits, _cb_vendor = _cb_type_branches()
