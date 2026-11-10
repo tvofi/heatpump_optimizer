@@ -9295,7 +9295,8 @@
     "R10-RCA-STAMP-FLUSH-COST",
     "R10-RCA-COP-UNMEASURED",
     "R10-FRICTION-CI-RED",
-    "R10-FRICTION-OTHER-FAMILY"
+    "R10-FRICTION-OTHER-FAMILY",
+    "R10-CLOSEOUT-PREP"
    ],
    "files": [
     "tools/audit/seat/prune_refs.py",
