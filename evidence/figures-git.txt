@@ -1,0 +1,61 @@
+base b0762725099f=b0762725099fefd337fc74ecff161cb487a992bc
+c09cf1201024d46e8d9c187143f6a293479e21cc 2026-10-16T19:02:13+02:00 fix(prepr): make the four-prepr cap a lease instead of a convention (#2267)
+c09cf12010 lines=2734 st=123
+b0762725099fefd337fc74ecff161cb487a992bc lines=4682 st=325
+0362916ac7 lines=4682 st=325
+--HEAVY_SLOTS
+b0762725099fefd337fc74ecff161cb487a992bc:tests/gate_lock.py:103:HEAVY_SLOTS = 4
+73:HEAVY_SLOTS = 4
+--timeouts
+rc=1
+--6d comment
+b0762725099fefd337fc74ecff161cb487a992bc:tools/pr/prepr.sh:595:# argument), so it costs seconds where
+b0762725099fefd337fc74ecff161cb487a992bc:tools/pr/ci_predict.py:45:GRADER, minutes where keyed (measured in its record), and SELF-TEST READS,
+b0762725099fefd337fc74ecff161cb487a992bc:tools/pr/ci_predict.py:1179:                         "the diff keys (GRADER: minutes where keyed), so prepr's 6d passes it")
+--3067/3770
+    && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  st $? 0 "body_push refuses a PR body whose Forward-carry names no file and whose Friction does not parse, printing each ERROR, and pushes nothing (#2524)"
+  bbody none 'none
+
+https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
+  grep -q "ERROR .*carries a tool's attribution (session-link)" <<<"$got" && ! grep -q 'does not parse' <<<"$got" \
+    && grep -q '^rc=1$' <<<"$got" && ! grep -q '^ref ' <<<"$got"
+  st $? 0 "and refuses the cloud harness's session-link line under Friction by the attribution arm alone, pushing nothing (R10-FLY-NO-FOOTERS)"
+  # Step 7e at body_push (R10-RCA-BODY-CHECK-PARITY's instance shape, #2658):
+  # `none` and then prose under Forward-carry passes policy_lint and is an
+  # unrouted item to carry_audit, which pr-contract runs after the open.
+  ca() { ( cd "$CA/c" && throwaway_git_env && carry_line "$1" ); }
+  cad() { ( cd "$CA/c" && throwaway_git_env && python3 -I tools/audit/carry_audit.py "$@" >/dev/null 2>&1 ); }
+  cad --roster-ref origin/handoff/audit-r10-roster check --body "$CA/routed.md"
+  st $? 1 "a carry to a group the stale round-branch mirror lacks is refused there (the fetch's null control)"
+  got=$(ca "$CA/routed.md"); r=$?
+  st "$r" 0 "the same carry passes once carry_line fetches the round branch"
+  case "$got" in *'1 routed'*'origin/handoff/audit-r10-roster'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and the ok line names the count and the ref it read"
+b0762725099fefd337fc74ecff161cb487a992bc:tools/pr/prepr.sh:3772:  st "$r" 0 "and the ok line names the count and the ref it read"
+b0762725099fefd337fc74ecff161cb487a992bc:tools/pr/prepr.sh:3067:  st $? 0 "and refuses the cloud harness's session-link line under Friction by the attribution arm alone, pushing nothing (R10-FLY-NO-FOOTERS)"
+b0762725099fefd337fc74ecff161cb487a992bc:tools/pr/prepr.sh:3770:  st "$r" 0 "the same carry passes once carry_line fetches the round branch"
+--6d comment context
+  fi
+  out=$(PYTHONPATH=tests/hastub python3 tests/closure.py check --in-dir "$1" --partial 2>&1) && {
+    echo "scoped recordings are covered"; return 0; }
+  echo "$(printf '%s\n' "$out" | grep -m1 'UNDER-SCOPED\|NOT A FILE') -- run \`./tests/derive_closures.sh --single <script>\` for each UNDER-SCOPED script and commit tests/closures.json, the commit closures-autofix would push"
+  return 1
+}
+
+# Step 6d's whole body: tools/pr/ci_predict.py over the three-dot diff, read
+# statically -- no test or mutant runs, and the one recording is a changed
+# file's own self-test a gate script runs (SELF-TEST READS, the fifth
+# argument), so it costs seconds where
+# step 6b's recordings cost the scoped scripts' run time and are left to CI
+# under the owner's heavy-scripts rule (2026-10-07). It predicts `closures`'s
+# UNDER-SCOPED and INERT READS, entities' unclassified file and
+# a STALE PIN the diff itself stales (a stale pin main carries only warns),
+# which R9-RO-11's pre-study measured reddening this round's fix heads after
+--roster
+1b225f721ad4cd615339215bed08673151d15bab
+tree origin/handoff/audit-r10-roster:dev/programme/rosters/
+
+critical-path.json
+wave-r10-groups.json
+wave-r9-groups.json
