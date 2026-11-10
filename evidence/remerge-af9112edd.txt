@@ -1,0 +1,53 @@
+af9112edd49b3d5f9ae6b5fdde398a70b5510cf1
+
+diff --git a/custom_components/heatpump_optimizer/translations/de.json b/custom_components/heatpump_optimizer/translations/de.json
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/translations/de.json
+index 92fa95339..f80f46338 100644
+--- a/custom_components/heatpump_optimizer/translations/de.json
++++ b/custom_components/heatpump_optimizer/translations/de.json
+@@ -583,26 +583,16 @@
+               "outdoor_temp_entity": "Außentemperatursensor",
+               "space_setpoint_entity": "Sollwert-Entität der Raumheizung (optional)",
+               "space_setpoint_unit": "Was diese Sollwert-Entität erwartet",
+-<<<<<<< 7ff8d4848 (Merge commit '14c31e5640e8ef654b141ca5a0197a423428f4eb' into fix/r10-generic-heat-curve)
+-              "flow_min_lift_k": "Mindestanhebung über das Eintrittswasser (K)",
+-=======
+               "flow_min_lift_k": "Mindesthub über dem Eingangswasser (K)",
+->>>>>>> 1cabb845d (Merge pull request #3378 from tvofi/fix/r10-hotfix-main-fast-1109)
+               "flow_heat_c": "Obergrenze der Heizungsvorlauftemperatur (°C)"
+             },
+             "data_description": {
+               "indoor_temp_entity": "Optional. Die tatsächliche Raumtemperatur. Ohne sie vertraut der Optimierer seinem eigenen Modell, das mit der Zeit abdriftet.",
+               "outdoor_temp_entity": "Optional. Ein lokales Außenthermometer ist für die aktuelle Stunde genauer als die Vorhersage.",
+               "space_setpoint_entity": "Optional. Eine Zahl, ein Helfer oder eine Climate-Entität, die der Sollwert der Raumheizung der Pumpe ist. Dient nur dazu zu bemerken, wenn die Entität nicht gelesen werden kann. Der Optimierer schreibt nie einen empfohlenen Raumheizungs-Sollwert.",
+-<<<<<<< 7ff8d4848 (Merge commit '14c31e5640e8ef654b141ca5a0197a423428f4eb' into fix/r10-generic-heat-curve)
+-              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert.",
+-              "flow_min_lift_k": "Wenn die Pumpenleistungssteuerung auf Steuern steht, ist der Wasser-Sollwert, der bei der niedrigsten Leistung des Plans geschrieben wird, das gemessene Eintrittswasser plus dieser Wert: Rücklauf der Wärmepumpe, Pufferspeicher, Fußbodenrücklauf oder Ventilausgang, und für eine Entität vom Typ Rücklauftemperatur nur die ersten drei. 5 K passt zu einem Regler, der seinen Vorlauf auf dem Sollwert hält. Von einem Regler, der die Zahl als Rücklaufziel nimmt, wird angenommen, dass er seinen Verdichter umso stärker laufen lässt, je weiter das Ziel über dem Rücklauf liegt; er will also wahrscheinlich weniger. 1–2 K sind ein Ausgangspunkt, den du mit der gemessenen Frequenz und Leistung des Verdichters abgleichst, kein Messwert.",
+-              "flow_heat_c": "Der Wasser-Sollwert, der bei voller geplanter Leistung geschrieben wird, und der höchste, der geschrieben wird, solange der Plan steuert. 55 °C passt zu einem Vorlaufziel. Für eine Entität vom Typ Rücklauftemperatur wähle ihn über dem höchsten Rücklauf, den du im normalen Heizbetrieb siehst, plus die Anhebung, und nicht höher, als der Regler annimmt; bei einer Niedertemperatur-Fußbodenheizung können 35–40 °C ein Ausgangspunkt sein, den du mit Messungen abgleichst. Unter 30 °C wird nicht angeboten: Die Schwelle, die Aus bedeutet, liegt bei 25 °C für ein Vorlaufziel und bei 20 °C für ein Rücklaufziel."
+-=======
+               "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist, auf der er seinen Vorlauf hält. Rücklauftemperatur gilt für einen Regler, der den Sollwert als Ziel für das Rücklaufwasser nimmt (angenommen für eine Luxtronik über ihre Smart-Home-Schnittstelle); er wird wie ein Vorlauf-Sollwert geschrieben, wobei der Nennhaltewert, die Wetterkurve und die 25-°C-Schwelle um 5 K nach unten in Rücklaufwerte verschoben werden. Eine Version vor dieser Option liest Rücklauftemperatur als Innentemperatur: Stelle vor einem Downgrade wieder auf Vorlauftemperatur um. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert.",
+               "flow_min_lift_k": "Mit Steuerung der Pumpenfunktion auf Steuern ist der bei der niedrigsten Planleistung geschriebene Wasser-Sollwert das gemessene Eingangswasser plus dieser Wert: Wärmepumpen-Rücklauf, Pufferspeicher, Fußbodenrücklauf oder Ventilauslass, und bei einer Entität mit Rücklauftemperatur nur die ersten drei. 5 K passt zu einem Regler, der seinen Vorlauf auf dem Sollwert hält. Von einem Regler, der die Zahl als Ziel für das Rücklaufwasser nimmt, wird angenommen, dass er seinen Verdichter umso stärker laufen lässt, je weiter das Ziel über dem Rücklauf liegt, er will also wahrscheinlich weniger; 1–2 K ist ein Ausgangspunkt, der an der gemessenen Frequenz und Leistung des Verdichters zu prüfen ist, kein gemessener Wert.",
+               "flow_heat_c": "Der bei voller Planleistung geschriebene Wasser-Sollwert und der höchste, der geschrieben wird, solange der Plan die Führung hat. 55 °C passt zu einem Vorlaufziel. Wähle ihn bei einer Entität mit Rücklauftemperatur über dem höchsten Rücklauf, den du im normalen Heizbetrieb siehst, plus dem Hub, und nicht höher, als der Regler annimmt; bei einer Niedertemperatur-Fußbodenheizung können 35–40 °C ein Ausgangspunkt sein, der an Messungen zu prüfen ist. Unter 30 °C wird nicht angeboten: Die Schwelle, die aus bedeutet, liegt bei 25 °C für ein Vorlaufziel und bei 20 °C für ein Rücklaufziel."
+->>>>>>> 1cabb845d (Merge pull request #3378 from tvofi/fix/r10-hotfix-main-fast-1109)
+             }
+           },
+           "plant": {
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index c79b0b50f..6bb95a1a9 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -2037,13 +2037,8 @@ const STRINGS = {
+     "savings.col_pct": "%",
+     "savings.estimated": "geschätzt",
+     "savings.old_basis": "alte Basis",
+-<<<<<<< 7ff8d4848 (Merge commit '14c31e5640e8ef654b141ca5a0197a423428f4eb' into fix/r10-generic-heat-curve)
+-    "savings.below_meter_floor": "keine Ersparnis angegeben",
+-    "savings.meter_floor_note": "Für einen Monat, dessen Referenz weniger als die Hälfte der vom Zähler erfassten Energie verbrauchte, wird keine Ersparnis angegeben: Eine so niedrige Referenz ist ein Fehler, keine Ersparnis.",
+-=======
+     "savings.below_meter_floor": "keine Einsparung angegeben",
+     "savings.meter_floor_note": "Für einen Monat, dessen Referenz weniger als die Hälfte der vom Zähler erfassten Energie verbraucht hat, wird keine Einsparung angegeben: Eine so niedrige Referenz ist ein Fehler, keine Einsparung.",
+->>>>>>> 1cabb845d (Merge pull request #3378 from tvofi/fix/r10-hotfix-main-fast-1109)
+     "savings.wood_note": "Die Einsparung enthält Wärme aus Holz. Die Kosten für das Brennholz sind nicht berücksichtigt.",
+     "savings.empty": "Noch keine abgeschlossenen Einsparungsmonate.",
+     "receipt.closed": "{month} · abgeschlossen",

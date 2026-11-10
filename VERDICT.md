@@ -1,46 +1,25 @@
-Fix review: merge 7ff8d4848a3ebeb46f5ed1135ee4a45d9b8d725d
+Fix review: merge 757291b601c70798c92d71368cb5b53ff1db8dcc
 
-bus-nonce: a2874ff7b42e51cc4c2007a91a2e39cc
+bus-nonce: 97bd64943cd48d0dee5d2588850b8847
 
 ## Scope
 
-This is the fifth fix-review dispatch on PR 3299 and the third delta round. The earlier verdicts were: blocked at `f00e035b5` (code round 1); merge at `85ba6cda8` (round 2); blocked at `e2254515` (ci-red, stress); and blocked at `83b0be72` (ci-red, `tests / mutation` refused on a stale `_prefill_errors RETURN_DEL 7451af7c` pin). As the owner's scope ruling requires, I reviewed only `git diff 83b0be72a116b3c09872c37deb0ca122a9922bb2 7ff8d4848a3ebeb46f5ed1135ee4a45d9b8d725d`. The branch has two authored commits since then, `d6e73c472` (deletes the stale pin) and `14c31e564` (German strings). It also has three merges of main: `f31e6be86`, `5fc731c63` and `7ff8d4848`. `review_carry.py 83b0be72 7ff8d4848` prints `FRESH-REVIEW`, so I reviewed the delta directly.
-
-The production delta comes almost entirely from main. Main's changes come mainly from R10-WATER-SETPOINT-LIFT (#3372) in `pump_arbiter.py`, `topology.py`, `thermal_model.py`, `const.py` and `config_flow.py`, plus R10-I18N-DE (`translations/de.json`). The branch's own production lines in the delta are only `de.json` and the card's `de` dictionary (`14c31e564`).
-
-I did not widen the review. Main's #3372 adds no new key that the optimizer writes an entity for. It adds a `return` unit and the `flow_min_lift_k` / `flow_heat_c` numbers on the same `space_setpoint_entity` key. So the branch's `_written_entity_collision` over `_WRITTEN_ENTITY_KEYS` still covers every written entity. The branch's own modules, `heat_curve.py` and `off_restore.py`, import nothing that #3372 changed. `config_flow.py` and `const.py` auto-merged in disjoint hunks.
-
-`git diff <merge-base>...origin/main -- dev/governance/roles/` is empty.
+This is a delta review of the main-merge resolution only, after the merge verdict at 7ff8d4848a3ebeb46f5ed1135ee4a45d9b8d725d. The delta is 7ff8d4848..757291b60, less main's own changes. I did not re-review the feature. I worked from a detached worktree at 757291b601c70798c92d71368cb5b53ff1db8dcc and used my own harness (ev/threeway.py, written in this seat, not the fixer's scratch readback.py). `git diff merge-base...origin/main -- dev/governance/roles/` is empty, so the contract I read is current.
 
 ## Evidence
 
-- Head measured: `7ff8d4848a3ebeb46f5ed1135ee4a45d9b8d725d` (ev/HEAD.txt). At verdict time, `refs/pull/3299/head` is still this SHA. The body's `## Head` names this head.
-- Main merge: `git merge-tree --write-tree origin/main 7ff8d4848` exits 0. Its merge base equals origin/main `2f6d699e5`, so the head is level with main (ev/merge-tree.txt).
-- Previous finding (block at `83b0be72`) resolved: `tests/mutation_ledger/killed_by/config_flow.py/_prefill_errors.RETURN_DEL.7451af7c.json` is gone at this head, and `_prefill_errors.RETURN_DEL.66f7970d` remains. `python3 tests/mutation_table.py --scope changed --base origin/main --max 0 --jobs 1` returns rc=0 with `2700 unpinned site(s) of 6995 candidate sites, 2703 at the ratchet base 2f6d699e5...; the ledger agrees with the deterministic inventory` (ev/mutation_table_max0.txt). Mutant: restoring the deleted file (from `d6e73c472^`) gives rc=1 and `MUTATION TABLE REFUSED ... _prefill_errors RETURN_DEL 7451af7c: disposition names no site the inventory generates` (ev/mutant_stale_pin_restored.txt). I removed the file again afterwards, and `git status` was clean. CI `tests / mutation` (job 129354170896) concluded success at this head.
-- Previous stress red (`tests / fast (3.14)`, from the e2254515 and 83b0be72 rounds): main's #3349 fix `53f4a051b` is in this head's ancestry. `tests / fast (3.14)` (job 129354517102) concluded success at this head.
-- Merge resolutions, each checked against the automatic `git merge-tree` of its parents:
-  - `f31e6be86`: the only hand change is `tests/golden/claimed_drift.txt` (`MERGE-CLAIM` refused, `CONFLICTING CLAIMS` on `config_flow`). The resolution keeps this branch's line and drops R10-WATER-SETPOINT-LIFT's line, which is main's own and already in the merge base. That is correct under claim-files.md.
-  - `5fc731c63`: hand changes are `claimed_drift.txt` (this branch's line kept under main's emptied 7.1.9 list) and `tests/deployment_shape.py` (three count hunks resolved to the sum of both sides). The package count of 107 matches `git ls-files custom_components/heatpump_optimizer/ | wc -l` = 107 at this head. The pair count goes 145 to 146 as the body says. The other `deployment_shape.py` checks pass.
-  - `7ff8d4848`: its tree equals the automatic merge-tree, so it carries no hand resolution.
-- Claim files: `git diff origin/main 7ff8d4848 -- tests/golden/claimed_drift.txt` is the single added `config_flow # R10-GENERIC-HEAT-CURVE` line. `card_claimed_drift.txt` is identical to main's. `env_drift.py --all 2f6d699e5` returns rc=0, `NO UNCLAIMED DRIFT: 56 scenario(s)`, `NO STALE FIXTURE: 56 committed fixture(s)` (ev/env_drift_all.txt). `env_drift.py --claims-only origin/main` returns `claims hygiene: origin/main ok` (ev/claims_only.txt).
-- `VERSION`, `manifest.json` and the `RELEASE_NOTES.md` heading do not differ from origin/main.
-- Mutation proof for `14c31e564`, run in a separate detached worktree at this head:
-  - Card mutant: I deleted `"health.input_heat_curve_displace_entity"` from the card's `de` dictionary. `node tests/card.mjs` returns rc=1 with `3 CARD CHECK(S) FAILED`: key-for-key parity, its null-control line, and `UX-HEALTH A: the card's de input labels are the options flow's`. KILLED (ev/mutant_card_key.txt).
-  - de.json mutant: I deleted `options.error.heat_curve_not_offset` from `translations/de.json`. `dev/audit/rounds/round4/D6/claims.py` rewrites C112 to FALSE with `missing={'de': 1, ...}`. KILLED (ev/mutant_de_key_claims.txt). This is the claims register that prepr refuses on, and the body's account names it.
-  - I restored both files, and `git status` was clean.
-  - Unmutated: `card.mjs` gives ALL CARD CHECKS PASSED (ev/card_unmutated_wt2.txt, after `tests/plan_view.py`). The `card rc=1` in ev/card.txt is a run in the other worktree that skipped `plan_view.py`'s payload precondition (`plan payload ... not found`), not a check failure.
-- Unmutated at this head:
-  - `tests/entities.py`: ALL 2707 ENTITY CHECKS PASSED, which includes the de.json key-parity check (ev/entities_tail.txt).
-  - `tests/config_flow_steps.py`: ALL 561 checks PASSED.
-  - `tests/deployment_shape.py`: ALL DEPLOYMENT SHAPE CHECKS PASSED.
-  - `tests/structure.py`: STRUCTURE RATCHET PASSED.
-  
-  Each of these numbers matches the body's figures for `14c31e564` and `5fc731c63`.
-- CI at this head: `merge_train.py classify 7ff8d4848a3ebeb46f5ed1135ee4a45d9b8d725d --pr 3299`, re-run every 60 s, read WAIT from 18:47Z, then exited 0 at 19:29Z with `GREEN 7ff8d4848a3ebeb46f5ed1135ee4a45d9b8d725d pending: none red: none` (ev/classify.log, ev/classify_final.txt). I read all 43 check runs live. Every context `merge_train.py owed-reds` lists (ev/owed-reds.txt) concluded success or skipped: `gate`, `pr-contract / pr-contract` (finished 19:28:49Z, after every other run), `tests / mutation`, `tests / fast (3.14)`, `tests / closures`, `tests / coverage`, `tests / coverage-ratchet`, `codeql / Analyze (python)` and the rest.
-- The one red at this head is `tests / replay` (job 129354517194, failure). It is not in the owed-reds set, so under the owner's 2026-11-09 red-check ruling it owes no `## Red checks` answer and cannot block. I name it here only.
-- The `## Red checks` answer for `83b0be72`'s `tests / mutation` red is present in the body. It names the cheaper detector (the source-only `completeness_problems`, which the `merge-main.yml` bot merge does not run) and routes it to the root-cause seat. That satisfies step 11's trigger. `pr-contract` is green after the last red.
-- Figures I did not re-derive: the body's prepr run times, its order-preservation script output (`existing order preserved: True`), and the sampled `--max 10` mutant run it marks `unmeasured`.
-
-## Findings
-
-None.
+- RESULT remerge af9112edd: `git show --remerge-diff af9112edd` has exactly three hunks. Two are in translations/de.json: `data.flow_min_lift_k`, and the `data_description` block holding space_setpoint_unit, flow_min_lift_k and flow_heat_c. One is in the card's `de` dictionary: savings.below_meter_floor and savings.meter_floor_note. Each hunk resolves to the 1cabb845d side (main) and nothing else changed. This matches the body's "Resolution delta" item 1 (ev/remerge-af9112edd.txt).
+- RESULT remerge c3dd57a85: the only output is `LEDGER-MERGE: resolved tests/closures.json`, so the commit equals git's automatic merge plus the repository's ledger driver (ev/remerge-c3dd57a85.txt). 757291b60's remerge-diff is also empty, and its tree equals c3dd57a85's.
+- RESULT f7ecda023: its tree equals af9112edd's (`git diff af9112edd f7ecda023` is empty). Its remerge-diff shows only that it deletes BLOCKED.md, which its wip parent b7196b54e had added.
+- RESULT closures.json at c3dd57a85, compared per entry three ways against f7ecda023, b8f67a775 and the base 1cabb845d: no entry was changed by both sides. `closures` takes 22 entries from the branch. `inert_reads` takes entities.py and harness_headers.py from main. `recorded` takes backtest.py and optimality.py from main and arch_score_head.py, card.mjs, manual_plan.py, plan_view.py, structure.py, typing_ruler.py and wood_advisor.py from the branch. Violations: none (ev/closures.txt). This is exactly what the body states.
+- RESULT parity at the head: the flattened keys of strings.json, en.json and de.json number 1457 each, and all set differences are empty (EQUAL). `node --check` parses the card (OK), and de.json parses as JSON (ev/parity.txt).
+- RESULT three-way, branch-only keys (present on the branch, absent from both the base and main): de.json has 10 heat-curve keys and the card has 1 key in each of en, sv and de (`health.input_heat_curve_displace_entity`). None is missing and no value changed, at af9112edd (parents 7ff8d4848 and 1cabb845d, base 2f6d699e5) or at the head (against b8f67a775). No main key is missing. Null control: dropping one feature key from the merged map is reported as missing, in de.json and in the card (DETECTS). Files: ev/threeway-af9112edd.txt and ev/threeway-head.txt.
+- RESULT head versus main values: in de.json and in the card, every key the head shares with main has main's value. The head adds exactly the 10 + 3 feature keys. So the conflict resolution keeps none of this branch's competing wording.
+- RESULT claim files: the delta 7ff8d4848..head changes neither tests/golden/claimed_drift.txt nor card_claimed_drift.txt (0 diff lines), and main did not change them between 2f6d699e5 and b8f67a775. Against main, the head adds only the one R10-GENERIC-HEAT-CURVE `config_flow` line, which predates this delta (ev/claims.txt).
+- RESULT main side: `git diff --stat 1cabb845d b8f67a775 -- custom_components tests/golden` is empty.
+- RESULT merge-tree: `git merge-tree --write-tree origin/main 757291b60` exits 0 at origin/main 96346fdec, and again at 2cf0f129b (ev/merge-tree*.txt). No conflict and no claim driver line.
+- Mutation proof (step 1): not applicable to this delta. Besides main's own text, it writes no production line: the three hunks take main's strings, and the feature lines are unchanged from the reviewed head. I ran no mutants.
+- CI: `merge_train.py classify 757291b60... --pr 3299` printed WAIT (rc=3) until 01:48Z, then `GREEN 757291b601c70798c92d71368cb5b53ff1db8dcc pending: none red: none`, rc=0 (ev/classify-40.txt). At render time the review packet reported `required-red: gate`. That run (job 129549839463) failed with "FAIL run(s) [42731055817] at this head are still being judged; their gate decides", which was a provisional state, not a defect. The later `gate` runs 129572308284, 129572677824 and 129572688992 concluded success, and `tests / mutation` concluded success (ev/checks-final.txt). No required check is red at this head, so no root-cause answer is owed.
+- Head: the PR branch still reads 757291b601c70798c92d71368cb5b53ff1db8dcc at verdict time, and so does the body's `## Head`.
+- Figures I did not re-derive: the body's patch-ids (card f6ef71a0, de.json e311317d) and the card's 1717/1714 pair counts. My parser counts the card at 1717 at the head and 1714 at main, which agrees, but I did not compute the patch-ids.
+- Round: this is the delta review after the 7ff8d4848 merge verdict, not a new feature round.

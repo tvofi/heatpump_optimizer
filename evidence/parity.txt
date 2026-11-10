@@ -1,0 +1,5 @@
+keys 1457 1457 1457 s-e [] e-s [] s-d [] d-s []
+RESULT parity EQUAL
+RESULT node-check card OK
+RESULT de head-vs-main value diffs [] head-only keys 10
+RESULT card head-vs-main value diffs [] head-only keys 3
