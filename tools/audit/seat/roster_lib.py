@@ -495,6 +495,12 @@ CARRY_MARKS = ("implemented", "moved", "dismissed")
 _CARRY_MARK = re.compile(r" \[(implemented|moved|dismissed): ([^\]\n]+)\]\Z")
 #: The stages in which a group can no longer receive or discharge a carry.
 CARRY_CLOSED = CLOSED_STAGES
+#: The stages a carry may not be routed TO (R10-CARRY-SINK-BARRIER, tvofi
+#: 2026-11-10): every CARRY_CLOSED stage, plus `carries-open`, whose pull
+#: request merged so no seat is left to build a carry parked there, and
+#: `refuted`, which names a finding, not work. Not CARRY_CLOSED itself: a
+#: carries-open group still holds and discharges the carries it owes.
+CARRY_DEST_CLOSED = CARRY_CLOSED + ("carries-open", "refuted")
 #: THE CUT-OVER, per roster path: a carry that sat on a closed group at this
 #: roster-branch commit is LEGACY and is never reported, so the invariant
 #: starts at the cut-over with no blanket migration and nothing marked

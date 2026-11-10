@@ -66,6 +66,10 @@ not at all.
 - **The stage has no live roster group** → its own `dev/programme/carries/carry-<N>.json`,
   N the destination issue, and **creating it is part of the finding**. A group
   at `resume.stage: done` is not a destination: nothing dispatches or lints it.
+  Nor is one at `carries-open`, `absorbed`, `refused`, `refuted` or `deferred`,
+  or one created only to receive carries (no PR, brief, issue or fix): a carry
+  goes to the live group owning the seam, and where none exists the producing
+  group keeps the fix (tvofi 2026-11-10).
   `brief_lint.mjs` states the fields and refuses a carry at an issue a live
   group covers, so no stage has two destinations.
 - **A sibling seam in the same stage** — an open seam the enumeration rule returns
@@ -91,8 +95,9 @@ branch SHA: the reviewer opens that, not the claim.
 destination**: each `## Friction` and `## Forward-carry` line, non-blocking note
 or residual ends `Carry: <GROUP>|#<issue>|O<n>|dismissed: <reason>`. So does
 a finding in the orchestrator's out-of-tree ledger, which only the next session reads.
-`tools/audit/carry_audit.py` refuses a missing marker and a destination gone or
-done (`pr-contract`; the train's pre-flight).
+`tools/audit/carry_audit.py` refuses a missing marker and a destination that is
+gone, at a stage in `roster_lib.CARRY_DEST_CLOSED`, or a receiver only
+(`pr-contract`; the train's pre-flight).
 
 **Name a destination that exists.** A carry to a file `git grep` cannot find is
 not a carry.
