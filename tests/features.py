@@ -62124,6 +62124,18 @@ R.check(
     and _pa_same_sent == 1 and _pa_space(_pa_same) == [53.0],
     f"{_pa_echo_target=} {_pa_space(_pa_echo)=} {_pa_space(_pa_same)=}",
 )
+_pa_grace_at = _PA_T0 + timedelta(minutes=30)
+_pa_grace_held = _pa.ArbiterState(written={"space_setpoint": (30.0, _pa_grace_at)}, space_before=25.0)
+_pa_grace_edge = _pa._edited(_pa_grace_held, 40.0, _pa_grace_at + timedelta(seconds=_pa.ECHO_GRACE_S))
+_pa_grace_under = _pa._edited(
+    _pa_grace_held, 40.0, _pa_grace_at + timedelta(seconds=_pa.ECHO_GRACE_S - 0.001)
+)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a reading exactly ECHO_GRACE_S after the write is an edit, the instant "
+    "hold() stops treating it as the echo; null control: a millisecond inside the grace is none",
+    _pa_grace_edge is True and _pa_grace_under is False,
+    f"{_pa_grace_edge=} {_pa_grace_under=}",
+)
 R.check(
     "R10-ARBITER-OFF-RESTORE: a second differing reading is a write the pump does not take, never a "
     "second edit: off restores the first edit, 40, not 41",
