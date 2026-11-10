@@ -4924,6 +4924,22 @@
       "doc": [
         "dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md"
       ]
+    },
+    "R10-RCA-ROSTER-DRAIN-REPLAY": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "the beat's roster-drain (#3197) delivers each queue line at least once: a pass killed at timeout_s 900 pushed ops but never wrote roster-done.json, and replayed index-keyed drop-carry ops re-resolved on the shifted carry list; census 43495fb61..c444a6995 on handoff/audit-r10-roster: 32 drops, 18 replays, 14 restored by hand, 4 lost",
+      "trigger": "assigned by the orchestrator 2026-11-10, beside R10-HOTFIX-ROSTER-DRAIN-REPLAY",
+      "date": "2026-11-10",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(d) drop-carry by index (9969e3ca8, 2026-10-18) was sound for a run-once hand caller; the beat's automatic drain made delivery at-least-once and nothing records which ops are replay-safe; the replay half is (c), roster_queue --mark's per-op barrier written to the beat's scratch queue, the hotfix's",
+      "countermeasure": "roster_queue.replay_unsafe refuses an index-keyed drop-carry/mark-carry on the single-op and batch paths (sub-microsecond a line by the harness's cost arm, at most one 120 s requeue per index line written, against >=600 s per occurrence at 8 of 14 index drops replayed); hand runs keep the index",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-rca-roster-drain-replay.md",
+      "doc": [
+        "dev/audit/rca/r10-rca-roster-drain-replay.md"
+      ]
     }
   },
   "N-registry-leak": {

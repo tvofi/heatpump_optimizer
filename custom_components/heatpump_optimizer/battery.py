@@ -320,15 +320,18 @@ def build(
         )
     )
 
-    if params.dhw_enabled:
+    # A combi store is the `buffer_tank` component below (combi implies
+    # `buffer_is_store`), so a `dhw_tank` beside it would count it twice.
+    store = params.dhw_store
+    if params.dhw_enabled and not store.combi:
         components.append(
             StorageComponent(
                 name="dhw_tank",
-                capacity_kwh_per_c=params.dhw_tank_thermal_mass,
+                capacity_kwh_per_c=store.capacity_kwh_per_c,
                 temperature=state.dhw_temperature,
                 min_temperature=dhw_min,
                 max_temperature=dhw_max,
-                loss_kw_per_c=params.dhw_tank_heat_loss_coefficient,
+                loss_kw_per_c=store.ua_kw_per_c,
                 ambient_temperature=20.0,
             )
         )

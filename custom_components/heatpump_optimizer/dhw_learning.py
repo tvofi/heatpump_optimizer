@@ -418,7 +418,7 @@ class DhwProfileLearner:
             / DHW_COOLING_REFERENCE_DELTA
         )
         intensity = max(0.0, temp_drop / dt_h - standby_rate)  # °C/h beyond standby
-        energy_kwh = intensity * dt_h * params.dhw_tank_thermal_mass
+        energy_kwh = intensity * dt_h * params.dhw_store.capacity_kwh_per_c
         windows = params.dhw_demand_windows
         label = draw_window_label(
             now.hour + now.minute / 60.0, windows
