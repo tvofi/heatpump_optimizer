@@ -61965,16 +61965,22 @@ _pa_ro = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_ro)                          # baseline 53 captured, the gate 25 written
 _pa_ro_sent = _pa_turn_off(_pa_ro)
 _pa_ro_written = dict(_pa.state_for(_pa_ro).written)
+from homeassistant.helpers.storage import SAVE_COUNTS as _pa_saves  # noqa: E402
+_pa_ro_key = f"heatpump_optimizer_{_pa_ro.entry.entry_id}_pump_duty"
+_pa_ro_saved = _pa_saves.get(_pa_ro_key, 0)
+_pa_run(_pa_ro, 46)
+_pa_run(_pa_ro, 47)
+_pa_ro_resaved = _pa_saves.get(_pa_ro_key, 0) - _pa_ro_saved
 _pa_ro_null = _PaCoord(_PA_TUYA, duty="observe")
 _pa_settled(_pa_ro_null)
 _pa_ro_null_sent = _pa_turn_off(_pa_ro_null)
 R.check(
     "R10-ARBITER-OFF-RESTORE: switching the optimizer off writes the space set-point's baseline back, "
-    "once, and nothing else; null control: with the arbiter not controlling, off writes nothing",
+    "once, and nothing else, its record saved once; null control: with the arbiter not controlling, off writes nothing",
     _pa_ro_sent == 1 and _pa_space(_pa_ro) == [53.0] and len(_pa_ro.writes()) == 1
-    and _pa_ro_written == {}
+    and _pa_ro_written == {} and _pa_ro_resaved == 0
     and _pa_ro_null_sent == 0 and _pa_ro_null.writes() == [],
-    f"{_pa_ro_sent=} {_pa_ro.writes()=} {_pa_ro_written=} / {_pa_ro_null_sent=} {_pa_ro_null.writes()=}",
+    f"{_pa_ro_sent=} {_pa_ro.writes()=} {_pa_ro_written=} {_pa_ro_resaved=} / {_pa_ro_null_sent=} {_pa_ro_null.writes()=}",
 )
 _pa_ru = _PaCoord(_PA_TUYA)
 _pa_settled(_pa_ru)
@@ -62080,8 +62086,7 @@ def _pa_restored_twice(via):
     if via == "off":
         with_config(coord, {"heat_pump_mode_entity": "", "dhw_setpoint_entity": ""})
     coord.device("number.water_set", "25")
-    _pa_settled(coord)                       # 25 captured; nothing to write over it
-    _pa_settled(coord, 30)                   # a space step: armed with 25, its target written
+    _pa_settled(coord)                       # 25 captured, and the gate 25 written: the last write
     coord.entry.runtime_data = coord
     if via == "off":
         _pa_turn_off(coord)
