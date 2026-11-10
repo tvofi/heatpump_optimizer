@@ -68,24 +68,23 @@
   "sid": "t5",
   "pr": 3344,
   "head": "d96b14c349acc69869183552071adbaf7ece498e",
-  "kind": "plant",
+  "kind": "excluded",
   "cls": "defect",
   "file": "tools/audit/seat/roster_edit.py",
-  "old": "    return errs, bool(m) and int(m.group(1)) == len(errs)\n",
-  "new": "    return errs, bool(m) and int(m.group(1)) >= len(errs)\n",
-  "truth": "_lint_errors reads a lint run as fully accounted for when its TOTAL is at least the ERROR lines (>=, was ==): a failure printed in another shape is no longer refused whole, so the base comparison can wave through an error no ERROR line names",
+  "old": "                            f\"refs/remotes/origin/{branch}\", head],\n",
+  "new": "                            f\"refs/remotes/origin/{branch}\", \"HEAD\"],\n",
+  "truth": "after its own push, write_roster moves the checkout's tracking ref to the CHECKOUT's HEAD, not to the pushed commit `head` (which lives in the worktree): the tracking ref still misses the push and the next op finds HEAD on no origin ref, the P409 refusal this PR set out to remove",
   "keys": [
-   ">= len(errs)",
-   ">=",
-   "_lint_errors",
-   "accounted",
-   "whole",
-   "TOTAL"
+   "\"HEAD\"",
+   "update-ref",
+   "tracking ref",
+   "checkout's HEAD",
+   "wrong commit"
   ],
   "verify": [
    "{py} -I tools/audit/seat/roster_edit.py --self-test"
   ],
-  "replaced": "first plant (_on_origin `return held()` -> `return True`) was caught by roster_edit --self-test (2 failed), excluded"
+  "replaced": "all three plants in #3344's changed lines were caught by roster_edit --self-test, so the PR's tests leave review no surviving defect there: (1) _on_origin return True, 2 failed; (2) _lint_errors >=, 5 failed; (3) update-ref to the checkout's HEAD, the self-test raises Refuse (ev/verify-t5*)"
  },
  {
   "sid": "w9",

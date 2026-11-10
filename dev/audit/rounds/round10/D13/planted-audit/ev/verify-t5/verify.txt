@@ -1,0 +1,1 @@
+t5 #3344 `{py} -I tools/audit/seat/roster_edit.py --self-test` head rc=0 plant rc=1 -> CAUGHT by the PR's tests (excluded)

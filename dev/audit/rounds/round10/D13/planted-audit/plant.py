@@ -4,6 +4,7 @@
     python3 -I plant.py build   --repo R            # sibling commits, one per sample, printed
     python3 -I plant.py verify  --repo R --out DIR  # the PR's own tests at head and at each plant
     python3 -I plant.py briefs  --repo R --out DIR  # one blind review brief per sample
+    python3 -I plant.py publish --repo R --out briefs --tools T --overlay O  # push samples, publish probe dispatches
     python3 -I plant.py score   --repo R            # read handoff-body/<topic>, score caught/missed
 
 THE QUESTION. `review_strength.py --guardrail` trips when real-catch incidence over the
@@ -168,6 +169,8 @@ def cmd_score(a):
     samples = json.loads((HERE / "samples.json").read_text())
     caught = planted = cblock = controls = 0
     for p in plants():
+        if p["kind"] == "excluded":  # caught by the PR's own tests: it measures CI, not review
+            continue
         ref = f"origin/handoff-body/{TOPIC.format(sid=p['sid'])}"
         try:
             names = git(a.repo, "ls-tree", "--name-only", ref).split()
@@ -191,14 +194,41 @@ def cmd_score(a):
     return 0
 
 
+def cmd_publish(a):
+    """Push each sample to origin (a fetchable SHA) and publish its probe dispatch; fires nothing."""
+    samples = json.loads((HERE / "samples.json").read_text())
+    briefs = Path(a.out)
+    for p in plants():
+        if a.only and p["sid"] not in a.only.split(","):
+            continue
+        sha = samples[p["sid"]]["sample"]
+        git(a.repo, "push", "-q", "origin", f"{sha}:{SAMPLE_REF.format(sid=p['sid'])}")
+        r = subprocess.run([sys.executable, "-I", "tools/audit/seat/cloud_dispatch.py", "--role", "probe",
+                            "--topic", TOPIC.format(sid=p["sid"]), "--head", sha,
+                            "--brief", str(briefs / f"{p['sid']}.md"), "--model", a.model,
+                            "--overlay", a.overlay, "--publish"],
+                           cwd=a.tools, capture_output=True, text=True)
+        if r.returncode:
+            raise SystemExit(f"{p['sid']}: cloud_dispatch refused: {r.stderr.strip()[-300:]}")
+        ref = f"dispatch/probe-{TOPIC.format(sid=p['sid'])}"
+        pin = git(a.repo, "ls-remote", "origin", f"refs/heads/{ref}").split()[0]
+        git(a.repo, "fetch", "-q", "origin", f"refs/heads/{ref}")
+        prompt = git(a.repo, "log", "-1", "--format=%H", pin, "--", "PROMPT.md")  # PROMPT.md's own commit, the pin
+        print(p["sid"], sha, ref, "tip", pin, "PROMPT", prompt.strip())
+    return 0
+
+
 def main(argv):
     ap = argparse.ArgumentParser()
-    ap.add_argument("op", choices=("build", "verify", "briefs", "score"))
+    ap.add_argument("op", choices=("build", "verify", "briefs", "score", "publish"))
     ap.add_argument("--repo", required=True)
     ap.add_argument("--out", default=str(HERE / "ev"))
     ap.add_argument("--only", default="")
+    ap.add_argument("--tools", default="", help="publish: a checkout of main holding cloud_dispatch.py")
+    ap.add_argument("--overlay", default="", help="publish: the cloud overlay JSON")
+    ap.add_argument("--model", default="sonnet", help="publish: the reviewer model the tripped arm measured")
     a = ap.parse_args(argv)
-    return {"build": cmd_build, "verify": cmd_verify, "briefs": cmd_briefs, "score": cmd_score}[a.op](a)
+    return {"build": cmd_build, "verify": cmd_verify, "briefs": cmd_briefs, "score": cmd_score, "publish": cmd_publish}[a.op](a)
 
 
 if __name__ == "__main__":

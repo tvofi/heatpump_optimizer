@@ -44,9 +44,40 @@ re-review brief for each sample. The brief never says whether the sample is plan
 
 Each plant must survive the gate (`ev/verify-*`): the PR's own test command passes at
 the reviewed head and at the plant. A plant that the PR's tests catch measures CI, not
-review, so it is replaced. #3344's first plant failed this check
-(`ev/verify-tools/t5-first-plant-caught.log`, roster_edit self-test 2 failed) and was replaced.
+review. The final sample has 5 plants (k3 #3349, q7 #3371, m2 #3347, w9 #3337,
+b4 #3342) and 2 controls (h6 #3371, r1 #3344).
+
+- **Instrument plants w9 and b4 survive.** The roster_queue self-test reads 62 checks
+  with 0 failed at both ends. The orchestrator_tick self-test reads 292 checks with 0
+  failed at both ends.
+- **#3344 is excluded as a plant.** Each of the three plants placed in its changed lines
+  was caught by roster_edit's own self-test (256 checks):
+  - `_on_origin` returning True: 2 checks failed;
+  - `_lint_errors` comparing with `>=` instead of `==`: 5 checks failed;
+  - `update-ref` pointed at the checkout's HEAD: the self-test raised Refuse.
+
+  So #3344's PR, on its own, left review no defect to catch. Its unplanted head stays in
+  the sample as control r1.
+- **Product plants k3, q7 and m2 still need a Linux run.** On this host,
+  `tests/features.py` cannot import `homeassistant` under a bare `python3`. Under
+  venv-ci with `tests/hastub` it hung in an asyncio select for more than 20 min at 0% CPU,
+  so the run was stopped. Probe `pda-1109-gate` runs the suite at each head and at its
+  plant on the cloud image (`briefs/gate.md`). A plant that the run shows caught is moved
+  to `excluded` before scoring.
+
+`ev/publish.txt` lists the pushed `audit-sample/pda-1109-<sid>` refs and the
+`dispatch/probe-pda-1109-<sid>` refs, with the pinned PROMPT commits. The reviewers run
+on sonnet, the model of the tripped `model:sonnet` arm and of current reviewer routing.
+
+Known limits:
+- A sample is a sibling of a merged head. A reviewer who diffs it against main or the
+  PR's real head can see the plant, and the brief forbids this.
+- The `gate` brief names both commits of each product pair on origin.
+- Five plants and two controls give a coarse rate. The audit can separate a reviewer who
+  catches most plants from one who catches few. It cannot resolve a 10-point
+  difference.
 
 ## Result
 
-Pending the cloud reviewer returns (`plant.py score`).
+Pending the reviewer returns. Run `python3 -I plant.py score --repo <repo>` once
+`handoff-body/pda-1109-<sid>` exists for each sample.
