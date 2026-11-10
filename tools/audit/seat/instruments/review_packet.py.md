@@ -11,8 +11,9 @@
   renders its own from its dispatch prompt. Refusal: carry-audit, a `## Head`
   not naming the head, a `tests/structure.py` refusal at the head merged with
   main, an unanswered concluded red, a required context concluded failure
-  (unless `merge_train.py classify --pr` answers APPROVAL-OWED, printed as the
-  `approval-owed` advisory instead; P345), a host path, a hot file shared with an open pull request holding an
+  that `merge_train.py classify --pr` reads RED or cannot read (APPROVAL-OWED
+  prints the `approval-owed` advisory instead, P345; WAIT or GREEN prints
+  `required-wait`/`required-green`, #3379: classify decides, as in `bus.sh`), a host path, a hot file shared with an open pull request holding an
   unboarded merge verdict, or a `fix/<t>` head lacking its `handoff/<t>` tip
   (`handoff-not-applied`), or a body line citing a carry as landed that the roster ref lacks at the cited sha (`carry-landed`); a pending check never refuses. A `head-note` refusal names the repair (`update_pr.sh`). The packet closes on the `carry_audit.py check` self-audit a reviewer runs before its verdict. `handoff`, run by
   `body_push.sh` before a PR body is pushed, refuses the structure and
