@@ -1,0 +1,21 @@
+M0 PASS: the unmutated head
+M1 KILLED: a later round's diff is `git diff <rh> <head>`
+    FAIL scope_facts: a later round's diff is `git diff <rh> <head>` alone -- the round-one row is not in it
+M2 KILLED: the packet renders the delta and the previous verdict
+    FAIL scope: a later round renders `git diff <rh> <head>` and the previous verdict's findings, not the three-dot diff
+    FAIL the packet's scope line: the exception names production code, non-obvious risk and CI's blindness, and the wider trigger wording is absent
+M3 KILLED: a reviewed head that is not the head's ancestor keeps the full diff
+    FAIL review_scope: delta only with a reviewed head that is an ancestor and a verdict naming it; else full, saying why
+    FAIL scope_facts null: a reviewed head that is not the head's ancestor reads the three-dot diff
+M4 KILLED: the previous verdict is the one naming the reviewed head
+    FAIL previous_verdict: the newest verdict whose first line names <rh>; another head's, an older one and a malformed line are skipped; none naming it is None
+M5 KILLED: bus.sh dispatch hands the renderer --reviewed-head
+    FAIL a later round's dispatch hands the renderer its --reviewed-head, so the packet is the delta (fix-review.md 12; null: the harness dispatch below passes none)
+M7 KILLED: the packet's scope line carries the exception's production-code qualifier
+    FAIL the packet's scope line: the exception names production code, non-obvious risk and CI's blindness, and the wider trigger wording is absent
+M8 KILLED: the packet's scope line states a wider trigger
+    FAIL the packet's scope line: the exception names production code, non-obvious risk and CI's blindness, and the wider trigger wording is absent
+M6 KILLED: the cloud reviewer renders its packet with --reviewed-head
+    FAIL a later round's reviewer renders its packet with --reviewed-head and is told its scope is the delta (fix-review.md 12); null: a first round's render names no reviewed head
+MUTANTS: 9 run, 0 not as required
+rc=0

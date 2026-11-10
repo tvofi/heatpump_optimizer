@@ -1,0 +1,1 @@
+git show --remerge-diff 1875f3ed3b0f38234ae30e11299c2e4632a4c422: empty output (merge commit equals git's own re-merge; no hand edits)
