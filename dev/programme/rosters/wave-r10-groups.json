@@ -21761,6 +21761,53 @@
     "note": "overlap admitted (R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-GATE-DEFER-BARRIER): train pre-flight parks mandate-covered policy heads (#3366 twice); handoff built e414ab71"
    },
    "brief": "The queue pre-flight judged a policy head with policy_gate before the train could post the mandate-citing approval that admission and the merge post first (policy_approve), so a policy head under an in-force mandate parked on no decisive review by tvofi, and re-admission of the park re-ran the same check (#3366 parked twice). Fix: a read-only approval-due answer, and a pre-flight check that judges the gate with the due approval included but unposted; the merge still judges the real reviews. Null controls that must still park: no mandate, a revoked mandate, a code-owned scope, an expired mandate, an owner CHANGES_REQUESTED at the head. Built handoff by the orchestrator-dispatched seat; review it adversarially."
+  },
+  {
+   "group": "R10-DEPENDABOT-3323-COMPAT",
+   "lane": "C",
+   "kind": "production",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "hotfix",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    ".github/dependabot.yml",
+    "tests/requirements-build.txt",
+    "tests/requirements-ci.txt",
+    "tests/requirements-coverage.txt",
+    "tests/requirements-nightly-ha.txt",
+    "tests/requirements-typing.txt"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-dependabot-3323-compat",
+    "pr": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "open PR, review",
+    "note": null
+   },
+   "brief": "Replacement for Dependabot #3323 (pip group): Dependabot rewrote versions but kept stale --hash lines on five pins (coverage, acme, python-dateutil, sqlalchemy, uv), and bumped homeassistant-stubs past the deliberate 2026.9.3 hold that typing_ruler.py enforces. Built handoff regenerates both locks with their header commands, keeps the stubs and the homeassistant-pinned zeroconf/cronsim, and corrects the dependabot.yml comment. Review: every pin hash matches PyPI (null control: #3323 files mismatch on exactly the five), typing_ruler passes, and #3323 is closed as superseded after the merge."
   }
  ]
 }
