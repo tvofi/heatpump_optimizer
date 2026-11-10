@@ -3210,6 +3210,8 @@ def _memory_probe_main(argv: list[str]) -> int:
         _n, _rebuilt, prefill = _intern_until_rebuild(
             "fill", limit=int(argv[argv.index("--intern-prefill") + 1])
         )
+    if "--no-intern-headroom" not in argv:
+        give_interned_table_headroom()
     modules_before = set(sys.modules)
     tracemalloc.start()
     build_case(**spec)
@@ -3265,6 +3267,32 @@ def _intern_until_rebuild(
         tracemalloc.stop()
 
 
+def give_interned_table_headroom() -> int:
+    """Rebuild the interned-string table now, before a probe's traced window.
+
+    The table is interpreter-global and is rebuilt in one step when its free
+    slots run out; a solve interns a handful of fresh strings (5-7 slots,
+    traced, on the cloud seat's image), so whichever traced window crosses
+    the rebuild is charged the whole new table. Where the import-time fill
+    leaves the table depends on the runner -- one extra PYTHONPATH entry
+    moved it by two slots, CI's environment by one -- which is how one tree
+    read 2.1 MiB on one runner and 3.9 on the next
+    (R10-HOTFIX-STRESS-MEM-PEAK-2). Interning fresh strings until the
+    rebuild is seen, then dropping them, leaves the table freshly sized:
+    their slots stay spent (a deleted key leaves a dummy), and the rest --
+    tens of thousands -- is headroom no probed solve comes near. Returns
+    the interns it took; refuses a search that never saw the rebuild.
+    """
+    count, rebuilt, kept = _intern_until_rebuild("room")
+    del kept
+    if not rebuilt:
+        raise RuntimeError(
+            f"no interned-table rebuild in {count} fresh interns: the "
+            f"probe's traced window is not insulated from the runner's fill"
+        )
+    return count
+
+
 def solve_window_imports(before: set, after) -> list[str]:
     """The modules a probe's traced window imported, sorted: owed empty.
 
@@ -3307,6 +3335,9 @@ def _memory_baseline_main(argv: list[str]) -> int:
     the case DETECTION_TARGET is sized for.
     """
     del argv  # the flag alone selects this mode
+    # The probe's headroom step, paid here too, so the table it grows is
+    # in both watermarks and cancels out of the attributable difference.
+    give_interned_table_headroom()
     print(json.dumps({"rss_mb": round(rss_mb(), 1)}))
     return 0
 
