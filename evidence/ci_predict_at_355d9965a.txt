@@ -1,0 +1,15 @@
+443:    finally:
+601:    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-tree-"))
+623:    finally:
+624:        shutil.rmtree(tmp, ignore_errors=True)
+1205:    finally:
+1337:    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-graders-"))
+1359:    finally:
+1360:        shutil.rmtree(tmp, ignore_errors=True)
+1366:    finally:
+1412:            finally:
+1525:    finally:
+1536:    finally:
+1632:    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-plant-"))
+1688:    finally:
+1689:        shutil.rmtree(tmp, ignore_errors=True)
