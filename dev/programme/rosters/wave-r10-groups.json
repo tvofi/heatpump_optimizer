@@ -21834,10 +21834,10 @@
     ".github/workflows/governance.yml"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "note": "orchestrator 2026-11-10T05:36Z: main-red hotfix; local fix d2f3db22 on handoff-wip, cloud receipt round trig_01CM889s records gh-read-run on Linux",
     "pr": 3409,
-    "commit": null
+    "commit": "0c868b7d2f830cde62f999206de84606b64a69a8"
    },
    "brief": "Main-red hotfix (orchestrator, 2026-11-10). governance / instrument-self-tests red on every main push since #3315 (ba6fd7e8b0). Three causes: (1) tools/audit/seat/ref_privacy.py added_lines ran git show REV:path on an absent diff side, so the push-names-the-host step read each merge's added files (a read set that moves every merge); (2) tools/ci/selftest_closures.json drifted after #3315; (3) #3361 (e79a0e78bc) added the step 'Show the workflow read runner refusing its own fixtures' with an if: not gated on its own scope output. FIX: show only diff sides that exist (name-status); re-record the table as the union of main's measurements; gate the step on its own id (precedent d9990a12f2) with a Linux-recorded entry. Check whether the beatd step's read set is timing-dependent. Root cause owed in its own seat: R10-RCA-MAIN-SELFTESTS-RED."
   },
