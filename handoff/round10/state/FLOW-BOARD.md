@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-10T05:52:45+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-10T06:06:02+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -8,10 +8,10 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 |---|---|---|
 | roster groups closed vs takt | 1 / 1.0 | 48 / 24.0 |
 | fly-ins closed | 0 | 7 |
-| main moves: group-carrying / record / roster-edit / fly-in | 3 / 0 / 0 / 0 | 29 / 4 / 0 / 7 |
+| main moves: group-carrying / record / roster-edit / fly-in | 4 / 0 / 0 / 0 | 30 / 4 / 0 / 7 |
 | first-pass fix-review yield | 1/1 (1.00) | 22/31 (0.71) |
-| blocked-class mix | ci-red:1 | body-stale:1, ci-deferral-red:1, ci-red:16, ci-unsettled:1, config-attack:1, main-conflict:1, mutation-vacuous:1, resolution-ungated-step:1, root-cause-detectable:1, root-cause-unrecorded:1, scope-rule-widened:1, selftest-scope-ungated:1, semantic-conflict:1, stale-base:1, stale-premise:1 |
-| lead time per size (h, n/p50/max) | S n=3 p50=43.58 max=45.25 | L n=1 p50=57.37 max=57.37; M n=11 p50=32.22 max=54.36; S n=17 p50=20.13 max=45.25 |
+| blocked-class mix | ci-red:1 | body-stale:1, ci-deferral-red:1, ci-red:15, config-attack:1, main-conflict:1, mutation-vacuous:1, resolution-ungated-step:1, root-cause-detectable:1, root-cause-unrecorded:1, scope-rule-widened:1, selftest-scope-ungated:1, semantic-conflict:1, stale-base:1, stale-premise:1 |
+| lead time per size (h, n/p50/max) | S n=4 p50=43.58 max=45.25 | L n=1 p50=57.37 max=57.37; M n=11 p50=32.22 max=54.36; S n=18 p50=18.76 max=45.25 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
