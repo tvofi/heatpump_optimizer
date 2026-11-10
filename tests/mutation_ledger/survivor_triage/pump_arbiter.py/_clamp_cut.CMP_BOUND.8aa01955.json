@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_clamp_cut CMP_BOUND 8aa01955",
+  "old": "    if value > rec.prev_c:",
+  "reason": "equivalent on every reachable state: `>` and `>=` differ only at value == rec.prev_c, and _clamp_cut reaches this line only with value == rec.sent_c and both sent_c and prev_c set. The only writer that sets either to a value is _note_sent, which assigns both together after returning early when the replaced record equals `out` (recorded[0] == out): prev_c = recorded[0] != out and sent_c in {out, None}, so sent_c != prev_c whenever both are set. Every other writer (FeedbackRun's defaults, the start hold in _feedback, the cut in _clamp_cut) sets sent_c to None. A NaN on either side compares false under both operators. Measured: the mutant survives tests/features.py's R1 bracket-edge checks, which kill both CMP_BOUND sites on the line above.",
+  "verdict": "equivalent"
+}
