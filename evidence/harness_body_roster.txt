@@ -1,0 +1,20 @@
+== 699f4d9ef40f4eaf62397e81ae000680e417baf3 @ roster 43495fb6
+code 699f4d9ef40f4eaf62397e81ae000680e417baf3 roster 43495fb6113e902630a0ac60b8012683c7cac97e (43495fb6113e902630a0ac60b8012683c7cac97e)
+RESULT accepted[absorbed]=0 of 14
+RESULT accepted[carries-open]=10 of 10
+RESULT accepted[done]=0 of 365
+RESULT accepted[in-progress]=14 of 14
+RESULT accepted[not-started]=22 of 22
+RESULT accepted[refused]=0 of 5
+RESULT accepted[refuted]=1 of 1
+RESULT pending_on_accepted_closed=47
+== 22f3ba79a7a6f2832bb37d4bfa97b627459226db @ roster 43495fb6
+code 22f3ba79a7a6f2832bb37d4bfa97b627459226db roster 43495fb6113e902630a0ac60b8012683c7cac97e (43495fb6113e902630a0ac60b8012683c7cac97e)
+RESULT accepted[absorbed]=0 of 14
+RESULT accepted[carries-open]=0 of 10
+RESULT accepted[done]=0 of 365
+RESULT accepted[in-progress]=14 of 14
+RESULT accepted[not-started]=22 of 22
+RESULT accepted[refused]=0 of 5
+RESULT accepted[refuted]=0 of 1
+RESULT pending_on_accepted_closed=0
