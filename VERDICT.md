@@ -1,64 +1,24 @@
-Fix review: merge 699491f2368ddcd96c0fb14cf6040155f66f5c44
+Fix review: merge 9c92e927bf4b75d84420ce1d2ad4906be116d06b
 
-bus-nonce: 0e62cf870d0d64d1a06f202c173bc082
+bus-nonce: a3e04210b199d1707e65d0e19e673118
 
 ## Round
 
-Fourth fix-review round of PR 3297. Earlier rounds: blocked 9cf0b6108 (mutation-vacuous), merge 2d010b091, blocked 7fe24f9f6 (merge-conflict). This round is a fourth, so `fixer.md`'s re-cut clause applies from here. This verdict is `merge`, so no re-cut is owed.
-
-What I reviewed, from a detached worktree at 699491f2368ddcd96c0fb14cf6040155f66f5c44:
-- the whole fix again;
-- the merge delta, which is the authored code head 9c59a9ea9 ("Conflict resolution 3") plus an automatic merge of origin/main 19865e5a8.
-
-`review_carry.py 9c59a9ea9 699491f23` prints `CARRY`: the two branch-only commits are both merges.
+Delta review (owner ruling 2026-11-09) of 699491f2368ddcd96c0fb14cf6040155f66f5c44..9c92e927bf4b75d84420ce1d2ad4906be116d06b. A later round than the four before it; this verdict is `merge`, so no re-cut is owed. `review_carry.py 699491f23 9c92e927b` prints FRESH-REVIEW (a hand-resolved merge, ca57a8133), so I judged the delta.
 
 ## Evidence
 
-- RESULT head=699491f2368ddcd96c0fb14cf6040155f66f5c44 merge-base=19865e5a866ce066eaa52f7167a7d901fd1d5968=origin/main (ev/HEAD.txt). `git ls-remote` still printed this head for `fix/r10-hotfix-cop-unmeasured` when I wrote the verdict.
-- `## Head` in the body names this head, and its code head is 9c59a9ea9.
-- `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the role contract I followed is current.
-- RESULT merge-tree: `git merge-tree --write-tree origin/main 699491f23` rc=0, tree 0dc74eac7, no CONFLICT line (ev/merge_tree.txt).
-- RESULT resolution delta, thermal_model.py: `git diff 20e83746f 9c59a9ea9 -- thermal_model.py` adds only this branch's lines and deletes 0 lines. `git diff 7fe24f9f6 9c59a9ea9` on the same file adds only main's lines: `on_off`, `declared_modulation`, `_onto_band` and `project_space_against`. The union is clean and drops nothing from either side.
-- RESULT mutants. Each one ran the whole `PYTHONPATH=tests/hastub python3 tests/features.py` in its own worktree at the head (ev/mut_*.txt, driver ev/mut_driver.py, which is my own instrument):
-  - CTRL (unmutated): rc=0.
-  - M1, `if measured:` -> `if True:` (coordinator.py:5466): rc=1, `3 of 4987 FEATURE CHECKS FAILED`. The three failures are the no-heat null control, the Tuya check and the metered-records check.
-  - G, measured_cop load ungated (coordinator.py:4637): rc=1, `1 of 4987`. The failure is "a last COP stored before measured provenance does not load as measured ...".
-  - M4, `_estimated` id rule -> `return False` (thermal_model.py:1447): rc=1, `3 of 4987`. The failures are the Tuya, probe_install and cop_observability checks.
-  - M7, `and (self.heat_sees_dhw or not dhw)` deleted (thermal_model.py:1305): rc=1, `1 of 4987`. The failure is the metered hot-water check.
-  - All four match the body's counts and names. The 4987 check total matches the body's `ALL 4987 FEATURE CHECKS PASSED`.
-  - RELEC, `and self.cop_electric()` deleted: rc=0, so it survives. See Findings.
-  - Mutants M3, M5, M6 and the CUSUM/DOMAINS mutants were not re-run. coordinator.py, store.py and accuracy.py are unchanged by the merges, per the body's `git diff 7fe24f9f6 9c59a9ea9`. Round 2 killed them at 2d010b091.
-- RESULT null control: M1 turns the brief's null-control check red ("inferred 2.5533587538536424 model 2.5533587538536424 ... scale samples 1"), so the control moves under its own perturbation. I did not re-take the base transplant. Rounds 1 and 2 hold it.
-- RESULT figures re-derived at the head (ev/cheap.txt):
-  - `option_doc_coverage.py`: `option_fields_rendered=208`, `option_schema_keys_rendered=241`, `option_fields_undocumented=0`.
-  - `claims.py`: `claims_false=0`. It left the tree clean (no regenerated diff).
-  - `tests/structure.py`: STRUCTURE RATCHET PASSED.
-  - Class rule `git grep -n -e "_measured_cop.record(" -e "_observe_cop_health(" -- custom_components`: coordinator.py:5467-5468 and the `def` at 9516 only.
-  - `git grep -n "InstallCapability("`: thermal_model.py:1385 only.
-  - All of these match the body.
-- RESULT archscore: `score.py --diff 19865e5a8 HEAD` printed `Architecture score: dS -0.0023 WORSENS (inadmissible: coord_footprint 2489->2493)` (ev/archscore.txt), the body's figure. Rounds 1 and 2 judged the +4 justified, with no sound in-seam payment. The merges add no production statement of this branch's, and no `*_budgets.json` is touched.
-- RESULT drift: `env_drift.py --all 19865e5a8` rc=0 (ev/env_drift.txt).
-  - It printed `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE: 56`.
-  - Every claim moved: `CLAIMED config_flow: 7 leaves`, and `coord_all_features`, `coord_dhw`, `coord_grid_fee`, `coord_minimal`, `coord_two_zone` at 2 leaves each.
-  - `git diff origin/main HEAD` on both claim files adds 11 lines and deletes 0 (ev/claim_files_vs_main.diff). Both `claims-for: 7.1.8` = VERSION 7.1.8.
-- RESULT version: the three-dot diff touches no `VERSION`, `RELEASE_NOTES.md`, `manifest.json` or `*_budgets.json`.
-- RESULT CI. I read the check runs at this head:
-  - Code run 42539691216 is all green:
-    - `gate` job 128935101531: success at 01:47:29Z.
-    - `tests / fast (3.14)`: success.
-    - `tests / mutation`: success.
-    - `pr-contract / pr-contract` job 128934844339: success, 01:45:56Z-01:46:50Z.
-    - codeql, governance, closures, coverage, browser: all success.
-  - `merge_train.py classify 699491f23 --pr 3297` exits 1 with `RED 699491f2368ddcd96c0fb14cf6040155f66f5c44 pending: none red: gate` (ev/classify.txt). The red it reads is the edit run's `gate` (run 42545491668, job 128931394723, 01:35:15Z), whose whole log is `FAIL run(s) [42539691216] at this head are still being judged; their gate decides`. That is gate.py's `deferral`. The run it defers to has since concluded success.
-  - classify keeps the worst latest gate per check suite (`latest_runs`, A5). It treats a deferral as a wait only while `busy` names an unfinished run, so once the code run finishes, the edit suite's deferral red stays red. I judge the head as GREEN on that basis, and say so explicitly: the only red is a deferral whose deferred-to gate is green, and it carries no defect of this diff.
-  - Step 11: the `pr-contract` run at 01:45:56Z started after the last red (01:35:18Z) concluded, and it is success, so the body check stands. The earlier `tests / fast (3.14)` red at 7fe24f9f6 is answered in `## Red checks`.
-- Forward-carry: the body says `none`. Its two `## Friction` items carry valid markers (packet carry_audit: 2 routed, 0 unrouted).
+- RESULT head=9c92e927bf4b75d84420ce1d2ad4906be116d06b (ev/HEAD.txt). Merge-base with origin/main is 01782a1e3.
+- RESULT merge-tree: `git merge-tree --write-tree origin/main 9c92e927bf4b75d84420ce1d2ad4906be116d06b` rc=0, no conflict (ev/merge_tree.txt).
+- RESULT previous findings (verdict at 699491f2): both were `Follow-up` items carried to #201, not blocks (the edit-run deferral `gate` red; the unpinned `cop_electric()` conjunct). Neither needed a code change here. The deferral red recurs on this head and is judged below; the conjunct is unchanged, since the delta touches no thermal_model.py line of this branch's.
+- RESULT de.json: flattened keys of de.json and en.json each equal strings.json's, 1456 = 1456 = 1456, missing [] extra [] (my own script, not committed). The PR's three-dot patch to de.json is the 13 branch lines (heat_pump_power_source, heat_pump_thermal_power_source, heat_meter_sees_dhw, their descriptions, meter_source options), plus commit 2ea5b75e2's flow_heat_c, flow_min_lift_k and return-option strings, which came from main's keys and which de.json lacked.
+- RESULT card de block: the PR patch to heatpump-optimizer-card.js adds the cop_reason_not_measurable, cop_reason_estimated_inputs, cop_reason_no_heat_reading and score.reason_cop_unmeasurable German lines and drops draw_follows_plan, matching the other two language blocks' edits.
+- RESULT claim commits: claimed_drift.txt adds 6 lines (5 coord_* at 2 string leaves each, config_flow leaves added) and card_claimed_drift.txt adds score_open; both `claims-for: 7.1.9` = VERSION 7.1.9. `env_drift.py --all 01782a1e3` rc=0: NO UNCLAIMED DRIFT, NO STALE FIXTURE, 56 scenarios (ev/env_drift.txt). `card_drift.mjs` I could not run standalone: it needs the plan payload from tests/plan_view.py first (ev/card_drift.txt); the CI gate runs it and passed on the code run.
+- RESULT version/budgets: the three-dot diff touches no VERSION, RELEASE_NOTES.md, manifest or *_budgets.json (ev/version_touch.txt is empty).
+- RESULT production risk: the delta's custom_components changes are main's own merged-in code plus the translation and card strings above. I found no branch statement of this fix in coordinator.py, store.py or accuracy.py changed by the merge resolution, so no review was extended past the delta.
+- RESULT CI at this head: `merge_train.py classify` exits 1, `RED pending: none red: gate` (ev/classify.txt). The red is the edit run 42733642788's `gate` job 129560680398, whose log is `FAIL run(s) [42733644271] at this head are still being judged; their gate decides` (gate.py deferral). The code run 42733644271's own `gate` job 129589164749 is success, as are `pr-contract / pr-contract` 129587965468, `tests / fast (3.14)`, `tests / mutation`, `tests / typing`, `tests / coverage-ratchet` and `validate / validate-hacs`, every context `owed-reds` lists. I judge the head GREEN: the only red is a deferral to a gate that is green. Same pattern as the previous verdict's finding.
 
 ## Findings
 
-- Follow-up: the edit run 42545491668's deferral `gate` (job 128931394723) keeps `merge_train.py classify` at RED (rc=1) after the code run's gate concluded success. The train will refuse this head until that edit run's gate job is re-run, which needs no code change. The instrument cause: `latest_runs` keeps a stale deferral red per suite once `busy` is empty. So any PR whose body edit lands while the code run is busy reads RED after a green code run. Carry: #201
-- Follow-up: round 2's unpinned conjunct is still unpinned at this head. Deleting `and self.cop_electric()` from `InstallCapability.cop_measured` (thermal_model.py:1303) passes the whole `tests/features.py`: rc=0 over 4987 checks (ev/mut_RELEC.txt). It is reachable only through `machine_score(..., cop_measured(False))`. On an install with a heat counter and no electric counter, it would publish `cop_watch_learning` instead of `cop_unmeasurable`. The production line is correct and the grade is None either way, so it does not block a hotfix. What is owed: one fresh-install check that a heat counter with no electric counter grades `cop_unmeasurable`. Round 2 carried this to this PR's own group. The body neither paid nor dispositioned it, and the group closes with this merge. Carry: #201
-
-## Friction
-
-- My first CI watcher after the container restart used `pgrep -x` on the waiter script, which the brief forbids. I stopped it unused and waited on the waiter's own exit instead. Carry: dismissed: seat slip, corrected before it read anything
+- Follow-up: the edit-run deferral `gate` red again holds `merge_train.py classify` at RED after the code run's gate concluded success (head 9c92e927bf4b75d84420ce1d2ad4906be116d06b, job 129560680398); the train needs that edit-run gate job re-run, with no code change. Carry: #201
+- Follow-up: the unpinned `and self.cop_electric()` conjunct in `InstallCapability.cop_measured` is still unpinned at this head (carried from the previous verdict, not re-run: its code is unchanged by this delta). Carry: #201
