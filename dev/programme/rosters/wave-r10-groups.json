@@ -22024,6 +22024,46 @@
     "commit": "5437702fc391019c31d465d9bd8d8e40e16cf9d8"
    },
    "brief": "Hotfix (orchestrator, 2026-11-10). beat_jobs.py roster_drain records its done set (the drain's done-record file, the drain's queue-lines file) only at the END of a pass. Under beatd the row has timeout_s 900, and each op takes about 45 s through roster_queue.py's lint gate, so a pass with more than about 20 pending ops is killed before it saves. The next pass then replays every op from the top. Observed 2026-11-10 08:54-09:29 local on handoff/audit-r10-roster: the same drop-carry ops landed every ~14 min, and index-based drops removed 18 unintended carries. FIX: persist the done set after every op (atomic write), so a killed pass resumes at the first unapplied op; consider also bounding ops per pass under the timeout. Failing test first in beat_jobs_selftest.py: a pass killed mid-queue must not re-apply an op on the next pass (null control: a pass that completes applies each op exactly once). Mutation proof. Root cause owed in its own seat (it reached a live state document): R10-RCA-ROSTER-DRAIN-REPLAY."
+  },
+  {
+   "lane": "IN",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "critical",
+   "size": "S",
+   "wave": 1,
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "group": "R10-HOTFIX-PREPR-READSET",
+   "kind": "instrument",
+   "class": "instrument",
+   "files": [
+    "tools/ci/selftest_scope.py",
+    ".github/workflows/governance.yml"
+   ],
+   "hot_files": [],
+   "resume": {
+    "stage": "in-progress",
+    "note": "orchestrator 2026-11-10: main red on instrument-self-tests UNDER-SCOPED prepr (racily clean index)",
+    "pr": null,
+    "commit": null
+   },
+   "brief": "Hotfix (orchestrator, 2026-11-10). governance / instrument-self-tests red on main at 5d09dedf (run 42780661829): UNDER-SCOPED step prepr, files misses a checkout tail. Cause: a racily clean git index after checkout; the first index-refreshing git status inside a traced step opens every racy file, so the recorded read set moves with scheduling. Fix: a settle step in tools/ci/selftest_scope.py run untraced before tracing starts, refusing when any entry stays racy. Failing test first, mutation proof, null control (a settled index records no checkout tail). Root cause in its own seat: R10-RCA-MAIN-SELFTESTS-RED."
   }
  ]
 }
