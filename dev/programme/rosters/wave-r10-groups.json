@@ -21528,6 +21528,48 @@
     "note": "split from R10-ARCH-DOCS by owner ruling tvofi 2026-11-10 \"Yes on 1 and 2\" (lever 1, cp-compress spec L4-archdocs-split; s13 orchestrator under mandate 6715477401): R10-ARCH-DOCS now runs after its non-product predecessors only; this group re-reads docs/architecture.md after the last product merge; overlap admitted (R10-ARCH-DOCS): owner ruling tvofi 2026-11-10 'Yes on 1 and 2' lever 1 (s13, mandate 6715477401; cp-compress spec L4-archdocs-split): shares docs/architecture.md with R10-ARCH-DOCS only and runs after it (after-edge), so the two never edit the file at once"
    },
    "brief": "Owner ruling (tvofi, 2026-11-10, verbatim \"Yes on 1 and 2\", lever 1 of the s13 critical-path compression study): R10-ARCH-DOCS is split. R10-ARCH-DOCS now runs after its non-product predecessors only and verifies docs/architecture.md at its own merge base. This size-S group is the delta pass after the product groups land, and it replaces the 2026-10-30 ruling that R10-ARCH-DOCS is the round's last stage. Start only when R10-ARCH-DOCS and every product group in this group's after list have merged. Re-read docs/architecture.md against origin/main at the true merge base, after the last product merge. Fix only the delta: claims, figures, tables and diagram boxes or arrows that the product merges after R10-ARCH-DOCS's merge made wrong. Find them with `git diff $(git merge-base origin/main <R10-ARCH-DOCS's merge commit>)...origin/main -- custom_components/`, three-dot, against what the document names. Name each departure in the body with the group whose merge caused it. Run R10-ARCH-DOCS-WIRING's checker and `python3 tests/doc_claims.py --markers` at this base. No unresolved target marker may survive on main. Re-verify nothing R10-ARCH-DOCS already verified and the product merges did not touch. Diagrams keep the visual language that origin/main defines at the base. If no product merge changed anything the document states, the pull request records that null result with the diff it read. Issue #2395. Part of #201."
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "group": "R10-HOTFIX-PACKET-APPROVAL-OWED",
+   "files": [
+    "tools/audit/seat/review_packet.py",
+    "tools/audit/seat/instruments/review_packet.py.md"
+   ],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "fix/r10-hotfix-packet-approval-owed-pr",
+    "commit": null,
+    "last_step": null,
+    "next_step": null,
+    "note": "overlap admitted (R10-GATE-DEFER-BARRIER, R10-REVIEW-DISPATCH-RESIDUE): hotfix under mandate 6715477401: review_packet refused a WAIT head as required-red, deadlocking #3379; handoff 44467af5"
+   },
+   "brief": "Hotfix: review_packet.py refused required-red on a head classify read WAIT (a red gate while a unit re-runs), deadlocking #3379. required_reading() returns classify's whole verdict; refuse only on RED or an unreadable/mismatched answer; WAIT/GREEN/APPROVAL-OWED are advisories. Handoff handoff/r10-hotfix-packet-approval-owed 44467af5. Closes the packet row of dev/audit/rca/r10-gate-defer-read-final.md."
   }
  ]
 }
