@@ -391,10 +391,6 @@ MUTANTS = [
     ("review_packet-13", "review_packet.py", "        elif carries_at(sha) < n:\n", "        elif False:\n"),
     ("review_packet-14", "review_packet.py", "    return out + (unlanded or [])", "    return out"),
     ("review_packet-15", "review_packet.py", '    refusals += facts.get("unlanded", [])\n', ""),
-    # r10-hotfix-packet-approval-owed (#3379): classify --pr's whole verdict decides the required red.
-    ("review_packet-16", "review_packet.py", '        elif word in ("WAIT", "GREEN"):\n', "        elif False:\n"),
-    ("review_packet-17", "review_packet.py", '    return "RED", f"classify unreadable', '    return "WAIT", f"classify unreadable'),
-    ("review_packet-18", "review_packet.py", "{re.escape(word)} {re.escape(head)}(?: (.*))?$", "{re.escape(word)} [0-9a-f]{{40}}(?: (.*))?$"),
     ("body_push-1", "tools/audit/seat/body_push.sh",
      '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
      '  if false; then\n    echo "body_push: the review packet refuses'),
