@@ -1,0 +1,4 @@
+  FAIL roster-drain: a pass killed mid-queue keeps its applied ops; the next applies each once
+  FAIL roster-drain: a pass past ROSTER_PASS_BUDGET_S starts no op; the next pass resumes
+  FAIL roster-drain: ROSTER_PASS_BUDGET_S is at most half the row's timeout_s
+beat_jobs self-test: 112 checks, 3 failed
