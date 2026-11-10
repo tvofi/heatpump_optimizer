@@ -32,6 +32,8 @@ The compressor stopped 12–19 s after each write. In both uncensored cases the 
 
 The three stops are 3 of the 12 compressor starts the controller's compressor-running flag shows that day.
 
+HPO was reloaded several times that day for software updates: its entity states or log show reloads at about 02:24, 13:09, 13:30, 14:47 and 15:35. The 13:30 control case coincides with one. None of the three stops lies within 10 min of a reload; the 15:00:01 write is 13 min after the 14:47 reload. The mechanism (a hot return judged against a 32 °C target) does not depend on a reload. A reload can only change *when* a re-solve schedules the switch.
+
 **Where the writes came from is not established.** Two of the three hot-water legs (3 min, and the 14:00 step's 2.9 min) are shorter than `SPLIT_MIN_MINUTES`, so they cannot be shares from `pump_arbiter._share`. They come from a step change, a re-solve or the hot-water lease (`_leased`). We could not tell which from history alone. The arbiter's step log in the diagnostics would show it, and attributing each episode is the first acceptance step below. The proposal therefore does not rely on `_share` being the cause.
 
 ## Relation to #3405 (power feedback on the water set-point)
