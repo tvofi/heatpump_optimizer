@@ -219,7 +219,7 @@ PLANTS = {
     "R1": (AUDIT, "        elif not any(live for _, live in by):\n",
            "        elif False:  # R1\n"),
     "R2": (AUDIT, "        if not by:\n", "        if False:  # R2\n"),
-    "R3": (AUDIT, "    for n in sorted(open_issues - LOG_ISSUES):\n",
+    "R3": (AUDIT, "    for n in sorted(open_issues - log_issues()):\n",
            "    for n in sorted(open_issues):  # R3\n"),
     "R4": (AUDIT, '        where = f"absorbed into {into}" if stage == "absorbed" and into else stage\n',
            "        where = stage  # R4\n"),
