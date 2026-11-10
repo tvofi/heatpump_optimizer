@@ -1,53 +1,19 @@
-Fix review: blocked b9ec7037e186cac00c9b57fc9d0099fd08ddf4f5 carry-missing: R10-PREPR-RESIDUE carries 8-11 hold the claims without their controls
+Fix review: merge 278e28c1396fdb7f4d8361e525cf58130d1f6bf4
 
-bus-nonce: 43dea72004e3d7eaebb6cb0e7deaef6e
+bus-nonce: add3bb6c9513cec3f8289f77090e9b30
 
-Round 1. Reviewed at head b9ec7037e186cac00c9b57fc9d0099fd08ddf4f5 (merge base 0362916ac7, measurements at b0762725099f). The PR body's head and code head match the commits (`572355a9b` merges main into `6839549f`; `b9ec7037` adds only `dev/programme/delivery/3411.md`).
-
-## Block
-
-- fix-review.md step 10 requires the reviewer to open the forward-carry and confirm it states its control as a precondition (finding-propagation.md, "Carry the control, not only the claim"). The four carries are on `origin/handoff/audit-r10-roster` at `1b225f721` (added by `8ad73ff72`), in `wave-r10-groups.json`, group R10-PREPR-RESIDUE, carry entries 8 to 11. Each one is a copy of a one-line `## Forward-carry` body item and states no control:
-  - 8 (C1) says the receipt is carried "from the parent body tip or onto a descendant code head" and that `reuse_verdict` re-proves it. It leaves out the null control from RCA section 6: a non-merge commit past the receipt keeps the trailer and gets `reuse_verdict` rc 1. It also leaves out the non-ancestor case, where no trailer is written.
-  - 9 (C2) and 10 (C3) name no failing-then-passing case.
-  - 11 (C4) leaves out the proof that section 6 names: 6d's wall time on `6671786843` before and after, with the same PREDICT lines both times.
-  - No entry cites `dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md`, and the group's `rca` field is `[]`. The group's own brief says "Each carry states its failing test and null control", and these four do not. A fixer dispatched from the roster gets C1 without the case that keeps it from skipping prepr on unproved code.
-  - Remedy, one `roster_edit.py append-carry` (or an edit to 8-11): name the RCA path and section 6, and state each arm's failing case and null control as a precondition.
-- The same record also omits the citation that defect-root-cause.md's "Where it is recorded" requires: the analysis is "`dev/audit/rca/<id>.md`, cited by `rca` in `bugclasses.json`". This PR adds no `dev/audit/config/bugclasses.json` entry. The sibling RCAs R10-RCA-RELAY-HANDOFF-STARVATION (`859a6264e`) and R10-RCA-CLOSURE-ARGV (`80cf79c2c`) each added theirs in the same commit as the document. That entry is where the process states, (c) for C-A and (d) for C-B, and the proposed countermeasures become readable by `fold_ledger.py`. Add it in this PR.
-
-## Findings
-
-- Follow-up: the 49 "never" handoff-body tips, the three instances that triggered this RCA among them, have no established process state. C2 is the instrument meant to split them. Until it lands, the triggering instances are explained by C-B only, and C-A's (c) rests on the 29-tip class, not on the instances. Carry: R10-PREPR-RESIDUE
-- Follow-up: the local-host figures (load, swap, CPU-loop multipliers, slot `taken_at`, `p1.log` medians 17/1 min with n=63/59, 509/6 self-test result) are cited from out-of-tree scratch `~/hpo-seats/r10s6/rca-slow-prepr/`. No reviewer can re-derive them, and they will be gone when the host's scratch is cleaned. The `p1-durations.txt` table carries the cost test, and it should land beside the document, as `relay_handoff_lag.py` did for #3352. Carry: R10-PREPR-RESIDUE
+Round 3 of this review (repair round 2 after the carry-missing block at b9ec7037). Scope: the delta b9ec7037..278e28c1 (instrument/RCA/doc only, no custom_components change, so no widening), the previous block, and live checks at the head.
 
 ## Evidence
 
-- Merges cleanly: `git merge-tree --write-tree origin/main b9ec7037` rc=0 against origin/main 734b806ac (`ev/merge-tree.txt`).
-- Diff: 2 files, both new: `dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md` (225 lines) and `dev/programme/delivery/3411.md`. VERSION, the manifest version and the RELEASE_NOTES heading are untouched. There are no claim files and no budgets, so there is no mutation proof to re-run and no countermeasure lands (body: n/a).
-- Root-cause contract (root-cause.md):
-  - Cause: named, two causes (C-A, C-B).
-  - C-A reproduced from the code at b0762725:
-    - `body_push.sh` `prepr_trailer` writes `Prepr:` only when the local receipt's sha equals the code head (`[ "$s" = "$2" ]`).
-    - `app_push.sh` `reuse_verdict` accepts any receipted code that is an ancestor of HEAD, provided HEAD is the clean merge of it with main (`ev/receipt-code.txt`).
-    - The asymmetry is real, so (c) is shown with the process quoted, not (b).
-  - C-B as (d): the 4-slot cap is unchanged since `c09cf1201024` (2026-10-16, "make the four-prepr cap a lease"), `HEAVY_SLOTS = 4` both there (line 73) and at the base (line 103). It is not recorded as (b), and no firmer-instruction countermeasure is proposed.
-  - Reach search: present (handoff-body class table).
-  - Cost test: has numbers.
-  - Refusal: recorded, for the HEAVY_SLOTS change.
-- Figures re-derived at b0762725 (`ev/figures-git.txt`):
-  - prepr.sh is 2734 lines with 123 `^ *st ` sites at c09cf12010, and 4682 lines with 325 sites at the base.
-  - `grep -rnE 'timeout (3000|7200)' tools/ dev/governance/ .claude/` prints nothing.
-  - The 6d comment says "so it costs seconds" (prepr.sh:595).
-  - ci_predict.py:45 says "GRADER, minutes where keyed".
-  - The named failing tests are at prepr.sh:3067 and :3770, and the third is at :3772.
-  - All as stated.
-- Handoff-body class, re-derived with my own definition (`ev/handoff-body-rederive.txt`, script `hb.py`):
-  - Tips committed 2026-11-06T00Z to 2026-11-10T03:30Z that have not moved since: 10 refs have a tip after 03:30Z, so the 03:30Z snapshot is not exactly recoverable.
-  - Counts: 12 result bodies, 57 with a trailer, 81 without, 138 code bodies, against 12/60/82/142 claimed.
-  - Split: 5 same, 25 merge-only ancestor, 2 new non-merge, 49 never, against 5/24/4/49.
-  - merge-tree tree-equal for 25 of 27, against 29 of 33.
-  - Consistent with the claim within the moved refs. The exact figures are not re-derivable.
-- Not re-derivable here (out-of-tree, local host): every `ps`/`sysctl`/`vm_stat`/`iostat` reading, slot times, `p1.log` durations and medians, the CPU-loop null control, and the 509/6 self-test result.
-- CI run 42577505324 is the Governance run, scheduled on main, 2026-11-09 07:09Z to 07:38Z. The 14.0 min job figure itself was not read.
-- carry_audit at the head: 4 routed, 0 unrouted, 0 bad. Routing exists; controls are absent (Block).
-- Required set: `merge_train.py owed-reds` (`ev/owed-reds.txt`).
-- CI: `merge_train.py classify b9ec7037 --pr 3411` printed `GREEN b9ec7037e186cac00c9b57fc9d0099fd08ddf4f5 pending: none red: none` and exited 0 at 07:55:22Z (`ev/classify.txt`). No required check went red, so no `## Red checks` answer is owed. The block above is not about CI.
+- Previous block (carry-missing: carries 8-11 held the claims without their controls): resolved. The roster carry is on origin/handoff/audit-r10-roster a09a5c59b, group R10-PREPR-RESIDUE (ev/roster-a09a5c59b.json). Its carries 11-15 (From 3411, items 41176b97, 300fa7f0, fab9d1da, e0b30357, d1d75b8f) state each control as a precondition, matching the body: C1 failing cases plus both null controls (non-merge commit past the receipt keeps the trailer and reuse_verdict rc 1; a non-ancestor receipt writes no trailer) and a re-measure instruction; C2 four planted reasons plus the valid-receipt null control; C3 sleep-2s case plus no-op null control; C4 before/after on one host with predict_sha1 identity, including the scoped c19017d6 control; the "never" follow-up with its null control. Item 88c4f531 carries the roster-op friction.
+- carry_audit at head (packet): 7 finding items, 7 routed, 0 unrouted, 0 bad destination.
+- CI: merge_train.py classify at the head exits GREEN, pending none, red none (ev/classify.txt). owed-reds names the required set; none of it is red.
+- Merge: git merge-tree --write-tree origin/main <head> exit 0 (ev/mergetree.txt). VERSION, manifest, RELEASE_NOTES, custom_components, goldens and closures are untouched by the three-dot diff. No production code, so no mutation proof is owed (body says n/a; the diff writes no production line).
+- Figures re-derived at the head: `open_prepr_receipts.py --self-test` PASS, 0 failed; `tips` re-run prints exactly tips=149 result=12 code=137 trailer=57 no_trailer=80, same=5 merge-only=3 non-merge=24 never=48, tree_equal=2 of=27 (ev/tips-rerun.txt); prepr.sh `2734 123` at c09cf12010 and `4682 325` at b0762725099f, HEAVY_SLOTS = 4 at c09cf12010 (ev/cb.txt); fold_ledger check 0 violation(s), 146 rca entries. C1's 7 x (62.8 - 18.9) = 307 is arithmetic on the frozen opens snapshot. Not re-derived: the opens medians against a live corpus (refs move; the frozen tsv carries them), the 2.3 ms spawn cost, and the 1561 s / 40 s step-6d timings (a 26-minute cloud run; cited as the body's own measurement).
+- Red checks: body says none; no required red at the head.
+
+## Findings
+
+- Residual: the stale round-1 copies remain in the roster beside the corrected ones: R10-PREPR-RESIDUE carries 7-10 ("From r10-rca-open-prepr-slow, items dfceecd3, 70f46ea9, ddee73ac, 8eec61f0") hold round-1 text with no controls and no note saying the 3411 items supersede them, and the group's `rca` is still []. The PR's own Friction names these roster ops as the orchestrator's. A seat reading the group sees two disagreeing copies (finding-propagation.md: say which is newer). Drop or mark carries 7-10 as superseded by 11-14, and set rca to R10-RCA-OPEN-PREPR-SLOW. Carry: R10-PREPR-RESIDUE
+- Follow-up: the opens medians are a latency proxy that includes the relay wait for both grades; C1's reach (7 tips) is small against its 307 open-minute estimate, so the fixer should re-measure reach before building and note that most `never` rows are C2's to split. Carry: R10-PREPR-RESIDUE

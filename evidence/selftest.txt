@@ -1,0 +1,4 @@
+ok   window: no tip outside [since, until) is read
+ok   open on a merged code matches its body by the code parent (('1', '92d68adae', 'full', '1.0'))
+ok   open on the never body is full (('2', '562cf1b4b', 'full', '10.0'))
+PASS self-test, 0 failed
