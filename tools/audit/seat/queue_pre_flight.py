@@ -485,6 +485,17 @@ def _self_test() -> int:
           "approval does not override it: policy_gate's own judgement, with the posted one added)",
           go({**MANDATED, "reviews": [dict(owner_review(H0, NOW, cite=False, state="CHANGES_REQUESTED"))]},
              train_mandate=str(mt.MID))[:2] == ("PARK", "policy"))
+
+    def due(world: dict) -> "int | None":
+        """The mandate id policy_approve would post under in <world>, under --mandate MID."""
+        with tempfile.TemporaryDirectory() as d:
+            t = mt.Train("o/r", Path(d), str(mt.MID), "", (), 1, run=fake(world), sleep=lambda s: None)
+            return t.policy_approval_due(7, H0, MANDATED["files"])[0]
+    check("policy_approval_due names the mandate in force for policy merging; revoked, expired or "
+          "scope code-owned it names none (the one decision the post and the pre-flight share)",
+          due(dict(MANDATED)) == mt.MID and due({**MANDATED, "thread": [revoke()]}) is None
+          and due({**MANDATED, "mandate": mandate(NOW, from_min=-120, until_min=-1)}) is None
+          and due({**MANDATED, "mandate": mandate(NOW, scope="code-owned")}) is None)
     # The train judges a mandated raise's body against the gate's measured score (a scorer
     # run on a worktree); the world here answers with the one line JUSTIFIED_BODY names.
     mt.Train._measured_score = lambda self, g, h: "Architecture score: dS +0.4000 IMPROVES"
