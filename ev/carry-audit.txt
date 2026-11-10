@@ -1,0 +1,4 @@
+NOTE stale tree: a7f37e665413650685c3930ccaf635b7c83eeb9c lacks origin/main f0bfadeb8cc2f2f3e6f32b1feccc879ecf9e6f19; roster read at origin/main
+NOTE body item 6dc3e090: dismissed:the document body states (d) as the one state and assigns the (c) half to the hotfix R10-HOTFIX-ROSTER-DRAIN-REPLAY.
+NOTE body item cff41249: dismissed:accepted trade in the cost test (at most one 120 s requeue per index line), disclosed in the document.
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)

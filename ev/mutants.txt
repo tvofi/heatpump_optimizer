@@ -1,0 +1,6 @@
+baseline: rc=0 fails=0 []
+M1 predicate never refuses: rc=1 fails=2 ["FAIL run: drop-carry and mark-carry by index are refused and marked, never pushed (got: ['roster: drop-carry G", "FAIL run --batch: drop-carry by index is refused before the batch, and marked (got: ['roster: batch failed Run"]
+M2 single-op path skips the check: rc=1 fails=1 ["FAIL run: drop-carry and mark-carry by index are refused and marked, never pushed (got: ['roster: drop-carry G"]
+M3 batch path skips the check: rc=1 fails=1 ["FAIL run --batch: drop-carry by index is refused before the batch, and marked (got: ['roster: batch failed Run"]
+M4 mark-carry left out: rc=1 fails=1 ["FAIL run: drop-carry and mark-carry by index are refused and marked, never pushed (got: ['roster: drop-carry G"]
+RESULT mutants=4 killed=4

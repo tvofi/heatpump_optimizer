@@ -1,0 +1,10 @@
+roster: --lint-clone /tmp/tmpfwe1ikz1/no-such-clone is not a directory; no op attempted, provision it
+roster: `all` needs --mark (a cursor-less run must mark what it applied)
+no group NOPE in the roster at 74aaecdb1b2bc2e9ae303970f36d5814a2cce8f8
++ H
+~ G carry +second carry
+~ G resume.stage: null -> done
+~ G resume.pr: null -> 7
+no difference
+no dev/programme/rosters/wave-r10-groups.json at nosuchref: fatal: invalid object name 'nosuchref'.
+roster_queue self-test: 65 checks, 0 failed
