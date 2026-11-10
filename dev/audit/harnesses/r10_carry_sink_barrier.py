@@ -11,6 +11,10 @@ origin/handoff/audit-r10-roster), and prints one RESULT line per stage:
 groups at carries-open, refused or refuted that CODE_REV still accepts as a
 destination. The defect reads non-zero at the base, zero at the fix; a live
 stage (in-progress, not-started) reads the same at both ends (null control).
+The issue arm (verdict/3417) drives `Carry: #N` for every issue an open group
+lists, keyed by the stage of its owner (`Dests.owned`), with no carry file or
+O-brief: `RESULT issue_accepted[<owner stage>]=<n> of <m>`; an issue a live
+group also lists counts under that live owner's stage.
 Reads only: `git show`; writes a temporary copy of the two modules.
 """
 from __future__ import annotations
@@ -54,10 +58,19 @@ def main(argv: list[str]) -> int:
                 ok[stage] += 1
                 if stage in ("carries-open", "refused", "refuted"):
                     parked += len(roster_lib.pending_carries(g, {}))
+        live = {n for g in roster["groups"] if roster_lib.carry_receivable(g)
+                for n in carry_audit.issue_numbers(g)} if hasattr(roster_lib, "carry_receivable") else set()
+        itotal, iok = Counter(), Counter()
+        for n, owner in dests.owned.items():
+            stage = "live" if n in live else (dests.groups[owner].get("resume") or {}).get("stage")
+            itotal[stage] += 1
+            iok[stage] += dests.check(f"#{n}")[0]
     print(f"code {rev} roster {ref} ({subprocess.run(['git', 'rev-parse', ref], capture_output=True, text=True).stdout.strip()})")
     for stage in sorted(total):
         print(f"RESULT accepted[{stage}]={ok[stage]} of {total[stage]}")
     print(f"RESULT pending_on_accepted_closed={parked}")
+    for stage in sorted(itotal):
+        print(f"RESULT issue_accepted[{stage}]={iok[stage]} of {itotal[stage]}")
     return 0
 
 
