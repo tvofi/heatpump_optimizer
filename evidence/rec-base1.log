@@ -1,0 +1,15 @@
++ cd /root/rec-base1
++ python3 -I tools/ci/selftest_scope.py racy
++ python3 -I -c 'import sys;sys.path.insert(0,'\''tools/ci'\'');import selftest_scope as s;from pathlib import Path;print('\''racy'\'',len(s.racy_entries(Path('\''.'\'').resolve())))'
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import sys;sys.path.insert(0,'tools/ci');import selftest_scope as s;from pathlib import Path;print('racy',len(s.racy_entries(Path('.').resolve())))
+                                                                                                                  ^^^^^^^^^^^^^^
+AttributeError: module 'selftest_scope' has no attribute 'racy_entries'
++ /usr/bin/time -f %es python3 -I tools/ci/selftest_scope.py record --step prepr --out /tmp/tmp.L8vWUasC72/ev/rec-base1.json
+/tmp/tmp.L8vWUasC72/rec.sh: line 6: /usr/bin/time: No such file or directory
+OK       0.0s launch
+OK     841.4s prepr
+OK       0.0s unread
+selftest_scope: recorded 1 step(s) into /tmp/tmp.L8vWUasC72/ev/rec-base1.json; 0 failed [], 0 broken trace(s)
+rc=0 secs=913
