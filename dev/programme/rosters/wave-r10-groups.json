@@ -21711,6 +21711,50 @@
     "branch": null,
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER, R10-HOTFIX-GATE-BUSY-DEFER): tools/ci/sweep.py. Distinct seam: the sweep's trigger coverage, not the readers of a deferral red (BARRIER) or the settle/busy tie-break (BUSY-DEFER).; overlap admitted (R10-GATE-DEFER-BARRIER): root-cause seat s13 (mandate 6715477401): gate-sweep never fires for token-actor CI runs; 31 deferral reds ~1089 head-minutes in 43 h; distinct seam from R10-GATE-DEFER-BARRIER (readers) and R10-HOTFIX-GATE-BUSY-DEFER (settle) on tools/ci/sweep.py; re-queued with not-yet-existing paths named in prose"
    }
+  },
+  {
+   "group": "R10-HOTFIX-TRAIN-POLICY-MANDATE",
+   "lane": "C",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/queue_pre_flight.py",
+    "dev/audit/harnesses/r10_train_upgrade_mutants.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-hotfix-train-policy-mandate",
+    "pr": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "open PR, review",
+    "note": "overlap admitted (R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-GATE-DEFER-BARRIER): train pre-flight parks mandate-covered policy heads (#3366 twice); handoff built e414ab71"
+   },
+   "brief": "The queue pre-flight judged a policy head with policy_gate before the train could post the mandate-citing approval that admission and the merge post first (policy_approve), so a policy head under an in-force mandate parked on no decisive review by tvofi, and re-admission of the park re-ran the same check (#3366 parked twice). Fix: a read-only approval-due answer, and a pre-flight check that judges the gate with the due approval included but unposted; the merge still judges the real reviews. Null controls that must still park: no mandate, a revoked mandate, a code-owned scope, an expired mandate, an owner CHANGES_REQUESTED at the head. Built handoff by the orchestrator-dispatched seat; review it adversarially."
   }
  ]
 }
