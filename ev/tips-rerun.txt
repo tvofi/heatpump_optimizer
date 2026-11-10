@@ -1,0 +1,3 @@
+RESULT tips=149 result=12 code=137 trailer=57 no_trailer=80
+RESULT split same=5 merge-only=3 non-merge=24 not-ancestor=0 never=48 missing=0
+RESULT tree_equal=2 of=27
