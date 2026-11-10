@@ -81032,6 +81032,25 @@ R.check(
     "draw as with none",
     _fb_passes(_fb_boosted, _FB_STEPS) == _fb_passes(_fb_boost_dark, _FB_DARK),
 )
+# I4: at the band top the step wants the ceiling; a draw over it changes nothing.
+_FB_OVER = [(m, 2.6, 25.0 + 0.05 * m) for m in range(40)]
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK I4: a step at the band top (2.2 kW) writes the same with "
+    "a draw above it as with none",
+    _fb_passes(_FbCoord(plan_kw=2.2), _FB_OVER) == _fb_passes(_FbCoord(plan_kw=2.2), _FB_DARK),
+)
+# Passes that skip the loop (a switched-off or cooling pump, Off): a run whose
+# last pass is older than the averaging window starts over, start hold and all.
+_fb_gap = _FbCoord()
+_fb_passes(_fb_gap, [(m, 1.5, 26.0) for m in range(20)])
+_fb_resumed = _fb_passes(_fb_gap, [(30, 1.5, 26.0)])
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a run not seen for longer than its averaging window "
+    "starts over with today's target",
+    _fb_resumed == [_fb_pa._flow_target(_fb_gap.arbiter_inputs(), "space", _FB_T0 + timedelta(minutes=30))]
+    and _fb_pa.state_for(_fb_gap).feedback.start == _FB_T0 + timedelta(minutes=30),
+    f"wrote {_fb_resumed}",
+)
 # I2: a return at 15 degC, below the 20 degC gate, with the draw far over plan:
 # the loop winds down, but never to the gate.
 _fb_low = _fb_passes(_FbCoord(), [(m, 2.0, 15.0) for m in range(40)])
@@ -81092,6 +81111,5 @@ R.check(
     and _fb_outside[0] is None and _fb_outside[3] is None and _fb_outside[4],
     f"within {_fb_within_tol[:3]}, beyond {_fb_beyond[:3]}, outside {_fb_outside[0]}",
 )
-
 
 sys.exit(R.close("FEATURE CHECKS"))

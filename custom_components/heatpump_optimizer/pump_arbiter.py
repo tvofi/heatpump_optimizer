@@ -875,24 +875,23 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
 
 
 def _feedback_on(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> bool:
-    """Whether this pass's water target is the power-feedback loop's.
+    """Whether this pass's water target (the caller's water unit) is the loop's.
 
-    A plan-driven space-only step below the band top, on an install with a
-    water unit, a power meter and the option on, outside a boost, an
-    experiment and a defrost. Anywhere else the meter reads a draw that is
-    not this target's response (hot water, a reversed cycle), the step wants
-    the ceiling, or the target is someone else's to set.
+    A space-only step below the band top, on an install with a power meter
+    and the option on, outside a boost, an experiment and a defrost. Space
+    only comes from a fresh plan in Auto or Economy, an experiment or a
+    boost (:func:`_planned_duty`). Anywhere else the meter reads a draw that
+    is not this target's response (hot water, a reversed cycle), the step
+    wants the ceiling, or the level is not the plan's.
     """
     cfg = EntryConfig.from_mapping(inp.config)
     if duty != "space" or not (cfg.space_setpoint_power_feedback and cfg.heat_pump_power_entity):
         return False
-    held = boost.held_for(coord)
     planned, top = _step_kw(inp.plan, now), _band_kw(inp)[1]
     return bool(
-        _flow_unit(inp.config) and inp.mode in (MODE_AUTO, MODE_ECONOMY)
-        and not inp.plan_stale and not inp.defrosting and _experiment_kw(inp) is None
-        and not held.active(boost.CHANNEL_SPACE, now)
-        and planned is not None and top is not None and 0.0 < planned < float(top)
+        not inp.defrosting and _experiment_kw(inp) is None
+        and not boost.held_for(coord).active(boost.CHANNEL_SPACE, now)
+        and planned is not None and top is not None and planned < float(top)
     )
 
 
