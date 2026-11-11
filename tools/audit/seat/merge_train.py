@@ -4581,12 +4581,13 @@ def _self_test() -> int:
     def jr(name, st, a, b=None):
         iso = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()
         return {"name": name, "status": st, "started_at": iso(a), "completed_at": iso(b) if b is not None else None}
-    hist = [jr("codeql / Analyze (python)", "completed", 1000 * i, 1000 * i + d)
-            for i, d in enumerate([2400, 2800, 3000, 3600, 2900, 2700, 100])]
+    # completed in index order, so the 9000 s run is the OLDEST: the BASELINE_JOBS window drops it
+    hist = [jr("codeql / Analyze (python)", "completed", 10000 * i, 10000 * i + d)
+            for i, d in enumerate([9000, 2400, 2800, 3000, 3600, 2900, 2700])]
     live = jr("codeql / Analyze (python)", "in_progress", 50000)
     pl = one_job_pulse(hist + [live, jr("tests", "completed", 0, 60)], 50000 + 2460)
     check("a one-unfinished listing prints the job, elapsed and its same-name p50/max baseline "
-          "(last 6 of 7: the 100 s run falls out of the window)",
+          "(last 6 of 7: the oldest, 9000 s run falls out of the window, so max stays 60m)",
           pl == "CI waits on 1 job: codeql / Analyze (python) 41m of p50 47m / max 60m (normal)")
     check("elapsed past the max reads over max, a name with no completed run reads no baseline",
           one_job_pulse(hist + [live], 50000 + 4000).endswith("(over max)")
@@ -4594,7 +4595,20 @@ def _self_test() -> int:
     check("null control: two unfinished jobs print no such line, and none unfinished neither",
           one_job_pulse(hist + [live, jr("tests", "queued", 50000)], 51000) is None
           and one_job_pulse(hist, 51000) is None)
-    hang[0]["status"], hang[0]["conclusion"] = "completed", "success"
+    # wait_ci itself logs the pulse beside the beat (a pulse built and never logged reads nothing)
+    iso0 = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()
+    hang = [{"name": "fast", "status": "completed", "conclusion": "success", "started_at": iso0(0), "completed_at": iso0(600)},
+            {"name": "fast", "status": "in_progress", "conclusion": None, "started_at": iso0(5000), "completed_at": None}]
+    ticks = iter([0, 240, 500])
+    lines = []
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=hung_run, sleep=lambda s: None, log=lines.append,
+                  polls=2, clock=lambda: next(ticks), wall=lambda: 5000 + 1200)
+        t.wait_ci(H0)
+    check("wait_ci logs the one-job pulse right after its beat, from the same listing",
+          len(lines) == 4 and lines[0].startswith("beat:") and lines[2].startswith("beat:")
+          and lines[1] == lines[3] == "CI waits on 1 job: fast 20m of p50 10m / max 10m (over max)")
+    hang = [{"name": "fast", "status": "completed", "conclusion": "success", "started_at": "1"}]
     ticks = iter([0, 240, 480, 700])
     lines = []
     with tempfile.TemporaryDirectory() as d:
