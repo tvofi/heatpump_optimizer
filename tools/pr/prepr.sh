@@ -2391,8 +2391,12 @@ EOS
   case "$got" in *'BASELINE FAILS'*) st 1 1 "and the refusal quotes mutant_run's own reason";; *) st 0 1 "and the refusal quotes mutant_run's own reason";; esac
   got=$(mutants_line "$MR" "$MB" "python3 tests/check.py"); r=$?
   st "$r" 0 "a check killing every mutant of the added lines passes (null control)"
-  got=$(MUTANT_IN_PLACE=1 mutants_line "$MR" "$MB" "python3 tests/check.py"); r=$?
-  st "$r" 0 "the same check under MUTANT_IN_PLACE=1 passes, the tree restored"
+  # A check that needs the checkout (git) fails the archive copy's baseline and
+  # passes in place: the case MUTANT_IN_PLACE exists for, measured on 3379.
+  got=$(mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
+  st "$r" 1 "a check needing a git checkout measures nothing in the archive copy, and is refused"
+  got=$(MUTANT_IN_PLACE=1 mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
+  st "$r" 0 "the same check under MUTANT_IN_PLACE=1 runs in the checkout and passes"
   st "$(mg status --porcelain | wc -l)" 0 "and the in-place run leaves the work tree clean"
   got=$(mutants_line "$MR" "$MB" "true"); r=$?
   st "$r" 2 "a command killing nothing reports its survivors, report only"
