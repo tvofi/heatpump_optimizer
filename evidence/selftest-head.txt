@@ -1,0 +1,3 @@
+  ok   a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+  ok   a re-dispatch from a second clone fast-forwards the existing ref
+cloud_dispatch self-test: 166 checks, 0 failed

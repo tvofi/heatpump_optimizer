@@ -1,0 +1,4 @@
+COLLISION R10-TRAIN-RESIDUE --part 2: topic r10-train-residue-p2 = topic of R10-TRAIN-RESIDUE-P2 (stage not-started); ref dispatch/fixer-r10-train-residue-p2; group_for_branch(fix/r10-train-residue-p2) -> R10-TRAIN-RESIDUE-P2
+COLLISION R10-TICK-RESIDUE --part 2: topic r10-tick-residue-p2 = topic of R10-TICK-RESIDUE-P2 (stage not-started); ref dispatch/fixer-r10-tick-residue-p2; group_for_branch(fix/r10-tick-residue-p2) -> R10-TICK-RESIDUE-P2
+54483814984ab9503e0cdc963f58d0d4dd88ff18	refs/heads/dispatch/fixer-r10-tick-residue
+33d9c16d3b25d1ec161472dd016371c4ee757831	refs/heads/dispatch/fixer-r10-train-residue
