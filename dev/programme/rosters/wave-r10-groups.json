@@ -20499,7 +20499,8 @@
    "resume": {
     "stage": "in-progress",
     "branch": null,
-    "note": "set-files files ['tools/audit/seat/merge_train.py', 'tools/audit/seat/train.sh', 'tools/release/stamp.py', '.claude/workflows/web-stamp.js', 'tools/audit/seat/queue_pre_flight.py', 'dev/audit/harnesses/livehead_cancels.py', '.github/workflows/nightly.yml', 'tools/audit/seat/record_row.py'] -> ['tools/audit/seat/merge_train.py', 'tools/audit/seat/train.sh', 'tools/release/stamp.py', '.claude/workflows/web-stamp.js', 'tools/audit/seat/queue_pre_flight.py', 'dev/audit/harnesses/livehead_cancels.py', '.github/workflows/nightly.yml', 'tools/audit/seat/record_row.py', 'tools/audit/seat/failure_logs.sh']"
+    "note": "set-files files ['tools/audit/seat/merge_train.py', 'tools/audit/seat/train.sh', 'tools/release/stamp.py', '.claude/workflows/web-stamp.js', 'tools/audit/seat/queue_pre_flight.py', 'dev/audit/harnesses/livehead_cancels.py', '.github/workflows/nightly.yml', 'tools/audit/seat/record_row.py'] -> ['tools/audit/seat/merge_train.py', 'tools/audit/seat/train.sh', 'tools/release/stamp.py', '.claude/workflows/web-stamp.js', 'tools/audit/seat/queue_pre_flight.py', 'dev/audit/harnesses/livehead_cancels.py', '.github/workflows/nightly.yml', 'tools/audit/seat/record_row.py', 'tools/audit/seat/failure_logs.sh']",
+    "pr": 3424
    }
   },
   {
@@ -21127,7 +21128,8 @@
    "brief": "P453: worktree_gc.sh removes a live train or relay checkout (five instances on 11-08); keep a worktree a live long-running process reads from, not only its cwd holder. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
     "stage": "in-progress",
-    "branch": null
+    "branch": null,
+    "pr": 3423
    }
   },
   {
