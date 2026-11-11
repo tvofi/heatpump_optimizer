@@ -17,7 +17,8 @@ land marks each such element with the roster group that lands it:
 `[target: <group>]` for an element that exists once the group merges,
 `[retired-by: <group>]` for one the group removes, and `; owner step` where
 the change lands only on the owner's own action. `tests/doc_claims.py` refuses
-a marker naming no roster group, and one whose groups are all done.
+a marker naming no roster group, and a marker outside an HTML comment whose
+groups are all done.
 
 ## Reading the figures
 
@@ -177,7 +178,7 @@ flowchart LR
     prc --> gate["gate"]
     pre --> gate
     gate --> rs[("ruleset main-protect-checks<br/>requires only gate")]
-    cut{"owner PUTs the whole ruleset,<br/>reads it back, rolls back<br/>if the read-back differs"} -->|"PUT"| rs
+    cut{"owner runs ruleset_cutover.py:<br/>PUT, then read back,<br/>or --rollback"} -->|"PUT"| rs
 ```
 
 An arrow from one job to the next means the second job needs the first. The
@@ -186,8 +187,10 @@ runs when the prelude's work set names it; the figure names five of the
 prelude's outputs. `ci.yml` carries three more jobs: `cancel-superseded` and
 `refresh` need no other job, and `sweep-self` needs `gate`.
 
-The ruleset is the owner's: `tools/ci/ruleset_cutover.py` writes the object
-whole, reads it back and diffs it, and `--rollback` restores the saved copy.
+The ruleset is the owner's. `tools/ci/ruleset_cutover.py` is the instrument
+that cut its required contexts over to `gate`: it saves a rollback copy, PUTs
+the ruleset's six writable keys, refuses with the difference where either half
+of the read-back fails, and `--rollback` PUTs the saved copy back.
 `dev/governance/roles/nudge.md` section 4 is the rule for reading it: the live
 ruleset every turn, never a remembered list.
 
@@ -207,7 +210,11 @@ ruleset every turn, never a remembered list.
   the body contract, the architecture score, the raise gate and the kernel
   benchmark
 - `.github/workflows/gate-sweep.yml`: starts when a CI run completes and
-  re-judges the older `gate` runs at that head (`tools/ci/gate.py --sweep`)
+  runs `tools/ci/gate.py --sweep`, which is `tools/ci/sweep.py`. Once that
+  run's `gate` is green at the pull request's live head, the sweep re-runs
+  the red `gate` job of every other CI run at that head. Where no green
+  `gate` covers the newest event, it re-runs each red `gate` that judged
+  before another run's jobs had finished
 - `.github/workflows/marketplace.yml`: on a schedule or a manual dispatch,
   calls the two Home Assistant validators
 - `.github/workflows/nightly.yml`, `.github/workflows/merge-main.yml`: start
@@ -254,7 +261,8 @@ Start at the top: the orchestrator dispatches a seat. Follow the arrows down
 from the seat's push to the merge on `main`. An arrow runs from the actor to
 its target and its label is the verb, `runs` or `writes`; no arrow means "is
 read by". A script node names one script, the one whose code the arrow's row
-cites.
+cites, and the arrows are the runs and writes of a normal pass, not every
+one in the code.
 
 ```mermaid
 flowchart TB
@@ -310,12 +318,14 @@ flowchart TB
     tloop -->|"runs"| train
     tloop -->|"runs"| hb
     relay -->|"runs"| busx
+    relay -->|"runs"| redit
     relay -->|"writes"| pr
     relay -->|"writes"| ledger
     busx -->|"writes"| drec
     busx -->|"writes"| bus
     busx -->|"writes"| pr
     busx -->|"writes"| ledger
+    busx -->|"runs"| train
     jobs -->|"runs"| plan
     jobs -->|"runs"| docs
     jobs -->|"runs"| rq
@@ -338,8 +348,8 @@ flowchart TB
 Every arrow is one row here, with the line of code or contract that performs
 it. `tests/doc_claims.py` refuses an arrow with no row, a row with no arrow, a
 row whose quoted text is not in the file it cites, an arrow that starts at a
-store, a script node that names two scripts, and a script's row that cites any
-file but that script.
+store, a script node that names no script or two, and a script's row that
+cites any file but that script.
 
 | actor | verb | target | performed at |
 |---|---|---|---|
@@ -360,12 +370,14 @@ file but that script.
 | tick_loop.sh | runs | merge_train.py | `tools/audit/seat/tick_loop.sh`: `python3 "$HERE/merge_train.py" sweep` |
 | tick_loop.sh | runs | heartbeat.sh --once | `tools/audit/seat/tick_loop.sh`: `heartbeat.sh}" --once` |
 | cloud_relay.sh pass | runs | bus.sh | `tools/audit/seat/cloud_relay.sh`: `bash "$HERE/bus.sh" push-verdict` |
+| cloud_relay.sh pass | runs | roster_edit.py | `tools/audit/seat/cloud_relay.sh`: `python3 -I "$HERE/carry_fold.py"` |
 | cloud_relay.sh pass | writes | pull request | `tools/audit/seat/cloud_relay.sh`: `upd=(bash "$why/update_pr.sh")` |
 | cloud_relay.sh pass | writes | obligations ledger | `tools/audit/seat/cloud_relay.sh`: `ledger_open verdict-unposted` |
 | bus.sh | writes | dispatch record | `tools/audit/seat/bus.sh`: `>> "$S/dispatched"` |
 | bus.sh | writes | bus refs | `tools/audit/seat/bus.sh`: `append_commit review` |
 | bus.sh | writes | pull request | `tools/audit/seat/bus.sh`: `"$POSTER" "$REPO" "$pr" "$body"` |
 | bus.sh | writes | obligations ledger | `tools/audit/seat/bus.sh`: `close reviewer-fire "$pr" "$h"` |
+| bus.sh | runs | merge_train.py | `tools/audit/seat/bus.sh`: `merge_train.py"} add "$1" "$sha"` |
 | beat_jobs.py | runs | replan.py | `tools/audit/seat/beat_jobs.py`: `"tools/plan/replan.py", "--out"` |
 | beat_jobs.py | runs | state_docs.py | `tools/audit/seat/beat_jobs.py`: `"tools/audit/seat/state_docs.py", "--push"` |
 | beat_jobs.py | runs | roster_queue.py | `tools/audit/seat/beat_jobs.py`: `"tools/audit/seat/roster_queue.py", "run"` |
@@ -400,7 +412,20 @@ How to read a row:
   `tools/audit/seat/open_pr.sh`. Each of those two rows cites the line that
   starts the launcher.
 - `tools/audit/seat/roster_sync.py` imports `tools/audit/seat/roster_edit.py`
-  and calls it; the other `runs` arrows start a process.
+  and calls it. The relay's carry-fold arm starts
+  `tools/audit/seat/carry_fold.py`, which imports
+  `tools/audit/seat/roster_edit.py` and calls it with `--push`; that helper
+  is not a node either. Each other `runs` arrow from a script starts its
+  target as a process.
+- `tools/audit/seat/bus.sh` runs `tools/audit/seat/merge_train.py add` when it
+  posts a merge verdict and a train state directory is set.
+- A run that only reads is left out with the other reads, for example:
+  `tools/audit/seat/cloud_relay.sh` and `tools/audit/seat/bus.sh` each run
+  `tools/audit/seat/merge_train.py classify`, and `tools/audit/seat/bus.sh`
+  runs `tools/audit/seat/cloud_relay.sh held`.
+- A write on a refusal path is left out:
+  `tools/audit/seat/cloud_dispatch.py` reopens `reviewer-fire` in the ledger
+  when the dispatch ref could not be published.
 - The figure draws what one normal pass does. A second caller of a drawn
   script that is no node is left out: `tools/audit/seat/merge_pr.sh` also runs
   `tools/audit/seat/postmerge.py`.
@@ -433,7 +458,8 @@ The parts, one by one:
   drawn here: `roster-drain`, `plan-beat` and `opener`. No beat job runs the
   relay, the tick, the train or the heartbeat.
 - **A seat is started by the orchestrator.** `tools/audit/seat/cloud_dispatch.py`
-  publishes the dispatch ref and prints the payload; it starts nothing itself.
+  publishes the dispatch ref, records the dispatch through
+  `tools/audit/seat/bus.sh` and prints the payload; it fires no seat.
 - **The bus refs** are the seats' only channel to the orchestrator: a fixer
   pushes `handoff/<topic>` and `handoff-body/<topic>`, a cloud reviewer
   pushes a probe ref, and a designer pushes `design/<group>` through
@@ -450,15 +476,19 @@ The parts, one by one:
   - no script opens `train-stop`; the train's sweep reads it and adds nothing to the train while one is open
 - **The merge train**, `tools/audit/seat/merge_train.py`, merges verdicted
   pull requests one at a time, each with `--match-head-commit` at the head
-  its verdict carries to. A critical-path pull request boards before the
-  record sweep. While a run is live it holds the `train-hold` ref, and the
-  record beat in `.github/workflows/nightly.yml` skips while that ref is fresh.
+  its verdict carries to. A critical-path pull request skips the sweep of
+  record pull requests before it; the sweep runs after its merge. While a
+  run is live it creates and refreshes the `train-hold` ref and deletes it
+  on release, and the record beat in `.github/workflows/nightly.yml` skips
+  while that ref's commit is under an hour old.
   After each merge it runs `tools/audit/seat/postmerge.py`, which opens
   `postmerge-owed` for a step that failed.
 - **The relay's hold list** is a file under the state directory, one pull
-  request number per line. Only the orchestrator writes it.
+  request number per line. No script writes it; the relay's header says
+  only the orchestrator does.
 - **The roster branch**, `handoff/audit-r10-roster`, is written through
-  `tools/audit/seat/roster_edit.py`. `tools/audit/seat/roster_queue.py`,
+  `tools/audit/seat/roster_edit.py`, which the queue, the stage sync and
+  the relay's carry fold each call. `tools/audit/seat/roster_queue.py`,
   the `roster-drain` job, drains queued edits into it, and
   `tools/audit/seat/roster_sync.py`, run by `tools/audit/seat/postmerge.py`
   after a merge, derives a group's stage from its pull request's state. No
@@ -467,7 +497,7 @@ The parts, one by one:
   then `tools/audit/seat/state_docs.py`, which renders the state documents,
   runs `tools/audit/seat/plan_page.py` for the plan page and pushes both in
   one commit.
-- **Four flow instruments** measure a round: `tools/audit/seat/flow_metrics.py`
+- **Flow instruments** measure a round, four of them here: `tools/audit/seat/flow_metrics.py`
   from git alone, `tools/audit/seat/review_strength.py` from the verdict
   bus, `tools/audit/seat/ci_critpath.py` one workflow run's critical path,
   and `tools/audit/seat/gantt_drift.py` the plan's gantt against the real

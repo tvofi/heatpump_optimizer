@@ -4084,6 +4084,8 @@
    "dev/audit/harnesses/r10_advisor_degree.py",
    "dev/audit/harnesses/r10_advisor_residue.py",
    "dev/audit/harnesses/r10_anchor_vacuous.py",
+   "dev/audit/harnesses/r10_arch_docs_enumerate.py",
+   "dev/audit/harnesses/r10_arch_docs_evidence.py",
    "dev/audit/harnesses/r10_arch_docs_first_mutants.py",
    "dev/audit/harnesses/r10_arch_docs_mutants.py",
    "dev/audit/harnesses/r10_archscore_any_spellings.py",

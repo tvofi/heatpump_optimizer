@@ -3787,6 +3787,11 @@ def check_machinery_edges() -> None:
             "| relay.sh pass | writes | bus refs | `t/relay.sh`: `push_verdict` |\n\n### Next\n\n| a | b | c | `x`: `y` |\n")
     clean = machinery_edge_findings(base, files.get)
     R.check("the clean fixture yields no finding (null control)", not clean, repr(clean))
+    # design choice: an entry is an actor. Reads are not drawn, so a store that no drawn arrow writes is no entry.
+    idle = machinery_edge_findings(base.replace('    bus[("bus refs")]\n', '    bus[("bus refs")]\n    held[("hold list")]\n'),
+                                   files.get)
+    R.check("a store no arrow reaches is not an entry: the clean fixture with one yields no finding (null control)",
+            'held[("hold list")]' not in base and not idle, repr(idle))
     row = '| loop.sh | runs | relay.sh pass | `t/loop.sh`: `bash "$relay" pass` |'
     plants = (
         ("one arrow reversed", ('loop -->|"runs"| relay', 'relay -->|"runs"| loop'), "no row cites"),
@@ -3798,6 +3803,10 @@ def check_machinery_edges() -> None:
          ('relay["relay.sh pass<br/>two arms"]', 'relay["relay.sh pass<br/>loop.sh"]',
           "`t/relay.sh`: `push_verdict`", '`t/loop.sh`: `mv "$tmp" "$out"`'), "not the script the actor's node names"),
         ("a node grouping two scripts", ('loop["loop.sh"]', 'loop["loop.sh, relay.sh"]'), "names one script"),
+        ("a script node that names no script", ('loop["loop.sh"]', 'loop["the loop"]'), "this names 0"),
+        ("a row citing a file whose name is only a part of its node's script name",
+         ('relay["relay.sh pass<br/>two arms"]', 'relay["cloud_relay.sh pass<br/>two arms"]',
+          "| relay.sh pass |", "| cloud_relay.sh pass |"), "not the script the actor's node names"),
         ("a single entry that is a script, not a seat",
          ('orch(["orchestrator<br/>a person"])', 'orch["orchestrator<br/>a person"]'), "one entry"),
         ("a store drawn as the actor (is read by)", ('loop -->|"writes"| board', 'board -->|"writes"| loop'), "starts at a store"),
