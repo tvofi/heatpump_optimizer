@@ -15,7 +15,11 @@ Polish of the non-expanded card. Each change is listed with why. The ordering re
 
 ## Head
 
-e277484c38bf3349ab534340c6880274bf404d69, on merge base a7628041dc02e298c5399003d4c0576391dd5c4e (origin/main's tip; measured 2026-11-11 08:08 UTC).
+82e14f6d8fb87fc65dd993d1cadbd35883090f07, a merge of origin/main ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e into bbad7959ae2bacf68d01f190f28e87f849932179; merge base ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e (origin/main's tip; measured 2026-11-11 14:45 UTC).
+
+## Repair round 2
+
+The second review blocked `root-cause-unanswered` at bbad7959ae2bacf68d01f190f28e87f849932179: `tests / fast (3.14)` was red and `## Red checks` read none, and `env_drift --all` refused the branch for lacking #3398's combi leaves. This round merges origin/main (no conflict; `git merge-tree --write-tree origin/main bbad7959ae2bacf68d01f190f28e87f849932179` printed a tree and no conflict) and changes no line of its own. Main's delta to the card file is the setup diagram's combi caption and pipe, disjoint from the fold code. Steps 2-8 were re-run at 82e14f6d8fb87fc65dd993d1cadbd35883090f07: `## Figures` and the round-2 mutants below.
 
 ## Repair round 1
 
@@ -46,7 +50,7 @@ Every behaviour this body claims, against the check that pins it (all in `tests/
 | ordering: savings, folds, chart | **new** `collapse: the folds sit after the savings figure and before the chart` | M12 |
 | clamped axis label's neighbour keeps half the usual gap | `the ... time axis spaces a clamped label at least half its usual gap` | M6 |
 | Enter, Tab and Space work in a real browser, light and dark | `tests/card_browser.mjs` `cardCollapse` | not re-run this round (no scope selects the lane; CI's `tests / browser` runs it) |
-| `translations/*.json` unchanged | `git diff --quiet a7628041dc02e298c5399003d4c0576391dd5c4e...HEAD -- custom_components/heatpump_optimizer/translations && echo "translations: no change"` printed `translations: no change in three-dot diff` | — (a diff fact) |
+| `translations/*.json` unchanged | `git diff --quiet ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e...HEAD -- custom_components/heatpump_optimizer/translations && echo "translations: no change"` printed `translations: no change in three-dot diff` | — (a diff fact) |
 
 Claims reworded rather than pinned: the old "survives every plan-refresh rebuild" now names what the new check drives (a hass-driven rebuild). The old ordering bullet named "header, tiles" and said the order was "kept". The check pins savings, then folds, then chart, so the bullet now states that order only. The old wrap bullet attributed the refusal to the P9 grid's clip rule. That rule measures clipping by an ancestor, not ellipsis itself (`unreachable()` in `tests/card_browser.mjs`), so the attribution is withdrawn and the stylesheet check carries the claim.
 
@@ -71,6 +75,12 @@ Round 1, measured at e277484c38bf3349ab534340c6880274bf404d69 (R1, R2 and NULL r
 - M11, `id="hl-fold-head"` added to the fold header: 2 FAIL, `collapse: both folds render a header button, collapsed by default`, `collapse: the doubly rendered headline mints no id and no aria-controls`.
 - M12, the `hl-stats` block moved after the why-now fold in `headlineHtml`: 1 FAIL, `collapse: the folds sit after the savings figure and before the chart`.
 
+Round 2, re-run at 82e14f6d8fb87fc65dd993d1cadbd35883090f07 after the merge (`PYTHONPATH=tests/hastub node tests/card.mjs`, file restored by `git checkout` after each):
+- NULL, ` // null` appended to the fold handler's focus line: 0 FAIL, rc 0.
+- R1, the `_folds` reset added to the card's `set hass`: rc 1, `collapse: a hass refresh rebuilds the card and keeps each fold as it was`.
+- M4, the fold handler's `again.focus()` line deleted: rc 1, `collapse: focus returns to the rebuilt header`, `collapse: focus returns to the dialog's copy of the pressed header`.
+- M2, the `this._folds = {...}` toggle line deleted: rc 1, 21 failing checks, the first `headline shows every narrative line`.
+
 ## Null control
 
 There is no finder harness, because the group is an owner request, not an audit finding. The before and after is this branch's `tests/card.mjs` block, run at both ends.
@@ -86,16 +96,18 @@ Each new check asserts its own precondition, so it cannot pass on an empty read:
 
 ## Figures
 
-- `PYTHONPATH=tests/hastub node tests/card.mjs` at e277484c38bf3349ab534340c6880274bf404d69: `ALL CARD CHECKS PASSED`, rc 0.
-- `python3 tests/closure.py select --diff a7628041dc02e298c5399003d4c0576391dd5c4e --workdir "$D"`: `MODE: SCOPED`. Each script in `scope.run` exits 0 with `PYTHONPATH=tests/hastub GOLDEN_MODE=drift`, `tests/card_drift.mjs` among them. So do the `run_always` lines `python3 tests/env_drift.py --claims-only origin/main` (`claims hygiene: origin/main ok`) and `python3 tests/closure.py selftest`. This was run at the round's first test commit; the second commit adds checks to `tests/card.mjs` only, re-run above.
+All at 82e14f6d8fb87fc65dd993d1cadbd35883090f07, merge base ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e, 2026-11-11 14:45 UTC, Python 3.14.7.
+- `PYTHONPATH=tests/hastub node tests/card.mjs`: `ALL CARD CHECKS PASSED`, rc 0.
+- `python3 tests/closure.py select --diff ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e --workdir "$D"`: `MODE: SCOPED -- 12 script(s) run, 21 scoped out.` Each script in `scope.run` run with `PYTHONPATH=tests/hastub GOLDEN_MODE=drift` exits 0 except `tests/features.py`, rc 1, one failing check: `combi_type_branch census` (answered under `## Red checks`). `run_always` lines: `python3 tests/env_drift.py --claims-only origin/main` printed `claims hygiene: origin/main ok`; `python3 tests/closure.py selftest` printed `ALL 118 closure shrink pins PASSED`.
+- `python3 tests/env_drift.py --all`: `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE` against origin/main, rc 0 (the round-2 refusal is gone: #3398's combi leaves are in the tree by the merge).
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `python3 tools/audit/archscore/score.py --diff a7628041dc02e298c5399003d4c0576391dd5c4e`: `Architecture score: dS +0.0000 NULL`. An earlier head read `card_clone_copies` 103 -> 108. That was paid by merging the narrative summary into `narrativeParts`, adding one `weightOf` helper, and passing one `{score, narrative, whynow}` disclosure argument to `headlineHtml`.
-- `git diff --quiet a7628041dc02e298c5399003d4c0576391dd5c4e...HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json && echo untouched`: printed.
-- `tests/card_browser.mjs` (exit 0, no `FAIL` line, `cardCollapse` and the P9 grid's `folds_open` cell included) and the regenerated `docs/img/card` figures were measured at d7c39135839ea0a985796105ebfda170cdd6d505. This round touches only `tests/card.mjs`, and CI's `tests / browser` re-runs the lane.
+- `python3 tools/audit/archscore/score.py --diff ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e`: `Architecture score: dS +0.0000 NULL`. An earlier head read `card_clone_copies` 103 -> 108. That was paid by merging the narrative summary into `narrativeParts`, adding one `weightOf` helper, and passing one `{score, narrative, whynow}` disclosure argument to `headlineHtml`.
+- `git diff --quiet ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e...HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json && echo untouched`: printed.
+- `tests/card_browser.mjs` (exit 0, no `FAIL` line, `cardCollapse` and the P9 grid's `folds_open` cell included) and the regenerated `docs/img/card` figures were measured at d7c39135839ea0a985796105ebfda170cdd6d505. Neither repair round changes the fold code, and CI's `tests / browser` re-runs the lane.
 
 ## Red checks
 
-none
+- `tests / fast (3.14)`: main's red, not this branch's. The failing check is `tests/features.py`'s `combi_type_branch census` (vendor hits in `const.py`, `heat_curve.py`, `pump_arbiter.py`, `thermal_model.py`). Control: the same `PYTHONPATH=tests/hastub GOLDEN_MODE=drift python3 tests/features.py` at origin/main ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e prints the identical FAIL line and `1 of 5237 FEATURE CHECKS FAILED`, rc 1; `git diff --name-only ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e...HEAD -- '*.py' | grep custom_components` prints nothing, so this branch touches no file the census reads. Cheaper detector for this PR: none exists, because the branch did not cause the defect; the cause, its process state and countermeasure are owned by #3466 (the repair, on the merge train). Carry: #3466
 
 ## Forward-carry
 
