@@ -1,0 +1,8 @@
+# BLOCKED: R10-HOTFIX-REPLAY-CLASS-CUT
+
+Question: may this head (5cde26293067484d52963e9921bbfc1eadccefba) hand off with `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh`? Every prepr step but closures is ok. The closures step refuses with "failed while being recorded: tests/entities.py (exit 1) tests/features.py (exit 1)". Neither failure is the missing-homeassistant case the brief allows me to skip.
+
+- tests/features.py: `combi_type_branch census` fails on vendor names at custom_components/heatpump_optimizer/const.py:812 and 1595, heat_curve.py:72, pump_arbiter.py:256 and 1015, and thermal_model.py:1870. It fails identically at the merge base ee64358be7, which this diff does not touch (`PYTHONPATH=tests/hastub python3 tests/features.py` there: 1 of 5237 FAILED). main's CI is red at that SHA on `tests / fast (3.14)` (run 43010208881), and none of origin/main's commits since then, up to ceb3070cc, touch the census.
+- tests/entities.py: passes alone at the head (`PYTHONPATH=tests/hastub python3 tests/entities.py`, also with GOLDEN_REF=origin/main: ALL 2708 ENTITY CHECKS PASSED). A standalone recording at the head also passes: `GOLDEN_REF=origin/main PYTHON=python3 ./tests/derive_closures.sh --scripts-from <file naming tests/entities.py> --record-only --out-dir <dir>` gives rc 0 in 1080 s. It fails only inside prepr's recording (twice: once beside a concurrent base features run, once alone), and prepr removed that recording's output, so I have no failing line to cite.
+
+The fix: tests/replay.py, tests/replay_cost_draws.tsv, tools/audit/seat/replay_draws.py and tools/policy/field_coverage.mjs. Its controls, mutation proof and the brief's red/green demonstration are done, and the draft body is ready.
