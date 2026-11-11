@@ -2785,21 +2785,17 @@ def selftest() -> int:
     # stub in sys.modules, so the mutation copies (no size_durations.py beside
     # them) run this arm too, and no read reaches the network.
     import types
-    vias, real_sd = [], sys.modules.get("size_durations")
-    sys.modules["size_durations"] = types.SimpleNamespace(
+    from unittest import mock
+    vias = []
+    stub = types.SimpleNamespace(
         SINCE="2026-10-12", DEFAULT_PERCENTILE=0.5,
         run=lambda *a, **k: vias.append((a[7:8] or [k.get("via", "graphql")])[0])
         or {"sizes_hours": {}})
-    try:
-        with tempfile.TemporaryDirectory() as td:
-            for via in ("rest", "graphql"):
-                main(["--measure-sizes", "--sizes-via", via,
-                      "--out-durations", os.path.join(td, "d.json")])
-    finally:
-        if real_sd is None:
-            sys.modules.pop("size_durations", None)
-        else:
-            sys.modules["size_durations"] = real_sd
+    with mock.patch.dict(sys.modules, {"size_durations": stub}), \
+            tempfile.TemporaryDirectory() as td:
+        for via in ("rest", "graphql"):
+            main(["--measure-sizes", "--sizes-via", via,
+                  "--out-durations", os.path.join(td, "d.json")])
     expect("--measure-sizes --sizes-via rest reaches size_durations.run as via=rest "
            "(null: graphql)", vias == ["rest", "graphql"], str(vias))
 
