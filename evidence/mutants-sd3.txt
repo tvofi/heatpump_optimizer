@@ -1,4 +1,0 @@
-SURVIVED NULL
-KILLED note-run
-KILLED run-via
-SURVIVED note-replayed

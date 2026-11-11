@@ -1,4 +1,5 @@
-NOTE review 0 item f46d48cf: dismissed:this PR's own block, to be settled in this PR's next round
-NOTE review 0 item 83c0bdab: dismissed:test-side only, and the production defaults are pinned, as round 3 dismissed it
-NOTE review 0 item 4dbc2586: dismissed:evidence, not a finding
-CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+NOTE body item 0452afb3: dismissed:test-side, a deleted assertion is inherently unkillable; the misstated figure is recorded here
+NOTE body item 7fc0821c: dismissed:equivalent test-side mutant, the cache path is pinned by production mutants
+NOTE body item 83b72d36: dismissed:body formatting only
+NOTE body item 7c533d8e: dismissed:test-side only, the production defaults are pinned, as rounds 3 and 4 dismissed it
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
