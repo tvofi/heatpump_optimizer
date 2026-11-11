@@ -1,5 +1,0 @@
-Question: carry 6 (PREPR-SLOT-LIVELOCK) - no reproduction after a real attempt; carry it with its control, or give a second repro path?
-
-Measured this part: HPO_GATE_LOCK_DIR=<tmp> with all 4 slots held by live pids (slot-status 4/4, queue=-), then `HPO_SLOT_LABEL=outer bash tools/pr/prepr.sh --self-test`. It ran 292 rows, 0 FAIL, no WARN, no slot or queue line, no ticket file appeared: a nested self-test with the label inherited never queues. A scout found no nested real-flow launch that scrubs HPO_SLOT_LABEL (launches at prepr.sh 2537, 2539, 2559, 2561, 3191, 3997, 4013, 4367; throwaway_git_env unsets GIT_* only). take_slot is called as a plain statement at 4234, 4297, 4366, 4446, 4489, so the export reaches heavy_run children.
-Untried: an outer that took the WARN path (slot-take failed, label never exported) with the nested self-test row 4013 running the real flow unlabeled; and unlabeled `prepr.sh` when HPO_SLOT_LABEL was set by a parent that has since exited.
-State: carry 4 present and verified; carries 0-3, 5-23 not started; no prepr.sh run; nothing handed off.
