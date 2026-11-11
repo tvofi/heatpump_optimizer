@@ -1046,6 +1046,9 @@ DHW_LEGIONELLA_BOOST_MAX_HOURS: Final = 12.0
 #: The longest settling tail a space boost owes the interval learners (#1935;
 #: ``boost.settle_tail`` scales it to the boost's length).
 BOOST_SPACE_SETTLE_TAIL_HOURS: Final = 12.0
+#: The interval learners' longest sample, hours: the coordinator's sample bound
+#: and ``boost.settle_tail``'s floor, which must hold every sample a boost overlaps.
+HOUSE_LOSS_MAX_SAMPLE_HOURS: Final = 1.5
 #: #20 — events per window before the p90 fully replaces the mean (ramp).
 DHW_QUANTILE_MIN_EVENTS: Final = 8
 #: #18 — day-type samples at which the blend is half day-type, half pooled.

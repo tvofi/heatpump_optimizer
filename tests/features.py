@@ -80540,10 +80540,11 @@ _bt_nested.set(boost_mod.CHANNEL_SPACE, True, NOW + timedelta(hours=3))
 _bt_nested.set(boost_mod.CHANNEL_SPACE, False, NOW + timedelta(hours=3, seconds=38))
 R.check(
     "a 38 s boost cancelled ends its freeze 1.5 h after the cancel; a window run to its end "
-    "settles 12 h from that end (null control); a click inside a long tail keeps it",
+    "settles 12 h from that end (null control); a click inside a long tail adds to it, "
+    "so the full tail runs again from the click's end",
     _bt_click.space_settle_until == NOW + timedelta(seconds=38, hours=1.5)
     and _bt_full.space_settle_until == NOW + timedelta(hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL
-    and _bt_nested.space_settle_until == _bt_full.space_settle_until,
+    and _bt_nested.space_settle_until == NOW + timedelta(hours=3, seconds=38) + boost_mod.SPACE_SETTLE_TAIL,
     f"{_bt_click.space_settle_until} {_bt_full.space_settle_until} {_bt_nested.space_settle_until}",
 )
 _bt_restored = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
@@ -80572,6 +80573,170 @@ R.check(
     getattr(_bt_store.get("space_settle", {}).get("until", {}).get(""), "ahead_h", None)
     == _fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS,
     f"{_bt_store.get('space_settle')}",
+)
+
+
+# R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (a): boosts add up. Three 20-minute presses
+# back to back, each cancelled, added the heat of one hour-long boost, so they
+# owe no less than one boost of their summed length; a mode boost and an
+# overlay back to back add up the same way. Null control: one 20-minute press
+# alone owes only its own tail.
+def _bt_series(spans, gap=timedelta(minutes=1)):
+    st, at = boost_mod.BoostState(), NOW
+    for surface, ran in spans:
+        if surface == "mode":
+            st.note_mode(True, at)
+            st.note_mode(False, at + ran)
+        else:
+            st.set(boost_mod.CHANNEL_SPACE, True, at)
+            st.set(boost_mod.CHANNEL_SPACE, False, at + ran)
+        at = at + ran + gap
+    return st, at - gap
+
+
+_bt_20 = timedelta(minutes=20)
+_bt_three, _bt_three_end = _bt_series([("space", _bt_20)] * 3)
+_bt_mixed, _bt_mixed_end = _bt_series([("mode", timedelta(minutes=30)), ("space", timedelta(minutes=30))])
+_bt_one, _bt_one_end = _bt_series([("space", _bt_20)])
+R.check(
+    "short boosts back to back owe no less than one boost of their summed length, "
+    "over both surfaces; one short boost alone owes its own tail (null control)",
+    _bt_three.space_settle_until >= _bt_three_end + boost_mod.settle_tail(3 * _bt_20)
+    and _bt_mixed.space_settle_until >= _bt_mixed_end + boost_mod.settle_tail(timedelta(hours=1))
+    and _bt_one.space_settle_until == _bt_one_end + boost_mod.settle_tail(_bt_20),
+    f"{_bt_three.space_settle_until} {_bt_mixed.space_settle_until} {_bt_one.space_settle_until}",
+)
+
+
+# (a) The sum clears only once a tail ran out with no boost live: a short press
+# after the series' tail is spent owes its own tail, not the series' (null
+# control for an over-priced sum); a press inside the tail adds to it.
+_bt_after, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_spent_at = _bt_after.space_settle_until
+_bt_after.expire(_bt_spent_at + timedelta(minutes=1))
+_bt_after.set(boost_mod.CHANNEL_SPACE, True, _bt_spent_at + timedelta(minutes=1))
+_bt_after.set(boost_mod.CHANNEL_SPACE, False, _bt_spent_at + timedelta(minutes=21))
+_bt_inside, _bt_inside_end = _bt_series([("space", _bt_20)] * 3)
+_bt_inside.set(boost_mod.CHANNEL_SPACE, True, _bt_inside_end + timedelta(hours=1))
+_bt_inside.set(boost_mod.CHANNEL_SPACE, False, _bt_inside_end + timedelta(hours=1, minutes=20))
+R.check(
+    "the boosted sum clears once its tail ran out with nothing live, and not before",
+    _bt_after.space_settle_until == _bt_spent_at + timedelta(minutes=21) + boost_mod.settle_tail(_bt_20)
+    and _bt_after.space_boosted == _bt_20
+    and _bt_inside.space_boosted == 4 * _bt_20
+    and _bt_inside.space_settle_until
+    == _bt_inside_end + timedelta(hours=1, minutes=20) + boost_mod.settle_tail(4 * _bt_20),
+    f"{_bt_after} {_bt_inside}",
+)
+
+# (b) The floor is the interval learners' longest sample, one number both read.
+# (c) The floor is the tail of a boost this long; a press shorter than the
+# integration's minimum on-time (early_cutoff.MIN_ON) may run the compressor
+# that long after the cancel, and a press of that length still owes only the
+# floor, so the floor covers the overrun. A press longer than MIN_ON is past it.
+_bt_floor_len = boost_mod._BOOST_WINDOW * _he_math.exp(
+    (boost_mod._SETTLE_FLOOR - boost_mod.SPACE_SETTLE_TAIL) / boost_mod._SETTLE_TAU)
+from heatpump_optimizer import early_cutoff as _bt_cutoff  # noqa: E402
+R.check(
+    "the settle floor is the learners' longest sample, and is the tail of a boost "
+    "at least the minimum on-time long",
+    boost_mod._SETTLE_FLOOR == timedelta(hours=_he_cm.HOUSE_LOSS_MAX_SAMPLE_HOURS)
+    and _bt_floor_len >= _bt_cutoff.MIN_ON
+    and boost_mod.settle_tail(_bt_cutoff.MIN_ON) == boost_mod._SETTLE_FLOOR
+    and boost_mod.settle_tail(_bt_floor_len * 1.01) > boost_mod._SETTLE_FLOOR,
+    f"floor length {_bt_floor_len}, min on {_bt_cutoff.MIN_ON}",
+)
+
+# (d) The mode's start is not persisted: a mode restored as boost has no start,
+# and leaving it owes the full tail (fail closed). Null control: a mode entered
+# in this run and left after 30 minutes owes the 30-minute tail.
+_bt_mode_restored = boost_mod.BoostState()
+_bt_mode_restored.note_mode(False, NOW)
+_bt_mode_seen = boost_mod.BoostState()
+_bt_mode_seen.note_mode(True, NOW - timedelta(minutes=30))
+_bt_mode_seen.note_mode(False, NOW)
+R.check(
+    "a boost mode restored with no start owes the full tail when left; one seen to start "
+    "owes its own length's tail",
+    _bt_mode_restored.space_settle_until == NOW + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_mode_seen.space_settle_until == NOW + boost_mod.settle_tail(timedelta(minutes=30)),
+    f"{_bt_mode_restored} {_bt_mode_seen}",
+)
+
+# The boosted sum survives a restart with its tail; an unreadable sum owes the
+# full tail. Null control: a store main wrote (no tail, no start) restores the
+# live overlay with an unseen start.
+_bt_rs = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_rs, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+                                                    "boosted_h": 1.0}}, NOW)
+_bt_rs.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_bt_rs.set(boost_mod.CHANNEL_SPACE, False, NOW + _bt_20)
+_bt_rbad = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_rbad, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+                                                      "boosted_h": "x"}}, NOW)
+_bt_main = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+boost_mod._restore_settle(_bt_main, {"space": {"until": (NOW + timedelta(hours=1)).isoformat()}}, NOW)
+R.check(
+    "a restart keeps the boosted sum with the tail; an unreadable sum owes the full tail; "
+    "a store main wrote restores with no start and no tail",
+    _bt_rs.space_boosted == timedelta(hours=1) + _bt_20
+    and _bt_rs.space_settle_until == NOW + _bt_20 + boost_mod.settle_tail(timedelta(hours=1) + _bt_20)
+    and _bt_rbad.space_boosted is None
+    and _bt_main.space_since is None and _bt_main.space_settle_until is None,
+    f"{_bt_rs} {_bt_rbad} {_bt_main}",
+)
+
+# Null control: an install that never boosted, or only blocked, persists the
+# payload main persists; one with a tail adds only the tail record and the start.
+_bt_never = boost_mod.BoostState(blocked={boost_mod.CHANNEL_DHW: NOW + timedelta(hours=1)})
+_bt_live = boost_mod.BoostState()
+_bt_live.set(boost_mod.CHANNEL_SPACE, True, NOW)
+R.check(
+    "a boost store from an install that never boosted is main's payload, field for field",
+    boost_mod._payload(boost_mod.BoostState()) == {}
+    and boost_mod._payload(_bt_never) == {"block_dhw": {"until": (NOW + timedelta(hours=1)).isoformat()}}
+    and boost_mod._payload(_bt_live) == {"space": {"until": (NOW + timedelta(hours=2)).isoformat(),
+                                                   "since": NOW.isoformat()}}
+    and set(boost_mod._payload(_bt_click)) == {"space_settle"},
+    f"{boost_mod._payload(_bt_never)} {boost_mod._payload(_bt_live)} {boost_mod._payload(_bt_click)}",
+)
+
+# (f) A tail further ahead than its declared look-ahead (a clock stepped back)
+# is bounded by the store to that look-ahead, not trusted; one inside it loads
+# unchanged. Null control: the same stamp under the overlay's own field is held
+# to the store's two-hour lead.
+_bt_bound = NOW + boost_mod._MAX_LEAD
+_bt_far = (NOW + timedelta(hours=30)).isoformat()
+_bt_near = (NOW + timedelta(hours=11)).isoformat()
+_bt_loaded = _he_store._bound_instants(
+    {"space_settle": {"until": _bt_far}, "space": {"until": _bt_far}},
+    _bt_bound, "boost", None, [], (), _he_store._tries()["boost"])
+_bt_kept = _he_store._bound_instants(
+    {"space_settle": {"until": _bt_near}}, _bt_bound, "boost", None, [], (), _he_store._tries()["boost"])
+R.check(
+    "a persisted tail past its declared look-ahead is bounded to it; one inside loads unchanged",
+    _bt_loaded["space_settle"]["until"]
+    == (_bt_bound + timedelta(hours=_fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS)).isoformat()
+    and _bt_loaded["space"]["until"] == _bt_bound.isoformat()
+    and _bt_kept["space_settle"]["until"] == _bt_near,
+    f"{_bt_loaded} {_bt_kept}",
+)
+
+# Null control: the order of the freeze reasons in ``_learning_frozen`` is main's.
+import ast as _bt_ast  # noqa: E402
+import inspect as _bt_inspect  # noqa: E402
+import textwrap as _bt_tw  # noqa: E402
+_bt_returns = [
+    _bt_ast.unparse(n.value) for n in sorted(_bt_ast.walk(_bt_ast.parse(_bt_tw.dedent(_bt_inspect.getsource(
+        _he_cm.HeatPumpOptimizerCoordinator._learning_frozen)))), key=lambda n: getattr(n, "lineno", 0))
+    if isinstance(n, _bt_ast.Return)
+]
+R.check(
+    "the freeze reasons keep main's order, the boost's after ventilation and before the tail freeze",
+    _bt_returns == ["'external_heat_source'", "signals.freeze_reason", "'defrosting'",
+                    "f'{reading.problem}:{key}'", "'ventilation'", "boost.FREEZE_REASON",
+                    "_tail_freeze(self)"],
+    f"{_bt_returns}",
 )
 
 

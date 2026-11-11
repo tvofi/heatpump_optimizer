@@ -474,6 +474,7 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "block_dhw/until": _AT, "block_space/until": _AT,
         # #1935: the settling tail runs past the overlay's own two hours.
         "space_settle/until": Domain("instant", ahead_h=c.BOOST_SPACE_SETTLE_TAIL_HOURS),
+        "space_settle/boosted_h": Domain("real", 0.0, null=True),
     },
     "notifier": {"sent/~": _TEXT, "sent/*": _TEXT},
     # off_restore.py: each armed consumer and the baseline its restore writes,

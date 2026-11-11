@@ -124,6 +124,7 @@ from .const import (
     DEFAULT_LOWER_FLOOR_LOSS_RATIO,
     FACTORY_RESET_SCOPES,
     HEAT_LOSS_LEARNERS,
+    HOUSE_LOSS_MAX_SAMPLE_HOURS,
     LOWER_FLOOR_LOSS_RATIO_MAX,
     LOWER_FLOOR_LOSS_RATIO_MIN,
     DHW_COOLING_REFERENCE_DELTA,
@@ -1630,7 +1631,6 @@ HOUSE_LOSS_ALPHA = 0.02
 # UA and dividing by it amplifies sensor noise without limit.
 HOUSE_LOSS_MIN_DELTA = 6.0
 HOUSE_LOSS_MIN_SAMPLE_HOURS = 0.15
-HOUSE_LOSS_MAX_SAMPLE_HOURS = 1.5
 #: The interval learners' ``(min, max)`` sample length, which a heat counter's span lands inside.
 HOUSE_LOSS_SAMPLE_BOUNDS_H = (HOUSE_LOSS_MIN_SAMPLE_HOURS, HOUSE_LOSS_MAX_SAMPLE_HOURS)
 # The re-anchor threshold gate: a nameplate edit within this fraction keeps
