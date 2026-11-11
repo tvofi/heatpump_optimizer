@@ -6,21 +6,25 @@ Alternative rejected: a second init step per event (duplicates the step the exis
 
 ## Head
 
-f4532701a9d41e1b53a868a8df99a4734151623d
+04a1f28c14cb79f61b62cfdc3c4165d1cc8204e4
 
 ## Mutation proof
 
-Removing ` && matrix.language == 'python'` from codeql.yml (the predicate, not a tail) and running `tests/entities.py`: the check "codeql.yml: tests/ and dev/ are ignored on a pull request's python leg only; a full run ignores workflow scripts alone" goes red (output in the Figures command below on the mutated file); restored, `git status --short` empty.
+Round 2 (blocked verdict: the main-push full-set pin survived M2 and M3). The check now anchors the whole config as `paths-ignore: ${{ (<GUARD>) && '<PR list>' || '<BASE list>' }}` and evaluates it for push, pull_request, merge_group and workflow_dispatch across the three legs: only pull_request on python may select the tests/dev list. Mutants of codeql.yml run against `PYTHONPATH=tests/hastub python3 tests/entities.py` (one pass, script /tmp/mut.sh, each restored after):
+- M1 drop ` && matrix.language == 'python'`: rc=1, the check FAILs.
+- M2 negate the guard (`!(...)`): rc=1, the check FAILs (survived at the previous head).
+- M3 guard `|| true`: rc=1, the check FAILs (survived at the previous head).
+After the pass `git status --short` was empty.
 
 ## Null control
 
-Unmodified tree: `PYTHONPATH=tests/hastub python3 tests/entities.py` exits 0 and both codeql checks print `ok`. Before the fix of my own pin order, both printed FAIL (lists read swapped), so the pin discriminates.
+Unmodified tree (M0 of the same pass, rc=0): `PYTHONPATH=tests/hastub python3 tests/entities.py` exits 0 and both codeql checks print `ok`. Before the fix of my own pin order, both printed FAIL (lists read swapped), so the pin discriminates.
 
 ## Figures
 
 - Before/after job seconds: NOT MEASURED. This seat has no authenticated `gh`, so `python3 tools/audit/seat/ci_critpath.py --repo tvofi/heatpump_optimizer --workflow ci.yml --last 5` could not run, and a job time needs a PR run on this head. The brief's recorded before is 2173-3623 s (siblings 48-104 s); target under 900 s. Carry: dismissed: owed to the orchestrator, who has the runs; run the command above over the 5 runs before and after this merge and put both medians here.
 - Whether ignored-path alerts read as fixed on a PR against main's same-category analysis: NOT MEASURED, same reason (needs a PR run with the PR alert view). I kept the shared category deliberately: a separate PR category would leave the required `/language:python` configuration missing on the PR ("1 configuration not found", per codeql.yml's stand-in comment). If the first PR run shows tests/ or dev/ alerts as fixed, the PR leg needs its own category plus an equivalent for the required context. Carry: dismissed: conditional on that measurement.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` exit 0 at the head; `bash tools/pr/prepr.sh` exit 0 (body not passed).
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` exit 0 at the head; `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` exit 0 at 04a1f28c1 (no interpreter with homeassistant; the skip is ruled allowed), merge-tree with origin/main clean.
 
 ## Red checks
 
