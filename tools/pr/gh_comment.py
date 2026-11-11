@@ -35,12 +35,16 @@ Usage:
   --withdraw-mandate CID on post/patch lets the body revoke mandate CID.
 
 THE MANDATE GUARD (triage P336, two instances). budget_raise_gate.py voids a
-mandate on any owner-account comment on #201 whose CURRENT body pairs a form
-of "revoke" with the mandate comment's id, so a seat's state comment naming a
-group whose name holds the word froze every mandated raise. A post or a patch
-to #201 is refused when budget_raise_gate.revokes() holds for the body and the
-id of a #201 comment budget_raise_gate.revocable() reads as a grant, unless
+mandate on any owner-account comment on a record issue (its RECORD_ISSUES:
+#201 and its continuation) whose CURRENT body pairs a form of "revoke" with
+the mandate comment's id, so a seat's state comment naming a group whose name
+holds the word froze every mandated raise. A post or a patch to a record issue
+is refused when budget_raise_gate.revokes() holds for the body and the id of a
+record-issue comment budget_raise_gate.revocable() reads as a grant, unless
 --withdraw-mandate names that id. Both predicates are imported, never copied.
+A post to a record issue other than RECORD_ISSUE is refused before any write:
+GitHub closed #201 to comments at its 2,500-comment cap, and the refusal names
+the issue to post to instead of a bare HTTP 403.
 THIS ENCODES A DESIGN CHOICE: it refuses whatever account posts, since the
 guard does not know which one gh holds and an agent's text is reworded at no
 cost. Stated gap: a raw `gh api` or `gh issue comment` bypasses it;
@@ -216,19 +220,28 @@ def mandate_guard(repo: str, body: str, withdraw, issue=None, comment=None,
     if repo.lower() != g.DEFAULT_REPO.lower() or not g.MANDATE_REVOKED.search(body):
         return
     if issue is not None:
-        on = issue == g.MANDATE_ISSUE
+        on = issue in g.RECORD_ISSUES
     else:
-        on = str(fetch(repo, comment).get("issue_url") or "").endswith(g.MANDATE_ISSUE_URL)
+        on = g.on_record_issue(fetch(repo, comment))
     if not on:
         return
     now = now or datetime.datetime.now(datetime.timezone.utc)
-    hit = sorted({c.get("id") for c in thread(repo, g.MANDATE_ISSUE)
+    hit = sorted({c.get("id") for n in g.RECORD_ISSUES for c in thread(repo, n)
                   if g.revocable(c, now) and g.revokes(body, c.get("id"))} - {withdraw})
     if hit:
-        die(f"on #{g.MANDATE_ISSUE} this body would void mandate comment(s) {', '.join(map(str, hit))}: "
+        die(f"on a record issue this body would void mandate comment(s) {', '.join(map(str, hit))}: "
             "budget_raise_gate.py reads an owner-account comment pairing the revocation word with a "
             "mandate's id as revoking it (triage P336). Reword it, or pass --withdraw-mandate <id> "
             "to withdraw that mandate on purpose")
+
+
+def closed_record_guard(repo: str, issue: int) -> None:
+    """Refuse a post to a record issue that is no longer RECORD_ISSUE (#201, at
+    GitHub's 2,500-comment cap), naming the issue the record continues in."""
+    g = _gate()
+    if repo.lower() == g.DEFAULT_REPO.lower() and issue in g.RECORD_ISSUES and issue != g.RECORD_ISSUE:
+        die(f"#{issue} is closed to comments (GitHub's 2,500-comment cap); the record continues "
+            f"in #{g.RECORD_ISSUE} (budget_raise_gate.RECORD_ISSUE): post there")
 
 
 def write(repo: str, endpoint: str, method: str, body: str) -> dict:
@@ -478,18 +491,20 @@ def self_test() -> int:
     # #3006's budget-raise-gate read as voiding the session mandate.
     g = _gate()
     owner = {"login": g.OWNER_LOGIN, "id": g.OWNER_ID, "type": g.OWNER_TYPE}
-    on201 = f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/{g.MANDATE_ISSUE}"
+    on201 = f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/201"
+    onrec = f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/{g.RECORD_ISSUE}"
 
-    def grant(cid, until="programme-end", user=owner):
-        return {"id": cid, "user": user, "issue_url": on201, "created_at": "2026-10-01T00:00:00Z",
+    def grant(cid, until="programme-end", user=owner, url=on201):
+        return {"id": cid, "user": user, "issue_url": url, "created_at": "2026-10-01T00:00:00Z",
                 "updated_at": "2026-10-01T00:00:00Z",
                 "body": f"MANDATE: agents may approve as {g.OWNER_LOGIN}, scope all, "
                         f"from 2026-10-01T00:00Z until {until}\nreason"}
-    BRIEF_ID, LIVE_ID, OLD_ID, ALIEN_ID = 6175172275, 6329234399, 6000000001, 6000000002
+    BRIEF_ID, LIVE_ID, OLD_ID, ALIEN_ID, NEW_ID = 6175172275, 6329234399, 6000000001, 6000000002, 6800000001
     THREAD = [grant(BRIEF_ID), grant(LIVE_ID), grant(OLD_ID, until="2026-10-02T00:00Z"),
               grant(ALIEN_ID, user={"login": "someone", "id": 1, "type": "User"}),
               {"id": 6545892934, "user": owner, "issue_url": on201, "body": "state comment"}]
-    targets = {111: {"id": 111, "issue_url": on201}, 222: {"id": 222, "issue_url": on201[:-3] + "7"}}
+    targets = {111: {"id": 111, "issue_url": on201}, 222: {"id": 222, "issue_url": on201[:-3] + "7"},
+               333: {"id": 333, "issue_url": onrec}}
     reads: list = []
 
     def fake_fetch(_repo, cid):
@@ -499,7 +514,7 @@ def self_test() -> int:
         reads.append(issue)
         if isinstance(THREAD_OVERRIDE[0], Exception):
             raise THREAD_OVERRIDE[0]
-        return THREAD
+        return THREAD if issue == 201 else [grant(NEW_ID, url=onrec)] if issue == g.RECORD_ISSUE else []
     THREAD_OVERRIDE: list = [None]
     FIELD = ("**Orchestrator s9: state since 6545892934 (2026-10-31, ~17:40Z)**\n\n"
              "- #3016 (R10-WOOD-NOTIFY): verdict merge at `9d304c2d`, with code-owner approval under mandate "
@@ -509,7 +524,7 @@ def self_test() -> int:
              "head, on the true figure. Round 2 also kills surviving mutant M6. The gate's value-blind dS check "
              "is carried to R10-FLY-MANDATE-REVOKE-GUARD.\n")
 
-    def guarded(name, text, *extra, target=("post", "--issue", "201"), repo=None):
+    def guarded(name, text, *extra, target=("post", "--issue", str(g.RECORD_ISSUE)), repo=None):
         """(refused, thread reads) for a dry-run post or patch of `text`."""
         reads.clear()
         f = wrote(f"seat/guard-{name}.md", text)
@@ -517,7 +532,7 @@ def self_test() -> int:
                                         "--body-file", f, "--dry-run", *extra],
                                        fetch=fake_fetch, thread=fake_thread))
         return hit, len(reads), msg
-    patch201, patch7 = ("patch", "--comment", "111"), ("patch", "--comment", "222")
+    patch201, patch7, patchrec = ("patch", "--comment", "111"), ("patch", "--comment", "222"), ("patch", "--comment", "333")
     BRIEF = f"decision 0012 is revoked; mandate {BRIEF_ID} still binds"
     hit, _, msg = guarded("brief", BRIEF)
     check("arm6_brief_row_refused_on_post", hit and str(BRIEF_ID) in msg and "--withdraw-mandate" in msg)
@@ -542,6 +557,19 @@ def self_test() -> int:
     check("arm6_an_expired_grant_is_not_guarded", not guarded("old", f"revoked {OLD_ID}")[0])
     check("arm6_a_grant_by_another_account_is_not_guarded", not guarded("alien", f"revoked {ALIEN_ID}")[0])
     check("arm6_a_comment_that_is_no_grant_is_not_guarded", not guarded("state", "revoked 6545892934")[0])
+    # The record moved to RECORD_ISSUE at #201's comment cap: a grant on either
+    # issue is guarded, read from every record issue's thread.
+    check("arm6_a_grant_on_the_continuation_issue_is_guarded",
+          (lambda h: h[0] and str(NEW_ID) in h[2] and h[1] == len(g.RECORD_ISSUES))(guarded("new", f"revoked {NEW_ID}")))
+    check("arm6_a_patch_on_the_continuation_issue_is_guarded", guarded("new-p", BRIEF, target=patchrec)[0])
+    check("arm6_record_issues_are_201_then_its_continuation",
+          g.RECORD_ISSUES[0] == 201 and g.RECORD_ISSUE == g.RECORD_ISSUES[-1] != 201)
+    hit, _, msg = guarded("old-issue", "plain text", target=("post", "--issue", "201"))
+    check("arm7_a_post_to_201_is_refused_naming_the_record_issue", hit and f"#{g.RECORD_ISSUE}" in msg)
+    check("arm7_a_post_to_201_of_another_repository_passes (null control)",
+          not guarded("old-repo", "plain text", target=("post", "--issue", "201"), repo="o/r")[0])
+    check("arm7_a_patch_of_a_201_comment_is_not_refused_by_it (edits still land)",
+          not guarded("old-p", "plain text", target=patch201)[0])
     THREAD_OVERRIDE[0] = Refused("gh exited 1: HTTP 502")
     check("arm6_a_thread_read_that_fails_refuses", guarded("fail", BRIEF)[0])
     THREAD_OVERRIDE[0] = None
@@ -570,7 +598,7 @@ def run(argv: list[str] | None = None, fetch=fetch_comment, thread=fetch_thread)
     p.add_argument("--dry-run", action="store_true",
                    help="post/patch: stop after the refusals, write nothing")
     p.add_argument("--withdraw-mandate", metavar="CID",
-                   help="post/patch to #201: the body may revoke the mandate comment CID")
+                   help="post/patch to a record issue: the body may revoke the mandate comment CID")
     a = p.parse_args(argv)
 
     if a.action == "self-test":
@@ -586,6 +614,8 @@ def run(argv: list[str] | None = None, fetch=fetch_comment, thread=fetch_thread)
         privacy_check(body)
         if a.action == "post" and not a.issue:
             die("post needs --issue")
+        if a.action == "post":
+            closed_record_guard(a.repo, positive_int(a.issue, "--issue"))
         if a.action == "patch" and not a.comment:
             die("patch needs --comment")
         mandate_guard(a.repo, body,

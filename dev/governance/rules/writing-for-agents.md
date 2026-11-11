@@ -50,7 +50,7 @@ it records**, riding the per-merge record obligation in
 `updated-for:` line names that merge. It links to the Delivery-status table
 rather than restating it.
 
-**Volatile state goes on #201** — which seats are running, which branches are
+**Volatile state goes on #3394** — which seats are running, which branches are
 unpushed, what a resumer does next. Free to post at any moment, and it survives
 an abort, which an unpushed in-tree edit does not.
 

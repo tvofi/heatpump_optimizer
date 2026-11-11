@@ -8,7 +8,10 @@
   whether the roster at SHA holds the file's text as exactly one carry entry
   (exit 1 when none). When: the roster seat works a queue file; run it alone
   to replay a range. Refusal: a refused op is reported as `refused rc=N`, never
-  forced; `append-carry @file` reports FAILED when the read-back cannot find the
+  forced; a `drop-carry` or `mark-carry` keyed by index is refused unrun on
+  both paths (`replay_unsafe`), because a replayed line re-resolves the index
+  on the list its first run shifted (R10-RCA-ROSTER-DRAIN-REPLAY): queue it
+  `--match TEXT`; `append-carry @file` reports FAILED when the read-back cannot find the
   text. `--self-test` drives it offline over a stub editor and a scratch repo.
   The editor is `--editor` or the `roster_edit.py` beside the script, one file for
   `run` and `run --batch` (`resolve_editor`); the runner sets `HPO_ROSTER_LANE` in

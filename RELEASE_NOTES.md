@@ -1,3 +1,38 @@
+## v7.1.10
+
+**Patch stamp: 36 merges since v7.1.9 and one direct commit, stamped on the owner's order after the combi tank store landed.** The user-visible changes are the heat curve control through a Home Assistant number entity, the COP that is no longer graded from a self-comparison, and a German translation. The combi tank store lands as engine physics that no option reaches yet. The rest of the window is round-10 tooling, audit machinery and delivery records.
+
+### #3299 and #3402 Heat curve control through a number entity (R10-GENERIC-HEAT-CURVE, R10-GENERIC-HEAT-CURVE-PERSISTENT)
+
+Adopts the design of outside pull request #3284 by Bankaifan, with thanks. The "Heat curve control" options page can now name a Home Assistant `number` or `input_number` entity as the target of the heat curve displace, for a controller without MQTT. Two kinds, chosen under "What the entity is":
+
+- **Offset** (#3299): the displace is written as a temperature difference, 0 being neutral, to a volatile entity. It is bounded to a configurable band (default 3 K) and to the entity's own range, written only on change, and an entity whose range excludes 0 is refused. Turning the optimizer off, or unloading it, writes 0 back to an entity the optimizer wrote.
+- **Persistent** (#3402): for a controller that has only a stored curve parameter. The optimizer displaces that parameter from the value it held, within a band, with a daily write budget and a minimum time between writes because every write wears the controller's memory, and writes the original value back when the optimizer is turned off.
+
+`docs/ecl110.md` gains "Without MQTT: a number entity" and "Kind persistent: a stored curve parameter", with a Luxtronik example and a warning that a stored curve parameter is rarely a true parallel shift. The MQTT arms are unchanged.
+
+### #3297 COP is graded only from a metered heat-over-power sample (R10-HOTFIX-COP-UNMEASURED)
+
+The Health tab no longer grades the heat pump from a "measured COP" that was the model's own COP in disguise on installs that cannot measure it, including installs whose heat and power inputs are the vendor's own estimates. A COP sample is now recorded only from a heat reading over an electrical reading, neither an estimate. Where it cannot be measured, the card and diagnostics say "COP cannot be measured on this install" and name the meter that would fix it. The metering page gains `heat_pump_power_source` and `heat_pump_thermal_power_source` (auto, meter, estimate) and `heat_meter_sees_dhw`. The COP health watch restarts from measured samples only, so its baseline is relearned after the upgrade.
+
+### #3331 and #3378 German translation (R10-I18N-DE)
+
+German is now a third interface language beside English and Swedish, in the integration's translations and in the dashboard card. #3378 adds the German text for the keys that #3372 and #3360 added while #3331 was in review.
+
+### #3358 Combi tank store, part A (R10-COMBI-TANK-STORE)
+
+For outside request #3225 by Bankaifan, with thanks. A combi store, where one body of heating water serves both the space circuit and hot water, was counted twice when entered as both tanks. This change lands the store's physics in the thermal model: one hot-water step shared by the separate tank and the combi store, and the exchange of heat between the space side and the hot-water side. **No option or loader switches it on yet**, so nothing changes for an existing install; the setup an install can reach is part B.
+
+### Developer tooling, CI and audit machinery only
+
+#3304 (outside requests first), #3399 (outside requests share replan's top tier), #3350 (R10-OUTSIDE-INTAKE part 2: plan-page closure rule, flow metrics and bottleneck alert), #3364 (train stale-verdict guard), #3359 (train rejoin without re-carry), #3345 (tick levels part 2), #3341 (review enumerate), #3361 (gh read retry part 3), #3375 (bound the instrument-self-tests read-set measurement), #3395 (state docs push race), #3396 (opener reads the tick board's flagged lines), #3400 (review packet: required-red asks classify's whole verdict), #3401 (the train's pre-flight judges a policy head with the mandate's due approval), #3403 (sweep token actor), #3406 (stress memory pass), #3408 (the pip group's dependency bumps re-applied with hashes), #3409 (repair main's instrument-self-tests red), #3412 (post #201 records to a continuation issue), #3416 (roster drain replay hotfix), #3397 (spelling-corpus sentence in the fixer contract; policy). Dependabot: #3413 (playwright 1.64.1 to 1.65.0 in the pwlane group). Root-cause records: #3329 (sweep settle loop), #3351 (stamp claim conflict), #3410 (main's instrument-self-tests red), #3411 (slow open prepr), #3415 (roster drain replay).
+
+Direct commit 57091a694e, "ci: record nightly kills" (no pull request): the nightly ledger.
+
+### Delivery rows (record only)
+
+#3393, #3407, #3418, #3332.
+
 ## v7.1.9
 
 **Patch stamp: 38 merges since v7.1.8, stamped early so outside users can try the water set-point fix.** The user-visible changes are the water set-point lift and ceiling options, the part-load and savings-meter fixes, and the COP gate. The rest of the window is round-10 tooling and audit machinery.

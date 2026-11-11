@@ -4600,6 +4600,24 @@
         "dev/audit/rca/R10-RCA-CLOSURE-ARGV.md"
       ]
     },
+    "R10-RCA-OPEN-PREPR-SLOW": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "open_pr.sh ran the full prepr on three opens of 2026-11-10 (r10-process-slim-p2, r10-hotfix-record-issue-continuation, r10-arbiter-off-restore) where no Prepr: receipt reached the handoff-body tip, and the full prepr has outgrown the four-slot heavy cap set for it",
+      "trigger": "orchestrator-dispatched RCA: three opens past the caller's 3000 s bound or near it, 2026-11-10",
+      "date": "2026-11-10",
+      "status": "proposed",
+      "parts_missing": [
+        "fixer seat R10-PREPR-RESIDUE to build C1 to C4"
+      ],
+      "process_state": "C-A (c): body_push.sh's prepr_trailer keys the receipt to one checkout's git dir and to sha equality, so it drops receipts app_push.sh's reuse_verdict would accept (re-push from another checkout; a code head moved only by a clean merge of main); the never-receipted tips are not established. C-B (d): HEAVY_SLOTS = 4 was set in c09cf12010 for a prepr.sh under half its size at b0762725099f, and nothing the cap reads sees the growth",
+      "countermeasure": "proposed, routed to R10-PREPR-RESIDUE: C1 body_push.sh carries an ancestor receipt from the parent body tip (null control: a non-merge commit past it, reuse_verdict rc 1); C2 a Prepr-absent reason trailer; C3 elapsed seconds on prepr.sh step lines; C4 bound step 6d's GRADER replays (dev/audit/rca/open_prepr_6d.sh before and after). Refused for now: lowering HEAVY_SLOTS. Measured by dev/audit/rca/open_prepr_receipts.py (--self-test)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md"
+      ]
+    },
     "R10-RCA-PREPR-HEAD-GRADERS": {
       "class": "I3",
       "level": "instance-or-process",
@@ -4887,6 +4905,40 @@
       "in_tree_home": "dev/audit/rca/R10-RCA-SWEEP-SETTLE-LOOP.md",
       "doc": [
         "dev/audit/rca/R10-RCA-SWEEP-SETTLE-LOOP.md"
+      ]
+    },
+    "R10-RCA-STAMP-CLAIM-CONFLICT": {
+      "class": "N-stamp-claim-conflict",
+      "level": "instance-or-process",
+      "subject": "the v7.1.6 stamp (2a3c05644) emptied the claim files and left #3297, #3299 and #3308 refused by the claimnotes different-stamps guard; the same shape followed the v6.7.13, v6.7.17 and v7.1.0 stamps",
+      "trigger": "owner ruling 2026-11-08 (same shape three times)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "owner approval of the claim-files.md sentence and the driver change"
+      ],
+      "process_state": "(a) no step handles a stamp-emptied claim base meeting a branch's added claim; the driver test uses a base with no claim line",
+      "countermeasure": "narrow the blanket stamp guard in merge_claim_decision: when the newer-stamp side carries no claim, decide per scenario; prototype resolves #3299 and #3308 and refuses the controls; about 18 h of seat time per 25 days against 0 s standing cost (estimate)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md"
+      ]
+    },
+    "R10-RCA-ROSTER-DRAIN-REPLAY": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "the beat's roster-drain (#3197) delivers each queue line at least once: a pass killed at timeout_s 900 pushed ops but never wrote roster-done.json, and replayed index-keyed drop-carry ops re-resolved on the shifted carry list; census 43495fb61..c444a6995 on handoff/audit-r10-roster: 32 drops, 18 replays, 14 restored by hand, 4 lost",
+      "trigger": "assigned by the orchestrator 2026-11-10, beside R10-HOTFIX-ROSTER-DRAIN-REPLAY",
+      "date": "2026-11-10",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(d) drop-carry by index (9969e3ca8, 2026-10-18) was sound for a run-once hand caller; the beat's automatic drain made delivery at-least-once and nothing records which ops are replay-safe; the replay half is (c), roster_queue --mark's per-op barrier written to the beat's scratch queue, the hotfix's",
+      "countermeasure": "roster_queue.replay_unsafe refuses an index-keyed drop-carry/mark-carry on the single-op and batch paths (sub-microsecond a line by the harness's cost arm, at most one 120 s requeue per index line written, against >=600 s per occurrence at 8 of 14 index drops replayed); hand runs keep the index",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-rca-roster-drain-replay.md",
+      "doc": [
+        "dev/audit/rca/r10-rca-roster-drain-replay.md"
       ]
     }
   },
@@ -5525,6 +5577,41 @@
       "cross_round": true,
       "barriered_any": true,
       "class_rca_on_record": true
+    }
+  },
+  "N-stamp-claim-conflict": {
+    "kind": "instrument",
+    "mechanism": "A release stamp empties both claim files and bumps claims-for; a branch forked before it whose base held claim lines and which added a claim is refused by the claimnotes driver's blanket different-stamps guard, so every claim-carrying open branch needs a hand resolution after each claim-deleting stamp.",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "git merge-tree --write-tree origin/main <head> prints MERGE-CLAIM: refused tests/golden/claimed_drift.txt with the different 'claims-for:' stamps text",
+    "detector_idea": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-postreview-merge-red",
+    "mechanism_difference": "N-postreview-merge-red is a merge that reddens a reviewed head; here the merge cannot run at all (refused, the pull request goes DIRTY) and the cause is the driver's stamp guard meeting the stamp's own emptying of the list.",
+    "aliases": [
+      "new: a stamp that empties the claim files leaves open branches unmergeable"
+    ],
+    "non_round_note": "Process defect ruled by the owner on 2026-11-08, not an audit finding, not counted in total. Instances: stamp commits v6.7.13, v6.7.17, v7.1.0 and v7.1.6 (merge commits 8f30964ff, 45c04b7d6, 7790838ea, 68b0735be; #3297, #3299, #3308).",
+    "non_round_instances": [
+      "8f30964ff v6.7.13",
+      "45c04b7d6 v6.7.17",
+      "7790838ea v7.1.0",
+      "68b0735be v7.1.6 (#3297, #3299, #3308)"
+    ],
+    "rca": [
+      "R10-RCA-STAMP-CLAIM-CONFLICT"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
     }
   }
 }
