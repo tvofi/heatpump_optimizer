@@ -1,6 +1,7 @@
-NOTE body item 38454ade: R10-REVIEW-DISPATCH-RESIDUE: R10-REVIEW-DISPATCH-RESIDUE resolved on origin/handoff/audit-r10-roster
-NOTE review 0 item 6c1cfba3: R10-REVIEW-DISPATCH-RESIDUE: R10-REVIEW-DISPATCH-RESIDUE resolved on origin/handoff/audit-r10-roster
-NOTE review 0 item d4c10d02: R10-REVIEW-DISPATCH-RESIDUE: R10-REVIEW-DISPATCH-RESIDUE resolved on origin/handoff/audit-r10-roster
-NOTE review 0 item a7f014b6: R10-REVIEW-DISPATCH-RESIDUE: R10-REVIEW-DISPATCH-RESIDUE resolved on origin/handoff/audit-r10-roster
-NOTE review 0 item a3c8d964: dismissed:evidence, not a finding
-CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
+NOTE stale tree: b64fbe44a49f1f4c8aa9aa53f8da6bea64ae6c43 lacks origin/main ee64358be7eeccaec5178a923cb3b83a18a924a0; roster read at origin/main
+NOTE body item 70196fb2: R10-REVIEW-DISPATCH-RESIDUE: R10-REVIEW-DISPATCH-RESIDUE resolved on origin/handoff/audit-r10-roster
+NOTE body item e207fdd6: R10-REVIEW-DISPATCH-RESIDUE: R10-REVIEW-DISPATCH-RESIDUE resolved on origin/handoff/audit-r10-roster
+NOTE body item 6d3f433f: R10-REVIEW-DISPATCH-RESIDUE: R10-REVIEW-DISPATCH-RESIDUE resolved on origin/handoff/audit-r10-roster
+NOTE body item bc4b1e5e: R10-REVIEW-DISPATCH-RESIDUE: R10-REVIEW-DISPATCH-RESIDUE resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+rc=0
