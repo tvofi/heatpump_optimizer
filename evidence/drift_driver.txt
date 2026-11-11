@@ -1,0 +1,37 @@
+DIFF ('open-pr', 'probes', ['-c'], [])
+DIFF ('pr-args', 'probes', ['-c'], [])
+DIFF ('prepr', 'files', ['.gitattributes', 'tests/env_drift.py', 'tools/merge/ledger_merge.py'], [])
+DIFF ('prepr', 'git', ['branch'], [])
+DIFF ('review-packet', 'files', ['dev/governance/roles/fix-review.md'], [])
+DIFF ('update-pr', 'probes', ['-c'], [])
+DIFF ('verdict-bus', 'files', ['dev/governance/roles/fix-review.md'], [])
+RESULT diff-matches-diagnosis: True
+RESULT untouched-identical: 105 / 111 steps; keysets equal: True ; top-level non-steps equal: True
+RESULT setcheck verdict-bus.files: ADD-head=[] ADD-base=['dev/governance/roles/fix-review.md']
+RESULT setcheck review-packet.files: ADD-head=[] ADD-base=['dev/governance/roles/fix-review.md']
+RESULT setcheck prepr.files: ADD-head=[] ADD-base=['.gitattributes', 'tests/env_drift.py', 'tools/merge/ledger_merge.py']
+RESULT setcheck prepr.git: ADD-head=[] ADD-base=['branch']
+RESULT setcheck open-pr.probes: ADD-head=[] ADD-base=['-c']
+RESULT setcheck pr-args.probes: ADD-head=[] ADD-base=['-c']
+RESULT setcheck update-pr.probes: ADD-head=[] ADD-base=['-c']
+RESULT prepr kept required-contexts: True  fetch kept: True
+RESULT drift@base: 6 refusal(s)
+   UNDER-SCOPED step verdict-bus: files misses ['dev/governance/roles/fix-review.md']
+   UNDER-SCOPED step review-packet: files misses ['dev/governance/roles/fix-review.md']
+   UNDER-SCOPED step prepr: files misses ['.gitattributes', 'tests/env_drift.py', 'tools/merge/ledger_merge.py']
+   UNDER-SCOPED step open-pr: probes misses ['-c']
+   UNDER-SCOPED step pr-args: probes misses ['-c']
+   UNDER-SCOPED step update-pr: probes misses ['-c']
+   note: over-scoped step prepr: 1 files no longer measured
+RESULT drift@head: 0 refusal(s)
+   note: over-scoped step prepr: 1 files no longer measured
+RESULT mutant -verdict-bus.files:dev/governance/roles/fix-review.md: KILLED ["UNDER-SCOPED step verdict-bus: files misses ['dev/governance/roles/fix-review.md']"]
+RESULT mutant -review-packet.files:dev/governance/roles/fix-review.md: KILLED ["UNDER-SCOPED step review-packet: files misses ['dev/governance/roles/fix-review.md']"]
+RESULT mutant -prepr.files:.gitattributes: KILLED ["UNDER-SCOPED step prepr: files misses ['.gitattributes']"]
+RESULT mutant -prepr.files:tests/env_drift.py: KILLED ["UNDER-SCOPED step prepr: files misses ['tests/env_drift.py']"]
+RESULT mutant -prepr.files:tools/merge/ledger_merge.py: KILLED ["UNDER-SCOPED step prepr: files misses ['tools/merge/ledger_merge.py']"]
+RESULT mutant -prepr.git:branch: SURVIVED []
+RESULT mutant -open-pr.probes:-c: KILLED ["UNDER-SCOPED step open-pr: probes misses ['-c']"]
+RESULT mutant -pr-args.probes:-c: KILLED ["UNDER-SCOPED step pr-args: probes misses ['-c']"]
+RESULT mutant -update-pr.probes:-c: KILLED ["UNDER-SCOPED step update-pr: probes misses ['-c']"]
+RESULT survivors: 1
