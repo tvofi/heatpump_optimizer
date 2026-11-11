@@ -1379,9 +1379,9 @@ def rollup_states(entries) -> "dict[str, str]":
         state = (c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
         if (c.get("status") or state).upper() in ROLLUP_PENDING or state in ROLLUP_PENDING:
             pending.add(name)
-        stamp = c.get("completedAt") or c.get("startedAt") or ""
-        if stamp.startswith("0001"):  # GitHub's zero time on an unfinished run
-            stamp = ""
+        # GitHub's zero time (0001-...) on an unfinished run is no stamp
+        stamps = [x for x in (c.get("completedAt"), c.get("startedAt")) if x and not x.startswith("0001")]
+        stamp = stamps[0] if stamps else ""
         if name not in best or (stamp, i) >= best[name][0]:
             best[name] = ((stamp, i), state)
     return {n: ("PENDING" if n in pending else v[1]) for n, v in best.items()}
@@ -6354,6 +6354,23 @@ def _rollup_draft_self_test(check) -> None:
     why, wait, _ = refusal([ent("SUCCESS", "2026-11-11T09:00:00Z"), ent("", "2026-11-11T10:29:00Z", "IN_PROGRESS")])
     check("P608 a SUCCESS then an IN_PROGRESS entry is pending: wait", wait is True and "not yet green" in why)
     ok = [ent("SUCCESS", f"2026-11-11T09:0{i}:00Z") for i in range(3)]
+    # M7: the unfinished entry is the OLDER one, a newer SUCCESS beside it
+    why, wait, _ = refusal([ent("", "2026-11-11T08:00:00Z", "IN_PROGRESS"), ent("SUCCESS", "2026-11-11T09:00:00Z")])
+    check("P608 an unfinished entry older than a SUCCESS still makes the context pending",
+          wait is True and "not yet green" in why)
+    # M8: GitHub's zero time on completedAt is no stamp: startedAt orders the entry
+    zero = {"name": "gate", "status": "COMPLETED", "conclusion": "SUCCESS",
+            "completedAt": "0001-01-01T00:00:00Z", "startedAt": "2026-11-11T10:00:00Z"}
+    check("P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order",
+          all(rollup_states(o) == {"gate": "SUCCESS"} for o in (
+              [ent("FAILURE", "2026-11-11T09:00:00Z"), zero], [zero, ent("FAILURE", "2026-11-11T09:00:00Z")]))
+          and rollup_states([zero, ent("FAILURE", "2026-11-11T11:00:00Z")]) == {"gate": "FAILURE"})
+    # M9: an entry with only startedAt is ordered by it
+    st = lambda c, at: {"name": "gate", "status": "COMPLETED", "conclusion": c, "startedAt": at}  # noqa: E731
+    check("P608 an entry with only startedAt is ordered by it, in either list order",
+          all(rollup_states(o) == {"gate": "SUCCESS"} for o in (
+              [st("FAILURE", "2026-11-11T09:00:00Z"), st("SUCCESS", "2026-11-11T09:30:00Z")],
+              [st("SUCCESS", "2026-11-11T09:30:00Z"), st("FAILURE", "2026-11-11T09:00:00Z")])))
     check("P608 null: all-SUCCESS in any order reaches the review branch",
           all("missing requirement is a review" in refusal(o)[0] for o in (ok, ok[::-1])))
 
@@ -6410,6 +6427,24 @@ def _rollup_draft_self_test(check) -> None:
     t.record_drafts(q)
     check("P609 record_drafts reads once per entry lacking the key and keeps a recorded value",
           q[0]["draft"] is True and q[1]["draft"] is False)
+    # M4: the batch itself records the key (the --queue / build_queue route)
+    t, calls = world({})
+    t.real = True
+    class _Halt(Exception):
+        pass
+    seen: list = []
+    def halt(q):
+        seen.extend(dict(i) for i in q)
+        raise _Halt
+    t.sweep_bots, t.required, t.main_green, t.preflight = (lambda: None), (lambda pr_head=False: []), (lambda *a: None), halt
+    t.git = lambda *a: H
+    t.state = Path(tempfile.mkdtemp())
+    try:
+        t._batch([{"pr": 7}], "t")
+    except _Halt:
+        pass
+    check("P609 a batch records the draft key on a key-less entry before admission",
+          len(seen) == 1 and seen[0].get("draft") is True)
     t, calls = world({})
     t.real, t.out = True, (lambda *a: "false")
     q = [{"pr": 7}]
