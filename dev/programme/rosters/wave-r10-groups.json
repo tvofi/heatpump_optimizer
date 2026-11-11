@@ -24227,8 +24227,9 @@
     "commit": null,
     "last_step": null,
     "next_step": "fixer (M), after R10-OUTSIDE-DISINFECTION-SETPOINT part 1 merges",
-    "note": "orchestrator s14 ruling under mandate 2026-11-11: fable product ruling (2) at origin/handoff-body/r10-product-ruling-dhw-hard-max d507c499; outside-sourced (PR 3439), not held by the over-20 freeze; severity inherited from R10-OUTSIDE-DISINFECTION-SETPOINT; overlap admitted (R10-USER-DOCS-VERIFY, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-MODE-BEFORE-SUPPLY-ON, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE): orchestrator s14 ruling under mandate 2026-11-11 (fable product ruling d507c499, part 2): distinct seam, the legionella guard's notice; pump_arbiter.py only exposes the cycle value part 1 introduces, README.md gains one notice-list entry"
-   }
+    "note": "orchestrator s14 ruling under mandate 2026-11-11: fable product ruling (2) at origin/handoff-body/r10-product-ruling-dhw-hard-max d507c499; outside-sourced (PR 3439), not held by the over-20 freeze; severity inherited from R10-OUTSIDE-DISINFECTION-SETPOINT; overlap admitted (R10-USER-DOCS-VERIFY, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-MODE-BEFORE-SUPPLY-ON, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE): orchestrator s14 ruling under mandate 2026-11-11 (fable product ruling d507c499, part 2): distinct seam, the legionella guard's notice; pump_arbiter.py only exposes the cycle value part 1 introduces, README.md gains one notice-list entry | set-source unset -> outside"
+   },
+   "source": "outside"
   }
  ]
 }
