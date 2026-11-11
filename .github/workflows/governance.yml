@@ -32,6 +32,11 @@ name: Governance
 on:
   workflow_call:
     inputs:
+      # ci.yml's prelude: the commit every restore takes its check source from
+      # (R10-HOTFIX-RESTORE-BASE-SKEW); empty off a pull request.
+      restore_source:
+        type: string
+        default: ""
       # A dispatch carries no base SHA: without this, a restore falls back to
       # github.sha and the head grades itself.
       base:
@@ -131,7 +136,7 @@ jobs:
       # and not modules beside `policy_lint.mjs`.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -242,7 +247,7 @@ jobs:
       - name: Refuse a governance check input field no check reads
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
           SINCE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           EVENT: ${{ github.event_name }}
         run: |
@@ -1562,7 +1567,7 @@ jobs:
       - name: Restore the check source from the base commit
         if: env.MACHINERY_IDLE != 'true'
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -1664,7 +1669,7 @@ jobs:
       # an owner: the checker evaluates them in its own process.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -1745,7 +1750,7 @@ jobs:
       # is no verdict on either (the `field coverage` step's own rule).
       - name: Refuse two readers of one concept that disagree
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           if ! git cat-file -e "$PINNED:tools/policy/agreement.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs" 2>/dev/null; then
@@ -2145,7 +2150,7 @@ jobs:
       # not required.
       - name: Report what is pending and what is overdue a row
         env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"

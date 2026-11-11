@@ -93,14 +93,49 @@ jobs:
       selftests: ${{ steps.derive.outputs.selftests }}
       # R10-CI-OWN-DELIVERY-ROW: the same with the PR's own delivery row ignored (arch-instrument).
       machinery_rowblind: ${{ steps.derive.outputs.machinery_rowblind }}
+      # R10-HOTFIX-RESTORE-BASE-SKEW: the commit every restore in this run takes
+      # its check source from (the `source` step below); not prelude.py's.
+      restore_source: ${{ steps.source.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
+      # THE RESTORE SOURCE (R10-HOTFIX-RESTORE-BASE-SKEW, triage P572), resolved
+      # once for the run: every restore here and in each unit reads this `sha`
+      # first, through `restore_source`. On a pull request it is the first
+      # parent of the merge commit the run checks out (github.sha), the base
+      # that merge was built on, and never the payload's base.sha, which tracks
+      # the last main the head took in: restoring from it pairs restored files
+      # of one main with unrestored files of another (PR 3424: roster_lib.py
+      # without carry_receivable beside a carry_audit.py calling it). GitHub
+      # builds the merge commit, so the pull request cannot choose that parent
+      # (decision 0013 holds). Resolved here, on full history, and not per job,
+      # because a job checking out the head ref (tests.yml's autofix jobs) has
+      # no merge commit at HEAD. Off a pull request it is empty, and each site
+      # keeps its own fallback (merge_group base_sha, inputs.base, github.sha).
+      - name: Resolve the commit every restore takes its source from
+        id: source
+        env:
+          EVENT: ${{ github.event_name }}
+          EVENT_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          case "$EVENT" in
+            pull_request|pull_request_review) ;;
+            *) echo "restore source: none on $EVENT; each restore keeps its own"; exit 0 ;;
+          esac
+          [ "$(git rev-parse HEAD)" = "$GITHUB_SHA" ] || { echo "FAIL the checkout is not the run's merge commit $GITHUB_SHA"; exit 1; }
+          read -r -a parents <<< "$(git log -1 --format=%P "$GITHUB_SHA")"
+          [ "${#parents[@]}" -eq 2 ] || { echo "FAIL $GITHUB_SHA has ${#parents[@]} parent(s), not a merge commit's two"; exit 1; }
+          source=${parents[0]}
+          git merge-base --is-ancestor "$EVENT_BASE" "$source" \
+            || { echo "FAIL the event's base $EVENT_BASE is not an ancestor of the merge commit's first parent $source"; exit 1; }
+          echo "restore source: $source, the merge commit's first parent (the event's base: $EVENT_BASE)"
+          echo "sha=$source" >> "$GITHUB_OUTPUT"
       - name: Restore the programs from the base
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          PINNED: ${{ steps.source.outputs.sha || github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
           INPUT_BASE: ${{ inputs.base }}
         run: |
           set -euo pipefail
@@ -142,6 +177,7 @@ jobs:
   # PR's live head, cancel this workflow's older runs at a DIFFERENT head; never
   # a same-SHA run, so never a gate attempt at this head.
   cancel-superseded:
+    needs: prelude
     if: >-
       github.event_name == 'pull_request'
       && github.event.sender.login != 'github-actions[bot]'
@@ -160,7 +196,7 @@ jobs:
       - name: Cancel this branch's runs at superseded heads
         env:
           GH_TOKEN: ${{ github.token }}
-          PINNED: ${{ github.event.pull_request.base.sha }}
+          PINNED: ${{ needs.prelude.outputs.restore_source || github.event.pull_request.base.sha }}
           REPO: ${{ github.repository }}
           PR: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
@@ -183,6 +219,7 @@ jobs:
     if: contains(format(' {0} ', needs.prelude.outputs.workset), ' tests ')
     uses: ./.github/workflows/tests.yml
     with:
+      restore_source: ${{ needs.prelude.outputs.restore_source }}
       gate_scope: ${{ needs.prelude.outputs.gate_scope }}
       pr: ${{ needs.prelude.outputs.pr }}
       base: ${{ needs.prelude.outputs.base }}
@@ -205,6 +242,7 @@ jobs:
     if: contains(format(' {0} ', needs.prelude.outputs.workset), ' codeql ')
     uses: ./.github/workflows/codeql.yml
     with:
+      restore_source: ${{ needs.prelude.outputs.restore_source }}
       legs: ${{ needs.prelude.outputs.legs }}
     permissions:
       contents: read
@@ -214,6 +252,7 @@ jobs:
     if: contains(format(' {0} ', needs.prelude.outputs.workset), ' governance ')
     uses: ./.github/workflows/governance.yml
     with:
+      restore_source: ${{ needs.prelude.outputs.restore_source }}
       base: ${{ needs.prelude.outputs.base }}
       machinery: ${{ needs.prelude.outputs.machinery }}
       selftests: ${{ needs.prelude.outputs.selftests }}
@@ -259,6 +298,7 @@ jobs:
     if: contains(format(' {0} ', needs.prelude.outputs.workset), ' budget-raise-gate ')
     uses: ./.github/workflows/budget-raise-gate.yml
     with:
+      restore_source: ${{ needs.prelude.outputs.restore_source }}
       pr: ${{ needs.prelude.outputs.pr }}
       base: ${{ needs.prelude.outputs.base }}
       head: ${{ needs.prelude.outputs.head }}
@@ -272,6 +312,7 @@ jobs:
     if: ${{ !cancelled() && contains(format(' {0} ', needs.prelude.outputs.workset), ' pr-contract ') }}
     uses: ./.github/workflows/pr-contract.yml
     with:
+      restore_source: ${{ needs.prelude.outputs.restore_source }}
       pr: ${{ needs.prelude.outputs.pr }}
       base: ${{ needs.prelude.outputs.base }}
       head: ${{ needs.prelude.outputs.head }}
@@ -287,6 +328,7 @@ jobs:
   # gate of every completed run here whose latest gate is green, so it
   # re-judges against this run. A notice, not a failure, at a fork head.
   refresh:
+    needs: prelude
     if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -300,7 +342,7 @@ jobs:
           persist-credentials: false
       - name: Restore the programs from the base
         env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
+          PINNED: ${{ needs.prelude.outputs.restore_source || github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           git fetch -q --no-tags origin "$PINNED"
@@ -320,6 +362,9 @@ jobs:
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Handed on to sweep-self, which needs only this job.
+    outputs:
+      restore_source: ${{ needs.prelude.outputs.restore_source }}
     permissions:
       contents: read
       actions: read
@@ -332,7 +377,7 @@ jobs:
           persist-credentials: false
       - name: Restore the programs from the base
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          PINNED: ${{ needs.prelude.outputs.restore_source || github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
           INPUT_BASE: ${{ inputs.base }}
         run: |
           set -euo pipefail
@@ -378,7 +423,7 @@ jobs:
       - name: Restore the programs from the base
         id: restore
         env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
+          PINNED: ${{ needs.gate.outputs.restore_source || github.event.pull_request.base.sha }}
           INPUT_BASE: ${{ inputs.base }}
         run: |
           set -euo pipefail

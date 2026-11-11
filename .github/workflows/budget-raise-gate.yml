@@ -31,6 +31,11 @@ name: Budget raise gate
 on:
   workflow_call:
     inputs:
+      # ci.yml's prelude: the commit every restore takes its check source from
+      # (R10-HOTFIX-RESTORE-BASE-SKEW); empty off a pull request.
+      restore_source:
+        type: string
+        default: ""
       pr:
         type: string
         default: ""
@@ -65,7 +70,7 @@ jobs:
 
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
           BASE_REF: ${{ inputs.base }}
         run: |
           set -euo pipefail

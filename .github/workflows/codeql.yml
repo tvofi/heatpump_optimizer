@@ -86,6 +86,11 @@ name: CodeQL
 on:
   workflow_call:
     inputs:
+      # ci.yml's prelude: the commit every restore takes its check source from
+      # (R10-HOTFIX-RESTORE-BASE-SKEW); empty off a pull request.
+      restore_source:
+        type: string
+        default: ""
       # The prelude's `legs` output: {"actions": "skip|analyze", ...}. Empty
       # (a prelude that printed nothing) analyzes every leg.
       legs:
@@ -151,7 +156,7 @@ jobs:
       - name: Restore the decision program from the base
         if: github.event_name == 'pull_request'
         env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"

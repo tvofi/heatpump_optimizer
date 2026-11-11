@@ -20431,6 +20431,8 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
     pre = (jobs.get("prelude") or {}).get("outputs") or {}
     sample, _ = _cip.outputs(_cip.context("push", {}, {"GITHUB_SHA": _CI_SHA}), [], lambda *a, **k: (200, {}, {}))
     for k, v in pre.items():
+        if (k, v) == ("restore_source", "${{ steps.source.outputs.sha }}"):
+            continue  # R10-HOTFIX-RESTORE-BASE-SKEW: resolved before prelude.py is restored
         m = re.fullmatch(r"\$\{\{ steps\.derive\.outputs\.([\w-]+) \}\}", str(v))
         if not m or m.group(1) not in sample:
             out.append(f"prelude output {k}={v!r} reads no key prelude.py prints")
@@ -28762,7 +28764,7 @@ def _bp_sites(ci_text: str, callees: dict) -> "list[tuple[str, str, str]]":
                 pinned = (step.get("env") or {}).get("PINNED")
                 if pinned:
                     ctx = {"github.event.pull_request.base.sha": "", "github.event.merge_group.base_sha": "",
-                           "github.sha": _BP_HEAD, "inputs.base": base}
+                           "github.sha": _BP_HEAD, "inputs.base": base, "inputs.restore_source": ""}
                     out.append((f"{fname}:{jid}", pinned, _bp_value(pinned, ctx)))
     return out
 
@@ -28787,15 +28789,93 @@ R.check(
     f"the control no longer reads the defect: {_BP_PLANT}",
 )
 R.check(
-    "and on a pull_request and a push every such restore reads the event's own commit",
+    "and on a pull_request every such restore reads the merge commit's first parent, on a push its own commit",
     all(_bp_value(p, {"github.event.pull_request.base.sha": "BASESHA", "github.event.merge_group.base_sha": "",
-                      "github.sha": "MERGESHA", "inputs.base": "main"}) == "BASESHA"
+                      "github.sha": "MERGESHA", "inputs.base": "main",
+                      "inputs.restore_source": "MERGEPARENT"}) == "MERGEPARENT"
         and _bp_value(p, {"github.event.pull_request.base.sha": "", "github.event.merge_group.base_sha": "",
-                          "github.sha": "MAINSHA", "inputs.base": ""}) == "MAINSHA"
+                          "github.sha": "MAINSHA", "inputs.base": "", "inputs.restore_source": ""}) == "MAINSHA"
         for _, p, _ in _BP_GOT),
     f"sites: {[(s, p) for s, p, _ in _BP_GOT]}",
 )
 
+
+
+# ONE RESTORE SOURCE, THE MERGE COMMIT'S PARENT (R10-HOTFIX-RESTORE-BASE-SKEW,
+# triage P572). A pull_request run checks out GitHub's merge commit, built on
+# current main, while the payload's base.sha tracks the last main the head took
+# in; a restore from it paired roster_lib.py of one main with carry_audit.py of
+# another (PR 3424, AttributeError carry_receivable). Every step restoring from
+# $PINNED -- a `git checkout "$PINNED"` or a `"$PINNED:<path>"` read -- must, on
+# a pull_request, evaluate to the source ci.yml's prelude resolves; each unit's
+# caller must pass it; the resolver must run first and assert the event's base
+# is an ancestor. Keyed on the restore, not the file, so a new site inherits it.
+_RBS_SRC = "MERGEPARENT"
+_RBS_CTX = {"github.event.pull_request.base.sha": "BASESHA", "github.event.merge_group.base_sha": "",
+            "github.sha": "MERGESHA", "inputs.base": "main", "inputs.restore_source": _RBS_SRC,
+            "steps.source.outputs.sha": _RBS_SRC, "needs.prelude.outputs.restore_source": _RBS_SRC,
+            "needs.gate.outputs.restore_source": _RBS_SRC}
+_RBS_RESTORE = re.compile(r'git checkout "\$PINNED"|"\$PINNED:')
+
+
+def _rbs_defects(texts: dict) -> "list[str]":
+    out, restoring = [], set()
+    for fname, text in sorted(texts.items()):
+        for jid, job in ((_yaml.safe_load(text) or {}).get("jobs") or {}).items():
+            for step in job.get("steps") or []:
+                pinned = (step.get("env") or {}).get("PINNED")
+                if not pinned or not _RBS_RESTORE.search(str(step.get("run") or "")):
+                    continue
+                restoring.add(fname)
+                try:
+                    got = _bp_value(pinned, _RBS_CTX)
+                except Exception as exc:  # an expression this rule cannot read is refused, not skipped
+                    got = f"unreadable ({exc.__class__.__name__})"
+                if got != _RBS_SRC:
+                    out.append(f"{fname}:{jid} restores from {got} on a pull_request: {pinned}")
+    ci = _yaml.safe_load(texts["ci.yml"]) or {}
+    for jid, job in (ci.get("jobs") or {}).items():
+        callee = str(job.get("uses") or "").rpartition("/")[2]
+        if callee in restoring and (job.get("with") or {}).get("restore_source") != (
+                "${{ needs.prelude.outputs.restore_source }}"):
+            out.append(f"ci.yml:{jid} calls {callee}, which restores, without passing restore_source")
+    steps = ((ci.get("jobs") or {}).get("prelude") or {}).get("steps") or []
+    ids = [s.get("id") for s in steps]
+    first = next((i for i, s in enumerate(steps) if (s.get("env") or {}).get("PINNED")), len(steps))
+    run = str(steps[ids.index("source")].get("run") or "") if "source" in ids else ""
+    if "source" not in ids or ids.index("source") > first:
+        out.append("ci.yml:prelude resolves no restore source before its own restore")
+    for need in ('git merge-base --is-ancestor "$EVENT_BASE" "$source"', '"$GITHUB_SHA"', '-eq 2 ]'):
+        if need not in run:
+            out.append(f"ci.yml:prelude's resolver lacks {need!r}")
+    return out
+
+
+_RBS_TEXTS = {q.name: q.read_text() for q in sorted(Path(".github/workflows").glob("*.yml"))}
+_RBS_GOT = _rbs_defects(_RBS_TEXTS)
+R.check(
+    "every restore from $PINNED takes the merge commit's first parent on a pull_request, resolved once by ci.yml's prelude",
+    _RBS_GOT == [] and {"ci.yml", "tests.yml", "governance.yml"} <= {
+        f for f, x in _RBS_TEXTS.items() if _RBS_RESTORE.search(x)},
+    f"{_RBS_GOT}",
+)
+_RBS_PLANTS = {
+    "a unit site reading the payload's base": {**_RBS_TEXTS, "pr-contract.yml": _RBS_TEXTS["pr-contract.yml"].replace(
+        "PINNED: ${{ inputs.restore_source || ", "PINNED: ${{ ", 1)},
+    "a caller not passing the source": {**_RBS_TEXTS, "ci.yml": _RBS_TEXTS["ci.yml"].replace(
+        "    uses: ./.github/workflows/governance.yml\n    with:\n"
+        "      restore_source: ${{ needs.prelude.outputs.restore_source }}\n",
+        "    uses: ./.github/workflows/governance.yml\n    with:\n", 1)},
+    "a resolver without the ancestry assertion": {**_RBS_TEXTS, "ci.yml": _RBS_TEXTS["ci.yml"].replace(
+        'git merge-base --is-ancestor "$EVENT_BASE" "$source"', "true", 1)},
+    "a new site in another workflow": {**_RBS_TEXTS, "nightly.yml": "jobs:\n  j:\n    steps:\n      - env:\n"
+        "          PINNED: ${{ github.event.pull_request.base.sha }}\n        run: git checkout \"$PINNED\" -- x\n"},
+}
+R.check(
+    "plant: each undone half of the restore source is refused",
+    all(_rbs_defects(v) for v in _RBS_PLANTS.values()),
+    f"unrefused: {[k for k, v in _RBS_PLANTS.items() if not _rbs_defects(v)]}",
+)
 
 def _bp_undeclared(ci_text: str, callee_text: str) -> "list[str]":
     caller = (_yaml.safe_load(ci_text).get("jobs") or {}).get("governance") or {}

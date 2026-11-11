@@ -18,6 +18,11 @@ name: PR contract
 on:
   workflow_call:
     inputs:
+      # ci.yml's prelude: the commit every restore takes its check source from
+      # (R10-HOTFIX-RESTORE-BASE-SKEW); empty off a pull request.
+      restore_source:
+        type: string
+        default: ""
       pr:
         type: string
         default: ""
@@ -101,7 +106,7 @@ jobs:
         env:
           # The event's base commit; a dispatch carries none, and falls back to
           # the base ref's tip (the clone is full-depth, so origin/<ref> exists).
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || format('origin/{0}', inputs.base) }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha || github.event.merge_group.base_sha || format('origin/{0}', inputs.base) }}
         run: |
           set -euo pipefail
           rm -rf .claude/workflows/vendor

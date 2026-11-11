@@ -107,6 +107,11 @@ on:
   # The inputs are U0c's interface, each a string defaulting to "".
   workflow_call:
     inputs:
+      # ci.yml's prelude: the commit every restore takes its check source from
+      # (R10-HOTFIX-RESTORE-BASE-SKEW); empty off a pull request.
+      restore_source:
+        type: string
+        default: ""
       gate_scope:
         description: "The prelude's scope: auto, or full on push; anything else runs full"
         type: string
@@ -627,7 +632,7 @@ jobs:
       # rosters are the pull request's, the linter the base's.
       - name: Restore the check source from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -1014,7 +1019,7 @@ jobs:
       # request's own copy runs in `graders-head-copy`, which is not required.
       - name: Ratchet the floor and the pragma count with the base's grader
         env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha || github.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -1441,7 +1446,7 @@ jobs:
       - name: Report the last scheduled run's conclusion
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PINNED: ${{ github.event.pull_request.base.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
@@ -2422,7 +2427,7 @@ jobs:
       # committed, and `--autostash` below carries them across the pull.
       - name: Restore the programs this job runs from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null \
@@ -2695,7 +2700,7 @@ jobs:
       # committed, and `--autostash` below carries them across the pull.
       - name: Restore the programs this job runs from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null \
@@ -2954,7 +2959,7 @@ jobs:
       # committed, and `--autostash` below carries them across the pull.
       - name: Restore the programs this job runs from the base commit
         env:
-          PINNED: ${{ github.event.pull_request.base.sha }}
+          PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha }}
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null \
