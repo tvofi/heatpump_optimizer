@@ -1,0 +1,12 @@
+  ok   a failed Tibber fetch raises UpdateFailed, failing the update cycle
+  ok   the outage latch's UpdateFailed carries its translation (#1546)
+  ok   two failed fetches count two outage cycles (the ERROR logged once)
+  ok   a successful fetch clears the outage latch
+  ok   null control: a healthy price fetch neither fails the update nor raises the price_feed_stale repair
+  FAIL a failed price fetch while the last prices still cover now does not fail the update  [raised UpdateFailed('Unexpected error fetching prices: no HTTP session available in the test stub'), cycles 1]
+  FAIL ...and raises the price_feed_stale repair, logging a WARNING and no ERROR  [issues [], levels ['ERROR']]
+  ok   a recovered fetch clears the repair and the outage latch
+  FAIL null control: prices that no longer cover now fail the update again, and the repair stays  [raised UpdateFailed('Unexpected error fetching prices: no HTTP session available in the test stub'), issues []]
+  ok   null control: an outage with no covering prices logs ERROR on its first cycle and raises no repair
+  ok   null control: a refused token fails the update although prices still cover now, and raises no price_feed_stale repair
+3 of 11 FEATURES BLOCK FAILED
