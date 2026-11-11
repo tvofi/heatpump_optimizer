@@ -1,0 +1,6 @@
+RESULT mutant [NULL]: rc=0 ALL 1 FEATURES BLOCK PASSED
+RESULT mutant [D1 guard drops dhw_seen]: rc=1 1 of 1 FEATURES BLOCK FAILED
+RESULT mutant [D2 fold never sets seen]: rc=1 1 of 1 FEATURES BLOCK FAILED
+RESULT mutant [D3 seen not reset at close]: rc=1 1 of 1 FEATURES BLOCK FAILED
+RESULT mutant [D4 old early return restored]: rc=1 1 of 1 FEATURES BLOCK FAILED
+RESULT mutant [D5 seen not passed to SpanEnergy]: rc=1 1 of 1 FEATURES BLOCK FAILED

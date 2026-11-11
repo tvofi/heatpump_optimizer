@@ -1,0 +1,14 @@
+== base
+RESULT charge@1 unobs=(): heat_kw=2.727 space_kw=1.8181818181818181 dhw_kwh=5.0 dhw_seen=n/a observed=True
+RESULT charge@1 unobs=(6,): heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=n/a observed=False
+RESULT charge@1 unobs=(0,): heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=n/a observed=False
+RESULT charge@11 unobs=(): heat_kw=2.727 space_kw=1.8181818181818181 dhw_kwh=5.0 dhw_seen=n/a observed=True
+RESULT charge@11 unobs=(6,): heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=n/a observed=False
+RESULT charge@11 unobs=(10,): heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=n/a observed=False
+== head
+RESULT charge@1 unobs=(): heat_kw=2.727 space_kw=1.8181818181818181 dhw_kwh=5.0 dhw_seen=True observed=True
+RESULT charge@1 unobs=(6,): heat_kw=2.727 space_kw=None dhw_kwh=None dhw_seen=True observed=False
+RESULT charge@1 unobs=(0,): heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=False observed=False
+RESULT charge@11 unobs=(): heat_kw=2.727 space_kw=1.8181818181818181 dhw_kwh=5.0 dhw_seen=True observed=True
+RESULT charge@11 unobs=(6,): heat_kw=2.727 space_kw=None dhw_kwh=None dhw_seen=True observed=False
+RESULT charge@11 unobs=(10,): heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=False observed=False
