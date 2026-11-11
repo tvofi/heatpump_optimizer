@@ -81531,6 +81531,27 @@ R.check(
     _ds_late_before == (False, None) and _ds_late_rec.loaded and _ds_late_rec.learner.episode is not None,
     f"{_ds_late_before} {_ds_late_rec.loaded} {_ds_late_rec.learner.episode}",
 )
+# Only a mode write is a mode write: a set-point landing in ``_write`` reports
+# nothing, where the same call for the mode slot ends the open episode. And a
+# change of the running class still inside its debounce opens nothing.
+_ds_late_held = _sa_pa.state_for(_ds_late)
+_ds_late_held.written["mode"] = (_DS_HEAT, _DS_T0)
+_ds_late_rec.loaded = True
+_sa_pa._report_write(_ds_late, _ds_late_held, _ds_late.arbiter_inputs(), "space_setpoint", (30.0, _DS_T0), _DS_T0, None)
+_ds_slot_kept = _ds_late_rec.learner.episode is not None
+_sa_pa._report_write(_ds_late, _ds_late_held, _ds_late.arbiter_inputs(), "mode", None, _DS_T0, None)
+_ds_late_rec.tracker.pending = (False, _DS_T0)
+_ds_mod.note_mode_write(_ds_late, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
+_ds_pending_open = _ds_late_rec.learner.episode
+_ds_late_rec.tracker.pending = None
+_ds_mod.note_mode_write(_ds_late, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
+R.check(
+    "a set-point write reports nothing to the learner and a mode write does; a pending change of the "
+    "running class opens no episode",
+    _ds_slot_kept and _ds_late_rec.learner.directions["dhw_space"].void == 1 and _ds_pending_open is None
+    and _ds_late_rec.learner.episode is not None,
+    f"{_ds_slot_kept} {_ds_late_rec.learner.directions['dhw_space'].void} {_ds_pending_open}",
+)
 
 
 # Null controls (design.md, evidence 5 and 6): nothing reads the estimate, so
