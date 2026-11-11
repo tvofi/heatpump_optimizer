@@ -20695,7 +20695,8 @@
    "rca": [],
    "after": [
     "R10-TRAIN-RESIDUE",
-    "R10-TICK-RESIDUE"
+    "R10-TICK-RESIDUE",
+    "R10-HOTFIX-GATE-REDISPATCH-LOOP"
    ],
    "carry": [
     "Moved from R10-RCA-GATE-BUSY-DEFER-2 carry 1 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:\n\nFrom r10-gate-busy-defer-3, body item 39f0a86e: **#3278's RCA document, on branch `fix/r10-rca-gate-busy-defer-2`, not edited here.** Its \u00a71 sentence \"In #3261, the higher gate waits one poll, then passes\" becomes untrue at this head. That gate now publishes the deferral at once, and `settle` re-runs it (race harness `pair`: gate-wait 0 s, RESIDUAL-RED 0). Its \u00a75.2 countermeasure, a fresh dispatch where a re-run would replay a stale pinned program, stays needed: `settle` re-runs through the same job-rerun API, so a re-run of a run created before this merges executes the old waiting program. Re-measure with that document's own `census` arm after this merges (a group of `dev/programme/rosters/wave-r10-groups.json` on `handoff/audit-r10-roster`; the orchestrator appends it with `tools/audit/seat/roster_edit.py append-carry`, this seat writes no roster). Carry: R10-RCA-GATE-BUSY-DEFER-2 (items 39f0a86e)",
