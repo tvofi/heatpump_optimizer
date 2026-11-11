@@ -64,8 +64,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     refuses, wait or hand back unverdicted, saying so.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
-    **A red `nightly-status` or `delivery-status` is not this pull request's**:
-    neither is required (`defect-root-cause.md`).
+    **A red outside `merge_train.py owed-reds`' set is not this pull request's**
+    and blocks nothing (`defect-root-cause.md`).
 
     **The head's runs are not the range's** (#1144). The body check prints
     `record`/`skip red-history` for the range; `skip` means every earlier head
@@ -90,7 +90,12 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     (#1667; tvofi 2026-10-27) while `tools/audit/seat/review_carry.py
     <verdicted> <new>` prints `CARRY`: the PR's patch is the one reviewed
     (L6), not `head-moved`; a red CI never carries.
-    Else a main merge is its **resolution delta**, alone yours; any other move is re-reviewed.
+    Else a later round is **its delta** (tvofi 2026-11-09): `git diff <reviewed-head>
+    <head>` (a main merge: its resolution), each prior finding resolved, the live
+    required checks. Only a delta touching production code (`custom_components/`)
+    that puts already-reviewed code's functionality at non-obvious risk, in a way
+    CI would not detect, widens it, to exactly that code; the verdict names the
+    path and the risk. Instrument, test, policy and body deltas never widen it.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
