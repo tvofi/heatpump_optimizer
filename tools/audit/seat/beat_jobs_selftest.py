@@ -981,7 +981,7 @@ MUTANTS = {
                           "    if rc in (0, 1, 2):\n        return write_job(ctx, \"outside-intake\"",
                           "outside-intake: rc 2 is UNREADABLE, never clean"),
     "pulse_stopped_dropped": ('(?:STOPPED|UNREADABLE) ', '(?:UNREADABLE) ', "pulse: a STOPPED line reaches the digest"),
-    "cancel_failure_dropped": ('r"could not cancel| rc=', 'r"could not cancelX| rc=',
+    "cancel_failure_dropped": ('r"could not (?:cancel|re-run)| rc=', 'r"could not (?:cancelX|re-run)| rc=',
                                "cancel-sweep: a failure reaches the digest"),
     "disk_no_recheck": ("    free = ctx.free_gib()\n", "    free = floor - 1\n",
                         "disk: a collection that frees enough writes nothing"),

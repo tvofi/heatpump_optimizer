@@ -1933,6 +1933,7 @@ class Train:
         settle = 0
         for k in range(1, self.polls + 1):
             runs = self._check_runs(h)
+            self.pause_poll(runs, h)
             last = latest_runs(runs or ())
             if only is not None and runs is not None:
                 state = classify(last, only)
@@ -2972,6 +2973,47 @@ class Train:
         with stop_ignored():
             self.release_worktrees()
             self.hold_release()
+            self.pause_resume("train exit")
+
+    # --- the CI pause (ci_pause.py: pause the lowest-priority PR's CI while the head's job queues) ---
+    def ci_pause(self):
+        """The train's one CiPause, built on first use; None when the module cannot load."""
+        if getattr(self, "_ci_pause", None) is None:
+            try:
+                if str(Path(__file__).resolve().parent) not in sys.path:
+                    sys.path.insert(0, str(Path(__file__).resolve().parent))
+                import ci_pause
+                self._ci_pause = ci_pause.CiPause(self)
+            except Exception as e:  # noqa: BLE001 - the pause is an optimisation, never a gate
+                self.log(f"PAUSE unavailable: {str(e)[:120]}")
+                self._ci_pause = False
+        return self._ci_pause or None
+
+    def protected_prs(self) -> "set[int]":
+        """Pull requests the pause may never touch: in the train's batches, in its spool, or seen with a verdict."""
+        out: set = set()
+        for batch in (getattr(self, "_queue", None) or {}).get("batches") or []:
+            out |= {int(e["pr"]) for e in batch if isinstance(e, dict) and str(e.get("pr", "")).isdigit()}
+        out |= {int(e["pr"]) for e in spool_read(self.state)[0]}
+        out |= {int(k) for k, v in (getattr(self, "_seen", None) or {}).items()
+                if str(k).isdigit() and isinstance(v, dict) and v.get("verdict")}
+        return out
+
+    def pause_poll(self, runs, h: str) -> None:
+        cp = self.ci_pause()
+        if cp is not None:
+            try:
+                cp.poll(runs, h)
+            except Exception as e:  # noqa: BLE001
+                self.log(f"PAUSE error: {str(e)[:120]}")
+
+    def pause_resume(self, why: str) -> None:
+        cp = self.ci_pause()
+        if cp is not None:
+            try:
+                cp.resume_all(why)
+            except Exception as e:  # noqa: BLE001
+                self.log(f"RESUME error: {str(e)[:120]}")
 
     def train(self, queue: list[dict]) -> int:
         try:
@@ -2983,6 +3025,7 @@ class Train:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.pause_resume("train start")
         self.hold_armed = True
         self.hold_refresh()  # before anything can merge: the record beat waits
         for item in self.preflight(queue):
@@ -3790,6 +3833,7 @@ class Train:
             return 1
         self.skipped = []
         total = 0
+        self.pause_resume("train start")  # a pause a dead train left (ci_pause.py)
         self._queue = {"batches": batches, "next": 0, "closed": False}
         try:
             while True:

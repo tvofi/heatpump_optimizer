@@ -139,6 +139,7 @@ def run(a: argparse.Namespace, api=gh) -> int:
     return 0
 
 
+SEAT = Path(__file__).resolve().parents[1] / "audit" / "seat"
 ZOMBIES = "cancel-zombies.json"
 HELD = "priority-held.json"
 HELD_MAX_AGE_S = 24 * 3600
@@ -283,6 +284,81 @@ def priority_step(api, *, repo: str, plan_: dict, held: dict, allow_cancel: bool
     return out
 
 
+def train_pinned(state_dir: "str | None") -> set:
+    """Pull requests in the merge train's queue or spool under <state_dir>: `queue-add.jsonl`
+    lines and any `queue*.json` list, each entry's `pr`. Unreadable files add nothing; the
+    verdict-comment check in `priority_pass` is the guard that does not depend on them."""
+    out: set = set()
+    if not state_dir:
+        return out
+    for f in sorted(Path(state_dir).glob("queue*")):
+        try:
+            text = f.read_text()
+            if f.suffix == ".jsonl":
+                rows = []
+                for x in text.splitlines():
+                    try:
+                        rows.append(json.loads(x))
+                    except ValueError:
+                        pass  # one torn line pins nothing and spares the rest
+            else:
+                rows = json.loads(text)
+        except (OSError, ValueError):
+            continue
+        for e in rows if isinstance(rows, list) else []:
+            if isinstance(e, dict) and str(e.get("pr", "")).isdigit():
+                out.add(int(e["pr"]))
+    return out
+
+
+def has_merge_verdict(api, repo: str, pr: int) -> "bool | None":
+    """Whether pull request <pr> holds a `Fix review: merge` comment at any head (conservative: an
+    older head's verdict still protects); None when its comments cannot be read."""
+    got = api(["--paginate", "--slurp", f"repos/{repo}/issues/{pr}/comments?per_page=100"])
+    if not isinstance(got, list):
+        return None
+    return any(str(c.get("body") or "").startswith("Fix review: merge")
+               for page in got for c in (page if isinstance(page, list) else []))
+
+
+def priority_pass(a: argparse.Namespace, api, prs: list, runs: list, now: float) -> str:
+    """The CI-priority rule of the sweep (carries 4 and 6). Returns the summary suffix."""
+    sys.path.insert(0, str(SEAT))
+    import ci_priority
+    import roster_lib as rl
+    try:
+        setting = ci_priority.load_setting()
+        root = SEAT.parents[1]
+        roster = rl.show_roster(str(root), rl.default_roster_ref(rl.git_in(str(root)))[0])
+        crit = {rl.norm_group(str(c)) for c in rl.critical_path(roster)}
+    except Exception as e:  # noqa: BLE001 - an unreadable rule cancels nothing
+        print(f"CANCEL-SWEEP: priority rule unreadable: {str(e)[:120]}; priority step skipped")
+        return ", priority unreadable"
+    tiers = {}
+    for pr in prs:
+        h = pr.get("head") or {}
+        g = rl.group_for_branch(roster, h.get("ref") or "") or rl.group_for_pr(roster, pr.get("number"))
+        tiers[int(pr["number"])] = ci_priority.tier(g, crit, roster, setting)
+    protected = train_pinned(getattr(a, "train_state", None))
+    plan_ = priority_plan(prs, runs, tiers, protected, setting, repo=a.repo)
+    if plan_["victims"] and setting["priority_cancel"]:
+        for pr in sorted({v[1] for v in plan_["victims"]}):
+            if has_merge_verdict(api, a.repo, pr) is not False:
+                protected.add(pr)  # a verdict, or comments that could not be read
+        plan_ = priority_plan(prs, runs, tiers, protected, setting, repo=a.repo)
+    hfile = (zombie_file().with_name(HELD) if zombie_file() else None)
+    held = held_read(hfile)
+    got = priority_step(api, repo=a.repo, plan_=plan_, held=held, allow_cancel=setting["priority_cancel"],
+                        now=now, dry_run=a.dry_run)
+    if not a.dry_run:
+        held_write(hfile, held)
+    if plan_["priority"]:
+        print(f"CANCEL-SWEEP: priority run(s) queued: {len(plan_['priority'])} of {plan_['queued']} queued "
+              f"({plan_['main_queued']} on main); " + ("cancelling queued non-priority runs"
+              if setting["priority_cancel"] else "holding (priority_cancel is off), nothing cancelled"))
+    return f", priority cancelled {got['cancelled']}, re-ran {got['rerun']}, held {len(held)}"
+
+
 def sweep_plan(prs: list[dict], runs: list[dict], bot_heads: set[str], *, repo: str) -> dict:
     """Pure part of `sweep`: {"cancel": ids, "kept": n, "skipped": n, "ghosts": [ids]}.
 
@@ -382,11 +458,12 @@ def sweep(a: argparse.Namespace, api=gh) -> int:
         done += post_cancel(api, a.repo, rid, zombies, time.time()) == "ok"
     if not a.dry_run:
         zombies_write(zfile, zombies)
+    prio = priority_pass(a, api, prs, runs, time.time()) if getattr(a, "priority", False) else ""
     for rid in res["ghosts"]:
         print(f"cancel_superseded: ghost {rid} (no open pull request on its branch)")
     print(f"CANCEL-SWEEP: cancelled {len(res['cancel']) if a.dry_run else done}, kept {res['kept']} (live head), "
           f"skipped {res['skipped']} (bot head / not a PR), ghosts {len(res['ghosts'])}, "
-          f"zombies {len(zombies)}")
+          f"zombies {len(zombies)}{prio}")
     return 0
 
 
@@ -690,6 +767,16 @@ def self_test() -> int:
     with contextlib.redirect_stdout(io.StringIO()):
         priority_step(pstub2, repo=REPO, plan_=pp, held={}, allow_cancel=False, now=1.0)
     check("priority carry 6: with priority_cancel off a queued priority run cancels nothing (hold)", pposts, [])
+    check("verdict guard: a Fix review: merge comment protects; none does not; unreadable is None",
+          (has_merge_verdict(lambda a: [[{"body": "Fix review: merge abc"}]], REPO, 1),
+           has_merge_verdict(lambda a: [[{"body": "hi"}]], REPO, 1),
+           has_merge_verdict(lambda a: None, REPO, 1)), (True, False, None))
+    with tempfile.TemporaryDirectory() as td2:
+        Path(td2, "queue-add.jsonl").write_text('{"pr": 21}\nnot json\n{"pr": "22"}\n')
+        Path(td2, "queue.json").write_text('[{"pr": 23}, {"x": 1}]')
+        check("train pins: spool lines and queue entries are read, junk is skipped",
+              train_pinned(td2), {21, 22, 23})
+    check("train pins: no state dir pins nothing", train_pinned(None), set())
     print(f"cancel_superseded self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
@@ -709,6 +796,9 @@ def main(argv: list[str]) -> int:
     w = sub.add_parser("sweep")
     w.add_argument("--repo", required=True)
     w.add_argument("--dry-run", action="store_true")
+    w.add_argument("--priority", action="store_true",
+                   help="apply the CI-priority rule (ci_priority.py): hold or cancel queued non-priority runs")
+    w.add_argument("--train-state", help="the merge train's state dir: its queue and spool pin PRs")
     a = ap.parse_args(argv[1:])
     return sweep(a) if a.cmd == "sweep" else run(a)
 
