@@ -1703,6 +1703,8 @@ jobs:
             'tools/audit/seat/gh_read.py' \
             'tools/audit/seat/ledger.py' \
             'tools/audit/seat/proof_watch.py' \
+            'tools/audit/seat/ci_pause.py' \
+            'tools/audit/seat/ci_priority.py' \
             'tools/audit/seat/merge_train.py' \
             'tools/audit/seat/queue_pre_flight.py' \
             'tools/audit/seat/ref_privacy.py' \
