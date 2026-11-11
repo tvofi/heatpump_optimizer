@@ -19,7 +19,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-COMBI-TANK (stage in-progress, branch `handoff/r10-combi-tank`): `git fetch origin handoff/r10-combi-tank && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-COP-UNMEASURED (stage carries-open, branch `handoff/r10-hotfix-cop-unmeasured`): `git fetch origin handoff/r10-hotfix-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-GENERIC-HEAT-CURVE-PERSISTENT (stage in-progress, branch `handoff/r10-generic-heat-curve-persistent`): `git fetch origin handoff/r10-generic-heat-curve-persistent && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-GENERIC-HEAT-CURVE-PERSISTENT (stage carries-open, branch `handoff/r10-generic-heat-curve-persistent`): `git fetch origin handoff/r10-generic-heat-curve-persistent && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ARBITER-OFF-RESTORE (stage in-progress, branch `handoff/r10-arbiter-off-restore`): `git fetch origin handoff/r10-arbiter-off-restore && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REVIEW-ENUMERATE (stage carries-open): no branch pushed yet, so nothing to fetch
@@ -36,7 +36,7 @@ Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-ST
 ## Resume steps
 
 1. Read the resume doc's Roster and Ready next sections.
-2. Claim one ready group and announce it on the tracking issue #201 before opening work -- before each PR, merge and release, not only after a state change.
+2. Claim one ready group and announce it on the record issue #3394 before opening work -- before each PR, merge and release, not only after a state change.
 3. Work at your own merge base; re-derive every figure you quote there. A figure from another seat's run is a claim, not a measurement.
 
 ## Identity and merge (from the roster)
