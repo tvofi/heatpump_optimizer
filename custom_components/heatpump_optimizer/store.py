@@ -490,6 +490,11 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
             "night_start_hour", "night_start_minute", "night_end_hour", "night_end_minute",
         )},
     },
+    # duty_switch.py: the closed duty-switch episodes ``learned`` reads.
+    "duty_switch": {
+        "episodes/#/at": _AT, "episodes/#/dir": Domain("choice", choices=("dhw_space", "space_dhw")),
+        "episodes/#/stopped": _FLAG, "episodes/#/off_min": Domain("real", 0.0, null=True),
+    },
     "manual_plan": {
         **{f"{k}_slots": _ABSENT for k in ("space", "dhw")},
         **{f"{k}_slots/#/{e}": _AT for k in ("space", "dhw") for e in ("start", "end")},

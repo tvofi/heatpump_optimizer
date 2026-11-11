@@ -146,7 +146,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, issues, pump_mode, quiet_windows
+from . import boost, duty_switch, issues, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
@@ -340,6 +340,8 @@ class ArbiterState:
     #: which a loop-lowered target stopped the compressor (:func:`_feedback`).
     feedback: FeedbackRun | None = None
     stop_gap_k: float | None = None
+    #: ``duty_switch``'s own record, made on first use.
+    duty: Any = None
 
 
 @dataclass(frozen=True)
@@ -1359,8 +1361,11 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
 
 
 async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: datetime) -> None:
+    held = state_for(coord)
+    before = held.written.get("mode")
     for slot in _SLOTS:
         await _write(coord, inp, slot, getattr(command, slot), now)
+    duty_switch.duty_opened(coord, held, inp, command, before, now, step_duty)
 
 
 async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -> None:
@@ -1480,6 +1485,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now,
     )
     _observe(held, inp, duty, now)
+    await duty_switch.duty_follow(coord, held, inp, now)
     if mode != DUTY_CONTROL or _pump_off(inp):
         return
     hold(coord, now)
@@ -1510,7 +1516,11 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
         return "space"
     if PLAN_STEP_MINUTES - dhw_min < SPLIT_MIN_MINUTES:
         return "dhw"
-    return "dhw" if (now - result.timestamps[i]) < timedelta(minutes=dhw_min) else "space"
+    first, second, extra = duty_switch.duty_split(state_for(coord), result.timestamps[i], now)
+    first_min = dhw_min if first == "dhw" else PLAN_STEP_MINUTES - dhw_min
+    if PLAN_STEP_MINUTES - first_min < SPLIT_MIN_MINUTES + extra:
+        return first
+    return first if (now - result.timestamps[i]) < timedelta(minutes=first_min) else second
 
 
 def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
