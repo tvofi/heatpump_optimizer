@@ -1,0 +1,19 @@
+review_carry: d7347d0cb -> aa70efdd0  main=origin/main
+  branch-only commits: 14
+  why: 29c0c392a5367e56622a583fb1489a9e780d005b is not the automatic merge of its parents
+  fd15722e1  BLOCKED: body_push.sh REFUSED CARRY-LANDED (one carry to R10-WATER-SETPOINT-FEEDBACK)
+  e1940576a  Remove the BLOCKED.md step marker; the carry it waited on is landed
+  9c97cec4d  Merge origin/main cd36e7973 into fix/r10-arbiter-off-restore
+  f97f6cefd  R10-ARBITER-OFF-RESTORE: pin _edited's echo-grace boundary; three killed sites pinned by --pin-killed
+  29c0c392a  wip: step at ec5ee8d2b5 (tree = fix head; supersedes the unhanded 2026-11-10 repair attempt on this ref)
+  45fceecba  wip: step at 656cd9310c (tree = fix head; supersedes the unhanded 2026-11-10 repair attempt on this ref)
+  fc93d421d  wip: step at acb7122c75 (tree = fix head; merge of origin/main a7628041dc into 561edf4c8f, union of ArbiterState fields)
+  4839647b7  wip: step at 8577f90492 (tree = fix head; the #3405 seam: _cut_of read by _edited)
+  acd2b4927  wip: step at 4831cb404f (tree = fix head; Carry 8 seam)
+  97a33f7d0  wip: step at 2568235bb9 (tree = fix head; stale pins dropped)
+  dacdacbf8  BLOCKED: pin run inconclusive, baseline red on main's combi census
+  7ea3053f9  wip: BLOCKED, pin run inconclusive
+  ae415a290  Merge remote-tracking branch 'origin/main' into work
+  aa70efdd0  Remove BLOCKED.md: question answered, census cured on main
+review_carry: FRESH-REVIEW
+rc=1
