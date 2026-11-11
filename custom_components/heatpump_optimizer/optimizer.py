@@ -3783,6 +3783,8 @@ class HeatPumpOptimizer:
         outdoor_temps, wind_speeds, precipitation, solar_radiation, humidity, external_heat_kw = (
             weather.outdoor_temps, weather.wind_speeds, weather.precipitation,
             weather.solar_radiation, weather.humidity, weather.external_heat_kw)
+        # ``_horizon_weather`` fills these three: a horizon's, never None.
+        assert wind_speeds is not None and precipitation is not None and solar_radiation is not None
         if price_known is None:
             price_known = np.ones(n_steps, dtype=bool)
         if pv_surplus is None:

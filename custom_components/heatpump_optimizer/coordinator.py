@@ -11313,7 +11313,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
         _quiet = quiet_windows.compose_with_silent(cap_extra, quiet_windows.overridden_config(ctx._config, overrides), ctx.hass.states.get, solve_at, len(horizon.prices), scratch_config.dt_hours, scratch_params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
         wood_err, wood_kw, wood_sek = simulate_wood_slots(
-            overrides, ctx._config, len(horizon.prices),
+            dict(overrides), ctx._config, len(horizon.prices),
             ctx._opt_config.dt_hours, solve_at,
         )
         if wood_err:

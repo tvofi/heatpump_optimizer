@@ -13347,7 +13347,8 @@ class WhatIfPanel {
    * the money is the range between them, never one of them alone.
    */
   summary(result) {
-    const num = (v) => (v === null || v === undefined ? NaN : Number(v));
+    // The answer's figures are numbers or absent; Number(null) would be a 0.
+    const num = (v) => (typeof v === "number" ? v : NaN);
     const delta = num(result.monthly_steady_cost_delta);
     const shifted = num(result.monthly_steady_cost_delta_shifted);
     const parts = [];

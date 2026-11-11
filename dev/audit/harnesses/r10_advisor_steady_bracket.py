@@ -31,7 +31,8 @@ OUTDOOR: flat (default, -5) or diurnal (-5 + 4 sin, coldest at 03:00).
 
 Fixture: ``_solve_coord`` of tests/features.py, hours 01..23 step 2, the what-if
 asked at the solve's instant: the two tile degrees and the six panel asks, 96
-schedule figures.
+schedule figures. The last line times ``reference_day``, the only work the
+schedule branch adds to a what-if (item pass-wall of the design).
 """
 from __future__ import annotations
 
@@ -41,6 +42,7 @@ import json
 import math
 import os
 import sys
+import time
 from datetime import datetime, timedelta  # noqa: F401 - the sliced fixture reads them
 from pathlib import Path
 
@@ -49,6 +51,7 @@ from harness import FakeEntry as _FakeEntry, FakeHass as _FakeHass, FakeState, w
 from homeassistant.util import dt as dt_util
 
 import heatpump_optimizer.coordinator as cmod
+import heatpump_optimizer.optimizer as omod
 from heatpump_optimizer import price_tiles, whatif
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord  # noqa: F401
 
@@ -89,6 +92,19 @@ def _figure(live_kwh, sim_kwh, mean_price, extra, horizon_hours, *more):
     return _real_figure(live_kwh, sim_kwh, mean_price, extra, horizon_hours, *more)
 
 
+_WALL: list[float] = []
+_real_reference = omod.HeatPumpOptimizer.reference_day
+
+
+def _reference(self, inputs):
+    start = time.perf_counter()
+    try:
+        return _real_reference(self, inputs)
+    finally:
+        _WALL.append(time.perf_counter() - start)
+
+
+omod.HeatPumpOptimizer.reference_day = _reference
 cmod._await_optimize = _optimize
 price_tiles.schedule_figure = _figure
 
@@ -185,6 +201,9 @@ def main():
               f"{sum(1 for r in ok if r['shifted'] is not None and abs(r['shifted'] - r['fig_realised']) <= 0.01)}"
               f" of {len(ok)}; the two round apart (the card shows a range) on "
               f"{sum(1 for r in ok if r['shifted'] is not None and round(abs(r['shifted'])) != round(abs(r['built'])))}")
+    if _WALL:
+        print(f"RESULT {tag}: reference_day calls {len(_WALL)} (two per what-if, on the event loop), "
+              f"wall each median {1000.0 * float(np.median(_WALL)):.1f} ms max {1000.0 * max(_WALL):.1f} ms on this host")
     print("ERRORS", len(allrows) - len(ok), [(r["hour"], r["ask"], r["error"]) for r in allrows if "error" in r][:5])
     if OUT:
         Path(OUT).write_text(json.dumps(allrows))
