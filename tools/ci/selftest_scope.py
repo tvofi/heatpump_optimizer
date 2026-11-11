@@ -7,7 +7,7 @@
     python3 -I tools/ci/selftest_scope.py record [--step ID]... [--out PATH]
     python3 -I tools/ci/selftest_scope.py check --traces DIR [--write PATH]
     python3 -I tools/ci/selftest_scope.py settle
-    python3 -I tools/ci/selftest_scope.py --self-test
+    python3 -I tools/ci/selftest_scope.py --self-test [--wrapper PATH] [--workflow PATH]
 
 WHY (R10-CI-SELFTEST-SCOPE, owner lever 3, #201 comment 6707834331).
 `tools/` is INERT in tests/closure.py, so no tool has a closure there and this
@@ -199,6 +199,22 @@ def wiring_gaps(steps: list[Step]) -> list[str]:
         if n not in waiters:
             gaps.append(f"UNREAD start {n}: no step waits on it")
     return gaps
+
+
+SETTLE_CALL = re.compile(r"^python3 -I tools/ci/selftest_scope\.py settle$", re.M)
+
+
+def settle_gaps(steps: list[Step]) -> list[str]:
+    """CI's half of the settled index (R10-HOTFIX-PREPR-READSET): an untraced
+    step ordered before the job's first traced one (a gated step, or `launch`,
+    which starts traced ones) runs `settle` as a line of its own, so a failure
+    fails the step. `record` settles itself; on a pull request the step never
+    runs, so this static read is the only pin on the line."""
+    first = next((i for i, s in enumerate(steps) if s.gated or s.id == "launch"), len(steps))
+    if any(s.id in UNGATED and SETTLE_CALL.search(s.run or "") for s in steps[:first]):
+        return []
+    return ["UNSETTLED job: no untraced step before its first traced one runs "
+            "`python3 -I tools/ci/selftest_scope.py settle` on a line of its own"]
 
 
 # ---------------------------------------------------------------------------
@@ -789,7 +805,7 @@ def static_check(root: Path = ROOT) -> int:
     """The pull-request side: the job's gating is consistent and the table is
     not stale against it. No tracing; the drift check is main's."""
     steps = workflow_steps(root)
-    problems = wiring_gaps(steps)
+    problems = wiring_gaps(steps) + settle_gaps(steps)
     table = load_table(root / TABLE)
     if table is None:
         problems.append(f"UNREADABLE {TABLE}")
@@ -806,9 +822,10 @@ def static_check(root: Path = ROOT) -> int:
 
 # ---------------------------------------------------------------------------
 
-def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
-    """The refusals, over fixtures; `wrapper` is the selftest_step.sh under
-    test (selftest_scope_mutants.sh hands it a mutant)."""
+def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) -> int:
+    """The refusals, over fixtures; `wrapper` is the selftest_step.sh and
+    `workflow` the live job's file under test (selftest_scope_mutants.sh hands
+    either a mutant)."""
     passed = failed = 0
 
     def ck(name: str, ok: bool) -> None:
@@ -1321,12 +1338,21 @@ def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
            and ", 1 refusal(s)" in out.getvalue())
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
+            rc_us = main(["static"], root)
+        ck("static: a job that never settles the index is refused (UNSETTLED)",
+           rc_us == 1 and "UNSETTLED job" in out.getvalue())
+        settled = e2e.replace("      - name: Launch\n", "      - name: Strace\n        id: strace\n"
+                              "        run: python3 -I tools/ci/selftest_scope.py settle\n"
+                              "      - name: Launch\n", 1)
+        (root / WORKFLOW).write_text(settled)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
             rcs = [main(["static"], root), main(["ids"], root),
                    main(["select", "--change", "M:tools/x/a.py"], root)]
         ck("static, ids and select over a fresh table",
            rcs == [0, 0, 0] and "0 problem(s)" in out.getvalue() and "a slow\n" in out.getvalue()
            and "MODE: SCOPED -- 1 step(s) run\n  run a\n" in out.getvalue())
-        (root / WORKFLOW).write_text(e2e.replace("cat tools/x/a.py", "cat tools/x/a.py tools/x/a.py"))
+        (root / WORKFLOW).write_text(settled.replace("cat tools/x/a.py", "cat tools/x/a.py tools/x/a.py"))
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             rc_st = main(["static"], root)
@@ -1424,6 +1450,30 @@ def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
         else:
             print("  skip the traced git status over a racy index: no strace here, or this run is itself traced")
         ck("settle over an index with no racy entry changes nothing (rc 0)", settle_index(root, env) == 0)
+        make_racy()
+        rc = main(["settle"], root)
+        ck(f"the `settle` command settles that racy index (rc={rc}; racy before it, none after)",
+           rc == 0 and racy_entries(root, env) == [])
+
+    # The settle call's place in a job (settle_gaps): an untraced step before
+    # the first traced one, on a line of its own; the null control first.
+    gate = "steps.scope.outputs.a == 'true'"
+    call = "python3 -I tools/ci/selftest_scope.py settle\n"
+
+    def job(strace_run: str, a_first: bool = False, after: str = "") -> list[Step]:
+        a = Step("A", "a", gate, "x\n" + (call if a_first else ""))
+        head = [Step("Choose", "scope", "", "echo\n"), Step("Strace", "strace", "", strace_run)]
+        return head + ([a] if a_first else []) + [Step("Launch", "launch", "", "x\n" + after)] + \
+            ([] if a_first else [a])
+    ck("settle_gaps: an untraced step before the first traced one settling passes (null control)",
+       settle_gaps(job("apt\n" + call)) == [])
+    ck("settle_gaps: no settle call is refused", settle_gaps(job("apt\n")) != [])
+    ck("settle_gaps: a settle whose failure is swallowed is refused",
+       settle_gaps(job("apt\n" + call.replace("\n", " || true\n"))) != [])
+    ck("settle_gaps: a settle only in a traced (gated) step is refused",
+       settle_gaps(job("apt\n", a_first=True)) != [])
+    ck("settle_gaps: a settle only in launch, which starts traced steps, is refused",
+       settle_gaps(job("apt\n", after=call)) != [])
 
     # The live table names no landed retired path (tests/layout.py's guard
     # refuses a new reference to one, and a diff re-adding one), and the
@@ -1439,18 +1489,20 @@ def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
            bool(gone) and named == [] and retired_paths(Path(tempfile.gettempdir())) == [])
 
     # The live job: its gating is consistent (the seat's own null control).
-    live = workflow_steps(ROOT)
+    live = job_steps(workflow.read_text())
     ck(f"the live job parses ({len(live)} steps) and its gating is consistent",
        len(live) > 3 and wiring_gaps(live) == [])
+    ck("the live job settles the index in an untraced step before its first traced one",
+       settle_gaps(live) == [])
     print(f"selftest_scope self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
 
 def main(argv: list[str], root: Path = ROOT) -> int:
-    if argv == ["--self-test"]:
-        return self_test()
-    if argv[:2] == ["--self-test", "--wrapper"] and len(argv) == 3:
-        return self_test(Path(argv[2]).resolve())
+    opts = dict(zip(argv[1::2], argv[2::2]))
+    if argv[:1] == ["--self-test"] and len(argv) % 2 == 1 and set(opts) <= {"--wrapper", "--workflow"}:
+        return self_test(Path(opts.get("--wrapper", ROOT / WRAPPER)).resolve(),
+                         Path(opts.get("--workflow", ROOT / WORKFLOW)).resolve())
     if argv == ["ids"]:
         print(" ".join(gated_ids(workflow_steps(root))))
         return 0
