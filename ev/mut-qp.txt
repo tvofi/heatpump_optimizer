@@ -1,0 +1,9 @@
+RESULT Q0-baseline: rc=0 queue_pre_flight self-test: 53 checks, 0 failed
+RESULT Q1-stub-removed: rc=1 queue_pre_flight self-test: 53 checks, 3 failed
+      FAIL a policy head with no review yet passes under the train's --mandate in force for policy merging (the approval policy_approve posts, judged by policy_gate)
+      FAIL null control: under a --mandate tvofi revoked it still PARKs, named as revoked
+      FAIL policy_approval_due names the mandate in force for policy merging; revoked, expired or scope code-owned it names none (the one decision the post and the pre-flight share)
+RESULT Q2-stub-unreadable: rc=1 queue_pre_flight self-test: 53 checks, 3 failed
+      FAIL a policy head with no review yet passes under the train's --mandate in force for policy merging (the approval policy_approve posts, judged by policy_gate)
+      FAIL null control: under a --mandate tvofi revoked it still PARKs, named as revoked
+      FAIL policy_approval_due names the mandate in force for policy merging; revoked, expired or scope code-owned it names none (the one decision the post and the pre-flight share)
