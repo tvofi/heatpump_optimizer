@@ -61787,15 +61787,38 @@ def _chg_driven():
 
 
 _chg_seq = _chg_driven()
+
+
+# The cooling learner reads the same flag: a 30-min interval that STARTED on a
+# heated sample is no standby decay. The same interval with no charge on
+# record is the control that proves it learnable (one cooling sample).
+def _chg_cooling(started_heated):
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    learner = coord._dhw_learner
+    learner.cooling_rate = 0.3
+    learner._heating_active = lambda: False
+    now = dt_util.now()
+    learner.last_temp_sample, learner.last_sample_time = 50.0, now - timedelta(minutes=30)
+    learner.heating_since_sample = started_heated
+    learner.last_heated_time = now - timedelta(minutes=30) if started_heated else None
+    _aio.run(learner.async_learn_dynamics(49.8))
+    return learner.cooling_samples
+
+
+_chg_cool = (_chg_cooling(True), _chg_cooling(False))
 R.check(
     "a charge-start dip is learned as neither a draw nor usage",
     _chg_heated == (0.0, 0) and _chg_settling == (0.0, 0)
     and _chg_settled[0] > 0.5 and _chg_settled[1] == 1
-    and _chg_space == _chg_settled and _chg_seq == (0.0, 0),
+    and _chg_space == _chg_settled and _chg_seq == (0.0, 0)
+    and _chg_cool == (0, 1),
     f"(kWh folded, usage points) heated {_chg_heated}, 5 min after the charge "
     f"{_chg_settling}, 20 min after (control) {_chg_settled}, space-heating "
     f"start with no DHW charge on record (control) {_chg_space}, driven "
-    f"heated-then-settling sequence {_chg_seq}",
+    f"heated-then-settling sequence {_chg_seq}, cooling samples from a "
+    f"30-min interval started heated / not (control) {_chg_cool}",
 )
 
 # A zero-capacity tank is the input the floors were hiding. With the capacity
