@@ -23115,7 +23115,9 @@
    "files": [
     "tools/audit/seat/orchestrator_tick.py",
     "tools/audit/seat/shims/seat-gh",
-    "tools/audit/seat/gh_calls.py"
+    "tools/audit/seat/gh_calls.py",
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/gh_read.py"
    ],
    "hot_files": [],
    "owner_gate": null,
@@ -23131,7 +23133,7 @@
    "resume": {
     "stage": "not-started",
     "branch": null,
-    "note": "overlap admitted (R10-GATE-DEFER-BARRIER): triage s14-12 2026-11-11: P596 not-started sibling of R10-GH-READ-RESIDUE (p2 in flight), per orchestrator rule; triage: dev/programme/triage/s6-batch177.md#P596 at c7cab7230c"
+    "note": "overlap admitted (R10-GATE-DEFER-BARRIER): triage s14-12 2026-11-11: P596 not-started sibling of R10-GH-READ-RESIDUE (p2 in flight), per orchestrator rule; triage: dev/programme/triage/s6-batch177.md#P596 at c7cab7230c | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/shims/seat-gh', 'tools/audit/seat/gh_calls.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/shims/seat-gh', 'tools/audit/seat/gh_calls.py', 'tools/audit/seat/merge_train.py', 'tools/audit/seat/gh_read.py']"
    }
   },
   {
