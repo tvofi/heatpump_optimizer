@@ -1,0 +1,7 @@
+OK       0.0s launch
+OK      14.0s field-coverage
+OK     140.6s verdict-bus
+OK       0.3s handover-prompt
+OK       0.0s unread
+selftest_scope: recorded 3 step(s) into /tmp/tmp.NO0LxkcV1L/ev/rec-merged.json; 0 failed [], 0 broken trace(s)
+rc=0

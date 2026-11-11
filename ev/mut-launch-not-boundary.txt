@@ -1,0 +1,6 @@
+== launch-not-boundary
+  FAIL settle_gaps: a settle only in launch, which starts traced steps, is refused
+selftest_scope self-test: 117 checks, 1 failed
+self-test rc=1
+selftest_scope static: 111 gated step(s), 0 problem(s)
+static rc=0

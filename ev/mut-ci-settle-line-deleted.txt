@@ -1,0 +1,7 @@
+== ci-settle-line-deleted
+  FAIL the live job settles the index in an untraced step before its first traced one
+selftest_scope self-test: 117 checks, 1 failed
+self-test rc=1
+  UNSETTLED job: no untraced step before its first traced one runs `python3 -I tools/ci/selftest_scope.py settle` on a line of its own
+selftest_scope static: 111 gated step(s), 1 problem(s)
+static rc=1
