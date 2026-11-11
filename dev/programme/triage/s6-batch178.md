@@ -10,10 +10,18 @@ Sources:
 
 ## P597: TRAIN-SKIP-RELEASES-WORKTREE
 
-Verdict: ACCEPT, widened from recarry-conflict skips to every SKIP phase, as a carry on
-R10-TRAIN-RESIDUE. That group's stage is carries-open. Its last part, #3424, merged at 07:47:51Z.
-Its `handoff/`, `handoff-wip/` and `dispatch/` refs all predate that merge, so no fixer is in
-flight. It owns `tools/audit/seat/merge_train.py`.
+Verdict: ACCEPT, widened from recarry-conflict skips to every SKIP phase, as the new not-started
+group R10-TRAIN-RESIDUE-P2 (S, after R10-TRAIN-RESIDUE).
+
+Why a new group:
+- The seam's owner, R10-TRAIN-RESIDUE, is carries-open. Its part #3424 merged at 07:47:51Z.
+  `roster_lib.carry_receivable` refuses a carries-open destination (R10-CARRY-SINK-BARRIER), and
+  `queue_carry.py` refused it.
+- Two receivable groups list `merge_train.py`, and neither owns this seam:
+  - R10-SEAT-SCRIPT-OUTPUT covers output calls only.
+  - R10-GATE-DEFER-BARRIER is a class barrier over gate-conclusion readers, and it carries a
+    policy file.
+- Neither of the two has a `handoff/`, `handoff-wip/` or `dispatch/` ref in flight.
 
 Source: queue line 276. The train skipped #3404 on a recarry conflict, but kept
 `merge_train/wt/3404` on the PR branch until the train closed. The relay's `update_pr` for the
