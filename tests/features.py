@@ -80230,22 +80230,26 @@ R.check(
 # the hot water, because the charge's own steps are subtracted at the close.
 # Null controls: the counter declared blind to hot water, an immersion element
 # on, and a cycle the dwell saw on space, keep today's refusal.
-def _he_bridge(sees_dhw, duty=_he.DHW, immersion=False):
+def _he_bridge(sees_dhw, duty=_he.DHW, immersion=False, backup=False, counter=True):
     coord = _t2_house(**{_HE_KEY: "sensor.he", _fb_const.CONF_HEAT_METER_SEES_DHW: sees_dhw})
     meter = _he.meter_of(coord)
-    meter.counter, meter.cycle = True, (NOW - timedelta(hours=0.5), NOW)
+    meter.counter, meter.cycle = counter, (NOW - timedelta(hours=0.5), NOW)
     meter.dwell.observe(NOW - timedelta(hours=1), duty, None)
     meter.dwell.observe(NOW, duty, None)
     coord._immersion_active = immersion
+    coord._pump_signals = replace(
+        coord._pump_signals, electric_heat=replace(coord._pump_signals.electric_heat, backup_heater=backup))
     return _he_cm._replay_gate(coord, None, None, None)[1]
 
 
+_he_bridges = (_he_bridge(True), _he_bridge(False), _he_bridge(True, immersion=True),
+               _he_bridge(True, backup=True), _he_bridge(True, duty=_he.SPACE), _he_bridge(True, counter=False))
 R.check(
     "a counter span carries a hot-water cycle the dwell saw when the counter sees "
-    "the hot water; blind to it, with the immersion on, or on space it gates",
-    (_he_bridge(True), _he_bridge(False), _he_bridge(True, immersion=True), _he_bridge(True, duty=_he.SPACE))
-    == (True, False, False, False),
-    f"{(_he_bridge(True), _he_bridge(False), _he_bridge(True, immersion=True), _he_bridge(True, duty=_he.SPACE))}",
+    "the hot water; blind to it, with the immersion or the pump's backup heater on, "
+    "on space, or with no counter configured it gates",
+    _he_bridges == (True, False, False, False, False, False),
+    f"{_he_bridges}",
 )
 
 
@@ -80522,12 +80526,13 @@ R.check(
     and _he_fine == ("iv", True, True, None),
     f"{_he_coarse!r} {_he_fine!r}",
 )
+_he_owns = _he.HeatEnergyMeter(counter=True, earned=True)
 R.check(
     "a span run folds its own heat with no freeze; a per-cycle run reads the "
     "cycle's heat and folds unless the span owns the scale",
-    _he.replay_gate(2.5, None, "stale:indoor_temp_entity", "stale:indoor_temp_entity", 1.0, True)
+    _he.replay_gate(2.5, None, "stale:indoor_temp_entity", "stale:indoor_temp_entity", 1.0, _he_owns, (1.0, 0.0), False, False)
     == (2.5, False, None, True)
-    and _he.replay_gate(None, "iv", None, None, 1.0, True) == (1.0, True, None, False),
+    and _he.replay_gate(None, "iv", None, None, 1.0, _he_owns, (1.0, 0.0), False, False) == (1.0, True, None, False),
 )
 
 

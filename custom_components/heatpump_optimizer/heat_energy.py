@@ -565,7 +565,8 @@ def close_span(
 
 def replay_gate(
     span_heat_kw: float | None, interval: Any, unmeasured: str | None, frozen: str | None,
-    heat_kw: float | None, spans_own_scale: bool, bridged: bool = False,
+    heat_kw: float | None, meter: HeatEnergyMeter, plan_split: tuple[float, float], sees_dhw: bool,
+    heater_on: bool,
 ) -> tuple[float | None, bool, str | None, bool]:
     """A fabric learner's ``(heat kW, span clean, freeze, folds)`` for one run (#2261).
 
@@ -575,12 +576,14 @@ def replay_gate(
     (``unmeasured``: the unmetered-power freeze is lifted, since the span
     replays measured heat); its freeze is ``frozen``, the one with
     ``heat_kw``; and it folds unless the span folds the scale alone
-    (``spans_own_scale``). ``bridged``: a hot-water cycle the span carries
-    (:meth:`HeatEnergyMeter.bridges_hot_water`) leaves it clean with no interval.
+    (``meter.spans_own_scale``). A cycle with no interval whose hot water the
+    open span carries (:meth:`HeatEnergyMeter.bridges_hot_water` on
+    ``plan_split``, ``sees_dhw`` and ``heater_on``) leaves it clean too.
     """
     if span_heat_kw is not None:
         return span_heat_kw, False, None, True
-    return heat_kw, (interval is not None or bridged) and unmeasured is None, frozen, not spans_own_scale
+    carried = interval is not None or meter.bridges_hot_water(plan_split, sees_dhw, heater_on)
+    return heat_kw, carried and unmeasured is None, frozen, not meter.spans_own_scale
 
 
 _METERS: WeakKeyDictionary[Any, HeatEnergyMeter] = WeakKeyDictionary()

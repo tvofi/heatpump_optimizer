@@ -1110,9 +1110,11 @@ def _observe_heat_energy(coord: Any, reader: Any, at: datetime) -> None:
     How the meter reads them is :meth:`heat_energy.HeatEnergyMeter.observe_cycle`'s.
     """
     ctx = _ctx_of(coord)
-    heat_energy.meter_of(coord).observe_cycle(
-        at, coord._pump_signals, reader.read(CONF_HEAT_ENERGY_ENTITY), coord._measured_energy,
-        ctx._config.optimization_interval, HOUSE_LOSS_SAMPLE_BOUNDS_H, ctx._thermal_params,
+    meter = heat_energy.meter_of(coord)
+    heat = reader.read(CONF_HEAT_ENERGY_ENTITY)
+    meter.observe_cycle(
+        at, coord._pump_signals, heat, coord._measured_energy, ctx._config.optimization_interval,
+        HOUSE_LOSS_SAMPLE_BOUNDS_H, ctx._thermal_params,
     )
 
 
@@ -1121,16 +1123,14 @@ def _replay_gate(
 ) -> tuple[float | None, bool, str | None, bool]:
     """A fabric learner's ``(heat kW, span clean, freeze, folds)`` for one run (#2261).
 
-    ``raw`` is the learner's ``_learning_frozen`` answer. The rule is
-    :func:`heat_energy.replay_gate`'s, on the freeze without and with this
-    run's measured heat and on whether the span folds the scale alone.
+    ``raw`` is the learner's ``_learning_frozen`` answer; the rule, and the
+    inputs it reads, are :func:`heat_energy.replay_gate`'s.
     """
-    cfg, heat_kw, meter = _ctx_of(coord)._config, _interval_measured_heat_kw(coord), heat_energy.meter_of(coord)
-    heater_on = coord._immersion_active or coord._pump_signals.electric_heat.resistive_heat
-    bridged = meter.bridges_hot_water(coord._commanded_split(), probe_install(cfg).heat_sees_dhw, heater_on)
+    cfg, heat_kw = _ctx_of(coord)._config, _interval_measured_heat_kw(coord)
     return heat_energy.replay_gate(
         span_heat_kw, interval, replay_freeze(raw, cfg, 0.0), replay_freeze(raw, cfg, heat_kw), heat_kw,
-        meter.spans_own_scale, bridged)
+        heat_energy.meter_of(coord), coord._commanded_split(), probe_install(cfg).heat_sees_dhw,
+        coord._immersion_active or coord._pump_signals.electric_heat.resistive_heat)
 
 
 async def _async_earn_heat_basis(coord: Any, heat_kw: float | None) -> None:
