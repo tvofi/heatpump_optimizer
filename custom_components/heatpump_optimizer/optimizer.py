@@ -367,16 +367,25 @@ def _avoid_priced_switches(
             else np.nan_to_num(_padded(h.dhw_pins, ban.size)) >= 0.5
         )
 
-        def gaps(schedule: np.ndarray, floor_temps: np.ndarray) -> np.ndarray:
-            return planner._dhw_shortfall(
-                None, schedule, h.initial_state.dhw_temperature, h.outdoor_temps,
-                plan.draw_rates, h.dt, h.humidity, floor_temps, set(),
-            )[1]
+        def first_short(
+            schedule: np.ndarray, floor_temps: np.ndarray, excused: set[int]
+        ) -> tuple[Any, int | None]:
+            """The planner's own tank walk and shortfall rule, past ``excused`` steps."""
+            temps, _, step = planner._dhw_shortfall(
+                temps_of.get(id(schedule)), schedule, h.initial_state.dhw_temperature,
+                h.outdoor_temps, plan.draw_rates, h.dt, h.humidity, floor_temps, excused,
+            )
+            temps_of[id(schedule)] = temps
+            return temps, step
 
-        held = gaps(dhw, kept_requirement) <= 0.05
+        # The steps the incumbent is itself short on excuse the candidate there.
+        temps_of: dict[int, Any] = {}
+        unheld: set[int] = set()
+        while (step := first_short(dhw, kept_requirement, unheld)[1]) is not None:
+            unheld.add(step)
         if (
             not np.any(plan.schedule[ban & ~forced_on] > 0)
-            and not np.any(gaps(plan.schedule, requirement)[held] > 0.05)
+            and first_short(plan.schedule, requirement, unheld)[1] is None
         ):
             base = float(objective(space, dhw, None, kept_avail))
             candidate_space, candidate_status, score = solve_space(plan.schedule, space)
