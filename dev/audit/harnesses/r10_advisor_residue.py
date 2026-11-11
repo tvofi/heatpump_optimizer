@@ -185,6 +185,44 @@ def arm_whatif() -> bool:
     return ok
 
 
+def arm_steadysign() -> bool:
+    """The steady figure's sign on the degree asks at every second start hour.
+
+    ``whatif`` reads three instants; a plan that rides its comfort floor under
+    either schedule differs between the two held starts mainly by the stored
+    heat each starts with, which the end settlement nets out only up to its
+    caps, so the sign can turn at an instant ``whatif`` does not read. Null
+    control: the held figure's sign, which never turns.
+    """
+    if not STEADY:
+        print("RESULT steadysign absent: this tree has no SolveInputs.held_start")
+        return True
+    opt, model = deg._optimizer()
+    hours = opt.config.horizon_hours
+    asks = price_tiles.specs(opt.config, float(model.params.max_electrical_power))[:2]
+    wrong = held_wrong = rows = 0
+    for label, flat in (("null", True), ("varying", False)):
+        pr, wx = _series(flat)
+        for hour in range(1, 24, 2):
+            j = int(hour / DT)
+            room, slab = deg.STARTS[0]
+            live = _solve(opt, j, room, slab, pr, wx)
+            live_s = _solve(_fresh(opt, model), j, room, slab, pr, wx, held=True)
+            for (name, overrides), want in zip(asks, (-1.0, 1.0)):
+                sim = _solve(deg._shadow(opt, model, overrides), j, room, slab, pr, wx)
+                sim_s = _solve(deg._shadow(opt, model, overrides), j, room, slab, pr, wx, held=True)
+                figs = price_tiles.monthly_deltas(live, sim, 0.0, hours, steady=(live_s, sim_s))
+                steady, held = figs["monthly_steady_cost_delta"], figs["monthly_held_cost_delta"]
+                rows += 1
+                wrong += steady * want <= 0.0
+                held_wrong += held * want <= 0.0
+                print(f"RESULT steadysign {label} {hour:02d}:00 {name:15s} held {held:+7.1f} steady {steady:+7.1f} "
+                      f"plan {figs['monthly_cost_delta']:+7.1f} settled {figs['monthly_settled_cost_delta']:+7.1f}")
+    print(f"RESULT steadysign rows {rows} steady_wrong_sign {wrong} held_wrong_sign {held_wrong}")
+    print(f"VERDICT steadysign {'a degree cooler saves and a degree warmer costs at every hour read' if not wrong else 'the steady figure turns sign at some start hours'}")
+    return held_wrong == 0
+
+
 class _Draws:
     def quantile(self, _label, _q):
         return None
@@ -323,6 +361,7 @@ def arm_mixing() -> bool:
 
 if __name__ == "__main__":
     arms = sys.argv[1:] or ["whatif", "inbox", "asym", "mixing"]
-    results = [{"whatif": arm_whatif, "inbox": arm_inbox, "asym": arm_asym, "mixing": arm_mixing}[a]()
+    results = [{"whatif": arm_whatif, "inbox": arm_inbox, "asym": arm_asym, "mixing": arm_mixing,
+                "steadysign": arm_steadysign}[a]()
                for a in arms]
     sys.exit(0 if all(results) else 1)

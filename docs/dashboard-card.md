@@ -454,6 +454,21 @@ The enlarged view also carries an editor for the heating day, the hot water
 windows and two temperatures. It is shown by default and hidden with
 `what_if: false`, which hides the slot lanes too.
 
+The money line a simulation answers with is a **steady-state monthly
+estimate**: the current plan and the simulated one are each solved again from
+a house started as if its own schedule had been held all along, and the
+difference in what each spends, with the heat each leaves unstored bought
+back, is scaled to a month. So the figure does not move with where the house
+happens to be when you ask, and it leaves out the one-off coast (a cooler
+schedule) or heat-up (a warmer one) a change starts with. It is about half
+the Advisor's price tile for the same degree, by design: the tile prices a
+degree held by a thermostat, the panel the plan's own answer to it, which
+buys part of the degree back by timing. On an install with a wood tank the
+estimate is unmoved by where the rooms and the slab start but not by the wood
+tank's charge, which no schedule holds: both plans start from the tank as
+measured. A simulation whose steady estimate could not be worked out shows
+the comfort consequence and no money.
+
 The temperatures live in a section of their own: the **comfort temperature** the
 house is held at during the heating day, and the **minimum hot water**
 temperature the tank may fall to inside a demand window. They are grouped because
@@ -618,8 +633,9 @@ own advisor sensors, not from the card.*
   pair that fails is shown without money, as not settled yet; a degree cooler
   that saves nothing (no heating) is no row. **Try in what-if** opens the Plan tab's what-if panel with the
   comfort slider on the cooler target and runs the simulation; that panel
-  prices the plan from the house as it is now, so its figure includes the
-  one-off coast or heat-up a change starts with. The tiles exist only while
+  prices the change in steady state, both plans started as if each schedule
+  had been held, so its figure leaves out the one-off coast or heat-up a
+  change starts with. The tiles exist only while
   the integration's price-tiles option is on; with it off the row is offered
   under **More advice, once turned on** instead.
 - **The valve target.** The mixing valve's recommended target, which carries no

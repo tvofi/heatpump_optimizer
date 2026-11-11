@@ -19258,7 +19258,7 @@ _adv_calls = []
 def _advisor_coord(payload_extra=None, **cfg):
     c = _t2_coord(main_fuse_amperes=20.0, main_fuse_phases=3, **cfg)
 
-    async def _fake_simulate(overrides, limited=True, base=None):
+    async def _fake_simulate(overrides, limited=True, base=None, steady=False):
         _adv_calls.append(overrides)
         return {
             "overrides": overrides,
@@ -19277,8 +19277,9 @@ def _advisor_coord(payload_extra=None, **cfg):
 
 _adv_calls.clear()
 _cad = _advisor_coord()
-_cad._simulation_cache = {"marker": "card"}
-_cad._last_simulation = None
+from heatpump_optimizer import whatif as _whatif_mod
+_whatif_mod.state(_cad).answer = {"marker": "card"}
+_whatif_mod.state(_cad).last_at = None
 _asyncio.run(_cad._maybe_run_fuse_advisor(_solve_record_now(_cad)))
 _adv = _cad._fuse_advisor
 R.check(
@@ -19297,8 +19298,8 @@ R.check(
 )
 R.check(
     "the card's simulate cache survives an advisor run untouched",
-    _cad._simulation_cache == {"marker": "card"}
-    and _cad._last_simulation is None,
+    _whatif_mod.state(_cad).answer == {"marker": "card"}
+    and _whatif_mod.state(_cad).last_at is None,
 )
 _asyncio.run(_cad._maybe_run_fuse_advisor(_solve_record_now(_cad)))
 R.check(
@@ -25843,7 +25844,7 @@ R.check(
 _ctile = _t2_coord()
 
 
-async def _fake_sim(overrides, limited=True, base=None):
+async def _fake_sim(overrides, limited=True, base=None, steady=False):
     return {
         "monthly_cost_delta": -42.0,
         "monthly_held_cost_delta": -40.0,
@@ -25877,7 +25878,7 @@ R.check(
 _ctile2_limited_seen = {}
 
 
-async def _fake_sim_route(overrides, limited=True, base=None):
+async def _fake_sim_route(overrides, limited=True, base=None, steady=False):
     _ctile2_limited_seen["limited"] = limited
     return {"rate_limited": False}
 
@@ -26065,12 +26066,12 @@ R.check(
 _ctile3 = _t2_coord(price_tiles_enabled=True)
 _marker3 = {"marker": True}
 _stamp3 = datetime(2026, 3, 1, tzinfo=UTC)
-_ctile3._simulation_cache = _marker3
-_ctile3._last_simulation = _stamp3
+_coord_mod.whatif.state(_ctile3).answer = _marker3
+_coord_mod.whatif.state(_ctile3).last_at = _stamp3
 _ctile3_route = {}
 
 
-async def _fake_sim_poison(overrides, limited=True, _c=_ctile3, base=None):
+async def _fake_sim_poison(overrides, limited=True, _c=_ctile3, base=None, steady=False):
     _ctile3_route["limited"] = limited
     return {
         "monthly_cost_delta": -1.0,
@@ -26085,8 +26086,8 @@ _asyncio.run(_ctile3._maybe_refresh_price_tile(_solve_record_now(_ctile3)))
 R.check(
     "#1753: the tile takes the limited=False path -- no borrow to restore",
     _ctile3_route.get("limited") is False
-    and _ctile3._simulation_cache is _marker3
-    and _ctile3._last_simulation == _stamp3
+    and _coord_mod.whatif.state(_ctile3).answer is _marker3
+    and _coord_mod.whatif.state(_ctile3).last_at == _stamp3
     and price_tiles.book(_ctile3),
     f"route={_ctile3_route}",
 )
@@ -26107,7 +26108,7 @@ R.check(
 _ctile4 = _t2_coord(price_tiles_enabled=True)
 
 
-async def _fake_sim_err(overrides, limited=True, base=None):
+async def _fake_sim_err(overrides, limited=True, base=None, steady=False):
     return {"error": "boom", "rate_limited": False}
 
 
@@ -27428,7 +27429,7 @@ async def _svc_ok_run():
     return None
 
 
-async def _svc_ok_simulate(overrides):
+async def _svc_ok_simulate(overrides, steady=False):
     return {"status": "ok"}
 
 
@@ -31077,11 +31078,11 @@ async def _whatif_scratch_params():
 
     real_opt.__init__ = _spy_opt_init
     try:
-        coord._last_simulation = None
+        _coord_mod.whatif.state(coord).last_at = None
         payload = await coord.async_simulate({"target_temp": 20.5})
         # A second what-if on the parameter side of the override table, so
         # both override loops are pinned, not just the config one.
-        coord._last_simulation = None
+        _coord_mod.whatif.state(coord).last_at = None
         await coord.async_simulate({"max_temp": 21.5})
     finally:
         real_model.__init__ = real_init
@@ -31150,7 +31151,7 @@ async def _whatif_scratch_config():
 
     real_opt.__init__ = _spy_init
     try:
-        coord._last_simulation = None
+        _coord_mod.whatif.state(coord).last_at = None
         await coord.async_simulate({"target_temp": 20.5})
     finally:
         real_opt.__init__ = real_init
@@ -31195,7 +31196,7 @@ async def _whatif_solves(*, fails: bool) -> int:
             raise RuntimeError("probe: the shadow solve failed")
         return await real(*args, **kwargs)
 
-    coord._last_simulation = None
+    _coord_mod.whatif.state(coord).last_at = None
     _coord_mod._await_optimize = _shadow
     dt_util.freeze(dt_util.now())
     try:
@@ -31219,6 +31220,522 @@ R.check(
     "above about the failing arm and not about the call loop (#1448)",
     _whatif_ok_solves == 1,
     f"{_WHATIF_CALLS} succeeding calls started {_whatif_ok_solves} solves",
+)
+
+R.section("#2257 — the what-if's steady-start estimator")
+
+# The what-if's monthly money came from the plan's spend from the measured
+# house, which carries the one-off coast (a cooler schedule) or heat-up (a
+# warmer one) the change starts with; a month multiplied it by every horizon.
+# The steady figure solves both plans again from a start held at each one's
+# own schedule. Everything below runs at one frozen instant, so the three
+# starts of a row differ in the start alone.
+import copy as _st_copy  # noqa: E402
+from dataclasses import replace as _st_replace  # noqa: E402
+from types import SimpleNamespace as _st_ns  # noqa: E402
+
+import heatpump_optimizer.coordinator as _st_cmod  # noqa: E402
+import heatpump_optimizer.optimizer as _st_omod  # noqa: E402
+import heatpump_optimizer.thermal_model as _st_tmod  # noqa: E402
+from heatpump_optimizer import whatif as _st_whatif  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _StModel,
+    ThermalParameters as _StParams,
+    ThermalState as _StState,
+)
+from homeassistant.util import dt as _st_dt  # noqa: E402
+from profiles import house as _st_house, weather as _st_weather  # noqa: E402
+
+#: Where the live house starts: at the target, coasted, pre-heated (room,
+#: slab). The finder harness's ``r10_advisor_degree.STARTS``.
+_ST_STARTS = ((21.0, 22.0), (20.4, 21.3), (21.7, 23.0))
+_ST_KEY = _st_whatif.STEADY_KEY
+
+
+class _StSeams:
+    """Both await seams of ``coordinator``, counted; the pair's seam can be
+    made to raise, and the process worker to be unavailable."""
+
+    def __init__(self, pair_error=None, worker_error=None):
+        self.optimize, self.off_loop, self.built = [], [], []
+        self._pair_error, self._worker_error = pair_error, worker_error
+        self._real = (_st_cmod._await_optimize, _st_cmod._await_off_loop,
+                      _st_cmod._await_process, _st_cmod._warm_seeded,
+                      _st_cmod.SolveRecord.optimizer)
+
+    def __enter__(self):
+        real_opt, real_off, real_proc, real_seed, real_rec = self._real
+
+        async def _opt(hass, optimizer, inputs):
+            self.optimize.append((optimizer, inputs))
+            return await real_opt(hass, optimizer, inputs)
+
+        async def _off(hass, fn, *args):
+            if fn is _st_cmod.optimize_in_process:
+                self.off_loop.append(args)
+                if self._pair_error is not None:
+                    raise self._pair_error
+            return await real_off(hass, fn, *args)
+
+        async def _proc(hass, fn, *args):
+            if self._worker_error is not None:
+                raise self._worker_error
+            return await real_proc(hass, fn, *args)
+
+        def _seed(coord, optimizer):
+            self.built.append(optimizer)
+            return real_seed(coord, optimizer)
+
+        def _rec(record):
+            made = real_rec(record)
+            self.built.append(made)
+            return made
+
+        _st_cmod._await_optimize, _st_cmod._await_off_loop = _opt, _off
+        _st_cmod._await_process, _st_cmod._warm_seeded = _proc, _seed
+        _st_cmod.SolveRecord.optimizer = _rec
+        return self
+
+    def __exit__(self, *exc):
+        (_st_cmod._await_optimize, _st_cmod._await_off_loop, _st_cmod._await_process,
+         _st_cmod._warm_seeded, _st_cmod.SolveRecord.optimizer) = self._real
+
+    def counts(self):
+        return len(self.optimize), len(self.off_loop)
+
+
+async def _st_coord(start=None, extra=None):
+    """A solved coordinator whose live house starts at ``start``."""
+    coord = _solve_coord()
+    if extra:
+        with_config(coord, extra)
+    if start is not None:
+        live = getattr(coord, "_ctx", coord)._current_state
+        live.room_temperature = live.upper_floor_temperature = live.lower_floor_temperature = start[0]
+        live.slab_temperature = start[1]
+    coord._fuse_advisor_at = _st_dt.now()  # the seeding solve runs no advisor
+    await coord.async_run_optimization()
+    return coord
+
+
+async def _st_ask(coord, overrides, **kwargs):
+    """One user what-if with a free slot."""
+    _st_whatif.state(coord).last_at = None
+    return await coord.async_simulate(dict(overrides), **kwargs)
+
+
+async def _st_rows():
+    """Per ask, its figures at the three starts: (steady, plan, held)."""
+    rows = {}
+    for start in _ST_STARTS:
+        coord = await _st_coord(start)
+        record = _solve_record_now(coord)
+        asks = price_tiles.specs(record.config, record.params.max_electrical_power)
+        for name, overrides in asks:
+            answer = await _st_ask(coord, overrides, steady=True)
+            rows.setdefault(name, []).append((
+                answer.get(_ST_KEY), answer.get("monthly_cost_delta"),
+                answer.get("monthly_held_cost_delta")))
+    return rows
+
+
+_st_dt.freeze(_st_dt.now().replace(hour=7, minute=7, second=0, microsecond=0))
+try:
+    _st_rows_seen = _asyncio.run(_st_rows())
+finally:
+    _st_dt.freeze(None)
+_st_spread = {
+    name: [max(col) - min(col) if all(v is not None for v in col) else None
+           for col in zip(*figs)]
+    for name, figs in _st_rows_seen.items()
+}
+R.check(
+    "#2257: the what-if's steady figure does not move with where the live house "
+    "starts, on either degree and under the cap",
+    all(s[0] is not None and s[0] <= 1e-9 for s in _st_spread.values()),
+    f"spread by start (steady, plan, held) {_st_spread!r} rows {_st_rows_seen!r}",
+)
+R.check(
+    "the perturbation reaches the answer: the plan's own figure moves with the "
+    "start on every row, so a flat steady figure is the estimator's and not a "
+    "start that was never applied",
+    all(s[1] is not None and s[1] > 1.0 for s in _st_spread.values()),
+    f"spread by start (steady, plan, held) {_st_spread!r}",
+)
+R.check(
+    "the null control: the held figure's spread is 0.00 on every row",
+    all(s[2] is not None and s[2] <= 1e-9 for s in _st_spread.values()),
+    f"spread by start (steady, plan, held) {_st_spread!r}",
+)
+R.check(
+    "#2257: under the steady figure a degree warmer costs and a degree cooler "
+    "saves at every start, with the held figure's sign",
+    all(f[0] is not None and f[0] < 0.0 and f[2] < 0.0 for f in _st_rows_seen["target_minus_1"])
+    and all(f[0] is not None and f[0] > 0.0 and f[2] > 0.0 for f in _st_rows_seen["target_plus_1"]),
+    repr({k: v for k, v in _st_rows_seen.items() if k != "power_cap_75"}),
+)
+R.check(
+    "#2257: a cap never reads a saving under the steady figure (below -1: the "
+    "solver's own noise sits inside that)",
+    all(f[0] is not None and f[0] >= -1.0 for f in _st_rows_seen["power_cap_75"]),
+    repr(_st_rows_seen["power_cap_75"]),
+)
+
+# The figure itself, on numbers: spend plus the heat left unstored plus the
+# what-if's spend outside its solve, what-if less live, scaled to a month.
+_st_plain = price_tiles.monthly_deltas(
+    _st_ns(predicted_cost=10.0, baseline_cost=20.0, deferred_energy_cost=1.0),
+    _st_ns(predicted_cost=12.0, baseline_cost=21.0, deferred_energy_cost=3.0), 0.5, 24.0)
+_st_with = price_tiles.monthly_deltas(
+    _st_ns(predicted_cost=10.0, baseline_cost=20.0, deferred_energy_cost=1.0),
+    _st_ns(predicted_cost=12.0, baseline_cost=21.0, deferred_energy_cost=3.0), 0.5, 24.0,
+    steady=(_st_ns(predicted_cost=7.0, deferred_energy_cost=0.25),
+            _st_ns(predicted_cost=8.0, deferred_energy_cost=1.0)))
+R.check(
+    "the steady figure is the held pair's spend plus deferred plus the what-if's "
+    "outside spend, what-if less live, per month; without a pair the key is absent",
+    _ST_KEY not in _st_plain
+    and _st_with[_ST_KEY] == round((8.0 + 1.0 + 0.5 - 7.0 - 0.25) * 30.4, 2)
+    and {k: v for k, v in _st_with.items() if k != _ST_KEY} == _st_plain,
+    f"{_st_plain!r} {_st_with!r}",
+)
+R.check(
+    "a cap tile reads the steady figure and nothing else: an answer without it "
+    "is no figure, never the settled one; a degree tile still reads the held one",
+    price_tiles.monthly_figure({"power_cap_kw": 3.0}, {"monthly_settled_cost_delta": -4.0,
+                                                       "monthly_cost_delta": -9.0}) is None
+    and price_tiles.monthly_figure({"power_cap_kw": 3.0}, {_ST_KEY: 6.5}) == 6.5
+    and price_tiles.monthly_figure({"target_temp": 20.0}, {_ST_KEY: 6.5, "monthly_held_cost_delta": -50.0}) == -50.0,
+    "monthly_figure fell back, or a degree tile left the held figure",
+)
+
+
+# -- The held start, on the optimizer -------------------------------------
+def _st_optimizer(two_tank=False, **config):
+    cfg = _st_house(two_zone=two_tank, dhw=False)
+    if two_tank:
+        cfg = {**cfg, "mixing_valve_mode": "manual"}
+    params = _StParams.from_config(cfg)
+    params.dhw_enabled = False
+    if two_tank:
+        # The layout is what makes an install two-tank; a config key of the
+        # property's name sets nothing, which the precondition check reads.
+        params.topology_layout = _st_tmod.TOPOLOGY_TWO_TANK_4WAY
+    return _st_omod.HeatPumpOptimizer(_StModel(params), _st_omod.OptimizationConfig(
+        horizon_hours=24, time_step_minutes=15, target_temp=21.0,
+        min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
+        comfort_temp_day=21.0, comfort_temp_night=19.5, **config))
+
+
+def _st_held_solve(opt, start, start_time, held=True, tanks=None, cap=None):
+    """One solve; what its settlement saw: the start it planned from, the
+    start gap it booked, its step-0 target and the state the cap repair got."""
+    n = opt.config.n_steps
+    ot, wi, ra, so = (a[:n] for a in _st_weather("winter_mild", start_time))
+    state = _StState(
+        room_temperature=start[0], slab_temperature=start[1], outdoor_temperature=float(ot[0]),
+        upper_floor_temperature=start[0], lower_floor_temperature=start[0],
+        dhw_temperature=52.0, dhw_hours_since_legionella=20.0, **(tanks or {"buffer_tank_temperature": 40.0}))
+    seen = {"measured": _st_replace(state), "gaps": [], "starts": [], "targets": [], "repair": []}
+    real_gap, real_repair = opt._start_gap_cost, opt._repair_throttled_buffer_caps
+
+    def _gap(initial_state, weather, comfort_targets, *a, **k):
+        out = real_gap(initial_state, weather, comfort_targets, *a, **k)
+        seen["gaps"].append(out)
+        seen["starts"].append(_st_replace(initial_state))
+        seen["targets"].append(_st_omod._baseline_target(comfort_targets, 0, opt.config.target_temp))
+        return out
+
+    def _repair(weather, initial_state, *a, **k):
+        seen["repair"].append(_st_replace(initial_state))
+        return real_repair(weather, initial_state, *a, **k)
+
+    opt._start_gap_cost, opt._repair_throttled_buffer_caps = _gap, _repair
+    inputs = solve_inputs(
+        initial_state=state, prices=0.9 + 0.4 * np.sin(np.arange(n) * 2.0 * np.pi / n), outdoor_temps=ot,
+        wind_speeds=wi, precipitation=ra, solar_radiation=so, start_time=start_time,
+        power_caps_extra=None if cap is None else np.full(n, cap))
+    opt.optimize(inputs=_st_replace(inputs, held_start=held))
+    seen["buffer_seed"] = opt._initial_buffer_temp
+    return seen
+
+
+# A Saturday night: the step-0 target is the weekend night's, which is neither
+# ``target_temp`` nor the weekday night's, so a held start that read either
+# would leave a start gap.
+_ST_SAT = datetime(2026, 1, 17, 0, 0)
+_ST_WED = datetime(2026, 1, 14, 12, 0)
+_st_held_cases = {
+    "weekday noon": ({}, _ST_WED),
+    "weekday night": ({}, _ST_WED.replace(hour=0)),
+    "weekend night override": ({"comfort_temp_day_weekend": 22.5, "comfort_temp_night_weekend": 18.0}, _ST_SAT),
+}
+_st_held_seen = {
+    (label, start): _st_held_solve(_st_optimizer(**config), start, when)
+    for label, (config, when) in _st_held_cases.items() for start in _ST_STARTS
+}
+R.check(
+    "#2257: a held-start solve books no start gap, at every start, on the "
+    "weekday schedule and under a weekend override",
+    all(s["gaps"] and all(abs(g) <= 1e-9 for g in s["gaps"]) for s in _st_held_seen.values()),
+    repr({k: v["gaps"] for k, v in _st_held_seen.items()}),
+)
+R.check(
+    "and it plans from every zone at its own step-0 target, the solve's "
+    "comfort_targets and never target_temp",
+    all(
+        {st.room_temperature, st.upper_floor_temperature, st.lower_floor_temperature} == {target}
+        for s in _st_held_seen.values() for st, target in zip(s["starts"], s["targets"])
+    )
+    and {s["targets"][0] for (label, _), s in _st_held_seen.items() if label == "weekend night override"} == {18.0}
+    and {s["targets"][0] for (label, _), s in _st_held_seen.items() if label == "weekday night"} == {19.5},
+    repr({k: (v["targets"][:1], [(s.room_temperature, s.slab_temperature) for s in v["starts"][:1]])
+          for k, v in _st_held_seen.items()}),
+)
+_st_measured_seen = _st_held_solve(_st_optimizer(), _ST_STARTS[1], _ST_WED, held=False)
+R.check(
+    "the null control: without the flag the solve plans from the house as "
+    "measured and books the start gap it always did",
+    all(st == _st_measured_seen["measured"] for st in _st_measured_seen["starts"])
+    and any(abs(g) > 1e-6 for g in _st_measured_seen["gaps"]),
+    repr(_st_measured_seen["gaps"]),
+)
+
+# -- The path of the two extra solves -------------------------------------
+async def _st_path():
+    out = {}
+    coord = await _st_coord()
+    plan = coord._optimization_result
+    schedule = np.asarray(plan.power_schedule, dtype=float).copy()
+    held = _st_whatif.state(coord)
+    with _StSeams() as seams:
+        first = await _st_ask(coord, {"target_temp": 20.0}, steady=True)
+        out["first"] = seams.counts()
+        measured = seams.optimize[0][0]
+        pair = [args[0] for args in seams.off_loop]
+        out["instances"] = (
+            len(pair) == 2 and pair[0] is not pair[1]
+            and all(o is not measured for o in pair)
+            and all(o is not b for o in pair for b in seams.built)
+            and all(args[1].held_start for args in seams.off_loop)
+            and not seams.optimize[0][1].held_start
+        )
+        # The live side reads nothing the what-if overrides.
+        out["live_config"] = (pair[0].config.target_temp, pair[1].config.target_temp)
+        out["plan_kept"] = (
+            coord._optimization_result is plan
+            and np.array_equal(np.asarray(plan.power_schedule, dtype=float), schedule)
+        )
+        kept = held.live_steady
+        out["memo"] = kept is not None and kept[0] is plan
+        await _st_ask(coord, {"target_temp": 22.0}, steady=True)
+        out["second"] = tuple(b - a for a, b in zip(out["first"], seams.counts()))
+        out["memo_same"] = held.live_steady is not None and held.live_steady[2] is kept[2]
+        # The same plan from another measured start: the kept live side was
+        # solved from a house whose tanks (which a held start keeps) may
+        # differ, so the start is in the key and the live side is solved again.
+        before = seams.counts()
+        live = getattr(coord, "_ctx", coord)._current_state
+        live.buffer_tank_temperature = (live.buffer_tank_temperature or 40.0) + 5.0
+        await _st_ask(coord, {"target_temp": 22.0}, steady=True)
+        out["moved_start"] = tuple(b - a for a, b in zip(before, seams.counts()))
+        # A new plan, same instant and start: identity of the plan, not equality.
+        await coord.async_run_optimization()
+        before = seams.counts()
+        await _st_ask(coord, {"target_temp": 22.0}, steady=True)
+        out["new_plan"] = tuple(b - a for a, b in zip(before, seams.counts()))
+        # The limiter: five steady calls, one what-if's solves.
+        before = seams.counts()
+        held.last_at = None
+        for _ in range(_WHATIF_CALLS):
+            last = await coord.async_simulate({"target_temp": 20.5}, steady=True)
+        out["limited"] = tuple(b - a for a, b in zip(before, seams.counts()))
+        out["limited_answer"] = (bool(last.get("rate_limited")), _ST_KEY in last)
+        # Without the flag: one solve, no key (every caller that passes nothing).
+        before = seams.counts()
+        plain = await _st_ask(coord, {"target_temp": 20.0})
+        out["plain"] = (tuple(b - a for a, b in zip(before, seams.counts())), _ST_KEY in plain)
+    out["first_key"] = first.get(_ST_KEY)
+    return out
+
+
+_st_dt.freeze(_st_dt.now().replace(hour=7, minute=7, second=0, microsecond=0))
+try:
+    _st_path_seen = _asyncio.run(_st_path())
+finally:
+    _st_dt.freeze(None)
+R.check(
+    "#2257: a steady what-if is three solves against a plan it has not priced "
+    "before (one measured, two held) and two after, the live side kept",
+    _st_path_seen["first"] == (1, 2) and _st_path_seen["second"] == (1, 1)
+    and _st_path_seen["memo"] and _st_path_seen["memo_same"],
+    repr(_st_path_seen),
+)
+R.check(
+    "each held solve runs on an optimizer of its own that has solved nothing: "
+    "not the measured what-if's, not a record's, not a warm-seeded one",
+    _st_path_seen["instances"] and _st_path_seen["live_config"] == (21.0, 20.0),
+    repr(_st_path_seen),
+)
+R.check(
+    "the steady pair never becomes the plan: _optimization_result is the same "
+    "object with the same schedule after it",
+    _st_path_seen["plan_kept"],
+    repr(_st_path_seen),
+)
+R.check(
+    "the kept live side is reused only against the same plan object from an "
+    "equal measured start: a moved tank or a re-solve solves it again",
+    _st_path_seen["moved_start"] == (1, 2) and _st_path_seen["new_plan"] == (1, 2),
+    repr(_st_path_seen),
+)
+R.check(
+    "the user's slot is spent once: five steady calls start one what-if's "
+    "solves and the rest are answered from the cache, figure included (#1448)",
+    _st_path_seen["limited"][0] == 1 and _st_path_seen["limited"][1] <= 2
+    and _st_path_seen["limited_answer"] == (True, True),
+    repr(_st_path_seen),
+)
+R.check(
+    "a caller that does not ask for the steady figure pays one solve and gets "
+    "no key",
+    _st_path_seen["plain"] == ((1, 0), False),
+    repr(_st_path_seen),
+)
+
+
+async def _st_failures():
+    out = {}
+    # The worker unavailable: the measured solve bumps the #783 streak once;
+    # the pair degrades to the executor without touching it.
+    coord = await _st_coord()
+    entry_id = coord.entry.entry_id
+    with _StSeams(worker_error=_st_cmod.ProcessWorkerUnavailable("probe: no worker")) as seams:
+        before = _st_cmod._worker_fallback_streak(coord.hass, entry_id)
+        answer = await _st_ask(coord, {"target_temp": 20.0}, steady=True)
+        out["streak"] = _st_cmod._worker_fallback_streak(coord.hass, entry_id) - before
+        out["unavailable_answer"] = (seams.counts(), _ST_KEY in answer, answer.get("error"))
+    _st_cmod._clear_worker_fallback(coord.hass, entry_id)
+    # The pair times out: the answer stands without the figure, nothing kept.
+    coord = await _st_coord(extra={"main_fuse_amperes": 20, "main_fuse_phases": 3})
+    record = _solve_record_now(coord)
+    cap = price_tiles.specs(record.config, record.params.max_electrical_power)[2][1]
+    # The seeding solve's own background callers may have kept a live side.
+    _st_whatif.state(coord).live_steady = None
+    with _StSeams(pair_error=_st_cmod.ProcessWorkerTimeout("probe: no reply")) as seams:
+        answer = await _st_ask(coord, cap, steady=True)
+        out["timeout"] = (
+            seams.counts(), "monthly_cost_delta" in answer, _ST_KEY in answer, answer.get("error"),
+            price_tiles.monthly_figure(cap, answer), _st_whatif.state(coord).live_steady,
+        )
+        coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
+        await coord._maybe_run_fuse_advisor(record)
+        out["fuse_failed"] = dict(coord._fuse_advisor)
+    # And healthy: the fuse advisor's money is the answer's steady key.
+    answers = []
+    real = coord.async_simulate
+
+    async def _spy(overrides, **kwargs):
+        answers.append((kwargs, await real(overrides, **kwargs)))
+        return answers[-1][1]
+
+    coord.async_simulate = _spy
+    try:
+        coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
+        await coord._maybe_run_fuse_advisor(record)
+    finally:
+        del coord.async_simulate
+    out["fuse_ok"] = (dict(coord._fuse_advisor), answers)
+    return out
+
+
+_st_dt.freeze(_st_dt.now().replace(hour=7, minute=7, second=0, microsecond=0))
+try:
+    _st_fail_seen = _asyncio.run(_st_failures())
+finally:
+    _st_dt.freeze(None)
+R.check(
+    "#783: with the process worker unavailable one steady what-if bumps the "
+    "fallback streak by exactly one, the measured solve's; the pair falls to "
+    "the executor outside the streak and still answers",
+    _st_fail_seen["streak"] == 1 and _st_fail_seen["unavailable_answer"] == ((1, 2), True, None),
+    repr((_st_fail_seen["streak"], _st_fail_seen["unavailable_answer"])),
+)
+R.check(
+    "#2257: a steady pair that times out leaves the answer standing without "
+    "the figure: no key, no error, no cap-tile figure, nothing kept",
+    _st_fail_seen["timeout"] == ((1, 1), True, False, None, None, None),
+    repr(_st_fail_seen["timeout"]),
+)
+R.check(
+    "and the fuse advisor then publishes its verdict with no money, never the "
+    "settled figure",
+    "candidate_kw" in _st_fail_seen["fuse_failed"]
+    and "cost_delta_sek_month" in _st_fail_seen["fuse_failed"]
+    and _st_fail_seen["fuse_failed"]["cost_delta_sek_month"] is None,
+    repr(_st_fail_seen["fuse_failed"]),
+)
+_st_fuse, _st_fuse_answers = _st_fail_seen["fuse_ok"]
+R.check(
+    "the fuse advisor asks for the steady figure on the background path and "
+    "publishes it as its money",
+    len(_st_fuse_answers) == 1
+    and _st_fuse_answers[0][0].get("steady") is True and _st_fuse_answers[0][0].get("limited") is False
+    and isinstance(_st_fuse_answers[0][1].get(_ST_KEY), float)
+    and _st_fuse.get("cost_delta_sek_month") == _st_fuse_answers[0][1][_ST_KEY],
+    repr((_st_fuse, [(k, a.get(_ST_KEY), a.get("monthly_settled_cost_delta")) for k, a in _st_fuse_answers])),
+)
+
+
+async def _st_tiles():
+    """A rotation of the three tiles and the fuse advisor after one solve:
+    (measured, held) solves per caller, and what each tile recorded."""
+    coord = await _st_coord(extra={
+        "price_tiles_enabled": True, "main_fuse_amperes": 20, "main_fuse_phases": 3})
+    price_tiles.book(coord).clear()
+    record = _solve_record_now(coord)
+    names = [name for name, _ in price_tiles.specs(record.config, record.params.max_electrical_power)]
+    out = {}
+    with _StSeams() as seams:
+        # The rotation position is whatever the seeding solve left it at.
+        for _ in names:
+            before, had = seams.counts(), {k: len(v.get("days", [])) for k, v in price_tiles.book(coord).items()}
+            await coord._maybe_refresh_price_tile(record)
+            name = next(k for k, v in price_tiles.book(coord).items() if len(v.get("days", [])) != had.get(k, 0)
+                        or k not in had)
+            out[name] = tuple(b - a for a, b in zip(before, seams.counts()))
+        before = seams.counts()
+        coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
+        await coord._maybe_run_fuse_advisor(record)
+        out["fuse"] = tuple(b - a for a, b in zip(before, seams.counts()))
+        user = _st_whatif.state(coord)
+        out["user_untouched"] = (user.last_at, dict(user.answer))
+    return out
+
+
+_st_dt.freeze(_st_dt.now().replace(hour=7, minute=7, second=0, microsecond=0))
+try:
+    _st_tiles_seen = _asyncio.run(_st_tiles())
+finally:
+    _st_dt.freeze(None)
+R.check(
+    "a tile rotation: each degree tile is one solve and no held one, the cap "
+    "tile one and the held pair",
+    _st_tiles_seen.get("target_minus_1") == (1, 0) and _st_tiles_seen.get("target_plus_1") == (1, 0)
+    and _st_tiles_seen.get("power_cap_75") == (1, 2),
+    repr(_st_tiles_seen),
+)
+R.check(
+    "the fuse advisor after the cap tile on the same record shares its live "
+    "side: one measured solve and one held",
+    _st_tiles_seen["fuse"] == (1, 1),
+    repr(_st_tiles_seen),
+)
+R.check(
+    "#1753: the background callers' steady pairs leave the user's slot and "
+    "cached answer alone",
+    _st_tiles_seen["user_untouched"] == (None, {}),
+    repr(_st_tiles_seen["user_untouched"]),
 )
 
 R.section("v5.1.3 — an unusable sensor freezes the learners, not just a quiet one")
@@ -34180,7 +34697,7 @@ def _g4_plan(config, simulate=None):
     try:
         _asyncio.run(coord.async_run_optimization())
         if simulate is not None:
-            coord._last_simulation = None
+            _coord_mod.whatif.state(coord).last_at = None
             _asyncio.run(coord.async_simulate(simulate))
     finally:
         _coord_mod._await_optimize = real
@@ -34619,7 +35136,7 @@ def _qw_plan(config, simulate=None):
     try:
         _asyncio.run(coord.async_run_optimization())
         if simulate is not None:
-            coord._last_simulation = None
+            _coord_mod.whatif.state(coord).last_at = None
             _asyncio.run(coord.async_simulate(simulate))
     finally:
         _coord_mod._await_optimize = real
@@ -37843,7 +38360,7 @@ R.check(
 
 R.section("v5.3.0 review 2 — the what-if and the fuse advisor see the block")
 
-_wf_src = inspect.getsource(_Coord.async_simulate)
+_wf_src = inspect.getsource(_Coord._whatif_solve)
 R.check(
     "the shadow solve inherits the block, like every other input it inherits",
     "space_blocked=self._pump_signals.space_blocked" in _wf_src
@@ -38640,7 +39157,7 @@ _pt_all = _PtCfg(comfort_temp_night_weekend=18.0, holiday_comfort_day=20.0,
 R.check(
     "#2257: every level a degree moves is one the what-if applies to its scratch config",
     set(dict(price_tiles.specs(_pt_all, 6.0))["target_plus_1"])
-    == {k for k, _ in _coord_mod._SIM_OVERRIDE_CONFIG_CASTS} - {"min_temp", "max_temp", "comfort_weight",
+    == {k for k, _ in _coord_mod.whatif.OVERRIDE_CONFIG_CASTS} - {"min_temp", "max_temp", "comfort_weight",
                                                                 "day_start_hour", "day_end_hour"},
     "a level the what-if drops would leave that part of the schedule unmoved",
 )
@@ -44003,7 +44520,7 @@ from heatpump_optimizer.diagnosis import diagnose_record as _g3_diagnose
 from heatpump_optimizer.optimizer import optimize_in_process as _g3_opt_job
 
 _g3_run = inspect.getsource(Coord.async_run_optimization)
-_g3_sim = inspect.getsource(Coord.async_simulate)
+_g3_sim = inspect.getsource(Coord.async_simulate) + inspect.getsource(Coord._whatif_solve)
 _g3_diag = inspect.getsource(Coord.async_diagnose_interval)
 R.check(
     "async_run_optimization submits a picklable job, not a lambda",
@@ -47830,7 +48347,7 @@ _g9_live = _WfOR(
     dhw_temp_trajectory=[50.0] * 5,
 )
 _g9_coord._optimization_result = _g9_live
-_g9_coord._last_simulation = None
+_coord_mod.whatif.state(_g9_coord).last_at = None
 _g9_captured = []
 _g9_real_await = _coord_mod._await_optimize
 
@@ -47880,7 +48397,7 @@ R.check(
     repr(_g9_coord._config.get("wood_type")),
 )
 
-_g9_coord._last_simulation = None
+_coord_mod.whatif.state(_g9_coord).last_at = None
 _g9_zero = _asyncio.run(
     _g9_coord.async_simulate(
         {"wood_slots": [{**_g9_slot, "liters": 0.0}]}
@@ -47895,7 +48412,7 @@ R.check(
 
 _g9_bare = _solve_coord()
 _g9_bare._optimization_result = _g9_live
-_g9_bare._last_simulation = None
+_coord_mod.whatif.state(_g9_bare).last_at = None
 _g9_unready = _asyncio.run(
     _g9_bare.async_simulate({"wood_slots": [_g9_slot]})
 )
@@ -51994,7 +52511,7 @@ def _t3_tile(answer, **config):
     """Run one tile refresh against a stubbed simulation."""
     c = _t3_coord(price_tiles_enabled=True, **config)
 
-    async def simulate(overrides, limited=True, base=None):
+    async def simulate(overrides, limited=True, base=None, steady=False):
         if isinstance(answer, Exception):
             raise answer
         return answer
@@ -54148,7 +54665,7 @@ def _t5_solved():
 def _t5_sim(overrides, coord=None):
     """One what-if against a solved plan, with the rate limiter cleared."""
     c = coord if coord is not None else _t5_solved()
-    c._last_simulation = None
+    _coord_mod.whatif.state(c).last_at = None
     dt_util.freeze(_T5_NOW)
     try:
         _t5_drive(c, "async_simulate", overrides)
@@ -54177,8 +54694,8 @@ R.check(
     "solving here would put a second job in the pool behind the real one",
 )
 _t5_sim_limited = _t5_coord()
-_t5_sim_limited._last_simulation = _T5_NOW
-_t5_sim_limited._simulation_cache = {"monthly_cost_delta": 1.0}
+_coord_mod.whatif.state(_t5_sim_limited).last_at = _T5_NOW
+_coord_mod.whatif.state(_t5_sim_limited).answer = {"monthly_cost_delta": 1.0}
 dt_util.freeze(_T5_NOW)
 try:
     _t5_drive(_t5_sim_limited, "async_simulate", {})
@@ -69563,10 +70080,10 @@ def _r9egb9_borrow_arm(borrower, kind):
         with_config(coord, {_r9egb9_const.CONF_PRICE_TILES_ENABLED: False})
         coord._fuse_advisor_at = _r9egb9_dt.now()
         await coord.async_run_optimization()
-        coord._last_simulation = None
+        _coord_mod.whatif.state(coord).last_at = None
         u0 = await coord.async_simulate({"target_temp": 20.0})
-        coord._last_simulation = coord._last_simulation - timedelta(seconds=10)
-        u0_stamp = coord._last_simulation
+        _coord_mod.whatif.state(coord).last_at = _coord_mod.whatif.state(coord).last_at - timedelta(seconds=10)
+        u0_stamp = _coord_mod.whatif.state(coord).last_at
         if borrower == "tile":
             with_config(coord, {_r9egb9_const.CONF_PRICE_TILES_ENABLED: True})
             call = _f25_partial(
@@ -69585,20 +70102,20 @@ def _r9egb9_borrow_arm(borrower, kind):
             if kind == "b":
                 # The window has now been open past the 3 s limiter (S2 held
                 # it 3.2 s of real time; the stamp is the same knob).
-                coord._last_simulation = coord._last_simulation - timedelta(seconds=4)
+                _coord_mod.whatif.state(coord).last_at = _coord_mod.whatif.state(coord).last_at - timedelta(seconds=4)
             u1 = await coord.async_simulate({"target_temp": 22.0})
-            u1_stamp = coord._last_simulation
+            u1_stamp = _coord_mod.whatif.state(coord).last_at
             out["U1"] = _r9egb9_ov(u1)
             _R9EGB9Gate.release.set()
             await task
             _R9EGB9Gate.disarm()
             # The unconditional restore is the defect: it reverts the cache
             # to U0's answer and the stamp to U0's slot.
-            out["stamp_is_u1"] = coord._last_simulation == u1_stamp
+            out["stamp_is_u1"] = _coord_mod.whatif.state(coord).last_at == u1_stamp
         out["cache_target"] = (
-            coord._simulation_cache.get("overrides") or {}
+            _coord_mod.whatif.state(coord).answer.get("overrides") or {}
         ).get("target_temp")
-        out["stamp_is_u0"] = coord._last_simulation == u0_stamp
+        out["stamp_is_u0"] = _coord_mod.whatif.state(coord).last_at == u0_stamp
         return out
 
     with _r9egb9_mock.patch.object(_r9egb9_cmod, "_await_optimize", _r9egb9_transport):
@@ -70456,7 +70973,7 @@ def _r9egb1_whatifs():
 
     async def _go():
         reason = await coord.async_run_optimization()
-        coord._last_simulation = None
+        _coord_mod.whatif.state(coord).last_at = None
         card = await coord.async_simulate({})
         return reason, card
 
@@ -70524,7 +71041,7 @@ def _r9egb1_fresh():
         with_config(coord, {_r9egb1_const.CONF_PEAK_TARIFF_PRICE: 90.0})
         _r9egb1_fl.hourly_profile = list(_r9egb1_s2)
         now = _r9egb1_fl.pattern_for(dt_util.now().weekday() >= 5)
-        coord._last_simulation = None
+        _coord_mod.whatif.state(coord).last_at = None
         card = await coord.async_simulate({})
         return reason, card, now
 
@@ -78572,7 +79089,7 @@ async def _ls_tile_cancel():
     specs = price_tiles.specs(record.config, record.params.max_electrical_power)
     seen = []
 
-    async def _sim(overrides, limited=True, base=None):
+    async def _sim(overrides, limited=True, base=None, steady=False):
         seen.append(overrides)
         if len(seen) == 1:
             raise _ls_aio.CancelledError

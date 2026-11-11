@@ -161,7 +161,6 @@ from .const import (
     SNAPSHOT_STORE_VERSION,
     MANUAL_PLAN_STORE_VERSION,
     MANUAL_PLAN_WINDOW_HOURS,
-    SIMULATE_MIN_INTERVAL_SECONDS,
     VENT_CUSUM_THRESHOLD_C,
     VENT_CUSUM_DRIFT_C,
     VENT_CUSUM_CLIP_C,
@@ -260,6 +259,7 @@ from . import early_cutoff, pump_arbiter, pump_signals
 from . import issues, setpoint_check
 from . import quiet_windows
 from . import price_tiles
+from . import whatif
 from .pump_mode import ModeCapability
 from .pump_signals import PumpSignals, resistive_carve_out
 from .manual_plan import (
@@ -1799,30 +1799,6 @@ _WORKER_FALLBACK_STREAK = f"{DOMAIN}_worker_fallback_streak"
 _CURRENT_ENTRY_ID: contextvars.ContextVar[Any] = contextvars.ContextVar(
     "hpo_current_entry_id", default=None
 )
-
-# The what-if's override spelling: config fields by cast (the schedule
-# hours are integers because they index hours), and the parameter fields
-# whose scratch name differs from the override key.
-_SIM_OVERRIDE_CONFIG_CASTS: tuple[tuple[str, Any], ...] = (
-    ("target_temp", float),
-    ("min_temp", float),
-    ("max_temp", float),
-    ("comfort_temp_day", float),
-    ("comfort_temp_night", float),
-    ("comfort_temp_day_weekend", float),
-    ("comfort_temp_night_weekend", float),
-    ("holiday_comfort_day", float),
-    ("holiday_comfort_night", float),
-    ("comfort_weight", float),
-    ("day_start_hour", int),
-    ("day_end_hour", int),
-)
-_SIM_OVERRIDE_PARAM_FIELDS: tuple[tuple[str, str], ...] = (
-    ("max_temp", "comfort_ceiling"),
-    ("dhw_setpoint", "dhw_setpoint"),
-    ("dhw_min_temperature", "dhw_min_temp"),
-)
-
 
 class ProcessWorkerUnavailable(RuntimeError):
     """The process route could not carry the job: spawn, transport or unpickle.
@@ -4026,8 +4002,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._last_manual_setpoint: float | None = None
 
         # --- What-if simulator (item 21) -----------------------------------
-        self._last_simulation: datetime | None = None
-        self._simulation_cache: dict[str, Any] = {}
     def _init_ecl110(self) -> None:
         """MQTT heat-curve control state."""
         ctx = getattr(self, "_ctx", self)
@@ -8969,7 +8943,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # ``limited=False`` this neither spends the what-if's rate-limit
         # slot nor writes its answer into the card cache.
         simulated = await self.async_simulate(
-            {"power_cap_kw": cap_kw}, limited=False, base=record
+            {"power_cap_kw": cap_kw}, limited=False, base=record, steady=True
         )
         echoed = (simulated.get("overrides") or {}).get("power_cap_kw")
         if "error" in simulated or echoed != cap_kw:
@@ -9000,7 +8974,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "feasible": breach <= 0.05,
             "comfort_shortfall_c": round(breach, 2),
             "worst_margin_kw": round(candidate_kw - peak, 2),
-            "cost_delta_sek_month": simulated.get("monthly_settled_cost_delta"),
+            "cost_delta_sek_month": simulated.get(whatif.STEADY_KEY),
         }
     def _outage_recovery_active(self, now: datetime) -> bool:
         return (
@@ -10679,8 +10653,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _maybe_refresh_price_tile(self, record: SolveRecord) -> None:
         """#39 (gated): refresh ONE tile after a scheduled solve.
 
-        One per solve, rotating, so the whole set costs at most one extra
-        solve per interval — and through ``async_simulate``'s own solve
+        One per solve, rotating, so a refresh costs one extra solve for a
+        degree tile and up to three for the cap tile, whose figure is the
+        steady one (#2257) — and through ``async_simulate``'s own solve
         path and executor, never a second one. The tile solves on the
         card's harness but never on its budget (``limited=False``, #1753):
         it neither spends the user what-if's rate-limit slot nor writes
@@ -10696,7 +10671,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         name, overrides = price_tiles.take(self, specs)
         try:
             answer = await self.async_simulate(
-                dict(overrides), limited=False, base=record
+                dict(overrides), limited=False, base=record, steady="power_cap_kw" in overrides
             )
         except Exception as err:  # noqa: BLE001 - tiles are decoration
             _LOGGER.debug("Price tile %s failed: %s", name, err)
@@ -11163,6 +11138,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         *,
         limited: bool = True,
         base: SolveRecord | None = None,
+        steady: bool = False,
     ) -> dict[str, Any]:
         """Price a hypothetical comfort choice against the current forecast.
 
@@ -11182,18 +11158,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         The background callers price against ``base``, the record of the
         solve they follow; the card against the hubs as they stand, with
         this moment's solve values and the active away setback (#1795).
+
+        ``steady`` adds the steady-state monthly figure (#2257): two more
+        solves, off the loop and outside the #783 streak, never a seed and
+        never the plan (``whatif.steady_pair``).
         """
         ctx = getattr(self, "_ctx", self)
         now = dt_util.now()
-        if limited and (
-            self._last_simulation is not None
-            and utc_elapsed_seconds(now, self._last_simulation)
-            < SIMULATE_MIN_INTERVAL_SECONDS
-        ):
-            return {
-                **self._simulation_cache,
-                "rate_limited": True,
-            }
+        held = whatif.state(self)
+        if limited and (kept := whatif.limited_answer(held, now)) is not None:
+            return kept
 
         result = self._optimization_result
         if result is None:
@@ -11207,128 +11181,36 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if len(horizon.prices) < 4:
             return {"error": "no_prices", "rate_limited": False}
 
+        banded = base is None and _whatif_banded(self._away_state)
         if base is None:
-            config, params, state = self._solve_hubs(
-                len(horizon.prices), banded=_whatif_banded(self._away_state)
-            )
+            config, params, state = self._solve_hubs(len(horizon.prices), banded=banded)
         else:
             config, params, state = base.config, base.params, base.inputs.state
-        # #240: ``replace`` copies scalars and shares the rest by reference,
-        # so the what-if carried the LIVE learner, draw pattern and windows
-        # into the executor, where ``observe`` could write them mid-solve.
-        scratch_config = copy.deepcopy(config)
-        for key, cast in _SIM_OVERRIDE_CONFIG_CASTS:
-            if key in overrides:
-                setattr(scratch_config, key, cast(overrides[key]))
-
-        scratch_params = copy.deepcopy(params)
-        # max_temp reaches the model's comfort ceiling: the valve's default
-        # target follows it, so a simulated ceiling change moves both.
-        for key, attr in _SIM_OVERRIDE_PARAM_FIELDS:
-            if key in overrides:
-                setattr(scratch_params, attr, float(overrides[key]))
-        if "dhw_windows" in overrides:
-            spec = str(overrides["dhw_windows"]).strip()
-            if not spec:
-                # An explicitly empty schedule means "no demand windows", which
-                # is a legitimate thing to simulate: it is what the plan looks
-                # like with hot water availability unconstrained.
-                scratch_params.dhw_windows = []
-                scratch_params.dhw_weekly_windows = None
-            else:
-                try:
-                    scratch_params.dhw_windows = parse_windows(spec)
-                    scratch_params.dhw_weekly_windows = parse_weekly_windows(spec)
-                except DHWWindowError as err:
-                    return {
-                        "error": f"invalid_windows: {err}",
-                        "rate_limited": False,
-                    }
-
-        # T2: a per-step electrical ceiling for shadow solves — the fuse
-        # advisor (#3) and, later, the what-if tiles (#39).
-        cap_extra = None
-        if "power_cap_kw" in overrides:
-            cap_extra = np.full(
-                len(horizon.prices), float(overrides["power_cap_kw"])
-            )
         # One snap for slot stamps and the shadow solve (#463).
         solve_at = plan_step_start(now)
-        _quiet = quiet_windows.compose_with_silent(cap_extra, quiet_windows.overridden_config(ctx._config, overrides), ctx.hass.states.get, solve_at, len(horizon.prices), scratch_config.dt_hours, scratch_params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
-        wood_err, wood_kw, wood_sek = simulate_wood_slots(
-            overrides, ctx._config, len(horizon.prices),
-            ctx._opt_config.dt_hours, solve_at,
-        )
-        if wood_err:
-            return {"error": wood_err, "rate_limited": False}
 
-        scratch = HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config)
+        def _scratch(asked: Mapping[str, Any], held_start: bool = False) -> tuple[HeatPumpOptimizer, SolveInputs, float]:
+            return self._whatif_solve(asked, config, params, state, horizon, solve_at, held_start)
+
+        try:
+            scratch, inputs, wood_sek = _scratch(overrides)
+        except whatif.Refused as err:
+            return {"error": str(err), "rate_limited": False}
         if limited:  # the slot is spent when a solve starts (#1448, #1753)
-            self._last_simulation = now
+            held.last_at = now
         try:
             _CURRENT_ENTRY_ID.set(self.entry.entry_id)  # #1755: per-entry fallback key
-            humidity = horizon.humidity
-            simulated = await _await_optimize(self.hass, scratch, SolveInputs(
-                # Shallow deliberately: ``ThermalState`` is scalars only.
-                state=replace(state),
-                start_time=solve_at,
-                forecast=ForecastSeries(
-                    prices=horizon.prices,
-                    outdoor_temps=horizon.outdoor_temps,
-                    wind_speeds=horizon.wind_speeds,
-                    precipitation=horizon.precipitation,
-                    solar_radiation=horizon.solar_radiation,
-                    price_known=horizon.price_known,
-                    pv_surplus=horizon.pv_surplus,
-                    # The scratch config inherits price_risk_lambda, so the
-                    # what-if must price guessed steps the same way the plan
-                    # it is compared against did (#34).
-                    price_sigma=horizon.price_sigma,
-                    # #21: the what-if is compared against a plan that saw
-                    # the humidity series, so it must see the same one.
-                    humidity=(
-                        humidity if humidity.size
-                        and bool(np.any(np.isfinite(humidity))) else None
-                    ),
-                    external_heat_kw=(
-                        np.asarray(wood_kw, dtype=float)
-                        if wood_kw is not None else None
-                    ),
-                ),
-                limits=SolveLimits(
-                    power_caps_extra=_quiet.caps,
-                    # T5: same floors as the live plan, same reasoning —
-                    # except the mold cap follows the SIMULATED target, so
-                    # a what-if dragging the target down sees the floor
-                    # that choice would actually get.
-                    min_temp_margins=self._confidence_margins(
-                        len(horizon.prices)
-                    ),
-                    min_temp_floors=self._mold_floor_series(
-                        horizon.outdoor_temps,
-                        target_cap=float(scratch_config.target_temp),
-                    ),
-                    # v5.3.0: and the mode block, for the same reason as
-                    # every inherited input above — the what-if is
-                    # DIFFERENCED against the live plan, so anything that
-                    # shaped the live plan and not the shadow one turns the
-                    # difference into a comparison of two different
-                    # questions. This one is the worst of them: the live
-                    # plan under a block heats nothing, so an unblocked
-                    # shadow solve looks warmer than its own baseline,
-                    # ``base_cold - sim_cold`` goes negative, and the fuse
-                    # advisor's clamp turns a real comfort breach into
-                    # "feasible" — a published recommendation to fit a
-                    # smaller main fuse.
-                    space_blocked=self._pump_signals.space_blocked,
-                    dhw_blocked=self._pump_signals.dhw_blocked,
-                    off_steps=_quiet.off_steps,
-                    quiet_actions=_quiet.actions,
-                ),
-            ))
+            simulated = await _await_optimize(self.hass, scratch, inputs)
         except Exception as err:  # noqa: BLE001 - a what-if must never break ops
             _LOGGER.warning("What-if simulation failed: %s", err)
             return {"error": str(err), "rate_limited": False}
+
+        async def _held_solve(asked: Mapping[str, Any]) -> Any:
+            return await _await_off_loop(self.hass, optimize_in_process, *_scratch(asked, True)[:2])
+
+        pair = await whatif.steady_pair(
+            held, result if base is None else base, (solve_at, state, banded), _held_solve, overrides,
+        ) if steady else None
 
         horizon_hours = ctx._opt_config.horizon_hours
         delta = simulated.predicted_cost - result.predicted_cost + wood_sek
@@ -11338,7 +11220,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "simulated_cost": round(simulated.predicted_cost + wood_sek, 2),
             "cost_delta": round(delta, 2),
             **({"wood_sek": round(wood_sek, 2)} if "wood_slots" in overrides else {}),
-            **price_tiles.monthly_deltas(result, simulated, wood_sek, horizon_hours),
+            **price_tiles.monthly_deltas(result, simulated, wood_sek, horizon_hours, pair),
             # T2: present only when the what-if capped power — the worst
             # comfort-floor shortfall that cap forced, 0.0 when feasible.
             **(
@@ -11383,8 +11265,91 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "rate_limited": False,
         }
         if limited:
-            self._simulation_cache = payload
+            held.answer = payload
         return payload
+
+    def _whatif_solve(
+        self, overrides: Mapping[str, Any], config: OptimizationConfig, params: ThermalParameters,
+        state: ThermalState, horizon: Any, solve_at: datetime, held_start: bool,
+    ) -> tuple[HeatPumpOptimizer, SolveInputs, float]:
+        """One what-if solve of ``overrides``, unsolved: its optimizer on
+        scratch copies, its inputs, and its spend outside the solve (wood)."""
+        ctx = getattr(self, "_ctx", self)
+        scratch_config, scratch_params = whatif.scratch_copies(config, params, overrides)
+        # T2: a per-step electrical ceiling for shadow solves — the fuse
+        # advisor (#3) and, later, the what-if tiles (#39).
+        cap_extra = None
+        if "power_cap_kw" in overrides:
+            cap_extra = np.full(
+                len(horizon.prices), float(overrides["power_cap_kw"])
+            )
+        _quiet = quiet_windows.compose_with_silent(cap_extra, quiet_windows.overridden_config(ctx._config, overrides), ctx.hass.states.get, solve_at, len(horizon.prices), scratch_config.dt_hours, scratch_params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
+        wood_err, wood_kw, wood_sek = simulate_wood_slots(
+            overrides, ctx._config, len(horizon.prices),
+            ctx._opt_config.dt_hours, solve_at,
+        )
+        if wood_err:
+            raise whatif.Refused(wood_err)
+        humidity = horizon.humidity
+        return HeatPumpOptimizer(ThermalModel(scratch_params), scratch_config), SolveInputs(
+            # Shallow deliberately: ``ThermalState`` is scalars only.
+            state=replace(state),
+            start_time=solve_at,
+            held_start=held_start,
+            forecast=ForecastSeries(
+                prices=horizon.prices,
+                outdoor_temps=horizon.outdoor_temps,
+                wind_speeds=horizon.wind_speeds,
+                precipitation=horizon.precipitation,
+                solar_radiation=horizon.solar_radiation,
+                price_known=horizon.price_known,
+                pv_surplus=horizon.pv_surplus,
+                # The scratch config inherits price_risk_lambda, so the
+                # what-if must price guessed steps the same way the plan
+                # it is compared against did (#34).
+                price_sigma=horizon.price_sigma,
+                # #21: the what-if is compared against a plan that saw
+                # the humidity series, so it must see the same one.
+                humidity=(
+                    humidity if humidity.size
+                    and bool(np.any(np.isfinite(humidity))) else None
+                ),
+                external_heat_kw=(
+                    np.asarray(wood_kw, dtype=float)
+                    if wood_kw is not None else None
+                ),
+            ),
+            limits=SolveLimits(
+                power_caps_extra=_quiet.caps,
+                # T5: same floors as the live plan, same reasoning —
+                # except the mold cap follows the SIMULATED target, so
+                # a what-if dragging the target down sees the floor
+                # that choice would actually get.
+                min_temp_margins=self._confidence_margins(
+                    len(horizon.prices)
+                ),
+                min_temp_floors=self._mold_floor_series(
+                    horizon.outdoor_temps,
+                    target_cap=float(scratch_config.target_temp),
+                ),
+                # v5.3.0: and the mode block, for the same reason as
+                # every inherited input above — the what-if is
+                # DIFFERENCED against the live plan, so anything that
+                # shaped the live plan and not the shadow one turns the
+                # difference into a comparison of two different
+                # questions. This one is the worst of them: the live
+                # plan under a block heats nothing, so an unblocked
+                # shadow solve looks warmer than its own baseline,
+                # ``base_cold - sim_cold`` goes negative, and the fuse
+                # advisor's clamp turns a real comfort breach into
+                # "feasible" — a published recommendation to fit a
+                # smaller main fuse.
+                space_blocked=self._pump_signals.space_blocked,
+                dhw_blocked=self._pump_signals.dhw_blocked,
+                off_steps=_quiet.off_steps,
+                quiet_actions=_quiet.actions,
+            ),
+        ), wood_sek
 
 # The typed config entry (runtime-data, Bronze): ``entry.runtime_data`` is the
 # entry's coordinator from ``async_setup_entry`` until Home Assistant unloads

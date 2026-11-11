@@ -75,7 +75,7 @@ class _Coordinator:
         self.data = snapshots[-1]["data"] if snapshots else None
         self.integration_version = "price"
 
-    async def async_simulate(self, overrides, *, limited=True, base=None):
+    async def async_simulate(self, overrides, *, limited=True, base=None, steady=False):
         return {"error": "not priced by this harness", "rate_limited": False}
 
 

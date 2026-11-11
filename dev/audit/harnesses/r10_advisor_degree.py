@@ -68,7 +68,7 @@ import numpy as np
 
 from profiles import DT, house, prices, solve_inputs, weather
 from heatpump_optimizer import optimizer as _optimizer_mod, price_tiles
-from heatpump_optimizer.coordinator import _SIM_OVERRIDE_CONFIG_CASTS
+from heatpump_optimizer import whatif
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.thermal_model import (
     ThermalModel,
@@ -100,12 +100,9 @@ def _optimizer() -> tuple[HeatPumpOptimizer, ThermalModel]:
 
 
 def _shadow(opt: HeatPumpOptimizer, model: ThermalModel, overrides: dict) -> HeatPumpOptimizer:
-    """The scratch optimizer ``async_simulate`` builds: its override loop, verbatim."""
-    config = copy.deepcopy(opt.config)
-    for key, cast in _SIM_OVERRIDE_CONFIG_CASTS:
-        if key in overrides:
-            setattr(config, key, cast(overrides[key]))
-    return HeatPumpOptimizer(ThermalModel(copy.deepcopy(model.params)), config)
+    """The scratch optimizer ``async_simulate`` builds, by its own override routine."""
+    config, params = whatif.scratch_copies(opt.config, model.params, overrides)
+    return HeatPumpOptimizer(ThermalModel(params), config)
 
 
 def _state(room: float, slab: float, outdoor: float) -> ThermalState:
