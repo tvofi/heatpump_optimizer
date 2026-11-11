@@ -1,0 +1,80 @@
+[
+ {
+  "name": "M1_bridge_off",
+  "file": "custom_components/heatpump_optimizer/issues.py",
+  "old": "    bridged = bool(covering)",
+  "new": "    bridged = False"
+ },
+ {
+  "name": "M2_auth_bridged",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "not auth and self._known_prices_for(",
+  "new": "self._known_prices_for("
+ },
+ {
+  "name": "M3_always_raise",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "        if not issues.note_price_outage(",
+  "new": "        if True or not issues.note_price_outage("
+ },
+ {
+  "name": "M4_coverage_not_now",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "self._known_prices_for([plan_step_start(dt_util.now())])",
+  "new": "self._known_prices_for([plan_step_start(dt_util.now()) + timedelta(hours=12)])"
+ },
+ {
+  "name": "M5_no_clear_on_recovery",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "            issues.clear_issue(self.hass, \"price_feed_stale\")",
+  "new": "            pass"
+ },
+ {
+  "name": "M6_no_repair",
+  "file": "custom_components/heatpump_optimizer/issues.py",
+  "old": "    if bridged:  # once raised",
+  "new": "    if False:  # once raised"
+ },
+ {
+  "name": "M7_bridged_logs_error",
+  "file": "custom_components/heatpump_optimizer/issues.py",
+  "old": "    elif bridged:\n        _LOGGER.warning(",
+  "new": "    elif False:\n        _LOGGER.warning("
+ },
+ {
+  "name": "M8_first_cycle_debug",
+  "file": "custom_components/heatpump_optimizer/issues.py",
+  "old": "    if cycles > 1:",
+  "new": "    if cycles > 0:"
+ },
+ {
+  "name": "R1_any_prices_bridge",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "self._known_prices_for([plan_step_start(dt_util.now())])",
+  "new": "self._prices"
+ },
+ {
+  "name": "R2_clear_when_unbridged",
+  "file": "custom_components/heatpump_optimizer/issues.py",
+  "old": "    return bridged",
+  "new": "    if not bridged:\n        clear_issue(hass, \"price_feed_stale\")\n    return bridged"
+ },
+ {
+  "name": "R3_repair_no_error_placeholder",
+  "file": "custom_components/heatpump_optimizer/issues.py",
+  "old": "placeholders={\"error\": reason}",
+  "new": "placeholders={}"
+ },
+ {
+  "name": "R4_coverage_prev_hour",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "self._known_prices_for([plan_step_start(dt_util.now())])",
+  "new": "self._known_prices_for([plan_step_start(dt_util.now()) - timedelta(hours=1)])"
+ },
+ {
+  "name": "R5_reauth_skipped",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "                self._tibber_start_reauth()\n",
+  "new": "                pass\n"
+ }
+]

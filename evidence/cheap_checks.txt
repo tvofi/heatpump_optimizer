@@ -1,0 +1,36 @@
+== version/claims touched?
+(none above = untouched)
+== cmp strings en
+identical
+== {error} per lang
+de True
+en True
+sv True
+== seam rule head
+6032:            await self._fetch_tibber_prices()
+6035:            await self._fetch_weather_forecast()
+6040:            await self._fetch_solar_forecast()
+6145:            await self._fetch_tibber_prices()
+6146:            await self._fetch_weather_forecast()
+6147:            await self._fetch_solar_forecast()
+== seam rule main
+6032:            await self._fetch_tibber_prices()
+6035:            await self._fetch_weather_forecast()
+6040:            await self._fetch_solar_forecast()
+6145:            await self._fetch_tibber_prices()
+6146:            await self._fetch_weather_forecast()
+6147:            await self._fetch_solar_forecast()
+== coordinator diffstat
+18	20	custom_components/heatpump_optimizer/coordinator.py
+== structure
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 421 <= 421
+
+STRUCTURE RATCHET PASSED
+== archscore
+Architecture score: dS -0.0006 WORSENS (inadmissible: coord_footprint 2496->2497)
+  coord_footprint 2496 -> 2497  -0.0006
+== owed-reds
+tests / mutation
+tests / typing
+validate / validate-hacs

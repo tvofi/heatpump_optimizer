@@ -1,0 +1,13 @@
+MUTANT custom_components/heatpump_optimizer/coordinator.py:6968 GUARD_OFF  if False:
+MUTANT custom_components/heatpump_optimizer/coordinator.py:6969 CALL_DEL  pass
+MUTANT custom_components/heatpump_optimizer/coordinator.py:6970 CALL_DEL  pass
+MUTANT custom_components/heatpump_optimizer/coordinator.py:6971 CALL_DEL  pass
+MUTANT custom_components/heatpump_optimizer/coordinator.py:6978 CALL_DEL  pass
+MUTANT custom_components/heatpump_optimizer/issues.py:81 GUARD_OFF  if False:
+MUTANT custom_components/heatpump_optimizer/issues.py:81 CMP_BOUND  if cycles >= 1:
+MUTANT custom_components/heatpump_optimizer/issues.py:81 CONST_SWAP  if cycles > 2:
+MUTANT custom_components/heatpump_optimizer/issues.py:83 GUARD_OFF  elif False:
+MUTANT custom_components/heatpump_optimizer/issues.py:87 GUARD_OFF  if False:
+MUTANT custom_components/heatpump_optimizer/issues.py:88 CALL_DEL  pass
+MUTANT custom_components/heatpump_optimizer/issues.py:88 CONST_SWAP  set_issue(hass, "price_feed_stale", False, placeholders={"error": reason})
+MUTANT custom_components/heatpump_optimizer/issues.py:89 RETURN_DEL  pass

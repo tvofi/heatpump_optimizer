@@ -1,0 +1,9 @@
+ ...mpOptimizerCoordinator._tibber_fetch_failed.BOOLOP.3a88c697.json | 6 ++++++
+ ...ptimizerCoordinator._tibber_fetch_failed.GUARD_OFF.4d0b2e45.json | 6 ++++++
+ ...ptimizerCoordinator._tibber_fetch_failed.GUARD_OFF.53f8da35.json | 6 ------
+ .../killed_by/issues.py/note_price_outage.CMP_BOUND.f52017bb.json   | 6 ++++++
+ .../killed_by/issues.py/note_price_outage.GUARD_OFF.552f1d6a.json   | 6 ++++++
+ .../killed_by/issues.py/note_price_outage.GUARD_OFF.5aec13a4.json   | 6 ++++++
+ .../killed_by/issues.py/note_price_outage.GUARD_OFF.f52017bb.json   | 6 ++++++
+ .../killed_by/issues.py/note_price_outage.RETURN_DEL.b7c724f9.json  | 6 ++++++
+ 8 files changed, 42 insertions(+), 6 deletions(-)
