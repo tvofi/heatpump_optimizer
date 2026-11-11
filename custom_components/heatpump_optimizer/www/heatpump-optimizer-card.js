@@ -5203,12 +5203,18 @@ function cardStyleBlock(darkMode) {
       }
       /* A surface-2 block re-points the text tokens at the ink literals, so
          every descendant that reads --hpo-text or --hpo-text-2 is paired
-         with the surface it sits on, whatever the HA theme's own text. */
-      .tile, .hl-stat, .hl-narrative {
+         with the surface it sits on, whatever the HA theme's own text. The
+         one rule that puts a text block on --hpo-surface-2: a block given
+         the surface anywhere else drew the theme's text on it, which is how
+         the Health and Advisor rows read 1.24:1 under a dark theme HA
+         reports as darkMode false (906fee95e, R10-HOTFIX-CARD-HEALTH-TEXT). */
+      .tile, .hl-stat, .hl-narrative, .health-row, .adv-inbox-row {
         --hpo-text: var(--hpo-ink, #212121);
         --hpo-text-2: var(--hpo-ink-2, #727272);
         color: var(--hpo-text, #212121);
         background: var(--hpo-surface-2, #f7f9fb);
+      }
+      .tile, .hl-stat, .hl-narrative {
         border-radius: var(--hpo-radius-m, 12px);
         padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px); min-width: 0;
       }
@@ -5784,12 +5790,16 @@ function cardStyleBlock(darkMode) {
         outline: 2px solid var(--hpo-primary, #03a9f4);
         outline-offset: 2px;
       }
-      /* A pressed toggle says so in the ink and not only in the border: the
-         accent is the token measured against the card, and a 1 px border
-         moving is a state a reader can miss at a glance. */
+      /* A pressed toggle says so in the ink and not only in the border: a
+         1 px border moving is a state a reader can miss at a glance. The
+         accent ink is a darkMode literal, so it is drawn on the surface from
+         the same switch: on the theme's card surface it read 2.95:1 under a
+         dark theme HA reports as darkMode false, and 2.32:1 in the mirror
+         (R10-HOTFIX-CARD-HEALTH-TEXT). */
       .layout-edit-toggle.on {
         border-color: var(--hpo-primary, #03a9f4);
         color: var(--hpo-accent, #026aa8);
+        background: var(--hpo-surface-2, #f7f9fb);
       }
       .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
       .layout-verdict {
@@ -5985,14 +5995,11 @@ function cardStyleBlock(darkMode) {
          takes the user agent's 700, the one bold heading in the card
          (H3b). */
       .health-h { margin: 12px 0 4px 0; font-size: 1em; font-weight: 600; }
-      /* The row's surface is the pair its ink is drawn for (H3a): the text is
-         the card's --hpo-text, so the surface is the card's --hpo-surface-2.
-         A theme's --secondary-background-color under the card's dark ink
-         read 1.20:1 wherever the theme does not define it. */
+      /* The row's surface and ink are the surface-2 pair (H3a), set by the
+         surface-2 block rule beside .tile. */
       .health-row {
         display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
         padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
-        background: var(--hpo-surface-2, #f7f9fb);
       }
       .health-support { margin-top: 12px; }
       /* "What the model has learned" (R9-UX-7): a tabular value and an
@@ -6023,13 +6030,13 @@ function cardStyleBlock(darkMode) {
       .health-row[data-done="true"] .health-mark {
         background: var(--hpo-ok-bg, #e8f1ed); border-color: transparent;
       }
-      /* The inbox rows (R9-UX-2): a surface-2 block with a title, a detail,
-         a tabular value and at most one action, which wraps under the text
-         on a narrow card. */
+      /* The inbox rows (R9-UX-2): a surface-2 block (its surface and ink
+         from the block rule beside .tile) with a title, a detail, a tabular
+         value and at most one action, which wraps under the text on a
+         narrow card. */
       .adv-inbox-row {
         display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
         padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
-        background: var(--hpo-surface-2, #f7f9fb);
       }
       .adv-text { flex: 1 1 14em; min-width: 0; }
       .adv-text .adv-sub { display: block; font-size: max(12px, 0.85em); opacity: 0.8; }
