@@ -27,7 +27,7 @@ from homeassistant.util import dt as dt_util
 from harness import FakeCoordinator, FakeEntry, FakeHass, Results
 from heatpump_optimizer import button as button_mod
 from heatpump_optimizer import debugger
-from heatpump_optimizer.const import CONF_DEBUG_COLLECT, DOMAIN
+from heatpump_optimizer.const import CONF_DEBUG_COLLECT, DOMAIN, LOCATION_KEYS
 from heatpump_optimizer.store import Domain, _scalar_domain, admitted, stored_fields
 
 R = Results("debug collection guards (#1939)")
@@ -931,6 +931,21 @@ R.check(
     isinstance(replay, dict) and replay["format"] == replay_doc.FORMAT
     and _check_download(replay) == [],
     str(_check_download(replay) if isinstance(replay, dict) else download["debug"]["manifest"]),
+)
+def _location_keys(node):
+    """Every key of ``LOCATION_KEYS`` in ``node``, at any depth."""
+    if isinstance(node, dict):
+        return {k for k in node if k in LOCATION_KEYS} | set().union(
+            *map(_location_keys, node.values()))
+    return set().union(*map(_location_keys, node)) if isinstance(node, list) else set()
+
+
+R.check(
+    "the download's replay half carries no part of the home location: no location key at "
+    "any depth, and the install's coordinate at neither the replay's two places nor one",
+    not _location_keys(replay)
+    and not any(t in json.dumps(replay) for t in ("59.3", "18.06", "18.1")),
+    f"{sorted(_location_keys(replay))} {json.dumps(replay.get('entry'))[:300]}",
 )
 R.check(
     "the replay half carries the entry's inputs and what it publishes, read through the "
