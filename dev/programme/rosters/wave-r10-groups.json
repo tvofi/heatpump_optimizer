@@ -19458,7 +19458,7 @@
    ],
    "after": [],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "note": "owner waste-study ruling 2026-11-07, card 2, narrowed; overlap admitted (R10-HOTFIX-NONREQUIRED-REDS): owner ruling tvofi 2026-11-07 waste-study card 2",
     "pr": 3341,
     "commit": "f0bfadeb8cc2f2f3e6f32b1feccc879ecf9e6f19"
