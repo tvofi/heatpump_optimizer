@@ -2,7 +2,7 @@ Fix review: merge 2688f4c854350142cca0af33207717064eb8e5df
 
 bus-nonce: 5bfda5e6e5db4d4095b82998aabe338b
 
-Round: first review, at the handoff. No pull request, no review packet and no CI exist yet, so there are no live checks to cite.
+Round: first review, done at 2688f4c8; head d08845107b161cb1ffbbaaa0684a4ab8d1240eca adds only dev/programme/delivery/3482.md (1 line) on top, so the review stands. No pull request, no review packet and no CI exist yet, so there are no live checks to cite.
 
 ## Evidence
 
@@ -15,7 +15,7 @@ Round: first review, at the handoff. No pull request, no review packet and no CI
 - Mutation proof: n/a, no production code; the perturbation above is the null control. No VERSION, manifest, RELEASE_NOTES, golden or claim file is in the diff to origin/main.
 - Merge: `git merge-tree --write-tree origin/main <head>` exit 0, no conflict (ev/mergetree.txt). Head is behind main only in the sense of a clean merge.
 - Red checks: governance / instrument-self-tests on main is not in my reading of the owed set for this branch (the body states it is not); the head has no CI yet. Nothing is owed or blocking.
-- Caveat: my comparison script is my own subset test (files/probes/dirs, index/objects flags), not the CI `check` code itself. Measurement was on cloud Linux with strace; cloud-unmeasurable reads (prepr's .gitattributes, tests/env_drift.py, tools/merge/ledger_merge.py, probe `-c`) are part 1's and are present in the table.
+- Caveat: my comparison script is my own subset test (files/probes/dirs, index/objects flags), not the CI `check` code itself. Measurement was on cloud Linux with strace; cloud-unmeasurable reads (prepr's .gitattributes, tests/env_drift.py, tools/merge/ledger_merge.py, probe `-c`) are part 1's and are present in the table. Carry: dismissed: the subset test does not change the verdict, since the null control and the perturbation both behave as predicted
 
 ## Findings
 
