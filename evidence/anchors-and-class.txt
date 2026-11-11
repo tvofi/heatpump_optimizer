@@ -1,0 +1,11 @@
+# base line anchors
+232:  git fetch -q origin "$ref" || { echo "cloud_relay: could not fetch $ref" >&2; return 1; }
+805:carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md names CARRY-LANDED alone: fold the kept body's carries, re-run body_push.sh
+818:    git fetch -q origin "$ref" 2>/dev/null && bw=$(git show "$sha:BLOCKED.md" 2>/dev/null) || continue
+838:      git fetch -q origin "refs/heads/handoff/$topic" 2>/dev/null && git worktree add -q --detach "$wt" FETCH_HEAD 2>/dev/null \
+849:  level_set carry-fold "$state/cloud-level-fold.$$"; rm -f "$state/cloud-wip.$$"
+1829:  git remote add origin "$t/cf.git"; LOG=$t/cf.log; : > "$LOG"; rm -rf "$t/state/cloud-folded"
+# class sweep: worktree add at FETCH_HEAD under tools/ at head
+185699076fb42c0082be4e5eaae31ab1abf2c1ad:.claude/workflows/audit-plan.js:144:  `You are the architecture-plan reviewer of audit round ${round}, never the architect. In ${repo}, read the plan as published: git fetch origin ${planRef} then git worktree add --force ${repo}/../audit-r${round}-review-${n} FETCH_HEAD (reuse and reset it if it exists). The plan is that tree -- ${planDir}/PLAN.json, PLAN.md and the ADRs -- at ${planRef} = ${sha}. Read dev/governance/roles/plan-review.md and attack the plan at that tree, one line per point:
+rc=0
+    if [ $rc = 0 ]; then echo "$topic $bsha" >> "$state/cloud-folded"; echo "cloud_relay: FOLDED $topic: carries landed, body_push.sh pushed handoff-body/$topic"
