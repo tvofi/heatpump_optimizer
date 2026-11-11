@@ -52,10 +52,11 @@ or `required-green` advisory already names it.
 - A RED, an APPROVAL-OWED or an unreadable read keeps today's refusal. A red outside `REQUIRED`
   keeps today's refusal.
 - There is no new read. The classify call already made at line 602 is the one that decides.
-- The local fix being built in `s14/tools-wt-63bcdcaa` calls `Train.classify_at` a second time.
-  That costs a second set of API reads per dispatch, at a time when the shared core budget runs at
-  over 90% (batch 155, P566), and it could disagree with the first read. The carry names the
-  first read as the permanent site.
+- The local version, commit 572755fb70 on `s14-tools-63bcdcaa` (never pushed, +35/-1 in
+  `build`), already reads the gathered `facts["required_read"]` and makes no second read. It is a
+  valid base for the permanent form. (Correction: this ruling's first text said the local fix
+  called `Train.classify_at` a second time. That rested on the queue line's description, written
+  before the fix existed. I read the commit afterwards.)
 - Self-test, in `review_packet.py`:
   - the 3404 shape (`red_unanswered=["gate"]`, `required_read=("WAIT", "pending: gate red: none")`)
     renders with one `required-wait` advisory and no refusal;
