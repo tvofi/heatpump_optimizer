@@ -1,4 +1,0 @@
-FAIL unreadable open-file lsof, cwd lsof readable: the on-remote worktree is kept (got '1', want '0')
-FAIL naming cwd-unread for the open-file listing (got '0', want '1')
-worktree_gc self-test: 154 checks, 2 failed
-rc=1

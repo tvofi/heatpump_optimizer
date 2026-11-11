@@ -1,0 +1,5 @@
+full self-test runs at head (this container):
+worktree_gc self-test: 167 checks, 104 failed
+worktree_gc self-test: 167 checks, 100 failed
+worktree_gc self-test: 167 checks, 105 failed
+worktree_gc self-test: 167 checks, 0 failed
