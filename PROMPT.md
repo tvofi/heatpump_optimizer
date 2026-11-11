@@ -29,3 +29,6 @@ Null control: the held figure's spread stays 0.00 on every row; the null series 
 Re-measure at your merge base. Closes #2257 when it lands; the group's `fixes` must list 2257 or the closing keyword is refused.
 
 Valid `Carry:` targets (live consumers of R10-ADVISOR-STEADY-START: groups after it or sharing its files): R10-COMBI-TANK, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE, R10-COMBI-TANK-PR-B, R10-ARCH-DOCS-DELTA, R10-DUTY-SWITCH-RESTART-LEARNING
+
+DESIGN: approved at design/R10-ADVISOR-STEADY-START tip d2d663c32a87a546e956c57aef56384d5303a0bb (design-verdict/R10-ADVISOR-STEADY-START reads Design review: approve d2d663c32a87a546e956c57aef56384d5303a0bb); implement that design.
+PIN EVIDENCE (triage P577, binding): for every mutation or pin claim, re-create the REVIEWER's own mutants exactly as a verdict would name them (a mutant_run.py --spec entry each, or by hand in a git-archive copy), show each KILLED at your handoff head and the NULL mutant surviving, and quote those lines in the body. mutant_run.py --diff is optional extra and is NOT pin evidence (it skips tests/, YAML, shell and expression conjuncts).
