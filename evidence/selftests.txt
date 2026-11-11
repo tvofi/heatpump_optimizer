@@ -1,0 +1,2 @@
+size_durations self-test: 0 failed
+plan_page self-test: 93 checks, 0 failed
