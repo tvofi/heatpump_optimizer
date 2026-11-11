@@ -1,0 +1,2 @@
+MISMATCH homeassistant 2026.11.0
+blocks 116 bad 1
