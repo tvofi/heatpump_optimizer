@@ -2,11 +2,17 @@ Anchor `tests/harness.py` to its own tree so a harness run from another root no 
 
 ## Head
 
-78d6776105008687e8f8dc800ff5eecfd8b94824 (code head of this branch).
+6ce0b46dda03523c269cbc169bc2c80ea54bc5ee (code head of this branch).
 
 ## Mutation proof
 
-Production change: `tests/harness.py` anchors its two `sys.path` inserts and the translations listing to `_ROOT`, the directory above the file. With that file restored to the base (stash of `tests/harness.py` only), `python3 tests/harness_headers.py` fails the new check `tests/harness.py imports from a cwd outside the tree and finds its catalogues` (1 of 113 failed); with the fix, ALL 113 HARNESS HEADER CHECKS PASSED.
+Production change: `tests/harness.py` anchors its two `sys.path` inserts and the translations listing to `_ROOT`. The check `tests/harness.py from a foreign cwd finds its catalogues and its own tree's package` in `tests/harness_headers.py` runs `import harness, heatpump_optimizer` from a cwd holding a decoy `custom_components/heatpump_optimizer/` and asserts `heatpump_optimizer.__file__` lies under this tree's `custom_components`. `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`:
+
+- head: ALL 113 HARNESS HEADER CHECKS PASSED.
+- M1 (reviewer's mutant: both `sys.path.insert` calls reverted to `"tests"` / `"custom_components"`, translations anchor kept): 1 of 113 HARNESS HEADER CHECKS FAILED. It survived the previous head; the decoy cwd now kills it.
+- M3 (whole `tests/harness.py` at the base): fails through the same check.
+
+`mutant_run.py --diff 40fe1cae2ed3...HEAD` lists no mutant: diff mode reads added lines outside `tests/` and `dev/`, and this PR changes only `tests/` and one seat script, so the proof above is the manual M1 run.
 
 ## Null control
 
@@ -30,6 +36,8 @@ The same check at the base raises FileNotFoundError reading `custom_components/h
 - Carry 1 (nightly heartbeat respawn): not buildable here. The measurement recipe needs `gh run list --workflow nightly.yml`, unavailable in this seat; the brief's own rule closes the group as superseded absent a red `hb:positive_control` at a main carrying the unwinder fix. Carry: dismissed: no red measured; `tests/nightly_ha.py` already samples with `_remote_debugging` where it exists.
 - Carry 5 (stress memory-peak precondition, traced bump on 3.14): addresses a group whose roster stage is done and is not this group's seam. Carry: dismissed: no destination is live; the precondition (re-measure base beside head on one box before reading a 3.14 stress memory red) stays in the carry text of the brief.
 - Carry 6 (cloud prepr.sh environment faults, item ec93383a): not reproduced on this cloud seat at 45adb0c3b4: `prepr.sh`'s hooks step printed `HOOKS ok: 4 wired hook(s) exist and pass their own --self-test`, and `tests/entities.py` at the base checkout exits rc=0 (`python3 tests/entities.py`, run on the unmodified base). Carry: dismissed: neither fault reproduces here; the one environment fault seen was a stale `/opt/hpo/runner-temp/base` (Red checks).
+
+- Carry 7 (the same text as Carry 6, item ec93383a, filed a second time on the roster): answered by Carry 6 above; the two faults it quotes do not reproduce on this cloud seat, where `prepr.sh` at the head ends `PRE-PR: ... rc=0`. Carry: dismissed: duplicate of Carry 6, not reproduced.
 
 ## Friction
 
