@@ -1625,9 +1625,12 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
             time.sleep(0.15)
             g.release(who, lock_dir=d)
 
-        normal = threading.Thread(target=one, args=("normal",), daemon=True)
-        normal.start()
-        normal_queued = bool(ticket_text(d, "normal"))
+        # Pin both waiters' priority: one inherited from the caller's
+        # environment (prepr.sh exports it) would decide the order instead.
+        with _Env("0"):
+            normal = threading.Thread(target=one, args=("normal",), daemon=True)
+            normal.start()
+            normal_queued = bool(ticket_text(d, "normal"))
         with _Env("2"):
             urgent = threading.Thread(target=one, args=("urgent",), daemon=True)
             urgent.start()
@@ -1735,9 +1738,12 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
             time.sleep(0.1)
             g.release_slot(who, lock_dir=d, slots=1)
 
-        normal = threading.Thread(target=one, args=("normal",), daemon=True)
-        normal.start()
-        normal_queued = bool(ticket_text(pool, "normal"))
+        # Pin both waiters' priority: one inherited from the caller's
+        # environment (prepr.sh exports it) would decide the order instead.
+        with _Env("0"):
+            normal = threading.Thread(target=one, args=("normal",), daemon=True)
+            normal.start()
+            normal_queued = bool(ticket_text(pool, "normal"))
         with _Env("2"):
             urgent = threading.Thread(target=one, args=("urgent",), daemon=True)
             urgent.start()
