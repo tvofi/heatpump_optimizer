@@ -147,10 +147,65 @@ def fetch(repo_owner: str, since: str) -> list:
         if failure is not None:
             raise RuntimeError(f"gh api graphql failed {why}: {gh_read.one_line(failure)}")
         page = json.loads(text)["data"]["repository"]["pullRequests"]
-        out += [flatten(n) for n in page["nodes"]]
+        out += [dict(flatten(n), via="graphql") for n in page["nodes"]]
         if not page["pageInfo"]["hasNextPage"] or page["nodes"][-1]["createdAt"] < since:
             return out
         cursor = page["pageInfo"]["endCursor"]
+
+
+def _gh_rest(path: str):
+    """One `gh api` REST read, retried by the one read rule."""
+    def attempt():
+        r = subprocess.run(["gh", "api", path], capture_output=True, text=True)
+        return (r.stdout, None) if r.returncode == 0 else (None, r.stderr)
+    text, failure, _, why = gh_read.retry(attempt, gh_read.gh_wait, __import__("time").sleep)
+    if failure is not None:
+        raise RuntimeError(f"gh api {path} failed {why}: {gh_read.one_line(failure)}")
+    return json.loads(text)
+
+
+def rest_node(pr: dict, commits: list, comments: list) -> dict:
+    """The GraphQL node `fetch` reads, built from the REST pull, its first page
+    of commits (oldest first) and its first 100 issue comments (oldest first):
+    the fields GRAPHQL selects, so `flatten` reads both paths alike."""
+    return {
+        "number": pr["number"], "title": pr.get("title"),
+        "headRefName": (pr.get("head") or {}).get("ref"), "createdAt": pr["created_at"],
+        "mergedAt": pr["merged_at"], "body": pr.get("body"),
+        "mergeCommit": {"oid": pr.get("merge_commit_sha") or ""},
+        "commits": {"nodes": [{"commit": {"authoredDate": c["commit"]["author"]["date"]}}
+                              for c in commits[:1]]},
+        "comments": {"nodes": [{"author": {"login": (c.get("user") or {}).get("login")},
+                                "createdAt": c["created_at"], "body": c.get("body")}
+                               for c in comments[:100]]},
+    }
+
+
+def fetch_rest(repo_owner: str, since: str) -> list:
+    """`fetch` over REST, for a seat whose GraphQL is refused: merged PRs created
+    since `since`, newest first, flattened. Read only; two reads per PR. Unlike
+    `fetch` it stops at the first PR older than `since` rather than finishing
+    that page."""
+    out, page = [], 1
+    while True:
+        prs = _gh_rest(f"repos/{repo_owner}/pulls?state=closed&sort=created"
+                       f"&direction=desc&per_page=100&page={page}")
+        for pr in prs:
+            if pr["created_at"] < since:
+                return out
+            if not pr.get("merged_at"):
+                continue
+            n = pr["number"]
+            out.append(dict(flatten(rest_node(
+                pr, _gh_rest(f"repos/{repo_owner}/pulls/{n}/commits?per_page=1"),
+                _gh_rest(f"repos/{repo_owner}/issues/{n}/comments?per_page=100"))), via="rest"))
+        if len(prs) < 100:
+            return out
+        page += 1
+
+
+#: The two read paths `run` takes; the provenance names the one the input came by.
+FETCHERS = {"graphql": fetch, "rest": fetch_rest}
 
 
 def flatten(n: dict) -> dict:
@@ -644,6 +699,24 @@ def self_test() -> int:
           {round_slope([{"rounds": k, "hours": h} for k, h in rows])
            for rows in (ordered, ordered[::-1], (ordered[2], ordered[0], ordered[3], ordered[1]))}
           == {5.5})
+    gql = {"number": 7, "title": "t", "headRefName": "fix/x", "createdAt": "2026-10-13T00:00:00Z",
+           "mergedAt": "2026-10-14T00:00:00Z", "body": "b", "mergeCommit": {"oid": "abc"},
+           "commits": {"nodes": [{"commit": {"authoredDate": "2026-10-12T23:00:00Z"}}]},
+           "comments": {"nodes": [{"author": {"login": "u"}, "createdAt": "2026-10-13T05:00:00Z",
+                                   "body": "Fix review: merge x\nmore"}]}}
+    rest = rest_node(
+        {"number": 7, "title": "t", "head": {"ref": "fix/x"}, "created_at": "2026-10-13T00:00:00Z",
+         "merged_at": "2026-10-14T00:00:00Z", "body": "b", "merge_commit_sha": "abc"},
+        [{"commit": {"author": {"date": "2026-10-12T23:00:00Z"}}},
+         {"commit": {"author": {"date": "2026-10-13T01:00:00Z"}}}],
+        [{"user": {"login": "u"}, "created_at": "2026-10-13T05:00:00Z", "body": "Fix review: merge x\nmore"}])
+    check("rest_node: the REST pull, first commit and comments flatten exactly as the GraphQL node",
+          flatten(rest) == flatten(gql) and flatten(rest)["first_commit_at"] == "2026-10-12T23:00:00Z")
+    check("input_note names the read path, and an unrecorded one, so a mismatch reads as input",
+          input_note([{"via": "rest"}], "2026-10-12")
+          == "Input: 1 merged PRs created since 2026-10-12, read over rest."
+          and "unrecorded" in input_note([{}], "x")
+          and "graphql and rest" in input_note([{"via": "rest"}, {"via": "graphql"}], "x"))
     m2 = model([dict(r, rounds=1) for r in rs]
                + [{"size": "M", "class": "production", "hours": 5, "rounds": 1, "carries": 0}])
     check("model: a larger size planning shorter is lifted to the smaller's hours, and says so",
@@ -706,15 +779,24 @@ def self_test() -> int:
     return 1 if fails else 0
 
 
+def input_note(prs: list, since: str) -> str:
+    """The input sentence of the provenance: how many PRs, and over which read
+    path, so a re-derivation by the other path reads a mismatch as input, not
+    drift. A cache written before PRs carried `via` says so."""
+    vias = sorted({p.get("via") or "an unrecorded path" for p in prs})
+    return f"Input: {len(prs)} merged PRs created since {since}, read over {' and '.join(vias)}."
+
+
 # -------------------------------------------------------------------- main
 
 def run(repo: str, roster_ref: str | None, repo_owner: str, since: str,
-        cache: str | None, csv_path: str | None, percentile: float) -> dict:
+        cache: str | None, csv_path: str | None, percentile: float,
+        via: str = "graphql") -> dict:
     roster, _, _ = replan.load_roster(repo, roster_ref)
     if cache and Path(cache).is_file():
         prs = json.loads(Path(cache).read_text(encoding="utf-8"))
     else:
-        prs = fetch(repo_owner, since)
+        prs = FETCHERS[via](repo_owner, since)
         if cache:
             Path(cache).write_text(json.dumps(prs), encoding="utf-8")
     rows, parts, held, _mapping = measure(repo, roster, prs)
@@ -725,6 +807,7 @@ def run(repo: str, roster_ref: str | None, repo_owner: str, since: str,
         write_csv(held, stem + "-held.csv")
         write_csv(held_report(roster, prs, _mapping), stem + "-held-carries.csv")
     out = model(rows, percentile)
+    out["sizes_provenance"] += " " + input_note(prs, since)
     out.update(carry_model(parts, held, percentile))
     out["sizes_measured_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return out
@@ -738,13 +821,16 @@ def main(argv=None) -> int:
     p.add_argument("--repo-owner", default="tvofi/heatpump_optimizer")
     p.add_argument("--since", default=SINCE, help="earliest PR creation read")
     p.add_argument("--prs-cache", default=None, help="read (or write) the fetched PRs here")
+    p.add_argument("--fetch", choices=sorted(FETCHERS), default="graphql",
+                   help="the read path when no cache is read")
     p.add_argument("--csv", default=None)
     p.add_argument("--percentile", type=float, default=DEFAULT_PERCENTILE)
     p.add_argument("--out-durations", default=None, help="merge the model into this file")
     a = p.parse_args(argv)
     if a.self_test:
         return self_test()
-    out = run(a.repo, a.roster_ref, a.repo_owner, a.since, a.prs_cache, a.csv, a.percentile)
+    out = run(a.repo, a.roster_ref, a.repo_owner, a.since, a.prs_cache, a.csv, a.percentile,
+              a.fetch)
     if a.out_durations:
         target = Path(a.out_durations)
         old = json.loads(target.read_text(encoding="utf-8")) if target.is_file() else {}
