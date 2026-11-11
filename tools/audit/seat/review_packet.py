@@ -368,7 +368,7 @@ def handoff_not_applied(branch: str, head: str, tip_of, is_ancestor, body: str =
         if is_ancestor(tip, head):
             return None, None
         if t == round_topic:
-            for sha in re.findall(r"\b[0-9a-f]{7,40}\b", section(body, "Head")):
+            for sha in re.findall(r"(?<![0-9a-f])[0-9a-f]{7,40}(?![0-9a-f])", section(body, "Head")):
                 if is_ancestor(sha, head) and is_ancestor(sha, tip):
                     return None, f"roster snapshot {sha}, {behind(sha, tip)} commits behind handoff/{t}; a later landing takes the rest"
         return f"handoff/{t} {tip} is not an ancestor of {head}", None
