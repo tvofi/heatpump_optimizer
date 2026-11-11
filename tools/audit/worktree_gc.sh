@@ -116,7 +116,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # their answers on the path they are handed, so the fixture must live on
   # the resolved form or every lookup silently misses.
   W=$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$W")
-  trap 'kill "$ZPID" 2>/dev/null; rm -rf "$W"' EXIT
+  trap '[ -n "${ZPID:-}" ] && kill "$ZPID" 2>/dev/null; rm -rf "$W"' EXIT
   mkdir -p "$W/bin"
   FAILS=0; N=0
   st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
