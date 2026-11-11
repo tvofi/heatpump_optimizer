@@ -1,0 +1,3 @@
+RESULT charge, all observed: heat_kw=2.727272727272727 space_kw=1.8181818181818181 dhw_kwh=5.0 observed=True hours=5.5
+RESULT charge, cycle 6 mode not live: heat_kw=2.727272727272727 space_kw=2.727272727272727 dhw_kwh=None observed=False hours=5.5
+RESULT no charge, cycle 6 mode not live (null): heat_kw=2.0 space_kw=2.0 dhw_kwh=None observed=False hours=5.5
