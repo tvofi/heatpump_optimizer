@@ -5,7 +5,7 @@ import math
 import re
 from datetime import timedelta
 from numbers import Real
-from typing import Any, Final, overload
+from typing import Any, Final, NamedTuple, overload
 
 DOMAIN: Final = "heatpump_optimizer"
 #: Entity ids that name a person or a household calendar, anywhere in a
@@ -826,6 +826,11 @@ DEFAULT_FLOW_HEAT_C: Final = 55.0
 #: supply-over-return spread a supply target is anchored at.
 CONF_FLOW_MIN_LIFT_K: Final = "flow_min_lift_k"
 DEFAULT_FLOW_MIN_LIFT_K: Final = 5.0
+#: Close the water set-point on measured power (R10-WATER-SETPOINT-FEEDBACK):
+#: on by default, as tvofi ruled (2026-11-09) for an install with a water
+#: unit and a power meter, the only installs it acts on.
+CONF_SPACE_SETPOINT_POWER_FEEDBACK: Final = "space_setpoint_power_feedback"
+DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK: Final = True
 #: ``false`` keeps the duty-cycle reading on a switch-plus-setpoint
 #: install. Absent follows the install probe (#1955).
 CONF_CLAMP_PLANNED_LEVELS: Final = "clamp_planned_levels"
@@ -949,6 +954,51 @@ CONF_DHW_ELASTIC_LEGIONELLA_ENABLED: Final = "dhw_elastic_legionella_enabled"
 DEFAULT_DHW_ELASTIC_LEGIONELLA_ENABLED: Final = False
 CONF_DHW_LEGIONELLA_MIN_INTERVAL_DAYS: Final = "dhw_legionella_min_interval_days"
 DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS: Final = 5.0
+#: #3225 (R10-COMBI-TANK) — the buffer store is also the hot water tank: hot
+#: water is made through an exchanger in the heating water. The model reads
+#: two numbers only, the exchanger effectiveness eps = (T_tap - T_in) /
+#: (T_store - T_in) at the typical draw flow and the litres of potable water
+#: held inside the store; the type select is the options flow's pre-fill of
+#: those two numbers and nothing reads it below the flow.
+CONF_DHW_COMBI_TANK_ENABLED: Final = "dhw_combi_tank_enabled"
+DEFAULT_DHW_COMBI_TANK_ENABLED: Final = False
+CONF_DHW_COMBI_TANK_TYPE: Final = "dhw_combi_tank_type"
+CONF_COMBI_DHW_EFFECTIVENESS: Final = "combi_dhw_effectiveness"
+CONF_COMBI_POTABLE_VOLUME_L: Final = "combi_potable_volume_l"
+#: Forces the legionella cycle on a combi store whose potable volume is at or
+#: under COMBI_LEGIONELLA_POTABLE_LIMIT_L, where it defaults off.
+CONF_DHW_COMBI_LEGIONELLA_FORCE: Final = "dhw_combi_legionella_force"
+DEFAULT_DHW_COMBI_LEGIONELLA_FORCE: Final = False
+
+
+class CombiTankPreset(NamedTuple):
+    """One physical combi construction: the two numbers the model reads."""
+
+    effectiveness: float
+    potable_volume_l: float
+
+
+#: Keyed by physical construction, never by product (design §T.4). Sources:
+#: internal_coil eps [assumed; one measured 1.8 kW/K corrugated coil gives 0.89
+#: at 12 l/min], 30 l a mid coil content [assumed]; tank_in_tank eps
+#: [assumed], 150 l inside the ~100-250 l inner tanks published (IEA SHC Task
+#: 26 store C: 228 l); external_station eps [datasheet range: 0.88 at 16 l/min
+#: to 0.58 at 38 l/min in one station table], 0 l (a plate exchanger stores
+#: no potable water). "custom" has no row: the user's own two numbers.
+COMBI_TANK_PRESETS: Final[dict[str, CombiTankPreset]] = {
+    "internal_coil": CombiTankPreset(0.85, 30.0),
+    "tank_in_tank": CombiTankPreset(0.95, 150.0),
+    "external_station": CombiTankPreset(0.75, 0.0),
+}
+COMBI_TANK_CUSTOM: Final = "custom"
+DEFAULT_DHW_COMBI_TANK_TYPE: Final = "internal_coil"
+DEFAULT_COMBI_DHW_EFFECTIVENESS: Final = COMBI_TANK_PRESETS["internal_coil"].effectiveness
+DEFAULT_COMBI_POTABLE_VOLUME_L: Final = COMBI_TANK_PRESETS["internal_coil"].potable_volume_l
+#: At or under this many litres of potable water a combi store holds none
+#: worth disinfecting (a plate exchanger's content and its fittings), so the
+#: cycle defaults off there on physical grounds [assumed threshold]; it is
+#: not a DVGW W 551 exemption, which a one- or two-family house never needs.
+COMBI_LEGIONELLA_POTABLE_LIMIT_L: Final = 3.0
 #: #28 — display only: the shower the tank actually holds.
 CONF_SHOWER_FLOW_LPM: Final = "shower_flow_lpm"
 DEFAULT_SHOWER_FLOW_LPM: Final = 8.0

@@ -371,6 +371,8 @@ def _self_test() -> int:
                 return 0, json.dumps([world.get("comments", [])])
             if argv[:2] == ["gh", "api"] and a.endswith("/pulls/7 --jq .body // \"\""):
                 return 0, world.get("body", "")
+            if argv[:3] == ["gh", "api", "user"]:  # the acting account `policy_approval_due` reads: the owner's
+                return 0, mt._mandate_gate().OWNER_LOGIN
             return 0, ""
         return run
 
