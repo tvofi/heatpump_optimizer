@@ -1,0 +1,23 @@
+  ok   the tracked template renders from a complete overlay, every placeholder filled (null control)
+  ok   the tracked template cites only paths that exist
+  ok   the tracked template's sweep names no host
+  ok   the tracked template's sweep carries every round-10 default
+  ok   a sweep carrying every default fragment misses none (null control)
+  ok   a sweep without the train flags is reported missing exactly them
+  ok   an overlay with five seats renders five --seat-alive arguments, each entry verbatim
+  ok   a JSON list of two seats renders two --seat-alive arguments
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wh/tools/audit/seat/sweep_render.py", line 350, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wh/tools/audit/seat/sweep_render.py", line 329, in main
+    return self_test()
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wh/tools/audit/seat/sweep_render.py", line 251, in self_test
+    bare, empty = render(tracked, none), render(tracked, dict(full, seat_alives="", launch_ledger="", plan_coordinator_cap=""))
+                                         ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wh/tools/audit/seat/sweep_render.py", line 175, in render
+    values = {n: flag_text(n, overlay.get(n)) if n in OPTIONAL_FLAGS else value_text(n, overlay[n]) for n in names}
+                                                                          ~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wh/tools/audit/seat/sweep_render.py", line 139, in value_text
+    raise Refused(f"unfilled: `{name}` is empty")
+Refused: unfilled: `plan_coordinator_cap` is empty

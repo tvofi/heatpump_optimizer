@@ -1,0 +1,19 @@
+    unused: `plan_coordinator_cap` declared and never used by the sweep
+  FAIL the tracked template renders from a complete overlay, every placeholder filled (null control)
+  ok   the tracked template cites only paths that exist
+  ok   the tracked template's sweep names no host
+  ok   the tracked template's sweep carries every round-10 default
+  ok   a sweep carrying every default fragment misses none (null control)
+  ok   a sweep without the train flags is reported missing exactly them
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wb/tools/audit/seat/sweep_render.py", line 350, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wb/tools/audit/seat/sweep_render.py", line 329, in main
+    return self_test()
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wb/tools/audit/seat/sweep_render.py", line 244, in self_test
+    flags = re.findall(r"--seat-alive (\S+)", render(tracked, five))
+                                              ~~~~~~^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wb/tools/audit/seat/sweep_render.py", line 171, in render
+    raise Refused("unused: " + ", ".join(f"`{n}`" for n in unused) + " declared and never used by the sweep")
+Refused: unused: `plan_coordinator_cap` declared and never used by the sweep

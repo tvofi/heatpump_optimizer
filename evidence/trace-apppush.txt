@@ -1,0 +1,5 @@
+strace of apppush at 4f2a40a2f2b3adedb2018d76f1224096f6858c48; tail of output:
+app_push self-test: 230 checks, 0 failed
+-- added-path reads:
+      2 /tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wh/tools/pr/../audit/seat/gh_read.py
+    160 /tmp/tmp.43j6VayKkr/audit/seat/gh_read.py
