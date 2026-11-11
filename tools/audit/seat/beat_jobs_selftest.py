@@ -433,6 +433,12 @@ def cases(bj) -> dict[str, bool]:
     res["plan-beat: replan is handed the plan, slots and seats"] = (
         arg(a, "--out") == str(c.state.parent / "p.json") or arg(a, "--out").endswith("p.json")) and (
         arg(a, "--slots") == "10" and arg(a, "--seats") == "99")
+    res["plan-beat null: no plan_coordinator_cap leaves replan its own default"] = "--coordinator-cap" not in a
+    c, f = fresh(overlay={"repo": "o/r", "plan_json": str(root / "pc.json"), "plan_slots": 10, "plan_seats": 99,
+                          "state_mirror": str(root / "pcm"), "plan_coordinator_cap": 3})
+    bj.plan_beat(c)
+    res["plan-beat: the overlay's plan_coordinator_cap is handed to replan as --coordinator-cap"] = (
+        arg(f.calls[0], "--coordinator-cap") == "3")
     c, f = fresh(answers={"state_docs.py": (0, "pushed handoff/audit-r10-plan at abc\n", "")})
     bj.plan_beat(c)
     gh = [x for x in f.calls if x[0] == "gh"]
@@ -944,6 +950,8 @@ MUTANTS = {
                                    "roster-drain: ROSTER_PASS_BUDGET_S is at most half the row's timeout_s"),
     "roster_hold_ignored": ("            if not on_main(ctx, parts[1]):", "            if False:",
                             "roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases"),
+    "plan_cap_unread": ('    cap = ["--coordinator-cap", str(ctx.overlay["plan_coordinator_cap"])] if ctx.overlay.get("plan_coordinator_cap") else []',
+                        "    cap = []", "plan-beat: the overlay's plan_coordinator_cap is handed to replan as --coordinator-cap"),
     "plan_rc1_silent": ("    if rc != 0:\n        said = ", "    if rc not in (0, 1):\n        said = ",
                         "plan-beat: state_docs rc 1 is PLAN UNAVAILABLE"),
     "moved_early_return": ('            lines.append(f"plan-beat: PLAN MOVED {Path(mirror) / \'PLAN.html\'} re-rendered; republish owed")',
@@ -1000,7 +1008,7 @@ MUTANTS = {
                            "roster-drain: a no-op-attempted report is retried on the next pass"),
     "plan_rc2_unavailable": ('word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"', 'word = "PLAN UNAVAILABLE"',
                              "plan-beat: state_docs rc 2 is REFUSED, not PLAN UNAVAILABLE"),
-    "plan_replan_args_dropped": ('"--out", plan, "--slots", slots, "--seats", seats)', '"--out", plan)',
+    "plan_replan_args_dropped": ('"--out", plan, "--slots", slots, "--seats", seats, *cap)', '"--out", plan, *cap)',
                                  "plan-beat: replan is handed the plan, slots and seats"),
     "pulse_unreadable_ignored": ("    if rc not in (0, 1, 2) or not out:", "    if not out:",
                                  "pulse: an rc outside 0-2 is UNREADABLE, whatever it printed"),
