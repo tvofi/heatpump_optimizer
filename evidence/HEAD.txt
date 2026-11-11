@@ -1,2 +1,7 @@
-b74fd1ac9b676610966d80aeba0e83a8be0638fe
-origin/main 2f6d699e504d6dc0bb6040d99c21c5b015a290e4; tip c516cf0f is ancestor of origin/main; roster groups main=342 head=398 added=56 removed=0 changed=54; PR diff 14 files; classify: WAIT pending (gate red: none)
+6d347c73a517288142990b1481b4bde4bfcd64b7
+snapshot 7696a3ba079f59c646bbad3351a635ac7ac22fb5 ancestor of head and of origin/handoff/audit-r10-roster tip: yes
+roster blob at snapshot and head: 9b11beb482ceaa251388c9f0ac2357ec087115bb (identical); git diff --stat snapshot head -- dev/programme/rosters dev/programme/triage: empty
+merge-tree --write-tree origin/main head: rc 0
+brief_lint.mjs at head: 0 errors
+classify: GREEN 6d347c73a517288142990b1481b4bde4bfcd64b7 pending: none red: none
+groups 342 437 added 95 removed 0 changed 55; carries 1337 -> 1734 (body: 1338 -> 1735)
