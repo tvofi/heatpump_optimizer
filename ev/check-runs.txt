@@ -1,0 +1,57 @@
+CodeQL	completed	success	130278515709	2026-11-11T02:25:23Z
+arch-score / arch-score	completed	success	130278192624	2026-11-11T02:25:48Z
+arch-score / arch-score	completed	success	130294832991	2026-11-11T02:25:33Z
+arm	completed	skipped	130277973285	2026-11-11T02:23:48Z
+budget-raise-gate / budget-raise-gate	completed	success	130278192488	2026-11-11T02:25:07Z
+budget-raise-gate / budget-raise-gate	completed	success	130294833686	2026-11-11T02:25:03Z
+cancel-superseded	completed	success	130277990912	2026-11-11T02:24:38Z
+cancel-superseded	completed	success	130294873973	2026-11-11T02:24:22Z
+codeql	completed	skipped	130294833495	2026-11-11T03:10:19Z
+codeql / Analyze (actions)	completed	success	130278192560	2026-11-11T02:25:28Z
+codeql / Analyze (javascript-typescript)	completed	success	130278192589	2026-11-11T02:26:01Z
+codeql / Analyze (python)	completed	success	130278193651	2026-11-11T03:07:44Z
+gate	completed	success	130294391023	2026-11-11T03:10:01Z
+gate	completed	success	130294832500	2026-11-11T03:11:03Z
+governance	completed	skipped	130294833116	2026-11-11T03:10:19Z
+governance / delivery-status	completed	success	130278192544	2026-11-11T02:25:03Z
+governance / delivery-status-publish	completed	skipped	130278195154	2026-11-11T02:24:24Z
+governance / env-matrix	completed	success	130278192616	2026-11-11T02:30:25Z
+governance / instrument-self-tests	completed	success	130278192720	2026-11-11T02:38:24Z
+governance / policy-docs	completed	success	130278192465	2026-11-11T02:28:43Z
+governance / record	completed	skipped	130278194901	2026-11-11T02:24:24Z
+governance / wave-script	completed	success	130278192939	2026-11-11T02:25:21Z
+hassfest	completed	skipped	130294833111	2026-11-11T03:10:19Z
+hassfest / hassfest	completed	success	130278192505	2026-11-11T02:24:55Z
+kernel-points	completed	skipped	130278194161	2026-11-11T02:24:24Z
+kernel-points	completed	skipped	130294833436	2026-11-11T03:10:19Z
+pr-contract	completed	skipped	130294834157	2026-11-11T03:10:19Z
+pr-contract / pr-contract	completed	success	130293896926	2026-11-11T03:09:06Z
+prelude	completed	success	130277990951	2026-11-11T02:24:24Z
+prelude	completed	success	130294831927	2026-11-11T02:24:23Z
+refresh	completed	success	130277990576	2026-11-11T02:24:35Z
+refresh	completed	success	130294832664	2026-11-11T02:24:35Z
+sweep-self	completed	skipped	130294720493	2026-11-11T03:10:01Z
+sweep-self	completed	skipped	130295100148	2026-11-11T03:11:03Z
+tests	completed	skipped	130294832988	2026-11-11T03:10:19Z
+tests / arch-instrument	completed	success	130278416167	2026-11-11T02:27:35Z
+tests / briefs	completed	success	130278192557	2026-11-11T02:26:01Z
+tests / browser	completed	success	130278416163	2026-11-11T02:29:52Z
+tests / ci-ratchet	completed	skipped	130290504648	2026-11-11T02:58:24Z
+tests / claims-autofix	completed	skipped	130286273379	2026-11-11T02:46:28Z
+tests / closure-scope	completed	success	130278192530	2026-11-11T02:25:01Z
+tests / closures	completed	success	130278416158	2026-11-11T02:54:11Z
+tests / closures-autofix	completed	skipped	130289035837	2026-11-11T02:54:11Z
+tests / coverage	completed	success	130278416228	2026-11-11T02:58:23Z
+tests / coverage-ratchet	completed	success	130290502696	2026-11-11T03:01:59Z
+tests / fast (3.14)	completed	success	130278416302	2026-11-11T02:46:28Z
+tests / graders-head-copy	completed	success	130290502792	2026-11-11T03:02:52Z
+tests / lane-proofs	completed	success	130290502727	2026-11-11T03:00:27Z
+tests / mutation	completed	success	130278192538	2026-11-11T02:48:20Z
+tests / mutation-autofix	completed	skipped	130286932027	2026-11-11T02:48:20Z
+tests / mutation-pins	completed	skipped	130286932652	2026-11-11T02:48:20Z
+tests / nightly-ha	completed	skipped	130278417608	2026-11-11T02:25:01Z
+tests / nightly-status	completed	success	130278192497	2026-11-11T02:24:39Z
+tests / replay	completed	skipped	130278417882	2026-11-11T02:25:01Z
+tests / typing	completed	success	130278416145	2026-11-11T02:26:22Z
+validate	completed	skipped	130294833018	2026-11-11T03:10:19Z
+validate / validate-hacs	completed	success	130278192593	2026-11-11T02:25:22Z
