@@ -7,76 +7,74 @@ Alternatives not taken. Storing the OWED line in the level file was rejected: th
 
 Carry numbers in this body are 0-based roster indexes, as the part-1 dispatch gives them: "This part: Carries 14, 22 (0-based roster indexes)". The rest of the group's roster carries are other parts' and are not touched here. `review_packet.py handoff` counts carries 1-based over the live roster, so the `Carry <N>: not built in this part; stays open on the roster for a later part` lines are added at the end of this body from what `body_push.sh` prints. The counting defect is already held on the roster as BRIEF-CARRIES-PART-SCOPE (Carry: dismissed: already carried as R10-REVIEW-DISPATCH-RESIDUE carry[25] on handoff/audit-r10-roster).
 
-Carry 1: not built in this part; stays open on the roster for a later part
-Carry 2: not built in this part; stays open on the roster for a later part
-Carry 3: not built in this part; stays open on the roster for a later part
-Carry 4: not built in this part; stays open on the roster for a later part
-Carry 5: not built in this part; stays open on the roster for a later part
-Carry 6: not built in this part; stays open on the roster for a later part
-Carry 7: not built in this part; stays open on the roster for a later part
-Carry 8: not built in this part; stays open on the roster for a later part
-Carry 9: not built in this part; stays open on the roster for a later part
-Carry 10: not built in this part; stays open on the roster for a later part
-Carry 11: not built in this part; stays open on the roster for a later part
-Carry 12: not built in this part; stays open on the roster for a later part
-Carry 13: not built in this part; stays open on the roster for a later part
-Carry 15: not built in this part; stays open on the roster for a later part
-Carry 16: not built in this part; stays open on the roster for a later part
-Carry 18: not built in this part; stays open on the roster for a later part
-Carry 19: not built in this part; stays open on the roster for a later part
-Carry 20: not built in this part; stays open on the roster for a later part
-Carry 21: not built in this part; stays open on the roster for a later part
-Carry 23: not built in this part; stays open on the roster for a later part
-Carry 24: not built in this part; stays open on the roster for a later part
-Carry 26: not built in this part; stays open on the roster for a later part
-Carry 27: not built in this part; stays open on the roster for a later part
+- Carry 1: left for a later part; it stays on the roster.
+- Carry 2: left for a later part; it stays on the roster.
+- Carry 3: left for a later part; it stays on the roster.
+- Carry 4: left for a later part; it stays on the roster.
+- Carry 5: left for a later part; it stays on the roster.
+- Carry 6: left for a later part; it stays on the roster.
+- Carry 7: left for a later part; it stays on the roster.
+- Carry 8: left for a later part; it stays on the roster.
+- Carry 9: left for a later part; it stays on the roster.
+- Carry 10: left for a later part; it stays on the roster.
+- Carry 11: left for a later part; it stays on the roster.
+- Carry 12: left for a later part; it stays on the roster.
+- Carry 13: left for a later part; it stays on the roster.
+- Carry 15: left for a later part; it stays on the roster.
+- Carry 16: left for a later part; it stays on the roster.
+- Carry 18: left for a later part; it stays on the roster.
+- Carry 19: left for a later part; it stays on the roster.
+- Carry 20: left for a later part; it stays on the roster.
+- Carry 21: left for a later part; it stays on the roster.
+- Carry 23: left for a later part; it stays on the roster.
+- Carry 24: left for a later part; it stays on the roster.
+- Carry 26: left for a later part; it stays on the roster.
+- Carry 27: left for a later part; it stays on the roster.
 
 The cause of the observed wrong checkout is still unproven. The private ref removes the FETCH_HEAD candidate. The assertion turns any other cause into an OWED line that names both heads, where at the base the push went through from the wrong head.
 
 ## Head
 
-30277114cd6436232f653a800045abd79859f474, on merge base f24d107bd7aa170bea7419251a4b7f4f48b732f6 (origin/main's tip when measured, 2026-11-11T09:34Z).
+bb3933b18fc35aea81c755dceb5e59eb07d3224d, on merge base f24d107bd7aa170bea7419251a4b7f4f48b732f6; origin/main's tip when measured was ee64358be7eeccaec5178a923cb3b83a18a924a0 (2026-11-11T12:17Z), and `git merge-tree --write-tree origin/main HEAD` reported no conflict, so main was not merged.
 
-## Round 2
+## Round 3
 
-Round 1 was blocked `mutation-vacuous` at 185699076f on four survivors. Two get an arm in the self-test (`carry_fold_arm` is unchanged):
+Round 2 was blocked `mutation-vacuous` at c562b07972 on two survivors. Both are now closed in `carry_fold_arm` and its self-test; round 2's triage of them is withdrawn.
 
-- `rv-real-bodypush-outside-wt`: one arm unsets `HPO_RELAY_BODYPUSH` and sets `HERE` to a directory holding a stand-in `body_push.sh`, so the production `(cd "$wt" && bash "$HERE/body_push.sh" ...)` line runs. It asserts the stand-in ran on the kept body, at `handoff/cf-i`'s tip and never at main's.
-- `rv-nohandoff-not-on-level`: one arm makes a CARRY-LANDED topic `cf-h` with no `handoff/cf-h` ref. It asserts the `OWED carry-fold cf-h ... no handoff/cf-h` line, its line on the level, no `cloud-folded` entry, no `FOLDED` announce and no `body_push.sh` run.
-- Triaged survivors, no test owed: `rv-folded-memo-no-entry` is equivalent, because the `cloud-folded` grep that follows also skips with no fetch; `rv-privref-not-deleted` is cleanup only, because the fetch refspec is forced (`+`), so a stale private ref cannot become the next worktree's head.
+- `rv-privref-not-deleted` is now KILLED. The body-push stand-in records `git for-each-ref refs/hpo-relay/fold/` from inside the fold worktree. Two checks follow cf-a's fold. The null control asserts `refs/hpo-relay/fold/cf-a` stood while the push ran. The second asserts `git for-each-ref refs/hpo-relay/fold/` prints nothing after the pass.
+- `rv-folded-memo-no-entry` no longer has a site, because the reviewer's first cure was taken: the memo write on the `cloud-folded` skip is deleted. That write was redundant. Each pass rebuilds the memo, and the `cloud-folded` grep skips the (topic, body) with no fetch whether or not a memo line exists. The skip is now `[ -f cloud-folded ] && grep -qxF ... && continue`. The arm's comment says a (topic, body) that `cloud-folded` holds is skipped unmemoed, and that the private ref is deleted after the push.
+- Rewriting that line exposed a third survivor, `r3-folded-skip-off`: replacing `&& continue` with `&& true` survived the round-2 suite. The skip is the only guard when a folded topic's wip ref moves and its body does not, because the memo is keyed on the wip sha. The self-test now moves `handoff-wip/cf-a` after its fold and asserts that `carry_fold.py` ran once for cf-a. That mutant is KILLED.
+
+The alternative to deleting the memo write was a check that the `cloud-fold-judged` line survives a pass. It lost because nothing reads that line for an already-folded topic: the check would pin a write with no consumer.
 
 ## Mutation proof
 
-The reviewer's 15-entry spec (`ev/mutants.json` on `probe/revt-r10-review-dispatch-residue-p1-dd078352`) was run, one mutant at a time with `bash tools/audit/seat/cloud_relay.sh --self-test` as the command, against the head. Result: the seven named mutants below, the reviewer's `rv-memo-key-ignores-body`, `rv-blocked-never-stands`, `rv-memo-not-saved`, `rv-stub-outside-wt` and the two new targets `rv-real-bodypush-outside-wt` and `rv-nohandoff-not-on-level` are KILLED; `rv-folded-memo-no-entry` and `rv-privref-not-deleted` SURVIVE (triaged above); NULL SURVIVED. The seven named mutants (spec quoted below):
+Command: `python3 tools/audit/seat/mutant_run.py --spec <spec> --cmd 'bash tools/audit/seat/cloud_relay.sh --self-test' --copy-tree`. The round-2 reviewer's spec (`evidence/mutants.json` on `verdict/3448`) was used without `rv-folded-memo-no-entry`, whose `old` text is gone, and with this round's `r3-folded-skip-off` added (`grep -qxF "$topic $bsha" "$state/cloud-folded" && continue` becomes `... && true`).
 
-Spec (name: old -> new, all in `tools/audit/seat/cloud_relay.sh`):
+- At d6a35eb044, the first round-3 commit, all 15 mutants ran. NULL SURVIVED. KILLED: foldref-fetch-head, foldtip-assert-off, foldmemo-drops-line, foldmemo-no-skip, foldttl-never-retry, foldttl-always-retry, foldtip-wide-lsremote, rv-memo-key-ignores-body, rv-blocked-never-stands, rv-memo-not-saved, rv-stub-outside-wt, rv-real-bodypush-outside-wt, rv-privref-not-deleted and rv-nohandoff-not-on-level. SURVIVED: r3-folded-skip-off.
+- At bb3933b18f, `rv-privref-not-deleted` and `r3-folded-skip-off` were re-run: both KILLED, NULL SURVIVED.
 
-- `foldref-fetch-head`: the worktree is added at `FETCH_HEAD` instead of `refs/hpo-relay/fold/$topic`. Carry 14's mutant on the private ref.
-- `foldtip-assert-off`: `[ "$head" != "$htip" ]` becomes `false`. Carry 14's mutant on the assertion.
-- `foldmemo-drops-line`: a memo hit re-sets `""` instead of `"$ml"`. Carry 22's null control: a memo that drops the line must fail the check.
-- `foldmemo-no-skip`: `if [ -n "$mo" ] && ...` becomes `if false && ...`.
-- `foldttl-never-retry` and `foldttl-always-retry`: `-lt 3600` becomes `-lt 99999999` and `-lt 0`.
-- `foldtip-wide-lsremote`: the `ls-remote` lists `refs/heads/handoff-wip/*` alone.
-
-Failing test first: with the new self-test arms on the unfixed arm, `bash tools/audit/seat/cloud_relay.sh --self-test` printed `cloud_relay self-test: 433 checks, 9 failed`. The nine FAIL names include `a fold with a concurrent fetch of main before its worktree add still pushes from handoff/cf-e's tip (carry 14)`, `a fold worktree that lands off the handoff tip is OWED with both heads (carry 14)`, `an unchanged nothing-folded ref is not fetched again (carry 22)` and `... and not retried before its memo entry is an hour old`.
+Failing test first: the head's self-test with merge base f24d107bd7's `carry_fold_arm` spliced in printed `cloud_relay self-test: 443 checks, 15 failed` at d6a35eb044. That is round 2's 14 plus the new null control `the push ran while the private fold ref refs/hpo-relay/fold/cf-a stood`, which fails because the base arm has no private ref.
 
 ## Null control
 
-- The unmodified tree's self-test: `bash tools/audit/seat/cloud_relay.sh --self-test` at a7628041dc printed `cloud_relay self-test: 416 checks, 0 failed`. At the head it printed `433 checks, 0 failed`.
-- Carry 14's null control is the self-test check `null control (carry 14): a sequential fold pushes the body from a worktree at handoff/cf-a's tip`, with no planted fetch.
-- Carry 22's null controls are the self-test checks `null control: a moved wip ref is judged again` and `... as is a moved body ref`. Each shows that the fetch logger which reads "not fetched" for an unchanged ref does record a fetch when the ref moved. A memo that drops the stored line is the `foldmemo-drops-line` mutant, KILLED above.
-- The planted concurrent fetch is a `git` shell function in the self-test that runs `git fetch -q origin main` immediately before the arm's `git worktree add`. The cost figures (27-33 s, about 181 s a pass) are the triage's, from the live relay. This seat has no relay state, so they are not re-measured here. The self-test pins the mechanism, which is that a memoed pair is not fetched.
+- The unmodified tree's self-test: `bash tools/audit/seat/cloud_relay.sh --self-test` at a7628041dc printed `cloud_relay self-test: 416 checks, 0 failed`. At the head it printed `444 checks, 0 failed`.
+- The ref-deletion check has its own null control, `null control: the push ran while the private fold ref refs/hpo-relay/fold/cf-a stood`. Without it, an empty `for-each-ref` could also mean the ref was never made.
+- The no-refold check's null controls are the existing `null control: a moved wip ref is judged again` and `... as is a moved body ref`. A moved ref is fetched and judged, so a fold count of 1 for cf-a comes from the `cloud-folded` skip, not from a moved ref going unseen.
+- Carry 14's null control is the self-test check `null control (carry 14): a sequential fold pushes the body from a worktree at handoff/cf-a's tip`. Carry 22's are the two moved-ref checks above, plus the `foldmemo-drops-line` mutant, KILLED.
+- The cost figures (27-33 s, about 181 s a pass) are the triage's, from the live relay. This seat has no relay state, so they are not re-measured. The self-test pins the mechanism, which is that a memoed pair is not fetched.
 
 ## Figures
 
-- base self-test `cloud_relay self-test: 416 checks, 0 failed`: `bash tools/audit/seat/cloud_relay.sh --self-test` at a7628041dc
-- red self-test `433 checks, 9 failed`: `bash tools/audit/seat/cloud_relay.sh --self-test` with the new arms on the unfixed arm
-- head self-test `441 checks, 0 failed`: `bash tools/audit/seat/cloud_relay.sh --self-test`
+- base self-test `416 checks, 0 failed`: `bash tools/audit/seat/cloud_relay.sh --self-test` at a7628041dc
+- red self-test `443 checks, 15 failed`: the same command on the head (d6a35eb044) tree with f24d107bd7's `carry_fold_arm` spliced over the head's
+- head self-test `444 checks, 0 failed`: `bash tools/audit/seat/cloud_relay.sh --self-test` at bb3933b18f
+- mutants, round-3 spec, 14 KILLED, 1 SURVIVED (`r3-folded-skip-off`), NULL SURVIVED at d6a35eb044, then `rv-privref-not-deleted` and `r3-folded-skip-off` KILLED, NULL SURVIVED at bb3933b18f: the `mutant_run.py` command above
 - base lines 805 (`carry_fold_arm`), 818 (wip fetch), 838 (`FETCH_HEAD`), 843 (`cloud-folded`), 849 (`level_set carry-fold`): `git show a7628041dc:tools/audit/seat/cloud_relay.sh | grep -n 'carry_fold_arm() {\|FETCH_HEAD\|level_set carry-fold'`
-- mutants, 13 KILLED, 2 triaged survivors and NULL SURVIVED: `python3 tools/audit/seat/mutant_run.py --spec mutants.json --cmd 'bash tools/audit/seat/cloud_relay.sh --self-test'`
-- gate scope `MODE: SCOPED -- 1 script(s) run`, which is `tests/doc_claims.py`: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`. `PYTHONPATH=tests/hastub python3 tests/doc_claims.py` printed `ALL 297 checks PASSED`. All four of `tests/run.sh`'s `run_always` scripts exited 0.
+- gate scope `MODE: SCOPED -- 1 script(s) run`, which is `tests/doc_claims.py`: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`. `PYTHONPATH=tests/hastub python3 tests/doc_claims.py` printed `ALL 315 checks PASSED`.
+- pre-PR: `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh <body>`, under the owner's standing ruling for an interpreter with no `homeassistant` module (`python3 -c "import homeassistant"` raises `ModuleNotFoundError` here). Without the skip, the closures step refused `tests/harness_headers.py` as UNDER-SCOPED, left to CI. `./tests/derive_closures.sh --single tests/harness_headers.py` at bb3933b18f, run in a scratch worktree, left `tests/closures.json` unchanged (`git status --short` printed nothing). `ci_predict` predicted no closures red.
 - structure: `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`
-- architecture: `python3 tools/audit/archscore/score.py --diff a7628041dc HEAD` printed `Architecture score: dS +0.0000 NULL`
+- architecture: `python3 tools/audit/archscore/score.py --diff f24d107bd7 HEAD` printed `Architecture score: dS +0.0000 NULL`
 
 ## Red checks
 
