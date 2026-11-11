@@ -61729,7 +61729,10 @@ R.check(
 # heated interval, or one ending inside DHW_CHARGE_SETTLE_HOURS after the last
 # heated sample, must book neither a draw nor a usage-profile point. Pre-fix
 # the heated arm folds a positive energy and the 5-min-after arm also teaches
-# usage; the 20-min-after arm is the null control that still learns.
+# usage; the 20-min-after arm is the null control that still learns. A
+# compressor start for SPACE heating never sets the plan's DHW flag, the
+# learner's only heating input, so with no DHW charge on record it must learn
+# exactly as before: the second null control.
 def _chg_settle(heating_now, heating_before, heated_min_ago):
     coord = Coord(FakeHass(), _r7d203_entry(
         data={"tibber_token": "x", "weather_entity": "weather.home"},
@@ -61755,12 +61758,44 @@ def _chg_settle(heating_now, heating_before, heated_min_ago):
 _chg_heated = _chg_settle(True, True, 5)
 _chg_settling = _chg_settle(False, False, 5)
 _chg_settled = _chg_settle(False, False, 20)
+_chg_space = _chg_settle(False, False, None)
+
+
+# The same settle driven through the learner's own stamping, not a preset
+# last_heated_time: one heated sample, then unheated samples 5 min apart (each
+# "5 min later" shifts the stored stamps back). The third interval after the
+# heated sample is the one only the settle window guards.
+def _chg_driven():
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    coord._thermal_params.dhw_enabled = True
+    learner = coord._dhw_learner
+    learner.cooling_rate = 0.3
+    folded, published, heating = [], [], [False]
+    real_fold = learner.draw_stats.fold
+    learner.draw_stats.fold = lambda w, l, e: (folded.append(e), real_fold(w, l, e))
+    learner._publish = lambda **k: published.append(k)
+    learner._heating_active = lambda: heating[0]
+    for temp, heat in ((50.0, False), (50.0, True), (50.0, False), (47.0, False)):
+        heating[0] = heat
+        _aio.run(learner.async_learn_dynamics(temp))
+        learner.last_sample_time -= timedelta(minutes=5)
+        if getattr(learner, "last_heated_time", None) is not None:  # absent pre-fix
+            learner.last_heated_time -= timedelta(minutes=5)
+    return round(sum(folded), 6), len(published)
+
+
+_chg_seq = _chg_driven()
 R.check(
     "a charge-start dip is learned as neither a draw nor usage",
     _chg_heated == (0.0, 0) and _chg_settling == (0.0, 0)
-    and _chg_settled[0] > 0.5 and _chg_settled[1] == 1,
+    and _chg_settled[0] > 0.5 and _chg_settled[1] == 1
+    and _chg_space == _chg_settled and _chg_seq == (0.0, 0),
     f"(kWh folded, usage points) heated {_chg_heated}, 5 min after the charge "
-    f"{_chg_settling}, 20 min after (control) {_chg_settled}",
+    f"{_chg_settling}, 20 min after (control) {_chg_settled}, space-heating "
+    f"start with no DHW charge on record (control) {_chg_space}, driven "
+    f"heated-then-settling sequence {_chg_seq}",
 )
 
 # A zero-capacity tank is the input the floors were hiding. With the capacity
