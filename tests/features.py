@@ -83924,6 +83924,37 @@ R.check(
     len(_fb_grid) == 2 * 3 * 3 * 14 * 4 * 3 and not _fb_grid_bad,
     f"{len(_fb_grid_bad)} of {len(_fb_grid)} at or below the gate, first {_fb_grid_bad[:4]}",
 )
+# The sibling write paths of the space set-point (the indoor target, today's
+# open-loop target with the loop off or unmetered, the gate of a step that
+# does not heat, the start hold) read neither sensor: a high limit that binds
+# the loop, and one at the gate, change none of their writes.
+_FB_SIBLINGS = (
+    ("indoor", {"unit": "indoor", "minutes": 60}),
+    ("no power entity", {"power_entity": False, "minutes": 60}),
+    ("option off", {"feedback": False, "minutes": 60}),
+    ("no heating planned", {"plan_kw": 0.0, "minutes": 60}),
+    ("start hold", {"minutes": 5}),
+)
+_fb_sibling_blind = {label: _fb_sim(**kw)["writes"] for label, kw in _FB_SIBLINGS}
+_fb_sibling_same = {
+    (label, high): _fb_sim(limits=(None, high), **kw)["writes"] == _fb_sibling_blind[label]
+    for label, kw in _FB_SIBLINGS for high in (24.0, 20.0, 15.0)
+}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I1: the indoor target, an unmetered or switched-off "
+    "loop, a step that does not heat and the start hold each write the same under a high "
+    "limit that binds the loop, one at the gate and one below it as with no sensor",
+    all(_fb_sibling_same.values()) and all(_fb_sibling_blind.values()),
+    f"same: {_fb_sibling_same}, writes { {k: len(v) for k, v in _fb_sibling_blind.items()} }",
+)
+_fb_loop_bound = _fb_sim(minutes=60, limits=(None, 24.0))["writes"]
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I1 null control: the same 24.0 degC limit moves "
+    "the loop's own writes, so the sibling paths are unmoved by not reading it",
+    _fb_loop_bound != _fb_sim(minutes=60)["writes"]
+    and min(w[1] for w in _fb_loop_bound) == 24.0,
+    f"lowest write under the limit {min((w[1] for w in _fb_loop_bound), default=None)}",
+)
 _fb_used = _fb_loop_write("return", 0.1, high=24.0, w_c=30.0)
 R.check(
     "R10-WATER-SETPOINT-FEEDBACK part 3 I2 null control: the same pass with a limit well "
