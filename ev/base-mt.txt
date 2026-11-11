@@ -1,0 +1,3 @@
+  ok   stale verdict: a blocked verdict at another head is not this head's finding (admitted, no nonce read)
+  ok   stale verdict: an unreadable verdict/<pr> history (log or fetch) is refused, never read as no blocked verdict
+merge_train self-test: 611 checks, 0 failed

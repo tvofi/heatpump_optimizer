@@ -1,0 +1,82 @@
+and posts there (P374)
+  ok   two concurrent confirms produce one verdict commit and one post (P354)
+  ok   a lock whose pid is not yet written is a live holder inside the settle (P354)
+  ok   null control: an empty pid left past the settle is a dead holder's, taken over (P354)
+  ok   push-verdict refuses a first line naming a host path, and review/7 does not move (#2310)
+  ok   and proposes the same verdict with a clean first line (the null control)
+  ok   push-verdict refuses an unrouted finding item, naming it, and review/7 does not move (P40, P207)
+  ok   push-verdict refuses a finding routed to no live group (BAD-DEST)
+  ok   and proposes the same verdict once its finding names a live group (the null control)
+  ok   push-verdict refuses a home path at line 7, naming the line, and review/7 does not move (P76)
+  ok   and proposes it with the path written ~/... (the null control)
+  ok   push-verdict refuses a mutation-vacuous verdict naming one of two survivors, and review/7 does not move
+  ok   null control: another blocked class over the same evidence proposes
+  ok   and proposes the mutation-vacuous verdict once it lists both survivors
+  ok   the verdict push runs with a 500 MB http.postBuffer (#2563's HTTP 400)
+  ok   null control: two blocked rounds dispatch, the re-cut rule reading no pull-request body
+  ok   a fourth round with no ## Re-cut note in the body is refused, and records nothing
+  ok   the same fourth round dispatches once the body carries ## Re-cut
+  ok   --past-three dispatches the fourth round and logs its reason
+  ok   a re-cut body blocked again is refused for the orchestrator's split-or-close
+  ok   --past-three without a reason is refused
+  ok   five re-posts at one head count as one round and dispatch (#3247)
+  ok   null control: three distinct blocked heads are three rounds and refuse without a note
+  ok   dispatch renders the packet at its head with the finder's harness and names its path
+  ok   a refused packet refuses the dispatch, names the signal, and records nothing
+  ok   a packet naming another head dispatches, names no packet, and says why
+  ok   a renderer this seat cannot run dispatches, names no packet, and says why
+  ok   a head whose required context concluded failure (classify RED) is not dispatched, owes its fixer a repair (rc 5, REPAIR-OWED, no REFUSE), and nothing is recorded
+  ok   null control: the same dispatch at a GREEN-classified head mints and records
+  ok   a head still in flight (classify WAIT) is reviewable and dispatches
+  ok   card C8: WAIT with a cheap check still in flight refuses and names it
+  ok   null control (card C8): WAIT with only a non-cheap check in flight dispatches
+  ok   card C8: an unreadable check-run read at WAIT refuses, never read as concluded
+  ok   card C8: every cheap check's ci.yml caller needs only prelude, so its run exists at WAIT (none of:)
+  ok   null control (card C8): pr-contract, which needs every unit, and an absent job are not cheap callers
+  ok   P345: a raise whose only red is its owed approval (classify --pr APPROVAL-OWED) dispatches, records, and prints the line
+  ok   an unreadable classification refuses the dispatch, never green
+  ok   dispatch takes one finder's harness, never two
+  ok   the packet renderer passes its self-test (each refusal signal, independence, byte identity)
+  ok   push-design lands the note as design.md on design/<topic>
+  ok   push-design refuses a topic outside the ref grammar
+  ok   push-design-verdict lands verdict.md on design-verdict/<topic>
+  ok   a verdict naming a sha other than the design tip is refused
+  ok   a verdict first line outside the grammar is refused
+  ok   a verdict for a topic with no design ref is refused
+  ok   dispatch refuses a body carry its group does not hold, printing the roster op, recording nothing (CARRY 0)
+  ok   and dispatches once the group's carries name the pull request (P310, the null control)
+  ok   watch --once under a live watcher's lock refuses and names its pid (P102)
+  ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
+bus self-test: 181 checks, 3 failed
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
+error: src refspec verdict/7 does not match any
+error: failed to push some refs to '/tmp/tmp.yShdbrPhnp/origin.git'
