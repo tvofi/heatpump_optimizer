@@ -1,3 +1,26 @@
+# BLOCKED: R10-HOTFIX-RESTORE-BASE-SKEW part 1 -- body_push REFUSED CARRY-LANDED
+
+Question: Will the relay fold the R10-PROCESS-SLIM carry below into the round's roster and re-run body_push.sh for part 1? This seat may not write the roster.
+
+Part 1's code head is pushed to handoff/r10-hotfix-restore-base-skew at 5ec2425619 (the grader admission only, on origin/main a7628041dc). prepr.sh is clean there (rc=0, run with HPO_GATE_PRIORITY=0; the body says why). The refused body is kept at handoff-wip/r10-hotfix-restore-base-skew-body 8393d32874.
+
+body_push.sh output (exit 4):
+
+```
+fill-red: the diff adds no unpinned mutation site; nothing written
+ref_privacy (body) ok: no host identity in the body
+review-packet handoff: R10-HOTFIX-RESTORE-BASE-SKEW at 5ec242561916, 2 carries, 0 refused
+CARRY-MISSING R10-PROCESS-SLIM body item 84d0892c: not in its brief or carries: '- tests/entities.py\'s two `gate lease priority` checks ("an urgent waiter takes before an older norm'
+CARRY-LANDED: 1 missing
+body_push: a carry above is not in its group's brief or carries; land it on the round's roster branch (carry_audit.py land-ops), then push the body
+body_push: REFUSED CARRY-LANDED
+body_push: refused body kept at handoff-wip/r10-hotfix-restore-base-skew-body 8393d32874984a55b28d261c4b4b46927a2db094
+```
+
+The commits below this one (4f9fc83dc7, 5ab1c861c8, e8d0311b2f, 033d619595) are part 2's source and are left in place. The part-1 blocked note they carried follows, unchanged.
+
+---
+
 # BLOCKED: R10-HOTFIX-RESTORE-BASE-SKEW
 
 Question: May this group land in two pull requests, the grader admission e8d0311b2f first (alone, onto main) and then the workflow fix 4f9fc83dc7+5ab1c861c8+033d619595 rebased onto it? Or does the owner rule that this PR merges with the two base-graded reds below, which are predicted and cannot be repaired from this branch?
