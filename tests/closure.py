@@ -1011,6 +1011,9 @@ INERT_EXCEPT = (
     # prefix the way record_burst_replay.py did, so an edit selects
     # tests/features.py.
     "dev/audit/harnesses/r10_demand_overbook.py",
+    # R10-DEPENDABOT-3414-COMPAT: tests/entities.py imports this harness and
+    # runs its `--tree` reader over every hash lock, so an edit selects it.
+    "dev/audit/harnesses/dependabot_stale_hash.py",
 )
 
 

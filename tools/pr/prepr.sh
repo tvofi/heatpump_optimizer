@@ -1166,6 +1166,34 @@ moved_line() { # tree root, merge base -> one line; rc 0 clean, 1 refused, 3 ski
   return 1
 }
 
+# THE DIFF'S ADDED LINES MUTATED (R10-MUTANT-RUN-DRIVER, card 4; fixer.md step 2
+# makes running it the fixer's). `mutant_run.py --diff` applies its five
+# operators to each added Python line outside tests/ and dev/, the first
+# MUTANT_MAX (40) in file order, and runs MUTANT_CMD once per mutant. A run that
+# measured nothing -- the command failing on the unedited tree, a killed NULL, a
+# refusal -- is rc 1, never the "no survivor" an empty SURVIVED list would read
+# as: R10-FIXER-MD-SPELLING-CORPUS-P2 measured three of five fixer self-tests
+# failing in the git-archive copy, which `MUTANT_IN_PLACE=1` (`--in-place`) runs.
+mutants_line() { # tree root, base, command -> one line; rc 0 no survivor, 2 survivors (report only), 1 nothing measured, 3 skipped
+  [ -n "$3" ] || { echo "MUTANT_CMD unset -- set it to the group's self-test or features_block.py call (fixer.md step 2)"; return 3; }
+  [ -f "$1/tools/audit/seat/mutant_run.py" ] || { echo "tools/audit/seat/mutant_run.py is not in this tree"; return 3; }
+  local out r n
+  out=$(cd "$1" && python3 -I tools/audit/seat/mutant_run.py --diff "$2...HEAD" --cmd "$3" \
+    --max-mutants "${MUTANT_MAX:-40}" --report-only ${MUTANT_IN_PLACE:+--in-place} 2>&1); r=$?
+  if [ "$r" -ne 0 ]; then
+    echo "mutant_run rc=$r measured nothing: $(grep -v '^SURVIVED ' <<<"$out" | grep . | tail -1 | cut -c1-160) -- fix MUTANT_CMD, or set MUTANT_IN_PLACE=1 for a self-test that needs a git checkout"
+    return 1
+  fi
+  n=$(grep -c '^SURVIVED ' <<<"$out")
+  if [ "$n" -gt 0 ]; then
+    grep '^SURVIVED ' <<<"$out"
+    echo "$n survivor(s) on the diff's added lines -- each owes a killing check or a line under ## Unpinned sites (fixer.md step 2)"
+    return 2
+  fi
+  echo "no survivor among the diff's first ${MUTANT_MAX:-40} mutant(s) under: $3" | cut -c1-200
+  return 0
+}
+
 # --- closure-reachability skips for the heavy steps ---------------------------
 # WHY THIS EXISTS. A pull request whose diff is one delivery row, or one file
 # under tools/ or docs/, paid for prepr's heavy battery -- the mutants drive,
@@ -2357,6 +2385,40 @@ EOS
   st "$r" 3 "a tree with no tests/layout.py skips, never refuses"
   rm -rf "${LR:?}"
 
+  # The diff-mutant step, driven through `mutants_line` over a throwaway repo
+  # holding THIS tree's mutant_run.py: a branch adds lib.py (two mutable lines)
+  # and a check under tests/ (never mutated) that pins both.
+  MR=$(mktemp -d)
+  mkdir -p "$MR/tools/audit/seat" "$MR/dev/audit/harnesses" "$MR/tests" "$MR/custom_components/heatpump_optimizer"
+  echo '{}' > "$MR/custom_components/heatpump_optimizer/manifest.json"  # mutant_guard's repo-root marker
+  cp tools/audit/seat/mutant_run.py "$MR/tools/audit/seat/"
+  cp dev/audit/harnesses/mutant_guard.py "$MR/dev/audit/harnesses/"
+  mg() { git -C "$MR" -c user.name=t -c user.email=t@t -c commit.gpgsign=false "$@"; }
+  (mg init -q && mg checkout -q -b main && mg add -A && mg commit -qm base) >/dev/null 2>&1
+  MB=$(mg rev-parse HEAD)
+  printf 'def f(x):\n    if x > 0:\n        return 1\n    return 0\n' > "$MR/lib.py"
+  printf 'import sys\nsys.path.insert(0, ".")\nfrom lib import f\nsys.exit(0 if [f(v) for v in (-2, 0, 1, 2)] == [0, 0, 1, 1] else 1)\n' > "$MR/tests/check.py"
+  (mg add -A && mg commit -qm branch) >/dev/null 2>&1
+  got=$(mutants_line "$MR" "$MB" "false"); r=$?
+  st "$r" 1 "a MUTANT_CMD failing on the unedited tree is refused, never read as no survivor"
+  case "$got" in *'BASELINE FAILS'*) st 1 1 "and the refusal quotes mutant_run's own reason";; *) st 0 1 "and the refusal quotes mutant_run's own reason";; esac
+  got=$(mutants_line "$MR" "$MB" "python3 tests/check.py"); r=$?
+  st "$r" 0 "a check killing every mutant of the added lines passes (null control)"
+  # A check that needs the checkout (git) fails the archive copy's baseline and
+  # passes in place: the case MUTANT_IN_PLACE exists for, measured on 3379.
+  got=$(mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
+  st "$r" 1 "a check needing a git checkout measures nothing in the archive copy, and is refused"
+  got=$(MUTANT_IN_PLACE=1 mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
+  st "$r" 0 "the same check under MUTANT_IN_PLACE=1 runs in the checkout and passes"
+  st "$(mg status --porcelain | wc -l)" 0 "and the in-place run leaves the work tree clean"
+  got=$(mutants_line "$MR" "$MB" "true"); r=$?
+  st "$r" 2 "a command killing nothing reports its survivors, report only"
+  nl=$(cd "$MR" && python3 -I tools/audit/seat/mutant_run.py --diff "$MB...HEAD" --cmd true --list | grep -c '^MUTANT lib.py:')
+  st "$(grep -c '^SURVIVED lib.py:' <<<"$got"):$(grep -c '^SURVIVED' <<<"$got")" "$nl:$nl" "and names every listed mutant of lib.py, none of tests/check.py"
+  got=$(mutants_line "$MR" "$MB" ""); r=$?
+  st "$r" 3 "MUTANT_CMD unset skips"
+  rm -rf "${MR:?}"
+
   # The raw-git check, driven through `throwaway_line` over a shared clone of
   # THIS tree (so the check's allow-list finds the files it names and no entry
   # reads stale): a raw `git init` committed into an instrument self-test is the
@@ -2388,6 +2450,8 @@ EOS
   st $? 0 "the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push"
   case "$flow" in *'moved_line "'*) true ;; *) false ;; esac
   st $? 0 "the layout step calls moved_line, so a re-added moved path is refused before the push"
+  case "$flow" in *'mutants_line "$PWD" "$BASE" "${MUTANT_CMD:-}"'*) true ;; *) false ;; esac
+  st $? 0 "the diff-mutant step calls mutants_line, so a MUTANT_CMD that measures nothing is refused before the push"
   case "$flow" in *'throwaway_line "'*) true ;; *) false ;; esac
   st $? 0 "the repository-build step calls throwaway_line, so a raw build is refused ahead of the handoff"
   case "$flow" in *'"$BASE" HEAD "$UNPINNED_SITES"'*) true ;; *) false ;; esac
@@ -4500,33 +4564,22 @@ if [ -s "$UNPINNED_SITES" ]; then
   say WARN "unpinned sites" "$(grep -c . "$UNPINNED_SITES") site(s) the diff adds with no pin -- the body owes each a line under ## Unpinned sites (step 7d)"
 fi
 
-# --- 6d'. the diff's added lines mutated (R10-MUTANT-RUN-DRIVER, card 4), REPORT
-# ONLY: `mutant_run.py --diff` applies GUARD_OFF, RETURN_DEL, CMP_BOUND, CALL_DEL
-# and CONST_SWAP to each added Python line and runs MUTANT_CMD, the group's named
-# self-test or `features_block.py` call, once per mutant. Each survivor is a WARN
-# line the body answers (an equivalent one still owes a survivor_triage record);
-# nothing here refuses, and with MUTANT_CMD unset the step skips. The cap keeps
-# the in-tree tier fast; the heavy pass (MUTANT_MAX=0, all mutants) is a cloud
-# seat's.
+# --- 6d'. the diff's added lines mutated: `mutants_line` above. Survivors are a
+# WARN the body answers; a run that measured nothing refuses; MUTANT_CMD unset
+# skips. The cap keeps the in-tree tier fast; the heavy pass (MUTANT_MAX=0, all
+# mutants) is a cloud seat's.
 if [ -n "$REUSE" ]; then
   say skip "code-keyed steps" "PREPR_SKIP_CODE: diff mutants, no-copies"
 else
-if [ -z "${MUTANT_CMD:-}" ]; then
-  say skip "diff mutants" "MUTANT_CMD unset -- set it to the group's self-test or features_block.py call to mutate the diff's added lines (report only)"
-elif [ ! -f tools/audit/seat/mutant_run.py ]; then
-  say skip "diff mutants" "tools/audit/seat/mutant_run.py is not in this tree"
-else
-  take_slot
-  MUT_OUT=$(python3 -I tools/audit/seat/mutant_run.py --diff "$BASE...HEAD" --cmd "$MUTANT_CMD" \
-    --max-mutants "${MUTANT_MAX:-40}" --report-only 2>&1)
-  MUT_N=$(printf '%s\n' "$MUT_OUT" | grep -c '^SURVIVED ')
-  if [ "$MUT_N" -gt 0 ]; then
-    printf '%s\n' "$MUT_OUT" | grep '^SURVIVED ' | sed 's/^/           /' >&2
-    say WARN "diff mutants" "$MUT_N survivor(s) on the diff's added lines -- the body answers each (report only)"
-  else
-    say ok "diff mutants" "no survivor: $(printf '%s\n' "$MUT_OUT" | tail -1 | cut -c1-120)"
-  fi
-fi
+[ -n "${MUTANT_CMD:-}" ] && take_slot
+MUT_OUT=$(mutants_line "$PWD" "$BASE" "${MUTANT_CMD:-}")
+case $? in
+  3) say skip "diff mutants" "$MUT_OUT" ;;
+  0) step "diff mutants" 0 "$MUT_OUT" ;;
+  2) grep '^SURVIVED ' <<<"$MUT_OUT" | sed 's/^/           /' >&2
+     say WARN "diff mutants" "$(tail -1 <<<"$MUT_OUT")" ;;
+  *) step "diff mutants" 1 "$MUT_OUT" ;;
+esac
 
 # --- 6c. a test must import the production symbol: tests.yml's `no-copies`,
 # before the push. `copies_line` above. The scan reads the whole tree, so it
