@@ -20992,7 +20992,8 @@
    "resume": {
     "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE, ordered by after-edges where files overlap | set-files files ['dev/governance/roles/standing-merge.md', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/standing-roster.md', 'dev/governance/roles/standing-tick.md', 'dev/governance/roles/orchestrator.md', 'dev/governance/roles/fixer.md', 'dev/governance/roles/designer.md', 'dev/governance/roles/design-review.md', 'tools/audit/seat/sweep_template.md', 'tools/audit/seat/pulse.py'] -> ['dev/governance/roles/standing-merge.md', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/standing-roster.md', 'dev/governance/roles/standing-tick.md', 'dev/governance/roles/orchestrator.md', 'dev/governance/roles/fixer.md', 'dev/governance/roles/designer.md', 'dev/governance/roles/design-review.md', 'tools/audit/seat/sweep_template.md', 'tools/audit/seat/pulse.py', 'tools/audit/seat/hooks/liveness.py', 'tools/audit/seat/hooks_setup.py', 'tools/audit/seat/beatd.py']"
+    "note": "overlap admitted (R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE, ordered by after-edges where files overlap | set-files files ['dev/governance/roles/standing-merge.md', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/standing-roster.md', 'dev/governance/roles/standing-tick.md', 'dev/governance/roles/orchestrator.md', 'dev/governance/roles/fixer.md', 'dev/governance/roles/designer.md', 'dev/governance/roles/design-review.md', 'tools/audit/seat/sweep_template.md', 'tools/audit/seat/pulse.py'] -> ['dev/governance/roles/standing-merge.md', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/standing-roster.md', 'dev/governance/roles/standing-tick.md', 'dev/governance/roles/orchestrator.md', 'dev/governance/roles/fixer.md', 'dev/governance/roles/designer.md', 'dev/governance/roles/design-review.md', 'tools/audit/seat/sweep_template.md', 'tools/audit/seat/pulse.py', 'tools/audit/seat/hooks/liveness.py', 'tools/audit/seat/hooks_setup.py', 'tools/audit/seat/beatd.py']",
+    "pr": 3464
    }
   },
   {
@@ -22388,7 +22389,8 @@
    "brief": "triage: dev/programme/triage/s6-batch160.md#P572 at b91ac890cf. A check-source restore takes PINNED from github.event.pull_request.base.sha, which is stale (it tracks the last main the head took in), while the job checks out the merge ref built on current main; restored and unrestored files then come from two mains (PR 3424: roster_lib.py from d08ed31049, carry_audit.py from c620ebba96, AttributeError carry_receivable). Fix: for pull_request events, every restore takes its source from the merge commit's first parent (HEAD^1 after checkout), asserting the payload base.sha is its ancestor; one shared resolver, not 18 hand edits (git grep -c -E 'git checkout \"?\\$\\{?PINNED' -- .github/workflows). Keep diff bases (BASE_SHA, SINCE, PR_BASE, MACHINERY_BASE, PAYLOAD_BASE, tests.yml BASE) unchanged; split a step that uses PINNED as both. merge_group and inputs.base fallbacks unchanged. Mutation proof: replay 427c4ca874 with PINNED=d08ed31049 (red) vs HEAD^1=c620ebba96 (green); null control: a fresh-base PR identical under both. Code-owned workflows: tvofi review or mandate. Red-check trigger: the RCA seat owns the detector question; the planted-tree self-test was REJECTED in P572.",
    "resume": {
     "stage": "in-progress",
-    "branch": null
+    "branch": null,
+    "pr": 3463
    }
   },
   {
@@ -22531,7 +22533,7 @@
     "last_step": null,
     "next_step": "fixer adopts the author's commits on outside pull request 3435, split by seam if needed (no design step, size M)",
     "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3435 by Bankaifan accepted into round 10; no reviewer on the outside PR itself, this group's fixer adopts its commits; overlap admitted (R10-CARD-COLLAPSE, R10-OUTSIDE-DHW-CHARGE-SETTLE): s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3435 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); overlap: shares tests/features.py with R10-OUTSIDE-DHW-CHARGE-SETTLE and R10-DUTY-SWITCH-RESTART-LEARNING and coordinator.py with R10-DUTY-SWITCH-RESTART-LEARNING, R10-COMBI-TANK, R10-COMBI-TANK-PR-B and R10-ADVISOR-STEADY-START; different seams (learner spans, boost tail, progress card); the fixer rebases on main at each part",
-    "pr": null
+    "pr": 3468
    }
   },
   {
@@ -23235,9 +23237,10 @@
     "TRAIN-UNDRAFT-EVERY-ROUTE (triage: dev/programme/triage/s6-batch187.md#P609 at 2a966ef5ed), in tools/audit/seat/merge_train.py (line numbers at cbd23f1c8b): undraft() (:1349-1361) acts only on item[\"draft\"], set only by `add` (:1470); --queue file entries (:9444) and build_queue/admit_verdict entries (:3120) never carry it, so #3425's relaunch batch (q-relaunch.json, no draft key) logged 20 'still a draft' refusals and burned 2/3 recarries (78 such attempts over 8 PRs in train.log). (1) In preflight (:3014) set item[\"draft\"] from one is_draft read for every entry lacking the key (admission = batch start; 'drafted after admission is left alone' kept). (2) In land's retry loop (:2726-2770) 'Pull Request is still a draft' is a state: admitted-draft -> undraft once and re-attempt; else Stop('merge', 'drafted after admission: left as a hold') at once, never 8 attempts or MAIN-MOVED. Self-test: --queue entry without draft on a draft PR -> one UNDRAFT then merge; drafted-after-admission -> one attempt then that Stop, no recarry; null control: non-draft entry makes no gh pr ready call; mutation proof: removing the admission read fails case 1, removing the refusal arm restores 8 attempts."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R10-SEAT-SCRIPT-OUTPUT, R10-GATE-DEFER-BARRIER): triage s14-13 2026-11-11: P597 not-started sibling of R10-TRAIN-RESIDUE (carries-open, not carry_receivable); triage: dev/programme/triage/s6-batch178.md#P597 at 2ff0ab30e0"
+    "note": "overlap admitted (R10-SEAT-SCRIPT-OUTPUT, R10-GATE-DEFER-BARRIER): triage s14-13 2026-11-11: P597 not-started sibling of R10-TRAIN-RESIDUE (carries-open, not carry_receivable); triage: dev/programme/triage/s6-batch178.md#P597 at 2ff0ab30e0",
+    "pr": 3470
    }
   },
   {
@@ -23273,10 +23276,11 @@
    "brief": "triage: dev/programme/triage/s6-batch179.md#P598 at 8673dba7c4\n\nHotfix, no after: the gh shim refuses gh's own --allow-escape-sequences, so merge_train.job_log (:648), the tree's one Actions job-log reader, which always passes it, reads None under the shim (measured: job 130415790006, 0 bytes through the shim against 1,093,937 with the real gh first on PATH). failure_logs.sh, gate_raise_only (:675), the culprit read (:3370) and the infra rerun (:3633) all go blind, the live train included (its PATH resolves gh to the shim). Line numbers at cbd23f1c8b.\n\n1. SHIM-ESCAPES-FLAG. In tools/audit/seat/shims/seat-gh add --allow-escape-sequences to API_BOOL (:241; output-only). When api_gate refuses an unknown flag (:268-270) print 'gh shim: unknown gh api flag <x>; refused' instead of the record-issue comment-write message (the wrong message sent seats after a non-existent path cause); a tracker-comment write keeps its message. Self-test in gh_calls.py: the flag on actions/jobs/7/logs passes; the flag plus -f body=x on issues/201/comments is still refused with the comment-write message; --bogus is refused with the unknown-flag message; mutation: dropping the flag from API_BOOL fails case 1; null control: a plain GET of a non-tracker path passes as today.",
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
     "note": "overlap admitted (R10-GH-READ-RESIDUE-P3): triage s14-13 2026-11-11: P598 hotfix, shim refuses --allow-escape-sequences so every job_log read fails under it; triage: dev/programme/triage/s6-batch179.md#P598 at 8673dba7c4",
-    "pr": 3453
+    "pr": 3453,
+    "commit": "60413046e3903f52c47cf587e9c4131fa30d74fa"
    }
   },
   {
@@ -23315,9 +23319,10 @@
    "brief": "Main is red since the merge of pull request 3398 (merge commit cbd23f1c8bf6): the push run on main fails tests/features.py at its combi type branch census, the check that no product or vendor name stands in the package Python. The census names six lines: custom_components/heatpump_optimizer/const.py lines 812 and 1595, custom_components/heatpump_optimizer/heat_curve.py line 72, custom_components/heatpump_optimizer/pump_arbiter.py lines 256 and 1015, custom_components/heatpump_optimizer/thermal_model.py line 1870. Each merged green alone; the census landed with 3398 while the lines came from other merges, so only the merged tree fails. Re-measure at origin/main first: run the census block of tests/features.py and take its list, never this one. Fix each line by naming the behaviour rather than the vendor or product, in comments and strings alike, changing no behaviour and no user-facing string a translation carries; where a line is a vendor entry the product genuinely needs, it belongs in the table of custom_components/heatpump_optimizer/const.py the census already exempts, and the body says why. Null control: the census fails on main before the change and passes after; mutate one fixed line back and it fails again. Root cause is owed in the body (defect-root-cause, red on main): which detector would have caught a census added by one pull request against lines added by another before the merge, and its standing cost, or the recorded finding that only the merged tree can. Carry nothing into other groups unless measured.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-ECL110-MQTT-OFF-NEUTRAL, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-DUTY-SWITCH-PLANNER-PRICE, R10-START-COUNTER-EDGES, R10-MODE-BEFORE-SUPPLY-ON): s14 orchestrator 2026-11-11: main red on tests / fast since the 3398 merge (features.py combi census names six vendor lines from other merges); hotfix forward, top priority"
+    "note": "overlap admitted (R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-ECL110-MQTT-OFF-NEUTRAL, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-DUTY-SWITCH-PLANNER-PRICE, R10-START-COUNTER-EDGES, R10-MODE-BEFORE-SUPPLY-ON): s14 orchestrator 2026-11-11: main red on tests / fast since the 3398 merge (features.py combi census names six vendor lines from other merges); hotfix forward, top priority",
+    "pr": 3466
    }
   },
   {
@@ -23360,9 +23365,10 @@
     "CI-PULSE-ONE-JOB-BASELINE (triage: dev/programme/triage/s6-batch183.md#P602 at d4369dc3a4), in tools/audit/seat/orchestrator_tick.py, or wherever the waited-CI pulse line is printed (record_beat.py's \"waiting CI\" line): when exactly one job of the waited run is unfinished, print its name, elapsed time and baseline (p50 and max of the last 6 completed jobs of the same name, from the same check-runs listing), e.g. \"CI waits on 1 job: codeql / Analyze (python) 41m of p50 47m / max 60m (normal)\". Two near-complete python jobs (2173-3623 s each) were cancelled at 10:29Z, misread as hung. Self-test: a one-unfinished fixture prints the line with its baseline; mutation proof: dropping the baseline fails it; null control: two unfinished jobs print no such line. No extra API call."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE-P3): triage P600 (s6-batch181, record b253df9967): owed_unactioned blinded by the tick cap line; held triage refs fill 14/20 orphan cap slots; sibling because R10-TICK-RESIDUE (#3425) holds a merge verdict"
+    "note": "overlap admitted (R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE-P3): triage P600 (s6-batch181, record b253df9967): owed_unactioned blinded by the tick cap line; held triage refs fill 14/20 orphan cap slots; sibling because R10-TICK-RESIDUE (#3425) holds a merge verdict",
+    "pr": 3471
    }
   },
   {
@@ -23401,8 +23407,9 @@
     "OPENER-LIVE-TIP (triage: dev/programme/triage/s6-batch183.md#P603 at d4369dc3a4), in tools/audit/seat/open_driver.py (:278-279, line numbers at cbd23f1c8b): on \"moved\", re-run the candidate checks (no-body, seen, landed, fix-branch, all from live refs) at the live tip in tips instead of skipping; keep SKIP moved only when the live tip is absent. 18 SKIP moved lines, 9 for r10-outside-disinfection-setpoint (top-priority outside PR, starved 45 min) and 9 for r10-process-slim-p2, because the board is rewritten once per relay pass. Self-test: a board line at sha A with origin's tip at a clean B opens at B; mutation proof: restoring the skip fails it; null control: a line whose handoff ref is gone still prints SKIP moved. Overlap with R10-SEAT-IDENTITY-P5 on open_driver.py is admitted, distinct seam. [moved: R10-SEAT-IDENTITY-P5]"
    ],
    "resume": {
-    "stage": "not-started",
-    "branch": null
+    "stage": "in-progress",
+    "branch": null,
+    "pr": 3465
    }
   },
   {
@@ -23483,9 +23490,10 @@
    "brief": "triage: dev/programme/triage/s6-batch184.md#P606 at 484fa0d3b3\n\nOrchestrator ruling under mandate 6715477401 (scope all), recorded in P606. Workflow change: serial on the train. Line numbers at cbd23f1c8b.\n\n1. CODEQL-PR-PATHS: PR runs analyse Python with tests/ and dev/ path-ignored (PR leg only); main's push run keeps the full path set (there is no scheduled run: codeql.yml is a workflow_call callee of ci.yml, :63-70, :86-94); the required context codeql / Analyze (python) keeps its name and stays required (no non-gating leg). codeql.yml cannot see the event, so ci.yml passes it (or a paths input) via workflow_call. The one paths-ignore entry today (.claude/workflows/*.js, :199-202) is pinned by tests/entities.py (:19999, :21919-21929): move the pins in the same PR. Measure on one PR whether alerts in the ignored paths read as fixed against main's same-category analysis; if so, give the PR leg its own category. Before: the python Analyze job 2173-3623 s (siblings 48-104 s). Target under 15 min. The body states before and after job seconds from tools/audit/seat/ci_critpath.py over at least 5 runs each. A finding main's full run raises that the PR leg missed is a main red, handled as any other. Overlap with R10-HOTFIX-RESTORE-BASE-SKEW (ci.yml, codeql.yml) is admitted, distinct seam.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID): triage P606 (s6-batch184, record 484fa0d3b3): orchestrator ruling under mandate 6715477401 on P602 owner-routed arm; CodeQL python PR leg ignores tests/ and dev/, main keeps full set"
+    "note": "overlap admitted (R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID): triage P606 (s6-batch184, record 484fa0d3b3): orchestrator ruling under mandate 6715477401 on P602 owner-routed arm; CodeQL python PR leg ignores tests/ and dev/, main keeps full set",
+    "pr": 3467
    }
   },
   {
@@ -23827,12 +23835,13 @@
    "brief": "triage: dev/programme/triage/s6-batch195.md#P619 at ec5364c3f0\n\nS instrument group, one seam: the carry lookup in tools/audit/seat/roster_edit.py. Line numbers are at ee64358be7.\n\n1. CARRY-EXACT-MATCH. _carry_index (roster_edit.py:550) resolves --match by substring alone (:557) and refuses two or more hits as ambiguous (:562). A pending carry whose whole text sits inside a sibling carry (the roster_sync re-append shape: a bare carry kept beside its dismissed \"From #N, body item X:\" duplicate) therefore cannot be named by any --match text, and roster_queue.py's replay_unsafe (:186) refuses the index form in a queue, so the only route is a hand index write outside the replay guard. At roster f65729f2da that is 35 of 778 pending carries in 15 groups. Change: when exactly one carry equals the match text exactly, return it; otherwise keep the substring rule and its refusals unchanged. Both mark-carry and drop-carry go through _carry_index, so both gain it. Self-test: a match equal to carry A, where A is also a substring of a dismissed sibling B, resolves to A (fails at ee64358be7, passes on the fix); null control: a match that equals no carry and hits two still refuses as ambiguous, and a unique substring still resolves as today.\n\nOut of scope: filtering marked carries out of the hits (resolves 25 of the 35, and changes which entry a substring names); any change to replay_unsafe.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
     "next_step": "fixer (size S, no design step)",
-    "note": "triage s14 batch 195 P619"
+    "note": "triage s14 batch 195 P619",
+    "pr": 3472
    }
   },
   {
