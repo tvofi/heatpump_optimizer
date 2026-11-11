@@ -1,9 +1,0 @@
-NOTE stale tree: 561edf4c8f9b99420013b48ce1d225645ef70b95 lacks origin/main 444cf62fabe444209b6be7802de0ec5aee102142; roster read at origin/main
-NOTE body item 7aa9833b: R10-WATER-SETPOINT-FEEDBACK: R10-WATER-SETPOINT-FEEDBACK resolved on origin/handoff/audit-r10-roster
-NOTE body item 4b9f705b: dismissed:the arbiter budgets no writes
-NOTE body item f3be336b: dismissed:built here
-NOTE body item 27dca0a0: dismissed:the departure is raised in the body for the reviewer; a stop-exempt restore would be a change to the hook, R10-GENERIC-HEAT-CURVE's seam
-NOTE body item 81b21310: dismissed:the step ref is deleted at handoff
-CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
-
-rc=0

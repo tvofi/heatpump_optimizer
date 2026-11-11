@@ -1,7 +1,0 @@
-
-=== Feature modules ===
-  ok   keystone: _expire_away_override returns the live override's (True, return time) and a lapsed one's (False, None), saving only the lapse
-... (6676 lines, cut) ...
-
-ALL 5199 FEATURE CHECKS PASSED
-rc=0
