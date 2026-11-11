@@ -1,0 +1,22 @@
+ .github/workflows/codeql.yml                      |  19 +-
+ dev/audit/harnesses/r10_flow_dispatch_mutants.py  |  71 +++++--
+ dev/audit/rca/r10-rca-restore-base-skew.md        | 232 ++++++++++++++++++++++
+ dev/audit/rounds/round6/D11/fix/codeowners_gap.py |  40 +++-
+ dev/programme/delivery/3438.md                    |   1 +
+ dev/programme/delivery/3445.md                    |   1 +
+ dev/programme/delivery/3450.md                    |   1 +
+ dev/programme/delivery/3463.md                    |   1 +
+ dev/programme/delivery/3467.md                    |   1 +
+ dev/programme/delivery/3472.md                    |   1 +
+ dev/programme/delivery/3474.md                    |   1 +
+ tests/entities.py                                 |  34 +++-
+ tools/audit/seat/cloud_dispatch.py                | 198 ++++++++++++++++--
+ tools/audit/seat/instruments/cloud_dispatch.py.md |   6 +
+ tools/audit/seat/pr_args.sh                       |   3 +-
+ tools/audit/seat/review_packet.py                 | 163 ++++++++++++---
+ tools/audit/seat/roster_edit.py                   |  23 ++-
+ tools/audit/seat/sweep_render.py                  |   5 +-
+ tools/audit/seat/sweep_template.md                |   2 +-
+ tools/ci/selftest_closures.json                   |   7 +
+ tools/pr/prepr.sh                                 |  25 ++-
+ 21 files changed, 759 insertions(+), 76 deletions(-)

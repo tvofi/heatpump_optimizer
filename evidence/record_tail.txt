@@ -1,0 +1,3 @@
+OK      48.9s selftest-scope-mutants
+OK       0.0s unread
+selftest_scope: recorded 111 step(s) into /tmp/w/rec_head.json; 0 failed [], 0 broken trace(s)
