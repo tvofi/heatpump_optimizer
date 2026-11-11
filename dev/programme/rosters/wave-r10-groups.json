@@ -22182,7 +22182,9 @@
     "custom_components/heatpump_optimizer/coordinator.py",
     "tests/features.py"
    ],
-   "carry": [],
+   "carry": [
+    "BUILD INPUT (orchestrator s14, 2026-11-11, under mandate 6715477401): the outside author pushed an implementation onto pull request 3420 at head e05c6b1ccc17f2486160669f4a64a33b79ea6a17 (17 files, 1003 insertions against main dbd1ab5b07: two new modules for the duty switch and the supply hold, arbiter and store changes, tests, and a commit stating its deviations from the design note). After the design verdict approves, the fixer starts from those commits with the author's authorship kept (ref_privacy.py guard's adopt-email arm admits one outside author), measures them against the approved design and the design reviewer's comparison section, and owes the full fixer contract on the result; it does not rebuild from scratch. Re-measure the head and the diff at dispatch: the author may push again. The author was told this on the pull request."
+   ],
    "source": "outside",
    "resume": {
     "stage": "not-started",
