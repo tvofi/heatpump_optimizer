@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sensor.py:CompressorStartsSensor.extra_state_attributes RETURN_DEL 98015516",
-  "killed_by": "tests/features.py",
-  "old": "        return {**starts, **duty_switch.starts_attributes(self.coordinator)}",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}
