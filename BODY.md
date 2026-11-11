@@ -30,6 +30,7 @@ Carry numbers in this body are 0-based roster indexes, as the part-1 dispatch gi
 - Carry 24: left for a later part; it stays on the roster.
 - Carry 26: left for a later part; it stays on the roster.
 - Carry 27: left for a later part; it stays on the roster.
+- Carry 28: not built in this part; the roster marks it moved to R10-SEAT-IDENTITY-P5 (open_driver.py, outside this part's file).
 
 The cause of the observed wrong checkout is still unproven. The private ref removes the FETCH_HEAD candidate. The assertion turns any other cause into an OWED line that names both heads, where at the base the push went through from the wrong head.
 
