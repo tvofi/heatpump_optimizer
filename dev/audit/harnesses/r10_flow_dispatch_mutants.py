@@ -62,6 +62,7 @@ MUTANTS = [
     ("brief-drop", 'brief=group_brief(group, roster, fixer=role == "fixer") +', 'brief="" +'),
     ("parent-drop", '*(["-p", tip] if tip else [])', "*[]"),
     ("nonce-altered", "**args, nonce=nonce)\n    except Refusal:", "**args, nonce=nonce + \"0\")\n    except Refusal:"),
+    ("part-collision-off", "if other is not group and topic in (", "if False and topic in ("),
     ("topic-to-id", 'ref = dispatch_ref(role, topic, "")', 'ref = dispatch_ref(role, group_id, "")'),
     ("render-host-off", "    m = HOME.search(json.dumps(payload))", "    m = None"),
     ("privacy-off", "    if why:\n        raise Refusal(f\"the dispatch ref", "    if False:\n        raise Refusal(f\"the dispatch ref"),
