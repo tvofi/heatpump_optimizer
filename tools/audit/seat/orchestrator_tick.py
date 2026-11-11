@@ -27,8 +27,9 @@ Sections, each measured:
           sibling .rc; prepr.sh slots (nudge.md step 8's cap, mechanically).
   PRS     every open PR: the latest check-run per name at its head (transport
           truth: lowercase conclusions, latest-run-wins) as GREEN / RUN / RED;
-          RED not answered in the body's ## Red checks; missing delivery row
-          in the three-dot diff; a queue verdict with the head moved past it
+          a RED in `merge_train.py owed-reds`' set not answered in the body's
+          ## Red checks (every RED when that set is unreadable); missing
+          delivery row in the three-dot diff; a queue verdict with the head moved past it
           and no carry; DIRTY/BLOCKED mergeable state; ZERO check runs at a
           head (the bot-push shape -- approve_held_runs.sh, nudge.md step 11);
           required contexts absent at the head; twin open PRs at one head
@@ -1188,6 +1189,20 @@ class Tick:
         except (mt.Stop, OSError, ValueError):  # fail closed: an unread raise is not reviewable
             return None
 
+    def _classify_red(self, head: str, runs: list, req: list) -> bool:
+        """True unless merge_train's own classify reads this head as other than RED
+        (a deferral red beside a busy run is WAIT there; carry 9, P455). Fail
+        closed to the tick's gate-conclusion reading: an unread classify is RED."""
+        def run(argv, cwd=None, stdin=None):
+            if argv[:1] == ["gh"]:
+                return self.gh(argv[1:])
+            return self.git(argv[1:]) if argv[:1] == ["git"] else (1, "the tick runs gh and git only")
+        try:
+            t = mt.Train(self.repo, Path("."), None, "", (), 0, run=run, log=lambda _m: None)
+            return t.classify_at(head, runs, req)[0] == "red"
+        except (mt.Stop, OSError, ValueError):
+            return True
+
     def one_pr(self, S: str, pr: dict, verdict: "str | None",
                required: "list[str] | None") -> None:
         n, head = pr["number"], pr.get("headRefOid") or ""
@@ -1203,6 +1218,8 @@ class Tick:
             self._unsettled[n] = bool(run or red or not runs)
             self._red = getattr(self, "_red", {})
             self._red[n] = list(red)
+            if red and required is not None and not self._classify_red(head, runs, required):
+                self._red[n] = []
             if not runs:
                 self.line(S, f"#{n}: ZERO check runs at head (the bot-push "
                              "shape: run approve_held_runs.sh, not a fixer)",
@@ -1255,13 +1272,18 @@ class Tick:
         state = "GREEN" if not run and not red else (
             f"RUN:{','.join(run)}" if run else f"RED:{','.join(red)}")
         self.line(S, f"#{n} [{pr.get('headRefName')}] {state}")
-        if red:
+        # Only a red in the set `merge_train.py owed-reds` prints is owed an
+        # answer (defect-root-cause.md); an unreadable set keeps every red.
+        req = (getattr(self, "_req_pr", None) or required) if required is not None else None
+        owed = mt.judged(mt.gating_names(req)) if req is not None else red
+        owed_red = [r for r in red if r in owed]
+        if owed_red:
             code, o = self.gh(["pr", "view", str(n), "--repo", self.repo,
                                "--json", "body", "--jq", ".body"])
             if code:
                 self.unreadable(S, f"body of #{n}", o.strip()[-100:])
             else:
-                missing = [r for r in red
+                missing = [r for r in owed_red
                            if r not in self.body_section(o, "Red checks")]
                 if missing:
                     self.line(S, f"#{n}: RED unanswered in ## Red checks: "
@@ -3973,6 +3995,25 @@ def self_test() -> int:
                 (f"NOT REVIEWABLE {'present' if want else 'absent'}",
                  any(x["text"].startswith("#71: NOT REVIEWABLE") for x in t.findings) == want)])
             total, failed = total + a, failed + f
+        # PRS: `RED unanswered` names only a red the body owes an answer (owner
+        # ruling tvofi 2026-11-07, defect-root-cause.md): merge_train's
+        # judged(gating_names(required)), as review_packet.unanswered_reds reads
+        # it. A NOT_GATING name in the ruleset owes none; under GATE a unit name
+        # does. An unreadable set keeps every red (the fallback; null control).
+        unit = json.loads(mt.REQUIRED_CONTEXTS.read_text())["gate_required"][0]
+        for label, req, reds, want in (
+                ("required set read", ["tests"], ["tests", "codeql"], {"tests"}),
+                ("NOT_GATING in the ruleset", ["tests", "delivery-status"],
+                 ["tests", "delivery-status"], {"tests"}),
+                ("a gate unit under GATE", [mt.GATE], [unit, "codeql"], {unit}),
+                ("unreadable set: every red (null control)", None, ["tests", "codeql"], {"tests", "codeql"})):
+            t = tick(prs=[pr_obj(77, H1)], runs_at={H1: [run_obj(r, conclusion="failure") for r in reds]},
+                     bodies={77: "## Red checks\n\nnone\n"})
+            t.one_pr("PRS", pr_obj(77, H1), None, req)
+            ru = [x["text"] for x in t.findings if x["text"].startswith("#77: RED unanswered")]
+            got = set(ru[0].split("## Red checks: ", 1)[1].split(", ")) if len(ru) == 1 else set()
+            a, f = check(f"PRS owed reds: {label}", [(f"RED unanswered names {sorted(want)}", got == want)])
+            total, failed = total + a, failed + f
         # PRS (d): a pull request's head is judged on every live required
         # context: a red pr-contract, read live from the ruleset, is not
         # reviewable (null control: the same head with pr-contract green).
@@ -3990,6 +4031,24 @@ def self_test() -> int:
                 (f"NOT REVIEWABLE {'names pr-contract' if want else 'absent'}",
                  (len(nr) == 1 and "pr-contract" in nr[0]) if want else not nr)])
             total, failed = total + a, failed + f
+        # carry 9 at the level that prints it: one_pr clears _red[n] when merge_train's
+        # classify reads WAIT; red stands on a RED read (null control) and on an
+        # unread classify (mt.Stop: fail closed).
+        def _stop(self, h, runs, req):
+            raise mt.Stop("classify", "unread")
+        _was9 = mt.Train.classify_at
+        try:
+            for label, stub, want in (("WAIT clears the red", lambda self, h, runs, req: ("wait", ["gate"], []), []),
+                                      ("RED keeps it (null control)", lambda self, h, runs, req: ("red", [], ["gate"]), ["gate"]),
+                                      ("an unread classify keeps it", _stop, ["gate"])):
+                mt.Train.classify_at = stub
+                t = tick(prs=[pr_obj(77, H1)], runs_at={H1: [run_obj("gate", conclusion="failure")]})
+                t.one_pr("PRS", pr_obj(77, H1), None, ["gate"])
+                a, f = check(f"carry 9 one_pr: {label}", [
+                    (f"_red[77] is {want}", t._red.get(77) == want)])
+                total, failed = total + a, failed + f
+        finally:
+            mt.Train.classify_at = _was9
         # PRS (d), P345: a budget raise is red at budget-raise-gate until the
         # owner's approval names its head, which follows the review. #3045's
         # shape (gate + budget-raise-gate red, one raise, the owner's approval
@@ -4131,8 +4190,17 @@ def self_test() -> int:
                          fired=f"{iso(NOW - timedelta(minutes=40))} FIRED payload-fix-82-r5.json\n")
         _, o_b = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]},
                          refs=[("handoff-wip/82", "e" * 40)], cts={"e" * 40: 5})
-        _, o_c = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]},
-                         fired=f"{iso(NOW - timedelta(hours=9))} FIRED payload-fix-82-r5.json\n")
+        t_c, o_c = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]},
+                           fired=f"{iso(NOW - timedelta(hours=9))} FIRED payload-fix-82-r5.json\n")
+        # carry 9 (P455): the red-unowned level reads merge_train's classify, not the gate conclusion
+        _was = mt.Train.classify_at
+        try:
+            mt.Train.classify_at = lambda self, h, runs, req: ("wait", ["gate"], [])
+            c9_wait = t_c._classify_red("a" * 40, [], ["gate"])
+            mt.Train.classify_at = lambda self, h, runs, req: ("red", [], ["gate"])
+            c9_red = t_c._classify_red("a" * 40, [], ["gate"])
+        finally:
+            mt.Train.classify_at = _was
         # P279: PARK lines after the last STARTED; P265 train bucket; card 8 re-cut
         pk = "STARTED train.sh pid 1 over #83\nPARK #83 preflight: policy\nTRAIN DONE\n"
         _, o_pk = oboard2([(83, "CLEAN", [f"Fix review: merge {h(83)}"], 5)], queue_v={83: h(83)}, train=pk)
@@ -4243,6 +4311,8 @@ def self_test() -> int:
              ("null: blocked at head for 1 h (inside the round) prints nothing", o_null == []),
             ("every open PR has exactly one bucket (count line sums to the PRs read)",
              bk.startswith("buckets: ") and sum(int(x.rsplit(" ", 1)[1]) for x in bk[9:].split(", ")) == 3),
+            ("carry 9: a deferral red classify reads WAIT is not red-unowned; a real RED still is (null control)",
+             c9_wait is False and c9_red is True),
             ("carry 6 arm (a): a payload-file FIRED line inside the window is a seat on it", o_a == []),
             ("carry 6 arm (b): handoff-wip moved inside the window is a seat on it", o_b == []),
             ("carry 6 null (c): neither, or a fire outside the window, is RED-UNOWNED",

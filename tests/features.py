@@ -2039,7 +2039,7 @@ _r10bo_at = (_r10bo_t0 + timedelta(minutes=20), _r10bo_t0 + timedelta(minutes=50
 
 
 def _r10bo_run(*, probe=None, dhw_probe=None, trajectory=_r10bo_traj, wood=False,
-               dhw_trajectory=()):
+               dhw_trajectory=(), extra=None, spy_dhw_learner=None):
     """Two cycles; returns ([buffer level per cycle], [dhw level], [observation])."""
     cfg = {
         "tibber_token": "x",
@@ -2067,8 +2067,16 @@ def _r10bo_run(*, probe=None, dhw_probe=None, trajectory=_r10bo_traj, wood=False
             "valve_outlet_temp_entity": "sensor.outlet",
             "wood_tank_volume": 1000.0,
         })
+    cfg.update(extra or {})
     coord = _r10bo_Coord(FakeHass(), _r9f12_entry(data=cfg))
     coord._snapshots_loaded = True
+    if spy_dhw_learner is not None:
+        # R10-COMBI-TANK: count the DHW learner's samples, and learn nothing.
+        async def _r10bo_learn(tank):
+            spy_dhw_learner.append(tank)
+            return None
+
+        coord._dhw_learner.async_learn_dynamics = _r10bo_learn
     coord._optimization_result = _r9f12_ns(
         buffer_temp_trajectory=list(trajectory),
         dhw_temp_trajectory=list(dhw_trajectory),
@@ -9786,21 +9794,26 @@ def reachable(name: str) -> str | None:
 # Volume is gated on the furnace toggle (#463): a lone CONF_WOOD_TANK_VOLUME
 # does not infer a tank, so the single-key probe cannot see it.
 toggle_gated = {"wood_tank_volume"}
-# R10-COMBI-TANK-STORE (PR A) lands the combi store as parameter fields that
-# only a test sets, so no install can reach combi; PR B (R10-COMBI-TANK)
-# wires the option and the loader. Each entry must stay unreachable, so the
-# set refuses itself the day a loader lands without emptying it.
-unwired_combi = {"dhw_combi_tank_enabled", "combi_dhw_effectiveness", "combi_potable_volume_l"}
 probe = {name: reachable(name) for name in declared - runtime_only - validated_enums}
+# R10-COMBI-TANK (PR B, #3225) wires the combi store PR A landed as test-only
+# fields: each is reached by its own option key, never by another's. PR A's
+# `unwired_combi` exemption is gone, so the reachability check below covers
+# them like every other field.
+combi_keys = {
+    "dhw_combi_tank_enabled": "CONF_DHW_COMBI_TANK_ENABLED",
+    "combi_dhw_effectiveness": "CONF_COMBI_DHW_EFFECTIVENESS",
+    "combi_potable_volume_l": "CONF_COMBI_POTABLE_VOLUME_L",
+    "dhw_combi_legionella_force": "CONF_DHW_COMBI_LEGIONELLA_FORCE",
+}
 R.check(
-    "the combi store's fields are reachable from no config key until PR B wires them",
-    all(probe.get(n, "absent") is None for n in unwired_combi),
-    f"{ {n: probe.get(n, 'absent') for n in unwired_combi} } -- a wired field leaves the set",
+    "the combi store's fields are each reached by their own option key",
+    all(probe.get(n) == k for n, k in combi_keys.items()),
+    f"{ {n: probe.get(n, 'absent') for n in combi_keys} }",
 )
 
 unreachable = sorted(
     n for n, k in probe.items()
-    if k is None and n not in toggle_gated and n not in unwired_combi
+    if k is None and n not in toggle_gated
 )
 R.check(
     "every configurable parameter is reachable from a config key",
@@ -12132,6 +12145,260 @@ R.check(
     _cg_gain[0] > 1.0 and _cg_gain[1] > 1.0 and _cg_same,
     f"store gain scalar {_cg_gain[0]:.4f} C, batch {_cg_gain[1]:.4f} C; unvalved unchanged {_cg_same}",
 )
+
+# --- R10-COMBI-TANK (PR B, #3225): the combi store reachable by an install --
+# PR A landed the store's physics behind fields only a test could set. This
+# block pins what PR B adds: the loader, the seed, the learner gate, the
+# 3-litre legionella default (design §L), the setup description and the
+# advisor's probe price, and the two censuses that keep the type data and the
+# legionella flag behind one owner.
+R.section("R10-COMBI-TANK: the combi option, seed, learners and legionella default")
+from heatpump_optimizer import const as _cb_const  # noqa: E402
+from heatpump_optimizer import coordinator as _cb_coord  # noqa: E402
+from heatpump_optimizer import topology as _cb_topo  # noqa: E402
+import re as _cb_re  # noqa: E402
+
+# The issue's install as an options mapping: 504 l of heating water behind a
+# throttling valve, hot water on, the combi switch and a 40 l coil.
+_CB_CFG = {
+    _cb_const.CONF_MIXING_VALVE_MODE: _mv.MODE_SMART_WRITE,
+    _cb_const.CONF_BUFFER_TANK_VOLUME: 504.0,
+    _cb_const.CONF_DHW_ENABLED: True,
+    _cb_const.CONF_DHW_COMBI_TANK_ENABLED: True,
+    _cb_const.CONF_COMBI_DHW_EFFECTIVENESS: 0.85,
+    _cb_const.CONF_COMBI_POTABLE_VOLUME_L: 40.0,
+}
+_cb_on = ThermalParameters.from_config(_CB_CFG)
+_cb_off_cfg = {k: v for k, v in _CB_CFG.items() if k != _cb_const.CONF_DHW_COMBI_TANK_ENABLED}
+R.check(
+    "combi loader: the option reaches the store, 504 l plus the 40 l coil, eps from the entry; "
+    "null control: without the switch the same mapping loads the separate tank, field for field",
+    _cb_on.combi_tank_active and _cb_on.buffer_store_volume == 544.0
+    and _cb_on.dhw_store.combi and _cb_on.combi_dhw_effectiveness == 0.85
+    and not ThermalParameters.from_config(_cb_off_cfg).combi_tank_active
+    and ThermalParameters.from_config(_cb_off_cfg)
+    == ThermalParameters.from_config({**_cb_off_cfg, _cb_const.CONF_DHW_COMBI_TANK_ENABLED: False}),
+    f"active={_cb_on.combi_tank_active} volume={_cb_on.buffer_store_volume}",
+)
+R.check(
+    "combi implies a throttling valve, so the buffer cooling learner (which returns under one) "
+    "never reads a combi store: every valve mode over 504 l",
+    all(
+        _mv.is_throttling(m)
+        for m in _mv.MODES
+        if ThermalParameters.from_config({**_CB_CFG, _cb_const.CONF_MIXING_VALVE_MODE: m}).combi_tank_active
+    )
+    and any(
+        ThermalParameters.from_config({**_CB_CFG, _cb_const.CONF_MIXING_VALVE_MODE: m}).combi_tank_active
+        for m in _mv.MODES
+    ),
+    "",
+)
+
+# The seed: one node, one level, the measured tank first (carry 6).
+_CB_EXTRA = {"mixing_valve_mode": "manual", "dhw_enabled": True, "dhw_combi_tank_enabled": True}
+_cb_b, _cb_d, _, _ = _r10bo_run(probe=36.5, dhw_probe=48.0, extra=_CB_EXTRA)
+R.check(
+    "combi seed: the buffer probe sets both levels, over the hot water probe",
+    _cb_b == [36.5, 36.5] and _cb_d == [36.5, 36.5],
+    f"buffer={_cb_b} dhw={_cb_d}",
+)
+_cb_b, _cb_d, _, _ = _r10bo_run(dhw_probe=48.0, extra=_CB_EXTRA)
+_cb_nb, _cb_nd, _, _ = _r10bo_run(dhw_probe=48.0)
+R.check(
+    "combi seed: with only the hot water probe, its measured level seeds the buffer too; "
+    "null control: off combi the buffer follows the plan (41, 43) and the hot water its probe",
+    _cb_b == [48.0, 48.0] and _cb_d == [48.0, 48.0]
+    and _cb_nb == [41.0, 43.0] and _cb_nd == [48.0, 48.0],
+    f"combi={_cb_b},{_cb_d} off={_cb_nb},{_cb_nd}",
+)
+_cb_b, _cb_d, _, _ = _r10bo_run(extra=_CB_EXTRA)
+R.check(
+    "combi seed: with no probe both levels follow the plan's buffer trajectory",
+    _cb_b == [41.0, 43.0] and _cb_d == [41.0, 43.0],
+    f"buffer={_cb_b} dhw={_cb_d}",
+)
+_cb_samples, _cb_null = [], []
+_r10bo_run(dhw_probe=48.0, extra=_CB_EXTRA, spy_dhw_learner=_cb_samples)
+_r10bo_run(dhw_probe=48.0, extra={"dhw_enabled": True}, spy_dhw_learner=_cb_null)
+R.check(
+    "combi: the separate tank's DHW learner takes no sample of the shared store; "
+    "null control: off combi it samples the probe every cycle",
+    _cb_samples == [] and _cb_null == [48.0, 48.0],
+    f"combi={_cb_samples} off={_cb_null}",
+)
+
+# §L: the legionella cycle defaults off at or under 3 l of stored potable
+# water, unless forced; off combi it is the flag itself.
+def _cb_leg(volume, *, force=False, combi=True, enabled=True):
+    return ThermalParameters.from_config({
+        **_CB_CFG,
+        _cb_const.CONF_COMBI_POTABLE_VOLUME_L: volume,
+        _cb_const.CONF_DHW_COMBI_LEGIONELLA_FORCE: force,
+        _cb_const.CONF_DHW_COMBI_TANK_ENABLED: combi,
+        _cb_const.CONF_DHW_LEGIONELLA_ENABLED: enabled,
+    })
+
+
+_cb_grid = {
+    "0": _cb_leg(0.0).legionella_cycle_active,
+    "3.0": _cb_leg(3.0).legionella_cycle_active,
+    "3.01": _cb_leg(3.01).legionella_cycle_active,
+    "0 forced": _cb_leg(0.0, force=True).legionella_cycle_active,
+    "0 off combi": _cb_leg(0.0, combi=False).legionella_cycle_active,
+    "40 disabled": _cb_leg(40.0, enabled=False).legionella_cycle_active,
+    "0 forced disabled": _cb_leg(0.0, force=True, enabled=False).legionella_cycle_active,
+}
+R.check(
+    "legionella_potable: a combi store with 0 or 3.0 l of potable water runs no cycle, 3.01 l "
+    "and a forced one do; null control: off combi 0 l runs it, and a disabled cycle never runs",
+    _cb_grid == {"0": False, "3.0": False, "3.01": True, "0 forced": True,
+                 "0 off combi": True, "40 disabled": False, "0 forced disabled": False},
+    f"{_cb_grid}",
+)
+R.check(
+    "legionella_potable: the rating follows the gate: no cycle, no 60 C top over a 50 C setpoint; "
+    "a cycle, the legionella target",
+    _cb_leg(0.0).dhw_hard_max_temp == min(70.0, _cb_leg(0.0).dhw_setpoint)
+    and _cb_leg(40.0).dhw_hard_max_temp
+    == min(70.0, max(_cb_leg(40.0).dhw_setpoint, _cb_leg(40.0).dhw_legionella_temp)),
+    f"{_cb_leg(0.0).dhw_hard_max_temp} {_cb_leg(40.0).dhw_hard_max_temp}",
+)
+
+# The setup description and the advisor.
+_cb_setup = _cb_topo.describe_setup(_CB_CFG)
+_cb_setup_off = _cb_topo.describe_setup(_cb_off_cfg)
+R.check(
+    "combi setup: the hot water source is the buffer, and its edge leaves the buffer; "
+    "null control: off, the separate tank fed by the pump",
+    _cb_setup["dhw_source"] == "combi"
+    and ["buffer_tank", "dhw_tank"] in [list(e) for e in _cb_setup["edges"]]
+    and ["heat_pump", "dhw_tank"] not in [list(e) for e in _cb_setup["edges"]]
+    and _cb_setup_off["dhw_source"] == "tank"
+    and ["heat_pump", "dhw_tank"] in [list(e) for e in _cb_setup_off["edges"]],
+    f"{_cb_setup['dhw_source']} {_cb_setup['edges']}",
+)
+
+
+def _cb_dhw_gap(cfg):
+    rows = _cb_topo.rank_sensor_gaps(cfg, dhw_extra_kwh=10.0, dhw_price=2.0)
+    return next(r["sek_per_month"] for r in rows if r["key"] == _cb_const.CONF_DHW_TEMP_ENTITY)
+
+
+_cb_probed = {**_CB_CFG, _cb_const.CONF_BUFFER_TANK_TEMP_ENTITY: "sensor.buffer"}
+R.check(
+    "combi advisor: with a buffer probe the hot water probe's miss prices nothing; "
+    "null controls: without the buffer probe, and off combi with it, it prices the coast",
+    _cb_dhw_gap(_cb_probed) == 0.0
+    and _cb_dhw_gap(_CB_CFG) > 0.0
+    and _cb_dhw_gap({k: v for k, v in _cb_probed.items() if k != _cb_const.CONF_DHW_COMBI_TANK_ENABLED}) > 0.0,
+    f"{_cb_dhw_gap(_cb_probed)} {_cb_dhw_gap(_CB_CFG)}",
+)
+
+# The pre-fill: the type is the flow's shortcut to two numbers.
+from heatpump_optimizer import config_flow as _cb_flow  # noqa: E402
+
+_cb_stored = {_cb_const.CONF_DHW_COMBI_TANK_TYPE: "internal_coil"}
+_cb_fill = {
+    "changed": _cb_flow._combi_preset_fill(
+        {_cb_const.CONF_DHW_COMBI_TANK_TYPE: "tank_in_tank",
+         _cb_const.CONF_COMBI_POTABLE_VOLUME_L: 40.0}, _cb_stored),
+    "kept": _cb_flow._combi_preset_fill(
+        {_cb_const.CONF_DHW_COMBI_TANK_TYPE: "internal_coil",
+         _cb_const.CONF_COMBI_POTABLE_VOLUME_L: 40.0}, _cb_stored),
+    "custom": _cb_flow._combi_preset_fill(
+        {_cb_const.CONF_DHW_COMBI_TANK_TYPE: "custom",
+         _cb_const.CONF_COMBI_POTABLE_VOLUME_L: 40.0}, _cb_stored),
+}
+R.check(
+    "combi pre-fill: a changed type writes its preset's two numbers; a kept type keeps the "
+    "user's 40 l; custom writes nothing",
+    _cb_fill["changed"][_cb_const.CONF_COMBI_POTABLE_VOLUME_L] == 150.0
+    and _cb_fill["changed"][_cb_const.CONF_COMBI_DHW_EFFECTIVENESS] == 0.95
+    and _cb_fill["kept"] == {_cb_const.CONF_DHW_COMBI_TANK_TYPE: "internal_coil",
+                             _cb_const.CONF_COMBI_POTABLE_VOLUME_L: 40.0}
+    and _cb_const.CONF_COMBI_DHW_EFFECTIVENESS not in _cb_fill["custom"],
+    f"{_cb_fill}",
+)
+R.check(
+    "combi presets: the coil preset's 45 C tap minimum is a 51.2 C store floor (design §T.2)",
+    round(ThermalParameters.from_config({
+        **_CB_CFG,
+        _cb_const.CONF_COMBI_DHW_EFFECTIVENESS: _cb_const.COMBI_TANK_PRESETS["internal_coil"].effectiveness,
+    }).dhw_store.store_temp_for_tap(45.0) - 0.0, 1)
+    == round(_cb_on.dhw_inlet_reference
+             + (45.0 - _cb_on.dhw_inlet_reference) / 0.85, 1),
+    "",
+)
+
+# Censuses (P2, _P2_CENSUSES in tests/entities.py).
+_cb_pkg = _ct_Path(_cb_const.__file__).parent
+_cb_trees = {f.name: _ct_ast.parse(f.read_text()) for f in sorted(_cb_pkg.glob("*.py"))}
+
+
+def _cb_legionella_reads():
+    """Attribute reads of the raw flag outside its owner, and the display reads."""
+    behaviour, display = [], []
+    for name, tree in _cb_trees.items():
+        if name == "thermal_model.py":
+            continue
+        for fn in [n for n in _ct_ast.walk(tree) if isinstance(n, (_ct_ast.FunctionDef, _ct_ast.AsyncFunctionDef))]:
+            for node in _ct_ast.walk(fn):
+                if isinstance(node, _ct_ast.Attribute) and node.attr == "dhw_legionella_enabled":
+                    (display if fn.name == "_dhw_view" else behaviour).append(f"{name}:{node.lineno}")
+    return behaviour, display
+
+
+_cb_beh, _cb_disp = _cb_legionella_reads()
+R.check(
+    "combi_legionella_gate census: outside thermal_model.py no behaviour reads the raw legionella flag, "
+    "only legionella_cycle_active; the census sees the diagnostics read, so it reaches the package",
+    _cb_beh == [] and len(_cb_disp) == 1 and len(_cb_trees) > 40,
+    f"behaviour reads: {_cb_beh}; display: {_cb_disp}",
+)
+
+_CB_SLUGS = set(_cb_const.COMBI_TANK_PRESETS) | {_cb_const.COMBI_TANK_CUSTOM}
+_CB_VENDOR = _cb_re.compile(r"alpha.?innotec|mfs ?[0-9]|luxtronik", _cb_re.IGNORECASE)
+
+
+def _cb_type_branches():
+    """Preset slugs as literals and vendor names, outside the table and the flow."""
+    hits = []
+    for name, tree in _cb_trees.items():
+        if name in ("const.py", "config_flow.py"):
+            continue
+        for node in _ct_ast.walk(tree):
+            if isinstance(node, _ct_ast.Constant) and node.value in _CB_SLUGS:
+                hits.append(f"{name}:{node.lineno}:{node.value}")
+    vendor = [
+        f"{f.name}:{i}" for f in sorted(_cb_pkg.glob("*.py"))
+        for i, line in enumerate(f.read_text().splitlines(), 1) if _CB_VENDOR.search(line)
+    ]
+    return hits, vendor
+
+
+# The base count, recorded at origin/main 2f6d699e: two comments naming a valve
+# controller's return-water target, neither a tank type. The census refuses
+# growth, not those two (design §T.4: "record the base count"). Re-recorded at
+# origin/main b0762725 as 4: R10-GENERIC-HEAT-CURVE added two more, the
+# offset controller's integration name (heat_curve.py) and a research
+# citation for the offset band (const.py), neither a tank type; this branch
+# adds none (`git grep -ciE` over the package's Python sums to 4 on both).
+# R10-HOTFIX-COMBI-CENSUS-MAIN-RED: main at cbd23f1c read 6, two more landed
+# by merges the census never ran beside; all six now name the behaviour, so
+# the base is 0 and any vendor name is growth.
+_CB_VENDOR_BASE = 0
+
+
+_cb_hits, _cb_vendor = _cb_type_branches()
+R.check(
+    "combi_type_branch census: no preset slug outside const.py's table and the options flow, and no "
+    "product or vendor name in the package's Python; the census sees the table's own slugs",
+    _cb_hits == [] and len(_cb_vendor) <= _CB_VENDOR_BASE
+    and _CB_SLUGS <= {n.value for n in _ct_ast.walk(_cb_trees["const.py"]) if isinstance(n, _ct_ast.Constant)},
+    f"slugs: {_cb_hits}; vendor: {_cb_vendor}",
+)
+
 
 # R10-BUFFER-STORE review 1: the savings reference sized its power from the
 # emitters' need as if the step delivered it straight to them, so behind a
@@ -40043,6 +40310,26 @@ R.check(
         for i in getattr(_lg_edited_leg.hass, "issues", [])
     ),
 )
+# R10-COMBI-TANK (#3225): the card reads the cycle's gate, not the raw flag.
+# A combi store holding no potable water runs no cycle, so the same edited
+# pair raises no card there, with hot water on and the flag still set.
+_lg_combi_none = _lg_coord(
+    dhw_setpoint=55.0, dhw_legionella_temperature=65.0, dhw_enabled=True,
+    mixing_valve_mode="manual", buffer_tank_volume=504.0,
+    dhw_combi_tank_enabled=True, combi_potable_volume_l=0.0,
+)
+_lg_combi_none._legionella.check_ceiling()
+R.check(
+    "…but a combi store with no potable water runs no cycle and gets no card",
+    _lg_combi_none._thermal_params.dhw_legionella_enabled
+    and _lg_combi_none._thermal_params.dhw_enabled
+    and not _lg_combi_none._thermal_params.legionella_cycle_active
+    and not any(
+        i[1] == "dhw_legionella_above_setpoint"
+        for i in getattr(_lg_combi_none.hass, "issues", [])
+    ),
+    f"issues {[i[1] for i in getattr(_lg_combi_none.hass, 'issues', [])]}",
+)
 
 
 # --- M2: a weather outage is surfaced, never silently papered over ---------
@@ -61101,7 +61388,7 @@ R.check(
 def _p8_setpoint(state):
     hass = _FakeHass({"number.dhw_sp": state})
     hass.issues = []
-    params = _p8_ns(dhw_min_temp=55.0, dhw_legionella_enabled=False, dhw_legionella_temp=60.0)
+    params = _p8_ns(dhw_min_temp=55.0, dhw_legionella_enabled=False, legionella_cycle_active=False, dhw_legionella_temp=60.0)
     _p8_sp._dhw(hass, {_SP_DHW_ENT: "number.dhw_sp"}, params)
     return [i for i in hass.issues if i[1] == _SP_ISSUE_DHW]
 
@@ -62763,7 +63050,7 @@ R.check(
 )
 _pa_mbs = _PaCoord(_PA_MODBUS, duties="s")
 _pa_mbs._thermal_params = _PaNS(
-    dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, dhw_legionella_temp=60.0
+    dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, legionella_cycle_active=True, dhw_legionella_temp=60.0
 )
 _pa_settled(_pa_mbs, 1)
 _p8_sp.evaluate(_pa_mbs, lambda pump: _pa.dhw_gated(_pa_mbs, pump))
@@ -71511,10 +71798,10 @@ R.check(
 _dbg_dsnap = ((_dbg_dg.get("debug") or {}).get("payload_snapshots") or [{}])[0].get("data", {})
 R.check(
     "DBG-1 Download diagnostics carries the bundle through its own redaction: a name "
-    "is redacted and a coordinate coarsened inside a payload snapshot",
+    "and a coordinate are redacted inside a payload snapshot",
     _dbg_dg.get("debug", {}).get("schema") == "hpo-debug/1"
     and _dbg_dsnap.get("name") == _DBG_REDACTED
-    and _dbg_dsnap.get("solar_diagnostics") == {"latitude": 59.3, "longitude": 18.1},
+    and _dbg_dsnap.get("solar_diagnostics") == {"latitude": _DBG_REDACTED, "longitude": _DBG_REDACTED},
     str(_dbg_dsnap)[:300],
 )
 R.check(
@@ -76777,7 +77064,7 @@ _df_space_hass = _df_strict_hass({"number.space": FakeState("unavailable")})
 _df_sc.evaluate(_DfNS(
     hass=_df_space_hass,
     effective_config={"space_setpoint_entity": "number.space"},
-    thermal_params=_DfNS(dhw_min_temp=45.0, dhw_legionella_enabled=False,
+    thermal_params=_DfNS(dhw_min_temp=45.0, dhw_legionella_enabled=False, legionella_cycle_active=False,
                          dhw_legionella_temp=60.0),
 ))
 R.check(
@@ -83202,5 +83489,657 @@ R.check(
     f"scalar {_c2238_p8_s}, batch {_c2238_p8_b}",
 )
 
+
+# --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380, adopted by design
+# note design/R10-WATER-SETPOINT-FEEDBACK at 1442f906, approved d3623f5b):
+# a water set-point under Pump duty control was inlet + lift, re-anchored on
+# every pass and never compared with the measured draw, so a controller that
+# integrates on set-point minus return ramped for the whole heating block.
+# No finder harness: the contributor's Luxtronik 2.1 runs A-C are the report,
+# and this simulated integrating controller is the reproduction, driven
+# through the production ``_arbitrate`` (``hold``, ``desired``, ``_write``).
+# The controller: start when return <= register - hysteresis; a 3-minute start
+# programme at 52 Hz; then speed += k (register - return) dt, k = 0.9 Hz/min
+# per K (measured on the reporting install, #3372 comment 2026-11-09T20:39Z,
+# not a firmware fact); stop when return >= register + stop hysteresis; the
+# register clamped to [minimum return target (parameter 979), return limit]
+# and read back clamped. Draw P = 0.5 kW at 26 Hz rising 0.0269 kW/Hz (1.2 kW
+# at 52 Hz, 1.95 kW at 80 Hz, Run A); the return relaxes toward
+# 25 degC + 3 K/kW x P with a 60-minute lag (Run B's 26.0 -> 27.7 degC in
+# 35 minutes at 1.1-1.5 kW).
+import asyncio as _fb_aio  # noqa: E402
+import random as _fb_random  # noqa: E402
+
+from heatpump_optimizer import pump_arbiter as _fb_pa  # noqa: E402
+
+_FB_T0 = datetime(2026, 1, 12, 8, 0, tzinfo=UTC)
+_FB_SET = "number.fb_return_set"
+_FB_RETURN = "sensor.fb_return"
+_FB_IDS = __import__("itertools").count()
+
+
+class _FbCoord:
+    """The published surface the arbiter reads, with the meter and defrost
+    flag the simulation sets each pass."""
+
+    def __init__(self, *, unit="return", power_entity=True, feedback=None, lift=0.5,
+                 ceiling=32.0, plan_kw=0.53, step=0.1, mode=None):
+        self.hass = FakeHass({
+            _FB_SET: FakeState("26.0", attributes={"min": 15, "max": 45, "step": step}),
+            _FB_RETURN: FakeState("25.9", unit="°C"),
+        })
+        config = {
+            "pump_duty_mode": "control", "space_setpoint_entity": _FB_SET,
+            "space_setpoint_unit": unit, "heat_pump_return_temp_entity": _FB_RETURN,
+            "flow_min_lift_k": lift, "flow_heat_c": ceiling,
+        }
+        if power_entity:
+            config["heat_pump_power_entity"] = "sensor.fb_power"
+        if feedback is not None:
+            config["space_setpoint_power_feedback"] = feedback
+        self._config = EntryConfig.from_mapping(config)
+        self._mode = mode or _PA_AUTO
+        self._current_action = {"mode": "eco"}
+        stamps = [_FB_T0 + timedelta(minutes=15 * i) for i in range(24)]
+        plan = list(plan_kw) if isinstance(plan_kw, (list, tuple)) else [plan_kw] * 24
+        self._optimization_result = _PaNS(
+            timestamps=stamps, power_schedule=plan,
+            dhw_power_schedule=[0.0] * 24, optimal_setpoints=[21.0] * 24)
+        self._thermal_model = _PaNS(
+            params=_PaNS(min_electrical_power=0.53), curve_flow_temp=lambda _o: 34.0)
+        self._thermal_params = _PaNS(
+            dhw_setpoint=48.0, min_electrical_power=0.53, max_electrical_power=2.2)
+        self._current_state = _PaNS(outdoor_temperature=4.0, room_temperature=21.0)
+        self.entry = _PaNS(entry_id=f"fb{next(_FB_IDS)}")
+        self.power = None
+        self.defrosting = False
+
+    def arbiter_inputs(self):
+        return _fb_pa.ArbiterInputs(
+            hass=self.hass, config=self._config, mode=self._mode,
+            plan=self._optimization_result, plan_stale=False, entry_released=False,
+            state=self._current_state, thermal=self._thermal_model,
+            params=self._thermal_params, action=self._current_action,
+            measured_power_kw=self.power, disinfecting=False, defrosting=self.defrosting)
+
+
+def _fb_draw_kw(hz):
+    return 0.0 if hz <= 0 else 0.5 + (hz - 26.0) * 0.0269
+
+
+def _fb_sim(*, minutes=180, hyst=0.5, stop_hyst=None, clamp=(10.0, 50.0), revert_at=None,
+            defrost=(), seed=7, **coord_kw):
+    """Run the controller and the arbiter for ``minutes``; a dict of traces.
+
+    One pass at each minute, plus a listener pass at a random second in about
+    a third of the minutes; the physics steps every 10 s. ``revert_at`` (min)
+    drops the register to 35.0 degC with the compressor still running (the
+    SHI's 600 s volatility); ``defrost`` is a set of minutes the flag reads on.
+    """
+    rng = _fb_random.Random(seed)
+    coord = _FbCoord(**coord_kw)
+    held = _fb_pa.state_for(coord)
+    held.loaded = True
+    stop_hyst = hyst if stop_hyst is None else stop_hyst
+    ret, reg, hz, prog = 25.9, 26.0, 0.0, 0.0
+    starts, writes, trace, issues_seen = 0, [], [], []
+    seen = 0
+    for minute in range(minutes):
+        passes = [0] + ([rng.randint(5, 55)] if rng.random() < 0.34 else [])
+        for second in range(0, 60, 10):
+            now = _FB_T0 + timedelta(minutes=minute, seconds=second)
+            for at in passes:
+                if second <= at < second + 10:
+                    coord.power = round(_fb_draw_kw(hz), 3)
+                    coord.defrosting = minute in defrost
+                    coord.hass.states.get(_FB_RETURN).state = f"{ret:.2f}"
+                    _fb_aio.run(_fb_pa._arbitrate(
+                        coord, held, coord.arbiter_inputs(), "control",
+                        now + timedelta(seconds=at - second)))
+                    for _d, _s, data in coord.hass.services.calls[seen:]:
+                        if (data or {}).get("entity_id") == _FB_SET:
+                            sent = float(data["value"])
+                            reg = min(max(sent, clamp[0]), clamp[1])
+                            writes.append((minute, sent, round(ret, 2)))
+                            coord.hass.states.get(_FB_SET).state = f"{reg:.1f}"
+                    seen = len(coord.hass.services.calls)
+                    if held.retry:
+                        issues_seen.append(minute)
+            if revert_at is not None and minute == revert_at and second == 0:
+                reg = 35.0
+                coord.hass.states.get(_FB_SET).state = "35.0"
+            dt = 10.0 / 60.0
+            if hz <= 0 and ret <= reg - hyst + 1e-9:
+                hz, prog, starts = 52.0, 3.0, starts + 1
+            elif hz > 0 and ret >= reg + stop_hyst - 1e-9:
+                hz = 0.0
+            elif hz > 0 and prog > 0:
+                prog -= dt
+            elif hz > 0:
+                hz = min(max(hz + 0.9 * (reg - ret) * dt, 26.0), 90.0)
+            ret += (25.0 + 3.0 * _fb_draw_kw(hz) - ret) * dt / 60.0
+        run = held.feedback
+        trace.append((minute, hz, _fb_draw_kw(hz), reg, ret,
+                      None if run is None else run.start))
+    return {"coord": coord, "held": held, "starts": starts, "writes": writes,
+            "trace": trace, "issues": issues_seen}
+
+
+def _fb_after_hold(sim, plan_kw=0.53):
+    """Over the last 30 minutes: the mean draw, whether every minute's draw
+    is within 20 % of plan (no ramp away from it), and whether the mean is."""
+    tail = sim["trace"][-30:]
+    mean = sum(row[2] for row in tail) / len(tail)
+    every = all(abs(row[2] - plan_kw) <= 0.2 * plan_kw for row in tail)
+    return mean, every, abs(mean - plan_kw) <= 0.2 * plan_kw
+
+
+# The wind-down from the 52 Hz start programme (1.2 kW, 2.3x a 0.53 kW plan) is
+# bounded by k x the 0.3 K the target may sit below the inlet without stopping
+# the compressor: about 0.27 Hz/min, so the check reads the last 30 minutes of
+# a three-hour heating block, not the minutes after the start hold.
+_fb_main = _fb_sim()
+_fb_mean, _fb_every, _fb_within = _fb_after_hold(_fb_main)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a return target on an integrating controller, plan "
+    "pinned at 0.53 kW, lift 0.5 K, 0.1 K steps: over a three-hour block's last 30 "
+    "minutes every minute's draw is within 20 % of plan (no ramp), and the compressor "
+    "starts once",
+    _fb_every and _fb_main["starts"] == 1,
+    f"mean {_fb_mean:.3f} kW, every minute within {_fb_every}, starts {_fb_main['starts']}, "
+    f"last speed {_fb_main['trace'][-1][1]:.1f} Hz",
+)
+# The fixture's own null control: the same block with the option off is the
+# open-loop target the report describes, and must ramp past twice the plan.
+_fb_open = _fb_sim(feedback=False)
+_fb_om, _fb_or, _fb_ow = _fb_after_hold(_fb_open)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK null control: the same block with the option off "
+    "(today's inlet + lift) ramps monotonically past twice the plan, as runs A-C did",
+    _fb_om > 2 * 0.53 and not _fb_ow and _fb_open["trace"][-1][1] > _fb_open["trace"][30][1],
+    f"mean {_fb_om:.3f} kW, speed {_fb_open['trace'][30][1]:.1f} -> "
+    f"{_fb_open['trace'][-1][1]:.1f} Hz",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: the first write of a run is today's, the inlet plus "
+    "the lift (I3)",
+    bool(_fb_main["writes"]) and abs(_fb_main["writes"][0][1] - (25.9 + 0.5)) < 0.05,
+    f"first write {_fb_main['writes'][:1]}",
+)
+# At 1.2 kW the start hold writes the level map's 31.9 degC, which drives the
+# compressor to 90 Hz before the loop starts: the wind-down from there takes
+# the longer block.
+for _fb_label, _fb_kw, _fb_plan in (
+    ("flow unit", {"unit": "flow"}, 0.53),
+    ("plan 1.2 kW, four-and-a-half-hour block", {"plan_kw": 1.2, "ceiling": 40.0, "minutes": 270}, 1.2),
+):
+    _fb_run = _fb_sim(**_fb_kw)
+    _fb_m, _fb_r, _fb_w = _fb_after_hold(_fb_run, _fb_plan)
+    R.check(
+        f"R10-WATER-SETPOINT-FEEDBACK repeat, {_fb_label}: every minute of the last 30 "
+        "within 20 % of plan, one start",
+        _fb_r and _fb_run["starts"] == 1,
+        f"mean {_fb_m:.3f} kW, every minute within {_fb_r}, starts {_fb_run['starts']}",
+    )
+# A 0.5 K entity step (Run B's) rounds the target onto a grid as coarse as the
+# 0.5 K the controller allows below its inlet: the loop still stops the ramp,
+# but winds down slower than on the 0.1 K steps the firmware has (F3).
+_fb_coarse = _fb_sim(step=0.5)
+_fb_cm, _fb_cr, _fb_cw = _fb_after_hold(_fb_coarse)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, 0.5 K entity step: one start, the speed falls "
+    "over the last 30 minutes, and the draw is below the option-off block's",
+    _fb_coarse["starts"] == 1 and _fb_cm < _fb_om
+    and _fb_coarse["trace"][-1][1] < _fb_coarse["trace"][-30][1],
+    f"mean {_fb_cm:.3f} kW (option off {_fb_om:.3f}), speed "
+    f"{_fb_coarse['trace'][-30][1]:.1f} -> {_fb_coarse['trace'][-1][1]:.1f} Hz, "
+    f"starts {_fb_coarse['starts']}",
+)
+# R2: a 2 K heating hysteresis with a 0.5 K lift never starts, as today -- a
+# recorded limitation, not something the loop changes.
+_fb_cold = _fb_sim(hyst=2.0, minutes=60)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, 2 K hysteresis: the first write (inlet + 0.5 K) "
+    "starts nothing, as today (R2's recorded limitation)",
+    _fb_cold["starts"] == 0,
+    f"starts {_fb_cold['starts']}",
+)
+# A controller that stops at register + 0.1 K (below the assumed hysteresis):
+# the loop's first wind-down stops it once, the stop bound keeps it running.
+_fb_tight = _fb_sim(stop_hyst=0.1)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, stop at register + 0.1 K: one extra start "
+    "at most, and the stop bound is learned",
+    _fb_tight["starts"] <= 2 and _fb_tight["held"].stop_gap_k is not None,
+    f"starts {_fb_tight['starts']}, stop gap {_fb_tight['held'].stop_gap_k}",
+)
+# R1: the controller clamps its register to [minimum return target, return
+# limit]. A step to 1.2 kW at minute 120 drives the loop up into a 27.6 degC
+# limit: the cut is adopted -- no miss, no repair, the target frozen at it.
+_fb_clamped = _fb_sim(plan_kw=[0.53] * 8 + [1.2] * 16, clamp=(10.0, 27.6))
+_fb_run = _fb_clamped["held"].feedback
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, return limit 27.6 degC under a loop write: no "
+    "miss and no repair, the cut is the run's upper bound and the target stays at it",
+    not _fb_clamped["issues"] and "space_setpoint" not in _fb_clamped["held"].misses
+    and _fb_run is not None and _fb_run.cut_hi_c == 27.6 and _fb_run.w_c <= 27.6,
+    f"issues at {_fb_clamped['issues'][:3]}, misses {_fb_clamped['held'].misses}, "
+    f"cut {None if _fb_run is None else _fb_run.cut_hi_c}, "
+    f"W {None if _fb_run is None else round(_fb_run.w_c, 2)}",
+)
+_fb_basecut = _fb_sim(clamp=(10.0, 26.0), minutes=20)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, return limit below the first (today's) write: "
+    "the miss and the repair are today's",
+    bool(_fb_basecut["issues"]),
+    f"issues at {_fb_basecut['issues'][:3]}",
+)
+
+
+def _fb_run_start_after(sim, minute):
+    """The first minute at or after ``minute`` whose run began then."""
+    for row in sim["trace"]:
+        if row[0] >= minute and row[5] is not None and row[5] >= _FB_T0 + timedelta(minutes=minute):
+            return row[0]
+    return None
+
+
+def _fb_writes_in(sim, first, last):
+    return [w for w in sim["writes"] if first <= w[0] <= last]
+
+
+# R3: the SHI drops its register to 35.0 degC (600 s without access) while the
+# compressor runs. ``hold`` drops the record and the run starts over: today's
+# inlet + lift until the start hold ends, not the loop's target.
+_fb_revert = _fb_sim(revert_at=150)
+_fb_rw = _fb_writes_in(_fb_revert, 150, 155)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, register reverted to 35.0 degC at minute 150: "
+    "the next pass restarts the run, and every write in its start hold is today's "
+    "inlet + lift",
+    _fb_run_start_after(_fb_revert, 150) == 151 and bool(_fb_rw)
+    and all(abs(sent - (ret + 0.5)) <= 0.06 for _m, sent, ret in _fb_rw),
+    f"run start {_fb_run_start_after(_fb_revert, 150)}, writes {_fb_rw}",
+)
+_fb_thaw = _fb_sim(defrost=range(150, 155))
+_fb_tw = _fb_writes_in(_fb_thaw, 150, 154)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, defrost at minutes 150-154: the loop stands "
+    "down (today's inlet + lift) and a new run starts after it",
+    bool(_fb_tw) and all(abs(sent - (ret + 0.5)) <= 0.06 for _m, sent, ret in _fb_tw)
+    and _fb_run_start_after(_fb_thaw, 155) == 155,
+    f"writes {_fb_tw}, run start {_fb_run_start_after(_fb_thaw, 155)}",
+)
+
+
+def _fb_passes(coord, steps, duty="space"):
+    """``desired``'s space target over ``steps`` of (minute, measured kW,
+    return degC), one pass each, on ``coord``."""
+    out = []
+    for minute, power, ret in steps:
+        coord.power = power
+        coord.hass.states.get(_FB_RETURN).state = f"{ret:.2f}"
+        now = _FB_T0 + timedelta(minutes=minute)
+        out.append(_fb_pa.desired(coord, coord.arbiter_inputs(), duty, now).space_setpoint)
+    return out
+
+
+_fb_rng = _fb_random.Random(11)
+_FB_STEPS = [(m, round(_fb_rng.uniform(0.3, 2.0), 3), 25.0 + 0.05 * m) for m in range(40)]
+_FB_DARK = [(m, None, ret) for m, _p, ret in _FB_STEPS]
+
+
+# I1 with its null control: measured power against none, replayed on each
+# configuration and duty and level; only a qualifying install may differ.
+def _fb_i1(levels=(0.53, 1.2, 2.2), duties=("space", "both", "dhw", "idle", None), **kw):
+    moved = []
+    for kw_level in levels:
+        for duty in duties:
+            lit = _fb_passes(_FbCoord(plan_kw=kw_level, **kw), _FB_STEPS, duty)
+            dark = _fb_passes(_FbCoord(plan_kw=kw_level, **kw), _FB_DARK, duty)
+            if lit != dark:
+                moved.append((kw_level, duty))
+    return moved
+
+
+_fb_i1_cells = {
+    "indoor": _fb_i1(unit="indoor"),
+    "return, no power entity": _fb_i1(power_entity=False),
+    "flow, no power entity": _fb_i1(unit="flow", power_entity=False),
+    "return, option off": _fb_i1(feedback=False),
+}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK I1: an indoor unit, no power entity or the option off "
+    "writes the same with any measured draw as with none, for every duty and level",
+    not any(_fb_i1_cells.values()),
+    f"moved {_fb_i1_cells}",
+)
+_fb_i1_live = _fb_i1()
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK I1 null control: a return unit with a power entity "
+    "moves on the same replay, and only on space below the band top",
+    _fb_i1_live == [(0.53, "space"), (1.2, "space")],
+    f"moved {_fb_i1_live}",
+)
+# I4: the loop is off on an experiment and in a boost.
+_fb_exp = _FbCoord()
+_fb_exp._current_action = {"mode": "system_identification", "power": 1.0}
+_fb_exp_dark = _FbCoord()
+_fb_exp_dark._current_action = {"mode": "system_identification", "power": 1.0}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK I4: a system-identification step writes the same with "
+    "any measured draw as with none",
+    _fb_passes(_fb_exp, _FB_STEPS) == _fb_passes(_fb_exp_dark, _FB_DARK),
+)
+_fb_boosted = _FbCoord()
+_fb_boost_dark = _FbCoord()
+for _fb_c in (_fb_boosted, _fb_boost_dark):
+    boost_mod.held_for(_fb_c).until[boost_mod.CHANNEL_SPACE] = _FB_T0 + timedelta(hours=2)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK I4: a space boost writes the same with any measured "
+    "draw as with none",
+    _fb_passes(_fb_boosted, _FB_STEPS) == _fb_passes(_fb_boost_dark, _FB_DARK),
+)
+# I4: at the band top the step wants the ceiling; a draw over it changes nothing.
+_FB_OVER = [(m, 2.6, 25.0 + 0.05 * m) for m in range(40)]
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK I4: a step at the band top (2.2 kW) writes the same with "
+    "a draw above it as with none",
+    _fb_passes(_FbCoord(plan_kw=2.2), _FB_OVER) == _fb_passes(_FbCoord(plan_kw=2.2), _FB_DARK),
+)
+# Passes that skip the loop (a switched-off or cooling pump, Off): a run whose
+# last pass is older than the averaging window starts over, start hold and all.
+_fb_gap = _FbCoord()
+_fb_passes(_fb_gap, [(m, 1.5, 26.0) for m in range(20)])
+_fb_resumed = _fb_passes(_fb_gap, [(30, 1.5, 26.0)])
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a run not seen for longer than its averaging window "
+    "starts over with today's target",
+    _fb_resumed == [_fb_pa._flow_target(_fb_gap.arbiter_inputs(), "space", _FB_T0 + timedelta(minutes=30))]
+    and _fb_pa.state_for(_fb_gap).feedback.start == _FB_T0 + timedelta(minutes=30),
+    f"wrote {_fb_resumed}",
+)
+# I2: a return at 15 degC, below the 20 degC gate, with the draw far over plan:
+# the loop winds down, but never to the gate.
+_fb_low = _fb_passes(_FbCoord(), [(m, 2.0, 15.0) for m in range(40)])
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK I2: winding down over a return below the gate never "
+    "writes the gate (20 degC) or below",
+    all(v is not None and v > 20.0 for v in _fb_low) and min(_fb_low) < _fb_low[0],
+    f"writes {sorted(set(_fb_low))[:4]}",
+)
+# The loop's null control: a draw on plan holds the target after the start
+# hold, under a return that rises 0.02 K a minute (never near the bound below
+# the inlet) -- no re-anchor to it.
+_fb_held_run = _fb_passes(_FbCoord(), [(m, 0.53, 25.0 + 0.02 * m) for m in range(40)])
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a draw on plan holds the target within one 0.1 K "
+    "step of its first post-hold value for 30 minutes while the return rises 0.6 K",
+    max(_fb_held_run[6:36]) - min(_fb_held_run[6:36]) <= 0.1 + 1e-9,
+    f"{_fb_held_run[6]} .. {_fb_held_run[35]}",
+)
+# Below the band floor the deadband is the floor's: a 0.3 kW plan on a 0.53 kW
+# floor holds against a 0.34 kW draw (inside 0.053 kW, outside 10 % of 0.3).
+_fb_sub = _fb_passes(_FbCoord(plan_kw=0.3), [(m, 0.34, 25.0 + 0.02 * m) for m in range(40)])
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: below the band floor the deadband is 10 % of the floor, "
+    "so a sub-minimum plan holds its target against a draw at the floor",
+    max(_fb_sub[6:36]) - min(_fb_sub[6:36]) <= 0.1 + 1e-9,
+    f"{_fb_sub[6]} .. {_fb_sub[35]}",
+)
+# Carry item 4: a hot-water interlude inside the step resets the run.
+_fb_inter = _FbCoord()
+_fb_passes(_fb_inter, _FB_STEPS[:30])
+_fb_passes(_fb_inter, [(30, 1.5, 26.5)], duty="dhw")
+_fb_after = _fb_passes(_fb_inter, [(31, 1.5, 26.5)])
+_fb_base_now = _fb_pa._flow_target(_fb_inter.arbiter_inputs(), "space", _FB_T0 + timedelta(minutes=31))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a hot-water pass inside a step resets the run; the next "
+    "space pass writes today's target and starts a new start hold",
+    _fb_after == [_fb_base_now] and _fb_pa.state_for(_fb_inter).feedback is not None
+    and _fb_pa.state_for(_fb_inter).feedback.start == _FB_T0 + timedelta(minutes=31),
+    f"wrote {_fb_after}, today's {_fb_base_now}",
+)
+
+
+# R1's bracket, both sides of the hold tolerance (design review note 10): a
+# reading within SETPOINT_TOLERANCE of a loop write is held and changes
+# nothing; one past it inside [replaced record, write] is a cut.
+def _fb_cut(observed):
+    coord = _FbCoord()
+    held = _fb_pa.state_for(coord)
+    run = held.feedback = _fb_pa.FeedbackRun(_FB_T0, 27.0, _FB_T0)
+    run.running, run.prev_c, run.sent_c = True, 26.6, 27.0
+    held.written["space_setpoint"] = (27.0, _FB_T0)
+    coord.hass.states.get(_FB_SET).state = f"{observed:.1f}"
+    _fb_pa.hold(coord, _FB_T0 + timedelta(minutes=1))
+    return held.written.get("space_setpoint"), run.cut_hi_c, run.cut_lo_c, held.feedback, held.misses
+
+
+_fb_within_tol = _fb_cut(26.8)
+_fb_beyond = _fb_cut(26.6)
+_fb_outside = _fb_cut(35.0)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK R1 bracket: a reading 0.2 K under an upward loop write "
+    "is held (record kept, no cut); 0.4 K under, inside the bracket, is a cut adopted "
+    "as the record with no miss; 35.0 degC drops the record and resets the run",
+    _fb_within_tol[0] == (27.0, _FB_T0) and _fb_within_tol[1] is None
+    and _fb_beyond[0] == (26.6, _FB_T0) and _fb_beyond[1] == 26.6 and not _fb_beyond[4]
+    and _fb_outside[0] is None and _fb_outside[3] is None and _fb_outside[4],
+    f"within {_fb_within_tol[:3]}, beyond {_fb_beyond[:3]}, outside {_fb_outside[0]}",
+)
+# The bracket reads the space slot alone: another slot's miss (a hot-water
+# set-point a person changed) is hold's as before and leaves the run alone.
+_fb_other = _FbCoord()
+_fb_other._config = EntryConfig.from_mapping(
+    {**_fb_other._config.raw, "dhw_setpoint_entity": "number.fb_dhw"})
+_fb_other.hass.states.set("number.fb_dhw", FakeState("40", attributes={"min": 30, "max": 60}))
+_fb_other_held = _fb_pa.state_for(_fb_other)
+_fb_other_run = _fb_other_held.feedback = _fb_pa.FeedbackRun(_FB_T0, 27.0, _FB_T0)
+_fb_other_held.written["dhw_setpoint"] = (48.0, _FB_T0)
+_fb_pa.hold(_fb_other, _FB_T0 + timedelta(minutes=1))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a hot-water set-point read differing from its record "
+    "is dropped for a rewrite and leaves the space run as it was",
+    "dhw_setpoint" not in _fb_other_held.written and _fb_other_held.feedback is _fb_other_run,
+    f"written {_fb_other_held.written}, run kept {_fb_other_held.feedback is _fb_other_run}",
+)
+
+
+# The loop's own arithmetic at each boundary it draws, through the production
+# functions on a fixture run (#3405's fix review: fourteen mutation sites the
+# replays above leave alive). ``_fb_unit`` returns a pass's coordinator, state
+# and inputs with the return at ``inlet`` and the meter at ``power``.
+def _fb_unit(power=1.5, inlet=26.0, **kw):
+    coord = _FbCoord(**kw)
+    coord.power = power
+    coord.hass.states.get(_FB_RETURN).state = f"{inlet:.2f}"
+    return coord, _fb_pa.state_for(coord), coord.arbiter_inputs()
+
+
+def _fb_running(start_s, seen_s, samples=(), now=_FB_T0 + timedelta(hours=1), **fields):
+    """A running FeedbackRun started ``start_s`` and last seen ``seen_s``
+    seconds before ``now``, its window holding ``samples`` of (age s, kW)."""
+    run = _fb_pa.FeedbackRun(now - timedelta(seconds=start_s), fields.pop("w_c", 26.4),
+                             now - timedelta(seconds=seen_s))
+    run.running = True
+    run.samples.extend((now - timedelta(seconds=age), kw) for age, kw in samples)
+    for name, value in fields.items():
+        setattr(run, name, value)
+    return run
+
+
+_FB_NOW = _FB_T0 + timedelta(hours=1)
+_FB_WIN_S = _fb_pa.FEEDBACK_WINDOW.total_seconds()
+_FB_HOLD_S = _fb_pa.FEEDBACK_START_HOLD.total_seconds()
+# A run last seen exactly one averaging window ago is the same run (the reset
+# is for a gap longer than the window), and a sample exactly one window old
+# is still averaged.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_r = _fb_h.feedback = _fb_running(3600, _FB_WIN_S, [(_FB_WIN_S, 1.5)])
+_fb_pa._feedback(_fb_h, _fb_i, _FB_NOW, 26.4, True)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a run last seen exactly one averaging window ago is "
+    "kept, and its sample exactly one window old stays in the average",
+    _fb_h.feedback is _fb_r and len(_fb_r.samples) == 2
+    and _fb_r.samples[0][0] == _FB_NOW - _fb_pa.FEEDBACK_WINDOW,
+    f"kept {_fb_h.feedback is _fb_r}, samples {len(_fb_r.samples)}",
+)
+# The run's threshold is the meter's (``_ran_kw``): a draw exactly at it runs.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_ran = _fb_pa._ran_kw(_fb_i)
+_fb_c.power = _fb_ran
+_fb_pa._feedback(_fb_h, _fb_c.arbiter_inputs(), _FB_NOW, 26.4, True)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a measured draw exactly at the run threshold "
+    "(ran_kw) is a running compressor, sampled into the window",
+    _fb_h.feedback is not None and _fb_h.feedback.running
+    and [kw for _at, kw in _fb_h.feedback.samples] == [_fb_ran],
+    f"run {_fb_h.feedback}",
+)
+# A stopped compressor writes today's target and opens a fresh, not running,
+# run with nothing sampled -- no pass through the loop's sampling.
+_fb_c, _fb_h, _fb_i = _fb_unit(power=0.0)
+_fb_stopped = _fb_pa._feedback(_fb_h, _fb_i, _FB_NOW, 26.4, True)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a stopped compressor writes today's target and "
+    "leaves a fresh run that is not running and holds no sample",
+    _fb_stopped == 26.4 and _fb_h.feedback is not None and not _fb_h.feedback.running
+    and not _fb_h.feedback.samples and _fb_h.feedback.start == _FB_NOW,
+    f"wrote {_fb_stopped}, run {_fb_h.feedback}",
+)
+# The start hold ends exactly FEEDBACK_START_HOLD after the run's start: that
+# pass is the loop's, and a draw far over plan winds the target down 0.2 K over
+# the minute since the last pass (FEEDBACK_RATE_K_PER_MIN, the design value).
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_r = _fb_h.feedback = _fb_running(_FB_HOLD_S, 60, [(60, 1.5)])
+_fb_out = _fb_pa._feedback(_fb_h, _fb_i, _FB_NOW, 26.4, True)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: the pass exactly one start hold after the run's start "
+    "is the loop's, and over plan one minute moves the target 0.2 K down (26.4 -> 26.2)",
+    abs(_fb_r.w_c - 26.2) < 1e-9 and _fb_out == 26.2 and _fb_r.sent_c == 26.2,
+    f"W {_fb_r.w_c}, wrote {_fb_out}, sent {_fb_r.sent_c}",
+)
+# Inside the hold the loop forgets what it last sent (a clock stepped back
+# re-enters it), so a stop there is not read as the loop's.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_r = _fb_h.feedback = _fb_running(60, 30, [(30, 1.5)], sent_c=25.8, w_c=25.8)
+_fb_out = _fb_pa._feedback(_fb_h, _fb_i, _FB_NOW, 26.4, True)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a pass inside the start hold writes today's target "
+    "and clears the loop's last sent target and its own",
+    _fb_out == 26.4 and _fb_r.sent_c is None and _fb_r.w_c == 26.4,
+    f"wrote {_fb_out}, sent {_fb_r.sent_c}, W {_fb_r.w_c}",
+)
+# The rate is per minute of elapsed time: two and a half minutes over plan
+# move 0.5 K, under plan the same up.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_rates = (
+    _fb_pa._nudged(_fb_running(3600, 0, [(0, 1.5)], w_c=26.4), _fb_i, _FB_NOW, 2.5),
+    _fb_pa._nudged(_fb_running(3600, 0, [(0, 0.2)], w_c=26.4), _fb_i, _FB_NOW, 2.5),
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: the loop moves its target 0.2 K a minute outside the "
+    "deadband, down over plan and up under it (2.5 minutes: 26.4 -> 25.9, 26.9)",
+    abs(_fb_rates[0] - 25.9) < 1e-9 and abs(_fb_rates[1] - 26.9) < 1e-9,
+    f"over {_fb_rates[0]}, under {_fb_rates[1]}",
+)
+# The deadband's edge is held: a 1.25 kW plan's band is 0.125 kW, both exact in
+# binary, so a mean of 1.375 kW sits on it; 1.5 kW is past it (the control).
+_fb_c, _fb_h, _fb_i = _fb_unit(plan_kw=1.25)
+_fb_edge = _fb_pa.FEEDBACK_DEADBAND_SHARE * 1.25
+_fb_on_edge = _fb_pa._nudged(_fb_running(3600, 0, [(0, 1.375)]), _fb_i, _FB_NOW, 1.0)
+_fb_past = _fb_pa._nudged(_fb_running(3600, 0, [(0, 1.5)]), _fb_i, _FB_NOW, 1.0)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: a draw error exactly at the deadband (10 % of a "
+    "1.25 kW plan) holds the target; 0.25 kW over moves it",
+    1.375 - 1.25 == _fb_edge and _fb_on_edge == 26.4 and _fb_past < 26.4,
+    f"edge {_fb_edge}, on it {_fb_on_edge}, past it {_fb_past}",
+)
+
+
+# A stop bound is learned from a stop the loop caused alone: its last sent
+# target below today's. One at or above today's, or none, teaches nothing; of
+# two learned gaps the smaller holds.
+def _fb_stop(sent_c, base=26.4, inlet=26.2, held=None):
+    held = held or _fb_pa.ArbiterState()
+    try:
+        _fb_pa._note_stop(held, _fb_running(3600, 0, sent_c=sent_c), inlet, base)
+    except TypeError as err:  # a stop with nothing sent must not reach the gap
+        held.stop_gap_k = f"raised {err}"
+    return held
+
+
+_fb_gaps = {
+    "none sent": _fb_stop(None).stop_gap_k,
+    "sent today's": _fb_stop(26.4).stop_gap_k,
+    "sent above": _fb_stop(26.8).stop_gap_k,
+    "sent below": _fb_stop(25.9).stop_gap_k,
+}
+_fb_two = _fb_stop(25.7, inlet=26.0, held=_fb_stop(25.9, inlet=26.4))
+_fb_two_rev = _fb_stop(25.9, inlet=26.4, held=_fb_stop(25.7, inlet=26.0))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK R2: only a stop under a loop target below today's "
+    "learns a stop gap (inlet - sent); a stop with none sent, today's sent or a higher "
+    "one learns none; of two stops the smaller gap holds, either order",
+    _fb_gaps["none sent"] is None and _fb_gaps["sent today's"] is None
+    and _fb_gaps["sent above"] is None and abs(_fb_gaps["sent below"] - 0.3) < 1e-9
+    and abs(_fb_two.stop_gap_k - 0.3) < 1e-9 and abs(_fb_two_rev.stop_gap_k - 0.3) < 1e-9,
+    f"gaps {_fb_gaps}, two {_fb_two.stop_gap_k}, reversed {_fb_two_rev.stop_gap_k}",
+)
+# The bounds: a learned 0.4 K stop gap holds the target 0.2 K closer to the
+# inlet (FEEDBACK_STOP_MARGIN_K, two 0.1 K steps), 25.8 over a 26.0 inlet; a
+# return far below the gate bounds it 0.01 K over the 20 degC gate
+# (FEEDBACK_GATE_CLEAR_K); a minimum-return cut (parameter 979) above both is
+# the lower bound, and a return-limit cut the upper.
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_h.stop_gap_k = 0.4
+_fb_stop_lo = _fb_pa._feedback_bounds(_fb_h, _fb_running(3600, 0), _fb_i, 26.0)[0]
+_fb_c, _fb_h, _fb_i = _fb_unit()
+_fb_gate_lo = _fb_pa._feedback_bounds(_fb_h, _fb_running(3600, 0), _fb_i, 15.0)[0]
+_fb_cuts = _fb_pa._feedback_bounds(
+    _fb_h, _fb_running(3600, 0, cut_lo_c=26.5, cut_hi_c=27.6), _fb_i, 26.0)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK: the loop's lower bound is the inlet - 0.4 K stop gap "
+    "+ 0.2 K (25.8 at a 26.0 inlet), the gate + 0.01 K (20.01) under a 15 degC return, "
+    "and a 26.5 degC minimum-return cut over both; a 27.6 degC return-limit cut is the "
+    "upper bound",
+    abs(_fb_stop_lo - 25.8) < 1e-9 and abs(_fb_gate_lo - 20.01) < 1e-9
+    and _fb_cuts == (26.5, 27.6),
+    f"stop {_fb_stop_lo}, gate {_fb_gate_lo}, cuts {_fb_cuts}",
+)
+# R1's bracket is closed at both ends: a reading exactly SETPOINT_TOLERANCE
+# under the replaced record, or over the write, is a cut.
+def _fb_bracket(observed):
+    held = _fb_pa.ArbiterState()
+    held.feedback = _fb_running(3600, 0, prev_c=26.6, sent_c=27.0)
+    return _fb_pa._clamp_cut(held, "space_setpoint", 27.0, observed, _FB_NOW)
+
+
+_fb_ends = (_fb_bracket(26.6 - _fb_pa.SETPOINT_TOLERANCE), _fb_bracket(27.0 + _fb_pa.SETPOINT_TOLERANCE))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK R1 bracket: a reading exactly the hold tolerance "
+    "under the replaced record or over the write is a cut",
+    _fb_ends == (True, True),
+    f"low end {_fb_ends[0]}, high end {_fb_ends[1]}",
+)
+# R1's lower side in the replay: a 26.4 degC minimum return target (parameter
+# 979) clamps the loop's first wind-down, whose writes stay under it until a
+# reading leaves the hold tolerance and is adopted as a cut; the cut then
+# bounds the run, so the writes under it are that one unbroken wind-down.
+_fb_floor = _fb_sim(clamp=(26.4, 50.0))
+_fb_floor_run = _fb_floor["held"].feedback
+_fb_under_at = [i for i, w in enumerate(_fb_floor["writes"]) if w[1] < 26.4]
+_fb_under = [_fb_floor["writes"][i] for i in _fb_under_at]
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK repeat, minimum return target 26.4 degC: the cut is "
+    "the run's lower bound -- the writes under it are one unbroken wind-down before "
+    "it is adopted, none after -- and nothing is repaired",
+    _fb_floor_run is not None and _fb_floor_run.cut_lo_c == 26.4 and bool(_fb_under_at)
+    and _fb_under_at == list(range(_fb_under_at[0], _fb_under_at[-1] + 1))
+    and not _fb_floor["issues"],
+    f"cut {None if _fb_floor_run is None else _fb_floor_run.cut_lo_c}, under {_fb_under}, "
+    f"issues {_fb_floor['issues'][:3]}",
+)
 
 sys.exit(R.close("FEATURE CHECKS"))
