@@ -1,0 +1,14 @@
+RESULT MUTANT NULL-pulse SURVIVED at dd5faa50c0a8 rc=0: pulse self-test: 60 checks, 0 failed
+RESULT MUTANT P1 KILLED at dd5faa50c0a8 rc=1: FAIL every standing seat pulse judges is a tracked contract, and every contract a seat || FAIL --seat-queue refuses the retired seat tick, a beat row now
+RESULT MUTANT P2 KILLED at dd5faa50c0a8 rc=1: FAIL every standing seat pulse judges is a tracked contract, and every contract a seat || FAIL --seat-queue refuses the retired seat roster, a beat row now
+RESULT MUTANT P3-rev KILLED at dd5faa50c0a8 rc=1: FAIL every standing seat pulse judges is a tracked contract, and every contract a seat
+RESULT MUTANT P4-rev KILLED at dd5faa50c0a8 rc=1: FAIL --seat-queue refuses the retired seat tick, a beat row now || FAIL --seat-queue refuses the retired seat roster, a beat row now
+RESULT MUTANT NULL-sweep-asis KILLED at dd5faa50c0a8 rc=1: FAIL the tracked template renders from a complete overlay, every placeholder filled (null control)
+RESULT MUTANT NULL-sweep-mainfix SURVIVED at dd5faa50c0a8 rc=0: sweep_render self-test: 35 checks, 0 failed
+RESULT MUTANT S1-mainfix KILLED at dd5faa50c0a8 rc=1: FAIL the tick seat is retired: no tick_alive, tick_brief or tick_stale_min placeholder, declared or rendered
+RESULT MUTANT NULL-cloud SURVIVED at dd5faa50c0a8 rc=0: cloud_dispatch self-test: 155 checks, 0 failed
+RESULT MUTANT C1 KILLED at dd5faa50c0a8 rc=1: FAIL a designer's text names no design-verdict ref while none exists (null control) || FAIL a designer's text pins the revise verdict's own commit and first line
+RESULT MUTANT C2 KILLED at dd5faa50c0a8 rc=1: FAIL a designer's text pins the revise verdict's own commit and first line
+RESULT MUTANT C3 KILLED at dd5faa50c0a8 rc=1: FAIL a designer's text pins the revise verdict's own commit and first line
+RESULT MUTANT C4-rev SURVIVED at dd5faa50c0a8 rc=0: cloud_dispatch self-test: 155 checks, 0 failed
+RESULT MUTANT C5-rev KILLED at dd5faa50c0a8 rc=1: FAIL a designer's text pins the revise verdict's own commit and first line
