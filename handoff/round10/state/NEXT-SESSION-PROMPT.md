@@ -23,7 +23,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ARBITER-OFF-RESTORE (stage in-progress, branch `handoff/r10-arbiter-off-restore`): `git fetch origin handoff/r10-arbiter-off-restore && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REVIEW-ENUMERATE (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-HOTFIX-DELTA-REVIEW (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-WATER-SETPOINT-FEEDBACK (stage carries-open, branch `handoff/r10-water-setpoint-feedback`): `git fetch origin handoff/r10-water-setpoint-feedback && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-TRAIN-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -43,7 +42,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-RESTORE-BASE-SKEW (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-RCA-RESTORE-BASE-SKEW (stage in-progress): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-CARD-COLLAPSE, R10-COMBI-TANK, R10-DEPENDABOT-3414-COMPAT, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-GH-READ-RESIDUE, R10-HOTFIX-DELTA-REVIEW, R10-HOTFIX-MAIN-SELFTESTS, R10-HOTFIX-PREPR-READSET, R10-HOTFIX-RESTORE-BASE-SKEW, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DIAG-REDACT-LOCATION, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-RCA-RESTORE-BASE-SKEW, R10-REVIEW-ENUMERATE, R10-SAV-VALUATION-RESIDUE, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-CARD-COLLAPSE, R10-COMBI-TANK, R10-DEPENDABOT-3414-COMPAT, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-GH-READ-RESIDUE, R10-HOTFIX-MAIN-SELFTESTS, R10-HOTFIX-PREPR-READSET, R10-HOTFIX-RESTORE-BASE-SKEW, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DIAG-REDACT-LOCATION, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-RCA-RESTORE-BASE-SKEW, R10-REVIEW-ENUMERATE, R10-SAV-VALUATION-RESIDUE, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
 
 ## Resume steps
 
