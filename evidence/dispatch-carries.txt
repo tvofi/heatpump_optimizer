@@ -1,0 +1,50 @@
+Failing test first for each carry, mutation proof, null control for every quantified claim, full fixer contract (dev/governance/roles/fixer.md), structure budgets flat. Re-measure every quoted line number and count at your merge base (the carries cit
+e older commits).
+
+PIN EVIDENCE (triage P577, binding): for every mutation or pin claim, re-create the reviewer-style mutants exactly (by hand in a git-archive copy or a mutant_run.py --spec entry each), show each KILLED at your handoff head and a NULL mutant surviving
+, and quote those KILLED lines in the body. mutant_run.py --diff alone is not evidence. Hand off at the first clean prepr; the body names each carry as `Carry N` with its original 0-based roster index below, and quotes every figure with the command t
+hat printed it.
+
+THE CARRIES, verbatim:
+
+Carry 4: Moved from R10-DISPATCH-AT-HANDOFF carry 11 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:  From the s9 orchestrator, 2026-11-01. A dependabot
+ PR cannot be reviewed after a dependabot rebase, and no instrument can repair it. After the rebase, the head carries dev/programme/delivery/<N>.md, but review_packet refuses the dispatch with "head-note: ## Head does not name the dispatched head", b
+ecause dependabot rewrites the body on every rebase. body_patch.sh, the instrument that repairs a body without moving the head, then refuses on "no commit list was read for this Dependabot pull request (--commits-file)". It never passes one, so a dep
+endabot body cannot be patched at all. This was hit on #3088 at bffd45a03. Two fixes, either sufficient: body_patch.sh reads the PR's commit list and passes --commits-file for a dependabot PR; or review_packet's head-note check accepts a dependabot P
+R whose commits are all dependabot's and whose head carries its delivery row. Control: the #3088 shape at bffd45a03 dispatches; a dependabot PR with a non-dependabot commit still refuses. Pairs with the s9-dependabot-row carry here.
+
+Carry 15: From triage batch 149 (triage: dev/programme/triage/s6-batch149.md#P559 at 7696a3ba07), queue line S14-BRIEF-CARRIES-MOVING-TARGET, a repair of an observed wrong behaviour. review_packet.py handoff() (lines 646-671 at d08ed31049) counts the
+ group's roster carries at the live --roster-ref, so carries appended after a fixer's dispatch refuse its finished body: R10-TICK-RESIDUE grew 21 (2cd3f772f4, at dispatch; its dispatch PROMPT ea7df0fc2e holds Carry 0..20) to 27 (2f484ff60e), and the 
+bodies seat's body_push refused 'carry 21'..'carry 26' then, two minutes later, 'carry 27'. Second defect: unnamed_carries (line 508) checks range(1, n + 1) while cloud_dispatch.py line 480 renders Carry {i} 0-based, so carry 0 is never checked and a
+ non-existent carry n is demanded (R10-WORKTREE-GC-LIVE, one carry, brief holds Carry 0 only: '1 carries, 1 refused', 'carry 1 is not named'). Fix: (1) handoff counts the Carry N: lines of the group's dispatch ref PROMPT.md (dispatch/fixer-<topic>) w
+hen the clone has it, else a roster sha the dispatch records, else the live roster as today; (2) unnamed_carries counts 0-based, as the dispatch renders. Self-test: a body naming Carry 0..20 passes with 27 roster carries and a 21-carry PROMPT; a body
+ missing Carry 0 is refused; null control: with no dispatch ref a body missing a live carry is still refused; mutants back to range(1, n + 1) and to the live-roster count each fail.
+
+Carry 16: From triage batch 153 (triage: dev/programme/triage/s6-batch153.md#P564 at b0de59c6a9), queue line S14-ROSTER-LANDING-MOVING-TARGET, a repair of an observed wrong behaviour. review_packet.handoff_not_applied (line 348 at 63bcdcaad8; refusal
+ appended at line 562) requires the CURRENT tip of handoff/<t> to be an ancestor of the PR head. For the round roster landing PR (3377, fix/audit-r10-roster-pr) that can never hold while the programme runs: handoff/audit-r10-roster took 97 commits si
+nce 2026-11-11T00:00Z, median gap 43 s, p90 110 s, 0 of 96 gaps over 600 s, against an update_pr of about 10 min; the landing was owed 57 sweeps. PR 3377's head 6d347c73a5 already contains 7696a3ba07, the snapshot its body names as the branch tip at 
+the snapshot, and that sha is an ancestor of the current tip. Fix: for the round roster topic only (the branch roster_lib.round_ref names), handoff_not_applied accepts a head that contains the snapshot sha the body names as its code head when that sh
+a is an ancestor of the current tip, and prints an advisory 'roster snapshot <sha>, N commits behind handoff/<t>; a later landing takes the rest'; every other topic keeps today's rule. Do not add a roster-drain hold (rejected: it stops every roster o
+p, about 53/h). Self-test: the 3377 shape renders with the advisory; a named snapshot not in the head, or not an ancestor of the tip, is refused; null control: a fixer branch lacking its handoff tip is refused as today (#2887 shape); a mutant droppin
+g the round-topic scope fails the null control.
+
+Carry 18: From triage batch 156 (triage: dev/programme/triage/s6-batch156.md#P568 at 23c4d90aa2), queue line S14-PACKET-REFUSES-DEFERRAL-RED, a repair of an observed wrong behaviour (a class: 14 dispatch outputs hold the refusal on gate; today PRs 34
+24, 3404, 3429). tools/audit/seat/review_packet.py main gathers read = required_reading(a.pr, head) whenever a required context is red (line 602 at 63bcdcaad8), which is merge_train.py classify --pr, the answer bus.sh dispatch uses. build turns a WAI
+T or GREEN read into a required-wait or required-green advisory for the required-red arm (lines 544-557, #3379). But the red-unanswered arm (lines 542-543) refuses the same gate red from unanswered_reds(..., gate[2], ...) without consulting the read.
+ Reproduced at about 02:50Z: classify 561edf4c8f --pr 3404 and classify 498c2ab042 --pr 3429 both read "WAIT ... pending: gate red: none" beside completed-failure gate check-runs of edit runs (42945740958; 42946500173 and 42946386595), and bus3404.ou
+t and bus3429.out both refused "red-unanswered: concluded red check `gate` is not named in ## Red checks". Fix: in build, an entry of facts["red_unanswered"] that is in REQUIRED gets no red-unanswered refusal when facts["required_read"]'s word is WAI
+T or GREEN; its required-wait or required-green advisory already names it. A RED, APPROVAL-OWED or unreadable read, and any red outside REQUIRED, keep today's refusal. Do not add a second classify call (Train.classify_at or otherwise): the read at li
+ne 602 decides, and a second read costs API calls and could disagree with the first. A local version under s14/tools-wt-63bcdcaa calls classify_at again; build the permanent form on the existing read. Self-test: red_unanswered=["gate"] with required_
+read ("WAIT", "pending: gate red: none") renders one required-wait advisory and no refusal; the same with ("RED", ...) refuses red-unanswered and required-red; null control: a non-required red ("tests / fast") with a WAIT read still refuses red-unans
+wered; a mutant dropping the WAIT/GREEN condition fails the first case. [dismissed: superseded by the corrected P568 carry (batch 156): the local fix 572755fb70 reads the gathered required_read, not a second classify]
+
+Carry 19: From triage batch 156 (triage: dev/programme/triage/s6-batch156.md#P568 at 23c4d90aa2), queue line S14-PACKET-REFUSES-DEFERRAL-RED, a repair of an observed wrong behaviour (a class: 14 dispatch outputs hold the refusal on gate; today PRs 34
+24, 3404, 3429). tools/audit/seat/review_packet.py main gathers read = required_reading(a.pr, head) whenever a required context is red (line 602 at 63bcdcaad8), which is merge_train.py classify --pr, the answer bus.sh dispatch uses. build turns a WAI
+T or GREEN read into a required-wait or required-green advisory for the required-red arm (lines 544-557, #3379). But the red-unanswered arm (lines 542-543) refuses the same gate red from unanswered_reds(..., gate[2], ...) without consulting the read.
+ Reproduced at about 02:50Z: classify 561edf4c8f --pr 3404 and classify 498c2ab042 --pr 3429 both read "WAIT ... pending: gate red: none" beside completed-failure gate check-runs of edit runs (42945740958; 42946500173 and 42946386595), and bus3404.ou
+t and bus3429.out both refused "red-unanswered: concluded red check `gate` is not named in ## Red checks". Fix: in build, an entry of facts["red_unanswered"] that is in REQUIRED gets no red-unanswered refusal when facts["required_read"]'s word is WAI
+T or GREEN; its required-wait or required-green advisory already names it. A RED, APPROVAL-OWED or unreadable read, and any red outside REQUIRED, keep today's refusal. Do not add a second classify call (Train.classify_at or otherwise): the read at li
+ne 602 decides, and a second read would cost API calls and could disagree with the first. The local version, commit 572755fb70 on s14-tools-63bcdcaa (never pushed, +35/-1 in build), already reads the gathered facts["required_read"] with no second rea
+d and is a valid base for the permanent form (it scopes the skip to the name gate, i.e. REQUIRED, and prints a red-deferred advisory). Self-test: red_unanswered=["gate"] with required_read ("WAIT", "pending: gate red: none") renders one required-wait
+ advisory and no refusal; the same with ("RED", ...) refuses red-unanswered and required-red; null control: a non-required red ("tests / fast") with a WAIT read still refuses red-unanswered; a mutant dropping the WAIT/GREEN condition fails the first 
+case.

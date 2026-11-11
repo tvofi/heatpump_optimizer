@@ -1,0 +1,4 @@
+round_ref origin/handoff/audit-r10-roster
+tip 31dc837478f697513daf9b32a3c26d68399af559
+HEAD result: (None, 'roster snapshot 7696a3ba079f59c646bbad3351a635ac7ac22fb5, 154 commits behind handoff/audit-r10-roster; a later landing takes the rest')
+null (round_topic None): ('handoff/audit-r10-roster 31dc837478f697513daf9b32a3c26d68399af559 is not an ancestor of 3bdc73b33650a4b40fd713d11e43c74c4e80272b', None)

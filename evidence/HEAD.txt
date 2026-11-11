@@ -1,0 +1,4 @@
+reviewed head: 7fb8680c857220f629c328b842f152d2c236542a
+merge base:    a7628041dc02e298c5399003d4c0576391dd5c4e
+worktree:      /tmp/rev3445 (detached at the head)
+7fb8680c857220f629c328b842f152d2c236542a	refs/pull/3445/head
