@@ -31,4 +31,4 @@ Carry: R10-ADVISOR-STEADY-START (item floor-zero) - with the live schedule at `m
 Carry: R10-ADVISOR-STEADY-START (item horizon-mean) - the reference mean is over the solve's horizon; a panel ask at a horizon other than 24 h changes the shift a day-window move produces. Take the bound's measurement at the fixture's horizon and say so.
 Round 2's carries stand unchanged and are not answered by A1-A6: const-comment, recite-916, whatif-instance, rebind-local, helper-weather, memo-state, text-overlap, attr-sites (design-verdict/R10-ADVISOR-STEADY-START 0fdadfe92458). The note's own A6 carries (worker-patch, mixed-ask, two-zone-mean) stand; mixed-ask is also the second routed decision above.
 
-Seat tokens: not reported by the harness for the seat; its two locator subagents reported 55994 for one and none for the other.
+Seat tokens: not reported by the harness for the seat; its two locator subagents reported 98223 in total.
