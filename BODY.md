@@ -1,5 +1,7 @@
 Residue of R10-PREPR-CAP and R10-FLY-CIPREDICT-RESTORING on the pre-open prediction seam. This head lands carry 4 (the `.gitignore` anchor, pinned by `tests/gitignore_config.py` with a root-level `config/` null control) and carry 6's reproduction attempt as a re-runnable harness. Brief carries are 0-based; `Carry N` below is 1-based, one more than the brief's number. Every carry other than the brief's 4 and 6 is not built in this part.
 
+Status by roster index (1-based): carry 5 landed in this head; carry 7 is dismissed below; not built in this part, and still owed by this group: carries 1, 2, 3, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24.
+
 ## Head
 
 b6c080dbcc6cd2294e3ae0913a2c818670749566, measured with `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh` (PRE-PR rc=0) at origin/main d08ed31049cd.
@@ -23,30 +25,7 @@ none. Main's `tests / fast (3.14)` and `governance / instrument-self-tests` reds
 
 ## Forward-carry
 
-- Carry 1 (the brief's carry 0): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 2 (the brief's carry 1): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 3 (the brief's carry 2): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 4 (the brief's carry 3): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 5 (the brief's carry 4, the .gitignore anchor): landed in this head, pinned by tests/gitignore_config.py. Carry: dismissed: landed in this head
-- Carry 6 (the brief's carry 5): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 7 (the brief's carry 6, PREPR-SLOT-LIVELOCK): Carry: dismissed: not reproduced under dev/audit/harnesses/prepr_slot_nested.py at b6c080dbc
-- Carry 8 (the brief's carry 7): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 9 (the brief's carry 8): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 10 (the brief's carry 9): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 11 (the brief's carry 10): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 12 (the brief's carry 11): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 13 (the brief's carry 12): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 14 (the brief's carry 13): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 15 (the brief's carry 14): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 16 (the brief's carry 15): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 17 (the brief's carry 16): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 18 (the brief's carry 17): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 19 (the brief's carry 18): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 20 (the brief's carry 19): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 21 (the brief's carry 20): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 22 (the brief's carry 21): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 23 (the brief's carry 22): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
-- Carry 24 (the brief's carry 23): not built in this part; the seat stopped after carries 4 and 6. Carry: R10-PREPR-RESIDUE
+- PREPR-SLOT-LIVELOCK: Carry: dismissed: not reproduced under dev/audit/harnesses/prepr_slot_nested.py at b6c080dbc
 
 ## Friction
 
