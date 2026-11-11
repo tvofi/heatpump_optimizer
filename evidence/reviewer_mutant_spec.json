@@ -1,0 +1,188 @@
+[
+ {
+  "name": "rv_median_first",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "return (offs[(len(offs) - 1) // 2] + offs[len(offs) // 2]) / 2.0 if offs else None",
+  "new": "return offs[0] if offs else None"
+ },
+ {
+  "name": "rv_no_decay",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "factor = 0.5 ** (age_s / (HALF_LIFE_DAYS * 86400.0))",
+  "new": "factor = 1.0"
+ },
+ {
+  "name": "rv_stamp_not_advanced",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "            self.decayed_at = when\n",
+  "new": "            pass\n"
+ },
+ {
+  "name": "rv_book_no_latch",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "                self.off_s = [*self.off_s, off_s][-OFF_SAMPLES_MAX:]\n        self._latch()",
+  "new": "                self.off_s = [*self.off_s, off_s][-OFF_SAMPLES_MAX:]"
+ },
+ {
+  "name": "rv_load_day_order",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "first is not None and last is not None and first > last",
+  "new": "False"
+ },
+ {
+  "name": "rv_load_bool_tally",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "isinstance(value, (int, float)) and not isinstance(value, bool) and",
+  "new": "isinstance(value, (int, float)) and"
+ },
+ {
+  "name": "rv_load_direction_set",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "if not isinstance(rows, dict) or set(rows) != set(DIRECTIONS):",
+  "new": "if not isinstance(rows, dict):"
+ },
+ {
+  "name": "rv_load_row_keys",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "set(row) != _ROW_KEYS or not all(",
+  "new": "not all("
+ },
+ {
+  "name": "rv_off_time_dropped",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "return self._close(ep, True, utc_elapsed_seconds(when, ep.stop_at)) if running else False",
+  "new": "return self._close(ep, True, None) if running else False"
+ },
+ {
+  "name": "rv_pass_decay_dropped",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "changed = any([d.decay(when) for d in self.directions.values()])",
+  "new": "changed = False"
+ },
+ {
+  "name": "rv_detach_keeps_episode",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "rec.unsub, rec.reader, rec.tracker, rec.learner.episode = None, None, wear.EdgeTracker(), None",
+  "new": "rec.unsub, rec.reader, rec.tracker = None, None, wear.EdgeTracker()"
+ },
+ {
+  "name": "rv_persist_stays_dirty",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "        return\n    rec.dirty = False",
+  "new": "        return\n    rec.dirty = True"
+ },
+ {
+  "name": "rv_published_undecayed",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "k, n = d.weights(when)",
+  "new": "k, n = d.k, d.n"
+ },
+ {
+  "name": "rv_ctx_supply",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "supply_on=not _pump_off(inp),",
+  "new": "supply_on=True,"
+ },
+ {
+  "name": "rv_ctx_plan_control",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "plan_control=inp.mode in (MODE_AUTO, MODE_ECONOMY) and duty_mode(inp.config) == DUTY_CONTROL,",
+  "new": "plan_control=True,"
+ },
+ {
+  "name": "rv_ctx_disinfecting",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "disinfecting=bool(inp.disinfecting),",
+  "new": "disinfecting=False,"
+ },
+ {
+  "name": "rv_ctx_boost",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "boost_held=any(boosts.active(c, now) for c in (boost.CHANNEL_SPACE, boost.CHANNEL_DHW)),",
+  "new": "boost_held=False,"
+ },
+ {
+  "name": "rv_ctx_electric",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "electric_heat=_lit(inp, CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY, CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY),",
+  "new": "electric_heat=False,"
+ },
+ {
+  "name": "rv_ctx_fault",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "fault=_lit(inp, CONF_HEAT_PUMP_FAULT_ENTITY),",
+  "new": "fault=False,"
+ },
+ {
+  "name": "rv_ctx_loop",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "loop_moved=held.feedback is not None and held.feedback.sent_c is not None,",
+  "new": "loop_moved=False,"
+ },
+ {
+  "name": "rv_ctx_mode_at",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "mode_written_at=mode[1] if mode else None,",
+  "new": "mode_written_at=None,"
+ },
+ {
+  "name": "rv_ctx_last_write",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "last_write_at=max((at for _value, at in held.written.values()), default=None),",
+  "new": "last_write_at=None,"
+ },
+ {
+  "name": "rv_gate_demand_true",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "target_demand=_reads_below(room, planned) if target == \"space\" else _reads_below(tank, inp.params.dhw_setpoint),",
+  "new": "target_demand=True,"
+ },
+ {
+  "name": "rv_gate_plan_any",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "plan_stays=all(step_duty(inp.plan, at) in (target, \"both\")",
+  "new": "plan_stays=any(step_duty(inp.plan, at) in (target, \"both\")"
+ },
+ {
+  "name": "rv_gate_source_leg",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "source_leg_s=utc_elapsed_seconds(now, replaced[1]) if replaced else None,",
+  "new": "source_leg_s=1e9,"
+ },
+ {
+  "name": "rv_gate_setpoint",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "inlet_c=_flow_inlet_c(inp), space_setpoint_c=command.space_setpoint,",
+  "new": "inlet_c=_flow_inlet_c(inp), space_setpoint_c=0.0,"
+ },
+ {
+  "name": "rv_gate_inlet",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "inlet_c=_flow_inlet_c(inp), space_setpoint_c=command.space_setpoint,",
+  "new": "inlet_c=None, space_setpoint_c=command.space_setpoint,"
+ },
+ {
+  "name": "rv_reader_power_threshold",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "return None, state_power_kw(states.get(meter), \"clamp\"), on_threshold_kw(thermal.params), False",
+  "new": "return None, state_power_kw(states.get(meter), \"clamp\"), 0.0, False"
+ },
+ {
+  "name": "rv_reader_entity_meter_only",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    return sensor or meter, reader",
+  "new": "    return meter, reader"
+ },
+ {
+  "name": "rv_lit_ignores_freshness",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "return any(reading.ok and bool(reading.flag) for reading in map(reader.read_bool, keys))",
+  "new": "return any(bool(reading.flag) for reading in map(reader.read_bool, keys))"
+ },
+ {
+  "name": "rv_old_option",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "duty_switch.note_mode_write(learner, now, replaced[0] if replaced else None, mode, context)",
+  "new": "duty_switch.note_mode_write(learner, now, None, mode, context)"
+ }
+]
