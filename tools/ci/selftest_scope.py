@@ -61,6 +61,7 @@ environment rather than the tree is not scoped by any table.
 from __future__ import annotations
 
 import contextlib
+import functools
 import hashlib
 import io
 import json
@@ -354,6 +355,7 @@ _FD = r"(?:AT_FDCWD|-?\d+)(?:<([^>]*)>)?"
 _AT = re.compile(rf"^(openat2?|newfstatat|fstatat64|statx|faccessat2?|readlinkat|execveat)\({_FD},\s*{_STR}")
 _PLAIN = re.compile(rf"^(open|creat|stat|lstat|stat64|lstat64|access|readlink|execve)\({_STR}")
 _RET = re.compile(r"\)\s+=\s+(-?\d+)(?:<([^>]*)>)?(?:\s|$)")
+_END = re.compile(r"^(\d+)\s+\+\+\+ (?:exited with|killed by) ")   # strace -q's exit line
 _OPENS = ("openat", "openat2", "open", "creat")
 _EXECS = ("execve", "execveat")
 
@@ -375,12 +377,13 @@ def _git_dirs(root: Path) -> tuple[Path, Path]:
     return rev("--git-dir"), rev("--git-common-dir")
 
 
-def trace_events(text: str):
-    """(pid, call, resolved absolute path, ok, line) per relevant syscall line,
-    joining a call strace split into `<unfinished ...>` and `resumed`."""
+def trace_events(lines):
+    """(pid, call, resolved absolute path, ok, line) per relevant syscall line
+    of an iterable of trace lines, joining a call strace split into
+    `<unfinished ...>` and `resumed`."""
     pending: dict[str, str] = {}
-    for line in text.splitlines():
-        m = _CALL.match(line)
+    for line in lines:
+        m = _CALL.match(line.rstrip("\n"))
         if not m:
             continue
         pid, rest = m.group("pid"), m.group("rest")
@@ -450,18 +453,41 @@ def _pyc_source(rel: str) -> str:
     return f"{m.group(1) or ''}{m.group(2)}.py" if m else rel
 
 
-def fold_trace(text: str, root: Path, tracked: set[str], tracked_dirs: set[str],
+def trace_end(lines, seen: dict):
+    """The lines, passed through; sets seen["root"] to the first process's pid
+    and adds every pid strace saw exit to seen["ended"]."""
+    seen.setdefault("root", None)
+    seen.setdefault("ended", set())
+    for line in lines:
+        e = _END.match(line)
+        if e:
+            seen["ended"].add(e.group(1))
+        elif seen["root"] is None and (c := _CALL.match(line)):
+            seen["root"] = c.group("pid")
+        yield line
+
+
+def trace_state(seen: dict) -> str:
+    """EMPTY (no traced call), PARTIAL (its first process never exited: strace
+    stopped before the step ended) or '' (whole), over trace_end's `seen`."""
+    if seen.get("root") is None:
+        return "EMPTY"
+    return "" if seen["root"] in seen["ended"] else "PARTIAL"
+
+
+def fold_trace(lines, root: Path, tracked: set[str], tracked_dirs: set[str],
                git_dir: Path, common_dir: Path) -> dict:
     files, probes, dirs = set(), set(), set()
     flags = {"index": False, "objects": False}
     gits: set[str] = set()                # the git subcommands that set `objects`
     real_root = os.path.realpath(root)
     git_cmd: dict[str, str] = {}          # pid -> the git subcommand it exec'd
-    for pid, call, path, ok, line in trace_events(text):
+    realpath = functools.lru_cache(maxsize=None)(os.path.realpath)  # paths repeat by the million
+    for pid, call, path, ok, line in trace_events(lines):
         is_dir = "O_DIRECTORY" in line
         if call in _EXECS and ok:
             git_cmd[pid] = _git_subcommand(line)
-        real = os.path.realpath(path) if ok else path
+        real = realpath(path) if ok else path
         for gd in {str(git_dir), str(common_dir)}:
             if real.startswith(gd + "/"):
                 sub = real[len(gd) + 1:]
@@ -506,11 +532,16 @@ def _ignored(root: Path, paths: set[str]) -> set[str]:
     return {p for p in r.stdout.split("\0") if p}
 
 
-def fold(trace_dir: Path, steps: list[Step], root: Path = ROOT) -> dict[str, dict]:
-    """Each gated step's measured entry: its own trace and its waited-on bg traces."""
+def fold(trace_dir: Path, steps: list[Step], root: Path = ROOT) -> tuple[dict[str, dict], list[str]]:
+    """(each gated step's measured entry, the refusals): an entry folds the
+    step's own trace and its waited-on bg traces; a refusal names a bg trace
+    missing beside its step's own, and an EMPTY or PARTIAL trace, which
+    measure less than the step read. A step with no trace of its own has no
+    entry, which drift refuses as UNMEASURED."""
     tracked, tracked_dirs = _tracked(root)
     git_dir, common_dir = _git_dirs(root)
     out: dict[str, dict] = {}
+    broken: list[str] = []
     for s in steps:
         if not s.gated:
             continue
@@ -521,9 +552,15 @@ def fold(trace_dir: Path, steps: list[Step], root: Path = ROOT) -> dict[str, dic
                "index": False, "objects": False}
         for src in sources:
             if not src.is_file():
+                broken.append(f"MISSING trace {src.name} (step {s.id}): its detached self-test left none")
                 continue
-            got = fold_trace(src.read_text(errors="replace"), root, tracked, tracked_dirs,
-                             git_dir, common_dir)
+            seen: dict = {}
+            with open(src, errors="replace") as fh:
+                got = fold_trace(trace_end(fh, seen), root, tracked, tracked_dirs, git_dir, common_dir)
+            state = trace_state(seen)
+            if state:
+                broken.append(f"{state} trace {src.name} (step {s.id}): "
+                              + ("no traced call" if state == "EMPTY" else "its first process never exited"))
             for k in ("files", "probes", "dirs", "git"):
                 acc[k] |= got[k]
             for k in ("index", "objects"):
@@ -538,7 +575,7 @@ def fold(trace_dir: Path, steps: list[Step], root: Path = ROOT) -> dict[str, dic
                   "files": sorted(e["files"]), "probes": sorted(e["probes"] - ignored),
                   "dirs": sorted(e["dirs"]), "index": e["index"], "objects": e["objects"],
                   "git": sorted(e["git"])}
-            for sid, e in out.items()}
+            for sid, e in out.items()}, broken
 
 
 def _under_scoped(sid: str, kind: str, miss: list[str]) -> str:
@@ -618,16 +655,18 @@ def record(root: Path, only: list[str] | None, out: Path) -> int:
         if r.returncode:
             failed.append(s.id)
             print((r.stdout + r.stderr)[-1500:], flush=True)
-    measured = fold(tmp / TRACE_DIR, steps, root)
+    measured, broken = fold(tmp / TRACE_DIR, steps, root)
     shutil.rmtree(tmp, ignore_errors=True)    # gigabytes of traces on a full record
+    for line in broken:
+        print(line, flush=True)
     old = load_table(out)
     entries = dict(old["steps"]) if old and only else {}
     entries.update(measured)
     entries = {k: v for k, v in entries.items() if k in set(gated_ids(steps))}
     write_table(out, entries, root)
     print(f"selftest_scope: recorded {len(measured)} step(s) into {out}; "
-          f"{len(failed)} failed {failed}")
-    return 1 if failed else 0
+          f"{len(failed)} failed {failed}, {len(broken)} broken trace(s)")
+    return 1 if failed or broken else 0
 
 
 def _traced() -> bool:
@@ -669,10 +708,11 @@ def write_table(out: Path, entries: dict[str, dict], root: Path = ROOT) -> None:
 def check_cli(trace_dir: Path, write: Path | None = None, root: Path = ROOT) -> int:
     steps = workflow_steps(root)
     gaps = wiring_gaps(steps)
-    measured = fold(trace_dir, steps, root)
+    measured, broken = fold(trace_dir, steps, root)
     if write is not None:
         write_table(write, measured, root)  # this run's measurement, to commit as the table
     refuse, notes = drift(load_table(root / TABLE), measured, steps)
+    refuse = broken + refuse
     for line in gaps + refuse:
         print(f"  {line}")
     for line in notes:
@@ -703,7 +743,9 @@ def static_check(root: Path = ROOT) -> int:
 
 # ---------------------------------------------------------------------------
 
-def self_test() -> int:
+def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
+    """The refusals, over fixtures; `wrapper` is the selftest_step.sh under
+    test (selftest_scope_mutants.sh hands it a mutant)."""
     passed = failed = 0
 
     def ck(name: str, ok: bool) -> None:
@@ -869,42 +911,42 @@ def self_test() -> int:
             '12 openat(AT_FDCWD</tmp>, "/etc/passwd", O_RDONLY) = 8</etc/passwd>',
         ])
         tracked, tdirs = _tracked(root)
-        got = fold_trace(log, root, tracked, tdirs, g, g)
+        got = fold_trace(log.splitlines(), root, tracked, tdirs, g, g)
         ck("fold: opens and execs of tracked files are files, a resumed open joined",
            got["files"] == {"tools/x/a.py", "tools/x/lib.py", "tests/lane.py"})
         ck("fold: a failed stat is a probe, an fd's own stat and an outside path are nothing",
            got["probes"] == {"tools/x/a.json"})
         ck("fold: a listed tracked directory is a dir", got["dirs"] == {"dev/governance/rules"})
-        junk = fold_trace("\n".join(
+        junk = fold_trace([
             f'9 newfstatat(AT_FDCWD<{root}>, "{n}", 0x1, 0) = -1 ENOENT (x)' for n in (
                 "pipe:[123]", "HEAD:tools/x/a.py", "abc...HEAD", "abc^1", ".merge_file_Xy12",
                 "objects/00/abcd", "tools/nodir/f.json", ".git", "d2e4d2d10cfe15b9ec51c36422029718e8367f1c",
-                "tools/x/new.json")), root, tracked, tdirs, g, g)
+                "tools/x/new.json")], root, tracked, tdirs, g, g)
         ck("fold: strings that name no file are not probes; a name in a tracked directory is",
            junk["probes"] == {"tools/x/new.json"})
         ck("fold: the index open is flagged, no object read", got["index"] and not got["objects"])
-        got2 = fold_trace(f'9 openat(AT_FDCWD<{root}>, ".git/objects/pack/p.pack", O_RDONLY) = 3<{g}/objects/pack/p.pack>',
+        got2 = fold_trace([f'9 openat(AT_FDCWD<{root}>, ".git/objects/pack/p.pack", O_RDONLY) = 3<{g}/objects/pack/p.pack>'],
                           root, tracked, tdirs, g, g)
         ck("fold: an object-store open is flagged and names no file",
            got2["objects"] and not got2["files"])
-        got3 = fold_trace("\n".join([
+        got3 = fold_trace([
             '9 execve("/usr/bin/git", ["git", "-C", "/r", "grep", "-l", "x"], 0x0 /* 1 var */) = 0',
-            f'9 openat(AT_FDCWD<{root}>, ".git/objects/pack/p.pack", O_RDONLY) = 3<{g}/objects/pack/p.pack>']),
+            f'9 openat(AT_FDCWD<{root}>, ".git/objects/pack/p.pack", O_RDONLY) = 3<{g}/objects/pack/p.pack>'],
             root, tracked, tdirs, g, g)
         ck("fold: a worktree git command (grep) opening the object store does not flag it",
            not got3["objects"])
-        got4 = fold_trace("\n".join([
+        got4 = fold_trace([
             '9 execve("/usr/bin/git", ["git", "show", "HEAD:x"], 0x0 /* 1 var */) = 0',
-            f'9 openat(AT_FDCWD<{root}>, ".git/objects/pack/p.pack", O_RDONLY) = 3<{g}/objects/pack/p.pack>']),
+            f'9 openat(AT_FDCWD<{root}>, ".git/objects/pack/p.pack", O_RDONLY) = 3<{g}/objects/pack/p.pack>'],
             root, tracked, tdirs, g, g)
         ck("fold: ... and `git show` opening it does (null control), naming the subcommand",
            got4["objects"] and got4["git"] == {"show"} and got3["git"] == set())
         link = Path(td + "-link")
         link.symlink_to(root)
         try:
-            via = fold_trace("\n".join([
+            via = fold_trace([
                 f'9 openat(AT_FDCWD<{root}>, "tools/x/a.py", O_RDONLY) = 3<{root}/tools/x/a.py>',
-                f'9 newfstatat(AT_FDCWD<{link}>, "tools/x/b.json", 0x1, 0) = -1 ENOENT (x)']),
+                f'9 newfstatat(AT_FDCWD<{link}>, "tools/x/b.json", 0x1, 0) = -1 ENOENT (x)'],
                 link, tracked, tdirs, g, g)
             ck("fold: a root reached through a symlink takes resolved and unresolved paths alike",
                via["files"] == {"tools/x/a.py"} and via["probes"] == {"tools/x/b.json"})
@@ -1040,10 +1082,10 @@ def self_test() -> int:
     # and an open through an undecorated fd, which only the result names.
     with tempfile.TemporaryDirectory() as td:
         root = Path(os.path.realpath(td))
-        ev = list(trace_events("\n".join([
+        ev = list(trace_events([
             "strace: Process 7 attached",
             '8 <... openat resumed>) = 3</x>',
-            f'9 openat(3, "lib.py", O_RDONLY) = 4<{root}/tools/x/lib.py>'])))
+            f'9 openat(3, "lib.py", O_RDONLY) = 4<{root}/tools/x/lib.py>']))
         ck("trace_events skips non-syscall lines and orphan resumes, and takes an open's result path",
            [(e[1], e[2]) for e in ev] == [("openat", f"{root}/tools/x/lib.py")])
 
@@ -1067,7 +1109,7 @@ def self_test() -> int:
         root = Path(os.path.realpath(td))
         env = throwaway_git_init(root, "-q")
         for rel, body in ((WORKFLOW, e2e), ("tools/x/a.py", "a\n"), ("tools/x/slow.sh", "s\n"),
-                          ("docs/d.md", "d\n"), (WRAPPER, (ROOT / WRAPPER).read_text())):
+                          ("docs/d.md", "d\n"), (WRAPPER, wrapper.read_text())):
             (root / rel).parent.mkdir(parents=True, exist_ok=True)
             (root / rel).write_text(body)
         subprocess.run(["git", "add", "-A"], cwd=root, env=env, check=True)
@@ -1128,6 +1170,22 @@ def self_test() -> int:
                                    capture_output=True, text=True).stdout.strip()
                     for pre in ([], ["strace", "-f", "-qq", "-o", os.devnull])]
             ck("_traced: False untraced, True under strace", seen == ["False", "True"])
+        # Needs no strace and no freedom from a tracer: the stub is the tracer.
+        hollow = root.parent / f"{root.name}-hollow"   # an strace that writes empty traces
+        hollow.mkdir()
+        (hollow / "strace").write_text('#!/bin/bash\nwhile [ "$1" != -- ]; do [ "$1" != -o ] || : > "$2"; '
+                                       'shift; done; shift; exec "$@"\n')
+        (hollow / "strace").chmod(0o755)
+        buf, path = io.StringIO(), os.environ["PATH"]
+        os.environ["PATH"] = f"{hollow}{os.pathsep}{path}"
+        try:
+            with contextlib.redirect_stdout(buf):
+                rc_e = main(["record", "--out", str(root / "e.json")], root)
+        finally:
+            os.environ["PATH"] = path
+            shutil.rmtree(hollow)
+        ck("record: an empty trace fails the record, naming it",
+           rc_e == 1 and "EMPTY trace step-a.trace (step a)" in buf.getvalue())
         # The drift check and the CLI over a synthetic trace directory.
         (root / TABLE).parent.mkdir(parents=True, exist_ok=True)
         st3 = job_steps(e2e)
@@ -1137,28 +1195,62 @@ def self_test() -> int:
                                             "index": False, "objects": False, "git": []}}, root)
         tdir = root / "traces"
         tdir.mkdir()
-        (tdir / "step-a.trace").write_text(
-            f'5 openat(AT_FDCWD<{root}>, "tools/x/a.py", O_RDONLY) = 3<{root}/tools/x/a.py>\n')
-        (tdir / "step-slow.trace").write_text("")
-        (tdir / "step-launch.trace").write_text(
-            f'5 openat(AT_FDCWD<{root}>, "docs/d.md", O_RDONLY) = 3<{root}/docs/d.md>\n')
+
+        def whole(*calls: str) -> str:   # a trace strace -q finished: its first process exited
+            return "".join(f"{c}\n" for c in calls) + "5 +++ exited with 0 +++\n"
+        (tdir / "step-a.trace").write_text(whole(
+            f'5 openat(AT_FDCWD<{root}>, "tools/x/a.py", O_RDONLY) = 3<{root}/tools/x/a.py>'))
+        (tdir / "step-slow.trace").write_text(whole('5 execve("/bin/true", ["true"], 0x0 /* 1 var */) = 0'))
+        (tdir / "bg-slow.trace").write_text(whole('5 execve("/bin/true", ["true"], 0x0 /* 1 var */) = 0'))
+        (tdir / "step-launch.trace").write_text(whole(
+            f'5 openat(AT_FDCWD<{root}>, "docs/d.md", O_RDONLY) = 3<{root}/docs/d.md>'))
+        folded, broken = fold(tdir, st3, root)
         ck("fold: an ungated step's trace is no entry; a gated one with no trace is absent",
-           sorted(fold(tdir, st3, root)) == ["a", "slow"]
+           sorted(folded) == ["a", "slow"] and broken == []
            and sorted(fold(tdir, [x for x in st3 if x.id != "slow"] + [Step("Z", "z",
-                      "steps.scope.outputs.z == 'true'", "true\n")], root)) == ["a"])
+                      "steps.scope.outputs.z == 'true'", "true\n")], root)[0]) == ["a"])
+        # A trace strace left EMPTY or PARTIAL, or a waited-on bg trace that is
+        # MISSING, measured less than the step read: refused by name, never
+        # folded as a whole measurement (R10-HOTFIX-SELFTEST-SCOPE-HANG).
+        keep = (tdir / "bg-slow.trace").read_text()
+        for name, body, want in (
+                ("bg-slow.trace", None, "MISSING trace bg-slow.trace (step slow)"),
+                ("bg-slow.trace", "", "EMPTY trace bg-slow.trace (step slow)"),
+                ("bg-slow.trace", "--- SIGCHLD {si_signo=SIGCHLD} ---\n", "EMPTY trace bg-slow.trace (step slow)"),
+                ("bg-slow.trace", keep.replace("5 +++ exited with 0 +++\n", ""),
+                 "PARTIAL trace bg-slow.trace (step slow)"),
+                ("bg-slow.trace", keep.replace("5 +++ exited with 0 +++", "6 +++ exited with 0 +++"),
+                 "PARTIAL trace bg-slow.trace (step slow)"),
+                ("step-a.trace", "", "EMPTY trace step-a.trace (step a)")):
+            was = (tdir / name).read_text()
+            if body is None:
+                (tdir / name).unlink()
+            else:
+                (tdir / name).write_text(body)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc_t = main(["check", "--traces", str(tdir)], root)
+            ck(f"check: {want.split(' (')[0].lower()} is refused, naming it ({body!r:.20})",
+               rc_t == 1 and f"  {want}: " in out.getvalue() and ", 1 refusal(s)" in out.getvalue())
+            (tdir / name).write_text(was)
+        (tdir / "bg-slow.trace").write_text(keep.replace("5 +++ exited with 0 +++", "5 +++ killed by SIGKILL +++"))
+        ck("fold: a first process killed by a signal ended its trace (null control: whole)",
+           fold(tdir, st3, root)[1] == [])
+        (tdir / "bg-slow.trace").write_text(keep)
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             rc_ok = main(["check", "--traces", str(tdir), "--write", str(root / "m.json")], root)
         ck("check: a table naming every read passes, and --write saves the measurement",
            rc_ok == 0 and "2 gated step(s), 0 refusal(s)" in out.getvalue()
            and (load_table(root / "m.json") or {}).get("steps", {}).get("a", {}).get("files") == ["tools/x/a.py"])
-        (tdir / "step-slow.trace").write_text(
-            f'6 openat(AT_FDCWD<{root}>, "docs/d.md", O_RDONLY) = 3<{root}/docs/d.md>\n')
+        (tdir / "step-slow.trace").write_text(whole(
+            f'5 openat(AT_FDCWD<{root}>, "docs/d.md", O_RDONLY) = 3<{root}/docs/d.md>'))
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             rc_bad = main(["check", "--traces", str(tdir)], root)
         ck("check: a read the table misses fails, naming the step and the file",
-           rc_bad == 1 and "UNDER-SCOPED step slow: files misses ['docs/d.md']" in out.getvalue())
+           rc_bad == 1 and "UNDER-SCOPED step slow: files misses ['docs/d.md']" in out.getvalue()
+           and ", 1 refusal(s)" in out.getvalue())
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             rcs = [main(["static"], root), main(["ids"], root),
@@ -1180,6 +1272,45 @@ def self_test() -> int:
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
             ck("an unknown command is a usage error", main(["frobnicate"], root) == 2)
+
+    # The wrapper over stub PATHs (no strace needed): which steps it traces,
+    # with which flags, and what it does when SELFTEST_TRACE is set and no
+    # strace is on PATH (R10-HOTFIX-SELFTEST-SCOPE-HANG: the install step,
+    # traced, could not run sudo; the drift step, traced, never finished).
+    with tempfile.TemporaryDirectory() as td:
+        t = Path(os.path.realpath(td))
+        stub, bare = t / "stub", t / "bare"
+        for d in (stub, bare):
+            d.mkdir()
+            for tool in ("bash", "mkdir"):
+                (d / tool).symlink_to(shutil.which(tool))
+        (stub / "strace").write_text('#!/bin/bash\necho "$*" >> "$RUNNER_TEMP/strace-calls"\n'
+                                     'while [ "$1" != -- ]; do shift; done; shift; exec "$@"\n')
+        (stub / "strace").chmod(0o755)
+        (t / "s.sh").write_text('echo "ran $GITHUB_ACTION"\n')
+
+        def wrap(path_dir: Path, sid: str, *args: str) -> tuple[int, str, str, str]:
+            calls = t / "strace-calls"
+            calls.unlink(missing_ok=True)
+            r = subprocess.run(["bash", str(wrapper), *args], capture_output=True, text=True,
+                               env={"PATH": str(path_dir), "RUNNER_TEMP": str(t),
+                                    "SELFTEST_TRACE": "1", "GITHUB_ACTION": sid})
+            return r.returncode, r.stdout, r.stderr, calls.read_text() if calls.exists() else ""
+        untraced = [wrap(stub, sid, str(t / "s.sh")) for sid in UNGATED]
+        ck(f"wrapper: the ungated steps {list(UNGATED)} run untraced",
+           all(u[0] == 0 and u[1] == f"ran {sid}\n" and u[3] == "" for u, sid in zip(untraced, UNGATED)))
+        rc, so, _, calls = wrap(stub, "a", str(t / "s.sh"))
+        ck("wrapper: a gated step runs under strace -q into step-ID.trace (null control)",
+           rc == 0 and so == "ran a\n" and f"-o {t}/selftest-trace/step-a.trace -- bash" in calls
+           and " -q " in f" {calls} " and "-qq" not in calls)
+        rc, so, _, calls = wrap(stub, "", "--as", "n", "bash", str(t / "s.sh"))
+        ck("wrapper: --as NAME runs under strace -q into bg-NAME.trace",
+           rc == 0 and f"-o {t}/selftest-trace/bg-n.trace -- bash" in calls and " -q " in f" {calls} ")
+        ran = [wrap(bare, "a", str(t / "s.sh")), wrap(bare, "", "--as", "n", "bash", str(t / "s.sh"))]
+        ck("wrapper: no strace on PATH runs the step and the --as command untraced, saying so",
+           all(r[0] == 0 and r[1].startswith("ran ") and "no strace is on PATH" in r[2] for r in ran))
+        m = re.search(r'^UNTRACED="([^"]*)"$', wrapper.read_text(), re.M)
+        ck("wrapper: its UNTRACED list is UNGATED", bool(m) and sorted(m.group(1).split()) == sorted(UNGATED))
 
     # The live table names no landed retired path (tests/layout.py's guard
     # refuses a new reference to one, and a diff re-adding one), and the
@@ -1205,6 +1336,8 @@ def self_test() -> int:
 def main(argv: list[str], root: Path = ROOT) -> int:
     if argv == ["--self-test"]:
         return self_test()
+    if argv[:2] == ["--self-test", "--wrapper"] and len(argv) == 3:
+        return self_test(Path(argv[2]).resolve())
     if argv == ["ids"]:
         print(" ".join(gated_ids(workflow_steps(root))))
         return 0

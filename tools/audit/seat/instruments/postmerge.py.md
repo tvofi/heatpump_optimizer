@@ -1,7 +1,7 @@
 # `postmerge.py`
 
 - `postmerge.py` — the bookkeeping after a merge, run by `merge_pr.sh` and
-  by the train's landing: the #201 line (`record_beat.py`), the roster stage
+  by the train's landing: the record-issue line (`record_beat.py`), the roster stage
   (`roster_sync.py --apply`; a refusal prints `set-stage owed <group> <merge sha>`),
   `state_docs.py --push`, and main's suite state (`merge_train.py classify --main`).
   When: automatically after each merge; by hand with `--retry` once an OWED

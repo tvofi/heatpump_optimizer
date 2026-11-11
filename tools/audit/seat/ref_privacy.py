@@ -658,17 +658,23 @@ def added_lines(base: str, ref: str, cwd: Path = ROOT) -> list[tuple[str, int, s
     def run(*a: str) -> subprocess.CompletedProcess:
         return subprocess.run(["git", *a], cwd=cwd, capture_output=True)
 
-    names = run("diff", "--no-renames", "--name-only", "-z", base, ref)
+    names = run("diff", "--no-renames", "--name-status", "-z", base, ref)
     if names.returncode != 0:
         raise RuntimeError(f"git diff {base[:12]} {ref} exited {names.returncode}")
 
-    def lines(rev: str, path: str) -> list[str]:
+    def lines(rev: str, path: str, present: bool) -> list[str]:
+        # The diff's status names an absent side; a `git show` of one fails, and
+        # git lstat()s the worktree path to word that error -- a probe of each
+        # added file that selftest_scope's drift check measured on every merge.
+        if not present:
+            return []
         got = run("show", f"{rev}:{path}")
-        return blob_text(got.stdout).splitlines() if got.returncode == 0 else []  # absent: added or deleted whole
+        return blob_text(got.stdout).splitlines() if got.returncode == 0 else []
 
+    fields = names.stdout.decode("utf-8", "replace").split("\0")
     added, removed = [], set()
-    for path in filter(None, names.stdout.decode("utf-8", "replace").split("\0")):
-        old, new = lines(base, path), lines(ref, path)
+    for status, path in zip(fields[0::2], fields[1::2]):
+        old, new = lines(base, path, status != "A"), lines(ref, path, status != "D")
         was, now = {t.strip() for t in old}, {t.strip() for t in new}
         removed |= was - now
         added += [(path, n, t) for n, t in enumerate(new, 1) if t.strip() not in was]
@@ -1170,6 +1176,7 @@ def self_test() -> int:
         Path(td, "rec.log").write_text("clean\n" + stock)
         kept = "kept stock line from " + fake_home + "/kept\n"  # no other file gives it up
         Path(td, "keep.log").write_text(kept)
+        Path(td, "gone.log").write_text("retired line\n")  # deleted by the diff
         g("add", "-A"); g("commit", "-q", "-m", "base")
         base = g("rev-parse", "HEAD")
         Path(td, "rec.log").write_text("clean\n" + "File " + scratch + "/x.py\n")
@@ -1183,9 +1190,29 @@ def self_test() -> int:
         Path(td, "rounds", f"-Users-{fake_name}-proj", "x.log").write_text("ok\n")  # the leak is the NAME
         os.makedirs(Path(td, "fresh"))
         Path(td, "fresh", "ok.log").write_text("ok\n")
+        Path(td, "gone.log").unlink()
         g("add", "-A"); g("commit", "-q", "-m", "plant")
         g("update-ref", "refs/remotes/origin/main", base)
-        got_base, _, bad = content_check("HEAD", Path(td), fid)
+        real_run, shows = subprocess.run, []
+
+        def spy(argv, *a, **k):
+            got = real_run(argv, *a, **k)
+            if list(argv[:2]) == ["git", "show"]:
+                shows.append((argv[2], got.returncode))
+            return got
+        subprocess.run = spy
+        try:
+            got_base, _, bad = content_check("HEAD", Path(td), fid)
+        finally:
+            subprocess.run = real_run
+        # A failed `git show REV:path` lstat()s the worktree path to word its
+        # error, so on main's push the step probed each merge's added files and
+        # selftest_scope's drift check refused a new path on every merge.
+        ok("the content arm never shows a side the diff says is absent (an added file at the base, "
+           "a deleted one at the ref): git's error path probes the worktree",
+           shows and all(rc == 0 for _, rc in shows)
+           and not any(s.endswith((":moved.log", ":fresh/ok.log")) and s.startswith(base) for s, _ in shows)
+           and not any(s.endswith(":gone.log") and not s.startswith(base) for s, _ in shows), str(shows))
         ok("--check's content arm judges the diff from the merge base with origin/main", got_base == base)
         ok("and check() runs it (a pin by text: check() itself needs the real tree's pushers)",
            "content_check(ref)" in inspect.getsource(check))

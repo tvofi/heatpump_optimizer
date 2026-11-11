@@ -98,8 +98,9 @@ Every picker on this second screen is optional; skip any you do not have. Withou
 | Pump online | none | Strongly recommended for a cloud-connected pump. On while the pump is actually reachable, which a stale cloud republish cannot tell you on its own. |
 | Fault alarm | none | On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself. |
 
-The Danfoss ECL110 MQTT settings are not asked during setup. Eight questions
-only ECL110 owners can answer do not belong on everyone's first screen, so they
+The heat-curve settings (the Danfoss ECL110 MQTT topics and the offset entity)
+are not asked during setup. Questions only owners of such a controller can
+answer do not belong on everyone's first screen, so they
 live on their own options page, where both MQTT topics ship empty and nothing
 is published or subscribed until a topic is set (see [ecl110.md](ecl110.md));
 an install without an ECL110 never touches the topics.
@@ -360,7 +361,7 @@ control, described once here rather than twenty-three times below:
 | Advanced learning features | Outage recovery, weather/plant learners, curve learning |
 | Fuse and peak guards | Main fuse, the fuse cap, the live peak guard, the heat pump's silent mode |
 | Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
-| Heat curve control (ECL110) | MQTT topics and displace limits |
+| Heat curve control | MQTT topics, the offset entity and displace limits |
 | Reset to factory defaults | The settings, the learned values, or both, back to a fresh installation; undone by `restore_learned_snapshot` |
 
 ### Your system, as configured
@@ -633,10 +634,13 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Solar radiation sensor | the setup value | an irradiance sensor | As on [Optional sensors](#2--optional-sensors). |
 | Solar irradiance source | Weather entity | Weather entity / Open-Meteo | As on Optional sensors. |
 | Solar irradiance location | your Home Assistant home location | a coordinate | As on Optional sensors. Only used with Open-Meteo. |
-| Heat pump power meter | none | a `power` sensor | Actual electrical draw. A figure the pump estimates for itself is read the same way as a meter, so prefer a real one ([why](how-it-works.md#the-house-heat-loss-coefficient)). With it, efficiency becomes measurable, predicted cost gets a real counterpart, and a wood fire is detected reliably. Several sensors stay unavailable without it. |
+| Heat pump power meter | none | a `power` sensor | Actual electrical draw. A figure the pump estimates for itself trains the learners the same way as a meter, so prefer a real one ([why](how-it-works.md#the-house-heat-loss-coefficient)); it never makes a measured COP (the next row). With it, predicted cost gets a real counterpart, predicted cost gets a real counterpart, and a wood fire is detected reliably. Several sensors stay unavailable without it. |
 | Heat pump thermal power meter | none | a `power` sensor in W or kW | The heat the pump delivers, from a heat meter. Published as `measured_heat_output_kw` on the Recommended Power sensor. With the power meter, COP is measured (heat over electricity) rather than inferred from the commanded draw, and the efficiency scale is judged at the supply temperature the pump actually ran at when a supply sensor is mapped, so it stops absorbing weather-driven lift as wear. The house heat-loss and lower-floor learners replay the measured heat for a space-heating interval, and the capacity curve takes it at every load as a floor (it may raise a bucket; only near-nameplate intervals count towards capping). When set it replaces the water flow sensor's estimate, also in a cycle where its own reading is unusable, and an unusable reading pauses the learners that read it. |
+| Heat pump power meter: meter or estimate (`heat_pump_power_source`) | auto | auto, meter or estimate | Whether the power meter measures or is the pump's own estimate (an "Estimated Power Draw" sensor). Auto reads an entity whose id contains `estimat` as an estimate. An estimate trains every learner as a meter does, but heat over estimated power is the vendor model's COP, so no COP is shown as measured and the heat pump is not graded. |
+| Heat pump thermal power meter: meter or estimate (`heat_pump_thermal_power_source`) | auto | auto, meter or estimate | The same answer for the thermal power meter (an "Estimated Heating Output" sensor is an estimate). |
 | Heat pump energy meter | none | an `energy` sensor | A cumulative kWh meter is more accurate than adding up power readings, which misses short runs. |
 | Heat pump heat energy meter | none | an `energy` sensor in Wh, kWh or MWh | A cumulative kWh meter of the heat the pump delivers. It is read over each span of about an hour, so short compressor runs count, and when set it is used instead of the thermal power meter and the water flow sensor. With the energy meter on the same read instants, efficiency is measured as heat over electricity for the span; the house heat-loss learner replays the heat that was delivered. A span whose counter went backwards (a meter reset), jumped past the pump's nameplate, or whose counter resolution is too coarse for the heat expected in it is not learned from. A meter that also counts hot water is split by the operating mode entity, by the time the pump spent in each mode; without that entity, or in a combined mode, the split falls back to the plan's, and an hour that heated the tank is not read as space heating. |
+| Heat reading covers hot water (`heat_meter_sees_dhw`) | off | on or off | Turn on only if the heat energy meter, or else the thermal power meter, also measures the heat sent to the hot-water tank (a meter ahead of the diverter valve). Off, a hot-water interval records no measured COP. A measured COP, and the heat pump grade, need metered heat over metered power; without a heat reading at all the Health tab says COP cannot be measured on this install. |
 | Whole-house power meter | none | a `power` sensor | A capacity tariff is billed on the whole house, so without this the peak being avoided is only part of the real one. |
 | Compressor frequency entity | none | a `number` entity | Typically from Modbus or ESPHome. With it the optimizer learns a kW-per-Hz map and recommends a frequency. |
 | Actual frequency sensor | none | a `frequency` sensor | Many number entities are setpoint registers that echo the last written value. Read from an echo, the watchdog can never see divergence. Leave empty only if the number entity genuinely tracks the machine. Without a number entity, this sensor alone is enough to observe. |
@@ -1043,9 +1047,10 @@ reads SEK, that is a label, not a constraint.
 | Live fee sensor | none | a sensor | For grids with dynamic fees. Its value is added to every planned hour. |
 | Fixed contract price to compare | 0.0 per kWh | 0–10, 0.01 steps | If you could have a fixed-price contract, its price per kWh. The Cost Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out. |
 
-### Heat curve control (ECL110)
+### Heat curve control
 
-For Danfoss ECL110 controllers driven over MQTT. The topics have no
+For Danfoss ECL110 controllers driven over MQTT, or any controller whose
+heat-curve offset Home Assistant exposes as a `number`. The topics have no
 shipped default: each is exactly what you store, an empty or absent topic
 leaves that arm off, and nothing is published or subscribed until a topic
 is set — an install without an ECL110 never touches these topics. See
@@ -1061,6 +1066,12 @@ is set — an install without an ECL110 never touches these topics. See
 | Largest downward offset | −20 °C | −30–0, 0.5 steps | How far the curve may be shifted down during expensive hours. |
 | Largest upward offset | 20 °C | 0–30, 0.5 steps | How far it may be shifted up when storing cheap heat. |
 | Controller response time | 1.5 h | 0.25–6.0, 0.25 steps | Roughly how long the controller takes to act on a new offset, so the optimizer does not ask for changes faster than the system can follow. |
+| Heat-curve offset entity | *(empty)* | a `number` or `input_number` | The same offset written to an entity instead of, or as well as, MQTT. Kind offset: a whole-curve offset, 0 neutral, that the controller forgets on a restart; turning the optimizer off, or unloading it, writes 0; refused when its own range excludes 0. Kind persistent: a curve setting the controller stores; off and unload write back the value it held before the first write; refused when it reads no value or one outside its own range. Refused when it is an entity the optimizer already writes. |
+| What the entity is | Offset | Offset, Persistent | Offset: a temperature difference, not stored by the controller; prefer it where the controller has one. Persistent: a stored curve setting, displaced from its own value with a daily write cap; see [ecl110.md](ecl110.md#kind-persistent-a-stored-curve-parameter). |
+| Largest offset written to the entity | 3 K | 0.5–5, 0.5 steps | The entity's offset stays within this many kelvin either way, whatever the MQTT range allows. 3 K is an estimate; see [ecl110.md](ecl110.md#without-mqtt-a-number-entity). |
+| Largest displacement of a stored parameter | 3 K | 0.5–5, 0.5 steps | Kind persistent only: the stored setting stays within this many kelvin of its value before the first write. 3 K is an estimate. |
+| Most writes a day to a stored parameter | 12 | 0–48 | Kind persistent only: writes in one local day, the write back on off included, one always kept for it; 0 or 1 writes nothing. 12 rests partly on forum figures and estimates; see [ecl110.md](ecl110.md#kind-persistent-a-stored-curve-parameter). |
+| Least time between writes to a stored parameter | 60 min | 15–360, 15 steps | Kind persistent only: after a write, the next waits at least this long. 60 min is an estimate of three radiator response times. |
 
 ### Reset to factory defaults
 
@@ -1347,4 +1358,4 @@ file under `.storage/` that holds the rows.
 - [../README.md#removal](../README.md#removal) — removing the integration: what deleting the entry does, and what it leaves behind
 - [how-it-works.md](how-it-works.md) — the mechanisms behind these settings
 - [dashboard-card.md](dashboard-card.md) — the card, its own configuration keys, and the Setup tab
-- [ecl110.md](ecl110.md) — the Danfoss ECL110 path in full
+- [ecl110.md](ecl110.md) — the heat-curve path in full: the Danfoss ECL110 over MQTT, and an offset `number` entity
