@@ -15,6 +15,8 @@ drift ETAs against the true settle day on synthetic plants and found both
   how much of the value is measurement rather than prior -- never a time;
 * ``waiting``: nothing was counted over the rate window and the weather
   blocks the learner's own sample gate right now (``waiting_for``);
+* ``frozen``: a space boost, or the slab heat it left behind, holds the
+  learner; ``frozen_until`` is when that ends, ``None`` while unknown;
 * ``off``: disabled, or not measurable on this install.
 
 A read-only view: the coordinator passes the learners' counts, their own
@@ -117,8 +119,15 @@ def gate_count(gate: Callable[[int], bool], samples: int, horizon: int = 10_000)
     return next((n for n in range(samples, samples + horizon) if gate(n)), None)
 
 
-def learner_progress(learner: LearnerInputs) -> LearnerProgress:
-    """The phase, progress, wait and (counting only) ETA of one learner."""
+def learner_progress(
+    learner: LearnerInputs, frozen: tuple[bool, datetime | None] = (False, None)
+) -> LearnerProgress:
+    """The phase, progress, wait and (counting only) ETA of one learner.
+
+    ``frozen``: whether a space boost holds the learner, and until when
+    (``None`` unknown). Ranked above the weather wait: a frozen learner
+    takes nothing whatever the weather does.
+    """
     if not learner.enabled:
         return _status("off", None, None, None, learner.samples, None)
     n = learner.samples
@@ -134,6 +143,9 @@ def learner_progress(learner: LearnerInputs) -> LearnerProgress:
     else:
         phase = "settling"
         progress = learner.walked(n) if learner.walked is not None else None
+    if frozen[0]:
+        until = frozen[1].isoformat() if frozen[1] is not None else None
+        return _status("frozen", progress, "boost", None, n, needed, until)
     if learner.blocked_by is not None and rate is None:
         return _status("waiting", progress, learner.blocked_by, None, n, needed)
     return _status(phase, progress, None, eta, n, needed)
@@ -146,8 +158,9 @@ def _status(
     eta_days: float | None,
     samples: int,
     samples_needed: int | None,
+    frozen_until: str | None = None,
 ) -> LearnerProgress:
-    return {
+    status: LearnerProgress = {
         "phase": phase,
         "progress": round(progress, 3) if progress is not None else None,
         "waiting_for": waiting_for,
@@ -155,3 +168,6 @@ def _status(
         "samples": int(samples),
         "samples_needed": samples_needed,
     }
+    if phase == "frozen":
+        status["frozen_until"] = frozen_until
+    return status

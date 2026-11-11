@@ -28,6 +28,7 @@ it says what the pump delivered at one instant, not over the interval.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, NamedTuple
@@ -36,6 +37,8 @@ from weakref import WeakKeyDictionary
 from .const import HEAT_LOSS_BASES
 from .drift import utc_elapsed_seconds
 from .pump_mode import MODE_DHW, MODE_HEAT
+
+_LOGGER = logging.getLogger(__name__)
 
 SPACE = "space"
 DHW = "dhw"
@@ -115,6 +118,10 @@ class SpanEnergy(NamedTuple):
     elec_kwh: float | None
     #: The heat counter's resolution (:attr:`CounterDelta.quantum`).
     quantum: float | None
+    #: The heat the dwell put on hot water, cycle by cycle: each read's step
+    #: split by that cycle's own dwell. ``None`` once a step fell in a cycle
+    #: the dwell did not observe, or for a span built without the dwell.
+    dhw_kwh: float | None = None
 
 
 def close_after_h(cadence_h: float, bounds_h: tuple[float, float]) -> float:
@@ -312,7 +319,14 @@ def span_heat(ev: SpanEvidence, modelled_cop: float) -> SpanHeat:
     refusal = resolution_refusal(e, modelled_cop * (asked_kwh if e.elec_kwh is None else e.elec_kwh))
     heat_kw = None if refusal else e.heat_kwh / e.hours
     elec_kw = None if e.elec_kwh is None else e.elec_kwh / e.hours
-    return SpanHeat(heat_kw, space_heat_kw(heat_kw, ev.attribution, integrated=True), asked_kwh / e.hours, elec_kw, refusal)
+    space_kw = space_heat_kw(heat_kw, ev.attribution, integrated=True)
+    if space_kw is not None and ev.attribution.observed and ev.attribution.dhw > 0.0:
+        # The hot water's own steps, not its share of the span's hours: a
+        # charge runs at its own rate, so a time split misreads the space heat.
+        # Unaccounted steps, or more hot water than heat, read no space figure.
+        rest = None if e.dhw_kwh is None else e.heat_kwh - e.dhw_kwh
+        space_kw = rest / e.hours if rest is not None and rest >= 0.0 else None
+    return SpanHeat(heat_kw, space_kw, asked_kwh / e.hours, elec_kw, refusal)
 
 
 class SpanClose(NamedTuple):
@@ -364,6 +378,7 @@ class HeatEnergyMeter:
     cycle: tuple[datetime | None, datetime | None] = (None, None)
     _opened: bool = False
     _anchor: tuple[Any, datetime] | None = None
+    _dhw_kwh: float | None = 0.0
     _clean: dict[str, bool] = field(default_factory=dict)
     _plan: tuple[float, float] = (0.0, 0.0)
 
@@ -416,9 +431,12 @@ class HeatEnergyMeter:
         self.closed = self.refusal = None
         self.counter, self.cycle = configured, (self.cycle[1], at)
         start, start_at = self.heat.start, self.heat.start_at
+        self._fold_dhw_step(heat_kwh, at, start is not None)
         self.heat.observe(heat_kwh, at)
         self.elec.observe(elec_kwh, at)
         self._opened = start is None and self.heat.start is not None
+        if self._opened:
+            self._dhw_kwh = 0.0
         if heat_kwh is not None and start is not None and start_at is not None:
             self._close(at, start_at, heat_kwh - start, cadence_h, bounds_h, max_heat_kw)
         # A span closed this cycle is read by ``settle`` after this prune, so
@@ -445,10 +463,22 @@ class HeatEnergyMeter:
             self.refusal = SPAN_REFUSED_ROLLOVER
         else:
             elec = self.elec.delta_over(start_at, at)
-            self.closed = SpanEnergy(start_at, at, hours, heat_kwh, elec, self.heat.quantum)
+            self.closed = SpanEnergy(start_at, at, hours, heat_kwh, elec, self.heat.quantum, self._dhw_kwh)
         self.heat.rebase()
         self.elec.rebase()
-        self._opened = True
+        self._opened, self._dhw_kwh = True, 0.0
+
+    def _fold_dhw_step(self, heat_kwh: float | None, at: datetime, open_span: bool) -> None:
+        """Add this read's step, at its cycle's hot-water share, to the open span's hot water."""
+        last, last_at = self.heat.last, self.heat.last_at
+        if heat_kwh is None or last is None or last_at is None or not open_span or self._dhw_kwh is None:
+            return
+        shares = self.dwell.shares(last_at, at)
+        total = shares[0] + shares[1] if shares is not None else 0.0
+        if shares is None or total <= 0.0:
+            self._dhw_kwh = None
+        else:
+            self._dhw_kwh += max(0.0, heat_kwh - last) * shares[1] / total
 
     def settle(
         self, clean: dict[str, bool], plan_kw: tuple[float, float], anchor: tuple[Any, datetime | None]
@@ -524,9 +554,37 @@ def close_span(
     )
 
 
+def bridges_hot_water(
+    meter: HeatEnergyMeter, plan_split: tuple[float, float], sees_dhw: bool, contaminated: bool
+) -> bool:
+    """Whether a cycle with no space interval for hot water leaves the open span clean.
+
+    The span reads a counter, and its hot water is the dwell's own steps
+    (:meth:`HeatEnergyMeter._fold_dhw_step`), so a charge inside it is
+    subtracted, not a reason to throw the span away. Only where the counter
+    is declared to see the hot water (``sees_dhw``): a counter declared blind
+    to it, or an immersion element or a pump heater on (``contaminated``),
+    keeps today's refusal. The dwell must have seen the charge.
+    """
+    return meter.counter and sees_dhw and not contaminated and ran_hot_water(meter.attribution(plan_split))
+
+
+def log_close(meter: HeatEnergyMeter, close: SpanClose) -> None:
+    """At DEBUG: a span that closed or was refused, and which fabric learner it reaches."""
+    if meter.closed is None and meter.refusal is None:
+        return
+    e = meter.closed
+    _LOGGER.debug(
+        "Heat counter span %s: %s, space %s kW; house %s, lower %s",
+        f"{e.hours:.2f} h" if e is not None else "refused", close.refusal or meter.refusal or "read",
+        f"{close.space_kw:.2f}" if close.space_kw is not None else "none",
+        "folds" if close.house else "refused", "folds" if close.lower else "refused",
+    )
+
+
 def replay_gate(
     span_heat_kw: float | None, interval: Any, unmeasured: str | None, frozen: str | None,
-    heat_kw: float | None, spans_own_scale: bool,
+    heat_kw: float | None, spans_own_scale: bool, bridged: bool = False,
 ) -> tuple[float | None, bool, str | None, bool]:
     """A fabric learner's ``(heat kW, span clean, freeze, folds)`` for one run (#2261).
 
@@ -536,11 +594,12 @@ def replay_gate(
     (``unmeasured``: the unmetered-power freeze is lifted, since the span
     replays measured heat); its freeze is ``frozen``, the one with
     ``heat_kw``; and it folds unless the span folds the scale alone
-    (``spans_own_scale``).
+    (``spans_own_scale``). ``bridged``: a hot-water cycle the span carries
+    (:func:`bridges_hot_water`) leaves it clean with no interval.
     """
     if span_heat_kw is not None:
         return span_heat_kw, False, None, True
-    return heat_kw, interval is not None and unmeasured is None, frozen, not spans_own_scale
+    return heat_kw, (interval is not None or bridged) and unmeasured is None, frozen, not spans_own_scale
 
 
 _METERS: WeakKeyDictionary[Any, HeatEnergyMeter] = WeakKeyDictionary()

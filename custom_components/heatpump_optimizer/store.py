@@ -470,8 +470,10 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "disinfection_owned/#": _TEXT, "disinfection_latched": _FLAG,
     },
     "boost": {
-        "dhw/until": _AT, "space/until": _AT,
+        "dhw/until": _AT, "space/until": _AT, "space/since": _AT,
         "block_dhw/until": _AT, "block_space/until": _AT,
+        # #1935: the settling tail runs past the overlay's own two hours.
+        "space_settle/until": Domain("instant", ahead_h=c.BOOST_SPACE_SETTLE_TAIL_HOURS),
     },
     "notifier": {"sent/~": _TEXT, "sent/*": _TEXT},
     # off_restore.py: each armed consumer and the baseline its restore writes,

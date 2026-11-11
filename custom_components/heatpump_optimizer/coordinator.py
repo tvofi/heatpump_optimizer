@@ -1127,10 +1127,11 @@ def _replay_gate(
     :func:`heat_energy.replay_gate`'s, on the freeze without and with this
     run's measured heat and on whether the span folds the scale alone.
     """
-    cfg, heat_kw = _ctx_of(coord)._config, _interval_measured_heat_kw(coord)
+    cfg, heat_kw, meter = _ctx_of(coord)._config, _interval_measured_heat_kw(coord), heat_energy.meter_of(coord)
+    bridged = interval is None and heat_energy.bridges_hot_water(meter, coord._commanded_split(), probe_install(cfg).heat_sees_dhw, coord._immersion_active or coord._pump_signals.electric_heat.resistive_heat)
     return heat_energy.replay_gate(
         span_heat_kw, interval, replay_freeze(raw, cfg, 0.0), replay_freeze(raw, cfg, heat_kw), heat_kw,
-        heat_energy.meter_of(coord).spans_own_scale)
+        meter.spans_own_scale, bridged)
 
 
 async def _async_earn_heat_basis(coord: Any, heat_kw: float | None) -> None:
@@ -1171,6 +1172,7 @@ async def _async_learn_heat_span(coord: Any, clean: dict[str, bool]) -> None:
     modelled_cop = coord._thermal_model.compute_cop(ctx._current_state.outdoor_temperature)
     close = heat_energy.close_span(meter, clean, split, coord._last_house_sample, coord._last_house_sample_time,
                                    modelled_cop, COP_REFUSED_UNALIGNED, FabricInterval)
+    heat_energy.log_close(meter, close)
     if close.lower:
         await coord._async_learn_lower_floor_loss(close.interval, close.space_kw)
     if close.house:
@@ -1660,6 +1662,16 @@ def _loss_residual_rejected(residual: float, what: str) -> bool:
         residual,
     )
     return True
+
+
+def _skipped(clean: bool, what: str, why: str | None) -> bool:
+    """Log at DEBUG why ``what`` took no sample this cycle; return ``clean`` unchanged.
+
+    The learners refuse far more often than they fold, and a count that
+    stands still says nothing about which gate held it.
+    """
+    _LOGGER.debug("No %s sample this cycle: %s%s", what, why, "" if clean else " (the open counter span is spoiled)")
+    return clean
 # Symmetric bound on how far one sample's Newton target may sit from the
 # *current* estimate before it is clipped, as a fraction of that estimate.
 # Centred on the current value, zero-mean noise has zero-mean effect after
@@ -1721,11 +1733,12 @@ def learner_progress_view(
     config: Any,
     snapshots: Sequence[Mapping[str, Any]],
     samples: tuple[float, float, float],
+    frozen: tuple[bool, datetime | None] = (False, None),
 ) -> dict[str, LearnerProgress]:
     """Each thermal learner's phase, progress and wait (R10-IDENT Q3).
 
     ``samples`` are the house, lower and solar learners' counts; a
-    non-finite one (a corrupted store) counts as none.
+    non-finite one (a corrupted store) counts as none. ``frozen``: :func:`boost.learning_freeze`.
     ``learner_progress`` owns the phases, this only gathers their inputs.
     """
     counts = {
@@ -1770,7 +1783,7 @@ def learner_progress_view(
             internal_gains_gate_open, None, house_wait, rates["house"],
         ),
     }
-    return {name: learner_progress(inputs) for name, inputs in learners.items()}
+    return {name: learner_progress(inputs, frozen) for name, inputs in learners.items()}
 
 
 THERMAL_LEARNING_STORE_VERSION = 1
@@ -5732,10 +5745,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         vent_only = frozen == "ventilation"
         if frozen and not vent_only:
             self._learner_freeze_reason = frozen
-            return clean
+            return _skipped(clean, "house heat loss", f"frozen ({frozen})")
 
         if interval is None or observed is None:
-            return clean
+            return _skipped(clean, "house heat loss", "no room reading" if interval else "no space interval (hot water, heater or power unread)")
         previous_state, previous_time, now, dt_h, previous_power = interval
 
         outdoor = previous_state.outdoor_temperature
@@ -5745,11 +5758,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         driving_temp = _learned_zone_temperature(previous_state, params)
         delta_t = driving_temp - outdoor
         if delta_t < HOUSE_LOSS_MIN_DELTA:
-            return clean
+            return _skipped(clean, "house heat loss", f"indoor-outdoor {delta_t:.1f} K below {HOUSE_LOSS_MIN_DELTA} K")
 
         predicted_state = await _replay_fabric(self, interval, heat_kw, "House heat loss")
         if predicted_state is None:
-            return clean
+            return _skipped(clean, "house heat loss", "the replay failed")
 
         # Compare like with like. `observed` is the indoor sensor, which in
         # two-zone mode is the *upper* floor -- while `room_temperature` on the
@@ -5796,7 +5809,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._fold_solar_aperture(previous_state, residual, dt_h)
         # #2223: dark only; a sunlit residual carries the aperture's error here.
         if is_sunlit_interval(previous_state.solar_radiation):
-            return clean
+            return _skipped(clean, "house heat loss", "sunlit interval")
         self._fold_internal_gains(previous_time, previous_state, residual, dt_h)
 
         # Current effective coefficient, i.e. what actually produced the
@@ -6492,10 +6505,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
         """Set the operation mode, once a startup load has landed (R6)."""
         await self._accuracy_store.async_wait_for_read()
-        if self._mode == MODE_BOOST and mode != MODE_BOOST:
-            # #1935: the mode surface's settling tail — same plant-state
-            # divergence the channel overlay's leaves behind.
-            boost.note_mode_boost_ended(self)
+        boost.note_mode_change(self, self._mode, mode)  # #1935: the mode's settling tail
         await off_restore.async_mode_change(self.hass, self.entry, _ctx_of(self)._config, self._mode, mode)
         self._mode = mode
         if mode not in (MODE_AUTO, MODE_ECONOMY):
@@ -7948,7 +7958,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "lower_floor_loss_learned": self._lower_floor_loss_samples > 0,
             "learner_progress": learner_progress_view(
                 ctx._current_state, ctx._thermal_params, ctx._config, snaps,
-                (self._house_heat_loss_samples, self._lower_floor_loss_samples, self._solar_aperture["n"]),
+                (self._house_heat_loss_samples, self._lower_floor_loss_samples, self._solar_aperture["n"]), boost.learning_freeze(self),
             ),
             "cop_scale": round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,

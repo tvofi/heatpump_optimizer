@@ -80225,6 +80225,150 @@ R.check(
 )
 
 
+# A hot-water charge inside a counter span (the dwell saw it): the cycle has no
+# space interval, yet the span stays clean where the counter is declared to see
+# the hot water, because the charge's own steps are subtracted at the close.
+# Null controls: the counter declared blind to hot water, an immersion element
+# on, and a cycle the dwell saw on space, keep today's refusal.
+def _he_bridge(sees_dhw, duty=_he.DHW, immersion=False):
+    coord = _t2_house(**{_HE_KEY: "sensor.he", _fb_const.CONF_HEAT_METER_SEES_DHW: sees_dhw})
+    meter = _he.meter_of(coord)
+    meter.counter, meter.cycle = True, (NOW - timedelta(hours=0.5), NOW)
+    meter.dwell.observe(NOW - timedelta(hours=1), duty, None)
+    meter.dwell.observe(NOW, duty, None)
+    coord._immersion_active = immersion
+    return _he_cm._replay_gate(coord, None, None, None)[1]
+
+
+R.check(
+    "a counter span carries a hot-water cycle the dwell saw when the counter sees "
+    "the hot water; blind to it, with the immersion on, or on space it gates",
+    (_he_bridge(True), _he_bridge(False), _he_bridge(True, immersion=True), _he_bridge(True, duty=_he.SPACE))
+    == (True, False, False, False),
+    f"{(_he_bridge(True), _he_bridge(False), _he_bridge(True, immersion=True), _he_bridge(True, duty=_he.SPACE))}",
+)
+
+
+def _he_dhw_span(charge):
+    """Two half-hour cycles, 2 kWh on space; with ``charge`` the second is a 5 kWh hot-water charge."""
+    m, reads, duties = _he.HeatEnergyMeter(), (10.0, 12.0, 17.0 if charge else 14.0), (
+        pump_mode.MODE_HEAT, pump_mode.MODE_DHW if charge else pump_mode.MODE_HEAT, pump_mode.MODE_HEAT)
+    ev = None
+    for i, (kwh, duty) in enumerate(zip(reads, duties)):
+        at = NOW + timedelta(hours=0.5 * i)
+        changed = at - timedelta(hours=1) if i == 0 else (at if duty != duties[i - 1] else None)
+        m.observe_mode(at, duty, True, changed)
+        m.observe_counters(at, kwh, None, configured=True, cadence_h=0.5, bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+        ev = m.settle({"house": True, "lower": True}, (2.0, 0.0), ("s", at)) or ev
+    return ev
+
+
+_he_dhw_ev = _he_dhw_span(True)
+_he_dhw_heat = _he.span_heat(_he_dhw_ev, 3.0)
+_he_dry_heat = _he.span_heat(_he_dhw_span(False), 3.0)
+R.check(
+    "a span's hot water is the charge cycle's own counter step, not its share of "
+    "the hours: a 5 kWh charge in a 7 kWh hour leaves 2 kW of space heat, where a "
+    "time split reads 3.5 (null control: no charge reads all its heat as space)",
+    _he_dhw_ev is not None and abs(_he_dhw_ev.energy.dhw_kwh - 5.0) < 1e-9
+    and abs(_he_dhw_heat.space_kw - 2.0) < 1e-9
+    and abs(_he_dry_heat.space_kw - _he_dry_heat.heat_kw) < 1e-12,
+    f"{_he_dhw_ev} {_he_dhw_heat} {_he_dry_heat}",
+)
+_he_odd = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=8.0))
+_he_blind = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=None))
+R.check(
+    "a span with more hot water than heat, or a charge whose steps went unaccounted, "
+    "reads no space figure rather than a guess",
+    _he.span_heat(_he_odd, 3.0).space_kw is None and _he.span_heat(_he_blind, 3.0).space_kw is None,
+    f"{_he.span_heat(_he_odd, 3.0)} {_he.span_heat(_he_blind, 3.0)}",
+)
+
+
+# #1935 follow-up: the boost's settling tail is priced on how long it ran. The
+# full window keeps today's 12 h; a click of a few seconds owes only the floor,
+# the learners' longest sample; an unseen start owes the full tail.
+_bt_hour = boost_mod.settle_tail(timedelta(hours=1))
+R.check(
+    "the settling tail scales with the boost's length: full window 12 h, an hour "
+    "12 h + 6 h * ln(1/2), 38 s the 1.5 h floor, an unseen start the full tail",
+    boost_mod.settle_tail(timedelta(hours=boost_mod.BOOST_HOURS)) == boost_mod.SPACE_SETTLE_TAIL
+    and boost_mod.settle_tail(None) == boost_mod.SPACE_SETTLE_TAIL
+    and boost_mod.settle_tail(timedelta(seconds=38)) == timedelta(hours=1.5)
+    and abs(_bt_hour.total_seconds() - (12.0 + 6.0 * _he_math.log(0.5)) * 3600.0) < 1e-6,
+    f"hour {_bt_hour}",
+)
+
+
+def _bt_state(ran, *, cancel=True):
+    st = boost_mod.BoostState()
+    st.set(boost_mod.CHANNEL_SPACE, True, NOW)
+    if cancel:
+        st.set(boost_mod.CHANNEL_SPACE, False, NOW + ran)
+    else:
+        st.expire(NOW + ran)
+    return st
+
+
+_bt_click, _bt_full = _bt_state(timedelta(seconds=38)), _bt_state(timedelta(hours=3), cancel=False)
+_bt_nested = _bt_state(timedelta(hours=2), cancel=False)
+_bt_nested.set(boost_mod.CHANNEL_SPACE, True, NOW + timedelta(hours=3))
+_bt_nested.set(boost_mod.CHANNEL_SPACE, False, NOW + timedelta(hours=3, seconds=38))
+R.check(
+    "a 38 s boost cancelled ends its freeze 1.5 h after the cancel; a window run to its end "
+    "settles 12 h from that end (null control); a click inside a long tail keeps it",
+    _bt_click.space_settle_until == NOW + timedelta(seconds=38, hours=1.5)
+    and _bt_full.space_settle_until == NOW + timedelta(hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_nested.space_settle_until == _bt_full.space_settle_until,
+    f"{_bt_click.space_settle_until} {_bt_full.space_settle_until} {_bt_nested.space_settle_until}",
+)
+_bt_restored = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+boost_mod._restore_settle(_bt_restored, {
+    "space_settle": {"until": (NOW + timedelta(hours=9)).isoformat()},
+    "space": {"until": (NOW + timedelta(hours=1)).isoformat(), "since": (NOW - timedelta(hours=1)).isoformat()},
+}, NOW)
+_bt_down = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_down, {"space": {"until": (NOW - timedelta(hours=1)).isoformat(),
+                                               "since": (NOW - timedelta(hours=3)).isoformat()}}, NOW)
+_bt_spent = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_spent, {"space_settle": {"until": (NOW - timedelta(minutes=1)).isoformat()}}, NOW)
+R.check(
+    "a restart restores a running settling tail and the live overlay's start, an "
+    "overlay that ended while Home Assistant was down owes its tail; a spent tail "
+    "is not restored (null control)",
+    _bt_restored.space_settle_until == NOW + timedelta(hours=9)
+    and _bt_restored.space_since == NOW - timedelta(hours=1)
+    and _bt_down.space_settle_until == NOW - timedelta(hours=1) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_spent.space_settle_until is None,
+    f"{_bt_restored} {_bt_down} {_bt_spent}",
+)
+_bt_store = _he_store._tries().get("boost", {})
+R.check(
+    "the boost store declares the settling tail's lead past the overlay's two hours",
+    getattr(_bt_store.get("space_settle", {}).get("until", {}).get(""), "ahead_h", None)
+    == _fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS,
+    f"{_bt_store.get('space_settle')}",
+)
+
+# The learner view: a learner a boost holds reads "frozen" and until when, not a
+# count standing still. Null control: the same coordinator with no boost.
+_bt_c = _le_coord(house=1)
+_bt_free = _le_progress(_bt_c)["house"]
+boost_mod.held_for(_bt_c).space_settle_until = _LE_NOW + timedelta(hours=5)
+_bt_held = _le_progress(_bt_c)
+boost_mod.held_for(_bt_c).space_settle_until = None
+R.check(
+    "a boost's settling tail shows the house learner frozen until its end, a "
+    "disabled learner stays off; without it the house learner waits on the "
+    "weather and carries no frozen_until",
+    _bt_held["house"]["phase"] == "frozen" and _bt_held["house"]["waiting_for"] == "boost"
+    and _bt_held["house"]["frozen_until"] == (_LE_NOW + timedelta(hours=5)).isoformat()
+    and _bt_held["house"]["samples"] == 1 and _bt_held["lower"]["phase"] == "off"
+    and _bt_free["phase"] != "frozen" and "frozen_until" not in _bt_free,
+    f"{_bt_held} {_bt_free}",
+)
+
+
 # The earned basis. A thermal-power install's first replay of a measured heat
 # earns ``measured_heat``: the void path resets the scale before that fold, the
 # basis is saved, and a later fold does not void again. Null controls: the
