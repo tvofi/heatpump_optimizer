@@ -67,16 +67,18 @@ def clear_issue(hass: Any, issue_id: str) -> None:
 
 
 def note_price_outage(
-    hass: Any, reason: str, bridged: bool, first: bool, exc_info: bool = False
-) -> None:
-    """Log one failed price fetch and raise or clear its repair.
+    hass: Any, reason: str, cycles: int, exc_info: bool, covering: list[float] | bool
+) -> bool:
+    """Log one failed price fetch, raise its repair, and say whether planning goes on.
 
-    ``bridged``: the last published prices still cover now, so planning goes on
-    and the failure is a warning plus the ``price_feed_stale`` repair; otherwise
-    the update fails and it is an error. Only the first cycle of an outage logs
-    above DEBUG (D10-09).
+    ``covering``: the last published prices still covering now (falsy when none
+    do, or for a refused token). While they do, planning goes on and the failure
+    is a warning plus the ``price_feed_stale`` repair; otherwise the update fails
+    and it is an error. ``cycles`` counts this one: only an outage's first cycle
+    logs above DEBUG (D10-09).
     """
-    if not first:
+    bridged = bool(covering)
+    if cycles > 1:
         _LOGGER.debug("Tibber still failing (%s)", reason)
     elif bridged:
         _LOGGER.warning("%s; planning on the last published prices", reason)
@@ -84,3 +86,4 @@ def note_price_outage(
         _LOGGER.error("%s", reason, exc_info=exc_info)
     if bridged:  # once raised it stays through the failed update; recovery clears it
         set_issue(hass, "price_feed_stale", True, placeholders={"error": reason})
+    return bridged

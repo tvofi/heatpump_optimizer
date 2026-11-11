@@ -6962,13 +6962,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         Only an outage's first cycle logs above DEBUG (D10-09); a recovered
         fetch logs the outage's length at INFO.
         """
-        bridged = not auth and bool(self._known_prices_for([plan_step_start(dt_util.now())]))
-        issues.note_price_outage(self.hass, reason, bridged, not self._tibber_outage_cycles, exc_info)
         self._tibber_outage_cycles += 1
-        if auth:  # D10-s1-03: Home Assistant stops retrying and asks for a token
-            self._tibber_start_reauth()
-            _raise_auth_failed("tibber_auth_failed", reason, error=reason)
-        if not bridged:
+        if not issues.note_price_outage(self.hass, reason, self._tibber_outage_cycles, exc_info,
+                                        not auth and self._known_prices_for([plan_step_start(dt_util.now())])):
+            if auth:  # D10-s1-03: Home Assistant stops retrying and asks for a token
+                self._tibber_start_reauth()
+                _raise_auth_failed("tibber_auth_failed", reason, error=reason)
             _raise_update_failed("tibber_fetch_failed", reason, None, error=reason)
 
     def _tibber_fetch_recovered(self) -> None:
