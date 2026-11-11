@@ -1,8 +1,0 @@
-SURVIVED NULL
-KILLED M1a-tests-insert-relative
-KILLED M1b-cc-insert-relative
-KILLED M1-both-inserts-relative
-KILLED M2-translations-relative
-KILLED M1a-tests-insert-cwd-abspath
-KILLED M3-harness-at-base
-rc=0
