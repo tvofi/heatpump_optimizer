@@ -1,0 +1,13 @@
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1105 CMP_BOUND: if cycle is None or cycle <= everyday:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1105 GUARD_OFF: if cycle is None or cycle <= everyday:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1107 RETURN_DEL: return _bounded(inp, "dhw_setpoint", float(cycle), rounding=
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1156 RETURN_DEL: return not (reading is None or written is None or _differs("
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/setpoint_check.py:120 CLAMP_DROP: return floor if disinfection is None else max(floor, float(d
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/setpoint_check.py:120 RETURN_DEL: return floor if disinfection is None else max(floor, float(d
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:893 CLAMP_DROP: return min(70.0, self.dhw_setpoint if top is None else top)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:893 RETURN_DEL: return min(70.0, self.dhw_setpoint if top is None else top)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:898 RETURN_DEL: return self.dhw_legionella_temp if self.legionella_cycle_act
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:905 CLAMP_DROP: return None if target is None else max(self.dhw_setpoint, ta
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/thermal_model.py:905 RETURN_DEL: return None if target is None else max(self.dhw_setpoint, ta
+CI PREDICT: 11 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, governance or instrument red predicted against cbd23f1c8bf6 (a data-file read is not seen)
