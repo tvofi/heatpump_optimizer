@@ -23878,6 +23878,48 @@
     "next_step": "fixer (hotfix, size M, no design step)",
     "note": "triage s14 batch 196 P620; overlap admitted (R10-GATE-DEFER-BARRIER): triage s14 batch 196 P620 ACCEPT hotfix: CI gate livelock, cancelled run as gate source and sweep re-dispatch after a gate re-run"
    }
+  },
+  {
+   "group": "R10-HOTFIX-PUSHER-CENSUS",
+   "kind": "hotfix",
+   "class": "hotfix",
+   "size": "S",
+   "effort": "medium",
+   "severity": "high",
+   "lane": "C",
+   "wave": 1,
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/pr_args.sh"
+   ],
+   "hot_files": [
+    "tools/audit/seat/pr_args.sh"
+   ],
+   "owner_gate": null,
+   "fixture": false,
+   "rca": [],
+   "findings": [],
+   "fixes": [],
+   "issues": [],
+   "brief": "triage: dev/programme/triage/s6-batch197.md#P621 at cfaaf079ba\n\nHotfix, S: governance / instrument-self-tests is red on main (ee64358be7 job 130489627879; still red at 0a2139b1dd by a local census run) and on every pull request merging it, on one check: \"the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps\" (tools/audit/seat/pr_args.sh:829-833). Line numbers are at ee64358be7. The strace FAIL lines in that job are the selftest_scope_mutants step's expected mutant refusals, not the failure.\n\n1. PUSHER-CENSUS-ENTRY. pr_pushers (pr_args.sh:386) refuses tools/audit/seat/remerge_main_selftest.py as undispositioned: it names app_push.sh (:7, :50) because it writes a fake one into a scratch origin, and it pushes nothing. It came in with #3425. Add one PR_PUSHERS entry (:364-385) of kind mention, saying exactly that. Demonstration: pr_pushers at the fix prints 23 ok lines and no OPEN line, rc 0, against 23 entries, and the pusher-census check passes. Null control: with the entry removed the OPEN line returns and the check fails, as at 0a2139b1dd. Do not loosen the census rule.\n\n2. Red check. The defect-root-cause red-check trigger applies: in the body's Red checks, name this check and answer why #3425's gate did not run the pr_args self-test on a diff that added a tools file naming app_push.sh. The root-cause seat is the orchestrator's.\n\nOut of scope: the two other reds in main's job at ee64358be7 (sweep_render refusing the unused overlay key plan_coordinator_cap; selftest_scope check with 19 refusals).",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (hotfix, size S, no design step)",
+    "note": "triage s14 batch 197 P621; overlap admitted (R10-SEAT-SCRIPT-OUTPUT): triage s14 batch 197 P621 ACCEPT hotfix: main red, pusher census refuses remerge_main_selftest.py"
+   }
   }
  ]
 }
