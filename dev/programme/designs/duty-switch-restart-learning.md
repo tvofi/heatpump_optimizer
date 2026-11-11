@@ -114,3 +114,10 @@ When HPO switches the supply on after an idle period, the mode follows 5–29 s 
 5. With step 4: the start counter matches the controller's compressor flag within ±1 start per day.
 
 We can run this on the install above and report the same tables.
+
+## Implementation deviations
+
+- 3a (planner pricing) is not implemented: the space solve sees the hot-water plan only as a fixed operand and the hot-water planner places blocks on price alone, so a transition cost needs a term in both solves; carried forward.
+- The running signal's edge is noted by its own listener and confirmed by the arbiter's next one-minute pass once it held 30 s, so no timer is armed; the edge keeps the listener's time.
+- "Heated" reads `heat_pump_return_temp_entity` only; void reads the configured defrost, fault, backup-heater and booster flags, and a person's change through the record `hold()` drops; no gate set-point case, as the learner runs on the select transport only.
+- The learner lives in `duty_switch.py` with its own store; `t_off` is the median of the retained (last 200) uncensored off times, not decayed; the estimate is in the diagnostics download (`duty_switch`), not on the compressor-starts sensor.
