@@ -23273,6 +23273,49 @@
     "branch": null,
     "note": "overlap admitted (R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-ECL110-MQTT-OFF-NEUTRAL, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-DUTY-SWITCH-PLANNER-PRICE, R10-START-COUNTER-EDGES, R10-MODE-BEFORE-SUPPLY-ON): s14 orchestrator 2026-11-11: main red on tests / fast since the 3398 merge (features.py combi census names six vendor lines from other merges); hotfix forward, top priority"
    }
+  },
+  {
+   "group": "R10-TICK-RESIDUE-P2",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "S",
+   "effort": "medium",
+   "severity": "medium",
+   "lane": "IN",
+   "wave": 1,
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-TICK-RESIDUE"
+   ],
+   "files": [
+    "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/orchestrator_tick.py"
+   ],
+   "hot_files": [
+    "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/orchestrator_tick.py"
+   ],
+   "owner_gate": null,
+   "fixture": false,
+   "rca": [],
+   "findings": [],
+   "fixes": [],
+   "issues": [],
+   "brief": "triage: dev/programme/triage/s6-batch181.md#P600 at b253df9967\n\nNot-started sibling of R10-TICK-RESIDUE (PR #3425 holds a merge verdict at c93903f075; a carry would re-open it). Runs after R10-TICK-RESIDUE. Line numbers at cbd23f1c8b.\n\n1. OWED-CAP-UNREADABLE, tools/audit/seat/owed_unactioned.py key_of (:120): the tick's flagged level line `-> OWED handoffs capped at <n> of <m>; ...` (orchestrator_tick.py:2427) matches FAMILY (:56) but no key pattern, so the whole check exits rc 2 UNREADABLE (measured on the 09:45Z board: rc 2; same board minus that one line: rc 1, 85 keys, 2 UNACTIONED incl. audit-r10-roster 110.7h). Read it as a non-obligation (skip), never raise. Self-test: that board line gives a computed result; mutation proof: deleting the pattern returns rc 2.\n2. ORPHANS-CAP-HELD-FIRST, tools/audit/seat/orchestrator_tick.py orphans() (:2422, CAP_ORPHANS :182): 14 of the 20 capped OWED handoff lines were held triage-s14-batch* refs (open no PR until the stamp sweep), hiding 26. Sort held triage/record batch topics after all others before the slice; keep them listed (never --exclude-topic); print the held count in the cap line. Self-test: 25 stranded with 14 held prints all 11 others within the cap.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE-P3): triage P600 (s6-batch181, record b253df9967): owed_unactioned blinded by the tick cap line; held triage refs fill 14/20 orphan cap slots; sibling because R10-TICK-RESIDUE (#3425) holds a merge verdict"
+   }
   }
  ]
 }
