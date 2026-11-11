@@ -419,7 +419,7 @@ How to read a row:
   target as a process.
 - `tools/audit/seat/bus.sh` runs `tools/audit/seat/merge_train.py add` when it
   posts a merge verdict and a train state directory is set.
-- A run that only reads is left out with the other reads:
+- A run that only reads is left out with the other reads, for example:
   `tools/audit/seat/cloud_relay.sh` and `tools/audit/seat/bus.sh` each run
   `tools/audit/seat/merge_train.py classify`, and `tools/audit/seat/bus.sh`
   runs `tools/audit/seat/cloud_relay.sh held`.
