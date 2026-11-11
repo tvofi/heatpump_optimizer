@@ -22358,7 +22358,7 @@
    "architect_note": "",
    "brief": "ROOT-CAUSE SEAT (dev/governance/roles/root-cause.md + defect-root-cause.md), runs beside R10-HOTFIX-RESTORE-BASE-SKEW and never inside it. Trigger: the red-check trigger, pr-contract red on PR 3424 at f9c7952b (run 42953123178, job 130312858296, AttributeError roster_lib.carry_receivable). Cause per the ruling (roster b91ac890cf; triage batch 160): pr-contract checks out the merge ref but restores pinned graders from pull_request.base.sha, which is stale; the hotfix group fixes it. Owes: a named cause, a process state (a-d) with evidence, a cost test with numbers (open PRs reddened: 19 of 23 at the order), and a countermeasure or a recorded refusal, including the cheaper-detector question (what check could have caught a stale restore base before it reddened PRs). Output: the RCA document in the rca directory of dev/audit, named after this group in lowercase, via its own handoff. Heavy lanes to CI.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null
    }
   }
