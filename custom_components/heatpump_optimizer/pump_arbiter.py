@@ -1016,6 +1016,18 @@ def _note_stop(held: ArbiterState, rec: FeedbackRun, inlet: float, base: float) 
     held.stop_gap_k = gap if held.stop_gap_k is None else min(held.stop_gap_k, gap)
 
 
+def _cut_of(rec: FeedbackRun | None, value: Any, observed: Any) -> bool:
+    """Whether ``observed`` is the controller cutting the loop write ``value``:
+    a reading between the record the write replaced and the write, each end
+    widened by :data:`SETPOINT_TOLERANCE`. Read by :func:`_clamp_cut` and,
+    before it, by the off restore's :func:`_edited`.
+    """
+    if rec is None or rec.sent_c is None or rec.prev_c is None or value != rec.sent_c:
+        return False
+    low, high = sorted((rec.prev_c, value))
+    return bool(low - SETPOINT_TOLERANCE <= observed <= high + SETPOINT_TOLERANCE)
+
+
 def _clamp_cut(held: ArbiterState, slot: str, value: Any, observed: Any, at: datetime) -> bool:
     """Whether a differing reading is the controller clamping a loop write.
 
@@ -1029,10 +1041,7 @@ def _clamp_cut(held: ArbiterState, slot: str, value: Any, observed: Any, at: dat
     if slot != "space_setpoint":
         return False
     rec, held.feedback = held.feedback, None
-    if rec is None or rec.sent_c is None or rec.prev_c is None or value != rec.sent_c:
-        return False
-    low, high = sorted((rec.prev_c, value))
-    if not low - SETPOINT_TOLERANCE <= observed <= high + SETPOINT_TOLERANCE:
+    if rec is None or rec.prev_c is None or not _cut_of(rec, value, observed):
         return False
     held.feedback = rec
     if value > rec.prev_c:
@@ -1319,14 +1328,16 @@ def _edited(held: ArbiterState, observed: float, now: datetime) -> bool:
     miss (a second is a write the pump does not take), and not what the
     entity read when the write was sent (a refused write falls back to that),
     that reading known: after a restart or a power cycle (the pump's own
-    reset) nothing is adopted.
+    reset) nothing is adopted. Nor is the controller's cut of a loop write
+    (:func:`_cut_of`), which :func:`hold` adopts as the loop's bound.
     """
     record, before = held.written.get("space_setpoint"), held.space_before
     return record is not None and before is not None \
         and utc_elapsed_seconds(now, record[1]) >= ECHO_GRACE_S \
         and not held.misses.get("space_setpoint") \
         and _differs("space_setpoint", observed, record[0]) \
-        and _differs("space_setpoint", observed, before)
+        and _differs("space_setpoint", observed, before) \
+        and not _cut_of(held.feedback, record[0], observed)
 
 
 def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datetime) -> None:
