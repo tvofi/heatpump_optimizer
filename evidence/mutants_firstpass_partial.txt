@@ -1,3 +1,0 @@
-NULL: SURVIVED rc=0 fails=0
-M1: KILLED rc=1 fails=0
-M2: KILLED rc=1 fails=0

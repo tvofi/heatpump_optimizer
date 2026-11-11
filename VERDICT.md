@@ -1,18 +1,19 @@
-Fix review: blocked b55fc8eb5bfce6a3c2022314116d0b19d1a901e6 pin-missing: fold state across a hass refresh and focus return to the dialog copy of a header are claimed in the body but unpinned; mutants R1 and R2 survive tests/card.mjs
+Fix review: blocked bbad7959ae2bacf68d01f190f28e87f849932179 root-cause-unanswered: tests / fast (3.14) is red at this head and the body's Red checks reads none; env_drift --all against main's tip cbd23f1 refuses the branch for lacking #3398's combi leaves; pr-contract refuses the body for the same omission
 
-bus-nonce: 561e6cbe79fd65fe8438be412ba6ea95
-pending-ci: gate
+bus-nonce: 69316311c24df4be599be6739a04a68b
 
-Round: first review (round 1), full scope. Measured head: b55fc8eb5bfce6a3c2022314116d0b19d1a901e6. At post time it is still the tip of fix/r10-card-collapse (git ls-remote).
+Round: second review (round 2), delta scope over the reviewed head b55fc8eb5bfce6a3c2022314116d0b19d1a901e6. Measured head: bbad7959ae2bacf68d01f190f28e87f849932179. At return time it is still the tip of fix/r10-card-collapse (git ls-remote).
 
 ## Block
 
-- **R1 survives.** The body's design decision says fold state "survives every plan-refresh rebuild". Adding `this._folds = { narrative: false, whynow: false };` to `set hass` (heatpump-optimizer-card.js:15215) resets every fold on each hass update, and `tests/card.mjs` stays green (rc=0, 0 FAIL). No check in the suite sets a second hass while a fold is open. This is the plan-refresh survival the brief asks for. The production code does keep the state: the reviewer probe shows aria-expanded `true,false,true,false` both before and after a fresh hass. The property is just unpinned.
-- **R2 survives.** The body says "Focus returns to the rebuilt copy of the pressed header", and the headline renders twice when the dialog is open (4 `[data-fold]` heads). Replacing the index lookup with `this.shadowRoot.querySelector(`[data-fold="${key}"]`)` sends focus to the card copy behind the modal dialog. `tests/card.mjs` stays green. The `collapse: focus returns to the rebuilt header` check clicks only the card copy, with the dialog closed. The browser lane's `cardCollapse` also presses only `ha-card [data-fold]`. The production code is correct: the probe shows a click on dialog copy index 2 returns focus to index 2 of 4. A one-key regression to the obvious selector would pass every lane, though.
-- **What clears it.** Two checks in the R10-CARD-COLLAPSE block of `tests/card.mjs`, each re-proved with its mutant (R1, R2 as in `ev/mut_driver.py`):
-  1. Open a fold, set a new hass, and assert the fold is still open.
-  2. Open the dialog, click the dialog copy of a header, and assert `activeElement` is that copy (index 2 or later) and not the card's.
-  Production code needs no change.
+- **The required check `tests / fast (3.14)` is red at this head.** Job 130425759160 failed with `1 TEST SCRIPT(S) FAILED`. `merge_train.py classify` exits 1 with `RED bbad7959ae2bacf68d01f190f28e87f849932179 pending: none red: gate` (`ev/classify_final.txt`). `tests / fast (3.14)` and `pr-contract / pr-contract` are both in the `merge_train.py owed-reds` set (`ev/owed_reds.txt`).
+- **`pr-contract` refuses the body for this red.** Job 130443885989, started 09:40 UTC, after fast concluded red at 09:23. Its error reads: `check tests / fast (3.14) is red and ## Red checks does not name it`. Every workflow at this head has concluded. The body still reads `## Red checks` / `none`.
+- **Cause (reviewer's local reproduction, not the CI log line).** The CI log tail I could read shows `card_drift.mjs` passing (`card_drift: 44 state(s) moved and claimed, 1 identical`) and `harness_headers.py` passing. The fast lane's `GOLDEN_REF` was `cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf`, main's tip after #3398 (fix/r10-combi-tank-b) merged. This branch forked at a7628041dc02e298c5399003d4c0576391dd5c4e, before that merge. I ran `CLAIM_HEAD=bbad7959… PYTHONPATH=tests/hastub python3 tests/env_drift.py --all cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf` at the head and got rc=1. It reports `DRIFT` on config_flow, coord_all_features, coord_dhw and others, all on combi and legionella leaves `present on one side only`, then `This branch moved scenarios the baseline does not move` (`ev/env_drift_all_vs_main_tip.txt`). Every other fast-lane script I re-ran at the head exits 0: doc_claims, md_tables, layout, deployment_shape, entities, features, plan_view, card.mjs. So env_drift is the one failing script. The CI log section naming it was too large to fetch through the job-log API (526 KB tail), so the attribution rests on this reproduction.
+- **Not a production defect of this PR.** `git merge-tree --write-tree origin/main bbad7959…` exits 0 with no conflict (`ev/merge_tree.txt`). The red comes from a stale base, not from the card change. It still blocks, because a required check is red at this head and the body leaves it unanswered (defect-root-cause.md Enforcement; fix-review step 11).
+- **What clears it.**
+  1. Merge origin/main into the branch. It merges cleanly. Let fast re-run against the current tip.
+  2. In `## Red checks`, name `tests / fast (3.14)` at bbad7959 and answer the trigger: the cheaper detector (e.g. `env_drift.py --all origin/main` or a main merge before the push) with its standing cost, or the finding that none exists, because main moved under the run (state d).
+  No card or test change is needed. Every item of the round-1 block is resolved; see Evidence.
 
 ## Findings
 
@@ -20,33 +21,26 @@ none beyond the block
 
 ## Evidence
 
-- RESULT `PYTHONPATH=tests/hastub node tests/card.mjs` at head: `ALL CARD CHECKS PASSED`, rc=0 (`ev/card_head.txt`; needed `tests/plan_view.py` first, `ev/plan_view.txt`).
-- RESULT `PYTHONPATH=tests/hastub node tests/card_drift.mjs`: `card_drift: 44 state(s) moved and claimed, 1 identical`, rc=0 (`ev/card_drift_head.tail.txt`, tail of a 17 MB log). This matches the claim block in `tests/golden/card_claimed_drift.txt`: every rendering state is claimed, and editor_schema is identical. claims-for stays 7.1.10 = VERSION.
-- RESULT `python3 tests/env_drift.py --claims-only origin/main`: `claims hygiene: origin/main ok` (`ev/claims_only.txt`).
-- RESULT `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` (`ev/structure.txt`).
-- RESULT `python3 tools/audit/archscore/score.py --diff dbd1ab5b0712ebc51e29ef8c001a2c0ef68af3cd`: `Architecture score: dS +0.0000 NULL` (`ev/archscore.txt`). This re-derives the body's figure. The `card_clone_copies` 103 -> 108 intermediate is not re-derived, because it was at a superseded head.
-- Mutants re-created at the head, each run through `tests/card.mjs` and restored (`ev/mut_driver.py`, `ev/mutants_all.txt`):
-  - NULL (comment edit): SURVIVED, as a null must.
-  - M1 KILLED (5 FAIL), M2 KILLED (19), M3 KILLED (6), M4 KILLED (1), M5 KILLED (1), M6 KILLED (5), M7 KILLED (2). The killing checks match the body's named checks.
-  - Reviewer's own mutants:
-    - R3 aria-expanded always "false": KILLED (2).
-    - R4 why-now lead picks the weakest driver: KILLED (1).
-    - R5 body rendered while folded: KILLED (3).
-    - R1 and R2: SURVIVED (see Block).
-  - The M4 anchor string occurs twice in the file, so the driver anchors it with the preceding fold-handler line. The first pass was cut off at that assertion (`ev/mutants_firstpass_partial.txt`) and resumed from M4.
-- Reviewer probe (`ev/reviewer_probe.txt`, `ev/reviewer_probe_note.txt`): with the dialog open the shadow root has 4 fold heads and no duplicate `id`. This confirms the no-id/aria-controls decision: no duplicate ids in the doubly rendered headline.
-- Keyboard: the headers are native `<button type="button">`, so Enter and Space arrive as click. The browser lane's `cardCollapse` checks Enter, then Tab and Space, in light and dark. Not re-run here: no scope selects that lane, and CI's `tests / browser` is cited instead (fix-review step 11).
-- docs/dashboard-card.md claims, checked against the code at the head:
-  - Folded summaries (the kWh and cost total, else the first line; the strongest driver).
-  - Both folds start folded on page load; each toggles on its own.
-  - Screen readers hear the expanded state (`aria-expanded`).
-  - The chips and footnote appear only in the enlarged view.
-  - The why-now driver list (price rank, comfort floor, forecast, mold guard, away) equals the five `whynow.driver_*` keys at card.js:921-933.
-  - README and docs/index.html carry the same sentence.
-  - All hold.
-- `git merge-tree --write-tree origin/main b55fc8eb5bfce6a3c2022314116d0b19d1a901e6`: rc=0, no conflict (`ev/merge_tree.txt`).
-- VERSION, the manifest version and RELEASE_NOTES.md are untouched in the three-dot diff.
-- CI: `merge_train.py classify` still prints `WAIT ... pending: gate red: none` after more than 40 min of polling at 60 s+ intervals (`ev/classify.log`, `ev/classify.txt`).
-  - `tests / nightly-status` is red. It is outside the required set that `merge_train.py owed-reds` prints (`ev/owed_reds.txt`), so it is not this PR's and is owed no answer.
-  - The body's `## Red checks: none` is consistent with that.
-- There is no finder harness: this is an owner request, and the body says so. The before-and-after is the PR's own `tests/card.mjs` block. Not re-run at the merge base: the base renders no `[data-fold]`, and that is evident from the diff.
+- Round-1 block, item by item:
+  - **R1 (fold reset on hass refresh): resolved.** `R1_reset_on_refresh: KILLED rc=1 fails=1` on the new check `collapse: a hass refresh rebuilds the card and keeps each fold as it was`. That check carries its own precondition: the moved savings figure 98.76 is present and 12.34 is gone, so the card did rebuild.
+  - **R2 (focus to the card copy behind the dialog): resolved.** `R2_focus_first_copy: KILLED rc=1 fails=1` on `collapse: focus returns to the dialog's copy of the pressed header`. That check asserts 4 heads before and after, and activeElement at index 2.
+  - The body quotes both as 1 FAIL each, which matches.
+- Mutant driver at the head (`ev/mut_driver.py`, `ev/mutants_all.txt`): the finder's (round-1 reviewer's) driver, run against `tests/card.mjs`, and the file is restored after each run. `git -C <worktree> status` was clean afterwards.
+  - NULL: SURVIVED (rc 0), as a null must.
+  - M1 KILLED (7 fails), M2 (21), M3 (7), M4 (2), M5 (1), M6 (5), M7 (2).
+  - R1 KILLED (1), R2 (1), R3 (4), R4 (1), R5 (3).
+- The class sweep, each claim of the body's new claim table re-proved with the reviewer's own mutant:
+  - R6, the chart ignores the saved `hidden`: KILLED (6).
+  - R7, a chip toggle without `save()`: KILLED (2), incl. the fresh-card arm.
+  - R8 (= body M8), divider rule removed: KILLED (1).
+  - R9 (= body M9), summary nowrap/ellipsis: KILLED (1).
+  - R10 (= body M11), an id on the fold head: KILLED (2).
+  - M10, `visible: true`: KILLED (6), as the body says.
+  - M12, the `hl-stats` block moved after the folds: KILLED (1), as the body says.
+- Body figures checked: the round-1 per-mutant fail counts (R1 1, R2 1, M8 1, M9 1, M10 6, M11 2, M12 1) all re-derive at this head. M1-M7's counts in the body are quoted at d7c39135, an earlier head. The higher counts here (M1 7, M4 2) come from the new checks also failing, which is consistent.
+- RESULT `PYTHONPATH=tests/hastub node tests/card.mjs` at the head: `ALL CARD CHECKS PASSED`, rc=0 (`ev/card_head.txt`, after `tests/plan_view.py`).
+- RESULT from the reviewer's local re-run of the fast lane's other scripts at the head: each rc=0 (`ev/doc_claims.py.txt`, `ev/deployment_shape.py.txt`, `ev/md_tables.mjs.txt`, `ev/entities.tail.txt`, `ev/features.tail.txt`).
+- The delta is test-only (`git diff b55fc8eb…bbad7959` touches `tests/card.mjs` alone, 65 insertions), so the review scope was not widened. The bbad7959 tree equals e277484c's, the authored code head the body names.
+- VERSION, the manifest version and the RELEASE_NOTES heading are untouched in the three-dot diff (`ev/version_untouched.txt`).
+- CI, read live: `tests / nightly-status` is red too. It is outside owed-reds, so it is not this PR's. `tests / browser` is green and `tests / mutation` is green; this round's diff writes no production line, so the mutation lane drew no new mutant.
+- `ev/ci_fast_tail.log` is the last 330 lines of the fast job's log (the card_drift diff and the summary).

@@ -1,4 +1,5 @@
 import subprocess, sys, os
+os.chdir(os.path.expanduser("~/wt"))
 F = "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
 M = {
  "NULL": ("// R10-CARD-COLLAPSE: the headline's two folds.", "// R10-CARD-COLLAPSE (null mutant): the headline's two folds."),
@@ -15,6 +16,13 @@ M = {
  "R3_aria_always_false": ("aria-expanded=\"${unfolded ? \"true\" : \"false\"}\"", "aria-expanded=\"false\""),
  "R4_lead_weakest": ("Math.abs(weightOf(d)) > Math.abs(weightOf(a))", "Math.abs(weightOf(d)) < Math.abs(weightOf(a))"),
  "R5_body_always": ("(unfolded ? body : \"\") + `</div>`", "body + `</div>`"),
+ "R6_card_ignores_hidden": ("      hidden: this.legend.hidden,\n      zoomed: this.view.zoomed,\n    });", "      hidden: {},\n      zoomed: this.view.zoomed,\n    });"),
+ "R7_chip_no_save": ("    this.hidden[key] = !this.hidden[key];\n    this.save();", "    this.hidden[key] = !this.hidden[key];"),
+ "R8_no_divider": (".hl-fold:last-child { border-bottom: 1px solid var(--hpo-divider, #e0e0e0); }", ""),
+ "R9_sum_ellipsis": ("text-align: right; overflow-wrap: anywhere;", "text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"),
+ "R10_fold_id": ("class=\"hl-fold-head\" data-fold=\"${key}\"", "class=\"hl-fold-head\" id=\"fold-${key}\" data-fold=\"${key}\""),
+ "M10_visible_true": ("      visible: !hidden[def.key],", "      visible: true,"),
+ "M12_stats_after_folds": ("      ${stats ? `<div class=\"hl-stats\">${stats}</div>` : \"\"}\n      ${shown.score", "      ${shown.score"),
 }
 names = sys.argv[1:] or list(M)
 src0 = open(F).read()
@@ -22,7 +30,12 @@ env = dict(os.environ, PYTHONPATH="tests/hastub")
 for n in names:
     a, b = M[n]
     assert src0.count(a) == 1, (n, src0.count(a))
-    open(F, "w").write(src0.replace(a, b))
+    mut = src0.replace(a, b)
+    if n == "M12_stats_after_folds":
+        w = '${foldHtml("whynow", L("whynow.title"), why.summary, !!shown.whynow, why.body, L("whynow.metric"))}'
+        assert mut.count(w) == 1
+        mut = mut.replace(w, w + '\n      ${stats ? `<div class="hl-stats">${stats}</div>` : ""}')
+    open(F, "w").write(mut)
     p = subprocess.run(["node", "tests/card.mjs"], capture_output=True, text=True, env=env, timeout=600)
     open(F, "w").write(src0)
     fails = [l for l in p.stdout.splitlines() if l.strip().startswith("FAIL")]

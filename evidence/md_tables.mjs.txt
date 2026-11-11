@@ -1,0 +1,8 @@
+RESULT self_test_swallowed=2 count
+RESULT self_test_orphaned=2 count
+RESULT self_test_fires=true
+RESULT doc_files_checked=8 count
+RESULT doc_swallowed_prose_lines=0 count
+RESULT doc_orphaned_table_rows=0 count
+RESULT doc_misrendered_lines=0 count
+rc=0
