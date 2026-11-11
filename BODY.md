@@ -10,7 +10,7 @@ Closures were skipped locally (`PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh`, owner 
 
 ## Head
 
-bd93b5634bd7cd9cb7614121132b1597966154fc
+fdab889cedf99332ce48b86347eb271d1bea4787
 
 ## Mutation proof
 
@@ -32,7 +32,7 @@ none owned by this change. If they show, `tests / fast (3.14)` (combi census, fi
 
 ## Forward-carry
 
-- Carry 1 (the replay class re-record RCA, state c) is answered in part. Built here: the `cycle_cost:level_shift` control over tests/replay_cost_draws.tsv (`level_shift_offenders` prints the classes examined; a planted-shift null control sits in tests/replay.py), the declared cut (COST_CUTS, factor 0.6339, with its interleaved evidence), and its registration as the `replay_cuts` arm in tools/policy/field_coverage.mjs. The RCA write-up is not in this diff: its source text, the orchestrator's session scratch, was out of this seat's reach, and the red/green demonstration across the three historical tables was not re-run here. Carry: R10-HOTFIX-REPLAY-CLASS-CUT | dismissed: RCA write-up needs orchestrator scratch text unavailable to this seat
+Carry 1: answered in this pull request. The level_shift control is in tests/replay.py, registered in tools/policy/field_coverage.mjs, with the analysis at dev/audit/rca/R10-RCA-REPLAY-CLASS-RERECORD.md. Demonstration (`python3 tools/audit/seat/replay_draws.py shift --no-cuts --table <tsv>`): red on the table at d08ed31049 naming ref23, ref28, ref31, ref38, ref40, ref53; healthy tables at 6715d97332 and 078780e687 green with 7 classes examined; the fix head green, and red with the cut declaration dropped (`--no-cuts`). Carry: dismissed: built in this pull request, nothing left to carry forward
 
 ## Friction
 
