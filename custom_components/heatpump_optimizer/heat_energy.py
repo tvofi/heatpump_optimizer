@@ -119,6 +119,9 @@ class SpanEnergy(NamedTuple):
     #: split by that cycle's own dwell. ``None`` once a step fell in a cycle
     #: the dwell did not observe, or for a span built without the dwell.
     dhw_kwh: float | None = None
+    #: Whether the dwell saw hot water in any of the span's steps: the span
+    #: then reads its space heat by subtracting ``dhw_kwh``, observed or not.
+    dhw_seen: bool = False
 
 
 def close_after_h(cadence_h: float, bounds_h: tuple[float, float]) -> float:
@@ -317,10 +320,13 @@ def span_heat(ev: SpanEvidence, modelled_cop: float) -> SpanHeat:
     heat_kw = None if refusal else e.heat_kwh / e.hours
     elec_kw = None if e.elec_kwh is None else e.elec_kwh / e.hours
     space_kw = space_heat_kw(heat_kw, ev.attribution, integrated=True)
-    if space_kw is not None and ev.attribution.observed and ev.attribution.dhw > 0.0:
+    if space_kw is not None and (e.dhw_seen or ran_hot_water(ev.attribution)):
         # The hot water's own steps, not its share of the span's hours: a
         # charge runs at its own rate, so a time split misreads the space heat.
-        # Unaccounted steps, or more hot water than heat, read no space figure.
+        # A charge the dwell saw is subtracted even where another step went
+        # unobserved, whose attribution is the plan's whole-unit rule: that
+        # rule would read the charge as space heat. Unaccounted steps, or
+        # more hot water than heat, read no space figure.
         rest = None if e.dhw_kwh is None else e.heat_kwh - e.dhw_kwh
         space_kw = rest / e.hours if rest is not None and rest >= 0.0 else None
     return SpanHeat(heat_kw, space_kw, asked_kwh / e.hours, elec_kw, refusal)
@@ -376,6 +382,7 @@ class HeatEnergyMeter:
     _opened: bool = False
     _anchor: tuple[Any, datetime] | None = None
     _dhw_kwh: float | None = 0.0
+    _dhw_seen: bool = False
     _clean: dict[str, bool] = field(default_factory=dict)
     _plan: tuple[float, float] = (0.0, 0.0)
 
@@ -458,20 +465,23 @@ class HeatEnergyMeter:
             self.refusal = SPAN_REFUSED_ROLLOVER
         else:
             elec = self.elec.delta_over(start_at, at)
-            self.closed = SpanEnergy(start_at, at, hours, heat_kwh, elec, self.heat.quantum, self._dhw_kwh)
+            self.closed = SpanEnergy(
+                start_at, at, hours, heat_kwh, elec, self.heat.quantum, self._dhw_kwh, self._dhw_seen)
         self.heat.rebase()
         self.elec.rebase()
-        self._opened, self._dhw_kwh = True, 0.0
+        self._opened, self._dhw_kwh, self._dhw_seen = True, 0.0, False
 
     def _fold_dhw_step(self, heat_kwh: float | None, at: datetime, open_span: bool) -> None:
         """Add this read's step, at its cycle's hot-water share, to the open span's hot water."""
         last, last_at = self.heat.last, self.heat.last_at
-        if heat_kwh is None or last is None or last_at is None or not open_span or self._dhw_kwh is None:
+        if heat_kwh is None or last is None or last_at is None or not open_span:
             return
         shares = self.dwell.shares(last_at, at)  # observed over a window of positive length
         if shares is None:
             self._dhw_kwh = None
-        else:
+            return
+        self._dhw_seen |= shares[1] > 0.0
+        if self._dhw_kwh is not None:
             self._dhw_kwh += max(0.0, heat_kwh - last) * shares[1] / (shares[0] + shares[1])
 
     def settle(

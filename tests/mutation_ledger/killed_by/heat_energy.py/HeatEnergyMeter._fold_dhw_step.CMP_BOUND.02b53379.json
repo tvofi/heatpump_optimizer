@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:HeatEnergyMeter._fold_dhw_step CMP_BOUND 02b53379",
+  "killed_by": "tests/features.py",
+  "old": "        self._dhw_seen |= shares[1] > 0.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`self._dhw_seen |= shares[1] >= 0.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
