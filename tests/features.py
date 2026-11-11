@@ -81044,6 +81044,8 @@ R.check(
 from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
 from heatpump_optimizer import wear as _ds_wear  # noqa: E402
 from heatpump_optimizer import pump_mode as _ds_pm  # noqa: E402
+import json  # noqa: E402
+from pathlib import Path as _DsPath  # noqa: E402
 
 R.section("duty-switch restart learning, part A (design duty-switch-restart-learning)")
 # A hot water -> heating mode write while the compressor runs stops it on some
@@ -81503,6 +81505,33 @@ R.check(
     and not [f for f in _sa_pa.ArbiterState.__dataclass_fields__ if "duty_switch" in f or f in ("duty", "hold")],
 )
 
+# The record loads on the first pass. A read that fails is tried again on the
+# next pass, and a mode write reported before the load is dropped.
+_ds_late = _DsArb()
+_ds_late_store = _ds_mod._store
+
+
+def _ds_no_disk(_coord):
+    raise OSError("disk")
+
+
+_ds_mod._store = _ds_no_disk
+try:
+    _asyncio.run(_ds_mod.note_pass(_ds_late, _DS_T0, _ds_mod.SwitchContext()))
+finally:
+    _ds_mod._store = _ds_late_store
+_ds_late_rec = _ds_mod.record_for(_ds_late)
+_ds_late_rec.tracker.settled = True
+_ds_mod.note_mode_write(_ds_late, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
+_ds_late_before = (_ds_late_rec.loaded, _ds_late_rec.learner.episode)
+_asyncio.run(_ds_mod.note_pass(_ds_late, _DS_T0, _ds_ctx(_DS_T0)))
+_ds_mod.note_mode_write(_ds_late, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
+R.check(
+    "a failed read of the record is not marked loaded and is read again; a mode write before the load is dropped",
+    _ds_late_before == (False, None) and _ds_late_rec.loaded and _ds_late_rec.learner.episode is not None,
+    f"{_ds_late_before} {_ds_late_rec.loaded} {_ds_late_rec.learner.episode}",
+)
+
 
 # Null controls (design.md, evidence 5 and 6): nothing reads the estimate, so
 # an empty learner and one saturated at p = 1 give the same commands.
@@ -81572,7 +81601,7 @@ R.check(
 )
 # Both controls hold by construction: only the arbiter (which reports) and the
 # sensor (which publishes) name the module, and neither reads the estimate.
-_ds_pkg = Path("custom_components/heatpump_optimizer")
+_ds_pkg = _DsPath("custom_components/heatpump_optimizer")
 _ds_readers = sorted(
     p.name for p in _ds_pkg.glob("*.py") if p.name != "duty_switch.py" and any(
         isinstance(n, _ds_ast.ImportFrom) and (n.module == "duty_switch" or any(a.name == "duty_switch" for a in n.names))
