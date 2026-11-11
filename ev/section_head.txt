@@ -1,0 +1,39 @@
+
+=== duty-switch section of tests/features.py ===
+
+-- duty-switch restart learning, part A (design duty-switch-restart-learning)
+  ok   the table replays as three stops (one censored, two off times) and three kept; the 14 s leg counts nothing
+  ok   null control: the 14 s leg with a heated return, or a full leg without a return sensor, does count
+  ok   a switch opens an episode only between the two single duties, while running, with demand, on the plan and with nothing else to explain a stop; a re-send opens nothing
+  ok   each void cause in turn turns the stopped episode void: supply off, a non-plan mode, defrost, disinfection, boost, an electric heater, a fault, 3405's loop, a person's change, a foreign write, a lost signal
+  ok   null control: the same switch with no cause books the stop
+  ok   inside the window another mode write (a re-send included) voids; a stop past the window is kept; a pending change holds the expiry back
+  ok   an attributed stop keeps its count and loses its off time to a later write of any slot, the supply switch or a lost signal
+  ok   the running class: the frequency at its floor, else the meter at its threshold; an absent or non-finite reading is no signal, never stopped, and the meter never stands in for the frequency
+  ok   a one-frame zero is no edge; a final zero no event follows is confirmed by the pass, at its own time
+  ok   usable switches on at n >= 5 spanning two days with p >= 0.5, and not below any of the three
+  ok   once on it stays on until n < 2.5 or p < 0.3
+  ok   decay halves n in 14 days and leaves p unchanged; a direction that fell under 2.5 does not switch on at one fresh episode; a stamp ahead of the clock decays nothing
+  ok   a restart keeps counts, days, off times and the latch through the dict round trip
+  ok   each of 32 malformed or out-of-bounds payloads loads an empty learner, whole
+  ok   the off list never exceeds its cap and drops the oldest
+  ok   through the arbiter: a dhw->space mode write while running that stops the compressor inside the window books a stop and its off time
+  ok   null control: the same write with the compressor running on books a kept episode
+  ok   a defrost flag on the pump opens nothing; an unavailable frequency voids the open episode
+  ok   a person's change and the re-send that answers it void the episode instead of booking it kept
+  ok   the arbiter's reader: unavailable, unknown and non-numeric frequency states are no signal; without a frequency sensor the meter reads against on_threshold_kw; with neither nothing is listened to
+  ok   the listener is the learner's own and triggers no arbiter pass; duty mode off detaches it
+  ok   the learned state survives a restart in its own store, per config entry, and the arbiter's record holds none of it
+  ok   a failed read of the record is not marked loaded and is read again; a mode write before the load is dropped
+  ok   a set-point write reports nothing to the learner and a mode write does; a pending change of the running class opens no episode
+  ok   null control, an install where no switch stops the compressor: the split order and every written command are identical between an empty learner and one saturated at p = 1
+  ok   and so are they on the install whose switch does stop it: part A changes no write at either end of its evidence
+  ok   null control, a flat-price day: each both step of the flat scenario's plan is split and written identically under an empty and a saturated learner
+  ok   only the arbiter and the sensor name duty_switch, through its report, attach and publish calls and never a read of the estimate; the module imports neither of them; the pure half of wear stays pure
+  ok   the starts sensor's attributes are the counter's alone until a direction has an observation; then, per direction, only k, n, stopped, kept, void, censored, span days and (once one exists) the median off seconds, all numeric
+
+ALL 29 DUTY-SWITCH SECTION CHECKS PASSED
+
+real	0m7.404s
+user	0m3.155s
+sys	0m0.211s
