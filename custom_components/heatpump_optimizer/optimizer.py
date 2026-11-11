@@ -2623,6 +2623,39 @@ def slab_settlement_cap(
     )
 
 
+def _refill_price(prices: np.ndarray) -> float:
+    """The price stored heat is bought back at: the window's
+    ``_REFILL_PRICE_QUANTILE`` price, its cheap tail, not its mean."""
+    return float(np.percentile(prices, 100.0 * _REFILL_PRICE_QUANTILE))
+
+
+def _refill_law(
+    params: ThermalParameters, n_steps: int, dt_hours: float
+) -> Callable[[float], float] | None:
+    """The part-load law both ends of the stored-heat settlement buy heat back
+    at (``_terminal_cost`` in the objective, ``_deferred_energy_cost`` in the
+    savings), or ``None`` with no derate.
+
+    The stated refill rate: the heat spread evenly over the cheapest quarter
+    of the horizon -- the hours the 25th-percentile refill price is drawn
+    from. A small refill duty-cycles at the floor and pays no derate; one
+    above it pays the band's (``refill_power_kwh``).
+    """
+    if not params.cop_partload_derate:
+        return None
+    hours = _REFILL_PRICE_QUANTILE * n_steps * dt_hours
+    return lambda heat_per_cop: refill_power_kwh(params, heat_per_cop, hours)
+
+
+def _bought_back(
+    params: ThermalParameters, heat_per_cop: float, n_steps: int, dt_hours: float
+) -> float:
+    """``heat_per_cop`` (heat over COP, kWh) as the electrical kWh
+    ``_refill_law`` buys it back at; itself with no derate."""
+    law = _refill_law(params, n_steps, dt_hours)
+    return heat_per_cop if law is None else law(heat_per_cop)
+
+
 def _terminal_row_cost(
     refill_price: float,
     cop_end: float,
@@ -2993,9 +3026,7 @@ class HeatPumpOptimizer:
         physics never charged: systematic under-charging.
         """
         caps = self._settlement_caps(outdoor_temps, humidity=humidity)
-        refill_price = (
-            float(np.percentile(prices, 100.0 * _REFILL_PRICE_QUANTILE)) * self.config.price_weight
-        )
+        refill_price = _refill_price(prices) * self.config.price_weight
         # How much of what the tank holds the next window actually gets to
         # spend. Every building store settles at 1.0: their cap IS the comfort
         # target, so heat credited there is heat serving the objective
@@ -3047,7 +3078,7 @@ class HeatPumpOptimizer:
 
         row_cost, term_spec = _terminal_row_cost(
             refill_price, cop_end, cop_buffer, stores,
-            self._refill_law(len(prices)),
+            _refill_law(params, len(prices), self.config.dt_hours),
         )
 
         def cost(
@@ -5570,9 +5601,8 @@ class HeatPumpOptimizer:
         # percentile prices a credit, where it errs the other way and is the
         # conservative choice: heat already in store displaces whatever the next
         # window would have paid, which is the average and not the cheap tail.
-        refill_price = float(np.percentile(prices, 100.0 * _REFILL_PRICE_QUANTILE))
+        refill_price = _refill_price(prices)
         electrical = stored_gap / cop
-        refill = self._refill_law(len(prices))
 
         # v4.0.5: the tank shares of the gap re-price at their own marginal
         # COP — the buffer refills at the flow-derated COP of its settlement
@@ -5607,25 +5637,7 @@ class HeatPumpOptimizer:
             if cop_store != cop:
                 gap = mass * (_capped(ref_end, store) - _capped(plan_end, store))
                 electrical += gap / cop_store - gap / cop
-        if refill is not None:
-            electrical = refill(electrical)
-        return float(electrical * refill_price)
-
-    def _refill_law(self, n_steps: int) -> Callable[[float], float] | None:
-        """The part-load law both ends of the stored-heat settlement buy heat
-        back at (``_terminal_cost`` in the objective, ``_deferred_energy_cost``
-        in the savings), or ``None`` with no derate.
-
-        The stated refill rate: the heat spread evenly over the cheapest
-        quarter of the horizon -- the hours the 25th-percentile refill price
-        is drawn from. A small refill duty-cycles at the floor and pays no
-        derate; one above it pays the band's (``refill_power_kwh``).
-        """
-        params = self.model.params
-        if not params.cop_partload_derate:
-            return None
-        hours = _REFILL_PRICE_QUANTILE * n_steps * self.config.dt_hours
-        return lambda heat_per_cop: refill_power_kwh(params, heat_per_cop, hours)
+        return float(_bought_back(p, electrical, len(prices), self.config.dt_hours) * refill_price)
 
     def _compute_baseline_power(
         self,

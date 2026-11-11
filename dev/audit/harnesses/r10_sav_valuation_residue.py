@@ -55,7 +55,9 @@ NULL_TOL = 1e-9
 
 def rule(params, linear: float, refill_price: float) -> float:
     """The derated refill of a linear figure: the tree's own inverse at H."""
-    if refill_price == 0.0 or linear == 0.0:
+    # No derate: the inverse is the identity, and ``rp * (x / rp)`` need not
+    # be ``x`` to the bit, so the rule returns the figure itself.
+    if not params.cop_partload_derate or refill_price == 0.0 or linear == 0.0:
         return linear
     hpc = linear / refill_price
     return refill_price * math.copysign(
@@ -166,6 +168,7 @@ def main() -> int:
                       f" | predicted_savings {sav:.4f}")
                 if d == 0.0 and (abs(lp) > NULL_TOL or term_gap != 0.0 or defer_gap != 0.0):
                     null_bad += 1
+                    print(f"    null row off: lp {lp!r} terminal {term_gap!r} deferred {defer_gap!r}")
             if rows:
                 a = np.array(rows, float)
                 print(f"{tag} d={d}: cells {len(rows)} lp gap max {a[:, 0].max():.6f}"

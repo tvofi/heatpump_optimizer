@@ -83204,6 +83204,7 @@ R.check(
 
 
 # --- R10-SAV-VALUATION-RESIDUE: stored heat bought back at the part-load law ---
+from heatpump_optimizer import optimizer as _svr_optmod  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer as _SVR_OPT,
     OptimizationConfig as _SVR_CFG,
@@ -83271,8 +83272,8 @@ R.check(
     and _svr_der["charge"] > _svr_lin["charge"] > 0.0
     and abs(_svr_der["charge"] - _svr_law(_svr_der, "charge")) <= 1e-9 * _svr_der["charge"]
     and _svr_der["credit"] == -_svr_der["charge"]
-    and _svr_lin["opt"]._refill_law(96) is None
-    and _svr_der["opt"]._refill_law(96) is not None,
+    and _svr_optmod._refill_law(_svr_lin["p"], 96, 0.25) is None
+    and _svr_optmod._refill_law(_svr_der["p"], 96, 0.25) is not None,
     f"linear {({k: _svr_lin[k] for k in ('term', 'band', 'row', 'charge', 'credit')})} "
     f"derated {({k: _svr_der[k] for k in ('term', 'band', 'row', 'charge', 'credit')})}",
 )
