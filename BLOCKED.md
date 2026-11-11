@@ -1,3 +1,56 @@
+# BLOCKED: R10-HOTFIX-RESTORE-BASE-SKEW part 1, second dispatch -- a handoff already exists
+
+Question: Part 1 is already handed off by an earlier seat (handoff/r10-hotfix-restore-base-skew at 5ec2425619, handoff-body at fa03981c21), and is blocked only on the relay folding the R10-PROCESS-SLIM carry (the note below). Should the relay fold that carry and re-run body_push.sh for 5ec2425619, as that note asks, or replace 5ec2425619 with this seat's head a27995c354, which adds the gate_lock fix so that prepr.sh is clean with no HPO_GATE_PRIORITY override? This seat did not overwrite handoff/ (non-fast-forward) and pushed no body.
+
+The dispatch said an earlier session had pushed nothing, so this seat cut part 1 again from origin/main f24d107bd7. It found the existing handoff only when the push to handoff/ was refused as non-fast-forward.
+
+## What a27995c354 adds over 5ec2425619 (local only; the diff is below, recoverable)
+
+tests/gate_lock.py `_priority_cases`: the normal waiter in `priority_first` and `slot_priority` now enters under `_Env(None)`. prepr.sh exports `HPO_GATE_PRIORITY` (2 on this branch), and the waiter inherited it, so recording tests/entities.py in prepr's closures step failed with `2 of 2707 ENTITY CHECKS FAILED`, both arms reading `order=['normal', 'urgent']`. 5ec2425619's seat worked around this by running prepr with HPO_GATE_PRIORITY=0 and carried it to R10-PROCESS-SLIM (the carry that body_push refused). Measured here by a scratch driver over `_priority_cases(g)`:
+- before the fix, HPO_GATE_PRIORITY=2: both arms `FAIL ... order=['normal', 'urgent']`;
+- after the fix, HPO_GATE_PRIORITY=2: both arms `ok ... order=['urgent', 'normal']`;
+- before and after the fix, with it unset: both arms `ok`.
+At a27995c354, `tools/pr/prepr.sh <body>` exits rc=0 with no override; `tests/entities.py` prints `ALL 2707 ENTITY CHECKS PASSED`, `tests/doc_claims.py` prints `ALL 315 checks PASSED`, and `tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+
+```diff
+diff --git a/tests/gate_lock.py b/tests/gate_lock.py
+index b496343862..aef8d9f328 100644
+--- a/tests/gate_lock.py
++++ b/tests/gate_lock.py
+@@ -1625,9 +1625,12 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
+             time.sleep(0.15)
+             g.release(who, lock_dir=d)
+ 
+-        normal = threading.Thread(target=one, args=("normal",), daemon=True)
+-        normal.start()
+-        normal_queued = bool(ticket_text(d, "normal"))
++        # The normal waiter enters with no priority, whatever the caller
++        # exports (prepr.sh exports its own HPO_GATE_PRIORITY).
++        with _Env(None):
++            normal = threading.Thread(target=one, args=("normal",), daemon=True)
++            normal.start()
++            normal_queued = bool(ticket_text(d, "normal"))
+         with _Env("2"):
+             urgent = threading.Thread(target=one, args=("urgent",), daemon=True)
+             urgent.start()
+@@ -1735,9 +1738,10 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
+             time.sleep(0.1)
+             g.release_slot(who, lock_dir=d, slots=1)
+ 
+-        normal = threading.Thread(target=one, args=("normal",), daemon=True)
+-        normal.start()
+-        normal_queued = bool(ticket_text(pool, "normal"))
++        with _Env(None):
++            normal = threading.Thread(target=one, args=("normal",), daemon=True)
++            normal.start()
++            normal_queued = bool(ticket_text(pool, "normal"))
+         with _Env("2"):
+             urgent = threading.Thread(target=one, args=("urgent",), daemon=True)
+             urgent.start()
+```
+
+---
+
 # BLOCKED: R10-HOTFIX-RESTORE-BASE-SKEW part 1 -- body_push REFUSED CARRY-LANDED
 
 Question: Will the relay fold the R10-PROCESS-SLIM carry below into the round's roster and re-run body_push.sh for part 1? This seat may not write the roster.
