@@ -1,16 +1,16 @@
 # Flow board
 
-Window ends 2026-11-11T17:08:39+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-11T17:40:19+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 3 / 1.0 | 16 / 24.0 |
+| roster groups closed vs takt | 2 / 1.0 | 16 / 24.0 |
 | fly-ins closed | 0 | 8 |
 | main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 14 / 3 / 0 / 8 |
-| first-pass fix-review yield | 1/1 (1.00) | 21/41 (0.51) |
-| blocked-class mix | none | carry-missing:3, class-open:4, doc-claim-false:1, flaky-harness:1, harness:1, merge-conflict:1, mutation-survivor:1, mutation-survivors:2, mutation-vacuous:13, null-control-leak:1, part-topic-collision:1, pin-missing:1, regression-unmeasured:2, root-cause-unanswered:3 |
+| first-pass fix-review yield | 2/4 (0.50) | 22/44 (0.50) |
+| blocked-class mix | class-open:2 | carry-missing:3, class-open:6, doc-claim-false:1, flaky-harness:1, harness:1, merge-conflict:1, mutation-survivor:1, mutation-survivors:2, mutation-vacuous:13, null-control-leak:1, part-topic-collision:1, pin-missing:1, regression-unmeasured:2, root-cause-unanswered:3 |
 | lead time per size (h, n/p50/max) | none | L n=1 p50=26.88 max=26.88; M n=3 p50=10.74 max=65.65; S n=10 p50=7.73 max=36.09 |
 
 ### WIP by flow lane (snapshot at the window's end)
