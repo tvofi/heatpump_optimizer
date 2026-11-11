@@ -593,7 +593,7 @@ def self_test() -> int:
             a = " ".join(argv)
             if "--paginate" in argv or "repositories/" in a:
                 return 1, "gh: Forbidden (HTTP 403)"
-            n = int(re.search(r"[?&]page=(\d+)", a).group(1))
+            n = int(argv[2].rsplit("&page=", 1)[1])
             base = sum(sizes[:n - 1])
             page = [{"id": base + i} for i in range(sizes[n - 1] if n <= len(sizes) else 0)]
             jq = argv[argv.index("--jq") + 1] if "--jq" in argv else ""
@@ -607,7 +607,7 @@ def self_test() -> int:
     check("a three-page answer reads every item, in order, in 3 reads",
           code == 0 and [x["id"] for x in items] == [0, 1, 2, 3, 4] and len(calls) == 3 and why == "")
     check("each read names its page explicitly and follows no Link header (the stub 403s one)",
-          [re.search(r"[?&]page=(\d+)", c[2]).group(1) for c in calls] == ["1", "2", "3"]
+          [c[2].rsplit("&page=", 1)[1] for c in calls] == ["1", "2", "3"]
           and not any("--paginate" in c for c in calls))
     read, calls = server([1])
     code, items, _ = read_pages(read, "repos/o/r/commits/h/check-runs", "check_runs", per_page=2)
