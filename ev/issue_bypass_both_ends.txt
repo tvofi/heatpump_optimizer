@@ -1,0 +1,14 @@
+== b
+#2505 owner=R10-CLOSEOUT-CLEANUP stage=carries-open accepted_without_state=True
+#2727 owner=R10-CLOSEOUT-CLEANUP stage=carries-open accepted_without_state=True
+#2728 owner=R10-CLOSEOUT-CLEANUP stage=carries-open accepted_without_state=True
+#3313 owner=R10-REVIEW-ENUMERATE stage=carries-open accepted_without_state=True
+#3314 owner=R10-REVIEW-ENUMERATE stage=carries-open accepted_without_state=True
+RESULT issue_owned_by_unreceivable=5
+== h
+#2505 owner=R10-CLOSEOUT-CLEANUP stage=carries-open accepted_without_state=False
+#2727 owner=R10-CLOSEOUT-CLEANUP stage=carries-open accepted_without_state=False
+#2728 owner=R10-CLOSEOUT-CLEANUP stage=carries-open accepted_without_state=False
+#3313 owner=R10-REVIEW-ENUMERATE stage=carries-open accepted_without_state=False
+#3314 owner=R10-REVIEW-ENUMERATE stage=carries-open accepted_without_state=False
+RESULT issue_owned_by_unreceivable=5

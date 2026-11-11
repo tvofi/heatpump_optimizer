@@ -1,0 +1,23 @@
+## M1 drop the receiving refusal in check
+FAIL sink barrier: a carry to #900, owned only by R10-CO, is refused naming the owner and the rule
+FAIL sink barrier: a carry to #901, owned only by R10-RFT, is refused naming the owner and the rule
+carry_audit self-test: 415 checks, 2 failed
+## M2 every open owner receives (drop live test)
+1
+FAIL sink barrier: a carry to #900, owned only by R10-CO, is refused naming the owner and the rule
+FAIL sink barrier: a carry to #901, owned only by R10-RFT, is refused naming the owner and the rule
+carry_audit self-test: 415 checks, 2 failed
+## M3 O-brief does not receive
+FAIL an O-brief owns the issues its file name carries
+FAIL sink barrier (null control): a carry to #906 passes, an O-brief names it
+carry_audit self-test: 415 checks, 2 failed
+## M4 carry file does not receive
+FAIL an issue with a carry file is a destination
+FAIL sink barrier (null control): a carry to #905 passes, a carry file owns it
+FAIL P43: ... and routes once the head is the extra ref (after)
+carry_audit self-test: 415 checks, 3 failed
+## M5 ci_predict back to is_open
+ tools/pr/ci_predict.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a carry to a live group of the roster is predicted green
+ci_predict self-test: 1 failed
