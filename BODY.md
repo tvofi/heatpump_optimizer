@@ -96,11 +96,30 @@ Re-check only these hunks; every other file auto-merged. The conflict is with #3
 
 ## Head
 
-4c24160f3a5b45e1c9c9d7d5e72395d7153c02c7 (`handoff/r10-process-slim-p2`), a merge of origin/main a7628041dc02e298c5399003d4c0576391dd5c4e into d094fbc5ccf43038fde6c351ab34d2ac4239acb6.
+9c5485e367c7ce78d54a31155d31f43f8fe9f58b (`handoff/r10-process-slim-p2`): a merge of origin/main 0a2139b1ddaf7831b32c443d438fa14e90938bcb into the PR head dd70a4bd0e3e964179ddf5de06b00a895a0ed34c, then one commit re-recording a self-test closure (03047e42) and one answering roster carry 3 (9c5485e3). Measured 2026-11-11T13:31:52Z.
 
-Previous head: d094fbc5ccf43038fde6c351ab34d2ac4239acb6.
+Previous head: 4c24160f3a5b45e1c9c9d7d5e72395d7153c02c7 (the head `Fix review: merge` names); dd70a4bd0 adds tvofi's main merge d195424a7 and the #3451 delivery row on top of it.
 
-**Head note (merge of origin/main a7628041): one conflict, resolved three-way** (`fixer.md` step 6; no re-cut, a resolution delta for the same reviewer; no other change to the group's content). `git merge-tree --write-tree --name-only origin/main d094fbc5` exits 1 naming only `dev/governance/roles/fix-review.md` (content); `.github/workflows/governance.yml`, `dev/governance/config/policy_budgets.json`, `tools/audit/seat/bus.sh` auto-merged and `tests/closures.json` resolved through the `ledgermerge` driver (`LEDGER-MERGE: resolved tests/closures.json`). After the merge, `git merge-tree --write-tree origin/main HEAD` exits 0. `git merge-base origin/main HEAD` is a7628041dc02e298c5399003d4c0576391dd5c4e.
+**Head note (repair 3, merge of origin/main 0a2139b1 plus one re-record).** This is not a re-cut. The reviewer judges only this delta (`fix-review.md` step 12).
+- **The merge.** `git merge origin/main` into dd70a4bd0 had no conflicts: `tests/closures.json` was resolved by the `ledgermerge` driver (`LEDGER-MERGE: resolved tests/closures.json`) and `tools/audit/seat/sweep_template.md` auto-merged. No hand-written hunk.
+- **The re-record (red 1, `governance / instrument-self-tests`).** This PR drops the `delivery_row self-test` grep line from governance.yml's `handoff-push` step, so `selftest_scope.py static` printed `STALE tools/ci/selftest_closures.json: run text changed since it was recorded: ['handoff-push']`. Command, run on **Linux with strace** (`/usr/bin/strace`): `python3 tools/ci/selftest_scope.py record --step handoff-push`. Its output: `recorded 1 step(s) ... 0 failed [], 0 broken trace(s)`. The entry gets a new `run_sha`, drops `tools/audit/seat/delivery_row.sh` from `files` and drops `tools/audit/seat` from `dirs`, which matches the removed line. After the re-record, `python3 tools/ci/selftest_scope.py static` prints `111 gated step(s), 0 problem(s)`. Before it printed `1 problem(s)`, the null control.
+- **Re-run at this head (fixer.md steps 2-8).** `python3 tests/closure.py select --diff 0a2139b1` prints `MODE: FULL` (reason: `.github/workflows/tests.yml changes the gate itself`), so the suite is CI's (step 5). Each of the following was run with `PYTHONPATH=tests/hastub`, rc 0:
+  - `tests/env_drift.py --claims-only 0a2139b1`: `claims hygiene: ... ok`;
+  - `tests/closure.py selftest`: `ALL 118 closure shrink pins PASSED`;
+  - `tests/layout.py`: `layout self-test: ok`;
+  - `tests/harness_headers.py`: `ALL 112 HARNESS HEADER CHECKS PASSED`;
+  - `tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+
+  The merge has no hand-written hunk, so no mutation pin is re-taken.
+- `git merge-tree --write-tree origin/main HEAD` exits 0 against origin/main 60413046e3903f52c47cf587e9c4131fa30d74fa, read at 13:31Z.
+- **Carry 3 (roster item 84d0892c), built here, not carried.** In `tests/gate_lock.py`'s `_priority_cases`, two checks start the normal waiter under the caller's `HPO_GATE_PRIORITY`: `priority_first` ("an urgent waiter takes before an older normal one, after its ticket rewrite") and `slot_priority` ("the heavy-slot pool orders by the same rule"). `prepr.sh` exports that variable, and exports 2 on a hotfix branch, so both waiters queue as urgent. Fix (9c5485e3): the normal waiter now starts and queues under `_Env("0")`, the same helper the urgent arm already used. Driver: `_priority_cases(gate_lock)` filtered to those two names, `PYTHONPATH=tests/hastub`.
+  - At 03047e42, `HPO_GATE_PRIORITY=2` gives `FAIL ... order=['normal', 'urgent']` on both, and `HPO_GATE_PRIORITY=0` gives `ok` on both.
+  - At 9c5485e3, `HPO_GATE_PRIORITY` = 2, 1, 0 and unset each give `ok ... order=['urgent', 'normal']` on both.
+  - Mutation, for both checks to stay able to fail: the urgent arm's `_Env("2")` changed to `_Env("0")` in both functions gives `FAIL ... order=['normal', 'urgent']` on both under `HPO_GATE_PRIORITY=2`; restored.
+  - `HPO_GATE_PRIORITY=2 python3 tests/entities.py` at this head is in `## Figures`.
+- **Step ref.** `handoff-wip/r10-process-slim-p2` held a previous seat's BLOCKED chain f1dd6bb41. I fast-forwarded it with a step commit whose parents are f1dd6bb41 and this seat's step head, so nothing was deleted or forced. Carry: dismissed: stale step ref, not a finding about the fix.
+
+**Previous head note (4c24160f)** (merge of origin/main a7628041): one conflict, resolved three-way** (`fixer.md` step 6; no re-cut, a resolution delta for the same reviewer; no other change to the group's content). `git merge-tree --write-tree --name-only origin/main d094fbc5` exits 1 naming only `dev/governance/roles/fix-review.md` (content); `.github/workflows/governance.yml`, `dev/governance/config/policy_budgets.json`, `tools/audit/seat/bus.sh` auto-merged and `tests/closures.json` resolved through the `ledgermerge` driver (`LEDGER-MERGE: resolved tests/closures.json`). After the merge, `git merge-tree --write-tree origin/main HEAD` exits 0. `git merge-base origin/main HEAD` is a7628041dc02e298c5399003d4c0576391dd5c4e.
 - **The hunk, `fix-review.md` step 12.** `diff <(git show dbd1ab5b:dev/governance/roles/fix-review.md) <(git show a7628041:...)` prints one hunk: main (#3379, merge 86953c6d99) replaced the base line "Else a main merge is its **resolution delta**, alone yours; any other move is re-reviewed." with the delta-review paragraph ("Else a later round is **its delta** (tvofi 2026-11-09) ..."). This branch had replaced the same line's tail with "a head whose own diff moved under you is `blocked <sha> head-moved: ...`". Both kept: main's paragraph, then the branch's head-moved sentence.
 - **Read-back against both parents** (`orchestrator.md` section 6): `diff <(git show d094fbc5:dev/governance/roles/fix-review.md) dev/governance/roles/fix-review.md` prints only that one hunk (the branch's other lines are untouched), and main's paragraph reads back clause by clause: `its delta`, `tvofi 2026-11-09`, `git diff <reviewed-head>`, `a main merge: its resolution`, `each prior finding resolved`, `required checks`, `custom_components/`, `non-obvious risk`, `CI would not detect`, `to exactly that code`, `names path and risk`, `test, policy and body deltas never widen it` and the branch's `A head whose own diff moved under you is` each count 1 by `str.count` in the merged file (`custom_components/` counts 2, the other in card C5's line). For each auto-merged file F, the sorted changed-line set of `git diff dbd1ab5b d094fbc5 -- F` equals that of `git diff a7628041 HEAD -- F` (branch side intact) and that of `git diff dbd1ab5b a7628041 -- F` equals that of `git diff d094fbc5 HEAD -- F` (main side intact): all four files print `BRANCH-SIDE-INTACT MAIN-SIDE-INTACT`. Its null control: the same comparison on the hand-resolved `fix-review.md` prints `BRANCH-SIDE-DIFFERS MAIN-SIDE-DIFFERS`.
 - **The cap payment, inside the hunk.** The plain union reads `--budgets` 2556/2546 on `fix-review.md`. Paid by cutting spent words from main's new paragraph, no clause dropped: "a delta touching production code (`custom_components/`)" reads "a production (`custom_components/`) delta"; "already-reviewed" reads "reviewed"; "at non-obvious risk, in a way CI would not detect" reads "at a non-obvious risk CI would not detect"; "names the path and the risk" reads "names path and risk". After: `--budgets` 2546/2546 and `TOTAL: 0 error(s) across 49 policy file(s)`; no budget change. No rule source changed in the merge: `node tools/policy/rules_sync.mjs --check` prints `RULES-SYNC ok`, nothing regenerated.
@@ -187,6 +206,8 @@ Each changed line was mutated by hand. A mutant was graded by the self-test or c
 
 ## Figures
 
+**Repair 3, at 9c5485e3 (carry 3):** `HPO_GATE_PRIORITY=2 PYTHONPATH=tests/hastub python3 tests/entities.py` prints `ALL 2699 ENTITY CHECKS PASSED`, rc 0. That is the caller environment carry 3 measured red (`2 of 2707 ENTITY CHECKS FAILED` at r10-hotfix-restore-base-skew's head). `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+
 **This round, at 4c24160f3a5b45e1c9c9d7d5e72395d7153c02c7, merge base origin/main a7628041dc02e298c5399003d4c0576391dd5c4e (2026-11-11T06:38:20Z):**
 - `python3 tests/closure.py select --diff a7628041 --workdir $D`: `MODE: FULL` (`.github/workflows/tests.yml changes the gate itself`), so CI runs the suite (step 5). With `PYTHONPATH=tests/hastub`, the `run_always` lines and the auto-merged `bus.sh`'s self-test: `tests/env_drift.py --claims-only a7628041` (`claims hygiene: a7628041... ok`), `tests/closure.py selftest` (`ALL 118 closure shrink pins PASSED`), `tests/layout.py` (`layout self-test: ok`), `tests/harness_headers.py` (`ALL 112 HARNESS HEADER CHECKS PASSED`), `bash tools/audit/seat/bus.sh --self-test` (`bus self-test: 181 checks, 0 failed`). `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 49 policy file(s)`; `--budgets` reads `fix-review.md` 2546/2546. Its control: the plain union before the in-hunk payment read 2556/2546. `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
@@ -250,14 +271,13 @@ Each changed line was mutated by hand. A mutant was graded by the self-test or c
 
 ## Red checks
 
-At 4c24160f3a5b45e1c9c9d7d5e72395d7153c02c7 no check has run: no pull request is open for it, and a handoff ref runs no workflow. Owed answers are only for reds in the set `python3 tools/audit/seat/merge_train.py owed-reds --repo tvofi/heatpump_optimizer` prints (owner ruling 2026-11-09).
-
-The superseded PR #3245's head is f5af5b513b1978d732fd41902c203890e3a0247b, an ancestor of this head. Its check-runs (`pull_request_read get_check_runs`, read 2026-11-09: 66 runs, one page):
-- `budget-raise-gate / budget-raise-gate` (128968794644, run 42555968032; 128970652152, run 42555968038) failed with `REFUSED: tvofi's approval is on 565f9f2b8a5e, not this head f5af5b513b19: an approval covers only the commit it was given on`; 129024905382 in run 42556058045 passed at 07:09Z. Root-cause trigger: no cheaper detector exists — the refusal is the gate's designed answer to a moved head (`budget-raise-gate`, decision 0013), not a defect of this diff. **This head is predicted the same red** until the raise is approved at it (the proposal-triage cap removal, Raise justification).
-- `gate` (128978623669, run 42555968038) failed with `FAIL run(s) [42555968032, 42556058045] at this head are still being judged; their gate decides`, and `gate` (128995014829, run 42555968032) with `FAIL budget-raise-gate / budget-raise-gate: failure`. Both are the umbrella gate reporting the two states above; `gate` 129028330496 in run 42556058045 passed at 07:13Z. Root-cause trigger: none of its own — it relays the budget-raise-gate answer above.
-- Every other concluded check is success or skipped, including `tests / fast (3.14)` (128979578350), `governance / instrument-self-tests` (128968794869), `pr-contract / pr-contract` (128994276179), `tests / mutation` (128968794805) and `tests / nightly-status` (128968794817).
-- The PR is `DIRTY` against main at f5af5b51: GitHub cannot build the merge ref. This head resolves that.
-- Earlier heads' reds are answered in the previous rounds' text, kept in this section's history: at 565f9f2b the `gate` wait answer (128732022666), and at b2381acd5004e85a8b85a4643bc0939d25a3bf75 `tests / fast (3.14)` and `governance / instrument-self-tests` (`stamp.py --self-test`'s hold check), fixed by keeping the beat (Mutation proof).
+The owed set is `python3 tools/audit/seat/merge_train.py owed-reds --repo tvofi/heatpump_optimizer`, read 2026-11-11T13:31Z. PR #3451's reds at dd70a4bd0 (run 09:36Z-10:09Z; gate roll-up 12:20Z):
+- `governance / instrument-self-tests`: `STALE tools/ci/selftest_closures.json ... ['handoff-push']`. This is outside the owed set, so no answer is owed. It was this diff's own stale closure entry, re-recorded at this head (Head note).
+- `tests / fast (3.14)`: `FAIL combi_type_branch census` in `tests/features.py`. This is main's red, not this diff's. The same check fails on main itself: run 43010208881 at ee64358b, job 130489628669, prints `1 TEST SCRIPT(S) FAILED` (`python3 tests/features.py`). The census (#3398) and two vendor-named package lines merged separately. PR #3466 clears it and was still open when read at 13:30Z. Root-cause trigger: the cheaper detector is that census block run alone through `tools/audit/seat/features_block.py` (seconds). Its standing cost and process state belong to #3466's own answer, because this diff touches no `custom_components/` line.
+- `budget-raise-gate / budget-raise-gate`: `RAISE ... files_tokens.dev/governance/roles/proposal-triage.md: 489 -> None (a pinned value the gate cannot sign as routine)`, then `REFUSED: no decisive review by tvofi`. The key leaves with the file this PR deletes (Raise justification). Root-cause trigger: no cheaper detector exists. The refusal is the gate's designed answer to a removal it classifies as frozen, and only tvofi's approving review at this head clears it.
+- `gate`: this is the roll-up reporting the reds above. It has no root cause of its own.
+- `tests / nightly-status` (mutation-ledger (3), slow) is the nightly's grade of `main` and is outside the owed set, so no answer is owed. It is not this diff's red.
+- If `governance / instrument-self-tests` goes red after the merge on the pusher census, that red is main's (roster group R10-HOTFIX-PUSHER-CENSUS). Main's own run 43010208881 already fails that job (130489627879).
 
 ## Unpinned sites
 
@@ -281,6 +301,14 @@ Content approved by tvofi in chat 2026-11-05 (cards C2-C9 accepted; C4, C5, C8 a
 The round-2 sentences that said the beat is deleted are no longer in the diff.
 
 ## Raise justification
+
+**Repair 3: why the gate still refuses, with evidence.** The raise follows a file this PR deletes, and nothing on the code side removes it:
+- **The file is deleted.** `git diff --name-status origin/main...HEAD` prints `D dev/governance/roles/proposal-triage.md`.
+- **Both cap keys leave with it.** `git diff origin/main...HEAD -- dev/governance/config/policy_budgets.json` removes exactly two lines, `files` 36 and `files_tokens` 489, both keyed on that path.
+- **Why only one is refused.** `tools/policy/budget_raise_gate.py`'s SCHEMA entry for that file classifies `("files", "*")` as CAPFILE. A CAPFILE removal is routine once the capped file has left the head, so the `files` 36 line is not in the refusal. The schema has no `files_tokens` rule, so `kind_of` falls through to FROZEN, and `_leaf_raise` reports any change to a FROZEN key as `a pinned value the gate cannot sign as routine`, a decrease or removal included.
+- **No legitimate code-side fix.** Keeping the key for a missing file is refused by `policy_lint.mjs --budgets`. Teaching the gate that `files_tokens.*` is CAPFILE would change the gate (policy) in the same PR it clears, so it is not done here.
+- **What clears it.** Only tvofi's approving review at this head. No budget is loosened.
+
 
 Raise approved under mandate (comment 6624093439, scope all) by the orchestrator 2026-11-06 14:4xZ: cap removal for a deleted file, no payment possible.
 - **What moves:** no cap rises in substance. The two caps removed belong to `dev/governance/roles/proposal-triage.md` (`files` 36, `files_tokens` 489, in `dev/governance/config/policy_budgets.json`), and card C6 (a) deletes that file.
@@ -306,6 +334,8 @@ Architecture score: dS +0.0000 NULL
 
 - **Carry 1** is the roster's carry on R10-PROCESS-SLIM: a repair body's `## Head` named the previous handoff. `tools/audit/seat/body_push.sh` now refuses `head-stale` when `## Head` does not name `handoff/<topic>`'s code sha. The check runs after the identity guard (round 3) and pushes nothing. It is unchanged by this round, and `body_push.sh --self-test` prints `35 checks, 0 failed`.
 - **Carry 2** is the instrument-self-tests timeout. Main's R10-HOTFIX-SELFTEST-TIMEOUT answers it now, by running the slow self-tests detached under the 30-minute timeout. This branch's own answer (`open_pr.sh` and `update_pr.sh` no longer re-running `pr_args.sh`'s self-test, and a 40-minute timeout) is dropped in the merge in favour of main's (Merge resolution).
+
+- **Carry 3** is the roster's carry on R10-PROCESS-SLIM from r10-hotfix-restore-base-skew (item 84d0892c): the two `gate lease priority` checks inherited the caller's `HPO_GATE_PRIORITY`. It is built in this round (commit 9c5485e3; Head note), not carried, because it is this group's own seam.
 
 ## Friction
 
