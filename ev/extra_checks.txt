@@ -1,0 +1,31 @@
+== owed-reds full set
+hassfest / hassfest
+pr-contract / pr-contract
+tests / arch-instrument
+24
+6:gate
+24:rc=0
+0
+== test alone at d84aa03dd7 (null control)
+  ok   the loop's start hold is the constant's: 'first 5 minutes of a run'
+  ok   the loop's rate is the constant's: '0.2 K per minute'
+  ok   the loop's window is the constant's: 'averaged over 3 minutes'
+  ok   the loop's deadband is the constant's: 'within 10 % of the planned level'
+  FAIL the loop's lower bound is the constant's: 'no lower than 0.3 K below the inlet'
+  FAIL the polling precondition cites the contributor's answers
+  ok   the polling precondition states 600 s, restart
+  FAIL the start condition cites the contributor's answers
+  FAIL the start condition states 10107, 0.5 K  [['10107', '0.5 K']]
+  FAIL the loop's preconditions cites the contributor's answers
+  FAIL the loop's preconditions states 10104, 10103, 0.5 K  [['10104', '10103']]
+  FAIL no start condition is stated as a 2 K Luxtronik default
+  FAIL the assumed minimum hysteresis behind FEEDBACK_DOWN_K cites the contributor's answers
+  FAIL the inferred clamp bounds (_clamp_cut) cite the contributor's answers and name both inputs
+== M-restart: poll paragraph 'restart' -> 'reboot'
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+  FAIL the polling precondition states 600 s, restart  [['restart']]
+1 of 315 checks FAILED
+== claims register re-run at head
+rc=0
+1
+0
