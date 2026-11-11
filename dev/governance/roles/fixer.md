@@ -24,14 +24,13 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    size named in the body; a spelling the reviewer finds is added to it.
    A `git archive` copy fails the #363 `recorded_at` check, and a self-test
    needing a checkout, on every mutant, baseline included (#1713, #1723).
-   **Killing the diff's survivors is yours before the handoff; `--pin-killed`
-   is `ci-autofix.md`'s.** Set `prepr.sh`'s `MUTANT_CMD` to the group's
-   self-test or a `features_block.py` call (`MUTANT_IN_PLACE=1` for a
-   checkout); it draws only the first 40 mutants of added `.py` lines outside
-   `tests/` and `dev/`. Each `SURVIVED` line and step 6d unpinned site gets a
-   killing check or an `## Unpinned sites` disposition: pinned by
-   `mutation-autofix` (its lane mutates `custom_components/` only; a `tools/`
-   site needs an in-tree mutant harness), a value check, or a triage under
+   **The diff's survivors are yours before the handoff; `--pin-killed` is
+   `ci-autofix.md`'s.** Set `prepr.sh`'s `MUTANT_CMD` to the group's self-test
+   or a `features_block.py` call (`MUTANT_IN_PLACE=1` for a checkout); it draws only
+   the first 40 mutants of added `.py` lines outside `tests/` and `dev/`. Each
+   `SURVIVED` line and step 6d unpinned site gets a killing check or an `## Unpinned
+   sites` disposition: pinned by `mutation-autofix` (its lane mutates `custom_components/`
+   only; a `tools/` site needs an in-tree mutant harness), a value check, or a triage under
    `tests/mutation_ledger/survivor_triage/` (the ratchet reads no body). Run the
    ledger's own mutant before claiming a kill (#2445).
 3. **Re-execute the finding's harness on your branch**: before and after, with
@@ -302,10 +301,8 @@ split part the approved plan names.
 
 ## Before you hand off: answer any check your branch turned red
 
-`defect-root-cause.md`'s second trigger fires on your own PR, as its Enforcement
-section states.
-`UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
-(`ci-autofix.md`).
+`defect-root-cause.md`'s second trigger fires on your own PR, as its Enforcement section states.
+`UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them (`ci-autofix.md`).
 
 ## Past three rounds, re-cut rather than repair
 
