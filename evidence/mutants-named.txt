@@ -1,0 +1,9 @@
+== cloud_dispatch-21 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 149 checks, 1 failed
+== cloud_dispatch-22 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 149 checks, 1 failed
+== orchestrator_tick-6 orchestrator_tick.py: KILLED rc=1 | orchestrator_tick self-test: 308 checks, 3 failed
+== orchestrator_tick-7 orchestrator_tick.py: KILLED rc=1 | orchestrator_tick self-test: 308 checks, 1 failed
+== orchestrator_tick-8 orchestrator_tick.py: KILLED rc=1 | orchestrator_tick self-test: 308 checks, 1 failed
+== orchestrator_tick-9 orchestrator_tick.py: KILLED rc=1 | orchestrator_tick self-test: 308 checks, 1 failed
+== cloud_dispatch-21 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 149 checks, 1 failed
+== cloud_dispatch-22 cloud_dispatch.py: KILLED rc=1 | cloud_dispatch self-test: 149 checks, 2 failed
+RESULT survivors=0
