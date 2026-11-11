@@ -17747,11 +17747,11 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-combi-tank",
     "note": "size L is provisional; the design sets the final size and owning seam | set-files files [] -> ['custom_components/heatpump_optimizer/thermal_model.py', 'custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/battery.py', 'custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/dhw_learning.py', 'custom_components/heatpump_optimizer/sensor.py', 'custom_components/heatpump_optimizer/topology.py', 'custom_components/heatpump_optimizer/config_flow.py', 'custom_components/heatpump_optimizer/entry_config.py', 'custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/legionella.py', 'custom_components/heatpump_optimizer/setpoint_check.py', 'tests/features.py', 'docs/configuration.md']; hot_files [] -> ['coordinator.py']",
     "pr": 3398,
-    "commit": "15e34edb8b1c3e3b209b6d258cc0165021725736"
+    "commit": "cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf"
    },
    "brief": "Owner ruling (tvofi 2026-11-06), quoted: \"Have a seat pre study the design for 3225 with the target of efficient and robust integration in the ongoing round, after design review fold the fix in a suitable place in the plan.\" Issue #3225 (outside user Bankaifan): no way to model a combi tank where the space-heating buffer and DHW are the same water. Setup: alpha innotec LWDV 91-1/3 (Luxtronik) with an MFS 600 S multifunction tank, 572 l of heating water charged for both space heating and DHW, DHW made on demand through an internal exchanger (39 l / 7.5 m2), no separate DHW tank, zoned returns (DHW return 765 mm, heating return 400 mm), ONE probe in use at 1250 mm, both buffer_tank_temp_entity and dhw_temp_entity point at it; datasheet standing loss 3100 Wh/24 h; current config topology_layout single_tank_valve, mixing_valve_mode smart_write. Read the whole issue body and its comment. DESIGN ONLY, never production code, note at design/r10-combi-tank. Cover: how the existing topologies and the DHW/buffer model represent or fail to represent a shared tank; the minimal sound change (a new topology against a parameterisation of an existing one); sensor handling with a single probe; effects on the solver, the comfort guard and the DHW trajectory seed (R10-BUFFER-STORE carry 1, the open-loop tank seed: this design may be its natural owner); the test fixtures to add; a size estimate and the owning seam. Target: efficient and robust integration in the ongoing round.",
    "source": "outside"
@@ -20791,7 +20791,7 @@
     "stage": "in-progress",
     "branch": null,
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER): carries-open audit 2026-11-09: distinct seam from R10-GATE-DEFER-BARRIER, ordered by after-edges where files overlap | set-files files ['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/review_carry.py', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/fix-review.md'] -> ['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/review_carry.py', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/fix-review.md', 'tools/audit/seat/ledger.py']",
-    "pr": 3445
+    "pr": 3450
    }
   },
   {
