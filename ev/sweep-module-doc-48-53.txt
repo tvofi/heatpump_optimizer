@@ -1,0 +1,6 @@
+changed tools/ci/*.py after the pin, the sweep instead dispatches ONE fresh ci.yml run at the
+head (`pr`, `base`: that run rev-parses origin/<base> when its job starts) and prints
+`STALE-PIN`; that run's gate is the newest at the head, and its completion sweeps. A dispatched
+run created after the stale gate concluded is that fresh judge already, so nothing is
+dispatched twice for one red and the branch cannot loop. That run's green `gate` is a check of its
+own suite and replaces no other run's red (#3400 at 7326025c: the edit run's stale red stood until

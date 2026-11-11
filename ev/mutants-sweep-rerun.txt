@@ -1,0 +1,46 @@
+== M4 sweep: creation key restored
+-                 and (r.get("status") in NOT_COMPLETED or r.get("conclusion") == "success")]
++                 and r.get("created_at", "") >= (gate.get("completed_at") or "~")]
+gate self-test: 87 checks, 0 failed
+FAIL stale pin, one judge per head: a dispatch listed completed, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+FAIL stale pin, one judge per head: a dispatch listed queued, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+FAIL stale pin, one judge per head: a dispatch listed in_progress, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+sweep self-test: 85 checks, 3 failed
+== M5 sweep: success arm dropped
+-                 and (r.get("status") in NOT_COMPLETED or r.get("conclusion") == "success")]
++                 and (r.get("status") in NOT_COMPLETED)]
+gate self-test: 87 checks, 0 failed
+FAIL stale pin, settle, no loop: settle hands judge the head's runs, so a dispatched run created after the pair's gates concluded is their fresh judge; nothing 
+FAIL stale pin, no loop: a dispatched run created after the stale gate concluded re-judges the head; nothing posted
+FAIL stale pin, no loop: a dispatched run created in the second the stale gate concluded is that fresh judge
+FAIL stale pin, one judge per head: a dispatch listed completed, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+FAIL stale pin, #3400 null: the decider's own sweep, while the fresh judge runs and after it completes, re-runs nothing (the fresh judge's sweep owns it)
+sweep self-test: 85 checks, 5 failed
+== M6 sweep: not-completed arm dropped
+-                 and (r.get("status") in NOT_COMPLETED or r.get("conclusion") == "success")]
++                 and (r.get("conclusion") == "success")]
+gate self-test: 87 checks, 0 failed
+FAIL stale pin, one judge per head: a dispatch listed queued, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+FAIL stale pin, one judge per head: a dispatch listed in_progress, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+FAIL stale pin, #3400: the dispatched fresh judge, green, re-runs from inside itself the stale reds it was left, once each, dispatching nothing
+FAIL stale pin, #3400 null: a fresh judge that ended red re-runs no stale red from inside itself
+sweep self-test: 85 checks, 4 failed
+== M7 sweep: any completed dispatch is a judge
+-                 and (r.get("status") in NOT_COMPLETED or r.get("conclusion") == "success")]
++                 and (r.get("status") in NOT_COMPLETED or r.get("status") == "completed")]
+gate self-test: 87 checks, 0 failed
+FAIL stale pin null: with only a failure dispatch at the head it dispatches, once
+FAIL stale pin null: with only a cancelled dispatch at the head it dispatches, once
+sweep self-test: 85 checks, 2 failed
+== M8 gate: r is not me guard dropped (new line)
+-            if r is not me and all(j is not None and j[1] in ("cancelled", "success") for j in js) and any(
++            if all(j is not None and j[1] in ("cancelled", "success") for j in js) and any(
+gate self-test: 87 checks, 0 failed
+sweep self-test: 85 checks, 0 failed
+== M9 gate (pre-existing analog, base line): r is not me dropped from deferred-unit skip
+-            if r is not me and all(j is not None and j[1] == "skipped" for j in js):
++            if all(j is not None and j[1] == "skipped" for j in js):
+gate self-test: 87 checks, 0 failed
+sweep self-test: 85 checks, 0 failed
+gate self-test: 87 checks, 0 failed
+sweep self-test: 85 checks, 0 failed
