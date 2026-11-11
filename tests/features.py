@@ -84458,14 +84458,32 @@ def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0,
     """One full ``optimize``; the planner builds, the published simulation's
     inputs and the objective closures are recorded beside the result."""
     opt = _dsp_opt(pair, off, **install)
-    seen = _DspNS(builds=[], sims=[], objectives=[], solves=[], min_runs=[], opt=opt)
+    seen = _DspNS(
+        builds=[], sims=[], objectives=[], solves=[], solved=[], min_runs=[],
+        energy=[None], vectors=[0], opt=opt,
+    )
     real_build = _DspPlanner._build_dhw_requirements
     real_sim, real_objectives = opt.model.simulate_trajectory_with_dhw, opt._solve_objectives
     real_solve, real_min_run = opt._solve_space, _DspPlanner._apply_dhw_min_run
 
+    real_energy, real_vector = opt._energy_cost_fn, _dsp_om._stop_availability
+
     def solve_space(*args):
         seen.solves.append(args)
-        return real_solve(*args)
+        seen.solved.append(real_solve(*args))
+        return seen.solved[-1]
+
+    def energy_cost_fn(*args):
+        cost_of = real_energy(*args)
+
+        def recorded(power):
+            seen.energy[0] = np.array(power, float)
+            return cost_of(power)
+        return recorded
+
+    def vector(*args):
+        seen.vectors[0] += 1
+        return real_vector(*args)
 
     def min_run(self, **kwargs):
         out = real_min_run(self, **kwargs)
@@ -84487,7 +84505,8 @@ def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0,
         return out
 
     opt.model.simulate_trajectory_with_dhw, opt._solve_objectives = sim, objectives
-    opt._solve_space = solve_space
+    opt._solve_space, opt._energy_cost_fn = solve_space, energy_cost_fn
+    _dsp_om._stop_availability = vector
     _DspPlanner._build_dhw_requirements = build
     _DspPlanner._apply_dhw_min_run = min_run
     outdoor = 2.0 + 3.0 * np.sin(2 * np.pi * (_DSP_STEPS - 50) / 96.0)
@@ -84506,6 +84525,7 @@ def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0,
     finally:
         _DspPlanner._build_dhw_requirements = real_build
         _DspPlanner._apply_dhw_min_run = real_min_run
+        _dsp_om._stop_availability = real_vector
     seen.space = np.asarray(seen.result.power_schedule, float)
     seen.dhw = np.asarray(seen.result.dhw_power_schedule, float)
     seen.bans = [k["placement_ban"] for k, *_ in seen.builds if "placement_ban" in k]
@@ -84967,6 +84987,144 @@ _dsp_rx_plain = _dsp_om._shipped_and_received(_dsp_rx_opt, *_dsp_rx_args[:2], No
 R.check(
     "and with no vector the received draw is the shipped array itself",
     _dsp_rx_plain[2] is _dsp_rx_plain[0],
+)
+
+# What reads the shipped level and what reads the delivered draw, on a
+# modulating clamped install that prices no cycle (so nothing steers the plan
+# off its charged steps) and on the fixed-speed plan above.
+R.check(
+    "the plan's duty floor reaches the switch weight: heating under the floor "
+    "after a block is no leg and no switch",
+    _dsp_w([0, 1.0], [3, 0], (0.8, 0.0)) == 0.8 * 1.0 / 6.0
+    and _dsp_w([0, 1.0], [3, 0], (0.8, 0.0), floor=1.5) == 0.0,
+)
+R.check(
+    "at the exact minute the hot-water share ends the arbiter serves heating "
+    "(a strict <, as before the rule moved)",
+    [_dsp_served(3.0, 2.0, m, None) for m in (5.99, 6.0, 6.01)] == ["dhw", "space", "space"],
+    f"{[_dsp_served(3.0, 2.0, m, None) for m in (5.99, 6.0, 6.01)]}",
+)
+_dsp_mc = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, cyc=0.0)
+_dsp_mc_avail = _dsp_mc.opt._space_avail
+_dsp_mc_fed = np.asarray(_dsp_mc.sims[-1]["space_power_schedule"], float)
+_dsp_mc_live = (
+    [] if _dsp_mc_avail is None
+    else [i for i in np.flatnonzero(_dsp_mc_avail < 1.0).tolist() if _dsp_mc.space[i] > 0]
+)
+_dsp_mc_obj, _dsp_mc_batch, _dsp_mc_energy = (_dsp_mc.objectives[-1][i] for i in (1, 2, 3))
+_dsp_mc_rebuilt = (
+    None if _dsp_mc_avail is None
+    else _dsp_om._stop_availability(_dsp_mc.opt, _dsp_mc.space, _dsp_mc.dhw, 5.5)
+)
+R.check(
+    "modulating clamped: the simulation is fed the delivered draw of the "
+    "vector the adopted solve scored with, which is not the vector the final "
+    "plan would rebuild",
+    bool(_dsp_mc_live)
+    and np.array_equal(
+        _dsp_mc_fed, _dsp_dl.delivered_space(_dsp_mc.space, _dsp_mc.dhw, _dsp_mc_avail, 1.5)
+    )
+    and not np.array_equal(_dsp_mc_fed, _dsp_mc.space)
+    and (_dsp_mc_rebuilt is None or not np.array_equal(
+        _dsp_mc_fed, _dsp_dl.delivered_space(_dsp_mc.space, _dsp_mc.dhw, _dsp_mc_rebuilt, 1.5)
+    )),
+    f"live {_dsp_mc_live}",
+)
+R.check(
+    "the vector is built once per space solve and never at publication, on "
+    "every priced solve above",
+    all(s.vectors[0] == len(s.solves) for s in [*_dsp_priced.values(), _dsp_mc]),
+    f"{[(s.vectors[0], len(s.solves)) for s in [*_dsp_priced.values(), _dsp_mc]]}",
+)
+R.check(
+    "modulating clamped (item r15): the achieved objective is the closure on "
+    "the shipped arrays with that vector, not on the delivered draw, which "
+    "would charge the lost time twice",
+    bool(_dsp_mc_live)
+    and float(_dsp_mc_obj(_dsp_mc.space, _dsp_mc.dhw, None, _dsp_mc_avail))
+    == float(_dsp_mc.result.objective_value)
+    != float(_dsp_mc_obj(_dsp_mc_fed, _dsp_mc.dhw, None, _dsp_mc_avail))
+    and float(_dsp_mc_obj(_dsp_mc.space, _dsp_mc.dhw)) != float(_dsp_mc.result.objective_value),
+)
+R.check(
+    "modulating clamped: the predicted cost is the energy of the delivered "
+    "draw, not of the shipped level",
+    bool(_dsp_mc_live)
+    and float(_dsp_mc.result.predicted_cost) == float(_dsp_mc_energy(_dsp_mc_fed + _dsp_mc.dhw))
+    != float(_dsp_mc_energy(_dsp_mc.space + _dsp_mc.dhw)),
+)
+_dsp_mc_scalar = float(_dsp_mc_obj(_dsp_mc.space, _dsp_mc.dhw, None, _dsp_mc_avail))
+_dsp_mc_scalar_energy = _dsp_mc.energy[0]
+_dsp_mc_rows = float(
+    _dsp_mc_batch(np.stack([_dsp_mc.space, _dsp_mc.space]), _dsp_mc.dhw, None, _dsp_mc_avail)[1]
+)
+_dsp_mc_batch_energy = _dsp_mc.energy[0]
+R.check(
+    "the scalar and the batch objective both price the energy of the "
+    "delivered draw plus hot water, and agree bit for bit with a vector",
+    np.array_equal(_dsp_mc_scalar_energy, _dsp_mc_fed + _dsp_mc.dhw)
+    and np.array_equal(_dsp_mc_batch_energy[1], _dsp_mc_fed + _dsp_mc.dhw)
+    and _dsp_mc_rows == _dsp_mc_scalar,
+    f"{_dsp_mc_rows} vs {_dsp_mc_scalar}",
+)
+# The switch term reads the shipped level: on the fixed-speed plan the
+# delivered draw of a charged step is under the floor and would be no leg.
+_dsp_fx_free = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, p_min=5.5, cyc=0.0)
+_dsp_fx_obj, _dsp_fx_batch = _dsp_fx.objectives[-1][1], _dsp_fx.objectives[-1][2]
+_dsp_fx_score = float(_dsp_fx_obj(_dsp_fx.space, _dsp_fx.dhw, None, _dsp_fx_avail))
+_dsp_fx_level_terms = _dsp_fx.opt.config.price_weight * (
+    _dsp_cyc(_dsp_fx_total, 0.3, 5.5)
+    + 0.3 * _dsp_dl.switch_weight(_dsp_fx.space, _dsp_fx.dhw, _DSP_PAIR, 5.5, 5.5)
+)
+_dsp_fx_unpriced = float(
+    _dsp_fx_free.objectives[-1][1](_dsp_fx.space, _dsp_fx.dhw, None, _dsp_fx_avail)
+)
+R.check(
+    "fixed-speed: what pricing a cycle adds to a plan's score is the cycling "
+    "term plus cycling_cost x the switch weight of the shipped levels",
+    _dsp_dl.switch_weight(_dsp_fx.space, _dsp_fx.dhw, _DSP_PAIR, 5.5, 5.5) > 0
+    and abs(_dsp_fx_score - _dsp_fx_unpriced - _dsp_fx_level_terms) < 1e-9,
+    f"{_dsp_fx_score - _dsp_fx_unpriced} vs {_dsp_fx_level_terms}",
+)
+R.check(
+    "fixed-speed: the batch objective is the scalar one bit for bit with a "
+    "priced pair and a vector",
+    float(
+        _dsp_fx_batch(np.stack([_dsp_fx.space, _dsp_fx.space]), _dsp_fx.dhw, None, _dsp_fx_avail)[1]
+    ) == _dsp_fx_score,
+)
+_dsp_quiet = _dsp_solve(_DSP_PAIR, _DSP_OFF, legionella_h=200.0)
+R.check(
+    "a priced install whose plan holds no priced switch builds no candidate",
+    _dsp_dl.switch_weight(_dsp_quiet.space, _dsp_quiet.dhw, _DSP_PAIR, 5.5) == 0.0
+    and not _dsp_quiet.bans and len(_dsp_quiet.builds) == 1,
+    f"{len(_dsp_quiet.bans)} banned build(s) of {len(_dsp_quiet.builds)}",
+)
+# _co_optimize's own candidate: refused, it leaves the incumbent's vector.
+_dsp_co = _dsp_base["fixed-speed"]
+_dsp_co_calls = []
+
+
+def _dsp_co_solve(dhw_plan, warm_start):
+    _dsp_co_calls.append(1)
+    _dsp_co.opt._space_avail = None
+    return np.asarray(warm_start, float), "candidate", 0.0
+
+
+_dsp_co_kept = _dsp_co.opt._space_avail = np.ones(96)
+_dsp_co_out = _dsp_co.opt._co_optimize(
+    _dsp_co.builds[0][2],
+    space_power=_dsp_co.solved[0][0],
+    dhw_power=np.asarray(_dsp_co.builds[0][1][0].schedule, float),
+    status="first", best_score=-1e9, solve_space=_dsp_co_solve, p_max=5.5,
+    planner=_dsp_co.builds[0][3],
+)
+R.check(
+    "a refused co-optimisation candidate leaves the vector its incumbent was "
+    "scored with",
+    len(_dsp_co_calls) == 1 and _dsp_co_out[2] == "first"
+    and _dsp_co.opt._space_avail is _dsp_co_kept,
+    f"{len(_dsp_co_calls)} candidate solve(s), status {_dsp_co_out[2]}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

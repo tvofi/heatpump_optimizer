@@ -3073,11 +3073,8 @@ class HeatPumpOptimizer:
         traj: dict[str, np.ndarray],
         grid_power: np.ndarray,
         *,
-        level_power: np.ndarray | None = None,
-        switch_cost: np.ndarray | None = None,
+        level_cost: np.ndarray,
         energy_cost_of: Callable[[np.ndarray], Any],
-        cycling_batch: Callable[[np.ndarray], np.ndarray],
-        capacity_batch: Callable[[np.ndarray], np.ndarray],
         terminal_cost_batch: Callable[[dict[str, np.ndarray]], np.ndarray],
         comfort_targets: np.ndarray,
         temp_min_bounds: np.ndarray,
@@ -3098,11 +3095,10 @@ class HeatPumpOptimizer:
         path -- because the energy, cycling and capacity terms are
         properties of the combined draw, while the comfort and terminal
         terms read ``traj``, which the space schedule alone produces.
-        ``level_power`` is the shipped level where a priced stop makes it
-        differ from that draw; ``switch_cost`` the duty-switch term per row.
+        ``level_cost`` is what the caller priced on the shipped level, which
+        a priced stop makes differ from that draw: cycling, capacity, switches.
         """
         weight = self.config.price_weight
-        level = grid_power if level_power is None else level_power
         penalty, comfort_cost = self._comfort_terms_batch(
             traj["room"], traj["upper"], traj["lower"],
             comfort_targets, temp_min_bounds, temp_max_bounds, comfort_band,
@@ -3113,8 +3109,7 @@ class HeatPumpOptimizer:
             energy_cost_of(grid_power) * weight
             + penalty
             + comfort_cost
-            + _with_switch_cost(cycling_batch(level) + capacity_batch(level), switch_cost)
-            * weight
+            + level_cost * weight
             + terminal_cost_batch(traj)
         )
 
@@ -5042,11 +5037,10 @@ class HeatPumpOptimizer:
             return self._cost_terms_batch(
                 traj,
                 grid_power if heat_matrix is space_matrix else heat_matrix + dhw_plan_power,
-                level_power=grid_power,
-                switch_cost=switch_cost(space_matrix, dhw_plan_power),
+                level_cost=_with_switch_cost(
+                    cycling_batch(grid_power) + capacity_batch(grid_power),
+                    switch_cost(space_matrix, dhw_plan_power)),
                 energy_cost_of=energy_cost_of,
-                cycling_batch=cycling_batch,
-                capacity_batch=capacity_batch,
                 terminal_cost_batch=terminal_cost_batch,
                 comfort_targets=comfort_targets,
                 temp_min_bounds=temp_min_bounds,
