@@ -130,6 +130,13 @@ CAPS_PROVENANCE = ("tvofi 2026-11-07 (#201 comment 6707334933, superseding 65440
                    "20 open pull requests; replan.py DEFAULT_CAPS")
 
 
+#: What "the programme is closed" means beyond the plan's last finish (tvofi
+#: 2026-11-07, #201): the plan states it beside `summary.closure`, which is only
+#: the schedule's own end.
+CLOSURE_CONDITIONS = ("no open pull requests", "no handoffs", "no carries", "no findings",
+                      "no leads", "only the coordination issue open")
+
+
 class PlanError(Exception):
     """An input the model refuses: a cycle, an unknown edge, a bad roster."""
 
@@ -1497,6 +1504,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         "summary": {
             "closure": iso(start, closure_at),
             "closure_stamp": stamps[-1]["version"],
+            "closure_conditions": list(CLOSURE_CONDITIONS),
             "wall_hours": round(closure_at / 60.0, 2),
             "ci_minutes": ci,
             "gate_minutes": gate_report,
@@ -1780,6 +1788,8 @@ def check_plan(plan: dict) -> list:
                 if n in plan["groups"]]
     closure = max([mins(x["at"]) for x in close_stamps] + post_fin
                   or [max((mins(g["finish"]) for g in in_round.values()), default=0)])
+    if s.get("closure_conditions") != list(CLOSURE_CONDITIONS):
+        bad.append("summary: closure_conditions is not the owner's closure conditions")
     if mins(s["closure"]) != closure:
         bad.append("summary: closure is not the later of the round-close stamp and the "
                    "last post-closure group finish")
@@ -2405,12 +2415,34 @@ def selftest() -> int:
            and pc["summary"]["closure"] > close_at
            and pc["groups"]["R10-CATALOG-PR"]["start"] >= close_at
            and pc["stamps"] == p0["stamps"], str((pc["summary"]["closure"], pc["stamps"])))
-    rv = lambda st: group_hours(fx("RV", "S", stage=st), durations, True, "<t>")[0]
+    # The fixture prices a round at 0 h, which would make every review price 0:
+    # these arms use a round of 1 h and S at the named expected rounds.
+    def rv(st, rounds=3.0):
+        d = dict(durations, round_hours=1.0, review_rounds={**durations["review_rounds"], "S": rounds})
+        return group_hours(fx("RV", "S", stage=st), d, True, "<t>")[0]
     expect("live stage: a group in review is priced by its review rounds left, below a fresh "
            "fixer's remaining share; one in progress is not",
-           abs(rv("in-review") - max(durations["review_rounds"]["S"] - 1, 1) * durations["round_hours"]) < 1e-9
-           and rv("in-review") == rv("review") < rv("in-progress"),
-           [rv(x) for x in ("in-review", "review", "in-progress")])
+           abs(rv("in-review") - 2.0) < 1e-9 and rv("in-review") == rv("review")
+           and rv("in-review") < rv("in-progress"),
+           str([rv(x) for x in ("in-review", "review", "in-progress")]))
+    expect("live stage (floor): fewer than two expected rounds still price one review round, "
+           "not the rounds themselves (max(rounds - 1, 1))",
+           abs(rv("in-review", 1.4) - 1.0) < 1e-9 and 1.4 < rv("in-progress", 1.4),
+           str((rv("in-review", 1.4), rv("in-progress", 1.4))))
+    gen_start = dt.datetime.strptime(pc["generated"]["start"], "%Y-%m-%dT%H:%M:%SZ")
+    expect("post-closure: wall_hours runs to summary.closure (the catalog finish), not the stamp",
+           abs(pc["summary"]["wall_hours"] * 60 - (
+               dt.datetime.strptime(pc["summary"]["closure"], "%Y-%m-%dT%H:%M:%SZ")
+               - gen_start).total_seconds() / 60) < 1.0
+           and pc["summary"]["wall_hours"] > p0["summary"]["wall_hours"],
+           str((pc["summary"]["wall_hours"], p0["summary"]["wall_hours"])))
+    expect("closure conditions: the plan states the owner's six (tvofi 2026-11-07), and --check "
+           "refuses a plan that drops them",
+           pc["summary"]["closure_conditions"] == [
+               "no open pull requests", "no handoffs", "no carries", "no findings",
+               "no leads", "only the coordination issue open"]
+           and any("closure_conditions" in b for b in check_plan(
+               dict(pc, summary=dict(pc["summary"], closure_conditions=[])))), "")
     expect("post-closure (null): with no post-stamp group, closure is the stamp's at",
            p0["summary"]["closure"] == p0["stamps"][-1]["at"], str(p0["summary"]["closure"]))
     expect("post-closure (a): a plan whose closure drops the catalog step is refused by --check",
@@ -2992,6 +3024,17 @@ def selftest() -> int:
             ("stamp-cadence",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("while len(carry) >= ", "every:"), "while False:"),
+            ("review-min",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m("left_rounds = max(rounds - 1, ", "1.0)"), "left_rounds = rounds"),
+            ("wall-hours",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m('"wall_hours": round(closure_at ', "/ 60.0, 2),"),
+             '"wall_hours": round(closure / 60.0, 2),'),
+            ("closure-conditions",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m('"closure_conditions": list(', 'CLOSURE_CONDITIONS),'),
+             '"closure_conditions": [],'),
             ("closure-later-of",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("closure_at = max([stamps[-1][\"at\"]] + ", "list(post_end.values()))"),
