@@ -3,13 +3,13 @@ Triage batch 185 rules P607 (queue line 285, the mutation-vacuous countermeasure
 - **P607, ACCEPT narrowed: MUTVAC-REVERT-ARM, as a carry on R10-MUTANT-RUN-FORKCAP.** The carry adds a report-only `STMT_DEL` operator to `mutant_run.py --diff`.
   - The existing diff operators reach 7 of 23 reviewer-named Python sites. Statement deletion reaches about 14-16.
   - The estimated first-pass gain is about +7-9% relative, below the 20% bar. It is accepted as a one-file, opt-in root-cause countermeasure.
-  - A separate revert tool is rejected. The `fixer.md` step 2 mandatory run is policy and is routed to the orchestrator; triage recommends deferring it.
+  - A separate revert tool is rejected. The `fixer.md` step 2 mandatory run is policy; the orchestrator, under mandate 6715477401, DEFERRED it until STMT_DEL has merged and 10 further blocks can be measured (second commit).
 
 The diff is one file against the merge base: `dev/programme/triage/s6-batch185.md`, the ruling. No product behaviour changes.
 
 ## Head
 
-`1c8087c38b64d7c10201f07f83262b7fdd570d93`
+`b52c42b964bf8f946d98ec638565af8758b8b872`
 
 ## Mutation proof
 
@@ -24,7 +24,7 @@ This file's only consumer is the triage gate in `tools/audit/seat/roster_edit.py
 
 ## Figures
 
-- `git diff --stat cbd23f1c8b...1c8087c38b64d7c10201f07f83262b7fdd570d93`: 1 file, 1 commit.
+- `git diff --stat cbd23f1c8b...b52c42b964bf8f946d98ec638565af8758b8b872`: 1 file, 2 commits.
 - The figures come from the mutation-vacuous investigation's `verdicts.tsv`, `heads.tsv`, `sites.tsv` and `verdicts/`, and from `mutant_run.py` at `cbd23f1c8b`, as cited in P607.
 
 ## Red checks
