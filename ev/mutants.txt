@@ -1,0 +1,9 @@
+## baseline
+cloud_dispatch self-test: 169 checks, 0 failed
+## M1: drop verdict= from args (designer verdict pin)
+  FAIL a designer's text pins the revise verdict's own commit and first line
+cloud_dispatch self-test: 169 checks, 1 failed
+## M2: drop pline from brief (main's part line)
+  FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9
+  FAIL --part 1 keeps the group's own topic and names carries 0-4
+cloud_dispatch self-test: 169 checks, 2 failed

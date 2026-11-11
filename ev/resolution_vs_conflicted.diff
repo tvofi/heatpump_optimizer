@@ -1,0 +1,25 @@
+diff --git a/tools/audit/seat/cloud_dispatch.py b/tools/audit/seat/cloud_dispatch.py
+index 061175181..4c54401b7 100644
+--- a/tools/audit/seat/cloud_dispatch.py
++++ b/tools/audit/seat/cloud_dispatch.py
+@@ -660,7 +660,6 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
+         design = design_tip(repo_dir, group_id)
+         if not design:
+             raise Refusal(f"no design/{group_id} on origin to review")
+-<<<<<<< dd5faa50
+     verdict = ()
+     if role == "designer":  # a revise routes the round-2 designer to the verdict commit, pinned by SHA
+         vref = f"refs/heads/design-verdict/{group_id}"
+@@ -669,12 +668,8 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
+             _git(repo_dir, "fetch", "-q", "origin", vtip[0])
+             verdict = (vtip[0], _git(repo_dir, "show", f"{vtip[0]}:verdict.md").split("\n", 1)[0])
+     args = dict(design=design, verdict=verdict, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
+-                pr=pr, topic=topic, brief=group_brief(group, roster, fixer=role == "fixer"),
+-=======
+-    args = dict(design=design, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
+                 pr=pr, topic=topic,
+                 brief=group_brief(group, roster, fixer=role == "fixer") + (f"\n{pline}\n" if pline else ""),
+->>>>>>> c71d3f6e8
+                 reviewed_head=reviewed_head)
+     head = head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip()
+     if role == "reviewer":
