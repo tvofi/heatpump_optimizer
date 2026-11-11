@@ -65,3 +65,29 @@ none
 ## Friction
 
 none
+
+## Carries not built in this part
+
+Carry 1: not built in this part; stays open on the roster for a later part
+Carry 2: not built in this part; stays open on the roster for a later part
+Carry 3: not built in this part; stays open on the roster for a later part
+Carry 4: not built in this part; stays open on the roster for a later part
+Carry 5: not built in this part; stays open on the roster for a later part
+Carry 6: not built in this part; stays open on the roster for a later part
+Carry 7: not built in this part; stays open on the roster for a later part
+Carry 8: not built in this part; stays open on the roster for a later part
+Carry 9: not built in this part; stays open on the roster for a later part
+Carry 10: not built in this part; stays open on the roster for a later part
+Carry 11: not built in this part; stays open on the roster for a later part
+Carry 12: not built in this part; stays open on the roster for a later part
+Carry 13: not built in this part; stays open on the roster for a later part
+Carry 15: not built in this part; stays open on the roster for a later part
+Carry 16: not built in this part; stays open on the roster for a later part
+Carry 18: not built in this part; stays open on the roster for a later part
+Carry 19: not built in this part; stays open on the roster for a later part
+Carry 20: not built in this part; stays open on the roster for a later part
+Carry 21: not built in this part; stays open on the roster for a later part
+Carry 23: not built in this part; stays open on the roster for a later part
+Carry 24: not built in this part; stays open on the roster for a later part
+Carry 26: not built in this part; stays open on the roster for a later part
+Carry 27: not built in this part; stays open on the roster for a later part
