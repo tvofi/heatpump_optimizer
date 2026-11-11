@@ -584,7 +584,8 @@
               "space_setpoint_entity": "Sollwert-Entität der Raumheizung (optional)",
               "space_setpoint_unit": "Was diese Sollwert-Entität erwartet",
               "flow_min_lift_k": "Mindesthub über dem Eingangswasser (K)",
-              "flow_heat_c": "Obergrenze der Heizungsvorlauftemperatur (°C)"
+              "flow_heat_c": "Obergrenze der Heizungsvorlauftemperatur (°C)",
+              "space_setpoint_power_feedback": "Geplanter Leistung über die gemessene Aufnahme folgen"
             },
             "data_description": {
               "indoor_temp_entity": "Optional. Die tatsächliche Raumtemperatur. Ohne sie vertraut der Optimierer seinem eigenen Modell, das mit der Zeit abdriftet.",
@@ -592,7 +593,8 @@
               "space_setpoint_entity": "Optional. Eine Zahl, ein Helfer oder eine Climate-Entität, die der Sollwert der Raumheizung der Pumpe ist. Dient nur dazu zu bemerken, wenn die Entität nicht gelesen werden kann. Der Optimierer schreibt nie einen empfohlenen Raumheizungs-Sollwert.",
               "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist, auf der er seinen Vorlauf hält. Rücklauftemperatur gilt für einen Regler, der den Sollwert als Ziel für das Rücklaufwasser nimmt (angenommen für eine Luxtronik über ihre Smart-Home-Schnittstelle); er wird wie ein Vorlauf-Sollwert geschrieben, wobei der Nennhaltewert, die Wetterkurve und die 25-°C-Schwelle um 5 K nach unten in Rücklaufwerte verschoben werden. Eine Version vor dieser Option liest Rücklauftemperatur als Innentemperatur: Stelle vor einem Downgrade wieder auf Vorlauftemperatur um. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert.",
               "flow_min_lift_k": "Mit Steuerung der Pumpenfunktion auf Steuern ist der bei der niedrigsten Planleistung geschriebene Wasser-Sollwert das gemessene Eingangswasser plus dieser Wert: Wärmepumpen-Rücklauf, Pufferspeicher, Fußbodenrücklauf oder Ventilauslass, und bei einer Entität mit Rücklauftemperatur nur die ersten drei. 5 K passt zu einem Regler, der seinen Vorlauf auf dem Sollwert hält. Von einem Regler, der die Zahl als Ziel für das Rücklaufwasser nimmt, wird angenommen, dass er seinen Verdichter umso stärker laufen lässt, je weiter das Ziel über dem Rücklauf liegt, er will also wahrscheinlich weniger; 1–2 K ist ein Ausgangspunkt, der an der gemessenen Frequenz und Leistung des Verdichters zu prüfen ist, kein gemessener Wert.",
-              "flow_heat_c": "Der bei voller Planleistung geschriebene Wasser-Sollwert und der höchste, der geschrieben wird, solange der Plan die Führung hat. 55 °C passt zu einem Vorlaufziel. Wähle ihn bei einer Entität mit Rücklauftemperatur über dem höchsten Rücklauf, den du im normalen Heizbetrieb siehst, plus dem Hub, und nicht höher, als der Regler annimmt; bei einer Niedertemperatur-Fußbodenheizung können 35–40 °C ein Ausgangspunkt sein, der an Messungen zu prüfen ist. Unter 30 °C wird nicht angeboten: Die Schwelle, die aus bedeutet, liegt bei 25 °C für ein Vorlaufziel und bei 20 °C für ein Rücklaufziel."
+              "flow_heat_c": "Der bei voller Planleistung geschriebene Wasser-Sollwert und der höchste, der geschrieben wird, solange der Plan die Führung hat. 55 °C passt zu einem Vorlaufziel. Wähle ihn bei einer Entität mit Rücklauftemperatur über dem höchsten Rücklauf, den du im normalen Heizbetrieb siehst, plus dem Hub, und nicht höher, als der Regler annimmt; bei einer Niedertemperatur-Fußbodenheizung können 35–40 °C ein Ausgangspunkt sein, der an Messungen zu prüfen ist. Unter 30 °C wird nicht angeboten: Die Schwelle, die aus bedeutet, liegt bei 25 °C für ein Vorlaufziel und bei 20 °C für ein Rücklaufziel.",
+              "space_setpoint_power_feedback": "Standardmäßig an. Wirkt nur mit Wärmepumpen-Betriebssteuerung auf Steuern, einer Einheit Vorlauf- oder Rücklauftemperatur und einem Leistungssensor der Wärmepumpe; sonst ändert sich nichts. Nach 5 Minuten Starthaltezeit wird der Wasser-Sollwert gesenkt, solange die gemessene Aufnahme über der geplanten Leistung liegt, angehoben, solange sie darunter liegt, und innerhalb von 10 % gehalten, statt dem steigenden Eingangswasser zu folgen. Aus schreibt das Eingangswasser plus den Hub. Anforderungen an den Regler: seine Heizungshysterese höchstens der Hub (Luxtronik: 0,5 K), sonst startet ein stehender Verdichter nicht; sein minimales Rücklaufziel unter dem Rücklauf der Heizperiode; seine Integration fragt ihn mindestens alle 10 Minuten ab und stellt nach einem Reglerneustart die Heizbetriebsart wieder her, denn eine Luxtronik Smart Home Interface verwirft nach 600 s ohne Zugriff alle gesetzten Werte; und kein zweites Werkzeug schreibt dieselben Register (eine Luxtronik verwirft Schreibvorgänge dann stillschweigend)."
             }
           },
           "plant": {
@@ -931,6 +933,9 @@
           "heat_curve_displace_entity": "Offset-Entität der Heizkurve",
           "heat_curve_target_kind": "Was die Entität ist",
           "heat_curve_offset_band_k": "Größter Offset, der auf die Entität geschrieben wird",
+          "heat_curve_persistent_band_k": "Größte Verschiebung eines gespeicherten Parameters",
+          "heat_curve_persistent_writes_per_day": "Höchstzahl der Schreibvorgänge pro Tag in einen gespeicherten Parameter",
+          "heat_curve_persistent_min_dwell_minutes": "Mindestzeit zwischen Schreibvorgängen in einen gespeicherten Parameter",
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
@@ -942,9 +947,12 @@
           "ecl110_displace_min": "Wie weit die Heizkurve in teuren Stunden nach unten verschoben werden darf.",
           "ecl110_displace_max": "Wie weit die Heizkurve nach oben verschoben werden darf, wenn günstige Wärme gespeichert wird.",
           "ecl110_pid_time_constant_hours": "Ungefähr, wie lange der Regler braucht, um auf eine neue Verschiebung zu reagieren. Damit fordert der Optimierer keine schnelleren Änderungen an, als das System umsetzen kann.",
-          "heat_curve_displace_entity": "Eine Zahl-Entität, die die ganze Heizkurve deines Reglers verschiebt, wobei 0 keine Verschiebung bedeutet, und die der Regler bei einem Neustart vergisst (zum Beispiel ein Heizungs-Offset der Luxtronik-SHI). Nie ein absoluter Kurvenpunkt oder ein gespeicherter Parameter. Das Ausschalten oder Entladen des Optimierers schreibt 0.",
-          "heat_curve_target_kind": "Offset: eine Temperaturdifferenz, 0 neutral, vom Regler nicht gespeichert. Die einzige Art in dieser Version.",
+          "heat_curve_displace_entity": "Eine Zahlenentität, die die Heizkurve deines Reglers verschiebt. Typ Verschiebung: eine Verschiebung der ganzen Kurve, bei der 0 keine Verschiebung bedeutet und die der Regler bei einem Neustart vergisst (zum Beispiel eine Luxtronik-SHI-Heizverschiebung); Ausschalten oder Entladen des Optimierers schreibt 0. Typ beständig: eine Kurveneinstellung, die der Regler speichert; Ausschalten oder Entladen des Optimierers schreibt den Wert zurück, den sie vor dem ersten Schreiben hatte.",
+          "heat_curve_target_kind": "Verschiebung: eine Temperaturdifferenz, 0 neutral, vom Regler nicht gespeichert. Nimm sie, wo immer dein Regler eine hat. Beständig: eine Kurveneinstellung, die der Regler speichert, von ihrem eigenen Wert verschoben und beim Ausschalten zurückgeschrieben; jeder Schreibvorgang nutzt den Speicher des Reglers ab, daher sind die Schreibvorgänge pro Tag begrenzt.",
           "heat_curve_offset_band_k": "Der auf die Entität geschriebene Offset bleibt in beide Richtungen innerhalb so vieler Kelvin. 3 K ist eine Schätzung zwischen einer SG-Ready-Anhebung um +1 bis +2 Stufen und Luxtroniks eigener Korrektur von ±5 K.",
+          "heat_curve_persistent_band_k": "Die gespeicherte Einstellung wird höchstens so viele Kelvin in jede Richtung von dem Wert verschoben, den sie vor dem ersten Schreiben hatte. 3 K ist eine Schätzung zwischen einer SG-Ready-Anhebung um +1 bis +2 Stufen und Luxtroniks eigener Korrektur von ±5 K.",
+          "heat_curve_persistent_writes_per_day": "Schreibvorgänge an einem lokalen Tag, das Zurückschreiben beim Ausschalten eingeschlossen; einer wird dafür immer zurückgehalten. 12 (sechs Verschiebungen mit Rückkehr) liegt unter dem einzigen dokumentierten Herstellerkontingent, das gefunden wurde (Daikin, 7000 pro Jahr); der Abstand darunter ist eine Schätzung. 0 oder 1 schreibt nichts. Über 19 überschreitet dieses Kontingent.",
+          "heat_curve_persistent_min_dwell_minutes": "Nach einem Schreibvorgang wartet der nächste mindestens so lange. 60 Minuten sind etwa drei Reaktionszeiten einer Heizkörperanlage (eine Schätzung aus einem Forum); eine träge Fußbodenheizung braucht eher 2 bis 3 Stunden.",
           "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
@@ -1572,6 +1580,8 @@
       "prefill_device_unreadable": "Dieses Gerät konnte nicht gelesen werden. Seine Integration hat hier noch keine Zuordnung, oder keine seiner Entitäten hat einen Wert. Lass das Gerät leer und nenne stattdessen einen Modbus-Paket-Präfix.",
       "dhw_windows_day_selector": "Dieses Feld nennt seinen Tag bereits, gib daher nur reine Zeiten ein, z. B. 06:00-08:30. Tagesauswahlen wie 'weekdays' gehören in das normale Zeitfenster-Feld oben.",
       "heat_curve_not_offset": "Der eigene Wertebereich dieser Entität enthält 0 nicht, sie ist also kein Offset: Sie sieht wie ein absoluter Kurvenpunkt aus. Wähle die Offset-Entität des Reglers.",
+      "heat_curve_unreadable": "Diese Entität hat gerade keinen Wert, daher ist unbekannt, auf welchen Wert sie beim Ausschalten zurückgesetzt würde. Wähle eine Entität, die einen Wert meldet, oder speichere erneut, sobald sie es tut.",
+      "heat_curve_out_of_range": "Diese Entität zeigt einen Wert außerhalb ihres eigenen angegebenen Bereichs, daher kann sie nicht sicher verschoben werden. Prüfe die Entität zuerst in ihrer Integration.",
       "heat_curve_entity_in_use": "Die Offset-Entität der Heizkurve wird vom Optimierer bereits für einen anderen Zweck geschrieben (einen Sollwert, das Ventil, den Verdichter oder den Modus). Wähle für einen davon eine andere Entität."
     },
     "abort": {
@@ -1732,7 +1742,8 @@
     },
     "heat_curve_target_kind": {
       "options": {
-        "offset": "Offset (0 ist neutral, flüchtig)"
+        "offset": "Offset (0 ist neutral, flüchtig)",
+        "persistent": "Beständig (vom Regler gespeichert, beim Ausschalten zurückgeschrieben)"
       }
     }
   },

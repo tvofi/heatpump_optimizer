@@ -27,8 +27,9 @@ Sections, each measured:
           sibling .rc; prepr.sh slots (nudge.md step 8's cap, mechanically).
   PRS     every open PR: the latest check-run per name at its head (transport
           truth: lowercase conclusions, latest-run-wins) as GREEN / RUN / RED;
-          RED not answered in the body's ## Red checks; missing delivery row
-          in the three-dot diff; a queue verdict with the head moved past it
+          a RED in `merge_train.py owed-reds`' set not answered in the body's
+          ## Red checks (every RED when that set is unreadable); missing
+          delivery row in the three-dot diff; a queue verdict with the head moved past it
           and no carry; DIRTY/BLOCKED mergeable state; ZERO check runs at a
           head (the bot-push shape -- approve_held_runs.sh, nudge.md step 11);
           required contexts absent at the head; twin open PRs at one head
@@ -77,7 +78,7 @@ Sections, each measured:
           is fixer work, and the orchestrator's duty is routing, not
           diagnosing; the
           mandate read (budget_raise_gate's own mandate_state, the one reader
-          -- the newest grammar-matching owner comment on #201 within
+          -- the newest grammar-matching owner comment on a record issue within
           --mandate-since-days, or exactly --mandate-id); action-pin drift
           (one action pinned at two refs across the workflow set); how far
           the checkout sits behind origin/main.
@@ -1255,13 +1256,18 @@ class Tick:
         state = "GREEN" if not run and not red else (
             f"RUN:{','.join(run)}" if run else f"RED:{','.join(red)}")
         self.line(S, f"#{n} [{pr.get('headRefName')}] {state}")
-        if red:
+        # Only a red in the set `merge_train.py owed-reds` prints is owed an
+        # answer (defect-root-cause.md); an unreadable set keeps every red.
+        req = (getattr(self, "_req_pr", None) or required) if required is not None else None
+        owed = mt.judged(mt.gating_names(req)) if req is not None else red
+        owed_red = [r for r in red if r in owed]
+        if owed_red:
             code, o = self.gh(["pr", "view", str(n), "--repo", self.repo,
                                "--json", "body", "--jq", ".body"])
             if code:
                 self.unreadable(S, f"body of #{n}", o.strip()[-100:])
             else:
-                missing = [r for r in red
+                missing = [r for r in owed_red
                            if r not in self.body_section(o, "Red checks")]
                 if missing:
                     self.line(S, f"#{n}: RED unanswered in ## Red checks: "
@@ -1954,7 +1960,7 @@ class Tick:
         else:
             start = (self.now - datetime.timedelta(
                 days=self.mandate_since_days)).strftime("%Y-%m-%dT%H:%M:%SZ")
-            cands = self._thread(start)
+            cands = self._thread(g, start)
             if cands is None:
                 self._mandate_cached = None
                 return None
@@ -1964,14 +1970,15 @@ class Tick:
                      ((c.get("body") or "").strip().splitlines()
                       or [""])[0].strip())]
         if not cands:
-            self.line(S, f"no mandate-grammar comment by the owner on #201 in "
+            self.line(S, "no mandate-grammar comment by the owner on "
+                         f"{', '.join(f'#{n}' for n in g.RECORD_ISSUES)} in "
                          f"the last {self.mandate_since_days}d (searched live "
                          "this tick) -- policy and raise merges refuse",
                       flag=self.mandate_id is None)
             self._mandate_cached = None
             return None
         m = cands[-1]
-        thread = self._thread(m.get("created_at") or "", exclude=m.get("id"))
+        thread = self._thread(g, m.get("created_at") or "", exclude=m.get("id"))
         self._mandate_live = m.get("id")
         ok, why = g.mandate_state(m.get("id"), m, thread or [], self.now,
                                   self.now.isoformat(), when="tick",
@@ -1981,22 +1988,25 @@ class Tick:
         self._mandate_cached = out
         return out
 
-    def _thread(self, since: str, exclude=None) -> "list | None":
-        """The comments a revocation would live in: the tracking issue's
-        comments `since` an instant (merge_train._mandate_read's second
-        route). None: the read failed and is already reported."""
-        code, o = self.gh(["api", "--paginate", "--slurp",
-                           f"repos/{self.repo}/issues/201/comments"
-                           f"?per_page=100&since={since}"])
-        if code:
-            self.unreadable("MAIN", f"#201's comments since {since}",
-                            o.strip()[-100:])
-            return None
-        try:
-            out = [c for page in json.loads(o) for c in page]
-        except ValueError as e:
-            self.unreadable("MAIN", f"#201's comments since {since}", str(e)[:100])
-            return None
+    def _thread(self, g, since: str, exclude=None) -> "list | None":
+        """The comments a grant or a revocation would live in: every record
+        issue's (budget_raise_gate.RECORD_ISSUES, oldest first) comments
+        `since` an instant (merge_train._mandate_read's second route). None:
+        a read failed and is already reported."""
+        out = []
+        for n in g.RECORD_ISSUES:
+            code, o = self.gh(["api", "--paginate", "--slurp",
+                               f"repos/{self.repo}/issues/{n}/comments"
+                               f"?per_page=100&since={since}"])
+            if code:
+                self.unreadable("MAIN", f"#{n}'s comments since {since}",
+                                o.strip()[-100:])
+                return None
+            try:
+                out += [c for page in json.loads(o) for c in page]
+            except ValueError as e:
+                self.unreadable("MAIN", f"#{n}'s comments since {since}", str(e)[:100])
+                return None
         return [c for c in out if c.get("id") != exclude]
 
     def pins(self, S: str) -> None:
@@ -2101,7 +2111,7 @@ class Tick:
         return merges
 
     def unrecorded(self, S: str, since: str) -> None:
-        """Merges on main with no #201 comment carrying the merge sha: the
+        """Merges on main with no record-issue comment carrying the merge sha: the
         record beat's other half. Every merge owes one, a record merge too
         (the orchestrator writes one after each). The newest CAP_MERGES merges
         among main's last UNRECORDED_SCAN first-parent commits, read through
@@ -2122,13 +2132,13 @@ class Tick:
                                  "--jq", ".total_count",
                                  "-f", f"q={sha} repo:{self.repo} type:comment"])
             if code2:
-                self.unreadable(S, f"#201 search for {sha[:12]}",
+                self.unreadable(S, f"record search for {sha[:12]}",
                                 o2.strip()[-80:])
                 break
             if o2.strip() == "0":
                 unrec.append(sha[:12])
         if unrec:
-            self.line(S, "record beat owed: state_docs.py --push + #201 "
+            self.line(S, "record beat owed: state_docs.py --push + record-issue "
                          "comment for " + ", ".join(unrec), flag=True)
         if capped:
             self.line(S, f"unrecorded-merge check capped at {CAP_MERGES}; "
@@ -2781,7 +2791,7 @@ def self_test() -> int:
         for n, body in bodies.items():
             gh.on((f"view {n} ", "--jq", ".body"), out=body)
         if with_mandate and gate_ok:
-            gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+            gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         gh.on("rate_limit", out=json.dumps({"remaining": rate[0],
                                             "limit": rate[1]}))
         for pr, rv in (reviews or {}).items():
@@ -3351,7 +3361,7 @@ def self_test() -> int:
         gh.on(f"commits/{H1}/check-runs",
               out=json.dumps(run_obj("tests", conclusion="failure")) + "\n"
               + json.dumps(run_obj("record-autofix", conclusion="failure")))
-        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
         t.main()
         a, f = check("MAIN", [
@@ -3387,7 +3397,7 @@ def self_test() -> int:
         gh.on(f"commits/{H1}/check-runs",
               out="\n".join(json.dumps(run_obj(n)) for n in ("tests", "closures"))
               + "".join("\n" + json.dumps(run_obj(j, conclusion="failure")) for j in on_push))
-        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
         t.main()
         a, f = check("MAIN D-1", [
@@ -3414,7 +3424,7 @@ def self_test() -> int:
             gh.on(f"commits/{H1}/check-runs", out="\n".join(
                 json.dumps(run_obj(n, conclusion="failure" if n in names_red else "success"))
                 for n in ("gate", "tests / closures", "tests / fast (3.14)", "record-autofix")))
-            gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+            gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
             t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
             t.main()
             return [x["text"] for x in t.findings]
@@ -3456,7 +3466,7 @@ def self_test() -> int:
             gh.on("check-runs/119215715286/annotations",
                   rc=0 if ann is not None else 1,
                   out=json.dumps(ann) if ann is not None else "HTTP 502")
-            gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+            gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
             t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
             t.main()
             txt = [l["text"] for l in t.sections["MAIN"]]
@@ -3480,7 +3490,7 @@ def self_test() -> int:
         gh.on(f"commits/{H1}/check-runs", out=json.dumps(
             run_obj("tests", conclusion="cancelled", cid=119215715286)))
         gh.on("check-runs/119215715286/annotations", out=json.dumps([{"message": sup}]))
-        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
         t.main()
         txt = [l["text"] for l in t.sections["MAIN"]]
@@ -3526,7 +3536,7 @@ def self_test() -> int:
                 gh = Stub()
                 gh.on("issues/comments/", out=json.dumps(dict(
                     MAN, body=body, updated_at=MAN["created_at"])))
-                gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+                gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
                 t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(),
                          now=NOW, mandate_id=mid)
                 t.mandate("MAIN")
@@ -3656,7 +3666,7 @@ def self_test() -> int:
         a, f = check("unrecorded single-parent", [
             ("a single-parent `(#N)` merge with no #201 comment is named; a "
              "recorded merge and a direct push are not",
-             owed == ["record beat owed: state_docs.py --push + #201 comment for "
+             owed == ["record beat owed: state_docs.py --push + record-issue comment for "
                       + sq[:12]]),
             ("null control: every merge recorded names none",
              not any("record beat owed" in x["text"] for x in t2.findings)),
@@ -3731,7 +3741,7 @@ def self_test() -> int:
                 iso(NOW - datetime.timedelta(days=1)),
                 iso(NOW + datetime.timedelta(hours=1))))
             gh = Stub()
-            gh.on("issues/201/comments", out=json.dumps([[man_soon]]))
+            gh.on("issues/201/comments", out=json.dumps([[man_soon]])).on("/comments?per_page", out="[[]]")
             gh.on("rate_limit", out=json.dumps({"remaining": 4000, "limit": 5000}))
             t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=lambda p: [],
                      now=NOW)
@@ -3739,6 +3749,35 @@ def self_test() -> int:
             a, f = check("mandate expiry", [
                 ("window under 2h flagged", any("renew" in x["text"]
                                                 for x in t.findings)),
+            ])
+            total, failed = total + a, failed + f
+
+        # ---- the record past #201's comment cap: every record issue is read ----
+        if gate_ok:
+            rec = g.RECORD_ISSUES[-1]
+            on_rec = dict(MAN, id=mid + 5, issue_url=MAN["issue_url"][:-3] + str(rec))
+            kill = {"id": mid + 9, "user": owner, "body": f"MANDATE REVOKED {mid}",
+                    "created_at": iso(NOW), "updated_at": iso(NOW),
+                    "issue_url": on_rec["issue_url"]}
+
+            def read(old, new):
+                gh = Stub()
+                gh.on("issues/201/comments", out=json.dumps([old]))
+                gh.on(f"issues/{rec}/comments", out=json.dumps([new]))
+                t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=lambda p: [], now=NOW)
+                return t.mandate_read(), gh
+            got, gh = read([], [on_rec])
+            got201, _ = read([MAN], [kill])
+            got_ok, _ = read([MAN], [])
+            a, f = check("record issues", [
+                ("a grant on the continuation issue is found", bool(got) and got[1]["id"] == mid + 5 and got[3]),
+                ("both record issues are read", sorted(
+                    n for n in g.RECORD_ISSUES if any(f"issues/{n}/comments" in " ".join(c) for c in gh.calls))
+                 == sorted(g.RECORD_ISSUES)),
+                ("a #201 grant revoked on the continuation issue is not in force",
+                 bool(got201) and got201[1]["id"] == mid and not got201[3]),
+                ("null control: the same #201 grant with no revocation is in force",
+                 bool(got_ok) and got_ok[3]),
             ])
             total, failed = total + a, failed + f
 
@@ -3939,6 +3978,25 @@ def self_test() -> int:
             a, f = check(f"K15 (d) PRS {label}", [
                 (f"NOT REVIEWABLE {'present' if want else 'absent'}",
                  any(x["text"].startswith("#71: NOT REVIEWABLE") for x in t.findings) == want)])
+            total, failed = total + a, failed + f
+        # PRS: `RED unanswered` names only a red the body owes an answer (owner
+        # ruling tvofi 2026-11-07, defect-root-cause.md): merge_train's
+        # judged(gating_names(required)), as review_packet.unanswered_reds reads
+        # it. A NOT_GATING name in the ruleset owes none; under GATE a unit name
+        # does. An unreadable set keeps every red (the fallback; null control).
+        unit = json.loads(mt.REQUIRED_CONTEXTS.read_text())["gate_required"][0]
+        for label, req, reds, want in (
+                ("required set read", ["tests"], ["tests", "codeql"], {"tests"}),
+                ("NOT_GATING in the ruleset", ["tests", "delivery-status"],
+                 ["tests", "delivery-status"], {"tests"}),
+                ("a gate unit under GATE", [mt.GATE], [unit, "codeql"], {unit}),
+                ("unreadable set: every red (null control)", None, ["tests", "codeql"], {"tests", "codeql"})):
+            t = tick(prs=[pr_obj(77, H1)], runs_at={H1: [run_obj(r, conclusion="failure") for r in reds]},
+                     bodies={77: "## Red checks\n\nnone\n"})
+            t.one_pr("PRS", pr_obj(77, H1), None, req)
+            ru = [x["text"] for x in t.findings if x["text"].startswith("#77: RED unanswered")]
+            got = set(ru[0].split("## Red checks: ", 1)[1].split(", ")) if len(ru) == 1 else set()
+            a, f = check(f"PRS owed reds: {label}", [(f"RED unanswered names {sorted(want)}", got == want)])
             total, failed = total + a, failed + f
         # PRS (d): a pull request's head is judged on every live required
         # context: a red pr-contract, read live from the ruleset, is not
@@ -4381,7 +4439,7 @@ def self_test() -> int:
         gh.on("check-runs/424243", out=json.dumps(
             {"summary": "skip-failed-recording: no bot commit is coming",
              "text": ""}))
-        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         gh.on("rate_limit", out=json.dumps({"remaining": 4000, "limit": 5000}))
         t = Tick("o/r", str(version), gh=gh, git=Stub(),
                  proc=lambda p: [], now=NOW)
@@ -4528,7 +4586,7 @@ def self_test() -> int:
         a, f = check("search GET", [
             ("record beat found via GET (no 404 unreadable)",
              any("record beat owed" in x["text"] for x in t.findings)
-             and not any("UNREADABLE" in x["text"] and "#201 search"
+             and not any("UNREADABLE" in x["text"] and "record search"
                          in x["text"] for x in t.findings)),
         ])
         total, failed = total + a, failed + f

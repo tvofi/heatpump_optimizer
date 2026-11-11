@@ -626,6 +626,7 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | What that set-point entity expects | Indoor temperature | Indoor temperature / Flow temperature / Return temperature | A declaration, not a write. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. *Return temperature* is a controller that takes the number as its return-water target (see [Pump duty control](#pump-duty-control)). |
 | Minimum lift above the inlet water (`flow_min_lift_k`) | 5 K | 0.5–15 K, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at the plan's lowest power is the measured inlet water plus this (see [Pump duty control](#pump-duty-control)). |
 | Heating flow ceiling (`flow_heat_c`) | 55 °C | 30–70 °C, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at full planned power, and the highest heating value written. A stored value at or below the 25 °C gate is read as 55 °C. |
+| Follow the planned power on the measured draw (`space_setpoint_power_feedback`) | On | on / off | Shown when the unit above is *Flow* or *Return temperature*; acts only when a heat-pump power sensor is configured too. Closes the heating value on the measured draw (see [Pump duty control](#pump-duty-control)). Off writes the inlet plus the lift. |
 
 ### Power and solar sensors
 
@@ -750,9 +751,39 @@ writes, at every 15-minute plan step:
     0.5 K lift held 26–31 Hz once running, 1–1.5 K ramped to 73–81 Hz. For a low-temperature floor
     heating, 0.5–2 K and 30–40 °C may be a starting point; check them against the compressor's
     frequency and power.
+  - The integration that exposes the controller must poll it at least
+    every 10 minutes and restore its heating mode after a controller
+    restart: a Luxtronik Smart Home Interface drops every value set through
+    it after 600 s without access and after each restart. A reverted
+    set-point is noticed and written again; a reverted heating mode is not
+    visible to this integration. No second tool may write the same
+    registers: a Luxtronik then silently discards writes (error 816).
   - Downgrading: a version before this option reads *Return temperature* as
     *Indoor temperature* and writes the planned room temperature to the
     entity. Switch the unit back to *Flow temperature* before downgrading.
+- **Power feedback (*Flow* or *Return temperature*, with a heat-pump power
+  sensor).** A controller that integrates on target minus inlet keeps
+  speeding up for as long as the target sits above the water, and the
+  inlet-plus-lift value above rises with the inlet, so the planned level is
+  never reached: on the install that reported it, a planned 0.53 kW drew
+  1.1–1.6 kW. With **Follow the planned power on the measured draw** on (the
+  default), a space-only step below full power writes the inlet-plus-lift
+  value for the first 5 minutes of a run (the controller's start
+  programme), then nudges the heating value 0.2 K per minute down while the
+  draw, averaged over 3 minutes, is above the planned level and up while it
+  is below, and holds it while the two are within 10 % of the planned level
+  (of the pump's minimum power, where the plan asks less).
+  It goes no lower than 0.1 K below the inlet, no higher than the ceiling,
+  and never to the gate. Hot water, both duties, a boost, a defrost, the
+  system-identification experiment and full power write the value above
+  unchanged and start the loop over. Where the controller cuts a written
+  value to its own limits, that cut is taken as the run's limit and no
+  repair is raised. Preconditions on the controller:
+  - its heating hysteresis is at most the lift (Luxtronik: 0.5 K, its
+    minimum), or the first write of a run does not start a stopped
+    compressor — the same limitation as without the loop;
+  - its minimum return target sits below the return during the heating
+    season, or the loop cannot wind the compressor down past it.
 - **For an *Indoor temperature* entity** each of the three is the step's
   planned room temperature, clamped to the entity's range (5 °C as the gate
   where the mode offers no hot-water-only option). An entity whose own
@@ -1066,9 +1097,12 @@ is set — an install without an ECL110 never touches these topics. See
 | Largest downward offset | −20 °C | −30–0, 0.5 steps | How far the curve may be shifted down during expensive hours. |
 | Largest upward offset | 20 °C | 0–30, 0.5 steps | How far it may be shifted up when storing cheap heat. |
 | Controller response time | 1.5 h | 0.25–6.0, 0.25 steps | Roughly how long the controller takes to act on a new offset, so the optimizer does not ask for changes faster than the system can follow. |
-| Heat-curve offset entity | *(empty)* | a `number` or `input_number` | The same offset written to an entity instead of, or as well as, MQTT: a whole-curve offset, 0 neutral, that the controller forgets on a restart. Turning the optimizer off, or unloading it, writes 0. Refused when it is an entity the optimizer already writes, or when its own range excludes 0. |
-| What the entity is | Offset | Offset | The only kind in this version: a temperature difference, not stored by the controller. |
+| Heat-curve offset entity | *(empty)* | a `number` or `input_number` | The same offset written to an entity instead of, or as well as, MQTT. Kind offset: a whole-curve offset, 0 neutral, that the controller forgets on a restart; turning the optimizer off, or unloading it, writes 0; refused when its own range excludes 0. Kind persistent: a curve setting the controller stores; off and unload write back the value it held before the first write; refused when it reads no value or one outside its own range. Refused when it is an entity the optimizer already writes. |
+| What the entity is | Offset | Offset, Persistent | Offset: a temperature difference, not stored by the controller; prefer it where the controller has one. Persistent: a stored curve setting, displaced from its own value with a daily write cap; see [ecl110.md](ecl110.md#kind-persistent-a-stored-curve-parameter). |
 | Largest offset written to the entity | 3 K | 0.5–5, 0.5 steps | The entity's offset stays within this many kelvin either way, whatever the MQTT range allows. 3 K is an estimate; see [ecl110.md](ecl110.md#without-mqtt-a-number-entity). |
+| Largest displacement of a stored parameter | 3 K | 0.5–5, 0.5 steps | Kind persistent only: the stored setting stays within this many kelvin of its value before the first write. 3 K is an estimate. |
+| Most writes a day to a stored parameter | 12 | 0–48 | Kind persistent only: writes in one local day, the write back on off included, one always kept for it; 0 or 1 writes nothing. 12 rests partly on forum figures and estimates; see [ecl110.md](ecl110.md#kind-persistent-a-stored-curve-parameter). |
+| Least time between writes to a stored parameter | 60 min | 15–360, 15 steps | Kind persistent only: after a write, the next waits at least this long. 60 min is an estimate of three radiator response times. |
 
 ### Reset to factory defaults
 
