@@ -1,0 +1,30 @@
+== head 39f34916ab9929ee14c5c63fbdd64ab5298c04e7
+             ~~~~~^^^^^^^^^^^^^^
+  File "/home/user/heatpump_optimizer/tools/audit/seat/features_block.py", line 130, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/home/user/heatpump_optimizer/tools/audit/seat/features_block.py", line 56, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 2, in <module>
+NameError: name '_ct_tm' is not defined
+rc=0
+== main ee64358be7eeccaec5178a923cb3b83a18a924a0
+             ~~~~~^^^^^^^^^^^^^^
+  File "/home/user/heatpump_optimizer/tools/audit/seat/features_block.py", line 130, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/home/user/heatpump_optimizer/tools/audit/seat/features_block.py", line 56, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 2, in <module>
+NameError: name '_ct_tm' is not defined
+rc=0
+== mb cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf
+             ~~~~~^^^^^^^^^^^^^^
+  File "/home/user/heatpump_optimizer/tools/audit/seat/features_block.py", line 130, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/home/user/heatpump_optimizer/tools/audit/seat/features_block.py", line 56, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 2, in <module>
+NameError: name '_ct_tm' is not defined
+rc=0

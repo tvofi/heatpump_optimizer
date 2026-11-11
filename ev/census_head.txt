@@ -1,0 +1,5 @@
+
+=== features block ===
+  ok   combi_type_branch census: no preset slug outside const.py's table and the options flow, and no product or vendor name in the package's Python; the census sees the table's own slugs
+
+ALL 1 FEATURES BLOCK PASSED
