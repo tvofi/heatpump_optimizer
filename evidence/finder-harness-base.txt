@@ -1,0 +1,6 @@
+$ [base ee64358b] merge_train.py classify 381b01147f24f36f474c443406b908028ca021f2 --pr 3427
+REFUSE ci: the check runs at 381b01147f24 could not be read
+rc=2
+$ [base ee64358b] merge_train.py classify --main ee64358be7eeccaec5178a923cb3b83a18a924a0
+REFUSE ci: the check runs at ee64358be7ee could not be read
+rc=2

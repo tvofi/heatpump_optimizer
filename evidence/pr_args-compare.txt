@@ -1,0 +1,22 @@
+== isf-588d1a4d.log
+[36;1mgrep -Eq '^orchestrator_tick self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ot-self-test.txt"[0m
+orchestrator_tick self-test: 312 checks, 0 failed
+gh_read self-test: 146 checks, 0 failed
+[36;1mgrep -Eq '^gh_calls self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gh-calls-self-test.txt"[0m
+gh_calls self-test: 216 checks, 0 failed
+[36;1mbash tools/audit/seat/tick_loop.sh --self-test | tee "$RUNNER_TEMP/tick-loop-self-test.txt"[0m
+[36;1mgrep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/tick-loop-self-test.txt"[0m
+  ok   freshness: origin/main's tick_loop.sh failing bash -n is never checked out or exec'd
+tick_loop self-test: 30 checks, 0 failed
+[36;1mgrep -Eq '^merge_train self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mt-self-test.txt"[0m
+== isf-ee64358b.log
+gh_read self-test: 138 checks, 0 failed
+[36;1mgrep -Eq '^gh_calls self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gh-calls-self-test.txt"[0m
+gh_calls self-test: 207 checks, 0 failed
+[36;1mbash tools/audit/seat/tick_loop.sh --self-test | tee "$RUNNER_TEMP/tick-loop-self-test.txt"[0m
+[36;1mgrep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/tick-loop-self-test.txt"[0m
+  ok   freshness: origin/main's tick_loop.sh failing bash -n is never checked out or exec'd
+tick_loop self-test: 27 checks, 0 failed
+[36;1mgrep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"[0m
+  FAIL the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
+pr_args self-test: 199 checks, 1 failed

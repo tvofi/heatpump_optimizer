@@ -1,0 +1,6 @@
+$ merge_train.py classify 381b01147f24f36f474c443406b908028ca021f2 --pr 3427
+GREEN 381b01147f24f36f474c443406b908028ca021f2 pending: none red: none
+rc=0
+$ merge_train.py classify --main ee64358be7eeccaec5178a923cb3b83a18a924a0
+RED ee64358be7eeccaec5178a923cb3b83a18a924a0 pending: none red: gate
+rc=1
