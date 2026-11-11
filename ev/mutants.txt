@@ -1,0 +1,8 @@
+# head baaf0064355bdf4838021df66683584e3d8608c7, PYTHONPATH=tests/hastub python3 tools/plan/size_durations.py --self-test
+unmutated:                                   size_durations self-test: 0 failed
+note-replayed (run: replayed -> False):      FAIL run --prs-cache: sizes_provenance ends naming the replay, no read made / 1 failed
+note-replayed on 0740542f's size_durations.py (null, pre-arm): 0 failed  (the round-4 survivor)
+M1 arm expected flag True -> False:          rc=1, 1 failed
+M2 arm cache arg pc -> None:                 rc=1, ZeroDivisionError (the raising rest read is reached)
+M3 arm cache write deleted:                  rc=1, ZeroDivisionError
+restored:                                    0 failed

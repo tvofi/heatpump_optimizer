@@ -1,0 +1,9 @@
+SURVIVED tools/plan/size_durations.py:654 CONST_SWAP  "body": f"Fix review: merge {i}abcdef0\nmore"} for i in (2, 2)]}}
+SURVIVED tools/plan/size_durations.py:684 CONST_SWAP  pages[4] = [pull(200, 13)]
+SURVIVED tools/plan/size_durations.py:686 CALL_DEL  pass
+SURVIVED tools/plan/size_durations.py:689 CALL_DEL  pass
+SURVIVED tools/plan/size_durations.py:692 CONST_SWAP  gh_raised = True
+SURVIVED tools/plan/size_durations.py:695 CALL_DEL  pass
+SURVIVED tools/plan/size_durations.py:719 CALL_DEL  pass
+SURVIVED tools/plan/size_durations.py:729 CONST_SWAP  reads={"rest": lambda o, s_: 2 / 0}, roster_file=rf)["sizes_provenance"]
+rc=1
