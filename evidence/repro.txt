@@ -1,0 +1,46 @@
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+          echo "check source restored from $PINNED: $(git diff --cached --no-renames --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
+
+      # THE MERGE QUEUE (round-9 process review item 2). A `merge_group` run
+      # carries no pull request in its payload, so the entry is named from the
+      # tree: its number from the queue branch's name, its head as the queue
+      # commit's second parent (merge method MERGE), and the API must report
+      # that same head or the step fails -- a run that cannot name what it
+      # grades must not pass. On every other event the number and head are the
+      # prelude's inputs (a dispatch and a review carry no `pull_request`
+      # payload to read them from), and the base commit is the payload's, else
+      # the API's. Outputs only, never $GITHUB_ENV: nothing here can reach a
+      # later program, and it runs after the restore, from admitted commands
+      # alone.
+      - name: Name the pull request this run grades
+$ tools/audit/*.py in pathspec?
+0
+$ reproduction in worktree at c620 with roster_lib from src
+src=d08ed31049 False
+src=c620ebba96 True
+$ grep 22 sites at dbd1ab5b07
+      1 .github/workflows/budget-raise-gate.yml
+      6 .github/workflows/ci.yml
+      2 .github/workflows/codeql.yml
+      6 .github/workflows/governance.yml
+      1 .github/workflows/pr-contract.yml
+      6 .github/workflows/tests.yml
+22
+$ other base.sha reads
+.github/workflows/arch-score.yml:63:          EVENT_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+.github/workflows/budget-raise-gate.yml:96:          PR_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+.github/workflows/ci.yml:130:          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+.github/workflows/dependabot-automerge.yml:69:          ref: ${{ github.event.pull_request.base.sha }}
+.github/workflows/governance.yml:213:          MACHINERY_BASE: ${{ github.event.pull_request.base.sha || (inputs.base && format('origin/{0}', inputs.base)) || '' }}
+.github/workflows/governance.yml:246:          SINCE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+.github/workflows/pr-contract.yml:159:          PAYLOAD_BASE: ${{ github.event.pull_request.base.sha }}
+.github/workflows/tests.yml:1180:          PR_BASE: ${{ github.event.pull_request.base.sha }}
+.github/workflows/tests.yml:1501:          BASE: ${{ github.event.pull_request.base.sha }}
+.github/workflows/tests.yml:1896:          BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
+.github/workflows/tests.yml:2104:            BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
