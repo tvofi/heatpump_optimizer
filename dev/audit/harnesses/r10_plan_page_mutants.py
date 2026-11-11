@@ -53,6 +53,13 @@ MUTANTS = [
      "g not in done and False,"),
     ("hotfix-gates-crit", PAGE, "gating_crit = {a for c in crit if c in G",
      "gating_crit = {a for c in () if c in G"),
+    # Round 2's four survivors (fix review 9774026d05): the mark as rendered,
+    # and each term of the row's `hot` and of `gating_crit`.
+    ("hot-render", PAGE, '           if r["hot"] else "")', '           if False else "")'),
+    ("hot-gates", PAGE, "if a in G and roster_lib.gates(G[a])}", "if a in G}"),
+    ("hot-notdone", PAGE, "g in gating_crit and g not in done and", "g in gating_crit and"),
+    ("hot-crit", PAGE, "gating_crit = {a for c in crit if c in G for a",
+     "gating_crit = {a for c in G for a"),
     ("closure-conditions-text", PAGE, "{', '.join(summ.get('closure_conditions') or",
      "{', '.join([] or"),
     ("partial", PAGE, "if m and m.group(1) in G:", "if False:"),
