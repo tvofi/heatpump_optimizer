@@ -24,6 +24,13 @@ reading on an install whose arbiter has written nothing. Installs:
   * ``null_noentity`` -- no hot-water set-point entity (null control).
 Every ``null_*`` line is byte-identical at the base and the head; a
 ``stock`` line differing is the fix.
+
+``--grid`` instead prints the census of the write's rounding paths, one
+``grid`` line per entity step (0.1, 0.5, 1, 2, 5; range 30-80 degC), everyday
+set-point, disinfection temperature (below, at and above each other, on and
+off each step, past the 70 degC cap) and cycle (held, or disabled for the
+everyday write): ``write=`` the dhw row's write, ``hard_max=`` the same
+parameters' ``dhw_hard_max_temp``, ``over=1`` where the write exceeds it.
 """
 from __future__ import annotations
 
@@ -56,6 +63,8 @@ BOOKINGS = {
     "both": ({"dhw_reason": "legionella"}, True),
 }
 DUTIES = (None, "idle", "space", "dhw", "both")
+GRID_STEPS = (0.1, 0.5, 1, 2, 5)
+GRID_TEMPS = (50.0, 55.0, 57.0, 58.0, 60.0, 60.2, 60.3, 60.4, 60.7, 62.0, 69.6, 70.0, 72.0)
 
 
 class _Coord:
@@ -66,14 +75,14 @@ class _Coord:
         return self._snap
 
 
-def _snap(install, action, disinfecting, reading):
+def _snap(install, action, disinfecting, reading, attrs=None):
     params = ThermalParameters(
         dhw_setpoint=install["configured"], dhw_legionella_temp=install["disinfection"],
         dhw_legionella_enabled=install["cycle"], dhw_min_temp=40.0,
     )
     entity = install["entity"]
     states = {} if entity is None else {
-        entity: FakeState(str(reading), attributes={"min": 30, "max": 65, "step": 1}),
+        entity: FakeState(str(reading), attributes=attrs or {"min": 30, "max": 65, "step": 1}),
     }
     snap = arb.ArbiterInputs(
         hass=FakeHass(states), config={"pump_duty_mode": "control", "dhw_setpoint_entity": entity},
@@ -93,7 +102,24 @@ def _repair(snap, own):
     return f"{raised[0][2]['data']['value']:g}" if raised else "-"
 
 
+def grid() -> int:
+    for step in GRID_STEPS:
+        for everyday in GRID_TEMPS[:-1]:
+            for disinfection in GRID_TEMPS:
+                for cycle in (True, False):
+                    install = dict(configured=everyday, disinfection=disinfection, cycle=cycle, entity="number.dhw")
+                    snap = _snap(install, {}, True, 0.0, {"min": 30, "max": 80, "step": step})
+                    own = arb.desired(_Coord(snap), snap, "dhw", NOW).dhw_setpoint
+                    top = snap.params.dhw_hard_max_temp
+                    over = int(own is not None and own > top + 1e-9)
+                    print(f"grid step={step} everyday={everyday} disinfection={disinfection} cycle={int(cycle)} "
+                          f"write={own} hard_max={top} over={over}")
+    return 0
+
+
 def main() -> int:
+    if sys.argv[1:] == ["--grid"]:
+        return grid()
     for name, install in INSTALLS.items():
         for booking, (action, disinfecting) in BOOKINGS.items():
             for duty in DUTIES:

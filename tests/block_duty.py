@@ -557,6 +557,34 @@ def _fix_value(snap, *, arbiter=True):
     return raised[0][2]["data"]["value"] if raised else None
 
 
+def _step(step):
+    """The hot-water entity's attributes, 30 to 80 degC, on ``step``."""
+    return {"min": 30, "max": 80, "step": step}
+
+
+#: The census of ``_dhw_write``'s cycle rounding paths: every step size an
+#: entity states here, and everyday/disinfection pairs below, at and above
+#: each other, on and off each step, up to the 70 degC cap.
+_GRID_STEPS = (0.1, 0.5, 1, 2, 5)
+_GRID_TEMPS = (50.0, 55.0, 57.0, 58.0, 60.0, 60.2, 60.3, 60.4, 60.7, 62.0, 69.6, 70.0, 72.0)
+
+
+def _cycle_grid_over_hard_max():
+    """Every (step, everyday, disinfection) whose cycle write exceeds the hard
+    maximum the same parameters state, or is no write at all; asserts the
+    grid holds all three orderings first, so a narrowed grid refuses."""
+    pairs = [(e, d) for e in _GRID_TEMPS[:-1] for d in _GRID_TEMPS]
+    assert {(d > e) - (d < e) for e, d in pairs} == {-1, 0, 1}
+    bad = []
+    for step in _GRID_STEPS:
+        for e, d in pairs:
+            snap = _dhw_snap(disinfecting=True, configured=e, disinfection=d, attrs=_step(step))
+            w = _written(snap, "dhw")
+            if w is None or w > snap.params.dhw_hard_max_temp + 1e-9:
+                bad.append((step, e, d, w, snap.params.dhw_hard_max_temp))
+    return bad
+
+
 def disinfection_checks() -> None:
     """A disinfection cycle holds its own temperature, not the everyday set-point."""
     written = _written
@@ -587,17 +615,40 @@ def disinfection_checks() -> None:
         and ThermalParameters(dhw_setpoint=62.0, dhw_legionella_enabled=False).dhw_cycle_temp is None,
     )
     check(
-        "an off-step disinfection temperature is written on the step above it, never below",
-        lambda: written(_dhw_snap(disinfecting=True, disinfection=60.3), "dhw") == 61.0
-        and written(_dhw_snap(disinfecting=True, disinfection=60.3,
-                              attrs={"min": 30, "max": 65, "step": 5}), "dhw") == 65.0,
+        "an off-step disinfection temperature above the everyday set-point is written on the step at or "
+        "below it, never above the tank's hard maximum",
+        lambda: written(_dhw_snap(disinfecting=True, disinfection=60.3), "dhw") == 60.0
+        and written(_dhw_snap(disinfecting=True, disinfection=60.3, attrs=_step(5)), "dhw") == 60.0
+        and written(_dhw_snap(disinfecting=True, disinfection=62.0, attrs=_step(5)), "dhw") == 60.0
+        and written(_dhw_snap(disinfecting=True, disinfection=60.7, attrs=_step(0.5)), "dhw") == 60.5
+        and written(_dhw_snap(disinfecting=True, disinfection=60.0, attrs=_step(5)), "dhw") == 60.0,
     )
     check(
-        "a cycle whose temperature is an off-step everyday set-point is rounded up too, never below "
-        "the disinfection temperature; the same install's everyday step keeps the nearest step",
-        lambda: written(_dhw_snap(disinfecting=True, configured=60.4, disinfection=60.2), "dhw") == 61.0
-        and written(_dhw_snap(action={"dhw_reason": "legionella"}, configured=60.4, disinfection=60.2), "dhw") == 61.0
-        and written(_dhw_snap(configured=60.4, disinfection=60.2), "dhw") == 60.0,
+        "a cycle whose temperature is an off-step everyday set-point (the disinfection temperature at or "
+        "below it) writes the step at or below it, as 49a45dd8 and the same install's everyday step do",
+        lambda: all(written(_dhw_snap(**b, configured=60.4, disinfection=60.2), "dhw") == 60.0
+                    for b in _BOOKINGS)
+        and all(written(_dhw_snap(**b, configured=57.0, disinfection=50.0, attrs=_step(5)), "dhw") == 55.0
+                for b in _BOOKINGS)
+        and written(_dhw_snap(disinfecting=True, configured=57.0, disinfection=57.0, attrs=_step(5)), "dhw") == 55.0
+        and written(_dhw_snap(cycle=False, disinfecting=True, configured=57.0, disinfection=50.0,
+                              attrs=_step(5)), "dhw") == 55.0,
+    )
+    check(
+        "an everyday set-point the nearest step rounds up is held below it on a cycle: the tank's hard "
+        "maximum is the everyday set-point there (the everyday step's own nearest write is main's)",
+        lambda: written(_dhw_snap(disinfecting=True, configured=58.0, disinfection=50.0, attrs=_step(5)), "dhw") == 55.0
+        and written(_dhw_snap(configured=58.0, disinfection=50.0, attrs=_step(5)), "dhw") == 60.0,
+    )
+    check(
+        "a disinfection temperature above 70 degC is written at the tank's 70 degC hard maximum",
+        lambda: written(_dhw_snap(disinfecting=True, disinfection=72.0,
+                                  attrs={"min": 30, "max": 80, "step": 1}), "dhw") == 70.0,
+    )
+    check(
+        "no cycle write exceeds the tank's hard maximum, over every step size and the disinfection "
+        "temperature below, at and above the everyday set-point, on and off the step",
+        lambda: _cycle_grid_over_hard_max() == [],
     )
     check(
         "a disinfection temperature above the entity's range stays bounded at its maximum",
