@@ -4,6 +4,8 @@ Seat: root-cause (dev/governance/roles/root-cause.md), beside R10-HOTFIX-CARD-HE
 
 ## Verdict
 
+**Second pass (below) supersedes this verdict as the explanation of the owner's screenshot.** The first-pass cause stays a real, separate defect, but it does not produce the owner's state.
+
 - **Cause:** the text is not missing; it is painted at **1.24:1**. Commit 906fee95e (PR #2841, R10-CARD-VOICE, 2026-10-25) moved `.health-row` and `.adv-inbox-row` onto `--hpo-surface-2`. That token is a literal chosen by `hass.themes.darkMode`. The rows' text was left on `--hpo-text`, which is the theme's `--primary-text-color`. Under a dark theme that Home Assistant reports as `darkMode: false`, the rows draw #e1e1e1 on #f7f9fb.
 - **Not a v7.1.11 regression:** the defect was first shipped in **v7.0.5** (2026-10-27) and is present in all 13 releases from v7.0.5 to v7.1.11. The suggested lead does not hold: `SHIPPED_LANGS` does not exist at v7.1.11. The v7.1.10 → v7.1.11 card diff adds one catalogue key (`setup.dhw_combi_caption`) and the combi pipe, and nothing on the Health path.
 - **Process state: (c).** The barrier for mismatched themes (`themeMismatch`, R9-UI-3 review) existed and ran green on v7.1.11. Its unit does not reach dialog pages: a fixed list of four selectors on the dashboard tile view only.
@@ -98,3 +100,90 @@ A cheaper static companion, not demonstrated and so not proposed as the barrier:
 ## Figures
 
 Every figure above was measured in this seat on main 61afd4f2d. Instruments: the scratch probe (Playwright Chromium, WCAG relative luminance), `node tests/card_browser.mjs`, `node tests/card.mjs`, `git merge-base --is-ancestor 906fee95e <tag>` over `git tag -l 'v7.*'`, and `git log -1 --format=%ad`.
+
+# Second pass: the owner's steady-state screenshot
+
+Owner facts (OWNER-FACTS-2): default Home Assistant theme in auto mode, OS dark, no recent switch, a reload does not cure it. That is the matched arm: dark variables with darkMode true. The first pass measured that arm at 11.08:1, so its darkMode-false precondition does not hold on this install.
+
+## Verdict (second pass)
+
+- **Not a colour defect.** Home Assistant's real default dark variable set renders every Health label at **11.08:1** in Chromium, on v7.1.11 and on every v7.x tag. No token falls back to a card literal.
+- **The screenshot's state is a missing label box, not a dim label.** In the owner's rows the value and bar sit at the row's left edge and nothing is drawn to their right. In this card that geometry occurs only when `.adv-text` produces **no layout box**. A label painted in any colour, including the row surface colour (1.00:1), or an empty label keeps its box. `.adv-text` is the only item in the row that grows (`flex: 1 1 14em`), so a label with a box pushes the value to the right edge (x = 758 of a 906 px row). Removing the box is the only perturbation of the four tried that puts the value at x = 11, the bar right after it, and the input pill, the tick and the button at the left.
+- **Nothing in the tree removes that box.** The card has no rule that hides, collapses or reorders `.adv-text`: the only `display: none` is `.setup-svg.editing .setup-flow`, and there is no `@container` rule, no `order` and no `visibility`. Every Health row builder emits `<span class="adv-text">` unconditionally. Bisection over all 18 v7.x tags found no tree that reproduces the state under HA's dark set.
+- **Cause: not established in this seat.** The state needs a factor outside what the tree and Chromium reproduce: the owner's rendering engine (macOS, so possibly Safari or the HA companion app on WebKit, which this container cannot run; only Chromium is installed and `playwright install` is not allowed), or a card build other than v7.1.11 reaching the browser. One owner reading settles which (see Owner question).
+- **Why the gates read clean:** they render this state correctly. In Chromium the matched-dark cells draw the labels with a box at 11.08:1, as Home Assistant's own variables do. A failure that removes the box is also outside what the P9 grid's unit can report: the grid measures visible text runs, and a run with no box is not a low-contrast run. It is not counted at all.
+
+## 5. Home Assistant's default dark variables, pinned
+
+Source: home-assistant/frontend tag **20261028.5** (commit e32bc0696ebe, 2026-11-06), `src/resources/theme/color/`. The light blocks (`colorStyles`, `semanticColorStyles`, `coreColorStyles`, `waColorStyles`) are a stylesheet on `html`. The dark blocks (`darkColorStyles`, 52 declarations, and `darkSemanticColorStyles`, 88) are written by `applyThemesOnElement` as inline style when `darkMode` is true, so they override the light values. The frontend sets no `color-scheme` anywhere. Assumption: the target element is `html` (the `main` flag). This sparse checkout has no call site that shows it.
+
+The six Home Assistant variables the card's tokens read, under that set:
+
+| card token | HA variable | in the dark block? | value | card literal (dark) |
+|---|---|---|---|---|
+| `--hpo-text` | `--primary-text-color` | yes | #e1e1e1 | #e1e1e1 |
+| `--hpo-text-2` | `--secondary-text-color` | yes | #9b9b9b | #9b9b9b |
+| `--hpo-surface` | `--card-background-color` | yes | #1c1c1c | #1c1c1c |
+| `--hpo-divider` | `--divider-color` | yes | rgba(225, 225, 225, 0.12) | #3a3a3a |
+| `--hpo-primary` | `--primary-color` | **no**, falls to the light block's `var(--ha-color-primary-40)` = **#009ac7** | #009ac7 | #03a9f4 |
+| `--hpo-on-primary` | `--text-primary-color` | **no**, falls to the light block's #ffffff | #ffffff | #ffffff |
+
+`--ha-card-background` is defined in neither block; `ha-card` falls back to `--card-background-color`. The tokens without an HA variable (`--hpo-surface-2` #242a30, `--hpo-ink` #e1e1e1, the status pairs) are card literals chosen by darkMode: true. Every token resolves to a theme value or to its own literal, never to an unintended one. The rig's `THEMES.dark` (tests/card_browser.mjs:97) matches HA on every text and surface variable. It differs on `--primary-color` (#03a9f4 against HA's #009ac7), which colours no Health text.
+
+## 6. Reproduction, per element
+
+Probe (scratch, not in the tree): Playwright Chromium, 1000 px viewport, scale 2, OS scheme dark, `hass.themes.darkMode: true`. The fixture is `healthPageStates(pageStates(plan))`, taken verbatim from tests/card_browser.mjs. HA's light blocks are loaded as the `html` stylesheet and its dark blocks as inline style on `html`. The card is v7.1.11 (= main 61afd4f2d). Ratios are WCAG, against the first opaque ancestor background.
+
+| element | n | colour | background | ratio |
+|---|---|---|---|---|
+| `.health-h` heading | 5 | #e1e1e1 | #1c1c1c | 13.03 |
+| `.health-row .adv-text` (labels) | 19 | #e1e1e1 | #242a30 | **11.08** |
+| `.adv-sub` (details, opacity 0.8) | 13 | #e1e1e1 | #242a30 | 11.08 |
+| `.model-value` | 4 | #e1e1e1 | #242a30 | 11.08 |
+| `.adv-act` (Download diagnostics) | 4 | #e1e1e1 | #242a30 | 11.08 |
+| `.status-pill` Fresh | 4 | #1fad6b | #1c3027 | 4.83 |
+| `.health-mark` ✓ | 6 | #1fad6b | #1c3027 | 4.83 |
+
+The rig's `THEMES.dark` gives identical figures. The background and surface match the screenshot (#1c1c1c; #242a30 against #242a31 in lossy WebP). The value text #e1e1e1 matches the screenshot's brightest pixel, #e2e8ed. **Why the value is light and the label is not, in the same row:** in v7.1.11 they cannot differ in colour. `.adv-text` and `.model-value` set no `color` and both inherit the row's. So the screenshot's difference has to be a box, not an ink.
+
+Geometry discriminator, learned-model row "heat_loss" (offsets in CSS px from the row's left; row 906 px wide):
+
+| arm | label box | value x | bar x | row height | matches screenshot |
+|---|---|---|---|---|---|
+| HA dark, as shipped | 11..746 | 758 | 825 | 47 | no: label drawn, value at the right |
+| label ink = row surface (#242a30, 1.00:1) | 11..746 | 758 | 825 | 47 | no: value still at the right |
+| label text emptied | 11..746, 0 tall | 758 | 825 | 33 | no: value still at the right |
+| **label `display: none`** | **none** | **11** | **78** | **33** | **yes**: value and bar at the left, nothing to their right; the pill, tick and button also move to the left |
+
+In the last arm the bar ends 148 CSS px into the row, about 300 px at the screenshot's scale. That fits the orchestrator's 1700 px single-colour region to the right of the bar in a 2000 px image. The first pass's arms, which only change ink, are all of the first two kinds. That is why neither of them reproduces the screenshot.
+
+Bisection: `haDark` arm over every v7.x tag (v7.0.0–v7.0.5, v7.1.0–v7.1.11). Every tag draws the label with a box: 11.27:1 up to v7.0.4 and 11.08:1 from v7.0.5. The value sits at x = 779 (v7.0.0–v7.0.4) or x = 758 (v7.0.5 onward). **No v7.x tag reproduces the state under HA's dark set in Chromium**, so there is no in-tree commit to bisect to.
+
+## 7. Why the matched-dark gate cells read it as clean
+
+- **P9 grid (dark cells, darkMode in lockstep):** the cells use `THEMES.dark`, which equals HA's set on every variable the Health text reads (section 5). In Chromium they render the same 11.08:1 labels this probe measured with HA's own variables. They are not wrong about this state; they never contain it. Their unit is also blind to it. The grid asserts that "every visible text run clears WCAG AA". A label with no box is not a visible run, so it is neither measured nor counted as missing. No cell asserts that a text node which exists in the DOM has a box.
+- **healthLayout (dark, 375 / 1280 px):** it checks the first row's hit-test, the input grid's share of the page and the number of tiles per line. A row whose label has no box still passes all three: the row is still hit at its top edge, and the grid is unchanged.
+- **The fixer's null result** (0 empty labels, en/sv/de, three widths) measured `textContent` and width in Chromium, where the box exists. That is the same reason.
+- **Engine.** The browser lanes run Playwright Chromium. This seat's container holds Chromium alone (`/opt/pw-browsers`); CI's image was not inspected. If the owner's client is WebKit, a Chromium-only lane cannot reach this state, whatever its unit.
+
+## 8. Process state (second pass): provisional
+
+Until the owner's reading names the factor, this is provisional between **(a)** and **(d)**:
+- If the client is WebKit and v7.1.11 itself drops the label box there: **(a)** for engine coverage. No process known to this seat renders the card in a non-Chromium engine. The barrier's form would be a WebKit arm of a box-presence check: every text node in the DOM of a dialog page has a non-empty client rect. That check is cheap (same 2 s probe shape) but needs the WebKit browser in the CI image.
+- If a build other than v7.1.11 reaches the browser: not a card defect. It is a delivery or caching question, outside this tree.
+
+A box-presence assertion added to the P9 sweep closes the unit blindness of section 7 in any engine. It is proposed only once a failing case for it is demonstrated, and none is here: the defect is not reproduced in this seat, so the countermeasure cannot be shown failing on it (defect-root-cause.md, "A detector must be shown to detect").
+
+## Owner question (the one reading that settles it)
+
+On the Health page as it appears now: (1) the browser, e.g. Safari, Chrome or the HA macOS app; (2) in its inspector, for one model-row label (`span.adv-text` inside `.health-row.model-row`), the computed `display`, `width` and `color`; (3) the card version the browser loaded (the console banner, or the resource URL's version). If `display` is not `none` and the width is about 700 px, the cause is ink, and sections 6–7 are wrong. If the box is missing, the cause is the engine or the build.
+
+## Forward carries (second pass)
+
+- The fix's failing-first test cannot be a matched-dark contrast cell: that arm is clean on every tag. It must reproduce the box-less label, which this seat could not do in Chromium. Blocked on the owner reading above. Carry: R10-HOTFIX-CARD-HEALTH-TEXT
+- The first-pass fix (`.health-row`/`.adv-inbox-row` ink re-pointed, branch d76f4d056) remains correct for the darkMode-false arm. It is not expected to change the owner's screenshot. Carry: R10-HOTFIX-CARD-HEALTH-TEXT
+- The rig's `THEMES.dark` `--primary-color` (#03a9f4) differs from HA 20261028.5's #009ac7 (`--ha-color-primary-40`). It affects no text measured here. Carry: dismissed: no text pair reads --primary-color on the Health or Advisor pages
+
+## Figures (second pass)
+
+Every figure in sections 5–7 was measured in this seat at main 61afd4f2d. Instruments: a scratch Playwright Chromium probe (WCAG relative luminance, `getBoundingClientRect` offsets), the HA frontend tag 20261028.5 blocks parsed from `src/resources/theme/color/*.ts`, `tests/plan_view.py` for the plan payload, and `git show <tag>:custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js` for the bisection over 18 tags.
