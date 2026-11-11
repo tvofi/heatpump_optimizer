@@ -1,3 +1,0 @@
-combi_tank_active False buffer_is_store False
-legionella_cycle_active (head) True
-under M7r it would be False
