@@ -61821,6 +61821,31 @@ R.check(
     f"30-min interval started heated / not (control) {_chg_cool}",
 )
 
+# The snapshot restore and the store loader now share one day-type reader, so
+# a snapshot whose day count overflows int() (inf) restores a zero count, as
+# the loader already did, rather than raising out of apply_payload. A finite
+# count is the control that still restores as stored.
+def _chg_restore(count):
+    learner = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))._dhw_learner
+    try:
+        learner.apply_payload({
+            "hourly_profile": [1.0] * 24,
+            "profile_weekend": [1.0] * 24, "profile_weekend_samples": count,
+        })
+    except OverflowError:
+        return "OverflowError"
+    return learner.daytype_samples[1]
+
+
+_chg_restored = (_chg_restore(float("inf")), _chg_restore(7))
+R.check(
+    "a snapshot restore takes an overflowing day-type count as zero, as the loader does",
+    _chg_restored == (0, 7),
+    f"weekend day count restored from inf / 7 (control): {_chg_restored}",
+)
+
 # A zero-capacity tank is the input the floors were hiding. With the capacity
 # read raw, four of the seams below divide by it, so each has to decline to
 # plan rather than raise. Pre-fix this arm answers "ZeroDivisionError": the
