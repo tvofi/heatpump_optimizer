@@ -22198,6 +22198,43 @@
     "note": "s14 orchestrator 2026-11-11: third stale-hash pip bump in a week"
    },
    "brief": "Replacement for Dependabot pull request 3414 (pip group in tests, 7 updates), red at head 4182e75d on tests / typing and tests / fast (3.14): the bot moved homeassistant-stubs past the deliberate hold that tests/typing_ruler.py enforces, and left stale hash lines so pip refuses the homeassistant wheel in tests/requirements-typing.txt. Same class as R10-DEPENDABOT-3323-COMPAT (merged as pull request 3408): regenerate each touched lock with the command its header states, keep the stubs hold and the pins Home Assistant itself fixes, and take every other bump the bot proposed. Review: every pin hash matches PyPI (null control: the bot head mismatches on exactly the pins named in its typing job log), tests/typing_ruler.py passes, and pull request 3414 is closed as superseded after the merge. The triage seat rules separately on a dependabot.yml ignore for the held pins; apply it here only if that ruling is ACCEPT and on the roster before you hand off."
+  },
+  {
+   "group": "R10-RCA-DEPENDABOT-STALE-HASH",
+   "lane": "IN",
+   "kind": "rca",
+   "class": "rca",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "files": [],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "resume": {
+    "stage": "not-started",
+    "note": "s14 orchestrator 2026-11-11: root-cause seat for the third stale-hash Dependabot pip instance (forward-carry of pull request 3408); runs beside R10-DEPENDABOT-3414-COMPAT, never inside it",
+    "pr": null,
+    "commit": null
+   },
+   "brief": "Root-cause seat (dev/governance/roles/root-cause.md, defect-root-cause.md) beside R10-DEPENDABOT-3414-COMPAT, never inside it: no production code and no lock edit. Class: every grouped Dependabot pip pull request on tests/ reached red and needed a hand re-apply branch. Instances: pull request 3088 (2026-11-01, closed; re-applied as 3147), pull request 3323 (2026-11-08, closed; re-applied as 3408: 5 of 132 pins kept the previous version's --hash lines, coverage 7.17.2, acme 5.9.0, python-dateutil 4.0.0, sqlalchemy 2.1.8, uv 0.13.7), pull request 3414 (2026-11-10, open at 4182e75d: tests / typing job 129708149047 'THESE PACKAGES DO NOT MATCH THE HASHES' on homeassistant 2026.11.0, whose expected hashes are 2026.10.4's; tests / fast fails typing_ruler.py on the homeassistant-stubs hold). The forward-carry of pull request 3408 names this third instance as the point root-cause.md's cost test is owed. Owes, in order: (1) a named cause: why Dependabot rewrites the version line but not every hash line in these hash-locked files (the lock header compiles with hashes, Dependabot does not run that compile), shown on at least two of the three diffs; (2) the process state, a to d, with the evidence for it; (3) a cost test with numbers: per instance the re-apply branch, its fixer and review rounds, its CI runs (a lock change selects MODE FULL), and the hours each Dependabot pull request stood red, against the cost of each candidate countermeasure; (4) a countermeasure or a recorded refusal. Two candidates were already measured and rejected by triage batch 141 (dev/programme/triage/s6-batch141.md at 53637b2c37, entries P543 and P544): an ignore for homeassistant-stubs, zeroconf and cronsim would have turned 0 of the 3 pull requests green (each also carried stale hashes, and homeassistant 2026.11.0 pins zeroconf==0.152.0 and cronsim==2.7, so ignoring zeroconf blocks a move Home Assistant needs); a per-pin PyPI hash checker saves 0 rounds, because the typing job's pip install --require-hashes reported 3414's stale hash 15 min after the pull request opened, and pull request 3147 dismissed the same detector. Candidates still open to the seat: a lower pip schedule or limit, a workflow that recompiles the locks on the Dependabot branch's content in a seat-owned replacement branch automatically, or a recorded refusal with the per-instance cost. Null control for any quantified claim: the same figure over Dependabot's npm and github-actions pull requests in the window, which carry no hash locks."
   }
  ]
 }
