@@ -1,0 +1,19 @@
+== v2502 a7628041dc02e298c5399003d4c0576391dd5c4e
+core 2025.2.0 modules 87 []
+deprecation lines 0
+migrate_deprecated_entity_members present: False
+== v2502 094b128ad015a259432dda27af5f500b32122476
+core 2025.2.0 modules 87 []
+deprecation lines 0
+migrate_deprecated_entity_members present: False
+== v2611 a7628041dc02e298c5399003d4c0576391dd5c4e
+core 2026.11.1 modules 87 []
+deprecation lines 3
+  heatpump_optimizer.climate::HeatPumpOptimizerClimate provides the deprecated _attr_temperature_unit, this will stop working in Home Assistant 2027.11, use _attr_native_temperature_unit instead, please create a bug report
+  heatpump_optimizer.climate::HeatPumpOptimizerClimate provides the deprecated current_temperature, this will stop working in Home Assistant 2027.11, use native_current_temperature instead, please create a bug report at ht
+  heatpump_optimizer.climate::HeatPumpOptimizerClimate provides the deprecated target_temperature, this will stop working in Home Assistant 2027.11, use native_target_temperature instead, please create a bug report at http
+migrate_deprecated_entity_members present: False
+== v2611 094b128ad015a259432dda27af5f500b32122476
+core 2026.11.1 modules 87 []
+deprecation lines 0
+migrate_deprecated_entity_members present: False
