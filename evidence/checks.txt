@@ -1,0 +1,7 @@
+RESULT write_table round-trip byte-identical: True
+selftest_scope static: 111 gated step(s), 0 problem(s)
+selftest_scope self-test: 117 checks, 0 failed
+STRUCTURE RATCHET PASSED
+--- readers of the git field:
+tools/ci/selftest_scope.py:598:                  "git": sorted(e["git"])}
+tools/ci/selftest_scope.py:1023:           got4["objects"] and got4["git"] == {"show"} and got3["git"] == set())
