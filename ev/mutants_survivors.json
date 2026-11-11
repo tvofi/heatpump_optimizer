@@ -1,0 +1,14 @@
+[
+ {
+  "name": "R_FOLD_SKIP",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "        await self.async_fold_draw_stats(\n            now, previous_temp, 0.0 if charge_affected else temp_drop, dt_h\n        )",
+  "new": "        if not charge_affected:\n            await self.async_fold_draw_stats(\n                now, previous_temp, temp_drop, dt_h\n            )"
+ },
+ {
+  "name": "R_SETTLE_STRICT",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "            <= DHW_CHARGE_SETTLE_HOURS\n",
+  "new": "            < DHW_CHARGE_SETTLE_HOURS\n"
+ }
+]

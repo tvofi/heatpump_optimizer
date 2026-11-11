@@ -1,0 +1,4 @@
+  ok   a charge-start dip is learned as neither a draw nor usage
+  ok   a snapshot restore takes an overflowing day-type count as zero, as the loader does, and keeps a day type with a malformed profile as it was
+
+ALL 2 FEATURES BLOCK PASSED

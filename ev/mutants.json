@@ -1,0 +1,98 @@
+[
+ {
+  "name": "SETTLE_ARM_OFF",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "<= DHW_CHARGE_SETTLE_HOURS",
+  "new": "<= 0.0"
+ },
+ {
+  "name": "SETTLE_SHORT",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "DHW_CHARGE_SETTLE_HOURS = 0.25",
+  "new": "DHW_CHARGE_SETTLE_HOURS = 0.05"
+ },
+ {
+  "name": "SETTLE_LONG",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "DHW_CHARGE_SETTLE_HOURS = 0.25",
+  "new": "DHW_CHARGE_SETTLE_HOURS = 0.5"
+ },
+ {
+  "name": "STAMP_DEL",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "            self.last_heated_time = now\n",
+  "new": "            pass\n"
+ },
+ {
+  "name": "ZERO_DROP_OFF",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "0.0 if charge_affected else temp_drop",
+  "new": "temp_drop"
+ },
+ {
+  "name": "USAGE_HEATING_ONLY",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "            charge_affected,\n            weekend=",
+  "new": "            heating,\n            weekend="
+ },
+ {
+  "name": "COOLING_HEATING_ONLY",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "        if not charge_affected:\n",
+  "new": "        if not heating:\n"
+ },
+ {
+  "name": "OVERFLOW_DROP",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "except (TypeError, ValueError, OverflowError):\n                self.daytype_samples[idx] = 0",
+  "new": "except (TypeError, ValueError):\n                self.daytype_samples[idx] = 0"
+ },
+ {
+  "name": "RESTORE_SKIP_OFF",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "            else:\n                continue\n            try:",
+  "new": "            else:\n                pass\n            try:"
+ },
+ {
+  "name": "RESTORE_LEN_OFF",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "if isinstance(arr, list) and len(arr) == 24:\n                setattr(self, key, self.normalize_profile(arr))",
+  "new": "if isinstance(arr, list):\n                setattr(self, key, self.normalize_profile(arr))"
+ },
+ {
+  "name": "RESTORE_CLAMP_DROP",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "self.daytype_samples[idx] = max(0, int(source.get(f\"{key}_samples\", 0)))",
+  "new": "self.daytype_samples[idx] = int(source.get(f\"{key}_samples\", 0))"
+ },
+ {
+  "name": "R_SINCE_ARM_OFF",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "charge_affected = self.heating_since_sample or heating or (",
+  "new": "charge_affected = heating or ("
+ },
+ {
+  "name": "R_STAMP_ALWAYS",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "        if heating:\n            self.last_heated_time = now\n",
+  "new": "        if True:\n            self.last_heated_time = now\n"
+ },
+ {
+  "name": "R_FOLD_SKIP",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "        await self.async_fold_draw_stats(\n            now, previous_temp, 0.0 if charge_affected else temp_drop, dt_h\n        )",
+  "new": "        if not charge_affected:\n            await self.async_fold_draw_stats(\n                now, previous_temp, temp_drop, dt_h\n            )"
+ },
+ {
+  "name": "R_SETTLE_STRICT",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "            <= DHW_CHARGE_SETTLE_HOURS\n",
+  "new": "            < DHW_CHARGE_SETTLE_HOURS\n"
+ },
+ {
+  "name": "R_STAMP_PREV",
+  "file": "custom_components/heatpump_optimizer/dhw_learning.py",
+  "old": "            self.last_heated_time = now\n",
+  "new": "            self.last_heated_time = previous_time\n"
+ }
+]

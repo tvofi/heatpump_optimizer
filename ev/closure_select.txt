@@ -1,0 +1,2 @@
+  MODE: SCOPED -- 22 script(s) run, 11 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs

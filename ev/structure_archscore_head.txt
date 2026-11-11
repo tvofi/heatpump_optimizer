@@ -1,0 +1,8 @@
+  class_excess_loc = 17535 (every class's span past 300, summed; the coordinator's 556 helper lines count in its span)
+RESULT class_excess_loc=17535 count
+  ok   class_excess_loc 17535 <= 17535
+STRUCTURE RATCHET PASSED
+Architecture score: dS +0.0237 IMPROVES
+  literal_clone_copies 122 -> 120  +0.0237
+  reflective_writes 11 -> 10  (gate only)
+  computed_attr_access 28 -> 27  (gate only)
