@@ -87,8 +87,13 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     prints `CARRY` (`app_approve.sh --carry`: main merges git resolved itself,
     claim files unioned),
     and `bus.sh dispatch` refuses a second reviewer. A red never carries.
-    Else a main merge is its **resolution delta**, alone yours; a head whose
-    own diff moved under you is `blocked <sha> head-moved: measured <sha>, head is <other>`.
+    Else a later round is **its delta** (tvofi 2026-11-09): `git diff <reviewed-head>
+    <head>` (a main merge: its resolution), each prior finding resolved, the live
+    required checks. Only a production (`custom_components/`) delta putting
+    reviewed code's functionality at a non-obvious risk CI would not detect
+    widens it, to exactly that code; the verdict names path and risk. Instrument,
+    test, policy and body deltas never widen it.
+    A head whose own diff moved under you is `blocked <sha> head-moved: measured <sha>, head is <other>`.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
