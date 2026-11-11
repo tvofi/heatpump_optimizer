@@ -63474,7 +63474,7 @@ R.check(
     f"{_pa_ingate.writes()}",
 )
 
-# dhw_gated: only the arbiter's own gate, still reading as written, is excused.
+# dhw_gated: only the arbiter's own write, still reading as written, is excused.
 _pa_gate = _PaCoord(_PA_MODBUS, duties="s")
 _pa_run(_pa_gate, 1)
 _pa_full = _PaCoord(_PA_TUYA, duties="d")
@@ -63485,8 +63485,8 @@ R.check(
     f"{_pa.state_for(_pa_gate).written=}",
 )
 R.check(
-    "a written set-point at the configured value is no gate, so it excuses nothing",
-    not _pa.dhw_gated(_pa_full, 48.0),
+    "a written set-point at the configured value is the arbiter's too: it writes the cycle itself, so it is excused",
+    _pa.dhw_gated(_pa_full, 48.0) and not _pa.dhw_gated(_pa_full, 46.0),
     f"{_pa.state_for(_pa_full).written=}",
 )
 
