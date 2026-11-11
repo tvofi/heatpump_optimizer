@@ -11,7 +11,9 @@ no ``ArbiterState.feedback``), so the same command reads both ends.
 One line per arm: the plan, the option, the mean measured draw over the last
 30 minutes of a three-hour block, whether every one of those minutes is
 within 20 % of plan, the compressor starts, and the speed at minutes 30 and
-180. Synthetic inputs only. Run from a worktree root:
+180; then, for part 3, the lowest and highest value written against a
+controller limit with and without its sensor configured. Synthetic inputs
+only. Run from a worktree root:
   PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_water_setpoint_feedback.py
 """
 from __future__ import annotations
@@ -167,6 +169,19 @@ def main() -> None:
         print(f"{label:16s} option {option:7s} mean {mean:.3f} kW  every-minute-within-20% "
               f"{every}  starts {run['starts']}  speed {run['trace'][30][1]:.1f} -> "
               f"{run['trace'][-1][1]:.1f} Hz")
+    # Part 3: the controller's limits read from their two optional sensors
+    # (a Luxtronik's inputs 10104 and 10103). A tree that does not read them
+    # prints the same row with the sensors as without.
+    for label, kw, side in (
+        ("return limit 27.6", {"plan_kw": [0.53] * 8 + [1.2] * 16, "clamp": (10.0, 27.6)}, 1),
+        ("return minimum 28.0",
+         {"plan_kw": [1.2] * 8 + [0.53] * 16, "ceiling": 40.0, "clamp": (28.0, 50.0)}, 0),
+    ):
+        for sensors in (False, True):
+            limits = tuple(kw["clamp"][i] if sensors and i == side else None for i in (0, 1))
+            sent = [w[1] for w in sim(limits=limits, **kw)["writes"]]
+            print(f"{label:20s} sensor {'set' if sensors else 'unset':5s} writes {len(sent)}  "
+                  f"lowest {min(sent):.1f}  highest {max(sent):.1f}")
 
 
 if __name__ == "__main__":
