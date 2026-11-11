@@ -61782,6 +61782,18 @@ _chg_reheat = _chg_seq((50.0, 47.0, 47.0, 47.0, 49.0, 51.0, 51.0), heated_at=(2,
 # An 8 K draw during the charge, then 8 K of reheat past the slot: the take
 # back stops at the dip bound, DHW_CHARGE_DIP_MAX_K, and 3 K stays booked.
 _chg_cap = _chg_seq((50.0, 50.0, 42.0, 42.0, 46.0, 50.0, 50.0))
+# A 4 K draw during a three-sample charge, then the charge heats 2 K back:
+# a heated rise is charge heat, not a dip recovering, so the draw stays
+# booked as on main (4 K beside "draw"'s 3 K).
+_chg_heated_rise = _chg_seq(
+    (50.0, 50.0, 46.0, 48.0, 48.0, 48.0, 48.0, 48.0), heated_at=(1, 2, 3)
+)
+# A 3 K settle drop that recovers only 1 K: the usage learner still learns
+# the 2 K left, at the interval's own length, once the charge closes.
+_chg_partial = _chg_seq((50.0, 50.0, 50.0, 47.0, 48.0, 48.0, 48.0))
+# "draw", then a later 1 K rise after the charge has closed: a closed charge
+# takes nothing back.
+_chg_late = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0, 48.0))
 _chg_reheat_ctl = _chg_seq((50.0, 47.0, 47.0, 47.0, 47.0, 47.0, 47.0), heated_at=(2,))
 R.check(
     "a charge-start dip that recovers is learned as neither a draw nor usage, "
@@ -61793,13 +61805,18 @@ R.check(
     and abs(_chg_draw[0] - _chg_space_draw[0]) < 0.05
     and _chg_midnight[0] == 0.0 and 0.0 < _chg_midnight[2][0] < _chg_draw[0]
     and _chg_reheat[0] > 0.5 and abs(_chg_reheat[0] - _chg_reheat_ctl[0]) < 0.05
-    and abs(_chg_cap[0] - _chg_draw[0]) < 0.05,
+    and abs(_chg_cap[0] - _chg_draw[0]) < 0.05
+    and _chg_heated_rise[0] > _chg_draw[0] + 0.1
+    and _chg_partial[1] == 1 and 0.0 < _chg_partial[0] < _chg_draw[0]
+    and abs(_chg_late[0] - _chg_draw[0]) < 0.05,
     f"(open kWh, usage points) dip {_chg_dip}, dip at the window edge {_chg_edge}, "
     f"draw that stays down {_chg_draw}, the dip with no DHW charge on record "
     f"(control) {_chg_space}, the draw with none (control) {_chg_space_draw}, "
     f"(new day open kWh, -, [closed day]) recovery across midnight {_chg_midnight}, "
     f"a draw then heating past the slot {_chg_reheat} vs no reheat (control) "
-    f"{_chg_reheat_ctl}, an 8 K draw and 8 K of reheat {_chg_cap}",
+    f"{_chg_reheat_ctl}, an 8 K draw and 8 K of reheat {_chg_cap}, a draw then "
+    f"charge heat {_chg_heated_rise}, a 3 K settle drop recovering 1 K "
+    f"{_chg_partial}, a rise after the charge closed {_chg_late}",
 )
 
 
