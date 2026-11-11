@@ -1,5 +1,7 @@
 Discharges R10-DEPENDABOT-3414-COMPAT's two open carries (one text twice) from r10-rca-dependabot-stale-hash: no lock comment spells a hash-pinned package `name==`, `.github/dependabot.yml` names that cause, and `tests/entities.py` runs the harness's `--tree` reader so a re-apply cannot reintroduce the shape.
 
+Carry 1 is the stale-cause wording in the typing and coverage lock comments (the `name==` spellings); Carry 2 is the same text's second statement, the entities check that stops a re-apply. Both are discharged here.
+
 The cause, from `dev/audit/rca/r10-rca-dependabot-stale-hash.md` section 2: Dependabot rewrites the version at every `name==` match in a lock, the comment included, and leaves the hash lines of a pin it matched twice at the old version (9 of 9 stale pins of #3088, #3323 and #3414 had that shape, 0 of 61 fresh ones). The typing lock's own header repeated the old reading ("Dependabot rewrites only the version line of an overridden pin"); that sentence is replaced too.
 
 What changed, and the design choice in it:
@@ -8,9 +10,6 @@ What changed, and the design choice in it:
 - `tests/closure.py` `INERT_EXCEPT` + `tests/closures.json`: the harness leaves the INERT `dev/audit/` prefix the way `record_burst_replay.py` and `r10_demand_overbook.py` did, and is in the `tests/entities.py` and `tests/harness_headers.py` closures as those siblings are, so an edit to it selects the check that reads it.
 
 Alternatives not taken: wiring into `tests/typing_ruler.py` reads only the typing lock, and the coverage lock is one of the two exposed files. A subprocess call to `--tree` reads the same function through an exit code and loses the `files=0` precondition. Pointing each comment at its pin line by line number goes stale on the next compile.
-
-Carry 1 (from r10-rca-dependabot-stale-hash): built in this diff. Every lock comment `--tree` listed is reworded (exposed=7 at the parent, exit 1; exposed=0 at the head, exit 0), the `.github/dependabot.yml` sentence names the cause, and `tests/entities.py` runs `--tree`. Figures and Null control carry the runs.
-Carry 2 (the same text, second roster index): built by the same diff, and answered by the same runs.
 
 ## Head
 
