@@ -41,6 +41,9 @@
   ok   forkcap: no process of the capped session is left
   ok   forkcap: with the cap off the same chain runs out unbounded-by-the-driver and SURVIVES (mutation proof)
   ok   forkcap: a bounded 10-process command under the same cap is unaffected (null control)
+  ok   forkcap: a command that forks past the cap on the unedited tree is FORKCAP NULL, rc 3, no mutant run
+  ok   forkcap: a diff-mode mutant that forks past the cap is FORKCAP file:line OPERATOR, rc 1, never SURVIVED or KILLED
+  ok   forkcap: under --report-only the same diff-mode FORKCAP lines print and rc is 0
   ok   forkcap: a chain that leaves its pgrp at every link is FORKCAP, not waited out
   ok   forkcap: no pgrp-leaving descendant outlives the run
   ok   forkcap: a chain that leaves its session at every link is FORKCAP, not waited out
@@ -52,6 +55,7 @@
   ok   STMT_DEL: one mutant per simple statement, a three-line continuation exactly once at its first line, none for an import, a docstring, a print or a compound header
   ok   STMT_DEL: the unpinned assignments SURVIVE and the pinned one is KILLED
   ok   STMT_DEL: a comment- and docstring-only diff lists none (null control)
+  FAIL STMT_DEL: a statement sharing its line (`a = 1; b = 2`, `if x: y = 1`) is skipped; a statement with a trailing comment is not (the return is RETURN_DEL's)
   ok   operators: no mutant for a comment, an import or a def, and no CALL_DEL for a log call
-mutant_run self-test: 55 checks, 0 failed
-rc=0
+mutant_run self-test: 59 checks, 1 failed
+rc=1
