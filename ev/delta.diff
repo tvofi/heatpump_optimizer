@@ -1,0 +1,29 @@
+diff --git a/tools/audit/seat/orchestrator_tick.py b/tools/audit/seat/orchestrator_tick.py
+index 9b4f9d8704..5a6e0a8668 100644
+--- a/tools/audit/seat/orchestrator_tick.py
++++ b/tools/audit/seat/orchestrator_tick.py
+@@ -4006,6 +4006,24 @@ def self_test() -> int:
+                 (f"NOT REVIEWABLE {'names pr-contract' if want else 'absent'}",
+                  (len(nr) == 1 and "pr-contract" in nr[0]) if want else not nr)])
+             total, failed = total + a, failed + f
++        # carry 9 at the level that prints it: one_pr clears _red[n] when merge_train's
++        # classify reads WAIT; red stands on a RED read (null control) and on an
++        # unread classify (mt.Stop: fail closed).
++        def _stop(self, h, runs, req):
++            raise mt.Stop("classify", "unread")
++        _was9 = mt.Train.classify_at
++        try:
++            for label, stub, want in (("WAIT clears the red", lambda self, h, runs, req: ("wait", ["gate"], []), []),
++                                      ("RED keeps it (null control)", lambda self, h, runs, req: ("red", [], ["gate"]), ["gate"]),
++                                      ("an unread classify keeps it", _stop, ["gate"])):
++                mt.Train.classify_at = stub
++                t = tick(prs=[pr_obj(77, H1)], runs_at={H1: [run_obj("gate", conclusion="failure")]})
++                t.one_pr("PRS", pr_obj(77, H1), None, ["gate"])
++                a, f = check(f"carry 9 one_pr: {label}", [
++                    (f"_red[77] is {want}", t._red.get(77) == want)])
++                total, failed = total + a, failed + f
++        finally:
++            mt.Train.classify_at = _was9
+         # PRS (d), P345: a budget raise is red at budget-raise-gate until the
+         # owner's approval names its head, which follows the review. #3045's
+         # shape (gate + budget-raise-gate red, one raise, the owner's approval
