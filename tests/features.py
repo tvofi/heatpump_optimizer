@@ -61736,7 +61736,7 @@ R.check(
 # sample, still inside the window. "space": a compressor start for SPACE
 # heating never sets the plan's DHW flag, the learner's only heating input,
 # so the dip is learned exactly as on main -- the null control.
-def _chg_seq(temps, charged=True):
+def _chg_seq(temps, charged=True, start_hm=(8, 0), heated_at=(1,)):
     import sys as _sys
     import types as _types
     coord = Coord(FakeHass(), _r7d203_entry(
@@ -61750,17 +61750,20 @@ def _chg_seq(temps, charged=True):
     learner._publish = lambda **k: published.append(k)
     learner._heating_active = lambda: heating[0]
     module = _sys.modules[type(learner).__module__]
-    real_dt, start = module.dt_util, dt_util.now().replace(hour=8, minute=0)
+    real_dt = module.dt_util
+    start = dt_util.now().replace(hour=start_hm[0], minute=start_hm[1], second=0)
     clock = [start]
     module.dt_util = _types.SimpleNamespace(now=lambda: clock[0])
     try:
         for i, temp in enumerate(temps):
             clock[0] = start + timedelta(minutes=5 * i)
-            heating[0] = charged and i == 1
+            heating[0] = charged and i in heated_at
             _aio.run(learner.async_learn_dynamics(temp))
     finally:
         module.dt_util = real_dt
-    return round(learner.draw_stats.as_dict()["open_kwh"], 4), len(published)
+    stats = learner.draw_stats.as_dict()
+    closed = [e for v in stats["reservoirs"].values() for e in v]
+    return round(stats["open_kwh"], 4), len(published), closed
 
 
 _chg_dip = _chg_seq((50.0, 50.0, 48.0, 47.0, 48.5, 50.0, 50.0))
@@ -61768,6 +61771,15 @@ _chg_draw = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0))
 _chg_edge = _chg_seq((50.0, 50.0, 50.0, 50.0, 48.0, 49.5, 50.0, 50.0))
 _chg_space = _chg_seq((50.0, 50.0, 48.0, 47.0, 48.5, 50.0, 50.0), charged=False)
 _chg_space_draw = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0), charged=False)
+# The recovery crosses midnight: the rise in the tick that opens the next
+# day's occurrence still reaches the dip in the day it closes, and a later
+# rise takes nothing from the new day (a closed occurrence is final).
+_chg_midnight = _chg_seq((50.0, 50.0, 47.0, 47.0, 48.5, 50.0, 50.0), start_hm=(23, 40))
+# A draw before the charge, then the device heats on past the plan slot:
+# those rises are no dip recovering, and must not take back the draw, which
+# the charge never folded.
+_chg_reheat = _chg_seq((50.0, 47.0, 47.0, 47.0, 49.0, 51.0, 51.0), heated_at=(2,))
+_chg_reheat_ctl = _chg_seq((50.0, 47.0, 47.0, 47.0, 47.0, 47.0, 47.0), heated_at=(2,))
 R.check(
     "a charge-start dip that recovers is learned as neither a draw nor usage, "
     "and a draw that does not recover keeps what main booked",
@@ -61775,10 +61787,15 @@ R.check(
     and _chg_edge[0] < 0.05 and _chg_edge[1] == 0
     and _chg_draw[0] > 0.5 and _chg_draw[1] == 1
     and _chg_space[0] > 0.5 and _chg_space[1] == 2
-    and abs(_chg_draw[0] - _chg_space_draw[0]) < 0.05,
+    and abs(_chg_draw[0] - _chg_space_draw[0]) < 0.05
+    and _chg_midnight[0] == 0.0 and 0.0 < _chg_midnight[2][0] < _chg_draw[0]
+    and _chg_reheat[0] > 0.5 and abs(_chg_reheat[0] - _chg_reheat_ctl[0]) < 0.05,
     f"(open kWh, usage points) dip {_chg_dip}, dip at the window edge {_chg_edge}, "
     f"draw that stays down {_chg_draw}, the dip with no DHW charge on record "
-    f"(control) {_chg_space}, the draw with none (control) {_chg_space_draw}",
+    f"(control) {_chg_space}, the draw with none (control) {_chg_space_draw}, "
+    f"(new day open kWh, -, [closed day]) recovery across midnight {_chg_midnight}, "
+    f"a draw then heating past the slot {_chg_reheat} vs no reheat (control) "
+    f"{_chg_reheat_ctl}",
 )
 
 

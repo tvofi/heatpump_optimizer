@@ -429,9 +429,7 @@ class DhwProfileLearner:
         recovered_k = 0.0
         if settle.open and not heated_interval:
             if temp_drop < 0:
-                recovered_k = settle.take(
-                    self._standby_rate(previous_temp) * dt_h - temp_drop
-                )
+                recovered_k = settle.take(-temp_drop)
             elif settling:
                 settle.pending.append([previous_temp, temp_drop, dt_h, now.hour, weekend])
             else:
