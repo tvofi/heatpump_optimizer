@@ -23149,6 +23149,47 @@
     "pr": null
    },
    "brief": "Owner decision (tvofi, 2026-11-11): \"I decide leave the card as is, and fold in the design update of the web page in the next group that touches the page, or a new fable group\". Two things follow. The dashboard card redesign is declined: the card stays as shipped and this group edits no file under custom_components/heatpump_optimizer/www/. The product page, docs/index.html, is rebuilt to the chosen design: the scroll story of one planned day in the How it works section, with the first-week timeline and the control-path chooser of the calmer direction grafted on. The design is the note on this group's design ref, written from prototypes that are not in the repository; the note carries every token, the new markup, CSS and script, the chart generator's whole text, the fallbacks and the acceptance checks, and the fixer builds from it alone. Read it whole before the first edit; a point the note leaves open is a question to the orchestrator, never a guess. Shape, in short. (1) docs/index.html stays one file with no third-party request; the section anchors, every outbound link and every sub-page link keep their base values, and nothing here touches .github/workflows/pages.yml or the plan page it stages beside the site. (2) The illustrative day is committed in the page as inline SVG, written between marker comments by a new generator beside tools/site/build_docs.mjs; the generator has a write mode, a check mode and a self-test, and tests/doc_claims.py gains one pin in check_product_page that fails when the page's chart is not the generator's output. (3) Every sentence of fact stays quoted from its README.md section under its source mark; the hour axis and the chooser's fourth label carry the copy mark, because site_findings refuses a digit or an unquoted sentence outside a claim. (4) The page works without script and with reduced motion as the note's fallback table says; no saving, percentage or currency figure appears in copy or can be read off the chart. (5) The new tracked files are classified in tests/closure.py or measured into tests/closures.json on Linux (gate-scoping.md), and tests/structure.py is measured before and after. Evidence: the failing test first is the new pin, red while the page carries no generated chart; the mutation proof targets that pin; the null control is the generator's check mode unchanged over two runs and red after one price in its preset changes; a browser harness under dev/audit/harnesses/ runs the note's acceptance list at the four widths in both themes, with script off and with reduced motion, and its output goes in the pull-request body with screenshots described, not attached. No finder harness: owner request. User-facing page: writing-for-agents.md does not govern its copy. Fixer model fable, by the owner's decision. Part of #201."
+  },
+  {
+   "group": "R10-TRAIN-RESIDUE-P2",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "S",
+   "effort": "medium",
+   "severity": "medium",
+   "lane": "IN",
+   "wave": 1,
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-TRAIN-RESIDUE"
+   ],
+   "files": [
+    "tools/audit/seat/merge_train.py"
+   ],
+   "hot_files": [
+    "tools/audit/seat/merge_train.py"
+   ],
+   "owner_gate": null,
+   "fixture": false,
+   "rca": [],
+   "findings": [],
+   "fixes": [],
+   "issues": [],
+   "brief": "triage: dev/programme/triage/s6-batch178.md#P597 at 2ff0ab30e0\n\nNot-started sibling of R10-TRAIN-RESIDUE (carries-open after #3424 merged 07:47:51Z; roster_lib.carry_receivable refuses a carries-open destination). Runs after R10-TRAIN-RESIDUE. Line numbers at cbd23f1c8b.\n\n1. TRAIN-SKIP-RELEASES-WORKTREE, in tools/audit/seat/merge_train.py (line numbers at cbd23f1c8b). skip() (:3681) never releases the entry's recarry worktree state/wt/<pr> (made at :2525, released only at close by release_worktrees :2895), so update_pr.sh exits 75 BUSY on that branch for the rest of the train: 40 BUSY relay passes over 6 PRs (3297 3350 3355 3361 3398 3404; cloud-relay.daemon.log 22 + tick-loop.log 18), every one SKIPped, at recarry, carry or ci phases; #3404 >25 min and a hand detach. Fix: at every SKIP line, release that entry's worktree if this run made it (drop it from made_wts): git merge --abort if a merge is in progress, then git worktree remove (never forced), else git -C <wt> checkout -q --detach; log \"released <wt> at SKIP\" / \"NOT released ...\"; never touch a queue entry's own worktree; a rejoin re-makes it (:2513). Self-test: recarry-phase SKIP and ci-phase SKIP each leave wt/<pr> gone or detached before the next entry's first line; unpushed commits stay with NOT released; null control: a non-skipped entry's worktree is released only at close, as today.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R10-SEAT-SCRIPT-OUTPUT, R10-GATE-DEFER-BARRIER): triage s14-13 2026-11-11: P597 not-started sibling of R10-TRAIN-RESIDUE (carries-open, not carry_receivable); triage: dev/programme/triage/s6-batch178.md#P597 at 2ff0ab30e0"
+   }
   }
  ]
 }
