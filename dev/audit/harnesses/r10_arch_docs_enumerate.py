@@ -7,8 +7,8 @@ THE RULE. A sentence of docs/architecture.md or dev/README.md that says all, eac
 count, is a claim about a whole set, and reading one member cannot support it. Each `## N<k>` block below is the
 command that lists the set such a sentence is about, over the whole tree: the modules that name the state machine,
 the jobs and triggers of every workflow file, the beat's jobs, the writers of the hold list, the ledger's kinds,
-the importers and call sites a "one owner" bullet names, and every executable reference from one script the
-machinery figure draws to another. It prints what the tree holds and judges nothing: the pull-request body sets
+the importers and call sites a "one owner" bullet names, every executable reference from one script the
+machinery figure draws to another, and each such script's writes to each store the figure draws. It prints what the tree holds and judges nothing: the pull-request body sets
 each block beside its sentence, and a block that is empty where the sentence needs a member, or holds a member the
 sentence denies, is the finding. Where a block is a zero it carries a control that is not zero.
 
@@ -90,13 +90,72 @@ echo "## N15 calls of model_restart_advice and house_loss_converged"; git grep -
 echo "## N16 config_flow.py: every form shown, and whether its schema is the registry's"
 grep -nE 'async_show_form\(' $P/config_flow.py | while IFS=: read n rest; do echo "  $n $(sed -n "$((n)),$((n+6))p" $P/config_flow.py | grep -oE 'data_schema=[A-Za-z_.]+\(?' | head -1)"; done; grep -nE '^class .*Flow' $P/config_flow.py | cut -c1-120
 echo "## N17 dependency-graph.yml path filters"; python3 -c "import yaml;print(' ',yaml.safe_load(open('.github/workflows/dependency-graph.yml'))[True]['push']['paths'])"
-echo "## N18 executable references from one drawn script to another (a path, an import or a module call; comment lines dropped)"
+echo "## N18 executable references from one drawn script to another (a literal path, a path under a variable, an import or a module call; comment lines dropped)"
 A="cloud_dispatch.py tick_loop.sh cloud_relay.sh bus.sh orchestrator_tick.py beat_jobs.py state_docs.py plan_page.py roster_queue.py roster_edit.py open_pr.sh merge_train.py postmerge.py roster_sync.py heartbeat.sh"
 for a in $A; do for b in $A replan.py open_driver.py carry_fold.py; do [ "$a" = "$b" ] && continue; s=${b%.*}
-  n=$(grep -nE "(^\s*import +$s\b|^\s*from +$s +import|/ *\"$s\.(py|sh)\"|HERE/$s\.(py|sh)|seat/$s\.(py|sh)|plan/$s\.py|tool\(\"$s\"\)|\b$s\.[a-z_]+\()" $S/$a | grep -vE '^[0-9]+:\s*#' | cut -d: -f1 | tr '\n' ' ')
+  n=$(grep -nE "(^\s*import +$s\b|^\s*from +$s +import|/ *\"$s\.(py|sh)\"|HERE/$s\.(py|sh)|seat/$s\.(py|sh)|plan/$s\.py|\\$\\{?[A-Za-z_]+\\}?/$s\.(py|sh)|\{[a-z_]+\}/$s\.(py|sh)|tool\(\"$s\"\)|\b$s\.[a-z_]+\()" $S/$a | grep -vE '^[0-9]+:\s*#' | cut -d: -f1 | tr '\n' ' ')
   [ -n "$n" ] && echo "  $a -> $b: lines $n"; done; done
 echo "## N19 the figure's arrows and the table's rows"
 echo "  arrows $(grep -cE '^    \w+ -->\|"(runs|writes)"\| \w+$' dev/README.md) rows $(grep -cE '^\| [^|]+ \| (runs|writes) \| ' dev/README.md)"
+echo "## N20 writes from each drawn script to each drawn store, outside self-tests and docstrings: DRAWN when the figure has that arrow"
+python3 - <<'PY'
+import ast, re
+from pathlib import Path
+page = Path('dev/README.md').read_text()
+fig = page[page.index('flowchart TB'):]; fig = fig[:fig.index('```')]
+label = dict(re.findall(r'^ {8}(\w+)[\[\(]+"([^"<]+)', fig, re.M))
+arrows = set(re.findall(r'^    (\w+) -->\|"(runs|writes)"\| (\w+)$', fig, re.M))
+files = {}
+for nid, text in label.items():
+    if re.fullmatch(r'[a-z_]+\.(py|sh)', text.split()[0]) and Path('tools/audit/seat', text.split()[0]).is_file():
+        files.setdefault(text.split()[0], set()).add(nid)
+PUSH = r'(\bpush\b|"push")'
+STORES = {
+    'dref': PUSH + r'.*refs/heads/(\{ref\}|dispatch/)',
+    'drec': r'>>? *"?\$S/dispatched',
+    'bus': r'^\s*append_commit |' + PUSH + r'.*refs/heads/(review|verdict|design|probe|handoff)',
+    'ledger': r'ledger\.py"?,? +"?(open|close|attempt)\b|\bledger_(open|close)\b|"(open|close|attempt)", "[a-z][a-z-]+"',
+    'pr': r'"gh", "pr", "(create|edit|comment|close|ready)"|\bgh pr (create|edit|comment|close|ready)\b|update_pr\.sh|tool\("app_push"\)|"\$_push"|\$POSTER',
+    'main': r'"--merge"|\bpr merge\b',
+    'thold': r'git/refs/heads/train-hold',
+    'hbref': PUSH + r'.*refs/heads/\$REF|"\$c:refs/heads/\$REF"',
+    'board': r'mv -f "\$tmp" "\$out"',
+    'roster': PUSH + r'.*refs/heads/\{branch\}|refspec = f"\{head\}:refs/heads/\{branch\}"',
+    'sdoc': r'refs/heads/\{state_ref\}',
+    'hold': r'>>? *"?\$(\(hold_file\)|hf\b)',
+}
+TESTY = re.compile(r'self_?test|_checks$|^_?test|fixture|world')
+def skipped(path, text):
+    """Line numbers inside a self-test function or a docstring."""
+    out = set()
+    if path.suffix == '.py':
+        tree = ast.parse(text)
+        for d in ast.walk(tree):
+            if isinstance(d, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Module)):
+                if not isinstance(d, ast.Module) and TESTY.search(d.name):
+                    out.update(range(d.lineno, d.end_lineno + 1))
+                body = d.body
+                if body and isinstance(body[0], ast.Expr) and isinstance(getattr(body[0], 'value', None), ast.Constant) \
+                        and isinstance(body[0].value.value, str):
+                    out.update(range(body[0].lineno, body[0].end_lineno + 1))
+    else:
+        start = None
+        for i, l in enumerate(text.splitlines(), 1):
+            m = re.match(r'^([a-z_]+)\(\) *\{?\s*$', l)
+            if m and TESTY.search(m.group(1)):
+                start = i
+            if start and l.startswith('}'):
+                out.update(range(start, i + 1)); start = None
+    return out
+for fname, nids in sorted(files.items()):
+    path = Path('tools/audit/seat', fname); text = path.read_text(); skip = skipped(path, text)
+    lines = text.splitlines()
+    for st, pat in STORES.items():
+        hits = [i for i, l in enumerate(lines, 1) if i not in skip and not l.lstrip().startswith('#') and re.search(pat, l)]
+        if hits:
+            state = 'DRAWN' if any((n, 'writes', st) in arrows for n in nids) else 'UNDRAWN'
+            print(f'  {state} {fname} -> {label[st].strip()}: lines {" ".join(map(str, hits))}')
+PY
 '''
 
 

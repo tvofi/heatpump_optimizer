@@ -335,8 +335,11 @@ flowchart TB
     rq -->|"runs"| redit
     redit -->|"writes"| roster
     opr -->|"writes"| pr
+    opr -->|"runs"| busx
+    opr -->|"writes"| ledger
     train -->|"writes"| main
     train -->|"writes"| thold
+    train -->|"writes"| pr
     train -->|"runs"| post
     post -->|"runs"| rsync
     post -->|"runs"| docs
@@ -354,7 +357,7 @@ cites any file but that script.
 | actor | verb | target | performed at |
 |---|---|---|---|
 | orchestrator | runs | cloud_dispatch.py | `tools/audit/seat/cloud_dispatch.py`: `Render the cloud-runner trigger payload for one seat` |
-| orchestrator | runs | fixer, reviewer and design seats | `tools/audit/seat/cloud_dispatch.py`: `fire the seat with a pointer to it` |
+| orchestrator | runs | fixer, reviewer and design seats | `tools/audit/seat/instruments/cloud_dispatch.py.md`: `or fire the standing trigger` |
 | orchestrator | runs | tick_loop.sh | `tools/audit/seat/instruments/tick_loop.sh.md`: `in place of a seat looping the tick` |
 | orchestrator | runs | beat_jobs.py | `tools/audit/seat/instruments/beatd.py.md`: `until a supervisor unit is applied it runs under` |
 | orchestrator | runs | merge_train.py | `dev/governance/roles/nudge.md`: `tools/audit/seat/merge_train.py run` |
@@ -387,8 +390,11 @@ cites any file but that script.
 | roster_queue.py | runs | roster_edit.py | `tools/audit/seat/roster_queue.py`: `"--lint-cwd", a.lint_clone, "--push"]` |
 | roster_edit.py | writes | roster branch | `tools/audit/seat/roster_edit.py`: `refspec = f"{head}:refs/heads/{branch}"` |
 | open_pr.sh | writes | pull request | `tools/audit/seat/open_pr.sh`: `bash "$_push"` |
+| open_pr.sh | runs | bus.sh | `tools/audit/seat/open_pr.sh`: `bash "$SEAT/bus.sh" rekey "$T" "$N"` |
+| open_pr.sh | writes | obligations ledger | `tools/audit/seat/open_pr.sh`: `"$SEAT/ledger.py" attempt "refs/heads/handoff/$T"` |
 | merge_train.py | writes | main | `tools/audit/seat/merge_train.py`: `"--merge", "--match-head-commit"` |
 | merge_train.py | writes | train-hold ref | `tools/audit/seat/merge_train.py`: `git/refs/heads/train-hold` |
+| merge_train.py | writes | pull request | `tools/audit/seat/merge_train.py`: `["gh", "pr", "ready", str(pr), "--repo", t.repo]` |
 | merge_train.py | runs | postmerge.py | `tools/audit/seat/merge_train.py`: `tool("postmerge"), str(pr), "--repo"` |
 | postmerge.py | runs | roster_sync.py | `tools/audit/seat/postmerge.py`: `/roster_sync.py", "--repo", repo, "--apply"` |
 | postmerge.py | runs | state_docs.py | `tools/audit/seat/postmerge.py`: `/state_docs.py", "--repo", repo, "--push"` |
@@ -402,7 +408,7 @@ How to read a row:
   does it; the one-script rule binds script actors only.
 - A script that writes through a helper it runs is drawn as the writer, and
   the helper is not a node: `tools/audit/seat/open_pr.sh` runs
-  `tools/pr/app_push.sh`, the relay runs its pull-request updater, and
+  `tools/pr/app_push.sh` and `tools/audit/seat/ledger.py`, the relay runs its pull-request updater, and
   `tools/audit/seat/bus.sh` runs its comment poster.
 - Two launchers stand between drawn scripts and are not nodes. The
   orchestrator starts `tools/audit/seat/beatd.py`, which starts each job's
@@ -420,7 +426,8 @@ How to read a row:
 - `tools/audit/seat/bus.sh` runs `tools/audit/seat/merge_train.py add` when it
   posts a merge verdict and a train state directory is set.
 - A run that only reads is left out with the other reads, for example:
-  `tools/audit/seat/cloud_relay.sh` and `tools/audit/seat/bus.sh` each run
+  `tools/audit/seat/cloud_relay.sh`, `tools/audit/seat/bus.sh` and
+  `tools/audit/seat/postmerge.py` each run
   `tools/audit/seat/merge_train.py classify`, and `tools/audit/seat/bus.sh`
   runs `tools/audit/seat/cloud_relay.sh held`.
 - A write on a refusal path is left out:
@@ -536,9 +543,7 @@ sequenceDiagram
     O->>M: read the verdict back
     O->>T: board the verdicted pull request
     T->>M: merge --match-head-commit
-    Note over T,M: record-owed opens on merge
     O->>M: land the delivery row
-    Note over O,M: record-owed closes
     O->>M: stamp the version after the merge
 ```
 
