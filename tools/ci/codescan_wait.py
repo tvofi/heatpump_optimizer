@@ -343,6 +343,10 @@ def self_test() -> int:
           not settled([dict(j, conclusion="failure") for j in bare]) and legs_uploaded([dict(j, conclusion="failure") for j in bare]) == [])
     check("23 null: a lagging step row (steps present, no conclusion) is still unsettled",
           not settled(lag()) and legs_uploaded(lag()) == [])
+    done_lag = lambda st: [{"name": nm, "status": "completed", "conclusion": "success", "steps": st} for nm in CODEQL]   # noqa: E731
+    check("23b null: a completed success job with a lagging or empty `steps` list is not carried over: unsettled, not uploaded",
+          all(not settled(done_lag(st)) and legs_uploaded(done_lag(st)) == []
+              for st in ([], [{"name": STEP, "conclusion": None}])))
     check("24 null: a step-less job still in progress is unsettled",
           not settled([dict(j, status="in_progress") for j in bare]))
     print(f"codescan_wait self-test: {n} checks, {bad} failed")
