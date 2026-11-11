@@ -1,0 +1,82 @@
+== STEP 1: owed-reds --help
+usage: merge_train.py owed-reds [-h] [--repo REPO] [--min-runs MIN_RUNS]
+
+options:
+  -h, --help           show this help message and exit
+  --repo REPO
+  --min-runs MIN_RUNS  a head with fewer check runs is not yet fully queued
+== STEP 2 poll
+Wed Nov 11 06:37:49 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:39:26 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:41:01 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:42:36 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:44:11 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:45:46 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:47:21 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:48:56 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:50:30 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:52:05 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:53:40 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:55:16 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:56:51 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 06:58:26 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 07:00:02 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+Wed Nov 11 07:01:36 UTC 2026
+WAIT 49462e86f3dcb85a27f81517aaa358a545a12873 pending: gate red: none
+exit 3
+== STEP 3 owed-reds
+Wed Nov 11 07:01:42 UTC 2026
+arch-score / arch-score
+budget-raise-gate / budget-raise-gate
+codeql / Analyze (actions)
+codeql / Analyze (javascript-typescript)
+codeql / Analyze (python)
+gate
+governance / env-matrix
+governance / policy-docs
+governance / wave-script
+hassfest / hassfest
+pr-contract / pr-contract
+tests / arch-instrument
+tests / briefs
+tests / browser
+tests / ci-ratchet
+tests / closure-scope
+tests / closures
+tests / coverage
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+exit 0
