@@ -28,7 +28,20 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+async function repoRoot(start) {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  let dir = path.resolve(start);
+  if (fs.existsSync(dir) && fs.statSync(dir).isFile()) dir = path.dirname(dir);
+  for (;;) {
+    if (fs.existsSync(path.join(dir, "custom_components", "heatpump_optimizer", "manifest.json"))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) throw new Error("no repository root above " + start);
+    dir = parent;
+  }
+}
+
+const ROOT = await repoRoot(path.dirname(fileURLToPath(import.meta.url)));
 const DOCS = path.join(ROOT, "docs");
 const git = (...a) => execFileSync("git", a, { cwd: ROOT, encoding: "utf8", maxBuffer: 1 << 26 });
 const at = process.argv.indexOf("--base");
@@ -69,9 +82,12 @@ const server = http.createServer((req, res) => {
   if (url.pathname === "/__base.html") { res.writeHead(200, { "content-type": TYPES[".html"] }); res.end(BASE_SRC); return; }
   const rel = url.pathname === "/" ? "index.html" : decodeURIComponent(url.pathname.slice(1));
   const file = path.join(DOCS, rel);
-  if (!file.startsWith(DOCS + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404); res.end(); return; }
+  // One read decides: a missing file or a directory throws, and nothing is checked before it is used.
+  let body = null;
+  if (file.startsWith(DOCS + path.sep)) { try { body = fs.readFileSync(file); } catch { body = null; } }
+  if (body === null) { res.writeHead(404); res.end(); return; }
   res.writeHead(200, { "content-type": TYPES[path.extname(file)] || "application/octet-stream" });
-  res.end(fs.readFileSync(file));
+  res.end(body);
 });
 await new Promise(r => server.listen(0, "127.0.0.1", r));
 const ORIGIN = `http://127.0.0.1:${server.address().port}`;

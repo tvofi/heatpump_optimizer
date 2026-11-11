@@ -234,8 +234,11 @@ function main(argv) {
     if (fails.length) rc = 1; else console.log("day_chart: self-test OK");
   }
   if (flags.has("--write") || flags.has("--check")) {
-    if (!fs.existsSync(page)) { console.log(`FAIL ${page}: no such page`); return 1; }
-    const src = fs.readFileSync(page, "utf8");
+    let src;
+    try { src = fs.readFileSync(page, "utf8"); } catch (e) {
+      if (e.code !== "ENOENT") throw e;
+      console.log(`FAIL ${page}: no such page`); return 1;
+    }
     const { text, problems } = render(src);
     if (flags.has("--write")) {
       const structural = problems.filter(m => !m.endsWith("is not the generator's"));
