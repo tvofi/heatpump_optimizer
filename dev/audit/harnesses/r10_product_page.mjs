@@ -312,6 +312,15 @@ for (const width of [1440, 390]) {
 }
 
 await browser.close();
+// ---- the server's own refusals: one read decides, so a path that is absent or a directory is a 404
+{
+  const probes = ["/no-such-file.html", "/img", "/index.html"];
+  const got = [];
+  for (const p of probes) got.push((await fetch(ORIGIN + p)).status);
+  check("server: an absent path and a directory answer 404, and the page 200",
+    got.join(",") === "404,404,200", probes.map((p, i) => `${p} ${got[i]}`).join("; "));
+}
+
 server.close();
 console.log(`RESULT fails=${fails}`);
 console.log(`RESULT base=${BASE_REF.slice(0, 12)}`);
