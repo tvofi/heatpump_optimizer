@@ -93,10 +93,9 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     Else a later round is **its delta** (tvofi 2026-11-09): `git diff <reviewed-head>
     <head>` (a main merge: its resolution), each prior finding resolved, the live
     required checks. Only a delta touching production code (`custom_components/`)
-    that puts already-reviewed code's functionality at non-obvious risk of being
-    affected, in a way CI would not detect, widens it, to exactly that code; the
-    verdict names the path and the risk. Instrument, test, policy and body deltas
-    never widen it.
+    that puts already-reviewed code's functionality at non-obvious risk, in a way
+    CI would not detect, widens it, to exactly that code; the verdict names the
+    path and the risk. Instrument, test, policy and body deltas never widen it.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
