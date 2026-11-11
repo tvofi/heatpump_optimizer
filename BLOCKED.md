@@ -1,23 +1,32 @@
-# BLOCKED: body_push.sh exit 4 at the handoff, round 2
+# BLOCKED: no pin can be measured at this head while `tests/features.py` is red on main
 
-Code head: bf9707ae03044f329bdbc5c3ce8d3249c51f955b on refs/heads/handoff/r10-duty-switch-restart-learning (clean `tools/pr/prepr.sh` head, body check included; it fast-forwards pull request 3461's branch e277df592e678982bb22fb48644482e30b5b86c7).
-Refused body: refs/heads/handoff-wip/r10-duty-switch-restart-learning-body 76d80712f4417c5215b040833d303d0eb72eb2a0.
+Code head: bf9707ae03044f329bdbc5c3ce8d3249c51f955b on refs/heads/handoff/r10-duty-switch-restart-learning, unchanged by this seat. No ledger file is written: zero of the 109 sites `--pin-killed` lists are pinned.
 
-The body carries three findings that are not yet on the round roster, which this seat may not write: two to R10-DUTY-SWITCH-RESTART-LEARNING-PR-B and one to R10-DUTY-SWITCH-PLANNER-PRICE. They are what block 2 of the round-1 verdict (carry-missing) asked for. Fold them (`carry_audit.py land-ops`), then re-run `body_push.sh` on the kept body.
+Question: may the head merge `origin/main` once pull request 3466 is on it, although `git merge-tree --write-tree origin/main HEAD` reports no conflict (exit 0 against 0e28afd38b353ca8e66269d9ae4be8614fcf5cfb)? That merge is the one route to a pin: with it `mutation-autofix` pins on the pull request by itself, or a seat runs `--pin-killed`. The brief allows a merge on a conflict only, so this seat did not take it, and 3466 is not on main yet (`git log --oneline origin/main | grep -c "#3466"` prints 0).
 
-Question: none; the relay folds the three carries and re-runs body_push.sh.
+## Scope item 2: why `mutation-autofix` reports `skip-measure-failed`
 
-Output of `bash tools/audit/seat/body_push.sh r10-duty-switch-restart-learning <body.md>`:
+Cause: `tests/features.py` is a driver of every site of this diff and its baseline is red at the head, on the `combi_type_branch` census this branch inherits from its merge base cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf (main's red, fixed by pull request 3466 at c0dec53cf1847e97cda8421352d580f49d2dceba, which touches the six lines the census names and none of this diff's). On a red baseline `tests/mutation_table.py` prints `MUTATION TABLE INCONCLUSIVE`, scores no mutant and prints no `PIN KILLED: <n> pinned` line; `measurement()` reads a missing summary line as `skip-measure-failed`, and `merge_pin_shards` ranks that status over every other but `measured`. The twelve `mutation-pins` shards are green because the measure step ends `|| echo`, and the pin run itself exits 0.
+
+Measured here, at bf9707ae0, `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --shard 1/4 --jobs 4` (exit 0, 28 of 109 sites, `git status --short` empty afterwards):
 
 ```
-fill-red: `## Red checks` already names mutation; nothing written
-ref_privacy (body) ok: no host identity in the body
-review-packet handoff: R10-DUTY-SWITCH-RESTART-LEARNING at bf9707ae0304, 3 carries, 0 refused
-CARRY-MISSING R10-DUTY-SWITCH-RESTART-LEARNING-PR-B body item 1b22f416: not in its brief or carries: '- Parts B and C get no ready read API from part A: `Direction.usable`, `.p` and `.median_off_s` hold'
-CARRY-MISSING R10-DUTY-SWITCH-PLANNER-PRICE body item 3656875b: not in its brief or carries: "- The same finding for the planner's price of a switch: it reads the estimate through a reader it ad"
-CARRY-MISSING R10-DUTY-SWITCH-RESTART-LEARNING-PR-B body item 3c666f5b: not in its brief or carries: '- Factory reset keeps the duty-switch store (`_FR_STORES`, "kept: observed facts"), where every othe'
-CARRY-LANDED: 3 missing
-body_push: a carry above is not in its group's brief or carries; land it on the round's roster branch (carry_audit.py land-ops), then push the body
-body_push: REFUSED CARRY-LANDED
-body_push: refused body kept at handoff-wip/r10-duty-switch-restart-learning-body 76d80712f4417c5215b040833d303d0eb72eb2a0
+  baseline tests/features.py: rc=1 failed=2 462s
+MUTATION TABLE INCONCLUSIVE
+  - the baseline is already red in tests/features.py, so no mutant's verdict means anything. Fix the suite first. [...]
+      tests/features.py: combi_type_branch census: [...]  [slugs: []; vendor: ['const.py:812', 'const.py:1595', 'heat_curve.py:72', 'pump_arbiter.py:260', 'pump_arbiter.py:1019', 'thermal_model.py:1870']]
 ```
+
+On the pull request (job 130538473389, run 43011652325, head e277df592e678982bb22fb48644482e30b5b86c7): `shards merged: skip-measure-failed`, `AUTOFIX: skip-measure-failed`. Which shard carried the status was not read from the twelve shard logs; the local run reproduces the path on shard 1 of 4.
+
+Not fixed here, and why: the cause is main's, in lines of `const.py`, `heat_curve.py`, `pump_arbiter.py` and `thermal_model.py` this group does not own, and pull request 3466 already holds the fix. Driving with `--scripts` less `tests/features.py` would leave the run conclusive and every site the section kills unpinned as a survivor: the section's checks live in that script. Pinning from a tree other than the head is what the body rule "`pinned` only if `--pin-killed` ran on this head" refuses.
+
+Unverified: `baseline tests/features.py` reads `failed=2` and the INCONCLUSIVE report names one check. The previous body names one `FAIL` line at this head. The second count was not identified; the next seat reads `PYTHONPATH=tests/hastub python3 tests/features.py` at the head before treating the census as the only red.
+
+## The other scope items
+
+1. Pins: owed, blocked as above. The previous body's ledger-operator run (109 `KILLED` by the section, `SURVIVED NULL`) predicts no survivor; that is `mutant_run.py`'s verdict, not the ledger's.
+3. The fast red: the body on handoff-body f37dc235e already names `tests / fast (3.14)` under `## Red checks` as main's census. It does not yet name pull request 3466 as the fix, nor this cause for `mutation-autofix`; both go in at the re-take.
+4. The review block at 5289e1fee: answered by round 2 (491e272a4, 4bd4edb40, 68a6ba2b3), whose body lists each of the nineteen `rv_` mutants `KILLED` at bf9707ae0. Not re-run by this seat: the head has not moved since that run.
+
+`governance / instrument-self-tests` is red on the pull request and is not in `merge_train.py owed-reds`' set; it is owed no answer.
