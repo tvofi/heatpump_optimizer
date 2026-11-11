@@ -501,7 +501,7 @@ From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393... |  |
 | R10-PREPR-RESIDUE | IN | 1 | in-progress | #2999 | sonnet/opus | - | Residue of R10-PREPR-CAP and R10-FLY-CIPREDICT-RESTORING on one seam, the pre-open prediction in tools/pr/prepr.sh and tools/pr/ci_predict.py: body-check par... |  |
 | R10-TRAIN-RESIDUE | IN | 1 | carries-open | #2715, #3137 | sonnet/opus | - | Merge-train residue on the merge_train.py / stamp seam: undraft of a train-drafted head, a stamp hold the train honours, the live-head cancel sender and dete... |  |
 | R10-SEAT-SCRIPT-OUTPUT | IN | 2 | not-started | - | sonnet/opus | - | Quiet output by default for the seat PR scripts (owner card, 2026-10-24) and the pr_bounded self-test bound in the 12 seat self-tests that lack it. |  |
-| R10-TICK-RESIDUE | IN | 1 | in-progress | #3136 | sonnet/opus | - | The tick levels #3345 left unbuilt: NOT REVIEWABLE naming deferral-only, OUTSIDE-CHAIN-IDLE, probe-refused by reason, the unrecorded-merge query, the repair-... |  |
+| R10-TICK-RESIDUE | IN | 1 | carries-open | #3136 | sonnet/opus | - | The tick levels #3345 left unbuilt: NOT REVIEWABLE naming deferral-only, OUTSIDE-CHAIN-IDLE, probe-refused by reason, the unrecorded-merge query, the repair-... |  |
 | R10-GATE-DEFER-BARRIER | IN | 2 | not-started | - | sonnet/opus | - | P436's class barrier: every reader of the gate conclusion (merge_train policy_refusal, orchestrator_tick one_pr/main, review_packet gate_digest, merge_pr.sh,... |  |
 | R10-REVIEW-DISPATCH-RESIDUE | IN | 2 | in-progress | #2389, #3107, #3113, #3313 | sonnet/opus | - | Reviewer dispatch and return residue: dispatch at the handoff ref (owner policy text), the untouched R10-DISPATCH-AT-HANDOFF carries after #3366, the reviewe... |  |
 | R10-GH-READ-RESIDUE | IN | 1 | carries-open | #2731 | sonnet/opus | - | GitHub-read residue after #3361: app_push.sh push retry on git_transient (reuse gh_read.run_git_retry), the unattributed core-bucket drain (P449), and codesc... |  |
@@ -539,7 +539,7 @@ From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393... |  |
 | R10-OUTSIDE-DHW-CHARGE-SETTLE | CORE | 1 | in-progress | #3434 | opus/opus | - | Outside pull request 3434 by Bankaifan, accepted into round 10 (owner rulings 2026-11-06 outside intake and 2026-11-07 outside work is the top tier; no defer... |  |
 | R10-OUTSIDE-LEARNER-ROBUSTNESS | CORE | 1 | not-started | #3435 | opus/opus | - | Outside pull request 3435 by Bankaifan, accepted into round 10 on the same ruling as pull request 3434 (owner rulings 2026-11-06 outside intake and 2026-11-0... |  |
 | R10-OUTSIDE-DIAG-REDACT-LOCATION | CORE | 1 | in-progress | #3436 | opus/opus | - | Outside pull request 3436 by Bankaifan, accepted into round 10 (owner rulings 2026-11-06 outside intake and 2026-11-07 outside work is the top tier; no defer... |  |
-| R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID | CORE | 1 | not-started | #3437 | opus/opus | - | Outside pull request 3437 by Bankaifan, accepted into round 10 (owner rulings 2026-11-06 outside intake and 2026-11-07 outside work is the top tier; no defer... |  |
+| R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID | CORE | 1 | in-progress | #3437 | opus/opus | - | Outside pull request 3437 by Bankaifan, accepted into round 10 (owner rulings 2026-11-06 outside intake and 2026-11-07 outside work is the top tier; no defer... |  |
 | R10-ECL110-MQTT-OFF-NEUTRAL | CORE | 3 | not-started | - | opus/opus | - | triage: dev/programme/triage/s6-batch168.md#P582 at 2dc8f58c5c. |  |
 | R10-OUTSIDE-DISINFECTION-SETPOINT | CORE | 1 | in-progress | #3439 | opus/opus | - | Outside pull request 3439 by Bankaifan (fork head f9a7bcb4ee at acceptance; re-read it with git ls-remote origin refs/pull/3439/head), accepted into round 10... |  |
 | R10-OUTSIDE-DHW-START-HYSTERESIS | CORE | 2 | in-progress | #3440 | opus/opus | - | Outside pull request 3440 by Bankaifan (fork head cbbd14e006 at acceptance; re-read it with git ls-remote origin refs/pull/3440/head), accepted into round 10... |  |
@@ -552,11 +552,11 @@ From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393... |  |
 | R10-GH-READ-RESIDUE-P3 | IN | 2 | not-started | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch177.md#P596 at c7cab7230c
 
 Not-started sibling of R10-GH-READ-RESIDUE (carries-open, part p2 in flight), opened under th... |  |
-| R10-PRODUCT-PAGE-REDESIGN | UI | 1 | not-started | - | fable/opus | - | Owner decision (tvofi, 2026-11-11): "I decide leave the card as is, and fold in the design update of the web page in the next group that touches the page, or... |  |
+| R10-PRODUCT-PAGE-REDESIGN | UI | 1 | in-progress | - | fable/opus | - | Owner decision (tvofi, 2026-11-11): "I decide leave the card as is, and fold in the design update of the web page in the next group that touches the page, or... |  |
 | R10-TRAIN-RESIDUE-P2 | IN | 2 | not-started | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch178.md#P597 at 2ff0ab30e0
 
 Not-started sibling of R10-TRAIN-RESIDUE (carries-open after #3424 merged 07:47:51Z; roster_l... |  |
-| R10-HOTFIX-SHIM-ESCAPES | IN | 1 | not-started | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch179.md#P598 at 8673dba7c4
+| R10-HOTFIX-SHIM-ESCAPES | IN | 1 | in-progress | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch179.md#P598 at 8673dba7c4
 
 Hotfix, no after: the gh shim refuses gh's own --allow-escape-sequences, so merge_train.job_l... |  |
 | R10-HOTFIX-COMBI-CENSUS-MAIN-RED | B | 1 | not-started | - | opus/opus | - | Main is red since the merge of pull request 3398 (merge commit cbd23f1c8bf6): the push run on main fails tests/features.py at its combi type branch census, t... |  |
