@@ -1786,8 +1786,9 @@ def check_plan(plan: dict) -> list:
     close_stamps = [x for x in plan.get("stamps", []) if x.get("kind") == ROUND_CLOSE]
     post_fin = [mins(plan["groups"][n]["finish"]) for n in s.get("post_closure") or []
                 if n in plan["groups"]]
-    closure = max([mins(x["at"]) for x in close_stamps] + post_fin
-                  or [max((mins(g["finish"]) for g in in_round.values()), default=0)])
+    # No fallback past the stamps: a plan without its one round-close stamp is
+    # refused above, so a closure computed for it would only be a second refusal.
+    closure = max([mins(x["at"]) for x in close_stamps] + post_fin, default=None)
     if s.get("closure_conditions") != list(CLOSURE_CONDITIONS):
         bad.append("summary: closure_conditions is not the owner's closure conditions")
     if mins(s["closure"]) != closure:
@@ -2439,11 +2440,6 @@ def selftest() -> int:
            abs(rv_nofrac("in-review") - rv_nofrac("in-progress")) < 1e-9
            and rv_nofrac("in-review") < 199.0,
            str((rv_nofrac("in-review"), rv_nofrac("in-progress"))))
-    empty = build_plan({"groups": []}, durations, dict(DEFAULT_CAPS), dt.datetime(2026, 1, 5),
-                       "v1.0.0", round_n=2)
-    expect("an empty round (no stamp, no group): --check accepts the closure it was built with",
-           check_plan(empty) == [],
-           str((check_plan(empty), empty["summary"]["closure"])))
     gen_start = dt.datetime.strptime(pc["generated"]["start"], "%Y-%m-%dT%H:%M:%SZ")
     expect("post-closure: wall_hours runs to summary.closure (the catalog finish), not the stamp",
            abs(pc["summary"]["wall_hours"] * 60 - (
