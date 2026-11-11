@@ -536,7 +536,7 @@ From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393... |  |
 | R10-DUTY-SWITCH-RESTART-LEARNING | UI | 2 | in-progress | #3420 | opus/opus | - | Outside contribution: pull request 3420 by Bankaifan is a design note only. |  |
 | R10-DEPENDABOT-3414-COMPAT | C | 1 | carries-open | - | sonnet/sonnet | - | Replacement for Dependabot pull request 3414 (pip group in tests, 7 updates), red at head 4182e75d on tests / typing and tests / fast (3.14): the bot moved h... |  |
 | R10-RCA-DEPENDABOT-STALE-HASH | IN | 1 | done | - | opus/opus | - | Root-cause seat (dev/governance/roles/root-cause.md, defect-root-cause.md) beside R10-DEPENDABOT-3414-COMPAT, never inside it: no production code and no lock... |  |
-| R10-HOTFIX-RESTORE-BASE-SKEW | IN | 1 | in-progress | - | opus/opus | - | triage: dev/programme/triage/s6-batch160.md#P572 at b91ac890cf. |  |
+| R10-HOTFIX-RESTORE-BASE-SKEW | IN | 1 | carries-open | - | opus/opus | - | triage: dev/programme/triage/s6-batch160.md#P572 at b91ac890cf. |  |
 | R10-RCA-RESTORE-BASE-SKEW | IN | 1 | done | - | opus/opus | - | ROOT-CAUSE SEAT (dev/governance/roles/root-cause.md + defect-root-cause.md), runs beside R10-HOTFIX-RESTORE-BASE-SKEW and never inside it. |  |
 | R10-OUTSIDE-DHW-CHARGE-SETTLE | CORE | 1 | in-progress | #3434 | opus/opus | - | Outside pull request 3434 by Bankaifan, accepted into round 10 (owner rulings 2026-11-06 outside intake and 2026-11-07 outside work is the top tier; no defer... |  |
 | R10-OUTSIDE-LEARNER-ROBUSTNESS | CORE | 1 | in-progress | #3435 | opus/opus | - | Outside pull request 3435 by Bankaifan, accepted into round 10 on the same ruling as pull request 3434 (owner rulings 2026-11-06 outside intake and 2026-11-0... |  |

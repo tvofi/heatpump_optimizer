@@ -32,7 +32,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-CARD-COLLAPSE (stage in-progress, branch `fix/r10-card-collapse`): `git fetch origin fix/r10-card-collapse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DUTY-SWITCH-RESTART-LEARNING (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-DEPENDABOT-3414-COMPAT (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-HOTFIX-RESTORE-BASE-SKEW (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-HOTFIX-RESTORE-BASE-SKEW (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-CHARGE-SETTLE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-LEARNER-ROBUSTNESS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID (stage in-progress): no branch pushed yet, so nothing to fetch
