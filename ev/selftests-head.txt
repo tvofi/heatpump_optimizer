@@ -1,0 +1,12 @@
+gh_calls self-test: 215 checks, 0 failed
+queue_pre_flight self-test: 53 checks, 0 failed
+orchestrator_tick self-test: 312 checks, 0 failed
+tick_loop self-test: 30 checks, 0 failed
+== gh_read
+The bounded retry of GitHub READS for the seat's Python instruments (R10-FLY-GH-READ-RETRY).
+rc=2
+== beatd
+gh_read_run self-test: 13 checks, 0 failed
+ok   anchor m7_dead_running_kept occurs once in production, changes it, names a check of (7)
+ok   anchor m8_held_always_free occurs once in production, changes it, names a check of (8)
+rc=124

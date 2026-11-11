@@ -1,0 +1,10 @@
+tools/audit/seat/gh_read.py:216:def read_pages(read, path: str, key: str = "", per_page: int = PER_PAGE, max_pages: int = MAX_PAGES):
+tools/audit/seat/gh_read.py:606:    code, items, why = read_pages(read, "repos/o/r/commits/h/check-runs", "check_runs", per_page=2)
+tools/audit/seat/gh_read.py:613:    code, items, _ = read_pages(read, "repos/o/r/commits/h/check-runs", "check_runs", per_page=2)
+tools/audit/seat/gh_read.py:617:    read_pages(read, "repos/o/r/commits/h/check-runs", "check_runs")
+tools/audit/seat/gh_read.py:621:    code, items, _ = read_pages(read, "repos/o/r/pulls/1/reviews?state=x", per_page=2)
+tools/audit/seat/gh_read.py:626:    code, items, why = read_pages(read, "repos/o/r/x", per_page=2, max_pages=3)
+tools/audit/seat/gh_read.py:628:    code, items, why = read_pages(lambda argv: (4, "gh: Not Found (HTTP 404)"), "repos/o/r/x")
+tools/audit/seat/gh_read.py:631:    code, items, why = read_pages(lambda argv: (0, "{not json\n"), "repos/o/r/x")
+tools/audit/seat/queue_pre_flight.py:187:        code, comments, why = self.t.pages(f"repos/{self.repo}/issues/{pr}/comments")
+tools/policy/agreement_py.py:381:                    return 0, ""  # no review: an empty page of the train's paged read (gh_read.read_pages)

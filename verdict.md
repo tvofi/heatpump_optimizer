@@ -1,0 +1,29 @@
+Fix review: merge 01164518380caf4c65bd7ee098ebf0a5f23e6bf4
+
+bus-nonce: 02dc9ced57990f14ee0a392d38f79eda
+
+This is round 2 of pull request 3462 (R10-GH-READ-RESIDUE part 2). I measured the handoff tip 01164518380caf4c65bd7ee098ebf0a5f23e6bf4 from a detached worktree. It is one commit on the round-1 head 588d1a4dfe607bc990fb3ced410a1df98005b9cf, and its merge base is ee64358be7eeccaec5178a923cb3b83a18a924a0. No pull request is open at this tip yet, so there is no review packet and no CI run at this head to wait on.
+
+## Evidence
+
+- Round-1 block resolved. Round 1 blocked on 5 mutants: Train.pages with its key dropped, and the per-site `--jq` keys check_runs, workflow_runs x2 and jobs. I re-ran every one of them, plus reviewer mutants on the 7 keyed `self.pages` sites at merge_train.py:1602, 1648, 1846, 1861, 1871, 3337 and 3598. Each site was mutated twice, once with a key typo and once with the key dropped. All 14 production mutants are KILLED under `python3 tools/audit/seat/merge_train.py --self-test`. The null control (unmutated) gives `611 checks, 0 failed`, rc 0 (ev/mutants-merge_train.txt, with each mutant's diff; driver ev/mutant-driver.py). Failure counts: key dropped or empty at Train.pages, and check_runs at 1846: Stop `the check runs at aaaaaaaaaaaa could not be read`. 1648: 1 failed. 1861: 5. 1871: 7. 3337: 1. 3598: 5. For 1846 and 3337 the body reports one combined mutant; I ran them separately, and each is killed on its own. 1861 (`_gate_deferred`'s actions/runs read) was not named in round 1 or in the body, and it is killed too.
+- Survivors from my driver run: none. Its only surviving row is the null control.
+- Delta review (fix-review step 12): `git diff 588d1a4d 01164518` touches only tools/audit/seat/merge_train.py (+21/-1). It adds `_JQ_CHECK`, `_PAGED_KEY` and `_jq_checked`, and one line in `Train.__init__` that wraps only an injected `run` and only while `_JQ_CHECK` is set. Only `_self_test` sets `_JQ_CHECK`. Production runs `run=None`, so its path is unchanged. Nothing under custom_components/ is touched, so the review does not widen.
+- Finder harness, base ee64358b: `classify 381b0114 --pr 3427` returns REFUSE `ci: the check runs at 381b01147f24 could not be read`, rc 2 (ev/finder-harness-base.txt). Head 01164518: GREEN `pending: none red: none`, rc 0 (ev/finder-harness-head.txt). 381b0114 has check-runs total_count 112 (ev/check-run-counts.txt), so I re-derived the body's 112.
+- Null control: the body's figure no longer reproduces, for an external reason. The body's null control, `classify --main ee64358b` staying `WAIT ... rc 3`, is now REFUSE rc 2 at base and RED `red: gate` rc 1 at head. ee64358b now carries 150 check runs (ev/check-run-counts.txt), so it has become a multi-page commit and no longer separates anything. Its movement is the fix working, not a defect of the PR. I used 588d1a4d instead, which has 71 check runs and is one page. `classify 588d1a4d --pr 3462` gives `RED ... red: gate`, rc 1, identically at base and head (ev/null-control-onepage.txt). The harness moves only at the multi-page commit.
+- Self-tests of the other instruments at this head (ev/selftests-head.txt): gh_calls 215/0, queue_pre_flight 53/0, orchestrator_tick 312/0 and tick_loop 30/0 match the body, and gh_read_run gives 13/0. Not re-derived locally: gh_read 146 and beatd 123. `gh_read.py --self-test` exits rc 2 with its usage line, and I did not find the invocation that prints the 146-check line. CI at 588d1a4d printed `gh_read self-test: 146 checks, 0 failed` (ev/pr_args-compare.txt). beatd hit my 220 s timeout (rc 124) with only `ok` lines in its tail. Neither file is touched by the round-2 delta.
+- Class: I checked `git grep -c -e '--paginate' -- tools tests ':!*.md'` and it matches the body: 74 lines in 28 files at ee64358b, and 66 lines in 27 files at the head (ev/class-enum.txt). The remaining reads are dismissed to the P3 group, as in round 1. The only `pages`/`read_pages` caller outside merge_train is queue_pre_flight.py:187, which is key-less, so the body's claim holds (ev/read_pages-callers.txt).
+- VERSION, the manifest, RELEASE_NOTES.md and tests/golden are untouched against the merge base (ev/version-untouched.txt is empty). No claim file is touched.
+- `git merge-tree --write-tree origin/main 01164518` exits rc 0 with tree b1f5436192fc2f324648e2698706346c67415efa, a clean merge (ev/merge-tree.txt).
+- Body head check: the body names 01164518380caf4c65bd7ee098ebf0a5f23e6bf4, which is the tip I measured.
+- Red checks: this head has no CI. At the PR head 588d1a4d, `gate` and `governance / instrument-self-tests` failed (ev/failed-checks.txt). The instrument-self-tests failure there is `pr_args self-test: 199 checks, 1 failed` (`the pusher census ...`). Main ee64358b fails the same line in the same job, and also `tests / fast (3.14)` (ev/instrument-self-tests-fails.txt, ev/pr_args-compare.txt). These failures are inherited from main, as the dispatch states. The merge_train, gh_read, gh_calls, tick_loop and orchestrator_tick self-tests all print 0 failed there. The body's `## Red checks: none` is not contradicted by any red this PR caused. The train re-proves the head once the PR takes it.
+- Not re-run: `tools/pr/prepr.sh` (the body reports rc=0 and `STRUCTURE RATCHET PASSED`). The round-2 delta touches no budgeted metric beyond merge_train.py's line count, and CI's ratchet will grade it. This figure is not verified by me.
+- Forward-carries: both are `dismissed:` and unchanged from round 1, which already accepted them.
+
+## Findings
+
+none
+
+## Friction
+
+- Main ee64358b's check-run count grew from one page to 150 (two pages) after round 1. This silently invalidated the body's null control, which is a commit chosen for being one page. Carry: dismissed: evidence of drift on a live corpus; the replacement control at 588d1a4d is recorded in Evidence
