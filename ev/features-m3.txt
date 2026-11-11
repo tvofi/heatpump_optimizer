@@ -1,0 +1,33 @@
+# run: m3  (PYTHONPATH=tests/hastub:tests python3 tests/features.py)
+  FAIL combi_type_branch census: no preset slug outside const.py's table and the options flow, and no product or vendor name in the package's Python; the census sees the table's own slugs  [slugs: []; vendor: ['const.py:812', 'const.py:1595', 'heat_curve.py:72', 'pump_arbiter.py:256', 'pump_arbiter.py:1015', 'thermal_model.py:1870']]
+  FAIL and a plan that wants the pump still switches on
+  FAIL but a block never stops the pump being switched ON  [that is the plan asking for something the unblocked channel can deliver, which the block has no claim over]
+  FAIL null control: fixed comfort mode, a write in the action's own step issues main's calls in order  [[('switch', 'turn_off', {'entity_id': 'switch.hp'})] != [('switch', 'turn_on', {'entity_id': 'switch.hp'})]]
+  FAIL a fixed mode: a write landing in the later step keeps its own command  [['turn_off']]
+  FAIL system identification: a write landing in the later step keeps its own command  [['turn_off']]
+6 of 5250 FEATURE CHECKS FAILED
+rc=1
+  ok   D2-s3-01: under quarter-hour entries the current price is the covering quarter's, agreeing with the plan's own step-0 reader on every quarter
+  ok   a space block zeroes space power and leaves the supply switch and DHW alone
+  ok   a DHW block zeroes hot water and leaves space power and the supply switch
+  ok   perturbation: 0.3 x nameplate x COP lands inside the band
+  ok   an unconfigured slot never lands in missing_keys
+  ok   a window across midnight caps exactly its own steps, 22:00 through 05:45
+  ok   a midnight-wrapping silent window and a morning off window mark exactly their own steps
+-- supply switch at step boundaries (#2492, R10-SAV-ACTUATION)
+  ok   an install with no supply switch arms no step tick, where one with a switch arms it
+-- supply switch: the cycle writes the step it lands in
+  ok   a cycle whose ON action was cut in the last step writes the OFF of the step it lands in
+  ok   null control: the same cycle inside the action's own step writes its ON
+  ok   a cycle whose OFF action was cut in the last step writes the ON of the step it lands in
+  ok   null control: the same OFF-planned cycle inside the action's own step writes its OFF
+  ok   null control: economy plan mode, a write in the action's own step issues main's calls in order
+  ok   null control: auto plan mode, OFF cut, a write in the action's own step issues main's calls in order
+  FAIL null control: fixed comfort mode, a write in the action's own step issues main's calls in order  [[('switch', 'turn_off', {'entity_id': 'switch.hp'})] != [('switch', 'turn_on', {'entity_id': 'switch.hp'})]]
+  ok   null control: stale plan, a write in the action's own step issues main's calls in order
+  ok   null control: live boost (the overlay has made the action ON), a write in the action's own step issues main's calls in order
+  ok   null control: system identification, a write in the action's own step issues main's calls in order
+  FAIL a fixed mode: a write landing in the later step keeps its own command  [['turn_off']]
+  FAIL system identification: a write landing in the later step keeps its own command  [['turn_off']]
+  ok   a live boost over an OFF step: a write landing in the later step keeps its own command
+  ok   a plan action's power is not the experiment's: the plan's own step (5.0 kW) decides duty and level although the action reads 0 kW
