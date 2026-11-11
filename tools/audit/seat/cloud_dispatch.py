@@ -638,7 +638,11 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
         except roster_lib.RosterNotFound as e:
             raise Refusal(str(e))
         pline = part_line(group_id, roster_lib.pending_carries(group, legacy), part)
-        topic = f"{topic}-p{part}" if part > 1 else topic  # roster_lib.group_for_branch maps -pN back
+        if part > 1:
+            topic = f"{topic}-p{part}"
+            for other in roster.get("groups", []):  # a part's topic is a roster group's own: one seat ref, one wrong credit
+                if other is not group and topic in (_topic_of(other), roster_lib.norm_group(str(other.get("group")))):
+                    raise Refusal(f"--part {part}: {topic} is the topic of {other.get('group')}")
     design = ""
     if role == "fixer" and roster_lib.needs_design(group) and not design_exempt.strip():
         if not design_approved(repo_dir, group_id):
@@ -759,7 +763,9 @@ def _group_checks(check) -> None:
         many = {"group": "R10-SPLIT", "brief": "Many.\n", "resume": {"branch": "handoff/r10-split"},
                 "carry": [f"Carry text {i}." for i in range(21)] + ["Built. [implemented: abc1234]"]}
         five = {"group": "R10-FIVE", "brief": "Five.\n", "carry": [f"Five {i}." for i in range(5)] + ["Gone. [moved: R10-X]"]}
-        land([grp, bad, big, two, cbad, ruled, legacy, prod, cons, share, donec, many, five])
+        clash = {"group": "R10-CLASH", "brief": "Clash.\n", "carry": [f"Clash {i}." for i in range(8)]}
+        clash2 = {"group": "R10-CLASH-P2", "brief": "Own.\n", "resume": {"branch": "handoff/other-topic"}}
+        land([grp, bad, big, two, cbad, ruled, legacy, prod, cons, share, donec, many, five, clash, clash2])
         git(work, "remote", "add", "origin", str(origin))
         tip = git(work, "rev-parse", "origin/main").strip()
 
@@ -887,6 +893,10 @@ def _group_checks(check) -> None:
             check("--part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9",
                   p2 == "dispatch/fixer-r10-split-p2" and "topic r10-split-p2, at head" in p2text
                   and sum(ln == pline for ln in p2text.splitlines()) == 1 and p2text.endswith(pline + "\n"))
+            cwhy = why_any("R10-CLASH", part=2)
+            check("a part whose topic is another group's own (R10-CLASH-P2) refuses naming it; part 1 and a free part publish",
+                  "R10-CLASH-P2" in cwhy and "\n" not in cwhy and not git(work, "ls-remote", "origin", "refs/heads/dispatch/fixer-r10-clash-p2").strip()
+                  and not why_any("R10-CLASH", part=1) and p2 == "dispatch/fixer-r10-split-p2")
             p1text = fetched(dispatch("R10-SPLIT", part=1), "PROMPT.md")
             check("--part 1 keeps the group's own topic and names carries 0-4",
                   "topic r10-split, at head" in p1text and "\nPart 1 of 4: build carries 0-4; the others" in p1text)
