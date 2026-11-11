@@ -80,7 +80,9 @@ ROWS (the job table's `interval_s` in brackets):
                      `unheld_skip`); its UNHELD lines.
   pulse [300]        pulse.py into `S/beatd/pulse.txt`; its STOPPED and
                      UNREADABLE lines to the digest.
-  cancel-sweep [600] cancel_superseded.py `sweep --repo R`; failures only.
+  cancel-sweep [600] cancel_superseded.py `sweep --repo R --priority` (+ `--train-state
+                     <train_state>` when the overlay has one); failures only (a
+                     remembered 409 zombie is no failure).
   disk [900]         worktree_gc.sh when `/` has under `disk_floor_gib` free;
                      a line only if still under afterwards.
   opener [300]       open_driver.py `--board` (one pass; its state stays in

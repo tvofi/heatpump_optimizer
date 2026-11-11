@@ -49,6 +49,22 @@ reported as a ghost, never cancelled. Prints one line per action and
 `CANCEL-SWEEP: cancelled n, kept m (live head), skipped k (bot head / not a PR),
 ghosts g`. A critical-path or hotfix superseded run stays cancellable.
 
+ZOMBIES (carry 5). A run that answers HTTP 409 to its cancel while listed active is
+remembered in `$HPO_STATE_DIR/cancel-zombies.json` {id: first-seen}, printed once as
+`cancel_superseded: zombie <id> (409, not retried)`, skipped without a POST or a commit
+read on later passes, counted in the summary line's `zombies` and not a failure; an id
+gone from the active listings drops out of the file. Any other failure is retried.
+
+PRIORITY (`sweep --priority [--train-state DIR]`, owner 2026-11-11, carries 4 and 6): while a
+critical-path, hotfix or outside PR (`ci_priority.tier`, mapping from the roster) has a
+QUEUED run, queued runs of non-priority PRs are candidates -- never a run in progress, a
+main run, a PR the train holds (queue or spool under DIR), the train's current PR, or any PR
+holding a `Fix review: merge` comment. The setting's `priority_cancel` (false) decides
+whether candidates are cancelled; off, the sweep HOLDS (cancels nothing, prints one
+summary line). On, each cancel is recorded in `priority-held.json` and re-run (POST
+.../rerun) once no priority run is queued; one line per cancel and per re-run naming the
+PR, the run and the priority PR that caused it.
+
 `concurrency:` is unchanged and still models the bot rule (`tests/entities.py`).
 The workflow job runs the BASE's copy of this program with `actions: write`.
 """
