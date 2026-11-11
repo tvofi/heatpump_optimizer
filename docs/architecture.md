@@ -182,7 +182,8 @@ custom_components/heatpump_optimizer/
 ├── pump_arbiter.py       # Opt-in: writes the pump's mode and set-points per
 │                         #   plan step, and stands down on a manual change
 ├── duty_switch.py        # Learns per direction whether a duty switch stops
-│                         #   the running compressor; observes, changes nothing
+│                         #   the running compressor; a latched direction's
+│                         #   estimate is what the solve prices that switch by
 ├── heat_curve.py         # The heat-curve displace's outputs: the ECL110 MQTT
 │                         #   topics and an offset number entity
 ├── off_restore.py        # The one owner of the off and unload restore: what

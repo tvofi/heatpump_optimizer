@@ -27662,6 +27662,45 @@ R.check(
     f"(solve, hub): config False -> {_dd_off!r}, default -> {_dd_default!r}",
 )
 
+# R10-DUTY-SWITCH-PLANNER-PRICE: and the duty-switch learner's read for the
+# planner, by the same copy.
+from heatpump_optimizer import duty_switch as _dsp_push_ds  # noqa: E402
+
+
+def _dsp_pushed(learner):
+    hass = FakeHass()
+    _seed_prices(hass)
+    entry = FakeEntry(data={**_LC_DATA}, entry_id="dsp_push")
+    _asyncio.run(_ha_setup_entry(_integ, hass, entry))
+    coord = entry.runtime_data
+    coord._prices = list(_svc_crash_coord._prices)
+    never = coord._solve_hubs(4, banded=True)[0]
+    _dsp_push_ds.record_for(coord).learner = learner
+    return never, coord._solve_hubs(4, banded=True)[0], coord._opt_config
+
+
+_dsp_push_d = _dsp_push_ds.Direction
+_dsp_push_day = datetime(2026, 11, 10, tzinfo=UTC).date()
+_dsp_push_l = _dsp_push_ds.DutySwitchLearner({
+    "dhw_space": _dsp_push_d(k=3.0, kept_w=1.0, first_day=_dsp_push_day, last_day=_dsp_push_day,
+                             usable=True, off_s=[400.0, 501.0, 620.0, 700.0]),
+    "space_dhw": _dsp_push_d(k=2.0, kept_w=2.0, first_day=_dsp_push_day, last_day=_dsp_push_day, usable=True),
+})
+_dsp_cfg_never, _dsp_cfg_read, _dsp_cfg_hub = _dsp_pushed(_dsp_push_l)
+R.check(
+    "the coordinator passes the learner's read to the solve's configuration "
+    "copy: zeros on a pump never arbitrated, both pairs once latched, and the "
+    "configured hub keeps its zeros",
+    (_dsp_cfg_never.duty_switch_stop_probability, _dsp_cfg_never.duty_switch_off_seconds)
+    == ((0.0, 0.0), (0.0, 0.0))
+    and (_dsp_cfg_read.duty_switch_stop_probability, _dsp_cfg_read.duty_switch_off_seconds)
+    == ((0.75, 0.5), (560.5, 0.0))
+    and _dsp_cfg_hub.duty_switch_stop_probability == (0.0, 0.0)
+    and _dsp_cfg_hub.duty_switch_off_seconds == (0.0, 0.0),
+    f"never {_dsp_cfg_never.duty_switch_stop_probability}, read "
+    f"{_dsp_cfg_read.duty_switch_stop_probability} {_dsp_cfg_read.duty_switch_off_seconds}",
+)
+
 _svc_sim_hass = FakeHass()
 _seed_prices(_svc_sim_hass)  # #924
 _svc_sim_entry = FakeEntry(data=_LC_DATA, entry_id="sim_pump")
@@ -81337,7 +81376,8 @@ from pathlib import Path as _DsPath  # noqa: E402
 R.section("duty-switch restart learning, part A (design duty-switch-restart-learning)")
 # A hot water -> heating mode write while the compressor runs stops it on some
 # pumps (Bankaifan, pull request 3420). Part A observes, estimates, persists
-# and publishes; nothing reads the estimate. The learner is driven directly
+# and publishes; the planner's read of it is R10-DUTY-SWITCH-PLANNER-PRICE's
+# section. The learner is driven directly
 # with the install's own table, then through ``pump_arbiter.apply`` and the
 # listener ``duty_switch`` arms.
 _DS_T0 = datetime(2026, 1, 10, 0, 0, tzinfo=UTC)
@@ -86115,5 +86155,149 @@ R.check(
     and _dsp_co.opt._space_avail is _dsp_co_kept,
     f"{len(_dsp_co_calls)} candidate solve(s), status {_dsp_co_out[2]}",
 )
+
+
+# 7. The learner's side: the bound on the decayed count, and the read the
+# planner prices by. Everything below needs the predecessor's module.
+import json  # noqa: E402
+
+from heatpump_optimizer import duty_switch as _dsp_ds, pump_mode as _dsp_pm  # noqa: E402
+
+_DSP_DAY = datetime(2026, 11, 10, tzinfo=UTC)
+
+
+def _dsp_stop(learner, at, off_s):
+    """One hot water to heating switch at ``at`` that stops the compressor 19 s
+    later, void-checked on the next pass, restarting after ``off_s``."""
+    ctx = _dsp_ds.SwitchContext(
+        mode_written_at=at, last_write_at=at, inlet_c=44.2, space_setpoint_c=32.0,
+        target_demand=True, plan_stays=True)
+    learner.mode_write(at, _dsp_pm.MODE_DHW, _dsp_pm.MODE_HEAT, True, ctx)
+    learner.edge(at + timedelta(seconds=19), False)
+    learner.note_pass(at + timedelta(seconds=60), ctx, True, False)
+    learner.edge(at + timedelta(seconds=19 + off_s), True)
+
+
+def _dsp_dir(k, kept_w, usable=True, off_s=()):
+    return _dsp_ds.Direction(k=k, kept_w=kept_w, decayed_at=_DSP_DAY, first_day=_DSP_DAY.date(),
+                 last_day=_DSP_DAY.date() + timedelta(days=1), usable=usable, off_s=list(off_s))
+
+
+def _dsp_kept(count, days=0):
+    """A direction latched at the cap on stops alone, then ``count`` kept
+    episodes at one instant, then aged ``days``; and the largest n it held."""
+    d = _dsp_dir(_dsp_ds.N_CAP, 0.0)
+    held = d.n
+    for _ in range(count):
+        d.book(_DSP_DAY, False, None)
+        held = max(held, d.n)
+    d.decay(_DSP_DAY + timedelta(days=days))
+    return d, held
+
+
+_dsp_fill = _dsp_ds.Direction()
+_dsp_fill_n = []
+for _dsp_i in range(40):
+    _dsp_fill.book(_DSP_DAY + timedelta(hours=_dsp_i), _dsp_i % 3 != 0, 501.0)
+    _dsp_fill_n.append(_dsp_fill.n)
+R.check(
+    "the decayed count is held at the cap, twice the on-threshold: forty "
+    "bookings an hour apart end on it and none leaves it above (to 1e-9, the "
+    "rounding of two scaled addends)",
+    _dsp_ds.N_CAP == 10.0 == 2 * _dsp_ds.N_ON
+    and max(_dsp_fill_n) <= _dsp_ds.N_CAP + 1e-9 and abs(_dsp_fill_n[-1] - _dsp_ds.N_CAP) < 0.05
+    and _dsp_fill_n[8] < _dsp_ds.N_CAP - 0.5,
+    f"largest n {max(_dsp_fill_n)!r}, last {_dsp_fill_n[-1]!r}, after nine {_dsp_fill_n[8]!r}",
+)
+_dsp_mix = _dsp_dir(6.0, 4.0)
+_dsp_mix.book(_DSP_DAY, True, None)
+R.check(
+    "the cap scales both counts alike: a stop booked on six of ten leaves "
+    "p at seven of eleven",
+    abs(_dsp_mix.p - 7.0 / 11.0) < 1e-12 and abs(_dsp_mix.n - _dsp_ds.N_CAP) < 1e-9,
+    f"p={_dsp_mix.p!r} n={_dsp_mix.n!r}",
+)
+_dsp_k12, _dsp_k12_held = _dsp_kept(12)
+_dsp_k13, _dsp_k13_held = _dsp_kept(13)
+R.check(
+    "from p = 1 at the cap the latch holds after twelve kept episodes and "
+    "drops at the thirteenth, each multiplying p by 10/11",
+    _dsp_k12.usable and not _dsp_k13.usable
+    and abs(_dsp_k12.p - (10.0 / 11.0) ** 12) < 1e-9 and abs(_dsp_k13.p - (10.0 / 11.0) ** 13) < 1e-9
+    and max(_dsp_k12_held, _dsp_k13_held) <= _dsp_ds.N_CAP + 1e-9,
+    f"p after 12 {_dsp_k12.p!r} usable={_dsp_k12.usable}; after 13 {_dsp_k13.p!r} usable={_dsp_k13.usable}",
+)
+R.check(
+    "with no episodes a capped direction is latched at 28 days and not the day after",
+    _dsp_kept(0, 28)[0].usable and not _dsp_kept(0, 29)[0].usable,
+    f"n at 28 days {_dsp_kept(0, 28)[0].n!r}, at 29 {_dsp_kept(0, 29)[0].n!r}",
+)
+_dsp_rt = _dsp_ds.DutySwitchLearner({"dhw_space": _dsp_k12, "space_dhw": _dsp_fill})
+_dsp_rt_back = _dsp_ds.DutySwitchLearner.from_record(json.loads(json.dumps(_dsp_rt.stored_record())))
+R.check(
+    "a capped record round-trips through its stored form",
+    _dsp_rt_back.directions == _dsp_rt.directions and _dsp_rt_back.directions["dhw_space"].usable,
+    f"{_dsp_rt_back.directions}",
+)
+
+# The read: both pairs in the leaf's order, zeros unless the stored latch is on.
+_dsp_table = _dsp_ds.DutySwitchLearner()
+for _dsp_i in range(6):
+    _dsp_stop(_dsp_table, _DSP_DAY + timedelta(hours=7 * _dsp_i), 501)
+R.check(
+    "six stopping switches over two days, each off 501 s, latch the direction "
+    "and the planner reads the acceptance fixture's pairs from the learner",
+    _dsp_table.directions["dhw_space"].usable
+    and _dsp_table.planner_pairs() == (_DSP_PAIR, _DSP_OFF),
+    f"{_dsp_table.planner_pairs()} against {(_DSP_PAIR, _DSP_OFF)}",
+)
+_DSP_LEARNERS = {
+    "an empty learner": _dsp_ds.DutySwitchLearner(),
+    "a learner under its on-threshold, off times stored": _dsp_ds.DutySwitchLearner(
+        {"dhw_space": _dsp_dir(4.0, 0.0, usable=False, off_s=[501.0, 492.0]), "space_dhw": _dsp_ds.Direction()}),
+    "an install whose every switch was kept": _dsp_ds.DutySwitchLearner(
+        {"dhw_space": _dsp_dir(0.0, 10.0, usable=False), "space_dhw": _dsp_dir(0.0, 10.0, usable=False)}),
+}
+R.check(
+    "the read returns zeros while a direction is unlatched, its off times with it",
+    all(l.planner_pairs() == ((0.0, 0.0), (0.0, 0.0)) for l in _DSP_LEARNERS.values()),
+    f"{ {n: l.planner_pairs() for n, l in _DSP_LEARNERS.items()} }",
+)
+_dsp_two = _dsp_ds.DutySwitchLearner({
+    "dhw_space": _dsp_dir(3.0, 1.0, off_s=[400.0, 501.0, 620.0, 700.0]),
+    "space_dhw": _dsp_dir(2.0, 2.0),
+})
+R.check(
+    "a latched direction reads its own p and median off time in its own slot, "
+    "hot water to heating first, and no off time while every stop's was censored",
+    _dsp_two.planner_pairs() == ((0.75, 0.5), (560.5, 0.0)),
+    f"{_dsp_two.planner_pairs()}",
+)
+
+# 4, the learner arm: each null state's read, handed to a full optimize.
+_dsp_arm_bad = []
+for _dsp_name, _dsp_kw in _DSP_INSTALLS.items():
+    for _dsp_label, _dsp_l in _DSP_LEARNERS.items():
+        _dsp_null = _dsp_solve(*_dsp_l.planner_pairs(), **_dsp_kw)
+        if (
+            not _dsp_same_plan(_dsp_null, _dsp_base[_dsp_name])
+            or _dsp_null.bans or _dsp_null.opt._space_avail is not None
+            or len(_dsp_null.builds) != len(_dsp_base[_dsp_name].builds)
+        ):
+            _dsp_arm_bad.append((_dsp_name, _dsp_label))
+R.check(
+    "null controls from learner state: an empty learner, one under its "
+    "on-threshold and an install whose every switch was kept each read a plan "
+    "identical to today's on all three install classes",
+    not _dsp_arm_bad,
+    f"{_dsp_arm_bad}",
+)
+R.check(
+    "and that arm has something to detect: the latched learner's read returns "
+    "the priced plan on every install class",
+    all(_dsp_same_plan(_dsp_solve(*_dsp_table.planner_pairs(), **kw), _dsp_priced[n])
+        for n, kw in _DSP_INSTALLS.items()),
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))
