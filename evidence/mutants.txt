@@ -1,38 +1,12 @@
-NULL: SURVIVED rc=0
-M1-no-cycle-write: KILLED rc=1
-    FAIL a commanded or held disinfection cycle writes its temperature, not the configured set-point  [predicate false]
-    FAIL every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too  [predicate false]
-    FAIL the cycle's temperature is the thermal parameters' own answer, not a copy  [predicate false]
-    FAIL an off-step disinfection temperature is written on the step above it, never below  [predicate false]
-    FAIL a disinfection temperature above the entity's range stays bounded at its maximum  [predicate false]
-    FAIL the space-only gate stays a gate on a booked step, but a held cycle turns it into Heating + DHW  [predicate false]
-    FAIL a combi store at or under the potable limit runs no cycle: a booked or held step writes the everyday set-point, unless the cycle is forced (#3398
-M2-round-nearest: KILLED rc=1
-    FAIL an off-step disinfection temperature is written on the step above it, never below  [predicate false]
-M3-booking-ignored: KILLED rc=1
-    FAIL a commanded or held disinfection cycle writes its temperature, not the configured set-point  [predicate false]
-    FAIL every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too  [predicate false]
-    FAIL a combi store at or under the potable limit runs no cycle: a booked or held step writes the everyday set-point, unless the cycle is forced (#3398
-M4-hold-ignored: KILLED rc=1
-    FAIL a commanded or held disinfection cycle writes its temperature, not the configured set-point  [predicate false]
-    FAIL the cycle's temperature is the thermal parameters' own answer, not a copy  [predicate false]
-    FAIL an off-step disinfection temperature is written on the step above it, never below  [predicate false]
-    FAIL a disinfection temperature above the entity's range stays bounded at its maximum  [predicate false]
-    FAIL the space-only gate stays a gate on a booked step, but a held cycle turns it into Heating + DHW  [predicate false]
-    FAIL a combi store at or under the potable limit runs no cycle: a booked or held step writes the everyday set-point, unless the cycle is forced (#3398
-M5-gate-only-excuse: KILLED rc=1
-    FAIL the arbiter's own everyday write raises no disinfection-floor repair: it writes the cycle itself  [predicate false]
-M6-excuse-any-reading: KILLED rc=1
-    FAIL a person's value beside the arbiter's write still raises the repair, its Fix on the floor  [predicate false]
-M7-flag-ignored: KILLED rc=1
-    FAIL a cycle never lowers the tank: an everyday set-point above the disinfection temperature is the cycle's and the ceiling's  [predicate false]
-    FAIL null control: a disabled cycle writes the everyday set-point on every row and booking  [predicate false]
-    FAIL a combi store at or under the potable limit runs no cycle: a booked or held step writes the everyday set-point, unless the cycle is forced (#3398
-M10-enabled-not-active: KILLED rc=1
-    FAIL a combi store at or under the potable limit runs no cycle: a booked or held step writes the everyday set-point, unless the cycle is forced (#3398
-M8-cycle-not-max: KILLED rc=1
-    FAIL a cycle never lowers the tank: an everyday set-point above the disinfection temperature is the cycle's and the ceiling's  [predicate false]
-M9-floor-no-disinfection: KILLED rc=1
-    FAIL a person's value beside the arbiter's write still raises the repair, its Fix on the floor  [predicate false]
-    FAIL null control: with no arbiter write the pump's own set-point must still permit the cycle  [predicate false]
-rc=0
+RESULT _dhw_write GUARD_OFF 90de19e4: tests/guard_pins.py rc=1 KILLED | ["TypeError: float() argument must be a string or a real number, not 'NoneType'"]
+RESULT _dhw_write RETURN_DEL e7e1a636: tests/block_duty.py rc=1 KILLED | ['10 of 63 BLOCK DUTY CHECKS FAILED']
+RESULT dhw_gated RETURN_DEL 7523de18: tests/block_duty.py rc=1 KILLED | ['1 of 63 BLOCK DUTY CHECKS FAILED']
+RESULT _dhw_floor CLAMP_DROP 645cbad5: tests/block_duty.py rc=1 KILLED | ['2 of 63 BLOCK DUTY CHECKS FAILED']
+RESULT _dhw_floor RETURN_DEL 645cbad5: tests/block_duty.py rc=1 KILLED | ['4 of 63 BLOCK DUTY CHECKS FAILED']
+RESULT dhw_cycle_temp CLAMP_DROP 25788b20: tests/guard_pins.py rc=1 KILLED | ['1 of 61 GUARD PIN CHECKS FAILED']
+RESULT dhw_cycle_temp RETURN_DEL 25788b20: tests/guard_pins.py rc=1 KILLED | ['1 of 61 GUARD PIN CHECKS FAILED']
+RESULT dhw_disinfection_temp RETURN_DEL aae31b25: tests/guard_pins.py rc=1 KILLED | ['1 of 61 GUARD PIN CHECKS FAILED']
+RESULT dhw_hard_max_temp CLAMP_DROP b26a9d8f: tests/block_duty.py rc=1 KILLED | ['1 of 63 BLOCK DUTY CHECKS FAILED']
+RESULT dhw_hard_max_temp RETURN_DEL b26a9d8f: tests/guard_pins.py rc=1 KILLED | ["TypeError: float() argument must be a string or a real number, not 'NoneType'"]
+RESULT M11 arbiter revert (cycle<=everyday -> nearest): tests/block_duty.py rc=1 KILLED | ['1 of 63 BLOCK DUTY CHECKS FAILED']
+restored: clean
