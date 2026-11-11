@@ -136,6 +136,9 @@ ok   absorbed (null): the roster minus the absorbed group reproduces the schedul
 ok   post-closure: the owner step starts at or after the closing stamp, flagged
 ok   post-closure: in no stamp's carries, and summary.closure is the later of the stamp and the catalog step's finish (tvofi 2026-11-07), which starts no earlier than the stamp
 ok   live stage: a group in review is priced by its review rounds left, below a fresh fixer's remaining share; one in progress is not
+ok   live stage (floor): fewer than two expected rounds still price one review round, not the rounds themselves (max(rounds - 1, 1))
+ok   post-closure: wall_hours runs to summary.closure (the catalog finish), not the stamp
+ok   closure conditions: the plan states the owner's six (tvofi 2026-11-07), and --check refuses a plan that drops them
 ok   post-closure (null): with no post-stamp group, closure is the stamp's at
 ok   post-closure (a): a plan whose closure drops the catalog step is refused by --check
 ok   slots 20 (null): an explicit --slots keeps its value, the seats stay the default
@@ -323,6 +326,12 @@ ok   self-test fails when savings-validated is deleted
 ok   self-test fails when size-refusal is deleted
   mutation stamp-cadence: 'while len(carry) >= every:' -> rc=1
 ok   self-test fails when stamp-cadence is deleted
+  mutation review-min: 'left_rounds = max(rounds - 1, 1.0)' -> rc=1
+ok   self-test fails when review-min is deleted
+  mutation wall-hours: '"wall_hours": round(closure_at / 60.0, 2),' -> rc=1
+ok   self-test fails when wall-hours is deleted
+  mutation closure-conditions: '"closure_conditions": list(CLOSURE_CONDITIONS),' -> rc=1
+ok   self-test fails when closure-conditions is deleted
   mutation closure-later-of: 'closure_at = max([stamps[-1]["at"]] + list(post_end.values()))' -> rc=1
 ok   self-test fails when closure-later-of is deleted
   mutation closure-check-later-of: 'closure = max([mins(x["at"]) for x in close_stamps] + post_fin' -> rc=1
@@ -348,3 +357,4 @@ ok   self-test fails when held-subtraction is deleted
   mutation gate-cancellation: 'return fast + clo + ana * (1.0 + p_cancel)' -> rc=1
 ok   self-test fails when gate-cancellation is deleted
 self-test: 0 failed
+rc=0
