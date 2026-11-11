@@ -250,7 +250,7 @@ PY
       printf 'worktree %s/orch/seat-unmerged/wt\nHEAD 5555555555555555555555555555555555555555\ndetached\n\n' "$d"
       printf 'worktree %s/orch/seat-dirtymerged/wt\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/fix/dirty\n\n' "$d"
       printf 'worktree %s/orch/seat-locked/wt\nHEAD 6666666666666666666666666666666666666666\ndetached\nlocked\n\n' "$d"
-      for n in onremote:7 cwd:8 onremote-young:9 onremote-dirty:b tip:1 nohold:d argvuse:7 openuse:7 pidfuse:7 deadpid:7 argvscr:7 argvco:7 argvsib:7 lockuse:7 dotlock:7; do
+      for n in onremote:7 cwd:8 onremote-young:9 onremote-dirty:b tip:1 nohold:d argvuse:7 openuse:7 pidfuse:7 deadpid:7 argvscr:7 argvco:7 argvdq:7 argvsq:7 argvcol:7 argvcom:7 argvsib:7 lockuse:7 dotlock:7; do
         printf 'worktree %s/orch/seat-%s/wt\nHEAD %s\ndetached\n\n' "$d" "${n%%:*}" "$(printf '%040d' 0 | tr 0 "${n##*:}")"
       done
       printf 'worktree %s/orch/seat-onremote-locked/wt\nHEAD %s\ndetached\nlocked\n\n' "$d" "$(printf '%040d' 0 | tr 0 a)"
@@ -261,7 +261,7 @@ PY
              "$d/orch/seat-unmerged/wt" "$d/orch/seat-dirtymerged/wt" \
              "$d/orch/seat-locked/wt" "$d/orch/seat-onremote/wt" "$d/orch/seat-cwd/wt/sub" \
              "$d/orch/seat-argvuse/wt" "$d/orch/seat-openuse/wt" "$d/orch/seat-pidfuse/wt" "$d/orch/seat-deadpid/wt" \
-             "$d/orch/seat-argvscr/wt" "$d/orch/seat-argvco/wt" "$d/orch/seat-argvsib/wt" "$d/orch/seat-lockuse/wt" "$d/orch/seat-dotlock/wt" \
+             "$d/orch/seat-argvscr/wt" "$d/orch/seat-argvco/wt" "$d/orch/seat-argvdq/wt" "$d/orch/seat-argvsq/wt" "$d/orch/seat-argvcol/wt" "$d/orch/seat-argvcom/wt" "$d/orch/seat-argvsib/wt" "$d/orch/seat-lockuse/wt" "$d/orch/seat-dotlock/wt" \
              "$d/orch/seat-onremote-young/wt" "$d/orch/seat-onremote-dirty/wt" \
              "$d/orch/seat-tip/wt" "$d/orch/seat-nohold/wt" "$d/orch/seat-onremote-locked/wt" \
              "$d/orch/seat-unpushed/wt" "$d/unpushed"
@@ -272,6 +272,10 @@ PY
     { printf 'git -C %s/orch/seat-argvuse/wt log\n' "$d"
       printf 'bash %s/orch/seat-argvscr/wt/script.sh\n' "$d"
       printf 'git --checkout=%s/orch/seat-argvco/wt status\n' "$d"
+      printf 'sh -c cd "%s/orch/seat-argvdq/wt"; make\n' "$d"
+      printf "sh -c cd '%s/orch/seat-argvsq/wt'; make\\n" "$d"
+      printf 'git --paths=%s/orch/seat-argvcol/wt:/tmp status\n' "$d"
+      printf 'git --paths=%s/orch/seat-argvcom/wt,/tmp status\n' "$d"
       printf 'git -C %s/orch/seat-argvsib/wt2 log\n' "$d"; } > "$d/argv"
     printf '%s/orch/seat-openuse/wt/f\n' "$d" > "$d/opens"
     printf '%s\n' "$$" > "$d/orch/seat-pidfuse/wt/train.pid"
@@ -290,7 +294,7 @@ PY
             "$d/orch/seat-onremote" "$d/orch/seat-cwd" "$d/orch/seat-onremote-dirty" "$d/orch/seat-tip" \
             "$d/orch/seat-nohold" "$d/orch/seat-onremote-locked" "$d/orch/seat-unpushed" \
             "$d/orch/seat-argvuse" "$d/orch/seat-openuse" "$d/orch/seat-pidfuse" "$d/orch/seat-deadpid" \
-            "$d/orch/seat-argvscr" "$d/orch/seat-argvco" "$d/orch/seat-argvsib" "$d/orch/seat-lockuse" "$d/orch/seat-dotlock"
+            "$d/orch/seat-argvscr" "$d/orch/seat-argvco" "$d/orch/seat-argvdq" "$d/orch/seat-argvsq" "$d/orch/seat-argvcol" "$d/orch/seat-argvcom" "$d/orch/seat-argvsib" "$d/orch/seat-lockuse" "$d/orch/seat-dotlock"
   }
 
   # The main sweep: every class in one run, so the interactions (one seat's
@@ -379,6 +383,14 @@ PY
   st "$(gots sweep "keep  $D/orch/seat-argvscr/wt  argv-inside")" 1 "naming argv-inside for the script path"
   [ -d "$D/orch/seat-argvco/wt" ]; st $? 0 "argv carries --checkout=<worktree> (empty terminator): kept"
   st "$(gots sweep "keep  $D/orch/seat-argvco/wt  argv-inside")" 1 "naming argv-inside for --checkout="
+  [ -d "$D/orch/seat-argvdq/wt" ]; st $? 0 "argv carries a double-quoted <wt> token from sh -c cd (double-quote terminator), cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-argvdq/wt  argv-inside")" 1 "naming argv-inside for argvdq"
+  [ -d "$D/orch/seat-argvsq/wt" ]; st $? 0 "argv carries a single-quoted <wt> token (single-quote terminator), cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-argvsq/wt  argv-inside")" 1 "naming argv-inside for argvsq"
+  [ -d "$D/orch/seat-argvcol/wt" ]; st $? 0 "argv carries --paths=<wt>:/tmp (colon terminator), cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-argvcol/wt  argv-inside")" 1 "naming argv-inside for argvcol"
+  [ -d "$D/orch/seat-argvcom/wt" ]; st $? 0 "argv carries --paths=<wt>,/tmp (comma terminator), cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-argvcom/wt  argv-inside")" 1 "naming argv-inside for argvcom"
   gone "$D/orch/seat-argvsib/wt"; st $? 0 "null control: argv naming a sibling prefix (<worktree>2) holds nothing and the worktree is collected"
   [ -d "$D/orch/seat-lockuse/wt" ]; st $? 0 "a live pid in <worktree>/x.lock: kept"
   st "$(gots sweep "keep  $D/orch/seat-lockuse/wt  pidfile-live")" 1 "naming pidfile-live for x.lock"
