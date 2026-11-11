@@ -1,0 +1,16 @@
+Head eeca7ac4214d9068c55e7db96bb77fa56380dad7. Source: pull/3372#issuecomment-6756915104 (Bankaifan, 2026-11-10T02:06:50Z), read through the GitHub API; its text is also quoted in the group's carry on handoff/audit-r10-roster 939558bf16d7ce1a33521165e2aeb314a64ef8b1 (ev/brief-carry8.txt). The 0.5-6 K range is in the same author's earlier comment 6750881813.
+
+docs/configuration.md claim                                         | source says                                                              | reads
+hysteresis a setting, not a fixed 2 K; Luxtronik minimum 0.5 K     | "set to the controller minimum of 0.5 K ... should not assume 2 K"       | true
+start threshold in effect = return target less hysteresis, 10107   | "input 10107 ... effective return target minus hysteresis"               | true
+ha-luxtronik-shi publishes it as "Demand border"                   | 'key heating_demand_border ("Demand border")', sensor, enabled by default| true
+any access re-arms the 600 s, a read as much as a write            | "re-arms the watchdog at the start of every call, read or write"         | true
+polls every 30 s by default, offers 10-300 s                        | "polls every 30 s by default; the option is limited to 10-300 s"         | true
+restores its writes after a restart only with the restore option   | 'an optional "restore after device reset" for its own writes'            | true
+10104 = minimum return target, parameter 979                        | "input 10104 ... parameter 979, lower clamp of 10001"                    | true
+10103 = return limit, parameter 87                                  | "input 10103 ... parameter 87 Einst_TRBegr, upper clamp of 10001"        | true
+both published as sensors                                           | "All three are readable as Home Assistant sensors today"                 | true
+this integration does not read 10107 / 10104 / 10103                | code: no identifier demand_border, return_min_target, return_limit under custom_components (scout sweep); _clamp_cut takes observed readback only | true
+loop goes no lower than 0.3 K below the inlet                       | code: pump_arbiter.py:967 lows = [inlet - FEEDBACK_DOWN_K, ...], FEEDBACK_DOWN_K = 0.3; harness sim min(sent - inlet) = -0.3 | true
+pump_arbiter comment: minimum 0.5 K on firmware 3.92.3              | "FW 3.92.3", "controller minimum of 0.5 K"                               | true
+_clamp_cut docstring: 10104 (979) and 10103 (87) clamp 10001        | "The firmware clamps the heating setpoint 10001 to [10104, 10103]"       | true
