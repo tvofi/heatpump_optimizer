@@ -3,8 +3,8 @@ Thank you to Bankaifan for pull request 3457, adopted here with Bankaifan as the
 The cycle cuts its action at the solve, then awaits system identification, the fuse advisor and the price tile before `_apply_action` writes `heat_pump_on`. `note_supply` stamps that write with the step it lands in, so `supply_tick` left a write one step late standing against the plan for up to one plan step, in either direction. `cycle_supply` writes `step_supply` for the landing step and falls back to the action's value wherever `step_supply` returns `None` (non-plan mode, stale or missing plan, system identification, instant outside the plan).
 
 **Seam decision (sibling sites).** The owning seam is the supply switch alone, not the whole action re-cut for the landing step. Re-cutting before `boost.apply` would move the system-identification override and the boost overlay's precedence for one defect in one actuator.
-- `async_publish_current_action` (the displace value and set-point of the earlier step): not covered. It stays on the action cut at the solve; a step's displace is a curve offset, not the switch. Carry: R10-ECL110-MQTT-OFF-NEUTRAL
-- The legacy payload's `heat_pump_on` from the same call can disagree with the switch for the landing step after this change: not covered, not claimed. Carry: R10-ECL110-MQTT-OFF-NEUTRAL
+- `async_publish_current_action` (the displace value and set-point of the earlier step): not covered. It stays on the action cut at the solve; a step's displace is a curve offset, not the switch. Carry: R10-ECL110-MQTT-OFF-NEUTRAL (roster commit 84184ae668 on `handoff/audit-r10-roster`, landed)
+- The legacy payload's `heat_pump_on` from the same call can disagree with the switch for the landing step after this change: not covered, not claimed. Carry: R10-ECL110-MQTT-OFF-NEUTRAL (roster commit 84184ae668, landed)
 - Boost overlay and system identification: unchanged, `step_supply` already yields `True` under a live boost and `None` under system identification; pinned below.
 
 ## Head
@@ -42,7 +42,7 @@ Each own-step null control runs the same cycle with `pump_arbiter.cycle_supply` 
 
 ## Forward-carry
 
-The sibling publish sites above land in the R10-ECL110-MQTT-OFF-NEUTRAL group of `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ECL110-MQTT-OFF-NEUTRAL
+The sibling publish sites of the supply write are two, named here: (1) `async_publish_current_action` in `custom_components/heatpump_optimizer/coordinator.py`, the displace value and set-point of the earlier step; (2) the legacy payload's `heat_pump_on` from that same call, which can disagree with the switch for the landing step. Both land in the R10-ECL110-MQTT-OFF-NEUTRAL group of `dev/programme/rosters/wave-r10-groups.json`, landed as roster commit 84184ae668 on `origin/handoff/audit-r10-roster` (it replaces the dropped d188b50681); its text starts "From r10-outside-supply-stale-step, body item 30ec8edf: The sibling publish sites of the supply write that pull request". Carry: R10-ECL110-MQTT-OFF-NEUTRAL (roster commit 84184ae668, landed)
 
 ## Friction
 
