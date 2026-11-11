@@ -23908,7 +23908,10 @@
    "reviewerModel": "opus",
    "after": [],
    "files": [
-    "tools/audit/seat/pr_args.sh"
+    "tools/audit/seat/pr_args.sh",
+    "tools/audit/seat/sweep_render.py",
+    "tools/audit/seat/sweep_template.md",
+    "tools/ci/selftest_closures.json"
    ],
    "hot_files": [
     "tools/audit/seat/pr_args.sh"
@@ -23927,7 +23930,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "fixer (hotfix, size S, no design step)",
-    "note": "triage s14 batch 197 P621; overlap admitted (R10-SEAT-SCRIPT-OUTPUT): triage s14 batch 197 P621 ACCEPT hotfix: main red, pusher census refuses remerge_main_selftest.py"
+    "note": "triage s14 batch 197 P621; overlap admitted (R10-SEAT-SCRIPT-OUTPUT): triage s14 batch 197 P621 ACCEPT hotfix: main red, pusher census refuses remerge_main_selftest.py | set-files files ['tools/audit/seat/pr_args.sh'] -> ['tools/audit/seat/pr_args.sh', 'tools/audit/seat/sweep_render.py', 'tools/audit/seat/sweep_template.md', 'tools/ci/selftest_closures.json']"
    }
   }
  ]
