@@ -1,0 +1,54 @@
+=== tree before
+--- r1 verdict cases (positive: must be non-empty or STOP) ---
+V1 head failure + step cancelled, base success: [] job reads 3
+V2 head timed_out + step cancelled, base success: [] job reads 0
+V3 head cancelled, base success: [] job reads 0
+V4 step timed_out+cancelled in failed job: [] job reads 3
+--- nulls (must be []) ---
+N1 same step failing head and base: [] job reads 3
+N2 head success: [] job reads 0
+N3 timeout inherited same step: [] job reads 0
+N4 head only push-only drift red: [] job reads 3
+--- reviewer's attacks ---
+A1 head timed_out, base failure on same step (hang behind red): [] job reads 0
+A2 head in_progress: [] job reads 0
+A3 head queued: [] job reads 0
+A4 head action_required: [] job reads 0
+A5 head stale: [] job reads 0
+A6 head completed conclusion None: [] job reads 0
+A7 base in_progress, head failure: ['hang'] job reads 2
+A8 base startup_failure, head failure: STOP(the base's governance / instrument-self-tests job 2 is unrea) job reads 3
+A9 no base run, head timed_out: [] job reads 0
+A10 head timed_out, all steps success (impossible?): [] job reads 0
+A11 head timed_out whose only red step is push-only drift: [] job reads 0
+A12 head failure, step unknown conclusion 'neutral': [] job reads 3
+A13 head failure, step conclusion None (step still listed incomplete): [] job reads 3
+A14 base timed_out, head failure on a different step: ['z'] job reads 3
+A15 base neutral (skipped-ish), head failure: ['hang'] job reads 3
+=== tree wt
+--- r1 verdict cases (positive: must be non-empty or STOP) ---
+V1 head failure + step cancelled, base success: ['hang'] job reads 2
+V2 head timed_out + step cancelled, base success: ['(the job concluded timed_out)', 'hang'] job reads 2
+V3 head cancelled, base success: STOP(the head's governance / instrument-self-tests job 1 conclude) job reads 0
+V4 step timed_out+cancelled in failed job: ['a', 'b'] job reads 2
+--- nulls (must be []) ---
+N1 same step failing head and base: [] job reads 2
+N2 head success: [] job reads 0
+N3 timeout inherited same step: [] job reads 2
+N4 head only push-only drift red: [] job reads 2
+--- reviewer's attacks ---
+A1 head timed_out, base failure on same step (hang behind red): ['(the job concluded timed_out)'] job reads 2
+A2 head in_progress: None job reads 0
+A3 head queued: None job reads 0
+A4 head action_required: STOP(the head's governance / instrument-self-tests job 1 conclude) job reads 0
+A5 head stale: STOP(the head's governance / instrument-self-tests job 1 conclude) job reads 0
+A6 head completed conclusion None: STOP(the head's governance / instrument-self-tests job 1 conclude) job reads 0
+A7 base in_progress, head failure: STOP(the base's governance / instrument-self-tests job 2 is in_pr) job reads 1
+A8 base startup_failure, head failure: STOP(the base's governance / instrument-self-tests job 2 is start) job reads 1
+A9 no base run, head timed_out: ['(the job concluded timed_out)', 'hang'] job reads 1
+A10 head timed_out, all steps success (impossible?): STOP(the head's governance / instrument-self-tests job 1 conclude) job reads 1
+A11 head timed_out whose only red step is push-only drift: ['(the job concluded timed_out)'] job reads 2
+A12 head failure, step unknown conclusion 'neutral': STOP(the head's governance / instrument-self-tests job 1 conclude) job reads 1
+A13 head failure, step conclusion None (step still listed incomplete): STOP(the head's governance / instrument-self-tests job 1 conclude) job reads 1
+A14 base timed_out, head failure on a different step: ['z'] job reads 2
+A15 base neutral (skipped-ish), head failure: ['hang'] job reads 2

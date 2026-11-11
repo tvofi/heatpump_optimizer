@@ -1,15 +1,2 @@
-Figure (a) re-derived by this reviewer from two GitHub job reads (MCP get_workflow_job), not through the fixer's gh shim.
-head job 130479299736: head_sha c93903f075212c86bdef7b011776d5570d776630, conclusion failure, run_attempt 3
-  steps concluded failure: 34 "Render the sweep template, and the policy re-read predicate"
-                           112 "Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures"
-                           113 "Show the PR argument builder refusing its own fixtures"
-                           115 "Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures"
-  step 118 (push-only drift) concluded skipped
-base job 130415622883: head_sha cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf, conclusion failure
-  steps concluded failure: 118 "Refuse a self-test read set the committed table misses" (SELFTESTS_PUSH_ONLY) only
-introduced_reds(head, base) = the 4 above  -> matches body (a): 4 INTRODUCED
-(b) cbd23f1c8b vs f24d107bd7: head job is 130415622883 above, red only on the excluded drift step -> 0 whatever the base; matches body (b).
-(c) check run 130576626586 (governance / instrument-self-tests, body: head ccd6055e0f of #3474): conclusion success -> no job read, 0; head_sha not shown by that read.
-Inherited pair 0a2139b1d/ee64358be and the #3361 class figure: not re-read (REST reads kept few); not verified by this reviewer.
-RESULT introduced (a) = 4
-RESULT introduced (b) = 0
+(['Render the sweep template, and the policy re-read predicate', 'Show the PR argument builder refusing its own fixtures', "Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures", "Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures"], 'head job 130479299736 failure base job 130415622883 failure')
+2.36s

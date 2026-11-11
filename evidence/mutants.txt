@@ -1,55 +1,54 @@
-M1 base subtraction dropped: KILLED
-  merge_train.py rc=1 merge_train self-test: 626 checks, 5 failed
-      FAIL introduced: red at the head and not at the base is the PR's; one red at both is inherited
-      FAIL null: the base subtraction is what clears an inherited red (the same head against itself reads 0)
-      FAIL introduced_cmd: rc 1, one INTRODUCED line per introduced step, base by git merge-base origin/main
-      FAIL classify --pr reads an introduced red RED with its INTRODUCED lines, the required set green
-      FAIL null: a head red only where its base is (inherited) is GREEN under classify --pr, introduced rc 0
-  review_packet.py rc=1 review_packet self-test: 103 checks, 2 failed
-      FAIL introduced: the head's red the base lacks is INTRODUCED, the inherited one is not, by 2 job-step reads
-      FAIL null: an inherited-only head (nothing introduced) refuses nothing
-M2 head job fail-closed dropped: KILLED
-  merge_train.py rc=1 merge_train self-test: 626 checks, 1 failed
-      FAIL fail closed: the head's job unreadable is a Stop (rc 2), never an empty list
-  review_packet.py rc=1 review_packet self-test: 103 checks, 1 failed
-      FAIL fail closed: the head's job unreadable refuses introduced-red, never reads clean
-M3 base job fail-closed dropped: KILLED
-  merge_train.py rc=1 merge_train self-test: 626 checks, 1 failed
-      FAIL fail closed: the base's job unreadable is a Stop (rc 2), never an empty list
-  review_packet.py rc=1 review_packet self-test: 103 checks, 1 failed
-      FAIL fail closed: the base's job unreadable refuses introduced-red, never reads clean
-M4 drift exclusion dropped: KILLED
-  merge_train.py rc=1 merge_train self-test: 626 checks, 3 failed
-      FAIL no base run: every head red counts, the push-only drift step still excluded
-      FAIL the push-only drift step alone red at the head is never introduced
-      FAIL no base run: every head red but the drift step is INTRODUCED
-  review_packet.py rc=1 review_packet self-test: 103 checks, 1 failed
-      FAIL no base run: every head red but the push-only drift step counts; skipped is never red
-M5 packet fail-closed refusal dropped: KILLED
-  merge_train.py rc=0 merge_train self-test: 626 checks, 0 failed
-  review_packet.py rc=1 review_packet self-test: 103 checks, 4 failed
-      FAIL fail closed: the head's job unreadable refuses introduced-red, never reads clean
-      FAIL fail closed: the base's job unreadable refuses introduced-red, never reads clean
-      FAIL fail closed: the base's listing unreadable refuses introduced-red, never reads clean
-      FAIL fail closed: the head's listing unreadable refuses introduced-red, never reads clean
-M6 classify --pr introduced branch dropped: KILLED
-  merge_train.py rc=1 merge_train self-test: 626 checks, 1 failed
-      FAIL classify --pr reads an introduced red RED with its INTRODUCED lines, the required set green
-  review_packet.py rc=0 review_packet self-test: 103 checks, 0 failed
-M7 latest job -> earliest job: SURVIVED
-  merge_train.py rc=0 merge_train self-test: 626 checks, 0 failed
-  review_packet.py rc=0 review_packet self-test: 103 checks, 0 failed
-M8 base listing fail-closed dropped: KILLED
-  merge_train.py rc=1 merge_train self-test: 626 checks, 1 failed
-      FAIL fail closed: the base's check runs unreadable is a Stop (rc 2), never an empty list
-  review_packet.py rc=1 review_packet self-test: 103 checks, 1 failed
-      FAIL fail closed: the base's listing unreadable refuses introduced-red, never reads clean
-M9 packet gather reads nothing: SURVIVED
-  merge_train.py rc=0 merge_train self-test: 626 checks, 0 failed
-  review_packet.py rc=0 review_packet self-test: 103 checks, 0 failed
-M10 base listing None treated as no base run (packet): KILLED
-  merge_train.py rc=0 merge_train self-test: 626 checks, 0 failed
-  review_packet.py rc=1 review_packet self-test: 103 checks, 2 failed
-      FAIL fail closed: the base's listing unreadable refuses introduced-red, never reads clean
-      FAIL fail closed: the head's listing unreadable refuses introduced-red, never reads clean
-tree clean: yes
+R1 RED_CONCLUSIONS failure only: KILLED
+    Stop: selftests: the head's governance / instrument-self-tests job 11 concluded timed_out with no red step: an introduced red cannot be ruled out (fail closed)
+    FAIL one notion of red: merge_train.RED_CONCLUSIONS is this file's RED
+    FAIL a hang the PR makes (job timed_out, step cancelled) is INTRODUCED: the step and the timeout, refused
+    FAIL a cancelled step inside a failed job is INTRODUCED
+    review_packet self-test: 109 checks, 3 failed
+R2 STEP_READ without timed_out: KILLED
+    Stop: selftests: the head's governance / instrument-self-tests job 11 concluded timed_out, which reads no step: re-run it: an introduced red cannot be ruled out (fail closed)
+    FAIL a hang the PR makes (job timed_out, step cancelled) is INTRODUCED: the step and the timeout, refused
+    review_packet self-test: 109 checks, 1 failed
+R3 JOB_TIMED_OUT never added: KILLED
+    FAIL a hang the PR makes (job timed_out, its step cancelled) is RED under classify --pr, step and timeout INTRODUCED
+    FAIL a hang behind a step already red at the base: the timeout alone is INTRODUCED
+    merge_train self-test: 638 checks, 2 failed
+    FAIL a hang the PR makes (job timed_out, step cancelled) is INTRODUCED: the step and the timeout, refused
+    review_packet self-test: 109 checks, 1 failed
+R4 timeout not subtracted by base timeout: KILLED
+    FAIL null: a timeout the base had too, on the same step, is inherited (GREEN, introduced rc 0)
+    merge_train self-test: 638 checks, 1 failed
+R5 running head job reads clean: KILLED
+    FAIL a head job still running (a hang before its timeout) is WAIT under classify --pr (rc 3), never GREEN
+    merge_train self-test: 638 checks, 1 failed
+    FAIL fail closed: a job still running at the head refuses introduced-red, never reads clean
+    review_packet self-test: 109 checks, 1 failed
+R6 selftest_job max->min: KILLED
+    FAIL a re-run at one head that went red: the latest run (highest id) is read, its red INTRODUCED
+    FAIL a re-run at one head that went green reads clean at no job read
+    FAIL a head job still running (a hang before its timeout) is WAIT under classify --pr (rc 3), never GREEN
+    merge_train self-test: 638 checks, 3 failed
+R7 job-level cancelled read clean: KILLED
+    FAIL fail closed: the head's job concluded cancelled is a Stop (rc 2), never a clean read
+    FAIL fail closed: the head's job concluded startup_failure is a Stop (rc 2), never a clean read
+    FAIL fail closed: the base's job concluded cancelled is a Stop (rc 2), never a clean read
+    merge_train self-test: 638 checks, 3 failed
+    FAIL fail closed: a job-level cancelled at the head refuses introduced-red, never reads clean
+    review_packet self-test: 109 checks, 1 failed
+R8 red job with no red step not refused: KILLED
+    FAIL fail closed: a red head job with no red step is a Stop (rc 2), never a clean read
+    merge_train self-test: 638 checks, 1 failed
+R9 classify WAIT branch dropped: KILLED
+    FAIL a head job still running (a hang before its timeout) is WAIT under classify --pr (rc 3), never GREEN
+    merge_train self-test: 638 checks, 1 failed
+R10 base non-readable conclusion accepted: KILLED
+    FAIL fail closed: the base's job concluded cancelled is a Stop (rc 2), never a clean read
+    merge_train self-test: 638 checks, 1 failed
+R11 ci_facts introduced dropped: KILLED
+    FAIL gather's ci_facts carries the INTRODUCED reading build refuses (M9: its wiring)
+    review_packet self-test: 109 checks, 1 failed
+R12 packet running-job reads clean: KILLED
+    FAIL fail closed: a job still running at the head refuses introduced-red, never reads clean
+    review_packet self-test: 109 checks, 1 failed
+R13 introduced_cmd pending dropped: SURVIVED
+    TypeError: 'NoneType' object is not iterable
+tree clean: True
