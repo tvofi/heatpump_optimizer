@@ -21,7 +21,7 @@ On the pull request (job 130538473389, run 43011652325, head e277df592e678982bb2
 
 Not fixed here, and why: the cause is main's, in lines of `const.py`, `heat_curve.py`, `pump_arbiter.py` and `thermal_model.py` this group does not own, and pull request 3466 already holds the fix. Driving with `--scripts` less `tests/features.py` would leave the run conclusive and every site the section kills unpinned as a survivor: the section's checks live in that script. Pinning from a tree other than the head is what the body rule "`pinned` only if `--pin-killed` ran on this head" refuses.
 
-Unverified: `baseline tests/features.py` reads `failed=2` and the INCONCLUSIVE report names one check. The previous body names one `FAIL` line at this head. The second count was not identified; the next seat reads `PYTHONPATH=tests/hastub python3 tests/features.py` at the head before treating the census as the only red.
+The census is the script's only red at the head: `PYTHONPATH=tests/hastub python3 tests/features.py` at bf9707ae0 exits 1 with one `FAIL` line, that check, and ends `1 of 5283 FEATURE CHECKS FAILED`. The pin run's `failed=2` for the same script is its own copy's count and its second failure was not identified; the previous body records that a `git archive` copy also fails the `recorded_at` check, which would account for it and was not re-measured here.
 
 ## The other scope items
 
