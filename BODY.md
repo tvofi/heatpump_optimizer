@@ -31,11 +31,13 @@ Alternatives (fixer.md step 17):
 
 ## Head
 
+`c9f324c7bd9d256cb319c15ed0bc5b3c3206af75` is this PR's head. It adds one commit to the reviewed head `6f1dd2040ce51f5dbff0ce67ffc1085637b29ea6`: two comment lines reworded, nothing else (`git diff 6f1dd2040..c9f324c7b` is 2 files, 2 insertions, 2 deletions, both in comments). `config_flow.py` line 1704 now reads "a Smart Home Interface's inputs 10104 and 10103" and `const.py` line 836 "On a heat pump's Smart Home Interface", the register numbers and parameter names unchanged.
+
 `100ff9351df307cbdaaea4c24ae15cb78ff1c799`
 
 ## Mutation proof
 
-Each mutant applied to a detached worktree of `1881627d19` (the head's parent; the head adds ledger files only), `PYTHONPATH=tests/hastub python3 tests/features.py`, failing check names below; the unmutated tree there exits 0 with no `FAIL` line.
+Each mutant applied to a detached worktree of `1881627d19` (the reviewed head's parent; the reviewed head adds ledger files only, and the new commit adds two comment lines), `PYTHONPATH=tests/hastub python3 tests/features.py`, failing check names below; the unmutated tree there exits 0 with no `FAIL` line.
 
 - M1, `lows.append(low)` deleted in `_feedback_bounds`: FAIL `R10-WATER-SETPOINT-FEEDBACK part 3, minimum return target 28.0 degC read from its sensor: no write goes below it and the controller cuts nothing`.
 - M2, `high` dropped from `highs` in `_feedback_bounds`: FAIL `R10-WATER-SETPOINT-FEEDBACK part 3, return limit 27.6 degC read from its sensor: no write passes it, so the controller cuts nothing, and no repair is raised`.
@@ -63,10 +65,11 @@ Failing test first: at `6e7536b70d` (the section alone on `f24d107bd7`) `tests/f
 - Structure ratchet: `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
 - Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed a `MODE: SCOPED` line; every script its `scope.run` names exits 0 at the head except `tests/stress.py`, left to CI.
 - Goldens: `GOLDEN_MODE=drift python3 tests/golden.py` exits 0 and prints `config_flow is byte-identical to origin/main here` (the two rows render only for a water unit); both claim files are untouched.
+- Combi census (`tests/features.py`, check `combi_type_branch census`), vendor-name line count by the census's own regex over the package's Python, base 4 (this sandbox has no `homeassistant`, so the block's rule is replayed standalone): at `6f1dd2040` the count is 8, listing `config_flow.py:1704` and `const.py:836` among them; at `c9f324c7b` it is 6, neither of those two listed. The six left are lines at origin/main that PR #3466 repairs, not this branch's.
 
 ## Unpinned sites
 
-`python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3` ran at `1881627d19`, the parent of the head, which adds only the three ledger files it wrote; it printed `PIN KILLED: 3 pinned, 0 left unpinned`.
+`python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3` ran at `1881627d19`, the parent of the reviewed head, which adds only the three ledger files it wrote; it printed `PIN KILLED: 3 pinned, 0 left unpinned`. The commit added since reword two comment lines and moves no mutation site.
 
 - custom_components/heatpump_optimizer/pump_arbiter.py:1001 CMP_BOUND: pinned, killed by `tests/features.py` (hand mutant M5).
 - custom_components/heatpump_optimizer/pump_arbiter.py:1001 GUARD_OFF: pinned, killed by `tests/features.py` (hand mutant M4).
@@ -75,7 +78,7 @@ Failing test first: at `6e7536b70d` (the section alone on `f24d107bd7`) `tests/f
 
 ## Red checks
 
-none
+- `tests / fast (3.14)`: red on this PR's own change at `6f1dd2040`. The combi census refused two vendor names this PR added in comments, `config_flow.py:1704` and `const.py:836`. Answered by `c9f324c7b`, which rewords both to name the register (the Smart Home Interface's inputs) and not the vendor, keeping the register numbers and parameter names. The census lines for the branch's own two additions are gone (8 to 6 above). The check stays red on main's other lines (`const.py:812`, `const.py:1595`, `heat_curve.py:72`, `pump_arbiter.py:256`, `pump_arbiter.py:1015`, `thermal_model.py:1870`); those are not this PR's and PR #3466 repairs them, under `governance / instrument-self-tests` (main's, R10-HOTFIX-PUSHER-CENSUS).
 
 ## Forward-carry
 
