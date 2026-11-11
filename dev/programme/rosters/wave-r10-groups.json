@@ -20564,7 +20564,8 @@
     "tools/audit/seat/record_beat.py",
     "dev/programme/HANDOVER.md",
     "tools/audit/seat/roster_edit.py",
-    "tools/audit/seat/roster_sync.py"
+    "tools/audit/seat/roster_sync.py",
+    "tools/audit/seat/tick_loop.sh"
    ],
    "hot_files": [
     "tools/audit/seat/orchestrator_tick.py"
@@ -20616,7 +20617,7 @@
    "resume": {
     "stage": "in-progress",
     "branch": null,
-    "note": "set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py'] | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_sync.py']"
+    "note": "set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py'] | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_sync.py'] | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_sync.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_sync.py', 'tools/audit/seat/tick_loop.sh']"
    }
   },
   {
