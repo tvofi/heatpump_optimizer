@@ -2809,9 +2809,19 @@ class Train:
         if not isinstance(d, dict):
             return f"the merge state could not be read ({o.strip()[-120:] or 'no output'})", True, False
         last: dict = {}
+        seen: dict = {}
         for c in d.get("statusCheckRollup") or ():
-            last[c.get("name") or c.get("context") or "?"] = (
-                c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
+            nm = c.get("name") or c.get("context") or "?"
+            last[nm] = (c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
+            seen.setdefault(nm, set()).add(last[nm])
+        # A deferral gate (gate.py `deferral`) fails at once beside a gate that
+        # passed (a CI review run's), and collapsing by name hides it (P590):
+        # the same-named contexts are read together, and a failing GATE beside
+        # a passing one, or beside an unfinished sibling run, is a wait.
+        if GATE in req and GATE not in self.ignore and seen.get(GATE, set()) & set(POLICY_RED) \
+                and (("SUCCESS" in seen[GATE]) or self.gate_deferred(h, [GATE])):
+            return (f"required context gate is a deferral at {h[:8]} (a failing gate beside a passing one, "
+                    "or a sibling run unfinished): its deciding run settles it"), True, False
         red = [n for n in req if n not in self.ignore and last.get(n) in POLICY_RED]
         pending = [n for n in req if n not in self.ignore and n not in red
                    and last.get(n) not in ("SUCCESS", "SKIPPED", "NEUTRAL")]
@@ -2826,6 +2836,9 @@ class Train:
                 return (f"{state}: every required context is green and the approver's approval sits at "
                         f"{h[:8]}, whose `CI review` run is unfinished or ended under {REVIEW_SETTLE_SECONDS} s "
                         "ago: the policy has not caught up"), True, False
+            if rd == "APPROVED":  # a review exists: only its last-push rule can be unmet
+                return (f"{state}: every required context is green and a review exists, so the missing "
+                        f"requirement is an approval of the last push, at the moved head {h[:8]}"), False, True
             return (f"{state}: every required context is green, so the missing requirement is a review "
                     f"at {h[:8]}"), False, rd != "CHANGES_REQUESTED"
         return f"{state}, every required context green: no cause read", False, False
@@ -6305,7 +6318,8 @@ def _review_settle_self_test(check) -> None:
                 return 0, "\n".join(f"{i} {st} {iso(ago)}" for i, st, ago in runs)
             if "statusCheckRollup" in a:
                 return 0, json.dumps({"mergeStateStatus": ms, "reviewDecision": rd,
-                                      "statusCheckRollup": [{"name": "gate", "conclusion": rollup}]})
+                                      "statusCheckRollup": [{"name": "gate", "conclusion": r}
+                                                            for r in ([rollup] if isinstance(rollup, str) else rollup)]})
             if "/reviews" in a:
                 return 0, json.dumps([list(reviews)])
             return 0, ""
@@ -6337,13 +6351,22 @@ def _review_settle_self_test(check) -> None:
     check("P331 (2) an unfinished run counts as settling", why(runs=[("77", "in_progress", 10)], reviews=[appr])[1] is True)
     got = why(runs=[("77", "completed", 600)], reviews=[appr])
     check("P331 (2) null: the run ended long ago (#2968's missing owner review): parked as a review owed, "
-          "as before", got[1] is False and got[2] is True and "missing requirement is a review" in got[0])
+          "as an approval owed at the moved head (reviewDecision APPROVED: a last-push rule, never 'a review')",
+          got[1] is False and got[2] is True and "last push" in got[0] and "is a review" not in got[0])
+    got = why(runs=[("77", "completed", 600)], reviews=[appr], rd="REVIEW_REQUIRED")
+    check("P590 null: REVIEW_REQUIRED keeps the review wording", got[1] is False and "missing requirement is a review" in got[0])
     check("P331 (2) null: no review run at the head parks", why(runs=[], reviews=[appr])[1] is False)
     check("P331 (2) null: a settling run but no approver approval at that head parks",
           why(runs=[("77", "completed", 60)], reviews=[dict(appr, commit_id="c" * 40)])[1] is False
           and why(runs=[("77", "completed", 60)], reviews=[])[1] is False)
     got = why(runs=[("77", "completed", 60)], reviews=[appr], rollup="FAILURE")
     check("P331 (2) null: a required context red parks, never waits", got[1] is False and "red" in got[0])
+    # P590: a CI review run's passing gate beside the edit run's deferral failure gate
+    for order in (["SUCCESS", "FAILURE"], ["FAILURE", "SUCCESS"]):
+        got = why(runs=[("77", "completed", 600)], reviews=[appr], rollup=order)
+        check(f"P590 a rollup holding a success gate and a deferral failure gate ({order[0]} first) waits, "
+              "with no review wording", got[1] is True and got[2] is False and "deferral" in got[0]
+              and "review" not in got[0].split("(")[0])
 
 
 def _git_retry_self_test(check) -> None:
