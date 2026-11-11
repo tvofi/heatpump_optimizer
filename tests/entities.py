@@ -16979,7 +16979,7 @@ R.check(
     "exactly one handover, with no date in its name",
     _handovers == ["dev/programme/HANDOVER.md"],
     f"found {_handovers or 'none'}; durable state belongs in the single "
-    "dev/programme/HANDOVER.md and volatile state on #201, never in both",
+    "dev/programme/HANDOVER.md and volatile state on #3394, never in both",
 )
 # `updated-for:` is the staleness half: a handover nobody has re-pointed since
 # the merge it describes is the failure mode, not one that has been deleted.
@@ -29825,7 +29825,9 @@ def _raf_job_ok(job: str) -> bool:
         and job.find("--write-self-row") > job.find("NUM=$(")
         and "docs/HANDOVER.md" not in job
         and "for try in 1 2 3" in job
-        and "issues/201/comments" in job
+        and "from budget_raise_gate import RECORD_ISSUE" in job
+        and "issues/$RECORD_ISSUE/comments" in job
+        and "issues/201/comments" not in job
         and "if: always()" in job
         and pushes
         and all(_RAF_LEASE in p for p in pushes)
@@ -32050,7 +32052,7 @@ def _brg_defects(text: str) -> "list[str]":
     if not all(re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py", runs[i])
                for i in gate):
         out.append("gate not under python3 -I")
-    # `issues: read`: the owner's recorded mandate is a comment on #201.
+    # `issues: read`: the owner's recorded mandate is a comment on a record issue.
     if doc.get("permissions") != {"contents": "read", "pull-requests": "read", "issues": "read"} or any(
             "permissions" in (j or {}) for j in jobs.values()):
         out.append(f"permissions {doc.get('permissions')}")
@@ -41914,6 +41916,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "_void_heat_loss_learners"): 1,
         ("coordinator.py", "_raise_cop_issue"): 1,
         ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
+        # R10-GENERIC-HEAT-CURVE-PERSISTENT: a baseline with no writer left is
+        # named once and disarmed in the same call, so it cannot repeat.
+        ("off_restore.py", "_restore_baseline"): 1,
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
@@ -41935,6 +41940,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "async_factory_reset"): 1,
         ("coordinator.py", "_thermal_param_changes"): 1, ("coordinator.py", "async_simulate"): 1,
         ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
+        # R10-GENERIC-HEAT-CURVE-PERSISTENT (C4): once per baseline still
+        # owed when the entry is removed.
+        ("off_restore.py", "async_forget"): 1,
     },
     "one record per failed call, an event and not a held condition (the "
     "sweep's actuation handlers, and an unexpected exception per failed update)": {

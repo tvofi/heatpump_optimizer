@@ -2,7 +2,7 @@
 
 - `merge_pr.sh` — merges one PR after its evidence checks. When: a single
   verdicted PR; for more than one, `merge_train.py` below. Owner mode takes
-  `--mandate <comment-id>` and reads that #201 mandate live; `--ready` marks a
+  `--mandate <comment-id>` and reads that record-issue mandate live; `--ready` marks a
   draft ready. Refusal: a verdict or head mismatch stops the merge before the
   merge API call; a draft without `--ready`, or owner mode with no mandate in
   force, refuses before anything posts. Before its CI wait it runs
