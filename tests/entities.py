@@ -40554,6 +40554,40 @@ R.check(
     f"committed={_pin_unhashed_lock('tests/requirements-ci.txt')!r}",
 )
 
+# No lock comment spells a hash-pinned package `name==`. Dependabot rewrites
+# the version at every `name==` match in a lock, the comment included, and
+# leaves the hash block of a pin it matched twice at the old version, which
+# `--require-hashes` refuses: 9 of 9 stale pins of #3088, #3323 and #3414 had
+# that shape, 0 of 61 fresh ones (dev/audit/rca/r10-rca-dependabot-stale-hash.md).
+# Driven through the harness's own `--tree` reader, then its `exposed` over
+# the committed lock with one comment planted, which must read one pin.
+import contextlib as _dsh_ctx  # noqa: E402
+import importlib.util as _dsh_util  # noqa: E402
+import io as _dsh_io  # noqa: E402
+
+_dsh_spec = _dsh_util.spec_from_file_location(
+    "hpo_dependabot_stale_hash",
+    _closure.ROOT / "dev" / "audit" / "harnesses" / "dependabot_stale_hash.py")
+_dsh = _dsh_util.module_from_spec(_dsh_spec)
+_dsh_spec.loader.exec_module(_dsh)
+_dsh_out = _dsh_io.StringIO()
+with _dsh_ctx.redirect_stdout(_dsh_out):
+    _dsh_exposed = _dsh.tree(None)
+R.check(
+    "no lock comment names a hash-pinned package as `name==` (Dependabot stale hashes)",
+    _dsh_exposed == 0 and " files=0 " not in _dsh_out.getvalue(),
+    _dsh_out.getvalue().strip()[-600:] + ". Reword each to `name 1.2.3`, or "
+    "point at the pin line",
+)
+_DSH_LOCK = (_closure.ROOT / "tests" / "requirements-ci.txt").read_text()
+_DSH_PIN = re.search(_PIN_REQ.pattern, _DSH_LOCK, re.M)
+_dsh_planted = _dsh.exposed(f"# holds {_DSH_PIN.group(0)}\n" + _DSH_LOCK)
+R.check(
+    "stale-hash barrier arm: one planted `name==` comment reads exactly one pin",
+    len(_dsh_planted) == 1 and _dsh.exposed(_DSH_LOCK) == [],
+    f"planted={_dsh_planted} committed={_dsh.exposed(_DSH_LOCK)}",
+)
+
 # --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
 #
 # `tests/replay.py` replays recorded days nightly. What it would take a night to
