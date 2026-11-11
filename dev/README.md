@@ -266,14 +266,12 @@ flowchart TB
         relay["cloud_relay.sh pass<br/>probe arm, handoff arm"]
         busx["bus.sh"]
         tick["orchestrator_tick.py<br/>the board; it does not act"]
-        beat["beatd.py<br/>the job table"]
-        jobs["beat_jobs.py<br/>the jobs"]
+        jobs["beat_jobs.py<br/>the jobs of the beat's table"]
         plan["replan.py<br/>the plan model"]
         docs["state_docs.py"]
         page["plan_page.py"]
         rq["roster_queue.py"]
         redit["roster_edit.py"]
-        odrv["open_driver.py"]
         opr["open_pr.sh"]
         train["merge_train.py"]
         post["postmerge.py"]
@@ -298,7 +296,7 @@ flowchart TB
     orch -->|"runs"| disp
     orch -->|"runs"| seats
     orch -->|"runs"| tloop
-    orch -->|"runs"| beat
+    orch -->|"runs"| jobs
     orch -->|"runs"| train
     orch -->|"runs"| watch
     orch -->|"writes"| hold
@@ -318,16 +316,14 @@ flowchart TB
     busx -->|"writes"| bus
     busx -->|"writes"| pr
     busx -->|"writes"| ledger
-    beat -->|"runs"| jobs
     jobs -->|"runs"| plan
     jobs -->|"runs"| docs
     jobs -->|"runs"| rq
-    jobs -->|"runs"| odrv
+    jobs -->|"runs"| opr
     docs -->|"runs"| page
     docs -->|"writes"| sdoc
     rq -->|"runs"| redit
     redit -->|"writes"| roster
-    odrv -->|"runs"| opr
     opr -->|"writes"| pr
     train -->|"writes"| main
     train -->|"writes"| thold
@@ -350,7 +346,7 @@ file but that script.
 | orchestrator | runs | cloud_dispatch.py | `tools/audit/seat/cloud_dispatch.py`: `Render the cloud-runner trigger payload for one seat` |
 | orchestrator | runs | fixer, reviewer and design seats | `tools/audit/seat/cloud_dispatch.py`: `fire the seat with a pointer to it` |
 | orchestrator | runs | tick_loop.sh | `tools/audit/seat/instruments/tick_loop.sh.md`: `in place of a seat looping the tick` |
-| orchestrator | runs | beatd.py | `tools/audit/seat/instruments/beatd.py.md`: `until a supervisor unit is applied it runs under` |
+| orchestrator | runs | beat_jobs.py | `tools/audit/seat/instruments/beatd.py.md`: `until a supervisor unit is applied it runs under` |
 | orchestrator | runs | merge_train.py | `dev/governance/roles/nudge.md`: `tools/audit/seat/merge_train.py run` |
 | orchestrator | runs | heartbeat.sh --watch | `tools/audit/seat/instruments/heartbeat.sh.md`: `the owner schedules a cloud task` |
 | orchestrator | writes | relay hold list | `tools/audit/seat/cloud_relay.sh`: `only the orchestrator writes or edits it` |
@@ -370,16 +366,14 @@ file but that script.
 | bus.sh | writes | bus refs | `tools/audit/seat/bus.sh`: `append_commit review` |
 | bus.sh | writes | pull request | `tools/audit/seat/bus.sh`: `"$POSTER" "$REPO" "$pr" "$body"` |
 | bus.sh | writes | obligations ledger | `tools/audit/seat/bus.sh`: `close reviewer-fire "$pr" "$h"` |
-| beatd.py | runs | beat_jobs.py | `tools/audit/seat/beatd.py`: `subprocess.Popen(self.argv(job)` |
 | beat_jobs.py | runs | replan.py | `tools/audit/seat/beat_jobs.py`: `"tools/plan/replan.py", "--out"` |
 | beat_jobs.py | runs | state_docs.py | `tools/audit/seat/beat_jobs.py`: `"tools/audit/seat/state_docs.py", "--push"` |
 | beat_jobs.py | runs | roster_queue.py | `tools/audit/seat/beat_jobs.py`: `"tools/audit/seat/roster_queue.py", "run"` |
-| beat_jobs.py | runs | open_driver.py | `tools/audit/seat/beat_jobs.py`: `"tools/audit/seat/open_driver.py", "--board"` |
+| beat_jobs.py | runs | open_pr.sh | `tools/audit/seat/beat_jobs.py`: `"tools/audit/seat/open_driver.py", "--board"` |
 | state_docs.py | runs | plan_page.py | `tools/audit/seat/state_docs.py`: `str(SEAT / "plan_page.py")` |
 | state_docs.py | writes | state documents and plan page | `tools/audit/seat/state_docs.py`: `f"{commit}:refs/heads/{state_ref}"` |
 | roster_queue.py | runs | roster_edit.py | `tools/audit/seat/roster_queue.py`: `"--lint-cwd", a.lint_clone, "--push"]` |
 | roster_edit.py | writes | roster branch | `tools/audit/seat/roster_edit.py`: `refspec = f"{head}:refs/heads/{branch}"` |
-| open_driver.py | runs | open_pr.sh | `tools/audit/seat/open_driver.py`: `self.opener = HERE / "open_pr.sh"` |
 | open_pr.sh | writes | pull request | `tools/audit/seat/open_pr.sh`: `bash "$_push"` |
 | merge_train.py | writes | main | `tools/audit/seat/merge_train.py`: `"--merge", "--match-head-commit"` |
 | merge_train.py | writes | train-hold ref | `tools/audit/seat/merge_train.py`: `git/refs/heads/train-hold` |
@@ -398,11 +392,15 @@ How to read a row:
   the helper is not a node: `tools/audit/seat/open_pr.sh` runs
   `tools/pr/app_push.sh`, the relay runs its pull-request updater, and
   `tools/audit/seat/bus.sh` runs its comment poster.
-- `tools/audit/seat/beatd.py` starts each job's command line from
-  `tools/audit/seat/beatd.jobs.json`, and every job there is a
-  `tools/audit/seat/beat_jobs.py` call. `tools/audit/seat/roster_sync.py`
-  imports `tools/audit/seat/roster_edit.py` and calls it; the other `runs`
-  arrows start a process.
+- Two launchers stand between drawn scripts and are not nodes. The
+  orchestrator starts `tools/audit/seat/beatd.py`, which starts each job's
+  command line from `tools/audit/seat/beatd.jobs.json`, and every job there
+  is a `tools/audit/seat/beat_jobs.py` call. The opener job runs
+  `tools/audit/seat/open_driver.py`, which launches
+  `tools/audit/seat/open_pr.sh`. Each of those two rows cites the line that
+  starts the launcher.
+- `tools/audit/seat/roster_sync.py` imports `tools/audit/seat/roster_edit.py`
+  and calls it; the other `runs` arrows start a process.
 - The figure draws what one normal pass does. A second caller of a drawn
   script that is no node is left out: `tools/audit/seat/merge_pr.sh` also runs
   `tools/audit/seat/postmerge.py`.
