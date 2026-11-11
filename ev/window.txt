@@ -1,0 +1,4 @@
+quoted pathspec (git semantics, as the workflow's git diff uses):
+69
+shell-glob-expanded:
+58
