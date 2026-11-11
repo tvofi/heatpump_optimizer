@@ -85866,9 +85866,10 @@ def _dsp_g_solve(score):
     return solve_space
 
 
-def _dsp_g_run(score, shortfall=None):
+def _dsp_g_run(score, shortfall=None, requirement=True):
     """One candidate pass; returns what it returned and what it left behind."""
-    _dsp_g_opt._dhw_requirement, _dsp_g_opt._space_avail = _dsp_leg_req, _dsp_g_avail
+    _dsp_g_opt._dhw_requirement = _dsp_leg_req if requirement else None
+    _dsp_g_opt._space_avail = _dsp_g_avail
     del _dsp_g_calls[:]
     planner = _dsp_leg_planner
     if shortfall is not None:
@@ -85915,6 +85916,14 @@ R.check(
     "incumbent's requirement and availability are put back",
     _dsp_g_dear[0] is _dsp_g_incumbent and _dsp_g_dear[1] is _dsp_leg_req
     and _dsp_g_dear[2] is _dsp_g_avail and _dsp_g_dear[3] == 1,
+)
+_dsp_g_bare = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None), requirement=False)
+R.check(
+    "an incumbent with no requirement to hold a candidate to gets no candidate: "
+    "the pass the control adopts from returns the incumbent without a solve",
+    _dsp_g_bare[0] is _dsp_g_incumbent and _dsp_g_bare[1] is None
+    and _dsp_g_bare[2] is _dsp_g_avail and _dsp_g_bare[3] == 0,
+    f"{_dsp_g_bare[3]} solves, incumbent kept {_dsp_g_bare[0] is _dsp_g_incumbent}",
 )
 _dsp_g_real_build = _dsp_om._dhw_build
 _dsp_om._dhw_build = lambda *a, **k: (_dsp_leg_plan, _dsp_leg_req)

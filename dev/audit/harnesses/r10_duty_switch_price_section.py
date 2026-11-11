@@ -60,6 +60,8 @@ PKG = "custom_components/heatpump_optimizer/"
 
 #: name, file, the text to find exactly once, its replacement.
 MUTANTS: list[tuple[str, str, str, str]] = [
+    ("optimizer: a candidate is tried with no requirement to hold it to", PKG + "optimizer.py",
+     "if kept_requirement is None or not duty_legs.switch_weight(", "if not duty_legs.switch_weight("),
     ("learner: no count cap", PKG + "duty_switch.py",
      "        if self.n > N_CAP:\n", "        if False:\n"),
     ("learner: the cap scales the stops alone", PKG + "duty_switch.py",

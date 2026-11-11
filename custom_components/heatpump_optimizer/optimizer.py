@@ -353,9 +353,10 @@ def _avoid_priced_switches(
         opt.config.clamp_planned_levels, space, dhw,
         opt.model.params.min_electrical_power, p_max,
     )
-    if not duty_legs.switch_weight(shipped, tank, stops, p_max, floor) > 0:
-        return incumbent
     kept_avail, kept_requirement = opt._space_avail, opt._dhw_requirement
+    # No requirement to hold a candidate to is no candidate.
+    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor) > 0:
+        return incumbent
     try:
         ban = duty_legs.switch_ban(shipped, stops, floor)
         plan, requirement = _dhw_build(
@@ -4990,9 +4991,9 @@ class HeatPumpOptimizer:
                 # Currency terms scale with price_weight as the energy cost
                 # does, or a non-default weight silently re-prices starts and
                 # peaks relative to the electricity they trade against.
-                + _with_switch_cost(
+                + float(_with_switch_cost(
                     cycling(combined) + capacity(combined),
-                    switch_cost(space_power, dhw_plan_power))
+                    switch_cost(space_power, dhw_plan_power)))
                 * self.config.price_weight
                 + terminal_cost(
                     room_temps,

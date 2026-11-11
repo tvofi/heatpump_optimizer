@@ -192,7 +192,8 @@ def space_headroom(
     """
     if avail is None or floor is not None:
         return np.maximum(0.0, p_max - dhw_kw)
-    return np.maximum(0.0, avail * p_max - dhw_kw)
+    charged: np.ndarray = np.maximum(0.0, avail * p_max - dhw_kw)
+    return charged
 
 
 def delivered_space(
@@ -206,7 +207,8 @@ def delivered_space(
     """
     if floor is None:
         return space_kw
-    return np.maximum(0.0, space_kw - (1.0 - avail) * (space_kw + dhw_kw))
+    delivered: np.ndarray = np.maximum(0.0, space_kw - (1.0 - avail) * (space_kw + dhw_kw))
+    return delivered
 
 
 def switch_ban(
