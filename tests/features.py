@@ -68654,9 +68654,9 @@ for _f25_valve, _f25_kw in (
     _f25_cap = {}
     _f25_real_builder = _f21_optmod._terminal_row_cost
 
-    def _f25_cap_builder(refill, cop_end, cop_buffer, stores):
-        built = _f25_real_builder(refill, cop_end, cop_buffer, stores)
-        _f25_cap["args"] = (refill, cop_end, cop_buffer, stores)
+    def _f25_cap_builder(refill, cop_end, cop_buffer, stores, law=None):
+        built = _f25_real_builder(refill, cop_end, cop_buffer, stores, law)
+        _f25_cap["args"] = (refill, cop_end, cop_buffer, stores, law)
         _f25_cap["spec"] = built[1]
         return built
 
