@@ -1,2 +1,0 @@
-21 pending: 0-4, 5-9, 10-14, 15-20
-after part 1 (0-4) merges, 16 pending: 5-9, 10-14, 15-20 -> --part 3 = 15-20 (original part 3 = 10-14)
