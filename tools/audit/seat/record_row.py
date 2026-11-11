@@ -125,10 +125,6 @@ RED_CHECKS = {
     "delivery-status": "governance / delivery-status",
 }
 
-#: The programme's tracking issue; the beat posts its coordination comment
-#: there (delivery-status-tracking.md item 3).
-TRACKING_ISSUE = 201
-
 #: GitHub's own closing-keyword families. The generated prose must carry none
 #: of them before an issue number, because GitHub closes an issue from a pull
 #: request's body prose -- a generated `Closes #N` would close an issue the
@@ -603,7 +599,8 @@ def pr_title(rows: list[dict]) -> str:
 
 
 def coord_comment(pr_number: int, rows: list[dict]) -> str:
-    """The beat's #201 coordination comment (delivery-status-tracking item 3).
+    """The beat's coordination comment on the record issue
+    (budget_raise_gate.RECORD_ISSUE; delivery-status-tracking item 3).
 
     States what landed and what stayed manual; carries no closing keyword.
     """
@@ -616,7 +613,7 @@ def coord_comment(pr_number: int, rows: list[dict]) -> str:
         "where `--automerge-check` passes; the HANDOVER updated-for line "
         "stays manual by design. A seat's edit to a neutral row takes it "
         "off the automerge path and back to a manual review.")
-    _no_closing_where("#201 comment", text)
+    _no_closing_where("record-issue comment", text)
     return text
 
 
@@ -1934,7 +1931,7 @@ def main() -> int:
     ap.add_argument("--print-title", action="store_true",
                     help="print the record pull request title for --plan-file")
     ap.add_argument("--print-comment", action="store_true",
-                    help="print the #201 comment for --plan-file and --pr")
+                    help="print the record-issue comment for --plan-file and --pr")
     ap.add_argument("--write-self-row", action="store_true",
                     help="write dev/programme/delivery/<--pr>.md for the open record "
                          "pull request, anchoring its number and carrying no "

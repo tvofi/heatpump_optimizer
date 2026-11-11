@@ -391,7 +391,8 @@
       "min_power_above_max": "The heat pump's minimum power is above its maximum power.",
       "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong.",
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
-      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead."
+      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
+      "heat_curve_entity_in_use": "The heat-curve offset entity is already written by the optimizer for another purpose (a set-point, the valve, the compressor or the mode). Choose a different entity for one of them."
     },
     "abort": {
       "already_configured": "This integration is already set up.",
@@ -538,7 +539,7 @@
           "learning_features": "Advanced learning features",
           "grid_connection": "Fuse and peak guards",
           "grid_fees": "Transfer fees and contract",
-          "heat_curve": "Heat curve control (ECL110)",
+          "heat_curve": "Heat curve control",
           "factory_reset": "Reset to factory defaults"
         }
       },
@@ -916,8 +917,8 @@
         }
       },
       "heat_curve": {
-        "title": "Heat curve control (ECL110)",
-        "description": "For Danfoss ECL110 controllers driven over MQTT. The optimizer shifts the heat curve up in cheap hours and down in expensive ones. Leave these blank if you do not have one.",
+        "title": "Heat curve control",
+        "description": "Shifts the heat curve up in cheap hours and down in expensive ones, through a Danfoss ECL110 over MQTT, a number entity that offsets your controller's curve, or both. Leave the topics and the entity empty if you have neither.",
         "data": {
           "ecl110_displace_set_topic": "Offset command topic",
           "ecl110_command_topic": "Legacy JSON command topic",
@@ -927,6 +928,12 @@
           "ecl110_displace_min": "Largest downward offset",
           "ecl110_displace_max": "Largest upward offset",
           "ecl110_pid_time_constant_hours": "Controller response time",
+          "heat_curve_displace_entity": "Heat-curve offset entity",
+          "heat_curve_target_kind": "What the entity is",
+          "heat_curve_offset_band_k": "Largest offset written to the entity",
+          "heat_curve_persistent_band_k": "Largest displacement of a stored parameter",
+          "heat_curve_persistent_writes_per_day": "Most writes a day to a stored parameter",
+          "heat_curve_persistent_min_dwell_minutes": "Least time between writes to a stored parameter",
           "after_save": "After saving"
         },
         "data_description": {
@@ -938,6 +945,12 @@
           "ecl110_displace_min": "How far the heat curve may be shifted down during expensive hours.",
           "ecl110_displace_max": "How far the heat curve may be shifted up when storing cheap heat.",
           "ecl110_pid_time_constant_hours": "Roughly how long the controller takes to act on a new offset. Used so the optimizer does not ask for changes faster than the system can follow.",
+          "heat_curve_displace_entity": "A number entity that shifts your controller's heat curve. Kind offset: a whole-curve offset, 0 meaning no shift, that the controller forgets on a restart (for example a Luxtronik SHI heating offset); turning the optimizer off, or unloading it, writes 0. Kind persistent: a curve setting the controller stores; turning the optimizer off, or unloading it, writes back the value it held before the first write.",
+          "heat_curve_target_kind": "Offset: a temperature difference, 0 neutral, not stored by the controller. Prefer it wherever your controller has one. Persistent: a curve setting the controller stores, displaced from its own value and written back on off; every write wears the controller's memory, so writes are limited per day.",
+          "heat_curve_offset_band_k": "The offset written to the entity stays within this many kelvin either way. 3 K is an estimate between a +1 to +2 step SG-Ready boost and Luxtronik's own ±5 K correction.",
+          "heat_curve_persistent_band_k": "The stored setting is moved at most this many kelvin either way from the value it held before the first write. 3 K is an estimate between a +1 to +2 step SG-Ready boost and Luxtronik's own ±5 K correction.",
+          "heat_curve_persistent_writes_per_day": "Writes in one local day, the write back on off included; one is always kept for it. 12 (six shift-and-return episodes) stays under the one documented manufacturer quota found (Daikin, 7000 a year); the margin below it is an estimate. 0 or 1 writes nothing. Above 19 exceeds that quota.",
+          "heat_curve_persistent_min_dwell_minutes": "After a write, the next waits at least this long. 60 minutes is about three response times of a radiator system (a forum estimate); a slow floor may want 2 to 3 hours.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -1180,6 +1193,9 @@
               "heat_pump_heat_energy_entity": "Heat pump heat energy meter (optional)",
               "heat_pump_power_entity": "Heat pump power meter (optional)",
               "heat_pump_thermal_power_entity": "Heat pump thermal power meter (optional)",
+              "heat_pump_power_source": "Heat pump power meter: meter or estimate",
+              "heat_pump_thermal_power_source": "Heat pump thermal power meter: meter or estimate",
+              "heat_meter_sees_dhw": "Heat reading covers hot water",
               "house_power_entity": "Whole-house power meter (optional)"
             },
             "data_description": {
@@ -1187,6 +1203,9 @@
               "heat_pump_heat_energy_entity": "A cumulative kWh meter of the heat the pump delivers, from a heat meter. It counts the heat over each hour, short compressor runs included, so it is used instead of the thermal power meter and the water flow sensor when set. With the energy meter it makes efficiency an observation, and the house heat-loss learner reads the heat that was actually delivered. A meter that also counts hot water is split by the operating mode entity, by the time the pump spent heating the house and the tank; without one, or in a combined mode, an hour that heated the tank is not read as space heating.",
               "heat_pump_power_entity": "Actual electrical draw. Without it the integration only knows what it asked the pump to do. With it, efficiency becomes measurable, predicted costs get a real counterpart to check against, and a wood furnace can be detected reliably. Watts or kilowatts both work.",
               "heat_pump_thermal_power_entity": "The heat the pump delivers, from a heat meter, in watts or kilowatts. With the power meter it makes efficiency an observation rather than an inference, and the house heat-loss learner and the capacity curve read the heat that was actually delivered. When set it is used instead of the water flow sensor.",
+              "heat_pump_power_source": "Whether the power meter is a real meter or a figure the pump or its integration estimates, such as an \"Estimated Power Draw\" sensor. Every learner trains on either; only metered heat over metered power is shown and graded as a measured COP. Auto reads an entity whose id contains \"estimat\" as an estimate.",
+              "heat_pump_thermal_power_source": "Whether the thermal power meter is a real heat meter or a figure the pump or its integration estimates, such as an \"Estimated Heating Output\" sensor. An estimate trains the learners but never makes a measured COP. Auto reads an entity whose id contains \"estimat\" as an estimate.",
+              "heat_meter_sees_dhw": "Turn on only if the heat energy meter or the thermal power meter also measures the heat sent to the hot-water tank, for example a meter ahead of the diverter valve. Off, hot-water runs record no measured COP.",
               "house_power_entity": "Total consumption at the meter. A capacity tariff is billed on the whole house, not on the heat pump alone, so without this the peak the optimizer avoids is only part of the real one."
             }
           },
@@ -1557,7 +1576,11 @@
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
       "flow_curve_needs_direct_plant": "Pricing the supply temperature lift is for a system with no mixing valve. With a valve the buffer tank's temperature already prices the lift, so this would count it twice. Set the valve to \"No mixing valve\" or turn this off.",
       "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
-      "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above."
+      "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above.",
+      "heat_curve_not_offset": "That entity's own range does not include 0, so it is not an offset: it looks like an absolute curve point. Choose the controller's offset entity.",
+      "heat_curve_unreadable": "That entity holds no reading now, so the value it would be returned to on off is unknown. Choose an entity that reports a value, or save again once it does.",
+      "heat_curve_out_of_range": "That entity reads a value outside its own declared range, so it cannot be displaced safely. Check the entity in its integration first.",
+      "heat_curve_entity_in_use": "The heat-curve offset entity is already written by the optimizer for another purpose (a set-point, the valve, the compressor or the mode). Choose a different entity for one of them."
     },
     "abort": {
       "factory_reset_done": "Reset done. The integration has reloaded and is planning again. To undo the reset, run the Restore learned snapshot action.",
@@ -1662,6 +1685,13 @@
         "control": "Control (turn the switch on and off)"
       }
     },
+    "meter_source": {
+      "options": {
+        "auto": "Auto (an id naming an estimate is one)",
+        "meter": "Meter (a measurement)",
+        "estimate": "Estimate (a vendor model)"
+      }
+    },
     "freq_control_mode": {
       "options": {
         "observe": "Observe (learn and recommend only)",
@@ -1706,6 +1736,12 @@
         "settings": "Settings",
         "learners": "Learned values",
         "both": "Settings and learned values"
+      }
+    },
+    "heat_curve_target_kind": {
+      "options": {
+        "offset": "Offset (0 is neutral, volatile)",
+        "persistent": "Persistent (stored by the controller, written back on off)"
       }
     }
   },

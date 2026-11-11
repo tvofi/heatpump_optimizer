@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.9
+# claims-for: 7.1.10
 #
-# v7.1.9: water set-point lift and ceiling (outside #3356). The stamp empties the list; the
+# v7.1.10: combi tank store and generic heat curve (outside #3225, #3284). The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -776,3 +776,8 @@
 # narrative list; planStates publishes no `why_now`, so the block shows its
 # no-data line. Only score_open renders a headline with a narrative here;
 # card_drift reports the other 44 states identical.
+
+# R10-HOTFIX-COP-UNMEASURED: the heat pump grade's explanation says a measured
+# COP is metered heat over a power meter, neither an estimate, and that without
+# a metered heat reading there is no grade at all. Only score_open moves; the
+# other 44 states are identical.
