@@ -16,8 +16,8 @@ the network, and the roster reaches a tool as a parsed dict.
 
 Roster shape (dev/audit/rounds/round9/fixplan/gen.py writes it):
   {"groups": [{"group", "lane", "issues", "fixes", "wave", "after", "brief",
-               "fixerModel", "reviewerModel", "owner_gate", "resume": {...},
-               ...}], "repo", "session", ...}
+               "fixerModel", "reviewerModel", "owner_gate", "source",
+               "resume": {...}, ...}], "repo", "session", ...}
 """
 
 from __future__ import annotations
@@ -546,6 +546,30 @@ def closing_stage(group: dict, stage: str, legacy: dict) -> tuple[str, list]:
     return ("carries-open" if pending else "done"), pending
 
 
+#: A commit sha as the roster records one (7 to 40 hex); roster_edit.py writes by it.
+SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
+
+
+def discharged(group: dict, legacy: dict) -> bool:
+    """A `carries-open` group whose merge is recorded and that owes no carry:
+    every carry is marked (implemented, moved or dismissed) or legacy.
+
+    Its own deliverable merged -- `closing_stage` writes `carries-open` only
+    where `done` was asked, and `resume.commit` is that merge -- and the carries
+    it held are on main or live in their destinations, so no fixer work is
+    left: the planner counts it closed (tvofi 2026-11-07, proposal 1). The
+    roster stage is NOT rewritten by this predicate: a group the merge held
+    because it owns an open issue nothing else owns (`roster_sync.hold_open`)
+    still owes that record step, and `set-stage done` stays its writer. A
+    group not yet merged (`not-started`, `in-progress`, ...) is never
+    discharged, whatever its carries say: its own brief is undone."""
+    resume = group.get("resume") or {}
+    return (resume.get("stage") == "carries-open"
+            and isinstance(resume.get("commit"), str)
+            and bool(SHA_RE.match(resume["commit"]))
+            and not pending_carries(group, legacy))
+
+
 def stranded(roster: dict, legacy: dict) -> list:
     """(group, stage, index, text) of every pending carry on a closed group."""
     out = []
@@ -651,6 +675,34 @@ def needs_design(group: dict) -> bool:
     return group.get("size") in DESIGN_SIZES
 
 
+def consumers_of(roster: dict, group_id: str) -> list[str]:
+    """The live groups a `Carry:` from `group_id` may name (finding-propagation.md): the
+    reverse after-edges, then the groups sharing a file in `files`, in roster order, never
+    the group itself and never a group `CARRY_CLOSED` (done or absorbed)."""
+    groups = groups_of(roster)
+    me = groups.get(group_id) or {}
+    mine = set(me.get("files") or [])
+    return [n for n, g in groups.items()
+            if n != group_id and (g.get("resume") or {}).get("stage") not in CARRY_CLOSED
+            and (group_id in (g.get("after") or []) or mine & set(g.get("files") or []))]
+
+
+def brief_lines(roster: dict, group_id: str) -> list[str]:
+    """The two generated lines a fixer's brief and `prepr.sh` print (Carry 4, tvofi 2026-11-01
+    card 2): the live consumer groups, the only valid `Carry:` targets, and the finding's
+    class-enumeration command (the group's optional `enumeration` field). A group with
+    neither yields no lines, so its brief stays byte-identical."""
+    out = []
+    live = consumers_of(roster, group_id)
+    if live:
+        out.append(f"Valid `Carry:` targets (live consumers of {group_id}: groups after it or sharing its files): "
+                   + ", ".join(live))
+    enum = ((groups_of(roster).get(group_id) or {}).get("enumeration") or "").strip()
+    if enum:
+        out.append(f"Class-enumeration command (step 8 of the fixer's contract; run it and disposition every seam it returns): {enum}")
+    return out
+
+
 def norm_group(s: str) -> str:
     """A roster group id or branch tail normalized for comparison:
     lowercased with ``_`` written as ``-``. `group_for_branch` and the
@@ -690,13 +742,22 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
     return None
 
 
+#: A group's `source`: where its work came from. One value is read: OUTSIDE,
+#: an accepted submission by a user outside the project (`outside_intake.py`
+#: lists them). `roster_edit.py set-source` writes a word of SOURCES; absent
+#: means the programme's own audit or owner work.
+OUTSIDE = "outside"
+SOURCES = (OUTSIDE,)
+
+
 def is_outside(group: dict) -> bool:
     """Whether the group serves an accepted outside issue or contribution: its
-    `source` field is the string `outside`. An absent or any other value is
-    internal, so a roster with no `source` field orders as it always did.
-    Owner ruling tvofi 2026-11-07 (triage P420): outside work is dispatched
-    and merged ahead of audit or owner work unless the owner calls it a hotfix."""
-    return isinstance(group, dict) and group.get("source") == "outside"
+    `source` field is OUTSIDE. An absent or any other value is internal, so a
+    roster with no `source` field orders as it always did. Read from the
+    roster alone, never a list of names or a GitHub read. Owner rulings tvofi
+    2026-11-07 (triage P420) and 2026-11-08: outside work ranks with the
+    critical path, ahead of other audit or owner work, behind a hotfix."""
+    return isinstance(group, dict) and group.get("source") == OUTSIDE
 
 
 def is_hotfix(group: dict) -> bool:
@@ -707,19 +768,26 @@ def is_hotfix(group: dict) -> bool:
         group.get("kind") == "bug" or "HOTFIX" in str(group.get("group") or "").upper())
 
 
+#: dispatch_rank's answers, best first.
+RANK_HOTFIX, RANK_TOP, RANK_OTHER = 0, 1, 2
+
+
 def dispatch_rank(roster: dict, gid: str | None, critical) -> int:
-    """0 hotfix, 1 outside, 2 critical path, 3 any other group (or none): the
-    one order every queue reader applies (owner ruling tvofi 2026-11-07, triage
-    P420). `critical` is a set of `norm_group` ids; a group the roster does not
-    hold is 3."""
+    """RANK_HOTFIX, then RANK_TOP (an outside group or one on the critical
+    path, unordered between them), then RANK_OTHER (any other group, or
+    none): the one order every queue reader applies, replan.py's tiers
+    without the production split (owner rulings tvofi 2026-11-07, triage
+    P420, and 2026-11-08: "landing the outside requests, and landing the
+    critical path ... in no particular order"). `critical` is a set of
+    `norm_group` ids; a group the roster does not hold is RANK_OTHER."""
     if not gid:
-        return 3
+        return RANK_OTHER
     g = next((x for x in roster.get("groups", []) if x.get("group") == gid), None)
     if g is not None and is_hotfix(g):
-        return 0
+        return RANK_HOTFIX
     if g is not None and is_outside(g):
-        return 1
-    return 2 if norm_group(str(gid)) in critical else 3
+        return RANK_TOP
+    return RANK_TOP if norm_group(str(gid)) in critical else RANK_OTHER
 
 
 def group_for_pr(roster: dict, pr) -> str | None:
@@ -908,6 +976,24 @@ def _self_test() -> int:
                         "done", legacy) == ("done", []))
     check("closing (null): a stage other than done is never rewritten",
           closing_stage(cg, "in-progress", legacy) == ("in-progress", []))
+    # discharged (proposal 1): merged, carries-open, nothing pending.
+    co = {"group": "CO", "carry": ["a [moved: R10-X]", "b [implemented: 0123abcd]",
+                                   "c [dismissed: a duplicate]"],
+          "resume": {"stage": "carries-open", "commit": "0123abcd"}}
+    check("discharged: carries-open, a merge commit, every carry marked",
+          discharged(co, {}))
+    check("discharged (null): one unmarked carry keeps it owed",
+          not discharged(co | {"carry": co["carry"] + ["d"]}, {}))
+    check("discharged: a legacy carry is not owed",
+          discharged(co | {"carry": co["carry"] + ["old"]}, {"CO": frozenset({"old"})}))
+    check("discharged (null): an unmerged group's own work is undone, whatever "
+          "its carries say",
+          not any(discharged(co | {"resume": {"stage": s, "commit": "0123abcd"}}, {})
+                  for s in ("not-started", "in-progress", "review", "queued")))
+    check("discharged (null): carries-open with no recorded merge is not",
+          not discharged(co | {"resume": {"stage": "carries-open"}}, {})
+          and not discharged(co | {"resume": {"stage": "carries-open",
+                                              "commit": "not a sha"}}, {}))
     got = [(s[0], s[2]) for s in stranded({"groups": [
         cg, cg | {"group": "AB", "resume": {"stage": "absorbed"}},
         cg | {"group": "CO", "resume": {"stage": "carries-open"}}]}, legacy)]
@@ -1029,12 +1115,15 @@ def _self_test() -> int:
         rk = {"groups": [{"group": "H1", "kind": "bug"}, {"group": "R10-HOTFIX-N"},
                          {"group": "O1", "source": "outside"}, {"group": "O2", "source": "outside", "kind": "bug"},
                          {"group": "C1"}, {"group": "P1"}]}
-        check("dispatch_rank: hotfix 0, outside 1, critical 2, other or unknown or none 3; a hotfix beats outside",
+        check("dispatch_rank: hotfix, then outside and critical as one rank, then other, unknown "
+              "or none; a hotfix beats outside",
               [dispatch_rank(rk, g, {"c1", "o1"}) for g in ("H1", "R10-HOTFIX-N", "O1", "O2", "C1", "P1", "ZZ", None)]
-              == [0, 0, 1, 0, 2, 3, 3, 3]
-              and dispatch_rank(rk, "C1", set()) == 3
-              # no group id is 3 even where a roster row carries no id and is a hotfix
-              and dispatch_rank({"groups": [{"group": None, "kind": "bug"}]}, None, set()) == 3)
+              == [RANK_HOTFIX, RANK_HOTFIX, RANK_TOP, RANK_HOTFIX, RANK_TOP, RANK_OTHER, RANK_OTHER, RANK_OTHER]
+              and RANK_HOTFIX < RANK_TOP < RANK_OTHER
+              and dispatch_rank(rk, "C1", set()) == RANK_OTHER
+              and dispatch_rank(rk, "O1", set()) == RANK_TOP
+              # no group id is RANK_OTHER even where a roster row carries no id and is a hotfix
+              and dispatch_rank({"groups": [{"group": None, "kind": "bug"}]}, None, set()) == RANK_OTHER)
         check("is_hotfix: kind bug or HOTFIX in the name only",
               is_hotfix({"group": "X", "kind": "bug"}) and is_hotfix({"group": "r10-hotfix-x"})
               and not is_hotfix({"group": "X"}) and not is_hotfix(None))
@@ -1211,4 +1300,13 @@ def _self_test() -> int:
 if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         sys.exit(_self_test())
+    if sys.argv[1:2] == ["brief-lines"] and len(sys.argv) == 4:
+        # brief-lines <roster-ref> <branch>: what `prepr.sh` prints; always rc 0 (informational)
+        try:
+            _r = show_roster(".", sys.argv[2])
+            _g = group_for_branch(_r, sys.argv[3])
+            print("\n".join(brief_lines(_r, _g)) if _g else f"no roster group answers for branch {sys.argv[3]}")
+        except Exception as e:  # a missing ref is a note, never a refusal
+            print(f"unreadable: {e.__class__.__name__}")
+        sys.exit(0)
     sys.exit(__doc__)

@@ -11,6 +11,7 @@ cases is reported failed, never killed.
 """
 from __future__ import annotations
 
+import collections
 import importlib.util
 import json
 import os
@@ -125,7 +126,7 @@ def cases(bj) -> dict[str, bool]:
         ov = {"repo": "o/r", "seat_ledger": str(s / "ledger"), "plan_json": str(s / "p.json"),
               "plan_slots": 10, "plan_seats": 99, "state_mirror": str(s / "mirror"),
               "disk_floor_gib": 20, "seat_queues": "--seat-queue merge=" + str(s / "q"),
-              "intake_since": "2026-11-01T00:00:00Z"}
+              "intake_since": "2026-11-01T00:00:00Z", "train_log": str(s / "train.log")}
         if overlay is not None:
             ov = overlay
         (s / "sweep-overlay.json").write_text(json.dumps(ov))
@@ -353,6 +354,56 @@ def cases(bj) -> dict[str, bool]:
     bj.roster_drain(c)
     res["roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs"] = (
         shrank and f.ran("roster_queue.py") == 1 and "QUEUE-SHRANK" in digest(c))
+    # A pass beatd kills at timeout_s (SIGTERM mid-op) keeps the ops it applied before the kill.
+    class Killed(BaseException):
+        pass
+
+    ops = ("set-stage G1 done", "append-carry G2 @x", "drop-carry G3 1")
+    applied, kill, tick = collections.Counter(), {"at": 2}, {"t": 0.0, "step": 0.0}
+
+    def killable(argv):
+        tick["t"] += tick["step"]
+        if kill["at"] == sum(applied.values()) + 1:
+            raise Killed
+        applied[Path(argv[argv.index("--queue") + 1]).read_text().strip()] += 1
+        return roster("pushed 0123abcde")(argv)
+
+    def fresh_queue():
+        c, f = fresh(answers={"roster_queue.py": killable})
+        c.clock = lambda: tick["t"]
+        (c.state / "roster-drain.queue").write_text("".join(o + "\n" for o in ops))
+        return c, f
+    c, f = fresh_queue()
+    try:
+        bj.roster_drain(c)
+        died = False
+    except Killed:
+        died = applied == collections.Counter(ops[:1])
+    kill["at"] = 0
+    bj.roster_drain(c)
+    res["roster-drain: a pass killed mid-queue keeps its applied ops; the next applies each once"] = (
+        died and applied == collections.Counter(ops) and f.ran("roster_queue.py") == len(ops) + 1)
+    applied.clear()
+    c, f = fresh_queue()
+    bj.roster_drain(c)
+    bj.roster_drain(c)
+    res["roster-drain null: a pass that completes applies each op exactly once"] = (
+        applied == collections.Counter(ops) and f.ran("roster_queue.py") == len(ops))
+    # The pass starts no op past ROSTER_PASS_BUDGET_S, so beatd's timeout_s does not land mid-queue.
+    applied.clear()
+    budget = getattr(bj, "ROSTER_PASS_BUDGET_S", 0)  # 0 (absent) fails both budget cases, never crashes them
+    tick["step"] = budget / 2 + 1  # each op takes over half the budget
+    c, f = fresh_queue()
+    bj.roster_drain(c)
+    first = collections.Counter(applied)
+    bj.roster_drain(c)
+    res["roster-drain: a pass past ROSTER_PASS_BUDGET_S starts no op; the next pass resumes"] = (
+        first == collections.Counter(ops[:2]) and applied == collections.Counter(ops)
+        and f.ran("roster_queue.py") == len(ops))
+    tick["step"] = 0.0
+    row = [j for j in json.loads((HERE / "beatd.jobs.json").read_text())["jobs"] if j["name"] == "roster-drain"]
+    res["roster-drain: ROSTER_PASS_BUDGET_S is at most half the row's timeout_s"] = (
+        len(row) == 1 and 0 < 2 * budget <= row[0]["timeout_s"])
     c, f = fresh(answers={"roster_queue.py": roster("no op attempted: lint clone not provisioned")})
     (c.state / "roster-drain.queue").write_text("set-stage G1 done\n")
     bj.roster_drain(c)
@@ -414,6 +465,41 @@ def cases(bj) -> dict[str, bool]:
     c, f = fresh(answers={"outside_intake.py": (2, "outside-intake: UNREADABLE Unreadable: gh api rc=1\n", "")})
     bj.outside_intake(c)
     res["outside-intake: rc 2 is UNREADABLE, never clean"] = digest(c).startswith("outside-intake: UNREADABLE")
+
+    # plan-beat hands the train log on to state_docs (the page's skips); none leaves the flag out
+    c, f = fresh()
+    bj.plan_beat(c)
+    sd = next((x for x in f.calls if any(a.endswith("state_docs.py") for a in x)), [])
+    c0, f0 = fresh(overlay={k: v for k, v in json.loads((c.state / "sweep-overlay.json").read_text()).items()
+                            if k != "train_log"})
+    bj.plan_beat(c0)
+    sd0 = next((x for x in f0.calls if any(a.endswith("state_docs.py") for a in x)), [])
+    res["plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)"] = (
+        arg(sd, "--train-log") == str(c.state / "train.log") and sd0 and "--train-log" not in sd0)
+
+    # bottleneck
+    c, f = fresh(answers={"bottleneck_check.py": (0, "", "")})
+    bj.bottleneck(c)
+    bc = next((x for x in f.calls if any(a.endswith("bottleneck_check.py") for a in x)), [])
+    res["bottleneck null: no breach writes nothing"] = not files(c) and f.ran("bottleneck_check.py") == 1
+    res["bottleneck: the checker is handed the checkout, train_log, the plan's slot cap and a memory under state/"] = (
+        arg(bc, "--checkout") == str(c.repo) and arg(bc, "--train-log") == str(c.state / "train.log")
+        and arg(bc, "--wip-cap") == "10" and (arg(bc, "--memory") or "").endswith("state/bottleneck.json"))
+    trip = "BOTTLENECK: wip 20 in-progress vs cap 20 -- dispatch no new group; move review and merge work first"
+    blind = "BOTTLENECK-UNREADABLE: skip-share -- the train log holds no BATCH line"
+    c, f = fresh(answers={"bottleneck_check.py": (0, "noise\n" + trip + "\n" + blind + "\n", "")})
+    absent = "BOTTLENECK" not in digest(c)
+    bj.bottleneck(c)
+    res["bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else"] = (
+        absent and digest(c).splitlines() == [trip, blind] and bj.read(c.digest / "new.txt").splitlines() == [trip, blind])
+    c, f = fresh(answers={"bottleneck_check.py": (1, "", "Traceback\nKeyError: 'slots'\n")})
+    bj.bottleneck(c)
+    res["bottleneck: a failed check is UNREADABLE, never clean"] = digest(c).startswith(
+        "bottleneck: UNREADABLE rc=1: KeyError")
+    c, f = fresh(overlay={"repo": "o/r", "plan_slots": 10}, answers={"bottleneck_check.py": (0, trip + "\n", "")})
+    bj.bottleneck(c)
+    res["bottleneck: an overlay without train_log is UNREADABLE and runs nothing"] = (
+        digest(c) == "bottleneck: UNREADABLE overlay lacks train_log\n" and f.ran("bottleneck_check.py") == 0)
 
     # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
     c, f = fresh(answers={"roster_queue.py": (0, "", "")})
@@ -850,6 +936,12 @@ MUTANTS = {
     "owed_rc1_dropped": ("    if rc == 1:\n", "    if rc == 9:\n", "owed-check: an UNACTIONED exit lands in new.txt"),
     "roster_no_mark": ("            done.add(key)  # applied", "            pass  # applied",
                        "roster-drain: a queue line drains once, is marked, and is not re-run"),
+    "roster_saved_at_pass_end": ("            holds.pop(key, None)\n            save()\n", "            holds.pop(key, None)\n",
+                                 "roster-drain: a pass killed mid-queue keeps its applied ops; the next applies each once"),
+    "roster_pass_unbounded": ("        if ctx.clock() - start >= ROSTER_PASS_BUDGET_S:", "        if False:",
+                              "roster-drain: a pass past ROSTER_PASS_BUDGET_S starts no op; the next pass resumes"),
+    "roster_budget_over_timeout": ("ROSTER_PASS_BUDGET_S = 450", "ROSTER_PASS_BUDGET_S = 451",
+                                   "roster-drain: ROSTER_PASS_BUDGET_S is at most half the row's timeout_s"),
     "roster_hold_ignored": ("            if not on_main(ctx, parts[1]):", "            if False:",
                             "roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases"),
     "plan_rc1_silent": ("    if rc != 0:\n        said = ", "    if rc not in (0, 1):\n        said = ",
@@ -865,6 +957,16 @@ MUTANTS = {
                                 "plan-beat null: an already-current state ref dispatches nothing"),
     "pages_refusal_silent": ("        if drc != 0:\n", "        if False:\n",
                              "plan-beat: a refused Pages dispatch reaches the digest"),
+    "bottleneck_memory_dropped": ('                          "--memory", str(ctx.digest / "state" / "bottleneck.json"))',
+                                  '                          )',
+                                  "bottleneck: the checker is handed the checkout, train_log, the plan's slot cap and a memory under state/"),
+    "bottleneck_rc_clean": ('    if rc != 0:\n        return write_job(ctx, "bottleneck"', '    if False:\n        return write_job(ctx, "bottleneck"',
+                            "bottleneck: a failed check is UNREADABLE, never clean"),
+    "bottleneck_unreadable_dropped": ('ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))',
+                                      'ln.startswith(("BOTTLENECK: ",))',
+                                      "bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else"),
+    "plan_train_dropped": ('"--plan", plan, *train)', '"--plan", plan)',
+                           "plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)"),
     "outside_lines_dropped": ('if ln.startswith("OUTSIDE ")]', 'if ln.startswith("OUTSIDEX ")]',
                               "outside-intake: each OUTSIDE line reaches the digest, nothing else"),
     "outside_rc2_clean": ("    if rc in (0, 1):\n        return write_job(ctx, \"outside-intake\"",
@@ -924,7 +1026,7 @@ MUTANTS = {
     "roster_malformed_hold_retried": ('lines.append(f"roster: refused malformed hold line: {text}")\n                done.add(key)',
                                       'lines.append(f"roster: refused malformed hold line: {text}")',
                                       "roster-drain: a malformed hold line is refused once and marked, never re-printed"),
-    "plan_mirror_dropped": ('"--push", "--mirror", mirror, "--plan", plan)', '"--push", "--plan", plan)',
+    "plan_mirror_dropped": ('"--push", "--mirror", mirror, "--plan", plan, *train)', '"--push", "--plan", plan, *train)',
                             "plan-beat: state_docs is handed the mirror and the plan"),
     "pulse_ledger_dropped": ('        args += ["--launch-ledger", str(o["launch_ledger"])]', '        pass',
                              "pulse: launch_ledger is a --launch-ledger argument"),

@@ -31,13 +31,18 @@ harness the diff adds or edits is the fixer's, and the render refuses it.
 REFUSALS (rc 1, each named by its signal), all mechanical:
   carry-audit      `carry_audit.py check` returns 1 on the body (unrouted or bad);
   head-note        `## Head` does not name the dispatched head;
+  figure-lint      `figure_lint.mjs --pr-body` exits non-zero on the body (unverified is
+                   not refused, as `fixer.md` step 3 reads it);
+  moved-head       the pull request's head is no longer the dispatched head;
   structure        `tests/structure.py` refuses the head merged with main;
   red-unanswered   a CONCLUDED red check the body's `## Red checks` does not name
                    (`policy_lint.mjs --pr-body --red`);
-  required-red     a required context's latest run concluded failure -- unless
-                   `merge_train.py classify --pr` answers APPROVAL-OWED (P345: the
-                   red is only a budget raise's approval, which follows the
-                   review), printed as the `approval-owed` advisory instead;
+  required-red     a required context's latest run concluded failure and
+                   `merge_train.py classify --pr`, which decides, reads it RED or
+                   cannot be read; APPROVAL-OWED (P345: only a budget raise's
+                   approval, which follows the review) prints `approval-owed`,
+                   WAIT or GREEN (a provisional red, P436; #3379) prints
+                   `required-wait`/`required-green`, each an advisory instead;
   host-path        the body or an added line names this host (`ref_privacy.py`);
   hot-file         the diff shares a HOT_FILES path with an open pull request
                    whose merge verdict is at its head and not on the train;
@@ -133,7 +138,7 @@ HOT_FILES = ("tools/audit/seat/pr_args.sh", "tools/audit/seat/update_pr.sh",
              "dev/audit/harnesses/r10_seat_selftests_mutants.py")
 RED = {"failure", "cancelled", "timed_out", "action_required", "startup_failure"}
 LEDGER = "tests/mutation_ledger"
-SIGNALS = ("carry-audit", "head-note", "structure", "red-unanswered", "required-red", "host-path", "hot-file",
+SIGNALS = ("carry-audit", "figure-lint", "moved-head", "head-note", "structure", "red-unanswered", "required-red", "host-path", "hot-file",
            "handoff-not-applied", "carry-landed")
 
 
@@ -184,25 +189,53 @@ def gate_digest(runs: list[dict]) -> tuple[str, list[str], list[str]]:
     return state, lines, reds
 
 
-def approval_owed_line(pr: int, head: str) -> str | None:
-    """The reason `merge_train.py classify --pr` prints after `APPROVAL-OWED <head>`
-    (rc 4), else None: the one owner of K15 (d)'s raise exception asked, never
-    restated (P345). Any other answer, or a classifier that cannot run, is None,
-    and the required red refuses as before. HPO_PACKET_CLASSIFY replaces the
-    command (the self-test's stub)."""
+#: `merge_train.py classify`'s exit code -> the verdict word its one line starts with.
+CLASSIFY_WORD = {0: "GREEN", 1: "RED", 3: "WAIT", 4: "APPROVAL-OWED"}
+
+
+def required_reading(pr: int, head: str) -> tuple[str, str]:
+    """(verdict, rest of the line) of `merge_train.py classify <head> --pr <pr>`,
+    the one owner of whether a required red is red (P436: a provisional gate
+    red, or one beside a re-running unit, it reads WAIT) and of K15 (d)'s raise
+    exception (P345). The packet's own latest-run-per-name digest never decides
+    alone: bus.sh dispatches on this same answer, and the two disagreeing is
+    #3379's deadlock. A verdict whose word does not match its rc, a line naming
+    another head, or a classifier that cannot run is ("RED", why): fail closed.
+    HPO_PACKET_CLASSIFY replaces the command (the self-test's stub)."""
     cmd = shlex.split(os.environ.get("HPO_PACKET_CLASSIFY", "")) or [
         sys.executable, str(ROOT / "tools/audit/seat/merge_train.py")]
     try:
         r = subprocess.run([*cmd, "classify", head, "--repo", REPO, "--pr", str(pr)],
                            capture_output=True, text=True)
-    except OSError:
-        return None
-    m = re.search(rf"^APPROVAL-OWED {re.escape(head)} (.+)$", r.stdout, re.M)
-    return m.group(1) if r.returncode == 4 and m else None
+    except OSError as e:
+        return "RED", f"classify could not run: {e}"
+    word = CLASSIFY_WORD.get(r.returncode)
+    m = word and re.search(rf"^{re.escape(word)} {re.escape(head)}(?: (.*))?$", r.stdout, re.M)
+    if m:
+        return word, m.group(1) or ""
+    last = ([ln for ln in (r.stdout + r.stderr).splitlines() if ln.strip()] or [""])[-1]
+    return "RED", f"classify unreadable (rc {r.returncode}): {last[:200]}"
 
 
-def head_note_ok(body: str, head: str) -> bool:
-    return head in section(body, "Head")
+def head_named(body: str, head: str, base: str) -> bool:
+    """Whether `## Head` names the dispatched head as `policy_lint.mjs --pr-body --head` decides
+    (P405): the contract accepts a 7-character name and a bot autofix chain on top of a named
+    head, so one rule decides and this packet adds none. Only its own `does not name` error
+    refuses; a run that stops without reading the head section is Unavailable, not a pass.
+    HPO_PACKET_LINT replaces the command (the self-test's stub)."""
+    cmd = shlex.split(os.environ.get("HPO_PACKET_LINT", "")) or ["node", "tools/policy/policy_lint.mjs"]
+    rc, out = tool([*cmd, "--pr-body", "{BODY}", "--head", head, "--base", base], body)
+    if "does not name" in out and "`## Head`" in out:
+        return False
+    if rc and "[pr-body]" not in out:
+        raise Unavailable(f"policy_lint --pr-body did not run: {out[:200]}")
+    return True
+
+
+def head_note_ok(facts: dict) -> bool:
+    """The gathered verdict, else the contract's bare floor (the head's full SHA in `## Head`)."""
+    named = facts.get("head_named")
+    return facts["head"] in section(facts["body"], "Head") if named is None else named
 
 
 def hot_file_refusals(paths: set[str], open_prs: list[dict], boarded: set[int], this_pr: int) -> list[str]:
@@ -498,20 +531,30 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
     refusals: list[str] = []
     if facts["carry_rc"]:
         refusals.append("carry-audit: carry_audit.py check returned 1 on the body")
-    if not head_note_ok(body, head):
+    if facts.get("figure_rc"):
+        refusals.append("figure-lint: figure_lint.mjs refused the body (its output is in the packet)")
+    if facts.get("pr_head") and facts["pr_head"] != head:
+        refusals.append(f"moved-head: the pull request's head is {facts['pr_head']}, not the dispatched {head}")
+    if not head_note_ok(facts):
         refusals.append(f"head-note: ## Head does not name the dispatched head {head}"
                         + head_note_repair(head, facts.get("branch")))
     refusals += handoff_refusals(facts["structure"], facts["hot"], [])
     for n in facts["red_unanswered"]:
         refusals.append(f"red-unanswered: concluded red check `{n}` is not named in ## Red checks")
-    owed, owed_adv = facts.get("approval_owed"), []
+    (word, why), owed_adv = facts.get("required_read") or ("RED", ""), []
     for n in sorted(set(reds) & set(REQUIRED)):
-        if owed:
+        if word == "APPROVAL-OWED":
             owed_adv.append(
                 f"approval-owed: required context `{n}` concluded failure at {head} only on a budget "
-                f"raise's owed approval (merge_train.approval_owed): {owed}")
+                f"raise's owed approval (merge_train.approval_owed): {why}")
+        elif word in ("WAIT", "GREEN"):
+            owed_adv.append(
+                f"required-{word.lower()}: required context `{n}` reads concluded failure at {head} in the "
+                f"digest, but merge_train.py classify --pr reads {word} ({why}): classify decides, as "
+                "bus.sh's dispatch does, and a pending check never refuses")
         else:
-            refusals.append(f"required-red: required context `{n}` concluded failure at {head}")
+            refusals.append(f"required-red: required context `{n}` concluded failure at {head}"
+                            + (f" (merge_train.py classify --pr reads {word} {why})" if why else ""))
     for w in facts["host"]:
         refusals.append(f"host-path: {w}")
     refusals += facts.get("unlanded", [])
@@ -556,18 +599,20 @@ def gather(a) -> dict:
         unlanded = unlanded_carries(cites, carries_at, on_roster)
     runs = gh(f"repos/{REPO}/commits/{head}/check-runs?per_page=100").get("check_runs", [])
     gate = gate_digest(runs)
-    owed = approval_owed_line(a.pr, head) if set(gate[2]) & set(REQUIRED) else None
+    read = required_reading(a.pr, head) if set(gate[2]) & set(REQUIRED) else None
     crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
-    _, fout = tool(["node", "tools/policy/figure_lint.mjs", "--pr-body", "{BODY}", "--at", head], body)
+    frc, fout = tool(["node", "tools/policy/figure_lint.mjs", "--pr-body", "{BODY}", "--at", head], body)
     red_unanswered = unanswered_reds(body, head, base, gate[2], touched, existing)
+    named = head_named(body, head, base)
     ident = ref_privacy.Identity.of_host()
     host = [w for w in [ref_privacy.body_refusal(body, ident)] if w]
     host += ref_privacy.content_refusals(ref_privacy.added_lines(base, head, repo()), ident)
     open_prs, boarded = hot_prs(touched)
     return {
-        "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate, "approval_owed": owed,
-        "branch": branch, "unlanded": unlanded,
-        "carry_rc": crc, "carry_out": cout, "figure_out": fout,
+        "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate, "required_read": read,
+        "branch": branch, "unlanded": unlanded, "head_named": named,
+        "carry_rc": crc, "carry_out": cout, "figure_out": fout, "figure_rc": frc,
+        "pr_head": (pr.get("head") or {}).get("sha"),
         "structure": None if a.no_structure else structure_at_merge(main, head),
         "red_unanswered": red_unanswered, "host": host, "handoff": handoff,
         "hot": hot_file_refusals(touched, open_prs, boarded, a.pr),
@@ -682,6 +727,39 @@ def _self_test() -> int:
           H in hn and "update_pr.sh fix/g - <body-file>" in hn)
     check("head-note repair null: a branch that cannot be read prints today's refusal, no command",
           build({**clean, "body": f"## Head\n{B}\n"})[0][0] == f"head-note: ## Head does not name the dispatched head {H}")
+    with tempfile.TemporaryDirectory() as d:
+        stub = Path(d) / "lint.sh"
+        stub.write_text('echo "$*" > "$(dirname "$0")/argv"\n'
+                        'if [ -n "${PK_NAME:-}" ]; then echo \'  ERROR   [pr-body] `## Head` does not name aaaaaaa, which is the head\'; exit 1; fi\n'
+                        'echo \'  ERROR   [pr-body] no `## Figures` section\'; exit 1\n')
+        saved = os.environ.get("HPO_PACKET_LINT")
+        os.environ["HPO_PACKET_LINT"] = f"bash {stub}"
+        try:
+            os.environ.pop("PK_NAME", None)
+            ok = head_named(clean_body, H, B)
+            check("P405 head-note asks policy_lint --pr-body --head (one rule decides); another pr-body error is not its refusal",
+                  ok and f"--head {H}" in (Path(d) / "argv").read_text())
+            os.environ["PK_NAME"] = "1"
+            check("P405 head-note refuses on policy_lint's own `does not name` error, whatever the substring says",
+                  not head_named(clean_body, H, B))
+            check("P405 gathered verdict decides: a chain policy_lint accepts passes where the substring test refuses",
+                  head_note_ok({**clean, "body": f"## Head\n{B}\n", "head_named": True}) is True)
+            check("P405 gathered verdict decides: policy_lint's refusal beats a body that contains the head",
+                  head_note_ok({**clean, "head_named": False}) is False)
+            check("P405 null: with no gathered verdict the floor is the head in ## Head",
+                  head_note_ok(clean) and not head_note_ok({**clean, "body": f"## Head\n{B}\n"}))
+        finally:
+            os.environ.pop("PK_NAME", None)
+            if saved is None:
+                os.environ.pop("HPO_PACKET_LINT", None)
+            else:
+                os.environ["HPO_PACKET_LINT"] = saved
+    check("P-card3 figure-lint: a figure_lint refusal on the body refuses", refused("figure-lint", figure_rc=1))
+    check("P-card3 figure-lint null: figure_lint exit 0 (unverified included) does not refuse", build({**clean, "figure_rc": 0})[0] == [])
+    check("P-card3 moved-head: a pull request head other than the dispatched one refuses, naming both",
+          refused("moved-head", pr_head=B) and H in build({**clean, "pr_head": B})[0][0])
+    check("P-card3 moved-head null: the same head, or a handoff-ref dispatch with no pull request yet, does not refuse",
+          build({**clean, "pr_head": H})[0] == [] and build({**clean, "pr_head": None})[0] == [])
     check("structure: a structure refusal at the merge refuses", refused("structure", structure="max_class_loc"))
     check("red-unanswered: an unanswered concluded red refuses", refused("red-unanswered", red_unanswered=["tests / fast"]))
     check("host-path: a host path refuses", refused("host-path", host=["home-directory in the body"]))
@@ -690,11 +768,30 @@ def _self_test() -> int:
                {"id": 2, "name": "gate", "status": "completed", "conclusion": "failure"}]
     check("required-red: the required context's latest run concluded failure refuses",
           refused("required-red", gate=gate_digest(redgate)))
-    r_o, adv_o, t_o = build({**clean, "gate": gate_digest(redgate), "approval_owed": "1 budget raise(s), planted"})
+    r_o, adv_o, t_o = build({**clean, "gate": gate_digest(redgate),
+                         "required_read": ("APPROVAL-OWED", "1 budget raise(s), planted")})
     check("P345: a required red that is only a raise's owed approval renders: no refusal, an "
           "`approval-owed` advisory naming the reason, in the packet",
           r_o == [] and len(adv_o) == 1 and adv_o[0].startswith("approval-owed: required context `gate`")
           and "1 budget raise(s), planted" in t_o)
+    # #3379 at 71b95e42, 00:03Z on 11-10: the gate's latest run concluded failure while the
+    # budget-raise-gate re-run was in progress, so classify --pr read WAIT (rc 3) and bus.sh
+    # dispatched it, but the packet asked only "is it APPROVAL-OWED?" and refused required-red.
+    raise_rerun = [*redgate, {"id": 3, "name": "budget-raise-gate / budget-raise-gate",
+                              "status": "in_progress", "conclusion": None}]
+    r_w, adv_w, t_w = build({**clean, "gate": gate_digest(raise_rerun),
+                             "required_read": ("WAIT", "pending: budget-raise-gate red: none")})
+    check("#3379: a required red that classify --pr reads WAIT renders: no refusal, a `required-wait` "
+          "advisory naming classify's line (classify decides; a pending check never refuses)",
+          r_w == [] and len(adv_w) == 1 and adv_w[0].startswith("required-wait: required context `gate`")
+          and "pending: budget-raise-gate" in t_w)
+    r_g, adv_g, _ = build({**clean, "gate": gate_digest(redgate), "required_read": ("GREEN", "pending: none red: none")})
+    check("a required red that classify --pr reads GREEN renders, with a `required-green` advisory",
+          r_g == [] and len(adv_g) == 1 and adv_g[0].startswith("required-green: required context `gate`"))
+    r_r, adv_r, _ = build({**clean, "gate": gate_digest(redgate), "required_read": ("RED", "pending: none red: gate")})
+    check("null control: a required red that classify --pr reads RED still refuses, naming classify's line",
+          len(r_r) == 1 and r_r[0].startswith("required-red: required context `gate`")
+          and "RED pending: none red: gate" in r_r[0] and adv_r == [])
     with tempfile.TemporaryDirectory() as d:
         stub = Path(d) / "classify.sh"
         stub.write_text('echo "$*" > "$(dirname "$0")/argv"; echo "${PK_OUT:-}"; exit "${PK_RC:-1}"\n')
@@ -702,14 +799,18 @@ def _self_test() -> int:
         os.environ["HPO_PACKET_CLASSIFY"] = f"bash {stub}"
         try:
             os.environ.update(PK_OUT=f"APPROVAL-OWED {H} 1 budget raise(s): why", PK_RC="4")
-            got = approval_owed_line(7, H)
+            got = required_reading(7, H)
             argv = (Path(d) / "argv").read_text().split()
             os.environ.update(PK_OUT=f"RED {H} pending: none red: gate", PK_RC="1")
-            red_line = approval_owed_line(7, H)
+            red_line = required_reading(7, H)
+            os.environ.update(PK_OUT=f"WAIT {H} pending: budget-raise-gate red: none", PK_RC="3")
+            wait_line = required_reading(7, H)
             os.environ.update(PK_OUT=f"APPROVAL-OWED {B} 1 budget raise(s): why", PK_RC="4")
-            other = approval_owed_line(7, H)
+            other = required_reading(7, H)
             os.environ.update(PK_OUT=f"APPROVAL-OWED {H} 1 budget raise(s): why", PK_RC="1")
-            wrong_rc = approval_owed_line(7, H)
+            wrong_rc = required_reading(7, H)
+            os.environ.update(PK_OUT=f"REFUSE ci: the check runs at {H[:12]} could not be read", PK_RC="2")
+            unread = required_reading(7, H)
         finally:
             os.environ.pop("PK_OUT", None), os.environ.pop("PK_RC", None)
             if saved is None:
@@ -717,9 +818,13 @@ def _self_test() -> int:
             else:
                 os.environ["HPO_PACKET_CLASSIFY"] = saved
     check("P345: the reason is classify --pr's own APPROVAL-OWED line at rc 4, asked with the pull "
-          "request; RED (rc 1), a line naming another head, and the line at any rc but 4 are None (null controls)",
-          got == "1 budget raise(s): why" and argv[:2] == ["classify", H] and argv[-2:] == ["--pr", "7"]
-          and red_line is None and other is None and wrong_rc is None)
+          "request; RED (rc 1), a line naming another head, and the line at any rc but 4 are RED (null controls)",
+          got == ("APPROVAL-OWED", "1 budget raise(s): why") and argv[:2] == ["classify", H]
+          and argv[-2:] == ["--pr", "7"] and red_line == ("RED", "pending: none red: gate")
+          and other[0] == "RED" and wrong_rc[0] == "RED")
+    check("#3379: classify's WAIT line at rc 3 is WAIT; a REFUSE at rc 2 (unread) fails closed as RED, naming it",
+          wait_line == ("WAIT", "pending: budget-raise-gate red: none")
+          and unread[0] == "RED" and "rc 2" in unread[1] and "could not be read" in unread[1])
     check("required-red null: the same head with that run green renders",
           build({**clean, "gate": gate_digest(list(reversed([dict(r, id=3 - r["id"]) for r in redgate])))})[0] == [])
     running = [{"id": 1, "name": "gate", "status": "in_progress", "conclusion": None},

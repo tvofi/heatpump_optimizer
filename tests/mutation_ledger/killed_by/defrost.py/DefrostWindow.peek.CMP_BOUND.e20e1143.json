@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostWindow.peek CMP_BOUND e20e1143",
+  "killed_by": "tests/features.py",
+  "old": "            duty=min(1.0, seconds_on / total) if total > 0 else 0.0,",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`duty=min(1.0, seconds_on / total) if total >= 0 else 0.0,`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

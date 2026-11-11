@@ -173,17 +173,22 @@ def _dhw_horizon(*, prices, outdoor, n, dt, step_hours=None, state=None,
     )
 
 
-def _dhw_ctx(*, prices, outdoor, n, dt, c_dhw, p_dhw_max,
+from dataclasses import replace as _dhw_store_with  # noqa: E402
+
+
+def _dhw_ctx(*, prices, outdoor, n, dt, c_dhw, p_dhw_max, params,
              min_run_power=0.1, max_lead_steps=24, humidity=None,
-             import_prices=None):
+             import_prices=None, tank_exo_kw=None):
     """The DHW planners' shared record for direct calls (#1776). The floor
-    repair ranks at ``import_prices``, defaulting to the same series."""
+    repair ranks at ``import_prices``, defaulting to the same series. The
+    store is ``params``' own (its UA and limits) at capacity ``c_dhw``."""
     return _DhwPlanContext(
         prices=prices, import_prices=prices if import_prices is None
         else import_prices,
         outdoor_temps=outdoor, humidity=humidity,
-        n_steps=n, dt=dt, c_dhw=c_dhw, p_dhw_max=p_dhw_max,
-        min_run_power=min_run_power, max_lead_steps=max_lead_steps)
+        n_steps=n, dt=dt, store=_dhw_store_with(params.dhw_store, capacity_kwh_per_c=c_dhw),
+        p_dhw_max=p_dhw_max, min_run_power=min_run_power,
+        max_lead_steps=max_lead_steps, tank_exo_kw=tank_exo_kw)
 
 
 def _solve_record_now(coord):
@@ -8289,8 +8294,27 @@ R.check(
 from heatpump_optimizer.accuracy import MeasuredCop as _CopRecord  # noqa: E402
 
 
+from heatpump_optimizer.thermal_model import InstallCapability as _cg_cap  # noqa: E402
+
+
 class _CopGate:
-    _learn_measured_cop = Coord._learn_measured_cop
+    #: R10-HOTFIX-COP-UNMEASURED: this stub has no heat reading, so the fold
+    #: records nothing as measured. ``as_measured`` hands the fold's tail an
+    #: interval it treats as a measured one, for the checks that pin what the
+    #: tail credits a measured sample; which samples are measured is pinned on
+    #: the real coordinator (that section's checks).
+    as_measured = False
+
+    def _learn_measured_cop(self, draw=None):
+        if not self.as_measured:
+            return Coord._learn_measured_cop(self, draw)
+        saved = _cg_cap.cop_sample
+        _cg_cap.cop_sample = lambda cap, heat_kw, dhw: True
+        try:
+            return Coord._learn_measured_cop(self, draw)
+        finally:
+            _cg_cap.cop_sample = saved
+
     _fold_measured_cop = Coord._fold_measured_cop
     _fold_cop_evidence = Coord._fold_cop_evidence
     _commanded_power = Coord._commanded_power
@@ -8307,6 +8331,7 @@ class _CopGate:
         # all, and this fixture is about the frost-band *split*, not the
         # magnitude — it has to stay on the efficiency side of that gate.
         self._measured_power = 2.6
+        self._config = {}  # no heat slot: probe_install's empty install
         self._current_action = dict(action) if action else {"power": 3.0}
         # v5.3.0: with no mode entity the signals are the full-capability
         # default, which masks nothing and selects the space curve — the
@@ -9761,10 +9786,21 @@ def reachable(name: str) -> str | None:
 # Volume is gated on the furnace toggle (#463): a lone CONF_WOOD_TANK_VOLUME
 # does not infer a tank, so the single-key probe cannot see it.
 toggle_gated = {"wood_tank_volume"}
+# R10-COMBI-TANK-STORE (PR A) lands the combi store as parameter fields that
+# only a test sets, so no install can reach combi; PR B (R10-COMBI-TANK)
+# wires the option and the loader. Each entry must stay unreachable, so the
+# set refuses itself the day a loader lands without emptying it.
+unwired_combi = {"dhw_combi_tank_enabled", "combi_dhw_effectiveness", "combi_potable_volume_l"}
 probe = {name: reachable(name) for name in declared - runtime_only - validated_enums}
+R.check(
+    "the combi store's fields are reachable from no config key until PR B wires them",
+    all(probe.get(n, "absent") is None for n in unwired_combi),
+    f"{ {n: probe.get(n, 'absent') for n in unwired_combi} } -- a wired field leaves the set",
+)
 
 unreachable = sorted(
-    n for n, k in probe.items() if k is None and n not in toggle_gated
+    n for n, k in probe.items()
+    if k is None and n not in toggle_gated and n not in unwired_combi
 )
 R.check(
     "every configurable parameter is reachable from a config key",
@@ -11411,6 +11447,690 @@ R.check(
     not _cap_bad and _cap_refused > 1.0 and _cap_peak <= 70.0 + 1e-9,
     f"diverged tracks: {_cap_bad}; peak refused {_cap_refused:.4f} kW; "
     f"tank peaked at {_cap_peak:.4f} C",
+)
+
+# R10-COMBI-TANK-STORE (#3225; design/r10-combi-tank a605014b): one body of
+# heating water serves the space circuit and hot water through an exchanger.
+# Every arm builds its parameters through `_ct_params`, which returns None
+# where the combi fields do not exist (the base), so each arm fails there by
+# construction rather than crashing the script.
+import ast as _ct_ast  # noqa: E402
+import math as _ct_math  # noqa: E402
+from dataclasses import replace as _ct_replace  # noqa: E402
+from pathlib import Path as _ct_Path  # noqa: E402
+from heatpump_optimizer import thermal_model as _ct_tm  # noqa: E402
+from heatpump_optimizer.dhw_schedule import parse_windows as _ct_windows  # noqa: E402
+
+R.section("R10-COMBI-TANK-STORE: the combi store, one node for space and hot water")
+_CT_CP = _ct_tm.WATER_SPECIFIC_HEAT
+_CT_MIX = _ct_tm.DHW_MIXED_USE_TEMP
+
+
+# The issue's MFS 600 S, per the manufacturer manual (carry 4, item 1): 504 l of
+# heating water, a 40 l coil, and an ErP standing loss of 111 W at 65 C, so a
+# UA of 111/45 W/K, entered as the cooling rate it gives at the code's 25 K.
+_CT_UA_KW = 0.111 / 45.0
+_CT_RATE = _CT_UA_KW * 25.0 / (_ct_tm.WATER_SPECIFIC_HEAT * 544.0)
+
+
+def _ct_params(combi=True, eps=0.85, potable=40.0, **kw):
+    base = dict(buffer_tank_volume=504.0, mixing_valve_mode=_mv.MODE_SMART_WRITE,
+                dhw_enabled=True, dhw_tank_volume=200.0, buffer_cooling_rate=_CT_RATE)
+    base.update(kw)
+    try:
+        return ThermalParameters(dhw_combi_tank_enabled=combi, combi_dhw_effectiveness=eps,
+                                 combi_potable_volume_l=potable, **base)
+    except TypeError:
+        return None
+
+
+def _ct_store(p):
+    return getattr(p, "dhw_store", None) if p is not None else None
+
+
+# The issue's install (#3225): 504 l of heating water and a 40 l potable coil
+# in ONE vessel. The only configuration base offers counts it twice.
+_ct_p = _ct_params()
+_ct_off = _ct_params(combi=False)
+_ct_s = _ct_store(_ct_p)
+R.check(
+    "combi: the DHW store is the buffer store, potable water included: one capacity, one loss",
+    _ct_s is not None and _ct_s.combi
+    and abs(_ct_s.capacity_kwh_per_c - _CT_CP * 544.0) < 1e-12
+    and _ct_s.capacity_kwh_per_c == _ct_p.buffer_tank_thermal_mass
+    and _ct_s.ua_kw_per_c == _ct_p.buffer_tank_heat_loss_coefficient
+    and abs(_ct_s.ua_kw_per_c / _CT_UA_KW - 1.0) < 1e-12
+    and _ct_p.buffer_store_volume == 544.0
+    and _ct_s.rating_max_temp == min(_ct_p.dhw_hard_max_temp, _ct_p.buffer_max_temp)
+    and _ct_s.charge_max_temp == min(_ct_p.dhw_max_temp, _ct_p.buffer_max_temp),
+    f"store {_ct_s}",
+)
+_ct_so = _ct_store(_ct_off)
+R.check(
+    "combi off: the store is the separate tank's own values, bitwise, and the "
+    "transforms return their argument itself",
+    _ct_so is not None and not _ct_so.combi
+    and _ct_so.capacity_kwh_per_c == _ct_off.dhw_tank_thermal_mass
+    and _ct_so.ua_kw_per_c == _ct_off.dhw_tank_heat_loss_coefficient
+    and _ct_so.rating_max_temp == _ct_off.dhw_hard_max_temp
+    and _ct_so.charge_max_temp == _ct_off.dhw_max_temp
+    and _ct_so.inlet_c == _ct_off.dhw_inlet_reference
+    and _ct_off.buffer_store_volume is _ct_off.buffer_tank_volume
+    and all(_ct_so.store_temp_for_tap(t) is t and _ct_so.tap_temp_for_store(t) is t
+            for t in (40.0, 45.123456789, 61.7)),
+    f"store {_ct_so}",
+)
+R.check(
+    "combi needs the store: no valve, a small tank, no hot water or the wood coil "
+    "each leave the separate tank in force",
+    all(_ct_store(q) is not None and not _ct_store(q).combi for q in (
+        _ct_params(mixing_valve_mode=_mv.MODE_NONE),
+        _ct_params(buffer_tank_volume=50.0),
+        _ct_params(dhw_enabled=False),
+    )),
+    "a combi predicate reached without its preconditions",
+)
+R.check(
+    "the effectiveness is floored and capped, never a divisor of zero or a gain",
+    _ct_params(eps=0.0) is not None
+    and _ct_store(_ct_params(eps=0.0)).effectiveness == _ct_tm.COMBI_DHW_EFFECTIVENESS_FLOOR
+    and _ct_store(_ct_params(eps=float("nan"))).effectiveness
+    == _ct_tm.COMBI_DHW_EFFECTIVENESS_FLOOR
+    and _ct_store(_ct_params(eps=1.5)).effectiveness == 1.0,
+    "eps 0 / nan / 1.5",
+)
+
+# The battery and the settlement count the one store once (invariant 2).
+_ct_state = ThermalState(room_temperature=21.0, slab_temperature=23.0,
+                         buffer_tank_temperature=55.0, dhw_temperature=55.0,
+                         outdoor_temperature=0.0)
+
+
+def _ct_battery(p):
+    return battery_view.build(p, _ct_state, comfort_min=20.0, comfort_max=23.0,
+                              dhw_min=45.0, dhw_max=60.0, cop=3.0)
+
+
+_ct_bat = _ct_battery(_ct_p) if _ct_p is not None else None
+_ct_bat_off = _ct_battery(_ct_off) if _ct_off is not None else None
+_ct_names = [c.name for c in _ct_bat.components] if _ct_bat else []
+_ct_buf = [c for c in (_ct_bat.components if _ct_bat else []) if c.name == "buffer_tank"]
+R.check(
+    "combi battery: no dhw_tank beside the buffer_tank, whose capacity is the store's",
+    _ct_bat is not None and "dhw_tank" not in _ct_names and len(_ct_buf) == 1
+    and _ct_buf[0].capacity_kwh_per_c == _ct_s.capacity_kwh_per_c,
+    f"components {_ct_names}",
+)
+R.check(
+    "combi battery null control: off, the separate tank is its own dhw_tank component",
+    _ct_bat_off is not None
+    and [c.capacity_kwh_per_c for c in _ct_bat_off.components if c.name == "dhw_tank"]
+    == [_ct_off.dhw_tank_thermal_mass],
+    f"components {[c.name for c in _ct_bat_off.components] if _ct_bat_off else None}",
+)
+
+
+def _ct_stored(p):
+    opt = _StoreOpt(ThermalModel(p), _StoreCfg(horizon_hours=24, time_step_minutes=15))
+    return (opt._stored_thermal_energy(_ct_state, include_dhw=True)
+            - opt._stored_thermal_energy(_ct_state, include_dhw=False))
+
+
+_ct_two = _ct_params(two_zone_enabled=True)
+_ct_two_off = _ct_params(combi=False, two_zone_enabled=True)
+_ct_terms_st = (
+    (_ct_stored(_ct_two), _ct_stored(_ct_p), _ct_stored(_ct_off), _ct_stored(_ct_two_off))
+    if _ct_two is not None else None)
+R.check(
+    "combi settlement: two-zone counts the store once, as the buffer; single-zone "
+    "counts it as the DHW term at the store's capacity; off, the separate tank's",
+    _ct_terms_st is not None and _ct_terms_st[0] == 0.0 and _ct_terms_st[2] > 0.0
+    and _ct_terms_st[3] == _ct_terms_st[2]
+    and abs(_ct_terms_st[1] * _ct_off.dhw_tank_thermal_mass
+            - _ct_terms_st[2] * _ct_s.capacity_kwh_per_c) < 1e-12,
+    f"the DHW term (two-zone combi, combi, off, two-zone off): {_ct_terms_st}",
+)
+
+# The store step balances to the kWh (invariant 2's trajectory form, design T.3):
+# a 48-step day of charge, valve draw (negative heat in) and hot-water draw,
+# with a cold stretch below the mixer threshold.
+_ct_heat = [3.0 * _ct_math.sin(i / 5.0) - 1.0 for i in range(48)]
+_ct_draw = [0.0 if i % 7 else 6.0 for i in range(48)]
+
+
+def _ct_walk(store, t0=58.0, heat=_ct_heat, draw=_ct_draw, dt=0.5):
+    temps, terms = [t0], []
+    for q_in, q_draw in zip(heat, draw):
+        t = temps[-1]
+        new, refused, injected, debited = _ct_tm.store_step(store, t, q_in, q_draw, 20.0, dt)
+        terms.append((q_in - debited - store.ua_kw_per_c * (t - 20.0) - refused + injected) * dt)
+        temps.append(new)
+    return temps, terms
+
+
+if _ct_s is not None:
+    _ct_t, _ct_terms = _ct_walk(_ct_s)
+    _ct_gap = abs(_ct_s.capacity_kwh_per_c * (_ct_t[-1] - _ct_t[0]) - _ct_math.fsum(_ct_terms))
+    _ct_zero = _ct_replace(_ct_s, ua_kw_per_c=0.0)
+    _ct_t0, _ct_terms0 = _ct_walk(_ct_zero)
+    _ct_rhs0 = _ct_math.fsum(_ct_terms0)
+    _ct_rel0 = abs(_ct_zero.capacity_kwh_per_c * (_ct_t0[-1] - _ct_t0[0]) - _ct_rhs0) / max(
+        abs(_ct_rhs0), 1.0)
+else:
+    _ct_t, _ct_gap, _ct_rel0 = [], float("inf"), float("inf")
+R.check(
+    "combi_energy_balance: C * dT equals charge + space flux - draw - loss over a day, to 1e-9 kWh",
+    _ct_gap <= 1e-9 and min(_ct_t or [0.0]) < 51.0,
+    f"gap {_ct_gap:.3e} kWh; coldest {min(_ct_t or [0.0]):.2f} C (the debit's scaled band)",
+)
+R.check(
+    "combi_energy_balance null control: with UA = 0 the store conserves its fluxes to 1e-12",
+    _ct_rel0 <= 1e-12,
+    f"relative residual {_ct_rel0:.3e}",
+)
+# Above the mixer the debit is nominal, so eps cannot move the trajectory; below
+# it the debit is read at the tap, so eps must (the liveness leg).
+# A 65 C setpoint puts the rating above the 60 C store that gives 40 C at the
+# tap at eps 0.6, so the walk cools freely inside the mixed band.
+_ct_hot_heat = [1.6] * 6
+_ct_hot_draw = [2.0] * 6
+_ct_e6, _ct_e10 = _ct_params(eps=0.6, dhw_setpoint=65.0), _ct_params(eps=1.0, dhw_setpoint=65.0)
+_ct_hot6 = _ct_walk(_ct_store(_ct_e6), 64.5, _ct_hot_heat, _ct_hot_draw)[0] if _ct_e6 else None
+_ct_hot10 = _ct_walk(_ct_store(_ct_e10), 64.5, _ct_hot_heat, _ct_hot_draw)[0] if _ct_e10 else None
+_ct_cold6 = _ct_walk(_ct_store(_ct_e6), 45.0, [0.0] * 4, [3.0] * 4)[0] if _ct_e6 else None
+_ct_cold10 = _ct_walk(_ct_store(_ct_e10), 45.0, [0.0] * 4, [3.0] * 4)[0] if _ct_e10 else None
+R.check(
+    "combi eps null control: with the tap above the mixer, eps 0.6 and 1.0 walk the same "
+    "store; below it, the colder tap debits less",
+    _ct_hot6 is not None and _ct_hot6 == _ct_hot10 and _ct_hot6[-1] < _ct_hot6[0] - 1.0
+    and min(_ct_hot6) > _ct_store(_ct_e6).store_temp_for_tap(_CT_MIX)
+    and _ct_cold6[-1] > _ct_cold10[-1],
+    f"hot {(_ct_hot6 or [None])[-1]} vs {(_ct_hot10 or [None])[-1]}; "
+    f"cold {(_ct_cold6 or [None])[-1]} vs {(_ct_cold10 or [None])[-1]}",
+)
+
+# One node: the published walk's hot-water trajectory IS its buffer trajectory.
+_CT_N = 96
+
+
+def _ct_published(p):
+    m = ThermalModel(p)
+    out = np.full(_CT_N, 0.0)
+    space = np.full(_CT_N, 1.5)
+    dhw = np.zeros(_CT_N)
+    dhw[8:12] = 3.0
+    *_, dhw_t, buf_t, _ = m.simulate_trajectory_with_dhw(
+        initial_state=ThermalState(room_temperature=21.0, slab_temperature=23.0,
+                                   buffer_tank_temperature=55.0, dhw_temperature=55.0,
+                                   outdoor_temperature=0.0),
+        space_power_schedule=space, dhw_power_schedule=dhw, weather=_WS(out))
+    return dhw_t, buf_t
+
+
+_ct_pub = _ct_published(_ct_p) if _ct_p is not None else None
+_ct_pub_off = _ct_published(_ct_off) if _ct_off is not None else None
+R.check(
+    "combi: the published hot-water trajectory is the buffer trajectory, step for step; "
+    "null control: off, the two tanks part",
+    _ct_pub is not None and np.array_equal(_ct_pub[0], _ct_pub[1])
+    and not np.array_equal(_ct_pub_off[0], _ct_pub_off[1]),
+    "dhw_temps vs buffer_temps",
+)
+
+# Tap-stated minimums enter the store frame; the legionella target never does.
+_ct_tap = _ct_params(eps=0.85, dhw_min_temp=45.0, dhw_idle_min_temp=30.0)
+if _ct_tap is not None:
+    _ct_fl = _dhw_planner(_StoreOpt(ThermalModel(_ct_tap), _StoreCfg()))._dhw_window_floors(
+        _ct_tap, [(0.0, 24.0)], np.arange(24) * 1.0, None, 1.0, 24, None)
+    _ct_floor = float(_ct_fl[5][3])
+    _ct_hold = ThermalModel(_ct_tap).dhw_hold_hours()
+    _ct_need = 10.0 + 35.0 / 0.85
+    _ct_hold_ref = ThermalModel(_ct_tap).dhw_coast_hours(
+        max(_ct_store(_ct_tap).charge_max_temp, _ct_need + 1.0), _ct_need)
+else:
+    _ct_floor = _ct_hold = _ct_need = _ct_hold_ref = None
+R.check(
+    "combi: a 45 C tap minimum is a 51.18 C store floor at eps 0.85 (inlet 10 C), "
+    "in the planner's floors and the hold horizon alike",
+    _ct_floor is not None and abs(_ct_floor - _ct_need) < 1e-9 and abs(_ct_need - 51.176) < 1e-3
+    and _ct_hold == _ct_hold_ref,
+    f"floor {_ct_floor}, need {_ct_need}, hold {_ct_hold} vs {_ct_hold_ref}",
+)
+R.check(
+    "combi litres_40c: the heat above the store temperature that gives 40 C at the tap; "
+    "off, the separate tank's displacement rule",
+    _ct_p is not None
+    and abs(_ct_tm.dhw_mixed_litres(_ct_p, 60.0, 40.0)
+            - _ct_s.capacity_kwh_per_c * (60.0 - (10.0 + 30.0 / 0.85)) / (_CT_CP * 30.0)) < 1e-9
+    and _ct_tm.dhw_mixed_litres(_ct_off, 60.0, 40.0) == 200.0 * 50.0 / 30.0,
+    "litres at 60 C",
+)
+
+# The legionella target is a store temperature (standing water reaches the
+# store's own), so eps cannot move the cycle (legionella_eps, design T.2a).
+_CT_LEG = dict(dhw_legionella_enabled=True, dhw_legionella_temp=60.0,
+               dhw_legionella_interval_days=7.0, dhw_daily_consumption=0.0,
+               dhw_min_temp=30.0, dhw_idle_min_temp=20.0, dhw_schedule_enabled=True,
+               dhw_windows=_ct_windows("18:00-19:00"))
+
+
+def _ct_cycle(eps):
+    p = _ct_params(eps=eps, **_CT_LEG)
+    if p is None:
+        return None
+    opt = _StoreOpt(ThermalModel(p), _StoreCfg(horizon_hours=24, time_step_minutes=15))
+    plan, _ = _dhw_planner(opt)._build_dhw_requirements(
+        _dhw_horizon(prices=np.full(96, 1.0), outdoor=np.full(96, 0.0), n=96, dt=0.25,
+                     state=ThermalState(room_temperature=21.0, slab_temperature=22.0,
+                                        outdoor_temperature=0.0, dhw_temperature=50.0,
+                                        buffer_tank_temperature=50.0,
+                                        dhw_hours_since_legionella=7 * 24.0 - 6.0)),
+        p_max=4.0)
+    step = plan.legionella_step
+    return (plan.legionella_due, step, plan.legionella_hour,
+            None if step is None else float(np.max(plan.ready_temps)))
+
+
+_ct_leg6, _ct_leg10 = _ct_cycle(0.6), _ct_cycle(1.0)
+R.check(
+    "legionella_eps: the cycle's step, hour and target are the same at eps 0.6 and 1.0",
+    _ct_leg6 is not None and _ct_leg6 == _ct_leg10 and _ct_leg6[0] and _ct_leg6[3] == 60.0,
+    f"eps 0.6 {_ct_leg6}, eps 1.0 {_ct_leg10}",
+)
+
+# lp_flux: the planner buys hot water against the space side's draw on the
+# shared store, and a separate tank ignores the series (it is dead off).
+_CT_FLUX = dict(dhw_schedule_enabled=True, dhw_windows=_ct_windows("19:00-21:00"),
+                dhw_min_temp=40.0, dhw_idle_min_temp=20.0)
+_ct_exo = np.zeros(96)
+_ct_exo[60:76] = -2.0  # a 2 kW valve draw over the four hours before the window
+
+
+def _ct_flux_plan(combi, exo):
+    p = _ct_params(combi=combi, **_CT_FLUX)
+    if p is None:
+        return None, None, None
+    opt = _StoreOpt(ThermalModel(p), _StoreCfg(horizon_hours=24, time_step_minutes=15))
+    h = _dhw_horizon(prices=np.full(96, 1.0), outdoor=np.full(96, 0.0), n=96, dt=0.25,
+                     state=ThermalState(room_temperature=21.0, slab_temperature=22.0,
+                                        outdoor_temperature=0.0, dhw_temperature=50.0,
+                                        buffer_tank_temperature=50.0,
+                                        dhw_hours_since_legionella=1.0))
+    plan, _ = _dhw_planner(opt)._build_dhw_requirements(h, p_max=4.0, tank_exo_kw=exo)
+    temps = opt.model.simulate_dhw_only(
+        initial_temp=50.0, dhw_power_schedule=plan.schedule, outdoor_temps=np.full(96, 0.0),
+        draw_rates=plan.draw_rates, dt_hours=0.25,
+        exo_kw=exo if _ct_store(p).combi else None)
+    gap = float(np.max(np.maximum(plan.floor_temps, plan.ready_temps) - temps[1:]))
+    return float(np.sum(plan.schedule)) * 0.25, gap, plan.schedule
+
+
+_ct_f0 = _ct_flux_plan(True, np.zeros(96))
+_ct_f2 = _ct_flux_plan(True, _ct_exo)
+_ct_o0 = _ct_flux_plan(False, None)
+_ct_o2 = _ct_flux_plan(False, _ct_exo)
+R.check(
+    "lp_flux: a 2 kW valve draw before the window raises the hot water the plan buys, "
+    "and the store still meets every floor and the window's ready temperature",
+    _ct_f0[0] is not None and _ct_f2[0] > _ct_f0[0] + 1.0 and _ct_f2[1] <= 0.05,
+    f"kWh {_ct_f0[0]} -> {_ct_f2[0]}, worst shortfall {_ct_f2[1]}",
+)
+R.check(
+    "lp_flux null control: a separate tank's plan is unchanged by the same series",
+    _ct_o0[2] is not None and np.array_equal(_ct_o0[2], _ct_o2[2]),
+    f"kWh {_ct_o0[0]} vs {_ct_o2[0]}",
+)
+
+# The flux exchange, end to end: the joint solve's store meets the hot-water
+# requirement the space side drains; with no exchange rounds it does not.
+_CT_PRICES = np.full(96, 1.5)
+_CT_PRICES[:20] = 0.8
+_CT_PRICES[64:80] = 4.0
+
+
+def _ct_solve(rounds=None):
+    p = _ct_params()
+    if p is None:
+        return None, None
+    opt = _StoreOpt(ThermalModel(p), _StoreCfg(horizon_hours=24, time_step_minutes=15,
+                                               target_temp=21.0, min_temp=19.0, max_temp=23.0))
+    saved = getattr(_optmod, "_COMBI_EXCHANGE_ROUNDS", None)
+    if rounds is not None:
+        _optmod._COMBI_EXCHANGE_ROUNDS = rounds
+    try:
+        r = opt.optimize(inputs=solve_inputs(
+            initial_state=ThermalState(room_temperature=21.0, slab_temperature=23.0,
+                                       buffer_tank_temperature=50.0, dhw_temperature=50.0,
+                                       outdoor_temperature=0.0),
+            prices=_CT_PRICES, outdoor_temps=np.full(96, 0.0), wind_speeds=np.zeros(96),
+            precipitation=np.zeros(96), solar_radiation=np.zeros(96),
+            start_time=datetime(2026, 1, 15)))
+    finally:
+        if rounds is not None:
+            _optmod._COMBI_EXCHANGE_ROUNDS = saved
+    req = np.asarray(opt._dhw_requirement)
+    traj = np.asarray(r.dhw_temp_trajectory)[1:req.size + 1]
+    return float(np.max(req - traj)), r
+
+
+_ct_gap_x, _ct_res = _ct_solve()
+_ct_gap_0, _ = _ct_solve(rounds=0)
+R.check(
+    "combi flux exchange: the joint plan's store meets the hot-water requirement the "
+    "space side drains, and its published DHW and buffer trajectories are one",
+    _ct_gap_x is not None and _ct_gap_x <= 0.05
+    and list(_ct_res.dhw_temp_trajectory) == list(_ct_res.buffer_temp_trajectory),
+    f"worst shortfall {_ct_gap_x}",
+)
+R.check(
+    "combi flux exchange null control: with no exchange round the space side drains "
+    "the store below the requirement",
+    _ct_gap_0 is not None and _ct_gap_0 > 1.0,
+    f"worst shortfall without the exchange {_ct_gap_0}",
+)
+
+# Censuses (P2, _P2_CENSUSES in tests/entities.py). Each asserts its own reach.
+_CT_PKG = _ct_Path(_ct_tm.__file__).parent
+_ct_sources = {f.name: f.read_text() for f in sorted(_CT_PKG.glob("*.py"))}
+_ct_view = sorted(
+    f"{name}:{i}" for name, src in _ct_sources.items() if name != "thermal_model.py"
+    for i, line in enumerate(src.splitlines(), 1)
+    if "dhw_tank_thermal_mass" in line or "dhw_tank_heat_loss_coefficient" in line
+)
+R.check(
+    "combi_store_view census: outside thermal_model.py nothing reads the separate tank's "
+    "capacity or loss; every reader takes the store view",
+    len(_ct_sources) > 20 and "dhw_tank_heat_loss_coefficient" in _ct_sources["thermal_model.py"]
+    and not _ct_view,
+    f"readers {_ct_view} over {len(_ct_sources)} modules",
+)
+_ct_plan_tree = _ct_ast.parse(_ct_sources["dhw_planner.py"])
+_CT_WALKS = {"simulate_dhw_only", "extend_dhw_temps", "simulate_dhw_step", "_dhw_plan_temps"}
+_ct_walk_calls = [n for n in _ct_ast.walk(_ct_plan_tree) if isinstance(n, _ct_ast.Call)
+                  and isinstance(n.func, _ct_ast.Attribute) and n.func.attr in _CT_WALKS]
+_ct_blind = [n.lineno for n in _ct_walk_calls
+             if not any(k.arg == "exo_kw" for k in n.keywords)
+             and not (n.func.attr == "_dhw_plan_temps"
+                      and (len(n.args) == 7 or any(isinstance(a, _ct_ast.Starred) for a in n.args)))]
+_ct_fns = {n.name: _ct_ast.get_source_segment(_ct_sources["dhw_planner.py"], n)
+           for n in _ct_ast.walk(_ct_plan_tree) if isinstance(n, _ct_ast.FunctionDef)}
+_ct_affine = [f for f in ("_plan_dhw_min_cost", "_dhw_legionella_ceilings", "_clamp_dhw_to_capacity")
+              if "_exo_at(" not in _ct_fns.get(f, "")]
+_ct_space = [f for f in ("def simulate_trajectory(", "def simulate_trajectory_batch(")
+             if f not in _ct_sources["thermal_model.py"]
+             or "buffer_exo = weather.buffer_exo_kw" not in _ct_sources["thermal_model.py"].split(f)[1][:4000]]
+R.check(
+    "combi_flux_live census: every DHW walk the planner runs, and each of its three affine "
+    "recursions, carries the space side's flux, and both space walks read the DHW side's",
+    len(_ct_walk_calls) >= 10 and not _ct_blind and not _ct_affine and not _ct_space,
+    f"{len(_ct_walk_calls)} walks, blind at {_ct_blind}, affine without flux {_ct_affine}, "
+    f"space walks without it {_ct_space}",
+)
+_ct_tap_reads, _ct_tap_raw, _ct_leg_routed = 0, [], []
+for _ct_name, _ct_src in (("dhw_planner.py", _ct_sources["dhw_planner.py"]),
+                          ("thermal_model.py", _ct_sources["thermal_model.py"])):
+    _ct_tree = _ct_ast.parse(_ct_src)
+    _ct_routed = set()
+    for _ct_n in _ct_ast.walk(_ct_tree):
+        if isinstance(_ct_n, _ct_ast.Call) and isinstance(_ct_n.func, _ct_ast.Attribute) \
+                and _ct_n.func.attr == "store_temp_for_tap":
+            for _ct_a in _ct_ast.walk(_ct_n):
+                if isinstance(_ct_a, _ct_ast.Attribute):
+                    _ct_routed.add(id(_ct_a))
+                    if _ct_a.attr == "dhw_legionella_temp":
+                        _ct_leg_routed.append(f"{_ct_name}:{_ct_a.lineno}")
+    _ct_scope = _ct_tree if _ct_name == "dhw_planner.py" else next(
+        n for n in _ct_ast.walk(_ct_tree)
+        if isinstance(n, _ct_ast.FunctionDef) and n.name == "dhw_hold_hours")
+    for _ct_n in _ct_ast.walk(_ct_scope):
+        if isinstance(_ct_n, _ct_ast.Attribute) and _ct_n.attr in ("dhw_min_temp", "dhw_idle_min_temp") \
+                and isinstance(_ct_n.value, _ct_ast.Name) and _ct_n.value.id in ("params", "p"):
+            _ct_tap_reads += 1
+            if id(_ct_n) not in _ct_routed:
+                _ct_tap_raw.append(f"{_ct_name}:{_ct_n.lineno}")
+R.check(
+    "combi_tap_limit census: every tap-stated minimum the planner and the hold horizon read "
+    "enters the store frame, and the legionella target never does",
+    _ct_tap_reads >= 4 and not _ct_tap_raw and not _ct_leg_routed,
+    f"{_ct_tap_reads} reads; raw {_ct_tap_raw}; legionella routed {_ct_leg_routed}",
+)
+
+# R10-COMBI-TANK repair (#3358's tests / mutation): each guard and clamp the
+# combi store added, driven at the one input that separates it from its mutant.
+R.section("R10-COMBI-TANK: the combi store's guards and clamps, at the inputs that move them")
+import heatpump_optimizer.dhw_planner as _cg_dp  # noqa: E402
+
+_cg_unmet = [_ct_params(mixing_valve_mode=_mv.MODE_NONE), _ct_params(buffer_tank_volume=50.0),
+             _ct_params(dhw_enabled=False)]
+_cg_h8 = _dhw_horizon(prices=np.full(8, 1.0), outdoor=np.zeros(8), n=8, dt=0.25)
+
+
+def _cg_exo(p):
+    return _optmod._combi_dhw_exo(ThermalModel(p), _cg_h8, np.zeros(8), np.zeros(8))
+
+
+R.check(
+    "combi_store_of and the hot-water flux are None off combi and wherever its preconditions "
+    "fail with the option on; null control: on, the store and an 8-step series",
+    _ct_p is not None and all(q.dhw_combi_tank_enabled for q in _cg_unmet)
+    and all(_ct_tm.combi_store_of(q) is None and _cg_exo(q) is None for q in _cg_unmet + [_ct_off])
+    and _ct_tm.combi_store_of(_ct_p) == _ct_s and np.shape(_cg_exo(_ct_p)) == (8,),
+    "combi_store_of / _combi_dhw_exo off, unmet and on",
+)
+
+# The per-step buffer readers -- `buffer_tank_thermal_mass` through `_buffer_capacity`,
+# and the buffer UA's memo key -- read `buffer_store_volume` a few thousand times a
+# solve. Off the option it answers from the option's own field and evaluates no combi
+# predicate: with the predicate alone, stress.py's production-call channel read 1.053x
+# to 1.065x the calls on four valve scenarios (#3358's tests / fast (3.14), at
+# 64d4e7dbc), over its 1.05x allowance. A counting stand-in reads every evaluation.
+_cg_cls = type(_ct_off)
+_cg_pred = _cg_cls.__dict__["combi_tank_active"]
+_cg_hits = []
+_cg_cls.combi_tank_active = property(lambda q: _cg_hits.append(q) or _cg_pred.fget(q))
+try:
+    _cg_off_read = (_ct_off.buffer_store_volume, _ct_off.buffer_tank_thermal_mass,
+                    _ct_off.buffer_tank_heat_loss_coefficient)
+    _cg_off_hits = len(_cg_hits)
+    _cg_on_read = _ct_p.buffer_store_volume
+    _cg_on_hits = len(_cg_hits) - _cg_off_hits
+finally:
+    _cg_cls.combi_tank_active = _cg_pred
+R.check(
+    "off the combi option the buffer's store volume, capacity and UA evaluate no combi "
+    "predicate; null control: with the option on the volume evaluates it and adds the coil",
+    _cg_off_hits == 0 and _cg_off_read[0] == _ct_off.buffer_tank_volume
+    and _cg_on_hits >= 1 and _cg_on_read == _ct_p.buffer_tank_volume + _ct_p.combi_potable_volume_l,
+    f"off: {_cg_off_hits} predicate evaluation(s), {_cg_off_read}; on: {_cg_on_hits}, {_cg_on_read}",
+)
+
+# The store's limits are the tighter of the hot-water and buffer ones: a
+# buffer rated below the hot-water setpoint caps both.
+_cg_low = _ct_params(buffer_max_temp=50.0)
+_cg_low_off = _ct_params(combi=False, buffer_max_temp=50.0)
+R.check(
+    "combi: a 50 C buffer rating caps the store's charge limit and rating alike; "
+    "null control: off, the separate tank keeps its own",
+    _cg_low is not None and _ct_store(_cg_low).charge_max_temp == 50.0
+    and _ct_store(_cg_low).rating_max_temp == 50.0
+    and _ct_store(_cg_low_off).charge_max_temp == _cg_low_off.dhw_max_temp > 50.0
+    and _ct_store(_cg_low_off).rating_max_temp == _cg_low_off.dhw_hard_max_temp > 50.0,
+    f"combi {_ct_store(_cg_low)}; off {_ct_store(_cg_low_off)}",
+)
+
+
+def _cg_step(store, temp, heat, dt):
+    try:
+        return _ct_tm.store_step(store, temp, heat, 0.0, 20.0, dt)
+    except ZeroDivisionError as err:
+        return repr(err)
+
+
+_cg_top = _ct_s.rating_max_temp if _ct_s is not None else 0.0
+_cg_empty = _cg_step(_ct_replace(_ct_s, capacity_kwh_per_c=0.0), 55.0, 3.0, 0.25) if _ct_s else None
+_cg_hot = _cg_step(_ct_s, _cg_top + 5.0, 0.0, 0.25) if _ct_s else None
+_cg_dt0 = _cg_step(_ct_s, 5.0, 0.0, 0.0) if _ct_s else None
+_cg_warm = _cg_step(_ct_s, 50.0, 3.0, 0.25) if _ct_s else None
+R.check(
+    "store_step: no capacity holds the temperature and books nothing; a charge below the "
+    "rating warms the store and refuses nothing; a store above its rating cools by its "
+    "loss and refuses nothing; a zero-length step from below the floor returns the floor "
+    "without dividing by zero",
+    _cg_empty == (55.0, 0.0, 0.0, 0.0)
+    and isinstance(_cg_warm, tuple) and _cg_warm[1] == 0.0 and _cg_warm[0] > 50.0
+    and isinstance(_cg_hot, tuple) and _cg_hot[1] == 0.0 and _cg_top < _cg_hot[0] < _cg_top + 5.0
+    and isinstance(_cg_dt0, tuple) and _cg_dt0[0] == min(_ct_s.inlet_c, 20.0) and _cg_dt0[1] == 0.0,
+    f"empty {_cg_empty}; charging {_cg_warm}; above the rating {_cg_hot}; zero step {_cg_dt0}",
+)
+_cg_net = (_ct_tm.combi_space_net_kw(_ct_s, [50.0, 50.0], [0.0], 0.0)
+           if _ct_s is not None else None)
+R.check(
+    "combi_space_net_kw: a zero-length step books the standing loss and no gain, a finite series",
+    _cg_net is not None and bool(np.all(np.isfinite(_cg_net)))
+    and abs(float(_cg_net[0]) - _ct_s.ua_kw_per_c * (50.0 - _ct_tm.TANK_ROOM_AMBIENT_TEMP)) < 1e-12,
+    f"net {_cg_net}",
+)
+
+# A tap minimum whose store floor sits above the charge limit: eps 0.6 puts a
+# 45 C tap at a 68.3 C store, above the 55 C limit, and the hold horizon still
+# coasts the kelvin above the floor.
+_cg_steep = _ct_params(eps=0.6, dhw_min_temp=45.0)
+if _cg_steep is not None:
+    _cg_floor = _ct_store(_cg_steep).store_temp_for_tap(45.0)
+    _cg_hold = ThermalModel(_cg_steep).dhw_hold_hours()
+    _cg_coast = ThermalModel(_cg_steep).dhw_coast_hours(_cg_floor + 1.0, _cg_floor)
+else:
+    _cg_floor = _cg_hold = _cg_coast = None
+R.check(
+    "combi hold horizon: a store floor above the charge limit coasts from a kelvin above "
+    "the floor, a positive horizon",
+    _cg_floor is not None and _cg_floor > _ct_store(_cg_steep).charge_max_temp + 1.0
+    and _cg_hold == _cg_coast and _cg_hold > 0.0,
+    f"floor {_cg_floor}, limit {_ct_store(_cg_steep).charge_max_temp if _cg_steep else None}, "
+    f"hold {_cg_hold} vs {_cg_coast}",
+)
+
+# An idle minimum stated above the window minimum never raises the idle floor
+# past it, in the store frame (combi) and the tank's own (off).
+_cg_idle = []
+for _cg_combi in (True, False):
+    _cg_q = _ct_params(combi=_cg_combi, dhw_min_temp=45.0, dhw_idle_min_temp=50.0)
+    if _cg_q is None:
+        break
+    _cg_fl = _dhw_planner(_StoreOpt(ThermalModel(_cg_q), _StoreCfg()))._dhw_window_floors(
+        _cg_q, [(18.0, 19.0)], np.arange(24) * 1.0, None, 1.0, 24, None)
+    _cg_idle.append((float(_cg_fl[5][3]), _ct_store(_cg_q).store_temp_for_tap(45.0),
+                     _ct_store(_cg_q).store_temp_for_tap(50.0)))
+R.check(
+    "idle floor: a 50 C idle minimum above a 45 C window minimum floors idle steps at the "
+    "window minimum's store temperature, combi and off",
+    len(_cg_idle) == 2 and all(f == lo < hi for f, lo, hi in _cg_idle),
+    f"(idle floor, window minimum, idle minimum) per arm {_cg_idle}",
+)
+
+
+# A rating with no headroom above the charge limit leaves the cycle no boost:
+# the ceilings stay the everyday ones and no run-up floor is set. Null
+# control: a 55 C limit under a 60 C rating runs up to the cycle's step.
+def _cg_ceilings(setpoint):
+    p = ThermalParameters(dhw_enabled=True, dhw_setpoint=setpoint, dhw_legionella_enabled=True,
+                          dhw_legionella_temp=60.0, dhw_legionella_interval_days=7.0)
+    leg = _dhw_planner(_StoreOpt(ThermalModel(p), _StoreCfg()))._dhw_legionella_ceilings(
+        _dhw_horizon(prices=np.full(96, 1.0), outdoor=np.zeros(96), n=96, dt=0.25),
+        params=p, draw_rates=np.zeros(96), floor_temps=np.full(96, 20.0), p_dhw_run=4.0,
+        legionella_due=True, legionella_hour=10.0, legionella_step=40)
+    return p.dhw_store, leg
+
+
+_cg_flat_store, _cg_flat = _cg_ceilings(60.0)
+_cg_room_store, _cg_room = _cg_ceilings(55.0)
+R.check(
+    "legionella ceilings: with the rating at the charge limit no step's ceiling moves and "
+    "no run-up floor is set; null control: below the rating the cycle runs up",
+    _cg_flat_store.rating_max_temp == _cg_flat_store.charge_max_temp == 60.0
+    and not np.any(_cg_flat.runup_temps) and bool(np.all(_cg_flat.lp_max_temp == 60.0))
+    and _cg_room_store.rating_max_temp > _cg_room_store.charge_max_temp
+    and float(np.max(_cg_room.runup_temps[:40])) > 20.0,
+    f"flat run-up max {float(np.max(_cg_flat.runup_temps))}; "
+    f"null run-up max {float(np.max(_cg_room.runup_temps[:40]))}",
+)
+
+# The flux exchange's rounds: a plan that stops moving stops the rounds, and a
+# plan still moving at the cap is published after four DHW plan builds (the
+# cap prices the exchange on a Pi-class host).
+_cg_real_build = _cg_dp.DhwPlanner._build_dhw_requirements
+_cg_real_x = _optmod._combi_flux_exchange
+
+
+def _cg_rounds(moving):
+    runs = []
+
+    def build(self, *a, **k):
+        plan, req = _cg_real_build(self, *a, **k)
+        if runs and k.get("tank_exo_kw") is not None:
+            runs[-1] += 1
+            if moving:
+                plan = _ct_replace(plan, schedule=plan.schedule + 1e-3 * runs[-1])
+        return plan, req
+
+    def exchange(*a, **k):
+        runs.append(0)
+        return _cg_real_x(*a, **k)
+
+    _cg_dp.DhwPlanner._build_dhw_requirements = build
+    _optmod._combi_flux_exchange = exchange
+    try:
+        _ct_solve()
+    finally:
+        _cg_dp.DhwPlanner._build_dhw_requirements = _cg_real_build
+        _optmod._combi_flux_exchange = _cg_real_x
+    return runs
+
+
+_cg_still = _cg_rounds(False) if _ct_p is not None else []
+_cg_moving = _cg_rounds(True) if _ct_p is not None else []
+R.check(
+    "combi flux exchange: a plan that stops moving ends the rounds before the cap; one still "
+    "moving is published after exactly four plan builds",
+    bool(_cg_still) and all(0 < n < 4 for n in _cg_still)
+    and bool(_cg_moving) and all(n == 4 for n in _cg_moving),
+    f"builds per exchange: converging {_cg_still}, moving {_cg_moving}",
+)
+
+
+# Two-zone: the hot-water side's flux enters the store behind a throttling
+# valve, in the scalar walk and its batch twin, and moves nothing without one.
+def _cg_two_zone(p, exo):
+    m = ThermalModel(p)
+    n = 16
+    w = _ct_replace(_WS(np.zeros(n)), buffer_exo_kw=exo)
+    st = ThermalState(room_temperature=21.0, slab_temperature=23.0, upper_floor_temperature=21.0,
+                      lower_floor_temperature=21.0, buffer_tank_temperature=50.0,
+                      dhw_temperature=50.0, outdoor_temperature=0.0)
+    scalar = m.simulate_trajectory(initial_state=st, power_schedule=np.full(n, 1.5), weather=w)
+    batch = m.simulate_trajectory_batch(st, np.full((1, n), 1.5), w)
+    return [np.asarray(a) for a in scalar], {k: np.asarray(v) for k, v in batch.items()}
+
+
+_cg_tz = _ct_params(two_zone_enabled=True)
+_cg_tz_open = _ct_params(combi=False, two_zone_enabled=True, mixing_valve_mode=_mv.MODE_NONE)
+if _cg_tz is not None:
+    _cg_exo16 = np.full(16, 2.0)
+    _cg_on0, _cg_on0b = _cg_two_zone(_cg_tz, None)
+    _cg_on2, _cg_on2b = _cg_two_zone(_cg_tz, _cg_exo16)
+    _cg_op0, _cg_op0b = _cg_two_zone(_cg_tz_open, None)
+    _cg_op2, _cg_op2b = _cg_two_zone(_cg_tz_open, _cg_exo16)
+    _cg_gain = (float(_cg_on2[4][-1] - _cg_on0[4][-1]), float(_cg_on2b["buffer"][0, -1]
+                                                              - _cg_on0b["buffer"][0, -1]))
+    _cg_same = (all(np.array_equal(a, b) for a, b in zip(_cg_op0, _cg_op2))
+                and all(np.array_equal(_cg_op0b[k], _cg_op2b[k]) for k in _cg_op0b))
+else:
+    _cg_gain, _cg_same = (0.0, 0.0), False
+R.check(
+    "two-zone combi: a 2 kW hot-water flux warms the store in the scalar walk and the batch "
+    "twin alike; behind no valve the same series moves no output of either",
+    _cg_gain[0] > 1.0 and _cg_gain[1] > 1.0 and _cg_same,
+    f"store gain scalar {_cg_gain[0]:.4f} C, batch {_cg_gain[1]:.4f} C; unvalved unchanged {_cg_same}",
 )
 
 # R10-BUFFER-STORE review 1: the savings reference sized its power from the
@@ -13512,8 +14232,8 @@ _FR_LISTED = {
     "wood_furnace_enabled", "dhw_wood_coil_enabled", "mixing_valve_mode",
     "mixing_valve_write_target_kind", "space_setpoint_unit", "topology_layout",
     "topology_positions", "ecl110_command_topic", "ecl110_displace_set_topic",
-    "ecl110_state_topic", "ecl110_mqtt_qos", "ecl110_mqtt_retain", "modbus_prefill_prefix",
-    "main_fuse_amperes", "main_fuse_phases",
+    "ecl110_state_topic", "ecl110_mqtt_qos", "ecl110_mqtt_retain", "heat_curve_target_kind",
+    "modbus_prefill_prefix", "main_fuse_amperes", "main_fuse_phases",
 }
 #: Every key a ``CONF_`` constant names (a tuple names several: the weekday
 #: hot-water windows), and Home Assistant's own ``name``.
@@ -14061,6 +14781,7 @@ _FR_STORES = {
     "notifier": "kept: which notices were sent",
     "pump_duty": "kept: what was last written to the pump",
     "debug": "kept: a diagnostics collection",
+    "off_restore": "kept: what the optimizer still owes an entity it wrote, at off or unload",
 }
 _fr_found = set()
 for _fr_p in sorted(_FrPath("custom_components/heatpump_optimizer").glob("*.py")):
@@ -23872,7 +24593,10 @@ R.check(
     and _ce1_lossless["reasons"]["envelope"] == "no_house_model",
     f"massless {_ce1_massless} lossless {_ce1_lossless}",
 )
-_cmach = _t2_coord()
+# R10-HOTFIX-COP-UNMEASURED: a grade needs an install that measures its COP,
+# metered heat over metered power; the grading fixtures below carry one.
+_CMACH_METERED = {"heat_pump_power_entity": "sensor.hp_power", "heat_pump_thermal_power_entity": "sensor.heat_kw"}
+_cmach = _t2_coord(**_CMACH_METERED)
 R.check(
     "no COP evidence means no machine grade, not a failing one",
     _cmach._scores_view(_rs_advice(_cmach))["machine"] is None,
@@ -23881,7 +24605,7 @@ R.check(
 # so a bucket at exactly that count is watched; one short of it is not.
 _cmach_edge = {}
 for _cmach_n in (COP_BASELINE_MIN_SAMPLES - 1, COP_BASELINE_MIN_SAMPLES):
-    _cmach_c = _t2_coord()
+    _cmach_c = _t2_coord(**_CMACH_METERED)
     _cmach_c._cop_baseline[(3, False)] = [3.0, _cmach_n]
     _cmach_edge[_cmach_n] = _cmach_c._scores_view(_rs_advice(_cmach_c))["machine"]
 R.check(
@@ -23904,7 +24628,7 @@ R.check(
     "a machine past the alarm threshold still grades 0, never below (#2258)",
     _cmach._scores_view(_rs_advice(_cmach))["machine"] == 0.0,
 )
-_cedge = _t2_coord()
+_cedge = _t2_coord(**_CMACH_METERED)
 _cedge._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES]
 _cedge_view = _cedge._scores_view(_rs_advice(_cedge))
 R.check(
@@ -24077,17 +24801,22 @@ R.check(
 )
 _fresh6_c = _t2_coord()
 _fresh6 = _fresh6_c._scores_view(_rs_advice(_fresh6_c))
+_fresh6_m = _t2_coord(**_CMACH_METERED)
+_fresh6_mv = _fresh6_m._scores_view(_rs_advice(_fresh6_m))
 R.check(
-    "a fresh install grades nothing, and says why for each part (#2258)",
+    "a fresh install grades nothing, and says why for each part (#2258): with "
+    "no heat reading the heat pump is never graded (R10-HOTFIX-COP-UNMEASURED); "
+    "a metered one is still learning",
     _fresh6["machine"] is None
     and _fresh6["operation"] is None
     and _fresh6["overall"] is None
     and _fresh6["envelope"] is None
     and _fresh6["reasons"] == {
-        "envelope": "heat_loss_learning", "machine": "cop_watch_learning",
+        "envelope": "heat_loss_learning", "machine": "cop_unmeasurable",
         "operation": "no_scored_day", "overall": "first_scored_day",
-    },
-    f"{_fresh6}",
+    }
+    and _fresh6_mv["machine"] is None and _fresh6_mv["reasons"]["machine"] == "cop_watch_learning",
+    f"{_fresh6} / {_fresh6_mv['reasons']}",
 )
 
 # --- R10-GRADE-DRIVERS: the heat-pump and Driving grades publish drivers in
@@ -24103,7 +24832,7 @@ R.check(
     and _fresh6["machine_evidence"] == {"required": 20, "bands": [], "refused_frozen": 0},
     f"{_fresh6}",
 )
-_gd_m = _t2_coord()
+_gd_m = _t2_coord(**_CMACH_METERED)
 _gd_m._cop_baseline[(-1, False)] = [3.1, 12]
 _gd_m._cop_baseline[(0, True)] = [2.4, 5]
 _gd_m._measured_power = 1.0
@@ -24386,7 +25115,7 @@ R.check(
 
 # The machine counts the buckets the Health tab counts: a non-finite sample
 # count is no evidence, never a raise and never a watched bucket.
-_sc_m = _t2_coord()
+_sc_m = _t2_coord(**_CMACH_METERED)
 _sc_m._cop_baseline[(3, False)] = [3.0, float("nan")]
 _sc_mv = _sc_view(_sc_m)
 R.check(
@@ -31922,23 +32651,24 @@ _dhw_action = {"power": 0.0, "dhw_power": 3.0}
 _cop_dhw = _CopGate(outdoor=8.0, signals=_DHW_ONLY, action=_dhw_action)
 _cop_dhw._current_state.dhw_temperature = 55.0
 _cop_dhw._learn_measured_cop()
+# With no heat slot neither interval is a measured COP (R10-HOTFIX-COP-
+# UNMEASURED), so the curve each is judged against is read where the fold
+# takes it, and both still trained the scale.
+_cop_space_ref = _cop_space._cop_reference_curve()
+_cop_dhw_ref = _cop_dhw._cop_reference_curve()
 R.check(
     "a hot-water interval is judged against the DHW curve",
-    _cop_dhw._measured_cop.cop is not None
-    and _cop_dhw._measured_cop.cop < _cop_space._measured_cop.cop,
-    f"dhw {_cop_dhw._measured_cop.cop} vs space {_cop_space._measured_cop.cop}",
-)
-_expected_dhw_cop = _cop_space._measured_cop.cop * (
-    _cop_dhw._thermal_model.compute_cop_dhw(8.0, 55.0)
-    / _cop_dhw._thermal_model.compute_cop(8.0)
+    _cop_dhw_ref[1] is True and _cop_space_ref[1] is False
+    and _cop_dhw_ref[0] < _cop_space_ref[0]
+    and _cop_dhw._cop_samples == 1 and _cop_space._cop_samples == 1,
+    f"dhw {_cop_dhw_ref} vs space {_cop_space_ref}",
 )
 R.check(
     "and the gap is exactly the model's own DHW law at the tank's "
     "temperature, not a fudge",
-    abs(_cop_dhw._measured_cop.cop - round(_expected_dhw_cop, 2)) <= 0.02,
-    f"{_cop_dhw._measured_cop.cop} vs {round(_expected_dhw_cop, 2)} "
-    f"(the law's ratio at 8 °C / 55 °C is "
-    f"{_cop_dhw._thermal_model.compute_cop_dhw(8.0, 55.0) / _cop_dhw._thermal_model.compute_cop(8.0):.4f})",
+    _cop_dhw_ref == (_cop_dhw._thermal_model.compute_cop_dhw(8.0, 55.0), True, 55.0)
+    and _cop_space_ref[0] == _cop_dhw._thermal_model.compute_cop(8.0),
+    f"{_cop_dhw_ref} vs {_cop_dhw._thermal_model.compute_cop_dhw(8.0, 55.0)}",
 )
 R.check(
     "the reported COP for a healthy pump on the space curve is unchanged",
@@ -31980,6 +32710,7 @@ R.check(
 # re-pointed the residual's reference while leaving the stored COP alone — and
 # in HEATDHW with an even split that is every cycle on the target hardware.
 _cop_pair = _CopGate(outdoor=8.0, signals=_DHW_ONLY, action=_dhw_action)
+_cop_pair.as_measured = True
 _cop_pair._current_state.dhw_temperature = 55.0
 _cop_pair._learn_measured_cop()
 _cop_pair_cop = _cop_pair._measured_cop.cop
@@ -32228,6 +32959,7 @@ _EH_NIGHT_SIG = pump_signals.PumpSignals(
 )
 
 _eh_cop_ok = _CopGate(outdoor=8.0)
+_eh_cop_ok.as_measured = True
 _eh_cop_ok._learn_measured_cop()
 R.check(
     "the control: the same interval with no electric-heat evidence folds",
@@ -32671,6 +33403,7 @@ def _fl_model1_gate(outdoor, supply_phys, mapped):
     commanded = 3.0
     measured = commanded * c0 / ct
     gate = _CopGate(outdoor=outdoor, action={"power": commanded})
+    gate.as_measured = True
     gate._measured_power = measured
     # A persistent ratio, not a blip: the tracking gate judges against it.
     gate._cop_ratio_ewma = measured / commanded
@@ -33082,6 +33815,7 @@ R.check(
 # priced C0 x L(curve + bias); the credit must still be Ct exactly.
 def _g3_credit(supply_phys):
     gate = _CopGate(outdoor=-3.0, action={"power": 3.0})
+    gate.as_measured = True
     gate._thermal_params = ThermalParameters.from_config({_G3_KEY: True, **_G3_HOT})
     gate._thermal_params.flow_curve_bias = 5.0
     gate._thermal_model = ThermalModel(gate._thermal_params)
@@ -33237,12 +33971,12 @@ R.check(
     and not _g3_tog._cop_health_cusum.tripped,
     f"{_g3_tog._cop_baseline}, tripped={_g3_tog._cop_health_cusum.tripped}",
 )
-_g3_saved = _g3_tog._thermal_learning_payload()["cop_baseline"]
+_g3_saved = _g3_tog._thermal_learning_payload()["cop_baseline_measured"]
 _g3_back = _g3_watch(True)
 
 
 async def _g3_fake_load():
-    return {"cop_baseline": _g3_saved}
+    return {"cop_baseline_measured": _g3_saved}
 
 
 _g3_back._thermal_learning_store.async_load = _g3_fake_load
@@ -33254,7 +33988,7 @@ _g3_old = _g3_watch(True)
 
 
 async def _g3_old_load():
-    return {"cop_baseline": {"2": [3.1, 25], "2:dhw": [2.6, 25], "2:zzz": [9.0, 9]}}
+    return {"cop_baseline_measured": {"2": [3.1, 25], "2:dhw": [2.6, 25], "2:zzz": [9.0, 9]}}
 
 
 _g3_old._thermal_learning_store.async_load = _g3_old_load
@@ -36724,8 +37458,10 @@ R.check(
 # curve it used. Separate baselines are worthless if every sample arrives
 # labelled "space".
 _hw_gate_space = _CopGate(outdoor=8.0)
+_hw_gate_space.as_measured = True
 _hw_gate_space._learn_measured_cop()
 _hw_gate_dhw = _CopGate(outdoor=8.0, signals=_DHW_ONLY, action=_dhw_action)
+_hw_gate_dhw.as_measured = True
 _hw_gate_dhw._current_state.dhw_temperature = 55.0
 _hw_gate_dhw._learn_measured_cop()
 R.check(
@@ -36740,7 +37476,7 @@ R.check(
 # Persistence: additive, and an existing store keeps every bucket it had.
 _hw_old = _t2_coord()
 _hw_old._cop_baseline = {}
-_hw_v1_payload = {"cop_baseline": {"1": [3.2, 40], "2": [3.5, 25]}}
+_hw_v1_payload = {"cop_baseline_measured": {"1": [3.2, 40], "2": [3.5, 25]}}
 
 
 async def _hw_load_v1(_p=_hw_v1_payload):
@@ -36758,7 +37494,7 @@ R.check(
 )
 _hw_old._current_state.outdoor_temperature = _HW_OUT
 _hw_old._observe_cop_health(_hw_dhw, True)
-_hw_written = _hw_old._thermal_learning_payload()["cop_baseline"]
+_hw_written = _hw_old._thermal_learning_payload()["cop_baseline_measured"]
 R.check(
     "and it writes back under the SAME keys, with the DHW curve alongside",
     _hw_written.get("1") == [3.2, 40]
@@ -38904,7 +39640,7 @@ R.check(
 
 _fr_fixed = _dhw_planner(_fr_opt)._repair_dhw_floor(
     _dhw_ctx(prices=_fr_prices, outdoor=_fr_outdoor,
-             n=_fr_plan.size, dt=_FR_DT, c_dhw=_fr_c, p_dhw_max=_FR_RUN,
+             n=_fr_plan.size, dt=_FR_DT, params=_fr_opt.model.params, c_dhw=_fr_c, p_dhw_max=_FR_RUN,
              min_run_power=_FR_MIN),
     plan=_fr_plan.copy(), initial_temp=52.0,
     draw_rates=_fr_draws, requirement=_fr_req, max_temp=_fr_ceiling,
@@ -41108,9 +41844,9 @@ R.check(
 # ---------------------------------------------------------------------------
 R.section("#193 S3 — the ECL110 publish helpers, over plain values")
 
-from heatpump_optimizer.coordinator import (  # noqa: E402
-    _ecl110_legacy_payload as _s3_ecl_payload,
-    _publish_ecl110_topics as _s3_ecl_publish,
+from heatpump_optimizer.heat_curve import (  # noqa: E402
+    ecl110_legacy_payload as _s3_ecl_payload,
+    publish_ecl110_topics as _s3_ecl_publish,
 )
 
 # The helpers take plain values, never ``self``. A module-level helper handed
@@ -41119,7 +41855,7 @@ from heatpump_optimizer.coordinator import (  # noqa: E402
 _act_s3 = {"price": 1.5, "mode": "boost", "pre_heat_urgency": 0.25}
 _pay_s3 = _s3_ecl_payload("optimizer", True, 4, _act_s3)
 R.check(
-    "_ecl110_legacy_payload builds its context from the action passed in (#193)",
+    "ecl110_legacy_payload builds its context from the action passed in (#193)",
     _pay_s3.get("context") == _act_s3
     and _pay_s3.get("command")
     == {"type": "ecl110_control", "heat_pump_on": True, "displace": 4}
@@ -41164,7 +41900,7 @@ def _s3_publish_calls(set_topic, command_topic, services=None):
 
 _t_none, _p_none, _log_none = _s3_publish_calls("", "")
 R.check(
-    "_publish_ecl110_topics writes nothing when neither topic is configured (#193)",
+    "publish_ecl110_topics writes nothing when neither topic is configured (#193)",
     _t_none == [],
     repr(_t_none),
 )
@@ -41209,6 +41945,1550 @@ R.check(
         lvl >= _logging.ERROR and "direct displace" in msg for lvl, msg in _log_flaky
     ),
     repr(_log_flaky),
+)
+
+
+class _S3Kwargs:
+    """MQTT that records each publish's keyword arguments."""
+
+    def __init__(self) -> None:
+        self.calls, self.kwargs = [], []
+
+    async def async_call(self, domain, service, data=None, **kwargs):
+        self.calls.append((domain, service, data))
+        self.kwargs.append(kwargs)
+
+
+_s3_kw = _S3Kwargs()
+_s3_publish_calls("ecl/set", "ecl/cmd", services=_s3_kw)
+R.check(
+    "both arms publish blocking, so a broker failure reaches the arm's own except (#193)",
+    _s3_kw.kwargs == [{"blocking": True}, {"blocking": True}],
+    repr(_s3_kw.kwargs),
+)
+
+
+# ---------------------------------------------------------------------------
+R.section("R10-GENERIC-HEAT-CURVE — the displace through a number entity, kind offset")
+
+# The owner's ruling (tvofi, #201, 2026-11-07): build it, kind offset first,
+# and turning the optimizer off restores the baseline. Every check drives the
+# production chokepoint, ``async_publish_ecl110_command``, or the shared
+# restore hook, never a copy of the arm's arithmetic.
+import time as _time  # noqa: E402
+from harness import FakeEntry as _ghc_entry, FakeHass as _ghc_hass, FakeState as _ghc_state  # noqa: E402
+from heatpump_optimizer import heat_curve as _ghc, off_restore as _ghc_restore  # noqa: E402
+from heatpump_optimizer import async_unload_entry as _ghc_unload  # noqa: E402
+from heatpump_optimizer.const import MODE_AUTO as _ghc_auto, MODE_OFF as _ghc_off  # noqa: E402
+from heatpump_optimizer.entry_config import FACTORY_KEPT as _ghc_kept  # noqa: E402
+
+_GHC_ENT = "number.heating_offset"
+_ghc_seq = iter(range(10**6))
+
+
+def _ghc_coord(unit="K", lo=-20.0, hi=20.0, step=0.5, value="0", entity=_GHC_ENT, hass=None, entry_id=None, **extra):
+    """A coordinator whose heat-curve entity is ``entity``, in ``unit`` over lo..hi."""
+    attrs = {"step": step}
+    if lo is not None:
+        attrs["min"] = lo
+    if hi is not None:
+        attrs["max"] = hi
+    hass = hass or _ghc_hass()
+    if value is not None:
+        hass.states.set(_GHC_ENT, _ghc_state(value, unit=unit, attributes=attrs))
+    cfg = {"tibber_token": "x", "weather_entity": "weather.home", **extra}
+    if entity:
+        cfg["heat_curve_displace_entity"] = entity
+    return Coord(hass, _ghc_entry(data=cfg, entry_id=entry_id or f"ghc_{next(_ghc_seq)}"))
+
+
+def _ghc_writes(coord):
+    """The values the number arm sent, in order."""
+    return [d.get("value") for _, s, d in coord.hass.services.calls if s == "set_value"]
+
+
+def _ghc_mqtt(coord):
+    return [(d.get("topic"), d.get("payload")) for dom, _, d in coord.hass.services.calls if dom == "mqtt"]
+
+
+def _ghc_pub(coord, value, on=True):
+    _asyncio.run(coord.async_publish_ecl110_command(value, on))
+
+
+def _ghc_logged(fn):
+    """Run ``fn``, returning what the integration logged at WARNING and up."""
+    logger = _logging.getLogger("heatpump_optimizer")
+    capture, real_prop = _LogCapture(), logger.propagate
+    logger.addHandler(capture)
+    logger.propagate = False
+    try:
+        fn()
+    finally:
+        logger.propagate = real_prop
+        logger.removeHandler(capture)
+    return [msg for lvl, msg in capture.records if lvl >= _logging.WARNING]
+
+
+# The failing test first: red at the base, which has no such option.
+_g = _ghc_coord(heat_curve_offset_band_k=5.0)
+_ghc_pub(_g, 5.0)
+R.check(
+    "no topic and an offset entity: one publish of 5 sends one set_value of 5 (R10-GENERIC-HEAT-CURVE)",
+    _ghc_writes(_g) == [5] and _ghc_mqtt(_g) == [],
+    "writes=%r mqtt=%r" % (_ghc_writes(_g), _ghc_mqtt(_g)),
+)
+# Null control: the option empty, the same publish -- no number call, and the
+# MQTT arms exactly as before (W7).
+_g0 = _ghc_coord(entity=None, ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_g0, 5.0)
+R.check(
+    "the entity option empty: no set_value, and the /set topic still carries the integer (W7)",
+    _ghc_writes(_g0) == [] and _ghc_mqtt(_g0) == [("ecl/set", "5")],
+    "writes=%r mqtt=%r" % (_ghc_writes(_g0), _ghc_mqtt(_g0)),
+)
+_gb = _ghc_coord(ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gb, 5.0)
+R.check(
+    "both configured: MQTT first with the full integer, the entity bounded by the 3 K default band",
+    _ghc_mqtt(_gb) == [("ecl/set", "5")] and _ghc_writes(_gb) == [3]
+    and [s for _, s, _d in _gb.hass.services.calls] == ["publish", "set_value"],
+    repr(_gb.hass.services.calls),
+)
+_gk = _ghc_coord(unit="K")
+_ghc_pub(_gk, -2.0)
+R.check(
+    "a kelvin entity is sent -2 for -2, never 271.15 through the absolute helpers (T1)",
+    _ghc_writes(_gk) == [-2],
+    repr(_ghc_writes(_gk)),
+)
+_gf = _ghc_coord(unit="°F", step=0.1, lo=-36.0, hi=36.0)
+_ghc_pub(_gf, 2.0)
+R.check(
+    "a Fahrenheit entity is sent the difference x9/5: 2 K is 3.6 °F (T1)",
+    _ghc_writes(_gf) == [3.6],
+    repr(_ghc_writes(_gf)),
+)
+_gs = _ghc_coord(lo=-2.0, hi=2.0)
+_gs_warn = _ghc_logged(lambda: _ghc_pub(_gs, 3.0))
+R.check(
+    "an entity range narrower than the displace saturates and is latched once, naming it (W6)",
+    _ghc_writes(_gs) == [2] and any("narrower" in m for m in _gs_warn),
+    "writes=%r warn=%r" % (_ghc_writes(_gs), _gs_warn),
+)
+_g1 = _ghc_coord(value="3")
+_ghc_pub(_g1, 3.0)
+R.check(
+    "a reading already at the target is not written (W1)",
+    _ghc_writes(_g1) == [],
+    repr(_ghc_writes(_g1)),
+)
+
+# W2 and W3: the reading stays 0 whatever is written.
+_g2 = _ghc_coord()
+_ghc_pub(_g2, 2.0)
+_ghc_pub(_g2, 2.0)
+_w2_grace = list(_ghc_writes(_g2))
+_ghc.state_for(_g2.entry).written_at -= _ghc.HELD_GRACE_S + 1
+_ghc_pub(_g2, 2.0)
+_w2_after = list(_ghc_writes(_g2))
+_ghc.state_for(_g2.entry).written_at -= _ghc.HELD_GRACE_S + 1
+_w3_warn = _ghc_logged(lambda: _ghc_pub(_g2, 2.0))
+_w3_gave_up = list(_ghc_writes(_g2))
+_ghc_pub(_g2, 1.0)
+R.check(
+    "inside the grace a differing reading proves nothing: no second write (W2)",
+    _w2_grace == [2],
+    repr(_w2_grace),
+)
+R.check(
+    "after the grace the first miss is written once more (W2)",
+    _w2_after == [2, 2],
+    repr(_w2_after),
+)
+R.check(
+    "a second miss for the same target latches a warning and sends nothing (W3)",
+    _w3_gave_up == [2, 2] and any("does not hold" in m for m in _w3_warn),
+    "writes=%r warn=%r" % (_w3_gave_up, _w3_warn),
+)
+R.check(
+    "and a new target is written again (W3)",
+    _ghc_writes(_g2) == [2, 2, 1],
+    repr(_ghc_writes(_g2)),
+)
+_g4 = _ghc_coord()
+_cap = _ghc.write_cap_per_day(_g4.effective_config)
+_ghc.state_for(_g4.entry).writes.extend([_time.monotonic()] * _cap)
+_w4_warn = _ghc_logged(lambda: _ghc_pub(_g4, 2.0))
+_g4b = _ghc_coord()
+_ghc.state_for(_g4b.entry).writes.extend([_time.monotonic()] * (_cap - 1))
+_ghc_pub(_g4b, 2.0)
+R.check(
+    "the 24 h write guard is 2 x 1440 / interval: 96 at the default 30 min (W4)",
+    _cap == 96,
+    repr(_cap),
+)
+R.check(
+    "at the guard nothing is written and it is latched; one below it the write goes (W4)",
+    _ghc_writes(_g4) == [] and any("guard" in m for m in _w4_warn) and _ghc_writes(_g4b) == [2],
+    "at=%r below=%r warn=%r" % (_ghc_writes(_g4), _ghc_writes(_g4b), _w4_warn),
+)
+
+
+class _GhcRaising:
+    """MQTT accepted; every set_value raises."""
+
+    def __init__(self) -> None:
+        self.calls = []
+
+    async def async_call(self, domain, service, data=None, **kwargs):
+        self.calls.append((domain, service, data))
+        if service == "set_value":
+            raise RuntimeError("integration gone")
+
+
+_bad = {}
+for _name, _kw in (
+    ("absent", {"value": None}),
+    ("unavailable", {"value": "unavailable"}),
+    ("unit %", {"unit": "%"}),
+    ("sensor domain", {"entity": "sensor.heating_offset"}),
+    ("range excluding 0", {"lo": 20.0, "hi": 70.0, "value": "30"}),
+):
+    _c = _ghc_coord(ecl110_displace_set_topic="ecl/set", **_kw)
+    _warn = _ghc_logged(lambda: _ghc_pub(_c, 2.0))
+    _bad[_name] = (_ghc_writes(_c), _ghc_mqtt(_c), bool(_warn))
+_cr = _ghc_coord(ecl110_displace_set_topic="ecl/set")
+_cr.hass.services = _GhcRaising()
+_cr_warn = _ghc_logged(lambda: _ghc_pub(_cr, 2.0))
+_bad["raising service"] = (
+    [], _ghc_mqtt(_cr), bool(_cr_warn) and _ghc.state_for(_cr.entry).written is None,
+)
+R.check(
+    "absent, unavailable, a non-temperature unit, a sensor, a range without 0 or a raising "
+    "service: no value lands, the failure is latched, the MQTT arm still publishes",
+    all(w == [] and m == [("ecl/set", "2")] and warned for w, m, warned in _bad.values()),
+    repr(_bad),
+)
+
+# The off rule (tvofi, 2026-11-07): off and unload write 0; nothing written,
+# nothing restored.
+_go = _ghc_coord()
+_ghc_pub(_go, 2.0)
+_asyncio.run(_go.async_set_mode(_ghc_off, refresh=False))
+_go_off = list(_ghc_writes(_go))
+_ghc_pub(_go, 2.0)
+_asyncio.run(_go.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "MODE_OFF after a write writes one 0 (the off rule)",
+    _go_off == [2, 0],
+    repr(_go_off),
+)
+R.check(
+    "and while off the arm writes nothing, nor does a second off",
+    _ghc_writes(_go) == [2, 0],
+    repr(_ghc_writes(_go)),
+)
+_gn = _ghc_coord()
+_asyncio.run(_gn.async_set_mode(_ghc_off, refresh=False))
+_gu = _ghc_coord(entity=None, ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gu, 2.0)
+_asyncio.run(_gu.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "nothing written, nothing restored; an unconfigured entity is never written",
+    _ghc_writes(_gn) == [] and _ghc_writes(_gu) == [],
+    "%r %r" % (_ghc_writes(_gn), _ghc_writes(_gu)),
+)
+
+_gl = _ghc_coord()
+_ghc_pub(_gl, -3.0)
+_gl.entry.runtime_data = _gl
+_unloaded = _asyncio.run(_ghc_unload(_gl.hass, _gl.entry))
+R.check(
+    "unload after a write writes one 0, through async_unload_entry (the off rule)",
+    _unloaded and _ghc_writes(_gl) == [-3, 0]
+    and _ghc_restore.diagnostics(_gl.entry)["restores"] == 1,
+    "ok=%r writes=%r" % (_unloaded, _ghc_writes(_gl)),
+)
+
+# A crash: the write was armed and persisted, the process died unrestored. The
+# next coordinator for the same entry restores it at its first off, before
+# writing anything itself.
+_gc = _ghc_coord(entry_id="ghc_crash")
+_ghc_pub(_gc, 2.0)
+_gc2 = _ghc_coord(hass=_gc.hass, entry_id="ghc_crash")
+_asyncio.run(_gc2.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a write left armed by a crash is restored by the next run's first off",
+    _ghc_writes(_gc2) == [2, 0],
+    repr(_ghc_writes(_gc2)),
+)
+
+# The hook's reuse (R10-ARBITER-OFF-RESTORE): a second consumer with a captured
+# baseline registers its own factory and edits nothing in off_restore.
+_ghc_base = {"v": 42.0}
+
+
+async def _ghc_stand_in_write(hass, entity_id, value):
+    hass.services.calls.append(("number", "set_value", {"entity_id": entity_id, "value": value}))
+
+
+_ghc_restore.register_consumer(
+    "stand_in_space_setpoint",
+    lambda cfg: _ghc_restore.Restorer(
+        "number.space_setpoint", _ghc_stand_in_write, baseline_of=lambda hass, eid: _ghc_base["v"],
+    ) if cfg.get("stand_in") else None,
+)
+_si = _ghc_coord(entity=None, entry_id="ghc_stand_in", stand_in=True)
+_si_cfg = _si.effective_config
+_armed = _asyncio.run(_ghc_restore.async_arm(_si.hass, _si.entry, _si_cfg, "stand_in_space_setpoint"))
+_ghc_base["v"] = 46.0  # the consumer's own write moved the entity
+_asyncio.run(_ghc_restore.async_arm(_si.hass, _si.entry, _si_cfg, "stand_in_space_setpoint"))
+_si2 = _ghc_coord(entity=None, hass=_si.hass, entry_id="ghc_stand_in", stand_in=True)
+_si_sent = _asyncio.run(_ghc_restore.async_restore(_si2.hass, _si2.entry, _si2.effective_config, "unload"))
+R.check(
+    "a stand-in second consumer registers without editing the hook: its baseline, captured "
+    "before its first write, survives a restart and is what the restore writes",
+    _armed and _si_sent == 1 and _ghc_writes(_si2) == [42.0],
+    "armed=%r sent=%r writes=%r" % (_armed, _si_sent, _ghc_writes(_si2)),
+)
+_ghc_base["v"] = None
+_si3 = _ghc_coord(entity=None, entry_id="ghc_stand_in_unreadable", stand_in=True)
+R.check(
+    "and an unreadable baseline refuses the consumer's write: nothing to restore it to",
+    _asyncio.run(_ghc_restore.async_arm(_si3.hass, _si3.entry,
+                                        _si3.effective_config, "stand_in_space_setpoint")) is False,
+    "",
+)
+
+# The hook's failure edges, each through the production function: a consumer
+# that refuses before any record exists, a restore whose write raises and is
+# retried, one whose consumer is no longer configured, and a store that cannot
+# save or be removed. None of them may raise into the caller.
+_ghc_fail = {"write": True}
+
+
+async def _ghc_flaky_write(hass, entity_id, value):
+    if _ghc_fail["write"]:
+        raise RuntimeError("integration gone")
+    hass.services.calls.append(("number", "set_value", {"entity_id": entity_id, "value": value}))
+
+
+_ghc_restore.register_consumer(
+    "stand_in_flaky",
+    lambda cfg: _ghc_restore.Restorer("number.flaky", _ghc_flaky_write, neutral=0.0)
+    if cfg.get("flaky") else None,
+)
+_ge = _ghc_coord(entity=None, entry_id="ghc_edges")
+_ge_refused = (
+    _asyncio.run(_ghc_restore.async_arm(_ge.hass, _ge.entry, _ge.effective_config, "no_such_consumer")),
+    _asyncio.run(_ghc_restore.async_arm(_ge.hass, _ge.entry, _ge.effective_config, "stand_in_flaky")),
+)
+R.check(
+    "an unregistered consumer, or one its factory reads as unconfigured, refuses the write "
+    "and leaves no record behind",
+    _ge_refused == (False, False) and _ge.entry not in _ghc_restore._RECORDS,
+    "refused=%r recorded=%r" % (_ge_refused, _ge.entry in _ghc_restore._RECORDS),
+)
+_gw = _ghc_coord(entity=None, entry_id="ghc_flaky", flaky=True)
+_gw_cfg = _gw.effective_config
+_gw_armed = _asyncio.run(_ghc_restore.async_arm(_gw.hass, _gw.entry, _gw_cfg, "stand_in_flaky"))
+_gw_sent = []
+_gw_warn = _ghc_logged(lambda: _gw_sent.append(
+    _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload"))))
+_gw_after_fail = (list(_gw_sent), _ghc_restore.diagnostics(_gw.entry))
+_ghc_fail["write"] = False
+_gw_retry = _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "mode_off"))
+R.check(
+    "a restore whose write raises sends nothing, stays armed and latches a warning naming the entity",
+    _gw_armed is True
+    and _gw_after_fail == ([0], {"armed": ["stand_in_flaky"], "restores": 0, "last_restore": None})
+    and any("number.flaky" in m and "failed" in m for m in _gw_warn),
+    "armed=%r after=%r warn=%r" % (_gw_armed, _gw_after_fail, _gw_warn),
+)
+R.check(
+    "and the next off retries it: one write of the neutral 0, disarmed and counted",
+    _gw_retry == 1 and _ghc_writes(_gw) == [0.0]
+    and _ghc_restore.diagnostics(_gw.entry) == {"armed": [], "restores": 1, "last_restore": "mode_off"},
+    "sent=%r writes=%r diag=%r" % (_gw_retry, _ghc_writes(_gw), _ghc_restore.diagnostics(_gw.entry)),
+)
+_gx = _ghc_coord(entity=None, entry_id="ghc_unconfigured", flaky=True)
+_asyncio.run(_ghc_restore.async_arm(_gx.hass, _gx.entry, _gx.effective_config, "stand_in_flaky"))
+_gx2 = _ghc_coord(entity=None, hass=_gx.hass, entry_id="ghc_unconfigured")
+_gx_sent = _asyncio.run(_ghc_restore.async_restore(_gx2.hass, _gx2.entry, _gx2.effective_config, "unload"))
+R.check(
+    "an armed consumer no longer configured is disarmed unwritten: its entity is not the optimizer's",
+    _gx_sent == 0 and _ghc_writes(_gx2) == [] and _ghc_restore.diagnostics(_gx2.entry)["armed"] == [],
+    "sent=%r writes=%r diag=%r" % (_gx_sent, _ghc_writes(_gx2), _ghc_restore.diagnostics(_gx2.entry)),
+)
+
+
+async def _ghc_store_gone(*_a, **_k):
+    raise RuntimeError("store gone")
+
+
+class _GhcDeadStore:
+    async_save = async_remove = staticmethod(_ghc_store_gone)
+
+
+_gd = _ghc_coord(entity=None, entry_id="ghc_dead_store", flaky=True)
+_asyncio.run(_ghc_restore._armed_record(_gd.hass, _gd.entry))
+_ghc_restore._RECORDS[_gd.entry].store = _GhcDeadStore()
+_gd_armed = _asyncio.run(_ghc_restore.async_arm(_gd.hass, _gd.entry, _gd.effective_config, "stand_in_flaky"))
+_ghc_real_store = _ghc_restore._store
+_ghc_restore._store = lambda hass, entry_id: _GhcDeadStore()
+try:
+    _gd_forgot = _asyncio.run(_ghc_restore.async_forget(_gd.hass, "ghc_dead_store"))
+finally:
+    _ghc_restore._store = _ghc_real_store
+R.check(
+    "a store that cannot save still arms the write, and one that cannot be removed does not raise",
+    _gd_armed is True and _ghc_restore.diagnostics(_gd.entry)["armed"] == ["stand_in_flaky"]
+    and _gd_forgot is None,
+    "armed=%r diag=%r" % (_gd_armed, _ghc_restore.diagnostics(_gd.entry)),
+)
+
+# The arm's own edges, each pinning a line the diff mutants left alive at
+# e330a768 (tools/audit/seat/mutant_run.py --diff over this block).
+from heatpump_optimizer.inputs import NumberReading as _NR  # noqa: E402
+R.check(
+    "T2 at its bounds: a range starting or ending at 0 is an offset, one starting at 0.5 or ending at "
+    "-0.5 is not",
+    [_ghc.range_excludes_zero(_NR(0.0, "K", lo, hi)) for lo, hi in
+     ((0.0, 20.0), (-20.0, 0.0), (0.5, 20.0), (-20.0, -0.5), (None, None))]
+    == [False, False, True, True, False],
+    "",
+)
+R.check(
+    "every refusal of the pure convert names why and is never read as saturated",
+    _ghc.offset_target(None, 2.0, 3.0) == (None, "is unavailable", False)
+    and _ghc.offset_target(_NR(0.0, "%", None, None), 2.0, 3.0)[0::2] == (None, False)
+    and _ghc.offset_target(_NR(30.0, "K", 20.0, 70.0), 2.0, 3.0)[0::2] == (None, False)
+    and _ghc.offset_target(_NR(0.0, "K", None, None), 2.0, 3.0) == (2.0, None, False),
+    "",
+)
+_glo = _ghc_coord(lo=-2.0, hi=2.0)
+_ghc_pub(_glo, -3.0)
+R.check(
+    "a range narrower than the displace saturates on the low side too: -3 K sends -2 (W6)",
+    _ghc_writes(_glo) == [-2],
+    repr(_ghc_writes(_glo)),
+)
+_gh = _ghc_coord(value="2.25")
+_ghc_pub(_gh, 2.0)
+R.check(
+    "a reading exactly half a step from the target holds: 2.25 against 2 at step 0.5 is not written (W1)",
+    _ghc_writes(_gh) == [],
+    repr(_ghc_writes(_gh)),
+)
+_gstep = _ghc_coord(step=2.0)
+_ghc_pub(_gstep, 2.0)
+_ghc_pub(_gstep, 3.0)
+R.check(
+    "a target within half a step of the last write is that write, still in its grace: 3 after 2 "
+    "at step 2 sends nothing (W2)",
+    _ghc_writes(_gstep) == [2],
+    repr(_ghc_writes(_gstep)),
+)
+_gm = _ghc_coord()
+_ghc_pub(_gm, 2.0)
+_gm.hass.states.set(_GHC_ENT, _ghc_state("2", unit="K", attributes={"step": 0.5, "min": -20.0, "max": 20.0}))
+_ghc_pub(_gm, 2.0)
+_gm.hass.states.set(_GHC_ENT, _ghc_state("0", unit="K", attributes={"step": 0.5, "min": -20.0, "max": 20.0}))
+_ghc.state_for(_gm.entry).written_at -= 91.0
+_ghc_pub(_gm, 2.0)
+R.check(
+    "a reading that held clears the misses, and the grace is 90 s: a miss 91 s after the write is "
+    "written once more, not given up (W1, W2)",
+    _ghc_writes(_gm) == [2, 2] and _ghc.state_for(_gm.entry).misses == 1,
+    "writes=%r misses=%r" % (_ghc_writes(_gm), _ghc.state_for(_gm.entry).misses),
+)
+_gp = _ghc_coord()
+_ghc.state_for(_gp.entry).writes.extend([_time.monotonic() - 86401.0] * _cap)
+_ghc_pub(_gp, 2.0)
+R.check(
+    "writes older than 24 h leave the guard: a full day of them 24 h and 1 s old blocks nothing (W4)",
+    _ghc_writes(_gp) == [2] and len(_ghc.state_for(_gp.entry).writes) == 1,
+    "writes=%r kept=%r" % (_ghc_writes(_gp), len(_ghc.state_for(_gp.entry).writes)),
+)
+
+
+class _GhcClock:
+    """A fixed monotonic clock for heat_curve, so a boundary is hit exactly."""
+
+    def __init__(self, now: float) -> None:
+        self.now = now
+
+    def monotonic(self) -> float:
+        return self.now
+
+
+_ghc_real_time = _ghc.time
+try:
+    _ghc.time = _gclk = _GhcClock(1000.0)
+    _gb90 = _ghc_coord()
+    _ghc_pub(_gb90, 2.0)
+    _gclk.now = 1090.0
+    _ghc_pub(_gb90, 2.0)
+    _gclk.now = 100000.0
+    _gb24 = _ghc_coord()
+    _ghc.state_for(_gb24.entry).writes.extend([100000.0 - 86400.0] * _cap)
+    _ghc_pub(_gb24, 2.0)
+finally:
+    _ghc.time = _ghc_real_time
+R.check(
+    "at exactly 90 s the grace is over: a miss then is written once more (W2's bound)",
+    _ghc_writes(_gb90) == [2, 2],
+    repr(_ghc_writes(_gb90)),
+)
+R.check(
+    "and a write exactly 24 h old still counts: a full day of them at that age blocks the write (W4's bound)",
+    _ghc_writes(_gb24) == [] and len(_ghc.state_for(_gb24.entry).writes) == _cap,
+    "writes=%r kept=%r" % (_ghc_writes(_gb24), len(_ghc.state_for(_gb24.entry).writes)),
+)
+_gr = _ghc_coord()
+_gr_cfg = _gr.effective_config
+_gr_sent = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 2))
+_gr_held = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 2))
+_ghc.state_for(_gr.entry).writes.extend([_time.monotonic()] * _cap)
+_gr_capped = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 1))
+_gr.hass.states.set(_GHC_ENT, _ghc_state("unavailable", unit="K"))
+_gr_absent = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 1))
+R.check(
+    "the entity arm answers True only for a write sent: held, capped and unreadable are False",
+    (_gr_sent, _gr_held, _gr_capped, _gr_absent) == (True, False, False, False),
+    repr((_gr_sent, _gr_held, _gr_capped, _gr_absent)),
+)
+_gfr = _ghc_coord(ecl110_displace_set_topic="ecl/set")
+_gfr.hass.services = _GhcRaising()
+_gfr_cfg = _gfr.effective_config
+_gfr_refused = _asyncio.run(_ghc.write_displace(_gfr.hass, _gfr.entry, _gfr_cfg, 2))
+_gfr_warn = []
+for _svc in ("ok", "raising"):  # the refused write above already latched
+    if _svc == "ok":
+        _gfr.hass.services = _ghc_hass().services
+    else:
+        _gfr.hass.services = _GhcRaising()
+    _ghc.state_for(_gfr.entry).written = None
+    _gfr_warn.append(len(_ghc_logged(lambda: _asyncio.run(
+        _ghc.write_displace(_gfr.hass, _gfr.entry, _gfr_cfg, 2)))))
+_gfa = _ghc_coord()
+_gfa_warn = []
+for _val in ("unavailable", "0", "unavailable"):
+    _gfa.hass.states.set(_GHC_ENT, _ghc_state(_val, unit="K", attributes={"step": 0.5, "min": -20.0, "max": 20.0}))
+    _ghc.state_for(_gfa.entry).written = None
+    _gfa_warn.append(len(_ghc_logged(lambda: _ghc_pub(_gfa, 2.0))))
+R.check(
+    "a write that succeeds clears the failure latch, and so does a readable entity: the next "
+    "failure is warned again, not swallowed",
+    _gfr_refused is False and _gfr_warn[0] == 0 and _gfr_warn[1] >= 1
+    and _gfa_warn[0] >= 1 and _gfa_warn[1] == 0 and _gfa_warn[2] >= 1,
+    "write=%r entity=%r" % (_gfr_warn, _gfa_warn),
+)
+_gdg = _ghc_coord()
+_gdg_fresh = _ghc.diagnostics(_gdg.entry, _gdg.effective_config)
+_ghc_pub(_gdg, 2.0)
+_gdg_after = _ghc.diagnostics(_gdg.entry, _gdg.effective_config)
+R.check(
+    "the heat-curve diagnostics: zeros before any write, the write and its 24 h count after one",
+    _gdg_fresh == {"written": None, "misses": 0, "writes_24h": 0, "write_cap_per_day": 96,
+                   "restore": {"armed": [], "restores": 0, "last_restore": None}}
+    and _gdg_after["written"] == 2 and _gdg_after["writes_24h"] == 1
+    and _gdg_after["restore"]["armed"] == ["heat_curve"],
+    "fresh=%r after=%r" % (_gdg_fresh, _gdg_after),
+)
+_gpd = _ghc_coord()
+_asyncio.run(_ghc.publish(_gpd.hass, _gpd.entry, _gpd.effective_config, 2,
+                          _ghc.ecl110_legacy_payload("t", True, 2, {})))
+R.check(
+    "publish called without mode_off writes the entity: only the off mode suppresses the arm",
+    _ghc_writes(_gpd) == [2],
+    repr(_ghc_writes(_gpd)),
+)
+
+# The restore's own edges.
+_ghc_fail["write"] = True
+_asyncio.run(_ghc_restore.async_arm(_gw.hass, _gw.entry, _gw_cfg, "stand_in_flaky"))
+_gw_rewarn = _ghc_logged(lambda: _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload")))
+_ghc_fail["write"] = False
+R.check(
+    "a restore that succeeded cleared its latch: the next failed restore is warned again",
+    any("number.flaky" in m and "failed" in m for m in _gw_rewarn),
+    repr(_gw_rewarn),
+)
+_asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload"))
+from heatpump_optimizer.log_latch import _HELD_CONDITIONS as _ghc_latches  # noqa: E402
+R.check(
+    "and after the retry succeeds no failure is held for that consumer",
+    "off_restore_stand_in_flaky" not in _ghc_latches.get(_gw.entry, {}),
+    repr(_ghc_latches.get(_gw.entry)),
+)
+# The kind option is normalised to offset, so the hook's refusal is driven
+# through its contract: a factory that answers None for the arm's key.
+_gk2 = _ghc_coord()
+_ghc_real_factory = _ghc_restore._CONSUMERS[_ghc.CONSUMER]
+_ghc_restore.register_consumer(_ghc.CONSUMER, lambda cfg: None)
+try:
+    _gk2_sent = _asyncio.run(_ghc.write_displace(_gk2.hass, _gk2.entry, _gk2.effective_config, 2))
+finally:
+    _ghc_restore.register_consumer(_ghc.CONSUMER, _ghc_real_factory)
+R.check(
+    "a write the restore hook refuses to arm is never sent: the arm refuses before the write",
+    _gk2_sent is False and _ghc_writes(_gk2) == [],
+    "sent=%r writes=%r" % (_gk2_sent, _ghc_writes(_gk2)),
+)
+_gcl = _ghc_coord(entry_id="ghc_cleared")
+_ghc_pub(_gcl, 2.0)
+_gcl2 = _ghc_coord(entity=None, hass=_gcl.hass, entry_id="ghc_cleared")
+_asyncio.run(_gcl2.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a heat-curve write armed before its entity option was cleared is disarmed unwritten at the next off",
+    _ghc_writes(_gcl2) == [2] and _ghc_restore.diagnostics(_gcl2.entry)["armed"] == [],
+    "writes=%r diag=%r" % (_ghc_writes(_gcl2), _ghc_restore.diagnostics(_gcl2.entry)),
+)
+_gmc = _ghc_coord(entry_id="ghc_mode_change")
+_ghc_pub(_gmc, 2.0)
+_gmc_cfg = _gmc.effective_config
+_gmc_ret = (
+    _asyncio.run(_ghc_restore.async_mode_change(_gmc.hass, _gmc.entry, _gmc_cfg, _ghc_auto, "comfort")),
+    _asyncio.run(_ghc_restore.async_mode_change(_gmc.hass, _gmc.entry, _gmc_cfg, _ghc_off, _ghc_off)),
+)
+R.check(
+    "a mode change that is not into off, or off to off, restores nothing and answers 0",
+    _gmc_ret == (0, 0) and _ghc_writes(_gmc) == [2]
+    and _ghc_restore.diagnostics(_gmc.entry)["armed"] == ["heat_curve"],
+    "ret=%r writes=%r" % (_gmc_ret, _ghc_writes(_gmc)),
+)
+_gsv = _ghc_coord(entry_id="ghc_saved")
+_ghc_pub(_gsv, 2.0)
+_asyncio.run(_gsv.async_set_mode(_ghc_off, refresh=False))
+_gsv2 = _ghc_coord(hass=_gsv.hass, entry_id="ghc_saved")
+_asyncio.run(_gsv2.async_set_mode(_ghc_off, refresh=False))
+_gfg = _ghc_coord(entry_id="ghc_forgotten")
+_ghc_pub(_gfg, 2.0)
+_asyncio.run(_ghc_restore.async_forget(_gfg.hass, "ghc_forgotten"))
+_gfg2 = _ghc_coord(hass=_gfg.hass, entry_id="ghc_forgotten")
+_asyncio.run(_gfg2.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a restore is persisted, so the next run does not restore it again; a forgotten entry's armed "
+    "set is gone from the store",
+    _ghc_writes(_gsv2) == [2, 0] and _ghc_writes(_gfg2) == [2],
+    "saved=%r forgotten=%r" % (_ghc_writes(_gsv2), _ghc_writes(_gfg2)),
+)
+_gld = _ghc_coord(entry_id="ghc_loads")
+_gld_store = _asyncio.run(_ghc_restore._armed_record(_gld.hass, _gld.entry)).store
+_gld_loads = []
+_gld_real_load = _gld_store.async_load
+
+
+async def _ghc_counted_load():
+    _gld_loads.append(1)
+    return await _gld_real_load()
+
+
+_ghc_restore._RECORDS[_gld.entry].loaded = False
+_gld_store.async_load = _ghc_counted_load
+for _ in range(3):
+    _asyncio.run(_ghc_restore._armed_record(_gld.hass, _gld.entry))
+R.check(
+    "the persisted armed set is read once per entry, not at every arm",
+    len(_gld_loads) == 1,
+    repr(_gld_loads),
+)
+R.check(
+    "the off-restore store is at version 1: a bump strands every persisted armed set without a migration",
+    _ghc_restore.OFF_RESTORE_STORE_VERSION == 1,
+    repr(_ghc_restore.OFF_RESTORE_STORE_VERSION),
+)
+R.check(
+    "a factory reset keeps the heat-curve kind beside its entity (ghc-d03)",
+    "heat_curve_target_kind" in _ghc_kept and "heat_curve_displace_entity" in _ghc_kept,
+    repr(sorted(k for k in _ghc_kept if k.startswith("heat_curve"))),
+)
+# The restore and the arm's record (fix review 1 of PR 3299, block 1): the
+# restore's neutral write is the entity's last instruction, so W2 and W3 judge
+# a re-enable against it, never against the plan's write before the off. Probe
+# A: off then on inside the grace, plan unchanged. Probe B: a first-miss
+# rewrite that held, then off and on at the same target. The fake entity holds
+# what it is told only where the probe sets the reading.
+_GHC_ATTRS = {"step": 0.5, "min": -20.0, "max": 20.0}
+
+
+def _ghc_reads(coord, value):
+    coord.hass.states.set(_GHC_ENT, _ghc_state(value, unit="K", attributes=_GHC_ATTRS))
+
+
+_gpa = _ghc_coord(entry_id="ghc_probe_a")
+_ghc_pub(_gpa, 2.0)
+_asyncio.run(_gpa.async_set_mode(_ghc_off, refresh=False))
+_asyncio.run(_gpa.async_set_mode(_ghc_auto, refresh=False))
+_gpa_warn = _ghc_logged(lambda: _ghc_pub(_gpa, 2.0))
+R.check(
+    "off then on inside the grace, plan unchanged: the re-enable rewrites 2 over the restore's 0, "
+    "never held as W2's grace of the write before the off",
+    _ghc_writes(_gpa) == [2, 0, 2] and _gpa_warn == [],
+    "writes=%r warn=%r" % (_ghc_writes(_gpa), _gpa_warn),
+)
+
+
+def _ghc_probe_b(toggle):
+    coord = _ghc_coord(entry_id=f"ghc_probe_b_{toggle}")
+    _ghc_pub(coord, 2.0)
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    _ghc_pub(coord, 2.0)  # the first miss, rewritten once
+    _ghc_reads(coord, "2")  # and it held
+    if toggle:
+        _asyncio.run(coord.async_set_mode(_ghc_off, refresh=False))
+        _ghc_reads(coord, "0")  # the restore held too
+        _asyncio.run(coord.async_set_mode(_ghc_auto, refresh=False))
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    warn = _ghc_logged(lambda: _ghc_pub(coord, 2.0))
+    return _ghc_writes(coord), warn
+
+
+_gpb, _gpb_warn = _ghc_probe_b(True)
+_gpbn, _gpbn_warn = _ghc_probe_b(False)
+R.check(
+    "a rewrite that held, then off and on at the same target: 2 is written again and W3 does not "
+    "latch against the restore's own 0",
+    _gpb == [2, 2, 0, 2] and not any("does not hold" in m for m in _gpb_warn),
+    "writes=%r warn=%r" % (_gpb, _gpb_warn),
+)
+R.check(
+    "null control, the same history without the off and on: the held 2 is not rewritten, nothing warned",
+    _gpbn == [2, 2] and _gpbn_warn == [],
+    "writes=%r warn=%r" % (_gpbn, _gpbn_warn),
+)
+# The unload path, and the options reload behind it: the record is keyed on
+# the entry, so the next coordinator for the same entry inherits it.
+_gpu = _ghc_coord(entry_id="ghc_probe_unload")
+_ghc_pub(_gpu, 2.0)
+_gpu.entry.runtime_data = _gpu
+_asyncio.run(_ghc_unload(_gpu.hass, _gpu.entry))
+_gpu2 = Coord(_gpu.hass, _gpu.entry)
+_ghc_pub(_gpu2, 2.0)
+R.check(
+    "unload, then the reloaded coordinator for the same entry inside the grace: 2 is written over "
+    "the restore's 0",
+    _ghc_writes(_gpu2) == [2, 0, 2] and _ghc.state_for(_gpu.entry).written == 2,
+    "writes=%r" % (_ghc_writes(_gpu2),),
+)
+# A restore that did not hold, and a re-enable at its own 0: W2 and W3 judge
+# the 0 afresh, from its own stamp, with no miss inherited from the plan's 2.
+def _ghc_restore_missed(aged_rewrite):
+    coord = _ghc_coord(entry_id=f"ghc_restore_missed_{aged_rewrite}")
+    _ghc_pub(coord, 2.0)
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    if aged_rewrite:
+        _ghc_pub(coord, 2.0)  # a first miss: misses 1
+    _ghc_reads(coord, "2")  # held, and the restore below does not land
+    _asyncio.run(coord.async_set_mode(_ghc_off, refresh=False))
+    _asyncio.run(coord.async_set_mode(_ghc_auto, refresh=False))
+    if aged_rewrite:
+        _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    warn = _ghc_logged(lambda: _ghc_pub(coord, 0.0))
+    return _ghc_writes(coord), warn
+
+
+_grm_grace, _ = _ghc_restore_missed(False)
+_grm_miss, _grm_warn = _ghc_restore_missed(True)
+R.check(
+    "a re-enable at 0 right after a restore that did not hold is inside the restore's own grace (W2)",
+    _grm_grace == [2, 0],
+    repr(_grm_grace),
+)
+R.check(
+    "and after its grace the restore's first miss is written once more, not given up on the plan's "
+    "earlier miss (W3)",
+    _grm_miss == [2, 2, 0, 0] and not any("does not hold" in m for m in _grm_warn),
+    "writes=%r warn=%r" % (_grm_miss, _grm_warn),
+)
+# A failed restore told the entity nothing, so the record stays the plan's write.
+_gpf = _ghc_coord(entry_id="ghc_probe_failed_restore")
+_ghc_pub(_gpf, 2.0)
+_gpf.hass.services = _GhcRaising()
+_asyncio.run(_gpf.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a restore whose write raised leaves the arm's record at the plan's write",
+    _ghc.state_for(_gpf.entry).written == 2,
+    repr(_ghc.state_for(_gpf.entry).written),
+)
+
+# The design's evidence plan, arms bullet (fix review 1, block 2): every
+# displace the chokepoint forms reaches the entity arm -- the peak guard's
+# engage (plan minus the nudge) and release (the plan), boost's maximum, and
+# the learned curve bias.
+from heatpump_optimizer import boost as _ghc_boost  # noqa: E402
+from homeassistant.util import dt as _ghc_dt  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    MODE_BOOST as _ghc_boost_mode,
+    PEAK_GUARD_DISPLACE_NUDGE_C as _ghc_nudge,
+)
+
+_gpg = _ghc_coord(entry_id="ghc_peak_guard", heat_curve_offset_band_k=5.0)
+_gpg._current_action = {"displace_value": 3.0, "heat_pump_on": True}
+_gpg._peak_guard.suppressing = True
+_asyncio.run(_gpg._async_peak_guard_transition())
+_gpg._peak_guard.suppressing = False
+_asyncio.run(_gpg._async_peak_guard_transition())
+R.check(
+    "the peak guard's engage writes the plan less the nudge to the entity, its release the plan again",
+    _ghc_nudge == 2.0 and _ghc_writes(_gpg) == [1, 3],
+    "nudge=%r writes=%r" % (_ghc_nudge, _ghc_writes(_gpg)),
+)
+_gbm = _ghc_coord(entry_id="ghc_boost_mode", heat_curve_offset_band_k=10.0, ecl110_displace_max=4.0)
+_asyncio.run(_gbm.async_set_mode(_ghc_boost_mode, refresh=False))
+_gbm._current_action = _gbm._fixed_mode_action()
+_asyncio.run(_gbm.async_publish_current_action())
+_gbo = _ghc_coord(entry_id="ghc_boost_overlay", heat_curve_offset_band_k=10.0, ecl110_displace_max=4.0)
+_gbo_action = {"displace_value": 0.0, "heat_pump_on": False}
+_ghc_boost.overlay(
+    _gbo_action, _ghc_boost.BoostState(until={_ghc_boost.CHANNEL_SPACE: _ghc_dt.utcnow()}),
+    max_power=3.0, max_temp=23.0, ecl_max=_gbo._ecl110_displace_max,
+)
+_gbo._current_action = _gbo_action
+_asyncio.run(_gbo.async_publish_current_action())
+_ghc_max = int(round(_gbm._ecl110_displace_max))
+R.check(
+    "boost writes the displace maximum to the entity, the boost mode and the space boost overlay alike",
+    _ghc_writes(_gbm) == [_ghc_max] and _ghc_writes(_gbo) == [_ghc_max] and _ghc_max == 4,
+    "max=%r mode=%r overlay=%r" % (_ghc_max, _ghc_writes(_gbm), _ghc_writes(_gbo)),
+)
+_gcb = _ghc_coord(entry_id="ghc_curve_bias", curve_learning_enabled=True)
+_gcb._curve_learner.bias = -1.0
+_ghc_pub(_gcb, 3.0)
+_gcb0 = _ghc_coord(entry_id="ghc_curve_bias_off")
+_gcb0._curve_learner.bias = -1.0
+_ghc_pub(_gcb0, 3.0)
+R.check(
+    "the learned curve bias reaches the entity: 3 with a -1 bias sends 2; with curve learning off, 3",
+    _ghc_writes(_gcb) == [2] and _ghc_writes(_gcb0) == [3],
+    "on=%r off=%r" % (_ghc_writes(_gcb), _ghc_writes(_gcb0)),
+)
+# The arm's own off guard (fix review 1, residual): the chokepoint called while
+# off still publishes MQTT and never writes the entity.
+_gmo = _ghc_coord(entry_id="ghc_chokepoint_off", ecl110_displace_set_topic="ecl/set")
+_asyncio.run(_gmo.async_set_mode(_ghc_off, refresh=False))
+_ghc_pub(_gmo, 2.0)
+R.check(
+    "the chokepoint called while off writes no entity value; the MQTT arm still carries the integer",
+    _ghc_writes(_gmo) == [] and _ghc_mqtt(_gmo) == [("ecl/set", "2")],
+    "writes=%r mqtt=%r" % (_ghc_writes(_gmo), _ghc_mqtt(_gmo)),
+)
+_ = _ghc_auto
+
+
+# ---------------------------------------------------------------------------
+R.section("R10-GENERIC-HEAT-CURVE-PERSISTENT — kind persistent: a stored curve parameter")
+
+# The owner's ruling (tvofi, #201, 2026-11-07): a persistent kind in this round,
+# and off restores the baseline. The design note (design/R10-GENERIC-HEAT-CURVE-
+# PERSISTENT a64af2b3) binds: the baseline is captured once into off_restore's
+# record with its entity, the arm writes baseline + displace within the band.
+import json as _ghcp_json  # noqa: E402
+from homeassistant.helpers.storage import SAVE_COUNTS as _ghcp_saves, _DISK as _ghcp_disk  # noqa: E402
+
+_GHCP_ENT = "number.x"
+_GHCP_ATTRS = {"step": 0.5, "min": 5.0, "max": 35.0}
+
+
+def _ghcp_coord(value="22", entry_id=None, hass=None, entity=_GHCP_ENT, unit="°C", attrs=None, **extra):
+    """A coordinator whose heat-curve entity is a stored parameter ``entity`` reading ``value``."""
+    hass = hass or _ghc_hass()
+    if value is not None and entity:
+        hass.states.set(entity, _ghc_state(value, unit=unit, attributes=dict(attrs or _GHCP_ATTRS)))
+    cfg = {"tibber_token": "x", "weather_entity": "weather.home",
+           "heat_curve_target_kind": "persistent", **extra}
+    if entity:
+        cfg["heat_curve_displace_entity"] = entity
+    return Coord(hass, _ghc_entry(data=cfg, entry_id=entry_id or f"ghcp_{next(_ghc_seq)}"))
+
+
+def _ghcp_record(coord):
+    """The off-restore record as saved, or None."""
+    raw = _ghcp_disk.get(f"heatpump_optimizer_{coord.entry.entry_id}_off_restore")
+    return None if raw is None else _ghcp_json.loads(raw)
+
+
+# The failing test first: red at e066a630, where the unknown kind falls back to
+# offset and offset's T2 refuses a 5..35 range (carry ghcp-r1).
+_gp = _ghcp_coord(entry_id="ghcp_first")
+_ghc_pub(_gp, 2.0)
+R.check(
+    "kind persistent: displace 2 on a 22 °C parameter writes 24 and records {number.x, 22} before it",
+    _ghc_writes(_gp) == [24] and (_ghcp_record(_gp) or {}).get("armed")
+    == {"heat_curve": {"entity_id": _GHCP_ENT, "value": 22.0}},
+    "writes=%r record=%r" % (_ghc_writes(_gp), _ghcp_record(_gp)),
+)
+
+
+def _ghcp_state(coord):
+    return _asyncio.run(_ghc_restore.async_consumer_state(coord.hass, coord.entry, _ghc.CONSUMER))
+
+
+def _ghcp_reads(coord, value, entity=_GHCP_ENT, attrs=None, unit="°C"):
+    coord.hass.states.set(entity, _ghc_state(value, unit=unit, attributes=dict(attrs or _GHCP_ATTRS)))
+
+
+def _ghcp_age(coord, seconds):
+    """Move the record's last write ``seconds`` into the past (the dwell and grace are wall clock)."""
+    state = _ghcp_state(coord)
+    state["written_at"] = (_ghc_dt.parse_datetime(state["written_at"])
+                           - _ghcp_td(seconds=seconds)).isoformat()
+
+
+def _ghcp_off(coord):
+    _asyncio.run(coord.async_set_mode(_ghc_off, refresh=False))
+
+
+def _ghcp_on(coord):
+    _asyncio.run(coord.async_set_mode(_ghc_auto, refresh=False))
+
+
+def _ghcp_sent(coord):
+    """(entity, value) of every set_value, in order."""
+    return [(d.get("entity_id"), d.get("value")) for _, s, d in coord.hass.services.calls if s == "set_value"]
+
+
+from datetime import timedelta as _ghcp_td  # noqa: E402
+
+_GHCP_DWELL_S = 60 * 60 + 1
+
+# O5's defaults, the research body's "Recommended defaults" rows (52f5a442 BODY.md lines 13-15).
+_gdef_cfg = _ghcp_coord(entity=None, entry_id="ghcp_defaults").effective_config
+R.check(
+    "kind persistent's defaults are the research's: a 3 K band, 12 writes a day, a 60 min dwell (O5)",
+    (_gdef_cfg.heat_curve_persistent_band_k, _gdef_cfg.heat_curve_persistent_writes_per_day,
+     _gdef_cfg.heat_curve_persistent_min_dwell_minutes) == (3.0, 12, 60),
+    repr((_gdef_cfg.heat_curve_persistent_band_k, _gdef_cfg.heat_curve_persistent_writes_per_day,
+          _gdef_cfg.heat_curve_persistent_min_dwell_minutes)),
+)
+
+# I1: the band and the unit.
+_gpb = _ghcp_coord(entry_id="ghcp_band")
+_ghc_pub(_gpb, 8.0)
+_gpf = _ghcp_coord(entry_id="ghcp_fahrenheit", unit="°F", value="72",
+                   attrs={"step": 0.5, "min": 41.0, "max": 95.0})
+_ghc_pub(_gpf, 2.0)
+_gpr = _ghcp_coord(entry_id="ghcp_range", attrs={"step": 0.5, "min": 5.0, "max": 23.0})
+_ghc_pub(_gpr, 2.0)
+R.check(
+    "the band bounds the displace: 8 K on a 22 °C baseline writes 25, never 30 (I1)",
+    _ghc_writes(_gpb) == [25],
+    repr(_ghc_writes(_gpb)),
+)
+R.check(
+    "a Fahrenheit parameter is displaced by whole steps inside the band: 2 K is 3.6 °F, sent as 3.5 (I1)",
+    _ghc_writes(_gpf) == [75.5],
+    repr(_ghc_writes(_gpf)),
+)
+R.check(
+    "the entity's own range bounds it too: max 23 sends 23",
+    _ghc_writes(_gpr) == [23],
+    repr(_ghc_writes(_gpr)),
+)
+_gp0 = _ghcp_coord(entry_id="ghcp_w1")
+_ghc_pub(_gp0, 0.0)
+_gp1 = _ghcp_coord(entry_id="ghcp_w1_held")
+_ghc_pub(_gp1, 2.0)
+_ghcp_reads(_gp1, "24")
+_ghcp_age(_gp1, _GHCP_DWELL_S)
+_ghc_pub(_gp1, 2.0)
+_gp1_key = f"heatpump_optimizer_{_gp1.entry.entry_id}_off_restore"
+_gp1_saves = _ghcp_saves.get(_gp1_key)
+_ghc_pub(_gp1, 2.0)
+R.check(
+    "a reading that holds the last write is ours, never an edit: the baseline is not re-saved",
+    _ghcp_saves.get(_gp1_key) == _gp1_saves
+    and _asyncio.run(_ghc_restore.async_armed_entry(_gp1.hass, _gp1.entry, "heat_curve"))
+    == {"entity_id": _GHCP_ENT, "value": 22.0},
+    "saves=%r/%r" % (_gp1_saves, _ghcp_saves.get(_gp1_key)),
+)
+R.check(
+    "a reading already at the target is not written, armed or not (W1)",
+    _ghc_writes(_gp0) == [] and _ghc_writes(_gp1) == [24]
+    and _ghcp_record(_gp0) is None,
+    "unarmed=%r armed=%r" % (_ghc_writes(_gp0), _ghc_writes(_gp1)),
+)
+
+# P5: the dwell, wall clock.
+_gpd = _ghcp_coord(entry_id="ghcp_dwell")
+_ghc_pub(_gpd, 2.0)
+_ghcp_reads(_gpd, "24")
+_ghc_pub(_gpd, 3.0)
+_ghcp_age(_gpd, 59 * 60)
+_ghc_pub(_gpd, 3.0)
+_gpd_held = list(_ghc_writes(_gpd))
+_ghcp_age(_gpd, 2 * 60)
+_ghc_pub(_gpd, 3.0)
+R.check(
+    "the dwell holds a second change for 60 min after the last write, and releases it after (P5)",
+    _gpd_held == [24] and _ghc_writes(_gpd) == [24, 25],
+    "held=%r after=%r" % (_gpd_held, _ghc_writes(_gpd)),
+)
+
+# P4 and I2: the day's budget, the restore's write kept back.
+_gpq = _ghcp_coord(entry_id="ghcp_budget", heat_curve_persistent_writes_per_day=2)
+_ghc_pub(_gpq, 2.0)
+_ghcp_reads(_gpq, "24")
+_ghcp_age(_gpq, _GHCP_DWELL_S)
+_ghc_pub(_gpq, 3.0)
+_ghc_pub(_gpq, 0.0)
+_gpq_before_off = list(_ghc_writes(_gpq))
+_ghcp_off(_gpq)
+R.check(
+    "budget 2: one displace and its restore; a second displace, or a return to the baseline the "
+    "restore would repeat, is refused, so the day's writes never pass the budget (P4, I2)",
+    _gpq_before_off == [24] and _ghc_writes(_gpq) == [24, 22] and _ghcp_state(_gpq)["count"] == 2,
+    "writes=%r state=%r" % (_ghc_writes(_gpq), _ghcp_state(_gpq)),
+)
+_gpz = {}
+for _budget in (0, 1):
+    _c = _ghcp_coord(entry_id=f"ghcp_budget_{_budget}", heat_curve_persistent_writes_per_day=_budget)
+    _ghc_pub(_c, 2.0)
+    _ghcp_off(_c)
+    _gpz[_budget] = (_ghc_writes(_c), (_ghcp_record(_c) or {}).get("armed", {}))
+R.check(
+    "budget 0, and budget 1 whose one write is the one kept back, write nothing, so nothing is "
+    "armed and nothing restored, as the docs say (fix review 1 of #3402). Null control: budget 2 "
+    "writes 24 above",
+    _gpz == {0: ([], {}), 1: ([], {})},
+    repr(_gpz),
+)
+_gpn = _ghcp_coord(entry_id="ghcp_midnight", heat_curve_persistent_writes_per_day=2)
+_ghcp_state(_gpn).update(entity_id=_GHCP_ENT, day="2000-01-01", count=2)
+_ghc_pub(_gpn, 2.0)
+_gpn2 = _ghcp_coord(entry_id="ghcp_midnight_today", heat_curve_persistent_writes_per_day=2)
+_ghcp_state(_gpn2).update(entity_id=_GHCP_ENT, day=_ghc_dt.now().date().isoformat(), count=1)
+_ghc_pub(_gpn2, 2.0)
+R.check(
+    "a new local day starts the count afresh: yesterday's full budget blocks nothing, today's one write does",
+    _ghc_writes(_gpn) == [24] and _ghcp_state(_gpn)["count"] == 1 and _ghc_writes(_gpn2) == [],
+    "yesterday=%r today=%r" % (_ghc_writes(_gpn), _ghc_writes(_gpn2)),
+)
+_gp4 = _ghcp_coord(entry_id="ghcp_no_w4")
+_ghc.state_for(_gp4.entry).writes.extend([_time.monotonic()] * _cap)
+_ghc_pub(_gp4, 2.0)
+R.check(
+    "kind persistent does not consult W4: a full offset guard blocks nothing (ghcp-r2)",
+    _ghc_writes(_gp4) == [24],
+    repr(_ghc_writes(_gp4)),
+)
+
+# The off rule: MODE_OFF and unload write the captured baseline once.
+_gpo = _ghcp_coord(entry_id="ghcp_off")
+_ghc_pub(_gpo, 2.0)
+_ghcp_off(_gpo)
+_ghcp_off(_gpo)
+_gpu = _ghcp_coord(entry_id="ghcp_unload")
+_ghc_pub(_gpu, -2.0)
+_gpu.entry.runtime_data = _gpu
+_asyncio.run(_ghc_unload(_gpu.hass, _gpu.entry))
+R.check(
+    "MODE_OFF and unload each write the baseline 22 once, and the restore is the record's last write",
+    _ghc_writes(_gpo) == [24, 22] and _ghc_writes(_gpu) == [20, 22]
+    and _ghcp_state(_gpo)["written"] == 22 and _ghcp_state(_gpu)["written"] == 22
+    and _ghcp_record(_gpo)["armed"] == {},
+    "off=%r unload=%r" % (_ghc_writes(_gpo), _ghc_writes(_gpu)),
+)
+
+# A restart: a new coordinator and entry object, the same persisted record.
+_gps = _ghcp_coord(entry_id="ghcp_restart")
+_ghc_pub(_gps, 2.0)
+_ghcp_reads(_gps, "24")
+_gps2 = _ghcp_coord(hass=_gps.hass, entry_id="ghcp_restart", value=None)
+_ghc_pub(_gps2, 3.0)
+_gps_held = (list(_ghc_writes(_gps2)), _ghcp_state(_gps2).get("count"))
+_ghcp_age(_gps2, _GHCP_DWELL_S)
+_ghc_pub(_gps2, 3.0)
+_ghcp_off(_gps2)
+R.check(
+    "the dwell and the count survive a restart, and the crash residue's 24 is never re-captured: "
+    "the new run writes 25 from 22, and off restores 22 (O3)",
+    _gps_held == ([24], 1) and _ghc_writes(_gps2) == [24, 25, 22],
+    "held=%r writes=%r" % (_gps_held, _ghc_writes(_gps2)),
+)
+
+# A write-ahead crash: the record says 24 was sent, the entity still reads 22.
+_gpw = _ghcp_coord(entry_id="ghcp_write_ahead")
+_gpw_real = _gpw.hass.services
+_gpw.hass.services = _GhcRaising()
+_ghc_pub(_gpw, 2.0)
+_gpw.hass.services = _gpw_real
+_ghcp_age(_gpw, _GHCP_DWELL_S)
+_ghc_pub(_gpw, 2.0)
+_gpw_retry = (list(_ghc_writes(_gpw)), _asyncio.run(_ghc_restore.async_armed_entry(_gpw.hass, _gpw.entry, "heat_curve")))
+_ghcp_age(_gpw, _GHCP_DWELL_S)
+_gpw_ret = []
+_gpw_warn = _ghc_logged(lambda: _gpw_ret.append(
+    _asyncio.run(_ghc.write_persistent(_gpw.hass, _gpw.entry, _gpw.effective_config, 2))))
+R.check(
+    "a reading still at the write before is the write missing, never the user's edit: rewritten "
+    "once from the kept baseline 22",
+    _gpw_retry == ([24], {"entity_id": _GHCP_ENT, "value": 22.0}),
+    repr(_gpw_retry),
+)
+R.check(
+    "and a second miss of the same target latches a warning and sends nothing (W3)",
+    _ghc_writes(_gpw) == [24] and any("does not hold" in m for m in _gpw_warn) and _gpw_ret == [False],
+    "writes=%r warn=%r ret=%r" % (_ghc_writes(_gpw), _gpw_warn, _gpw_ret),
+)
+_gmr = _ghcp_coord(entry_id="ghcp_miss_reset")
+_gmr_real = _gmr.hass.services
+_gmr.hass.services = _GhcRaising()
+_ghc_pub(_gmr, 2.0)
+_gmr.hass.services = _gmr_real
+_ghcp_age(_gmr, _GHCP_DWELL_S)
+_ghc_pub(_gmr, 2.0)  # the miss, rewritten once
+_ghcp_reads(_gmr, "24")
+_ghc_pub(_gmr, 2.0)  # and it held
+_ghcp_reads(_gmr, "22")
+_ghcp_age(_gmr, _GHCP_DWELL_S)
+_ghc_pub(_gmr, 2.0)
+R.check(
+    "a rewrite that held clears the miss: a later revert is rewritten once more, not latched (W1, W3)",
+    _ghc_writes(_gmr) == [24, 24],
+    repr(_ghc_writes(_gmr)),
+)
+
+# P6: the user's edit moves the baseline.
+_gpe = _ghcp_coord(entry_id="ghcp_edit")
+_ghc_pub(_gpe, 2.0)
+_ghcp_reads(_gpe, "21")
+_ghcp_age(_gpe, _GHCP_DWELL_S)
+_ghc_pub(_gpe, 2.0)
+_gpe_after = (list(_ghc_writes(_gpe)), _asyncio.run(_ghc_restore.async_armed_entry(_gpe.hass, _gpe.entry, "heat_curve")))
+_ghcp_off(_gpe)
+_gpe_in_grace = _ghcp_coord(entry_id="ghcp_edit_grace")
+_ghc_pub(_gpe_in_grace, 2.0)
+_ghcp_reads(_gpe_in_grace, "21")
+_ghc_pub(_gpe_in_grace, 2.0)
+R.check(
+    "a reading of 21 while 24 was written, after the grace, is the user's edit: the baseline "
+    "becomes 19, which holds 21 at displace 2, and off restores 19 (P6)",
+    _gpe_after == ([24], {"entity_id": _GHCP_ENT, "value": 19.0}) and _ghc_writes(_gpe) == [24, 19],
+    "after=%r writes=%r" % (_gpe_after, _ghc_writes(_gpe)),
+)
+R.check(
+    "inside the grace a differing reading proves nothing: the baseline is kept, nothing written",
+    _asyncio.run(_ghc_restore.async_armed_entry(_gpe_in_grace.hass, _gpe_in_grace.entry, "heat_curve"))
+    == {"entity_id": _GHCP_ENT, "value": 22.0} and _ghc_writes(_gpe_in_grace) == [24],
+    repr(_ghc_writes(_gpe_in_grace)),
+)
+# P6 at the range's edge (fix review 1 of #3402, the blocked verdict's probe):
+# an edit whose difference would put the baseline outside the entity's own
+# range adopts the range's edge, so off restores a value the entity holds.
+_GHCP_EDGE = {"step": 0.5, "min": 20.0, "max": 35.0}
+
+
+def _ghcp_edge_edit(name, start, displace, edit, then=None):
+    """Displace ``start`` by ``displace``, edit it to ``edit`` by hand, publish
+    ``displace`` again after the dwell, then ``then`` (when given) once more
+    after the dwell; (armed after the edit, writes, warned at ``then``), then off."""
+    coord = _ghcp_coord(value=start, entry_id=name, attrs=_GHCP_EDGE)
+    _ghc_pub(coord, displace)
+    _ghcp_reads(coord, edit, attrs=_GHCP_EDGE)
+    _ghcp_age(coord, _GHCP_DWELL_S)
+    _ghc_pub(coord, displace)
+    armed = _asyncio.run(_ghc_restore.async_armed_entry(coord.hass, coord.entry, "heat_curve"))
+    warned = None
+    if then is not None:
+        _ghcp_reads(coord, str(_ghcp_state(coord)["written"]), attrs=_GHCP_EDGE)
+        _ghcp_age(coord, _GHCP_DWELL_S)
+        warned = bool(_ghc_logged(lambda: _ghc_pub(coord, then)))
+    _ghcp_off(coord)
+    return (armed or {}).get("value"), _ghc_writes(coord), warned
+
+
+_gpf = {
+    "floor": _ghcp_edge_edit("ghcp_floor", "22", 3.0, "21"),
+    "floor null": _ghcp_edge_edit("ghcp_floor_null", "22", 3.0, "24"),
+    "ceiling": _ghcp_edge_edit("ghcp_ceiling", "32", -3.0, "34"),
+    "ceiling null": _ghcp_edge_edit("ghcp_ceiling_null", "32", -3.0, "31"),
+    "neutral": _ghcp_edge_edit("ghcp_floor_neutral", "22", 3.0, "21", then=0.0),
+    "neutral null": _ghcp_edge_edit("ghcp_floor_neutral_null", "22", 3.0, "24", then=0.0),
+}
+R.check(
+    "range 20..35, 22 displaced +3 to 25, set to 21 by hand: the baseline is the floor 20, not 18, "
+    "and off restores 20; the plan's +3 then writes 23, the floor's own +3 (P6 bounded by I1). "
+    "Null control: an edit to 24 adopts 21, holds 24 unwritten and off restores 21",
+    _gpf["floor"] == (20.0, [25, 23, 20], None) and _gpf["floor null"] == (21.0, [25, 21], None),
+    repr(_gpf),
+)
+R.check(
+    "range 20..35, 32 displaced -3 to 29, set to 34 by hand: the baseline is the ceiling 35, not 37, "
+    "and off restores 35. Null control: an edit to 31 adopts 34 and off restores 34",
+    _gpf["ceiling"] == (35.0, [29, 32, 35], None) and _gpf["ceiling null"] == (34.0, [29, 34], None),
+    repr(_gpf),
+)
+R.check(
+    "after the floor edit the neutral writes the baseline off restores, 20, unsaturated: "
+    "displace 0 and off agree. Null control: after an edit to 24 the neutral writes 21 and off restores 21",
+    _gpf["neutral"] == (20.0, [25, 23, 20, 20], False) and _gpf["neutral null"] == (21.0, [25, 21, 21], False),
+    repr(_gpf),
+)
+_gpx = {}
+for _name, _kw in (
+    ("absent", {"value": None}),
+    ("unavailable", {"value": "unavailable"}),
+    ("unit %", {"unit": "%"}),
+    ("sensor domain", {"entity": "sensor.curve"}),
+    ("outside its range", {"value": "40"}),
+):
+    _c = _ghcp_coord(**_kw)
+    _warn = _ghc_logged(lambda: _ghc_pub(_c, 2.0))
+    _gpx[_name] = (_ghc_writes(_c), _ghcp_record(_c), bool(_warn))
+R.check(
+    "absent, unavailable, a non-temperature unit, a sensor or a reading outside its own range: "
+    "nothing written, nothing armed, the refusal latched",
+    all(w == [] and rec is None and warned for w, rec, warned in _gpx.values()),
+    repr(_gpx),
+)
+_gpg = _ghcp_coord(entry_id="ghcp_diag", heat_curve_persistent_writes_per_day=12)
+_gpg_fresh = _ghc.diagnostics(_gpg.entry, _gpg.effective_config)
+_ghc_pub(_gpg, 2.0)
+_gpg_diag = _ghc.diagnostics(_gpg.entry, _gpg.effective_config)
+R.check(
+    "the persistent diagnostics: the last write, today's count against the budget, the armed hook",
+    _gpg_diag == {"written": 24, "misses": 0, "writes_today": 1, "writes_per_day": 12,
+                  "restore": {"armed": ["heat_curve"], "restores": 0, "last_restore": None}}
+    and _gpg_fresh == {"written": None, "misses": 0, "writes_today": 0, "writes_per_day": 12,
+                       "restore": {"armed": [], "restores": 0, "last_restore": None}},
+    "fresh=%r after=%r" % (_gpg_fresh, _gpg_diag),
+)
+
+
+# The bounds, each where a mutant moved it (mutant_run.py --diff over this block).
+class _GhcpClock:
+    """heat_curve's dt_util with utcnow fixed, so a wall-clock bound is hit exactly."""
+
+    def __init__(self, real, t):
+        self._real, self.t = real, t
+
+    def utcnow(self):
+        return self.t
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+
+_ghcp_real_dt = _ghc.dt_util
+_ghcp_t0 = _ghc_dt.utcnow().replace(microsecond=0)
+try:
+    _ghc.dt_util = _gclk = _GhcpClock(_ghcp_real_dt, _ghcp_t0)
+    _gbg = _ghcp_coord(entry_id="ghcp_grace_bound")
+    _ghc_pub(_gbg, 2.0)
+    _ghcp_reads(_gbg, "21")
+    _gclk.t = _ghcp_t0 + _ghcp_td(seconds=_ghc.HELD_GRACE_S)
+    _ghc_pub(_gbg, 2.0)
+    _gclk.t = _ghcp_t0
+    _gbd = _ghcp_coord(entry_id="ghcp_dwell_bound")
+    _ghc_pub(_gbd, 2.0)
+    _ghcp_reads(_gbd, "24")
+    _gclk.t = _ghcp_t0 + _ghcp_td(minutes=60)
+    _ghc_pub(_gbd, 3.0)
+finally:
+    _ghc.dt_util = _ghcp_real_dt
+R.check(
+    "at exactly 90 s the grace is over: a differing reading then is the user's edit (the grace's bound)",
+    _asyncio.run(_ghc_restore.async_armed_entry(_gbg.hass, _gbg.entry, "heat_curve"))["value"] == 19.0,
+    repr(_asyncio.run(_ghc_restore.async_armed_entry(_gbg.hass, _gbg.entry, "heat_curve"))),
+)
+R.check(
+    "and at exactly 60 min the dwell is over: the second change is written (the dwell's bound)",
+    _ghc_writes(_gbd) == [24, 25],
+    repr(_ghc_writes(_gbd)),
+)
+_ghb = _ghcp_coord(entry_id="ghcp_half_step_ours")
+_ghc_pub(_ghb, 2.0)
+_ghcp_reads(_ghb, "24.25")
+_ghcp_age(_ghb, _GHCP_DWELL_S)
+_ghc_pub(_ghb, 2.0)
+_ghp = _ghcp_coord(entry_id="ghcp_half_step_previous")
+_gpw_real = _ghp.hass.services
+_ghp.hass.services = _GhcRaising()
+_ghc_pub(_ghp, 2.0)
+_ghp.hass.services = _gpw_real
+_ghcp_reads(_ghp, "22.25")
+_ghcp_age(_ghp, _GHCP_DWELL_S)
+_ghc_pub(_ghp, 2.0)
+R.check(
+    "half a step from the last write is still ours, and half a step from the write before is still "
+    "missed: neither moves the baseline (classify's bounds)",
+    _ghc_writes(_ghb) == [24] and _ghc_writes(_ghp) == [24]
+    and _asyncio.run(_ghc_restore.async_armed_entry(_ghb.hass, _ghb.entry, "heat_curve"))["value"] == 22.0
+    and _asyncio.run(_ghc_restore.async_armed_entry(_ghp.hass, _ghp.entry, "heat_curve"))["value"] == 22.0,
+    "ours=%r missed=%r" % (_ghc_writes(_ghb), _ghc_writes(_ghp)),
+)
+_glo = _ghcp_coord(entry_id="ghcp_low_range", value="6")
+_ghc_pub(_glo, -3.0)
+_glb = _ghcp_coord(entry_id="ghcp_at_low_bound", value="5")
+_ghc_pub(_glb, 2.0)
+_ghi = _ghcp_coord(entry_id="ghcp_at_high_bound", value="35")
+_ghc_pub(_ghi, -2.0)
+R.check(
+    "the range bounds the low side too: -3 K from 6 on 5..35 sends 5; a reading on either of its own "
+    "bounds is inside its range and is written from",
+    _ghc_writes(_glo) == [5] and _ghc_writes(_glb) == [7] and _ghc_writes(_ghi) == [33],
+    "low=%r at_low=%r at_high=%r" % (_ghc_writes(_glo), _ghc_writes(_glb), _ghc_writes(_ghi)),
+)
+_gri = _ghcp_coord(entry_id="ghcp_refused_once", heat_curve_persistent_writes_per_day=1)
+_gri_cap = _LogCapture()
+_gri_log = _logging.getLogger("heatpump_optimizer.heat_curve")
+_gri_log.addHandler(_gri_cap)
+_gri_level = _gri_log.level
+_gri_log.setLevel(_logging.INFO)
+try:
+    _ghc_pub(_gri, 2.0)
+    _ghc_pub(_gri, 3.0)
+finally:
+    _gri_log.removeHandler(_gri_cap)
+    _gri_log.setLevel(_gri_level)
+R.check(
+    "a refusal by the day's budget is logged once a day, not at every publish",
+    _ghc_writes(_gri) == [] and sum("writes a day reached" in m for _l, m in _gri_cap.records) == 1,
+    repr(_gri_cap.records),
+)
+_gun = _ghcp_coord(entry_id="ghcp_unit_named", unit="%")
+_gun_warn = _ghc_logged(lambda: _ghc_pub(_gun, 2.0))
+R.check(
+    "a unit refusal names the unit",
+    any("'%'" in m for m in _gun_warn),
+    repr(_gun_warn),
+)
+R.check(
+    "a record with today's day and no count holds no writes",
+    _ghc.writes_today({"day": _ghc_dt.as_local(_ghc_dt.utcnow()).date().isoformat()}, _ghc_dt.utcnow()) == 0,
+    "",
+)
+_gwr = _ghcp_coord(entry_id="ghcp_returns")
+_gwr_cfg = _gwr.effective_config
+_gwr_ret = [_asyncio.run(_ghc.write_persistent(_gwr.hass, _gwr.entry, _gwr_cfg, 2))]
+_ghcp_reads(_gwr, "24")
+_ghcp_age(_gwr, _GHCP_DWELL_S)
+_gwr_ret.append(_asyncio.run(_ghc.write_persistent(_gwr.hass, _gwr.entry, _gwr_cfg, 2)))
+_ghcp_state(_gwr)["written_at"] = _ghc_dt.utcnow().isoformat()
+_gwr_ret.append(_asyncio.run(_ghc.write_persistent(_gwr.hass, _gwr.entry, _gwr_cfg, 3)))
+_ghcp_reads(_gwr, "unavailable")
+_gwr_ret.append(_asyncio.run(_ghc.write_persistent(_gwr.hass, _gwr.entry, _gwr_cfg, 3)))
+_gwb = _ghcp_coord(entry_id="ghcp_returns_budget", heat_curve_persistent_writes_per_day=1)
+_gwr_ret.append(_asyncio.run(_ghc.write_persistent(_gwb.hass, _gwb.entry, _gwb.effective_config, 2)))
+_gwa = _ghcp_coord(entry_id="ghcp_returns_arm")
+_ghcp_real_factory = _ghc_restore._CONSUMERS[_ghc.CONSUMER]
+_ghc_restore.register_consumer(_ghc.CONSUMER, lambda cfg: None)
+try:
+    _gwr_ret.append(_asyncio.run(_ghc.write_persistent(_gwa.hass, _gwa.entry, _gwa.effective_config, 2)))
+finally:
+    _ghc_restore.register_consumer(_ghc.CONSUMER, _ghcp_real_factory)
+R.check(
+    "the persistent arm answers True only for a write sent: held (W1), held by the dwell, unreadable, "
+    "over the budget and refused by the hook are False, and the refused arm writes nothing",
+    _gwr_ret == [True, False, False, False, False, False] and _ghc_writes(_gwb) == [] and _ghc_writes(_gwa) == [],
+    repr(_gwr_ret),
+)
+
+# ---- off_restore: C1 rule R, C2, C3, C4 ----
+_GHCP_B = "number.y"
+_GHCP_B_ATTRS = {"step": 0.5, "min": 20.0, "max": 60.0}
+_gab = _ghcp_coord(entry_id="ghcp_a_to_b")
+_ghc_pub(_gab, 2.0)
+_ghcp_reads(_gab, "40", entity=_GHCP_B, attrs=_GHCP_B_ATTRS)
+_gab2 = _ghcp_coord(hass=_gab.hass, entry_id="ghcp_a_to_b", entity=_GHCP_B, value=None)
+_ghcp_off(_gab2)
+_gab_off = list(_ghcp_sent(_gab2))
+_ghcp_on(_gab2)
+_ghcp_age(_gab2, _GHCP_DWELL_S)
+_ghc_pub(_gab2, 2.0)
+R.check(
+    "armed on A, options to B, restart: off restores A to its 22 and leaves B untouched; B is then "
+    "armed with its own baseline 40 and written 42 (rule R, I5)",
+    _gab_off == [(_GHCP_ENT, 24), (_GHCP_ENT, 22)]
+    and _ghcp_sent(_gab2) == [(_GHCP_ENT, 24), (_GHCP_ENT, 22), (_GHCP_B, 42)]
+    and _ghcp_record(_gab2)["armed"] == {"heat_curve": {"entity_id": _GHCP_B, "value": 40.0}},
+    "off=%r sent=%r record=%r" % (_gab_off, _ghcp_sent(_gab2), _ghcp_record(_gab2)),
+)
+_gar = _ghcp_coord(entry_id="ghcp_a_to_b_arm")
+_ghc_pub(_gar, 2.0)
+_ghcp_reads(_gar, "40", entity=_GHCP_B, attrs=_GHCP_B_ATTRS)
+_gar2 = _ghcp_coord(hass=_gar.hass, entry_id="ghcp_a_to_b_arm", entity=_GHCP_B, value=None)
+_ghc_pub(_gar2, 2.0)
+R.check(
+    "and with no off between, B's first arm restores A first, then captures B; the record counts "
+    "B's write alone, never A's restore as B's",
+    _ghcp_sent(_gar2) == [(_GHCP_ENT, 24), (_GHCP_ENT, 22), (_GHCP_B, 42)]
+    and _ghcp_state(_gar2)["count"] == 2 and _ghcp_state(_gar2)["previous"] == 40.0,
+    "sent=%r state=%r" % (_ghcp_sent(_gar2), _ghcp_state(_gar2)),
+)
+
+
+class _GhcpRaisingOn:
+    """set_value raises for one entity only."""
+
+    def __init__(self, entity_id, real):
+        self.entity_id, self.real, self.calls = entity_id, real, real.calls
+
+    async def async_call(self, domain, service, data=None, **kwargs):
+        if service == "set_value" and (data or {}).get("entity_id") == self.entity_id:
+            raise RuntimeError("integration gone")
+        return await self.real.async_call(domain, service, data, **kwargs)
+
+
+_gaf = _ghcp_coord(entry_id="ghcp_a_fails")
+_ghc_pub(_gaf, 2.0)
+_ghcp_reads(_gaf, "40", entity=_GHCP_B, attrs=_GHCP_B_ATTRS)
+_gaf2 = _ghcp_coord(hass=_gaf.hass, entry_id="ghcp_a_fails", entity=_GHCP_B, value=None)
+_gaf2.hass.services = _GhcpRaisingOn(_GHCP_ENT, _gaf2.hass.services)
+_gaf_warn = _ghc_logged(lambda: _ghc_pub(_gaf2, 2.0))
+R.check(
+    "the A restore fails: B's write is refused, the failure latched, and A stays armed",
+    _ghcp_sent(_gaf2) == [(_GHCP_ENT, 24)]
+    and _ghcp_record(_gaf2)["armed"] == {"heat_curve": {"entity_id": _GHCP_ENT, "value": 22.0}}
+    and any(_GHCP_ENT in m and "failed" in m for m in _gaf_warn),
+    "sent=%r record=%r warn=%r" % (_ghcp_sent(_gaf2), _ghcp_record(_gaf2), _gaf_warn),
+)
+_gac = _ghcp_coord(entry_id="ghcp_cleared")
+_ghc_pub(_gac, 2.0)
+_gac2 = _ghcp_coord(hass=_gac.hass, entry_id="ghcp_cleared", entity=None)
+_ghcp_off(_gac2)
+R.check(
+    "the entity cleared with A armed: off restores A through the writer the heat curve registered",
+    _ghcp_sent(_gac2) == [(_GHCP_ENT, 24), (_GHCP_ENT, 22)] and _ghcp_record(_gac2)["armed"] == {},
+    "sent=%r record=%r" % (_ghcp_sent(_gac2), _ghcp_record(_gac2)),
+)
+_GHCP_WIDE = {"step": 0.5, "min": -20.0, "max": 35.0}
+_gko = _ghcp_coord(entry_id="ghcp_to_offset", attrs=_GHCP_WIDE)
+_ghc_pub(_gko, 2.0)
+_ghcp_reads(_gko, "24", attrs=_GHCP_WIDE, unit="K")
+_gko2 = _ghcp_coord(hass=_gko.hass, entry_id="ghcp_to_offset", value=None, heat_curve_target_kind="offset")
+_ghc_pub(_gko2, 2.0)
+R.check(
+    "kind persistent armed on A, options to kind offset on A: A is restored to its baseline before "
+    "the first offset write arms the neutral entry",
+    _ghc_writes(_gko2) == [24, 22, 2] and _ghcp_record(_gko2)["armed"] == {"heat_curve": None},
+    "writes=%r record=%r" % (_ghc_writes(_gko2), _ghcp_record(_gko2)),
+)
+_gkp = _ghcp_coord(entry_id="ghcp_from_offset", value="0", attrs=_GHCP_WIDE, unit="K",
+                   heat_curve_target_kind="offset")
+_ghc_pub(_gkp, 2.0)
+_ghcp_reads(_gkp, "2", attrs=_GHCP_WIDE, unit="K")
+_gkp2 = _ghcp_coord(hass=_gkp.hass, entry_id="ghcp_from_offset", value=None)
+_ghc_pub(_gkp2, 2.0)
+R.check(
+    "a neutral entry left by kind offset, options to kind persistent: disarmed unwritten, the "
+    "baseline captured afresh, and 0 never written to the stored parameter",
+    _ghc_writes(_gkp2) == [2, 4]
+    and _ghcp_record(_gkp2)["armed"] == {"heat_curve": {"entity_id": _GHCP_ENT, "value": 2.0}},
+    "writes=%r record=%r" % (_ghc_writes(_gkp2), _ghcp_record(_gkp2)),
+)
+
+
+async def _ghcp_no_service(hass, entity_id, value):
+    return False
+
+
+_ghc_restore.register_consumer(
+    "stand_in_no_service",
+    lambda cfg: _ghc_restore.Restorer("climate.no_service", _ghcp_no_service, baseline_of=lambda h, e: 21.0)
+    if cfg.get("no_service") else None,
+)
+_gns = _ghcp_coord(entity=None, entry_id="ghcp_no_service", no_service=True)
+_gns_cfg = _gns.effective_config
+_asyncio.run(_ghc_restore.async_arm(_gns.hass, _gns.entry, _gns_cfg, "stand_in_no_service"))
+_gns_warn = []
+_gns_sent = []
+_gns_warn = _ghc_logged(lambda: _gns_sent.append(
+    _asyncio.run(_ghc_restore.async_restore(_gns.hass, _gns.entry, _gns_cfg, "mode_off"))))
+R.check(
+    "a baseline restore whose write answers False (no set-point service) is a failure: latched, still armed",
+    _gns_sent == [0] and _ghc_restore.diagnostics(_gns.entry)["armed"] == ["stand_in_no_service"]
+    and any("climate.no_service" in m and "failed" in m for m in _gns_warn),
+    "sent=%r diag=%r warn=%r" % (_gns_sent, _ghc_restore.diagnostics(_gns.entry), _gns_warn),
+)
+_ghc_restore.register_consumer(
+    "stand_in_no_writer",
+    lambda cfg: _ghc_restore.Restorer("number.no_writer", _ghc_stand_in_write, baseline_of=lambda h, e: 21.0)
+    if cfg.get("no_writer") else None,
+)
+_gnw = _ghcp_coord(entity=None, entry_id="ghcp_no_writer", no_writer=True)
+_asyncio.run(_ghc_restore.async_arm(_gnw.hass, _gnw.entry, _gnw.effective_config, "stand_in_no_writer"))
+_gnw2 = _ghcp_coord(entity=None, hass=_gnw.hass, entry_id="ghcp_no_writer")
+_gnw_sent = []
+_gnw_warn = _ghc_logged(lambda: _gnw_sent.append(
+    _asyncio.run(_ghc_restore.async_restore(_gnw2.hass, _gnw2.entry, _gnw2.effective_config, "unload"))))
+R.check(
+    "a baseline entry whose consumer is unconfigured and registered no writer is disarmed unwritten, "
+    "naming the entity and the value to set by hand",
+    _gnw_sent == [0] and _ghc_writes(_gnw2) == [] and _ghc_restore.diagnostics(_gnw2.entry)["armed"] == []
+    and len(_gnw_warn) == 1 and "number.no_writer" in _gnw_warn[0] and "21" in _gnw_warn[0],
+    "sent=%r warn=%r" % (_gnw_sent, _gnw_warn),
+)
+_grb = _ghcp_coord(entry_id="ghcp_rebaseline")
+_ghc_pub(_grb, 2.0)
+_grb_key = f"heatpump_optimizer_{_grb.entry.entry_id}_off_restore"
+_grb_saves = _ghcp_saves.get(_grb_key)
+_grb_wrong = _asyncio.run(_ghc_restore.async_rebaseline(_grb.hass, _grb.entry, "heat_curve", _GHCP_B, 30.0))
+_grb_unarmed = _asyncio.run(_ghc_restore.async_rebaseline(_grb.hass, _grb.entry, "no_such_key", _GHCP_ENT, 30.0))
+_grb_saves_after = _ghcp_saves.get(_grb_key)
+_grb_right = _asyncio.run(_ghc_restore.async_rebaseline(_grb.hass, _grb.entry, "heat_curve", _GHCP_ENT, 21.0))
+R.check(
+    "async_rebaseline on another entity or an unarmed key answers False and saves nothing; on the "
+    "armed entity it moves the baseline and saves",
+    (_grb_wrong, _grb_unarmed, _grb_right) == (False, False, True) and _grb_saves_after == _grb_saves
+    and _ghcp_record(_grb)["armed"]["heat_curve"] == {"entity_id": _GHCP_ENT, "value": 21.0},
+    "ret=%r saves=%r/%r" % ((_grb_wrong, _grb_unarmed, _grb_right), _grb_saves, _grb_saves_after),
+)
+_ghcp_disk["heatpump_optimizer_ghcp_legacy_off_restore"] = '{"armed": {"heat_curve": null}}'
+_ghcp_disk["heatpump_optimizer_ghcp_parse_off_restore"] = _ghcp_json.dumps({"armed": {
+    "no_value": {"entity_id": "number.q"}, "no_entity": {"value": 21}, "bare": 21, "text": "x",
+    "entry": {"entity_id": "number.q", "value": 21}}})
+_gpa_parse = _ghc_coord(entity=None, entry_id="ghcp_parse")
+_gpa_armed = _asyncio.run(_ghc_restore._armed_record(_gpa_parse.hass, _gpa_parse.entry)).armed
+R.check(
+    "a stored entry reads as a baseline only with an entity and a value; a bare number stays #3299's "
+    "number, anything else no baseline",
+    _gpa_armed == {"no_value": None, "no_entity": None, "bare": 21.0, "text": None,
+                   "entry": {"entity_id": "number.q", "value": 21.0}},
+    repr(_gpa_armed),
+)
+_ghcp_disk["heatpump_optimizer_ghcp_legacy_number_off_restore"] = '{"armed": {"stand_in_no_service": 30}}'
+_glnum = _ghcp_coord(entity=None, entry_id="ghcp_legacy_number", no_service=True)
+_glnum_armed = _asyncio.run(_ghc_restore.async_arm(_glnum.hass, _glnum.entry, _glnum.effective_config,
+                                                   "stand_in_no_service"))
+R.check(
+    "a bare-number entry #3299 stored keeps its value at the next arm, never re-captured",
+    _glnum_armed is True and _ghc_restore._RECORDS[_glnum.entry].armed == {"stand_in_no_service": 30.0},
+    repr(_ghc_restore._RECORDS[_glnum.entry].armed),
+)
+_gleg = _ghc_coord(entry_id="ghcp_legacy")
+_ghcp_off(_gleg)
+R.check(
+    "a stored #3299 record {armed: {heat_curve: null}} loads and restores as at e066a630: one 0, then {armed: {}}",
+    _ghc_writes(_gleg) == [0] and _ghcp_disk["heatpump_optimizer_ghcp_legacy_off_restore"] == '{"armed": {}}',
+    "writes=%r disk=%r" % (_ghc_writes(_gleg), _ghcp_disk.get("heatpump_optimizer_ghcp_legacy_off_restore")),
+)
+_gfa = _ghcp_coord(entry_id="ghcp_forget_armed")
+_ghc_pub(_gfa, 2.0)
+_gfa_n = len(_gfa.hass.services.calls)
+_gfa_warn = _ghc_logged(lambda: _asyncio.run(_ghc_restore.async_forget(_gfa.hass, "ghcp_forget_armed")))
+_gfo = _ghc_coord(entry_id="ghcp_forget_neutral")
+_ghc_pub(_gfo, 2.0)
+_gfo_warn = _ghc_logged(lambda: _asyncio.run(_ghc_restore.async_forget(_gfo.hass, "ghcp_forget_neutral")))
+R.check(
+    "remove with a baseline still armed names the entity and the value to set by hand, writes "
+    "nothing and deletes the record; a neutral entry is dropped silently (C4)",
+    len(_gfa_warn) == 1 and _GHCP_ENT in _gfa_warn[0] and "22" in _gfa_warn[0]
+    and len(_gfa.hass.services.calls) == _gfa_n and _ghcp_record(_gfa) is None
+    and _gfo_warn == [] and _ghcp_record(_gfo) is None,
+    "armed=%r neutral=%r" % (_gfa_warn, _gfo_warn),
+)
+_gst = _ghcp_coord(entry_id="ghcp_state")
+_ghc_pub(_gst, 2.0)
+_ghcp_off(_gst)
+_gst_state = (_ghcp_record(_gst) or {}).get("state", {}).get("heat_curve", {})
+_asyncio.run(_ghc_restore.async_forget(_gst.hass, "ghcp_state"))
+R.check(
+    "the consumer's state section survives the restore that pops its arm, and remove drops it (C3)",
+    _gst_state.get("written") == 22 and _gst_state.get("count") == 2 and _ghcp_record(_gst) is None,
+    "state=%r" % (_gst_state,),
 )
 
 
@@ -41272,10 +43552,10 @@ R.check(
     "and reports no command or state topic it would ever write or read "
     "(R5-D12-01)",
     _unconf._ecl110_command_topic == ""
-    and _unconf._ecl110_displace_set_topic == ""
+    and _unconf.effective_config.ecl110_displace_set_topic == ""
     and _unconf._ecl110_state_topic == "",
     "set=%r command=%r state=%r" % (
-        _unconf._ecl110_displace_set_topic,
+        _unconf.effective_config.ecl110_displace_set_topic,
         _unconf._ecl110_command_topic,
         _unconf._ecl110_state_topic,
     ),
@@ -41441,6 +43721,7 @@ _g2_saved_extend = _G2Tm.extend_dhw_temps
 
 def _g2_extend_via_full_sim(
     self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25, humidity=None,
+    exo_kw=None,
 ):
     _G2Tm.extend_dhw_temps = _g2_saved_extend
     try:
@@ -41451,6 +43732,7 @@ def _g2_extend_via_full_sim(
             draw_rates=draws,
             dt_hours=dt_hours,
             humidity=humidity,
+            exo_kw=exo_kw,
         )
     finally:
         _G2Tm.extend_dhw_temps = _g2_extend_via_full_sim
@@ -41611,6 +43893,7 @@ _mr_saved_extend = _G2Tm.extend_dhw_temps
 
 def _mr_extend_via_full_sim(
     self, temps, from_step, schedule, outdoor, draws, dt_hours=0.25, humidity=None,
+    exo_kw=None,
 ):
     _G2Tm.extend_dhw_temps = _mr_saved_extend
     try:
@@ -41621,6 +43904,7 @@ def _mr_extend_via_full_sim(
             draw_rates=draws,
             dt_hours=dt_hours,
             humidity=humidity,
+            exo_kw=exo_kw,
         )
     finally:
         _G2Tm.extend_dhw_temps = _mr_extend_via_full_sim
@@ -47594,7 +49878,7 @@ _T2_GOOD_STORE = {
     "snow_accum_cm": 5.0,
     "last_heavy_snow": "2026-01-02T03:04:05",
     "snow_accum_last": "2026-01-03T04:05:06",
-    "cop_baseline": {"4": [3.0, 7], "5:dhw": [2.0, 3]},
+    "cop_baseline_measured": {"4": [3.0, 7], "5:dhw": [2.0, 3]},
 }
 _t2_store_good = _t2_load(dict(_T2_GOOD_STORE))
 R.check(
@@ -47657,7 +49941,7 @@ R.check(
 _t2_store_base = _t2_load(
     dict(
         _T2_GOOD_STORE,
-        cop_baseline={"nope": [1.0, 1], "4": [3.0, 7], "6": "x"},
+        cop_baseline_measured={"nope": [1.0, 1], "4": [3.0, 7], "6": "x"},
     )
 )
 R.check(
@@ -59247,7 +61531,7 @@ def _r7d203_window_capacity(volume):
     res = _dhw_planner(opt)._dhw_window_floors(
         params, windows, np.arange(96) * 0.25, None, 0.25, 96, None
     )
-    return res[0], params.dhw_tank_thermal_mass
+    return res[0].capacity_kwh_per_c, params.dhw_tank_thermal_mass
 
 
 # The three planners below each took the floored capacity as a whole, so a
@@ -59262,7 +61546,7 @@ def _r7d203_min_cost(c_dhw, n=12, dt=1.0):
     opt, _ = _r7d203_opt(200.0, dhw_cooling_rate=0.3)
     plan = _dhw_planner(opt)._plan_dhw_min_cost(
         _dhw_ctx(prices=np.full(n, 1.0), outdoor=np.full(n, -5.0),
-                 n=n, dt=dt, c_dhw=c_dhw, p_dhw_max=3.0),
+                 n=n, dt=dt, params=opt.model.params, c_dhw=c_dhw, p_dhw_max=3.0),
         45.0, np.full(n, 60.0), np.zeros(n), np.full(n, 60.0),
     )
     return None if plan is None else float(plan.sum())
@@ -59281,7 +61565,7 @@ def _r7d203_greedy_steps(c_dhw, volume=43.1, req=50.0, ceiling=55.0, n=12):
     opt, _ = _r7d203_opt(volume, dhw_cooling_rate=0.3)
     plan = _dhw_planner(opt)._plan_dhw_cheapest_first(
         _dhw_ctx(prices=np.linspace(0.2, 2.0, n), outdoor=np.full(n, -5.0),
-                 n=n, dt=1.0, c_dhw=c_dhw, p_dhw_max=3.0),
+                 n=n, dt=1.0, params=opt.model.params, c_dhw=c_dhw, p_dhw_max=3.0),
         45.0, np.full(n, req), np.zeros(n), np.full(n, ceiling),
     )
     return [i for i, value in enumerate(plan) if value > 0.0]
@@ -59308,7 +61592,7 @@ def _r7d203_repair_steps(c_dhw, ceiling, requirement, volume=17.24, n=12):
     opt, _ = _r7d203_opt(volume, dhw_cooling_rate=3.0)
     plan = _dhw_planner(opt)._repair_dhw_floor(
         _dhw_ctx(prices=np.linspace(0.5, 1.5, n), outdoor=np.full(n, -5.0),
-                 n=n, dt=1.0, c_dhw=c_dhw, p_dhw_max=3.0),
+                 n=n, dt=1.0, params=opt.model.params, c_dhw=c_dhw, p_dhw_max=3.0),
         plan=np.zeros(n), initial_temp=45.0, draw_rates=np.zeros(n),
         requirement=np.asarray(requirement, dtype=float),
         max_temp=np.asarray(ceiling, dtype=float),
@@ -59455,29 +61739,29 @@ def _r7d203_zero_capacity():
     try:
         window = float(_dhw_planner(opt)._dhw_window_floors(
             params, windows, np.arange(24) * 1.0, None, 1.0, 24, None
-        )[0])
+        )[0].capacity_kwh_per_c)
         legionella = _dhw_planner(opt)._dhw_legionella_ceilings(
             _dhw_horizon(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
                          n=12, dt=1.0),
-            params=params, c_dhw=0.0,
+            params=params,
             draw_rates=np.zeros(12), floor_temps=np.full(12, 45.0),
             p_dhw_run=3.0,
             legionella_due=True, legionella_hour=6.0, legionella_step=5,
         )
         min_cost = _dhw_planner(opt)._plan_dhw_min_cost(
             _dhw_ctx(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
-                     n=12, dt=1.0, c_dhw=0.0, p_dhw_max=3.0),
+                     n=12, dt=1.0, params=opt.model.params, c_dhw=0.0, p_dhw_max=3.0),
             45.0, np.full(12, 55.0), np.zeros(12), np.full(12, 55.0),
         )
         repair = _dhw_planner(opt)._repair_dhw_floor(
             _dhw_ctx(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
-                     n=12, dt=1.0, c_dhw=0.0, p_dhw_max=3.0),
+                     n=12, dt=1.0, params=opt.model.params, c_dhw=0.0, p_dhw_max=3.0),
             plan=np.zeros(12), initial_temp=45.0, draw_rates=np.zeros(12),
             requirement=np.full(12, 55.0), max_temp=np.full(12, 55.0),
         )
         greedy = _dhw_planner(opt)._plan_dhw_cheapest_first(
             _dhw_ctx(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
-                     n=12, dt=1.0, c_dhw=0.0, p_dhw_max=3.0,
+                     n=12, dt=1.0, params=opt.model.params, c_dhw=0.0, p_dhw_max=3.0,
                      max_lead_steps=6),
             45.0, np.full(12, 55.0), np.zeros(12), np.full(12, 55.0),
         )
@@ -59587,7 +61871,7 @@ _r7pin_opt, _ = _r7d203_opt(200.0)
 try:
     _r7pin_plan = _dhw_planner(_r7pin_opt)._plan_dhw_min_cost(
         _dhw_ctx(prices=np.array([0.1] * 4 + [1.0] * 4),
-                 outdoor=np.full(8, -5.0), n=8, dt=1.0, c_dhw=0.232,
+                 outdoor=np.full(8, -5.0), n=8, dt=1.0, params=_r7pin_opt.model.params, c_dhw=0.232,
                  p_dhw_max=3.0),
         45.0, np.array([45.0] * 7 + [55.0]), np.zeros(8), np.full(8, 60.0),
         space_demand=np.array([5.0] * 4 + [0.0] * 4), p_total_max=5.0,
@@ -59639,7 +61923,7 @@ def _r7ua_min_cost(volume):
     n = 12
     plan = _dhw_planner(opt)._plan_dhw_min_cost(
         _dhw_ctx(prices=np.linspace(0.5, 1.5, n), outdoor=np.full(n, -5.0),
-                 n=n, dt=1.0, c_dhw=c, p_dhw_max=50.0 * c),
+                 n=n, dt=1.0, params=opt.model.params, c_dhw=c, p_dhw_max=50.0 * c),
         45.0, np.array([45.0] * 8 + [55.0] * 4), np.zeros(n),
         np.full(n, 60.0),
     )
@@ -59652,7 +61936,7 @@ def _r7ua_repair(volume):
     n = 12
     plan = _dhw_planner(opt)._repair_dhw_floor(
         _dhw_ctx(prices=np.linspace(0.5, 1.5, n), outdoor=np.full(n, -5.0),
-                 n=n, dt=1.0, c_dhw=c, p_dhw_max=50.0 * c,
+                 n=n, dt=1.0, params=opt.model.params, c_dhw=c, p_dhw_max=50.0 * c,
                  min_run_power=5.0 * c),
         plan=np.zeros(n), initial_temp=45.0, draw_rates=np.zeros(n),
         requirement=np.array([45.0] * 9 + [60.0] * 3),
@@ -59668,7 +61952,7 @@ def _r7ua_legionella(volume):
     res = _dhw_planner(opt)._dhw_legionella_ceilings(
         _dhw_horizon(prices=np.zeros(n), outdoor=np.full(n, -5.0),
                      n=n, dt=1.0),
-        params=params, c_dhw=c, draw_rates=np.zeros(n),
+        params=params, draw_rates=np.zeros(n),
         floor_temps=np.full(n, 20.0),
         p_dhw_run=2.0 * c, legionella_due=True, legionella_hour=20.0,
         legionella_step=20,
@@ -61612,7 +63896,7 @@ R.check(
 _f14b_counts = _t1_coord()
 _f14b_counts._thermal_learning_store = _T1DictStore(
     _f14b_store._sanitize({
-        "cop_baseline": {"4": [3.1, 1e20], "4:dhw": [2.5, 1e308],
+        "cop_baseline_measured": {"4": [3.1, 1e20], "4:dhw": [2.5, 1e308],
                          "5": [2.0, 5]},
         "capacity_envelope": {"-3": [5.0, 1e308], "2": [4.0, 9]},
     }))
@@ -63052,8 +65336,18 @@ async def _p6_mode(eid):
     return coord.hass.services.calls
 
 
+async def _p6_heat_curve(eid):
+    coord = _p6_coord(
+        {eid: FakeState("0", unit="K", attributes={"min": -20, "max": 20, "step": 0.5})},
+        **{hp_const.CONF_HEAT_CURVE_DISPLACE_ENTITY: eid},
+    )
+    await coord.async_publish_ecl110_command(2.0, True)
+    return coord.hass.services.calls
+
+
 #: Every slot a consumer writes, and that consumer, driven for real.
 _P6_WRITERS = {
+    hp_const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _p6_heat_curve,
     hp_const.CONF_HEAT_PUMP_SWITCH_ENTITY: _p6_switch,
     hp_const.CONF_SPACE_PUMP_ENTITY: _p6_pump,
     hp_const.CONF_VVC_PUMP_ENTITY: _p6_pump,
@@ -64656,10 +66950,10 @@ _f22_breach_offsets: list[int] = []
 
 
 def _f22_whole_suffix_fits(
-    self, candidate, base, ceiling, slot, plan, outdoor, draws, dt, humidity
+    self, candidate, base, ceiling, slot, plan, outdoor, draws, dt, humidity, exo_kw=None
 ):
     self.model.extend_dhw_temps(
-        candidate, slot, plan, outdoor, draws, dt_hours=dt, humidity=humidity
+        candidate, slot, plan, outdoor, draws, dt_hours=dt, humidity=humidity, exo_kw=exo_kw
     )
     limit = np.maximum(ceiling[: candidate.size], base)
     bad = np.nonzero(candidate[slot + 1:] > limit[slot + 1:] + 1e-9)[0]
@@ -70697,7 +72991,18 @@ R.check(
 
 # The last measured COP survives a restart beside cop_scale, with the curve
 # it was judged against, so the sensor does not go dark until the next fold.
-_cf_live = _cf_coord()
+# Measured: metered heat over the metered power (R10-HOTFIX-COP-UNMEASURED).
+
+
+def _cf_metered(heat_kw=6.0):
+    cfg = dict(_L5_CFG, heat_pump_max_power=14.0, heat_pump_min_power=1.0,
+               heat_pump_thermal_power_entity="sensor.heat_kw")
+    coord = _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+    coord._flow_bias.heat_output_kw = heat_kw
+    return coord
+
+
+_cf_live = _cf_metered()
 _cf_learn(_cf_live, 2.4, 2)
 if hasattr(_cf_live, "_measured_cop"):
     _cf_live._measured_cop.curve_dhw, _cf_live._measured_cop.dhw_temp = True, 52.0
@@ -70875,18 +73180,20 @@ R.check(
 )
 
 # The observability state the payload publishes: a heat reading (the heat
-# counter, or the thermal power entity) measures the COP whatever the draw
-# does; without one, the draw window decides; without an electrical figure to
-# divide by there is none. A heat counter divides by its electric counter.
+# counter, or the thermal power entity) over an electrical one measures the
+# COP; without a heat reading it cannot be measured, whatever the draw does
+# (R10-HOTFIX-COP-UNMEASURED); a vendor's estimate on either side is not a
+# measurement; without an electrical figure to divide by there is none. A heat
+# counter divides by its electric counter.
 _cg_obs = _cg_acc.cop_observability
 R.check(
-    "cop_observability: heat metered beats a draw that ignores the ask; no "
-    "electrical figure is no COP; the draw window decides the rest",
-    _cg_obs(electric=True, measured_heat=True, follows=False) == "heat_metered"
-    and _cg_obs(electric=False, measured_heat=True, follows=True) == "no_electric_meter"
-    and _cg_obs(electric=True, measured_heat=False, follows=False) == "not_measurable"
-    and _cg_obs(electric=True, measured_heat=False, follows=True) == "draw_follows_plan"
-    and _cg_obs(electric=True, measured_heat=False, follows=None) == "awaiting_draw_evidence",
+    "cop_observability: metered heat measures; no heat reading is not "
+    "measurable; an estimate is an estimate; no electrical figure is no COP",
+    _cg_obs(electric=True, measured_heat=True, estimated=False) == "heat_metered"
+    and _cg_obs(electric=False, measured_heat=True, estimated=False) == "no_electric_meter"
+    and _cg_obs(electric=True, measured_heat=False, estimated=False) == "not_measurable"
+    and _cg_obs(electric=True, measured_heat=False, estimated=True) == "not_measurable"
+    and _cg_obs(electric=True, measured_heat=True, estimated=True) == "estimated_inputs",
 )
 
 
@@ -70906,12 +73213,12 @@ _cg_states = {
         heat_pump_heat_energy_entity="sensor.heat_kwh", heat_pump_energy_entity="sensor.elec_kwh"),
 }
 R.check(
-    "the coordinator's state: a self-set draw with no heat reading is not "
-    "measurable, a thermal-power install never is, and a heat counter without "
-    "an electric counter has nothing to divide by",
+    "the coordinator's state: no heat reading is not measurable whether or not "
+    "the draw follows the ask, a metered thermal-power install is, and a heat "
+    "counter without an electric counter has nothing to divide by",
     _cg_states == {
         "power, self-set draw": "not_measurable",
-        "power, following draw": "draw_follows_plan",
+        "power, following draw": "not_measurable",
         "thermal power, self-set draw": "heat_metered",
         "heat counter, no electric counter": "no_electric_meter",
         "heat counter and electric counter": "heat_metered",
@@ -70919,10 +73226,222 @@ R.check(
     f"{_cg_states!r}",
 )
 
+# ---------------------------------------------------------------------------
+R.section("R10-HOTFIX-COP-UNMEASURED: a COP sample is measured only from metered heat over metered power")
+
+# A measured COP sample, and with it the COP health watch, needs a heat
+# measurement for the interval over an electrical one, neither of them a vendor
+# estimate, and for a hot-water interval a heat measurement that sees the
+# hot-water circuit (``InstallCapability.cop_measured``). Everything else still
+# trains the COP scale (tvofi, 2026-11-07: "Training on estimated power should
+# be good enough and better than nothing though so retain that").
+from heatpump_optimizer import flow_meter as _cu_fm  # noqa: E402
+from heatpump_optimizer import thermal_model as _cu_tm  # noqa: E402
+
+
+def _cu_coord(**extra):
+    cfg = dict(_L5_CFG, heat_pump_max_power=14.0, heat_pump_min_power=1.0, **extra)
+    return _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+
+
+def _cu_fold(coord, heat_kw, dhw, elec=2.0, commanded=2.0, outdoor=8.0, tank=48.0):
+    """One interval through the fold's tail; (refusal, baseline, measured cop, model)."""
+    coord._current_state.outdoor_temperature = outdoor
+    model = coord._thermal_model
+    ref = (model.compute_cop_dhw(outdoor, tank), True, tank) if dhw else (model.compute_cop(outdoor), False, None)
+    refusal = coord._fold_cop_evidence(commanded, elec, heat_kw, ref)
+    return refusal, dict(coord._cop_baseline), coord._measured_cop.cop, ref[0]
+
+
+# The null control: no heat slot, a hot-water interval drawing exactly what the
+# plan asked. The inference then IS the model (compute_cop_dhw), so a sample
+# recorded here is the model graded against itself.
+_cu_null = _cu_coord()
+_cu_null_ref = _cu_null._thermal_model.compute_cop_dhw(8.0, 48.0)
+_cu_null_inferred = _cu_fm.cop_evidence(_cu_null_ref, 2.0, 2.0, None, _cu_null._cop_scale)[0]
+_cu_null_out = _cu_fold(_cu_null, None, True)
+R.check(
+    "no heat input: a hot-water interval whose draw equals its ask records no "
+    "measured COP and no health-watch sample, though its inference is the model "
+    "exactly; the COP scale still trains on it",
+    _cu_null_inferred == _cu_null_ref
+    and _cu_null_out[0] is None and _cu_null_out[1] == {} and _cu_null_out[2] is None
+    and _cu_null._cop_samples == 1,
+    f"inferred {_cu_null_inferred} model {_cu_null_ref}; {_cu_null_out}; scale samples {_cu_null._cop_samples}",
+)
+
+# Both inputs are the vendor's models (the Tuya "Estimated Heating Output" and
+# "Estimated Power Draw"): heat over power is the vendor's own fitted COP on
+# every interval, so nothing is measured, by name; the explicit source wins
+# either way.
+_CU_TUYA = {
+    "heat_pump_power_entity": "sensor.pump_estimated_power_draw",
+    "heat_pump_thermal_power_entity": "sensor.pump_estimated_heating_output",
+}
+_cu_fitted = (3.1, 2.4, 4.05)
+_cu_tuya = _cu_coord(**_CU_TUYA)
+_cu_tuya_obs = [_cu_fm.cop_evidence(2.9, 2.0, 2.0, cop * 2.0, 1.0)[0] for cop in _cu_fitted]
+for _cu_cop in _cu_fitted:
+    _cu_tuya_out = _cu_fold(_cu_tuya, _cu_cop * 2.0, False)
+_cu_meter = _cu_coord(**_CU_TUYA, heat_pump_power_source="meter", heat_pump_thermal_power_source="meter")
+_cu_meter_out = _cu_fold(_cu_meter, 3.1 * 2.0, False)
+_cu_named = _cu_coord(heat_pump_power_entity="sensor.hp_power", heat_pump_thermal_power_entity="sensor.heat_kw",
+                      heat_pump_thermal_power_source="estimate")
+_cu_named_out = _cu_fold(_cu_named, 3.1 * 2.0, False)
+R.check(
+    "estimated heat over estimated power observes the fitted COP on every "
+    "interval and records nothing measured; marked metered it records; an "
+    "estimate marked by its source records nothing whatever its name",
+    _cu_tuya_obs == [c for c in _cu_fitted]
+    and _cu_tuya_out[1] == {} and _cu_tuya_out[2] is None and _cu_tuya._cop_samples == 3
+    and _cu_meter_out[1] == {(2, False): [3.1, 1]} and _cu_meter_out[2] == 3.1
+    and _cu_named_out[1] == {} and _cu_named_out[2] is None,
+    f"observed {_cu_tuya_obs}; tuya {_cu_tuya_out}; meter {_cu_meter_out}; named {_cu_named_out}",
+)
+_cu_probe = _cu_tm.probe_install
+R.check(
+    "probe_install: an estimate on either side is not a measured COP; a heat "
+    "counter outranks an estimated thermal power and divides by its electric counter",
+    not _cu_probe(_CU_TUYA).cop_measured(False)
+    and not _cu_probe({**_CU_TUYA, "heat_pump_power_source": "meter"}).cop_measured(False)
+    and not _cu_probe({**_CU_TUYA, "heat_pump_thermal_power_source": "meter"}).cop_measured(False)
+    and _cu_probe({**_CU_TUYA, "heat_pump_power_source": "meter",
+                   "heat_pump_thermal_power_source": "meter"}).cop_measured(False)
+    and _cu_probe({**_CU_TUYA, "heat_pump_heat_energy_entity": "sensor.heat_kwh",
+                   "heat_pump_energy_entity": "sensor.elec_kwh"}).cop_measured(False)
+    and not _cu_probe({"heat_pump_power_entity": "sensor.hp_power"}).cop_measured(False),
+)
+
+# Hot-water coverage is declared, never assumed: a metered heat reading counts
+# for a hot-water sample only once the install says it sees that circuit.
+_CU_METERED = {"heat_pump_power_entity": "sensor.hp_power", "heat_pump_thermal_power_entity": "sensor.heat_kw"}
+_cu_space = _cu_fold(_cu_coord(**_CU_METERED), 6.0, False)
+_cu_dhw_blind = _cu_fold(_cu_coord(**_CU_METERED), 5.0, True)
+_cu_dhw_seen = _cu_fold(_cu_coord(**_CU_METERED, heat_meter_sees_dhw=True), 5.0, True)
+R.check(
+    "metered heat over metered power records a space sample; a hot-water sample "
+    "only where the heat meter is declared to see the hot-water circuit",
+    _cu_space[1] == {(2, False): [3.0, 1]} and _cu_space[2] == 3.0
+    and _cu_dhw_blind[1] == {} and _cu_dhw_blind[2] is None
+    and _cu_dhw_seen[1] == {(2, True): [2.5, 1]} and _cu_dhw_seen[2] == 2.5,
+    f"space {_cu_space}; blind {_cu_dhw_blind}; seen {_cu_dhw_seen}",
+)
+
+# A configured thermal power that reads no heat (unavailable, or negative,
+# which read_heat_output_kw turns into None) stops the COP fold rather than
+# falling back to the plan's inference.
+_cu_neg = _cu_coord(**_CU_METERED)
+_cu_neg._flow_bias.heat_output_kw = None
+_cu_neg_n = _cf_learn(_cu_neg, 2.0, 2)
+_cu_neg_ctl = _cf_learn(_cu_coord(heat_pump_power_entity="sensor.hp_power"), 2.0, 2)
+R.check(
+    "a thermal-power install with no heat reading refuses the COP fold; with no "
+    "heat slot the same interval still trains the scale (null)",
+    _cu_neg_n == 0 and _cf_last(_cu_neg, "refusal") == _cg_acc.COP_REFUSED_NO_HEAT
+    and _cu_neg_ctl == 2,
+    f"thermal {_cu_neg_n} ({_cf_last(_cu_neg, 'refusal')}); no slot {_cu_neg_ctl}",
+)
+
+# The observability the card and the sensors read.
+_cu_states = {
+    "no heat input": _cg_install_obs(selfset=False),
+    "estimated heat and power": _cg_install_obs(**_CU_TUYA),
+    "metered heat and power": _cg_install_obs(**_CU_METERED),
+}
+R.check(
+    "cop_observability: no heat input is not measurable, an estimated input is "
+    "an estimate, metered heat over metered power is heat-metered",
+    _cu_states == {
+        "no heat input": "not_measurable",
+        "estimated heat and power": "estimated_inputs",
+        "metered heat and power": "heat_metered",
+    },
+    f"{_cu_states!r}",
+)
+
+# The migration: bands stored before this fix were recorded without a heat
+# measurement on at least the owner's install, and carry no provenance, so
+# they are dropped with the CUSUM built on them and the last COP they reported
+# as measured; bands and a measured COP stored since load.
+_cu_old = _cu_coord()
+_cu_old_payload = {"cop_baseline": {"0:dhw": [2.3031, 2], "2": [2.5166, 2]},
+                   "cop_health_cusum": {"stat": 0.5, "tripped": True},
+                   "measured_cop": {"cop": 2.55, "curve_dhw": True, "dhw_temp": 48.0,
+                                    "at": "2026-11-01T12:00:00+00:00"}}
+
+
+async def _cu_old_load(_p=_cu_old_payload):
+    return _p
+
+
+_cu_old._thermal_learning_store.async_load = _cu_old_load
+_asyncio.run(_cu_old._async_load_thermal_learning())
+_cu_new = _cu_coord(**_CU_METERED)
+_cu_fold(_cu_new, 6.0, False)
+_cu_new_payload = _cu_new._thermal_learning_payload()
+_cu_back = _cu_coord()
+
+
+async def _cu_new_load(_p=_cu_new_payload):
+    return _p
+
+
+_cu_back._thermal_learning_store.async_load = _cu_new_load
+_asyncio.run(_cu_back._async_load_thermal_learning())
+R.check(
+    "a COP baseline stored before measured provenance loads empty with its CUSUM "
+    "reset; one stored since round-trips",
+    _cu_old._cop_baseline == {} and not _cu_old._cop_health_cusum.tripped
+    and "cop_baseline" not in _cu_new_payload
+    and _cu_back._cop_baseline == {(2, False): [3.0, 1]},
+    f"old {_cu_old._cop_baseline} tripped {_cu_old._cop_health_cusum.tripped}; back {_cu_back._cop_baseline}",
+)
+# The same CUSUM under the since-fix key is kept: the reset above is the key's,
+# not the loader dropping every CUSUM (the old check's null control).
+_cu_kept = _cu_coord()
+
+
+_cu_kept_payload = {"cop_baseline_measured": {"2": [3.0, 1]},
+                    "cop_health_cusum_measured": {"stat": 0.5, "tripped": True}}
+
+
+async def _cu_kept_load(_p=_cu_kept_payload):
+    return _p
+
+
+_cu_kept._thermal_learning_store.async_load = _cu_kept_load
+_asyncio.run(_cu_kept._async_load_thermal_learning())
+from heatpump_optimizer import store as _cu_store  # noqa: E402
+
+# The store declares what the coordinator writes under the new keys: a band of
+# one sample and a CUSUM below its first unit both load, not quarantined.
+R.check(
+    "the store's domains admit a since-fix COP payload: the one the fold wrote, "
+    "and a one-sample band beside a CUSUM part-way to its alarm",
+    _cu_store.off_domain("heatpump_optimizer_thermal_learning", _cu_new_payload) == []
+    and _cu_store.off_domain("heatpump_optimizer_thermal_learning", _cu_kept_payload) == [],
+    f"{_cu_store.off_domain('heatpump_optimizer_thermal_learning', _cu_new_payload)} "
+    f"{_cu_store.off_domain('heatpump_optimizer_thermal_learning', _cu_kept_payload)}",
+)
+R.check(
+    "a COP health CUSUM stored since measured provenance loads with its state",
+    _cu_kept._cop_health_cusum.tripped and _cu_kept._cop_baseline == {(2, False): [3.0, 1]},
+    f"tripped {_cu_kept._cop_health_cusum.tripped}; baseline {_cu_kept._cop_baseline}",
+)
+R.check(
+    "a last COP stored before measured provenance does not load as measured; "
+    "one stored since round-trips",
+    _cu_old._measured_cop.cop is None and _cu_old._measured_cop.at is None
+    and _cu_new_payload.get("measured_cop", {}).get("cop") is not None
+    and _cu_back._measured_cop.as_dict() == _cu_new._measured_cop.as_dict(),
+    f"old {_cu_old._measured_cop.as_dict()}; new {_cu_new_payload.get('measured_cop')}; "
+    f"back {_cu_back._measured_cop.as_dict()}",
+)
+
 # The latch outlives every later refusal, so the time it folded is kept with
 # it, round-trips the store, and a record stored before the instant was loads
 # with its age unknown, never now.
-_cg_t = _cf_coord()
+_cg_t = _cf_metered()
 _cf_learn(_cg_t, 2.0, 1)
 _cg_at = _cg_t._measured_cop.at
 _cg_back = _cf_MC.from_dict(_cg_t._measured_cop.as_dict())
@@ -76301,6 +78820,8 @@ R.check(
 _tp_track = {}
 for _tp_heat in (None, 6.0):
     _g = _CopGate(outdoor=8.0, action={"power": 3.0})
+    # A metered install: its measured COP is recorded (R10-HOTFIX-COP-UNMEASURED).
+    _g._config = {"heat_pump_power_entity": "sensor.hp_power", "heat_pump_thermal_power_entity": "sensor.heat_kw"}
     _g._measured_power = 1.4
     _g._flow_bias.observe_temps(40.0, 35.0, heat_output_kw=_tp_heat)
     _g._learn_measured_cop()
@@ -76967,7 +79488,7 @@ def _pli_lp_end(derate, p_dhw_max=3.0, dt=1.0):
     req[-1] = 58.0
     prices = np.array([5.0] * (n - 1) + [1.0])
     ctx = _dhw_ctx(prices=prices, outdoor=np.full(n, 5.0), n=n, dt=dt,
-                   c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=p_dhw_max)
+                   params=opt.model.params, c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=p_dhw_max)
     planner = _dhw_planner(opt)
     plan = planner._plan_dhw_min_cost(ctx, 45.0, req, np.zeros(n), np.full(n, 65.0))
     temps = opt.model.simulate_dhw_only(
@@ -77046,7 +79567,7 @@ def _pli_greedy(derate, need=50.0, n=4, dt=0.5, p_dhw_max=3.0):
     req[-1] = need
     plan = _dhw_planner(opt)._plan_dhw_cheapest_first(
         _dhw_ctx(prices=np.linspace(2.0, 1.0, n), outdoor=out, n=n, dt=dt,
-                 c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=p_dhw_max),
+                 params=opt.model.params, c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=p_dhw_max),
         45.0, req, np.zeros(n), np.full(n, 65.0))
     temps = opt.model.simulate_dhw_only(
         initial_temp=45.0, dhw_power_schedule=plan, outdoor_temps=out,
@@ -77078,7 +79599,7 @@ def _pli_runup(derate):
     n = 24
     res = _dhw_planner(opt)._dhw_legionella_ceilings(
         _dhw_horizon(prices=np.zeros(n), outdoor=np.full(n, -5.0), n=n, dt=1.0),
-        params=params, c_dhw=params.dhw_tank_thermal_mass, draw_rates=np.zeros(n),
+        params=params, draw_rates=np.zeros(n),
         floor_temps=np.full(n, 20.0), p_dhw_run=3.0, legionella_due=True,
         legionella_hour=20.0, legionella_step=20)
     return [round(float(x), 4) for x in res.runup_temps]
@@ -77104,7 +79625,7 @@ def _pli_repair(derate, need=52.0, ceiling=(65.0,) * 4, prices=(2.0, 1.6667, 1.3
     req = np.full(n, 40.0)
     req[-1] = need
     ctx = _dhw_ctx(prices=np.array(prices), outdoor=out, n=n, dt=0.5,
-                   c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=5.0)
+                   params=opt.model.params, c_dhw=opt.model.params.dhw_tank_thermal_mass, p_dhw_max=5.0)
     plan = _dhw_planner(opt)._repair_dhw_floor(
         ctx, plan=np.zeros(n), initial_temp=45.0, draw_rates=np.zeros(n),
         requirement=req, max_temp=np.array(ceiling))
