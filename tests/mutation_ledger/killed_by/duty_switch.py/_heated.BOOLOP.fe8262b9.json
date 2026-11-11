@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:_heated BOOLOP fe8262b9",
+  "killed_by": "tests/features.py",
+  "old": "        return ctx.space_setpoint_c is not None and ctx.inlet_c - ctx.space_setpoint_c >= HEATED_MARGIN_K",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return ctx.space_setpoint_c is not None or ctx.inlet_c - ctx.space_setpoint_c >= HEATED_MARGIN_K`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}
