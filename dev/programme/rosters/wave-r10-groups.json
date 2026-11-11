@@ -23520,10 +23520,11 @@
    "brief": "triage: dev/programme/triage/s6-batch184.md#P606 at 484fa0d3b3\n\nOrchestrator ruling under mandate 6715477401 (scope all), recorded in P606. Workflow change: serial on the train. Line numbers at cbd23f1c8b.\n\n1. CODEQL-PR-PATHS: PR runs analyse Python with tests/ and dev/ path-ignored (PR leg only); main's push run keeps the full path set (there is no scheduled run: codeql.yml is a workflow_call callee of ci.yml, :63-70, :86-94); the required context codeql / Analyze (python) keeps its name and stays required (no non-gating leg). codeql.yml cannot see the event, so ci.yml passes it (or a paths input) via workflow_call. The one paths-ignore entry today (.claude/workflows/*.js, :199-202) is pinned by tests/entities.py (:19999, :21919-21929): move the pins in the same PR. Measure on one PR whether alerts in the ignored paths read as fixed against main's same-category analysis; if so, give the PR leg its own category. Before: the python Analyze job 2173-3623 s (siblings 48-104 s). Target under 15 min. The body states before and after job seconds from tools/audit/seat/ci_critpath.py over at least 5 runs each. A finding main's full run raises that the PR leg missed is a main red, handled as any other. Overlap with R10-HOTFIX-RESTORE-BASE-SKEW (ci.yml, codeql.yml) is admitted, distinct seam.",
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
     "note": "overlap admitted (R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID): triage P606 (s6-batch184, record 484fa0d3b3): orchestrator ruling under mandate 6715477401 on P602 owner-routed arm; CodeQL python PR leg ignores tests/ and dev/, main keeps full set",
-    "pr": 3467
+    "pr": 3467,
+    "commit": "61afd4f2db10341ab9b86583944402b206eb4c78"
    }
   },
   {
