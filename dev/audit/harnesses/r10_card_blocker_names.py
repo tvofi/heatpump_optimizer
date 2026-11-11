@@ -7,16 +7,17 @@ Fetches the lists at run time (nothing is vendored: EasyList is GPLv3 /
 CC BY-SA), keeps each generic `##<selector>` rule (no domain), and reports
 every card name a rule targets by a plain `.name` / `#name` token or a
 `[class|id <op>= "v"]` attribute test (=, ~=, ^=, $=, *=, |=). The card's
-names are read as tests/card.mjs's barrier reads them: class and id
-attribute values (a templated value up to its first `${`), className
-assignments and classList arguments -- the names that reach its DOM, not
-the stylesheet's selectors. A rule's plain tokens are read outside its
-brackets and parentheses; a compound rule with further conditions is
-reported whole, for the reader to judge. Exit 0 always; the lane barrier is tests/card.mjs, not this. The
-null control is the base ref: at v7.1.11 it reads `adv-text` and
+names are tests/card_rig.mjs's cardNames, the reader tests/card.mjs's
+barrier uses, kept to the class and id values that reach the DOM (not the
+stylesheet's selector tokens). Run from the repository root. A rule's
+plain tokens are read outside its brackets and parentheses; a compound
+rule with further conditions is reported whole, for the reader to judge.
+Exit 0 always; the lane barrier is tests/card.mjs, not this. The null
+control is the base ref: at v7.1.11 it reads `adv-text` and
 `adv-label` from EasyList and AdGuard Base.
 """
 
+import json
 import re
 import subprocess
 import sys
@@ -33,23 +34,14 @@ ATTR = re.compile(r"""\[\s*(class|id)\s*([~^$*|]?)=\s*["']?([^"'\]\s]+)["']?\s*(
 
 
 def card_names(src):
-    """(kind, name) for every class and id the card writes into its DOM."""
-    names = set()
-
-    def add(kind, value):
-        for tok in value.split():
-            lit = tok.split("${")[0]
-            if lit:
-                names.add((kind, lit))
-
-    for m in re.finditer(r"""\b(class|id)\s*=\s*(["'])(.*?)\2""", src, re.S):
-        add(m.group(1), m.group(3))
-    for m in re.finditer(r"""\bclassName\s*=\s*(["'`])(.*?)\1""", src, re.S):
-        add("class", m.group(2))
-    for m in re.finditer(r"\bclassList\.(?:add|remove|toggle|contains|replace)\(([^)]*)\)", src):
-        for q in re.finditer(r"""(["'`])([^"'`]*)\1""", m.group(1)):
-            add("class", q.group(2))
-    return names
+    """(kind, name) for every class and id the card writes into its DOM,
+    read by tests/card_rig.mjs's cardNames (the one reader)."""
+    js = ("import { cardNames } from './tests/card_rig.mjs';"
+          "let s = ''; process.stdin.on('data', (d) => { s += d; });"
+          "process.stdin.on('end', () => console.log(JSON.stringify(cardNames(s))));")
+    out = subprocess.run(["node", "--input-type=module", "-e", js], input=src,
+                         check=True, capture_output=True, text=True).stdout
+    return {(k, n) for k, n in json.loads(out) if k in ("class", "id")}
 
 
 def index(rules):

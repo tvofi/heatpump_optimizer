@@ -7,7 +7,7 @@ import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError, frozenDate
          CARD_PATH as CLAIMED_CARD_PATH, CAPTURE_SOURCES,
          justifiesSolverClaim, justifiesCardClaim, movesClaimable,
          threeDotFiles, claimsAreThisBranchs, sameClaimMap, judgeCardClaims,
-         historyApi, historyFixture, HISTORY_IDS, flushHistory,
+         historyApi, historyFixture, HISTORY_IDS, flushHistory, AD_PRONE_NAME, cardNames,
          withActuals, realisticHistory, haStamp, HA_HISTORY_ROW_KEYS } from "./card_rig.mjs";
 
 // Plan payload written by tests/plan_view.py earlier in the run. The path is
@@ -1530,27 +1530,8 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
 // is one of them, or starts with one followed by `-` or `_`. The names read
 // are every class and id attribute value, every className assignment and
 // classList argument, and every `.name` / `#name` token anywhere in the
-// card's source (its stylesheet and selectors included; a JS member access
-// is read too, which errs toward refusing). A templated value is read up to
-// its first `${`, so `adv-${row.status}` reads as `adv-`. The browser lane's
-// blockerHide is the rendered proof of the same property.
-const AD_PRONE_NAME = /^(?:ad|ads|adv|advert|banner|sponsor|promo)(?:$|[-_])/i;
-function cardNames(src) {
-  const names = new Set();
-  const addValue = (v) => {
-    for (const tok of v.split(/\s+/)) {
-      const lit = tok.split("${")[0];
-      if (lit) names.add(lit);
-    }
-  };
-  for (const m of src.matchAll(/\b(?:class|id)\s*=\s*(["'])([\s\S]*?)\1/g)) addValue(m[2]);
-  for (const m of src.matchAll(/\bclassName\s*=\s*(["'`])([\s\S]*?)\1/g)) addValue(m[2]);
-  for (const m of src.matchAll(/\bclassList\.(?:add|remove|toggle|contains|replace)\(([^)]*)\)/g)) {
-    for (const s of m[1].matchAll(/(["'`])([^"'`]*)\1/g)) addValue(s[2]);
-  }
-  for (const m of src.matchAll(/[.#](-?[A-Za-z_][\w-]*)/g)) names.add(m[1]);
-  return names;
-}
+// card's source (cardNames in tests/card_rig.mjs, the one reader). The
+// browser lane's blockerHide is the rendered proof of the same property.
 {
   // The deny pattern over a generated spelling corpus: every stem in three
   // cases, bare and with each separator and suffix, must be refused; the
@@ -1574,12 +1555,12 @@ function cardNames(src) {
     missed.length === 0 && wrong.length === 0,
     `${deny.length} refused, ${allow.length} allowed; missed: ${missed.join(", ")}; wrongly refused: ${wrong.join(", ")}`);
   // The extractor reads each route a name reaches the DOM by.
-  const probe = cardNames(`<i class="a b-\${x}"></i><p id='c'></p>x.className = "d";` +
-    ` el.classList.toggle("e", on); const css = \`.f .g:hover, #h {}\`;`);
+  const probe = new Set(cardNames(`<i class="a b-\${x}"></i><p id='c'></p>x.className = "d";` +
+    ` el.classList.toggle("e", on); const css = \`.f .g:hover, #h {}\`;`).map(([, n]) => n));
   const routes = ["a", "b-", "c", "d", "e", "f", "g", "h"].filter((n) => !probe.has(n));
   check("the card-name extractor reads class, id, className, classList and selector names",
     routes.length === 0, `not read: ${routes.join(", ")}`);
-  const names = cardNames(cardSrc);
+  const names = new Set(cardNames(cardSrc).map(([, n]) => n));
   const prone = [...names].filter((n) => AD_PRONE_NAME.test(n)).sort();
   check("no class or id in the card is a name generic ad-blocker hide rules target",
     names.size >= 100 && prone.length === 0,
