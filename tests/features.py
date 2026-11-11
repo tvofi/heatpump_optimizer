@@ -61736,7 +61736,7 @@ R.check(
 # sample, still inside the window. "space": a compressor start for SPACE
 # heating never sets the plan's DHW flag, the learner's only heating input,
 # so the dip is learned exactly as on main -- the null control.
-def _chg_seq(temps, charged=True, start_hm=(8, 0), heated_at=(1,)):
+def _chg_seq(temps, charged=True, start_hm=(8, 0), heated_at=(1,), saturday=False):
     import sys as _sys
     import types as _types
     coord = Coord(FakeHass(), _r7d203_entry(
@@ -61749,9 +61749,17 @@ def _chg_seq(temps, charged=True, start_hm=(8, 0), heated_at=(1,)):
     published, heating = [], [False]
     learner._publish = lambda **k: published.append(k)
     learner._heating_active = lambda: heating[0]
+    saved = [None]
+
+    async def _save_draws():
+        saved[0] = learner.draw_stats.as_dict()["open_kwh"]
+
+    learner.async_save_draws = _save_draws
     module = _sys.modules[type(learner).__module__]
     real_dt = module.dt_util
     start = dt_util.now().replace(hour=start_hm[0], minute=start_hm[1], second=0)
+    if saturday:
+        start += timedelta(days=(5 - start.weekday()) % 7)
     clock = [start]
     module.dt_util = _types.SimpleNamespace(now=lambda: clock[0])
     try:
@@ -61763,7 +61771,10 @@ def _chg_seq(temps, charged=True, start_hm=(8, 0), heated_at=(1,)):
         module.dt_util = real_dt
     stats = learner.draw_stats.as_dict()
     closed = [e for v in stats["reservoirs"].values() for e in v]
-    return round(stats["open_kwh"], 4), len(published), closed
+    return (
+        round(stats["open_kwh"], 4), len(published), closed,
+        list(learner.daytype_samples), saved[0] == stats["open_kwh"],
+    )
 
 
 _chg_dip = _chg_seq((50.0, 50.0, 48.0, 47.0, 48.5, 50.0, 50.0))
@@ -61793,6 +61804,8 @@ _chg_heated_rise = _chg_seq(
 _chg_partial = _chg_seq((50.0, 50.0, 50.0, 47.0, 48.0, 48.0, 48.0))
 # "draw", then a later 1 K rise after the charge has closed: a closed charge
 # takes nothing back.
+# The same partial recovery on a Saturday teaches the weekend day type.
+_chg_partial_sat = _chg_seq((50.0, 50.0, 50.0, 47.0, 48.0, 48.0, 48.0), saturday=True)
 _chg_late = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0, 48.0))
 _chg_reheat_ctl = _chg_seq((50.0, 47.0, 47.0, 47.0, 47.0, 47.0, 47.0), heated_at=(2,))
 R.check(
@@ -61808,7 +61821,9 @@ R.check(
     and abs(_chg_cap[0] - _chg_draw[0]) < 0.05
     and _chg_heated_rise[0] > _chg_draw[0] + 0.1
     and _chg_partial[1] == 1 and 0.0 < _chg_partial[0] < _chg_draw[0]
-    and abs(_chg_late[0] - _chg_draw[0]) < 0.05,
+    and abs(_chg_late[0] - _chg_draw[0]) < 0.05
+    and _chg_partial[3] == [1, 0] and _chg_partial_sat[3] == [0, 1]
+    and _chg_dip[4] and _chg_partial[4],
     f"(open kWh, usage points) dip {_chg_dip}, dip at the window edge {_chg_edge}, "
     f"draw that stays down {_chg_draw}, the dip with no DHW charge on record "
     f"(control) {_chg_space}, the draw with none (control) {_chg_space_draw}, "
@@ -61816,7 +61831,9 @@ R.check(
     f"a draw then heating past the slot {_chg_reheat} vs no reheat (control) "
     f"{_chg_reheat_ctl}, an 8 K draw and 8 K of reheat {_chg_cap}, a draw then "
     f"charge heat {_chg_heated_rise}, a 3 K settle drop recovering 1 K "
-    f"{_chg_partial}, a rise after the charge closed {_chg_late}",
+    f"{_chg_partial}, on a Saturday {_chg_partial_sat}, a rise after the charge "
+    f"closed {_chg_late}; [weekday, weekend] day counts, and whether the last "
+    f"save holds the final open kWh, are the last two fields",
 )
 
 
