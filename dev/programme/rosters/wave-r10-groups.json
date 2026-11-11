@@ -23828,6 +23828,50 @@
     "next_step": "fixer (size S, no design step)",
     "note": "triage s14 batch 195 P619"
    }
+  },
+  {
+   "group": "R10-HOTFIX-GATE-REDISPATCH-LOOP",
+   "kind": "hotfix",
+   "class": "hotfix",
+   "size": "M",
+   "effort": "medium",
+   "severity": "high",
+   "lane": "C",
+   "wave": 1,
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/ci/gate.py",
+    "tools/ci/sweep.py"
+   ],
+   "hot_files": [
+    "tools/ci/gate.py",
+    "tools/ci/sweep.py"
+   ],
+   "owner_gate": null,
+   "fixture": false,
+   "rca": [],
+   "findings": [],
+   "fixes": [],
+   "issues": [],
+   "brief": "triage: dev/programme/triage/s6-batch196.md#P620 at 42823839bd\n\nHotfix, M: the CI gate livelock that held #3445 in the train for 75+ min and ran #3446's code suite five times at one head. Line numbers are at ee64358be7. Two seams, each with a failing self-test first and a null arm.\n\n1. CANCELLED-NOT-A-SOURCE, tools/ci/gate.py. fresh() (:195-205) orders candidate runs by their jobs' latest start; the source loop (:206-223) takes the first run whose jobs are all completed, and a cancelled run's jobs are completed, so cancelling a newer redundant run makes it the source and the gate reads its conclusion (:232-233). Treat a run whose unit's jobs concluded cancelled as no source for that unit and fall through, as the deferred all-skipped case already does (:217-218). Self-test: a newer cancelled run over an older green run at the head reads green (red at ee64358be7). Null arm: a newer failed run over an older green one still reads red.\n\n2. ONE-FRESH-JUDGE-PER-HEAD, tools/ci/sweep.py. Sweep.fresh() (:191-213) counts a workflow_dispatch run as the head's fresh judge only if it was created at or after the stale gate completed (:194-195). Re-running an old pull_request or pull_request_review gate moves its completion past every dispatch, so the next sweep dispatches again (:206-212). Count any workflow_dispatch run at the head that is queued, in progress or concluded success as the fresh judge regardless of creation time; dispatch only when none exists. Self-test: a gate completed after a successful dispatch was created dispatches nothing (dispatches at ee64358be7). Null arm: with only a failed or cancelled dispatch at the head, it still dispatches once.\n\nMeasured (ruling P620): 10 of 43 CI code dispatches over 2026-11-10..11 started at a head that already had a successful dispatched run, about 8.5 runner-hours at a 51 min median. Merge note: a change under tools/ci makes every open PR whose base predates it stale-pinned (sweep.py:177-188), costing one fresh dispatch per open PR once; say so in the body so the orchestrator can time the merge.\n\nOut of scope: the train's poll interval; the CodeQL duration of a code run.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (hotfix, size M, no design step)",
+    "note": "triage s14 batch 196 P620; overlap admitted (R10-GATE-DEFER-BARRIER): triage s14 batch 196 P620 ACCEPT hotfix: CI gate livelock, cancelled run as gate source and sweep re-dispatch after a gate re-run"
+   }
   }
  ]
 }
