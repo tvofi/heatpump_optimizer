@@ -22069,6 +22069,52 @@
     "commit": null
    },
    "brief": "Hotfix (orchestrator, 2026-11-10). governance / instrument-self-tests red on main at 5d09dedf (run 42780661829): UNDER-SCOPED step prepr, files misses a checkout tail. Cause: a racily clean git index after checkout; the first index-refreshing git status inside a traced step opens every racy file, so the recorded read set moves with scheduling. Fix: a settle step in tools/ci/selftest_scope.py run untraced before tracing starts, refusing when any entry stays racy. Failing test first, mutation proof, null control (a settled index records no checkout tail). Root cause in its own seat: R10-RCA-MAIN-SELFTESTS-RED."
+  },
+  {
+   "group": "R10-DUTY-SWITCH-RESTART-LEARNING",
+   "lane": "UI",
+   "kind": "owner",
+   "class": "owner",
+   "severity": "low",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 7,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-WATER-SETPOINT-FEEDBACK"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/features.py"
+   ],
+   "carry": [],
+   "source": "outside",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "design review of the outside design note in pull request 3420 first (decision 0014); the fixer only after Design review: approve",
+    "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside design pull request 3420 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 design first, no deferral out of the round); overlap admitted (R10-SAV-VALUATION-RESIDUE, R10-ADVISOR-STEADY-START): s14 orchestrator 2026-11-11 under mandate 6715477401: outside design PR 3420 accepted, design review first",
+    "pr": null
+   },
+   "brief": "Outside contribution: pull request 3420 by Bankaifan is a design note only. On a Luxtronik install driven over the smart-home interface, a hot water to space mode write while the compressor runs stops it whenever the hot-water leg has just heated the shared circuit, and it restarts minutes later; the optimizer neither prices nor observes that. The note proposes learning, per pump and per switch direction, how often a switch while running ends in a stop and how long the pump then stays off, and using the estimate in the planner and in the duty share only once the evidence passes a threshold; it also reports that the start counter misses short cycles and that the mode follows the supply switch-on by seconds. Design first (decision 0014): the outside note is the design under review, published on the group's design ref unchanged, and the design reviewer decides approve or revise before any fixer; the reviewer checks it against the water set-point feedback of pull request 3405, which this group builds after, and takes extra care on code security as for every outside contribution. The build then carries the design into our own pull request, thanks the contributor by name and pull request number in its body, and the original is closed with thanks after the merge. Every quantified claim needs its null control: a flat-price day and an install where no switch stops the compressor must leave the plan unchanged. Learned state is per pump, survives a restart, and is inert below the evidence threshold. Owning module to be named by the design review; expect custom_components/heatpump_optimizer/coordinator.py to be touched, so the coordinator cap applies."
   }
  ]
 }
