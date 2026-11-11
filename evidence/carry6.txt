@@ -1,8 +1,0 @@
-space_before at origin/main: 0 files
-space_before at head: 0 files
-roster sha: eacf69655b122db357e7521c3a2a4740ad434ad7
-space_before on handoff/r10-arbiter-off-restore: 1 files
-stage in-progress
-NO _note_sent IN BRIEF
-From r10-water-setpoint-feedback, body item a070f930: R10-ARBITER-OFF-RESTORE reuses this group's write record (roster ordering note). At this head the space slot's record is dropped by `pump_arbiter._note_sent` whenever the loop's target moves by less than `SETPOINT_TOLERANCE`, and re-created by `_write` in the same pass (absent after a failed write until the next pass); between those two lines it is absent. A restore that reads `ArbiterState.written` at MODE_OFF or unload reads it after the pass, so it sees the record, but it must not take the space record's absence as "never written" without checking `ArbiterState.feedback`. Precondition, not opportunity; re-measure on that group's merge base. Lands in that group's brief, `dev/programme/rosters/wave-r10-groups.json` on `handoff/audit-r10-roster`. Carry: R10-ARBITER-OFF-RESTORE (items a070f930)
-eacf69655b122db357e7521c3a2a4740ad434ad7 2026-11-10T05:19:31+01:00
