@@ -1,0 +1,27 @@
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+worktree_gc self-test: 160 checks, 0 failed
+25 of 25 green
+done-head

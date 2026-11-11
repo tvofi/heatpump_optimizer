@@ -1,0 +1,266 @@
+[
+ {
+  "name": "v3-argvterm-quote",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1",
+  "new": "if (t==\"\" || t==\"/\" || t==\":\" || t==\",\") f=1"
+ },
+ {
+  "name": "v3-argvterm-colon",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1",
+  "new": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\") f=1"
+ },
+ {
+  "name": "v3-argvterm-dq",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1",
+  "new": "if (t==\"\" || t==\"/\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1"
+ },
+ {
+  "name": "v3-argvterm-sq",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1",
+  "new": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\":\" || t==\",\") f=1"
+ },
+ {
+  "name": "v3-argvterm-col",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1",
+  "new": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\",\") f=1"
+ },
+ {
+  "name": "v3-argvterm-com",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1",
+  "new": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\") f=1"
+ },
+ {
+  "name": "v3-argvterm-slash",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1",
+  "new": "if (t==\"\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1"
+ },
+ {
+  "name": "v3-argvterm-empty",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1",
+  "new": "if (t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1"
+ },
+ {
+  "name": "v3-argvterm-any",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1",
+  "new": "if (1) f=1"
+ },
+ {
+  "name": "v3-openfile-eq",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (d==p || index(d, p \"/\")==1) f=1 } END { exit f ? 0 : 1 }'; then\n    HELD_WAY=open-file",
+  "new": "if (index(d, p \"/\")==1) f=1 } END { exit f ? 0 : 1 }'; then\n    HELD_WAY=open-file"
+ },
+ {
+  "name": "v3-openfile-sib",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (d==p || index(d, p \"/\")==1) f=1 } END { exit f ? 0 : 1 }'; then\n    HELD_WAY=open-file",
+  "new": "if (d==p || index(d, p)==1) f=1 } END { exit f ? 0 : 1 }'; then\n    HELD_WAY=open-file"
+ },
+ {
+  "name": "v3-pidzero-tr",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "tr -dc '0-9')\n    kill",
+  "new": "tr -dc '1-9')\n    kill"
+ },
+ {
+  "name": "v3-pidguard-restored",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "kill -0 \"$pid\" 2>/dev/null && { HELD_WAY=pidfile-live",
+  "new": "[ -n \"$pid\" ] && kill -0 \"$pid\" 2>/dev/null && { HELD_WAY=pidfile-live"
+ },
+ {
+  "name": "v3-pidempty-unquoted",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "kill -0 \"$pid\" 2>/dev/null && { HELD_WAY=pidfile-live",
+  "new": "kill -0 $pid 2>/dev/null && { HELD_WAY=pidfile-live"
+ },
+ {
+  "name": "v3-lockglob-star",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "\"$p\"/*.lock \"$p\"/.*.lock",
+  "new": "\"$p\"/.*.lock"
+ },
+ {
+  "name": "v3-lockglob-dot",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "\"$p\"/*.lock \"$p\"/.*.lock",
+  "new": "\"$p\"/*.lock"
+ },
+ {
+  "name": "v3-lsofall",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "out=$(lsof -Fn 2>/dev/null) || return 2",
+  "new": "out=$(lsof -Fn 2>/dev/null)"
+ },
+ {
+  "name": "v3-psunread",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "out=$(ps -eo args= 2>/dev/null) || return 2",
+  "new": "out=$(ps -eo args= 2>/dev/null)"
+ },
+ {
+  "name": "v3-lsofcwd-empty",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "[ -n \"$out\" ] || return 2\n",
+  "new": "\n"
+ },
+ {
+  "name": "v3-trap-zpid-unguarded",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "trap '[ -n \"${ZPID:-}\" ] && kill \"$ZPID\" 2>/dev/null; rm -rf \"$W\"' EXIT",
+  "new": "trap 'rm -rf \"$W\"' EXIT"
+ },
+ {
+  "name": "v2-lockglob",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "for f in \"$p/train.pid\" \"$p\"/*.lock \"$p\"/.*.lock; do",
+  "new": "for f in \"$p/train.pid\"; do"
+ },
+ {
+  "name": "v2-lockglob-star",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "for f in \"$p/train.pid\" \"$p\"/*.lock \"$p\"/.*.lock; do",
+  "new": "for f in \"$p/train.pid\" \"$p\"/.*.lock; do"
+ },
+ {
+  "name": "v2-lockglob-dot",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "for f in \"$p/train.pid\" \"$p\"/*.lock \"$p\"/.*.lock; do",
+  "new": "for f in \"$p/train.pid\" \"$p\"/*.lock; do"
+ },
+ {
+  "name": "v2-argvterm-slash",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "t==\"\" || t==\"/\" ||",
+  "new": "t==\"\" ||"
+ },
+ {
+  "name": "v2-argvterm-empty",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (t==\"\" || t==\"/\" ||",
+  "new": "if (t==\"/\" ||"
+ },
+ {
+  "name": "v2-argvterm-any",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1",
+  "new": "f=1"
+ },
+ {
+  "name": "v2-argvterm-quote",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": " || t==\"\\\"\" || t==\"\\x27\"",
+  "new": ""
+ },
+ {
+  "name": "v2-argvterm-colon",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": " || t==\":\" || t==\",\"",
+  "new": ""
+ },
+ {
+  "name": "v2-lsofall",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "out=$(lsof -Fn 2>/dev/null) || return 2",
+  "new": "out=$(lsof -Fn 2>/dev/null)"
+ },
+ {
+  "name": "v2-nopsbin",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "out=$(ps -eo args= 2>/dev/null) || return 2",
+  "new": "out=$(ps -eo args= 2>/dev/null)"
+ },
+ {
+  "name": "v2-lsofcwd-empty",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "[ -n \"$out\" ] || return 2\n",
+  "new": "\n"
+ },
+ {
+  "name": "v1-argv",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "    HELD_WAY=argv-inside; return 1\n",
+  "new": "    :\n"
+ },
+ {
+  "name": "v1-open",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "    HELD_WAY=open-file; return 1\n",
+  "new": "    :\n"
+ },
+ {
+  "name": "v1-pid",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "kill -0 \"$pid\" 2>/dev/null && { HELD_WAY=pidfile-live; return 1; }",
+  "new": "true"
+ },
+ {
+  "name": "v1-psunread",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "out=$(ps -eo args= 2>/dev/null) || return 2",
+  "new": "out=$(ps -eo args= 2>/dev/null) || true"
+ },
+ {
+  "name": "v1-killcheck",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "kill -0 \"$pid\" 2>/dev/null && {",
+  "new": "true && {"
+ },
+ {
+  "name": "v1-heldway",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "1) printf 'keep  %s  %s\\n' \"$1\" \"$HELD_WAY\"",
+  "new": "1) printf 'keep  %s  %s\\n' \"$1\" cwd-inside"
+ },
+ {
+  "name": "v1-lockglob",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "for f in \"$p/train.pid\" \"$p\"/*.lock \"$p\"/.*.lock; do",
+  "new": "for f in \"$p/train.pid\"; do"
+ },
+ {
+  "name": "v1-argvterm",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (t==\"\" || t==\"/\" || t==\"\\\"\" || t==\"\\x27\" || t==\":\" || t==\",\") f=1",
+  "new": "if (t==\"\") f=1"
+ },
+ {
+  "name": "v1-lsofall",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "out=$(lsof -Fn 2>/dev/null) || return 2",
+  "new": "out=$(lsof -Fn 2>/dev/null) || out=\"\""
+ },
+ {
+  "name": "r4-trainpid",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "for f in \"$p/train.pid\" \"$p\"/*.lock \"$p\"/.*.lock; do",
+  "new": "for f in \"$p\"/*.lock \"$p\"/.*.lock; do"
+ },
+ {
+  "name": "r4-openfile-slash",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (d==p || index(d, p \"/\")==1) f=1 } END { exit f ? 0 : 1 }'; then\n    HELD_WAY=open-file",
+  "new": "if (d==p) f=1 } END { exit f ? 0 : 1 }'; then\n    HELD_WAY=open-file"
+ },
+ {
+  "name": "r4-cwd-slash",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "if (d==p || index(d, p \"/\")==1) f=1 } END { exit f ? 0 : 1 }'; then\n    HELD_WAY=cwd-inside",
+  "new": "if (d==p) f=1 } END { exit f ? 0 : 1 }'; then\n    HELD_WAY=cwd-inside"
+ },
+ {
+  "name": "r4-pidfile-head",
+  "file": "tools/audit/worktree_gc.sh",
+  "old": "head -c 32 \"$f\"",
+  "new": "head -c 0 \"$f\""
+ }
+]
