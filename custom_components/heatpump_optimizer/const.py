@@ -60,6 +60,10 @@ CONF_LOWER_FLOOR_TEMP_ENTITY: Final = "lower_floor_temp_entity"
 # coordinate, so it can be used instead of (or alongside) a local sensor.
 CONF_SOLAR_FORECAST_SOURCE: Final = "solar_forecast_source"
 CONF_SOLAR_LOCATION: Final = "solar_location"
+#: The keys that carry a home location, at any depth: the solar-forecast
+#: location whole, and a coordinate anywhere else. No part of one leaves the
+#: instance in a diagnostics download, its debug bundle's replay half included.
+LOCATION_KEYS: Final = frozenset({CONF_SOLAR_LOCATION, "latitude", "longitude"})
 
 SOLAR_SOURCE_WEATHER: Final = "weather"
 SOLAR_SOURCE_OPEN_METEO: Final = "open_meteo"
