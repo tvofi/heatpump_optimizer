@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/diagnostics.py:_private_values CMP_BOUND 6a2e5977",
-  "killed_by": "tests/debug_collect.py",
-  "old": "    return {text} if removed and len(text) >= replay_doc.LEAK_MIN_CHARS else set()",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return {text} if removed and len(text) > replay_doc.LEAK_MIN_CHARS else set()`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
-}

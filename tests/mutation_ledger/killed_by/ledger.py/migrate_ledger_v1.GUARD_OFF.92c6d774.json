@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/ledger.py:migrate_ledger_v1 GUARD_OFF 92c6d774",
-  "killed_by": "tests/features.py",
-  "old": "        if isinstance(meta, dict) and isinstance(lines, dict) and \"savings_baseline\" in lines:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

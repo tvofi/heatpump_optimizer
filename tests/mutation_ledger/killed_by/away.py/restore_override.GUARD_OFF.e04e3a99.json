@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/away.py:restore_override GUARD_OFF e04e3a99",
-  "killed_by": "tests/features.py",
-  "old": "    if not payload[\"migrated_helpers\"]:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

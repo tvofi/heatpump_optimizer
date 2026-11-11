@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/heat_curve.py:classify CMP_BOUND 4be5cee8",
-  "killed_by": "tests/features.py",
-  "old": "    if written is None or abs(reading - written) <= half_step:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if written is None or abs(reading - written) < half_step:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

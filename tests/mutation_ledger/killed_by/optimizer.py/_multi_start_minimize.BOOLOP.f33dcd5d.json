@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_multi_start_minimize BOOLOP f33dcd5d",
-  "killed_by": "tests/features.py",
-  "old": "        if np.isfinite(score) and score < best_score:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if np.isfinite(score) or score < best_score:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

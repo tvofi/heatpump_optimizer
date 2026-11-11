@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/driving_grade.py:tally CMP_BOUND 15ec03d2",
-  "killed_by": "tests/features.py",
-  "old": "    if np.isfinite(spot) and hours > 0:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if np.isfinite(spot) and hours >= 0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/heat_curve.py:publish_ecl110_topics GUARD_OFF 8b6644d6",
-  "old": "    if not set_topic and not command_topic:",
-  "reason": "Equivalent (GUARD_OFF, the early return in publish_ecl110_topics switched off): the guard returns when neither topic is configured, and each of the two arms after it is guarded by its own topic (`if set_topic:`, `if command_topic:`), so with the guard off the same input reaches both arms, both skip, and the function returns None having called nothing -- the same calls and the same value on every input. Measured by the R10-GENERIC-HEAT-CURVE fixer: mutant_run.py --spec over the 71 sites CI listed at e330a768, driven by the #193 S3 block of tests/features.py (whose 'writes nothing when neither topic is configured' check drives exactly this input) and the R10-GENERIC-HEAT-CURVE block: SURVIVED, against 59 of the 71 killed by the same command.",
-  "verdict": "equivalent"
-}

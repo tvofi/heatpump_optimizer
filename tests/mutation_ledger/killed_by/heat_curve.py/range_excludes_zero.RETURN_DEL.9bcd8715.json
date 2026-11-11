@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/heat_curve.py:range_excludes_zero RETURN_DEL 9bcd8715",
-  "killed_by": "tests/config_flow_steps.py",
-  "old": "    return (lo is not None and lo > 0.0) or (hi is not None and hi < 0.0)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
-}

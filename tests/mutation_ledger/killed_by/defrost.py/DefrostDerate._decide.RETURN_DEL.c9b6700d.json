@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate._decide RETURN_DEL c9b6700d",
-  "killed_by": "tests/features.py",
-  "old": "        return \"measured\", measured, n_duty",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
-}

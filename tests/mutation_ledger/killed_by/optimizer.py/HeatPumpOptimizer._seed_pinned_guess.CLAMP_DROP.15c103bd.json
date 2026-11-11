@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._seed_pinned_guess CLAMP_DROP 15c103bd",
-  "killed_by": "tests/guard_pins.py",
-  "old": "            out[i] = min(max(out[i], low), high)",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`out[i] = (max(out[i], low))`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1. Each of the 2 sites under this anchor was killed."
-}

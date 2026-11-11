@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:<module> CONST a37c2986",
-  "killed_by": "tests/debug_collect.py",
-  "old": "PLAN_STALE_FLOOR_MINUTES = 90.0",
-  "reason": "Recorded by `mutation_table.py --drain`: CONST (`PLAN_STALE_FLOOR_MINUTES = 180.0`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=3."
-}

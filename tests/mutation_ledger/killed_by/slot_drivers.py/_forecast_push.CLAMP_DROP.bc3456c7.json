@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/slot_drivers.py:_forecast_push CLAMP_DROP bc3456c7",
-  "killed_by": "tests/features.py",
-  "old": "    span = max(1, int(FORECAST_LOOKAHEAD_H / h.dt))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`span = (1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

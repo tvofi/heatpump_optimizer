@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.clamp GUARD_OFF 04d3d99a",
-  "killed_by": "tests/entities.py",
-  "old": "            if not np.isfinite(value) or value < POSITIVE_PARAM_FLOOR:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._contract_comparison BOOLOP 450b12c2",
-  "killed_by": "tests/features.py",
-  "old": "        if kwh > 0 and mean_spot is not None:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if kwh > 0 or mean_spot is not None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

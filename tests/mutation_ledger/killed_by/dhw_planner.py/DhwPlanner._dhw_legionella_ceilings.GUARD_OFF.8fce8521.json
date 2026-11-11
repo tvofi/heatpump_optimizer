@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_ceilings GUARD_OFF 8fce8521",
-  "killed_by": "tests/guard_pins.py",
-  "old": "                if need <= floor_temps[m]:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
-}

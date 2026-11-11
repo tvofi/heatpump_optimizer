@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/tariff.py:PeakTracker.window_snapshot CLAMP_DROP b900b305",
-  "killed_by": "tests/features.py",
-  "old": "        window = max(1, int(tariff.window_minutes))",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`window = (1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

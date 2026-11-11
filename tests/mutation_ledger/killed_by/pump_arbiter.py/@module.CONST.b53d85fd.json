@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST b53d85fd",
-  "killed_by": "tests/features.py",
-  "old": "RETURN_SUPPLY_OFFSET_K = 5.0",
-  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (review fixes): CONST (`RETURN_SUPPLY_OFFSET_K = 10.0`) took tests/features.py from rc=0 failed=0 of 4990 to rc=1 failed=1: the D5 check pins the return target's bare hold at 30 degC and the offset at 5.0."
-}

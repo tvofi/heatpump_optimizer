@@ -1,6 +1,0 @@
-{
-  "name": "Heat Pump Cost Optimizer",
-  "homeassistant": "2025.2.0",
-  "zip_release": true,
-  "filename": "heatpump_optimizer.zip"
-}

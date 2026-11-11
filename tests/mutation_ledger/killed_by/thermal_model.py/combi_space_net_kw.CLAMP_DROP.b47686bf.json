@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:combi_space_net_kw CLAMP_DROP b47686bf",
-  "killed_by": "tests/features.py",
-  "old": "    gained = store.capacity_kwh_per_c * np.diff(temps) / max(dt_hours, 1e-6)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`gained = store.capacity_kwh_per_c * np.diff(temps) / (dt_hours)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

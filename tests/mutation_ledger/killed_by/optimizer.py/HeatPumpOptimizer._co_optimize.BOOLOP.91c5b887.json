@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._co_optimize BOOLOP 91c5b887",
-  "killed_by": "tests/features.py",
-  "old": "            if draw_rates is not None and self.model.params.dhw_store.combi:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if draw_rates is not None or self.model.params.dhw_store.combi:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

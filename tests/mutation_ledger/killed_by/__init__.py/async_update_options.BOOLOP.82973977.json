@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/__init__.py:async_update_options BOOLOP 82973977",
-  "killed_by": "tests/features.py",
-  "old": "    if coordinator is not None and coordinator.effective_config == new_config:",
-  "reason": "Recorded by `mutation_table.py --drain` against c3530277373ddf87652858f9ecb0ee1cf36f4347: BOOLOP (`if coordinator is not None or coordinator.effective_config == new_config:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/services.py:handle_set_thermal_params CMP_BOUND f27d318e",
-  "killed_by": "tests/features.py",
-  "old": "            if float(minimum) > ceiling:",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if float(minimum) >= ceiling:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

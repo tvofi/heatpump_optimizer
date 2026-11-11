@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_feedback CMP_BOUND 2381393a",
-  "killed_by": "tests/features.py",
-  "old": "    if power is None or power < _ran_kw(inp):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if power is None or power <= _ran_kw(inp):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_solar_aperture GUARD_OFF 13bad77a",
-  "killed_by": "tests/features.py",
-  "old": "        if m[\"n\"] >= SOLAR_APERTURE_MIN_SAMPLES and m[\"var\"] > 1e-6:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.dhw_hold_hours CLAMP_DROP 24cf749e",
-  "killed_by": "tests/features.py",
-  "old": "        top = max(store.charge_max_temp, floor + 1.0)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`top = (store.charge_max_temp)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

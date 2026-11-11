@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostDerate.summary GUARD_OFF f584224a",
-  "killed_by": "tests/env_drift.py",
-  "old": "                if source is None:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=5."
-}

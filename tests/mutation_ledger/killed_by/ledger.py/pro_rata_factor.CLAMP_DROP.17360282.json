@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/ledger.py:pro_rata_factor CLAMP_DROP 17360282",
-  "killed_by": "tests/features.py",
-  "old": "    return days / max(1, now.day)",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`return days / (1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

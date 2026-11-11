@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.observe_spot_and_settle_savings BOOLOP 81ee8fec",
-  "killed_by": "tests/features.py",
-  "old": "        fee_per_kwh = float(fee) if isinstance(fee, (int, float)) and math.isfinite(fee) else 0.0",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`fee_per_kwh = float(fee) if isinstance(fee, (int, float)) or math.isfinite(fee) else 0.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

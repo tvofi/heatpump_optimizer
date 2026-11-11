@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_ceilings CLAMP_DROP 06f0d48e",
-  "killed_by": "tests/env_drift.py",
-  "old": "                lp_max_temp[m] = max(lp_max_temp[m], temp)",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`lp_max_temp[m] = (lp_max_temp[m])`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=2."
-}

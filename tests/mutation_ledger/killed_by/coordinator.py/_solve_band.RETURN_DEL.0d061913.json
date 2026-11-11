@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_solve_band RETURN_DEL 0d061913",
-  "killed_by": "tests/features.py",
-  "old": "    return draw_range.solve_band(draw, hub, probe_install(config), dt_util.now().timestamp())",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
-}

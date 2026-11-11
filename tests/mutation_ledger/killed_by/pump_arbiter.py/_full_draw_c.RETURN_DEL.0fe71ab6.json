@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_full_draw_c RETURN_DEL 0fe71ab6",
-  "killed_by": "tests/features.py",
-  "old": "    return ceiling_c if headroom else ceiling_c + FLOW_MIN_LIFT_K",
-  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (review fixes): RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 of 4990 to rc=1 failed=2: a return target's held command carries no ceiling, in the headroom and with-headroom command checks."
-}

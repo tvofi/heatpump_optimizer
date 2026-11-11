@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/ledger.py:explain_metered GUARD_OFF 21fc2c30",
-  "killed_by": "tests/features.py",
-  "old": "        if kwh <= 0.0:",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 4a8c89d037709c01b2f1787c3b95ba36d44f1e6f: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/heat_curve.py:_within_range CLAMP_DROP 8b8db5fd",
-  "killed_by": "tests/features.py",
-  "old": "        value = min(reading.hi, value)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`value = (reading.hi)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=32."
-}

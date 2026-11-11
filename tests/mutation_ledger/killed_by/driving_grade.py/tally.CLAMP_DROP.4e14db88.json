@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/driving_grade.py:tally CLAMP_DROP 4e14db88",
-  "killed_by": "tests/features.py",
-  "old": "            _add(book, \"kwh_lo\", max(0.0, kwh))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`_add(book, \"kwh_lo\", (0.0))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

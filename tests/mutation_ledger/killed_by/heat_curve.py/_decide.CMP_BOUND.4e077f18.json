@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/heat_curve.py:_decide CMP_BOUND 4e077f18",
-  "killed_by": "tests/features.py",
-  "old": "    return \"gave up\" if held.misses >= 2 else None  # W3 on the second miss",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return \"gave up\" if held.misses > 2 else None  # W3 on the second miss`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}
