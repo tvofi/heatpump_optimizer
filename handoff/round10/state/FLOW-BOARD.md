@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-11T04:28:30+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-11T04:30:40+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 1 / 1.0 | 18 / 24.0 |
+| roster groups closed vs takt | 2 / 1.0 | 19 / 24.0 |
 | fly-ins closed | 1 | 10 |
-| main moves: group-carrying / record / roster-edit / fly-in | 2 / 0 / 0 / 1 | 17 / 3 / 0 / 10 |
+| main moves: group-carrying / record / roster-edit / fly-in | 3 / 0 / 0 / 1 | 18 / 3 / 0 / 10 |
 | first-pass fix-review yield | 1/3 (0.33) | 10/21 (0.48) |
 | blocked-class mix | carry-missing:1, mutation-vacuous:1 | carry-missing:2, ci-red:2, class-open:1, config-attack:1, figure-wrong:1, merge-conflict:1, mutation-survivors:2, mutation-vacuous:3, root-cause-detectable:1, root-cause-unanswered:1 |
-| lead time per size (h, n/p50/max) | L n=1 p50=26.88 max=26.88; S n=1 p50=19.25 max=19.25 | L n=2 p50=26.50 max=26.88; M n=2 p50=65.65 max=67.13; S n=13 p50=4.81 max=45.25 |
+| lead time per size (h, n/p50/max) | L n=1 p50=26.88 max=26.88; S n=2 p50=19.25 max=35.88 | L n=2 p50=26.50 max=26.88; M n=2 p50=65.65 max=67.13; S n=14 p50=4.81 max=45.25 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 33 | 6 | 0 |
+| 1 | 32 | 6 | 0 |
 
 ## Rules
 
