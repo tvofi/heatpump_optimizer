@@ -184,10 +184,9 @@ def merged_pr(group: str, commit: str | None, by_sha: dict, by_group: dict):
     return by_group.get(group)
 
 
-def _plain_key(key) -> str:
-    """A sort key as plain values: a null reads as a dash, never a Python repr."""
-    if not isinstance(key, (list, tuple)):
-        return "—" if key is None else str(key)
+def _plain_key(key: list) -> str:
+    """A sort key (replan's `sort_key`, always a list) as plain values: a null
+    reads as a dash, never a Python repr."""
     return ", ".join("—" if v is None else str(v) for v in key)
 
 
@@ -232,8 +231,9 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
     state = {i["number"]: i for i in snap["issues"]}
     # A hotfix that a critical-path group waits on holds the path, whether or
     # not the longest chain runs through it: the same gating edges as `blk`.
+    # A discharged predecessor is in `done`, which the row's `hot` excludes.
     gating_crit = {a for c in crit if c in G for a in G[c].get("after") or []
-                   if a in G and a not in discharged and roster_lib.gates(G[a])}
+                   if a in G and roster_lib.gates(G[a])}
 
     rows = []
     for g, entry in G.items():
@@ -1107,15 +1107,42 @@ def _self_test() -> int:
                 if e_["group"] == "R9-PART":
                     e_["kind"] = "defect"
             cold_rows = {r["g"]: r for r in build_rows(cold_roster, plan, snap)}
-            hot_page = "".join(
-                f'{r["g"]}' for r in hot_rows.values() if r["hot"])
-            check("a hotfix a critical-path group waits on is marked",
-                  hot_rows["R9-PART"]["hot"] is True and hot_page == "R9-PART", hot_page)
-            check("hotfix mark (null): the same edge from a non-hotfix, and a hotfix no "
-                  "critical-path group waits on, are not marked",
-                  not any(r["hot"] for r in cold_rows.values())
-                  and not any(r["hot"] for r in rows.values()),
-                  [g for g, r in cold_rows.items() if r["hot"]])
+            def marked(roster_, plan_=plan):
+                """The rows whose rendered name cell carries the hotfix mark."""
+                return re.findall(r'class="cp hotcp" title="hotfix blocking a critical-path '
+                                  r'group">▲</span>([^<]*)<div', render(
+                                      roster_, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                                      plan_, snap))
+
+            def staged(stage):
+                r_ = copy.deepcopy(hot_roster)
+                for e_ in r_["groups"]:
+                    if e_["group"] == "R9-PART":
+                        e_["resume"] = dict(e_.get("resume") or {}, stage=stage)
+                return r_
+            nc = next(g for g, r in rows.items()
+                      if not r["crit"] and r["st"] != "done" and g != "R9-PART")
+            off_cp = copy.deepcopy(roster)
+            for e_ in off_cp["groups"]:
+                if e_["group"] == "R9-PART":
+                    e_["kind"] = "bug"
+                if e_["group"] == nc:
+                    e_["after"] = list(e_.get("after") or []) + ["R9-PART"]
+            dis_plan = copy.deepcopy(plan)
+            dis_plan["groups"]["R9-PART"]["discharged"] = True
+            check("a hotfix a critical-path group waits on is marked, on its row of the page",
+                  [g for g, r in hot_rows.items() if r["hot"]] == ["R9-PART"]
+                  and marked(hot_roster) == [short("R9-PART")], marked(hot_roster))
+            nulls = {"non-hotfix": marked(cold_roster), "no crit edge": marked(roster),
+                     "off-path edge": marked(off_cp),
+                     "released (refuted)": marked(staged("refuted")),
+                     "closed (deferred)": marked(staged("deferred")),
+                     "discharged": marked(hot_roster, dis_plan)}
+            check("hotfix mark (null): a non-hotfix on the edge, a hotfix only an off-path "
+                  "group waits on, a released, a closed and a discharged predecessor mark no row",
+                  not any(nulls.values())
+                  and not any(r["hot"] for r in cold_rows.values())
+                  and not any(r["hot"] for r in rows.values()), str(nulls))
             check("the closure conditions are stated on the page",
                   "The programme is closed only when no open pull requests, no handoffs, "
                   "no carries, no findings, no leads, only the coordination issue open." in page,
@@ -1184,6 +1211,13 @@ def _self_test() -> int:
             # dropped when none are listed (carry 2).
             one = _other_issues_sentence({"other": {201}, "orphans": {}})
             many = _other_issues_sentence({"other": {201, 77, 78}, "orphans": {77: [], 78: []}})
+            check("the other-issues sentence for none says none, not a zero count",
+                  _other_issues_sentence({"other": set(), "orphans": {}})
+                  == "no other open issue is on no open group.")
+            held_n = sum(1 for g in rows if rows[g]["st"] != "done" and not scheduled(g))
+            check("the lede counts the open groups held without a schedule",
+                  held_n >= 1 and f"the other {held_n} are held without a schedule" in page,
+                  re.findall(r"the other \d+ are held", page))
             check("the other-issues sentence is singular for one and drops the zero clause",
                   one == "1 other open issue is on no open group: #201 (the record issue)."
                   and "0 listed" not in one, one)
@@ -1223,9 +1257,7 @@ def _self_test() -> int:
             check("null control: no part-merged group reads 0",
                   "<b>0</b><span>part merged, residual open</span>" in render(
                       roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
-                      plan, dict(snap, merged_prs=snap["merged_prs"][:2]))
-                  or sum(1 for r in build_rows(roster, plan, dict(snap, merged_prs=snap["merged_prs"][:2]))
-                         if r["part"]) == 0)
+                      plan, dict(snap, merged_prs=snap["merged_prs"][:2])))
             check("the group note and the issues note state how the two counts relate",
                   f"of the {sum(1 for r in build_rows(roster, plan, snap) if r['st'] != 'done')} "
                   "the table lists as not merged" in page

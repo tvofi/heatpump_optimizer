@@ -3246,6 +3246,8 @@ def parse_args(argv=None):
                         "(tools/plan/size_durations.py) into --out-durations")
     p.add_argument("--sizes-csv", default=None, help="--measure-sizes: write the raw rows here")
     p.add_argument("--prs-cache", default=None, help="--measure-sizes: read or write the fetch")
+    p.add_argument("--sizes-via", choices=("graphql", "rest"), default="graphql",
+                   help="--measure-sizes: the PR read (size_durations.READS)")
     p.add_argument("--out-durations", default=None)
     p.add_argument("--live-refs", default=None,
                    help="a saved `git ls-remote --heads` listing: liveness by evidence")
@@ -3281,7 +3283,7 @@ def main(argv=None) -> int:
         old = json.loads(target.read_text(encoding="utf-8")) if target.is_file() else {}
         got = size_durations.run(args.repo, args.roster_ref, args.repo_owner, size_durations.SINCE,
                                  args.prs_cache, args.sizes_csv,
-                                 size_durations.DEFAULT_PERCENTILE)
+                                 size_durations.DEFAULT_PERCENTILE, args.sizes_via)
         target.write_text(json.dumps({**old, **got}, indent=1, sort_keys=True) + "\n",
                           encoding="utf-8")
         print(f"measured sizes {got['sizes_hours']} -> {target}")
