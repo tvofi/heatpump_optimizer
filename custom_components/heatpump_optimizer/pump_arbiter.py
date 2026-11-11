@@ -1365,7 +1365,7 @@ async def _write(
     await _persist(coord)
 
 
-def _under(reading: Any, setpoint: Any) -> bool:
+def _reads_below(reading: Any, setpoint: Any) -> bool:
     """Whether a reading is known and under its known set-point: the duty has demand."""
     return reading is not None and setpoint is not None and float(reading) < float(setpoint)
 
@@ -1394,7 +1394,7 @@ def _report_write(
             context,
             inlet_c=_flow_inlet_c(inp), space_setpoint_c=command.space_setpoint,
             source_leg_s=utc_elapsed_seconds(now, replaced[1]) if replaced else None,
-            target_demand=_under(room, planned) if target == "space" else _under(tank, inp.params.dhw_setpoint),
+            target_demand=_reads_below(room, planned) if target == "space" else _reads_below(tank, inp.params.dhw_setpoint),
             plan_stays=all(step_duty(inp.plan, at) in (target, "both")
                            for at in (now, utc_shift(now, timedelta(seconds=duty_switch.STOP_WINDOW_S)))),
         )

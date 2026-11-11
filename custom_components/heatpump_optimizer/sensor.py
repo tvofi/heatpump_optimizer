@@ -2784,7 +2784,7 @@ class CompressorStartsSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
             )
         ) or {}
         # Beside the counter it explains, and off the payload the goldens snapshot.
-        return {**starts, **duty_switch.summary(self.coordinator)}
+        return {**starts, **duty_switch.starts_attributes(self.coordinator)}
 
 
 class FrequencyAdvisorSensor(

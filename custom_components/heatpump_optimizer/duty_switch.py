@@ -228,19 +228,19 @@ class Direction:
                    [float(o) for o in row["off_s"]], *(row[t] for t in _TALLIES))
 
 
-def _real(value: Any, hi: float = math.inf) -> bool:
+def _stored_number(value: Any, hi: float = math.inf) -> bool:
     return (isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
             and 0.0 <= value <= hi)
 
 
 def _tally(value: Any) -> bool:
-    return isinstance(value, int) and _real(value, _TALLY_MAX)
+    return isinstance(value, int) and _stored_number(value, _TALLY_MAX)
 
 
 #: What each stored leaf must be before it is parsed; the stamps are parsed after.
 _ROW_CHECKS: dict[str, Callable[[Any], bool]] = {
-    "k": lambda v: _real(v, _N_MAX), "kept_w": lambda v: _real(v, _N_MAX),
-    "off_s": lambda v: isinstance(v, list) and len(v) <= OFF_SAMPLES_MAX and all(_real(o, _OFF_MAX_S) for o in v),
+    "k": lambda v: _stored_number(v, _N_MAX), "kept_w": lambda v: _stored_number(v, _N_MAX),
+    "off_s": lambda v: isinstance(v, list) and len(v) <= OFF_SAMPLES_MAX and all(_stored_number(o, _OFF_MAX_S) for o in v),
     "usable": lambda v: isinstance(v, bool),
     **{t: _tally for t in _TALLIES},
 }
@@ -482,7 +482,7 @@ async def _persist(rec: _Record) -> None:
     rec.dirty = False
 
 
-def summary(coord: Any) -> dict[str, float]:
+def starts_attributes(coord: Any) -> dict[str, float]:
     """The compressor-starts sensor's duty-switch attributes; a pump never arbitrated reads empty."""
     rec = _RECORDS.get(coord)
     return (rec.learner if rec is not None else DutySwitchLearner()).published(dt_util.now())

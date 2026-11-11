@@ -81638,7 +81638,7 @@ R.check(
     "never a read of the estimate; the module imports neither of them; the pure half of wear stays pure",
     _ds_readers == ["pump_arbiter.py", "sensor.py"]
     and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "detach", "note_mode_write", "note_pass", "record_for",
-                     "summary"]
+                     "starts_attributes"]
     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
     f"{_ds_readers} {_ds_uses} {_ds_own}",
