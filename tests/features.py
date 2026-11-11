@@ -32123,35 +32123,20 @@ R.check(
     repr(_st_small),
 )
 
-# An energy tie: the thermostat held at the pump's maximum both ways draws the
-# same day either way, and the figure says so (0.0), still on one solve.
-_st_tie_kw = []
-_st_tie = _st_at(7, 0, extra={"heat_pump_max_power": 0.3}, asks=lambda record: _st_tie_kw.append(
-    record.params.max_electrical_power) or [
-    ("comfort_plus_half", {"target_temp": record.config.target_temp + 0.5,
-                           "comfort_temp_day": (record.config.comfort_temp_day or record.config.target_temp) + 0.5}),
-])
-R.check(
-    "#2257: a schedule ask whose two day energies tie reads 0.0 on one solve, "
-    "never the pair's money (precondition: the pump's maximum is the 0.3 kW set, "
-    "under the held demand)",
-    _st_tie["comfort_plus_half"][:3] == (0.0, 1, 0) and _st_tie_kw == [0.3],
-    repr((_st_tie, _st_tie_kw)),
-)
-
-
 # -- reference_day, on the optimizer ---------------------------------------
-def _st_reference(hours=24, dhw=False, start=_ST_STARTS[0], when=_ST_WED, **config):
+def _st_reference(hours=24, dhw=False, start=_ST_STARTS[0], when=_ST_WED, max_kw=None, day=21.0, **config):
     """A solve and reference_day on a second optimizer from the same inputs:
     what the solve's own thermostat pass was handed, and both answers."""
     def build():
         cfg = _st_house(two_zone=False, dhw=dhw)
         params = _StParams.from_config(cfg)
         params.dhw_enabled = dhw
+        if max_kw is not None:
+            params.max_electrical_power = max_kw
         return _st_omod.HeatPumpOptimizer(_StModel(params), _st_omod.OptimizationConfig(
-            horizon_hours=hours, time_step_minutes=15, target_temp=21.0,
+            horizon_hours=hours, time_step_minutes=15, target_temp=day,
             min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"],
-            comfort_temp_day=21.0, comfort_temp_night=19.5, **config))
+            comfort_temp_day=day, comfort_temp_night=19.5, **config))
 
     solver, fresh = build(), build()
     n = solver.config.n_steps
@@ -32259,19 +32244,45 @@ R.check(
             for name in ("panel_zero", "power_cap_75", "panel_hotwater_only")),
     repr({k: (v[0], v[4]) for k, v in _st_sched.items()}),
 )
+# An energy tie: a thermostat held at the pump's maximum both ways draws the
+# same day under either schedule. That is still a schedule ask, and its figure
+# says what is true of that thermostat (0.0); a branch taken on the energies
+# would hand it to the pair, whose money reads such an ask against its sign.
+_st_tie_days = [_st_reference(max_kw=0.3, day=day)["day"] for day in (21.0, 21.5)]
+R.check(
+    "#2257: with the pump's maximum under the held demand the day energy ties "
+    "across two schedules whose setpoints differ (the pump's maximum, all day)",
+    _st_tie_days[0][0] != _st_tie_days[1][0] and _st_tie_days[0][1] == _st_tie_days[1][1] == 0.3 * 24.0,
+    repr([d[1] for d in _st_tie_days]),
+)
+_st_tie_sides = [_st_ns(reference_day=lambda inputs, d=d: d) for d in _st_tie_days]
+R.check(
+    "and the branch is taken on the setpoints, never the energies: the tie is a "
+    "schedule ask, equal setpoints with unequal energies are not",
+    _st_whatif.schedule_days((_st_tie_sides[0], None), (_st_tie_sides[1], None)) == (0.3 * 24.0, 0.3 * 24.0)
+    and _st_whatif.schedule_days(
+        (_st_ns(reference_day=lambda inputs: ([21.0], 5.0)), None),
+        (_st_ns(reference_day=lambda inputs: ([21.0], 6.0)), None)) is None
+    and _st_whatif.schedule_days(
+        (_st_ns(reference_day=lambda inputs: ([21.0, 19.5], 5.0)), None),
+        (_st_ns(reference_day=lambda inputs: ([21.0, 19.51], 6.0)), None)) == (5.0, 6.0),
+    "schedule_days",
+)
 
 
-async def _st_nan_day():
-    """A schedule ask whose day energy is nan: no key, no pair, no fallback."""
+async def _st_nan_day(energy=_st_math.nan):
+    """A schedule ask whose day energy is ``energy`` on both sides: with nan,
+    no key, no pair, no fallback; with a tie, 0.0 on one solve."""
     coord = await _st_coord()
     real = _st_omod.HeatPumpOptimizer.reference_day
-    _st_omod.HeatPumpOptimizer.reference_day = lambda self, inputs: (real(self, inputs)[0], _st_math.nan)
+    _st_omod.HeatPumpOptimizer.reference_day = lambda self, inputs: (real(self, inputs)[0], energy)
     try:
         with _StSeams() as seams:
             record = _solve_record_now(coord)
             cooler = price_tiles.specs(record.config, record.params.max_electrical_power)[0][1]
             answer = await _st_ask(coord, cooler, steady=True)
-            return seams.counts(), _ST_KEY in answer, "monthly_held_cost_delta" in answer, answer.get("error")
+            return (seams.counts(), _ST_KEY in answer, "monthly_held_cost_delta" in answer, answer.get("error"),
+                    answer.get(_ST_KEY))
     finally:
         _st_omod.HeatPumpOptimizer.reference_day = real
 
@@ -32279,13 +32290,20 @@ async def _st_nan_day():
 _st_dt.freeze(_st_dt.now().replace(hour=7, minute=7, second=0, microsecond=0))
 try:
     _st_nan_seen = _asyncio.run(_st_nan_day())
+    _st_tie_seen = _asyncio.run(_st_nan_day(7.2))
 finally:
     _st_dt.freeze(None)
 R.check(
     "#2257: a schedule ask with no day energy answers without the steady key, on "
     "one solve: never the pair's money, never the held or the plan's figure",
-    _st_nan_seen == ((1, 0), False, True, None),
+    _st_nan_seen == ((1, 0), False, True, None, None),
     repr(_st_nan_seen),
+)
+R.check(
+    "#2257: a schedule ask whose two day energies tie reads 0.0 on one solve, "
+    "never the pair's money",
+    _st_tie_seen == ((1, 0), True, True, None, 0.0),
+    repr(_st_tie_seen),
 )
 
 R.section("v5.1.3 — an unusable sensor freezes the learners, not just a quiet one")
@@ -39712,12 +39730,12 @@ R.check(
     "a level the what-if drops would leave that part of the schedule unmoved",
 )
 R.check(
-    "#2257: a degree tile reads the held figure, the cap tile the plan's settled one",
+    "#2257: a degree tile reads the held figure, the cap tile the steady one and never the settled",
     price_tiles.monthly_figure(_pt_specs["target_plus_1"],
                        {"monthly_cost_delta": -9.0, "monthly_held_cost_delta": 30.0}) == 30.0
     and price_tiles.monthly_figure(_pt_specs["power_cap_75"],
                            {"monthly_cost_delta": -40.0, "monthly_held_cost_delta": 0.0,
-                            "monthly_settled_cost_delta": 4.0}) == 4.0
+                            "monthly_settled_cost_delta": 4.0, "monthly_steady_cost_delta": 6.0}) == 6.0
     and price_tiles.monthly_figure(_pt_specs["target_plus_1"], {"monthly_cost_delta": 1.0}) is None,
 )
 _pt_day0 = _pt_date(2026, 1, 1)
@@ -39810,7 +39828,9 @@ async def _pt_degree_at_seam(room):
     record = _solve_record_now(coord)
     out = {}
     for name, overrides in price_tiles.specs(record.config, record.params.max_electrical_power):
-        answer = await coord.async_simulate(dict(overrides), limited=False, base=record)
+        # As the tile rotation asks: the steady figure for the cap alone.
+        answer = await coord.async_simulate(
+            dict(overrides), limited=False, base=record, steady="power_cap_kw" in overrides)
         out[name] = (price_tiles.monthly_figure(overrides, answer), answer.get("monthly_cost_delta"))
     return out
 
@@ -39848,16 +39868,17 @@ R.check(
     f"held {_pt_held}; the plan's single-solve figures {_pt_plan}",
 )
 # A cap keeps the schedule, so the cap tile (and the fuse advisor) read the
-# plan's spend with the heat it left unstored bought back. Unsettled, the
-# figure moves with where the house starts; settled, a coasted and a
-# pre-heated house part it by less (r10_advisor_residue.py whatif sizes both).
+# steady pair: both plans from held starts, the heat each left unstored bought
+# back. The plan's own figure moves with where the house starts; the steady
+# one parts a coasted and a pre-heated house by less (r10_advisor_residue.py
+# whatif sizes both).
 _pt_cap = {k: v["power_cap_75"] for k, v in _pt_seams.items()}
 R.check(
-    "#2257: the cap tile reads the settled figure, which the house's start moves less than the plan's",
+    "#2257: the cap tile reads the steady figure, which the house's start moves less than the plan's",
     all(_pt_cap[k][0] is not None for k in _pt_cap)
     and all(abs(_pt_cap[(h, 19.0)][0] - _pt_cap[(h, 23.0)][0])
             < abs(_pt_cap[(h, 19.0)][1] - _pt_cap[(h, 23.0)][1]) for h in (3, 15)),
-    f"(settled, plan) by (hour, room): {_pt_cap}",
+    f"(steady, plan) by (hour, room): {_pt_cap}",
 )
 
 

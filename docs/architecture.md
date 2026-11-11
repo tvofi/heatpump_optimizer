@@ -141,6 +141,7 @@ custom_components/heatpump_optimizer/
 ├── ledger.py             # Month-keyed ledger of settled energy and money
 ├── currency.py           # The one place the display currency is decided
 ├── wear.py               # Compressor start counting and the wear price it implies
+├── whatif.py             # The what-if's scratch copies, user slot and steady figure's two branches
 ├── wood_fuel.py          # Firewood price and the cheaper-than-pump rule
 │
 │   # Weather, sun and hot water
