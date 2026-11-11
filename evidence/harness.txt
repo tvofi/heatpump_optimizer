@@ -1,0 +1,43 @@
+# head 498c2ab0429d7a6d2ef8d239e3945fe15ff70690
+$ census Dependabot heads
+stale bffd45a03a tests/requirements-coverage.txt coverage 7.13.1 -> 7.17.0
+stale bffd45a03a tests/requirements-typing.txt cryptography 50.0.1 -> 50.0.2
+stale bffd45a03a tests/requirements-typing.txt uv 0.13.4 -> 0.13.6
+summary bffd45a03a files=4 moved=46 stale=3
+stale da3a5cfb8b tests/requirements-coverage.txt coverage 7.17.0 -> 7.17.2
+stale da3a5cfb8b tests/requirements-typing.txt acme 5.8.0 -> 5.9.0
+stale da3a5cfb8b tests/requirements-typing.txt python-dateutil 3.0.0 -> 4.0.0
+stale da3a5cfb8b tests/requirements-typing.txt sqlalchemy 2.1.6 -> 2.1.8
+stale da3a5cfb8b tests/requirements-typing.txt uv 0.13.6 -> 0.13.7
+summary da3a5cfb8b files=5 moved=17 stale=5
+stale 4182e75d77 tests/requirements-typing.txt homeassistant 2026.10.4 -> 2026.11.0
+summary 4182e75d77 files=1 moved=7 stale=1
+rc=1
+$ census controls
+summary 20fc628eee files=4 moved=46 stale=0
+summary b9c009a6b3 files=1 moved=1 stale=0
+summary a555d52ae8 files=5 moved=14 stale=0
+summary 90ebe26159 files=0 moved=0 stale=0
+summary 474719b804 files=0 moved=0 stale=0
+summary a6b4c6e082 files=0 moved=0 stale=0
+summary a3fa096b18 files=0 moved=0 stale=0
+rc=0
+$ self-test
+self-test OK
+rc=0
+$ --tree d08ed31049
+summary tree=d08ed31049 files=5 exposed=17
+rc=1
+$ --tree 699f4d9ef4
+summary tree=699f4d9ef4 files=5 exposed=17
+rc=1
+$ --tree HEAD
+summary tree=HEAD files=5 exposed=17
+rc=1
+$ --tree origin/main
+summary tree=origin/main files=5 exposed=17
+rc=1
+$ --tree on reworded worktree of d08ed31049
+ 2 files changed, 9 insertions(+), 9 deletions(-)
+summary tree=worktree files=5 exposed=0
+rc=0
