@@ -1,16 +1,9 @@
-Fix review: blocked 63c3886a4a2bb173898db4a5c8f06f9c9c382ac2 mutation-vacuous: diff_forkcap_branch, null_forkcap, headtail
+Fix review: merge fe859f3563735327627c5de908b8fb95cde42e7f
 
-bus-nonce: 1a45ffea6de2f41c3f6ba218b547deb3
+bus-nonce: a0d3b45c8d1dc1ad074aa233a951a751
+pending-ci: gate
 
-Round 2 (delta d68d3074..63c3886a, reviewed from a detached worktree at the head; `ev/HEAD.txt`). The class-open block is answered. Three of the first round's surviving mutants are still alive.
-
-## Block
-
-- Surviving mutants on the fix's own lines, carried unchanged from round 1 (the delta adds no check for them; the body's Mutation proof does not mention them). Self-test at the head is 55 checks, 0 failed. Each mutant below also leaves it at 55 checks, 0 failed (`ev/mut_*.txt`, diffs `ev/mut_*.diff`):
-  - `diff_forkcap_branch` (`if rc == FORKCAP_RC:` in `run_diff` -> `if False:`): SURVIVED. Diff-mode FORKCAP has no test.
-  - `null_forkcap` (`if rc == FORKCAP_RC:` before `print("FORKCAP NULL")` in `run_spec` -> `if False:`): SURVIVED. The documented `FORKCAP NULL` line has no test.
-  - `headtail` (STMT_DEL shared-line skip, `if head.strip() or (tail and not tail.startswith("#")):` -> `if False:`): SURVIVED. Nothing exercises `a = 1; b = 2` or `if x: y = 1`.
-  Fix: add a diff-mode FORKCAP check (exit 1, `FORKCAP file:line OPERATOR`), a spec-mode NULL-FORKCAP check, and a shared-line STMT_DEL check; or answer each in the body as equivalent with a `survivor_triage` record.
+Round 3 (delta 63c3886a..fe859f35: `fbca7fe78`/`c8e4a3daf` add four self-test checks and the `SHR` fixture to tools/audit/seat/mutant_run.py, and merge main). I reviewed from a detached worktree at the head (`ev/HEAD.txt`). Every mutant the round-2 block named is now killed, and none of the fix's lines has a known survivor left.
 
 ## Findings
 
@@ -18,10 +11,16 @@ none
 
 ## Evidence
 
-- RESULT block answered: the class-open block (descendants leaving the group or the session). Own harness (`ev/harness.sh`, `ev/esc.py`; the reviewer's, not the finder's; a 150-deep chain, `--fork-cap 32`, one mode per link: pgrp = setpgid, session = setsid, cleanenv = setsid + empty env, plain = control). Clean re-run in `ev/escape_clean_rerun.txt`. At d68d3074: pgrp FORKCAP in 1 s but 150 left; session KILLED (timeout) at 40 s, 150 left; cleanenv KILLED at 40 s, 150 left; plain FORKCAP, 0 left. At the head: pgrp, session and cleanenv FORKCAP in 1 s, 0 left; plain FORKCAP, 0 left. A first all-modes run (`ev/escape_both_ends.txt`) showed 123 leftovers at the head. That was residue from the earlier base runs: my cleanup was incomplete (the hook forbids pkill). I re-ran pgrp, session and cleanenv on a clean host and got 0 left each, and I rely on those re-runs.
-- RESULT self-test at head: 55 checks, 0 failed, rc 0 (`ev/selftest_head.txt`, under `ulimit -u`, timeout 400). Matches the body's 55.
-- RESULT mutants KILLED: `forkcap_no_kill` (3 failed: the pgrp, session and cleanenv chain checks); `finally_kill_off` (2 failed: both daemon checks); `ppid_leg_off` (`root = 0`; 2 failed, then the self-test crashed with ProcessLookupError at its own cleanup kill, so killed, not cleanly). These match the body's claims.
-- RESULT `git merge-tree --write-tree origin/main 63c3886a4a2bb173898db4a5c8f06f9c9c382ac2`: rc 0, no conflict (`ev/merge_tree.txt`).
-- RESULT carry: the body's `Carry: R10-MUTANT-RUN-FORKCAP` names the pending orchestrator ruling (a `fixer.md` exception), and the item is on origin/handoff/audit-r10-roster at c25798dfec, group R10-MUTANT-RUN-FORKCAP, in the roster `carry` list. Acceptance (23 sites, >= 14 from 7) stays unmeasured; I do not re-measure it.
-- RESULT CI: `merge_train.py classify` printed `WAIT 63c3886a4a2bb173898db4a5c8f06f9c9c382ac2 pending: gate red: none`. No required check was red at that time. `owed-reds` is in `ev/owed_reds.txt`. The block is independent of CI.
-- RESULT delta scope: tools/audit/seat/mutant_run.py and its instrument note, plus main-merge noise (gh_calls.py, seat-gh, delivery notes). VERSION, manifest and notes untouched.
+- RESULT the round-2 block is answered. I applied the reviewer's own diffs from verdict/3475@59e4eca to the head unchanged (`ev/mut_2_*.diff`, `ev/mut_3_*.diff`, `ev/mut_4_*.diff`) and ran the self-test under `ulimit -u` with timeout 500:
+  - `diff_forkcap_branch`: KILLED, 59 checks, 2 failed (the diff-mode FORKCAP check and the `--report-only` FORKCAP check), rc 1 (`ev/mut_diff_forkcap_branch.txt`).
+  - `null_forkcap`: KILLED, 1 failed (`FORKCAP NULL, rc 3, no mutant run`), rc 1 (`ev/mut_null_forkcap.txt`).
+  - `headtail`: KILLED, 1 failed (the STMT_DEL shared-line check), rc 1 (`ev/mut_headtail.txt`).
+  These match the body's "2 / 1 / 1 failed".
+- RESULT partial mutants of the shared-line guard (my own, written beyond the block's list so that any remaining survivor shows up in this round): I dropped the head clause (`ev/mut_headtail_nohead.*`), dropped the tail clause (`ev/mut_headtail_notail.*`), and dropped the trailing-comment exemption (`ev/mut_headtail_comment.*`). Each was KILLED with 1 failed, the same shared-line check. The fixture's expected `sites == [4]` separates all three: line 2 tests the head and the tail, line 3 tests the head, and line 4 tests the comment exemption.
+- RESULT self-test at the head: 59 checks, 0 failed, rc 0 (`ev/selftest_head.txt`). This matches the body's 59 (55 + the 4 new checks).
+- RESULT delta review: the new checks assert exact outputs (`["FORKCAP NULL"]` with the stderr reason, rc 3; two `FORKCAP lib.py:N OP` lines, rc 1, in under 40 s; rc 0 under `--report-only`). They are not loose assertions, and the mutant kills above confirm that each one pins its branch. The delta touches only test code inside the self-test, with no production change. The body's other mutants were settled in rounds 1 and 2, and I did not re-run them.
+- RESULT `git merge-tree --write-tree origin/main fe859f35`: rc 0, no conflict (`ev/merge_tree.txt`).
+- RESULT figures: I re-derived the self-test count (59) and the three mutants' failure counts at this head. I did not re-run the body's `tools/pr/prepr.sh` line or the finder's E1/E2 harness at this head. The delta is self-test only, and those results were settled in round 2. The `## Figures` line "55 checks, 0 failed" is the pre-repair count. The body labels it as such in `## Mutation proof` ("55 ... before the third block's four checks; 59 now"), so it is stale wording, not a false claim.
+- RESULT carry: the body's `Carry: R10-MUTANT-RUN-FORKCAP` residual (MUTVAC-STMT-DEL acceptance, which has not been measured) is unchanged from round 2. The review packet's carry_audit reports 1 routed, 0 unrouted.
+- RESULT owed-reds set: `ev/owed_reds.txt`.
+- RESULT CI: `merge_train.py classify fe859f35... --pr 3475` polled every ~70 s from 21:54 to 22:26Z, always `WAIT fe859f3563735327627c5de908b8fb95cde42e7f pending: gate red: none` (`ev/classify_last.txt`). No required check is red. I stopped waiting after 30 minutes, as the brief allows, and the relay posts this verdict only once CI is green at this head.
