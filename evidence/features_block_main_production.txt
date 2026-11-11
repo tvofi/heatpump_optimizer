@@ -1,0 +1,4 @@
+  FAIL a charge-start dip is learned as neither a draw nor usage  [(kWh folded, usage points) heated (0.68904, 0), 5 min after the charge (0.68904, 1), 20 min after (control) (0.68904, 1), space-heating start with no DHW charge on record (control) (0.68904, 1), driven heated-then-settling sequence (0.68904, 1), cooling samples from a 30-min interval started heated / not (control) (0, 1)]
+  FAIL a snapshot restore takes an overflowing day-type count as zero, as the loader does, and keeps a day type with a malformed profile as it was  [(weekend day count, profile length) restored from inf / 7 (control) / 7 beside a 23-long profile / 7 with no profile / -3: ('OverflowError', (7, 24), (0, 24), (0, 24), (0, 24))]
+
+2 of 2 FEATURES BLOCK FAILED

@@ -1,0 +1,26 @@
+# basex
+draw@07:00 dip    {'usage_points': 112, '00:00-24:00': (27, 6.1506)}
+draw@07:00 truth  {'usage_points': 84, '00:00-24:00': (27, 5.5346)}
+draw@07:00 flat   {'usage_points': 84, '00:00-24:00': (27, 5.5346)}
+draw@07:35 dip    {'usage_points': 28, '00:00-24:00': (27, 4.3651)}
+draw@07:35 truth  {'usage_points': 28, '00:00-24:00': (27, 3.6706)}
+draw@07:35 flat   {'usage_points': 58, '00:00-24:00': (27, 3.6706)}
+draw@07:45 dip    {'usage_points': 82, '00:00-24:00': (27, 5.7055)}
+draw@07:45 truth  {'usage_points': 84, '00:00-24:00': (27, 5.5488)}
+draw@07:45 flat   {'usage_points': 84, '00:00-24:00': (27, 5.5488)}
+draw@07:60 dip    {'usage_points': 110, '00:00-24:00': (27, 5.7049)}
+draw@07:60 truth  {'usage_points': 84, '00:00-24:00': (27, 5.549)}
+draw@07:60 flat   {'usage_points': 84, '00:00-24:00': (27, 5.549)}
+# head
+draw@07:00 dip    {'usage_points': 84, '00:00-24:00': (27, 5.5307)}
+draw@07:00 truth  {'usage_points': 84, '00:00-24:00': (27, 5.5326)}
+draw@07:00 flat   {'usage_points': 84, '00:00-24:00': (27, 5.5346)}
+draw@07:35 dip    {'usage_points': 0, '00:00-24:00': (27, 0.1428)}
+draw@07:35 truth  {'usage_points': 0, '00:00-24:00': (27, 0.1438)}
+draw@07:35 flat   {'usage_points': 58, '00:00-24:00': (27, 3.6706)}
+draw@07:45 dip    {'usage_points': 27, '00:00-24:00': (27, 1.7143)}
+draw@07:45 truth  {'usage_points': 28, '00:00-24:00': (27, 1.9468)}
+draw@07:45 flat   {'usage_points': 84, '00:00-24:00': (27, 5.5488)}
+draw@07:60 dip    {'usage_points': 82, '00:00-24:00': (27, 5.0852)}
+draw@07:60 truth  {'usage_points': 84, '00:00-24:00': (27, 5.5487)}
+draw@07:60 flat   {'usage_points': 84, '00:00-24:00': (27, 5.549)}
