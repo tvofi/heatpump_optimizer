@@ -238,6 +238,8 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
         # that a discharged predecessor is closed work, as replan reads it.
         blk = [a for a in entry.get("after") or []
                if a in G and a not in discharged and roster_lib.gates(G[a])]
+        if g in done:
+            blk = []  # a merged group waits on nothing (the legend's not-yet-done rule)
         part = sorted(delivered.get(g) or [])
         sfx = f", part merged #{', #'.join(map(str, part))}" if part else ""
         pr = ", ".join(f"#{n}" for n in open_pr.get(g, [])) or "—"
@@ -366,7 +368,7 @@ def swimlanes(plan: dict, rows: list) -> tuple[str, int]:
                 txt = name if room >= len(name) else (name[:room - 1] + "…" if room >= 4 else "")
                 when = r["s"].strftime("%a %d %b %H:%M")
                 parts.append(
-                    f'<g class="grp" data-st="{r["st"]}" data-name="{html.escape(name)}" '
+                    f'<g class="grp" data-st="{r["st"]}" data-part="{int(r["part"])}" data-name="{html.escape(name)}" '
                     f'data-state="{html.escape(r["label"])}" data-start="{when}" '
                     f'data-eta="{r["finish"]}" data-wave="{_wave_text(r["wave"])}">'
                     f'<title>{r["g"]}: {html.escape(r["label"])}, starts {when}, '
@@ -650,7 +652,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
         return f'<span class="{cls}" title="{e(title)}">#{n}</span>'
 
     trs = "".join(
-        f'<tr class="{r["st"]}" data-st="{r["st"]}"><td class="g">'
+        f'<tr class="{r["st"]}" data-st="{r["st"]}" data-part="{int(r["part"])}"><td class="g">'
         + ('<span class="cp" title="critical path">◆</span>' if r["crit"] else "")
         + f'{e(short(r["g"]))}<div class="lanec">{e(r["lane"])}</div></td>'
         f'<td class="d">{e(r["desc"])}</td>'
@@ -1193,6 +1195,17 @@ def _self_test() -> int:
                   "drawn here plus the 0 unplanned." in page, re.findall(r"status strip counts[^.]*", page))
             # A markdown heading in a brief renders as plain text (carry 4).
             hb = roster_lib.one_line_brief({"brief": "# Fixer brief\n\nDo the thing.\nMore."})
+            dr = {r["g"]: r for r in build_rows(
+                {"groups": [grp("R9-D", "CO", after=("R9-OPEN",), stage="done", commit="aaaaaaa1"),
+                            grp("R9-OPEN", "CO")]}, dict(plan, groups={
+                                "R9-D": plan["groups"]["R9-DONE-SHA"],
+                                "R9-OPEN": plan["groups"]["R9-READY"]}), snap)}
+            check("a done row lists no open group under Blocked by",
+                  dr["R9-D"]["blk"] == [], dr["R9-D"]["blk"])
+            check("the Part merged filter matches the held part-merged row",
+                  'data-part="1"' in co_page and "f==='partial'&&part==='1'" in co_page
+                  and 'data-part="1"' not in render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                                                    plan, dict(snap, merged_prs=snap["merged_prs"][:2])))
             check("a description beginning '# Fixer brief' renders without the '#', lines joined",
                   hb.startswith("Fixer brief") and "#" not in hb and "\n" not in hb, hb)
             check("null control: a description with no heading is unchanged",
@@ -1480,10 +1493,10 @@ td.st{min-width:11rem}
   });
   var bs=document.querySelectorAll('.filters button'), rows=document.querySelectorAll('#rows tr'),
       bars=document.querySelectorAll('svg g.grp'), hide=document.getElementById('hide-done'), f='all';
-  function shown(st){ return (f==='all'||st===f) && !(hide.checked && st==='done'); }
+  function shown(st,part){ return (f==='all'||st===f||(f==='partial'&&part==='1')) && !(hide.checked && st==='done'); }
   function apply(){
-    rows.forEach(function(r){ r.hidden=!shown(r.getAttribute('data-st')); });
-    bars.forEach(function(b){ b.style.display=shown(b.getAttribute('data-st'))?'':'none'; });
+    rows.forEach(function(r){ r.hidden=!shown(r.getAttribute('data-st'),r.getAttribute('data-part')); });
+    bars.forEach(function(b){ b.style.display=shown(b.getAttribute('data-st'),b.getAttribute('data-part'))?'':'none'; });
   }
   bs.forEach(function(b){b.addEventListener('click',function(){
     bs.forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
