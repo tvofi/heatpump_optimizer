@@ -626,6 +626,7 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | What that set-point entity expects | Indoor temperature | Indoor temperature / Flow temperature / Return temperature | A declaration, not a write. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. *Return temperature* is a controller that takes the number as its return-water target (see [Pump duty control](#pump-duty-control)). |
 | Minimum lift above the inlet water (`flow_min_lift_k`) | 5 K | 0.5–15 K, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at the plan's lowest power is the measured inlet water plus this (see [Pump duty control](#pump-duty-control)). |
 | Heating flow ceiling (`flow_heat_c`) | 55 °C | 30–70 °C, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at full planned power, and the highest heating value written. A stored value at or below the 25 °C gate is read as 55 °C. |
+| Follow the planned power on the measured draw (`space_setpoint_power_feedback`) | On | on / off | Shown when the unit above is *Flow* or *Return temperature*; acts only when a heat-pump power sensor is configured too. Closes the heating value on the measured draw (see [Pump duty control](#pump-duty-control)). Off writes the inlet plus the lift. |
 
 ### Power and solar sensors
 
@@ -745,14 +746,60 @@ writes, at every 15-minute plan step:
     such a controller presumably stops), and no higher than the controller accepts: a Luxtronik
     clamps the target to its own minimum return target and return limit, so a ceiling above the
     limit is written but not followed. A controller that starts heating only once the target sits
-    its hysteresis above the return (2 K on a Luxtronik's default) is not started by a smaller lift;
-    it only keeps a running compressor near its minimum. On the install this was written for, a
+    its hysteresis above the return is not started by a smaller lift;
+    it only keeps a running compressor near its minimum. That hysteresis is a setting of the
+    controller, not a fixed 2 K: a Luxtronik accepts 0.5 K at the least, and the start threshold in
+    effect (the return target less the hysteresis) is input 10107 of its Smart Home Interface, which
+    ha-luxtronik-shi publishes as its *Demand border* sensor
+    ([the contributor's answers](https://github.com/tvofi/heatpump_optimizer/pull/3372#issuecomment-6756915104)).
+    This integration does not read it. On the install this was written for, a
     0.5 K lift held 26–31 Hz once running, 1–1.5 K ramped to 73–81 Hz. For a low-temperature floor
     heating, 0.5–2 K and 30–40 °C may be a starting point; check them against the compressor's
     frequency and power.
+  - The integration that exposes the controller must poll it at least
+    every 10 minutes and restore its heating mode after a controller
+    restart: a Luxtronik Smart Home Interface drops every value set through
+    it after 600 s without access and after each restart. Any access
+    re-arms those 600 s, a read as much as a write, so polling alone keeps
+    a written value; ha-luxtronik-shi polls every 30 s by default and
+    offers 10–300 s, and restores what it wrote after a controller restart
+    only where its restore-after-device-reset option is on
+    ([the contributor's answers](https://github.com/tvofi/heatpump_optimizer/pull/3372#issuecomment-6756915104)). A reverted
+    set-point is noticed and written again; a reverted heating mode is not
+    visible to this integration. No second tool may write the same
+    registers: a Luxtronik then silently discards writes (error 816).
   - Downgrading: a version before this option reads *Return temperature* as
     *Indoor temperature* and writes the planned room temperature to the
     entity. Switch the unit back to *Flow temperature* before downgrading.
+- **Power feedback (*Flow* or *Return temperature*, with a heat-pump power
+  sensor).** A controller that integrates on target minus inlet keeps
+  speeding up for as long as the target sits above the water, and the
+  inlet-plus-lift value above rises with the inlet, so the planned level is
+  never reached: on the install that reported it, a planned 0.53 kW drew
+  1.1–1.6 kW. With **Follow the planned power on the measured draw** on (the
+  default), a space-only step below full power writes the inlet-plus-lift
+  value for the first 5 minutes of a run (the controller's start
+  programme), then nudges the heating value 0.2 K per minute down while the
+  draw, averaged over 3 minutes, is above the planned level and up while it
+  is below, and holds it while the two are within 10 % of the planned level
+  (of the pump's minimum power, where the plan asks less).
+  It goes no lower than 0.3 K below the inlet, no higher than the ceiling,
+  and never to the gate. Hot water, both duties, a boost, a defrost, the
+  system-identification experiment and full power write the value above
+  unchanged and start the loop over. Where the controller cuts a written
+  value to its own limits, that cut is taken as the run's limit and no
+  repair is raised. Preconditions on the controller:
+  - its heating hysteresis is at most the lift (Luxtronik: 0.5 K, its
+    minimum), or the first write of a run does not start a stopped
+    compressor — the same limitation as without the loop;
+  - its minimum return target sits below the return during the heating
+    season, or the loop cannot wind the compressor down past it. A
+    Luxtronik cuts the set-point to its minimum return target (input 10104
+    of its Smart Home Interface, parameter 979) and its return limit (input
+    10103, parameter 87), both of which ha-luxtronik-shi publishes as
+    sensors ([the contributor's answers](https://github.com/tvofi/heatpump_optimizer/pull/3372#issuecomment-6756915104)).
+    This integration does not read them: it takes the two limits from the
+    value the controller reports back after a write.
 - **For an *Indoor temperature* entity** each of the three is the step's
   planned room temperature, clamped to the entity's range (5 °C as the gate
   where the mode offers no hot-water-only option). An entity whose own
@@ -851,6 +898,11 @@ catalog below keys off.
 | Price the supply temperature lift (no mixing valve) | off | on/off | For a plant with **no** mixing valve, where the pump feeds the emitters directly. When on, every plan and cost accounts for the pump working harder to make hotter water: the supply temperature is the model's own weather curve plus the offset learned from the *Supply (flow) water temperature* sensor, if you set one. With that sensor the efficiency health watch also judges the pump at a common water temperature, so a hotter supply is not reported as a failing compressor, and it skips any interval where the sensor has no fresh reading — **so while that sensor is dead the watch does not judge space heating at all**. Readings judged this way keep their own baseline, so switching the option or the sensor on or off starts that baseline afresh rather than comparing unlike numbers. **The learned offset is capped at 15 °C**, so on a plant whose supply runs well above the modelled curve only part of the extra work is priced. The lift is only charged above a 35 °C supply. Refused together with a throttling valve, whose tank temperature already sets the price. |
 | Buffer tank size | 35 L | 10–1500, 5 steps | The tank between pump and circuits. It is only planned around as a store when a throttling valve exists and the volume is at least 100 L; below that it holds less than one optimizer step of heat. |
 | Maximum buffer tank temperature | 70 °C | 40–90 | A hard ceiling. The tank is never charged above this, however cheap electricity is. |
+| Hot water is made from the buffer tank (combi tank) | off | on/off | For one tank of heating water that serves both heating and hot water with no separate hot water tank: a multifunction or hygiene store with an internal coil, a tank-in-tank, or a fresh-water station on the buffer. The buffer and the hot water are then planned as **one** store, so its heat is counted once. Refused unless the buffer is a store (a throttling valve and at least 100 L), hot water is on and no wood coil heats the hot water. Enter the tank's heating-water volume as the buffer size. For the buffer cooling rate, prefer the datasheet's ErP standing loss S in watts at 65 °C: the loss per kelvin is S / 45 K, assuming a 20 °C room. Example: 111 W over 504 L is 2.47 W/K, about 0.106 °C/h at the 25 K reference. One probe is read as the whole tank's mean, so point the buffer sensor at the middle well (with a hot water sensor only, that one is used). Two tanks in one shell, a buffer section under a hot water section, are not a combi tank: set them up as two tanks. While it is on, the hot water energy sensor counts the heat pump's hot-water-mode charge of the shared tank, which includes heat the heating later draws from it: it is one store, so no meter can split it by use. |
+| How the tank makes hot water | Internal coil | Internal coil / Tank-in-tank / Fresh-water station / Custom | Changing it fills in the two numbers below (coil 0.85 and 30 L, tank-in-tank 0.95 and 150 L, station 0.75 and 0 L); edit them afterwards, or choose Custom. A multifunction store with a 40 L coil is Internal coil with 40 L. |
+| Exchanger effectiveness | 0.85 | 0.1–1 | (tap − cold inlet) / (tank − cold inlet) at your usual draw flow. It moves the tank temperature a tap minimum needs (45 °C at the tap from a 10 °C inlet needs 51.2 °C in the tank at 0.85); the legionella target stays a tank temperature. A station's effectiveness falls with flow (one table: 0.88 at 16 L/min, 0.58 at 38 L/min), so read it at your typical flow; manufacturers recommend at most 60 °C on the primary side. |
+| Drinking water held inside the tank | 30 L | 0–500 | The coil's content or the inner tank (about 100–250 L); 0 for a station. It adds to the store's heat capacity. |
+| Run the legionella cycle anyway | off | on/off | With 3 L or less of drinking water in the tank there is none standing to disinfect, so the cycle defaults off there; this forces it on. Drinking-water rules still expect delivery at 60 °C (large systems) or 50 °C (small). |
 | Temperature after the wood/heat-pump mixing valve | none | a sensor | With the tank sensors, this says how much of the heating a fire is covering right now, so electric heat can stand down by that much instead of all-or-nothing. |
 | Wood tank top sensor | none | a sensor | **The switch for the two-tank model.** Together with the bottom sensor it says how much a fire has left: a hot top over a cold bottom means the charge is nearly spent. |
 | Wood tank bottom sensor | none | a sensor | Both are needed for the remaining-energy estimate; one alone is read conservatively. |
@@ -1066,9 +1118,12 @@ is set — an install without an ECL110 never touches these topics. See
 | Largest downward offset | −20 °C | −30–0, 0.5 steps | How far the curve may be shifted down during expensive hours. |
 | Largest upward offset | 20 °C | 0–30, 0.5 steps | How far it may be shifted up when storing cheap heat. |
 | Controller response time | 1.5 h | 0.25–6.0, 0.25 steps | Roughly how long the controller takes to act on a new offset, so the optimizer does not ask for changes faster than the system can follow. |
-| Heat-curve offset entity | *(empty)* | a `number` or `input_number` | The same offset written to an entity instead of, or as well as, MQTT: a whole-curve offset, 0 neutral, that the controller forgets on a restart. Turning the optimizer off, or unloading it, writes 0. Refused when it is an entity the optimizer already writes, or when its own range excludes 0. |
-| What the entity is | Offset | Offset | The only kind in this version: a temperature difference, not stored by the controller. |
+| Heat-curve offset entity | *(empty)* | a `number` or `input_number` | The same offset written to an entity instead of, or as well as, MQTT. Kind offset: a whole-curve offset, 0 neutral, that the controller forgets on a restart; turning the optimizer off, or unloading it, writes 0; refused when its own range excludes 0. Kind persistent: a curve setting the controller stores; off and unload write back the value it held before the first write; refused when it reads no value or one outside its own range. Refused when it is an entity the optimizer already writes. |
+| What the entity is | Offset | Offset, Persistent | Offset: a temperature difference, not stored by the controller; prefer it where the controller has one. Persistent: a stored curve setting, displaced from its own value with a daily write cap; see [ecl110.md](ecl110.md#kind-persistent-a-stored-curve-parameter). |
 | Largest offset written to the entity | 3 K | 0.5–5, 0.5 steps | The entity's offset stays within this many kelvin either way, whatever the MQTT range allows. 3 K is an estimate; see [ecl110.md](ecl110.md#without-mqtt-a-number-entity). |
+| Largest displacement of a stored parameter | 3 K | 0.5–5, 0.5 steps | Kind persistent only: the stored setting stays within this many kelvin of its value before the first write. 3 K is an estimate. |
+| Most writes a day to a stored parameter | 12 | 0–48 | Kind persistent only: writes in one local day, the write back on off included, one always kept for it; 0 or 1 writes nothing. 12 rests partly on forum figures and estimates; see [ecl110.md](ecl110.md#kind-persistent-a-stored-curve-parameter). |
+| Least time between writes to a stored parameter | 60 min | 15–360, 15 steps | Kind persistent only: after a write, the next waits at least this long. 60 min is an estimate of three radiator response times. |
 
 ### Reset to factory defaults
 

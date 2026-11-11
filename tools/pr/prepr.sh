@@ -159,10 +159,13 @@ injobs && /^ +[A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/ {
   # The merge queue's base sits between the two (round-9 process review item 2):
   # a `merge_group` run has no pull request and grades like one, never like main.
   # A ci.yml callee's dispatch naming a PR takes its base before `github.sha`.
-  if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| \(inputs\.base && format\(.origin\/\{0\}., inputs\.base\)\))? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
+  if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ ((inputs\.restore_source|needs\.(prelude|gate)\.outputs\.restore_source|steps\.source\.outputs\.sha) \|\| )?github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| \(inputs\.base && format\(.origin\/\{0\}., inputs\.base\)\))? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
   # A workflow_call callee of ci.yml (R10-CI-LAYOUT P2b) adds the dispatched
   # PR's base, `format('origin/{0}', inputs.base)`: still never main's own SHA.
-  else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| format\(.origin\/\{0\}., inputs\.base\))? \}\}[[:space:]]*$/) expr = "pr"
+  else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ ((inputs\.restore_source|needs\.(prelude|gate)\.outputs\.restore_source|steps\.source\.outputs\.sha) \|\| )?github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| format\(.origin\/\{0\}., inputs\.base\))? \}\}[[:space:]]*$/) expr = "pr"
+  # Either form may open with the restore source ci.yml's prelude resolves
+  # (R10-HOTFIX-RESTORE-BASE-SKEW): the merge commit's first parent, which the
+  # pull request cannot choose; any other leading alternative stays unclassified.
   # A listed restore (R9-RO-2) names its pathspecs on the `git diff` line.
   if ($0 ~ /git (checkout|diff --name-only -z .*) "\$PINNED" --( |$)/) { if (expr != "") pinstyle = expr; inpin = 1; next }
   if (inpin) {
@@ -3257,6 +3260,12 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   printf 'jobs:\n  callee:\n    steps:\n      - env:\n          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || format(%s, inputs.base) }}\n        run: |\n          git checkout "$PINNED" -- \\\n            %s\n      - run: node .claude/workflows/pr_only.mjs\n' "'origin/{0}'" "'x.mjs'" > "$WF/callee.yml"
   [ -z "$(pinned_graders "$WF/callee.yml")$(pinned_paths "$WF/callee.yml")$(pin_read problems "$WF/callee.yml")" ]
   st $? 0 "a callee pin falling back to the dispatched PR's base is the PR-only class, not counted and not a problem"
+  sed 's/PINNED: \${{ /&inputs.restore_source || /' "$WF/callee.yml" > "$WF/callee-source.yml"
+  [ -z "$(pinned_graders "$WF/callee-source.yml")$(pinned_paths "$WF/callee-source.yml")$(pin_read problems "$WF/callee-source.yml")" ]
+  st $? 0 "and led by the restore source ci.yml's prelude resolves, it is still that class (R10-HOTFIX-RESTORE-BASE-SKEW)"
+  sed 's/PINNED: \${{ /&inputs.head || /' "$WF/callee.yml" > "$WF/callee-foreign.yml"
+  [ -n "$(pin_read problems "$WF/callee-foreign.yml")" ]
+  st $? 0 "and led by any other input, it stays unclassified (null control)"
   sed 's/format(.origin\/{0}., inputs.base)/inputs.base/' "$WF/callee.yml" > "$WF/callee-bare.yml"
   [ -n "$(pin_read problems "$WF/callee-bare.yml")" ]
   st $? 0 "and a bare \`inputs.base\` fallback, a branch name no checkout resolves, stays unclassified (null control)"
@@ -3272,7 +3281,7 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   awk -v c="python3 -I $OWN --check" '/^rc=0$/ { print c } { print }' "$WF/deleted.sh" > "$WF/above.sh"
   [ "$(pinned_unrun "$WF/above.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader called only above rc=0 is named"
-  for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed queue-base; do
+  for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed queue-base restore-input restore-prelude restore-gate restore-step foreign-source; do
     rm -f "${WF:?}/wf/"*.yml; cp .github/workflows/*.yml "$WF/wf/"
     PERT=$pert python3 - "$WF/wf/governance.yml" <<'PY' || { st 1 0 "governance.yml perturbation ($pert) changes the file"; continue; }
 import os, sys
@@ -3292,6 +3301,11 @@ elif k == "indent4":  # YAML-equal: every line under `jobs:` two spaces deeper
     t = head + "\njobs:\n" + "".join("  " + l if l.strip() else l for l in body.splitlines(True))
 elif k == "renamed": t = s.replace("PINNED", "PIN")
 elif k == "queue-base": t = s.replace(cur, "PINNED: ${{ github.event.pull_request.base.sha || github.sha }}")
+elif k.startswith("restore-"):  # each source ci.yml's prelude resolves, as its readers name it
+    src = {"input": "inputs.restore_source", "prelude": "needs.prelude.outputs.restore_source",
+           "gate": "needs.gate.outputs.restore_source", "step": "steps.source.outputs.sha"}[k[8:]]
+    t = s.replace(cur, cur.replace("${{ ", "${{ " + src + " || "))
+elif k == "foreign-source": t = s.replace(cur, cur.replace("${{ ", "${{ inputs.head || "))
 else: t = s.replace("run: " + full, "run: |\n          if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else python3 -I \\\n            dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check; fi", 1)
 assert t != s, k
 open(p, "w").write(t)
@@ -3300,9 +3314,12 @@ PY
     st $? 1 "governance.yml perturbed ($pert), with step 3e's run deleted, is refused"
     # The reader reads a shape it knows rather than refusing it: with 3e's run
     # present, each of these passes (null control).
-    case $pert in x-flag|bare-python|uv-run|continuation|indent4|queue-base)
+    case $pert in x-flag|bare-python|uv-run|continuation|indent4|queue-base|restore-*)
       pinned_verdict "$PREPR_PATH" "$WF/wf/"*.yml >/dev/null
       st $? 0 "governance.yml perturbed ($pert), with step 3e's run present, passes (null control)" ;;
+    foreign-source)  # R10-HOTFIX-RESTORE-BASE-SKEW: only the resolver's source may lead
+      pinned_verdict "$PREPR_PATH" "$WF/wf/"*.yml >/dev/null
+      st $? 1 "governance.yml perturbed ($pert), with step 3e's run present, is still refused" ;;
     esac
   done
   # The last job of a file is flushed when the next file starts: its problem
@@ -4625,6 +4642,10 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   # roster branch, freshly fetched (`carry_line` above): pr-contract's carry check.
   CARRY_LINE=$(carry_line "$BODY"); CARRY_RC=$?
   step "carry" "$CARRY_RC" "$CARRY_LINE"
+  # Carry 4: the live consumers (the only valid `Carry:` targets) and the group's class
+  # enumeration, as the fixer's brief renders them; informational, never a refusal.
+  CT_REF=$(python3 -I -c 'import sys; sys.path.insert(0, "tools/audit/seat"); import roster_lib as r; print(r.round_ref(r.git_in(".")) or "")' 2>/dev/null)
+  [ -z "$CT_REF" ] || while IFS= read -r l; do say info "carry targets" "$l"; done < <(python3 -I tools/audit/seat/roster_lib.py brief-lines "$CT_REF" "$(git branch --show-current 2>/dev/null)" 2>&1)
 
   # --- 7d. each unpinned site step 6d listed has its disposition (`unpinned_line`).
   UNPINNED_LINE=$(unpinned_line "$BODY" "$UNPINNED_SITES")

@@ -134,11 +134,21 @@ SETUP_CHECK = "bash tools/audit/seat/cloud-setup.sh --check"
 WAIT_LINE = "Never wait in one tool call longer than 240 s; poll again instead."
 
 
-#: The owner's frugal-routing directive (tvofi 2026-11-06, triage s6-batch127 P398),
-#: stated to every role in one line, verbatim.
+#: The owner's frugal-routing directive (tvofi 2026-11-06, triage s6-batch127 P398), stated
+#: to every role in one line, verbatim; a guard refusal is answered by a cheaper sub-seat,
+#: never an inline allowance or a bypass (tvofi 2026-11-09, R10-FLY-CLOUD-FRUGAL-OFF dropped).
 FRUGAL_LINE = ("Discovery reads (search, list, read across files) go through Agent subagents, as the "
-               "frugal routing guard requires; at most 5 inline search operations per prompt; never "
-               "set FRUGAL_ALLOW_INLINE.")
+               "frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet "
+               "Agent subagent to do it rather than bypassing the guard; never set "
+               "FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.")
+
+#: Who owes a red an answer (owner rulings tvofi 2026-11-07, 2026-11-09: no merge is
+#: blocked on a non-required red), stated to the two seats that meet check runs, in one
+#: line naming the instrument that prints the set; the rule itself is defect-root-cause.md's.
+OWED_REDS_ROLES = ("reviewer", "fixer")
+OWED_REDS_LINE = ("A red is owed a `## Red checks` answer, and may block, only when its name is in the set "
+                  "`python3 tools/audit/seat/merge_train.py owed-reds` prints (defect-root-cause.md); any "
+                  "other red is neither answered nor a block.")
 
 #: The policy pack (tools/policy/role_pack.py) a role reads once in place of its
 #: contract and INSTRUMENTS.md. The payload schema has no per-seat environment, so
@@ -176,6 +186,26 @@ def model_refusal(role: str, group: dict, model: str) -> str | None:
     return f"{group.get('group')} rules {ruled} for its {role} (roster model.{key}); --model {model} is not {ruled}"
 
 
+#: The family a carry-only (review_carry CARRY) or record-PR review runs on, whatever the
+#: roster rules for a full review (tvofi 2026-11-01, card 9: a delta re-read needs no opus).
+LIGHT_REVIEW_MODEL = "sonnet"
+
+
+def resolve_model(role: str, group: dict, *, carry_only: bool = False, record_pr: bool = False) -> tuple[str, str]:
+    """The model a dispatch with no --model runs on, and the roster field it was read from
+    (`model.fixer`, `fixerModel`, or the light-review rule), never an opus default. A role
+    the roster rules no model for refuses: a guess goes stale (the overlay's `model` is the
+    flag path's, not a group's)."""
+    if role == "reviewer" and (carry_only or record_pr):
+        return LIGHT_REVIEW_MODEL, "carry-only review" if carry_only else "record-PR review"
+    key = MODEL_KEY.get(role)
+    table = group.get("model") if isinstance(group.get("model"), dict) else {}
+    for field, val in ((f"model.{key}", table.get(key)), (f"{key}Model", group.get(f"{key}Model"))):
+        if key and val:
+            return val, f"roster {field}"
+    raise Refusal(f"{group.get('group')} rules no model for its {role} (roster model.{key}): pass --model")
+
+
 def _seat_line(role: str, repo: str, pr: str, head: str, topic: str, nonce: str) -> str:
     who = {"reviewer": "CLOUD REVIEWER", "fixer": "CLOUD FIXER", "probe": "CLOUD PROBE",
            "designer": "CLOUD DESIGNER", "design-reviewer": "CLOUD DESIGN REVIEWER"}[role]
@@ -198,7 +228,7 @@ def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, r
 
 
 def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str,
-            design: str = "") -> str:
+            design: str = "", reviewed_head: str = "") -> str:
     first = _seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN
     pin = (f"Before any commit, pin the seat identity: `git config user.name {SEAT_NAME} && git config "
            f"user.email {SEAT_EMAIL}`. ") if role in COMMITTING_ROLES else ""
@@ -213,25 +243,49 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
                   f"{PACK_ROLE[role]} --out $HOME/role-pack.md`, then that file in place of your role "
                   "contract and INSTRUMENTS.md; on REFUSE read those files as before.")
     if role == "reviewer":
+        # DISPATCH AT THE HANDOFF (Carry 0): no pull request exists yet, so the reviewer reads the
+        # body at handoff-body/<topic>, renders no packet and waits on no CI, and returns its
+        # verdict on probe/revt-<topic>-<nonce8> as `verdict <topic> <head>`; the relay holds it
+        # until open_pr.sh re-keys the dispatch to the PR (bus.sh rekey) and the carry check passes.
+        at_handoff = not pr
+        subj_key = topic if at_handoff else pr
+        ref_key = f"revt-{topic}" if at_handoff else f"rev-{pr}"
+        where = (f"the body is BODY.md at refs/heads/handoff-body/{topic} (`git fetch origin handoff-body/{topic}`), "
+                 "and no pull request exists yet. There is no review packet and no CI to wait on before the PR "
+                 "opens: say so in the verdict's evidence. " if at_handoff else
+                 "the PR body is in the PR. Start from the review packet, which you render here rather than read from the "
+                 "dispatcher, whose copy is a path on its own machine: "
+                 f"`python3 -I tools/audit/seat/review_packet.py render --pr {pr} --head {head} "
+                 + (f"--reviewed-head {reviewed_head} " if reviewed_head else "") +
+                 "--out $HOME/review-packet.md`. A refusal names its signal and the packet is still "
+                 "written unless the signal is `host-path`; re-read the live checks either way. ")
+        wait_ci = ("\n" if at_handoff else
+                   "Wait for CI on this head only by re-running "
+                   f"`python3 tools/audit/seat/merge_train.py classify {head} --pr {pr}` in the background, at least "
+                   "60 s between runs, until it exits 0 (GREEN), 1 (RED), 2 (unreadable: say so in the verdict) "
+                   "or 4 (APPROVAL-OWED: the only red is the budget raise's approval, which follows your verdict; "
+                   "judge the head as GREEN and quote the line); 3 is WAIT, so run it again. Never wait with `pgrep` or `pkill`, whose `-f` pattern matches "
+                   "the waiter's own command line, nor on a context the ruleset does not require, such as "
+                   "`prelude`. A review_packet `required-red` signal does not stop you while classify prints "
+                   "WAIT: classify decides. If your review is otherwise complete and classify still prints WAIT after "
+                   "about 30 minutes of polling, stop waiting: put the line `pending-ci: <the context names it "
+                   "printed>` straight after the `bus-nonce:` line and return the verdict as below; the relay "
+                   "posts it once CI is green at this head, refuses it over a red, and refuses it if the head moves. "
+                   f"If the review is not complete then, push `Fix review: blocked {head} ci-wait: <the last "
+                   "classify line>` as below.\n")
         body = (
             "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
-            f"exactly. Fetch the PR head with `git fetch origin {head}`; the PR body is in the PR. "
-            "Start from the review packet, which you render here rather than read from the "
-            "dispatcher, whose copy is a path on its own machine: "
-            f"`python3 -I tools/audit/seat/review_packet.py render --pr {pr} --head {head} "
-            "--out $HOME/review-packet.md`. A refusal names its signal and the packet is still "
-            "written unless the signal is `host-path`; re-read the live checks either way. "
+            f"exactly. Fetch the {'handoff' if at_handoff else 'PR'} head with `git fetch origin {head}`; " + where +
+            (f"This is a later round over the reviewed head {reviewed_head}: its scope is the packet's "
+             "`## Review scope` line, the delta and the previous verdict's findings when it reads `delta`, "
+             "widened only to the exact already-reviewed code a production (custom_components/) delta puts "
+             "at non-obvious risk that CI would not detect, the verdict naming path and risk; an "
+             "instrument, test, policy or body delta never widens it (fix-review.md step 12). " if reviewed_head else "") +
             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
             "every figure in the body at this head. Check that it merges with origin/main "
             "(`git merge-tree --write-tree origin/main <head>`); block on main only when that reports a "
             "conflict, never on a head that is behind main but merges cleanly (the train re-proves it on "
-            "the current main). Wait for CI on this head only by re-running "
-            f"`python3 tools/audit/seat/merge_train.py classify {head} --pr {pr}` in the background, at least "
-            "60 s between runs, until it exits 0 (GREEN), 1 (RED), 2 (unreadable: say so in the verdict) "
-            "or 4 (APPROVAL-OWED: the only red is the budget raise's approval, which follows your verdict; "
-            "judge the head as GREEN and quote the line); 3 is WAIT, so run it again. Never wait with `pgrep` or `pkill`, whose `-f` pattern matches "
-            "the waiter's own command line, nor on a context the ruleset does not require, such as "
-            "`prelude`.\n"
+            "the current main). " + wait_ci +
             f"Output: in a fresh directory of your own (`W=$(mktemp -d)`), write verdict.md, whose first line is "
             f"exactly `Fix review: merge {head}` or `Fix review: blocked {head} <class>: <reason>` (no brackets; "
             f"the class is lower-case letters and dashes), in the format the role file gives, "
@@ -255,9 +309,15 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"`R=$(git rev-parse --show-toplevel); G=$(git rev-parse --absolute-git-dir); mkdir -p $W/pr && "
             f"cp -r $W/verdict.md $W/ev $W/pr/ && cd $W/pr && T=$(GIT_DIR=$G GIT_INDEX_FILE=$W/idx GIT_WORK_TREE=$W/pr "
             f"sh -c 'git add -A -f . && git write-tree') && C=$(GIT_DIR=$G git -c user.name={SEAT_NAME} "
-            f"-c user.email={SEAT_EMAIL} commit-tree $T -m \"verdict {pr} {head}\") && "
-            f"git -C $R push -q origin $C:refs/heads/probe/rev-{pr}-{nonce.strip()[:8]}`. "
-            "That ref is the return signal. Do not post comments, approve or merge.")
+            f"-c user.email={SEAT_EMAIL} commit-tree $T -m \"verdict {subj_key} {head}\") && "
+            f"git -C $R push -q origin $C:refs/heads/probe/{ref_key}-{nonce.strip()[:8]}`. "
+            "That ref is the return signal. Do not post comments, approve or merge.\n"
+            # CARRY 8 (P437 C2): 13 of 160 reviewer dispatches ended with no probe ref (11-07, 11-08).
+            "Every way your turn ends pushes a verdict to that ref: a setup or hook refusal that stops you "
+            f"pushes `Fix review: blocked {head} seat-refused: <the refusing line>`; never end your turn while "
+            "a background poll runs. After the push, read the ref back with "
+            f"`git ls-remote origin refs/heads/probe/{ref_key}-{nonce.strip()[:8]}`, and push again if it does "
+            "not print your commit.")
     elif role == "fixer":
         body = (
             "Role: read dev/governance/roles/fixer.md from main, and follow it exactly, "
@@ -307,6 +367,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"Output: write your result as a body file and run `bash tools/audit/seat/body_push.sh "
             f"{topic} <result.md>`, which pushes refs/heads/handoff-body/{topic}; that push is the "
             "return signal. A return push carries only your own result tokens.")
+    if role in OWED_REDS_ROLES:
+        body += "\n" + OWED_REDS_LINE
     refs = f"your return refs and refs/heads/{WIP_NS}/{topic} and refs/heads/{WIP_NS}/{topic}-body" if role == "fixer" else "your return refs"
     tail = (f"Never write to any branch except {refs}. Never work around a hook or a refusal; "
             "report it in your result instead.")
@@ -318,7 +380,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
 
 def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str = "",
            topic: str = "", nonce: str = "", brief: str = "", publish_ref: str = "",
-           design: str = "", pin: str = "") -> dict:
+           design: str = "", pin: str = "", reviewed_head: str = "") -> dict:
     """The payload; with `publish_ref`, its event is the stub naming PROMPT.md at commit
     `pin` of that ref (`publish_seat`)."""
     if role not in ROLES:
@@ -328,10 +390,14 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
     if role == "reviewer":
         if not nonce.strip():
             raise Refusal("a reviewer needs a non-empty bus nonce")
-        if not pr.isdigit():
-            raise Refusal("a reviewer needs --pr <number>")
+        if not pr and topic.strip() and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", topic):
+            pass  # a reviewer at the handoff: the topic keys the dispatch until the PR opens
+        elif not pr.isdigit():
+            raise Refusal("a reviewer needs --pr <number> (or --topic <t>, a reviewer at the handoff before the PR opens)")
     elif not topic.strip() or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", topic):
         raise Refusal("a fixer, probe or design seat needs --topic (letters, digits, . _ -)")
+    if reviewed_head and (role != "reviewer" or not is_head(reviewed_head)):
+        raise Refusal("--reviewed-head is a reviewer's: the 40-hex head a previous verdict names")
     if role == "design-reviewer" and not is_head(design or ""):
         raise Refusal("a design reviewer needs --design <the 40-hex design/<topic> tip it reviews>")
     for name, val in (("environment id", env_id), ("model", model), ("repo", repo)):
@@ -342,7 +408,7 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
     if publish_ref and not is_head(pin):
         raise Refusal("a published seat's stub needs the 40-hex commit holding its PROMPT.md")
     text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref, pin) if publish_ref
-            else _prompt(role, repo, pr, head, topic, nonce, brief, design))
+            else _prompt(role, repo, pr, head, topic, nonce, brief, design, reviewed_head))
     payload = {"job_config": {"ccr": {
         "environment_id": env_id,
         "session_context": {
@@ -435,13 +501,57 @@ def _snapshot(repo_dir: str, ref: str, prompt: str) -> str:
     return _publish(repo_dir, ref, {"PROMPT.md": prompt})
 
 
-def group_brief(group: dict) -> str:
+def group_brief(group: dict, roster: dict | None = None, *, fixer: bool = False) -> str:
     """What a group's seat is briefed with: the roster brief, then `After:` the groups it
     follows, then each carry as `Carry <i>:`, verbatim, `<i>` its 0-based index in the
     roster's list (the index a brief or a verdict cites a carry by)."""
     parts = [(group.get("brief") or "").rstrip("\n"), "After: " + (", ".join(group.get("after") or []) or "none")]
     parts += [f"Carry {i}: {c}" for i, c in enumerate(group.get("carry") or [])]
+    if fixer and roster is not None:  # the generated lines, after everything the roster wrote
+        parts += roster_lib.brief_lines(roster, group.get("group") or "")
     return "\n\n".join(p for p in parts if p) + "\n"
+
+
+#: fixer.md's "at most five findings", applied to a group's pending carries (triage P551).
+PART_CARRIES = 5
+#: The remainder a split folds into its last part rather than dispatching alone (P551: "one or two").
+PART_FOLD = 2
+
+
+def part_split(pending: list[int]) -> str:
+    """The serial parts of `pending` (roster carry indices, in order): fives, a remainder of
+    PART_FOLD or fewer folded into the last; each part's indices as runs (`0-4`, `0-1+3`),
+    parts comma-separated."""
+    parts = [pending[i:i + PART_CARRIES] for i in range(0, len(pending), PART_CARRIES)]
+    if len(parts) > 1 and len(parts[-1]) <= PART_FOLD:
+        parts[-2:] = [parts[-2] + parts[-1]]
+    def runs(idx):
+        out, start = [], 0
+        for j in range(1, len(idx) + 1):
+            if j == len(idx) or idx[j] != idx[j - 1] + 1:
+                out.append(str(idx[start]) if start == j - 1 else f"{idx[start]}-{idx[j - 1]}")
+                start = j
+        return "+".join(out)
+    return ", ".join(runs(p) for p in parts)
+
+
+def part_line(group_id: str, pending: list[int], part: int) -> str:
+    """The generated brief line for `--part <part>`, or "" for a group of five or fewer pending
+    carries dispatched with none. Over five with no part refuses with the split: a silent part 1
+    would re-dispatch part 1's carries at its own handoff, since they stay pending until its merge."""
+    split = part_split(pending)
+    if not part:
+        if len(pending) <= PART_CARRIES:
+            return ""
+        raise Refusal(f"{group_id} holds {len(pending)} pending carries, over the fixer's five (fixer.md): "
+                      f"dispatch serial parts, each at the previous part's handoff, with --part <k>: {split}")
+    if len(pending) <= PART_CARRIES:
+        raise Refusal(f"--part {part}: {group_id} holds five or fewer pending carries ({len(pending)}), no split")
+    parts = split.split(", ")
+    if not 1 <= part <= len(parts):
+        raise Refusal(f"--part {part}: {group_id} splits into {len(parts)} parts: {split}")
+    return (f"Part {part} of {len(parts)}: build carries {parts[part - 1]}; the others are later parts "
+            "dispatched at this part's handoff; answer none of them")
 
 
 def dispatch_ref(role: str, topic: str, pr: str) -> str:
@@ -486,7 +596,9 @@ def design_approved(repo_dir: str, group_id: str) -> bool:
 
 def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
                    roster_ref: str | None = None, head: str = "", pr: str = "", nonce: str = "",
-                   overlay: str | None = None, environ=None, design_exempt: str = "") -> str:
+                   overlay: str | None = None, environ=None, design_exempt: str = "",
+                   carry_only: bool = False, record_pr: bool = False, reviewed_head: str = "",
+                   part: int = 0) -> str:
     """Render the seat for `group_id` from the roster, publish it, return its ref name.
 
     The roster at `roster_ref` of `repo_dir` (default: the round's roster
@@ -507,12 +619,30 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
     group = roster_lib.groups_of(roster).get(group_id)
     if group is None:
         raise Refusal(f"{group_id} is not a group of the roster at {roster_ref}")
-    why = model_refusal(role, group, model)
-    if why:
-        raise Refusal(why)
+    if model:
+        why = model_refusal(role, group, model)
+        if why:
+            raise Refusal(why)
+    else:
+        model, source = resolve_model(role, group, carry_only=carry_only, record_pr=record_pr)
+        print(f"cloud_dispatch: model {model} for the {role} of {group_id}, read from {source}", file=sys.stderr)
     environ = os.environ if environ is None else environ
     known = _config(argparse.Namespace(overlay=overlay, env_id=None, model=model, repo=None), environ)
     topic = group_id if role in DESIGN_ROLES else _topic_of(group)
+    pline = ""
+    if part and role != "fixer":
+        raise Refusal(f"--part is the fixer's: a {role} seat is not split")
+    if role == "fixer" and (part or len(group.get("carry") or []) > PART_CARRIES):
+        try:
+            legacy = roster_lib.read_legacy(repo_dir, roster_lib.roster_path(repo_dir, roster_ref, None))
+        except roster_lib.RosterNotFound as e:
+            raise Refusal(str(e))
+        pline = part_line(group_id, roster_lib.pending_carries(group, legacy), part)
+        if part > 1:
+            topic = f"{topic}-p{part}"
+            for other in roster.get("groups", []):  # a part's topic is a roster group's own: one seat ref, one wrong credit
+                if other is not group and topic in (_topic_of(other), roster_lib.norm_group(str(other.get("group")))):
+                    raise Refusal(f"--part {part}: {topic} is the topic of {other.get('group')}")
     design = ""
     if role == "fixer" and roster_lib.needs_design(group) and not design_exempt.strip():
         if not design_approved(repo_dir, group_id):
@@ -528,11 +658,13 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
         if not design:
             raise Refusal(f"no design/{group_id} on origin to review")
     args = dict(design=design, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
-                pr=pr, topic=topic, brief=group_brief(group))
+                pr=pr, topic=topic,
+                brief=group_brief(group, roster, fixer=role == "fixer") + (f"\n{pline}\n" if pline else ""),
+                reviewed_head=reviewed_head)
     head = head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip()
     if role == "reviewer":
         render(role, head, **args, nonce=BUS_PROBE_NONCE)  # every other refusal, before the bus records
-        nonce = _bus_dispatch(repo_dir, pr, head, model, nonce, environ)
+        nonce = _bus_dispatch(repo_dir, pr, head, model, nonce, environ, reviewed_head)
     ref = dispatch_ref(role, topic, "")
     try:
         publish_seat(repo_dir, ref, role, head, **args, nonce=nonce)
@@ -553,12 +685,14 @@ def _ledger_log(environ) -> list[str]:
     return ["--log", environ["HPO_BUS_LEDGER"]] if environ.get("HPO_BUS_LEDGER") else []
 
 
-def _bus_dispatch(repo_dir: str, pr: str, head: str, model: str, nonce: str, environ) -> str:
+def _bus_dispatch(repo_dir: str, pr: str, head: str, model: str, nonce: str, environ,
+                  reviewed_head: str = "") -> str:
     """The reviewer's nonce through `bus.sh dispatch`, the worker registry: minted, or a nonce
     minted earlier at this pr and head (the relay's) re-recorded with this seat and model. Either
     closes `reviewer-fire <pr> <head>` in the ledger."""
     r = subprocess.run(["bash", str(HERE / "bus.sh"), "dispatch", pr, head, "cloud", "--model", model,
-                        *(["--nonce", nonce] if nonce else [])],
+                        *(["--nonce", nonce] if nonce else []),
+                        *(["--reviewed-head", reviewed_head] if reviewed_head else [])],
                        cwd=repo_dir, env={**os.environ, **environ}, capture_output=True, text=True)
     n = proof_watch.verdict_nonce(r.stdout)
     if r.returncode or not n:
@@ -620,7 +754,22 @@ def _group_checks(check) -> None:
         cbad = {"group": "R10-CBAD", "brief": "Clean.\n", "carry": ["fine", "cd " + users + "someone/work"]}
         ruled = {"group": "R10-M", "brief": "Model.\n", "model": {"fixer": "sonnet", "reviewer": "opus"}}
         legacy = {"group": "R10-L", "brief": "Legacy.\n", "fixerModel": "opus"}
-        land([grp, bad, big, two, cbad, ruled, legacy])
+        prod = {"group": "R10-PROD", "brief": "Produce.\n", "files": ["tools/a.py"], "resume": {"stage": "in-progress"},
+                "enumeration": "git grep -n seam -- tools"}
+        cons = {"group": "R10-CONS", "brief": "Consume.\n", "after": ["R10-PROD"], "resume": {"stage": "queued"}}
+        share = {"group": "R10-SHARE", "brief": "Share.\n", "files": ["tools/a.py", "tools/b.py"], "resume": {"stage": "queued"}}
+        donec = {"group": "R10-DONEC", "brief": "Done.\n", "after": ["R10-PROD"], "resume": {"stage": "done"}}
+        # CARRY 13 (P551): 21 pending carries and a marked one past them; five pending and a moved one.
+        many = {"group": "R10-SPLIT", "brief": "Many.\n", "resume": {"branch": "handoff/r10-split"},
+                "carry": [f"Carry text {i}." for i in range(21)] + ["Built. [implemented: abc1234]"]}
+        five = {"group": "R10-FIVE", "brief": "Five.\n", "carry": [f"Five {i}." for i in range(5)] + ["Gone. [moved: R10-X]"]}
+        # Part 2's topic is R10-CLASH-P2's id, part 3's R10-ALIAS's branch; R10-SELF-P2's part 2 is its own id.
+        clash = {"group": "R10-CLASH", "brief": "Clash.\n", "carry": [f"Clash {i}." for i in range(13)]}
+        clash2 = {"group": "R10-CLASH-P2", "brief": "Own.\n", "resume": {"branch": "handoff/other-topic"}}
+        alias = {"group": "R10-ALIAS", "brief": "Alias.\n", "resume": {"branch": "handoff/r10-clash-p3"}}
+        selfp = {"group": "R10-SELF-P2", "brief": "Self.\n", "resume": {"branch": "handoff/r10-self"},
+                 "carry": [f"Self {i}." for i in range(8)]}
+        land([grp, bad, big, two, cbad, ruled, legacy, prod, cons, share, donec, many, five, clash, clash2, alias, selfp])
         git(work, "remote", "add", "origin", str(origin))
         tip = git(work, "rev-parse", "origin/main").strip()
 
@@ -717,9 +866,81 @@ def _group_checks(check) -> None:
               rc0 == 0 and content(plain.getvalue()) == msg)
         check("the roster brief is inlined and the roster tip is the head",
               "Fix the thing in tools/x.py." in msg and tip in msg)
-        check("a group with no carry renders its brief and `After:` alone (the null control for the carries)",
-              msg.endswith("\nBrief (snapshotted when this payload was rendered):\n"
-                           "Fix the thing in tools/x.py.\n\nAfter: none\n") and "Carry " not in msg)
+        check("a group with no carry, consumer or enumeration renders its brief and `After:` alone (the null control)",
+              fetched(dispatch("R10-L", model="opus"), "PROMPT.md").endswith("\nBrief (snapshotted when this payload was rendered):\n"
+                                                              "Legacy.\n\nAfter: none\n"))
+        # CARRY 4 (tvofi 2026-11-01 card 2): the live consumers and the class enumeration, generated.
+        ptext = fetched(dispatch("R10-PROD"), "PROMPT.md")
+        check("a fixer's brief lists the live consumers (after-edged and file-sharing) as the only valid Carry targets, not the done one",
+              "Valid `Carry:` targets (live consumers of R10-PROD: groups after it or sharing its files): R10-CONS, R10-SHARE\n" in ptext
+              and "R10-DONEC" not in ptext.split("Valid `Carry:` targets")[1])
+        check("and the group's class-enumeration command",
+              "disposition every seam it returns): git grep -n seam -- tools\n" in ptext)
+        # CARRY 13 (P551): over five pending carries refuses with the split; --part k renders one part.
+        saved_cut = dict(roster_lib.CARRY_CUTOVER)
+        roster_lib.CARRY_CUTOVER.clear()  # the fixture's roster has no cut-over commit to read legacy at
+
+        def why_any(*a, **kw) -> str:  # reason(), but any exception reads as a named failure, not a crash
+            try:
+                return reason(*a, **kw)
+            except Exception as e:  # noqa: BLE001 -- a mutant's IndexError must fail a check, not the run
+                return f"{e.__class__.__name__}: {e}"
+
+        def split_any(n: int) -> str:  # part_split of 0..n-1; an exception reads as a named failure, as why_any
+            try:
+                return part_split(list(range(n)))
+            except Exception as e:  # noqa: BLE001
+                return f"{e.__class__.__name__}: {e}"
+        try:
+            mwhy = reason("R10-SPLIT")
+            check("a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split",
+                  "21 pending carries" in mwhy and "--part <k>: 0-4, 5-9, 10-14, 15-20" in mwhy and "\n" not in mwhy
+                  and not git(work, "ls-remote", "origin", "refs/heads/dispatch/fixer-r10-split*").strip())
+            p2 = dispatch("R10-SPLIT", part=2)
+            p2text = fetched(p2, "PROMPT.md")
+            pline = ("Part 2 of 4: build carries 5-9; the others are later parts dispatched at this part's handoff; "
+                     "answer none of them")
+            check("--part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9",
+                  p2 == "dispatch/fixer-r10-split-p2" and "topic r10-split-p2, at head" in p2text
+                  and sum(ln == pline for ln in p2text.splitlines()) == 1 and p2text.endswith(pline + "\n"))
+            cwhy = why_any("R10-CLASH", part=2)
+            awhy = why_any("R10-CLASH", part=3)
+            check("a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; "
+                  "part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish",
+                  "R10-CLASH-P2" in cwhy and "\n" not in cwhy and "R10-ALIAS" in awhy and "\n" not in awhy
+                  and not git(work, "ls-remote", "origin", "refs/heads/dispatch/fixer-r10-clash-p*").strip()
+                  and not why_any("R10-CLASH", part=1) and p2 == "dispatch/fixer-r10-split-p2"
+                  and not why_any("R10-SELF-P2", part=2))
+            p1text = fetched(dispatch("R10-SPLIT", part=1), "PROMPT.md")
+            check("--part 1 keeps the group's own topic and names carries 0-4",
+                  "topic r10-split, at head" in p1text and "\nPart 1 of 4: build carries 0-4; the others" in p1text)
+            check("a part past the split, a part of a group of five or fewer, and a part for another role refuse",
+                  "splits into 4 parts" in why_any("R10-SPLIT", part=5) and "five or fewer" in why_any("R10-FIVE", part=1)
+                  and "fixer's" in why_any("R10-SPLIT", "probe", part=2))
+            fwhy = why_any("R10-FIVE")
+            ftext = "" if fwhy else fetched("dispatch/fixer-" + _topic_of(five), "PROMPT.md")
+            check("five pending carries (a moved sixth not counted) dispatch unrefused, the brief byte-identical (null control)",
+                  not fwhy and ftext.endswith("Brief (snapshotted when this payload was rendered):\n"
+                                 + group_brief(five, {"groups": [five]}, fixer=True)) and "\nPart " not in ftext)
+            check("the split folds a remainder of one or two into the last part, and only that",
+                  [split_any(n) for n in (1, 2, 5, 6, 7, 8, 21, 22, 23)]
+                  == ["0", "0-1", "0-4", "0-5", "0-6", "0-4, 5-7", "0-4, 5-9, 10-14, 15-20", "0-4, 5-9, 10-14, 15-21",
+                      "0-4, 5-9, 10-14, 15-19, 20-22"]
+                  and part_split([0, 1, 3, 4, 5, 6, 9]) == "0-1+3-6+9" and part_split([0, 2, 3]) == "0+2-3")
+            out = io.StringIO()
+            with contextlib.chdir(work), _env(env), contextlib.redirect_stdout(out), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                crc = main(["--role", "fixer", "--group", "R10-SPLIT", "--part", "3", "--model", "m-1"])
+            err = io.StringIO()
+            with contextlib.chdir(work), _env(env), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+                nrc = main(["--role", "fixer", "--part", "2", "--head", tip, "--model", "m-1"])
+            check("the CLI forwards --part to the group path, and refuses it without --group",
+                  crc == 0 and out.getvalue().strip() == "dispatch/fixer-r10-split-p3"
+                  and nrc == 2 and "--part applies only with --group" in err.getvalue())
+        finally:
+            roster_lib.CARRY_CUTOVER.update(saved_cut)
+        check("a reviewer's brief carries neither generated line",
+              "Valid `Carry:`" not in group_brief(prod, {"groups": [prod, cons]}, fixer=False))
         try:
             dispatch("R10-M", model="claude-opus-5-5")
             why = ""
@@ -732,6 +953,21 @@ def _group_checks(check) -> None:
               dispatch("R10-M", model="claude-sonnet-5-5") == dispatch("R10-M", model="sonnet") == "dispatch/fixer-r10-m")
         check("the legacy <role>Model field rules where the model table is absent",
               refused("R10-L", model="claude-sonnet-5-5") and dispatch("R10-L", model="claude-opus-5-5"))
+        # CARRY 8 (tvofi 2026-11-01 card 9): a dispatch with no --model reads the roster's field.
+        errbuf = io.StringIO()
+        with contextlib.redirect_stderr(errbuf):
+            routed = dispatch_group("fixer", "R10-M", "", repo_dir=str(work), environ=env)
+        check("a fixer dispatched with no model runs on the roster's fixer model and prints the model and the field it read",
+              routed == "dispatch/fixer-r10-m" and "model sonnet for the fixer of R10-M, read from roster model.fixer" in errbuf.getvalue())
+        check("the legacy <role>Model field is read where the table is absent, and the field named",
+              resolve_model("fixer", legacy) == ("opus", "roster fixerModel"))
+        check("a roster ruling opus for the reviewer still resolves opus for a first-round review (null control)",
+              resolve_model("reviewer", ruled) == ("opus", "roster model.reviewer"))
+        check("a carry-only review and a record-PR review resolve sonnet whatever the roster rules",
+              resolve_model("reviewer", ruled, carry_only=True)[0] == resolve_model("reviewer", ruled, record_pr=True)[0] == "sonnet"
+              and resolve_model("fixer", ruled, carry_only=True)[0] == "sonnet")
+        check("a role with no ruled model and no --model refuses rather than guessing",
+              refused("R10-X", model="") and "rules no model" in reason("R10-X", model=""))
         check("a role the roster rules no model for is not checked (a probe on R10-M runs on any model)",
               dispatch("R10-M", "probe", model="claude-haiku-5-5") == "dispatch/probe-r10-m")
         twotext = fetched(dispatch("R10-TWO"), "PROMPT.md")
@@ -740,9 +976,11 @@ def _group_checks(check) -> None:
                                "Carry 1: Second; tools/z.py.\n"))
         check("a host path inside a carry refuses as one in the brief does, and pushes nothing",
               refused("R10-CBAD") and "r10-cbad" not in git(work, "ls-remote", str(origin)))
-        check("a re-dispatch of the same brief moves no ref", dispatch() == line
-              and git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]
-              == git(work, "rev-parse", "FETCH_HEAD").strip())
+        dispatch()  # settle: the ref holds this roster's brief for R10-X
+        tip_of = lambda: git(work, "ls-remote", str(origin), "refs/heads/" + line).split()[0]
+        settled = tip_of()
+        check("a re-dispatch of the same brief moves no ref", dispatch() == line and tip_of() == settled)
+        git(work, "fetch", "-q", str(origin), "refs/heads/" + line)
         first = git(work, "rev-parse", "FETCH_HEAD").strip()
         land([{**grp, "brief": "Changed.\n"}, bad])
         dispatch()
@@ -813,6 +1051,23 @@ def _group_checks(check) -> None:
               and git(work, "rev-parse", "origin/main").strip() not in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
         check("the reviewer's brief carries the packet render at the dispatched head for the seat's own machine",
               f"review_packet.py render --pr 7 --head {rhead} " in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
+        rh2 = "c" * 40
+        p_later = _prompt("reviewer", "o/r", "7", rhead, "", "1" * 32, "", "", rh2)
+        p_first = _prompt("reviewer", "o/r", "7", rhead, "", "1" * 32, "")
+        check("a later round's reviewer renders its packet with --reviewed-head and is told its scope is the delta "
+              "(fix-review.md 12); null: a first round's render names no reviewed head",
+              f"render --pr 7 --head {rhead} --reviewed-head {rh2} --out " in p_later
+              and f"later round over the reviewed head {rh2}" in p_later
+              and f"render --pr 7 --head {rhead} --out " in p_first and "--reviewed-head" not in p_first)
+        check("the later-round reviewer prompt carries the exception's three qualifiers and no wider trigger",
+              "custom_components/" in p_later and "non-obvious" in p_later and "CI would not" in p_later
+              and "reaches code that review relied on" not in p_later and "in full" not in p_later)
+        try:
+            render("fixer", rhead, env_id="e", model="m", repo="o/r", topic="t", reviewed_head=rh2)
+            ok = False
+        except Refusal:
+            ok = True
+        check("--reviewed-head is a reviewer's: a fixer given one is refused", ok)
         check("a nonce no dispatch minted is refused by the bus, and records nothing",
               refused(role="reviewer", head=rhead, pr="7", nonce="0" * 32) and len(registry()) == 1)
         check("a packet the renderer refuses holds the reviewer dispatch, and records nothing",
@@ -971,6 +1226,7 @@ def _flag_checks(check) -> None:
     import io
     dests = {a.dest for a in _parser()._actions if a.dest != "help"}
     switches = {a.dest for a in _parser()._actions if a.nargs == 0 and a.dest != "help"}
+    ints = {a.dest for a in _parser()._actions if a.type is int}  # `--part`: a number, forwarded as one
     check("every flag the parser accepts has a --group disposition in GROUP_FLAGS, and no other",
           dests == set(GROUP_FLAGS))
     calls: list = []
@@ -979,7 +1235,7 @@ def _flag_checks(check) -> None:
     try:
         for dest in sorted(dests):
             base = {"role": "fixer", "group": "G-BASE", "model": "m-base"}
-            value = "probe" if dest == "role" else f"value-of-{dest}"
+            value = "probe" if dest == "role" else (True if dest in switches else "7" if dest in ints else f"value-of-{dest}")
             argv = [x for k, v in {**base, dest: value}.items() for x in ("--" + k.replace("_", "-"), v)]
             if dest in switches:  # a switch takes no value
                 argv = argv[:-1]
@@ -992,7 +1248,7 @@ def _flag_checks(check) -> None:
             else:
                 sent = [*calls[0][0], *calls[0][1].values()] if len(calls) == 1 else []
                 check(f"--group forwards --{dest.replace('_', '-')} to dispatch_group",
-                      rc == 0 and value in sent)
+                      rc == 0 and (int(value) if dest in ints else value) in sent)
     finally:
         globals()["dispatch_group"] = real
 
@@ -1057,7 +1313,19 @@ def self_test() -> int:
           all(WAIT_LINE in t and "240 s" in WAIT_LINE for t in prompts.values()))
     check("every role's prompt carries the frugal-routing line once, verbatim (P398)",
           all(sum(line == FRUGAL_LINE for line in t.splitlines()) == 1 for t in prompts.values())
-          and FRUGAL_LINE.startswith("Discovery reads (search, list, read across files) go through Agent subagents"))
+          and FRUGAL_LINE == ("Discovery reads (search, list, read across files) go through Agent subagents, as the "
+                              "frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet "
+                              "Agent subagent to do it rather than bypassing the guard; never set "
+                              "FRUGAL_ALLOW_INLINE and never edit .claude/settings.json."))
+    check("and no prompt grants an inline allowance the guard does not (tvofi 2026-11-09, Carry 9)",
+          not any("inline search operations" in t for t in prompts.values()))
+    owed_roles = ("reviewer", "fixer")  # literal: a mutant of OWED_REDS_ROLES must not move the test too
+    check("the reviewer and the fixer are told, in one line citing its rule, that only a red "
+          "`merge_train.py owed-reds` prints is owed an answer or blocks (tvofi 2026-11-07, 2026-11-09)",
+          all(sum("`python3 tools/audit/seat/merge_train.py owed-reds`" in line and "defect-root-cause.md" in line
+                  for line in prompts[r].splitlines()) == 1 for r in owed_roles))
+    check("and no other role is (null control: a seat that never meets a check run)",
+          not any("owed-reds" in prompts[r] for r in ROLES if r not in owed_roles))
     check("every role with a contract is told to render its pack, the probe is not",
           all(f"role_pack.py render {PACK_ROLE[r]} " in prompts[r] for r in PACK_ROLE)
           and "role_pack.py" not in prompts["probe"])
@@ -1073,6 +1341,22 @@ def self_test() -> int:
           and "exits 0 (GREEN), 1 (RED), 2 (unreadable: say so in the verdict)" in rv and "3 is WAIT" in rv)
     check("the reviewer is forbidden a pgrep or pkill waiter and a context the ruleset does not require",
           "Never wait with `pgrep` or `pkill`" in rv and "such as\n`prelude`" not in rv and "such as `prelude`" in rv)
+    # CARRY 8 (P437 C2): every reviewer stop path ends in a verdict pushed to its probe ref, read back.
+    hv = render("reviewer", head, **base, topic="t-1", nonce="abc123")["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
+    check("the reviewer's setup or hook refusal pushes `seat-refused`, and it reads its ref back, at the PR and at the handoff",
+          all(f"`Fix review: blocked {head} seat-refused: <the refusing line>`" in t
+              and "never end your turn while a background poll runs" in t for t in (rv, hv))
+          and "`git ls-remote origin refs/heads/probe/rev-7-abc123`" in rv
+          and "`git ls-remote origin refs/heads/probe/revt-t-1-abc123`" in hv)
+    check("a required-red packet does not stop the reviewer while classify reads WAIT: classify decides",
+          "A review_packet `required-red` signal does not stop you while classify prints WAIT: classify decides" in rv)
+    check("WAIT is bounded: past about 30 minutes an incomplete review pushes `ci-wait` with the classify line",
+          re.search(r"still prints WAIT after about 30 minutes of polling, stop waiting: .*?If the review is not "
+                    rf"complete then, push `Fix review: blocked {head} ci-wait: <the last classify line>`", rv, re.S)
+          is not None and "ci-wait" not in hv)
+    check("no other role is told any reviewer stop push (null control: the fixer prompt carries none)",
+          all("seat-refused" not in t and "ci-wait" not in t and "refs/heads/probe/" not in t
+              for r, t in prompts.items() if r != "reviewer"))
     check("no other role is told to wait on merge_train.py classify (null control)",
           all("merge_train.py classify" not in t and "pgrep" not in t for r, t in prompts.items() if r != "reviewer"))
     wip, fx = f"refs/heads/{WIP_NS}/t-1", prompts["fixer"]
@@ -1132,7 +1416,22 @@ def self_test() -> int:
     check("a non-hex head is refused", refused(h="g" * 40))
     check("an empty reviewer nonce is refused", refused(nonce=""))
     check("a blank reviewer nonce is refused", refused(nonce="  "))
-    check("a reviewer without --pr is refused", refused(pr=""))
+    check("a reviewer with neither --pr nor --topic is refused", refused(pr="", topic=""))
+    check("a reviewer's --pr must be a number when it is given", refused(pr="x7"))
+    # CARRY 0: a reviewer at the handoff, before the pull request exists, keyed by the topic.
+    def reviewer_text(**kw):
+        a = {**base, "nonce": "abcd1234" * 4, **kw}
+        return render("reviewer", head, **a)["job_config"]["ccr"]["events"][0]["data"]["message"]["content"]
+    hand, pull = reviewer_text(pr="", topic="t-1"), reviewer_text(pr="7", topic="t-1")
+    check("a reviewer at the handoff returns on probe/revt-<topic>-<nonce8> with the subject `verdict <topic> <head>`",
+          "refs/heads/probe/revt-t-1-abcd1234" in hand and f'-m \"verdict t-1 {head}\"' in hand)
+    check("and reads the body at handoff-body/<topic>, renders no packet and waits on no CI",
+          "handoff-body/t-1" in hand and "review_packet.py render" not in hand and "merge_train.py classify" not in hand)
+    check("a reviewer with a PR is told to return a `pending-ci:` draft rather than wait without bound; a handoff reviewer, which waits on no CI, is not",
+          "pending-ci: <the context names" in pull and "pending-ci" not in hand)
+    check("null control: a reviewer with a PR number is unchanged (probe/rev-<pr>, the packet, the CI wait)",
+          "refs/heads/probe/rev-7-abcd1234" in pull and f'-m \"verdict 7 {head}\"' in pull
+          and "review_packet.py render --pr 7" in pull and "merge_train.py classify" in pull and "revt-" not in pull)
     check("a fixer without --topic is refused", refused("fixer", topic=""))
     check("a design reviewer without the 40-hex design tip is refused on the flag path",
           refused("design-reviewer", design="") and not refused("design-reviewer", design=head))
@@ -1163,7 +1462,8 @@ def self_test() -> int:
 #: self-test drives each entry through main() and refuses a flag missing here.
 GROUP_FLAGS = {
     "role": None, "group": None, "model": None, "head": None, "roster_ref": None,
-    "pr": None, "nonce": None, "overlay": None, "design_exempt": None,
+    "pr": None, "nonce": None, "overlay": None, "design_exempt": None, "reviewed_head": None,
+    "carry_only": None, "record_pr": None, "part": None,
     "design": "dispatch_group reads the tip of design/<group> on origin",
     "topic": "the roster gives the topic (the group's branch)",
     "brief": "the roster gives the brief",
@@ -1185,11 +1485,18 @@ def _parser() -> argparse.ArgumentParser:
     ap.add_argument("--topic", default="")
     ap.add_argument("--nonce", default="")
     ap.add_argument("--design", default="", help="a design reviewer's reviewed design/<topic> tip (flag path)")
+    ap.add_argument("--reviewed-head", default="", help="a later round's reviewer: the head the previous verdict "
+                    "names, so the packet renders its delta (fix-review.md step 12)")
     ap.add_argument("--design-exempt", default="", help="a fixer dispatch for an L/XL group whose approved "
                     "design, pre-study or prototype is already on record: the reason")
     ap.add_argument("--brief")
     ap.add_argument("--env-id")
-    ap.add_argument("--model")
+    ap.add_argument("--model", help="with --group, omitted: read from the roster (model.<role>, <role>Model), "
+                    "and the field is printed")
+    ap.add_argument("--carry-only", action="store_true", help="--group reviewer: a review_carry CARRY or delta re-review (sonnet)")
+    ap.add_argument("--record-pr", action="store_true", help="--group reviewer: a record-PR review (sonnet)")
+    ap.add_argument("--part", type=int, default=0, help="--group fixer over five pending carries: the serial "
+                    "part k to dispatch (the refusal without it prints the split)")
     ap.add_argument("--repo")
     ap.add_argument("--overlay")
     ap.add_argument("--out")
@@ -1208,12 +1515,13 @@ def main(argv: list[str]) -> int:
             for dest, why in GROUP_FLAGS.items():
                 if why and getattr(args, dest) != ap.get_default(dest):
                     raise Refusal(f"--{dest.replace('_', '-')} does not apply with --group: {why}")
-            if not args.model:
-                raise Refusal("--group needs --model")
-            print(dispatch_group(args.role, args.group, args.model, roster_ref=args.roster_ref,
+            print(dispatch_group(args.role, args.group, args.model or "", roster_ref=args.roster_ref,
                                  head=args.head or "", pr=args.pr, design_exempt=args.design_exempt,
-                                 nonce=args.nonce, overlay=args.overlay))
+                                 nonce=args.nonce, overlay=args.overlay, reviewed_head=args.reviewed_head,
+                                 carry_only=args.carry_only, record_pr=args.record_pr, part=args.part))
             return 0
+        if args.part:
+            raise Refusal("--part applies only with --group: the roster gives the carries it splits")
         if not args.head:
             raise Refusal("--head is required without --group")
         brief = ""
@@ -1222,7 +1530,8 @@ def main(argv: list[str]) -> int:
                 brief = Path(args.brief).read_text()
             except OSError as e:
                 raise Refusal(f"unreadable brief: {e.__class__.__name__}")
-        known = dict(pr=args.pr, topic=args.topic, nonce=args.nonce, brief=brief, design=args.design, **_config(args))
+        known = dict(pr=args.pr, topic=args.topic, nonce=args.nonce, brief=brief, design=args.design,
+                     reviewed_head=args.reviewed_head, **_config(args))
         if args.publish:
             payload = publish_seat(".", dispatch_ref(args.role, args.topic, args.pr), args.role, args.head,
                                    **known)

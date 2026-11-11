@@ -40,6 +40,7 @@ from .dhw_schedule import (
 from .manual_plan import _pin_is_free
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
+    DhwStore,
     ThermalModel,
     ThermalParameters,
     ThermalState,
@@ -99,6 +100,11 @@ def _tank_decay(ua: float, dt: float, c_dhw: float) -> tuple[float, float]:
     standby gain from the room around the tank. The one copy the LP, the run-up walk and the
     floor repair share."""
     return float(np.clip(1.0 - ua * dt / c_dhw, 0.0, 1.0)), ua * TANK_ROOM_AMBIENT_TEMP * dt / c_dhw
+
+
+def _exo_at(exo_kw: np.ndarray | None, i: int) -> float:
+    """Step ``i`` of a combi store's space-side flux (``_DhwPlanContext.tank_exo_kw``), 0 off combi."""
+    return 0.0 if exo_kw is None else float(exo_kw[i])
 
 
 def _within_ceiling(requirement: Any, max_temp: Any) -> tuple[np.ndarray, np.ndarray]:
@@ -244,10 +250,23 @@ class _DhwPlanContext:
     humidity: np.ndarray | None
     n_steps: int
     dt: float
-    c_dhw: float
+    store: DhwStore
     p_dhw_max: float
     min_run_power: float
     max_lead_steps: int
+    #: Combi: the space side's net flux into the shared store, kW per step,
+    #: which every recursion adds where it subtracts the draw; None off combi.
+    tank_exo_kw: np.ndarray | None = None
+
+    @property
+    def c_dhw(self) -> float:
+        """The store's capacity, kWh/K: the one value the planners divide by."""
+        return self.store.capacity_kwh_per_c
+
+    @property
+    def tank_decay(self) -> tuple[float, float]:
+        """The store's per-step ``_tank_decay`` (share kept, standby gain), for a positive capacity."""
+        return _tank_decay(self.store.ua_kw_per_c, self.dt, self.c_dhw)
 
 
 class _Horizon(Protocol):
@@ -370,7 +389,7 @@ class DhwPlanner:
             ),
             1e-3,
         )
-        standby_loss = p.dhw_tank_heat_loss_coefficient * max(
+        standby_loss = p.dhw_store.ua_kw_per_c * max(
             dhw_setpoint - TANK_ROOM_AMBIENT_TEMP, 0.0
         )
         # The reference house has no wood side, so no refill coil: whatever the
@@ -437,6 +456,7 @@ class DhwPlanner:
         p_dhw_run: float,
         dhw_prices: np.ndarray,
         off_steps: np.ndarray | None = None,
+        exo_kw: np.ndarray | None = None,
     ) -> tuple[bool, float | None, int | None]:
         """Whether the anti-legionella cycle is due, and which step it lands on.
 
@@ -455,7 +475,7 @@ class DhwPlanner:
         interval_hours = float(params.dhw_legionella_interval_days) * 24.0
         hours_since = initial_state.dhw_hours_since_legionella
         if (
-            params.dhw_legionella_enabled
+            params.legionella_cycle_active
             and interval_hours > 0
             and hours_since is not None
             and n_steps > 0
@@ -481,15 +501,10 @@ class DhwPlanner:
             # and never retried. This is the same simulation every later
             # stage runs, so the two cannot disagree about what is reachable.
             off = _legionella_off_mask(off_steps, n_steps)
-            ramp = np.asarray(
-                self.model.simulate_dhw_only(
-                    initial_temp=float(initial_state.dhw_temperature),
-                    dhw_power_schedule=_legionella_charge(n_steps, p_dhw_run, off),
-                    outdoor_temps=outdoor_temps,
-                    draw_rates=draw_rates,
-                    dt_hours=dt,
-                    humidity=humidity,
-                )
+            ramp = self._dhw_plan_temps(
+                _legionella_charge(n_steps, p_dhw_run, off),
+                float(initial_state.dhw_temperature), outdoor_temps, draw_rates, dt,
+                humidity, exo_kw,
             )
             hot = np.where(ramp[1:] >= params.dhw_legionella_temp - 1e-6)[0]
             reach_step = int(hot[0]) if hot.size else n_steps
@@ -580,13 +595,13 @@ class DhwPlanner:
         h: _Horizon,
         *,
         params: ThermalParameters,
-        c_dhw: float,
         draw_rates: np.ndarray,
         floor_temps: np.ndarray,
         p_dhw_run: float,
         legionella_due: bool,
         legionella_hour: float | None,
         legionella_step: int | None,
+        exo_kw: np.ndarray | None = None,
     ) -> _DhwLegionellaPlan:
         """The tank ceilings and run-up floor the cycle needs, verbatim.
 
@@ -598,20 +613,21 @@ class DhwPlanner:
         dt = h.dt
         outdoor_temps = h.outdoor_temps
         humidity = h.humidity
-        max_temp = np.full(max(n_steps, 0), float(params.dhw_max_temp))
+        store = params.dhw_store
+        max_temp = np.full(max(n_steps, 0), float(store.charge_max_temp))
         lp_max_temp = max_temp
         # The run-up the cycle needs, as a per-step FLOOR. Folded into
         # ``requirement`` below rather than into ``ready_temps``, so the step
         # reason codes and the published "required now" keep meaning what
         # they meant.
         runup_temps = np.zeros(max(n_steps, 0))
-        boost_top = min(70.0, float(params.dhw_hard_max_temp))
+        boost_top = min(70.0, float(store.rating_max_temp))
+        c_dhw = store.capacity_kwh_per_c
         if c_dhw > 0.0 and legionella_step is not None and n_steps > 0 and (
-            boost_top > float(params.dhw_max_temp)
+            boost_top > float(store.charge_max_temp)
         ):
-            ua = params.dhw_tank_heat_loss_coefficient
-            decay, gain = _tank_decay(ua, dt, c_dhw)
-            everyday = float(params.dhw_max_temp)
+            decay, gain = _tank_decay(store.ua_kw_per_c, dt, c_dhw)
+            everyday = float(store.charge_max_temp)
             max_temp[legionella_step] = boost_top
 
             # Run-up: walk backwards along the fastest charge the pump can
@@ -646,7 +662,7 @@ class DhwPlanner:
                     0.5,
                 )
                 rise = delivered_heat_kw(params, cop, p_dhw_run) * dt / c_dhw
-                drawn = float(draw_rates[nxt]) * dt / c_dhw
+                drawn = (float(draw_rates[nxt]) - _exo_at(exo_kw, nxt)) * dt / c_dhw
                 need = (need + drawn - gain - rise) / max(decay, 1e-6)
                 if need > boost_top:
                     # Even starting AT the disinfection temperature the pump
@@ -688,7 +704,6 @@ class DhwPlanner:
         h: _Horizon,
         *,
         params: ThermalParameters,
-        c_dhw: float,
         hours_mod: np.ndarray,
         draw_rates: np.ndarray,
         ready_temps: np.ndarray,
@@ -696,6 +711,7 @@ class DhwPlanner:
         p_dhw_run: float,
         dhw_prices: np.ndarray,
         off_steps: np.ndarray | None = None,
+        exo_kw: np.ndarray | None = None,
     ) -> "_DhwLegionellaPlan":
         """The anti-legionella stage: when the cycle runs, and its ceilings.
 
@@ -713,17 +729,18 @@ class DhwPlanner:
             p_dhw_run=p_dhw_run,
             dhw_prices=dhw_prices,
             off_steps=off_steps,
+            exo_kw=exo_kw,
         )
         return self._dhw_legionella_ceilings(
             h,
             params=params,
-            c_dhw=c_dhw,
             draw_rates=draw_rates,
             floor_temps=floor_temps,
             p_dhw_run=p_dhw_run,
             legionella_due=legionella_due,
             legionella_hour=legionella_hour,
             legionella_step=legionella_step,
+            exo_kw=exo_kw,
         )
 
     def _dhw_coil_wood_forecast(
@@ -805,16 +822,17 @@ class DhwPlanner:
         wood_temps: np.ndarray | None,
         holiday_flags: np.ndarray | None = None,
     ) -> tuple[
-        float, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
+        DhwStore, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray
     ]:
-        """Window mask, floors, ready temps, and the planner draw series."""
-        dhw_min_temp = params.dhw_min_temp
-        dhw_setpoint = params.dhw_setpoint
-        idle_min_temp = min(params.dhw_idle_min_temp, dhw_min_temp)
-        # The tank's own capacity, unfloored: the three planners this is
+        """The store, mask, store-frame floors and ready temps, and the draw series."""
+        # The store's own capacity, unfloored: the three planners this is
         # threaded into and the legionella run-up all read this one value
         # (D2-03, the class D2-01 closed in thermal_model.py).
-        c_dhw = params.dhw_tank_thermal_mass
+        store = params.dhw_store
+        c_dhw = store.capacity_kwh_per_c
+        dhw_min_temp = store.store_temp_for_tap(params.dhw_min_temp)
+        dhw_setpoint = params.dhw_setpoint
+        idle_min_temp = min(store.store_temp_for_tap(params.dhw_idle_min_temp), dhw_min_temp)
 
         hours_mod = np.asarray(step_hours, dtype=float) % 24.0
         # Weekly windows (#3): when the configured spec names days, the
@@ -902,7 +920,7 @@ class DhwPlanner:
                             0.0, p90
                         )
             standby_energy = (
-                params.dhw_tank_heat_loss_coefficient
+                store.ua_kw_per_c
                 * max(0.5 * (dhw_setpoint + dhw_min_temp) - TANK_ROOM_AMBIENT_TEMP, 0.0)
                 * window_hours
             )
@@ -921,7 +939,7 @@ class DhwPlanner:
             ready_idx = max(0, start_idx - 1)
             ready_temps[ready_idx] = max(ready_temps[ready_idx], required_ready)
         return (
-            c_dhw,
+            store,
             hours_mod,
             in_window,
             raw_draw_rates,
@@ -940,6 +958,7 @@ class DhwPlanner:
         blocked: bool = False,
         off_steps: np.ndarray | None = None,
         wood_temps: np.ndarray | None = None,
+        tank_exo_kw: np.ndarray | None = None,
     ) -> tuple[DhwPlan, np.ndarray]:
         """Build the DHW availability requirements and a cheapest-first plan.
 
@@ -969,7 +988,7 @@ class DhwPlanner:
         params = self.model.params
         windows, learned_windows = self._effective_dhw_windows()
         (
-            c_dhw,
+            store,
             hours_mod,
             in_window,
             raw_draw_rates,
@@ -986,6 +1005,7 @@ class DhwPlanner:
             wood_temps,
             holiday_flags,
         )
+        tank_exo_kw = store.space_flux(tank_exo_kw)
 
         # The pump serves DHW as an on/off block, not a trickle, so the planner
         # allocates at a realistic run power and never below the level at which
@@ -1019,7 +1039,6 @@ class DhwPlanner:
         ) = self._dhw_legionella_plan(
             h,
             params=params,
-            c_dhw=c_dhw,
             hours_mod=hours_mod,
             draw_rates=draw_rates,
             ready_temps=ready_temps,
@@ -1027,6 +1046,7 @@ class DhwPlanner:
             p_dhw_run=p_dhw_run,
             dhw_prices=dhw_prices,
             off_steps=off_steps,
+            exo_kw=tank_exo_kw,
         )
 
         # How long stored heat actually survives in this tank. The learned
@@ -1083,10 +1103,11 @@ class DhwPlanner:
             humidity=humidity,
             n_steps=n_steps,
             dt=dt,
-            c_dhw=c_dhw,
+            store=store,
             p_dhw_max=p_dhw_run,
             min_run_power=min_run_power,
             max_lead_steps=max_lead_steps,
+            tank_exo_kw=tank_exo_kw,
         )
 
         # Stage 1: a linear program over the whole horizon finds the truly
@@ -1124,6 +1145,7 @@ class DhwPlanner:
             min_run_power=min_run_power,
             max_temp=max_temp,
             humidity=humidity,
+            exo_kw=tank_exo_kw,
         )
 
         # Rounding weak slots down leaves energy the tank was counting on
@@ -1152,6 +1174,7 @@ class DhwPlanner:
             dt=dt,
             max_temp=max_temp,
             humidity=humidity,
+            exo_kw=tank_exo_kw,
         )
         schedule = np.where(schedule < min_run_power - 1e-9, 0.0, schedule)
 
@@ -1197,13 +1220,9 @@ class DhwPlanner:
         if getattr(initial_state, "external_heat_active", False) or getattr(
             initial_state, "peak_guard_active", False
         ):
-            free_temps = self.model.simulate_dhw_only(
-                initial_temp=initial_state.dhw_temperature,
-                dhw_power_schedule=np.zeros(n_steps),
-                outdoor_temps=outdoor_temps,
-                draw_rates=draw_rates,
-                dt_hours=dt,
-                humidity=humidity,
+            free_temps = self._dhw_plan_temps(
+                np.zeros(n_steps), initial_state.dhw_temperature, outdoor_temps,
+                draw_rates, dt, humidity, tank_exo_kw,
             )
             # Only suppress while coasting still meets the requirement. Running
             # out of hot water because a fire was assumed to keep burning is
@@ -1238,6 +1257,7 @@ class DhwPlanner:
                 dt=dt,
                 max_temp=max_temp,
                 humidity=humidity,
+                exo_kw=tank_exo_kw,
             )
             # Same hygiene as the automatic path: a step the rating truncated
             # below the pump's minimum cannot actually run, even a pinned one.
@@ -1370,15 +1390,15 @@ class DhwPlanner:
 
         requirement, max_temp = _within_ceiling(requirement, max_temp)
         params = self.model.params
-        ua = params.dhw_tank_heat_loss_coefficient
-        decay, gain = _tank_decay(ua, dt, c_dhw)
+        decay, gain = ctx.tank_decay
 
-        # Free trajectory: what the tank does with no heating at all.
+        # Free trajectory: the tank with no heating (in combi, under the space side's flux).
         free = np.zeros(n_steps + 1)
         free[0] = initial_temp
         for i in range(n_steps):
             free[i + 1] = (
-                decay * free[i] - float(draw_rates[i]) * dt / c_dhw + gain
+                decay * free[i]
+                - (float(draw_rates[i]) - _exo_at(ctx.tank_exo_kw, i)) * dt / c_dhw + gain
             )
 
         # Influence matrix: A[m, j] = degrees at step m+1 per thermal kWh at j.
@@ -1389,7 +1409,8 @@ class DhwPlanner:
         # COP is temperature dependent; solve once against the requirement
         # level, then re-solve against the trajectory the first pass produced.
         cop = self._dhw_cop_profile(
-            outdoor_temps, np.maximum(requirement, params.dhw_min_temp), humidity
+            outdoor_temps,
+            np.maximum(requirement, ctx.store.store_temp_for_tap(params.dhw_min_temp)), humidity
         )
 
         # --- Capacity contention with space heating -------------------------
@@ -1498,13 +1519,9 @@ class DhwPlanner:
 
             # Refine the COP estimate against the tank temperatures this plan
             # actually produces, so the cost ranking reflects reality.
-            temps = self.model.simulate_dhw_only(
-                initial_temp=initial_temp,
-                dhw_power_schedule=best,
-                outdoor_temps=outdoor_temps,
-                draw_rates=draw_rates,
-                dt_hours=dt,
-                humidity=humidity,
+            temps = self._dhw_plan_temps(
+                best, initial_temp, outdoor_temps, draw_rates, dt, humidity,
+                ctx.tank_exo_kw,
             )
             refined = self._dhw_cop_profile(outdoor_temps, temps[:-1], humidity)
             if np.allclose(refined, cop, rtol=0.02):
@@ -1546,6 +1563,7 @@ class DhwPlanner:
         humidity: np.ndarray | None,
         requirement: np.ndarray,
         unreachable: set[int],
+        exo_kw: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray, int | None]:
         """One round of a planner that fills breaches in time order: the tank
         trajectory under ``plan`` (re-simulated when ``temps`` is ``None``), the
@@ -1554,7 +1572,7 @@ class DhwPlanner:
         when there is none). The greedy planner and the floor repair share it."""
         if temps is None:
             temps = self._dhw_plan_temps(
-                plan, initial_temp, outdoor_temps, draw_rates, dt, humidity
+                plan, initial_temp, outdoor_temps, draw_rates, dt, humidity, exo_kw
             )
         gaps = requirement - temps[1 : plan.size + 1]
         for i in np.where(gaps > 0.05)[0]:
@@ -1570,6 +1588,7 @@ class DhwPlanner:
         draw_rates: np.ndarray,
         dt: float,
         humidity: np.ndarray | None = None,
+        exo_kw: np.ndarray | None = None,
     ) -> np.ndarray:
         return np.asarray(
             self.model.simulate_dhw_only(
@@ -1579,6 +1598,7 @@ class DhwPlanner:
                 draw_rates=draw_rates,
                 dt_hours=dt,
                 humidity=humidity,
+                exo_kw=exo_kw,
             )
         )
 
@@ -1637,7 +1657,7 @@ class DhwPlanner:
         # uses: heat added now is worth less later, so the ceiling bound
         # below can price how much of a top-up still survives at each step.
         params = self.model.params
-        decay, _ = _tank_decay(params.dhw_tank_heat_loss_coefficient, dt, c_dhw)
+        decay, _ = ctx.tank_decay
         # Breaches no ceiling-legal top-up can close. Skipped rather than
         # returned on: a demand window later in the day is not helped by
         # giving up at the first step the tank cannot quite reach, and a
@@ -1651,7 +1671,7 @@ class DhwPlanner:
         for _ in range(48):
             temps, deficit, b = self._dhw_shortfall(
                 temps, plan, initial_temp, outdoor_temps, draw_rates, dt,
-                humidity, req, unreachable,
+                humidity, req, unreachable, ctx.tank_exo_kw,
             )
             if b is None:
                 return plan
@@ -1756,6 +1776,7 @@ class DhwPlanner:
                     dt=dt,
                     max_temp=ceiling,
                     humidity=humidity,
+                    exo_kw=ctx.tank_exo_kw,
                 )
                 plan = np.where(plan < min_run_power - 1e-9, 0.0, plan)
                 if np.array_equal(plan, before):
@@ -1766,7 +1787,8 @@ class DhwPlanner:
                     unreachable.add(b)
                 else:
                     temps = self._dhw_plan_temps(
-                        plan, initial_temp, outdoor_temps, draw_rates, dt, humidity
+                        plan, initial_temp, outdoor_temps, draw_rates, dt, humidity,
+                        ctx.tank_exo_kw,
                     )
             else:
                 # Nothing ceiling-legal can fix this step; move on rather than
@@ -1783,6 +1805,7 @@ class DhwPlanner:
         dt: float,
         max_temp: np.ndarray,
         humidity: np.ndarray | None = None,
+        exo_kw: np.ndarray | None = None,
     ) -> np.ndarray:
         """Never deliver more heat than the tank has room for.
 
@@ -1814,9 +1837,8 @@ class DhwPlanner:
 
         ceiling = np.asarray(max_temp, dtype=float)
         params = self.model.params
-        capacity = params.dhw_tank_thermal_mass
-        ua = params.dhw_tank_heat_loss_coefficient
-        inlet = params.dhw_inlet_reference
+        store = params.dhw_store
+        capacity, ua, inlet = store.capacity_kwh_per_c, store.ua_kw_per_c, store.inlet_c
         temp = float(initial_temp)
 
         for i in range(len(plan)):
@@ -1856,11 +1878,12 @@ class DhwPlanner:
             # be heated — `allowed` comes out negative and floors at zero,
             # so the hours after a disinfection cycle stay closed to
             # re-heating exactly as before.
-            q_draw = float(draw_rates[i]) * dhw_draw_scale(temp, inlet)
+            q_draw = float(draw_rates[i]) * dhw_draw_scale(store.tap_temp_for_store(temp), inlet)
             q_loss = ua * (temp - TANK_ROOM_AMBIENT_TEMP)
             headroom_c = float(ceiling[i]) - temp
+            exo_i = _exo_at(exo_kw, i)
             allowed = power_for_heat_per_cop_kw(
-                params, (headroom_c * capacity / dt + q_draw + q_loss) / cop
+                params, (headroom_c * capacity / dt + q_draw + q_loss - exo_i) / cop
             )
             plan[i] = float(np.clip(plan[i], 0.0, max(0.0, allowed)))
 
@@ -1873,6 +1896,8 @@ class DhwPlanner:
                     hour_of_day=0.0,
                     dt_hours=dt,
                     draw_power=float(draw_rates[i]),
+                    exo_kw=exo_i,
+                    store=store,
                 )
             )
 
@@ -1889,6 +1914,7 @@ class DhwPlanner:
         min_run_power: float,
         max_temp: np.ndarray,
         humidity: np.ndarray | None = None,
+        exo_kw: np.ndarray | None = None,
     ) -> np.ndarray:
         """Round sub-minimum runs up to a power the pump can actually deliver.
 
@@ -1928,23 +1954,13 @@ class DhwPlanner:
         ceiling = np.asarray(max_temp, dtype=float)
         ceiling = np.concatenate([ceiling[:1], ceiling]) + 0.5
 
-        def trajectory(schedule: np.ndarray) -> np.ndarray:
-            return np.asarray(
-                self.model.simulate_dhw_only(
-                    initial_temp=initial_temp,
-                    dhw_power_schedule=schedule,
-                    outdoor_temps=outdoor_temps,
-                    draw_rates=draw_rates,
-                    dt_hours=dt,
-                    humidity=humidity,
-                )
-            )
-
         run_power = min(min_run_power, p_dhw_max)
-        base = trajectory(plan)
+        base = self._dhw_plan_temps(
+            plan, initial_temp, outdoor_temps, draw_rates, dt, humidity, exo_kw)
         joint = plan.copy()
         joint[weak] = run_power
-        joint_temps = trajectory(joint)
+        joint_temps = self._dhw_plan_temps(
+            joint, initial_temp, outdoor_temps, draw_rates, dt, humidity, exo_kw)
         joint_limit = np.maximum(
             ceiling[: joint_temps.size], base[: joint_temps.size]
         )
@@ -1966,7 +1982,7 @@ class DhwPlanner:
             candidate = base.copy()
             if self._dhw_raise_fits(
                 candidate, base, ceiling, slot, plan, outdoor_temps,
-                draw_rates, dt, humidity,
+                draw_rates, dt, humidity, exo_kw,
             ):
                 base = candidate
             else:
@@ -1977,7 +1993,7 @@ class DhwPlanner:
                 # reason as the check itself.
                 self.model.extend_dhw_temps(
                     base, slot, plan, outdoor_temps, draw_rates, dt_hours=dt,
-                    humidity=humidity,
+                    humidity=humidity, exo_kw=exo_kw,
                 )
         repaired: np.ndarray = np.clip(plan, 0.0, p_dhw_max)
         return repaired
@@ -1993,6 +2009,7 @@ class DhwPlanner:
         draw_rates: np.ndarray,
         dt: float,
         humidity: np.ndarray | None,
+        exo_kw: np.ndarray | None = None,
     ) -> bool:
         """Extend ``candidate`` from ``slot`` and say whether it stays in bounds.
 
@@ -2009,7 +2026,7 @@ class DhwPlanner:
             end = pos + _DHW_MIN_RUN_CHUNK
             self.model.extend_dhw_temps(
                 candidate, pos, plan[:end], outdoor_temps, draw_rates,
-                dt_hours=dt, humidity=humidity,
+                dt_hours=dt, humidity=humidity, exo_kw=exo_kw,
             )
             limit = np.maximum(ceiling[pos + 1: end + 1], base[pos + 1: end + 1])
             if not bool(np.all(candidate[pos + 1: end + 1] <= limit + 1e-9)):
@@ -2074,14 +2091,14 @@ class DhwPlanner:
         # Fraction of stored heat lost per hour of storage: raising the tank by
         # ΔT stores C·ΔT kWh but adds U·ΔT kW of standby loss.
         params = self.model.params
-        loss_rate_per_hour = params.dhw_tank_heat_loss_coefficient / c_dhw
+        loss_rate_per_hour = ctx.store.ua_kw_per_c / c_dhw
 
         unreachable: set[int] = set()
         temps: np.ndarray | None = None
         for _ in range(400):
             temps, gaps, k = self._dhw_shortfall(
                 temps, plan, initial_temp, outdoor_temps, draw_rates, dt,
-                humidity, requirement, unreachable,
+                humidity, requirement, unreachable, ctx.tank_exo_kw,
             )
             if k is None:
                 break
@@ -2171,6 +2188,7 @@ class DhwPlanner:
                     draw_rates,
                     dt_hours=dt,
                     humidity=humidity,
+                    exo_kw=ctx.tank_exo_kw,
                 )
                 break
 

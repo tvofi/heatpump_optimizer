@@ -86,3 +86,16 @@ A `fixer` dispatch for an L or XL group is refused unless
 design tip, or `--design-exempt <reason>` names an approved design, pre-study
 or prototype already on record. The tick board's `DESIGN OWED:` line lists the
 groups whose designer is due.
+`--role reviewer --topic <t> --head <handoff tip>` with no `--pr` renders a reviewer at the
+handoff: it reads `handoff-body/<t>`, renders no packet, waits on no CI and returns
+`probe/revt-<t>-<nonce8>` (subject `verdict <t> <head>`). With `--group`, an omitted `--model`
+is read from the roster (`model.<role>`, `<role>Model`) and the field is printed;
+`--carry-only` and `--record-pr` run a reviewer on sonnet. A fixer's brief ends with the live
+consumer groups (the only valid `Carry:` targets) and the group's `enumeration` command,
+from `roster_lib.brief_lines`.
+A `fixer` for a group holding more than five pending carries (`roster_lib.pending_carries`)
+is refused, and the refusal prints the split: index-ordered fives, a remainder of one or two
+folded into the last part. `--part <k>` dispatches part k under topic `<topic>-p<k>` (k over 1)
+with one generated line naming its carries; dispatch each part at the previous part's handoff.
+Every reviewer stop path, a setup refusal and a bounded CI wait included, pushes a verdict to
+its probe ref and reads it back.

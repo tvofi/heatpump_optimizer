@@ -1047,7 +1047,7 @@ def policy_fixture_builders():
         created = iso(at + datetime.timedelta(minutes=from_min))
         until = "programme-end" if until_min is None else iso(at + datetime.timedelta(minutes=until_min))
         return {"id": MID, "user": own, "created_at": created, "updated_at": created,
-                "issue_url": f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/{g.MANDATE_ISSUE}",
+                "issue_url": f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/201",
                 "body": f"MANDATE: agents may approve as {g.OWNER_LOGIN}, scope {scope}, "
                         f"from {created} until {until}"}
 
@@ -2026,7 +2026,7 @@ class Train:
         return self.run(filt, stdin="".join(f + "\n" for f in files))[1].split()
 
     def _mandate_read(self, cid: int) -> "tuple[dict | None, list[dict]]":
-        """The cited comment (None on GitHub's 404) and the tracking issue's
+        """The cited comment (None on GitHub's 404) and every record issue's
         comments since it was written, where a revocation would be --
         budget_raise_gate._mandate's routes, run through `self.run` so the
         self-test answers them and nothing here touches the remote elsewhere."""
@@ -2037,14 +2037,17 @@ class Train:
                 return None, []
             raise Stop("policy", f"mandate {cid} could not be read: " + o.strip()[-160:])
         comment = json.loads(o)
-        if not str(comment.get("issue_url") or "").endswith(g.MANDATE_ISSUE_URL):
+        if not g.on_record_issue(comment):
             return comment, []
-        code, o = self.run(["gh", "api", "--paginate", "--slurp",
-                            f"repos/{self.repo}/issues/{g.MANDATE_ISSUE}/comments"
-                            f"?per_page=100&since={comment.get('created_at')}"])
-        if code:
-            raise Stop("policy", "the mandate thread could not be read: " + o.strip()[-160:])
-        return comment, [c for page in json.loads(o) for c in page]
+        thread = []
+        for n in g.RECORD_ISSUES:
+            code, o = self.run(["gh", "api", "--paginate", "--slurp",
+                                f"repos/{self.repo}/issues/{n}/comments"
+                                f"?per_page=100&since={comment.get('created_at')}"])
+            if code:
+                raise Stop("policy", f"the mandate thread on #{n} could not be read: " + o.strip()[-160:])
+            thread += [c for page in json.loads(o) for c in page]
+        return comment, thread
 
     def policy_gate(self, pr: int, h: str, files: list[str], posting: "dict | None" = None) -> "str | None":
         """THE policy decision, ONE function so the run pass and the batch
@@ -2396,7 +2399,9 @@ class Train:
         """Whether `policy_approve` posts step 5's approval at <h>: (mandate id,
         policy paths, why). The id is None when nothing is posted, and <why>
         then says why ('' when there is nothing to say: no policy path, no
-        --mandate, or the owner's approval already at <h>). A read only -- the
+        --mandate, or the owner's approval already at <h>; or a refusal: the
+        owner's own latest CHANGES_REQUESTED, or a `gh` account that is not
+        the owner's). A read only -- the
         one decision `policy_approve` posts on and `policy_admits` (the
         pre-flight) judges with, so the two cannot drift."""
         cid = self.mandate_id()
@@ -2411,6 +2416,19 @@ class Train:
         if any(g._is_owner(r.get("user")) and r.get("state") == "APPROVED" and r.get("commit_id") == h
                for r in self._reviews(pr, "the policy approval")):
             return None, pol, ""  # the owner's approval is at the head already: never re-posted
+        own = [r for r in self._reviews(pr, "the policy approval")
+               if g._is_owner(r.get("user")) and not g.AGENT_DECLARED.search(r.get("body") or "")
+               and r.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED")]
+        if own and own[-1].get("state") == "CHANGES_REQUESTED":
+            # `budget_raise_gate.approval`'s rule, which refuses a mandated approval over it.
+            return None, pol, (f"{g.OWNER_LOGIN}'s own latest decisive review is CHANGES_REQUESTED, "
+                               "which a mandated approval does not override")
+        code, login = self.run(["gh", "api", "user", "--jq", ".login"])
+        if code or login.strip() != g.OWNER_LOGIN:
+            # The post is the owner's review and the pre-flight judges it as the owner's: a
+            # `gh` account that is not the owner posts one `policy_gate` refuses at the merge.
+            return None, pol, (f"the gh account is {login.strip()[:40] or 'unreadable'}, not {g.OWNER_LOGIN}"
+                               if not code else "the gh account could not be read")
         now = datetime.datetime.now(datetime.timezone.utc)
         try:
             live, why = g.mandate_state(cid, *self._mandate_read(cid), now, now.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -2759,7 +2777,7 @@ class Train:
         return st.split()[-1]
 
     def post_merge(self, pr: int) -> None:
-        """The rest of nudge.md step 12, by `postmerge.py` (the #201 line, the
+        """The rest of nudge.md step 12, by `postmerge.py` (the record-issue line, the
         roster stage, the state docs, main's suite state). Its OWED lines are
         logged and never undo or stop the merge; the tool itself opens the
         ledger's `postmerge-owed` event for a step that failed."""
@@ -4370,14 +4388,17 @@ def _self_test() -> int:
             if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
                 return (0, json.dumps(world["mandate"])) if world.get("mandate") \
                     else (1, "gh: Not Found (HTTP 404)")
-            if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
-                return 0, json.dumps([world.get("thread", [])])
+            if argv[:2] == ["gh", "api"] and any(f"/issues/{n}/comments" in a for n in _mandate_gate().RECORD_ISSUES):
+                # every record issue is read; the fixture's thread is #201's
+                return 0, json.dumps([world.get("thread", []) if "/issues/201/" in a else []])
             if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
                 return (0, "7") if world.get("required", "fast\n") else (1, "HTTP 404")
             if "rulesets/7" in a:
                 return 0, world.get("required", "fast\n")
             if "app_approve.sh" in a:
                 return world.get("approve", (0, "APPROVED"))
+            if argv[:3] == ["gh", "api", "user"]:  # the acting account
+                return 0, world.get("post_user", {"login": "orchestrator"})["login"]
             if argv[:3] == ["gh", "pr", "review"]:
                 # What GitHub would hold after the post: the next reviews read
                 # returns it -- unless the read-back is meant to fail.
@@ -4918,6 +4939,16 @@ def _self_test() -> int:
         check(f"policy post null: {name} posts nothing, and the policy stop is today's",
               rc == 1 and posts(calls) == 0 and "policy:" in lines[-1] and "no decisive review" in lines[-1]
               and not merged(calls))
+    # Carries 7/11 and 8/12 (R10-TRAIN-RESIDUE): the post and the pre-flight's simulation share
+    # `policy_approval_due`, so one refusal each covers both.
+    rc, lines, calls = go({**POL, "reviews": [], "mandate": mandate(NOW),
+                           "post_user": {"login": "someone-else", "id": 9, "type": "User"}}, mandate=str(MID))
+    check("policy post: a gh account that is not the owner posts nothing, and the stop names the account",
+          rc == 1 and posts(calls) == 0 and not merged(calls) and any("gh account is someone-else" in ln for ln in lines))
+    rc, lines, calls = go({**POL, "reviews": [{**owner_review(H0, NOW), "state": "CHANGES_REQUESTED", "body": ""}],
+                           "mandate": mandate(NOW), "post_user": OWNER}, mandate=str(MID))
+    check("policy post: the owner's own latest CHANGES_REQUESTED posts no mandated approval",
+          rc == 1 and posts(calls) == 0 and not merged(calls) and "CHANGES_REQUESTED" in lines[-1])
     rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW), "post_user": OWNER},
                           mandate=str(MID))
     check("policy post: an owner approval already at the head is not re-posted, and it lands",
@@ -7629,6 +7660,8 @@ def _batch_self_test(check) -> None:
                 rf = w.get("reviews_for")
                 return 0, json.dumps([(rf(w["heads"][int(n)]) if rf else [])
                                       + [r for r in w.get("posted", []) if r["pr"] == int(n)]])
+            if argv[:3] == ["gh", "api", "user"]:  # the acting account: the owner's
+                return 0, _mandate_gate().OWNER_LOGIN
             if argv[:3] == ["gh", "pr", "review"]:  # posted as the owner's account, as `gh` is
                 gm = _mandate_gate()
                 w.setdefault("posted", []).append(
@@ -7638,8 +7671,8 @@ def _batch_self_test(check) -> None:
                 return 0, "reviewed"
             if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
                 return (0, json.dumps(w["mandate"])) if w.get("mandate") else (1, "gh: Not Found (HTTP 404)")
-            if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
-                return 0, json.dumps([w.get("thread", [])])
+            if argv[:2] == ["gh", "api"] and any(f"/issues/{n}/comments" in a for n in _mandate_gate().RECORD_ISSUES):
+                return 0, json.dumps([w.get("thread", []) if "/issues/201/" in a else []])
             if "preflight.sh" in a:
                 return 0, "  clean    no refusal"
             if "worktree_gc.sh" in a:

@@ -171,7 +171,7 @@ def self_test():
         # a real gh (the CI runner does; a Mac does not).
         tools = w / "tools"
         tools.mkdir()
-        for tool in ("ps", "tr", "cut", "wc", "mv", "date", "cat", "sh", "sed", "mkdir", "env", "python3", "chmod"):
+        for tool in ("ps", "tr", "cut", "wc", "mv", "date", "cat", "sh", "sed", "mkdir", "env", "python3", "chmod", "git"):
             found = shutil.which(tool)
             if found:
                 (tools / tool).symlink_to(found)
@@ -575,9 +575,54 @@ def self_test():
             ("gh extension exec", ["extension", "exec", "x"]))
         for label, args in refused:
             check(f"{label} is refused", run(args).returncode == 1)
-        mut = good.replace("tracker=201", "tracker=0")
+        # R10-GH-READ-RESIDUE (P449): one install on the daemons' PATH, run from any checkout. The
+        # baked tree t1, a worktree t2 of it, a clone t3 git does not register beside it, and an
+        # untracked file t4 of the same name.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+        from throwaway_git import throwaway_git_clone, throwaway_git_init  # noqa: E402 -- the one throwaway-repo builder
+        t1 = w / "t1"
+        (t1 / "tools" / "pr").mkdir(parents=True)
+        (t1 / "tools" / "pr" / "gh_comment.py").write_text(gcs.read_text())
+        genv = throwaway_git_init(t1, "-q")
+        for argv in (["add", "."], ["commit", "-qm", "x"], ["worktree", "add", "-q", str(w / "t2")]):
+            subprocess.run(["git", *argv], cwd=t1, env=genv, check=True)
+        # t5: a registered worktree whose gh_comment.py git does not track (the tracked half of the rule)
+        subprocess.run(["git", "worktree", "add", "-q", str(w / "t5")], cwd=t1, env=genv, check=True)
+        subprocess.run(["git", "rm", "-q", "--cached", "tools/pr/gh_comment.py"], cwd=w / "t5", env=genv, check=True)
+        throwaway_git_clone(t1, w / "t3", "-q")
+        (w / "t4" / "tools" / "pr").mkdir(parents=True)
+        (w / "t4" / "tools" / "pr" / "gh_comment.py").write_text(gcs.read_text())
+        baked = good.replace("gcpy=@HPO_GH_COMMENT@\n", f"gcpy={t1}/tools/pr/gh_comment.py\n")
+        for label, tree, want_rc in (
+                ("the baked tree's own script", "t1", 7),
+                ("a second registered worktree's tracked script", "t2", 7),
+                ("null control: a clone git does not list beside the baked tree", "t3", 1),
+                ("null control: an untracked file of the same path and name", "t4", 1),
+                ("null control: a registered worktree whose script is not tracked", "t5", 1)):
+            check(f"second tree: {label}",
+                  run([], via=f"{py} -I {w / tree}/tools/pr/gh_comment.py {W}", shim_text=baked).returncode == want_rc)
+        guard_mut = baked.replace('[ "$wl" = "worktree $troot" ] && ok=1', 'ok=1')
+        check("mutant: the worktree registration dropped lets an unlisted clone through",
+              guard_mut != baked and run([], via=f"{py} -I {w / 't3'}/tools/pr/gh_comment.py {W}", shim_text=guard_mut).returncode == 7)
+        tr_mut = baked.replace(" && git -C \"$troot\" ls-files --error-unmatch tools/pr/gh_comment.py >/dev/null 2>&1", "")
+        check("mutant: the tracked-file predicate dropped lets an untracked script in a registered worktree through",
+              tr_mut != baked and run([], via=f"{py} -I {w / 't5'}/tools/pr/gh_comment.py {W}", shim_text=tr_mut).returncode == 7)
+        install(good)
+        mut = good.replace("trackers='201 ", "trackers='0 ")
         check("mutant: the guard's issue number changed lets the planted post through",
               mut != good and run(planted, shim_text=mut).returncode == 7)
+        # The record continues past #201's comment cap: the continuation is guarded alike.
+        rec = good.split("trackers='", 1)[1].split("'", 1)[0].split()[-1]
+        on_rec = ["api", "-X", "POST", f"repos/o/r/issues/{rec}/comments", "-f", f"body={kill_body}"]
+        check("planted: a raw `gh api` post to the continuation record issue is refused",
+              rec != "201" and run(on_rec).returncode == 1)
+        check("planted: a `gh issue comment` on the continuation record issue is refused",
+              run(["issue", "comment", rec, "-b", "x"]).returncode == 1)
+        check("null control: a `gh issue comment` on the issue after it reaches the real gh",
+              run(["issue", "comment", str(int(rec) + 1), "-b", "x"]).returncode == 7)
+        mut = good.replace(f" {rec}'\n", "'\n")
+        check("mutant: the continuation dropped from the trackers lets its planted post through",
+              mut != good and run(on_rec, shim_text=mut).returncode == 7)
         install(good)
 
         # mutants of each rule of the guard: each lets one refused spelling (or spoof) through
@@ -594,7 +639,7 @@ def self_test():
                      "*%*) ;; esac\n  while", ["issue", "comment", "%32%30%32", "-b", "x"], rc=1)
         guard_mutant("trailing slash kept on the target", 'while [ "${w%/}" != "$w" ]; do w=${w%/}; done', ":",
                      ["issue", "comment", "https://github.com/o/r/issues/202/", "-b", "x"], rc=1)
-        guard_mutant("an unreadable target passes", "t=$(num \"${pos[1]}\"); [ \"$t\" != '?' ] && [ \"$t\" != \"$tracker\" ]", 't=$(num "${pos[1]}"); [ "$t" != "$tracker" ]',
+        guard_mutant("an unreadable target passes", "t=$(num \"${pos[1]}\"); [ \"$t\" != '?' ] && ! has \"$trackers\" \"$t\"", 't=$(num "${pos[1]}"); ! has "$trackers" "$t"',
                      ["issue", "comment", "main", "-b", "x"])
         guard_mutant("dot segments kept", "      ''|.) ;;\n      ..) [", "      ''|.) ;;\n      zz) [", ["api", "repos/o/r/issues/202/../201/comments", "-f", "body=x"])
         guard_mutant("empty path segments kept", "      ''|.) ;;\n", "      .) ;;\n",
@@ -609,6 +654,21 @@ def self_test():
                      ["api", "repos/o/r/ISSUES/201/comments", "-f", "body=x"])
         guard_mutant("path segments not lower-cased (comments segment)", "  w=$(printf '%s' \"$w\" | tr 'A-Z' 'a-z')\n", "",
                      ["api", "repos/o/r/issues/201/COMMENTS", "-f", "body=x"])
+        # R10-HOTFIX-SHIM-ESCAPES: gh api's output-only --allow-escape-sequences (merge_train.job_log
+        # always passes it) passes; an unknown flag is named as such, not as a comment write.
+        esc = ["api", "--allow-escape-sequences", "repos/o/r/actions/jobs/7/logs"]
+        check("--allow-escape-sequences on actions/jobs/7/logs passes", run(esc).returncode == 7)
+        r_ = run(["api", "--allow-escape-sequences", "repos/o/r/issues/201/comments", "-f", "body=x"])
+        check("the flag plus -f body=x on issues/201/comments is still refused as a comment write",
+              r_.returncode == 1 and b"comment write on a record issue" in r_.stderr)
+        r_ = run(["api", "--bogus", "repos/o/r/actions/jobs/7/logs"])
+        check("--bogus is refused with the unknown-flag message",
+              r_.returncode == 1 and r_.stderr == b"gh shim: unknown gh api flag --bogus; refused\n")
+        check("null control: a plain GET of a non-tracker path passes", run(["api", "repos/o/r/actions/jobs/7/logs"]).returncode == 7)
+        mut = good.replace(" --allow-escape-sequences'", "'")
+        check("mutant killed: --allow-escape-sequences dropped from API_BOOL (case 1 would fail)",
+              mut != good and run(esc, shim_text=mut).returncode == 1)
+        install(good)
         guard_mutant("a comment by id let through", '[ "$nxt" = comments ] && return 1', ":",
                      ["api", "-X", "PATCH", "repos/o/r/issues/comments/9", "-f", "body=x"])
         guard_mutant("issue close -c value not skipped (target read as the value)", "ISSUE_VAL='-b --body -F --body-file -R --repo -c --comment ", "ISSUE_VAL='-b --body -F --body-file -R --repo ",
@@ -621,9 +681,10 @@ def self_test():
             spec = importlib.util.spec_from_file_location("budget_raise_gate", SHIM.parents[3] / "policy" / "budget_raise_gate.py")
             g = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(g)
-            check("the shim's tracker number is budget_raise_gate.MANDATE_ISSUE", f"tracker={g.MANDATE_ISSUE}\n" in good)
+            check("the shim's trackers are budget_raise_gate.RECORD_ISSUES",
+                  f"trackers='{' '.join(map(str, g.RECORD_ISSUES))}'\n" in good)
         except (OSError, ImportError, AttributeError):
-            check("the shim's tracker number is budget_raise_gate.MANDATE_ISSUE (gate readable)", False)
+            check("the shim's trackers are budget_raise_gate.RECORD_ISSUES (gate readable)", False)
 
         # a shim is never its own real gh. The PATH is hermetic: no real gh on any host.
         (w / "real" / "gh").unlink()

@@ -332,10 +332,15 @@ jobs:
           done
           echo "selftests=${SELFTESTS:-all}: $(wc -l < "$RUNNER_TEMP/selftest-scope.txt") of $(wc -w <<< "$known") gated step(s) run"
 
+      # `settle` rewrites the index after the checkout's last second, so no
+      # traced step's first `git status` re-reads the files the checkout wrote
+      # last (R10-HOTFIX-PREPR-READSET: run 42780661829 put those reads in prepr).
       - name: Install strace for the read-set measurement
         id: strace
         if: env.SELFTEST_TRACE != ''
-        run: sudo apt-get update -q && sudo apt-get install -y -q strace
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q strace
+          python3 -I tools/ci/selftest_scope.py settle
 
       # THE FIVE SLOWEST SELF-TESTS START HERE AND ARE READ AT THE END
       # (R10-HOTFIX-SELFTEST-TIMEOUT). Run in line they were most of this
@@ -862,7 +867,7 @@ jobs:
           python3 -I tools/audit/seat/ledger.py --self-test | tee "$RUNNER_TEMP/ledger-self-test.txt"
           grep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"
 
-      # The after-merge bookkeeping (R10-FLY-TRAIN-DEFAULTS part 2): the #201 line from
+      # The after-merge bookkeeping (R10-FLY-TRAIN-DEFAULTS part 2): the record-issue line from
       # its template and the four steps merge_pr.sh and the train run after a merge.
       - name: Show the post-merge record line refusing its own fixtures
         id: post-merge-record-line
