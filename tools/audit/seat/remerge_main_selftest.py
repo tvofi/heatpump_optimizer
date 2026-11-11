@@ -18,19 +18,21 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+from throwaway_git import throwaway_git_clone, throwaway_git_env, throwaway_git_init  # noqa: E402
+
 SEAT = Path(__file__).resolve().parent
-G = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e"}
 
 
 def sh(*a, cwd=None, env=None):
-    return subprocess.run(a, cwd=cwd, capture_output=True, text=True, env={**os.environ, **G, **(env or {})})
+    return subprocess.run(a, cwd=cwd, capture_output=True, text=True, env={**throwaway_git_env(), **(env or {})})
 
 
 def case(root, script, detached):
     o, r, w = root / "o", root / "r", root / "w"
     for d in (o, r, w):
         shutil.rmtree(d, ignore_errors=True)
-    sh("git", "init", "-q", "-b", "main", str(o))
+    throwaway_git_init(o, "-q", "-b", "main")
     for name, branch in (("a", None), ("b", "fix/x"), ("c", "main")):
         if branch and branch != "main":
             sh("git", "checkout", "-q", "-b", branch, cwd=o)
@@ -39,7 +41,7 @@ def case(root, script, detached):
         (o / name).write_text(name)
         sh("git", "add", name, cwd=o)
         sh("git", "commit", "-qm", name, cwd=o)
-    sh("git", "clone", "-q", str(o), str(r))
+    throwaway_git_clone(o, r, "-q")
     for f in ("pr_args.sh", "gh_read.py"):
         (r / "tools/audit/seat").mkdir(parents=True, exist_ok=True)
         shutil.copy(SEAT / f, r / "tools/audit/seat" / f)
