@@ -1,0 +1,32 @@
+[
+ {
+  "name": "M3-solar-location-not-a-key",
+  "file": "custom_components/heatpump_optimizer/const.py",
+  "old": "frozenset({CONF_SOLAR_LOCATION, \"latitude\", \"longitude\"})",
+  "new": "frozenset({\"latitude\", \"longitude\"})"
+ },
+ {
+  "name": "M4-coordinates-not-keys",
+  "file": "custom_components/heatpump_optimizer/const.py",
+  "old": "frozenset({CONF_SOLAR_LOCATION, \"latitude\", \"longitude\"})",
+  "new": "frozenset({CONF_SOLAR_LOCATION})"
+ },
+ {
+  "name": "R5-value-pass-off",
+  "file": "custom_components/heatpump_optimizer/diagnostics.py",
+  "old": "    removed = under in TO_REDACT\n",
+  "new": "    removed = False\n"
+ },
+ {
+  "name": "R6-redact-only-solar-location",
+  "file": "custom_components/heatpump_optimizer/diagnostics.py",
+  "old": "TO_REDACT = {CONF_TIBBER_TOKEN, CONF_NAME, *LOCATION_KEYS}",
+  "new": "TO_REDACT = {CONF_TIBBER_TOKEN, CONF_NAME, \"solar_location\"}"
+ },
+ {
+  "name": "R7-replay-public-top-only",
+  "file": "custom_components/heatpump_optimizer/debugger.py",
+  "old": "return {key: _public(value) for key, value in node.items() if key not in LOCATION_KEYS}",
+  "new": "return {key: _public(value) for key, value in node.items() if key != \"solar_location\"}"
+ }
+]

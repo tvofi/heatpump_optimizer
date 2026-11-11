@@ -1,0 +1,9 @@
+SURVIVED NULL
+KILLED M1-replay-keeps-location
+KILLED M2-no-location-redaction
+SURVIVED M3-solar-location-not-a-key
+KILLED M4-coordinates-not-keys
+KILLED R5-value-pass-off
+KILLED R6-redact-only-solar-location
+SURVIVED R7-replay-public-top-only
+rc=0

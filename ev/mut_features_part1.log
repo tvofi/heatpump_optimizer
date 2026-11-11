@@ -1,0 +1,4 @@
+SURVIVED NULL
+SURVIVED M1-replay-keeps-location
+KILLED M2-no-location-redaction
+mutant_guard: signal 15, restored custom_components/heatpump_optimizer/const.py, custom_components/heatpump_optimizer/debugger.py, custom_components/heatpump_optimizer/diagnostics.py
