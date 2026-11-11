@@ -1,0 +1,11 @@
+merge_train self-test: 611 checks, 0 failed
+gh_calls self-test: 215 checks, 0 failed
+gh_read self-test: 146 checks, 0 failed
+tick_loop self-test: 30 checks, 0 failed
+beatd self-test: 123 checks, 0 failed
+queue_pre_flight self-test: 53 checks, 0 failed
+orchestrator_tick self-test: 312 checks, 0 failed
+AGREEMENT ok
+STRUCTURE RATCHET PASSED
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+DONE

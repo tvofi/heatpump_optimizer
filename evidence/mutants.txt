@@ -1,0 +1,14 @@
+null: rc=0 SURVIVED | gh_read self-test: 146 checks, 0 failed
+items-not-accumulated: rc=1 KILLED | gh_read self-test: 146 checks, 2 failed
+bound-truncates: rc=1 KILLED | gh_read self-test: 146 checks, 1 failed
+bad-json-empty: rc=1 KILLED | gh_read self-test: 146 checks, 1 failed
+pages-drop-key: rc=0 SURVIVED |   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+runs-approved-empty-true: rc=1 KILLED | merge_train self-test: 611 checks, 9 failed
+gate-deferred-keep-completed: rc=1 KILLED | merge_train self-test: 611 checks, 2 failed
+preflight-comments-ignore-fail: rc=1 KILLED | TypeError: 'NoneType' object is not iterable
+top-rc0: rc=1 KILLED | gh_calls self-test: 215 checks, 5 failed
+shim-admit-any-checkout-file: rc=1 KILLED | gh_calls self-test: 215 checks, 2 failed
+shim-admit-block-deleted: rc=1 KILLED | gh_calls self-test: 215 checks, 5 failed
+tick-no-export: rc=0 SURVIVED | tick_loop self-test: 30 checks, 0 failed
+tick-no-flag: rc=1 KILLED | tick_loop self-test: 30 checks, 1 failed
+beatd-seatbin-wrong-env: rc=1 KILLED | beatd self-test: 123 checks, 1 failed

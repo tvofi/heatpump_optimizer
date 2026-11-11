@@ -1,0 +1,4 @@
+commits/{h}/check-runs", "checkruns") => rc=0 merge_train self-test: 611 checks, 0 failed
+event=pull_request", "workflow_run") => rc=0 merge_train self-test: 611 checks, 0 failed
+ci.yml/runs?head_sha={h}", "runs") => rc=0 merge_train self-test: 611 checks, 0 failed
+jobs?filter=latest", "job") => rc=0 merge_train self-test: 611 checks, 0 failed
