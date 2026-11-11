@@ -1,0 +1,11 @@
+### CMD1: python3 tools/ci/selftest_scope.py check
+Scope governance.yml's instrument-self-tests steps by their measured read sets.
+EXIT=2
+### CMD2: python3 tests/structure.py | tail -3
+  ok   seam_cut_total 421 <= 421
+
+STRUCTURE RATCHET PASSED
+EXIT=0
+### CMD3: python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) | grep -i mode
+  MODE: FULL -- every test script runs, nothing is scoped out.
+EXIT=0

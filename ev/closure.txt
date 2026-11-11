@@ -1,0 +1,4 @@
+Scope governance.yml's instrument-self-tests steps by their measured read sets.
+--- a/tests/closures.json
++++ b/tests/closures.json
++   "tools/audit/seat/remerge_main_selftest.py",
