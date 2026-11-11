@@ -22780,6 +22780,49 @@
     "next_step": "fixer rebuilds outside pull request 3443 with the legacy names installed from the base entity for cores without the native ones (no design step, size S); the pushed head is not adoptable as it is; waits on no group",
     "note": "feature-triage seat for the orchestrator under mandate 6715477401, 2026-11-11: outside pull request 3443 by Bankaifan accepted into round 10; no reviewer on the outside PR itself; no live group owns climate.py or entity.py; overlap admitted (R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-DIAG-REDACT-LOCATION, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-ECL110-MQTT-OFF-NEUTRAL, R10-OUTSIDE-DHW-START-HYSTERESIS): feature-triage seat 2026-11-11 for the orchestrator under mandate 6715477401: outside pull request 3443 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); no live group owns climate.py or entity.py; overlap: tests/entities.py, tests/features.py and tests/finite_boundary.py with in-flight groups, test files only, distinct seams (the climate entity's published names)"
    }
+  },
+  {
+   "group": "R10-HOTFIX-SELFTEST-SCOPE-UNION",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/ci/selftest_closures.json",
+    "tools/ci/selftest_scope.py",
+    ".github/workflows/governance.yml"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "architect_note": "",
+   "carry": [],
+   "brief": "Hotfix, main red. Orchestrator ruling under mandate 6715477401, 2026-11-11 (recorded as P584 in triage batch 169). Main a7628041dc is red on governance / instrument-self-tests, step drift (Refuse a self-test read set the committed table misses), with 6 UNDER-SCOPED refusals: verdict-bus and review-packet miss dev/governance/roles/fix-review.md; prepr misses .gitattributes, tests/env_drift.py and tools/merge/ledger_merge.py; open-pr, pr-args and update-pr miss the probe -c. The step has been red on every completed main push since PR 3315. Evidence: job 130352715261 of workflow run 42968587919, whose selftest-closures artifact is the measured table (gh run download 42968587919 -n selftest-closures); the orchestrator's main-red diagnosis holds the commands behind every figure and is relayed on request. Causes: PR 3379 added a read of fix-review.md in review_packet.py (review_packet.py:921, step12) without touching the table; PR 3419's re-record removed the other entries, because `record` (selftest_scope.py:701) does entries.update per step (selftest_scope.py:743) and so REPLACES a step's read set with whatever one non-push recording saw. The drift step runs only on a main push under strace (governance.yml:297 sets SELFTEST_TRACE on push only; the step's guard is at governance.yml:1496), so a pull request judges nothing and no merge is refused. PART 1 (fires at once, its own pull request): add the 6 measured misses to tools/ci/selftest_closures.json exactly as the diagnosis lists (verdict-bus and review-packet files += fix-review.md; prepr files += the three; prepr git += branch; open-pr, pr-args, update-pr probes += -c), ADD to each existing entry, never replace the table with the artifact, keep prepr's required-contexts.json and git fetch; nothing else. Proof: the next main push's drift step prints 0 refusals; before it, a python set check that artifact minus table is empty for the 6 steps. PART 2 (the class barrier owed by defect-root-cause.md: this is at least the third hotfix of the class, after R10-HOTFIX-MAIN-SELFTESTS, R10-HOTFIX-SELFTEST-SCOPE-HANG and R10-HOTFIX-PREPR-SELFTEST-DARWIN): (a) `record` unions a step's new measurement with its prior entry instead of replacing it, with a separate explicit way to drop a read, failing test first and mutation proof; (b) a pre-merge detector that refuses a pull request adding a read to a gated self-test without the table entry (PR 3379's shape), demonstrated against PR 3379's diff and with a null control on a pull request that adds no read; (c) decide WITH NUMBERS whether the drift step can run on pull_request (strace install and traced-run wall time per job from the main-push jobs, against the gate's budget), and either wire it or record the refusal with those figures. Fixer and reviewer opus: there is no local oracle (no strace on Darwin), the step runs only on a Linux main push.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "part 1 fixer at once; part 2 after part 1 merges",
+    "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: main-red hotfix, triage s14-9 wrote the group"
+   }
   }
  ]
 }
