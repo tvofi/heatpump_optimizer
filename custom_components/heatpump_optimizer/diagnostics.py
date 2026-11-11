@@ -15,10 +15,10 @@ values; the owner decided that this is not worth publishing any part of a
 home location. Redaction uses Home Assistant's own ``async_redact_data``, so
 it holds at any depth rather than only over the top-level keys of ``entry.data``.
 
-The one deliberate exception is the debug bundle's sealed replay document
-(``debug.replay``). It needs the coordinate for the solar forecast,
-``replay_doc`` rounds it to two places itself and checks it in its own leak
-check, and redacting inside it would break that check.
+The debug bundle's sealed replay half (``debug.replay``) is built without
+any location key (``debugger._public``), because ``replay_doc`` would keep a
+coordinate to two places and its shape check refuses a redaction marker; so
+both passes run over the whole payload and no section is held out of them.
 
 What is kept, and why, because over-redaction makes a diagnostics file
 useless for the support it exists for: the entity ids, which say which
@@ -78,7 +78,7 @@ from homeassistant.util import dt as dt_util
 
 from . import heat_curve
 from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc
-from .const import CONF_COP_SCALE, CONF_SOLAR_LOCATION, CONF_TIBBER_TOKEN, DOMAIN, PRIVATE_ENTITY_ID
+from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, LOCATION_KEYS, PRIVATE_ENTITY_ID
 from .drift import stored_age_seconds
 from .inputs import OUTRANKS_STALE, describe_problem, health_summary
 from .thermal_model import probe_install
@@ -91,13 +91,13 @@ from .coordinator import (
 from .payload import LearningView
 
 #: Keys whose values never leave the instance, at any depth: the Tibber
-#: credential, the location (``solar_location`` whole, and any ``latitude`` /
-#: ``longitude`` elsewhere), and the entry name, which is free text the user typed and
+#: credential, the location (``LOCATION_KEYS``), and the entry name, which is
+#: free text the user typed and
 #: which nothing outside the config flow's entry title reads. Redacting
 #: ``name`` at any depth is deliberate even though it is a common key --
 #: blanking an internal label a future summary adds is a far cheaper failure
 #: than publishing a household name, and a privacy control fails safe.
-TO_REDACT = {CONF_TIBBER_TOKEN, CONF_NAME, CONF_SOLAR_LOCATION, "latitude", "longitude"}
+TO_REDACT = {CONF_TIBBER_TOKEN, CONF_NAME, *LOCATION_KEYS}
 
 #: The input watchdog's published keys (the coordinator's input health view).
 INPUT_KEYS = (
@@ -396,7 +396,7 @@ async def async_get_config_entry_diagnostics(
     # the debug bundle's payload snapshots and store documents included. The
     # value pass then finds what they removed under any other key.
     private = frozenset(_private_values([dict(entry.data), dict(entry.options)]))
-    payload = _without_private_ids(
+    redacted: dict[str, Any] = _without_values(async_redact_data(_without_private_ids(
         {
             "exported_at": now.isoformat(),
             "entry": {
@@ -415,11 +415,5 @@ async def async_get_config_entry_diagnostics(
                 f"{DOMAIN}_{entry.entry_id}_debug",
             ) if collector else None,
         }
-    )
-    # The one exception: the sealed replay document is held out of both passes
-    # and put back, because redacting inside it breaks its own check.
-    debug = payload["debug"] if isinstance(payload["debug"], dict) else {}
-    held = {"replay": debug.pop("replay")} if "replay" in debug else {}
-    redacted: dict[str, Any] = _without_values(async_redact_data(payload, TO_REDACT), private)
-    redacted["debug"] = {**redacted["debug"], **held} if held else redacted["debug"]
+    ), TO_REDACT), private)
     return redacted
