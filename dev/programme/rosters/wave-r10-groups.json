@@ -21084,7 +21084,7 @@
    "architect_note": "",
    "brief": "P453: worktree_gc.sh removes a live train or relay checkout (five instances on 11-08); keep a worktree a live long-running process reads from, not only its cwd holder. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null
    }
   },
