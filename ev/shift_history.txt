@@ -1,0 +1,41 @@
+== table at d08ed31049
+synthetic-dhw-only.json: classes examined 7 ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']
+rc=0
+== table at 6715d97332
+synthetic-dhw-only.json: classes examined 7 ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']
+rc=0
+== table at 078780e687
+synthetic-dhw-only.json: classes examined 7 ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']
+rc=0
+== head table, cuts
+synthetic-dhw-only.json: classes examined 7 ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']
+rc=0
+== head table, --no-cuts
+synthetic-dhw-only.json: classes examined 7 ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']
+  class ref23 rests wholly on draws before the shift class ref40 shows at 2026-11-11T00:48:46Z (cpu_ratio under its floor 1.994)
+  class ref28 rests wholly on draws before the shift class ref40 shows at 2026-11-11T00:48:46Z (cpu_ratio under its floor 1.994)
+  class ref31 rests wholly on draws before the shift class ref40 shows at 2026-11-11T00:48:46Z (cpu_ratio under its floor 1.994)
+  class ref38 rests wholly on draws before the shift class ref40 shows at 2026-11-11T00:48:46Z (cpu_ratio under its floor 1.994)
+  class ref47 rests wholly on draws before the shift class ref40 shows at 2026-11-11T00:48:46Z (cpu_ratio under its floor 1.994)
+  class ref53 rests wholly on draws before the shift class ref40 shows at 2026-11-11T00:48:46Z (cpu_ratio under its floor 1.994)
+  class ref23 rests wholly on draws before the shift class ref47 shows at 2026-11-08T21:05:57Z (cpu_ratio under its floor 1.671)
+  class ref28 rests wholly on draws before the shift class ref47 shows at 2026-11-08T21:05:57Z (cpu_ratio under its floor 1.671)
+  class ref31 rests wholly on draws before the shift class ref47 shows at 2026-11-08T21:05:57Z (cpu_ratio under its floor 1.671)
+  class ref38 rests wholly on draws before the shift class ref47 shows at 2026-11-08T21:05:57Z (cpu_ratio under its floor 1.671)
+  class ref53 rests wholly on draws before the shift class ref47 shows at 2026-11-08T21:05:57Z (cpu_ratio under its floor 1.671)
+rc=1
+== table at d08ed31049 --no-cuts
+synthetic-dhw-only.json: classes examined 7 ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']
+  class ref23 rests wholly on draws before the shift class ref47 shows at 2026-11-08T21:05:57Z (cpu_ratio under its floor 1.671)
+  class ref28 rests wholly on draws before the shift class ref47 shows at 2026-11-08T21:05:57Z (cpu_ratio under its floor 1.671)
+  class ref31 rests wholly on draws before the shift class ref47 shows at 2026-11-08T21:05:57Z (cpu_ratio under its floor 1.671)
+  class ref38 rests wholly on draws before the shift class ref47 shows at 2026-11-08T21:05:57Z (cpu_ratio under its floor 1.671)
+  class ref40 rests wholly on draws before the shift class ref47 shows at 2026-11-08T21:05:57Z (cpu_ratio under its floor 1.671)
+  class ref53 rests wholly on draws before the shift class ref47 shows at 2026-11-08T21:05:57Z (cpu_ratio under its floor 1.671)
+rc=1
+== table at 6715d97332 --no-cuts
+synthetic-dhw-only.json: classes examined 7 ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']
+rc=0
+== table at 078780e687 --no-cuts
+synthetic-dhw-only.json: classes examined 7 ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']
+rc=0

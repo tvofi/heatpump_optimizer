@@ -1,0 +1,10 @@
+no-cut derived class budgets (null): {'ref23': {'cpu_ratio': 3.7539}, 'ref28': {'cpu_ratio': 3.189}, 'ref31': {'cpu_ratio': 3.2877}, 'ref38': {'cpu_ratio': 3.4579}, 'ref40': {'cpu_ratio': 3.1541}, 'ref47': {'cpu_ratio': 2.7713}, 'ref53': {'cpu_ratio': 2.076}}
+no-cut free budgets: {'loop_cpu_ratio': 0.1527}
+ref40 pre n 2 min 2.7594 max 2.8809 post [('130240315059', 1.7266)] factor 0.6124
+ref47 pre n 48 min 2.2558 max 2.4762 post [('128866186676', 1.5508)] factor 0.6562
+f40 0.6124 f47 0.6562 geo 0.6339 dist 3.513% 3.394%
+head derived (with cut): ({'ref23': {'cpu_ratio': 2.3796}, 'ref28': {'cpu_ratio': 2.0215}, 'ref31': {'cpu_ratio': 2.0841}, 'ref38': {'cpu_ratio': 2.192}, 'ref40': {'cpu_ratio': 2.5112}, 'ref47': {'cpu_ratio': 2.1188}, 'ref53': {'cpu_ratio': 1.316}}, {'loop_cpu_ratio': 0.1527})
+COST_BUDGETS syn: {'peak_kib': 2686.0, 'loop_cpu_ratio': 0.1527}
+base COST_CLASS_BUDGETS {'ref23': {'cpu_ratio': 3.7539}, 'ref28': {'cpu_ratio': 3.189}, 'ref31': {'cpu_ratio': 3.2877}, 'ref38': {'cpu_ratio': 3.4579}, 'ref40': {'cpu_ratio': 3.9874}, 'ref47': {'cpu_ratio': 2.7713}, 'ref53': {'cpu_ratio': 2.076}}
+base derived True
+base COST_BUDGETS {'peak_kib': 2686.0, 'loop_cpu_ratio': 0.1527}
