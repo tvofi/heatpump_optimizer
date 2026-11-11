@@ -1,0 +1,22 @@
+== closure select
+########## scoped gate ##########
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: tools/ci/gate.py changes the gate itself, so every closure is suspect
+== structure
+
+STRUCTURE RATCHET PASSED
+== merge-tree origin/main
+60413046e3903f52c47cf587e9c4131fa30d74fa
+b8081f6c690ca4847c25fb7c7e715db002e69c8a
+rc=0
+== merge-base/behind
+6
+== VERSION/manifest/notes touched
+none
+== owed-reds
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+== roles diff vs main

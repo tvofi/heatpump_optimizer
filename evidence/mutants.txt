@@ -1,0 +1,68 @@
+== M1 gate: whole continue deleted
+FAIL a newer cancelled run over an older green one at the head is no source: green: got (False, ['tests / fast (3.14): cancelled (run 95)', 'tests / arch-instru
+FAIL a newer run cancelled after part of its unit passed is no source either: the older green judges: got (False, ['tests / arch-instrument: cancelled (run 95)'
+FAIL null: with only the cancelled run at the head the unit has no source: red: got False, want True
+gate self-test: 87 checks, 3 failed
+sweep self-test: 85 checks, 0 failed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M2 gate: success dropped
+FAIL a newer run cancelled after part of its unit passed is no source either: the older green judges: got (False, ['tests / arch-instrument: cancelled (run 95)'
+gate self-test: 87 checks, 1 failed
+sweep self-test: 85 checks, 0 failed
+== M3 gate: any-cancelled clause deleted
+FAIL a newer held run is neither waited on nor a source: got (False, ["tests: no run at this head judged base 'main'", "codeql: no run at this head judged base 
+FAIL a newer cancelled run over an older green one at the head is no source: green: got (False, ["tests: no run at this head judged base 'main'", "codeql: no ru
+FAIL null: a newer failed run over an older green one is the source: red: got (False, ['tests / fast (3.14): failure (run 95)', 'tests / arch-instrument: failur
+FAIL null: a newer run whose unit failed once and fail-fast cancelled the rest is the source: red: got (False, ['tests / fast (3.14): failure (run 95)', 'tests 
+FAIL a newer run cancelled after part of its unit passed is no source either: the older green judges: got (False, ["tests: no run at this head judged base 'main
+FAIL null: a newer green run over an older red one is the source: green: got (False, ['tests / fast (3.14): failure (run 90)', 'tests / arch-instrument: failure
+FAIL C3: a deferring edit gate beside a busy code run defers at once, no nap; re-run once the code run ends, it judges its sources: got ('FAIL run(s) [99] at th
+FAIL busy-defer: the lower deferring edit gate judges at once beside the higher one: got ("FAIL tests: no run at this head judged base 'main'", []), want ('PASS
+FAIL busy-defer: the higher deferring edit gate defers at once to the lower whose listing lags; re-run, it judges: got ('FAIL run(s) [42192623509] at this head 
+FAIL busy-defer-2: the higher deferring edit gate beside the lower one listed as GitHub lists it judges at once: got ("FAIL tests: no run at this head judged ba
+FAIL prelude/gate order: a deferring gate beside a later edit run still in its prelude defers to it at once (that run's prelude no longer waits on this one); re
+FAIL prelude/gate order: a deferring gate beside a later edit run in its prelude, gate listed `waiting` (R3-2) defers to it at once (that run's prelude no longe
+FAIL prelude/gate order: beside an earlier started deferring gate and a later edit run in its prelude, it defers to the later run only; re-run, it judges: got (
+FAIL C3: the deferred gate re-judged once the code run ended (green) is that run's verdict: got "FAIL tests: no run at this head judged base 'main'", want 'PASS
+FAIL C3: the deferred gate re-judged once the code run ended (its pr-contract red) is that run's verdict: got "FAIL tests: no run at this head judged base 'main
+FAIL C3: a body edited after the code run's gate passed is still judged (this run's own pr-contract): got "FAIL tests: no run at this head judged base 'main'", 
+FAIL #3261 (42307493684, its sibling edit run at its gate): judges, never the pair's deferral: got "FAIL tests: no run at this head judged base 'main'", want 'P
+FAIL #3261 (42307798573, its sibling edit run at its gate): judges, never the pair's deferral: got "FAIL tests: no run at this head judged base 'main'", want 'P
+FAIL #3282: ... and that re-run, judged over the recording 20 s later, passes (the code run decided green): got ("FAIL tests: no run at this head judged base 'm
+gate self-test: 87 checks, 19 failed
+sweep self-test: 85 checks, 0 failed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M4 sweep: creation key restored
+gate self-test: 87 checks, 0 failed
+FAIL stale pin, one judge per head: a dispatch listed completed, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+FAIL stale pin, one judge per head: a dispatch listed queued, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+FAIL stale pin, one judge per head: a dispatch listed in_progress, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+sweep self-test: 85 checks, 3 failed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M5 sweep: success arm dropped
+gate self-test: 87 checks, 0 failed
+FAIL stale pin, settle, no loop: settle hands judge the head's runs, so a dispatched run created after the pair's gates concluded is their fresh judge; nothing 
+FAIL stale pin, no loop: a dispatched run created after the stale gate concluded re-judges the head; nothing posted
+FAIL stale pin, no loop: a dispatched run created in the second the stale gate concluded is that fresh judge
+FAIL stale pin, one judge per head: a dispatch listed completed, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+FAIL stale pin, #3400 null: the decider's own sweep, while the fresh judge runs and after it completes, re-runs nothing (the fresh judge's sweep owns it)
+sweep self-test: 85 checks, 5 failed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M6 sweep: not-completed arm dropped
+gate self-test: 87 checks, 0 failed
+FAIL stale pin, settle, no loop: settle hands judge the head's runs, so a dispatched run created after the pair's gates concluded is their fresh judge; nothing 
+FAIL stale pin, no loop: a dispatched run created after the stale gate concluded re-judges the head; nothing posted
+FAIL stale pin, no loop: a dispatched run created in the second the stale gate concluded is that fresh judge
+FAIL stale pin, one judge per head: a dispatch listed completed, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+FAIL stale pin, #3400 null: the decider's own sweep, while the fresh judge runs and after it completes, re-runs nothing (the fresh judge's sweep owns it)
+sweep self-test: 85 checks, 5 failed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M7 sweep: any completed dispatch is a judge
+gate self-test: 87 checks, 0 failed
+FAIL stale pin null: with only a failure dispatch at the head it dispatches, once
+FAIL stale pin null: with only a cancelled dispatch at the head it dispatches, once
+sweep self-test: 85 checks, 2 failed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M8 gate: r is not me guard dropped
+gate self-test: 87 checks, 0 failed
+sweep self-test: 85 checks, 0 failed
