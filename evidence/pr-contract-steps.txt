@@ -1,0 +1,17 @@
+1 success Set up job
+2 success Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+3 success Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+4 success Restore the check source from the base commit
+5 success Name the pull request this run grades
+6 success Read the body off the API, not the event payload
+7 success List the paths this pull request changes
+8 success Wait for code scanning and list its open alerts
+9 success List the red checks at this head
+10 success Check the body against the contract
+11 success Every figure's command resolves at this head
+12 success Pre-flight the body for unmeasured claims
+13 success Refuse a version, manifest-version or notes-heading edit
+14 failure Every finding the body records names its destination
+27 skipped Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+28 success Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+29 success Complete job
