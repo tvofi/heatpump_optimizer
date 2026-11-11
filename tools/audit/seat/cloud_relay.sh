@@ -1718,6 +1718,19 @@ $cfo2") $(calls 67)" = "1 1"
   chk "null control: with no new probe ref the second pass posts nothing more" 0 test "$(grep -c '^POSTED .* 71 ' "$LOG")" = 1
   chk "and handoff_arm still ran once per pass" 0 test "$(wc -l < "$t/ao.runs" | tr -d ' ')" = 2
   chk "the pass leaves no listing file behind" 0 test -z "$(ls "$t/state" | grep '^cloud-prs-open\.')"
+  # the arm order itself: every arm stubbed to log its name; under --confirm and without it
+  aoord() { ( for a in probe_arm confirm_arm handoff_arm carry_fold_arm stuck_arm noreturn_arm; do eval "$a() { echo $a >> \"\$t/ao.order\"; }"; done
+    HPO_RELAY_PRS=$t/open71.sh; pass "$@" --log "$LOG" ) >/dev/null 2>&1; tr '\n' ' ' < "$t/ao.order"; }
+  rm -f "$t/ao.order"; AOO=$(aoord --confirm)
+  chk "pass --confirm runs the arms probe, confirm, handoff, carry_fold, stuck, noreturn in that order" 0 test "$AOO" = "probe_arm confirm_arm handoff_arm carry_fold_arm stuck_arm noreturn_arm "
+  rm -f "$t/ao.order"; CONFIRM= AOO=$(aoord)
+  chk "null control: without --confirm the same order holds with confirm_arm absent" 0 test "$AOO" = "probe_arm handoff_arm carry_fold_arm stuck_arm noreturn_arm "
+  # the one listing is reused: a counting lister runs once per pass under --confirm, with the real handoff_arm
+  printf '#!/bin/sh\necho x >> "%s/lister.calls"\nprintf "71\\tfix/ao-71\\t%s\\n"\n' "$t" "$N40" > "$t/cnt71.sh"; chmod +x "$t/cnt71.sh"
+  rm -f "$t/lister.calls"; ( HPO_RELAY_PRS=$t/cnt71.sh; pass --confirm --log "$LOG" ) >/dev/null 2>&1
+  chk "one pass under --confirm lists the open PRs once (handoff_arm and confirm_arm reuse the listing)" 0 test "$(wc -l < "$t/lister.calls" 2>/dev/null | tr -d ' ')" = 1
+  rm -f "$t/lister.calls"; ( HPO_RELAY_PRS=$t/cnt71.sh; handoff_arm ) >/dev/null 2>&1
+  chk "null control: a lone handoff_arm lists for itself, once" 0 test "$(wc -l < "$t/lister.calls" 2>/dev/null | tr -d ' ')" = 1
   CONFIRM=; CF_FAILS=0; unset HPO_RELAY_CONFIRM; HPO_RELAY_PRS=$t/lister.sh; LOG=$t/pass.log
   # R10-PUSHER-REAP: a relay TERMed mid-update ends the update's whole tree. The
   # update stub records itself and a two-level sleep tree by pid, then blocks.
