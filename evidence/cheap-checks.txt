@@ -1,31 +1,20 @@
-## policy_lint --budgets
-role record    ~7428 tokens, cap 7405 +band 500 = 7905
-role policy    ~10014 tokens, cap 9958 +band 500 = 10458
-
-The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
-rc=0
-## rules_sync --check
-
+  MODE: SCOPED -- 3 script(s) run, 30 scoped out.
+  changed files (14), measured against the recorded closures in tests/closures.json:
+      .claude/rules/defect-root-cause.md
+      .claude/workflows/audit-find.js
+      .cursor/rules/defect-root-cause.mdc
+      .github/workflows/governance.yml
+      dev/audit/config/bugclasses.json
+      dev/audit/config/finding.schema.json
+      dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md
+      dev/governance/roles/fix-review.md
+policy_lint --budgets rc=0
 RULES-SYNC ok: every generated rule is the generated form of its source
-## closure select
-  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
-  A skipped script is a claim that no changed file is in its measured
-## fold_ledger check
-fold_ledger: 54 classes, 758 instances, 121 in-tree judge survivors (rounds [8, 10]), 149 rca entries
-fold_ledger: 0 violation(s)
-## owed-reds (live)
-governance / wave-script
-hassfest / hassfest
-pr-contract / pr-contract
-tests / arch-instrument
-tests / briefs
-tests / browser
-tests / ci-ratchet
-tests / closure-scope
-tests / closures
-tests / coverage
+structure.py rc=0
 tests / coverage-ratchet
 tests / fast (3.14)
 tests / mutation
 tests / typing
 validate / validate-hacs
+  537d9f048  instruments: merge_train and review_packet docs state the widened INTRODUCED rule
+review_carry: FRESH-REVIEW
