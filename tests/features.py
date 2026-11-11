@@ -71795,10 +71795,10 @@ R.check(
 _dbg_dsnap = ((_dbg_dg.get("debug") or {}).get("payload_snapshots") or [{}])[0].get("data", {})
 R.check(
     "DBG-1 Download diagnostics carries the bundle through its own redaction: a name "
-    "is redacted and a coordinate coarsened inside a payload snapshot",
+    "and a coordinate are redacted inside a payload snapshot",
     _dbg_dg.get("debug", {}).get("schema") == "hpo-debug/1"
     and _dbg_dsnap.get("name") == _DBG_REDACTED
-    and _dbg_dsnap.get("solar_diagnostics") == {"latitude": 59.3, "longitude": 18.1},
+    and _dbg_dsnap.get("solar_diagnostics") == {"latitude": _DBG_REDACTED, "longitude": _DBG_REDACTED},
     str(_dbg_dsnap)[:300],
 )
 R.check(
