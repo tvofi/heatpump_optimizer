@@ -22361,6 +22361,51 @@
     "stage": "in-progress",
     "branch": null
    }
+  },
+  {
+   "group": "R10-OUTSIDE-DHW-CHARGE-SETTLE",
+   "lane": "CORE",
+   "kind": "production",
+   "class": "P2",
+   "severity": "normal",
+   "size": "S",
+   "wave": 7,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/dhw_learning.py",
+    "tests/features.py",
+    "tests/structure_budgets.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "source": "outside",
+   "brief": "Outside pull request 3434 by Bankaifan, accepted into round 10 (owner rulings 2026-11-06 outside intake and 2026-11-07 outside work is the top tier; no deferral out of the round). The defect as the author states it: a hot-water charge start makes the tank temperature reading fall by 3 to 5 K within minutes, and two learners in custom_components/heatpump_optimizer/dhw_learning.py book that transient as consumption. The usage learner counts it on the first unheated interval after a short charge, and the draw-statistics fold counts it on heated intervals, which inflates the heavy-day p90. BUILD: the fixer STARTS from the author's commits on pull request 3434 (re-read the live head with git ls-remote origin refs/pull/3434/head; it was 3c518449 at acceptance) and keeps the author's authorship, through the adopt-email arm of the ref_privacy.py guard. The pull request touches custom_components/heatpump_optimizer/dhw_learning.py, tests/features.py and tests/structure_budgets.json, and adds a new constant that the fixer names in prose in the pull request body. OWED, the full fixer contract on the result: a failing test first that reproduces the phantom draw at main; mutation proof with mutants a reviewer can reproduce, each named exactly in the body and shown killed at the handoff head with the null mutant surviving; a null control, a compressor start for space heating, which the author says shows no dip, and which must not change learning; and a finder-style measurement of the p90 effect on the heavy-day statistic, before and after, with a flat control. The pull request edits tests/structure_budgets.json by +2 -2: the fixer establishes which metrics moved and in which direction. A metric that moved UP is paid by improving code, or goes to the orchestrator before the handoff with the measured number (CLAUDE.md rule 2); it is never carried silently. Closes nothing by keyword. The outside pull request is closed with thanks by the orchestrator after the build merges.",
+   "carry": [],
+   "findings": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer adopts the author's commits on outside pull request 3434 (no design step, size S)",
+    "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3434 by Bankaifan accepted into round 10; no reviewer on the outside PR itself, this group's fixer adopts its commits",
+    "pr": null
+   }
   }
  ]
 }
