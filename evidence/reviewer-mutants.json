@@ -1,0 +1,14 @@
+[
+ {"name": "R1_own_ignores_entity_change", "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    own = (armed is None or armed[\"entity_id\"] != entity) and last is not None \\",
+  "new": "    own = armed is None and last is not None \\"},
+ {"name": "R2_restored_keeps_misses_retry", "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "        for record in (held.written, held.misses, held.retry):",
+  "new": "        for record in (held.written,):"},
+ {"name": "R3_arm_keeps_no_before", "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    held.space_before = reading\n",
+  "new": "    pass\n"},
+ {"name": "R4_own_refusal_reading_none_ok", "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "        and reading is not None and not _differs(\"space_setpoint\", reading, last[0])",
+  "new": "        and not _differs(\"space_setpoint\", reading or 0.0, last[0])"}
+]
