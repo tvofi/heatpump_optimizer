@@ -1,0 +1,12 @@
+diff --git a/tools/audit/seat/mutant_run.py b/tools/audit/seat/mutant_run.py
+index d34e7d9f4..e8b3a9a7e 100644
+--- a/tools/audit/seat/mutant_run.py
++++ b/tools/audit/seat/mutant_run.py
+@@ -190,6 +190,7 @@ def run_cmd(argv: list[str], cwd: Path, timeout: float) -> int:
+     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", MUTANT_RUN_TOKEN=token)
+     prev = _subreaper(1)
+     root = os.getpid() if prev >= 0 else 0
++    root = 0
+     skip = frozenset(family(0, token, root=root)) if root else frozenset()  # children (and theirs) from before
+     p = subprocess.Popen(argv, cwd=str(cwd), env=env, start_new_session=True,
+                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
