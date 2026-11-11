@@ -84,4 +84,4 @@
   ok   UNAVAILABLE: a failing `gh` is unavailable, never a refusal
   ok   UNAVAILABLE: a git read that cannot resolve is unavailable, never a refusal
 review_packet self-test: 85 checks, 0 failed
-rp rc=0
+exit=0
