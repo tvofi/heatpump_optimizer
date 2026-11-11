@@ -1,0 +1,22 @@
+== head self-tests
+codescan_wait self-test: 25 checks, 0 failed
+gh_calls self-test: 206 checks, 0 failed
+== M2b: tracked predicate -> true
+346:          if [ "$broot" != "$gcpy" ] && git -C "$troot" ls-files --error-unmatch tools/pr/gh_comment.py >/dev/null 2>&1; then
+ tools/audit/seat/shims/seat-gh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL second tree: null control: a registered worktree whose script is not tracked
+  FAIL mutant: the tracked-file predicate dropped lets an untracked script in a registered worktree through
+gh_calls self-test: 206 checks, 2 failed
+== M3b: drop steps clause
+102:    return j.get("status") == "completed" and j.get("conclusion") == "success" and "steps" not in j
+ tools/ci/codescan_wait.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)
+ok  12 main: a rate limit FAILs closed, rc 1
+ok  15 the FAIL line is on stderr, where the job log shows it, and stdout (the alert file) is empty (stdout '')
+ok  17 WAIT_MAX_S bounds steps 1 and 4 together, not each (waited 600 s: 'FAIL no analysis at refs/pull/77/merge with commit_sha m1 for leg(s) python after 600 s')
+ok  19 own run: a step row still lagging at the bound FAILs, never passes ("FAIL this run's codeql jobs were not listed finished after 600 s")
+codescan_wait self-test: 25 checks, 1 failed
+FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)
+BAD 23b null: a completed success job with a lagging or empty `steps` list is not carried over: unsettled, not uploaded
