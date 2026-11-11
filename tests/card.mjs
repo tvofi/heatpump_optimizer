@@ -1543,12 +1543,19 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
     /dialog\.expanded \.layout-bar button \{ font-size: 1rem; \}/.test(cardSrc),
     ruleOf("dialog.expanded .layout-bar button"));
   // H3a, H3b: the rows' surface is their ink's pair, the heading the card's
-  // 600.
-  check("the health and advisor rows take the surface their ink is drawn for",
-    [".health-row", ".adv-inbox-row"].every((c) =>
-      /background: var\(--hpo-surface-2, #f7f9fb\)/.test(ruleOf(c)) &&
-      !/secondary-background-color/.test(ruleOf(c))),
-    [".health-row", ".adv-inbox-row"].map((c) => ruleOf(c).trim()).join(" | "));
+  // 600. The pair is asserted in ONE rule: the rule that gives a row the
+  // darkMode-literal --hpo-surface-2 also re-points its text at the ink
+  // literals. Asserting the surface alone passed while the rows drew the
+  // theme's text on it at 1.24:1 (906fee95e, R10-HOTFIX-CARD-HEALTH-TEXT);
+  // tests/card_browser.mjs's themeMismatch measures what is painted.
+  const listing = (sel) => [...cardSrc.matchAll(/([^{};`]+)\{([^{}]*)\}/g)]
+    .filter((m) => m[1].split(",").map((x) => x.trim()).includes(sel)).map((m) => m[2]);
+  const paired = (decl) => /background: var\(--hpo-surface-2, #f7f9fb\)/.test(decl) &&
+    /--hpo-text: var\(--hpo-ink, #212121\)/.test(decl) && /--hpo-text-2: var\(--hpo-ink-2, #727272\)/.test(decl);
+  check("the health and advisor rows take their surface and its ink from one rule",
+    [".health-row", ".adv-inbox-row"].every((c) => listing(c).some(paired) &&
+      !listing(c).some((d) => /secondary-background-color/.test(d))),
+    [".health-row", ".adv-inbox-row"].map((c) => `${c}: ${listing(c).map((d) => d.trim()).join(" + ")}`).join(" | "));
   check("the health headings are the card's 600, not the user agent's 700",
     /font-weight: 600/.test(ruleOf(".health-h")), ruleOf(".health-h"));
   // H4: the replay drawing scrolls on a phone instead of shrinking its
@@ -12105,13 +12112,31 @@ check("without an indoor reading the corner now label is absent",
     /Solved 12 min ago/.test(page) && /Next solve in 18 min/.test(page) && /1\.4 s/.test(page)
     && /\d+ steps/.test(page), page.slice(page.indexOf("health-plan"), page.indexOf("health-plan") + 600));
   const pill = h.match(/<span data-health-pill="(\w+)" class="status-pill tone-(\w+)"[^>]*>([^<]*)</);
-  check("the header pill reads 1 input stale (warn)",
-    !!pill && pill[2] === "warn" && pill[3] === "1 input stale", JSON.stringify(pill));
+  check("the header pill reads 1 input needs attention (warn)",
+    !!pill && pill[2] === "warn" && pill[3] === "1 input needs attention", JSON.stringify(pill));
   const two = healthStates();
   two[BIN].attributes.problems.push({ input: "dhw_temp_entity", entity_id: "sensor.tank",
     problem: "unavailable", age_minutes: null, max_age_minutes: 60 });
   const pill2 = mkHealth(two).html().match(/data-health-pill="(\w+)" class="status-pill tone-(\w+)"[^>]*>([^<]*)</);
-  check("two failing inputs read 2 inputs stale", !!pill2 && pill2[3] === "2 inputs stale", JSON.stringify(pill2));
+  check("two failing inputs read 2 inputs need attention", !!pill2 && pill2[3] === "2 inputs need attention", JSON.stringify(pill2));
+  // R10-HOTFIX-CARD-HEALTH-TEXT: the pill counts every problem kind, so it
+  // names none. One unavailable input and nothing stale: a pill reading
+  // "stale" over a page with no Stale row is the contradiction the owner
+  // reported, in every shipped language.
+  const unav = healthStates();
+  unav[BIN].attributes.problems = [{ input: "dhw_temp_entity", entity_id: "sensor.tank",
+    problem: "unavailable", age_minutes: null, max_age_minutes: 60 }];
+  const unavPills = ["en", "sv", "de"].map((lang) => {
+    const uh = mkHealth(unav, lang).html();
+    const p = uh.match(/data-health-pill="\w+" class="status-pill tone-(\w+)"[^>]*>([^<]*)</);
+    const staleWord = fn("STRINGS")[lang]["health.stale"];
+    return { lang, tone: p && p[1], text: p && p[2], staleWord,
+      staleRow: (pageOf(uh).match(new RegExp(`>${staleWord}<`, "g")) || []).length };
+  });
+  check("one unavailable input: the pill counts it and does not call it stale (en, sv, de)",
+    unavPills.every((u) => u.tone === "warn" && /^1\b/.test(u.text || "") && u.staleRow === 0 &&
+      !(u.text || "").toLowerCase().includes(u.staleWord.toLowerCase().slice(0, 5))),
+    JSON.stringify(unavPills));
   check("an unavailable input says so in words",
     /Unavailable/.test(pageOf(mkHealth(two).html())));
   const ok = healthStates();
@@ -12257,7 +12282,7 @@ check("without an indoor reading the corner now label is absent",
 
   const sv = mkHealth(healthStates(), "sv-SE").html();
   check("the Health page and pill speak Swedish",
-    /Indata/.test(sv) && /1 indata inaktuell/.test(sv) && /Hälsa/.test(sv) && /Ladda ner diagnostik/.test(sv));
+    /Indata/.test(sv) && /1 indata behöver åtgärdas/.test(sv) && /Hälsa/.test(sv) && /Ladda ner diagnostik/.test(sv));
   check("the card never reads a disabled-by-default sensor for the Health page",
     !/_contract_comparison|_dhw_heavy_day|_wood_burn_advisor|_measured_power/.test(
       cardSrc.slice(cardSrc.indexOf("const HEALTH_WAITING"), cardSrc.indexOf("const HEALTH_WAITING") + 600)));

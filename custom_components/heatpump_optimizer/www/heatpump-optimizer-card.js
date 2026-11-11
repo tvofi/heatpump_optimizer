@@ -100,8 +100,8 @@ const STRINGS = {
     "health.limit": "limit {limit}",
     "health.no_age": "no reading",
     "health.pill_ok": "All inputs fresh",
-    "health.pill_one": "1 input stale",
-    "health.pill_other": "{n} inputs stale",
+    "health.pill_one": "1 input needs attention",
+    "health.pill_other": "{n} inputs need attention",
     "health.solved": "Solved {age} ago",
     "health.next_solve": "Next solve in {age}",
     "health.next_due": "Next solve due now",
@@ -994,8 +994,8 @@ const STRINGS = {
     "health.limit": "gräns {limit}",
     "health.no_age": "ingen avläsning",
     "health.pill_ok": "Alla indata aktuella",
-    "health.pill_one": "1 indata inaktuell",
-    "health.pill_other": "{n} indata inaktuella",
+    "health.pill_one": "1 indata behöver åtgärdas",
+    "health.pill_other": "{n} indata behöver åtgärdas",
     "health.solved": "Löst för {age} sedan",
     "health.next_solve": "Nästa lösning om {age}",
     "health.next_due": "Nästa lösning är försenad",
@@ -1843,8 +1843,8 @@ const STRINGS = {
     "health.limit": "Grenzwert {limit}",
     "health.no_age": "kein Messwert",
     "health.pill_ok": "Alle Eingänge aktuell",
-    "health.pill_one": "1 Eingang veraltet",
-    "health.pill_other": "{n} Eingänge veraltet",
+    "health.pill_one": "1 Eingang braucht Aufmerksamkeit",
+    "health.pill_other": "{n} Eingänge brauchen Aufmerksamkeit",
     "health.solved": "Berechnet vor {age}",
     "health.next_solve": "Nächste Berechnung in {age}",
     "health.next_due": "Nächste Berechnung jetzt fällig",
@@ -10310,6 +10310,10 @@ function fmtMinutes(m) {
 function healthPillHtml(plan) {
   const st = inputProblemState(plan);
   if (!st || st.state === "unavailable" || st.state === "unknown") return "";
+  // Every problem kind counts (unavailable, out of range, stale, ...), one
+  // per Health-page row, so the words name no single kind: "stale" here
+  // contradicted a row whose own pill read "Unavailable"
+  // (R10-HOTFIX-CARD-HEALTH-TEXT).
   const n = ((st.attributes || {}).problems || []).length;
   const text = n === 0 ? L("health.pill_ok")
     : L(n === 1 ? "health.pill_one" : "health.pill_other", { n });
