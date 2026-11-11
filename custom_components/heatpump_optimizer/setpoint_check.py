@@ -116,7 +116,7 @@ def _quiet(hass: Any, config: dict[str, Any]) -> None:
 
 def _dhw_floor(params: Any) -> float:
     floor = float(params.dhw_min_temp)
-    if params.dhw_legionella_enabled:
+    if params.legionella_cycle_active:
         floor = max(floor, float(params.dhw_legionella_temp))
     return floor
 
