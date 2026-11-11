@@ -843,6 +843,10 @@ writes, at every 15-minute plan step:
   reads off, nothing is compared or written: switched off, a pump can report
   set-points of its own (a Tuya pump reads 25 °C). Once it is on, a reset that
   is still there is written back like any other difference.
+- **A disinfection cycle writes its own temperature.** While the plan's step
+  runs the anti-legionella cycle, or the integration holds the pump's
+  disinfection switch on, the hot water set-point written is the disinfection
+  temperature, not the everyday set-point.
 - **Its own mode is not a pump limit.** A mode the optimizer wrote does not
   stop the next plan from heating the house or making hot water, even when the
   pump has not shown it yet or after a restart; one set by anybody else

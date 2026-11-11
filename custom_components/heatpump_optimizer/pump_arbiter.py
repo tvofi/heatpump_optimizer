@@ -170,7 +170,7 @@ from .inputs import (
     InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, write_setpoint_c,
 )
 from .log_latch import log_held
-from .payload import CurrentAction
+from .payload import REASON_LEGIONELLA, CurrentAction
 from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
@@ -1080,11 +1080,30 @@ def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None
     return _inside_silent(spec, cfg.quiet_off_windows, now)
 
 
+def _dhw_target_c(inp: ArbiterInputs) -> float:
+    """The hot-water set-point to hold, °C: the configured one, or the
+    disinfection temperature while a cycle runs.
+
+    A cycle runs while the plan's step books hot water for it
+    (``dhw_reason`` legionella) or the integration holds the pump's
+    disinfection switch on. Holding the configured set-point through it
+    stopped the pump's own thermostat short of the cycle's target, and
+    rewrote the disinfection temperature the pump showed back down
+    (2026-11-01: 60 °C planned, 55 °C written back within a minute).
+    """
+    configured = float(inp.params.dhw_setpoint)
+    legionella = (inp.action or {}).get("dhw_reason") == REASON_LEGIONELLA
+    if not (legionella or inp.disinfecting):
+        return configured
+    target = finite_float(getattr(inp.params, "dhw_legionella_temp", None))
+    return configured if target is None else max(configured, target)
+
+
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
     """The row of the module table for ``duty``; ``None`` is the baseline."""
     result = inp.plan
     mode_state = _slot_state(inp, "mode")
-    dhw = _bounded(inp, "dhw_setpoint", float(inp.params.dhw_setpoint))
+    dhw = _bounded(inp, "dhw_setpoint", _dhw_target_c(inp))
     if pump_mode.capability(getattr(mode_state, "state", None)).cooling:
         # Cooling is the user's season, not a duty the plan chose: hands off,
         # the silent switch included.
