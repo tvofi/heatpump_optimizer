@@ -4391,6 +4391,59 @@ def stateless_findings(pages: dict[str, str], exempt=STATELESS_EXEMPT) -> list[s
     return out
 
 
+def power_feedback_facts() -> dict[str, str]:
+    """The phrases configuration.md owes the power-feedback loop, from its constants."""
+    from heatpump_optimizer import pump_arbiter as pa
+
+    return {
+        "start hold": f"first {pa.FEEDBACK_START_HOLD.total_seconds() / 60:g} minutes of a run",
+        "rate": f"{pa.FEEDBACK_RATE_K_PER_MIN:g} K per minute",
+        "window": f"averaged over {pa.FEEDBACK_WINDOW.total_seconds() / 60:g} minutes",
+        "deadband": f"within {pa.FEEDBACK_DEADBAND_SHARE * 100:g} % of the planned level",
+        "lower bound": f"no lower than {pa.FEEDBACK_DOWN_K:g} K below the inlet",
+    }
+
+
+#: The contributor's answers on the Luxtronik Smart Home Interface (Carry 8 of
+#: R10-WATER-SETPOINT-FEEDBACK): the source of the watchdog, clamp-register and
+#: hysteresis statements, cited where each is made.
+_SHI_ANSWERS = "pull/3372#issuecomment-6756915104"
+
+
+def check_power_feedback_claims() -> None:
+    R.section("the power-feedback loop's figures and controller facts (R10-WATER-SETPOINT-FEEDBACK Carry 8)")
+    text = DOCS["configuration.md"]
+    loop = _section(text, "- **Power feedback (", "\n- **", "configuration.md")
+    poll = _section(text, "  - The integration that exposes the controller must poll", "\n  - ", "configuration.md")
+    start = _section(text, "A controller that starts heating only once", "On the install this was written for", "configuration.md")
+    if loop is None or poll is None or start is None:
+        return
+    flat = " ".join(loop.split())
+    for name, phrase in power_feedback_facts().items():
+        R.check(f"the loop's {name} is the constant's: {phrase!r}", phrase in flat)
+    for name, body, facts in (
+        ("the polling precondition", poll, ("600 s", "restart")),
+        ("the start condition", start, ("10107", "0.5 K")),
+        ("the loop's preconditions", loop, ("10104", "10103", "0.5 K")),
+    ):
+        R.check(f"{name} cites the contributor's answers", _SHI_ANSWERS in body)
+        missing = [fact for fact in facts if fact not in body]
+        R.check(f"{name} states {', '.join(facts)}", not missing, repr(missing))
+    R.check("no start condition is stated as a 2 K Luxtronik default",
+            "2 K on a Luxtronik" not in " ".join(text.split()))
+    import inspect
+    from heatpump_optimizer import pump_arbiter as pa
+
+    source = inspect.getsource(pa)
+    down = re.search(r"((?:^#:.*\n)+)FEEDBACK_DOWN_K = ", source, re.M)
+    R.check("pump_arbiter still comments FEEDBACK_DOWN_K (anchor)", down is not None)
+    comment_id = _SHI_ANSWERS.rsplit("-", 1)[1]
+    R.check("the assumed minimum hysteresis behind FEEDBACK_DOWN_K cites the contributor's answers",
+            down is not None and comment_id in down.group(1))
+    R.check("the inferred clamp bounds (_clamp_cut) cite the contributor's answers and name both inputs",
+            all(fact in (pa._clamp_cut.__doc__ or "") for fact in (comment_id, "10104", "10103")))
+
+
 def check_stateless() -> None:
     R.section("the user pages describe the integration as it is, with no change history (R10-USER-DOCS-FINAL)")
     pages = _user_pages()
@@ -4479,6 +4532,7 @@ def main() -> int:
     check_coffee_button()
     check_readme_marketplace()
     check_surface_coverage()
+    check_power_feedback_claims()
     check_stateless()
     return R.close("checks")
 
