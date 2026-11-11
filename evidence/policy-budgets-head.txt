@@ -1,0 +1,3 @@
+tools/audit/briefs/fixer.md                      314  315     5186  5216 
+corpus:        ~68667 tokens, cap 68618 +band 500 = 69118
+role fixer     ~6265 tokens, cap 5852 +band 500 = 6352

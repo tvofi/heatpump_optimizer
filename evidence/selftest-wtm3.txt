@@ -1,0 +1,11 @@
+dir=wtm3 head=cbf80c6e8b67b016d729b22f73c343b1f3eeaaed
+  FAIL a command killing nothing reports its survivors, report only (got 0, wanted 2)
+  FAIL and names every listed mutant of lib.py, none of tests/check.py (got 0:0, wanted 7:7)
+523 passed, 2 failed
+EXIT 2
+--- tail
+  ok   (a) and runs tests/structure.py and ci predict on HEAD merged with main, once each
+  ok   (a) a run with a body removes an earlier receipt first, so one that writes none leaves none
+
+523 passed, 2 failed
+EXIT 2

@@ -1,0 +1,13 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 58b5affda..aeb776d50 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -1169,7 +1169,7 @@ mutants_line() { # tree root, base, command -> one line; rc 0 no survivor, 2 sur
+   [ -f "$1/tools/audit/seat/mutant_run.py" ] || { echo "tools/audit/seat/mutant_run.py is not in this tree"; return 3; }
+   local out r n
+   out=$(cd "$1" && python3 -I tools/audit/seat/mutant_run.py --diff "$2...HEAD" --cmd "$3" \
+-    --max-mutants "${MUTANT_MAX:-40}" --report-only ${MUTANT_IN_PLACE:+--in-place} 2>&1); r=$?
++    --max-mutants "${MUTANT_MAX:-40}" --report-only 2>&1); r=$?
+   if [ "$r" -ne 0 ]; then
+     echo "mutant_run rc=$r measured nothing: $(grep -v '^SURVIVED ' <<<"$out" | grep . | tail -1 | cut -c1-160) -- fix MUTANT_CMD, or set MUTANT_IN_PLACE=1 for a self-test that needs a git checkout"
+     return 1

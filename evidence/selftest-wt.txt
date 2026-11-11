@@ -1,0 +1,9 @@
+dir=wt head=cbf80c6e8b67b016d729b22f73c343b1f3eeaaed
+525 passed, 0 failed
+EXIT 0
+--- tail
+  ok   (a) and runs tests/structure.py and ci predict on HEAD merged with main, once each
+  ok   (a) a run with a body removes an earlier receipt first, so one that writes none leaves none
+
+525 passed, 0 failed
+EXIT 0

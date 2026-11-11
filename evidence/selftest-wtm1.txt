@@ -1,0 +1,12 @@
+dir=wtm1 head=cbf80c6e8b67b016d729b22f73c343b1f3eeaaed
+  FAIL a MUTANT_CMD failing on the unedited tree is refused, never read as no survivor (got 0, wanted 1)
+  FAIL and the refusal quotes mutant_run's own reason (got 0, wanted 1)
+  FAIL a check needing a git checkout measures nothing in the archive copy, and is refused (got 0, wanted 1)
+522 passed, 3 failed
+EXIT 2
+--- tail
+  ok   (a) and runs tests/structure.py and ci predict on HEAD merged with main, once each
+  ok   (a) a run with a body removes an earlier receipt first, so one that writes none leaves none
+
+522 passed, 3 failed
+EXIT 2
