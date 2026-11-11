@@ -28887,7 +28887,7 @@ R.check(
     "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
     _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
     and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
-    == ["base", "machinery", "selftests"],
+    == ["base", "machinery", "restore_source", "selftests"],
     f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
@@ -32113,12 +32113,13 @@ def _brg_defects(text: str) -> "list[str]":
     if "if" in job:
         out.append("a job-level if:")
     # A called workflow (U8): `workflow_call` is its only trigger, and it declares
-    # the three string inputs the umbrella's `budget-raise-gate` caller passes. The
-    # review and `edited` triggers are `ci.yml`'s.
+    # the four string inputs the umbrella's `budget-raise-gate` caller passes
+    # (restore_source: R10-HOTFIX-RESTORE-BASE-SKEW). The review and `edited`
+    # triggers are `ci.yml`'s.
     if set(on) != {"workflow_call"}:
         out.append(f"triggers {sorted(map(str, on))}")
     ins = (on.get("workflow_call") or {}).get("inputs") or {}
-    if ins != {k: {"type": "string", "default": ""} for k in ("pr", "base", "head")}:
+    if ins != {k: {"type": "string", "default": ""} for k in ("restore_source", "pr", "base", "head")}:
         out.append(f"inputs {ins}")
     if doc.get("concurrency") is not None:
         out.append("a top-level concurrency: (every callee has none)")
