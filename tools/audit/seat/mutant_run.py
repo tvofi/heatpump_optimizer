@@ -595,6 +595,7 @@ def f(x):
     print(os.sep)
     return kept
 '''
+SHR = 'def g(x):\n    a = 1; b = 2\n    if x: y = 1\n    c = 3  # note\n    return a\n'
 STM_PINNED = "from stm import f\nassert f(3) == 6\n"
 LOOSE = "from lib import clamp\nassert clamp(3, 0, 5) == 3\n"
 
@@ -799,6 +800,25 @@ def _self_test() -> int:
         check("forkcap: a bounded 10-process command under the same cap is unaffected (null control)",
               rc == 0 and out.splitlines() == ["SURVIVED NULL", "SURVIVED ret_hi"])
 
+        # fork cap in the other two modes: a null run that re-enters, and a diff-mode mutant that does
+        write_spec([bad])
+        rc, out, err = drive("--spec", str(spec), "--cmd", f"sh {chain} 120", "--fork-cap", "32", "--timeout", "60")
+        check("forkcap: a command that forks past the cap on the unedited tree is FORKCAP NULL, rc 3, no mutant run",
+              rc == 3 and out.splitlines() == ["FORKCAP NULL"] and "forked past --fork-cap" in err)
+        orig = tmp / "lib_orig.py"
+        orig.write_text(LIB2)
+        t0 = time.monotonic()
+        rc, out, _ = drive("--diff", rng, "--path", "lib.py", "--max-mutants", "2", "--fork-cap", "32", "--timeout", "60",
+                           "--cmd", f"sh -c 'cmp -s lib.py {orig} && exit 0; sh {chain} 120'")
+        fl = out.splitlines()
+        check("forkcap: a diff-mode mutant that forks past the cap is FORKCAP file:line OPERATOR, rc 1, never SURVIVED or KILLED",
+              rc == 1 and len(fl) == 2 and all(re.match(r"FORKCAP lib\.py:\d+ [A-Z_]+  ", l) for l in fl)
+              and time.monotonic() - t0 < 40)
+        rc, out, _ = drive("--diff", rng, "--path", "lib.py", "--max-mutants", "2", "--fork-cap", "32", "--report-only",
+                           "--cmd", f"sh -c 'cmp -s lib.py {orig} && exit 0; sh {chain} 120'")
+        check("forkcap: under --report-only the same diff-mode FORKCAP lines print and rc is 0",
+              rc == 0 and len(out.splitlines()) == 2 and all(l.startswith("FORKCAP ") for l in out.splitlines()))
+
         # fork cap: descendants that leave the process group or the session are still the command's
         esc = tmp / "esc.py"
         esc.write_text("import os, sys, time\n"
@@ -858,6 +878,14 @@ def _self_test() -> int:
         g("commit", "-q", "-am", "doc only")
         rc, out, _ = drive("--diff", "HEAD~1...HEAD", "--list")
         check("STMT_DEL: a comment- and docstring-only diff lists none (null control)", " STMT_DEL " not in out)
+        # STMT_DEL on a shared line: `a = 1; b = 2` and `if x: y = 1` are skipped, a trailing comment is not
+        (repo / "shr.py").write_text(SHR)
+        g("add", "-A")
+        g("commit", "-q", "-m", "add shr")
+        rc, out, _ = drive("--diff", "HEAD~1...HEAD", "--list", "--path", "shr.py")
+        sites = sorted(int(l.split()[1].split(":")[1]) for l in out.splitlines() if " STMT_DEL " in l)
+        check("STMT_DEL: a statement sharing its line (`a = 1; b = 2`, `if x: y = 1`) is skipped; a statement with a "
+              "trailing comment is not (the return is RETURN_DEL's)", sites == [4])
         check("operators: no mutant for a comment, an import or a def, and no CALL_DEL for a log call",
               not any(list(mutate_line(s)) for s in ("# if x < 1:", "import a1", "def f(x=1):"))
               and "CALL_DEL" not in {o for o, _ in mutate_line("    _LOGGER.info(x)")})
