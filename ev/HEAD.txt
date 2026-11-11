@@ -1,0 +1,2 @@
+311ee9f3fa20ebcb2de65e873cd0c889481a0360
+311ee9f3fa20ebcb2de65e873cd0c889481a0360	refs/heads/handoff/r10-outside-price-outage-last-valid

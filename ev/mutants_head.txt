@@ -1,0 +1,14 @@
+SURVIVED NULL
+KILLED M1_bridge_off
+KILLED M2_auth_bridged
+KILLED M3_always_raise
+KILLED M4_coverage_not_now
+KILLED M5_no_clear_on_recovery
+KILLED M6_no_repair
+KILLED M7_bridged_logs_error
+KILLED M8_first_cycle_debug
+KILLED R1_any_prices_bridge
+KILLED R2_clear_when_unbridged
+SURVIVED R3_repair_no_error_placeholder
+KILLED R4_coverage_prev_hour
+SURVIVED R5_reauth_skipped

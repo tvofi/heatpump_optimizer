@@ -1,0 +1,26 @@
+[
+ {
+  "name": "S1_reauth_call_del",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "old": "                self._tibber_start_reauth()\n",
+  "new": "                pass\n"
+ },
+ {
+  "name": "S2_cycles_guard_off",
+  "file": "custom_components/heatpump_optimizer/issues.py",
+  "old": "    if cycles > 1:",
+  "new": "    if False:"
+ },
+ {
+  "name": "S3_cycles_const_swap",
+  "file": "custom_components/heatpump_optimizer/issues.py",
+  "old": "    if cycles > 1:",
+  "new": "    if cycles > 2:"
+ },
+ {
+  "name": "S4_no_error_placeholder",
+  "file": "custom_components/heatpump_optimizer/issues.py",
+  "old": "placeholders={\"error\": reason}",
+  "new": "placeholders={}"
+ }
+]

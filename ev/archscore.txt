@@ -1,0 +1,8 @@
+== score MB..HEAD
+Architecture score: dS +0.0000 NULL
+merged tree 7d02e1735c8cc535757402796cbc053bf2069e12 commit 2bc2869955ec53341949469cb6fb6f4b618e5b65 (origin/main cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf)
+== score origin/main..merged
+Architecture score: dS +0.0000 NULL
+== score MB..origin/main
+Architecture score: dS +0.0006 IMPROVES
+  coord_footprint 2497 -> 2496  +0.0006

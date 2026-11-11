@@ -1,0 +1,3 @@
+SURVIVED custom_components/heatpump_optimizer/coordinator.py:6969 CALL_DEL  pass
+SURVIVED custom_components/heatpump_optimizer/issues.py:81 GUARD_OFF  if False:
+SURVIVED custom_components/heatpump_optimizer/issues.py:81 CONST_SWAP  if cycles > 2:
