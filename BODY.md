@@ -1,4 +1,4 @@
-Anchor `tests/harness.py` to its own tree so a harness run from another root no longer measures the cwd's tree (carry R10-RCA-COP-UNMEASURED item 6d58568e), and settle the cloud-seat environment carries. Topic r10-suite-env-residue.
+Anchor `tests/harness.py` to its own tree so a harness run from another root no longer measures the cwd's tree (carry 3, R10-RCA-COP-UNMEASURED item 6d58568e), and settle the cloud-seat environment carries. Topic r10-suite-env-residue.
 
 ## Head
 
@@ -25,10 +25,11 @@ The same check at the base raises FileNotFoundError reading `custom_components/h
 
 ## Forward-carry
 
-- Carry 3 (cloud-setup venv-ha lacks scipy and paho): `tools/audit/seat/cloud-setup.sh` header now states venv-ha is typing-only by design and the suites run under venv-ci with `PYTHONPATH=tests/hastub`; measured: under venv-ci with the stub, `import harness` succeeds from a foreign cwd. Adding paho or scipy to venv-ha would need a new hash-pinned lock entry, which the typing lock does not carry; not built. Carry: dismissed: premise stale, venv-ha is not a suite interpreter.
-- Carry 1 (no-`pr` dispatch form for a CI-cost hotfix): `.claude/workflows/web-fragments.md` and `tests/README.md` are both at their token caps (`node tools/policy/policy_lint.mjs --budgets`), so the one sentence has no home without a cap raise or a payment. Carry: dismissed: needs an owner ruling on a cap raise; the fact is `ci.yml` `workflow_dispatch` with `-f base=<ref>` and no `pr` input.
-- Carry 0 (nightly heartbeat respawn): not buildable here. The measurement recipe needs `gh run list --workflow nightly.yml`, unavailable in this seat; the brief's own rule closes the group as superseded absent a red `hb:positive_control` at a main carrying the unwinder fix. Carry: dismissed: no red measured; `tests/nightly_ha.py` already samples with `_remote_debugging` where it exists.
-- Carry 4 (stress memory-peak precondition, 1.8 MiB traced bump): addressed to R10-GENERIC-HEAT-CURVE, not this group. Carry: R10-GENERIC-HEAT-CURVE.
+- Carry 4 (cloud-setup venv-ha lacks scipy and paho): `tools/audit/seat/cloud-setup.sh` header now states venv-ha is typing-only by design and the suites run under venv-ci with `PYTHONPATH=tests/hastub`; measured: under venv-ci with the stub, `import harness` succeeds from a foreign cwd. Adding paho or scipy to venv-ha would need a new hash-pinned lock entry, which the typing lock does not carry; not built. Carry: dismissed: premise stale, venv-ha is not a suite interpreter.
+- Carry 2 (no-`pr` dispatch form for a CI-cost hotfix): `.claude/workflows/web-fragments.md` and `tests/README.md` are both at their token caps (`node tools/policy/policy_lint.mjs --budgets`), so the one sentence has no home without a cap raise or a payment. Carry: dismissed: needs an owner ruling on a cap raise; the fact is `ci.yml` `workflow_dispatch` with `-f base=<ref>` and no `pr` input.
+- Carry 1 (nightly heartbeat respawn): not buildable here. The measurement recipe needs `gh run list --workflow nightly.yml`, unavailable in this seat; the brief's own rule closes the group as superseded absent a red `hb:positive_control` at a main carrying the unwinder fix. Carry: dismissed: no red measured; `tests/nightly_ha.py` already samples with `_remote_debugging` where it exists.
+- Carry 5 (stress memory-peak precondition, traced bump on 3.14): addresses a group whose roster stage is done and is not this group's seam. Carry: dismissed: no destination is live; the precondition (re-measure base beside head on one box before reading a 3.14 stress memory red) stays in the carry text of the brief.
+- Carry 6 (cloud prepr.sh environment faults, item ec93383a): not reproduced on this cloud seat at 45adb0c3b4: `prepr.sh`'s hooks step printed `HOOKS ok: 4 wired hook(s) exist and pass their own --self-test`, and `tests/entities.py` at the base checkout exits rc=0 (`python3 tests/entities.py`, run on the unmodified base). Carry: dismissed: neither fault reproduces here; the one environment fault seen was a stale `/opt/hpo/runner-temp/base` (Red checks).
 
 ## Friction
 
