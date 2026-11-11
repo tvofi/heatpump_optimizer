@@ -1,0 +1,41 @@
+Design review: approve 4d3ce019a4b88b16ddf8c14773d750c3cf8b0505
+
+Reviewed design.md at 4d3ce019a4 from a detached worktree; every tree fact below was read at the judged base 45adb0c3b425dc44e72fd9ce4ef51f480b5a3af6 (origin/main), which is 333 commits past the base the note names (96346fdec3, an ancestor). Roster read at origin/handoff/audit-r10-roster d32a844665. Nothing was rerun beyond the note's own measuring command.
+
+## What was checked, and what it showed
+
+1. **Seam.** tests/doc_claims.py:3025 `WIRING_DOCS`, :3152 `doc_wiring_findings`, :3304 `named_element_findings`, :3587 `check_named_elements` exist as the note says; item (c) at :3201-3203 is report-only today. tests/seam_map.json maps coordinator methods only. The roster row confirms the note's precondition is real: R10-ARCH-DOCS `files` is docs/architecture.md and dev/README.md; tests/doc_claims.py is in R10-USER-DOCS-VERIFY's `files` (not-started), which has no `after` edge on R10-ARCH-DOCS. One owner per concern holds once the precondition op is made.
+2. **Shape against the brief.** (a) and (b) answer brief items 1-2 and carries 7, 9, 11; (c) and (d) answer carries 2, 3, 12; (e) answers carries 0, 4. No behaviour changes that no carry names.
+3. **Measurement.** `python3 tests/doc_claims.py --markers --roster <roster json>` at the judged base prints 28 of 28 due, 9 in docs/architecture.md and 19 in dev/README.md, and two UNRESOLVED ledger kinds (`stage-mismatch`, `absorb-edge-missing`); main's roster copy prints 26 of 28. All as the note states. `record-owed` (carry 9's third kind) is now a key of `KINDS` (tools/audit/seat/ledger.py:108), so leaving it is right.
+4. **Section 3 departures, re-read at the judged base.** All hold:
+   - CI: .github/workflows/ci.yml is live (jobs include `prelude`, `kernel-points`, `pr-contract`, `gate`; :239 calls kernel-points.yml); tools/policy/fixtures/required-contexts.json:31-33 requires `gate` alone; dev/README.md:189-190, :203, :207-209 still say otherwise; no `*-rerun.yml` exists.
+   - beatd: no launcher of `beatd.py run` in the tree (governance.yml:408 `--self-test`, hooks/liveness.py:77 `status`); beatd.jobs.json runs only `beat_jobs.py` rows; tick_loop.sh:131, :149, :169, :175 drive relay, sweep, tick and `heartbeat.sh --once`.
+   - Relay: cloud_relay.sh:633-638 writes the ledger (`ledger_open`); `confirm_run` (:200) reaches bus.sh:457 `train_add` and :479 `merge_train.py add`; `carry_fold_arm` at :737.
+   - Roster: postmerge.py:47 runs `roster_sync.py --apply`; no launcher of `state_docs.py beat --apply`. bus.sh:696 writes the nonce record.
+   - Ledger: `approve-held-runs`, `dispatch`, `postmerge-owed` are event kinds; `train-stop` has no production writer and one reader (merge_train.py:4188).
+   - docs/architecture.md:385 (scores line), :231 (button row lacks reset heat loss; button.py:178 defines it), :376 ("No group in the roster adds a module").
+   - dev/README.md:51 cites `dev/programme/designs/`, absent on main; seven role contracts and decisions 0015, 0016 are unnamed.
+5. **Sibling sites.** Markers outside the two files: docs/dashboard-card.md (2) and docs/how-it-works.md (2), comment-wrapped, R10-USER-DOCS-VERIFY's by carry 11; a harness and doc_claims.py's own fixtures. Five mermaid blocks, as the note counts. No site of the class is missed.
+6. **Evidence plan.** Both new checks are red on today's tree (28 markers; no evidence table and `tick --> orch` in the current figure). The harnesses are the finder's (tests/doc_claims.py, r10_mermaid_parse.mjs). tests/doc_claims.py is already on tests/run.sh:547 with a closure that reads both docs, so no gate file moves. No golden moves.
+7. **Designs in flight.** 29 `design/*` refs; no design ref exists for R10-USER-DOCS-VERIFY or R10-ARCH-DOCS-DELTA. design/R10-USER-DOCS-FINAL (576654cce, approved) touches tests/doc_claims.py for `--surfaces` only and treats the wiring markers as this group's. No two designs claim one seam. D7.md states nothing on doc pins.
+8. **Cost.** Three files for a size-L group. Fits.
+
+## Decisions routed (no revise point)
+
+- decision: orchestrator. Section 1's precondition: `set-files` adds tests/doc_claims.py to R10-ARCH-DOCS and R10-USER-DOCS-VERIFY gains an `after` edge on it. This re-serialises the two groups carry 13 set side by side, and carry 13's "edits docs/architecture.md and dev/README.md only" contradicts carry 2 item 3 without it. The fixer is not dispatched before this is settled.
+- decision: orchestrator. Section 2(b) bans every marker in a wiring doc, which is wider than carry 7's "no unresolved target marker on main": a later round's docs-first stage could no longer mark a planned element in docs/architecture.md, README.md or dev/README.md. The note's reason (alternative A3) is sound for this round; the wider effect is a scope call.
+
+## Notes for the fixer
+
+- dev/README.md:15-16 is the legend that explains the marker convention, and it matches `_MARKER_ANY` (tests/doc_claims.py:3035) though not `_MARKER` (:3034). Delete the legend with the last marker, and build the ban on the wide pattern so a malformed marker cannot escape it; mutate the regex both ways. Carry: R10-ARCH-DOCS (item dr-legend-ban-regex)
+- A phrase found in the actor's file proves the actor mentions something, not that it writes: the study's main class was nine reads drawn as writes, and `ledger.py` occurs in a file that only folds the ledger. Require each row's phrase to carry the performing call (for example `ledger_open`, `merge_train.py add`, `git push`), not a bare target name, and add a red fixture whose phrase is the read form. Carry: R10-ARCH-DOCS (item dr-phrase-proves-write)
+- Section 2(d) step 1 parses `A -->|"verb"| B`. An unlabelled, dashed or differently shaped edge in that figure must be red, or it sits outside the pin; add it as a red fixture and a mutation target. Carry: R10-ARCH-DOCS (item dr-unparsed-edge-red)
+- After the ban, three paths in tests/doc_claims.py only serve a marker that can no longer be on main: item (a)'s marker exemption (:3172), item (b)'s roster read (:3196), and the "pending, not a finding" branch of `named_element_findings`. Say in the body whether each is kept for `--markers` and the user-doc scope or removed, and keep their existing self-tests green either way. Carry: R10-ARCH-DOCS (item dr-marker-paths-after-ban)
+- README.md is in `WIRING_DOCS` and is also a user page. The null control "a user-doc marker under the ban is green" needs a comment-wrapped marker in README.md itself, not only in a docs/ page. Carry: R10-ARCH-DOCS (item dr-readme-both-scopes)
+- dev/audit/harnesses/r10_arch_docs_first_mutants.py:36 plants a marker. Run it at both ends and record whether the ban changes what it expects. Carry: R10-ARCH-DOCS (item dr-first-mutants-harness)
+- Section 3 row 1 says every unit is `workflow_call`. At the judged base governance.yml also has `schedule` and kernel-points.yml also has `workflow_dispatch`. Write the doc sentence to that. Carry: R10-ARCH-DOCS (item dr-unit-triggers)
+- Section 3 row 2 lists plan_page under plan-beat. beat_jobs.py:418-424 runs replan.py and `state_docs.py --push`; find what runs plan_page.py before drawing that edge. Carry: R10-ARCH-DOCS (item dr-plan-page-edge)
+- Brief item 1 covers every figure. The note names no check of the "order a change is refused in" figure (dev/README.md:215), of the docs/architecture.md:17 flowchart, or of the "Who decides" table. Its sequence-diagram row covers `train-stop` only; the note's own correction (relay and opener target the PR branch, not main) also bears on `RL->>M: open the pull request`, and beat_jobs.py:542 runs open_driver.py. State each as checked, with the result, in the body. Carry: R10-ARCH-DOCS (item dr-other-figures)
+- The note's base is 333 commits behind the judged base. Every section 3 line cited above still held there, including tick_loop.sh's four lines and cloud_relay.sh:633-638, but tools/audit/seat changed by about 1,400 lines in that window. Item ad-reanchor stands. Carry: R10-ARCH-DOCS (item dr-base-moved)
+
+Seat token count: the harness reported none for this seat; the three read-only checker subagents reported 42,455 and 59,715 tokens, and none for the third.
