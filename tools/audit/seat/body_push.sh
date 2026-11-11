@@ -184,7 +184,7 @@ if [ -n "$HREF" ]; then
   # a review round (2 of 15 blocked verdicts on 2026-10-29). bus.sh dispatch runs the same check.
   # rc 3 (the roster unreadable) is said, never a refusal. HPO_HANDOFF_LANDED replaces the check.
   lrc=0
-  LD=$(cd "$ROOT" && ${HPO_HANDOFF_LANDED:-python3 -I "$ROOT/tools/audit/carry_audit.py" --roster-ref origin/main} \
+  LD=$(cd "$ROOT" && ${HPO_HANDOFF_LANDED:-python3 -I "$ROOT/tools/audit/carry_audit.py" --roster-ref ${HPO_LANDED_ROSTER_REF:-origin/main}} \
     landed --body "$ABS" --topic "$TOPIC" 2>&1) || lrc=$?
   printf '%s\n' "$LD"
   if [ "$lrc" = 1 ]; then  # mut:landed

@@ -230,12 +230,12 @@ carry_landed() { # pr -> rc 1 when a body carry is not in its group (lines and r
   if ! ${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '.body // ""' > "$b" 2>/dev/null; then
     echo "BUS carry-landing UNREAD #$1: the body could not be read; the dispatch goes on" >&2; rm -f "$b"; return 0
   fi
-  out=$(python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
+  out=$(python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref ${HPO_LANDED_ROSTER_REF:-origin/main} \
     landed --body "$b" --pr "#$1" 2>&1); rc=$?
   case $rc in
     0) ;;
     1) printf '%s\n' "$out" >&2
-       python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
+       python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref ${HPO_LANDED_ROSTER_REF:-origin/main} \
          land-ops --body "$b" --pr "#$1" 2>/dev/null | sed 's,^,  roster op: python3 tools/audit/seat/roster_edit.py ,' >&2 ;;
     *) printf 'BUS carry-landing UNREAD #%s: %s; the dispatch goes on\n' "$1" "$(tail -n 1 <<< "$out")" >&2 ;;
   esac
@@ -250,7 +250,7 @@ carry_gate() { # verdict-file -> rc 0 when each finding item routes, else why, n
   cj=$(mktemp) || { echo "no temporary file for the carry check"; return 1; }
   python3 -I -c 'import json, sys; json.dump([{"id": "push-verdict", "body": open(sys.argv[1], encoding="utf-8").read()}], open(sys.argv[2], "w"))' \
     "$1" "$cj" || { rm -f "$cj"; echo "the verdict could not be read for the carry check"; return 1; }
-  out=$(python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
+  out=$(python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref ${HPO_LANDED_ROSTER_REF:-origin/main} \
     check --body /dev/null --comments "$cj" 2>&1); rc=$?
   rm -f "$cj"
   case $rc in
