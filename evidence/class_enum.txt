@@ -1,0 +1,29 @@
+## grep -rniE vendor regex over the whole package dir (all files, recursive) at head
+custom_components/heatpump_optimizer/strings.json:594:              "space_setpoint_unit": "Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose
+custom_components/heatpump_optimizer/strings.json:597:              "space_setpoint_power_feedback": "On by default. Acts only with Pump duty control at Control, a Flow or Return temperature unit and 
+custom_components/heatpump_optimizer/strings.json:967:          "heat_curve_displace_entity": "A number entity that shifts your controller's heat curve. Kind offset: a whole-curve offset, 0 meaning no
+custom_components/heatpump_optimizer/strings.json:969:          "heat_curve_offset_band_k": "The offset written to the entity stays within this many kelvin either way. 3 K is an estimate between a +1 
+custom_components/heatpump_optimizer/strings.json:970:          "heat_curve_persistent_band_k": "The stored setting is moved at most this many kelvin either way from the value it held before the first
+custom_components/heatpump_optimizer/translations/de.json:594:              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für e
+custom_components/heatpump_optimizer/translations/de.json:597:              "space_setpoint_power_feedback": "Standardmäßig an. Wirkt nur mit Wärmepumpen-Betriebssteuerung auf Steuern, einer Einhei
+custom_components/heatpump_optimizer/translations/de.json:967:          "heat_curve_displace_entity": "Eine Zahlenentität, die die Heizkurve deines Reglers verschiebt. Typ Verschiebung: eine Verschie
+custom_components/heatpump_optimizer/translations/de.json:969:          "heat_curve_offset_band_k": "Der auf die Entität geschriebene Offset bleibt in beide Richtungen innerhalb so vieler Kelvin. 3 K
+custom_components/heatpump_optimizer/translations/de.json:970:          "heat_curve_persistent_band_k": "Die gespeicherte Einstellung wird höchstens so viele Kelvin in jede Richtung von dem Wert vers
+custom_components/heatpump_optimizer/translations/en.json:594:              "space_setpoint_unit": "Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controll
+custom_components/heatpump_optimizer/translations/en.json:597:              "space_setpoint_power_feedback": "On by default. Acts only with Pump duty control at Control, a Flow or Return temperature u
+custom_components/heatpump_optimizer/translations/en.json:967:          "heat_curve_displace_entity": "A number entity that shifts your controller's heat curve. Kind offset: a whole-curve offset, 0 me
+custom_components/heatpump_optimizer/translations/en.json:969:          "heat_curve_offset_band_k": "The offset written to the entity stays within this many kelvin either way. 3 K is an estimate betwe
+custom_components/heatpump_optimizer/translations/en.json:970:          "heat_curve_persistent_band_k": "The stored setting is moved at most this many kelvin either way from the value it held before t
+custom_components/heatpump_optimizer/translations/sv.json:594:              "space_setpoint_unit": "Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är fö
+custom_components/heatpump_optimizer/translations/sv.json:597:              "space_setpoint_power_feedback": "På som standard. Verkar bara med Styrning av pumpens uppgift på Styrning, enheten Framle
+custom_components/heatpump_optimizer/translations/sv.json:967:          "heat_curve_displace_entity": "En nummerentitet som förskjuter styrningens värmekurva. Typen förskjutning: en förskjutning a
+custom_components/heatpump_optimizer/translations/sv.json:969:          "heat_curve_offset_band_k": "Förskjutningen som skrivs till entiteten håller sig inom så här många kelvin åt båda hållen
+custom_components/heatpump_optimizer/translations/sv.json:970:          "heat_curve_persistent_band_k": "Den lagrade inställningen flyttas högst så här många kelvin åt båda hållen från värde
+rc=0
+## subdirectories with .py under package
+## _CB_VENDOR_BASE / census refs elsewhere
+tests/entities.py:4213:    "combi_type_branch": (
+tests/entities.py:4214:        "tests/features.py", "combi_type_branch census: no preset slug outside const.py's table"),
+tests/features.py:12390:_CB_VENDOR_BASE = 0
+tests/features.py:12395:    "combi_type_branch census: no preset slug outside const.py's table and the options flow, and no "
+tests/features.py:12397:    _cb_hits == [] and len(_cb_vendor) <= _CB_VENDOR_BASE

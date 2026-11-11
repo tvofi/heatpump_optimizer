@@ -1,0 +1,7 @@
+NULL rc=0
+MUTANT const.py '(a smart-home interface input, on' -> rc=1 KILLED
+MUTANT const.py ': 5 K is one' -> rc=1 KILLED
+MUTANT heat_curve.py '(one integration's states K' -> rc=1 KILLED
+MUTANT pump_arbiter.py 'on the reporting install) is not' -> rc=1 KILLED
+MUTANT pump_arbiter.py 'On the reporting install the two limits' -> rc=1 KILLED
+MUTANT thermal_model.py '(through a smart-home' -> rc=1 KILLED
