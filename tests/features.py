@@ -32236,9 +32236,9 @@ R.check(
 )
 R.check(
     "every schedule answer carries that second figure, on the ask's side of 0 and "
-    "no larger than the mean-price one on this sawtooth (the plan buys below the "
-    "mean); an answer priced by the pair has no such key",
-    all(isinstance(row[4], float) and row[4] * _ST_WANT[name] > 0.0 and abs(row[4]) <= abs(row[0])
+    "strictly smaller than the mean-price one on this sawtooth (the plan buys below "
+    "the mean); an answer priced by the pair has no such key",
+    all(isinstance(row[4], float) and row[4] * _ST_WANT[name] > 0.0 and abs(row[4]) < abs(row[0])
         for (_, name), row in _st_sched.items())
     and all(rows[name][4] == "absent" for rows in _st_cells.values()
             for name in ("panel_zero", "power_cap_75", "panel_hotwater_only")),
