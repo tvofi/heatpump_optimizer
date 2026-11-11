@@ -1,0 +1,4 @@
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  ok   a job the child cannot import comes back over the pipe, not as rc=1
+1 of 5252 FEATURE CHECKS FAILED
+rc=1
