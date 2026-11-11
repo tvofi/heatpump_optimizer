@@ -1,42 +1,34 @@
-Fix review: blocked 9774026d059395474cd3a8fb115320c6a7dd3248 mutation-vacuous: hot-render hot-gates hot-discharged hot-notdone, and the durations input driver is not landed (fixer.md 18)
+Fix review: blocked 95c04821e5ba3d6672e911f45292e1a2a4e463a9 mutation-vacuous: note-run run-via replan-via, the REST read's wiring into the measurement is unpinned
 
-bus-nonce: 874a9352450cf4d9810664f7dbb5465d
+bus-nonce: 9ebd4ea7050de3c52e1caaeaa684d491
 
-Round 2 (delta re-review of 3bfdec2a09..9774026d05). The measured head is 9774026d059395474cd3a8fb115320c6a7dd3248. It was still the branch tip when this verdict was written (ev/head-at-verdict.txt).
+Round 3 (delta re-review of 9774026d05..95c04821e5). The measured head is 95c04821e5ba3d6672e911f45292e1a2a4e463a9, still the PR head when this verdict was written (ev/head-at-verdict.txt). From the fourth round, fixer.md owes a re-cut.
 
 ## Block
 
-The delta answers all three items the round-1 block named, and both of its findings. Two defects remain in what the delta adds.
+Round 2 blocked on two items, and this delta settles the first. The hotfix mark is now pinned on the rendered page. The second item asked for the REST read to land and for `sizes_provenance` to state that input. The read and `input_note` both landed and both are pinned. The wiring that connects them to the measurement is not pinned. No self-test calls `size_durations.run` or `replan.main --measure-sizes` (located: `replan.py:3290` is the only caller, and neither self-test reaches it). My driver (ev/my-mutants-sd-driver.py, ev/my-mutants-sd.txt) found three production survivors. Each had `--self-test` rc=0 and no FAIL line:
 
-- **The hotfix mark (Carry 5 item 3) is not pinned where it is drawn.** The self-test checks the `hot` flag on the rows from `build_rows`. Its `hot_page` is built from those rows, not from the rendered HTML. No check reads `hotcp`, `▲` or the title "hotfix blocking a critical-path group" in the page. My driver (ev/my-mutants.txt, ev/my-mutants-driver.py) found four survivors at this head. Each had `plan_page.py --self-test` rc=0 with no FAIL line:
-  - `hot-render`: the `▲` span's `if r["hot"]` changed to `if False`. The carry's deliverable disappears from the page and nothing fails.
-  - `hot-gates`: `roster_lib.gates(G[a])` dropped from `gating_crit`. A predecessor in a releasing stage would be marked. The body says the mark uses "the same gating edges as `Blocked by`", but nothing pins that.
-  - `hot-discharged`: `a not in discharged` dropped from `gating_crit`.
-  - `hot-notdone`: `g not in done` dropped from `hot`. This may be equivalent if every closed stage is a releasing stage. I did not establish that.
+- `note-run`: `size_durations.run`'s `out["sizes_provenance"] += input_note(...)` deleted. The provenance goes back to not naming its input, which is round 2's defect, and nothing fails.
+- `run-via`: `run` passes `"graphql"` to `read_prs` instead of `via`. A `--via rest` run then reads GraphQL. Its provenance still says `fetch_rest (--via rest)`, so the provenance is false and nothing fails.
+- `replan-via`: `replan.main` drops `args.sizes_via` from the `size_durations.run` call. The body's own figure command (`--sizes-via rest`) silently uses GraphQL. The provenance stays honest, but the flag does nothing.
 
-  Fix: add a page-level check that the `hotcp` mark appears exactly on the hot rows, and none on the cold fixture. Add fixture arms for a discharged predecessor and for a releasing-stage predecessor. For `hot-notdone`, either add an arm or record it as equivalent with the reason.
-- **The re-measured `tools/plan/durations.json` cannot be reproduced from the tree.** The body says `size_durations.fetch` could not run (GraphQL 403). Its `--prs-cache` input was instead built over REST by a "scratch driver, sha1 8bba87c7...", and that driver is not in the diff. `fixer.md` step 18 says that a driver a body figure needs to be reproduced lands in the same pull request. `sizes_hours` (S 21.4, M 32.4, L 35.6, XL 35.6), `round_hours` 5.69 and `review_rounds` all depend on that input (ev/durations-diff.txt). The committed `sizes_provenance` also says "Measured by tools/plan/size_durations.py; re-derive, never edit", with no mention that the input was a REST-built cache. A reader re-deriving through the GraphQL path cannot tell whether a mismatch is drift or a different input. Fix: either (a) land the REST cache builder under `tools/audit/seat/` or `tools/plan/` and classify it, and state the REST input in `sizes_provenance`, or (b) have a seat with GraphQL re-run `replan.py --measure-sizes --out-durations` at the merge base without `--prs-cache` and commit that output, which the body already offers.
+None of the three is equivalent, because each changes the measured output or its provenance. The body's `## Unpinned sites` does not list them. `mutant_run.py --diff` did not generate them, since they delete a statement or drop an argument.
+
+Fix: make `run` injectable, as `fetch_rest`'s `get` already is. For example, `run(..., reads=READS, roster=None)` or something similar. Then add an arm that drives `run` with a fake `rest` read and a fixture roster. It must assert that the `rest` read was the one called, and that `sizes_provenance` ends with `input_note("rest", ...)`. Its null control is a `graphql` run, which names `fetch`. In replan, add an arm showing that `--measure-sizes --sizes-via rest` reaches `size_durations.run` with `via="rest"`, using a stubbed `run`.
 
 ## Findings
 
-- Follow-up: `size_durations.fetch` has only a GraphQL path. Here it turned a carry's one-command step into an unlanded scratch driver. The body's Friction dismisses this because "the relay has GraphQL". That dismissal holds only if remedy (b) above is taken. Under remedy (a) the REST path becomes tooling this PR lands. Carry: dismissed: settled by whichever remedy the block's second item takes in this PR
+- Follow-up: the test-side mutant `replan-cap` (`unset = ()`) survives, because the fixture records `live_remaining_fraction` 0.5 and review prices equal to progress either way. The arm's production pin holds regardless. Both 0.7 defaults changed to 0.9 are killed by `live stage (cap)` (ev/my-mutants-cap.txt). Carry: dismissed: test-side only, and the production defaults are pinned
 
 ## Evidence
 
-- Items the round-1 verdict blocked on, now answered:
-  - Carry 0 item (1), closure conditions: `replan.CLOSURE_CONDITIONS` is in `summary.closure_conditions`. `check_plan` refuses a plan without it, and the page lede states it. The in-tree mutant `closure-conditions`, harness mutant `closure-conditions-text` and my `check-cc` (`check_plan` guard deleted) are all killed by a named FAIL.
-  - Carry 0 item (3), durations: the file was re-measured in this PR (`sizes_measured_at` 2026-11-11T02:57:51Z, previously 2026-11-01T07:38:26Z). Its input is the defect in the Block's second item. I could not re-derive the figures: the cache and its driver are not in the tree, and this seat has no GraphQL. Carry: dismissed: evidence, not a finding
-  - Carry 5 item (3), hotfix mark: built. Its row flag is pinned (harness mutants `hotfix-mark` and `hotfix-gates-crit` killed); its rendering is not, as the Block's first item says.
-- Round-1 findings, now answered:
-  - The `TypeError` arm now passes `str([...])`.
-  - `review-min` and `wall-hours` are in-tree mutants, both "self-test fails when ... is deleted" ok (ev/selftest-replan.txt).
-  - `eta-dash` and `zero-other` are recorded as equivalent. I re-ran `zero-other`: it exits rc=0 with no FAIL. That fits the body's equivalence claim, because the general path renders the same zero sentence. I accept it. Carry: dismissed: evidence, not a finding
-- Removed mutant `stamp-on-axis`: `closure_at = max(stamps[-1].at, post_end)`, and the post-closure arm pins `pc["stamps"] == p0["stamps"]`, so no stamp lies past closure. Deleting the stamp term is a sound simplification, not a lost pin.
-- Roster carries: the body names Carry 0 to Carry 5 individually (Carry 5 is also read as Carry 6). It does not send any item to a next part, and claims no part-2 item: Carry 5 item 3 is part 1 under round 1's reading. Carry 1 item 1 is still dispositioned "not reproduced". I did not re-derive the roster `source` figure. Carry: dismissed: evidence, not a finding
-- RESULT self-tests at head: `replan.py --self-test` rc=0 "self-test: 0 failed"; `plan_page.py --self-test` rc=0 "91 checks, 0 failed". Both match the body's Figures.
-- RESULT harness `r10_plan_page_mutants.py M0 hotfix-mark hotfix-gates-crit closure-conditions-text`: M0 null, three killed, `survived=0` (ev/harness-new-mutants.txt).
-- Step 5: `VERSION`, the manifest and the notes heading are untouched. No claim or golden file is touched.
-- Step 13: `git merge-tree --write-tree origin/main 9774026d05` rc=0, no conflict, against origin/main dbd1ab5b07 (ev/merge-tree.txt).
-- Step 14: no budget, closures.json, INERT or golden file moves.
-- CI: `merge_train.py classify` printed `WAIT ... pending: gate red: none` from 04:16Z on (ev/classify-poll.txt). This verdict's block does not depend on CI.
+- RESULT round-2 survivors at this head, with my driver (ev/my-mutants-driver.py, ev/my-mutants.txt), `plan_page.py --self-test`: `hot-render`, `hot-gates`, `hot-notdone` were each KILLED by a named FAIL. So were my added mutants: `hot-dis` (discharged excluded from `done` for `hot`), `hot-crit`, `hot-title`, `hot-allrows` and `hot-nothotfix`. `hot-notdone` dies on the `deferred` arm, so it is not equivalent, which matches the body.
+- `hot-discharged`: the term is deleted. `done = {...} | discharged` (plan_page.py:212), and `hot` requires `g not in done`, so the deletion is behaviour-preserving. `hot-dis` shows that the discharged null arm pins it. The PR body records it as answered by deletion, not as KILLED, and I accept that.
+- RESULT harness `r10_plan_page_mutants.py M0 hot-render hot-gates hot-notdone hot-crit`: M0 null, four killed, `survived=0`. This matches the body (ev/harness-new-mutants.txt). The body quotes each of these as killed.
+- RESULT REST-read mutants killed: `rest-short`, `rest-since`, `rest-merged`, `rest-first` and `read-replay` (ev/my-mutants-sd.txt).
+- Durations input driver (fixer.md 18): landed as `size_durations.fetch_rest`, `--via rest` and `replan.py --sizes-via rest`. The committed `sizes_provenance` names the input: "1021 merged PRs created since 2026-10-12, read by size_durations.fetch_rest (--via rest)". I did not re-run the REST read. The corpus window is still open, because PRs have merged since 04:56Z, so a re-run would not reproduce the figures exactly. I did not re-derive `sizes_hours` S 21.6, M 32.4, L 35.6, XL 35.6 or `round_hours` 5.65. Carry: dismissed: evidence, not a finding
+- RESULT self-tests at head: `plan_page.py` "93 checks, 0 failed"; `replan.py` "model self-test: 0 failed", "self-test: 0 failed"; `size_durations.py` "0 failed". All match the body's Figures.
+- Step 13: `git merge-tree --write-tree origin/main 95c04821e5ba3d6672e911f45292e1a2a4e463a9` rc=0, no conflict, against origin/main a7628041dc (ev/merge-tree.txt).
+- Step 5 and step 14: the delta touches no VERSION, manifest, budget, claim, golden or closures file.
+- Step 11: the only red is `tests / nightly-status`, which is not in the `owed-reds` set (ev/owed-reds.txt), so it blocks nothing. `merge_train.py classify` printed `WAIT ... pending: gate red: none` from 07:31Z on (ev/classify-poll.txt). This block does not depend on CI.
 - Finder's harness: none. This is an instrument group fed by roster carries and closes no issue. Carry: dismissed: evidence, not a finding
