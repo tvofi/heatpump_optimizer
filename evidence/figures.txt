@@ -1,0 +1,6 @@
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  ok   and main() passes the committed table at its own recorded count (the null control)
+ALL 112 HARNESS HEADER CHECKS PASSED
+STRUCTURE RATCHET PASSED
+VERSION/manifest/notes untouched
+no golden/claim change

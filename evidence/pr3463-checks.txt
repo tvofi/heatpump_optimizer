@@ -1,0 +1,8 @@
+PR #3463 (fix/r10-hotfix-restore-base-skew), head dd0dcd3b6b1d4006b16bc9f1c9c0adc5cc3c51ae, read via get_check_runs at ~12:45 UTC 2026-11-11:
+gate (job 130519172985): failure 12:27:07 -- log: "FAIL run(s) [43017202337] at this head are still being judged; their gate decides"
+governance / instrument-self-tests (job 130513137185): failure (not in owed-reds)
+tests / coverage (job 130513734815): in_progress
+pr-contract (run 43017204209): skipped
+all other owed-reds checks present: success (arch-score, budget-raise-gate, codeql x3, governance env-matrix/policy-docs/wave-script, hassfest, tests arch-instrument/briefs/browser/closure-scope/closures/fast (3.14)/mutation/typing, validate-hacs)
+not in the listing: tests / ci-ratchet, tests / coverage-ratchet
+review_carry.py 5ec2425619 dd0dcd3b6: CARRY (merge of origin/main f0d1e11cc + record commit dd0dcd3b6 touching only dev/programme/delivery/3463.md)
