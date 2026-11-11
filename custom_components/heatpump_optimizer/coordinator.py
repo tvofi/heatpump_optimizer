@@ -6961,23 +6961,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         every cycle. The first failure logs ERROR; the rest log DEBUG until
         a fetch succeeds again, which logs the outage's length at INFO.
         """
-        if not self._tibber_outage_cycles:
-            _LOGGER.error("%s", reason, exc_info=exc_info)
-        else:
-            _LOGGER.debug("Tibber still failing (%s)", reason)
+        # Last published prices still covering now bridge the failure: a
+        # warning and a repair, not a failed update. Auth failures still fail.
+        bridged = not auth and bool(self._known_prices_for([plan_step_start(dt_util.now())]))
+        issues.note_price_outage(self.hass, reason, bridged, not self._tibber_outage_cycles, exc_info)
         self._tibber_outage_cycles += 1
         if auth:  # D10-s1-03: Home Assistant stops retrying and asks for a token
             self._tibber_start_reauth()
             _raise_auth_failed("tibber_auth_failed", reason, error=reason)
-        _raise_update_failed("tibber_fetch_failed", reason, None, error=reason)
+        if not bridged:
+            _raise_update_failed("tibber_fetch_failed", reason, None, error=reason)
 
     def _tibber_fetch_recovered(self) -> None:
         """Clear the outage latch after a successful fetch."""
         if self._tibber_outage_cycles:
-            _LOGGER.info(
-                "Tibber prices recovered after %d failed cycle(s)",
-                self._tibber_outage_cycles,
-            )
+            _LOGGER.info("Tibber prices recovered after %d failed cycle(s)",
+                         self._tibber_outage_cycles)
+        issues.clear_issue(self.hass, "price_feed_stale")
         self._tibber_outage_cycles = 0
         # A later revocation of the (new) token deserves its own flow.
         self._tibber_reauth_started = False
