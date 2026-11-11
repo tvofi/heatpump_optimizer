@@ -23190,6 +23190,44 @@
     "branch": null,
     "note": "overlap admitted (R10-SEAT-SCRIPT-OUTPUT, R10-GATE-DEFER-BARRIER): triage s14-13 2026-11-11: P597 not-started sibling of R10-TRAIN-RESIDUE (carries-open, not carry_receivable); triage: dev/programme/triage/s6-batch178.md#P597 at 2ff0ab30e0"
    }
+  },
+  {
+   "group": "R10-HOTFIX-SHIM-ESCAPES",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "S",
+   "effort": "medium",
+   "severity": "high",
+   "lane": "IN",
+   "wave": 1,
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/shims/seat-gh",
+    "tools/audit/seat/gh_calls.py"
+   ],
+   "hot_files": [],
+   "owner_gate": null,
+   "fixture": false,
+   "rca": [],
+   "findings": [],
+   "fixes": [],
+   "issues": [],
+   "brief": "triage: dev/programme/triage/s6-batch179.md#P598 at 8673dba7c4\n\nHotfix, no after: the gh shim refuses gh's own --allow-escape-sequences, so merge_train.job_log (:648), the tree's one Actions job-log reader, which always passes it, reads None under the shim (measured: job 130415790006, 0 bytes through the shim against 1,093,937 with the real gh first on PATH). failure_logs.sh, gate_raise_only (:675), the culprit read (:3370) and the infra rerun (:3633) all go blind, the live train included (its PATH resolves gh to the shim). Line numbers at cbd23f1c8b.\n\n1. SHIM-ESCAPES-FLAG. In tools/audit/seat/shims/seat-gh add --allow-escape-sequences to API_BOOL (:241; output-only). When api_gate refuses an unknown flag (:268-270) print 'gh shim: unknown gh api flag <x>; refused' instead of the record-issue comment-write message (the wrong message sent seats after a non-existent path cause); a tracker-comment write keeps its message. Self-test in gh_calls.py: the flag on actions/jobs/7/logs passes; the flag plus -f body=x on issues/201/comments is still refused with the comment-write message; --bogus is refused with the unknown-flag message; mutation: dropping the flag from API_BOOL fails case 1; null control: a plain GET of a non-tracker path passes as today.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R10-GH-READ-RESIDUE-P3): triage s14-13 2026-11-11: P598 hotfix, shim refuses --allow-escape-sequences so every job_log read fails under it; triage: dev/programme/triage/s6-batch179.md#P598 at 8673dba7c4"
+   }
   }
  ]
 }
