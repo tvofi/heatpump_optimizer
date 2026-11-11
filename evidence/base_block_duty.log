@@ -46,21 +46,22 @@
   ok   the cold lease is strict: a room at the plan is not below it
   ok   the arbiter releases a block a floor forbids before it serves a duty
   ok   both channels blocked is idle
-  FAIL a commanded or held disinfection cycle writes its temperature, not the configured set-point  [predicate false]
+  ok   a commanded or held disinfection cycle writes its temperature, not the configured set-point
   ok   a configured set-point above the disinfection temperature is never lowered to it
-  FAIL every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too  [predicate false]
-  FAIL the cycle's temperature is the thermal parameters' own answer, not a copy  [AttributeError: 'ThermalParameters' object has no attribute 'dhw_cycle_temp']
-  FAIL a cycle never lowers the tank: an everyday set-point above the disinfection temperature is the cycle's and the ceiling's  [AttributeError: 'ThermalParameters' object has no attribute 'dhw_cycle_temp']
-  FAIL an off-step disinfection temperature is written on the step above it, never below  [predicate false]
-  FAIL a disinfection temperature above the entity's range stays bounded at its maximum  [predicate false]
-  FAIL the space-only gate stays a gate on a booked step, but a held cycle turns it into Heating + DHW  [predicate false]
+  ok   every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too
+  ok   the cycle's temperature is the thermal parameters' own answer, not a copy
+  ok   a cycle never lowers the tank: an everyday set-point above the disinfection temperature is the cycle's and the ceiling's
+  ok   an off-step disinfection temperature is written on the step above it, never below
+  ok   a cycle whose temperature is an off-step everyday set-point is rounded up too, never below the disinfection temperature; the same install's everyday step keeps the nearest step
+  ok   a disinfection temperature above the entity's range stays bounded at its maximum
+  ok   the space-only gate stays a gate on a booked step, but a held cycle turns it into Heating + DHW
   ok   null control: a disabled cycle writes the everyday set-point on every row and booking
-  FAIL a combi store at or under the potable limit runs no cycle: a booked or held step writes the everyday set-point, unless the cycle is forced (#3398's predicate, read through the cycle's owner)  [predicate false]
+  ok   a combi store at or under the potable limit runs no cycle: a booked or held step writes the everyday set-point, unless the cycle is forced (#3398's predicate, read through the cycle's owner)
   ok   null control: an everyday set-point at or above the disinfection temperature is written as is
   ok   null control: no hot-water set-point entity is no hot-water write on any row
-  FAIL the arbiter's own everyday write raises no disinfection-floor repair: it writes the cycle itself  [predicate false]
+  ok   the arbiter's own everyday write raises no disinfection-floor repair: it writes the cycle itself
   ok   a person's value beside the arbiter's write still raises the repair, its Fix on the floor
   ok   null control: with no arbiter write the pump's own set-point must still permit the cycle
   ok   null control: a disabled cycle and an everyday set-point at the disinfection temperature raise nothing
 
-9 of 62 BLOCK DUTY CHECKS FAILED
+ALL 63 BLOCK DUTY CHECKS PASSED

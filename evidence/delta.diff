@@ -1,0 +1,184 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 48c989c0b..ac193fb00 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -1093,16 +1093,18 @@ def _dhw_write(inp: ArbiterInputs) -> float | None:
+ 
+     A cycle runs while the plan's step books hot water for it (``dhw_reason``
+     legionella) or the integration holds the pump's disinfection switch on;
+-    its temperature is the thermal parameters' (``dhw_cycle_temp``), rounded
+-    UP onto the entity's step, as a target snapped below itself fails the
+-    guard's own credit test. Holding the everyday set-point through a cycle
++    its temperature is the thermal parameters' (``dhw_cycle_temp``, already
++    the higher of the everyday set-point and the disinfection temperature),
++    rounded UP onto the entity's step even where it equals the everyday
++    set-point, as a target snapped below itself fails the guard's own credit
++    test (everyday 60.4, disinfection 60.2, step 1: 61, not 60). Holding the everyday set-point through a cycle
+     stopped the pump's own thermostat short of the cycle's target (2026-11-01:
+     60 °C planned, 55 °C written back within a minute).
+     """
+     everyday = float(inp.params.dhw_setpoint)
+     booked = (inp.action or {}).get("dhw_reason") == REASON_LEGIONELLA
+     cycle = inp.params.dhw_cycle_temp if booked or inp.disinfecting else None
+-    if cycle is None or cycle <= everyday:
++    if cycle is None:
+         return _bounded(inp, "dhw_setpoint", everyday)
+     return _bounded(inp, "dhw_setpoint", float(cycle), rounding="up")
+ 
+diff --git a/dev/programme/delivery/3452.md b/dev/programme/delivery/3452.md
+new file mode 100644
+index 000000000..b5f8aa7a2
+--- /dev/null
++++ b/dev/programme/delivery/3452.md
+@@ -0,0 +1 @@
++- [#3452](https://github.com/tvofi/heatpump_optimizer/pull/3452) — **open**, R10-OUTSIDE-DISINFECTION-SETPOINT: r10 outside disinfection setpoint (R10-OUTSIDE-DISINFECTION-SETPOINT)
+diff --git a/tests/block_duty.py b/tests/block_duty.py
+index e8f806030..436698423 100644
+--- a/tests/block_duty.py
++++ b/tests/block_duty.py
+@@ -592,6 +592,13 @@ def disinfection_checks() -> None:
+         and written(_dhw_snap(disinfecting=True, disinfection=60.3,
+                               attrs={"min": 30, "max": 65, "step": 5}), "dhw") == 65.0,
+     )
++    check(
++        "a cycle whose temperature is an off-step everyday set-point is rounded up too, never below "
++        "the disinfection temperature; the same install's everyday step keeps the nearest step",
++        lambda: written(_dhw_snap(disinfecting=True, configured=60.4, disinfection=60.2), "dhw") == 61.0
++        and written(_dhw_snap(action={"dhw_reason": "legionella"}, configured=60.4, disinfection=60.2), "dhw") == 61.0
++        and written(_dhw_snap(configured=60.4, disinfection=60.2), "dhw") == 60.0,
++    )
+     check(
+         "a disinfection temperature above the entity's range stays bounded at its maximum",
+         lambda: written(_dhw_snap(disinfecting=True, attrs={"min": 30, "max": 58, "step": 1}), "dhw") == 58.0,
+diff --git a/tests/mutation_ledger/killed_by/pump_arbiter.py/_dhw_write.GUARD_OFF.90de19e4.json b/tests/mutation_ledger/killed_by/pump_arbiter.py/_dhw_write.GUARD_OFF.90de19e4.json
+new file mode 100644
+index 000000000..847ff69ba
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/pump_arbiter.py/_dhw_write.GUARD_OFF.90de19e4.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_dhw_write GUARD_OFF 90de19e4",
++  "killed_by": "tests/guard_pins.py",
++  "old": "    if cycle is None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/pump_arbiter.py/_dhw_write.RETURN_DEL.e7e1a636.json b/tests/mutation_ledger/killed_by/pump_arbiter.py/_dhw_write.RETURN_DEL.e7e1a636.json
+new file mode 100644
+index 000000000..8883e4057
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/pump_arbiter.py/_dhw_write.RETURN_DEL.e7e1a636.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_dhw_write RETURN_DEL e7e1a636",
++  "killed_by": "tests/block_duty.py",
++  "old": "    return _bounded(inp, \"dhw_setpoint\", float(cycle), rounding=\"up\")",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=10."
++}
+diff --git a/tests/mutation_ledger/killed_by/pump_arbiter.py/dhw_gated.RETURN_DEL.7523de18.json b/tests/mutation_ledger/killed_by/pump_arbiter.py/dhw_gated.RETURN_DEL.7523de18.json
+new file mode 100644
+index 000000000..09d0f99f4
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/pump_arbiter.py/dhw_gated.RETURN_DEL.7523de18.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:dhw_gated RETURN_DEL 7523de18",
++  "killed_by": "tests/block_duty.py",
++  "old": "    return not (reading is None or written is None or _differs(\"dhw_setpoint\", reading, written[0]))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/setpoint_check.py/_dhw_floor.CLAMP_DROP.645cbad5.json b/tests/mutation_ledger/killed_by/setpoint_check.py/_dhw_floor.CLAMP_DROP.645cbad5.json
+new file mode 100644
+index 000000000..de463fccc
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/setpoint_check.py/_dhw_floor.CLAMP_DROP.645cbad5.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/setpoint_check.py:_dhw_floor CLAMP_DROP 645cbad5",
++  "killed_by": "tests/block_duty.py",
++  "old": "    return floor if disinfection is None else max(floor, float(disinfection))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return floor if disinfection is None else (floor)`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/setpoint_check.py/_dhw_floor.RETURN_DEL.645cbad5.json b/tests/mutation_ledger/killed_by/setpoint_check.py/_dhw_floor.RETURN_DEL.645cbad5.json
+new file mode 100644
+index 000000000..da5350617
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/setpoint_check.py/_dhw_floor.RETURN_DEL.645cbad5.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/setpoint_check.py:_dhw_floor RETURN_DEL 645cbad5",
++  "killed_by": "tests/block_duty.py",
++  "old": "    return floor if disinfection is None else max(floor, float(disinfection))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_cycle_temp.CLAMP_DROP.25788b20.json b/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_cycle_temp.CLAMP_DROP.25788b20.json
+new file mode 100644
+index 000000000..f1db9bb0e
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_cycle_temp.CLAMP_DROP.25788b20.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_cycle_temp CLAMP_DROP 25788b20",
++  "killed_by": "tests/guard_pins.py",
++  "old": "        return None if target is None else max(self.dhw_setpoint, target)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return None if target is None else (self.dhw_setpoint)`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_cycle_temp.RETURN_DEL.25788b20.json b/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_cycle_temp.RETURN_DEL.25788b20.json
+new file mode 100644
+index 000000000..8ba3edd12
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_cycle_temp.RETURN_DEL.25788b20.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_cycle_temp RETURN_DEL 25788b20",
++  "killed_by": "tests/guard_pins.py",
++  "old": "        return None if target is None else max(self.dhw_setpoint, target)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_disinfection_temp.RETURN_DEL.aae31b25.json b/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_disinfection_temp.RETURN_DEL.aae31b25.json
+new file mode 100644
+index 000000000..8a9baf7ad
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_disinfection_temp.RETURN_DEL.aae31b25.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_disinfection_temp RETURN_DEL aae31b25",
++  "killed_by": "tests/guard_pins.py",
++  "old": "        return self.dhw_legionella_temp if self.legionella_cycle_active else None",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_hard_max_temp.CLAMP_DROP.b26a9d8f.json b/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_hard_max_temp.CLAMP_DROP.b26a9d8f.json
+new file mode 100644
+index 000000000..63ddb58b5
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_hard_max_temp.CLAMP_DROP.b26a9d8f.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_hard_max_temp CLAMP_DROP b26a9d8f",
++  "killed_by": "tests/block_duty.py",
++  "old": "        return min(70.0, self.dhw_setpoint if top is None else top)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return (70.0)`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_hard_max_temp.RETURN_DEL.b26a9d8f.json b/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_hard_max_temp.RETURN_DEL.b26a9d8f.json
+new file mode 100644
+index 000000000..6dff92646
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/thermal_model.py/ThermalParameters.dhw_hard_max_temp.RETURN_DEL.b26a9d8f.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_hard_max_temp RETURN_DEL b26a9d8f",
++  "killed_by": "tests/guard_pins.py",
++  "old": "        return min(70.0, self.dhw_setpoint if top is None else top)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tools/audit/seat/r10_disinfection_setpoint_mutants.py b/tools/audit/seat/r10_disinfection_setpoint_mutants.py
+index e3c1a734f..c82e390ae 100755
+--- a/tools/audit/seat/r10_disinfection_setpoint_mutants.py
++++ b/tools/audit/seat/r10_disinfection_setpoint_mutants.py
+@@ -28,6 +28,7 @@ MUTANTS = [
+      'return not (reading is None or written is None or _differs("dhw_setpoint", reading, written[0])) and written[0] < float(coord.arbiter_inputs().params.dhw_setpoint) - SETPOINT_TOLERANCE'),
+     ("M6-excuse-any-reading", A, 'return not (reading is None or written is None or _differs("dhw_setpoint", reading, written[0]))',
+      'return not (reading is None or written is None)'),
++    ("M11-everyday-cycle-nearest", A, "    if cycle is None:\n", "    if cycle is None or cycle <= float(inp.params.dhw_setpoint):\n"),
+     ("M7-flag-ignored", T, "return self.dhw_legionella_temp if self.legionella_cycle_active else None", "return self.dhw_legionella_temp"),
+     ("M10-enabled-not-active", T, "return self.dhw_legionella_temp if self.legionella_cycle_active else None",
+      "return self.dhw_legionella_temp if self.dhw_legionella_enabled else None"),
