@@ -378,7 +378,7 @@ def budget_raise():
                 if argv[:3] == ["git", "merge-base", "origin/main"]:
                     return 0, base + "\n"
                 if argv[:2] == ["gh", "api"] and "/reviews" in " ".join(argv):
-                    return 0, "[[]]"
+                    return 0, ""  # no review: an empty page of the train's paged read (gh_read.read_pages)
                 return 1, f"agreement_py: no answer for {argv[:3]}"
             import tempfile
             with tempfile.TemporaryDirectory() as d:
