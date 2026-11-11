@@ -1,0 +1,16 @@
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index c5970b4f5..f9ceb8b14 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -2607,10 +2607,7 @@ def refill_power_kwh(params: ThermalParameters, heat_per_cop_kwh: float, hours:
+     The input itself, bit for bit, while the derate is 0 or ``hours`` is not
+     positive: the inverse passes ``abs`` through unchanged there (its own
+     ``band <= 0`` guard) and ``copysign`` restores the sign."""
+-    return math.copysign(
+-        power_for_heat_per_cop_kw(params, abs(heat_per_cop_kwh), hours=hours),
+-        heat_per_cop_kwh,
+-    )
++    return power_for_heat_per_cop_kw(params, abs(heat_per_cop_kwh), hours=hours)
+ 
+ 
+ def added_power_for_heat_per_cop_kw(

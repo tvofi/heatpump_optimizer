@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 45f71299a..158ba926b 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -2720,7 +2720,7 @@ def _terminal_row_cost(
+             )
+         deficit = sum(term_values)
+         if refill is not None:
+-            return refill_price * refill(deficit / max(cop_end, 1e-6))
++            return refill_price * refill(deficit / (cop_end))
+         return refill_price * deficit / max(cop_end, 1e-6)
+ 
+     return row_cost, terms

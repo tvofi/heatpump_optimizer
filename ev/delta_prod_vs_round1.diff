@@ -1,0 +1,139 @@
+diff --git a/custom_components/heatpump_optimizer/thermal_model.py b/custom_components/heatpump_optimizer/thermal_model.py
+index a8cdad246..c5970b4f5 100644
+--- a/custom_components/heatpump_optimizer/thermal_model.py
++++ b/custom_components/heatpump_optimizer/thermal_model.py
+@@ -158,13 +158,10 @@ EULER_MONOTONE_MAX_RATIO: float = 1.0
+ 
+ # Combi tank (#3225, R10-COMBI-TANK): one store of heating water serves the
+ # space circuit and hot water through an exchanger whose effectiveness is
+-# eps = (T_tap - T_in) / (T_store - T_in). The defaults are the design's
+-# internal-coil preset (eps 0.85, 30 l of potable water in the coil); a value
+-# below the floor is no real exchanger, and the floor keeps the tap-to-store
+-# transform's divisor finite.
+-COMBI_DHW_EFFECTIVENESS_DEFAULT: float = 0.85
++# eps = (T_tap - T_in) / (T_store - T_in). The defaults are const.py's
++# internal-coil preset; a value below the floor is no real exchanger, and the
++# floor keeps the tap-to-store transform's divisor finite.
+ COMBI_DHW_EFFECTIVENESS_FLOOR: float = 0.1
+-COMBI_POTABLE_VOLUME_DEFAULT_L: float = 30.0
+ 
+ 
+ def _holiday_dhw_windows(config: Mapping[str, Any]) -> list[Window] | None:
+@@ -311,9 +308,10 @@ class ThermalParameters:
+     buffer_max_temp: float = 70.0  # °C
+     # Combi tank (#3225): hot water is drawn from the buffer store through an
+     # exchanger of effectiveness eps holding `combi_potable_volume_l` litres.
+-    dhw_combi_tank_enabled: bool = False
+-    combi_dhw_effectiveness: float = COMBI_DHW_EFFECTIVENESS_DEFAULT
+-    combi_potable_volume_l: float = COMBI_POTABLE_VOLUME_DEFAULT_L
++    dhw_combi_tank_enabled: bool = const.DEFAULT_DHW_COMBI_TANK_ENABLED
++    combi_dhw_effectiveness: float = const.DEFAULT_COMBI_DHW_EFFECTIVENESS
++    combi_potable_volume_l: float = const.DEFAULT_COMBI_POTABLE_VOLUME_L
++    dhw_combi_legionella_force: bool = const.DEFAULT_DHW_COMBI_LEGIONELLA_FORCE
+ 
+     @property
+     def combi_tank_active(self) -> bool:
+@@ -323,6 +321,15 @@ class ThermalParameters:
+             and self.buffer_is_store and not self.dhw_coil_active
+         )
+ 
++    @property
++    def legionella_cycle_active(self) -> bool:
++        """The flag's one behaviour read: a combi store at or under the potable limit runs no cycle unless forced."""
++        return self.dhw_legionella_enabled and (
++            not self.dhw_combi_tank_enabled or not self.combi_tank_active
++            or self.combi_potable_volume_l > const.COMBI_LEGIONELLA_POTABLE_LIMIT_L
++            or self.dhw_combi_legionella_force
++        )
++
+     @property
+     def buffer_store_volume(self) -> float:
+         """Store litres, combi's potable water included; off, no predicate per step."""
+@@ -896,7 +903,7 @@ class ThermalParameters:
+         capping a cycle at the setpoint.
+         """
+         top = self.dhw_setpoint
+-        if self.dhw_legionella_enabled:
++        if self.legionella_cycle_active:
+             top = max(top, self.dhw_legionella_temp)
+         return min(70.0, top)
+ 
+@@ -943,12 +950,7 @@ class ThermalParameters:
+         The mapping is a table rather than ninety lines of near-identical
+         ``config.get(KEY, DEFAULT)`` calls. Adding a parameter is one row, and
+         a typo in a key or a default is visible by comparison with its
+-        neighbours instead of buried in prose.
+-
+-        Split out of ``from_config`` (#225 stage 1) verbatim. What is left
+-        there is the other half: the fields the table cannot express, because
+-        they need validating, deriving from another field, or defaulting on
+-        absence rather than on value.
++        neighbours instead of buried in prose. ``from_config`` holds the rest.
+         """
+         # field name -> the name its CONF_ key and DEFAULT_ value share in
+         # ``const``, resolved by name so the table stays readable and a missing
+@@ -1007,6 +1009,8 @@ class ThermalParameters:
+             "max_electrical_power": "HEAT_PUMP_MAX_POWER",
+             "min_electrical_power": "HEAT_PUMP_MIN_POWER",
+             "cop_partload_derate": "HEAT_PUMP_COP_PARTLOAD_DERATE",
++            "combi_dhw_effectiveness": "COMBI_DHW_EFFECTIVENESS",
++            "combi_potable_volume_l": "COMBI_POTABLE_VOLUME_L",
+         }
+ 
+         values = {
+@@ -1021,12 +1025,10 @@ class ThermalParameters:
+             ("dhw_schedule_enabled", "DHW_SCHEDULE_ENABLED"),
+             ("dhw_legionella_enabled", "DHW_LEGIONELLA_ENABLED"),
+             ("dhw_elastic_legionella_enabled", "DHW_ELASTIC_LEGIONELLA_ENABLED"),
++            ("dhw_combi_tank_enabled", "DHW_COMBI_TANK_ENABLED"),
++            ("dhw_combi_legionella_force", "DHW_COMBI_LEGIONELLA_FORCE"),
+         ):
+-            values[name] = bool(
+-                config.get(
+-                    getattr(const, f"CONF_{key}"), getattr(const, f"DEFAULT_{key}")
+-                )
+-            )
++            values[name] = bool(config.get(getattr(const, f"CONF_{key}"), getattr(const, f"DEFAULT_{key}")))
+         return values
+ 
+     @classmethod
+@@ -1132,11 +1134,6 @@ class ThermalParameters:
+                     const.CONF_RADIATOR_POWER_FRACTION,
+                 )
+             )
+-        # A None value does NOT count as presence (v4.0.0 T3): clearing the
+-        # DHW temperature sensor on the entities page writes the key back as
+-        # None, and counting that as "configured" phantom-enabled hot water
+-        # on entries that never had it. An empty string still counts — an
+-        # empty ``dhw_windows`` legitimately means "learned windows".
+         values["dhw_enabled"] = _dhw_enabled_from_config(config)
+ 
+         # Demand windows: fall back to the default schedule when the stored
+@@ -1168,6 +1165,14 @@ class ThermalParameters:
+         return cls(**values)
+ 
+ def _dhw_enabled_from_config(config: Mapping[str, Any]) -> bool:
++    """The explicit switch, else the presence of a hot water key.
++
++    A None value does NOT count as presence (v4.0.0 T3): clearing the DHW
++    temperature sensor on the entities page writes the key back as None, and
++    counting that as "configured" phantom-enabled hot water on entries that
++    never had it. An empty string still counts — an empty ``dhw_windows``
++    legitimately means "learned windows".
++    """
+     if const.CONF_DHW_ENABLED in config:
+         return bool(config[const.CONF_DHW_ENABLED])
+     return any(
+@@ -2599,9 +2604,9 @@ def refill_power_kwh(params: ThermalParameters, heat_per_cop_kwh: float, hours:
+     rate, so a refill above the modulation floor pays its part-load derate.
+ 
+     Sign-symmetric: a surplus is credited at the law a deficit is charged at.
+-    The input itself while the derate is 0, bit for bit."""
+-    if not params.cop_partload_derate or hours <= 0.0:
+-        return heat_per_cop_kwh
++    The input itself, bit for bit, while the derate is 0 or ``hours`` is not
++    positive: the inverse passes ``abs`` through unchanged there (its own
++    ``band <= 0`` guard) and ``copysign`` restores the sign."""
+     return math.copysign(
+         power_for_heat_per_cop_kw(params, abs(heat_per_cop_kwh), hours=hours),
+         heat_per_cop_kwh,
