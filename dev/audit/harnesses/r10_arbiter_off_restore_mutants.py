@@ -10,8 +10,10 @@ through ``tools/audit/seat/features_block.py``. Run from the repository root:
     python3 dev/audit/harnesses/r10_arbiter_off_restore_mutants.py
 
 It prints mutant_run's lines, ``SURVIVED NULL`` then ``KILLED <name>`` per
-mutant at the fix head, and exits with mutant_run's status. A mutant whose
-``old`` text no longer occurs exactly once is refused before anything runs.
+mutant at the fix head, once for M01-M20 on the arbiter block and once for the
+seam mutants (M21 to M25) on the water-setpoint feedback block, and exits with
+mutant_run's status. A mutant whose ``old`` text no longer occurs exactly once
+is refused before anything runs.
 """
 from __future__ import annotations
 
@@ -148,13 +150,64 @@ MUTANTS = json.loads(r"""
  }
 ]
 """)
+#: The seam with R10-WATER-SETPOINT-FEEDBACK (the merge of #3405): the off
+#: restore's edit adoption reads the space slot before ``hold``, so a loop
+#: write's controller cut is ``_clamp_cut``'s, never a person's baseline; and
+#: the record a loop move drops (``_note_sent``) still refuses the optimizer's
+#: own write as the restore's baseline (roster Carry 8). Their checks sit in
+#: the feedback block, which needs the arbiter block's imports.
+SEAM_BLOCK = (
+    'env PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py '
+    '--prelude "from harness import FakeEntry as _pa_entry" '
+    '--prelude "from types import SimpleNamespace as _PaNS" '
+    '--prelude "from heatpump_optimizer.const import MODE_AUTO as _PA_AUTO, MODE_OFF as _PA_OFF" '
+    '"# --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380" "_fb_floor = _fb_sim("'
+)
+SEAM_MUTANTS = json.loads(r"""
+[
+ {
+  "name": "M21_edit_adopts_cut",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "        and _differs(\"space_setpoint\", observed, before) \\\n        and not _cut_of(held.feedback, record[0], observed)\n",
+  "new": "        and _differs(\"space_setpoint\", observed, before)\n"
+ },
+ {
+  "name": "M22_cut_bracket_open",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "low - SETPOINT_TOLERANCE <= observed <= high + SETPOINT_TOLERANCE",
+  "new": "low - SETPOINT_TOLERANCE < observed < high + SETPOINT_TOLERANCE"
+ },
+ {
+  "name": "M23_arm_ignores_dropped_record",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    last = record[0] if record is not None else None if run is None else run.prev_c\n",
+  "new": "    last = record[0] if record is not None else None\n"
+ },
+ {
+  "name": "M24_prev_not_kept",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    rec.prev_c = rec.prev_c if recorded is None else recorded[0]\n",
+  "new": "    rec.prev_c = None if recorded is None else recorded[0]\n"
+ },
+ {
+  "name": "M25_restored_keeps_run",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "        held.feedback = None  # its prev_c is that record too (_note_sent)\n",
+  "new": "        pass\n"
+ }
+]
+""")
+
+
+def _run(mutants: list[dict[str, str]], cmd: str) -> int:
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as spec:
+        json.dump(mutants, spec)
+    return subprocess.call(
+        [sys.executable, "tools/audit/seat/mutant_run.py", "--spec", spec.name, "--cmd", cmd])
 
 
 def main() -> int:
-    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as spec:
-        json.dump(MUTANTS, spec)
-    return subprocess.call(
-        [sys.executable, "tools/audit/seat/mutant_run.py", "--spec", spec.name, "--cmd", BLOCK])
+    return max(_run(MUTANTS, BLOCK), _run(SEAM_MUTANTS, SEAM_BLOCK))
 
 
 if __name__ == "__main__":
