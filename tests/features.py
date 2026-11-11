@@ -80509,6 +80509,72 @@ R.check(
 )
 
 
+# #1935 follow-up: the boost's settling tail is priced on how long it ran. The
+# full window keeps today's 12 h; a click of a few seconds owes only the floor,
+# the learners' longest sample; an unseen start owes the full tail.
+_bt_hour = boost_mod.settle_tail(timedelta(hours=1))
+R.check(
+    "the settling tail scales with the boost's length: full window 12 h, an hour "
+    "12 h + 6 h * ln(1/2), 38 s the 1.5 h floor, an unseen start the full tail",
+    boost_mod.settle_tail(timedelta(hours=boost_mod.BOOST_HOURS)) == boost_mod.SPACE_SETTLE_TAIL
+    and boost_mod.settle_tail(None) == boost_mod.SPACE_SETTLE_TAIL
+    and boost_mod.settle_tail(timedelta(seconds=38)) == timedelta(hours=1.5)
+    and abs(_bt_hour.total_seconds() - (12.0 + 6.0 * _he_math.log(0.5)) * 3600.0) < 1e-6,
+    f"hour {_bt_hour}",
+)
+
+
+def _bt_state(ran, *, cancel=True):
+    st = boost_mod.BoostState()
+    st.set(boost_mod.CHANNEL_SPACE, True, NOW)
+    if cancel:
+        st.set(boost_mod.CHANNEL_SPACE, False, NOW + ran)
+    else:
+        st.expire(NOW + ran)
+    return st
+
+
+_bt_click, _bt_full = _bt_state(timedelta(seconds=38)), _bt_state(timedelta(hours=3), cancel=False)
+_bt_nested = _bt_state(timedelta(hours=2), cancel=False)
+_bt_nested.set(boost_mod.CHANNEL_SPACE, True, NOW + timedelta(hours=3))
+_bt_nested.set(boost_mod.CHANNEL_SPACE, False, NOW + timedelta(hours=3, seconds=38))
+R.check(
+    "a 38 s boost cancelled ends its freeze 1.5 h after the cancel; a window run to its end "
+    "settles 12 h from that end (null control); a click inside a long tail keeps it",
+    _bt_click.space_settle_until == NOW + timedelta(seconds=38, hours=1.5)
+    and _bt_full.space_settle_until == NOW + timedelta(hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_nested.space_settle_until == _bt_full.space_settle_until,
+    f"{_bt_click.space_settle_until} {_bt_full.space_settle_until} {_bt_nested.space_settle_until}",
+)
+_bt_restored = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+boost_mod._restore_settle(_bt_restored, {
+    "space_settle": {"until": (NOW + timedelta(hours=9)).isoformat()},
+    "space": {"until": (NOW + timedelta(hours=1)).isoformat(), "since": (NOW - timedelta(hours=1)).isoformat()},
+}, NOW)
+_bt_down = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_down, {"space": {"until": (NOW - timedelta(hours=1)).isoformat(),
+                                               "since": (NOW - timedelta(hours=3)).isoformat()}}, NOW)
+_bt_spent = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_spent, {"space_settle": {"until": (NOW - timedelta(minutes=1)).isoformat()}}, NOW)
+R.check(
+    "a restart restores a running settling tail and the live overlay's start, an "
+    "overlay that ended while Home Assistant was down owes its tail; a spent tail "
+    "is not restored (null control)",
+    _bt_restored.space_settle_until == NOW + timedelta(hours=9)
+    and _bt_restored.space_since == NOW - timedelta(hours=1)
+    and _bt_down.space_settle_until == NOW - timedelta(hours=1) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_spent.space_settle_until is None,
+    f"{_bt_restored} {_bt_down} {_bt_spent}",
+)
+_bt_store = _he_store._tries().get("boost", {})
+R.check(
+    "the boost store declares the settling tail's lead past the overlay's two hours",
+    getattr(_bt_store.get("space_settle", {}).get("until", {}).get(""), "ahead_h", None)
+    == _fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS,
+    f"{_bt_store.get('space_settle')}",
+)
+
+
 # The earned basis. A thermal-power install's first replay of a measured heat
 # earns ``measured_heat``: the void path resets the scale before that fold, the
 # basis is saved, and a later fold does not void again. Null controls: the
