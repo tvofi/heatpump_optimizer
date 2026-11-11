@@ -523,6 +523,15 @@ def _dhw_snap(*, action=None, disinfecting=False, configured=55.0, cycle=True,
     return replace(snap, hass=FakeHass(states))
 
 
+def _combi_snap(force, **booking):
+    """``_dhw_snap`` on an active combi store holding 2 L of potable water, under the limit."""
+    snap = _dhw_snap(**booking)
+    return replace(snap, params=replace(
+        snap.params, dhw_enabled=True, dhw_combi_tank_enabled=True, combi_potable_volume_l=2.0,
+        dhw_combi_legionella_force=force, mixing_valve_mode="manual", buffer_tank_volume=300.0,
+    ))
+
+
 def _written(snap, duty):
     return arb.desired(_Coord(snap), snap, duty, NOW).dhw_setpoint
 
@@ -597,6 +606,14 @@ def disinfection_checks() -> None:
         "null control: a disabled cycle writes the everyday set-point on every row and booking",
         lambda: all(written(_dhw_snap(cycle=False, **b), d) == (30.0 if d == "space" and not b.get("disinfecting") else 55.0)
                     for d in _DUTIES for b in _BOOKINGS),
+    )
+    check(
+        "a combi store at or under the potable limit runs no cycle: a booked or held step writes the "
+        "everyday set-point, unless the cycle is forced (#3398's predicate, read through the cycle's owner)",
+        lambda: not _combi_snap(False).params.legionella_cycle_active
+        and _combi_snap(True).params.legionella_cycle_active
+        and all(written(_combi_snap(False, **b), "dhw") == 55.0 and written(_combi_snap(True, **b), "dhw") == 60.0
+                for b in _BOOKINGS[1:]),
     )
     check(
         "null control: an everyday set-point at or above the disinfection temperature is written as is",
