@@ -15,7 +15,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-BODY-CONTRACT (stage in-progress, branch `handoff/r10-body-contract`): `git fetch origin handoff/r10-body-contract && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-DISPATCH-AT-HANDOFF (stage in-progress, branch `handoff/r10-dispatch-at-handoff`): `git fetch origin handoff/r10-dispatch-at-handoff && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-DISPATCH-AT-HANDOFF (stage carries-open, branch `handoff/r10-dispatch-at-handoff`): `git fetch origin handoff/r10-dispatch-at-handoff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-COMBI-TANK (stage in-progress, branch `handoff/r10-combi-tank`): `git fetch origin handoff/r10-combi-tank && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-COP-UNMEASURED (stage carries-open, branch `handoff/r10-hotfix-cop-unmeasured`): `git fetch origin handoff/r10-hotfix-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
