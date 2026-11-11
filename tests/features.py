@@ -12384,7 +12384,10 @@ def _cb_type_branches():
 # offset controller's integration name (heat_curve.py) and a research
 # citation for the offset band (const.py), neither a tank type; this branch
 # adds none (`git grep -ciE` over the package's Python sums to 4 on both).
-_CB_VENDOR_BASE = 4
+# R10-HOTFIX-COMBI-CENSUS-MAIN-RED: main at cbd23f1c read 6, two more landed
+# by merges the census never ran beside; all six now name the behaviour, so
+# the base is 0 and any vendor name is growth.
+_CB_VENDOR_BASE = 0
 
 
 _cb_hits, _cb_vendor = _cb_type_branches()
@@ -71900,10 +71903,10 @@ R.check(
 _dbg_dsnap = ((_dbg_dg.get("debug") or {}).get("payload_snapshots") or [{}])[0].get("data", {})
 R.check(
     "DBG-1 Download diagnostics carries the bundle through its own redaction: a name "
-    "is redacted and a coordinate coarsened inside a payload snapshot",
+    "and a coordinate are redacted inside a payload snapshot",
     _dbg_dg.get("debug", {}).get("schema") == "hpo-debug/1"
     and _dbg_dsnap.get("name") == _DBG_REDACTED
-    and _dbg_dsnap.get("solar_diagnostics") == {"latitude": 59.3, "longitude": 18.1},
+    and _dbg_dsnap.get("solar_diagnostics") == {"latitude": _DBG_REDACTED, "longitude": _DBG_REDACTED},
     str(_dbg_dsnap)[:300],
 )
 R.check(
