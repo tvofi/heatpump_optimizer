@@ -1,0 +1,10 @@
+M1 drop held-last sort (both copies): orchestrator_tick self-test: 315 checks, 1 failed
+M1b dedupe (delete second copies): orchestrator_tick self-test: 315 checks, 0 failed
+M2 cap line without held count: orchestrator_tick self-test: 315 checks, 1 failed
+57:CAP_NOTICE = re.compile(r"^-> OWED handoffs capped at \d+ of \d+;")
+M3 CAP_NOTICE reverted: Unreadable: an owed line names no topic or pull request: -> OWED handoffs capped at 20 of 25 (14 held, listed last); the rest print next pass once these are discharged
+M4 pulse never logged: merge_train self-test: 613 checks, 0 failed
+M5 no BASELINE_JOBS window: merge_train self-test: 613 checks, 0 failed
+M6 >1 open jobs still pulse: merge_train self-test: 613 checks, 1 failed
+M7 never over max: merge_train self-test: 613 checks, 1 failed
+M8 body's mutation (first sort line -> pass): orchestrator_tick self-test: 315 checks, 0 failed
