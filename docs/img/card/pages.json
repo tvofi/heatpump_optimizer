@@ -3,18 +3,18 @@
   "figures": {
     "tile-light.png": {
       "width": 900,
-      "height": 919,
-      "structure": "e08b2fd3c730462a"
+      "height": 717,
+      "structure": "0fd21e821e11cb73"
     },
     "plan-light.png": {
       "width": 1056,
       "height": 792,
-      "structure": "2ba27daf60b6730b"
+      "structure": "b63a120078610a64"
     },
     "plan-why-light.png": {
       "width": 1056,
       "height": 792,
-      "structure": "ba43802447650be5"
+      "structure": "20d409d2706e0094"
     },
     "setup-light.png": {
       "width": 1056,
@@ -38,18 +38,18 @@
     },
     "tile-dark.png": {
       "width": 900,
-      "height": 919,
-      "structure": "e08b2fd3c730462a"
+      "height": 717,
+      "structure": "0fd21e821e11cb73"
     },
     "plan-dark.png": {
       "width": 1056,
       "height": 792,
-      "structure": "2ba27daf60b6730b"
+      "structure": "b63a120078610a64"
     },
     "plan-why-dark.png": {
       "width": 1056,
       "height": 792,
-      "structure": "ba43802447650be5"
+      "structure": "20d409d2706e0094"
     },
     "setup-dark.png": {
       "width": 1056,

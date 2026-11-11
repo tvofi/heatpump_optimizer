@@ -250,7 +250,14 @@ function gridStates(plan) {
     S("score_open_no_evidence", { states: { ...planStates(plan), ...statStatesNoEvidence() }, steps: [["stat", "score"]] }),
     S("score_open_graded_pump", { states: { ...planStates(plan), ...statStatesGradedPump() }, steps: [["stat", "score"]] }),
     S("savings_open", { states: { ...planStates(plan), ...statStates() }, steps: [["stat", "savings"]] }),
-    S("hidden_series", { states: planStates(plan), config: { series: { outdoor: false, solar: false } }, steps: [["chip", "price"]] }),
+    // The chips render only in the expanded dialog (R10-CARD-COLLAPSE).
+    S("hidden_series", { states: planStates(plan), config: { series: { outdoor: false, solar: false } }, steps: [["cardClick"], ["chip", "price"]] }),
+    // The headline's two folds OPEN, so the rules colouring their bodies are
+    // measured (R10-CARD-COLLAPSE); folded, every other cell shows the headers.
+    S("folds_open", { states: { ...planStates(plan), ...statStates(),
+      "sensor.heat_pump_optimizer_plan_narrative": { state: "cheap_price", attributes: { language: "en",
+        items: NARRATIVE_ITEMS, lines: NARRATIVE_ITEMS.map((it) => `${it.reason} line`) } } },
+      steps: [["fold", "narrative"], ["fold", "whynow"]] }),
     S("tooltip_hover", { states: planStates(plan), steps: [["cardClick"], ["hover", 5]] }),
     S("override_active", { states: override(), config: wi, steps: [["open"]] }),
     S("wood_alert", { states: wood({ cheaper: true, show_whatif: true, ready: true, slots: [] }) }),
@@ -478,7 +485,13 @@ async function cardCollapse({ browser, check, plan, out }) {
           return 0.2126 * r + 0.7152 * g + 0.0722 * b;
         };
         const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
-        const bg = getComputedStyle(card).backgroundColor;
+        // The first opaque background behind the header, crossing out of the
+        // shadow root to its host: a transparent ha-card shows what is under it.
+        let bg = "rgb(255, 255, 255)";
+        for (let el = card; el; el = el.parentElement || (el.getRootNode() && el.getRootNode().host)) {
+          const c = getComputedStyle(el).backgroundColor;
+          if (c && c !== "transparent" && !/rgba\([^)]*,\s*0\)$/.test(c)) { bg = c; break; }
+        }
         return {
           heads: heads.map((h) => ({ key: h.dataset.fold, exp: h.getAttribute("aria-expanded"),
             tag: h.tagName, h: h.getBoundingClientRect().height,
@@ -494,7 +507,7 @@ async function cardCollapse({ browser, check, plan, out }) {
         style.textContent = dk
           ? `html{--card-background-color:#1c1c1c;--primary-text-color:#e1e1e1;--secondary-text-color:#9b9b9b;--divider-color:#3a3a3a}`
           : `html{--card-background-color:#ffffff;--primary-text-color:#212121;--secondary-text-color:#727272;--divider-color:#e0e0e0}`;
-        style.textContent += `body{margin:0;padding:12px;font-family:-apple-system,"Segoe UI",sans-serif}` +
+        style.textContent += `body{margin:0;padding:12px;background:var(--card-background-color);font-family:-apple-system,"Segoe UI",sans-serif}` +
           `ha-card{display:block;background:var(--card-background-color);color:var(--primary-text-color);border-radius:12px}` +
           `heatpump-optimizer-card{display:block;width:860px}`;
         document.head.appendChild(style);
@@ -1159,6 +1172,7 @@ function instrument() {
       if (op === "cardClick") c._onCardClick({});
       else if (op === "open") c.dialog.open();
       else if (op === "stat") { const el = root().querySelector(`[data-stat='${a1}']`); if (el) click(el); else missed.push(`${op} ${a1}`); }
+      else if (op === "fold") { const el = root().querySelector(`[data-fold='${a1}']`); if (el) el.click(); else missed.push(`${op} ${a1}`); }
       else if (op === "chip") { const el = root().querySelector(`.chip[data-key='${a1}']`); if (el) el.click(); else missed.push(`${op} ${a1}`); }
       else if (op === "hover") {
         await frame();

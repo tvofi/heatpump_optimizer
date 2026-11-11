@@ -1429,6 +1429,17 @@ for (const hours of [12, 24, 48]) {
       `${labelledGrid[0]} (${covered(labelledGrid[0]) ? "labelled" : "BARE"}) and ` +
       `${labelledGrid[labelledGrid.length - 1]} ` +
       `(${covered(labelledGrid[labelledGrid.length - 1]) ? "labelled" : "BARE"})`);
+    // R10-CARD-COLLAPSE polish: a clamped label's neighbour keeps at least
+    // half the gap the centred labels get at this step, so the end of the
+    // axis does not read as one run of text ("06:00 AM08:00 AM").
+    const gaps = labels.slice(1).map((l, i) => ({ gap: l.left - labels[i].right,
+      clamped: l.anchor !== "middle" || labels[i].anchor !== "middle" }));
+    const centred = gaps.filter((g) => !g.clamped).map((g) => g.gap).sort((x, y) => x - y);
+    const typical = centred.length ? centred[Math.floor(centred.length / 2)] : 0;
+    const tight = gaps.filter((g) => g.clamped && g.gap < typical / 2 - 0.01);
+    check(`the ${where} time axis spaces a clamped label at least half its usual gap`,
+      centred.length > 0 && tight.length === 0,
+      `typical ${typical.toFixed(1)}u, beside a clamp: ${gaps.filter((g) => g.clamped).map((g) => g.gap.toFixed(1)).join(", ")}`);
   }
 }
 

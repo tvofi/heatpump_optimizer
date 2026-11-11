@@ -5300,10 +5300,12 @@ function cardStyleBlock(darkMode) {
           minmax(max(min(100%, 348px), calc(50% - 13px)), 1fr));
       }
       /* R10-CARD-COLLAPSE: a fold is a full-width header button (title
-         left, its one-line summary right, ellipsised) over a body drawn only
+         left, its one-line summary right) over a body drawn only
          while open. Transparent on the card's own surface, so it reads as a
          row of the headline, not a second tile. */
       .hl-fold { display: flex; flex-direction: column; min-width: 0; }
+      /* A rule under the last fold closes the headline off from the chart. */
+      .hl-fold:last-child { border-bottom: 1px solid var(--hpo-divider, #e0e0e0); }
       .hl-fold-head {
         display: flex; align-items: center; gap: var(--hpo-space-2, 8px);
         width: 100%; min-height: 32px; margin: 0; box-sizing: border-box;
@@ -5324,9 +5326,10 @@ function cardStyleBlock(darkMode) {
       }
       .hl-fold.unfolded .hl-fold-chev { transform: rotate(45deg); }
       .hl-fold-title { flex: none; font-weight: 600; }
+      /* Wraps rather than ellipsises: a clipped summary would hide the very
+         line the folded section is reduced to (the P9 grid's clip rule). */
       .hl-fold-sum {
-        flex: 1; min-width: 0; text-align: right; white-space: nowrap;
-        overflow: hidden; text-overflow: ellipsis;
+        flex: 1; min-width: 0; text-align: right; overflow-wrap: anywhere;
         color: var(--hpo-text-2, #727272); font-variant-numeric: tabular-nums;
       }
       .nl {
@@ -8534,6 +8537,12 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
   // closer than this to its neighbour is refused; the halving is there so an
   // interval that divides exactly cannot be refused for a rounding error.
   const minLabelGap = (size * 0.6) / 2;
+  // Beside a CLAMPED label the bar is half the gap the centred labels
+  // actually get at this step (R10-CARD-COLLAPSE polish): the clamp spends up
+  // to half a label of that gap, and a neighbour kept at the bare minimum read
+  // as one run ("06:00 AM08:00 AM", 7 px against the axis's 27 px at 860 px).
+  const pitchGap = every * unitsPerHour - (labelWidth - size * 0.6);
+  const clampedGap = Math.max(minLabelGap, pitchGap / 2);
 
   const out = [];
   const labels = [];
@@ -8592,7 +8601,8 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
   const kept = [];
   for (const lab of labels) {
     let drop = false;
-    while (kept.length && lab.left - kept[kept.length - 1].right < minLabelGap) {
+    while (kept.length && lab.left - kept[kept.length - 1].right <
+      (lab.clamped || kept[kept.length - 1].clamped ? clampedGap : minLabelGap)) {
       if (!lab.clamped) {
         drop = true;
         break;
