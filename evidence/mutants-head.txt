@@ -1,0 +1,17 @@
+== M1 CAP_NOTICE skip disabled
+ tools/audit/seat/owed_unactioned.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M2 _classify_red always True
+  FAIL OWED buckets: carry 9: a deferral red classify reads WAIT is not red-unowned; a real RED still is (null control)
+orchestrator_tick self-test: 305 checks, 1 failed
+== M3 one_pr call-site deleted
+orchestrator_tick self-test: 305 checks, 0 failed
+== M4 except fails open (False)
+orchestrator_tick self-test: 305 checks, 0 failed
+done
+== M1 rerun
+              ~~~~~~^^^^^^
+  File "/tmp/tmp.aMbZ9qP4eZ/wt/tools/audit/seat/owed_unactioned.py", line 122, in key_of
+    raise Unreadable(f"an owed line names no topic or pull request: {line[:120]}")
+Unreadable: an owed line names no topic or pull request: -> OWED handoffs capped at 8 of 11; the rest print next pass once these are discharged
+rc=1

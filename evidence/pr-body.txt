@@ -1,0 +1,68 @@
+R10-TICK-RESIDUE: r10 tick residue
+hpo-author[bot]
+779c94324f7f15a17938526cc6e2c875170fabc0
+Builds four of the carries the R10-TICK-RESIDUE group holds (13, 15, 10, 9); the rest are not built here and stay open (see Forward-carry).
+
+## Head
+
+`779c94324f7f15a17938526cc6e2c875170fabc0` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
+
+88a5ebe1415d4c420ccca7d649d432692fc28709
+
+## Mutation proof
+
+- carry 13: MUTANTS row plan_cap_unread (beat_jobs_selftest.py) drops the cap pass-through; the check "plan-beat: the overlay's plan_coordinator_cap is handed to replan as --coordinator-cap" goes red. Null control: no key leaves --coordinator-cap out.
+- carry 15: `python3 -I tools/audit/seat/remerge_main_selftest.py --mutant` replaces the new exit with `true`; the detached-worktree check fails. Null control: the attached worktree still pushes, exit 0.
+- carry 10: with the CAP_NOTICE skip disabled, owed_unactioned --self-test fails; null control: a board with only the cap notice has no key and is not Unreadable.
+- carry 9: with _classify_red returning True unconditionally, orchestrator_tick --self-test fails the carry 9 check; null control: a real RED still reads red.
+
+## Null control
+
+At the merge base: plan-beat passes no --coordinator-cap; remerge_main.sh exits 0 after a refused push; a cap notice makes the whole owed check UNREADABLE; red-unowned reads the gate conclusion alone.
+
+## Figures
+
+- `python3 -I tools/audit/seat/beat_jobs.py --self-test` (with PYTHONPATH=tests/hastub), `python3 tools/audit/seat/orchestrator_tick.py --self-test`, `python3 -I tools/audit/seat/owed_unactioned.py --self-test`, `python3 -I tools/audit/seat/remerge_main_selftest.py`: all report 0 failed at 88a5ebe1415d4c420ccca7d649d432692fc28709.
+
+## Red checks
+
+none
+
+## Forward-carry
+
+none
+
+## Roster carries
+
+Not built in this pull request; they stay open as carries of R10-TICK-RESIDUE in dev/programme/rosters/wave-r10-groups.json (unchanged by this diff): carries 0-8 (NOT REVIEWABLE naming, OUTSIDE-CHAIN-IDLE, probe-refused, unrecorded-merge query, repair barrier, postmerge idempotence, OWED opener results, UNDISPATCHED P438, CI-attempt alarm P445), 12, 14, 16, and the roster restorations 17-20 (a roster write this seat may not make). Carry 11 (per-op persistence) already exists on main: the beat self-test has a roster_saved_at_pass_end mutant; not re-verified here. Carry: R10-TICK-RESIDUE
+
+Carry 0: not built in this pull request; stays open on the roster for a later part.
+Carry 1: not built in this pull request; stays open on the roster for a later part.
+Carry 2: not built in this pull request; stays open on the roster for a later part.
+Carry 3: not built in this pull request; stays open on the roster for a later part.
+Carry 4: not built in this pull request; stays open on the roster for a later part.
+Carry 5: not built in this pull request; stays open on the roster for a later part.
+Carry 6: not built in this pull request; stays open on the roster for a later part.
+Carry 7: not built in this pull request; stays open on the roster for a later part.
+Carry 8: not built in this pull request; stays open on the roster for a later part.
+Carry 12: not built in this pull request; stays open on the roster for a later part.
+Carry 14: not built in this pull request; stays open on the roster for a later part.
+Carry 16: not built in this pull request; stays open on the roster for a later part.
+Carry 17: not built in this pull request; stays open on the roster for a later part.
+Carry 18: not built in this pull request; stays open on the roster for a later part.
+Carry 19: not built in this pull request; stays open on the roster for a later part.
+Carry 20: not built in this pull request; stays open on the roster for a later part.
+Carry 21: not built in this pull request; stays open on the roster for a later part.
+Carry 22: not built in this pull request; stays open on the roster for a later part.
+Carry 23: not built in this pull request; stays open on the roster for a later part.
+Carry 24: not built in this pull request; stays open on the roster for a later part.
+Carry 25: not built in this pull request; stays open on the roster for a later part.
+Carry 26: not built in this pull request; stays open on the roster for a later part.
+Carry 27: not built in this pull request; stays open on the roster for a later part.
+Carry 11: already built on main (roster_saved_at_pass_end mutant); no change here.
+Carries 9, 10, 13, 15: built here. Carry: R10-TICK-RESIDUE
+
+## Friction
+
+none
+

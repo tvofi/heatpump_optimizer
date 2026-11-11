@@ -1,0 +1,5 @@
+== orch tick
+orchestrator_tick self-test: 305 checks, 0 failed
+  ok   plan-beat: the overlay's plan_coordinator_cap is handed to replan as --coordinator-cap
+  ok   mutant plan_cap_unread killed by: plan-beat: the overlay's plan_coordinator_cap is handed to replan as --coordinator-cap
+  ok   mutant plan_replan_args_dropped killed by: plan-beat: replan is handed the plan, slots and seats
