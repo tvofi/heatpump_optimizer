@@ -1,0 +1,43 @@
+== harness head
+RESULT exchange_rounds=3
+RESULT exchange_worst_shortfall_c=-1.455
+RESULT exchange_dhw_kwh=22.135
+RESULT exchange_solve_s=1.73
+RESULT null_rounds=0
+RESULT null_worst_shortfall_c=28.767
+RESULT null_dhw_kwh=5.327
+RESULT null_solve_s=1.57
+== harness base d08
+RESULT exchange_rounds=3
+RESULT exchange_worst_shortfall_c=-1.455
+RESULT exchange_dhw_kwh=22.135
+RESULT exchange_solve_s=1.72
+RESULT null_rounds=0
+RESULT null_worst_shortfall_c=28.767
+RESULT null_dhw_kwh=5.327
+RESULT null_solve_s=1.57
+== option_doc_coverage
+RESULT option_fields_undocumented=0 count
+RESULT wood_economics_fields_rendered=4 count
+RESULT wood_economics_doc_lines=8 count
+RESULT thread_factor=1.000
+RESULT load1=0.94
+RESULT swapins=0
+== structure
+STRUCTURE RATCHET PASSED
+== control
+control features_block rc=0
+ALL 1009 FEATURES THROUGH PASSED
+== M5 > to >=
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M5 features_block rc=1
+1 of 1009 FEATURES THROUGH FAILED
+== M1 loader row dropped
+ 1 file changed, 1 deletion(-)
+M1 features_block rc=1
+13 of 1009 FEATURES THROUGH FAILED
+== M15 steps control
+rc=0
+ALL 574 checks PASSED
+0
+DONE

@@ -1,0 +1,16 @@
+== P1 drop coord_dhw claim
+ 1 file changed, 1 deletion(-)
+rc=1
+109:1 UNCLAIMED DRIFT(S) vs d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a
+== P2 claim a may-drift fixture (flat_prices)
+rc=1
+2:flat_prices as both. A claim asserts the scenario moved and goes
+== P3 claims-for 7.1.9
+rc=1
+bump the 'claims-for:' line and delete claims this release
+does not move (an empty list is the right answer for a release
+that moves no goldens).
+== control claims-only
+rc=0
+claims hygiene: d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a ok
+0

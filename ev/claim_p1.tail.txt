@@ -1,0 +1,30 @@
+  ok    peak_masked is byte-identical to d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a here
+  may-drift precip_snow: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+  ok    price_risk is byte-identical to d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a here
+  may-drift shoulder: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+  may-drift shoulder_two_zone: did not move here (#1208 polish-every-candidate, third name)
+  ok    start_above_band is byte-identical to d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a here
+  ok    start_below_band is byte-identical to d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a here
+  ok    summer_dhw_only is byte-identical to d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a here
+  may-drift tariff_plus_two_zone: did not move here (#1207 keep-gate (2e-2 -> 2e-5),)
+  may-drift valve_storage: did not move here (#1207 keep-gate (2e-2 -> 2e-5), widened to)
+  ok    valve_storage_flat_prices is byte-identical to d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a here
+  ok    valve_storage_low_target is byte-identical to d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a here
+  ok    valve_storage_small_tank is byte-identical to d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a here
+  may-drift valve_storage_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift valve_upper_direct_slab: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  ok    wide_band is byte-identical to d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a here
+  ok    winter_single_dhw is byte-identical to d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a here
+  ok    winter_single_no_dhw is byte-identical to d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a here
+  may-drift winter_two_zone_dhw: did not move here (#1207 keep-gate (2e-2 -> 2e-5), owner)
+  may-drift winter_two_zone_no_dhw: did not move here (#1208 polish-every-candidate, owner)
+  may-drift wood_coil: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+
+1 UNCLAIMED DRIFT(S) vs d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a
+This branch moved scenarios the baseline does not move in
+this environment: a regression, or a change that must be
+claimed in tests/golden/claimed_drift.txt and justified in
+the PR. Never re-record the five sensitive fixtures on a
+machine where golden.py already reports them as DIFF.

@@ -1,0 +1,5 @@
+CLAIMED AND MAY-DRIFT: tests/golden/claimed_drift.txt lists
+flat_prices as both. A claim asserts the scenario moved and goes
+stale when it does not; may-drift asserts nothing either way.
+Pick one -- may-drift for the sensitive fixtures, a claim for
+everything else.
