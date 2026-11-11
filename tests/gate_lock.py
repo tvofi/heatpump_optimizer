@@ -1625,9 +1625,12 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
             time.sleep(0.15)
             g.release(who, lock_dir=d)
 
-        normal = threading.Thread(target=one, args=("normal",), daemon=True)
-        normal.start()
-        normal_queued = bool(ticket_text(d, "normal"))
+        # The normal waiter enters with no priority set, whatever the caller exports:
+        # prepr.sh exports HPO_GATE_PRIORITY=2 on a hotfix branch, which made both urgent.
+        with _Env(None):
+            normal = threading.Thread(target=one, args=("normal",), daemon=True)
+            normal.start()
+            normal_queued = bool(ticket_text(d, "normal"))
         with _Env("2"):
             urgent = threading.Thread(target=one, args=("urgent",), daemon=True)
             urgent.start()
@@ -1735,9 +1738,12 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
             time.sleep(0.1)
             g.release_slot(who, lock_dir=d, slots=1)
 
-        normal = threading.Thread(target=one, args=("normal",), daemon=True)
-        normal.start()
-        normal_queued = bool(ticket_text(pool, "normal"))
+        # The normal waiter enters with no priority set, whatever the caller exports:
+        # prepr.sh exports HPO_GATE_PRIORITY=2 on a hotfix branch, which made both urgent.
+        with _Env(None):
+            normal = threading.Thread(target=one, args=("normal",), daemon=True)
+            normal.start()
+            normal_queued = bool(ticket_text(pool, "normal"))
         with _Env("2"):
             urgent = threading.Thread(target=one, args=("urgent",), daemon=True)
             urgent.start()
