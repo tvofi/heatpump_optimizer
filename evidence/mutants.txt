@@ -1,10 +1,13 @@
-M1 drop held-last sort (both copies): orchestrator_tick self-test: 315 checks, 1 failed
-M1b dedupe (delete second copies): orchestrator_tick self-test: 315 checks, 0 failed
-M2 cap line without held count: orchestrator_tick self-test: 315 checks, 1 failed
-57:CAP_NOTICE = re.compile(r"^-> OWED handoffs capped at \d+ of \d+;")
-M3 CAP_NOTICE reverted: Unreadable: an owed line names no topic or pull request: -> OWED handoffs capped at 20 of 25 (14 held, listed last); the rest print next pass once these are discharged
-M4 pulse never logged: merge_train self-test: 613 checks, 0 failed
-M5 no BASELINE_JOBS window: merge_train self-test: 613 checks, 0 failed
-M6 >1 open jobs still pulse: merge_train self-test: 613 checks, 1 failed
-M7 never over max: merge_train self-test: 613 checks, 1 failed
-M8 body's mutation (first sort line -> pass): orchestrator_tick self-test: 315 checks, 0 failed
+M4:   ok   a script that failed a check keeps the plain FAILED line
+M4:   ok   FAILED_SCRIPT names the script from the crash line and from the failed-check line
+M4: merge_train self-test: 614 checks, 1 failed
+M5:   ok   a script that failed a check keeps the plain FAILED line
+M5:   ok   FAILED_SCRIPT names the script from the crash line and from the failed-check line
+M5: merge_train self-test: 614 checks, 2 failed
+M8:   FAIL OWED handoffs held-last: 25 stranded with 14 held: all 11 others print within the cap, held ones after them
+M8: orchestrator_tick self-test: 315 checks, 1 failed
+M9-heldregex:   FAIL OWED handoffs held-last: 25 stranded with 14 held: all 11 others print within the cap, held ones after them
+M9-heldregex:   FAIL OWED handoffs held-last: the cap line counts the held refs
+M9-heldregex: orchestrator_tick self-test: 315 checks, 2 failed
+M10-held-count:   FAIL OWED handoffs held-last: the cap line counts the held refs
+M10-held-count: orchestrator_tick self-test: 315 checks, 1 failed
