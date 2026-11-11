@@ -126,7 +126,7 @@ class WhatIfState:
 _STATES: WeakKeyDictionary[Any, WhatIfState] = WeakKeyDictionary()
 
 
-def state(owner: Any) -> WhatIfState:
+def state_for(owner: Any) -> WhatIfState:
     """``owner``'s what-if state, created on first use."""
     held = _STATES.get(owner)
     if held is None:

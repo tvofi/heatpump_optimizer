@@ -19543,8 +19543,8 @@ def _advisor_coord(payload_extra=None, **cfg):
 _adv_calls.clear()
 _cad = _advisor_coord()
 from heatpump_optimizer import whatif as _whatif_mod
-_whatif_mod.state(_cad).answer = {"marker": "card"}
-_whatif_mod.state(_cad).last_at = None
+_whatif_mod.state_for(_cad).answer = {"marker": "card"}
+_whatif_mod.state_for(_cad).last_at = None
 _asyncio.run(_cad._maybe_run_fuse_advisor(_solve_record_now(_cad)))
 _adv = _cad._fuse_advisor
 R.check(
@@ -19563,8 +19563,8 @@ R.check(
 )
 R.check(
     "the card's simulate cache survives an advisor run untouched",
-    _whatif_mod.state(_cad).answer == {"marker": "card"}
-    and _whatif_mod.state(_cad).last_at is None,
+    _whatif_mod.state_for(_cad).answer == {"marker": "card"}
+    and _whatif_mod.state_for(_cad).last_at is None,
 )
 _asyncio.run(_cad._maybe_run_fuse_advisor(_solve_record_now(_cad)))
 R.check(
@@ -26331,8 +26331,8 @@ R.check(
 _ctile3 = _t2_coord(price_tiles_enabled=True)
 _marker3 = {"marker": True}
 _stamp3 = datetime(2026, 3, 1, tzinfo=UTC)
-_coord_mod.whatif.state(_ctile3).answer = _marker3
-_coord_mod.whatif.state(_ctile3).last_at = _stamp3
+_coord_mod.whatif.state_for(_ctile3).answer = _marker3
+_coord_mod.whatif.state_for(_ctile3).last_at = _stamp3
 _ctile3_route = {}
 
 
@@ -26351,8 +26351,8 @@ _asyncio.run(_ctile3._maybe_refresh_price_tile(_solve_record_now(_ctile3)))
 R.check(
     "#1753: the tile takes the limited=False path -- no borrow to restore",
     _ctile3_route.get("limited") is False
-    and _coord_mod.whatif.state(_ctile3).answer is _marker3
-    and _coord_mod.whatif.state(_ctile3).last_at == _stamp3
+    and _coord_mod.whatif.state_for(_ctile3).answer is _marker3
+    and _coord_mod.whatif.state_for(_ctile3).last_at == _stamp3
     and price_tiles.book(_ctile3),
     f"route={_ctile3_route}",
 )
@@ -31343,11 +31343,11 @@ async def _whatif_scratch_params():
 
     real_opt.__init__ = _spy_opt_init
     try:
-        _coord_mod.whatif.state(coord).last_at = None
+        _coord_mod.whatif.state_for(coord).last_at = None
         payload = await coord.async_simulate({"target_temp": 20.5})
         # A second what-if on the parameter side of the override table, so
         # both override loops are pinned, not just the config one.
-        _coord_mod.whatif.state(coord).last_at = None
+        _coord_mod.whatif.state_for(coord).last_at = None
         await coord.async_simulate({"max_temp": 21.5})
     finally:
         real_model.__init__ = real_init
@@ -31416,7 +31416,7 @@ async def _whatif_scratch_config():
 
     real_opt.__init__ = _spy_init
     try:
-        _coord_mod.whatif.state(coord).last_at = None
+        _coord_mod.whatif.state_for(coord).last_at = None
         await coord.async_simulate({"target_temp": 20.5})
     finally:
         real_opt.__init__ = real_init
@@ -31461,7 +31461,7 @@ async def _whatif_solves(*, fails: bool) -> int:
             raise RuntimeError("probe: the shadow solve failed")
         return await real(*args, **kwargs)
 
-    _coord_mod.whatif.state(coord).last_at = None
+    _coord_mod.whatif.state_for(coord).last_at = None
     _coord_mod._await_optimize = _shadow
     dt_util.freeze(dt_util.now())
     try:
@@ -31588,7 +31588,7 @@ async def _st_coord(start=None, extra=None):
 
 async def _st_ask(coord, overrides, **kwargs):
     """One user what-if with a free slot."""
-    _st_whatif.state(coord).last_at = None
+    _st_whatif.state_for(coord).last_at = None
     return await coord.async_simulate(dict(overrides), **kwargs)
 
 
@@ -31775,7 +31775,7 @@ async def _st_path():
     coord = await _st_coord()
     plan = coord._optimization_result
     schedule = np.asarray(plan.power_schedule, dtype=float).copy()
-    held = _st_whatif.state(coord)
+    held = _st_whatif.state_for(coord)
     with _StSeams() as seams:
         first = await _st_ask(coord, {"min_temp": 18.5}, steady=True)
         out["first"] = seams.counts()
@@ -31890,12 +31890,12 @@ async def _st_failures():
     record = _solve_record_now(coord)
     cap = price_tiles.specs(record.config, record.params.max_electrical_power)[2][1]
     # The seeding solve's own background callers may have kept a live side.
-    _st_whatif.state(coord).live_steady = None
+    _st_whatif.state_for(coord).live_steady = None
     with _StSeams(pair_error=_st_cmod.ProcessWorkerTimeout("probe: no reply")) as seams:
         answer = await _st_ask(coord, cap, steady=True)
         out["timeout"] = (
             seams.counts(), "monthly_cost_delta" in answer, _ST_KEY in answer, answer.get("error"),
-            price_tiles.monthly_figure(cap, answer), _st_whatif.state(coord).live_steady,
+            price_tiles.monthly_figure(cap, answer), _st_whatif.state_for(coord).live_steady,
         )
         coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
         await coord._maybe_run_fuse_advisor(record)
@@ -31977,7 +31977,7 @@ async def _st_tiles():
         coord._fuse_advisor_at = _st_dt.now() - timedelta(days=8)
         await coord._maybe_run_fuse_advisor(record)
         out["fuse"] = tuple(b - a for a, b in zip(before, seams.counts()))
-        user = _st_whatif.state(coord)
+        user = _st_whatif.state_for(coord)
         out["user_untouched"] = (user.last_at, dict(user.answer))
     return out
 
@@ -35267,7 +35267,7 @@ def _g4_plan(config, simulate=None):
     try:
         _asyncio.run(coord.async_run_optimization())
         if simulate is not None:
-            _coord_mod.whatif.state(coord).last_at = None
+            _coord_mod.whatif.state_for(coord).last_at = None
             _asyncio.run(coord.async_simulate(simulate))
     finally:
         _coord_mod._await_optimize = real
@@ -35706,7 +35706,7 @@ def _qw_plan(config, simulate=None):
     try:
         _asyncio.run(coord.async_run_optimization())
         if simulate is not None:
-            _coord_mod.whatif.state(coord).last_at = None
+            _coord_mod.whatif.state_for(coord).last_at = None
             _asyncio.run(coord.async_simulate(simulate))
     finally:
         _coord_mod._await_optimize = real
@@ -48940,7 +48940,7 @@ _g9_live = _WfOR(
     dhw_temp_trajectory=[50.0] * 5,
 )
 _g9_coord._optimization_result = _g9_live
-_coord_mod.whatif.state(_g9_coord).last_at = None
+_coord_mod.whatif.state_for(_g9_coord).last_at = None
 _g9_captured = []
 _g9_real_await = _coord_mod._await_optimize
 
@@ -48990,7 +48990,7 @@ R.check(
     repr(_g9_coord._config.get("wood_type")),
 )
 
-_coord_mod.whatif.state(_g9_coord).last_at = None
+_coord_mod.whatif.state_for(_g9_coord).last_at = None
 _g9_zero = _asyncio.run(
     _g9_coord.async_simulate(
         {"wood_slots": [{**_g9_slot, "liters": 0.0}]}
@@ -49005,7 +49005,7 @@ R.check(
 
 _g9_bare = _solve_coord()
 _g9_bare._optimization_result = _g9_live
-_coord_mod.whatif.state(_g9_bare).last_at = None
+_coord_mod.whatif.state_for(_g9_bare).last_at = None
 _g9_unready = _asyncio.run(
     _g9_bare.async_simulate({"wood_slots": [_g9_slot]})
 )
@@ -55258,7 +55258,7 @@ def _t5_solved():
 def _t5_sim(overrides, coord=None):
     """One what-if against a solved plan, with the rate limiter cleared."""
     c = coord if coord is not None else _t5_solved()
-    _coord_mod.whatif.state(c).last_at = None
+    _coord_mod.whatif.state_for(c).last_at = None
     dt_util.freeze(_T5_NOW)
     try:
         _t5_drive(c, "async_simulate", overrides)
@@ -55287,8 +55287,8 @@ R.check(
     "solving here would put a second job in the pool behind the real one",
 )
 _t5_sim_limited = _t5_coord()
-_coord_mod.whatif.state(_t5_sim_limited).last_at = _T5_NOW
-_coord_mod.whatif.state(_t5_sim_limited).answer = {"monthly_cost_delta": 1.0}
+_coord_mod.whatif.state_for(_t5_sim_limited).last_at = _T5_NOW
+_coord_mod.whatif.state_for(_t5_sim_limited).answer = {"monthly_cost_delta": 1.0}
 dt_util.freeze(_T5_NOW)
 try:
     _t5_drive(_t5_sim_limited, "async_simulate", {})
@@ -70673,10 +70673,10 @@ def _r9egb9_borrow_arm(borrower, kind):
         with_config(coord, {_r9egb9_const.CONF_PRICE_TILES_ENABLED: False})
         coord._fuse_advisor_at = _r9egb9_dt.now()
         await coord.async_run_optimization()
-        _coord_mod.whatif.state(coord).last_at = None
+        _coord_mod.whatif.state_for(coord).last_at = None
         u0 = await coord.async_simulate({"target_temp": 20.0})
-        _coord_mod.whatif.state(coord).last_at = _coord_mod.whatif.state(coord).last_at - timedelta(seconds=10)
-        u0_stamp = _coord_mod.whatif.state(coord).last_at
+        _coord_mod.whatif.state_for(coord).last_at = _coord_mod.whatif.state_for(coord).last_at - timedelta(seconds=10)
+        u0_stamp = _coord_mod.whatif.state_for(coord).last_at
         if borrower == "tile":
             with_config(coord, {_r9egb9_const.CONF_PRICE_TILES_ENABLED: True})
             call = _f25_partial(
@@ -70695,20 +70695,20 @@ def _r9egb9_borrow_arm(borrower, kind):
             if kind == "b":
                 # The window has now been open past the 3 s limiter (S2 held
                 # it 3.2 s of real time; the stamp is the same knob).
-                _coord_mod.whatif.state(coord).last_at = _coord_mod.whatif.state(coord).last_at - timedelta(seconds=4)
+                _coord_mod.whatif.state_for(coord).last_at = _coord_mod.whatif.state_for(coord).last_at - timedelta(seconds=4)
             u1 = await coord.async_simulate({"target_temp": 22.0})
-            u1_stamp = _coord_mod.whatif.state(coord).last_at
+            u1_stamp = _coord_mod.whatif.state_for(coord).last_at
             out["U1"] = _r9egb9_ov(u1)
             _R9EGB9Gate.release.set()
             await task
             _R9EGB9Gate.disarm()
             # The unconditional restore is the defect: it reverts the cache
             # to U0's answer and the stamp to U0's slot.
-            out["stamp_is_u1"] = _coord_mod.whatif.state(coord).last_at == u1_stamp
+            out["stamp_is_u1"] = _coord_mod.whatif.state_for(coord).last_at == u1_stamp
         out["cache_target"] = (
-            _coord_mod.whatif.state(coord).answer.get("overrides") or {}
+            _coord_mod.whatif.state_for(coord).answer.get("overrides") or {}
         ).get("target_temp")
-        out["stamp_is_u0"] = _coord_mod.whatif.state(coord).last_at == u0_stamp
+        out["stamp_is_u0"] = _coord_mod.whatif.state_for(coord).last_at == u0_stamp
         return out
 
     with _r9egb9_mock.patch.object(_r9egb9_cmod, "_await_optimize", _r9egb9_transport):
@@ -71566,7 +71566,7 @@ def _r9egb1_whatifs():
 
     async def _go():
         reason = await coord.async_run_optimization()
-        _coord_mod.whatif.state(coord).last_at = None
+        _coord_mod.whatif.state_for(coord).last_at = None
         card = await coord.async_simulate({})
         return reason, card
 
@@ -71634,7 +71634,7 @@ def _r9egb1_fresh():
         with_config(coord, {_r9egb1_const.CONF_PEAK_TARIFF_PRICE: 90.0})
         _r9egb1_fl.hourly_profile = list(_r9egb1_s2)
         now = _r9egb1_fl.pattern_for(dt_util.now().weekday() >= 5)
-        _coord_mod.whatif.state(coord).last_at = None
+        _coord_mod.whatif.state_for(coord).last_at = None
         card = await coord.async_simulate({})
         return reason, card, now
 

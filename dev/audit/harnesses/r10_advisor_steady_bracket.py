@@ -151,7 +151,7 @@ async def _one(hour):
     ]
     rows = []
     for name, overrides in asks:
-        whatif.state(coord).last_at = None
+        whatif.state_for(coord).last_at = None
         _seen.clear()
         answer = await coord.async_simulate(dict(overrides), steady=True)
         if "figure" not in _seen or answer.get(whatif.STEADY_KEY) is None:

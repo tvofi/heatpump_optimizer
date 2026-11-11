@@ -236,7 +236,7 @@ def parity_arm(away):
     SEEN.clear()
     run(coord)
     published = coord._thermal_view()["min_temperature"]
-    whatif.state(coord).last_at = None
+    whatif.state_for(coord).last_at = None
     answer = asyncio.run(coord.async_simulate({}))
     live, card = SEEN[0], SEEN[-1]
     assert len(SEEN) == 2 and "error" not in answer, (len(SEEN), answer)

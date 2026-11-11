@@ -182,7 +182,7 @@ async def _one(hour):
     rows = []
     zero = None
     for name, overrides in asks:
-        whatif.state(coord).last_at = None
+        whatif.state_for(coord).last_at = None
         n0 = SOLVES["n"]
         answer = await coord.async_simulate(dict(overrides), steady=True)
         if answer.get("monthly_held_cost_delta") is None:

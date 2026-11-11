@@ -11204,7 +11204,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         ctx = getattr(self, "_ctx", self)
         now = dt_util.now()
-        held = whatif.state(self)
+        held = whatif.state_for(self)
         if limited and (kept := whatif.limited_answer(held, now)) is not None:
             return kept
 
