@@ -1,51 +1,68 @@
-Fix review: blocked 8e2b7d99d0e99f3cbd00d49ceb9b4a1458b87257 regression-unmeasured: a draw within the settle window of a planned charge is zeroed, the heavy-day p90 falls 5.55 to 1.95 kWh at 07:45, and the body's charge arm measures only a draw before the charge
+Fix review: blocked 8fe714779710e5f56c6eb353ab8b2cea00fcaddd regression-unmeasured: at the learner's production cadence the take-back erases real draw (15-min p90 1.8777 to 0.9868 kWh, 30-min sequence 0.6542 to 0.3847 kWh), unmeasured because every harness arm and test samples at 5 min
 
-bus-nonce: 15e15640e6472d82743d20be75474843
+bus-nonce: 1be12d5d56ad938d69920390d5a4f45c
 
 ## Block
 
-Round: first review of handoff/r10-outside-dhw-charge-settle, head `8e2b7d99d0e99f3cbd00d49ceb9b4a1458b87257`, base `8f97247fc1a6911b85788a73fe502ea0097bac13`.
+Round 2. The delta against `8e2b7d99` (the authored handoff `b6696bd6`, plus a main merge and a bot pin commit) rewrites `dhw_learning.py` and `dhw_draws.py`, so this review covers that production code in full.
 
-The fix zeroes the drop of every charge-affected interval in the draw-statistics fold and skips it in the usage learner. That covers a heated interval, an interval that started on a heated sample, and any interval ending within `DHW_CHARGE_SETTLE_HOURS` (0.25 h) of the last heated sample. The body says this costs "a real draw during a charge, or within 15 min after one". It then says "The charge arm below measures what that costs against the dip-free truth trace". The fixer's harness `dev/audit/harnesses/r10_dhw_charge_settle_p90.py` places the draw only at 07:00–07:15 and the charge only at 07:30–07:40. In that geometry no draw falls in the zeroed window, so the measured cost (truth 5.5346 to 5.5326 kWh) shows nothing about the case the body names.
+The round-1 regression is held: every truth arm (no dip) is identical between base and head. That holds in the fixer's harness at 5 min, and in my probes at 5, 10, 15, 30 and 60 min. The repair still introduces a new regression of the same kind (real draw removed from the heavy-day p90). The body never measured it, because nothing in the PR runs at a cadence production can use.
 
-Step 6 attack: I ran the same harness `run()` with the draw moved, using `ev/r_draw_after_charge.py`. That file is the reviewer's variant and is not the finder's. It runs at both ends with `PYTHONPATH=tests/hastub:custom_components` from a `git archive` of the base and from the head worktree. Here is the `truth` arm, which has no dip, so every change in it is the fix's cost on a real draw:
+- **Cadence.** `async_learn_dynamics` runs once per coordinator refresh: `update_interval=timedelta(minutes=config.optimization_interval)` at `coordinator.py:3546-3548`, default `DEFAULT_OPTIMIZATION_INTERVAL = 30` (`const.py:1632`). The options flow allows 10 to 120 min in 5-min steps (`config_flow.py:1854`). The fixer's harness (`STEP_MIN = 5`) and every `_chg_seq` case in `tests/features.py` (5 min apart) sample faster than any configurable interval. At the 30-min default, `DHW_CHARGE_SETTLE_HOURS = 0.25` can never mark an interval as settling.
+- **Mechanism.** The interval that *ends* at the first heated sample is flagged as charge (`heated_interval = self.heating_since_sample or heating`). So a draw made before the charge starts is folded as charge-folded energy. The heated interval's own charge heat also hides part of the dip, so the later unheated rise (the full dip recovering) is larger than the dip energy that was folded. `take_back` then removes the difference from real draw. This contradicts the body's claim that the take-back can erase "never draw folded outside the charge".
+- **Minimal sequence, 30 min apart (the default).** Script `ev/seq30.py`, output `ev/seq30.txt`. Readings 07:00 50.0, 07:30 47.0 (plan flag on, a 3 K draw before the charge), 08:00 44.0 (charge heat +1 under a 4 K dip), 08:30 48.0, 09:00 48.0. Open occurrence:
 
-| draw start | base p90 kWh (usage pts) | head p90 kWh (usage pts) |
-|---|---|---|
-| 07:00 (body's geometry) | 5.5346 (84) | 5.5326 (84) |
-| 07:35 (during the charge) | 3.6706 (28) | 0.1438 (0) |
-| 07:45 (5 min after the last heated sample) | 5.5488 (84) | 1.9468 (28) |
-| 08:00 (outside the window, control) | 5.5490 (84) | 5.5487 (84) |
+  | arm | base `ee64358b` | head |
+  |---|---|---|
+  | truth (no dip) | 0.6542 | 0.6542 |
+  | dip | 1.3127 | **0.3847** |
+  | no-charge control (flag never set) | 1.3127 | 1.3127 |
 
-The `flat` arm, which has no DHW flag, is identical at both ends for every offset (3.6706 / 5.5488 / 5.5490). The movement therefore comes from the charge gate and not from the instrument. A draw that starts within 15 min after a planned charge loses about 65 % of its heavy-day p90 and two thirds of its usage-profile updates. A draw during a charge drops to about zero, where before it was a lower bound.
+  The head removes the 0.66 kWh phantom and 0.27 kWh (41 %) of the real draw on top.
+- **Simulation.** Script `ev/cadence.py`, output `ev/cadence_{base,head}.txt`, moved cells in `ev/cadence_moved.txt`. Per-minute tank physics, the learner sampled every 10/15/30/60 min, charges of 10, 40 and 15 min, draws at six offsets, 14 days. At 15 min (a configurable setting), a 07:30 10-min charge with a draw starting 10 min before it reads:
+  - truth 1.8777;
+  - dip arm at base 1.8753 (error −0.002);
+  - dip arm at head **0.9868** (−0.89, −47 %).
 
-This geometry is reachable in normal use and is not a corner case. The planner pins each window's ready temperature at the step just before the window opens (`dhw_planner.py:939-940`, `ready_temps[start_idx - 1]`). `dhw_heating_active` is the plan's scheduled power and not a device state (`optimizer.py:6054`). A charge whose last slot ends right at a window start, with the window's draw following within 15 min, is therefore the case the plan aims for. The statistic that loses the draw is the heavy-day target that sizes that same charge.
+  At the 30-min default the head moves four dip cells: two improve (+0.23 to +0.015) and two newly under-count (0.000 to −0.19). At 10 and 60 min the head equals the base in every dip cell. So at those cadences the fix removes none of the phantom it was written for: at 10 min, offset +5, the dip arm reads 2.6261 at both ends against truth 2.1156.
+- **What the repair owes.** At least the 30-min default and the 10-min floor, in the harness and in a features case:
+  - a draw ending in the interval that closes at the first heated sample, beside a dip;
+  - a take-back that cannot exceed the energy the charge's dip actually folded;
+  - the gain at production cadence stated against these losses.
 
-The defect the PR fixes is a +0.62 kWh phantom on the p90 (6.1506 to 5.5346 in the body's geometry). The head trades it for a −3.6 kWh loss at a geometry the planner produces. Neither the design-choices paragraph nor the figures measure that trade, and the body states the opposite.
+  Five-minute arms are not production evidence. They may stay as a sub-cadence check, but the body must say so.
+- **Mutation survivors (`--spec`, my own mutants).** Two of the three survivors below change the booked energy. Both target a claim the body makes. `ev/mutants_r2.txt` is the block command at the head. The concrete sequences are `ev/seq.py`, with output in `ev/seq_survivors_head.txt` and `ev/seq_survivor_{esc,cred}.txt`.
 
-Owed before re-handoff: measure the draw-near-charge geometry at both ends with a flat control, as above or better, and either bound the cost or change the gate. One option keeps the in-charge and settle intervals' drop only where it exceeds the dip bound, or folds the in-charge drop as before. A second option settles on the reading recovering rather than on a fixed window. The body then states the measured trade. If the owner accepts the trade as it stands, that is the owner's ruling to record, not the review's.
+  | mutant | edit | head | mutant | control |
+  |---|---|---|---|---|
+  | `R2_ESCROW_DEC_OFF` | `dhw_draws.py` `self._open_charge_kwh -= taken` → `pass` | 0.689 | 0.4633 | 0.689 |
+  | `R2_CREDIT_PER_INTERVAL` | `dhw_learning.py` `if (heated_interval or settling) and not self.open:` → `if heated_interval or settling:` | 0.689 | 0.457 | 1.849 |
 
-## Evidence
+  - `R2_ESCROW_DEC_OFF`: the take-back escrow is never decremented. A 3 K pre-charge draw, a 1 K dip and two +1 K settle rises (sequence A) lose 0.226 kWh of the pre-charge draw under the mutant. This breaks "never draw folded outside the charge".
+  - `R2_CREDIT_PER_INTERVAL`: the credit resets on every charge-affected interval. Sequence B (an 8 K drop, then three +3 K rises inside the settle window) takes back about 7 K under the mutant, past the per-charge `DHW_CHARGE_DIP_MAX_K` of 5 K the body states.
+  - `R2_SETTLE_INCL_HEATED` (`return not heated_interval and (` → `return True and (`) is equivalent by reading. On a heated interval, `async_learn_usage(..., heated=True)` returns at its first guard, and `advance` returns before the pending branch.
 
-- No pull request exists yet, so there is no review packet and no CI run to read. `owed-reds` (`ev/owed_reds.txt`, from `merge_train.py owed-reds`) is the set; with no checks, no red is owed an answer at this head.
-- Head re-read: `git ls-remote origin refs/heads/handoff/r10-outside-dhw-charge-settle` gives `8e2b7d99d0e99f3cbd00d49ceb9b4a1458b87257`, the head measured (`ev/head_reread.txt`). The body's `## Head` names the same SHA. Its p90 figures were taken at `348e0c8ca623`, and the last commit `8e2b7d99d0` touches only `tests/features.py`. I re-ran them at `8e2b7d99d0` and they are identical (`ev/p90_head.txt`).
-- Authorship: commit `7aa8f9c5d5` (Bankaifan) has the same stable patch-id as live `refs/pull/3434/head` `3c518449ef` (`da3c8c2dc325…`).
-- Merge: `git merge-tree --write-tree origin/main 8e2b7d99d0` exits 0 (tree `a7504e4587`), with `LEDGER-MERGE: resolved tests/closures.json`.
-- `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched. No golden or claim file is in the three-dot diff, so `env_drift.py --all` was not run, because nothing claims or could move a fixture (`dhw_learning.py` is not solver code).
-- Failing test first reproduced. With main's `dhw_learning.py` in the head tree, the block gives `2 of 2 FEATURES BLOCK FAILED`, with the same arm values as the body. At the head it gives `ALL 2 FEATURES BLOCK PASSED` (`ev/features_block_main_production.txt`, `ev/features_block_head.txt`).
-- Mutation proof re-run with the body's CMD through `mutant_run.py` copy-tree at the head (`ev/mutants.json`, `ev/mutants_block.txt`). `SURVIVED NULL`. All 11 of the body's block mutants are KILLED: SETTLE_ARM_OFF, SETTLE_SHORT, SETTLE_LONG, STAMP_DEL, ZERO_DROP_OFF, USAGE_HEATING_ONLY, COOLING_HEATING_ONLY, OVERFLOW_DROP, RESTORE_SKIP_OFF, RESTORE_LEN_OFF, RESTORE_CLAMP_DROP. Of the reviewer's own mutants, R_SINCE_ARM_OFF, R_STAMP_ALWAYS and R_STAMP_PREV are KILLED, and R_FOLD_SKIP and R_SETTLE_STRICT SURVIVE the block (see Findings).
-- Null control: the space-heating arm is `ok` in the block at both ends. In the p90 harness the `flat` arm is bit-identical at both ends (5.5346, 84 points). This is true by construction, since the flag is never set.
-- p90 figures re-derived exactly at both ends with the fixer's harness, sha1 `df1bc6619db4b95b19a9472316524a98f4ce8549` (`ev/p90_base.txt`, `ev/p90_head.txt`). The finding came from an outside pull request with no committed harness. That harness is the fixer's (builder's) instrument, built as the brief required, and not the finder's.
-- Structure: `class_excess_loc` is 17537 at the base and 17535 at the head, `STRUCTURE RATCHET PASSED` (`ev/structure_base.txt`, `ev/structure_archscore_head.txt`). The budget file's only metric move is that row, down. It is earned by `_restore_daytypes` folding the two duplicated restore loops.
-- `closure.py select --diff <base>` at the head gives `MODE: SCOPED -- 22 script(s) run, 11 scoped out.` (`ev/closure_select.txt`). The gate itself was not re-run.
-- Class seams: the enumerator's dispositions in the body were read and are not contested. The one consumer path, `async_learn_dynamics` and its three callees, is the whole diff.
+  The wider-closure re-run of the three is reported under Evidence.
 
 ## Findings
 
-- Figure not re-derived: the body quotes archscore `reflective_writes 11 -> 9` and `computed_attr_access 28 -> 26`. At the head, `score.py --diff <base>` prints `11 -> 10` and `28 -> 27` (gate-only rows; `dS +0.0237 IMPROVES` and `literal_clone_copies 122 -> 120` match). The body must quote what the tool prints at its head. Carry: dismissed: owed by this group's re-cut under ## Block, no other stage affected
-- Surviving mutant R_SETTLE_STRICT (`<= DHW_CHARGE_SETTLE_HOURS` to `<`) survives the features block. At a 5-min cadence an interval ending exactly 0.25 h after the last heated sample is a normal case, so the boundary decides whether the third post-charge sample is learned and is unpinned.; it also survives the whole of `tests/features.py` in place (`ev/mutants_survivors_features_full.txt`: `SURVIVED NULL`, `SURVIVED R_SETTLE_STRICT`). Carry: dismissed: owed by this group's re-cut under ## Block, no other stage affected
-- Surviving mutant R_FOLD_SKIP (skip the draw-stat fold on a charge-affected interval instead of folding zero) survives the features block. The body's claim "still folded, so occurrence accounting is unchanged" is unpinned there.; it also survives the whole of `tests/features.py` in place (`SURVIVED R_FOLD_SKIP`). Carry: dismissed: owed by this group's re-cut under ## Block, no other stage affected
+- Residual: quantised sensor jitter (±0.1 K, rounded to 0.1) in a truth trace at 5-min cadence. A positive jitter inside the settle window takes back charge-folded draw. The p90 falls 5.2218 to 5.2085 at a draw 10 min before the charge and 5.155 to 5.1365 at a draw starting 2 min after it (−0.25 % and −0.36 %); every other jitter cell is B = N (`ev/probe_{base,head}.txt`). This is bounded by the jitter amplitude over at most three settle intervals, and it lies inside the cadence repair above. Carry: dismissed: 0.4 % at most, below the sensor resolution, and the regression-unmeasured block re-scopes the mechanism it rides on
+- Out of scope: the body's second class enumerator (`git grep -n "async_learn_dynamics\|CONF_DHW_TEMP_ENTITY\|draw_stats.fold" -- custom_components/`) also returns `config_flow.py` (89, 543, 1409, 1444, 1683) and `const.py` (84, 297, 1858), which the body's disposition list does not name. Every hit is the entity key's definition, form field or staleness/plausibility table, not a consumption attribution, and no perturbation of these moves any harness figure. Carry: dismissed: void under judge.md (definitions only, no drop attribution); the body should name them next round
 
-## Friction
+## Evidence
 
-none
+- Head reviewed: `8fe714779710e5f56c6eb353ab8b2cea00fcaddd` (`ev/HEAD.txt`). Merge base `ee64358be7eeccaec5178a923cb3b83a18a924a0`. Round 2 (delta against `8e2b7d99d0e99f3cbd00d49ceb9b4a1458b87257`).
+- `review_carry.py 8e2b7d99 8fe71477` prints `FRESH-REVIEW`.
+- `review_carry.py df632c8dd 8fe71477` prints `CARRY`. The body's `## Head` names `df632c8dd`, and the one commit past it is the bot's `ci: pin killed mutants` (a ledger file only). `review_packet.py` refused with `head-note` for the same reason.
+- RESULT harness (the fixer's `dev/audit/harnesses/r10_dhw_charge_settle_p90.py`, sha1 `24cfb411cf98c620a321bc8a9e3d32cc7beb18e3`, run from the head's copy against the base and head trees; `ev/harness_{base,head}.txt`, side by side in `ev/harness_BvN.txt`): every B and N cell of the body's table re-derives except one. draw-0745 dip@max usage points read 81 at N against the body's 82; p90 5.3865 matches. The body measured on merge base `a7628041`, and main has moved since. Truth and flat arms are B = N in all six geometries and both rates.
+- Harness provenance (step 9): this PR adds the harness, so the instrument is the builder's, not the finder's. No finder harness is named (packet: "Finder's harness: none named"). `ev/probe.py`, `ev/cadence.py`, `ev/seq.py` and `ev/seq30.py` are mine (reviewer-built) and not in the tree.
+- RESULT probe (`ev/probe_{base,head}.txt`, 5/10-min cadence, draws at 07:20/07:32/07:40/07:45, ±0.1 K jitter on and off): noise-free truth cells are B = N. Note that a 1-min cadence is below the learner's `dt_h <= 0.02` floor and learns nothing at either end; those rows are void.
+- RESULT cadence (`ev/cadence_BvN.txt`): all 72 truth cells are B = N; the dip cells that move are listed in `ev/cadence_moved.txt`.
+- Mutants, the block command from the body at the head (`ev/mutants_r2.txt`): `SURVIVED NULL`; `KILLED` R2_FLUSH_AS_HEATED, R2_CHARGE_HEATED_ONLY, R2_TAKE_AFTER_FOLD, R2_CLOSE_KEEPS_PENDING; `SURVIVED` R2_ESCROW_DEC_OFF, R2_CREDIT_PER_INTERVAL, R2_SETTLE_INCL_HEATED.
+- The three block survivors were re-run over a wider closure: `mutant_run.py --in-place` over `tests/entities.py`, `guard_pins.py`, `finite_boundary.py` and `features.py` in series (the scripts that kill this file's other ledger pins). The run refused at `KILLED NULL` (rc 3): one of those scripts is red on the unmutated head, which fits the inherited `tests / fast` red. So the survivors are established against the PR's own block command only. Whether another gate script kills them is not verified here; the concrete sequences above show they are not equivalent.
+- The body's own 25 + 3 + 6 + 4 named mutants were not re-run. The body runs them through the same block command at `b5a0f877`, whose production files match the head.
+- `python3 tests/structure.py` at the head: `STRUCTURE RATCHET PASSED`, `class_excess_loc = 17532`. The budget row reads 17534 → 17532 against the merge base `ee64358b`. The body's "17537 to 17535" was measured on the older base; the direction and size (−2) are the same.
+- `VERSION`, `manifest.json` and the `RELEASE_NOTES.md` heading are untouched (`git diff ee64358b...HEAD` prints nothing). No golden or claim file is in the diff.
+- `git merge-tree --write-tree origin/main 8fe71477` exits 0 against origin/main `0a2139b1` (`ev/merge_tree.txt`).
+- CI at this head, read live: `tests / mutation` failure (the body answers it under `## Red checks`); `tests / fast (3.14)` failure (the dispatch rules main's `tests / fast` census red inherited from main); `governance / instrument-self-tests` failure (outside `merge_train.py owed-reds`, so not this PR's). `merge_train.py classify` was still WAIT when this verdict was written (`ev/ci_classify.txt`). The block does not turn on CI.
+- Class enumerator: the first grep returns `boost.py`, `climate.py`, `coordinator.py`, `dhw_learning.py`, `optimizer.py`, `payload.py` and `sensor.py`, all named in the body's dispositions.

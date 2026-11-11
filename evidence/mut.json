@@ -1,0 +1,9 @@
+[
+ {"name":"R2_ESCROW_DEC_OFF","file":"custom_components/heatpump_optimizer/dhw_draws.py","old":"        self._open_charge_kwh -= taken\n","new":"        pass\n"},
+ {"name":"R2_CREDIT_PER_INTERVAL","file":"custom_components/heatpump_optimizer/dhw_learning.py","old":"if (heated_interval or settling) and not self.open:","new":"if heated_interval or settling:"},
+ {"name":"R2_SETTLE_INCL_HEATED","file":"custom_components/heatpump_optimizer/dhw_learning.py","old":"        return not heated_interval and (","new":"        return True and ("},
+ {"name":"R2_FLUSH_AS_HEATED","file":"custom_components/heatpump_optimizer/dhw_learning.py","old":"await self.async_learn_usage(prev, drop, dt_p, hour, False, weekend=wkend)","new":"await self.async_learn_usage(prev, drop, dt_p, hour, True, weekend=wkend)"},
+ {"name":"R2_CHARGE_HEATED_ONLY","file":"custom_components/heatpump_optimizer/dhw_learning.py","old":"charge=heated_interval or settling, recovered_k","new":"charge=settling, recovered_k"},
+ {"name":"R2_TAKE_AFTER_FOLD","file":"custom_components/heatpump_optimizer/dhw_learning.py","old":"        taken_kwh = self.draw_stats.take_back(recovered_k * cap)\n        self.draw_stats.fold(now, label, energy_kwh, charge=charge)\n","new":"        self.draw_stats.fold(now, label, energy_kwh, charge=charge)\n        taken_kwh = self.draw_stats.take_back(recovered_k * cap)\n"},
+ {"name":"R2_CLOSE_KEEPS_PENDING","file":"custom_components/heatpump_optimizer/dhw_learning.py","old":"        due, self.pending, self.open = self.pending, [], False\n","new":"        due, self.open = [], False\n"}
+]
