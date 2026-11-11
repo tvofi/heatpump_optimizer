@@ -1,0 +1,2 @@
+FAIL R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost 
+   linear {'term': 56.25000000000001, 'band': 10.178571428571422, 'row': np.float64(56.25000000000001), 'charge': 48.21428571428572, 'credit': -48.21428571428572} derated {'term': 56.25000000000001, 'band': 10.178571428571422, 'row': np.float64(56.25000000000001), 'charge': 48.21428571428572, 'credit': -48.21428571428572}

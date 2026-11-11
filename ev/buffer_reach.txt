@@ -1,0 +1,10 @@
+== head
+two_zone=False d=0.0 terminal=56.250000
+two_zone=False d=0.2 terminal=70.312500
+two_zone=True d=0.0 terminal=55.156250
+two_zone=True d=0.2 terminal=68.945312
+== mut
+two_zone=False d=0.0 terminal=56.250000
+two_zone=False d=0.2 terminal=70.312500
+two_zone=True d=0.0 terminal=55.156250
+two_zone=True d=0.2 terminal=68.945312

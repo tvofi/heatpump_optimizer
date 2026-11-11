@@ -1,0 +1,14 @@
+== head
+mode=manual buffer_is_store=False cop_end=2.4500 cop_buffer=2.4500 d=0.0 terminal=55.156250
+mode=manual buffer_is_store=False cop_end=2.4500 cop_buffer=2.4500 d=0.2 terminal=68.945312
+mode=smart_read buffer_is_store=False cop_end=2.4500 cop_buffer=2.4500 d=0.0 terminal=55.156250
+mode=smart_read buffer_is_store=False cop_end=2.4500 cop_buffer=2.4500 d=0.2 terminal=68.945312
+mode=smart_write buffer_is_store=False cop_end=2.4500 cop_buffer=2.4500 d=0.0 terminal=55.156250
+mode=smart_write buffer_is_store=False cop_end=2.4500 cop_buffer=2.4500 d=0.2 terminal=68.945312
+== mut
+mode=manual buffer_is_store=False cop_end=2.4500 cop_buffer=2.4500 d=0.0 terminal=55.156250
+mode=manual buffer_is_store=False cop_end=2.4500 cop_buffer=2.4500 d=0.2 terminal=68.945312
+mode=smart_read buffer_is_store=False cop_end=2.4500 cop_buffer=2.4500 d=0.0 terminal=55.156250
+mode=smart_read buffer_is_store=False cop_end=2.4500 cop_buffer=2.4500 d=0.2 terminal=68.945312
+mode=smart_write buffer_is_store=False cop_end=2.4500 cop_buffer=2.4500 d=0.0 terminal=55.156250
+mode=smart_write buffer_is_store=False cop_end=2.4500 cop_buffer=2.4500 d=0.2 terminal=68.945312

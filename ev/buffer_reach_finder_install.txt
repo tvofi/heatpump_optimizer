@@ -1,0 +1,6 @@
+== head
+d=0.0 valve=manual buffer_is_store=True (cop_end, cop_buffer, law, stores)=(2.4499999999999997, 1.7160420595675407, False, ['upper', 'lower', 'slab', 'buffer']) terminal=64.213742
+d=0.2 valve=manual buffer_is_store=True (cop_end, cop_buffer, law, stores)=(2.4499999999999997, 1.7160420595675407, True, ['upper', 'lower', 'slab', 'buffer']) terminal=80.267178
+== mut
+d=0.0 valve=manual buffer_is_store=True (cop_end, cop_buffer, law, stores)=(2.4499999999999997, 1.7160420595675407, False, ['upper', 'lower', 'slab', 'buffer']) terminal=64.213742
+d=0.2 valve=manual buffer_is_store=True (cop_end, cop_buffer, law, stores)=(2.4499999999999997, 1.7160420595675407, True, ['upper', 'lower', 'slab', 'buffer']) terminal=64.213742

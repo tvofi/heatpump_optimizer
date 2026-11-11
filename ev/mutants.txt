@@ -1,0 +1,12 @@
+M1 deferred return linear: rc=1 KILLED | FAIL R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost 
+M2 terminal law None: rc=1 KILLED | FAIL R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost 
+M3 refill_law guard always None: rc=1 KILLED | FAIL R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost 
+M4 refill_power_kwh identity: rc=1 KILLED | FAIL R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost 
+M5 quantile 0.25->0.5: rc=1 KILLED | FAIL R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost 
+M6 copysign dropped: rc=1 KILLED | FAIL R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost 
+M7 buffer-branch law guard off: rc=0 SURVIVED | PASS R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost 
+M8 single-sum law guard off: rc=1 KILLED | FAIL R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost 
+M9 refill hours doubled: rc=1 KILLED | FAIL R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost 
+M10 hours<=0 guard dropped: rc=0 SURVIVED | PASS R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost 
+NULL docstring edit: rc=0 SURVIVED | PASS R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost 
+tree clean: True

@@ -1,0 +1,4 @@
+spread d=0.0: capped deferred calls 40 | max |f(gap) - (f(D_plan)-f(D_ref))| 0.000000 | max |deferred| 14.8779
+spread d=0.112: capped deferred calls 40 | max |f(gap) - (f(D_plan)-f(D_ref))| 0.012743 | max |deferred| 13.7893
+flat d=0.0: capped deferred calls 40 | max |f(gap) - (f(D_plan)-f(D_ref))| 0.000000 | max |deferred| 17.5573
+flat d=0.112: capped deferred calls 40 | max |f(gap) - (f(D_plan)-f(D_ref))| 0.005016 | max |deferred| 17.7447

@@ -1,0 +1,7 @@
+tests / mutation-pins (2), job 130371095337, run 42973409738, head 9394a6528c7683f5b8b5fb19a1d939e244c515e6 (log tail, verbatim):
+  pinned   custom_components/heatpump_optimizer/optimizer.py:2647 RETURN_DEL -- killed by tests/structure.py
+  UNPINNED custom_components/heatpump_optimizer/optimizer.py:2712 GUARD_OFF -- lives
+  UNPINNED custom_components/heatpump_optimizer/optimizer.py:2723 CLAMP_DROP -- lives
+  pinned   custom_components/heatpump_optimizer/optimizer.py:5640 RETURN_DEL -- killed by tests/plan_view.py
+PIN KILLED: 2 pinned, 2 left unpinned (2 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped)
+At 08:43 UTC: tests / mutation-pins (1) job 130371095299 in_progress; tests / mutation completed failure (the predicted unpinned-sites red); gate failure x2.
