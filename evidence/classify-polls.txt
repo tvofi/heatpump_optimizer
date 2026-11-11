@@ -1,0 +1,3 @@
+12:39:40 rc=3 WAIT 3861ae76214c26900658bfa52c91d880fe8865a1 pending: gate red: none
+12:40:57 rc=3 WAIT 3861ae76214c26900658bfa52c91d880fe8865a1 pending: gate red: none
+12:42:14 rc=1 RED 3861ae76214c26900658bfa52c91d880fe8865a1 pending: none red: gate

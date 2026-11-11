@@ -1,1 +1,8 @@
+merge-base a7628041dc02e298c5399003d4c0576391dd5c4e
 (empty above = untouched)
+ dev/programme/delivery/3431.md  |  1 +
+ tests/arch_score.py             | 19 +++++++++------
+ tests/harness.py                | 10 +++++---
+ tests/harness_headers.py        | 51 +++++++++++++++++++++++++++++++++++++++++
+ tools/audit/seat/cloud-setup.sh |  3 +++
+ 5 files changed, 74 insertions(+), 10 deletions(-)

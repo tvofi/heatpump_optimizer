@@ -1,0 +1,8 @@
+[
+ {
+  "name": "A1-runner-temp-merged-first",
+  "file": "tests/arch_score.py",
+  "old": "env = {**throwaway_git_init(repo, \"-q\"), \"RUNNER_TEMP\": str(runner_temp)}",
+  "new": "env = {\"RUNNER_TEMP\": str(runner_temp), **throwaway_git_init(repo, \"-q\")}"
+ }
+]
