@@ -1,0 +1,15 @@
+== wt pgrp
+SURVIVED NULL
+FORKCAP m
+mode=pgrp secs=1
+leftover=0
+== wt session
+SURVIVED NULL
+FORKCAP m
+mode=session secs=1
+leftover=0
+== base cleanenv
+SURVIVED NULL
+KILLED m
+mode=cleanenv secs=40
+leftover=150

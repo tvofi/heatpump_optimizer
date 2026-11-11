@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/mutant_run.py b/tools/audit/seat/mutant_run.py
+index d34e7d9f4..5b85019b9 100644
+--- a/tools/audit/seat/mutant_run.py
++++ b/tools/audit/seat/mutant_run.py
+@@ -212,7 +212,7 @@ def run_cmd(argv: list[str], cwd: Path, timeout: float) -> int:
+                 p.wait()
+                 return TIMEOUT_RC
+             if FORKCAP[0] and len(fam()) > FORKCAP[0]:
+-                _kill_family(p.pid, token, skip, root)
++                pass
+                 p.wait()
+                 return FORKCAP_RC
+     finally:
