@@ -26,12 +26,20 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-NONREQUIRED-REDS-2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-DELTA-REVIEW (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-WATER-SETPOINT-FEEDBACK (stage in-progress, branch `handoff/r10-water-setpoint-feedback`): `git fetch origin handoff/r10-water-setpoint-feedback && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-PREPR-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-TRAIN-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-TICK-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-GH-READ-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-PLAN-PAGE-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-SUITE-ENV-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-WORKTREE-GC-LIVE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-SAV-VALUATION-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-COMBI-TANK-PR-B (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-MAIN-SELFTESTS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-CARRY-SINK-BARRIER (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-PREPR-READSET (stage in-progress): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-CARRY-SINK-BARRIER, R10-COMBI-TANK, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-GH-READ-RESIDUE, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-DELTA-REVIEW, R10-HOTFIX-MAIN-SELFTESTS, R10-HOTFIX-NONREQUIRED-REDS-2, R10-HOTFIX-PREPR-READSET, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REVIEW-ENUMERATE, R10-SAV-VALUATION-RESIDUE, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-CARRY-SINK-BARRIER, R10-COMBI-TANK, R10-DEPENDABOT-3414-COMPAT, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-GH-READ-RESIDUE, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-DELTA-REVIEW, R10-HOTFIX-MAIN-SELFTESTS, R10-HOTFIX-NONREQUIRED-REDS-2, R10-HOTFIX-PREPR-READSET, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REVIEW-ENUMERATE, R10-SAV-VALUATION-RESIDUE, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
 
 ## Resume steps
 
