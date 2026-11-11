@@ -20481,7 +20481,7 @@
    "architect_note": "",
    "brief": "Merge-train residue on the merge_train.py / stamp seam: undraft of a train-drafted head, a stamp hold the train honours, the live-head cancel sender and detector, pre-flight order under a policy mandate, the BOT_HEAD measure-first count (needs the orchestrator's local train logs: run that part locally), and the deletion of the record-autofix beat with the train-hold and stamp-hold arms once no stamp rule reads the rows. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null
    }
   },
