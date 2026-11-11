@@ -1,0 +1,26 @@
+#### b
+== Carry: R10-REVIEW-ENUMERATE
+BAD-DEST body item 3caa401a: R10-REVIEW-ENUMERATE: R10-REVIEW-ENUMERATE is carries-open (resume.stage carries-open); a carry goes to the live group owning the seam, else the producing group keeps the fix; valid targets: unknown (no --pr-group)
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+rc=1
+== Carry: #3313
+NOTE body item fd8a32ff: #3313
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+== Carry: #2728
+NOTE body item a1302ec6: #2728
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+#### h
+== Carry: R10-REVIEW-ENUMERATE
+BAD-DEST body item 3caa401a: R10-REVIEW-ENUMERATE: R10-REVIEW-ENUMERATE is carries-open (resume.stage carries-open); a carry goes to the live group owning the seam, else the producing group keeps the fix; valid targets: unknown (no --pr-group)
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+rc=1
+== Carry: #3313
+BAD-DEST body item fd8a32ff: #3313: #3313's roster owner R10-REVIEW-ENUMERATE (resume.stage carries-open), which takes no carry; a carry goes to the live group owning the seam, else the producing group keeps the fix; valid targets: unknown (no --pr-group)
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+rc=1
+== Carry: #2728
+BAD-DEST body item a1302ec6: #2728: #2728's roster owner R10-CLOSEOUT-CLEANUP (resume.stage carries-open), which takes no carry; a carry goes to the live group owning the seam, else the producing group keeps the fix; valid targets: unknown (no --pr-group)
+CARRY-AUDIT: 1 finding item(s): 0 routed, 0 unrouted, 1 bad destination(s)
+rc=1
