@@ -1,0 +1,18 @@
+== member-no-removeprefix: finite_boundary rc=1
+  FAIL on a core with native climate names the class carries none of the old names  [carried ['_attr_temperature_unit']]
+  ok   the default hook raises NotImplementedError and surfaces a major mismatch older or newer, not a minor-only one
+  ok   the ledger store migrates only a v1 mapping; a newer major and a v1 non-mapping reach the default hook's NotImplementedError
+  ok   a downgrade leaves the store as UnsupportedStorageVersionError (#1740)
+  ok   store.py imports at the 2025.2.0 floor, which has no UnsupportedStorageVersionError (#1869)
+1 of 113 FINITE BOUNDARY CHECKS FAILED
+   realcore v2502 rc=0: AttributeError=False deprecation_lines=0 
+   realcore v2611 rc=0: AttributeError=False deprecation_lines=0 
+== null-comment: finite_boundary rc=0
+  ok   the default hook raises NotImplementedError and surfaces a major mismatch older or newer, not a minor-only one
+  ok   the ledger store migrates only a v1 mapping; a newer major and a v1 non-mapping reach the default hook's NotImplementedError
+  ok   a downgrade leaves the store as UnsupportedStorageVersionError (#1740)
+  ok   store.py imports at the 2025.2.0 floor, which has no UnsupportedStorageVersionError (#1869)
+ALL 113 FINITE BOUNDARY CHECKS PASSED
+   realcore v2502 rc=0: AttributeError=False deprecation_lines=0 
+   realcore v2611 rc=0: AttributeError=False deprecation_lines=0 
+restored ok

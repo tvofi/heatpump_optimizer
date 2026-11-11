@@ -1,0 +1,33 @@
+== alias-never: finite_boundary rc=1
+  FAIL on a core without native climate names the old names read the scrubbed native values  [read ('base default', 'base default', 'base default')]
+  FAIL on a core without native climate names each old name is the native member object itself  [vars=['_attr_native_temperature_unit', 'native_current_temperature', 'native_target_temperature']]
+  ok   the default hook raises NotImplementedError and surfaces a major mismatch older or newer, not a minor-only one
+  ok   the ledger store migrates only a v1 mapping; a newer major and a v1 non-mapping reach the default hook's NotImplementedError
+  ok   a downgrade leaves the store as UnsupportedStorageVersionError (#1740)
+  ok   store.py imports at the 2025.2.0 floor, which has no UnsupportedStorageVersionError (#1869)
+2 of 113 FINITE BOUNDARY CHECKS FAILED
+   realcore v2502 rc=0: AttributeError=True deprecation_lines=0 
+   realcore v2611 rc=0: AttributeError=False deprecation_lines=0 
+== alias-always: finite_boundary rc=1
+  FAIL on a core with native climate names the class carries none of the old names  [carried ['_attr_temperature_unit', 'current_temperature', 'target_temperature']]
+  ok   the default hook raises NotImplementedError and surfaces a major mismatch older or newer, not a minor-only one
+  ok   the ledger store migrates only a v1 mapping; a newer major and a v1 non-mapping reach the default hook's NotImplementedError
+  ok   a downgrade leaves the store as UnsupportedStorageVersionError (#1740)
+  ok   store.py imports at the 2025.2.0 floor, which has no UnsupportedStorageVersionError (#1869)
+1 of 113 FINITE BOUNDARY CHECKS FAILED
+   realcore v2502 rc=0: AttributeError=False deprecation_lines=0 
+   realcore v2611 rc=0: AttributeError=False deprecation_lines=0 
+== hasattr-guard-off: finite_boundary rc=1
+AttributeError: type object 'ConfiguredInputMixin' has no attribute 'native_current_temperature'
+   realcore v2502 rc=1: AttributeError=True deprecation_lines=0 AttributeError: type object 'ConfiguredInputMixin' has no attribute 'native_current_temperature'
+   realcore v2611 rc=1: AttributeError=True deprecation_lines=0 AttributeError: type object 'ConfiguredInputMixin' has no attribute 'native_current_temperature'
+== module-test-any-base: finite_boundary rc=1
+  FAIL on a core without native climate names the old names read the scrubbed native values  [read ('base default', 'base default', '°C')]
+  FAIL on a core without native climate names each old name is the native member object itself  [vars=['_attr_native_temperature_unit', '_attr_temperature_unit', 'native_current_temperature', 'native_target_temperature']]
+  ok   the default hook raises NotImplementedError and surfaces a major mismatch older or newer, not a minor-only one
+  ok   the ledger store migrates only a v1 mapping; a newer major and a v1 non-mapping reach the default hook's NotImplementedError
+  ok   a downgrade leaves the store as UnsupportedStorageVersionError (#1740)
+  ok   store.py imports at the 2025.2.0 floor, which has no UnsupportedStorageVersionError (#1869)
+2 of 113 FINITE BOUNDARY CHECKS FAILED
+   realcore v2502 rc=0: AttributeError=False deprecation_lines=0 
+   realcore v2611 rc=0: AttributeError=False deprecation_lines=0 
