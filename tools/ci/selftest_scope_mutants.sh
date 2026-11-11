@@ -10,6 +10,7 @@
 set -u
 src=tools/ci/selftest_scope.py
 wrapper=tools/ci/selftest_step.sh
+workflow=.github/workflows/governance.yml
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 python3 -I "$src" --self-test > /dev/null || { echo "BASELINE RED: the unmutated self-test fails"; exit 1; }
@@ -33,12 +34,23 @@ wrapper_mutant() { # <label> <old> <new>
   out=$(python3 -I "$src" --self-test --wrapper "$tmp/step.sh" 2>&1); rc=$?
   report "$1" "$rc" "$out"
 }
+workflow_mutant() { # <label> <old> <new>
+  apply "$workflow" "$2" "$3" "$tmp/wf.yml" || { echo "MUTANT NOT APPLIED: $1"; exit 1; }
+  out=$(python3 -I "$src" --self-test --workflow "$tmp/wf.yml" 2>&1); rc=$?
+  report "$1" "$rc" "$out"
+}
 scope_mutant "a missing bg trace skipped" 'broken.append(f"MISSING trace' 'None and broken.append(f"MISSING trace'
 scope_mutant "an empty trace read whole" 'return "EMPTY"' 'return ""'
 scope_mutant "a partial trace read whole" 'return "" if seen["root"] in seen["ended"] else "PARTIAL"' 'return ""'
 scope_mutant "a signal death read as partial" '(?:exited with|killed by) ' '(?:exited with) '
 scope_mutant "check drops the trace refusals" 'refuse = broken + refuse' 'refuse = refuse'
 scope_mutant "record passes over a broken trace" 'return 1 if failed or broken else 0' 'return 1 if failed else 0'
+scope_mutant "settle never rewrites the index" '["git", "update-index", "-q", "--really-refresh", "--force-write-index"]' '["true"]'
+scope_mutant "the settle command a no-op" 'return settle_index(root)' 'return 0'
+scope_mutant "settle_gaps reads no job" 'if any(s.id in UNGATED and SETTLE_CALL.search' 'if True or any(s.id in UNGATED and SETTLE_CALL.search'
+scope_mutant "static skips the settle check" 'problems = wiring_gaps(steps) + settle_gaps(steps)' 'problems = wiring_gaps(steps)'
+workflow_mutant "CI never settles the index" 'python3 -I tools/ci/selftest_scope.py settle' 'true'
+workflow_mutant "CI swallows a failed settle" 'python3 -I tools/ci/selftest_scope.py settle' 'python3 -I tools/ci/selftest_scope.py settle || true'
 wrapper_mutant "only launch untraced (the incident's wrapper)" 'case "$UNTRACED" in *" ${GITHUB_ACTION:-} "*)' 'case " launch " in *" ${GITHUB_ACTION:-} "*)'
 wrapper_mutant "no strace exec'd anyway" 'if ! command -v strace > /dev/null 2>&1; then' 'if false; then'
 wrapper_mutant "exit lines suppressed (-qq)" 'exec strace -f -q -y' 'exec strace -f -qq -y'
