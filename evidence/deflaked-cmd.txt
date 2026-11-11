@@ -1,1 +1,0 @@
-sed -i 's/rm -rf "\$W"'"'"' EXIT$/:'"'"' EXIT/' tools/audit/worktree_gc.sh && grep -q "^  trap .*:' EXIT$" tools/audit/worktree_gc.sh && bash tools/audit/worktree_gc.sh --self-test

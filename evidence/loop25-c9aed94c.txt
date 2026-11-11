@@ -1,0 +1,27 @@
+worktree_gc self-test: 167 checks, 100 failed
+worktree_gc self-test: 167 checks, 100 failed
+worktree_gc self-test: 167 checks, 100 failed
+worktree_gc self-test: 167 checks, 0 failed
+worktree_gc self-test: 167 checks, 0 failed
+worktree_gc self-test: 167 checks, 100 failed
+worktree_gc self-test: 167 checks, 100 failed
+worktree_gc self-test: 167 checks, 0 failed
+worktree_gc self-test: 167 checks, 104 failed
+worktree_gc self-test: 167 checks, 0 failed
+worktree_gc self-test: 167 checks, 100 failed
+worktree_gc self-test: 167 checks, 104 failed
+worktree_gc self-test: 167 checks, 0 failed
+worktree_gc self-test: 167 checks, 100 failed
+worktree_gc self-test: 167 checks, 0 failed
+worktree_gc self-test: 167 checks, 100 failed
+worktree_gc self-test: 167 checks, 100 failed
+worktree_gc self-test: 167 checks, 0 failed
+worktree_gc self-test: 167 checks, 0 failed
+worktree_gc self-test: 167 checks, 0 failed
+worktree_gc self-test: 167 checks, 0 failed
+worktree_gc self-test: 167 checks, 0 failed
+worktree_gc self-test: 167 checks, 104 failed
+worktree_gc self-test: 167 checks, 104 failed
+worktree_gc self-test: 167 checks, 100 failed
+11 of 25 green
+done-old
