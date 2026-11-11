@@ -183,9 +183,6 @@ CAP_ORPHANS = 20
 # A triage or record batch topic is held by design -- no PR opens until the stamp sweep -- so it sorts after
 # every other stranded ref before the cap slice (14 of 20 capped lines were held, hiding 26 others).
 HELD_TOPIC = re.compile(r"^ORPHAN (?:triage|record)-\S*batch\S*")
-# A triage or record batch topic is held by design -- no PR opens until the stamp sweep -- so it sorts after
-# every other stranded ref before the cap slice (14 of 20 capped lines were held, hiding 26 others).
-HELD_TOPIC = re.compile(r"^ORPHAN (?:triage|record)-\S*batch\S*")
 #: The OWED-handoff read. DESIGN CHOICE: no age window. bus.sh's default
 #: (--min-age-h 2) spares a ref pushed moments ago as a lane's in-flight push,
 #: but a handoff whose body ref exists is complete, and a level line that
@@ -2441,8 +2438,6 @@ class Tick:
                          f"{len(stranded)} ORPHAN line(s)): OWED handoffs "
                          "UNCHECKED this pass, not confirmed empty", flag=True)
             return
-        stranded.sort(key=lambda l: bool(HELD_TOPIC.match(l)))  # stable: held last, each group in bus order
-        held = sum(bool(HELD_TOPIC.match(l)) for l in stranded)
         stranded.sort(key=lambda l: bool(HELD_TOPIC.match(l)))  # stable: held last, each group in bus order
         held = sum(bool(HELD_TOPIC.match(l)) for l in stranded)
         for l in stranded[:CAP_ORPHANS]:
