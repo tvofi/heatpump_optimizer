@@ -259,8 +259,9 @@ def _absorb_into(roster, group, into):
     if into == group:
         raise Refuse(f"set-stage: {group} cannot be absorbed into itself")
     hstage = (host.get("resume") or {}).get("stage")
-    if hstage in roster_lib.CARRY_CLOSED:
-        raise Refuse(f"set-stage: --into {into} is {hstage}, not a live group")
+    if not roster_lib.carry_receivable(host):
+        raise Refuse(f"set-stage: --into {into} is {hstage}, not a live group that can take "
+                     "its carries (roster_lib.carry_receivable)")
 
 
 #: The resume fields set-resume may write. stage and branch are the roster's
@@ -464,12 +465,14 @@ def op_append_carry(roster, group, text):
     g = _need(roster, group)
     resume = g.get("resume") or {}
     stage = resume.get("stage")
-    if stage in roster_lib.CARRY_CLOSED:
+    if not roster_lib.carry_receivable(g):
         into = resume.get("absorbed_into")
         raise Refuse(f"append-carry: {group} is {stage}"
                      + (f", absorbed into {into}: carry to {into}"
                         if stage == "absorbed" and into else
-                        "; carry to an open group"))
+                        "" if stage in roster_lib.CARRY_DEST_CLOSED else
+                        ", a receiver only (no PR, issue or fix; files [])")
+                     + "; a carry goes to the live group owning the seam, else the producing group keeps the fix")
     if resume.get("pr"):
         print(f"WARN carry to {group}: PR #{resume['pr']} is open on it")
     entry = _text(text)
@@ -592,9 +595,9 @@ def op_mark_carry(roster, group, index, match, kind, arg):
         if arg == group:
             raise Refuse(f"mark-carry: {group} cannot move a carry to itself")
         stage = (dest.get("resume") or {}).get("stage")
-        if stage in roster_lib.CARRY_CLOSED:
-            raise Refuse(f"mark-carry: moved {arg} is {stage}; a carry moves "
-                         "to an open group")
+        if not roster_lib.carry_receivable(dest):
+            raise Refuse(f"mark-carry: moved {arg} is {stage}, not a group that can take "
+                         "a carry (roster_lib.carry_receivable); a carry goes to the live group owning the seam, else the producing group keeps the fix")
     if kind == "dismissed" and not arg:
         raise Refuse("mark-carry: dismissed needs a reason")
     if "]" in arg:
@@ -2297,7 +2300,7 @@ def _self_test() -> int:
     edit("set-stage", "R9-B", "in-progress", branch="mark-1")
     edit("append-carry", "R9-B", "carry four", branch="mark-1")
     edit("append-carry", "R9-B", "carry five", branch="mark-1")
-    for closed in roster_lib.CARRY_CLOSED:
+    for closed in roster_lib.CARRY_DEST_CLOSED:  # the sink barrier: carries-open and refuted too
         edit("set-stage", "R9-A", closed, branch="mark-1",
              into="R9-B" if closed == "absorbed" else None)
         t1 = tip("mark-1")
@@ -2365,7 +2368,7 @@ def _self_test() -> int:
         check("a legacy carry alone leaves set-stage done as done (null control)",
               rc == 0 and at_mark("R9-L")["resume"]["stage"] == "done",
               (rc, out[-300:]))
-        edit("set-stage", "R9-L", HOLD_STAGE, branch="mark-1")
+        edit("set-stage", "R9-L", "in-progress", branch="mark-1")  # a carries-open group takes no carry
         edit("append-carry", "R9-L", "post-cut-over carry", branch="mark-1")
         rc, out = said(lambda: edit("set-stage", "R9-L", "done", branch="mark-1"))
         check("a carry after the cut-over is pending beside a legacy one",
@@ -2481,6 +2484,22 @@ def _self_test() -> int:
     rc, out = said_w("append-carry", "R9-WN", "late carry")
     check("append-carry to an absorbed group with no host still refuses",
           rc == 2 and "R9-WN is absorbed" in out, (rc, out[-300:]))
+    # THE SINK BARRIER (R10-CARRY-SINK-BARRIER, tvofi 2026-11-10): a group whose PR
+    # merged (carries-open), a refuted one and a receiver-only one (no PR, brief,
+    # issue or fix) take no carry; the refusal names the rule.
+    wedit("append-group", "R9-WC", jgroup(
+        "R9-WC", resume={"stage": "carries-open", "branch": "handoff/wc", "pr": 77}))
+    wedit("append-group", "R9-WR", jgroup(
+        "R9-WR", resume={"stage": "refuted", "branch": "handoff/wr"}))
+    wedit("append-group", "R9-WS", jgroup(
+        "R9-WS", files=[], resume={"stage": "not-started", "branch": "handoff/ws"}))
+    for gid, said_as in (("R9-WC", "R9-WC is carries-open"), ("R9-WR", "R9-WR is refuted"),
+                         ("R9-WS", "R9-WS is not-started, a receiver only")):
+        t_w = branch_roster(W)
+        rc, out = said_w("append-carry", gid, "parked carry")
+        check(f"sink barrier: append-carry to {gid} refuses naming the rule and writes nothing",
+              rc == 2 and said_as in out and "live group owning the seam" in out
+              and branch_roster(W) == t_w, (rc, out[-300:]))
     rc, out = said_w("append-carry", "R9-WP", "pr carry")
     check("append-carry to a group with resume.pr appends and WARNs",
           rc == 0 and "WARN carry to R9-WP: PR #123 is open on it" in out
@@ -2540,6 +2559,10 @@ def _self_test() -> int:
     check("set-stage absorbed --into a done group is refused",
           refuses("not a live group", "set-stage", "R9-WX", "absorbed",
                   into="R9-WD", branch=W))
+    for host in ("R9-WC", "R9-WS"):
+        check(f"sink barrier: set-stage absorbed --into {host} is refused",
+              refuses("not a live group", "set-stage", "R9-WX", "absorbed",
+                      into=host, branch=W))
     check("--into on another stage is refused",
           refuses("--into is for stage absorbed", "set-stage", "R9-WX",
                   "done", into="R9-A", branch=W))
