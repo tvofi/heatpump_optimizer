@@ -1,6 +1,0 @@
-FAIL argv names the worktree (git -C), cwd elsewhere: kept (got '1', want '0')
-FAIL naming argv-inside (got '0', want '1')
-FAIL argv carries --checkout=<worktree> (empty terminator): kept (got '1', want '0')
-FAIL naming argv-inside for --checkout= (got '0', want '1')
-worktree_gc self-test: 154 checks, 4 failed
-rc=1

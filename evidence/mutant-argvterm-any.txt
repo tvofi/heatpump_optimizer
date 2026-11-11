@@ -1,3 +1,0 @@
-FAIL null control: argv naming a sibling prefix (<worktree>2) holds nothing and the worktree is collected (got '1', want '0')
-worktree_gc self-test: 154 checks, 1 failed
-rc=1
