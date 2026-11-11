@@ -312,9 +312,9 @@ def swimlanes(plan: dict, rows: list) -> tuple[str, int]:
     it draws (a link crossing more than one lane or two hours is left to the
     ◆ marks and the caption)."""
     now = _t(plan["generated"]["start"])
-    # The axis runs to the last planned stamp: the round-close stamp lands
-    # after closure, and an axis ending at closure would not draw it.
-    end = max([_t(plan["summary"]["closure"])] + [_t(s["at"]) for s in plan["stamps"]]
+    # The axis runs to closure, which is the later of the round-close stamp and
+    # the last post-closure step, so no stamp lies past it.
+    end = max([_t(plan["summary"]["closure"])]
               + [_t(plan["summary"]["post_closure_finish"])
                  for _ in [0] if plan["summary"].get("post_closure_finish")])
     slots = plan["generated"]["caps"]["slots"]
