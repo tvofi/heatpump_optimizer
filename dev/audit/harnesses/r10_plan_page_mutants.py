@@ -104,8 +104,9 @@ MUTANTS = [
      "    G = roster_lib.groups_of(roster)\n    G.update({g: {**G[g], \"resume\": "
      "{\"stage\": \"not-started\"}} for g in list(G)[:1]})\n    PG = plan[\"groups\"]"),
     ("defect-2-scratch-graph", PAGE,
-     "blk = [a for a in entry.get(\"after\") or []\n",
-     "blk = [a for a in {\"R9-READY\": [\"R9-LIVE\"]}.get(g, entry.get(\"after\") or [])\n"),
+     "return [a for a in entry.get(\"after\") or []\n",
+     "return [a for a in {\"R9-READY\": [\"R9-LIVE\"]}.get(entry.get(\"group\"),"
+     " entry.get(\"after\") or [])\n"),
     ("defect-3-count-wrong-set", PAGE,
      "open_iss = (\"—\" if snap.get(\"offline\") else str(sum(",
      "open_iss = (\"—\" if snap.get(\"offline\") else str(len(snap[\"issues\"]) - 1 + 0 * sum("),
