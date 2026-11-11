@@ -12112,13 +12112,13 @@ check("without an indoor reading the corner now label is absent",
     /Solved 12 min ago/.test(page) && /Next solve in 18 min/.test(page) && /1\.4 s/.test(page)
     && /\d+ steps/.test(page), page.slice(page.indexOf("health-plan"), page.indexOf("health-plan") + 600));
   const pill = h.match(/<span data-health-pill="(\w+)" class="status-pill tone-(\w+)"[^>]*>([^<]*)</);
-  check("the header pill reads 1 input needs attention (warn)",
-    !!pill && pill[2] === "warn" && pill[3] === "1 input needs attention", JSON.stringify(pill));
+  check("the header pill reads 1 input problem (warn)",
+    !!pill && pill[2] === "warn" && pill[3] === "1 input problem", JSON.stringify(pill));
   const two = healthStates();
   two[BIN].attributes.problems.push({ input: "dhw_temp_entity", entity_id: "sensor.tank",
     problem: "unavailable", age_minutes: null, max_age_minutes: 60 });
   const pill2 = mkHealth(two).html().match(/data-health-pill="(\w+)" class="status-pill tone-(\w+)"[^>]*>([^<]*)</);
-  check("two failing inputs read 2 inputs need attention", !!pill2 && pill2[3] === "2 inputs need attention", JSON.stringify(pill2));
+  check("two failing inputs read 2 input problems", !!pill2 && pill2[3] === "2 input problems", JSON.stringify(pill2));
   // R10-HOTFIX-CARD-HEALTH-TEXT: the pill counts every problem kind, so it
   // names none. One unavailable input and nothing stale: a pill reading
   // "stale" over a page with no Stale row is the contradiction the owner
@@ -12282,7 +12282,7 @@ check("without an indoor reading the corner now label is absent",
 
   const sv = mkHealth(healthStates(), "sv-SE").html();
   check("the Health page and pill speak Swedish",
-    /Indata/.test(sv) && /1 indata behöver åtgärdas/.test(sv) && /Hälsa/.test(sv) && /Ladda ner diagnostik/.test(sv));
+    /Indata/.test(sv) && /1 indataproblem/.test(sv) && /Hälsa/.test(sv) && /Ladda ner diagnostik/.test(sv));
   check("the card never reads a disabled-by-default sensor for the Health page",
     !/_contract_comparison|_dhw_heavy_day|_wood_burn_advisor|_measured_power/.test(
       cardSrc.slice(cardSrc.indexOf("const HEALTH_WAITING"), cardSrc.indexOf("const HEALTH_WAITING") + 600)));
