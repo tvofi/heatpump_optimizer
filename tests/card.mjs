@@ -13609,6 +13609,45 @@ check("without an indoor reading the corner now label is absent",
     nBefore === 4 && rebuilt.length === 4 && dc.shadowRoot.activeElement === rebuilt[2]
     && rebuilt[2].getAttribute("aria-expanded") === "true",
     `heads ${nBefore} -> ${rebuilt.length}; activeElement is index ${rebuilt.indexOf(dc.shadowRoot.activeElement)}`);
+  // The design decision against id/aria-controls: with the headline rendered
+  // twice, an id would be minted twice. Null control: the fold heads number 4.
+  const dlgDump = collect(dc.shadowRoot).join("\n");
+  const ids = [...dlgDump.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  const dupIds = ids.filter((v, i) => ids.indexOf(v) !== i);
+  check("collapse: the doubly rendered headline mints no id and no aria-controls",
+    (dlgDump.match(/data-fold="/g) || []).length === 4 && !/aria-controls=/.test(dlgDump) && dupIds.length === 0,
+    `duplicate ids: ${[...new Set(dupIds)].join(", ")}`);
+  dc.dialog.close();
+  // Order on the folded card: savings and score, the two folds, then the chart.
+  const iSave = shut.indexOf("12.34"), iNarr = shut.indexOf('data-fold="narrative"'),
+    iWhy = shut.indexOf('data-fold="whynow"'), iChart = shut.indexOf('class="chartwrap');
+  check("collapse: the folds sit after the savings figure and before the chart",
+    iSave >= 0 && iSave < iNarr && iNarr < iWhy && iWhy < iChart, `${iSave} ${iNarr} ${iWhy} ${iChart}`);
+  // The two stylesheet rules the polish states: a divider under the last fold,
+  // and a summary that wraps rather than ellipsises.
+  const sumRule = (shut.match(/\.hl-fold-sum\s*\{[^}]*\}/) || [""])[0];
+  check("collapse: a rule under the last fold closes the headline off from the chart",
+    /\.hl-fold:last-child\s*\{\s*border-bottom:\s*1px solid/.test(shut));
+  check("collapse: the fold summary wraps and never ellipsises",
+    /overflow-wrap:\s*anywhere/.test(sumRule) && !/nowrap|text-overflow|overflow:\s*hidden/.test(sumRule), sumRule);
+  // The folded card draws what the dialog's chips last saved: hiding a series
+  // in the dialog hides it on the card, and on a card built afterwards.
+  const cv = build(states({ items, lines }, why));
+  const priceOn = (c) => (collect(c.shadowRoot).join("\n").match(/data-key="price"/g) || []).length;
+  // Earlier checks share the saved legend state, so the starting visibility is
+  // read, not assumed; the check holds for whichever way the chip flips it.
+  const hidBefore = !!cv.legend.hidden.price, shownBefore = priceOn(cv);
+  cv.dialog.open();
+  const chipPrice = { currentTarget: { getAttribute: (k) => (k === "data-key" ? "price" : null) } };
+  cv.legend.onChipClick(chipPrice);
+  cv.dialog.close();
+  const hidAfter = !!cv.legend.hidden.price;
+  const shownAfter = priceOn(cv), shownFresh = priceOn(build(states({ items, lines }, why)));
+  const drawn = (n, hid) => (hid ? n === 0 : n > 0);
+  check("collapse: the folded card keeps the visibility the dialog's chips last saved",
+    hidAfter !== hidBefore && drawn(shownBefore, hidBefore) && drawn(shownAfter, hidAfter) && drawn(shownFresh, hidAfter),
+    `hidden ${hidBefore} -> ${hidAfter}; drawn ${shownBefore} -> ${shownAfter}, fresh card ${shownFresh}`);
+  cv.legend.onChipClick(chipPrice); // the saved state as the earlier checks left it
   // A fold's summary when the rows cannot be totalled: the first published line.
   const raw = collect(build(states({ lines }, undefined)).shadowRoot).join("\n");
   check("collapse: unpaired lines summarise as the first line; no why_now as the no-data line",
