@@ -1,0 +1,6 @@
+  ok   fail closed: the base's check runs unreadable is a Stop (rc 2), never an empty list
+  ok   fail closed: the merge base unreadable is a Stop (rc 2), never an empty list
+merge_train self-test: 626 checks, 0 failed
+  ok   build: an INTRODUCED step is an introduced-red refusal naming the step
+  ok   null: an inherited-only head (nothing introduced) refuses nothing
+review_packet self-test: 103 checks, 0 failed

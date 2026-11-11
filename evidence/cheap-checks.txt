@@ -1,0 +1,31 @@
+## policy_lint --budgets
+role record    ~7428 tokens, cap 7405 +band 500 = 7905
+role policy    ~10014 tokens, cap 9958 +band 500 = 10458
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+rc=0
+## rules_sync --check
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+## closure select
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  A skipped script is a claim that no changed file is in its measured
+## fold_ledger check
+fold_ledger: 54 classes, 758 instances, 121 in-tree judge survivors (rounds [8, 10]), 149 rca entries
+fold_ledger: 0 violation(s)
+## owed-reds (live)
+governance / wave-script
+hassfest / hassfest
+pr-contract / pr-contract
+tests / arch-instrument
+tests / briefs
+tests / browser
+tests / ci-ratchet
+tests / closure-scope
+tests / closures
+tests / coverage
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
