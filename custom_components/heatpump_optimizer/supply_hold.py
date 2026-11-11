@@ -79,6 +79,6 @@ def _start_held(rec: _Hold, inp: ArbiterInputs, boosts: Any, now: datetime) -> b
 def _stop_held(rec: _Hold, held: ArbiterState, now: datetime) -> bool:
     """A run under :data:`MIN_RUN`; a stop let through starts the gate's pause."""
     starts = (rec.born, rec.on_at, duty_switch.running_since(held))
-    short = now - max(s for s in starts if s and s <= now) < MIN_RUN
+    short = now - max((s for s in starts if s and s <= now), default=now) < MIN_RUN
     rec.off_at = rec.off_at if short else now
     return short

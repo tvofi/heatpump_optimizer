@@ -81050,11 +81050,12 @@ R.section("supply switch: minimum run and pause, restart, the cycle's late write
 # The real coordinator writes; each tick fires every minute.
 
 
-async def _ms_run(duties, switch, events, until=20):
+async def _ms_run(duties, switch, events, until=20, off_at=None):
     """Switch writes by minute from 06:00 for a plan of ``duties`` (``s`` on).
 
     ``switch`` is the switch's state and since-minute at 06:00 (negative is
-    before); ``events`` maps a minute to the action the cycle adopts there.
+    before); ``events`` maps a minute to the action the cycle adopts there;
+    at ``off_at`` the optimizer is switched off.
     """
     ticks = []
     armed = _sa_pa.async_track_time_interval
@@ -81072,6 +81073,7 @@ async def _ms_run(duties, switch, events, until=20):
             now = _SA_T0 + timedelta(minutes=m)
             _sa_dt.freeze(now)
             coord._last_optimization = now
+            coord._mode = "off" if off_at is not None and m >= off_at else coord._mode
             if m in events:
                 _sa_boost.adopt_plan(coord, {"heat_pump_on": events[m], "power": 1.5 * events[m]})
                 coord._optimization_result.power_schedule[m // 15] = 1.5 * events[m]
@@ -81096,6 +81098,12 @@ R.check(
     "a re-solve three minutes into a run does not switch the supply off; the step tick does at MIN_RUN",
     _ms_short == [(0, "turn_on"), (10, "turn_off")],
     f"{_ms_short}",
+)
+_ms_off = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14, off_at=5))
+R.check(
+    "a write held back is not retried once the optimizer is switched off",
+    _ms_off == [(0, "turn_on")],
+    f"{_ms_off}",
 )
 R.check(
     "null control: the same re-solve twelve minutes into the run switches it off at once",

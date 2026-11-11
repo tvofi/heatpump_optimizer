@@ -1,6 +1,6 @@
 """Duty-switch restart learning: does a duty switch stop a running compressor?
 
-Design: ``dev/programme/designs/duty-switch-restart-learning.md``. On some
+Design: ``docs/design/2026-11-10-duty-switch-restart-learning/design.md``. On some
 pumps a switch from hot water to heating while the compressor runs stops it:
 the controller judges the heating request on a return the hot-water leg has
 just heated. Whether it does is learned per install and per direction.
@@ -39,6 +39,7 @@ The episodes persist in their own store; the estimate is in the diagnostics.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from typing import Any
@@ -76,6 +77,8 @@ from .pump_arbiter import (
 )
 from .store import QuarantiningStore, load_mapping
 from .thermal_model import on_threshold_kw
+
+_LOGGER = logging.getLogger(__name__)
 
 #: The learned directions: the single duty switched from, then to.
 DIRECTIONS = ("dhw_space", "space_dhw")
@@ -201,7 +204,7 @@ def _on_running(ds: DutySwitchState, now: datetime) -> None:
         return
     if edge[0] is None:
         ds.episode = None  # an unavailable running signal voids the episode
-    elif not edge[0] and "stop" not in ep and edge[1] - ep["at"] <= W_STOP:
+    elif not edge[0] and "stop" not in ep and utc_elapsed_seconds(edge[1], ep["at"]) <= W_STOP.total_seconds():
         ep["stop"] = edge[1]
     elif edge[0] and "stop" in ep:
         _close(ds, ep, True, utc_elapsed_seconds(edge[1], ep["stop"]) / 60.0)
@@ -258,6 +261,15 @@ def _heated(inp: ArbiterInputs, setpoint: float | None, since: datetime, now: da
 
 def duty_opened(coord: Any, held: ArbiterState, inp: ArbiterInputs, command: PumpCommand,
                 before: tuple[Any, datetime] | None, now: datetime) -> None:
+    """The arbiter's ``opened`` hook: a learner fault never aborts its pass."""
+    try:
+        _opened(coord, held, inp, command, before, now)
+    except Exception as err:  # noqa: BLE001 - the learner is advisory
+        _LOGGER.debug("Duty-switch learner skipped an episode: %s", err)
+
+
+def _opened(coord: Any, held: ArbiterState, inp: ArbiterInputs, command: PumpCommand,
+            before: tuple[Any, datetime] | None, now: datetime) -> None:
     """Open an episode at a mode write that changed the served single duty while running."""
     after, ds = held.written.get("mode"), state(held)
     direction = _DIRECTION.get((before[0], after[0])) if before and after and after[1] == now else None
@@ -273,6 +285,14 @@ def duty_opened(coord: Any, held: ArbiterState, inp: ArbiterInputs, command: Pum
 
 
 async def duty_follow(coord: Any, held: ArbiterState, inp: ArbiterInputs, now: datetime) -> None:
+    """The arbiter's ``follow`` hook: a learner fault never aborts its pass."""
+    try:
+        await _follow(coord, held, inp, now)
+    except Exception as err:  # noqa: BLE001 - the learner is advisory
+        _LOGGER.debug("Duty-switch learner skipped a pass: %s", err)
+
+
+async def _follow(coord: Any, held: ArbiterState, inp: ArbiterInputs, now: datetime) -> None:
     """Each arbiter pass: load once, arm the listener, confirm an edge, close episodes."""
     ds = state(held)
     if not ds.loaded:

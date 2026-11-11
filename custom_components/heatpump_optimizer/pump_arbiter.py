@@ -1649,11 +1649,9 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | 
     if held.supply is None or (held.supply[0] == step and not held.supply_held):
         return
     inp = wiring.inputs()
-    if inp.entry_released:
-        return
-    # A write ``supply_hold`` held back is retried with the step's own command.
-    on = held.supply[1] if held.supply[0] == step else step_supply(inp, wiring.boosts, now)
+    on = None if inp.entry_released else step_supply(inp, wiring.boosts, now)
     if on is None:
+        held.supply_held = False  # a held write dies with the plan's command
         return
     last, held.supply = held.supply[1], (step, on)
     if on != last or held.supply_held:
