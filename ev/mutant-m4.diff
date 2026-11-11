@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index bbc270045..8bda54ab5 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -430,7 +430,7 @@ confirm_arm() { # one pass over review/* tips the relay delivered: confirm each
+   # skipped, not owed. The open PRs are this pass's one listing (pass() takes it ahead of every arm), else one listing here; a
+   # failed listing skips nothing (every tip stays owed as before).
+   local open=""
+-  if [ -f "$state/cloud-prs-open.$$" ]; then open=$(cut -f1 "$state/cloud-prs-open.$$"); open=${open:-none}
++  if false; then open=$(cut -f1 "$state/cloud-prs-open.$$"); open=${open:-none}
+   else open=$( { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"
+     else gh pr list -R "${HPO_RELAY_REPO:-tvofi/heatpump_optimizer}" --state open --limit 100 --json number,headRefName,headRefOid \
+       -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi; } | cut -f1) && open=${open:-none} || open=""; fi
