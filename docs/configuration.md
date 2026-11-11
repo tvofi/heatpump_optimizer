@@ -746,15 +746,25 @@ writes, at every 15-minute plan step:
     such a controller presumably stops), and no higher than the controller accepts: a Luxtronik
     clamps the target to its own minimum return target and return limit, so a ceiling above the
     limit is written but not followed. A controller that starts heating only once the target sits
-    its hysteresis above the return (2 K on a Luxtronik's default) is not started by a smaller lift;
-    it only keeps a running compressor near its minimum. On the install this was written for, a
+    its hysteresis above the return is not started by a smaller lift;
+    it only keeps a running compressor near its minimum. That hysteresis is a setting of the
+    controller, not a fixed 2 K: a Luxtronik accepts 0.5 K at the least, and the start threshold in
+    effect (the return target less the hysteresis) is input 10107 of its Smart Home Interface, which
+    ha-luxtronik-shi publishes as its *Demand border* sensor
+    ([the contributor's answers](https://github.com/tvofi/heatpump_optimizer/pull/3372#issuecomment-6756915104)).
+    This integration does not read it. On the install this was written for, a
     0.5 K lift held 26–31 Hz once running, 1–1.5 K ramped to 73–81 Hz. For a low-temperature floor
     heating, 0.5–2 K and 30–40 °C may be a starting point; check them against the compressor's
     frequency and power.
   - The integration that exposes the controller must poll it at least
     every 10 minutes and restore its heating mode after a controller
     restart: a Luxtronik Smart Home Interface drops every value set through
-    it after 600 s without access and after each restart. A reverted
+    it after 600 s without access and after each restart. Any access
+    re-arms those 600 s, a read as much as a write, so polling alone keeps
+    a written value; ha-luxtronik-shi polls every 30 s by default and
+    offers 10–300 s, and restores what it wrote after a controller restart
+    only where its restore-after-device-reset option is on
+    ([the contributor's answers](https://github.com/tvofi/heatpump_optimizer/pull/3372#issuecomment-6756915104)). A reverted
     set-point is noticed and written again; a reverted heating mode is not
     visible to this integration. No second tool may write the same
     registers: a Luxtronik then silently discards writes (error 816).
@@ -773,7 +783,7 @@ writes, at every 15-minute plan step:
   draw, averaged over 3 minutes, is above the planned level and up while it
   is below, and holds it while the two are within 10 % of the planned level
   (of the pump's minimum power, where the plan asks less).
-  It goes no lower than 0.1 K below the inlet, no higher than the ceiling,
+  It goes no lower than 0.3 K below the inlet, no higher than the ceiling,
   and never to the gate. Hot water, both duties, a boost, a defrost, the
   system-identification experiment and full power write the value above
   unchanged and start the loop over. Where the controller cuts a written
@@ -783,7 +793,13 @@ writes, at every 15-minute plan step:
     minimum), or the first write of a run does not start a stopped
     compressor — the same limitation as without the loop;
   - its minimum return target sits below the return during the heating
-    season, or the loop cannot wind the compressor down past it.
+    season, or the loop cannot wind the compressor down past it. A
+    Luxtronik cuts the set-point to its minimum return target (input 10104
+    of its Smart Home Interface, parameter 979) and its return limit (input
+    10103, parameter 87), both of which ha-luxtronik-shi publishes as
+    sensors ([the contributor's answers](https://github.com/tvofi/heatpump_optimizer/pull/3372#issuecomment-6756915104)).
+    This integration does not read them: it takes the two limits from the
+    value the controller reports back after a write.
 - **For an *Indoor temperature* entity** each of the three is the step's
   planned room temperature, clamped to the entity's range (5 °C as the gate
   where the mode offers no hot-water-only option). An entity whose own
