@@ -1134,7 +1134,9 @@ def _self_test() -> int:
                   [g for g, r in hot_rows.items() if r["hot"]] == ["R9-PART"]
                   and marked(hot_roster) == [short("R9-PART")], marked(hot_roster))
             nulls = {"non-hotfix": marked(cold_roster), "no crit edge": marked(roster),
-                     "off-path edge": marked(off_cp),
+                     "off-path edge": marked(off_cp) if roster_lib.is_hotfix(
+                         roster_lib.groups_of(off_cp)["R9-PART"]) and "R9-PART" in
+                     roster_lib.groups_of(off_cp)[nc]["after"] else ["fixture lost its edge"],
                      "released (refuted)": marked(staged("refuted")),
                      "closed (deferred)": marked(staged("deferred")),
                      "discharged": marked(hot_roster, dis_plan)}

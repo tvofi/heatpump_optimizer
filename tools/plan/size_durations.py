@@ -73,6 +73,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -678,11 +679,29 @@ def self_test() -> int:
     got = fetch_rest("o/r", "2026-10-12", fake_get)
     check("fetch_rest: merged PRs only, across a full page, stopping at the first created "
           "before since", [p["number"] for p in got] == [500 - i for i in range(0, 100, 2)] + [300]
-          and not any("page=3" in a for a in asked))
-    pages[2] = [pull(300, 13)]
+          and any("page=2" in a for a in asked) and not any("page=3" in a for a in asked))
+    pages[2] = [pull(300, 13), pull(297, 14)]
+    pages[3] = [pull(200, 13)]
     got = fetch_rest("o/r", "2026-10-12", fake_get)
-    check("fetch_rest: a short page ends the read", got[-1]["number"] == 300
-          and not any("page=3" in a for a in asked))
+    check("fetch_rest: a short page ends the read", [p["number"] for p in got][-2:] == [300, 297])
+    check("fetch_rest: a PR created at the cut-off instant is read",
+          [p["number"] for p in fetch_rest("o/r", "2026-10-13T00:00:00Z", fake_get)][-1] == 297)
+    check("_gh: a read returns its stdout", _gh([sys.executable, "-c", "print(7)"]) == "7\n")
+    try:
+        _gh([sys.executable, "-c", "import sys; sys.exit(3)"])
+        gh_raised = False
+    except RuntimeError:
+        gh_raised = True
+    check("_gh (null): a failed read raises, never returns", gh_raised)
+    with tempfile.TemporaryDirectory() as td:
+        cache, calls = os.path.join(td, "prs.json"), []
+        fresh = read_prs({"rest": lambda o, s_: calls.append((o, s_)) or [{"number": 1}]},
+                         "rest", "o/r", "2026-10-12", cache)
+        again = read_prs({"rest": lambda o, s_: calls.append((o, s_)) or []},
+                         "rest", "o/r", "2026-10-12", cache)
+    check("read_prs: a fresh read writes the cache, a second replays it without a read",
+          fresh == ([{"number": 1}], False) and again == ([{"number": 1}], True)
+          and calls == [("o/r", "2026-10-12")])
     check("input_note names the read and a replayed cache",
           input_note("rest", "2026-10-12", 3, True) == " Input: 3 merged PRs created since "
           "2026-10-12, read by size_durations.fetch_rest (--via rest), replayed from a "
@@ -803,13 +822,7 @@ def run(repo: str, roster_ref: str | None, repo_owner: str, since: str,
         cache: str | None, csv_path: str | None, percentile: float,
         via: str = "graphql") -> dict:
     roster, _, _ = replan.load_roster(repo, roster_ref)
-    replayed = bool(cache and Path(cache).is_file())
-    if replayed:
-        prs = json.loads(Path(cache).read_text(encoding="utf-8"))
-    else:
-        prs = READS[via](repo_owner, since)
-        if cache:
-            Path(cache).write_text(json.dumps(prs), encoding="utf-8")
+    prs, replayed = read_prs(READS, via, repo_owner, since, cache)
     rows, parts, held, _mapping = measure(repo, roster, prs)
     if csv_path:
         write_csv(rows, csv_path)
@@ -822,6 +835,17 @@ def run(repo: str, roster_ref: str | None, repo_owner: str, since: str,
     out["sizes_provenance"] += input_note(via, since, len(prs), replayed)
     out["sizes_measured_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return out
+
+
+def read_prs(reads: dict, via: str, repo_owner: str, since: str, cache: str | None):
+    """(PRs, replayed): the `--prs-cache` file when it exists, else `reads[via]`,
+    written to the cache when one is named."""
+    if cache and Path(cache).is_file():
+        return json.loads(Path(cache).read_text(encoding="utf-8")), True
+    prs = reads[via](repo_owner, since)
+    if cache:
+        Path(cache).write_text(json.dumps(prs), encoding="utf-8")
+    return prs, False
 
 
 def input_note(via: str, since: str, n: int, replayed: bool) -> str:
