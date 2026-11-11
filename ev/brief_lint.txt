@@ -1,0 +1,3 @@
+
+PLAYBOOK ok: the renamed fixture is refused for its 7 moved instruments and the null fixture lints clean
+rc=0
