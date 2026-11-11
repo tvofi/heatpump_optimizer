@@ -23735,7 +23735,10 @@
    "resume": {
     "stage": "not-started",
     "branch": null
-   }
+   },
+   "carry": [
+    "RCA R10-RCA-REPLAY-CLASS-RERECORD (state c: the stated re-record procedure was obeyed and its unit, the drawn class, is wrong). The re-record must cover every runner class, not only those drawn since the change. Add a control in tests/replay.py over the cost draws table (tests/replay_cost_draws.tsv). Within each class, order clean draws by their created time. A level shift at T exists when every draw at or after T is under the floor (budget/2) that the draws before T derive. Then every other class must hold a draw created at or after T, or carry this group's declared cut (the projection factor and its interleaved evidence). Otherwise name it: \"class X rests wholly on draws before the shift class Y shows at T\". Print the classes examined. Owed demonstration: red on the table at commit d08ed31049 naming ref23, ref28, ref31, ref38, ref40 and ref53; green at the fix head; the healthy tables at 6715d97332 and 078780e687 read green with 7 examined; dropping the fix's cut declaration turns it red. Register the control in tools/policy/field_coverage.mjs. Land the analysis as dev/audit/rca/R10-RCA-REPLAY-CLASS-RERECORD.md with the fix (source text: the orchestrator's session scratch, s14 rca-replay-class RCA.md, pasted into the fixer's fire message). Re-measure every figure at your merge base."
+   ]
   }
  ]
 }
