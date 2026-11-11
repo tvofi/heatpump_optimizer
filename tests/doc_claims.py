@@ -2568,6 +2568,11 @@ def check_product_page() -> None:
         bad = [m for k, m in errs if k == kind]
         R.check(what, not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
     print(f"       ({counts})")
+    # The illustrative day is committed SVG that tools/site/day_chart.mjs owns: a page whose chart is not the
+    # generator's output, or a toy planner that broke its own invariants, is red here (R10-PRODUCT-PAGE-REDESIGN).
+    chart = subprocess.run(["node", str(SITE_CHART), "--self-test", "--check"], capture_output=True, text=True)
+    R.check("the page's illustrative chart is its generator's output, and the generator's self-test holds",
+            chart.returncode == 0, "; ".join((chart.stdout + chart.stderr).split("\n")[:4]))
     page = SITE_PAGE.read_text() if SITE_PAGE.is_file() else ""
     planted = page.replace("The heat-loss scale", "The heat-loss scale \u2026 the heat-loss scale", 1)
     R.check("an ellipsis planted in a claim is refused (null control)",
@@ -2597,6 +2602,7 @@ def check_product_page() -> None:
 # building nothing. The pages are then scanned for a third-party request.
 
 SITE_BUILD = ROOT / "tools" / "site" / "build_docs.mjs"
+SITE_CHART = ROOT / "tools" / "site" / "day_chart.mjs"
 _BUILD_CACHE: dict[str, dict] = {}
 
 
