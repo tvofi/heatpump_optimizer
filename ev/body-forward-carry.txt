@@ -1,4 +1,0 @@
-## Forward-carry
-
-The sibling publish sites above land in the R10-ECL110-MQTT-OFF-NEUTRAL group of `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ECL110-MQTT-OFF-NEUTRAL
-
