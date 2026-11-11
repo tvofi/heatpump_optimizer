@@ -94,7 +94,24 @@ returns one line, the batch arm `ci.yml:117`
 
 Other `base.sha` reads. Rule, at `49462e86f3`:
 `grep -n 'github.event.pull_request.base.sha' .github/workflows/*.yml | grep -v 'PINNED:.*base.sha\|PINNED=.*base'`
-returns 11 lines, each below with its disposition. Ruling P572 ("Do not change
+returns these 11 lines:
+
+```
+$ grep -n 'github.event.pull_request.base.sha' .github/workflows/*.yml | grep -v 'PINNED:.*base.sha\|PINNED=.*base'
+.github/workflows/arch-score.yml:63: EVENT_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+.github/workflows/budget-raise-gate.yml:96: PR_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+.github/workflows/ci.yml:130: BASE_SHA: ${{ github.event.pull_request.base.sha }}
+.github/workflows/dependabot-automerge.yml:69: ref: ${{ github.event.pull_request.base.sha }}
+.github/workflows/governance.yml:213: MACHINERY_BASE: ${{ github.event.pull_request.base.sha || (inputs.base && format('origin/{0}', inputs.base)) || '' }}
+.github/workflows/governance.yml:246: SINCE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+.github/workflows/pr-contract.yml:159: PAYLOAD_BASE: ${{ github.event.pull_request.base.sha }}
+.github/workflows/tests.yml:1180: PR_BASE: ${{ github.event.pull_request.base.sha }}
+.github/workflows/tests.yml:1501: BASE: ${{ github.event.pull_request.base.sha }}
+.github/workflows/tests.yml:1896: BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
+.github/workflows/tests.yml:2104: BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
+```
+
+The table below dispositions each. Ruling P572 ("Do not change
 the diff bases", `dev/programme/triage/s6-batch160.md` at roster `b91ac890cf`)
 classes `BASE_SHA`, `SINCE`, `PR_BASE`, `MACHINERY_BASE`, `PAYLOAD_BASE` and
 `tests.yml`'s `BASE` as keys of the pull request's own diff, not restore sources;
