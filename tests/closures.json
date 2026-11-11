@@ -1916,6 +1916,7 @@
    "tools/audit/seat/orchestrator_tick.py",
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/plan_table.py",
+   "tools/audit/seat/postmerge.py",
    "tools/audit/seat/pr_cap.py",
    "tools/audit/seat/proof_watch.py",
    "tools/audit/seat/queue_pre_flight.py",
