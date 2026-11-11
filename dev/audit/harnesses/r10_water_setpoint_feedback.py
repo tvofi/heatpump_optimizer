@@ -35,6 +35,8 @@ T0 = datetime(2026, 1, 12, 8, 0, tzinfo=UTC)
 SET = "number.fb_return_set"
 RETURN = "sensor.fb_return"
 IDS = itertools.count()
+LIMIT_KEYS = ("space_setpoint_low_limit_entity", "space_setpoint_high_limit_entity")
+LIMITS = ("sensor.fb_low_limit", "sensor.fb_high_limit")
 
 
 class Coord:
@@ -42,7 +44,7 @@ class Coord:
     flag the simulation sets each pass."""
 
     def __init__(self, *, unit="return", power_entity=True, feedback=None, lift=0.5,
-                 ceiling=32.0, plan_kw=0.53, step=0.1, mode=None):
+                 ceiling=32.0, plan_kw=0.53, step=0.1, mode=None, limits=(None, None)):
         self.hass = FakeHass({
             SET: FakeState("26.0", attributes={"min": 15, "max": 45, "step": step}),
             RETURN: FakeState("25.9", unit="°C"),
@@ -52,6 +54,12 @@ class Coord:
             "space_setpoint_unit": unit, "heat_pump_return_temp_entity": RETURN,
             "flow_min_lift_k": lift, "flow_heat_c": ceiling,
         }
+        # The controller's limits on the set-point as sensors (part 3): a state
+        # string or number per side, None for an unset slot.
+        for key, entity, limit in zip(LIMIT_KEYS, LIMITS, limits):
+            if limit is not None:
+                config[key] = entity
+                self.hass.states.set(entity, FakeState(str(limit), unit="°C"))
         if power_entity:
             config["heat_pump_power_entity"] = "sensor.fb_power"
         if feedback is not None:

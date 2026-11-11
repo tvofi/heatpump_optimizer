@@ -202,6 +202,8 @@ from .const import (
     CONF_FLOW_HEAT_C,
     DEFAULT_FLOW_HEAT_C,
     CONF_FLOW_MIN_LIFT_K,
+    CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
     CONF_SPACE_SETPOINT_POWER_FEEDBACK,
     DEFAULT_FLOW_MIN_LIFT_K,
     DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK,
@@ -1671,6 +1673,10 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # Closing that flow on the measured draw (R10-WATER-SETPOINT-FEEDBACK):
     # on by default, and it acts only where a power meter is configured too.
     _F("entities", CONF_SPACE_SETPOINT_POWER_FEEDBACK, DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK, selector.BooleanSelector(), when=_water_space_setpoint, group="indoor"),
+    # The controller's own limits on that set-point, where it publishes them
+    # (a Luxtronik's inputs 10104 and 10103): the loop stays inside them.
+    _F("entities", CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY, _STORED, _entity_of('sensor', 'temperature'), when=_water_space_setpoint, group="indoor"),
+    _F("entities", CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY, _STORED, _entity_of('sensor', 'temperature'), when=_water_space_setpoint, group="indoor"),
     # -- entities_metering
     _F("entities_metering", CONF_SOLAR_RADIATION_ENTITY, _STORED, _entity_of('sensor'), group="solar"),
     _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector(), group="solar"),
