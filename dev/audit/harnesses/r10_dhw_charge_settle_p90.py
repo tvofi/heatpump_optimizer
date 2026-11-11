@@ -1,7 +1,9 @@
 """R10-OUTSIDE-DHW-CHARGE-SETTLE: the heavy-day p90 a charge-start dip adds.
 
-Drives one ``DhwProfileLearner`` per arm through 28 simulated days at a
-5-minute sample cadence and prints, per draw window, the folded occurrence
+Drives one ``DhwProfileLearner`` per arm through 28 simulated days, the
+tank integrated per minute and the learner sampled at each of
+``CADENCES_MIN`` (the production refresh range and a 5-min null control),
+and prints, per draw window, the folded occurrence
 count and ``DrawStats.quantile(label, 0.9)`` -- the heavy-day statistic the
 planner reads -- plus the usage-profile points learned. Arms:
 
@@ -19,7 +21,7 @@ planner reads -- plus the usage-profile points learned. Arms:
 Run from the tree under test, at both ends:
 
   PYTHONPATH=tests/hastub:custom_components python3 \
-    dev/audit/harnesses/r10_dhw_charge_settle_p90.py
+    dev/audit/harnesses/r10_dhw_charge_settle_p90.py [cadence_min ...]
 
 Exit 0 always; it measures, the caller compares.
 """
@@ -43,6 +45,11 @@ SEED = 3434
 DIP_K = 4.0  # charge-start transient depth, the author's 3-5 K
 DIP_PEAK_MIN = 15.0  # the dip bottoms 5 min after the 10-minute charge ends
 SETPOINT_C = 55.0
+CHARGE_START_MIN = 7 * 60 + 30  # every day's charge starts at 07:30
+#: The learner's production cadence is the coordinator refresh,
+#: ``optimization_interval``: 30 min by default, 10-120 min in 5-min steps.
+#: 5 min is below every configurable interval: a sub-cadence null control.
+CADENCES_MIN = (5, 10, 15, 30, 60)
 
 
 def dip_at(minutes_since_start: float) -> float:
@@ -54,7 +61,16 @@ def dip_at(minutes_since_start: float) -> float:
     return max(0.0, DIP_K * (1.0 - (minutes_since_start - DIP_PEAK_MIN) / 20.0))
 
 
-def run(arm: str, rate: float | None = None, draw_min: int = 7 * 60, charge_min: int = 10) -> dict:
+def run(
+    arm: str, rate: float | None = None, draw_min: int = 7 * 60, charge_min: int = 10,
+    step_min: int = STEP_MIN,
+) -> dict:
+    """One arm; the tank is integrated per minute, the learner sampled every ``step_min``.
+
+    The physics is the same at every cadence, so arms at two cadences differ
+    only in what the learner sees. The plan's DHW flag is read at each sample,
+    as ``dhw_heating_active`` is (the plan's scheduled power, not a device state).
+    """
     params = ThermalParameters()
     params.dhw_enabled = True
     cap = params.dhw_store.capacity_kwh_per_c
@@ -82,25 +98,24 @@ def run(arm: str, rate: float | None = None, draw_min: int = 7 * 60, charge_min:
     rng = np.random.default_rng(SEED)
     draws_kwh = rng.lognormal(mean=1.0, sigma=0.5, size=DAYS)
     t_true = SETPOINT_C
-    charge_start: datetime | None = None
+    flagged = arm != "flat"  # flat: an unflagged reheat, no dip
+    heat_per_min = 1.0 - 0.5 ** (1.0 / 5.0)  # halves the gap to the setpoint in 5 min
     loop = asyncio.new_event_loop()
-    for i in range(DAYS * 24 * 60 // STEP_MIN):
-        now = clock[0] = datetime(2026, 11, 2) + timedelta(minutes=i * STEP_MIN)
-        day, minute = divmod(i * STEP_MIN, 24 * 60)
-        dt_h = STEP_MIN / 60.0
-        t_true -= true_rate * (t_true - TANK_ROOM_AMBIENT_TEMP) / 25.0 * dt_h
-        if draw_min <= minute < draw_min + 15:  # the morning draw, three samples
-            t_true -= draws_kwh[day] / 3.0 / cap
-        flagged = arm != "flat"  # flat: an unflagged reheat, no dip
-        if minute == 7 * 60 + 30:
-            charge_start = now
-        in_charge = charge_start is not None and 0 <= (now - charge_start).total_seconds() < charge_min * 60
-        heating[0] = flagged and in_charge
-        if in_charge:
-            t_true += (SETPOINT_C - t_true) / 2.0
+    for i in range(DAYS * 24 * 60):
+        day, minute = divmod(i, 24 * 60)
+        t_true -= true_rate * (t_true - TANK_ROOM_AMBIENT_TEMP) / 25.0 / 60.0
+        if draw_min <= minute < draw_min + 15:  # the morning draw, over 15 min
+            t_true -= draws_kwh[day] / 15.0 / cap
+        since_charge = minute - CHARGE_START_MIN
+        if 0 <= since_charge < charge_min:
+            t_true += (SETPOINT_C - t_true) * heat_per_min
+        if i % step_min:
+            continue
+        now = clock[0] = datetime(2026, 11, 2) + timedelta(minutes=i)
+        heating[0] = flagged and 0 <= since_charge < charge_min
         reading = t_true
-        if arm.startswith("dip") and charge_start is not None:
-            reading -= dip_at((now - charge_start).total_seconds() / 60.0)
+        if arm.startswith("dip"):
+            reading -= dip_at(since_charge)
         loop.run_until_complete(learner.async_learn_dynamics(round(reading, 2)))
     loop.close()
     stats = learner.draw_stats
@@ -119,6 +134,7 @@ def run(arm: str, rate: float | None = None, draw_min: int = 7 * 60, charge_min:
 #: the charge always starts at 07:30.
 GEOMETRIES = (
     ("draw-0700", 7 * 60, 10),  # the draw ends before the charge
+    ("draw-0720", 7 * 60 + 20, 10),  # the draw starts 10 min before the charge
     ("draw-0735", 7 * 60 + 35, 10),  # the draw starts during the charge
     ("draw-0745", 7 * 60 + 45, 10),  # 5 min after the last heated sample
     ("draw-0800", 8 * 60, 10),  # past the settle window (control)
@@ -127,7 +143,17 @@ GEOMETRIES = (
 )
 
 
+ARMS = (
+    ("dip", None), ("truth", None), ("flat", None),
+    ("dip@max", DHW_COOLING_RATE_MAX), ("truth@max", DHW_COOLING_RATE_MAX),
+)
+
+
 if __name__ == "__main__":
-    for geo, draw_min, charge_min in GEOMETRIES:
-        for arm, rate in (("dip", None), ("truth", None), ("flat", None), ("dip@max", DHW_COOLING_RATE_MAX), ("truth@max", DHW_COOLING_RATE_MAX)):
-            print(f"{geo} {arm:9s} {run(arm, rate, draw_min, charge_min)}")
+    import sys
+
+    steps = [int(a) for a in sys.argv[1:]] or list(CADENCES_MIN)
+    for step in steps:
+        for geo, draw_min, charge_min in GEOMETRIES:
+            for arm, rate in ARMS:
+                print(f"{step:3d}min {geo} {arm:9s} {run(arm, rate, draw_min, charge_min, step)}")

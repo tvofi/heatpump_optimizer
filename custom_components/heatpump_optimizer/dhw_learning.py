@@ -421,7 +421,12 @@ class DhwProfileLearner:
 
         previous_temp = self.last_temp_sample
         previous_time = self.last_sample_time
-        heated_interval = self.heating_since_sample or heating
+        # The charge starts no earlier than the plan's previous slot: an
+        # interval ending at the first heated sample holds the draw before
+        # it, and only one that started heated (or is settling) can hold the
+        # charge-start dip a later rise takes back.
+        dip_interval = self.heating_since_sample
+        heated_interval = dip_interval or heating
         settling = self.charge_settle.classify(now, heating, heated_interval)
 
         self.last_temp_sample = dhw_temp
@@ -455,7 +460,7 @@ class DhwProfileLearner:
             )
         await self.async_fold_draw_stats(
             now, previous_temp, temp_drop, dt_h,
-            charge=heated_interval or settling, recovered_k=recovered_k,
+            charge=dip_interval or settling, recovered_k=recovered_k,
         )
         return None
 

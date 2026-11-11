@@ -62011,7 +62011,8 @@ R.check(
 
 # A charge start makes the tank reading FALL (the loading transient), and the
 # reading recovers once the charge stops; a draw does not recover. Each case
-# drives one learner on a pinned clock, samples 5 min apart, and reads (the open draw occurrence in kWh,
+# drives one learner on a pinned clock, samples 5 min apart (a sub-production
+# cadence; the production ones are below), and reads (the open draw occurrence in kWh,
 # usage-profile points). Pre-fix the dip is booked on the heated interval and
 # taught as usage on the settle interval; a fix that drops every
 # charge-affected interval instead loses the real draw. "dip" recovers; "draw"
@@ -62020,7 +62021,7 @@ R.check(
 # sample, still inside the window. "space": a compressor start for SPACE
 # heating never sets the plan's DHW flag, the learner's only heating input,
 # so the dip is learned exactly as on main -- the null control.
-def _chg_seq(temps, charged=True, start_hm=(8, 0), heated_at=(1,), saturday=False):
+def _chg_seq(temps, charged=True, start_hm=(8, 0), heated_at=(1,), saturday=False, step_min=5):
     import sys as _sys
     import types as _types
     coord = Coord(FakeHass(), _r7d203_entry(
@@ -62048,7 +62049,7 @@ def _chg_seq(temps, charged=True, start_hm=(8, 0), heated_at=(1,), saturday=Fals
     module.dt_util = _types.SimpleNamespace(now=lambda: clock[0])
     try:
         for i, temp in enumerate(temps):
-            clock[0] = start + timedelta(minutes=5 * i)
+            clock[0] = start + timedelta(minutes=step_min * i)
             heating[0] = charged and i in heated_at
             _aio.run(learner.async_learn_dynamics(temp))
     finally:
@@ -62092,6 +62093,43 @@ _chg_partial = _chg_seq((50.0, 50.0, 50.0, 47.0, 48.0, 48.0, 48.0))
 _chg_partial_sat = _chg_seq((50.0, 50.0, 50.0, 47.0, 48.0, 48.0, 48.0), saturday=True)
 _chg_late = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0, 48.0))
 _chg_reheat_ctl = _chg_seq((50.0, 47.0, 47.0, 47.0, 47.0, 47.0, 47.0), heated_at=(2,))
+# The learner runs once per coordinator refresh, optimization_interval: 30 min
+# by default, 10-120 min. At those cadences the interval ENDING at the first
+# heated sample holds the draw made before the charge: a 3 K draw, then a 4 K
+# dip under 1 K of charge heat that recovers. Only the draw may stay booked,
+# as in the same trace with no dip (truth); pre-fix the recovery took back
+# part of that draw. The no-charge control keeps main's dip-inflated booking.
+def _chg_cadence(step_min, dip=True, charged=True):
+    temps = (50.0, 47.0, 44.0 if dip else 48.0, 48.0, 48.0)
+    return _chg_seq(temps, charged=charged, start_hm=(7, 0), step_min=step_min)[0]
+
+
+_chg_cad = {
+    step: (_chg_cadence(step), _chg_cadence(step, dip=False), _chg_cadence(step, charged=False))
+    for step in (10, 15, 30)
+}
+R.check(
+    "at the learner's production cadences a charge-start dip's recovery takes back "
+    "no draw made before the charge",
+    all(abs(d - t) < 0.01 and n > t + 0.5 for d, t, n in _chg_cad.values()),
+    f"cadence min: (dip open kWh, truth, no DHW charge on record (control)) {_chg_cad}",
+)
+
+# The take-back is bounded twice: by the charge-folded energy left in the open
+# occurrence, and by DHW_CHARGE_DIP_MAX_K per charge, not per interval. "esc":
+# a 3 K draw before the charge, a 1 K dip and two 1 K settle rises: the second
+# rise finds nothing left to take, and the draw stays as with no dip at all
+# (_chg_reheat_ctl). "cap3": an 8 K fall on the charge, then three 3 K rises in
+# the settle window: 5 K is taken and 3 K stays booked, as in "draw".
+_chg_esc = _chg_seq((50.0, 47.0, 47.0, 46.0, 47.0, 48.0, 48.0), heated_at=(2,))
+_chg_cap3 = _chg_seq((50.0, 50.0, 42.0, 45.0, 48.0, 51.0, 51.0))
+R.check(
+    "a charge's take-back stops at the energy its charge folded and at the dip bound",
+    abs(_chg_esc[0] - _chg_reheat_ctl[0]) < 0.01 and abs(_chg_cap3[0] - _chg_draw[0]) < 0.01,
+    f"(open kWh, ...) a 1 K dip recovering 2 K after a draw {_chg_esc} vs no dip (control) "
+    f"{_chg_reheat_ctl}; three 3 K rises after an 8 K fall {_chg_cap3} vs a 3 K draw {_chg_draw}",
+)
+
 R.check(
     "a charge-start dip that recovers is learned as neither a draw nor usage, "
     "and a draw that does not recover keeps what main booked",
