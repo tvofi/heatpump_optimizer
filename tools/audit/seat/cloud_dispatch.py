@@ -869,6 +869,12 @@ def _group_checks(check) -> None:
         # CARRY 13 (P551): over five pending carries refuses with the split; --part k renders one part.
         saved_cut = dict(roster_lib.CARRY_CUTOVER)
         roster_lib.CARRY_CUTOVER.clear()  # the fixture's roster has no cut-over commit to read legacy at
+
+        def why_any(*a, **kw) -> str:  # reason(), but any exception reads as a named failure, not a crash
+            try:
+                return reason(*a, **kw)
+            except Exception as e:  # noqa: BLE001 -- a mutant's IndexError must fail a check, not the run
+                return f"{e.__class__.__name__}: {e}"
         try:
             mwhy = reason("R10-SPLIT")
             check("a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split",
@@ -885,11 +891,12 @@ def _group_checks(check) -> None:
             check("--part 1 keeps the group's own topic and names carries 0-4",
                   "topic r10-split, at head" in p1text and "\nPart 1 of 4: build carries 0-4; the others" in p1text)
             check("a part past the split, a part of a group of five or fewer, and a part for another role refuse",
-                  "splits into 4 parts" in reason("R10-SPLIT", part=5) and "five or fewer" in reason("R10-FIVE", part=1)
-                  and "fixer's" in reason("R10-SPLIT", "probe", part=2))
-            ftext = fetched(dispatch("R10-FIVE"), "PROMPT.md")
+                  "splits into 4 parts" in why_any("R10-SPLIT", part=5) and "five or fewer" in why_any("R10-FIVE", part=1)
+                  and "fixer's" in why_any("R10-SPLIT", "probe", part=2))
+            fwhy = why_any("R10-FIVE")
+            ftext = "" if fwhy else fetched("dispatch/fixer-" + _topic_of(five), "PROMPT.md")
             check("five pending carries (a moved sixth not counted) dispatch unrefused, the brief byte-identical (null control)",
-                  ftext.endswith("Brief (snapshotted when this payload was rendered):\n"
+                  not fwhy and ftext.endswith("Brief (snapshotted when this payload was rendered):\n"
                                  + group_brief(five, {"groups": [five]}, fixer=True)) and "\nPart " not in ftext)
             check("the split folds a remainder of one or two into the last part, and only that",
                   [part_split(list(range(n))) for n in (5, 6, 7, 8, 21, 22, 23)]
