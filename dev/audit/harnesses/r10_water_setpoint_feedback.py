@@ -12,8 +12,9 @@ One line per arm: the plan, the option, the mean measured draw over the last
 30 minutes of a three-hour block, whether every one of those minutes is
 within 20 % of plan, the compressor starts, and the speed at minutes 30 and
 180; then, for part 3, the lowest and highest value written against a
-controller limit with and without its sensor configured. Synthetic inputs
-only. Run from a worktree root:
+controller limit with and without its sensor configured, and the lowest
+write beside the gate for a high-limit sensor reading around it. Synthetic
+inputs only. Run from a worktree root:
   PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_water_setpoint_feedback.py
 """
 from __future__ import annotations
@@ -182,6 +183,18 @@ def main() -> None:
             sent = [w[1] for w in sim(limits=limits, **kw)["writes"]]
             print(f"{label:20s} sensor {'set' if sensors else 'unset':5s} writes {len(sent)}  "
                   f"lowest {min(sent):.1f}  highest {max(sent):.1f}")
+    # The class the part-3 review left open: a high-limit sensor reading at
+    # or around the gate, the value that means off. One row per unit and
+    # reading: the lowest write beside the gate, and whether it clears it.
+    step_up = {"plan_kw": [0.53] * 8 + [1.2] * 16, "clamp": (10.0, 27.6)}
+    for unit in ("return", "flow"):
+        for offset in (None, -5.0, 0.0, 0.05, 0.1):
+            gate = pa._gate_c(Coord(unit=unit).arbiter_inputs())
+            limit = None if offset is None else round(gate + offset, 3)
+            sent = [w[1] for w in sim(unit=unit, limits=(None, limit), **step_up)["writes"]]
+            name = "unset" if limit is None else f"{limit:.2f}"
+            print(f"{unit:6s} gate {gate:.1f}  high limit {name:5s} writes {len(sent)}  "
+                  f"lowest {min(sent):.1f}  above the gate {min(sent) > gate}")
 
 
 if __name__ == "__main__":

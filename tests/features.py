@@ -83837,6 +83837,100 @@ R.check(
     bool(_fb_first["writes"]) and abs(_fb_first["writes"][0][1] - (25.9 + 0.5)) < 0.05,
     f"first write {_fb_first['writes'][:1]}",
 )
+# The gate is the value that means off, so no controller upper limit may bring
+# a heating write to it (I2), whatever its sensor reads: below the gate, at it,
+# or between it and the entity's next step, fresh or 30 days old. A limit under
+# the lowest heating write is not a heating limit and writes what no sensor
+# writes; one a step or more above the gate is used, and still clears the gate.
+_FB_GATE_OFFSETS_K = (-5.0, -0.1, -0.01, 0.0, 0.004, 0.01, 0.05, 0.09, 0.1, 0.15, 0.3)
+_fb_gate_blind = {unit: _fb_sim(unit=unit, **_FB_STEP_UP) for unit in ("return", "flow")}
+_fb_gate_c = {unit: _fb_pa._gate_c(run["coord"].arbiter_inputs())
+              for unit, run in _fb_gate_blind.items()}
+_fb_gate_low, _fb_gate_same = {}, {}
+for _unit, _gate in _fb_gate_c.items():
+    for _label, _limit in (
+        *((f"{_off:+}", round(_gate + _off, 3)) for _off in _FB_GATE_OFFSETS_K),
+        ("30 days old", FakeState(str(_gate), unit="°C",
+                                  last_updated=_FB_T0 - timedelta(days=30),
+                                  last_reported=_FB_T0 - timedelta(days=30))),
+    ):
+        _sent = _fb_sim(unit=_unit, limits=(None, _limit), **_FB_STEP_UP)["writes"]
+        _fb_gate_low[_unit, _label] = min((w[1] for w in _sent), default=None)
+        _fb_gate_same[_unit, _label] = _sent == _fb_gate_blind[_unit]["writes"]
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2: a high-limit sensor reading below the gate, at "
+    "it or just above it, fresh or 30 days old, never brings a write to the gate or below "
+    "it, on a return and on a flow target",
+    len(_fb_gate_low) == 2 * (len(_FB_GATE_OFFSETS_K) + 1)
+    and all(low is not None and low > _fb_gate_c[unit]
+            for (unit, _label), low in _fb_gate_low.items()),
+    f"gate {_fb_gate_c}, lowest write at or below it: "
+    f"{ {k: v for k, v in _fb_gate_low.items() if v is None or v <= _fb_gate_c[k[0]]} }",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2 null control: with no limit sensor the lowest "
+    "write is above the gate too, so a write at the gate is the sensor's doing",
+    all(min(w[1] for w in run["writes"]) > _fb_gate_c[unit] and len(run["writes"]) > 10
+        for unit, run in _fb_gate_blind.items()),
+    f"lowest blind write { {u: min(w[1] for w in r['writes']) for u, r in _fb_gate_blind.items()} }",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2: a high limit under the lowest heating write "
+    "(the gate plus one entity step) writes exactly what no limit sensor writes; one at "
+    "that write or above it is used",
+    all(same == (label == "30 days old" or float(label) < 0.1 - 1e-9)
+        for (_unit, label), same in _fb_gate_same.items()),
+    f"same as no sensor: {_fb_gate_same}",
+)
+
+
+def _fb_loop_write(unit, step, *, high=None, cut_hi=None, w_c=26.0, inlet=25.9):
+    """One loop pass past the start hold: ``(what _feedback returns, the gate)``."""
+    coord = _FbCoord(unit=unit, step=step, limits=(None, high), plan_kw=1.2)
+    coord.power = 1.0
+    coord.hass.states.get(_FB_RETURN).state = f"{inlet:.2f}"
+    inp = coord.arbiter_inputs()
+    now = _FB_T0 + timedelta(minutes=10)
+    held = _fb_pa.state_for(coord)
+    held.feedback = _fb_pa.FeedbackRun(
+        _FB_T0, w_c, now - timedelta(minutes=1), running=True, cut_hi_c=cut_hi)
+    base = _fb_pa._flow_target(inp, "space", now)
+    return _fb_pa._feedback(held, inp, now, base, True), _fb_pa._gate_c(inp)
+
+
+# The same property on every sibling of the sensor in the loop's upper bound
+# and at every entity step: the sensor, the readback cut, and both, each on a
+# grid across the gate, under a target above, at and below it.
+_fb_grid = [
+    (unit, step, source, off, w_off, inlet)
+    for unit in ("return", "flow") for step in (0.1, 0.5, 1.0)
+    for source in ("sensor", "cut", "both")
+    for off in (-8.0, -1.0, -0.3, -0.1, -0.01, 0.0, 0.005, 0.01, 0.05, 0.1, 0.3, 0.5, 1.0, 2.0)
+    for w_off in (-3.0, 0.0, 0.05, 6.0) for inlet in (17.0, 25.9, 31.0)
+]
+_fb_grid_bad = []
+for _unit, _step, _source, _off, _w_off, _inlet in _fb_grid:
+    _gate = _fb_gate_c[_unit]
+    _lim = round(_gate + _off, 3)
+    _out, _g = _fb_loop_write(
+        _unit, _step, high=_lim if _source != "cut" else None,
+        cut_hi=_lim if _source != "sensor" else None, w_c=_gate + _w_off, inlet=_inlet)
+    if _out is None or _g != _gate or _out <= _gate:
+        _fb_grid_bad.append((_unit, _step, _source, _off, _w_off, _inlet, _out))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2: no controller upper limit, read from its "
+    "sensor, from a readback cut or from both, on any entity step, makes a loop pass "
+    "return the gate or below it",
+    len(_fb_grid) == 2 * 3 * 3 * 14 * 4 * 3 and not _fb_grid_bad,
+    f"{len(_fb_grid_bad)} of {len(_fb_grid)} at or below the gate, first {_fb_grid_bad[:4]}",
+)
+_fb_used = _fb_loop_write("return", 0.1, high=24.0, w_c=30.0)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2 null control: the same pass with a limit well "
+    "above the gate returns that limit, so the grid's passes reach the upper bound",
+    _fb_used[0] == 24.0 and _fb_used[1] == 20.0,
+    f"returned {_fb_used}",
+)
 
 
 def _fb_run_start_after(sim, minute):
