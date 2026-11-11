@@ -2704,7 +2704,7 @@
    "heat_curve_target_kind": {
     "config": {
      "mode": "'dropdown'",
-     "options": "['offset']",
+     "options": "['offset', 'persistent']",
      "translation_key": "'heat_curve_target_kind'"
     },
     "default": "'offset'",
@@ -5361,7 +5361,7 @@
   "heat_curve_target_kind": {
    "config": {
     "mode": "'dropdown'",
-    "options": "['offset']",
+    "options": "['offset', 'persistent']",
     "translation_key": "'heat_curve_target_kind'"
    },
    "default": "'offset'",

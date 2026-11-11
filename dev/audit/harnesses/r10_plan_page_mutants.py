@@ -64,7 +64,7 @@ MUTANTS = [
      "return named.pop() if len(named) == 1 else None", "return None"),
     ("closed-strike", PAGE, "(\"\" if is_open else \" closed\")", "\"\""),
     ("tracking-excluded", PAGE,
-     "if i[\"state\"] == \"OPEN\" and i[\"number\"] != TRACKING_ISSUE)",
+     "if i[\"state\"] == \"OPEN\" and i[\"number\"] not in TRACKING_ISSUES)",
      "if i[\"state\"] == \"OPEN\")"),
     ("page-refuses-stale", PAGE, "    if stale:\n        bad.append", "    if False:\n        bad.append"),
     ("freshness-rule", PLAN, "if have != want:", "if False:"),

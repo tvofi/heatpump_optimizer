@@ -86,7 +86,7 @@ beat). One stale id beside one fresh is ok: only fresh ids are counted.
 What it does not see, stated: a programme with nothing owed reads ok however
 long it has been stopped -- no cost accrues there but time; a consumer whose
 input no off-host producer writes (a local seat's work before its push); and
-the record duty of a #201 comment per merge.
+the record duty of a record-issue comment per merge.
 
 Run it where the host is not (a scheduled cloud probe seat), and at a
 takeover before the hand survey. --dump writes the snapshot it judged, so a
