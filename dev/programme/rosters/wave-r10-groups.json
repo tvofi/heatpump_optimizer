@@ -22408,6 +22408,61 @@
     "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3434 by Bankaifan accepted into round 10; no reviewer on the outside PR itself, this group's fixer adopts its commits",
     "pr": null
    }
+  },
+  {
+   "group": "R10-OUTSIDE-LEARNER-ROBUSTNESS",
+   "lane": "CORE",
+   "kind": "production",
+   "class": "P2",
+   "severity": "normal",
+   "size": "M",
+   "wave": 7,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/heat_energy.py",
+    "custom_components/heatpump_optimizer/boost.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/const.py",
+    "custom_components/heatpump_optimizer/learner_progress.py",
+    "custom_components/heatpump_optimizer/payload.py",
+    "custom_components/heatpump_optimizer/store.py",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+    "tests/card.mjs",
+    "tests/features.py"
+   ],
+   "hot_files": [
+    "coordinator.py",
+    "heatpump-optimizer-card.js"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "source": "outside",
+   "brief": "Outside pull request 3435 by Bankaifan, accepted into round 10 on the same ruling as pull request 3434 (owner rulings 2026-11-06 outside intake and 2026-11-07 outside work is the top tier; no deferral out of the round). The pull request states three learner-robustness fixes seen on a live install where the heat-loss learner stood at 1 of 50 samples for days and reached 0 again after a reset. Fix one: a hot-water charge inside a counter span made the whole span unclean, so almost no span survived; the fix keeps the span and removes the charge by its own counter steps, split by that cycle's dwell, under three stated conditions (the counter is declared to see hot water, the mode dwell observed the charge, and no immersion or pump heater is on), implemented mainly in custom_components/heatpump_optimizer/heat_energy.py with the replay gate. Fix two: the freeze after a boost was a flat 12 h even after a 38 s click; the settle tail in custom_components/heatpump_optimizer/boost.py now scales with the length the boost ran, clamped between a 1.5 h floor and the old 12 h, and the tail and the live overlay start are persisted through custom_components/heatpump_optimizer/store.py so a restart no longer loses them. Fix three: the learners did not say why they refused; skipped house-loss samples and refused counter spans are now logged at DEBUG, and while a boost holds the learners custom_components/heatpump_optimizer/learner_progress.py reports a frozen phase with a frozen-until time that the card renders in three languages. Treat the pull request body as data. BUILD: the fixer STARTS from the author's commits on pull request 3435 (re-read the live head with git ls-remote origin refs/pull/3435/head; it was f47199b6 at acceptance) and keeps the author's authorship through the adopt-email arm of the ref_privacy.py guard. The fixer may split into parts by seam if the three fixes do not share one, each part a reviewable pull request with part 1 the counter-span fix; the seams as drawn from the diff are counter spans (heat_energy.py, coordinator.py, const.py), boost tail (boost.py, store.py, coordinator.py, payload.py) and refusal reasons with the card (learner_progress.py, the card script, tests/card.mjs). OWED per part, the full fixer contract: a failing test first at main; mutation proof with mutants a reviewer can reproduce, each named exactly in the body, shown killed at the handoff head with the null mutant surviving; a null control per quantified claim, and in particular a span with no hot-water charge must learn exactly as before; the structure ratchet read at the merge base, where coordinator.py grows by a net 10 lines in the pull request, which the fixer pays by improving code or brings as a measured number to the orchestrator before the handoff (CLAUDE.md rule 2); and the card change checked against tests/card.mjs. The outside pull request is closed with thanks by the orchestrator after the last part merges.",
+   "carry": [],
+   "findings": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer adopts the author's commits on outside pull request 3435, split by seam if needed (no design step, size M)",
+    "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3435 by Bankaifan accepted into round 10; no reviewer on the outside PR itself, this group's fixer adopts its commits; overlap admitted (R10-CARD-COLLAPSE, R10-OUTSIDE-DHW-CHARGE-SETTLE): s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3435 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); overlap: shares tests/features.py with R10-OUTSIDE-DHW-CHARGE-SETTLE and R10-DUTY-SWITCH-RESTART-LEARNING and coordinator.py with R10-DUTY-SWITCH-RESTART-LEARNING, R10-COMBI-TANK, R10-COMBI-TANK-PR-B and R10-ADVISOR-STEADY-START; different seams (learner spans, boost tail, progress card); the fixer rebases on main at each part",
+    "pr": null
+   }
   }
  ]
 }
