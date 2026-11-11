@@ -534,7 +534,7 @@ _BOOKINGS = ({}, {"action": {"dhw_reason": "legionella"}}, {"disinfecting": True
              {"action": {"dhw_reason": "legionella"}, "disinfecting": True})
 
 
-def _repair(snap, *, arbiter=True):
+def _fix_value(snap, *, arbiter=True):
     """The hot-water repair once the arbiter wrote this step's answer (none
     with ``arbiter`` false), the pump reading the snapshot's value: ``None``
     when it stands down, else the value its Fix writes."""
@@ -609,22 +609,22 @@ def disinfection_checks() -> None:
     )
     check(
         "the arbiter's own everyday write raises no disinfection-floor repair: it writes the cycle itself",
-        lambda: _repair(_dhw_snap()) is None,
+        lambda: _fix_value(_dhw_snap()) is None,
     )
     check(
         "a person's value beside the arbiter's write still raises the repair, its Fix on the floor",
-        lambda: _repair(_dhw_snap(reading=50.0)) == 60.0,
+        lambda: _fix_value(_dhw_snap(reading=50.0)) == 60.0,
     )
     check(
         "null control: with no arbiter write the pump's own set-point must still permit the cycle",
-        lambda: _repair(_dhw_snap(entity=None)) is None
-        and _repair(_dhw_snap(), arbiter=False) == 60.0
-        and _repair(_dhw_snap(reading=60.0), arbiter=False) is None,
+        lambda: _fix_value(_dhw_snap(entity=None)) is None
+        and _fix_value(_dhw_snap(), arbiter=False) == 60.0
+        and _fix_value(_dhw_snap(reading=60.0), arbiter=False) is None,
     )
     check(
         "null control: a disabled cycle and an everyday set-point at the disinfection temperature raise nothing",
-        lambda: _repair(_dhw_snap(cycle=False)) is None
-        and _repair(_dhw_snap(configured=60.0, reading=60.0)) is None,
+        lambda: _fix_value(_dhw_snap(cycle=False)) is None
+        and _fix_value(_dhw_snap(configured=60.0, reading=60.0)) is None,
     )
 
 
