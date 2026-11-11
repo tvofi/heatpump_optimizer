@@ -11,8 +11,8 @@
   "XL": 11.5
  },
  "carry_hours": 0.28,
- "carry_part_hours": 26.2,
- "carry_provenance": "p75 hours over 98 second-or-later part PRs (first commit or creation to merge); carries_per_part is the p90 of roster carries a part body cites as answered over the 57 that cite any (size_durations.cited_carries): a part's capacity, since a part's hours do not grow with its carries. held_open_carries: each carries-open group's carries no merged body of its own cites, at measurement; replan.py counts any carry appended since as open",
+ "carry_part_hours": 26.8,
+ "carry_provenance": "p75 hours over 99 second-or-later part PRs (first commit or creation to merge); carries_per_part is the p90 of roster carries a part body cites as answered over the 58 that cite any (size_durations.cited_carries): a part's capacity, since a part's hours do not grow with its carries. held_open_carries: each carries-open group's carries no merged body of its own cites, at measurement; replan.py counts any carry appended since as open",
  "ci": {
   "Analyze (python)": {
    "cancelled": 2,
@@ -51,28 +51,32 @@
  "closure_lead_minutes": 120,
  "first_round_by_class_hours": {
   "L": {
-   "instrument": 17.5,
-   "production": 18.5
+   "instrument": 17.9,
+   "production": 18.6
   },
   "M": {
    "instrument": 18.0,
-   "production": 18.6
+   "production": 18.7
   },
   "S": {
-   "instrument": 12.2,
+   "instrument": 12.4,
    "production": 17.5
   }
  },
  "first_round_hours": {
-  "L": 18.5,
-  "M": 18.3,
-  "S": 13.0,
+  "L": 18.6,
+  "M": 18.4,
+  "S": 13.3,
   "XL": 23.3
  },
  "held_open_carries": {
   "R10-CLOSEOUT-CLEANUP": {
    "carries": 7,
    "open": 0
+  },
+  "R10-DEPENDABOT-3414-COMPAT": {
+   "carries": 1,
+   "open": 1
   },
   "R10-DISPATCH-AT-HANDOFF": {
    "carries": 17,
@@ -93,6 +97,10 @@
   "R10-REVIEW-ENUMERATE": {
    "carries": 0,
    "open": 0
+  },
+  "R10-WATER-SETPOINT-FEEDBACK": {
+   "carries": 8,
+   "open": 1
   }
  },
  "inflow_groups_per_hour": 0.4,
@@ -119,12 +127,12 @@
    "production": 3.7
   },
   "S": {
-   "instrument": 2.41,
+   "instrument": 2.4,
    "production": 2.49
   }
  },
  "roster_provenance": "The schedule figures in the pull request body are taken at roster branch tip e3010676747126df614e595ae43477db7d32e7b9, roster blob 277cdd3591938af542a3f72510389f9bc3378429. A later roster edit moves the batches, the CI minutes and the closure; re-run the replanner and re-take the figures rather than quoting these.",
- "round_hours": 5.69,
+ "round_hours": 5.65,
  "samples": [
   {
    "Analyze (python)": {
@@ -346,11 +354,11 @@
  "sizes_hours": {
   "L": 35.6,
   "M": 32.4,
-  "S": 21.4,
+  "S": 21.6,
   "XL": 35.6
  },
- "sizes_measured_at": "2026-11-11T02:57:51Z",
+ "sizes_measured_at": "2026-11-11T04:56:48Z",
  "sizes_percentile": 75,
- "sizes_provenance": "p75 over 347 done groups with a merged PR (S n=226, M n=94, L n=21, XL n=6): active hours (the union of each part's first commit or creation, or the roster's dispatch stamp, to its merge) with extra review rounds priced out at the pooled Theil-Sen slope (5.69 h/round), then the cell's mean rounds added back; per class where a cell has n>=5. Wall clock: review, queueing and the PR-less handoff wait are inside it. carry_hours (0.28 h) is the Theil-Sen slope of the round-adjusted hours on the group's carry count, priced per carry above the size's median (carry_baseline). Monotone in size: XL 29.7 h lifted to L's 35.6 h. Measured by tools/plan/size_durations.py; re-derive, never edit.",
+ "sizes_provenance": "p75 over 348 done groups with a merged PR (S n=227, M n=94, L n=21, XL n=6): active hours (the union of each part's first commit or creation, or the roster's dispatch stamp, to its merge) with extra review rounds priced out at the pooled Theil-Sen slope (5.65 h/round), then the cell's mean rounds added back; per class where a cell has n>=5. Wall clock: review, queueing and the PR-less handoff wait are inside it. carry_hours (0.28 h) is the Theil-Sen slope of the round-adjusted hours on the group's carry count, priced per carry above the size's median (carry_baseline). Monotone in size: XL 29.9 h lifted to L's 35.6 h. Measured by tools/plan/size_durations.py; re-derive, never edit. Input: 1021 merged PRs created since 2026-10-12, read by size_durations.fetch_rest (--via rest).",
  "stamp_lead_minutes": 60
 }

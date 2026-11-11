@@ -2417,9 +2417,10 @@ def selftest() -> int:
            and pc["stamps"] == p0["stamps"], str((pc["summary"]["closure"], pc["stamps"])))
     # The fixture prices a round at 0 h, which would make every review price 0:
     # these arms use a round of 1 h and S at the named expected rounds.
-    def rv(st, rounds=3.0):
+    def rv(st, rounds=3.0, drop=()):
         d = dict(durations, round_hours=1.0, review_rounds={**durations["review_rounds"], "S": rounds})
-        return group_hours(fx("RV", "S", stage=st), d, True, "<t>")[0]
+        return group_hours(fx("RV", "S", stage=st), {k: v for k, v in d.items() if k not in drop},
+                           True, "<t>")[0]
     expect("live stage: a group in review is priced by its review rounds left, below a fresh "
            "fixer's remaining share; one in progress is not",
            abs(rv("in-review") - 2.0) < 1e-9 and rv("in-review") == rv("review")
@@ -2429,6 +2430,11 @@ def selftest() -> int:
            "not the rounds themselves (max(rounds - 1, 1))",
            abs(rv("in-review", 1.4) - 1.0) < 1e-9 and 1.4 < rv("in-progress", 1.4),
            str((rv("in-review", 1.4), rv("in-progress", 1.4))))
+    unset = ("live_remaining_fraction",)
+    expect("live stage (cap): with no live_remaining_fraction recorded, review and progress "
+           "share the one 0.7 default, so many rounds left price as in progress",
+           rv("in-review", 99.0, unset) == rv("in-progress", 99.0, unset) < 98.0,
+           str((rv("in-review", 99.0, unset), rv("in-progress", 99.0, unset))))
     gen_start = dt.datetime.strptime(pc["generated"]["start"], "%Y-%m-%dT%H:%M:%SZ")
     expect("post-closure: wall_hours runs to summary.closure (the catalog finish), not the stamp",
            abs(pc["summary"]["wall_hours"] * 60 - (
@@ -3246,6 +3252,8 @@ def parse_args(argv=None):
                         "(tools/plan/size_durations.py) into --out-durations")
     p.add_argument("--sizes-csv", default=None, help="--measure-sizes: write the raw rows here")
     p.add_argument("--prs-cache", default=None, help="--measure-sizes: read or write the fetch")
+    p.add_argument("--sizes-via", choices=("graphql", "rest"), default="graphql",
+                   help="--measure-sizes: the PR read (size_durations.READS)")
     p.add_argument("--out-durations", default=None)
     p.add_argument("--live-refs", default=None,
                    help="a saved `git ls-remote --heads` listing: liveness by evidence")
@@ -3281,7 +3289,7 @@ def main(argv=None) -> int:
         old = json.loads(target.read_text(encoding="utf-8")) if target.is_file() else {}
         got = size_durations.run(args.repo, args.roster_ref, args.repo_owner, size_durations.SINCE,
                                  args.prs_cache, args.sizes_csv,
-                                 size_durations.DEFAULT_PERCENTILE)
+                                 size_durations.DEFAULT_PERCENTILE, args.sizes_via)
         target.write_text(json.dumps({**old, **got}, indent=1, sort_keys=True) + "\n",
                           encoding="utf-8")
         print(f"measured sizes {got['sizes_hours']} -> {target}")
