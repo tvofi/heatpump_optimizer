@@ -654,21 +654,6 @@ def self_test():
                      ["api", "repos/o/r/ISSUES/201/comments", "-f", "body=x"])
         guard_mutant("path segments not lower-cased (comments segment)", "  w=$(printf '%s' \"$w\" | tr 'A-Z' 'a-z')\n", "",
                      ["api", "repos/o/r/issues/201/COMMENTS", "-f", "body=x"])
-        # R10-HOTFIX-SHIM-ESCAPES: gh api's output-only --allow-escape-sequences (merge_train.job_log
-        # always passes it) passes; an unknown flag is named as such, not as a comment write.
-        esc = ["api", "--allow-escape-sequences", "repos/o/r/actions/jobs/7/logs"]
-        check("--allow-escape-sequences on actions/jobs/7/logs passes", run(esc).returncode == 7)
-        r_ = run(["api", "--allow-escape-sequences", "repos/o/r/issues/201/comments", "-f", "body=x"])
-        check("the flag plus -f body=x on issues/201/comments is still refused as a comment write",
-              r_.returncode == 1 and b"comment write on a record issue" in r_.stderr)
-        r_ = run(["api", "--bogus", "repos/o/r/actions/jobs/7/logs"])
-        check("--bogus is refused with the unknown-flag message",
-              r_.returncode == 1 and r_.stderr == b"gh shim: unknown gh api flag --bogus; refused\n")
-        check("null control: a plain GET of a non-tracker path passes", run(["api", "repos/o/r/actions/jobs/7/logs"]).returncode == 7)
-        mut = good.replace(" --allow-escape-sequences'", "'")
-        check("mutant killed: --allow-escape-sequences dropped from API_BOOL (case 1 would fail)",
-              mut != good and run(esc, shim_text=mut).returncode == 1)
-        install(good)
         guard_mutant("a comment by id let through", '[ "$nxt" = comments ] && return 1', ":",
                      ["api", "-X", "PATCH", "repos/o/r/issues/comments/9", "-f", "body=x"])
         guard_mutant("issue close -c value not skipped (target read as the value)", "ISSUE_VAL='-b --body -F --body-file -R --repo -c --comment ", "ISSUE_VAL='-b --body -F --body-file -R --repo ",

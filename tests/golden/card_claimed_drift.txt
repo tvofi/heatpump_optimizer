@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.11
+# claims-for: 7.1.10
 #
-# v7.1.11: Water set-point feedback, combi store configuration, diagnostics without the location. The stamp empties the list; the
+# v7.1.10: combi tank store and generic heat curve (outside #3225, #3284). The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 

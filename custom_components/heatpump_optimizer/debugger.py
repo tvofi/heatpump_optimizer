@@ -51,9 +51,7 @@ from homeassistant.util import dt as dt_util
 
 from . import const, replay_doc
 from .accuracy import AccuracyTracker
-from .const import (
-    CONF_DEBUG_COLLECT, DEFAULT_DEBUG_COLLECT, DOMAIN, LOCATION_KEYS, PRIVATE_ENTITY_ID,
-)
+from .const import CONF_DEBUG_COLLECT, DEFAULT_DEBUG_COLLECT, DOMAIN, PRIVATE_ENTITY_ID
 from .drift import stored_age_seconds, stored_instant, utc_elapsed_seconds
 from .store import (
     DOMAINS,
@@ -386,12 +384,11 @@ def replay_window(started_at: datetime | None, now: datetime) -> tuple[datetime,
 
 
 def _public(node: Any) -> Any:
-    """``node`` with every value naming a person or a calendar, and every location
-    key (``LOCATION_KEYS``), dropped, at any depth."""
+    """``node`` with every value naming a person or a calendar dropped, at any depth."""
     if isinstance(node, str):
         return None if PRIVATE_ENTITY_ID.search(node) else node
     if isinstance(node, dict):
-        return {key: _public(value) for key, value in node.items() if key not in LOCATION_KEYS}
+        return {key: _public(value) for key, value in node.items()}
     if isinstance(node, list):
         return [item for item in map(_public, node) if item is not None]
     return node

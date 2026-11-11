@@ -257,7 +257,7 @@ RUN_SETTLE = _TICK
 FEEDBACK_WINDOW = timedelta(minutes=3)
 #: How long a run writes today's target before the loop moves it: the
 #: controller's start programme (about 3 minutes at a fixed speed, measured
-#: on the reporting install) is not a response to the target.
+#: on the reporting Luxtronik install) is not a response to the target.
 FEEDBACK_START_HOLD = timedelta(minutes=5)
 #: How far the target moves per minute outside the deadband, K. Time-based,
 #: not per pass: passes come from the cycle, the tick and the listener.
@@ -1016,7 +1016,7 @@ def _clamp_cut(held: ArbiterState, slot: str, value: Any, observed: Any, at: dat
     today's target, or any other reading (a person, a revert to the
     controller's default), is ``hold``'s as before and starts the run over.
 
-    On the reporting install the two limits are smart-home interface inputs 10104
+    On a Luxtronik the two limits are Smart Home Interface inputs 10104
     (parameter 979) and 10103 (parameter 87), which clamp register 10001
     (#3372 comment 6756915104). They are inferred from the readback here:
     no configured entity names them, and a controller without them is cut
@@ -1387,7 +1387,8 @@ def _report_write(
     Every mode write lands in :func:`_write`, a re-send after :func:`hold`
     dropped the record included (``replaced`` is then ``None``). The space
     set-point is the command's, written right after the mode: the one the
-    controller judges the heating request on. The source leg's age is the
+    controller judges the heating request on, and handed on only where it is
+    a water temperature (:func:`_flow_unit`), never an indoor unit's room one. The source leg's age is the
     replaced mode record's; ``dhw_since`` is already reset on the pass that
     leaves hot water.
     """
@@ -1400,7 +1401,7 @@ def _report_write(
         planned = _planned_room(inp.plan, now)
         context = replace(
             context,
-            inlet_c=_flow_inlet_c(inp), space_setpoint_c=command.space_setpoint,
+            inlet_c=_flow_inlet_c(inp), water_setpoint_c=command.space_setpoint if _flow_unit(inp.config) else None,
             source_leg_s=utc_elapsed_seconds(now, replaced[1]) if replaced else None,
             target_demand=_reads_below(room, planned) if target == "space" else _reads_below(tank, inp.params.dhw_setpoint),
             plan_stays=all(step_duty(inp.plan, at) in (target, "both")

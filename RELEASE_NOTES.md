@@ -1,27 +1,3 @@
-## v7.1.11
-
-**Patch stamp: 25 merges since v7.1.10, stamped on the owner's order.** The user-visible changes are the water set-point that follows measured feedback, the configuration of a combi store, and a diagnostics download that no longer carries the home's location.
-
-### #3405 and #3433 The water set-point follows measured feedback (R10-WATER-SETPOINT-FEEDBACK)
-
-The water set-point now follows the measured feedback, as an advanced-settings option that defaults on for qualifying installs (#3405). #3433 carries the contributor's answers on registers, watchdog and hysteresis into that work.
-
-### #3398 Combi tank store, part B (R10-COMBI-TANK)
-
-For outside request #3225 by Bankaifan, with thanks. A combi store, where one body of heating water serves both the space circuit and hot water, can now be configured; part A (#3358, v7.1.10) landed its physics in the thermal model.
-
-### #3447 Download diagnostics redacts the location (R10-OUTSIDE-DIAG-REDACT-LOCATION)
-
-Built from outside pull request #3436 by Bankaifan, with thanks. Download diagnostics used to round latitude and longitude to one decimal and publish the solar location option's coordinate as that rounded cell. Both are now redacted outright, so a replay taken from a download carries no solar location. The on-instance replay export is unchanged.
-
-### Developer tooling, CI and audit machinery only
-
-#3423 (worktree collection keeps live worktrees), #3453 (gh shim escapes hotfix), #3425 (tick residue), #3427 (GitHub read residue), #3424 (train residue), #3419 (prepr read-set hotfix), #3379 (later review rounds review only the delta), #3429 (root cause: Dependabot stale hash), #3426 (Dependabot #3414 compatibility), #3384 (no merge blocked on a non-required red, part 2), #3417 (carry sink barrier), #3366 (dispatch at handoff, part 2), #3322 (GitHub Actions group bump), #3321 (mermaid 12.2.0 to 12.3.0 for the site).
-
-### Triage and delivery rows (record only)
-
-#3389, #3392, #3383, #3374 (triage batches); #3459, #3432, #3422 (delivery rows).
-
 ## v7.1.10
 
 **Patch stamp: 36 merges since v7.1.9 and one direct commit, stamped on the owner's order after the combi tank store landed.** The user-visible changes are the heat curve control through a Home Assistant number entity, the COP that is no longer graded from a self-comparison, and a German translation. The combi tank store lands as engine physics that no option reaches yet. The rest of the window is round-10 tooling, audit machinery and delivery records.

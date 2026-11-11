@@ -25642,8 +25642,8 @@ from heatpump_optimizer import diagnostics as _diag_mod  # noqa: E402
 import json as _json
 
 # #509: what a household looks like in a diagnostics file. The coordinate is
-# full precision and its 1-decimal rounding is a different string, so the
-# redaction check also catches a rounded leftover, not only the exact value;
+# full precision and its 1-decimal cell is a different string, so "the precise
+# value is absent" cannot pass just because the two happen to render the same;
 # ``_DIAG_DEEP`` sits two levels down and inside a list, because the property
 # that stops the NEXT nested location from leaking is depth-independence, not a
 # rule about ``solar_location``; and the option-level coordinate differs from
@@ -25716,6 +25716,11 @@ def _diag_at(node, *path):
     return node
 
 
+# The setup data's own location: ``config`` is the live merge, where the
+# options' location replaces this one whole.
+_diag_location = _diag_at(_diag, "config_setup", const.CONF_SOLAR_LOCATION)
+_diag_location = _diag_location if isinstance(_diag_location, dict) else {}
+
 R.check(
     "the Tibber token never leaves the instance",
     _diag["config"].get(_CONF_TOKEN) == _HA_REDACTED
@@ -25739,27 +25744,45 @@ R.check(
     ),
 )
 R.check(
-    "the location is redacted whole, from data and from options, not coarsened",
-    _diag_at(_diag, "config_setup", const.CONF_SOLAR_LOCATION) == _HA_REDACTED
-    and _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION) == _HA_REDACTED
-    and not any(
-        str(round(_c, 1)) in _blob
-        for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
-    ),
+    "the coordinate survives as a coarse cell rather than as a hole",
+    _diag_location.get("latitude") == round(_DIAG_LAT, 1)
+    and _diag_location.get("longitude") == round(_DIAG_LON, 1),
+    f"solar_location came back as {_diag_location!r}; support cannot see a "
+    f"swapped or wrong-country coordinate through a redacted one",
+)
+R.check(
+    "the documented coordinate precision is one decimal place",
+    getattr(_diag_mod, "COORDINATE_PLACES", None) == 1,
+    f"COORDINATE_PLACES is {getattr(_diag_mod, 'COORDINATE_PLACES', None)!r}",
+)
+R.check(
+    "the coarsening reaches a coordinate nested below the top level",
+    _diag_at(_diag, "config", "_deep", "sites", 0, "station", "latitude")
+    == round(_DIAG_LAT, 1),
+    "a coordinate two levels down, inside a list, came back as "
+    f"{_diag_at(_diag, 'config', '_deep', 'sites', 0, 'station', 'latitude')!r}",
+)
+R.check(
+    "the live config's coordinate, from options, is coarsened too",
+    _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION, "latitude")
+    == round(_DIAG_OPT_LAT, 1)
+    and _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION, "longitude")
+    == round(_DIAG_OPT_LON, 1),
     repr(_diag_at(_diag, "config", const.CONF_SOLAR_LOCATION)),
 )
+_diag_typed = _diag_at(_diag, "config", "_deep", "typed")
+_diag_typed = _diag_typed if isinstance(_diag_typed, dict) else {}
 R.check(
-    "a coordinate nested below the top level, inside a list, is redacted",
-    _diag_at(_diag, "config", "_deep", "sites", 0, "station")
-    == {"latitude": _HA_REDACTED, "longitude": _HA_REDACTED},
-    repr(_diag_at(_diag, "config", "_deep", "sites", 0, "station")),
+    "a coordinate that is not a number is redacted rather than published",
+    _diag_typed.get("latitude") == _HA_REDACTED
+    and _diag_typed.get("longitude") == _HA_REDACTED
+    and "Storgatan 5, Solna" not in _blob,
+    f"a non-numeric coordinate came back as {_diag_typed!r}",
 )
 R.check(
-    "a coordinate that is not a number is redacted too (None stays None, as in Home Assistant)",
-    _diag_at(_diag, "config", "_deep", "typed")
-    == {"latitude": _HA_REDACTED, "longitude": None}
-    and "Storgatan 5, Solna" not in _blob,
-    f"a non-numeric coordinate came back as {_diag_at(_diag, 'config', '_deep', 'typed')!r}",
+    "a non-coordinate member of the location dict is left alone",
+    _diag_location.get("elevation") == "not-a-number",
+    "redaction reached a key that is not a coordinate",
 )
 R.check(
     "the installation name the user typed never leaves the instance",

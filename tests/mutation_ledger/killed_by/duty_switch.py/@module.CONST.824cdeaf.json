@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:<module> CONST 824cdeaf",
-  "killed_by": "tests/features.py",
-  "old": "SPAN_DAYS_ON = 2",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`SPAN_DAYS_ON = 4`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

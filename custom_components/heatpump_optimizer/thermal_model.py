@@ -1867,8 +1867,8 @@ def configured_flow_min_lift_k(config: Any) -> float:
     of zero or less writes the inlet itself at the floor, which commands no
     heat on a step the plan heats -- the value the floor exists to keep off
     the entity. The options flow offers 0.5-15 K. A controller that takes
-    the set-point as its return-water target (through a smart-home
-    interface input, for one) modulates its compressor on the gap between
+    the set-point as its return-water target (Luxtronik through its Smart
+    Home Interface, for one) modulates its compressor on the gap between
     target and return, so the rated 5 K drives it to near full speed at the
     plan's lowest level; such a controller wants about 1-2 K.
     """
