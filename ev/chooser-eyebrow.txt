@@ -1,0 +1,8 @@
+{
+ "legend": "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif / 600 / 11.84px / 1.4208px / uppercase / rgb(77, 93, 108) / block",
+ "other": [
+  "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif / 600 / 11.84px / 1.4208px / uppercase / rgb(77, 93, 108) / block",
+  "\"Source Sans 3\", \"Segoe UI\", system-ui, sans-serif / 600 / 11.84px / 1.4208px / uppercase / rgb(77, 93, 108) / block"
+ ],
+ "equal": true
+}
