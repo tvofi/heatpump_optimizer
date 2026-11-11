@@ -116,7 +116,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # their answers on the path they are handed, so the fixture must live on
   # the resolved form or every lookup silently misses.
   W=$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$W")
-  trap 'rm -rf "$W"' EXIT
+  trap 'kill "$ZPID" 2>/dev/null; rm -rf "$W"' EXIT
   mkdir -p "$W/bin"
   FAILS=0; N=0
   st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
@@ -213,6 +213,8 @@ PY
   H3=10800; H25=90000
   encpath() { printf '%s' "$1" | tr '/ ' '__'; }
 
+  # A live process whose pid contains a zero digit (a pidfile read must keep the 0).
+  while :; do sleep 600 & ZPID=$!; case $ZPID in *0*) break ;; esac; kill "$ZPID" 2>/dev/null; done
   mkcase() { local d="$W/$1"; mkdir -p "$d/tmp" "$d/ev" "$d/root"; : > "$d/log"; : > "$d/deleted"; printf '%s\n' "$d/root" > "$d/rootfile"; }
   run() { # name args... -> rc; out/err captured in the case dir
     local d="$W/$1"; shift
@@ -250,7 +252,7 @@ PY
       printf 'worktree %s/orch/seat-unmerged/wt\nHEAD 5555555555555555555555555555555555555555\ndetached\n\n' "$d"
       printf 'worktree %s/orch/seat-dirtymerged/wt\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/fix/dirty\n\n' "$d"
       printf 'worktree %s/orch/seat-locked/wt\nHEAD 6666666666666666666666666666666666666666\ndetached\nlocked\n\n' "$d"
-      for n in onremote:7 cwd:8 onremote-young:9 onremote-dirty:b tip:1 nohold:d argvuse:7 openuse:7 pidfuse:7 deadpid:7 argvscr:7 argvco:7 argvdq:7 argvsq:7 argvcol:7 argvcom:7 argvsib:7 lockuse:7 dotlock:7; do
+      for n in onremote:7 cwd:8 onremote-young:9 onremote-dirty:b tip:1 nohold:d argvuse:7 openuse:7 pidfuse:7 deadpid:7 argvscr:7 argvco:7 argvdq:7 argvsq:7 argvcol:7 argvcom:7 argvsib:7 openeq:7 opensib:7 pidzero:7 lockuse:7 dotlock:7; do
         printf 'worktree %s/orch/seat-%s/wt\nHEAD %s\ndetached\n\n' "$d" "${n%%:*}" "$(printf '%040d' 0 | tr 0 "${n##*:}")"
       done
       printf 'worktree %s/orch/seat-onremote-locked/wt\nHEAD %s\ndetached\nlocked\n\n' "$d" "$(printf '%040d' 0 | tr 0 a)"
@@ -261,7 +263,7 @@ PY
              "$d/orch/seat-unmerged/wt" "$d/orch/seat-dirtymerged/wt" \
              "$d/orch/seat-locked/wt" "$d/orch/seat-onremote/wt" "$d/orch/seat-cwd/wt/sub" \
              "$d/orch/seat-argvuse/wt" "$d/orch/seat-openuse/wt" "$d/orch/seat-pidfuse/wt" "$d/orch/seat-deadpid/wt" \
-             "$d/orch/seat-argvscr/wt" "$d/orch/seat-argvco/wt" "$d/orch/seat-argvdq/wt" "$d/orch/seat-argvsq/wt" "$d/orch/seat-argvcol/wt" "$d/orch/seat-argvcom/wt" "$d/orch/seat-argvsib/wt" "$d/orch/seat-lockuse/wt" "$d/orch/seat-dotlock/wt" \
+             "$d/orch/seat-argvscr/wt" "$d/orch/seat-argvco/wt" "$d/orch/seat-argvdq/wt" "$d/orch/seat-argvsq/wt" "$d/orch/seat-argvcol/wt" "$d/orch/seat-argvcom/wt" "$d/orch/seat-argvsib/wt" "$d/orch/seat-openeq/wt" "$d/orch/seat-opensib/wt" "$d/orch/seat-pidzero/wt" "$d/orch/seat-lockuse/wt" "$d/orch/seat-dotlock/wt" \
              "$d/orch/seat-onremote-young/wt" "$d/orch/seat-onremote-dirty/wt" \
              "$d/orch/seat-tip/wt" "$d/orch/seat-nohold/wt" "$d/orch/seat-onremote-locked/wt" \
              "$d/orch/seat-unpushed/wt" "$d/unpushed"
@@ -277,9 +279,12 @@ PY
       printf 'git --paths=%s/orch/seat-argvcol/wt:/tmp status\n' "$d"
       printf 'git --paths=%s/orch/seat-argvcom/wt,/tmp status\n' "$d"
       printf 'git -C %s/orch/seat-argvsib/wt2 log\n' "$d"; } > "$d/argv"
-    printf '%s/orch/seat-openuse/wt/f\n' "$d" > "$d/opens"
+    { printf '%s/orch/seat-openuse/wt/f\n' "$d"
+      printf '%s/orch/seat-openeq/wt\n' "$d"
+      printf '%s/orch/seat-opensib/wt2/f\n' "$d"; } > "$d/opens"
     printf '%s\n' "$$" > "$d/orch/seat-pidfuse/wt/train.pid"
     printf '2999999\n' > "$d/orch/seat-deadpid/wt/train.pid"
+    printf '%s\n' "$ZPID" > "$d/orch/seat-pidzero/wt/train.pid"
     printf '%s\n' "$$" > "$d/orch/seat-lockuse/wt/x.lock"
     printf '%s\n' "$$" > "$d/orch/seat-dotlock/wt/.x.lock"
     printf 'M f\n' > "$d/status/$(encpath "$d/orch/seat-onremote-dirty/wt")"
@@ -294,7 +299,7 @@ PY
             "$d/orch/seat-onremote" "$d/orch/seat-cwd" "$d/orch/seat-onremote-dirty" "$d/orch/seat-tip" \
             "$d/orch/seat-nohold" "$d/orch/seat-onremote-locked" "$d/orch/seat-unpushed" \
             "$d/orch/seat-argvuse" "$d/orch/seat-openuse" "$d/orch/seat-pidfuse" "$d/orch/seat-deadpid" \
-            "$d/orch/seat-argvscr" "$d/orch/seat-argvco" "$d/orch/seat-argvdq" "$d/orch/seat-argvsq" "$d/orch/seat-argvcol" "$d/orch/seat-argvcom" "$d/orch/seat-argvsib" "$d/orch/seat-lockuse" "$d/orch/seat-dotlock"
+            "$d/orch/seat-argvscr" "$d/orch/seat-argvco" "$d/orch/seat-argvdq" "$d/orch/seat-argvsq" "$d/orch/seat-argvcol" "$d/orch/seat-argvcom" "$d/orch/seat-argvsib" "$d/orch/seat-openeq" "$d/orch/seat-opensib" "$d/orch/seat-pidzero" "$d/orch/seat-lockuse" "$d/orch/seat-dotlock"
   }
 
   # The main sweep: every class in one run, so the interactions (one seat's
@@ -392,6 +397,11 @@ PY
   [ -d "$D/orch/seat-argvcom/wt" ]; st $? 0 "argv carries --paths=<wt>,/tmp (comma terminator), cwd elsewhere: kept"
   st "$(gots sweep "keep  $D/orch/seat-argvcom/wt  argv-inside")" 1 "naming argv-inside for argvcom"
   gone "$D/orch/seat-argvsib/wt"; st $? 0 "null control: argv naming a sibling prefix (<worktree>2) holds nothing and the worktree is collected"
+  [ -d "$D/orch/seat-openeq/wt" ]; st $? 0 "an open file that is the worktree directory itself, cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-openeq/wt  open-file")" 1 "naming open-file for the directory itself"
+  gone "$D/orch/seat-opensib/wt"; st $? 0 "null control: an open file under a sibling prefix (<worktree>2/f) holds nothing and the worktree is collected"
+  [ -d "$D/orch/seat-pidzero/wt" ]; st $? 0 "a live pid containing a zero digit in train.pid: kept"
+  st "$(gots sweep "keep  $D/orch/seat-pidzero/wt  pidfile-live")" 1 "naming pidfile-live for the zero-digit pid"
   [ -d "$D/orch/seat-lockuse/wt" ]; st $? 0 "a live pid in <worktree>/x.lock: kept"
   st "$(gots sweep "keep  $D/orch/seat-lockuse/wt  pidfile-live")" 1 "naming pidfile-live for x.lock"
   [ -d "$D/orch/seat-dotlock/wt" ]; st $? 0 "a live pid in <worktree>/.x.lock: kept"
@@ -741,7 +751,7 @@ cwd_inside() { # real path of a worktree
   for f in "$p/train.pid" "$p"/*.lock "$p"/.*.lock; do
     [ -f "$f" ] || continue
     pid=$(head -c 32 "$f" 2>/dev/null | tr -dc '0-9')
-    [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && { HELD_WAY=pidfile-live; return 1; }
+    kill -0 "$pid" 2>/dev/null && { HELD_WAY=pidfile-live; return 1; }
   done
   return 0
 }
