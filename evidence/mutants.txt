@@ -1,24 +1,15 @@
-M1 last-listed wins: KILLED rc=1 fails=1
-     FAIL P608 #3445's five gate entries in list order: red gate, not a missing review
-M2 never-admitted arm off: KILLED rc=1 fails=2
-     FAIL P609 a draft the train never admitted as one: one attempt, then the hold, no recarry
-     FAIL P609 a draft again after the one ready: that hold after two attempts, never eight
-M3 STILL_DRAFT arm deleted: KILLED rc=1 fails=2
-     FAIL P609 a draft the train never admitted as one: one attempt, then the hold, no recarry
-     FAIL P609 a draft again after the one ready: that hold after two attempts, never eight
-M4 record_drafts call site deleted: SURVIVED rc=0 fails=0
-M5 record_drafts body read -> pass: KILLED rc=1 fails=0
+M4 record_drafts call site deleted: KILLED rc=1 fails=1
+     FAIL P609 a batch records the draft key on a key-less entry before admission
+M7 pending set ignored: KILLED rc=1 fails=1
+     FAIL P608 an unfinished entry older than a SUCCESS still makes the context pending
+M8 zero-time not cleared: KILLED rc=1 fails=1
+     FAIL P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order
+M9 startedAt fallback dropped: KILLED rc=1 fails=2
+     FAIL P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order
+     FAIL P608 an entry with only startedAt is ordered by it, in either list order
+M5 read->pass: KILLED rc=1 fails=0
      tail: KeyError: 'draft'
-M6 record_drafts overwrites recorded: KILLED rc=1 fails=1
-     FAIL P609 record_drafts reads once per entry lacking the key and keeps a recorded value
-M7 pending set ignored: SURVIVED rc=0 fails=0
-M8 zero-time not cleared: SURVIVED rc=0 fails=0
-M9 startedAt fallback dropped: SURVIVED rc=0 fails=0
-M10 tie keeps earlier listed: KILLED rc=1 fails=0
-     tail: KeyError: 'fast'
-M11 undrafted flag never set: KILLED rc=1 fails=1
-     FAIL P609 a draft again after the one ready: that hold after two attempts, never eight
-M12 record_drafts real guard inverted: KILLED rc=1 fails=0
-     tail: KeyError: 'draft'
-M13 policy_refusal back to last-listed: KILLED rc=1 fails=1
+M1 last-listed wins: KILLED rc=1 fails=3
      FAIL P608 #3445's five gate entries in list order: red gate, not a missing review
+     FAIL P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order
+     FAIL P608 an entry with only startedAt is ordered by it, in either list order

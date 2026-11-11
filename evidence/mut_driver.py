@@ -2,19 +2,12 @@ import subprocess, sys, pathlib, re
 wt = pathlib.Path(sys.argv[1]); f = wt/"tools/audit/seat/merge_train.py"
 orig = f.read_text()
 M = [
- ("M1 last-listed wins", "        if name not in best or (stamp, i) >= best[name][0]:", "        if True:"),
- ("M2 never-admitted arm off", "                if not item.get(\"draft\") or undrafted:", "                if False:"),
- ("M3 STILL_DRAFT arm deleted", "            if STILL_DRAFT.search(said):", "            if False and STILL_DRAFT.search(said):"),
  ("M4 record_drafts call site deleted", "            self.record_drafts(queue)\n", "            pass\n"),
- ("M5 record_drafts body read -> pass", "                item[\"draft\"] = is_draft(self, int(item[\"pr\"]))", "                pass"),
- ("M6 record_drafts overwrites recorded", "            if \"draft\" not in item:\n                item[\"draft\"]", "            if True:\n                item[\"draft\"]"),
  ("M7 pending set ignored", "            pending.add(name)", "            pass"),
- ("M8 zero-time not cleared", "            stamp = \"\"\n", "            pass\n"),
- ("M9 startedAt fallback dropped", "c.get(\"completedAt\") or c.get(\"startedAt\") or \"\"", "c.get(\"completedAt\") or \"\""),
- ("M10 tie keeps earlier listed", "(stamp, i) >= best[name][0]", "(stamp, i) > best[name][0] if False else stamp > best[name][0][0]"),
- ("M11 undrafted flag never set", "                undrafted = True\n", "                pass\n"),
- ("M12 record_drafts real guard inverted", "        if not self.real:\n            return\n        for item in queue:", "        if self.real:\n            return\n        for item in queue:"),
- ("M13 policy_refusal back to last-listed", "        last = rollup_states(d.get(\"statusCheckRollup\") or ())", "        last = {(c.get('name') or c.get('context') or '?'): (c.get('conclusion') or c.get('state') or c.get('status') or '').upper() for c in (d.get('statusCheckRollup') or ())}"),
+ ("M8 zero-time not cleared", "if x and not x.startswith(\"0001\")]", "if x]"),
+ ("M9 startedAt fallback dropped", "(c.get(\"completedAt\"), c.get(\"startedAt\"))", "(c.get(\"completedAt\"),)"),
+ ("M5 read->pass", "                item[\"draft\"] = is_draft(self, int(item[\"pr\"]))", "                pass"),
+ ("M1 last-listed wins", "        if name not in best or (stamp, i) >= best[name][0]:", "        if True:"),
 ]
 try:
     for name, a, b in M:
