@@ -20673,7 +20673,8 @@
     "tools/audit/seat/merge_pr.sh",
     "tools/ci/sweep.py",
     "dev/audit/config/bugclasses.json",
-    "dev/governance/roles/nudge.md"
+    "dev/governance/roles/nudge.md",
+    "tools/ci/gate.py"
    ],
    "hot_files": [
     "tools/audit/seat/merge_train.py",
@@ -20711,7 +20712,7 @@
    "resume": {
     "stage": "not-started",
     "branch": null,
-    "note": "overlap admitted (R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, ordered by after-edges where files overlap"
+    "note": "overlap admitted (R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, ordered by after-edges where files overlap | set-files files ['tools/audit/seat/merge_train.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/merge_pr.sh', 'tools/ci/sweep.py', 'dev/audit/config/bugclasses.json', 'dev/governance/roles/nudge.md'] -> ['tools/audit/seat/merge_train.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/merge_pr.sh', 'tools/ci/sweep.py', 'dev/audit/config/bugclasses.json', 'dev/governance/roles/nudge.md', 'tools/ci/gate.py']"
    }
   },
   {
