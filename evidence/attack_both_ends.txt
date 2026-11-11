@@ -1,0 +1,38 @@
+== base
+RESULT charge, all observed: heat_kw=2.727272727272727 space_kw=1.8181818181818181 dhw_kwh=5.0 observed=True hours=5.5
+RESULT charge, cycle 6 mode not live: heat_kw=2.727272727272727 space_kw=2.727272727272727 dhw_kwh=None observed=False hours=5.5
+RESULT no charge, cycle 6 mode not live (null): heat_kw=2.0 space_kw=2.0 dhw_kwh=None observed=False hours=5.5
+RESULT charge all observed: heat_kw=2.727 space_kw=1.8181818181818181 dhw_kwh=5.0 dhw_seen=n/a observed=True hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@0: heat_kw=2.727 space_kw=1.8181818181818181 dhw_kwh=5.0 dhw_seen=n/a observed=True hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@1: heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=n/a observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@2: heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=n/a observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@3: heat_kw=2.727 space_kw=1.8181818181818181 dhw_kwh=5.0 dhw_seen=n/a observed=True hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@4: heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=n/a observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@6: heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=n/a observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@10: heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=n/a observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@11: heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=n/a observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@2,3 (charge cycle itself): heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=n/a observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@1,6,11: heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=n/a observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT null no-charge unobs@1: heat_kw=2.000 space_kw=2.0 dhw_kwh=None dhw_seen=n/a observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT null no-charge unobs@6: heat_kw=2.000 space_kw=2.0 dhw_kwh=None dhw_seen=n/a observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT null no-charge unobs@11: heat_kw=2.000 space_kw=2.0 dhw_kwh=None dhw_seen=n/a observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT null no-charge all observed: heat_kw=2.000 space_kw=2.0 dhw_kwh=0.0 dhw_seen=n/a observed=True hours=5.5 span=22:00:00-03:30:00
+== head
+RESULT charge, all observed: heat_kw=2.727272727272727 space_kw=1.8181818181818181 dhw_kwh=5.0 observed=True hours=5.5
+RESULT charge, cycle 6 mode not live: heat_kw=2.727272727272727 space_kw=None dhw_kwh=None observed=False hours=5.5
+RESULT no charge, cycle 6 mode not live (null): heat_kw=2.0 space_kw=2.0 dhw_kwh=None observed=False hours=5.5
+RESULT charge all observed: heat_kw=2.727 space_kw=1.8181818181818181 dhw_kwh=5.0 dhw_seen=True observed=True hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@0: heat_kw=2.727 space_kw=1.8181818181818181 dhw_kwh=5.0 dhw_seen=True observed=True hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@1: heat_kw=2.727 space_kw=None dhw_kwh=None dhw_seen=True observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@2: heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=False observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@3: heat_kw=2.727 space_kw=1.8181818181818181 dhw_kwh=5.0 dhw_seen=True observed=True hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@4: heat_kw=2.727 space_kw=None dhw_kwh=None dhw_seen=True observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@6: heat_kw=2.727 space_kw=None dhw_kwh=None dhw_seen=True observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@10: heat_kw=2.727 space_kw=None dhw_kwh=None dhw_seen=True observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@11: heat_kw=2.727 space_kw=None dhw_kwh=None dhw_seen=True observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@2,3 (charge cycle itself): heat_kw=2.727 space_kw=2.727272727272727 dhw_kwh=None dhw_seen=False observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT charge unobs@1,6,11: heat_kw=2.727 space_kw=None dhw_kwh=None dhw_seen=True observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT null no-charge unobs@1: heat_kw=2.000 space_kw=2.0 dhw_kwh=None dhw_seen=False observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT null no-charge unobs@6: heat_kw=2.000 space_kw=2.0 dhw_kwh=None dhw_seen=False observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT null no-charge unobs@11: heat_kw=2.000 space_kw=2.0 dhw_kwh=None dhw_seen=False observed=False hours=5.5 span=22:00:00-03:30:00
+RESULT null no-charge all observed: heat_kw=2.000 space_kw=2.0 dhw_kwh=0.0 dhw_seen=False observed=True hours=5.5 span=22:00:00-03:30:00

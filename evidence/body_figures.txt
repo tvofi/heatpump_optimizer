@@ -1,0 +1,5 @@
+features_block: prelude of 24 statement(s) written to /tmp/tmp.TwnoSZW7EF/prel.py
+RESULT head block: ALL 31 FEATURES BLOCK PASSED
+RESULT failing-first (heat_energy at da2eef8a):   FAIL a span that carried a hot-water charge the dwell saw reads no space figure once one mode read in it, after the charge or before it, w
+1 of 31 FEATURES BLOCK FAILED
+RESULT self-test: features_block self-test: 11 checks, 0 failed
