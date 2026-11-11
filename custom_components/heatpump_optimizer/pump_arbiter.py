@@ -972,15 +972,26 @@ def _feedback_bounds(held: ArbiterState, rec: FeedbackRun, inp: ArbiterInputs, i
     bound, a controller cut or the controller's own limits where their
     sensors are read (:func:`_setpoint_limits_c`), nor at the gate (I2);
     never above the ceiling.
+
+    The gate is the value a step that does not heat writes, so a heating
+    write at or below it tells the controller the step is off. A
+    controller's upper limit, read from its sensor or from a cut, that
+    sits under the lowest heating write (the gate plus one entity step)
+    leaves no heating value inside it: it is not the limit of a heating
+    set-point (a sensor in the wrong slot, a placeholder, a parked
+    circuit), and it is left out as an unreadable one is.
     """
     gate = _gate_c(inp) or _gate_floor_c(inp.config)
-    lows = [inlet - FEEDBACK_DOWN_K, rec.cut_lo_c, gate + FEEDBACK_GATE_CLEAR_K]
+    clear = gate + FEEDBACK_GATE_CLEAR_K
+    lowest = _bounded(inp, "space_setpoint", clear, lo=clear) or clear
+    lows = [inlet - FEEDBACK_DOWN_K, rec.cut_lo_c, clear]
     if held.stop_gap_k is not None:
         lows.append(inlet - held.stop_gap_k + FEEDBACK_STOP_MARGIN_K)
     low, high = _setpoint_limits_c(inp)
     lows.append(low)
-    highs = [_heat_ceiling_c(inp.config), rec.cut_hi_c, high]
-    return (max(v for v in lows if v is not None), min(v for v in highs if v is not None))
+    highs = [_heat_ceiling_c(inp.config)]
+    highs += [v for v in (rec.cut_hi_c, high) if v is not None and v >= lowest]
+    return (max(v for v in lows if v is not None), min(highs))
 
 
 def _setpoint_limits_c(inp: ArbiterInputs) -> tuple[float | None, float | None]:

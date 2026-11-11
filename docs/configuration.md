@@ -806,7 +806,10 @@ writes, at every 15-minute plan step:
     no write is cut. A limit sensor is read whatever its age, since a
     setting reports only when it changes; one that is unavailable, not a
     number or outside −20 to 100 °C is left out, and so are both when the
-    lower is not below the upper. They bound the loop alone: the first
+    lower is not below the upper. An upper limit below the lowest heating
+    value (the gate plus one step of the set-point entity) is left out
+    too: the gate is the value that means off, and no heating step writes
+    it. They bound the loop alone: the first
     write of a run is the inlet plus the lift either way. Without them the
     two limits are taken from the value the controller reports back after
     a write.
