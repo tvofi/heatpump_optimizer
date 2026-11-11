@@ -6744,6 +6744,7 @@
     "dev/governance/config/corpus_excluded.json",
     "dev/governance/config/policy_budgets.json",
     "dev/programme/carries/**",
+    "dev/programme/rosters/wave-r10-groups.json",
     "tests/card_drift.mjs",
     "tests/closures.json",
     "tests/layout.json",
@@ -6799,6 +6800,7 @@
     ".mailmap",
     "config",
     "dev/governance/dimensions",
+    "dev/programme/rosters",
     "objects",
     "package.json",
     "packed-refs",
@@ -6818,6 +6820,7 @@
    "dirs": [
     "dev/governance/dimensions",
     "dev/programme/carries",
+    "dev/programme/rosters",
     "tests",
     "tools/audit/seat"
    ],
