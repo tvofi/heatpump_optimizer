@@ -1,108 +1,80 @@
 # Design: R10-ADVISOR-STEADY-START — the what-if's steady-start estimator (#2257)
 
-Base: 01782a1e3c327cbfb69784b8e676359e5bcfa079 (origin/main; no predecessor, `after` is empty, so no handoff head). Brief: the group's carry 0 (from R10-ADVISOR-WHATIF, #2963). Size L.
+Base: 45adb0c3b425dc44e72fd9ce4ef51f480b5a3af6; every line below is cited at it. No predecessor (`after` is empty), so no handoff head. origin/main at seat time is d08ed31049cd, 36 commits ahead; `git diff --stat 45adb0c3b d08ed3104` over this note's hot files prints one changed line, in the card.
+Round 2 of the note: answers the four revise points of `design-verdict/R10-ADVISOR-STEADY-START` 971a9ca7ace7 on e29f9b4a49af. By the orchestrator's ruling (mandate 6715477401, 2026-11-11) the approved `design/R10-ADVISOR-WHATIF` 3494759764e7 is this group's `async_simulate` shape. §1-§2 restate that shape at this base and mark each thing this note **adds** or **changes**; the fixer reads this note alone.
 
-## Re-measured at the base
+## 0. Re-measured at the base
+`PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_residue.py whatif` prints `whatif rows 24 plan_moves_by_start 24 held_moves_by_start 0`, caps `plan 18/36 settled 1/36`, and the wrong-sign settled rows (varying 00:00 target_minus_1 +24.6, target_plus_1 -25.5). The brief's 19/36 and 3/36 did not reproduce on this box at 92588d581 either (round 1): box variance, not drift. Not re-measured this round: the round-1 spike (both plans from a held start, settled: `moves_by_start 0`, degree signs wrong 0, cap saves 0/36, cap rows in the null -0.7 to -0.3) and its wall times. That spike held at `config.get_comfort_temp`; the fixer's harness arm (§5) re-measures through the helper of §1.
 
-`PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_residue.py whatif`: `plan_moves_by_start 24` of 24 rows, `held_moves_by_start 0`; caps `figures reading a saving (< -1) plan 18/36 settled 1/36`. The same command at 92588d581, on this box (numpy 2.5.4, scipy 1.18.1), prints the same 18/36 and 1/36 as at the base. The 19/36 and 3/36 the brief quotes for 92588d581 therefore come from the box that measured them, not from a change between commits: solver-basin variance, not drift. The wrong-sign settled rows reproduce (varying 00:00 target_minus_1 settled +24.6, target_plus_1 -25.5).
+## 1. Owning seam
+`async_simulate` (coordinator.py:11160-11387, tests/seam_map.json:224 `core`) owns the estimator and calls:
+- **optimizer.py, the held start (taken from WHATIF; replaces round 1's public wrapper).** `SolveInputs` (optimizer.py:2450-2458, a frozen `kw_only` dataclass) gains a held-start flag, default False; `optimize` (3657) resolves it. One new method, the held-reference helper, taking `(state, weather, comfort_targets)`, is exactly the expression at optimizer.py:5751-5754: `_sharing_wood_side(_thermostat_held_state(self.model, state, weather, _baseline_target(comfort_targets, 0, self.config.target_temp)), state)`. `_start_gap_cost` (5731-5762) calls it in place of those lines; the held-start branch of `optimize` calls it to rebind `initial_state` after `_build_comfort_bounds` returns `comfort_targets` (3789-3790) and before `_solve` builds `_Horizon` (3833-3834). **Revise point 1:** the target is the solve's own `comfort_targets` at step 0, so weekday overrides and the away band (`_whatif_banded`) are in it by construction; no caller derives a target and `config.get_comfort_temp` is not read.
+- **The tanks (revise point 2; decided here, the fixer has no choice left).** Behind a throttling valve the steady plan starts with the **buffer at the valve hold** when the held need is positive (`_thermostat_held_state`, optimizer.py:612) and as measured otherwise, and the **wood tank as measured**: `_sharing_wood_side` (558-560) puts back what `_NO_WOOD_TANK_C` (555, written at 619) removed. Both sides start from the same measured wood tank, so stored wood heat is on both. Consequence, stated in the docs: on a two-tank install the figure is invariant to the room and slab start but not to the wood tank's charge, which no schedule holds. `_initial_buffer_temp` (written at 4083 in `_stash_price_horizon`, called at 3725; read at 5430 in `_settlement_caps`) is re-stashed from the rebound state: the write at 4083-4088 is extracted to a stash helper called from both places. `_compute_baseline_power` (5591) keeps its bare `_thermostat_held_state`. Flag False: byte-identical.
+- **price_tiles.py, the figure.** `price_tiles.monthly_deltas` (94-109) gains an optional steady pair and then emits the steady key (WHATIF's name: monthly_steady_cost_delta): per_month of what-if spend + deferred + wood, less live spend + deferred. Pure.
+- **Added by this note: where the memo lives.** WHATIF caches the live steady solve but names no home, and `python3 tests/structure.py` reads `coordinator_attrs`, `max_class_loc` and `class_excess_loc` all at their caps at this base, so a new coordinator attribute is refused. One per-coordinator what-if state object, in a new module, replaces `_last_simulation` and `_simulation_cache` (coordinator.py:4029-4030; attrs down by one), holds the one-slot memo, and takes the rate-limit gate (11187-11196) moved verbatim. `_start_gap_cost` shrinking and one extracted solve-inputs builder called three times pay the optimizer and coordinator class lines; if they do not, that is a design finding reported before the push, never a raise.
 
-## Owning seam
+## 2. Shape
+`async_simulate(overrides, *, limited=True, base=None, steady=False)`. **Changed from round 1: the default is False** (WHATIF's), so doubles, harnesses and `_whatif_solves` (tests/features.py:31179) keep their solve counts. With `steady=True`, after the measured what-if solve (`_await_optimize`, coordinator.py:11271) has returned, two more solves run with the held-start flag: the live configuration and the what-if one, same horizon, solve instant and mode block.
 
-`async_simulate` (coordinator.py:11238, `tests/seam_map.json` "core") owns the estimator. It calls three modules, each for what it already owns:
-- optimizer.py: the held start. `_thermostat_held_state` (optimizer.py:574) already builds "``state`` as a thermostat holding ``target`` all along would have it" for the baseline (:5556). A module-level public wrapper beside it takes an optimizer and its solve inputs, and returns that state at the optimizer's own comfort target at the start instant (`config.get_comfort_temp` at `start_time`). It is not a class method: `class_excess_loc` sits at zero headroom and the optimizer class counts toward it.
-- price_tiles.py: the figure. `price_tiles.monthly_deltas` (:89) gains a fourth key, the steady figure: per_month of (predicted + deferred) of the steady what-if solve minus the steady live solve, plus the what-if's wood figure. Its docstring says which reader takes which key.
-- a new what-if module (the fixer names it; it must be classified in `tests/closure.py` or a measured closure): one per-coordinator state object that replaces `_last_simulation` and `_simulation_cache` (coordinator attrs 2 → 1) and holds a one-slot memo of the steady live solve. It also owns the rate-limit gate now inlined at coordinator.py:11266, moved verbatim.
+**Revise point 3, each stated:**
+- *Instance.* The live steady solve runs on a fresh scratch `HeatPumpOptimizer(ThermalModel(copy.deepcopy(params)), copy.deepcopy(config))` built from the `config, params, state` async_simulate already holds (11211-11215), copied before any override. Never `SolveRecord.optimizer()` (2396-2397), never `_warm_seeded` (2354-2374).
+- *Await seam.* Both steady solves go through `_await_off_loop` (2142-2164): `ProcessWorkerUnavailable` falls to the executor (2160-2162) and the #783 streak is untouched. `_await_optimize` (2309-2351; bump 2340, clear 2349) is called once per what-if, as today.
+- *Results.* The steady results and the memo feed only the answer: never assigned to `_optimization_result` (one writer, 6422), never a seed, never a `SolveRecord`. The memo holds the object `self._optimization_result` refers to when async_simulate reads it (or `base`), plus the solve instant, and hits on `is`.
+- *Failure.* The pair has its own `except Exception`, which also takes the `ProcessWorkerTimeout` that `_await_off_loop` re-raises (2157-2159): the steady key is dropped, nothing is memoised, and the rest of the answer is returned. Then the panel shows no money line; `price_tiles.monthly_figure` (price_tiles.py:140-143) returns None for a cap and never falls back to `monthly_settled_cost_delta`; the fuse advisor publishes `cost_delta_sek_month` None (payload.py:393 already allows it). If the measured solve fails first, the existing `except` (11329-11331) returns the error answer and no steady solve runs.
 
-Coordinator metrics at the base, from `python3 tests/structure.py`: `coordinator_attrs`, `max_class_loc` and `class_excess_loc` all sit at their caps. The coordinator class may not grow by a line. The gate and cache moving out pays for the two extra solve calls. If it does not pay, that is a design finding to report before pushing, not a budget raise.
-
-## Shape
-
-**`async_simulate`'s contract.** It gains a keyword-only `steady: bool = True`. When it is set:
-1. It runs one more solve, the what-if from its held start.
-2. It runs a second extra solve, the live configuration from its held start. That solve is memoised on (the live result object or `base` record, solve instant), so further calls against the same scheduled plan reuse it.
-
-The answer gains the steady key. `monthly_cost_delta`, `monthly_held_cost_delta` and `monthly_settled_cost_delta` keep their meaning: `simulate_plan` is a service with a response, and changing a published key's meaning breaks an automation silently. Adding a key does not. The live-start solve stays. The panel's comfort, hot-water, compressor and peak lines, and the fuse advisor's breach, peak and minimum, describe the house as it is tonight, and no finding names them. With `steady=False`, behaviour is byte-identical to the base.
-
-payload.py: no TypedDict carries the simulate answer. `PriceTile.monthly_cost_delta` (payload.py:334) keeps its key, and for a cap tile its value becomes the steady mean. No new TypedDict is added; that would be scope this brief does not name.
-
-**What each caller does:**
-
-| caller | passes | reads after | reason |
+| caller | steady | reads after | reason |
 |---|---|---|---|
-| card, via `handle_simulate_plan` (services.py:767) | `steady=True`, limited | the steady key, for the money line | the brief's ruling |
-| fuse advisor (coordinator.py:9050), `limited=False`, base | `steady=True` | the steady key as `cost_delta_sek_month` | a cap must not save; settled saves on 1/36 cap rows at the base, steady on 0/36 |
-| price tile, cap (coordinator.py:10776) | `steady=True` | `monthly_figure` picks the steady key for a cap | as above; shares the fuse advisor's live memo for the same record |
-| price tile, degree | `steady=False` | `monthly_held_cost_delta`, unchanged | it already starts held (the thermostat). Moving it re-opens #2572/#2834's fixed Advisor items and adds 2 background solves a tile a day |
-| `debugger._solver_smoke` (debugger.py:323) | `steady=False` | `cost_delta`, unchanged | it times one solve; its `wall_ms` stays comparable |
+| card, `handle_simulate_plan` (services.py:767) | True | the steady key, in `summary` (heatpump-optimizer-card.js:13318, today `result.monthly_cost_delta`) | owner's ruling |
+| fuse advisor (`_maybe_run_fuse_advisor`, call coordinator.py:8971, `limited=False`, base) | True | the steady key, read directly into `cost_delta_sek_month` (9003) | a cap must not save; settled saves 1/36 |
+| cap tile (`_maybe_refresh_price_tile`, call 10698) | `"power_cap_kw" in overrides` | `monthly_figure` picks the steady key | as above; shares the record's memo |
+| degree tiles (same call) | False | `monthly_held_cost_delta`, unchanged | spread 0.00, sign right; re-pricing re-opens #2572/#2834 |
+| `_solver_smoke` (debugger.py:323) | False | `cost_delta`, unchanged | it times one solve |
 
-**Flow.**
-```
-card → service → async_simulate(steady)
-  ├ gate (what-if module) ─ rate-limited? → cached answer
-  ├ live result (scheduled) ┐
-  ├ what-if from live state ┘→ cost/plan/comfort keys (unchanged)
-  ├ live from held start  (memo) ┐
-  └ what-if from held start      ┘→ price_tiles.monthly_deltas → steady key
-```
+`monthly_cost_delta`, `monthly_held_cost_delta` and `monthly_settled_cost_delta` keep their meaning (a service response is a published contract). No what-if TypedDict exists and none is added; `PriceTile.monthly_cost_delta` (payload.py:334) keeps its key, a cap tile's value becoming the steady mean. **Decided here (kept from round 1):** tile and panel differ by design, about -54 against -31 per degree in the null: the tile prices a degree held by a thermostat, the panel the plan. Invariants: the slot is spent once, before the first solve (#1448, #1753); `limited=False` never touches slot or card cache; overrides reach only scratch copies (#240); an error answer carries no figure.
 
-**Invariants.**
-- The steady figure cannot move with the measured start; the held start replaces it.
-- The rate-limit slot is spent once per call, before the first solve (#1448, #1753); the 3 s `SIMULATE_MIN_INTERVAL_SECONDS` is untouched.
-- `limited=False` callers never touch the slot or the card cache.
+**Cost.** User what-if: 1 solve before; after, 3 on the first call against a scheduled plan and 2 on a memo hit, at most one start per `SIMULATE_MIN_INTERVAL_SECONDS`. Degree tile 1 (unchanged). Cap tile and fuse advisor 2 or 3 per scheduled record, sharing the memo: the cap tile every third interval, the fuse advisor weekly. Earlier measurements on the cloud box, 24 h at 15 min: measured solve mean 623 ms; steady pair mean 1.02-1.20 s, max 1.84 s. The fixer measures solve count (a counter wrapping both await seams) and wall per what-if before and after, and states the Pi bound as count times per-solve wall.
 
-## Spike (scratch; reproduces the shape, never merges)
+## 3. Alternatives (lost)
+- **Round 1's public wrapper holding at `config.get_comfort_temp`**: a second expression of `_start_gap_cost`'s reference; the gap is non-zero wherever they differ, and it drops the wood side.
+- **Memo on a new coordinator attribute, or inside the `_simulation_cache` dict**: the first is refused by `coordinator_attrs`; the second mixes a solver result into the answer the limiter returns to the card.
+- **State object in price_tiles.py** (no new module): that module is pure figures; it would gain mutable per-coordinator state and the rate limiter.
+- **Steady unsettled** (3/12 degree signs wrong, 30/36 caps save, WHATIF §0); **panel reads the held figure** (0 for every cap); **steady default True** (adds solves to every caller passing nothing); **disclosure only** (owner, 2026-11-01).
 
-The spike solves `r10_advisor_residue.py`'s whatif rows with both plans from `_thermostat_held_state` at their own `get_comfort_temp`, using that harness's own fixtures and figure formula. It prints `rows 24 moves_by_start 0 degree_sign_disagrees 0/36 cap_saves 0/36`:
-- Steady degree figures (null, then varying): 00:00 −31.1/+25.2 and −32.2/+28.8; 07:00 −41.3/+40.3 and −47.4/+42.5; 15:00 −39.2/+36.3 and −26.8/+37.9.
-- Held figures on the same rows: ±51.5–80.0.
-- Cap rows in the null read −0.7 to −0.3. That is solver noise above the harness's −1 threshold, so the sign check keeps the −1 tolerance; tightening it to 0 fails on noise.
-- Wall per what-if pair: two steady solves mean 1.02 s, max 1.63 s; two live-start solves mean 1.12 s, max 1.89 s (24 h horizon at 15 min).
+## 4. Sibling sites (revise point 4)
+`git grep -n "monthly_cost_delta\|monthly_settled_cost_delta\|monthly_held_cost_delta\|cost_delta_sek_month\|async_simulate(" -- custom_components docs tests/entities.py`: the callers and readers of §2; price_tiles.py:105-107, 142, 188; card 9966/9979/9980 (PriceTile, stays) and 13318. The fuse figure changes meaning (settled to steady) under an unchanged key at payload.py:393 (its comment is updated), store.py:448 (numeric schema, no change) and tests/entities.py:467 (a fixture value, no change).
+Cost claims, found by `git grep -n -i "extra solve\|full solve" -- docs custom_components`, all false for a cap tile after this change and all rewritten:
+- docs/configuration.md:498 "Off by default because each tile is a full extra solve." becomes "Off by default because each tile costs extra solves: one for a degree tile, up to three for the power-cap tile."
+- docs/how-it-works.md:1278 "so the whole set costs at most one extra solve per interval" becomes "so a refresh costs one extra solve for a degree tile and up to three for the power-cap tile".
+- strings.json:914 `price_tiles_enabled` ("a full extra solve of real CPU") and line 914 of translations/en.json, sv.json and de.json: the same sentence as configuration.md.
+docs/how-it-works.md:115 ("extra full solve", the multi-start count) is another subject and stays.
 
-**Cost bound.** Base: 1 solve per what-if. After, a user what-if takes 3 solves on the first call against a scheduled plan and 2 after a memo hit. A degree tile takes 1. A cap tile or the fuse advisor takes 2 or 3 per scheduled record, sharing the memo. The fixer measures both, solve count and wall time per what-if, before and after on `tests/features.py`'s `_whatif_solves` counter (features.py:30450) and states the Pi bound as these counts times the measured per-solve wall.
+## 5. Evidence plan, by file
+- **Failing first** (tests/features.py, beside `_whatif_solves`): (a) the steady key from `async_simulate(..., steady=True)` spreads 0 over the finder harness's three starts (dev/audit/harnesses/r10_advisor_residue.py:106 "for room, slab in deg.STARTS"); red at the base (key absent; `monthly_cost_delta` moves 24/24). (b) sign: a degree warmer > 0, cooler < 0, no cap below -1 (0 fails on solver noise, §0). (c) tests/card.mjs: `summary()` renders money only from the steady key, with the steady-state wording; no key or no draft result renders no money and no caveat.
+- **Point 1 checks.** On a held-start solve, `_start_gap_cost` (wrapped to record its return) reads 0 within 1e-9 at the three starts, on a weekday-override config and with away on; and the start the solve used has every zone at `_baseline_target(comfort_targets, 0, ...)` of that solve. Mutants: the held-start branch passing `self.config.target_temp` in place of `comfort_targets` (first check red on the override and away configs); `+ 0.5` inside the helper (second check red). **Changed from WHATIF:** its `+ 0.5` mutant was assigned to the gap check, but with one helper on both sides the gap stays 0 under it (the helper is idempotent), so it needs the second check.
+- **Point 2 check.** Fixture from `_grad_parity(True, wood=True, valve="manual")` (tests/features.py:6386) with `two_tank_modelled` and `buffer_is_store` asserted True as a precondition: the gap reads 0, the start's `wood_tank_temperature` equals the measured state's, its buffer equals `valve_hold_temperature`'s, and `_initial_buffer_temp` equals that buffer. Mutants: drop `_sharing_wood_side` from the helper (wood reads 0.0); skip the re-stash.
+- **Point 3 checks, each with its mutant.** Every optimizer passed to `_await_off_loop` `is not` any instance `SolveRecord.optimizer()` or `_warm_seeded` returned in the test (mutant: live side on `_warm_seeded(self, record.optimizer())`). After a steady what-if `coord._optimization_result` is the same object with an unchanged `power_schedule` (mutant: assign the memo's result). With the worker raising `ProcessWorkerUnavailable`, one what-if bumps the streak by exactly 1 (mutant: pair through `_await_optimize`). With `ProcessWorkerTimeout` on the pair only: the answer carries `monthly_cost_delta` and no steady key, `monthly_figure` on the cap spec is None, the fuse cost is None, the memo is empty (mutants: `monthly_figure` falling back to settled; fuse reading settled; memoising a failed pair).
+- **Cost and callers.** Solve counter over both seams: 3 then 2 on a repeated user what-if; a tile rotation counts 2 steady solves on the cap spec and 0 on the degree specs; "5 calls, 1 solve" (features.py:31213) holds; the fuse `cost_delta_sek_month` equals the answer's steady key. Mutants: `steady=True` on every tile spec; memo ignoring the record; live side from the measured state; deferred term dropped from the steady key; card falling back to `monthly_cost_delta`.
+- **Finder's harness.** `arm_whatif` (dev/audit/harnesses/r10_advisor_residue.py:92) gains a steady column solved with the held-start flag and read from `price_tiles.monthly_deltas`, no re-implemented formula; run at the base and the head.
+- **Null control.** Held spread 0.00 on every row; the null series reads one steady figure at all starts, before and after; the idle panel renders nothing; the two-tank precondition assert is that fixture's own null.
+- **Goldens.** `git grep` finds no monthly key under tests/golden; if the cap tile or fuse figure moves a fixture, `GOLDEN_MODE=drift` and a claim per `claim-files.md`, never a re-record.
+- **Docs.** docs/dashboard-card.md:619-622: the one-off sentence becomes "that panel prices the change in steady state, both plans started as if each schedule had been held, so its figure leaves out the one-off coast or heat-up a change starts with"; the what-if section (451) calls the money line a steady-state monthly estimate, says why it is about half the tile's, and carries the wood-tank sentence of §1. Card strings in en, sv and de.
 
-## Alternatives, and why each lost
-
-1. **The panel reads `monthly_held_cost_delta`.** 0 extra solves, but it prices a thermostat, not the plan: a cap reads 0 on every row (the thermostat ignores caps), and degrees read 1.6–2.8× the plan's steady figure.
-2. **Settle the live-start figure (`monthly_settled_cost_delta`).** It moves by start (spread up to 89.9) and has the wrong sign on degree rows.
-3. **Hold only the what-if, against the scheduled live plan.** One extra solve, but the difference mixes a held start with a measured one, so it moves with the start.
-4. **Memo on a new coordinator attribute.** `coordinator_attrs` is at its cap; the state object instead lowers it by one.
-5. **Disclosure only.** Refused by the owner's ruling (tvofi, 2026-11-01).
-
-## Sibling sites
-
-`git grep -n "monthly_cost_delta\|monthly_settled_cost_delta\|monthly_held_cost_delta\|async_simulate(" -- custom_components docs`:
-- coordinator.py:9050/9082 and :10776, debugger.py:323 and services.py:767: covered in the table above.
-- price_tiles.py:105-107, :142 and :188: covered (the steady key, then `monthly_figure`'s cap branch).
-- heatpump-optimizer-card.js:9948 and :9961-9962: the Advisor tile, which reads the PriceTile mean, unchanged.
-- heatpump-optimizer-card.js:13300 (`summary`): switches to the steady key.
-- The harness and test doubles (`solve_inputs_parity.py`, `r9_dbg2_selftest_price.py`, `tests/debug_collect.py`, `tests/dst_checks.py`) keep the default and are re-run, not edited, unless a stub's signature refuses the new keyword.
-
-## Evidence plan, by file
-
-- **Failing tests first** (`tests/features.py`, beside :30481):
-  - (a) `async_simulate` driven from the three `r10_advisor_degree.STARTS` with `target_plus_1`: the key the card reads spreads 0. It is red at the base: 24/24 rows move.
-  - (b) Sign: warmer > 0 and cooler < 0 on the key the cap paths read, and no cap value below −1. It is red at the base on varying 00:00 (`monthly_settled_cost_delta` +24.6/−25.5).
-  - (c) `tests/card.mjs`: `summary()` renders money only from the steady key, with the steady-state caveat line. With no draft result, the idle status renders no money and no caveat.
-- **Finder's harness**: `r10_advisor_residue.py`'s whatif arm gains a steady column that calls the production `price_tiles.monthly_deltas` on solves started by the new optimizer wrapper. It must not re-implement either, because a test that re-implements a production formula pins nothing (`tests/README.md`). Run it at the base and at the head.
-- **Null control**: held spread 0.00 on every row; the null series' steady figure is identical at all three starts, before and after; the idle panel shows no money.
-- **Cost**: `_whatif_solves` counts 3 then 2 on a repeated call; a degree tile counts 1; the rate-limit test (:30481) still spends one slot for 5 calls.
-- **Goldens**: `git grep -ln "monthly_cost_delta\|monthly_settled" tests/golden` decides whether a fixture moves. If one does, it is claimed in the claim file with its direction, never re-recorded.
-- **Mutation targets**:
-  - the what-if held start (fed the live state, so (a) goes red);
-  - the live held start;
-  - the deferred term in the steady key;
-  - the memo key (ignoring the record, so a stale figure test goes red);
-  - `steady` on the degree tile (passed True, so the tile test goes red);
-  - the card's key.
-- **Docs**: `docs/dashboard-card.md` :619-624's one-off sentence becomes "that panel prices the change in steady state, both plans started as if each schedule had been held, so its figure leaves out the one-off coast or heat-up". The what-if section (:451) says the money line is a steady-state monthly estimate. The paragraph also says why the panel's figure is about half the tile's: the tile prices a degree held by a plain thermostat, the panel the plan, which absorbs part of it by timing.
-
-## Hot files and serial position
-
-coordinator.py, optimizer.py, price_tiles.py, heatpump-optimizer-card.js, docs/dashboard-card.md, tests/features.py, tests/card.mjs, plus the new module. No `after` edges; the fixer rebases on whichever coordinator or card group merges first and re-runs `fixer.md` steps 2–8. Closes #2257; `fixes` must list 2257.
+## 6. Hot files, position
+coordinator.py, optimizer.py, price_tiles.py, payload.py, heatpump-optimizer-card.js, strings.json and the three translations, docs/dashboard-card.md, docs/configuration.md, docs/how-it-works.md, tests/features.py, tests/card.mjs, r10_advisor_residue.py, tests/closure.py and the new module. After: none. R10-WHY-NOW-WIDGET holds the card and coordinator.py hot; the fixer rebases on whichever merges first and re-runs `fixer.md` steps 2-8. Closes #2257; `fixes` must list 2257. `design/R10-ADVISOR-WHATIF` is retired at closeout; nobody builds from it.
 
 ## Notes for the fixer
+Carry: R10-ADVISOR-STEADY-START (item recite) - every line here is at 45adb0c3b; re-cite at your merge base.
+Carry: R10-ADVISOR-STEADY-START (item fuse-key) - the fuse advisor reads its key directly at coordinator.py:9003; changing `monthly_figure` alone does not move it.
+Carry: R10-ADVISOR-STEADY-START (item fuse-none) - confirm the card's fuse row renders a None `cost_delta_sek_month` as no money, with a test; this note did not read that renderer.
+Carry: R10-ADVISOR-STEADY-START (item tile-callsite) - the three tiles share the one call at coordinator.py:10698; pass `steady` per spec.
+Carry: R10-ADVISOR-STEADY-START (item memo-key) - never key the memo on `id(...)`, and never on the object a solve hands back: `_optimization_result` is assigned a `replace(...)` copy (coordinator.py:6422).
+Carry: R10-ADVISOR-STEADY-START (item test-attrs) - tests write the two attributes directly (tests/features.py:19280-19281, 26068-26069, 31080, 31198; tests/dst_checks.py:1831); the state object edits each, and the moved gate still spends the slot before the first solve.
+Carry: R10-ADVISOR-STEADY-START (item stubs) - tests/debug_collect.py and dev/audit/harnesses/r9_dbg2_selftest_price.py mimic the async_simulate signature; doubles replacing `_await_optimize` in tests/config_flow_steps.py miss the steady pair, and `WORKER_SEAMS` in tests/deployment_shape.py already lists `_await_off_loop`.
+Carry: R10-ADVISOR-STEADY-START (item locales) - `whatif.same_cost`, `whatif.cheaper_per_month`, `whatif.dearer_per_month` in en, sv and de (card 615-619, 1479-1485, 2239-2241).
+Carry: R10-ADVISOR-STEADY-START (item module-docs) - the new module is a line in docs/architecture.md's tree (137 is price_tiles.py's), which `design/R10-ARCH-DOCS` holds hot; classify the module in tests/closure.py and serialise the docs line with that group.
+Carry: dismissed: decided in section 1, wood tank as measured (item wood-start)
+Carry: dismissed: decided in section 1, target from comfort_targets (item away-target)
+Carry: dismissed: decided in section 2, tiles stay held (item tile-panel-gap)
+Received: carry 0 of this group (from R10-ADVISOR-WHATIF, #2963); this note implements all of it.
 
-- Wood: `_thermostat_held_state` sets a two-tank install's wood tank to `_NO_WOOD_TANK_C`, so the steady figure prices no stored wood at the start. Pin this with a wood fixture, or state it in the docs. Carry: R10-ADVISOR-STEADY-START (item wood-start)
-- Away: the held target is the scratch config's `get_comfort_temp` under `_whatif_banded`. A test with away on must show the what-if's held start uses the banded target. Carry: R10-ADVISOR-STEADY-START (item away-target)
-- Tile against panel: after this change the tile and the panel disagree by design (about −54 against −31 per degree in the null). That is decided here, not left open. Carry: dismissed: decided in this note, tiles stay held (item tile-panel-gap)
-- Received: carry 0 of this group (R10-ADVISOR-WHATIF's carry, #2963). This note implements all of it.
+Seat tokens: not reported by the harness.
