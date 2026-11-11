@@ -1,7 +1,2 @@
-CARRY-LANDED
-
-CARRY-MISSING R10-REVIEW-DISPATCH-RESIDUE body item b4c8c3ad: not in its brief or carries: 'Carry 1 (OPENER-LIVE-TIP, tools/audit/seat/open_driver.py): not built here; a different file and sea'
-CARRY-LANDED: 1 missing
-body_push: a carry above is not in its group's brief or carries; land it on the round's roster branch (carry_audit.py land-ops), then push the body
-body_push: REFUSED CARRY-LANDED
-body_push: refused body kept at handoff-wip/r10-relay-arm-order-body f749e5ce9829b156f09f47040f701055ebc87014
+Question: the brief says carry P603 is on this group's roster entry, but dev/programme/rosters/wave-r10-groups.json at origin/main (ee64358) holds no r10-relay-arm-order entry and no P603 anywhere in the tree; carry_audit.py landed still prints CARRY-MISSING R10-REVIEW-DISPATCH-RESIDUE for body item b4c8c3ad (Carry 1 OPENER-LIVE-TIP, open_driver.py). Which roster ref carries it, or should the body name another owner?
+State: handoff/r10-relay-arm-order at 332f882 is prepr.sh rc=0 on current main (no merge needed, no conflict); kept body at handoff-wip/r10-relay-arm-order-body f749e5c; body_push.sh not run to success, handoff-body not pushed.
