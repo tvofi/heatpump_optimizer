@@ -1,8 +1,0 @@
-cloud_dispatch: model opus for the fixer of R10-ZCASE, read from roster model.fixer
-cloud_dispatch: model opus for the fixer of R10-ZUS, read from roster model.fixer
-cloud_dispatch: model opus for the fixer of R10-ZBR, read from roster model.fixer
-cloud_dispatch: model opus for the fixer of R10-ZFREE, read from roster model.fixer
-RESULT group=R10-ZCASE part=2 topic=R10-ZCASE-p2 credit={'fix': 'R10-ZCASE-P2', 'handoff': 'R10-ZCASE-P2'} -> published dispatch/fixer-R10-ZCASE-p2
-RESULT group=R10-ZUS part=2 topic=r10_zus-p2 credit={'fix': 'R10-ZUS-P2', 'handoff': 'R10-ZUS-P2'} -> published dispatch/fixer-r10_zus-p2
-RESULT group=R10-ZBR part=2 topic=r10-zbr-p2 credit={'fix': 'R10-ZOTHER', 'handoff': 'R10-ZBR'} -> published dispatch/fixer-r10-zbr-p2
-RESULT group=R10-ZFREE part=2 topic=r10-zfree-p2 credit={'fix': 'R10-ZFREE', 'handoff': 'R10-ZFREE'} -> published dispatch/fixer-r10-zfree-p2

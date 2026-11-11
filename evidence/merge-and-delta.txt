@@ -1,0 +1,16 @@
+$ git merge-tree --write-tree origin/main 8af19472a77eb2c51517f57bc2bf5597a0638927
+5ba5af3597e0152406658bc65c92374987c848c5
+rc=0
+origin/main=0a2139b1ddaf7831b32c443d438fa14e90938bcb
+$ review_carry.py b64fbe44 8af19472
+review_carry: b64fbe44a -> 8af19472a  main=origin/main
+  branch-only commits: 3
+  why: the branch's own commits d95a3490e dd61c43d4 change its content: 8af19472a77eb2c51517f57bc2bf5597a0638927 is not the reviewed head b64fbe44a49f1f4c8aa9aa53f8da6bea64ae6c43 merged onto cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf
+  dd61c43d4  R10-REVIEW-DISPATCH-RESIDUE p3: re-aim part-topic-dropped; pin both halves of the part-collision predicate
+  d95a3490e  cloud_dispatch self-test: the fold guard's mutant fails a named check, not the run
+  8af19472a  Merge commit 'd95a3490ef0a1ae41a1bd20095f665a44e40d40a' into fix/r10-review-dispatch-residue-p3
+review_carry: FRESH-REVIEW
+$ git diff --stat b64fbe44 8af19472
+ dev/audit/harnesses/r10_flow_dispatch_mutants.py |  8 ++++-
+ tools/audit/seat/cloud_dispatch.py               | 38 +++++++++++++++++-------
+ 2 files changed, 35 insertions(+), 11 deletions(-)
