@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/drift.py:Cusum.load GUARD_OFF 95a3cc87",
+  "killed_by": "tests/features.py",
+  "old": "        if isinstance(raw_fed, str):",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

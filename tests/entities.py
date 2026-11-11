@@ -4199,6 +4199,14 @@ def _p2_registry(sources):
 #: Facts no AST shape holds, each held by a census in another script that
 #: asserts its own reach. A registry entry here is the census's check text.
 _P2_CENSUSES = {
+    # R10-COMBI-TANK-STORE (#3225): the hot-water store is one view, its two
+    # sides exchange their flux, and only tap-stated limits pass through eps.
+    "combi_store_view": (
+        "tests/features.py", "combi_store_view census: outside thermal_model.py nothing reads"),
+    "combi_flux_live": (
+        "tests/features.py", "combi_flux_live census: every DHW walk the planner runs"),
+    "combi_tap_limit": (
+        "tests/features.py", "combi_tap_limit census: every tap-stated minimum the planner"),
     # #1747: the DHW mode block reached the first DHW build and not the
     # co-optimisation replan's (R9-RCA-1747); EG-B8's census holds it.
     "dhw_mode_blocked_at_every_build": (
@@ -6203,9 +6211,10 @@ R.check(
     == "measured_power_entity",
 )
 
-# R10-COP-GATE (#2262): where the draw does not follow the plan's ask and no
-# heat reading exists, a latched COP is no reading of this install: the sensor
-# waits for a heat meter instead of showing it. A heat counter's open span is
+# R10-COP-GATE (#2262), R10-HOTFIX-COP-UNMEASURED: where no heat reading
+# exists, or either reading is a vendor's estimate, a latched COP is no reading
+# of this install: the sensor waits for a heat meter, or for metered inputs,
+# instead of showing it. A heat counter's open span is
 # its own code beside a measured COP, never a refusal, and the latch's time
 # rides with it.
 _cg_cop = {
@@ -6214,7 +6223,7 @@ _cg_cop = {
         "cop_refusal": "span_open" if obs == "heat_metered" else "draw_off_ask",
         "measured_cop_at": "2026-10-24T03:00:00+00:00",
     }), ENTRY)
-    for obs in ("not_measurable", "heat_metered", "draw_follows_plan")
+    for obs in ("not_measurable", "heat_metered", "estimated_inputs")
 }
 _cg_view = {
     obs: (ent.available, ent.extra_state_attributes.get("waiting_for"),
@@ -6223,13 +6232,13 @@ _cg_view = {
     for obs, ent in _cg_cop.items()
 }
 R.check(
-    "a COP not measurable here waits for a heat meter; a heat-metered COP "
-    "between span closes stays measured with span_open as its code; a draw "
-    "that follows the plan keeps its COP (null); each carries its fold time",
+    "a COP not measurable here waits for a heat meter, one from estimated "
+    "inputs for metered ones; a heat-metered COP between span closes stays "
+    "measured with span_open as its code (null); each carries its fold time",
     _cg_view == {
         "not_measurable": (False, "heat_meter", "draw_off_ask", "2026-10-24T03:00:00+00:00"),
         "heat_metered": (True, None, "span_open", "2026-10-24T03:00:00+00:00"),
-        "draw_follows_plan": (True, None, "draw_off_ask", "2026-10-24T03:00:00+00:00"),
+        "estimated_inputs": (False, "metered_inputs", "draw_off_ask", "2026-10-24T03:00:00+00:00"),
     },
     f"{_cg_view!r}",
 )
@@ -16965,7 +16974,7 @@ R.check(
     "exactly one handover, with no date in its name",
     _handovers == ["dev/programme/HANDOVER.md"],
     f"found {_handovers or 'none'}; durable state belongs in the single "
-    "dev/programme/HANDOVER.md and volatile state on #201, never in both",
+    "dev/programme/HANDOVER.md and volatile state on #3394, never in both",
 )
 # `updated-for:` is the staleness half: a handover nobody has re-pointed since
 # the merge it describes is the failure mode, not one that has been deleted.
@@ -20301,17 +20310,60 @@ _CI_EVENTS = {
 }
 
 
-def _ci_ctx(ev: str, payload: dict, outputs=None) -> "tuple[dict, dict]":
+def _ci_ctx(ev: str, payload: dict, outputs=None, actor="hpo-author[bot]") -> "tuple[dict, dict]":
     """(the expression context, prelude.context's) for one modelled event;
     `outputs` are the prelude's: a failed prelude's read as empty strings."""
     flat = _ghx_flat("github.event", payload, {})
     flat.update({"github.event_name": ev, "github.sha": _CI_SHA, "github.run_id": 99,
-                 "github.repository": "o/r"})
+                 "github.repository": "o/r", "github.actor": actor})
     flat.update({f"inputs.{k}": v for k, v in (payload.get("inputs") or {}).items()})
     pctx = _cip.context(ev, payload, {"GITHUB_SHA": _CI_SHA, "GITHUB_REPOSITORY": "o/r",
                                       "GITHUB_RUN_ID": "99"})
     flat.update({f"needs.prelude.outputs.{k}": v for k, v in (outputs or {}).items()})
     return flat, pctx
+
+
+# GitHub's shell for a `run:` block that names none: `bash -e {0}`. A harness
+# executing a step's own text runs it under this, never a bare `bash -c`, or a
+# bare call the step meant to classify ends the runner's step and passes the
+# harness's (gate-sweep's `out=$(...)`, R10-RCA-HOTFIX-BATCH-ERREXIT's I4).
+_GHA_RUN = ["bash", "-e", "-c"]
+
+
+def _stub_path_env(bindir, **extra: str) -> "dict[str, str]":
+    """This process's environment with ``bindir`` first on PATH and no BASH_ENV.
+
+    Every ``bash -c`` below finds a stand-in by PATH, and bash sources BASH_ENV
+    before the script: a cloud seat's profile there re-prepended its toolchain,
+    so the real ``python3`` shadowed the stand-in at every tree (#2835)."""
+    env = {k: v for k, v in os.environ.items() if k != "BASH_ENV"}
+    return {**env, "PATH": f"{bindir}{os.pathsep}{os.environ.get('PATH', '')}", **extra}
+
+
+def _gs_step_verdict(script: str, stdout: str, rc: int) -> "tuple[int, str]":
+    with tempfile.TemporaryDirectory() as d:
+        fake = Path(d) / "python3"
+        fake.write_text("#!/bin/sh\nprintf '%s' \"$FAKE_OUT\"\nexit \"$FAKE_RC\"\n")
+        fake.chmod(0o755)
+        p = _subprocess.run([*_GHA_RUN, script], capture_output=True, text=True, timeout=30,
+                            env=_stub_path_env(d, RUN_ID="123", FAKE_OUT=stdout, FAKE_RC=str(rc)))
+    return p.returncode, p.stdout
+
+
+_GS_CASES = [  # (program stdout, program rc) -> (the step fails, the annotation it must print)
+    ("SWEEP re-ran gate of run 1 (attempt 1, completed red)\nSWEEP-DONE run=2 reruns=1\n", 0, False, ""),
+    ("SKIP run 2: its gate is not green and newest-covering\n", 0, False, ""),
+    ("SWEEP-DONE run=2 reruns=0\n", 1, False, ""),
+    ("SWEEP re-ran gate of run 1\nRATE-LIMITED reset_epoch=99; no further re-runs before it\n", 1, True,
+     "::error title=RATE-LIMITED::"),
+    ("RATE-LIMITED reset_epoch=99; no further re-runs before it\n", 0, True, "::error title=RATE-LIMITED::"),
+    ("Traceback (most recent call last):\nRuntimeError: GET actions/runs/2: 500\n", 1, True,
+     "::error title=sweep failed::"),
+    ("", 0, True, "::error title=sweep failed::"),
+]
+
+
+_SELF_ACTOR = "github-actions[bot]"   # sweep.SWEEP_ACTOR: GitHub starts no workflow_run from its events
 
 
 def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
@@ -20384,6 +20436,26 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
             out.append(f"prelude output {k}={v!r} reads no key prelude.py prints")
     for k in sorted(set(re.findall(r"needs\.prelude\.outputs\.([\w-]+)", text)) - set(pre)):
         out.append(f"needs.prelude.outputs.{k} is read, and the prelude declares no such output")
+    # sweep-self (R10-HOTFIX-SWEEP-TOKEN-ACTOR): a run whose actor is the bot fires no
+    # workflow_run, so it sweeps itself after its gate, on its own run id; its `if:` is read per
+    # event and actor below.
+    sweep_self = jobs.get("sweep-self") or {}
+    if sweep_self.get("needs") not in ("gate", ["gate"]):
+        out.append(f"sweep-self needs {sweep_self.get('needs')!r}, not gate (it sweeps once its gate concluded)")
+    if sweep_self.get("permissions") != {"actions": "write", "contents": "read", "pull-requests": "read"}:
+        out.append(f"sweep-self permissions {sweep_self.get('permissions')!r}")
+    if not str(sweep_self.get("if", "")).startswith("${{ !cancelled() && "):
+        out.append("sweep-self's if: does not open with !cancelled(): a red gate, the deferral it must re-judge, "
+                   "would skip it")
+    prog = [s for s in sweep_self.get("steps") or [] if "tools/ci/gate.py --sweep" in str(s.get("run", ""))]
+    if len(prog) != 1 or (prog[0].get("env") or {}).get("RUN_ID") != "${{ github.run_id }}" \
+            or 'python3 -I tools/ci/gate.py --sweep --run "$RUN_ID"' not in str(prog[0].get("run")):
+        out.append("sweep-self: no one step runs `python3 -I tools/ci/gate.py --sweep --run \"$RUN_ID\"` on its own run id")
+    else:
+        for so, rc, fails, note in _GS_CASES:
+            got_rc, got_out = _gs_step_verdict(str(prog[0]["run"]), so, rc)
+            if (got_rc != 0) != fails or note not in got_out:
+                out.append(f"sweep-self: program ({so.splitlines()[-1:]!r}, rc {rc}) -> step rc {got_rc}")
     gate = jobs.get("gate") or {}
     steps = gate.get("steps") or []
     co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
@@ -20410,10 +20482,16 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
             runs = _ghx(jobs[j].get("if", "true"), _ci_ctx(ev, payload, outs)[0])
             if runs is not (j in ws):
                 out.append(f"{j} under {ev}/{a}: if reads {runs!r}, the workset {'names' if j in ws else 'omits'} it")
+        for actor in (_SELF_ACTOR, "hpo-author[bot]", "hpo-runs[bot]", "tvofi"):
+            runs = _ghx(sweep_self.get("if", "true"), _ci_ctx(ev, payload, outs, actor)[0])
+            if runs is not (actor == _SELF_ACTOR):
+                out.append(f"sweep-self under {ev}/{a}, actor {actor}: if reads {runs!r} "
+                           f"(want {actor == _SELF_ACTOR}: gate-sweep.yml's workflow_run sweeps every other actor)")
     return out
 
 
 _CI_DEFECTS = _ci_umbrella_defects(_CI_DOC, _CI_TEXT)
+_SELF_IF = "    if: ${{ !cancelled() && github.actor == 'github-actions[bot]' }}\n"
 # Null controls: each plant breaks one property and must be named.
 _CI_PLANTS = {
     "run-name without the labeled arms": _CI_TEXT.replace(
@@ -20450,6 +20528,18 @@ _CI_PLANTS = {
         "fetch-depth: 0", "fetch-depth: 1", 1) if "  gate:\n" in _CI_TEXT else _CI_TEXT,
     "an output prelude.py never prints": _CI_TEXT.replace(
         "steps.derive.outputs.scope }}", "steps.derive.outputs.gate_scope }}", 1),
+    "sweep-self on every actor": _CI_TEXT.replace(_SELF_IF, "    if: ${{ !cancelled() }}\n", 1),
+    "sweep-self on the triggering actor": _CI_TEXT.replace(
+        _SELF_IF, "    if: ${{ !cancelled() && github.triggering_actor == 'github-actions[bot]' }}\n", 1),
+    "sweep-self skipped on a red gate": _CI_TEXT.replace(
+        _SELF_IF, "    if: ${{ github.actor == 'github-actions[bot]' }}\n", 1),
+    "sweep-self before the gate": _CI_TEXT.replace("    needs: gate\n", "    needs: prelude\n", 1),
+    "sweep-self on another run's id": _CI_TEXT.replace(
+        "          RUN_ID: ${{ github.run_id }}\n        run: |\n          set -uo pipefail\n",
+        "          RUN_ID: ${{ github.event.workflow_run.id }}\n        run: |\n          set -uo pipefail\n", 1),
+    "sweep-self keyed on the exit code": _CI_TEXT.replace(
+        '          out=$(python3 -I tools/ci/gate.py --sweep --run "$RUN_ID" 2>&1) || true\n'
+        "          printf '%s\\n' \"$out\"\n", '          python3 -I tools/ci/gate.py --sweep --run "$RUN_ID"\n          exit $?\n', 1),
 }
 _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
                           if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
@@ -20476,46 +20566,6 @@ R.check(
 # exits 1 on a rate limit and on a crash alike (P2a's forward-carry). The
 # step's own text is run under bash with a stand-in `python3` printing each
 # outcome, so the classification is measured, not read.
-# GitHub's shell for a `run:` block that names none: `bash -e {0}`. A harness
-# executing a step's own text runs it under this, never a bare `bash -c`, or a
-# bare call the step meant to classify ends the runner's step and passes the
-# harness's (gate-sweep's `out=$(...)`, R10-RCA-HOTFIX-BATCH-ERREXIT's I4).
-_GHA_RUN = ["bash", "-e", "-c"]
-
-
-def _stub_path_env(bindir, **extra: str) -> "dict[str, str]":
-    """This process's environment with ``bindir`` first on PATH and no BASH_ENV.
-
-    Every ``bash -c`` below finds a stand-in by PATH, and bash sources BASH_ENV
-    before the script: a cloud seat's profile there re-prepended its toolchain,
-    so the real ``python3`` shadowed the stand-in at every tree (#2835)."""
-    env = {k: v for k, v in os.environ.items() if k != "BASH_ENV"}
-    return {**env, "PATH": f"{bindir}{os.pathsep}{os.environ.get('PATH', '')}", **extra}
-
-
-def _gs_step_verdict(script: str, stdout: str, rc: int) -> "tuple[int, str]":
-    with tempfile.TemporaryDirectory() as d:
-        fake = Path(d) / "python3"
-        fake.write_text("#!/bin/sh\nprintf '%s' \"$FAKE_OUT\"\nexit \"$FAKE_RC\"\n")
-        fake.chmod(0o755)
-        p = _subprocess.run([*_GHA_RUN, script], capture_output=True, text=True, timeout=30,
-                            env=_stub_path_env(d, RUN_ID="123", FAKE_OUT=stdout, FAKE_RC=str(rc)))
-    return p.returncode, p.stdout
-
-
-_GS_CASES = [  # (program stdout, program rc) -> (the step fails, the annotation it must print)
-    ("SWEEP re-ran gate of run 1 (attempt 1, completed red)\nSWEEP-DONE run=2 reruns=1\n", 0, False, ""),
-    ("SKIP run 2: its gate is not green and newest-covering\n", 0, False, ""),
-    ("SWEEP-DONE run=2 reruns=0\n", 1, False, ""),
-    ("SWEEP re-ran gate of run 1\nRATE-LIMITED reset_epoch=99; no further re-runs before it\n", 1, True,
-     "::error title=RATE-LIMITED::"),
-    ("RATE-LIMITED reset_epoch=99; no further re-runs before it\n", 0, True, "::error title=RATE-LIMITED::"),
-    ("Traceback (most recent call last):\nRuntimeError: GET actions/runs/2: 500\n", 1, True,
-     "::error title=sweep failed::"),
-    ("", 0, True, "::error title=sweep failed::"),
-]
-
-
 def _gs_defects(text: str) -> "list[str]":
     doc = _yaml.safe_load(text) or {}
     on = doc.get("on", doc.get(True)) or {}
@@ -29751,7 +29801,9 @@ def _raf_job_ok(job: str) -> bool:
         and job.find("--write-self-row") > job.find("NUM=$(")
         and "docs/HANDOVER.md" not in job
         and "for try in 1 2 3" in job
-        and "issues/201/comments" in job
+        and "from budget_raise_gate import RECORD_ISSUE" in job
+        and "issues/$RECORD_ISSUE/comments" in job
+        and "issues/201/comments" not in job
         and "if: always()" in job
         and pushes
         and all(_RAF_LEASE in p for p in pushes)
@@ -31171,7 +31223,7 @@ R.check(
                       "ci.yml": ["arch-score", "budget-raise-gate", "cancel-superseded",
                                  "codeql", "gate", "governance", "hassfest",
                                  "kernel-points", "pr-contract", "prelude", "refresh",
-                                 "tests", "validate"]},
+                                 "sweep-self", "tests", "validate"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
     "not, at the unchanged head: a skipped run of a required context "
@@ -31797,7 +31849,7 @@ def _brg_defects(text: str) -> "list[str]":
     if not all(re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py", runs[i])
                for i in gate):
         out.append("gate not under python3 -I")
-    # `issues: read`: the owner's recorded mandate is a comment on #201.
+    # `issues: read`: the owner's recorded mandate is a comment on a record issue.
     if doc.get("permissions") != {"contents": "read", "pull-requests": "read", "issues": "read"} or any(
             "permissions" in (j or {}) for j in jobs.values()):
         out.append(f"permissions {doc.get('permissions')}")
@@ -31976,8 +32028,8 @@ _PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects(_PRW_UNDONE)})
 R.check(
     "and the same ci.yml and tests.yml with their restores and token hygiene undone are "
     "refused on each of the three autofix jobs (a workflow_call callee of a pull_request "
-    "workflow) and on ci.yml's cancel-superseded and refresh jobs (null control)",
-    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:refresh", "tests.yml:claims-autofix",
+    "workflow) and on ci.yml's cancel-superseded, refresh and sweep-self jobs (null control)",
+    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:refresh", "ci.yml:sweep-self", "tests.yml:claims-autofix",
                       "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
@@ -41652,6 +41704,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "_void_heat_loss_learners"): 1,
         ("coordinator.py", "_raise_cop_issue"): 1,
         ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
+        # R10-GENERIC-HEAT-CURVE-PERSISTENT: a baseline with no writer left is
+        # named once and disarmed in the same call, so it cannot repeat.
+        ("off_restore.py", "_restore_baseline"): 1,
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
@@ -41673,11 +41728,14 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "async_factory_reset"): 1,
         ("coordinator.py", "_thermal_param_changes"): 1, ("coordinator.py", "async_simulate"): 1,
         ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
+        # R10-GENERIC-HEAT-CURVE-PERSISTENT (C4): once per baseline still
+        # owed when the entry is removed.
+        ("off_restore.py", "async_forget"): 1,
     },
     "one record per failed call, an event and not a held condition (the "
     "sweep's actuation handlers, and an unexpected exception per failed update)": {
         ("climate.py", "_async_publish_displace_from_current_action"): 1,
-        ("coordinator.py", "_publish_ecl110_topics"): 2, ("coordinator.py", "_async_set_pump"): 1,
+        ("heat_curve.py", "publish_ecl110_topics"): 2, ("coordinator.py", "_async_set_pump"): 1,
         ("coordinator.py", "_command_frequency"): 1, ("coordinator.py", "_async_update_data"): 1,
         ("coordinator.py", "_async_first_refresh_light"): 1, ("disinfection.py", "_write"): 2,
         ("disinfection.py", "release"): 1, ("pump_arbiter.py", "_write"): 1,

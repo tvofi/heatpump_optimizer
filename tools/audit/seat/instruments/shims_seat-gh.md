@@ -11,15 +11,16 @@
   Refusal: no real gh, `gh shim: no real gh on PATH`, rc 127. When: the shared
   token's core bucket is spent and no host log names the caller (P284). Tested by
   `gh_calls.py --self-test`.
-  Comment guard (R10-RAISE-GATE-SHIM), deny by default: any call that could write a comment on #201
+  Comment guard (R10-RAISE-GATE-SHIM), deny by default: any call that could write a comment on a record
+  issue (#201 or #3394: `budget_raise_gate.RECORD_ISSUES`, the shim's `trackers`, pinned by the self-test)
   is refused unless the caller is python running the tree's own `tools/pr/gh_comment.py`, resolved by
   real path (the installer bakes the path into the copy). Let through without it: a call on an explicit
   list of calls that cannot. `issue` view/list/status/create; `issue` comment/close/reopen/edit/delete/
-  lock/unlock/pin/unpin/transfer/develop only with one target read as a plain number other than 201,
+  lock/unlock/pin/unpin/transfer/develop only with one target read as a plain number other than a tracker,
   under gh's own flag table (an unknown flag, a short-flag cluster or a second target is refused, so
   `close`/`reopen` `--comment`/`-c` are covered by the rule, not by name); `pr` unless a word reads as
-  201; `api` as a read (no field, no `--input`, GET, only an Accept header) or as a write that is not at
-  `issues/201/comments`, not at an unreadable path, not at `issues/comments/<id>` and not graphql unless
+  a tracker; `api` as a read (no field, no `--input`, GET, only an Accept header) or as a write that is not at
+  `issues/<tracker>/comments`, not at an unreadable path, not at `issues/comments/<id>` and not graphql unless
   the document holds no `mutation`/`subscription` and is not read from a file; gh command groups with no
   issue-comment surface; everything else (an unknown subcommand, an alias, an extension, a leading flag
   but `--version`/`--help`) is refused. The number is read after dropping leading zeros, trailing

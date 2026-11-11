@@ -355,8 +355,11 @@ jobs:
       # started here whose status no step read, so deleting a waiter step,
       # or its bg_wait line, turns the job red rather than leaving that
       # self-test's exit status unread.
+      # !cancelled(): every waiter below runs after an earlier step fails, and
+      # without its launcher each read a lib.sh no step wrote (run 42623897209).
       - name: Start the five slowest self-tests beside the rest of the job
         id: launch
+        if: ${{ !cancelled() }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/bg"
@@ -851,7 +854,7 @@ jobs:
           python3 -I tools/audit/seat/ledger.py --self-test | tee "$RUNNER_TEMP/ledger-self-test.txt"
           grep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"
 
-      # The after-merge bookkeeping (R10-FLY-TRAIN-DEFAULTS part 2): the #201 line from
+      # The after-merge bookkeeping (R10-FLY-TRAIN-DEFAULTS part 2): the record-issue line from
       # its template and the four steps merge_pr.sh and the train run after a merge.
       - name: Show the post-merge record line refusing its own fixtures
         id: post-merge-record-line
@@ -1044,6 +1047,14 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/record_row.py --self-test | tee "$RUNNER_TEMP/record-row-self-test.txt"
           grep -Eq '^record_row self-test: all checks passed$' "$RUNNER_TEMP/record-row-self-test.txt"
+
+      - name: Show the workflow read runner refusing its own fixtures
+        id: gh-read-run
+        if: ${{ !cancelled() && steps.scope.outputs.gh-read-run == 'true' }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/gh_read_run.py --self-test | tee "$RUNNER_TEMP/gh-read-run-self-test.txt"
+          grep -Eq '^gh_read_run self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gh-read-run-self-test.txt"
 
       - name: Show the resume renderer refusing its own fixtures
         id: resume-renderer
@@ -1353,6 +1364,14 @@ jobs:
           python3 -I tools/audit/seat/verdict_audit.py --self-test | tee "$RUNNER_TEMP/verdict-audit-self-test.txt"
           grep -Eq '^verdict_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/verdict-audit-self-test.txt"
 
+      - name: Show the survivor-list check (tools/audit/seat/survivor_list.py) refusing its own fixtures
+        id: survivor-list
+        if: ${{ !cancelled() && steps.scope.outputs.survivor-list == 'true' }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/survivor_list.py --self-test | tee "$RUNNER_TEMP/survivor-list-self-test.txt"
+          grep -Eq '^survivor_list self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/survivor-list-self-test.txt"
+
       - name: Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
         id: ci-probe-instrument
         if: ${{ !cancelled() && steps.scope.outputs.ci-probe-instrument == 'true' }}
@@ -1453,6 +1472,16 @@ jobs:
           python3 -I tools/ci/selftest_scope.py --self-test | tee "$RUNNER_TEMP/selftest-scope-self-test.txt"
           grep -Eq '^selftest_scope self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/selftest-scope-self-test.txt"
           python3 -I tools/ci/selftest_scope.py static
+
+      # Each trace-completeness and tracing rule of the scope and its wrapper,
+      # mutated, refused by the self-test above (R10-HOTFIX-SELFTEST-SCOPE-HANG).
+      - name: Show the self-test scope refusing each mutant of its trace rules
+        id: selftest-scope-mutants
+        if: ${{ !cancelled() && steps.scope.outputs.selftest-scope-mutants == 'true' }}
+        run: |
+          set -o pipefail
+          sh tools/ci/selftest_scope_mutants.sh --self-test | tee "$RUNNER_TEMP/selftest-scope-mutants.txt"
+          grep -Eq '^SELFTEST-SCOPE MUTANTS: every mutant refused$' "$RUNNER_TEMP/selftest-scope-mutants.txt"
 
       # A push to main: every step ran under strace; refuse a committed read
       # set that misses what this run read. Before `unread`, which stays last.

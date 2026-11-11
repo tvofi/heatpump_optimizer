@@ -79,9 +79,13 @@ import merge_throughput as mt  # noqa: E402 -- the flow board's computations
 import bottleneck_check  # noqa: E402 -- the one owner of the alert thresholds
 
 SELF = "tools/audit/seat/plan_page.py"
-# The round's tracking issue (CLAUDE.md's #201): the open-issue count leaves it
-# out, because it stays open for the whole programme by design.
-TRACKING_ISSUE = 201
+sys.path.insert(0, str(_SEAT.parents[1] / "policy"))
+from budget_raise_gate import RECORD_ISSUES  # noqa: E402 -- the one record-issue definition
+# The programme's record issues (#201, and its continuation past GitHub's
+# 2,500-comment cap): the open-issue count leaves them out, because they stay
+# open for the whole programme by design. The page names the live one.
+TRACKING_ISSUES = frozenset(RECORD_ISSUES)
+TRACKING_ISSUE = RECORD_ISSUES[-1]
 _ROUND_PREFIX = re.compile(r"\AR\d+-")
 _GROUP_ID = re.compile(r"\bR\d+(?:-[A-Z0-9]+)+\b")
 _DELIVERY_TITLE = re.compile(r"\A(R\d+-[A-Z0-9-]+):")
@@ -261,10 +265,8 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
         rows.append({
             "g": g, "lane": pg["lane"], "st": st, "label": label, "pr": pr,
             # The tier is the plan's computed dispatch priority (replan.py's
-            # dispatch_tier: 1 main, 2 hotfixes, 3 outside, 4 critical path, 5
-            # production and instruments saving 12 h or more, 6 other instruments); a done
-            # group has none. Why it is that tier and why it starts when it
-            # does are the plan's own words (`tier_reason`, `start_reason`).
+            # dispatch_tier, named by replan.TIER_LEGEND); a done group has none.
+            # Why it is that tier and why it starts when it does are the plan's own words (`tier_reason`, `start_reason`).
             "tier": pg.get("tier"),
             "why": "; ".join(x for x in (
                 pg.get("tier_reason"), pg.get("start_reason"), pg.get("duration_basis"),
@@ -425,7 +427,7 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
     out = {"close_at": close_at, "unplanned": unplanned,
             "other": open_now - set(close_at) - unplanned}
     out["orphans"] = {n: sorted(wired.get(n, [])) for n in sorted(out["other"])
-                      if n != TRACKING_ISSUE}
+                      if n not in TRACKING_ISSUES}
     return out
 
 
@@ -485,7 +487,7 @@ def issues_section(roster: dict, plan: dict, snap: dict) -> str:
             f"start; each is projected to close at the planned finish of the last group "
             f"carrying it. {len(unplanned)} sit on groups with no planned finish and stay "
             f"flat; {len(proj['other'])} other open issues are on no open group: "
-            f"#{TRACKING_ISSUE} (the tracking issue) and the "
+            f"{', '.join(f'#{n}' for n in RECORD_ISSUES)} (the record issues) and the "
             f"{len(proj['orphans'])} listed below as unplanned.")
     title = {i["number"]: i.get("title") or "" for i in snap["issues"]}
     orphans = "".join(
@@ -602,7 +604,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
               for k in _STRIP}
     open_iss = ("—" if snap.get("offline") else str(sum(
         1 for i in snap["issues"]
-        if i["state"] == "OPEN" and i["number"] != TRACKING_ISSUE)))
+        if i["state"] == "OPEN" and i["number"] not in TRACKING_ISSUES)))
     order = {k: i for i, k in enumerate(("S", "M", "L", "XL"))}
     sizes = ", ".join(f"{k} {v:g} h" for k, v in sorted(
         model["sizes_hours"].items(), key=lambda kv: (order.get(kv[0], 99), kv[0])))
@@ -649,6 +651,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
         "flow": flow_section(plan, rows, flow),
         "end": _t(summ["closure"]).strftime("%a %d %b %H:%M"),
         "svg": svg, "crit": crit or "—", "trs": trs, "stamps": stamps, "waves": waves,
+        "tier_legend": e(", ".join(f"{t} {w}" for t, w in sorted(replan.TIER_LEGEND.items()))),
         "slots": str(slots), "every": str(every),
         "slots_note": e(
             f"Read from plan.json: {summ['groups_open']} open groups, {summ['batches']} "
@@ -779,7 +782,7 @@ def _self_test() -> int:
             fails.append(f"{name} (got: {str(got)[:300]})")
 
     def grp(gid, lane, after=(), stage="not-started", branch="", commit=None,
-            issues=(), fixes=()):
+            issues=(), fixes=(), **kw):
         resume = {"stage": stage}
         if branch:
             resume["branch"] = branch
@@ -787,7 +790,7 @@ def _self_test() -> int:
             resume["commit"] = commit
         return {"group": gid, "lane": lane, "kind": "defect", "size": "S",
                 "after": list(after), "issues": list(issues), "fixes": list(fixes),
-                "brief": f"tvofi, 2026-01-01: Does {gid}. More.", "resume": resume}
+                "brief": f"tvofi, 2026-01-01: Does {gid}. More.", "resume": resume, **kw}
 
     roster = {"groups": [
         grp("R9-DONE-SHA", "CO", stage="done", commit="aaaaaaa1", issues=(11,), fixes=(11,)),
@@ -796,7 +799,8 @@ def _self_test() -> int:
         grp("R9-LIVE", "LE", stage="in-progress", branch="fix/r9-live-g", issues=(12,)),
         grp("R9-PART", "UX"),
         grp("R9-BLOCK", "UX", after=("R9-LIVE",)),
-        grp("R9-READY", "IN", after=("R9-DONE-SHA",), issues=(13,), fixes=(13,)),
+        grp("R9-READY", "IN", after=("R9-DONE-SHA",), issues=(13,), fixes=(13,),
+            source=roster_lib.OUTSIDE),
         dict(grp("R9-HELD", "IN", stage="absorbed"), absorbed_into="R9-DONE-SHA"),
     ]}
     snap = {
@@ -854,8 +858,8 @@ def _self_test() -> int:
     check("an open issue wired only via `fixes` to an open group closes at its finish, "
           "not an unplanned orphan",
           fp["close_at"].get(8) == _t("2026-01-05T10:00:00Z") and not fp["orphans"], fp)
-    check("the tracking issue is never an orphan",
-          TRACKING_ISSUE not in project_issues(ir, ip, {1, TRACKING_ISSUE})["orphans"])
+    check("no record issue, #201 or its continuation, is ever an orphan",
+          not TRACKING_ISSUES & set(project_issues(ir, ip, {1, *TRACKING_ISSUES})["orphans"]))
     osec = issues_section(ir, dict(ip, generated={"start": "2026-01-05T00:00:00Z"},
                                    summary={"closure": "2026-01-07T00:00:00Z"}),
                           {"issues": [{"number": n, "title": f"t{n}", "state": "OPEN"}
@@ -1046,8 +1050,16 @@ def _self_test() -> int:
                   and '<td class="tier">—</td>' in page
                   and '<th title="dispatch tier' in page,
                   {g: rows[g]["tier"] for g in rows})
-            check("the critical path is the urgent tier and production the production tier (the owner's order)",
-                  all(rows[g]["tier"] == replan.TIER_URGENT for g in plan["critical_path"])
+            check("an outside request off the critical path is the top tier, and its "
+                  "hover and the legend say so",
+                  "R9-READY" not in plan["critical_path"]
+                  and rows["R9-READY"]["tier"] == replan.TIER_TOP
+                  and "outside request" in rows["R9-READY"]["why"]
+                  and all(f"{t} {html.escape(w)}" in page
+                          for t, w in replan.TIER_LEGEND.items()),
+                  (rows["R9-READY"], plan["critical_path"]))
+            check("the critical path is the top tier and production tier 4 (the owner's order)",
+                  all(rows[g]["tier"] == replan.TIER_TOP for g in plan["critical_path"])
                   and any(rows[g]["tier"] == replan.TIER_PRODUCTION_WORK
                           for g in rows if scheduled(g)),
                   {g: rows[g]["tier"] for g in rows})
@@ -1287,7 +1299,7 @@ td.st{min-width:11rem}
   <div class="stat"><b>{{n_blocked}}</b><span>waiting on a group</span></div>
   <div class="stat"><b>{{n_partial}}</b><span>part merged, residual open</span></div>
   <div class="stat"><b>{{n_held}}</b><span>held by a disposition</span></div>
-  <div class="stat"><b>{{open_iss}}</b><span>open issues (excl. #{{tracking}})</span></div>
+  <div class="stat"><b>{{open_iss}}</b><span>open issues (excl. the record issues)</span></div>
   <div class="stat end"><b>{{end}}</b><span>projected programme close</span></div>
 </div>
 
@@ -1323,10 +1335,10 @@ td.st{min-width:11rem}
     <label class="chk"><input type="checkbox" id="hide-done"> Hide merged</label>
   </div>
   <div class="scroll"><table>
-    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: 1 main, 2 hotfix, 3 accepted outside, 4 critical path, 5 production and instruments saving 12 h or more, 6 other instruments by savings">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
+    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: {{tier_legend}}">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
     <tbody id="rows">{{trs}}</tbody>
   </table></div>
-  <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Tier is the plan's dispatch priority: 1 main, 2 hotfix, 3 accepted outside, 4 the computed critical path, 5 production, 6 non-production ranked by its <code>savings</code> (— for a merged group). Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
+  <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Tier is the plan's dispatch priority: {{tier_legend}} (— for a merged group); an ETA's hover names the roster field that decided it. Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
 </section>
 
 <section>

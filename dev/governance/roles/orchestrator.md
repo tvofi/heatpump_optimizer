@@ -193,7 +193,7 @@ established fact, with nothing gating it. A real finding you must not touch goes
 
 ## 9. The record, and the one living handover
 
-`delivery-status-tracking.mdc`, at **each merge**: `postmerge.py`'s #201 line and roster `resume`,
+`delivery-status-tracking.mdc`, at **each merge**: `postmerge.py`'s #3394 line and roster `resume`,
 no per-PR row from you (card C5); a verdict's paperwork notes are yours to resolve at that merge.
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
 
@@ -214,7 +214,7 @@ Failure shapes already produced, all yours:
 `finding-propagation.mdc` binds the producing pull request. It binds you
 additionally, because you write the rosters and you decide the merge order.
 
-- **A comment is not propagation** — including yours on #201.
+- **A comment is not propagation** — including yours on #3394.
 - **The destination must exist**, and creating it is part of the carry.
 - **Land the roster on main only when the tree needs it** (tvofi, 2026-10-18):
   a carry a PR names, a `Closes` needing a `fixes` edit (`pr-contract` reads

@@ -67,6 +67,7 @@ sweep's standing-seat liveness step keep them alive.
 - [`flow_metrics.py`](instruments/flow_metrics.py.md) — a round's flow over one window
 - [`gantt_drift.py`](instruments/gantt_drift.py.md) — compares the replanned gantt with the real state and prints one `GANTT-SLIP` line per unacknowledged IDLE, LATE or CLOSURE slip
 - [`gh_read.py`](instruments/gh_read.py.md) — the read rule every seat instrument's GitHub READS are under
+- [`gh_read_run.py`](instruments/gh_read_run.py.md) — runs one `gh` read under `gh_read.py`'s rule, for a workflow step
 - [`handoff_push.sh`](instruments/handoff_push.sh.md) — the legacy one-shot
 - [`handover_prompt.py`](instruments/handover_prompt.py.md) — generates the next-session prompt from the roster (and optionally a resume doc)
 - [`merge_pr.sh`](instruments/merge_pr.sh.md) — merges one PR after its evidence checks
@@ -115,13 +116,14 @@ sweep's standing-seat liveness step keep them alive.
 - [`plan_public.py`](instruments/plan_public.py.md) — stages the ongoing round's plan page from the newest state ref for the public site, refusing a page that would publish a host path or a tool's attribution
 - [`bottleneck_check.py`](instruments/bottleneck_check.py.md) — prints one `BOTTLENECK:` line per flow metric past the owner's threshold, with a suggested action the orchestrator decides on, and nothing when none is
 - [`outside_intake.py`](instruments/outside_intake.py.md) — lists submissions by outside users since a cursor with what each is owed (triage, answer, reply), and answers or refuses one, marked so none is answered twice
-- [`postmerge.py`](instruments/postmerge.py.md) — after a merge: the #201 line, the roster stage and main's suite state (the state docs are the plan-beat's); a failed step is printed OWED and opens the ledger's `postmerge-owed`
-- [`record_beat.py`](instruments/record_beat.py.md) — one merged pull request's #201 record line from a fixed template, the full merge sha, read back byte-identical
+- [`postmerge.py`](instruments/postmerge.py.md) — after a merge: the record-issue line, the roster stage and main's suite state (the state docs are the plan-beat's); a failed step is printed OWED and opens the ledger's `postmerge-owed`
+- [`record_beat.py`](instruments/record_beat.py.md) — one merged pull request's record-issue line from a fixed template, the full merge sha, read back byte-identical
 - [`sweep_driver.py`](instruments/sweep_driver.py.md) — the probe PR's sweep, where `workflow_run` never fires (`gate-sweep.yml` runs only from the default branch)
 - [`sweep_render.py`](instruments/sweep_render.py.md) — renders the orchestrator sweep from `sweep_template.md` and a session's JSON overlay (stdout or `--out`)
 - [`sweep_template.md`](instruments/sweep_template.md.md) — the orchestrator's recurring sweep, steps in order
 - [`sweep_gantt.py`](instruments/sweep_gantt.py.md) — compares the live state to the plan's Gantt and prints each unacknowledged `GANTT-SLIP`
 - [`verdict_audit.py`](instruments/verdict_audit.py.md) — maps every open PR to its latest verdict and holder; prints `UNHELD` lines
+- [`survivor_list.py`](instruments/survivor_list.py.md) — refuses a `mutation-vacuous` verdict that omits a survivor its evidence's driver output reports; `bus.sh push-verdict` runs it
 - [`bare_array.py`](instruments/bare_array.py.md) — refuses a bare `"${name[@]}"` in any tracked `tools/**/*.sh` script (a sourced library runs under its caller's `set -u`), which macOS bash 3.2 dies on when the array is empty (`--check`, `--self-test`)
 - [`tmp_paths.py`](instruments/tmp_paths.py.md) — refuses a tracked script, workflow or decision record that depends on a temp or machine path (`--check`, `--self-test`)
 - [`update_pr.sh`](instruments/update_pr.sh.md) — brings an open PR branch to its head + a code SHA (merge) + origin/main (merge), adds the PR's own delivery row when the head lacks it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as `hpo-author`
