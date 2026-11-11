@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_write GUARD_OFF 2f54ce51",
+  "killed_by": "tests/structure.py",
+  "old": "    if slot == \"mode\" and domain not in _MODE_DOMAINS:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 7428d87af49bf0f1d827feedc7f1a4a953b179ff: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

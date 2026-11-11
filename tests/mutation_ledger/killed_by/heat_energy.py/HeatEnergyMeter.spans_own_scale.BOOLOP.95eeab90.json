@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:HeatEnergyMeter.spans_own_scale BOOLOP 95eeab90",
+  "killed_by": "tests/features.py",
+  "old": "        return self.counter and self.earned",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return self.counter or self.earned`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

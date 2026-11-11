@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fuse_kw RETURN_DEL f7e9b8f0",
+  "killed_by": "tests/structure.py",
+  "old": "        return self.effective_config.fuse_kw()",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c25836e5a847d39f7a023e9f567ac2525741ebe: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

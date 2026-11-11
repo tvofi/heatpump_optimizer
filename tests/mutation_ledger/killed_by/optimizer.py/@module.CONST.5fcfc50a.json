@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:<module> CONST 5fcfc50a",
+  "killed_by": "tests/features.py",
+  "old": "_LBFGSB_FD_EPS = 1e-4",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 4d407a35f5f5e7785d06bebf1e40f2ab9e02ff3b: CONST (`_LBFGSB_FD_EPS = 0.0002e-4`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:_stored_counts BOOLOP ef519025",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "    if not (isinstance(raw, list) and len(raw) == 2):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 92bce7c452dd36dfb239953af7f29e1f2348050b: BOOLOP (`if not (isinstance(raw, list) or len(raw) == 2):`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

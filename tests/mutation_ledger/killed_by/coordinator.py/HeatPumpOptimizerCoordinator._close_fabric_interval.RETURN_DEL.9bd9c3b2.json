@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._close_fabric_interval RETURN_DEL 9bd9c3b2",
+  "killed_by": "tests/features.py",
+  "old": "        return FabricInterval(previous_state, previous_time, now, dt_h, power)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=13."
+}

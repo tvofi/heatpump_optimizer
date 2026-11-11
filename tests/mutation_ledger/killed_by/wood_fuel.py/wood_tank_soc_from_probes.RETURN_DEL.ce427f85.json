@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:wood_tank_soc_from_probes RETURN_DEL ce427f85",
+  "killed_by": "tests/features.py",
+  "old": "    return min(1.0, max(0.0, float(tank_temp) - float(comfort_min)) / span)",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,127 @@
+# baseline=7dd68dd  perturb=none
+# procs_at_start=0 load1=2.43
+
+=== Stress and economics ===
+RESULT reference_solve_wall_s=22.6019 s
+RESULT reference_solve_cpu_s=22.238 s
+RESULT reference_thread_factor=0.999992
+RESULT two_zone_dhw.equiv_total=59424 steps
+RESULT two_zone_dhw.scalar_steps=30144 steps
+RESULT two_zone_dhw.batch_rows=29280 rows
+RESULT two_zone_dhw.batch_calls=305 calls
+RESULT two_zone_dhw.batchfd_calls=305 calls
+RESULT two_zone_dhw.msm_entries=1 entries
+RESULT two_zone_dhw.minimize_calls=5 calls
+RESULT two_zone_dhw.njev=305 grads
+RESULT two_zone_dhw.nfev=305 fevals
+RESULT two_zone_dhw.nit=82 iters
+RESULT two_zone_dhw.equiv_per_grad=194.833 steps/grad
+RESULT two_zone_dhw.dhw_planning_equiv=0 steps
+RESULT two_zone_dhw.dhw_planning_share_pct=0 pct
+RESULT two_zone_dhw.cpu_ratio_vs_reference=0.0788188
+RESULT two_zone_dhw.wall_s_PROVISIONAL=1.78324 s
+RESULT two_zone_dhw.thread_factor=1.00906
+RESULT two_zone_dhw.phase._multi_start_minimize=58944 (99.2%) calls=1
+RESULT two_zone_dhw.phase._optimize_with_dhw=192 (0.3%) calls=1
+RESULT two_zone_dhw.phase._solve_space=96 (0.2%) calls=1
+RESULT two_zone_dhw.phase._compute_baseline_power=96 (0.2%) calls=1
+RESULT two_zone_dhw.phase._replay_end_state=96 (0.2%) calls=1
+RESULT two_zone_dhw.phase._build_dhw_requirements=0 (0.0%) calls=2
+RESULT two_zone_dhw.phase._dhw_legionella_plan=0 (0.0%) calls=2
+RESULT two_zone_dhw.phase._plan_dhw_min_cost=0 (0.0%) calls=2
+RESULT single_zone_dhw.equiv_total=5184 steps
+RESULT single_zone_dhw.scalar_steps=2976 steps
+RESULT single_zone_dhw.batch_rows=2208 rows
+RESULT single_zone_dhw.batch_calls=23 calls
+RESULT single_zone_dhw.batchfd_calls=23 calls
+RESULT single_zone_dhw.msm_entries=1 entries
+RESULT single_zone_dhw.minimize_calls=5 calls
+RESULT single_zone_dhw.njev=23 grads
+RESULT single_zone_dhw.nfev=23 fevals
+RESULT single_zone_dhw.nit=14 iters
+RESULT single_zone_dhw.equiv_per_grad=225.391 steps/grad
+RESULT single_zone_dhw.dhw_planning_equiv=0 steps
+RESULT single_zone_dhw.dhw_planning_share_pct=0 pct
+RESULT single_zone_dhw.cpu_ratio_vs_reference=0.00770798
+RESULT single_zone_dhw.wall_s_PROVISIONAL=0.185456 s
+RESULT single_zone_dhw.thread_factor=0.999982
+RESULT single_zone_dhw.phase._multi_start_minimize=4704 (90.7%) calls=1
+RESULT single_zone_dhw.phase._optimize_with_dhw=192 (3.7%) calls=1
+RESULT single_zone_dhw.phase._solve_space=96 (1.9%) calls=1
+RESULT single_zone_dhw.phase._compute_baseline_power=96 (1.9%) calls=1
+RESULT single_zone_dhw.phase._replay_end_state=96 (1.9%) calls=1
+RESULT single_zone_dhw.phase._build_dhw_requirements=0 (0.0%) calls=2
+RESULT single_zone_dhw.phase._dhw_legionella_plan=0 (0.0%) calls=2
+RESULT single_zone_dhw.phase._plan_dhw_min_cost=0 (0.0%) calls=2
+RESULT single_zone_nodhw.equiv_total=4608 steps
+RESULT single_zone_nodhw.scalar_steps=2592 steps
+RESULT single_zone_nodhw.batch_rows=2016 rows
+RESULT single_zone_nodhw.batch_calls=21 calls
+RESULT single_zone_nodhw.batchfd_calls=21 calls
+RESULT single_zone_nodhw.msm_entries=1 entries
+RESULT single_zone_nodhw.minimize_calls=5 calls
+RESULT single_zone_nodhw.njev=21 grads
+RESULT single_zone_nodhw.nfev=21 fevals
+RESULT single_zone_nodhw.nit=15 iters
+RESULT single_zone_nodhw.equiv_per_grad=219.429 steps/grad
+RESULT single_zone_nodhw.dhw_planning_equiv=0 steps
+RESULT single_zone_nodhw.dhw_planning_share_pct=0 pct
+RESULT single_zone_nodhw.cpu_ratio_vs_reference=0.00344563
+RESULT single_zone_nodhw.wall_s_PROVISIONAL=0.0869838 s
+RESULT single_zone_nodhw.thread_factor=0.999981
+RESULT single_zone_nodhw.phase._multi_start_minimize=4224 (91.7%) calls=1
+RESULT single_zone_nodhw.phase._optimize_space_only=192 (4.2%) calls=1
+RESULT single_zone_nodhw.phase._compute_baseline_power=96 (2.1%) calls=1
+RESULT single_zone_nodhw.phase._replay_end_state=96 (2.1%) calls=1
+RESULT single_zone_nodhw.phase._build_result=0 (0.0%) calls=1
+RESULT zero_range_fuse_cap.equiv_total=55776 steps
+RESULT zero_range_fuse_cap.scalar_steps=28320 steps
+RESULT zero_range_fuse_cap.batch_rows=27456 rows
+RESULT zero_range_fuse_cap.batch_calls=286 calls
+RESULT zero_range_fuse_cap.batchfd_calls=286 calls
+RESULT zero_range_fuse_cap.msm_entries=1 entries
+RESULT zero_range_fuse_cap.minimize_calls=5 calls
+RESULT zero_range_fuse_cap.njev=286 grads
+RESULT zero_range_fuse_cap.nfev=286 fevals
+RESULT zero_range_fuse_cap.nit=97 iters
+RESULT zero_range_fuse_cap.equiv_per_grad=195.021 steps/grad
+RESULT zero_range_fuse_cap.dhw_planning_equiv=0 steps
+RESULT zero_range_fuse_cap.dhw_planning_share_pct=0 pct
+RESULT zero_range_fuse_cap.cpu_ratio_vs_reference=0.0726479
+RESULT zero_range_fuse_cap.wall_s_PROVISIONAL=1.74949 s
+RESULT zero_range_fuse_cap.thread_factor=0.999999
+RESULT zero_range_fuse_cap.phase._multi_start_minimize=55296 (99.1%) calls=1
+RESULT zero_range_fuse_cap.phase._optimize_with_dhw=192 (0.3%) calls=1
+RESULT zero_range_fuse_cap.phase._solve_space=96 (0.2%) calls=1
+RESULT zero_range_fuse_cap.phase._compute_baseline_power=96 (0.2%) calls=1
+RESULT zero_range_fuse_cap.phase._replay_end_state=96 (0.2%) calls=1
+RESULT zero_range_fuse_cap.phase._build_dhw_requirements=0 (0.0%) calls=1
+RESULT zero_range_fuse_cap.phase._dhw_legionella_plan=0 (0.0%) calls=1
+RESULT zero_range_fuse_cap.phase._plan_dhw_min_cost=0 (0.0%) calls=1
+RESULT two_zone_dhw_FLAT_null.equiv_total=58560 steps
+RESULT two_zone_dhw_FLAT_null.scalar_steps=29760 steps
+RESULT two_zone_dhw_FLAT_null.batch_rows=28800 rows
+RESULT two_zone_dhw_FLAT_null.batch_calls=300 calls
+RESULT two_zone_dhw_FLAT_null.batchfd_calls=300 calls
+RESULT two_zone_dhw_FLAT_null.msm_entries=1 entries
+RESULT two_zone_dhw_FLAT_null.minimize_calls=5 calls
+RESULT two_zone_dhw_FLAT_null.njev=300 grads
+RESULT two_zone_dhw_FLAT_null.nfev=300 fevals
+RESULT two_zone_dhw_FLAT_null.nit=59 iters
+RESULT two_zone_dhw_FLAT_null.equiv_per_grad=195.2 steps/grad
+RESULT two_zone_dhw_FLAT_null.dhw_planning_equiv=0 steps
+RESULT two_zone_dhw_FLAT_null.dhw_planning_share_pct=0 pct
+RESULT two_zone_dhw_FLAT_null.cpu_ratio_vs_reference=0.0745278
+RESULT two_zone_dhw_FLAT_null.wall_s_PROVISIONAL=1.69336 s
+RESULT two_zone_dhw_FLAT_null.thread_factor=0.999998
+RESULT two_zone_dhw_FLAT_null.phase._multi_start_minimize=58080 (99.2%) calls=1
+RESULT two_zone_dhw_FLAT_null.phase._optimize_with_dhw=192 (0.3%) calls=1
+RESULT two_zone_dhw_FLAT_null.phase._solve_space=96 (0.2%) calls=1
+RESULT two_zone_dhw_FLAT_null.phase._compute_baseline_power=96 (0.2%) calls=1
+RESULT two_zone_dhw_FLAT_null.phase._replay_end_state=96 (0.2%) calls=1
+RESULT two_zone_dhw_FLAT_null.phase._build_dhw_requirements=0 (0.0%) calls=1
+RESULT two_zone_dhw_FLAT_null.phase._dhw_legionella_plan=0 (0.0%) calls=1
+RESULT two_zone_dhw_FLAT_null.phase._plan_dhw_min_cost=0 (0.0%) calls=1
+RESULT load1=3.03906
+RESULT swapins=41568952
+RESULT concurrent_gate_procs=0

@@ -1,0 +1,65 @@
+{
+  "dimension": "D10",
+  "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+  "findings": [
+    {
+      "id": "D10-s2-01",
+      "title": "Incomplete strict typing in integration — 515 mypy --strict errors",
+      "severity": "medium",
+      "claim": "The integration does not meet platinum-tier strict-typing requirements with mypy --strict.",
+      "mechanism": "Home Assistant dependency imports lack type stubs (py.typed markers), blocking static type analysis. Function signatures and type annotations are incomplete or absent in several integration modules.",
+      "evidence": {
+        "command": "python3 tools/audit/round8/D10/s2_strict_typing.py",
+        "harness_path": "tools/audit/round8/D10/s2_strict_typing.py",
+        "value": 515,
+        "unit": "errors",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "cloud Linux 4-vCPU 15GB RAM",
+        "cpu_or_wall": "count",
+        "contention_note": "shared box, load1 20.14",
+        "tolerance": "exact",
+        "load1": 20.14,
+        "thread_factor": 1.001
+      },
+      "instrumented_symbol": "custom_components.heatpump_optimizer",
+      "perturbation": {
+        "change": "Add type hints to optimizer.py imports (from typing import Any, Optional)",
+        "expected_direction": "down",
+        "observed_value": 515
+      },
+      "metric_definition": "Total count of errors from mypy --strict --show-error-codes run against custom_components/heatpump_optimizer",
+      "phenomenon_property": "Integration modules lack type annotations required for platinum-tier quality scale compliance",
+      "seam_rule": "python3 -m mypy --strict custom_components/heatpump_optimizer 2>&1 | grep -c 'error:'",
+      "stop_rule_class": "hygiene",
+      "files": [
+        "custom_components/heatpump_optimizer/__init__.py",
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/optimizer.py",
+        "custom_components/heatpump_optimizer/entity.py"
+      ],
+      "proposed_fix_scope": "Add type hints to function signatures and class attributes; define TypedDict for dynamic entity configuration; create py.typed marker in integration package root"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "Integration test scripts execute without import errors",
+      "command": "python3 tests/entities.py",
+      "value": "exit 0"
+    },
+    {
+      "claim": "Feature test suite runs successfully with real setup",
+      "command": "python3 tests/features.py",
+      "value": "exit 0"
+    },
+    {
+      "claim": "mypy strict mode analysis tool is functional",
+      "command": "python3 -m mypy --version",
+      "value": "mypy 2.3.1"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round8/D10/s2_strict_typing.py",
+    "tools/audit/round8/D10/s2_strict_typing_perturb.py",
+    "tools/audit/round8/D10/s2_coverage.py"
+  ]
+}

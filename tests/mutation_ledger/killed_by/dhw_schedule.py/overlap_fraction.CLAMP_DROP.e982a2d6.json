@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:overlap_fraction CLAMP_DROP e982a2d6",
+  "killed_by": "tests/features.py",
+  "old": "                0.0, min(seg_end, win_end) - max(seg_start, win_start)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`0.0, (seg_end) - max(seg_start, win_start)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6. Each of the 2 sites under this anchor was killed."
+}

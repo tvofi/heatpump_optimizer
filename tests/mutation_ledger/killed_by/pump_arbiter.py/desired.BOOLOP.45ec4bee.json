@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:desired BOOLOP 45ec4bee",
+  "killed_by": "tests/features.py",
+  "old": "    if duty == \"space\" and inp.disinfecting:",
+  "reason": "pump-duty arbiter revision; `if duty == \"space\" and _disinfecting(coord):` -> `if duty == \"space\" or _disinfecting(coord):` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24. Re-measured on a git-archive export of 13a82a9d, 2026-10-05: `with no heating-only mode (GCHV Modbus) the hot-water set-point is the gate, at the entity's minimum` fails, against the export baseline's two artefacts (#363 recorded_at, R9-F2.1 P3). Re-keyed by R9-EG-B6 (#1739): the collaborator-interface rename made the line `    if duty == \"space\" and _disinfecting(coord):` into `    if duty == \"space\" and inp.disinfecting:`."
+}

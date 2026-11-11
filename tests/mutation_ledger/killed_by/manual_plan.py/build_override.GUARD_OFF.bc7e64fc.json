@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/manual_plan.py:build_override GUARD_OFF bc7e64fc",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    if _instant(expires_ref) <= _instant(now):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 787fe137cc72c77188a54a5125dc351c95ba84b3: GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=3."
+}

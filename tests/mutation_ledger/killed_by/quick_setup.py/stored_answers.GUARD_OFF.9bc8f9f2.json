@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quick_setup.py:stored_answers GUARD_OFF 9bc8f9f2",
+  "killed_by": "tests/features.py",
+  "old": "    if mode in (TWO_ZONE_MODE_ON, TWO_ZONE_MODE_OFF):",
+  "reason": "Recorded by `mutation_table.py --drain` against 1005e27a6fe2b60ded9fa530e03513c5c35c4ead: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

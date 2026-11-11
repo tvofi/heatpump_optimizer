@@ -1,0 +1,34 @@
+# baseline=7dd68dd  horizon=24h
+# procs_at_start=0 load1=14.49
+
+=== Stress and economics ===
+RESULT reference_solve_cpu_s=21.854 s
+RESULT reference_thread_factor=0.999981
+RESULT winter_typical.comfort_terms_calls_per_solve=29591 calls
+RESULT winter_typical.comfort_terms_calls_per_gradient=97.0197 calls/grad
+RESULT winter_typical.batch_rows_per_solve=29280 rows
+RESULT winter_typical.batch_rows_per_gradient=96 rows/grad
+RESULT winter_typical.njev=305 grads
+RESULT winter_typical.comfort_terms_cpu_share_pct=32.2979 pct
+RESULT winter_typical.simulate_batch_cpu_share_pct=38.3714 pct
+RESULT winter_typical.comfort_over_simulate_batch=0.841718
+RESULT winter_typical.solve_wall_s_PROVISIONAL=1.72702 s
+RESULT winter_typical.solve_cpu_s_PROVISIONAL=1.68324 s
+RESULT winter_typical.thread_factor=0.999998
+RESULT flat_NULL.comfort_terms_calls_per_solve=29107 calls
+RESULT flat_NULL.comfort_terms_calls_per_gradient=97.0233 calls/grad
+RESULT flat_NULL.batch_rows_per_solve=28800 rows
+RESULT flat_NULL.batch_rows_per_gradient=96 rows/grad
+RESULT flat_NULL.njev=300 grads
+RESULT flat_NULL.comfort_terms_cpu_share_pct=33.1257 pct
+RESULT flat_NULL.simulate_batch_cpu_share_pct=39.0681 pct
+RESULT flat_NULL.comfort_over_simulate_batch=0.847895
+RESULT flat_NULL.solve_wall_s_PROVISIONAL=1.62016 s
+RESULT flat_NULL.solve_cpu_s_PROVISIONAL=1.5887 s
+RESULT flat_NULL.thread_factor=1
+RESULT cpu_ratio_vs_reference=0.0770221
+RESULT null_control_comfort_share_delta_pp=0.827786 pp
+RESULT null_control_calls_per_gradient_delta=0.0036612 calls/grad
+RESULT load1=13.4927
+RESULT swapins=42827567
+RESULT concurrent_gate_procs=0

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_verdict BOOLOP 2bdf9629",
+  "killed_by": "tests/features.py",
+  "old": "    elif actual == planned or (planned == \"both\" and actual != \"idle\"):",
+  "reason": "pump-duty arbiter revision; `elif actual == planned or (planned == \"both\" and actual != \"idle\"):` -> `elif actual == planned or (planned == \"both\" or actual != \"idle\"):` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

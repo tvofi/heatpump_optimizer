@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "Carry destination for the round-9 UI lane (#1791, UI-1 to UI-4: the card's plan chart and panels), from R9-F1.8 (#1657, class P8).",
+    "The round-9 roster is not on main, so this file is the in-tree destination; a roster brief that says otherwise is older. Shape: .claude/rules/finding-propagation.md."
+  ],
+  "issue": 1791,
+  "stage": "R9 UI-1 to UI-4, or any later seat that renders a money figure or a price axis in custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+  "carries": [
+    {
+      "from": "the pull request for R9-F1.8 (#1657, a money figure's currency comes from the label source, not the price feed)",
+      "effect": "narrows",
+      "control": "Established by measurement with its null control. The finder's card harness (tools/audit/round9/D14/s2/p8_card.mjs at evidence commit 79aa98ec, run through p8_currency.py) counted two currency tokens on one screen with a card-config currency: EUR against the plan's SEK, card_distinct_currency_tokens[card_cfg_EUR]=2 at base 5dfa6684 and 1 at the F1.8 head; its no-config arm reads 1 at both ends (null control). tests/card.mjs pins it with 'a card currency does not relabel the currency the plan publishes (#1657)', which fails when a card-config currency again leads PlanSource.currency().",
+      "remeasure": "Do not trust these figures: they were measured at the F1.8 head. Run PYTHONPATH=tests/hastub python3 tools/audit/round9/D14/s2/p8_currency.py from the 79aa98ec export at your own merge base and read the card_distinct_currency_tokens lines, and run node tests/card.mjs.",
+      "brief": "The card has one money resolver, PlanSource.currency(own): a figure's own declared unit, then the currency the integration publishes on the plan sensors (the price feed's), then a card-config currency:, then Home Assistant's, then SEK. savingsUnit() goes through it. A new money surface (a panel, a tile, an axis) must resolve through currency(), never read config.currency or hass.config.currency itself, because nothing in the card converts and a label that leads the published currency relabels un-converted figures."
+    }
+  ]
+}

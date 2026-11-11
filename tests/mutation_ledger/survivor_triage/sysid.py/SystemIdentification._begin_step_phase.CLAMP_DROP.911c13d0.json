@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification._begin_step_phase CLAMP_DROP 911c13d0",
+  "old": "            unadoptable = self._unadoptable(sized * max(cop, 0.1), outdoor_temp)",
+  "reason": "R9 F4.2: the floor matches _size_step_power's own `cop = max(cop, 0.1)`, so the thermal step the prediction is handed is the thermal step the sizer sized (sized = q / floored cop). It binds only for cop < 0.1. The only production caller passes ThermalModel.compute_cop, which floors every COP at the resistive bound 1.0 (thermal_model.py `return max(cop, 1.0)` and `return max(base_cop * dhw_penalty, 1.0)`), and every driver passes cop >= 1, so the drop survives. Recorded as a gap, not equivalence, because a direct caller of step() could pass cop < 0.1. Survival measured by the fix review of #1718 at e38ecc4e, 2026-09-27.",
+  "verdict": "gap"
+}

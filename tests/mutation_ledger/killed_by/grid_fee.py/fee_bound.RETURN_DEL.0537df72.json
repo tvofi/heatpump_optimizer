@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/grid_fee.py:fee_bound RETURN_DEL 0537df72",
+  "killed_by": "tests/structure.py",
+  "old": "    return IMPLAUSIBLE_FEE_SEK_PER_KWH * money_scale(currency)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 59c2543bdbc244ff4f1e99fffe358edd92060995: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

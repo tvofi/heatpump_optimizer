@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:CounterDelta.observe CMP_BOUND 0716853e",
+  "killed_by": "tests/features.py",
+  "old": "        if self.last is not None and kwh > self.last:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if self.last is not None and kwh >= self.last:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_thermostat_demand_two_zone RETURN_DEL 3cffae97",
+  "killed_by": "tests/features.py",
+  "old": "    return q_upper + q_floor",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

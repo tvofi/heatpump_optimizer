@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "Carry destination for issue #1300 (R5-D11-01, the round-5 D11 audit's",
+    "required-contexts finding: the committed fixture named only ruleset",
+    "22628467, and the governance detector reported 0 findings on real drift).",
+    "The stage that needs this is any later seat that re-records",
+    ".claude/workflows/fixtures/required-contexts.json, or that audits the",
+    "default-branch boundary. No roster group in this tree claims #1300 -- the",
+    "wave-d11 group is at resume.stage done and is not a destination -- so this",
+    "file is that stage's brief. Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1300,
+  "stage": "any later seat that re-records .claude/workflows/fixtures/required-contexts.json, or that audits the default-branch boundary (a later round's D11 dimension; tools/audit/briefs/D11.md is its method, .claude/workflows/counts.mjs's liveRequiredContexts and requiredContextsDrift its instrument, tools/audit/round5/D11/governance_drift.mjs its round-5 harness)",
+  "carries": [
+    {
+      "from": "the pull request that made requiredContextsDrift compare the contributing ruleset ids and re-recorded .claude/workflows/fixtures/required-contexts.json from the live API (R5-D11-01, #1300)",
+      "effect": "invalidates",
+      "control": "The assumption invalidated: that the default branch has ONE ruleset carrying the required contexts, so `rulesets` in required-contexts.json names 'the ruleset on main' -- and that a context-name comparison alone can see the boundary move. Both are false. The boundary spans TWO rulesets: `main-protect` 22628467 carries deletion and non-fast-forward only (no required_status_checks), while `main-protect-checks` 23698884, created 2026-09-19, carries the required contexts, the `pull_request` review rule and the deploy key's `always` bypass. `liveRequiredContexts()` reads the branch endpoint's `required_status_checks` contributors, so `live.rulesets` is 23698884; the pre-fix fixture recorded 22628467. With only the context-name arms, the reader returned 0 findings on that real drift. The null control is the harness arm `control_ruleset_id_swap` in tools/audit/round5/D11/governance_drift.mjs: it read 0 on the unmodified tree and 2 once the id comparison is present, and `perturb_ruleset_move_findings` reads 0 blind against 2 after. The control that stays firing at both ends is `control_context_swap` at 2 -- the fix widened the reader without breaking the name arm.",
+      "remeasure": "Do not trust this paragraph's ids; re-read the boundary at your own merge base, because a ruleset split or rename is exactly the event this carry exists for. Run `node tools/audit/round5/D11/governance_drift.mjs`: `live_ruleset_ids` must equal `recorded_ruleset_ids`, and both `control_ruleset_id_swap` and `perturb_ruleset_move_findings` must read non-zero (0 means the id comparison is gone). Read the live contributor with `gh api repos/<owner>/<repo>/rules/branches/main` and take the `ruleset_id` on the rule whose `type` is `required_status_checks` -- never assume the push-guard ruleset also carries the checks.",
+      "brief": "required-contexts.json's `rulesets` records the id(s) the contexts were READ OUT OF -- the branch endpoint's `required_status_checks` contributors -- not 'the ruleset on main'. At the 2026-09 boundary that is `main-protect-checks` 23698884 alone; `main-protect` 22628467 appears nowhere in the list because it carries no required context, and naming it there is the #1300 defect. The default-branch boundary is two rulesets, so any audit of it must enumerate both and say which one the required contexts come from; a rollback is one DELETE per ruleset, not one. requiredContextsDrift now reddens on an id the live boundary gained OR one the record holds that the boundary no longer draws from, so a re-record must update `rulesets` whenever the contributing ruleset changes, not only when a context name does."
+    }
+  ]
+}

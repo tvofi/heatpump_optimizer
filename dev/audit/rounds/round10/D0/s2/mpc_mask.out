@@ -1,0 +1,4 @@
+
+=== Closed-loop rolling simulation ===
+RESULT closedloop_gap[winter_typical:winter_cold:1:1]=-0.3088 pct prodSEK=74.150 chalSEK=74.379 minroom prod=17.07 chal=17.03 below17 prod=0.000 chal=0.000 dhwmin prod=42.8 chal=42.8
+RESULT closedloop_gap[winter_typical:winter_mild:1:0]=3.7954 pct prodSEK=15.973 chalSEK=15.367 minroom prod=16.80 chal=16.79 below17 prod=0.551 chal=1.056 dhwmin prod=52.0 chal=52.0

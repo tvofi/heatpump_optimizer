@@ -1,0 +1,176 @@
+{
+  "_comment": [
+    "Wave 3L of the open-issues programme (docs/plan-2026-09-open-issues.md).",
+    "Leftovers after Wave 3, before Wave 4. Serial. 3L-G10 done (e4bc375); 3L-G6 spec-blocked (#457).",
+    "#412 stays last of the programme, not in this burst.",
+    "Consumed by .claude/workflows/web-fix-wave.js as its `groups` argument."
+  ],
+  "fork": "e4bc3756d47c4adbc4d76284cdfe4d5e1dd3a52f",
+  "fork_note": "origin/main after 3L-G10 #492 (`e4bc375`). Re-measure structure at this merge-base. coordinator_loc 10344. claims-for stays 6.3.15. #465 closed. Next seat Wave 4 S0 (W4-G1); seats not started.",
+  "session": "claude-web",
+  "repo": "~/heatpump_optimizer",
+  "serial": true,
+  "struck": [],
+  "groups": [
+    {
+      "group": "3L-G1",
+      "issues": [400],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": true,
+      "blocked_on": null,
+      "after": [],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 470,
+        "merge_sha": "81aa0c3b17b7fef448fdf1a3822bcdaf8c81d9d1",
+        "note": "Review merge 5555202462 at 612e9c3. Mutation FAIL planner-buys-less + md5 4b5dad66. 2000 L@85 burn24h 6.531→3.015 kWh, tmin 45.045 vs 45.0. wood_coil may-drift 818 leaves, not claimed; other 54 byte-identical. SOLVE_BUDGET_RATIO 782.11. #400 closed. Next seat 3L-G2."
+      },
+      "brief": "DHW planner credits the wood-tank refill coil. Measured -5.394 SEK/day on 2000 L @ 85 C; plan is byte-identical coil-on/off today. optimizer.py only. Claims, never re-record goldens. wood_coil is may-drift and cannot be claimed. Other 54 scenarios byte-identical."
+    },
+    {
+      "group": "3L-G2",
+      "issues": [401],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": ["3L-G1"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 472,
+        "merge_sha": "2abe2f7a2a0d9544868852b566f1f8d545dfa554",
+        "note": "Review merge 5555406632 at 6b1efc2. _require_strace aborts on Darwin; no fake measured record. Mutation FileNotFoundError on mutant; restore md5 04d6018e. claims-for 6.3.15. #401 closed. Next seat 3L-G3."
+      },
+      "brief": "closure.py _record_node() strace availability guard. Unblocks a full derive on macOS. Before #404."
+    },
+    {
+      "group": "3L-G3",
+      "issues": [404],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": ["3L-G2"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 474,
+        "merge_sha": "e8adfe44d768047b8d2cbcea16be7301a694510a",
+        "note": "Review merge 5555631655 at fb7a950. Lease 1800s + flock. Follow-ups: #479 `8ea27d4` abandoned-hold steal (review 5555881791 at dc3f855); #480 `162e759` same-label expired take + leftover holding (review 5555932201 at b5a4c08). #481 leftover closed. #404 stays closed. Next seat 3L-G5."
+      },
+      "brief": "Gate lock becomes a renewed lease + flock. Lives in tests/, needs the derive #401 unlocks."
+    },
+    {
+      "group": "3L-G4",
+      "issues": [405],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": ["3L-G3"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 477,
+        "merge_sha": "531d8b73337f1b5019f476f2933bfee8765c5605",
+        "note": "Review merge 5555778270 at acb8660. Fourth holes-list bound; no exact-set pins for SolarIrradianceSensor / OptimizationScoreSensor. Mutation FAIL holes-prose. claims-for 6.3.15. #405 closed. Next seat 3L-G5."
+      },
+      "brief": "SolarIrradianceSensor / OptimizationScoreSensor data-driven keys: state the bound in the holes list, no exact-set pin."
+    },
+    {
+      "group": "3L-G5",
+      "issues": [408],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["3L-G4"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 483,
+        "merge_sha": "6f02b8a71ee6fcc250d17657d60a63cc5cb1532e",
+        "note": "Review merge 5556388345 at 0d9ce1b. Consistency only; hassfest flow_title; 7 closures; optimality.evaluate renamed score_plan. Mutation 6+2 FAIL. coordinator_loc 10374. #408 closed. Next seat 3L-G6 (spec-blocked); 3L-G7 follows G5."
+      },
+      "brief": "Optional set-point entities + consistency repair only. Optimality / Fix-to-argmin refused (50 to 65 C instability). Holds coordinator/config — later 3L groups must not merge ahead of this seat."
+    },
+    {
+      "group": "3L-G6",
+      "issues": [457],
+      "fixerModel": "sonnet",
+      "reviewerModel": "sonnet",
+      "effort": "medium",
+      "fixture": false,
+      "after": ["3L-G5"],
+      "resume": {
+        "stage": "blocked",
+        "branch": "cursor/3l-g6-setup-conflict-btn-3c04",
+        "note": "TERMINAL, NOT DELIVERED -- stage stays `blocked`, which here means spends no agent and is recorded for the orchestrator, because this group has no pull request and no merge SHA and `done` in this roster means merged. NEEDS_CONTEXT at 6f02b8a: no conflict flow in production -- no symbol, step or service named `conflict` on main, the nearest twins being the read-only options `setup_overview` and config `reconfigure`. This note said `#457 stays open`, true when written and false from 2026-09-06T03:40:23Z, when the owner closed #457 `completed`. The spec this group waited on never arrived; the issue was closed rather than specified, so no card work is owed and the group does not reopen. 3L-G7 sits after 3L-G5."
+      },
+      "brief": "Card setup-page button that opens the conflict flow. Card-only. If still blocked on the conflict-flow spec, 3L-G7 sits after 3L-G5 instead."
+    },
+    {
+      "group": "3L-G7",
+      "issues": [460],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["3L-G5"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 485,
+        "merge_sha": "bf08217dc4ffc49a93668e138240d7e9fa36b0a7",
+        "note": "Review merge 5556640276 at eb64cca. Mutation 4 FAIL + md5 d56e21126f691214f82470fb24387bc5. env_drift vs 1859f9d NO UNCLAIMED DRIFT 55; five coord_* claimed. card_drift 19 claimed 9 identical. coordinator_loc 10370. #460 closed. Next seat 3L-G8."
+      },
+      "brief": "Monthly savings history card page (#460). Book savings_baseline and savings_actual on MonthlyLedger; derive savings; calendar pro-rata for the open month; MonthlySavingsSensor _monthly_savings; third expanded-dialog tab. Baseline kW rides on OptimizationResult.baseline_power_schedule (pickle-safe lists for the W3-G3 process route), not on data[] or a plan sensor. Pay coordinator_loc, never raise. claims-for 6.3.15. No golden re-record. Closes #460 on its own line. Spec docs/superpowers/specs/2026-09-05-monthly-savings-history-design.md. Plan docs/superpowers/plans/2026-09-05-monthly-savings-history.md."
+    },
+    {
+      "group": "3L-G8",
+      "issues": [463],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["3L-G7"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 487,
+        "merge_sha": "a19ba032349c8b779e057b36083acc5e72d0dcab",
+        "note": "Review merge 5557257980 at 4cfb124. Mutation 3 FAIL + md5 2be697d732876d4e4457693225702911. env_drift vs a5b1c06 NO UNCLAIMED DRIFT 55; config_flow + five coord_* claimed. card_drift 28 identical. coordinator_loc 10370. #463 stays open. Next seat 3L-G9."
+      },
+      "brief": "Wood-furnace toggle, firewood price, cheaper-than-pump sensor (#463). Does not close the issue. Spec docs/superpowers/specs/2026-09-05-wood-furnace-economics-design.md. Plan docs/superpowers/plans/2026-09-05-wood-furnace-economics.md. After 3L-G7, before Wave 4."
+    },
+    {
+      "group": "3L-G9",
+      "issues": [463],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["3L-G8"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 489,
+        "merge_sha": "b29fd1ed8e4eb2f043b7f78385965044a1c106d8",
+        "note": "Review approved spec/plan Task 5-6 at a5131eb. Merge-base 213b55b ImportError / card 3 FAILs / entities wood_fuel FAIL; head 1952 FEATURE, ALL CARD (host 26), 906 ENTITY. Mutations kill display + inject witnesses. CI fast 23m32s, closures 19m36s. coordinator_loc 10364. #463 closed. Next seat 3L-G10."
+      },
+      "brief": "Plan banner, Wood lane, what-if wood slots (#463). Closes #463 on its own line. Same spec and plan as 3L-G8."
+    },
+    {
+      "group": "3L-G10",
+      "issues": [465],
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "effort": "high",
+      "fixture": false,
+      "after": ["3L-G9"],
+      "resume": {
+        "stage": "done",
+        "merged_pr": 492,
+        "merge_sha": "e4bc3756d47c4adbc4d76284cdfe4d5e1dd3a52f",
+        "note": "Review approved Task 1 summary_failed 14→0 at 34fb131; mutation now>=return_time leaves (True, past); restore md5 676b84d8. CI fast 23m45s, closures 12m43s. coordinator_loc 10344. #465 closed. Next seat Wave 4 S0 (W4-G1). Do not stamp. Wave 4 / #412 / 3L-G6 not started."
+      },
+      "brief": "Plan-page Away toggle and return datetime (#465). Service-backed store; published switch and datetime; optional person/calendar. Spec docs/superpowers/specs/2026-09-05-away-plan-toggle-design.md. Plan docs/superpowers/plans/2026-09-05-away-plan-toggle.md. After 3L-G9, before Wave 4. Closes #465 on its own line."
+    }
+  ]
+}

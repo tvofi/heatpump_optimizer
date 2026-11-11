@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:<module> CONST de8e6cf0",
+  "killed_by": "tests/features.py",
+  "old": "PROBE_DAYS_LEARNED = 30.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`PROBE_DAYS_LEARNED = 60.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

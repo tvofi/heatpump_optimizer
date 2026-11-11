@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_freq_fold_blocked GUARD_OFF 2e0cb0f5",
+  "killed_by": "tests/features.py",
+  "old": "    if coord._pump_signals.freeze_reason is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

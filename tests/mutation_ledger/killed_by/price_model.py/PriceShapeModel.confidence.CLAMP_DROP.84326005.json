@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.confidence CLAMP_DROP 84326005",
+  "killed_by": "tests/features.py",
+  "old": "        return min(1.0, self.days[idx] / SHAPE_CONFIDENCE_DAYS)",
+  "reason": "Recorded by `mutation_table.py --drain` against 9a51f6d7295e1b5bf57f723485ae5dc9da7c0bec: CLAMP_DROP (`return (1.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

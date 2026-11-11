@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:_stored_promise GUARD_OFF d997c270",
+  "old": "    if not isinstance(value, dict):",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Equivalent: with the guard off, every non-dict value falls into the try block below, whose first statement value[\"start\"] raises TypeError (str, int, list subscripting) or KeyError, both in the caught (TypeError, ValueError, KeyError, OverflowError) set, so the function returns None for exactly the inputs the guard rejects and is unchanged for dicts, which pass the guard anyway.",
+  "verdict": "equivalent"
+}

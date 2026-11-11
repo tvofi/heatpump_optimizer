@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:_forced_off_with RETURN_DEL 6d5fbfee",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    return forced_off | mask",
+  "reason": "Recorded by hand against 3b02be37 plus this commit's tests/manual_plan.py test_off_window_over_pins, in a detached copy with the mutant applied: RETURN_DEL (`pass`) took tests/manual_plan.py from 88 passed to 1 of 88 FAILED, on \"an Off mask is OR'd into the steps pins already forced off\" (got None). The return is reached only when pins or a mode block already forced steps off, which no off-window solve in tests/features.py sets up. The comment-only null control (a comment prepended to dhw_planner.py) left all 88 checks passing."
+}

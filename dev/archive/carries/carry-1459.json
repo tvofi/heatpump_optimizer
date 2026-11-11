@@ -1,0 +1,25 @@
+{
+  "_comment": [
+    "Carry destination for issue #1459 (round-7 D7-01: the two-state sysid",
+    "fit's fixed-width intercept ridge biases the fitted UA, and the #1410",
+    "adoption gate -- which measures self-consistency, not accuracy -- admits",
+    "it). The fix leaves the ridge alone, because it is the mitigation the",
+    "sysid-estimator pre-study measured, and gives the gate the second source",
+    "of its own interval: the intercept prior's stated width. Any harness that",
+    "decides adoption from ua_profile_halfwidth alone therefore reads the",
+    "PRE-fix gate, which is why this file exists.",
+    "Shape and required fields: .claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the briefs CI job)."
+  ],
+  "issue": 1459,
+  "stage": "the seat that re-verifies finding #1459 (a round-7 D7 verifier or judge), and any later seat that re-measures the sysid adoption gate",
+  "carries": [
+    {
+      "from": "the round-7 D7-01 fix for #1459: _slab_ua_prior_halfwidth and slab_ua_adoption_halfwidth in custom_components/heatpump_optimizer/sysid.py, _slab_outcome publishing the new field on SysIdResult, and the adoption gate in custom_components/heatpump_optimizer/coordinator.py reading the pair",
+      "effect": "invalidates",
+      "control": "The finding's own metric definition decides `admitted` from ua_profile_halfwidth <= UA_ADOPTION_HALFWIDTH_BAR. That is the pre-fix gate: the profile-likelihood interval holds the intercept prior at its central value AND counts the ridge as data, so a prior-dominated fit reports an interval orders of magnitude tighter than the uncertainty the prior itself contributes. The gate now bounds slab_ua_adoption_halfwidth of the profile term and the prior term. The null control separates the two readings rather than trusting either: on the round-7 window the profile term is under 1e-3 and the prior term is about 0.046, so the profile-only reading scores the fit as pinned and the pair scores it as half the prior, while BOTH readings agree exactly when the prior term is absent (every one-state result, and any harness that fabricates a result without one).",
+      "remeasure": "Re-run the round-7 D7 harness at the head for the fit's own figures -- the fitted UA and the profile half-width are unchanged, because the ridge is untouched -- and take the admission verdict from slab_ua_adoption_halfwidth, not from ua_profile_halfwidth. tools/audit/round4/D7/sysid_estimator_frontier.py reads the profile field for its own admission arm and stays as written: it is a record of the pre-fix gate. Its `admitted` count is not the current gate's verdict, and neither is a re-derivation of D7-01's own metric line.",
+      "brief": "The sysid adoption gate (#1410) reads TWO quantities, not one. A fitted two-state result carries ua_profile_halfwidth (the profile-likelihood interval, which holds the intercept prior fixed at its central value and counts the ridge as data) AND ua_prior_halfwidth (how far one SLAB_INTERCEPT_PRIOR_SD_KW of intercept prior moves the fitted UA -- the term that catches a fit whose UA is a function of the assumed free heat). _adopt_system_identification in coordinator.py bounds their quadrature, slab_ua_adoption_halfwidth, against UA_ADOPTION_HALFWIDTH_BAR and blends by it. Do not decide adoption, and do not re-derive D7-01, from ua_profile_halfwidth alone: on the collinear windows this experiment produces, the profile term sits orders of magnitude below the prior term, so the old reading reports a prior-dominated fit as pinned and scores any fix to the gate as ineffective. Two measured constraints on any redesign of the fit itself: the width of the ridge is not what pins the intercept (a ridge from 0.1 to 10 kW wide fits the same UA on the same window, because the multi-start seeds the intercept at the prior and the data's cost is flat in that direction), so neither removing the ridge nor removing the seed recovers the data's answer; and the pre-study's noise band is why the ridge stays at all (unridged UA bias at sensor noise), so a proposal to delete it or to make it data-scaled re-opens the finding it was written for."
+    }
+  ]
+}

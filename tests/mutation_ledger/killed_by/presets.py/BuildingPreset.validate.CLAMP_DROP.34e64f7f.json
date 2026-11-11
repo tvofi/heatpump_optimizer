@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/presets.py:BuildingPreset.validate CLAMP_DROP 34e64f7f",
+  "killed_by": "tests/features.py",
+  "old": "        self.heated_area_m2 = max(20.0, min(1000.0, float(self.heated_area_m2)))",
+  "reason": "Recorded by `mutation_table.py --drain` against f637d24ab5d17e93cdabba092cd9245f440741f6: CLAMP_DROP (`self.heated_area_m2 = (20.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4. Each of the 2 sites under this anchor was killed."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/manual_plan.py:build_override CMP_BOUND 4bf9b0f5",
+  "killed_by": "tests/manual_plan.py",
+  "old": "        if _slots and _slots[-1][0] > cap:",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if _slots and _slots[-1][0] >= cap:`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+}

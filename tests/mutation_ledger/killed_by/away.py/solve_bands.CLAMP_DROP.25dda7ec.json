@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/away.py:solve_bands CLAMP_DROP 25dda7ec",
+  "killed_by": "tests/features.py",
+  "old": "            \"min_temp\": min(config[\"min_temp\"], target),",
+  "reason": "Recorded by hand for R9-EG-B1 (#1736) on the branch worktree, 2026-10-04, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS; green on CI). The drive is mutation_table's own pool, mutant application, driver invocation and kill rule, run with the red baseline kept: a kill is a failing-check count the unmutated baseline does not already have, here against 1913f0dd736cb66b800b5eabfa6973a917459d83: CLAMP_DROP (`\"min_temp\": (config[\"min_temp\"]),`) took tests/features.py from rc=1 failed=2 to rc=1 failed=5."
+}

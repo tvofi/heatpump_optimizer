@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:overlay CLAMP_DROP 4cbe4a21",
+  "killed_by": "tests/features.py",
+  "old": "        action[\"dhw_power\"] = max(0.1, max_power * 0.8)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`action[\"dhw_power\"] = (0.1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

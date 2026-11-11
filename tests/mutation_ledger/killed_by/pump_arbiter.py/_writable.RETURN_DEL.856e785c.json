@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_writable RETURN_DEL 856e785c",
+  "killed_by": "tests/features.py",
+  "old": "    return slot in _SLOTS and isinstance(value, (int, float)) and not isinstance(value, bool)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 7428d87af49bf0f1d827feedc7f1a4a953b179ff: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

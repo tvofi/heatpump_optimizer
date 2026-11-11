@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_write BOOLOP f759f820",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        recorded and not _differs(slot, recorded[0], value)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6001b09a557259f37319b400d219cf83e02c563f: BOOLOP (`recorded or not _differs(slot, recorded[0], value)`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

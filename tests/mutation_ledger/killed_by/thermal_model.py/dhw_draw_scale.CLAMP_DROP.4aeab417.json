@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:dhw_draw_scale CLAMP_DROP 4aeab417",
+  "killed_by": "tests/features.py",
+  "old": "    return min(1.0, max(0.0, dhw_temp - inlet_temp) / span)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 9c6b923f2614936aad89e1408dabca8ddd721322: CLAMP_DROP (`return (1.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7. Each of the 2 sites under this anchor was killed."
+}

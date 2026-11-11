@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 647a1d0a",
+  "killed_by": "tests/features.py",
+  "old": "TANK_RISE_C = 0.5",
+  "reason": "pump-duty arbiter revision; `TANK_RISE_C = 0.5` -> `TANK_RISE_C = 1.0` fails 1 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

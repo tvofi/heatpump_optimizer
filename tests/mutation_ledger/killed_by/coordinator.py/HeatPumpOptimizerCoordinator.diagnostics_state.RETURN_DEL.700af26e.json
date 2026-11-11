@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.diagnostics_state RETURN_DEL 700af26e",
+  "killed_by": "tests/entities.py",
+  "old": "        return CoordinatorDiagnostics.of(self)",
+  "reason": "R9-EG-B6 (#1739) made this delegate the view's one reader. Re-measured on a detached worktree at be777f2f: driving tests/entities.py fails 2 of 2159 entity checks (`the learner summaries are present`; `the coordinator snapshot carries the live counter values, not None placeholders`), against the unmutated worktree's 0 failed."
+}

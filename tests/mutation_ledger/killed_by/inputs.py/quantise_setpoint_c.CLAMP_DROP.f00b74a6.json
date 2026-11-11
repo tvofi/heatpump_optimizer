@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:quantise_setpoint_c CLAMP_DROP f00b74a6",
+  "killed_by": "tests/features.py",
+  "old": "        out = min(out, _on_step(temperature_from_c(hi_c, unit), step, \"down\"))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d5cd003111277faa3f2abd7fbe6c9157d2e48ed7: CLAMP_DROP (`out = (out)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

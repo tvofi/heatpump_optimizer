@@ -1,0 +1,12 @@
+{
+  "class": "P8",
+  "instances": 2,
+  "barriered": false,
+  "enumerator": "python3 dev/audit/rounds/round10/D14/sweep-P8/p8_enumerate.py",
+  "instance_list": [
+    {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._narrative_view", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s3/p8_replay_currency.py", "beyond_finding": false},
+    {"file": "custom_components/heatpump_optimizer/pump_arbiter.py", "symbol": "_write", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D12/s3/surface_units.py", "beyond_finding": false},
+    {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._command_valve_target (climate set_temperature arm)", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P8/p8_valve_probe.py", "beyond_finding": true},
+    {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._command_valve_target (number set_value arm)", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P8/p8_valve_probe.py", "beyond_finding": true}
+  ]
+}

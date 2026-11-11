@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:ModeDwell.shares CMP_BOUND 6975e2be",
+  "killed_by": "tests/features.py",
+  "old": "            end = self.segments[i + 1].start if i + 1 < len(self.segments) else until",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`end = self.segments[i + 1].start if i + 1 <= len(self.segments) else until`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

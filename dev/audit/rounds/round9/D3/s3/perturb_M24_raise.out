@@ -1,0 +1,6 @@
+tests/features.py: base rc=0 failed=0; mutant rc=1 failed=1; checks=['ZeroDivisionError: division by zero']
+RESULT features_py_killed=1
+RESULT kills=1 scripts
+RESULT load1=1.04
+RESULT thread_factor=1.00 (counts only; drivers run in subprocesses)
+RESULT swapins=0

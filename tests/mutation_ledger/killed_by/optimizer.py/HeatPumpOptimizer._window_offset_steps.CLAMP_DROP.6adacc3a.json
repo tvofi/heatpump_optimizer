@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._window_offset_steps CLAMP_DROP 6adacc3a",
+  "killed_by": "tests/features.py",
+  "old": "        window = max(1, int(self.config.peak_window_minutes))",
+  "reason": "Recorded by `mutation_table.py --drain` against e8c67e1d3df151a8f273443a5ac5f736fb543782: CLAMP_DROP (`window = (1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,30 @@
+# base: cycles=6 cycle_errors=0
+#   mismatched sensor.heat_pump_optimizer_plan_narrative attr.lines[]: ['SEK']
+RESULT base_money_seams=14 count
+RESULT base_mismatched_seams=1 count
+# clean: cycles=6 cycle_errors=0
+RESULT clean_money_seams=14 count
+RESULT clean_mismatched_seams=0 count
+# narrative_fixed: cycles=6 cycle_errors=0
+RESULT narrative_fixed_money_seams=14 count
+RESULT narrative_fixed_mismatched_seams=0 count
+# reintroduce: cycles=6 cycle_errors=0
+#   mismatched sensor.heat_pump_optimizer_cost_baseline unit: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_cost_contract_comparison unit: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_cost_current_electricity_price unit: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_cost_predicted unit: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_cost_total_heating unit: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_dhw_cost unit: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_dhw_heating_cost unit: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_plan_dhw_heating attr.currency: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_plan_monthly_savings unit: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_plan_narrative attr.lines[]: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_plan_predicted_savings unit: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_plan_space_heating attr.currency: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_sensor_gap_advisor unit: ['SEK']
+#   mismatched sensor.heat_pump_optimizer_space_heating_cost unit: ['SEK']
+RESULT reintroduce_money_seams=14 count
+RESULT reintroduce_mismatched_seams=14 count
+RESULT thread_factor=0.109
+RESULT load1=16.95
+RESULT swapins=0

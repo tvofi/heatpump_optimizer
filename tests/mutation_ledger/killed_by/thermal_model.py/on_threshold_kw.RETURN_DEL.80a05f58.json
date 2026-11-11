@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:on_threshold_kw RETURN_DEL 80a05f58",
+  "killed_by": "tests/features.py",
+  "old": "    return max(MIN_RUNNING_DRAW_KW, float(params.min_electrical_power) * 0.5)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against bd79bc9e0e7ee5bb8d7fac6a400f5e077f3c3266: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

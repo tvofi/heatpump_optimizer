@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.from_dict CLAMP_DROP 4f01bd5a",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "            model.residual_var = [[max(0.0, v) for v in s] for s in var]",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 92bce7c452dd36dfb239953af7f29e1f2348050b: CLAMP_DROP (`model.residual_var = [[(0.0) for v in s] for s in var]`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

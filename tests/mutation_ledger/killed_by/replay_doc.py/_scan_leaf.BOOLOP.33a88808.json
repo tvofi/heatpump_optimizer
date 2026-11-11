@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_scan_leaf BOOLOP 33a88808",
+  "killed_by": "tests/entities.py",
+  "old": "    if isinstance(node, (int, float)) and not isinstance(node, bool):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if isinstance(node, (int, float)) or not isinstance(node, bool):`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

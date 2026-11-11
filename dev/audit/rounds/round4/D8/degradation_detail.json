@@ -1,0 +1,39 @@
+{
+ "raises": [
+  "none[current_action]|sensor|sensor.heat_pump_optimizer_optimal_setpoint|TypeError: argument of type 'NoneType' is not iterable",
+  "none[current_action]|sensor|sensor.heat_pump_optimizer_recommended_power|AttributeError: 'NoneType' object has no attribute 'get'",
+  "none[current_action]|climate|climate.heat_pump_optimizer|AttributeError: 'NoneType' object has no attribute 'get'",
+  "none[outdoor_temperature]|sensor|sensor.heat_pump_optimizer_observed_cop|TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'"
+ ],
+ "kinds": {
+  "TypeError": 2,
+  "AttributeError": 2
+ },
+ "none_keys": {
+  "last_optimization": 75,
+  "next_optimization": 75,
+  "plan_age_minutes": 75,
+  "weather_forecast_stale_hours": 75,
+  "floor_return_temperature": 65,
+  "solar_diagnostics": 75,
+  "dhw_legionella_due_in_hours": 75,
+  "measured_cop": 75,
+  "internal_gains_profile": 75,
+  "measured_power": 65,
+  "measured_house_power": 65,
+  "measured_energy": 65,
+  "learner_freeze_reason": 75,
+  "away_return_time": 75,
+  "away_hours_until_return": 75,
+  "away_recovery_hours": 75,
+  "away_target_temperature": 75,
+  "away_dhw_min_temperature": 75,
+  "away_override_return_time": 75,
+  "predicted_cost": 75,
+  "baseline_cost": 75,
+  "predicted_savings": 75,
+  "savings_percentage": 75,
+  "deferred_energy_cost": 75
+ },
+ "get_default_sites_over_a_none_key": []
+}

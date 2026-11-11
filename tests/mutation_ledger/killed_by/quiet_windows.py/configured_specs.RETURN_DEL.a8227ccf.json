@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:configured_specs RETURN_DEL a8227ccf",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    return out",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against a28fd0aee6651a24161fa38e3295d4ac2d906d57: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=2."
+}

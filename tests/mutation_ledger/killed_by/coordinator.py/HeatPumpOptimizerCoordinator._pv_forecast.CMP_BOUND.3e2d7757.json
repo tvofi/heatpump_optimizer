@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._pv_forecast CMP_BOUND 3e2d7757",
+  "killed_by": "tests/env_drift.py",
+  "old": "        if not np.any(baseline > 0):",
+  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if not np.any(baseline >= 0):`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+}

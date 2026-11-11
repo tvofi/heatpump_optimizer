@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.from_dict BOOLOP 73f28fdd",
+  "killed_by": "tests/finite_boundary.py",
+  "old": "        if var is not None and max(max(s) for s in var) <= RESIDUAL_VAR_MAX:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 92bce7c452dd36dfb239953af7f29e1f2348050b: BOOLOP (`if var is not None or max(max(s) for s in var) <= RESIDUAL_VAR_MAX:`) took tests/finite_boundary.py from rc=0 failed=0 to rc=1 failed=1."
+}

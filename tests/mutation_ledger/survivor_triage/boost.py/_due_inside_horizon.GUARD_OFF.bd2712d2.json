@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:_due_inside_horizon GUARD_OFF bd2712d2",
+  "old": "    if due is None:",
+  "reason": "Equivalent (GUARD_OFF). Skipping `if due is None: return False` reaches float(due) inside the try. float(None) raises TypeError, and that handler returns False, the same answer. tests/block_duty.py's no-floor coordinator has no due hours and gets no release reason.",
+  "verdict": "equivalent"
+}

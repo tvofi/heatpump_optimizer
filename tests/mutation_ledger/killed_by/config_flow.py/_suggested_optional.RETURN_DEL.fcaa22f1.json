@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_suggested_optional RETURN_DEL fcaa22f1",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    return vol.Optional(key)",
+  "reason": "Re-keyed by R10-CONFIGFLOW-PAGES arm B: _options_suggested_numeric and _suggested_entity (one rule, two copies, D7-s2-55) become _suggested_optional, and their two RETURN_DEL fcaa22f1 pins become this one. Previous: Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=3. / Recorded by `mutation_table.py --drain` against aca6ea4567034a05e64edcfd8355d42a8079427d: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
+}

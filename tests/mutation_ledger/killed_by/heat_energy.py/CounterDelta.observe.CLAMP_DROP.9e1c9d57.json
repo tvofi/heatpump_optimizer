@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:CounterDelta.observe CLAMP_DROP 9e1c9d57",
+  "killed_by": "tests/features.py",
+  "old": "            self.quantum = step if self.quantum is None else min(self.quantum, step)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`self.quantum = step if self.quantum is None else (self.quantum)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost CLAMP_DROP 957b7a47",
+  "old": "            energy_max = np.maximum(cop * heat_per_cop_kw(params, p_dhw_max) * dt, 1e-9)",
+  "reason": "Equivalent in output: the 1e-9 floor differs from no floor only where `cop * heat_per_cop_kw(params, p_dhw_max) * dt` is 0, i.e. `p_dhw_max == 0` (COP is at least 1 and dt positive). There the LP may place up to 1e-9 kWh, and the back-conversion clips every step to [0, p_dhw_max] = 0, so the plan, and the refine pass's simulation of it, are the same array. The floor is the base's; R10-COP-PARTLOAD part 2 changed only its product's first factor.",
+  "verdict": "equivalent"
+}

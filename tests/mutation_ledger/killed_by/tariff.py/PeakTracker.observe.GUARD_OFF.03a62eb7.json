@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:PeakTracker.observe GUARD_OFF 03a62eb7",
+  "killed_by": "tests/entities.py",
+  "old": "        if measured_house_kw is not None and np.isfinite(measured_house_kw):",
+  "reason": "The same guard deleted: the whole-house window then records readings the house meter never took, and the no-meter arm stops being empty. Measured: tests/entities.py rc=1, `and the whole-house window, from the whole-house meter's own reading (#1460) [got []]`."
+}

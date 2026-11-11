@@ -1,0 +1,98 @@
+{
+ "class": "P3",
+ "instances": 2,
+ "barriered": false,
+ "enumerator": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P3/enumerate.py [--null | --perturb]",
+ "instance_list": [
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "HeatPumpOptimizerCoordinator._space_demand_kw",
+   "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round10/study-reseed/reparam_sites.py -> space_demand_rel_diff=0.4367 (D2-s1-71)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "symbol": "_zone_heat_loss",
+   "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round10/study-reseed/reparam_sites.py -> sysid_prior_ua_rel_diff=0.4367 (D2-s3-73)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "symbol": "adoption_decision",
+   "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round10/study-reseed/reparam_sites.py -> sysid_adopt_effective_rel_err_A=0.4367 (D2-s3-73)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/store.py",
+   "symbol": "DOMAINS.thermal_learning[lower_floor_loss_ratio]",
+   "probe": "PYTHONPATH=tests/hastub python3 tools/audit/round10/study-reseed/reparam_sites.py -> options_reseed_both_zones upper 0.3681 / lower 0.2145 (D12-s2-71)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/away.py",
+   "symbol": "_as_num",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_finite_float.py -> implementations=9, disagreeing_inputs=10/17 (D7-s2-58)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_as_float",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_finite_float.py -> implementations=9, disagreeing_inputs=10/17 (D7-s2-58)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/coordinator.py",
+   "symbol": "_at_least",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_finite_float.py -> implementations=9, disagreeing_inputs=10/17 (D7-s2-58)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/entry_config.py",
+   "symbol": "_number",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_finite_float.py -> implementations=9, disagreeing_inputs=10/17 (D7-s2-58)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/inputs.py",
+   "symbol": "_finite",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_finite_float.py -> implementations=9, disagreeing_inputs=10/17 (D7-s2-58)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "symbol": "_finite_or_none",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_finite_float.py -> implementations=9, disagreeing_inputs=10/17 (D7-s2-58)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/sensor.py",
+   "symbol": "_as_float",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_finite_float.py -> implementations=9, disagreeing_inputs=10/17 (D7-s2-58)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "_optional_float",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_finite_float.py -> implementations=9, disagreeing_inputs=10/17 (D7-s2-58)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/wood_fuel.py",
+   "symbol": "_optional_float",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s2/shape_finite_float.py -> implementations=9, disagreeing_inputs=10/17 (D7-s2-58)",
+   "beyond_finding": false
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/store.py",
+   "symbol": "DOMAINS.thermal_learning[cop_scale]",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P3/probe_anchor.py -> cop rel_err=0.2000 (heat_pump_cop_nominal x1.2 under stored cop_scale 0.8; exit 1); --null 0.0000",
+   "beyond_finding": true
+  },
+  {
+   "file": "custom_components/heatpump_optimizer/store.py",
+   "symbol": "DOMAINS.thermal_learning[solar_aperture/scale]",
+   "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-P3/probe_anchor.py -> aperture rel_err=0.5000 (window_area x1.5 under stored scale 1.6; exit 1); --null 0.0000",
+   "beyond_finding": true
+  }
+ ]
+}

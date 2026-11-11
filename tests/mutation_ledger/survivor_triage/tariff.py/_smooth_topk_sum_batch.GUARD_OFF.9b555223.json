@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum_batch GUARD_OFF 9b555223",
+  "old": "        if done.all():",
+  "reason": "added by R9 F2.5 (the batched capacity-tariff twin); the bisection's early exit, a pure optimisation. A converged row is frozen (`np.where(done, mid, ...)` keeps its bracket), so running the remaining iterations changes no row's final mid: the mutant answers identically for every input, only slower. Equivalent by construction; the per-row freeze is what the M3 mutation proof (evidence directory, 86 divergent rows) pins. Survival measured UNMARKED at the pin run against 2eef524d (hpo-ci container, 17 drivers, 2026-09-28): no driver detects the mutant behaviourally.",
+  "verdict": "equivalent"
+}

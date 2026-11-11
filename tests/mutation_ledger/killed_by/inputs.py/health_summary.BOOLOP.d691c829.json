@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:health_summary BOOLOP d691c829",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    if not stale_keys and not missing_keys:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if not stale_keys or not missing_keys:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=4."
+}

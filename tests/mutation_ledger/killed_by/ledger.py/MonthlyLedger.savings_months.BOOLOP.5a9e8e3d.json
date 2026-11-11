@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.savings_months BOOLOP 5a9e8e3d",
+  "killed_by": "tests/features.py",
+  "old": "            below_floor = not old_basis and below_meter_floor(self.line(key, \"savings_baseline\")[\"kwh\"], actual[\"kwh\"])",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`below_floor = not old_basis or below_meter_floor(self.line(key, \"savings_baseline\")[\"kwh\"], actual[\"kwh\"])`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

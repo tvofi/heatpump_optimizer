@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:<module> CONST 1be1c312",
+  "killed_by": "tests/features.py",
+  "old": "REFIT_BAND_PERCENT = 10",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0e8e22c69fef5a54bf2a4b2b7aee9df724dac88e: CONST (`REFIT_BAND_PERCENT = 20`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

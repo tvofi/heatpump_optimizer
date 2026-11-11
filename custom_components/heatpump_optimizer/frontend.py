@@ -1,0 +1,197 @@
+"""Frontend registration for the Heat Pump Optimizer Lovelace card.
+
+This module serves the custom card's JavaScript from a static path and, when
+Lovelace is running in storage mode, registers the resource automatically so
+users do not have to add it by hand.
+
+Both steps are defensive: the static-path helper prefers the modern
+``async_register_static_paths`` API but falls back to the deprecated
+synchronous call on older Home Assistant releases, and the resource
+registration is wrapped in a broad ``try/except`` because Lovelace internals
+are not a stable public API and must never break integration setup.
+"""
+from __future__ import annotations
+
+import logging
+import os
+from typing import Any
+
+from homeassistant.core import HomeAssistant
+
+from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
+
+# Public URL under which the card JS is served.
+URL_BASE = "/heatpump_optimizer_static"
+CARD_FILENAME = "heatpump-optimizer-card.js"
+
+_FLAG = f"{DOMAIN}_frontend_registered"
+
+
+def _www_dir() -> str:
+    """Return the absolute path to the bundled ``www`` directory."""
+    return os.path.join(os.path.dirname(__file__), "www")
+
+
+async def _register_static_path(hass: HomeAssistant, www_dir: str) -> None:
+    """Register the static path, preferring the modern async API.
+
+    Caching is deliberately left off. The cache-busting ``?v=`` query only
+    helps when we own the resource entry, which is not the case in YAML mode
+    or for a hand-added resource, and a browser holding a long-cached copy of
+    an old card is indistinguishable from an upgrade that did nothing. The
+    file is small and served locally, so revalidating it costs nothing worth
+    having.
+    """
+    try:
+        from homeassistant.components.http import StaticPathConfig
+
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(URL_BASE, www_dir, False)]
+        )
+        return
+    except (ImportError, AttributeError):
+        # Older Home Assistant: fall back to the deprecated sync call.
+        try:
+            # Looked up by name: the current stubs no longer declare it,
+            # which is the same fact the AttributeError arm handles.
+            getattr(hass.http, "register_static_path")(
+                URL_BASE, www_dir, False
+            )
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning(
+                "Could not register static path %s for the Heat Pump "
+                "Optimizer card",
+                URL_BASE,
+                exc_info=True,
+            )
+    except Exception:  # noqa: BLE001
+        _LOGGER.warning(
+            "Unexpected error registering static path %s", URL_BASE, exc_info=True
+        )
+
+
+async def _register_lovelace_resource(hass: HomeAssistant, url: str) -> None:
+    """Register the card as a Lovelace module resource in storage mode."""
+    try:
+        lovelace = hass.data.get("lovelace")
+        if lovelace is None:
+            _LOGGER.debug("Lovelace not initialised yet; skipping resource")
+            return
+
+        # Support both the object-style and dict-style `lovelace` data that
+        # different Home Assistant versions expose.
+        mode = getattr(lovelace, "mode", None)
+        resources = getattr(lovelace, "resources", None)
+        if resources is None and isinstance(lovelace, dict):
+            mode = lovelace.get("mode", mode)
+            resources = lovelace.get("resources")
+
+        if resources is None:
+            _LOGGER.info(
+                "Lovelace resources unavailable; add %s manually as a "
+                "dashboard resource (type: module)",
+                url,
+            )
+            return
+
+        if mode == "yaml":
+            _LOGGER.info(
+                "Lovelace is in YAML mode. Add the Heat Pump Optimizer card "
+                "resource manually:\n"
+                "  resources:\n"
+                "    - url: %s\n"
+                "      type: module",
+                url,
+            )
+            return
+
+        if hasattr(resources, "loaded") and not resources.loaded:
+            await resources.async_load()
+            resources.loaded = True
+
+        # Skip if a resource with the same base URL already exists. If it does
+        # but the cache-busting query differs, update it in place: leaving the
+        # stale ?v= means browsers keep serving the previously cached card
+        # after an upgrade, which looks exactly like the new version not
+        # working.
+        base = url.split("?")[0]
+        existing: list[Any] = []
+        if hasattr(resources, "async_items"):
+            existing = resources.async_items() or []
+        elif hasattr(resources, "data"):
+            existing = resources.data or []
+
+        # A second resource pointing at another copy of the same file (usually
+        # a leftover manual install under /local/) loads first and claims the
+        # custom element, so ours is ignored and upgrades appear to do nothing.
+        # We must not delete a user's resource, but we can name the problem.
+        for item in existing:
+            item_url = item.get("url") if isinstance(item, dict) else None
+            if not item_url:
+                continue
+            other = item_url.split("?")[0]
+            if other != base and other.endswith(f"/{CARD_FILENAME}"):
+                _LOGGER.warning(
+                    "Another copy of the Heat Pump Optimizer card is "
+                    "registered at %s. It may load instead of the bundled "
+                    "card, leaving you on an old version. Remove it under "
+                    "Settings > Dashboards > Resources and keep only %s",
+                    item_url,
+                    base,
+                )
+
+        for item in existing:
+            item_url = item.get("url") if isinstance(item, dict) else None
+            if not item_url or item_url.split("?")[0] != base:
+                continue
+            if item_url == url:
+                _LOGGER.debug("Card resource already registered: %s", item_url)
+                return
+            item_id = item.get("id")
+            if item_id is None or not hasattr(resources, "async_update_item"):
+                _LOGGER.debug(
+                    "Card resource %s is stale but cannot be updated", item_url
+                )
+                return
+            await resources.async_update_item(
+                item_id, {"res_type": "module", "url": url}
+            )
+            _LOGGER.info(
+                "Updated Heat Pump Optimizer card resource %s -> %s",
+                item_url,
+                url,
+            )
+            return
+
+        await resources.async_create_item({"res_type": "module", "url": url})
+        _LOGGER.info("Registered Heat Pump Optimizer card resource: %s", url)
+    except Exception:  # noqa: BLE001 - never break setup over Lovelace internals
+        _LOGGER.warning(
+            "Could not auto-register the Heat Pump Optimizer Lovelace "
+            "resource; add %s manually (type: module)",
+            url,
+            exc_info=True,
+        )
+
+
+async def async_register_frontend(
+    hass: HomeAssistant, version: str | None = None
+) -> None:
+    """Serve and register the Lovelace card. Idempotent across config entries.
+
+    ``version`` is the integration version the calling entry resolved, for
+    the cache-busting query. The card is served once per instance, so the
+    first entry to set up decides the query every entry then shares -- which
+    is fine, since every entry runs the same release.
+    """
+    if hass.data.get(_FLAG):
+        return
+    hass.data[_FLAG] = True
+
+    www_dir = await hass.async_add_executor_job(_www_dir)
+    await _register_static_path(hass, www_dir)
+
+    url = f"{URL_BASE}/{CARD_FILENAME}?v={version or '0'}"
+    await _register_lovelace_resource(hass, url)

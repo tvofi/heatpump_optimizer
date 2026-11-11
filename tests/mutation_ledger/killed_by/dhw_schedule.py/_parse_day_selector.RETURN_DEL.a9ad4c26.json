@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_parse_day_selector RETURN_DEL a9ad4c26",
+  "killed_by": "tests/features.py",
+  "old": "        return sorted(cyclic_span(lo, hi, len(_DAY_TOKENS)))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

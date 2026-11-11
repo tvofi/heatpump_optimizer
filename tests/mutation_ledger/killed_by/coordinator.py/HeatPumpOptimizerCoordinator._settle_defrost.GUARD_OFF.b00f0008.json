@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._settle_defrost GUARD_OFF b00f0008",
+  "killed_by": "tests/features.py",
+  "old": "        if ratio is not None and in_frost_band(outdoor) and not _cop_fold_blocked(self):",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

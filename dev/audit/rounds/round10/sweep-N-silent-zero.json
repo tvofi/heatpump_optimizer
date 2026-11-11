@@ -1,0 +1,6 @@
+{"class": "N-silent-zero", "instances": 1, "barriered": false,
+ "enumerator": "python3 dev/audit/rounds/round10/D14/sweep-N-silent-zero/enumerate.py [--null|--perturb]",
+ "instance_list": [
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._fetch_tibber_prices", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s3/tibber_ingress.py", "beyond_finding": false},
+  {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "HeatPumpOptimizerCoordinator._fetch_weather_forecast", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/sweep-N-silent-zero/weather_probe.py", "beyond_finding": true}
+ ]}

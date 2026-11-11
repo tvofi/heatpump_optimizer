@@ -1,0 +1,7 @@
+# THE NULL CONTROL. The branch's own remote branch is already at this head, so
+# setting the body now fires `edited` at exactly the head `## Head` names and
+# the contract agrees. Without this fixture a push_order that refused every
+# shape would satisfy the refusing fixtures precisely as well as the right one.
+#
+# <branch or -> <remote or -> <own-remote-ref sha or -> <behind> <ahead> <rc> <compared ref or -> <text>
+own-branch origin 9f8e7d6c5b4a392817065f4e3d2c1b0a98765432 0 0 0 origin/own-branch a remote branch already at this head is silent (null control)

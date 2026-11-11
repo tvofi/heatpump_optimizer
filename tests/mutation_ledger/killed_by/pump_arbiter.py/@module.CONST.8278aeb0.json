@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 8278aeb0",
+  "killed_by": "tests/features.py",
+  "old": "FLOW_HEAT_C = 55.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against cbb8a2712fef67b4719309fa01396706e66148bc: CONST (`FLOW_HEAT_C = 110.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

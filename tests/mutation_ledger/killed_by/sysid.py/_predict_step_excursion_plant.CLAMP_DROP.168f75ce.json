@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_predict_step_excursion_plant CLAMP_DROP 168f75ce",
+  "killed_by": "tests/features.py",
+  "old": "            peak = max(peak, abs(state.upper_floor_temperature - baseline))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 97207dd8fc42a65822c37894e11bc4b01b498042: CLAMP_DROP (`peak = (peak)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=13."
+}

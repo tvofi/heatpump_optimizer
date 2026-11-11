@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_ledger BOOLOP 79318886",
+  "killed_by": "tests/features.py",
+  "old": "        if isinstance(score, (int, float)) and np.isfinite(score):",
+  "reason": "Recorded by `mutation_table.py --drain` against e3f3b312fff572904f24d78a44a2c4492b1a8ddb: BOOLOP (`if isinstance(score, (int, float)) or np.isfinite(score):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

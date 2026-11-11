@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:mask_violations GUARD_OFF 71e0616b",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    if not left:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
+}

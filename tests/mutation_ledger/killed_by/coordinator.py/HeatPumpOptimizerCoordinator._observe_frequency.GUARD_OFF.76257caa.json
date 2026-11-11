@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._observe_frequency GUARD_OFF 76257caa",
+  "killed_by": "tests/features.py",
+  "old": "        if reported is None:",
+  "reason": "#1562 round-3 CI survivor: with `if reported is None:` off, _observe_frequency feeds None into the watchdog and the map and raises TypeError; tests/features.py prints 1 of 3167 FEATURE CHECKS FAILED against a 0 baseline: `an unavailable frequency reading teaches nothing and strikes nothing, observing or controlling`. Measured on the #1562 round-3 branch after merging origin/main 266d795b, 2026-09-24, in a detached worktree per mutant; the unmutated tree prints ALL 3167 FEATURE CHECKS PASSED."
+}

@@ -1,0 +1,35 @@
+{
+  "_comment": [
+    "Carry destination for the round-5 D0 seam's own countermeasure (this",
+    "branch ships the seam's warm start, #1295, and drops the raised",
+    "refinement cut with its two appended seeds, #1294). The stage that needs",
+    "this is a later D0 seat -- and, for the second entry, a later D9 seat.",
+    "Neither has a live roster group: every group in every wave-*-groups.json",
+    "is at resume.stage done. It is a file and not an edit to",
+    "tools/audit/briefs/D0.md or D9.md because both are one-sided policy caps",
+    "at their measured value, and raising a cap needs the owner's confirmation",
+    "obtained before the push (.claude/rules/ratchet-budgets.md); the deferral",
+    "the round-1 review refused was leaving the carry out of the tree",
+    "altogether, which is a different thing. Shape and required fields:",
+    ".claude/rules/finding-propagation.md. Linted by",
+    ".claude/workflows/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 1295,
+  "stage": "any later seat hunting sub-optimal plans in the D0 dimension (tools/audit/briefs/D0.md is its method, tests/optimality.py its capture harness), and any later D9 seat that prices the sweep (tools/audit/briefs/D9.md is its method, tests/stress.py its harness, tests/stress_budgets.json its record)",
+  "carries": [
+    {
+      "from": "the pull request that shipped the round-5 D0 seam's warm start and dropped the raised refinement cut and its two appended seeds (#1295 shipped, #1294 deferred)",
+      "effect": "narrows",
+      "control": "Two findings from one seam, each established by a race scored through the production objective with its own null control, and each refused one level out -- which is the only reason either was priced. (1) The tighter L-BFGS-B stop rule (#1293): on the backtest's shoulder-season cell the solve's own objective improves by 0.332% (5.591452 -> 5.572888) while money rises 6.423% (4.4379 -> 4.7230 SEK/day) and tests/backtest.py prints `FAIL shoulder season: the optimizer beats a hand-written night schedule`. The control is that cell's own money comparison, and it is what the objective cannot see: the whole loss is already present at the first step down (3e-7) and monotone worse from there. (2) The raised refinement cut with two appended bang-bang seeds (#1294): +23.9% sweep solver CPU for a plan-quality gain that does not reproduce across BLAS builds -- on CI the two arms of each new behavioural check in tests/optimality.py read IDENTICAL objective values (a check whose number does not move on the machine of record), so the finding was void there and over budget in tests/stress.py on both. Instruments and recorded artifacts: tools/audit/round5/D0/seat-a/race.py and tools/audit/round5/D0/seat-a/perturb_prev.py (the finder's), tools/audit/round5/D0/seat-c/refute_1293.py (the refutation, committed in this branch).",
+      "remeasure": "Re-establish both at your own merge base with your own harness before you trust a figure here; every number above is a snapshot of one box. Score a plan with tests/backtest.py's `score` rather than with the optimizer's own objective, and read solver cost with tests/stress.py's `SolverWork`, which counts the work instead of timing it -- the ratio the sweep prints is compared against `SWEEP_BUDGET_RATIO`.",
+      "brief": "A D0 finding about a solver knob is priced in MONEY and in CPU beside its objective delta, inside the round that produces it, and the report says which of the three moved. The objective is not a sufficient proxy, and this seam is the measurement rather than the argument: both knobs here improved the objective and both were refused one level out -- one by tests/backtest.py's money comparison (the objective prefers the plan that costs 6.4% more), one by tests/stress.py's sweep budget (+23.9% solver CPU, over budget on the runner's own reading). An objective-only finding is therefore not a finding yet; price the knob before you report it. D0.md's `## Method` already asks for the race, the feasibility parity and the null control -- this adds the two currencies the race's own number does not carry, and it is what turns a knob into a finding a gate would have caught."
+    },
+    {
+      "from": "the same pull request: pricing the sweep against a budget whose recorded headroom was measured on other machines",
+      "effect": "invalidates",
+      "control": "The sweep ratio is not a property of the tree alone, and the branch is the separation. Dropping the raised cut and its two seeds took one fanless M1 box's sweep from 161.50x (1 of 77 FAILED, the sweep) to 130.65x (`ALL 77 STRESS CHECKS PASSED`) -- the same tree-side change that reads 130.65x on that box reads over budget on CI's runner, where the branch's head is 152.10x against the 134.32x budget, while CI reads the merge base at 111.53x and main at 113.82x on the runs cited in the round-1 review, and the comment in tests/stress_budgets.json records 94.98x / 77.96x / 84.02x elsewhere. The control that names the cause is the arm without the knob, not the merge base: the merge base itself is over budget on this box in the same window.",
+      "remeasure": "Run the sweep on the machine whose reading is the one of record, and say which machine that is in the finding; do not carry a ratio measured on a different box. tests/stress.py prints the ratio and the budget beside each other, and the budget is `SWEEP_BUDGET_RATIO`, overridable through the environment for a measurement you do not intend to record in tests/stress_budgets.json.",
+      "brief": "A sweep-budget argument is only as good as the machine it was measured on, so a D9 finding that turns on the budget states its machine and its ratio, and a round that wants this budget to be a gate rather than a lottery has to say whose reading is the one of record. The headroom the file's comments recorded is not the headroom today: the same merge base read 111.53x and 113.82x on two CI runs of the same day, 134.58x on a fanless M1, and 94.98x / 77.96x / 84.02x on the boxes those comments name. A branch whose ratio changes by a quarter can be green on one of those and red on another, which makes the budget a decision owed to the owner rather than a defect in the branch."
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:overlap_problem GUARD_OFF 8a6c7642#2",
+  "killed_by": "tests/manual_plan.py",
+  "old": "                    if _overlaps(window, other):",
+  "reason": "Recorded by hand against 45e75b85 plus this commit's tests/manual_plan.py test_quiet_window_arms, in a detached copy with the mutant applied. The comment-only null control, a comment prepended to the mutated file, left all manual-plan checks passing. GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 to rc=1: 1 check FAILED, \"an off window overlapping a silent window is refused even with no hot water\"."
+}

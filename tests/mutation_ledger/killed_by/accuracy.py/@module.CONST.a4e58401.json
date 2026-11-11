@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:<module> CONST a4e58401",
+  "killed_by": "tests/features.py",
+  "old": "LEAD_MATCH_TOLERANCE_H = 0.5",
+  "reason": "Recorded by `mutation_table.py --drain`: CONST (`LEAD_MATCH_TOLERANCE_H = 1.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

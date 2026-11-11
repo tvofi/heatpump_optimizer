@@ -1,0 +1,67 @@
+{
+  "dimension": "D1",
+  "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D1-s3-01",
+      "title": "Malformed Open-Meteo `hourly` shape crashes the whole update cycle, not just solar",
+      "severity": "high",
+      "claim": "OpenMeteoSolar.async_refresh's docstring promises it 'Never raises', but a valid-JSON, wrong-shaped `hourly` field (list/str/int instead of dict) raises an uncaught AttributeError/TypeError out of _parse_block, through _fetch_forecast, into Coordinator._fetch_solar_forecast, where it is caught only by _async_update_data's OUTER except-Exception and reported as UpdateFailed for prices, weather and the solve together -- not the documented graceful fall back to cached irradiance.",
+      "mechanism": "_parse_block(block, variable, ...) calls block.get(\"time\") without checking block is a dict. _fetch_forecast/_fetch_observed pass data.get(\"hourly\") or {} straight through with no shape check; `or {}` only catches falsy values (None, [], \"\", 0), not a non-empty list/str/int, which is exactly what a changed API schema, a mangled proxy body, or a truncated response looks like. Nothing between there and the coordinator's top-level except-Exception catches the resulting AttributeError/TypeError, so the promised per-source degrade (documented three times in this module: 'Never raises', 'continuing with cached data', 'Both must be dropped rather than coerced') is bypassed and every input for that poll -- prices, weather, the solve -- is thrown away with it.",
+      "evidence": {
+        "command": "cd <tree-root> && PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s3_openmeteo_hostile.py",
+        "harness_path": "tools/audit/round8/D1/s3_openmeteo_hostile.py",
+        "value": 4,
+        "unit": "count",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "cloud 4-vCPU container, shared with up to 13 other seats (see BASELINE.md)",
+        "cpu_or_wall": "count",
+        "contention_note": "count of crashes out of 5 synthetic hostile payload shapes, deterministic and contention-immune (no timing involved); ambient load1 quoted below for completeness per the harness contract",
+        "tolerance": "exact",
+        "load1": 21.36,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "custom_components.heatpump_optimizer.open_meteo.OpenMeteoSolar.async_refresh (drives _parse_block via _fetch_forecast/_fetch_observed)",
+      "perturbation": {
+        "change": "Guard _parse_block's two block-shape reads with `if not isinstance(block, dict): return _EMPTY` (verified: applied in-tree, reran, restored -- see harness header)",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "cycles_crashed = count, of 5 valid-JSON non-dict `hourly` payload shapes, for which async_refresh raises instead of using cached data",
+      "phenomenon_property": "Every JSON-shape read across this module's external-input parse boundary (`block.get(...)` in _parse_block, and any future sibling parser reached the same way) must isinstance-check the container before indexing it, because `x or {}`/`x or []` only substitutes on falsy values and passes any truthy wrong-shaped value straight through into unchecked attribute access.",
+      "seam_rule": "grep -n '\\.get(\"hourly\")\\|\\.get(\"minutely_15\")\\|block\\.get(' custom_components/heatpump_optimizer/open_meteo.py",
+      "null_control": {
+        "command": "same harness, HEALTHY_HOURLY payload (well-formed dict)",
+        "value": 0,
+        "note": "the well-formed control payload never crashes (control_crashed=0), isolating the crash to the shape mismatch, not harness plumbing"
+      },
+      "reproduction_steps": [
+        "cd <tree-root>",
+        "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D1/s3_openmeteo_hostile.py",
+        "observe RESULT cycles_crashed=4 count (of 5 hostile shapes) and RESULT control_crashed=0 count"
+      ],
+      "proposed_fix_scope": "custom_components/heatpump_optimizer/open_meteo.py: add an isinstance(dict) guard at the top of _parse_block (and/or where hourly_block/minutely_15 are read in _fetch_forecast/_fetch_observed), returning _EMPTY on mismatch, the same way a malformed sample or NaN is already dropped a few lines below. No change needed outside this module: the coordinator's outer except-Exception is a correct last resort, not the mechanism that should be relied on here.",
+      "files": [
+        "custom_components/heatpump_optimizer/open_meteo.py"
+      ],
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "InputReader._age_gate's future-clock-stamp path (#775) and its over-the-horizon stale path both correctly resolve to problem=\"stale\", never to fresh/age-0, across a forward clock jump, a backward clock jump, a bare-future last_reported, and an untimestamped stub (which is fresh by contract, not a bug) -- read by hand against inputs.py:518-548; no harness gap found worth instrumenting beyond what the module's own docstring already proves inline.",
+      "command": "read custom_components/heatpump_optimizer/inputs.py:442-548 against COMMON.md method step 3's four staleness classes",
+      "value": "4/4 classes resolve to the documented (non-fail-open) outcome by inspection; not independently re-verified with an executed harness in this seat's time budget -- see 'unfinished'"
+    },
+    {
+      "claim": "A single non-dict entry inside an otherwise well-formed 48h weather.get_forecasts response DOES crash Coordinator._weather_series (AttributeError on entry.get(...)), but -- unlike the Open-Meteo finding above -- the crash is fully contained: it happens inside async_run_optimization's own try/except, which logs 'Optimization failed: %s' with exc_info, increments self._solve_failures (raising a persistent repair issue at the configured threshold), and returns 'solve_failed' rather than raising. The NEXT cycle's fetch overwrites self._weather_forecast with fresh data and the solve recovers on its own -- exactly the 'recovers on the next cycle' bar D1 method step 5 asks a guard to clear. Not a finding; the guard works as designed for this input.",
+      "command": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D1/s3_weather_poison.py",
+      "value": "solves_recovered_out_of_n=4 crashes_after_poison=1 (of 5 cycles); control_crashed=0"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round8/D1/s3_openmeteo_hostile.py",
+    "tools/audit/round8/D1/s3_weather_poison.py"
+  ]
+}

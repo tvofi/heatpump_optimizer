@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum_batch GUARD_OFF 709c945a",
+  "old": "    if positive.size == 0:",
+  "reason": "added by R9 F2.5 (the batched capacity-tariff twin); the no-positive-rows guard. Unreachable through the public twin: the bisection is entered only for rows that cleared `np.any(excess > 0)` (a plateau day run ties at its own positive max) or whose n_at_peak count implies a positive peak, so `values > 0` holds on some row whenever the function is called. Measured: no driver detects the mutant. Survival measured UNMARKED at the pin run against 2eef524d (hpo-ci container, 17 drivers, 2026-09-28): no driver detects the mutant behaviourally.",
+  "verdict": "equivalent"
+}

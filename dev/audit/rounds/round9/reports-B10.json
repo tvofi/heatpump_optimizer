@@ -1,0 +1,348 @@
+{
+  "box": "B10",
+  "missing": [],
+  "reports": {
+    "D4-s1": {
+      "dimension": "D4",
+      "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+      "report_path": "tools/audit/round9/D4/s1/REPORT.md",
+      "exposure": "none: no docs/, no GitHub, nothing under tools/audit/round3..8 read; tests/card_browser.mjs and tests/card_drift.mjs read as the brief's reuse list (their comments cite earlier finding ids, context only)",
+      "coverage": [
+        {
+          "step": "D4.M1",
+          "depth": "deep",
+          "evidence": "sweep.mjs: all 39 DOM states of card_drift --list plus x_* states, 3 viewports x light/dark x en/sv x normal/coarse/reduced, 1626 cells (sweep_full.log); keyboard walk 132 cells; hover_diag.mjs; layout_kbd.mjs; screenshots in shots/"
+        },
+        {
+          "step": "D4.M2",
+          "depth": "deep",
+          "evidence": "editor.mjs: the card's only config surface (HeatpumpOptimizerCardEditor) -- schema, labels en/sv, helper text, lean round trip, selector extremes through setConfig; the integration config flow is D4-s2's cell"
+        },
+        {
+          "step": "D4.M3",
+          "depth": "spot",
+          "evidence": "theme-token contrast across all states (D4-s1-01), light/dark screenshots, empty/error states (no_plan, history_unavailable, x_pin_fail, x_save_fail) measured by the sweep; type scale and headline alignment observed, not metered"
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D4.M1",
+          "what": "keyboard / screen-reader access to the chart's per-time values (hover tooltip) not measured; the chart svg is a pointer-only target in 1374 cells"
+        },
+        {
+          "step": "D4.M3",
+          "what": "no metric for typographic scale or headline-number alignment; observed only: dialog help text 9.1-10.2 px at 768/1280 beside 19.7 px axis ticks"
+        }
+      ],
+      "findings": [
+        {
+          "id": "D4-s1-01",
+          "scope": "D4-s1",
+          "step": "D4.M3",
+          "title": "Status text coloured by HA's --success/--error/--warning-color fails WCAG AA on the default themes",
+          "severity": "medium",
+          "claim": "On HA's default light theme every card text run coloured by a status token is below 4.5:1 (warning 1.96:1, success 3.30:1, error 4.29:1, white on the armed Save button's error fill 4.29:1), and error text is 3.97:1 on the dark theme.",
+          "mechanism": "The what-if/today's-slots result lines (.cheaper/.dearer, .wi-result.*), the clamped-DHW warning (.wi-hint.wi-warn) and the armed confirm buttons (.wi-save.confirm, .sp-save.confirm) take their colour straight from HA's status tokens, which are not text colours: #43a047, #db4437 and #ffa600 on #fff. The accent colour was given a readable variant (ACCENT_READABLE, text on --primary-text-color); the status tokens were not.",
+          "evidence": {
+            "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states x_pin_ok,x_pin_fail,x_save_ok,x_save_fail,x_dhw_clamped,x_save_confirm,draft_dirty_menu_open,x_menu_right_edge,x_menu_right_edge_dhw,picker_open_filtered,x_live_default,x_live_default_expanded",
+            "harness_path": "tools/audit/round9/D4/s1/sweep.mjs",
+            "value": 90,
+            "unit": "count",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "box B10: 4-core Linux container (kernel 6.18), Node v22.22.2, Playwright 1.56.1, Chromium 141.0.7390.37, font Liberation Sans",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out; B10 runs only this Chromium seat; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 1.36,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump-optimizer-card.js:HeatpumpOptimizerCard (rendered shadow root; WhatIfPanel.onSaveSchedule, ManualPlan.slotResult/deltaHtml, WhatIfPanel.html)",
+          "perturbation": {
+            "change": "sweep.mjs --perturb status_text_token: the .cheaper/.dearer/.wi-warn colour rules read var(--primary-text-color) instead of the status tokens",
+            "expected_direction": "down",
+            "observed_value": 12
+          },
+          "metric_definition": "contrast_instances: visible enabled text runs whose composited fg/bg ratio is below 4.5:1 (3:1 if >=24px or bold >=18.66px), summed over the 144 targeted cells",
+          "phenomenon_property": "Every card text run whose colour, or whose backing fill, resolves from --error-color, --success-color or --warning-color clears 4.5:1 against the card background on HA's default light (#fff) and dark (#1c1c1c) themes.",
+          "seam_rule": "grep -nE \"(color|background): var\\(--(error|success|warning)-color\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "leave_one_out": {
+            "cells": 7,
+            "min": 1.96,
+            "max": 4.29,
+            "drop_most_favourable": 4.29
+          },
+          "reproduction_steps": [
+            "Run the command; read RESULT contrast_instances (90) and the '== contrast below AA' block.",
+            "Re-run with --perturb status_text_token; contrast_instances falls to 12 (the white-on-error confirm buttons)."
+          ],
+          "proposed_fix_scope": "Card CSS only: status text on a readable token (e.g. --primary-text-color with a status glyph/border, or a theme-aware readable variant), confirm buttons on a fill that clears 4.5:1 with its label on both themes; extend tests/card_browser.mjs's contrast lane with the x_* status states.",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P9"
+        },
+        {
+          "id": "D4-s1-02",
+          "scope": "D4-s1",
+          "step": "D4.M1",
+          "title": "Lane slot menu is placed at the tap point unclamped; near the right edge it spills past its chart and the viewport",
+          "severity": "medium",
+          "claim": "A slot menu opened at 97% of the window spills 44.2 px past its chart and 9.7 px past a 375 px viewport in Swedish (label cut to 'L\u00e4gg till ett varmvattenpa'), and in English is squeezed to a 64 px column, in 6 of the targeted cells.",
+          "mechanism": "LaneEditor.openMenu sets menu.style.left = clientX - rect.left with no clamp against the chart wrapper, for all three openers (tap release, right-click, keyboard); the sibling pop-up, the hover tooltip in _onPointerMove, clamps to [0, rightLimit].",
+          "evidence": {
+            "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states x_pin_ok,x_pin_fail,x_save_ok,x_save_fail,x_dhw_clamped,x_save_confirm,draft_dirty_menu_open,x_menu_right_edge,x_menu_right_edge_dhw,picker_open_filtered,x_live_default,x_live_default_expanded",
+            "harness_path": "tools/audit/round9/D4/s1/sweep.mjs",
+            "value": 6,
+            "unit": "count",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "box B10: 4-core Linux container (kernel 6.18), Node v22.22.2, Playwright 1.56.1, Chromium 141.0.7390.37, font Liberation Sans",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out; B10 runs only this Chromium seat; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 1.36,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump-optimizer-card.js:LaneEditor.openMenu",
+          "perturbation": {
+            "change": "sweep.mjs --perturb menu_clamp: one line after host.appendChild(menu) clamps menu.style.left to [0, host.clientWidth - menu.offsetWidth]",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "popup_out_cells: cells where a visible .slot-menu/.tooltip box extends >0.5 px beyond the viewport or beyond its .chartwrap horizontally",
+          "phenomenon_property": "Every pop-up the card anchors to a pointer or keyboard position lies wholly inside the chart wrapper it belongs to (and so inside the viewport), whatever the anchor point and language.",
+          "seam_rule": "grep -nE \"style\\.(left|top) = \" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "null_control": {
+            "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states x_pin_ok,x_pin_fail,x_save_ok,x_save_fail,x_dhw_clamped,x_save_confirm,draft_dirty_menu_open,x_menu_right_edge,x_menu_right_edge_dhw,picker_open_filtered,x_live_default,x_live_default_expanded",
+            "value": "0 at 1280 px en and for every mid-chart opening (draft_dirty_menu_open)",
+            "note": "the spill needs a narrow chart and a long label"
+          },
+          "reproduction_steps": [
+            "Run the command; read RESULT popup_out_cells=6 and max_popup_viewport_out_px=9.7.",
+            "shots/x_menu_right_edge_dhw__375__light__sv-SE.png shows the cut label."
+          ],
+          "proposed_fix_scope": "LaneEditor.openMenu: clamp left/top against the wrapper after layout (the tooltip's own clamp is the model).",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        },
+        {
+          "id": "D4-s1-03",
+          "scope": "D4-s1",
+          "step": "D4.M1",
+          "title": "Setup picker: two identically named sensors render as identical options at 375 and 768 px",
+          "severity": "medium",
+          "claim": "In the setup picker the options 'Vedpanna temperatur \u2014 sensor.vedpanna_temperatur_temperature' and '..._2' show the same visible prefix at 375 px (190 px box) and 768 px (322 px box), in 8 of 8 non-1280 cells.",
+          "mechanism": "SetupPage.pickerModel appends the entity id to every option so colliding friendly names can be told apart, but the <select size=8> lives in a pop-up capped at max-width 90%, and a Chromium listbox option neither wraps nor scrolls sideways, so the distinguishing suffix is clipped.",
+          "evidence": {
+            "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states x_pin_ok,x_pin_fail,x_save_ok,x_save_fail,x_dhw_clamped,x_save_confirm,draft_dirty_menu_open,x_menu_right_edge,x_menu_right_edge_dhw,picker_open_filtered,x_live_default,x_live_default_expanded",
+            "harness_path": "tools/audit/round9/D4/s1/sweep.mjs",
+            "value": 8,
+            "unit": "count",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "box B10: 4-core Linux container (kernel 6.18), Node v22.22.2, Playwright 1.56.1, Chromium 141.0.7390.37, font Liberation Sans",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out; B10 runs only this Chromium seat; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 1.36,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump-optimizer-card.js:SetupPage.pickerModel / pickerHtml (rendered .sp-select options)",
+          "perturbation": {
+            "change": "sweep.mjs --perturb picker_wrap: add '.sp-select option { white-space: normal; overflow-wrap: anywhere; }'",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "option_indistinct_pairs: pairs of options in a visible <select> whose full texts differ but whose visible prefix (measureText-fitted to the option content width) is identical",
+          "phenomenon_property": "No two options of a card <select> that differ in text render identically at any supported viewport; the part of a label that distinguishes it is always visible.",
+          "seam_rule": "grep -nE \"<select|<option\" custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "null_control": {
+            "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states x_pin_ok,x_pin_fail,x_save_ok,x_save_fail,x_dhw_clamped,x_save_confirm,draft_dirty_menu_open,x_menu_right_edge,x_menu_right_edge_dhw,picker_open_filtered,x_live_default,x_live_default_expanded",
+            "value": "0 at 1280 px (box wide enough)",
+            "note": "the same options, fully visible"
+          },
+          "reproduction_steps": [
+            "Run the command; read the '== listbox options cut / indistinct' block and RESULT option_indistinct_pairs=8.",
+            "shots/picker_open_filtered__375__light__en.png"
+          ],
+          "proposed_fix_scope": "Card CSS/markup of the setup picker: let options wrap (overflow-wrap anywhere) or put the distinguishing id where it survives truncation.",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D4-s1-04",
+          "scope": "D4-s1",
+          "step": "D4.M1",
+          "title": "Setup layout editor: removing a pipe, drawing a pipe and moving a box have no keyboard route",
+          "severity": "medium",
+          "claim": "With the layout editor open, 0 of 12 pipes (3 viewports) can be removed from the keyboard and 0 of 18 boxes moved, while 12 of 12 pipes are removable by mouse click.",
+          "mechanism": "LayoutEditor.attach wires only pointerdown/move/up and click on .setup-canvas; the pipe markup (<path class=setup-pipe data-edge>) has no tabindex, role or name, and ports/boxes have no focusable element, so Save/Undo/Tidy are the only Tab stops in the editor. The pipe's hit area is its 3.5-unit stroke (6.6-38 px tall under a coarse pointer).",
+          "evidence": {
+            "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/layout_kbd.mjs",
+            "harness_path": "tools/audit/round9/D4/s1/layout_kbd.mjs",
+            "value": 0,
+            "unit": "count",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "box B10: 4-core Linux container (kernel 6.18), Node v22.22.2, Playwright 1.56.1, Chromium 141.0.7390.37, font Liberation Sans",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out; B10 runs only this Chromium seat; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 1.16,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump-optimizer-card.js:LayoutEditor (attach, onClick, removeEdge; edit.edges/positions)",
+          "perturbation": {
+            "change": "layout_kbd.mjs --perturb kbd: tabindex=\"0\" on the pipe path markup and a canvas keydown forwarding Enter/Delete to onClick",
+            "expected_direction": "up",
+            "observed_value": 12
+          },
+          "metric_definition": "pipes_keyboard: pipes whose edge disappears from LayoutEditor.edit.edges after reaching the pipe by Tab and pressing Enter, Delete or Space",
+          "phenomenon_property": "Every edit the layout editor offers by pointer (remove a pipe, add a pipe, move a box) has a keyboard-operable equivalent reachable by Tab.",
+          "seam_rule": "grep -nE 'canvas.addEventListener\\(\"(pointerdown|click)\"|data-edge=\"\\$\\{edge\\}\"' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "null_control": {
+            "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/layout_kbd.mjs",
+            "value": "pipes_click=12",
+            "note": "the same removal by real mouse click succeeds for every pipe"
+          },
+          "reproduction_steps": [
+            "Run the command; RESULT pipes=12 pipes_click=12 pipes_keyboard=0 boxes_keyboard=0.",
+            "Re-run with --perturb kbd; pipes_keyboard=12."
+          ],
+          "proposed_fix_scope": "LayoutEditor: focusable, named pipe/box elements with key handlers (Delete removes a pipe; arrows move a box; a port-to-port connect command).",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D4-s1-05",
+          "scope": "D4-s1",
+          "step": "D4.M1",
+          "title": "Now-marker label prints over the measured-now reading on the live default view",
+          "severity": "high",
+          "claim": "On an install that publishes its measured indoor temperature, the chart's 'now' label and the 'now 21.1 \u00b0C' reading overlap (13.8x8.6 px glyph boxes at 375 px, ink visibly merged) in the default view, inline and expanded, in 24 of 24 cells.",
+          "mechanism": "renderChart places text.now-label at (nx+3, plotT+font+1) and text.now-temp at (plotL+6, plotT+font) independently; the default window starts at now so nx ~ plotL. The test rig's planStates omits the measured sensor (withActuals), so no STATES default view draws now-temp. Same property, second seam: the .viewctl reset button over now-label when panned (history_panned, 10 cells of the full grid).",
+          "evidence": {
+            "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states x_pin_ok,x_pin_fail,x_save_ok,x_save_fail,x_dhw_clamped,x_save_confirm,draft_dirty_menu_open,x_menu_right_edge,x_menu_right_edge_dhw,picker_open_filtered,x_live_default,x_live_default_expanded",
+            "harness_path": "tools/audit/round9/D4/s1/sweep.mjs",
+            "value": 24,
+            "unit": "count",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "box B10: 4-core Linux container (kernel 6.18), Node v22.22.2, Playwright 1.56.1, Chromium 141.0.7390.37, font Liberation Sans",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out; B10 runs only this Chromium seat; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 1.36,
+            "thread_factor": 1.0
+          },
+          "instrumented_symbol": "heatpump-optimizer-card.js:renderChart (now-label / now-temp placement) via HeatpumpOptimizerCard._render",
+          "perturbation": {
+            "change": "sweep.mjs --perturb now_temp_below: now-temp y = plotT + 2*font + 4",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "now_marker_collisions: pairs (text.now-label, text.now-temp) whose boxes intersect by >3 px in both axes, over the 144 targeted cells",
+          "phenomenon_property": "No two labels the chart draws at the plot's top edge (now label, measured-now reading, estimated-prices label, view controls) overlap, wherever now falls in the window.",
+          "seam_rule": "grep -nE '<text class=\"now-|y=\"\\$\\{plotT \\+ font|class=\"viewctl' custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+          "null_control": {
+            "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --no-keys --modes normal --states expanded_plan,plan_inline",
+            "value": 0,
+            "note": "the same default views without the measured sensor: now_marker_collisions=0"
+          },
+          "reproduction_steps": [
+            "Run the command; RESULT now_marker_collisions=24.",
+            "evidence_now_collision_375.png (crop_now.mjs) shows the merged ink."
+          ],
+          "proposed_fix_scope": "renderChart: one placement for the top-edge labels (stack or offset now-temp when the now line is near plotL); add withActuals to a default-view state in tests/card_drift.mjs / card_browser.mjs.",
+          "files": [
+            "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Keyboard: every focusable is reached by Tab and shows a visible focus indicator in every state (light/en/normal, 3 viewports)",
+          "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --shots",
+          "value": "132 cells, 3246 focusables, kb_unreached=0, kb_no_indicator=0 (sweep_full.log)"
+        },
+        {
+          "claim": "Hover moves no content except the tooltip/crosshair overlay; Chromium's layout-shift score (0.03-0.065 per expanded cell) is the tooltip following the pointer",
+          "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/hover_diag.mjs",
+          "value": "moved_non_overlay=0 over 48 hovers (moved_overlay=194); --perturb shift -> 343"
+        },
+        {
+          "claim": "Reduced motion removes every transition/animation",
+          "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --quick --no-keys --modes normal,reduced --states expanded_plan,history_panned,plan_inline",
+          "value": "motion_elements_normal=9, motion_elements_reduced=0"
+        },
+        {
+          "claim": "No text is painted outside a box a gesture can reach, no horizontal page scroll, no truncating ellipsis, no console errors, over the full grid",
+          "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --shots",
+          "value": "1626 cells: overflow_instances=0, hscroll_cells=0, ellipsized_instances=0, console_error_cells=0"
+        },
+        {
+          "claim": "Every HTML control clears 24 px (44 px under a coarse pointer); the sub-floor residue is lane slot targets (boxed in by design) and the layout pipes (D4-s1-04)",
+          "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --shots",
+          "value": "small_instances=344 of which 0 are HTML controls; small24 residue: rect.slot-hit (shared_steps) and path.setup-pipe only"
+        },
+        {
+          "claim": "Swedish renders carry no untranslated card strings; en/sv dictionaries complete",
+          "command": "node tools/audit/round9/D4/s1/editor.mjs (labels) + sweep_full cells.jsonl en/sv text diff",
+          "value": "STRINGS en=286 sv=286 keys, 0 missing; English runs in sv renders are data only (fixture slot labels, entity ids, narrative language=en) plus 'Plan' (same word)"
+        },
+        {
+          "claim": "Card editor: every field labelled in en and sv, a no-op edit emits the lean config, every selector extreme passes setConfig",
+          "command": "node tools/audit/round9/D4/s1/editor.mjs",
+          "value": "fields=17 (9 top-level), labels_raw_en=0, labels_raw_sv=0, roundtrip_extra=0, roundtrip_throw=0; helpers=0 (--perturb helper -> 17)"
+        },
+        {
+          "claim": "Disproved lead (harness gap): axis unit titles vs top tick labels overlap only as glyph boxes (2-5 px), not as ink",
+          "command": "T=$(mktemp -d) && HPO_PLANDATA=$T/plandata.json PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/claude/venv314/bin/python tests/plan_view.py >/dev/null && HPO_PLANDATA=$T/plandata.json NODE_PATH=/home/claude/pwlane/node_modules PLAYWRIGHT_BROWSERS_PATH=/root/.cache/pw-browsers node tools/audit/round9/D4/s1/sweep.mjs --shots",
+          "value": "1300+ box-overlap instances all of the unit/tick pair; screenshots show a clear gap; tests/card_browser.mjs's rasterised ink test passes. The box metric over-reports stacked SVG text."
+        }
+      ],
+      "harnesses": [
+        "tools/audit/round9/D4/s1/sweep.mjs",
+        "tools/audit/round9/D4/s1/measure.js",
+        "tools/audit/round9/D4/s1/editor.mjs",
+        "tools/audit/round9/D4/s1/layout_kbd.mjs",
+        "tools/audit/round9/D4/s1/hover_diag.mjs",
+        "tools/audit/round9/D4/s1/crop_now.mjs"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "tests/card_rig.mjs",
+          "symbol": "planStates",
+          "what": "The default-view plan states omit the integration's own measured sensors (withActuals), so card_drift/card_browser never render the live default view; D4-s1-05's collision passed every lane for that reason."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "tests/card_browser.mjs",
+          "symbol": "contrastOf / REQUIRED",
+          "what": "The contrast lane measures four fixed sites on fixtures that never produce a status outcome (.cheaper/.dearer/.wi-warn/.confirm), so D4-s1-01 is outside every gate."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/topology.py",
+          "symbol": "describe_setup slots / rank_sensor_advisor labels",
+          "what": "Slot and advisor labels reach the card as published strings; whether the backend localizes them for a Swedish UI was not checked (the fixture's are English)."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer (plan narrative sensor)",
+          "symbol": "plan_narrative attributes.language",
+          "what": "The card prints narrative lines in the language the sensor published, regardless of hass.language; whether the backend follows the UI language was not checked."
+        }
+      ]
+    }
+  }
+}

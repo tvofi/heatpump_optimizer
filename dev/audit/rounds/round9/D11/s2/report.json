@@ -1,0 +1,324 @@
+{
+ "dimension": "D11",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D11/s2/REPORT.md",
+ "exposure": "GitHub (read-only MCP, 2026-09-26): pulls?state=closed (20 most recently updated, fields number/user/merged_at/head); pulls/{1638,1637,1639,1636,1635,1633,1634,1632,1631,1621,1617,1619}/reviews; search_pull_requests 'decision-0013'; search_issues 'recurring friction decision-0013' (#1640 open). policy_lint --stats read merged-PR verdicts and friction for v6.7.0..origin/main. git history of the worktree (log/numstat). No earlier-round evidence under tools/audit/round3..round8 was opened; paths of tools/audit/round3/D11/conformance_raw.json and tools/audit/round7/QUIET.md appeared only as git grep -l hits and were not read or cited. Standards text (OpenSSF Scorecard checks.md, OWASP LLM Top 10) could not be fetched: WebFetch permission prompt unanswerable on this host; scorecard rows use the standards as unverified external references.",
+ "coverage": [
+  {
+   "step": "D11.M1",
+   "depth": "deep",
+   "evidence": "mechanism inventory for my cells (REPORT.md table, 10 rows derived from the tree); positive controls driven for 6 refusals (controls.py 6/6) plus hooks (hooks_matcher.py): one detector gap (D11-s2-02)"
+  },
+  {
+   "step": "D11.M2",
+   "depth": "spot",
+   "evidence": "executed checks: Code-Review/identity over a 12-PR sample (owner_review.py, D11-s2-03), Security-Policy (SECURITY.md), settings.json permissions vs OWASP LLM excessive agency (by reading), ISO 42001 continual improvement via --stats and #1640; standards text not fetched; Branch-Protection, Dangerous-Workflow, Token-Permissions, Pinned-Dependencies, SAST, Signed-Releases, SLSA are .github/tools cells (D11-s1)"
+  },
+  {
+   "step": "D11.M3",
+   "depth": "deep",
+   "evidence": "--budgets, lines added/deleted, policy_lint_mutants (22/22 pinned), --stats histogram, conformance sample 12 PRs (author, row, approval at head), staleness of quoted strings and symbols in my cells (D11-s2-01, D11-s2-04)"
+  },
+  {
+   "step": "D11.M4",
+   "depth": "deep",
+   "evidence": "every finding carries a perturbation executed in memory or in a throwaway clone (caps_unit, hooks_matcher, owner_review, mode_line); none touched main, the live ruleset or a live PR"
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D11.M2",
+   "what": "standards' current text not fetched (WebFetch prompt unanswerable); Scorecard tool not run; per-criterion wording of OpenSSF Scorecard, OWASP LLM Top 10 2025, NIST AI 600-1 and ISO/IEC 42001 10.1 remains to be quoted against the scorecard rows"
+  },
+  {
+   "step": "D11.M3",
+   "what": "conformance obligations 'first pr-contract run at head green' and 'red required check answered under ## Red checks' not sampled (needs per-head check-runs listing for 12 PRs); root-cause seat beside #1640 not checked"
+  }
+ ],
+ "findings": [
+  {
+   "id": "D11-s2-01",
+   "scope": "D11-s2",
+   "step": "D11.M3",
+   "title": "Per-file policy caps count lines, so a capped rule file grows in prose with its per-file budget check green",
+   "severity": "medium",
+   "claim": "Appending ~150 tokens (600 bytes) of new prose to an existing line of each of 7 zero-headroom capped policy files produces 0 per-file budgets errors from policy_lint.mjs:checkBudgets in 7 of 7 cells, while the same bytes as 8 new lines are refused in 7 of 7.",
+   "mechanism": "checkBudgets compares r.lines (countLines) against files[<file>]; bytes are only summed into the five aggregate caps, each compared against cap+_band (500 tokens). Line-joining or reflowing therefore buys per-file prose growth bounded only by whatever aggregate band is left -- the silent per-file growth ratchet-budgets.md says the exact per-file comparison exists to prevent ('a band there would buy silent growth in every capped file at once').",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s2/caps_unit.py",
+    "harness_path": "tools/audit/round9/D11/s2/caps_unit.py",
+    "value": 7,
+    "unit": "cells of 7 accepting +600 bytes with 0 per-file and 0 aggregate budgets errors",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B3 cloud container, 4 CPUs, 15 GiB, Linux; node v22.22.2; CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with D0-s3 (compute-heavy) and three light seats; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 7.93,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/policy_lint.mjs:checkBudgets",
+   "perturbation": {
+    "change": "one line before `if (r.lines > cap) {` in checkBudgets: also push a budgets error when r.bytes exceeds the file's baseline bytes (the harness injects the map in a throwaway clone)",
+    "expected_direction": "to_zero",
+    "observed_value": "joined growth refused in 7 of 7 (joined_unrefused 7 -> 0)"
+   },
+   "metric_definition": "Of N zero-line-headroom capped policy files, how many accept +600 bytes appended to an existing line with no budgets error from a default policy_lint run.",
+   "phenomenon_property": "Every per-file policy cap must bound the file's prose (bytes/tokens), not a quantity a reflow changes without changing the prose.",
+   "seam_rule": "grep -n 'r.lines > cap' .claude/workflows/policy_lint.mjs; python3 -c \"import json;print(len(json.load(open('.claude/workflows/policy_budgets.json'))['files']))\"  (every entry of files{} is a seam)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s2/caps_unit.py",
+    "value": "unmodified clone: 0 per-file budgets errors on the 7 cells, 0 aggregate; NEWLINES arm (same bytes, new lines): refused 7 of 7",
+    "note": "the live control proves the per-file check is alive; only the unit is blind"
+   },
+   "leave_one_out": {
+    "cells": 7,
+    "min": 1,
+    "max": 1,
+    "drop_most_favourable": 1
+   },
+   "reproduction_steps": [
+    "run caps_unit.py from the export root",
+    "read the CELL lines: joined pf=0 agg=0, newlines pf=1"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I3",
+   "files": [
+    ".claude/workflows/policy_lint.mjs",
+    ".claude/workflows/policy_budgets.json",
+    ".claude/rules/ratchet-budgets.md"
+   ],
+   "proposed_fix_scope": "Record per-file caps in bytes or tokens (or add a byte cap beside the line cap) in policy_budgets.json and compare them exactly in checkBudgets; ratchet-budgets.md's per-file paragraph then states the unit. Owner approval needed (policy)."
+  },
+  {
+   "id": "D11-s2-02",
+   "scope": "D11-s2",
+   "step": "D11.M1",
+   "title": "policy_lint --hooks never reads a hook's matcher: a PreToolUse matcher naming no edit tool passes as wired",
+   "severity": "medium",
+   "claim": "With .claude/settings.json's PreToolUse matcher replaced by any of 4 values that match no file-editing tool (Read, Bash, Glob, NoSuchTool), policy_lint.mjs:cmdHooks exits 0 ('HOOKS ok: 3 wired hook(s)') in 4 of 4, although pre-edit.sh would then never run on an Edit/Write.",
+   "mechanism": "cmdHooks iterates event -> group -> hook, extracts the script path from the command and runs its --self-test; REQUIRED checks only (event, script) pairs. g.matcher is read nowhere, and pre-edit.sh's self-test drives decide() directly, so neither sees the matcher that decides whether Claude Code ever invokes the hook.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s2/hooks_matcher.py",
+    "harness_path": "tools/audit/round9/D11/s2/hooks_matcher.py",
+    "value": 0,
+    "unit": "matcher variants refused of 4",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B3 cloud container, 4 CPUs, 15 GiB, Linux; node v22.22.2; CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with D0-s3 (compute-heavy) and three light seats; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 6.22,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/policy_lint.mjs:cmdHooks",
+   "perturbation": {
+    "change": "one line after `const script = ...` in cmdHooks: a PreToolUse group whose matcher regex does not match 'Edit' is pushed as NOT WIRED (applied in a throwaway clone)",
+    "expected_direction": "up",
+    "observed_value": "variants refused 0 -> 4; tracked settings still rc 0"
+   },
+   "metric_definition": "Of 4 settings.json variants whose PreToolUse matcher matches no editing tool, how many make `policy_lint.mjs --hooks <file>` exit non-zero.",
+   "phenomenon_property": "The hook-wiring check must refuse any settings.json in which a required hook cannot fire on the tool events its rule targets -- event, script AND matcher.",
+   "seam_rule": "python3 -c \"import json;s=json.load(open('.claude/settings.json'));print([(e,g.get('matcher')) for e,gs in s['hooks'].items() for g in gs])\"",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s2/hooks_matcher.py",
+    "value": "tracked settings rc=0; live control (script renamed to pre-edit-gone.sh) rc=1 'HOOKS REFUSED'",
+    "note": "the check is alive for the script path; blind only to the matcher"
+   },
+   "reproduction_steps": [
+    "run hooks_matcher.py",
+    "or: copy .claude/settings.json, set PreToolUse[0].matcher to \"Read\", run node .claude/workflows/policy_lint.mjs --hooks <relative path to copy>"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "I3",
+   "files": [
+    ".claude/settings.json",
+    ".claude/workflows/policy_lint.mjs"
+   ],
+   "proposed_fix_scope": "cmdHooks: add the expected matcher to each REQUIRED row (PreToolUse must match Edit, Write, MultiEdit, NotebookEdit) and refuse otherwise; a fixture under fixtures/policy-rot/hooks/ with a wrong matcher pins it. The fix is in D11-s1's file; the defect is observed through my cell settings.json."
+  },
+  {
+   "id": "D11-s2-03",
+   "scope": "D11-s2",
+   "step": "D11.M2",
+   "title": "The owner-approval predicate keys on the tvofi account, and 6 of 6 sampled owner approvals at head were seat-given",
+   "severity": "medium",
+   "claim": "Over the 12 first-parent merges before the baseline, budget_raise_gate.approval() -- the in-tree predicate for CLAUDE.md's 'approval is the owner's approving GitHub review' -- counts an owner approval at the merged head on 6 PRs, and all 6 of those reviews state in their own body that the orchestrator seat gave them; 0 human owner approvals at head are distinguishable on GitHub's record.",
+   "mechanism": "approval() and main-protect's code-owner rule accept any review by login tvofi / id 70032254 / type User. Under the owner's 12-hour delegation (quoted only in review bodies; no in-tree decision records it -- git grep -il mandate finds none newer than decision 0009) the orchestrator posts reviews with the owner's credentials, so the human-oversight point CLAUDE.md and decision 0013 describe is indistinguishable from a seat's review. NIST AI 600-1/AI RMF GOVERN (accountability, human oversight provable from records) is the bar missed; the delegation itself was the owner's choice.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s2/owner_review.py",
+    "harness_path": "tools/audit/round9/D11/s2/owner_review.py",
+    "value": 6,
+    "unit": "of 6 owner approvals counted at head that the review body declares seat-given (sample 12 merged PRs)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B3 cloud container, 4 CPUs, 15 GiB, Linux; node v22.22.2; CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "counts over a committed API snapshot (reviews_snapshot.json); contention-immune",
+    "tolerance": "exact",
+    "load1": 4.74,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": ".claude/workflows/budget_raise_gate.py:approval",
+   "perturbation": {
+    "change": "the seat approvals re-attributed to the seat's own App identity (hpo-approver[bot]), as CLAUDE.md's identity section prescribes for seats",
+    "expected_direction": "to_zero",
+    "observed_value": "seat_counted_as_owner 6 -> 0; owner approvals at head 6 -> 0"
+   },
+   "metric_definition": "Of sampled merged PRs where approval(reviews, merged_head) is True, the count whose counted review body declares it was given by the orchestrator seat.",
+   "phenomenon_property": "Every review the governance counts as the owner's human oversight must be distinguishable, on GitHub's own record, from a review an LLM seat posts.",
+   "seam_rule": "grep -rn 'OWNER_LOGIN\\|@tvofi\\|code-owner' .claude/workflows/budget_raise_gate.py .github/CODEOWNERS CLAUDE.md",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s2/owner_review.py",
+    "value": "6 hpo-author/hpo-approver-only PRs contribute 0 to both counts; the 3 unannotated tvofi approvals (1621, 1617 round 1, 1619) sit on non-head commits and are not counted",
+    "note": "the body-text classifier can only undercount seat-given reviews"
+   },
+   "reproduction_steps": [
+    "run owner_review.py",
+    "re-derive the snapshot: GET /repos/tvofi/heatpump_optimizer/pulls/<n>/reviews for the 12 PRs in its _source"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "new",
+   "files": [
+    "CLAUDE.md",
+    ".claude/workflows/budget_raise_gate.py",
+    "docs/decisions/"
+   ],
+   "proposed_fix_scope": "Policy, owner's decision: either record the delegation as an in-tree decision with its window and have seats approve only through a distinct App identity (a code-owned team containing that App), or keep owner reviews human-only. CLAUDE.md's identity section then states which."
+  },
+  {
+   "id": "D11-s2-04",
+   "scope": "D11-s2",
+   "step": "D11.M3",
+   "title": "CLAUDE.md rule 1 quotes a mode line the gate does not print, and says FULL prints a zero it does not",
+   "severity": "low",
+   "claim": "Of CLAUDE.md rule 1's two claims about the gate's mode line -- the literal `MODE: SCOPED — 0 script(s) run` and 'MODE: FULL ... prints zero' -- 0 of 2 hold on tests/closure.py:print_plan's output ('MODE: SCOPED -- 0 script(s) run, ...'; 'MODE: FULL -- every test script runs, nothing is scoped out.').",
+   "mechanism": "print_plan writes ASCII `--`, CLAUDE.md quotes an em dash; the FULL line carries no count. A seat grepping a log for the quoted literal finds nothing; policy_lint's citations class resolves symbols and paths, not quoted output strings.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s2/mode_line.py",
+    "harness_path": "tools/audit/round9/D11/s2/mode_line.py",
+    "value": 0,
+    "unit": "claims holding of 2",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "B3 cloud container, 4 CPUs, 15 GiB, Linux; node v22.22.2; CPython 3.14.0rc2",
+    "cpu_or_wall": "count",
+    "contention_note": "box shared with D0-s3 (compute-heavy) and three light seats; a count, contention-immune",
+    "tolerance": "exact",
+    "load1": 4.52,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "tests/closure.py:print_plan",
+   "perturbation": {
+    "change": "print_plan's scoped f-string `MODE: SCOPED -- {len` -> `MODE: SCOPED — {len` (in memory, recompiled from its own source)",
+    "expected_direction": "up",
+    "observed_value": "claims_holding 0 -> 1"
+   },
+   "metric_definition": "Count of CLAUDE.md rule 1's two mode-line claims that are true of print_plan's output for a 0-run scoped plan and a full plan.",
+   "phenomenon_property": "An output string the policy quotes for a seat to key on must be a substring of what the producing code prints.",
+   "seam_rule": "grep -no '`[A-Z][A-Z -]*: [^`]*`' CLAUDE.md .claude/rules/*.md .claude/skills/steward/SKILL.md",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s2/mode_line.py",
+    "value": "the MODE: FULL substring itself is present in print_plan's full output (the line exists; only its claimed zero does not)",
+    "note": "separates a missing line from a mis-quoted one"
+   },
+   "stop_rule_class": "hygiene",
+   "class_guess": "I5",
+   "files": [
+    "CLAUDE.md",
+    "tests/closure.py"
+   ],
+   "proposed_fix_scope": "Quote the printed literal (`MODE: SCOPED -- 0 script(s) run`) and drop 'both print zero' from CLAUDE.md rule 1 (policy edit, owner approval)."
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "M1 positive controls: rules_sync --check refuses a drifted .mdc (C1) and an orphan .mdc (C2); counts refuses a wrongly stated cap (C3); rule-binding refuses a dead paths: glob (C4); index refuses a policy file CLAUDE.md no longer names (C5); budgets refuses a +1 line on a zero-headroom rule (C6)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s2/controls.py",
+   "value": "controls_fired=6 of 6; null TOTAL 0, rules_sync rc 0"
+  },
+  {
+   "claim": "rules_sync --check runs on every pull request (governance.yml policy-docs, from the base's copy) and in prepr.sh",
+   "command": "git grep -n 'rules_sync.mjs --check' .github tools/audit/prepr.sh",
+   "value": "governance.yml:133, prepr.sh:1044"
+  },
+  {
+   "claim": "policy_lint default run is clean at the baseline over the corpus",
+   "command": "node .claude/workflows/policy_lint.mjs",
+   "value": "TOTAL: 0 error(s) across 40 policy file(s); KNOWN-BAD 7 of 7 still present (15 occurrences, 4 in CLAUDE.md/brief-citations.md: SEAT-BLOCK.md citation/index, 1 duplicates row); required-contexts skipped (no gh)"
+  },
+  {
+   "claim": "Detector health: every corpus and record check class turns the acceptance red when emptied",
+   "command": "node .claude/workflows/policy_lint_mutants.mjs",
+   "value": "MUTANTS ok: 11 corpus + 11 record checks pinned, rc 0"
+  },
+  {
+   "claim": "Hooks wired in settings.json exist and pass their own self-tests",
+   "command": "node .claude/workflows/policy_lint.mjs --hooks",
+   "value": "3 ok (8, 16, 23 self-test cases passed)"
+  },
+  {
+   "claim": "Budgets: every per-file cap in my cells holds; the five aggregates sit above their recorded caps but inside the 500-token band",
+   "command": "node .claude/workflows/policy_lint.mjs --budgets",
+   "value": "always 3461 vs 3349+500; corpus 55688 vs 55433+500; fixer 6029/5852+500, record 7132/6904+500, policy 9728/9414+500; 12 of my 13 capped files at zero line headroom"
+  },
+  {
+   "claim": "Size direction in my cells since v6.6.0 is near flat (not the 6.8:1 accretion policy_budgets.json _measured records)",
+   "command": "git log --numstat --format= v6.6.0..1936d5ca -- CLAUDE.md AGENTS.md .claude/rules .claude/skills .claude/settings.json | awk '{a+=$1;d+=$2} END{print a,d}'",
+   "value": "265 added / 216 deleted = 1.23"
+  },
+  {
+   "claim": "Recurrence: the one friction key at threshold has its issue",
+   "command": "node .claude/workflows/policy_lint.mjs --stats --since v6.7.0",
+   "value": "decision-0013 at 5 PRs / 6 entries (threshold 3); issue #1640 '[policy] recurring friction: decision-0013' is open. Whether a root-cause seat ran beside it was not checked"
+  },
+  {
+   "claim": "Conformance, sample of 12 first-parent merges before the baseline (git log --merges --first-parent -12): author identity, delivery row",
+   "command": "GitHub pulls?state=closed (user.login); test -f docs/delivery/<n>.md",
+   "value": "author hpo-author[bot] 12/12; docs/delivery/<n>.md present 12/12; an approving review by a non-author identity 12/12 (hpo-approver[bot] or tvofi), at the merged head 11/12 (1621's only approval is on ecb7af8e, head 99fcc3f2)"
+  },
+  {
+   "claim": "Cited symbols and commands in my cells resolve in the tree",
+   "command": "git grep -l for autofix_repair_failed, autofix_allowed, apply_inherited_claims, apply_under_scoped_recordings, apply_pins, inherited_claims_error, skip-failed-recording, skip-unchanged, --install-merge-driver, auto-lease, delivery_status.py --emit, 'these force the FULL suite when touched'",
+   "value": "12 of 12 found"
+  },
+  {
+   "claim": "OpenSSF Security-Policy / Best Practices vulnerability reporting: a policy exists and names a private channel",
+   "command": "cat SECURITY.md",
+   "value": "SECURITY.md present; private advisory form named"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D11/s2/_common.py",
+  "tools/audit/round9/D11/s2/caps_unit.py",
+  "tools/audit/round9/D11/s2/hooks_matcher.py",
+  "tools/audit/round9/D11/s2/owner_review.py",
+  "tools/audit/round9/D11/s2/reviews_snapshot.json",
+  "tools/audit/round9/D11/s2/mode_line.py",
+  "tools/audit/round9/D11/s2/controls.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "D11-s1",
+   "file": ".github (ruleset on main)",
+   "symbol": "pull_request rule: require_last_push_approval / dismiss_stale_reviews_on_push",
+   "what": "PR #1621 merged at head 99fcc3f2 with its only approving review (tvofi) on ecb7af8e and no approval at the merged head; read the ruleset with both arms to see whether an approval on an earlier commit satisfies the required review"
+  },
+  {
+   "owner_seat": "D11-s1",
+   "file": ".claude/workflows/policy_lint.mjs",
+   "symbol": "cmdHooks",
+   "what": "D11-s2-02's fix lands in this file; also no fixture under fixtures/policy-rot/hooks/ carries a wrong matcher"
+  },
+  {
+   "owner_seat": "D11-s1",
+   "file": ".claude/workflows/rules_sync.mjs",
+   "symbol": "parse",
+   "what": "paths extraction regex requires `\"...\"\\s*$`, rulePaths in policy_lint uses `-\\s*\"([^\"]+)\"` inside a block: a paths entry with a trailing YAML comment is kept by policy_lint and dropped from the generated .mdc globs (two parsers of one frontmatter, class I4); not measured"
+  },
+  {
+   "owner_seat": "D11-s1",
+   "file": ".claude/workflows/budget_raise_gate.py",
+   "symbol": "approval",
+   "what": "D11-s2-03 hooks it; any identity-hardening fix (distinct App for seat approvals) touches this predicate and main-protect-checks"
+  }
+ ]
+}

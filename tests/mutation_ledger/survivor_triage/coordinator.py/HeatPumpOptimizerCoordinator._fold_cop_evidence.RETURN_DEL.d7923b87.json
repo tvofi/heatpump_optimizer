@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_cop_evidence RETURN_DEL d7923b87",
+  "old": "        return None",
+  "reason": "Moved unchanged by R10-HEAT-METER (#2261): the line left `_fold_measured_cop` with the fold's tail, now `_fold_cop_evidence`, which a cycle's evidence and a counter span's both reach. Equivalent (RETURN_DEL): `return None` is the last statement of `_fold_cop_evidence`; every other exit of its body is a `return COP_REFUSED_*`, and its callers (`_fold_measured_cop`'s tail and `_async_learn_heat_span`) read only that value. The mutant's `pass` falls off the end of the body and returns None, the same value on the same path.",
+  "verdict": "equivalent"
+}

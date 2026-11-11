@@ -1,0 +1,19 @@
+#3167	2026-11-02T07:42:27Z	7637d6634	3863	tests / replay concluded failure at this head (synthetic-dhw-only.json: cycle_cost cpu_ratio 2.615 over budget 2.173)
+#3167	2026-11-05T00:05:27Z	4e4bb291b	71	gate concluded cancelled at this head (run 41924350700 cancelled with tests / fast (3.14) and tests / coverage unfinished), no gate verdict exists; code review otherwise clean
+#3180	2026-11-04T08:00:40Z	3f7777a59	76	the new harness replay.py reddens tests / fast (3.14) on harness_headers.py (depth root at replay.py:40) and tests / closures on an INERT read harness_headers.py makes of it
+#3181	2026-11-04T12:35:07Z	bb730c1ee	187	gate failed on codeql / Analyze (python) cancelled; code review otherwise clean
+#3189	2026-11-04T15:47:47Z	fd9c5bab5	260	tests / fast (3.14) fails harness_headers.py on the replay's depth root ROOT = HERE.parents[3] at replay.py:51
+#3195	2026-11-04T18:41:39Z	6f742a33e	355	tests / typing is red on this branch's code (9 no-untyped-call from _settlement_schedule's untyped _l lambda) and the body's Red checks does not name it
+#3195	2026-11-05T00:36:12Z	c383169a5	250	prelude and gate are red at this head (prelude's 8700 s wait expired while mutation-pins (1) was still running, and shards 2 and 3 left 8 surviving unpinned sites); ## Red checks does not name prelude and pr-contract refuses the body
+#3195	2026-11-05T04:46:31Z	611e1aa6f	60	gate failed at this head on tests / mutation's unpinned-site refusal; the bot pin commit 8050a943c that cures it is a new head, and a red CI never carries
+#3204	2026-11-04T18:41:23Z	e5381d941	64	gate concluded cancelled at the head, classify exits 1 (RED)
+#3208	2026-11-04T23:07:05Z	327d83e73	184	tests / fast (3.14) red on this PR's own harness, whose inlined repo_root differs from tools/audit/repo_root.py (harness_headers.py)
+#3211	2026-11-04T22:57:23Z	1fca63cb1	1583	gate concluded cancelled because PR #3211 was closed unmerged at 2026-11-04T22:51:15Z, so no green run exists for this head
+#3217	2026-11-05T03:47:10Z	1c42ca3fd	124	required gate red at this head on a cancelled codeql / Analyze (python); the code itself passes review
+#3219	2026-11-05T04:32:06Z	aca500910	132	required gate concluded cancelled at this head (classify RED), and the body's Head and Red checks name stale SHAs, not this head's base
+#3227	2026-11-05T12:39:54Z	a52354e6e	139	body_patch.sh:146 bare array expansion reddens instrument-self-tests and fast, unanswered in the body
+#3240	2026-11-06T13:04:16Z	79cf40f47	80	required gate red at this head by cross-run deferral (run 42210933789's gate judged early and never re-run); the code settles both round-1 blocks and the surviving mutant
+#3242	2026-11-06T13:40:00Z	e836876f3	328	tests / fast (3.14) is red at this head because tests/harness_headers.py refuses the hand-written depth root this diff adds at dev/audit/harnesses/r10_ci_layout_p1/critpath_fetch.sh:12 (base 112/112 pass, head 1 of 112 fail), and the body's Red checks reads a commit with no check runs and reports none
+#3244	2026-11-06T23:24:31Z	a25821255	111	required gate concluded failure at this head, three edit-run gates deferring to one another
+#3244	2026-11-07T01:16:00Z	8bc540e05	442	CodeQL code-scanning alert 50 py/jinja2/autoescape-false on the new render harness, unanswered in Red checks, so pr-contract and the code gate are red
+ENTRIES 18 PRS 14

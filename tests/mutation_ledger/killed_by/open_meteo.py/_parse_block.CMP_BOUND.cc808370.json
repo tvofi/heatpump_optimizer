@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/open_meteo.py:_parse_block CMP_BOUND cc808370",
+  "killed_by": "tests/open_meteo.py",
+  "old": "        if (times[i + 1] - times[i]).total_seconds() > 0",
+  "reason": "Recorded by `mutation_table.py --drain` against 3976515a08228598ea3863f4f36dc4c7c4846865: CMP_BOUND (`if (times[i + 1] - times[i]).total_seconds() >= 0`) took tests/open_meteo.py from rc=0 failed=0 to rc=1 failed=1."
+}

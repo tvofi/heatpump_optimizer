@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_write GUARD_OFF 92b8766d",
+  "killed_by": "tests/features.py",
+  "old": "    if slot in held.retry and utc_elapsed_seconds(now, held.retry[slot]) < 0:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 787fe137cc72c77188a54a5125dc351c95ba84b3: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:_stored_overdraws RETURN_DEL 9ccb0e19",
+  "killed_by": "tests/features.py",
+  "old": "    return max(raw, 0) if type(raw) is int else 0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

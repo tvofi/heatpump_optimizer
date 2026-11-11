@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_observe BOOLOP 577b31a4",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    if power is not None and now - start >= RUN_SETTLE:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if power is not None or now - start >= RUN_SETTLE:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

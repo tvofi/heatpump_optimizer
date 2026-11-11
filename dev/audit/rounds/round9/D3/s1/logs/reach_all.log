@@ -1,0 +1,33 @@
+SCRIPT tests/config_flow_steps.py rc=0 wall=14.4s reach=3077
+RESULT reach_tests_config_flow_steps_py=3077 lines
+SCRIPT tests/deployment_shape.py rc=0 wall=2.0s reach=0
+RESULT reach_tests_deployment_shape_py=0 lines
+SCRIPT tests/doc_claims.py rc=0 wall=2.8s reach=0
+RESULT reach_tests_doc_claims_py=0 lines
+SCRIPT tests/entities.py rc=0 wall=88.1s reach=2890
+RESULT reach_tests_entities_py=2890 lines
+SCRIPT tests/env_drift.py rc=0 wall=210.7s reach=0
+RESULT reach_tests_env_drift_py=0 lines
+SCRIPT tests/features.py rc=0 wall=286.5s reach=5498
+RESULT reach_tests_features_py=5498 lines
+SCRIPT tests/finite_boundary.py rc=0 wall=12.3s reach=1731
+RESULT reach_tests_finite_boundary_py=1731 lines
+SCRIPT tests/manual_plan.py rc=0 wall=8.0s reach=1685
+RESULT reach_tests_manual_plan_py=1685 lines
+SCRIPT tests/plan_view.py rc=0 wall=1.9s reach=639
+RESULT reach_tests_plan_view_py=639 lines
+SCRIPT tests/solar_alignment.py rc=0 wall=1.7s reach=1193
+RESULT reach_tests_solar_alignment_py=1193 lines
+SCRIPT tests/structure.py rc=0 wall=2.4s reach=0
+RESULT reach_tests_structure_py=0 lines
+SCRIPT tests/typing_ruler.py rc=0 wall=0.4s reach=0
+RESULT reach_tests_typing_ruler_py=0 lines
+SCRIPT tests/wood_advisor.py rc=0 wall=1.5s reach=490
+RESULT reach_tests_wood_advisor_py=490 lines
+RESULT executable_lines=5910 lines
+RESULT union_reach=5629 lines
+RESULT never_reached=281 lines
+UNION_FILE /tmp/d3s1reach-4hmdeyl1/union.json
+RESULT thread_factor=1.000
+RESULT load1=1.06
+RESULT swapins=0

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:saturation_vapor_pressure RETURN_DEL 4c4fee3d",
+  "killed_by": "tests/features.py",
+  "old": "    return 6.112 * math.exp(17.62 * temp_c / (243.12 + temp_c))",
+  "reason": "Recorded by `mutation_table.py --drain` against aca6ea4567034a05e64edcfd8355d42a8079427d: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

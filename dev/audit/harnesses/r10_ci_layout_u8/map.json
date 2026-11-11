@@ -1,0 +1,13 @@
+{
+ "renames": {},
+ "dropped": [
+  "budget-raise-gate|Name the pull request a queue entry carries"
+ ],
+ "gained": [],
+ "changed": [
+  "budget-raise-gate|Refuse a budget raise the owner has not approved at this head",
+  "budget-raise-gate|Restore the check source from the base commit",
+  "|triggers"
+ ],
+ "after": {}
+}

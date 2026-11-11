@@ -1,0 +1,149 @@
+{
+ "dimension": "D9",
+ "seat": "s1",
+ "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+ "tree": "/home/claude/audit-r8/seats/D9-s1",
+ "report_path": "tools/audit/round8/D9/REPORT-s1.md",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D9-s1-01",
+   "title": "The per-candidate L-BFGS-B polish spends 6.3% of the sweep's gradient evaluations on results it throws away",
+   "severity": "low",
+   "claim": "Over the 51 stress.sweep_combinations() solves, 149 of 206 _lbfgsb_restart polishes are discarded (the function returns its input), and those discarded polishes take 1,200 of 18,967 gradient evaluations (6.3%). 24 of them end ABNORMAL at nit 0 after 501 gradients (about 21 each) without making any progress. Each gradient is one 96-row simulate_trajectory_batch.",
+   "mechanism": "_multi_start_minimize polishes every solved candidate (#1208) by restarting L-BFGS-B at full maxiter from that candidate's own converged point, with a fresh Hessian and scipy's default maxls=20. When the candidate already sits at a line-search-flat point, the first line search runs all 20 trials, and each trial evaluates the supplied batched jac. The run returns status 2 (ABNORMAL), nit 0, and x unchanged. Other polishes converge to a drop below _LBFGSB_RESTART_KEEP_REL and are rejected. The per-scenario share of discarded polish work is highest on the cheap single-zone solves (median 13.1%, max 41.6%).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D9/s1_polish.py",
+    "harness_path": "tools/audit/round8/D9/s1_polish.py",
+    "value": 0.0633,
+    "unit": "ratio (discarded-polish njev / all njev, 51 scenarios)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU x86_64 cloud container (audit-r8), shared with ~13 seats",
+    "cpu_or_wall": "ratio",
+    "contention_note": "load1 24 during the fan-out; the value is a count ratio, so contention does not affect it. The CPU share (0.048) is provisional",
+    "tolerance": "+-2 % relative (iterate paths may shift a few njev across BLAS builds)",
+    "load1": 24.0,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:_lbfgsb_restart (return identity), optimizer:_scoped_minimize (res.njev)",
+   "perturbation": {
+    "change": "--maxls 5: pass options maxls=5 to the polish's L-BFGS-B only (one-line edit in _lbfgsb_restart)",
+    "expected_direction": "down",
+    "observed_value": "discarded njev 1200 -> 679, share 0.0633 -> 0.0406. Adopted-polish njev also fell, 3441 -> 1715, so the cap alters adopted polishes too, which is a D0 question. --skip-polish takes the share to zero"
+   },
+   "metric_definition": "njev of polish runs whose _lbfgsb_restart returned its input object, divided by njev of every L-BFGS-B run in the solve, pooled over the 51 sweep scenarios.",
+   "phenomenon_property": "No L-BFGS-B run whose result the caller is certain to discard should consume gradient evaluations, and a restart from a converged point should not run a full maxls line search to return that same point.",
+   "seam_rule": "grep -n '_scoped_minimize(' custom_components/heatpump_optimizer/optimizer.py  (every L-BFGS-B run; the polish is the call inside _lbfgsb_restart)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D9/s1_polish.py --flat",
+    "value": 0.0783,
+    "note": "Flat prices do not remove the effect (0.0783, with 34 ABNORMAL nit-0 polishes costing 714 njev). The waste is a property of the restart and not of the price structure, which is expected for an overhead claim. The perturbation arm is the discriminating test"
+   },
+   "leave_one_out": {
+    "cells": 51,
+    "min": 0.0,
+    "max": 0.4155,
+    "drop_most_favourable": 0.1258
+   },
+   "reproduction_steps": [
+    "python3 tools/audit/round8/D9/s1_polish.py",
+    "python3 tools/audit/round8/D9/s1_polish.py --flat",
+    "python3 tools/audit/round8/D9/s1_polish.py --maxls 5"
+   ],
+   "proposed_fix_scope": "optimizer.py:_lbfgsb_restart only. Use a cheaper line-search budget or an early exit for the polish, for example a projected-gradient check at best.x before restarting. It must be proved against D0's polish-gap grid (#1208) that no adopted polish is lost. Pi extrapolation, an assumption: a Pi 4 runs about 4x slower than this x86 box, so the 4.8 % CPU share is about 0.2 s of a 4.4 s x86 two-zone DHW solve, or about 0.8 s per cycle on a Pi. The cost is bounded and falls in the worker process, not on the loop.",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "stop_rule_class": "bug"
+  },
+  {
+   "id": "D9-s1-02",
+   "title": "In-process fallback solve starves the event loop 65-90% of its wall time despite _gil_yield (provisional)",
+   "severity": "low",
+   "claim": "When a real coordinator cycle solves in-process (the fallback taken when the worker is unusable), the event loop's 1 ms heartbeat sees gaps over 5 ms during 65-90% of the executor-busy wall time, with a maximum gap of 30-46 ms. The shipped process route shows 29-32% and an idle loop shows 8-9% under the same load. The _gil_yield docstring's claim that it is 'exactly the yield a loop's 1 ms heartbeat needs' does not hold, because the batched gradient (one simulate_trajectory_batch, about 6 ms of CPU per call on this box) contains no yield.",
+   "mechanism": "_gil_yield runs once per memoized scalar objective call. A gradient is one vectorised batch call with no yield inside it, and scipy calls the jac at every line-search trial, so most of the solve's wall time is spent in stretches longer than CPython's 5 ms switch interval. The loop thread wakes for its tick and then waits up to one switch interval for the GIL.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 TMPDIR=/home/claude/audit-r8/tmp/D9-s1 python3 tools/audit/round8/D9/s1_cycle.py --route inline",
+    "harness_path": "tools/audit/round8/D9/s1_cycle.py",
+    "value": "0.645 / 0.904 (two runs)",
+    "unit": "starvation share (executor-busy wall time in gaps over 5 ms / executor-busy wall time)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU x86_64 cloud container (audit-r8), shared with ~13 seats",
+    "cpu_or_wall": "wall",
+    "contention_note": "PROVISIONAL: load1 15.9-24.0 on 4 vCPU with 10+ other seats running. The comparison uses the process route and an idle-loop null in the same session. Absolute gaps must be re-taken in the quiet window",
+    "tolerance": "provisional; ordering null < process < inline < inline-no-yield held in 2 of 2 sessions",
+    "load1": 23.17,
+    "thread_factor": 1.043
+   },
+   "instrumented_symbol": "heatpump_optimizer.optimizer:_gil_yield, coordinator:_run_in_process (replaced by the inline fallback call), coordinator:HeatPumpOptimizerCoordinator._async_update_data",
+   "perturbation": {
+    "change": "--no-gil-yield: optimizer._gil_yield replaced by a no-op",
+    "expected_direction": "up",
+    "observed_value": "0.645 -> 0.928 and 0.904 -> 0.974; median busy gap 2.2 -> 8.3 ms and 7.7 -> 12.4 ms"
+   },
+   "metric_definition": "Fraction of executor-busy wall time spent in 1 ms-heartbeat gaps over 5 ms, on a real asyncio loop with a real ThreadPoolExecutor, during one coordinator cycle.",
+   "phenomenon_property": "While a solve runs in the Home Assistant interpreter, no stretch of it should hold the GIL longer than the loop's 5 ms tolerance.",
+   "seam_rule": "grep -n 'simulate_trajectory_batch(\\|_gil_yield()' custom_components/heatpump_optimizer/optimizer.py  (every batched gradient seam, and where the yield sits)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D9/s1_cycle.py --null-seconds 4",
+    "value": "0.0818 / 0.0875",
+    "note": "An idle heartbeat under the same load. The process route (--route process) gives 0.32 / 0.29: the same CPU work outside this interpreter's GIL"
+   },
+   "reproduction_steps": [
+    "s1_cycle.py --route inline",
+    "s1_cycle.py --route process",
+    "s1_cycle.py --route inline --no-gil-yield",
+    "s1_cycle.py --null-seconds 4"
+   ],
+   "proposed_fix_scope": "optimizer.py only: yield inside the batched gradient (per jac call, or per step of simulate_trajectory_batch). This is scoped low because the fallback is non-default and capped at WORKER_FALLBACK_CAP=3 consecutive cycles (coordinator.py:641). Pi extrapolation, an assumption: at about 4x slower per step each hold is about 4x longer (about 25 ms per gradient).",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "stop_rule_class": "bug"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Gradient cost is 96 simulate-step-equivalents (batch rows) per gradient on every shape in the brief: default two-zone DHW, single-zone space, single-zone DHW, zero-range fuse cap 3.68 kW, and a zero-range manual pin. All gradients take the batched path and none take scipy FD. In stress.py units (rows x steps) that is 9,216 per gradient.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D9/s1_gradient.py",
+   "value": "sse_per_grad median=max=96 on all 5 shapes; grad_paths=batch. Perturbation --scalar gives 9216 on scipy-fd; --hours 48 gives 192"
+  },
+  {
+   "claim": "Gradient work dominates the solve's simulation: 94-99% of simulate step-equivalents and 66-80% of thread CPU on the two-zone and zero-range shapes (CPU provisional).",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D9/s1_gradient.py",
+   "value": "gradient_share_of_sim_steps 0.987 (two_zone_dhw), 0.988 (single_zone_space), 0.945 (single_zone_dhw); gradient_cpu_share 0.79 / 0.66 / 0.36"
+  },
+  {
+   "claim": "Full solves per optimize(): 1.04 _multi_start_minimize entries over the 51-scenario sweep, with 51 first solves and 2 co-opt re-solves (1 adopted, 1 discarded, 0.14% of njev). No safety-release, hold-candidate or throttle re-solves occur in the sweep. At flat prices the ratio is exactly 1.000 (null).",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D9/s1_solves.py [--flat]",
+   "value": "53/51 real, 51/51 flat"
+  },
+  {
+   "claim": "Full solves per coordinator cycle by path: in the default config (DHW tank, no fuse, tiles off) one main solve is submitted, with 2 _multi_start_minimize entries (first solve plus the co-opt re-solve) and 0 what-if solves. With main_fuse_amperes=25 and price_tiles_enabled, the first cycle submits 1 main and 2 what-if solves (fuse advisor plus one tile), and later cycles submit 1 main and 1 tile. Both are gated as documented (tiles default off, advisor weekly).",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D9/s1_cycle.py --route inline --config fuse_tiles --cycles 2",
+   "value": "cycle0 main=1 whatif=2 msm main=2 whatif=3; cycle1 main=1 whatif=1 msm 2/2"
+  },
+  {
+   "claim": "Shipped route: the solve runs in process_worker.py and no _multi_start_minimize entry happens in the HA interpreter.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D9/s1_cycle.py --route process",
+   "value": "msm_entries_main=0, solves_submitted_main=1"
+  },
+  {
+   "claim": "DHW planning loops are a small share of the two-zone solve but a large share of the single-zone DHW solve. _apply_dhw_min_run extends the tank tail once per weak slot (26 weak and 21 rejected on winter single-zone), so it grows superlinearly with the horizon: 7,758 -> 25,313 DHW steps for 24 h -> 48 h (x3.3 for x2). Each planner's DHW steps: min_cost 384, cheapest_first 714, min_run 7758, clamp 960, repair 960 (two calls each, 24 h). None of it is gradient work. The cost is bounded (about 70 ms x86 per single-zone DHW solve), so no finding.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D9/s1_gradient.py [--hours 48 --only single_zone_dhw]",
+   "value": "dhw_planning_share_of_sim_steps 0.0022 (two-zone) / 0.0436 (single-zone DHW); CPU inclusive _build_dhw_requirements 0.030 / 0.454 (provisional)"
+  },
+  {
+   "claim": "Gradients per solve vary 25x across shapes (22 single-zone space vs 549 two-zone DHW vs 575 fuse-capped). The count comes from convergence, not a per-gradient cost regression. It is recorded for D0 and D9-s2 context, not as a finding.",
+   "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D9/s1_gradient.py",
+   "value": "gradients 22 / 26 / 549 / 575 / 436"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round8/D9/s1_gradient.py",
+  "tools/audit/round8/D9/s1_cycle.py",
+  "tools/audit/round8/D9/s1_polish.py",
+  "tools/audit/round8/D9/s1_solves.py"
+ ],
+ "unfinished": "Longest-GIL-hold and starvation numbers are provisional because load1 was 16-24 throughout. The quiet window must re-take s1_cycle.py (4 arms). Finding ids follow the task's D9-s1-NN form, which finding.schema.json's id pattern ^D..-NN$ rejects, so schema validation fails on the id field only. That is a harness gap between the round-8 task format and the schema. Raw outputs are in tools/audit/round8/D9/s1_out/."
+}

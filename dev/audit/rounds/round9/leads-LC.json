@@ -1,0 +1,44 @@
+[
+ {
+  "owner_seat": "unknown",
+  "file": "tests/mutation_table.py",
+  "symbol": "candidates (CLAMP_DROP)",
+  "what": "CLAMP_DROP keeps args[0], so max(0.0, float(v)) becomes (0.0): the operator replaces the value with the bound instead of dropping the clamp whenever the constant is the first argument (price_model.py:368 is one such site); the operator's docstring says 'a clamp dropped'",
+  "raised_by": "D3-s2"
+ },
+ {
+  "owner_seat": "D1-s2",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "flow-bias fold calling FlowCurveBias.observe (around :761)",
+  "what": "whether a raise from observe (reachable only if flow_lift.py:210's guard regresses: samples=-1 gives ZeroDivisionError) is contained per cycle or fails the update",
+  "raised_by": "D3-s2"
+ },
+ {
+  "owner_seat": "D3-s1",
+  "file": "custom_components/heatpump_optimizer/coordinator.py",
+  "symbol": "coordinator.py:586/588/6331/8112/8384 (tzinfo-is-None guards)",
+  "what": "The gate runs every driver with process TZ=UTC (D3-s3-01); these naive-datetime guards may be deletable for the same reason. Probe each GUARD_OFF under TZ=Europe/Stockholm with tools/audit/round9/D3/s3/probe.py.",
+  "raised_by": "D3-s3"
+ },
+ {
+  "owner_seat": "D3-s2",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "symbol": "optimizer.py:200 and defrost.py:643 (tzinfo-is-None guards)",
+  "what": "Same UTC-process blindness as D3-s3-01; worth a GUARD_OFF probe under a non-UTC TZ.",
+  "raised_by": "D3-s3"
+ },
+ {
+  "raised_by": "D0-s1",
+  "file": "tests/optimality.py",
+  "symbol": "score_plan / pin_result",
+  "why": "owner deferred to catch-up batch; re-route then (owner D3-s3)",
+  "deferred_from": "leads_result.json"
+ },
+ {
+  "raised_by": "D12-s3",
+  "file": "tests/entities.py",
+  "symbol": "_walk_flow_untouched / check 'and turns hot water on anyway, with the 200 L tank the page pre-fills'",
+  "why": "owner deferred to catch-up batch; re-route then (a test-suite gap on config_flow.py is a D3 cell; check_scopes --seat D3-s3 lists config_flow.py)",
+  "deferred_from": "leads_result_L3.json"
+ }
+]

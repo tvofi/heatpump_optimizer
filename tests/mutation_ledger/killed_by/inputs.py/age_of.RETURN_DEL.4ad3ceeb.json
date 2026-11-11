@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:age_of RETURN_DEL 4ad3ceeb",
+  "killed_by": "tests/features.py",
+  "old": "    return None if age is None or age < timedelta(0) else age",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 48b696c19761a7f5f0a440891a932c87fa509515: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_setpoint_sweep CLAMP_DROP 67c35b2c",
+  "old": "            cop = max(float(self._thermal_model.compute_cop_dhw(outdoor, t)), 0.5)",
+  "reason": "Equivalent: `cop` is `compute_cop_dhw`, which returns `ThermalModel._cop_law`, whose last line is `return max(cop, 1.0)`; the 0.5 floor can never bind on a finite COP, and on a NaN one `max(nan, 0.5)` is the NaN either way. The line's text changed only because R10-COP-PARTLOAD part 2 joined its wrapped call onto one line; the clamp itself is the base's.",
+  "verdict": "equivalent"
+}

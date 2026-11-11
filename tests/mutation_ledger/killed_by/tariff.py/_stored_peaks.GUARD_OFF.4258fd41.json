@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_stored_peaks GUARD_OFF 4258fd41",
+  "killed_by": "tests/features.py",
+  "old": "    if not isinstance(peaks, list):",
+  "reason": "#1512: with the guard off, `_stored_peaks` enumerates a non-list persisted `peaks` and raises TypeError; the #1512 section's malformed-store check drives 9.0, None and a string through `PeakTracker.from_dict` and prints 1 of 3129 FEATURE CHECKS FAILED against a 0 baseline. Measured at the #1512 branch head, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3129 FEATURE CHECKS PASSED."
+}

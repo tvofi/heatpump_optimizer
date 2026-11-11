@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_space_only.move_starts GUARD_OFF 2f06ebfa",
+  "killed_by": "tests/features.py",
+  "old": "            if not self.model.params.two_zone_enabled:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6ff749d6c1d61a311308c2373fb47ae1d9ff4198: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

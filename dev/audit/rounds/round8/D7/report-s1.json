@@ -1,0 +1,206 @@
+{
+ "dimension": "D7",
+ "seat": "s1",
+ "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+ "tree": "/home/claude/audit-r8/seats/D7-s1",
+ "report_path": "tools/audit/round8/D7/REPORT-s1.md",
+ "exposure": "",
+ "findings": [
+  {
+   "id": "D7-s1-01",
+   "title": "The active sysid experiment is the one learner that ignores the learning freeze, and contaminated nights get adopted",
+   "severity": "medium",
+   "claim": "coordinator._run_system_identification aborts only on pump freeze_reason/space_blocked and never consults _learning_frozen, so the experiment records samples through external heat, defrost, an open window and a pinned indoor reading (4 of 4 contaminations ingested, against 0 of 4 for the house heat-loss learner), and 4 of 12 contaminated experiment nights on the three presets are then adopted by the #1410 gate and persisted.",
+   "mechanism": "Every passive learner calls _learning_frozen(...) (external heat, pump freeze, defrosting, unusable input, ventilation). _run_system_identification (coordinator.py:10431) checks only self._pump_signals.space_blocked and .freeze_reason, then calls SystemIdentification.step with the pinned room reading and the commanded power. The experiment's result seeds _house_heat_loss_scale via _adopt_system_identification and is saved immediately, so it is the learner with the largest single-step write.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_learner_freeze.py",
+    "harness_path": "tools/audit/round8/D7/s1_learner_freeze.py",
+    "value": 4,
+    "unit": "contaminations ingested by sysid (of external_heat, defrosting, ventilation, indoor_stale)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud container (x86_64, 15 GB), shared with ~13 seats",
+    "cpu_or_wall": "count",
+    "contention_note": "counts only; load1 13-26 from other seats, irrelevant to a count",
+    "tolerance": "exact",
+    "load1": 13.12,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._run_system_identification",
+   "perturbation": {
+    "change": "--perturb: _run_system_identification returns early when self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY) is set (the one-line fix), applied as a method wrap restored in finally",
+    "expected_direction": "to_zero",
+    "observed": "sysid_contaminated_ingest 4 -> 0; clean arm still 1; companion s1_sysid_contam.py --perturb admitted_contaminated 4 -> 0"
+   },
+   "metric_definition": "1 per contamination when len(_sysid.samples) grows across one production _run_system_identification call in the step phase with that contamination set; clean arm must be 1.",
+   "phenomenon_property": "Every code path that writes a persisted thermal parameter from a measured interval must refuse the interval _learning_frozen refuses (for the keys it reads).",
+   "seam_rule": "PYTHONPATH=tests/hastub python3 tools/audit/round8/D7/s1_learner_freeze.py  (one row per learner entry; extend LEARNERS with any new entry that writes a learned parameter)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_learner_freeze.py",
+    "value": "clean column = 1 for all five learners; house_heat_loss contaminated = 0",
+    "note": "the house learner, fed the same contaminated coordinator state, freezes on all four"
+   },
+   "leave_one_out": {
+    "cells": 12,
+    "min": -2.9,
+    "max": 6.47,
+    "drop_most_favourable": 3.14
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_learner_freeze.py",
+    "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_learner_freeze.py --perturb",
+    "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_sysid_contam.py",
+    "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_sysid_contam.py --perturb"
+   ],
+   "proposed_fix_scope": "coordinator._run_system_identification: abort the armed/active experiment (by name) when _learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY) is set; one guard beside the existing freeze_reason abort. No sysid.py change.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "provisional": false,
+   "consequence_detail": "s1_sysid_contam.py: clean fit error 0.000 % on all presets; admitted contaminated cells: heavy_old wood -2.90 % / defrost +6.47 %, typical_slab wood -1.35 % / defrost +3.14 % adopted-UA error (fit errors -4.6..+9.7 %); window and stale cells are refused only because their interval came out inf. The gross ones are caught; the mid-sized ones are persisted with samples=int(20*weight)."
+  },
+  {
+   "id": "D7-s1-02",
+   "title": "The one-room sysid plant cannot run on a two-zone house: 0 of 3 two-zone presets adopt, 2 abort past the comfort bound",
+   "severity": "medium",
+   "claim": "The experiment's sizer (sysid._sizing_model) and fit (sysid._simulate_slab_path) hard-code two_zone_enabled=False while the coordinator feeds it the upper-zone thermometer, so on the three stress presets derived two-zone the experiment adopts nothing (0 of 3: light_new and typical_slab abort in the step phase at 0.83 K and 0.91 K sensor excursion against the 0.8 K allowance, heavy_old finishes with a -5.66 % UA and an infinite interval), against 2 of 3 adopted on the same presets single-zone.",
+   "mechanism": "sysid.py:127 and :508 build a single-zone ThermalModel; coordinator._update_current_state writes the indoor reading to room_temperature and upper_floor_temperature, and _run_system_identification sizes on params.room_thermal_mass / heat_loss_coefficient. The two-zone upper floor (radiator share, smaller mass) responds faster than the one-room model predicts, so the sized step overshoots the allowance and the abort fires after the room already passed it.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_sysid_twozone.py",
+    "harness_path": "tools/audit/round8/D7/s1_sysid_twozone.py",
+    "value": 0,
+    "unit": "two-zone presets whose experiment the production gate adopts (of 3)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud container (x86_64, 15 GB), shared with ~13 seats",
+    "cpu_or_wall": "count",
+    "contention_note": "counts only; load1 ~23",
+    "tolerance": "exact",
+    "load1": 23.66,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.step (sizer _sizing_model, fit identify_slab) gated by coordinator.py:HeatPumpOptimizerCoordinator._adopt_system_identification",
+   "perturbation": {
+    "change": "--perturb: config change on the PLANT only (two_zone_enabled=False; declared config stays two-zone), i.e. the house the one-room model assumes",
+    "expected_direction": "up",
+    "observed": "twozone_admitted 0 -> 1 (heavy_old adopted, scale error -0.04 %); light_new then completes but is refused by its prior interval as in single-zone"
+   },
+   "metric_definition": "Count of two-zone presets (stress BUILDINGS, two_zone=True derivation) for which _adopt_system_identification writes a heat-loss scale after one production experiment.",
+   "phenomenon_property": "The experiment's sizer, abort check and fit must model the plant whose sensor they read; a two-zone install must either be modelled two-zone or be refused at arm time by name.",
+   "seam_rule": "grep -n \"two_zone_enabled=False\" custom_components/heatpump_optimizer/sysid.py",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_sysid_twozone.py",
+    "value": "singlezone_admitted=2 of 3 (heavy_old +0.01 %, typical_slab +0.04 % scale error); light_new refused by the prior half-width in both arms",
+    "note": "same presets, same drive, single-zone derivation"
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_sysid_twozone.py",
+    "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_sysid_twozone.py --perturb"
+   ],
+   "proposed_fix_scope": "Either refuse arm() on a two_zone_enabled plant with a named reason (smallest), or fit and size on the two-zone ThermalModel with the upper zone as the observed state; sysid.py (+ coordinator arm call).",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "provisional": false
+  },
+  {
+   "id": "D7-s1-03",
+   "title": "The #1410 adoption gate refuses silently: a refused fit stays published as completed, reason ok, with its UA",
+   "severity": "medium",
+   "claim": "_adopt_system_identification's first guard returns without writing a reason or a log line, so 10 of 19 finished experiments across the three presets are refused while SystemIdentification.as_dict() (the learning view's system_identification attribute) keeps publishing completed=True, reason='ok' and the fitted heat_loss_kw_per_c (e.g. heavy_old open-window night: 0.5328 kW/K, +72 %), contradicting identify_slab's docstring that such a window is 'refused by name'.",
+   "mechanism": "coordinator.py:10495-10496 `if not result.completed or hw is None or hw > UA_ADOPTION_HALFWIDTH_BAR: return`. Only the identifiability branch below it writes replace(result, completed=False, reason=why); an adopted result is rewritten to reason='adopted'. The interval refusal leaves the result untouched and logs nothing.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_gate_silent.py",
+    "harness_path": "tools/audit/round8/D7/s1_gate_silent.py",
+    "value": 10,
+    "unit": "finished experiments refused by the gate yet published completed=True reason='ok' (of 19)",
+    "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+    "machine": "4-vCPU cloud container (x86_64, 15 GB), shared with ~13 seats",
+    "cpu_or_wall": "count",
+    "contention_note": "counts only; load1 ~25",
+    "tolerance": "exact",
+    "load1": 24.83,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._adopt_system_identification (published via sysid.py:SystemIdentification.as_dict)",
+   "perturbation": {
+    "change": "--perturb-fix: the one-line production edit (the guard writes replace(result, completed=False, reason='ua interval too wide') before returning), applied in memory from the method's own source and restored in finally; --perturb-bar (config-level: coordinator.UA_ADOPTION_HALFWIDTH_BAR=1e9) is the weaker secondary arm",
+    "expected_direction": "to_zero",
+    "observed": "--perturb-fix: 10 -> 0; --perturb-bar: 10 -> 8 (only hw=inf refusals remain)"
+   },
+   "metric_definition": "Count of finished experiments where the production gate wrote no scale and as_dict()['result'] still reads completed=True and reason=='ok' after the gate ran.",
+   "phenomenon_property": "Every refusal of a finished experiment must publish a named reason and leave the result not-completed, as the identifiability refusal and the adoption path already do.",
+   "seam_rule": "grep -n \"return$\" custom_components/heatpump_optimizer/coordinator.py | awk -F: '$1>=10487 && $1<=10540'  (every early return in _adopt_system_identification)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_gate_silent.py",
+    "value": "adopted cells (9 of 19) publish completed=False reason='adopted' and emit 1 log line each; refused cells emit 0",
+    "note": "the adoption arm is observable; only the refusal arm is silent"
+   },
+   "leave_one_out_note": "per preset: light_new 5/5 silent, heavy_old 2/7, typical_slab 3/7; with light_new (the most favourable preset) dropped, 5 of 14 remain silent",
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_gate_silent.py",
+    "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_gate_silent.py --perturb-fix",
+    "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_gate_silent.py --perturb-bar"
+   ],
+   "proposed_fix_scope": "coordinator._adopt_system_identification: on the interval refusal, write replace(result, completed=False, reason=<named>) and log at INFO, mirroring the identifiability refusal two lines below. One method.",
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sysid.py"
+   ],
+   "stop_rule_class": "bug",
+   "provisional": false
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "Step 2: on the matched plant the production two-state fit (identify_slab) recovers UA exactly on all three presets; the adoption gate admits heavy_old (hw 0.0300) and typical_slab (hw 0.0531) and refuses light_new by its prior half-width (0.1446 > bar 0.0953) even on a noise-free perfect fit.",
+   "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_sysid.py",
+   "value": "matched prod bias 0.000 / 0.000 / 0.000 %"
+  },
+  {
+   "claim": "Step 2: the one-state identify() (harness-only path, arm without a plant) refuses the two-state plant on all three presets rather than adopting a biased UA.",
+   "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_sysid.py",
+   "value": "light_new 'fitted parameters outside plausible bounds', heavy_old 'fitted gains outside plausible bounds', typical_slab 'fit gave implausible signs'"
+  },
+  {
+   "claim": "Step 2: a free four-constant two-state fit (the two-exponential comparison) started 2x off on C_r, C_s, k_s recovers UA on light_new; heavy_old/typical_slab not run (minutes per preset under load; --free).",
+   "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_sysid.py --free",
+   "value": "light_new free_twostate_ua_bias -0.000 %"
+  },
+  {
+   "claim": "Step 2: the adoption gate holds under slab-pair misdeclaration (true k_s or C_s x0.5/0.7/1.4/2.0 vs the configured pair the fit trusts): no fit with |UA bias| > 10 % is admitted; the biased ones come out with an infinite interval and are refused. Perturbation --perturb-declared (declare the true pair) collapses every bias to 0.00 %.",
+   "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_sysid.py",
+   "value": "admitted_biased_cells=0 of 15 completed (18 cells); max |bias| 25.83 %, 14.93 % with the worst dropped; admitted max |adopted err| 2.53 %"
+  },
+  {
+   "claim": "Step 3: the passive learners that read the contaminated signals freeze on them: house heat loss freezes on external heat, defrost, pump fault/offline, ventilation, stale indoor; measured COP, flow-lift fold and buffer cooling freeze on all plant-wide reasons and correctly ignore a stale INDOOR reading (not their key). Away gates only the comfort learner, which is correct for the physics learners.",
+   "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_learner_freeze.py",
+   "value": "house_heat_loss contaminated_ingest=0/4; measured_cop, flow_lift_fold, buffer_cooling 1/4 (indoor_stale only, not their input); all clean=1"
+  },
+  {
+   "claim": "Step 3 (observation, not a finding): measured COP, flow-lift fold and buffer cooling also freeze on ventilation and external heat, which do not touch their signal; this is the documented fail-closed trade in _learning_frozen's docstring (lost convergence, never corruption).",
+   "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_learner_freeze.py",
+   "value": "ventilation and external_heat columns = 0 for those three"
+  },
+  {
+   "claim": "Step 4: last_buffer_trajectory is gone; the objective and the terminal cost are pure functions of their arguments: evaluating another plan, or a whole second optimize() with a different initial tank on the same optimizer, between two evaluations changes nothing, one objective evaluation writes no instance attribute, and no horizon-length series is left on the model/optimizer. The instrument moves: --perturb (re-introducing a model-held buffer series read by the terminal closure) gives tc_order_mismatch 1, scratch_attrs 1, side_series 1.",
+   "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_statefulness.py",
+   "value": "order_mismatch=0/9, tc_order_mismatch=0/2, scratch_attrs=0, side_series=0"
+  },
+  {
+   "claim": "Step 4 hygiene note (below the finding bar, D5 territory): optimizer.py:1040-1041 still says 'the model stashes the series on itself for the terminal-cost term', which s1_statefulness.py shows is no longer true (side_series=0).",
+   "command": "PYTHONPATH=tests/hastub python3 -u tools/audit/round8/D7/s1_statefulness.py",
+   "value": "side_series=0"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round8/D7/s1_sysid.py",
+  "tools/audit/round8/D7/s1_sysid_contam.py",
+  "tools/audit/round8/D7/s1_sysid_twozone.py",
+  "tools/audit/round8/D7/s1_learner_freeze.py",
+  "tools/audit/round8/D7/s1_gate_silent.py",
+  "tools/audit/round8/D7/s1_statefulness.py"
+ ],
+ "unfinished": "Free two-state fit for heavy_old/typical_slab not run (slow under load 25; --free). Sensor noise ensembles not run: every number is sigma=0 and deterministic. Finding ids follow the task's D7-s1-NN form, which finding.schema.json's id pattern ^D(1[0-3]|[0-9])-[0-9]{2}$ does not accept; the file validates with that one pattern error per finding. Two-zone light_new/typical_slab abort cause is attributed to the one-room sizer by the --perturb arm, not by instrumenting _size_step_power's prediction against the upper-zone trace."
+}

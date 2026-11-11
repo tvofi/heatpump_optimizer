@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/topology.py:_window_peak RETURN_DEL 81071df3",
+  "killed_by": "tests/features.py",
+  "old": "    return float(windows.max())",
+  "reason": "Recorded by `mutation_table.py --drain` against 9a51f6d7295e1b5bf57f723485ae5dc9da7c0bec: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

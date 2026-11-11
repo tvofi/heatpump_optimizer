@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:_kept BOOLOP 9d3ecec6",
+  "killed_by": "tests/debug_collect.py",
+  "old": "        if isinstance(item, dict) and (fixed := _repair(item, field, needs)) is not None",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against fc76a05577985c92574e4d42433f61192efe47f4: BOOLOP (`if isinstance(item, dict) or (fixed := _repair(item, field, needs)) is not None`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_silent_rows GUARD_OFF eefa4cf2",
+  "old": "    if not isinstance(spec, str) or not spec.strip():",
+  "reason": "GUARD_OFF (`if False`). quiet_windows.step_actions on the Monday anchor returns None for None, '', '   ', and the non-str 3, which is the same False this guard returns. Measured: PYTHONPATH=tests/hastub:custom_components python3 calling step_actions(datetime(2026, 1, 5, tzinfo=timezone.utc), 4, 0.25, spec, None) for those four specs. A real window still comes back as an array from that function; the RETURN_DEL of `return actions is not None` is the site features.py kills.",
+  "verdict": "equivalent"
+}

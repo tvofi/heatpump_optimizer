@@ -1,0 +1,10 @@
+{
+  "class": "I4",
+  "instances": 0,
+  "barriered": true,
+  "enumerator": "python3 dev/audit/rounds/round10/D14/sweep-I4/enumerate.py .",
+  "instance_list": [
+    {"file": "tools/policy/policy_lint.mjs", "symbol": "statsHistogram (verdicts map: bump(verdicts, word) beside bump(verdicts, REWORK_CLASS))", "probe": "HPO_PLANDATA=$(mktemp -d) node dev/audit/rounds/round10/D13/s2/blocks_friction.mjs <window.json> -- head-moved row 133 entries vs 4 blocked head-moved verdicts; fails while they differ", "beyond_finding": false},
+    {"file": "tools/policy/policy_lint.mjs", "symbol": "frictionKey (POLICY_KEY_INDEX lookups on bare/noExt/stem without canon())", "probe": "node dev/audit/rounds/round10/D13/leads/friction_key_split.mjs -- 34 split keys; fails while > 0", "beyond_finding": false}
+  ]
+}

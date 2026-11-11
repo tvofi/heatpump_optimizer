@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_slab_ua_profile_halfwidth RETURN_DEL 173af6b3",
+  "killed_by": "tests/features.py",
+  "old": "    return _Z_975 * se",
+  "reason": "arrived with origin/main, commit 96374e62 (the #1410/#1437 adoption gate). `_slab_ua_profile_halfwidth` answers None where the Wald half-width belongs, so `_ridge_ua_halfwidths` (tests/features.py:35239) drops the clean window's rows and `_est2_hw_clean` is empty against `_est2_hw_clean and _est2_hw_noisy`'s requirement of a non-empty list. Measured: tests/features.py rc=0 failed=0 -> rc=1 failed=1 (\"1 of 3099 FEATURE CHECKS FAILED\"). Re-measured at 467d3d9c, 2026-09-23."
+}

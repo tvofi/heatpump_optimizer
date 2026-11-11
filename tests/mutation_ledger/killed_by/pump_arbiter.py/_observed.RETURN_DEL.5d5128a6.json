@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_observed RETURN_DEL 5d5128a6",
+  "killed_by": "tests/features.py",
+  "old": "        return raw if pump_mode.resolve(raw) is not None else None",
+  "reason": "pump-duty arbiter revision; `return raw if pump_mode.resolve(raw) is not None else None` -> `pass` fails 4 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24."
+}

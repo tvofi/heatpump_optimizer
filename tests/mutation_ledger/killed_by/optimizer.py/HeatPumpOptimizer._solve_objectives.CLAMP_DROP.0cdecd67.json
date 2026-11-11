@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._solve_objectives CLAMP_DROP 0cdecd67",
+  "killed_by": "tests/env_drift.py",
+  "old": "        comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 2b6c5b876ec297bf2b0ef4a127d09cf97fc40b5d: CLAMP_DROP (`comfort_band = (comfort_targets - temp_min_bounds)`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+}

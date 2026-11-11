@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._command_valve_target GUARD_OFF c94454d6",
+  "killed_by": "tests/features.py",
+  "old": "        if params.mixing_valve_mode != mixing_valve.MODE_SMART_WRITE or self._mode == MODE_OFF:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e2521decae02e9bb27e6a8237790d8ca98adca62: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

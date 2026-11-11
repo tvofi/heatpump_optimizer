@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_simulate_slab_path CLAMP_DROP 19bc500c",
+  "killed_by": "tests/features.py",
+  "old": "        n_sub = max(1, int(np.ceil(float(dt) / SYSID_ROLLOUT_STEP_HOURS - 1e-9)))",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c9c40003fa6f8a268bb67295d3d8cfa7d430bf6: CLAMP_DROP (`n_sub = (1)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}

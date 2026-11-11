@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:month_hours RETURN_DEL 7173dd97",
+  "killed_by": "tests/features.py",
+  "old": "    return 24.0 * calendar.monthrange(now.year, now.month)[1]",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5a41a56696c6bd6245b7cc1261a39a5057ba6bb0: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

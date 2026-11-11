@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_peak_charge CLAMP_DROP 2a3cb625",
+  "old": "    k = max(1, min(int(bill.peaks_averaged), excess.size))",
+  "reason": "R10-TARIFF (#2282): The top-k clamp against the day/window count; its text changed only by the PeakBilling record (at base: `k = max(1, min(int(peaks_averaged), excess.size))`, tariff.py:888, unpinned). Min side: with k past the width, _exact_topk_sum's `np.sort(excess)[-k:]` takes the whole array, the same sum the clamped k gives. The surrogate's tie count can never exceed a k at or past the width, so it takes that exact arm too (k >= 2 there, so not the k == 1 shortcut). Max side: excess is non-empty (_peak_excess returns None otherwise), and peaks_averaged comes from a config floor >= 1, so `min` alone never yields k <= 0. Equivalent, as the batch twin's clamp is (peak_cost_batch CLAMP_DROP 66db7abd). Survival measured by CI's mutation-pins run 38796525102 at f09549085: no driver killed it.",
+  "verdict": "equivalent"
+}

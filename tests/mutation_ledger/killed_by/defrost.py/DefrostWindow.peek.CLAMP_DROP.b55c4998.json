@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostWindow.peek CLAMP_DROP b55c4998",
+  "killed_by": "tests/features.py",
+  "old": "        total = max(0.0, total)",
+  "reason": "Recorded by `mutation_table.py --drain` against aca6ea4567034a05e64edcfd8355d42a8079427d: CLAMP_DROP (`total = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
+}

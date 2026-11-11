@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:parse_bool BOOLOP bddec176",
+  "killed_by": "tests/features.py",
+  "old": "    if strict and token in AMBIGUOUS_ACTIVITY_TOKENS:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if strict or token in AMBIGUOUS_ACTIVITY_TOKENS:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=50."
+}

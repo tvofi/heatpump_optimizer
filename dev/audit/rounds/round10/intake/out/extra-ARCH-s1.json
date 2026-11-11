@@ -1,0 +1,173 @@
+{
+  "dimension": "D7",
+  "baseline_sha": "554e2ecfa7ad5b1660a1256ebf6cf6ac3810d9ef",
+  "exposure": "",
+  "coverage": [
+    {
+      "step": "D7.M1",
+      "depth": "deep",
+      "evidence": "site lists for all 6 cells; arch1_delta.py on 4 patches + 4 reverts"
+    }
+  ],
+  "unfinished": [
+    {
+      "step": "D7.M1",
+      "what": "tariff-record family (params_over_10, +0.53) and the _thermal_params owner (+~9.8, large) not prototyped; MQTT/peak-guard live-state writers left in place (+6 seam cut when converted)"
+    }
+  ],
+  "findings": [
+    {
+      "id": "D7-arch1-01",
+      "scope": "D7-s1",
+      "step": "D7.M1",
+      "title": "Live ThermalState mutated field by field across the cycle's awaits",
+      "severity": "medium",
+      "claim": "22 of 38 cycle-reachable hub writes are in-place edits of the live ThermalState; building on a copy and publishing through the context removes them with no golden drift.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P1_live_state_published_whole.patch",
+        "harness_path": "dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py",
+        "value": 6.5186,
+        "unit": "weighted-log2 delta_S",
+        "baseline_sha": "554e2ecfa7ad",
+        "machine": "Apple M1 darwin",
+        "cpu_or_wall": "count",
+        "contention_note": "shared box, load1 13; static counts are contention-immune",
+        "tolerance": "exact",
+        "load1": 13.11,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "archscore.metrics.hub_solve_writes:measure over coordinator:HeatPumpOptimizerCoordinator._update_current_state",
+      "perturbation": {
+        "change": "--revert (git apply -R)",
+        "expected_direction": "to_zero",
+        "observed_value": 0.0
+      },
+      "metric_definition": "hub_solve_writes: distinct in-place write sites into _opt_config/_thermal_params/_current_state reachable from the cycle or a solve",
+      "phenomenon_property": "the live thermal state is replaced whole, never edited in place",
+      "seam_rule": "git grep -nE \"_current_state\\.[a-z_0-9]+ *=[^=]\" <ref> -- custom_components",
+      "stop_rule_class": "hygiene",
+      "class_guess": "N-shared-config",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/thermal_model.py",
+        "tests/arch_score_head.py",
+        "tests/boost_drift_replay.py"
+      ],
+      "proposed_fix_scope": "medium; ship with P2 (footprint +3 alone)"
+    },
+    {
+      "id": "D7-arch1-02",
+      "scope": "D7-s1",
+      "step": "D7.M1",
+      "title": "Away override edited in place with a write-read-write round trip",
+      "severity": "low",
+      "claim": "async_set_away and _resolve_away make 6 in-place writes to the published AwayState; computing on locals and publishing with replace removes them.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P2_away_override_published_whole.patch",
+        "harness_path": "dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py",
+        "value": 2.3771,
+        "unit": "weighted-log2 delta_S",
+        "baseline_sha": "554e2ecfa7ad",
+        "machine": "Apple M1 darwin",
+        "cpu_or_wall": "count",
+        "contention_note": "static counts",
+        "tolerance": "exact",
+        "load1": 13.11,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "archscore.metrics.shared_inplace_writes:measure over coordinator:HeatPumpOptimizerCoordinator.async_set_away",
+      "perturbation": {
+        "change": "--revert",
+        "expected_direction": "to_zero",
+        "observed_value": 0.0
+      },
+      "metric_definition": "shared_inplace_writes: in-place writes into coordinator-held objects in async coordinator methods or collaborator modules",
+      "phenomenon_property": "AwayState is replaced, never edited",
+      "seam_rule": "git grep -nE \"_away_state\\.[a-z_]+ *=[^=]\" <ref> -- custom_components",
+      "stop_rule_class": "hygiene",
+      "class_guess": "N-shared-config",
+      "files": [
+        "custom_components/heatpump_optimizer/coordinator.py"
+      ],
+      "proposed_fix_scope": "small"
+    },
+    {
+      "id": "D7-arch1-03",
+      "scope": "D7-s1",
+      "step": "D7.M1",
+      "title": "Coordinator writes into collaborators' internal fields",
+      "severity": "low",
+      "claim": "Direct lead_pending.clear(), FlowBias.heat_output_kw set from outside, and .append on the solar forecast give 4 shared in-place sites; owning methods and a comprehension remove them.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py P3_collaborators_own_their_fields.patch",
+        "harness_path": "dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py",
+        "value": 1.502,
+        "unit": "weighted-log2 delta_S",
+        "baseline_sha": "554e2ecfa7ad",
+        "machine": "Apple M1 darwin",
+        "cpu_or_wall": "count",
+        "contention_note": "static counts",
+        "tolerance": "exact",
+        "load1": 13.11,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "archscore.metrics.shared_inplace_writes:measure over accuracy:AccuracyTracker, flow_meter:observe_water",
+      "perturbation": {
+        "change": "--revert",
+        "expected_direction": "to_zero",
+        "observed_value": 0.0
+      },
+      "metric_definition": "shared_inplace_writes as above",
+      "phenomenon_property": "a collaborator's fields are written only by its own methods",
+      "seam_rule": "python3 -c 'from archscore.metrics import shared_inplace_writes' details.sites",
+      "stop_rule_class": "hygiene",
+      "class_guess": "N-shared-config",
+      "files": [
+        "custom_components/heatpump_optimizer/accuracy.py",
+        "custom_components/heatpump_optimizer/coordinator.py",
+        "custom_components/heatpump_optimizer/flow_lift.py",
+        "custom_components/heatpump_optimizer/flow_meter.py"
+      ],
+      "proposed_fix_scope": "small"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "private_reach 2 = reads of the public mode property (C5); not improvable",
+      "command": "reach2.py C5 sweep",
+      "value": "2 sites, structure census 0"
+    },
+    {
+      "claim": "multiassigned 118 is mostly init + one mutator",
+      "command": "structure.coordinator_writers",
+      "value": "86 of 118 have exactly 2 writers"
+    },
+    {
+      "claim": "params_over_10 rows all have recorded reasons",
+      "command": "tests/arch_score_head.py",
+      "value": "12 rows; tariff family worth +0.53"
+    },
+    {
+      "claim": "union passes the scoped gate with no golden drift",
+      "command": "GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=554e2ecf ./tests/run.sh",
+      "value": "MODE: SCOPED 27 run; NO UNCLAIMED DRIFT; entities re-run 2303 passed; stress unrun"
+    }
+  ],
+  "harnesses": [
+    "dev/audit/rounds/round10/D7/arch-s1/arch1_delta.py"
+  ],
+  "leads": [
+    {
+      "owner_seat": "unknown",
+      "file": "custom_components/heatpump_optimizer/away.py",
+      "symbol": "restore_override/apply_override_payload",
+      "what": "D1 lifecycle (unverified): restore mutates the initial AwayState after an awaited load; _resolve_away rebinds every cycle, so a first refresh can orphan the restored override"
+    },
+    {
+      "owner_seat": "unknown",
+      "file": "custom_components/heatpump_optimizer/coordinator.py",
+      "symbol": "_thermal_params aliasing",
+      "what": "D7 decomposition: 15 remaining hub writes into params shared by reference with ThermalModel, DhwProfileLearner, LegionellaTracker; an owner with copy-on-write adds about +9.8 (large)"
+    }
+  ]
+}

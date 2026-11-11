@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:entity_roles.claim GUARD_OFF f1238e21",
+  "killed_by": "tests/debug_collect.py",
+  "old": "            if rid not in roles.values():",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
+}

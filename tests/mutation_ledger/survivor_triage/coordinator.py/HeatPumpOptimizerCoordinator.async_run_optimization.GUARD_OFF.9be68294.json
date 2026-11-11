@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_run_optimization GUARD_OFF 9be68294",
+  "old": "            if limits.space_blocked or limits.dhw_blocked:",
+  "reason": "#1736: the guard wraps only the INFO line naming the blocked channel(s); with it off nothing is logged and nothing else changes -- the blocks themselves reach the solve through SolveLimits and the legionella check below the guard. The same shape sat unpinned in async_run_optimization at the merge base 9fed34071 (`if mode_blocked_space or mode_blocked_dhw:`). Driven at the head: the #1736 block and tests/features.py name no failing check beyond the merge base's.",
+  "verdict": "equivalent"
+}

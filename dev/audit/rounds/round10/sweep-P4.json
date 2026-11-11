@@ -1,0 +1,12 @@
+{
+  "class": "P4",
+  "instances": 1,
+  "barriered": false,
+  "enumerator": "python3 dev/audit/rounds/round10/D14/sweep-P4/p4_seams.py --perturb  (null: --null)",
+  "instance_list": [
+    {"file": "custom_components/heatpump_optimizer/optimizer.py", "symbol": "_multi_start_minimize", "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D0/s2/ftol_race.py (winter mean polish gap 0.2025 %, max 1.2344 %; --ftol 1e-10 drops it to 0.0088 %)", "beyond_finding": false},
+    {"file": "custom_components/heatpump_optimizer/optimizer.py", "symbol": "_lbfgsb_restart", "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D0/s2/ftol_race.py (same ftol 1e-6 stop; the --ftol perturbation overrides it in every _scoped_minimize call)", "beyond_finding": false},
+    {"file": "custom_components/heatpump_optimizer/optimizer.py", "symbol": "_optimize_space_only", "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D0/s1/race.py (26/80 cells gap_rel > 1e-3, max 5.06e-2, by=c1)", "beyond_finding": false},
+    {"file": "custom_components/heatpump_optimizer/optimizer.py", "symbol": "_solve_space", "probe": "PYTHONPATH=tests/hastub python dev/audit/rounds/round10/D14/sweep-P4/race_dhw.py --dhw 1 --prices winter_typical,winter_narrow,winter_moderate,flat --weather winter_cold,winter_mild (6/17 cells gap_rel > 1e-3; tz1 winter_narrow/winter_cold c1 7.88e-3, tz1 winter_moderate/winter_cold c1 6.90e-3; flat max 3.86e-3)", "beyond_finding": true}
+  ]
+}

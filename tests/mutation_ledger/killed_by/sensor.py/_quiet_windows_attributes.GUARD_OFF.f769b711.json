@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:_quiet_windows_attributes GUARD_OFF f769b711",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    if specs.get(\"quiet_silent_not_enforced\"):",
+  "reason": "Recorded by hand against 45e75b85 plus this commit's tests/manual_plan.py test_quiet_window_arms, in a detached copy with the mutant applied. The comment-only null control, a comment prepended to the mutated file, left all manual-plan checks passing. GUARD_OFF (`if False:`) took tests/manual_plan.py from rc=0 to rc=1: 1 check FAILED, \"the plan sensor publishes the not-enforced marker and the resolved actions\" (marker left as the string \"true\")."
+}

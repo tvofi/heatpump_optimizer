@@ -1,0 +1,323 @@
+[
+ {
+  "key": "custom_components/heatpump_optimizer/coordinator.py:7743:BOOLOP",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/coordinator.py:5202:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/sensor.py:1864:RETURN_DEL",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/coordinator.py:8708:GUARD_OFF",
+  "structure_rc": 2,
+  "structure_failures": 0,
+  "message": [
+   "  cut_learning                              285          284         -1  BETTER (lower is better)",
+   "1 STRUCTURE BUDGET(S) IMPROVED AND NOT YET RECORDED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/legionella.py:528:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/away.py:520:BOOLOP",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/optimizer.py:5783:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/open_meteo.py:149:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/sensor.py:1197:RETURN_DEL",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/name_match.py:351:RETURN_DEL",
+  "structure_rc": 1,
+  "structure_failures": 1,
+  "message": [
+   "1 STRUCTURE BUDGET(S) BREACHED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/config_flow.py:522:RETURN_DEL",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/optimizer.py:3131:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/optimizer.py:6377:CLAMP_DROP",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/config_flow.py:846:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/coordinator.py:5960:CLAMP_DROP",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/dhw_schedule.py:116:RETURN_DEL",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/sysid.py:729:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/thermal_model.py:155:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/legionella.py:531:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/sensor.py:2547:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/dhw_draws.py:165:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/presets.py:291:RETURN_DEL",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/thermal_model.py:1309:CLAMP_DROP",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/optimizer.py:4886:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/pump_signals.py:253:RETURN_DEL",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/inputs.py:506:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/config_flow.py:2884:RETURN_DEL",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/dhw_learning.py:160:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/config_flow.py:1031:RETURN_DEL",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/wear.py:110:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/pump_schedule.py:52:CLAMP_DROP",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/tariff.py:354:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/tariff.py:139:RETURN_DEL",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/thermal_model.py:2869:CLAMP_DROP",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/battery.py:320:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/flow_lift.py:107:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/tariff.py:410:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/dhw_learning.py:435:GUARD_OFF",
+  "structure_rc": 1,
+  "structure_failures": 1,
+  "message": [
+   "1 STRUCTURE BUDGET(S) BREACHED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/presets.py:289:GUARD_OFF",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ },
+ {
+  "key": "custom_components/heatpump_optimizer/pump_signals.py:329:BOOLOP",
+  "structure_rc": 0,
+  "structure_failures": 0,
+  "message": [
+   "STRUCTURE RATCHET PASSED"
+  ]
+ }
+]

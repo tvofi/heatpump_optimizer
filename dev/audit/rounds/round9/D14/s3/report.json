@@ -1,0 +1,249 @@
+{
+ "dimension": "D14",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D14/s3/REPORT.md",
+ "exposure": "Per D14's ledger exception: tools/audit/bugclasses.json; docs/audit-2026-09.md rows for the P3/P4/P5 instances of rounds 1, 2, 4, 6 and 7 (read to locate their fixes; the round-8 register was not read); the git history (commit messages and diffs) of ab71960d (R7 D2-01 fix), 7d8a0100 (carry-1487.json), b7657ea2 and its parent's coordinator gate (R7 D7-01 fix, #1459), 20cb1c46 (R7 D0-01 fix), plus `git log --oneline` greps over the history. Round-8 fix-branch commit titles (R8-P3, R8-P5) appeared in a git log listing; their contents were not read. No file under tools/audit/round3..round8 was read before the host removed them. No gh, no GitHub.",
+ "coverage": [
+  {
+   "step": "D14.M1",
+   "depth": "deep",
+   "evidence": "bugclasses.json read in full; P3/P4/P5 instance rows located in docs/audit-2026-09.md (rounds 1,2,4,6,7); pre-fix commits found for R7 D2-01 (ab71960d^), #1487 (7d8a0100), R7 D7-01 (b7657ea2^), R7 D0-01 (20cb1c46^)"
+  },
+  {
+   "step": "D14.M2",
+   "depth": "deep",
+   "evidence": "The seat's axis fixes the classes: P3, P4, P5, all `open` and each in 5 to 7 rounds"
+  },
+  {
+   "step": "D14.M3",
+   "depth": "deep",
+   "evidence": "Three detectors: p3_floors.py (22 groups; re-finds R7 D2-01 and #1487 at pre-fix commits; fixture 0; reintroduce +1), p4_seeds.py (30 seam calls over 24 cells; re-finds R7 D0-01 at 20cb1c46^ at 77.884228; fixture 0; no_deep up), p5_gate.py (72 sweep cells; re-finds R7 D7-01 at b7657ea2^ with 5 over the bar at hw ~1e-4; null 0; prior_true to 0; --seams lists 19 adoption sites)"
+  },
+  {
+   "step": "D14.M4",
+   "depth": "deep",
+   "evidence": "One finding per class: D14-s3-01 (P3), -02 (P4), -03 (P5), each with property, seam rule, seams and a barrier"
+  },
+  {
+   "step": "D14.M5",
+   "depth": "deep",
+   "evidence": "Barrier and cost per class: P3 as a tests/ lint with an allow-list, 1.3 s; P5 as a tests/ sweep, 3 s; P4 on the nightly replay only, about 10 min (all wall numbers provisional)"
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D14.M3",
+   "what": "P3/P4/P5 ledger instances that are not the detector's shape were not re-found. P3: R2 D2-05 and R4 D2-03 (wood_share discontinuity), R4 D2-01 (smooth top-k bracket), R6 D2-02 (DHW inlet floor), R6 D7-03 (OverflowError), R4 D7-02 (sizing defaults), R2 D0-03, and R5's rows (not in the register file). P4: pre-fix runs for R1-R6 instances. P5: pre-#1410 instances (no ua_profile_halfwidth API). P5's dynamic sweep covers the sysid seam only: the passive-learner seams it lists (_async_learn_house_heat_loss, _async_learn_lower_floor_loss, _async_learn_buffer_cooling, _learn_measured_cop) were enumerated but not swept."
+  },
+  {
+   "step": "D14.M3",
+   "what": "P4 grid is winter_cold weather only; flat-price arm run once per topology (4 cells)"
+  }
+ ],
+ "findings": [
+  {
+   "id": "D14-s3-01",
+   "scope": "D14-s3",
+   "step": "D14.M4",
+   "title": "P3: 22 quantities are read through a positive floor at one seam and raw at a sibling; no check enumerates them",
+   "severity": "low",
+   "claim": "At the baseline the package holds 22 quantity groups (6 with a raw read used as a divisor, 1 a store capacity: dhw_tank_thermal_mass) that are read through max(Q, c) at one site and raw, or through a different floor, at another. Nothing in the gate enumerates them: the only barrier is tests/features.py's seven arms pinning the eight seams ab71960d repaired, so a new floor elsewhere is not caught.",
+   "mechanism": "A floor added as a local divide-by-zero guard changes the value one formula reads while its sibling formulas read the raw quantity, so the two formulas disagree whenever Q is below c (R7 D2-01: the buffer's stored energy became C/0.01 of the delivered heat). At the baseline every listed floor is at or below the config schema's minimum for that quantity (spot-checked: cop_nominal floor 1.0 vs schema 1.5; max_electrical_power 0.1 vs 1 kW; DHW 50 L means C=0.058 vs a 1e-6 floor; frsi 0.3 vs 0.3; slab_heat_transfer 1e-6 vs 0.02; peaks_averaged 1 vs 1). So no seam is reachable from the UI today, and that is why this is low.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p3_floors.py",
+    "harness_path": "tools/audit/round9/D14/s3/p3_floors.py",
+    "value": 22,
+    "unit": "seam groups",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B8 (cloud container, 4 cores, 15 GB, CPython 3.14.0rc2, numpy 2.4.6/OpenBLAS), shared with D14-s1 and D14-s2",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute-heavy seats on the box; a count, contention-immune",
+    "tolerance": "exact (static AST over the imported package source)",
+    "load1": 0.06,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer (every module's source as imported, via heatpump_optimizer.__file__); perturbation seam thermal_model:ThermalModel._simulate_step_two_zone",
+   "perturbation": {
+    "change": "--reintroduce: an in-memory re-introduction of R7 D2-01's `/ max(C_buf, 0.01)` in _simulate_step_two_zone's two-tank dT_buf",
+    "expected_direction": "up",
+    "observed_value": "22 -> 23 groups; buffer_tank_thermal_mass_seam 0 -> 1; capacity groups 1 -> 2"
+   },
+   "metric_definition": "Count of canonical quantities read both inside max(Q, c>0) and raw as a * or / operand, or through two different floor constants, across the package",
+   "phenomenon_property": "A quantity carries one value per evaluation: if any formula floors it, every sibling formula that reads it in the same computation reads the same floored value, or none of them floors it",
+   "seam_rule": "tools/audit/round9/D14/s3/p3_floors.py --json",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p3_floors.py --fixture",
+    "value": 0,
+    "note": "a clean fixture (a floor per quantity, applied at every read) lists 0 groups"
+   },
+   "reproduction_steps": [
+    "p3_floors.py -> 22 groups (out/p3_baseline.txt)",
+    "--ref ab71960d^ (pre-fix R7 D2-01) -> buffer/wood/dhw capacity groups present, buffer seam=1 (out/p3_ref_ab71960d_parent.txt)",
+    "--ref 7d8a0100 (carry #1487, before its fix) -> wood_tank_thermal_mass floor 0.01 with raw divisors (out/p3_ref_7d8a0100.txt)",
+    "--fixture -> 0",
+    "--reintroduce -> 23"
+   ],
+   "proposed_fix_scope": "Barrier, not product change: land p3_floors.py as a tests/ script, a lint class with an allow-list of the 22 current groups, each tagged guard-only (floor <= schema minimum) and pinned. The check refuses a new group or a floor raised above the quantity's schema minimum. Cost: 1.3 s wall standalone (provisional), no solve.",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/tariff.py",
+    "custom_components/heatpump_optimizer/away.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "P3"
+  },
+  {
+   "id": "D14-s3-02",
+   "scope": "D14-s3",
+   "step": "D14.M4",
+   "title": "P4: both multi-start seams stop at non-stationary points; 12 of 30 seam calls ship >0.1 % above reachable",
+   "severity": "low",
+   "claim": "Across 24 golden-built cells (1/2-zone x DHW on/off x 6 price profiles, winter_cold), 12 of 30 production _multi_start_minimize calls return an objective more than 0.1 % above what the same routine reaches from its own candidates at a tight stop (max 0.52 %), and 12 of 30 are above a dense seed ladder's result (max 0.89 %). The gap survives the flat-price null in 3 of 4 topologies, so it is the ftol=1e-6 stop on a rugged objective, not a price-bracketing miss.",
+   "mechanism": "L-BFGS-B at ftol 1e-6 with FD gradients (eps 1e-4) halts at non-stationary points: on two|nodhw|winter_typical the five production candidates refine to 77.72 to 79.16 at the shipped tolerance, and the same five reach 77.43 at ftol 1e-12 (with ABNORMAL line-search exits). The shipped plan is decided by which start happens to stop lowest. Removing the round-7 deep seed re-finds R7 D0-01 exactly (77.884228, the round-7 number).",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p4_seeds.py --cells full",
+    "harness_path": "tools/audit/round9/D14/s3/p4_seeds.py",
+    "value": 12,
+    "unit": "seam calls of 30 with tgap > 0.1 %",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B8 (cloud container, 4 cores, 15 GB, CPython 3.14.0rc2, numpy 2.4.6/OpenBLAS), shared with D14-s1 and D14-s2",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute-heavy seats; load1 3.06 at the end (7.4 peak); objective values, contention-immune",
+    "tolerance": "+-1 call across BLAS builds",
+    "load1": 3.06,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "optimizer:_multi_start_minimize (wrapped with mock.patch.object; both arms call the original; tight arm patches optimizer:_scoped_minimize options)",
+   "perturbation": {
+    "change": "--perturb no_deep: optimizer._DEEP_LOW_ENERGY_START_FRACTION 0.20 -> 0.35 (removes the round-7 seed), quick grid",
+    "expected_direction": "up",
+    "observed_value": "p4_bracket_misses 2 -> 3 (quick, 9 calls); two|nodhw|winter_typical gap 0.3888 % -> 0.5937 %"
+   },
+   "metric_definition": "Per seam call: (production score - score from own candidates at ftol 1e-12/gtol 1e-9/maxiter 3000) / |production score|; a miss is > 1e-3",
+   "phenomenon_property": "The plan a seam ships is a stationary point of its own objective, within tolerance, reached independently of which structural seed happens to stop first",
+   "seam_rule": "tools/audit/round9/D14/s3/p4_seeds.py --cells full",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p4_seeds.py --cells full",
+    "value": "flat-price arm: 3 of 4 topologies miss (max tgap 0.68 %)",
+    "note": "The gap does NOT vanish at flat prices, so it is not a price-arbitrage gap. That is why this is low, and money is not claimed. --ref-fixture (production candidates := the dense ladder) gives 0 misses (out/p4_fixture.txt)."
+   },
+   "leave_one_out": {
+    "cells": 24,
+    "min": -0.0177,
+    "max": 0.8915,
+    "drop_most_favourable": 0.0939
+   },
+   "reproduction_steps": [
+    "p4_seeds.py --cells full -> out/p4_full.txt",
+    "--perturb no_deep --no-tight --cells quick -> out/p4_quick_no_deep.txt",
+    "pre-fix R7 D0-01 (20cb1c46^) --cells 'two|nodhw|winter_typical' -> prod 77.884228, gap 0.5937 % (out/p4_ref_20cb1c46_parent.txt)",
+    "--perturb deep_dhw -> the with-DHW seam's gap unmoved (non-finding)"
+   ],
+   "proposed_fix_scope": "Barrier: run p4_seeds.py on the nightly replay (about 10 min on this box, provisional; too slow for the gate) with p4_tol_misses as a ratchet that may only fall. A product fix would be a convergence criterion for _multi_start_minimize, and it must be priced in money (tests/backtest.py:score) and CPU (stress.py) first: round 4 recorded the realised-money control moving the wrong way for a tighter ftol.",
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P4"
+  },
+  {
+   "id": "D14-s3-03",
+   "scope": "D14-s3",
+   "step": "D14.M4",
+   "title": "P5: sysid adoption gate keys on the UA half-width, which barely moves while unmodelled free heat biases UA to -21 %",
+   "severity": "medium",
+   "claim": "Driving the production experiment on declared plants whose true free heat differs from the declared internal gains, sysid:adoption_decision admits 3 fits whose true UA error exceeds the gate's own +-10 % bar (worst -21.43 %, blended heat-loss scale moved -7.97 %). The gated half-width moves only 0.0531 -> 0.0685 as the error goes 0 -> -21 %, and falls (0.0531 -> 0.0491) as the error rises to +8 % on the other side.",
+   "mechanism": "identify_slab ridges G toward gains_prior_kw, which production sets to the declared internal_gains (coordinator SysIdConfig construction). Free heat the house has but the declaration lacks is absorbed 1:1 by the UA column. The #1459 prior term adds a constant in quadrature to the profile half-width; it prices how strong the prior is, not how far the data sit from it. So the gated quantity is almost independent of the bias. Pre-#1459 the same sweep admits 5 over the bar at hw ~1e-4 (the round-7 D7-01 signature) with a -20.98 % blended shift. The fix cut the weight but kept the phenomenon.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p5_gate.py",
+    "harness_path": "tools/audit/round9/D14/s3/p5_gate.py",
+    "value": 3,
+    "unit": "admitted fits with |UA error| > bar",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "box B8 (cloud container, 4 cores, 15 GB, CPython 3.14.0rc2, numpy 2.4.6/OpenBLAS), shared with D14-s1 and D14-s2",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute-heavy seats; a count, contention-immune",
+    "tolerance": "exact (deterministic, no noise)",
+    "load1": 5.62,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "sysid:adoption_decision (and sysid:SystemIdentification.identify_slab through step()/_finish on a declared plant)",
+   "perturbation": {
+    "change": "--perturb prior_true: SysIdConfig.gains_prior_kw := the plant's true free heat (what a gate keyed on the bias would have to know)",
+    "expected_direction": "to_zero",
+    "observed_value": "3 -> 0 (every gains cell's error 0.00 %); --perturb bar_tight (bar/10) also 3 -> 0 by refusing all 39"
+   },
+   "metric_definition": "Count of sweep cells that adoption_decision admits while |ln(UA_fit/UA_true)| > UA_ADOPTION_HALFWIDTH_BAR (ln 1.10)",
+   "phenomenon_property": "An adoption gate's admit decision must bound the parameter's error against the truth, so admission is non-increasing in any injected bias the fit cannot see, not only in the fit's self-consistency",
+   "seam_rule": "tools/audit/round9/D14/s3/p5_gate.py --seams",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p5_gate.py",
+    "value": 0,
+    "note": "magnitude-0 cells of every source (no injected bias): 0 admitted over the bar"
+   },
+   "reproduction_steps": [
+    "p5_gate.py -> out/p5_baseline.txt (+ p5_baseline.json)",
+    "--perturb prior_true -> 0",
+    "--perturb bar_tight -> 0",
+    "pre-fix b7657ea2^ (round-7 D7-01's fix parent), harness copied into a worktree -> 5 over the bar, hw ~1e-4 (out/p5_ref_b7657ea2_parent.txt)",
+    "--seams -> 19 sites writing learned thermal parameters (out/p5_seams.txt)"
+   ],
+   "proposed_fix_scope": "Product: price the gains-prior departure into the gate, for example refuse or down-weight when the fitted G sits at the prior while the residual has a mean, or fit G freely with a data-scaled ridge like identify()'s. Barrier: p5_gate.py as a tests/ script (3 s wall, provisional) asserting p5_admitted_over_bar == 0 over the sweep, next to features.py's sysid pins.",
+   "files": [
+    "custom_components/heatpump_optimizer/sysid.py",
+    "custom_components/heatpump_optimizer/coordinator.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P5"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No P3 seam is reachable from the config schema at the baseline: every floor listed sits at or below its quantity's schema minimum",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p3_floors.py --json (floors) against config_flow.py _number ranges (spot-checked: cop 1.5, max power 1 kW, DHW 50 L, frsi 0.3, slab_heat_transfer 0.02, peak count 1)",
+   "value": "0 reachable of the groups checked"
+  },
+  {
+   "claim": "The with-DHW space seam (_solve_space) lacking the 0.20x deep seed is not a live defect: appending it there leaves every with-DHW gap unmoved",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p4_seeds.py --cells quick --perturb deep_dhw --no-tight",
+   "value": "two|dhw|winter_typical cold gap 0.1280 % both arms"
+  },
+  {
+   "claim": "Winter cells at the power bound (one-zone winter_typical/extreme/moderate/narrow, both DHW settings) are optimal: dense ladder and tight stop reproduce production",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p4_seeds.py --cells full",
+   "value": "gap 0.0000 %, tgap 0.0000 % in 8 cells"
+  },
+  {
+   "claim": "The sysid gate refuses sensor drift and slab-transfer mismatch that bias UA beyond the bar (the interval goes unbounded)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p5_gate.py",
+   "value": "drift/ks/cap series: 0 admitted over the bar; light_new ks x1.5-x3 (-10.6 to -35 %) refused with hw=inf; heavy_old drift 0.05-0.1 C/h (-31/-49 %) refused"
+  },
+  {
+   "claim": "Gate admission is monotone in the injected magnitude along every series (no admit after a refusal at lower bias)",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s3/p5_gate.py",
+   "value": "p5_monotone_breaks 0/15"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D14/s3/p3_floors.py",
+  "tools/audit/round9/D14/s3/p4_seeds.py",
+  "tools/audit/round9/D14/s3/p5_gate.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "_multi_start_minimize / _lbfgsb_restart",
+   "what": "L-BFGS-B exits with ABNORMAL line-search terminations at ftol 1e-12 on two|nodhw|winter_typical: FD-gradient (eps 1e-4) noise on a piecewise objective, relevant to any D0 convergence work"
+  },
+  {
+   "owner_seat": "unknown",
+   "file": "custom_components/heatpump_optimizer/sysid.py",
+   "symbol": "SystemIdentification (light_new preset)",
+   "what": "light_new: every completed experiment is refused at hw 0.1446 even with no bias, and any gains/drift/cap mismatch aborts on excursion, so the experiment can never adopt on this preset at MAX_KW 3.5"
+  }
+ ]
+}

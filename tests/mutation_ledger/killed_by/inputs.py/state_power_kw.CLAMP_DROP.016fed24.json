@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:state_power_kw CLAMP_DROP 016fed24",
+  "killed_by": "tests/features.py",
+  "old": "        return max(0.0, kw)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

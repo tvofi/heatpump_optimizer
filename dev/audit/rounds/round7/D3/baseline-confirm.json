@@ -1,0 +1,114 @@
+{
+ "tests/config_flow_steps.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 9.09
+ },
+ "tests/deployment_shape.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 1.43
+ },
+ "tests/doc_claims.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 0.94
+ },
+ "tests/entities.py": {
+  "cpu": 0.0,
+  "fails": 38,
+  "rc": 1,
+  "totals": 0,
+  "wall": 25.27
+ },
+ "tests/env_drift.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 106.89
+ },
+ "tests/features.py": {
+  "cpu": 0.01,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 111.63
+ },
+ "tests/finite_boundary.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 3.78
+ },
+ "tests/guard_pins.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 0.44
+ },
+ "tests/manual_plan.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 4.85
+ },
+ "tests/optimality.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 67.18
+ },
+ "tests/plan_view.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 0.67
+ },
+ "tests/solar_alignment.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 0.48
+ },
+ "tests/structure.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 1.19
+ },
+ "tests/typing_ruler.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 0.5
+ },
+ "tests/validate.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 22.77
+ },
+ "tests/wood_advisor.py": {
+  "cpu": 0.0,
+  "fails": 0,
+  "rc": 0,
+  "totals": 0,
+  "wall": 0.48
+ }
+}

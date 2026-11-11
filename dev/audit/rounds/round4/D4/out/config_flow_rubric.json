@@ -1,0 +1,5155 @@
+{
+ "config_pages": {
+  "reconfigure": {
+   "error": "AssertionError: "
+  },
+  "user": {
+   "type": "form",
+   "step_id": "user",
+   "fields": [
+    {
+     "section": null,
+     "field": "name",
+     "required": true,
+     "has_default": true,
+     "default": "Heat Pump Optimizer",
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "price_source",
+     "required": false,
+     "has_default": true,
+     "default": "tibber",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "tibber",
+       "entity"
+      ],
+      "translation_key": "price_source",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": null,
+     "field": "tibber_token",
+     "required": false,
+     "has_default": true,
+     "default": "",
+     "selector": "TextSelector",
+     "config": {
+      "type": "password"
+     }
+    },
+    {
+     "section": null,
+     "field": "price_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "weather_entity",
+     "required": true,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "weather"
+        ]
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "user_sensors": {
+   "type": "form",
+   "step_id": "user_sensors",
+   "fields": [
+    {
+     "section": "indoor",
+     "field": "indoor_temp_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "indoor",
+     "field": "outdoor_temp_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "solar",
+     "field": "solar_radiation_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "solar",
+     "field": "solar_forecast_source",
+     "required": false,
+     "has_default": true,
+     "default": "weather",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "weather",
+       "open_meteo"
+      ],
+      "translation_key": "solar_forecast_source",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": "solar",
+     "field": "solar_location",
+     "required": false,
+     "has_default": true,
+     "default": "{'latitude': 59.33, 'longitude': 18.07}",
+     "selector": "LocationSelector",
+     "config": {
+      "radius": false
+     }
+    },
+    {
+     "section": "plant",
+     "field": "heat_pump_switch_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "switch"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "plant",
+     "field": "floor_return_temp_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "plant",
+     "field": "lower_floor_temp_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "plant",
+     "field": "dhw_temp_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "plant",
+     "field": "buffer_tank_temp_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "plant",
+     "field": "heat_pump_mode_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "select",
+         "sensor",
+         "input_select"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "plant",
+     "field": "heat_pump_defrost_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "binary_sensor",
+         "switch",
+         "input_boolean",
+         "sensor"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "plant",
+     "field": "heat_pump_online_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "binary_sensor",
+         "switch",
+         "input_boolean",
+         "sensor"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "plant",
+     "field": "heat_pump_fault_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "binary_sensor",
+         "switch",
+         "input_boolean",
+         "sensor"
+        ]
+       }
+      ]
+     }
+    }
+   ]
+  },
+  "finish_setup": {
+   "type": "menu",
+   "step_id": "finish_setup",
+   "menu_options": [
+    "temperature",
+    "finish_now"
+   ],
+   "fields": []
+  },
+  "finish_now": {
+   "type": "form",
+   "step_id": "setup_overview",
+   "fields": []
+  },
+  "setup_overview": {
+   "type": "form",
+   "step_id": "setup_overview",
+   "fields": []
+  },
+  "temperature": {
+   "type": "form",
+   "step_id": "temperature",
+   "fields": [
+    {
+     "section": null,
+     "field": "target_temperature",
+     "required": true,
+     "has_default": true,
+     "default": 21.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 15,
+      "max": 28,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "min_temperature",
+     "required": true,
+     "has_default": true,
+     "default": 19.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 14,
+      "max": 25,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "max_temperature",
+     "required": true,
+     "has_default": true,
+     "default": 23.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 18,
+      "max": 28,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "comfort_temp_day",
+     "required": true,
+     "has_default": true,
+     "default": 21.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 16,
+      "max": 26,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "comfort_temp_night",
+     "required": true,
+     "has_default": true,
+     "default": 19.5,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 15,
+      "max": 24,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "day_start_hour",
+     "required": true,
+     "has_default": true,
+     "default": 7,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 23,
+      "step": 1,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": null,
+     "field": "day_end_hour",
+     "required": true,
+     "has_default": true,
+     "default": 22,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1,
+      "max": 24,
+      "step": 1,
+      "mode": "slider"
+     }
+    }
+   ]
+  },
+  "building": {
+   "type": "menu",
+   "step_id": "building",
+   "menu_options": [
+    "building_describe",
+    "thermal"
+   ],
+   "fields": []
+  },
+  "building_describe": {
+   "type": "form",
+   "step_id": "building_describe",
+   "fields": [
+    {
+     "section": null,
+     "field": "building_structure",
+     "required": false,
+     "has_default": true,
+     "default": "timber_slab",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "timber_crawlspace",
+       "timber_slab",
+       "concrete_slab",
+       "masonry"
+      ],
+      "translation_key": "building_structure",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": null,
+     "field": "building_era",
+     "required": false,
+     "has_default": true,
+     "default": "1980_2005",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "pre_1960",
+       "1960_1980",
+       "1980_2005",
+       "post_2005",
+       "low_energy"
+      ],
+      "translation_key": "building_era",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": null,
+     "field": "building_foundation",
+     "required": false,
+     "has_default": true,
+     "default": "none",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "none",
+       "crawlspace",
+       "heated_basement"
+      ],
+      "translation_key": "building_foundation",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": null,
+     "field": "heated_area_m2",
+     "required": false,
+     "has_default": true,
+     "default": 140.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 20,
+      "max": 1000,
+      "step": 5,
+      "mode": "box",
+      "unit_of_measurement": "m\u00b2"
+     }
+    },
+    {
+     "section": null,
+     "field": "upper_floor_emitter",
+     "required": false,
+     "has_default": true,
+     "default": "radiators",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "floor",
+       "radiators"
+      ],
+      "translation_key": "emitter",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": null,
+     "field": "lower_floor_emitter",
+     "required": false,
+     "has_default": true,
+     "default": "floor",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "floor",
+       "radiators"
+      ],
+      "translation_key": "emitter",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "building_extras": {
+   "type": "form",
+   "step_id": "building_extras",
+   "fields": [
+    {
+     "section": null,
+     "field": "heat_pump_cop_nominal",
+     "required": true,
+     "has_default": true,
+     "default": 3.5,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1.5,
+      "max": 6.0,
+      "step": 0.1,
+      "mode": "box"
+     }
+    },
+    {
+     "section": null,
+     "field": "heat_pump_max_power",
+     "required": true,
+     "has_default": true,
+     "default": 5.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1,
+      "max": 20,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kW"
+     }
+    },
+    {
+     "section": null,
+     "field": "heat_pump_min_power",
+     "required": true,
+     "has_default": true,
+     "default": 1.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kW"
+     }
+    }
+   ]
+  },
+  "thermal": {
+   "type": "form",
+   "step_id": "thermal",
+   "fields": [
+    {
+     "section": null,
+     "field": "house_thermal_mass",
+     "required": true,
+     "has_default": true,
+     "default": 10.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.5,
+      "max": 80.0,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kWh/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "house_heat_loss_coefficient",
+     "required": true,
+     "has_default": true,
+     "default": 0.15,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.01,
+      "max": 1.0,
+      "step": 0.01,
+      "mode": "box",
+      "unit_of_measurement": "kW/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "slab_thermal_mass",
+     "required": true,
+     "has_default": true,
+     "default": 5.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.1,
+      "max": 60.0,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kWh/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "slab_heat_transfer",
+     "required": true,
+     "has_default": true,
+     "default": 0.8,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.02,
+      "max": 5.0,
+      "step": 0.1,
+      "mode": "box",
+      "unit_of_measurement": "kW/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "heat_pump_cop_nominal",
+     "required": true,
+     "has_default": true,
+     "default": 3.5,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1.5,
+      "max": 6.0,
+      "step": 0.1,
+      "mode": "box"
+     }
+    },
+    {
+     "section": null,
+     "field": "heat_pump_max_power",
+     "required": true,
+     "has_default": true,
+     "default": 5.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1,
+      "max": 20,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kW"
+     }
+    },
+    {
+     "section": null,
+     "field": "heat_pump_min_power",
+     "required": true,
+     "has_default": true,
+     "default": 1.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kW"
+     }
+    },
+    {
+     "section": null,
+     "field": "optimization_interval",
+     "required": true,
+     "has_default": true,
+     "default": 30,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 10,
+      "max": 120,
+      "step": 5,
+      "mode": "slider",
+      "unit_of_measurement": "min"
+     }
+    },
+    {
+     "section": null,
+     "field": "price_weight",
+     "required": true,
+     "has_default": true,
+     "default": 1.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.1,
+      "max": 10,
+      "step": 0.1,
+      "mode": "box"
+     }
+    },
+    {
+     "section": null,
+     "field": "comfort_weight",
+     "required": true,
+     "has_default": true,
+     "default": 5.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.1,
+      "max": 20,
+      "step": 0.1,
+      "mode": "box"
+     }
+    }
+   ]
+  },
+  "zones": {
+   "type": "form",
+   "step_id": "zones",
+   "fields": [
+    {
+     "section": null,
+     "field": "upper_floor_thermal_mass",
+     "required": false,
+     "has_default": true,
+     "default": 3.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.25,
+      "max": 60.0,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kWh/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "lower_floor_thermal_mass",
+     "required": false,
+     "has_default": true,
+     "default": 8.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.25,
+      "max": 60.0,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kWh/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "upper_floor_heat_loss",
+     "required": false,
+     "has_default": true,
+     "default": 0.08,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.001,
+      "max": 1.0,
+      "step": 0.01,
+      "mode": "box",
+      "unit_of_measurement": "kW/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "lower_floor_heat_loss",
+     "required": false,
+     "has_default": true,
+     "default": 0.07,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.001,
+      "max": 1.0,
+      "step": 0.01,
+      "mode": "box",
+      "unit_of_measurement": "kW/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "inter_zone_heat_transfer",
+     "required": false,
+     "has_default": true,
+     "default": 0.5,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.01,
+      "max": 3.0,
+      "step": 0.1,
+      "mode": "box",
+      "unit_of_measurement": "kW/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "radiator_power_fraction",
+     "required": false,
+     "has_default": true,
+     "default": 0.4,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.05,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": null,
+     "field": "upper_floor_area_ratio",
+     "required": false,
+     "has_default": true,
+     "default": 0.5,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.1,
+      "max": 0.9,
+      "step": 0.05,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": null,
+     "field": "buffer_tank_volume",
+     "required": false,
+     "has_default": true,
+     "default": 35.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 10,
+      "max": 1500,
+      "step": 5,
+      "mode": "box",
+      "unit_of_measurement": "L"
+     }
+    },
+    {
+     "section": null,
+     "field": "window_area",
+     "required": false,
+     "has_default": true,
+     "default": 10.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.01,
+      "max": 50,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "m\u00b2"
+     }
+    },
+    {
+     "section": null,
+     "field": "solar_orientation_factor",
+     "required": false,
+     "has_default": true,
+     "default": 0.7,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.05,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": null,
+     "field": "solar_heat_gain_coefficient",
+     "required": false,
+     "has_default": true,
+     "default": 0.7,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.1,
+      "max": 1.0,
+      "step": 0.05,
+      "mode": "slider"
+     }
+    }
+   ]
+  },
+  "dhw": {
+   "type": "form",
+   "step_id": "dhw",
+   "fields": [
+    {
+     "section": null,
+     "field": "dhw_tank_volume",
+     "required": false,
+     "has_default": true,
+     "default": 200.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 50,
+      "max": 1500,
+      "step": 10,
+      "mode": "box",
+      "unit_of_measurement": "L"
+     }
+    },
+    {
+     "section": null,
+     "field": "dhw_setpoint",
+     "required": false,
+     "has_default": true,
+     "default": 55.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 40,
+      "max": 65,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "dhw_min_temperature",
+     "required": false,
+     "has_default": true,
+     "default": 45.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 35,
+      "max": 55,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "dhw_daily_consumption",
+     "required": false,
+     "has_default": true,
+     "default": 150.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 50,
+      "max": 1500,
+      "step": 10,
+      "mode": "box",
+      "unit_of_measurement": "L/day"
+     }
+    },
+    {
+     "section": null,
+     "field": "dhw_cooling_rate",
+     "required": false,
+     "has_default": true,
+     "default": 0.3,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.05,
+      "max": 3.0,
+      "step": 0.05,
+      "mode": "box",
+      "unit_of_measurement": "\u00b0C/h"
+     }
+    },
+    {
+     "section": null,
+     "field": "dhw_schedule_enabled",
+     "required": false,
+     "has_default": true,
+     "default": true,
+     "selector": "BooleanSelector",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "dhw_windows",
+     "required": false,
+     "has_default": true,
+     "default": "06:00-08:30, 17:00-22:00",
+     "selector": "TextSelector",
+     "config": {
+      "type": "text"
+     }
+    },
+    {
+     "section": null,
+     "field": "dhw_idle_min_temperature",
+     "required": false,
+     "has_default": true,
+     "default": 20.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 10,
+      "max": 55,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "dhw_legionella_enabled",
+     "required": false,
+     "has_default": true,
+     "default": true,
+     "selector": "BooleanSelector",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "dhw_legionella_temperature",
+     "required": false,
+     "has_default": true,
+     "default": 60.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 55,
+      "max": 70,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "dhw_legionella_interval_days",
+     "required": false,
+     "has_default": true,
+     "default": 7.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "days"
+     }
+    }
+   ]
+  },
+  "weather_sensitivity": {
+   "type": "form",
+   "step_id": "weather_sensitivity",
+   "fields": [
+    {
+     "section": null,
+     "field": "wind_sensitivity_factor",
+     "required": false,
+     "has_default": true,
+     "default": 0.03,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.0,
+      "max": 0.5,
+      "step": 0.01,
+      "mode": "box"
+     }
+    },
+    {
+     "section": null,
+     "field": "rain_heat_loss_multiplier",
+     "required": false,
+     "has_default": true,
+     "default": 1.15,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1.0,
+      "max": 1.5,
+      "step": 0.01,
+      "mode": "box"
+     }
+    }
+   ]
+  },
+  "reauth": {
+   "type": "form",
+   "step_id": "reauth_confirm",
+   "fields": [
+    {
+     "section": null,
+     "field": "tibber_token",
+     "required": true,
+     "has_default": false,
+     "default": null,
+     "selector": "TextSelector",
+     "config": {
+      "type": "password"
+     }
+    }
+   ]
+  },
+  "reauth_confirm": {
+   "type": "form",
+   "step_id": "reauth_confirm",
+   "fields": [
+    {
+     "section": null,
+     "field": "tibber_token",
+     "required": true,
+     "has_default": false,
+     "default": null,
+     "selector": "TextSelector",
+     "config": {
+      "type": "password"
+     }
+    }
+   ]
+  }
+ },
+ "option_pages": {
+  "setup_overview": {
+   "type": "form",
+   "step_id": "setup_overview",
+   "fields": []
+  },
+  "building": {
+   "type": "form",
+   "step_id": "building",
+   "fields": [
+    {
+     "section": "valve",
+     "field": "mixing_valve_mode",
+     "required": false,
+     "has_default": true,
+     "default": "none",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "none",
+       "manual",
+       "smart_read",
+       "smart_write"
+      ],
+      "translation_key": "mixing_valve_mode",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": "valve",
+     "field": "mixing_valve_target",
+     "required": false,
+     "has_default": true,
+     "default": 0.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 30,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "valve",
+     "field": "mixing_valve_target_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "valve",
+     "field": "mixing_valve_write_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "number",
+         "input_number",
+         "climate"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "valve",
+     "field": "mixing_valve_write_target_kind",
+     "required": false,
+     "has_default": true,
+     "default": "indoor",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "indoor",
+       "flow"
+      ],
+      "translation_key": "mixing_valve_write_target_kind",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": "buffer",
+     "field": "buffer_tank_volume",
+     "required": false,
+     "has_default": true,
+     "default": 35.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 10,
+      "max": 1500,
+      "step": 5,
+      "mode": "box",
+      "unit_of_measurement": "L"
+     }
+    },
+    {
+     "section": "buffer",
+     "field": "buffer_max_temperature",
+     "required": false,
+     "has_default": true,
+     "default": 70.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 40,
+      "max": 90,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "wood",
+     "field": "wood_furnace_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "circulation",
+     "field": "space_circulation_pump_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "switch",
+         "input_boolean"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "init": {
+   "type": "menu",
+   "step_id": "init",
+   "menu_options": [
+    "setup_overview",
+    "comfort",
+    "hot_water",
+    "tuning",
+    "grid",
+    "away",
+    "advanced"
+   ],
+   "fields": []
+  },
+  "advanced": {
+   "type": "menu",
+   "step_id": "advanced",
+   "menu_options": [
+    "entities",
+    "entities_metering",
+    "entities_pump",
+    "building",
+    "building_preset",
+    "thermal_model",
+    "thermal_model_zones",
+    "hot_water_tank",
+    "hot_water_pumps",
+    "solar_pv",
+    "learning",
+    "learning_features",
+    "grid_connection",
+    "grid_fees",
+    "heat_curve"
+   ],
+   "fields": []
+  },
+  "entities": {
+   "type": "form",
+   "step_id": "entities",
+   "fields": [
+    {
+     "section": "credentials",
+     "field": "price_source",
+     "required": false,
+     "has_default": true,
+     "default": "tibber",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "tibber",
+       "entity"
+      ],
+      "translation_key": "price_source",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": "credentials",
+     "field": "tibber_token",
+     "required": false,
+     "has_default": true,
+     "default": "",
+     "selector": "TextSelector",
+     "config": {
+      "type": "password"
+     }
+    },
+    {
+     "section": "credentials",
+     "field": "price_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "credentials",
+     "field": "price_vat",
+     "required": false,
+     "has_default": true,
+     "default": 1.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.0,
+      "max": 2.0,
+      "step": 0.01,
+      "mode": "box"
+     }
+    },
+    {
+     "section": "credentials",
+     "field": "price_surcharge",
+     "required": false,
+     "has_default": true,
+     "default": 0.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.0,
+      "max": 2.0,
+      "step": 0.01,
+      "mode": "box"
+     }
+    },
+    {
+     "section": "credentials",
+     "field": "weather_entity",
+     "required": true,
+     "has_default": true,
+     "default": "",
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "weather"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "indoor",
+     "field": "indoor_temp_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "indoor",
+     "field": "outdoor_temp_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "indoor",
+     "field": "space_setpoint_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "number",
+         "input_number",
+         "climate"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "indoor",
+     "field": "space_setpoint_unit",
+     "required": false,
+     "has_default": true,
+     "default": "indoor",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "indoor",
+       "flow"
+      ],
+      "translation_key": "space_setpoint_unit",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": "plant",
+     "field": "heat_pump_switch_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "switch"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "plant",
+     "field": "dhw_temp_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "plant",
+     "field": "buffer_tank_temp_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "plant",
+     "field": "floor_return_temp_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "plant",
+     "field": "lower_floor_temp_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "entities_metering": {
+   "type": "form",
+   "step_id": "entities_metering",
+   "fields": [
+    {
+     "section": "solar",
+     "field": "solar_radiation_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "solar",
+     "field": "solar_forecast_source",
+     "required": false,
+     "has_default": true,
+     "default": "weather",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "weather",
+       "open_meteo"
+      ],
+      "translation_key": "solar_forecast_source",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": "solar",
+     "field": "solar_location",
+     "required": false,
+     "has_default": true,
+     "default": "{'latitude': 59.33, 'longitude': 18.07}",
+     "selector": "LocationSelector",
+     "config": {
+      "radius": false
+     }
+    },
+    {
+     "section": "meters",
+     "field": "heat_pump_power_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "power"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "meters",
+     "field": "heat_pump_energy_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "energy"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "meters",
+     "field": "house_power_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "power"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "compressor",
+     "field": "compressor_freq_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "number"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "compressor",
+     "field": "compressor_freq_sensor",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "frequency"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "compressor",
+     "field": "freq_control_mode",
+     "required": false,
+     "has_default": true,
+     "default": "observe",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "observe",
+       "control"
+      ],
+      "translation_key": "freq_control_mode",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "entities_pump": {
+   "type": "form",
+   "step_id": "entities_pump",
+   "fields": [
+    {
+     "section": null,
+     "field": "heat_pump_mode_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "select",
+         "sensor",
+         "input_select"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "heat_pump_defrost_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "binary_sensor",
+         "switch",
+         "input_boolean",
+         "sensor"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "heat_pump_online_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "binary_sensor",
+         "switch",
+         "input_boolean",
+         "sensor"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "heat_pump_fault_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "binary_sensor",
+         "switch",
+         "input_boolean",
+         "sensor"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "comfort": {
+   "type": "form",
+   "step_id": "comfort",
+   "fields": [
+    {
+     "section": "band",
+     "field": "target_temperature",
+     "required": true,
+     "has_default": true,
+     "default": 21.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 15,
+      "max": 28,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "band",
+     "field": "min_temperature",
+     "required": true,
+     "has_default": true,
+     "default": 19.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 14,
+      "max": 25,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "band",
+     "field": "max_temperature",
+     "required": true,
+     "has_default": true,
+     "default": 23.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 18,
+      "max": 28,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "schedule",
+     "field": "comfort_temp_day",
+     "required": true,
+     "has_default": true,
+     "default": 21.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 16,
+      "max": 26,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "schedule",
+     "field": "comfort_temp_night",
+     "required": true,
+     "has_default": true,
+     "default": 19.5,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 15,
+      "max": 24,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "schedule",
+     "field": "day_start_hour",
+     "required": true,
+     "has_default": true,
+     "default": 7,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 23,
+      "step": 1,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": "schedule",
+     "field": "day_end_hour",
+     "required": true,
+     "has_default": true,
+     "default": 22,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1,
+      "max": 24,
+      "step": 1,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": "weekend",
+     "field": "comfort_temp_day_weekend",
+     "required": false,
+     "has_default": true,
+     "default": 21.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 16,
+      "max": 26,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "weekend",
+     "field": "comfort_temp_night_weekend",
+     "required": false,
+     "has_default": true,
+     "default": 19.5,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 15,
+      "max": 24,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "weekend",
+     "field": "day_start_hour_weekend",
+     "required": false,
+     "has_default": true,
+     "default": 7,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 23,
+      "step": 1,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": "weekend",
+     "field": "day_end_hour_weekend",
+     "required": false,
+     "has_default": true,
+     "default": 22,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1,
+      "max": 24,
+      "step": 1,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": "holiday",
+     "field": "holiday_comfort_temp_day",
+     "required": false,
+     "has_default": true,
+     "default": 21.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 16,
+      "max": 26,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "holiday",
+     "field": "holiday_comfort_temp_night",
+     "required": false,
+     "has_default": true,
+     "default": 19.5,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 15,
+      "max": 24,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "holiday",
+     "field": "holiday_day_start_hour",
+     "required": false,
+     "has_default": true,
+     "default": 7,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 23,
+      "step": 1,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": "holiday",
+     "field": "holiday_day_end_hour",
+     "required": false,
+     "has_default": true,
+     "default": 22,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1,
+      "max": 24,
+      "step": 1,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": "mold",
+     "field": "mold_guard_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "mold",
+     "field": "indoor_humidity_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "humidity"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "mold",
+     "field": "thermal_bridge_frsi",
+     "required": false,
+     "has_default": true,
+     "default": 0.75,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.3,
+      "max": 0.98,
+      "step": 0.01,
+      "mode": "box"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "hot_water": {
+   "type": "form",
+   "step_id": "hot_water",
+   "fields": [
+    {
+     "section": "schedule",
+     "field": "dhw_schedule_enabled",
+     "required": false,
+     "has_default": true,
+     "default": true,
+     "selector": "BooleanSelector",
+     "config": {}
+    },
+    {
+     "section": "schedule",
+     "field": "dhw_windows",
+     "required": false,
+     "has_default": true,
+     "default": "06:00-08:30, 17:00-22:00",
+     "selector": "TextSelector",
+     "config": {
+      "type": "text"
+     }
+    },
+    {
+     "section": "schedule",
+     "field": "holiday_dhw_windows",
+     "required": false,
+     "has_default": true,
+     "default": "",
+     "selector": "TextSelector",
+     "config": {
+      "type": "text"
+     }
+    },
+    {
+     "section": "temperatures",
+     "field": "dhw_min_temperature",
+     "required": false,
+     "has_default": true,
+     "default": 45.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 35,
+      "max": 55,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "temperatures",
+     "field": "dhw_idle_min_temperature",
+     "required": false,
+     "has_default": true,
+     "default": 20.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 10,
+      "max": 55,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "temperatures",
+     "field": "dhw_setpoint",
+     "required": false,
+     "has_default": true,
+     "default": 55.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 40,
+      "max": 65,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "temperatures",
+     "field": "dhw_setpoint_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "number",
+         "input_number",
+         "climate"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "legionella",
+     "field": "dhw_legionella_enabled",
+     "required": false,
+     "has_default": true,
+     "default": true,
+     "selector": "BooleanSelector",
+     "config": {}
+    },
+    {
+     "section": "legionella",
+     "field": "dhw_legionella_temperature",
+     "required": false,
+     "has_default": true,
+     "default": 60.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 55,
+      "max": 70,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "legionella",
+     "field": "dhw_legionella_interval_days",
+     "required": false,
+     "has_default": true,
+     "default": 7.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "days"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "hot_water_tank": {
+   "type": "form",
+   "step_id": "hot_water_tank",
+   "fields": [
+    {
+     "section": "tank",
+     "field": "dhw_tank_volume",
+     "required": false,
+     "has_default": true,
+     "default": 200.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 50,
+      "max": 1500,
+      "step": 10,
+      "mode": "box",
+      "unit_of_measurement": "L"
+     }
+    },
+    {
+     "section": "tank",
+     "field": "dhw_daily_consumption",
+     "required": false,
+     "has_default": true,
+     "default": 150.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 50,
+      "max": 1500,
+      "step": 10,
+      "mode": "box",
+      "unit_of_measurement": "L/day"
+     }
+    },
+    {
+     "section": "tank",
+     "field": "dhw_cooling_rate",
+     "required": false,
+     "has_default": true,
+     "default": 0.3,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.05,
+      "max": 3.0,
+      "step": 0.05,
+      "mode": "box",
+      "unit_of_measurement": "\u00b0C/h"
+     }
+    },
+    {
+     "section": "tank",
+     "field": "shower_flow_lpm",
+     "required": false,
+     "has_default": true,
+     "default": 8.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 4,
+      "max": 20,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "L/min"
+     }
+    },
+    {
+     "section": "inlet",
+     "field": "dhw_inlet_temp",
+     "required": false,
+     "has_default": true,
+     "default": 10.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 2,
+      "max": 25,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "inlet",
+     "field": "dhw_inlet_seasonal_amplitude",
+     "required": false,
+     "has_default": true,
+     "default": 0.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 8,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": "inlet",
+     "field": "dhw_inlet_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "temperature"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": "recovery",
+     "field": "greywater_recovery_effectiveness",
+     "required": false,
+     "has_default": true,
+     "default": 0.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 0.9,
+      "step": 0.05,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": "disinfection",
+     "field": "dhw_quantile_targets_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "BooleanSelector",
+     "config": {}
+    },
+    {
+     "section": "disinfection",
+     "field": "dhw_free_disinfection_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "BooleanSelector",
+     "config": {}
+    },
+    {
+     "section": "disinfection",
+     "field": "dhw_elastic_legionella_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "BooleanSelector",
+     "config": {}
+    },
+    {
+     "section": "disinfection",
+     "field": "dhw_legionella_min_interval_days",
+     "required": false,
+     "has_default": true,
+     "default": 5.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1,
+      "max": 14,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "days"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "hot_water_pumps": {
+   "type": "form",
+   "step_id": "hot_water_pumps",
+   "fields": [
+    {
+     "section": null,
+     "field": "vvc_pump_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "switch",
+         "input_boolean"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "vvc_lead_minutes",
+     "required": false,
+     "has_default": true,
+     "default": 20,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 120,
+      "step": 5,
+      "mode": "slider",
+      "unit_of_measurement": "min"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "thermal_model": {
+   "type": "form",
+   "step_id": "thermal_model",
+   "fields": [
+    {
+     "section": null,
+     "field": "house_thermal_mass",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.5,
+      "max": 80.0,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kWh/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "house_heat_loss_coefficient",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.01,
+      "max": 1.0,
+      "step": 0.01,
+      "mode": "box",
+      "unit_of_measurement": "kW/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "slab_thermal_mass",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.1,
+      "max": 60.0,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kWh/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "slab_heat_transfer",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.02,
+      "max": 5.0,
+      "step": 0.1,
+      "mode": "box",
+      "unit_of_measurement": "kW/\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "heat_pump_cop_nominal",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1.5,
+      "max": 6.0,
+      "step": 0.1,
+      "mode": "box"
+     }
+    },
+    {
+     "section": null,
+     "field": "heat_pump_max_power",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1,
+      "max": 20,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kW"
+     }
+    },
+    {
+     "section": null,
+     "field": "heat_pump_min_power",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kW"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "thermal_model_zones": {
+   "type": "form",
+   "step_id": "thermal_model_zones",
+   "fields": [
+    {
+     "section": "mode",
+     "field": "two_zone_mode",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "auto",
+       "on",
+       "off"
+      ],
+      "translation_key": "two_zone_mode",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": "zones",
+     "field": "upper_floor_thermal_mass",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.25,
+      "max": 60.0,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kWh/\u00b0C"
+     }
+    },
+    {
+     "section": "zones",
+     "field": "lower_floor_thermal_mass",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.25,
+      "max": 60.0,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "kWh/\u00b0C"
+     }
+    },
+    {
+     "section": "zones",
+     "field": "upper_floor_heat_loss",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.001,
+      "max": 1.0,
+      "step": 0.01,
+      "mode": "box",
+      "unit_of_measurement": "kW/\u00b0C"
+     }
+    },
+    {
+     "section": "zones",
+     "field": "lower_floor_heat_loss",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.001,
+      "max": 1.0,
+      "step": 0.01,
+      "mode": "box",
+      "unit_of_measurement": "kW/\u00b0C"
+     }
+    },
+    {
+     "section": "zones",
+     "field": "inter_zone_heat_transfer",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.01,
+      "max": 3.0,
+      "step": 0.1,
+      "mode": "box",
+      "unit_of_measurement": "kW/\u00b0C"
+     }
+    },
+    {
+     "section": "split",
+     "field": "radiator_power_fraction",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.05,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": "split",
+     "field": "upper_floor_area_ratio",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.1,
+      "max": 0.9,
+      "step": 0.05,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": "split",
+     "field": "solar_orientation_factor",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.05,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "tuning": {
+   "type": "form",
+   "step_id": "tuning",
+   "fields": [
+    {
+     "section": "weights",
+     "field": "price_weight",
+     "required": true,
+     "has_default": true,
+     "default": 1.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.1,
+      "max": 10,
+      "step": 0.1,
+      "mode": "box"
+     }
+    },
+    {
+     "section": "weights",
+     "field": "comfort_weight",
+     "required": true,
+     "has_default": true,
+     "default": 5.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.1,
+      "max": 20,
+      "step": 0.1,
+      "mode": "box"
+     }
+    },
+    {
+     "section": "weights",
+     "field": "optimization_interval",
+     "required": true,
+     "has_default": true,
+     "default": 30,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 10,
+      "max": 120,
+      "step": 5,
+      "mode": "slider",
+      "unit_of_measurement": "min"
+     }
+    },
+    {
+     "section": "wear",
+     "field": "compressor_cycling_cost",
+     "required": false,
+     "has_default": true,
+     "default": 0.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 0.05,
+      "mode": "box"
+     }
+    },
+    {
+     "section": "wear",
+     "field": "compressor_replacement_cost",
+     "required": false,
+     "has_default": true,
+     "default": 0.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 100000,
+      "step": 100,
+      "mode": "box",
+      "unit_of_measurement": "SEK"
+     }
+    },
+    {
+     "section": "wear",
+     "field": "compressor_rated_starts",
+     "required": false,
+     "has_default": true,
+     "default": 100000,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1000,
+      "max": 1000000,
+      "step": 1000,
+      "mode": "box"
+     }
+    },
+    {
+     "section": "wear",
+     "field": "wear_autotune_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "risk",
+     "field": "price_risk_lambda",
+     "required": false,
+     "has_default": true,
+     "default": 0.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.0,
+      "max": 2.0,
+      "step": 0.05,
+      "mode": "box"
+     }
+    },
+    {
+     "section": "risk",
+     "field": "confidence_margins_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "risk",
+     "field": "price_tiles_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "heat_curve": {
+   "type": "form",
+   "step_id": "heat_curve",
+   "fields": [
+    {
+     "section": null,
+     "field": "ecl110_displace_set_topic",
+     "required": false,
+     "has_default": true,
+     "default": "ecl110/flow_temp_control/displace/set",
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "ecl110_command_topic",
+     "required": false,
+     "has_default": true,
+     "default": "ecl110/command",
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "ecl110_state_topic",
+     "required": false,
+     "has_default": true,
+     "default": "ecl110/flow_temp_control/displace",
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "ecl110_mqtt_qos",
+     "required": false,
+     "has_default": true,
+     "default": 1,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 2,
+      "step": 1,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": null,
+     "field": "ecl110_mqtt_retain",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "ecl110_displace_min",
+     "required": false,
+     "has_default": true,
+     "default": -20.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": -30,
+      "max": 0,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "ecl110_displace_max",
+     "required": false,
+     "has_default": true,
+     "default": 20.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 30,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "ecl110_pid_time_constant_hours",
+     "required": false,
+     "has_default": true,
+     "default": 1.5,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.25,
+      "max": 6.0,
+      "step": 0.25,
+      "mode": "box",
+      "unit_of_measurement": "h"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "building_preset": {
+   "type": "form",
+   "step_id": "building_preset",
+   "fields": [
+    {
+     "section": "questionnaire",
+     "field": "building_structure",
+     "required": false,
+     "has_default": true,
+     "default": "timber_slab",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "timber_crawlspace",
+       "timber_slab",
+       "concrete_slab",
+       "masonry"
+      ],
+      "translation_key": "building_structure",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": "questionnaire",
+     "field": "building_era",
+     "required": false,
+     "has_default": true,
+     "default": "1980_2005",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "pre_1960",
+       "1960_1980",
+       "1980_2005",
+       "post_2005",
+       "low_energy"
+      ],
+      "translation_key": "building_era",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": "questionnaire",
+     "field": "building_foundation",
+     "required": false,
+     "has_default": true,
+     "default": "none",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "none",
+       "crawlspace",
+       "heated_basement"
+      ],
+      "translation_key": "building_foundation",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": "questionnaire",
+     "field": "heated_area_m2",
+     "required": false,
+     "has_default": true,
+     "default": 140.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 20,
+      "max": 1000,
+      "step": 5,
+      "mode": "box",
+      "unit_of_measurement": "m\u00b2"
+     }
+    },
+    {
+     "section": "questionnaire",
+     "field": "upper_floor_emitter",
+     "required": false,
+     "has_default": true,
+     "default": "radiators",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "floor",
+       "radiators"
+      ],
+      "translation_key": "emitter",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": "questionnaire",
+     "field": "lower_floor_emitter",
+     "required": false,
+     "has_default": true,
+     "default": "floor",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "floor",
+       "radiators"
+      ],
+      "translation_key": "emitter",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": "derivation",
+     "field": "building_preset_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "climate",
+     "field": "window_area",
+     "required": false,
+     "has_default": true,
+     "default": 10.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.01,
+      "max": 50,
+      "step": 0.5,
+      "mode": "box",
+      "unit_of_measurement": "m\u00b2"
+     }
+    },
+    {
+     "section": "climate",
+     "field": "solar_heat_gain_coefficient",
+     "required": false,
+     "has_default": true,
+     "default": 0.7,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.1,
+      "max": 1.0,
+      "step": 0.05,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": "climate",
+     "field": "wind_sensitivity_factor",
+     "required": false,
+     "has_default": true,
+     "default": 0.03,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.0,
+      "max": 0.5,
+      "step": 0.01,
+      "mode": "box"
+     }
+    },
+    {
+     "section": "climate",
+     "field": "rain_heat_loss_multiplier",
+     "required": false,
+     "has_default": true,
+     "default": 1.15,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1.0,
+      "max": 1.5,
+      "step": 0.01,
+      "mode": "box"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "grid": {
+   "type": "form",
+   "step_id": "grid",
+   "fields": [
+    {
+     "section": null,
+     "field": "peak_tariff_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "peak_tariff_price_per_kw",
+     "required": false,
+     "has_default": true,
+     "default": 45.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 500,
+      "step": 1,
+      "mode": "box"
+     }
+    },
+    {
+     "section": null,
+     "field": "peak_tariff_peaks_averaged",
+     "required": false,
+     "has_default": true,
+     "default": 3,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": null,
+     "field": "peak_tariff_window_minutes",
+     "required": false,
+     "has_default": true,
+     "default": "60",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "15",
+       "60"
+      ],
+      "translation_key": "peak_window",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": null,
+     "field": "peak_tariff_months",
+     "required": false,
+     "has_default": true,
+     "default": "",
+     "selector": "TextSelector",
+     "config": {
+      "type": "text"
+     }
+    },
+    {
+     "section": null,
+     "field": "peak_tariff_hours",
+     "required": false,
+     "has_default": true,
+     "default": "",
+     "selector": "TextSelector",
+     "config": {
+      "type": "text"
+     }
+    },
+    {
+     "section": null,
+     "field": "peak_tariff_weekdays_only",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "peak_tariff_offpeak_factor",
+     "required": false,
+     "has_default": true,
+     "default": 1.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.0,
+      "max": 1.0,
+      "step": 0.05,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "grid_connection": {
+   "type": "form",
+   "step_id": "grid_connection",
+   "fields": [
+    {
+     "section": null,
+     "field": "main_fuse_amperes",
+     "required": false,
+     "has_default": true,
+     "default": 0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 125,
+      "step": 1,
+      "mode": "box",
+      "unit_of_measurement": "A"
+     }
+    },
+    {
+     "section": null,
+     "field": "main_fuse_phases",
+     "required": false,
+     "has_default": true,
+     "default": 3,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": null,
+     "field": "fuse_guard_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "peak_guard_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "peak_guard_margin_kw",
+     "required": false,
+     "has_default": true,
+     "default": 0.5,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.0,
+      "max": 3.0,
+      "step": 0.1,
+      "mode": "slider",
+      "unit_of_measurement": "kW"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "grid_fees": {
+   "type": "form",
+   "step_id": "grid_fees",
+   "fields": [
+    {
+     "section": null,
+     "field": "dso_product",
+     "required": false,
+     "has_default": true,
+     "default": "none",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "none",
+       "ellevio_villa_effekt_2026",
+       "vattenfall_eldistribution_effekt_2026",
+       "eon_energidistribution_effekt_2026",
+       "goteborg_energi_effekt_2026"
+      ],
+      "translation_key": "dso_product",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": null,
+     "field": "grid_fee_mode",
+     "required": false,
+     "has_default": true,
+     "default": "none",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "none",
+       "rules",
+       "entity"
+      ],
+      "translation_key": "grid_fee_mode",
+      "mode": "dropdown"
+     }
+    },
+    {
+     "section": null,
+     "field": "grid_fee_fixed",
+     "required": false,
+     "has_default": true,
+     "default": 0.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 5,
+      "step": 0.01,
+      "mode": "box",
+      "unit_of_measurement": "SEK/kWh"
+     }
+    },
+    {
+     "section": null,
+     "field": "grid_fee_rules",
+     "required": false,
+     "has_default": true,
+     "default": "",
+     "selector": "TextSelector",
+     "config": {
+      "type": "text",
+      "multiline": true
+     }
+    },
+    {
+     "section": null,
+     "field": "grid_fee_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "contract_fixed_price",
+     "required": false,
+     "has_default": true,
+     "default": 0.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 0.01,
+      "mode": "box",
+      "unit_of_measurement": "SEK/kWh"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "solar_pv": {
+   "type": "form",
+   "step_id": "solar_pv",
+   "fields": [
+    {
+     "section": null,
+     "field": "pv_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "pv_peak_kw",
+     "required": false,
+     "has_default": true,
+     "default": 0.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 100,
+      "step": 0.1,
+      "mode": "box",
+      "unit_of_measurement": "kWp"
+     }
+    },
+    {
+     "section": null,
+     "field": "pv_system_efficiency",
+     "required": false,
+     "has_default": true,
+     "default": 0.8,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.3,
+      "max": 1.0,
+      "step": 0.01,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": null,
+     "field": "pv_export_price",
+     "required": false,
+     "has_default": true,
+     "default": 0.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0,
+      "max": 10,
+      "step": 0.01,
+      "mode": "box"
+     }
+    },
+    {
+     "section": null,
+     "field": "pv_export_price_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "pv_production_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "sensor"
+        ],
+        "device_class": [
+         "power"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "away": {
+   "type": "form",
+   "step_id": "away",
+   "fields": [
+    {
+     "section": null,
+     "field": "away_presence_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "person",
+         "device_tracker",
+         "calendar",
+         "binary_sensor"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "holiday_calendar_entity",
+     "required": false,
+     "has_default": false,
+     "default": null,
+     "selector": "EntitySelector",
+     "config": {
+      "filter": [
+       {
+        "domain": [
+         "calendar"
+        ]
+       }
+      ]
+     }
+    },
+    {
+     "section": null,
+     "field": "away_temperature",
+     "required": false,
+     "has_default": true,
+     "default": 16.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 5,
+      "max": 21,
+      "step": 0.5,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "away_dhw_min_temperature",
+     "required": false,
+     "has_default": true,
+     "default": 20.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 10,
+      "max": 55,
+      "step": 1,
+      "mode": "slider",
+      "unit_of_measurement": "\u00b0C"
+     }
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "learning": {
+   "type": "form",
+   "step_id": "learning",
+   "fields": [
+    {
+     "section": null,
+     "field": "staleness_watchdog_enabled",
+     "required": false,
+     "has_default": true,
+     "default": true,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "staleness_max_age_scale",
+     "required": false,
+     "has_default": true,
+     "default": 1.0,
+     "selector": "NumberSelector",
+     "config": {
+      "min": 0.5,
+      "max": 10.0,
+      "step": 0.5,
+      "mode": "slider"
+     }
+    },
+    {
+     "section": null,
+     "field": "comfort_learning_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "system_identification_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "price_prior_enabled",
+     "required": false,
+     "has_default": true,
+     "default": true,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  },
+  "learning_features": {
+   "type": "form",
+   "step_id": "learning_features",
+   "fields": [
+    {
+     "section": "weather",
+     "field": "outage_recovery_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "weather",
+     "field": "open_window_relax_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "weather",
+     "field": "precip_type_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "weather",
+     "field": "snow_roof_factor_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "plant",
+     "field": "immersion_feedback_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "model",
+     "field": "capacity_curve_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "model",
+     "field": "solar_aperture_learning_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "model",
+     "field": "internal_gains_learning_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": "model",
+     "field": "curve_learning_enabled",
+     "required": false,
+     "has_default": true,
+     "default": false,
+     "selector": "type",
+     "config": {}
+    },
+    {
+     "section": null,
+     "field": "after_save",
+     "required": false,
+     "has_default": true,
+     "default": "menu",
+     "selector": "SelectSelector",
+     "config": {
+      "options": [
+       "menu",
+       "close"
+      ],
+      "translation_key": "after_save",
+      "mode": "dropdown"
+     }
+    }
+   ]
+  }
+ },
+ "config_scores": {
+  "user": {
+   "R2": [
+    0,
+    "price"
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "5"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 5,
+   "_n_top": 5,
+   "_n_sections": 0
+  },
+  "user_sensors": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "0"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 14,
+   "_n_top": 0,
+   "_n_sections": 3
+  },
+  "finish_setup": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "0"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 0,
+   "_n_top": 0,
+   "_n_sections": 0
+  },
+  "finish_now": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "0"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": false,
+   "_n_fields": 0,
+   "_n_top": 0,
+   "_n_sections": 0
+  },
+  "setup_overview": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "0"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 0,
+   "_n_top": 0,
+   "_n_sections": 0
+  },
+  "temperature": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "7"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 7,
+   "_n_top": 7,
+   "_n_sections": 0
+  },
+  "building": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "0"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 0,
+   "_n_top": 0,
+   "_n_sections": 0
+  },
+  "building_describe": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "6"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 6,
+   "_n_top": 6,
+   "_n_sections": 0
+  },
+  "building_extras": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "3"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 3,
+   "_n_top": 3,
+   "_n_sections": 0
+  },
+  "thermal": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    0,
+    "10"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 10,
+   "_n_top": 10,
+   "_n_sections": 0
+  },
+  "zones": {
+   "R2": [
+    0,
+    "upper,lower"
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    0,
+    "11"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 11,
+   "_n_top": 11,
+   "_n_sections": 0
+  },
+  "dhw": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    0,
+    "11"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 11,
+   "_n_top": 11,
+   "_n_sections": 0
+  },
+  "weather_sensitivity": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "2"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 2,
+   "_n_top": 2,
+   "_n_sections": 0
+  },
+  "reauth": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    0,
+    "tibber_token"
+   ],
+   "R5": [
+    0,
+    "tibber_token"
+   ],
+   "R6": [
+    1,
+    "1"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [
+    "tibber_token"
+   ],
+   "_page_has_description": false,
+   "_n_fields": 1,
+   "_n_top": 1,
+   "_n_sections": 0
+  },
+  "reauth_confirm": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    0,
+    "tibber_token"
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "1"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 1,
+   "_n_top": 1,
+   "_n_sections": 0
+  }
+ },
+ "option_scores": {
+  "setup_overview": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "0"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 0,
+   "_n_top": 0,
+   "_n_sections": 0
+  },
+  "building": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "1"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 10,
+   "_n_top": 1,
+   "_n_sections": 4
+  },
+  "init": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "0"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 0,
+   "_n_top": 0,
+   "_n_sections": 0
+  },
+  "advanced": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "0"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 0,
+   "_n_top": 0,
+   "_n_sections": 0
+  },
+  "entities": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "1"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 16,
+   "_n_top": 1,
+   "_n_sections": 3
+  },
+  "entities_metering": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "1"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 10,
+   "_n_top": 1,
+   "_n_sections": 3
+  },
+  "entities_pump": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "5"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 5,
+   "_n_top": 5,
+   "_n_sections": 0
+  },
+  "comfort": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "1"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 19,
+   "_n_top": 1,
+   "_n_sections": 5
+  },
+  "hot_water": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "1"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 11,
+   "_n_top": 1,
+   "_n_sections": 3
+  },
+  "hot_water_tank": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "1"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 13,
+   "_n_top": 1,
+   "_n_sections": 4
+  },
+  "hot_water_pumps": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "3"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 3,
+   "_n_top": 3,
+   "_n_sections": 0
+  },
+  "thermal_model": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    0,
+    "house_thermal_mass,house_heat_loss_coefficient,slab_thermal_mass,slab_heat_transfer,heat_pump_cop_nominal,heat_pump_max_power,heat_pump_min_power"
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "8"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 8,
+   "_n_top": 8,
+   "_n_sections": 0
+  },
+  "thermal_model_zones": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    0,
+    "two_zone_mode,upper_floor_thermal_mass,lower_floor_thermal_mass,upper_floor_heat_loss,lower_floor_heat_loss,inter_zone_heat_transfer,radiator_power_fraction,upper_floor_area_ratio,solar_orientation_factor"
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "1"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 10,
+   "_n_top": 1,
+   "_n_sections": 3
+  },
+  "tuning": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "1"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 11,
+   "_n_top": 1,
+   "_n_sections": 3
+  },
+  "heat_curve": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    0,
+    "9"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 9,
+   "_n_top": 9,
+   "_n_sections": 0
+  },
+  "building_preset": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "1"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 12,
+   "_n_top": 1,
+   "_n_sections": 3
+  },
+  "grid": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    0,
+    "9"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 9,
+   "_n_top": 9,
+   "_n_sections": 0
+  },
+  "grid_connection": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "6"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 6,
+   "_n_top": 6,
+   "_n_sections": 0
+  },
+  "grid_fees": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "7"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 7,
+   "_n_top": 7,
+   "_n_sections": 0
+  },
+  "solar_pv": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "7"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 7,
+   "_n_top": 7,
+   "_n_sections": 0
+  },
+  "away": {
+   "R2": [
+    0,
+    "away"
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "5"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 5,
+   "_n_top": 5,
+   "_n_sections": 0
+  },
+  "learning": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "6"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 6,
+   "_n_top": 6,
+   "_n_sections": 0
+  },
+  "learning_features": {
+   "R2": [
+    1,
+    ""
+   ],
+   "R3": [
+    1,
+    ""
+   ],
+   "R5": [
+    1,
+    ""
+   ],
+   "R6": [
+    1,
+    "1"
+   ],
+   "R8": [
+    1,
+    ""
+   ],
+   "_labels_missing": [],
+   "_page_has_description": true,
+   "_n_fields": 10,
+   "_n_top": 1,
+   "_n_sections": 3
+  }
+ },
+ "sv_gaps": [],
+ "error_keys": [
+  "cannot_connect",
+  "dhw_min_too_close",
+  "invalid_peak_hours",
+  "invalid_peak_months",
+  "invalid_tibber_token",
+  "price_entity_required",
+  "reauth_successful",
+  "reconfigure_successful",
+  "tibber_token_required"
+ ],
+ "untranslated_en": [],
+ "untranslated_sv": [],
+ "rubric": [
+  [
+   "R1 one theme per page",
+   "the page's fields belong to one subject; a page mixing unrelated subjects scores 0"
+  ],
+  [
+   "R2 related fields adjacent",
+   "fields sharing a prefix or a unit are contiguous in the presented order"
+  ],
+  [
+   "R3 sensible defaults",
+   "every non-entity field carries a default, so an untouched page can be submitted"
+  ],
+  [
+   "R4 errors say what to change",
+   "every error key a handler can raise is translated in en.json and sv.json"
+  ],
+  [
+   "R5 no jargon without help text",
+   "every field has a data_description in strings.json"
+  ],
+  [
+   "R6 field count",
+   "<= 8 presented fields at the top level of a page, sections excluded"
+  ],
+  [
+   "R7 both languages complete",
+   "every label and help text present in en.json is present in sv.json"
+  ],
+  [
+   "R8 numeric ranges bounded",
+   "every NumberSelector carries a min and a max"
+  ]
+ ]
+}

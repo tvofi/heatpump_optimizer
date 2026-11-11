@@ -1,0 +1,7 @@
+### seam_rule_finding
+custom_components/heatpump_optimizer/pump_arbiter.py:421:    duty = None if result is None else step_duty(result, now, _on_kw(coord))
+custom_components/heatpump_optimizer/pump_arbiter.py:431:def _on_kw(coord: Any) -> float:
+custom_components/heatpump_optimizer/pump_arbiter.py:432:    return max(0.1, float(coord._thermal_model.params.min_electrical_power) * 0.5)
+custom_components/heatpump_optimizer/pump_arbiter.py:568:        row["ran"] = row["ran"] or float(power) >= _on_kw(coord)
+custom_components/heatpump_optimizer/optimizer.py:7098:        on_threshold = max(0.1, p.min_electrical_power * 0.5)
+custom_components/heatpump_optimizer/optimizer.py:7163:        on_threshold = max(0.1, self.model.params.min_electrical_power * 0.5)

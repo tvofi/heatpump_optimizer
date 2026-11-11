@@ -1,0 +1,12 @@
+#2622	- `gate-scoping: unenforced`: UP's handoff reported `ref_privacy --check` at 0 but did not run `tmp_paths.py --check`. That check refused UP's self-test fixture
+#2627	- `gate-scoping: cost`: the cloud container's default `python3` is 3.11 and cannot parse `tests/entities.py` (`SyntaxError: f-string`). The seat venv's 3.14 is 
+#2698	- gate-scoping.md: unenforced: `mutation_table.py --pin-killed` inherits the container's `BASH_ENV`, so the `tests/entities.py` baseline goes red on the two she
+#2700	- gate-scoping: cost: the file is back at its token cap (794/794) after restoring what #2341 dropped, so the next seat to touch it meets #2341's friction unchan
+#2707	- gate-scoping: cost: on this cloud seat, `prepr.sh`'s closures step refuses any diff that reaches `tests/entities.py`, because its strace recording exits 1 at 
+#2780	gate-scoping: cost: the tests/entities.py closure recording is not deterministic at a fixed head. Of three runs of ./tests/derive_closures.sh --single tests/ent
+#2834	- gate-scoping: cost: in this cloud seat `tests/entities.py` reads `2 of 2449 ENTITY CHECKS FAILED` (`gate-sweep.yml` U0c and `graders-head-copy`'s delivery_sta
+#2837	- gate-scoping: cost: in this cloud container `BASH_ENV=/etc/profile.d/hpo-toolchain.sh` re-prepends the toolchain to `PATH` in every `bash -c`. A `PATH`-plante
+#2870	- `gate-scoping`: cost: `tests/entities.py`, the one script the scoped gate selects for this diff, needs a `homeassistant` module this seat's interpreter lacks,
+#2873	- gate-scoping.md: cost: four wedged `prepr` runs held every heavy-slot lease for the pass at `37e10fa4b` (`prepr-72444`, `prepr-91597`, `prepr-99026`, `run.sh-
+#2873	- gate-scoping.md: cost: the scoped gate at `796146175` ran `5857s`, and the exclusive lease is 30 minutes; `run.sh` renews per script only while a lease is liv
+TOTAL	10 PR(s) / 11 entr(ies) over 285 bodies

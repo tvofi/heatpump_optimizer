@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 816df3d3",
+  "old": "_STORE_VERSION = 1",
+  "reason": "void under this driver and in production today: the store version is only compared against a stored payload's own version on load, and no migration exists for either value, so 1 -> 2 changes the key HA's Store stamps and nothing the arbiter reads.",
+  "verdict": "equivalent"
+}

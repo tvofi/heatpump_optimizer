@@ -1,0 +1,88 @@
+"""Variants: argv[2] picks the junk (id | pass | ellipsis | none | str | iffalse | assert | assign | walrus | deadstore
+| lambda | try | method | selfassign | nesteddef | global | annot | reimport | match
+| comp | classdef | isinstance | forrange | ifexp
+| annself | tupleidx | print), argv[3] == "uncharged"
+leaves the coordinator and every footprint-charged function alone so no other metric stops it.
+Game duplication_copies: every duplicated statement window is kept, but in each clone except the
+first a no-op call statement id(<distinct int per function>) is inserted
+between the window's two statements, so no window hashes equal any more.
+The duplicated logic is untouched; only junk is added."""
+import ast, hashlib, sys
+from collections import defaultdict
+from pathlib import Path
+from rt_lib import pkg, structure, metric
+root = sys.argv[1]
+JUNK = {"id": "id({fid})\n", "pass": "pass\n", "ellipsis": "...\n", "none": "None\n", "str": '"junk"\n',
+        "iffalse": "if False:\n{ind}    pass\n",
+        # round 3's KNOWN-OPEN spellings, and three no spelling list carried (R9-EG-A2): a dead store to a
+        # fresh name, a called lambda, an empty try. C3 drops each because it is dead, not because of its spelling.
+        "assert": "assert True\n", "assign": "_ = None\n", "walrus": "(_ := 0)\n",
+        "deadstore": "unused_{fid} = ({fid}, None)\n", "lambda": "(lambda: {fid})()\n",
+        "try": "try:\n{ind}    pass\n{ind}except Exception:\n{ind}    pass\n",
+        # a method of a value built from literals: no effect outside that value, which nothing keeps
+        "method": "[{fid}].clear()\n",
+        # round 1 of the R9-EG-A2 review: a self-assignment of the first parameter, an uncalled nested def,
+        # a global nothing uses; then the siblings probed before the hand-off
+        "selfassign": "{arg} = {arg}\n", "nesteddef": "def _junk_{fid}():\n{ind}    pass\n",
+        "global": "global _g{fid}\n", "annot": "_a{fid}: int\n", "reimport": "import sys as _s{fid}\n",
+        "match": "match {fid}:\n{ind}    case _:\n{ind}        pass\n", "comp": "[{fid} for _ in ()]\n",
+        "classdef": "class _C{fid}:\n{ind}    pass\n", "isinstance": "isinstance({arg}, int)\n",
+        # round 2 of the review: four more no enumeration carried; then an effectful call, which no
+        # statement-dropping rule could ever drop -- the gap-tolerant window (C3) holds all five
+        "forrange": "for _ in range(0):\n{ind}    pass\n", "ifexp": "{arg} = {arg} if True else {arg}\n",
+        "annself": "{arg}: object = {arg}\n", "tupleidx": "({arg},)[0]\n", "print": "print(end='')\n"}
+kind = sys.argv[2] if len(sys.argv) > 2 else "id"
+uncharged = len(sys.argv) > 3 and sys.argv[3] == "uncharged"
+CHARGED = {c.rsplit(":", 1)[0] for c in metric("footprint", root)["charged"]} if uncharged else set()
+S = structure(root)
+win = defaultdict(set)
+node_of = {}
+argof = {}  # owner -> its first positional parameter, for "selfassign"
+for path, tree in S.module_trees():
+    mname = path.stem
+    modalias = S._module_aliases(tree)
+    for fn in S.all_functions(tree):
+        local = S._local_names(fn)
+        for node in ast.walk(fn):
+            if node is not fn and isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)):
+                continue
+            blocks = [getattr(node, f) for f in ("body", "orelse", "finalbody")
+                      if isinstance(getattr(node, f, None), list) and getattr(node, f)
+                      and isinstance(getattr(node, f)[0], ast.stmt)]
+            blocks += [h.body for h in getattr(node, "handlers", []) or []]
+            for b in blocks:
+                b = [s for s in b if not S._is_docstring(s)]
+                for i in range(len(b) - S.DUP_WINDOW_STATEMENTS + 1):
+                    w = b[i:i + S.DUP_WINDOW_STATEMENTS]
+                    if any(isinstance(s, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) for s in w):
+                        continue
+                    if sum(1 for s in w for _ in ast.walk(s)) < S.DUP_MIN_NODES:
+                        continue
+                    key = hashlib.sha1(S.normalized_window(w, local, modalias).encode()).hexdigest()
+                    owner = (mname, fn.name, fn.lineno)
+                    win[key].add(owner)
+                    node_of[(key, owner)] = w[0]
+                    params = fn.args.posonlyargs + fn.args.args
+                    argof[owner] = params[0].arg if params else None
+fn_ids: dict = {}
+inserts = defaultdict(dict)  # module -> {line_after: (indent, owner)}
+for key, owners in win.items():
+    o = sorted(owners)
+    for owner in o[1:]:
+        if uncharged and (owner[0].startswith("coordinator") or f"{owner[0]}.{owner[1]}" in CHARGED):
+            continue  # the footprint gate would stop these: only the counter may hold the line
+        s0 = node_of[(key, owner)]
+        fid = fn_ids.setdefault(owner, len(fn_ids) + 1)
+        inserts[owner[0]][s0.end_lineno] = (s0.col_offset, fid, argof[owner])
+n = 0
+for mname, ins in inserts.items():
+    p = pkg(root) / (mname + ".py")
+    lines = p.read_text().splitlines(keepends=True)
+    for ln in sorted(ins, reverse=True):
+        col, fid, arg = ins[ln]
+        if "{arg}" in JUNK[kind] and arg is None:
+            continue  # no parameter to self-assign
+        lines.insert(ln, " " * col + JUNK[kind].format(fid=fid, ind=" " * col, arg=arg))
+        n += 1
+    p.write_text("".join(lines))
+print("functions perturbed", len(fn_ids), "no-ops inserted", n)

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:lighting_window CLAMP_DROP 51f7837e",
+  "killed_by": "tests/wood_advisor.py",
+  "old": "    return max(first_start - timedelta(minutes=lead_minutes), now), first_start",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return (first_start - timedelta(minutes=lead_minutes)), first_start`) took tests/wood_advisor.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_slab_ua_prior_halfwidth._shifted RETURN_DEL cc828b96",
+  "killed_by": "tests/features.py",
+  "old": "        return abs(float(x[0]) - float(x_hat[0]))",
+  "reason": "The round-7 D7-01 fix's local re-solve of the two-state fit at a shifted intercept prior. `return abs(float(x[0]) - float(x_hat[0]))` -> `pass` (the helper returns None, the combiner's max() raises, and the fit raises out of _finish) makes tests/features.py exit 1 against a baseline exit of 0, on `a gate-passing plant arms WITH its slab pair recorded for the two-state fit, and the fit that ran is the slab fit`. Measured at b7657ea2, whose sysid.py is byte-identical to this head's (`git diff b7657ea2 HEAD -- custom_components/heatpump_optimizer/sysid.py` is empty), 2026-09-23."
+}

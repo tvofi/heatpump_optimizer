@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/batchmath.py:row_sums RETURN_DEL c8b73e5a",
+  "killed_by": "tests/features.py",
+  "old": "        return halves",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 2eef524d55376a06a5a807a4f2bf67e9e6d19dc4: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

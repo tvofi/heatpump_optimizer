@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._comfort_terms_batch CLAMP_DROP 10b763eb",
+  "killed_by": "tests/plan_view.py",
+  "old": "        overshoot = np.maximum(0, room_t - temp_max_bounds)",
+  "reason": "Recorded by `mutation_table.py --drain` against c3530277373ddf87652858f9ecb0ee1cf36f4347: CLAMP_DROP (`overshoot = (0)`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,23 @@
+
+=== Stress and economics ===
+SEAM coordinator:_adopt_system_identification writes house_heat_loss_scale (line 10563)
+SEAM coordinator:_apply_learner_payloads writes defrost_derate (line 8758)
+SEAM coordinator:_async_learn_buffer_cooling writes buffer_cooling_rate (line 4171)
+SEAM coordinator:_async_learn_house_heat_loss writes house_heat_loss_scale (line 4372)
+SEAM coordinator:_async_learn_lower_floor_loss writes lower_floor_loss_ratio (line 4489)
+SEAM coordinator:_async_load_accuracy writes defrost_derate (line 7274)
+SEAM coordinator:_async_load_thermal_learning writes buffer_cooling_rate (line 2855)
+SEAM coordinator:_async_load_thermal_learning writes cop_scale (line 2914)
+SEAM coordinator:_async_load_thermal_learning writes house_heat_loss_scale (line 2870)
+SEAM coordinator:_async_load_thermal_learning writes lower_floor_loss_ratio (line 2885)
+SEAM coordinator:_init_features writes defrost_derate (line 2296)
+SEAM coordinator:_init_measurements writes cop_scale (line 2160)
+SEAM coordinator:_learn_measured_cop writes cop_scale (line 3913)
+SEAM coordinator:_reanchor_house_heat_loss_scale writes house_heat_loss_scale (line 4083)
+SEAM coordinator:_reanchor_house_heat_loss_scale writes house_heat_loss_scale (line 4097)
+SEAM coordinator:async_run_optimization writes internal_gains_profile (line 4930)
+SEAM coordinator:async_run_optimization writes solar_aperture_scale (line 4918)
+SEAM coordinator:async_update_thermal_params writes buffer_cooling_rate (line 5216)
+SEAM coordinator:async_update_thermal_params writes house_heat_loss_scale (line 5212)
+RESULT p5_adoption_seams=19 count
+RESULT p5_adoption_seam_functions=13 count
