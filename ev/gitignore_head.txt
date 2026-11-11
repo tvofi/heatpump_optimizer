@@ -1,0 +1,2 @@
+ok gitignore_config: /config/ ignored, nested config/ dirs visible
+rc=0

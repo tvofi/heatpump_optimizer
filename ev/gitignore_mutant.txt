@@ -1,0 +1,4 @@
+FAIL gitignore_config:
+  dev/audit/config/x is ignored by .gitignore
+  dev/governance/config/x is ignored by .gitignore
+rc=1
