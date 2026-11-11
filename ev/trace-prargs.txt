@@ -1,0 +1,12 @@
+strace of prargs at 4f2a40a2f2b3adedb2018d76f1224096f6858c48; tail of output:
+  ok   update_pr: INT reaps the tree too -- the push runs asynchronously, so the INT does not wait behind it
+-- added-path reads:
+    145 /tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wh/tools/audit/seat/gh_read.py
+     13 /tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wh/tools/audit/seat/remerge_main_selftest.py
+     18 /tmp/tmp.3Z07onJYOr/census-tree/tools/audit/seat/gh_read.py
+     18 /tmp/tmp.3Z07onJYOr/census-tree/tools/audit/seat/remerge_main_selftest.py
+    193 /tmp/tmp.3Z07onJYOr/m/tools/audit/seat/gh_read.py
+      1 /tmp/tmp.3Z07onJYOr/wtf/tools/audit/seat/gh_read.py
+      7 f=tools/audit/seat/gh_read.py
+     39 tools/audit/seat/gh_read.py
+     26 tools/audit/seat/remerge_main_selftest.py

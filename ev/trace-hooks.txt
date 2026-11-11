@@ -1,0 +1,27 @@
+strace of hooks at 4f2a40a2f2b3adedb2018d76f1224096f6858c48; tail of output:
+hooks_setup self-test: 39 checks, 0 failed
+-- added-path reads:
+     30 /tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wh/tests/throwaway_git.py
+      7 /tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wh/tools/audit/seat/gh_read.py
+      7 /tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wh/tools/audit/seat/remerge_main_selftest.py
+      8 /tmp/hooks-mutant-5ch_3p5k/tests/throwaway_git.py
+      4 /tmp/hooks-mutant-5ch_3p5k/tools/audit/seat/gh_read.py
+      4 /tmp/hooks-mutant-5ch_3p5k/tools/audit/seat/remerge_main_selftest.py
+      8 /tmp/hooks-mutant-cln0ln08/tests/throwaway_git.py
+      4 /tmp/hooks-mutant-cln0ln08/tools/audit/seat/gh_read.py
+      4 /tmp/hooks-mutant-cln0ln08/tools/audit/seat/remerge_main_selftest.py
+      8 /tmp/hooks-mutant-dp43yngp/tests/throwaway_git.py
+      4 /tmp/hooks-mutant-dp43yngp/tools/audit/seat/gh_read.py
+      4 /tmp/hooks-mutant-dp43yngp/tools/audit/seat/remerge_main_selftest.py
+      8 /tmp/hooks-mutant-eqr8ez1o/tests/throwaway_git.py
+      4 /tmp/hooks-mutant-eqr8ez1o/tools/audit/seat/gh_read.py
+      4 /tmp/hooks-mutant-eqr8ez1o/tools/audit/seat/remerge_main_selftest.py
+      8 /tmp/hooks-mutant-i4ekwxul/tests/throwaway_git.py
+      4 /tmp/hooks-mutant-i4ekwxul/tools/audit/seat/gh_read.py
+      4 /tmp/hooks-mutant-i4ekwxul/tools/audit/seat/remerge_main_selftest.py
+      8 /tmp/hooks-mutant-qftpjjk8/tests/throwaway_git.py
+      4 /tmp/hooks-mutant-qftpjjk8/tools/audit/seat/gh_read.py
+      4 /tmp/hooks-mutant-qftpjjk8/tools/audit/seat/remerge_main_selftest.py
+      8 /tmp/hooks-mutant-qw6vzqrw/tests/throwaway_git.py
+      4 /tmp/hooks-mutant-qw6vzqrw/tools/audit/seat/gh_read.py
+      4 /tmp/hooks-mutant-qw6vzqrw/tools/audit/seat/remerge_main_selftest.py

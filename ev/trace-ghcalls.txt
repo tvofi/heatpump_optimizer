@@ -1,0 +1,4 @@
+strace of ghcalls at 4f2a40a2f2b3adedb2018d76f1224096f6858c48; tail of output:
+gh_calls self-test: 206 checks, 0 failed
+-- added-path reads:
+      4 /tmp/claude-0/-home-user-heatpump-optimizer/8999f034-f643-5ae2-b01e-2861dcc171cc/scratchpad/wh/tests/throwaway_git.py
