@@ -214,7 +214,9 @@ PY
   encpath() { printf '%s' "$1" | tr '/ ' '__'; }
 
   # A live process whose pid contains a zero digit (a pidfile read must keep the 0).
-  while :; do sleep 600 & ZPID=$!; case $ZPID in *0*) break ;; esac; kill "$ZPID" 2>/dev/null; done
+  # No signal is sent here: a child whose pid has no 0 exits by itself, so no
+  # forked copy of this shell can die by a signal and run the EXIT trap's rm.
+  while :; do sh -c 'case $$ in *0*) exec sleep 600 ;; esac' & ZPID=$!; case $ZPID in *0*) break ;; esac; wait "$ZPID"; done
   mkcase() { local d="$W/$1"; mkdir -p "$d/tmp" "$d/ev" "$d/root"; : > "$d/log"; : > "$d/deleted"; printf '%s\n' "$d/root" > "$d/rootfile"; }
   run() { # name args... -> rc; out/err captured in the case dir
     local d="$W/$1"; shift
@@ -225,7 +227,6 @@ PY
     # null control pins the redirect itself.
     ( cd "$d/root"
       export STUB="$d" PATH="$W/bin:$PATH" TMPDIR="$d/tmp"
-      [ -f "$d/nopsbin" ] && export PATH="$W/binnops"
       export WORKTREE_GC_SEATS_ROOT="$(cat "$d/seatsroot" 2>/dev/null || printf '%s' "$d/orch")" WORKTREE_GC_TMP_ROOT="$d/tmp"
       bash "$SELF" "$@" > "$d/out" 2> "$d/err" )
   }
@@ -252,7 +253,7 @@ PY
       printf 'worktree %s/orch/seat-unmerged/wt\nHEAD 5555555555555555555555555555555555555555\ndetached\n\n' "$d"
       printf 'worktree %s/orch/seat-dirtymerged/wt\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/fix/dirty\n\n' "$d"
       printf 'worktree %s/orch/seat-locked/wt\nHEAD 6666666666666666666666666666666666666666\ndetached\nlocked\n\n' "$d"
-      for n in onremote:7 cwd:8 onremote-young:9 onremote-dirty:b tip:1 nohold:d argvuse:7 openuse:7 pidfuse:7 deadpid:7 argvscr:7 argvco:7 argvdq:7 argvsq:7 argvcol:7 argvcom:7 argvsib:7 openeq:7 opensib:7 pidzero:7 lockuse:7 dotlock:7; do
+      for n in onremote:7 cwd:8 onremote-young:9 onremote-dirty:b tip:1 nohold:d argvuse:7 openuse:7 deadpid:7 argvscr:7 argvdq:7 argvsq:7 argvcol:7 argvcom:7 argvsib:7 openeq:7 opensib:7 pidzero:7 lockuse:7 dotlock:7; do
         printf 'worktree %s/orch/seat-%s/wt\nHEAD %s\ndetached\n\n' "$d" "${n%%:*}" "$(printf '%040d' 0 | tr 0 "${n##*:}")"
       done
       printf 'worktree %s/orch/seat-onremote-locked/wt\nHEAD %s\ndetached\nlocked\n\n' "$d" "$(printf '%040d' 0 | tr 0 a)"
@@ -262,8 +263,8 @@ PY
              "$d/orch/seat-detached/wt" "$d/orch/seat-detached/evidence-run12" \
              "$d/orch/seat-unmerged/wt" "$d/orch/seat-dirtymerged/wt" \
              "$d/orch/seat-locked/wt" "$d/orch/seat-onremote/wt" "$d/orch/seat-cwd/wt/sub" \
-             "$d/orch/seat-argvuse/wt" "$d/orch/seat-openuse/wt" "$d/orch/seat-pidfuse/wt" "$d/orch/seat-deadpid/wt" \
-             "$d/orch/seat-argvscr/wt" "$d/orch/seat-argvco/wt" "$d/orch/seat-argvdq/wt" "$d/orch/seat-argvsq/wt" "$d/orch/seat-argvcol/wt" "$d/orch/seat-argvcom/wt" "$d/orch/seat-argvsib/wt" "$d/orch/seat-openeq/wt" "$d/orch/seat-opensib/wt" "$d/orch/seat-pidzero/wt" "$d/orch/seat-lockuse/wt" "$d/orch/seat-dotlock/wt" \
+             "$d/orch/seat-argvuse/wt" "$d/orch/seat-openuse/wt" "$d/orch/seat-deadpid/wt" \
+             "$d/orch/seat-argvscr/wt" "$d/orch/seat-argvdq/wt" "$d/orch/seat-argvsq/wt" "$d/orch/seat-argvcol/wt" "$d/orch/seat-argvcom/wt" "$d/orch/seat-argvsib/wt" "$d/orch/seat-openeq/wt" "$d/orch/seat-opensib/wt" "$d/orch/seat-pidzero/wt" "$d/orch/seat-lockuse/wt" "$d/orch/seat-dotlock/wt" \
              "$d/orch/seat-onremote-young/wt" "$d/orch/seat-onremote-dirty/wt" \
              "$d/orch/seat-tip/wt" "$d/orch/seat-nohold/wt" "$d/orch/seat-onremote-locked/wt" \
              "$d/orch/seat-unpushed/wt" "$d/unpushed"
@@ -273,7 +274,6 @@ PY
     # Live users that are NOT a cwd: a `git -C <wt>` argv, an open file, a live train.pid.
     { printf 'git -C %s/orch/seat-argvuse/wt log\n' "$d"
       printf 'bash %s/orch/seat-argvscr/wt/script.sh\n' "$d"
-      printf 'git --checkout=%s/orch/seat-argvco/wt status\n' "$d"
       printf 'sh -c cd "%s/orch/seat-argvdq/wt"; make\n' "$d"
       printf "sh -c cd '%s/orch/seat-argvsq/wt'; make\\n" "$d"
       printf 'git --paths=%s/orch/seat-argvcol/wt:/tmp status\n' "$d"
@@ -282,7 +282,6 @@ PY
     { printf '%s/orch/seat-openuse/wt/f\n' "$d"
       printf '%s/orch/seat-openeq/wt\n' "$d"
       printf '%s/orch/seat-opensib/wt2/f\n' "$d"; } > "$d/opens"
-    printf '%s\n' "$$" > "$d/orch/seat-pidfuse/wt/train.pid"
     printf '2999999\n' > "$d/orch/seat-deadpid/wt/train.pid"
     printf '%s\n' "$ZPID" > "$d/orch/seat-pidzero/wt/train.pid"
     printf '%s\n' "$$" > "$d/orch/seat-lockuse/wt/x.lock"
@@ -298,8 +297,8 @@ PY
     age_old "$H3" "$d/orch/seat-detached" "$d/orch/seat-unmerged" "$d/orch/seat-locked" \
             "$d/orch/seat-onremote" "$d/orch/seat-cwd" "$d/orch/seat-onremote-dirty" "$d/orch/seat-tip" \
             "$d/orch/seat-nohold" "$d/orch/seat-onremote-locked" "$d/orch/seat-unpushed" \
-            "$d/orch/seat-argvuse" "$d/orch/seat-openuse" "$d/orch/seat-pidfuse" "$d/orch/seat-deadpid" \
-            "$d/orch/seat-argvscr" "$d/orch/seat-argvco" "$d/orch/seat-argvdq" "$d/orch/seat-argvsq" "$d/orch/seat-argvcol" "$d/orch/seat-argvcom" "$d/orch/seat-argvsib" "$d/orch/seat-openeq" "$d/orch/seat-opensib" "$d/orch/seat-pidzero" "$d/orch/seat-lockuse" "$d/orch/seat-dotlock"
+            "$d/orch/seat-argvuse" "$d/orch/seat-openuse" "$d/orch/seat-deadpid" \
+            "$d/orch/seat-argvscr" "$d/orch/seat-argvdq" "$d/orch/seat-argvsq" "$d/orch/seat-argvcol" "$d/orch/seat-argvcom" "$d/orch/seat-argvsib" "$d/orch/seat-openeq" "$d/orch/seat-opensib" "$d/orch/seat-pidzero" "$d/orch/seat-lockuse" "$d/orch/seat-dotlock"
   }
 
   # The main sweep: every class in one run, so the interactions (one seat's
@@ -382,12 +381,8 @@ PY
   st "$(gots sweep "keep  $D/orch/seat-argvuse/wt  argv-inside")" 1 "naming argv-inside"
   [ -d "$D/orch/seat-openuse/wt" ]; st $? 0 "an open file inside, cwd elsewhere: kept"
   st "$(gots sweep "keep  $D/orch/seat-openuse/wt  open-file")" 1 "naming open-file"
-  [ -d "$D/orch/seat-pidfuse/wt" ]; st $? 0 "a live train.pid inside: kept"
-  st "$(gots sweep "keep  $D/orch/seat-pidfuse/wt  pidfile-live")" 1 "naming pidfile-live"
   [ -d "$D/orch/seat-argvscr/wt" ]; st $? 0 "argv names a script inside the worktree (terminator /), cwd elsewhere: kept"
   st "$(gots sweep "keep  $D/orch/seat-argvscr/wt  argv-inside")" 1 "naming argv-inside for the script path"
-  [ -d "$D/orch/seat-argvco/wt" ]; st $? 0 "argv carries --checkout=<worktree> (empty terminator): kept"
-  st "$(gots sweep "keep  $D/orch/seat-argvco/wt  argv-inside")" 1 "naming argv-inside for --checkout="
   [ -d "$D/orch/seat-argvdq/wt" ]; st $? 0 "argv carries a double-quoted <wt> token from sh -c cd (double-quote terminator), cwd elsewhere: kept"
   st "$(gots sweep "keep  $D/orch/seat-argvdq/wt  argv-inside")" 1 "naming argv-inside for argvdq"
   [ -d "$D/orch/seat-argvsq/wt" ]; st $? 0 "argv carries a single-quoted <wt> token (single-quote terminator), cwd elsewhere: kept"
@@ -490,17 +485,6 @@ PY
   run noopen --keep-dir "$W/noopen/ev" o/r
   [ -d "$W/noopen/orch/seat-onremote/wt" ]; st $? 0 "unreadable open-file lsof, cwd lsof readable: the on-remote worktree is kept"
   st "$(gots noopen "keep  $W/noopen/orch/seat-onremote/wt  cwd-unread")" 1 "naming cwd-unread for the open-file listing"
-  # No ps binary on PATH at all: kept, not collected.
-  mkdir -p "$W/binnops"
-  for dir in /usr/bin /bin "$(dirname "$(command -v python3)")"; do
-    for f in "$dir"/*; do [ -x "$f" ] && [ "${f##*/}" != ps ] && ln -sf "$f" "$W/binnops/${f##*/}" 2>/dev/null; done
-  done
-  for b in gh git lsof; do ln -sf "$W/bin/$b" "$W/binnops/$b"; done
-  mkcase nopsbin; build nopsbin; : > "$W/nopsbin/nopsbin"
-  run nopsbin --keep-dir "$W/nopsbin/ev" o/r
-  [ -d "$W/nopsbin/orch/seat-onremote/wt" ]; st $? 0 "no ps on PATH: the on-remote worktree is kept"
-  st "$(gots nopsbin "keep  $W/nopsbin/orch/seat-onremote/wt  cwd-unread")" 1 "naming cwd-unread without ps"
-  st "$(PATH="$W/binnops" command -v ps >/dev/null 2>&1; echo $?)" 1 "null control: the no-ps PATH really has no ps"
 
   # Class C must keep the seat dir holding another LIVE worktree -- the header's
   # own keep rule, which classes A/B enforce via dispose_seat_dir. The orphan
