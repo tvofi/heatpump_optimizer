@@ -1,6 +1,6 @@
 Triage batch 184 records P602's owner-routed arm (queue line 281), 2026-11-11. It holds one ruling.
 
-- **P606, ACCEPT: CODEQL-PR-PATHS, as the new S group R10-CODEQL-PR-PATHS.** This records the orchestrator's ruling under mandate 6715477401 (scope all), not tvofi in person, on P607's owner-routed arm.
+- **P606, ACCEPT: CODEQL-PR-PATHS, as the new S group R10-CODEQL-PR-PATHS.** This records the orchestrator's ruling under mandate 6715477401 (scope all), not tvofi in person, on P602's owner-routed arm.
   - Pull-request runs analyse Python with `tests/` and `dev/` path-ignored. Main's push run keeps the full path set.
   - The required context stays required; the non-gating arm is declined.
   - The target is the PR python Analyze job under 15 min, against 2173-3623 s today.
