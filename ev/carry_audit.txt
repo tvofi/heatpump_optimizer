@@ -1,0 +1,5 @@
+NOTE stale tree: 498c2ab0429d7a6d2ef8d239e3945fe15ff70690 lacks origin/main 444cf62fabe444209b6be7802de0ec5aee102142; roster read at origin/main
+NOTE body item e3b5729f: R10-DEPENDABOT-3414-COMPAT: R10-DEPENDABOT-3414-COMPAT resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item 40d043b9: dismissed:no current lock line separates them and the instrument is ungated here; the stage that wires `--tree` into the suite owns its tests.
+NOTE review 0 item a5502bb1: dismissed:wording only, disclosed in the following bullet, conclusion unchanged.
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
