@@ -36,7 +36,7 @@
 // REFUSED as unregistered, and a DECLARED key the set no longer yields is DEAD.
 // So a new check is refused until someone says what it reads.
 //
-//   node tools/policy/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census]
+//   node tools/policy/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|replay_cuts|registry|census]
 //        [--ruleset-json FILE]   # the live ruleset object; without it `gh api`
 //   node tools/policy/field_coverage.mjs --self-test
 //
@@ -200,6 +200,35 @@ const APPROVALS = {
   async verdict(obj) {
     const code = `import json,sys,pathlib\nfor d in ('.claude/workflows','tools/policy'):\n    if pathlib.Path(d,'budget_raise_gate.py').is_file():\n        sys.path.insert(0,d); break\nimport budget_raise_gate as g\nok,_=g.approval([json.loads(sys.argv[1])],sys.argv[2])\nprint('green' if ok else 'red')`
     const { code: rc, out } = await run('python3', ['-I', '-c', code, JSON.stringify(obj), HEAD])
+    return rc === 0 ? out.trim() : `error:exit ${rc}: ${out.trim().split('\n').pop()}`
+  },
+}
+
+// The replay lane's declared level cut (tests/replay.py COST_CUTS,
+// R10-HOTFIX-REPLAY-CLASS-CUT): the cut is the input of two checks, the
+// projection the class budgets are derived through (`cycle_cost:class_rule`)
+// and `cycle_cost:level_shift`, which accepts a class that has drawn nothing
+// since a shift only while a declared cut explains it. Each field is perturbed
+// on the committed draw table and the two must stop agreeing with the tree.
+// The verdict calls the functions, not `controls()`, whose fixtures import
+// Home Assistant's dependencies; `replay` itself imports under `-I`.
+const REPLAY_CUTS = {
+  name: 'replay_cuts',
+  check: 'tests/replay.py level_shift_offenders + derive_cost_classes over cost_draws',
+  artifact: 'the first cut of tests/replay.py COST_CUTS',
+  load: () => {
+    const got = spawnSync('python3', ['-I', '-c', "import json,sys\nsys.path[:0]=['tests','tests/hastub']\nimport replay\nprint(json.dumps(replay.COST_CUTS[0]))"], { cwd: ROOT, encoding: 'utf8' })
+    if (got.status !== 0) throw new Error(`python3 exit ${got.status}: ${(got.stderr || '').trim().split('\n').pop()}`)
+    return JSON.parse(got.stdout)
+  },
+  // Any non-empty text is evidence; the property is that evidence is stated.
+  violate: { evidence: '' },
+  ignore: {
+    commit: 'names the cut for its reader; the projection reads factor and from, the shift reads from, fixture, metric, factor and evidence',
+  },
+  async verdict(obj) {
+    const code = "import json,sys\nsys.path[:0]=['tests','tests/hastub']\nimport replay as R\ncut=(json.loads(sys.argv[1]),)\nsyn='synthetic-dhw-only.json'\nraw=R.cost_draws(cuts=())\n_,off=R.level_shift_offenders(raw,R.cost_draw_created(),syn,cuts=cut)\nkeyed=R.derive_cost_classes(R.cost_draws(cuts=cut),syn)[1]\nprint('red' if off or keyed!=R.COST_CLASS_BUDGETS[syn] else 'green')"
+    const { code: rc, out } = await run('python3', ['-I', '-c', code, JSON.stringify(obj)])
     return rc === 0 ? out.trim() : `error:exit ${rc}: ${out.trim().split('\n').pop()}`
   },
 }
@@ -561,6 +590,7 @@ const RUNS = {
   ruleset: (report) => jsonRun(RULESET, report),
   budgets: (report) => budgetsRun(report),
   approvals: (report) => jsonRun(APPROVALS, report),
+  replay_cuts: (report) => jsonRun(REPLAY_CUTS, report),
   registry: (report) => registryRun(report),
   census: (report, { run = censusRun, censuses = CENSUSES, rows } = {}) => { censusRegistry(report, censuses, rows); run(report, censuses) },
 }
@@ -645,7 +675,7 @@ async function selfTest() {
     const rr = fresh(); let ran = null
     RUNS.census(rr, { run: (rep, cs) => { ran = cs }, censuses: [], rows: () => ['archscore.dead_y', 'archscore.family_orphan_overrides'] })
     t("main's census arm runs the registry pass (an ungated row is REFUSED) and then the planted runs", rr.refused.length === 1 && /archscore\.dead_y/.test(rr.refused[0]) && Array.isArray(ran))
-    t('main runs every arm --only can name, census among them', Object.keys(RUNS).join(',') === 'hooks,ruleset,budgets,approvals,registry,census')
+    t('main runs every arm --only can name, census among them', Object.keys(RUNS).join(',') === 'hooks,ruleset,budgets,approvals,replay_cuts,registry,census')
   }
   const saved = { ...DECLARED }
   try {
@@ -678,7 +708,7 @@ async function main() {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--only') only = argv[++i]
     else if (argv[i] === '--ruleset-json') rulesetSource = path.resolve(argv[++i])
-    else { console.error(`usage: field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census] [--ruleset-json FILE]`); process.exit(2) }
+    else { console.error(`usage: field_coverage.mjs [--only hooks|ruleset|budgets|approvals|replay_cuts|registry|census] [--ruleset-json FILE]`); process.exit(2) }
   }
   if (only && !(only in RUNS)) { console.error(`--only ${only}: no such arm`); process.exit(2) }
   const t0 = Date.now()
