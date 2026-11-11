@@ -30,7 +30,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
    is `blocked <sha> class-open: <seams>`, a site or a predicate's unguarded
    domain: every one the review found, not one per round, no hunt past it owed.
    An item whose harness does not move under its own perturbation is void
-   (`judge.md`): padding buys nothing. A body whose issue states more than one seam and names no rule is `blocked <sha> harness: class-rule-missing`. A rule returning
+   (`judge.md`). A body whose issue states more than one seam and names no rule is `blocked <sha> harness: class-rule-missing`. A rule returning
    nothing means a one-seam class: say so, never read the absence as compliance.
 7. Confirm the PR body's head SHA is the head you measured (handoff review: the handoff tip), or `--carry`s to it.
 8. **A quoted number you cannot re-derive is not verified: say so.** Re-derive
@@ -62,6 +62,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
     **A red `nightly-status` is not required** here.
+    **A red outside `merge_train.py owed-reds`' set is not this pull request's**
+    and blocks nothing (`defect-root-cause.md`).
 
     **The head's runs are not the range's** (#1144). The body check prints
     `record`/`skip red-history` for the range; `skip` means every earlier head
@@ -75,15 +77,15 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     mutation table. Cheap checks (seconds: a lint, one
     test, claims) and your targeted mutants stay yours.
 
-12. **Re-read the head before you post.** Name the SHA you measured in the
-    verdict, and check it is still the head when you post it; if it moved, say
+12. **Re-read the head before you post.** Check the SHA your verdict names
+    is still the head when you post it; if it moved, say
     which of your numbers survive and which you re-took.
 
     **A `merge` verdict attaches to the head its first line names and carries
     to any later head whose own diff is unchanged** (card C4;
     #1667): `tools/audit/seat/review_carry.py <verdicted> <new>`
     prints `CARRY` (`app_approve.sh --carry`: main merges git resolved itself,
-    claim files unioned, the branch's own diff equal to the reviewed one),
+    claim files unioned),
     and `bus.sh dispatch` refuses a second reviewer. A red never carries.
     Else a main merge is its **resolution delta**, alone yours; a head whose
     own diff moved under you is `blocked <sha> head-moved: measured <sha>, head is <other>`.
@@ -99,7 +101,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     from the paths.** `merge-tree` invokes the driver once per conflicting claim
     file if you installed it (`claim-files.md`). Key on the marker,
     `MERGE-CLAIM: resolved|refused <path>`, not on the
-    wording after it, which several checks supply. A `resolved` line settles
+    wording after it. A `resolved` line settles
     that file; a non-zero exit beside it is another path's. A `refused`
     line is the orchestrator's to resolve by hand, not the author's defect: say
     which file refused and why.
