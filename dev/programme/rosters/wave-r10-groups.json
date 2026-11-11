@@ -22465,6 +22465,52 @@
     "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3435 by Bankaifan accepted into round 10; no reviewer on the outside PR itself, this group's fixer adopts its commits; overlap admitted (R10-CARD-COLLAPSE, R10-OUTSIDE-DHW-CHARGE-SETTLE): s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3435 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); overlap: shares tests/features.py with R10-OUTSIDE-DHW-CHARGE-SETTLE and R10-DUTY-SWITCH-RESTART-LEARNING and coordinator.py with R10-DUTY-SWITCH-RESTART-LEARNING, R10-COMBI-TANK, R10-COMBI-TANK-PR-B and R10-ADVISOR-STEADY-START; different seams (learner spans, boost tail, progress card); the fixer rebases on main at each part",
     "pr": null
    }
+  },
+  {
+   "group": "R10-OUTSIDE-DIAG-REDACT-LOCATION",
+   "lane": "CORE",
+   "kind": "production",
+   "class": "P2",
+   "severity": "normal",
+   "size": "S",
+   "wave": 7,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/diagnostics.py",
+    "tests/debug_collect.py",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "source": "outside",
+   "brief": "Outside pull request 3436 by Bankaifan, accepted into round 10 (owner rulings 2026-11-06 outside intake and 2026-11-07 outside work is the top tier; no deferral out of the round). The defect as the author states it: the diagnostics download in custom_components/heatpump_optimizer/diagnostics.py rounded latitude and longitude to one decimal and did not cover the solar-location option at all, so part of a home location still leaves the instance in a file users attach to public issues. The fix redacts the coordinates and the solar location and removes the rounding code. BUILD: the fixer STARTS from the author's commits on pull request 3436 (re-read the live head with git ls-remote origin refs/pull/3436/head; it was 14334842 at acceptance) and keeps the author's authorship, through the adopt-email arm of the ref_privacy.py guard. The pull request touches custom_components/heatpump_optimizer/diagnostics.py, tests/debug_collect.py, tests/entities.py, tests/features.py and deletes or edits several files under tests/mutation_ledger/killed_by/diagnostics.py. OWED, the full fixer contract on the result: a failing test first, a diagnostics payload at main that still carries a rounded coordinate and the solar location; mutation proof with mutants a reviewer can reproduce, each named exactly in the body and shown killed at the handoff head with the null mutant surviving; a null control, every other redacted key unchanged. The fixer accounts for each mutation-ledger entry the pull request removes: a pin removed because the code it pinned was deleted is shown by the site no longer existing at the handoff head; any other removal is restored, because ci-autofix.md forbids hand-editing pins to pass. The fixer also states which structure metrics moved; a metric that moved UP is paid by improving code, or goes to the orchestrator before the handoff with the measured number (CLAUDE.md rule 2). Closes nothing by keyword. The outside pull request is closed with thanks by the orchestrator after the build merges.",
+   "carry": [],
+   "findings": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer adopts the author's commits on outside pull request 3436 (no design step, size S)",
+    "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3436 by Bankaifan accepted into round 10; no reviewer on the outside PR itself, this group's fixer adopts its commits; overlap admitted (R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-LEARNER-ROBUSTNESS): s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3436 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); overlap: shares diagnostics.py with R10-GENERIC-HEAT-CURVE-PERSISTENT (carries-open), a different seam (location redaction)",
+    "pr": null
+   }
   }
  ]
 }
