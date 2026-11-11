@@ -1,4 +1,0 @@
-tools/audit/carry_audit.py: carry_audit self-test: 409 checks, 0 failed 
-tools/audit/seat/roster_lib.py: roster_lib self-test: 88 checks, 0 failed 
-tools/audit/seat/roster_sync.py: roster_sync self-test: 96 checks, 0 failed 
-tools/pr/ci_predict.py:   FAIL a carry to a group of the roster is predicted green ci_predict self-test: 1 failed 

@@ -1,0 +1,31 @@
+code 9ecbd4f6371de662ad7fa731d22b06dc38806903 roster origin/handoff/audit-r10-roster (d32a844665b0d64c09f12f3f07efcf13eded8570)
+RESULT accepted[absorbed]=0 of 14
+RESULT accepted[carries-open]=6 of 6
+RESULT accepted[done]=0 of 376
+RESULT accepted[in-progress]=17 of 17
+RESULT accepted[not-started]=17 of 17
+RESULT accepted[refused]=0 of 5
+RESULT pending_on_accepted_closed=20
+RESULT issue_accepted[carries-open]=5 of 5
+RESULT issue_accepted[in-progress]=12 of 12
+RESULT issue_accepted[not-started]=11 of 11
+code 34a9cf1251fa6046f3182a21aea60a84b477609f roster origin/handoff/audit-r10-roster (d32a844665b0d64c09f12f3f07efcf13eded8570)
+RESULT accepted[absorbed]=0 of 14
+RESULT accepted[carries-open]=0 of 6
+RESULT accepted[done]=0 of 376
+RESULT accepted[in-progress]=17 of 17
+RESULT accepted[not-started]=17 of 17
+RESULT accepted[refused]=0 of 5
+RESULT pending_on_accepted_closed=0
+RESULT issue_accepted[carries-open]=5 of 5
+RESULT issue_accepted[live]=23 of 23
+code 37555ea332a069d698366d7c41341d971ce3a613 roster origin/handoff/audit-r10-roster (d32a844665b0d64c09f12f3f07efcf13eded8570)
+RESULT accepted[absorbed]=0 of 14
+RESULT accepted[carries-open]=0 of 6
+RESULT accepted[done]=0 of 376
+RESULT accepted[in-progress]=17 of 17
+RESULT accepted[not-started]=17 of 17
+RESULT accepted[refused]=0 of 5
+RESULT pending_on_accepted_closed=0
+RESULT issue_accepted[carries-open]=0 of 5
+RESULT issue_accepted[live]=23 of 23
