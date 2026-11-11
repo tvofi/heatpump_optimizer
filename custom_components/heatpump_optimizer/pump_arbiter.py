@@ -335,8 +335,10 @@ class ArbiterState:
     #: slot -> (value written, when); the ownership record, persisted.
     written: dict[str, tuple[Any, datetime]] = field(default_factory=dict)
     #: slot -> the last write a loop move dropped from ``written`` to resend
-    #: (:func:`_note_sent`), until a write records over it or a restore or
-    #: release ends it; persisted with it. A loop run's reset keeps it.
+    #: (:func:`_note_sent`), read while that record is missing, until a
+    #: restore or release ends it; persisted with it. A loop run's reset
+    #: keeps it. A write lands only once the off restore is armed, which
+    #: :func:`_arm_space` no longer refuses, so no write needs to end it.
     dropped: dict[str, Any] = field(default_factory=dict)
     #: slot -> differing readings in a row; slot -> when a value the pump
     #: did not hold is sent again.
@@ -1001,7 +1003,7 @@ def _note_sent(held: ArbiterState, rec: FeedbackRun, out: float | None, base: fl
     (:data:`FEEDBACK_DOWN_K`), or to stall the wind-down. So a target that
     moves at all drops the record, and an equal one is still not sent. The
     dropped record is the run's ``prev_c``, the bracket :func:`_cut_of`
-    reads, and ``held.dropped`` until a write replaces it: it is still the
+    reads, and ``held.dropped`` until a restore ends it: it is still the
     arbiter's last write, which the off restore's own-write refusal reads
     (:func:`_arm_space`) after the run that dropped it has ended.
     """
@@ -1414,7 +1416,6 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
         _LOGGER.warning("Pump duty: writing %s to %s failed: %s", value, entity, err)
         return
     held.written[slot] = (int(value) if slot in _NIGHT_KEYS else value, now)
-    held.dropped.pop(slot, None)
     await _persist(coord)
 
 
@@ -1855,9 +1856,7 @@ async def _load(coord: Any) -> None:
         if at is not None and _writable(slot, value):
             held.written[slot] = (value, at)
     dropped = raw.get("dropped")
-    for slot, value in dropped.items() if isinstance(dropped, dict) else ():
-        if _writable(slot, value):
-            held.dropped[slot] = value
+    held.dropped = {k: v for k, v in dropped.items() if _writable(k, v)} if isinstance(dropped, dict) else {}
 
 
 def _writable(slot: str, value: Any) -> bool:

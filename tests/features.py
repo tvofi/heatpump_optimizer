@@ -84487,14 +84487,23 @@ R.check(
     all(sent is False and prev is None and after is False for sent, prev, after in _fb_own_ends.values()),
     f"(before, run prev_c after, after) {_fb_own_ends}",
 )
-# The fact's other ends: a write records over it (the person moved the
-# controller to 25.0, so the arm captures and the write lands), a restore
-# (_space_restored) and a release (Off forgets the record, even one that is
-# only the dropped write) end it. Control: before each end it is held.
+# Where the fact stops mattering or ends: once the person moves the
+# controller (25.0) the arm captures and the write lands, after which the
+# armed key never consults it -- the controller reading 26.0 again with the
+# record gone is not refused; a restore (_space_restored) and a release (Off
+# forgets the record, even one that is only the dropped write) end it, and
+# a stored value the arbiter could not have written is not loaded.
+# Control: before each, the fact is held.
 _fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8])
 _fb_wr_before = dict(_fb_wr_held.dropped)
 _fb_wr_coord.hass.states.set(_FB_SET, FakeState("25.0", attributes={"min": 15, "max": 45, "step": 0.1}))
 _fb_aio.run(_fb_pa._write(_fb_wr_coord, _fb_wr_coord.arbiter_inputs(), "space_setpoint", 25.8, _FB_NOW))
+_fb_wr_written = _fb_wr_held.written.pop("space_setpoint", (None,))[0]
+_fb_wr_coord.hass.states.set(_FB_SET, FakeState("26.0", attributes={"min": 15, "max": 45, "step": 0.1}))
+_fb_wr_after = _fb_aio.run(_fb_pa._arm_space(_fb_wr_coord.arbiter_inputs(), _fb_wr_coord.entry, _fb_wr_held, _FB_SET))
+_fb_junk = _FbCoord()
+_fb_aio.run(_fb_pa._store(_fb_junk).async_save({"written": {}, "dropped": {"space_setpoint": "26.0 degC"}}))
+_fb_aio.run(_fb_pa._load(_fb_junk))
 _fb_off_coord, _fb_off_held = _fb_own([25.8])[1:]
 _fb_off_held.written.clear()
 _fb_off_before = dict(_fb_off_held.dropped)
@@ -84502,14 +84511,16 @@ _fb_off_coord._mode = _PA_OFF
 _fb_aio.run(_fb_pa._arbitrate(_fb_off_coord, _fb_off_held, _fb_off_coord.arbiter_inputs(),
                               _fb_pa.DUTY_CONTROL, _FB_NOW))
 R.check(
-    "R10-ARBITER-OFF-RESTORE (Carry 8, round 2): the dropped own write ends when a write "
-    "records over it, a restore writes the baseline, or Off releases the pump",
-    _fb_wr_before == {"space_setpoint": 26.0} and _fb_wr_held.dropped == {}
-    and _fb_wr_held.written.get("space_setpoint", (None,))[0] == 25.8
+    "R10-ARBITER-OFF-RESTORE (Carry 8, round 2): the dropped own write is not consulted "
+    "once a write lands on the armed key, and ends when a restore writes the baseline or "
+    "Off releases the pump",
+    _fb_wr_before == {"space_setpoint": 26.0} and _fb_wr_written == 25.8 and _fb_wr_after is True
     and _fb_rs_held.dropped == {}
-    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {},
-    f"write {_fb_wr_before} -> {_fb_wr_held.dropped} ({_fb_wr_held.written.get('space_setpoint')}), "
-    f"restore {_fb_rs_held.dropped}, off {_fb_off_before} -> {_fb_off_held.dropped}",
+    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {}
+    and _fb_pa.state_for(_fb_junk).dropped == {},
+    f"write {_fb_wr_before}, wrote {_fb_wr_written}, armed after {_fb_wr_after}, "
+    f"restore {_fb_rs_held.dropped}, off {_fb_off_before} -> {_fb_off_held.dropped}, "
+    f"unwritable on disk {_fb_pa.state_for(_fb_junk).dropped}",
 )
 # R1's lower side in the replay: a 26.4 degC minimum return target (parameter
 # 979) clamps the loop's first wind-down, whose writes stay under it until a

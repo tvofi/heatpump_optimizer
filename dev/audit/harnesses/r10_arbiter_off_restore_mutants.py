@@ -11,7 +11,7 @@ through ``tools/audit/seat/features_block.py``. Run from the repository root:
 
 It prints mutant_run's lines, ``SURVIVED NULL`` then ``KILLED <name>`` per
 mutant at the fix head, once for M01-M20 on the arbiter block and once for the
-seam mutants (M21 to M37) on the water-setpoint feedback block, and exits with
+seam mutants (M21 to M38; M33 retired) on the water-setpoint feedback block, and exits with
 mutant_run's status. A mutant whose ``old`` text no longer occurs exactly once
 is refused before anything runs.
 """
@@ -234,14 +234,8 @@ SEAM_MUTANTS = json.loads(r"""
  {
   "name": "M32_load_ignores_fact",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "            held.dropped[slot] = value\n",
-  "new": "            pass\n"
- },
- {
-  "name": "M33_write_keeps_fact",
-  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "    held.dropped.pop(slot, None)\n",
-  "new": ""
+  "old": "    held.dropped = {k: v for k, v in dropped.items() if _writable(k, v)} if isinstance(dropped, dict) else {}\n",
+  "new": "    held.dropped = {}\n"
  },
  {
   "name": "M34_restore_keeps_fact",
@@ -266,6 +260,12 @@ SEAM_MUTANTS = json.loads(r"""
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
   "old": "    last = record[0] if record is not None else held.dropped.get(\"space_setpoint\")\n",
   "new": "    last = record[0] if record is not None else None if held.feedback is None else held.feedback.prev_c\n"
+ },
+ {
+  "name": "M38_load_unfiltered",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": " if _writable(k, v)} if isinstance(dropped, dict)",
+  "new": "} if isinstance(dropped, dict)"
  }
 ]
 """)
