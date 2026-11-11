@@ -28,7 +28,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-PLAN-PAGE-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-STANDING-CONTRACTS-P2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SUITE-ENV-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-WORKTREE-GC-LIVE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-WORKTREE-GC-LIVE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SAV-VALUATION-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-COMBI-TANK-PR-B (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -39,7 +39,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-RCA-RESTORE-BASE-SKEW (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-CHARGE-SETTLE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-LEARNER-ROBUSTNESS (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-OUTSIDE-DIAG-REDACT-LOCATION (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DISINFECTION-SETPOINT (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-START-HYSTERESIS (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -50,10 +49,13 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-COMBI-CENSUS-MAIN-RED (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-TICK-RESIDUE-P2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-RELAY-ARM-ORDER (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-MUTANT-RUN-FORKCAP (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CODEQL-PR-PATHS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ROSTER-CARRY-EXACT-MATCH (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-HOTFIX-GATE-REDISPATCH-LOOP (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-HOTFIX-PUSHER-CENSUS (stage in-progress): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-ARBITER-OFF-RESTORE, R10-BODY-CONTRACT, R10-CARD-COLLAPSE, R10-CODEQL-PR-PATHS, R10-COMBI-TANK, R10-DEPENDABOT-3414-COMPAT, R10-FIXER-MD-SPELLING-CORPUS, R10-FLY-OPENER-STALE-ENV, R10-GH-READ-RESIDUE, R10-HOTFIX-COMBI-CENSUS-MAIN-RED, R10-HOTFIX-GATE-REDISPATCH-LOOP, R10-HOTFIX-PUSHER-CENSUS, R10-HOTFIX-REPLAY-CLASS-CUT, R10-HOTFIX-RESTORE-BASE-SKEW, R10-HOTFIX-SELFTEST-SCOPE-UNION, R10-INTRODUCED-REDS-BARRIER, R10-MUTANT-RUN-FORKCAP, R10-OUTSIDE-CLIMATE-NATIVE-TEMP, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DIAG-REDACT-LOCATION, R10-OUTSIDE-DISINFECTION-SETPOINT, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-PRODUCT-PAGE-REDESIGN, R10-RCA-RESTORE-BASE-SKEW, R10-RELAY-ARM-ORDER, R10-ROSTER-CARRY-EXACT-MATCH, R10-SAV-VALUATION-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TICK-RESIDUE-P3, R10-TRAIN-RESIDUE-P2, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-ARBITER-OFF-RESTORE, R10-BODY-CONTRACT, R10-CARD-COLLAPSE, R10-CODEQL-PR-PATHS, R10-COMBI-TANK, R10-DEPENDABOT-3414-COMPAT, R10-FIXER-MD-SPELLING-CORPUS, R10-FLY-OPENER-STALE-ENV, R10-GH-READ-RESIDUE, R10-HOTFIX-COMBI-CENSUS-MAIN-RED, R10-HOTFIX-GATE-REDISPATCH-LOOP, R10-HOTFIX-PUSHER-CENSUS, R10-HOTFIX-REPLAY-CLASS-CUT, R10-HOTFIX-RESTORE-BASE-SKEW, R10-HOTFIX-SELFTEST-SCOPE-UNION, R10-INTRODUCED-REDS-BARRIER, R10-MUTANT-RUN-FORKCAP, R10-OUTSIDE-CLIMATE-NATIVE-TEMP, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DISINFECTION-SETPOINT, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-PRODUCT-PAGE-REDESIGN, R10-RCA-RESTORE-BASE-SKEW, R10-RELAY-ARM-ORDER, R10-ROSTER-CARRY-EXACT-MATCH, R10-SAV-VALUATION-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TICK-RESIDUE-P3, R10-TRAIN-RESIDUE-P2, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
 
 ## Resume steps
 
