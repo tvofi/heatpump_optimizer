@@ -1,0 +1,33 @@
+== defect (origin/main dbd1ab5b07 workflows)
+RESULT rbs_defects=29
+   budget-raise-gate.yml:budget-raise-gate restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+   ci.yml:prelude restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+   ci.yml:cancel-superseded restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha }}
+   ci.yml:refresh restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha }}
+   ci.yml:gate restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+   ci.yml:sweep-self restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha }}
+   codeql.yml:analyze restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha }}
+   governance.yml:policy-docs restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+   governance.yml:policy-docs restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+   governance.yml:env-matrix restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+   governance.yml:wave-script restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+   governance.yml:wave-script restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+   governance.yml:delivery-status restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha }}
+   pr-contract.yml:pr-contract restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || format('origin/{0}', inputs.base) }}
+   tests.yml:briefs restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
+   tests.yml:coverage-ratchet restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha || github.sha }}
+   tests.yml:nightly-status restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha }}
+   tests.yml:closures-autofix restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha }}
+   tests.yml:claims-autofix restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha }}
+   tests.yml:mutation-autofix restores from BASESHA on a pull_request: ${{ github.event.pull_request.base.sha }}
+   ci.yml:tests calls tests.yml, which restores, without passing restore_source
+   ci.yml:codeql calls codeql.yml, which restores, without passing restore_source
+   ci.yml:governance calls governance.yml, which restores, without passing restore_source
+   ci.yml:budget-raise-gate calls budget-raise-gate.yml, which restores, without passing restore_source
+   ci.yml:pr-contract calls pr-contract.yml, which restores, without passing restore_source
+   ci.yml:prelude resolves no restore source before its own restore
+   ci.yml:prelude's resolver lacks 'git merge-base --is-ancestor "$EVENT_BASE" "$source"'
+   ci.yml:prelude's resolver lacks '"$GITHUB_SHA"'
+   ci.yml:prelude's resolver lacks '-eq 2 ]'
+== fixed (hotfix WIP 5ab1c861c8 workflows)
+RESULT rbs_defects=0

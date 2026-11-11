@@ -1,0 +1,30 @@
+pathspec: 64 entries
+$ first-parent merges since 2026-11-04 on origin/main (to dbd1ab5b07)
+a7628041dc02e298c5399003d4c0576391dd5c4e
+231
+211
+touching pathspec (-m first-parent):
+58
+touching roster_lib:
+9
+oldest in window:
+2026-11-04T08:13:31+00:00
+$ e55be57447
+2026-10-23T19:00:18+02:00 test: a dispatch naming a PR restores every gate-required grader from the base, never the head (R10-CI-LAYOUT-P2, Arm B step 4)
+
+ tests/entities.py | 73 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 73 insertions(+)
+$ 46a6ac4d68
+2026-09-22T21:17:39+02:00 fix(r6-d11-02): grade the corpus with the base's checker, and drive the entry's exit status
+$ census check name / _BP_UNITS at dbd1ab5b07
+28790:    "and on a pull_request and a push every such restore reads the event's own commit",
+28736:_BP_UNITS = {"governance.yml": "governance", "tests.yml": "tests"}
+28737-
+28738-
+28739-def _bp_value(expr: str, ctx: dict) -> str:
+34474:    "`policy-docs` restores its graders from the base commit before it grades",
+$ resolver timing (100 pairs)
+
+real	0m1.609s
+user	0m1.368s
+sys	0m0.209s
