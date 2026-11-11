@@ -61779,6 +61779,9 @@ _chg_midnight = _chg_seq((50.0, 50.0, 47.0, 47.0, 48.5, 50.0, 50.0), start_hm=(2
 # those rises are no dip recovering, and must not take back the draw, which
 # the charge never folded.
 _chg_reheat = _chg_seq((50.0, 47.0, 47.0, 47.0, 49.0, 51.0, 51.0), heated_at=(2,))
+# An 8 K draw during the charge, then 8 K of reheat past the slot: the take
+# back stops at the dip bound, DHW_CHARGE_DIP_MAX_K, and 3 K stays booked.
+_chg_cap = _chg_seq((50.0, 50.0, 42.0, 42.0, 46.0, 50.0, 50.0))
 _chg_reheat_ctl = _chg_seq((50.0, 47.0, 47.0, 47.0, 47.0, 47.0, 47.0), heated_at=(2,))
 R.check(
     "a charge-start dip that recovers is learned as neither a draw nor usage, "
@@ -61789,13 +61792,14 @@ R.check(
     and _chg_space[0] > 0.5 and _chg_space[1] == 2
     and abs(_chg_draw[0] - _chg_space_draw[0]) < 0.05
     and _chg_midnight[0] == 0.0 and 0.0 < _chg_midnight[2][0] < _chg_draw[0]
-    and _chg_reheat[0] > 0.5 and abs(_chg_reheat[0] - _chg_reheat_ctl[0]) < 0.05,
+    and _chg_reheat[0] > 0.5 and abs(_chg_reheat[0] - _chg_reheat_ctl[0]) < 0.05
+    and abs(_chg_cap[0] - _chg_draw[0]) < 0.05,
     f"(open kWh, usage points) dip {_chg_dip}, dip at the window edge {_chg_edge}, "
     f"draw that stays down {_chg_draw}, the dip with no DHW charge on record "
     f"(control) {_chg_space}, the draw with none (control) {_chg_space_draw}, "
     f"(new day open kWh, -, [closed day]) recovery across midnight {_chg_midnight}, "
     f"a draw then heating past the slot {_chg_reheat} vs no reheat (control) "
-    f"{_chg_reheat_ctl}",
+    f"{_chg_reheat_ctl}, an 8 K draw and 8 K of reheat {_chg_cap}",
 )
 
 
