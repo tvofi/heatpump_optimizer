@@ -69,6 +69,11 @@ The RED-UNOWNED promotion is DEFERRED:
 
 Binding: false owed work from a tracked beat instrument. 1 of 6 UNHELD lines is false now.
 
+Bar re-check (2026-11-11, orchestrator's question; proposal-triage.md lines 9-19). A carry on an existing group is still added instrument work, so the same bar applies to it. No ratchet-budgets.md cap is touched: every change here is code under tools/ and moves no policy_budgets.json measure, so the 20% figure below is read on the proposal's own benefit measure.
+
+Bar: severity medium (R10-TICK-RESIDUE-P3's roster severity). Figure: 1 of 6 UNHELD lines false, about 17%, under 20%. Accepted as a severity-exempt defect repair (a reader that drops every `FIRED <utc>` line), not as over-20%.
+
+
 ## P635: P631 revisited, with the orphans' cwd
 
 Verdict: DEFER stands, narrowed. The launcher is now identified, and the countermeasure, if

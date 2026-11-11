@@ -70,3 +70,7 @@ The carry's acceptance:
   `replay_unsafe`.
 
 Binding: 2 of 2 merge stage writes lost today, each a stale roster row plus a hand-route.
+
+Bar re-check (2026-11-11, orchestrator's question; proposal-triage.md lines 9-19). A carry on an existing group is still added instrument work, so the same bar applies to it. No ratchet-budgets.md cap is touched: every change here is code under tools/ and moves no policy_budgets.json measure, so the 20% figure below is read on the proposal's own benefit measure.
+
+Bar: severity medium (R10-TICK-RESIDUE-P3's roster severity). Figure: 2 of 2 postmerge stage writes lost today, 100%, over 20%. Accepted both as over-20% and as a severity-exempt defect repair (a lost record write).

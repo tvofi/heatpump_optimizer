@@ -76,3 +76,7 @@ Destination: append-carry on R10-RELAY-NOBODY-STALL, with this text:
 > the stop. It fails on the base render and passes on the fix. Null control: a designer or
 > reviewer render is unchanged. Instances: s14/sweep.md :446, :500-502 (four body-only
 > continuation seats, 2026-11-11).
+
+Bar re-check (2026-11-11, orchestrator's question; proposal-triage.md lines 9-19). A carry on an existing group is still added instrument work, so the same bar applies to it. No ratchet-budgets.md cap is touched: every change here is code under tools/ and moves no policy_budgets.json measure, so the 20% figure below is read on the proposal's own benefit measure.
+
+Bar: severity medium (R10-RELAY-NOBODY-STALL's roster severity; the group is a root-cause countermeasure for R10-RCA-FIXER-NOBODY-STALL). Figure: 4 of 82 fixer launches, about 4.9%, under 20%. Accepted only as a severity-exempt repair: the fixer text has no branch for a non-CARRY-LANDED refusal, so the seat stalls, which is the stall the group counters. It is not accepted as over-20%; on the 20% bar alone it would be REJECTed.

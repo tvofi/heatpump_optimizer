@@ -98,10 +98,15 @@ The carry's acceptance:
 
 Binding: a merge-blocking false red from a class producer, carried to the class's owning group.
 
+Bar re-check (2026-11-11, orchestrator's question; proposal-triage.md lines 9-19). A carry on an existing group is still added instrument work, so the same bar applies to it. No ratchet-budgets.md cap is touched: every change here is code under tools/ and moves no policy_budgets.json measure, so the 20% figure below is read on the proposal's own benefit measure.
+
+Bar: severity medium (R10-GATE-DEFER-BARRIER's roster severity). Figure: none against 20%; the instance is one PR (#3445) held by three false gate reds at 14:09-14:12Z, with no denominator measured. Accepted as a severity-exempt defect repair (a merge-blocking false red from CI code), not as over-20%.
+
+
 ## P633: re-admit a skipped train entry whose head moved by a carry range
 
-Verdict: ACCEPT, as a carry on R10-TRAIN-REVIEW-PRESETTLE, which owns the train's admission and
-approval timing at batch start (P628, s6-batch202.md).
+Verdict: DEFER. Re-ruled 2026-11-11 from ACCEPT; the original verdict was "ACCEPT, as a carry on
+R10-TRAIN-REVIEW-PRESETTLE". See the bar re-check at the end of this entry.
 
 Source: triage queue line 311, 2026-11-11T14:29:30Z, orchestrator s14, PROPOSAL train
 re-admission at a carried head. The orchestrator later added #3454 to it, in its message to this seat.
@@ -135,3 +140,7 @@ Until it lands, the operational route is to re-queue those PRs on the next train
 one ends. Starting a second train beside a live one is not this seat's to rule.
 
 Binding: green, verdicted PRs with no route to merge, while a train lives.
+
+Bar re-check (2026-11-11, orchestrator's question; proposal-triage.md lines 9-19). A carry on an existing group is still added instrument work, so the same bar applies to it. No ratchet-budgets.md cap is touched: every change here is code under tools/ and moves no policy_budgets.json measure, so the 20% figure below is read on the proposal's own benefit measure.
+
+Bar: severity normal (R10-TRAIN-REVIEW-PRESETTLE's roster severity). The original ruling classified the defect itself as medium, but the contract classifies only an unset severity, so the group's normal stands and over 20% is required to add. Figure: none against 20%. The instances are 3 PRs and 26 `ALREADY ... skipped` lines, with no wall-clock and no denominator, and P638 (s6-batch207.md) later found train.log carries no timestamps and the CARRY class holds one instance this round (#3445). Re-ruled DEFER: a normal-severity addition, unmeasured against the bar. Reopens on P638's conditions (a) or (b), or a roster severity of medium or higher on the group. The landed carry is dismissed by `--match 'TRAIN-READMIT-CARRIED-HEAD'`.
