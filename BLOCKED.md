@@ -1,0 +1,3 @@
+Question: carry 6 (PREPR-SLOT-LIVELOCK) - may the next part start from a real reproduction? A static read finds no point where a nested prepr loses HPO_SLOT_LABEL: take_slot (tools/pr/prepr.sh ~4176) exports it in the main shell, heavy_run (810) and every nested `bash tools/pr/prepr.sh` inherit env, and the only unsets are the take_slot unit subshells (3637, 3644). The loss must be dynamic (take_slot called inside a command substitution, or the slot-take WARN path leaving the label unset so nested runs take their own). Needs a failing test with all slots taken before any edit.
+
+State of this seat: carry 4 (.gitignore anchor, tests/gitignore_config.py) re-verified present on this ref. Carries 0-3, 5-23 not started; no prepr.sh run; nothing handed off.
