@@ -931,6 +931,9 @@
           "heat_curve_displace_entity": "Offset-Entität der Heizkurve",
           "heat_curve_target_kind": "Was die Entität ist",
           "heat_curve_offset_band_k": "Größter Offset, der auf die Entität geschrieben wird",
+          "heat_curve_persistent_band_k": "Größte Verschiebung eines gespeicherten Parameters",
+          "heat_curve_persistent_writes_per_day": "Höchstzahl der Schreibvorgänge pro Tag in einen gespeicherten Parameter",
+          "heat_curve_persistent_min_dwell_minutes": "Mindestzeit zwischen Schreibvorgängen in einen gespeicherten Parameter",
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
@@ -942,9 +945,12 @@
           "ecl110_displace_min": "Wie weit die Heizkurve in teuren Stunden nach unten verschoben werden darf.",
           "ecl110_displace_max": "Wie weit die Heizkurve nach oben verschoben werden darf, wenn günstige Wärme gespeichert wird.",
           "ecl110_pid_time_constant_hours": "Ungefähr, wie lange der Regler braucht, um auf eine neue Verschiebung zu reagieren. Damit fordert der Optimierer keine schnelleren Änderungen an, als das System umsetzen kann.",
-          "heat_curve_displace_entity": "Eine Zahl-Entität, die die ganze Heizkurve deines Reglers verschiebt, wobei 0 keine Verschiebung bedeutet, und die der Regler bei einem Neustart vergisst (zum Beispiel ein Heizungs-Offset der Luxtronik-SHI). Nie ein absoluter Kurvenpunkt oder ein gespeicherter Parameter. Das Ausschalten oder Entladen des Optimierers schreibt 0.",
-          "heat_curve_target_kind": "Offset: eine Temperaturdifferenz, 0 neutral, vom Regler nicht gespeichert. Die einzige Art in dieser Version.",
+          "heat_curve_displace_entity": "Eine Zahlenentität, die die Heizkurve deines Reglers verschiebt. Typ Verschiebung: eine Verschiebung der ganzen Kurve, bei der 0 keine Verschiebung bedeutet und die der Regler bei einem Neustart vergisst (zum Beispiel eine Luxtronik-SHI-Heizverschiebung); Ausschalten oder Entladen des Optimierers schreibt 0. Typ beständig: eine Kurveneinstellung, die der Regler speichert; Ausschalten oder Entladen des Optimierers schreibt den Wert zurück, den sie vor dem ersten Schreiben hatte.",
+          "heat_curve_target_kind": "Verschiebung: eine Temperaturdifferenz, 0 neutral, vom Regler nicht gespeichert. Nimm sie, wo immer dein Regler eine hat. Beständig: eine Kurveneinstellung, die der Regler speichert, von ihrem eigenen Wert verschoben und beim Ausschalten zurückgeschrieben; jeder Schreibvorgang nutzt den Speicher des Reglers ab, daher sind die Schreibvorgänge pro Tag begrenzt.",
           "heat_curve_offset_band_k": "Der auf die Entität geschriebene Offset bleibt in beide Richtungen innerhalb so vieler Kelvin. 3 K ist eine Schätzung zwischen einer SG-Ready-Anhebung um +1 bis +2 Stufen und Luxtroniks eigener Korrektur von ±5 K.",
+          "heat_curve_persistent_band_k": "Die gespeicherte Einstellung wird höchstens so viele Kelvin in jede Richtung von dem Wert verschoben, den sie vor dem ersten Schreiben hatte. 3 K ist eine Schätzung zwischen einer SG-Ready-Anhebung um +1 bis +2 Stufen und Luxtroniks eigener Korrektur von ±5 K.",
+          "heat_curve_persistent_writes_per_day": "Schreibvorgänge an einem lokalen Tag, das Zurückschreiben beim Ausschalten eingeschlossen; einer wird dafür immer zurückgehalten. 12 (sechs Verschiebungen mit Rückkehr) liegt unter dem einzigen dokumentierten Herstellerkontingent, das gefunden wurde (Daikin, 7000 pro Jahr); der Abstand darunter ist eine Schätzung. 0 oder 1 schreibt nichts. Über 19 überschreitet dieses Kontingent.",
+          "heat_curve_persistent_min_dwell_minutes": "Nach einem Schreibvorgang wartet der nächste mindestens so lange. 60 Minuten sind etwa drei Reaktionszeiten einer Heizkörperanlage (eine Schätzung aus einem Forum); eine träge Fußbodenheizung braucht eher 2 bis 3 Stunden.",
           "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
@@ -1572,6 +1578,8 @@
       "prefill_device_unreadable": "Dieses Gerät konnte nicht gelesen werden. Seine Integration hat hier noch keine Zuordnung, oder keine seiner Entitäten hat einen Wert. Lass das Gerät leer und nenne stattdessen einen Modbus-Paket-Präfix.",
       "dhw_windows_day_selector": "Dieses Feld nennt seinen Tag bereits, gib daher nur reine Zeiten ein, z. B. 06:00-08:30. Tagesauswahlen wie 'weekdays' gehören in das normale Zeitfenster-Feld oben.",
       "heat_curve_not_offset": "Der eigene Wertebereich dieser Entität enthält 0 nicht, sie ist also kein Offset: Sie sieht wie ein absoluter Kurvenpunkt aus. Wähle die Offset-Entität des Reglers.",
+      "heat_curve_unreadable": "Diese Entität hat gerade keinen Wert, daher ist unbekannt, auf welchen Wert sie beim Ausschalten zurückgesetzt würde. Wähle eine Entität, die einen Wert meldet, oder speichere erneut, sobald sie es tut.",
+      "heat_curve_out_of_range": "Diese Entität zeigt einen Wert außerhalb ihres eigenen angegebenen Bereichs, daher kann sie nicht sicher verschoben werden. Prüfe die Entität zuerst in ihrer Integration.",
       "heat_curve_entity_in_use": "Die Offset-Entität der Heizkurve wird vom Optimierer bereits für einen anderen Zweck geschrieben (einen Sollwert, das Ventil, den Verdichter oder den Modus). Wähle für einen davon eine andere Entität."
     },
     "abort": {
@@ -1732,7 +1740,8 @@
     },
     "heat_curve_target_kind": {
       "options": {
-        "offset": "Offset (0 ist neutral, flüchtig)"
+        "offset": "Offset (0 ist neutral, flüchtig)",
+        "persistent": "Beständig (vom Regler gespeichert, beim Ausschalten zurückgeschrieben)"
       }
     }
   },

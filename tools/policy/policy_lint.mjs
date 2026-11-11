@@ -1971,7 +1971,7 @@ function resolvePrFromCommit(subject, rows) {
 
 // Where a disposition may live. CLAUDE.md's programme-tracking section names
 // exactly these two: the Delivery-status table in the plan of record, and the
-// living handover. #201 is deliberately NOT one of them -- it is the volatile
+// living handover. #3394 (#201 before it) is deliberately NOT one of them -- it is the volatile
 // half of the split, free to post at any moment and not in the tree, so a check
 // that accepted it would be satisfiable by something no later seat can read
 // from a checkout.
