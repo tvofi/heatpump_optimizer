@@ -4,7 +4,7 @@ Implements design/R10-STANDING-CONTRACTS-P2 at a249d7685e1e (design-verdict read
 
 ## Head
 
-5a4161d57647ccdfc82f9cd0e6988abcb81bfaed, which merges origin/main cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf (2026-11-11 UTC) because `git merge-tree --write-tree origin/main HEAD` reported a conflict in `tools/audit/seat/cloud_dispatch.py`: main added a reviewed_head keyword where this branch added verdict, and the merge keeps both. Every line below was re-taken at this head. `tools/pr/prepr.sh` is clean at it, and `tools/pr/ci_predict.py` prints no `BOOTSTRAP` line, so the new fixer.md paragraph does not apply to this change set.
+dd5faa50c0a87aec310975128c18b172e052af3a, the pull request head: it holds the earlier handoff tip 5a4161d57647ccdfc82f9cd0e6988abcb81bfaed, a merge of origin/main and the delivery-row record commit. This round changes no code; it routes the body's carry items (see Red checks and Friction). `tools/pr/prepr.sh` is clean at this head with the body, and `git merge-tree --write-tree origin/main HEAD` reports no conflict. The mutation figures below were measured at 5a4161d57647, whose production diff this head carries unchanged.
 
 ## What changed
 
@@ -72,7 +72,7 @@ n/a: the diff adds no site under `custom_components/`; the `tools/` sites are pi
 
 ## Red checks
 
-- `budget-raise-gate`: red by design until the owner approves at the head or the mandate signs it. The diff changes three pinned token-cap rows of `policy_budgets.json`: standing.md's first row at its measure, and the standing-tick.md and standing-roster.md rows lowered to the stubs' measure. policy_lint's budgets check refuses a new policy file without both caps, so no edit that adds standing.md avoids the gate. The cheaper detector exists and ran: `tools/pr/prepr.sh` with the body predicts it in seconds; without a body it prints no raise line, which is where this seat first read it as no raise. Carry: R10-STANDING-CONTRACTS-P2 (item scp2-raise-predict-needs-body)
+- `budget-raise-gate / budget-raise-gate`: red by design until the owner approves at the head or the mandate signs it. The diff changes three pinned token-cap rows of `policy_budgets.json`: standing.md's first row at its measure, and the standing-tick.md and standing-roster.md rows lowered to the stubs' measure. policy_lint's budgets check refuses a new policy file without both caps, so no edit that adds standing.md avoids the gate. The cheaper detector exists and ran: `tools/pr/prepr.sh` with the body predicts it in seconds; without a body it prints no raise line, which is where this seat first read it as no raise. The prepr.sh seam is not this group's; its live owner is R10-PREPR-RESIDUE (files `tools/pr/prepr.sh`, stage in-progress, on `origin/handoff/audit-r10-roster`), which receives the finding that step 6d's raise prediction prints no line when no body is supplied. Carry: R10-PREPR-RESIDUE
 
 ## Raise justification
 
@@ -127,9 +127,9 @@ Policy: every edited role contract, `CLAUDE.md`, decision 0015 and `policy_budge
 
 - Carries 9, 12, 13 and 14 (the merge-seat retirement and the dispatch beat job) have no live owner: the design named R10-ORCH-LEDGER, which is not among this group's valid targets. They stay on this group's roster entry in `dev/programme/rosters/wave-r10-groups.json` pending the orchestrator's routing. Carry: R10-STANDING-CONTRACTS-P2 (item scp2-unbuilt-seats)
 - Carries 21, 22 and 23 (the liveness hook's three arms with their constraints, and pulse.py reading the merge train) are outside the approved design; the verdict proposes a liveness-hook group and a pulse.py group ordered after this one. They stay on this group's roster entry in `dev/programme/rosters/wave-r10-groups.json` pending the orchestrator's ruling. Carry: R10-STANDING-CONTRACTS-P2 (item scp2-carries-21-23)
-- `dev/programme/HANDOVER.md` names four standing seats in its standing-seats bullet; it is updated with the merge it records (verdict item 27). Carry: R10-STANDING-CONTRACTS-P2 (item scp2-handover-seats)
+- `dev/programme/HANDOVER.md` names four standing seats in its standing-seats bullet; it is updated with the merge it records (verdict item 27). Carry: R10-STANDING-CONTRACTS-P2 (item scp2-handover-seats), the owner-routed ruling of the design verdict's item 27
 
 ## Friction
 
 - standing.md: contradiction: carry 2 orders the `gh` PR-state command into a role contract that policy_lint's no-gh check refuses outside `web-fragments.md`. Carry: dismissed: resolved here by citing web-fragments.md
-- fixer.md: cost: the layout guard refuses a re-wrapped line that keeps a retired `docs/decisions/` citation while policy_lint's citation-presence fixture needs that citation present, so the only passing edit leaves the line untouched; one prepr round and one closure re-record were spent finding it. Carry: R10-STANDING-CONTRACTS-P2 (item scp2-layout-vs-citation)
+- fixer.md: cost: the layout guard refuses a re-wrapped line that keeps a retired `docs/decisions/` citation while policy_lint's citation-presence fixture needs that citation present, so the only passing edit leaves the line untouched; one prepr round and one closure re-record were spent finding it. Carry: dismissed: first instance, resolved here by leaving the line untouched; no mechanism change is asked, and a second instance goes to root-cause.md
