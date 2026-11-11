@@ -1,0 +1,31 @@
+obal --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-10T11:05:15.3439193Z Removing SSH command configuration
+2026-11-10T11:05:15.3445817Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-10T11:05:15.3482496Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-10T11:05:15.3783960Z Removing HTTP extra header
+2026-11-10T11:05:15.3790421Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-10T11:05:15.3836421Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-10T11:05:15.4151858Z Removing includeIf entries pointing to credentials config files
+2026-11-10T11:05:15.4161023Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-10T11:05:15.4194262Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-10T11:05:15.4195710Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-10T11:05:15.4196837Z includeif.gitdir:/github/workspace/.git.path
+2026-11-10T11:05:15.4197611Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-10T11:05:15.4206444Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-10T11:05:15.4234796Z /home/runner/work/_temp/git-credentials-b056785f-85f0-4b1b-b08d-eea163373a5b.config
+2026-11-10T11:05:15.4248250Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-b056785f\-85f0\-4b1b\-b08d\-eea163373a5b\.config
+2026-11-10T11:05:15.4291703Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-10T11:05:15.4326080Z /home/runner/work/_temp/git-credentials-b056785f-85f0-4b1b-b08d-eea163373a5b.config
+2026-11-10T11:05:15.4338118Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-b056785f\-85f0\-4b1b\-b08d\-eea163373a5b\.config
+2026-11-10T11:05:15.4377196Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-10T11:05:15.4402588Z /github/runner_temp/git-credentials-b056785f-85f0-4b1b-b08d-eea163373a5b.config
+2026-11-10T11:05:15.4411385Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-b056785f\-85f0\-4b1b\-b08d\-eea163373a5b\.config
+2026-11-10T11:05:15.4448199Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-10T11:05:15.4473412Z /github/runner_temp/git-credentials-b056785f-85f0-4b1b-b08d-eea163373a5b.config
+2026-11-10T11:05:15.4481215Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-b056785f\-85f0\-4b1b\-b08d\-eea163373a5b\.config
+2026-11-10T11:05:15.4518203Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-10T11:05:15.4828160Z Removing credentials config '/home/runner/work/_temp/git-credentials-b056785f-85f0-4b1b-b08d-eea163373a5b.config'
+2026-11-10T11:05:15.5005834Z Evaluate and set job outputs
+2026-11-10T11:05:15.5012549Z Set output 'shards'
+2026-11-10T11:05:15.5014196Z Set output 'count'
+2026-11-10T11:05:15.5014861Z Cleaning up orphan processes
