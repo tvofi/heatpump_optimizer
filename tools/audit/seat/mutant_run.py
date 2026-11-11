@@ -22,9 +22,10 @@ working tree under `dev/audit/harnesses/mutant_guard.py`, which refuses a
 target that differs from HEAD and restores it under SIGTERM, SIGINT and exit.
 Under either mode a signal kills the running command's process group first.
 
-FORK CAP (R10-MUTANT-RUN-FORKCAP). The command runs in its own session; its family (session, process group, and every process
-carrying the run's MUTANT_RUN_TOKEN, so a descendant that setsid'd or setpgid'd away still
-counts) is polled every 0.5 s and killed whole, also at exit; a family holding more than `--fork-cap` processes (default 256, 0
+FORK CAP (R10-MUTANT-RUN-FORKCAP). The command runs in its own session; its family (session, process group, every process
+carrying the run's MUTANT_RUN_TOKEN, and every descendant of the driver, which is a child
+subreaper (PR_SET_CHILD_SUBREAPER) while the command runs, so a descendant that setsid'd,
+setpgid'd, cleared its environment or was orphaned still counts) is polled every 0.5 s and killed whole, also at exit; a family holding more than `--fork-cap` processes (default 256, 0
 turns the cap off) is SIGKILLed whole and reported `FORKCAP <name>` (diff mode:
 `FORKCAP file:line OPERATOR  <mutated line>`), never KILLED: a mutant that makes
 a self-test re-enter itself (a chain 700 deep once exhausted a host's `ulimit -u`)
@@ -67,6 +68,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import ctypes
 import json
 import os
 import re
@@ -106,28 +108,70 @@ def git(root: Path, *args: str, text: bool = True) -> subprocess.CompletedProces
 
 
 # --- running one command ----------------------------------------------------
-def family(sid: int, token: str) -> list[int]:
-    """Live processes of the command `sid` started: its session, its process group, or any that
-    still carries the run's token in its environment (a descendant that called setsid or setpgid,
-    or whose parent exited, inherits the token unless it clears its environment)."""
-    out, mark = [], ("MUTANT_RUN_TOKEN=" + token).encode()
+PR_SET_CHILD_SUBREAPER, PR_GET_CHILD_SUBREAPER = 36, 37  # linux/prctl.h
+
+
+def _subreaper(on: int) -> int:
+    """Set this process's child-subreaper flag (PR_SET_CHILD_SUBREAPER: an orphaned descendant is
+    reparented to this process, not to init, so it stays in the ppid-closure whatever it does to
+    its session or environment); return the previous flag, -1 where prctl is unavailable."""
+    try:
+        libc, prev = ctypes.CDLL(None, use_errno=True), ctypes.c_int(0)
+        if libc.prctl(PR_GET_CHILD_SUBREAPER, ctypes.byref(prev), 0, 0, 0) or libc.prctl(PR_SET_CHILD_SUBREAPER, on, 0, 0, 0):
+            return -1
+        return prev.value
+    except (OSError, AttributeError):
+        return -1
+
+
+def family(sid: int, token: str, skip: frozenset = frozenset(), root: int = 0) -> list[int]:
+    """Live processes of the command `sid` started: its session, its process group, any that still
+    carries the run's token in its environment, and, given `root` (this driver, a subreaper while
+    the command runs), every descendant of `root` but those of its children in `skip` (children it
+    had before the command). The ppid leg is the one a descendant cannot leave: setsid, setpgid,
+    a cleared environment and an exited parent all keep it under `root`. Zombies are not counted."""
+    me, mark, kids, out = os.getpid(), ("MUTANT_RUN_TOKEN=" + token).encode(), {}, set()
     for d in os.listdir("/proc"):
-        if not d.isdigit() or int(d) == os.getpid():
+        if not d.isdigit() or int(d) == me:
             continue
         try:
             stat = Path("/proc", d, "stat").read_text()
-            pgrp, session = (int(x) for x in stat[stat.rindex(")") + 2:].split()[2:4])
-            if sid in (pgrp, session) or mark in Path("/proc", d, "environ").read_bytes().split(b"\0"):
-                out.append(int(d))
+            state, ppid, pgrp, session = stat[stat.rindex(")") + 2:].split()[:4]
+            if state == "Z":
+                continue
+            kids.setdefault(int(ppid), []).append(int(d))
+            if sid in (int(pgrp), int(session)) or mark in Path("/proc", d, "environ").read_bytes().split(b"\0"):
+                out.add(int(d))
         except (OSError, ValueError):
             continue  # exited between the listing and the read, or not ours to read
-    return out
+    todo, seen = ([c for c in kids.get(root, []) if c not in skip] if root else []), set()
+    while todo:
+        pid = todo.pop()
+        if pid not in seen:
+            seen.add(pid)
+            todo.extend(kids.get(pid, []))
+    return sorted(out | seen)
 
 
-def _kill_family(sid: int, token: str) -> None:
+def _reap(skip: frozenset, keep: int) -> None:
+    """Collect the exit status of every orphan reparented to this subreaper (children not in
+    `skip` and not the command `keep`, which Popen waits for), so dead ones leave no zombie."""
+    for d in os.listdir("/proc"):
+        try:
+            pid = int(d)
+            stat = Path("/proc", d, "stat").read_text()
+            if pid != keep and pid not in skip and int(stat[stat.rindex(")") + 2:].split()[1]) == os.getpid():
+                os.waitpid(pid, os.WNOHANG)
+        except (OSError, ValueError, ChildProcessError):
+            continue
+
+
+def _kill_family(sid: int, token: str, skip: frozenset = frozenset(), root: int = 0) -> None:
     """SIGKILL every member until none is left (a member may fork while the list is taken)."""
     for _ in range(20):
-        pids = family(sid, token)
+        pids = family(sid, token, skip, root)
+        if root:
+            _reap(skip, sid)
         if not pids:
             return
         for pid in pids:
@@ -144,30 +188,38 @@ def run_cmd(argv: list[str], cwd: Path, timeout: float) -> int:
     nothing about the test pinning the mutant and is never a kill."""
     token = f"{os.getpid()}-{time.monotonic_ns()}"
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", MUTANT_RUN_TOKEN=token)
+    prev = _subreaper(1)
+    root = os.getpid() if prev >= 0 else 0
+    skip = frozenset(family(0, token, root=root)) if root else frozenset()  # children (and theirs) from before
     p = subprocess.Popen(argv, cwd=str(cwd), env=env, start_new_session=True,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    _child.append((p, token))
+    _child.append((p, token, skip, root))
+    fam = lambda: family(p.pid, token, skip, root)  # noqa: E731
     deadline = time.monotonic() + timeout
     try:
         while True:
             try:
                 rc = p.wait(timeout=max(0.0, min(FORKCAP_POLL_S, deadline - time.monotonic())))
-                if FORKCAP[0] and len(family(p.pid, token)) > FORKCAP[0]:
+                if FORKCAP[0] and len(fam()) > FORKCAP[0]:
                     rc = FORKCAP_RC
                 return rc
             except subprocess.TimeoutExpired:
                 pass
+            if root:
+                _reap(skip, p.pid)
             if time.monotonic() >= deadline:
-                _kill_family(p.pid, token)
+                _kill_family(p.pid, token, skip, root)
                 p.wait()
                 return TIMEOUT_RC
-            if FORKCAP[0] and len(family(p.pid, token)) > FORKCAP[0]:
-                _kill_family(p.pid, token)
+            if FORKCAP[0] and len(fam()) > FORKCAP[0]:
+                _kill_family(p.pid, token, skip, root)
                 p.wait()
                 return FORKCAP_RC
     finally:
-        _kill_family(p.pid, token)  # a daemon outliving its command is the command's, not the next mutant's
+        _kill_family(p.pid, token, skip, root)  # a daemon outliving its command is the command's, not the next mutant's
         _child.clear()
+        if prev >= 0:
+            _subreaper(prev)
 
 
 class Workspace:
@@ -198,8 +250,8 @@ class Workspace:
         prev = {sg: signal.getsignal(sg) for sg in (signal.SIGTERM, signal.SIGINT)}
 
         def on_signal(signum, frame):
-            for p, token in _child:
-                _kill_family(p.pid, token)
+            for p, token, skip, root in _child:
+                _kill_family(p.pid, token, skip, root)
             self.close()
             h = prev[signum]
             if callable(h):
@@ -754,11 +806,12 @@ def _self_test() -> int:
                        "if n <= 0:\n    time.sleep(120)\n    sys.exit(0)\n"
                        "pid = os.fork()\n"
                        "if pid == 0:\n"
-                       "    {'pgrp': lambda: os.setpgid(0, 0), 'session': os.setsid, 'plain': lambda: None}[mode]()\n"
-                       "    os.execv(sys.executable, [sys.executable, sys.argv[0], mode, str(n - 1)])\n"
+                       "    {'pgrp': lambda: os.setpgid(0, 0), 'session': os.setsid, 'cleanenv': os.setsid, 'plain': lambda: None}[mode]()\n"
+                       "    env = {} if mode == 'cleanenv' else os.environ\n"
+                       "    os.execve(sys.executable, [sys.executable, sys.argv[0], mode, str(n - 1)], env)\n"
                        "time.sleep(0.02)\n"
                        "os.waitpid(pid, 0)\n")
-        for mode in ("pgrp", "session"):
+        for mode in ("pgrp", "session", "cleanenv"):
             write_spec([bad])
             t0 = time.monotonic()
             rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh -c 'grep -q \"return lo\" lib.py && exit 0; python3 {esc} {mode} 120'",
@@ -773,6 +826,14 @@ def _self_test() -> int:
         rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh -c 'setsid python3 {esc} plain 0 </dev/null >/dev/null 2>&1 & exit 0'", "--timeout", "60")
         left = subprocess.run(["pgrep", "-f", f"{esc} plain 0"], capture_output=True, text=True).stdout.split()
         check("forkcap: a daemon that left the session and outlived its command is killed at the command's exit",
+              rc == 0 and not left)
+        for pid in left:
+            os.kill(int(pid), signal.SIGKILL)
+        write_spec([bad])
+        rc, out, _ = drive("--spec", str(spec), "--cmd",
+                           f"sh -c 'setsid env -i {sys.executable} {esc} plain 0 </dev/null >/dev/null 2>&1 & exit 0'", "--timeout", "60")
+        left = subprocess.run(["pgrep", "-f", f"{esc} plain 0"], capture_output=True, text=True).stdout.split()
+        check("forkcap: a daemon that left the session, cleared its environment and outlived its command is killed at the command's exit",
               rc == 0 and not left)
         for pid in left:
             os.kill(int(pid), signal.SIGKILL)
