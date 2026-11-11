@@ -1,0 +1,106 @@
+mutant m_tile_no_steady: ('custom_components/heatpump_optimizer/coordinator.py', 'steady="power_cap_kw" in overrides', 'steady=False')
+rc=1
+-- The discharge law: the valve regulates flow temperature (item 29)
+-- R10-COMBI-TANK-STORE: the combi store, one node for space and hot water
+-- R10-COMBI-TANK: the combi store's guards and clamps, at the inputs that move them
+-- R10-COMBI-TANK: the combi option, seed, learners and legionella default
+-- The valve hold schedule (item 29)
+-- smart_write: the optimizer commands the valve (item 29)
+-- Unit-correct write target for flow set-point entities (#398)
+-- Per-step external heat reaches the model and the plan (item 28)
+-- Setup topology: one description for every picture (items 32/33)
+-- R9 N-language: setup text takes the install's language (D4-s2-81)
+-- Buffer tank standby loss scales with the tank (items 27/29)
+-- Two-zone loss split learning (item 31)
+-- A zone-sensor swap and the reset action void the heat-loss learners
+-- A factory reset returns settings, learners or both to their defaults
+-- Runtime parameter updates
+-- Economy mode (audit item 4)
+-- Two-tank topology (issue #40)
+-- DHW refill coil in the wood tank (v3.15.1)
+-- Topology catalog and the layout editor's contract (v3.16.0)
+-- T1 — the bill beyond spot (#1 #13 #19 #34 #23)
+-- R4-D2-02 — catalog effekt tariffs carry their off-peak factors (#926)
+-- R8-D2-s2-01 — the capacity bill from each tariff's stated rule (#1512)
+RESULT bill_oracle_cells=20 separating=14 count
+RESULT bill_oracle_plan_cells=20 separating=14 count
+-- T2 — peak & power (#7 #5 #3 #22)
+-- T3 — hot water (#32 #18 #20 #24 #47 #9 #28 #6)
+-- T3b — shared-step honesty
+-- T4a — insurance and detectors (#42 #26 #11 #12)
+-- One bounded Newton step behind both heat-loss learners (#193 S7)
+  R10-IMMERSION-LATCH controls: no element {'spot': 3.0, 'grid_fee': 3.0, 'immersion': 0.0, 'dhw_booster': 0.0, 'backup_heater': 0.0} booster {'spot': 2.875, 'grid_fee': 3.45, 'immersion': 0.0, 'dhw_booster': 0.5750000000000002, 'backup_heater': 0.0} flat at nameplate {'spot': 2.5, 'grid_fee': 2.5, 'immersion': 0.0, 'dhw_booster': 0.0, 'backup_heater': 0.0} savings off (3.45, 8.625, 1.5, 3.45, 3.45) on (3.45, 8.625, 1.5, 3.45, 2.875)
+-- T4b — weather inputs and learners (#21 #30 #17 #36 #53 #2)
+-- T5 — comfort floors (#16 #54)
+-- R10 N-staleness: the age limit keyed on how a source reports (D14-s3-02)
+-- T6 — insight (#29 #52 #55 #65 #39 #40)
+-- T7 — inverter frequency (#61)
+-- v4.0.2 — entry lifecycle, the solve boundary, store writes
+-- service operational failures raise (D10-04, #294)
+-- stuck prices skip the service solve (#239)
+-- services.py is the service-handler module (#222)
+-- v4.0.3 — stale-plan guards, billed peaks, boundary clamps
+-- v4.0.4 — DST-day exclusion from price learning
+-- v4.0.4 — negative-mean initial guess
+-- v4.0.4 — grid-fee magnitude repair issue
+-- v4.0.4 — the quarter snap and DST windows, under a real timezone
+=== DST / quarter-grid (subprocess, HASTUB_TZ) ===
+-- the stub honours HASTUB_TZ
+-- solve anchor snaps to the quarter grid (coordinator path)
+-- window snap: day-anchored, across both DST transitions
+-- planning grid on DST days (#243)
+-- window_factors across a transition INSIDE the horizon (#777)
+-- age seams across the DST transitions (#1299)
+-- the forecast grid after the transition (round-9 D14-s4-01)
+-- naive stored stamps under the aware clock (round-9 D3-s1-91)
+-- the UTC helpers themselves across both transitions (round-9 P7)
+-- the DST tracer over replayed transition days (round-9 P7 barrier)
+=== Stress and economics ===
+-- the manual override lasts its stated length in true time (#1756, D9)
+-- the DST tracer: config arm and straddle arm (#1756)
+-- rate limiters, retry stamps and manual-plan compares across the fold (round-9 F10.1d)
+-- R9-F10.1e: the census-missed sites measure true time across the fold and the spring gap
+-- early cut-off: the minimum run and stop are true time across a DST change
+ALL 137 DST / QUARTER-GRID CHECKS PASSED
+-- v4.0.5 — one marginal COP per store, shared with the dynamics
+-- v4.0.5 — settlement caps: the lower zone's slab, a reachable tank
+-- v4.0.5 — DHW conservation: a cold tank cannot pour hot water
+-- v4.0.5 — sysid: the intercept the relax phase was smuggling
+-- sysid under sensor noise (D2-01) and a reachable gate (D7-02)
+-- sysid vs a drifting room sensor, and a bound-blind gate (D2-07)
+-- sysid settle power, comfort-bounded step sizing, settle window (W2-G5)
+-- sysid step sized on the two-state plant (#779)
+-- sysid refuses a shrunk drift that landed in UA (R3-D2-03 / #778)
+-- Free heat skips the accuracy sample (D7-05)
+-- v4.0.5 — learners: tracking error is not efficiency
+-- v4.0.6 — the floor gets the same physics check the rating has
+-- v4.0.5 — the battery view shares the optimizer's caps
+-- v5.1.1 — reloads that change nothing, and setups that do not solve
+-- Unload lifecycle and Tibber failure semantics (D10-06/07/09)
+-- #236/#237/#240 — the coordinator's lifecycle seam
+-- #1754 — a refresh during an in-flight solve is honoured, and releases land on the override the solve pinned
+-- #2257 — the what-if's steady-start estimator
+STDERR-TAIL
+What-if simulation failed: probe: the shadow solve failed
+Process-solve worker unusable (ProcessWorkerUnavailable: probe: no worker); solving in this process instead. The plan is correct, but the solve holds the GIL (#199 #290 #511).
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/ac798b62-8679-588f-b785-22e84984754e/scratchpad/mut/m_tile_no_steady/tests/features.py", line 31976, in _st_tiles
+    name = next(k for k, v in price_tiles.book(coord).items() if len(v.get("days", [])) != had.get(k, 0)
+                or k not in had)
+StopIteration
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/ac798b62-8679-588f-b785-22e84984754e/scratchpad/mut/m_tile_no_steady/tests/features.py", line 31990, in <module>
+    _st_tiles_seen = _asyncio.run(_st_tiles())
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+RuntimeError: coroutine raised StopIteration

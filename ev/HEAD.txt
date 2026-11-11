@@ -1,0 +1,2 @@
+7c7f06081827bbf9c52da7b2345b3a5a81048649
+reviewed head 7c7f06081827bbf9c52da7b2345b3a5a81048649; base (merge base with origin/main) 61afd4f2db10341ab9b86583944402b206eb4c78; roster branch handoff/audit-r10-roster read at ea774b53f39df66875c9f97f6957c1de680b92b8; design note 55f90c7c63ae3f1609e6032959871e5ccbd867fe

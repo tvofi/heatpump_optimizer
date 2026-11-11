@@ -1,0 +1,32 @@
+RESULT probe schedule two_zone=False dhw=False: rows 72 against the ask 0 branch-None 0 max spread over 5 measured states 0.0000 live day kWh 19.99..27.66
+RESULT probe schedule two_zone=False dhw=True: rows 72 against the ask 0 branch-None 0 max spread over 5 measured states 0.0000 live day kWh 19.99..27.66
+RESULT probe schedule two_zone=True dhw=False: rows 72 against the ask 0 branch-None 0 max spread over 5 measured states 0.3000 live day kWh 24.43..33.78
+RESULT probe schedule two_zone=True dhw=True: rows 72 against the ask 0 branch-None 0 max spread over 5 measured states 0.3000 live day kWh 24.43..33.78
+  row weekend 01:00 wknight-1 fig 0.0 days (27.65841343813463, 27.65841343813463)
+  row weekend 07:00 night-1 fig 0.0 days (25.551778346641484, 25.551778346641484)
+  row weekend 07:00 night+1 fig 0.0 days (25.551778346641484, 25.551778346641484)
+  row weekend 09:00 night-1 fig 0.0 days (24.981132180955512, 24.981132180955512)
+  row weekend 09:00 night+1 fig 0.0 days (24.981132180955512, 24.981132180955512)
+  row weekend 09:00 wkday+1 fig 0.0 days (24.981132180955512, 24.981132180955512)
+  row weekend 11:00 night-1 fig 0.0 days (24.433143862324034, 24.433143862324034)
+  row weekend 11:00 night+1 fig 0.0 days (24.433143862324034, 24.433143862324034)
+  row weekend 13:00 night-1 fig 0.0 days (23.85532702325832, 23.85532702325832)
+  row weekend 13:00 night+1 fig 0.0 days (23.85532702325832, 23.85532702325832)
+  row weekend 15:00 night-1 fig 0.0 days (23.289078803908954, 23.289078803908954)
+  row weekend 15:00 night+1 fig 0.0 days (23.289078803908954, 23.289078803908954)
+  row weekend 17:00 night-1 fig 0.0 days (22.746707200288512, 22.746707200288512)
+  row weekend 17:00 night+1 fig 0.0 days (22.746707200288512, 22.746707200288512)
+  row weekend 19:00 night-1 fig 0.0 days (22.330518989980636, 22.330518989980636)
+  row weekend 19:00 night+1 fig 0.0 days (22.330518989980636, 22.330518989980636)
+  row weekend 21:00 night-1 fig 0.0 days (21.93744502398335, 21.93744502398335)
+  row weekend 21:00 night+1 fig 0.0 days (21.93744502398335, 21.93744502398335)
+RESULT probe weekend (Fri->Sat, weekend comfort set): rows 90 against the ask 18 branch-None (reads the pair) 6
+RESULT probe pair tanked dhw_setpoint+5 01:00 steady by state (base, coasted, tank 44, tank 58)     -8.0     -8.0    -11.5    -11.5 spread 3.5
+RESULT probe pair tanked dhw_setpoint+5 09:00 steady by state (base, coasted, tank 44, tank 58)     -2.6     -2.6     -4.7     -8.7 spread 6.1
+RESULT probe pair tanked dhw_setpoint+5 17:00 steady by state (base, coasted, tank 44, tank 58)    +32.2    +32.2    +26.4    +42.8 spread 16.3
+RESULT probe pair tanked dhw_min+5 01:00 steady by state (base, coasted, tank 44, tank 58)    +97.5    +97.5    +94.9    +96.5 spread 2.6
+RESULT probe pair tanked dhw_min+5 09:00 steady by state (base, coasted, tank 44, tank 58)   +101.8   +101.8   +101.1    +96.0 spread 5.8
+RESULT probe pair tanked dhw_min+5 17:00 steady by state (base, coasted, tank 44, tank 58)   +102.0   +102.0   +100.2   +101.7 spread 1.9
+RESULT probe pair tanked dhw_setpoint-5 01:00 steady by state (base, coasted, tank 44, tank 58)    +29.1    +29.1    +20.0     +4.9 spread 24.2
+RESULT probe pair tanked dhw_setpoint-5 09:00 steady by state (base, coasted, tank 44, tank 58)    +25.3    +25.3    +19.8    -12.7 spread 37.9
+RESULT probe pair tanked dhw_setpoint-5 17:00 steady by state (base, coasted, tank 44, tank 58)    -14.4    -14.4    -17.3     -7.7 spread 9.6

@@ -1,0 +1,15 @@
+control rc 1
+b_horizon_weather rc 1
+c_one_pass rc 1
+a_schedule_days_none rc 1
+d_sides_swapped rc 1
+e_shifted_at_mean rc 1
+f_service_no_steady rc 1
+g_first_price rc 1
+i_held_start_off rc 1
+j_kept_key_dropped rc 1
+l_fuse_settled rc 1
+k_pair_on_schedule rc 1
+m_tile_no_steady rc 1
+n_wood_extra_dropped rc 1
+o_shifted_guard rc 1

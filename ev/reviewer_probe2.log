@@ -1,0 +1,4 @@
+RESULT probe weekday weekend comfort set: night-1 asked 09:00 Mon..Sun (same prices and weather every day): -1.8 -1.8 -1.8 -1.8 +0.0 pair +0.0
+RESULT probe weekday weekend comfort set: day+1 asked 09:00 Mon..Sun (same prices and weather every day): +68.2 +68.2 +68.2 +68.2 +55.1 pair +3.7
+RESULT probe weekday null: no weekend comfort: night-1 asked 09:00 Mon..Sun (same prices and weather every day): -1.8 -1.8 -1.8 -1.8 -1.8 -1.8 -1.8
+RESULT probe weekday null: no weekend comfort: day+1 asked 09:00 Mon..Sun (same prices and weather every day): +68.2 +68.2 +68.2 +68.2 +68.2 +68.2 +68.2

@@ -1,0 +1,96 @@
+mutant n_wood_extra_dropped: ('custom_components/heatpump_optimizer/price_tiles.py', '* price * horizon_hours / 24.0 + extra, horizon_hours)', '* price * horizon_hours / 24.0, horizon_hours)')
+rc=1
+-- #283 numpy scalars at compute_solar_gain and _deferred_energy_cost
+-- #284 legacy schedule publishes the full horizon
+-- #193 S3 — the two payload halves stay key-identical
+-- #193 S3 — the ECL110 publish helpers, over plain values
+-- R10-GENERIC-HEAT-CURVE — the displace through a number entity, kind offset
+-- R10-GENERIC-HEAT-CURVE-PERSISTENT — kind persistent: a stored curve parameter
+-- R5-D12-01 — the ECL110 MQTT surface exists only when configured
+-- W3-G2 — DHW planner re-simulation count (#289)
+-- #1230 — _apply_dhw_min_run replays the whole horizon per weak slot
+-- the jointly-raised branch ships when the coil is not monotone (R7 D0-01)
+-- W3-G3 — process-route the solve off the GIL (#290 #199)
+-- #511 — the solve worker under Home Assistant's module naming
+-- #783 — in-process fallback is capped, not permanent
+-- #1755 — the worker-fallback streak and cause are per entry, not per hass
+-- #524 — an unpicklable solve RESULT must raise, never become the plan
+-- worker read timeout — a silent worker is reaped, not waited on
+-- #525 — nothing blocking runs on Home Assistant's event loop
+-- #533 — the atexit backstop reaps without polling the loop thread
+-- R9 F1.5 — the worker's spawn and its stop (D1-s2-55, D1-s2-05)
+-- 3L-G5 — DHW set-point consistency (#408)
+-- 3L-G7 — monthly savings history
+-- #2255 — one cost source and a coverage-scaled open month
+-- 3L-G8 — wood fuel math
+-- 3L-G9 — what-if wood slots
+-- #193 S5 — effective house heat loss over plain values
+-- #193 S6 — the grid fee entity read over plain values
+-- apply_topology accepts every place the setup page draws (#546)
+-- process_worker.py (#505)
+-- W5-G7 t1: the coordinator's core lifecycle and error paths (#195)
+-- W5-G7 t2: the learning seam's guards and store arms (#195)
+-- W5-G7 t3: the fetch and grid seams (#195)
+-- W5-G7 t4: the core seam and the learning tail (#195)
+=== Stress and economics ===
+-- #1329: the sysid arm/adopt gate opens on the plants the tree ships
+-- sysid two-state fit survives a drifting room sensor (R6 D7-03)
+-- W5-G7 t5: the lifecycle methods (#195)
+-- W5-G7 t6: the tail (#195)
+-- W5-G8 a: the corruption barriers (#195)
+-- W5-G8 b: advisories and the worker bootstrap (#195)
+-- W5-G8 c: away and boost (#195)
+-- W5-G8 d: the wood-fuel arithmetic (#195)
+-- W5-G8 e: the price feed's edges (#195)
+-- W5-G8 f: the extracted DHW learner and legionella guard (#195)
+-- W5-G8 g: the last loaders and the window arithmetic (#195)
+-- W5-G8 h: the repair flow and the away instant (#195)
+-- W5-G8 i: the system-identification experiment (#195)
+-- W5-G8 j: the wood night advisory (#195)
+-- #1067 W1067-G7 — pre-filling options from the GCHV Modbus package
+-- #1067 W1067-G7b-1 — pre-filling options from a heat-pump device
+-- #1067 W1067-G7b-2 — the tuya_local table and the localtuya decision
+-- #1067 W1067-G7b-3 — the fuzzy fallback and its labelled corpus
+-- #1067 W1067-G5 — the disinfection switch, observe first
+-- #1067 W1067-POST1 — the qualifying minimum, read off the corpus
+-- Quick setup: the answer-to-config mapping
+-- P8 — a price or temperature entity's unit is read at the seam (#1513)
+-- R8-P8 round 3: mutation survivors on lines this diff's files carry
+-- #1513 follow-up: a forecast's precipitation_unit is honoured
+-- pump-duty arbiter — mode and set-points per plan step, held while the optimizer is active
+-- N-service-clamp/P1 — the manual plan's expiry clamps to its window and a store sample count loads bounded (D1-s2-54, D1-s2-03)
+-- P1/P2 — a stored instant loads aware, or not at all (D1-s1-01, D1-s3-01, D1-s1-02, D1-s3-05)
+-- P1/P2 — the pump-duty arbiter's record, unload and mode route, and the frequency map (D1-s3-02, D1-s3-03, D12-s2-02, D1-s3-06)
+-- P1/P2/N-min-gap — the defrost, price-shape and peak stores and the feed parsers (D1-s4-01, D1-s4-03, D1-s5-02, D1-s5-03, D1-s5-04)
+-- P5 — sysid stands down on the learner freeze, and names every refusal (#1523, #1525)
+-- Actuation routing: every accepted domain reaches its consumer (#1526)
+-- R8-P3 — one COP law, one humidity, at every planning seam (#1520, #1530)
+RESULT f21_p3_two_zone=1 j_plain=107.039134 j_continuation_off=107.903727 continuation_gain=+0.864593 j_seeded_half_price=106.932576
+RESULT f21_p3_two_zone=0 j_plain=99.470771 j_continuation_off=99.470771 continuation_gain=+0.000000 j_seeded_half_price=99.441228
+RESULT r10_solver_runs fused={'relaxed': (1, 0), 'continuation': (1, 0), 'multi-start': (12, 0)} scalar_valued={'relaxed': (1, 67), 'continuation': (1, 117), 'multi-start': (12, 491)}
+-- #1913 SW-4 — GCHV Modbus silent transport via night-mode 518/519
+-- COP learner duty floor keys on the modulation floor (live v6.7.17)
+-- R10-COP-GATE (#2262): COP observability, the latch's time, and the draw pairing
+-- R10-HOTFIX-COP-UNMEASURED: a COP sample is measured only from metered heat over metered power
+-- early cut-off — a warm room stops a space-heating pump inside the interval
+-- °F set-points: one unit rule for every set-point write (D12-s3-01, L1, L2)
+-- R10-PUMP-MODEL -- DHW lift, the duty floor channel, the step-start fold
+-- R10-HEAT-METER: a delivered-heat counter, split by the mode dwell (#2261)
+-- supply switch at step boundaries (#2492, R10-SAV-ACTUATION)
+-- R10-CEILING-PROBE: the experiment's step reaches the pump; the ceiling store
+-- R10-PROD-RESIDUE-PINS: one plan step width in the arbiter; shutdown re-arms the hass latches
+3 of 5278 FEATURE CHECKS FAILED
+STDERR-TAIL
+r_test_entry_pump_duty: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_dhw_legionella: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
+heatpump_optimizer_test_entry_pump_duty: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_dhw_legionella: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
+heatpump_optimizer_f32_lead: stored instant 2027-07-06T14:00:00+02:00 is ahead of the clock; bounded to 2026-06-01 16:00:00+02:00
+heatpump_optimizer_f32_lead: stored instant 2027-07-06T12:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
+/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/_core/fromnumeric.py:3862: RuntimeWarning: Mean of empty slice
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/tmp/claude-0/-home-user-heatpump-optimizer/ac798b62-8679-588f-b785-22e84984754e/scratchpad/mut/n_wood_extra_dropped/tests/features.py:83451: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  _ap_unload()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback

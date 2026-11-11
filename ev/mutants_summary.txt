@@ -1,0 +1,28 @@
+control rc=1 4
+    1 of 5278 FEATURE CHECKS FAILED
+a_schedule_days_none rc=1 lines-not-in-control 1
+    10 of 5278 FEATURE CHECKS FAILED
+b_horizon_weather rc=1 lines-not-in-control 1
+    4 of 5278 FEATURE CHECKS FAILED
+c_one_pass rc=1 lines-not-in-control 1
+    7 of 5278 FEATURE CHECKS FAILED
+d_sides_swapped rc=1 lines-not-in-control 1
+    7 of 5278 FEATURE CHECKS FAILED
+e_shifted_at_mean rc=1 lines-not-in-control 1
+    2 of 5278 FEATURE CHECKS FAILED
+f_service_no_steady rc=1 lines-not-in-control 0   <-- SURVIVED
+g_first_price rc=1 lines-not-in-control 1
+    2 of 5278 FEATURE CHECKS FAILED
+i_held_start_off rc=1 lines-not-in-control 1
+    4 of 5278 FEATURE CHECKS FAILED
+j_kept_key_dropped rc=1 lines-not-in-control 1
+    2 of 5278 FEATURE CHECKS FAILED
+k_pair_on_schedule rc=1 lines-not-in-control 1
+    5 of 5278 FEATURE CHECKS FAILED
+l_fuse_settled rc=1 lines-not-in-control 1
+    3 of 5278 FEATURE CHECKS FAILED
+m_tile_no_steady rc=1 lines-not-in-control 3
+n_wood_extra_dropped rc=1 lines-not-in-control 1
+    3 of 5278 FEATURE CHECKS FAILED
+o_shifted_guard rc=1 lines-not-in-control 1
+    2 of 5278 FEATURE CHECKS FAILED
