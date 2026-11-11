@@ -1,19 +1,8 @@
-Fix review: blocked 6f1dd2040ce51f5dbff0ce67ffc1085637b29ea6 class-open: a high-limit sensor reading at or below the gate makes the loop write the gate or below it, and the two added vendor comments keep the combi census red after #3466
+Fix review: merge 580f12908056021e9448d5f0520919044e6de41a
 
-bus-nonce: aeccdd3f69b478d94d6fb214de3af9ea
+bus-nonce: 8ff03f19a812307162aa7aa0d0fe712d
 
-Round: first (handoff tip 100ff9351df307cbdaaea4c24ae15cb78ff1c799; measured head 6f1dd2040ce51f5dbff0ce67ffc1085637b29ea6).
-
-## Block
-
-1. **The new upper bound has an unguarded domain, and the loop can write the off gate (I2).** `_feedback_bounds` (`pump_arbiter.py:976-983`) now appends the high-limit sensor to `highs`, but nothing keeps `hi >= lo`. Then `_feedback` sets `rec.w_c = min(max(nudged, lo), hi)`, and `_bounded(..., lo=lo, hi=hi)` passes `hi_c` below the gate floor and below the entity's own minimum. Before this diff, `hi` could only be the ceiling (30 °C or above) or a read-back cut above the previous write. This diff gives it a third source, a configurable sensor. The picker offers any `sensor`/`temperature`, and `WATER_RANGE_C` admits −20 to 100 °C, so a mis-picked outdoor or room sensor is accepted as a limit. Measured with the finder's harness `sim` at the head (`ev/probe2.py`, `ev/probe_gate.txt`), on the step-up block of the PR's own fixture with a return unit (gate 20 °C):
-   - high limit 5.0 → 30 of 62 writes at or below 20.0 °C, the lowest 5.0 (below the entity minimum of 15);
-   - high limit 15.0 → 30 of 62, lowest 15.0;
-   - high limit 20.0 → 30 of 62, each one exactly the gate;
-   - high limit 21.0 or 22.0 → none at or below 20.0;
-   - null control, no sensor → none (lowest 26.0).
-   The writes alternate between today's target and the limit (`26.4, 5.0, 26.7, 5.0 …`), so each run start is followed by an off command. `_feedback_bounds`' own docstring promises "nor at the gate (I2)". The crossed-pair guard covers only two set sensors, and the unusable-sensor check never tests a single limit below the loop's lower bound. This is the predicate's unguarded domain (fix-review step 6). The fix belongs in this diff: drop a limit that would put `hi` below `lo` (or below the gate clearance) as unusable, as the PR already does for a crossed pair, and add a check with its no-sensor null control. A low limit above the ceiling is safe: the ceiling wins and the highest write stays 32.0 (`ev/probe_edges.txt`).
-2. **This PR adds two of the vendor-name sites that keep `tests / fast (3.14)` red after #3466.** At the head, `combi_type_branch census` FAILs listing eight sites (`ev/features_head.txt`). #3466 rewrites six of them. With #3466 merged into this head (`git merge-tree` clean, tree `3b7f5185500e0b12ddeb79ce50c76d7c353632f8`), the census still FAILs, on exactly `['config_flow.py:1704', 'const.py:836']` (`ev/features_head_plus_3466.txt`). Both are comment lines this diff adds ("a Luxtronik's inputs 10104 and 10103"). So the fast red at this head is not only main's. Name the behaviour, not the vendor, on those two lines, as #3466 does. The docstring edit at `pump_arbiter.py:1049-1052` sits next to #3466's own edit at line 1047; they merge cleanly.
+Round: second (a delta review). It resumes from `verdict/3469` at 85f2fa2c27fa, which returned `blocked 6f1dd2040ce5 class-open`. Measured head: 580f12908056021e9448d5f0520919044e6de41a, which is the handoff tip. Repair range: 6f1dd204..580f1290. `review_carry.py` prints `FRESH-REVIEW` for this range, so only the delta is reviewed here.
 
 ## Findings
 
@@ -21,23 +10,42 @@ none
 
 ## Evidence
 
-- `ev/HEAD.txt`: the head I reviewed. `git merge-tree --write-tree origin/main <head>` exits 0 at origin/main 60413046e (`ev/merge_with_3466.txt`). `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty.
-- Finder's harness `dev/audit/harnesses/r10_water_setpoint_feedback.py` (sha1 ee9f738ce477dddab30d808eef4cdaddcdbbf178, the head's file), run at the merge base 0a2139b1dd and at the head (`ev/harness_both_ends.txt`). The three part-1 rows are identical at both ends. At the base, `return limit 27.6` prints highest 28.1 with the sensor set or unset, and `return minimum 28.0` prints lowest 27.6 either way. At the head, with the sensor set, they print highest 27.6 and lowest 28.0. This matches the body.
-- Mutation proof, `tests/features.py` at the head with each mutant applied (`ev/mutation_driver.txt`, `ev/driver_*.txt`, `ev/mutant_*.txt`):
-  - M1 (`lows.append(low)` deleted) FAILs the minimum-28.0 check.
-  - M2 (`high` dropped) FAILs the limit-27.6 check.
-  - M4 (`if False:`), M5 (`>=` to `>`) and M6 (both `WATER_RANGE_C` rows deleted) each FAIL the unusable-sensor check.
-  - M8 (mine: the limits forced to `None`) FAILs both sensor checks.
-  - M3 was not re-run.
-  - M7 was not applied: its pattern occurs twice, so my driver refused. The body discloses it as an equivalent survivor, and its reasoning matches `InputReader.read` (`inputs.py:995-1013`: `value` is withdrawn when the reading is implausible, and with no age limit nothing else sets it while not ok).
-  - Each mutant run also shows the combi census FAIL, which is the head's baseline, not the mutant's.
-- `tests/features.py` at the head: rc=1, `1 of 5245 FEATURE CHECKS FAILED`, the combi census only. All eight part-3 checks pass.
-- Figures re-derived at the head:
-  - `git grep -c -E 'space_setpoint_(low|high)_limit_entity'` matches no line at origin/main (exit 1) and seven files at the head.
-  - The seam rule `_bounded(inp, "space_setpoint"` returns five sites (614, 755, 886, 949, 1158), as the body says.
-  - `tests/structure.py` printed `STRUCTURE RATCHET PASSED`.
-  - `archscore --diff origin/main` printed `dS +0.0000 NULL` (`ev/cheap_checks.txt`).
-- carry_audit was run with the body's `## Red checks`, `## Forward-carry` and `## Friction` sections (all `none`) as the body file; the packet's own carry_audit at the head printed 0 finding items.
-- Not checked: VERSION, manifest, RELEASE_NOTES and both claim files appear in no hunk of the three-dot diff. No golden or `env_drift` drift was re-run.
-- Forward-carry: the body names none. Carry 8's 10107 read is ruled to R10-OUTSIDE-DHW-START-HYSTERESIS by the orchestrator; I did not open the roster.
-- CI: `merge_train.py classify` still prints `WAIT 6f1dd2040ce51f5dbff0ce67ffc1085637b29ea6 pending: gate red: none` after about 40 minutes (`ev/classify_last.txt`). No owed red concluded at this head, so `## Red checks: none` is not yet contradicted. The census red above is shown by a local run and is part of the block, not a root-cause trigger finding.
+- Both items of the earlier block are answered.
+  - Block item 1, the high-limit sensor at or below the gate. The finder's harness is the earlier verdict's `probe2.py` and `probe.py`, run against the harness file of the reviewed head (blob d6a63655). I ran it against the production tree of 6f1dd204 and of 580f1290 (`ev/finder_probe_both_ends.txt`).
+    - At 6f1dd204, a high limit of 5.0, 15.0 or 20.0 gives 30 of 62 writes at or below the 20.0 gate, the lowest being 5.0, 15.0 and 20.0.
+    - At 580f1290 the same limits give 0 writes at or below the gate, lowest 26.0. The write list is 65 writes, identical to the no-sensor row.
+    - Null control, identical at both ends: no sensor gives 65 writes, lowest 26.0. Limits of 21.0 and 22.0 above the gate still give 62 writes with lowest 21.0 and 22.0, so a usable limit is still used. A limit of 24.0 is unchanged. A low limit of 40 or 31.9 against the 32 ceiling is unchanged.
+  - Block item 2, the combi census.
+    - The head merges cleanly with current origin/main c71d3f6e8983, which includes #3466: `git merge-tree --write-tree` exits 0, tree 8021b1ecd020, empty stderr, no MERGE-CLAIM line (`ev/merge_main.txt`). On the merged tree, `combi_type_branch census` is `ok` (`ev/features_merged_main.txt`).
+    - At the head alone, in a git worktree, `tests/features.py` fails only the census (1 of 5252), on main's six pre-#3466 lines. Neither `config_flow.py:1704` nor `const.py:836` is among them (`ev/features_head_worktree.txt`).
+- Attacks on the new clamp (`ev/attack.py`, `ev/attack_both_ends.txt`). These probes are mine, not the finder's.
+  - I called `_feedback_bounds` and the write's `_bounded` directly. The grid was 2 units × entity steps 0.1/0.5/1.0 × sources sensor/cut/both × 11 offsets (gate −25 or −5, −step, 0, +0.005, +0.01, +step/2, +step−0.001, +step, +step+0.001, +2·step). The offsets cover the sensor equal to the gate, equal to the gate plus one step, and `cut_hi_c` under the gate.
+    - At the head, every row writes above the gate.
+    - At 6f1dd204, 144 rows wrote at or below it.
+    - A limit at the gate plus one step is kept (hi 20.10, 20.50, 21.00 for return; 25.10, 25.50, 26.00 for flow). A limit 0.001 under that is dropped (hi 32.00, the ceiling).
+  - Placeholder high-limit states, run through `sim`. The states `unavailable`, `unknown`, `''`, `nan`, `-20.1`, `100`, `100.1` and `inf` are the same at both ends: lowest 26.0. The states `0` and `-20` are inside `WATER_RANGE_C`: at 6f1dd204 they gave 30 writes at or below the gate (lowest 0.0 and −20.0); at the head, 0 such writes and lowest 26.0.
+  - Unset space_setpoint entity: `_bounded` returns None at both ends. The bounds at the head are 25.70 and 32.00, since the sub-gate 20.0 limit is dropped through the `or clear` fallback.
+  - Controller clamp maximum of 18.0, 20.0, 20.1 or 21.0 with no sensor: identical at both ends (31 writes, lowest 25.7, 235 retry passes), so the cut filter does not regress the readback path in `sim`. In this fixture `sim` never learns a cut below the gate. The direct grid's `cut` and `both` sources cover that path.
+- Group harness at the head (blob b0202406…), run at both ends (`ev/group_harness_both_ends.txt`). The body's figures check out:
+  - Old head: rows 15.00, 20.00, 20.05 (return) and 20.00, 25.00, 25.05 (flow) print lowest 15.0, 20.0, 20.0, 20.0, 25.0, 25.0 and `above the gate False`.
+  - New head: each prints `writes 24 lowest 26.0 above the gate True`, the no-sensor row's count.
+  - The `unset` and `+0.10` rows and the seven earlier rows are byte-identical at both ends.
+- Mutation proof, run with `tests/features.py` on a `git archive` copy of the head (`ev/features_{HEAD,M1,M2,M3}.txt`). In an archive copy, `recorded_at (#363)` fails at the unmutated head too; it passes in the git worktree, so it is an artifact of the copy.
+  - The unmutated copy fails 2 checks, census plus that artifact.
+  - M1 (`and v >= lowest` deleted), M2 (`v > gate`) and M3 (`lowest = clear`) each fail 5 checks: the three part-3 I2 checks the body names, plus those two. The grid counts are 2304, 1008 and 792 of 3024 passes at or below the gate. The M1 count matches the body's failing-test figure, 2304 of 3024.
+- Not re-derived at this head:
+  - O1–O7 were not re-run. `_setpoint_limits_c` is untouched by the delta, and the earlier verdict ran O1, O2 and O4–O6 at 6f1dd204.
+  - The body's hand-run ledger mutants for lines 993 and 994 (BOOLOP, CMP_BOUND, RETURN_DEL) were not re-run individually. My M2 is a comparison mutant on line 993 and is killed.
+  - The body's seam rules were not re-run. The delta adds no new reader of the limit sensors.
+- Ledger pin removal: the removed `_feedback_bounds.RETURN_DEL.1af408a4.json` pins the old return-line text, which the delta rewrites. The removal is earned by the change and moves no budget.
+- Cheap checks at the head (`ev/cheap_checks.txt`):
+  - `tests/structure.py`: STRUCTURE RATCHET PASSED.
+  - `archscore --diff origin/main`: `dS +0.0000 NULL`.
+  - `tests/entities.py`: ALL 2707 ENTITY CHECKS PASSED.
+  - VERSION, manifest, RELEASE_NOTES and both claim files are absent from the three-dot diff at merge base 0a2139b1dd.
+  - `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty.
+- CI: no review packet came with this dispatch.
+  - PR #3469's check runs, read live: no owed check (`merge_train.py owed-reds`: coverage-ratchet, fast (3.14), mutation, typing, validate-hacs) has concluded red. `validate-hacs` passed. The gate, mutation and most governance jobs were still queued or in progress at read time.
+  - I did not wait for them. The `tests / fast (3.14)` red that the body answers is main's census, which #3466 has since repaired on main.
+- Forward-carry: the body names none, and the delta adds no finding for a later stage. The body's ceiling-under-entity-minimum note is outside this class (it is `_flow_target`'s value on main), recorded and not carried. I agree with that disposition.
+- `ev/HEAD.txt` holds the head reviewed.

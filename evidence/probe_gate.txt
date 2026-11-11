@@ -1,8 +1,0 @@
-FEEDBACK_GATE_CLEAR_K 0.01 FEEDBACK_DOWN_K 0.3
-gate floor (return unit) see writes
-PROBE2 high-limit 5.0: writes 62 at<=20.0 30 lowest 5.0 first5 [26.4, 5.0, 26.7, 5.0, 26.8] last3 [29.9, 5.0, 29.9]
-PROBE2 high-limit 15.0: writes 62 at<=20.0 30 lowest 15.0 first5 [26.4, 15.0, 26.7, 15.0, 26.8] last3 [29.9, 15.0, 29.9]
-PROBE2 high-limit 20.0: writes 62 at<=20.0 30 lowest 20.0 first5 [26.4, 20.0, 26.7, 20.0, 26.8] last3 [29.9, 20.0, 29.9]
-PROBE2 high-limit 21.0: writes 62 at<=20.0 0 lowest 21.0 first5 [26.4, 21.0, 26.7, 21.0, 26.8] last3 [29.9, 21.0, 29.9]
-PROBE2 high-limit 22.0: writes 62 at<=20.0 0 lowest 22.0 first5 [26.4, 22.0, 26.7, 22.0, 26.8] last3 [29.9, 22.0, 29.9]
-PROBE2 high-limit None: writes 65 at<=20.0 0 lowest 26.0 first5 [26.4, 26.5, 26.3, 26.1, 26.0] last3 [28.4, 28.5, 28.6]
