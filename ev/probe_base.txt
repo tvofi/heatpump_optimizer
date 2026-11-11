@@ -1,0 +1,20 @@
+RESULT booked_legionella_dhw 55.0
+RESULT disinfecting_both 55.0
+RESULT ordinary_dhw 55.0
+RESULT everyday62_disinfecting 62.0
+RESULT everyday62_booked 62.0
+RESULT offstep_60.3_step0.5 55.0
+RESULT offstep_59.6_step1 55.0
+RESULT above_range_max58 55.0
+RESULT max_offstep_59.5_step1 55.0
+RESULT row_None_booked 55.0 held 55.0 disabled_held 55.0
+RESULT row_idle_booked 55.0 held 55.0 disabled_held 55.0
+RESULT row_space_booked 30.0 held 55.0 disabled_held 55.0
+RESULT row_dhw_booked 55.0 held 55.0 disabled_held 55.0
+RESULT row_both_booked 55.0 held 55.0 disabled_held 55.0
+RESULT repair_arbiter_wrote55_read55 60.0
+RESULT repair_arbiter_wrote30gate_read30 None
+RESULT repair_person50_arbiter55 60.0
+RESULT repair_nowrite_read55 60.0
+RESULT repair_disabled_nowrite_read45 None
+RESULT repair_disabled_wrote55 None

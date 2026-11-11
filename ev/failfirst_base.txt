@@ -1,0 +1,9 @@
+  FAIL a commanded or held disinfection cycle writes its temperature, not the configured set-point  [predicate false]
+  FAIL every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too  [predicate false]
+  FAIL the cycle's temperature is the thermal parameters' own answer, not a copy  [AttributeError: 'ThermalParameters' object has no attribute 'dhw_cycle_temp']
+  FAIL a cycle never lowers the tank: an everyday set-point above the disinfection temperature is the cycle's and the ceiling's  [AttributeError: 'ThermalParameters' object has no attribute 'dhw_cycle_temp']
+  FAIL an off-step disinfection temperature is written on the step above it, never below  [predicate false]
+  FAIL a disinfection temperature above the entity's range stays bounded at its maximum  [predicate false]
+  FAIL the space-only gate stays a gate on a booked step, but a held cycle turns it into Heating + DHW  [predicate false]
+  FAIL the arbiter's own everyday write raises no disinfection-floor repair: it writes the cycle itself  [predicate false]
+8 of 61 BLOCK DUTY CHECKS FAILED

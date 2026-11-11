@@ -1,0 +1,35 @@
+NULL: SURVIVED rc=0
+M1-no-cycle-write: KILLED rc=1
+    FAIL a commanded or held disinfection cycle writes its temperature, not the configured set-point  [predicate false]
+    FAIL every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too  [predicate false]
+    FAIL the cycle's temperature is the thermal parameters' own answer, not a copy  [predicate false]
+    FAIL an off-step disinfection temperature is written on the step above it, never below  [predicate false]
+    FAIL a disinfection temperature above the entity's range stays bounded at its maximum  [predicate false]
+    FAIL the space-only gate stays a gate on a booked step, but a held cycle turns it into Heating + DHW  [predicate false]
+M2-round-nearest: KILLED rc=1
+    FAIL an off-step disinfection temperature is written on the step above it, never below  [predicate false]
+M3-booking-ignored: KILLED rc=1
+    FAIL a commanded or held disinfection cycle writes its temperature, not the configured set-point  [predicate false]
+    FAIL every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too  [predicate false]
+M4-hold-ignored: KILLED rc=1
+    FAIL a commanded or held disinfection cycle writes its temperature, not the configured set-point  [predicate false]
+    FAIL the cycle's temperature is the thermal parameters' own answer, not a copy  [predicate false]
+    FAIL an off-step disinfection temperature is written on the step above it, never below  [predicate false]
+    FAIL a disinfection temperature above the entity's range stays bounded at its maximum  [predicate false]
+    FAIL the space-only gate stays a gate on a booked step, but a held cycle turns it into Heating + DHW  [predicate false]
+M5-gate-only-excuse: KILLED rc=1
+    FAIL the arbiter's own everyday write raises no disinfection-floor repair: it writes the cycle itself  [predicate false]
+M6-excuse-any-reading: KILLED rc=1
+    FAIL a person's value beside the arbiter's write still raises the repair, its Fix on the floor  [predicate false]
+M7-flag-ignored: KILLED rc=1
+    FAIL a cycle never lowers the tank: an everyday set-point above the disinfection temperature is the cycle's and the ceiling's  [predicate false]
+    FAIL null control: a disabled cycle writes the everyday set-point on every row and booking  [predicate false]
+M8-cycle-not-max: KILLED rc=1
+    FAIL a cycle never lowers the tank: an everyday set-point above the disinfection temperature is the cycle's and the ceiling's  [predicate false]
+M9-floor-no-disinfection: KILLED rc=1
+    FAIL a person's value beside the arbiter's write still raises the repair, its Fix on the floor  [predicate false]
+    FAIL null control: with no arbiter write the pump's own set-point must still permit the cycle  [predicate false]
+
+real	0m50.814s
+user	0m24.906s
+sys	0m32.135s
