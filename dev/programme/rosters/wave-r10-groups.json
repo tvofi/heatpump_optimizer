@@ -21326,7 +21326,8 @@
    "resume": {
     "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE): carries-open audit 2026-11-09: distinct seam from R10-ARBITER-OFF-RESTORE, R10-GENERIC-HEAT-CURVE-PERSISTENT, ordered by after-edges where files overlap"
+    "note": "overlap admitted (R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE): carries-open audit 2026-11-09: distinct seam from R10-ARBITER-OFF-RESTORE, R10-GENERIC-HEAT-CURVE-PERSISTENT, ordered by after-edges where files overlap",
+    "pr": 3481
    }
   },
   {
@@ -22931,7 +22932,7 @@
     "last_step": null,
     "next_step": "part 1 fixer at once; part 2 after part 1 merges",
     "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: main-red hotfix, triage s14-9 wrote the group",
-    "pr": 3446
+    "pr": 3482
    }
   },
   {
