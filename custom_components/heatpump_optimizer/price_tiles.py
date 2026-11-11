@@ -39,6 +39,7 @@ so the coordinator class does not hold state it never computes with.
 """
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Mapping
 from datetime import date, datetime, timedelta
 from typing import Any, TypedDict, cast
@@ -118,6 +119,25 @@ def monthly_deltas(
         "monthly_settled_cost_delta": round(per_month(
             spend + sim.deferred_energy_cost - live.deferred_energy_cost, horizon_hours), 2),
     }
+
+
+def schedule_figure(
+    live_kwh: float, sim_kwh: float, mean_price: float, extra: float, horizon_hours: float,
+) -> dict[str, float]:
+    """A schedule change's steady figure: an estimate, not a plan's money (#2257).
+
+    ``live_kwh`` and ``sim_kwh`` are what a thermostat holding each schedule
+    draws over a day of the day's average weather
+    (``HeatPumpOptimizer.reference_day``); their difference is priced at
+    ``mean_price``, the average of the horizon's prices, and ``extra`` is the
+    what-if's spend outside its solve (wood). It excludes the optimiser's
+    load shifting on both sides. An energy that is not finite gives no key,
+    never another figure.
+    """
+    day_cost = (sim_kwh - live_kwh) * mean_price
+    if not math.isfinite(day_cost):
+        return {}
+    return {"monthly_steady_cost_delta": round(per_month(day_cost * horizon_hours / 24.0 + extra, horizon_hours), 2)}
 
 
 def specs(config: Any, max_kw: float) -> list[tuple[str, dict[str, float]]]:
