@@ -1,0 +1,7 @@
+  ok   REACH an uncalled callee is not (null): False
+SELF-TEST: 58 probe(s), 19 null(s), 0 wrong
+RESULT enforcement_surface_files=206 count
+RESULT covered_by_an_owner=68 count
+RESULT pinned_by_base_restore=138 count
+RESULT of_which_no_pr_job_runs=119 count
+RESULT uncovered_files=0 count

@@ -1,0 +1,30 @@
+CG M1-admission-off rc=1 SELF-TEST: 58 probe(s), 19 null(s), 4 wrong
+SELF-TEST: 58 probe(s), 19 null(s), 4 wrong
+CG M2-any-input rc=1 SELF-TEST: 58 probe(s), 19 null(s), 1 wrong
+SELF-TEST: 58 probe(s), 19 null(s), 1 wrong
+CG M3-gate-dropped rc=1 SELF-TEST: 58 probe(s), 19 null(s), 1 wrong
+SELF-TEST: 58 probe(s), 19 null(s), 1 wrong
+CG M4-step-dropped rc=1 SELF-TEST: 58 probe(s), 19 null(s), 1 wrong
+SELF-TEST: 58 probe(s), 19 null(s), 1 wrong
+CG M5-sep-optional rc=1 SELF-TEST: 58 probe(s), 19 null(s), 4 wrong
+SELF-TEST: 58 probe(s), 19 null(s), 4 wrong
+CG M6-match-to-search rc=0 SELF-TEST: 58 probe(s), 19 null(s), 0 wrong
+SELF-TEST: 58 probe(s), 19 null(s), 0 wrong
+CG NULL-isnotnone rc=0 SELF-TEST: 58 probe(s), 19 null(s), 0 wrong
+SELF-TEST: 58 probe(s), 19 null(s), 0 wrong
+PP BASELINE rc=0 527 ok-lines; 527 passed, 0 failed
+PP PM1-both-src rc=2 523 passed, 4 failed
+  FAIL governance.yml perturbed (restore-input), with step 3e's run present, passes (null control) (got 1, wanted 0)
+  FAIL governance.yml perturbed (restore-prelude), with step 3e's run present, passes (null control) (got 1, wanted 0)
+  FAIL governance.yml perturbed (restore-gate), with step 3e's run present, passes (null control) (got 1, wanted 0)
+  FAIL governance.yml perturbed (restore-step), with step 3e's run present, passes (null control) (got 1, wanted 0)
+PP PM2-pr-src rc=2 526 passed, 1 failed
+  FAIL and led by the restore source ci.yml's prelude resolves, it is still that class (R10-HOTFIX-RESTORE-BASE-SKEW) (got 1, wanted 0)
+PP PM6-src-any-leader rc=2 526 passed, 1 failed
+  FAIL governance.yml perturbed (foreign-source), with step 3e's run present, is still refused (got 0, wanted 1)
+PP PM5-step-both rc=2 526 passed, 1 failed
+  FAIL governance.yml perturbed (restore-step), with step 3e's run present, passes (null control) (got 1, wanted 0)
+DONE
+PP PM7x-pr-step-emptied (mis-built: step alternative left empty, `restore_source|)`) rc=2 526 passed, 1 failed
+  FAIL and led by any other input, it stays unclassified (null control) (got 1, wanted 0)
+PP PM7-pr-step-dropped rc=0 527 passed, 0 failed
