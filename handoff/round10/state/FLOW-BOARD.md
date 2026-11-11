@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-11T11:17:32+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-11T11:51:01+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 0 / 1.0 | 13 / 24.0 |
-| fly-ins closed | 0 | 12 |
-| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 16 / 3 / 0 / 12 |
-| first-pass fix-review yield | 3/3 (1.00) | 13/25 (0.52) |
-| blocked-class mix | class-open:1, root-cause-unanswered:1 | carry-missing:1, class-open:3, doc-claim-false:1, flaky-harness:1, merge-conflict:1, mutation-survivors:2, mutation-vacuous:8, pin-missing:1, regression-unmeasured:1, root-cause-unanswered:2 |
-| lead time per size (h, n/p50/max) | none | L n=2 p50=26.50 max=26.88; M n=2 p50=7.08 max=65.65; S n=12 p50=19.25 max=44.23 |
+| roster groups closed vs takt | 0 / 1.0 | 11 / 24.0 |
+| fly-ins closed | 0 | 11 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 12 / 3 / 0 / 11 |
+| first-pass fix-review yield | 3/4 (0.75) | 13/26 (0.50) |
+| blocked-class mix | part-topic-collision:1, root-cause-unanswered:1 | carry-missing:1, class-open:3, doc-claim-false:1, flaky-harness:1, merge-conflict:1, mutation-survivors:2, mutation-vacuous:8, part-topic-collision:1, pin-missing:1, regression-unmeasured:1, root-cause-unanswered:2 |
+| lead time per size (h, n/p50/max) | none | L n=2 p50=26.50 max=26.88; M n=2 p50=7.08 max=65.65; S n=8 p50=19.25 max=36.09 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 48 | 5 | 0 |
+| 1 | 50 | 5 | 0 |
 
 ## Rules
 
