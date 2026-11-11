@@ -4940,6 +4940,24 @@
       "doc": [
         "dev/audit/rca/r10-rca-roster-drain-replay.md"
       ]
+    },
+    "R10-RCA-DEPENDABOT-STALE-HASH": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "every grouped Dependabot pip pull request on tests/ in round 10 (#3088, #3323, #3414) carried pins whose version moved and whose --hash block stayed the previous version's (3, 5 and 1 pins); each stale pin is one whose name==version a lock comment also spelled and Dependabot rewrote (9 of 9 stale, 0 of 61 fresh), and #3147's re-apply planted the comments behind 5 of the later 6",
+      "trigger": "third instance (the #3408 forward-carry)",
+      "date": "2026-11-11",
+      "status": "proposed",
+      "parts_missing": [
+        "the lock-comment rewording and the --tree check wired into the suite (R10-DEPENDABOT-3414-COMPAT)"
+      ],
+      "process_state": "(c) the re-apply process in .github/dependabot.yml (never edit, re-apply by the header's compile) was followed by #3147 and #3408 and read clean, yet its own comments recording holds and overrides as name==version are what Dependabot rewrites without rehashing the next week",
+      "countermeasure": "built: dev/audit/harnesses/dependabot_stale_hash.py census (rc 1 at the three Dependabot heads, rc 0 at the three re-apply commits and four npm/actions heads) and --tree precondition guard (rc 1 at d08ed31049, 17 exposed; rc 0 on the reworded tree; 0.05 s); carried: reword the comments and run --tree in the suite. Lower schedule and a recompile workflow refused by the cost test",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-rca-dependabot-stale-hash.md",
+      "doc": [
+        "dev/audit/rca/r10-rca-dependabot-stale-hash.md"
+      ]
     }
   },
   "N-registry-leak": {
