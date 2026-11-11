@@ -14,7 +14,9 @@ R10-ARBITER-OFF-RESTORE: turning the optimizer off, and every unload, restores t
 - Carry 1 (73eb63bd): met. The space set-point is a `register_consumer` consumer that arms before every space write; `off_restore.py` and `__init__.py` are unedited.
 - Carry 2 (a94cb8b6) and Carry 3 (0a8663d2), entity keying: met. The baseline entry records its entity, so rule R restores a changed entity to its own value; `_space_restored` is the `restored` callback and drops the arbiter's own record on any restore of its key (M09 to M11).
 - Carry 4 (8755bcb3) and Carry 14 (its repeat): met. Consumed as built through `register_consumer`, `Restorer(..., baseline_of=, restored=)`, `async_arm`, `async_armed_entry` and `async_rebaseline`; no class attribute named `state`.
-- Carry 5 (76ae476a), Carry 6 (2bcac34a), Carry 15 and Carry 16 (their repeats): not this group's. The reserve rule binds a consumer that budgets writes; the arbiter has no per-day write cap (`_write` keeps no counter; `hold` retries every `RETRY_MINUTES`), so no restore write is reserved (`## Forward-carry`).
+- Carry 5 (76ae476a), Carry 6 (2bcac34a), Carry 15 and Carry 16 (their repeats): not this group's. The reserve rule binds a consumer that budgets writes; the arbiter has no per-day write cap (`_write` keeps no counter; `hold` retries every `RETRY_MINUTES`), so no restore write is reserved (`- `governance` / `instrument-self-tests` (main's red at `a7887485` and older heads of this branch): inherited from main, cured by #3474 (merged 2026-11-11T18:58Z), so it is no longer red at main `6cc15e9b`. This diff touches no instrument; a red of it at an older head of this branch is main's, not this branch's. Cheaper detector: none in this branch.
+
+## Forward-carry`).
 - Carry 7 (the 2026-11-10 stacking ruling): met. #3402 and #3405 (R10-WATER-SETPOINT-FEEDBACK) are both merged to main, and origin/main `a7628041dc` is merged in at `acb7122c75`, so this pull request carries only this group's diff.
 - Carry 8 (a070f930) and Carry 9 (its repeat), WSF's dropped space record: built in repair rounds 2 and 3 (below). At the plain merge it was live: `_note_sent` drops `written["space_setpoint"]` so that a loop move is sent, and `_arm_space` read the missing record as "no own write". Round 2 kept the dropped value on the loop run (`prev_c`), which the round-2 verdict at `4a5abf4a` showed is lost whenever the run ends; round 3 moves it to `ArbiterState.dropped`.
 - Carry 17 (WSF's restatement of Carry 8 from its own merge base): met by the same build. `_arm_space` reads the record, else `ArbiterState.dropped`, never the record's absence alone (M23, M37). The Off and unload restores read the arbiter's state after the pass, as the carry says; `_space_restored` drops the run and the dropped value with the record (M25, M34).
@@ -43,7 +45,7 @@ R10-ARBITER-OFF-RESTORE: turning the optimizer off, and every unload, restores t
 
 ## Head
 
-`aa70efdd076bd5d6468060ca20638675c2fb9dd6`, on merge base `a7887485deb7b41995b20a48fab2ae411d887954`, origin/main's tip at `2026-11-11T17:45Z`; `git merge-tree --write-tree origin/main HEAD` exits 0 there. Figures are this head's unless named.
+`aa70efdd076bd5d6468060ca20638675c2fb9dd6`, on merge base `a7887485deb7b41995b20a48fab2ae411d887954`; origin/main has since moved to `6cc15e9b8f53b5393bb4ed7297bfc12747d6e2f6` and `git merge-tree --write-tree origin/main aa70efdd` exits 0 (no conflict), so nothing is re-merged. Production under `custom_components/` is unchanged from the round-3 head `4a5abf4a` except the merged main. `python3 tools/pr/ci_predict.py --base origin/main` at this head: `no closures, fast, governance or instrument red predicted`, and the six unpinned sites named under `## Unpinned sites`. Figures are this head's unless named.
 
 ## Mutation proof
 
