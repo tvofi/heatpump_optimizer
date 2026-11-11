@@ -1,0 +1,55 @@
+M1 base subtraction dropped: KILLED
+  merge_train.py rc=1 merge_train self-test: 626 checks, 5 failed
+      FAIL introduced: red at the head and not at the base is the PR's; one red at both is inherited
+      FAIL null: the base subtraction is what clears an inherited red (the same head against itself reads 0)
+      FAIL introduced_cmd: rc 1, one INTRODUCED line per introduced step, base by git merge-base origin/main
+      FAIL classify --pr reads an introduced red RED with its INTRODUCED lines, the required set green
+      FAIL null: a head red only where its base is (inherited) is GREEN under classify --pr, introduced rc 0
+  review_packet.py rc=1 review_packet self-test: 103 checks, 2 failed
+      FAIL introduced: the head's red the base lacks is INTRODUCED, the inherited one is not, by 2 job-step reads
+      FAIL null: an inherited-only head (nothing introduced) refuses nothing
+M2 head job fail-closed dropped: KILLED
+  merge_train.py rc=1 merge_train self-test: 626 checks, 1 failed
+      FAIL fail closed: the head's job unreadable is a Stop (rc 2), never an empty list
+  review_packet.py rc=1 review_packet self-test: 103 checks, 1 failed
+      FAIL fail closed: the head's job unreadable refuses introduced-red, never reads clean
+M3 base job fail-closed dropped: KILLED
+  merge_train.py rc=1 merge_train self-test: 626 checks, 1 failed
+      FAIL fail closed: the base's job unreadable is a Stop (rc 2), never an empty list
+  review_packet.py rc=1 review_packet self-test: 103 checks, 1 failed
+      FAIL fail closed: the base's job unreadable refuses introduced-red, never reads clean
+M4 drift exclusion dropped: KILLED
+  merge_train.py rc=1 merge_train self-test: 626 checks, 3 failed
+      FAIL no base run: every head red counts, the push-only drift step still excluded
+      FAIL the push-only drift step alone red at the head is never introduced
+      FAIL no base run: every head red but the drift step is INTRODUCED
+  review_packet.py rc=1 review_packet self-test: 103 checks, 1 failed
+      FAIL no base run: every head red but the push-only drift step counts; skipped is never red
+M5 packet fail-closed refusal dropped: KILLED
+  merge_train.py rc=0 merge_train self-test: 626 checks, 0 failed
+  review_packet.py rc=1 review_packet self-test: 103 checks, 4 failed
+      FAIL fail closed: the head's job unreadable refuses introduced-red, never reads clean
+      FAIL fail closed: the base's job unreadable refuses introduced-red, never reads clean
+      FAIL fail closed: the base's listing unreadable refuses introduced-red, never reads clean
+      FAIL fail closed: the head's listing unreadable refuses introduced-red, never reads clean
+M6 classify --pr introduced branch dropped: KILLED
+  merge_train.py rc=1 merge_train self-test: 626 checks, 1 failed
+      FAIL classify --pr reads an introduced red RED with its INTRODUCED lines, the required set green
+  review_packet.py rc=0 review_packet self-test: 103 checks, 0 failed
+M7 latest job -> earliest job: SURVIVED
+  merge_train.py rc=0 merge_train self-test: 626 checks, 0 failed
+  review_packet.py rc=0 review_packet self-test: 103 checks, 0 failed
+M8 base listing fail-closed dropped: KILLED
+  merge_train.py rc=1 merge_train self-test: 626 checks, 1 failed
+      FAIL fail closed: the base's check runs unreadable is a Stop (rc 2), never an empty list
+  review_packet.py rc=1 review_packet self-test: 103 checks, 1 failed
+      FAIL fail closed: the base's listing unreadable refuses introduced-red, never reads clean
+M9 packet gather reads nothing: SURVIVED
+  merge_train.py rc=0 merge_train self-test: 626 checks, 0 failed
+  review_packet.py rc=0 review_packet self-test: 103 checks, 0 failed
+M10 base listing None treated as no base run (packet): KILLED
+  merge_train.py rc=0 merge_train self-test: 626 checks, 0 failed
+  review_packet.py rc=1 review_packet self-test: 103 checks, 2 failed
+      FAIL fail closed: the base's listing unreadable refuses introduced-red, never reads clean
+      FAIL fail closed: the head's listing unreadable refuses introduced-red, never reads clean
+tree clean: yes
