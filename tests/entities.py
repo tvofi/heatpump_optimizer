@@ -22044,11 +22044,25 @@ R.check(
 # the event or language guard the full run would lose them too (null control: the
 # guard text removed reads False).
 _CODEQL_GUARD = "github.event_name == 'pull_request' && matrix.language == 'python'"
+# The whole expression is one anchored shape, `(<GUARD>) && '<PR>' || '<BASE>'`,
+# and is evaluated for every event x leg: only a pull_request on python gets the
+# tests/dev list, so main's push run keeps the full set. A negated or `|| true`
+# guard fails the anchor and, evaluated, the push rows (null control: both red).
+_CODEQL_SHAPE = re.fullmatch(
+    r"paths-ignore: \$\{\{ \(" + re.escape(_CODEQL_GUARD) + r"\) && '(\[[^']*\])' \|\| '(\[[^']*\])' \}\}\s*",
+    _CODEQL_CONFIG)
+_CODEQL_SELECTED = {(ev, lg): json.loads(_CODEQL_SHAPE.group(1 if (ev == "pull_request" and lg == "python") else 2))
+                    for ev in ("push", "pull_request", "merge_group", "workflow_dispatch")
+                    for lg in ("actions", "javascript-typescript", "python")} if _CODEQL_SHAPE else {}
+_CODEQL_EXPECT = {(ev, lg): (_CODEQL_PR_LIST if (ev == "pull_request" and lg == "python") else _CODEQL_BASE_LIST)
+                  for ev in ("push", "pull_request", "merge_group", "workflow_dispatch")
+                  for lg in ("actions", "javascript-typescript", "python")}
 R.check(
     "codeql.yml: tests/ and dev/ are ignored on a pull request's python leg only; a full run ignores workflow scripts alone",
     len(_CODEQL_LISTS) == 2 and _CODEQL_PR_LIST == _CODEQL_BASE_LIST + ["tests/**", "dev/**"]
-    and _CODEQL_CONFIG.count(_CODEQL_GUARD) == 1,
-    f"lists={_CODEQL_LISTS}; config={_CODEQL_CONFIG!r}",
+    and _CODEQL_CONFIG.count(_CODEQL_GUARD) == 1
+    and bool(_CODEQL_SHAPE) and _CODEQL_SELECTED == _CODEQL_EXPECT,
+    f"lists={_CODEQL_LISTS}; config={_CODEQL_CONFIG!r}; selected={_CODEQL_SELECTED}",
 )
 # A skipped leg uploads main's analysis of its category as a stand-in, so a
 # pull request carries every configuration main does and code scanning never
