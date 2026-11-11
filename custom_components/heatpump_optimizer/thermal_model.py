@@ -868,47 +868,32 @@ class ThermalParameters:
         """The everyday charge limit: how hot a plan may take the tank.
 
         This is the user's own "Highest tank temperature to charge to", and
-        nothing else. Until v5.1.10 the disinfection temperature was folded
-        in here permanently, which turned a 60 °C hygiene setting into the
-        ceiling the cost planner spent every single day: pre-buying at the
-        night trough beats heating at the evening window even after standby
-        losses, and how far the plan over-charges is bounded by exactly this
-        number. A 52/60 pair therefore ran the tank to ~58 °C on a day with
-        no cycle due — the field did the opposite of what its help text
-        promises ("An upper limit on charging, not a target").
-
-        A disinfection cycle legitimately goes above this, but only while it
-        is running: the optimizer raises the ceiling per step around the
-        cycle it has actually scheduled, and ``dhw_hard_max_temp`` below is
-        the physical rating that bounds even that.
+        nothing else: with the disinfection temperature folded in (until
+        v5.1.10) the cost planner spent that ceiling every day, and a 52/60
+        pair ran the tank to ~58 °C with no cycle due. A cycle goes above it
+        only around the step it runs, to ``dhw_cycle_temp``.
         """
         return min(70.0, self.dhw_setpoint)
 
     @property
     def dhw_hard_max_temp(self) -> float:
-        """The tank's rating: the hottest this tank may ever be driven.
-
-        The everyday ceiling is a preference; this is physics, and it has to
-        stay above the disinfection temperature or the model would refuse
-        the very boost the hygiene cycle exists to deliver. ``simulate_dhw_step``
-        clamps to this, so a pinned plan, a replayed trajectory or a
-        legionella boost is bounded without the everyday limit silently
-        capping a cycle at the setpoint.
+        """The tank's rating, the hottest it may ever be driven: a cycle's
+        temperature where one runs, else the everyday ceiling. ``simulate_dhw_step``
+        clamps to it, so a pinned plan, a replay or a legionella boost is
+        bounded without the everyday limit capping a cycle at the set-point.
         """
         top = self.dhw_cycle_temp
         return min(70.0, self.dhw_setpoint if top is None else top)
 
     @property
     def dhw_disinfection_temp(self) -> float | None:
-        """°C a disinfection cycle must reach, or ``None`` where none runs: the
-        one statement of whether a cycle runs, for every reader."""
+        """°C a disinfection cycle must reach; ``None`` where none runs, for every reader."""
         return self.dhw_legionella_temp if self.dhw_legionella_enabled else None
 
     @property
     def dhw_cycle_temp(self) -> float | None:
-        """°C the tank is held at through a cycle: the higher of the everyday
-        set-point and the disinfection temperature, as a cycle never lowers
-        the tank; ``None`` where no cycle runs."""
+        """°C held through a cycle: the higher of the everyday set-point and the
+        disinfection temperature, as a cycle never lowers the tank; else ``None``."""
         target = self.dhw_disinfection_temp
         return None if target is None else max(self.dhw_setpoint, target)
 
