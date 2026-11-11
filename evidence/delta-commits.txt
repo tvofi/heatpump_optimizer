@@ -1,0 +1,10 @@
+d710f5ddf9
+Merge commit '6ce0b46dda03523c269cbc169bc2c80ea54bc5ee' into fix/r10-suite-env-residue
+
+6ce0b46dda
+harness_headers: pin harness.py's sys.path anchor with a decoy-cwd check
+
+The foreign-cwd check now runs from a cwd holding a decoy custom_components/
+tree and asserts heatpump_optimizer resolves under harness.py's own tree, so
+reverting the two sys.path inserts to cwd-relative fails (1 of 113).
+

@@ -1,2 +1,0 @@
-head harness /root/wt-head/tests/harness.py -> package /root/wt-head/custom_components/heatpump_optimizer/__init__.py
-m1 harness /root/wt-m1/tests/harness.py -> package /root/wt-base/custom_components/heatpump_optimizer/__init__.py
