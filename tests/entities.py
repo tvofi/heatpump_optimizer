@@ -1236,7 +1236,7 @@ def _arch_entry(module: str) -> str:
     if _arch_map is None:
         return ""
     m = _re.search(
-        rf"{_re.escape(module)}\.py[^\n]*?#[ \t]*([^\n]*)\n"
+        rf"(?<!\w){_re.escape(module)}\.py[^\n]*?#[ \t]*([^\n]*)\n"
         rf"((?:│[^\n]*#[ \t]*[^\n]*\n)*)",
         _arch_map.group(1),
     )
