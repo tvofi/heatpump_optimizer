@@ -84436,6 +84436,81 @@ R.check(
     f"one {_fb_own_one[0]}, two {_fb_own_two[0]} (prev {_fb_own_two[2].feedback.prev_c}), "
     f"restored run {_fb_rs_held.feedback}, never wrote {_fb_own_none[0]}",
 )
+# Round 2 of Carry 8 (#3404's verdict at 4a5abf4a): the loop run ends on
+# paths that are neither a write nor a restore -- a pass off the loop
+# (_feedback, base or inlet missing), a compressor stop (a fresh run), a run
+# last seen past the window (a fresh run) -- and a restart drops the run too.
+# Each happens while the dropped record is held, so the own-write fact lives
+# on ArbiterState.dropped, which only a write, a restore or a release ends.
+# Controls: each path is shown to end the run (no prev_c after it), and a
+# never-written arbiter still captures (the check above).
+
+
+def _fb_own_after(end):
+    sent, coord, held = _fb_own([25.8])
+    end(coord, held)
+    held = _fb_pa.state_for(coord)  # a restart's is a fresh state
+    run = held.feedback
+    after = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
+    return sent, None if run is None else run.prev_c, after
+
+
+def _fb_end_stale(coord, held):
+    held.feedback.seen = _FB_NOW - timedelta(seconds=_FB_WIN_S + 60)
+    coord.power = 1.5
+    _fb_pa._feedback(held, coord.arbiter_inputs(), _FB_NOW, 26.4, True)
+
+
+def _fb_end_restart(coord, held):
+    _fb_aio.run(_fb_pa._persist(coord))
+    _fb_pa._STATES.pop(coord, None)
+    _fb_aio.run(_fb_pa._load(coord))
+
+
+def _fb_end_stop(coord, held):
+    coord.power = 0.0
+    _fb_pa._feedback(held, coord.arbiter_inputs(), _FB_NOW, 26.4, True)
+
+
+_fb_own_ends = {
+    "off pass": _fb_own_after(lambda c, h: _fb_pa._feedback(h, c.arbiter_inputs(), _FB_NOW, 26.4, False)),
+    "no base": _fb_own_after(lambda c, h: _fb_pa._feedback(h, c.arbiter_inputs(), _FB_NOW, None, True)),
+    "compressor stop": _fb_own_after(_fb_end_stop),
+    "stale run": _fb_own_after(_fb_end_stale),
+    "restart": _fb_own_after(_fb_end_restart),
+}
+print("CARRY8-RUN-ENDS", _fb_own_ends)
+R.check(
+    "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8, round 2): the "
+    "own-write refusal survives every end of the loop run while the dropped write is "
+    "held -- an off pass, a missing base, a compressor stop, a stale run, a restart",
+    all(sent is False and prev is None and after is False for sent, prev, after in _fb_own_ends.values()),
+    f"(before, run prev_c after, after) {_fb_own_ends}",
+)
+# The fact's other ends: a write records over it (the person moved the
+# controller to 25.0, so the arm captures and the write lands), a restore
+# (_space_restored) and a release (Off forgets the record, even one that is
+# only the dropped write) end it. Control: before each end it is held.
+_fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8])
+_fb_wr_before = dict(_fb_wr_held.dropped)
+_fb_wr_coord.hass.states.set(_FB_SET, FakeState("25.0", attributes={"min": 15, "max": 45, "step": 0.1}))
+_fb_aio.run(_fb_pa._write(_fb_wr_coord, _fb_wr_coord.arbiter_inputs(), "space_setpoint", 25.8, _FB_NOW))
+_fb_off_coord, _fb_off_held = _fb_own([25.8])[1:]
+_fb_off_held.written.clear()
+_fb_off_before = dict(_fb_off_held.dropped)
+_fb_off_coord._mode = _PA_OFF
+_fb_aio.run(_fb_pa._arbitrate(_fb_off_coord, _fb_off_held, _fb_off_coord.arbiter_inputs(),
+                              _fb_pa.DUTY_CONTROL, _FB_NOW))
+R.check(
+    "R10-ARBITER-OFF-RESTORE (Carry 8, round 2): the dropped own write ends when a write "
+    "records over it, a restore writes the baseline, or Off releases the pump",
+    _fb_wr_before == {"space_setpoint": 26.0} and _fb_wr_held.dropped == {}
+    and _fb_wr_held.written.get("space_setpoint", (None,))[0] == 25.8
+    and _fb_rs_held.dropped == {}
+    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {},
+    f"write {_fb_wr_before} -> {_fb_wr_held.dropped} ({_fb_wr_held.written.get('space_setpoint')}), "
+    f"restore {_fb_rs_held.dropped}, off {_fb_off_before} -> {_fb_off_held.dropped}",
+)
 # R1's lower side in the replay: a 26.4 degC minimum return target (parameter
 # 979) clamps the loop's first wind-down, whose writes stay under it until a
 # reading leaves the hold tolerance and is adopted as a cut; the cut then

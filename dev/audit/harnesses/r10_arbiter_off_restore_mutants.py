@@ -11,7 +11,7 @@ through ``tools/audit/seat/features_block.py``. Run from the repository root:
 
 It prints mutant_run's lines, ``SURVIVED NULL`` then ``KILLED <name>`` per
 mutant at the fix head, once for M01-M20 on the arbiter block and once for the
-seam mutants (M21 to M25) on the water-setpoint feedback block, and exits with
+seam mutants (M21 to M37) on the water-setpoint feedback block, and exits with
 mutant_run's status. A mutant whose ``old`` text no longer occurs exactly once
 is refused before anything runs.
 """
@@ -91,8 +91,8 @@ MUTANTS = json.loads(r"""
  {
   "name": "M11_off_no_persist",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "if held.written or held.retry or held.space_before is not None:",
-  "new": "if held.written or held.retry:"
+  "old": "if held.written or held.retry or held.dropped or held.space_before is not None:",
+  "new": "if held.written or held.retry or held.dropped:"
  },
  {
   "name": "M12_no_grace",
@@ -103,8 +103,8 @@ MUTANTS = json.loads(r"""
  {
   "name": "M13_forget_keeps_before",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "held.written, held.misses, held.retry, held.space_before = {}, {}, {}, None",
-  "new": "held.written, held.misses, held.retry = {}, {}, {}"
+  "old": "held.written, held.misses, held.retry, held.dropped, held.space_before = {}, {}, {}, {}, None",
+  "new": "held.written, held.misses, held.retry, held.dropped = {}, {}, {}, {}"
  },
  {
   "name": "M14_factory_none",
@@ -180,20 +180,92 @@ SEAM_MUTANTS = json.loads(r"""
  {
   "name": "M23_arm_ignores_dropped_record",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "    last = record[0] if record is not None else None if run is None else run.prev_c\n",
+  "old": "    last = record[0] if record is not None else held.dropped.get(\"space_setpoint\")\n",
   "new": "    last = record[0] if record is not None else None\n"
  },
  {
   "name": "M24_prev_not_kept",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "    rec.prev_c = rec.prev_c if recorded is None else recorded[0]\n",
-  "new": "    rec.prev_c = None if recorded is None else recorded[0]\n"
+  "old": "    if recorded is not None:\n        rec.prev_c = held.dropped[\"space_setpoint\"] = recorded[0]\n",
+  "new": "    rec.prev_c = None\n    if recorded is not None:\n        rec.prev_c = held.dropped[\"space_setpoint\"] = recorded[0]\n"
  },
  {
   "name": "M25_restored_keeps_run",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
   "old": "        held.feedback = None  # its prev_c is that record too (_note_sent)\n",
   "new": "        pass\n"
+ },
+ {
+  "name": "M26_dropped_not_kept",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    if recorded is not None:\n        rec.prev_c = held.dropped[\"space_setpoint\"] = recorded[0]\n",
+  "new": "    held.dropped.pop(\"space_setpoint\", None)\n    if recorded is not None:\n        rec.prev_c = held.dropped[\"space_setpoint\"] = recorded[0]\n"
+ },
+ {
+  "name": "M27_off_pass_ends_fact",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "        held.feedback = None\n        return base\n",
+  "new": "        held.feedback = None\n        held.dropped.clear()\n        return base\n"
+ },
+ {
+  "name": "M28_stale_run_ends_fact",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "        rec = None  # passes that skipped the loop",
+  "new": "        rec = None; held.dropped.clear()  # passes that skipped the loop"
+ },
+ {
+  "name": "M29_stop_ends_fact",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "        held.feedback = FeedbackRun(now, base, now)\n        return base\n",
+  "new": "        held.feedback = FeedbackRun(now, base, now)\n        held.dropped.clear()\n        return base\n"
+ },
+ {
+  "name": "M30_new_run_ends_fact",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "        rec = held.feedback = FeedbackRun(now, base, now)\n",
+  "new": "        rec = held.feedback = FeedbackRun(now, base, now)\n        held.dropped.clear()\n"
+ },
+ {
+  "name": "M31_restart_drops_fact",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "        \"dropped\": dict(held.dropped),\n",
+  "new": ""
+ },
+ {
+  "name": "M32_load_ignores_fact",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "            held.dropped[slot] = value\n",
+  "new": "            pass\n"
+ },
+ {
+  "name": "M33_write_keeps_fact",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    held.dropped.pop(slot, None)\n",
+  "new": ""
+ },
+ {
+  "name": "M34_restore_keeps_fact",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "(held.written, held.misses, held.retry, held.dropped)",
+  "new": "(held.written, held.misses, held.retry)"
+ },
+ {
+  "name": "M35_forget_keeps_dropped",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "held.written, held.misses, held.retry, held.dropped, held.space_before = {}, {}, {}, {}, None",
+  "new": "held.written, held.misses, held.retry, held.space_before = {}, {}, {}, None"
+ },
+ {
+  "name": "M36_off_ignores_dropped",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "if held.written or held.retry or held.dropped or held.space_before is not None:",
+  "new": "if held.written or held.retry or held.space_before is not None:"
+ },
+ {
+  "name": "M37_arm_reads_run",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    last = record[0] if record is not None else held.dropped.get(\"space_setpoint\")\n",
+  "new": "    last = record[0] if record is not None else None if held.feedback is None else held.feedback.prev_c\n"
  }
 ]
 """)
