@@ -1,0 +1,22 @@
+SURVIVED NULL
+KILLED argvterm-quote
+KILLED argvterm-colon
+KILLED argvterm-dq
+KILLED argvterm-sq
+KILLED argvterm-col
+KILLED argvterm-com
+KILLED argvterm-slash
+KILLED argvterm-empty
+KILLED argvterm-any
+KILLED openfile-eq
+KILLED openfile-sib
+KILLED pidzero-tr
+SURVIVED pidguard-restored
+SURVIVED pidempty-unquoted
+KILLED lockglob-star
+KILLED lockglob-dot
+KILLED lsofall
+KILLED psunread
+SURVIVED lsofcwd-empty
+SURVIVED trap-zpid-unguarded
+rc=0

@@ -1,0 +1,1 @@
+worktree_gc self-test: 132 checks, 0 failed
