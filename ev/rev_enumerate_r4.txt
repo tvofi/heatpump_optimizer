@@ -1,0 +1,18 @@
+N20 over round-3 page:
+  UNDRAWN cloud_dispatch.py -> bus refs: lines 308
+  UNDRAWN merge_train.py -> obligations ledger: lines 4210
+  UNDRAWN merge_train.py -> pull request: lines 1357 1359 1361 1409 1410 3350
+  UNDRAWN open_pr.sh -> obligations ledger: lines 55 56
+  UNDRAWN orchestrator_tick.py -> pull request: lines 2424
+N20 at head UNDRAWN:
+  UNDRAWN cloud_dispatch.py -> bus refs: lines 308
+  UNDRAWN merge_train.py -> obligations ledger: lines 4210
+  UNDRAWN orchestrator_tick.py -> pull request: lines 2424
+N18 at a4eac74f's pattern vs head's pattern, both over the head tree (diff old new):
+28a29
+>   open_pr.sh -> bus.sh: lines 154 
+29a31,33
+>   postmerge.py -> state_docs.py: lines 48 
+>   postmerge.py -> merge_train.py: lines 49 
+>   postmerge.py -> roster_sync.py: lines 47 
+old lines 30 new 34
