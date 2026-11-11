@@ -10,7 +10,7 @@ Predicate mutant: `--allow-escape-sequences` removed from `API_BOOL`; `python3 t
 
 ## Null control
 
-"null control: a plain GET of a non-tracker path passes" (rc 7, unchanged). "the flag plus -f body=x on issues/201/comments is still refused as a comment write" and "--bogus is refused with the unknown-flag message" pin the refusals. Command: `python3 tools/audit/seat/gh_calls.py --self-test` -> 211 checks, 0 failed (before this diff the count was lower by the 5 added arms).
+"null control: a plain GET of a non-tracker path passes" (rc 7, unchanged). "the flag plus -f body=x on issues/201/comments is still refused as a comment write" and "--bogus is refused with the unknown-flag message" pin the refusals. Command: `python3 tools/audit/seat/gh_calls.py --self-test` -> 211 checks, 0 failed.
 
 ## Figures
 
