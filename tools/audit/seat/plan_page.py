@@ -230,6 +230,10 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
         if g:
             by_group[g] = p["number"]  # the latest merge for the group
     state = {i["number"]: i for i in snap["issues"]}
+    # A hotfix that a critical-path group waits on holds the path, whether or
+    # not the longest chain runs through it: the same gating edges as `blk`.
+    gating_crit = {a for c in crit if c in G for a in G[c].get("after") or []
+                   if a in G and a not in discharged and roster_lib.gates(G[a])}
 
     rows = []
     for g, entry in G.items():
@@ -289,7 +293,9 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
                         (state.get(n) or {}).get("title", ""))
                        for n in entry.get("issues") or []],
             "blk": blk, "desc": roster_lib.one_line_brief(entry, 170),
-            "crit": g in crit, "part": bool(part) and g not in done,
+            "crit": g in crit,
+            "hot": g in gating_crit and g not in done and roster_lib.is_hotfix(entry),
+            "part": bool(part) and g not in done,
             "wave": None if g in done else pg["wave"],
             "start": None if g in done else pg["start"],
             "finish": None if g in done else pg["finish"]})
@@ -306,9 +312,9 @@ def swimlanes(plan: dict, rows: list) -> tuple[str, int]:
     it draws (a link crossing more than one lane or two hours is left to the
     ◆ marks and the caption)."""
     now = _t(plan["generated"]["start"])
-    # The axis runs to the last planned stamp: the round-close stamp lands
-    # after closure, and an axis ending at closure would not draw it.
-    end = max([_t(plan["summary"]["closure"])] + [_t(s["at"]) for s in plan["stamps"]]
+    # The axis runs to closure, which is the later of the round-close stamp and
+    # the last post-closure step, so no stamp lies past it.
+    end = max([_t(plan["summary"]["closure"])]
               + [_t(plan["summary"]["post_closure_finish"])
                  for _ in [0] if plan["summary"].get("post_closure_finish")])
     slots = plan["generated"]["caps"]["slots"]
@@ -654,6 +660,8 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
     trs = "".join(
         f'<tr class="{r["st"]}" data-st="{r["st"]}" data-part="{int(r["part"])}"><td class="g">'
         + ('<span class="cp" title="critical path">◆</span>' if r["crit"] else "")
+        + ('<span class="cp hotcp" title="hotfix blocking a critical-path group">▲</span>'
+           if r["hot"] else "")
         + f'{e(short(r["g"]))}<div class="lanec">{e(r["lane"])}</div></td>'
         f'<td class="d">{e(r["desc"])}</td>'
         f'<td class="st">{pill(r["st"], r["label"])}</td>'
@@ -694,7 +702,9 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
             f"Read from plan.json: {summ['groups_open']} scheduled open groups (the lanes), "
             f"of the {n_open_rows} the table lists as not merged; the other {n_open_rows - n_sched} "
             f"are held without a schedule. {summ['batches']} "
-            f"merge batches, closure {summ['closure']}. A wave is the set of groups "
+            f"merge batches, closure {summ['closure']}. The programme is closed only when "
+            f"{', '.join(summ.get('closure_conditions') or ['(conditions not in plan.json)'])}. "
+            f"A wave is the set of groups "
             f"dispatched at one instant; the next opens as soon as one of the {slots} "
             f"pull-request slots frees. Coordinator cap {caps['coordinator_cap']}; "
             f"{inherited} inherited in-progress coordinator groups are recorded in "
@@ -1082,6 +1092,34 @@ def _self_test() -> int:
             check("critical-path groups carry the mark",
                   all(rows[g]["crit"] for g in plan["critical_path"])
                   and page.count('class="critmark"') == len(plan["critical_path"]))
+            # A hotfix that a critical-path group waits on is marked, on or off the chain.
+            import copy
+            cg = next(g for g in plan["critical_path"] if g != "R9-PART")
+            hot_roster = copy.deepcopy(roster)
+            for e_ in hot_roster["groups"]:
+                if e_["group"] == "R9-PART":
+                    e_["kind"] = "bug"
+                if e_["group"] == cg:
+                    e_["after"] = list(e_["after"]) + ["R9-PART"]
+            hot_rows = {r["g"]: r for r in build_rows(hot_roster, plan, snap)}
+            cold_roster = copy.deepcopy(hot_roster)
+            for e_ in cold_roster["groups"]:
+                if e_["group"] == "R9-PART":
+                    e_["kind"] = "defect"
+            cold_rows = {r["g"]: r for r in build_rows(cold_roster, plan, snap)}
+            hot_page = "".join(
+                f'{r["g"]}' for r in hot_rows.values() if r["hot"])
+            check("a hotfix a critical-path group waits on is marked",
+                  hot_rows["R9-PART"]["hot"] is True and hot_page == "R9-PART", hot_page)
+            check("hotfix mark (null): the same edge from a non-hotfix, and a hotfix no "
+                  "critical-path group waits on, are not marked",
+                  not any(r["hot"] for r in cold_rows.values())
+                  and not any(r["hot"] for r in rows.values()),
+                  [g for g, r in cold_rows.items() if r["hot"]])
+            check("the closure conditions are stated on the page",
+                  "The programme is closed only when no open pull requests, no handoffs, "
+                  "no carries, no findings, no leads, only the coordination issue open." in page,
+                  re.findall(r"The programme is closed[^.]*\.", page))
             check("every open group's tier is shown, and a merged group's is not",
                   all(f'<td class="tier">{rows[g]["tier"]}</td>' in page
                       for g in rows if rows[g]["tier"] is not None)
