@@ -3870,7 +3870,7 @@ def self_test() -> int:
              bus_calls[-1] == ["orphans", "--min-age-h", "0"]),
         ])
         total, failed = total + a, failed + f
-        held14 = [f"ORPHAN triage-s14-batch{i} {'a1' * 20} 5.0h uncovered=1 repair=opener" for i in range(14)]
+        held14 = [f"ORPHAN {'triage' if i % 2 == 0 else 'record'}-s14-batch{i} {'a1' * 20} 5.0h uncovered=1 repair=opener" for i in range(14)]
         live11 = [f"ORPHAN r10-live-{i} {'b2' * 20} 4.0h uncovered=1 repair=opener" for i in range(11)]
         summ25 = ("orphans: 25 stranded, 0 superseded; skipped no-body=0 named=0 ancestor=0 young=0; "
                   "origin main b87e8f1")
