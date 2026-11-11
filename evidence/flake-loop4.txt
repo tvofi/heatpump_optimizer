@@ -1,6 +1,0 @@
-selftest_scope self-test: 109 checks, 0 failed
-selftest_scope self-test: 109 checks, 0 failed
-selftest_scope self-test: 109 checks, 0 failed
-selftest_scope self-test: 109 checks, 0 failed
-selftest_scope self-test: 109 checks, 0 failed
-selftest_scope self-test: 109 checks, 0 failed

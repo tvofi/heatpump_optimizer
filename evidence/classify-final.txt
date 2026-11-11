@@ -1,3 +1,0 @@
-12:36:07 rc=3 WAIT 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: gate red: none
-12:37:19 rc=0 GREEN 245ddf7876bf9662937d4e9077172e1e3cd2275a pending: none red: none
-DONE rc=0
