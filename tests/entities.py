@@ -22019,8 +22019,13 @@ _REPO_ROOT_CQ = pathlib.Path(__file__).resolve().parents[1]
 # under an ignore pattern is analyzable code being filtered out, refused.
 _CODEQL_INIT = [st for st in _CODEQL_STEPS
                 if str(st.get("uses", "")).startswith("github/codeql-action/init@")]
-_CODEQL_IGNORE = ((_yaml.safe_load((_CODEQL_INIT[0].get("with") or {}).get("config") or "")
-                   or {}).get("paths-ignore") or []) if _CODEQL_INIT else []
+# The config is one expression choosing between two JSON lists: the full-run list
+# (workflow scripts only) and the pull-request python list, which adds tests/ and
+# dev/. Both are read out of the registered text, not a constant.
+_CODEQL_CONFIG = str((_CODEQL_INIT[0].get("with") or {}).get("config") or "") if _CODEQL_INIT else ""
+_CODEQL_LISTS = [json.loads(m) for m in re.findall(r"'(\[[^']*\])'", _CODEQL_CONFIG)]
+_CODEQL_PR_LIST, _CODEQL_BASE_LIST = (_CODEQL_LISTS + [[], []])[:2]
+_CODEQL_IGNORE = list(_CODEQL_BASE_LIST)
 _CODEQL_IGNORED = {pat: sorted(str(p.relative_to(_REPO_ROOT_CQ)) for p in _REPO_ROOT_CQ.glob(pat)
                                if p.is_file() and not p.is_symlink())
                    for pat in _CODEQL_IGNORE}
@@ -22033,6 +22038,31 @@ R.check(
     "codeql.yml ignores only files the JS parser refuses (each pattern matches, none parses)",
     bool(_CODEQL_IGNORE) and all(_CODEQL_IGNORED.values()) and not _CODEQL_PARSEABLE,
     f"ignored={_CODEQL_IGNORED}; parseable under an ignore pattern={_CODEQL_PARSEABLE}",
+)
+# r10-codeql-pr-paths: the pull-request python list is the full-run list plus
+# tests/ and dev/, chosen only for a pull_request event on the python leg. Without
+# the event or language guard the full run would lose them too (null control: the
+# guard text removed reads False).
+_CODEQL_GUARD = "github.event_name == 'pull_request' && matrix.language == 'python'"
+# The whole expression is one anchored shape, `(<GUARD>) && '<PR>' || '<BASE>'`,
+# and is evaluated for every event x leg: only a pull_request on python gets the
+# tests/dev list, so main's push run keeps the full set. A negated or `|| true`
+# guard fails the anchor and, evaluated, the push rows (null control: both red).
+_CODEQL_SHAPE = re.fullmatch(
+    r"paths-ignore: \$\{\{ \(" + re.escape(_CODEQL_GUARD) + r"\) && '(\[[^']*\])' \|\| '(\[[^']*\])' \}\}\s*",
+    _CODEQL_CONFIG)
+_CODEQL_SELECTED = {(ev, lg): json.loads(_CODEQL_SHAPE.group(1 if (ev == "pull_request" and lg == "python") else 2))
+                    for ev in ("push", "pull_request", "merge_group", "workflow_dispatch")
+                    for lg in ("actions", "javascript-typescript", "python")} if _CODEQL_SHAPE else {}
+_CODEQL_EXPECT = {(ev, lg): (_CODEQL_PR_LIST if (ev == "pull_request" and lg == "python") else _CODEQL_BASE_LIST)
+                  for ev in ("push", "pull_request", "merge_group", "workflow_dispatch")
+                  for lg in ("actions", "javascript-typescript", "python")}
+R.check(
+    "codeql.yml: tests/ and dev/ are ignored on a pull request's python leg only; a full run ignores workflow scripts alone",
+    len(_CODEQL_LISTS) == 2 and _CODEQL_PR_LIST == _CODEQL_BASE_LIST + ["tests/**", "dev/**"]
+    and _CODEQL_CONFIG.count(_CODEQL_GUARD) == 1
+    and bool(_CODEQL_SHAPE) and _CODEQL_SELECTED == _CODEQL_EXPECT,
+    f"lists={_CODEQL_LISTS}; config={_CODEQL_CONFIG!r}; selected={_CODEQL_SELECTED}",
 )
 # A skipped leg uploads main's analysis of its category as a stand-in, so a
 # pull request carries every configuration main does and code scanning never
@@ -40534,6 +40564,40 @@ R.check(
     and _pin_unhashed_lock("tests/requirements-ci.txt") is None,
     f"stripped={_pin_lock_problem('stripped', _PIN_STRIPPED)!r} "
     f"committed={_pin_unhashed_lock('tests/requirements-ci.txt')!r}",
+)
+
+# No lock comment spells a hash-pinned package `name==`. Dependabot rewrites
+# the version at every `name==` match in a lock, the comment included, and
+# leaves the hash block of a pin it matched twice at the old version, which
+# `--require-hashes` refuses: 9 of 9 stale pins of #3088, #3323 and #3414 had
+# that shape, 0 of 61 fresh ones (dev/audit/rca/r10-rca-dependabot-stale-hash.md).
+# Driven through the harness's own `--tree` reader, then its `exposed` over
+# the committed lock with one comment planted, which must read one pin.
+import contextlib as _dsh_ctx  # noqa: E402
+import importlib.util as _dsh_util  # noqa: E402
+import io as _dsh_io  # noqa: E402
+
+_dsh_spec = _dsh_util.spec_from_file_location(
+    "hpo_dependabot_stale_hash",
+    _closure.ROOT / "dev" / "audit" / "harnesses" / "dependabot_stale_hash.py")
+_dsh = _dsh_util.module_from_spec(_dsh_spec)
+_dsh_spec.loader.exec_module(_dsh)
+_dsh_out = _dsh_io.StringIO()
+with _dsh_ctx.redirect_stdout(_dsh_out):
+    _dsh_exposed = _dsh.tree(None)
+R.check(
+    "no lock comment names a hash-pinned package as `name==` (Dependabot stale hashes)",
+    _dsh_exposed == 0 and " files=0 " not in _dsh_out.getvalue(),
+    _dsh_out.getvalue().strip()[-600:] + ". Reword each to `name 1.2.3`, or "
+    "point at the pin line",
+)
+_DSH_LOCK = (_closure.ROOT / "tests" / "requirements-ci.txt").read_text()
+_DSH_PIN = re.search(_PIN_REQ.pattern, _DSH_LOCK, re.M)
+_dsh_planted = _dsh.exposed(f"# holds {_DSH_PIN.group(0)}\n" + _DSH_LOCK)
+R.check(
+    "stale-hash barrier arm: one planted `name==` comment reads exactly one pin",
+    len(_dsh_planted) == 1 and _dsh.exposed(_DSH_LOCK) == [],
+    f"planted={_dsh_planted} committed={_dsh.exposed(_DSH_LOCK)}",
 )
 
 # --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
