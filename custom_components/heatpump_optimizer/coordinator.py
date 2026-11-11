@@ -11247,22 +11247,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         async def _held_solve(asked: Mapping[str, Any]) -> Any:
             return await _await_off_loop(self.hass, optimize_in_process, *_scratch(asked, True)[:2])
 
+        horizon_hours, dt_hours = ctx._opt_config.horizon_hours, ctx._opt_config.dt_hours
         # A schedule change is priced by the thermostat's day energy on both
         # sides, at this instant on these arrays; anything else by the pair.
-        pair, figure = None, {}
-        if steady:
-            live_day, sim_day = (o.reference_day(i) for o, i in (_scratch({})[:2], (scratch, inputs)))
-            if live_day[0] != sim_day[0]:
-                figure = price_tiles.schedule_figure(
-                    live_day[1], sim_day[1], float(np.mean(inputs.forecast.prices)), wood_sek,
-                    ctx._opt_config.horizon_hours,
-                    price_tiles.realised_price(simulated, ctx._opt_config.dt_hours))
-            else:
-                pair = await whatif.steady_pair(
-                    held, result if base is None else base, (solve_at, state, banded), _held_solve, overrides,
-                )
-
-        horizon_hours = ctx._opt_config.horizon_hours
+        days = whatif.schedule_days(_scratch({})[:2], (scratch, inputs)) if steady else None
+        pair = await whatif.steady_pair(
+            held, result if base is None else base, (solve_at, state, banded), _held_solve, overrides,
+        ) if steady and days is None else None
+        figure = {} if days is None else price_tiles.schedule_figure(
+            *days, float(np.mean(inputs.forecast.prices)), wood_sek, horizon_hours,
+            price_tiles.realised_price(simulated, dt_hours))
         delta = simulated.predicted_cost - result.predicted_cost + wood_sek
 
         payload = {
@@ -11292,24 +11286,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "baseline_min_room_temperature": _sim_coldest(result),
             "min_dhw_temperature": _sim_dhw_low(simulated),
             "baseline_min_dhw_temperature": _sim_dhw_low(result),
-            "dhw_slots": len(
-                plan_slots(
-                    simulated.timestamps,
-                    list(simulated.dhw_power_schedule or []),
-                    list(simulated.prices),
-                    ctx._opt_config.dt_hours,
-                    other_powers=list(simulated.power_schedule),
-                )
-            ),
-            "space_slots": len(
-                plan_slots(
-                    simulated.timestamps,
-                    list(simulated.power_schedule),
-                    list(simulated.prices),
-                    ctx._opt_config.dt_hours,
-                    other_powers=list(simulated.dhw_power_schedule or []),
-                )
-            ),
+            **whatif.slot_counts(simulated, dt_hours),
             "compressor_starts": simulated.compressor_starts,
             "projected_peak_kw": simulated.projected_peak_kw,
             "overrides": overrides,

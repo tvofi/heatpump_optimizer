@@ -3780,9 +3780,9 @@ class HeatPumpOptimizer:
         dt = self.config.dt_hours
 
         weather = _horizon_weather(series, n_steps)
-        outdoor_temps, wind_speeds = weather.outdoor_temps, weather.wind_speeds
-        precipitation, solar_radiation = weather.precipitation, weather.solar_radiation
-        humidity, external_heat_kw = weather.humidity, weather.external_heat_kw
+        outdoor_temps, wind_speeds, precipitation, solar_radiation, humidity, external_heat_kw = (
+            weather.outdoor_temps, weather.wind_speeds, weather.precipitation,
+            weather.solar_radiation, weather.humidity, weather.external_heat_kw)
         if price_known is None:
             price_known = np.ones(n_steps, dtype=bool)
         if pv_surplus is None:

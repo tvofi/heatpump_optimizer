@@ -8,8 +8,9 @@ ask's sign once the scheduled plan is older than the what-if. This probe
 records the periodic thermostat energy (two passes) of the what-if solve, of
 the scheduled plan and of the zero ask at the what-if's instant, on the
 horizon's own weather and on its mean, and counts the figures against the ask.
-It measures by wrapping the optimizer; it reads no schedule-branch key, so it
-runs on a tree with the steady pair alone (whatif.py, 273079db5 onward).
+It measures the four alternatives by wrapping the solve's own thermostat pass
+(``reference_day``'s passes are left alone), and counts the answer's steady
+key itself on the ``built`` line.
 
 Run from the tree root:
 
@@ -27,10 +28,10 @@ hot water alone).
 
 Keys: ``off`` and ``at`` are the live side read off the scheduled plan and at
 the what-if's instant, on the horizon's own weather; ``offm`` and ``atm`` the
-same on the mean weather. Schedule asks are asked with ``steady=False`` to
-save the pair's solves, so the built steady figure prints for the no-schedule
-asks only. ``RESULT ... m2`` is the zero ask's figure with the live side off
-the scheduled plan: what a branch chosen by energy inequality would show.
+same on the mean weather; ``built`` is the answer's own steady key and solve
+count, every ask asked with ``steady=True``. ``RESULT ... m2`` is the zero
+ask's figure with the live side off the scheduled plan: what a branch chosen
+by energy inequality would show.
 """
 from __future__ import annotations
 
@@ -87,7 +88,9 @@ def _held(model, state, weather, target):
     return _real_held(model, state, weather, target)
 
 
-def _cbp(self, weather, initial_state, dt, comfort_targets=None):
+def _cbp(self, weather, initial_state, dt, comfort_targets=None, start=None):
+    if start is not None or _IN_REFERENCE["on"]:  # reference_day's own passes: not a solve's, not probed
+        return _real_cbp(self, weather, initial_state, dt, comfort_targets, start)
     out = _real_cbp(self, weather, initial_state, dt, comfort_targets)  # the solve's own, untouched
     n = len(weather.outdoor_temps)
     _spun["state"] = out[1]
@@ -121,6 +124,19 @@ def _optimize(self, *a, inputs=None, **k):
     return result
 
 
+_IN_REFERENCE = {"on": False}
+_real_reference = Opt.reference_day
+
+
+def _reference(self, inputs):
+    _IN_REFERENCE["on"] = True
+    try:
+        return _real_reference(self, inputs)
+    finally:
+        _IN_REFERENCE["on"] = False
+
+
+Opt.reference_day = _reference
 omod._thermostat_held_state = _held
 Opt._compute_baseline_power = _cbp
 Opt.optimize = _optimize
@@ -168,7 +184,7 @@ async def _one(hour):
     for name, overrides in asks:
         whatif.state(coord).last_at = None
         n0 = SOLVES["n"]
-        answer = await coord.async_simulate(dict(overrides), steady=name not in WANT)
+        answer = await coord.async_simulate(dict(overrides), steady=True)
         if answer.get("monthly_held_cost_delta") is None:
             rows.append({"hour": hour, "ask": name, "error": answer.get("error")})
             print("ERROR", hour, name, answer.get("error"))
@@ -238,6 +254,14 @@ def main():
     if zeros:
         print(f"RESULT age {AGE} step {STEP:g} m2: zero ask priced off the scheduled plan "
               f"{min(zeros):+.1f}..{max(zeros):+.1f} a month, off 0 on {sum(1 for f in zeros if f != 0.0)} of {len(zeros)}")
+    print(f"RESULT age {AGE} step {STEP:g} built: schedule figures {len(sched)} against the ask "
+          f"{sum(1 for r in sched if r['steady_built'] is None or r['steady_built'] * WANT[r['ask']] <= 0.0)}, "
+          f"solved once on {sum(1 for r in sched if r['solves'] == 1)}; "
+          f"no-schedule asks {sum(1 for r in ok if r['ask'] not in WANT)} on the pair (2 or 3 solves) "
+          f"{sum(1 for r in ok if r['ask'] not in WANT and r['solves'] in (2, 3))}, "
+          f"zero ask exactly 0.0 on {sum(1 for r in ok if r['ask'] == 'panel_zero' and r['steady_built'] == 0.0)} "
+          f"of {sum(1 for r in ok if r['ask'] == 'panel_zero')}, "
+          f"cap below -1 on {sum(1 for r in ok if r['ask'] == 'power_cap_75' and (r['steady_built'] is None or r['steady_built'] < -1.0))}")
     print("ERRORS", len(allrows) - len(ok), "horizon hours", sorted(set(r["hours"] for r in ok)))
     if OUT:
         Path(OUT).write_text(json.dumps(allrows))

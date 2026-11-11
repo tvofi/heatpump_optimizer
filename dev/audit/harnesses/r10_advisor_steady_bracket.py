@@ -12,8 +12,10 @@ two more ways and prints how far the mean-price figure sits from each:
             energy (the one solve the ask already ran);
   minimum:  the lowest price of the horizon.
 
-The ratio mean / realised is what the card's range rests on
-(``price_tiles.SHIFT_RANGE_RATIO``).
+The ratio mean / realised is why the answer carries the realised pricing too
+(``price_tiles.SHIFTED_KEY``) and the card shows the two as a range; the
+``range`` line counts the answers whose two figures round apart, and checks
+the answer's second figure against this harness's own realised pricing.
 
 Run from the tree root:
 
@@ -151,7 +153,7 @@ async def _one(hour):
             "mean_price": mean_price, "realised_price": realised, "min_price": float(prices.min()),
             "spread": float(prices.max() - prices.min()),
             "fig_mean": month(mean_price), "fig_realised": month(realised), "fig_min": month(float(prices.min())),
-            "low": answer.get("monthly_steady_cost_delta_low"),
+            "shifted": answer.get(price_tiles.SHIFTED_KEY),
         })
     return rows
 
@@ -179,7 +181,10 @@ def main():
         print(f"RESULT {tag}: ratio mean-price / minimum-price {min(rm):.3f}..{max(rm):.3f}; "
               f"price spread {min(r['spread'] for r in ok):.2f}..{max(r['spread'] for r in ok):.2f}")
         print(f"RESULT {tag}: the three pricings within 0.2 a month on {agree} of {len(ok)}")
-        print(f"RESULT {tag}: answers carrying a range {sum(1 for r in ok if r['low'] is not None)} of {len(ok)}")
+        print(f"RESULT {tag}: range: the answer's second figure is the realised pricing within 0.01 on "
+              f"{sum(1 for r in ok if r['shifted'] is not None and abs(r['shifted'] - r['fig_realised']) <= 0.01)}"
+              f" of {len(ok)}; the two round apart (the card shows a range) on "
+              f"{sum(1 for r in ok if r['shifted'] is not None and round(abs(r['shifted'])) != round(abs(r['built'])))}")
     print("ERRORS", len(allrows) - len(ok), [(r["hour"], r["ask"], r["error"]) for r in allrows if "error" in r][:5])
     if OUT:
         Path(OUT).write_text(json.dumps(allrows))

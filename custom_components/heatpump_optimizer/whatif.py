@@ -12,10 +12,13 @@ THE USER'S SLOT. A solve is seconds of CPU, so user callers get one start
 per ``SIMULATE_MIN_INTERVAL_SECONDS`` and the answer of the last one in
 between. Background callers neither read nor write the slot or that answer.
 
-THE STEADY PAIR. The plan's spend from the measured house carries a one-off:
+THE STEADY FIGURE. The plan's spend from the measured house carries a one-off:
 the coast a cooler schedule starts with, the heat-up a warmer one does, and a
-month multiplies it by every horizon. So the monthly figure the panel, the
-cap tile and the fuse advisor read comes from two more solves, the live
+month multiplies it by every horizon. The monthly figure the panel, the cap
+tile and the fuse advisor read carries none, in one of two ways. An ask that
+moves a comfort target (``schedule_days``) is priced with no further solve,
+by ``price_tiles.schedule_figure``: two plans' money read such an ask against
+its own sign. Any other ask is THE STEADY PAIR: two more solves, the live
 configuration and the what-if one, each from a start held at its own schedule
 (``SolveInputs.held_start``). The live side depends on nothing the what-if
 overrides, so it is kept, one slot, for the next what-if against the same
@@ -39,6 +42,7 @@ from weakref import WeakKeyDictionary
 from .const import SIMULATE_MIN_INTERVAL_SECONDS
 from .dhw_schedule import DHWWindowError, parse_weekly_windows, parse_windows
 from .drift import utc_elapsed_seconds
+from .plan_slots import plan_slots
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -142,6 +146,31 @@ def limited_answer(held: WhatIfState, now: datetime) -> dict[str, Any] | None:
             "rate_limited": True,
         }
     return None
+
+
+def slot_counts(simulated: Any, dt_hours: float) -> dict[str, int]:
+    """How many runs each channel of the simulated plan has, as the plan view cuts them."""
+    space, dhw = list(simulated.power_schedule), list(simulated.dhw_power_schedule or [])
+    prices = list(simulated.prices)
+    return {
+        "dhw_slots": len(plan_slots(simulated.timestamps, dhw, prices, dt_hours, other_powers=space)),
+        "space_slots": len(plan_slots(simulated.timestamps, space, prices, dt_hours, other_powers=dhw)),
+    }
+
+
+def schedule_days(live: tuple[Any, Any], sim: tuple[Any, Any]) -> tuple[float, float] | None:
+    """The live and the what-if side's day energy when the ask moves a comfort target; else None.
+
+    Each side is an unsolved optimizer and its inputs, built at one instant
+    from one set of arrays, and ``reference_day`` gives each one's setpoints
+    and the energy a thermostat holding them draws. The branch is taken on
+    the setpoints, element by element, never on the energies: two schedules
+    a thermostat cannot tell apart (held at the pump's maximum both ways) are
+    still a schedule ask, whose figure is then 0, and an ask that moves no
+    setpoint reads the pair whatever its energies.
+    """
+    (live_targets, live_kwh), (sim_targets, sim_kwh) = (o.reference_day(i) for o, i in (live, sim))
+    return None if live_targets == sim_targets else (live_kwh, sim_kwh)
 
 
 async def steady_pair(
