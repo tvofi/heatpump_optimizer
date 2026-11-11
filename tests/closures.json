@@ -4212,6 +4212,7 @@
    "dev/audit/harnesses/r10_relay_owed_class_reach.py",
    "dev/audit/harnesses/r10_replay_loopnorm.py",
    "dev/audit/harnesses/r10_replay_real_day_mutants.py",
+   "dev/audit/harnesses/r10_restore_base_skew.py",
    "dev/audit/harnesses/r10_review_gather_share.py",
    "dev/audit/harnesses/r10_review_strength_mutants.py",
    "dev/audit/harnesses/r10_roster_push_race.sh",
