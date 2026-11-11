@@ -51,13 +51,12 @@ Instances:
     placeholder, two files their group creates, or a citation the brief itself marks as no longer in
     the tree (R10-ROUND-PLAYBOOK-FINAL: "a path the tree no longer has").
   - 14 name a real file in the wrong directory, and all 14 are in done or absorbed groups. Most
-    point to the place a file used to be before a later move, for example
-    `tools/audit/briefs/fixer.md` (now `dev/governance/roles/fixer.md`) and `tools/audit/prepr.sh`
-    (now `tools/pr/prepr.sh`). The others: `tools/audit/ref_privacy.py` (×2),
-    `tools/pr/handoff_push.sh`, `tools/audit/moved_paths.py`, `claude/workflows/field_coverage.mjs`
-    (×2), `tools/audit/harnesses/k1725_blas_kernel_gap.py` (×2), two round-10 `study-reseed`
-    harnesses under `tools/` instead of `dev/audit/rounds/`, and one `arch3-s3` patch directory
-    (really `arch-s3`).
+    point to where a file lived before a later move: the role contracts and `prepr.sh` once sat
+    under `tools/audit/`, and `ref_privacy.py`, `moved_paths.py` and `handoff_push.sh` were cited
+    one directory away from `tools/audit/seat/`. The rest: `field_coverage.mjs` under
+    `.claude/workflows/` instead of `tools/policy/` (x2), the `k1725_blas_kernel_gap.py` harness
+    under `tools/` instead of `dev/audit/` (x2), two round-10 `study-reseed` harnesses under `tools/`
+    instead of `dev/audit/rounds/`, and one `arch3-s3` patch directory (really `arch-s3`).
   - Live groups: 0 of 19 basename-only tokens name a wrong directory.
 - **Null control: the proposed refusal run over the same corpus.** The rule would be "a token with
   a `/` that is not tracked exactly is refused". On the 140 basename-only tokens it fires 140
