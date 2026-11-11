@@ -1,0 +1,12 @@
+== base
+  FAIL combi_type_branch census: no preset slug outside const.py's table and the options flow, and no product or vendor name in the package's Python; the census sees the table's own slugs  [slugs: [];
+1 of 5237 FEATURE CHECKS FAILED
+rc=1
+== closure
+  MODE: SCOPED -- 12 script(s) run, 21 scoped out.
+rc=0
+== arch
+Architecture score: dS +0.0000 NULL
+rc=0
+== ver
+untouched
