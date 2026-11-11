@@ -1,0 +1,8 @@
+FAIL a newer cancelled run over an older green one at the head is no source: green: got (False, ['tests / fast (3.14): cancelled (run 95)', 'tests / arch-instrument: cancelled (run 95)', 'tests / browser: cancelled (run 95)', 'tests / briefs: cancelled (run 95)', 'tests / typing: cancelled (run 95)', 'tests / mutation: cancelled (run 95)', 'tests / closures: cancelled (run 95)', 'tests / closure-scope: cancelled (run 95)']), want (True, [])
+FAIL a newer run cancelled after part of its unit passed is no source either: the older green judges: got (False, ['tests / arch-instrument: cancelled (run 95)', 'tests / browser: cancelled (run 95)', 'tests / briefs: cancelled (run 95)', 'tests / typing: cancelled (run 95)', 'tests / mutation: cancelled (run 95)', 'tests / closures: cancelled (run 95)', 'tests / closure-scope: cancelled (run 95)']), want (True, [])
+FAIL null: with only the cancelled run at the head the unit has no source: red: got False, want True
+gate self-test: 87 checks, 3 failed
+FAIL stale pin, one judge per head: a dispatch listed completed, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+FAIL stale pin, one judge per head: a dispatch listed queued, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+FAIL stale pin, one judge per head: a dispatch listed in_progress, created before the stale gate's re-run completed is the fresh judge; nothing dispatched
+sweep self-test: 85 checks, 3 failed
