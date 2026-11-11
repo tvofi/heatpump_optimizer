@@ -84,7 +84,6 @@ class EdgeTracker:
             return None
         if self.pending is None or self.pending[0] != running:
             self.pending = (running, when)
-            return None
         return self.confirm(when)
 
     def confirm(self, when: datetime) -> tuple[datetime, bool | None] | None:

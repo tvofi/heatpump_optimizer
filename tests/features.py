@@ -81508,6 +81508,82 @@ R.check(
         l, at, lambda l, t: (l.note_pass(t, _ds_ctx(_ds_day), True, False), l.edge(t, True)))) == (0, 1, 0, 0, [101.0]),
 )
 
+
+
+def _ds_opened(stopped=False):
+    """A learner with the episode open at ``_ds_day``, optionally stopped at 19 s and checked at 60 s."""
+    l = _ds_mod.DutySwitchLearner()
+    l.mode_write(_ds_day, _DS_DHW, _DS_HEAT, True, _ds_ctx(_ds_day))
+    if stopped:
+        l.edge(_ds_day + timedelta(seconds=19), False)
+        l.note_pass(_ds_day + timedelta(seconds=60), _ds_ctx(_ds_day), True, False)
+    return l
+
+
+def _ds_after(seconds):
+    return _ds_day + timedelta(seconds=seconds)
+
+
+_ds_stale_latch = _ds_opened(stopped=True)
+_ds_stale_latch.directions["space_dhw"] = _DsStale = _ds_mod.Direction(
+    k=6.0, decayed_at=_ds_day - timedelta(days=60), first_day=_ds_day.date(),
+    last_day=_ds_day.date() + timedelta(days=1), usable=True)
+_ds_returns = {
+    "an edge with no episode open": _ds_mod.DutySwitchLearner().edge(_ds_day, False),
+    "a start edge before any stop": _ds_opened().edge(_ds_after(10), True),
+    "the stop edge itself, booked only when the episode closes": _ds_opened().edge(_ds_after(19), False),
+    "a pass over a stopped episode that moves nothing": _ds_opened(stopped=True).note_pass(
+        _ds_after(120), _ds_ctx(_ds_day), True, False),
+    "a re-send that voids the open episode": _ds_opened().mode_write(_ds_after(30), None, _DS_HEAT, True, _ds_ctx(_ds_day)),
+    "a pass that voids it": _ds_opened().note_pass(_ds_after(60), _ds_ctx(_ds_day, fault=True), True, False),
+    "a pass over a stopped episode on which another direction's latch falls": _ds_stale_latch.note_pass(
+        _ds_after(120), _ds_ctx(_ds_day), True, False),
+}
+_ds_early = _ds_opened()
+_ds_early.edge(_ds_after(10), True)
+R.check(
+    "each learner call returns whether the stored record changed, which is what the caller saves on; a start "
+    "edge before any stop is not read as the stop",
+    list(_ds_returns.values()) == [False, False, False, False, True, True, True]
+    and _ds_early.episode is not None and _ds_early.episode.stop_at is None
+    and _ds_stale_latch.episode is not None and not _DsStale.usable,
+    f"{_ds_returns}",
+)
+
+
+def _ds_stop_at(seconds):
+    """(void, the episode's stop second) after a stop edge ``seconds`` from the write."""
+    l = _ds_opened()
+    l.edge(_ds_after(seconds), False)
+    return l.directions["dhw_space"].void, None if l.episode is None else (l.episode.stop_at - _ds_day).total_seconds()
+
+
+R.check(
+    "a stop edge at the write's own instant, or half a second after it, is the switch's; one before it voids. "
+    "A write stamped at the stop's own instant censors nothing; one half a second after it does",
+    [_ds_stop_at(s) for s in (0.0, 0.5, -0.001)] == [(0, 0.0), (0, 0.5), (1, None)]
+    and [_ds_midway(lambda l, at, lag=lag: _ds_stopped_then(l, at, lambda l, t: (
+        l.note_pass(t, _ds_ctx(_ds_day, last_write_at=at + timedelta(seconds=19 + lag)), True, False), l.edge(t, True))))
+        for lag in (0.0, 0.5)] == [(0, 1, 0, 0, [101.0]), (0, 1, 0, 1, [])],
+    f"{[_ds_stop_at(s) for s in (0.0, 0.5, -0.001)]}",
+)
+
+
+def _ds_opens_on(**gates):
+    l = _ds_mod.DutySwitchLearner()
+    l.mode_write(_ds_day, _DS_DHW, _DS_HEAT, True, _ds_mod.SwitchContext(inlet_c=44.2, space_setpoint_c=32.0, **gates))
+    return l.episode is not None
+
+
+R.check(
+    "a gate the arbiter did not state is a gate not passed: demand alone or the plan alone opens nothing; "
+    "a learner nobody fed has no usable direction, p of nothing is 0 and its span is no day",
+    [_ds_opens_on(target_demand=True), _ds_opens_on(plan_stays=True), _ds_opens_on(target_demand=True, plan_stays=True)]
+    == [False, False, True]
+    and not any(d.usable for d in _ds_mod.DutySwitchLearner().directions.values())
+    and (_ds_mod.Direction().p, _ds_mod.Direction(k=0.5).p, _ds_mod.Direction().span_days) == (0.0, 1.0, 0),
+)
+
 # The edge tracker and the classifier (``wear``).
 _ds_run = _ds_wear.compressor_running
 R.check(
@@ -81585,6 +81661,14 @@ _ds_diluted.book(_ds_day + timedelta(days=1), False, None)
 _ds_old = _ds_mod.DutySwitchLearner()
 _ds_old.directions["dhw_space"] = _DS_D(k=3.0, kept_w=4.0, decayed_at=_ds_day, stopped=3, kept=4)
 _ds_old_pub = [_ds_old.published(_ds_day + timedelta(days=days)) for days in (0, 14)]
+_ds_fine = _ds_mod.DutySwitchLearner()
+_ds_fine.directions["dhw_space"] = _DS_D(k=1.0, kept_w=2.0, stopped=1, kept=2, off_s=[100.25])
+_ds_fine.directions["space_dhw"] = _DS_D(void=1)
+_ds_fine_pub = _ds_fine.published(_ds_day)
+_ds_halved = _DS_D(k=4.0, decayed_at=_ds_day, first_day=_ds_day.date(), last_day=_ds_day.date())
+_ds_halved.book(_ds_day + timedelta(days=14), True, None)
+_ds_stamped = _DS_D(k=4.0, decayed_at=_ds_day)
+_ds_stamped.decay(_ds_day + timedelta(seconds=0.5))
 R.check(
     "decay halves n in 14 days and leaves p unchanged; a direction that fell under 2.5 does not switch on "
     "at one fresh episode; a stamp ahead of the clock decays nothing",
@@ -81598,6 +81682,24 @@ R.check(
     "and a kept episode taking p under 0.3 switches one off",
     (_ds_fifth.usable, _ds_fourth.usable, _ds_diluted.usable) == (True, False, False),
     f"{_ds_fifth} {_ds_fourth} {_ds_diluted}",
+)
+R.check(
+    "the median off time is the middle of an odd list and the mean of the middle two of an even one; a booking "
+    "ages the counts to its own time first, and every aging moves the stamp",
+    [_DS_D(off_s=offs).median_off_s for offs in ([3.0, 1.0, 2.0], [4.0, 1.0, 3.0, 2.0], [7.0], [])] == [2.0, 2.5, 7.0, None]
+    and abs(_ds_halved.n - 3.0) < 1e-12 and _ds_halved.decayed_at == _ds_day + timedelta(days=14)
+    and _ds_stamped.decayed_at == _ds_day + timedelta(seconds=0.5),
+    f"{_ds_halved} {_ds_stamped}",
+)
+R.check(
+    "k and n publish to two places and the median to one; a direction holding only a void publishes a span of no day",
+    (_ds_fine_pub["duty_switch_dhw_space_k"], _ds_fine_pub["duty_switch_dhw_space_n"],
+     _ds_fine_pub["duty_switch_dhw_space_median_off_s"], _ds_fine_pub["duty_switch_space_dhw_span_days"])
+    == (1.0, 3.0, 100.2, 0)
+    and _ds_mod.DutySwitchLearner(
+        {**_ds_fine.directions, "dhw_space": _DS_D(k=1 / 3, kept_w=1 / 3, kept=1)}
+    ).published(_ds_day)["duty_switch_dhw_space_k"] == 0.33,
+    f"{_ds_fine_pub}",
 )
 R.check(
     "the published k and n are aged to the reading's time, the tallies are not",
@@ -81633,7 +81735,7 @@ _DS_MALFORMED = [None, [], {}, {"directions": []}, _ds_bad(_DS_ROW, None, drop=T
         ("k", 1e7), ("k", -0.1), ("k", "3"), ("kept_w", float("nan")), ("kept_w", float("inf")), ("kept_w", 1e7),
         ("kept_w", True), ("kept_w", -1.0),
         ("off_s", [1.0] * 33), ("off_s", [-1.0]), ("off_s", [86401.0]), ("off_s", "x"), ("off_s", [None]),
-        ("stopped", True), ("void", -1), ("censored", 1.5), ("kept", 10**10), ("usable", 1), ("usable", None),
+        ("stopped", True), ("void", -1), ("censored", 1.5), ("kept", 10**9 + 1), ("usable", 1), ("usable", None),
         ("decayed_at", "yesterday"), ("decayed_at", 5), ("first_day", "2026-13-01"), ("first_day", None),
         ("last_day", "2026-11-09"),
     )]
@@ -81648,6 +81750,17 @@ R.check(
     and not _ds_mod.DutySwitchLearner.from_record(_ds_saved).directions["dhw_space"].usable
     and _sa_store.off_domain("heatpump_optimizer_e_duty_switch", _ds_saved_on) == [],
     f"{_ds_back}",
+)
+# The loader's bounds and the store's registered domain are one rule, at both ends.
+_ds_edges = [_ds_bad((*_DS_ROW, leaf), value) for leaf, value in (
+    ("off_s", [0.0, 86400.0]), ("off_s", [1.0] * 32), ("kept", 10**9), ("k", 1e6), ("kept_w", 0.0))] + [
+    _ds_mod.DutySwitchLearner().stored_record()]
+R.check(
+    "a record on its bounds (a zero and a one-day off time, a full off list, a tally of 10**9, a weight of "
+    "1e6) and an empty learner's own (no stamp, no day) load whole and are inside the store's registered domain",
+    all(_ds_mod.DutySwitchLearner.from_record(doc).stored_record() == doc
+        and _sa_store.off_domain("heatpump_optimizer_e_duty_switch", doc) == [] for doc in _ds_edges),
+    f"{[_sa_store.off_domain('heatpump_optimizer_e_duty_switch', doc) for doc in _ds_edges]}",
 )
 R.check(
     f"each of {len(_DS_MALFORMED)} malformed or out-of-bounds payloads loads an empty learner, whole",
@@ -81913,6 +82026,65 @@ R.check(
     and not _ds_idle_rec.dirty
     and _ds_fresh_rec.store.saved == [] and all(d.usable for d in _ds_fresh_rec.learner.directions.values()),
     f"{len(_ds_idle_saved)} {_ds_fresh_rec.store.saved}",
+)
+
+
+class _DsFlaky(_DsSaves):
+    """A store whose first ``fails`` reads, or saves, raise."""
+
+    def __init__(self, load_fails=0, save_fails=0):
+        super().__init__()
+        self.load_fails, self.save_fails = load_fails, save_fails
+
+    async def async_load(self):
+        self.load_fails -= 1
+        if self.load_fails >= 0:
+            raise OSError("disk")
+        return None
+
+    async def async_save(self, data):
+        self.save_fails -= 1
+        if self.save_fails >= 0:
+            raise OSError("disk")
+        await super().async_save(data)
+
+
+# Nothing is saved over a record that could not be read, and a save that
+# failed is owed until one lands.
+_ds_unread = _ds_mod._Record(None, _DsFlaky(load_fails=1), dirty=True)
+_asyncio.run(_ds_mod.note_pass(_ds_unread, _DS_T0, _ds_mod.SwitchContext()))
+_ds_unread_first = (_ds_unread.loaded, list(_ds_unread.store.saved))
+_asyncio.run(_ds_mod.note_pass(_ds_unread, _DS_T0, _ds_mod.SwitchContext()))
+_ds_unsaved = _ds_mod._Record(None, _DsFlaky(save_fails=1), dirty=True)
+_asyncio.run(_ds_mod.note_pass(_ds_unsaved, _DS_T0, _ds_mod.SwitchContext()))
+_ds_unsaved_first = (_ds_unsaved.dirty, list(_ds_unsaved.store.saved))
+_asyncio.run(_ds_mod.note_pass(_ds_unsaved, _DS_T0, _ds_mod.SwitchContext()))
+R.check(
+    "a pass whose read of the record failed saves nothing over it, and the next pass reads and saves; a save "
+    "that failed leaves the change owed, and the next pass lands it",
+    _ds_unread_first == (False, []) and _ds_unread.loaded and len(_ds_unread.store.saved) == 1
+    and _ds_unsaved_first == (True, []) and not _ds_unsaved.dirty and len(_ds_unsaved.store.saved) == 1,
+    f"{_ds_unread_first} {_ds_unsaved_first}",
+)
+# The listener is armed once per pump, not at all without a signal entity,
+# and letting go of a pump that was never arbitrated is not an error.
+_ds_twice = _DsArb()
+_ds_twice_rec = _ds_mod.record_for(_ds_twice)
+for _ds_i in range(2):
+    _ds_mod.attach(_ds_twice_rec, *_sa_pa._running_signal(_ds_twice.arbiter_inputs()))
+_ds_deaf = _DsArb({"compressor_freq_sensor": None})
+_ds_mod.attach(_ds_mod.record_for(_ds_deaf), *_sa_pa._running_signal(_ds_deaf.arbiter_inputs()))
+_ds_never = _DsArb({"pump_duty_mode": "off"})
+_asyncio.run(_sa_pa.apply(_ds_never, _DS_T0))
+_ds_mod.record_for(_ds_never).tracker.settled = True
+_asyncio.run(_sa_pa.apply(_ds_never, _DS_T0))
+R.check(
+    "the listener is armed once however often the arbiter attaches, and not at all with no signal entity; "
+    "duty mode off on a pump never arbitrated, or never attached, raises nothing and forgets nothing",
+    sum("sensor.freq" in ids for ids, _a in _ds_twice.hass.state_listeners) == 1
+    and (_ds_mod.record_for(_ds_deaf).unsub, _ds_mod.record_for(_ds_deaf).reader) == (None, None)
+    and not getattr(_ds_deaf.hass, "state_listeners", [])
+    and _ds_mod.record_for(_ds_never).tracker.settled is True,
 )
 # Duty mode off with an episode open: the episode is dropped uncounted, not
 # left to be judged against a signal nobody listens to.
