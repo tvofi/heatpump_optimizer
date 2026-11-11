@@ -51,8 +51,11 @@
   ok   every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too
   ok   the cycle's temperature is the thermal parameters' own answer, not a copy
   ok   a cycle never lowers the tank: an everyday set-point above the disinfection temperature is the cycle's and the ceiling's
-  ok   an off-step disinfection temperature is written on the step above it, never below
-  ok   a cycle whose temperature is an off-step everyday set-point is rounded up too, never below the disinfection temperature; the same install's everyday step keeps the nearest step
+  ok   an off-step disinfection temperature above the everyday set-point is written on the step at or below it, never above the tank's hard maximum
+  ok   a cycle whose temperature is an off-step everyday set-point (the disinfection temperature at or below it) writes the step at or below it, as 49a45dd8 and the same install's everyday step do
+  ok   an everyday set-point the nearest step rounds up is held below it on a cycle: the tank's hard maximum is the everyday set-point there (the everyday step's own nearest write is main's)
+  ok   a disinfection temperature above 70 degC is written at the tank's 70 degC hard maximum
+  ok   no cycle write exceeds the tank's hard maximum, over every step size and the disinfection temperature below, at and above the everyday set-point, on and off the step
   ok   a disinfection temperature above the entity's range stays bounded at its maximum
   ok   the space-only gate stays a gate on a booked step, but a held cycle turns it into Heating + DHW
   ok   null control: a disabled cycle writes the everyday set-point on every row and booking
@@ -64,4 +67,4 @@
   ok   null control: with no arbiter write the pump's own set-point must still permit the cycle
   ok   null control: a disabled cycle and an everyday set-point at the disinfection temperature raise nothing
 
-ALL 63 BLOCK DUTY CHECKS PASSED
+ALL 66 BLOCK DUTY CHECKS PASSED
