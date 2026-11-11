@@ -25,7 +25,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-REVIEW-ENUMERATE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-NONREQUIRED-REDS-2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-DELTA-REVIEW (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-WATER-SETPOINT-FEEDBACK (stage in-progress, branch `handoff/r10-water-setpoint-feedback`): `git fetch origin handoff/r10-water-setpoint-feedback && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-WATER-SETPOINT-FEEDBACK (stage carries-open, branch `handoff/r10-water-setpoint-feedback`): `git fetch origin handoff/r10-water-setpoint-feedback && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-TRAIN-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-TICK-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
