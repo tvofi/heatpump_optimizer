@@ -222,9 +222,15 @@ const STATES = [
   { name: "hidden_series",
     drive: (s) => {
       const c = buildCard(s.Card, planStates(s.plan), { series: { outdoor: false, solar: false } });
+      // The chips render only in the expanded dialog since R10-CARD-COLLAPSE,
+      // so the toggle is pressed there and the dialog closed again: the state
+      // stays the folded card with price hidden, on either ref's card.
+      api.open(c);
       const chip = c.shadowRoot.querySelectorAll(".chip")
         .find((el) => el.getAttribute("data-key") === "price");
-      if (chip) fire(chip, "click", { currentTarget: chip, ...noop });
+      if (!chip) throw new Error("hidden_series: no price chip to press");
+      fire(chip, "click", { currentTarget: chip, ...noop });
+      c.dialog.close();
       return c;
     } },
   { name: "score_open",
