@@ -115,8 +115,8 @@ on the change into Off and on every unload, a reload and a Home Assistant
 stop included (the hook's one rule). A reading equal to the arbiter's own
 last write is never captured (:func:`_arm_space`). What a person sets while
 the optimizer is off is captured at the next arm; one set between writes is
-adopted as the baseline (:func:`_edited`) and, while active, still written
-over. The mode, the hot-water set-point and the silent switch are not
+adopted as the baseline (:func:`_edited`), bounded to the entity's own
+range, and, while active, still written over. The mode, the hot-water set-point and the silent switch are not
 restored.
 
 It acts at step boundaries: a one-minute tick (only while the option is not

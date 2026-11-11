@@ -811,7 +811,8 @@ writes, at every 15-minute plan step:
   every unload (a reload after an options change, a disable, Home Assistant
   stopping), writes that value back. A value you set on the pump while the
   optimizer is on becomes the one restored, though the optimizer still writes
-  over it until you turn it off; a value set while it is off is read again
+  over it until you turn it off (outside the entity's own minimum and
+  maximum, the nearest value it takes); a value set while it is off is read again
   when it next writes. A reading equal to the optimizer's own last write is
   never taken as yours: after an upgrade from a version without this, the
   set-point is not written until it reads anything else, so set it on the
