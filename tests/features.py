@@ -61824,26 +61824,33 @@ R.check(
 # The snapshot restore and the store loader now share one day-type reader, so
 # a snapshot whose day count overflows int() (inf) restores a zero count, as
 # the loader already did, rather than raising out of apply_payload. A finite
-# count is the control that still restores as stored.
-def _chg_restore(count):
+# count is the control that still restores as stored. A snapshot restore
+# keeps a day type whose profile is absent or not 24 long as it was, its
+# count included, and a negative count is clamped to zero.
+def _chg_restore(count, profile=(1.0,) * 24):
     learner = Coord(FakeHass(), _r7d203_entry(
         data={"tibber_token": "x", "weather_entity": "weather.home"},
     ))._dhw_learner
+    payload = {"hourly_profile": [1.0] * 24, "profile_weekend_samples": count}
+    if profile is not None:
+        payload["profile_weekend"] = list(profile)
     try:
-        learner.apply_payload({
-            "hourly_profile": [1.0] * 24,
-            "profile_weekend": [1.0] * 24, "profile_weekend_samples": count,
-        })
+        learner.apply_payload(payload)
     except OverflowError:
         return "OverflowError"
-    return learner.daytype_samples[1]
+    return learner.daytype_samples[1], len(learner.profile_weekend)
 
 
-_chg_restored = (_chg_restore(float("inf")), _chg_restore(7))
+_chg_restored = (
+    _chg_restore(float("inf")), _chg_restore(7), _chg_restore(7, (1.0,) * 23),
+    _chg_restore(7, None), _chg_restore(-3),
+)
 R.check(
-    "a snapshot restore takes an overflowing day-type count as zero, as the loader does",
-    _chg_restored == (0, 7),
-    f"weekend day count restored from inf / 7 (control): {_chg_restored}",
+    "a snapshot restore takes an overflowing day-type count as zero, as the loader does, "
+    "and keeps a day type with a malformed profile as it was",
+    _chg_restored == ((0, 24), (7, 24), (0, 24), (0, 24), (0, 24)),
+    f"(weekend day count, profile length) restored from inf / 7 (control) / "
+    f"7 beside a 23-long profile / 7 with no profile / -3: {_chg_restored}",
 )
 
 # A zero-capacity tank is the input the floors were hiding. With the capacity
