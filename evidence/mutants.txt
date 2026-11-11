@@ -1,0 +1,49 @@
+# head 498c2ab0429d7a6d2ef8d239e3945fe15ff70690; reviewer's targeted mutants (not a driver run)
+== M1: 'hashes and hashes == before[name][1]' -> 'False'
+>         if False:
+self-test FAIL
+self-test rc=1
+summary tree=d08ed31049 files=5 exposed=17
+summary bffd45a03a files=4 moved=46 stale=0
+summary da3a5cfb8b files=5 moved=17 stale=0
+summary 4182e75d77 files=1 moved=7 stale=0
+== M2: 'if re.search(rf' -> 'if False and re.search(rf'
+>             if False and re.search(rf"(?i)(?<![\w.-]){spelled}(\[[^\]]*\])?\s*==", line):
+self-test FAIL
+self-test rc=1
+summary tree=d08ed31049 files=5 exposed=0
+summary bffd45a03a files=4 moved=46 stale=3
+summary da3a5cfb8b files=5 moved=17 stale=5
+summary 4182e75d77 files=1 moved=7 stale=1
+== M3: 'hashes and hashes == before[name][1]' -> 'hashes'
+>         if hashes:
+self-test FAIL
+self-test rc=1
+summary tree=d08ed31049 files=5 exposed=17
+summary bffd45a03a files=4 moved=46 stale=46
+summary da3a5cfb8b files=5 moved=17 stale=17
+summary 4182e75d77 files=1 moved=7 stale=7
+== M4: 'if not line.lstrip().startswith("#"):' -> 'if False:'
+>         if False:
+self-test FAIL
+self-test rc=1
+summary tree=d08ed31049 files=5 exposed=149
+summary bffd45a03a files=4 moved=46 stale=3
+summary da3a5cfb8b files=5 moved=17 stale=5
+summary 4182e75d77 files=1 moved=7 stale=1
+== M5: '(?<![\w.-])' -> ''
+>             if re.search(rf"(?i){spelled}(\[[^\]]*\])?\s*==", line):
+self-test OK
+self-test rc=0
+summary tree=d08ed31049 files=5 exposed=17
+summary bffd45a03a files=4 moved=46 stale=3
+summary da3a5cfb8b files=5 moved=17 stale=5
+summary 4182e75d77 files=1 moved=7 stale=1
+== M6: 'name = re.sub(r"[-_.]+", "-", match.group(1)).lower()' -> 'name = match.group(1)'
+>             name = match.group(1)
+self-test OK
+self-test rc=0
+summary tree=d08ed31049 files=5 exposed=17
+summary bffd45a03a files=4 moved=46 stale=3
+summary da3a5cfb8b files=5 moved=17 stale=5
+summary 4182e75d77 files=1 moved=7 stale=1
