@@ -22236,7 +22236,7 @@
     "record": "sonnet"
    },
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "note": "s14 orchestrator 2026-11-11: root-cause seat for the third stale-hash Dependabot pip instance (forward-carry of pull request 3408); runs beside R10-DEPENDABOT-3414-COMPAT, never inside it",
     "pr": null,
     "commit": null
