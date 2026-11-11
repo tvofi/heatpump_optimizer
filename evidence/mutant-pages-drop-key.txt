@@ -1,2 +1,0 @@
-rc=0
-merge_train self-test: 611 checks, 0 failed

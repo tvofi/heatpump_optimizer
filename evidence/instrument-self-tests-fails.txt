@@ -1,0 +1,26 @@
+== isf-588d1a4d.log
+ok   REFUSE pred: exit code (1)
+ok   REFUSE lint: exit code (1)
+ok   REFUSE packet: exit code (1)
+ok   REFUSE landed: exit code (4)
+FAIL D1 mode=cells seats=3 universe=88 [s1:88f/70548loc, s2:88f/70548loc, s3:88f/70548loc]
+FAIL D2 mode=cells seats=3 universe=88 [s1:88f/70548loc, s2:88f/70548loc, s3:88f/70548loc]
+passed=7 failed=0
+  ok   the stub's stderr and exit code pass through
+  ok   K15 (c): an exit code that disagrees with the lines is no answer: a clean exit with a second line (a driver's stderr) and a conflict exit with none are None (null control: each agreeing shape)
+  FAIL the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
+pr_args self-test: 199 checks, 1 failed
+##[error]Process completed with exit code 1.
+== isf-ee64358b.log
+  FAIL the tracked template renders from a complete overlay, every placeholder filled (null control)
+##[error]Process completed with exit code 1.
+ok   REFUSE pred: exit code (1)
+ok   REFUSE lint: exit code (1)
+ok   REFUSE packet: exit code (1)
+ok   REFUSE landed: exit code (4)
+FAIL D1 mode=cells seats=3 universe=88 [s1:88f/70548loc, s2:88f/70548loc, s3:88f/70548loc]
+FAIL D2 mode=cells seats=3 universe=88 [s1:88f/70548loc, s2:88f/70548loc, s3:88f/70548loc]
+passed=7 failed=0
+  ok   the stub's stderr and exit code pass through
+FAIL closed: no sha= token in 'no token'
+FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)

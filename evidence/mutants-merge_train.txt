@@ -1,0 +1,188 @@
+=== null-control: SURVIVED rc=0
+  ok   P345 row 4 (null): a raise_hold Stop (an unlistable tree) is not approval owed: RED, rc 1
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 611 checks, 0 failed
+
+=== pages-drop-key: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..5fb3b3912 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -1602 +1602 @@ class Train:
+-        return gh_read.read_pages(self.run, path, key)
++        return gh_read.read_pages(self.run, path)
+  FAIL defer-wait: an unreadable runs listing reads no run busy -- the red stands, logged, never a merge
+Traceback (most recent call last):
+    raise Stop("ci", f"the check runs at {sha[:12]} could not be read")
+Stop: ci: the check runs at aaaaaaaaaaaa could not be read
+
+=== pages-key-literal-empty: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..cf115364f 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -1602 +1602 @@ class Train:
+-        return gh_read.read_pages(self.run, path, key)
++        return gh_read.read_pages(self.run, path, "")
+  FAIL defer-wait: an unreadable runs listing reads no run busy -- the red stands, logged, never a merge
+Traceback (most recent call last):
+    raise Stop("ci", f"the check runs at {sha[:12]} could not be read")
+Stop: ci: the check runs at aaaaaaaaaaaa could not be read
+
+=== bot_head-workflow_run: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..d7f761b2a 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -1648 +1648 @@ class Train:
+-        code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}&event=pull_request", "workflow_runs")
++        code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}&event=pull_request", "workflow_run")
+  ok   P345 row 4 (null): a raise_hold Stop (an unlistable tree) is not approval owed: RED, rc 1
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 611 checks, 1 failed
+
+=== check_runs-1846-checkruns: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..6c4943408 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -1846 +1846 @@ class Train:
+-        code, runs, _ = self.pages(f"repos/{self.repo}/commits/{h}/check-runs", "check_runs")
++        code, runs, _ = self.pages(f"repos/{self.repo}/commits/{h}/check-runs", "checkruns")
+  FAIL defer-wait: an unreadable runs listing reads no run busy -- the red stands, logged, never a merge
+Traceback (most recent call last):
+    raise Stop("ci", f"the check runs at {sha[:12]} could not be read")
+Stop: ci: the check runs at aaaaaaaaaaaa could not be read
+
+=== gate_deferred-1861-runs: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..01e389263 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -1861 +1861 @@ class Train:
+-        code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}", "workflow_runs")
++        code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}", "runs")
+  ok   P345 row 4 (null): a raise_hold Stop (an unlistable tree) is not approval owed: RED, rc 1
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 611 checks, 5 failed
+
+=== gate_busy-1871-runs: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..47a27644c 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -1871 +1871 @@ class Train:
+-        code, ci_runs, _ = self.pages(f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}", "workflow_runs")
++        code, ci_runs, _ = self.pages(f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}", "runs")
+  ok   P345 row 4 (null): a raise_hold Stop (an unlistable tree) is not approval owed: RED, rc 1
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 611 checks, 7 failed
+
+=== sha-check_runs-3337-checkruns: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..0967673ad 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -3337 +3337 @@ class Train:
+-        code, runs, _ = self.pages(f"repos/{self.repo}/commits/{sha}/check-runs", "check_runs")
++        code, runs, _ = self.pages(f"repos/{self.repo}/commits/{sha}/check-runs", "checkruns")
+  FAIL a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 611 checks, 1 failed
+
+=== infra-jobs-3598-job: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..86868e170 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -3598 +3598 @@ class Train:
+-            code, jobs, _ = self.pages(f"repos/{self.repo}/actions/runs/{rid}/jobs?filter=latest", "jobs")
++            code, jobs, _ = self.pages(f"repos/{self.repo}/actions/runs/{rid}/jobs?filter=latest", "job")
+  FAIL carry 2: infra_rerun reads its job logs through job_log, so a gh that lacks --allow-escape-sequences still re-runs the stamp's run once, logged INFRA-RERUN
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 611 checks, 5 failed
+
+=== bot_head-drop-key: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..2eb39d906 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -1648 +1648 @@ class Train:
+-        code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}&event=pull_request", "workflow_runs")
++        code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}&event=pull_request")
+  ok   P345 row 4 (null): a raise_hold Stop (an unlistable tree) is not approval owed: RED, rc 1
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 611 checks, 1 failed
+
+=== check_runs-1846-drop-key: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..bb5e1d549 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -1846 +1846 @@ class Train:
+-        code, runs, _ = self.pages(f"repos/{self.repo}/commits/{h}/check-runs", "check_runs")
++        code, runs, _ = self.pages(f"repos/{self.repo}/commits/{h}/check-runs")
+  FAIL defer-wait: an unreadable runs listing reads no run busy -- the red stands, logged, never a merge
+Traceback (most recent call last):
+    raise Stop("ci", f"the check runs at {sha[:12]} could not be read")
+Stop: ci: the check runs at aaaaaaaaaaaa could not be read
+
+=== gate_deferred-1861-drop-key: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..da0280990 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -1861 +1861 @@ class Train:
+-        code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}", "workflow_runs")
++        code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}")
+  ok   P345 row 4 (null): a raise_hold Stop (an unlistable tree) is not approval owed: RED, rc 1
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 611 checks, 5 failed
+
+=== gate_busy-1871-drop-key: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..770a089b0 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -1871 +1871 @@ class Train:
+-        code, ci_runs, _ = self.pages(f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}", "workflow_runs")
++        code, ci_runs, _ = self.pages(f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}")
+  ok   P345 row 4 (null): a raise_hold Stop (an unlistable tree) is not approval owed: RED, rc 1
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 611 checks, 7 failed
+
+=== sha-3337-drop-key: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..8eb198e6f 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -3337 +3337 @@ class Train:
+-        code, runs, _ = self.pages(f"repos/{self.repo}/commits/{sha}/check-runs", "check_runs")
++        code, runs, _ = self.pages(f"repos/{self.repo}/commits/{sha}/check-runs")
+  FAIL a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 611 checks, 1 failed
+
+=== infra-3598-drop-key: KILLED rc=1
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 5c296012c..5b802ac89 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -3598 +3598 @@ class Train:
+-            code, jobs, _ = self.pages(f"repos/{self.repo}/actions/runs/{rid}/jobs?filter=latest", "jobs")
++            code, jobs, _ = self.pages(f"repos/{self.repo}/actions/runs/{rid}/jobs?filter=latest")
+  FAIL carry 2: infra_rerun reads its job logs through job_log, so a gh that lacks --allow-escape-sequences still re-runs the stamp's run once, logged INFRA-RERUN
+  ok   --skip-bad (--main-moved-tries 0): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+  ok   --skip-bad (--main-moved-tries 3): a Stop after the merge API call is fatal for that entry only -- logged post-merge, never retried, and the next entry is neither merged nor re-proved onto the unread tree
+merge_train self-test: 611 checks, 5 failed
+

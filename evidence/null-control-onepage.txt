@@ -1,0 +1,7 @@
+588d1a4dfe607bc990fb3ced410a1df98005b9cf total_count=71
+$ [base] merge_train.py classify 588d1a4dfe607bc990fb3ced410a1df98005b9cf --pr 3462
+RED 588d1a4dfe607bc990fb3ced410a1df98005b9cf pending: none red: gate
+rc=1
+$ [wt] merge_train.py classify 588d1a4dfe607bc990fb3ced410a1df98005b9cf --pr 3462
+RED 588d1a4dfe607bc990fb3ced410a1df98005b9cf pending: none red: gate
+rc=1

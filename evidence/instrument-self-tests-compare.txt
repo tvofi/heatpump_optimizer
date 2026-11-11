@@ -1,0 +1,32 @@
+== 588d1a4dfe607bc990fb3ced410a1df98005b9cf job 130513008181
+  ok   A QUERY THAT FAILED IS unknown, NOT none -- the shape the fix review blocked on
+  ok   a query that failed while a pull request exists does NOT select push-then-create
+  ok   and the refusal keeps its message and names the stage that failed
+  ok   and names the failed read, not a difference (the read's status is read)
+ok   the token is revoked after the failed push
+ok   naming the byte-identity rule it failed
+ok   the token is revoked after the failed read-back
+ok   naming the exact-sha rule it failed
+ok   naming the component-count rule it failed
+ok   the token is revoked after the failed POST
+ok   the private directory is gone after the failed POST
+ok   the failed read was retried once (2 calls), then the pre-POST re-read (3)
+ok   a carry whose first fetch failed with git's 502 is fetched again and approved
+  ok   a failed check-runs read is reported on a line, not swallowed (P344)
+ok   REFUSE: the check runs cannot be listed (an empty list from a failed read is not 'no reds')
+== ee64358be7eeccaec5178a923cb3b83a18a924a0 job 130489627879
+ok   list: a failed read is UNREADABLE, never a clean board
+ok   post: a failed gh_comment read-back (rc 1) is a non-zero answer
+ok   mutant unreadable_swallowed killed by: list: a failed read is UNREADABLE, never a clean board
+ok   mutant post_rc_dropped killed by: post: a failed gh_comment read-back (rc 1) is a non-zero answer
+  ok   A QUERY THAT FAILED IS unknown, NOT none -- the shape the fix review blocked on
+  ok   a query that failed while a pull request exists does NOT select push-then-create
+  ok   and the refusal keeps its message and names the stage that failed
+  ok   and names the failed read, not a difference (the read's status is read)
+ok   the token is revoked after the failed push
+ok   naming the byte-identity rule it failed
+ok   the token is revoked after the failed read-back
+ok   naming the exact-sha rule it failed
+ok   naming the component-count rule it failed
+ok   the token is revoked after the failed POST
+ok   the private directory is gone after the failed POST
