@@ -21188,9 +21188,10 @@
    "architect_note": "",
    "brief": "P453: worktree_gc.sh removes a live train or relay checkout (five instances on 11-08); keep a worktree a live long-running process reads from, not only its cwd holder. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "pr": 3423
+    "pr": 3423,
+    "commit": "0e28afd38b353ca8e66269d9ae4be8614fcf5cfb"
    }
   },
   {
@@ -22576,9 +22577,9 @@
    "carry": [],
    "findings": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e",
     "last_step": null,
     "next_step": "fixer adopts the author's commits on outside pull request 3436 (no design step, size S)",
     "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3436 by Bankaifan accepted into round 10; no reviewer on the outside PR itself, this group's fixer adopts its commits; overlap admitted (R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-LEARNER-ROBUSTNESS): s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3436 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); overlap: shares diagnostics.py with R10-GENERIC-HEAT-CURVE-PERSISTENT (carries-open), a different seam (location redaction)",
@@ -23455,8 +23456,9 @@
     "MUTVAC-STMT-DEL (triage: dev/programme/triage/s6-batch185.md#P607 at ddb1e9e118), in tools/audit/seat/mutant_run.py mutate_line/diff_mutants (:245-297) and the operator docstring (:25-45), line numbers at cbd23f1c8b: add a report-only STMT_DEL operator to --diff mode -- from the head file's ast, each simple statement whose span intersects the added lines is replaced whole with `pass` at its indent (compound headers, docstrings, imports, print/_LOGGER calls skipped; compile-checked; deduped against CALL_DEL/RETURN_DEL), printed as `SURVIVED <file>:<first line> STMT_DEL  pass` for survivor_list.py. Land it after this group's fork cap in the same PR (a deleted re-entry guard is the P604 shape). Acceptance (finder's harness): the 23 reviewer-named Python sites listed in the ruling's Card, re-run with --list at their heads.tsv head...base, reach >= 14 (today 7; sites marked + each gain a STMT_DEL mutant); null control: a comment/docstring-only diff lists zero STMT_DEL; mutation proof: deleting the operator's dispatch returns the count to 7. Self-test: an unpinned bare assignment -> SURVIVED STMT_DEL, the pinned one -> KILLED, a three-line continuation statement -> exactly one mutant."
    ],
    "resume": {
-    "stage": "not-started",
-    "branch": null
+    "stage": "in-progress",
+    "branch": null,
+    "pr": 3475
    }
   },
   {
@@ -23887,12 +23889,13 @@
    "brief": "triage: dev/programme/triage/s6-batch196.md#P620 at 42823839bd\n\nHotfix, M: the CI gate livelock that held #3445 in the train for 75+ min and ran #3446's code suite five times at one head. Line numbers are at ee64358be7. Two seams, each with a failing self-test first and a null arm.\n\n1. CANCELLED-NOT-A-SOURCE, tools/ci/gate.py. fresh() (:195-205) orders candidate runs by their jobs' latest start; the source loop (:206-223) takes the first run whose jobs are all completed, and a cancelled run's jobs are completed, so cancelling a newer redundant run makes it the source and the gate reads its conclusion (:232-233). Treat a run whose unit's jobs concluded cancelled as no source for that unit and fall through, as the deferred all-skipped case already does (:217-218). Self-test: a newer cancelled run over an older green run at the head reads green (red at ee64358be7). Null arm: a newer failed run over an older green one still reads red.\n\n2. ONE-FRESH-JUDGE-PER-HEAD, tools/ci/sweep.py. Sweep.fresh() (:191-213) counts a workflow_dispatch run as the head's fresh judge only if it was created at or after the stale gate completed (:194-195). Re-running an old pull_request or pull_request_review gate moves its completion past every dispatch, so the next sweep dispatches again (:206-212). Count any workflow_dispatch run at the head that is queued, in progress or concluded success as the fresh judge regardless of creation time; dispatch only when none exists. Self-test: a gate completed after a successful dispatch was created dispatches nothing (dispatches at ee64358be7). Null arm: with only a failed or cancelled dispatch at the head, it still dispatches once.\n\nMeasured (ruling P620): 10 of 43 CI code dispatches over 2026-11-10..11 started at a head that already had a successful dispatched run, about 8.5 runner-hours at a 51 min median. Merge note: a change under tools/ci makes every open PR whose base predates it stale-pinned (sweep.py:177-188), costing one fresh dispatch per open PR once; say so in the body so the orchestrator can time the merge.\n\nOut of scope: the train's poll interval; the CodeQL duration of a code run.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
     "next_step": "fixer (hotfix, size M, no design step)",
-    "note": "triage s14 batch 196 P620; overlap admitted (R10-GATE-DEFER-BARRIER): triage s14 batch 196 P620 ACCEPT hotfix: CI gate livelock, cancelled run as gate source and sweep re-dispatch after a gate re-run"
+    "note": "triage s14 batch 196 P620; overlap admitted (R10-GATE-DEFER-BARRIER): triage s14 batch 196 P620 ACCEPT hotfix: CI gate livelock, cancelled run as gate source and sweep re-dispatch after a gate re-run",
+    "pr": 3473
    }
   },
   {
@@ -23932,12 +23935,13 @@
    "brief": "triage: dev/programme/triage/s6-batch197.md#P621 at cfaaf079ba\n\nHotfix, S: governance / instrument-self-tests is red on main (ee64358be7 job 130489627879; still red at 0a2139b1dd by a local census run) and on every pull request merging it, on one check: \"the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps\" (tools/audit/seat/pr_args.sh:829-833). Line numbers are at ee64358be7. The strace FAIL lines in that job are the selftest_scope_mutants step's expected mutant refusals, not the failure.\n\n1. PUSHER-CENSUS-ENTRY. pr_pushers (pr_args.sh:386) refuses tools/audit/seat/remerge_main_selftest.py as undispositioned: it names app_push.sh (:7, :50) because it writes a fake one into a scratch origin, and it pushes nothing. It came in with #3425. Add one PR_PUSHERS entry (:364-385) of kind mention, saying exactly that. Demonstration: pr_pushers at the fix prints 23 ok lines and no OPEN line, rc 0, against 23 entries, and the pusher-census check passes. Null control: with the entry removed the OPEN line returns and the check fails, as at 0a2139b1dd. Do not loosen the census rule.\n\n2. Red check. The defect-root-cause red-check trigger applies: in the body's Red checks, name this check and answer why #3425's gate did not run the pr_args self-test on a diff that added a tools file naming app_push.sh. The root-cause seat is the orchestrator's.\n\nFolded by triage: dev/programme/triage/s6-batch198.md#P622 at 2a5534a725 (the two other #3425 reds in the same job; still red at 0a2139b1dd).\n\n3. SWEEP-RENDER-OVERLAY-KEY. tools/audit/seat/sweep_render.py --self-test refuses \"unused: plan_coordinator_cap declared and never used by the sweep\" (the render function in sweep_render.py): #3425 commit c6c04f21b5 declared the placeholder (sweep_template.md:38) and never used it in the sweep body. Add \"plan_coordinator_cap\": \"--coordinator-cap\" to OPTIONAL_FLAGS (sweep_render.py:93) and the placeholder after the --seats placeholder in step (4b)'s replan command of the template. Demonstration: the self-test prints 0 failed, rc 0. Null control: with the placeholder use removed the same unused refusal returns, as at 0a2139b1dd. Do not loosen the unused-placeholder rule.\n\n4. SELFTEST-READS-3425. In tools/ci/selftest_closures.json, union only, never replacing an entry: hooks-setup, open-pr, pr-args and update-pr files += tools/audit/seat/remerge_main_selftest.py; app-push files += tools/audit/seat/gh_read.py; gh-call-log-shim files += tests/throwaway_git.py. Do not record the sweep-template probes-misses \"<unknown>\" line (a crash artifact) and do not touch the six entries #3446 adds (R10-HOTFIX-SELFTEST-SCOPE-UNION part 1); rebase onto it if it has merged. Before the push, a python set check: for these 6 steps, the selftest-closures artifact of run 43010208881 (artifact 13852641879) minus the table is empty, the unknown probe excluded. Proof: the first traced main push after this and #3446 merge prints 0 refusal(s); a refusal it still prints for one of the six steps item 3 re-enables (skipped after the sweep-template failure) goes back to the orchestrator as a main-red line.\n\n5. Red check, widened. Item 2's answer also covers the sweep-template step: why #3425 merged with sweep_render.py --self-test red although sweep_template.md is in that step's committed read set.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
     "next_step": "fixer (hotfix, size S, no design step)",
-    "note": "triage s14 batch 197 P621; overlap admitted (R10-SEAT-SCRIPT-OUTPUT): triage s14 batch 197 P621 ACCEPT hotfix: main red, pusher census refuses remerge_main_selftest.py | set-files files ['tools/audit/seat/pr_args.sh'] -> ['tools/audit/seat/pr_args.sh', 'tools/audit/seat/sweep_render.py', 'tools/audit/seat/sweep_template.md', 'tools/ci/selftest_closures.json']"
+    "note": "triage s14 batch 197 P621; overlap admitted (R10-SEAT-SCRIPT-OUTPUT): triage s14 batch 197 P621 ACCEPT hotfix: main red, pusher census refuses remerge_main_selftest.py | set-files files ['tools/audit/seat/pr_args.sh'] -> ['tools/audit/seat/pr_args.sh', 'tools/audit/seat/sweep_render.py', 'tools/audit/seat/sweep_template.md', 'tools/ci/selftest_closures.json']",
+    "pr": 3474
    }
   },
   {
