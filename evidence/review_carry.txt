@@ -1,0 +1,8 @@
+review_carry: 1713468b9 -> 49a45dd8a  main=origin/main
+  branch-only commits: 4
+  why: 340c426e0719af31dbe68faa3801092beff66e7c is not the automatic merge of its parents
+  340c426e0  merge origin/main (cbd23f1c, #3398) into r10-outside-disinfection-setpoint
+  b8736ad39  test(pump-duty): pin #3398's combi gating through the cycle's owner; retarget M7, add M10
+  1aa850c23  tests(structure): record class_excess_loc 17534 -> 17531
+  49a45dd8a  tests(ledger): drop #3398's two pins on lines the merge rewrote
+review_carry: FRESH-REVIEW
