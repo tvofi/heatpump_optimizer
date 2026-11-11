@@ -1,0 +1,19 @@
+--- /tmp/o.n	2026-11-11 20:48:29.392662708 +0000
++++ /tmp/n.n	2026-11-11 20:48:29.444662711 +0000
+@@ -138,14 +138,14 @@
+ +  `verify BODY --base SHA --head SHA` re-renders read-only and refuses a
+ +  difference (what `pr-contract` runs). `--self-test` runs offline over
+ +  fixtures and prints `figure_block self-test: N checks, 0 failed`.
+ diff --git a/tools/ci/selftest_closures.json b/tools/ci/selftest_closures.json
+ --- a/tools/ci/selftest_closures.json
+ +++ b/tools/ci/selftest_closures.json
+-    "index": true,
+-    "objects": false
++    "objects": false,
++    "git": []
+    },
+ +  "figure-block": {
+ +   "run_sha": "7295269b8e4ede5ee5449b86ec2276c56cbd36e12d6e4d0de3373e49703b1cc9",
+ +   "files": [
+ +    "tests/throwaway_git.py",
+ +    "tools/pr/figure_block.py"
