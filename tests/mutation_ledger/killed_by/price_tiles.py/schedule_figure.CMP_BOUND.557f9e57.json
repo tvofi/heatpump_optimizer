@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_tiles.py:schedule_figure CMP_BOUND 557f9e57",
+  "killed_by": "tests/features.py",
+  "old": "    priced = math.isfinite(shifted_price) and shifted_price > 0.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`priced = math.isfinite(shifted_price) and shifted_price >= 0.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

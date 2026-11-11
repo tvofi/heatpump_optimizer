@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_tiles.py:schedule_figure GUARD_OFF 139172d0",
+  "killed_by": "tests/features.py",
+  "old": "    if not math.isfinite((sim_kwh - live_kwh) * mean_price):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

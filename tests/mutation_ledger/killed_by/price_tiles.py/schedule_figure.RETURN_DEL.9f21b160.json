@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_tiles.py:schedule_figure RETURN_DEL 9f21b160",
+  "killed_by": "tests/structure.py",
+  "old": "    return {\"monthly_steady_cost_delta\": month(mean_price), SHIFTED_KEY: month(shifted_price) if priced else None}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_step_clock RETURN_DEL 0e0ac657",
+  "killed_by": "tests/plan_view.py",
+  "old": "    return step_datetimes, np.array([d.hour + d.minute / 60.0 for d in step_datetimes])",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
+}

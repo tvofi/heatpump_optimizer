@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_simulate BOOLOP 1550d375",
+  "killed_by": "tests/features.py",
+  "old": "        ) if steady and days is None else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`) if steady or days is None else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+}
