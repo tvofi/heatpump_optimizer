@@ -81362,6 +81362,89 @@ R.check(
 )
 
 
+# --- the other direction, and the null controls (our commit on the adopted one) ---
+# ``_ms_cycle`` runs one ``_apply_action`` at ``minute`` past the plan start with
+# the action cut for step 0 and returns every service call in order. ``cut`` is
+# the stale write ``cycle_supply`` exists to correct; ``main`` swaps in main's
+# behaviour (the action's own value) as the control for the null checks.
+_ms_main = lambda _inp, _boosts, on, now=None: on
+
+
+async def _ms_cycle(minute, *, sched=(1.5, 0.0), cut=True, mode="auto", boosted=False,
+                    sysid=False, age_minutes=0, main=False):
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = mode
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=list(sched),
+        dhw_power_schedule=[0.0, 0.0], optimal_setpoints=[21.0, 21.0])
+    armed, real = _sa_pa.async_track_time_interval, _sa_pa.cycle_supply
+    _sa_pa.async_track_time_interval = lambda *_a: (lambda: None)
+    if main:
+        _sa_pa.cycle_supply = _ms_main
+    try:
+        _sa_dt.freeze(_SA_T0 + timedelta(minutes=minute))
+        coord._last_optimization = _SA_T0 - timedelta(minutes=age_minutes)
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": cut, "power": 1.5 if cut else 0.0})
+        if sysid:
+            coord._current_action = {**coord._current_action, "mode": "system_identification"}
+        if boosted:
+            _sa_boost.held_for(coord).until[_sa_boost.CHANNEL_SPACE] = _SA_T0 + timedelta(hours=2)
+        await coord._apply_action()
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+        _sa_pa.cycle_supply = real
+    return [(d, s, dict(x)) for d, s, x in hass.services.calls]
+
+
+_ms_sw = lambda calls: [s for d, s, _x in calls if d == "switch"]
+_ms_up = _asyncio.run(_ms_cycle(15.5, sched=(0.0, 1.5), cut=False))
+_ms_up_own = _asyncio.run(_ms_cycle(2, sched=(0.0, 1.5), cut=False))
+R.check(
+    "a cycle whose OFF action was cut in the last step writes the ON of the step it lands in",
+    _ms_sw(_ms_up) == ["turn_on"],
+    f"{_ms_up}",
+)
+R.check(
+    "null control: the same OFF-planned cycle inside the action's own step writes its OFF",
+    _ms_sw(_ms_up_own) == ["turn_off"],
+    f"{_ms_up_own}",
+)
+# Null control: a write landing in the action's own step issues the same calls
+# in the same order as main (the action's value written as cut), in a plan mode,
+# a fixed mode, under a stale plan, a live boost and system identification.
+for _ms_name, _ms_kw in (
+    ("economy plan mode", {"mode": "economy"}),
+    ("auto plan mode, OFF cut", {"cut": False, "sched": (0.0, 1.5)}),
+    ("fixed comfort mode", {"mode": "comfort"}),
+    ("stale plan", {"age_minutes": 600}),
+    ("live boost (the overlay has made the action ON)", {"boosted": True, "cut": True}),
+    ("system identification", {"sysid": True, "cut": False}),
+):
+    _ms_a = _asyncio.run(_ms_cycle(2, **_ms_kw))
+    _ms_b = _asyncio.run(_ms_cycle(2, main=True, **_ms_kw))
+    R.check(
+        f"null control: {_ms_name}, a write in the action's own step issues main's calls in order",
+        _ms_a == _ms_b,
+        f"{_ms_a} != {_ms_b}",
+    )
+# Where step_supply does not speak, the action stands even when the write lands
+# in a later step: a fixed mode, system identification, a live boost (ON, as the
+# overlay makes the action).
+for _ms_name, _ms_kw, _ms_want in (
+    ("a fixed mode", {"mode": "comfort", "cut": True}, ["turn_on"]),
+    ("system identification", {"sysid": True, "cut": True}, ["turn_on"]),
+    ("a live boost over an OFF step", {"boosted": True, "cut": True}, ["turn_on"]),
+):
+    _ms_got = _ms_sw(_asyncio.run(_ms_cycle(15.5, **_ms_kw)))
+    R.check(
+        f"{_ms_name}: a write landing in the later step keeps its own command",
+        _ms_got == _ms_want,
+        f"{_ms_got}",
+    )
+
+
 # --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------
 # A set-point install's plan rarely writes the flow ceiling, so the metered
 # draw window is censored at the top and the plugin cannot learn the pump's
