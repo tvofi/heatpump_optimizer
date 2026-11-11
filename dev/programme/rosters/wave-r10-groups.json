@@ -22974,7 +22974,9 @@
    },
    "source": "outside",
    "findings": [],
-   "carry": [],
+   "carry": [
+    "From r10-duty-switch-restart-learning, body item 3656875b: The same finding for the planner's price of a switch: it reads the estimate through a reader it adds with its first caller, and an absent published key is no observation. Controls as in the item above. Lands in the same section of the design note, and is owed to the group's brief on the round's roster. Carry: R10-DUTY-SWITCH-PLANNER-PRICE (items 3656875b)"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": null,
