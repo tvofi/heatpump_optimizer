@@ -23786,6 +23786,48 @@
     "next_step": "fixer (size M, no design step), after R10-RELAY-ARM-ORDER and R10-REVIEW-DISPATCH-RESIDUE merge",
     "note": "triage s14 batch 189 P611, re-cut by batch 194 P616-P618; overlap admitted (R10-RELAY-ARM-ORDER): triage s14 batch 189 P611 ACCEPT narrowed, re-cut by batch 194 P616-P618; replaces refused queue line 4465, brief-lint clean at roster dry run"
    }
+  },
+  {
+   "group": "R10-ROSTER-CARRY-EXACT-MATCH",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "S",
+   "effort": "medium",
+   "severity": "low",
+   "lane": "IN",
+   "wave": 1,
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "after": [],
+   "files": [
+    "tools/audit/seat/roster_edit.py"
+   ],
+   "hot_files": [
+    "tools/audit/seat/roster_edit.py"
+   ],
+   "owner_gate": null,
+   "fixture": false,
+   "rca": [],
+   "findings": [],
+   "fixes": [],
+   "issues": [],
+   "brief": "triage: dev/programme/triage/s6-batch195.md#P619 at ec5364c3f0\n\nS instrument group, one seam: the carry lookup in tools/audit/seat/roster_edit.py. Line numbers are at ee64358be7.\n\n1. CARRY-EXACT-MATCH. _carry_index (roster_edit.py:550) resolves --match by substring alone (:557) and refuses two or more hits as ambiguous (:562). A pending carry whose whole text sits inside a sibling carry (the roster_sync re-append shape: a bare carry kept beside its dismissed \"From #N, body item X:\" duplicate) therefore cannot be named by any --match text, and roster_queue.py's replay_unsafe (:186) refuses the index form in a queue, so the only route is a hand index write outside the replay guard. At roster f65729f2da that is 35 of 778 pending carries in 15 groups. Change: when exactly one carry equals the match text exactly, return it; otherwise keep the substring rule and its refusals unchanged. Both mark-carry and drop-carry go through _carry_index, so both gain it. Self-test: a match equal to carry A, where A is also a substring of a dismissed sibling B, resolves to A (fails at ee64358be7, passes on the fix); null control: a match that equals no carry and hits two still refuses as ambiguous, and a unique substring still resolves as today.\n\nOut of scope: filtering marked carries out of the hits (resolves 25 of the 35, and changes which entry a substring names); any change to replay_unsafe.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (size S, no design step)",
+    "note": "triage s14 batch 195 P619"
+   }
   }
  ]
 }
