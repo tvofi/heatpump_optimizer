@@ -1,0 +1,43 @@
+head d581d4e0b2e5fab662a2eb70b47b77b82ee5cc6e
+--- beat_jobs.py plan_beat
+418:    rc, _, err = ctx.py("tools/plan/replan.py", "--out", plan, "--slots", slots, "--seats", seats)
+424:    rc, out, err = ctx.py("tools/audit/seat/state_docs.py", "--push", "--mirror", mirror, "--plan", plan, *train)
+tools/audit/seat/beat_jobs.py:0
+tools/audit/seat/beatd.jobs.json:0
+--- state_docs.py
+publishes the other docs and exits 1, so the caller sees the plan unread.
+`--train-log` is handed on to `plan_page.py` (its flow section's skips). The
+beat runs no replan, so it never passes `--plan`.
+`beat --apply` runs the roster-sync step (`roster_sync.py`) at the START of
+every pass, before the memo check, so an open pull request that moved no ref
+def main(argv=None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+    if argv[:1] == ["beat"]:
+        return beat(parser(beat_mode=True).parse_args(argv[1:]))
+--- postmerge.py
+        ("stage", [*PY, f"{seat}/roster_sync.py", "--repo", repo, "--apply"], True),
+--- dependabot-automerge.yml
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+--- ci.yml sweep-self
+  sweep-self:
+    needs: gate
+--- dev/README.md
+housekeeping jobs outside this chain: `cancel-superseded`, `refresh` and
+- `.github/workflows/ci.yml`: the umbrella, the only file a pull-request event
+  starts
+  `tools/audit/seat/beatd.jobs.json`, where an unreadable table refuses to
+  start. Its jobs are in `tools/audit/seat/beat_jobs.py`: the figure shows
+  the four that write a store, and the rest report or clean up. No beat job
+  runs the relay, the tick, the train or the heartbeat.
+  `tools/audit/seat/roster_edit.py`. `tools/audit/seat/roster_queue.py`
+  drains queued edits into it, and `tools/audit/seat/roster_sync.py`, run by
+  the plan beat, derives each group's stage from its branch's pull request.
+305:    beat -->|"runs"| plan
+306:    beat -->|"runs"| docs
+307:    beat -->|"runs"| rq
+308:    beat -->|"runs"| opener
+309:    docs -->|"writes"| roster
+310:    docs -->|"writes"| sdoc
