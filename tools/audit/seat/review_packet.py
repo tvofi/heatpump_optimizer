@@ -584,9 +584,14 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
         refusals.append(f"head-note: ## Head does not name the dispatched head {head}"
                         + head_note_repair(head, facts.get("branch")))
     refusals += handoff_refusals(facts["structure"], facts["hot"], [])
-    for n in facts["red_unanswered"]:
-        refusals.append(f"red-unanswered: concluded red check `{n}` is not named in ## Red checks")
     (word, why), owed_adv = facts.get("required_read") or ("RED", ""), []
+    for n in facts["red_unanswered"]:
+        # S14 local (never pushed): a `gate` red classify reads WAIT/GREEN is a deferral, not a red.
+        if n == "gate" and word in ("WAIT", "GREEN"):
+            owed_adv.append(f"red-deferred: concluded red check `{n}` is not counted by red-unanswered: "
+                            f"merge_train.py classify --pr reads {word} ({why})")
+            continue
+        refusals.append(f"red-unanswered: concluded red check `{n}` is not named in ## Red checks")
     for n in sorted(set(reds) & set(REQUIRED)):
         if word == "APPROVAL-OWED":
             owed_adv.append(
@@ -845,6 +850,35 @@ def _self_test() -> int:
     check("null control: a required red that classify --pr reads RED still refuses, naming classify's line",
           len(r_r) == 1 and r_r[0].startswith("required-red: required context `gate`")
           and "RED pending: none red: gate" in r_r[0] and adv_r == [])
+    # #3404 at 561edf4c, #3429 at 498c2ab0 (11-11): the only concluded red was an edit/review
+    # run's `gate` deferral ("still being judged; their gate decides") while classify --pr read
+    # WAIT, and red-unanswered refused on the raw digest the required-context arm already overrules.
+    r_dw, adv_dw, _ = build({**clean, "gate": gate_digest(redgate), "red_unanswered": ["gate"],
+                             "required_read": ("WAIT", "pending: gate red: none")})
+    check("S14 deferral: an unanswered `gate` red that classify --pr reads WAIT does not refuse; one "
+          "`red-deferred` advisory names the red and classify's answer",
+          r_dw == [] and [a for a in adv_dw if a.startswith("red-deferred:")] == [
+              "red-deferred: concluded red check `gate` is not counted by red-unanswered: "
+              "merge_train.py classify --pr reads WAIT (pending: gate red: none)"])
+    r_dg, adv_dg, _ = build({**clean, "gate": gate_digest(redgate), "red_unanswered": ["gate"],
+                             "required_read": ("GREEN", "pending: none red: none")})
+    check("S14 deferral: the same under classify GREEN",
+          r_dg == [] and any(a.startswith("red-deferred: concluded red check `gate`") and "reads GREEN" in a
+                             for a in adv_dg))
+    r_dr, _, _ = build({**clean, "gate": gate_digest(redgate), "red_unanswered": ["gate"],
+                        "required_read": ("RED", "pending: none red: gate")})
+    check("S14 null: an unanswered `gate` red that classify reads RED still refuses red-unanswered",
+          "red-unanswered: concluded red check `gate` is not named in ## Red checks" in r_dr)
+    r_du, _, _ = build({**clean, "gate": gate_digest(redgate), "red_unanswered": ["gate"]})
+    check("S14 null: an unanswered `gate` red with no classify answer (unreadable) still refuses red-unanswered",
+          "red-unanswered: concluded red check `gate` is not named in ## Red checks" in r_du)
+    r_dn, adv_dn, _ = build({**clean, "gate": gate_digest(redgate), "red_unanswered": ["tests / fast", "gate / x"],
+                             "required_read": ("WAIT", "pending: gate red: none")})
+    check("S14 null: a non-gate red (and a name merely containing `gate`) under classify WAIT still refuses",
+          [r for r in r_dn if r.startswith("red-unanswered:")] == [
+              "red-unanswered: concluded red check `tests / fast` is not named in ## Red checks",
+              "red-unanswered: concluded red check `gate / x` is not named in ## Red checks"]
+          and not any(a.startswith("red-deferred:") for a in adv_dn))
     with tempfile.TemporaryDirectory() as d:
         stub = Path(d) / "classify.sh"
         stub.write_text('echo "$*" > "$(dirname "$0")/argv"; echo "${PK_OUT:-}"; exit "${PK_RC:-1}"\n')
