@@ -2429,6 +2429,21 @@ def selftest() -> int:
            "not the rounds themselves (max(rounds - 1, 1))",
            abs(rv("in-review", 1.4) - 1.0) < 1e-9 and 1.4 < rv("in-progress", 1.4),
            str((rv("in-review", 1.4), rv("in-progress", 1.4))))
+    nofrac = {k: v for k, v in durations.items() if k != "live_remaining_fraction"}
+
+    def rv_nofrac(st):
+        d = dict(nofrac, round_hours=1.0, review_rounds={**durations["review_rounds"], "S": 200.0})
+        return group_hours(fx("RV", "S", stage=st), d, True, "<t>")[0]
+    expect("live stage (cap, no measured fraction): 199 rounds left are capped at the "
+           "default remaining share, the in-progress price",
+           abs(rv_nofrac("in-review") - rv_nofrac("in-progress")) < 1e-9
+           and rv_nofrac("in-review") < 199.0,
+           str((rv_nofrac("in-review"), rv_nofrac("in-progress"))))
+    empty = build_plan({"groups": []}, durations, dict(DEFAULT_CAPS), dt.datetime(2026, 1, 5),
+                       "v1.0.0", round_n=2)
+    expect("an empty round (no stamp, no group): --check accepts the closure it was built with",
+           check_plan(empty) == [],
+           str((check_plan(empty), empty["summary"]["closure"])))
     gen_start = dt.datetime.strptime(pc["generated"]["start"], "%Y-%m-%dT%H:%M:%SZ")
     expect("post-closure: wall_hours runs to summary.closure (the catalog finish), not the stamp",
            abs(pc["summary"]["wall_hours"] * 60 - (

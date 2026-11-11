@@ -734,6 +734,8 @@ def self_test() -> int:
           and {g["via"] for g in got} == {"rest"}
           and {g["first_commit_at"] for g in got} == {"2026-10-01T00:00:00Z"}
           and all(len(g["verdicts"]) == 1 for g in got))
+    check("fetch_rest: a PR created exactly at `since` is read (since is the earliest read)",
+          [g["number"] for g in fetch_rest("o/r", "2026-10-21T00:00:00Z", fake_read)][-1] == 180)
     asked = []
 
     def short_read(path):
