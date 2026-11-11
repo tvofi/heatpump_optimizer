@@ -29956,6 +29956,58 @@ R.check(
     f"cycles: {_tib._tibber_outage_cycles}",
 )
 
+# Price outage with still-valid prices: the failed fetch is bridged (warning +
+# repair), the update does not fail; once the old prices no longer cover now
+# the update fails again, and a recovered fetch clears the repair.
+from homeassistant.util import dt as _dtu_pf  # noqa: E402
+
+_pf_now = _dtu_pf.now().replace(minute=0, second=0, microsecond=0)
+_tib.hass.issues = []
+_tib._tibber_outage_cycles = 0
+_tib._prices = [
+    {"total": 0.3, "starts_at": (_pf_now + timedelta(hours=h)).isoformat()}
+    for h in (-1, 0, 1, 2)
+]
+_pf_raised = None
+try:
+    _asyncio.run(_tib._fetch_tibber_prices())
+except Exception as err:  # noqa: BLE001 - the absence is the assertion
+    _pf_raised = err
+R.check(
+    "a failed price fetch while the last prices still cover now does not fail the update",
+    _pf_raised is None and _tib._tibber_outage_cycles == 1 and len(_tib._prices) == 4,
+    f"raised {_pf_raised!r}, cycles {_tib._tibber_outage_cycles}",
+)
+R.check(
+    "…and raises the price_feed_stale repair",
+    [i[1] for i in _tib.hass.issues] == ["price_feed_stale"],
+    f"issues {[i[1] for i in _tib.hass.issues]}",
+)
+_tib._tibber_fetch_recovered()
+R.check(
+    "a recovered fetch clears the repair",
+    not any(i[1] == "price_feed_stale" for i in _tib.hass.issues),
+    f"issues {_tib.hass.issues}",
+)
+_tib._tibber_outage_cycles = 0
+_asyncio.run(_tib._fetch_tibber_prices())
+_tib._prices = [
+    {"total": 0.3, "starts_at": (_pf_now - timedelta(hours=h)).isoformat()}
+    for h in (5, 4, 3)
+]
+_pf_raised = None
+try:
+    _asyncio.run(_tib._fetch_tibber_prices())
+except Exception as err:  # noqa: BLE001 - the class is the assertion
+    _pf_raised = err
+R.check(
+    "prices that no longer cover now fail the update again, and the repair stays",
+    type(_pf_raised).__name__ == "UpdateFailed"
+    and [i[1] for i in _tib.hass.issues] == ["price_feed_stale"],
+    f"raised {_pf_raised!r}, issues {[i[1] for i in _tib.hass.issues]}",
+)
+_tib._prices = []
+
 # #216 (round-2 D10-B): the latch must OWN the outage's logging. The four
 # in-try failure verdicts (401/403, HTTP != 200, GraphQL errors, no homes)
 # call _tibber_fetch_failed from inside _fetch_tibber_prices's try, so the
