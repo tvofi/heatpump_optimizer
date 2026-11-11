@@ -1,3 +1,5 @@
+Carry 1 (the brief's Carry 0, MUTVAC-STMT-DEL) is implemented here as STMT_DEL, after the fork cap.
+
 mutant_run.py bounds the command's process tree and gains a STMT_DEL operator (P604 FORKCAP; carry P607 STMT_DEL). The command's session is polled every 0.5 s and SIGKILLed whole past `--fork-cap` (default 256) processes; the outcome is `FORKCAP`, never KILLED, since a cap stop proves no test pins the mutant. Diff mode's STMT_DEL replaces each simple statement an added line falls in with `pass` (compile-checked, deduped against CALL_DEL/RETURN_DEL). No reproduction ran an unbounded self-test; all runs were under `ulimit -u` in a subshell with a timeout.
 
 Alternatives: an RLIMIT_NPROC soft limit lost (not enforced for root, counts the whole user, and a fork failure would read as KILLED rather than FORKCAP). A FORKCAP diff run exits 1 (0 under --report-only); survivor_list.py reads only SURVIVED lines, and its pinned producer strings are unchanged.
