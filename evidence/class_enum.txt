@@ -1,0 +1,4 @@
+custom_components/heatpump_optimizer/pump_arbiter.py:1336:        return "select_option", {"option": _option_for(state, value)}
+custom_components/heatpump_optimizer/pump_arbiter.py:1561:    await _command(
+custom_components/heatpump_optimizer/pump_arbiter.py:1733:        await _command(coord, inp, desired(coord, inp, None, dt_util.now()), dt_util.now())
+custom_components/heatpump_optimizer/pump_mode.py:85:    #: ``select.select_option`` would have to be given to write it.
