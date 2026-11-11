@@ -272,10 +272,12 @@ class DhwProfileLearner:
         """
         for idx, key in enumerate(("profile_weekday", "profile_weekend")):
             arr = source.get(key)
-            usable = isinstance(arr, list) and len(arr) == 24
-            if not (usable or reset_missing):
+            if isinstance(arr, list) and len(arr) == 24:
+                setattr(self, key, self.normalize_profile(arr))
+            elif reset_missing:
+                setattr(self, key, self.hourly_profile.copy())
+            else:
                 continue
-            setattr(self, key, self.normalize_profile(arr) if usable else self.hourly_profile.copy())
             try:
                 self.daytype_samples[idx] = max(0, int(source.get(f"{key}_samples", 0)))
             except (TypeError, ValueError, OverflowError):
