@@ -54,7 +54,7 @@ def dip_at(minutes_since_start: float) -> float:
     return max(0.0, DIP_K * (1.0 - (minutes_since_start - DIP_PEAK_MIN) / 20.0))
 
 
-def run(arm: str, rate: float | None = None) -> dict:
+def run(arm: str, rate: float | None = None, draw_min: int = 7 * 60, charge_min: int = 10) -> dict:
     params = ThermalParameters()
     params.dhw_enabled = True
     cap = params.dhw_store.capacity_kwh_per_c
@@ -89,12 +89,12 @@ def run(arm: str, rate: float | None = None) -> dict:
         day, minute = divmod(i * STEP_MIN, 24 * 60)
         dt_h = STEP_MIN / 60.0
         t_true -= true_rate * (t_true - TANK_ROOM_AMBIENT_TEMP) / 25.0 * dt_h
-        if 7 * 60 <= minute < 7 * 60 + 15:  # the morning draw, three samples
+        if draw_min <= minute < draw_min + 15:  # the morning draw, three samples
             t_true -= draws_kwh[day] / 3.0 / cap
         flagged = arm != "flat"  # flat: an unflagged reheat, no dip
         if minute == 7 * 60 + 30:
             charge_start = now
-        in_charge = charge_start is not None and 0 <= (now - charge_start).total_seconds() < 600
+        in_charge = charge_start is not None and 0 <= (now - charge_start).total_seconds() < charge_min * 60
         heating[0] = flagged and in_charge
         if in_charge:
             t_true += (SETPOINT_C - t_true) / 2.0
@@ -104,13 +104,30 @@ def run(arm: str, rate: float | None = None) -> dict:
         loop.run_until_complete(learner.async_learn_dynamics(round(reading, 2)))
     loop.close()
     stats = learner.draw_stats
-    out = {"usage_points": usage_points[0]}
+    out = {
+        "usage_points": usage_points[0],
+        "profile_h7": round(learner.hourly_profile[7], 4),
+        "cooling_rate": round(learner.cooling_rate, 4),
+    }
     for label in labels_for(params.dhw_demand_windows):
         q = stats.quantile(label, 0.9)
         out[label] = (stats.count(label), None if q is None else round(q, 4))
     return out
 
 
+#: (geometry name, draw start minute of the day, charge length in minutes);
+#: the charge always starts at 07:30.
+GEOMETRIES = (
+    ("draw-0700", 7 * 60, 10),  # the draw ends before the charge
+    ("draw-0735", 7 * 60 + 35, 10),  # the draw starts during the charge
+    ("draw-0745", 7 * 60 + 45, 10),  # 5 min after the last heated sample
+    ("draw-0800", 8 * 60, 10),  # past the settle window (control)
+    ("long-0700", 7 * 60, 40),  # a 40-min charge: the dip recovers while heated
+    ("long-0745", 7 * 60 + 45, 40),  # a draw during the long charge
+)
+
+
 if __name__ == "__main__":
-    for arm, rate in (("dip", None), ("truth", None), ("flat", None), ("dip@max", DHW_COOLING_RATE_MAX), ("truth@max", DHW_COOLING_RATE_MAX)):
-        print(f"{arm:8s} {run(arm, rate)}")
+    for geo, draw_min, charge_min in GEOMETRIES:
+        for arm, rate in (("dip", None), ("truth", None), ("flat", None), ("dip@max", DHW_COOLING_RATE_MAX), ("truth@max", DHW_COOLING_RATE_MAX)):
+            print(f"{geo} {arm:9s} {run(arm, rate, draw_min, charge_min)}")
