@@ -1,8 +1,0 @@
-== wt 0aed6ccbc
-RESULT probe held cycle, everyday 57 > disinfection 50, step 5: write 60.0
-RESULT probe booked cycle, same install: write 60.0
-RESULT probe null, no cycle, same install: write 55.0
-== wtp 49a45dd8a
-RESULT probe held cycle, everyday 57 > disinfection 50, step 5: write 55.0
-RESULT probe booked cycle, same install: write 55.0
-RESULT probe null, no cycle, same install: write 55.0
