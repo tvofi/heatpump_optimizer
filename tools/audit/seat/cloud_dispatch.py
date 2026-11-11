@@ -885,6 +885,12 @@ def _group_checks(check) -> None:
                 return reason(*a, **kw)
             except Exception as e:  # noqa: BLE001 -- a mutant's IndexError must fail a check, not the run
                 return f"{e.__class__.__name__}: {e}"
+
+        def split_any(n: int) -> str:  # part_split of 0..n-1; an exception reads as a named failure, as why_any
+            try:
+                return part_split(list(range(n)))
+            except Exception as e:  # noqa: BLE001
+                return f"{e.__class__.__name__}: {e}"
         try:
             mwhy = reason("R10-SPLIT")
             check("a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split",
@@ -917,7 +923,7 @@ def _group_checks(check) -> None:
                   not fwhy and ftext.endswith("Brief (snapshotted when this payload was rendered):\n"
                                  + group_brief(five, {"groups": [five]}, fixer=True)) and "\nPart " not in ftext)
             check("the split folds a remainder of one or two into the last part, and only that",
-                  [part_split(list(range(n))) for n in (1, 2, 5, 6, 7, 8, 21, 22, 23)]
+                  [split_any(n) for n in (1, 2, 5, 6, 7, 8, 21, 22, 23)]
                   == ["0", "0-1", "0-4", "0-5", "0-6", "0-4, 5-7", "0-4, 5-9, 10-14, 15-20", "0-4, 5-9, 10-14, 15-21",
                       "0-4, 5-9, 10-14, 15-19, 20-22"]
                   and part_split([0, 1, 3, 4, 5, 6, 9]) == "0-1+3-6+9" and part_split([0, 2, 3]) == "0+2-3")
