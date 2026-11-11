@@ -61725,6 +61725,44 @@ R.check(
     "floor makes the first read as a 43.1 L tank heat",
 )
 
+# A charge start makes the tank reading FALL (the loading transient), so a
+# heated interval, or one ending inside DHW_CHARGE_SETTLE_HOURS after the last
+# heated sample, must book neither a draw nor a usage-profile point. Pre-fix
+# the heated arm folds a positive energy and the 5-min-after arm also teaches
+# usage; the 20-min-after arm is the null control that still learns.
+def _chg_settle(heating_now, heating_before, heated_min_ago):
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    coord._thermal_params.dhw_enabled = True
+    learner = coord._dhw_learner
+    learner.cooling_rate = 0.3
+    folded, published = [], []
+    real_fold = learner.draw_stats.fold
+    learner.draw_stats.fold = lambda w, l, e: (folded.append(e), real_fold(w, l, e))
+    learner._publish = lambda **k: published.append(k)
+    learner._heating_active = lambda: heating_now
+    now = dt_util.now()
+    learner.last_temp_sample, learner.last_sample_time = 50.0, now - timedelta(minutes=5)
+    learner.heating_since_sample = heating_before
+    learner.last_heated_time = (
+        None if heated_min_ago is None else now - timedelta(minutes=heated_min_ago)
+    )
+    _aio.run(learner.async_learn_dynamics(47.0))
+    return round(sum(folded), 6), len(published)
+
+
+_chg_heated = _chg_settle(True, True, 5)
+_chg_settling = _chg_settle(False, False, 5)
+_chg_settled = _chg_settle(False, False, 20)
+R.check(
+    "a charge-start dip is learned as neither a draw nor usage",
+    _chg_heated == (0.0, 0) and _chg_settling == (0.0, 0)
+    and _chg_settled[0] > 0.5 and _chg_settled[1] == 1,
+    f"(kWh folded, usage points) heated {_chg_heated}, 5 min after the charge "
+    f"{_chg_settling}, 20 min after (control) {_chg_settled}",
+)
+
 # A zero-capacity tank is the input the floors were hiding. With the capacity
 # read raw, four of the seams below divide by it, so each has to decline to
 # plan rather than raise. Pre-fix this arm answers "ZeroDivisionError": the
