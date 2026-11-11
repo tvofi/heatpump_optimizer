@@ -1,2 +1,0 @@
-RESULT mutant=cap-default-569 rc=1 fails=2 KILLED ['FAIL live stage (cap): with no live_remaining_fraction recorded, review and progress share the one 0.7 default, so many rounds left price as in progress: (90.0, 70.0)', "FAIL the unmutated copy's self-test exits 0 (null control): rc=1"]
-RESULT mutant=cap-default-572 rc=1 fails=2 KILLED ['FAIL live stage (cap): with no live_remaining_fraction recorded, review and progress share the one 0.7 default, so many rounds left price as in progress: (70.0, 90.0)', "FAIL the unmutated copy's self-test exits 0 (null control): rc=1"]
