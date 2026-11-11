@@ -1,0 +1,5 @@
+M9 rc 1 KILLED
+     FAIL P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order
+     FAIL P608 an entry with only startedAt is ordered by it, in either list order
+     ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+     ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
