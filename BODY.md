@@ -36,10 +36,11 @@ Each own-step null control runs the same cycle with `pump_arbiter.cycle_supply` 
 ## Red checks
 
 `tests / fast`: `combi_type_branch census` red on main's combi census until its hotfix merges (R10-HOTFIX-COMBI-CENSUS-MAIN-RED); inherited, not caused by this diff.
+- `mutation` at b3b51d4258a1: red by construction on the 1 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
 
 ## Forward-carry
 
-The sibling publish sites above. Carry: R10-ECL110-MQTT-OFF-NEUTRAL
+The sibling publish sites above land in the R10-ECL110-MQTT-OFF-NEUTRAL group of `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ECL110-MQTT-OFF-NEUTRAL
 
 ## Friction
 
