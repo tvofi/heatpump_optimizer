@@ -1,0 +1,6 @@
+policy_lint --budgets rc=0
+head job failure   + step cancelled (hang the PR introduced), base green: ([], 'head job 1 base job 1') job reads 2
+head job timed_out + step cancelled (hang the PR introduced), base green: ([], 'head governance / instrument-self-tests: timed_out') job reads 0
+head job cancelled + step cancelled (hang the PR introduced), base green: ([], 'head governance / instrument-self-tests: cancelled') job reads 0
+step-level: a head step concluded 'timed_out'/'cancelled' in a FAILED job: []
+review_packet.RED (same file's notion of red): ['action_required', 'cancelled', 'failure', 'startup_failure', 'timed_out']
