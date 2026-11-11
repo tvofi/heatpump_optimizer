@@ -159,10 +159,13 @@ injobs && /^ +[A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/ {
   # The merge queue's base sits between the two (round-9 process review item 2):
   # a `merge_group` run has no pull request and grades like one, never like main.
   # A ci.yml callee's dispatch naming a PR takes its base before `github.sha`.
-  if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| \(inputs\.base && format\(.origin\/\{0\}., inputs\.base\)\))? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
+  if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ ((inputs\.restore_source|needs\.(prelude|gate)\.outputs\.restore_source|steps\.source\.outputs\.sha) \|\| )?github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| \(inputs\.base && format\(.origin\/\{0\}., inputs\.base\)\))? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
   # A workflow_call callee of ci.yml (R10-CI-LAYOUT P2b) adds the dispatched
   # PR's base, `format('origin/{0}', inputs.base)`: still never main's own SHA.
-  else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| format\(.origin\/\{0\}., inputs\.base\))? \}\}[[:space:]]*$/) expr = "pr"
+  else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ ((inputs\.restore_source|needs\.(prelude|gate)\.outputs\.restore_source|steps\.source\.outputs\.sha) \|\| )?github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| format\(.origin\/\{0\}., inputs\.base\))? \}\}[[:space:]]*$/) expr = "pr"
+  # Either form may open with the restore source ci.yml's prelude resolves
+  # (R10-HOTFIX-RESTORE-BASE-SKEW): the merge commit's first parent, which the
+  # pull request cannot choose; any other leading alternative stays unclassified.
   # A listed restore (R9-RO-2) names its pathspecs on the `git diff` line.
   if ($0 ~ /git (checkout|diff --name-only -z .*) "\$PINNED" --( |$)/) { if (expr != "") pinstyle = expr; inpin = 1; next }
   if (inpin) {
@@ -3262,12 +3265,12 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   awk -v c="python3 -I $OWN --check" '/^rc=0$/ { print c } { print }' "$WF/deleted.sh" > "$WF/above.sh"
   [ "$(pinned_unrun "$WF/above.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader called only above rc=0 is named"
-  for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed queue-base; do
+  for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed queue-base foreign-source; do
     rm -f "${WF:?}/wf/"*.yml; cp .github/workflows/*.yml "$WF/wf/"
     PERT=$pert python3 - "$WF/wf/governance.yml" <<'PY' || { st 1 0 "governance.yml perturbation ($pert) changes the file"; continue; }
 import os, sys
 p = sys.argv[1]; s = open(p).read(); k = os.environ["PERT"]
-cur = "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}"
+cur = "PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}"
 own = "python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check"
 full = "if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else " + own + "; fi"
 if k == "unquoted": t = s.replace('git checkout "$PINNED" --', 'git checkout $PINNED --', 1)
@@ -3282,6 +3285,7 @@ elif k == "indent4":  # YAML-equal: every line under `jobs:` two spaces deeper
     t = head + "\njobs:\n" + "".join("  " + l if l.strip() else l for l in body.splitlines(True))
 elif k == "renamed": t = s.replace("PINNED", "PIN")
 elif k == "queue-base": t = s.replace(cur, "PINNED: ${{ github.event.pull_request.base.sha || github.sha }}")
+elif k == "foreign-source": t = s.replace(cur, cur.replace("inputs.restore_source", "inputs.head"))
 else: t = s.replace("run: " + full, "run: |\n          if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else python3 -I \\\n            dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check; fi", 1)
 assert t != s, k
 open(p, "w").write(t)
