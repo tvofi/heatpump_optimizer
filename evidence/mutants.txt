@@ -1,11 +1,22 @@
-M1 app_push: push not under gh_read retry: rc=1 KILLED | app_push self-test: 230 checks, 2 failed | ["FAIL a push that fails once on a 502 still lands and opens the pull request (got '1', want '0')", "FAIL the push was tried twice (one transient failure, one success) (got '1', want '2')"]
-M2a shim: worktree admit never sets ok: rc=1 KILLED | gh_calls self-test: 204 checks, 2 failed | ["FAIL second tree: a second registered worktree's tracked script", 'FAIL mutant: the worktree registration dropped lets an unlisted clone through']
-M2b shim: ls-files tracked check dropped: rc=0 SURVIVED | gh_calls self-test: 204 checks, 0 failed | []
-M2c shim: broot!=gcpy guard dropped: rc=0 SURVIVED | gh_calls self-test: 204 checks, 0 failed | []
-M3a codescan: carried_over False: rc=1 KILLED | codescan_wait self-test: 24 checks, 1 failed | ['BAD 21 carried-over step-less success jobs are settled and all legs uploaded', 'FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)']
-M3b codescan: steps-absent clause dropped: rc=0 SURVIVED | codescan_wait self-test: 24 checks, 0 failed | ['FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)']
-M3c codescan: conclusion clause dropped: rc=1 KILLED | codescan_wait self-test: 24 checks, 1 failed | ['BAD 22 null: a step-less job that did not succeed is neither settled nor an uploaded leg', 'FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)']
-M3d codescan: status clause dropped: rc=0 SURVIVED | codescan_wait self-test: 24 checks, 0 failed | ['FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)']
-M4a ci_ratchet: single read: rc=1 KILLED | ci-ratchet self-test: 67 checks, 2 failed | ["FAIL a sustained 502 on the runs read refuses by name after the read rule's 4 reads (a short window is not a fast one) -- ci-ratchet: gh api repos/o/r/actions/workflows/ci.yml/runs?event=push&branch=main&per_page=16 failed (rc 1) once: gh: HTTP 502", 'FAIL one injected 502 on a jobs listing still gathers the whole window -- ci-ratchet: gh api repos/o/r/actions/runs/10/jobs?per_page=100 failed (rc 1) once: gh: HTTP 502']
-M4b ci_ratchet: retry every failure: rc=1 KILLED | ci-ratchet self-test: 67 checks, 1 failed | ['FAIL null control: a 404 refuses after one read, no sleep -- ci-ratchet: gh api repos/o/r/actions/workflows/ci.yml/runs?event=push&branch=main&per_page=16 failed (rc 1) (after 4 attempts): gh: Not Found (HTTP 404)']
-M4c ci_ratchet: empty stdout not a failure: rc=0 SURVIVED | ci-ratchet self-test: 67 checks, 0 failed | []
+== head self-tests
+codescan_wait self-test: 25 checks, 0 failed
+gh_calls self-test: 206 checks, 0 failed
+== M2b: tracked predicate -> true
+346:          if [ "$broot" != "$gcpy" ] && git -C "$troot" ls-files --error-unmatch tools/pr/gh_comment.py >/dev/null 2>&1; then
+ tools/audit/seat/shims/seat-gh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL second tree: null control: a registered worktree whose script is not tracked
+  FAIL mutant: the tracked-file predicate dropped lets an untracked script in a registered worktree through
+gh_calls self-test: 206 checks, 2 failed
+== M3b: drop steps clause
+102:    return j.get("status") == "completed" and j.get("conclusion") == "success" and "steps" not in j
+ tools/ci/codescan_wait.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)
+ok  12 main: a rate limit FAILs closed, rc 1
+ok  15 the FAIL line is on stderr, where the job log shows it, and stdout (the alert file) is empty (stdout '')
+ok  17 WAIT_MAX_S bounds steps 1 and 4 together, not each (waited 600 s: 'FAIL no analysis at refs/pull/77/merge with commit_sha m1 for leg(s) python after 600 s')
+ok  19 own run: a step row still lagging at the bound FAILs, never passes ("FAIL this run's codeql jobs were not listed finished after 600 s")
+codescan_wait self-test: 25 checks, 1 failed
+FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)
+BAD 23b null: a completed success job with a lagging or empty `steps` list is not carried over: unsettled, not uploaded

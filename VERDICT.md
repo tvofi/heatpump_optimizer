@@ -1,27 +1,25 @@
-Fix review: blocked 7cbfa680134ea1ddb34d202ef1ab11e0efb93807 mutation-vacuous: seat-gh ls-files tracked check (M2b), codescan_wait carried_over steps-absent clause (M3b)
+Fix review: merge ad9ce7f526b47202bb3ca5e10050b7b48262fc19
 
-bus-nonce: 1ad9850b0bd30fe0956cb8d70ee83b34
+bus-nonce: cc29f544b631a348a6615dfc6e953faa
+pending-ci: gate
 
-Round 1 (first review). Measured head 7cbfa680134ea1ddb34d202ef1ab11e0efb93807, merge base 63bcdcaad827ad3d98f914bc2e5b6110f9bb9444.
-
-## Block
-
-- M2b, tools/audit/seat/shims/seat-gh (the new admit block): replacing `git -C "$troot" ls-files --error-unmatch tools/pr/gh_comment.py >/dev/null 2>&1` with `true` leaves `gh_calls.py --self-test` at 204 checks, 0 failed. The body's null control "an untracked file of the same path and name" (t4) is refused by the worktree-registration loop, because t4 is not a registered worktree. It never reaches the tracked-file predicate. No arm plants an untracked gh_comment.py inside a registered worktree, so the "tracked" half of the PR's admission rule is unpinned. Owed: an arm with an untracked (or `git rm --cached`) tools/pr/gh_comment.py in a registered worktree that must stay refused (rc 1) and that turns rc 7 under this mutant.
-- M3b, tools/ci/codescan_wait.py `carried_over`: dropping ` and "steps" not in j` leaves `codescan_wait.py --self-test` at 24 checks, 0 failed. Null control 23 ("a lagging step row ... is still unsettled") builds its jobs with `jobs()`, which carries no `conclusion` key, so `carried_over` is already False through the conclusion clause and arm 23 never tests the steps clause. Under the mutant, a completed/success job whose step row is present but lagging (or `steps: []`) reads as carried over, settled and uploaded. That is exactly the case the function's docstring says "is not this". Owed: arm 23 (or a new arm) with `conclusion: "success"` plus a lagging or empty `steps` that stays unsettled and not uploaded, and that turns red under this mutant.
+Round 2 (delta re-review after the round-1 block at 7cbfa680134ea1ddb34d202ef1ab11e0efb93807). Measured head ad9ce7f526b47202bb3ca5e10050b7b48262fc19 (merge of code head 2ca01646b7de3856de2e19c2301489db48134436 into 7cbfa680; empty tree diff between the two), merge base 63bcdcaad827ad3d98f914bc2e5b6110f9bb9444. review_carry.py 7cbfa680 ad9ce7f5 prints FRESH-REVIEW; the delta is self-test arms only (tools/audit/seat/gh_calls.py +9/-1, tools/ci/codescan_wait.py +4), no production line moved.
 
 ## Findings
 
-- Follow-up: tests/ci_ratchet.py `gather_runs.api`: the empty-stdout-is-a-failure branch (`or not (proc.stdout or "").strip()`) survives its own deletion (M4c, 67 checks 0 failed). The behaviour predates this PR (moved verbatim into `attempt`), so it does not block. Carry: dismissed: pre-existing unpinned branch moved verbatim, not introduced by this PR; the fixer may add a one-arm pin while re-cutting M2b/M3b
+- Follow-up: tests/ci_ratchet.py `gather_runs.api` empty-stdout-is-a-failure branch (round-1 M4c) is still unpinned at this head; the behaviour predates this PR and was moved verbatim, and the delta does not touch it. Carry: dismissed: pre-existing unpinned branch moved verbatim, not introduced by this PR (round-1 verdict's disposition, restated in the body's repair section)
 
 ## Evidence
 
-- RESULT self-tests at head (ev/selftests-head.txt, ev/app_push-head.txt): codescan_wait 24 checks 0 failed; gh_calls 204 checks 0 failed; ci-ratchet 67 checks 0 failed; seat_venv 27 checks 0 failed; app_push 230 checks 0 failed. Every self-test figure in the body re-derived green.
-- RESULT mutants (ev/mutants.txt, driver ev/mutants_driver.py): the fixer's named mutants are killed. M1 app_push push without gh_read retry: 2 failed. M2a shim worktree admit never sets ok: 2 failed. M3a carried_over False: 1 failed (arm 21). M4a single read: 2 failed. M4b retry on every failure: 1 failed (404 null control). M3c conclusion clause dropped: killed (arm 22). M2b and M3b survive (Block). M4c survives (Findings).
-- Equivalent mutants, not counted: M2c (`[ "$broot" != "$gcpy" ] &&` dropped): when gcpy lacks the suffix, broot is a file path, `git -C <file>` fails and the loop admits nothing. M3d (status clause dropped from carried_over): the API never reports conclusion success on a job that is not completed, and settled() checks status first (arm 24 is pinned by that earlier check, not by carried_over).
-- Merge with main: `git merge-tree --write-tree origin/main <head>` rc 0 (ev/merge-tree.txt). The head is 0 commits behind origin/main.
-- VERSION, the manifest version, the RELEASE_NOTES heading, both claim files, closures.json and the budget files are untouched. The three-dot diff touches 6 files: dev/programme/delivery/3427.md, tests/ci_ratchet.py, tools/audit/seat/gh_calls.py, tools/audit/seat/shims/seat-gh, tools/ci/codescan_wait.py and tools/pr/app_push.sh.
-- dev/governance/roles/ has no diff between the merge base and origin/main, so the contract is current.
-- PR body head SHA = 7cbfa680134ea1ddb34d202ef1ab11e0efb93807, the head measured (step 7). The Head section's trailing bare SHA b660583bb17f721662bec4c89807c16b1614e15e is unexplained.
-- Finder's harness: none committed (the packet says "none named"). The figures are the fixer's own self-test arms. The body's carry-3 instance count ("two instances") was not re-derived by the fixer, and not by this seat.
-- Forward-carry: both body items are `dismissed:` with reasons, and carry_audit at the head reads 2 routed, 0 unrouted.
-- CI: `merge_train.py classify 7cbfa680134ea1ddb34d202ef1ab11e0efb93807 --pr 3427` printed `GREEN 7cbfa680134ea1ddb34d202ef1ab11e0efb93807 pending: none red: none` at 02:43:01 UTC (ev/classify.log). The review packet's `gate failure` (and its red-unanswered refusal) was an earlier read; classify had `gate` pending throughout until green. No required red is owed a `## Red checks` answer.
+- RESULT self-tests at head (ev/mutants.txt): codescan_wait 25 checks 0 failed; gh_calls 206 checks 0 failed. Both body figures re-derived.
+- RESULT M2b (seat-gh `git -C "$troot" ls-files --error-unmatch tools/pr/gh_comment.py >/dev/null 2>&1` replaced by `true`): gh_calls 206 checks, 2 failed: `second tree: null control: a registered worktree whose script is not tracked` and the in-test tracked-predicate mutant arm. Killed. The pin is not vacuous: t5 is a `git worktree add` of the baked tree (so it passes the registration loop) with gh_comment.py `git rm --cached` (still on disk), so the run reaches the tracked-file predicate; the null control itself turns red under the mutant, not only the self-carried mutant arm. Matches the body's figure.
+- RESULT M3b (` and "steps" not in j` dropped from `carried_over`): codescan_wait 25 checks, 1 failed: `BAD 23b null: a completed success job with a lagging or empty steps list ...`. Killed. Arm 23b builds jobs with status completed, conclusion success and `steps` of `[]` or a lagging row, so the conclusion clause is satisfied and only the steps clause separates. Matches the body's figure.
+- Carries 1-4 are named `Carry 1`..`Carry 4` in the body's Mutation proof section, and the opening line states "Carries 1-4 of R10-GH-READ-RESIDUE (roster numbering, from 1)".
+- PR body head SHA = ad9ce7f526b47202bb3ca5e10050b7b48262fc19, the head measured (step 7); the body names the authored code head 2ca01646 it merges, and the round-1 trailing bare SHA is gone.
+- Merge with main: `git merge-tree --write-tree origin/main ad9ce7f5` rc 0 (ev/merge-tree.txt).
+- Three-dot diff vs the merge base: the same 6 files as round 1; VERSION, the manifest, RELEASE_NOTES.md, tests/golden/, tests/closures.json and every *budgets.json untouched.
+- dev/governance/roles/ moved on main since the merge base (fix-review.md and fixer.md: owed reds narrowed to `merge_train.py owed-reds`); this review followed main's text via role_pack.py.
+- Finder's harness: none committed (round-1 finding stands as disclosed; the figures are the fixer's self-test arms). The body's carry-3 instance count is stated as not re-derived; this seat did not re-derive it either.
+- Forward-carry: three body items, all `dismissed:` with reasons; carry_audit at the head (ev/review-packet.md) reads them as routed.
+- Review packet refusal `red-unanswered: gate` read a gate run (id 130322588976) concluded failure at render; classify reads `gate` pending with red none, and classify decides (packet advisory). CI line below.
+- CI: `merge_train.py classify ad9ce7f526b47202bb3ca5e10050b7b48262fc19 --pr 3427` polled 04:36 to 05:07 UTC (ev/classify.log), every run `WAIT ... pending: gate red: none`; no required red at this head, so no `## Red checks` answer is owed by this read. Returned with `pending-ci: gate` for the relay to post once CI is green at this head.
