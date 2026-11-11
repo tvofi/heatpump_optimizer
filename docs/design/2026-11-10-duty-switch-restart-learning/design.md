@@ -107,3 +107,17 @@ After R10-WATER-SETPOINT-FEEDBACK. Hot: `pump_arbiter.py`, `wear.py`, `sensor.py
 - The frequency floor: check what the sensor reports when stopped before fixing the constant. Carry: R10-DUTY-SWITCH-RESTART-LEARNING (item n9)
 
 Seat tokens: subagents 75890, 49789 and 41294; the harness reports no figure for the main loop.
+
+## Part A as built: where the code departs from this note
+
+The text above is the approved design, unchanged. Part A (`duty_switch.py`) departs from it in the points below; parts B and C build on the code, so where the two disagree this section is the one to read.
+
+- **No read API.** "Read API for B and C, unused in A" was not built: an unused module-level function is refused by `tests/structure.py`'s `dead_top_level_symbols`. `Direction.usable`, `Direction.p` and `Direction.median_off_s` hold the three values; the part that first reads them adds the module-level reader together with its first caller. Control: a reader added with no caller turns that metric red.
+- **Stored record.** Version 1 stores, per direction, `k` and `kept_w` (the kept episodes' weight; n is their sum), the decay stamp, first and last day, the latch, the off list and the four integer tallies `stopped`, `kept`, `void`, `censored`. With k and n stored, `tests/finite_boundary.py`'s in-domain probe produced k over n. n has no ceiling but the load bound.
+- **Publication is conditional.** A direction publishes its attributes only once it holds a stopped, kept or void episode, and the median only once an off time exists: five `coord_*` goldens snapshot the starts sensor's attributes. A reader of those keys treats an absent key as no observation, never as zero. Control: with the condition removed (the body's mutant `publish_only_observed`) the section's attribute check fails.
+- **The feedback-loop void is wider.** An episode voids on any target the loop moved off the open-loop one (`FeedbackRun.sent_c` set), raised as well as lowered; it costs evidence only.
+- **Origin** (share, lease, other) is not in `SwitchContext`: nothing in A reads it.
+- **Source-leg age** is the age of the mode record the write replaced, not `dhw_since`, which `_leased` has reset by the pass that leaves hot water.
+- **The heated gate's space set-point** is the command's, written right after the mode, not the written record, which at that instant is still the hot-water leg's.
+- **Factory reset keeps the store** (`_FR_STORES` in `tests/features.py`), where every other learned estimate is voided. The owner rules on this before any part reads the estimate.
+- **The supply minimum-run hold** of pull request 3420 is removed and built nowhere.
