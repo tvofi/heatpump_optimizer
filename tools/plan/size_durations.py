@@ -721,6 +721,14 @@ def self_test() -> int:
           ran["rest"].endswith(input_note("rest", "2026-10-12", len(prs), False)))
     check("run --via graphql (null): sizes_provenance ends naming fetch",
           ran["graphql"].endswith(input_note("graphql", "2026-10-12", len(prs), False)))
+    with tempfile.TemporaryDirectory() as td:
+        rf, pc = os.path.join(td, "roster.json"), os.path.join(td, "prs.json")
+        Path(rf).write_text(json.dumps(roster), encoding="utf-8")
+        Path(pc).write_text(json.dumps(prs), encoding="utf-8")
+        replay = run(td, None, "o/r", "2026-10-12", pc, None, DEFAULT_PERCENTILE, "rest",
+                     reads={"rest": lambda o, s_: 1 / 0}, roster_file=rf)["sizes_provenance"]
+    check("run --prs-cache: sizes_provenance ends naming the replay, no read made",
+          replay.endswith(input_note("rest", "2026-10-12", len(prs), True)))
 
     roster, prs = _fixture()
     mapping = prs_of_groups(roster, prs, {})
