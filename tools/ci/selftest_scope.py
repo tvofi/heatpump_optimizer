@@ -6,7 +6,8 @@
     python3 -I tools/ci/selftest_scope.py ids
     python3 -I tools/ci/selftest_scope.py record [--step ID]... [--out PATH]
     python3 -I tools/ci/selftest_scope.py check --traces DIR [--write PATH]
-    python3 -I tools/ci/selftest_scope.py --self-test
+    python3 -I tools/ci/selftest_scope.py settle
+    python3 -I tools/ci/selftest_scope.py --self-test [--wrapper PATH] [--workflow PATH]
 
 WHY (R10-CI-SELFTEST-SCOPE, owner lever 3, #201 comment 6707834331).
 `tools/` is INERT in tests/closure.py, so no tool has a closure there and this
@@ -48,6 +49,10 @@ entry. Over-approximation (an entry naming a file no longer read) is safe
 and is reported, not refused. `--write` saves the run's own measurement,
 which main uploads as the `selftest-closures` artifact: commit that file, or
 re-record with `record` (Linux, strace).
+THE SETTLED INDEX, `settle`, runs untraced before any step is (CI's strace
+step; `record` itself): a fresh checkout leaves racily clean index entries,
+whose content the first index-refreshing git command re-reads, so without it
+those reads land in whichever traced step refreshes first.
 
 BLIND SPOTS, stated: a path a process named relative to a working directory
 the trace does not decorate (a non-*at syscall after a chdir) is resolved
@@ -194,6 +199,22 @@ def wiring_gaps(steps: list[Step]) -> list[str]:
         if n not in waiters:
             gaps.append(f"UNREAD start {n}: no step waits on it")
     return gaps
+
+
+SETTLE_CALL = re.compile(r"^python3 -I tools/ci/selftest_scope\.py settle$", re.M)
+
+
+def settle_gaps(steps: list[Step]) -> list[str]:
+    """CI's half of the settled index (R10-HOTFIX-PREPR-READSET): an untraced
+    step ordered before the job's first traced one (a gated step, or `launch`,
+    which starts traced ones) runs `settle` as a line of its own, so a failure
+    fails the step. `record` settles itself; on a pull request the step never
+    runs, so this static read is the only pin on the line."""
+    first = next((i for i, s in enumerate(steps) if s.gated or s.id == "launch"), len(steps))
+    if any(s.id in UNGATED and SETTLE_CALL.search(s.run or "") for s in steps[:first]):
+        return []
+    return ["UNSETTLED job: no untraced step before its first traced one runs "
+            "`python3 -I tools/ci/selftest_scope.py settle` on a line of its own"]
 
 
 # ---------------------------------------------------------------------------
@@ -621,10 +642,68 @@ def drift(table: dict | None, measured: dict[str, dict], steps: list[Step]) -> t
 # ---------------------------------------------------------------------------
 # recording: the job, replayed through the same wrapper CI uses
 
+def _index_path(root: Path, env: dict | None = None) -> Path:
+    out = subprocess.run(["git", "rev-parse", "--path-format=absolute", "--git-path", "index"],
+                         cwd=root, env=env, capture_output=True, text=True).stdout.strip()
+    return Path(out) if out else root / ".git" / "index"
+
+
+def racy_entries(root: Path, env: dict | None = None) -> list[str]:
+    """Tracked files whose mtime second is not before the index's own: git
+    cannot vouch for them from stat data, so the next index-refreshing
+    command (`git status`, `git diff`) opens and hashes each one. The second
+    is the coarser of git's two racy tests (with and without USE_NSEC)."""
+    try:
+        stamp = int(_index_path(root, env).stat().st_mtime)
+    except OSError:
+        return []
+    listed = subprocess.run(["git", "ls-files", "-z"], cwd=root, env=env,
+                            capture_output=True, text=True).stdout.split("\0")
+    racy = []
+    for rel in filter(None, listed):
+        with contextlib.suppress(OSError):
+            if int((root / rel).lstat().st_mtime) >= stamp:
+                racy.append(rel)
+    return sorted(racy)
+
+
+def settle_index(root: Path, env: dict | None = None) -> int:
+    """Rewrite the index in a second later than every tracked file's mtime,
+    so no entry is racily clean when a traced step starts. Without it the
+    content reads of a fresh checkout's last-written files fall to whichever
+    traced process first refreshes the index -- a read set that moves with
+    scheduling, not with the tree (R10-HOTFIX-PREPR-READSET)."""
+    racy = racy_entries(root, env)
+    if not racy:
+        return 0
+    newest = max(int((root / r).lstat().st_mtime) for r in racy if (root / r).exists())
+    if newest > time.time() + 5:
+        print(f"selftest_scope: settle: {racy[0]} is stamped in the future, so no index can vouch for it",
+              file=sys.stderr)
+        return 1
+    # File and index stamps come from the kernel's coarse clock, which lags
+    # time.time() by up to a tick: a rewrite just past the second boundary
+    # can still be stamped in the old second, so wait past it and retry.
+    for _ in range(3):
+        while time.time() < newest + 1.1:
+            time.sleep(0.05)
+        subprocess.run(["git", "update-index", "-q", "--really-refresh", "--force-write-index"],
+                       cwd=root, env=env, capture_output=True)
+        left = racy_entries(root, env)
+        if not left:
+            return 0
+        newest = max(int((root / r).lstat().st_mtime) for r in left if (root / r).exists())
+    print(f"selftest_scope: settle left {len(left)} racily clean index entr(ies), e.g. {left[0]}",
+          file=sys.stderr)
+    return 1
+
+
 def record(root: Path, only: list[str] | None, out: Path) -> int:
     if shutil.which("strace") is None:
         print("selftest_scope: record needs strace (Linux)", file=sys.stderr)
         return 2
+    if settle_index(root):
+        return 1
     steps = workflow_steps(root)
     gaps = wiring_gaps(steps)
     if gaps:
@@ -726,7 +805,7 @@ def static_check(root: Path = ROOT) -> int:
     """The pull-request side: the job's gating is consistent and the table is
     not stale against it. No tracing; the drift check is main's."""
     steps = workflow_steps(root)
-    problems = wiring_gaps(steps)
+    problems = wiring_gaps(steps) + settle_gaps(steps)
     table = load_table(root / TABLE)
     if table is None:
         problems.append(f"UNREADABLE {TABLE}")
@@ -743,9 +822,10 @@ def static_check(root: Path = ROOT) -> int:
 
 # ---------------------------------------------------------------------------
 
-def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
-    """The refusals, over fixtures; `wrapper` is the selftest_step.sh under
-    test (selftest_scope_mutants.sh hands it a mutant)."""
+def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) -> int:
+    """The refusals, over fixtures; `wrapper` is the selftest_step.sh and
+    `workflow` the live job's file under test (selftest_scope_mutants.sh hands
+    either a mutant)."""
     passed = failed = 0
 
     def ck(name: str, ok: bool) -> None:
@@ -1116,6 +1196,9 @@ def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
         if shutil.which("strace") is None or _traced():
             print("  skip the recorder end to end: no strace here, or this run is itself traced")
         else:
+            ns = _index_path(root).stat().st_mtime_ns
+            os.utime(root / "tools/x/a.py", ns=(ns, ns))
+            racy_before = racy_entries(root)
             out = io.StringIO()
             scratch, tempfile.tempdir = tempfile.tempdir, str(root.parent / f"{root.name}-tmp")
             os.makedirs(tempfile.tempdir)
@@ -1136,6 +1219,8 @@ def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
             ck("record: a detached self-test's reads are its waiter's",
                "tools/x/slow.sh" in slow_e.get("files", ()) and "tools/x/slow.sh" not in a_e.get("files", ()))
             ck("record: it leaves no trace directory behind", left == [])
+            ck("record: it settles a racy index before tracing (racy before, none after)",
+               "tools/x/a.py" in racy_before and racy_entries(root) == [])
             part = root / "part.json"
             part.write_text(json.dumps({"steps": {"slow": {"run_sha": "old", "files": [], "probes": [],
                                                            "dirs": [], "index": False, "objects": False}}}))
@@ -1253,12 +1338,21 @@ def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
            and ", 1 refusal(s)" in out.getvalue())
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
+            rc_us = main(["static"], root)
+        ck("static: a job that never settles the index is refused (UNSETTLED)",
+           rc_us == 1 and "UNSETTLED job" in out.getvalue())
+        settled = e2e.replace("      - name: Launch\n", "      - name: Strace\n        id: strace\n"
+                              "        run: python3 -I tools/ci/selftest_scope.py settle\n"
+                              "      - name: Launch\n", 1)
+        (root / WORKFLOW).write_text(settled)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
             rcs = [main(["static"], root), main(["ids"], root),
                    main(["select", "--change", "M:tools/x/a.py"], root)]
         ck("static, ids and select over a fresh table",
            rcs == [0, 0, 0] and "0 problem(s)" in out.getvalue() and "a slow\n" in out.getvalue()
            and "MODE: SCOPED -- 1 step(s) run\n  run a\n" in out.getvalue())
-        (root / WORKFLOW).write_text(e2e.replace("cat tools/x/a.py", "cat tools/x/a.py tools/x/a.py"))
+        (root / WORKFLOW).write_text(settled.replace("cat tools/x/a.py", "cat tools/x/a.py tools/x/a.py"))
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             rc_st = main(["static"], root)
@@ -1312,6 +1406,75 @@ def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
         m = re.search(r'^UNTRACED="([^"]*)"$', wrapper.read_text(), re.M)
         ck("wrapper: its UNTRACED list is UNGATED", bool(m) and sorted(m.group(1).split()) == sorted(UNGATED))
 
+    # A racily clean index (R10-HOTFIX-PREPR-READSET): entries whose file
+    # mtime second is not before the index's, which a fresh checkout leaves
+    # for the files it wrote last. The first index-refreshing git command
+    # re-reads each one's content, so those reads land in whichever traced
+    # step runs it first (main run 42780661829: prepr's `git status`).
+    # `settle` clears them before any step is traced; a racy fixture is its
+    # control.
+    with tempfile.TemporaryDirectory() as td, throwaway_git_environ():
+        root = Path(os.path.realpath(td))
+        env = throwaway_git_init(root, "-q")
+        names = [f"docs/f{n}.md" for n in range(3)]
+        for rel in names:
+            (root / rel).parent.mkdir(parents=True, exist_ok=True)
+            (root / rel).write_text(f"{rel}\n")
+        subprocess.run(["git", "add", "-A"], cwd=root, env=env, check=True)
+
+        def make_racy() -> None:   # every file stamped with the index's own mtime
+            ns = _index_path(root, env).stat().st_mtime_ns
+            for rel in names:
+                os.utime(root / rel, ns=(ns, ns))
+        make_racy()
+        ck("racy_entries: files stamped in the index's own second are named (the control)",
+           racy_entries(root, env) == names)
+        traced_status = shutil.which("strace") is not None and not _traced()
+
+        def status_reads() -> set[str]:
+            log = root.parent / f"{root.name}-status.trace"
+            subprocess.run(["strace", "-f", "-q", "-y", "-e", "trace=%file", "-o", str(log),
+                            "git", "status", "--porcelain"], cwd=root, env=env, capture_output=True)
+            got = fold_trace(log.read_text().splitlines(), root, set(names), {"docs"}, *_git_dirs(root))
+            log.unlink()
+            return got["files"]
+        if traced_status:
+            make_racy()
+            ck("a git status over that racy index opens every racy file (the control)",
+               status_reads() == set(names))
+            make_racy()
+        rc = settle_index(root, env)
+        ck(f"settle: no index entry is left racily clean (rc={rc})", rc == 0 and racy_entries(root, env) == [])
+        if traced_status:
+            ck("and a git status after it opens no tracked file", status_reads() == set())
+        else:
+            print("  skip the traced git status over a racy index: no strace here, or this run is itself traced")
+        ck("settle over an index with no racy entry changes nothing (rc 0)", settle_index(root, env) == 0)
+        make_racy()
+        rc = main(["settle"], root)
+        ck(f"the `settle` command settles that racy index (rc={rc}; racy before it, none after)",
+           rc == 0 and racy_entries(root, env) == [])
+
+    # The settle call's place in a job (settle_gaps): an untraced step before
+    # the first traced one, on a line of its own; the null control first.
+    gate = "steps.scope.outputs.a == 'true'"
+    call = "python3 -I tools/ci/selftest_scope.py settle\n"
+
+    def job(strace_run: str, a_first: bool = False, after: str = "") -> list[Step]:
+        a = Step("A", "a", gate, "x\n" + (call if a_first else ""))
+        head = [Step("Choose", "scope", "", "echo\n"), Step("Strace", "strace", "", strace_run)]
+        return head + ([a] if a_first else []) + [Step("Launch", "launch", "", "x\n" + after)] + \
+            ([] if a_first else [a])
+    ck("settle_gaps: an untraced step before the first traced one settling passes (null control)",
+       settle_gaps(job("apt\n" + call)) == [])
+    ck("settle_gaps: no settle call is refused", settle_gaps(job("apt\n")) != [])
+    ck("settle_gaps: a settle whose failure is swallowed is refused",
+       settle_gaps(job("apt\n" + call.replace("\n", " || true\n"))) != [])
+    ck("settle_gaps: a settle only in a traced (gated) step is refused",
+       settle_gaps(job("apt\n", a_first=True)) != [])
+    ck("settle_gaps: a settle only in launch, which starts traced steps, is refused",
+       settle_gaps(job("apt\n", after=call)) != [])
+
     # The live table names no landed retired path (tests/layout.py's guard
     # refuses a new reference to one, and a diff re-adding one), and the
     # list it is checked against is not empty (the check's own precondition).
@@ -1326,23 +1489,27 @@ def self_test(wrapper: Path = ROOT / WRAPPER) -> int:
            bool(gone) and named == [] and retired_paths(Path(tempfile.gettempdir())) == [])
 
     # The live job: its gating is consistent (the seat's own null control).
-    live = workflow_steps(ROOT)
+    live = job_steps(workflow.read_text())
     ck(f"the live job parses ({len(live)} steps) and its gating is consistent",
        len(live) > 3 and wiring_gaps(live) == [])
+    ck("the live job settles the index in an untraced step before its first traced one",
+       settle_gaps(live) == [])
     print(f"selftest_scope self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
 
 def main(argv: list[str], root: Path = ROOT) -> int:
-    if argv == ["--self-test"]:
-        return self_test()
-    if argv[:2] == ["--self-test", "--wrapper"] and len(argv) == 3:
-        return self_test(Path(argv[2]).resolve())
+    opts = dict(zip(argv[1::2], argv[2::2]))
+    if argv[:1] == ["--self-test"] and len(argv) % 2 == 1 and set(opts) <= {"--wrapper", "--workflow"}:
+        return self_test(Path(opts.get("--wrapper", ROOT / WRAPPER)).resolve(),
+                         Path(opts.get("--workflow", ROOT / WORKFLOW)).resolve())
     if argv == ["ids"]:
         print(" ".join(gated_ids(workflow_steps(root))))
         return 0
     if argv == ["static"]:
         return static_check(root)
+    if argv == ["settle"]:
+        return settle_index(root)
     if argv[:1] == ["select"] and ("--base" in argv or "--change" in argv):
         steps = workflow_steps(root)
         if "--change" in argv:          # a hypothetical diff: STATUS:PATH ...
