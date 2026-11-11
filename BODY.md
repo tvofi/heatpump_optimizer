@@ -16,7 +16,8 @@ R10-ARBITER-OFF-RESTORE: turning the optimizer off, and every unload, restores t
 - Carry 4 (8755bcb3) and Carry 14 (its repeat): met. Consumed as built through `register_consumer`, `Restorer(..., baseline_of=, restored=)`, `async_arm`, `async_armed_entry` and `async_rebaseline`; no class attribute named `state`.
 - Carry 5 (76ae476a), Carry 6 (2bcac34a), Carry 15 and Carry 16 (their repeats): not this group's. The reserve rule binds a consumer that budgets writes; the arbiter has no per-day write cap (`_write` keeps no counter; `hold` retries every `RETRY_MINUTES`), so no restore write is reserved (`## Forward-carry`).
 - Carry 7 (the 2026-11-10 stacking ruling): met. #3402 and #3405 (R10-WATER-SETPOINT-FEEDBACK) are both merged to main, and origin/main `a7628041dc` is merged in at `acb7122c75`, so this pull request carries only this group's diff.
-- Carry 8 (a070f930) and Carry 9 (its repeat), WSF's dropped space record: built in repair round 2 (below). At the plain merge it was live: `_note_sent` drops `written["space_setpoint"]` so that a loop move is sent, and `_arm_space` read the missing record as "no own write".
+- Carry 8 (a070f930) and Carry 9 (its repeat), WSF's dropped space record: built in repair rounds 2 and 3 (below). At the plain merge it was live: `_note_sent` drops `written["space_setpoint"]` so that a loop move is sent, and `_arm_space` read the missing record as "no own write". Round 2 kept the dropped value on the loop run (`prev_c`), which the round-2 verdict at `4a5abf4a` showed is lost whenever the run ends; round 3 moves it to `ArbiterState.dropped`.
+- Carry 17 (WSF's restatement of Carry 8 from its own merge base): met by the same build. `_arm_space` reads the record, else `ArbiterState.dropped`, never the record's absence alone (M23, M37). The Off and unload restores read the arbiter's state after the pass, as the carry says; `_space_restored` drops the run and the dropped value with the record (M25, M34).
 - Carry 10 (648c3c80) and Carry 12 (its repeat), write-ahead: built. The arm (which saves the baseline) precedes the send; the new check reads the off_restore store at the moment the space write's service call is made and finds the baseline `53.0` there, the store having held nothing before that pass. M18 (send, then arm) is killed by it and survived every other check. The arbiter's own write record (`held.written`) stays after the send, deliberately: a record lost to a crash between send and save leaves `space_before` unknown after the restart, so `_edited` adopts nothing, and the armed baseline already makes the own-write refusal moot.
 - Carry 11 (5b825bae) and Carry 13 (its repeat), range bound at adoption: built. `_adopt` rebaselines to `_bounded(inp, "space_setpoint", edit)`. Control: `number.water_set` declares min 25, max 63; an edit reading 70 is restored as 63, and at the PR head it was restored as 70 (failing first, below); 40 is restored as read.
 
@@ -29,82 +30,82 @@ R10-ARBITER-OFF-RESTORE: turning the optimizer off, and every unload, restores t
   - The own-write refusal against the loop's dropped record (`4831cb404f`, Carry 8). `_note_sent` (main) drops `written["space_setpoint"]` so a sub-tolerance loop move is sent; `_arm_space` (this branch) read the missing record as "no own write". On a key not yet armed (an upgrade), it then captured the optimizer's own reading as the person's baseline: at the plain merge `_arm_space` returned True (captured) after one loop move. The dropped record is the run's `prev_c`. `_note_sent` used to reset `prev_c` to None when the record was already gone, so a second move lost it; it is now kept until a write replaces it, and `_arm_space` reads it. `_space_restored` ends the run along with the record, so a restored baseline is never compared with a pre-restore loop value. No second record is added (Carry 8: "extends these fields rather than adding a second").
 - Main's feedback block's `_FbCoord` gets a weak-referenceable `FakeEntry`, as round 0 did for the arbiter block's `_PaCoord`. A space write now arms `off_restore`, whose `_RECORDS` is a `WeakKeyDictionary`; with the `SimpleNamespace` entry the full suite stopped with `TypeError: cannot create weak reference to 'types.SimpleNamespace' object` in `_fb_sim`.
 - The three `_clamp_cut` ledger pins whose lines moved into `_cut_of` are deleted (`2568235bb9`), as `ci_predict.py` directs for a STALE PIN.
-- Alternatives that lost. Cut seam: run `hold` before `_adopt`; lost because `hold` would rewrite the edit before `_adopt` reads it, which is why this branch reads first. Carry 8, option 1: a second "last own space write" field on `ArbiterState`; lost because it is a second record of one fact, which Carry 8 refuses. Carry 8, option 2: keep the record in `_note_sent` and skip `_write`'s tolerance check by a flag; lost because it moves WSF's send mechanism, a larger change to a landed group.
+- Alternatives that lost. Cut seam: run `hold` before `_adopt`; lost because `hold` would rewrite the edit before `_adopt` reads it, which is why this branch reads first. Carry 8, option 1: a second "last own space write" field on `ArbiterState`; lost in round 2 as a second record of one fact, and taken in round 3 (below) once the verdict showed the run is the wrong lifetime. Carry 8, option 2: keep the record in `_note_sent` and skip `_write`'s tolerance check by a flag; lost because it moves WSF's send mechanism, a larger change to a landed group.
+
+**Repair round 3: Carry 8 across run ends** (dispatch at PR head `4a5abf4a0c86db73bc8291dc7d9d40dfb41d7385`, verdict blocked class-open; continued, not re-cut). origin/main had not moved past the head (`git merge-base --is-ancestor origin/main 4a5abf4a` exits 0; the tree is `909195e5b8`), so nothing was merged.
+- The defect: `_arm_space` read the dropped record from `held.feedback.prev_c`, and `_feedback` ends or replaces the run on four paths that are neither a write nor a restore: a pass off the loop or without base or inlet (`held.feedback = None`), a run seen past the window (`rec = None`, then a fresh `FeedbackRun`), and a compressor stop (a fresh `FeedbackRun`). After any of them an unarmed key captured the optimizer's own write as the person's baseline. A restart ends the run too (it is never persisted), a fifth path the verdict did not name; this round closes it as well.
+- The fix: the own-write fact lives on `ArbiterState.dropped` (slot -> value; declared in `store.DOMAINS` as `dropped/space_setpoint`), set by `_note_sent` when it drops the record, read by `_arm_space` only while the record is missing, persisted beside `written` and loaded through the same `_writable` filter, and cleared by `_space_restored` (a restore) and `_forget` (a release; the Off pass's guard now also fires on a state holding only the dropped value). `prev_c` keeps its run-scoped meaning for `_cut_of` and `_clamp_cut`: the reset sites are untouched, and the second-move case still keeps it (M24).
+- No write needs to end it: a space write lands only after `_arm_space` arms the off restore, and an armed key's refusal never reads `dropped`. The check observes that (after the write, the controller reading the old 26.0 again is not refused) rather than an internal; a first cut popped `dropped` in `_write`, which changed nothing observable and moved `coord_footprint` up, so it was removed.
+- Departure from Carry 8's wording, for the reviewer: Carry 8 asks to extend the existing fields "rather than adding a second". This round's dispatch states the lifetime the fact needs ("until a write replaces it or a restore ends it", across run resets), which neither `written` nor `FeedbackRun` has: `written` must lose the record for the loop move to be sent, and the run resets on every compressor stop. `dropped` holds the value only for the slot whose record was dropped; `_arm_space` reads it only while that record is missing.
+- Alternatives that lost: stop resetting `prev_c` at the four sites (refused by the dispatch: `_cut_of` would read a previous run's bracket); keep the record in `_note_sent` and bypass `_write`'s tolerance skip by a flag (moves WSF's landed send mechanism); keep `dropped` in memory only (a restart is a run end, and `_note_sent`'s pop reaches the store with the next save of any slot).
+
+**Repair round 4: main merged, no production change** (dispatch at PR head `d7347d0cbfeccbfdf4e9d7a19ecafcb59ba2cb34`, verdict merge; continued). `tests / mutation-autofix` reported `skip-measure-failed`: its baseline was red on main's combi_type_branch vendor census. #3466 (merge `7a8e1c659add`) cures that census on main; origin/main is merged into the head, `BLOCKED.md` (the stopped seat's note, unclassified for `tests/entities.py`) is removed, and no production, test or ledger line changed. The pins for the sites under `## Unpinned sites` stay `mutation-autofix`'s to write: this seat's container lacks `paho`, so `tests/entities.py` registers 1 entity of 82 (`a3:roster`) and a local `--pin-killed` baseline is red there for a reason that is not the repository's; no pin was written by hand.
 
 ## Head
 
-`2568235bb9389bc48d9c3aa31f903134d3c1a1d6`, on merge base `a7628041dc02e298c5399003d4c0576391dd5c4e`, which is origin/main's tip at `2026-11-11T07:31Z`; `git merge-tree --write-tree origin/main HEAD` exits 0 there. Figures are this head's unless named.
+`aa70efdd076bd5d6468060ca20638675c2fb9dd6`, on merge base `a7887485deb7b41995b20a48fab2ae411d887954`, origin/main's tip at `2026-11-11T17:45Z`; `git merge-tree --write-tree origin/main HEAD` exits 0 there. Figures are this head's unless named.
 
 ## Mutation proof
 
-Failing test first, for both seams, at the plain merge `acb7122c75` plus each new check:
-- Cut seam: `env PYTHONPATH=tests/hastub python3 tests/features.py`: `1 of 5235 FEATURE CHECKS FAILED`, "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK: a controller's cut of a loop write (26.0 inside a 25.0 -> 27.0 move) is not adopted as the person's baseline ..." `[cut True, outside True, no run True]`.
-- Carry 8 seam, after the cut fix: the feedback block (`SEAM_BLOCK` in the harness): `1 of 36 FEATURES BLOCK FAILED`, "... (Carry 8): a loop move's dropped record still refuses the optimizer's own 26.0 ..." `[one True, two True (prev None), restored run FeedbackRun(... prev_c=26.0 ...), never wrote True]`.
+Failing test first, at `4a5abf4a` production with this round's checks (the feedback block, `SEAM_BLOCK` in the harness):
+- `1 of 37 FEATURES BLOCK FAILED`, "(Carry 8, round 2): the own-write refusal survives every end of the loop run ..." with `CARRY8-RUN-ENDS {'off pass': (False, None, True), 'no base': (False, None, True), 'compressor stop': (False, None, True), 'stale run': (False, None, True), 'restart': (False, None, True)}` (before, the run's `prev_c` after the end, after). At the head: all `(False, None, False)`, `ALL 38 FEATURES BLOCK PASSED`.
+- The reviewer's reproduction (`origin/verdict/3404:evidence/reviewer-repro-R10.patch`, applied to `4a5abf4a`'s `tests/features.py`) through `SEAM_BLOCK`: at `4a5abf4a` production `REVIEWER-RESET held-after-move False after-off-pass True feedback None after-new-run True reading 26.0`, `1 of 37 FEATURES BLOCK FAILED`; with this round's `pump_arbiter.py`: `after-off-pass False ... after-new-run False`, `ALL 37 FEATURES BLOCK PASSED`.
 
-`python3 dev/audit/harnesses/r10_arbiter_off_restore_mutants.py` at the head runs each mutant alone on a `git archive` copy:
-- Arbiter block: `SURVIVED NULL`, then `KILLED` for M01 to M20 (statuses unchanged by the merge).
-- Feedback block: `SURVIVED NULL`, then `KILLED` for M21 to M25.
-- Exit status: rc 0.
-
-The new mutants:
-- M21: `_edited` without the `_cut_of` conjunct.
-- M22: `_cut_of`'s bracket open at both ends.
-- M23: `_arm_space` ignores the dropped record (`prev_c`).
-- M24: `_note_sent` resets `prev_c` when the record is already gone.
-- M25: `_space_restored` keeps the loop run.
-
-The previous reviewer's own mutants (`origin/verdict/3404`, `evidence/reviewer-mutants.json`), each run alone through `tools/audit/seat/mutant_run.py --spec` on the arbiter block: `SURVIVED NULL`, `SURVIVED R1_own_ignores_entity_change`, `SURVIVED R2_restored_keeps_misses_retry`, `KILLED R3_arm_keeps_no_before`, `SURVIVED R4_own_refusal_reading_none_ok`, rc 0. Each status is unchanged by the merge and matches the verdict (R1 carried to WSF, R2 and R4 dismissed there). R4's `old` text was re-anchored from `last[0])` to `last)`, because the Carry 8 change rewrote that line; its mutation (`reading or 0.0` for the `reading is not None` guard) is the verdict's. R1 and R2 match unedited.
+`python3 dev/audit/harnesses/r10_arbiter_off_restore_mutants.py` at the head, each mutant alone on a `git archive` copy: arbiter block `SURVIVED NULL` then `KILLED` M01 to M20; feedback block `SURVIVED NULL` then `KILLED` M21 to M32 and M34 to M38; rc 0. M11, M13, M23 and M24 are re-anchored on the rewritten lines with their original mutations. New this round:
+- M26: `_note_sent` drops `dropped` on a second move.
+- M27, M28, M29, M30: `held.dropped.clear()` at each run-ending site of `_feedback` -- the off/no-base pass, the window-expired `rec = None`, the compressor stop's fresh run, and the fresh run after expiry. Each puts the verdict's defect back at one site.
+- M31, M32, M38: `_persist` omits `dropped`; `_load` ignores it; `_load` drops the `_writable` filter.
+- M34, M35, M36: `_space_restored`, `_forget`, and the Off pass's guard each keep `dropped`.
+- M37: `_arm_space` reads the run's `prev_c` again (round 2's reader).
+- M33 (a `_write` pop) is retired with the line it mutated.
 
 ## Null control
 
-- Arbiter block, all passing at the head:
-  - With the arbiter not controlling (`pump_duty_mode` observe), off writes nothing and the hook sends 0 (`_pa_ro_null_sent == 0`, `writes() == []`).
-  - Range bound: 40 is restored as read.
-  - Grace: a reading one second inside `ECHO_GRACE_S` is not adopted.
-  - Write-ahead: the store holds no baseline before the pass (`_pa_wa_before is None`).
-- Cut seam: a 24.0 reading outside the 25.0 -> 27.0 bracket, and the same 26.0 with no loop run, are still adopted as edits (`outside True, no run True`). `_cut_of` excludes only readings inside the bracket.
-- Carry 8 seam: the same 26.0 reading on an arbiter that never wrote is still captured as the baseline (`never wrote True`).
-- Every WSF check in the feedback block passes unchanged, including the `_clamp_cut` bracket and replay checks.
+- Each run end is shown to end the run: the run's `prev_c` after it is `None` in every row of `CARRY8-RUN-ENDS`, at the base and the head, so the flip comes from the reader alone.
+- An arbiter that never wrote still captures the same 26.0 (`never wrote True`, round 2's check, unchanged).
+- Before each end of the fact it is held: `dropped == {'space_setpoint': 26.0}` before the write and before the Off pass.
+- After a write lands on the armed key, the controller reading 26.0 again is not refused (`armed after True`).
+- A stored `dropped` value the arbiter could not have written (`"26.0 degC"`) loads as nothing.
+- Every other check of both blocks passes unchanged.
 
 ## Figures
 
-At `2568235bb9389bc48d9c3aa31f903134d3c1a1d6` unless named.
-- Full suite: `env PYTHONPATH=tests/hastub python3 tests/features.py`: `ALL 5236 FEATURE CHECKS PASSED` (at `4831cb404f`; `2568235bb9` deletes three ledger files only).
-- Mutants: `python3 dev/audit/harnesses/r10_arbiter_off_restore_mutants.py`: NULL survives in both runs, M01 to M25 KILLED, rc 0 (at `4831cb404f`, the last production edit).
-- Reviewer mutants: `python3 tools/audit/seat/mutant_run.py --spec <evidence/reviewer-mutants.json, R4 re-anchored> --cmd <the harness BLOCK>`: as quoted under `## Mutation proof`.
-- Scoped gate: `python3 tests/closure.py select --diff a7628041dc --workdir $D`: `MODE: SCOPED -- 23 script(s) run, 10 scoped out`; `PYTHONPATH=tests/hastub GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=a7628041dc bash tests/run.sh`: `25 TEST SCRIPT(S) PASSED; 9 SCOPED OUT AND NOT RUN`, rc 0 (at `4831cb404f`).
-- Ratchet: `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. Every `RESULT` line equals origin/main's and `561edf4c8f`'s (a `diff` of the three `RESULT` sets shows nothing moved), so the merge moved no metric up; no budget re-recorded.
-- Score: `python3 tools/audit/archscore/score.py --diff a7628041dc`: `Architecture score: dS +0.0006 IMPROVES` (`coord_footprint 2497 -> 2496`).
-- CI prediction: `python3 tools/pr/ci_predict.py --base origin/main`: `no closures, fast, governance or instrument red predicted against a7628041dc02`. Before `2568235bb9` it predicted three ledger reds, the STALE PINs deleted there.
-- Unpinned sites' kills: `python3 tools/audit/seat/mutant_run.py --spec <five site mutants> --cmd <the harness SEAM_BLOCK>`: `SURVIVED NULL`, then `KILLED` for each of:
-  - S1: `_cut_of`'s guard off.
-  - S2 and S3: each bound of the bracket open.
-  - S4: `_cut_of`'s return deleted.
-  - S5: `_clamp_cut`'s guard off.
-
-  Exit status: rc 0.
-- Class seams (fixer.md step 8): every reader or writer of the arbiter's space record, `git grep -n -E '"space_setpoint"' -- custom_components/heatpump_optimizer/pump_arbiter.py | grep -E 'written|misses|retry|space_before|feedback'`: seven lines.
-  - `_note_sent` (two lines, read and drop): the drop is now kept in `prev_c`, in this diff.
-  - `_clamp_cut`'s adopt write: unchanged; its bracket is now shared with `_edited`, in this diff.
-  - `_edited` (two lines, record and misses): reads `_cut_of`, in this diff.
-  - `_arm_space`: reads `prev_c`, in this diff.
-  - `_flow_command` (`state.written.get`): reads the record for the draw censoring guard and answers None while the record is missing. That gap is WSF's own transient between `_note_sent` and `_write`; this group leaves it unchanged, and it is already the landed behaviour on main.
+At `aa70efdd076bd5d6468060ca20638675c2fb9dd6` unless named. Round 4 changes no production line (`git diff e40e4594e2 HEAD -- custom_components/ tests/features.py` is main's own #3466 and later merges only); `python3 tools/pr/prepr.sh` rc 0 at this head, its census red cured by #3466 (the earlier figures below that name the census are the round-3 head's).
+- Scoped gate: `python3 tests/closure.py select --diff cbd23f1c8b --workdir $D`: `MODE: SCOPED -- 23 script(s) run, 10 scoped out`; `GATE_SCOPE=auto GOLDEN_MODE=drift bash tests/run.sh`: `1 TEST SCRIPT(S) FAILED`, rc 1: `tests/features.py` `1 of 5253 FEATURE CHECKS FAILED`, the combi_type_branch vendor census, inherited from origin/main (`## Friction`); every other selected script passed. The first run at `2a3d69f12` also failed `tests/finite_boundary.py` ("every field it writes is declared in store.DOMAINS", `off=['dropped~']`); the head declares `dropped/space_setpoint` in `store.py`, and `env PYTHONPATH=tests/hastub python3 tests/finite_boundary.py` prints `ALL 110 FINITE BOUNDARY CHECKS PASSED`.
+- Mutants: as under `## Mutation proof`, run at `2a3d69f12`, whose `pump_arbiter.py` is the head's (`git diff 2a3d69f12 HEAD -- custom_components/heatpump_optimizer/pump_arbiter.py` prints nothing; the head adds only the `store.py` declaration).
+- Ratchet: `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; no budget re-recorded.
+- Score: `python3 tools/audit/archscore/score.py --diff cbd23f1c8b`: `Architecture score: dS +0.0000 NULL`. The first cut read `dS -0.0012 WORSENS (coord_footprint 2496 -> 2498)`; `_write`'s pop and a looped `_load` were the charged statements, removed and folded.
+- CI prediction: `python3 tools/pr/ci_predict.py --base origin/main`: `no closures, fast, governance or instrument red predicted against cbd23f1c8bf6`. Before `2a3d69f12` it predicted one ledger red, `STALE PIN ... _arbitrate GUARD_OFF 87a4cba9`, the pin on the Off pass's guard this diff edits; its file is deleted.
+- Class sweep (fixer.md step 8), the verdict's rule: `git grep -n -E 'held.feedback = |rec = None|rec = held.feedback' -- custom_components/heatpump_optimizer/pump_arbiter.py`, eight lines at `4a5abf4a` and the same eight at the head (lines shifted):
+  - `_feedback`'s `held.feedback = None` (off pass, no base or inlet): open at the base, closed here (M27).
+  - `_feedback`'s `rec = held.feedback`: a read, not an end.
+  - `_feedback`'s `rec = None` (window expired): open at the base, closed here (M28).
+  - `_feedback`'s `held.feedback = FeedbackRun(...)` (compressor stop): open at the base, closed here (M29).
+  - `_feedback`'s `rec = held.feedback = FeedbackRun(...)` (fresh run): open at the base, closed here (M30).
+  - `_clamp_cut`'s `rec, held.feedback = held.feedback, None` and `held.feedback = rec`: reached only through `hold`, which iterates over present records, so the record is there and `_arm_space` reads it. Not open.
+  - `_space_restored`'s `held.feedback = None`: the restore is meant to end the fact, and now also clears `dropped` (M34). Not open.
+  - A run end the rule does not return: the restart (the run is never persisted). Open at the base, closed here (the `restart` row; M31, M32).
+- Sibling circuits: `git grep -n -E 'written\.pop\(|del held\.written' -- custom_components/` at the head returns three sites. `_note_sent`'s pop is the one fixed. `hold`'s `del held.written[slot]` follows a reading that differs from the record, so that reading is not the optimizer's last write; and any space write after the upgrade is armed first, so an armed key never consults the fact. `_write_night_schedule`'s pop of the night slots: no own-write reader. The water (hot-water) set-point has no off restore and no own-write refusal (`_held_back` arms only `space_setpoint`), so the reader pattern does not exist there.
 
 ## Unpinned sites
 
-`ci_predict.py` lists four sites. All are `_cut_of`/`_clamp_cut` lines moved from WSF's pinned `_clamp_cut` lines. Each is killed (S1 to S5 under `## Figures`), so each is `mutation-autofix`'s to pin (its lane mutates `custom_components/`):
-- custom_components/heatpump_optimizer/pump_arbiter.py:1028 GUARD_OFF: pinned by `mutation-autofix`; killed by S1.
-- custom_components/heatpump_optimizer/pump_arbiter.py:1031 CMP_BOUND*2: pinned by `mutation-autofix`; killed by S2 and S3.
-- custom_components/heatpump_optimizer/pump_arbiter.py:1031 RETURN_DEL: pinned by `mutation-autofix`; killed by S4.
-- custom_components/heatpump_optimizer/pump_arbiter.py:1047 GUARD_OFF: pinned by `mutation-autofix`; killed by S5.
+`ci_predict.py` lists six:
+- custom_components/heatpump_optimizer/pump_arbiter.py:1013 GUARD_OFF (`_note_sent`'s `if recorded is not None:`): pinned by `mutation-autofix`; killed by U1 (`if False:`) on the feedback block, below.
+- custom_components/heatpump_optimizer/pump_arbiter.py:1038 GUARD_OFF: round 2's `_cut_of` guard, line-shifted; pinned by `mutation-autofix`; killed by S1 (round 2's spec; the line is unchanged).
+- custom_components/heatpump_optimizer/pump_arbiter.py:1041 CMP_BOUND*2: round 2's `_cut_of` bracket, line-shifted; pinned by `mutation-autofix`; killed by S2 and S3.
+- custom_components/heatpump_optimizer/pump_arbiter.py:1041 RETURN_DEL: round 2's `_cut_of` return, line-shifted; pinned by `mutation-autofix`; killed by S4.
+- custom_components/heatpump_optimizer/pump_arbiter.py:1063 GUARD_OFF: round 2's `_clamp_cut` guard, line-shifted; pinned by `mutation-autofix`; killed by S5.
+- custom_components/heatpump_optimizer/pump_arbiter.py:1586 GUARD_OFF (the Off pass's guard): pinned by `mutation-autofix`; killed by U2 (`if False:`) on both blocks, below. Its main pin was the stale one deleted here.
+
+`python3 tools/audit/seat/mutant_run.py --spec <U1, U2 as if False:> --cmd <BLOCK>` then `--cmd <SEAM_BLOCK>`: on `SEAM_BLOCK` `SURVIVED NULL`, `KILLED U1_note_sent_guard_off`, `KILLED U2_release_guard_off`, rc 0; on `BLOCK` `SURVIVED NULL`, `KILLED U2_release_guard_off`, `SURVIVED U1_note_sent_guard_off` (the arbiter block runs no loop move), rc 0.
 
 ## Red checks
 
 - `mutation` (`tests / mutation`, job 130227732011, round 1): "MUTATION TABLE REFUSED -- 2628 unpinned site(s) against 2627 at the ratchet base 45adb0c3b4, 2 of them added by this diff".
   - The two sites: `_edited`'s `>= ECHO_GRACE_S` CMP_BOUND and `_restorer`'s `if not entity` GUARD_OFF. Both survived the mutants then; round 1 killed them with M19 and M20 and pinned them.
   - Cheaper detector: prepr's step 6d (`ci_predict.py`), which listed both before the first handoff. That body answered them as `mutation-autofix`'s to pin, which was wrong for survivors.
-  - This round's four unpinned sites are each shown killed above before being left to `mutation-autofix`.
-- `merge_train.py owed-reds` lists `tests / mutation` among the required contexts. This round has run no CI yet, because the head was DIRTY.
+  - This round's unpinned sites are each shown killed above before being left to `mutation-autofix`.
+- `fast (3.14)` (`tests / fast (3.14)`), predicted from this head's local gate: `tests/features.py` fails one check, the combi_type_branch vendor census (`1 of 5253 FEATURE CHECKS FAILED`). Its cause is outside this diff: the census allows 4 vendor-name lines and origin/main `cbd23f1c8` already has 6 (`git grep -iE 'alpha.?innotec|mfs ?[0-9]|luxtronik' cbd23f1c8 -- 'custom_components/heatpump_optimizer/*.py' | wc -l`), the same at `4a5abf4a` and at the head. No cheaper detector exists in this branch: the red is inherited, and this diff adds no vendor line. The main-side cause (#3405's two Luxtronik comments against #3398's census base) is the orchestrator's on main (`## Friction`, main-vendor-census).
 
 ## Forward-carry
 
@@ -113,4 +114,6 @@ none
 ## Friction
 
 - brief-stop-restore: contradiction: the brief restores "on unload while Home Assistant is not stopping", while the hook it must reuse restores on every unload, a stop included. Built to the hook. Carry: dismissed: the departure is raised in the body for the reviewer; a stop-exempt restore would be a change to the hook, R10-GENERIC-HEAT-CURVE's seam
-- pin-killed-timeout: cost: `python3 tests/mutation_table.py --pin-killed --base origin/main` ran 30 minutes and the seat's background limit stopped it before it pinned anything (it runs the full `tests/features.py` per mutant: `baseline tests/features.py: rc=0 failed=0 464s`). The four sites were instead shown killed by hand-written spec mutants on the feedback block. Carry: dismissed: mutation-autofix pins killed custom_components sites after the head moves
+- pin-killed-timeout: cost: `python3 tests/mutation_table.py --pin-killed --base origin/main` ran 30 minutes and the seat's background limit stopped it before it pinned anything (it runs the full `tests/features.py` per mutant: `baseline tests/features.py: rc=0 failed=0 464s`). The sites were instead shown killed by hand-written spec mutants. Carry: dismissed: mutation-autofix pins killed custom_components sites after the head moves
+- wip-ref-not-ff: stale: `refs/heads/handoff-wip/r10-arbiter-off-restore` holds round 2's step commit `97a33f7d0e`, which is not an ancestor of `4a5abf4a`, so no step push of this round could fast-forward it; none was made, and the ref is deleted after the body push. Carry: dismissed: a one-off of a stale step ref from an earlier round
+- main-vendor-census: stale (cured by #3466 at this head): `tests/features.py`'s combi_type_branch census allows `_CB_VENDOR_BASE = 4` vendor-name lines, and `git grep -iE 'alpha.?innotec|mfs ?[0-9]|luxtronik' <ref> -- 'custom_components/heatpump_optimizer/*.py' | wc -l` prints 6 at origin/main `cbd23f1c8`, at `4a5abf4a` and at the head, so the check is red on main and this diff moves nothing (the two added lines are WSF's Luxtronik comments in `pump_arbiter.py`, landed by #3405, against #3398's census). Carry: dismissed: a red on main, the orchestrator's to repair there
