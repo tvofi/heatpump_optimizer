@@ -1,7 +1,0 @@
-#3445 shape: 4 FAILURE newest 09:29, SUCCESS 09:23 last: {'gate': 'FAILURE'}
-P567 #3405 shape: deferral FAILUREs older, code SUCCESS newest: {'gate': 'SUCCESS'}
-same, reversed: {'gate': 'SUCCESS'}
-StatusContext no stamps: FAILURE then SUCCESS: {'gate': 'SUCCESS'}
-EXPECTED status context: {'gate': 'EXPECTED'}
-zero-time unfinished + SUCCESS: {'gate': 'PENDING'}
-POLICY_RED: ('FAILURE', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED', 'STARTUP_FAILURE', 'STALE', 'ERROR')
