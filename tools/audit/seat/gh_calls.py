@@ -578,15 +578,15 @@ def self_test():
         # R10-GH-READ-RESIDUE (P449): one install on the daemons' PATH, run from any checkout. The
         # baked tree t1, a worktree t2 of it, a clone t3 git does not register beside it, and an
         # untracked file t4 of the same name.
-        git = ["git", "-c", "user.name=t", "-c", "user.email=t@invalid"]
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+        from throwaway_git import throwaway_git_clone, throwaway_git_init  # noqa: E402 -- the one throwaway-repo builder
         t1 = w / "t1"
         (t1 / "tools" / "pr").mkdir(parents=True)
         (t1 / "tools" / "pr" / "gh_comment.py").write_text(gcs.read_text())
-        subprocess.run([*git, "init", "-q", str(t1)], check=True)
-        subprocess.run([*git, "-C", str(t1), "add", "."], check=True)
-        subprocess.run([*git, "-C", str(t1), "commit", "-qm", "x"], check=True)
-        subprocess.run([*git, "-C", str(t1), "worktree", "add", "-q", str(w / "t2")], check=True)
-        subprocess.run([*git, "clone", "-q", str(t1), str(w / "t3")], check=True)
+        genv = throwaway_git_init(t1, "-q")
+        for argv in (["add", "."], ["commit", "-qm", "x"], ["worktree", "add", "-q", str(w / "t2")]):
+            subprocess.run(["git", *argv], cwd=t1, env=genv, check=True)
+        throwaway_git_clone(t1, w / "t3", "-q")
         (w / "t4" / "tools" / "pr").mkdir(parents=True)
         (w / "t4" / "tools" / "pr" / "gh_comment.py").write_text(gcs.read_text())
         baked = good.replace("gcpy=@HPO_GH_COMMENT@\n", f"gcpy={t1}/tools/pr/gh_comment.py\n")
