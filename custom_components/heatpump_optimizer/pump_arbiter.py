@@ -169,8 +169,7 @@ from .freq_control import defrost_interval
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    UNBOUNDED, InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c,
-    write_setpoint_c,
+    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, write_setpoint_c,
 )
 from .log_latch import log_held
 from .payload import CurrentAction
@@ -989,15 +988,15 @@ def _setpoint_limits_c(inp: ArbiterInputs) -> tuple[float | None, float | None]:
 
     Each from its optional sensor (:data:`SETPOINT_LIMIT_KEYS`) and ``None``
     where that is unset, unavailable, not a number or outside any water's
-    range. Read without an age limit: a limit is a setting, so its sensor
-    reports when it changes and a reading holds until the source is
-    ``unavailable``. A pair that is not lower below upper is two sensors in
+    range. Neither key has an age limit (``const.INPUT_MAX_AGE_MINUTES``):
+    a limit is a setting, so its sensor reports when it changes and a
+    reading holds until the source is ``unavailable``. A pair that is not lower below upper is two sensors in
     each other's slot, and neither is used.
     """
     reader = _reader(inp.hass, inp.config)
     low, high = (
         reading.value if reading.ok else None
-        for reading in (reader.read(key, max_age_minutes=UNBOUNDED) for key in SETPOINT_LIMIT_KEYS)
+        for reading in (reader.read(key) for key in SETPOINT_LIMIT_KEYS)
     )
     if low is not None and high is not None and low >= high:
         return (None, None)

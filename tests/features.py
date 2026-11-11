@@ -83507,7 +83507,8 @@ _fb_unusable = {
     for label, limits in (
         ("unavailable", (None, "unavailable")),
         ("not a number", (None, "limit")),
-        ("fault code", (None, 850.0)),
+        ("fault code above", (850.0, None)),
+        ("fault code below", (None, -50.0)),
         ("crossed", (27.6, 10.0)),
         ("equal", (27.6, 27.6)),
     )
