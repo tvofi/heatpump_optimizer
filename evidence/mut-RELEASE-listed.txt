@@ -1,0 +1,52 @@
+queue handed in, the add reads build_queue itself (the fixture's #11 #12 #15)
+  ok   carry 15: outside a stamp, the record pull requests (#12, #15: every path a record) are HELD-FOR-STAMP and queued for nobody; the production one (#11, a record row beside code) is queued (null control)
+  ok   carry 15: a stamp's queue (--stamp) holds nothing: every held record joins the one queue the stamp's train merges as one batch
+  ok   carry 15 at add: a record pull request added between stamps is HELD-FOR-STAMP, rc 0, nothing started; a production one starts its train (null); under --stamp the record starts it
+  ok   carry 15: record_pr is every path a record and at least one; an empty list is not a record
+  ok   carry 15 at the stamp: `sweep --stamp` over three held records (#11 #12 #15, every path a record) starts ONE train whose first batch is all three; without --stamp it starts none and each is HELD-FOR-STAMP (null control)
+  ok   carry 14: the sweep hands add its own queue, so a started train batches without a second read
+  ok   sweep: every admitted head is handed to add, oldest first, with the started train's argv
+  ok   sweep: EXACTLY ONCE -- a second pass over the same heads hands nothing to add
+  ok   sweep: null control -- a new verdict at a moved head is a new entry, added once
+  ok   sweep: an add admit_add refused is counted, not recorded -- the next pass offers it again
+  ok   sweep: an add that started no train refuses the sweep (rc 2) at that entry, the rest untried
+  ok   sweep: an open train-stop in the ledger holds the sweep -- no read, nothing added
+  ok   sweep: null control -- a closed train-stop holds nothing (the sweep reaches its queue)
+  ok   sweep: an unreadable ledger refuses (rc 2), never reads as no obligation
+  ok   sweep: an unreadable pull request list refuses (rc 2), nothing added
+  ok   sweep, no train live: ONE train starts over BOTH missed heads in its first batch (carry 14: batch by default); the second add finds #12 pending in it, ALREADY -- never a second train
+  ok   sweep, a train live: the next pass adds nothing and starts nothing (exactly once)
+  ok   sweep while a batch is in proof: both missed heads land in the spool -- the NEXT batch -- and no train starts beside it
+REFUSE add: --auto is the started train's flags; give it or `-- <train.sh flags>`, not both
+  ok   sweep's CLI: one sweep under the mandate, its started train a bare hand launch of train.sh (--repo --state-dir --mandate, no flag: RECOMMENDED is train.sh's default)
+  ok   P312: a spool holding a non-priority entry (#1) ahead of a HOTFIX entry (#4) drains the HOTFIX first
+  ok   P312: priority, then critical path, then arrival: #4 (priority), #3 (critical), #1, #2
+  ok   P420: an outside entry (#3) drains with a critical-path one (#2), in arrival order, behind a priority one (#4) and ahead of a plain one (#1)
+  ok   P420: outside and critical entries keep arrival order among themselves, ahead of the rest
+  ok   P420 null: no outside entry orders byte-identically to P312's priority, critical, arrival
+  ok   P420 _outside: a branch maps to its group, a fork head through resume.pr; an internal group, an unrecorded pull request and no pull request are not outside
+  ok   P420 _outside: a roster that cannot be read is internal, never outside
+  ok   P420 _outside null: a roster with no source field has no outside entry
+  ok   P420 drain_order: a fork-head outside entry (#31, branch no group claims) drains first through resume.pr
+  ok   P420 drain_order: a roster hotfix with no --priority flag (#8) drains ahead of an outside entry (#31)
+  ok   P420 drain_order null: the same group without a HOTFIX name drains behind the outside entry
+  ok   P420 drain_order null: the same entries with no outside group keep arrival order
+  ok   P312 null: no priority and nothing critical keeps arrival order; one entry is untouched
+  ok   RECOMMENDED is the owner's six, each a flag batch accepts
+  ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
+  ok   stale verdict: STALE -- a merge verdict dispatched before a blocked verdict at the same head is refused (PR 3232's times), by posted_verdict and as admit_add's `verdict` rule
+  ok   stale verdict: LATER (null control) -- the merge verdict's dispatch after the blocked one's is admitted
+  ok   stale verdict: SAME (null control) -- one nonce posted both verdicts, admitted with no dispatch time read
+  ok   stale verdict: a missing dispatch time is refused with its reason (the merge verdict's nonce has no registry record)
+  ok   stale verdict: a missing dispatch time is refused with its reason (the blocked verdict's nonce has no registry record)
+  ok   stale verdict: a missing dispatch time is refused with its reason (a pre-R10-ORCH-DISPATCH-REG record stops at the nonce)
+  ok   stale verdict: a missing dispatch time is refused with its reason (a mint before the utc field is not dated by a later --nonce re-record)
+  ok   stale verdict: a missing dispatch time is refused with its reason (a malformed time is no time)
+  ok   stale verdict: a missing dispatch time is refused with its reason (no registry file on this machine)
+  ok   stale verdict: a missing dispatch time is refused with its reason (the blocked verdict carries no bus-nonce)
+  ok   stale verdict: a missing dispatch time is refused with its reason (a record at another head is not this nonce's dispatch)
+  ok   stale verdict: a same-second tie is ordered by the registry's append order (refused, then admitted)
+  ok   stale verdict: the dispatch time decides, not the registry's line order (a merge dispatch recorded after the blocked one but timed before it is refused)
+  ok   stale verdict: a blocked verdict at another head is not this head's finding (admitted, no nonce read)
+  ok   stale verdict: an unreadable verdict/<pr> history (log or fetch) is refused, never read as no blocked verdict
+merge_train self-test: 611 checks, 4 failed
