@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The tracked mutant driver: apply one textual edit, run a command, restore.
 
-    python3 tools/audit/seat/mutant_run.py --spec mutants.json --cmd '<argv>' [--copy-tree | --in-place]
+    python3 tools/audit/seat/mutant_run.py --spec mutants.json --cmd '<argv>' [--copy-tree | --in-place] [--fork-cap N]
     python3 tools/audit/seat/mutant_run.py --diff <base>...HEAD --cmd '<argv>' [--max-mutants N] [--report-only] [--list]
     python3 -I tools/audit/seat/mutant_run.py --self-test
 
@@ -22,9 +22,18 @@ working tree under `dev/audit/harnesses/mutant_guard.py`, which refuses a
 target that differs from HEAD and restores it under SIGTERM, SIGINT and exit.
 Under either mode a signal kills the running command's process group first.
 
+FORK CAP (R10-MUTANT-RUN-FORKCAP). The command runs in its own session, polled
+every 0.5 s; a session holding more than `--fork-cap` processes (default 256, 0
+turns the cap off) is SIGKILLed whole and reported `FORKCAP <name>` (diff mode:
+`FORKCAP file:line OPERATOR  <mutated line>`), never KILLED: a mutant that makes
+a self-test re-enter itself (a chain 700 deep once exhausted a host's `ulimit -u`)
+was stopped by the cap, not by a test pinning it, so it is unresolved. A diff
+run with a FORKCAP line exits 1 (rc 0 under `--report-only`); `survivor_list.py`
+reads only SURVIVED lines. A FORKCAP on the NULL run is rc 3, as KILLED NULL is.
+
 DIFF MODE (R10-MUTANT-RUN-DRIVER, card 4). `--diff base...HEAD` reads the
 ADDED lines of the Python files the three-dot diff touches (not under tests/ or
-dev/, not inside a multi-line string) and mutates each with five operators:
+dev/, not inside a multi-line string) and mutates each with six operators:
 
   GUARD_OFF   `if cond:` / `elif cond:` becomes `if False:`
   RETURN_DEL  `return ...` becomes `pass`
@@ -33,6 +42,14 @@ dev/, not inside a multi-line string) and mutates each with five operators:
               are left alone: they pin no behaviour)
   CONST_SWAP  the first number moves (n to n+1, 0.0 to 1.0) or, with none,
               the first True/False flips
+  STMT_DEL    from the head file's ast, each simple statement (assignment,
+              expression, delete, raise, assert, return) an added line falls in
+              is replaced whole, however many lines it spans, by `pass` at its
+              indent; the report line is `SURVIVED <file>:<first line> STMT_DEL  pass`.
+              Left alone: a statement sharing its lines with other code, a
+              docstring or bare constant, print and _LOGGER calls, imports and
+              compound headers, and any statement CALL_DEL or RETURN_DEL already
+              deletes to the same text
 
 A mutant that does not compile is skipped. The command runs once unedited (rc 3
 `BASELINE FAILS` if it fails: nothing is then readable) and once per mutant;
@@ -58,11 +75,16 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 REFUSE_RC, SURVIVE_RC, BROKEN_RC = 2, 1, 3
-OPERATORS = ("GUARD_OFF", "RETURN_DEL", "CMP_BOUND", "CALL_DEL", "CONST_SWAP")
+TIMEOUT_RC, FORKCAP_RC = -1, -2  # run_cmd's two non-exit outcomes: a kill, and a stop that proves nothing
+FORKCAP = [256]  # processes one command's session may hold (--fork-cap); 0 turns the cap off
+FORKCAP_POLL_S = 0.5
+OPERATORS = ("GUARD_OFF", "RETURN_DEL", "CMP_BOUND", "CALL_DEL", "CONST_SWAP", "STMT_DEL")
+_SIMPLE = (ast.Assign, ast.AugAssign, ast.AnnAssign, ast.Expr, ast.Delete, ast.Raise, ast.Assert, ast.Return)
 SKIP_PREFIXES = ("tests/", "dev/")
 _STR = re.compile(r"""("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')""")
 _CMP = re.compile(r"(?<![<>=!\-])(<=|>=|<|>)(?![<>=])")
@@ -83,18 +105,44 @@ def git(root: Path, *args: str, text: bool = True) -> subprocess.CompletedProces
 
 
 # --- running one command ----------------------------------------------------
+def session_pids(sid: int) -> list[int]:
+    """Live processes whose session id is `sid` (the command's, which setsid made its pid)."""
+    out = []
+    for d in os.listdir("/proc"):
+        if not d.isdigit():
+            continue
+        try:
+            stat = Path("/proc", d, "stat").read_text()
+        except OSError:
+            continue  # exited between the listing and the read
+        if int(stat[stat.rindex(")") + 2:].split()[3]) == sid:
+            out.append(int(d))
+    return out
+
+
 def run_cmd(argv: list[str], cwd: Path, timeout: float) -> int:
-    """Exit status of the command; a timeout is -1 (a kill: the mutant hangs)."""
+    """Exit status of the command; TIMEOUT_RC (-1) is a kill (the mutant hangs); FORKCAP_RC (-2)
+    is the session holding more than FORKCAP[0] processes (a re-entering self-test), which proves
+    nothing about the test pinning the mutant and is never a kill."""
     env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
     p = subprocess.Popen(argv, cwd=str(cwd), env=env, start_new_session=True,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     _child.append(p)
+    deadline = time.monotonic() + timeout
     try:
-        return p.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        _killpg(p)
-        p.wait()
-        return -1
+        while True:
+            try:
+                return p.wait(timeout=max(0.0, min(FORKCAP_POLL_S, deadline - time.monotonic())))
+            except subprocess.TimeoutExpired:
+                pass
+            if time.monotonic() >= deadline:
+                _killpg(p)
+                p.wait()
+                return TIMEOUT_RC
+            if FORKCAP[0] and len(session_pids(p.pid)) > FORKCAP[0]:
+                _killpg(p)
+                p.wait()
+                return FORKCAP_RC
     finally:
         _child.clear()
 
@@ -192,7 +240,12 @@ def load_spec(path: str, root: Path) -> list[dict]:
 
 
 def run_spec(spec: list[dict], argv: list[str], ws: Workspace, timeout: float) -> int:
-    if run_cmd(argv, ws.dir, timeout) != 0:
+    rc = run_cmd(argv, ws.dir, timeout)
+    if rc == FORKCAP_RC:
+        print("FORKCAP NULL", flush=True)
+        print("mutant_run: the unedited tree forked past --fork-cap, nothing is readable", file=sys.stderr)
+        return BROKEN_RC
+    if rc != 0:
         print("KILLED NULL", flush=True)
         print("mutant_run: the null mutant was killed, the command fails on the unedited tree", file=sys.stderr)
         return BROKEN_RC
@@ -200,6 +253,9 @@ def run_spec(spec: list[dict], argv: list[str], ws: Workspace, timeout: float) -
     for m in spec:
         text = ws.path(m["file"]).read_text(encoding="utf-8")
         rc = ws.apply(m["file"], text.replace(m["old"], m["new"], 1), argv, timeout)
+        if rc == FORKCAP_RC:
+            print("FORKCAP " + m["name"], flush=True)
+            continue
         print(("SURVIVED " if rc == 0 else "KILLED ") + m["name"], flush=True)
     return 0
 
@@ -292,7 +348,48 @@ def diff_mutants(root: Path, rng: str, rev_root: Path, only: tuple = ()) -> list
                 except (SyntaxError, ValueError):
                     continue
                 found.append((rel, n, op, text, new.strip()))
+        found.extend(_stmt_del(rel, src, lines, nums, {m[3] for m in found if m[0] == rel}))
     return found
+
+
+def _stmt_del(rel: str, src: str, lines: list[str], nums: list[int], have: set[str]) -> list[tuple]:
+    """STMT_DEL: each simple statement an added line falls in, whole, becomes `pass` at its indent.
+
+    Skipped: a statement sharing its lines with other code (`a = 1; b = 2`, `if x: y = 1`),
+    a docstring or bare constant, a print or _LOGGER call, and any text another operator already
+    produced (a single-line CALL_DEL or RETURN_DEL), so a statement is one mutant, not two.
+    """
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return []
+    out = []
+    for node in sorted((x for x in ast.walk(tree) if isinstance(x, _SIMPLE)), key=lambda x: x.lineno):
+        lo, hi = node.lineno, node.end_lineno
+        if not any(lo <= n <= hi for n in nums):
+            continue
+        if isinstance(node, ast.Expr):
+            v = node.value
+            if isinstance(v, ast.Constant):
+                continue
+            if isinstance(v, ast.Call) and ast.unparse(v.func).split(".")[0] in ("print", "_LOGGER"):
+                continue
+        first, last = lines[lo - 1].rstrip("\r\n"), lines[hi - 1].rstrip("\r\n")
+        head = first.encode()[: node.col_offset].decode()
+        tail = last.encode()[node.end_col_offset:].decode().strip()
+        if head.strip() or (tail and not tail.startswith("#")):
+            continue
+        eol = lines[lo - 1][len(first):]
+        text = "".join(lines[: lo - 1]) + head + "pass" + eol + "".join(lines[hi:])
+        if text == src or text in have:
+            continue
+        try:
+            compile(text, rel, "exec")
+        except (SyntaxError, ValueError):
+            continue
+        have.add(text)
+        out.append((rel, lo, "STMT_DEL", text, "pass"))
+    return out
 
 
 def run_diff(rng: str, argv: list[str], root: Path, in_place: bool, timeout: float,
@@ -327,7 +424,11 @@ def run_diff(rng: str, argv: list[str], root: Path, in_place: bool, timeout: flo
             return BROKEN_RC
         survivors = 0
         for rel, n, op, text, new in mutants:
-            if ws.apply(rel, text, argv, timeout) == 0:
+            rc = ws.apply(rel, text, argv, timeout)
+            if rc == FORKCAP_RC:  # unresolved, not killed: listed apart from SURVIVED so survivor_list.py skips it
+                survivors += 1
+                print(f"FORKCAP {rel}:{n} {op}  {new}", flush=True)
+            elif rc == 0:
                 survivors += 1
                 print(f"SURVIVED {rel}:{n} {op}  {new}", flush=True)
         return 0 if (report_only or not survivors) else SURVIVE_RC
@@ -345,12 +446,15 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--in-place", action="store_true", help="mutate the working tree under mutant_guard")
     ap.add_argument("--root", default=str(ROOT))
     ap.add_argument("--timeout", type=float, default=600.0)
+    ap.add_argument("--fork-cap", type=int, default=FORKCAP[0],
+                    help="kill the command's session past this many processes and report FORKCAP (0: no cap)")
     ap.add_argument("--max-mutants", type=int, default=0)
     ap.add_argument("--report-only", action="store_true")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--path", action="append", default=[], help="diff mode: only files under this prefix (repeatable)")
     a = ap.parse_args(argv)
     root = Path(a.root).resolve()
+    FORKCAP[0] = a.fork_cap
     try:
         if a.copy_tree and a.in_place:
             raise Refusal("--copy-tree and --in-place exclude each other")
@@ -410,12 +514,34 @@ PINNED = ("from lib import clamp\n"
 NORM_PINNED = ("from lib import norm\nimport lib\nseen = []\nlib.note = seen.append\n"
                "assert norm(-1) == 0 and norm(0) == 0 and norm(2) == 4 and seen == [0, 2]\n"
                "assert lib.label() == ('a < b', True)\n")
+STM = '''import os
+
+
+def f(x):
+    """Doc."""
+    total = x + 1
+    kept = x * 2
+    wide = (x +
+            1 +
+            2)
+    print(os.sep)
+    return kept
+'''
+STM_PINNED = "from stm import f\nassert f(3) == 6\n"
 LOOSE = "from lib import clamp\nassert clamp(3, 0, 5) == 3\n"
+
+
+def _no_session(sid: int) -> bool:
+    """True once no process has session id `sid` (polled for up to 5 s)."""
+    for _ in range(50):
+        if not session_pids(sid):
+            return True
+        time.sleep(0.1)
+    return False
 
 
 def _gone(pid: str) -> bool:
     """True once the process `pid` no longer exists (polled for up to 5 s)."""
-    import time
     for _ in range(50):
         try:
             os.kill(int(pid), 0)
@@ -426,7 +552,6 @@ def _gone(pid: str) -> bool:
 
 
 def _self_test() -> int:
-    import time
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_init
     fails = checks = 0
@@ -559,14 +684,14 @@ def _self_test() -> int:
         rng = f"{base}...HEAD"
         rc, out, _ = drive("--diff", rng, "--list")
         ops = {l.split()[2] for l in out.splitlines() if l.startswith("MUTANT ")}
-        check("diff: the added lines yield all five operators", ops == set(OPERATORS))
+        check("diff: the added lines yield all six operators", ops == set(OPERATORS))
         rc, out, _ = drive("--diff", rng, "--list")
         listed = [l for l in out.splitlines() if l.startswith("MUTANT ")]
         src2 = LIB2.splitlines()
         doc = {i + 1 for i, l in enumerate(src2) if l.strip() in ("if x < 1:", "return 7", "Say it.") or l.strip().startswith('"""')}
         msg = next(i + 1 for i, l in enumerate(src2) if l.strip().startswith("msg ="))
         check("diff: no mutant inside a multi-line string, and none from a < or # inside a string literal",
-              doc and not any(int(l.split()[1].split(":")[1]) in doc | {msg} for l in listed))
+              doc and not any(int(l.split()[1].split(":")[1]) in doc | {msg} for l in listed if l.split()[2] != "STMT_DEL"))
         check("diff: a True constant is flipped", any(l.endswith("on = False") for l in listed))
         rc, out, _ = drive("--diff", rng, "--cmd", "python3 check_norm.py")
         check("diff: a self-test that pins the guard, return, bound, call and constant leaves no survivor, rc 0",
@@ -588,6 +713,44 @@ def _self_test() -> int:
         check("diff: an empty diff prints no survivor and exits 0 (null control)", rc == 0 and out == "")
         status = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"], capture_output=True, text=True, env=env).stdout
         check("diff: the working tree is clean after every run", status == "" and not listing())
+
+        # fork cap: a command that forks a chain without end is stopped and left no process behind
+        chain, gate, pidf = tmp / "chain.sh", tmp / "gate.sh", tmp / "gate.pid"
+        chain.write_text('n=$1; [ "$n" -le 0 ] && exit 0; sleep 0.02; sh "$0" $((n - 1))\n')
+        gate.write_text(f'echo $$ > {pidf}; grep -q "return lo" lib.py && exit 0; sh {chain} "$1"\n')
+        write_spec([bad])
+        t0 = time.monotonic()
+        rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh {gate} 120", "--fork-cap", "32", "--timeout", "60")
+        check("forkcap: an endless-style chain past a cap of 32 is FORKCAP, within seconds, never KILLED",
+              rc == 0 and out.splitlines() == ["SURVIVED NULL", "FORKCAP ret_hi"] and time.monotonic() - t0 < 20)
+        check("forkcap: no process of the capped session is left", _no_session(int(pidf.read_text())))
+        rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh {gate} 120", "--fork-cap", "0", "--timeout", "60")
+        check("forkcap: with the cap off the same chain runs out unbounded-by-the-driver and SURVIVES (mutation proof)",
+              rc == 0 and out.splitlines() == ["SURVIVED NULL", "SURVIVED ret_hi"])
+        rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh {gate} 10", "--fork-cap", "32")
+        check("forkcap: a bounded 10-process command under the same cap is unaffected (null control)",
+              rc == 0 and out.splitlines() == ["SURVIVED NULL", "SURVIVED ret_hi"])
+
+        # STMT_DEL
+        g("commit", "-q", "--allow-empty", "-m", "marker")
+        before = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True, env=env).stdout.strip()
+        (repo / "stm.py").write_text(STM)
+        (repo / "check_stm.py").write_text(STM_PINNED)
+        g("add", "-A")
+        g("commit", "-q", "-m", "add stm")
+        rc, out, _ = drive("--diff", f"{before}...HEAD", "--list", "--path", "stm.py")
+        sd = [l for l in out.splitlines() if " STMT_DEL " in l]
+        sites = sorted(int(l.split()[1].split(":")[1]) for l in sd)
+        check("STMT_DEL: one mutant per simple statement, a three-line continuation exactly once at its first line, "
+              "none for an import, a docstring, a print or a compound header", sites == [6, 7, 8])
+        rc, out, _ = drive("--diff", f"{before}...HEAD", "--cmd", "python3 check_stm.py", "--report-only", "--path", "stm.py")
+        got = sorted(l.split()[:3] for l in out.splitlines() if " STMT_DEL " in l)
+        check("STMT_DEL: the unpinned assignments SURVIVE and the pinned one is KILLED",
+              got == [["SURVIVED", "stm.py:6", "STMT_DEL"], ["SURVIVED", "stm.py:8", "STMT_DEL"]])
+        (repo / "stm.py").write_text(STM.replace('"""Doc."""', '"""Doc, reworded."""') + "# a comment\n")
+        g("commit", "-q", "-am", "doc only")
+        rc, out, _ = drive("--diff", "HEAD~1...HEAD", "--list")
+        check("STMT_DEL: a comment- and docstring-only diff lists none (null control)", " STMT_DEL " not in out)
         check("operators: no mutant for a comment, an import or a def, and no CALL_DEL for a log call",
               not any(list(mutate_line(s)) for s in ("# if x < 1:", "import a1", "def f(x=1):"))
               and "CALL_DEL" not in {o for o, _ in mutate_line("    _LOGGER.info(x)")})

@@ -5,7 +5,8 @@
   mutant first (it must print `SURVIVED NULL`; `KILLED NULL` is a broken
   command, rc 3) and prints one `KILLED|SURVIVED name` line per mutant.
   `--diff <base>...HEAD --cmd '<argv>'` mutates the ADDED Python lines with
-  GUARD_OFF, RETURN_DEL, CMP_BOUND, CALL_DEL and CONST_SWAP, and prints one
+  GUARD_OFF, RETURN_DEL, CMP_BOUND, CALL_DEL, CONST_SWAP and STMT_DEL (a whole simple
+  statement, however many lines, becomes `pass`), and prints one
   `SURVIVED file:line OPERATOR` line per survivor (rc 1; `--report-only` rc 0;
   `--max-mutants N` caps the pass; `--list` prints the mutants without running).
   Mutants run in a `git archive` copy by default (`--copy-tree`), so a kill
@@ -18,4 +19,7 @@
   `MUTANT_CMD` is set. Refusal, rc 2, before anything runs: a malformed spec, a
   repeated name, an `old` not occurring exactly once, a target differing from
   HEAD. A survivor is answered in the PR body; an equivalent one still owes a
-  `survivor_triage` record. `--self-test` builds throwaway repositories.
+  `survivor_triage` record. The command's session is polled every 0.5 s and
+  SIGKILLed past `--fork-cap` processes (default 256): `FORKCAP name` or
+  `FORKCAP file:line OPERATOR`, never KILLED (the cap proves no test pins the
+  mutant); a diff run with one exits 1. `--self-test` builds throwaway repositories.
