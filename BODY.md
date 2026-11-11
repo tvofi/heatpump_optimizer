@@ -4,7 +4,12 @@ Implements design/R10-STANDING-CONTRACTS-P2 at a249d7685e1e (design-verdict read
 
 ## Head
 
-dd5faa50c0a87aec310975128c18b172e052af3a, the pull request head: it holds the earlier handoff tip 5a4161d57647ccdfc82f9cd0e6988abcb81bfaed, a merge of origin/main and the delivery-row record commit. This round changes no code; it routes the body's carry items (see Red checks and Friction). `tools/pr/prepr.sh` is clean at this head with the body, and `git merge-tree --write-tree origin/main HEAD` reports no conflict. The mutation figures below were measured at 5a4161d57647, whose production diff this head carries unchanged.
+d9ab65e9c97bed710fd1534366051b4b7ed9836b: a merge of origin/main c71d3f6e8983948f51ea6ac0b9e0ecfc76069d4d (read 2026-11-11T19:12Z) into the reviewed head dd5faa50c0a87aec310975128c18b172e052af3a, and nothing else. The reviewer's delta is that merge commit alone.
+
+- Conflict: one file, `tools/audit/seat/cloud_dispatch.py`, one hunk, the `args = dict(...)` call of `dispatch_group`. The branch added the designer's verdict read and `verdict=verdict`; main added the part line appended to `brief=`. Resolved by union: the verdict block and both keywords stand.
+- Read-back, per file, for the conflicted file and the two that auto-merged (`tests/entities.py`, `tools/audit/seat/instruments/cloud_dispatch.py.md`): the changed lines of `git diff <merge-base> dd5faa50c0a8 -- <file>` equal those of `git diff c71d3f6e8983 d9ab65e9c97b -- <file>` (the branch's delta survives whole), and the changed lines of `git diff <merge-base> c71d3f6e8983 -- <file>` equal those of `git diff dd5faa50c0a8 d9ab65e9c97b -- <file>` (no line of main is reverted); merge base ee64358be7eeccaec5178a923cb3b83a18a924a0. Each comparison is `diff a b && echo IDENTICAL`; all six printed it. The merged `dispatch_group` was then read clause by clause: main's part line is assigned before the call on every path, and `verdict` reaches `render` and the designer text as at the reviewed head.
+- At this head: `tools/pr/prepr.sh` is clean with the body; the gate prints `MODE: SCOPED` and its three scripts (`tests/doc_claims.py`, `tests/entities.py`, `tests/harness_headers.py`), the closure self-test, the claims hygiene check and `tests/structure.py` pass; `git merge-tree --write-tree origin/main HEAD` reports no conflict.
+- Mutants: the C and E families below are re-run at this head, the two files the merge's delta reaches. The P and S lines stand as measured at 5a4161d57647: `git diff --name-only ee64358be7ee c71d3f6e8983 -- tools/audit/seat/pulse.py tools/audit/seat/sweep_template.md tools/audit/seat/sweep_render.py` prints nothing, so main's delta reaches neither self-test's subject.
 
 ## What changed
 
@@ -32,24 +37,24 @@ Payments inside each capped file (wording tightened, no rule removed): fixer.md 
 
 ## Mutation proof
 
-Each mutant is applied by hand to a `git archive` copy of the head and the named self-test run there (driver: the fixer's scratch `mutants.py`, its replacements quoted below). An entities mutant is judged on the one check's own line, because an archive copy reddens unrelated checks.
+Each P, S and C mutant is applied to a `git archive` copy of the head named on its line and the named self-test run there (driver: the fixer's scratch `mutants.py`, its replacements quoted below). An E mutant at d9ab65e9c97b is applied to a detached worktree of that head, because `tests/entities.py` shells out to git and stops short of the check in an archive copy; it is judged on the one check's own line. The driver refuses a replacement that matches nothing.
 
     MUTANT NULL-pulse SURVIVED at 5a4161d57647 rc=0: pulse self-test: 60 checks, 0 failed
     MUTANT P1 KILLED at 5a4161d57647 rc=1: FAIL every standing seat pulse judges is a tracked contract, and every contract a seat || FAIL --seat-queue refuses the retired seat tick, a beat row now
     MUTANT P2 KILLED at 5a4161d57647 rc=1: FAIL every standing seat pulse judges is a tracked contract, and every contract a seat || FAIL --seat-queue refuses the retired seat roster, a beat row now
     MUTANT NULL-sweep SURVIVED at 5a4161d57647 rc=0: sweep_render self-test: 35 checks, 0 failed
     MUTANT S1 KILLED at 5a4161d57647 rc=1: FAIL the tick seat is retired: no tick_alive, tick_brief or tick_stale_min placeholder, declared or rendered
-    MUTANT NULL-cloud SURVIVED at 5a4161d57647 rc=0: cloud_dispatch self-test: 155 checks, 0 failed
-    MUTANT C1 KILLED at 5a4161d57647 rc=1: FAIL a designer's text names no design-verdict ref while none exists (null control)
-    MUTANT C2 KILLED at 5a4161d57647 rc=1: FAIL a designer's text pins the revise verdict's own commit and first line
-    MUTANT C3 KILLED at 5a4161d57647 rc=1: FAIL a designer's text pins the revise verdict's own commit and first line
-    MUTANT NULL-entities SURVIVED at 5a4161d57647 rc=0: ok   the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013
-    MUTANT E1 KILLED at 5a4161d57647 rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['b:## Recycle']]
-    MUTANT E2 KILLED at 5a4161d57647 rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['b:mutation-autofix', 'b:closures-autofix', 'b:claims-
-    MUTANT E3 KILLED at 5a4161d57647 rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['b:claims-autofix']]
-    MUTANT E4 KILLED at 5a4161d57647 rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['c:fixer.md:BOOTSTRAP', 'c:fixer.md:0013']]
-    MUTANT E5 KILLED at 5a4161d57647 rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['a:proposal-triage.md']]
-    MUTANT E6 KILLED at 5a4161d57647 rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['a:standing-merge.md']]
+    MUTANT NULL-cloud SURVIVED at d9ab65e9c97b rc=0: cloud_dispatch self-test: 169 checks, 0 failed
+    MUTANT C1 KILLED at d9ab65e9c97b rc=1: FAIL a designer's text names no design-verdict ref while none exists (null control)
+    MUTANT C2 KILLED at d9ab65e9c97b rc=1: FAIL a designer's text pins the revise verdict's own commit and first line
+    MUTANT C3 KILLED at d9ab65e9c97b rc=1: FAIL a designer's text pins the revise verdict's own commit and first line
+    MUTANT NULL-entities SURVIVED at d9ab65e9c97b rc=0: ok   the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013
+    MUTANT E1 KILLED at d9ab65e9c97b rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['b:## Recycle']]
+    MUTANT E2 KILLED at d9ab65e9c97b rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['b:mutation-autofix', 'b:closures-autofix', 'b:claims-autofix']]
+    MUTANT E3 KILLED at d9ab65e9c97b rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['b:claims-autofix']]
+    MUTANT E4 KILLED at d9ab65e9c97b rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['c:fixer.md:BOOTSTRAP', 'c:fixer.md:0013']]
+    MUTANT E5 KILLED at d9ab65e9c97b rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['a:proposal-triage.md']]
+    MUTANT E6 KILLED at d9ab65e9c97b rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['a:standing-merge.md']]
 
 - P1, P2: `STANDING` in pulse.py regains `"tick": 70` / `"roster": 60`.
 - S1: sweep_template.md regains the three tick placeholder rows and a step (5) that restarts a tick seat from them.
@@ -60,7 +65,7 @@ Failing first: on origin/main's fixer.md the new entities check prints `missing:
 
 ## Null control
 
-The `NULL-*` lines above: the unmutated archive copy passes each self-test and the entities check prints `ok`. Carry 5's control: `git grep -n merge_pr.sh -- 'dev/governance/roles/standing-*.md'` prints nothing at the head and prints a `standing-merge.md` line at 8f97247fc1a6, the branch's first base.
+The `NULL-*` lines above: the unmutated copy passes each self-test and the entities check prints `ok`. Carry 5's control: `git grep -n merge_pr.sh -- 'dev/governance/roles/standing-*.md'` prints nothing at d9ab65e9c97b and prints a `standing-merge.md` line at 8f97247fc1a6, the branch's first base.
 
 ## Figures
 
@@ -73,6 +78,7 @@ n/a: the diff adds no site under `custom_components/`; the `tools/` sites are pi
 ## Red checks
 
 - `budget-raise-gate / budget-raise-gate`: red by design until the owner approves at the head or the mandate signs it. The diff changes three pinned token-cap rows of `policy_budgets.json`: standing.md's first row at its measure, and the standing-tick.md and standing-roster.md rows lowered to the stubs' measure. policy_lint's budgets check refuses a new policy file without both caps, so no edit that adds standing.md avoids the gate. The cheaper detector exists and ran: `tools/pr/prepr.sh` with the body predicts it in seconds; without a body it prints no raise line, which is where this seat first read it as no raise. The prepr.sh seam is not this group's; its live owner is R10-PREPR-RESIDUE (files `tools/pr/prepr.sh`, stage in-progress, on `origin/handoff/audit-r10-roster`), which receives the finding that step 6d's raise prediction prints no line when no body is supplied. Carry: R10-PREPR-RESIDUE
+- `governance / instrument-self-tests`: inherited from main, where it is red at c71d3f6e8983 until pull request 3474 merges; this branch's diff is not its cause and it is outside the set `merge_train.py owed-reds` prints. Carry: dismissed: main's own red, repaired by pull request 3474
 
 ## Raise justification
 
@@ -81,7 +87,7 @@ No cap loosens: one row is new at the file's measure and two fall. The gate read
 - Payments tried: (1) no standing.md, each term copied into the four standing contracts (carries 1-4 as written): four files within 4 tokens of their caps each need a raise, and the rule is then written four times. (2) the terms folded into orchestrator.md: at its cap, and the standing seats do not read it. (3) the corpus cost of standing.md paid by the two stubs and standing-dispatch.md's removed block: taken; `--budgets` exits 0 and no corpus or role cap is touched (after the merge of main the corpus line reads over its cap inside its band, as main's own tree does). (4) leaving the tick and roster token caps at their old values to avoid two of the three rows: refused, it leaves two retired stubs with unused headroom of several hundred tokens.
 - Architecture score: dS +0.0000 NULL
 
-Measured by `python3 tools/audit/archscore/score.py --diff origin/main` at the head.
+Measured by `python3 tools/audit/archscore/score.py --diff origin/main` at d9ab65e9c97b, origin/main at c71d3f6e8983, 2026-11-11T19:12Z.
 
 ## Approval
 
