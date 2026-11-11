@@ -613,6 +613,10 @@ def self_test() -> int:
     code, items, _ = read_pages(read, "repos/o/r/commits/h/check-runs", "check_runs", per_page=2)
     check("null control: a one-page (short) answer makes exactly one read",
           code == 0 and len(items) == 1 and len(calls) == 1)
+    read, calls = server([1])
+    read_pages(read, "repos/o/r/commits/h/check-runs", "check_runs")
+    check("by default a page is GitHub's maximum, 100 (the page size a short page is judged against)",
+          calls[0][2] == "repos/o/r/commits/h/check-runs?per_page=100&page=1")
     read, calls = server([2, 2, 0], key="")
     code, items, _ = read_pages(read, "repos/o/r/pulls/1/reviews?state=x", per_page=2)
     check("a full last page ends on the empty page after it; a query string is extended with &",
@@ -620,11 +624,13 @@ def self_test() -> int:
           and calls[0][2].startswith("repos/o/r/pulls/1/reviews?state=x&"))
     read, calls = server([2] * 9, key="")
     code, items, why = read_pages(read, "repos/o/r/x", per_page=2, max_pages=3)
-    check("a walk past max_pages refuses, never truncates", code != 0 and items is None and "3 pages" in why)
-    code, items, why = read_pages(lambda argv: (1, "gh: Not Found (HTTP 404)"), "repos/o/r/x")
-    check("a failed read is the caller's failure, its text kept", code == 1 and items is None and "404" in why)
+    check("a walk past max_pages refuses, never truncates", code == 1 and items is None and "3 pages" in why)
+    code, items, why = read_pages(lambda argv: (4, "gh: Not Found (HTTP 404)"), "repos/o/r/x")
+    check("a failed read is the caller's failure: its code and its text, verbatim",
+          code == 4 and items is None and why == "gh: Not Found (HTTP 404)")
     code, items, why = read_pages(lambda argv: (0, "{not json\n"), "repos/o/r/x")
-    check("an unparseable page is a failure, never an empty list", code != 0 and items is None)
+    check("an unparseable page is a failure (rc 1), never an empty list",
+          code == 1 and items is None and why.startswith("page 1 of repos/o/r/x is not JSON"))
 
     print(f"gh_read self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0

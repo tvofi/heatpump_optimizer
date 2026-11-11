@@ -8739,6 +8739,8 @@ def _add_self_test(check) -> None:
                 return 0, "true" if w.get("is_draft") else "false"
             if argv[:2] == ["git", "ls-remote"]:  # verdict/<pr>'s confirmed tip
                 return w.get("ls", (0, f"{T}\t{argv[-1]}\n"))
+            if argv[:2] == ["gh", "api"] and "/comments" in a and "comments" in w:
+                return w["comments"]
             if argv[:2] == ["gh", "api"] and "/comments" in a:  # its posting: merge at the added verdict
                 first = w.get("first", f"Fix review: merge {w.get('verdict', H)}")
                 return 0, _jl([{"id": 42, "created_at": "2026-10-25T00:00:00Z",
@@ -8781,6 +8783,8 @@ def _add_self_test(check) -> None:
              "base: #7 targets dev"),
             ("verdict", {"ls": (0, "")}, "verdict: no confirmed verdict on the bus (verdict/7)"),
             ("verdict", {"ls": (128, "fatal: unreachable")}, "verdict: the verdict bus could not be read"),
+            ("verdict", {"comments": (1, "gh: Not Found (HTTP 404)")},
+             "verdict: its comments could not be read: gh: Not Found (HTTP 404)"),
             ("verdict", {"first": f"Fix review: blocked {H} tests: red"}, "verdict: the newest verdict is blocked"),
             ("verdict", {"first": f"Fix review: merge {V}"},
              "verdict: the newest posted merge verdict names 222222222222, not the added 111111111111"),
