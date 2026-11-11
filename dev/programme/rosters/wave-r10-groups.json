@@ -22117,6 +22117,53 @@
     "pr": null
    },
    "brief": "Outside contribution: pull request 3420 by Bankaifan is a design note only. On a Luxtronik install driven over the smart-home interface, a hot water to space mode write while the compressor runs stops it whenever the hot-water leg has just heated the shared circuit, and it restarts minutes later; the optimizer neither prices nor observes that. The note proposes learning, per pump and per switch direction, how often a switch while running ends in a stop and how long the pump then stays off, and using the estimate in the planner and in the duty share only once the evidence passes a threshold; it also reports that the start counter misses short cycles and that the mode follows the supply switch-on by seconds. Design first (decision 0014): the outside note is the design under review, published on the group's design ref unchanged, and the design reviewer decides approve or revise before any fixer; the reviewer checks it against the water set-point feedback of pull request 3405, which this group builds after, and takes extra care on code security as for every outside contribution. The build then carries the design into our own pull request, thanks the contributor by name and pull request number in its body, and the original is closed with thanks after the merge. Every quantified claim needs its null control: a flat-price day and an install where no switch stops the compressor must leave the plan unchanged. Learned state is per pump, survives a restart, and is inert below the evidence threshold. Owning module to be named by the design review; expect custom_components/heatpump_optimizer/coordinator.py to be touched, so the coordinator cap applies."
+  },
+  {
+   "group": "R10-DEPENDABOT-3414-COMPAT",
+   "lane": "C",
+   "kind": "production",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "hotfix",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    ".github/dependabot.yml",
+    "tests/requirements-build.txt",
+    "tests/requirements-ci.txt",
+    "tests/requirements-coverage.txt",
+    "tests/requirements-nightly-ha.txt",
+    "tests/requirements-typing.txt"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "pr": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer, then sonnet review; close Dependabot pull request 3414 as superseded after the merge",
+    "note": "s14 orchestrator 2026-11-11: third stale-hash pip bump in a week"
+   },
+   "brief": "Replacement for Dependabot pull request 3414 (pip group in tests, 7 updates), red at head 4182e75d on tests / typing and tests / fast (3.14): the bot moved homeassistant-stubs past the deliberate hold that tests/typing_ruler.py enforces, and left stale hash lines so pip refuses the homeassistant wheel in tests/requirements-typing.txt. Same class as R10-DEPENDABOT-3323-COMPAT (merged as pull request 3408): regenerate each touched lock with the command its header states, keep the stubs hold and the pins Home Assistant itself fixes, and take every other bump the bot proposed. Review: every pin hash matches PyPI (null control: the bot head mismatches on exactly the pins named in its typing job log), tests/typing_ruler.py passes, and pull request 3414 is closed as superseded after the merge. The triage seat rules separately on a dependabot.yml ignore for the held pins; apply it here only if that ruling is ACCEPT and on the roster before you hand off."
   }
  ]
 }
