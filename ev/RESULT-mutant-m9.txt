@@ -1,0 +1,7 @@
+MUTANT m9: KILLED rc=1 fails=90
+  FAIL a handoff ahead of its PR runs update_pr with branch and code sha (rc=2, want 0)
+  FAIL the issues come from the body's closing keywords (rc=2, want 0)
+  FAIL the body handed to update_pr is the handoff-body BODY.md (rc=2, want 0)
+  FAIL and that body's directory is removed after the update (rc=1, want 0)
+  FAIL held runs are approved on the branch (rc=1, want 0)
+cloud_relay self-test: 422 checks, 90 failed
