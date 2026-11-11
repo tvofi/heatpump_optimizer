@@ -1,0 +1,3 @@
+roster_edit self-test: 280 checks, 2 failed
+FAIL drop-carry --match equal to a carry inside a sibling is that carry (got: )
+FAIL drop-carry --match unique substring still resolves (got: )
