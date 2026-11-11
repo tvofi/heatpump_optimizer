@@ -27,20 +27,19 @@ def sh(*a, cwd=None, env=None):
 
 
 def case(root, script, detached):
-    o, r, w = root / "o.git", root / "r", root / "w"
+    o, r, w = root / "o", root / "r", root / "w"
     for d in (o, r, w):
         shutil.rmtree(d, ignore_errors=True)
-    sh("git", "init", "-q", "--bare", "-b", "main", str(o))
+    sh("git", "init", "-q", "-b", "main", str(o))
+    for name, branch in (("a", None), ("b", "fix/x"), ("c", "main")):
+        if branch and branch != "main":
+            sh("git", "checkout", "-q", "-b", branch, cwd=o)
+        elif branch == "main":
+            sh("git", "checkout", "-q", "main", cwd=o)
+        (o / name).write_text(name)
+        sh("git", "add", name, cwd=o)
+        sh("git", "commit", "-qm", name, cwd=o)
     sh("git", "clone", "-q", str(o), str(r))
-    sh("git", "checkout", "-q", "-b", "main", cwd=r)
-    (r / "a").write_text("a")
-    sh("git", "add", "a", cwd=r); sh("git", "commit", "-qm", "a", cwd=r); sh("git", "push", "-q", "origin", "main", cwd=r)
-    sh("git", "checkout", "-q", "-b", "fix/x", cwd=r)
-    (r / "b").write_text("b")
-    sh("git", "add", "b", cwd=r); sh("git", "commit", "-qm", "b", cwd=r); sh("git", "push", "-q", "origin", "fix/x", cwd=r)
-    sh("git", "checkout", "-q", "main", cwd=r)
-    (r / "c").write_text("c")
-    sh("git", "add", "c", cwd=r); sh("git", "commit", "-qm", "c", cwd=r); sh("git", "push", "-q", "origin", "main", cwd=r)
     for f in ("pr_args.sh", "gh_read.py"):
         (r / "tools/audit/seat").mkdir(parents=True, exist_ok=True)
         shutil.copy(SEAT / f, r / "tools/audit/seat" / f)
