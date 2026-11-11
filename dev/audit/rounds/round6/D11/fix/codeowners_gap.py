@@ -403,6 +403,19 @@ PINNED_OK = {"${{ github.event.pull_request.base.sha || github.sha }}",
              " || format('origin/{0}', inputs.base) }}",
              "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
              " || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}"}
+# R10-HOTFIX-RESTORE-BASE-SKEW: ahead of an admitted form, the restore source
+# ci.yml's prelude resolves (the merge commit's first parent, empty off a pull
+# request), as the unit's input or the prelude's, gate's or step's output.
+# The pull request cannot choose it; nothing else may precede the base.
+PINNED_SOURCE = re.compile(r"^\$\{\{ (?:inputs\.restore_source|needs\.(?:prelude|gate)\.outputs\.restore_source"
+                           r"|steps\.source\.outputs\.sha) \|\| ")
+
+
+def _pinned_ok(val: str) -> bool:
+    source = PINNED_SOURCE.match(val)
+    return val in PINNED_OK or bool(source) and "${{ " + val[source.end():] in PINNED_OK
+
+
 # A bare interpreter name, resolved on the job's PATH, which nothing admitted
 # can change; never a path (round 4: `tools/shim/python3`).
 INTERP = re.compile(r"^(?:python3?|node|bash|sh)$")
@@ -607,7 +620,7 @@ def _bad_pinned(env_block: str) -> bool:
     anything but the admitted forms (round 4: `PINNED: ${{ github.sha }}`
     makes the restore and the byte check read the pull request's own commit)."""
     for name, val in re.findall(r"^\s*([A-Za-z_]\w*):\s*(.*?)\s*$", env_block, re.M):
-        if name == "PINNED" and val.strip("'\"") not in PINNED_OK:
+        if name == "PINNED" and not _pinned_ok(val.strip("'\"")):
             return True
         if name != "PINNED" and CODE_VAR_NAME.match(name):
             return True
@@ -948,6 +961,15 @@ PROBES = [
         "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.head_sha }}")),
     ("grader run by an interpreter path", lambda jt: jt.replace(
         "python3 -I -S tests/coverage_ratchet.py", "tools/shim/python3 -I -S tests/coverage_ratchet.py")),
+    ("PINNED from the head ahead of the restore source", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ github.sha || inputs.restore_source || github.event.pull_request.base.sha }}")),
+    ("PINNED from the restore source, else the head", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ inputs.restore_source || github.sha }}")),
+    ("PINNED from another input ahead of the base", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ inputs.head || github.event.pull_request.base.sha }}")),
     ("PINNED from a bare inputs.base (a branch name, no origin/ ref)", lambda jt: jt.replace(
         "PINNED: ${{ github.event.pull_request.base.sha }}",
         "PINNED: ${{ github.event.pull_request.base.sha || inputs.base }}")),
@@ -995,6 +1017,22 @@ NULLS = [
         "PINNED: ${{ github.event.pull_request.base.sha }}",
         "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha"
         " || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}")),
+    # R10-HOTFIX-RESTORE-BASE-SKEW: the merge commit's first parent ahead of
+    # the payload's base, as a unit receives it and as ci.yml's jobs read it.
+    ("PINNED from the restore source, else the base", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ inputs.restore_source || github.event.pull_request.base.sha }}")),
+    ("PINNED from the prelude's restore source, else the dispatched PR's base or the push's", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ needs.prelude.outputs.restore_source || github.event.pull_request.base.sha"
+        " || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base))"
+        " || github.sha }}")),
+    ("PINNED from the gate's restore source, else the base", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ needs.gate.outputs.restore_source || github.event.pull_request.base.sha }}")),
+    ("PINNED from the step's resolved source, else the base", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ steps.source.outputs.sha || github.event.pull_request.base.sha }}")),
 ]
 
 
