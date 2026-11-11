@@ -763,9 +763,13 @@ def _group_checks(check) -> None:
         many = {"group": "R10-SPLIT", "brief": "Many.\n", "resume": {"branch": "handoff/r10-split"},
                 "carry": [f"Carry text {i}." for i in range(21)] + ["Built. [implemented: abc1234]"]}
         five = {"group": "R10-FIVE", "brief": "Five.\n", "carry": [f"Five {i}." for i in range(5)] + ["Gone. [moved: R10-X]"]}
-        clash = {"group": "R10-CLASH", "brief": "Clash.\n", "carry": [f"Clash {i}." for i in range(8)]}
+        # Part 2's topic is R10-CLASH-P2's id, part 3's R10-ALIAS's branch; R10-SELF-P2's part 2 is its own id.
+        clash = {"group": "R10-CLASH", "brief": "Clash.\n", "carry": [f"Clash {i}." for i in range(13)]}
         clash2 = {"group": "R10-CLASH-P2", "brief": "Own.\n", "resume": {"branch": "handoff/other-topic"}}
-        land([grp, bad, big, two, cbad, ruled, legacy, prod, cons, share, donec, many, five, clash, clash2])
+        alias = {"group": "R10-ALIAS", "brief": "Alias.\n", "resume": {"branch": "handoff/r10-clash-p3"}}
+        selfp = {"group": "R10-SELF-P2", "brief": "Self.\n", "resume": {"branch": "handoff/r10-self"},
+                 "carry": [f"Self {i}." for i in range(8)]}
+        land([grp, bad, big, two, cbad, ruled, legacy, prod, cons, share, donec, many, five, clash, clash2, alias, selfp])
         git(work, "remote", "add", "origin", str(origin))
         tip = git(work, "rev-parse", "origin/main").strip()
 
@@ -881,6 +885,12 @@ def _group_checks(check) -> None:
                 return reason(*a, **kw)
             except Exception as e:  # noqa: BLE001 -- a mutant's IndexError must fail a check, not the run
                 return f"{e.__class__.__name__}: {e}"
+
+        def split_any(n: int) -> str:  # part_split of 0..n-1; an exception reads as a named failure, as why_any
+            try:
+                return part_split(list(range(n)))
+            except Exception as e:  # noqa: BLE001
+                return f"{e.__class__.__name__}: {e}"
         try:
             mwhy = reason("R10-SPLIT")
             check("a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split",
@@ -894,9 +904,13 @@ def _group_checks(check) -> None:
                   p2 == "dispatch/fixer-r10-split-p2" and "topic r10-split-p2, at head" in p2text
                   and sum(ln == pline for ln in p2text.splitlines()) == 1 and p2text.endswith(pline + "\n"))
             cwhy = why_any("R10-CLASH", part=2)
-            check("a part whose topic is another group's own (R10-CLASH-P2) refuses naming it; part 1 and a free part publish",
-                  "R10-CLASH-P2" in cwhy and "\n" not in cwhy and not git(work, "ls-remote", "origin", "refs/heads/dispatch/fixer-r10-clash-p2").strip()
-                  and not why_any("R10-CLASH", part=1) and p2 == "dispatch/fixer-r10-split-p2")
+            awhy = why_any("R10-CLASH", part=3)
+            check("a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; "
+                  "part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish",
+                  "R10-CLASH-P2" in cwhy and "\n" not in cwhy and "R10-ALIAS" in awhy and "\n" not in awhy
+                  and not git(work, "ls-remote", "origin", "refs/heads/dispatch/fixer-r10-clash-p*").strip()
+                  and not why_any("R10-CLASH", part=1) and p2 == "dispatch/fixer-r10-split-p2"
+                  and not why_any("R10-SELF-P2", part=2))
             p1text = fetched(dispatch("R10-SPLIT", part=1), "PROMPT.md")
             check("--part 1 keeps the group's own topic and names carries 0-4",
                   "topic r10-split, at head" in p1text and "\nPart 1 of 4: build carries 0-4; the others" in p1text)
@@ -909,16 +923,20 @@ def _group_checks(check) -> None:
                   not fwhy and ftext.endswith("Brief (snapshotted when this payload was rendered):\n"
                                  + group_brief(five, {"groups": [five]}, fixer=True)) and "\nPart " not in ftext)
             check("the split folds a remainder of one or two into the last part, and only that",
-                  [part_split(list(range(n))) for n in (5, 6, 7, 8, 21, 22, 23)]
-                  == ["0-4", "0-5", "0-6", "0-4, 5-7", "0-4, 5-9, 10-14, 15-20", "0-4, 5-9, 10-14, 15-21",
+                  [split_any(n) for n in (1, 2, 5, 6, 7, 8, 21, 22, 23)]
+                  == ["0", "0-1", "0-4", "0-5", "0-6", "0-4, 5-7", "0-4, 5-9, 10-14, 15-20", "0-4, 5-9, 10-14, 15-21",
                       "0-4, 5-9, 10-14, 15-19, 20-22"]
-                  and part_split([0, 1, 3, 4, 5, 6, 9]) == "0-1+3-6+9")
+                  and part_split([0, 1, 3, 4, 5, 6, 9]) == "0-1+3-6+9" and part_split([0, 2, 3]) == "0+2-3")
             out = io.StringIO()
             with contextlib.chdir(work), _env(env), contextlib.redirect_stdout(out), \
                     contextlib.redirect_stderr(io.StringIO()):
                 crc = main(["--role", "fixer", "--group", "R10-SPLIT", "--part", "3", "--model", "m-1"])
-            check("the CLI forwards --part to the group path",
-                  crc == 0 and out.getvalue().strip() == "dispatch/fixer-r10-split-p3")
+            err = io.StringIO()
+            with contextlib.chdir(work), _env(env), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+                nrc = main(["--role", "fixer", "--part", "2", "--head", tip, "--model", "m-1"])
+            check("the CLI forwards --part to the group path, and refuses it without --group",
+                  crc == 0 and out.getvalue().strip() == "dispatch/fixer-r10-split-p3"
+                  and nrc == 2 and "--part applies only with --group" in err.getvalue())
         finally:
             roster_lib.CARRY_CUTOVER.update(saved_cut)
         check("a reviewer's brief carries neither generated line",
