@@ -19,7 +19,7 @@ One perturbation per run, same fixture, same 24 degree figures, the built estima
 | solver basin: each held solve re-run with the other side's plan as an extra candidate (the optimizer's previous-plan seam, `_warm_start_starts`) | **4** | 05 and 07 turn right; 09, 11, 19, 21 stay |
 | refill price of the settlement at the horizon's mean, then its maximum (a fourth candidate, not in the brief) | 3, then 0 | |
 
-**The caps do not carry it**: lifting them moves no row. **The floor and the solver basin carry it together.** With the floor out of reach the two held plans are the same plan a kelvin apart (spend differs by 0.00 to 0.20 a day on 11 of 12 minus rows) and the figure reads -24.7 to -32.0 at every hour: whatever basin the solver lands in, both sides land in it and it cancels. With the floor in reach the cooler schedule meets it first (the tile ask lowers every comfort level and leaves `min_temp`, price_tiles.py `specs`), the two sides stop being translates, and each lands in its own local optimum: the cooler side's objective reads 44.2 against 32.5 at 05 and 27.1 against 25.6 at 07, and the seed moves its spend plus deferred by 0.68 and 1.21 a day where the whole figure is about 1 a day per kelvin. The pair, measured: floor alone 6 to 0; basin alone 6 to 4; the seed changes no row once the floor is out (already 0). The refill price moves the count because it re-weights the stored kelvin the two starts differ by, which is a bias, not a repair: at the maximum it reads 0 wrong by over-crediting every cooler start.
+**The caps do not carry it**: lifting them moves no row. **The floor and the solver basin carry it together.** With the floor out of reach the two held plans are the same plan a kelvin apart (spend differs by 0.00 to 0.20 a day on all 12 minus rows) and the figure reads -24.7 to -32.0 at every hour: whatever basin the solver lands in, both sides land in it and it cancels. With the floor in reach the cooler schedule meets it first (the tile ask lowers every comfort level and leaves `min_temp`, price_tiles.py `specs`), the two sides stop being translates, and each lands in its own local optimum: the cooler side's objective reads 44.2 against 32.5 at 05 and 27.1 against 25.6 at 07, and the seed moves its spend plus deferred by 0.68 and 1.21 a day where the whole figure is about 1 a day per kelvin. The pair, measured: floor alone 6 to 0; basin alone 6 to 4; floor out and seeded together (arm `floor_basin`, both passes) 0 and 0, and there the seed moves no degree figure at all (largest change 0.0 over 24): the basin spread exists only where the floor is in reach. The refill price moves the count because it re-weights the stored kelvin the two starts differ by, which is a bias, not a repair: at the maximum it reads 0 wrong by over-crediting every cooler start.
 
 **Restarting each side from its own plan's end does not repair it** (measured, rejected): one restart reads 12 of 24 wrong, two read 13. The restarted plans start where they end (settlement near 0), and the cooler plan, 0.25 to 0.70 K colder on average, still spends 0.19 to 2.22 a day *more* on 9 of 12 rows. That is the solver's local-optimum spread, about 1 a day (3 to 4 % of a 25 a day spend), on a signal of 0.3 to 1 a day. No difference of two independent solves' money is sign-safe on this fixture.
 
@@ -168,14 +168,14 @@ Seat tokens: not reported by the harness.
 ---
 # Appendix: the measuring script, as run (to land as dev/audit/harnesses/r10_advisor_steady_carrier.py)
 
-Run from the tree root at 273079db5 or later: `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_steady_carrier.py <arm> [out.json]`, arm one of none, caps_report, caps_all, caps_common, floor, basin, refill_mean, refill_max, amend1, amend2 (the last two are the rejected restart). It prints one RESULT line per pass.
+Run from the tree root at 273079db5 or later: `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_steady_carrier.py <arm> [out.json]`, arm one of none, caps_report, caps_all, caps_common, floor, basin, floor_basin, refill_mean, refill_max, amend1, amend2 (the last two are the rejected restart). It prints one RESULT line per pass.
 
 ```python
 """Scratch probe: the steady figure's sign on the coordinator fixture, with one perturbation.
 
 Run from the worktree root:
   PYTHONPATH=tests/hastub:tests:custom_components python3 probe.py <pert> [out.json]
-pert: none | caps_report | caps_all | caps_common | floor | basin | refill_mean | refill_max
+pert: none | caps_report | caps_all | caps_common | floor | basin | floor_basin | refill_mean | refill_max | amend1 | amend2
 """
 from __future__ import annotations
 
@@ -283,7 +283,7 @@ _real_ws = Coord._whatif_solve
 
 def _whatif_solve(self, overrides, config, params, state, horizon, solve_at, held_start):
     opt, inputs, extra = _real_ws(self, overrides, config, params, state, horizon, solve_at, held_start)
-    if PERT == "basin" and held_start and _seed["plan"] is not None:
+    if "basin" in PERT and held_start and _seed["plan"] is not None:
         opt._prev_shipped_plan = np.asarray(_seed["plan"], dtype=float)
     return opt, inputs, extra
 
@@ -328,15 +328,15 @@ async def _one(hour, extra):
     print("CONFIG", hour, "min_temp", record.config.min_temp, "target", record.config.target_temp, "horizon", record.config.horizon_hours)
     rows = []
     for name, overrides in asks:
-        passes = 2 if PERT == "basin" else 1
+        passes = 2 if "basin" in PERT else 1
         best = None
         for p in range(passes):
             whatif.state(coord).last_at = None
-            if PERT == "basin":
+            if "basin" in PERT:
                 whatif.state(coord).live_steady = None
                 # pass 0 unseeded; pass 1: both sides seeded with the other side's pass-0 plan
                 _seed["plan"] = None
-            if PERT == "basin" and p == 1:
+            if "basin" in PERT and p == 1:
                 # seed live with the what-if plan, then the what-if with the live plan
                 live_plan, sim_plan = best["live_s"]["power"], best["sim_s"]["power"]
                 order = iter([sim_plan, live_plan])
@@ -370,7 +370,7 @@ async def _one(hour, extra):
 
 
 def main():
-    extra = {"min_temperature": 12.0} if PERT == "floor" else None
+    extra = {"min_temperature": 12.0} if "floor" in PERT else None
     allrows = []
     for hour in range(1, 24, 2):
         dt_util.freeze(dt_util.now().replace(hour=hour, minute=7, second=0, microsecond=0))
