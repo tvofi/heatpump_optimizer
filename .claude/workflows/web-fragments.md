@@ -149,6 +149,9 @@ as `tvofi`. Equivalents for the named MCP tools:
 | `actions_get` | `gh run view <id> --json jobs` |
 | `get_job_logs` (failed_only) | `gh run view <id> --log-failed` |
 
+A CI-cost hotfix under `tests/` shows its effect only on a `workflow_dispatch`
+with no `pr` input (`-f base=<ref>` alone); a closed PR's number is refused.
+
 **2. The worktree root is a parameter.** `/home/user/wt/` in the
 container; `~/wt/` on this Mac. A brief names the
 root; an agent never hard-codes the other.
