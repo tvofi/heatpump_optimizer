@@ -233,8 +233,10 @@ carry_landed() { # pr -> rc 1 when a body carry is not in its group (lines and r
   if ! ${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '.body // ""' > "$b" 2>/dev/null; then
     echo "BUS carry-landing UNREAD #$1: the body could not be read; the dispatch goes on" >&2; rm -f "$b"; return 0
   fi
+  # s14 local (never pushed): name the source topic too, so a status line on the PR's own group is read as one (triage line S14-LANDED-PR-NEEDS-ROSTER-PR)
+  local br tp; br=$(${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '.head.ref // ""' 2>/dev/null); tp=${br#fix/}; tp=${tp%-pr}
   out=$(python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref ${HPO_LANDED_ROSTER_REF:-origin/main} \
-    landed --body "$b" --pr "#$1" 2>&1); rc=$?
+    landed --body "$b" --pr "#$1" ${tp:+--topic "$tp"} 2>&1); rc=$?
   case $rc in
     0) ;;
     1) printf '%s\n' "$out" >&2
