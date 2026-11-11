@@ -1,0 +1,35 @@
+3184 913e74e8 r10-arch-shapes-classifier pre-verdict-bodies=2 set=[]
+3193 af8ff29b r10-cop-gate-d pre-verdict-bodies=4 set=[]
+3217 f190c717 topic=? 
+3219 140df026 topic=? 
+3221 794fe6a7 r10-handoff-path-p1 pre-verdict-bodies=2 set=[5ee91e6d:MUTANT_CMD` is code-keyed.]
+3231 bd0ee867 r10-ext-3224 pre-verdict-bodies=3 set=[]
+3232 6e048afc r10-ext-3226 pre-verdict-bodies=3 set=[]
+3232 bba5b4d4 r10-ext-3226 pre-verdict-bodies=7 set=[]
+3241 e81028cc r10-carry-residue pre-verdict-bodies=1 set=[]
+3243 3cbcbd5d r10-gate-lease-toctou pre-verdict-bodies=1 set=[]
+3246 8af5fa58 r10-gate-busy-defer pre-verdict-bodies=2 set=[]
+3248 c8c50b9f topic=? 
+3249 520550ce r10-dispatch-at-handoff pre-verdict-bodies=1 set=[]
+3252 69aa9cd3 r10-relay-sweep pre-verdict-bodies=2 set=[]
+3260 2fa354bf topic=? 
+3262 48acc104 r10-outside-intake pre-verdict-bodies=1 set=[]
+3262 3189559b r10-outside-intake pre-verdict-bodies=2 set=[]
+3262 0fd9bc6d r10-outside-intake pre-verdict-bodies=3 set=[]
+3262 aa5022f6 r10-outside-intake pre-verdict-bodies=5 set=[]
+3262 c95c3b4b r10-outside-intake pre-verdict-bodies=8 set=[444e4d05:MUTANT_CMD` was unset, and `unpinned sites` because the diff adds none]
+3263 b0ef8f54 r10-hotfix-nightly-status pre-verdict-bodies=1 set=[]
+3264 09ec9a88 r10-flow-toolkit-model pre-verdict-bodies=1 set=[]
+3265 8ff3432a r10-hotfix-plan-lanes pre-verdict-bodies=2 set=[]
+3275 d6482b70 r10-hotfix-selftest-timeout pre-verdict-bodies=1 set=[]
+3275 a09ebaeb r10-hotfix-selftest-timeout pre-verdict-bodies=2 set=[]
+3297 9cf0b610 r10-hotfix-cop-unmeasured pre-verdict-bodies=1 set=[]
+3301 926a0149 r10-fly-cipredict-restoring pre-verdict-bodies=1 set=[]
+3326 8f073db7 r10-fly-replan-defects pre-verdict-bodies=4 set=[4c0e573e:MUTANT_CMD="env REPLAN_MUTATION_CHILD=1 python3 tools/plan/replan.py -]
+3337 d0db3e30 r10-hotfix-roster-lint-refresh pre-verdict-bodies=1 set=[]
+3341 81741e44 r10-review-enumerate pre-verdict-bodies=1 set=[]
+3344 1a1da73c r10-roster-write-sweep-p2 pre-verdict-bodies=1 set=[a9ade10f:MUTANT_CMD='<the three self-tests chained with &&>' python3 -I tools/a]
+3425 779c9432 topic=? 
+3427 7cbfa680 r10-gh-read-residue pre-verdict-bodies=1 set=[]
+3428 9774026d topic=? 
+3431 808a8eeb topic=? 

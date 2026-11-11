@@ -1,0 +1,6 @@
+3419 a7628041 rc=0 wall_s=192.721210741 survivors=22 cmd=python3 -I tools/ci/selftest_scope.py --self-test
+3379 86953c6d rc=3 wall_s=4.796298443 survivors=0 cmd=bash -c 'python3 -I tools/audit/seat/review_packet.py --self-test && python3 -I tools/audit/seat/cloud_dispatch.py --self-test'
+3384 c620ebba rc=0 wall_s=59.078450820 survivors=2 cmd=bash -c 'python3 -I tools/audit/seat/orchestrator_tick.py --self-test && python3 -I tools/audit/seat/cloud_dispatch.py --self-test'
+3417 8efacee4 rc=3 wall_s=30.618558414 survivors=0 cmd=bash -c 'python3 -I tools/audit/carry_audit.py --self-test && python3 -I tools/audit/seat/roster_edit.py --self-test && python3 -I tools/audit/seat/roster_lib.py --self-test && python3 -I tools/audit/seat/roster_sync.py --self-test && python3 -I tools/pr/ci_predict.py --self-test'
+3405 b421442e rc=3 wall_s=9.367902920 survivors=0 cmd=env PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py '# --- R10-WATER-SETPOINT-FEEDBACK (outside report'
+DONE
