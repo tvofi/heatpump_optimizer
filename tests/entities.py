@@ -22019,8 +22019,13 @@ _REPO_ROOT_CQ = pathlib.Path(__file__).resolve().parents[1]
 # under an ignore pattern is analyzable code being filtered out, refused.
 _CODEQL_INIT = [st for st in _CODEQL_STEPS
                 if str(st.get("uses", "")).startswith("github/codeql-action/init@")]
-_CODEQL_IGNORE = ((_yaml.safe_load((_CODEQL_INIT[0].get("with") or {}).get("config") or "")
-                   or {}).get("paths-ignore") or []) if _CODEQL_INIT else []
+# The config is one expression choosing between two JSON lists: the full-run list
+# (workflow scripts only) and the pull-request python list, which adds tests/ and
+# dev/. Both are read out of the registered text, not a constant.
+_CODEQL_CONFIG = str((_CODEQL_INIT[0].get("with") or {}).get("config") or "") if _CODEQL_INIT else ""
+_CODEQL_LISTS = [json.loads(m) for m in re.findall(r"'(\[[^']*\])'", _CODEQL_CONFIG)]
+_CODEQL_PR_LIST, _CODEQL_BASE_LIST = (_CODEQL_LISTS + [[], []])[:2]
+_CODEQL_IGNORE = list(_CODEQL_BASE_LIST)
 _CODEQL_IGNORED = {pat: sorted(str(p.relative_to(_REPO_ROOT_CQ)) for p in _REPO_ROOT_CQ.glob(pat)
                                if p.is_file() and not p.is_symlink())
                    for pat in _CODEQL_IGNORE}
@@ -22033,6 +22038,17 @@ R.check(
     "codeql.yml ignores only files the JS parser refuses (each pattern matches, none parses)",
     bool(_CODEQL_IGNORE) and all(_CODEQL_IGNORED.values()) and not _CODEQL_PARSEABLE,
     f"ignored={_CODEQL_IGNORED}; parseable under an ignore pattern={_CODEQL_PARSEABLE}",
+)
+# r10-codeql-pr-paths: the pull-request python list is the full-run list plus
+# tests/ and dev/, chosen only for a pull_request event on the python leg. Without
+# the event or language guard the full run would lose them too (null control: the
+# guard text removed reads False).
+_CODEQL_GUARD = "github.event_name == 'pull_request' && matrix.language == 'python'"
+R.check(
+    "codeql.yml: tests/ and dev/ are ignored on a pull request's python leg only; a full run ignores workflow scripts alone",
+    len(_CODEQL_LISTS) == 2 and _CODEQL_PR_LIST == _CODEQL_BASE_LIST + ["tests/**", "dev/**"]
+    and _CODEQL_CONFIG.count(_CODEQL_GUARD) == 1,
+    f"lists={_CODEQL_LISTS}; config={_CODEQL_CONFIG!r}",
 )
 # A skipped leg uploads main's analysis of its category as a stand-in, so a
 # pull request carries every configuration main does and code scanning never
