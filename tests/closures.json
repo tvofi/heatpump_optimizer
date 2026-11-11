@@ -1353,6 +1353,7 @@
    "tools/audit/seat/cloud_relay.sh",
    "tools/audit/seat/heartbeat.sh",
    "tools/audit/seat/instruments/beatd.py.md",
+   "tools/audit/seat/instruments/cloud_dispatch.py.md",
    "tools/audit/seat/instruments/heartbeat.sh.md",
    "tools/audit/seat/instruments/tick_loop.sh.md",
    "tools/audit/seat/ledger.py",
