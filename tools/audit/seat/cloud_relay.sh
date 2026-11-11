@@ -1864,6 +1864,8 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   chk "... and the arm says FOLDED" 0 grep -q "FOLDED cf-a" <<< "$cfo"
   chk "null control: the push ran while the private fold ref refs/hpo-relay/fold/cf-a stood" 0 grep -q "refs/hpo-relay/fold/cf-a\$" "$t/privrefs"
   chk "... which the pass deleted after the push (carry 14)" 0 test -z "$(git for-each-ref refs/hpo-relay/fold/)"
+  cfref handoff-wip/cf-a BLOCKED.md "$(printf 'the carries, again\nbody_push: REFUSED CARRY-LANDED')"; carry_fold_arm >/dev/null 2>&1
+  chk "a folded (topic, body) whose wip ref moved is not folded again" 0 test "$(grep -c -- '--topic cf-a ' "$t/folds")" = 1
   rm -f "$t/folds" "$t/bps"; carry_fold_arm >/dev/null 2>&1
   chk "a folded body is not folded twice (same topic and body sha)" 1 test -e "$t/folds"
   cfref handoff-wip/cf-b BLOCKED.md "$(printf 'body_push: REFUSED CARRY-LANDED\nbody_push: REFUSED BODY-LINT')"; cfref handoff-wip/cf-b-body BODY.md "the body B"
