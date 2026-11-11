@@ -1,0 +1,6 @@
+185:HELD_TOPIC = re.compile(r"^ORPHAN (?:triage|record)-\S*batch\S*")
+188:HELD_TOPIC = re.compile(r"^ORPHAN (?:triage|record)-\S*batch\S*")
+2444:        stranded.sort(key=lambda l: bool(HELD_TOPIC.match(l)))  # stable: held last, each group in bus order
+2445:        held = sum(bool(HELD_TOPIC.match(l)) for l in stranded)
+2446:        stranded.sort(key=lambda l: bool(HELD_TOPIC.match(l)))  # stable: held last, each group in bus order
+2447:        held = sum(bool(HELD_TOPIC.match(l)) for l in stranded)
