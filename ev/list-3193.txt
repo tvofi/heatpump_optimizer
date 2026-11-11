@@ -1,0 +1,27 @@
+MUTANT custom_components/heatpump_optimizer/coordinator.py:2229 RETURN_DEL  pass
+MUTANT custom_components/heatpump_optimizer/coordinator.py:2235 GUARD_OFF  if False:
+MUTANT custom_components/heatpump_optimizer/coordinator.py:2236 RETURN_DEL  pass
+MUTANT custom_components/heatpump_optimizer/coordinator.py:2237 RETURN_DEL  pass
+MUTANT custom_components/heatpump_optimizer/coordinator.py:2249 GUARD_OFF  if False:
+MUTANT custom_components/heatpump_optimizer/coordinator.py:2250 RETURN_DEL  pass
+MUTANT custom_components/heatpump_optimizer/coordinator.py:6065 CONST_SWAP  config, params, state = self._solve_hubs(n, banded=False, band=band)
+MUTANT custom_components/heatpump_optimizer/coordinator.py:6232 CALL_DEL  pass
+MUTANT custom_components/heatpump_optimizer/draw_range.py:620 CONST_SWAP  samples: int = 1
+MUTANT custom_components/heatpump_optimizer/draw_range.py:625 CONST_SWAP  "configured_max_kw": round(self.configured_max_kw, 4),
+MUTANT custom_components/heatpump_optimizer/draw_range.py:626 CONST_SWAP  "planned_max_kw": round(self.max_kw, 4),
+MUTANT custom_components/heatpump_optimizer/draw_range.py:627 CONST_SWAP  "planned_min_kw": round(self.min_kw, 4),
+MUTANT custom_components/heatpump_optimizer/draw_range.py:630 CONST_SWAP  "learned_max_kw": None if self.learned_max_kw is None else round(self.learned_max_kw, 4),
+MUTANT custom_components/heatpump_optimizer/draw_range.py:656 RETURN_DEL  pass
+MUTANT custom_components/heatpump_optimizer/draw_range.py:658 GUARD_OFF  if False:
+MUTANT custom_components/heatpump_optimizer/draw_range.py:659 RETURN_DEL  pass
+MUTANT custom_components/heatpump_optimizer/draw_range.py:661 GUARD_OFF  if False:
+MUTANT custom_components/heatpump_optimizer/draw_range.py:662 RETURN_DEL  pass
+MUTANT custom_components/heatpump_optimizer/draw_range.py:662 CMP_BOUND  return configured("lapsed" if samples > CEILING_MIN_SAMPLES else "awaiting_probe")
+MUTANT custom_components/heatpump_optimizer/draw_range.py:663 GUARD_OFF  if False:
+MUTANT custom_components/heatpump_optimizer/draw_range.py:663 CMP_BOUND  if learned > (1.0 - AGREE_TOLERANCE) * cfg_max:
+MUTANT custom_components/heatpump_optimizer/draw_range.py:663 CONST_SWAP  if learned >= (2.0 - AGREE_TOLERANCE) * cfg_max:
+MUTANT custom_components/heatpump_optimizer/draw_range.py:664 RETURN_DEL  pass
+MUTANT custom_components/heatpump_optimizer/optimizer.py:3730 RETURN_DEL  pass
+MUTANT custom_components/heatpump_optimizer/optimizer.py:3730 CONST_SWAP  return (np.clip(np.asarray(prev, dtype=float), 1.0, self.model.params.max_electrical_power),)
+MUTANT custom_components/heatpump_optimizer/pump_arbiter.py:516 GUARD_OFF  if False:
+MUTANT custom_components/heatpump_optimizer/pump_arbiter.py:517 RETURN_DEL  pass

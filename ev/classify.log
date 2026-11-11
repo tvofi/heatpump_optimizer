@@ -1,0 +1,5 @@
+12:10:01 rc=3 WAIT cbf80c6e8b67b016d729b22f73c343b1f3eeaaed pending: gate red: none 
+12:11:18 rc=3 WAIT cbf80c6e8b67b016d729b22f73c343b1f3eeaaed pending: gate red: none 
+12:12:35 rc=3 WAIT cbf80c6e8b67b016d729b22f73c343b1f3eeaaed pending: gate red: none 
+12:13:52 rc=0 GREEN cbf80c6e8b67b016d729b22f73c343b1f3eeaaed pending: none red: none 
+FINAL rc=0
