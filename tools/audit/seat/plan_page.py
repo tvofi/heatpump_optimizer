@@ -1013,6 +1013,17 @@ def _self_test() -> int:
                           plan, snap)
             check("a closed issue's chip is struck",
                   '<span class="chip closer closed" title="eleven">#11</span>' in page)
+            unsched = sum(1 for r in rows.values() if r["st"] != "done" and not r["finish"])
+            sched = sum(1 for r in rows.values() if r["st"] != "done" and r["finish"])
+            check("the slots note counts the not-merged rows held without a schedule",
+                  sched >= 2 and f"the other {unsched} are held without a schedule" in page,
+                  (sched, unsched, re.findall(r"the other \d+ are held", page)))
+            check("a scalar sort key reads plainly, a null as a dash",
+                  _plain_key(None) == "—" and _plain_key(3) == "3"
+                  and _plain_key([None, 4]) == "—, 4")
+            check("no other open issue: the zero sentence, not a count of 0",
+                  _other_issues_sentence({"other": [], "orphans": []})
+                  == "no other open issue is on no open group.")
             check("an open issue's chip is not",
                   '<span class="chip" title="twelve">#12</span>' in page
                   and '<span class="chip closer" title="thirteen">#13</span>' in page)
@@ -1138,6 +1149,10 @@ def _self_test() -> int:
                     arm_plan = copy.deepcopy(plan)
                     arm_plan["groups"]["R9-PART"]["discharged"] = True
                 arm_rows = {r["g"]: r for r in build_rows(arm_roster, arm_plan, snap)}
+                part_ = next(e_ for e_ in arm_roster["groups"] if e_["group"] == "R9-PART")
+                check(f"hotfix mark ({arm} predecessor): the fixture holds that state",
+                      _stage(part_) == stage_ if stage_
+                      else arm_plan["groups"]["R9-PART"].get("discharged") is True)
                 check(f"hotfix mark ({arm} predecessor): not marked, on the rows or the page",
                       not any(r["hot"] for r in arm_rows.values())
                       and mark not in render(arm_roster, src_, arm_plan, snap),
@@ -1255,7 +1270,7 @@ def _self_test() -> int:
                   "<b>0</b><span>part merged, residual open</span>" in render(
                       roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
                       plan, dict(snap, merged_prs=snap["merged_prs"][:2]))
-                  or sum(1 for r in build_rows(roster, plan, dict(snap, merged_prs=snap["merged_prs"][:2]))
+                  and sum(1 for r in build_rows(roster, plan, dict(snap, merged_prs=snap["merged_prs"][:2]))
                          if r["part"]) == 0)
             check("the group note and the issues note state how the two counts relate",
                   f"of the {sum(1 for r in build_rows(roster, plan, snap) if r['st'] != 'done')} "

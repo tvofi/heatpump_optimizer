@@ -153,10 +153,11 @@ def fetch(repo_owner: str, since: str) -> list:
         cursor = page["pageInfo"]["endCursor"]
 
 
-def _gh_rest(path: str):
-    """One `gh api` REST read, retried by the one read rule."""
+def _gh_rest(path: str, run=subprocess.run):
+    """One `gh api` REST read, retried by the one read rule. `run` is injected
+    for the self-test."""
     def attempt():
-        r = subprocess.run(["gh", "api", path], capture_output=True, text=True)
+        r = run(["gh", "api", path], capture_output=True, text=True)
         return (r.stdout, None) if r.returncode == 0 else (None, r.stderr)
     text, failure, _, why = gh_read.retry(attempt, gh_read.gh_wait, __import__("time").sleep)
     if failure is not None:
@@ -167,17 +168,18 @@ def _gh_rest(path: str):
 def rest_node(pr: dict, commits: list, comments: list) -> dict:
     """The GraphQL node `fetch` reads, built from the REST pull, its first page
     of commits (oldest first) and its first 100 issue comments (oldest first):
-    the fields GRAPHQL selects, so `flatten` reads both paths alike."""
+    the fields GRAPHQL selects, so `flatten` reads both paths alike: it reads
+    the first commit, and `per_page=100` is GRAPHQL's `first: 100`."""
     return {
         "number": pr["number"], "title": pr.get("title"),
         "headRefName": (pr.get("head") or {}).get("ref"), "createdAt": pr["created_at"],
         "mergedAt": pr["merged_at"], "body": pr.get("body"),
         "mergeCommit": {"oid": pr.get("merge_commit_sha") or ""},
         "commits": {"nodes": [{"commit": {"authoredDate": c["commit"]["author"]["date"]}}
-                              for c in commits[:1]]},
+                              for c in commits]},
         "comments": {"nodes": [{"author": {"login": (c.get("user") or {}).get("login")},
                                 "createdAt": c["created_at"], "body": c.get("body")}
-                               for c in comments[:100]]},
+                               for c in comments]},
     }
 
 
@@ -740,6 +742,23 @@ def self_test() -> int:
     short = [g["number"] for g in fetch_rest("o/r", "2026-01-01", short_read)]
     check("fetch_rest (null): a short first page ends the read with no second request",
           short == [300, 298] and sum("/pulls?" in a for a in asked) == 1)
+    class Done:
+        def __init__(self, rc, out, err=""):
+            self.returncode, self.stdout, self.stderr = rc, out, err
+    seen_kw = []
+
+    def ok_run(argv, **kw):
+        seen_kw.append(kw)
+        return Done(0, '[{"n": 1}]')
+    raised = ""
+    try:
+        _gh_rest("repos/o/r/x", lambda argv, **kw: Done(1, "", "HTTP 404: Not Found"))
+    except RuntimeError as exc:
+        raised = str(exc)
+    check("_gh_rest: a zero exit is parsed from captured stdout; a refusal raises naming the path",
+          _gh_rest("repos/o/r/x", ok_run) == [{"n": 1}]
+          and seen_kw == [{"capture_output": True, "text": True}]
+          and "repos/o/r/x" in raised and "404" in raised)
     check("input_note names the read path, and an unrecorded one, so a mismatch reads as input",
           input_note([{"via": "rest"}], "2026-10-12")
           == "Input: 1 merged PRs created since 2026-10-12, read over rest."
