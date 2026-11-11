@@ -25,7 +25,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-TRAIN-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-TICK-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REVIEW-DISPATCH-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-GH-READ-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-GH-READ-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-PLAN-PAGE-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-STANDING-CONTRACTS-P2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SUITE-ENV-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
