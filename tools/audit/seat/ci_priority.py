@@ -38,7 +38,7 @@ GUARDS = ("train-head",)  # structural: a train head is never paused whatever it
 TIEBREAKS = ("cp-rank", "savings-desc", "train-position", "age")
 KEYS = {"_comment": str, "order": list, "major_savings_h": (int, float), "tiebreak": list,
         "never_pause": list, "never_cancel": list, "pause_queued_min": (int, float),
-        "pause_gap_min": (int, float)}
+        "pause_gap_min": (int, float), "priority_cancel": bool}
 FLOOR_PAUSE = ("main-push", "cp-hotfix", "train-head")
 FLOOR_CANCEL = ("main-push", "cp-hotfix")
 
@@ -55,7 +55,7 @@ def check_setting(s) -> dict:
         if k not in KEYS:
             raise SettingError(f"{k}: not a knob (group-keyed data belongs in the roster, read "
                                "through roster_lib)" + (" -- a map" if isinstance(v, dict) else ""))
-        if isinstance(v, bool) or not isinstance(v, KEYS[k]):
+        if (isinstance(v, bool) and KEYS[k] is not bool) or not isinstance(v, KEYS[k]):
             raise SettingError(f"{k}: wrong type {type(v).__name__}")
         if isinstance(v, dict):
             raise SettingError(f"{k}: a map is refused")
@@ -124,7 +124,11 @@ def rank(group, crit, roster: dict, setting: dict, *, touches_production: bool =
     older first)."""
     t = tier(group, crit, roster, setting, touches_production=touches_production)
     g = _group(roster, group)
-    parts = {"cp-rank": 0 if rl.norm_group(str(group or "")) in (crit or ()) else 1,
+    # cp-rank: a hotfix first, then the critical path and outside groups unordered between
+    # them (owner rulings tvofi 2026-11-07/-08), then the rest.
+    cp = (0 if g is not None and rl.is_hotfix(g) else
+          1 if (g is not None and rl.is_outside(g)) or rl.norm_group(str(group or "")) in (crit or ()) else 2)
+    parts = {"cp-rank": cp,
              "savings-desc": -(rl.savings_h(g) or 0) if g else 0,
              "train-position": position, "age": -age_s}
     return (setting["order"].index(t),) + tuple(parts[k] for k in setting["tiebreak"])
