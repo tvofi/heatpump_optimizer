@@ -1,0 +1,3 @@
+
+ALL CARD CHECKS PASSED
+rc=0
