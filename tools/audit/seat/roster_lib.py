@@ -495,6 +495,27 @@ CARRY_MARKS = ("implemented", "moved", "dismissed")
 _CARRY_MARK = re.compile(r" \[(implemented|moved|dismissed): ([^\]\n]+)\]\Z")
 #: The stages in which a group can no longer receive or discharge a carry.
 CARRY_CLOSED = CLOSED_STAGES
+#: The stages a carry may not be routed TO (R10-CARRY-SINK-BARRIER, tvofi
+#: 2026-11-10): every CARRY_CLOSED stage, plus `carries-open`, whose pull
+#: request merged so no seat is left to build a carry parked there, and
+#: `refuted`, which names a finding, not work. Not CARRY_CLOSED itself: a
+#: carries-open group still holds and discharges the carries it owes.
+CARRY_DEST_CLOSED = CARRY_CLOSED + ("carries-open", "refuted")
+
+
+def carry_receivable(group: dict) -> bool:
+    """THE carry-destination test: a group a carry may be routed or moved to.
+    Its stage is outside CARRY_DEST_CLOSED, and it is no receiver-only sink:
+    a group with no pull request, issue or fix and a recorded `files` list
+    that is empty owns no seam to build the carry in. A brief does not count:
+    every group has one (append-group requires it), a sink's included; a group
+    with no `files` key has an unrecorded seam, not an empty one.
+    carry_audit.py's destination check and roster_edit.py's append-carry,
+    mark-carry moved and absorb --into all read it."""
+    res = group.get("resume") or {}
+    sink = (group.get("files") == [] and not res.get("pr")
+            and not group.get("issues") and not group.get("fixes"))
+    return res.get("stage") not in CARRY_DEST_CLOSED and not sink
 #: THE CUT-OVER, per roster path: a carry that sat on a closed group at this
 #: roster-branch commit is LEGACY and is never reported, so the invariant
 #: starts at the cut-over with no blanket migration and nothing marked
@@ -673,6 +694,34 @@ def needs_design(group: dict) -> bool:
     record is exempt at the dispatch (`cloud_dispatch --design-exempt`), where the
     orchestrator states the reason; the roster carries no such marker."""
     return group.get("size") in DESIGN_SIZES
+
+
+def consumers_of(roster: dict, group_id: str) -> list[str]:
+    """The live groups a `Carry:` from `group_id` may name (finding-propagation.md): the
+    reverse after-edges, then the groups sharing a file in `files`, in roster order, never
+    the group itself and never a group `CARRY_CLOSED` (done or absorbed)."""
+    groups = groups_of(roster)
+    me = groups.get(group_id) or {}
+    mine = set(me.get("files") or [])
+    return [n for n, g in groups.items()
+            if n != group_id and (g.get("resume") or {}).get("stage") not in CARRY_CLOSED
+            and (group_id in (g.get("after") or []) or mine & set(g.get("files") or []))]
+
+
+def brief_lines(roster: dict, group_id: str) -> list[str]:
+    """The two generated lines a fixer's brief and `prepr.sh` print (Carry 4, tvofi 2026-11-01
+    card 2): the live consumer groups, the only valid `Carry:` targets, and the finding's
+    class-enumeration command (the group's optional `enumeration` field). A group with
+    neither yields no lines, so its brief stays byte-identical."""
+    out = []
+    live = consumers_of(roster, group_id)
+    if live:
+        out.append(f"Valid `Carry:` targets (live consumers of {group_id}: groups after it or sharing its files): "
+                   + ", ".join(live))
+    enum = ((groups_of(roster).get(group_id) or {}).get("enumeration") or "").strip()
+    if enum:
+        out.append(f"Class-enumeration command (step 8 of the fixer's contract; run it and disposition every seam it returns): {enum}")
+    return out
 
 
 def norm_group(s: str) -> str:
@@ -981,6 +1030,19 @@ def _self_test() -> int:
           and is_open({"resume": {"stage": "refuted"}})
           and "refused" in CARRY_CLOSED and "deferred" not in DONE_STAGES,
           CLOSED_STAGES)
+    # THE SINK BARRIER (R10-CARRY-SINK-BARRIER): the carry-destination test.
+    def cr(st, **kw):
+        return carry_receivable(dict({"group": "G", "files": ["x.py"], "resume": {"stage": st}}, **kw))
+    check("carry_receivable: carries-open, refuted and every CARRY_CLOSED stage take no carry",
+          not any(cr(st) for st in ("carries-open", "refuted") + CARRY_CLOSED))
+    check("carry_receivable: a receiver-only sink (no PR, issue or fix; files []) takes none",
+          not cr("not-started", files=[], brief="Receives carries."))
+    check("carry_receivable (null): live stages take a carry, and so does a group with an "
+          "empty files list but a PR, an issue or a fix, or no files key",
+          all(cr(st) for st in ("not-started", "in-progress", "queued", "review"))
+          and cr("not-started", files=[], issues=[1]) and cr("not-started", files=[], fixes=[2])
+          and carry_receivable({"group": "G", "files": [], "resume": {"stage": "in-progress", "pr": 3}})
+          and carry_receivable({"group": "G", "resume": {"stage": "in-progress"}}))
     def rg(n, st, **kw):
         return {"group": n, "resume": {"stage": st, **kw.pop("res", {})}, **kw}
     chain = {"groups": [rg("P", "deferred"), rg("Q", "queued", after=["P"]),
@@ -1272,4 +1334,13 @@ def _self_test() -> int:
 if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         sys.exit(_self_test())
+    if sys.argv[1:2] == ["brief-lines"] and len(sys.argv) == 4:
+        # brief-lines <roster-ref> <branch>: what `prepr.sh` prints; always rc 0 (informational)
+        try:
+            _r = show_roster(".", sys.argv[2])
+            _g = group_for_branch(_r, sys.argv[3])
+            print("\n".join(brief_lines(_r, _g)) if _g else f"no roster group answers for branch {sys.argv[3]}")
+        except Exception as e:  # a missing ref is a note, never a refusal
+            print(f"unreadable: {e.__class__.__name__}")
+        sys.exit(0)
     sys.exit(__doc__)
