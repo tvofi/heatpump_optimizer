@@ -138,3 +138,16 @@ Sites (head..base short ids from `heads.tsv`; `+` = needs STMT_DEL, `=` = alread
 **Size.** FORKCAP was S. With this carry it is an S/M edge in one file; the fixer stays sonnet. It
 runs after the fork cap inside the same PR, because a statement deletion that removes a re-entry
 guard is exactly the P604 shape.
+
+### Owner-class answer (recorded after the ruling)
+
+The orchestrator ruled on the routed `fixer.md` step 2 arm under mandate 6715477401 (scope `all`),
+2026-11-11. This is not tvofi in person.
+
+- **DEFERRED, as triage recommended.** There is no policy pull request now.
+- **Re-open trigger.** It returns as a triage-queue line once two things hold:
+  - STMT_DEL has merged;
+  - 10 further `mutation-vacuous` blocks exist after that merge to measure against.
+- **Threshold.** STMT_DEL survivors must cover 12 or more reviewer-named sites in those 10
+  blocks. If they do, the stronger form is a mandatory report-only run in step 2, for files whose
+  self-test is under 16 s.
