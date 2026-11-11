@@ -340,6 +340,10 @@ class ArbiterState:
     #: which a loop-lowered target stopped the compressor (:func:`_feedback`).
     feedback: FeedbackRun | None = None
     stop_gap_k: float | None = None
+    #: A supply write ``supply_hold`` held back; the step tick retries it.
+    supply_held: bool = False
+    #: ``supply_hold``'s own record, made on first use.
+    hold: Any = None
 
 
 @dataclass(frozen=True)
@@ -1571,6 +1575,20 @@ def step_supply(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool | None:
     return None if i is None or i >= len(inp.plan.power_schedule or ()) else plan_step_runs(inp.plan, i)
 
 
+def cycle_supply(inp: ArbiterInputs, boosts: Any, on: bool, now: datetime | None = None) -> bool:
+    """The cycle's supply: the plan's command for the step it is written in.
+
+    The action is cut at the solve, and the experiment, the fuse advisor and
+    the price tile run before it is written, so a cycle can write a step late.
+    :func:`note_supply` stamps the write with the step it lands in, so the
+    step tick never corrected a stale ``on``: the switch then held the last
+    step's command for a whole step, as after a reload's cold solve. ``on``
+    stands wherever :func:`step_supply` does not speak.
+    """
+    step = step_supply(inp, boosts, now or dt_util.now())
+    return on if step is None else step
+
+
 @dataclass(frozen=True)
 class SupplyWiring:
     """What the step tick reads and writes through; built by :func:`note_supply`.
@@ -1616,16 +1634,17 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | 
     """
     now = now or dt_util.now()
     step = plan_step_start(now)
-    if held.supply is None or held.supply[0] == step:
+    if held.supply is None or (held.supply[0] == step and not held.supply_held):
         return
     inp = wiring.inputs()
     if inp.entry_released:
         return
-    on = step_supply(inp, wiring.boosts, now)
+    # A write ``supply_hold`` held back is retried with the step's own command.
+    on = held.supply[1] if held.supply[0] == step else step_supply(inp, wiring.boosts, now)
     if on is None:
         return
     last, held.supply = held.supply[1], (step, on)
-    if on != last:
+    if on != last or held.supply_held:
         await wiring.write(on)
 
 
@@ -1744,7 +1763,6 @@ def _writable(slot: str, value: Any) -> bool:
 
 
 boost.bind_cold_lease(block_cold_lease)
-
 
 def diagnostics_view(coord: Any) -> dict[str, Any]:
     """The diagnostics view."""

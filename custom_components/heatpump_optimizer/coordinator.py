@@ -256,7 +256,7 @@ from .accuracy import (
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
-from . import early_cutoff, pump_arbiter, pump_signals
+from . import early_cutoff, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
 from . import price_tiles
@@ -7778,7 +7778,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                           self._plan_age_minutes() or 0.0, self._solve_failures)
             return
 
-        on = bool(self._current_action.get("heat_pump_on", False))
+        on = pump_arbiter.cycle_supply(self.arbiter_inputs(), boost.held_for(self), bool(self._current_action.get("heat_pump_on", False)))
         await self._write_supply(on)
         # Between cycles the step tick writes each step's change (#2492).
         pump_arbiter.note_supply(pump_arbiter.state_for(self), pump_arbiter.SupplyWiring(self.arbiter_inputs, boost.held_for(self), self._write_supply), on)
@@ -7790,12 +7790,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         A cut-off holds the pump off for MIN_OFF across an early refresh.
         """
-        value = pump_arbiter.supply_write(
-            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals)
+        value = supply_hold.hold_supply(pump_arbiter.state_for(self), self.arbiter_inputs(), boost.held_for(self), pump_arbiter.supply_write(
+            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
         if switch_entity and value is not None:
             await pump_arbiter.switch_supply(self.hass, switch_entity, value)
-        elif switch_entity:
+        elif switch_entity and not pump_arbiter.state_for(self).supply_held:
             _LOGGER.debug(
                 "Not switching %s off: mode %s is cooling or blocks both "
                 "channels, so an empty plan is this integration's doing "
