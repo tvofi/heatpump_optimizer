@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:_heated BOOLOP 95c56887",
+  "killed_by": "tests/features.py",
+  "old": "    return ctx.source_leg_s is not None and ctx.source_leg_s >= SOURCE_LEG_MIN_S",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return ctx.source_leg_s is not None or ctx.source_leg_s >= SOURCE_LEG_MIN_S`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}
