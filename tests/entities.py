@@ -42288,5 +42288,37 @@ R.check(
     f"{_c2238_p6}",
 )
 
+# --- The standing seats' shared terms live once, in `standing.md` ------------
+#
+# (a) every contract that shares them cites the file; (b) the file carries its
+# five headings, the alive-file directory, the bus read and the autofix-hold
+# predicate (all three job names, so deleting the sentence fails even with its
+# heading kept); (c) the contract `ci_predict.py`'s BOOTSTRAP text cites exists
+# as a section there: derived from that text, so the two cannot drift apart.
+_SR = Path("dev/governance/roles")
+_SR_TEXT = lambda n: (_SR / n).read_text() if (_SR / n).is_file() else ""  # noqa: E731
+_SR_STANDING = _SR_TEXT("standing.md")
+_SR_BOOT = re.search(r'BOOTSTRAP = \((.*?)\)\n', Path("tools/pr/ci_predict.py").read_text(), re.S)
+_SR_CITED = re.search(r"\((\w[\w.-]*\.md),", _SR_BOOT.group(1)) if _SR_BOOT else None
+_SR_FAIL = (
+    [f"a:{n}" for n in ("standing-merge.md", "standing-dispatch.md", "standing-tick.md",
+                        "standing-roster.md", "proposal-triage.md")
+     if "`standing.md`" not in _SR_TEXT(n)]
+    + [f"b:{t}" for t in ("## Wait", "## Reads", "## Autofix hold", "## Recycle", "## Alive files",
+                          "$HPO_STATE_DIR/alive/", "bus.sh orphans",
+                          "mutation-autofix", "closures-autofix", "claims-autofix")
+       if t not in _SR_STANDING]
+    + [f"c:{_SR_CITED.group(1) if _SR_CITED else 'no cited contract'}:{t}"
+       for t in ("BOOTSTRAP", "0013")
+       if not _SR_CITED or t not in _SR_TEXT(_SR_CITED.group(1))]
+)
+R.check(
+    "the standing seats' shared terms are written once in standing.md, cited by "
+    "each standing contract, and the contract ci_predict.py's BOOTSTRAP cites "
+    "carries BOOTSTRAP and decision 0013",
+    _SR_FAIL == [],
+    f"missing: {_SR_FAIL}",
+)
+
 
 sys.exit(R.close("ENTITY CHECKS"))
