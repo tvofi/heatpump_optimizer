@@ -1,0 +1,5 @@
+review_carry: d925d867b -> 433536b65  main=origin/main
+  branch-only commits: 1
+  why: 0 of 1 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
+  433536b65  Merge remote-tracking branch 'origin/main' into fix/r10-prepr-residue
+review_carry: CARRY
