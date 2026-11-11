@@ -10,7 +10,9 @@ KILLED rv-memo-key-ignores-body
 KILLED rv-blocked-never-stands
 KILLED rv-memo-not-saved
 KILLED rv-stub-outside-wt
-SURVIVED rv-real-bodypush-outside-wt
+KILLED rv-real-bodypush-outside-wt
 SURVIVED rv-folded-memo-no-entry
 SURVIVED rv-privref-not-deleted
-SURVIVED rv-nohandoff-not-on-level
+KILLED rv-nohandoff-not-on-level
+rc=0
+rc=0

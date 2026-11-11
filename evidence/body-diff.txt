@@ -1,0 +1,53 @@
+10,32c10,32
+< - Carry 1: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 2: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 3: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 4: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 5: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 6: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 7: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 8: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 9: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 10: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 11: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 12: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 13: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 15: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 16: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 18: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 19: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 20: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 21: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 23: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 24: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 26: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+< - Carry 27: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+---
+> - Carry 1: left for a later part; it stays on the roster.
+> - Carry 2: left for a later part; it stays on the roster.
+> - Carry 3: left for a later part; it stays on the roster.
+> - Carry 4: left for a later part; it stays on the roster.
+> - Carry 5: left for a later part; it stays on the roster.
+> - Carry 6: left for a later part; it stays on the roster.
+> - Carry 7: left for a later part; it stays on the roster.
+> - Carry 8: left for a later part; it stays on the roster.
+> - Carry 9: left for a later part; it stays on the roster.
+> - Carry 10: left for a later part; it stays on the roster.
+> - Carry 11: left for a later part; it stays on the roster.
+> - Carry 12: left for a later part; it stays on the roster.
+> - Carry 13: left for a later part; it stays on the roster.
+> - Carry 15: left for a later part; it stays on the roster.
+> - Carry 16: left for a later part; it stays on the roster.
+> - Carry 18: left for a later part; it stays on the roster.
+> - Carry 19: left for a later part; it stays on the roster.
+> - Carry 20: left for a later part; it stays on the roster.
+> - Carry 21: left for a later part; it stays on the roster.
+> - Carry 23: left for a later part; it stays on the roster.
+> - Carry 24: left for a later part; it stays on the roster.
+> - Carry 26: left for a later part; it stays on the roster.
+> - Carry 27: left for a later part; it stays on the roster.
+37a38,39
+> `c562b07972c71226a8cb54d0efd4376c76921c1c` merges the authored code head `30277114cd6436232f653a800045abd79859f474`.
+> 
+91a94
+> 
