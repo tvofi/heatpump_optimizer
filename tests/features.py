@@ -14780,6 +14780,7 @@ _FR_STORES = {
     "dhw_legionella": "kept: the last disinfection, a safety fact",
     "notifier": "kept: which notices were sent",
     "pump_duty": "kept: what was last written to the pump",
+    "duty_switch": "kept: what duty switches did to this pump's compressor, observed facts",
     "debug": "kept: a diagnostics collection",
     "off_restore": "kept: what the optimizer still owes an entity it wrote, at off or unload",
 }
@@ -81163,6 +81164,162 @@ R.check(
 
 
 from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
+
+R.section("duty-switch restart learning (design duty-switch-restart-learning)")
+# A hot water -> heating mode write while the compressor runs stops it on
+# some pumps. The arbiter observes each such switch on a control install:
+# the select offers single duties, the frequency sensor is the running
+# signal and the plan's both step is split hot water first. Each check
+# drives ``pump_arbiter.apply`` and the frequency listener the arbiter arms.
+_DS_T0 = datetime(2026, 1, 10, 0, 0, tzinfo=UTC)
+_DS_OPTS = ("Heating", "DHW (Hot Water)", "Heating + DHW")
+
+
+class _DsArb:
+    """The arbiter's coordinator surface: a both step, then a space step."""
+
+    def __init__(self, extra=None):
+        self.hass = FakeHass({
+            "select.pump_mode": FakeState("Heating + DHW", attributes={"options": list(_DS_OPTS)}),
+            "sensor.freq": FakeState("40"),
+            "binary_sensor.defrost": FakeState("on"),
+        })
+        self._config = {
+            "pump_duty_mode": "control", "heat_pump_mode_entity": "select.pump_mode",
+            "compressor_freq_sensor": "sensor.freq", **(extra or {}),
+        }
+        self.plan = SimpleNamespace(
+            timestamps=[_DS_T0, _DS_T0 + timedelta(minutes=15)], power_schedule=[1.0, 1.5],
+            dhw_power_schedule=[1.0, 0.0], optimal_setpoints=[21.0, 21.0])
+        self.params = SimpleNamespace(dhw_setpoint=48.0, min_electrical_power=1.0, max_electrical_power=5.0)
+        self.entry = SimpleNamespace(entry_id=f"ds{id(self)}")
+
+    def arbiter_inputs(self):
+        return _sa_pa.ArbiterInputs(
+            hass=self.hass, config=self._config, mode="auto", plan=self.plan, plan_stale=False,
+            entry_released=False, state=SimpleNamespace(
+                outdoor_temperature=2.0, room_temperature=20.0, dhw_temperature=45.0),
+            thermal=SimpleNamespace(params=self.params), params=self.params,
+            action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=False)
+
+
+def _ds_episode(freq, extra=None, until=18):
+    """The closed episodes after a split step; ``freq`` maps a minute to a frequency."""
+    c = _DsArb(extra)
+
+    async def run():
+        for s in range(60, until * 60 + 1, 15):
+            now = _DS_T0 + timedelta(seconds=s)
+            _sa_dt.freeze(now)
+            if s / 60 in freq:
+                c.hass.states.set("sensor.freq", FakeState(freq[s / 60]))
+                for _ids, action in list(getattr(c.hass, "state_listeners", [])):
+                    if "sensor.freq" in _ids:
+                        action(SimpleNamespace(data={"new_state": c.hass.states.get("sensor.freq")}))
+            if s % 60 == 0:
+                await _sa_pa.apply(c, now)
+                written = _sa_pa.state_for(c).written.get("mode")
+                if written:
+                    c.hass.states.set("select.pump_mode", FakeState(
+                        next(o for o in _DS_OPTS if _sa_pa.pump_mode.resolve(o) == written[0]),
+                        attributes={"options": list(_DS_OPTS)}))
+    try:
+        _asyncio.run(run())
+    finally:
+        _sa_dt.freeze(None)
+    return [(e["dir"], e["stopped"], e["off_min"]) for e in _ds_mod.state(_sa_pa.state_for(c)).episodes], c
+
+
+# Hot water to 00:07:30, heating from the 00:08 pass; the compressor stops at
+# 00:08:15 and starts again at 00:16:30.
+_ds_stop, _ds_c = _ds_episode({8.25: "0", 16.5: "35"})
+_ds_kept, _ = _ds_episode({})
+_ds_void, _ = _ds_episode({8.25: "0", 16.5: "35"}, {"heat_pump_defrost_entity": "binary_sensor.defrost"})
+R.check(
+    "a dhw->space mode write while running that stops the compressor within W_STOP books a stop and its off time",
+    _ds_stop == [("dhw_space", True, 8.25)],
+    f"{_ds_stop}",
+)
+R.check(
+    "null control: the same write with the compressor running on books a kept episode",
+    _ds_kept == [("dhw_space", False, None)],
+    f"{_ds_kept}",
+)
+R.check(
+    "a defrost on the pump voids the episode",
+    _ds_void == [],
+    f"{_ds_void}",
+)
+_ds_back = _DsArb()
+_ds_back.hass, _ds_back.entry = _ds_c.hass, _ds_c.entry
+_ds_back_state = _ds_mod.DutySwitchState()
+_asyncio.run(_ds_mod._load(_ds_back, _ds_back_state))
+R.check(
+    "the episodes survive a restart in their own record, whose domain declares them; the diagnostics publish the estimate",
+    _ds_back_state.episodes == _ds_mod.state(_sa_pa.state_for(_ds_c)).episodes != []
+    and _sa_store.off_domain("heatpump_optimizer_e_duty_switch", {"episodes": [
+        {"at": _DS_T0.isoformat(), "dir": "dhw_space", "stopped": True, "off_min": 8.25}]}) == []
+    and set(_ds_mod.diagnostics_view(_ds_c)) == {"dhw_space", "space_dhw"},
+    f"{_ds_back_state.episodes}",
+)
+
+
+def _ds_held(rows):
+    """An arbiter record holding ``rows`` of (days ago, direction, stopped, off minutes)."""
+    held = _sa_pa.ArbiterState()
+    _ds_mod.state(held).episodes = [{"at": _DS_T0 - timedelta(days=d), "dir": k, "stopped": s, "off_min": o} for d, k, s, o in rows]
+    return held
+
+
+_ds_five = [(d, "dhw_space", True, 8.0) for d in (0, 0, 0, 1, 1, 1)]
+_ds_l = _ds_mod.learned(_ds_mod.state(_ds_held(_ds_five + [(0, "space_dhw", False, None)] * 6)), "dhw_space", _DS_T0)
+R.check(
+    "six stops over two days, 5.85 decayed, are costly at their median off time",
+    _ds_l.costly and _ds_l.t_off_min == 8.0 and abs(_ds_l.n - (3 + 3 * 0.5 ** (1 / 14))) < 1e-9,
+    f"{_ds_l}",
+)
+R.check(
+    "below N_MIN, on one day, or under P_ON the same stops are not costly; decay ages them out",
+    not any(_ds_mod.learned(_ds_mod.state(_ds_held(rows)), "dhw_space", _DS_T0).costly for rows in (
+        _ds_five[:5],                                                             # 4.9 decayed
+        [(0, "dhw_space", True, 8.0)] * 6,                                        # one day
+        _ds_five + [(0, "dhw_space", False, None)] * 7,                           # p < 0.5
+        [(d + 20, k, s, o) for d, k, s, o in _ds_five + _ds_five],                # decayed below 5
+    )),
+    "",
+)
+
+
+def _ds_shares(held, flip_at=None):
+    """The duty ``_share`` serves at each minute of a both step, 7.5 min hot water."""
+    c = _DsArb()
+    _sa_pa._STATES[c] = held
+    out = []
+    for m in range(15):
+        if m == flip_at:
+            _ds_mod.state(held).episodes = []
+        out.append(_sa_pa._share(c, c.arbiter_inputs(), "both", _DS_T0 + timedelta(minutes=m))[0])
+    return "".join(out)
+
+
+_ds_costly = _ds_five + [(0, "space_dhw", False, None)] * 6
+R.check(
+    "a costly dhw->space serves space first for its share, latched across a mid-step change of the estimate",
+    _ds_shares(_ds_held(_ds_costly), flip_at=3) == "s" * 8 + "d" * 7,
+    f"{_ds_shares(_ds_held(_ds_costly), flip_at=3)}",
+)
+_ds_both = _ds_five + [(d, "space_dhw", True, 8.0) for d in (0, 0, 0, 1, 1, 1)]
+R.check(
+    "with both directions costly a second share shorter than the off time plus SPLIT_MIN goes to the first duty",
+    _ds_shares(_ds_held(_ds_both)) == "d" * 15,
+    f"{_ds_shares(_ds_held(_ds_both))}",
+)
+R.check(
+    "null control: below the thresholds the split is today's, hot water first for its share",
+    _ds_shares(_ds_held(_ds_five[:5])) == _ds_shares(_sa_pa.ArbiterState()) == "d" * 8 + "s" * 7,
+    f"{_ds_shares(_ds_held(_ds_five[:5]))}",
+)
+
 
 # --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------
 # A set-point install's plan rarely writes the flow ceiling, so the metered

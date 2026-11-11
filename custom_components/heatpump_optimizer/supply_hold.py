@@ -6,9 +6,11 @@ supply switch bypasses the compressor's own interlocks. So the one gate the
 cycle and the step tick write through (``coordinator._write_supply``) holds a
 write back that would
 
-* end a run under :data:`MIN_RUN`. A run counts from the later of this
-  gate's own on write and this record's first gated write: a run found on at
-  a restart or a reload is held as one that started then;
+* end a run under :data:`MIN_RUN`. A run counts from the latest of this
+  gate's own on write, the compressor's last start the duty-switch
+  learner's edge listener saw (``duty_switch.running_since``) and this
+  record's first gated write: a run found on at a restart or a reload is held
+  as one that started then;
 * end a pause under :data:`MIN_PAUSE`, counted from this gate's own off write;
   a stop the early cut-off wrote keeps ``early_cutoff.allow_on``'s rule;
 * start a run the plan ends under :data:`MIN_RUN`: an on write inside a step
@@ -29,6 +31,7 @@ from typing import Any
 
 from homeassistant.util import dt as dt_util
 
+from . import duty_switch
 from .boost import CHANNEL_DHW, CHANNEL_SPACE
 from .const import MODE_AUTO, MODE_ECONOMY
 from .entry_config import EntryConfig
@@ -75,7 +78,7 @@ def _start_held(rec: _Hold, inp: ArbiterInputs, boosts: Any, now: datetime) -> b
 
 def _stop_held(rec: _Hold, held: ArbiterState, now: datetime) -> bool:
     """A run under :data:`MIN_RUN`; a stop let through starts the gate's pause."""
-    starts = (rec.born, rec.on_at)
+    starts = (rec.born, rec.on_at, duty_switch.running_since(held))
     short = now - max(s for s in starts if s and s <= now) < MIN_RUN
     rec.off_at = rec.off_at if short else now
     return short

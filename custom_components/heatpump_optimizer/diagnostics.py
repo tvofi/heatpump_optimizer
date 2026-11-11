@@ -69,7 +69,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from . import heat_curve
-from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc
+from . import accuracy, debugger, draw_range, duty_switch, early_cutoff, pump_arbiter, replay_doc
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, PRIVATE_ENTITY_ID
 from .drift import stored_age_seconds
 from .inputs import OUTRANKS_STALE, describe_problem, health_summary
@@ -399,6 +399,7 @@ def _never_breaks(view: Callable[[Any], Any], coord: Any) -> Any:
 #: A row reads the coordinator's public views and hands its module values.
 _VIEWS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
     ("pump_duty", pump_arbiter.diagnostics_view),
+    ("duty_switch", duty_switch.diagnostics_view),
     ("early_cutoff", lambda c: early_cutoff.diagnostics_view(early_cutoff.state_for(c))),
     ("draw_range", lambda c: draw_range.diagnostics_view(
         c.accuracy.draw, c.thermal_params,

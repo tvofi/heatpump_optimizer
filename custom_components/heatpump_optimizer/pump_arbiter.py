@@ -342,8 +342,9 @@ class ArbiterState:
     stop_gap_k: float | None = None
     #: A supply write ``supply_hold`` held back; the step tick retries it.
     supply_held: bool = False
-    #: ``supply_hold``'s own record, made on first use.
+    #: ``supply_hold``'s and ``duty_switch``'s own records, made on first use.
     hold: Any = None
+    duty: Any = None
 
 
 @dataclass(frozen=True)
@@ -1363,8 +1364,12 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
 
 
 async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: datetime) -> None:
+    held = state_for(coord)
+    before = held.written.get("mode")
     for slot in _SLOTS:
         await _write(coord, inp, slot, getattr(command, slot), now)
+    if "opened" in _duty_hooks:
+        _duty_hooks["opened"](coord, held, inp, command, before, now)
 
 
 async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -> None:
@@ -1484,6 +1489,8 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now,
     )
     _observe(held, inp, duty, now)
+    if "follow" in _duty_hooks:
+        await _duty_hooks["follow"](coord, held, inp, now)
     if mode != DUTY_CONTROL or _pump_off(inp):
         return
     hold(coord, now)
@@ -1514,7 +1521,12 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
         return "space"
     if PLAN_STEP_MINUTES - dhw_min < SPLIT_MIN_MINUTES:
         return "dhw"
-    return "dhw" if (now - result.timestamps[i]) < timedelta(minutes=dhw_min) else "space"
+    first, second, floor = _duty_hooks["split"](state_for(coord), result.timestamps[i], now) if (
+        "split" in _duty_hooks) else ("dhw", "space", SPLIT_MIN_MINUTES)
+    first_min = dhw_min if first == "dhw" else PLAN_STEP_MINUTES - dhw_min
+    if PLAN_STEP_MINUTES - first_min < floor:
+        return first
+    return first if (now - result.timestamps[i]) < timedelta(minutes=first_min) else second
 
 
 def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
@@ -1763,6 +1775,16 @@ def _writable(slot: str, value: Any) -> bool:
 
 
 boost.bind_cold_lease(block_cold_lease)
+
+#: The duty-switch learner's hooks (``opened``, ``follow``, ``split``), bound
+#: by ``duty_switch`` at its import; unbound, nothing is observed and a both
+#: step splits hot water first.
+_duty_hooks: dict[str, Callable[..., Any]] = {}
+
+
+def bind_duty_switch(**hooks: Callable[..., Any]) -> None:
+    _duty_hooks.update(hooks)
+
 
 def diagnostics_view(coord: Any) -> dict[str, Any]:
     """The diagnostics view."""
