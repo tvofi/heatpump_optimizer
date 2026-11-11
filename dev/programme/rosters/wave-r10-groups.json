@@ -23739,6 +23739,53 @@
    "carry": [
     "RCA R10-RCA-REPLAY-CLASS-RERECORD (state c: the stated re-record procedure was obeyed and its unit, the drawn class, is wrong). The re-record must cover every runner class, not only those drawn since the change. Add a control in tests/replay.py over the cost draws table (tests/replay_cost_draws.tsv). Within each class, order clean draws by their created time. A level shift at T exists when every draw at or after T is under the floor (budget/2) that the draws before T derive. Then every other class must hold a draw created at or after T, or carry this group's declared cut (the projection factor and its interleaved evidence). Otherwise name it: \"class X rests wholly on draws before the shift class Y shows at T\". Print the classes examined. Owed demonstration: red on the table at commit d08ed31049 naming ref23, ref28, ref31, ref38, ref40 and ref53; green at the fix head; the healthy tables at 6715d97332 and 078780e687 read green with 7 examined; dropping the fix's cut declaration turns it red. Register the control in tools/policy/field_coverage.mjs. Land the analysis as dev/audit/rca/R10-RCA-REPLAY-CLASS-RERECORD.md with the fix (source text: the orchestrator's session scratch, s14 rca-replay-class RCA.md, pasted into the fixer's fire message). Re-measure every figure at your merge base."
    ]
+  },
+  {
+   "group": "R10-RELAY-NOBODY-STALL",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "M",
+   "effort": "medium",
+   "severity": "medium",
+   "lane": "IN",
+   "wave": 1,
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-RELAY-ARM-ORDER",
+    "R10-REVIEW-DISPATCH-RESIDUE"
+   ],
+   "files": [
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/cloud_dispatch.py",
+    "tools/audit/seat/body_push.sh"
+   ],
+   "hot_files": [
+    "tools/audit/seat/cloud_relay.sh"
+   ],
+   "owner_gate": null,
+   "fixture": false,
+   "rca": [],
+   "findings": [],
+   "fixes": [],
+   "issues": [],
+   "brief": "triage: dev/programme/triage/s6-batch194.md#P617 at ed9c2a421e\n\nM group on the cloud fixer's stop record: tools/audit/seat/cloud_relay.sh, cloud_dispatch.py and body_push.sh. It is after R10-RELAY-ARM-ORDER (cloud_relay.sh) and R10-REVIEW-DISPATCH-RESIDUE (in progress on cloud_dispatch.py and cloud_relay.sh). body_push.sh is also in R10-BODY-CONTRACT and R10-PREPR-RESIDUE (both in progress); this group's seam there is keep_refused alone. Line numbers are at ee64358be7. The cause is the root-cause result R10-RCA-FIXER-NOBODY-STALL. Land its analysis with this group as a new markdown file in the dev/audit/rca directory named for that result, with every host path and session id replaced by a relative path or dropped, so that ref_privacy.py guard passes. Triage batch 189, ruling P611, accepted this group first. P611's arm 1 (the fold-arm indent regex) is superseded by arm 2 below and is not built.\n\n1. RELAY-NOBODY-OWED (P611 arm 2, unchanged). noreturn_arm (cloud_relay.sh:762) counts any moved code ref as a return, so a fire that pushed handoff/<topic> or handoff-wip/<topic> and never a handoff-body/<topic> is never owed. The ledger's 'no body ref' line (tools/audit/seat/ledger.py:609) waits 4 h (AGING_DEFAULT, :127). Over 2026-11-04..11 that was 124 of 628 fires (19.7%); 113 were re-fired, median 174-196 min from fire to re-fire. Owe such a fire once the newest code commit is older than a new relay environment knob (the fixer names it; default 3600 s) with no body moved since the fire. Healthy fires take a median of 10 min from the last code commit to the body, p75 28 and p90 48. The level line names the topic, the code tip, its age and the owed fire (a continuation), or the pending fold for a CARRY-LANDED-alone stop. Self-test: a body at 30 min is silent; code without a body at 61 min owes; a body older than the fire is not a return.\n\n2. STOP-TO-BLOCKED (RCA C1, state d). The fixer prompt cloud_dispatch.py renders tells a cloud seat to report a refusal \"in your result\" (:363) and a setup REFUSE \"as your result\" (:236). Nothing reads a cloud seat's result; its only return is a pushed ref. Route every stop in the rendered cloud text to a BLOCKED note (markdown, named BLOCKED) pushed to handoff-wip/<topic>, code or no code: a refusal, a hook, a setup REFUSE, an environment failure, a question. It holds the refusing command and its last lines. In the same text, state the owner's standing ruling (triage s6-batch194.md#P616): when prepr.sh's closures step fails in the cloud environment, rerun prepr.sh with PREPR_SKIP_CLOSURES=1 (closures-autofix covers the pull request) rather than stopping, and say so in the body's Friction. Demonstration: a render self-test asserts that no cloud role's text routes a stop to \"your result\" and that the fixer text names PREPR_SKIP_CLOSURES. It fails on ee64358be7's render (two sites, no ruling) and passes on the fix. Null control: a local-seat render that keeps a result channel is unchanged, or the test says why there is none.\n\n3. REFUSAL-RECORD (RCA C2, state c). The relay folds a CARRY-LANDED stop by regex over the seat's free-form BLOCKED note (carry_fold_arm, cloud_relay.sh:805). tick-loop.log (2026-11-11) holds owed carry-fold lines for 65 topics against 6 topics FOLDED. Make the instrument author the record. body_push.sh's keep_refused (:92) writes the refusing step's output verbatim and its exit code as REFUSAL text file beside the BODY markdown in the kept-body commit on handoff-wip/<topic>-body. carry_fold_arm reads REFUSAL text file, never BLOCKED note. A kept body without REFUSAL text file (written before this change) is reported once by name for a hand fold, never parsed. Demonstration: the fold arm's self-test folds a kept body whose REFUSAL text file is CARRY-LANDED alone, even when the seat's BLOCKED note is indented or prose (the r10-standing-contracts-p2 shape at 878695f8). Null control: a REFUSAL text file naming CARRY-LANDED and a second kind folds nothing.\n\nOut of scope: body_push writing the roster (P611 arm c, rejected); the turn-end and frugal-guard stop candidate (P618, deferred until three more silent sessions are read); the cloud closures environment itself (R10-RCA-CLOUD-ENTITIES-ENV shape B; the RCA's C3 asks the orchestrator to re-open it).\n",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (size M, no design step), after R10-RELAY-ARM-ORDER and R10-REVIEW-DISPATCH-RESIDUE merge",
+    "note": "triage s14 batch 189 P611, re-cut by batch 194 P616-P618; overlap admitted (R10-RELAY-ARM-ORDER): triage s14 batch 189 P611 ACCEPT narrowed, re-cut by batch 194 P616-P618; replaces refused queue line 4465, brief-lint clean at roster dry run"
+   }
   }
  ]
 }
