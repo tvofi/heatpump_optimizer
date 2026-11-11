@@ -1,0 +1,7 @@
+R1: orchestrator_tick self-test: 308 checks, 0 failed
+R2: orchestrator_tick self-test: 308 checks, 3 failed
+R3: orchestrator_tick self-test: 308 checks, 0 failed
+R4: cloud_dispatch self-test: 149 checks, 1 failed
+R5: cloud_dispatch self-test: 149 checks, 1 failed
+UNMUTATED orchestrator_tick: orchestrator_tick self-test: 308 checks, 0 failed
+UNMUTATED cloud_dispatch: cloud_dispatch self-test: 149 checks, 0 failed
