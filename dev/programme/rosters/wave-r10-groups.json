@@ -22522,7 +22522,9 @@
    "severity": "normal",
    "size": "S",
    "wave": 7,
-   "issues": [],
+   "issues": [
+    3437
+   ],
    "fixes": [],
    "after": [],
    "files": [
