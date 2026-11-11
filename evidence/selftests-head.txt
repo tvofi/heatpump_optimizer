@@ -1,9 +1,0 @@
-ok  24 null: a step-less job still in progress is unsettled
-codescan_wait self-test: 24 checks, 0 failed
-  ok   coverage reads the shim marker, not the name
-  ok   a real gh ahead of the shim reads as not logged
-gh_calls self-test: 204 checks, 0 failed
-  ok   --record re-records every derived metric, the reference included
-ci-ratchet self-test: 67 checks, 0 failed
-  ok   --install-shims bakes the tree's gh_comment.py path into the installed gh shim
-seat_venv self-test: 27 checks, 0 failed
