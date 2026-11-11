@@ -345,7 +345,6 @@ export PYTHONPATH=tests/hastub
 
 python tests/features.py     # the feature modules, driven directly
 python tests/entities.py     # entities, platforms, options pages, translations
-python tests/gitignore_config.py  # .gitignore anchors config/ to the root; nested policy config/ dirs stay visible to git add
 python tests/manual_plan.py  # manual plan pinning: parsing, solver interaction, safety release
 python tests/open_meteo.py   # the irradiance client
 python tests/solar_alignment.py  # irradiance lands on the right optimizer steps
