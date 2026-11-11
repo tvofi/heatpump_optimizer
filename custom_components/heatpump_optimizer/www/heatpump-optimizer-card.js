@@ -8540,7 +8540,7 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
   // Beside a CLAMPED label the bar is half the gap the centred labels
   // actually get at this step (R10-CARD-COLLAPSE polish): the clamp spends up
   // to half a label of that gap, and a neighbour kept at the bare minimum read
-  // as one run ("06:00 AM08:00 AM", 7 px against the axis's 27 px at 860 px).
+  // as one run ("06:00 AM08:00 AM") beside the even pitch of the rest.
   const pitchGap = every * unitsPerHour - (labelWidth - size * 0.6);
   const clampedGap = Math.max(minLabelGap, pitchGap / 2);
 
