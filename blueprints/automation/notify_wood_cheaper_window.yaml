@@ -1,0 +1,142 @@
+blueprint:
+  name: Heat Pump Optimizer - notify when wood beats the heat pump today
+  description: >-
+    Send a phone notification on a day when the plan expects firewood to be
+    cheaper than the heat pump: the cheaper windows and when to light the
+    furnace so it is warm as the first window opens, both in local time. The
+    Wood Cheaper Than Heat Pump sensor carries today's windows in its
+    cheaper_windows attribute and the lighting window in lighting_start and
+    lighting_end; the lead time is the "Light the furnace this long before a
+    cheaper window" option on the wood page. One notification at the send
+    time, and optionally a follow-up later the same day, until a configured
+    time, when a replan brings a window that is not yet open and overlaps no
+    window the plan had before. A day with no cheaper window sends nothing.
+  domain: automation
+  author: tvofi
+  source_url: https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notify_wood_cheaper_window.yaml
+  input:
+    wood_sensor:
+      name: Wood Cheaper Than Heat Pump sensor
+      description: >-
+        The optimizer's wood comparison sensor. It is disabled by default;
+        enable it under the integration's entities once the wood furnace is
+        set up. Entity ids are fixed at `binary_sensor.heat_pump_optimizer_*`
+        regardless of the entry name.
+      default: binary_sensor.heat_pump_optimizer_wood_cheaper
+      selector:
+        entity:
+          domain: binary_sensor
+    notify_device:
+      name: Phone
+      description: >-
+        The Home Assistant companion app device that receives the
+        notification, through its notify.mobile_app_* action.
+      selector:
+        device:
+          integration: mobile_app
+    send_time:
+      name: Send time
+      description: >-
+        When the day's notification is sent. Early morning, so the windows
+        are known before the day starts.
+      default: "06:00:00"
+      selector:
+        time: {}
+    notify_on_replan:
+      name: Follow up after a replan
+      description: >-
+        Later the same day, send one more notification when a replan brings a
+        cheaper window that is not yet open and overlaps no window the plan
+        had before. A window the replan only moved or split, which still
+        overlaps one already announced, sends nothing, and neither does the
+        sensor coming back from unavailable, whose previous state carried no
+        windows to compare against.
+      default: true
+      selector:
+        boolean: {}
+    followup_until:
+      name: No follow-up after
+      description: >-
+        A replan after this time sends no follow-up, so a late replan does
+        not wake anyone. Set 23:59 to allow evening follow-ups.
+      default: "21:00:00"
+      selector:
+        time: {}
+    title_template:
+      name: Title
+      description: >-
+        The notification title. A template; windows_text,
+        lighting_start_text and lighting_end_text hold the local times.
+      default: "Wood beats the heat pump today"
+      selector:
+        text: {}
+    message_template:
+      name: Message
+      description: >-
+        The notification text. A template; windows_text lists today's
+        cheaper windows, lighting_start_text and lighting_end_text bound the
+        recommended lighting window, all as HH:MM local time.
+      default: >-
+        Firewood is cheaper than the heat pump {{ windows_text }}. Light the
+        furnace between {{ lighting_start_text }} and {{ lighting_end_text }}.
+      selector:
+        text:
+          multiline: true
+mode: single
+max_exceeded: silent
+variables:
+  wood_sensor: !input wood_sensor
+  notify_device: !input notify_device
+  send_time: !input send_time
+  notify_on_replan: !input notify_on_replan
+  followup_until: !input followup_until
+  windows: "{{ state_attr(wood_sensor, 'cheaper_windows') or [] }}"
+  windows_text: >-
+    {% set ns = namespace(parts=[]) %}{% for w in windows %}{% set ns.parts =
+    ns.parts + [as_timestamp(w.start) | timestamp_custom('%H:%M') ~ '–' ~
+    as_timestamp(w.end) | timestamp_custom('%H:%M')] %}{% endfor %}{{
+    ns.parts | join(', ') }}
+  lighting_start_text: >-
+    {% set t = state_attr(wood_sensor, 'lighting_start') %}{{
+    as_timestamp(t) | timestamp_custom('%H:%M') if t else '' }}
+  lighting_end_text: >-
+    {% set t = state_attr(wood_sensor, 'lighting_end') %}{{
+    as_timestamp(t) | timestamp_custom('%H:%M') if t else '' }}
+trigger:
+  - platform: time
+    at: !input send_time
+    id: daily
+  - platform: state
+    entity_id: !input wood_sensor
+    attribute: cheaper_windows
+    id: replan
+condition:
+  - "{{ windows | count > 0 }}"
+  - "{{ state_attr(wood_sensor, 'lighting_start') is not none }}"
+  - condition: or
+    conditions:
+      - "{{ trigger.id == 'daily' }}"
+      - condition: and
+        conditions:
+          - "{{ notify_on_replan }}"
+          - >-
+            {% set prev = trigger.from_state if trigger.from_state is defined
+            else none %}{{ prev is not none and prev.state not in
+            ['unavailable', 'unknown'] }}
+          - "{{ now() >= today_at(send_time) }}"
+          - "{{ now() < today_at(followup_until) }}"
+          - >-
+            {% set old = (trigger.from_state.attributes.get('cheaper_windows')
+            or []) if trigger.from_state else [] %}{% set ns =
+            namespace(new=false) %}{% for w in windows %}{% set ws =
+            as_timestamp(w.start) %}{% set we = as_timestamp(w.end) %}{% set
+            seen = namespace(hit=false) %}{% for o in old %}{% if ws <
+            as_timestamp(o.end) and as_timestamp(o.start) < we %}{% set
+            seen.hit = true %}{% endif %}{% endfor %}{% if not seen.hit and ws
+            > as_timestamp(now()) %}{% set ns.new = true %}{% endif %}{% endfor
+            %}{{ ns.new }}
+action:
+  - action: notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}
+    data:
+      title: !input title_template
+      message: !input message_template

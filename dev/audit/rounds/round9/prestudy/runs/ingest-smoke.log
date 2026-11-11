@@ -1,0 +1,126 @@
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+No published prices cover the planning horizon; skipping
+Not enough price data for optimization (got 0 steps)
+stage 1: schema and manifest
+  ok: schema -- schema='hpo-debug/1'
+  ok: manifest-cycles
+  ok: manifest-version
+  ok: rows-match
+stage 2: privacy gate over the replay half (export.violations)
+  ok: replay-clean
+stage 2b: null control -- a planted credential must be caught
+RESULT planted_leak_caused_violations=2 unit=count
+  ok: planted-leak-caught -- states.sensor.secret_leak: a credential-named key carries a value; states.sensor.secret_leak[0][1]: text outside the allowlist
+stage 3: store documents through the real loaders
+  ok: stores-present -- 5 stores
+  ok: stores-declared -- every store key ends in a DOMAINS suffix
+  ok: stores-sanitize-idempotent
+RESULT accuracy_samples_loaded=192 unit=count
+  ok: accuracy-loaded
+stage 4: monitor re-derivation (store window vs bundle rows)
+RESULT store_window_bias=0.054 unit=celsius
+RESULT rows_window_bias=0.054 unit=celsius
+RESULT live_deque_bias=0.015 unit=celsius
+RESULT accuracy_bias_delta=0.0 unit=celsius
+  ok: bias-rederived -- store=0.054 rows=0.054 live-deque=0.015
+stage 5: the replay half through the real lane (final day)
+
+=== Stress and economics ===
+  ok: lane-reruns -- cycles=48
+  ok: lane-invariants -- agreement=0
+RESULT stages_ok=12/12 unit=count
+RESULT smoke_verdict=pass unit=verdict
+RESULT thread_factor=1.0 unit=ratio

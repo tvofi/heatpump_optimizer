@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/away.py:floor_drop_c RETURN_DEL 681b080c",
+  "killed_by": "tests/features.py",
+  "old": "    return None if target is None else max(0.0, opt_config.min_temp - target)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/name_match.py:_device_words BOOLOP 4979b537",
+  "killed_by": "tests/features.py",
+  "old": "        while keep < min(len(common), len(run)) and common[keep] == run[keep]:",
+  "reason": "Recorded by `mutation_table.py --drain` against a1da8d381aa0afd2d1be6753678a8fc6191604ec: BOOLOP (`while keep < min(len(common), len(run)) or common[keep] == run[keep]:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

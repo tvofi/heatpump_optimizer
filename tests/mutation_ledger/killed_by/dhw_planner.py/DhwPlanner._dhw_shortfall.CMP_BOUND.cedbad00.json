@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_shortfall CMP_BOUND cedbad00",
+  "killed_by": "tests/features.py",
+  "old": "        for i in np.where(gaps > 0.05)[0]:",
+  "reason": "Recorded by hand for R9-EG-A2 (#1874) on an export of the branch, 2026-10-03, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS): a kill is a red run naming a FAIL line or traceback the unmutated baseline does not. CMP_BOUND (`for i in np.where(gaps >= 0.05)[0]:`) took tests/features.py from rc=1 failed=2 to rc=1 failed=3, newly failing ['EG-A2 a DHW breach is a shortfall of MORE than 0.05 K: exactly 0.05 is met, 0.06 is the first breach']."
+}

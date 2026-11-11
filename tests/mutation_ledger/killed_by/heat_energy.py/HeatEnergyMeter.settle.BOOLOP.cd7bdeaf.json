@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:HeatEnergyMeter.settle BOOLOP cd7bdeaf",
+  "killed_by": "tests/features.py",
+  "old": "        self._clean = {k: self._clean.get(k, True) and v for k, v in clean.items()}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`self._clean = {k: self._clean.get(k, True) or v for k, v in clean.items()}`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

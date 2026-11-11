@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entry_config.py:undo_point RETURN_DEL 9a65f8ca",
+  "killed_by": "tests/features.py",
+  "old": "    return {\"scope\": scope, \"settings\": list(settings_of(data, options)), \"pinned\": pinned}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

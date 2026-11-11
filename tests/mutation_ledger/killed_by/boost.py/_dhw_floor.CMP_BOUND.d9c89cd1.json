@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:_dhw_floor CMP_BOUND d9c89cd1",
+  "killed_by": "tests/block_duty.py",
+  "old": "        and float(temp) <= float(floor)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 62f604eb062bf88d3dc4b0f4ec85ca17359af229: CMP_BOUND (`and float(temp) < float(floor)`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
+}

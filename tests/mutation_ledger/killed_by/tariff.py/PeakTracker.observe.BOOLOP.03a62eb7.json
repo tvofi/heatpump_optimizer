@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:PeakTracker.observe BOOLOP 03a62eb7",
+  "killed_by": "tests/entities.py",
+  "old": "        if measured_house_kw is not None and np.isfinite(measured_house_kw):",
+  "reason": "`PeakTracker.observe`'s measured-reading guard (#1460), with `and` -> `or`: the no-meter path reaches `np.isfinite(None)`, `TypeError: ufunc 'isfinite' not supported for the input types`, in every driver that folds a cycle's peak. Measured: tests/entities.py rc=1."
+}

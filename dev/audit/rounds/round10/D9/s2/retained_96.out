@@ -1,0 +1,31 @@
+# top attributes by bytes/cycle over cycles 48..96:
+#   _accuracy 53707 -> 90283 (762.0 B/cycle)
+#   update_interval 40 -> 40 (0.0 B/cycle)
+#   refresh_requests 28 -> 28 (0.0 B/cycle)
+#   name 59 -> 59 (0.0 B/cycle)
+#   last_update_success 28 -> 28 (0.0 B/cycle)
+#   last_exception 16 -> 16 (0.0 B/cycle)
+#   integration_version 16 -> 16 (0.0 B/cycle)
+#   entry 48 -> 48 (0.0 B/cycle)
+#   currency 44 -> 44 (0.0 B/cycle)
+#   base_shutdown_called 28 -> 28 (0.0 B/cycle)
+# largest attributes at end:
+#   data 240925
+#   _accuracy 90283
+#   _optimization_result 62052
+#   _ctx 34300
+#   _legionella 33169
+#   _dhw_learner 22753
+#   _optimizer 22719
+#   _thermal_model 17860
+#   _weather_forecast 13663
+#   _prices 13525
+RESULT cycles=96 count
+RESULT coord_deep_bytes_end=622885 bytes
+RESULT coord_slope_bytes_per_cycle=748.1 bytes
+RESULT top_growth_attr=_accuracy
+RESULT top_growth_bytes_per_cycle=762.0 bytes
+RESULT tracemalloc_slope_bytes_per_cycle=981.1 bytes
+RESULT thread_factor=1.000
+RESULT load1=82.20
+RESULT swapins=n/a

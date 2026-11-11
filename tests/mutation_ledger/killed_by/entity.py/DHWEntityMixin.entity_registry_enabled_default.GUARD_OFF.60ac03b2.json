@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/entity.py:DHWEntityMixin.entity_registry_enabled_default GUARD_OFF 60ac03b2",
+  "killed_by": "tests/entities.py",
+  "old": "        if not self._dhw_probe_slot:",
+  "reason": "added by R8-P2 (#1542). `if not self._dhw_probe_slot:` -> `if False:` sends every hot-water entity through the probe lookup, so the five probe-less ones read off by default: tests/entities.py fails the five #1398 on-default checks, the real-coordinator on-default check, `every gated hot-water entity is on by default with hot water and its probe (#1542)` and the disabled roster, 8 checks above the unmutated copy before the run stopped. Measured at head ca79a473 on 2026-09-24, each mutant in its own copy of the tree against an unmutated copy (12 git-dependent checks fail in both, since a copy has no .git)."
+}

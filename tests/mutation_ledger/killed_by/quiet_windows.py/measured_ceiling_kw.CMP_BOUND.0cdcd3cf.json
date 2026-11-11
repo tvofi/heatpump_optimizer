@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:measured_ceiling_kw CMP_BOUND 0cdcd3cf",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    if hz is not None and hz > 0.0 and hz_max > 0.0:",
+  "reason": "Recorded by hand against 45e75b85 plus this commit's tests/manual_plan.py test_quiet_window_arms, in a detached copy with the mutant applied. The comment-only null control, a comment prepended to the mutated file, left all manual-plan checks passing. CMP_BOUND (`if hz is not None and hz >= 0.0 and hz_max > 0.0:`) took tests/manual_plan.py from rc=0 to rc=1: both bound mutants FAILED, one on \"a zero hertz reading measures nothing\" (got 0.0) and one on \"a frequency entity whose range max is zero measures nothing\" (ZeroDivisionError). Re-measured after those two checks were added: 1 of 118 FAILED, baseline 118 passed. Each of the 2 sites under this anchor was killed."
+}

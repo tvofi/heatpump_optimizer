@@ -1,0 +1,3 @@
+RESULT selftest_unproduced=1 count
+RESULT selftest_ok=1 count
+RESULT clean_fixture_unproduced=0 count

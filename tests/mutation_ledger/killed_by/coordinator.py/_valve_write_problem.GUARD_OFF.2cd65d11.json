@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_valve_write_problem GUARD_OFF 2cd65d11",
+  "killed_by": "tests/features.py",
+  "old": "        if await write_setpoint_c(hass, entity_id, target, rounding=\"down\"):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d5cd003111277faa3f2abd7fbe6c9157d2e48ed7: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

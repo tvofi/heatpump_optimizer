@@ -1,0 +1,9 @@
+M01 entities.py 1
+M02 entities.py 1
+M04 entities.py 0
+M05 entities.py 1
+M07 entities.py 0
+RESULT screened=5 count
+RESULT survivors=2 count  M04 M07
+RESULT thread_factor=1.000
+RESULT load1=35.72

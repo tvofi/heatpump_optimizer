@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:measured_since CMP_BOUND 2450df54",
+  "old": "    span = [s for s in samples if start < s.when <= end]",
+  "reason": "Survival measured by the CI pin chain at head 18a04ed62 (run 38090917611, shard drivers over the recorded net, ratchet base 6be88834): no driver killed it. Moving either bound by one includes or excludes only a sample whose when is exactly the promise start or exactly its 24 h end. A sample settles the interval ending at its when, so the boundary case is reachable in principle; tests/features.py's UX-6 fixture records samples at 15-minute offsets from the start and its out-of-span sample at +30 h, never one exactly on a bound; no recorded driver does.",
+  "verdict": "gap"
+}

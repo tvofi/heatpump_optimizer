@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.book_capacity BOOLOP 6dd41738",
+  "killed_by": "tests/features.py",
+  "old": "        if not month or not (math.isfinite(peak_kw) and math.isfinite(price_per_kw)):",
+  "reason": "Recorded from `mutation_table.py --anchor 'custom_components/heatpump_optimizer/ledger.py:MonthlyLedger.book_capacity BOOLOP 6dd41738' --scripts tests/features.py --base 3364b0c68` at e00d03ce9 (baseline rc=0 failed=0, null control survived) and the hand-applied proof at the same head: BOOLOP (`and`->`or` inside `not (...)`) takes tests/features.py from rc=0 failed=0 to rc=1 failed=1, failing 'UX-6: a NaN peak or an empty month books no capacity line' alone of 4060. Supersedes the survivor_triage gap row the CI pin chain recorded at 18a04ed62 (run 38090917611), whose 'no driver killed it' this check falsifies."
+}

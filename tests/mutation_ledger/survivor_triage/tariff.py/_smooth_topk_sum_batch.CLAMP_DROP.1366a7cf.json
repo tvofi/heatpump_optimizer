@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum_batch CLAMP_DROP 1366a7cf",
+  "old": "    k = max(1, min(int(k), m))",
+  "reason": "added by R9 F2.5 (the batched capacity-tariff twin); an idempotent re-clamp. peak_cost_batch clamps k against the excess width before every call into the batched bisection, so the k this line re-clamps already satisfies 1 <= k <= m on every reachable input; dropping either side of the clamp answers identically. Equivalent on the reachable domain; measured by the same pin run. Survival measured UNMARKED at the pin run against 2eef524d (hpo-ci container, 17 drivers, 2026-09-28): no driver detects the mutant behaviourally.",
+  "verdict": "equivalent"
+}

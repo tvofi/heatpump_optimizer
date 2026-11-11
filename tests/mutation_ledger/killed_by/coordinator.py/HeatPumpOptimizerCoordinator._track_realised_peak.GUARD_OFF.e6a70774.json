@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._track_realised_peak GUARD_OFF e6a70774",
+  "killed_by": "tests/features.py",
+  "old": "        if house is None:",
+  "reason": "Recorded by `mutation_table.py --drain` against 15f0b5924f3c2a75befe984d156cb3e602effd2e: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

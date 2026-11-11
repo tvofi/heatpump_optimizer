@@ -1,0 +1,215 @@
+{
+  "dimension": "D7",
+  "baseline_sha": "554e2ecfa7ad5b1660a1256ebf6cf6ac3810d9ef",
+  "exposure": "",
+  "coverage": [
+    {
+      "step": "D7.M1",
+      "depth": "deep",
+      "evidence": "archscore vector + details for untyped_payload_keys, family_splits and the 4 GATE_ONLY tripwires; 6 harnesses under dev/audit/rounds/round10/D7/arch-s3/"
+    }
+  ],
+  "unfinished": [
+    {
+      "step": "D7.M1",
+      "what": "stress.py on prototype c402bce8 unrun (killed under load); red-team cases and expected.json re-record for 02/03 are fixer work"
+    }
+  ],
+  "findings": [
+    {
+      "id": "D7-arch3-01",
+      "scope": "D7-s3",
+      "step": "D7.M1",
+      "title": "untyped_payload_keys census is blind to the 10 AwayView keys",
+      "severity": "low",
+      "claim": "The census misses 10 of 169 runtime payload keys, so untyping them reads 0.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s3/payload_census_coverage.py --perturb",
+        "harness_path": "dev/audit/rounds/round10/D7/arch-s3/payload_census_coverage.py",
+        "value": 10,
+        "unit": "keys",
+        "baseline_sha": "554e2ecfa7ad",
+        "machine": "Apple M1 macOS, tvofi audit box",
+        "cpu_or_wall": "count",
+        "contention_note": "shared box, counts only",
+        "tolerance": "exact",
+        "load1": 45.78,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "archscore.metrics.untyped_payload_keys:Flow.returned_keys; heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._build_data_dict",
+      "perturbation": {
+        "change": "apply D7-arch3-01 patch",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "|runtime payload keys over golden coordinator scenarios minus census produced keys|",
+      "phenomenon_property": "every key _async_update_data publishes is in the census key set",
+      "seam_rule": "dev/audit/rounds/round10/D7/arch-s3/payload_census_coverage.py (runtime_not_census list)",
+      "null_control": {
+        "command": "same, --perturb arm",
+        "value": "untyped-AwayView headline 0 before, 10 after",
+        "note": "headline stays 0 at baseline"
+      },
+      "stop_rule_class": "hygiene",
+      "class_guess": "N-structure-blind",
+      "files": [
+        "tools/audit/archscore/metrics/untyped_payload_keys.py"
+      ],
+      "proposed_fix_scope": "small: Flow.seed types a package-class-annotated parameter (+17 lines)"
+    },
+    {
+      "id": "D7-arch3-02",
+      "scope": "D7-s3",
+      "step": "D7.M1",
+      "title": "C1 reads Any|None, Optional[Any], \"Any\" and an Any alias as typed",
+      "severity": "low",
+      "claim": "Four spellings of an untyped field read untyped_payload_keys=0 where Any reads 6.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s3/payload_any_spellings.py",
+        "harness_path": "dev/audit/rounds/round10/D7/arch-s3/payload_any_spellings.py",
+        "value": "4 spellings read 0 of 6",
+        "unit": "keys",
+        "baseline_sha": "554e2ecfa7ad",
+        "machine": "Apple M1 macOS, tvofi audit box",
+        "cpu_or_wall": "count",
+        "contention_note": "shared box, counts only",
+        "tolerance": "exact",
+        "load1": 40.99,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "archscore.metrics.untyped_payload_keys:is_any",
+      "perturbation": {
+        "change": "apply D7-arch3-02 patch",
+        "expected_direction": "up",
+        "observed_value": "6 for all four"
+      },
+      "metric_definition": "untyped_payload_keys headline with EnergyTotals' 6 fields declared in a given spelling",
+      "phenomenon_property": "any annotation admitting every value reads untyped",
+      "seam_rule": "dev/audit/rounds/round10/D7/arch-s3/payload_any_spellings.py",
+      "null_control": {
+        "command": "same",
+        "value": "float 0; ablated C1 Any 0"
+      },
+      "stop_rule_class": "hygiene",
+      "class_guess": "new",
+      "files": [
+        "tools/audit/archscore/metrics/untyped_payload_keys.py"
+      ],
+      "proposed_fix_scope": "small: is_any union/string/alias handling (+45 lines) plus a red-team case"
+    },
+    {
+      "id": "D7-arch3-03",
+      "scope": "D7-s3",
+      "step": "D7.M1",
+      "title": "C6 accepts an invented two-member family that cures a split",
+      "severity": "low",
+      "claim": "Homing two unrelated adjacent entities into a new family takes family_splits 2 to 0 with family_orphan_overrides 0.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s3/family_pair_homing.py",
+        "harness_path": "dev/audit/rounds/round10/D7/arch-s3/family_pair_homing.py",
+        "value": 0,
+        "unit": "orphan overrides on the game tree",
+        "baseline_sha": "554e2ecfa7ad",
+        "machine": "Apple M1 macOS, tvofi audit box",
+        "cpu_or_wall": "count",
+        "contention_note": "shared box, counts only",
+        "tolerance": "exact",
+        "load1": 39.87,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "archscore.counters:family_orphan_overrides",
+      "perturbation": {
+        "change": "apply D7-arch3-03 patch",
+        "expected_direction": "up",
+        "observed_value": 2
+      },
+      "metric_definition": "family_orphan_overrides on plant+pair-override tree",
+      "phenomenon_property": "an override homes an entity only into the family its own name leads with",
+      "seam_rule": "dev/audit/rounds/round10/D7/arch-s3/family_pair_homing.py",
+      "null_control": {
+        "command": "same, honest arm",
+        "value": "0 splits, 0 orphans"
+      },
+      "stop_rule_class": "hygiene",
+      "class_guess": "N-name-sort",
+      "files": [
+        "tools/audit/archscore/counters.py"
+      ],
+      "proposed_fix_scope": "small: +6 lines; red-team case; expected.json re-record if any verdict moves"
+    },
+    {
+      "id": "D7-arch3-04",
+      "scope": "D7-s3",
+      "step": "D7.M1",
+      "title": "step_duty hands the modulation floor to planned_draw_runs via a function attribute",
+      "severity": "low",
+      "claim": "A concurrent planned_draw_runs caller reads another plan's floor while step_duty runs.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D7/arch-s3/duty_floor_channel.py",
+        "harness_path": "dev/audit/rounds/round10/D7/arch-s3/duty_floor_channel.py",
+        "value": 437525,
+        "unit": "wrong reads of 1419348",
+        "baseline_sha": "554e2ecfa7ad",
+        "machine": "Apple M1 macOS, tvofi audit box",
+        "cpu_or_wall": "count",
+        "contention_note": "shared box; race count is scheduler-dependent, claim is >0 vs 0",
+        "tolerance": ">0 vs 0",
+        "load1": 38.35,
+        "thread_factor": 1.001
+      },
+      "instrumented_symbol": "heatpump_optimizer.pump_arbiter:step_duty; heatpump_optimizer.thermal_model:planned_draw_runs",
+      "perturbation": {
+        "change": "apply D7-arch3-04 patch",
+        "expected_direction": "to_zero",
+        "observed_value": 0
+      },
+      "metric_definition": "planned_draw_runs(0.5) returning False on thread B while thread A loops step_duty(floor=5.0)",
+      "phenomenon_property": "no planned_draw_runs input travels through module-global state",
+      "seam_rule": "dev/audit/rounds/round10/D7/arch-s3/duty_floor_channel.py (reflective_writes_pump_arbiter)",
+      "null_control": {
+        "command": "same, writer idle arm",
+        "value": 0
+      },
+      "stop_rule_class": "bug",
+      "class_guess": "N-shared-config",
+      "files": [
+        "custom_components/heatpump_optimizer/pump_arbiter.py",
+        "custom_components/heatpump_optimizer/thermal_model.py"
+      ],
+      "proposed_fix_scope": "small: pass modulation_floor explicitly, drop attribute fallback and decorator; re-key mutation ledger pins 296c284b/399c5f97"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "family_splits sort matches Intl.Collator en/sv",
+      "command": "python3 dev/audit/rounds/round10/D7/arch-s3/family_sort_collator.py --perturb",
+      "value": "0 inversions, 0/0 splits; perturb 1"
+    },
+    {
+      "claim": "delta_S of all prototypes is 0 and admissible; revert perturbation reads 0",
+      "command": "python3 dev/audit/rounds/round10/D7/arch-s3/score_delta.py 554e2ecfa <52f0de63|c402bce8|554e2ecfa>",
+      "value": "0.0000 each; c402bce8 reflective_writes 17->15"
+    },
+    {
+      "claim": "cells at floor, 30% target = 0",
+      "command": "same",
+      "value": "untyped_payload_keys 0, family_splits 0, cells_S_30pct 0.0000"
+    }
+  ],
+  "harnesses": [
+    "dev/audit/rounds/round10/D7/arch-s3/payload_census_coverage.py",
+    "dev/audit/rounds/round10/D7/arch-s3/payload_any_spellings.py",
+    "dev/audit/rounds/round10/D7/arch-s3/family_pair_homing.py",
+    "dev/audit/rounds/round10/D7/arch-s3/duty_floor_channel.py",
+    "dev/audit/rounds/round10/D7/arch-s3/family_sort_collator.py",
+    "dev/audit/rounds/round10/D7/arch-s3/score_delta.py"
+  ],
+  "leads": [
+    {
+      "owner_seat": "unknown",
+      "file": "custom_components/heatpump_optimizer/coordinator.py",
+      "symbol": "_ctx proxy, lines 1905-1920",
+      "what": "For ARCH-s1: __dict__ writes plus replace(ctx, **{n: value}) are 4 of the 17 reflective writes, the hub-handle shape C2b exists for"
+    }
+  ]
+}

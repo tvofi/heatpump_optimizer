@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:hold GUARD_OFF 7549b59b",
+  "killed_by": "tests/structure.py",
+  "old": "        if observed is None or utc_elapsed_seconds(now, at) < ECHO_GRACE_S:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 787fe137cc72c77188a54a5125dc351c95ba84b3: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

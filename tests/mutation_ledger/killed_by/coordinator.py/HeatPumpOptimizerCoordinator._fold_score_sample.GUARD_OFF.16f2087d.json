@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_score_sample GUARD_OFF 16f2087d",
+  "killed_by": "tests/features.py",
+  "old": "        if spot_known:  # #2229: an unpriced kWh pays nothing",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:  # #2229: an unpriced kWh pays nothing`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
+}

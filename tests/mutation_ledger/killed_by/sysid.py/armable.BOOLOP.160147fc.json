@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:armable BOOLOP 160147fc",
+  "killed_by": "tests/features.py",
+  "old": "        (t for t in (probe.ceiling_since(), probe_run and probe_run.timestamp()) if t),",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`(t for t in (probe.ceiling_since(), probe_run or probe_run.timestamp()) if t),`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

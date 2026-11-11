@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/external_heat.py:ExternalHeatDetector._update_activation GUARD_OFF 8aab9d64",
+  "killed_by": "tests/features.py",
+  "old": "            if obs.override:",
+  "reason": "Recorded by `mutation_table.py --drain` against 59b76606e0190139eecc8496607687a87cb05054: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

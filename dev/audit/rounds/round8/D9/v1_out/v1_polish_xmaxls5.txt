@@ -1,0 +1,19 @@
+
+=== Stress and economics ===
+RESULT real.maxls5.scenarios=51 count
+RESULT real.maxls5.kernel_steps_all=156007985 step-equivalents
+RESULT real.maxls5.kernel_steps_dropped_polish=6317376 step-equivalents
+RESULT real.maxls5.kernel_steps_unshipped_polish=19431360 step-equivalents
+RESULT real.maxls5.polishes=206 count
+RESULT real.maxls5.polishes_dropped=155 count
+RESULT real.maxls5.polishes_unshipped=196 count
+RESULT real.maxls5.polishes_abnormal_nit0=58 count
+RESULT real.maxls5.kernel_steps_abnormal_nit0=3240768 step-equivalents
+RESULT real.maxls5.dropped_polish_kernel_share=0.0405 ratio
+RESULT real.maxls5.unshipped_polish_kernel_share=0.1246 ratio
+RESULT real.maxls5.abn0_kernel_share=0.0208 ratio
+RESULT real.maxls5.per_scenario.min=0.0049 max=0.3290 median=0.0754 ratio
+RESULT real.maxls5.scenarios_with_zero_dropped=0 count
+RESULT thread_factor=1.000
+RESULT load1=8.27
+RESULT swapins=0

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard._drive_switch GUARD_OFF d31b879c",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if switch.failed == self.write_failed_notice:",
+  "reason": "Round 9 F9.2 pin for D3-s3-05 (class I1). GUARD_OFF (`        if False:`) took tests/guard_pins.py from rc=0 (9 of 9 passed) to rc=1, failing `the disinfection write-failed notice is raised once and cleared once`, measured on a package copy at merge base 9c6b923f2614936aad89e1408dabca8ddd721322; the same pin also fails on `        if True:`."
+}

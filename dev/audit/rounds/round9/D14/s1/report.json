@@ -1,0 +1,190 @@
+{
+ "dimension": "D14",
+ "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+ "report_path": "tools/audit/round9/D14/s1/REPORT.md",
+ "exposure": "Read under the D14 exception: tools/audit/bugclasses.json; git commit messages and stats for 3511677a, c4f8f213, e299cd72, 8e5d1ace, b64c2f8c, df6e55f8, fd1a8528, 93e3af05, 2a451021, 1e4e4b9e and 8c3a13c4; git-archive trees at 3511677a, b64c2f8c, e299cd72, 1e4e4b9e and 8c3a13c4 and their parents (the instances' pre- and post-fix code). Also read the in-tree barrier tests/finite_boundary.py. No tools/audit/round3..8 evidence file was opened; one commit --stat listed a filename under tools/audit/round5/ and it is not cited. No gh or GitHub was used.",
+ "coverage": [
+  {
+   "step": "D14.M1",
+   "depth": "deep",
+   "evidence": "bugclasses.json: P1 has 12 instances over rounds 1-6 and P6 has 18 over rounds 1-4, 6 and 7. Both are status open with detector and barrier null. Instance histories were traced in git (commit list in exposure)."
+  },
+  {
+   "step": "D14.M2",
+   "depth": "deep",
+   "evidence": "The scope assigns P1 and P6. P1 has a partial in-tree barrier (QuarantiningStore plus tests/finite_boundary.py) covering non-finite numeric leaves only; P6 has no enumerating detector."
+  },
+  {
+   "step": "D14.M3",
+   "depth": "deep",
+   "evidence": "p1_store.py covers 13 stores and 4027 mutants through real loaders, consumers and a 3-cycle wedge arm; its clean fixture is 0. p6_keys.py has arms A (recording coordinator.data over 5 topologies x 2 cycles), B (entity ids) and C (getattr on undefined names); its self-test and clean fixture give 1 and 0. Both re-find instances at pre-fix trees: 3511677a^ (R1 D1-01, D1-05), b64c2f8c^ (R5 D1-05/06, poison 453->410), e299cd72^ (R6 D1-01/02, 410->0), 1e4e4b9e^ (R7 D8-01, 6->2), 8c3a13c4^ (R6 D6-02, 2->0). Both move under a one-line re-introduction."
+  },
+  {
+   "step": "D14.M4",
+   "depth": "deep",
+   "evidence": "One finding per class, D14-s1-01 (P1) and D14-s1-02 (P6). Each states the property, the detector command and every seam the detector lists at baseline."
+  },
+  {
+   "step": "D14.M5",
+   "depth": "spot",
+   "evidence": "A barrier location and fix scope are proposed for each class. The gate cost is provisional: p1_store 22-26 s wall and p6_keys about 10 s, single-threaded, at load1 1.2-2.5. Nothing was landed in tests/."
+  }
+ ],
+ "unfinished": [
+  {
+   "step": "D14.M3",
+   "what": "P6 card arm: the attributes the card JS (www/heatpump-optimizer-card.js) reads against the attributes entities publish, e.g. via a Proxy over card_rig states. Not built."
+  },
+  {
+   "step": "D14.M3",
+   "what": "P1 type-drift arm: a malformed bool or str leaf that loads as a wrong value without raising, e.g. away.restore_override's bool(raw.get('active')) takes the string 'false' as True. Not measured."
+  },
+  {
+   "step": "D14.M5",
+   "what": "The barrier is proposed and costed but not implemented in tests/, and its wall cost needs a quiet-window re-take."
+  }
+ ],
+ "findings": [
+  {
+   "id": "D14-s1-01",
+   "scope": "D14-s1",
+   "step": "D14.M3",
+   "title": "P1: a malformed store leaf raises out of a loader or consumer; a naive legionella timestamp wedges every refresh",
+   "severity": "medium",
+   "claim": "At baseline, 11 of 4027 single-leaf store mutants (7 seams) raise out of a real loader or consumer. A naive timestamp in dhw_legionella fails 3 of 3 _async_update_data cycles, and none of the 7 seams falls on a leaf that tests/finite_boundary.py substitutes.",
+   "mechanism": "QuarantiningStore scrubs only non-finite numeric leaves, and finite_boundary.py substitutes only numeric leaves and drives only the loader and _build_data_dict. Stored timestamps are parsed without awareness coercion and compared with the aware dt_util.now(). best_restore calls np.isfinite on an arbitrary leaf, _apply_learner_payloads assumes learners is a dict, and pump_arbiter._load assumes the shape of written.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s1/p1_store.py --barrier",
+    "harness_path": "tools/audit/round9/D14/s1/p1_store.py",
+    "value": 11,
+    "unit": "escaping mutants (7 seams; 2 wedged 3/3; barrier-driven 0/7)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "round-9 box B8: 4 cores, 15 GB, Linux, CPython 3.14.0rc2 (/home/claude/venv314)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute-heavy D14 seats on the box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 2.48,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.store:QuarantiningStore.async_load (loaders coordinator:HeatPumpOptimizerCoordinator._async_load_*, legionella:LegionellaTracker.async_load, boost:restore_session, pump_arbiter:_load; consumers coordinator:HeatPumpOptimizerCoordinator._build_data_dict, snapshots:SnapshotRing.best_restore, coordinator:HeatPumpOptimizerCoordinator.async_restore_learned_snapshot, _roll_month, _async_update_data)",
+   "perturbation": {
+    "change": "--perturb snapguard: SnapshotRing.best_restore without its isinstance(accuracy, dict) guard (re-opens R1 D1-05)",
+    "expected_direction": "up",
+    "observed_value": "escapes 11 -> 13, seams 7 -> 8 (also --perturb sanitize: QuarantiningStore scrub = identity -> poison 0 -> 388, escapes 11 -> 18)"
+   },
+   "metric_definition": "Single-leaf store mutants (store, path, substitute) where an exception escapes a real loader or consumer (publish, best_restore, restore service, roll_month, savers); stores seeded via writers.",
+   "phenomenon_property": "No single-leaf malformation of any persisted store (non-finite, wrong type, naive timestamp, wrong container kind) may raise out of that store's loader or its downstream consumers, or fail an update cycle.",
+   "seam_rule": "PYTHONPATH=tests/hastub python tools/audit/round9/D14/s1/p1_store.py  (SEAM escape / WEDGE lines)",
+   "null_control": {
+    "command": "same command; clean_fixture_escapes and wedge_null_control_failed_cycles",
+    "value": 0,
+    "note": "The healthy seeded payloads through the same loaders and consumers give 0 escapes, and the wedge arm on all-healthy stores fails 0 of 3 cycles."
+   },
+   "reproduction_steps": [
+    "From the repository root: PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s1/p1_store.py --barrier",
+    "Read the SEAM escape and WEDGE lines, and RESULT p1_escaping_mutants=11, p1_escape_seams=7, p1_wedged_seams=2, barrier_driven_escape_seams=0",
+    "Re-find at a pre-fix tree: git archive 3511677a^ | tar -x -C $T; cd $T && PYTHONPATH=tests/hastub python <abs>/p1_store.py --no-wedge --only snapshots,ledger"
+   ],
+   "proposed_fix_scope": "One shared stored-instant parser that coerces naive to aware, used at every store timestamp read (legionella.async_load, boost._parse_until, pump_arbiter._load, manual_plan.ManualOverride.from_dict, coordinator._maybe_run_fuse_advisor, away._parse_return_time). _as_float in SnapshotRing.best_restore. An isinstance(learners, dict) guard in _apply_learner_payloads and the restore service. Shape guards in pump_arbiter._load. Barrier: fold this detector's writer-driven seeding, all-leaf-kind substitution and consumer/wedge arms into tests/finite_boundary.py, asserting 0 escapes and 0 wedged seams (about 22-26 s gate, provisional).",
+   "files": [
+    "custom_components/heatpump_optimizer/legionella.py",
+    "custom_components/heatpump_optimizer/boost.py",
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/snapshots.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "tests/finite_boundary.py"
+   ],
+   "stop_rule_class": "bug",
+   "class_guess": "P1"
+  },
+  {
+   "id": "D14-s1-02",
+   "scope": "D14-s1",
+   "step": "D14.M3",
+   "title": "P6: horizon_hours read from coordinator.data but never written; boost probes a field only a test double defines",
+   "severity": "low",
+   "claim": "At baseline, 2 consumer reads of coordinator.data (sensor.py:1482 and :1515, key horizon_hours) are absent in all 10 driven cells and written by no producer, and 1 getattr (boost.py:212 boost_calls) probes a name only tests/harness.py:FakeCoordinator defines.",
+   "mechanism": "The plan sensors publish horizon_hours via data.get('horizon_hours', 24.0), but _build_data_dict never writes it; the value comes from the fallback, which equals the never-assigned OptimizationConfig.horizon_hours default only by coincidence. boost.set_channel skips persist() whenever the coordinator carries a boost_calls recorder, which only the test double does.",
+   "evidence": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s1/p6_keys.py",
+    "harness_path": "tools/audit/round9/D14/s1/p6_keys.py",
+    "value": 2,
+    "unit": "unproduced reads (plus 1 undefined-getattr seam; 0 dangling entity ids)",
+    "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+    "machine": "round-9 box B8: 4 cores, 15 GB, Linux, CPython 3.14.0rc2 (/home/claude/venv314)",
+    "cpu_or_wall": "count",
+    "contention_note": "two other compute-heavy D14 seats on the box; counts are contention-immune",
+    "tolerance": "exact",
+    "load1": 1.14,
+    "thread_factor": 1.0
+   },
+   "instrumented_symbol": "heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._build_data_dict (payload wrapped in a recording dict as coordinator.data; every PLATFORM_LIST entity property and diagnostics:async_get_config_entry_diagnostics read)",
+   "perturbation": {
+    "change": "--perturb: delete the line data[\"heat_pump_power_series\"], data[\"house_power_series\"] = _power_windows(self) from _build_data_dict (recompiled in memory from its source; the static producer scan reads the same cut text), i.e. re-introduce R7 D8-01",
+    "expected_direction": "up",
+    "observed_value": 5
+   },
+   "metric_definition": "Distinct (consumer file:line, key path) reads of the _build_data_dict payload absent in all 10 cells (5 topologies x 2 cycles) and written as a key by no non-platform production module.",
+   "phenomenon_property": "Every key a consumer asks of coordinator.data is written by _build_data_dict in at least one reachable configuration, and every attribute probed with a default is defined by production code or Home Assistant.",
+   "seam_rule": "PYTHONPATH=tests/hastub python tools/audit/round9/D14/s1/p6_keys.py  (SEAM A-unproduced / SEAM B / SEAM C lines)",
+   "null_control": {
+    "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s1/p6_keys.py --self-test",
+    "value": 0,
+    "note": "On the clean fixture every read key is produced and the recorder reports 0; the self-test reports exactly its 1 planted unproduced key."
+   },
+   "reproduction_steps": [
+    "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s1/p6_keys.py",
+    "Re-find R7 D8-01: git archive 1e4e4b9e^ | tar -x -C $T; cd $T && PYTHONPATH=tests/hastub python <abs>/p6_keys.py  -> p6_unproduced_reads=6 (post 1e4e4b9e: 2)",
+    "Re-find R6 D6-02: same at 8c3a13c4^ -> p6_dangling_entity_ids=2 (post: 0)"
+   ],
+   "proposed_fix_scope": "Publish horizon_hours from _opt_config.horizon_hours in the payload, or drop the read. Remove the boost_calls hook from boost.set_channel and have the test double patch persist instead. Barrier: promote p6_keys arms A-C to a tests/ script, or into entities.py, asserting all three counts are 0 (about 10 s gate, provisional).",
+   "files": [
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/boost.py",
+    "tests/harness.py"
+   ],
+   "stop_rule_class": "hygiene",
+   "class_guess": "P6"
+  }
+ ],
+ "non_findings": [
+  {
+   "claim": "No non-finite value reaches live learned state or the published payload from any leaf of any of the 13 populated stores, including the snapshot ring's learner payloads that finite_boundary.py never seeds.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s1/p1_store.py",
+   "value": "p1_poison_mutants=0 of 4027 (388 with the scrub perturbed to identity)"
+  },
+  {
+   "claim": "Every store is constructed through the quarantine boundary.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s1/p1_store.py",
+   "value": "store_constructions=13, all QuarantiningStore, 0 raw Store"
+  },
+  {
+   "claim": "9 of 13 stores give 0 escaping mutants: accuracy, away, dhw_draws, dhw_profile, energy, ledger, manual_plan, price_model and thermal_learning.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s1/p1_store.py",
+   "value": "escapes only for boost=1, dhw_legionella=2, pump_duty=3, snapshots=5"
+  },
+  {
+   "claim": "Every entity id that blueprint defaults, the card and the package reference is built by a platform.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s1/p6_keys.py",
+   "value": "p6_dangling_entity_ids=0 of 75 built (was 2 at 8c3a13c4^)"
+  },
+  {
+   "claim": "The 8 payload reads absent in the driven cells all have a producer that writes the key under a configuration the cells do not enable.",
+   "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s1/p6_keys.py",
+   "value": "p6_conditional_reads=8 (manual_plan x2, predictive_info.dhw_windows_resolved, valve_target_recommendation x2, contract_comparison.load_profile_value_per_kwh x2, wood_fuel.night_advice); producers at coordinator.py:7148, optimizer.py:167, coordinator.py:7081, coordinator.py:9666, wood_fuel.py:513"
+  }
+ ],
+ "harnesses": [
+  "tools/audit/round9/D14/s1/p1_store.py",
+  "tools/audit/round9/D14/s1/p6_keys.py"
+ ],
+ "leads": [
+  {
+   "owner_seat": "unknown",
+   "file": "tests/hastub/homeassistant/util/dt.py",
+   "symbol": "now",
+   "what": "The stub returns a naive datetime.now() when no clock is frozen, while Home Assistant's dt_util.now() is always aware. Tests on the default clock therefore never compare an aware stored timestamp with an aware now, and never meet the naive-stored case that production meets (class P11, which no round-9 seat's axis holds)."
+  }
+ ]
+}

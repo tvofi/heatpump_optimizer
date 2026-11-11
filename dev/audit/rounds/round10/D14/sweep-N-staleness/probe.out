@@ -1,0 +1,14 @@
+CONF_POWER_ENTITY: limit=30.0 held 31 min -> problem=stale FAIL
+rc=1
+CONF_HEAT_PUMP_MODE_ENTITY: limit=60.0 held 61 min -> problem=stale FAIL
+rc=1
+CONF_ENERGY_ENTITY: limit=180.0 held 181 min -> problem=stale FAIL
+rc=1
+CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: limit=30.0 held 31 min -> problem=stale FAIL
+rc=1
+CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: limit=30.0 held 31 min -> problem=stale FAIL
+rc=1
+CONF_FLOW_METER_ENTITY: limit=30.0 held 31 min -> problem=stale FAIL
+rc=1
+HUMIDITY: limit=120.0 quiet=240 -> FAIL stale
+rc=1

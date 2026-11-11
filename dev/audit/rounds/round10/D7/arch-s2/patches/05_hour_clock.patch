@@ -1,0 +1,132 @@
+diff --git a/custom_components/heatpump_optimizer/dhw_draws.py b/custom_components/heatpump_optimizer/dhw_draws.py
+index cab78698f..8f7c66747 100644
+--- a/custom_components/heatpump_optimizer/dhw_draws.py
++++ b/custom_components/heatpump_optimizer/dhw_draws.py
+@@ -38,7 +38,7 @@ from typing import Any
+ 
+ import numpy as np
+ 
+-from .dhw_schedule import Window
++from .dhw_schedule import Window, format_clock
+ 
+ #: Occurrence totals kept per window — about six weeks of daily windows.
+ MAX_EVENTS_PER_WINDOW = 40
+@@ -149,19 +149,9 @@ def window_label(hour: float, windows: list[Window]) -> str:
+         else:  # wraps midnight
+             inside = hour >= start or hour < end
+         if inside:
+-            return f"{_fmt(start)}-{_fmt(end)}"
++            return f"{format_clock(start)}-{format_clock(end)}"
+     return ""
+ 
+ 
+ def labels_for(windows: list[Window]) -> list[str]:
+-    return [f"{_fmt(s)}-{_fmt(e)}" for s, e in windows]
+-
+-
+-def _fmt(hour: float) -> str:
+-    minutes = int(round(hour * 60))
+-    if minutes == 24 * 60:
+-        # The full-day window's end is 24:00, and folding it to "00:00"
+-        # would label the whole-day reservoir "00:00-00:00".
+-        return "24:00"
+-    minutes %= 24 * 60
+-    return f"{minutes // 60:02d}:{minutes % 60:02d}"
++    return [f"{format_clock(s)}-{format_clock(e)}" for s, e in windows]
+diff --git a/custom_components/heatpump_optimizer/dhw_schedule.py b/custom_components/heatpump_optimizer/dhw_schedule.py
+index 5ce17d8fd..a1c90b5cd 100644
+--- a/custom_components/heatpump_optimizer/dhw_schedule.py
++++ b/custom_components/heatpump_optimizer/dhw_schedule.py
+@@ -440,17 +440,21 @@ def _normalize(windows: list[Window]) -> list[Window]:
+     return merged
+ 
+ 
+-def format_windows(windows: list[Window]) -> str:
+-    """Render normalized windows back into the configuration string form."""
++def format_clock(hour: float) -> str:
++    """An hour-of-day as the grammar's ``HH:MM``, rounded to the minute.
++
++    A window ending at the end of the day reads ``24:00``, not ``00:00``:
++    folding it would label the whole-day window ``00:00-00:00``.
++    """
++    total_minutes = int(round(hour * 60))
++    if total_minutes != 24 * 60:
++        total_minutes %= 24 * 60
++    return f"{total_minutes // 60:02d}:{total_minutes % 60:02d}"
+ 
+-    def fmt(value: float) -> str:
+-        total_minutes = int(round(value * 60))
+-        # A window ending at the end of the day reads better as 24:00 than 00:00.
+-        if total_minutes != 24 * 60:
+-            total_minutes %= 24 * 60
+-        return f"{total_minutes // 60:02d}:{total_minutes % 60:02d}"
+ 
+-    return ", ".join(f"{fmt(s)}-{fmt(e)}" for s, e in windows)
++def format_windows(windows: list[Window]) -> str:
++    """Render normalized windows back into the configuration string form."""
++    return ", ".join(f"{format_clock(s)}-{format_clock(e)}" for s, e in windows)
+ 
+ 
+ def hour_in_windows(hour: float, windows: list[Window]) -> bool:
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 9ac069d47..e5504313b 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -859,11 +859,6 @@ async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: da
+         await _write(coord, inp, slot, getattr(command, slot), now)
+ 
+ 
+-def _night_clock(hour: float) -> tuple[int, int]:
+-    minutes = int(round(hour * 60.0)) % (24 * 60)
+-    return minutes // 60, minutes % 60
+-
+-
+ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -> None:
+     """Hold the GCHV night-mode start/end for the next silent window (#1913).
+ 
+@@ -883,8 +878,8 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
+     nxt = quiet_windows.next_gchv_window(now, spec)
+     if nxt is None:
+         return
+-    start_h, start_m = _night_clock(nxt[0])
+-    end_h, end_m = _night_clock(nxt[1])
++    start_h, start_m = quiet_windows.wall_clock(nxt[0])
++    end_h, end_m = quiet_windows.wall_clock(nxt[1])
+     if (start_h, start_m) == (end_h, end_m):
+         return
+     values = {
+diff --git a/custom_components/heatpump_optimizer/quiet_windows.py b/custom_components/heatpump_optimizer/quiet_windows.py
+index 1ed0aadde..60b59f5a7 100644
+--- a/custom_components/heatpump_optimizer/quiet_windows.py
++++ b/custom_components/heatpump_optimizer/quiet_windows.py
+@@ -275,10 +275,20 @@ def _gchv_merge(segments: list[Window]) -> list[tuple[float, float]]:
+     return out
+ 
+ 
++def wall_clock(hour: float) -> tuple[int, int]:
++    """An hour-of-day as the wall clock's ``(hour, minute)``, rounded to the minute.
++
++    The end of the day folds to ``(0, 0)``: a clock -- a ``datetime.time``, a
++    pump's schedule register -- has no 24:00. A window LABEL keeps 24:00
++    (``dhw_schedule.format_clock``).
++    """
++    minutes = int(round(hour * 60.0)) % (24 * 60)
++    return minutes // 60, minutes % 60
++
++
+ def _gchv_at(day: Any, hour: float, tz: Any) -> datetime:
+     """``day`` at ``hour`` (hours past midnight) in ``tz``."""
+-    minutes = int(round(hour * 60.0)) % (24 * 60)
+-    return datetime.combine(day, time(minutes // 60, minutes % 60), tzinfo=tz)
++    return datetime.combine(day, time(*wall_clock(hour)), tzinfo=tz)
+ 
+ 
+ def _silent_plan_spec(
+@@ -640,5 +650,5 @@ def _overlaps(a: Window, b: Window) -> bool:
+ 
+ def _fmt(hour: float) -> str:
+     """An hour-of-day as ``HH:MM``, the grammar's own form."""
+-    minutes = int(round(hour * 60.0)) % (24 * 60)
+-    return f"{minutes // 60:02d}:{minutes % 60:02d}"
++    clock_h, clock_m = wall_clock(hour)
++    return f"{clock_h:02d}:{clock_m:02d}"

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:format_clock GUARD_OFF 205fa16a",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    if total_minutes != 24 * 60:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

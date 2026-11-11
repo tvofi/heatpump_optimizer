@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/topology.py:layout_edges GUARD_OFF df969c64",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    elif key == TOPOLOGY_SLAB_SHUNT:",
+  "reason": "Recorded by `mutation_table.py --drain` against e30b24bbc45afd1174f64f7051d05021e31b6a89: GUARD_OFF (`elif False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

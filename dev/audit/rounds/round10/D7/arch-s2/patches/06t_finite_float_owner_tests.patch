@@ -1,0 +1,42 @@
+diff --git a/tests/features.py b/tests/features.py
+index 64f66afb2..bee183db6 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -44062,7 +44062,7 @@ import io as _io  # noqa: E402
+ import pickle as _t6_pickle  # noqa: E402
+ from heatpump_optimizer import coordinator as _t6_coord_module  # noqa: E402
+ from heatpump_optimizer.accuracy import AccuracySample as _AccuracySample  # noqa: E402
+-from heatpump_optimizer.coordinator import _as_float as _t6_as_float  # noqa: E402
++from heatpump_optimizer.inputs import finite_float as _t6_as_float  # noqa: E402
+ from heatpump_optimizer.coordinator import _comparable_ts as _t6_comparable_ts  # noqa: E402
+ from heatpump_optimizer.coordinator import _diagnose_payload as _t6_diagnose_payload  # noqa: E402
+ from heatpump_optimizer.coordinator import _plain_types as _t6_plain_types  # noqa: E402
+diff --git a/tests/finite_boundary.py b/tests/finite_boundary.py
+index 4725a4e9f..db8ac7035 100644
+--- a/tests/finite_boundary.py
++++ b/tests/finite_boundary.py
+@@ -1588,17 +1588,17 @@ def _overflow_sites() -> None:
+     """The float() sites a Python int past a double reaches in production.
+ 
+     orjson (storage, config entries, HTTP) never yields such an int and the
+-    store boundary scrubs one, so these four are the ones fed by what orjson
+-    does not parse: entity attributes and service-call fields (the F3.3 lead,
+-    D1-s5-03's shape). Each must refuse it as unreadable, not raise.
++    store boundary scrubs one, so these are the ones fed by what orjson does
++    not parse: entity attributes and service-call fields (the F3.3 lead,
++    D1-s5-03's shape). ``inputs.finite_float`` is the one coercion the
++    coordinator's forecast reads, ``freq_control`` and ``inputs`` share. Each
++    must refuse it as unreadable, not raise.
+     """
+-    from heatpump_optimizer import freq_control, inputs, wood_fuel
++    from heatpump_optimizer import inputs, wood_fuel
+     huge = 10 ** 400
+     got = {}
+     for name, call, want in (
+-        ("coordinator._as_float", lambda: _coord_mod._as_float(huge, 1.5), 1.5),
+-        ("freq_control._finite", lambda: freq_control._finite(huge), None),
+-        ("inputs._finite", lambda: inputs._finite(huge), None),
++        ("inputs.finite_float", lambda: inputs.finite_float(huge, 1.5), 1.5),
+         ("wood_fuel._wood_slots_error",
+          lambda: wood_fuel._wood_slots_error([{"liters": huge}], []), "invalid_wood_slots"),
+     ):

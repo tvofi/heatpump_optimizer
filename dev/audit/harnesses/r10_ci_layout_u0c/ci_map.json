@@ -1,0 +1,49 @@
+{
+ "dropped": [
+  "stub|",
+  "stub|order",
+  "stub|run:true"
+ ],
+ "gained": [
+  "arch-score|",
+  "arch-score|order",
+  "budget-raise-gate|",
+  "budget-raise-gate|order",
+  "cancel-superseded|",
+  "cancel-superseded|Cancel this branch's runs at superseded heads",
+  "cancel-superseded|order",
+  "cancel-superseded|uses:actions/checkout@<sha>",
+  "codeql|",
+  "codeql|order",
+  "gate|",
+  "gate|Judge this head",
+  "gate|Restore the programs from the base",
+  "gate|order",
+  "gate|uses:actions/checkout@<sha>",
+  "governance|",
+  "governance|order",
+  "hassfest|",
+  "hassfest|order",
+  "kernel-points|",
+  "kernel-points|order",
+  "pr-contract|",
+  "pr-contract|order",
+  "prelude|",
+  "prelude|Derive kind, PR, base, scope and legs",
+  "prelude|Restore the programs from the base",
+  "prelude|order",
+  "prelude|uses:actions/checkout@<sha>",
+  "refresh|",
+  "refresh|Re-run the stale green gates at this head",
+  "refresh|Restore the programs from the base",
+  "refresh|order",
+  "refresh|uses:actions/checkout@<sha>",
+  "tests|",
+  "tests|order",
+  "validate|",
+  "validate|order"
+ ],
+ "changed": [
+  "|triggers"
+ ]
+}

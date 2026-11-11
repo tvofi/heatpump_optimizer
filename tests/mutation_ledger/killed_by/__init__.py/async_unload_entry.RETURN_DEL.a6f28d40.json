@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/__init__.py:async_unload_entry RETURN_DEL a6f28d40",
+  "killed_by": "tests/features.py",
+  "old": "    return unload_ok",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

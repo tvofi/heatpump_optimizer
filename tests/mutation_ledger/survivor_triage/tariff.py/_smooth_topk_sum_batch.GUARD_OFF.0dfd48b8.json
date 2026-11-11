@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:_smooth_topk_sum_batch GUARD_OFF 0dfd48b8",
+  "old": "    if m == 0 or k <= 0:",
+  "reason": "added by R9 F2.5 (the batched capacity-tariff twin); the batched bisection's empty-input guard. Unreachable through the public twin: every caller passes a day run or window-excess array of an above-threshold row (m >= 1) and a k already clamped at peak_cost_batch's own `k = max(1, min(...))` (whose clamp-drops are triaged beside this as equivalent), so `m == 0 or k <= 0` never fires on a reachable input. Measured: no driver in the pin drive's net (17 drivers) detects the mutant, and the scalar twin's own guard answers identically because the call never happens. Survival measured by `mutation_table.py --pin-killed --base 2eef524d` (run 9, hpo-ci container, 2026-09-28). Survival measured UNMARKED at the pin run against 2eef524d (hpo-ci container, 17 drivers, 2026-09-28): no driver detects the mutant behaviourally.",
+  "verdict": "equivalent"
+}

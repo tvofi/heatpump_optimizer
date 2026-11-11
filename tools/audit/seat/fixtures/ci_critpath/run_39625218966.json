@@ -1,0 +1,8 @@
+{
+ "id": 39625218966,
+ "head_sha": "cb48de247b39b47ffe9e010689f8ff4f971b7e32",
+ "path": ".github/workflows/tests.yml",
+ "run_started_at": "2026-10-21T15:23:28Z",
+ "conclusion": "failure",
+ "event": "pull_request"
+}

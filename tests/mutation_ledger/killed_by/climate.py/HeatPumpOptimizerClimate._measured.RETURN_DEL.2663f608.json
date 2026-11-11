@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate._measured RETURN_DEL 2663f608",
+  "killed_by": "tests/entities.py",
+  "old": "        return data.get(key) if flags.get(key) else None",
+  "reason": "Recorded by `mutation_table.py --drain` against f637d24ab5d17e93cdabba092cd9245f440741f6: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=5."
+}

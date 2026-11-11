@@ -1,0 +1,41 @@
+one|nodhw|summer_typical|winter_cold|h48         call0/1 f=35.07947 gap=+0.0001% (+0.0000) pol=+0.0001% lad=+0.0001% arm=ladder_polish viol 0.0000->0.0000 kWh 120.5->120.5 s0 6.00->6.00 hits=0/8
+one|dhw|summer_typical|winter_cold|h48           call0/2 f=41.13954 gap=+0.0009% (+0.0004) pol=+0.0009% lad=+0.0009% arm=polish viol 0.0000->0.0000 kWh 119.6->119.6 s0 1.20->1.20 hits=0/10
+two|nodhw|summer_typical|winter_cold|h48         call0/1 f=48.02425 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 145.4->145.4 s0 2.91->2.91 hits=0/10
+two|dhw|summer_typical|winter_cold|h48           call0/2 f=55.32744 gap=+0.8151% (+0.4510) pol=+0.6507% lad=+0.8151% arm=ladder_polish viol 0.0000->0.0000 kWh 146.6->144.7 s0 0.99->0.82 hits=0/10
+one|nodhw|summer_typical|shoulder|h48            call0/1 f=4.49052 gap=+0.0961% (+0.0043) pol=+0.0000% lad=+0.0961% arm=ladder viol 0.0000->0.0000 kWh 11.9->11.8 s0 0.00->0.00 hits=0/8
+one|dhw|summer_typical|shoulder|h48              call0/1 f=7.99650 gap=+0.0090% (+0.0007) pol=+0.0000% lad=+0.0090% arm=ladder_polish viol 0.0000->0.0000 kWh 11.9->11.9 s0 0.00->0.00 hits=0/8
+two|nodhw|summer_typical|shoulder|h48            call0/1 f=6.12056 gap=+0.0016% (+0.0001) pol=+0.0016% lad=+0.0016% arm=polish viol 0.0000->0.0000 kWh 18.5->18.5 s0 0.00->0.00 hits=0/10
+two|dhw|summer_typical|shoulder|h48              call0/1 f=9.62033 gap=+0.0006% (+0.0001) pol=+0.0006% lad=+0.0006% arm=polish viol 0.0000->0.0000 kWh 18.5->18.5 s0 0.00->0.00 hits=0/8
+one|nodhw|summer_negative|winter_cold|h48        call0/1 f=21.71361 gap=+0.0086% (+0.0019) pol=+0.0000% lad=+0.0086% arm=ladder viol 0.0000->0.0000 kWh 128.7->129.7 s0 6.00->6.00 hits=0/8
+one|dhw|summer_negative|winter_cold|h48          call0/2 f=26.69452 gap=+0.0460% (+0.0123) pol=+0.0001% lad=+0.0460% arm=ladder_polish viol 0.0000->0.0000 kWh 128.1->127.5 s0 1.20->1.20 hits=0/10
+two|nodhw|summer_negative|winter_cold|h48        call0/1 f=32.18325 gap=+0.0636% (+0.0205) pol=+0.0000% lad=+0.0636% arm=ladder_polish viol 0.0000->0.0000 kWh 159.7->159.5 s0 0.07->0.00 hits=0/10
+two|dhw|summer_negative|winter_cold|h48          call0/2 f=37.25765 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 159.5->159.5 s0 0.00->0.00 hits=0/10
+one|nodhw|summer_negative|shoulder|h48           call0/1 f=0.17547 gap=+4.8015% (+0.0084) pol=+0.0000% lad=+4.8015% arm=ladder_polish viol 0.0000->0.0000 kWh 19.2->19.3 s0 0.00->0.00 hits=0/8
+one|dhw|summer_negative|shoulder|h48             call0/1 f=1.85516 gap=+0.7600% (+0.0141) pol=+0.0000% lad=+0.7600% arm=ladder_polish viol 0.0000->0.0000 kWh 19.1->19.1 s0 0.00->0.00 hits=0/8
+two|nodhw|summer_negative|shoulder|h48           call0/1 f=0.21646 gap=+1.0558% (+0.0023) pol=+0.0000% lad=+1.0558% arm=ladder viol 0.0000->0.0000 kWh 23.4->23.5 s0 0.00->0.00 hits=0/10
+two|dhw|summer_negative|shoulder|h48             call0/1 f=1.92603 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 23.4->23.4 s0 0.00->0.00 hits=0/8
+one|nodhw|shoulder|winter_cold|h48               call0/1 f=85.73522 gap=+0.2390% (+0.2049) pol=+0.0000% lad=+0.2390% arm=ladder_polish viol 0.0000->0.0000 kWh 120.4->119.7 s0 1.99->3.01 hits=0/8
+one|dhw|shoulder|winter_cold|h48                 call0/2 f=98.77195 gap=+0.0005% (+0.0005) pol=+0.0005% lad=+0.0005% arm=polish viol 0.0000->0.0000 kWh 117.9->117.9 s0 6.00->6.00 hits=0/10
+two|nodhw|shoulder|winter_cold|h48               call0/1 f=111.75934 gap=+0.0473% (+0.0529) pol=+0.0000% lad=+0.0473% arm=ladder_polish viol 0.0000->0.0000 kWh 149.6->149.5 s0 0.00->1.40 hits=0/10
+two|dhw|shoulder|winter_cold|h48                 call0/2 f=125.05706 gap=+0.1033% (+0.1292) pol=+0.0417% lad=+0.1033% arm=ladder_polish viol 0.0000->0.0000 kWh 149.8->149.3 s0 2.27->2.25 hits=0/10
+one|nodhw|shoulder|shoulder|h48                  call0/1 f=7.97275 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 13.8->13.8 s0 0.00->0.00 hits=0/8
+one|dhw|shoulder|shoulder|h48                    call0/1 f=14.74223 gap=+0.1308% (+0.0193) pol=+0.0000% lad=+0.1308% arm=ladder viol 0.0000->0.0000 kWh 13.7->13.8 s0 0.00->0.00 hits=0/8
+two|nodhw|shoulder|shoulder|h48                  call0/1 f=11.31129 gap=+0.0806% (+0.0091) pol=+0.0000% lad=+0.0806% arm=ladder viol 0.0000->0.0000 kWh 19.7->20.0 s0 0.00->0.00 hits=0/10
+two|dhw|shoulder|shoulder|h48                    call0/1 f=18.04350 gap=+0.0412% (+0.0074) pol=+0.0000% lad=+0.0412% arm=ladder_polish viol 0.0000->0.0000 kWh 19.8->19.9 s0 0.00->0.00 hits=0/8
+one|nodhw|flat|winter_cold|h48                   call0/1 f=147.80801 gap=+0.1898% (+0.2805) pol=+0.0000% lad=+0.1898% arm=ladder_polish viol 0.0000->0.0000 kWh 108.0->111.1 s0 6.00->6.00 hits=0/8
+one|dhw|flat|winter_cold|h48                     call0/1 f=165.18245 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 108.4->108.4 s0 1.20->1.20 hits=0/8
+two|nodhw|flat|winter_cold|h48                   call0/1 f=190.53622 gap=+0.1947% (+0.3710) pol=+0.0001% lad=+0.1947% arm=ladder_polish viol 0.0000->0.0000 kWh 147.2->146.6 s0 4.53->4.90 hits=0/10
+two|dhw|flat|winter_cold|h48                     call0/1 f=207.02019 gap=+0.0231% (+0.0479) pol=+0.0231% lad=+0.0231% arm=polish viol 0.0001->0.0000 kWh 146.8->146.7 s0 1.20->1.20 hits=0/8
+one|nodhw|flat|shoulder|h48                      call0/1 f=16.07809 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 10.0->10.0 s0 0.00->0.00 hits=0/8
+one|dhw|flat|shoulder|h48                        call0/1 f=26.07558 gap=+0.0660% (+0.0172) pol=+0.0004% lad=+0.0660% arm=ladder_polish viol 0.0000->0.0000 kWh 10.3->10.1 s0 0.00->0.00 hits=0/8
+two|nodhw|flat|shoulder|h48                      call0/1 f=23.21446 gap=+0.0000% (+0.0000) pol=+0.0000% lad=+0.0000% arm=polish viol 0.0000->0.0000 kWh 14.5->14.5 s0 0.00->0.00 hits=0/10
+two|dhw|flat|shoulder|h48                        call0/1 f=33.21666 gap=+0.0282% (+0.0094) pol=+0.0000% lad=+0.0282% arm=ladder_polish viol 0.0000->0.0000 kWh 15.0->14.7 s0 0.00->0.00 hits=0/8
+RESULT cells=32 count
+RESULT gap_max=4.8015 %
+RESULT gap_mean=0.2751 %
+RESULT cells_over_0p1pct=9 count
+RESULT gap_mean_drop_worst=0.1291 %
+RESULT rows_file=/tmp/claude-0/-home-claude/b0ec2fef-f6c2-53f1-b9f6-6866e66e9f0d/scratchpad/r/grid48.jsonl
+RESULT thread_factor=1.000
+RESULT load1=3.98
+RESULT swapins=0

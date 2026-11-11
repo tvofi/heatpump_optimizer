@@ -1,0 +1,825 @@
+{
+  "box": "B7",
+  "missing": [],
+  "reports": {
+    "D12-s2": {
+      "dimension": "D12",
+      "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+      "report_path": "tools/audit/round9/D12/s2/REPORT.md",
+      "exposure": "Not written: the subagent harness refused the Write to tools/audit/round9/D12/s2/REPORT.md (\"Subagents should return findings as text\"), so the report's content is carried in this JSON. Reads outside the code: README.md §Supported heat pumps and controls / Known limitations, and strings.json, only to confirm which cells the tree claims. No docs/, no GitHub, no earlier-round material. Cells derived: compressor kind {modulating 1/6 kW, on/off min==max 6/6 kW; config_flow._power_errors accepts min==max}. Control surfaces: switch slot {switch, input_boolean, climate}; ECL110 {absent, present}; compressor frequency {none, sensor, number, both} x {observe, control}; pump_arbiter mode slot {select, input_select, sensor}; set-point slots via repairs._write_setpoint.",
+      "coverage": [
+        {
+          "step": "D12.M3",
+          "depth": "deep",
+          "evidence": "On/off vs modulating over 9 golden SCENARIOS cells x 2 arms, taken through optimizer, get_current_action, _apply_action and HeatPumpActionSensor (onoff_switch.py, onoff_label.py). 13 control-surface cells through real coordinator seams (surfaces.py). 3 mode-slot domains through pump_arbiter.apply under control with explicit HA routing (mode_domain.py). Every harness was run with its perturbation and moved."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D12.M3",
+          "what": "Freq control combined with the on/off threshold: _command_frequency writes a frequency for a commanded kW below the switch's on-threshold while _apply_action switches the pump off. Read in the code, not measured."
+        },
+        {
+          "step": "D12.M3",
+          "what": "pump_arbiter.desired writes the configured dhw_setpoint to a mapped DHW set-point entity when dhw_enabled is False (control mode). Read in the code, not measured."
+        },
+        {
+          "step": "D12.M3",
+          "what": "REPORT.md was not written to disk: the subagent Write was refused. The content is in this JSON."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D12-s2-01",
+          "scope": "D12-s2",
+          "step": "D12.M3",
+          "title": "On an on/off pump, the switch path switches off steps whose planned heat the plan books as delivered",
+          "severity": "medium",
+          "claim": "The solver treats a step below the modulation floor as duty cycling within the step (bounds [0,P_max], optimizer.py ~:3962). The switch path instead commands ON only at max(0.1, min_electrical_power*0.5) (HeatPumpOptimizer._power_to_heat_pump_schedule and get_current_action; pump_arbiter._on_kw uses the same threshold). On an on/off pump (min==max==6 kW, which config_flow._power_errors accepts) the threshold is 3 kW, so the plan's 1.0-1.4 kW trickle is switched OFF while the trajectory, cost and savings count that heat as delivered. On/off arm: 4/9 cells withhold more than 10% of planned energy. Shoulder withholds 0.671 (8.30 of 12.38 kWh over 30 steps), producing 30 end-to-end switch.turn_off calls on steps with planned heat. Modulating null arm: 0/9 cells (max 0.014) and 0 such calls. Shoulder open-loop consequence: min room 20.64 C planned vs 19.89 C actuated, 17.2 K*h below the plan's own trajectory, 0 K*h below min_temperature.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/onoff_switch.py",
+            "harness_path": "tools/audit/round9/D12/s2/onoff_switch.py",
+            "value": "onoff_failing_cells=4 (LOO 3) of 9; modulating_failing_cells=0; onoff_e2e_turn_off_with_planned_heat=30; shoulder withheld_frac=0.671",
+            "unit": "cells / steps / ratio",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "box B7 cloud container, Linux 6.18, 4 vCPU, numpy/OpenBLAS",
+            "cpu_or_wall": "neither (counts and ratios)",
+            "contention_note": "contention-immune counts; deterministic solves",
+            "tolerance": "failing cells +-1, e2e steps +-3, withheld_frac +-0.05",
+            "load1": "1.38",
+            "thread_factor": "1.000"
+          },
+          "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer._power_to_heat_pump_schedule (with get_current_action and coordinator:HeatPumpOptimizerCoordinator._apply_action)",
+          "perturbation": {
+            "change": "--perturb: patch HeatPumpOptimizer._power_to_heat_pump_schedule in memory to a 0.1 kW on-threshold (its own floor) instead of min_electrical_power*0.5. Alternatively --min 1.0 (a modulating floor) on the on/off arm.",
+            "expected_direction": "down: onoff_failing_cells 4 -> 0, e2e turn_off-with-planned-heat 30 -> 0 (both measured)"
+          },
+          "metric_definition": "withheld_frac = planned space+DHW kWh in steps whose production heat_pump_on_schedule is False, divided by the plan's total planned kWh; a cell fails above 0.10; e2e counts switch.turn_off calls from _apply_action on steps with planned power > 0.1 kW",
+          "phenomenon_property": "Every seam that decides whether the pump runs a plan step must agree with the solver's reading of a sub-floor step as duty cycling. A step with planned heat must not be actuated OFF.",
+          "seam_rule": "grep -rn \"min_electrical_power.*\\* 0\\.5\\|_on_kw(\" custom_components/heatpump_optimizer/*.py  (optimizer.py:6962, :7024; pump_arbiter.py:354, :357, :491)",
+          "stop_rule_class": "bug",
+          "class_guess": "P2",
+          "files": [
+            "custom_components/heatpump_optimizer/optimizer.py",
+            "custom_components/heatpump_optimizer/pump_arbiter.py",
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "proposed_fix_scope": "Make the on/off decision consistent with the plan for sub-floor steps. Either the threshold stops withholding planned heat (ON when a step carries planned heat, letting the pump's own thermostat duty-cycle), or the solver is constrained to bang-bang or the floor when min==max. The seams listed by the rule change together.",
+          "provisional": false
+        },
+        {
+          "id": "D12-s2-02",
+          "scope": "D12-s2",
+          "step": "D12.M3",
+          "title": "The pump-duty arbiter writes the operating mode with select.select_option whatever domain the mode slot holds",
+          "severity": "medium",
+          "claim": "topology.ASSIGNABLE_KEYS['heat_pump_mode_entity'] accepts select, sensor and input_select, and config_flow has no check tying pump_duty_mode=control to a writable domain. pump_arbiter._write still hard-codes ('select','select_option'), the defect #1526 fixed for the switch slot via coordinator._on_off_service. Under control with an input_select mode slot, 5 of 5 mode writes are routed to a domain with no such entity. The mode is wrong on all 9 arbitration ticks, and the pump_write_ignored repair tells the user the pump does not hold a write that never reached it, retried every 5 min. A sensor (enum) slot fails the same way. Null control, a select slot: 0 misrouted, 0 wrong ticks, no repair.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/mode_domain.py",
+            "harness_path": "tools/audit/round9/D12/s2/mode_domain.py",
+            "value": "input_select_misrouted_mode_writes=5, input_select_ticks_mode_wrong=9, input_select_repair_raised=1; select: 0/0/0; sensor: 5/9/1; failing_mode_domains=2",
+            "unit": "calls / ticks / flag / cells",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "box B7 cloud container, Linux 6.18, 4 vCPU",
+            "cpu_or_wall": "neither (counts)",
+            "contention_note": "contention-immune counts",
+            "tolerance": "misrouted +-1; ticks exact",
+            "load1": "1.14",
+            "thread_factor": "1.000"
+          },
+          "instrumented_symbol": "heatpump_optimizer.pump_arbiter:_write (driven by pump_arbiter.apply on a real HeatPumpOptimizerCoordinator)",
+          "perturbation": {
+            "change": "--perturb: a one-line in-memory edit of pump_arbiter._write so the service domain literal \"select\" becomes entity.split(\".\", 1)[0], routing by the target's own domain.",
+            "expected_direction": "down: input_select misrouted 5 -> 0, ticks_mode_wrong 9 -> 0, repair 1 -> 0 (measured). The sensor cell keeps 9 wrong ticks, which is the read-only half of the property."
+          },
+          "metric_definition": "misrouted_mode_writes = mode-slot service calls from pump_arbiter.apply whose service domain differs from the target entity's domain, over 9 ticks 7 min apart on a space/space/DHW/space plan, with HA entity-service routing modelled explicitly (select.select_option acts only on select.*, input_select.select_option only on input_select.*, and there is no sensor.select_option)",
+          "phenomenon_property": "Every write to a user-assignable slot routes by the assigned entity's own domain. A slot assigned a read-only domain is never written under control; it is refused or declared unavailable rather than retried with a repair.",
+          "seam_rule": "grep -n 'async_call(' -A2 custom_components/heatpump_optimizer/{pump_arbiter,coordinator,repairs}.py, cross-checked against topology.ASSIGNABLE_KEYS and the config_flow _entity_of([...]) domains of each written slot",
+          "stop_rule_class": "bug",
+          "class_guess": "P2",
+          "files": [
+            "custom_components/heatpump_optimizer/pump_arbiter.py",
+            "custom_components/heatpump_optimizer/topology.py",
+            "custom_components/heatpump_optimizer/config_flow.py"
+          ],
+          "proposed_fix_scope": "pump_arbiter._write routes select_option by the target's domain (select or input_select). Control does not write a sensor mode slot: it skips it or the config flow refuses control with a read-only slot.",
+          "provisional": false
+        },
+        {
+          "id": "D12-s2-03",
+          "scope": "D12-s2",
+          "step": "D12.M3",
+          "title": "On an on/off pump every full-power step publishes as 'eco' and power_normalized runs to -60",
+          "severity": "medium",
+          "claim": "get_current_action computes p_norm = (P - min)/max(max - min, 0.1). When min==max the 0.1 kW divisor floor turns a degenerate range into a x10 scale. A full-power 6 kW step gets p_norm 0, so HeatPumpActionSensor.native_value is 'eco' rather than 'boost', and idle steps publish power_normalized = -60. On/off arm: 149 full-power steps mislabelled across 7/9 cells (range 0-31, LOO 118); power_normalized minimum -60.0. Modulating null arm: 0 mislabelled; minimum -0.2, which is the same formula on every install and goes as a lead. The climate hvac_action is unaffected because it also reads heat_pump_on.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/onoff_label.py",
+            "harness_path": "tools/audit/round9/D12/s2/onoff_label.py",
+            "value": "onoff_full_power_mislabelled=149 (LOO 118, 7/9 cells); modulating_full_power_mislabelled=0; onoff_power_normalized_min=-60.0",
+            "unit": "steps / ratio",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "box B7 cloud container, Linux 6.18, 4 vCPU, numpy/OpenBLAS",
+            "cpu_or_wall": "neither (counts)",
+            "contention_note": "contention-immune counts; deterministic solves",
+            "tolerance": "+-10% on the step count",
+            "load1": "1.30",
+            "thread_factor": "1.000"
+          },
+          "instrumented_symbol": "heatpump_optimizer.optimizer:HeatPumpOptimizer.get_current_action (read through heatpump_optimizer.sensor:HeatPumpActionSensor.native_value / extra_state_attributes)",
+          "perturbation": {
+            "change": "--min 5.0: the on/off arm's min_electrical_power becomes 5.0 kW (a 1 kW modulation range). One-line production alternative: guard p_range==0 in get_current_action instead of max(p_range, 0.1).",
+            "expected_direction": "down: onoff_full_power_mislabelled 149 -> 0 and power_normalized minimum -60 -> -5 (measured)"
+          },
+          "metric_definition": "full_power_mislabelled = plan steps with planned space power >= 0.99*max_electrical_power whose published HeatPumpActionSensor state is not 'boost', summed over 9 golden cells",
+          "phenomenon_property": "The published action band and power_normalized stay in [0,1] and rank a full-power step at the top on every compressor kind, including min==max.",
+          "seam_rule": "grep -n \"p_range\\|p_norm\" custom_components/heatpump_optimizer/optimizer.py",
+          "stop_rule_class": "bug",
+          "class_guess": "P3",
+          "files": [
+            "custom_components/heatpump_optimizer/optimizer.py",
+            "custom_components/heatpump_optimizer/sensor.py"
+          ],
+          "proposed_fix_scope": "get_current_action handles a zero modulation range (an on/off pump is either off or at 1.0) and clamps power_normalized to [0,1].",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "The switch slot routes on/off by its own domain for switch, input_boolean and climate. The sweep was shown able to detect a misroute: --perturb restores the hard-coded 'switch' and gives 2 failing cells.",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/surfaces.py [--perturb]",
+          "value": "0 misrouted in 3/3 switch-slot cells; --perturb gives failing_surface_cells=2"
+        },
+        {
+          "claim": "With ECL110 topics absent there are no MQTT publishes; configured topics publish.",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/surfaces.py",
+          "value": "mqtt_calls 0 unconfigured / 2 configured"
+        },
+        {
+          "claim": "The frequency surface writes only when a number entity is configured and control is opted in. A sensor alone stays in observe; with neither, the mode is unconfigured.",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/surfaces.py",
+          "value": "8 freq cells: writes=1 only in number+control and both+control; failing_surface_cells=0 of 13"
+        },
+        {
+          "claim": "A modulating pump on the switch path withholds no material planned heat.",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/onoff_switch.py",
+          "value": "modulating withheld_frac max 0.014, 0/9 failing, 0 turn_off calls with planned heat"
+        },
+        {
+          "claim": "The on/off winter single-zone and summer DHW-only cells hold: the solver plans at P_max or 0 there.",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/onoff_switch.py",
+          "value": "withheld_frac 0.000 in winter_single_dhw, winter_single_no_dhw, summer_dhw_only"
+        }
+      ],
+      "harnesses": [
+        "tools/audit/round9/D12/s2/onoff_switch.py",
+        "tools/audit/round9/D12/s2/mode_domain.py",
+        "tools/audit/round9/D12/s2/onoff_label.py",
+        "tools/audit/round9/D12/s2/surfaces.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "HeatPumpOptimizer.get_current_action",
+          "what": "On every install (modulating 1/6 kW), idle and sub-floor steps publish power_normalized = -min/range = -0.2 on the Heat Pump Action sensor attribute and the climate attribute: 585 of 864 steps in onoff_label.py's modulating arm. A wrong published value outside [0,1] (D2/D8)."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "HeatPumpOptimizer._idle_action",
+          "what": "The empty-plan and pre-horizon action carries power=min_electrical_power with heat_pump_on=False, so coordinator._commanded_power reports min kW commanded while the pump is off. The external-heat, COP and frequency consumers read it (D1/D2)."
+        }
+      ]
+    },
+    "D12-s3": {
+      "dimension": "D12",
+      "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+      "report_path": "tools/audit/round9/D12/s3/REPORT.md (NOT WRITTEN: the session harness refused the write because subagents may not write report files. The full report content is in this JSON: method in coverage, findings, non_findings, unfinished and leads.)",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D12.M4",
+          "depth": "deep",
+          "evidence": "usable.py runs the full product grid: layout {single, two_zone+thermometer, two_zone without thermometer, mixing valve smart_write} x DHW {none, tank, tank+sensor} x wood {none, furnace+probes} x PV {none, forecast, forecast+meter} x buffer {none, 300 L+probe} x surface {none, switch, climate on/off, number setpoint, ECL110 MQTT, freq-modulating control} = 864 cells. Each cell runs the real ha_setup_entry, one full _async_update_data cycle, and every platform's async_setup_entry, then reads every entity property. Result: 0 failing cells. flow_paths.py traces the plant one step earlier, through all 6 completion paths of the initial config flow: 2 paths invent plant (finding D12-s3-01). A probe of mapped optional entities without their plant (14 configs) found no invention outside the documented DHW presence trio."
+        },
+        {
+          "step": "D12.M5",
+          "depth": "deep",
+          "evidence": "usable.py --grid ref on the fully-mapped reference plant (all axes at their richest value, 10 extra metering/temperature slots, coord_all_features flags): 2 cells, failing_cells=0. flow_paths.py control: the 4 quick-setup paths through the same flow pages invent 0."
+        },
+        {
+          "step": "D12.M6",
+          "depth": "deep",
+          "evidence": "usable.py --grid loo drops each of the 20 optional *_entity slots in turn from the reference plant: 21 cells, failing_cells=0. Instrument check: --perturb force_dhw_power fails 24/24 dhw=none cells while the reference stays at 0. flow_paths.py --perturb explicit_presence takes invented_paths from 2 to 0. With the quick-setup DHW question answered 'yes' (--answers shipped), the 2 wizard paths are still counted."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D12.M4",
+          "what": "The multi-day cost of finding 01's DHW half was not measured. In the first cycle the invented tank sits at the ThermalState default of 55 °C, so 0 kWh is planned. What is left is a closed-loop run (tests/rolling.py) counting legionella and window reheats of a tank that does not exist, which switch the heat pump on. REPORT.md was not written because the session harness refused report files."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D12-s3-01",
+          "scope": "D12-s3",
+          "step": "D12.M4",
+          "title": "Full config-flow wizard invents a DHW tank and a second zone the user never affirmed",
+          "severity": "medium",
+          "claim": "Of the 6 completion paths of the shipping initial config flow, submitted untouched, the 2 full-wizard ('Continue setup') paths create entries whose first coordinator cycle models a 200 L DHW tank. The 'Enter thermal values directly' path also runs the two-zone model. No answer on either path said the house has hot water or two zones; the quick-setup paths answered 'no' produce neither.",
+          "mechanism": "The presence rules thermal_model._dhw_enabled_from_config (tank volume, thermometer or windows present) and the two-zone 'auto' rule in ThermalParameters.from_config (any zone key present) meet forms that always submit those keys. async_step_dhw offers no 'no hot water' answer and pre-fills dhw_tank_volume=200 and dhw_windows. async_step_zones, whose docstring calls it an 'optional step', pre-fills four zone keys. Only quick_setup.derive writes the explicit dhw_enabled / two_zone_mode flags. On the thermal path the plan covers 26.45 kWh against 22.24 kWh for the stated plant, with predicted_cost 19.289 against 11.796, in the same cycle.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py",
+            "harness_path": "tools/audit/round9/D12/s3/flow_paths.py",
+            "value": 2,
+            "unit": "flow completion paths publishing unaffirmed plant (of 6)",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "box B7, linux cloud container",
+            "cpu_or_wall": "count",
+            "contention_note": "up to 4 usable.py grid shards ran on the box during some re-runs; the count is deterministic",
+            "tolerance": "exact",
+            "load1": 2.7,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "heatpump_optimizer.config_flow:HeatPumpOptimizerConfigFlow (async_step_dhw, async_step_zones); heatpump_optimizer.thermal_model:_dhw_enabled_from_config and ThermalParameters.from_config; heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._async_update_data",
+          "perturbation": {
+            "change": "--perturb explicit_presence: _dhw_enabled_from_config honours only an explicit dhw_enabled, and from_config defaults two_zone_mode to off (the one-line shape of the fix for both rules)",
+            "expected_direction": "to_zero",
+            "observed_value": 0
+          },
+          "metric_definition": "Initial-flow completion paths (DFS over menus, forms untouched, quick-setup plant answers 'no') whose entry's first _async_update_data publishes dhw_enabled with a dhw_plan tank trajectory, or two_zone_enabled, with no affirming answer.",
+          "phenomenon_property": "A plant (DHW tank, second zone) is modelled only when an answer on the user's own setup path affirmed it. No form default and no key presence alone may turn one on.",
+          "seam_rule": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py --answers no (enumerates every menu-completion path of the initial flow; each path is a seam)",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py",
+            "value": 0,
+            "note": "The 4 quick-setup paths through the same pages (including the same dhw and zones steps after quick setup) invent 0, because the explicit flags win. With --answers shipped (DHW 'yes') the 2 wizard paths are still counted."
+          },
+          "reproduction_steps": [
+            "cd /home/claude/audit-r9-baseline",
+            "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/flow_paths.py  -> invented_paths=2",
+            "... --perturb explicit_presence -> invented_paths=0"
+          ],
+          "proposed_fix_scope": "config_flow.py async_step_dhw and async_step_zones: ask 'has DHW' and 'two zones', or write explicit dhw_enabled / two_zone_mode from the answers the way quick_setup.derive does, so that untouched defaults no longer act as presence. Update tests/entities.py's pinned 'turns hot water on anyway' check.",
+          "files": [
+            "custom_components/heatpump_optimizer/config_flow.py",
+            "custom_components/heatpump_optimizer/thermal_model.py",
+            "custom_components/heatpump_optimizer/quick_setup.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "All 864 installation x heat-pump cells pass the D12.M4 bar. Setup completes, the cycle does not raise, an optimal plan is published, no entity property raises, the entities of each omitted plant stay unavailable, no DHW, PV or wood plan is invented, and no service call targets an unconfigured entity.",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/sum_shards.py --n 4",
+          "value": "cells=864, failing_cells=0 (4 shards x 216)"
+        },
+        {
+          "claim": "M5 null control: the fully-mapped reference plant passes.",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/usable.py --grid ref",
+          "value": "cells=2, failing_cells=0"
+        },
+        {
+          "claim": "M6: dropping any one of the 20 optional *_entity slots from the reference plant leaves setup, plan and entities usable.",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/usable.py --grid loo",
+          "value": "cells=21, failing_cells=0"
+        },
+        {
+          "claim": "The grid instrument moves: forcing DHW power into the published plan fails every dhw=none cell and leaves the reference plant untouched.",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/usable.py --grid full --limit 24 --perturb force_dhw_power",
+          "value": "failing_cells=24/24 (invented_dhw_plan); --grid ref under the same perturbation: 0"
+        },
+        {
+          "claim": "Frequency control mode with an empty kW-Hz map writes no frequency, so it invents no compressor command.",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s3/usable.py --grid full --shard 0/4",
+          "value": "0 invented_actuation across the freq_modulating cells; only switch.hp turn_on and the valve write were issued"
+        }
+      ],
+      "harnesses": [
+        "tools/audit/round9/D12/s3/usable.py",
+        "tools/audit/round9/D12/s3/sum_shards.py",
+        "tools/audit/round9/D12/s3/flow_paths.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/coordinator.py",
+          "symbol": "HeatPumpOptimizerCoordinator._build_data_dict",
+          "what": "On an install with no tank, buffer or slab sensor, the data dict publishes dhw_temperature 55.0, buffer_tank_temperature 40.0 and slab_temperature 22.0, which are the ThermalState constructor defaults. The entities stay unavailable, but any card or diagnostics reader of coordinator.data would show fabricated temperatures (D4/D8)."
+        },
+        {
+          "owner_seat": "unknown",
+          "file": "tests/entities.py",
+          "symbol": "_walk_flow_untouched / check 'and turns hot water on anyway, with the 200 L tank the page pre-fills'",
+          "what": "The suite pins the untouched full wizard enabling DHW as a passing check, so the gate defends the DHW half of D12-s3-01 instead of catching it (D3)."
+        }
+      ]
+    },
+    "D7-s2": {
+      "dimension": "D7",
+      "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+      "report_path": "tools/audit/round9/D7/s2/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D7.M2",
+          "depth": "deep",
+          "evidence": "sysid_plant.py drives SystemIdentification arm/step/_finish->identify_slab + adoption_decision on light_new/heavy_old/typical_slab, truth ThermalModel == declared at 1/2/6/30 substeps; one-state identify and a free two-exponential fit on the same samples; perturbation --substep-rollout. continuous_presets_bias_gt5pct=3, adopted=0, adopted_biased=0."
+        },
+        {
+          "step": "D7.M3",
+          "depth": "deep",
+          "evidence": "learner_table.py: 8 learners x 9 contaminations (clean, external heat, defrost, offline, fault, cooling, ventilation, away, immersion), 6 through their ingest counters, 2 at their gate; learner_gates.py isolates the derate-vs-_cop_fold_blocked divergence (derate_ingests_distorted=3 -> 0 under --gate-derate)."
+        },
+        {
+          "step": "D7.M4",
+          "depth": "deep",
+          "evidence": "objective_order.py captures the real space-stage objective via _scoped_minimize (two-zone, smart_read valve, 200 L store, tank 68 C): objective/terminal/refused order maxdiff all 0.0 over 26 schedules forward, reversed and interleaved; positive control --sticky-scratch moves refused_order_maxdiff to 2.873 kW."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D7.M2",
+          "what": "Noise-bearing arms (sensor noise, true gains != prior) on top of the discretization result, and two-zone presets, were not run."
+        },
+        {
+          "step": "D7.M3",
+          "what": "Lower-floor loss learner (two-zone + lower sensor), flow-lift bias #1067, buffer cooling and comfort learner not driven; freq map and DHW dynamics measured at their gate, not their counter."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D7-s2-01",
+          "scope": "D7-s2",
+          "step": "D7.M2",
+          "title": "sysid two-state fit rolls the candidate with one Euler step per 30-min sample: UA 17-25% low on an exact continuous plant, 0/3 presets adopt",
+          "severity": "medium",
+          "claim": "On a noise-free truth plant with exactly the declared preset parameters integrated finely (30 substeps per 30-min sample), the production identify_slab fit returns UA -16.8% (light_new) and -25.5% (heavy_old) and refuses typical_slab, so 3 of 3 presets are biased >5% or refused and 0 of 3 are adopted; with the truth integrated at the fit's own 0.5 h Euler step the bias is 0.0 and 2 of 3 adopt.",
+          "mechanism": "_simulate_slab_path -> _valve_drive -> ThermalModel.simulate_step(dt_hours=sample interval) is one explicit-Euler step of 0.5 h per sample; the fit identifies the parameters of the 0.5 h Euler map, not of the continuous house (and not of the optimizer's own 0.25 h step: truth at 2 substeps gives -8.9/-10.9/-23.3%). The biased fit's residual flattens the profile, so the #1410 gate refuses it as 'interval unbounded' and the published heat_loss_kw_per_c carries the biased value.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/sysid_plant.py",
+            "harness_path": "tools/audit/round9/D7/s2/sysid_plant.py",
+            "value": 3,
+            "unit": "count (presets of 3 with |UA bias|>5% or refused, 30-substep truth)",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "cloud container B7, linux, venv314",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, up to 3 finders on the box; deterministic noise-free count, contention-immune",
+            "tolerance": "exact (bias values +-1e-4)",
+            "load1": 1.49,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.sysid:SystemIdentification.identify_slab (via _valve_drive, adoption_decision)",
+          "perturbation": {
+            "change": "--substep-rollout: sysid._valve_drive replaced in memory by the same call split into 6 equal sub-steps (one-line production edit)",
+            "expected_direction": "to_zero",
+            "observed_value": "continuous_presets_bias_gt5pct 3 -> 0; continuous_presets_adopted 0 -> 2 (heavy_old -0.0085 w=0.572, typical_slab -0.0187 w=0.165)"
+          },
+          "metric_definition": "Presets (of 3) whose production sysid UA, on a noise-free truth == declared params integrated at 30 substeps per 30-min sample, has |UA/UA_true-1|>5% or no completed fit.",
+          "phenomenon_property": "Every parameter fit that rolls a candidate ThermalModel over recorded samples must integrate the candidate at a resolution whose discretization error is small against the adoption bar, independent of the coordinator's sample cadence.",
+          "seam_rule": "grep -n \"_valve_drive(\\|simulate_step(\" custom_components/heatpump_optimizer/sysid.py",
+          "null_control": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/sysid_plant.py (rows *_sub1)",
+            "value": "truth at the fit's own 0.5 h Euler step: heavy_old +0.00000 adopted, typical_slab +0.00000 adopted",
+            "note": "the bias vanishes when truth and candidate share the discretization; a free two-state fit with a 1-min rollout recovers UA to 1e-5 on all three presets"
+          },
+          "reproduction_steps": [
+            "Run the command; read RESULT slab_bias_*_sub30 and continuous_presets_*",
+            "Re-run with --substep-rollout"
+          ],
+          "proposed_fix_scope": "sysid.py: sub-step the candidate rollout in _simulate_slab_path/_valve_drive (and the sizer's _predict_step_excursion_plant) to a fixed fine dt independent of the sample interval; re-measure the interval gate on the presets.",
+          "files": [
+            "custom_components/heatpump_optimizer/sysid.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "new"
+        },
+        {
+          "id": "D7-s2-02",
+          "scope": "D7-s2",
+          "step": "D7.M3",
+          "title": "Defrost derate fallback folds meter ratios that _cop_fold_blocked refuses to the COP learner (immersion, backup heater, capacity cap)",
+          "severity": "medium",
+          "claim": "On a flag-less install with a power meter in the frost band, _record_accuracy -> _settle_defrost -> DefrostDerate.observe folds the commanded/measured ratio on 3 of 3 draw-distorting contaminations for which _cop_fold_blocked is True and _learn_measured_cop refuses, walking the published derate to 0.874 after 12 h of backup-heater running.",
+          "mechanism": "_record_accuracy gates _settle_defrost only on _learning_frozen(power) in (None, 'defrosting'); the immersion latch and PumpElectricHeat.compressor_draw_distorted are not freeze reasons, and _settle_defrost does not consult _cop_fold_blocked, although the derate fallback reads the same meter ratio the COP learner does.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/learner_gates.py",
+            "harness_path": "tools/audit/round9/D7/s2/learner_gates.py",
+            "value": 3,
+            "unit": "count (distorting arms of 3 the derate folds)",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "cloud container B7, linux, venv314",
+            "cpu_or_wall": "count",
+            "contention_note": "fan-out, up to 3 finders on the box; deterministic count, contention-immune",
+            "tolerance": "exact",
+            "load1": 1.02,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._record_accuracy (-> _settle_defrost -> defrost:DefrostDerate.observe); comparator coordinator:_cop_fold_blocked / _learn_measured_cop",
+          "perturbation": {
+            "change": "--gate-derate: HeatPumpOptimizerCoordinator._settle_defrost wrapped in memory to return when coordinator._cop_fold_blocked(self)",
+            "expected_direction": "to_zero",
+            "observed_value": "derate_ingests_distorted 3 -> 0; contaminated-arm factor stays 1.0000; clean control still folds"
+          },
+          "metric_definition": "Number of the 3 draw-distorting arms (immersion latch, backup heater, capacity limited) on which one settled interval increments DefrostDerate.counts while _cop_fold_blocked is True.",
+          "phenomenon_property": "Every learner that folds the heat pump meter's commanded/measured ratio must refuse the intervals _cop_fold_blocked marks as not describing the compressor.",
+          "seam_rule": "grep -n \"_measured_power\\|actual_power_kw\" custom_components/heatpump_optimizer/coordinator.py",
+          "reproduction_steps": [
+            "Run the command; read RESULT derate_ingest_* and derate_factor_after_24_*",
+            "Re-run with --gate-derate"
+          ],
+          "proposed_fix_scope": "coordinator.py _record_accuracy/_settle_defrost: skip the fallback observe (the inferred path) when _cop_fold_blocked(self); the measured-duty path is unaffected.",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py",
+            "custom_components/heatpump_optimizer/defrost.py"
+          ],
+          "stop_rule_class": "bug",
+          "class_guess": "P2"
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "M2: the adoption gate admits no biased sysid fit on any preset or truth resolution (bias>5%)",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/sysid_plant.py",
+          "value": "continuous_presets_adopted_biased=0; every biased arm refused (interval unbounded or plausibility)"
+        },
+        {
+          "claim": "M2: the one-state identify() cannot complete on any preset's continuous step response, so it cannot adopt a biased fit",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/sysid_plant.py",
+          "value": "one_state_bias_light_new/heavy_old/typical_slab = nan (refused: outside plausible bounds / implausible signs)"
+        },
+        {
+          "claim": "M2: the 5 h window carries the information; a free two-exponential (4-parameter two-state) fit with a fine rollout recovers UA",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/sysid_plant.py",
+          "value": "twoexp_bias_* = +0.00000 on all three presets"
+        },
+        {
+          "claim": "M3: external heat, defrost, pump offline/fault/cooling and ventilation freeze every heat-balance learner (house loss, #53 gains, measured COP, sysid, curve tracker, DHW gate)",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/learner_table.py",
+          "value": "all 0 in those columns except defrost_derate_fallback under defrost (by design, #944) and the freq map gate"
+        },
+        {
+          "claim": "M3: away freezes only the curve tracker; no away contamination of the heat balance established (recorded, not claimed)",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/learner_table.py (--away-freezes as control)",
+          "value": "away_ingesting_learners=3 -> 0 under --away-freezes"
+        },
+        {
+          "claim": "M4: the last_buffer_trajectory stash is gone; the objective, the terminal-cost closure and the refused-heat scratch are call-order independent",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D7/s2/objective_order.py",
+          "value": "objective_order_maxdiff=0.000e+00, terminal_order_maxdiff=0.000e+00, refused_order_maxdiff=0.000e+00 kW over 26 schedules; positive control --sticky-scratch -> refused_order_maxdiff=2.873 kW"
+        }
+      ],
+      "harnesses": [
+        "tools/audit/round9/D7/s2/sysid_plant.py",
+        "tools/audit/round9/D7/s2/learner_gates.py",
+        "tools/audit/round9/D7/s2/learner_table.py",
+        "tools/audit/round9/D7/s2/objective_order.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "D5-s2",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "OptimizationResult.buffer_temp_trajectory",
+          "what": "Comment says 'the model stashes the series on itself for the terminal-cost term'; no such stash exists at this baseline (_terminal_cost takes buffer_temps as an argument)."
+        },
+        {
+          "owner_seat": "D7-s3",
+          "file": "custom_components/heatpump_optimizer/thermal_model.py",
+          "symbol": "ThermalModel._step_dhw_refused/_step_dhw_floor_injected/_step_dhw_draw_kw/_step_wood_refused",
+          "what": "Per-step scratch written by production step functions and read only by tests/features.py; no production reader (only _step_buffer_refused is read, by simulate_trajectory)."
+        }
+      ]
+    },
+    "D2-s3": {
+      "dimension": "D2",
+      "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+      "report_path": "tools/audit/round9/D2/s3/REPORT.md",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D2.M4",
+          "depth": "deep",
+          "evidence": "Checked seven M4 areas against independent formulas, each with a null arm and a perturbation, in three harnesses: current_quarter_price.py, pv_piecewise.py and m4_probes.py. The areas: folding 15-minute and hourly prices into steps, the current-price seam, 23 h and 25 h DST days, grid-fee day/night and weekday windows, the capacity tariff's exact top-k charge, PeakTracker's monthly billing and rollover, and the PV export price applied piecewise. Not measured: the capacity tariff across a month boundary and currency conversion (see unfinished)."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D2.M4",
+          "what": "Capacity tariff at a month boundary is not measured: plan windows after midnight on the 1st are priced against the previous month's threshold_kw and top-k in one pool, while the tracker would return inf for the new month."
+        },
+        {
+          "step": "D2.M4",
+          "what": "Currency conversion is not measured: price_model.apply_price_adjustments adds the configured SEK/kWh surcharge to entity series in any currency after unit scaling."
+        },
+        {
+          "step": "D2.M4",
+          "what": "The live PV export-price entity against the static value under negative spot is not measured."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D2-s3-01",
+          "scope": "D2-s3",
+          "step": "D2.M4",
+          "title": "_current_spot_price reads a quarter up to 45 min stale under 15-minute price entries",
+          "severity": "high",
+          "claim": "With 15-minute price entries (what the default Tibber QUARTER_HOURLY pull returns), HeatPumpOptimizerCoordinator._current_spot_price returns the earliest entry that started within the last hour instead of the entry covering now. It is wrong on 28..42 of 96 quarters per day when prices ramp within the hour, and on 12..18 of 96 when prices are constant within each hour (the three quarters after every price change). The published current_price, the settlement's price/spot_price, sysid's price and the comfort learner's relative price all read it.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/current_quarter_price.py [--perturb]",
+            "harness_path": "tools/audit/round9/D2/s3/current_quarter_price.py",
+            "value": "28..42",
+            "unit": "quarters of 96 mispriced per non-flat profile (ramp arm); step arm 12..18; mean |err| 0.042..0.584 per kWh, mean 0.185, leave-max-out 0.105",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "B7 audit container, linux",
+            "cpu_or_wall": "count",
+            "contention_note": "light seat; counts are contention-immune",
+            "tolerance": "exact",
+            "load1": 0.33,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.coordinator:HeatPumpOptimizerCoordinator._current_spot_price",
+          "perturbation": {
+            "change": "In _current_spot_price, replace the entry span timedelta(hours=1) with 15 minutes (the harness does this in memory with --perturb)",
+            "expected_direction": "The quarter-entry arms fall to 0 mismatches and the hourly-entries null control rises from 0 to 273. The span is the mechanism; an honest fix takes each entry's end from the next entry's start, as _known_prices_for does, and must read 0 on all three arms."
+          },
+          "metric_definition": "Per profile, the count of the 96 quarters (clock frozen 7 minutes into each) where _current_spot_price() differs from the price of the entry whose [start, start+15 min) contains now; keyed on the value the seam returns.",
+          "phenomenon_property": "Every seam that prices 'now' from the price entry list must use each entry's real span, taken from the entries, and not a fixed one-hour span.",
+          "seam_rule": "grep -n \"timedelta(hours=1)\" custom_components/heatpump_optimizer/coordinator.py custom_components/heatpump_optimizer/*.py | grep -i -e price -e starts",
+          "stop_rule_class": "bug",
+          "class_guess": "P2",
+          "files": [
+            "custom_components/heatpump_optimizer/coordinator.py"
+          ],
+          "proposed_fix_scope": "Make _current_spot_price look up the covering entry the way _known_prices_for does (bisect on the sorted starts; the end is the next start), or call _known_prices_for([now]) directly. Add a features.py pin with quarter entries at :07 past each quarter.",
+          "provisional": false
+        },
+        {
+          "id": "D2-s3-02",
+          "scope": "D2-s3",
+          "step": "D2.M4",
+          "title": "PV piecewise cost clipped by import_margin's zero floor wherever import price < export price",
+          "severity": "medium",
+          "claim": "pv.import_margin floors (import - export) at zero, so wherever import < export on a surplus step, HeatPumpOptimizer._energy_cost_fn and pv.blended_block_prices price surplus-covered energy at the import price instead of the export compensation it forgoes. This breaks the stated identity export·min(P,s)+import·max(P−s,0) on 16 of 96 steps for summer_negative at the shipped default export price 0.0. On a real solve the published predicted_cost is −0.609 where the identity gives 0.000, and the plan draws 5.07 kWh from surplus in negative-price steps against 2.27 kWh unfloored.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/pv_piecewise.py [--perturb]",
+            "harness_path": "tools/audit/round9/D2/s3/pv_piecewise.py",
+            "value": 16,
+            "unit": "steps of 96 breaching the piecewise identity (summer_negative, export 0.0 default); summer_typical @0.30 = 20; signed error per day at 3 kW, export 0.30: range −5.04..0, mean −1.14, leave-most-negative-out −0.36; solve predicted_cost − identity = −0.609",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "B7 audit container, linux",
+            "cpu_or_wall": "count",
+            "contention_note": "light seat; counts and currency identities are contention-immune",
+            "tolerance": "exact for counts; ±1e-6 for the solve's currency figure",
+            "load1": 0.1,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components.heatpump_optimizer.optimizer:HeatPumpOptimizer._energy_cost_fn (via custom_components.heatpump_optimizer.pv:import_margin)",
+          "perturbation": {
+            "change": "Remove the zero floor in pv.import_margin, returning import − export unclipped (the harness does this in memory with --perturb via mock.patch.object)",
+            "expected_direction": "Breach steps fall to 0 in every cell, the solve's predicted_cost − identity goes from −0.609 to 0.000, and surplus kWh in negative-price steps goes from 5.07 to 2.27."
+          },
+          "metric_definition": "Per (price profile, export price) cell, the count of the 96 steps where the production cost closure's price of a 3 kW single-step draw differs by more than 1e-9 from export·min(P,s)+import·max(P−s,0)·dt with a clear-sky 6 kWp surplus; keyed on the closure's returned value.",
+          "phenomenon_property": "Every PV-aware pricing seam must charge surplus-covered energy at the export compensation for any sign of import − export; no seam may floor the margin.",
+          "seam_rule": "grep -n \"import_margin\" custom_components/heatpump_optimizer/*.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/pv.py",
+            "custom_components/heatpump_optimizer/optimizer.py"
+          ],
+          "proposed_fix_scope": "Drop the clip in pv.import_margin, or replace it with a guard only on non-finite values. Correct its docstring's rationale: with export > import, the unfloored cost is still correct and does not invert anything. Add a features.py pin covering a negative-import surplus step and an export > import step through both _energy_cost_fn and blended_block_prices.",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "_known_prices_for assigns every step the covering entry's price on the 23 h (2026-03-29) and 25 h (2026-10-25) Europe/Stockholm days, with both hourly and quarter entries",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/m4_probes.py",
+          "value": "0 of 384 steps"
+        },
+        {
+          "claim": "GridFeeSchedule.fee_vector matches an independent local-wall-clock rule across both DST days and a January week. Rules tested: a base rule, a Nov-Mar Mon-Fri 06-22 surcharge written with a decimal comma, and a wrapping 22-06 night rule.",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/m4_probes.py",
+          "value": "0 of 900 steps"
+        },
+        {
+          "claim": "tariff.peak_cost equals price_per_kw × sum of the top-k per-day-max window excess (distinct days, 60-minute windows)",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/m4_probes.py [--perturb moves it to 500/500]",
+          "value": "0 of 500 random plans"
+        },
+        {
+          "claim": "PeakTracker.billed_peak_kw equals the mean of the top-3 distinct-day hourly means over a month of 15-minute samples, and resets to 0 at month rollover, so the monthly peak is charged once",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/m4_probes.py",
+          "value": "0 of 2 checks"
+        },
+        {
+          "claim": "Hourly price entries give a correct current spot price (null control for D2-s3-01)",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D2/s3/current_quarter_price.py",
+          "value": "0 mismatches over 7 profiles × 96 quarters"
+        }
+      ],
+      "harnesses": [
+        "tools/audit/round9/D2/s3/current_quarter_price.py",
+        "tools/audit/round9/D2/s3/pv_piecewise.py",
+        "tools/audit/round9/D2/s3/m4_probes.py"
+      ],
+      "leads": []
+    },
+    "D8-s2": {
+      "dimension": "D8",
+      "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+      "report_path": "tools/audit/round9/D8/s2/REPORT.md (NOT WRITTEN: the session refused a report-file write; the full report content is this JSON)",
+      "exposure": "",
+      "coverage": [
+        {
+          "step": "D8.M1",
+          "depth": "deep",
+          "evidence": "matrix.py builds a real HeatPumpOptimizerCoordinator for each of the 5 coordinator_scenarios(), each in two arms: no thermometers and indoor+outdoor thermometers, 10 cells in all. Prices, forecast and irradiance are injected; only the four fetchers are stubbed. Each cell runs two cycles through the production _async_update_data: the light path, then a solve with changed inputs. Every climate, switch and button entity is built through the real async_setup_entry. Not covered: ECL110, Tuya, valve storage, two-tank, coil and wood toggles (see unfinished)."
+        },
+        {
+          "step": "D8.M2",
+          "depth": "deep",
+          "evidence": "Per entity per cell the harness checks availability, orjson and finiteness of the attributes, hvac and preset enum membership, float temperatures, and six payload-restating attributes plus current_temperature following cycle 2. The operating-state oracle compares hvac_action with the actuated action (heat_pump_on and power+dhw_power) in mode off with space and DHW boosts, with the same boosts at mode auto as the null arm. A per-step oracle covers 96 solved plan steps, 6 of them DHW-only, including minimum modulation. The harness also captures the immediate state write after climate set_hvac_mode and switch turn_off."
+        }
+      ],
+      "unfinished": [
+        {
+          "step": "D8.M1",
+          "what": "The matrix covers only the 5 scenario configurations × thermometer axis. The ECL110, Tuya-signal (including the DHW-only Tuya overlay with space heating blocked), valve-storage, two-tank, coil and wood toggles were not added as cells. The DHW-only oracle was instead exercised through the DHW boost at mode off and through the 6 DHW-only plan steps."
+        },
+        {
+          "step": "D8.M2",
+          "what": "REPORT.md at tools/audit/round9/D8/s2/REPORT.md could not be written because the session refused report-file writes, so the report content is carried in this JSON only. Not examined: whether SystemIdentificationButton stays available after it is armed but before the experiment is active."
+        }
+      ],
+      "findings": [
+        {
+          "id": "D8-s2-01",
+          "scope": "D8-s2",
+          "step": "D8.M2",
+          "title": "Climate entity is permanently unavailable on an install without an indoor thermometer, taking the thermostat control with it",
+          "severity": "high",
+          "claim": "HeatPumpOptimizerClimate.available is False in every cell whose indoor thermometer has not read, even though the coordinator holds a fresh payload. Its hvac_mode, target, presets and 22 payload-backed attributes are therefore never published, and HA's service calls skip the entity, while current_temperature already returns None without a reading.",
+          "mechanism": "climate.py available ANDs in coordinator.data['reading_ok']['upper_floor_temperature']. That flag is False for an unconfigured indoor entity (coordinator._reading_ok), and the README (line 168) and the config_flow (vol.Optional) both make that entity optional. The A3(e) aim, not publishing the 21.0 constructor default, is already met by current_temperature returning None. The whole-entity gate is redundant for that aim and removes the control surface: HA's entity_service_call skips unavailable entities, so set_temperature, set_hvac_mode and turn_off on the thermostat do nothing. tests/entities.py:3345-3383 pins this as the A3(e) decision.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+            "harness_path": "tools/audit/round9/D8/s2/matrix.py",
+            "value": 5,
+            "unit": "cells of 10 (RESULT climate_unavailable_with_payload; climate_attrs_hidden=112)",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "audit box B7, linux container, /home/claude/venv314",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during fan-out; count metric, contention-immune",
+            "tolerance": "exact",
+            "load1": 4.93,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.available",
+          "perturbation": {
+            "change": "--perturb-available: available returns CoordinatorEntity.available alone, dropping the reading_ok term (a one-line edit in memory)",
+            "expected_direction": "climate_unavailable_with_payload 5 -> 0 and climate_attrs_hidden 112 -> 0 (measured)"
+          },
+          "metric_definition": "Number of matrix cells in which the coordinator has a payload and last_update_success is True, yet HeatPumpOptimizerClimate.available is False.",
+          "phenomenon_property": "An entity that carries a control surface (setpoint, mode, presets) gates its whole availability on a measurement it could publish as None instead.",
+          "seam_rule": "grep -n \"def available\" -A8 custom_components/heatpump_optimizer/climate.py custom_components/heatpump_optimizer/switch.py custom_components/heatpump_optimizer/button.py | grep reading_ok",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/climate.py",
+            "tests/entities.py"
+          ],
+          "proposed_fix_scope": "Drop the reading_ok term from HeatPumpOptimizerClimate.available and keep current_temperature's None gate. This overturns the A3(e) pin at tests/entities.py:3345-3383, so it needs the owner's decision.",
+          "provisional": false
+        },
+        {
+          "id": "D8-s2-02",
+          "scope": "D8-s2",
+          "step": "D8.M2",
+          "title": "Climate hvac_action publishes off while an active boost runs the pump in optimizer mode off",
+          "severity": "high",
+          "claim": "With mode off and a live space or DHW boost, the actuated action has heat_pump_on=True and draws 5.0 kW space or 4.0 kW DHW, while the climate publishes hvac_action=off. This happens in all 14 such arms; the same boosts at mode auto give 0.",
+          "mechanism": "climate.py hvac_action returns HVACAction.OFF whenever the payload mode is off, before it reads the action. boost.apply (coordinator.py:4652) overlays live boost channels in every mode, including off, and _apply_action then switches the pump on. The pump runs while the thermostat says off.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+            "harness_path": "tools/audit/round9/D8/s2/matrix.py",
+            "value": 14,
+            "unit": "arms (RESULT hvac_action_vs_plan; 10 space-boost + 4 DHW-boost at mode off; null arm at mode auto = 0; per-step plan oracle hvac_action_steps_vs_plan=0 of 96)",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "audit box B7, linux container, /home/claude/venv314",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during fan-out; count metric, contention-immune",
+            "tolerance": "exact",
+            "load1": 4.93,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.hvac_action",
+          "perturbation": {
+            "change": "--perturb-hvac-action: hvac_action returns HEATING when current_action.heat_pump_on or power_normalized > 0.1, before the mode-off check",
+            "expected_direction": "hvac_action_vs_plan 14 -> 0 (measured)"
+          },
+          "metric_definition": "Number of (cell, boost channel, mode) arms in which the cycle's actuated current_action has heat_pump_on True with power+dhw_power >= 0.1 kW but HeatPumpOptimizerClimate.hvac_action is OFF or IDLE.",
+          "phenomenon_property": "An operating-state property derives from the mode label rather than from the action the cycle actuated.",
+          "seam_rule": "grep -n 'MODE_OFF\\|\"mode\"' custom_components/heatpump_optimizer/climate.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/climate.py"
+          ],
+          "proposed_fix_scope": "In hvac_action, test current_action.heat_pump_on (and the draw) before returning OFF for the mode, or return OFF only when the action says the pump is off.",
+          "provisional": false
+        },
+        {
+          "id": "D8-s2-03",
+          "scope": "D8-s2",
+          "step": "D8.M2",
+          "title": "Mode actions publish a state that mixes the live mode with the stale payload mode",
+          "severity": "medium",
+          "claim": "The state write a mode action makes at once carries hvac_mode=off with hvac_action=heating on the climate, and is_on=false with attribute mode='auto' on the Optimizer Active switch. This holds until the refresh has solved, 30 to 70 s on a Pi.",
+          "mechanism": "publish_then_refresh writes state before the refresh rebuilds coordinator.data. hvac_mode and switch.is_on read the live coordinator.mode (v6.6.12), while climate.hvac_action and OptimizerEnableSwitch.extra_state_attributes['mode'] read data['mode'], the payload copy.",
+          "evidence": {
+            "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+            "harness_path": "tools/audit/round9/D8/s2/matrix.py",
+            "value": 2,
+            "unit": "state writes (RESULT mode_split_after_action)",
+            "baseline_sha": "1936d5ca72a06556eeed4e8e5bf3dea520e517e1",
+            "machine": "audit box B7, linux container, /home/claude/venv314",
+            "cpu_or_wall": "count",
+            "contention_note": "shared box during fan-out; count metric, contention-immune",
+            "tolerance": "exact",
+            "load1": 4.93,
+            "thread_factor": 1
+          },
+          "instrumented_symbol": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.hvac_action; custom_components/heatpump_optimizer/switch.py:OptimizerEnableSwitch.extra_state_attributes",
+          "perturbation": {
+            "change": "--perturb-live-mode: both payload-mode readers read coordinator.mode instead of data['mode']",
+            "expected_direction": "mode_split_after_action 2 -> 0 (measured)"
+          },
+          "metric_definition": "Number of immediate state writes made by climate.async_set_hvac_mode or OptimizerEnableSwitch.async_turn_off in which the live-mode field (hvac_mode or is_on) disagrees with a payload-mode field in the same write (hvac_action OFF-ness or the switch attribute mode).",
+          "phenomenon_property": "One entity state write reads the operating mode from two sources, the live coordinator.mode and the payload copy data['mode'].",
+          "seam_rule": "grep -n 'data.get(\"mode\"' custom_components/heatpump_optimizer/climate.py custom_components/heatpump_optimizer/switch.py",
+          "stop_rule_class": "bug",
+          "class_guess": "new",
+          "files": [
+            "custom_components/heatpump_optimizer/climate.py",
+            "custom_components/heatpump_optimizer/switch.py"
+          ],
+          "proposed_fix_scope": "Read coordinator.mode in climate.hvac_action's off test and in OptimizerEnableSwitch's mode attribute.",
+          "provisional": false
+        }
+      ],
+      "non_findings": [
+        {
+          "claim": "Every attribute of every climate, switch and button entity is orjson-serialisable and finite in all 10 cells",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+          "value": "orjson_or_nonfinite=0"
+        },
+        {
+          "claim": "The climate hvac_mode and preset_mode are always members of their listed options, and current_temperature and target_temperature are floats or None",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+          "value": "enum_out_of_list=0"
+        },
+        {
+          "claim": "Six payload-restating climate attributes (current_price, predicted_savings, savings_percentage, optimization_status, solar_heat_gain_kw, dhw_setpoint) follow cycle 2's payload, and current_temperature follows the thermometer from 21.4 to 20.1",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+          "value": "stale_attr=0"
+        },
+        {
+          "claim": "Across all 96 steps of a real solved plan, climate hvac_action agrees with the plan's own heat_pump_on and draw, including 6 DHW-only steps and the minimum-modulation steps",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+          "value": "hvac_action_steps_vs_plan=0 of plan_steps_checked=96 (plan_steps_dhw_only=6)"
+        },
+        {
+          "claim": "The Optimize Now button is available while no optimization is running, and every switch's is_on is a bool",
+          "command": "PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D8/s2/matrix.py",
+          "value": "button_unavailable_idle=0, switch_is_on_not_bool=0"
+        }
+      ],
+      "harnesses": [
+        "tools/audit/round9/D8/s2/matrix.py"
+      ],
+      "leads": [
+        {
+          "owner_seat": "unknown",
+          "file": "custom_components/heatpump_optimizer/optimizer.py",
+          "symbol": "Optimizer._idle_action",
+          "what": "The idle fallback action publishes power=min_electrical_power with heat_pump_on=False and no dhw_power. commanded_power_kw therefore reports a non-zero recommended power (climate recommended_power_kw, Recommended Power) while the pump is commanded off."
+        },
+        {
+          "owner_seat": "D8-s1",
+          "file": "custom_components/heatpump_optimizer/sensor.py",
+          "symbol": "IndoorTempSensor.available",
+          "what": "It gates on reading_ok['upper_floor_temperature'] like the climate, for the same A3(e) reason. Check whether any sensor carrying a non-measured value (plan or money) is hidden along with the measurement, as D8-s2-01 found on the climate."
+        },
+        {
+          "owner_seat": "D8-s1",
+          "file": "custom_components/heatpump_optimizer/sensor.py",
+          "symbol": "Heat Pump Action / operating-state sensors",
+          "what": "Run the D8-s2-02 arm on the sensor side: mode off with a live space or DHW boost, where boost.apply still actuates the pump. Check whether sensors publishing an operating state or pump power read the mode label or the actuated action."
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:<module> CONST ea6d2caa",
+  "killed_by": "tests/features.py",
+  "old": "DUTY_ALPHA = 0.10",
+  "reason": "Recorded by `mutation_table.py --drain`: CONST (`DUTY_ALPHA = 0.2`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/store.py:load_mapping RETURN_DEL cf5ee25a",
+  "killed_by": "tests/features.py",
+  "old": "    return raw if isinstance(raw, dict) else None",
+  "reason": "Recorded by hand for R9-EG-A2 (#1874) on an export of the branch, 2026-10-03, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS): a kill is a red run naming a FAIL line or traceback the unmutated baseline does not. RETURN_DEL (`pass`) took tests/features.py from rc=1 failed=2 to rc=1 failed=12, newly failing ['a change over a write that held before the restart is written back after it']."
+}

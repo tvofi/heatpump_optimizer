@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._track_curve_comfort BOOLOP 183f229b",
+  "killed_by": "tests/features.py",
+  "old": "        if self._curve_day and day != self._curve_day:",
+  "reason": "#1513 (R8-P8) round 3, a survivor CI's changed-scope mutation lane drew at 1a8cbcce. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1, 1 failed, among them `a new day folds the previous day's worst margin into the curve learner once`. Measured at 25497c4b, 2026-09-24."
+}

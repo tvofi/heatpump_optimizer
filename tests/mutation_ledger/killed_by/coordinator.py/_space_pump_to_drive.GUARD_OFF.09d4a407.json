@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_space_pump_to_drive GUARD_OFF 09d4a407",
+  "killed_by": "tests/features.py",
+  "old": "    if coord._mode in (MODE_AUTO, MODE_ECONOMY) and coord._plan_is_stale():",
+  "reason": "The same guard deleted whole: the space pump is then driven on every plan, stale included, while `_apply_action` refuses it -- and the D1-02 enumeration rule reports this seam ungated, so two checks red. Measured: tests/features.py rc=1, `the space pump is not driven from a plan _plan_is_stale refused (#1449) [commanded ['switch.vvc', 'switch.space_pump'] from a 400-minute-old plan]` and the rule check, reporting ('_async_drive_pumps', False)."
+}

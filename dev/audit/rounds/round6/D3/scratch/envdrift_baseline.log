@@ -1,0 +1,13 @@
+SELF-COMPARISON: 'e336cc2c530882a142ef298de6420706d96a6300' resolves to e336cc2c5308, which is HEAD.
+Comparing this tree against itself proves nothing: the two
+captures are identical by construction, so no drift can ever be
+reported and every claim in tests/golden/claimed_drift.txt is
+stale by definition -- a gate that cannot fail is not a gate.
+Point the comparison ref at the commit this tree should be
+measured against -- the merge-base with the target branch for a
+PR, HEAD^1 for a push to main -- and fail the run if that commit
+cannot be resolved instead of falling back to HEAD.
+real 0.08
+user 0.04
+sys 0.02
+EXIT=1

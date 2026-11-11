@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_fd_rows RETURN_DEL 23640190",
+  "killed_by": "tests/features.py",
+  "old": "    return rows",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 399ef171e4fa6777a2c0648d1d49ae756e1125b1: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

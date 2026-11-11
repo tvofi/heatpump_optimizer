@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/notifier.py:_comfort_cause RETURN_DEL da9e8e97",
+  "old": "    return None",
+  "reason": "_comfort_cause's trailing `return None` is the function's last statement, so deleting it (`pass`) falls off the end and returns the same None. Measured: the mutant leaves tests/features.py at rc=1 failed=2, the same count as the unmutated baseline (the red check is R9-F2.1 P3, also red on the ratchet base 6001b09a557259f37319b400d219cf83e02c563f).",
+  "verdict": "equivalent"
+}

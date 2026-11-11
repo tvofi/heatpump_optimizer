@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.identify CMP_BOUND 6e7499af",
+  "killed_by": "tests/features.py",
+  "old": "        if solution is None or not np.all(np.isfinite(solution)) or rank < n_cols:",
+  "reason": "Recorded by `mutation_table.py --drain` against 3976515a08228598ea3863f4f36dc4c7c4846865: CMP_BOUND (`if solution is None or not np.all(np.isfinite(solution)) or rank <= n_cols:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
+}

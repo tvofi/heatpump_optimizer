@@ -1,0 +1,102 @@
+{
+  "dimension": "D8",
+  "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+  "exposure": "",
+  "findings": [
+    {
+      "id": "D8-s1-01",
+      "title": "Only sensor.py scrubs non-finite floats; climate/switch/binary_sensor/datetime leak NaN/Inf",
+      "severity": "high",
+      "claim": "A NaN or Inf value reaching coordinator.data under a key climate.py, switch.py, binary_sensor.py or datetime.py reads directly is published unscrubbed and fails orjson serialisation, while the identical value reaching the same key through a sensor entity is silently converted to None, because the non-finite scrub (`HeatPumpOptimizerSensorBase.__init_subclass__`, sensor.py:327) exists only on the sensor platform's base class.",
+      "mechanism": "sensor.py wraps every subclass's native_value/extra_state_attributes in `_finite()` at class-definition time via `__init_subclass__`, documented (sensor.py:112-137) as covering 'the next attribute that divides by a zero sample count ... without anyone remembering to ask'. `HeatPumpOptimizerEntity` (entity.py), the shared base every platform subclasses, carries no such hook, and none of climate.py/switch.py/binary_sensor.py/datetime.py call `_finite()` themselves (grep count 0 in each). `CurrentPriceSensor.native_value` and `HeatPumpOptimizerClimate.extra_state_attributes['current_price']` both read `coordinator.data['current_price']` -- one comes back None, the other comes back the raw NaN/Inf.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D8/s1_finite_boundary.py",
+        "harness_path": "tools/audit/round8/D8/s1_finite_boundary.py",
+        "value": "overall_asymmetry_confirmed=1 (climate_leaks_nonfinite_nan=1, climate_leaks_nonfinite_inf=1, sensor_scrubs_same_key_nan=1, sensor_scrubs_same_key_inf=1; climate_finite_call_count=0, switch_finite_call_count=0, binary_sensor_finite_call_count=0, datetime_finite_call_count=0, sensor_finite_call_count=6)",
+        "unit": "bool/count",
+        "baseline_sha": "cdf82daabcfe3777d98b31489f36df5555ec9d82",
+        "machine": "4-vCPU cloud container (audit round 8 box, not the RPi-class reference machine)",
+        "cpu_or_wall": "count",
+        "contention_note": "no timing measured; counts and booleans are contention-immune",
+        "tolerance": "exact",
+        "load1": 23.0,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.climate:HeatPumpOptimizerClimate.extra_state_attributes / heatpump_optimizer.sensor:CurrentPriceSensor.native_value",
+      "perturbation": {
+        "change": "coordinator.data['current_price'] set from a finite float (null control, 0.73) to float('nan') and then float('inf'), on the same live coordinator object feeding both a real climate entity and a real sensor entity constructed through async_setup_entry",
+        "expected_direction": "sign_flip",
+        "observed_value": "null control: both read back 0.73 unmangled (null_control_ok=1). Perturbed: climate's extra_state_attributes['current_price'] flips to the raw non-finite float (fails orjson.dumps) while sensor's native_value flips to None -- the two readers of the same key diverge exactly at the perturbation."
+      },
+      "metric_definition": "1 iff climate attrs['current_price'] fails orjson.dumps once data['current_price'] is non-finite; sibling: 1 iff sensor.native_value is None there",
+      "phenomenon_property": "every production symbol reachable from coordinator.data that a non-sensor-platform entity property (native_value/state/is_on/extra_state_attributes) reads without passing through sensor.py:_finite -- enumerated by `grep -L '_finite(' custom_components/heatpump_optimizer/{climate,switch,binary_sensor,datetime}.py` (all four: no _finite calls) crossed with every `coordinator.data.get(...)`/`self._data().get(...)` read site in those four files",
+      "seam_rule": "grep -n \"coordinator.data.get\\|self\\._data().get\\|\\.get(\\\"current_\" custom_components/heatpump_optimizer/{climate,switch,binary_sensor,datetime}.py",
+      "null_control": {
+        "command": "same harness, unperturbed read: coordinator.data['current_price'] = 0.73",
+        "value": "null_control_ok=1 (climate=0.73, sensor=0.73)",
+        "note": "both platforms agree and round-trip the finite value unchanged; the divergence appears only once the perturbation is applied, so it is not an artifact of the two code paths formatting numbers differently"
+      },
+      "reproduction_steps": [
+        "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D8/s1_finite_boundary.py",
+        "confirm RESULT climate_leaks_nonfinite_nan=1 and RESULT sensor_scrubs_same_key_nan=1 in the output"
+      ],
+      "proposed_fix_scope": "move the `_finite` scrub (or an equivalent `__init_subclass__` hook) onto `HeatPumpOptimizerEntity` in entity.py so every platform inherits it once, the way sensor.py's own docstring already frames the fix ('applied at the publication boundary ... rather than at the two sites that produce it'); no change to what any entity computes, only to the boundary every platform publishes through",
+      "files": [
+        "custom_components/heatpump_optimizer/entity.py",
+        "custom_components/heatpump_optimizer/sensor.py",
+        "custom_components/heatpump_optimizer/climate.py",
+        "custom_components/heatpump_optimizer/switch.py",
+        "custom_components/heatpump_optimizer/binary_sensor.py",
+        "custom_components/heatpump_optimizer/datetime.py"
+      ],
+      "expected_golden_drift": [],
+      "stop_rule_class": "bug"
+    }
+  ],
+  "non_findings": [
+    {
+      "claim": "Across the 5 coordinator_scenarios() topology/feature configs (coord_minimal, coord_dhw, coord_two_zone, coord_grid_fee, coord_all_features), driven through the real async_setup_entry for all 6 platforms (sensor, binary_sensor, button, climate, switch, datetime), no entity's native_value/state round-trips to a different value after coordinator.data is swapped A->B->A on the same live entity object (no caching/staleness bug found generically)",
+      "command": "PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 python3 tools/audit/round8/D8/s1_matrix.py",
+      "value": "RESULT round_trip_stale=0 count (out of RESULT total_entities_checked=370 count, 5 scenarios x 6 platforms x ~12 entities/platform average)"
+    },
+    {
+      "claim": "Under the same 5x6 matrix, no entity's native_value/extra_state_attributes fails orjson serialisation (no bare NaN/Inf, no numpy scalar/array escapes _finite where it applies) with the scenarios' realistic 48h price/weather/solar inputs",
+      "command": "PYTHONPATH=tests/hastub ... python3 tools/audit/round8/D8/s1_matrix.py",
+      "value": "RESULT non_orjson=0 count"
+    },
+    {
+      "claim": "No MEASUREMENT/TOTAL/TOTAL_INCREASING sensor publishes a non-numeric, non-None native_value under any of the 5 scenarios (state_class/type contract holds)",
+      "command": "PYTHONPATH=tests/hastub ... python3 tools/audit/round8/D8/s1_matrix.py",
+      "value": "RESULT stateclass_type_violation=0 count"
+    },
+    {
+      "claim": "No ENUM-device-class sensor publishes a native_value outside its own _attr_options; no TIMESTAMP sensor publishes a naive (tz-unaware) datetime",
+      "command": "PYTHONPATH=tests/hastub ... python3 tools/audit/round8/D8/s1_matrix.py",
+      "value": "RESULT enum_violation=0 count; RESULT timestamp_naive=0 count"
+    },
+    {
+      "claim": "All 62 concrete subclasses of HeatPumpOptimizerSensorBase have both native_value and extra_state_attributes (where either is defined anywhere in their MRO) wrapped by the _finite scrub -- the __init_subclass__ mixin trap (mixins whose base is `object` at runtime, e.g. _MeasuredStoreMixin, do not themselves get wrapped, but no shipping sensor class relies on a mixin-only native_value/extra_state_attributes without also redefining/inheriting it through the base chain the hook fires on) -- checked directly against the live class objects, not by reading the source",
+      "command": "PYTHONPATH=tests/hastub ... python3 -c \"import sys; sys.path[:0]=['tests','custom_components']; import harness; from heatpump_optimizer import sensor; base=sensor.HeatPumpOptimizerSensorBase; subs=[c for c in base.__subclasses__()]; ...\" (ad hoc, folded into s1_finite_boundary.py's sensor_finite_call_count check as a proxy)",
+      "value": "unscrubbed=[] over 62 subclasses; sensor_finite_call_count=6 (the module-level definition sites, not per-class)"
+    },
+    {
+      "claim": "external_heat.py's rate computations (dhw_rise_c_per_h, buffer_rise_c_per_h), the one plausible division-by-small-delta site read raw by binary_sensor.py's ExternalHeatBinarySensor.extra_state_attributes, are guarded against division by a near-zero time delta (min_sample_hours/max_sample_hours bounds in _rate()) and so do not by themselves produce the NaN/Inf that D8-s1-01 shows leaks once it reaches coordinator.data by any other path",
+      "command": "read custom_components/heatpump_optimizer/external_heat.py:200-210 (_rate)",
+      "value": "dt_h < cfg.min_sample_hours or dt_h > cfg.max_sample_hours guards every division; no executed counter-example found"
+    },
+    {
+      "claim": "optimizer.py's _savings_percentage(savings, baseline_cost), read by both ClimateEntity.extra_state_attributes['savings_percentage'] and sensor.py's savings-percentage sensor, already guards baseline_cost<=0.01 and returns 0.0 rather than dividing -- not a source of the D8-s1-01 leak for that specific key",
+      "command": "read custom_components/heatpump_optimizer/optimizer.py:711-718",
+      "value": "if baseline_cost <= 0.01: return 0.0 -- guarded"
+    },
+    {
+      "claim": "tests/entities.py cannot be imported for its collect()/DATA/display_name helpers from a new harness: importing it executes its own ~1700-check suite (subprocess-driven CI/governance lanes included) and calls sys.exit at module scope, silently truncating any script that imports it before reaching its own subsequent code -- a harness gap, not a production defect; the D8.md 'Reuse' section names entities.py:collect as something to reuse, which this trips on the first `import entities`",
+      "command": "PYTHONPATH=tests/hastub python3 -c \"import sys; sys.path[:0]=['tests','custom_components']; import harness; import entities\" (observe the ~1700-line CI/governance check output and early exit instead of returning to the calling script)",
+      "value": "collect() (tests/entities.py:238-263) copied inline into s1_matrix.py/s1_finite_boundary.py as collect_live() instead, byte-identical logic, to avoid the import; both harnesses run to completion and print their own RESULT lines only after this change"
+    }
+  ],
+  "harnesses": [
+    "tools/audit/round8/D8/s1_matrix.py",
+    "tools/audit/round8/D8/s1_finite_boundary.py"
+  ]
+}

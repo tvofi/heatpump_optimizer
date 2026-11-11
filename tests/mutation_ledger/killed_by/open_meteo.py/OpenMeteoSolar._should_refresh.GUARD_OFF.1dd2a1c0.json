@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/open_meteo.py:OpenMeteoSolar._should_refresh GUARD_OFF 1dd2a1c0",
+  "killed_by": "tests/open_meteo.py",
+  "old": "        if force or self._last_attempt is None:",
+  "reason": "Recorded by `mutation_table.py --drain` against 9111acceb7831fa4c16ed42a30c579cda404130f: GUARD_OFF (`if False:`) took tests/open_meteo.py from rc=0 failed=0 to rc=1 failed=1."
+}

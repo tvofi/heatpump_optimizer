@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._metered_range CMP_BOUND 991fadb4",
+  "killed_by": "tests/features.py",
+  "old": "        top = high if high is not None and high < (1.0 - AGREE_TOLERANCE) * cfg_max else cfg_max",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against d5cd003111277faa3f2abd7fbe6c9157d2e48ed7: CMP_BOUND (`top = high if high is not None and high <= (1.0 - AGREE_TOLERANCE) * cfg_max else cfg_max`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

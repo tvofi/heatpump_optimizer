@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._floor_widening BOOLOP 3e0e5f0c",
+  "killed_by": "tests/entities.py",
+  "old": "        relax = self._vent_cusum.tripped and ctx._config.open_window_relax_enabled",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c25836e5a847d39f7a023e9f567ac2525741ebe: BOOLOP (`relax = self._vent_cusum.tripped or ctx._config.open_window_relax_enabled`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

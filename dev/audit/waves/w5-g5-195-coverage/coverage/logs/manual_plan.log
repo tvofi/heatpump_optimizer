@@ -1,0 +1,99 @@
+Manual hot water plan could not be made safe in 3 rounds; releasing every forced-off slot on that channel and planning it freely
+Manual space plan could not be made safe in 3 rounds; releasing every forced-off slot on that channel and planning it freely
+Discarding unreadable stored manual plan: 'str' object has no attribute 'get'
+Discarding unreadable stored manual plan: 'int' object has no attribute 'get'
+
+=== Manual plan override ===
+
+-- Slot parsing and validation
+  ok   omitted channel stays None (fully automatic)
+  ok   explicit empty list stays [] (off for the whole period)
+  ok   slots are sorted by start time
+  ok   rejects end == start
+  ok   rejects end < start
+  ok   rejects overlapping slots
+  ok   rejects unparseable datetime
+  ok   rejects a non-object slot
+  ok   rejects expires_at in the past
+  ok   ManualPlanError is a ValueError
+
+-- Channel pin semantics
+  ok   omitted channel yields no pins
+  ok   supplied channel yields a pin array
+  ok   pins on inside the slot
+  ok   pins off outside the slot but before expiry
+  ok   free at and beyond expiry
+  ok   pinned_step_count counts the on steps
+  ok   empty list forces off up to expiry
+  ok   empty list still frees steps past expiry
+  ok   a slot starting mid-step pins the step it lands in ON
+  ok   and the partially covered trailing step stays ON too
+
+-- Serialisation round-trip
+  ok   space channel empty-list survives the round-trip
+  ok   dhw channel slots survive the round-trip
+  ok   expiry survives the round-trip
+  ok   from_dict rejects a missing expiry
+
+-- Pins change the solved schedule
+  ok   forcing space on adds a run the optimizer skipped
+  ok   a manual-on step is labelled manual_plan
+  ok   the override is flagged active
+  ok   forcing hot water on adds a DHW run
+  ok   a manual DHW step is labelled manual_plan
+  ok   the summer plan has several runs, so the last one is a real choice
+  ok   forcing hot water off removes a run when safe
+  ok   a safe forced-off step is not released
+
+-- Safety release fires only when a hard floor binds
+  ok   forcing space off in the cold releases pins for the comfort floor
+  ok   released space steps actually run again
+  ok   forcing space off when it is not needed releases nothing
+  ok   forcing hot water off with a low tank releases pins
+  ok   a due legionella cycle is released when forced off
+  ok   forcing hot water off when the tank is hot releases nothing
+
+-- A timezone-less expiry is handled, not crashed on
+  ok   a naive expiry does not raise TypeError
+  ok   the stored expiry is comparable with the parsed slots
+  ok   and the override can still be applied to the horizon
+  ok   a naive expiry in the past is rejected as a plan error
+
+-- Abandoning an unsafe plan does not discard the safe channel
+  ok   the breaching channel is abandoned
+  ok   the channel that was never unsafe keeps its pins
+  ok   so the space plan the user asked for still holds
+
+-- A released pin is never reported without being planned around
+  ok   a plan that never converges still terminates
+  ok   giving up releases every forced-off slot
+  ok   the abandoned plan is as warm as planning freely
+  ok   and it heats about as much as planning freely
+
+-- No override leaves behaviour unchanged
+  ok   winter_dhw: passing no pins is byte-for-byte identical
+  ok   winter_dhw: no pins means the override is inactive
+  ok   summer: passing no pins is byte-for-byte identical
+  ok   summer: no pins means the override is inactive
+  ok   no_dhw: passing no pins is byte-for-byte identical
+  ok   no_dhw: no pins means the override is inactive
+
+-- Coordinator wiring, persistence and expiry
+  ok   apply reports the pinned DHW step count
+  ok   a slot late in the horizon is still counted
+  ok   a slot past the window pins nothing, rather than pretending to
+  ok   the manual-plan window is shorter than the optimisation horizon
+  ok   an omitted channel produces no pins
+  ok   a supplied channel produces aligned pins
+  ok   the coordinator exposes the active override to the sensors
+  ok   an override survives a restart within the day
+  ok   an already-expired override is discarded on restore
+  ok   an expired override yields no pins
+  ok   an expired override is dropped from the coordinator
+  ok   a rejected apply leaves the existing override intact
+  ok   a stored list payload is discarded, not raised
+  ok   a stored str payload is discarded, not raised
+  ok   a stored int payload is discarded, not raised
+  ok   the data dict omits manual_plan when none is active
+
+ALL 71 manual plan checks PASSED

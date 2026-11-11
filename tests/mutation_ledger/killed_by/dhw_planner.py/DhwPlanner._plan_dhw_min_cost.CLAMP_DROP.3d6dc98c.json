@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._plan_dhw_min_cost CLAMP_DROP 3d6dc98c",
+  "killed_by": "tests/env_drift.py",
+  "old": "                hi = min(n_steps, j + window + 1)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`hi = (n_steps)`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+}

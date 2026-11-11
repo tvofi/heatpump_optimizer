@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_wood_share_vec CLAMP_DROP 504e3b00",
+  "killed_by": "tests/features.py",
+  "old": "    v3 = np.maximum(hotter, usable * hp_share_of_deficiency)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`v3 = (hotter)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

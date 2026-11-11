@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:restore BOOLOP 27302fcc",
+  "killed_by": "tests/features.py",
+  "old": "        if parsed is not None and dt_util.as_utc(parsed) > dt_util.as_utc(now):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5395394da9d8ee96ec256895504d2ae3f09d10fa: BOOLOP (`if parsed is not None or dt_util.as_utc(parsed) > dt_util.as_utc(now):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

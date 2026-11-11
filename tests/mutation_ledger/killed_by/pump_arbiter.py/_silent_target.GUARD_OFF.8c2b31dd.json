@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_silent_target GUARD_OFF 8c2b31dd",
+  "killed_by": "tests/features.py",
+  "old": "    if held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6001b09a557259f37319b400d219cf83e02c563f: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

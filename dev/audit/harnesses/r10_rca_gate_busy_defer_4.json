@@ -1,0 +1,1650 @@
+{
+ "3267": {
+  "check_runs": [
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T21:14:28Z",
+    "conclusion": "skipped",
+    "id": 128530763762,
+    "name": "tests / claims-autofix",
+    "started_at": "2026-11-07T21:14:29Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:59:33Z",
+    "conclusion": "skipped",
+    "id": 128527011029,
+    "name": "tests / mutation-pins",
+    "started_at": "2026-11-07T20:59:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:59:33Z",
+    "conclusion": "skipped",
+    "id": 128527010998,
+    "name": "tests / mutation-autofix",
+    "started_at": "2026-11-07T20:59:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T20:59:21Z",
+    "conclusion": "skipped",
+    "id": 128526965563,
+    "name": "pr-contract",
+    "started_at": "2026-11-07T20:59:22Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T21:00:29Z",
+    "conclusion": "failure",
+    "id": 128526964506,
+    "name": "gate",
+    "started_at": "2026-11-07T21:00:01Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114905492022
+    },
+    "completed_at": "2026-11-07T20:59:09Z",
+    "conclusion": "neutral",
+    "id": 128526899084,
+    "name": "CodeQL",
+    "started_at": "2026-11-07T20:59:06Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:59:02Z",
+    "conclusion": "skipped",
+    "id": 128526884861,
+    "name": "tests / replay",
+    "started_at": "2026-11-07T20:59:03Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:59:02Z",
+    "conclusion": "skipped",
+    "id": 128526884714,
+    "name": "tests / nightly-ha",
+    "started_at": "2026-11-07T20:59:02Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T21:14:28Z",
+    "conclusion": "success",
+    "id": 128526884000,
+    "name": "tests / fast (3.14)",
+    "started_at": "2026-11-07T21:00:31Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": null,
+    "conclusion": null,
+    "id": 128526883982,
+    "name": "tests / coverage",
+    "started_at": "2026-11-07T21:00:37Z",
+    "status": "in_progress"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T21:02:18Z",
+    "conclusion": "success",
+    "id": 128526883951,
+    "name": "tests / typing",
+    "started_at": "2026-11-07T21:01:06Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T21:04:31Z",
+    "conclusion": "success",
+    "id": 128526883910,
+    "name": "tests / browser",
+    "started_at": "2026-11-07T21:00:02Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T21:01:18Z",
+    "conclusion": "success",
+    "id": 128526883831,
+    "name": "tests / arch-instrument",
+    "started_at": "2026-11-07T20:59:53Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": null,
+    "conclusion": null,
+    "id": 128526883825,
+    "name": "tests / closures",
+    "started_at": "2026-11-07T20:59:37Z",
+    "status": "in_progress"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:57:04Z",
+    "conclusion": "skipped",
+    "id": 128526414614,
+    "name": "governance / record",
+    "started_at": "2026-11-07T20:57:05Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:57:04Z",
+    "conclusion": "skipped",
+    "id": 128526414098,
+    "name": "governance / delivery-status-publish",
+    "started_at": "2026-11-07T20:57:05Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:57:04Z",
+    "conclusion": "skipped",
+    "id": 128526413701,
+    "name": "kernel-points",
+    "started_at": "2026-11-07T20:57:05Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T21:00:14Z",
+    "conclusion": "success",
+    "id": 128526412863,
+    "name": "tests / briefs",
+    "started_at": "2026-11-07T20:59:17Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:59:50Z",
+    "conclusion": "success",
+    "id": 128526412840,
+    "name": "budget-raise-gate / budget-raise-gate",
+    "started_at": "2026-11-07T20:59:24Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": null,
+    "conclusion": null,
+    "id": 128526412819,
+    "name": "governance / instrument-self-tests",
+    "started_at": "2026-11-07T20:59:14Z",
+    "status": "in_progress"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": null,
+    "conclusion": null,
+    "id": 128526412817,
+    "name": "codeql / Analyze (python)",
+    "started_at": "2026-11-07T20:58:59Z",
+    "status": "in_progress"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T21:00:06Z",
+    "conclusion": "success",
+    "id": 128526412806,
+    "name": "governance / wave-script",
+    "started_at": "2026-11-07T20:59:06Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:59:35Z",
+    "conclusion": "success",
+    "id": 128526412793,
+    "name": "governance / delivery-status",
+    "started_at": "2026-11-07T20:59:04Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:59:02Z",
+    "conclusion": "success",
+    "id": 128526412789,
+    "name": "tests / closure-scope",
+    "started_at": "2026-11-07T20:58:36Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T21:00:35Z",
+    "conclusion": "success",
+    "id": 128526412780,
+    "name": "governance / policy-docs",
+    "started_at": "2026-11-07T20:57:14Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:59:15Z",
+    "conclusion": "success",
+    "id": 128526412766,
+    "name": "codeql / Analyze (javascript-typescript)",
+    "started_at": "2026-11-07T20:58:00Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:59:42Z",
+    "conclusion": "success",
+    "id": 128526412765,
+    "name": "codeql / Analyze (actions)",
+    "started_at": "2026-11-07T20:58:46Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:58:55Z",
+    "conclusion": "success",
+    "id": 128526412754,
+    "name": "arch-score / arch-score",
+    "started_at": "2026-11-07T20:58:05Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:59:32Z",
+    "conclusion": "success",
+    "id": 128526412752,
+    "name": "tests / mutation",
+    "started_at": "2026-11-07T20:58:49Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T21:02:59Z",
+    "conclusion": "success",
+    "id": 128526412726,
+    "name": "governance / env-matrix",
+    "started_at": "2026-11-07T20:57:09Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:58:34Z",
+    "conclusion": "success",
+    "id": 128526412706,
+    "name": "tests / nightly-status",
+    "started_at": "2026-11-07T20:58:24Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:59:37Z",
+    "conclusion": "success",
+    "id": 128526412660,
+    "name": "validate / validate-hacs",
+    "started_at": "2026-11-07T20:58:58Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:57:45Z",
+    "conclusion": "success",
+    "id": 128526412652,
+    "name": "hassfest / hassfest",
+    "started_at": "2026-11-07T20:57:25Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T20:56:32Z",
+    "conclusion": "skipped",
+    "id": 128526289214,
+    "name": "codeql",
+    "started_at": "2026-11-07T20:56:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T20:56:32Z",
+    "conclusion": "skipped",
+    "id": 128526289001,
+    "name": "validate",
+    "started_at": "2026-11-07T20:56:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T20:56:32Z",
+    "conclusion": "skipped",
+    "id": 128526288882,
+    "name": "kernel-points",
+    "started_at": "2026-11-07T20:56:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T20:56:32Z",
+    "conclusion": "skipped",
+    "id": 128526288381,
+    "name": "governance",
+    "started_at": "2026-11-07T20:56:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T20:56:32Z",
+    "conclusion": "skipped",
+    "id": 128526288325,
+    "name": "hassfest",
+    "started_at": "2026-11-07T20:56:32Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T20:56:32Z",
+    "conclusion": "skipped",
+    "id": 128526288320,
+    "name": "tests",
+    "started_at": "2026-11-07T20:56:32Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T20:59:21Z",
+    "conclusion": "success",
+    "id": 128526287699,
+    "name": "arch-score / arch-score",
+    "started_at": "2026-11-07T20:58:05Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T20:59:11Z",
+    "conclusion": "success",
+    "id": 128526287687,
+    "name": "budget-raise-gate / budget-raise-gate",
+    "started_at": "2026-11-07T20:58:44Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:56:52Z",
+    "conclusion": "success",
+    "id": 128525990244,
+    "name": "cancel-superseded",
+    "started_at": "2026-11-07T20:56:42Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:57:23Z",
+    "conclusion": "success",
+    "id": 128525990211,
+    "name": "refresh",
+    "started_at": "2026-11-07T20:56:47Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904749769
+    },
+    "completed_at": "2026-11-07T20:57:04Z",
+    "conclusion": "success",
+    "id": 128525990063,
+    "name": "prelude",
+    "started_at": "2026-11-07T20:56:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T20:56:32Z",
+    "conclusion": "success",
+    "id": 128525989536,
+    "name": "prelude",
+    "started_at": "2026-11-07T20:56:00Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T20:56:24Z",
+    "conclusion": "success",
+    "id": 128525989502,
+    "name": "refresh",
+    "started_at": "2026-11-07T20:55:47Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904748991
+    },
+    "completed_at": "2026-11-07T20:56:26Z",
+    "conclusion": "success",
+    "id": 128525989415,
+    "name": "cancel-superseded",
+    "started_at": "2026-11-07T20:56:17Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904744406
+    },
+    "completed_at": "2026-11-07T20:55:15Z",
+    "conclusion": "skipped",
+    "id": 128525985094,
+    "name": "arm",
+    "started_at": "2026-11-07T20:55:15Z",
+    "status": "completed"
+   }
+  ],
+  "head": "cc6ee11ff27b8b57cd7e017121544dca9dbe6e30",
+  "runs": [
+   {
+    "check_suite_id": 114904748991,
+    "conclusion": "failure",
+    "created_at": "2026-11-07T20:55:15Z",
+    "display_title": "CI edit pr=3267 base=main sha=7907726524a6e1c91b31699e03de6d5751f3f170",
+    "id": 42413349169,
+    "status": "completed",
+    "updated_at": "2026-11-07T21:00:29Z"
+   },
+   {
+    "check_suite_id": 114904749769,
+    "conclusion": null,
+    "created_at": "2026-11-07T20:55:15Z",
+    "display_title": "CI code pr=3267 base=main sha=7907726524a6e1c91b31699e03de6d5751f3f170",
+    "id": 42413349469,
+    "status": "in_progress",
+    "updated_at": "2026-11-07T21:01:07Z"
+   }
+  ]
+ },
+ "3268": {
+  "check_runs": [
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T21:21:29Z",
+    "conclusion": "skipped",
+    "id": 128532483245,
+    "name": "tests / claims-autofix",
+    "started_at": "2026-11-07T21:21:29Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T20:59:03Z",
+    "conclusion": "skipped",
+    "id": 128526889844,
+    "name": "pr-contract",
+    "started_at": "2026-11-07T20:59:04Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T21:00:17Z",
+    "conclusion": "failure",
+    "id": 128526888792,
+    "name": "gate",
+    "started_at": "2026-11-07T20:59:40Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114905146876
+    },
+    "completed_at": "2026-11-07T20:57:20Z",
+    "conclusion": "neutral",
+    "id": 128526466013,
+    "name": "CodeQL",
+    "started_at": "2026-11-07T20:57:18Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:57:12Z",
+    "conclusion": "skipped",
+    "id": 128526445758,
+    "name": "tests / nightly-ha",
+    "started_at": "2026-11-07T20:57:13Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T21:04:59Z",
+    "conclusion": "success",
+    "id": 128526444565,
+    "name": "tests / browser",
+    "started_at": "2026-11-07T21:00:29Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T21:01:39Z",
+    "conclusion": "success",
+    "id": 128526444564,
+    "name": "tests / typing",
+    "started_at": "2026-11-07T21:00:16Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": null,
+    "conclusion": null,
+    "id": 128526444563,
+    "name": "tests / coverage",
+    "started_at": "2026-11-07T21:00:22Z",
+    "status": "in_progress"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": null,
+    "conclusion": null,
+    "id": 128526444562,
+    "name": "tests / closures",
+    "started_at": "2026-11-07T21:00:29Z",
+    "status": "in_progress"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T21:11:19Z",
+    "conclusion": "success",
+    "id": 128526444542,
+    "name": "tests / replay",
+    "started_at": "2026-11-07T21:00:10Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T21:02:01Z",
+    "conclusion": "success",
+    "id": 128526444465,
+    "name": "tests / arch-instrument",
+    "started_at": "2026-11-07T21:00:09Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T21:21:28Z",
+    "conclusion": "success",
+    "id": 128526444441,
+    "name": "tests / fast (3.14)",
+    "started_at": "2026-11-07T20:59:45Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T20:57:02Z",
+    "conclusion": "skipped",
+    "id": 128526406281,
+    "name": "governance",
+    "started_at": "2026-11-07T20:57:03Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T20:57:02Z",
+    "conclusion": "skipped",
+    "id": 128526405768,
+    "name": "validate",
+    "started_at": "2026-11-07T20:57:03Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T20:57:02Z",
+    "conclusion": "skipped",
+    "id": 128526405676,
+    "name": "kernel-points",
+    "started_at": "2026-11-07T20:57:03Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T20:57:02Z",
+    "conclusion": "skipped",
+    "id": 128526405518,
+    "name": "hassfest",
+    "started_at": "2026-11-07T20:57:03Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T20:57:02Z",
+    "conclusion": "skipped",
+    "id": 128526405484,
+    "name": "codeql",
+    "started_at": "2026-11-07T20:57:03Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T20:57:02Z",
+    "conclusion": "skipped",
+    "id": 128526405386,
+    "name": "tests",
+    "started_at": "2026-11-07T20:57:03Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T20:59:03Z",
+    "conclusion": "success",
+    "id": 128526404565,
+    "name": "arch-score / arch-score",
+    "started_at": "2026-11-07T20:57:49Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T20:58:29Z",
+    "conclusion": "success",
+    "id": 128526404482,
+    "name": "budget-raise-gate / budget-raise-gate",
+    "started_at": "2026-11-07T20:57:59Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:56:28Z",
+    "conclusion": "skipped",
+    "id": 128526274515,
+    "name": "governance / record",
+    "started_at": "2026-11-07T20:56:29Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:56:28Z",
+    "conclusion": "skipped",
+    "id": 128526274497,
+    "name": "governance / delivery-status-publish",
+    "started_at": "2026-11-07T20:56:29Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:56:28Z",
+    "conclusion": "skipped",
+    "id": 128526274412,
+    "name": "kernel-points",
+    "started_at": "2026-11-07T20:56:29Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T21:01:16Z",
+    "conclusion": "success",
+    "id": 128526273493,
+    "name": "governance / policy-docs",
+    "started_at": "2026-11-07T20:58:00Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:57:27Z",
+    "conclusion": "success",
+    "id": 128526273477,
+    "name": "budget-raise-gate / budget-raise-gate",
+    "started_at": "2026-11-07T20:56:55Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T21:00:08Z",
+    "conclusion": "success",
+    "id": 128526273453,
+    "name": "tests / briefs",
+    "started_at": "2026-11-07T20:58:56Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T21:02:54Z",
+    "conclusion": "success",
+    "id": 128526273430,
+    "name": "governance / env-matrix",
+    "started_at": "2026-11-07T20:57:30Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:57:27Z",
+    "conclusion": "success",
+    "id": 128526273357,
+    "name": "codeql / Analyze (actions)",
+    "started_at": "2026-11-07T20:56:38Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:58:02Z",
+    "conclusion": "success",
+    "id": 128526273346,
+    "name": "governance / delivery-status",
+    "started_at": "2026-11-07T20:57:29Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:58:11Z",
+    "conclusion": "success",
+    "id": 128526273341,
+    "name": "codeql / Analyze (javascript-typescript)",
+    "started_at": "2026-11-07T20:56:49Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T21:22:57Z",
+    "conclusion": "success",
+    "id": 128526273339,
+    "name": "governance / instrument-self-tests",
+    "started_at": "2026-11-07T20:57:29Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:57:57Z",
+    "conclusion": "success",
+    "id": 128526273336,
+    "name": "governance / wave-script",
+    "started_at": "2026-11-07T20:57:05Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:58:44Z",
+    "conclusion": "success",
+    "id": 128526273298,
+    "name": "tests / nightly-status",
+    "started_at": "2026-11-07T20:58:32Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": null,
+    "conclusion": null,
+    "id": 128526273289,
+    "name": "codeql / Analyze (python)",
+    "started_at": "2026-11-07T20:56:34Z",
+    "status": "in_progress"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:58:47Z",
+    "conclusion": "success",
+    "id": 128526273277,
+    "name": "arch-score / arch-score",
+    "started_at": "2026-11-07T20:57:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:57:12Z",
+    "conclusion": "success",
+    "id": 128526273270,
+    "name": "tests / closure-scope",
+    "started_at": "2026-11-07T20:56:43Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": null,
+    "conclusion": null,
+    "id": 128526273264,
+    "name": "tests / mutation",
+    "started_at": "2026-11-07T20:58:16Z",
+    "status": "in_progress"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:57:08Z",
+    "conclusion": "success",
+    "id": 128526273255,
+    "name": "hassfest / hassfest",
+    "started_at": "2026-11-07T20:56:46Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:58:03Z",
+    "conclusion": "success",
+    "id": 128526273180,
+    "name": "validate / validate-hacs",
+    "started_at": "2026-11-07T20:57:25Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904850887
+    },
+    "completed_at": "2026-11-07T20:55:48Z",
+    "conclusion": "skipped",
+    "id": 128526145308,
+    "name": "arm",
+    "started_at": "2026-11-07T20:55:56Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:56:37Z",
+    "conclusion": "success",
+    "id": 128526115577,
+    "name": "cancel-superseded",
+    "started_at": "2026-11-07T20:56:29Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T20:57:02Z",
+    "conclusion": "success",
+    "id": 128526115563,
+    "name": "prelude",
+    "started_at": "2026-11-07T20:56:31Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T20:56:35Z",
+    "conclusion": "success",
+    "id": 128526115548,
+    "name": "cancel-superseded",
+    "started_at": "2026-11-07T20:56:27Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:56:40Z",
+    "conclusion": "success",
+    "id": 128526115517,
+    "name": "refresh",
+    "started_at": "2026-11-07T20:56:14Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852864
+    },
+    "completed_at": "2026-11-07T20:56:47Z",
+    "conclusion": "success",
+    "id": 128526115378,
+    "name": "refresh",
+    "started_at": "2026-11-07T20:56:14Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114904852828
+    },
+    "completed_at": "2026-11-07T20:56:28Z",
+    "conclusion": "success",
+    "id": 128526115347,
+    "name": "prelude",
+    "started_at": "2026-11-07T20:56:07Z",
+    "status": "completed"
+   }
+  ],
+  "head": "64fe84b24efb6e4f720e011b75b559b6a3bac7e9",
+  "runs": [
+   {
+    "check_suite_id": 114904852864,
+    "conclusion": "failure",
+    "created_at": "2026-11-07T20:55:48Z",
+    "display_title": "CI edit pr=3268 base=main sha=d1bc47acf1bef87803e0e1cb0def198c2ec851f1",
+    "id": 42413389204,
+    "status": "completed",
+    "updated_at": "2026-11-07T21:00:17Z"
+   },
+   {
+    "check_suite_id": 114904852828,
+    "conclusion": null,
+    "created_at": "2026-11-07T20:55:48Z",
+    "display_title": "CI code pr=3268 base=main sha=d1bc47acf1bef87803e0e1cb0def198c2ec851f1",
+    "id": 42413389218,
+    "status": "in_progress",
+    "updated_at": "2026-11-07T21:00:29Z"
+   }
+  ]
+ },
+ "3293": {
+  "check_runs": [
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:23:35Z",
+    "conclusion": "skipped",
+    "id": 128533000077,
+    "name": "tests / closures-autofix",
+    "started_at": "2026-11-07T21:23:35Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:11:12Z",
+    "conclusion": "skipped",
+    "id": 128529965671,
+    "name": "tests / claims-autofix",
+    "started_at": "2026-11-07T21:11:12Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:07:15Z",
+    "conclusion": "skipped",
+    "id": 128528992344,
+    "name": "pr-contract",
+    "started_at": "2026-11-07T21:07:15Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:07:57Z",
+    "conclusion": "failure",
+    "id": 128528991330,
+    "name": "gate",
+    "started_at": "2026-11-07T21:07:26Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:24Z",
+    "conclusion": "skipped",
+    "id": 128528777764,
+    "name": "tests / mutation-autofix",
+    "started_at": "2026-11-07T21:06:24Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:23Z",
+    "conclusion": "skipped",
+    "id": 128528777247,
+    "name": "tests / mutation-pins",
+    "started_at": "2026-11-07T21:06:24Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:08Z",
+    "conclusion": "skipped",
+    "id": 128528716379,
+    "name": "tests / replay",
+    "started_at": "2026-11-07T21:06:09Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:08Z",
+    "conclusion": "skipped",
+    "id": 128528716290,
+    "name": "tests / nightly-ha",
+    "started_at": "2026-11-07T21:06:08Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:23:35Z",
+    "conclusion": "success",
+    "id": 128528714784,
+    "name": "tests / closures",
+    "started_at": "2026-11-07T21:07:17Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": null,
+    "conclusion": null,
+    "id": 128528714759,
+    "name": "tests / coverage",
+    "started_at": "2026-11-07T21:07:09Z",
+    "status": "in_progress"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:11:44Z",
+    "conclusion": "success",
+    "id": 128528714739,
+    "name": "tests / browser",
+    "started_at": "2026-11-07T21:07:05Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:07:51Z",
+    "conclusion": "success",
+    "id": 128528714685,
+    "name": "tests / arch-instrument",
+    "started_at": "2026-11-07T21:06:57Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:07:53Z",
+    "conclusion": "success",
+    "id": 128528714680,
+    "name": "tests / typing",
+    "started_at": "2026-11-07T21:06:49Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:11:12Z",
+    "conclusion": "success",
+    "id": 128528714673,
+    "name": "tests / fast (3.14)",
+    "started_at": "2026-11-07T21:06:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906908359
+    },
+    "completed_at": "2026-11-07T21:05:52Z",
+    "conclusion": "success",
+    "id": 128528634650,
+    "name": "CodeQL",
+    "started_at": "2026-11-07T21:05:49Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:05:31Z",
+    "conclusion": "skipped",
+    "id": 128528559600,
+    "name": "kernel-points",
+    "started_at": "2026-11-07T21:05:31Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:05:31Z",
+    "conclusion": "skipped",
+    "id": 128528559330,
+    "name": "hassfest",
+    "started_at": "2026-11-07T21:05:31Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:05:31Z",
+    "conclusion": "skipped",
+    "id": 128528559288,
+    "name": "validate",
+    "started_at": "2026-11-07T21:05:31Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:05:31Z",
+    "conclusion": "skipped",
+    "id": 128528559176,
+    "name": "tests",
+    "started_at": "2026-11-07T21:05:31Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:05:31Z",
+    "conclusion": "skipped",
+    "id": 128528559169,
+    "name": "codeql",
+    "started_at": "2026-11-07T21:05:31Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:05:31Z",
+    "conclusion": "skipped",
+    "id": 128528558912,
+    "name": "governance",
+    "started_at": "2026-11-07T21:05:31Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:07:02Z",
+    "conclusion": "success",
+    "id": 128528558041,
+    "name": "arch-score / arch-score",
+    "started_at": "2026-11-07T21:06:09Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:07:15Z",
+    "conclusion": "success",
+    "id": 128528558025,
+    "name": "budget-raise-gate / budget-raise-gate",
+    "started_at": "2026-11-07T21:06:46Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:05:31Z",
+    "conclusion": "skipped",
+    "id": 128528557829,
+    "name": "governance / record",
+    "started_at": "2026-11-07T21:05:31Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:05:31Z",
+    "conclusion": "skipped",
+    "id": 128528557688,
+    "name": "governance / delivery-status-publish",
+    "started_at": "2026-11-07T21:05:31Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:05:31Z",
+    "conclusion": "skipped",
+    "id": 128528557674,
+    "name": "kernel-points",
+    "started_at": "2026-11-07T21:05:31Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:05:44Z",
+    "conclusion": "success",
+    "id": 128528556655,
+    "name": "tests / nightly-status",
+    "started_at": "2026-11-07T21:05:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:07:07Z",
+    "conclusion": "success",
+    "id": 128528556582,
+    "name": "governance / wave-script",
+    "started_at": "2026-11-07T21:06:25Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:13Z",
+    "conclusion": "success",
+    "id": 128528556575,
+    "name": "validate / validate-hacs",
+    "started_at": "2026-11-07T21:05:37Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:23Z",
+    "conclusion": "success",
+    "id": 128528556571,
+    "name": "arch-score / arch-score",
+    "started_at": "2026-11-07T21:05:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:13:25Z",
+    "conclusion": "success",
+    "id": 128528556560,
+    "name": "governance / env-matrix",
+    "started_at": "2026-11-07T21:06:25Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:46Z",
+    "conclusion": "success",
+    "id": 128528556559,
+    "name": "codeql / Analyze (actions)",
+    "started_at": "2026-11-07T21:06:30Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:55Z",
+    "conclusion": "success",
+    "id": 128528556544,
+    "name": "governance / delivery-status",
+    "started_at": "2026-11-07T21:06:23Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:08Z",
+    "conclusion": "success",
+    "id": 128528556526,
+    "name": "tests / closure-scope",
+    "started_at": "2026-11-07T21:05:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:23Z",
+    "conclusion": "success",
+    "id": 128528556523,
+    "name": "tests / mutation",
+    "started_at": "2026-11-07T21:05:34Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:28Z",
+    "conclusion": "success",
+    "id": 128528556518,
+    "name": "codeql / Analyze (javascript-typescript)",
+    "started_at": "2026-11-07T21:06:10Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:07:24Z",
+    "conclusion": "success",
+    "id": 128528556517,
+    "name": "governance / policy-docs",
+    "started_at": "2026-11-07T21:06:15Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": null,
+    "conclusion": null,
+    "id": 128528556504,
+    "name": "governance / instrument-self-tests",
+    "started_at": "2026-11-07T21:05:46Z",
+    "status": "in_progress"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:05:58Z",
+    "conclusion": "success",
+    "id": 128528556502,
+    "name": "codeql / Analyze (python)",
+    "started_at": "2026-11-07T21:05:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:20Z",
+    "conclusion": "success",
+    "id": 128528556465,
+    "name": "hassfest / hassfest",
+    "started_at": "2026-11-07T21:06:00Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:41Z",
+    "conclusion": "success",
+    "id": 128528556462,
+    "name": "tests / briefs",
+    "started_at": "2026-11-07T21:05:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:06:03Z",
+    "conclusion": "success",
+    "id": 128528556345,
+    "name": "budget-raise-gate / budget-raise-gate",
+    "started_at": "2026-11-07T21:05:33Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:05:26Z",
+    "conclusion": "success",
+    "id": 128528404073,
+    "name": "refresh",
+    "started_at": "2026-11-07T21:04:59Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:05:08Z",
+    "conclusion": "success",
+    "id": 128528404037,
+    "name": "cancel-superseded",
+    "started_at": "2026-11-07T21:04:59Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:05:06Z",
+    "conclusion": "success",
+    "id": 128528403969,
+    "name": "cancel-superseded",
+    "started_at": "2026-11-07T21:04:58Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:05:31Z",
+    "conclusion": "success",
+    "id": 128528403961,
+    "name": "prelude",
+    "started_at": "2026-11-07T21:04:59Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715780
+    },
+    "completed_at": "2026-11-07T21:05:30Z",
+    "conclusion": "success",
+    "id": 128528403952,
+    "name": "prelude",
+    "started_at": "2026-11-07T21:04:58Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906715876
+    },
+    "completed_at": "2026-11-07T21:05:34Z",
+    "conclusion": "success",
+    "id": 128528403749,
+    "name": "refresh",
+    "started_at": "2026-11-07T21:04:58Z",
+    "status": "completed"
+   },
+   {
+    "check_suite": {
+     "id": 114906713615
+    },
+    "completed_at": "2026-11-07T21:04:55Z",
+    "conclusion": "skipped",
+    "id": 128528402282,
+    "name": "arm",
+    "started_at": "2026-11-07T21:04:56Z",
+    "status": "completed"
+   }
+  ],
+  "head": "fefaa4926e36e9c571cc685e0b6aa2b391d14793",
+  "runs": [
+   {
+    "check_suite_id": 114906715780,
+    "conclusion": null,
+    "created_at": "2026-11-07T21:04:55Z",
+    "display_title": "CI code pr=3293 base=main sha=facbb8f2eec3b628af76157fa6cc0af29d8a39e0",
+    "id": 42414123291,
+    "status": "in_progress",
+    "updated_at": "2026-11-07T21:07:17Z"
+   },
+   {
+    "check_suite_id": 114906715876,
+    "conclusion": "failure",
+    "created_at": "2026-11-07T21:04:55Z",
+    "display_title": "CI edit pr=3293 base=main sha=facbb8f2eec3b628af76157fa6cc0af29d8a39e0",
+    "id": 42414123334,
+    "status": "completed",
+    "updated_at": "2026-11-07T21:07:58Z"
+   }
+  ]
+ }
+}

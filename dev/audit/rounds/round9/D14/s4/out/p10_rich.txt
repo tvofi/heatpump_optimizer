@@ -1,0 +1,27 @@
+# units >= 5.0 ms of GIL-holding CPU, by thread and innermost production frame:
+#  loop     entity.py:_finite                                            units=1 max_ms=6.8 total_ms=6.8 via=["<Task pending name='Task-1' coro=<drive() running at /home/c"]
+#  loop     topology.py:_advisor_edge_params                             units=1 max_ms=5.4 total_ms=5.4 via=["<Task pending name='Task-1' coro=<drive() running at /home/c"]
+#  loop     (unattributed) <Task pending name='Task-1' coro=<drive() running at /home/claude/audit-r9-D14-s4/tools/audit/round9/D14/s4/p10_loop_sea units=1 max_ms=5.2 total_ms=5.2 via=["<Task pending name='Task-1' coro=<drive() running at /home/c"]
+# executor jobs: func jobs max_loop_gap_during_job_ms max_job_cpu_ms
+#  _run_in_process jobs=8 max_gap_ms=16.7 cpu_ms_max=1.6
+RESULT executor_funcs_starving_loop=0 count []
+RESULT arm=worker
+RESULT config=rich
+RESULT cycles=8 count
+RESULT cycle_failures=0 count
+RESULT hold_ms=5.0
+RESULT seams=3 count
+RESULT loop_thread_seams=3 count
+RESULT executor_thread_seams=0 count
+RESULT max_unit_cpu_ms=6.8 ms provisional
+RESULT max_loop_unit_cpu_ms=6.8 ms provisional
+RESULT starved_share=0.0050 ratio provisional
+RESULT null_idle_starved_share=0.0000 ratio provisional
+RESULT max_gap_ms=16.7 ms provisional
+RESULT null_idle_max_gap_ms=2.6 ms provisional
+RESULT executor_cpu_s=0.01 s provisional
+RESULT deliberate_thread_cpu_s=0.01 s provisional
+RESULT thread_factor=1.640 (sampler thread CPU included)
+RESULT wall_s=72.9 s provisional
+RESULT load1=2.86
+RESULT swapins=0

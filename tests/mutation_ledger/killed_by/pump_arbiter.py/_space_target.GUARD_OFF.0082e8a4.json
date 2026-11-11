@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_space_target GUARD_OFF 0082e8a4",
+  "killed_by": "tests/features.py",
+  "old": "    if _flow_unit(inp.config):",
+  "reason": "pump-duty arbiter revision; `if _flow(coord._config):` -> `if False:` fails 6 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24. Re-measured on a git-archive export of 13a82a9d, 2026-10-05: 25 of 3698 feature checks fail (the flow-unit targets, gates and clamps among them), against the export baseline's two artefacts (#363 recorded_at, R9-F2.1 P3). Re-keyed by R9-EG-B6 (#1739): the collaborator-interface rename made the line `    if _flow_unit(coord._config):` into `    if _flow_unit(inp.config):`."
+}

@@ -1,0 +1,33 @@
+# baseline=7dd68dd  perturb=none  cycles=3
+# procs_at_start=0 load1=2.50
+RESULT cycle0.msm_entries=0 entries
+RESULT cycle0.paths={}
+RESULT cycle0.simulate_equivalents=0 steps
+RESULT cycle0.loop_thread_cpu_ms_PROVISIONAL=3.83438 ms
+RESULT cycle0.executor_cpu_ms_PROVISIONAL=2.57929 ms
+RESULT cycle0.loop_share_pct=59.7844 pct
+RESULT cycle0.wall_s_PROVISIONAL=1.16438 s
+RESULT cycle0.data_keys=160 keys
+RESULT cycle1.msm_entries=0 entries
+RESULT cycle1.paths={}
+RESULT cycle1.simulate_equivalents=0 steps
+RESULT cycle1.loop_thread_cpu_ms_PROVISIONAL=2.79875 ms
+RESULT cycle1.executor_cpu_ms_PROVISIONAL=0.217958 ms
+RESULT cycle1.loop_share_pct=92.775 pct
+RESULT cycle1.wall_s_PROVISIONAL=0.816731 s
+RESULT cycle1.data_keys=160 keys
+RESULT cycle2.msm_entries=0 entries
+RESULT cycle2.paths={}
+RESULT cycle2.simulate_equivalents=0 steps
+RESULT cycle2.loop_thread_cpu_ms_PROVISIONAL=2.60829 ms
+RESULT cycle2.executor_cpu_ms_PROVISIONAL=0.192542 ms
+RESULT cycle2.loop_share_pct=93.1255 pct
+RESULT cycle2.wall_s_PROVISIONAL=0.817936 s
+RESULT cycle2.data_keys=160 keys
+RESULT msm_entries_per_cycle=0 entries
+RESULT loop_thread_cpu_ms_per_cycle_PROVISIONAL=2.70352 ms
+RESULT executor_cpu_ms_per_cycle_PROVISIONAL=0.20525 ms
+RESULT thread_factor=1.29763
+RESULT load1=2.50195
+RESULT swapins=42847043
+RESULT concurrent_gate_procs=0

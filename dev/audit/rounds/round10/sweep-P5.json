@@ -1,0 +1,14 @@
+{
+  "class": "P5",
+  "instances": 0,
+  "barriered": false,
+  "enumerator": "python3 dev/audit/rounds/round10/D14/sweep-P5/enumerate.py",
+  "instance_list": [
+    {
+      "file": "custom_components/heatpump_optimizer/coordinator.py",
+      "symbol": "HeatPumpOptimizerCoordinator._vent_cusum (fed at the heat-loss replay residual, read in _learning_frozen -> 'ventilation')",
+      "probe": "python3 dev/audit/rounds/round10/D14/sweep-P5/probe_vent_bias.py",
+      "beyond_finding": false
+    }
+  ]
+}

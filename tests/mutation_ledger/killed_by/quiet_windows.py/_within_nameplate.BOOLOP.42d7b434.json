@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:_within_nameplate BOOLOP 42d7b434",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    return kw if kw is not None and 0.0 < kw <= p_max else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return kw if kw is not None or 0.0 < kw <= p_max else None`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=1."
+}

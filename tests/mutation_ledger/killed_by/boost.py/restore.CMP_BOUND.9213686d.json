@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:restore CMP_BOUND 9213686d",
+  "killed_by": "tests/block_duty.py",
+  "old": "                and dt_util.as_utc(parsed_block) > dt_util.as_utc(now)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 62f604eb062bf88d3dc4b0f4ec85ca17359af229: CMP_BOUND (`and dt_util.as_utc(parsed_block) >= dt_util.as_utc(now)`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
+}

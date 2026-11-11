@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._pv_surplus_list GUARD_OFF 45535842",
+  "killed_by": "tests/env_drift.py",
+  "old": "        if not np.any(self._pv_surplus > 1e-6):",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=30."
+}

@@ -1,0 +1,99 @@
+#2211	2026-10-15T00:50	M	before	carry-turn	main	
+#2209	2026-10-15T03:18	S	before	full-turn	own	dev/governance/config/policy_budgets.json,dev/governance/dimensions/D15.md
+#2296	2026-10-15T22:54	G	before	carry-turn	own	dev/programme/rosters/wave-r10-groups.json
+#2309	2026-10-16T01:02	G	before	carry-turn	own	dev/programme/rosters/wave-r10-groups.json
+#2315	2026-10-16T02:15	G	before	carry-turn	own	dev/programme/rosters/wave-r10-groups.json
+#2321	2026-10-16T03:22	G	before	carry-turn	own	dev/programme/rosters/wave-r10-groups.json
+#2330	2026-10-16T08:09	G	before	carry-turn	own	dev/programme/rosters/wave-r10-groups.json
+#2336	2026-10-16T21:30	M	before	carry-turn	main	
+#2379	2026-10-18T11:56	M	before	carry-turn	bot	tests/mutation_ledger/killed_by/climate.py/HeatPumpOptimizerClimate.current_temp
+#2365	2026-10-18T14:28	S	before	carry-turn	code	custom_components/heatpump_optimizer/coordinator.py,dev/audit/rounds/round4/D6/c
+#2379	2026-10-18T20:05	G	before	carry-turn	code	tests/structure_budgets.json
+#2401	2026-10-18T20:45	M	before	full-turn	main	
+#2411	2026-10-19T03:05	G	before	carry-turn	code	tests/features.py,tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._cover
+#2408	2026-10-19T04:59	M	before	full-turn	code	
+#2399	2026-10-19T05:13	M	before	carry-turn	main	
+#2368	2026-10-19T08:24	G	before	full-turn	code	tests/golden/claimed_drift.txt
+#2415	2026-10-19T08:35	M	before	carry-turn	code	
+#2463	2026-10-20T01:21	M	before	carry-turn	bot	tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger._coverage_factor.BOOLOP.
+#2463	2026-10-20T02:29	M	before	full-turn	main	
+#2465	2026-10-20T14:18	G	before	carry-turn	code	tests/features.py,tests/mutation_ledger/killed_by/coordinator.py/_valve_write_pr
+#2525	2026-10-21T14:11	M	before	full-turn	main	
+#2576	2026-10-21T19:56	G	before	carry-turn	code	dev/programme/rosters/wave-r10-groups.json
+#2569	2026-10-21T20:18	S	before	carry-turn	code	tools/audit/seat/roster_edit.py
+#2547	2026-10-21T22:49	M	before	carry-turn	main	
+#2580	2026-10-22T02:59	S	before	carry-turn	code	dev/audit/harnesses/r10_seat_selftests_mutants.py,tools/audit/seat/INSTRUMENTS.m
+#2582	2026-10-22T03:02	G	before	full-turn	code	dev/audit/harnesses/r10_seat_selftests_mutants.py
+#2578	2026-10-22T04:26	G	before	full-turn	code	dev/audit/harnesses/r10_seat_selftests_mutants.py
+#2585	2026-10-22T05:09	S	before	carry-turn	code	dev/programme/HANDOVER.md,tools/pr/ci_predict.py,tools/pr/prepr.sh
+#2578	2026-10-22T09:37	G	before	full-turn	main	dev/audit/harnesses/r10_seat_selftests_mutants.py
+#2600	2026-10-22T10:59	G	before	carry-turn	code	dev/programme/rosters/wave-r10-groups.json
+#2580	2026-10-22T11:26	G	before	carry-turn	main	dev/audit/harnesses/r10_seat_selftests_mutants.py
+#2605	2026-10-22T14:21	M	before	full-turn	main	
+#2609	2026-10-22T16:00	M	before	carry-turn	own	
+#2580	2026-10-22T18:50	G	before	full-turn	code	dev/audit/harnesses/r10_seat_selftests_mutants.py
+#2612	2026-10-22T22:53	M	before	carry-turn	bot	tests/mutation_ledger/killed_by/optimizer.py/@module.CONST.5fcfc50a.json,tests/m
+#2622	2026-10-22T23:48	M	before	carry-turn	main	
+#2626	2026-10-23T00:28	G	before	carry-turn	code	dev/programme/rosters/wave-r10-groups.json
+#2626	2026-10-23T00:48	G	before	carry-turn	code	dev/programme/rosters/wave-r10-groups.json
+#2626	2026-10-23T00:55	G	before	carry-turn	code	dev/programme/rosters/wave-r10-groups.json
+#2632	2026-10-23T07:14	S	before	full-turn	code	custom_components/heatpump_optimizer/coordinator.py,tests/closures.json,tests/fe
+#2636	2026-10-23T07:19	M	before	carry-turn	main	
+#2651	2026-10-23T08:58	G	before	carry-turn	code	dev/programme/rosters/wave-r10-groups.json
+#2645	2026-10-23T10:30	M	before	carry-turn	code	
+#2620	2026-10-23T14:31	S	before	carry-turn	code	custom_components/heatpump_optimizer/coordinator.py,tests/features.py,tests/muta
+#2673	2026-10-24T01:41	M	before	full-turn	code	
+#2683	2026-10-24T10:07	M	before	full-turn	bot	tests/structure_budgets.json
+#2689	2026-10-24T11:23	S	before	full-turn	code	dev/programme/triage/s6-batch2.md
+#2688	2026-10-24T14:09	S	before	carry-turn	code	dev/programme/triage/s6-batch1.md
+#2741	2026-10-24T18:04	S	before	full-turn	own	dev/programme/triage/s6-batch7.md
+#2745	2026-10-24T20:46	M	before	full-turn	bot	tests/mutation_ledger/killed_by/ledger.py/@module.CONST.7dc7eda1.json,tests/muta
+#2745	2026-10-25T02:44	S	before	carry-turn	code	custom_components/heatpump_optimizer/optimizer.py,tests/features.py,tests/golden
+#2772	2026-10-25T02:48	S	before	carry-turn	empty	.claude/rules/finding-propagation.md,.cursor/rules/finding-propagation.mdc,dev/g
+#2753	2026-10-25T03:55	M	before	carry-turn	bot	tests/structure_budgets.json
+#2762	2026-10-25T06:15	G	before	carry-turn	code	tests/structure_budgets.json
+#2762	2026-10-25T09:03	M	after	carry-turn	main	
+#2745	2026-10-25T09:08	G	after	full-turn	code	tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline
+#2775	2026-10-25T11:37	M	after	carry-turn	bot	tests/mutation_ledger/killed_by/coordinator.py/learner_progress_view.CMP_BOUND.f
+#2753	2026-10-25T14:31	M	after	carry-turn	bot	tests/structure_budgets.json
+#2745	2026-10-25T15:45	M	after	full-turn	main	tests/structure_budgets.json
+#2753	2026-10-25T15:45	M	after	full-turn	main	
+#2833	2026-10-26T00:03	G	after	carry-turn	code	dev/audit/harnesses/r10_plan_issues_chart_mutants.py
+#2753	2026-10-26T01:36	G	after	carry-turn	bot	tests/structure_budgets.json
+#2824	2026-10-26T03:10	S	after	full-turn	code	custom_components/heatpump_optimizer/diagnostics.py,tests/debug_collect.py,tests
+#2844	2026-10-26T03:47	G	after	full-turn	code	dev/programme/rosters/wave-r10-groups.json
+#2819	2026-10-26T04:02	G	after	carry-turn	code	tests/mutation_ledger/killed_by/accuracy.py/AccuracySample.from_dict.num.BOOLOP.
+#2834	2026-10-26T09:07	G	after	carry-turn	code	tests/features.py,tests/golden/claimed_drift.txt,tests/mutation_ledger/killed_by
+#2834	2026-10-26T16:57	M	after	carry-turn	bot	tests/golden/claimed_drift.txt,tests/structure_budgets.json
+#2745	2026-10-26T17:18	G	after	full-turn	code	tests/structure_budgets.json
+#2745	2026-10-26T20:38	S	after	full-turn	code	custom_components/heatpump_optimizer/coordinator.py,custom_components/heatpump_o
+#2819	2026-10-27T05:41	S	after	full-turn	code	tests/closures.json,tests/deployment_shape.py,tests/guard_pins.py,tests/mutation
+#2745	2026-10-27T15:03	S	after	full-turn	code	custom_components/heatpump_optimizer/ledger.py,tests/structure_budgets.json
+#2854	2026-10-27T20:08	S	after	carry-turn	code	custom_components/heatpump_optimizer/coordinator.py,tests/golden/claimed_drift.t
+#2876	2026-10-27T21:21	M	after	carry-turn	code	
+#2853	2026-10-27T21:55	S	after	full-turn	main	tools/pr/ci_predict.py
+#2876	2026-10-28T03:38	M	after	carry-turn	code	
+SUM ('G', 'after') 7
+SUM ('G', 'after', 'carry-turn') 4
+SUM ('G', 'after', 'full-turn') 3
+SUM ('G', 'before') 21
+SUM ('G', 'before', 'carry-turn') 16
+SUM ('G', 'before', 'full-turn') 5
+SUM ('M', 'after') 8
+SUM ('M', 'after', 'carry-turn') 6
+SUM ('M', 'after', 'full-turn') 2
+SUM ('M', 'before') 21
+SUM ('M', 'before', 'carry-turn') 13
+SUM ('M', 'before', 'full-turn') 8
+SUM ('S', 'after') 6
+SUM ('S', 'after', 'carry-turn') 1
+SUM ('S', 'after', 'full-turn') 5
+SUM ('S', 'before') 12
+SUM ('S', 'before', 'carry-turn') 8
+SUM ('S', 'before', 'full-turn') 4
+LAG ('G', 'after') 406
+LAG ('G', 'before') 716
+LAG ('M', 'after') 592
+LAG ('M', 'before') 1214
+LAG ('S', 'after') 392
+LAG ('S', 'before') 808

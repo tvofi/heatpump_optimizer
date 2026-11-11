@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_spec_text RETURN_DEL d8f32a42",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return raw.replace(\";\", \",\").replace(\"\\n\", \",\").strip()",
+  "reason": "Recorded by `mutation_table.py --drain` against f637d24ab5d17e93cdabba092cd9245f440741f6: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=15."
+}

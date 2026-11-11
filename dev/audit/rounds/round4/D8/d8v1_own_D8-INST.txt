@@ -1,0 +1,33 @@
+No published prices cover the planning horizon; skipping
+No published prices cover the planning horizon; skipping
+No published prices cover the planning horizon; skipping
+No published prices cover the planning horizon; skipping
+No published prices cover the planning horizon; skipping
+No published prices cover the planning horizon; skipping
+RESULT stub_property_declarations=0 properties
+RESULT stub_anywhere_property_declarations=0 properties
+RESULT stub_mro_property_declarations=0 properties
+RESULT property_path_dc_nonnone=0 entities
+RESULT property_path_sc_nonnone=0 entities
+RESULT property_path_ec_nonnone=0 entities
+RESULT attr_path_dc_nonnone=32 entities
+RESULT attr_path_sc_nonnone=45 entities
+RESULT attr_path_ec_nonnone=18 entities
+RESULT injected_attr_path_fires=4 of 4
+RESULT injected_property_path_fires=0 of 4
+RESULT injected_enum_state_not_in_options_attr=1
+RESULT injected_measurement_non_numeric_attr=1
+RESULT injected_timestamp_naive_attr=1
+RESULT injected_unit_device_class_mismatch_attr=1
+RESULT injected_enum_state_not_in_options_prop=0
+RESULT injected_measurement_non_numeric_prop=0
+RESULT injected_timestamp_naive_prop=0
+RESULT injected_unit_device_class_mismatch_prop=0
+RESULT ec_declared_5cells_attr=90 entity_cells
+RESULT ec_declared_5cells_prop=0 entity_cells
+RESULT ec_declared_per_cell=18 entities
+RESULT ec_declared_extrapolated_75cells=1350 entity_cells
+RESULT thread_factor=1.00 ratio
+RESULT timing_results_reported=0 count
+RESULT swapins=0 count
+RESULT load1=5.75 load

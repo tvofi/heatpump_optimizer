@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:follows_ask RETURN_DEL 2cd42d3d",
+  "killed_by": "tests/features.py",
+  "old": "    return slope >= FOLLOW_SLOPE_MIN",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `RETURN_DEL` (pass) flips the condition of tests/features.py's R.check \"follows_ask gives evidence at 48 running samples and none at 47, and it answers a bool, never None, once it has them\" -- reads False on all four window cases: `pass` leaves the function answering None where it answered a bool, which is the difference between a fold and `awaiting_draw_evidence`. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}

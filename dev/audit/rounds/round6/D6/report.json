@@ -1,0 +1,101 @@
+{
+  "dimension": "D6",
+  "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+  "report_path": "tools/audit/round6/D6/REPORT.md",
+  "report_written": false,
+  "report_note": "Finder's Write of REPORT.md refused ('Subagents should return findings as text'); orchestrator reconstructed REPORT.md from this inline return. 7 harnesses + claims.tsv on disk.",
+  "exposure": "RELEASE_NOTES.md present (kept deliberately). tools/audit/round3/4/5/round5-fix present in the export although strip_earlier_rounds() exists to remove them — a baseline-construction defect in this round's manual prep, not a D6 product finding. Read tests/entities.py (green), tests/golden/config_flow.json, tests/harness.py, custom_components/**. No gh, no network.",
+  "findings": [
+    {
+      "id": "D6-01",
+      "title": "README tells users to clear ECL110 MQTT topics that already ship empty",
+      "severity": "medium",
+      "claim": "README.md L894-895 and L214-215 state both ECL110 MQTT topics ship non-empty and must be cleared by a user without an ECL110, but all three ECL110 topic options ship with an empty-string default, so there is nothing to clear and no failed publish can occur.",
+      "mechanism": "config_flow._OPTION_FIELDS builds ecl110_displace_set_topic, ecl110_command_topic and ecl110_state_topic with empty-string defaults; _publish_ecl110 returns early when both publish topics are empty. docs/ecl110.md L79-83 documents the correct behaviour; README contradicts it; tests/nightly_ha.py:2531 repeats the false premise.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D6/ecl110_topic_defaults.py",
+        "harness_path": "tools/audit/round6/D6/ecl110_topic_defaults.py",
+        "value": 0,
+        "unit": "topic options with a non-empty shipped default (README claims 2)",
+        "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+        "machine": "8-core Apple M1, 8 GB RAM (darwin, arm64)",
+        "cpu_or_wall": "count",
+        "contention_note": "box shared with sibling finders, load1 12-22; count-class",
+        "tolerance": "exact",
+        "load1": 13.41,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.config_flow:_OPTION_FIELDS",
+      "perturbation": {
+        "change": "change the shipped default of CONF_ECL110_COMMAND_TOPIC in config_flow.py from \"\" to \"ecl110/command\"",
+        "expected_direction": "up",
+        "observed_value": 1
+      },
+      "metric_definition": "Number of ECL110 MQTT topic options among {displace_set, command, state} whose shipped default is a non-empty string",
+      "stop_rule_class": "hygiene",
+      "files": ["README.md", "docs/ecl110.md", "custom_components/heatpump_optimizer/config_flow.py", "tests/nightly_ha.py"],
+      "proposed_fix_scope": "rewrite README.md L894-895/L214-215 to the docs/ecl110.md wording; drop the stale 'defaults are non-empty' clause from tests/nightly_ha.py:2531"
+    },
+    {
+      "id": "D6-02",
+      "title": "Two of three shipped blueprints default to entity ids this build never creates",
+      "severity": "medium",
+      "claim": "Two of the three blueprints README.md L673-684 presents as importable worked examples default their sensor input to an entity id the sensor platform does not build, contradicting docs/automations.md L6-7.",
+      "mechanism": "sensor.py:365 pins every object id as f\"sensor.heat_pump_optimizer_{translation_key}\"; these two sensors' translation keys carry a cost_ token. The blueprint defaults name sensor.heat_pump_optimizer_power_headroom and sensor.heat_pump_optimizer_current_electricity_price, which no platform builds.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D6/blueprint_default_ids.py",
+        "harness_path": "tools/audit/round6/D6/blueprint_default_ids.py",
+        "value": 2,
+        "unit": "blueprint default sensor ids absent from the set the platform builds (of 3)",
+        "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+        "machine": "8-core Apple M1, 8 GB RAM (darwin, arm64)",
+        "cpu_or_wall": "count",
+        "contention_note": "box shared with sibling finders, load1 12-22; count-class",
+        "tolerance": "exact",
+        "load1": 13.41,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.sensor:HeatPumpOptimizerSensorBase.entity_id",
+      "perturbation": {
+        "change": "change the pinned prefix at sensor.py:365 to f\"sensor.hpo_{translation_key}\"",
+        "expected_direction": "up",
+        "observed_value": 3
+      },
+      "metric_definition": "Among the blueprints under blueprints/automation/, the number whose default: sensor entity id is absent from the set of sensor.heat_pump_optimizer_* ids the platform builds",
+      "stop_rule_class": "bug",
+      "files": ["README.md", "docs/automations.md", "blueprints/automation/charge_ev_from_grid_headroom.yaml", "blueprints/automation/economy_mode_on_price_peak.yaml", "custom_components/heatpump_optimizer/sensor.py"],
+      "proposed_fix_scope": "add the missing cost_ token to the two blueprint default: ids, or delete the default: keys so the field opens empty"
+    },
+    {
+      "id": "D6-03",
+      "title": "Documented entity-id prefix does not follow the entry name",
+      "severity": "low",
+      "claim": "docs/automations.md L7-11 and two blueprint descriptions tell users the entity prefix follows the entry name and to change it if they named theirs differently, but sensor.py:365 pins heat_pump_optimizer regardless of entry title.",
+      "mechanism": "HeatPumpOptimizerSensorBase assigns self.entity_id from the translation key before the entity is added; the token heat_pump_optimizer is a hard-coded literal, deliberately. docs/dashboard-card.md L659-661 attributes the prefix to has_entity_name, which is not the mechanism in use.",
+      "evidence": {
+        "command": "PYTHONPATH=tests/hastub python3 tools/audit/round6/D6/entity_id_prefix.py",
+        "harness_path": "tools/audit/round6/D6/entity_id_prefix.py",
+        "value": 0,
+        "unit": "of 59 sensor ids carrying slug(entry.title) after renaming the entry to 'My House'",
+        "baseline_sha": "e336cc2c530882a142ef298de6420706d96a6300",
+        "machine": "8-core Apple M1, 8 GB RAM (darwin, arm64)",
+        "cpu_or_wall": "count",
+        "contention_note": "box shared with sibling finders, load1 12-22; count-class",
+        "tolerance": "exact",
+        "load1": 13.41,
+        "thread_factor": 1.0
+      },
+      "instrumented_symbol": "heatpump_optimizer.sensor:HeatPumpOptimizerSensorBase.entity_id",
+      "perturbation": {
+        "change": "set the config entry title from 'Heat Pump Optimizer' to 'My House'",
+        "expected_direction": "down",
+        "observed_value": 0
+      },
+      "metric_definition": "Number of sensor entity ids whose object-id begins with slug(entry.title), with entry.title default vs 'My House'",
+      "stop_rule_class": "hygiene",
+      "files": ["docs/automations.md", "docs/dashboard-card.md", "custom_components/heatpump_optimizer/sensor.py", "blueprints/automation/charge_ev_from_grid_headroom.yaml", "blueprints/automation/economy_mode_on_price_peak.yaml"],
+      "proposed_fix_scope": "rewrite docs/automations.md L7-11 and the two blueprint input descriptions to say ids are fixed at sensor.heat_pump_optimizer_*; correct the has_entity_name explanation"
+    }
+  ],
+  "harnesses": ["tools/audit/round6/D6/ecl110_topic_defaults.py", "tools/audit/round6/D6/blueprint_default_ids.py", "tools/audit/round6/D6/entity_id_prefix.py", "tools/audit/round6/D6/doc_defaults_vs_code.py", "tools/audit/round6/D6/services_fields_vs_schema.py", "tools/audit/round6/D6/claims_table.py", "tools/audit/round6/D6/claims.tsv"]
+}

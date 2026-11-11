@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/power_guard.py:GuardState.throttled RETURN_DEL 3e9cf388",
+  "killed_by": "tests/structure.py",
+  "old": "        return utc_elapsed_seconds(now, self._last_event) < MIN_EVENT_SPACING_S",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 787fe137cc72c77188a54a5125dc351c95ba84b3: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}

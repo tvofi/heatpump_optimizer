@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:cop_duty CMP_BOUND 60536b31",
+  "killed_by": "tests/features.py",
+  "old": "    if share <= share_limit:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if share < share_limit:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

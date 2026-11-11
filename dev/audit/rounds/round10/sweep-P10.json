@@ -1,0 +1,10 @@
+{
+  "class": "P10",
+  "instances": 1,
+  "barriered": false,
+  "enumerator": "python3 dev/audit/rounds/round10/D14/sweep-P10/p10_loop_reach.py",
+  "instance_list": [
+    {"file": "custom_components/heatpump_optimizer/away.py", "symbol": "estimate_recovery_hours", "probe": "HASTUB_TZ=Europe/Stockholm PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D14/s1/p10_seams.py --away  (loop_kernels_away_seam=183); python3 dev/audit/rounds/round10/D14/sweep-P10/p10_loop_reach.py --seam away.py:estimate_recovery_hours  (exit 1)", "beyond_finding": false},
+    {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_replay_interval", "probe": "python3 dev/audit/rounds/round10/D14/sweep-P10/p10_loop_reach.py --seam coordinator.py:_replay_interval  (exit 1)", "beyond_finding": true}
+  ]
+}

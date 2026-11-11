@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_setpoint_sweep BOOLOP eaa0ffbe",
+  "killed_by": "tests/features.py",
+  "old": "            if meets and (best is None or cost_day < best[\"cost_per_day\"]):",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if meets or (best is None or cost_day < best[\"cost_per_day\"]):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

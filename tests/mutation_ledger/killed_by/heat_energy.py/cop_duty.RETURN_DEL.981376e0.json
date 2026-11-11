@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:cop_duty RETURN_DEL 981376e0",
+  "killed_by": "tests/features.py",
+  "old": "    return DHW if share >= 1.0 - share_limit else None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_unit_scale_of RETURN_DEL b1670298",
+  "killed_by": "tests/features.py",
+  "old": "    return scale",
+  "reason": "#1513 follow-up (precipitation_unit): RETURN_DEL on the shared forecast unit scale. Applied in a detached worktree, `PYTHONPATH=tests/hastub python3 tests/features.py`: rc=0 -> rc=1 with no FAIL line: the mutant raises `TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'`. Measured at 64fc5f1f, 2026-09-25. Main pinned this mutant as `_wind_speed_scale_of RETURN_DEL b1670298` before the wind scale became the shared `_unit_scale_of`; the text and the mutant are unchanged."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:MonthlyPeakSensor.extra_state_attributes RETURN_DEL 7edb83fa",
+  "killed_by": "tests/manual_plan.py",
+  "old": "        return out",
+  "reason": "Recorded by hand against 45e75b85 plus this commit's tests/manual_plan.py test_quiet_window_arms, in a detached copy with the mutant applied. The comment-only null control, a comment prepended to sensor.py, left all 119 manual-plan checks passing. RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 to rc=1: 1 check FAILED, \"the monthly peak sensor publishes the tariff fields it was given\" (got None)."
+}

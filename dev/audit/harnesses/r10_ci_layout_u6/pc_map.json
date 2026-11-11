@@ -1,0 +1,24 @@
+{
+ "renames": {
+  "pr-contract|Name the pull request a queue entry carries": "pr-contract|Name the pull request this run grades"
+ },
+ "gained": [
+  "pr-contract|Wait for code scanning and list its open alerts"
+ ],
+ "after": {
+  "pr-contract|Wait for code scanning and list its open alerts": "pr-contract|List the paths this pull request changes"
+ },
+ "dropped": [],
+ "changed": [
+  "pr-contract|",
+  "pr-contract|Check the body against the contract",
+  "pr-contract|List the paths this pull request changes",
+  "pr-contract|List the red checks at this head",
+  "pr-contract|Read the body off the API, not the event payload",
+  "pr-contract|Refuse a version, manifest-version or notes-heading edit",
+  "pr-contract|Restore the check source from the base commit",
+  "|floor",
+  "|triggers",
+  "pr-contract|Name the pull request this run grades"
+ ]
+}

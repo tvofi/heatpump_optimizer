@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:resolution_refusal CMP_BOUND 796e64c6",
+  "killed_by": "tests/features.py",
+  "old": "    if q is None or not expected_kwh > 0.0 or q / expected_kwh > HEAT_RESOLUTION_EPS:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if q is None or not expected_kwh > 0.0 or q / expected_kwh >= HEAT_RESOLUTION_EPS:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}

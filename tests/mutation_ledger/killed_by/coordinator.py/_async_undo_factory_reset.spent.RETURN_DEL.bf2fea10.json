@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_undo_factory_reset.spent RETURN_DEL bf2fea10",
+  "killed_by": "tests/features.py",
+  "old": "        return undo.get(\"stores\") or {}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,52 @@
+# DRAFT by finder seat D10-s2, audit round 9, baseline 1936d5ca72a06556eeed4e8e5bf3dea520e517e1.
+# Covers this seat's cells only: the Gold and Platinum rows (D10.M1/M2), plus
+# the two M3 rows (test-coverage, strict-typing). Bronze/Silver rows other than
+# test-coverage belong to seat D10-s1 and are not restated here.
+# Evidence: tools/audit/round9/D10/s2/{gold_platinum_rules,climate_presets,coverage_modules,mypy_census}.py
+rules:
+  # Silver (M3 measurement only)
+  test-coverage:
+    status: done
+    comment: statement coverage over the 17 fast-stage gate scripts, min module 95.12 % (diagnostics.py), package 97.98 %, 0 modules at or below 95 % (coverage_modules.py)
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery:
+    status: exempt
+    comment: cloud_polling service plus user-picked HA entities; 0 discovery manifest keys, 0 discovery flow steps
+  discovery-update-info:
+    status: exempt
+    comment: same basis as discovery
+  docs-data-update: done
+  docs-examples:
+    status: done
+    comment: 3 in-tree blueprints linked from README, 0 dangling service/entity references; the Blueprints Exchange half was not re-verifiable offline in round 9 (proxy 403)
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices:
+    status: exempt
+    comment: one service device per entry; 0 device-registry create/update/remove sites
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default: done
+  entity-translations:
+    status: todo
+    comment: D10-s2-01 -- the climate entity (main feature, no translation_key) publishes presets auto and economy, which are not Home Assistant standard presets, so no language can translate them
+  exception-translations: done
+  icon-translations:
+    status: todo
+    comment: D10-s2-01 -- the same two climate presets get no icon (no entity.climate section in icons.json)
+  reconfiguration-flow: done
+  repair-issues: done
+  stale-devices:
+    status: exempt
+    comment: device lifetime equals config-entry lifetime; 0 removal sites
+  # Platinum
+  async-dependency: done
+  inject-websession: done
+  strict-typing:
+    status: done
+    comment: py.typed shipped; mypy --strict with the pinned homeassistant-stubs 2026.9.3 reports 0 errors; 0 type ignores; 0 bare ConfigEntry annotations

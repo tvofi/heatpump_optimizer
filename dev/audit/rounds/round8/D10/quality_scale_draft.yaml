@@ -1,0 +1,112 @@
+# D10-s1 draft quality_scale.yaml (round 8), derived by one executed check
+# per rule against the baseline (cdf82daabcfe3777d98b31489f36df5555ec9d82),
+# then diffed against the integration's own
+# custom_components/heatpump_optimizer/quality_scale.yaml.
+#
+# Verdict: the two files agree on every status EXCEPT that the checked-in
+# register's strict-typing comment ("every entry parameter is typed with
+# HeatPumpOptimizerConfigEntry, none bare (qs_entry_param_bare=0)") and its
+# exception-translations comment ("every raise site carries
+# translation_domain + translation_key") are both measurably false — see
+# D10-s1-01 and D10-s1-02. This draft keeps `status: done` for both rules
+# (the two violations are narrow enough not to flip Platinum adherence on
+# their own — strict-typing's other half, mypy --strict, is s2's checked
+# rule) but corrects the comments' claimed counts to the executed ones.
+#
+# Rules not independently re-derived here (unique-config-entry,
+# common-modules, brands, dependency-transparency, docs-*, action-setup,
+# config-entry-unloading, integration-owner, devices, entity-category,
+# entity-device-class, entity-disabled-by-default, entity-translations,
+# icon-translations, reconfiguration-flow, repair-issues, discovery,
+# discovery-update-info, dynamic-devices, stale-devices, async-dependency)
+# were spot-checked (grep/AST presence checks, see REPORT-s1.md "method"
+# section) and found consistent with the register; a from-scratch
+# re-derivation of the coverage-bearing Silver/Bronze rows
+# (config-flow-test-coverage, test-coverage) and mypy --strict
+# (strict-typing's other half) is s2's focus, not re-run here.
+rules:
+  # Bronze
+  action-setup: done
+  appropriate-polling: done
+  brands: done
+  common-modules: done
+  config-flow: done
+  config-flow-test-coverage: done   # s2 measures
+  dependency-transparency: done
+  docs-actions: done
+  docs-triggers: done               # vacuous, 0 triggers
+  docs-conditions: done             # vacuous, 0 conditions
+  docs-high-level-description: done
+  docs-installation-instructions: done
+  docs-removal-instructions: done
+  entity-event-setup: done
+  entity-unique-id: done
+  has-entity-name: done
+  runtime-data: done
+  test-before-configure: done
+  test-before-setup: done
+  unique-config-entry: done
+
+  # Silver
+  action-exceptions: done
+  config-entry-unloading: done
+  docs-configuration-parameters: done
+  docs-installation-parameters: done
+  entity-unavailable: done
+  integration-owner: done
+  log-when-unavailable: done
+  parallel-updates: done
+  reauthentication-flow: done
+  test-coverage: done               # s2 measures
+
+  # Gold
+  devices: done
+  diagnostics: done
+  discovery: exempt
+  discovery-update-info: exempt
+  docs-data-update: done
+  docs-examples:
+    status: done
+    comment: >-
+      re-verified 2026-09-23 by fetching the Discourse topic URL live
+      (D10-s1 non-finding NF-01): the three blueprint import links resolve
+      and match blueprints/automation/*.yaml in-tree.
+  docs-known-limitations: done
+  docs-supported-devices: done
+  docs-supported-functions: done
+  docs-troubleshooting: done
+  docs-use-cases: done
+  dynamic-devices: exempt
+  entity-category: done
+  entity-device-class: done
+  entity-disabled-by-default: done
+  entity-translations: done
+  exception-translations:
+    status: done
+    comment: >-
+      D10-s1-02 (2026-09-23): 4 of 25 HomeAssistantError-family raise
+      sites (all `raise UpdateFailed(...)` in coordinator.py: the outage
+      latch and both "Error updating data" wrappers) carry no
+      translation_domain/translation_key, contradicting this row's prior
+      "every raise site" comment. Left `done` because UpdateFailed's
+      surfaced text is the coordinator's own last_exception string, not a
+      config-flow or service-call error path the rule's examples target;
+      flagged as a finding because the register's own completeness claim
+      is false regardless of that reading.
+  icon-translations: done
+  reconfiguration-flow: done
+  repair-issues: done
+  stale-devices: exempt
+
+  # Platinum
+  async-dependency: done
+  inject-websession: done
+  strict-typing:
+    status: done
+    comment: >-
+      D10-s1-01 (2026-09-23): qs_entry_param_bare=3, not 0 as claimed
+      (diagnostics.py:119 `ConfigEntry[HeatPumpOptimizerCoordinator]`
+      instead of the alias; two more in config_flow.py's OptionsFlow
+      dispatch, whose signature HA's own ConfigFlow base fixes and which
+      may be a legitimate exemption not re-derived here). mypy --strict
+      count is s2's measurement.

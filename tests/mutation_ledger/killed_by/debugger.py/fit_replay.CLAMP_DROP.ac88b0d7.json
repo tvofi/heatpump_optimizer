@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:fit_replay CLAMP_DROP ac88b0d7",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    for since in dict.fromkeys(max(start, end - span) for span in REPLAY_SPANS):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: CLAMP_DROP (`for since in dict.fromkeys((start) for span in REPLAY_SPANS):`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}

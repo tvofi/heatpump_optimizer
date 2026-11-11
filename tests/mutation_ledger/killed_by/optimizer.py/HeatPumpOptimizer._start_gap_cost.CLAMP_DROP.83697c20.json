@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._start_gap_cost CLAMP_DROP 83697c20",
+  "killed_by": "tests/features.py",
+  "old": "        return max(min(capped, uncapped), -displaced)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 806aa2ce89aeb6c00cf756195f31026ab798f3ca: CLAMP_DROP (`return (min(capped, uncapped))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5. Each of the 2 sites under this anchor was killed."
+}

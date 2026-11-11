@@ -1,0 +1,33 @@
+RESULT price_model.ok=200 count
+RESULT price_model.load_exc=0 count
+RESULT price_model.cycle1_fail=0 count
+RESULT price_model.cycle2_fail=0 count
+RESULT price_model.log_gt3=200 count
+  EX price_model log_gt3 (0, 'model/shapes/0/1', 'null', 8, ['Persisted price shape has a non-finite or unreadable bin; restarting it', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T20:45:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX price_model log_gt3 (1, 'model/quarter_factors/1/2', 'list', 8, ['Persisted quarter factors has a non-finite or unreadable bin; restarting it', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T20:45:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX price_model log_gt3 (2, 'model/shapes/0/0', 'delete', 8, ['Persisted price shape has a non-finite or unreadable bin; restarting it', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T20:45:00+00:00 is ahead of the clock; bounded to 2026'])
+RESULT thread_factor=1.054
+RESULT load1=41.92
+RESULT swapins=0
+RESULT accuracy.ok=200 count
+RESULT accuracy.load_exc=0 count
+RESULT accuracy.cycle1_fail=0 count
+RESULT accuracy.cycle2_fail=0 count
+RESULT accuracy.log_gt3=200 count
+  EX accuracy log_gt3 (0, 'accuracy/lead_pending/0/0', 'type', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX accuracy log_gt3 (1, 'defrost/duty_counts/4', 'huge', 8, ['Defrost derate: 12 stored bucket value(s) were unreadable or outside what the learner writes; those buckets restart unle', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX accuracy log_gt3 (2, 'defrost/duty_events/2', 'huge', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+RESULT thread_factor=1.044
+RESULT load1=25.16
+RESULT swapins=0
+RESULT energy.ok=200 count
+RESULT energy.load_exc=0 count
+RESULT energy.cycle1_fail=0 count
+RESULT energy.cycle2_fail=0 count
+RESULT energy.log_gt3=200 count
+  EX energy log_gt3 (0, 'total_energy_kwh', 'huge', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX energy log_gt3 (1, 'last_tick', 'null', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX energy log_gt3 (2, 'since', 'str', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+RESULT thread_factor=1.057
+RESULT load1=96.89
+RESULT swapins=0

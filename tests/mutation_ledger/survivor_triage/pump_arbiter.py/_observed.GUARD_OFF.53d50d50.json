@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_observed GUARD_OFF 53d50d50",
+  "old": "        if raw is None:",
+  "reason": "GUARD_OFF (`if False:`) still returns None: the night-key path then hits `float(raw)` with raw still None, TypeError is caught, and the except returns None. `_observed` of a missing night-mode number is None on both paths (tests/guard_pins.py observed_none).",
+  "verdict": "equivalent"
+}

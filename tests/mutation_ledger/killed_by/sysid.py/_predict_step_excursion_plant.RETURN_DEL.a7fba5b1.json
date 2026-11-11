@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_predict_step_excursion_plant RETURN_DEL a7fba5b1",
+  "killed_by": "tests/features.py",
+  "old": "    return peak, abs(state.upper_floor_temperature - baseline)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 5003d56f9d9f7617d5e4dc1372e49dbdbacd39bd: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

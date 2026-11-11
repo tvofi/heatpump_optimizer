@@ -1,0 +1,17 @@
+RESULT own_rows=4 count
+RESULT own_rows_writing_offpeak=0 count
+RESULT own_ellevio_discounted_nov=0 count
+RESULT own_ellevio_discounted_mar=0 count
+RESULT own_ellevio_discounted_jul_null=672 count
+RESULT own_ellevio_mask_active=1 bool
+RESULT own_ellevio_offpeak_factor=1 factor
+RESULT own_ellevio_sample_saturday=1 factor
+RESULT own_ellevio_sample_weeknight=1 factor
+RESULT own_optimizer_factors_is_none=0 bool
+RESULT own_optimizer_factors_below1=0 count
+RESULT own_perturbed_discounted_nov=432 count
+RESULT own_perturbed_sample_saturday=0 factor
+RESULT thread_factor=0.996824218 ratio
+RESULT load1=3.980957031 load
+RESULT concurrent_processes=3 count
+RESULT swapins=486531392 count

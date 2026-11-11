@@ -1,0 +1,82 @@
+#2211	2026-10-15T00:50:16+02:00	82443a02->cab2a3b1	merge	main	{'main': 1}	carry@t=yes	31	before
+#2209	2026-10-15T03:18:17+02:00	4666a7dd->860afdbc	merge	own	{'own': 2, 'main': 1}	carry@t=no	54	before
+#2296	2026-10-15T22:54:12+02:00	39b733a7->fb2d6109	merge	own	{'own': 2, 'main': 1}	carry@t=no	18	before
+#2309	2026-10-16T01:02:57+02:00	74c207a7->afcab412	merge	own	{'own': 1}	carry@t=no	9	before
+#2315	2026-10-16T02:15:46+02:00	aac72528->706c2d24	merge	own	{'own': 1}	carry@t=no	8	before
+#2321	2026-10-16T03:22:12+02:00	3e42151e->35332265	merge	own	{'own': 1, 'main': 1}	carry@t=no	5	before
+#2330	2026-10-16T08:09:19+02:00	2a788379->69c5799b	merge	own	{'own': 1, 'main': 1}	carry@t=no	4	before
+#2336	2026-10-16T21:30:51+02:00	a0c4431d->c99d73f3	merge	main	{'main': 1}	carry@t=yes	50	before
+#2379	2026-10-18T11:56:52+02:00	98d33ce0->6f6aa4e4	merge	bot	{'bot': 1}	carry@t=yes	51	before
+#2365	2026-10-18T14:28:47+02:00	a0c0f866->bcaf7d61	merge	code	{'main': 1, 'code': 1}	carry@t=no	60	before
+#2379	2026-10-18T20:05:20+02:00	6f6aa4e4->f4e16871	merge	code	{'main': 1, 'code': 1, 'bot': 2}	carry@t=no	150	before
+#2401	2026-10-18T20:45:20+02:00	da688f50->311e9de3	merge	main	{'main': 2}	carry@t=yes	51	before
+#2411	2026-10-19T03:05:44+02:00	3b6e599d->b9f72cb1	blocked	code	{'main': 1, 'code': 1, 'bot': 3}	carry@t=no	50	before
+#2408	2026-10-19T04:59:52+02:00	928a6727->21e87f79	merge	code	{'code': 1}	carry@t=no	40	before
+#2399	2026-10-19T05:13:09+02:00	5c2bfcb1->705a9b85	merge	main	{'main': 2}	carry@t=yes	80	before
+#2368	2026-10-19T08:24:48+02:00	86258e15->91a3f77c	merge	code	{'main': 1, 'code': 1}	carry@t=no	52	before
+#2415	2026-10-19T08:35:45+02:00	87c57940->bd8011e9	merge	code	{'code': 1, 'bot': 2}	carry@t=no	48	before
+#2463	2026-10-20T01:21:47+02:00	67b8659d->a3f7c328	merge	bot	{'bot': 1}	carry@t=yes	14	before
+#2463	2026-10-20T02:29:20+02:00	a3f7c328->8864a760	merge	main	{'main': 1}	carry@t=yes	54	before
+#2465	2026-10-20T14:18:17+02:00	afabd5b6->44ea3af3	blocked	code	{'main': 3, 'code': 1, 'bot': 2}	carry@t=no	97	before
+#2525	2026-10-21T14:11:21+02:00	eda11668->31ce1c0c	merge	main	{'main': 1}	carry@t=yes	64	before
+#2576	2026-10-21T19:56:37+02:00	df70cb6b->fe1365f0	blocked	code	{'main': 1, 'code': 1}	carry@t=no	11	before
+#2569	2026-10-21T20:18:14+02:00	5ffbaaae->8c008227	merge	code	{'main': 1, 'code': 1}	carry@t=no	124	before
+#2547	2026-10-21T22:49:17+02:00	90bab078->71a577c9	merge	main	{'main': 1}	carry@t=no	106	before
+#2580	2026-10-22T02:59:04+02:00	a54aed8b->f44296a6	blocked	code	{'main': 3, 'code': 1}	carry@t=no	30	before
+#2582	2026-10-22T03:02:31+02:00	83d9662d->c8b85d11	merge	code	{'main': 2, 'code': 1}	carry@t=no	36	before
+#2578	2026-10-22T04:26:46+02:00	3f22a805->94ef8a7d	merge	code	{'code': 1, 'main': 2}	carry@t=no	37	before
+#2585	2026-10-22T05:09:54+02:00	0644c36d->e817bb12	merge	code	{'main': 1, 'code': 1, 'bot': 1}	carry@t=no	61	before
+#2578	2026-10-22T09:37:13+02:00	94ef8a7d->5f216b37	merge	main	{'main': 3}	carry@t=no	63	before
+#2600	2026-10-22T10:59:03+02:00	c818b467->d000df13	merge	code	{'main': 1, 'code': 1}	carry@t=no	11	before
+#2580	2026-10-22T11:26:38+02:00	caac2c8d->808137a9	merge	main	{'main': 2}	carry@t=no	42	before
+#2605	2026-10-22T14:21:30+02:00	5a3c5d23->4eed14bd	merge	main	{'main': 1}	carry@t=yes	16	before
+#2609	2026-10-22T16:00:12+02:00	c00082a9->97ac438d	merge	own	{'own': 1, 'main': 1}	carry@t=no	27	before
+#2580	2026-10-22T18:50:24+02:00	808137a9->3541137e	merge	code	{'main': 6, 'code': 1}	carry@t=no	7	before
+#2612	2026-10-22T22:53:24+02:00	c8dea465->d40cdb8f	merge	bot	{'main': 1, 'bot': 1}	carry@t=yes	35	before
+#2622	2026-10-22T23:48:07+02:00	67942203->91f2bcd4	merge	main	{'main': 1}	carry@t=yes	37	before
+#2626	2026-10-23T00:28:09+02:00	6bee9961->c2c5a896	merge	code	{'code': 1}	carry@t=no	8	before
+#2626	2026-10-23T00:48:42+02:00	c2c5a896->9da4dcab	merge	code	{'code': 2, 'main': 1}	carry@t=no	6	before
+#2626	2026-10-23T00:55:10+02:00	9da4dcab->6d9a841e	merge	code	{'code': 1}	carry@t=no	5	before
+#2632	2026-10-23T07:14:00+02:00	ab6216ce->577ec62d	blocked	code	{'code': 1, 'bot': 2}	carry@t=no	74	before
+#2636	2026-10-23T07:19:53+02:00	328e222f->4e1c57d5	merge	main	{'main': 1}	carry@t=no	55	before
+#2651	2026-10-23T08:58:31+02:00	2bb638af->91e37c09	merge	code	{'code': 1}	carry@t=no	10	before
+#2645	2026-10-23T10:30:18+02:00	05b9c1d5->42cb7d16	merge	code	{'code': 1}	carry@t=no	49	before
+#2620	2026-10-23T14:31:49+02:00	72fbab2a->ce7ed26b	merge	code	{'code': 1, 'main': 1}	carry@t=no	40	before
+#2673	2026-10-24T01:41:46+02:00	c4033588->ac6dc132	merge	code	{'code': 1}	carry@t=no	42	before
+#2683	2026-10-24T10:07:26+02:00	07b83e9b->8d965647	merge	bot	{'bot': 1}	carry@t=yes	188	before
+#2689	2026-10-24T11:23:27+02:00	44ee0e5f->80a62d9a	blocked	code	{'code': 1}	carry@t=no	31	before
+#2688	2026-10-24T14:09:23+02:00	b451bde0->1fbc924a	merge	code	{'code': 1}	carry@t=no	170	before
+#2741	2026-10-24T18:04:22+02:00	ca804c6d->77656132	merge	own	{'own': 1}	carry@t=no	25	before
+#2745	2026-10-24T20:46:05+02:00	c70c3e46->46dc1dda	merge	bot	{'bot': 1}	carry@t=yes	67	before
+#2745	2026-10-25T02:44:59+01:00	46dc1dda->36c985d3	merge	code	{'main': 1, 'code': 1}	carry@t=no	104	before
+#2772	2026-10-25T02:48:54+02:00	9292cdd9->94da3212	blocked	empty	{}	carry@t=no	35	before
+#2753	2026-10-25T03:55:55+01:00	0303eae4->e6455b8f	blocked	bot	{'bot': 1}	carry@t=yes	109	before
+#2762	2026-10-25T06:15:13+01:00	c851f2a8->6e4e274a	merge	code	{'code': 1, 'bot': 2}	carry@t=no	87	before
+#2762	2026-10-25T09:03:07+01:00	6e4e274a->9a3bbaa7	merge	main	{'main': 1}	carry@t=yes	75	after
+#2745	2026-10-25T09:08:50+01:00	36c985d3->c0f221f7	merge	code	{'main': 1, 'code': 1, 'bot': 2}	carry@t=no	80	after
+#2775	2026-10-25T11:37:13+01:00	af3b69b4->627aea6d	merge	bot	{'main': 1, 'bot': 1}	carry@t=yes	76	after
+#2753	2026-10-25T14:31:16+01:00	09aecd62->bd1a5f31	merge	bot	{'main': 1, 'bot': 1}	carry@t=yes	46	after
+#2745	2026-10-25T15:45:02+01:00	c0f221f7->7ae5e30e	merge	main	{'main': 4}	carry@t=yes	42	after
+#2753	2026-10-25T15:45:19+01:00	bd1a5f31->45d08312	blocked	main	{'main': 1}	carry@t=no	53	after
+#2833	2026-10-26T00:03:06+01:00	541be610->ddb4398a	merge	code	{'code': 1}	carry@t=no	28	after
+#2753	2026-10-26T01:36:06+01:00	45d08312->6dc025ec	merge	bot	{'main': 1, 'bot': 1}	carry@t=no	62	after
+#2824	2026-10-26T03:10:38+01:00	fa23170a->3c32a0a0	merge	code	{'main': 2, 'code': 1, 'bot': 1}	carry@t=no	59	after
+#2844	2026-10-26T03:47:56+01:00	ac96f4c3->9dc2d963	merge	code	{'main': 1, 'code': 1}	carry@t=no	8	after
+#2819	2026-10-26T04:02:45+01:00	6f91e6d0->e088bf83	merge	code	{'main': 1, 'code': 1, 'bot': 1}	carry@t=no	89	after
+#2834	2026-10-26T09:07:54+01:00	313a19d9->9e212cd0	merge	code	{'main': 1, 'code': 1, 'bot': 2}	carry@t=no	69	after
+#2834	2026-10-26T16:57:05+01:00	9e212cd0->c84d561b	merge	bot	{'main': 3, 'bot': 1}	carry@t=yes	117	after
+#2745	2026-10-26T17:18:52+01:00	7ae5e30e->d2cd24dc	merge	code	{'main': 3, 'code': 1, 'bot': 2}	carry@t=no	70	after
+#2745	2026-10-26T20:38:16+01:00	d2cd24dc->1a13f2b3	blocked	code	{'main': 1, 'code': 1}	carry@t=no	15	after
+#2819	2026-10-27T05:41:59+01:00	e088bf83->57b2857a	merge	code	{'main': 1, 'code': 1, 'bot': 2}	carry@t=no	117	after
+#2745	2026-10-27T15:03:14+01:00	4bf7c2ea->3522cd92	merge	code	{'code': 1, 'main': 1}	carry@t=no	80	after
+#2854	2026-10-27T20:08:48+01:00	8c4bec5c->89be0e8b	merge	code	{'main': 1, 'code': 1}	carry@t=no	90	after
+#2876	2026-10-27T21:21:17+01:00	253dc486->9513b571	merge	code	{'main': 2, 'code': 1}	carry@t=no	111	after
+#2853	2026-10-27T21:55:58+01:00	b69828eb->14427f3a	blocked	main	{'main': 1}	carry@t=no	31	after
+#2876	2026-10-28T03:38:44+01:00	9513b571->3235ba4f	merge	code	{'main': 1, 'code': 1}	carry@t=no	72	after
+SUM ('bot', 'no') n 1 after 1 lag_min 62
+SUM ('bot', 'yes') n 9 after 3 lag_min 703
+SUM ('code', 'no') n 40 after 13 lag_min 2328
+SUM ('empty', 'no') n 1 after 0 lag_min 35
+SUM ('main', 'no') n 6 after 2 lag_min 350
+SUM ('main', 'yes') n 10 after 2 lag_min 500
+SUM ('own', 'no') n 8 after 0 lag_min 150

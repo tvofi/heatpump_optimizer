@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/silent_mode.py:caps CLAMP_DROP 13e14db1",
+  "killed_by": "tests/features.py",
+  "old": "    cap = max(float(fraction), CAPACITY_FLOOR_FRACTION) * float(p_max)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`cap = (float(fraction)) * float(p_max)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

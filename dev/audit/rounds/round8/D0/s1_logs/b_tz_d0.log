@@ -1,0 +1,62 @@
+CELL winter_typical|winter_cold|dhw=0|tz=1 J=77.884228 cost=58.785 nfev=417 ftol_stops=6/8 step0=6.000 | ftol=+2.370e-03 cost=58.633 nfev=852
+CELL winter_typical|winter_mild|dhw=0|tz=1 J=29.678816 cost=19.717 nfev=447 ftol_stops=8/8 step0=0.000 | ftol=+1.228e-03 cost=19.636 nfev=814
+CELL winter_typical|summer_warm|dhw=0|tz=1 J=10597.967556 cost=0.000 nfev=12 ftol_stops=0/8 step0=0.000 | ftol=+0.000e+00 cost=0.000 nfev=12
+CELL winter_typical|summer_cool|dhw=0|tz=1 J=3.818111 cost=2.233 nfev=284 ftol_stops=6/8 step0=0.000 | ftol=+3.734e-06 cost=2.233 nfev=545
+CELL winter_typical|shoulder|dhw=0|tz=1 J=8.321772 cost=6.064 nfev=299 ftol_stops=6/8 step0=0.000 | ftol=+0.000e+00 cost=6.064 nfev=524
+CELL winter_extreme|winter_cold|dhw=0|tz=1 J=111.541254 cost=94.614 nfev=468 ftol_stops=8/8 step0=6.000 | ftol=+1.772e-04 cost=94.621 nfev=1037
+CELL winter_extreme|winter_mild|dhw=0|tz=1 J=41.032286 cost=31.147 nfev=318 ftol_stops=7/8 step0=2.367 | ftol=+2.892e-03 cost=31.464 nfev=725
+CELL winter_extreme|summer_warm|dhw=0|tz=1 J=10597.967556 cost=0.000 nfev=12 ftol_stops=0/8 step0=0.000 | ftol=+0.000e+00 cost=0.000 nfev=12
+CELL winter_extreme|summer_cool|dhw=0|tz=1 J=5.176934 cost=3.204 nfev=364 ftol_stops=8/8 step0=0.000 | ftol=+3.223e-04 cost=3.169 nfev=778
+CELL winter_extreme|shoulder|dhw=0|tz=1 J=11.765783 cost=9.172 nfev=302 ftol_stops=6/8 step0=0.000 | ftol=+1.250e-03 cost=8.982 nfev=693
+CELL summer_typical|winter_cold|dhw=0|tz=1 J=24.973759 cost=16.282 nfev=328 ftol_stops=8/8 step0=2.565 | ftol=+7.751e-09 cost=16.282 nfev=688
+CELL summer_typical|winter_mild|dhw=0|tz=1 J=8.670700 cost=6.568 nfev=200 ftol_stops=8/8 step0=0.000 | ftol=+9.807e-06 cost=6.570 nfev=300
+CELL summer_typical|summer_warm|dhw=0|tz=1 J=10597.967556 cost=0.000 nfev=12 ftol_stops=0/8 step0=0.000 | ftol=+0.000e+00 cost=0.000 nfev=12
+CELL summer_typical|summer_cool|dhw=0|tz=1 J=1.722762 cost=0.542 nfev=159 ftol_stops=8/8 step0=0.000 | ftol=+3.346e-05 cost=0.542 nfev=288
+CELL summer_typical|shoulder|dhw=0|tz=1 J=3.294886 cost=1.578 nfev=204 ftol_stops=8/8 step0=0.000 | ftol=+1.550e-05 cost=1.578 nfev=314
+CELL summer_negative|winter_cold|dhw=0|tz=1 J=17.221718 cost=14.589 nfev=268 ftol_stops=8/8 step0=0.000 | ftol=+9.662e-05 cost=14.597 nfev=690
+CELL summer_negative|winter_mild|dhw=0|tz=1 J=1.938648 cost=-0.271 nfev=342 ftol_stops=8/8 step0=0.000 | ftol=+5.821e-03 cost=-0.268 nfev=1121
+CELL summer_negative|summer_warm|dhw=0|tz=1 J=10597.967556 cost=0.000 nfev=12 ftol_stops=0/8 step0=0.000 | ftol=+0.000e+00 cost=0.000 nfev=12
+CELL summer_negative|summer_cool|dhw=0|tz=1 J=0.464524 cost=-0.651 nfev=222 ftol_stops=8/8 step0=0.000 | ftol=+1.495e-05 cost=-0.651 nfev=280
+CELL summer_negative|shoulder|dhw=0|tz=1 J=0.220938 cost=-1.522 nfev=338 ftol_stops=2/8 step0=0.000 | ftol=+1.107e-02 cost=-1.530 nfev=435
+CELL shoulder|winter_cold|dhw=0|tz=1 J=58.967870 cost=51.393 nfev=395 ftol_stops=8/8 step0=1.831 | ftol=+2.947e-03 cost=50.593 nfev=1143
+CELL shoulder|winter_mild|dhw=0|tz=1 J=23.300953 cost=18.609 nfev=440 ftol_stops=7/8 step0=0.000 | ftol=+1.178e-03 cost=18.654 nfev=1793
+CELL shoulder|summer_warm|dhw=0|tz=1 J=10597.967556 cost=0.000 nfev=12 ftol_stops=0/8 step0=0.000 | ftol=+0.000e+00 cost=0.000 nfev=12
+CELL shoulder|summer_cool|dhw=0|tz=1 J=3.342137 cost=2.155 nfev=394 ftol_stops=4/8 step0=0.000 | ftol=+1.941e-03 cost=2.146 nfev=675
+CELL shoulder|shoulder|dhw=0|tz=1 J=6.894106 cost=5.283 nfev=320 ftol_stops=7/8 step0=0.000 | ftol=+1.846e-03 cost=5.271 nfev=763
+CELL winter_narrow|winter_cold|dhw=0|tz=1 J=124.262942 cost=111.599 nfev=464 ftol_stops=8/8 step0=5.989 | ftol=+2.425e-03 cost=111.115 nfev=1662
+CELL winter_narrow|winter_mild|dhw=0|tz=1 J=50.750582 cost=39.591 nfev=455 ftol_stops=7/8 step0=0.000 | ftol=+3.002e-03 cost=40.621 nfev=2054
+CELL winter_narrow|summer_warm|dhw=0|tz=1 J=10597.967556 cost=0.000 nfev=12 ftol_stops=0/8 step0=0.000 | ftol=+0.000e+00 cost=0.000 nfev=12
+CELL winter_narrow|summer_cool|dhw=0|tz=1 J=6.084340 cost=3.637 nfev=308 ftol_stops=5/8 step0=0.000 | ftol=+9.265e-10 cost=3.637 nfev=527
+CELL winter_narrow|shoulder|dhw=0|tz=1 J=14.479919 cost=9.272 nfev=358 ftol_stops=5/8 step0=0.000 | ftol=+7.340e-05 cost=9.287 nfev=583
+CELL winter_moderate|winter_cold|dhw=0|tz=1 J=95.290321 cost=81.802 nfev=471 ftol_stops=6/8 step0=6.000 | ftol=-2.274e-04 cost=81.131 nfev=1083
+CELL winter_moderate|winter_mild|dhw=0|tz=1 J=38.068743 cost=30.207 nfev=545 ftol_stops=8/8 step0=0.185 | ftol=+1.065e-03 cost=29.948 nfev=1576
+CELL winter_moderate|summer_warm|dhw=0|tz=1 J=10597.967556 cost=0.000 nfev=12 ftol_stops=0/8 step0=0.000 | ftol=+0.000e+00 cost=0.000 nfev=12
+CELL winter_moderate|summer_cool|dhw=0|tz=1 J=4.676736 cost=2.597 nfev=349 ftol_stops=7/8 step0=0.000 | ftol=+1.647e-03 cost=2.534 nfev=680
+CELL winter_moderate|shoulder|dhw=0|tz=1 J=10.920191 cost=7.526 nfev=358 ftol_stops=7/8 step0=0.000 | ftol=+1.479e-04 cost=7.597 nfev=654
+CELL flat|winter_cold|dhw=0|tz=1 J=99.739766 cost=90.456 nfev=502 ftol_stops=8/8 step0=4.971 | ftol=+3.906e-03 cost=90.410 nfev=1296
+CELL flat|winter_mild|dhw=0|tz=1 J=41.473297 cost=35.120 nfev=305 ftol_stops=6/8 step0=0.000 | ftol=+1.697e-08 cost=35.120 nfev=923
+CELL flat|summer_warm|dhw=0|tz=1 J=10597.967556 cost=0.000 nfev=12 ftol_stops=0/8 step0=0.000 | ftol=+0.000e+00 cost=0.000 nfev=12
+CELL flat|summer_cool|dhw=0|tz=1 J=5.188660 cost=2.833 nfev=499 ftol_stops=7/8 step0=0.000 | ftol=+2.739e-15 cost=2.833 nfev=739
+CELL flat|shoulder|dhw=0|tz=1 J=12.227805 cost=8.732 nfev=456 ftol_stops=6/8 step0=0.000 | ftol=-2.604e-04 cost=8.629 nfev=678
+RESULT cells=40 count
+RESULT prod_lbfgsb_runs=320 count
+RESULT runs_stopped_by_ftol=219 count
+RESULT runs_stopped_by_pgtol=64 count
+RESULT runs_stopped_by_maxiter=0 count
+RESULT runs_stopped_other=37 count
+RESULT ftol_cells_gap_gt_1e-3=15 count
+RESULT ftol_cells_gap_lt_-1e-4=2 count
+RESULT ftol_gap_max=1.1074e-02 ratio
+RESULT ftol_gap_min=-2.6041e-04 ratio
+RESULT ftol_gap_mean=1.1249e-03 ratio
+RESULT ftol_gap_mean_drop_best=8.6984e-04 ratio
+RESULT ftol_flat_gap_max=3.9062e-03 ratio
+RESULT ftol_flat_gap_mean=7.2917e-04 ratio
+RESULT ftol_nonflat_gap_mean=1.1815e-03 ratio
+RESULT ftol_cost_delta_max=0.8000 SEK/day
+RESULT ftol_cost_delta_mean=0.0353 SEK/day
+RESULT ftol_nfev_ratio_median=1.824 ratio
+RESULT ftol_nfev_ratio_max=4.514 ratio
+RESULT thread_factor=1.000
+RESULT load1=18.81
+RESULT swapins=0

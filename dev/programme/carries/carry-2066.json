@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "Carry to fix 3 (the live learners seat, 'extra draw is not low COP') from #2066. Fix 3 has no roster group, issue or pull request yet and lands after #2066 in the same function (_fold_measured_cop), so this file, keyed on #2066, is its in-tree destination.",
+    "While this and the out-of-tree design note disagree, the newer is right."
+  ],
+  "issue": 2066,
+  "stage": "live-3, the learners fix after #2066 (extra draw is not low COP)",
+  "carries": [
+    {
+      "from": "#2066 round 4: before draw_range.follows_ask has evidence, a departure from the ask beyond COP_ASK_TOLERANCE folds wherever the ask and the draw clear the nameplate third, as base did; so a self-setting pump folds departures until the evidence arrives and only then is refused",
+      "effect": "narrows",
+      "control": "The #2066 round-3 reviewer's probe 6 (an out-of-tree probe script), row selfset_hourly on a 6 kW nameplate: a pump drawing 2.2 kW +-3 % whatever is asked, true COP equal to the model's (right scale 1.000). At #2065's head it learns 1.600 (231/400); at #2066's head 1.170 (70/400), every fold coming before follows_ask has its evidence. The in-tree reproduction is dev/audit/harnesses/cop_duty_floor.py row selfmod_independent_4kw (asks 1.0-2.0 kW, draws 1.9-2.55 kW, 4 kW nameplate): 0.636 at #2065's head, 0.780 at #2066's head, right scale 1.000. The null is selfmod_matched (draw equal to the ask): 96/96 at 1.000, which hold-then-replay must keep, and true_0.7_4kw, 0.704, which it must still learn.",
+      "remeasure": "At your merge base, run PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/cop_duty_floor.py and the round-3 reviewer's probe 6 before and after your change. The precondition is met when selfmod_independent_4kw and probe 6's selfset_hourly read about 1.000 while selfmod_matched stays 96/96 at 1.000 and true_0.7_4kw still learns 0.704.",
+      "brief": "Precondition for fix 3: hold-then-replay. An interval departing from its ask before draw_range.follows_ask has evidence is held (not folded into cop_scale), and replayed once the evidence arrives: folded if the draw follows the ask, dropped if not. MeasuredCop.judge_ratio in accuracy.py is the one place the departure is judged; fix 3's 'extra draw is not low COP' refusal is a new accuracy.COP_REFUSED_* code there, not a second guard chain."
+    }
+  ]
+}

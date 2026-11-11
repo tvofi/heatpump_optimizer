@@ -1,0 +1,33 @@
+RESULT dhw_legionella.ok=200 count
+RESULT dhw_legionella.load_exc=0 count
+RESULT dhw_legionella.cycle1_fail=0 count
+RESULT dhw_legionella.cycle2_fail=0 count
+RESULT dhw_legionella.log_gt3=200 count
+  EX dhw_legionella log_gt3 (0, 'last_cycle', 'huge', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T20:45:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T22:45:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX dhw_legionella log_gt3 (1, 'last_cycle', 'nest', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T20:45:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T22:45:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX dhw_legionella log_gt3 (2, 'last_cycle', 'neg', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T20:45:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T22:45:00+00:00 is ahead of the clock; bounded to 2026'])
+RESULT thread_factor=1.055
+RESULT load1=41.92
+RESULT swapins=0
+RESULT thermal_learning.ok=200 count
+RESULT thermal_learning.load_exc=0 count
+RESULT thermal_learning.cycle1_fail=0 count
+RESULT thermal_learning.cycle2_fail=0 count
+RESULT thermal_learning.log_gt3=200 count
+  EX thermal_learning log_gt3 (0, 'house_heat_loss_scale', 'nest', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX thermal_learning log_gt3 (1, 'vent_cusum/evidence', 'str', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX thermal_learning log_gt3 (2, 'lower_floor_loss_ratio', 'trunc', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+RESULT thread_factor=1.045
+RESULT load1=25.39
+RESULT swapins=0
+RESULT away.ok=200 count
+RESULT away.load_exc=0 count
+RESULT away.cycle1_fail=0 count
+RESULT away.cycle2_fail=0 count
+RESULT away.log_gt3=200 count
+  EX away log_gt3 (0, 'active', 'nest', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX away log_gt3 (1, 'active', 'str', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+  EX away log_gt3 (2, 'return_time', 'str', 7, ['heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T21:00:00+00:00 is ahead of the clock; bounded to 2026', 'heatpump_optimizer_test_entry_snapshots: stored instant 2026-10-14T23:00:00+00:00 is ahead of the clock; bounded to 2026'])
+RESULT thread_factor=1.057
+RESULT load1=91.81
+RESULT swapins=0

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/battery.py:VirtualBattery.charge_rate_kw RETURN_DEL b403cdd2",
+  "killed_by": "tests/features.py",
+  "old": "        return max(self.cop, 0.1) * self.charge_heat_per_cop_kw",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

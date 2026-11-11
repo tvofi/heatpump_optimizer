@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:PeakTracker._close_window GUARD_OFF b2570371",
+  "killed_by": "tests/features.py",
+  "old": "        if tariff.distinct_days:",
+  "reason": "#1512 (R8-D2-s2-01): `if tariff.distinct_days:` -> `if False:` bills the top-k windows regardless of day, and tests/features.py prints 3 of 3129 FEATURE CHECKS FAILED against a 0 baseline, the bill-oracle equality among them; tests/finite_boundary.py also goes red on the peak store's shape arm. Measured at the #1512 branch head, 2026-09-24, in a detached worktree per mutant; the unmutated head prints ALL 3129 FEATURE CHECKS PASSED."
+}

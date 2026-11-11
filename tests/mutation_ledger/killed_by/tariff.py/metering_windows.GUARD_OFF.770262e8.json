@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/tariff.py:metering_windows GUARD_OFF 770262e8",
+  "killed_by": "tests/features.py",
+  "old": "    if full:",
+  "reason": "Recorded by `mutation_table.py --drain` against 7311cc51318f72dc03409ed793b8e4c6772815e8: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=14."
+}

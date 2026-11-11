@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:heat_loss_refit CLAMP_DROP 6908107d",
+  "killed_by": "tests/features.py",
+  "old": "        \"settled_days\": round(max(0.0, days), 2),",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0e8e22c69fef5a54bf2a4b2b7aee9df724dac88e: CLAMP_DROP (`\"settled_days\": round((0.0), 2),`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

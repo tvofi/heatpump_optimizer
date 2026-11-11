@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_accuracy_freeze_allows_sample RETURN_DEL 3af2cd0f",
+  "killed_by": "tests/entities.py",
+  "old": "    return reason is None or reason == boost.FREEZE_REASON",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 82d1f47f20c0557f6898f843960eaa64bb20cbfd: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=3."
+}

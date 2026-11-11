@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/flow_lift.py:<module> CONST dd78b330",
+  "killed_by": "tests/features.py",
+  "old": "FLOW_SUPPLY_MAX_C = 75.0",
+  "reason": "R9 F4.1 fix review round 2 (#1704): the mutant applied in a copy of the tree at 30f610f6 plus this commit's pins, and the class-named block of tests/features.py (header through `R9 P2`) run beside an unmutated copy, which passes: FLOW_SUPPLY_MAX_C = 150.0 fails 2, `D2-s2-02: the supply ceiling is 75 C, so an 80 C measured supply is refused as a sample` [ceiling 150.0, samples 1] among them."
+}

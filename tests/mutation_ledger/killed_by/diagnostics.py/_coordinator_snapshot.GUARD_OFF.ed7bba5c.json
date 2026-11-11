@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/diagnostics.py:_coordinator_snapshot GUARD_OFF ed7bba5c",
+  "killed_by": "tests/entities.py",
+  "old": "    if state:",
+  "reason": "R9-EG-B6 (#1739) added the guard: the learner summaries ride the snapshot only when the view was produced. Re-measured on a detached worktree at be777f2f: driving tests/entities.py fails `the learner summaries are present` (1 of 2159 entity checks, against the unmutated worktree's 0 failed)."
+}

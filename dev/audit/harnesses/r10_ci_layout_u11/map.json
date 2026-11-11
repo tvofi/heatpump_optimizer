@@ -1,0 +1,14 @@
+{
+ "renames": {},
+ "dropped": [],
+ "gained": [
+  "kernel-points|Ref guard"
+ ],
+ "changed": [
+  "kernel-points|",
+  "|triggers"
+ ],
+ "after": {
+  "kernel-points|Ref guard": "kernel-points|^"
+ }
+}

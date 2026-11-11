@@ -1,0 +1,11 @@
+{
+  "class": "N-no-expiry",
+  "instances": 2,
+  "barriered": false,
+  "enumerator": "python3 dev/audit/rounds/round10/D14/sweep_n_no_expiry.py",
+  "instance_list": [
+    {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_current_spot_price", "probe": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round10/D1/s2/stale_price.py", "beyond_finding": false},
+    {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "forecast_outdoor_now", "probe": "PYTHONPATH=.:tests/hastub python3 dev/audit/rounds/round10/D14/probe_n_no_expiry.py", "beyond_finding": true},
+    {"file": "custom_components/heatpump_optimizer/coordinator.py", "symbol": "_open_loop_plan_value", "probe": "PYTHONPATH=.:tests/hastub python3 dev/audit/rounds/round10/D14/probe_n_no_expiry.py", "beyond_finding": true}
+  ]
+}

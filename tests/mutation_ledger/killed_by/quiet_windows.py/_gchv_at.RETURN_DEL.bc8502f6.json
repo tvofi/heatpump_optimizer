@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:_gchv_at RETURN_DEL bc8502f6",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return datetime.combine(day, time(*wall_clock(hour)), tzinfo=tz)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

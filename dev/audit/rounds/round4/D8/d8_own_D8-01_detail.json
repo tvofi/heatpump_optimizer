@@ -1,0 +1,497 @@
+{
+ "leave_one_out": {
+  "accuracy": 167,
+  "card_headline": 180,
+  "dhw": 191,
+  "ecl110": 198,
+  "learning": 151,
+  "pv": 163,
+  "tariff": 138
+ },
+ "per_family": {
+  "accuracy": {
+   "breaks": 2,
+   "intruders": 31
+  },
+  "card_headline": {
+   "breaks": 4,
+   "intruders": 18
+  },
+  "dhw": {
+   "breaks": 1,
+   "intruders": 7
+  },
+  "ecl110": {
+   "breaks": 0,
+   "intruders": 0
+  },
+  "learning": {
+   "breaks": 3,
+   "intruders": 47
+  },
+  "pv": {
+   "breaks": 2,
+   "intruders": 35
+  },
+  "tariff": {
+   "breaks": 4,
+   "intruders": 60
+  }
+ },
+ "rows": [
+  {
+   "eid": "sensor.heat_pump_optimizer_optimization_mode",
+   "key": "optimization_mode",
+   "name": "Optimization Mode",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_optimization_status",
+   "key": "optimization_status",
+   "name": "Optimization Status",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_predicted_savings",
+   "key": "predicted_savings",
+   "name": "Predicted Savings",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_monthly_savings",
+   "key": "monthly_savings",
+   "name": "Monthly Savings",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_savings_percentage",
+   "key": "savings_percentage",
+   "name": "Savings Percentage",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_predicted_cost",
+   "key": "predicted_cost",
+   "name": "Predicted Cost",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_baseline_cost",
+   "key": "baseline_cost",
+   "name": "Baseline Cost",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_current_electricity_price",
+   "key": "current_electricity_price",
+   "name": "Current Electricity Price",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_optimal_setpoint",
+   "key": "optimal_setpoint",
+   "name": "Optimal Setpoint",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_recommended_power",
+   "key": "recommended_power",
+   "name": "Recommended Power",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_estimated_cop",
+   "key": "estimated_cop",
+   "name": "Estimated COP",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_indoor_temperature_optimizer",
+   "key": "indoor_temperature_optimizer",
+   "name": "Indoor Temperature (Optimizer)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_outdoor_temperature_optimizer",
+   "key": "outdoor_temperature_optimizer",
+   "name": "Outdoor Temperature (Optimizer)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_solar_irradiance",
+   "key": "solar_irradiance",
+   "name": "Irradiance Right Now",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_slab_temperature_estimated",
+   "key": "slab_temperature_estimated",
+   "name": "Slab Temperature (Estimated)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_next_optimization",
+   "key": "next_optimization",
+   "name": "Next Optimization",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_last_optimization",
+   "key": "last_optimization",
+   "name": "Last Optimization",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_heat_pump_action",
+   "key": "heat_pump_action",
+   "name": "Heat Pump Action",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_optimization_schedule",
+   "key": "optimization_schedule",
+   "name": "Optimization Schedule",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_optimization_schedule_steps",
+   "key": "optimization_schedule_steps",
+   "name": "Optimization Schedule Steps",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_upper_floor_temperature",
+   "key": "upper_floor_temperature",
+   "name": "Upper Floor Temperature",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_lower_floor_temperature",
+   "key": "lower_floor_temperature",
+   "name": "Lower Floor Temperature",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_floor_heating_return_temperature",
+   "key": "floor_heating_return_temperature",
+   "name": "Floor Heating Return Temperature",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_solar_heat_gain",
+   "key": "solar_heat_gain",
+   "name": "Heat Gained Through Windows",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_buffer_tank_temperature_model",
+   "key": "buffer_tank_temperature_model",
+   "name": "Buffer Tank Temperature (Model)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_dhw_temperature",
+   "key": "dhw_temperature",
+   "name": "DHW Temperature",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_dhw_heating_schedule",
+   "key": "dhw_heating_schedule",
+   "name": "DHW Heating Schedule",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_dhw_heating_cost",
+   "key": "dhw_heating_cost",
+   "name": "DHW Heating Cost (next 24 h)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_predictive_optimization_insight",
+   "key": "predictive_optimization_insight",
+   "name": "Predictive Optimization Insight",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_ecl110_displace",
+   "key": "ecl110_displace",
+   "name": "Flow Displacement (ECL110 Module)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_ecl110_effective_displace",
+   "key": "ecl110_effective_displace",
+   "name": "Flow Displacement Now In Effect",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_space_heating_plan",
+   "key": "space_heating_plan",
+   "name": "Space Heating Plan (next 24 h)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_dhw_heating_plan",
+   "key": "dhw_heating_plan",
+   "name": "DHW Heating Plan (next 24 h)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_measured_power",
+   "key": "measured_power",
+   "name": "Measured Power",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_observed_cop",
+   "key": "observed_cop",
+   "name": "Observed COP",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_space_heating_energy",
+   "key": "space_heating_energy",
+   "name": "Space Heating Energy (lifetime)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_dhw_energy",
+   "key": "dhw_energy",
+   "name": "DHW Energy (lifetime)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_total_energy",
+   "key": "total_energy",
+   "name": "Total Energy (lifetime)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_space_heating_cost",
+   "key": "space_heating_cost",
+   "name": "Space Heating Cost (lifetime)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_dhw_cost",
+   "key": "dhw_cost",
+   "name": "DHW Cost (lifetime)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_total_heating_cost",
+   "key": "total_heating_cost",
+   "name": "Total Heating Cost (lifetime)",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_prediction_accuracy",
+   "key": "prediction_accuracy",
+   "name": "Prediction Accuracy",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_monthly_peak_power",
+   "key": "monthly_peak_power",
+   "name": "Monthly Peak Power",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_solar_surplus_forecast",
+   "key": "solar_surplus_forecast",
+   "name": "Surplus PV Forecast For Tomorrow",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_thermal_battery_charge",
+   "key": "thermal_battery_charge",
+   "name": "Thermal Battery Charge",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_thermal_battery_energy",
+   "key": "thermal_battery_energy",
+   "name": "Thermal Battery Energy",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_comfort_weight",
+   "key": "comfort_weight",
+   "name": "Comfort Weight",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_contract_comparison",
+   "key": "contract_comparison",
+   "name": "Contract Comparison",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_power_headroom",
+   "key": "power_headroom",
+   "name": "Power Headroom",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_dhw_setpoint_advisor",
+   "key": "dhw_setpoint_advisor",
+   "name": "DHW Setpoint Advisor",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_dhw_mixed_water",
+   "key": "dhw_mixed_water",
+   "name": "DHW Mixed Water",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_dhw_heavy_day_demand",
+   "key": "dhw_heavy_day_demand",
+   "name": "DHW Heavy Day Demand",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_valve_target_recommendation",
+   "key": "valve_target_recommendation",
+   "name": "Valve Target Recommendation",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_plan_narrative",
+   "key": "plan_narrative",
+   "name": "Plan Narrative",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_optimization_score",
+   "key": "optimization_score",
+   "name": "Optimization Score",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_compressor_starts",
+   "key": "compressor_starts",
+   "name": "Compressor Starts",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_compressor_frequency_advisor",
+   "key": "compressor_frequency_advisor",
+   "name": "Compressor Frequency Advisor",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_sensor_gap_advisor",
+   "key": "sensor_gap_advisor",
+   "name": "Sensor-Gap Euro Advisor",
+   "platform": "sensor"
+  },
+  {
+   "eid": "sensor.heat_pump_optimizer_wood_burn_advisor",
+   "key": "wood_burn_advisor",
+   "name": "Wood-Burn Night Advisor",
+   "platform": "sensor"
+  },
+  {
+   "eid": "binary_sensor.heat_pump_optimizer_input_problem",
+   "key": "input_problem",
+   "name": "Input Problem",
+   "platform": "binary_sensor"
+  },
+  {
+   "eid": "binary_sensor.heat_pump_optimizer_external_heat_source",
+   "key": "external_heat_source",
+   "name": "External Heat Source",
+   "platform": "binary_sensor"
+  },
+  {
+   "eid": "binary_sensor.heat_pump_optimizer_away_mode",
+   "key": "away_mode",
+   "name": "Away Mode",
+   "platform": "binary_sensor"
+  },
+  {
+   "eid": "binary_sensor.heat_pump_optimizer_open_window_detected",
+   "key": "open_window_detected",
+   "name": "Open Window Detected",
+   "platform": "binary_sensor"
+  },
+  {
+   "eid": "binary_sensor.heat_pump_optimizer_wood_cheaper",
+   "key": "wood_cheaper",
+   "name": "Wood Cheaper Than Heat Pump",
+   "platform": "binary_sensor"
+  },
+  {
+   "eid": "button.heat_pump_optimizer_optimize_now",
+   "key": "optimize_now",
+   "name": "Optimize Now",
+   "platform": "button"
+  },
+  {
+   "eid": "button.heat_pump_optimizer_run_system_identification",
+   "key": "run_system_identification",
+   "name": "Run System Identification",
+   "platform": "button"
+  },
+  {
+   "eid": "button.heat_pump_optimizer_reset_learned_comfort_weight",
+   "key": "reset_learned_comfort_weight",
+   "name": "Reset Learned Comfort Weight",
+   "platform": "button"
+  },
+  {
+   "eid": "button.heat_pump_optimizer_diagnose_last_interval",
+   "key": "diagnose_last_interval",
+   "name": "Diagnose Last Interval",
+   "platform": "button"
+  },
+  {
+   "eid": "climate.heat_pump_optimizer",
+   "key": null,
+   "name": "",
+   "platform": "climate"
+  },
+  {
+   "eid": "switch.heat_pump_optimizer_optimizer_active",
+   "key": "optimizer_active",
+   "name": "Optimizer Active",
+   "platform": "switch"
+  },
+  {
+   "eid": "switch.heat_pump_optimizer_away",
+   "key": "away",
+   "name": "Away",
+   "platform": "switch"
+  },
+  {
+   "eid": "switch.heat_pump_optimizer_boost_dhw",
+   "key": "boost_dhw",
+   "name": "Boost Hot Water",
+   "platform": "switch"
+  },
+  {
+   "eid": "switch.heat_pump_optimizer_boost_space",
+   "key": "boost_space",
+   "name": "Boost Space Heating",
+   "platform": "switch"
+  },
+  {
+   "eid": "datetime.heat_pump_optimizer_away_return",
+   "key": "away_return",
+   "name": "Expected Return",
+   "platform": "datetime"
+  }
+ ],
+ "shared_first_word_families": [
+  "ecl110"
+ ],
+ "tariff_money_only": {
+  "breaks": 3,
+  "intruders": 62
+ },
+ "zero_intruder_families": [
+  "ecl110"
+ ]
+}

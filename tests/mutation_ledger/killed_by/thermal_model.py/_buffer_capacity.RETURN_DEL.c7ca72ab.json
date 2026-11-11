@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_buffer_capacity RETURN_DEL c7ca72ab",
+  "killed_by": "tests/features.py",
+  "old": "    return 0.04 if c_buf < 1e-6 else c_buf",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:power_for_heat_per_cop_kw CLAMP_DROP 0d030b71",
+  "killed_by": "tests/features.py",
+  "old": "    on_band = 2.0 * h / (b + np.sqrt(np.maximum(b * b - 4.0 * a * h, 0.0)))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`on_band = 2.0 * h / (b + np.sqrt((b * b - 4.0 * a * h)))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

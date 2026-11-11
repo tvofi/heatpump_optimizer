@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._weather_series CLAMP_DROP c4c652f6",
+  "killed_by": "tests/solar_alignment.py",
+  "old": "            irradiance = max(0.0, irradiance)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`irradiance = (0.0)`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=3."
+}
