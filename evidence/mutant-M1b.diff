@@ -1,0 +1,4 @@
+27c27
+< sys.path.insert(0, os.path.join(_ROOT, "custom_components"))
+---
+> sys.path.insert(0, "custom_components")

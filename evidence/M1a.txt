@@ -1,0 +1,3 @@
+  FAIL tests/harness.py from a foreign cwd resolves a module the cwd's tests/ also holds to its own tests/  [angs": 3, "package": "/tmp/m_M1a/custom_components/heatpump_optimizer/__init__.py", "profiles": "/tmp/tmp0ewtvfcp/tests/profiles.py", "added": ["/tmp/m_M1a/custom_components", "tests"], "kept": true}
+  FAIL tests/harness.py's sys.path inserts are exactly its own tests/ and custom_components/, absolute  [added=['/tmp/m_M1a/custom_components', 'tests'] angs": 3, "package": "/tmp/m_M1a/custom_components/heatpump_optimizer/__init__.py", "profiles": "/tmp/tmp0ewtvfcp/tests/profiles.py", "added": ["/tmp/m_M1a/custom_components", "tests"], "kept": true}
+2 of 115 HARNESS HEADER CHECKS FAILED

@@ -1,4 +1,0 @@
-KILLED NULL
-mutant_run: the null mutant was killed, the command fails on the unedited tree
-rc=3
-ls: cannot access '/opt/hpo/runner-temp/base': No such file or directory
