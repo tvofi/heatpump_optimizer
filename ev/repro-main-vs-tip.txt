@@ -1,0 +1,52 @@
+== /tmp/main
+RESULT job_log via shim -> None
+$ gh api --bogus repos/o/r/actions/jobs/7/logs
+gh shim: a comment write on a record issue (#201, #3394) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused
+rc=1
+$ gh api --bogus=1 repos/o/r/actions/jobs/7/logs
+gh shim: a comment write on a record issue (#201, #3394) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused
+rc=1
+$ gh api -Z repos/o/r/actions/jobs/7/logs
+gh shim: a comment write on a record issue (#201, #3394) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused
+rc=1
+$ gh api --allow-escape-sequences -X POST repos/o/r/issues/201/comments -f body=x
+gh shim: a comment write on a record issue (#201, #3394) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused
+rc=1
+$ gh api --allow-escape-sequences repos/o/r/issues/3394/comments -f body=x
+gh shim: a comment write on a record issue (#201, #3394) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused
+rc=1
+$ gh api --allow-escape-sequences -X PATCH repos/o/r/issues/comments/9 -f body=x
+gh shim: a comment write on a record issue (#201, #3394) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused
+rc=1
+$ gh api --allow-escape-sequences graphql -f query=mutation{x}
+gh shim: a comment write on a record issue (#201, #3394) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused
+rc=1
+$ gh api repos/o/r/actions/jobs/7/logs
+REAL-LOG-LINE args=[api repos/o/r/actions/jobs/7/logs]
+rc=0
+== /tmp/rv
+RESULT job_log via shim -> 'REAL-LOG-LINE args=[api --allow-escape-sequences repos/tvofi/heatpump_optimizer/actions/jobs/123/logs]\n'
+$ gh api --bogus repos/o/r/actions/jobs/7/logs
+gh shim: unknown gh api flag --bogus; refused
+rc=1
+$ gh api --bogus=1 repos/o/r/actions/jobs/7/logs
+gh shim: unknown gh api flag --bogus; refused
+rc=1
+$ gh api -Z repos/o/r/actions/jobs/7/logs
+gh shim: unknown gh api flag -Z; refused
+rc=1
+$ gh api --allow-escape-sequences -X POST repos/o/r/issues/201/comments -f body=x
+gh shim: a comment write on a record issue (#201, #3394) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused
+rc=1
+$ gh api --allow-escape-sequences repos/o/r/issues/3394/comments -f body=x
+gh shim: a comment write on a record issue (#201, #3394) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused
+rc=1
+$ gh api --allow-escape-sequences -X PATCH repos/o/r/issues/comments/9 -f body=x
+gh shim: a comment write on a record issue (#201, #3394) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused
+rc=1
+$ gh api --allow-escape-sequences graphql -f query=mutation{x}
+gh shim: a comment write on a record issue (#201, #3394) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused
+rc=1
+$ gh api repos/o/r/actions/jobs/7/logs
+REAL-LOG-LINE args=[api repos/o/r/actions/jobs/7/logs]
+rc=0
