@@ -833,7 +833,7 @@ CONF_SPACE_SETPOINT_POWER_FEEDBACK: Final = "space_setpoint_power_feedback"
 DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK: Final = True
 #: The controller's own lower and upper limit on the water set-point it is
 #: sent, each as an optional sensor: the feedback loop stays inside the pair
-#: instead of finding each limit by having a write cut. On a Luxtronik's
+#: instead of finding each limit by having a write cut. On a heat pump's
 #: Smart Home Interface they are inputs 10104 (minimum return target,
 #: parameter 979) and 10103 (return limit, parameter 87), which clamp
 #: register 10001 (#3372 comment 6756915104). Unset, nothing reads them.
