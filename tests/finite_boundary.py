@@ -267,7 +267,7 @@ def _healthy_payloads() -> dict[str, dict]:
     from heatpump_optimizer import duty_switch
     duty_switch.record_for(coord).learner.directions["dhw_space"].book(
         _dt.datetime(2026, 1, 1, 12, 0, 0, tzinfo=_dt.timezone.utc), True, 480.0)
-    run(duty_switch._persist(coord))
+    run(duty_switch._persist(duty_switch.record_for(coord)))
     from heatpump_optimizer import off_restore
     _off = run(off_restore._armed_record(coord.hass, coord.entry))
     _off.armed.update({"heat_curve": None, "stand_in": 21.5})
@@ -485,7 +485,7 @@ LOADERS = {
     "boost": lambda c: __import__("heatpump_optimizer.boost", fromlist=["x"]).restore_session(c, c._adopt_away_override, c._config, c._entity_state),
     "away": lambda c: __import__("heatpump_optimizer.away", fromlist=["x"]).restore_override(c, c._adopt_away_override, c._config, c._entity_state),
     "pump_duty": lambda c: __import__("heatpump_optimizer.pump_arbiter", fromlist=["x"])._load(c),
-    "duty_switch": lambda c: __import__("heatpump_optimizer.duty_switch", fromlist=["x"])._load(c),
+    "duty_switch": lambda c: (lambda m: m._load(m.record_for(c)))(__import__("heatpump_optimizer.duty_switch", fromlist=["x"])),
     "notifier": _load_notifier,
     "debug": _load_debug,
     "off_restore": lambda c: __import__("heatpump_optimizer.off_restore", fromlist=["x"])._armed_record(c.hass, c.entry),
@@ -1139,7 +1139,7 @@ def _a4_seed(enrich=None) -> dict[str, dict]:
     run(arbiter._persist(coord))
     duty = importlib.import_module("heatpump_optimizer.duty_switch")
     duty.record_for(coord).learner.directions["dhw_space"].book(t0, True, 480.0)
-    run(duty._persist(coord))
+    run(duty._persist(duty.record_for(coord)))
     off = importlib.import_module("heatpump_optimizer.off_restore")
     held = run(off._armed_record(coord.hass, coord.entry))
     held.armed.update({"heat_curve": None, "stand_in": 21.5})
@@ -1804,7 +1804,7 @@ def _a6_savers():
         "boost": lambda c: mod("boost").persist(c),
         "away": lambda c: mod("away").persist_override(c, c._away_state),
         "pump_duty": lambda c: mod("pump_arbiter")._persist(c),
-        "duty_switch": lambda c: mod("duty_switch")._persist(c),
+        "duty_switch": lambda c: mod("duty_switch")._persist(mod("duty_switch").record_for(c)),
         "notifier": _save_notifier,
         "debug": _save_debug,
         "off_restore": lambda c: mod("off_restore")._save(mod("off_restore")._RECORDS[c.entry]),

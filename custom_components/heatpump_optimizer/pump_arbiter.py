@@ -1361,7 +1361,7 @@ async def _write(
         _LOGGER.warning("Pump duty: writing %s to %s failed: %s", value, entity, err)
         return
     held.written[slot] = (int(value) if slot in _NIGHT_KEYS else value, now)
-    _report_write(coord, held, inp, slot, recorded, now, command)
+    _report_write(duty_switch.record_for(coord), boost.held_for(coord), held, inp, slot, recorded, now, command)
     await _persist(coord)
 
 
@@ -1371,8 +1371,8 @@ def _under(reading: Any, setpoint: Any) -> bool:
 
 
 def _report_write(
-    coord: Any, held: ArbiterState, inp: ArbiterInputs, slot: str, replaced: tuple[Any, datetime] | None,
-    now: datetime, command: PumpCommand | None,
+    learner: Any, boosts: Any, held: ArbiterState, inp: ArbiterInputs, slot: str,
+    replaced: tuple[Any, datetime] | None, now: datetime, command: PumpCommand | None,
 ) -> None:
     """Tell ``duty_switch`` of a landed mode write, with its gates.
 
@@ -1385,7 +1385,7 @@ def _report_write(
     """
     if slot != "mode":
         return
-    context, mode = _switch_context(coord, held, inp, now), held.written["mode"][0]
+    context, mode = _switch_context(boosts, held, inp, now), held.written["mode"][0]
     target = {pump_mode.MODE_HEAT: "space", pump_mode.MODE_DHW: "dhw"}.get(mode)
     if command is not None and target is not None and inp.plan is not None:
         room, tank = getattr(inp.state, "room_temperature", None), getattr(inp.state, "dhw_temperature", None)
@@ -1398,7 +1398,7 @@ def _report_write(
             plan_stays=all(step_duty(inp.plan, at) in (target, "both")
                            for at in (now, utc_shift(now, timedelta(seconds=duty_switch.STOP_WINDOW_S)))),
         )
-    duty_switch.note_mode_write(coord, now, replaced[0] if replaced else None, mode, context)
+    duty_switch.note_mode_write(learner, now, replaced[0] if replaced else None, mode, context)
 
 
 def _lit(inp: ArbiterInputs, *keys: str) -> bool:
@@ -1407,9 +1407,9 @@ def _lit(inp: ArbiterInputs, *keys: str) -> bool:
     return any(reading.ok and bool(reading.flag) for reading in map(reader.read_bool, keys))
 
 
-def _switch_context(coord: Any, held: ArbiterState, inp: ArbiterInputs, now: datetime) -> duty_switch.SwitchContext:
+def _switch_context(boosts: Any, held: ArbiterState, inp: ArbiterInputs, now: datetime) -> duty_switch.SwitchContext:
     """This pass's readings that ``duty_switch`` judges a duty switch by."""
-    boosts, mode = boost.held_for(coord), held.written.get("mode")
+    mode = held.written.get("mode")
     return duty_switch.SwitchContext(
         supply_on=not _pump_off(inp),
         plan_control=inp.mode in (MODE_AUTO, MODE_ECONOMY) and duty_mode(inp.config) == DUTY_CONTROL,
@@ -1546,7 +1546,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now,
     )
     _observe(held, inp, duty, now)
-    await duty_switch.note_pass(coord, now, _switch_context(coord, held, inp, now))
+    await duty_switch.note_pass(duty_switch.record_for(coord), now, _switch_context(boost.held_for(coord), held, inp, now))
     if mode != DUTY_CONTROL or _pump_off(inp):
         return
     hold(coord, now)
@@ -1753,7 +1753,7 @@ def _listen(coord: Any) -> None:
         entities.extend(night_mode_write_ids(prefix).values())
     if entities:
         held.unsubs.append(async_track_state_change_event(hass, entities, _changed))
-    duty_switch.attach(coord, *_running_signal(inp))
+    duty_switch.attach(duty_switch.record_for(coord), *_running_signal(inp))
 
 
 def _running_signal(inp: ArbiterInputs) -> tuple[str | None, duty_switch.Reader]:

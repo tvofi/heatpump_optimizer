@@ -41,6 +41,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from harness import FakeHass, FakeState, Results, UTC
 from homeassistant.util import dt as _sa_dt
+from heatpump_optimizer import boost as _sa_boost
 from heatpump_optimizer import pump_arbiter as _sa_pa
 from heatpump_optimizer import store as _sa_store
 R = Results("duty-switch section of tests/features.py")

@@ -81508,24 +81508,23 @@ R.check(
 # The record loads on the first pass. A read that fails is tried again on the
 # next pass, and a mode write reported before the load is dropped.
 _ds_late = _DsArb()
-_ds_late_store = _ds_mod._store
-
-
-def _ds_no_disk(_coord):
-    raise OSError("disk")
-
-
-_ds_mod._store = _ds_no_disk
-try:
-    _asyncio.run(_ds_mod.note_pass(_ds_late, _DS_T0, _ds_mod.SwitchContext()))
-finally:
-    _ds_mod._store = _ds_late_store
 _ds_late_rec = _ds_mod.record_for(_ds_late)
+_ds_late_store = _ds_late_rec.store
+
+
+class _DsNoDisk:
+    async def async_load(self):
+        raise OSError("disk")
+
+
+_ds_late_rec.store = _DsNoDisk()
+_asyncio.run(_ds_mod.note_pass(_ds_late_rec, _DS_T0, _ds_mod.SwitchContext()))
+_ds_late_rec.store = _ds_late_store
 _ds_late_rec.tracker.settled = True
-_ds_mod.note_mode_write(_ds_late, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
+_ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
 _ds_late_before = (_ds_late_rec.loaded, _ds_late_rec.learner.episode)
-_asyncio.run(_ds_mod.note_pass(_ds_late, _DS_T0, _ds_ctx(_DS_T0)))
-_ds_mod.note_mode_write(_ds_late, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
+_asyncio.run(_ds_mod.note_pass(_ds_late_rec, _DS_T0, _ds_ctx(_DS_T0)))
+_ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
 R.check(
     "a failed read of the record is not marked loaded and is read again; a mode write before the load is dropped",
     _ds_late_before == (False, None) and _ds_late_rec.loaded and _ds_late_rec.learner.episode is not None,
@@ -81537,14 +81536,14 @@ R.check(
 _ds_late_held = _sa_pa.state_for(_ds_late)
 _ds_late_held.written["mode"] = (_DS_HEAT, _DS_T0)
 _ds_late_rec.loaded = True
-_sa_pa._report_write(_ds_late, _ds_late_held, _ds_late.arbiter_inputs(), "space_setpoint", (30.0, _DS_T0), _DS_T0, None)
+_sa_pa._report_write(_ds_late_rec, _sa_boost.held_for(_ds_late), _ds_late_held, _ds_late.arbiter_inputs(), "space_setpoint", (30.0, _DS_T0), _DS_T0, None)
 _ds_slot_kept = _ds_late_rec.learner.episode is not None
-_sa_pa._report_write(_ds_late, _ds_late_held, _ds_late.arbiter_inputs(), "mode", None, _DS_T0, None)
+_sa_pa._report_write(_ds_late_rec, _sa_boost.held_for(_ds_late), _ds_late_held, _ds_late.arbiter_inputs(), "mode", None, _DS_T0, None)
 _ds_late_rec.tracker.pending = (False, _DS_T0)
-_ds_mod.note_mode_write(_ds_late, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
+_ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
 _ds_pending_open = _ds_late_rec.learner.episode
 _ds_late_rec.tracker.pending = None
-_ds_mod.note_mode_write(_ds_late, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
+_ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
 R.check(
     "a set-point write reports nothing to the learner and a mode write does; a pending change of the "
     "running class opens no episode",
@@ -81638,7 +81637,8 @@ R.check(
     "only the arbiter and the sensor name duty_switch, through its report, attach and publish calls and "
     "never a read of the estimate; the module imports neither of them; the pure half of wear stays pure",
     _ds_readers == ["pump_arbiter.py", "sensor.py"]
-    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "detach", "note_mode_write", "note_pass", "summary"]
+    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "detach", "note_mode_write", "note_pass", "record_for",
+                     "summary"]
     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
     f"{_ds_readers} {_ds_uses} {_ds_own}",
@@ -81649,7 +81649,7 @@ from harness import FakeCoordinator as _DsFakeCoord, FakeEntry as _DsFakeEntry  
 
 _ds_pub = _DsFakeCoord({"insight": {"compressor_starts": {"lifetime": 412, "month": 31}}, "measured_power_available": True})
 _ds_attrs0 = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_state_attributes
-_ds_mod.record_for(_ds_pub).learner = _ds_tab
+_ds_mod._RECORDS[_ds_pub] = _ds_mod._Record(None, None, learner=_ds_tab)
 _ds_attrs = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_state_attributes
 _DS_KEYS = {f"duty_switch_{d}_{k}" for d in _ds_mod.DIRECTIONS
             for k in ("k", "n", "stopped", "kept", "void", "censored", "span_days")}

@@ -21,7 +21,8 @@ censored by any write of the arbiter, or the supply switch, in between.
 **The running signal** is ``wear.compressor_running`` over the reading the
 arbiter's reader hands in, its edges ``wear.EdgeTracker``'s. This module's
 own listener (:func:`attach`) feeds the tracker and never triggers an arbiter
-pass; the pass (:func:`note_pass`) confirms a pending edge.
+pass; the pass (:func:`note_pass`) confirms a pending edge. Everything below
+the registry takes the pump's :class:`_Record`, never the coordinator.
 
 **Estimate.** Per direction two decayed counts, ``k`` stops over ``n``
 episodes (stored as the stopped and the kept weight), half-life :data:`HALF_LIFE_DAYS`: decay scales both alike, so
@@ -207,7 +208,7 @@ class Direction:
             "first_day": None if self.first_day is None else self.first_day.isoformat(),
             "last_day": None if self.last_day is None else self.last_day.isoformat(),
             "usable": self.usable, "off_s": list(self.off_s),
-            **{name: getattr(self, name) for name in _TALLIES},
+            "stopped": self.stopped, "kept": self.kept, "void": self.void, "censored": self.censored,
         }
 
     @classmethod
@@ -343,7 +344,8 @@ class DutySwitchLearner:
         for name, d in self.directions.items():
             k, n = d.weights(when)
             row: dict[str, float | None] = {
-                "k": round(k, 2), "n": round(n, 2), **{t: getattr(d, t) for t in _TALLIES},
+                "k": round(k, 2), "n": round(n, 2),
+                "stopped": d.stopped, "kept": d.kept, "void": d.void, "censored": d.censored,
                 "median_off_s": None if d.median_off_s is None else round(d.median_off_s, 1),
                 "span_days": d.span_days,
             }
@@ -379,6 +381,10 @@ Reader = Callable[[], tuple[float | None, float | None, float | None, bool]]
 
 @dataclass
 class _Record:
+    """One pump's learner, running signal and store."""
+
+    hass: Any
+    store: Any
     learner: DutySwitchLearner = field(default_factory=DutySwitchLearner)
     tracker: wear.EdgeTracker = field(default_factory=wear.EdgeTracker)
     reader: Reader | None = None
@@ -386,30 +392,36 @@ class _Record:
     loaded: bool = False
     dirty: bool = False
 
+    def feed(self, edge: tuple[datetime, bool | None] | None) -> None:
+        """Hand a confirmed edge, if any, to the learner."""
+        if edge is not None:
+            self.dirty = self.learner.edge(*edge) or self.dirty
+
 
 _RECORDS: WeakKeyDictionary[Any, _Record] = WeakKeyDictionary()
 
 
 def record_for(coord: Any) -> _Record:
+    """The pump's record, made on first use; one config entry is one pump."""
     rec = _RECORDS.get(coord)
     if rec is None:
-        rec = _RECORDS[coord] = _Record()
+        rec = _RECORDS[coord] = _Record(coord.hass, QuarantiningStore(
+            coord.hass, STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_duty_switch"))
     return rec
 
 
-def attach(coord: Any, entity: str | None, reader: Reader) -> None:
+def attach(rec: _Record, entity: str | None, reader: Reader) -> None:
     """Listen on the running signal's ``entity``; idempotent, and a no-op without one."""
-    rec = record_for(coord)
     if rec.unsub is not None or not entity:
         return
     rec.reader = reader
 
     @callback
     def _changed(_event: Any) -> None:
-        note_signal(coord, dt_util.now())
+        note_signal(rec, dt_util.now())
 
-    rec.unsub = async_track_state_change_event(coord.hass, [entity], _changed)
-    note_signal(coord, dt_util.now())
+    rec.unsub = async_track_state_change_event(rec.hass, [entity], _changed)
+    note_signal(rec, dt_util.now())
 
 
 def detach(coord: Any) -> None:
@@ -421,45 +433,36 @@ def detach(coord: Any) -> None:
     rec.unsub, rec.reader, rec.tracker, rec.learner.episode = None, None, wear.EdgeTracker(), None
 
 
-def note_signal(coord: Any, when: datetime) -> None:
+def note_signal(rec: _Record, when: datetime) -> None:
     """One reading of the running signal; never triggers an arbiter pass."""
-    rec = record_for(coord)
-    if rec.reader is None:
-        return
-    edge = rec.tracker.note(when, wear.compressor_running(*rec.reader()))
-    if edge is not None:
-        rec.dirty = rec.learner.edge(*edge) or rec.dirty
+    if rec.reader is not None:
+        rec.feed(rec.tracker.note(when, wear.compressor_running(*rec.reader())))
 
 
-def note_mode_write(coord: Any, when: datetime, old: Any, new: Any, ctx: SwitchContext) -> None:
+def note_mode_write(rec: _Record, when: datetime, old: Any, new: Any, ctx: SwitchContext) -> None:
     """The arbiter's mode write landed. A report before the load is dropped."""
-    rec = record_for(coord)
     if not rec.loaded:
         return
     running = rec.tracker.settled is True and rec.tracker.pending is None
     rec.dirty = rec.learner.mode_write(when, old, new, running, ctx) or rec.dirty
 
 
-async def note_pass(coord: Any, when: datetime, ctx: SwitchContext) -> None:
+async def note_pass(rec: _Record, when: datetime, ctx: SwitchContext) -> None:
     """Each arbiter pass: load once, confirm a pending edge, judge the episode, save a change."""
-    rec = record_for(coord)
-    if not await _load(coord):
+    if not await _load(rec):
         return
-    edge = rec.tracker.confirm(when)
-    if edge is not None:
-        rec.dirty = rec.learner.edge(*edge) or rec.dirty
+    rec.feed(rec.tracker.confirm(when))
     rec.dirty = rec.learner.note_pass(
         when, ctx, rec.tracker.settled is not None, rec.tracker.pending is not None) or rec.dirty
     if rec.dirty:
-        await _persist(coord)
+        await _persist(rec)
 
 
-async def _load(coord: Any) -> bool:
+async def _load(rec: _Record) -> bool:
     """Read the stored learner once; a failed read is tried again on the next pass."""
-    rec = record_for(coord)
     if not rec.loaded:
         try:
-            raw = await _store(coord).async_load()
+            raw = await rec.store.async_load()
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Could not load the duty-switch record: %s", err)
             return False
@@ -467,20 +470,16 @@ async def _load(coord: Any) -> bool:
     return True
 
 
-async def _persist(coord: Any) -> None:
-    rec = record_for(coord)
+async def _persist(rec: _Record) -> None:
     try:
-        await _store(coord).async_save(rec.learner.stored_record())
+        await rec.store.async_save(rec.learner.stored_record())
     except Exception as err:  # noqa: BLE001 - still dirty: saved on the next pass
         _LOGGER.debug("Could not persist the duty-switch record: %s", err)
         return
     rec.dirty = False
 
 
-def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
-    return QuarantiningStore(coord.hass, STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_duty_switch")
-
-
 def summary(coord: Any) -> dict[str, float]:
-    """The compressor-starts sensor's duty-switch attributes."""
-    return record_for(coord).learner.published(dt_util.now())
+    """The compressor-starts sensor's duty-switch attributes; a pump never arbitrated reads empty."""
+    rec = _RECORDS.get(coord)
+    return (rec.learner if rec is not None else DutySwitchLearner()).published(dt_util.now())
