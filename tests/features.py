@@ -81654,9 +81654,10 @@ _ds_attrs = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_sta
 _DS_KEYS = {f"duty_switch_{d}_{k}" for d in _ds_mod.DIRECTIONS
             for k in ("k", "n", "stopped", "kept", "void", "censored", "span_days")}
 R.check(
-    "the starts sensor's attributes carry the counter's keys and, per direction, only k, n, stopped, kept, "
-    "void, censored, span days and (once one exists) the median off seconds, all numeric",
-    set(_ds_attrs0) == {"lifetime", "month"} | _DS_KEYS
+    "the starts sensor's attributes are the counter's alone until a direction has an observation; then, per "
+    "direction, only k, n, stopped, kept, void, censored, span days and (once one exists) the median off "
+    "seconds, all numeric",
+    set(_ds_attrs0) == {"lifetime", "month"}
     and set(_ds_attrs) == {"lifetime", "month"} | _DS_KEYS | {"duty_switch_dhw_space_median_off_s"}
     and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in _ds_attrs.values())
     and (_ds_attrs["duty_switch_dhw_space_stopped"], _ds_attrs["duty_switch_dhw_space_censored"],

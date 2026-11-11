@@ -12602,11 +12602,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "ComfortWeightSensor": frozenset({"configured", "learned", "overrides"}),
     "DebugFinalizeButton": frozenset({"waiting_for"}),
     "CompressorStartsSensor": frozenset({
-        "lifetime", "month", "wear_price_per_start",
-        # duty_switch.py's counts and durations (R10-DUTY-SWITCH-RESTART-LEARNING);
-        # the two median_off_s keys appear with a direction's first off time.
-        *(f"duty_switch_{d}_{k}" for d in ("dhw_space", "space_dhw")
-          for k in ("k", "n", "stopped", "kept", "void", "censored", "span_days")),
+        "lifetime", "month", "wear_price_per_start"
     }),
     "ContractComparisonSensor": frozenset({
         "load_profile_value_per_kwh", "month", "monthly_report",

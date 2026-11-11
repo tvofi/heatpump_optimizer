@@ -338,10 +338,13 @@ class DutySwitchLearner:
         return True
 
     def published(self, when: datetime) -> dict[str, float]:
-        """Counts and durations per direction, flat and numeric; no off time
-        yet is no key."""
+        """Counts and durations per direction, flat and numeric. A direction
+        nothing was observed in publishes no key, and no off time yet is no
+        key: an install that never switches duty while running reads as before."""
         out: dict[str, float] = {}
         for name, d in self.directions.items():
+            if not (d.stopped or d.kept or d.void):
+                continue
             k, n = d.weights(when)
             row: dict[str, float | None] = {
                 "k": round(k, 2), "n": round(n, 2),
