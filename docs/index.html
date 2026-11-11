@@ -241,6 +241,7 @@ pre.yaml .k { color: var(--accent) } pre.yaml .c { color: var(--ink-2) }
 .cp { margin-top: 22px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: 18px 20px 20px; display: grid; gap: 14px }
 .cp fieldset { border: 0; margin: 0; padding: 0; min-width: 0 }
 .cp legend { padding: 0; margin-bottom: 10px; font: 600 1.05rem var(--f-display) }
+.cp legend .eyebrow { display: block; margin-bottom: 8px }
 .cp .opts { display: flex; flex-wrap: wrap; gap: 8px }
 .cp .opts label { position: relative; display: inline-flex; align-items: center; min-height: 42px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; font-weight: 600; font-size: .95rem; color: var(--ink-2); cursor: pointer }
 .cp .opts input { position: absolute; inset: 0; opacity: 0; margin: 0; width: 100%; height: 100%; cursor: pointer }
@@ -512,7 +513,7 @@ footer .brand { font-size: 1rem }
     <div class="panel" data-src="README.md#requirements"><h3 data-copy>Your sensors</h3><p>Everything else — indoor and outdoor thermometers, tank probes, a power meter — is optional. The optimizer runs without them and gets steadily better with each one you add.</p></div>
   </div>
   <div class="cp rv" data-src="README.md#supported-heat-pumps-and-controls">
-    <fieldset><legend data-copy>How is your heat pump controlled?</legend>
+    <fieldset><legend><span class="eyebrow">Control path</span><span data-copy>How is your heat pump controlled?</span></legend>
       <div class="opts">
         <label><input type="radio" name="cp" id="cp1" checked>On/off switch</label>
         <label><input type="radio" name="cp" id="cp2">ECL110 heat curve</label>
