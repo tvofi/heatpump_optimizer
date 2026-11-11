@@ -1,0 +1,14 @@
+[
+ {
+  "name": "rv-privref-not-deleted",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "git update-ref -d \"refs/hpo-relay/fold/$topic\" 2>/dev/null",
+  "new": "true"
+ },
+ {
+  "name": "r3-folded-skip-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "[ -f \"$state/cloud-folded\" ] && grep -qxF \"$topic $bsha\" \"$state/cloud-folded\" && continue",
+  "new": "[ -f \"$state/cloud-folded\" ] && grep -qxF \"$topic $bsha\" \"$state/cloud-folded\" && true"
+ }
+]
