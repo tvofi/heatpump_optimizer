@@ -1,22 +1,19 @@
-Fix review: blocked dee7a1fa45bb9a4b2843ef0ce6c26fac6094bae8 root-cause-unanswered: pr-contract is red at this head because the body's ## Red checks does not name governance / wave-script, a required red in the range; the delta has no code defect
+Fix review: merge dee7a1fa45bb9a4b2843ef0ce6c26fac6094bae8
 
-bus-nonce: e8cbab8ca22f1c3059fb1e8228758d01
+bus-nonce: 47cc22d78dca2e0db5318c5d3f39b4b1
 
-Delta review of 46f0637251e85de671f9870b60fbb852515c0989..dee7a1fa45bb9a4b2843ef0ce6c26fac6094bae8 (this seat's fifth verdict on this PR; the re-cut owed from the fourth review is the orchestrator's call, the block below is a body edit, not code). Measured at dee7a1fa45bb9a4b2843ef0ce6c26fac6094bae8.
-
-## Block
-
-`merge_train.py classify dee7a1fa45bb9a4b2843ef0ce6c26fac6094bae8 --pr 3355` read WAIT until the head's runs concluded, then RED (rc 1) "red: gate" (ev/classify.txt). Every substantive required check is now green at this head: tests / fast (3.14), governance / wave-script, governance / instrument-self-tests, policy-docs, env-matrix, tests / closures, coverage, coverage-ratchet, arch-instrument, mutation, typing, browser, briefs, closure-scope, codeql (3 jobs), hassfest, validate-hacs, arch-score, budget-raise-gate. The two earlier code-level reds are cleared. Two required contexts remain red: `pr-contract / pr-contract` (job 129828847308, 12:28Z) and `gate`, which aggregates it. The pr-contract log's only error: `check governance / wave-script is red and ## Red checks does not name it`, from its range scan (`record red-history`: 25 commits, failures `governance / delivery-status`, `governance / instrument-self-tests`, `governance / wave-script`, `tests / fast (3.14)`). `merge_train.py owed-reds` lists `governance / wave-script` and `tests / fast (3.14)` (ev/owed-reds.txt). The body's ## Red checks names instrument-self-tests, fast (3.14) and delivery-status, and is silent on wave-script, which went red at 46f0637 (job 129684183721, `UNREGISTERED "\A[0-9a-f]{7,40}\Z" in roster_edit.py, roster_lib.py`) and is green at this head. Answer owed in the body: the cheaper detector with its standing cost, or the finding that none exists; the red came from the CI merge ref reading two main-side grammars at once, which main's wave-script grammar change (merged here) resolved, so `root-cause-unrecorded` is the likely state. Once the body names it and pr-contract re-runs green, gate follows and this head is merge-ready.
-
-## Findings
-
-- Follow-up: the body's ## Red checks entry for `tests / fast (3.14)` says the red is inherited from main (de.json keys, D6 claim C112, fixed by #3378). The red this PR's earlier heads actually drew was the stress.py memory reading (typical_slab/shoulder traced 3.9 MiB vs 1.8 MiB), fixed by main's #3406 merged here; the body should say so. Carry: dismissed: body wording fix folded into the same body edit the Block asks for
-- Residual (carried unchanged, outside this delta): the surviving mutant on figure_block.py's base-overlay line `_git(wt, "checkout", base, "--", f)` and the partial base-program guarantee of the pr-contract wiring. Carry: dismissed: not in this delta per the owner's scope ruling; carried by the 0a026199 block to this PR's re-cut
+Scoped body re-check only; head unchanged since the previous block (review commit 77cee4db), no code or mutants re-run.
 
 ## Evidence
 
-- Head reviewed: ev/HEAD.txt. Delta: the commit is a clean main merge of cd36e797 into 46f0637 (296 files, all main's). The PR's own patch is identical: the per-line +/- multiset of the branch's three-dot diff at 01782a1e..46f0637 and at cd36e797..dee7a1fa45bb9a4b2843ef0ce6c26fac6094bae8 is equal, same 16-file set, 708 lines each (ev/patch-delta.txt, rc 0). `review_carry.py` prints FRESH-REVIEW only because the base moved (ev/review_carry.txt). No custom_components/ path is in the branch's own diff and none of main's merged production changes touches a file this PR reads at run time, so no widening of the review.
-- Merge with main: `git merge-tree --write-tree origin/main dee7a1fa45bb9a4b2843ef0ce6c26fac6094bae8` rc 0, no conflict (ev/merge-tree.txt).
-- Previous verdict (46f0637, ci-red): tests / fast (3.14) now success (the stress reading is main's #3406 fix); governance / wave-script now success; pr-contract still red for the reason above, which the previous verdict anticipated (the body not naming the wave-script red).
-- Packet at render: CARRY-AUDIT 0 finding item(s); FIGURES 8 resolved, 0 not verified, 0 refused; pr-contract's carry check at this head prints the same. VERSION, manifest, notes untouched ("no version edit" in the pr-contract log).
-- Not re-run: `figure_block.py --self-test` and the mutants (code unchanged since the last verdict; CI's governance units are green); the body's entities and field_coverage figures, taken from the packet's resolution.
+- classify at the head: GREEN, pending none, red none, rc=0 (ev/classify.txt).
+- merge-tree against origin/main: see ev/merge-tree.txt (rc recorded there).
+- owed-reds (ev/owed-reds.txt) prints the required-context set, not a per-PR red list: it takes no --pr/--head, and no listed context is red at this head. The two reds the previous run listed are green: governance / wave-script success (job 129840403888) and tests / fast (3.14) success (job 129840406342).
+- Required contexts at the head: pr-contract success on the latest run (job 129840450841 at 12:44:35Z, and 129839268293 at 12:49Z); the 12:28:58Z failure (129840407903) is the one the body explains. gate success, also on the runs of 12:50-12:52Z. budget-raise-gate, arch-score, hassfest, codeql, tests/* all success. governance / delivery-status failed but is outside the required set (owner ruling 2026-11-09), so it is not a block.
+- Body ## Red checks answers wave-script: cause (the roster_edit.py to roster_lib.py registration move on main made the grammar UNREGISTERED), process state (base skew, cured by the main merge), countermeasure (ci_predict.py wave-script arm, standing cost nil) and a recorded dismissal.
+- Body wording finding resolved: tests / fast (3.14) now names the stress.py memory reading (typical_slab/shoulder 3.9 MiB vs 1.8 MiB) fixed by #3406, and separates the earlier de.json / C112 red (#3378). It carries a cause, a cheaper-detector statement (none) and a dismissal.
+- The pr-contract and delivery-status entries are answered as well.
+
+## Findings
+
+none
