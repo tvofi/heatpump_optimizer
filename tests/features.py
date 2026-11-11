@@ -80302,6 +80302,45 @@ R.check(
 )
 
 
+def _he_unobs_spans(unobserved, charge=True):
+    """Two spans of half-hour reads, 1 kWh per space step; with ``charge`` the
+    step to read 3 is a 5 kWh hot-water charge the dwell saw. The mode reads at
+    ``unobserved`` are not live, so a span holding one reads the plan's split.
+    Sample bounds of 0.5-6 h close the spans at reads 11 and 22, 5.5 h each."""
+    m, kwh, out = _he.HeatEnergyMeter(), 10.0, []
+    duties = [pump_mode.MODE_DHW if charge and i == 2 else pump_mode.MODE_HEAT for i in range(23)]
+    for i, duty in enumerate(duties):
+        kwh += 0.0 if i == 0 else (5.0 if charge and i == 3 else 1.0)
+        at = NOW + timedelta(hours=0.5 * i)
+        changed = at - timedelta(hours=1) if i == 0 else (at if duty != duties[i - 1] else None)
+        m.observe_mode(at, duty, i not in unobserved, changed)
+        m.observe_counters(at, kwh, None, configured=True, cadence_h=0.5, bounds_h=(0.5, 6.0), max_heat_kw=30.0)
+        ev = m.settle({"house": True, "lower": True}, (1.0, 0.0), ("s", at))
+        out += [(ev, _he.span_heat(ev, 3.0))] if ev is not None else []
+    return out
+
+
+_he_unobs = {k: _he_unobs_spans(*k) for k in (((), True), ((6, 17), True), ((1,), True), ((6,), False))}
+_he_unobs_first = {k: v[0][1] for k, v in _he_unobs.items()}
+R.check(
+    "a span that carried a hot-water charge the dwell saw reads no space figure once "
+    "one mode read in it, after the charge or before it, was not live: the plan's "
+    "whole-unit rule would read the charge as space heat; the next span, with no "
+    "charge and a read not live, reads all its heat as space again (null controls: "
+    "all reads live subtracts the charge's own step; no charge reads all its heat as space)",
+    [len(v) for v in _he_unobs.values()] == [2, 2, 2, 2]
+    and not _he_unobs[((6, 17), True)][0][0].attribution.observed
+    and not _he_unobs[((1,), True)][0][0].attribution.observed
+    and _he_unobs_first[((6, 17), True)].heat_kw is not None
+    and _he_unobs_first[((6, 17), True)].space_kw is None and _he_unobs_first[((1,), True)].space_kw is None
+    and not _he_unobs[((6, 17), True)][1][0].attribution.observed
+    and _he_unobs[((6, 17), True)][1][1].space_kw == _he_unobs[((6, 17), True)][1][1].heat_kw is not None
+    and abs(_he_unobs_first[((), True)].space_kw - 10.0 / _he_unobs[((), True)][0][0].energy.hours) < 1e-9
+    and _he_unobs_first[((6,), False)].space_kw == _he_unobs_first[((6,), False)].heat_kw is not None,
+    f"{[(k, [(sh, ev.energy) for ev, sh in v]) for k, v in _he_unobs.items()]}",
+)
+
+
 # The earned basis. A thermal-power install's first replay of a measured heat
 # earns ``measured_heat``: the void path resets the scale before that fold, the
 # basis is saved, and a later fold does not void again. Null controls: the
