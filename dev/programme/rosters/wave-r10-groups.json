@@ -21321,7 +21321,7 @@
    "resume": {
     "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R10-USER-DOCS-VERIFY, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE, R10-WATER-SETPOINT-FEEDBACK, R10-SAV-VALUATION-RESIDUE, R10-ADVISOR-STEADY-START): carries-open audit 2026-11-09: distinct seam from R10-ADVISOR-STEADY-START, R10-ARBITER-OFF-RESTORE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-SAV-VALUATION-RESIDUE, R10-USER-DOCS-VERIFY, R10-WATER-SETPOINT-FEEDBACK, ordered by after-edges where files overlap"
+    "note": "s14 orchestrator 2026-11-11: roster duplicate of PR B's scope inside R10-COMBI-TANK; built as pull request 3398 under the approved R10-COMBI-TANK design; its design-verdict's class-open point is carried to R10-COMBI-TANK; set done at 3398's merge sha, no designer re-cut"
    }
   },
   {
