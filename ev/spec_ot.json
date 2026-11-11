@@ -1,0 +1,32 @@
+[
+ {
+  "name": "M8",
+  "file": "tools/audit/seat/orchestrator_tick.py",
+  "old": "        stranded.sort(key=lambda l: bool(HELD_TOPIC.match(l)))  # stable: held last, each group in bus order\n",
+  "new": "        pass\n"
+ },
+ {
+  "name": "M9",
+  "file": "tools/audit/seat/orchestrator_tick.py",
+  "old": "held = sum(bool(HELD_TOPIC.match(l)) for l in stranded)",
+  "new": "held = 0"
+ },
+ {
+  "name": "M10",
+  "file": "tools/audit/seat/orchestrator_tick.py",
+  "old": "r\"^ORPHAN (?:triage|record)-",
+  "new": "r\"^ORPHAN (?:triage)-"
+ },
+ {
+  "name": "X-nobatch",
+  "file": "tools/audit/seat/orchestrator_tick.py",
+  "old": "-\\S*batch\\S*\")",
+  "new": "-\\S*\")"
+ },
+ {
+  "name": "X-sortrev",
+  "file": "tools/audit/seat/orchestrator_tick.py",
+  "old": "stranded.sort(key=lambda l: bool(HELD_TOPIC.match(l)))",
+  "new": "stranded.sort(key=lambda l: not HELD_TOPIC.match(l))"
+ }
+]

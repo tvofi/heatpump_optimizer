@@ -1,0 +1,62 @@
+[
+ {
+  "name": "M4",
+  "file": "tools/audit/seat/merge_train.py",
+  "old": "                    self.log(pulse)\n",
+  "new": "                    pass\n"
+ },
+ {
+  "name": "M5",
+  "file": "tools/audit/seat/merge_train.py",
+  "old": "durs = sorted(secs(r) for r in done[-BASELINE_JOBS:])",
+  "new": "durs = sorted(secs(r) for r in done)"
+ },
+ {
+  "name": "M5b",
+  "file": "tools/audit/seat/merge_train.py",
+  "old": "durs = sorted(secs(r) for r in done[-BASELINE_JOBS:])",
+  "new": "durs = sorted(secs(r) for r in done[-BASELINE_JOBS + 1:])"
+ },
+ {
+  "name": "M1",
+  "file": "tools/audit/seat/merge_train.py",
+  "old": "durs = sorted(secs(r) for r in done[-BASELINE_JOBS:])",
+  "new": "durs = []"
+ },
+ {
+  "name": "M6",
+  "file": "tools/audit/seat/merge_train.py",
+  "old": "'normal' if el <= durs[-1] else 'over max'",
+  "new": "'normal' if el > durs[-1] else 'over max'"
+ },
+ {
+  "name": "M7",
+  "file": "tools/audit/seat/merge_train.py",
+  "old": "    if len(open_) != 1:\n        return None\n    job",
+  "new": "    if len(open_) < 1:\n        return None\n    job"
+ },
+ {
+  "name": "X-nosort",
+  "file": "tools/audit/seat/merge_train.py",
+  "old": "key=lambda r: r.get(\"completed_at\") or \"\")",
+  "new": "key=lambda r: 0)"
+ },
+ {
+  "name": "X-p50",
+  "file": "tools/audit/seat/merge_train.py",
+  "old": "p50 = durs[(len(durs) - 1) // 2]",
+  "new": "p50 = durs[len(durs) // 2]"
+ },
+ {
+  "name": "X-namefilter",
+  "file": "tools/audit/seat/merge_train.py",
+  "old": "if r.get(\"name\") == name and r.get(\"status\") == \"completed\"",
+  "new": "if r.get(\"status\") == \"completed\""
+ },
+ {
+  "name": "X-notstarted",
+  "file": "tools/audit/seat/merge_train.py",
+  "old": "    if start is None:\n        return f\"CI waits on 1 job: {name} (not started)\"\n",
+  "new": "    if False:\n        pass\n"
+ }
+]

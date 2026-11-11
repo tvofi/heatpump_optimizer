@@ -1,0 +1,8 @@
+[
+ {
+  "name": "M11",
+  "file": "tools/audit/seat/owed_unactioned.py",
+  "old": "\\d+(?: \\([^)]*\\))?;",
+  "new": "\\d+;"
+ }
+]
