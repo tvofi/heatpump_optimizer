@@ -13583,6 +13583,32 @@ check("without an indoor reading the corner now label is absent",
   head("narrative").dispatchEvent({ type: "click", stopPropagation() {} });
   check("collapse: a second click folds it again",
     /data-fold="narrative" aria-expanded="false"/.test(dump()) && !/class="hl-narrative"/.test(dump()));
+  // Fold state is the card's, not the hass object's: a fresh hass whose data
+  // moved (so the card does rebuild; the savings figure is the witness) keeps
+  // both open folds open.
+  head("narrative").dispatchEvent({ type: "click", stopPropagation() {} });
+  const moved = states({ items, lines }, why);
+  moved["sensor.heat_pump_optimizer_predicted_savings"] = {
+    state: "98.76", attributes: { unit_of_measurement: "SEK" } };
+  card.hass = { states: moved };
+  const after = dump();
+  check("collapse: a hass refresh rebuilds the card and keeps each fold as it was",
+    /98[.,]76/.test(after) && !/12[.,]34/.test(after)
+    && /data-fold="narrative" aria-expanded="true"/.test(after) && /<ul class="hl-narrative">/.test(after)
+    && /data-fold="whynow" aria-expanded="true"/.test(after) && /data-block="why-now"/.test(after),
+    (after.match(/<div class="headline">[\s\S]{0,600}/) || [""])[0]);
+  // With the dialog open the headline renders twice; a press on the dialog's
+  // copy returns focus to the dialog's rebuilt copy, never the card's behind it.
+  const dc = build(states({ items, lines }, why));
+  dc._onCardClick({});
+  const dHeads = () => [...dc.shadowRoot.querySelectorAll("[data-fold]")];
+  const nBefore = dHeads().length;
+  dHeads()[2].dispatchEvent({ type: "click", stopPropagation() {} });
+  const rebuilt = dHeads();
+  check("collapse: focus returns to the dialog's copy of the pressed header",
+    nBefore === 4 && rebuilt.length === 4 && dc.shadowRoot.activeElement === rebuilt[2]
+    && rebuilt[2].getAttribute("aria-expanded") === "true",
+    `heads ${nBefore} -> ${rebuilt.length}; activeElement is index ${rebuilt.indexOf(dc.shadowRoot.activeElement)}`);
   // A fold's summary when the rows cannot be totalled: the first published line.
   const raw = collect(build(states({ lines }, undefined)).shadowRoot).join("\n");
   check("collapse: unpaired lines summarise as the first line; no why_now as the no-data line",
