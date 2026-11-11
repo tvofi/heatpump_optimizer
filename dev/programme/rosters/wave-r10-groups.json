@@ -24450,6 +24450,48 @@
     "next_step": "fixer (sonnet), then sonnet review; close Dependabot pull request 3483 as superseded after the merge; waits for a slot under the over-20 rule",
     "note": "orchestrator 2026-11-12: authorised P674 (a) new group, wired to Dependabot pull request 3483"
    }
+  },
+  {
+   "group": "R10-UPDATE-PR-SEAT-WORKTREE",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/update_pr.sh",
+    "tools/audit/seat/instruments/update_pr.sh.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "brief": "triage: dev/programme/triage/s6-batch222.md#P675 at d3b5ec4a2f, line numbers at origin/main 046736a49f. tools/audit/seat/update_pr.sh :64-68 detaches another worktree on $BR only under $P/ (= $HPO_STATE_DIR/pr, :44), clean and with HEAD an ancestor of origin/$BR; any other worktree holding $BR exits BUSY at :69. A retired seat worktree under $HPO_STATE_DIR/<session>/seat/... that is clean at the origin head therefore holds the relay at BUSY every pass (13 min): three times on 2026-11-11 (retired merge seat s14-7: wt3442, wt3355, wt3458), and the repair handoff of pull request 3458 waited 40 min. Repair: in the :64 loop, take every worktree on $BR under $HPO_STATE_DIR/, not only $P/; keep both existing guards (clean; HEAD an ancestor of origin/$BR); add a third for a worktree outside $P: no live process has its cwd inside it (lsof -a -d cwd, as tools/audit/worktree_gc.sh :66 reads it), and an unreadable lsof keeps the worktree (BUSY, as today). Update the instruments page. Demonstration in update_pr.sh self-test: a clean seat worktree at origin head under the state dir is detached and the run proceeds (fails on the base with BUSY, passes on the fix). Null controls: with a live process cwd in that worktree the run stays BUSY; with a commit origin lacks it stays BUSY. Not critical path.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (sonnet, size S, no design step), then sonnet review; waits for a slot under the over-20 rule",
+    "note": "orchestrator 2026-11-12: authorised P675 new group; overlap admitted (R10-SEAT-SCRIPT-OUTPUT): triage batch 222 P675, orchestrator authorised 2026-11-12: retired seat worktrees hold update_pr at BUSY"
+   }
   }
  ]
 }
