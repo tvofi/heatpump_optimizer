@@ -993,12 +993,15 @@ def _note_sent(held: ArbiterState, rec: FeedbackRun, out: float | None, base: fl
     skipped it would leave the controller on a value up to the tolerance
     from the loop's: enough past the inlet to stop a running compressor
     (:data:`FEEDBACK_DOWN_K`), or to stall the wind-down. So a target that
-    moves at all drops the record, and an equal one is still not sent.
+    moves at all drops the record, and an equal one is still not sent. The
+    dropped record is ``prev_c`` until a write replaces it: it is still the
+    arbiter's last write, which the off restore's own-write refusal reads
+    (:func:`_arm_space`).
     """
     recorded = held.written.get("space_setpoint")
     if out is None or (recorded is not None and recorded[0] == out):
         return
-    rec.prev_c = None if recorded is None else recorded[0]
+    rec.prev_c = rec.prev_c if recorded is None else recorded[0]
     rec.sent_c = out if out != base else None
     held.written.pop("space_setpoint", None)
 
@@ -1438,9 +1441,12 @@ async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity:
     """
     armed = await off_restore.async_armed_entry(inp.hass, entry, CONSUMER)
     reading = read_setpoint(inp.hass, entity)
-    last = held.written.get("space_setpoint")
+    record = held.written.get("space_setpoint")
+    # A loop move dropped the record to be sent (_note_sent); prev_c keeps it.
+    run = held.feedback
+    last = record[0] if record is not None else None if run is None else run.prev_c
     own = (armed is None or armed["entity_id"] != entity) and last is not None \
-        and reading is not None and not _differs("space_setpoint", reading, last[0])
+        and reading is not None and not _differs("space_setpoint", reading, last)
     if log_held(inp.hass, f"space_baseline_own:{entity}", own,
                 "Pump duty: %s reads %s, the optimizer's own last write, which is no "
                 "baseline to restore on off; not writing it until it is set at the controller",
@@ -1867,14 +1873,16 @@ def _restorer(config: Any) -> off_restore.Restorer | None:
 def _space_restored(entry: Any, _entity_id: str, _value: float) -> None:
     """The restore wrote the baseline: the slot is the arbiter's no longer.
 
-    Its record goes, so the next arm captures what the entity reads and
-    :func:`hold` compares nothing against a write the entity was told over.
+    Its record goes, and the loop's run with it, so the next arm captures
+    what the entity reads and :func:`hold` compares nothing against a write
+    the entity was told over.
     """
     coord = getattr(entry, "runtime_data", None)
     held = None if coord is None else _STATES.get(coord)
     if held is not None:
         for record in (held.written, held.misses, held.retry):
             record.pop("space_setpoint", None)
+        held.feedback = None  # its prev_c is that record too (_note_sent)
 
 
 off_restore.register_consumer(CONSUMER, _restorer, write=write_setpoint_c)

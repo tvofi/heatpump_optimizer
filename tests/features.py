@@ -84115,6 +84115,43 @@ R.check(
     _fb_edits == (False, True, True),
     f"cut {_fb_edits[0]}, outside {_fb_edits[1]}, no run {_fb_edits[2]}",
 )
+# Roster Carry 8 of R10-ARBITER-OFF-RESTORE, live since #3405 merged: the off
+# restore's own-write refusal (_arm_space) reads the arbiter's last space
+# write, and a loop move drops that record so the move is sent (_note_sent).
+# The dropped record is the run's prev_c, kept until a write replaces it, so
+# an unarmed key (an upgrade) never captures the optimizer's own 26.0 as the
+# person's baseline, after one loop move or a second one with no write
+# between. A restore ends the run with the record (_space_restored). Control:
+# the same 26.0 reading on an arbiter that never wrote is captured.
+import asyncio as _fb_aio  # noqa: E402
+
+
+def _fb_own(moves, wrote=True):
+    coord = _FbCoord()
+    held = _fb_pa.state_for(coord)
+    if wrote:
+        held.written["space_setpoint"] = (26.0, _FB_NOW)
+        held.feedback = _fb_running(3600, 0)
+    for target in moves:
+        _fb_pa._note_sent(held, held.feedback, target, 26.4)
+    sent = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
+    return sent, coord, held
+
+
+_fb_own_one, _fb_own_two, _fb_own_none = _fb_own([25.8]), _fb_own([25.8, 25.6]), _fb_own([], wrote=False)
+_fb_rs_coord, _fb_rs_held = _fb_own([25.8])[1:]
+_fb_rs_coord.entry.runtime_data = _fb_rs_coord
+_fb_pa._space_restored(_fb_rs_coord.entry, _FB_SET, 26.0)
+R.check(
+    "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8): a loop move's "
+    "dropped record still refuses the optimizer's own 26.0 as an unarmed key's baseline, "
+    "after one move and after two with no write between; a restore ends the run; an "
+    "arbiter that never wrote captures it",
+    _fb_own_one[0] is False and _fb_own_two[0] is False and _fb_own_two[2].feedback.prev_c == 26.0
+    and _fb_rs_held.feedback is None and _fb_own_none[0] is True,
+    f"one {_fb_own_one[0]}, two {_fb_own_two[0]} (prev {_fb_own_two[2].feedback.prev_c}), "
+    f"restored run {_fb_rs_held.feedback}, never wrote {_fb_own_none[0]}",
+)
 # R1's lower side in the replay: a 26.4 degC minimum return target (parameter
 # 979) clamps the loop's first wind-down, whose writes stay under it until a
 # reading leaves the hold tolerance and is adopted as a cut; the cut then
