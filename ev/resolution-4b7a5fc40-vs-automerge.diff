@@ -1,0 +1,94 @@
+diff --git a/tools/audit/seat/cloud_dispatch.py b/tools/audit/seat/cloud_dispatch.py
+index 5f57a66a2f..341fef13b4 100644
+--- a/tools/audit/seat/cloud_dispatch.py
++++ b/tools/audit/seat/cloud_dispatch.py
+@@ -246,6 +246,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
+                  "the PR body is in the PR. Start from the review packet, which you render here rather than read from the "
+                  "dispatcher, whose copy is a path on its own machine: "
+                  f"`python3 -I tools/audit/seat/review_packet.py render --pr {pr} --head {head} "
++                 + (f"--reviewed-head {reviewed_head} " if reviewed_head else "") +
+                  "--out $HOME/review-packet.md`. A refusal names its signal and the packet is still "
+                  "written unless the signal is `host-path`; re-read the live checks either way. ")
+         wait_ci = ("\n" if at_handoff else
+@@ -261,22 +262,12 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
+                    "posts it once CI is green at this head, refuses it over a red, and refuses it if the head moves.\n")
+         body = (
+             "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
+-<<<<<<< 1875f3ed3b0f38234ae30e11299c2e4632a4c422
+-            f"exactly. Fetch the PR head with `git fetch origin {head}`; the PR body is in the PR. "
+-            "Start from the review packet, which you render here rather than read from the "
+-            "dispatcher, whose copy is a path on its own machine: "
+-            f"`python3 -I tools/audit/seat/review_packet.py render --pr {pr} --head {head} "
+-            + (f"--reviewed-head {reviewed_head} " if reviewed_head else "") +
+-            "--out $HOME/review-packet.md`. A refusal names its signal and the packet is still "
+-            "written unless the signal is `host-path`; re-read the live checks either way. "
+-            + (f"This is a later round over the reviewed head {reviewed_head}: its scope is the packet's "
+-               "`## Review scope` line, the delta and the previous verdict's findings when it reads `delta`, "
+-               "widened only to the exact already-reviewed code a production (custom_components/) delta puts "
+-               "at non-obvious risk that CI would not detect, the verdict naming path and risk; an "
+-               "instrument, test, policy or body delta never widens it (fix-review.md step 12). " if reviewed_head else "") +
+-=======
+             f"exactly. Fetch the {'handoff' if at_handoff else 'PR'} head with `git fetch origin {head}`; " + where +
+->>>>>>> d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a
++            (f"This is a later round over the reviewed head {reviewed_head}: its scope is the packet's "
++             "`## Review scope` line, the delta and the previous verdict's findings when it reads `delta`, "
++             "widened only to the exact already-reviewed code a production (custom_components/) delta puts "
++             "at non-obvious risk that CI would not detect, the verdict naming path and risk; an "
++             "instrument, test, policy or body delta never widens it (fix-review.md step 12). " if reviewed_head else "") +
+             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
+             "every figure in the body at this head. Check that it merges with origin/main "
+             "(`git merge-tree --write-tree origin/main <head>`); block on main only when that reports a "
+@@ -543,11 +534,7 @@ def design_approved(repo_dir: str, group_id: str) -> bool:
+ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
+                    roster_ref: str | None = None, head: str = "", pr: str = "", nonce: str = "",
+                    overlay: str | None = None, environ=None, design_exempt: str = "",
+-<<<<<<< 1875f3ed3b0f38234ae30e11299c2e4632a4c422
+-                   reviewed_head: str = "") -> str:
+-=======
+-                   carry_only: bool = False, record_pr: bool = False) -> str:
+->>>>>>> d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a
++                   carry_only: bool = False, record_pr: bool = False, reviewed_head: str = "") -> str:
+     """Render the seat for `group_id` from the roster, publish it, return its ref name.
+ 
+     The roster at `roster_ref` of `repo_dir` (default: the round's roster
+@@ -593,11 +580,8 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
+         if not design:
+             raise Refusal(f"no design/{group_id} on origin to review")
+     args = dict(design=design, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
+-<<<<<<< 1875f3ed3b0f38234ae30e11299c2e4632a4c422
+-                pr=pr, topic=topic, brief=group_brief(group), reviewed_head=reviewed_head)
+-=======
+-                pr=pr, topic=topic, brief=group_brief(group, roster, fixer=role == "fixer"))
+->>>>>>> d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a
++                pr=pr, topic=topic, brief=group_brief(group, roster, fixer=role == "fixer"),
++                reviewed_head=reviewed_head)
+     head = head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip()
+     if role == "reviewer":
+         render(role, head, **args, nonce=BUS_PROBE_NONCE)  # every other refusal, before the bus records
+@@ -1297,12 +1281,8 @@ def self_test() -> int:
+ #: self-test drives each entry through main() and refuses a flag missing here.
+ GROUP_FLAGS = {
+     "role": None, "group": None, "model": None, "head": None, "roster_ref": None,
+-<<<<<<< 1875f3ed3b0f38234ae30e11299c2e4632a4c422
+     "pr": None, "nonce": None, "overlay": None, "design_exempt": None, "reviewed_head": None,
+-=======
+-    "pr": None, "nonce": None, "overlay": None, "design_exempt": None,
+     "carry_only": None, "record_pr": None,
+->>>>>>> d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a
+     "design": "dispatch_group reads the tip of design/<group> on origin",
+     "topic": "the roster gives the topic (the group's branch)",
+     "brief": "the roster gives the brief",
+@@ -1354,12 +1334,8 @@ def main(argv: list[str]) -> int:
+                     raise Refusal(f"--{dest.replace('_', '-')} does not apply with --group: {why}")
+             print(dispatch_group(args.role, args.group, args.model or "", roster_ref=args.roster_ref,
+                                  head=args.head or "", pr=args.pr, design_exempt=args.design_exempt,
+-<<<<<<< 1875f3ed3b0f38234ae30e11299c2e4632a4c422
+-                                 nonce=args.nonce, overlay=args.overlay, reviewed_head=args.reviewed_head))
+-=======
+-                                 nonce=args.nonce, overlay=args.overlay,
++                                 nonce=args.nonce, overlay=args.overlay, reviewed_head=args.reviewed_head,
+                                  carry_only=args.carry_only, record_pr=args.record_pr))
+->>>>>>> d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a
+             return 0
+         if not args.head:
+             raise Refusal("--head is required without --group")

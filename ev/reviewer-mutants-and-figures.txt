@@ -1,0 +1,16 @@
+Reviewer's own runs at head 762fd619773d8e6291ab0d339454bc1a8d74ed55 (separate worktree, restored after each mutant)
+
+Targeted mutants on cloud_dispatch.py passthrough lines (the first is a conflict-resolved line of 4b7a5fc40):
+MUTANT drop `reviewed_head=reviewed_head` from dispatch_group's args dict -> cloud_dispatch self-test: 151 checks, 0 failed (SURVIVED)
+MUTANT drop `reviewed_head` from the _bus_dispatch(...) call             -> cloud_dispatch self-test: 151 checks, 0 failed (SURVIVED)
+MUTANT drop `reviewed_head=args.reviewed_head` from main()'s --group call -> FAIL --group forwards --reviewed-head to dispatch_group (KILLED)
+Same two survivors at the previously reviewed head 1875f3ed3b0f38234ae30e11299c2e4632a4c422: 136 checks, 0 failed each (pre-existing, not introduced by the resolution).
+
+Figures re-derived at the head:
+cloud_dispatch self-test: 151 checks, 0 failed
+review_packet self-test: 94 checks, 0 failed
+closure.py select --diff <merge-base>: MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+policy_lint.mjs: rc=0; --budgets row: tools/audit/briefs/fix-review.md 138 140 2546 2546
+archscore score.py --diff origin/main: Architecture score: dS +0.0000 NULL
+Null control (step 14): main's fix-review.md swapped into the head tree measures 133 lines / 2446 tokens (main's cap 2451): the raise to 2546 is the new step-12 text (+100 tokens), not instrument movement.
+Not re-run (CI's heavy runs cited instead): tests/doc_claims.py, tests/entities.py.
