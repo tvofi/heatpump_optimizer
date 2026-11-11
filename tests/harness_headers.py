@@ -15,6 +15,7 @@ import re
 import resource
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, "tests")
@@ -595,16 +596,25 @@ def main() -> int:
     # tests/harness.py anchors its sys.path and its translations read to its
     # own tree: imported from a foreign cwd it must still import and name the
     # catalogues (before the anchor it raised FileNotFoundError there).
-    foreign = subprocess.run(
-        [sys.executable, "-c",
-         "import sys; sys.path.insert(0, sys.argv[1]); import harness; "
-         "print(len(harness.SHIPPED_LANGS))", str(ROOT / "tests")],
-        cwd="/", capture_output=True, text=True,
-        env={**os.environ, "PYTHONPATH": str(ROOT / "tests" / "hastub")},
-    )
-    R.check("tests/harness.py imports from a cwd outside the tree and finds its catalogues",
-            foreign.returncode == 0 and foreign.stdout.strip().isdigit()
-            and int(foreign.stdout.strip()) > 0,
+    with tempfile.TemporaryDirectory() as decoy:
+        # A decoy tree at the cwd: relative sys.path inserts would resolve the
+        # decoy package instead of this tree's.
+        os.makedirs(os.path.join(decoy, "custom_components", "heatpump_optimizer"))
+        os.makedirs(os.path.join(decoy, "tests"))
+        with open(os.path.join(decoy, "custom_components", "heatpump_optimizer", "__init__.py"), "w"):
+            pass
+        foreign = subprocess.run(
+            [sys.executable, "-c",
+             "import sys; sys.path.insert(0, sys.argv[1]); import harness, heatpump_optimizer; "
+             "print(len(harness.SHIPPED_LANGS)); print(heatpump_optimizer.__file__)",
+             str(ROOT / "tests")],
+            cwd=decoy, capture_output=True, text=True,
+            env={**os.environ, "PYTHONPATH": str(ROOT / "tests" / "hastub")},
+        )
+    out = foreign.stdout.split("\n")
+    R.check("tests/harness.py from a foreign cwd finds its catalogues and its own tree's package",
+            foreign.returncode == 0 and out[0].isdigit() and int(out[0]) > 0
+            and len(out) > 1 and out[1].startswith(str(ROOT / "custom_components")),
             (foreign.stderr or foreign.stdout)[-200:])
     return R.close("HARNESS HEADER CHECKS")
 
