@@ -266,6 +266,7 @@
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -407,6 +408,7 @@
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -508,6 +510,7 @@
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -609,6 +612,7 @@
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -722,6 +726,7 @@
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -848,6 +853,7 @@
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -970,6 +976,7 @@
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -1107,6 +1114,7 @@
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -1239,6 +1247,7 @@
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -1541,6 +1550,7 @@
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -2053,6 +2063,7 @@
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -2243,6 +2254,7 @@
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -2393,6 +2405,7 @@
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -2540,6 +2553,7 @@
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -2712,6 +2726,7 @@
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -2892,6 +2907,7 @@
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -3274,6 +3290,7 @@
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -3435,6 +3452,7 @@
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -3535,6 +3553,7 @@
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -3692,6 +3711,7 @@
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -3785,6 +3805,7 @@
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/switch.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -3901,6 +3922,7 @@
    "custom_components/heatpump_optimizer/slot_drivers.py",
    "custom_components/heatpump_optimizer/snapshots.py",
    "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/supply_hold.py",
    "custom_components/heatpump_optimizer/sysid.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -5017,7 +5039,7 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 31.8
+   "seconds": 83.0
   },
   "tests/backtest.py": {
    "rc": 0,
@@ -5033,7 +5055,7 @@
   },
   "tests/card.mjs": {
    "rc": 0,
-   "seconds": 82.3
+   "seconds": 178.2
   },
   "tests/card_drift.mjs": {
    "rc": 0,
@@ -5041,7 +5063,7 @@
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
-   "seconds": 13.6
+   "seconds": 33.9
   },
   "tests/debug_collect.py": {
    "rc": 0,
@@ -5097,7 +5119,7 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 118.2
+   "seconds": 320.8
   },
   "tests/layout.py": {
    "rc": 0,
@@ -5133,11 +5155,11 @@
   },
   "tests/structure.py": {
    "rc": 0,
-   "seconds": 14.0
+   "seconds": 33.5
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 15.8
+   "seconds": 0.4
   },
   "tests/validate.py": {
    "rc": 0,
