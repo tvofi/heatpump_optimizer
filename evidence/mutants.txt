@@ -11,8 +11,7 @@ KILLED rv-blocked-never-stands
 KILLED rv-memo-not-saved
 KILLED rv-stub-outside-wt
 KILLED rv-real-bodypush-outside-wt
-SURVIVED rv-folded-memo-no-entry
-SURVIVED rv-privref-not-deleted
+KILLED rv-privref-not-deleted
 KILLED rv-nohandoff-not-on-level
-rc=0
+KILLED rv-cloudfolded-skip-off
 rc=0

@@ -1,2 +1,0 @@
-c562b07972c71226a8cb54d0efd4376c76921c1c	refs/heads/fix/r10-review-dispatch-residue-p1
-30277114cd6436232f653a800045abd79859f474	refs/heads/handoff/r10-review-dispatch-residue-p1

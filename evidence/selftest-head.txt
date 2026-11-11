@@ -84,7 +84,7 @@
   ok   and is not tried a fourth time
   ok   the refusal is owed in the level file, once, with its reason
   ok   a refusal of the ref itself (rc 2) is refused at once, with its reason
-ledger: dispose wrote to /tmp/cloud_relay_st.nVhK6d, not the default home; the tick reads /tmp/cloud_relay_st.nVhK6d/state
+ledger: dispose wrote to /tmp/cloud_relay_st.KwnZSG, not the default home; the tick reads /tmp/cloud_relay_st.KwnZSG/state
   ok   a disposed refusal is not owed
   ok   with the real bus.sh push-verdict the relay passes
   ok   and confirms the remote tip as carrying its verdict tree
@@ -336,8 +336,8 @@ ledger: dispose wrote to /tmp/cloud_relay_st.nVhK6d, not the default home; the t
   ok   null control: a handoff committed after its topic's merge stays owed
   ok   a no-PR handoff ref a live fix/ head carries is not owed (the ledger's ancestry close)
   ok   a handoff-body ref with no open PR is OWED
-ledger: dispose wrote to /tmp/cloud_relay_st.nVhK6d, not the default home; the tick reads /tmp/cloud_relay_st.nVhK6d/state
-ledger: dispose wrote to /tmp/cloud_relay_st.nVhK6d, not the default home; the tick reads /tmp/cloud_relay_st.nVhK6d/state
+ledger: dispose wrote to /tmp/cloud_relay_st.KwnZSG, not the default home; the tick reads /tmp/cloud_relay_st.KwnZSG/state
+ledger: dispose wrote to /tmp/cloud_relay_st.KwnZSG, not the default home; the tick reads /tmp/cloud_relay_st.KwnZSG/state
   ok   disposed no-PR refs are not owed
   ok   a disposed no-PR ref that moved is OWED again
   ok   a failed PR listing leaves the level as it was (unknown is not 'nothing owed')
@@ -373,7 +373,7 @@ ledger: dispose wrote to /tmp/cloud_relay_st.nVhK6d, not the default home; the t
   ok   and owes nothing
   ok   an undispatched review is owed once in the level after two passes (null control)
   ok   and confirm never runs on it
-ledger: dispose wrote to /tmp/cloud_relay_st.nVhK6d, not the default home; the tick reads /tmp/cloud_relay_st.nVhK6d/state
+ledger: dispose wrote to /tmp/cloud_relay_st.KwnZSG, not the default home; the tick reads /tmp/cloud_relay_st.KwnZSG/state
   ok   a disposed review is not owed
   ok   a review/<pr> tip the relay did not push is left to the orchestrator (null control)
   ok   and owes nothing
@@ -410,6 +410,9 @@ ledger: dispose wrote to /tmp/cloud_relay_st.nVhK6d, not the default home; the t
   ok   a CARRY-LANDED-only block is folded by carry_fold.py on the kept body
   ok   ... and body_push.sh re-runs on the same body
   ok   ... and the arm says FOLDED
+  ok   null control: the push ran while the private fold ref refs/hpo-relay/fold/cf-a stood
+  ok   ... which the pass deleted after the push (carry 14)
+  ok   a folded (topic, body) whose wip ref moved is not folded again
   ok   a folded body is not folded twice (same topic and body sha)
   ok   null control: CARRY-LANDED plus another refusal folds nothing
   ok   ... runs no body_push.sh
@@ -443,6 +446,5 @@ ledger: dispose wrote to /tmp/cloud_relay_st.nVhK6d, not the default home; the t
   ok   ... with no cloud-folded entry
   ok   ... no FOLDED announcement
   ok   ... and no body_push.sh run
-cloud_relay self-test: 441 checks, 0 failed
-rc=0
+cloud_relay self-test: 444 checks, 0 failed
 rc=0
