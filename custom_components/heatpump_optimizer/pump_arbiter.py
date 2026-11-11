@@ -1093,11 +1093,12 @@ def _dhw_write(inp: ArbiterInputs) -> float | None:
 
     A cycle runs while the plan's step books hot water for it (``dhw_reason``
     legionella) or the integration holds the pump's disinfection switch on;
-    its temperature is the thermal parameters' (``dhw_cycle_temp``, already
-    the higher of the everyday set-point and the disinfection temperature),
-    rounded UP onto the entity's step even where it equals the everyday
-    set-point, as a target snapped below itself fails the guard's own credit
-    test (everyday 60.4, disinfection 60.2, step 1: 61, not 60). Holding the everyday set-point through a cycle
+    its temperature is the thermal parameters' (``dhw_cycle_temp``, the higher
+    of the everyday set-point and the disinfection temperature), on the
+    entity's step at or below the tank's hard maximum (``dhw_hard_max_temp``,
+    that temperature capped at 70 °C), which no write exceeds: an off-step
+    target is held a step below it (everyday 57, disinfection 50, step 5:
+    55, not 60). Holding the everyday set-point through a cycle
     stopped the pump's own thermostat short of the cycle's target (2026-11-01:
     60 °C planned, 55 °C written back within a minute).
     """
@@ -1106,7 +1107,7 @@ def _dhw_write(inp: ArbiterInputs) -> float | None:
     cycle = inp.params.dhw_cycle_temp if booked or inp.disinfecting else None
     if cycle is None:
         return _bounded(inp, "dhw_setpoint", everyday)
-    return _bounded(inp, "dhw_setpoint", float(cycle), rounding="up")
+    return _bounded(inp, "dhw_setpoint", float(cycle), hi=inp.params.dhw_hard_max_temp)
 
 
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:

@@ -21,7 +21,11 @@ P = "custom_components/heatpump_optimizer/setpoint_check.py"
 MUTANTS = [
     ("NULL", A, "", ""),
     ("M1-no-cycle-write", A, "cycle = inp.params.dhw_cycle_temp if booked or inp.disinfecting else None", "cycle = None"),
-    ("M2-round-nearest", A, 'return _bounded(inp, "dhw_setpoint", float(cycle), rounding="up")', 'return _bounded(inp, "dhw_setpoint", float(cycle))'),
+    ("M2-round-up", A, 'return _bounded(inp, "dhw_setpoint", float(cycle), hi=inp.params.dhw_hard_max_temp)',
+     'return _bounded(inp, "dhw_setpoint", float(cycle), rounding="up")'),
+    ("M12-no-hard-max", A, 'return _bounded(inp, "dhw_setpoint", float(cycle), hi=inp.params.dhw_hard_max_temp)',
+     'return _bounded(inp, "dhw_setpoint", float(cycle))'),
+    ("M13-cap-cycle-not-hard-max", A, 'hi=inp.params.dhw_hard_max_temp)', 'hi=float(cycle))'),
     ("M3-booking-ignored", A, "if booked or inp.disinfecting else None", "if inp.disinfecting else None"),
     ("M4-hold-ignored", A, "if booked or inp.disinfecting else None", "if booked else None"),
     ("M5-gate-only-excuse", A, 'return not (reading is None or written is None or _differs("dhw_setpoint", reading, written[0]))',
