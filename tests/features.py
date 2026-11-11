@@ -81667,6 +81667,9 @@ _ds_fine.directions["space_dhw"] = _DS_D(void=1)
 _ds_fine_pub = _ds_fine.published(_ds_day)
 _ds_halved = _DS_D(k=4.0, decayed_at=_ds_day, first_day=_ds_day.date(), last_day=_ds_day.date())
 _ds_halved.book(_ds_day + timedelta(days=14), True, None)
+_ds_days = _ds_dir(1.0, 1.0, days=1)
+_ds_days.book(_ds_day + timedelta(days=3), True, None)
+_ds_days.book(_ds_day + timedelta(days=1), True, None)
 _ds_stamped = _DS_D(k=4.0, decayed_at=_ds_day)
 _ds_stamped.decay(_ds_day + timedelta(seconds=0.5))
 R.check(
@@ -81688,7 +81691,9 @@ R.check(
     "ages the counts to its own time first, and every aging moves the stamp",
     [_DS_D(off_s=offs).median_off_s for offs in ([3.0, 1.0, 2.0], [4.0, 1.0, 3.0, 2.0], [7.0], [])] == [2.0, 2.5, 7.0, None]
     and abs(_ds_halved.n - 3.0) < 1e-12 and _ds_halved.decayed_at == _ds_day + timedelta(days=14)
-    and _ds_stamped.decayed_at == _ds_day + timedelta(seconds=0.5),
+    and _ds_stamped.decayed_at == _ds_day + timedelta(seconds=0.5)
+    # A later booking moves the last day on; one dated before it does not move it back.
+    and (_ds_days.span_days, _ds_days.first_day) == (4, _ds_day.date()),
     f"{_ds_halved} {_ds_stamped}",
 )
 R.check(
