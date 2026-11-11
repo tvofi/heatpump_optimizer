@@ -29,9 +29,9 @@
   ok   diff: the added lines yield all six operators
   ok   diff: no mutant inside a multi-line string, and none from a < or # inside a string literal
   ok   diff: a True constant is flipped
-  FAIL diff: a self-test that pins the guard, return, bound, call and constant leaves no survivor, rc 0
+  ok   diff: a self-test that pins the guard, return, bound, call and constant leaves no survivor, rc 0
   ok   diff: a self-test that does not pin them leaves survivors, rc 1, one line each
-  FAIL diff: --in-place over a pinning command leaves no survivor and the tree clean
+  ok   diff: --in-place over a pinning command leaves no survivor and the tree clean
   ok   diff: --max-mutants caps the pass (4 mutants, at most 4 lines)
   ok   diff: --report-only prints the survivors and exits 0
   ok   diff: a command failing on the unedited tree is BASELINE FAILS, rc 3
@@ -41,8 +41,18 @@
   ok   forkcap: no process of the capped session is left
   ok   forkcap: with the cap off the same chain runs out unbounded-by-the-driver and SURVIVES (mutation proof)
   ok   forkcap: a bounded 10-process command under the same cap is unaffected (null control)
-  FAIL STMT_DEL: one mutant per simple statement, a three-line continuation exactly once at its first line, none for an import, a docstring, a print or a compound header
-  FAIL STMT_DEL: the unpinned assignments SURVIVE and the pinned one is KILLED
-  FAIL STMT_DEL: a comment- and docstring-only diff lists none (null control)
-  ok   operators: no mutant for a comment, an import or a def, and no CALL_DEL for a log call
-mutant_run self-test: 47 checks, 5 failed
+  ok   forkcap: a chain that leaves its pgrp at every link is FORKCAP, not waited out
+  ok   forkcap: no pgrp-leaving descendant outlives the run
+  ok   forkcap: a chain that leaves its session at every link is FORKCAP, not waited out
+  ok   forkcap: no session-leaving descendant outlives the run
+  FAIL forkcap: a chain that leaves its cleanenv at every link is FORKCAP, not waited out
+  FAIL forkcap: no cleanenv-leaving descendant outlives the run
+Traceback (most recent call last):
+  File "/tmp/tmp.Q9vGx0FqAs/mut5/tools/audit/seat/mutant_run.py", line 873, in <module>
+    sys.exit(_self_test())
+             ~~~~~~~~~~^^
+  File "/tmp/tmp.Q9vGx0FqAs/mut5/tools/audit/seat/mutant_run.py", line 825, in _self_test
+    os.kill(int(pid), signal.SIGKILL)
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+ProcessLookupError: [Errno 3] No such process
+rc=1

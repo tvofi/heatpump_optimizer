@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/mutant_run.py b/tools/audit/seat/mutant_run.py
+index d34e7d9f4..d8cb85192 100644
+--- a/tools/audit/seat/mutant_run.py
++++ b/tools/audit/seat/mutant_run.py
+@@ -445,7 +445,7 @@ def _stmt_del(rel: str, src: str, lines: list[str], nums: list[int], have: set[s
+         first, last = lines[lo - 1].rstrip("\r\n"), lines[hi - 1].rstrip("\r\n")
+         head = first.encode()[: node.col_offset].decode()
+         tail = last.encode()[node.end_col_offset:].decode().strip()
+-        if head.strip() or (tail and not tail.startswith("#")):
++        if False:
+             continue
+         eol = lines[lo - 1][len(first):]
+         text = "".join(lines[: lo - 1]) + head + "pass" + eol + "".join(lines[hi:])

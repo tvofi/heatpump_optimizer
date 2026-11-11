@@ -1,0 +1,40 @@
+== base pgrp
+SURVIVED NULL
+FORKCAP m
+mode=pgrp secs=1
+leftover=150
+== base session
+SURVIVED NULL
+KILLED m
+mode=session secs=40
+leftover=150
+== base cleanenv
+SURVIVED NULL
+KILLED m
+mode=cleanenv secs=40
+leftover=150
+== base plain
+SURVIVED NULL
+FORKCAP m
+mode=plain secs=1
+leftover=0
+== wt pgrp
+SURVIVED NULL
+FORKCAP m
+mode=pgrp secs=1
+leftover=123
+== wt session
+SURVIVED NULL
+FORKCAP m
+mode=session secs=1
+leftover=123
+== wt cleanenv
+SURVIVED NULL
+FORKCAP m
+mode=cleanenv secs=1
+leftover=123
+== wt plain
+SURVIVED NULL
+FORKCAP m
+mode=plain secs=0
+leftover=0
