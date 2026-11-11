@@ -50,6 +50,15 @@ ok   an open file inside, cwd elsewhere: kept
 ok   naming open-file
 ok   a live train.pid inside: kept
 ok   naming pidfile-live
+ok   argv names a script inside the worktree (terminator /), cwd elsewhere: kept
+ok   naming argv-inside for the script path
+ok   argv carries --checkout=<worktree> (empty terminator): kept
+ok   naming argv-inside for --checkout=
+ok   null control: argv naming a sibling prefix (<worktree>2) holds nothing and the worktree is collected
+ok   a live pid in <worktree>/x.lock: kept
+ok   naming pidfile-live for x.lock
+ok   a live pid in <worktree>/.x.lock: kept
+ok   naming pidfile-live for .x.lock
 ok   null control: the same worktree with a dead-pid train.pid and no live user is collected
 ok   a young on-remote worktree: kept
 ok   naming young
@@ -83,6 +92,11 @@ ok   naming unmerged-head
 ok   unreadable lsof: the on-remote worktree is kept
 ok   unreadable ps: the on-remote worktree is kept
 ok   naming cwd-unread
+ok   unreadable open-file lsof, cwd lsof readable: the on-remote worktree is kept
+ok   naming cwd-unread for the open-file listing
+ok   no ps on PATH: the on-remote worktree is kept
+ok   naming cwd-unread without ps
+ok   null control: the no-ps PATH really has no ps
 ok   nested live worktree under an orphan: rc 0
 ok   the nested worktree itself is kept naming open-pr
 ok   the nested LIVE worktree is not deleted
@@ -138,4 +152,5 @@ ok   without --strict the same run is rc 0
 ok   no repository argument is a usage error
 ok   and so is a repo without owner/repo shape
 ok   refused before any git or gh call
-worktree_gc self-test: 140 checks, 0 failed
+worktree_gc self-test: 154 checks, 0 failed
+rc=0

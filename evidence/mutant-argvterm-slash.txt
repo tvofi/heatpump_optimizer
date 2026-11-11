@@ -1,0 +1,4 @@
+FAIL argv names a script inside the worktree (terminator /), cwd elsewhere: kept (got '1', want '0')
+FAIL naming argv-inside for the script path (got '0', want '1')
+worktree_gc self-test: 154 checks, 2 failed
+rc=1

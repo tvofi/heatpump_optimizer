@@ -1,0 +1,5 @@
+FAIL unreadable ps: the on-remote worktree is kept (got '1', want '0')
+FAIL no ps on PATH: the on-remote worktree is kept (got '1', want '0')
+FAIL naming cwd-unread without ps (got '0', want '1')
+worktree_gc self-test: 154 checks, 3 failed
+rc=1
