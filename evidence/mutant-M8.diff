@@ -1,0 +1,13 @@
+diff --git a/.github/workflows/codeql.yml b/.github/workflows/codeql.yml
+index 5f8fec74c..fd4396adf 100644
+--- a/.github/workflows/codeql.yml
++++ b/.github/workflows/codeql.yml
+@@ -210,7 +210,7 @@ jobs:
+           # caller's, so a callee sees the event with nothing passed. Both lists are
+           # pinned by tests/entities.py.
+           config: |
+-            paths-ignore: ${{ (github.event_name == 'pull_request' && matrix.language == 'python') && '[".claude/workflows/*.js", "tests/**", "dev/**"]' || '[".claude/workflows/*.js"]' }}
++            paths-ignore: ${{ (github.event_name == 'pull_request' && matrix.language == 'python') && '[".claude/workflows/*.js", "tests/**", "dev/**"]' || '[".claude/workflows/*.js", "tests/**", "dev/**"]' }}
+ 
+       - name: Perform CodeQL Analysis
+         if: steps.standin.outputs.ok != 'true'

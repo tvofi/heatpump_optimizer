@@ -1,5 +1,3 @@
- .github/workflows/codeql.yml | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
 diff --git a/.github/workflows/codeql.yml b/.github/workflows/codeql.yml
 index 5f8fec74c..d84b3edb0 100644
 --- a/.github/workflows/codeql.yml
