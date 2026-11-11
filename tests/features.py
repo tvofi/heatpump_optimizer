@@ -82307,8 +82307,11 @@ R.check(
     and all(calls != [] for calls, _split in _ds_flat_runs[0]),
     f"{[split for _c, split in _ds_flat_runs[0]]} {[split for _c, split in _ds_flat_runs[1]]}",
 )
-# Both controls hold by construction: only the arbiter (which reports) and the
-# sensor (which publishes) name the module, and neither reads the estimate.
+# Both controls hold by construction: the arbiter (which reports) and the
+# sensor (which publishes) never read the estimate. Its one reader is the
+# coordinator, which hands the planner's read to a solve's configuration
+# (R10-DUTY-SWITCH-PLANNER-PRICE): the estimate reaches a write only through
+# the plan, and both controls hold the plan fixed.
 _ds_pkg = _DsPath("custom_components/heatpump_optimizer")
 _ds_readers = sorted(
     p.name for p in _ds_pkg.glob("*.py") if p.name != "duty_switch.py" and any(
@@ -82317,19 +82320,23 @@ _ds_readers = sorted(
 _ds_uses = sorted({
     n.attr for name in ("pump_arbiter.py", "sensor.py") for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / name).read_text()))
     if isinstance(n, _ds_ast.Attribute) and isinstance(n.value, _ds_ast.Name) and n.value.id == "duty_switch"})
+_ds_plan_uses = sorted(
+    n.attr for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "coordinator.py").read_text()))
+    if isinstance(n, _ds_ast.Attribute) and isinstance(n.value, _ds_ast.Name) and n.value.id == "duty_switch")
 _ds_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
            if isinstance(n, _ds_ast.ImportFrom) and n.level == 1} | {
     a.name for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
     if isinstance(n, _ds_ast.ImportFrom) and n.level == 1 and n.module is None for a in n.names}
 R.check(
-    "only the arbiter and the sensor name duty_switch, through its report, attach and publish calls and "
-    "never a read of the estimate; the module imports neither of them; the pure half of wear stays pure",
-    _ds_readers == ["pump_arbiter.py", "sensor.py"]
+    "the arbiter and the sensor name duty_switch through its report, attach and publish calls and never a "
+    "read of the estimate; the coordinator names it once, for the planner's read; the module imports none "
+    "of the three; the pure half of wear stays pure",
+    _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"] and _ds_plan_uses == ["planner_fields"]
     and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "detach", "note_mode_write", "note_pass", "record_for",
                      "starts_attributes"]
     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
-    f"{_ds_readers} {_ds_uses} {_ds_own}",
+    f"{_ds_readers} {_ds_uses} {_ds_plan_uses} {_ds_own}",
 )
 # Published on the compressor-starts sensor, beside the counter, off the payload.
 from heatpump_optimizer import sensor as _ds_sensor  # noqa: E402
