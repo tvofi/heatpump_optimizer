@@ -21485,7 +21485,8 @@
    "wave": 4,
    "files": [
     "dev/README.md",
-    "dev/programme/carries/"
+    "dev/programme/carries/",
+    "dev/governance/config/machinery_budgets.json"
    ],
    "hot_files": [],
    "fixture": false,
@@ -21573,7 +21574,7 @@
     "branch": "fix/r10-closeout-prep",
     "last_step": null,
     "next_step": "dispatch fixer once R10-ARCH-DOCS and the round's tooling/process groups have merged; runs beside R10-ROUND-PLAYBOOK-FINAL",
-    "note": "split from R10-CLOSEOUT-CLEANUP by the s13 orchestrator (2026-11-10, mandate 6715477401; cp-compress spec L6/L6b): CLEANUP carries 6 and 9 re-routed here; CLEANUP's --apply run stays the round's final act and runs after this group; overlap admitted (R10-ARCH-DOCS): s13 closeout split (cp-compress L6/L6b, mandate 6715477401): shares dev/README.md with R10-ARCH-DOCS only, and runs after it (after-edge), so the two never edit the file at once"
+    "note": "split from R10-CLOSEOUT-CLEANUP by the s13 orchestrator (2026-11-10, mandate 6715477401; cp-compress spec L6/L6b): CLEANUP carries 6 and 9 re-routed here; CLEANUP's --apply run stays the round's final act and runs after this group; overlap admitted (R10-ARCH-DOCS): s13 closeout split (cp-compress L6/L6b, mandate 6715477401): shares dev/README.md with R10-ARCH-DOCS only, and runs after it (after-edge), so the two never edit the file at once | set-files files ['dev/README.md', 'dev/programme/carries/'] -> ['dev/README.md', 'dev/programme/carries/', 'dev/governance/config/machinery_budgets.json']"
    },
    "brief": "Closeout preparation, split from R10-CLOSEOUT-CLEANUP so that its two document-side carries run beside R10-ROUND-PLAYBOOK-FINAL instead of serially inside the round's final act. Two deliverables, one pull request: (1) every carry file under dev/programme/carries/ at origin/main gets its destination (a roster group's carry) or its answering commit, and the file is removed or marked, so no carry is left outside the roster before the closure stamp (carry 0 below, moved verbatim from CLEANUP carry 6, with its control); (2) dev/README.md is refreshed against the tooling and process groups that merged after R10-ARCH-DOCS (carry 1 below, moved verbatim from CLEANUP carry 9). Writes no production code and no instrument; R10-CLOSEOUT-CLEANUP keeps the closeout instrument and its --apply run, which stays the round's final act and runs after this group. dev/README.md is under writing-for-agents.md; any line that changes what a seat must do is policy and merges on the owner's approving review (or a mandate in force)."
   },
