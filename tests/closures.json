@@ -1903,6 +1903,8 @@
    "tools/audit/round4/D11/d11lib.py",
    "tools/audit/round4/D11/governance_cost.py",
    "tools/audit/seat/bare_array.py",
+   "tools/audit/seat/beat_jobs.py",
+   "tools/audit/seat/cloud_dispatch.py",
    "tools/audit/seat/gh_read.py",
    "tools/audit/seat/handover_prompt.py",
    "tools/audit/seat/ledger.py",
@@ -1918,6 +1920,7 @@
    "tools/audit/seat/resume_doc.py",
    "tools/audit/seat/roster_edit.py",
    "tools/audit/seat/roster_lib.py",
+   "tools/audit/seat/roster_queue.py",
    "tools/audit/seat/roster_sync.py",
    "tools/audit/seat/state_docs.py",
    "tools/audit/seat/tmp_paths.py",
@@ -4077,6 +4080,7 @@
    "dev/audit/harnesses/r10_advisor_residue.py",
    "dev/audit/harnesses/r10_anchor_vacuous.py",
    "dev/audit/harnesses/r10_arch_docs_first_mutants.py",
+   "dev/audit/harnesses/r10_arch_docs_mutants.py",
    "dev/audit/harnesses/r10_archscore_any_spellings.py",
    "dev/audit/harnesses/r10_away_presence_listener.py",
    "dev/audit/harnesses/r10_band_census.py",
@@ -5075,7 +5079,7 @@
    "seconds": 55.0
   },
   "tests/entities.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 867.9
   },
   "tests/env_drift.py": {
