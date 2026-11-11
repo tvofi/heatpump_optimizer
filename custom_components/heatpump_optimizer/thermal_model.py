@@ -2604,9 +2604,9 @@ def refill_power_kwh(params: ThermalParameters, heat_per_cop_kwh: float, hours: 
     rate, so a refill above the modulation floor pays its part-load derate.
 
     Sign-symmetric: a surplus is credited at the law a deficit is charged at.
-    The input itself while the derate is 0, bit for bit."""
-    if not params.cop_partload_derate or hours <= 0.0:
-        return heat_per_cop_kwh
+    The input itself, bit for bit, while the derate is 0 or ``hours`` is not
+    positive: the inverse passes ``abs`` through unchanged there (its own
+    ``band <= 0`` guard) and ``copysign`` restores the sign."""
     return math.copysign(
         power_for_heat_per_cop_kw(params, abs(heat_per_cop_kwh), hours=hours),
         heat_per_cop_kwh,
