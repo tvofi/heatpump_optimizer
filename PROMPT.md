@@ -8,4 +8,4 @@ Discovery reads (search, list, read across files) go through Agent subagents, as
 
 Brief (snapshotted when this payload was rendered):
 HANDOFF REVIEW (no pull request yet) of group R10-HOTFIX-GATE-REDISPATCH-LOOP, topic r10-hotfix-gate-redispatch-loop, handoff tip 97e6011948c9dd967888050fcb5ad4bc4a17c94b (refs/heads/handoff/r10-hotfix-gate-redispatch-loop; body: handoff-body/r10-hotfix-gate-redispatch-loop). Review per dev/governance/roles/fix-review.md from a detached worktree at the tip with the finder's harness: a null control for every quantified claim, a mutation proof, every carry the roster assigns this group built or routed with its control.
-bus-nonce: 0c5a1c1c26df916112522ef81aefdfe6
+bus-nonce: a0bf39d1a7211f0226b7e1c0cd342aca
