@@ -447,7 +447,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393... |  |
 | R10-I18N-DE | B | 1 | done | - | opus/opus | - | R10-I18N-DE (owner request 2026-11-07, tvofi: "Would an german language option be a small or large group? If M or smaller, fold it into this round."; sized M... |  |
 | R10-GENERIC-HEAT-CURVE | UI | 1 | done | - | opus/opus | - | Owner rulings (tvofi, #201, 2026-11-07, verbatim): "Yes, it should be built. |  |
-| R10-GENERIC-HEAT-CURVE-PERSISTENT | UI | 1 | in-progress | - | opus/opus | - | Owner rulings (tvofi, #201, 2026-11-07, verbatim): "Yes, it should be built. |  |
+| R10-GENERIC-HEAT-CURVE-PERSISTENT | UI | 1 | carries-open | - | opus/opus | - | Owner rulings (tvofi, #201, 2026-11-07, verbatim): "Yes, it should be built. |  |
 | R10-ARBITER-OFF-RESTORE | CORE | 2 | in-progress | - | opus/opus | - | Owner ruling (tvofi, #201 comment 6708225978, 2026-11-07, verbatim): "Arbiter too" - the ruling that turning the optimizer off restores the baseline applies... |  |
 | R10-CLOSEOUT-INSTRUMENTS | C | 1 | done | - | sonnet/opus | yes: mandated approval under 6329234399 | Instrument half of R10-CLOSEOUT-CLEANUP's remaining carries, split out by the s12 roster-completeness audit (2026-11-07) so that R10-ROUND-PLAYBOOK-FINAL and... |  |
 | R10-MIN-POWER-FLOOR | CORE | 2 | done | #3289 | opus/opus | - | Outside report, issue 3289 (rasenschachmatt, 2026-11-07): on a non-modulating heat pump configured with Heat pump min power 2.5 kW and max 3.5 kW, sensor.hea... |  |
