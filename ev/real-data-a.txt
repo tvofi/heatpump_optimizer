@@ -1,0 +1,2 @@
+(['Render the sweep template, and the policy re-read predicate', 'Show the PR argument builder refusing its own fixtures', "Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures", "Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures"], 'head job 130479299736 failure base job 130415622883 failure')
+2.36s

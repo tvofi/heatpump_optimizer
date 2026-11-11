@@ -1,0 +1,20 @@
+  MODE: SCOPED -- 3 script(s) run, 30 scoped out.
+  changed files (14), measured against the recorded closures in tests/closures.json:
+      .claude/rules/defect-root-cause.md
+      .claude/workflows/audit-find.js
+      .cursor/rules/defect-root-cause.mdc
+      .github/workflows/governance.yml
+      dev/audit/config/bugclasses.json
+      dev/audit/config/finding.schema.json
+      dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md
+      dev/governance/roles/fix-review.md
+policy_lint --budgets rc=0
+RULES-SYNC ok: every generated rule is the generated form of its source
+structure.py rc=0
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+  537d9f048  instruments: merge_train and review_packet docs state the widened INTRODUCED rule
+review_carry: FRESH-REVIEW
