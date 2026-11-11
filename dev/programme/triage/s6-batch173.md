@@ -10,9 +10,12 @@ Sources:
 
 ## P590: TRAIN-DEFER-WAIT-UNDER-RUN and POLICY-REFUSAL-REVIEW-MISREAD
 
-Verdict: ACCEPT, re-pointed, as a PART 2 ITEM carry on R10-TRAIN-RESIDUE. That group owns
-`tools/audit/seat/merge_train.py`. Its first PR, 3424, merged at 07:47:51Z, and its PART 2 items
-are still open. The proposal's remedy "count the wait from the code run's START" is rejected:
+Verdict: ACCEPT, re-pointed, as a carry on R10-GATE-DEFER-BARRIER (stage not-started, size M).
+That group owns the seam: its brief has every reader of the gate conclusion, `merge_train`'s
+`policy_refusal` first, treat a deferral red as provisional, and it holds the moved
+R10-HOTFIX-TRAIN-DEFER-WAIT carries. R10-TRAIN-RESIDUE, which owns `merge_train.py`, is
+`carries-open` since PR 3424 merged at 07:47:51Z. It is therefore not `carry_receivable`, and the
+drain refused the first queue line (4391) on that ground. The proposal's remedy "count the wait from the code run's START" is rejected:
 the run started before the wait did, so counting from its start makes the wait shorter.
 
 Source: the orchestrator's queue line 269, 2026-11-11. It reports that #3398 was skipped as
@@ -80,7 +83,7 @@ logged "the missing requirement is a review" while two approvals stood at that h
 
 ### What it costs and what it saves
 
-- **Cost:** one PART 2 item in a live group. It is two bounded edits plus two self-test cases in
+- **Cost:** one carry in a not-started group that already owns the deferral seam. It is two bounded edits plus two self-test cases in
   one file, about 1-2 fixer hours.
 - **Benefit:** 3 TIMEOUT skips in two days, each losing a batch of hours. The latest one was an
   outside PR, which the queue ranks first. The 8 misread parks also mislead a seat into chasing an
