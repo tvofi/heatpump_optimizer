@@ -64,6 +64,12 @@ DHW_COOLING_MAX_SAMPLE_HOURS = 6.0
 # The tank has to be meaningfully warmer than its surroundings for the decay
 # to carry any information about the loss coefficient.
 DHW_COOLING_MIN_DELTA = 5.0
+# A charge start drops the tank reading 3-5 K within 4-10 min (lukewarm
+# heating-circuit water reaches the sensor zone as the valve swings to hot
+# water; observed live on a 600 l combi tank, 2026-11), and after a very
+# short charge that dip lands just after the plan slot ends. Intervals ending
+# this long after the last heated sample are still treated as heated.
+DHW_CHARGE_SETTLE_HOURS = 0.25
 
 
 class DhwProfileLearner:
@@ -108,6 +114,7 @@ class DhwProfileLearner:
         self.cooling_rate: float = float(params().dhw_cooling_rate)
         self.cooling_samples: int = 0
         self.heating_since_sample: bool = False
+        self.last_heated_time: datetime | None = None
         self.profile_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             DHW_PROFILE_STORE_VERSION,
@@ -182,25 +189,7 @@ class DhwProfileLearner:
             self._publish(dhw_hourly_draw_pattern=self.hourly_profile.copy())
             _LOGGER.info("Loaded learned DHW usage profile from storage")
 
-        # #18: day-type profiles are additive keys. A pooled-only store —
-        # every store written before T3 — leaves both arrays at the pooled
-        # profile with zero samples, and the blend below then answers
-        # exactly the pooled pattern.
-        for attr, key, count_idx in (
-            ("profile_weekday", "profile_weekday", 0),
-            ("profile_weekend", "profile_weekend", 1),
-        ):
-            arr = stored.get(key)
-            if isinstance(arr, list) and len(arr) == 24:
-                setattr(self, attr, self.normalize_profile(arr))
-            else:
-                setattr(self, attr, self.hourly_profile.copy())
-            try:
-                self.daytype_samples[count_idx] = max(
-                    0, int(stored.get(f"{key}_samples", 0))
-                )
-            except (TypeError, ValueError, OverflowError):
-                self.daytype_samples[count_idx] = 0
+        self._restore_daytypes(stored, reset_missing=True)
 
         rate = stored.get("cooling_rate")
         if rate is None:
@@ -266,25 +255,31 @@ class DhwProfileLearner:
         # The day-type profiles restore alongside the pooled one, or a
         # rollback would blend a rolled-back pool with un-rolled-back
         # day shapes — half of one week, half of another.
-        for attr, key, count_idx in (
-            ("profile_weekday", "profile_weekday", 0),
-            ("profile_weekend", "profile_weekend", 1),
-        ):
-            arr = profile.get(key)
-            if isinstance(arr, list) and len(arr) == 24:
-                setattr(self, attr, self.normalize_profile(arr))
-                try:
-                    self.daytype_samples[count_idx] = max(
-                        0, int(profile.get(f"{key}_samples", 0))
-                    )
-                except (TypeError, ValueError):
-                    self.daytype_samples[count_idx] = 0
+        self._restore_daytypes(profile, reset_missing=False)
         rate = profile.get("cooling_rate")
         if rate is not None:
             try:
                 self.apply_cooling_rate(float(rate))
             except (TypeError, ValueError):
                 pass
+
+    def _restore_daytypes(self, source: dict[str, Any], *, reset_missing: bool) -> None:
+        """Restore the #18 day-type profiles and their day counts.
+
+        The keys are additive: a store written before T3 has neither, and the
+        loader (``reset_missing``) leaves both at the pooled profile with zero
+        samples, so the blend answers exactly the pooled pattern.
+        """
+        for idx, key in enumerate(("profile_weekday", "profile_weekend")):
+            arr = source.get(key)
+            usable = isinstance(arr, list) and len(arr) == 24
+            if not (usable or reset_missing):
+                continue
+            setattr(self, key, self.normalize_profile(arr) if usable else self.hourly_profile.copy())
+            try:
+                self.daytype_samples[idx] = max(0, int(source.get(f"{key}_samples", 0)))
+            except (TypeError, ValueError, OverflowError):
+                self.daytype_samples[idx] = 0
 
     def apply_draws(self, draws: dict[str, Any]) -> None:
         """Restore the draw-statistics half of a learner snapshot."""
@@ -362,7 +357,13 @@ class DhwProfileLearner:
 
         previous_temp = self.last_temp_sample
         previous_time = self.last_sample_time
-        heated_during_interval = self.heating_since_sample or heating
+        if heating:
+            self.last_heated_time = now
+        charge_affected = self.heating_since_sample or heating or (
+            self.last_heated_time is not None
+            and utc_elapsed_seconds(now, self.last_heated_time) / 3600.0
+            <= DHW_CHARGE_SETTLE_HOURS
+        )
 
         self.last_temp_sample = dhw_temp
         self.last_sample_time = now
@@ -381,17 +382,19 @@ class DhwProfileLearner:
 
         temp_drop = previous_temp - dhw_temp
 
-        if not heated_during_interval:
+        if not charge_affected:
             await self.async_learn_cooling(previous_temp, dhw_temp, dt_h)
         await self.async_learn_usage(
             previous_temp,
             temp_drop,
             dt_h,
             now.hour,
-            heated_during_interval,
+            charge_affected,
             weekend=now.weekday() >= 5,
         )
-        await self.async_fold_draw_stats(now, previous_temp, temp_drop, dt_h)
+        await self.async_fold_draw_stats(
+            now, previous_temp, 0.0 if charge_affected else temp_drop, dt_h
+        )
         return None
 
     async def async_fold_draw_stats(
@@ -402,10 +405,9 @@ class DhwProfileLearner:
         External heat is the one contamination the freeze guard upstream
         does not cover: a wood burn drives the tank temperature and every
         drop-based attribution with it, so those intervals are skipped
-        outright. Heated intervals ARE folded — heating makes the drop
-        smaller, so the attributed energy is a lower bound of the true
-        draw, which can only make the learned heavy-day target
-        conservative relative to reality, never inflated.
+        outright. ``async_learn_dynamics`` passes a charge-affected interval
+        a zero drop: a charge start makes the reading FALL (the loading
+        transient), and zero only under-counts a draw during a charge.
         """
         if self._external_heat_active():
             return
