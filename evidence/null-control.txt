@@ -1,7 +1,0 @@
-# null control: cwd=/ , PYTHONPATH=<tree>/tests/hastub, import harness from <tree>/tests
-## base
-FileNotFoundError: [Errno 2] No such file or directory: 'custom_components/heatpump_optimizer/translations'
-## m1a
-3
-## head
-3

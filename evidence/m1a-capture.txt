@@ -1,9 +1,0 @@
-# finder pattern (dev/audit/harnesses/learner_inputs_swap.py lines 24-26: sys.path[:0]=[T/tests/hastub, T/custom_components, T/tests]; from harness import ...; from profiles import house), cwd = base worktree /tmp/tmp.gE3zzvmqFP/base (40fe1cae2e)
-## T = head tree (/tmp/tmp.gE3zzvmqFP/head)
-harness /tmp/tmp.gE3zzvmqFP/head/tests/harness.py
-profiles /tmp/tmp.gE3zzvmqFP/head/tests/profiles.py
-pkg /tmp/tmp.gE3zzvmqFP/head/custom_components/heatpump_optimizer/__init__.py
-## T = m1a tree (/tmp/tmp.gE3zzvmqFP/m1a)
-harness /tmp/tmp.gE3zzvmqFP/m1a/tests/harness.py
-profiles /tmp/tmp.gE3zzvmqFP/base/tests/profiles.py
-pkg /tmp/tmp.gE3zzvmqFP/m1a/custom_components/heatpump_optimizer/__init__.py

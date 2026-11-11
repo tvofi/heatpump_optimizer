@@ -1,0 +1,20 @@
+2026-11-11T11:28:46.1581354Z Prepare all required actions
+2026-11-11T11:28:46.8447615Z   persist-credentials: false
+2026-11-11T11:28:47.2327788Z Removing includeIf entries pointing to credentials config files
+2026-11-11T11:28:47.2604317Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-70c97c15-1cb8-43b1-abbf-c75230a70f2f.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-11T11:28:47.2637861Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path /home/runner/work/_temp/git-credentials-70c97c15-1cb8-43b1-abbf-c75230a
+2026-11-11T11:28:47.2666535Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-70c97c15-1cb8-43b1-
+2026-11-11T11:28:47.2696992Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-70c97c15-1cb8-43b1-abbf-c75230a70f2f.config
+2026-11-11T11:28:47.2725516Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-70c97c15-1cb8-43b1-abbf-c75230a70f2f.config
+2026-11-11T11:29:13.9149926Z  * [new branch]          ci-probe/u0c-red            -> origin/ci-probe/u0c-red
+2026-11-11T11:29:13.9167898Z  * [new branch]          claim/s6/r10-diag-redact    -> origin/claim/s6/r10-diag-redact
+2026-11-11T11:29:13.9178031Z  * [new branch]          claim/s6/r10-fly-cipredict-layout -> origin/claim/s6/r10-fly-cipredict-layout
+2026-11-11T11:29:13.9520409Z  * [new branch]          dispatch/fixer-r10-cop-partload-red -> origin/dispatch/fixer-r10-cop-partload-red
+2026-11-11T11:29:13.9527865Z  * [new branch]          dispatch/fixer-r10-diag-redact -> origin/dispatch/fixer-r10-diag-redact
+2026-11-11T11:29:13.9553398Z  * [new branch]          dispatch/fixer-r10-fly-cipredict-gaps -> origin/dispatch/fixer-r10-fly-cipredict-gaps
+2026-11-11T11:29:13.9553975Z  * [new branch]          dispatch/fixer-r10-fly-cipredict-layout -> origin/dispatch/fixer-r10-fly-cipredict-layout
+2026-11-11T11:29:13.9554594Z  * [new branch]          dispatch/fixer-r10-fly-cipredict-restoring -> origin/dispatch/fixer-r10-fly-cipredict-restoring
+2026-11-11T11:29:13.9565428Z  * [new branch]          dispatch/fixer-r10-fly-packet-red-paths -> origin/dispatch/fixer-r10-fly-packet-red-paths
+2026-11-11T11:29:13.9567812Z  * [new branch]          dispatch/fixer-r10-fly-record-red-names -> origin/dispatch/fixer-r10-fly-record-red-names
+2026-11-11T11:29:13.9580824Z  * [new branch]          dispatch/fixer-r10-friction-ci-red -> origin/dispatch/fixer-r10-friction-ci-red
+2026-11-11T11:29:13.9602268Z  * [new branch]          dispatch/fixer-r10-hotfix-combi-census-main-red -> origin/dispatch/fixer-r10-hotfix-combi-census-main-red

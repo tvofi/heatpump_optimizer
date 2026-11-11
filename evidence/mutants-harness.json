@@ -1,0 +1,8 @@
+[
+ {"name":"M1a-tests-insert-relative","file":"tests/harness.py","old":"sys.path.insert(0, os.path.join(_ROOT, \"tests\"))","new":"sys.path.insert(0, \"tests\")"},
+ {"name":"M1b-cc-insert-relative","file":"tests/harness.py","old":"sys.path.insert(0, os.path.join(_ROOT, \"custom_components\"))","new":"sys.path.insert(0, \"custom_components\")"},
+ {"name":"M1-both-inserts-relative","file":"tests/harness.py","old":"sys.path.insert(0, os.path.join(_ROOT, \"tests\"))\nsys.path.insert(0, os.path.join(_ROOT, \"custom_components\"))","new":"sys.path.insert(0, \"tests\")\nsys.path.insert(0, \"custom_components\")"},
+ {"name":"M2-translations-relative","file":"tests/harness.py","old":"os.listdir(os.path.join(_ROOT, \"custom_components/heatpump_optimizer/translations\"))","new":"os.listdir(\"custom_components/heatpump_optimizer/translations\")"},
+ {"name":"M1a-tests-insert-cwd-abspath","file":"tests/harness.py","old":"sys.path.insert(0, os.path.join(_ROOT, \"tests\"))","new":"sys.path.insert(0, os.path.abspath(\"tests\"))"},
+ {"name":"M3-harness-at-base","file":"tests/harness.py","old":"_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))\nsys.path.insert(0, os.path.join(_ROOT, \"tests\"))\nsys.path.insert(0, os.path.join(_ROOT, \"custom_components\"))","new":"sys.path.insert(0, \"tests\")\nsys.path.insert(0, \"custom_components\")"}
+]
