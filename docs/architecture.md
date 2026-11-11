@@ -87,7 +87,9 @@ Read the diagram as four regions.
   and the dashboard card. Each is reached through a Home Assistant entity or
   service, never imported.
 - **The Home Assistant boundary** is where side effects live.
-  `inputs.InputReader` performs every entity read;
+  `inputs.InputReader` reads the configured input entities and normalises
+  them, and the coordinator, `pump_arbiter` and `early_cutoff.py` read the
+  pump's own control entities back directly;
   `coordinator.HeatPumpOptimizerCoordinator` is the orchestration seam that
   calls the core and then writes; `pump_arbiter` writes the pump's mode and
   set-points and owns the power switch; `store.QuarantiningStore` is the
@@ -99,7 +101,9 @@ Read the diagram as four regions.
 - **The learners** consume the coordinator's evidence and return corrections.
   Most are pure; three still import `homeassistant` at module level —
   `accuracy` and `defrost` for the clock, `dhw_learning` for the clock and the
-  `HomeAssistant` type — so the glue calls them and they never call the glue.
+  `HomeAssistant` type. The glue calls them and they never call the
+  coordinator; `dhw_learning` and `snapshots` reach persistence through
+  `store.py`.
 
 ## The module map
 
@@ -229,8 +233,9 @@ custom_components/heatpump_optimizer/
 │                         #   Mold Floor Breach, Open Window Detected,
 │                         #   Wood Cheaper Than Heat Pump
 ├── button.py             # Optimize now, run identification, reset comfort
-│                         #   weight, diagnose last interval; finalize the
-│                         #   debug collection while that option is on
+│                         #   weight, reset heat loss, diagnose last interval;
+│                         #   finalize the debug collection while that option
+│                         #   is on
 ├── climate.py            # Virtual climate entity: modes, presets, DHW status
 ├── switch.py             # Away, Block DHW, Block Space Heating,
 │                         #   Boost Space Heating, DHW Boost, Optimizer Active
@@ -368,23 +373,20 @@ These instruments keep this page honest:
   example — reads NULL. It is a review trigger, never a target a seat is
   rewarded for moving, and it is a required check on a pull request.
 
-## The shape at programme end
+## One owner per concern
 
-The page above describes `main`. The round-10 roster still holds groups that
-change the shape of the code, and each change below is marked with the group
-that lands it, so R10-ARCH-DOCS can resolve every line once its group is done.
-No group in the roster adds a module, so the module map above is already the
-module set at programme end.
+Each rule below has one owner in the code, so a change to it is made in one
+place.
 
-- **One owner of the thermal parameters**, copied on write, so a service call cannot publish a torn or unclamped set across its await, and the coordinator context is written once [target: R10-PARAMS-OWNER]
-- **The live state published whole**: the thermal state, the away state and the event callbacks publish a copy, and each collaborator owns its own fields [target: R10-LIVESTATE]
-- **One owner per duplicated shape**: a power reader in `inputs` that refuses a non-finite or out-of-range reading, one hour-clock owner and one finite-float owner [target: R10-ARCH-SHAPES]
-- **Payload mixins on the entity base**: the finite scrub, the value and path mixins and the zone set-point attributes, shared by the sensors that each carried their own guard [target: R10-SENSOR-PAYLOAD]
-- **A delivered-heat meter input**: measured COP from heat over electric energy, split into hot water and space by the pump's mode [target: R10-HEAT-METER]
-- **An honest COP state**: "not measurable here" where no meter makes COP observable [target: R10-COP-GATE]
-- **One rule for scores**: no evidence is a dash with a reason, never zero, and one view model behind the scores, Savings, Advisor and Health [target: R10-SCORES]
-- **Learner progress in the payload**: phase, progress and what each learner waits for [target: R10-LEARNER-ETA]
-- **One options page template** driven by the field registry [target: R10-CONFIGFLOW-PAGES]
+- **The thermal parameters have one writer.** `coordinator.py` builds a new parameter set and publishes it whole in one assignment, so a service call cannot publish a torn or unclamped set across its await. The coordinator context is a frozen value, replaced whole and never edited.
+- **The live state is published as a copy.** Each cycle owns its own copy of the thermal state, so a restore or an await cannot change the state another reader holds.
+- **One owner per duplicated shape.** The power reader in `inputs.py` converts a reading to kW and refuses a non-finite or out-of-range one. `const.py` owns the finite-float conversion. The hour-of-day conversions are two functions with two rules: `quiet_windows.py` owns the wall clock, where the end of the day is 00:00, and `dhw_schedule.py` owns the window label, where it is 24:00.
+- **One payload read on the entity base.** `entity.py` owns the finite scrub, the payload-number rule and the zone set-point attributes. One mixin in `sensor.py` reads a number at a named path of the payload, for the sensors that each carried their own guard.
+- **A delivered-heat meter input.** An optional heat energy meter gives a measured COP, heat over electric energy. `heat_energy.py` splits a span's heat into hot water and space heating by the pump's mode.
+- **An honest COP state.** `accuracy.py` owns the COP observability state, which reads "not measurable" where no meter makes COP observable.
+- **One rule for scores.** No evidence is a dash with a reason, never zero. One view model in `coordinator.py` is behind the scores and the advisor's restart advice, and it shares one convergence rule with the Health page. No score reads or recomputes a Savings figure.
+- **Learner progress in the payload.** `learner_progress.py` gives each learner's phase, its progress and what it waits for.
+- **One options page template.** `config_flow.py` renders every options page from one field registry.
 
 ## Where to start reading
 
