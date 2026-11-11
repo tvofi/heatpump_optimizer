@@ -1,77 +1,66 @@
 R10-OUTSIDE-DHW-CHARGE-SETTLE: the build of outside pull request #3434 by @Bankaifan, whose commit opens this branch with its authorship kept. A DHW charge start drops the tank reading 3-5 K within minutes. Main books that dip as a draw on the heated interval in the draw statistics, and as usage on the unheated intervals after a short charge. Both inflate the heavy-day p90 that the planner reads through `DrawStats.quantile`.
 
-Repair round 2. Review blocked `8e2b7d99` as regression-unmeasured: the first gate folded every charge-affected interval as zero, so a real draw during a charge or up to 15 min after one was lost. At a draw 5 min after the last heated sample, the truth arm's p90 fell from 5.5488 to 1.9468 kWh. That gate is replaced, not tuned.
+Repair round 3. Review blocked `8fe714779` as regression-unmeasured. At the learner's production cadence, the take-back erased real draw. The learner runs once per coordinator refresh, `optimization_interval`: 30 min by default, 10-120 min in 5-min steps. Every harness arm and test sampled at 5 min. The cause: the interval that *ends* at the first heated sample was folded as charge energy. At a 10-120 min refresh that interval holds the draw made before the charge. A later dip recovery then took that draw back.
 
 The fix rests on one physical fact: the dip recovers once the charge stops, and a draw does not. In `dhw_learning.py`, `ChargeSettle` (in memory) holds the open charge's transient:
-- **Draw statistics.** A charge-affected interval (heated, or ending within `DHW_CHARGE_SETTLE_HOURS` of the last heated sample) is folded as on main, and `DrawStats` records that share of the open occurrence. A later unheated rise of the reading takes back what it recovered (`DrawStats.take_back`). The take-back is capped by the occurrence's charge-folded energy and by `DHW_CHARGE_DIP_MAX_K` (5 K, the top of the observed 3-5 K) per charge.
-- **Usage learner.** A settle interval's drop is deferred instead of skipped. Later unheated rises cut it. The first unheated interval past the window that does not rise closes the charge and learns what is left.
-- **Cooling learner.** Gated as on main, on a heated interval only. The first gate's settle-only extension was equivalent: such an interval is under `DHW_COOLING_MIN_SAMPLE_HOURS` by construction.
+- **Draw statistics.** `ChargeSettle.classify` now returns the interval's class. Only an interval that *started* on a heated sample, or ends within `DHW_CHARGE_SETTLE_HOURS` of the last heated sample (settling), is folded as charge energy (`DrawStats.fold(..., charge=True)`). The plan's flag marks the charge no earlier than its slot, so an interval ending at the first heated sample holds the pre-charge draw. It is folded as plain draw, which no take-back reaches. A later unheated rise takes back what it recovered (`DrawStats.take_back`). Two caps bound it: the charge-folded energy left in the open occurrence, and `DHW_CHARGE_DIP_MAX_K` (5 K) per charge.
+- **Usage learner.** A settle interval's drop is deferred instead of skipped. Later unheated rises cut it. The first unheated interval past the window that does not rise closes the charge and learns what is left. This part is unchanged this round.
+- **Cooling learner.** Gated as on main, on a heated interval (starts or ends heated).
 - **Restore refactor.** The author's `_restore_daytypes` fold of the two duplicated restore loops stays. `apply_payload` takes an overflowing day count as zero, as the loader does.
 
 Design choices a reviewer may read as bugs:
-- A heated rise is never credited, because it is charge heat. So a dip that recovers while the charge still heats stays booked, as on main. The harness's 40-min-charge geometry finds no such phantom at main: dip equals truth there.
+- A heated rise is never credited, because it is charge heat. So a dip that recovers while the charge still heats stays booked, as on main.
 - A draw that overlaps the recovery hides the rise, so the phantom stays as on main (draw-0745 dip, below).
-- A restart forgets the open charge, so that charge is booked as on main. A take-back only reaches the occurrence still open, so a recovery that crosses into a new window or day takes back from the old occurrence in the crossing tick and nothing after it.
-- An unheated rise after a charge that is not a dip (a device heating past its plan slot, since `dhw_heating_active` is the plan's flag and not device state) can erase at most `DHW_CHARGE_DIP_MAX_K` of charge-folded draw per charge, and never draw folded outside the charge.
+- A restart forgets the open charge, so that charge is booked as on main. A take-back only reaches the occurrence still open.
+- A real draw *during* a charge is folded as charge energy, and a later dip recovery can take it back. The charge heat that hid part of the dip makes the recovery larger than the dip the charge folded. This is measured below (5-min draw-0735: −0.30, against main's +0.39). At every production cadence, 10 to 60 min, no dip cell reads further from its truth arm than main.
+- At 10, 15 and 60 min the fix removes none of main's phantom (N equals B in every dip cell). There the dip lands inside a heated interval, or past a settle window shorter than the refresh. The gain at production cadence is the 30-min draw-0735 and draw-0745 cells, +0.23 to +0.01. Every other production cell reads as main.
 
 Alternatives considered:
 - (a) Fold the drop only where it exceeds the dip bound: this costs every real draw near a charge up to 5 K.
-- (b) Keep the zero gate and only shorten the window: the draw-0735 truth arm still reads 0.14 kWh.
+- (b) Lengthen `DHW_CHARGE_SETTLE_HOURS` to the refresh interval, so the settle window catches the dip at 30-60 min: that widens the window that defers real usage. With no production trace at those cadences, I did not measure it and did not take it.
 - (c) Persist `ChargeSettle`: a store field for one transient per restart.
-- (d) Credit the standby loss on top of the observed rise in the take-back: removing that term moved every dip arm toward the truth trace and no truth arm (measured), so the credit is the reading's own rise.
 
 ## Head
 
-Measured at code head `b6696bd6e6c671e52b3b2c16991011789d1d5e18` on merge base `a7628041dc02e298c5399003d4c0576391dd5c4e` (`origin/main` at measurement, 2026-11-11T10:16Z). Production files are byte-identical from `b5a0f8773aa4` to the head (`git diff b5a0f8773aa4 HEAD -- custom_components/` prints nothing). The harness figures were taken at `b5a0f8773aa4`; after that, only `tests/features.py` and the ledger changed.
+Code head `d6564e1eab08df8dadc088a696a211a291172db3`, on merge base `ee64358be7eeccaec5178a923cb3b83a18a924a0` (`origin/main` at measurement, 2026-11-11T15:33Z). It continues the PR head `8fe714779` (O below) with two commits. The first is the escrow gate, the cadence harness and the features cases. The second moves the interval classification into `ChargeSettle.classify`, which pays its class lines. `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main was not merged.
 
 ## Mutation proof
 
-Failing test first. The features block `a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked` (plus the restore check) was run with `dhw_learning.py` and `dhw_draws.py` from the merge base and the rest of the head. Values are (open-occurrence kWh, usage points[, closed day]):
+Failing test first. Two checks were added to the block: `at the learner's production cadences a charge-start dip's recovery takes back no draw made before the charge` (10, 15 and 30 min) and `a charge's take-back stops at the energy its charge folded and at the dip bound`. The same block CMD (below) was run with the rest of the head and with three versions of `dhw_learning.py`/`dhw_draws.py`. Values are cadence: (dip open kWh, truth with no dip, no DHW charge on record):
 
 ```
-main a7628041dc02:  FAIL  dip (0.6825, 1), edge (0.457, 1), draw (0.6825, 1), space (0.6825, 2), space draw (0.6825, 2), midnight (0.0, 0, [0.689]), reheat (0.689, 1) vs (0.689, 1), cap (1.849, 0)   -> 2 of 3 FEATURES BLOCK FAILED (+ the restore check: 'OverflowError')
-old head 416afe9b2: FAIL  dip (0.0, 0), edge (0.0, 0), draw (0.0, 0), space (0.6825, 2), space draw (0.6825, 2), midnight (0.0, 0, [0.0]), reheat (0.689, 1) vs (0.689, 1), cap (0.0, 0)        -> 1 of 3 FEATURES BLOCK FAILED
-head:               ok    dip (0.0, 0), edge (0.0, 0), draw (0.6825, 1), space (0.6825, 2), space draw (0.6825, 2), midnight (0.0, 0, [0.341]), reheat (0.689, 1) vs (0.689, 1), cap (0.689, 0) -> ALL 3 FEATURES BLOCK PASSED
+main ee64358be:     FAIL  {10: (1.3656, 0.6821, 1.3656), 15: (1.3523, 0.6751, 1.3523), 30: (1.3127, 0.6542, 1.3127)}   -> 4 of 5 FEATURES BLOCK FAILED
+old head 8fe714779: FAIL  {10: (0.4376, 0.6821, 1.3656), 15: (0.4243, 0.6751, 1.3523), 30: (0.3847, 0.6542, 1.3127)}   -> 1 of 5 FEATURES BLOCK FAILED
+head:               ok                                                                                                  -> ALL 5 FEATURES BLOCK PASSED
 ```
 
-So main fails on the dip and the old head fails on the draw: the check separates the defect from its over-correction. The heated-rise, partial-recovery and closed-charge arms were added after these runs, to kill HEATED_RETURN_OFF, PENDING_INDEX and CLOSE_KEEPS_OPEN below.
+The 30-min old-head row reproduces the verdict's sequence exactly (0.3847 against truth 0.6542, control 1.3127). Main fails because it keeps the phantom, and the old head fails because it erases the draw. The second check fails at main on both arms (`esc` 0.9148 against 0.689, `cap3` 1.849 against 0.6825). It passes at the old head and pins the reviewer's two surviving mutants (below).
 
-Mutants (run at `b5a0f8773aa4`, production identical to the head), each `{name, file, old, new}`, run by `python3 tools/audit/seat/mutant_run.py --spec <spec> --cmd "<CMD>"` (copy-tree) with CMD:
+Mutants, each `{name, file, old, new}`, run at `d6564e1ea` by `python3 tools/audit/seat/mutant_run.py --spec <spec> --cmd "<CMD>"` (copy-tree) with CMD:
 
 ```
 env PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py --prelude 'from harness import FakeEntry as _r7d203_entry' --prelude 'import asyncio as _aio' --prelude 'from homeassistant.util import dt as dt_util' --prelude 'from datetime import timedelta' '# A charge start makes the tank reading FALL' '# A zero-capacity tank is the input'
 ```
 
+This round's mutants:
+
 | mutant | file | old | new |
 |---|---|---|---|
-| DIP_ZERO | dhw_learning.py | `DHW_CHARGE_DIP_MAX_K = 5.0` | `= 0.0` |
-| DIP_SMALL | dhw_learning.py | `DHW_CHARGE_DIP_MAX_K = 5.0` | `= 1.0` |
-| SETTLE_STRICT | dhw_learning.py | `<= DHW_CHARGE_SETTLE_HOURS` | `< DHW_CHARGE_SETTLE_HOURS` |
-| SETTLE_SHORT | dhw_learning.py | `DHW_CHARGE_SETTLE_HOURS = 0.25` | `= 0.05` |
-| SETTLE_LONG | dhw_learning.py | `DHW_CHARGE_SETTLE_HOURS = 0.25` | `= 0.5` |
-| STAMP_DEL | dhw_learning.py | `self.last_heated_time = now` | `pass` |
-| OPEN_OFF | dhw_learning.py | `self.open, self.credit_k = True, DHW_CHARGE_DIP_MAX_K` | `pass` |
-| RISE_INCL_FLAT | dhw_learning.py | `if obs[1] < 0:` | `if obs[1] <= 0:` |
-| CREDIT_DOUBLE | dhw_learning.py | `min(-obs[1], self.credit_k)` | `min(-2 * obs[1], self.credit_k)` |
-| TAKE_CAP_OFF | dhw_learning.py | `taken = left = min(-obs[1], self.credit_k)` | `taken = left = -obs[1]` |
-| PENDING_CUT_OFF | dhw_learning.py | `deferred[1] -= cut` | `pass` |
-| PENDING_OFF | dhw_learning.py | `if settling:` + `self.pending.append(obs)` | `if False:` |
-| FLUSH_OFF | dhw_learning.py | the deferred `await self.async_learn_usage(...)` | `pass` |
-| USAGE_GATE_OFF | dhw_learning.py | `if not settling:` (before the usage call) | `if True:` |
-| CHARGE_FLAG_OFF | dhw_learning.py | `charge=heated_interval or settling` | `charge=False` |
-| RECOVERED_OFF | dhw_learning.py | `recovered_k=recovered_k` | `recovered_k=0.0` |
-| COOLING_HEATED_OFF | dhw_learning.py | `if not heated_interval:` (cooling) | `if not heating:` |
-| ESCROW_ADD_OFF | dhw_draws.py | `self._open_charge_kwh += energy` | `pass` |
-| ESCROW_RESET_OFF | dhw_draws.py | `self._open_charge_kwh = 0.0` (new occurrence) | `pass` |
-| TAKE_UNBOUNDED | dhw_draws.py | `taken = min(max(0.0, energy_kwh), self._open_charge_kwh)` | `taken = max(0.0, energy_kwh)` |
-| TAKE_OPEN_OFF | dhw_draws.py | `self._open_kwh -= taken` | `pass` |
-| OVERFLOW_DROP | dhw_learning.py | `except (TypeError, ValueError, OverflowError):` | `except (TypeError, ValueError):` |
-| RESTORE_SKIP_OFF | dhw_learning.py | `else: continue` | `else: pass` |
-| RESTORE_LEN_OFF | dhw_learning.py | `isinstance(arr, list) and len(arr) == 24` | `isinstance(arr, list)` |
-| RESTORE_CLAMP_DROP | dhw_learning.py | `max(0, int(source.get(...)))` | `int(source.get(...))` |
+| STARTED_GATE_OFF (the fix reverted) | dhw_learning.py | `charge=started_heated or settling` | `charge=heated_interval or settling` |
+| STARTED_IS_NOW | dhw_learning.py | `started_heated = self.heating_since_sample` | `started_heated = heating` |
+| STARTED_DROP | dhw_learning.py | `heated_interval = started_heated or heating` | `heated_interval = heating` |
+| R2_ESCROW_DEC_OFF (reviewer's) | dhw_draws.py | `self._open_charge_kwh -= taken` | `pass` |
+| R2_CREDIT_PER_INTERVAL (reviewer's) | dhw_learning.py | `if (heated_interval or settling) and not self.open:` | `if heated_interval or settling:` |
+
+The earlier rounds' 32 mutants were re-run over the same CMD at this head. They are the 25-row table of round 2, `HEATED_RETURN_OFF`, `PENDING_INDEX`, `CLOSE_KEEPS_OPEN`, `WEEKEND_GT`, `SAVE_GUARD_OFF`, `SAVE_TAKEN_OFF` and `FLUSH_WEEKEND`. `CHARGE_FLAG_OFF`'s old text is now `charge=started_heated or settling`. Each spec `old` text matched exactly once in its file before the run.
 
 ```
 SURVIVED NULL
+KILLED STARTED_GATE_OFF
+KILLED STARTED_IS_NOW
+KILLED STARTED_DROP
+KILLED R2_ESCROW_DEC_OFF
+KILLED R2_CREDIT_PER_INTERVAL
 KILLED DIP_ZERO
 KILLED DIP_SMALL
 KILLED SETTLE_STRICT
@@ -83,12 +72,19 @@ KILLED RISE_INCL_FLAT
 KILLED CREDIT_DOUBLE
 KILLED TAKE_CAP_OFF
 KILLED PENDING_CUT_OFF
+KILLED PENDING_INDEX
 KILLED PENDING_OFF
+KILLED HEATED_RETURN_OFF
+KILLED CLOSE_KEEPS_OPEN
 KILLED FLUSH_OFF
+KILLED FLUSH_WEEKEND
 KILLED USAGE_GATE_OFF
 KILLED CHARGE_FLAG_OFF
 KILLED RECOVERED_OFF
 KILLED COOLING_HEATED_OFF
+KILLED WEEKEND_GT
+KILLED SAVE_GUARD_OFF
+KILLED SAVE_TAKEN_OFF
 KILLED ESCROW_ADD_OFF
 KILLED ESCROW_RESET_OFF
 KILLED TAKE_UNBOUNDED
@@ -99,134 +95,138 @@ KILLED RESTORE_LEN_OFF
 KILLED RESTORE_CLAMP_DROP
 ```
 
-The `mutant_run.py --diff a7628041dc02...HEAD` sweep over the same CMD left three behaviour survivors at the time: the heated-interval return in `ChargeSettle.advance`, the deferred-drop index and the close's `open` reset. Three arms were added: a draw then charge heat, a 3 K settle drop that recovers 1 K, and a rise after the charge closed. Same CMD at the head:
+The reviewer's third survivor, `R2_SETTLE_INCL_HEATED`, has no site left. `classify` now returns `heated_interval` beside the settle flag, and the verdict read that mutant as equivalent: on a heated interval the usage learner returns at its first guard, and `advance` returns before the pending branch.
+
+The `mutant_run.py --diff ee64358be...HEAD --path custom_components/` sweep over the same CMD at `d6564e1ea` prints its survivors only. None of them is on a line this round changed (`classify`, the `started_heated` lines, the fold's `charge=`):
 
 ```
-SURVIVED NULL
-KILLED HEATED_RETURN_OFF   (`if not self.open or heated_interval:` -> `if False:`)
-KILLED PENDING_INDEX       (`deferred[1] -= cut` -> `deferred[2] -= cut`)
-KILLED CLOSE_KEEPS_OPEN    (close sets `self.open` True)
+SURVIVED dhw_draws.py:60 CONST_SWAP  _open_charge_kwh: float = 1.0
+SURVIVED dhw_draws.py:65 CONST_SWAP  ... *, charge: bool = True
+SURVIVED dhw_learning.py:96 CONST_SWAP  credit_k: float = 1.0
+SURVIVED dhw_learning.py:264 CALL_DEL / CONST_SWAP  self._restore_daytypes(stored, reset_missing=...)
+SURVIVED dhw_learning.py:348 CALL_DEL, 349 GUARD_OFF, 350 CALL_DEL  (_restore_daytypes' reset_missing branch)
+SURVIVED dhw_learning.py:476 CONST_SWAP  * max(1.0, previous_temp - TANK_ROOM_AMBIENT_TEMP)
+SURVIVED dhw_learning.py:482 CONST_SWAP  recovered_k: float = 1.0
+SURVIVED dhw_learning.py:516 CMP_BOUND / CONST_SWAP  energy_kwh > 1e-4
 ```
 
-The reviewer's two survivors are closed: R_SETTLE_STRICT is SETTLE_STRICT above, and R_FOLD_SKIP has no site left, because the fold is no longer gated.
-
-Sites that only other `tests/features.py` checks pin were run over the whole script, in place (`mutant_run.py --in-place --spec <these> --cmd "env PYTHONPATH=tests/hastub python3 tests/features.py"`):
-
-```
-SURVIVED NULL
-SURVIVED WEEKEND_GT       (`weekday() >= 5` -> `> 5`; killed in the block after the Saturday arm, below)
-SURVIVED STANDBY_CLAMP    (`max(0.0, previous_temp - TANK_ROOM_AMBIENT_TEMP)` -> unclamped)
-SURVIVED SAVE_GUARD_OFF   (the fold's save guard -> `if False:`; killed in the block after the save spy, below)
-SURVIVED SAVE_TAKEN_OFF   (`or taken_kwh > 1e-4` -> `or False`; same)
-KILLED RESTORE_RESET_OFF
-```
-
-That run, at `fa2e180ee`, hit its 3000 s bound before its last mutant. That mutant was run alone at the head:
-
-```
-SURVIVED NULL
-KILLED RESTORE_POOLED_OFF
-```
-
-The NULL line is the whole of `tests/features.py` passing at the head. The block then gained a Saturday arm and a save spy (the last save must hold the final open kWh). Same block CMD at the head:
-
-```
-SURVIVED NULL
-KILLED WEEKEND_GT
-KILLED SAVE_GUARD_OFF
-KILLED SAVE_TAKEN_OFF
-KILLED FLUSH_WEEKEND      (the deferred usage's `weekend=wkend` -> `weekend=False`)
-```
+Dispositions, by reading:
+- Lines 65, 96 and 482 are defaults that every production call overrides. `fold`'s only caller passes `charge=`, `advance` sets `credit_k` before any read, and the fold's only caller passes `recovered_k=`.
+- Line 60 is the escrow's initial value. A live occurrence resets it on its first fold. A `DrawStats.from_dict` restore keeps the default, so after a restart mid-occurrence a charge could take back up to 1 kWh more under the mutant. No arm drives a restart mid-charge. This is a real unpinned site, and it is listed under `## Unpinned sites`.
+- Lines 264 and 348-350 are the loader's day-type reset. Round 2's in-place run over the whole of `tests/features.py` killed it (`RESTORE_RESET_OFF`, `RESTORE_POOLED_OFF`); the block CMD does not reach it.
+- Line 476 is main's standby clamp (round 2's `STANDBY_CLAMP`). Its killer is another gate script, as main's ledger records.
+- Line 516 is main's `1e-4` save bound, unpinned at main too.
 
 ## Null control
 
-- **Space-heating start.** The learner's only heating input is the plan's `dhw_heating_active` flag, so in the block a compressor start for space heating (flag never set) learns the dip and the draw exactly as main does, at both ends: `(0.6825, 2)` main and head.
-- **Harness flat arm.** The harness's `flat` arm (the same reheat, flag never set, no dip) is bit-identical across base, old head and head in all six geometries.
-- **Harness truth arm.** The `truth` arm (no dip) is bit-identical between base and head in every geometry and at the cooling-rate clamp. That is the measure that no real draw is lost.
+- **Truth and flat arms.** The harness's `truth` (no dip) and `flat` (the same reheat, flag never set, no dip) arms, including `truth@max`, are byte-identical at B, O and N: 105 lines in all, at every cadence and geometry. The command extracts those arms from each end's output and compares the files: `grep -E " (truth|flat|truth@max) " <end>.txt > ctl_<end>.txt; cmp ctl_base.txt ctl_head.txt && cmp ctl_base.txt ctl_fix.txt && echo "CONTROLS IDENTICAL B=O=N"`, and it printed the echo. The dip arms do differ (`cmp -s` of the dip lines B against N is non-zero), so the comparison is not blind.
+- **Space-heating start.** In the block, a compressor start for space heating (the plan's DHW flag never set) learns the dip and the draw exactly as main does. That is the `space` arms, and the no-charge column of the cadence check, which reads main's value at every cadence.
+- **Take-back reach.** A probe (scratch, not in the tree) wraps `DrawStats.take_back` to sum what it removes. In the harness at 5 min, the truth arm's take-back is 0.0000 kWh/day at draw-0800 and at an isolated-dip geometry (draw at 20:00). The dip arm's take-back is 0.3152 kWh/day at draw-0800 and 0.3162 at the isolated dip, and its p90 at the isolated dip is 5.5056 against truth 5.5066 (main 5.8151). So at draw-0800 the take-back removes the dip's phantom and nothing more. That cell's N error of −0.46 is the recovery's tail masking the draw, which main has too, hidden behind its +0.31 phantom.
 
 ## Figures
 
-**Every figure the diff changes** (class repair). These are the heavy-day p90 and occurrence count (`DrawStats.quantile`, `DrawStats.count`), the usage-profile update count and its hour-7 weight, and the cooling rate. They come from `PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/r10_dhw_charge_settle_p90.py` (sha1 `24cfb411cf98c620a321bc8a9e3d32cc7beb18e3`, this branch's harness extended with draw geometries and charge length). It was run from a `git archive` of the merge base (B), of the previous head `416afe9b2` (O) and at the head (N). The run is 28 days of 5-min samples, seed 3434, a 15-min draw a day at the named start, and a charge at 07:30 (10 min; `long-` 40 min). Columns are (usage points, profile[7], cooling rate, (occurrences, p90 kWh)):
+**Every figure the diff changes** (class repair) is the heavy-day p90 and occurrence count (`DrawStats.quantile`, `DrawStats.count`) and the usage-profile update count. They come from `PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/r10_dhw_charge_settle_p90.py` (sha1 `4986de6ed314db8be50189d4816c41823344ad8e`). The harness has a new argument this round: the tank is integrated per minute, and the learner is sampled at each of `CADENCES_MIN`, 5 (a sub-production control), 10, 15, 30 and 60 min. A `draw-0720` geometry was added. Each end ran the same harness copy from a `git archive` of the merge base (B), of the old head `8fe714779` (O), and at the head (N). The runs cover 28 days, seed 3434, a 15-min draw a day at the named start, and a charge at 07:30 (10 min; `long-` 40 min). Rows are the `dip` arm against its own `truth` arm, as p90 kWh (usage points), then the error against truth at B, O and N. The `@max` arms (cooling rate at `DHW_COOLING_RATE_MAX`) move exactly as their `dip` row and are in the harness output.
 
 ```
-geometry   arm        B                               O                               N
-draw-0700  dip        112 3.5 0.3 (27, 6.1506)        84 3.5 0.3 (27, 5.5307)         84 3.5 0.3 (27, 5.5307)
-draw-0700  truth      84 3.5 0.3 (27, 5.5346)         84 3.5 0.3 (27, 5.5326)         84 3.5 0.3 (27, 5.5346)
-draw-0700  dip@max    112 3.5 3.0 (27, 5.8376)        84 3.5 3.0 (27, 5.3169)         84 3.5 3.0 (27, 5.3169)
-draw-0700  truth@max  84 3.5 3.0 (27, 5.3169)         84 3.5 3.0 (27, 5.3169)         84 3.5 3.0 (27, 5.3169)
-draw-0735  dip        28 3.5 0.3 (27, 4.3651)         0 2.5658 0.3 (27, 0.1428)       18 3.5 0.3 (27, 3.4478)
-draw-0735  truth      28 3.5 0.3 (27, 3.6706)         0 2.5658 0.3 (27, 0.1438)       28 3.5 0.3 (27, 3.6706)
-draw-0735  dip@max    28 3.5 3.0 (27, 4.1919)         0 2.5658 3.0 (27, 0.0)          18 3.4182 3.0 (27, 3.2746)
-draw-0735  truth@max  28 3.5 3.0 (27, 3.5094)         0 2.5658 3.0 (27, 0.0)          28 3.5 3.0 (27, 3.5094)
-draw-0745  dip        82 3.5 0.3 (27, 5.7055)         27 3.5 0.3 (27, 1.7143)         82 3.5 0.3 (27, 5.7055)
-draw-0745  truth      84 3.5 0.3 (27, 5.5488)         28 3.5 0.3 (27, 1.9468)         84 3.5 0.3 (27, 5.5488)
-draw-0745  dip@max    82 3.5 3.0 (27, 5.3865)         27 3.5 3.0 (27, 1.5469)         82 3.5 3.0 (27, 5.3865)
-draw-0745  truth@max  84 3.5 3.0 (27, 5.267)          28 3.5 3.0 (27, 1.7719)         84 3.5 3.0 (27, 5.267)
-draw-0800  dip        110 3.5 0.3 (27, 5.7049)        82 2.3897 0.3 (27, 5.0852)      82 2.3897 0.3 (27, 5.2534)
-draw-0800  truth      84 2.3897 0.3 (27, 5.549)       84 2.3897 0.3 (27, 5.5487)      84 2.3897 0.3 (27, 5.549)
-draw-0800  dip@max    110 3.5 3.0 (27, 5.3166)        82 2.3897 3.0 (27, 4.8116)      82 2.3897 3.0 (27, 4.8651)
-draw-0800  truth@max  84 2.3897 3.0 (27, 5.2686)      84 2.3897 3.0 (27, 5.2686)      84 2.3897 3.0 (27, 5.2686)
-long-0700  dip        84 3.5 0.3 (27, 5.4999)         84 3.5 0.3 (27, 5.4987)         84 3.5 0.3 (27, 5.4999)
-long-0700  truth      84 3.5 0.3 (27, 5.4999)         84 3.5 0.3 (27, 5.4987)         84 3.5 0.3 (27, 5.4999)
-long-0745  dip        0 2.5658 0.3 (27, 1.3511)       0 2.5658 0.3 (27, 0.1025)       0 2.5658 0.3 (27, 1.3511)
-long-0745  truth      0 2.5658 0.3 (27, 1.4156)       0 2.5658 0.3 (27, 0.1025)       0 2.5658 0.3 (27, 1.4156)
-flat (every geometry, both rates): identical B = O = N
-long-* @max arms: B = N in every column
+5min draw-0700 dip truth 5.5312 B 5.8384 (140) O 5.5282 (112) N 5.5282 (112) err vs own truth +0.3072 -0.0030 -0.0030
+5min draw-0720 dip truth 3.1454 B 3.4527 (84) O 2.5479 (56) N 3.1423 (56) err vs own truth +0.3073 -0.5975 -0.0031
+5min draw-0735 dip truth 3.7102 B 4.0975 (55) O 3.407 (54) N 3.407 (54) err vs own truth +0.3873 -0.3032 -0.3032
+5min draw-0745 dip truth 5.5475 B 5.1628 (109) O 5.1628 (109) N 5.1628 (109) err vs own truth -0.3847 -0.3847 -0.3847
+5min draw-0800 dip truth 5.5436 B 5.3892 (117) O 5.0799 (89) N 5.0799 (89) err vs own truth -0.1544 -0.4637 -0.4637
+5min long-0700 dip truth 5.4953 B 5.4953 (112) O 5.4953 (112) N 5.4953 (112) err vs own truth +0.0000 +0.0000 +0.0000
+5min long-0745 dip truth 1.5584 B 1.4066 (0) O 1.4066 (0) N 1.4066 (0) err vs own truth -0.1518 -0.1518 -0.1518
+10min draw-0700 dip truth 5.4586 B 5.5364 (112) O 5.5364 (112) N 5.5364 (112) err vs own truth +0.0778 +0.0778 +0.0778
+10min draw-0720 dip truth 3.0908 B 3.1695 (56) O 3.1695 (56) N 3.1695 (56) err vs own truth +0.0787 +0.0787 +0.0787
+10min draw-0735 dip truth 3.3111 B 3.3892 (28) O 3.3892 (28) N 3.3892 (28) err vs own truth +0.0781 +0.0781 +0.0781
+10min draw-0745 dip truth 5.4429 B 5.0581 (55) O 5.0581 (55) N 5.0581 (55) err vs own truth -0.3848 -0.3848 -0.3848
+10min draw-0800 dip truth 5.4373 B 4.9241 (85) O 4.9241 (85) N 4.9241 (85) err vs own truth -0.5132 -0.5132 -0.5132
+10min long-0700 dip truth 5.4537 B 5.4537 (84) O 5.4537 (84) N 5.4537 (84) err vs own truth +0.0000 +0.0000 +0.0000
+10min long-0745 dip truth 1.4387 B 1.1414 (0) O 1.1414 (0) N 1.1414 (0) err vs own truth -0.2973 -0.2973 -0.2973
+15min draw-0700 dip truth 5.4852 B 5.4825 (2585) O 5.4825 (2585) N 5.4825 (2585) err vs own truth -0.0027 -0.0027 -0.0027
+15min draw-0720 dip truth 3.1136 B 3.1118 (2575) O 2.2186 (2575) N 3.1118 (2575) err vs own truth -0.0018 -0.8950 -0.0018
+15min draw-0735 dip truth 1.8922 B 2.1256 (2499) O 2.1256 (2499) N 2.1256 (2499) err vs own truth +0.2334 +0.2334 +0.2334
+15min draw-0745 dip truth 5.1394 B 4.4439 (2363) O 4.4439 (2363) N 4.4439 (2363) err vs own truth -0.6955 -0.6955 -0.6955
+15min draw-0800 dip truth 5.4975 B 4.9046 (2356) O 4.9046 (2356) N 4.9046 (2356) err vs own truth -0.5929 -0.5929 -0.5929
+15min long-0700 dip truth 5.4842 B 5.4842 (2589) O 5.4842 (2589) N 5.4842 (2589) err vs own truth +0.0000 +0.0000 +0.0000
+15min long-0745 dip truth 1.3924 B 0.699 (2575) O 0.699 (2575) N 0.699 (2575) err vs own truth -0.6934 -0.6934 -0.6934
+30min draw-0700 dip truth 4.3169 B 4.3166 (1283) O 4.1194 (1283) N 4.3166 (1283) err vs own truth -0.0003 -0.1975 -0.0003
+30min draw-0720 dip truth 3.0712 B 3.0703 (1259) O 2.8731 (1259) N 3.0703 (1259) err vs own truth -0.0009 -0.1981 -0.0009
+30min draw-0735 dip truth 1.8512 B 2.0823 (1214) O 1.8629 (1214) N 1.8629 (1214) err vs own truth +0.2311 +0.0117 +0.0117
+30min draw-0745 dip truth 2.2703 B 2.5009 (1142) O 2.2759 (1142) N 2.2759 (1142) err vs own truth +0.2306 +0.0056 +0.0056
+30min draw-0800 dip truth 5.0558 B 4.8251 (1166) O 4.8251 (1166) N 4.8251 (1166) err vs own truth -0.2307 -0.2307 -0.2307
+30min long-0700 dip truth 4.4666 B 4.4666 (1283) O 4.4666 (1283) N 4.4666 (1283) err vs own truth +0.0000 +0.0000 +0.0000
+30min long-0745 dip truth 0.0631 B 0.2459 (1259) O 0.2459 (1259) N 0.2459 (1259) err vs own truth +0.1828 +0.1828 +0.1828
+60min draw-0700 dip truth 0.3589 B 0.3586 (643) O 0.3586 (643) N 0.3586 (643) err vs own truth -0.0003 -0.0003 -0.0003
+60min draw-0720 dip truth 0.021 B 0.0198 (618) O 0.0198 (618) N 0.0198 (618) err vs own truth -0.0012 -0.0012 -0.0012
+60min draw-0735 dip truth 1.2103 B 1.441 (603) O 1.441 (603) N 1.441 (603) err vs own truth +0.2307 +0.2307 +0.2307
+60min draw-0745 dip truth 1.5877 B 1.82 (568) O 1.82 (568) N 1.82 (568) err vs own truth +0.2323 +0.2323 +0.2323
+60min draw-0800 dip truth 5.0086 B 4.7793 (586) O 4.7793 (586) N 4.7793 (586) err vs own truth -0.2293 -0.2293 -0.2293
+60min long-0700 dip truth 0.3572 B 0.3572 (643) O 0.3572 (643) N 0.3572 (643) err vs own truth +0.0000 +0.0000 +0.0000
+60min long-0745 dip truth 0.0211 B 0.0211 (615) O 0.0211 (615) N 0.0211 (615) err vs own truth +0.0000 +0.0000 +0.0000
 ```
 
-How to read it:
-- **Truth arms.** N equals B in every geometry, so no real draw is lost. O lost 65 to 100 % of the p90 at draw-0735 and draw-0745, and 93 % at long-0745.
-- **Dip arms against truth.** At draw-0700 the phantom is removed: 6.1506 at B to 5.5307 at N, with truth 5.5346. At draw-0735 the error shrinks: B +0.69, N −0.22. At draw-0745 nothing changes (B = N = 5.7055): the draw overlaps the recovery and hides the rise, which is the named residual. At draw-0800 the error is B +0.16 and N −0.30: the recovery's tail lands inside the draw intervals and masks part of the draw, after the visible rise has taken the phantom back. That is the one geometry where N's absolute error exceeds B's, though it remains nearer the truth than O's −0.46. Occurrence counts are 27 everywhere.
-- **Cooling rate.** It moves in no arm at any end. The harness's 5-min cadence never reaches `DHW_COOLING_MIN_SAMPLE_HOURS`, and the cooling gate is main's `heated_interval` again (`COOLING_HEATED_OFF` killed), so the diff leaves the cooling figure as main computes it.
-- **Usage hour-7 weight.** At draw-0735 the dip@max arm reads 3.4182 at N against 3.5 at B. That is the deferred settle drop learned after its partial recovery, and the truth arm reads 3.5 at both ends.
+The rule for "real draw survives": for each cadence, count the dip cells (dip and dip@max, 14 per cadence) where an end's absolute error against its truth arm exceeds B's by more than 1e-4. `worse.py` (scratch) prints this per end:
 
-**Re-derivation of the reviewer's table.** The reviewer's draw offsets are the `draw-0700`, `draw-0735`, `draw-0745` and `draw-0800` truth rows above. The values at B and O match the verdict's base and head columns: 5.5346/5.5326, 3.6706/0.1438 (verdict 0.1438), 5.5488/1.9468 and 5.5490/5.5487.
+```
+O 5min: further than B 4, nearer 4 of 14     N 5min: further than B 2, nearer 6 of 14   (draw-0800 dip and dip@max, the masking above)
+O 10min: further than B 0, nearer 0 of 14    N 10min: further than B 0, nearer 0 of 14
+O 15min: further than B 2, nearer 0 of 14    N 15min: further than B 0, nearer 0 of 14
+O 30min: further than B 4, nearer 4 of 14    N 30min: further than B 0, nearer 4 of 14
+O 60min: further than B 0, nearer 0 of 14    N 60min: further than B 0, nearer 0 of 14
+```
 
-Structure ratchet: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`, with `class_excess_loc` and `functions_cc_over_15` at their recorded values. The budget file's only change against the merge base is the `class_excess_loc` row, down (17537 to 17535), and `recorded_at`, both carried from the previous round's re-record. The new class-span lines were paid by moving the transient's bookkeeping out of `DhwProfileLearner` into `ChargeSettle`, by a `_standby_rate` helper replacing the two copies of the standby expression in the fold and the usage learner, and by the author's restore fold. No budget was raised.
+The O rows are the rule's own control: it finds the verdict's regression at 15 min (draw-0720, −0.0018 to −0.8950) and at 30 min (draw-0700 and draw-0720, about −0.20). The verdict's 15-min figure (1.8777 to 0.9868 kWh) came from the reviewer's own simulation, which is not in the tree. This harness reproduces the same cell, a draw starting 10 min before a 07:30 10-min charge, as 3.1118 to 2.2186 against truth 3.1136. The verdict's 30-min sequence is reproduced exactly by the features check above.
 
-Architecture score: `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)` prints `Architecture score: dS +0.0237 IMPROVES`, with lines `literal_clone_copies 122 -> 120`, `reflective_writes 11 -> 10 (gate only)` and `computed_attr_access 28 -> 27 (gate only)`. This corrects the previous body's 9 and 26.
+Structure ratchet: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`. The first commit read `FAIL class_excess_loc 17537 > 17532 (+5)`: a comment and a local inside `DhwProfileLearner`. The second commit paid it by moving the interval classification into `ChargeSettle.classify`, outside that class. The budget file's change against the merge base is the `class_excess_loc` row, down, and `recorded_at`, both carried from the earlier rounds. No budget was raised.
 
-Class seams (`fixer.md` step 8). The class: a tank-temperature drop attributed to consumption while a charge drives the reading. Enumerator: `git grep -n "dhw_heating_active\|_heating_active()" -- custom_components/` and `git grep -n "async_learn_dynamics\|CONF_DHW_TEMP_ENTITY\|draw_stats.fold" -- custom_components/`. Dispositions:
-- `dhw_learning.py` `async_learn_dynamics`, the one reader of the learner's heating flag, and its consumers `async_learn_cooling` (main's gate, unchanged), `async_learn_usage` and `async_fold_draw_stats`: closed in this diff. `draw_stats.fold` has one production caller, the fold.
+Architecture score: `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)` at `d6564e1ea` prints `Architecture score: dS +0.0237 IMPROVES`, with lines `literal_clone_copies 122 -> 120`, `reflective_writes 11 -> 10 (gate only)` and `computed_attr_access 28 -> 27 (gate only)`.
+
+Class seams (`fixer.md` step 8). The class: a tank-temperature drop attributed to consumption while a charge drives the reading. Enumerators: `git grep -n "dhw_heating_active\|_heating_active()" -- custom_components/` and `git grep -n "async_learn_dynamics\|CONF_DHW_TEMP_ENTITY\|draw_stats.fold" -- custom_components/`. Dispositions:
+- `dhw_learning.py` `async_learn_dynamics`, the one reader of the learner's heating flag, and its consumers `async_learn_cooling`, `async_learn_usage` and `async_fold_draw_stats`: closed in this diff. `draw_stats.fold` has one production caller, the fold.
 - `coordinator.py` `_dhw_probe_temperature` and the DHW lead-prediction record: these compare the plan's promised tank temperature with the reading. A dip there is a real miss of the promise, not a consumption attribution, so it is outside the class.
 - `boost.py`, `optimizer.py`, `payload.py`, `climate.py`, `sensor.py`, `coordinator.py` (the `dhw_heating_active` writes and publication), `device_prefill.py`, `modbus_prefill.py`, `name_match.py`, `topology.py` and `thermal_model.py` (configuration and display): no drop attribution.
+- `config_flow.py` and `const.py` (the second enumerator's hits: the DHW temperature entity's key, form field and staleness/plausibility tables): definitions only, no drop attribution.
 
-Gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh`, run on the tree of `b5a0f8773aa4` plus the ledger deletions, printed `29 TEST SCRIPT(S) PASSED; 5 SCOPED OUT AND NOT RUN`. Later commits touch only `tests/features.py`; its whole-script run at the head is the NULL line of the in-place mutant run above. `python3 tests/typing_ruler.py` reads `ALL 12 typing-ruler source checks PASSED`. `tools/pr/ci_predict.py` reads `no closures, fast, governance or instrument red predicted`, after the five STALE PIN ledger files it named were deleted (pins on lines this diff rewrote).
+Gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` At `d6564e1ea`, `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` printed `1 TEST SCRIPT(S) FAILED`. The one failed script is `tests/features.py`, with `1 of 5242 FEATURE CHECKS FAILED`. That check is main's `combi_type_branch` census, the `tests / fast (3.14)` red answered under `## Red checks`; the two checks this round adds pass. `tools/pr/ci_predict.py` reads `no closures, fast, governance or instrument red predicted against ee64358be7ee`.
 
 ## Unpinned sites
 
-Each site `tools/pr/ci_predict.py` lists as ADDED UNPINNED is in `custom_components/`, so `mutation-autofix` pins it after the push (its lane mutates `custom_components/`). The value check named is the spec mutant above that is killed at the same site.
+Each site `tools/pr/ci_predict.py` lists as ADDED UNPINNED (23 at `d6564e1ea`, its own count line) is in `custom_components/`, so `mutation-autofix` pins it after the push (its lane mutates `custom_components/`). The value check named is the spec mutant above that is killed at the same site.
 
-- custom_components/heatpump_optimizer/dhw_draws.py:82 CLAMP_DROP: pinned by `mutation-autofix`. This is main's own `fold` clamp, `max(0.0, float(energy_kwh))`, moved into a local; no added mutant targets it.
+- custom_components/heatpump_optimizer/dhw_draws.py:82 CLAMP_DROP: pinned by `mutation-autofix`; main's own `fold` clamp, `max(0.0, float(energy_kwh))`, moved into a local; no added mutant targets it.
 - custom_components/heatpump_optimizer/dhw_draws.py:84 GUARD_OFF: pinned by `mutation-autofix`; value check ESCROW_ADD_OFF.
 - custom_components/heatpump_optimizer/dhw_draws.py:95 CLAMP_DROP*2: pinned by `mutation-autofix`; value check TAKE_UNBOUNDED.
-- custom_components/heatpump_optimizer/dhw_draws.py:98 RETURN_DEL: pinned by `mutation-autofix`; value check SAVE_TAKEN_OFF (the save reads the returned amount).
 - custom_components/heatpump_optimizer/dhw_learning.py:77 CONST: pinned by `mutation-autofix`; value checks DIP_ZERO and DIP_SMALL.
-- custom_components/heatpump_optimizer/dhw_learning.py:102 GUARD_OFF: pinned by `mutation-autofix`; value check STAMP_DEL.
-- custom_components/heatpump_optimizer/dhw_learning.py:118 BOOLOP: pinned by `mutation-autofix`; value check OPEN_OFF.
-- custom_components/heatpump_optimizer/dhw_learning.py:118 GUARD_OFF: pinned by `mutation-autofix`; value check OPEN_OFF.
-- custom_components/heatpump_optimizer/dhw_learning.py:120 GUARD_OFF: pinned by `mutation-autofix`; value check HEATED_RETURN_OFF.
-- custom_components/heatpump_optimizer/dhw_learning.py:122 CMP_BOUND: pinned by `mutation-autofix`; value check RISE_INCL_FLAT.
-- custom_components/heatpump_optimizer/dhw_learning.py:122 GUARD_OFF: pinned by `mutation-autofix`; value checks RECOVERED_OFF and CREDIT_DOUBLE.
-- custom_components/heatpump_optimizer/dhw_learning.py:123 CLAMP_DROP: pinned by `mutation-autofix`; value check TAKE_CAP_OFF.
-- custom_components/heatpump_optimizer/dhw_learning.py:126 CLAMP_DROP*2: pinned by `mutation-autofix`; value checks PENDING_CUT_OFF and PENDING_INDEX.
-- custom_components/heatpump_optimizer/dhw_learning.py:129 RETURN_DEL: pinned by `mutation-autofix`; value check RECOVERED_OFF.
-- custom_components/heatpump_optimizer/dhw_learning.py:130 GUARD_OFF: pinned by `mutation-autofix`; value check PENDING_OFF.
-- custom_components/heatpump_optimizer/dhw_learning.py:132 RETURN_DEL: pinned by `mutation-autofix`; value check PENDING_OFF.
-- custom_components/heatpump_optimizer/dhw_learning.py:134 RETURN_DEL: pinned by `mutation-autofix`; value check FLUSH_OFF.
-- custom_components/heatpump_optimizer/dhw_learning.py:443 CMP_BOUND: pinned by `mutation-autofix`; value checks WEEKEND_GT and FLUSH_WEEKEND (the Saturday arm).
-- custom_components/heatpump_optimizer/dhw_learning.py:450 GUARD_OFF: pinned by `mutation-autofix`; value check COOLING_HEATED_OFF (the cooling arm).
-- custom_components/heatpump_optimizer/dhw_learning.py:452 GUARD_OFF: pinned by `mutation-autofix`; value check USAGE_GATE_OFF.
-- custom_components/heatpump_optimizer/dhw_learning.py:466 CLAMP_DROP: pinned by `mutation-autofix`. This is main's standby expression, which main's ledger recorded killed at both former sites (`async_learn_usage` and `async_fold_draw_stats` CLAMP_DROP `145fdc23`, deleted here as STALE PIN). Over the whole of `tests/features.py` in place it survives (`SURVIVED STANDBY_CLAMP`), so its killer is another gate script, which the lane's suite run finds.
-- custom_components/heatpump_optimizer/dhw_learning.py:490 CLAMP_DROP: pinned by `mutation-autofix`. This is main's own fold clamp beside the helper call; it is killed in the `--diff` sweep (absent from its SURVIVED lines).
-- custom_components/heatpump_optimizer/dhw_learning.py:506 CMP_BOUND*2: pinned by `mutation-autofix`. Value check SAVE_TAKEN_OFF covers the take-back arm. The `energy_kwh > 1e-4` bound is main's; it survives the block and the whole script, as it would at main, which has no check at a 1e-4 kWh tick.
-- custom_components/heatpump_optimizer/dhw_learning.py:506 GUARD_OFF: pinned by `mutation-autofix`; value check SAVE_GUARD_OFF.
+- custom_components/heatpump_optimizer/dhw_learning.py:112 GUARD_OFF: pinned by `mutation-autofix`; value check STAMP_DEL.
+- custom_components/heatpump_optimizer/dhw_learning.py:128 BOOLOP: pinned by `mutation-autofix`; value check R2_CREDIT_PER_INTERVAL.
+- custom_components/heatpump_optimizer/dhw_learning.py:128 GUARD_OFF: pinned by `mutation-autofix`; value check OPEN_OFF.
+- custom_components/heatpump_optimizer/dhw_learning.py:130 GUARD_OFF: pinned by `mutation-autofix`; value check HEATED_RETURN_OFF.
+- custom_components/heatpump_optimizer/dhw_learning.py:132 CMP_BOUND: pinned by `mutation-autofix`; value check RISE_INCL_FLAT.
+- custom_components/heatpump_optimizer/dhw_learning.py:132 GUARD_OFF: pinned by `mutation-autofix`; value checks RECOVERED_OFF and CREDIT_DOUBLE.
+- custom_components/heatpump_optimizer/dhw_learning.py:133 CLAMP_DROP: pinned by `mutation-autofix`; value check TAKE_CAP_OFF.
+- custom_components/heatpump_optimizer/dhw_learning.py:136 CLAMP_DROP*2: pinned by `mutation-autofix`; value checks PENDING_CUT_OFF and PENDING_INDEX.
+- custom_components/heatpump_optimizer/dhw_learning.py:139 RETURN_DEL: pinned by `mutation-autofix`; value check RECOVERED_OFF.
+- custom_components/heatpump_optimizer/dhw_learning.py:140 GUARD_OFF: pinned by `mutation-autofix`; value check PENDING_OFF.
+- custom_components/heatpump_optimizer/dhw_learning.py:142 RETURN_DEL: pinned by `mutation-autofix`; value check PENDING_OFF.
+- custom_components/heatpump_optimizer/dhw_learning.py:144 RETURN_DEL: pinned by `mutation-autofix`; value check FLUSH_OFF.
+- custom_components/heatpump_optimizer/dhw_learning.py:453 CMP_BOUND: pinned by `mutation-autofix`; value checks WEEKEND_GT and FLUSH_WEEKEND (the Saturday arm).
+- custom_components/heatpump_optimizer/dhw_learning.py:460 GUARD_OFF: pinned by `mutation-autofix`; value check COOLING_HEATED_OFF (the cooling arm).
+- custom_components/heatpump_optimizer/dhw_learning.py:462 GUARD_OFF: pinned by `mutation-autofix`; value check USAGE_GATE_OFF.
+- custom_components/heatpump_optimizer/dhw_learning.py:476 CLAMP_DROP: pinned by `mutation-autofix`; main's standby expression, which main's ledger recorded killed at both former sites; it survives the block and the whole of `tests/features.py` (round 2's `STANDBY_CLAMP`), so its killer is another gate script, which the lane's suite run finds.
+- custom_components/heatpump_optimizer/dhw_learning.py:500 CLAMP_DROP: pinned by `mutation-autofix`; main's own fold clamp beside the helper call; killed in the `--diff` sweep (absent from its SURVIVED lines).
+- custom_components/heatpump_optimizer/dhw_learning.py:516 CMP_BOUND*2: pinned by `mutation-autofix`; value check SAVE_TAKEN_OFF covers the take-back arm; the `energy_kwh > 1e-4` bound is main's and survives the block, as it would at main.
+- custom_components/heatpump_optimizer/dhw_learning.py:516 GUARD_OFF: pinned by `mutation-autofix`; value check SAVE_GUARD_OFF.
 
-The five `killed_by` ledger pins this diff deletes are `async_fold_draw_stats` CLAMP_DROP `145fdc23` and `1b2910c6`, `async_learn_dynamics` GUARD_OFF `214cab0c` and `7f619379`, and `async_learn_usage` CLAMP_DROP `145fdc23`. They name lines this diff rewrote, and `ci_predict.py` predicted each a STALE PIN red on `ledger`; the deletion repairs it.
+One sweep survivor `ci_predict.py` does not list: custom_components/heatpump_optimizer/dhw_draws.py:60 CONST_SWAP (`_open_charge_kwh: float = 1.0`). A `DrawStats.from_dict` restore keeps that default, so only a restart mid-occurrence followed by a charge reaches it; no arm drives that, and it is left unpinned.
 
 ## Red checks
 
-- `mutation` and `tests / mutation` at 416afe9b2 (the PR's current head, before this push): red by construction on the sites the added lines leave unpinned, the 24 listed under `## Unpinned sites` at this head. `mutation-autofix` pins killed sites after the push (`ci-autofix.md`). Root-cause answer: the cheaper detector already ran. `tools/pr/ci_predict.py` (prepr step 6d) named every site locally before the handoff, at no added standing cost. The red is the pin-recording step and not an escaped defect, so no further countermeasure is owed.
+- `tests / mutation` at 416afe9b2 and 8fe714779: red by construction on the sites the added lines leave unpinned, listed under `## Unpinned sites`. `mutation-autofix` pins killed sites after the push (`ci-autofix.md`). Root-cause answer: the cheaper detector already ran. `tools/pr/ci_predict.py` (prepr step 6d) named every site locally before the handoff, at no added standing cost. The red is the pin-recording step and not an escaped defect, so no further countermeasure is owed.
+- `tests / fast (3.14)` at 8fe714779: red on `tests/features.py`'s `combi_type_branch` census (`1 of 5240 FEATURE CHECKS FAILED`), which refuses a vendor name at `const.py:812`, `const.py:1595`, `heat_curve.py:72`, `pump_arbiter.py:256`, `pump_arbiter.py:1015` and `thermal_model.py:1870`. None of those files is in this diff; the red is `origin/main`'s, left by pull requests 3398 and 3433, and is repaired by pull request 3466 (R10-HOTFIX-COMBI-CENSUS-MAIN-RED, on the merge train). Cheaper detector: none exists in this branch, the red is main's, cause and repair named.
+- `governance / instrument-self-tests` at 8fe714779: red on two self-tests of `tools/audit/seat/` (`sweep_render.py`: `unused: plan_coordinator_cap`, and the `pr_args.sh` pusher census). This diff touches nothing under `tools/`; both are main's, the census repaired by R10-HOTFIX-PUSHER-CENSUS (handoff in review). Cheaper detector: none exists in this branch, the red is main's, cause and repair named.
+- `gate` at 8fe714779: red only because units it aggregates are red: `tests / fast (3.14)` (the combi census above), `tests / mutation` (answered above) and `pr-contract / pr-contract` (this body's missing answer for `tests / fast (3.14)`). No unit of its own. Cheaper detector: none, the gate is the aggregate.
+- `arch-score / arch-score` at 8fe714779 (run 43037610675, job 130581907770): red because its `gh` call answered `gh: HTTP 503` before any score was computed (`##[error]Process completed with exit code 1`). The same check at the same head is green in runs 43024305010 and 43024294665, and `score.py --diff` at this head prints `dS +0.0237 IMPROVES` (`## Figures`). The cause is GitHub's API, outside this repository. Cheaper detector: none; a transient 503 has no earlier detector than the call that met it.
+- `tests / nightly-status` at 8fe714779: red because the scheduled nightly run 42934263129 concluded `cancelled` (jobs `mutation-ledger (3)`, `mutation-ledger-push`, `slow`). Unrequired on `main-protect` and not caused by this diff; the cause is outside this branch. Cheaper detector: none exists in this branch.
 
 ## Forward-carry
 
