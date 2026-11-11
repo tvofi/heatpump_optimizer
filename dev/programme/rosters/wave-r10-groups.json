@@ -21940,7 +21940,7 @@
    "rca": [],
    "after": [],
    "carry": [
-    "From r10-rca-main-selftests-red, body item 22f9186f: Shape 2's instances (`ref_privacy.added_lines`, and beatd's suspected timing-dependent read set) are the live hotfix's own items (its brief's FIX line and step 4); nothing new to carry. Carry: R10-HOTFIX-MAIN-SELFTESTS (items 22f9186f)",
+    "From r10-rca-main-selftests-red, body item 22f9186f: Shape 2's instances (`ref_privacy.added_lines`, and beatd's suspected timing-dependent read set) are the live hotfix's own items (its brief's FIX line and step 4); nothing new to carry. Carry: R10-HOTFIX-MAIN-SELFTESTS (items 22f9186f) [implemented: 0c868b7d2f830cde62f999206de84606b64a69a8]",
     "From r10-rca-main-selftests-red, body item 22f9186f: Shape 2's instances (`ref_privacy.added_lines`, and beatd's suspected timing-dependent read set) are the live hotfix's own items (its brief's FIX line and step 4); nothing new to carry. Carry: R10-HOTFIX-MAIN-SELFTESTS"
    ],
    "architect_note": "",
