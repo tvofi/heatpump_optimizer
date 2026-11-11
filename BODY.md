@@ -5,28 +5,49 @@
 
 Alternatives not taken. Storing the OWED line in the level file was rejected: the level is per `--log`, so a pass with another log would silently drop an owed item. An env-tunable TTL was rejected: the self-test ages the memo entry instead, so no knob was added. Moving the worktree check ahead of `carry_fold.py` was also rejected. It would change the order the brief prices as "a failure after the fold", and the cost it would save happens only when no handoff exists.
 
-Carry numbers in this body are 0-based roster indexes, as the part-1 dispatch (`dispatch/fixer-r10-review-dispatch-residue-p1`, commit c3c1b20820, `PROMPT.md`) gives them: "This part: Carries 14, 22 (0-based roster indexes)", from 23 carries split by file into 6 parts. The rest of the group's roster carries are other parts' and are not touched here: Carry 0, Carry 1, Carry 2, Carry 3, Carry 4, Carry 5, Carry 6, Carry 7, Carry 8, Carry 9, Carry 10, Carry 11, Carry 12, Carry 13, Carry 15, Carry 16, Carry 17, Carry 18, Carry 19, Carry 20, Carry 21. Carry 23 (P585, PENDING-CI-RED-TERMINAL) was appended to the roster after this part was dispatched, says to build it with P576 (Carry 21), and is not this part's. `review_packet.py handoff` at the base counts carries 1-based over the live roster, 24 entries at `origin/handoff/audit-r10-roster` 88fe33042c. It therefore also demands a Carry 24, an index the roster does not hold 0-based. Part 4 (`handoff/r10-review-dispatch-residue-p4`, its Carry 15) makes the count 0-based. Until then this body names Carry 24 so that the base packet passes, and Carry 24 refers to no carry.
+Carry numbers in this body are 0-based roster indexes, as the part-1 dispatch gives them: "This part: Carries 14, 22 (0-based roster indexes)". The rest of the group's roster carries are other parts' and are not touched here. `review_packet.py handoff` counts carries 1-based over the live roster, so the `Carry <N>: not built in this part; stays open on the roster for a later part` lines are added at the end of this body from what `body_push.sh` prints. The counting defect is already held on the roster as BRIEF-CARRIES-PART-SCOPE (Carry: dismissed: already carried as R10-REVIEW-DISPATCH-RESIDUE carry[25] on handoff/audit-r10-roster).
+
+- Carry 1: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 2: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 3: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 4: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 5: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 6: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 7: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 8: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 9: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 10: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 11: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 12: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 13: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 15: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 16: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 18: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 19: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 20: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 21: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 23: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 24: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 26: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- Carry 27: not built in this part; stays open on the roster for a later part. Carry: R10-REVIEW-DISPATCH-RESIDUE
 
 The cause of the observed wrong checkout is still unproven. The private ref removes the FETCH_HEAD candidate. The assertion turns any other cause into an OWED line that names both heads, where at the base the push went through from the wrong head.
 
 ## Head
 
-185699076fb42c0082be4e5eaae31ab1abf2c1ad, on merge base a7628041dc02e298c5399003d4c0576391dd5c4e (origin/main's tip when measured, 2026-11-11T07:01:04Z).
+30277114cd6436232f653a800045abd79859f474, on merge base f24d107bd7aa170bea7419251a4b7f4f48b732f6 (origin/main's tip when measured, 2026-11-11T09:34Z).
+
+## Round 2
+
+Round 1 was blocked `mutation-vacuous` at 185699076f on four survivors. Two get an arm in the self-test (`carry_fold_arm` is unchanged):
+
+- `rv-real-bodypush-outside-wt`: one arm unsets `HPO_RELAY_BODYPUSH` and sets `HERE` to a directory holding a stand-in `body_push.sh`, so the production `(cd "$wt" && bash "$HERE/body_push.sh" ...)` line runs. It asserts the stand-in ran on the kept body, at `handoff/cf-i`'s tip and never at main's.
+- `rv-nohandoff-not-on-level`: one arm makes a CARRY-LANDED topic `cf-h` with no `handoff/cf-h` ref. It asserts the `OWED carry-fold cf-h ... no handoff/cf-h` line, its line on the level, no `cloud-folded` entry, no `FOLDED` announce and no `body_push.sh` run.
+- Triaged survivors, no test owed: `rv-folded-memo-no-entry` is equivalent, because the `cloud-folded` grep that follows also skips with no fetch; `rv-privref-not-deleted` is cleanup only, because the fetch refspec is forced (`+`), so a stale private ref cannot become the next worktree's head.
 
 ## Mutation proof
 
-Seven reviewer-style mutants were re-created as `mutant_run.py --spec` entries, in a `git archive` copy of the handoff head. Each is KILLED, and the automatic NULL mutant SURVIVED. Command: `python3 tools/audit/seat/mutant_run.py --spec mutants.json --cmd 'bash tools/audit/seat/cloud_relay.sh --self-test' --timeout 400` (the spec is quoted at the end of this section). Output, verbatim:
-
-```
-SURVIVED NULL
-KILLED foldref-fetch-head
-KILLED foldtip-assert-off
-KILLED foldmemo-drops-line
-KILLED foldmemo-no-skip
-KILLED foldttl-never-retry
-KILLED foldttl-always-retry
-KILLED foldtip-wide-lsremote
-```
+The reviewer's 15-entry spec (`ev/mutants.json` on `probe/revt-r10-review-dispatch-residue-p1-dd078352`) was run, one mutant at a time with `bash tools/audit/seat/cloud_relay.sh --self-test` as the command, against the head. Result: the seven named mutants below, the reviewer's `rv-memo-key-ignores-body`, `rv-blocked-never-stands`, `rv-memo-not-saved`, `rv-stub-outside-wt` and the two new targets `rv-real-bodypush-outside-wt` and `rv-nohandoff-not-on-level` are KILLED; `rv-folded-memo-no-entry` and `rv-privref-not-deleted` SURVIVE (triaged above); NULL SURVIVED. The seven named mutants (spec quoted below):
 
 Spec (name: old -> new, all in `tools/audit/seat/cloud_relay.sh`):
 
@@ -50,9 +71,9 @@ Failing test first: with the new self-test arms on the unfixed arm, `bash tools/
 
 - base self-test `cloud_relay self-test: 416 checks, 0 failed`: `bash tools/audit/seat/cloud_relay.sh --self-test` at a7628041dc
 - red self-test `433 checks, 9 failed`: `bash tools/audit/seat/cloud_relay.sh --self-test` with the new arms on the unfixed arm
-- head self-test `433 checks, 0 failed`: `bash tools/audit/seat/cloud_relay.sh --self-test` at the head
+- head self-test `441 checks, 0 failed`: `bash tools/audit/seat/cloud_relay.sh --self-test`
 - base lines 805 (`carry_fold_arm`), 818 (wip fetch), 838 (`FETCH_HEAD`), 843 (`cloud-folded`), 849 (`level_set carry-fold`): `git show a7628041dc:tools/audit/seat/cloud_relay.sh | grep -n 'carry_fold_arm() {\|FETCH_HEAD\|level_set carry-fold'`
-- mutants, 7 KILLED and NULL SURVIVED: `python3 tools/audit/seat/mutant_run.py --spec mutants.json --cmd 'bash tools/audit/seat/cloud_relay.sh --self-test'`
+- mutants, 13 KILLED, 2 triaged survivors and NULL SURVIVED: `python3 tools/audit/seat/mutant_run.py --spec mutants.json --cmd 'bash tools/audit/seat/cloud_relay.sh --self-test'`
 - gate scope `MODE: SCOPED -- 1 script(s) run`, which is `tests/doc_claims.py`: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`. `PYTHONPATH=tests/hastub python3 tests/doc_claims.py` printed `ALL 297 checks PASSED`. All four of `tests/run.sh`'s `run_always` scripts exited 0.
 - structure: `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`
 - architecture: `python3 tools/audit/archscore/score.py --diff a7628041dc HEAD` printed `Architecture score: dS +0.0000 NULL`
