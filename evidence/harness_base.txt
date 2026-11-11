@@ -1,30 +1,78 @@
-draw-0700 dip       {'usage_points': 112, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 6.1506)}
-draw-0700 truth     {'usage_points': 84, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.5346)}
-draw-0700 flat      {'usage_points': 84, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.5346)}
-draw-0700 dip@max   {'usage_points': 112, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 5.8376)}
-draw-0700 truth@max {'usage_points': 84, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 5.3169)}
-draw-0735 dip       {'usage_points': 28, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 4.3651)}
-draw-0735 truth     {'usage_points': 28, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 3.6706)}
-draw-0735 flat      {'usage_points': 58, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 3.6706)}
-draw-0735 dip@max   {'usage_points': 28, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 4.1919)}
-draw-0735 truth@max {'usage_points': 28, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 3.5094)}
-draw-0745 dip       {'usage_points': 82, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.7055)}
-draw-0745 truth     {'usage_points': 84, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.5488)}
-draw-0745 flat      {'usage_points': 84, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.5488)}
-draw-0745 dip@max   {'usage_points': 82, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 5.3865)}
-draw-0745 truth@max {'usage_points': 84, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 5.267)}
-draw-0800 dip       {'usage_points': 110, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.7049)}
-draw-0800 truth     {'usage_points': 84, 'profile_h7': 2.3897, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.549)}
-draw-0800 flat      {'usage_points': 84, 'profile_h7': 2.3897, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.549)}
-draw-0800 dip@max   {'usage_points': 110, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 5.3166)}
-draw-0800 truth@max {'usage_points': 84, 'profile_h7': 2.3897, 'cooling_rate': 3.0, '00:00-24:00': (27, 5.2686)}
-long-0700 dip       {'usage_points': 84, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.4999)}
-long-0700 truth     {'usage_points': 84, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.4999)}
-long-0700 flat      {'usage_points': 84, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.4999)}
-long-0700 dip@max   {'usage_points': 84, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 5.2863)}
-long-0700 truth@max {'usage_points': 84, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 5.2863)}
-long-0745 dip       {'usage_points': 0, 'profile_h7': 2.5658, 'cooling_rate': 0.3, '00:00-24:00': (27, 1.3511)}
-long-0745 truth     {'usage_points': 0, 'profile_h7': 2.5658, 'cooling_rate': 0.3, '00:00-24:00': (27, 1.4156)}
-long-0745 flat      {'usage_points': 73, 'profile_h7': 3.406, 'cooling_rate': 0.3, '00:00-24:00': (27, 1.4156)}
-long-0745 dip@max   {'usage_points': 0, 'profile_h7': 2.5658, 'cooling_rate': 3.0, '00:00-24:00': (27, 1.0976)}
-long-0745 truth@max {'usage_points': 0, 'profile_h7': 2.5658, 'cooling_rate': 3.0, '00:00-24:00': (27, 1.128)}
+== cadence 10
+ 10min draw-0735 dip       {'usage_points': 28, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 3.3892)}
+ 10min draw-0735 truth     {'usage_points': 28, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 3.3111)}
+ 10min draw-0735 flat      {'usage_points': 29, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 3.3111)}
+ 10min draw-0735 dip@max   {'usage_points': 28, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 3.232)}
+ 10min draw-0735 truth@max {'usage_points': 28, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 3.1422)}
+ 10min draw-0745 dip       {'usage_points': 55, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.0581)}
+ 10min draw-0745 truth     {'usage_points': 56, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.4429)}
+ 10min draw-0745 flat      {'usage_points': 56, 'profile_h7': 3.5, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.4429)}
+ 10min draw-0745 dip@max   {'usage_points': 55, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 4.8322)}
+ 10min draw-0745 truth@max {'usage_points': 56, 'profile_h7': 3.5, 'cooling_rate': 3.0, '00:00-24:00': (27, 5.1933)}
+ 10min draw-0800 dip       {'usage_points': 85, 'profile_h7': 2.0498, 'cooling_rate': 0.3, '00:00-24:00': (27, 4.9241)}
+ 10min draw-0800 truth     {'usage_points': 84, 'profile_h7': 2.3899, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.4373)}
+ 10min draw-0800 flat      {'usage_points': 84, 'profile_h7': 2.3899, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.4373)}
+ 10min draw-0800 dip@max   {'usage_points': 56, 'profile_h7': 2.3897, 'cooling_rate': 3.0, '00:00-24:00': (27, 4.6442)}
+ 10min draw-0800 truth@max {'usage_points': 74, 'profile_h7': 2.3897, 'cooling_rate': 3.0, '00:00-24:00': (27, 5.1082)}
+ 10min long-0700 dip       {'usage_points': 84, 'profile_h7': 3.4981, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.4537)}
+ 10min long-0700 truth     {'usage_points': 84, 'profile_h7': 3.4981, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.4537)}
+ 10min long-0700 flat      {'usage_points': 84, 'profile_h7': 3.4981, 'cooling_rate': 0.3, '00:00-24:00': (27, 5.4537)}
+ 10min long-0700 dip@max   {'usage_points': 76, 'profile_h7': 3.4999, 'cooling_rate': 3.0, '00:00-24:00': (27, 5.1433)}
+ 10min long-0700 truth@max {'usage_points': 76, 'profile_h7': 3.4999, 'cooling_rate': 3.0, '00:00-24:00': (27, 5.1433)}
+ 10min long-0745 dip       {'usage_points': 0, 'profile_h7': 2.5658, 'cooling_rate': 0.3, '00:00-24:00': (27, 1.1414)}
+ 10min long-0745 truth     {'usage_points': 0, 'profile_h7': 2.5658, 'cooling_rate': 0.3, '00:00-24:00': (27, 1.4387)}
+ 10min long-0745 flat      {'usage_points': 48, 'profile_h7': 3.2257, 'cooling_rate': 0.3, '00:00-24:00': (27, 1.4387)}
+ 10min long-0745 dip@max   {'usage_points': 0, 'profile_h7': 2.5658, 'cooling_rate': 3.0, '00:00-24:00': (27, 0.955)}
+ 10min long-0745 truth@max {'usage_points': 0, 'profile_h7': 2.5658, 'cooling_rate': 3.0, '00:00-24:00': (27, 1.1219)}
+== cadence 15
+ 15min draw-0735 dip       {'usage_points': 2499, 'profile_h7': 2.3897, 'cooling_rate': 0.2864, '00:00-24:00': (27, 2.1256)}
+ 15min draw-0735 truth     {'usage_points': 2538, 'profile_h7': 2.3897, 'cooling_rate': 0.2865, '00:00-24:00': (27, 1.8922)}
+ 15min draw-0735 flat      {'usage_points': 2546, 'profile_h7': 3.1887, 'cooling_rate': 0.2865, '00:00-24:00': (27, 1.8874)}
+ 15min draw-0735 dip@max   {'usage_points': 2499, 'profile_h7': 2.3897, 'cooling_rate': 0.2864, '00:00-24:00': (27, 2.1256)}
+ 15min draw-0735 truth@max {'usage_points': 2538, 'profile_h7': 2.3897, 'cooling_rate': 0.2865, '00:00-24:00': (27, 1.8922)}
+ 15min draw-0745 dip       {'usage_points': 2363, 'profile_h7': 2.3897, 'cooling_rate': 0.2812, '00:00-24:00': (27, 4.4439)}
+ 15min draw-0745 truth     {'usage_points': 2390, 'profile_h7': 2.3897, 'cooling_rate': 0.2812, '00:00-24:00': (27, 5.1394)}
+ 15min draw-0745 flat      {'usage_points': 2392, 'profile_h7': 2.1609, 'cooling_rate': 0.2812, '00:00-24:00': (27, 5.1394)}
+ 15min draw-0745 dip@max   {'usage_points': 2363, 'profile_h7': 2.3897, 'cooling_rate': 0.2812, '00:00-24:00': (27, 4.4439)}
+ 15min draw-0745 truth@max {'usage_points': 2390, 'profile_h7': 2.3897, 'cooling_rate': 0.2812, '00:00-24:00': (27, 5.1394)}
+ 15min draw-0800 dip       {'usage_points': 2356, 'profile_h7': 2.3897, 'cooling_rate': 0.281, '00:00-24:00': (27, 4.9046)}
+ 15min draw-0800 truth     {'usage_points': 2397, 'profile_h7': 2.3931, 'cooling_rate': 0.2815, '00:00-24:00': (27, 5.4975)}
+ 15min draw-0800 flat      {'usage_points': 2397, 'profile_h7': 2.3931, 'cooling_rate': 0.2815, '00:00-24:00': (27, 5.4975)}
+ 15min draw-0800 dip@max   {'usage_points': 2356, 'profile_h7': 2.3897, 'cooling_rate': 0.281, '00:00-24:00': (27, 4.9046)}
+ 15min draw-0800 truth@max {'usage_points': 2397, 'profile_h7': 2.3931, 'cooling_rate': 0.2815, '00:00-24:00': (27, 5.4975)}
+ 15min long-0700 dip       {'usage_points': 2589, 'profile_h7': 3.471, 'cooling_rate': 0.2855, '00:00-24:00': (27, 5.4842)}
+ 15min long-0700 truth     {'usage_points': 2589, 'profile_h7': 3.471, 'cooling_rate': 0.2855, '00:00-24:00': (27, 5.4842)}
+ 15min long-0700 flat      {'usage_points': 2589, 'profile_h7': 3.471, 'cooling_rate': 0.2855, '00:00-24:00': (27, 5.4842)}
+ 15min long-0700 dip@max   {'usage_points': 2589, 'profile_h7': 3.471, 'cooling_rate': 0.2855, '00:00-24:00': (27, 5.4842)}
+ 15min long-0700 truth@max {'usage_points': 2589, 'profile_h7': 3.471, 'cooling_rate': 0.2855, '00:00-24:00': (27, 5.4842)}
+ 15min long-0745 dip       {'usage_points': 2575, 'profile_h7': 2.5658, 'cooling_rate': 0.283, '00:00-24:00': (27, 0.699)}
+ 15min long-0745 truth     {'usage_points': 2575, 'profile_h7': 2.5658, 'cooling_rate': 0.283, '00:00-24:00': (27, 1.3924)}
+ 15min long-0745 flat      {'usage_points': 2607, 'profile_h7': 2.3907, 'cooling_rate': 0.2833, '00:00-24:00': (27, 1.3924)}
+ 15min long-0745 dip@max   {'usage_points': 2575, 'profile_h7': 2.5658, 'cooling_rate': 0.283, '00:00-24:00': (27, 0.699)}
+ 15min long-0745 truth@max {'usage_points': 2575, 'profile_h7': 2.5658, 'cooling_rate': 0.283, '00:00-24:00': (27, 1.3924)}
+== cadence 30
+ 30min draw-0735 dip       {'usage_points': 1214, 'profile_h7': 2.5658, 'cooling_rate': 0.2899, '00:00-24:00': (27, 2.0823)}
+ 30min draw-0735 truth     {'usage_points': 1241, 'profile_h7': 2.5658, 'cooling_rate': 0.2899, '00:00-24:00': (27, 1.8512)}
+ 30min draw-0735 flat      {'usage_points': 1253, 'profile_h7': 2.3904, 'cooling_rate': 0.2899, '00:00-24:00': (27, 1.8529)}
+ 30min draw-0735 dip@max   {'usage_points': 1214, 'profile_h7': 2.5658, 'cooling_rate': 0.2899, '00:00-24:00': (27, 2.0823)}
+ 30min draw-0735 truth@max {'usage_points': 1241, 'profile_h7': 2.5658, 'cooling_rate': 0.2899, '00:00-24:00': (27, 1.8512)}
+ 30min draw-0745 dip       {'usage_points': 1142, 'profile_h7': 2.5658, 'cooling_rate': 0.2887, '00:00-24:00': (27, 2.5009)}
+ 30min draw-0745 truth     {'usage_points': 1168, 'profile_h7': 2.5658, 'cooling_rate': 0.2887, '00:00-24:00': (27, 2.2703)}
+ 30min draw-0745 flat      {'usage_points': 1181, 'profile_h7': 2.3905, 'cooling_rate': 0.2887, '00:00-24:00': (27, 2.2703)}
+ 30min draw-0745 dip@max   {'usage_points': 1142, 'profile_h7': 2.5658, 'cooling_rate': 0.2887, '00:00-24:00': (27, 2.5009)}
+ 30min draw-0745 truth@max {'usage_points': 1168, 'profile_h7': 2.5658, 'cooling_rate': 0.2887, '00:00-24:00': (27, 2.2703)}
+ 30min draw-0800 dip       {'usage_points': 1166, 'profile_h7': 2.3897, 'cooling_rate': 0.2921, '00:00-24:00': (27, 4.8251)}
+ 30min draw-0800 truth     {'usage_points': 1166, 'profile_h7': 2.3897, 'cooling_rate': 0.2921, '00:00-24:00': (27, 5.0558)}
+ 30min draw-0800 flat      {'usage_points': 1168, 'profile_h7': 2.3897, 'cooling_rate': 0.2921, '00:00-24:00': (27, 5.0558)}
+ 30min draw-0800 dip@max   {'usage_points': 1166, 'profile_h7': 2.3897, 'cooling_rate': 0.2921, '00:00-24:00': (27, 4.8251)}
+ 30min draw-0800 truth@max {'usage_points': 1166, 'profile_h7': 2.3897, 'cooling_rate': 0.2921, '00:00-24:00': (27, 5.0558)}
+ 30min long-0700 dip       {'usage_points': 1283, 'profile_h7': 1.5038, 'cooling_rate': 0.2952, '00:00-24:00': (27, 4.4666)}
+ 30min long-0700 truth     {'usage_points': 1283, 'profile_h7': 1.5038, 'cooling_rate': 0.2952, '00:00-24:00': (27, 4.4666)}
+ 30min long-0700 flat      {'usage_points': 1313, 'profile_h7': 3.4554, 'cooling_rate': 0.2952, '00:00-24:00': (27, 4.4666)}
+ 30min long-0700 dip@max   {'usage_points': 1283, 'profile_h7': 1.5033, 'cooling_rate': 0.2952, '00:00-24:00': (27, 4.4666)}
+ 30min long-0700 truth@max {'usage_points': 1283, 'profile_h7': 1.5033, 'cooling_rate': 0.2952, '00:00-24:00': (27, 4.4666)}
+ 30min long-0745 dip       {'usage_points': 1259, 'profile_h7': 2.5658, 'cooling_rate': 0.293, '00:00-24:00': (27, 0.2459)}
+ 30min long-0745 truth     {'usage_points': 1259, 'profile_h7': 2.5658, 'cooling_rate': 0.293, '00:00-24:00': (27, 0.0631)}
+ 30min long-0745 flat      {'usage_points': 1263, 'profile_h7': 2.4318, 'cooling_rate': 0.293, '00:00-24:00': (27, 0.0594)}
+ 30min long-0745 dip@max   {'usage_points': 1259, 'profile_h7': 2.5658, 'cooling_rate': 0.293, '00:00-24:00': (27, 0.2459)}
+ 30min long-0745 truth@max {'usage_points': 1259, 'profile_h7': 2.5658, 'cooling_rate': 0.293, '00:00-24:00': (27, 0.0631)}
