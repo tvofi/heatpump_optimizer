@@ -25,4 +25,16 @@ KILLED M22_cut_bracket_open
 KILLED M23_arm_ignores_dropped_record
 KILLED M24_prev_not_kept
 KILLED M25_restored_keeps_run
+KILLED M26_dropped_not_kept
+KILLED M27_off_pass_ends_fact
+KILLED M28_stale_run_ends_fact
+KILLED M29_stop_ends_fact
+KILLED M30_new_run_ends_fact
+KILLED M31_restart_drops_fact
+KILLED M32_load_ignores_fact
+KILLED M34_restore_keeps_fact
+KILLED M35_forget_keeps_dropped
+KILLED M36_off_ignores_dropped
+KILLED M37_arm_reads_run
+KILLED M38_load_unfiltered
 rc=0
