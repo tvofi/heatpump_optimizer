@@ -697,6 +697,14 @@ CONF_ECL110_RETAIN: Final = "ecl110_mqtt_retain"
 CONF_ECL110_DISPLACE_MIN: Final = "ecl110_displace_min"
 CONF_ECL110_DISPLACE_MAX: Final = "ecl110_displace_max"
 CONF_ECL110_PID_TIME_CONSTANT: Final = "ecl110_pid_time_constant_hours"
+# The heat-curve displace through a Home Assistant entity (R10-GENERIC-HEAT-CURVE).
+CONF_HEAT_CURVE_DISPLACE_ENTITY: Final = "heat_curve_displace_entity"
+CONF_HEAT_CURVE_TARGET_KIND: Final = "heat_curve_target_kind"
+CONF_HEAT_CURVE_OFFSET_BAND_K: Final = "heat_curve_offset_band_k"
+#: What the entity is. ``offset``: a zero-neutral, volatile whole-curve offset,
+#: the first build; ``persistent`` is R10-GENERIC-HEAT-CURVE-PERSISTENT's value.
+HEAT_CURVE_KIND_OFFSET: Final = "offset"
+HEAT_CURVE_TARGET_KINDS: Final = (HEAT_CURVE_KIND_OFFSET,)
 
 # Temperature settings
 CONF_TARGET_TEMP: Final = "target_temperature"
@@ -1177,6 +1185,24 @@ CONF_FLOW_METER_ENTITY: Final = "flow_meter_entity"
 #: outranks the meter whenever it is configured, and with a power entity it
 #: makes COP an observable (``flow_meter.read_heat_output_kw``).
 CONF_THERMAL_POWER_ENTITY: Final = "heat_pump_thermal_power_entity"
+#: Whether the power and the thermal power entity are meters or a vendor's
+#: model (R10-HOTFIX-COP-UNMEASURED): a COP is measured only from metered heat
+#: over metered power (``thermal_model.InstallCapability.cop_measured``), while
+#: every learner trains on either. ``auto`` reads an entity whose id names an
+#: estimate (``ESTIMATE_ID_MARK``, as an "Estimated Power Draw" sensor's does) as
+#: one and any other as a meter; the explicit answers override it.
+CONF_POWER_SOURCE: Final = "heat_pump_power_source"
+CONF_THERMAL_POWER_SOURCE: Final = "heat_pump_thermal_power_source"
+METER_SOURCE_AUTO: Final = "auto"
+METER_SOURCE_METER: Final = "meter"
+METER_SOURCE_ESTIMATE: Final = "estimate"
+DEFAULT_METER_SOURCE: Final = METER_SOURCE_AUTO
+ESTIMATE_ID_MARK: Final = "estimat"
+#: Whether the heat reading (the heat counter, else the thermal power entity)
+#: sees the hot-water circuit, as a meter ahead of the diverter does. Declared,
+#: never assumed: off, a hot-water interval records no measured COP.
+CONF_HEAT_METER_SEES_DHW: Final = "heat_meter_sees_dhw"
+DEFAULT_HEAT_METER_SEES_DHW: Final = False
 CONF_FREQ_CONTROL_MODE: Final = "freq_control_mode"
 #: The two frequency-control stages. Anything unrecognised in config reads
 #: as observe. Here rather than in ``freq_control`` because ``entry_config``
@@ -1508,6 +1534,14 @@ DEFAULT_ECL110_RETAIN: Final = False
 DEFAULT_ECL110_DISPLACE_MIN: Final = -20.0
 DEFAULT_ECL110_DISPLACE_MAX: Final = 20.0
 DEFAULT_ECL110_PID_TIME_CONSTANT: Final = 1.5  # hours, first-order approximation
+DEFAULT_HEAT_CURVE_TARGET_KIND: Final = HEAT_CURVE_KIND_OFFSET
+# The most the entity arm may offset the curve, K, either way; the user range is
+# 0.5 to 5 K. Web research handoff-body/r10-ghc-research 52f5a442, BODY.md, its
+# "Recommended defaults" row "O5a band | 3 K | 0.5 to 5 K": 5 K is Luxtronik's
+# own user correction (documented, a third-party app), 3 K an estimate between
+# that and SG-Ready's +1/+2 offset steps (NIBE, documented).
+DEFAULT_HEAT_CURVE_OFFSET_BAND_K: Final = 3.0
+HEAT_CURVE_OFFSET_BAND_RANGE_K: Final = (0.5, 5.0)
 
 
 # How long a hand-arranged plan stays pinned, measured from the moment it is

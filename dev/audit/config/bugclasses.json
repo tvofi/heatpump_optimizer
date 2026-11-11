@@ -4600,6 +4600,24 @@
         "dev/audit/rca/R10-RCA-CLOSURE-ARGV.md"
       ]
     },
+    "R10-RCA-OPEN-PREPR-SLOW": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "open_pr.sh ran the full prepr on three opens of 2026-11-10 (r10-process-slim-p2, r10-hotfix-record-issue-continuation, r10-arbiter-off-restore) where no Prepr: receipt reached the handoff-body tip, and the full prepr has outgrown the four-slot heavy cap set for it",
+      "trigger": "orchestrator-dispatched RCA: three opens past the caller's 3000 s bound or near it, 2026-11-10",
+      "date": "2026-11-10",
+      "status": "proposed",
+      "parts_missing": [
+        "fixer seat R10-PREPR-RESIDUE to build C1 to C4"
+      ],
+      "process_state": "C-A (c): body_push.sh's prepr_trailer keys the receipt to one checkout's git dir and to sha equality, so it drops receipts app_push.sh's reuse_verdict would accept (re-push from another checkout; a code head moved only by a clean merge of main); the never-receipted tips are not established. C-B (d): HEAVY_SLOTS = 4 was set in c09cf12010 for a prepr.sh under half its size at b0762725099f, and nothing the cap reads sees the growth",
+      "countermeasure": "proposed, routed to R10-PREPR-RESIDUE: C1 body_push.sh carries an ancestor receipt from the parent body tip (null control: a non-merge commit past it, reuse_verdict rc 1); C2 a Prepr-absent reason trailer; C3 elapsed seconds on prepr.sh step lines; C4 bound step 6d's GRADER replays (dev/audit/rca/open_prepr_6d.sh before and after). Refused for now: lowering HEAVY_SLOTS. Measured by dev/audit/rca/open_prepr_receipts.py (--self-test)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md"
+      ]
+    },
     "R10-RCA-PREPR-HEAD-GRADERS": {
       "class": "I3",
       "level": "instance-or-process",
@@ -4868,6 +4886,43 @@
       "landed": null,
       "doc": [
         "dev/audit/rca/topic-family.md"
+      ]
+    },
+    "R10-RCA-SWEEP-SETTLE-LOOP": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#3287 (52f9fc5b34, v7.1.6) added sweep.settle(); undecided() arm 1 reads a re-run's re-stamped SKIPPED jobs (GitHub re-stamps every skipped job of a run whose gate is re-run) as a source finishing after the sibling gate started, so two real-red gates at one head re-run each other to attempt 44 (1618 ci.yml re-attempts and 17 runs at the cap in the 16.6 h after the merge, against 428 and 0 in the 21.2 h before; the closed-loop replay of #3319's recorded attempts gives reruns=86 at origin/main and reruns=1 with arm 1 ignoring skipped jobs)",
+      "trigger": "1 (released: v7.1.6)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "A: the closed-loop convergence check in the sweep's self-test, carried to the R10-SWEEP-SETTLE-LOOP fixer",
+        "B: the attempt-watch beat row (attempt >= 20), to proposal triage"
+      ],
+      "process_state": "(c) #3287's self-test pinned 'the branch cannot loop' with one-pass nulls over hand-written units that carry no conclusion field and that a re-run never moves; its recorded replay ran one open-loop sweep over one attempt per run, though that fixture's attempt-10 rows showed the re-stamp; the review accepted the no-loop nulls and its live head re-ran green, which ends the loop at the first step",
+      "countermeasure": "built: dev/audit/harnesses/r10_rca_sweep_settle_loop.py replay (closed loop over recorded attempt transitions: reruns=86 max_attempt=44 at origin/main and 52f9fc5b34, reruns=1 on the candidate arm-1 copy and in the --no-restamp null, 0 before #3287) and its census arm (alarm 20: 0 runs before the merge, 32 after); proposed: A carried into the fix, B a beat row at 2.84 s per 1800 s pass",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-SWEEP-SETTLE-LOOP.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-SWEEP-SETTLE-LOOP.md"
+      ]
+    },
+    "R10-RCA-STAMP-CLAIM-CONFLICT": {
+      "class": "N-stamp-claim-conflict",
+      "level": "instance-or-process",
+      "subject": "the v7.1.6 stamp (2a3c05644) emptied the claim files and left #3297, #3299 and #3308 refused by the claimnotes different-stamps guard; the same shape followed the v6.7.13, v6.7.17 and v7.1.0 stamps",
+      "trigger": "owner ruling 2026-11-08 (same shape three times)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "owner approval of the claim-files.md sentence and the driver change"
+      ],
+      "process_state": "(a) no step handles a stamp-emptied claim base meeting a branch's added claim; the driver test uses a base with no claim line",
+      "countermeasure": "narrow the blanket stamp guard in merge_claim_decision: when the newer-stamp side carries no claim, decide per scenario; prototype resolves #3299 and #3308 and refuses the controls; about 18 h of seat time per 25 days against 0 s standing cost (estimate)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md"
       ]
     }
   },
@@ -5506,6 +5561,41 @@
       "cross_round": true,
       "barriered_any": true,
       "class_rca_on_record": true
+    }
+  },
+  "N-stamp-claim-conflict": {
+    "kind": "instrument",
+    "mechanism": "A release stamp empties both claim files and bumps claims-for; a branch forked before it whose base held claim lines and which added a claim is refused by the claimnotes driver's blanket different-stamps guard, so every claim-carrying open branch needs a hand resolution after each claim-deleting stamp.",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "git merge-tree --write-tree origin/main <head> prints MERGE-CLAIM: refused tests/golden/claimed_drift.txt with the different 'claims-for:' stamps text",
+    "detector_idea": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-postreview-merge-red",
+    "mechanism_difference": "N-postreview-merge-red is a merge that reddens a reviewed head; here the merge cannot run at all (refused, the pull request goes DIRTY) and the cause is the driver's stamp guard meeting the stamp's own emptying of the list.",
+    "aliases": [
+      "new: a stamp that empties the claim files leaves open branches unmergeable"
+    ],
+    "non_round_note": "Process defect ruled by the owner on 2026-11-08, not an audit finding, not counted in total. Instances: stamp commits v6.7.13, v6.7.17, v7.1.0 and v7.1.6 (merge commits 8f30964ff, 45c04b7d6, 7790838ea, 68b0735be; #3297, #3299, #3308).",
+    "non_round_instances": [
+      "8f30964ff v6.7.13",
+      "45c04b7d6 v6.7.17",
+      "7790838ea v7.1.0",
+      "68b0735be v7.1.6 (#3297, #3299, #3308)"
+    ],
+    "rca": [
+      "R10-RCA-STAMP-CLAIM-CONFLICT"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
     }
   }
 }
