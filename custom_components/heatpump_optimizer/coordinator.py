@@ -11255,7 +11255,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if live_day[0] != sim_day[0]:
                 figure = price_tiles.schedule_figure(
                     live_day[1], sim_day[1], float(np.mean(inputs.forecast.prices)), wood_sek,
-                    ctx._opt_config.horizon_hours)
+                    ctx._opt_config.horizon_hours,
+                    price_tiles.realised_price(simulated, ctx._opt_config.dt_hours))
             else:
                 pair = await whatif.steady_pair(
                     held, result if base is None else base, (solve_at, state, banded), _held_solve, overrides,

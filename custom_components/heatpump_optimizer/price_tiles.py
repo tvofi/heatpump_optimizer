@@ -21,13 +21,20 @@ THE CAP TILE PRICES THE PLAN IN STEADY STATE (#2257). Both plans, the live
 configuration's and the capped one, are solved again from a start held at
 each one's own schedule (``SolveInputs.held_start``), and each one's spend
 plus the heat it left unstored (``deferred_energy_cost``) is differenced:
-the what-if panel and the fuse advisor read the same figure. From the
-measured house the settled figure still moved with where the house started,
-and a cap, which can only cost, read as a saving on some starts; unsettled,
-a cap that left the house colder at the horizon's end read as one too. The
-degree tiles keep the held figure: a degree held by a thermostat, where the
-steady figure prices the plan's own answer to the same degree, about half.
-``dev/audit/harnesses/r10_advisor_residue.py whatif`` measures all four.
+the fuse advisor reads the same figure, and so does the what-if panel for a
+change that moves no comfort target. From the measured house the settled
+figure still moved with where the house started, and a cap, which can only
+cost, read as a saving on some starts; unsettled, a cap that left the house
+colder at the horizon's end read as one too.
+
+A SCHEDULE CHANGE IS AN ESTIMATE, NOT TWO PLANS (#2257). Two plans solved
+from held starts read a comfort or day-window change against its own sign
+(``dev/audit/harnesses/r10_advisor_steady_carrier.py``), so the panel's
+figure for one is ``schedule_figure``: the energy a thermostat holding each
+schedule draws over a day, at the day's average weather and average price.
+It excludes the optimiser's load shifting, on both sides. The degree tiles
+keep the held figure, the same thermostat priced at each hour's own price.
+``dev/audit/harnesses/r10_advisor_residue.py whatif`` measures the figures.
 
 THE HORIZON. One solve prices one day of weather and prices, so a tile is
 published as the mean of its daily means over the last ``HORIZON_DAYS`` local
@@ -53,6 +60,11 @@ HORIZON_DAYS = 30
 
 #: Hours in the month a what-if is scaled to: 30.4 days, the mean month.
 MONTH_HOURS = 30.4 * 24.0
+
+#: A schedule ask's steady figure once more, at the what-if plan's own average
+#: purchase price. Present, None where that price is unusable, exactly when
+#: the steady figure is the schedule estimate; absent when it is the pair's.
+SHIFTED_KEY = "monthly_steady_cost_delta_shifted"
 
 #: The tiles, in rotation order.
 TILE_NAMES = ("target_minus_1", "target_plus_1", "power_cap_75")
@@ -121,9 +133,16 @@ def monthly_deltas(
     }
 
 
+def realised_price(result: Any, dt_hours: float) -> float:
+    """What one plan pays per kWh on average: its spend over its energy; nan for a plan that buys none."""
+    kwh = (float(sum(result.power_schedule)) + float(sum(result.dhw_power_schedule or ()))) * dt_hours
+    return float(result.predicted_cost) / kwh if kwh > 0.0 else math.nan
+
+
 def schedule_figure(
     live_kwh: float, sim_kwh: float, mean_price: float, extra: float, horizon_hours: float,
-) -> dict[str, float]:
+    shifted_price: float = math.nan,
+) -> dict[str, float | None]:
     """A schedule change's steady figure: an estimate, not a plan's money (#2257).
 
     ``live_kwh`` and ``sim_kwh`` are what a thermostat holding each schedule
@@ -133,11 +152,23 @@ def schedule_figure(
     what-if's spend outside its solve (wood). It excludes the optimiser's
     load shifting on both sides. An energy that is not finite gives no key,
     never another figure.
+
+    The optimiser buys that energy below the mean, so the same difference is
+    priced once more at ``shifted_price``, the what-if plan's own average
+    purchase price (``realised_price``), under ``SHIFTED_KEY``: the card shows
+    the two as a range. On a day of price peaks the mean-price figure is two
+    to three times the other
+    (``dev/audit/harnesses/r10_advisor_steady_bracket.py``). A price that is
+    not finite and positive gives None there: the key itself says the figure
+    is this estimate and not the pair's.
     """
-    day_cost = (sim_kwh - live_kwh) * mean_price
-    if not math.isfinite(day_cost):
+    def month(price: float) -> float:
+        return round(per_month((sim_kwh - live_kwh) * price * horizon_hours / 24.0 + extra, horizon_hours), 2)
+
+    if not math.isfinite((sim_kwh - live_kwh) * mean_price):
         return {}
-    return {"monthly_steady_cost_delta": round(per_month(day_cost * horizon_hours / 24.0 + extra, horizon_hours), 2)}
+    priced = math.isfinite(shifted_price) and shifted_price > 0.0
+    return {"monthly_steady_cost_delta": month(mean_price), SHIFTED_KEY: month(shifted_price) if priced else None}
 
 
 def specs(config: Any, max_kw: float) -> list[tuple[str, dict[str, float]]]:
