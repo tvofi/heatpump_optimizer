@@ -1,0 +1,7 @@
+SURVIVED NULL FORKCAP m chainC rc=0 secs=2 leftover_now=0
+chainC leftover_after_3s=0
+SURVIVED NULL SURVIVED m chainA rc=0 secs=8 leftover_now=0
+chainA leftover_after_3s=0
+SURVIVED NULL FORKCAP m chainB rc=0 secs=3 leftover_now=38
+chainB leftover_after_3s=83
+cleanup: 1 passes
