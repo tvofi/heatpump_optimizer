@@ -20848,7 +20848,10 @@
     "dev/governance/roles/designer.md",
     "dev/governance/roles/design-review.md",
     "tools/audit/seat/sweep_template.md",
-    "tools/audit/seat/pulse.py"
+    "tools/audit/seat/pulse.py",
+    "tools/audit/seat/hooks/liveness.py",
+    "tools/audit/seat/hooks_setup.py",
+    "tools/audit/seat/beatd.py"
    ],
    "hot_files": [
     "dev/governance/roles/orchestrator.md"
@@ -20897,7 +20900,7 @@
    "resume": {
     "stage": "not-started",
     "branch": null,
-    "note": "overlap admitted (R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE, ordered by after-edges where files overlap"
+    "note": "overlap admitted (R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE, ordered by after-edges where files overlap | set-files files ['dev/governance/roles/standing-merge.md', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/standing-roster.md', 'dev/governance/roles/standing-tick.md', 'dev/governance/roles/orchestrator.md', 'dev/governance/roles/fixer.md', 'dev/governance/roles/designer.md', 'dev/governance/roles/design-review.md', 'tools/audit/seat/sweep_template.md', 'tools/audit/seat/pulse.py'] -> ['dev/governance/roles/standing-merge.md', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/standing-roster.md', 'dev/governance/roles/standing-tick.md', 'dev/governance/roles/orchestrator.md', 'dev/governance/roles/fixer.md', 'dev/governance/roles/designer.md', 'dev/governance/roles/design-review.md', 'tools/audit/seat/sweep_template.md', 'tools/audit/seat/pulse.py', 'tools/audit/seat/hooks/liveness.py', 'tools/audit/seat/hooks_setup.py', 'tools/audit/seat/beatd.py']"
    }
   },
   {
