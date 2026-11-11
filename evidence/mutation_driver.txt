@@ -1,0 +1,7 @@
+RESULT mutant M1_lows_append_del rc=1 fails=6
+      FAIL combi_type_branch census: no preset slug outside const.py's table and the options flow, and no product or vendor name in the package's Python; the census sees the table's own slugs  [slugs: []; vendor: ['config_fl
+      ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+      ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+      ok   a pump command that FAILED is not remembered as done
+      FAIL R10-WATER-SETPOINT-FEEDBACK part 3, minimum return target 28.0 degC read from its sensor: no write goes below it and the controller cuts nothing  [lowest write 27.6, cut 28.0, issues []]
+    2 of 5245 FEATURE CHECKS FAILED
