@@ -755,6 +755,7 @@ INERT_EXCEPT = (
     "tools/audit/seat/instruments/heartbeat.sh.md",
     "tools/audit/seat/instruments/tick_loop.sh.md",
     "tools/audit/seat/open_pr.sh",
+    "tools/audit/seat/postmerge.py",
     "tools/audit/seat/roster_queue.py",
     "tools/audit/seat/tick_loop.sh",
     "DISCLAIMER.md",
