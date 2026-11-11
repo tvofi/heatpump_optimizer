@@ -2390,12 +2390,15 @@ def _omit_unstored_computed(
 #: The DHW pair is presence-inferred (either key switches hot-water planning
 #: on); the wood trio and the wood-valve probe publish ``None`` while absent;
 #: the Tibber token could not be shown equivalent, and the initial flow
-#: always stores it. ``tests/config_flow_steps.py`` derives this whole set
-#: and fails when it moves.
+#: always stores it; the two set-point limit sensors are read only inside a
+#: running feedback loop, which no refresh of an idle install reaches, so
+#: their absence is not shown equivalent either. ``tests/config_flow_steps.py``
+#: derives this whole set and fails when it moves.
 _ABSENT_IS_NOT_DEFAULT: Final = frozenset({
     CONF_DHW_WINDOWS, CONF_DHW_TANK_VOLUME,
     CONF_WOOD_TYPE, CONF_WOOD_PACKING, CONF_WOOD_FURNACE_EFFICIENCY,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY, CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
     CONF_TIBBER_TOKEN,
 })
 
