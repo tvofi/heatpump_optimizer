@@ -1,0 +1,24 @@
+M4: KILLED rc=1 fails=1
+    FAIL  collapse: focus returns to the rebuilt header
+M5: KILLED rc=1 fails=1
+    FAIL  collapse: the toggle does not reach the card's open-on-click
+M6: KILLED rc=1 fails=5
+    FAIL  the inline 12 h time axis spaces a clamped label at least half its usual gap
+    FAIL  the inline 24 h time axis spaces a clamped label at least half its usual gap
+    FAIL  the expanded 24 h time axis spaces a clamped label at least half its usual gap
+    FAIL  the inline 48 h time axis spaces a clamped label at least half its usual gap
+    FAIL  the expanded 48 h time axis spaces a clamped label at least half its usual gap
+M7: KILLED rc=1 fails=2
+    FAIL  collapse: the narrative summary is the rows' kWh and cost total, visible while folded
+    FAIL  collapse: the headers speak the card language
+R1_reset_on_refresh: SURVIVED rc=0 fails=0
+R2_focus_first_copy: SURVIVED rc=0 fails=0
+R3_aria_always_false: KILLED rc=1 fails=2
+    FAIL  collapse: a click opens its own fold and only that one
+    FAIL  collapse: the why-now fold opens to its rows
+R4_lead_weakest: KILLED rc=1 fails=1
+    FAIL  collapse: the why-now summary is its strongest driver, visible while folded
+R5_body_always: KILLED rc=1 fails=3
+    FAIL  collapse: a folded section renders no body
+    FAIL  collapse: a click opens its own fold and only that one
+    FAIL  collapse: a second click folds it again

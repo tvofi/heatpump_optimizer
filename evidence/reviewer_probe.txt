@@ -1,0 +1,7 @@
+PROBE heads before dialog: 2
+PROBE heads with dialog open: 4
+PROBE duplicate ids with dialog open: []
+PROBE focus after dialog-copy click is index: 2 of 4
+PROBE aria after: true,false,true,false
+PROBE refresh rendered: yes aria before: true,false,true,false after: true,false,true,false
+ALL CARD CHECKS PASSED
