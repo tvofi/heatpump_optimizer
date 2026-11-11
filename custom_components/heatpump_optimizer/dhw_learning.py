@@ -97,16 +97,41 @@ class ChargeSettle:
     #: deferred usage observations: [previous_temp, temp_drop, dt_h, hour, weekend]
     pending: list[list[Any]] = field(default_factory=list)
 
-    def take(self, recovered_k: float) -> float:
-        """Spend up to ``recovered_k`` of the dip bound on the deferred drops."""
-        taken = min(recovered_k, self.credit_k)
-        self.credit_k -= taken
-        left = taken
-        for obs in self.pending:
-            cut = min(left, max(0.0, obs[1]))
-            obs[1] -= cut
-            left -= cut
-        return taken
+    def classify(self, now: datetime, heating: bool, heated_interval: bool) -> bool:
+        """Stamp a heated sample; True when an unheated interval is settling."""
+        if heating:
+            self.last_heated_time = now
+        return not heated_interval and (
+            self.last_heated_time is not None
+            and utc_elapsed_seconds(now, self.last_heated_time) / 3600.0
+            <= DHW_CHARGE_SETTLE_HOURS
+        )
+
+    def advance(
+        self, heated_interval: bool, settling: bool, obs: list[Any]
+    ) -> tuple[float, list[list[Any]]]:
+        """Step over one interval's usage observation ``obs`` (see ``pending``).
+
+        Returns the dip its rise recovered, in K, and the deferred
+        observations it releases to the usage learner.
+        """
+        if (heated_interval or settling) and not self.open:
+            self.open, self.credit_k = True, DHW_CHARGE_DIP_MAX_K
+        if not self.open or heated_interval:
+            return 0.0, []
+        if obs[1] < 0:
+            taken = left = min(-obs[1], self.credit_k)
+            self.credit_k -= taken
+            for deferred in self.pending:
+                cut = min(left, max(0.0, deferred[1]))
+                deferred[1] -= cut
+                left -= cut
+            return taken, []
+        if settling:
+            self.pending.append(obs)
+            return 0.0, []
+        due, self.pending, self.open = self.pending, [], False
+        return 0.0, due
 
 
 class DhwProfileLearner:
@@ -396,16 +421,8 @@ class DhwProfileLearner:
 
         previous_temp = self.last_temp_sample
         previous_time = self.last_sample_time
-        settle = self.charge_settle
         heated_interval = self.heating_since_sample or heating
-        if heating:
-            settle.last_heated_time = now
-        settling = not heated_interval and (
-            settle.last_heated_time is not None
-            and utc_elapsed_seconds(now, settle.last_heated_time) / 3600.0
-            <= DHW_CHARGE_SETTLE_HOURS
-        )
-        charge_affected = heated_interval or settling
+        settling = self.charge_settle.classify(now, heating, heated_interval)
 
         self.last_temp_sample = dhw_temp
         self.last_sample_time = now
@@ -424,18 +441,11 @@ class DhwProfileLearner:
 
         temp_drop = previous_temp - dhw_temp
         weekend = now.weekday() >= 5
-        if charge_affected and not settle.open:
-            settle.open, settle.credit_k = True, DHW_CHARGE_DIP_MAX_K
-        recovered_k = 0.0
-        if settle.open and not heated_interval:
-            if temp_drop < 0:
-                recovered_k = settle.take(-temp_drop)
-            elif settling:
-                settle.pending.append([previous_temp, temp_drop, dt_h, now.hour, weekend])
-            else:
-                pending, settle.pending, settle.open = settle.pending, [], False
-                for prev, drop, dt_p, hour, wkend in pending:
-                    await self.async_learn_usage(prev, drop, dt_p, hour, False, weekend=wkend)
+        recovered_k, due = self.charge_settle.advance(
+            heated_interval, settling, [previous_temp, temp_drop, dt_h, now.hour, weekend]
+        )
+        for prev, drop, dt_p, hour, wkend in due:
+            await self.async_learn_usage(prev, drop, dt_p, hour, False, weekend=wkend)
 
         if not heated_interval:
             await self.async_learn_cooling(previous_temp, dhw_temp, dt_h)
@@ -445,7 +455,7 @@ class DhwProfileLearner:
             )
         await self.async_fold_draw_stats(
             now, previous_temp, temp_drop, dt_h,
-            charge=charge_affected, recovered_k=recovered_k,
+            charge=heated_interval or settling, recovered_k=recovered_k,
         )
         return None
 
@@ -458,14 +468,8 @@ class DhwProfileLearner:
         )
 
     async def async_fold_draw_stats(
-        self,
-        now: datetime,
-        previous_temp: float,
-        temp_drop: float,
-        dt_h: float,
-        *,
-        charge: bool = False,
-        recovered_k: float = 0.0,
+        self, now: datetime, previous_temp: float, temp_drop: float, dt_h: float,
+        *, charge: bool = False, recovered_k: float = 0.0,
     ) -> None:
         """Fold one interval's beyond-standby draw energy into #32's stats.
 
