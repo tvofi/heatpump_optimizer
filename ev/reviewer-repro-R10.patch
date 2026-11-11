@@ -1,0 +1,24 @@
+diff --git a/tests/features.py b/tests/features.py
+index ac915ed19..48cc4281e 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -84436,6 +84436,19 @@ R.check(
+     f"one {_fb_own_one[0]}, two {_fb_own_two[0]} (prev {_fb_own_two[2].feedback.prev_c}), "
+     f"restored run {_fb_rs_held.feedback}, never wrote {_fb_own_none[0]}",
+ )
++# REVIEWER R10: the run ends (a non-qualifying pass, _feedback on=False; or a
++# compressor stop) while the own-write hold keeps the record dropped.
++_rv_sent1, _rv_coord, _rv_held = _fb_own([25.8])
++_rv_held.written.pop("space_setpoint", None)
++_fb_pa._feedback(_rv_held, _rv_coord.arbiter_inputs(), _FB_NOW, 26.4, False)
++_rv_sent2 = _fb_aio.run(_fb_pa._arm_space(_rv_coord.arbiter_inputs(), _rv_coord.entry, _rv_held, _FB_SET))
++_rv_sent3, _rv_coord3, _rv_held3 = _fb_own([25.8])
++_rv_held3.feedback = _fb_pa.FeedbackRun(_FB_NOW, 26.4, _FB_NOW)
++_rv_sent4 = _fb_aio.run(_fb_pa._arm_space(_rv_coord3.arbiter_inputs(), _rv_coord3.entry, _rv_held3, _FB_SET))
++print("REVIEWER-RESET", "held-after-move", _rv_sent1, "after-off-pass", _rv_sent2, "feedback", _rv_held.feedback, "after-new-run", _rv_sent4, "reading", _fb_pa.read_setpoint(_rv_coord.arbiter_inputs().hass, _FB_SET))
++R.check("REVIEWER R10: the own-write refusal survives the loop run ending while the write is held",
++        _rv_sent1 is False and _rv_sent2 is False and _rv_sent4 is False,
++        f"after move {_rv_sent1}, after off pass {_rv_sent2}, after new run {_rv_sent4}")
+ # R1's lower side in the replay: a 26.4 degC minimum return target (parameter
+ # 979) clamps the loop's first wind-down, whose writes stay under it until a
+ # reading leaves the hold tolerance and is adopted as a cut; the cut then
