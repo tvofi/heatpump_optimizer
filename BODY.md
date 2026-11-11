@@ -10,7 +10,7 @@ The diff is one file against the merge base: `dev/programme/triage/s6-batch156.m
 
 ## Head
 
-`5385d9866add4b145b83be5261f6d2e363fcfc04`
+`a6609be548c256b785d38b75c303ec4fc0dabd06`
 
 ## Mutation proof
 
@@ -25,7 +25,7 @@ This file's only consumer is the triage gate in `tools/audit/seat/roster_edit.py
 
 ## Figures
 
-- `git diff --stat 444cf62fab...5385d9866add4b145b83be5261f6d2e363fcfc04`: 1 file.
+- `git diff --stat 444cf62fab...a6609be548c256b785d38b75c303ec4fc0dabd06`: 1 file, in two commits.
 - The classify readings come from `merge_train.py classify <head> --pr <n>`.
 - The refusal count comes from `grep -rlF` over the state directory.
 - The line numbers come from origin/main `444cf62fab`; `review_packet.py` is unchanged from `63bcdcaad8`.
