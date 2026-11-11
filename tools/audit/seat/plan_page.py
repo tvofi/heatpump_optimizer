@@ -184,6 +184,18 @@ def merged_pr(group: str, commit: str | None, by_sha: dict, by_group: dict):
     return by_group.get(group)
 
 
+def _plain_key(key) -> str:
+    """A sort key as plain values: a null reads as a dash, never a Python repr."""
+    if not isinstance(key, (list, tuple)):
+        return "—" if key is None else str(key)
+    return ", ".join("—" if v is None else str(v) for v in key)
+
+
+def _wave_text(wave) -> str:
+    """A group's wave for a tooltip or attribute: a dash when it has none."""
+    return "—" if wave is None else str(wave)
+
+
 def build_rows(roster: dict, plan: dict, snap: dict) -> list:
     """One row per roster group: status, PR, issues, blockers, schedule."""
     G = roster_lib.groups_of(roster)
@@ -270,12 +282,13 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
             "tier": pg.get("tier"),
             "why": "; ".join(x for x in (
                 pg.get("tier_reason"), pg.get("start_reason"), pg.get("duration_basis"),
-                f"sort key {pg['sort_key']}" if pg.get("sort_key") else None) if x),
+                f"sort key {_plain_key(pg['sort_key'])}" if pg.get("sort_key") else None) if x),
             "issues": [(n, n in fixes, (state.get(n) or {}).get("state") != "CLOSED",
                         (state.get(n) or {}).get("title", ""))
                        for n in entry.get("issues") or []],
             "blk": blk, "desc": roster_lib.one_line_brief(entry, 170),
-            "crit": g in crit, "wave": None if g in done else pg["wave"],
+            "crit": g in crit, "part": bool(part) and g not in done,
+            "wave": None if g in done else pg["wave"],
             "start": None if g in done else pg["start"],
             "finish": None if g in done else pg["finish"]})
         if pg.get("done"):  # the plan counts it done (absorbed): nothing to draw
@@ -355,9 +368,9 @@ def swimlanes(plan: dict, rows: list) -> tuple[str, int]:
                 parts.append(
                     f'<g class="grp" data-st="{r["st"]}" data-name="{html.escape(name)}" '
                     f'data-state="{html.escape(r["label"])}" data-start="{when}" '
-                    f'data-eta="{r["finish"]}" data-wave="{r["wave"]}">'
+                    f'data-eta="{r["finish"]}" data-wave="{_wave_text(r["wave"])}">'
                     f'<title>{r["g"]}: {html.escape(r["label"])}, starts {when}, '
-                    f'ETA {r["finish"]}, wave {r["wave"]}</title>')
+                    f'ETA {r["finish"] or "—"}, wave {_wave_text(r["wave"])}</title>')
                 if w < 16:  # widen a narrow bar's hover target, not the bar
                     parts.append(f'<rect x="{x0 - 3:.1f}" y="{yy}" width="{w + 8:.1f}" '
                                  f'height="{RH}" fill="transparent"/>')
@@ -431,6 +444,24 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
     return out
 
 
+def _plural(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+def _other_issues_sentence(proj: dict) -> str:
+    """The open issues on no open group, pluralised from the count; the
+    unplanned clause is dropped when none are listed."""
+    other, orphans = len(proj["other"]), len(proj["orphans"])
+    rec = ", ".join(f"#{n}" for n in RECORD_ISSUES if n in proj["other"])
+    head = _plural(other, "other open issue is", "other open issues are") + " on no open group"
+    if not other:
+        return "no other open issue is on no open group."
+    parts = ([f"{rec} (the record issue{'s' if rec.count('#') > 1 else ''})"] if rec else [])
+    if orphans:
+        parts.append(f"the {orphans} listed below as unplanned")
+    return head + (": " + " and ".join(parts) if parts else "") + "."
+
+
 def issues_section(roster: dict, plan: dict, snap: dict) -> str:
     """The first section of the page: the open-issue count stepping down at each
     projected close. Omitted, with a note, when the snapshot has no GitHub state."""
@@ -486,9 +517,9 @@ def issues_section(roster: dict, plan: dict, snap: dict) -> str:
     note = (f"Open issues carried by not-done roster groups, as GitHub had them at the plan's "
             f"start; each is projected to close at the planned finish of the last group "
             f"carrying it. {len(unplanned)} sit on groups with no planned finish and stay "
-            f"flat; {len(proj['other'])} other open issues are on no open group: "
-            f"{', '.join(f'#{n}' for n in RECORD_ISSUES)} (the record issues) and the "
-            f"{len(proj['orphans'])} listed below as unplanned.")
+            f"flat; {_other_issues_sentence(proj)} The status strip counts "
+            f"{len(open_now - TRACKING_ISSUES)} open issues, the record issues left out: the "
+            f"{total} drawn here plus the {len(proj['orphans'])} unplanned.")
     title = {i["number"]: i.get("title") or "" for i in snap["issues"]}
     orphans = "".join(
         f'<li class="unplanned">#{n} {html.escape(title.get(n, ""))}: unplanned: no open '
@@ -600,11 +631,15 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
     slots, every = caps["slots"], caps["stamp_every"]
     chain = plan["critical_path"]
     waves_of = {g: w["wave"] for w in plan["waves"] for g in w["groups"]}
-    counts = {k: sum(1 for r in rows if r["st"] == k)
-              for k in _STRIP}
+    counts = {k: sum(1 for r in rows if r["st"] == k) for k in _STRIP}
+    # One predicate for the strip and the row label: a not-done group with a
+    # merged part (a carries-open one included) is part merged.
+    counts["partial"] = sum(1 for r in rows if r["part"])
     open_iss = ("—" if snap.get("offline") else str(sum(
         1 for i in snap["issues"]
         if i["state"] == "OPEN" and i["number"] not in TRACKING_ISSUES)))
+    n_open_rows = sum(1 for r in rows if r["st"] != "done")
+    n_sched = sum(1 for r in rows if r["st"] != "done" and r["finish"])
     order = {k: i for i, k in enumerate(("S", "M", "L", "XL"))}
     sizes = ", ".join(f"{k} {v:g} h" for k, v in sorted(
         model["sizes_hours"].items(), key=lambda kv: (order.get(kv[0], 99), kv[0])))
@@ -654,7 +689,9 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
         "tier_legend": e(", ".join(f"{t} {w}" for t, w in sorted(replan.TIER_LEGEND.items()))),
         "slots": str(slots), "every": str(every),
         "slots_note": e(
-            f"Read from plan.json: {summ['groups_open']} open groups, {summ['batches']} "
+            f"Read from plan.json: {summ['groups_open']} scheduled open groups (the lanes), "
+            f"of the {n_open_rows} the table lists as not merged; the other {n_open_rows - n_sched} "
+            f"are held without a schedule. {summ['batches']} "
             f"merge batches, closure {summ['closure']}. A wave is the set of groups "
             f"dispatched at one instant; the next opens as soon as one of the {slots} "
             f"pull-request slots frees. Coordinator cap {caps['coordinator_cap']}; "
@@ -1072,7 +1109,7 @@ def _self_test() -> int:
             check("every planned stamp is drawn on the axis, the round-close one after "
                   "closure included",
                   page.count('class="stampline"') == len(plan["stamps"])
-                  and _t(plan["stamps"][-1]["at"]) > _t(plan["summary"]["closure"]),
+                  and _t(plan["stamps"][-1]["at"]) >= _t(plan["summary"]["closure"]),
                   (page.count('class="stampline"'), plan["stamps"], plan["summary"]["closure"]))
             check("the closure stamp renders as the round's major, kind round-close",
                   '<td class="mono">v9.0.0</td>' in page
@@ -1100,9 +1137,66 @@ def _self_test() -> int:
             sec = issues_section(roster, plan, snap)
             check("the issues chart is the first section, drawn from the open set",
                   0 <= page.find("Projected open issues") < page.find("<h2>Swimlanes")
-                  and "2 open now" in page and "1 other open issues are on no open group" in page
+                  and "2 open now" in page and "1 other open issue is on no open group: #3394 (the record issue)." in page
                   and "Unplanned: no open group" not in page
                   and sec.count("<polyline") == 1, re.findall(r"\d+ open now", page))
+            # Count sentence: pluralised from the count, the unplanned clause
+            # dropped when none are listed (carry 2).
+            one = _other_issues_sentence({"other": {201}, "orphans": {}})
+            many = _other_issues_sentence({"other": {201, 77, 78}, "orphans": {77: [], 78: []}})
+            check("the other-issues sentence is singular for one and drops the zero clause",
+                  one == "1 other open issue is on no open group: #201 (the record issue)."
+                  and "0 listed" not in one, one)
+            check("null control: several with unplanned orphans pluralise and keep the clause",
+                  many == "3 other open issues are on no open group: #201 (the record issue) "
+                  "and the 2 listed below as unplanned.", many)
+            # Wave None and a null in the sort key never render as Python (carry 3).
+            nowave = json.loads(json.dumps(plan))
+            nowave["groups"]["R9-BLOCK"].update(wave=None, sort_key=[None, 4, "R9-BLOCK"])
+            npage = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                           nowave, snap)
+            check("a group with no wave and a null in its sort key renders no None",
+                  'data-wave="None"' not in npage and "wave None" not in npage
+                  and "sort key [" not in npage and "None" not in
+                  "".join(re.findall(r"<svg.*?</svg>", npage, re.S))
+                  and "sort key —, 4, R9-BLOCK" in npage, re.findall(r".{30}None.{20}", npage)[:3])
+            check("null control: a group at a wave renders wave N and data-wave=N",
+                  re.search(r'data-wave="\d+"', page) and re.search(r"wave \d+</title>", page),
+                  re.findall(r'data-wave="[^"]*"', page)[:3])
+            # One predicate for the strip's part-merged count and the row label.
+            co_roster = {"groups": roster["groups"] + [grp("R9-CO", "CO", stage="carries-open")]}
+            co_snap = dict(snap, merged_prs=snap["merged_prs"] + [
+                {"number": 24, "title": "R9-CO: part one", "head_ref": "fix/r9-co-1",
+                 "merge_commit_sha": "f" * 40, "merged_at": "2026-01-04T00:00:00Z"}])
+            co_plan = json.loads(json.dumps(plan))
+            co_plan["groups"]["R9-CO"] = dict(co_plan["groups"]["R9-PART"])
+            co_rows = {r["g"]: r for r in build_rows(co_roster, co_plan, co_snap)}
+            co_page = render(co_roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                             co_plan, co_snap)
+            want_part = sum(1 for r in co_rows.values() if "part merged" in r["label"]
+                            and r["st"] != "done")
+            check("a carries-open group holding a merged part counts in the strip as its row does",
+                  co_rows["R9-CO"]["st"] == "held" and "part merged #24" in co_rows["R9-CO"]["label"]
+                  and want_part >= 2
+                  and f"<b>{want_part}</b><span>part merged, residual open</span>" in co_page,
+                  (want_part, re.findall(r"<b>\d+</b><span>part merged", co_page)))
+            check("null control: no part-merged group reads 0",
+                  "<b>0</b><span>part merged, residual open</span>" in render(
+                      roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                      plan, dict(snap, merged_prs=snap["merged_prs"][:2]))
+                  or sum(1 for r in build_rows(roster, plan, dict(snap, merged_prs=snap["merged_prs"][:2]))
+                         if r["part"]) == 0)
+            check("the group note and the issues note state how the two counts relate",
+                  f"of the {sum(1 for r in build_rows(roster, plan, snap) if r['st'] != 'done')} "
+                  "the table lists as not merged" in page
+                  and "The status strip counts 2 open issues, the record issues left out: the 2 "
+                  "drawn here plus the 0 unplanned." in page, re.findall(r"status strip counts[^.]*", page))
+            # A markdown heading in a brief renders as plain text (carry 4).
+            hb = roster_lib.one_line_brief({"brief": "# Fixer brief\n\nDo the thing.\nMore."})
+            check("a description beginning '# Fixer brief' renders without the '#', lines joined",
+                  hb.startswith("Fixer brief") and "#" not in hb and "\n" not in hb, hb)
+            check("null control: a description with no heading is unchanged",
+                  roster_lib.one_line_brief({"brief": "Does X. More."}) == "Does X.")
             no_gh = {"issues": [], "open_prs": [], "merged_prs": [], "offline": True}
             check("no GitHub state: the chart is omitted with a note",
                   "Omitted" in issues_section(roster, plan, no_gh)

@@ -114,17 +114,20 @@ ROUND_CLOSE = "round-close"
 
 # A fixer already working. `queued` is not working: the plan dispatches it.
 LIVE_STAGES = ("in-progress", "fixing", "review", "in-review")
+#: The live stages whose build is finished: a group here starts from its
+#: review rounds, not from a fresh fixer start.
+REVIEW_STAGES = ("review", "in-review")
 
 DEFAULT_CAPS = {
-    "slots": 16,             # open pull requests: the owner's cap since 2026-10-31
-    "seats": 16,             # fixers working: one per open pull request
+    "slots": 20,             # open pull requests: the owner's cap since 2026-11-07
+    "seats": 20,             # fixers working: one per open pull request
     "coordinator_cap": 2,    # open pull requests touching coordinator.py
     "stamp_every": 3,        # production groups per patch stamp (tvofi 2026-10-26)
 }
 #: Where DEFAULT_CAPS' slots and seats come from, recorded in every plan that
 #: uses them: a plan drawn at a cap nobody chose must say whose cap it is.
-CAPS_PROVENANCE = ("tvofi 2026-10-31 (#201 comment 6544047621): 16 open pull "
-                   "requests; replan.py DEFAULT_CAPS")
+CAPS_PROVENANCE = ("tvofi 2026-11-07 (#201 comment 6707334933, superseding 6544047621): "
+                   "20 open pull requests; replan.py DEFAULT_CAPS")
 
 
 class PlanError(Exception):
@@ -551,6 +554,13 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str,
         why += left_out
     else:
         hours, why = float(sizes[size]), f"{size}: sizes_hours"
+    if is_live and stage in REVIEW_STAGES and size in first:
+        # The build is done: what is left is the review rounds still to run, at
+        # least one, never more than a fresh fixer's remaining share.
+        left_rounds = max(rounds - 1, 1.0)
+        in_review = min(left_rounds * float(durations["round_hours"]),
+                        hours * float(durations.get("live_remaining_fraction", 0.7)))
+        return in_review, why + f", in {stage}: {left_rounds:.2f} review round(s) left"
     if is_live:
         hours *= float(durations.get("live_remaining_fraction", 0.7))
         why += ", working (live_remaining_fraction)"
@@ -877,8 +887,8 @@ def selftest_model() -> int:
 
     # 5. caps: a call naming none draws at the owner's, and says so.
     nocaps = cli_caps(parse_args([]))
-    expect("a replan given no caps does not draw a 6-slot plan: the owner's 16, with provenance",
-           nocaps["slots"] == 16 and nocaps["seats"] == 16
+    expect("a replan given no caps does not draw a 6-slot plan: the owner's 20, with provenance",
+           nocaps["slots"] == 20 and nocaps["seats"] == 20
            and nocaps["provenance"] == CAPS_PROVENANCE, nocaps)
     given = cli_caps(parse_args(["--slots", "4"]))
     expect("null control: a cap given on the command line is used and named as given",
@@ -1290,6 +1300,11 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         post_start[n] = ready_at
         post_end[n] = ready_at + post_dur[n]
 
+    # The programme closes at the LATER of the round-close stamp and the last
+    # post-closure step (the catalog PR): tvofi 2026-11-07, "not considered
+    # closed until both v.10.0.0 and the catalog PR has landed".
+    closure_at = max([stamps[-1]["at"]] + list(post_end.values()))
+
     # a wave is the set of groups the replan dispatches at one instant
     by_open: dict = {}
     for n in open_:
@@ -1412,7 +1427,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         # Expected arrivals over the plan's wall time, priced at the median
         # size: reported, not scheduled -- they are not groups yet.
         sz = sorted(float(v) for v in size_hours.values())
-        n_exp = inflow * closure / 60.0
+        n_exp = inflow * closure_at / 60.0
         arrivals = {"groups": round(n_exp, 2),
                     "work_hours": round(n_exp * sz[len(sz) // 2], 2)}
     peak_flight, peak_coord = peak_concurrency(groups_out, start)
@@ -1480,9 +1495,9 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "inherited_dependency_violations": inherited_deps,
         },
         "summary": {
-            "closure": iso(start, closure),
+            "closure": iso(start, closure_at),
             "closure_stamp": stamps[-1]["version"],
-            "wall_hours": round(closure / 60.0, 2),
+            "wall_hours": round(closure_at / 60.0, 2),
             "ci_minutes": ci,
             "gate_minutes": gate_report,
             "batches": len(batch_rows),
@@ -1760,9 +1775,14 @@ def check_plan(plan: dict) -> list:
         bad.append("summary: stamp count disagrees with the stamps list")
     if s["groups_open"] != len(groups):
         bad.append("summary: open-group count disagrees with the groups list")
-    closure = max((mins(g["finish"]) for g in in_round.values()), default=0)
+    close_stamps = [x for x in plan.get("stamps", []) if x.get("kind") == ROUND_CLOSE]
+    post_fin = [mins(plan["groups"][n]["finish"]) for n in s.get("post_closure") or []
+                if n in plan["groups"]]
+    closure = max([mins(x["at"]) for x in close_stamps] + post_fin
+                  or [max((mins(g["finish"]) for g in in_round.values()), default=0)])
     if mins(s["closure"]) != closure:
-        bad.append("summary: closure is not the last group finish")
+        bad.append("summary: closure is not the later of the round-close stamp and the "
+                   "last post-closure group finish")
     if "model" in plan["generated"]:
         bad += model_refusals(plan["generated"]["model"])
     else:
@@ -2377,10 +2397,28 @@ def selftest() -> int:
            pc["groups"]["R10-CATALOG-PR"].get("post_closure") is True
            and pc["groups"]["R10-CATALOG-PR"]["start"] >= close_at
            and pc["summary"]["post_closure"] == ["R10-CATALOG-PR"], str(pc["groups"]["R10-CATALOG-PR"]))
-    expect("post-closure: in no stamp's carries and outside summary.closure",
+    expect("post-closure: in no stamp's carries, and summary.closure is the later of the "
+           "stamp and the catalog step's finish (tvofi 2026-11-07), which starts no earlier "
+           "than the stamp",
            all("R10-CATALOG-PR" not in s["carries"] for s in pc["stamps"])
-           and pc["summary"]["closure"] == p0["summary"]["closure"]
-           and pc["stamps"] == p0["stamps"], str(pc["stamps"]))
+           and pc["summary"]["closure"] == pc["groups"]["R10-CATALOG-PR"]["finish"]
+           and pc["summary"]["closure"] > close_at
+           and pc["groups"]["R10-CATALOG-PR"]["start"] >= close_at
+           and pc["stamps"] == p0["stamps"], str((pc["summary"]["closure"], pc["stamps"])))
+    rv = lambda st: group_hours(fx("RV", "S", stage=st), durations, True, "<t>")[0]
+    expect("live stage: a group in review is priced by its review rounds left, below a fresh "
+           "fixer's remaining share; one in progress is not",
+           abs(rv("in-review") - max(durations["review_rounds"]["S"] - 1, 1) * durations["round_hours"]) < 1e-9
+           and rv("in-review") == rv("review") < rv("in-progress"),
+           [rv(x) for x in ("in-review", "review", "in-progress")])
+    expect("post-closure (null): with no post-stamp group, closure is the stamp's at",
+           p0["summary"]["closure"] == p0["stamps"][-1]["at"], str(p0["summary"]["closure"]))
+    expect("post-closure (a): a plan whose closure drops the catalog step is refused by --check",
+           any("closure" in b for b in check_plan(
+               dict(pc, summary=dict(pc["summary"], closure=p0["summary"]["closure"])))), "")
+    ex = cli_caps(parse_args(["--slots", "7"]))
+    expect("slots 20 (null): an explicit --slots keeps its value, the seats stay the default",
+           ex["slots"] == 7 and ex["seats"] == DEFAULT_CAPS["seats"] == 20, str(ex))
     expect("post-closure (null): a production group with no stamp dependency is in the "
            "closing stamp's carries",
            pc["stamps"][-1]["carries"] == ["R10-A", "R10-B"], str(pc["stamps"][-1]))
@@ -2879,7 +2917,7 @@ def selftest() -> int:
              "if inflow > 0:", "if inflow >= 0:"),
             ("inflow-rate",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             "n_exp = inflow * closure / 60.0", "n_exp = 1.0"),
+             "n_exp = inflow * closure_at / 60.0", "n_exp = 1.0"),
             ("height-tiebreak",
              _m("def dispatch_key(n: str, ", "tier: dict, savings: dict,"),
              _m("sav, -height[n], ", "-dur_min[n], n)"), "sav, n)"),
@@ -2901,6 +2939,9 @@ def selftest() -> int:
             ("held-carry-model",
              _m("def group_hours(group: dict, ", "durations: dict,"),
              _m('if stage == HELD_STAGE and ', 'durations.get("carries_per_part"):'), "if False:"),
+            ("live-review-stage",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m("if is_live and stage in REVIEW_STAGES ", "and size in first:"), "if False:"),
             ("rounds-explicit",
              _m("def group_hours(group: dict, ", "durations: dict,"),
              _m("hours = work + (rounds - 1) * ", 'float(durations["round_hours"])'),
@@ -2951,6 +2992,14 @@ def selftest() -> int:
             ("stamp-cadence",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("while len(carry) >= ", "every:"), "while False:"),
+            ("closure-later-of",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("closure_at = max([stamps[-1][\"at\"]] + ", "list(post_end.values()))"),
+             "closure_at = max([stamps[-1][\"at\"]] + [])"),
+            ("closure-check-later-of",
+             _m("def check_plan(plan: dict", ") -> list:"),
+             _m("closure = max([mins(x[\"at\"]) for x in close_stamps] + ", "post_fin"),
+             "closure = max([mins(x[\"at\"]) for x in close_stamps] + []"),
             ("round-close-version",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("stamps.append({\"version\": closing, ", "\"at\": closure + closure_lead,"),
