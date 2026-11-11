@@ -1,0 +1,16 @@
+SURVIVED NULL
+KILLED foldref-fetch-head
+KILLED foldtip-assert-off
+KILLED foldmemo-drops-line
+KILLED foldmemo-no-skip
+KILLED foldttl-never-retry
+KILLED foldttl-always-retry
+KILLED foldtip-wide-lsremote
+KILLED rv-memo-key-ignores-body
+KILLED rv-blocked-never-stands
+KILLED rv-memo-not-saved
+KILLED rv-stub-outside-wt
+SURVIVED rv-real-bodypush-outside-wt
+SURVIVED rv-folded-memo-no-entry
+SURVIVED rv-privref-not-deleted
+SURVIVED rv-nohandoff-not-on-level
