@@ -1351,6 +1351,7 @@
    "tools/policy/rules_sync.mjs",
    "tools/release/stamp.py",
    "tools/site/build_docs.mjs",
+   "tools/site/day_chart.mjs",
    "tools/site/package-lock.json",
    "tools/site/package.json"
   ],
