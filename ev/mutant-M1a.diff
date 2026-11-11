@@ -1,0 +1,4 @@
+26c26
+< sys.path.insert(0, os.path.join(_ROOT, "tests"))
+---
+> sys.path.insert(0, "tests")
