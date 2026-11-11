@@ -90,7 +90,8 @@ DEFAULTS = {
 
 #: Placeholders the overlay may omit or leave empty; each renders as the pulse.py
 #: flag given, repeated once per entry, or as nothing when there is none.
-OPTIONAL_FLAGS = {"seat_alives": "--seat-alive", "launch_ledger": "--launch-ledger"}
+OPTIONAL_FLAGS = {"seat_alives": "--seat-alive", "launch_ledger": "--launch-ledger",
+                  "plan_coordinator_cap": "--coordinator-cap"}
 ENTRY = re.compile(r"^[a-z]+=\S+$")
 
 
@@ -248,7 +249,7 @@ def self_test() -> int:
           re.findall(r"--seat-alive (\S+)", render(tracked, dict(full, seat_alives=["tick=/a", "merge=/b"])))
           == ["tick=/a", "merge=/b"])
     none = {k: v for k, v in full.items() if k not in OPTIONAL_FLAGS}
-    bare, empty = render(tracked, none), render(tracked, dict(full, seat_alives="", launch_ledger=""))
+    bare, empty = render(tracked, none), render(tracked, dict(full, seat_alives="", launch_ledger="", plan_coordinator_cap=""))
     check("null control: an overlay with no seat_alives renders step (1b) without the flag and does not fail",
           "--seat-alive" not in bare and "--launch-ledger" not in bare and bare == empty
           and "  " not in "".join(l for l in bare.splitlines() if "pulse.py --repo" in l))

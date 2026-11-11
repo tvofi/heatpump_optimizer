@@ -22019,8 +22019,13 @@ _REPO_ROOT_CQ = pathlib.Path(__file__).resolve().parents[1]
 # under an ignore pattern is analyzable code being filtered out, refused.
 _CODEQL_INIT = [st for st in _CODEQL_STEPS
                 if str(st.get("uses", "")).startswith("github/codeql-action/init@")]
-_CODEQL_IGNORE = ((_yaml.safe_load((_CODEQL_INIT[0].get("with") or {}).get("config") or "")
-                   or {}).get("paths-ignore") or []) if _CODEQL_INIT else []
+# The config is one expression choosing between two JSON lists: the full-run list
+# (workflow scripts only) and the pull-request python list, which adds tests/ and
+# dev/. Both are read out of the registered text, not a constant.
+_CODEQL_CONFIG = str((_CODEQL_INIT[0].get("with") or {}).get("config") or "") if _CODEQL_INIT else ""
+_CODEQL_LISTS = [json.loads(m) for m in re.findall(r"'(\[[^']*\])'", _CODEQL_CONFIG)]
+_CODEQL_PR_LIST, _CODEQL_BASE_LIST = (_CODEQL_LISTS + [[], []])[:2]
+_CODEQL_IGNORE = list(_CODEQL_BASE_LIST)
 _CODEQL_IGNORED = {pat: sorted(str(p.relative_to(_REPO_ROOT_CQ)) for p in _REPO_ROOT_CQ.glob(pat)
                                if p.is_file() and not p.is_symlink())
                    for pat in _CODEQL_IGNORE}
@@ -22033,6 +22038,31 @@ R.check(
     "codeql.yml ignores only files the JS parser refuses (each pattern matches, none parses)",
     bool(_CODEQL_IGNORE) and all(_CODEQL_IGNORED.values()) and not _CODEQL_PARSEABLE,
     f"ignored={_CODEQL_IGNORED}; parseable under an ignore pattern={_CODEQL_PARSEABLE}",
+)
+# r10-codeql-pr-paths: the pull-request python list is the full-run list plus
+# tests/ and dev/, chosen only for a pull_request event on the python leg. Without
+# the event or language guard the full run would lose them too (null control: the
+# guard text removed reads False).
+_CODEQL_GUARD = "github.event_name == 'pull_request' && matrix.language == 'python'"
+# The whole expression is one anchored shape, `(<GUARD>) && '<PR>' || '<BASE>'`,
+# and is evaluated for every event x leg: only a pull_request on python gets the
+# tests/dev list, so main's push run keeps the full set. A negated or `|| true`
+# guard fails the anchor and, evaluated, the push rows (null control: both red).
+_CODEQL_SHAPE = re.fullmatch(
+    r"paths-ignore: \$\{\{ \(" + re.escape(_CODEQL_GUARD) + r"\) && '(\[[^']*\])' \|\| '(\[[^']*\])' \}\}\s*",
+    _CODEQL_CONFIG)
+_CODEQL_SELECTED = {(ev, lg): json.loads(_CODEQL_SHAPE.group(1 if (ev == "pull_request" and lg == "python") else 2))
+                    for ev in ("push", "pull_request", "merge_group", "workflow_dispatch")
+                    for lg in ("actions", "javascript-typescript", "python")} if _CODEQL_SHAPE else {}
+_CODEQL_EXPECT = {(ev, lg): (_CODEQL_PR_LIST if (ev == "pull_request" and lg == "python") else _CODEQL_BASE_LIST)
+                  for ev in ("push", "pull_request", "merge_group", "workflow_dispatch")
+                  for lg in ("actions", "javascript-typescript", "python")}
+R.check(
+    "codeql.yml: tests/ and dev/ are ignored on a pull request's python leg only; a full run ignores workflow scripts alone",
+    len(_CODEQL_LISTS) == 2 and _CODEQL_PR_LIST == _CODEQL_BASE_LIST + ["tests/**", "dev/**"]
+    and _CODEQL_CONFIG.count(_CODEQL_GUARD) == 1
+    and bool(_CODEQL_SHAPE) and _CODEQL_SELECTED == _CODEQL_EXPECT,
+    f"lists={_CODEQL_LISTS}; config={_CODEQL_CONFIG!r}; selected={_CODEQL_SELECTED}",
 )
 # A skipped leg uploads main's analysis of its category as a stand-in, so a
 # pull request carries every configuration main does and code scanning never
