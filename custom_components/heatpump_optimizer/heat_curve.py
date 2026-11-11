@@ -69,7 +69,7 @@ CONSUMER = "heat_curve"
 #: The domains a whole-curve offset is written through.
 DOMAINS = ("number", "input_number")
 #: A difference in the entity's unit per kelvin. No unit is kelvin: a bare
-#: offset number (``luxtronik_shi``'s states K; others state nothing).
+#: offset number (one integration's states K; others state nothing).
 _DELTA_PER_K = {
     "K": 1.0, "°C": 1.0, "C": 1.0, "degC": 1.0, "": 1.0,
     "°F": 1.8, "F": 1.8, "degF": 1.8,
