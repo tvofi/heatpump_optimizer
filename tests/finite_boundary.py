@@ -747,7 +747,7 @@ def _scrub_mro_check() -> None:
 #: string is text: either at a number state's source must publish None.
 _NOT_NUMBERS = (True, "21.5")
 #: The state properties Home Assistant reads as a number.
-_NUMBER_STATES = ("native_value", "current_temperature", "target_temperature")
+_NUMBER_STATES = ("native_value", "native_current_temperature", "native_target_temperature")
 #: Payload sections the healthy payload does not build (no solve has run, no
 #: month has settled), seeded so the entities reading them publish a number
 #: and the census reaches them. A sensor declaring ``_payload_path`` is
@@ -905,7 +905,7 @@ def _owner_pins() -> None:
     def climate_temp(data):
         ent = object.__new__(climate.HeatPumpOptimizerClimate)
         ent.coordinator = _types.SimpleNamespace(data=data, last_update_success=True)
-        return climate.HeatPumpOptimizerClimate.current_temperature.fget(ent)
+        return climate.HeatPumpOptimizerClimate.native_current_temperature.fget(ent)
 
     def starts(lifetime):
         ent = object.__new__(sensor.CompressorStartsSensor)

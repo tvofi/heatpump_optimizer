@@ -48966,7 +48966,7 @@ _RC2_ROWS = [
     (_C.HeatPumpOptimizerClimate, "async_turn_on", (), ("mode", "off"), ("hvac_mode", _C.HVACMode.AUTO)),
     (_C.HeatPumpOptimizerClimate, "async_set_hvac_mode", (_C.HVACMode.HEAT,), ("mode", "auto"), ("hvac_mode", _C.HVACMode.HEAT)),
     (_C.HeatPumpOptimizerClimate, "async_set_preset_mode", ("economy",), ("mode", "auto"), ("preset_mode", "economy")),
-    (_C.HeatPumpOptimizerClimate, "async_set_temperature", ({"temperature": 21.5},), ("mode", "auto"), ("target_temperature", 21.5)),
+    (_C.HeatPumpOptimizerClimate, "async_set_temperature", ({"temperature": 21.5},), ("mode", "auto"), ("native_target_temperature", 21.5)),
     (_rc2_dt.AwayReturnDateTime, "async_set_value", (_RC2_RETURN,), ("away", True), ("native_value", _RC2_RETURN)),
 ]
 # The buttons share one PARALLEL_UPDATES slot, so a press that awaits a solve
@@ -66195,7 +66195,7 @@ async def _f11_midsolve(away: bool):
                 refresh=False)
         ent = _f11_climate.HeatPumpOptimizerClimate(c, entry)
         published: list = []
-        c.async_add_listener(lambda: published.append(ent.target_temperature))
+        c.async_add_listener(lambda: published.append(ent.native_target_temperature))
         seen: list = []
         solve = _f11_cm._await_optimize
 
@@ -66208,7 +66208,7 @@ async def _f11_midsolve(away: bool):
         with _f11_mock.patch.object(_f11_cm, "_await_optimize", _wrapped):
             dt_util.freeze(t0 + timedelta(minutes=15))
             await c.async_run_optimization()
-        return seen, ent.target_temperature
+        return seen, ent.native_target_temperature
     finally:
         dt_util.freeze(None)
 
