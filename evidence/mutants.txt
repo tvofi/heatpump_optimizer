@@ -1,0 +1,15 @@
+### M1 flag dropped from API_BOOL: KILLED expected
+  FAIL --allow-escape-sequences on actions/jobs/7/logs passes
+  FAIL the flag plus -f body=x on issues/201/comments is still refused as a comment write
+  FAIL mutant killed: --allow-escape-sequences dropped from API_BOOL (case 1 would fail)
+gh_calls self-test: 211 checks, 3 failed
+### M2 unknown-flag message line disabled
+  FAIL --bogus is refused with the unknown-flag message
+gh_calls self-test: 211 checks, 1 failed
+### M3 unk not set in --x / -x arm
+  FAIL --bogus is refused with the unknown-flag message
+gh_calls self-test: 211 checks, 1 failed
+### M5 unk not set in --x=y arm
+gh_calls self-test: 211 checks, 0 failed
+### M6 unk not set in -xVALUE arm
+gh_calls self-test: 211 checks, 0 failed
