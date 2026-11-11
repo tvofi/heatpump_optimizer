@@ -22182,7 +22182,16 @@
    "fixes": [],
    "findings": [],
    "wave": 7,
-   "hot_files": [],
+   "hot_files": [
+    "pump_arbiter.py",
+    "wear.py",
+    "sensor.py",
+    "store.py",
+    "features.py",
+    "finite_boundary.py",
+    "closures.json",
+    "architecture.md"
+   ],
    "fixture": false,
    "owner_gate": null,
    "rca": [],
@@ -22201,8 +22210,17 @@
     "R10-WATER-SETPOINT-FEEDBACK"
    ],
    "files": [
-    "custom_components/heatpump_optimizer/coordinator.py",
-    "tests/features.py"
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "custom_components/heatpump_optimizer/wear.py",
+    "custom_components/heatpump_optimizer/sensor.py",
+    "custom_components/heatpump_optimizer/store.py",
+    "tests/features.py",
+    "tests/finite_boundary.py",
+    "tests/guard_pins.py",
+    "tests/closures.json",
+    "tests/entities.py",
+    "tests/deployment_shape.py",
+    "docs/architecture.md"
    ],
    "carry": [
     "BUILD INPUT (orchestrator s14, 2026-11-11, under mandate 6715477401): the outside author pushed an implementation onto pull request 3420 at head e05c6b1ccc17f2486160669f4a64a33b79ea6a17 (17 files, 1003 insertions against main dbd1ab5b07: two new modules for the duty switch and the supply hold, arbiter and store changes, tests, and a commit stating its deviations from the design note). After the design verdict approves, the fixer starts from those commits with the author's authorship kept (ref_privacy.py guard's adopt-email arm admits one outside author), measures them against the approved design and the design reviewer's comparison section, and owes the full fixer contract on the result; it does not rebuild from scratch. Re-measure the head and the diff at dispatch: the author may push again. The author was told this on the pull request.",
@@ -22215,7 +22233,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "design review of the outside design note in pull request 3420 first (decision 0014); the fixer only after Design review: approve",
-    "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside design pull request 3420 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 design first, no deferral out of the round); overlap admitted (R10-SAV-VALUATION-RESIDUE, R10-ADVISOR-STEADY-START): s14 orchestrator 2026-11-11 under mandate 6715477401: outside design PR 3420 accepted, design review first",
+    "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside design pull request 3420 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 design first, no deferral out of the round); overlap admitted (R10-SAV-VALUATION-RESIDUE, R10-ADVISOR-STEADY-START): s14 orchestrator 2026-11-11 under mandate 6715477401: outside design PR 3420 accepted, design review first | set-files files ['custom_components/heatpump_optimizer/coordinator.py', 'tests/features.py'] -> ['custom_components/heatpump_optimizer/pump_arbiter.py', 'custom_components/heatpump_optimizer/wear.py', 'custom_components/heatpump_optimizer/sensor.py', 'custom_components/heatpump_optimizer/store.py', 'tests/features.py', 'tests/finite_boundary.py', 'tests/guard_pins.py', 'tests/closures.json', 'tests/entities.py', 'tests/deployment_shape.py', 'docs/architecture.md']; hot_files [] -> ['pump_arbiter.py', 'wear.py', 'sensor.py', 'store.py', 'features.py', 'finite_boundary.py', 'closures.json', 'architecture.md']",
     "pr": null
    },
    "brief": "Outside contribution: pull request 3420 by Bankaifan is a design note only. On a Luxtronik install driven over the smart-home interface, a hot water to space mode write while the compressor runs stops it whenever the hot-water leg has just heated the shared circuit, and it restarts minutes later; the optimizer neither prices nor observes that. The note proposes learning, per pump and per switch direction, how often a switch while running ends in a stop and how long the pump then stays off, and using the estimate in the planner and in the duty share only once the evidence passes a threshold; it also reports that the start counter misses short cycles and that the mode follows the supply switch-on by seconds. Design first (decision 0014): the outside note is the design under review, published on the group's design ref unchanged, and the design reviewer decides approve or revise before any fixer; the reviewer checks it against the water set-point feedback of pull request 3405, which this group builds after, and takes extra care on code security as for every outside contribution. The build then carries the design into our own pull request, thanks the contributor by name and pull request number in its body, and the original is closed with thanks after the merge. Every quantified claim needs its null control: a flat-price day and an install where no switch stops the compressor must leave the plan unchanged. Learned state is per pump, survives a restart, and is inert below the evidence threshold. Owning module to be named by the design review; expect custom_components/heatpump_optimizer/coordinator.py to be touched, so the coordinator cap applies."
