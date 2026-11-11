@@ -22,7 +22,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-WATER-SETPOINT-FEEDBACK (stage carries-open, branch `handoff/r10-water-setpoint-feedback`): `git fetch origin handoff/r10-water-setpoint-feedback && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-TRAIN-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-TRAIN-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-TICK-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REVIEW-DISPATCH-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-GH-READ-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -33,10 +33,13 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SAV-VALUATION-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-COMBI-TANK-PR-B (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-CARD-COLLAPSE (stage in-progress, branch `fix/r10-card-collapse`): `git fetch origin fix/r10-card-collapse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DUTY-SWITCH-RESTART-LEARNING (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-DEPENDABOT-3414-COMPAT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-RESTORE-BASE-SKEW (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-RCA-RESTORE-BASE-SKEW (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-OUTSIDE-DHW-CHARGE-SETTLE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-OUTSIDE-DIAG-REDACT-LOCATION (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DISINFECTION-SETPOINT (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-START-HYSTERESIS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-CLIMATE-NATIVE-TEMP (stage in-progress): no branch pushed yet, so nothing to fetch
