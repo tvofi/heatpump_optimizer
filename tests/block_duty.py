@@ -593,6 +593,13 @@ def disinfection_checks() -> None:
                               attrs={"min": 30, "max": 65, "step": 5}), "dhw") == 65.0,
     )
     check(
+        "a cycle whose temperature is an off-step everyday set-point is rounded up too, never below "
+        "the disinfection temperature; the same install's everyday step keeps the nearest step",
+        lambda: written(_dhw_snap(disinfecting=True, configured=60.4, disinfection=60.2), "dhw") == 61.0
+        and written(_dhw_snap(action={"dhw_reason": "legionella"}, configured=60.4, disinfection=60.2), "dhw") == 61.0
+        and written(_dhw_snap(configured=60.4, disinfection=60.2), "dhw") == 60.0,
+    )
+    check(
         "a disinfection temperature above the entity's range stays bounded at its maximum",
         lambda: written(_dhw_snap(disinfecting=True, attrs={"min": 30, "max": 58, "step": 1}), "dhw") == 58.0,
     )
