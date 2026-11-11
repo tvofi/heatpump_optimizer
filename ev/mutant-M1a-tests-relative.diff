@@ -1,0 +1,13 @@
+diff --git a/tests/harness.py b/tests/harness.py
+index 6ca70cb5b7..195cbbf021 100644
+--- a/tests/harness.py
++++ b/tests/harness.py
+@@ -23,7 +23,7 @@ from typing import Any
+ # module from a root other than the cwd (an export, a worktree) measures that
+ # root's package, not whichever tree the shell stands in.
+ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+-sys.path.insert(0, os.path.join(_ROOT, "tests"))
++sys.path.insert(0, "tests")
+ sys.path.insert(0, os.path.join(_ROOT, "custom_components"))
+ 
+ from homeassistant.config_entries import ConfigEntryState
