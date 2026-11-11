@@ -1,0 +1,10 @@
+== NULL 0 fails
+== R1 1 fails
+  FAIL  collapse: a hass refresh rebuilds the card and keeps each fold as it was
+== M4 2 fails
+  FAIL  collapse: focus returns to the rebuilt header
+  FAIL  collapse: focus returns to the dialog's copy of the pressed header
+== M2 21 fails
+  FAIL  headline shows every narrative line
+  FAIL  headline keeps the narrative's order
+  FAIL  narrative: one row per item
