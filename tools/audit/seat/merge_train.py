@@ -1524,7 +1524,7 @@ class Train:
         self.run = run or self._run
         self.sleep, self.log, self.clock = sleep, log, clock
         self.wall = wall  # epoch seconds: the infra re-run's due time is a reset_epoch (V142)
-        self.run = self._reads_retried(self.run)
+        self.run = self._reads_retried(_jq_checked(self.run) if run and _JQ_CHECK else self.run)
         # `batch --skip-bad` only: a per-entry Stop is skipped and reported
         # rather than stopping the train. Default (False) stays fail-fast.
         self.skip_bad = skip_bad
@@ -4209,6 +4209,8 @@ def sweep(t: Train, train_argv: "list[str]", add=train_add, ledger_log: "str | N
 
 
 def _self_test() -> int:
+    global _JQ_CHECK
+    _JQ_CHECK = True
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_env, throwaway_git_init
     passed = failed = 0
@@ -9425,6 +9427,24 @@ def main(argv: list[str]) -> int:
                      base=a.base, skip_bad=a.skip_bad, overlap=a.overlap, **opts).batch(queue, a.tag)
     return Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, ignore, a.min_runs,
                  **opts).train(queue)
+
+
+#: Self-test only: Train wraps an injected `run` so a stub refuses a paged read
+#: whose `--jq` is not the object key the path serves (mutation proof for the
+#: `key` argument of Train.pages and each call site).
+_JQ_CHECK = False
+_PAGED_KEY = (("check-runs", "check_runs"), ("/jobs?", "jobs"), ("actions/", "workflow_runs"))
+
+
+def _jq_checked(run):
+    def checked(argv, *a, **k):
+        if argv[:2] == ["gh", "api"] and "--jq" in argv and re.search(r"[?&]page=\d+", argv[2]):
+            want = next((key for frag, key in _PAGED_KEY if frag in argv[2]), None)
+            jq = argv[argv.index("--jq") + 1]
+            if want and jq != f".{want}[]":
+                return 1, f"unexpected --jq {jq!r} for {argv[2]}"
+        return run(argv, *a, **k)
+    return checked
 
 
 def _jl(items) -> str:
