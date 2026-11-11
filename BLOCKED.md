@@ -30,3 +30,12 @@ The census is the script's only red at the head: `PYTHONPATH=tests/hastub python
 4. The review block at 5289e1fee: answered by round 2 (491e272a4, 4bd4edb40, 68a6ba2b3), whose body lists each of the nineteen `rv_` mutants `KILLED` at bf9707ae0. Not re-run by this seat: the head has not moved since that run.
 
 `governance / instrument-self-tests` is red on the pull request and is not in `merge_train.py owed-reds`' set; it is owed no answer.
+
+## Added by a second fixer seat of this round (2026-11-11, origin/main 50e4b1aa259827e0c74366bc45d065c26e3cc86c)
+
+The Question above stands unchanged; this seat adds evidence only. Code head still bf9707ae03044f329bdbc5c3ce8d3249c51f955b, no ledger file written, nothing pushed to `handoff/` or `handoff-body/`.
+
+- The shard that carried the status, read from the pull request's run 43011652325: `tests / mutation-pins (8)`, job 130495883117, prints `baseline tests/features.py: rc=1 failed=2 344s`, `MUTATION TABLE INCONCLUSIVE` with the `combi_type_branch census` line and its six `vendor:` sites, then `measure: skip-measure-failed, 0 anchor(s)`, and uploads a 403-byte artifact. All twelve artifacts the autofix job downloads are 403 bytes (job 130538473389's download list), so none carried a pin.
+- Scope item 3's evidence: main's own failing run is 43010208881 (push, head ee64358be7eeccaec5178a923cb3b83a18a924a0), whose `tests / fast (3.14)` is job 130489628669, conclusion failure. Read from main's run list; the job's census line itself was not read from that log.
+- Pull request 3466 is still not on main: `git merge-base --is-ancestor 97cb87c70 origin/main` exits 1 at 50e4b1aa2.
+- A prediction, not a pin: on a scratch tree of bf9707ae0 with 3466's diff to `custom_components/` and `tests/features.py` applied (never pushed), `--pin-killed --base origin/main --scripts tests/features.py` reads `baseline tests/features.py: rc=0 failed=0` and its null control survives; shard 1 of 4 under a 55-minute budget ended `PIN KILLED: 21 pinned, 7 left unpinned (0 survived, 7 not started for the budget, ...)`. Had the census not been the cause, that baseline would have stayed rc=1. Those 20 ledger files were discarded: `ci-autofix.md` allows `pinned` only where `--pin-killed` ran on this head. Cost to expect once the head can be measured: about two minutes a mutant on four workers against that one driver, so the 109 sites need several budgeted passes or the pull request's own shards.
