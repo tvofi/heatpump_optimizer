@@ -69980,7 +69980,8 @@ def _r9egb9_make(entry_id, extra=None, anchor=None):
     hass = _R9EGB9Hass({
         "sensor.indoor": FakeState("21.0", unit="°C"),
         "sensor.outdoor": FakeState("-5.0", unit="°C"),
-        "switch.heat_pump": FakeState("on"),
+        # Off: a supply found on is held for MIN_RUN after a restart (supply_hold).
+        "switch.heat_pump": FakeState("off"),
     })
     coord = Coord(hass, _r9egb9_entry(data={
         "tibber_token": "x",
@@ -81925,6 +81926,100 @@ for _ms_name, _ms_kw, _ms_want in (
         _ms_got == _ms_want,
         f"{_ms_got}",
     )
+
+
+R.section("supply switch: minimum run and pause, restart")
+# A re-solve, a cycle or a step tick inside a step must neither stop the
+# compressor minutes after the switch turned it on nor start it minutes after
+# the gate turned it off (``pump_arbiter.hold_supply``): the gate holds the
+# write back and the step tick writes it once MIN_RUN / MIN_PAUSE has passed.
+# The real coordinator writes; each tick fires every minute.
+
+
+async def _ms_run(duties, switch, events, until=20, off_at=None):
+    """Switch writes by minute from 06:00 for a plan of ``duties`` (``s`` on).
+
+    ``switch`` is the switch's state and since-minute at 06:00 (negative is
+    before); ``events`` maps a minute to the action the cycle adopts there;
+    at ``off_at`` the optimizer is switched off.
+    """
+    ticks = []
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    hass = FakeHass({"switch.hp": FakeState(switch[0], last_updated=_SA_T0 + timedelta(minutes=switch[1]))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(len(duties))],
+        power_schedule=[1.5 if c == "s" else 0.0 for c in duties],
+        dhw_power_schedule=[0.0] * len(duties), optimal_setpoints=[21.0] * len(duties))
+    writes = []
+    try:
+        for m in range(until + 1):
+            now = _SA_T0 + timedelta(minutes=m)
+            _sa_dt.freeze(now)
+            coord._last_optimization = now
+            coord._mode = "off" if off_at is not None and m >= off_at else coord._mode
+            if m in events:
+                _sa_boost.adopt_plan(coord, {"heat_pump_on": events[m], "power": 1.5 * events[m]})
+                coord._optimization_result.power_schedule[m // 15] = 1.5 * events[m]
+                await coord._apply_action()
+            for tick in ([] if m in events else list(ticks)):
+                await tick(now)
+            for domain, service, _data in hass.services.calls:
+                if domain == "switch":
+                    writes.append((m, service))
+                    hass.states.set("switch.hp", FakeState("on" if service == "turn_on" else "off", last_updated=now))
+            hass.services.calls.clear()
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+    return writes
+
+
+# The cycle at 06:00 switches on; a re-solve at 06:03 turns the step off.
+_ms_short = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
+_ms_long = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 12: False}, until=14))
+R.check(
+    "a re-solve three minutes into a run does not switch the supply off; the step tick does at MIN_RUN",
+    _ms_short == [(0, "turn_on"), (10, "turn_off")],
+    f"{_ms_short}",
+)
+_ms_off = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14, off_at=5))
+R.check(
+    "a write held back is not retried once the optimizer is switched off",
+    _ms_off == [(0, "turn_on")],
+    f"{_ms_off}",
+)
+R.check(
+    "null control: the same re-solve twelve minutes into the run switches it off at once",
+    _ms_long == [(0, "turn_on"), (12, "turn_off")],
+    f"{_ms_long}",
+)
+# A re-solve at 06:12 switches the run off; one at 06:15 turns the next step on.
+_ms_pause = _asyncio.run(_ms_run("s-", ("off", -60), {0: True, 12: False, 15: True}, until=25))
+_ms_rest = _asyncio.run(_ms_run("s-", ("off", -60), {0: True, 12: False, 23: True}, until=25))
+R.check(
+    "a re-solve three minutes into a pause the gate wrote does not switch the supply on; the step tick does at MIN_PAUSE",
+    _ms_pause == [(0, "turn_on"), (12, "turn_off"), (22, "turn_on")],
+    f"{_ms_pause}",
+)
+R.check(
+    "null control: the same re-solve eleven minutes into the pause switches it on at once",
+    _ms_rest == [(0, "turn_on"), (12, "turn_off"), (23, "turn_on")],
+    f"{_ms_rest}",
+)
+# A restart or a reload finds the switch on, an hour into its run: the first
+# cycle's OFF is held as a run that started then, and nothing is switched on
+# against the plan. The null control is the 06:00 pause case above: the same
+# first cycle on a switch reading on writes OFF at once once the record is
+# MIN_RUN old.
+_ms_boot = _asyncio.run(_ms_run("--", ("on", -60), {0: False}, until=12))
+R.check(
+    "the first cycle after a restart keeps a supply found on for MIN_RUN, then switches it off",
+    _ms_boot == [(10, "turn_off")],
+    f"{_ms_boot}",
+)
 
 
 # --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------
