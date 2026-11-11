@@ -411,7 +411,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--mode", choices=("app", "owner"), default="app",
                     help="the merge identity merge_pr.sh is handed (default %(default)s)")
     ap.add_argument("--mandate", default="",
-                    help="owner mode: the #201 mandate comment id merge_pr.sh reads live")
+                    help="owner mode: the record-issue mandate comment id merge_pr.sh reads live")
     ap.add_argument("--dry-run", action="store_true", help="run every guard, touch nothing")
     a = ap.parse_args(argv)
     if a.self_test:

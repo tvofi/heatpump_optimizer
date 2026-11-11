@@ -4199,6 +4199,14 @@ def _p2_registry(sources):
 #: Facts no AST shape holds, each held by a census in another script that
 #: asserts its own reach. A registry entry here is the census's check text.
 _P2_CENSUSES = {
+    # R10-COMBI-TANK-STORE (#3225): the hot-water store is one view, its two
+    # sides exchange their flux, and only tap-stated limits pass through eps.
+    "combi_store_view": (
+        "tests/features.py", "combi_store_view census: outside thermal_model.py nothing reads"),
+    "combi_flux_live": (
+        "tests/features.py", "combi_flux_live census: every DHW walk the planner runs"),
+    "combi_tap_limit": (
+        "tests/features.py", "combi_tap_limit census: every tap-stated minimum the planner"),
     # #1747: the DHW mode block reached the first DHW build and not the
     # co-optimisation replan's (R9-RCA-1747); EG-B8's census holds it.
     "dhw_mode_blocked_at_every_build": (
@@ -16966,7 +16974,7 @@ R.check(
     "exactly one handover, with no date in its name",
     _handovers == ["dev/programme/HANDOVER.md"],
     f"found {_handovers or 'none'}; durable state belongs in the single "
-    "dev/programme/HANDOVER.md and volatile state on #201, never in both",
+    "dev/programme/HANDOVER.md and volatile state on #3394, never in both",
 )
 # `updated-for:` is the staleness half: a handover nobody has re-pointed since
 # the merge it describes is the failure mode, not one that has been deleted.
@@ -29812,7 +29820,9 @@ def _raf_job_ok(job: str) -> bool:
         and job.find("--write-self-row") > job.find("NUM=$(")
         and "docs/HANDOVER.md" not in job
         and "for try in 1 2 3" in job
-        and "issues/201/comments" in job
+        and "from budget_raise_gate import RECORD_ISSUE" in job
+        and "issues/$RECORD_ISSUE/comments" in job
+        and "issues/201/comments" not in job
         and "if: always()" in job
         and pushes
         and all(_RAF_LEASE in p for p in pushes)
@@ -32037,7 +32047,7 @@ def _brg_defects(text: str) -> "list[str]":
     if not all(re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py", runs[i])
                for i in gate):
         out.append("gate not under python3 -I")
-    # `issues: read`: the owner's recorded mandate is a comment on #201.
+    # `issues: read`: the owner's recorded mandate is a comment on a record issue.
     if doc.get("permissions") != {"contents": "read", "pull-requests": "read", "issues": "read"} or any(
             "permissions" in (j or {}) for j in jobs.values()):
         out.append(f"permissions {doc.get('permissions')}")
