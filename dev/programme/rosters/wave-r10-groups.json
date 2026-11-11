@@ -22672,7 +22672,7 @@
    "kind": "production",
    "class": "production",
    "severity": "medium",
-   "size": "M",
+   "size": "L",
    "wave": 7,
    "issues": [
     3440
@@ -22726,7 +22726,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "measure first, then fixer rebuilds the hot-water arm of outside pull request 3440 (no design step, size M) once R10-OUTSIDE-DISINFECTION-SETPOINT merges",
-    "note": "s14 triage s14-9 for the orchestrator under mandate 6715477401, 2026-11-11: outside pull request 3440 by Bankaifan accepted into round 10, hot-water arm; space arm carried to R10-WATER-SETPOINT-FEEDBACK; overlap admitted (R10-USER-DOCS-VERIFY, R10-CARD-COLLAPSE, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-DIAG-REDACT-LOCATION, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-ECL110-MQTT-OFF-NEUTRAL, R10-OUTSIDE-DISINFECTION-SETPOINT): s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3440 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); hot-water arm; space arm carried to R10-WATER-SETPOINT-FEEDBACK; overlap: pump_arbiter.py and tests/block_duty.py with R10-OUTSIDE-DISINFECTION-SETPOINT (after it), dhw_planner.py with R10-COMBI-TANK-PR-B in a different seam"
+    "note": "s14 triage s14-9 for the orchestrator under mandate 6715477401, 2026-11-11: outside pull request 3440 by Bankaifan accepted into round 10, hot-water arm; space arm carried to R10-WATER-SETPOINT-FEEDBACK; overlap admitted (R10-USER-DOCS-VERIFY, R10-CARD-COLLAPSE, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-DIAG-REDACT-LOCATION, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-ECL110-MQTT-OFF-NEUTRAL, R10-OUTSIDE-DISINFECTION-SETPOINT): s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3440 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); hot-water arm; space arm carried to R10-WATER-SETPOINT-FEEDBACK; overlap: pump_arbiter.py and tests/block_duty.py with R10-OUTSIDE-DISINFECTION-SETPOINT (after it), dhw_planner.py with R10-COMBI-TANK-PR-B in a different seam | set-size M -> L"
    }
   }
  ]
