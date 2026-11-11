@@ -7,16 +7,9 @@ Never write to any branch except your return refs and refs/heads/handoff-wip/r10
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires; at most 5 inline search operations per prompt; never set FRUGAL_ALLOW_INLINE.
 
 Brief (snapshotted when this payload was rendered):
-REPAIR fixer for R10-CARD-COLLAPSE (PR 3441, topic r10-card-collapse, branch fix/r10-card-collapse), round 3. The round-2 delta reviewer BLOCKED at the current PR head bbad7959ae2bacf68d01f190f28e87f849932179 (the base: start from it; handoff/r10-card-collapse e277484c is NOT the base).
+REPAIR fixer for R10-CARD-COLLAPSE, pull request #3441, branch fix/r10-card-collapse, head bbad7959ae2bacf68d01f190f28e87f849932179. Narrow scope: answer the blocked verdict below and nothing else; change no code unless the verdict needs it. Re-verify each claim against the tree (it was written at main cbd23f1; main has moved).
 
-Verdict first line, verbatim: Fix review: blocked bbad7959ae2bacf68d01f190f28e87f849932179 root-cause-unanswered: tests / fast (3.14) is red at this head and the body's Red checks reads none; env_drift --all against main's tip cbd23f1 refuses the branch for lacking #3398's combi leaves; pr-contract refuses the body for the same omission
+Verdict, verbatim:
+Fix review: blocked bbad7959ae2bacf68d01f190f28e87f849932179 root-cause-unanswered: tests / fast (3.14) is red at this head and the body's Red checks reads none; env_drift --all against main's tip cbd23f1 refuses the branch for lacking #3398's combi leaves; pr-contract refuses the body for the same omission
 
-Full text: git fetch origin verdict/3441; git show origin/verdict/3441:VERDICT.md. Every round-1 item (R1 fold reset on hass refresh, R2 focus to the card copy behind the dialog) is resolved and killed; no card or test change is needed.
-
-Class: stale base. The branch forked at a7628041dc, before #3398 merged; the fast lane's GOLDEN_REF is main's tip, so env_drift.py --all reports DRIFT on combi and legionella leaves present on one side only. Not a production defect of this PR.
-
-Steps:
-1. Branch from bbad7959ae2bacf68d01f190f28e87f849932179 and MERGE origin/main into it (never rebase). The verdict found `git merge-tree --write-tree origin/main bbad7959` exits 0 (clean); re-check at your start and resolve any conflict by union, reading both sides.
-2. Class sweep: re-run `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all origin/main` (and every other fast-lane script the verdict re-ran) at the merged tip and list every script's rc; claims files stay byte-identical unless a drift is genuinely this branch's (then follow claim-files.md). Steps of the fixer contract that name a head (mutants, prepr, body) re-execute at the new head.
-3. In the body's `## Red checks`, name `tests / fast (3.14)` at bbad7959 and answer the trigger: the cheaper detector (env_drift.py --all origin/main, or a main merge before the push) with its standing cost, or the finding that none exists because main moved under the run (state d). Re-run tools/pr/prepr.sh to rc=0, push the handoff and re-push the body with body_push.sh, read both refs back with git ls-remote.
-Keep output capped; BLOCKED.md with the exact question if stuck.
+Context from the dispatcher: the fast (3.14) red is main's combi census, owned by PR #3466 (on the merge train); do not fix it here. The body's ## Red checks must name tests / fast (3.14) and answer it (cheaper detector and its standing cost, or the finding that none exists), citing #3466 as the owner. Merge origin/main into the branch to pick up #3398's combi leaves so env_drift --all passes (merge origin/main; re-run steps 2-8 of fixer.md after the merge). The hold on #3441 is lifted. Hand off at the first clean head.
