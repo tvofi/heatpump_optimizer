@@ -356,6 +356,51 @@ def handoff_not_applied(branch: str, head: str, tip_of, is_ancestor) -> str | No
     return None
 
 
+# s14 local (never pushed): triage P564
+def round_roster_topic() -> str | None:
+    """The round roster's handoff topic, `audit-r<N>-roster`, from the branch
+    `roster_lib.round_ref` names; None when it names none."""
+    import roster_lib
+    ref = roster_lib.round_ref(roster_lib.git_in(str(repo()))) or ""
+    t = ref.removeprefix("origin/handoff/")
+    return t if ref.startswith("origin/handoff/") and re.fullmatch(r"audit-r\d+-roster", t) else None
+
+
+def body_snapshot(body: str, topic: str) -> str | None:
+    """The one 40-hex sha `## Head` names as "the tip of `handoff/<topic>` at
+    the snapshot", at the start of its line; None for none or for two."""
+    pat = re.compile(rf"^`([0-9a-f]{{40}})`, the tip of `handoff/{re.escape(topic)}` at the snapshot\b", re.M)
+    shas = set(pat.findall(section(body, "Head")))
+    return shas.pop() if len(shas) == 1 else None
+
+
+def roster_snapshot_advisory(branch: str, head: str, body: str, tip_of, is_ancestor,
+                             round_topic: str | None, behind) -> str | None:
+    """P564: the advisory that replaces `handoff-not-applied` for the round's
+    roster landing, or None (the refusal stands). Only when the deciding topic
+    is the round roster topic, the body names a snapshot, and that snapshot is
+    an ancestor of both the head and the current `handoff/<topic>` tip."""
+    if not round_topic:
+        return None
+    for t in handoff_topics(branch):
+        tip = tip_of(t)
+        if not tip:
+            continue
+        snap = body_snapshot(body, t) if t == round_topic else None
+        try:
+            if snap and is_ancestor(snap, head) and is_ancestor(snap, tip):
+                return (f"handoff-snapshot: {snap[:12]} is {behind(snap, tip)} commit(s) behind "
+                        f"handoff/{t}; a later landing takes the rest")
+        except Unavailable:  # a sha this clone cannot read is no snapshot
+            pass
+        return None
+    return None
+
+
+def rev_count(a: str, b: str) -> int:
+    return int(git("rev-list", "--count", f"{a}..{b}").strip())
+
+
 def origin_handoff_tip(topic: str) -> str | None:
     tip = git("ls-remote", "origin", f"refs/heads/handoff/{topic}").split()
     if not tip:
@@ -591,6 +636,13 @@ def gather(a) -> dict:
     body = pr.get("body") or ""
     branch = (pr.get("head") or {}).get("ref") or ""
     handoff = handoff_not_applied(branch, head, origin_handoff_tip, is_ancestor)
+    snapshot = None  # s14 local (never pushed): triage P564
+    if handoff:
+        snapshot = roster_snapshot_advisory(branch, head, body, origin_handoff_tip, is_ancestor,
+                                            round_roster_topic(), rev_count)
+        if snapshot:
+            handoff = None
+            print(snapshot)
     unlanded: list[str] = []
     cites = landed_cites(body)
     if cites:  # no roster read at all for a body that cites no landed carry
@@ -616,8 +668,9 @@ def gather(a) -> dict:
         "structure": None if a.no_structure else structure_at_merge(main, head),
         "red_unanswered": red_unanswered, "host": host, "handoff": handoff,
         "hot": hot_file_refusals(touched, open_prs, boarded, a.pr),
-        "advisories": [] if os.environ.get("HPO_BUS_TRAIN_STATE") or not open_prs
-        else ["hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded"],
+        "advisories": ([snapshot] if snapshot else [])  # s14 local (never pushed): triage P564
+        + ([] if os.environ.get("HPO_BUS_TRAIN_STATE") or not open_prs
+           else ["hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded"]),
         "harness_label": label,
         "harness_base": run_harness(data, base, a.harness_arg) if data else "not run",
         "harness_head": run_harness(data, head, a.harness_arg) if data else "not run",
