@@ -1,1 +1,2 @@
 selftest_scope static: 111 gated step(s), 0 problem(s)
+rc=0

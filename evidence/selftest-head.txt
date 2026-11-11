@@ -91,6 +91,7 @@
   ok   fold: a first process killed by a signal ended its trace (null control: whole)
   ok   check: a table naming every read passes, and --write saves the measurement
   ok   check: a read the table misses fails, naming the step and the file
+  ok   static: a job that never settles the index is refused (UNSETTLED)
   ok   static, ids and select over a fresh table
   ok   static: a step whose run text changed since the record is refused
   ok   static: an unreadable table is refused
@@ -105,6 +106,14 @@
   ok   settle: no index entry is left racily clean (rc=0)
   ok   and a git status after it opens no tracked file
   ok   settle over an index with no racy entry changes nothing (rc 0)
+  ok   the `settle` command settles that racy index (rc=0; racy before it, none after)
+  ok   settle_gaps: an untraced step before the first traced one settling passes (null control)
+  ok   settle_gaps: no settle call is refused
+  ok   settle_gaps: a settle whose failure is swallowed is refused
+  ok   settle_gaps: a settle only in a traced (gated) step is refused
+  ok   settle_gaps: a settle only in launch, which starts traced steps, is refused
   ok   the committed table names no landed retired path (161 retired; named: [])
   ok   the live job parses (119 steps) and its gating is consistent
-selftest_scope self-test: 109 checks, 0 failed
+  ok   the live job settles the index in an untraced step before its first traced one
+selftest_scope self-test: 117 checks, 0 failed
+rc=0

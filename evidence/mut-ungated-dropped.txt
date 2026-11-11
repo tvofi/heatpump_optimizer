@@ -1,0 +1,5 @@
+== ungated-dropped
+selftest_scope self-test: 117 checks, 0 failed
+self-test rc=0
+selftest_scope static: 111 gated step(s), 0 problem(s)
+static rc=0
