@@ -22631,9 +22631,7 @@
     3439
    ],
    "fixes": [],
-   "after": [
-    "R10-ARBITER-OFF-RESTORE"
-   ],
+   "after": [],
    "files": [
     "custom_components/heatpump_optimizer/pump_arbiter.py",
     "custom_components/heatpump_optimizer/setpoint_check.py",
