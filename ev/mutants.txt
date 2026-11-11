@@ -1,0 +1,14 @@
+M1-range-1-based: KILLED rc=1 (5 failing) review_packet self-test: 108 checks, 5 failed
+M2-live-roster-count: KILLED rc=1 (1 failing) review_packet self-test: 108 checks, 1 failed
+M3-round-scope-dropped: KILLED rc=1 (1 failing) review_packet self-test: 108 checks, 1 failed
+M4-snapshot-not-anc-tip: KILLED rc=1 (2 failing) review_packet self-test: 108 checks, 2 failed
+M5-snapshot-not-in-head: KILLED rc=1 (1 failing) review_packet self-test: 108 checks, 1 failed
+M6-wait-green-dropped: KILLED rc=1 (2 failing) review_packet self-test: 108 checks, 2 failed
+M7-required-dropped: KILLED rc=1 (1 failing) review_packet self-test: 108 checks, 1 failed
+M8-green-only-wait: KILLED rc=1 (1 failing) review_packet self-test: 108 checks, 1 failed
+M9-prompt-anchor-dropped: KILLED rc=1 (2 failing) review_packet self-test: 108 checks, 2 failed
+M10-dispatch-prompt-none: SURVIVED rc=0 (0 failing) review_packet self-test: 108 checks, 0 failed
+M11-gather-round-none: SURVIVED rc=0 (0 failing) review_packet self-test: 108 checks, 0 failed
+M12-gather-adv-dropped: SURVIVED rc=0 (0 failing) review_packet self-test: 108 checks, 0 failed
+M13-continue-loop-break: KILLED rc=1 (1 failing) review_packet self-test: 108 checks, 1 failed
+NULL-docstring: SURVIVED rc=0 (0 failing) review_packet self-test: 108 checks, 0 failed

@@ -1,0 +1,11 @@
+== head
+review-packet handoff: R10-REVIEW-DISPATCH-RESIDUE at 7fb8680c8572, 25 live, 5 dispatched carries, 0 refused
+== base
+review_packet: REFUSE brief-carries: carry 23 is not named in the body (`Carry N`)
+review_packet: REFUSE brief-carries: carry 24 is not named in the body (`Carry N`)
+review_packet: REFUSE brief-carries: carry 25 is not named in the body (`Carry N`)
+review-packet handoff: R10-REVIEW-DISPATCH-RESIDUE at 7fb8680c8572, 25 carries, 20 refused
+== head, dispatch_prompt mutated to None
+review_packet: REFUSE brief-carries: carry 23 is not named in the body (`Carry N`)
+review_packet: REFUSE brief-carries: carry 24 is not named in the body (`Carry N`)
+
