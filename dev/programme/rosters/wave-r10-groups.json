@@ -22513,6 +22513,58 @@
     "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3436 by Bankaifan accepted into round 10; no reviewer on the outside PR itself, this group's fixer adopts its commits; overlap admitted (R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-LEARNER-ROBUSTNESS): s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3436 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); overlap: shares diagnostics.py with R10-GENERIC-HEAT-CURVE-PERSISTENT (carries-open), a different seam (location redaction)",
     "pr": null
    }
+  },
+  {
+   "group": "R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID",
+   "lane": "CORE",
+   "kind": "production",
+   "class": "P2",
+   "severity": "normal",
+   "size": "S",
+   "wave": 7,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/issues.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/de.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json",
+    "tests/entities.py",
+    "tests/features.py"
+   ],
+   "hot_files": [
+    "coordinator.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "source": "outside",
+   "brief": "Outside pull request 3437 by Bankaifan, accepted into round 10 (owner rulings 2026-11-06 outside intake and 2026-11-07 outside work is the top tier; no deferral out of the round). The defect as the author states it: a failed price fetch in custom_components/heatpump_optimizer/coordinator.py always raised an update failure, every entity went unavailable and the optimizer stopped steering, although the last fetched prices still covered the current time. The fix carries on with the last valid prices as a warning, and raises a stale-price-feed repair notice in custom_components/heatpump_optimizer/issues.py, for as long as those prices cover the current step. BUILD: the fixer STARTS from the author's commits on pull request 3437 (re-read the live head with git ls-remote origin refs/pull/3437/head; it was 40d7e43d at acceptance) and keeps the author's authorship, through the adopt-email arm of the ref_privacy.py guard. The pull request touches coordinator.py, issues.py, strings.json, the de, en and sv translations, tests/entities.py and tests/features.py. OWED, the full fixer contract on the result: a failing test first, a failed fetch at main with prices still covering the current step makes the update fail; mutation proof with mutants a reviewer can reproduce, each named exactly in the body and shown killed at the handoff head with the null mutant surviving; null controls, prices that no longer cover the current step still fail as before, and a healthy fetch raises no repair. coordinator.py is crowded (two pull requests in flight, four groups about to touch it): keep the edit there minimal, and merge a fresh origin/main immediately before the handoff. The coordinator.py line growth is paid by improving code, or goes to the orchestrator before the handoff with the measured number (CLAUDE.md rule 2); it is never carried silently. The strings.json text and the three translations are consistent in meaning across de, en and sv. Closes nothing by keyword. The outside pull request is closed with thanks by the orchestrator after the build merges.",
+   "carry": [],
+   "findings": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer adopts the author's commits on outside pull request 3437 (no design step, size S)",
+    "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3437 by Bankaifan accepted into round 10; no reviewer on the outside PR itself, this group's fixer adopts its commits; overlap admitted (R10-CARD-COLLAPSE, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-DIAG-REDACT-LOCATION): s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3437 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); overlap: coordinator.py shared with R10-COMBI-TANK, R10-COMBI-TANK-PR-B, R10-ARBITER-OFF-RESTORE, R10-ADVISOR-STEADY-START, R10-DUTY-SWITCH-RESTART-LEARNING, R10-OUTSIDE-LEARNER-ROBUSTNESS and R10-GENERIC-HEAT-CURVE-PERSISTENT, strings.json with R10-WATER-SETPOINT-FEEDBACK; a different seam (price fetch failure path); the fixer merges a fresh origin/main before its handoff",
+    "pr": null
+   }
   }
  ]
 }
