@@ -620,6 +620,20 @@ def _thermostat_held_state(
     return held
 
 
+def _held_reference(
+    model: ThermalModel, state: ThermalState, weather: WeatherSeries,
+    comfort_targets: np.ndarray | None, default_target: float,
+) -> ThermalState:
+    """``state`` as a thermostat holding the solve's own schedule would have it, wood side as measured.
+
+    The one reference both the settlement's start gap and a held-start solve
+    (``SolveInputs.held_start``, #2257) use, so that solve's gap is zero.
+    """
+    return _sharing_wood_side(_thermostat_held_state(
+        model, state, weather, _baseline_target(comfort_targets, 0, default_target),
+    ), state)
+
+
 def _thermostat_demand_single(
     model: ThermalModel,
     state: ThermalState,
@@ -2456,6 +2470,10 @@ class SolveInputs:
     forecast: ForecastSeries
     start_time: datetime | None = None
     limits: SolveLimits = field(default_factory=SolveLimits)
+    #: #2257: plan from the house as a thermostat holding this solve's own
+    #: schedule would have it (``_held_reference``), not as measured, so the
+    #: cost carries no one-off coast or heat-up. The what-if's steady pair.
+    held_start: bool = False
 
 
 def _house_ua_kw_per_c(params: ThermalParameters, scale: float = 1.0) -> float:
@@ -3793,6 +3811,13 @@ class HeatPumpOptimizer:
             )
         )
         away_drops = slot_drivers.away_floor_drops(self.config, step_hours, step_datetimes, limits.away_floor_drop_c)
+        weather = WeatherSeries(
+            outdoor_temps=outdoor_temps, wind_speeds=wind_speeds, precipitation=precipitation,
+            solar_radiation=solar_radiation, humidity=humidity, external_heat_kw=external_heat_kw,
+        )
+        if inputs.held_start:
+            initial_state = _held_reference(self.model, initial_state, weather, comfort_targets, self.config.target_temp)
+            self._stash_buffer_seed(initial_state)
 
         # Per-step solar gain, and the wind/rain multiplier on heat loss. Both
         # use the *forecast* at each future step rather than current
@@ -3998,15 +4023,7 @@ class HeatPumpOptimizer:
 
         if power_caps is not None and throttling:
             result = self._repair_throttled_buffer_caps(
-                WeatherSeries(
-                    outdoor_temps=outdoor_temps,
-                    wind_speeds=wind_speeds,
-                    precipitation=precipitation,
-                    solar_radiation=solar_radiation,
-                    humidity=humidity,
-                    external_heat_kw=external_heat_kw,
-                ),
-                initial_state, result, power_caps, dt,
+                weather, initial_state, result, power_caps, dt,
                 prices, step_hours, valve_targets, _solve,
             )
 
@@ -4058,6 +4075,15 @@ class HeatPumpOptimizer:
             return None
         return (np.clip(np.asarray(prev, dtype=float), 0.0, self.model.params.max_electrical_power),)
 
+    def _stash_buffer_seed(self, initial_state: ThermalState) -> None:
+        """The buffer temperature the settlement ceiling is floored at: the solve's own start."""
+        self._initial_buffer_temp = (
+            float(initial_state.buffer_tank_temperature)
+            if self.model.params.buffer_is_store
+            and initial_state.buffer_tank_temperature is not None
+            else None
+        )
+
     def _stash_price_horizon(
         self,
         initial_state: ThermalState,
@@ -4080,12 +4106,7 @@ class HeatPumpOptimizer:
             )
 
         self._price_known = price_known
-        self._initial_buffer_temp = (
-            float(initial_state.buffer_tank_temperature)
-            if self.model.params.buffer_is_store
-            and initial_state.buffer_tank_temperature is not None
-            else None
-        )
+        self._stash_buffer_seed(initial_state)
         self._pv_surplus = pv_surplus
 
         # Risk-adjusted pricing on the unpublished horizon (#34). The prior
@@ -5748,10 +5769,7 @@ class HeatPumpOptimizer:
         heat the thermostat buys plus the end's credit (``end_cost`` below 0),
         never more -- a summer house's passive warmth displaced nothing.
         """
-        held = _sharing_wood_side(_thermostat_held_state(
-            self.model, initial_state, weather,
-            _baseline_target(comfort_targets, 0, self.config.target_temp),
-        ), initial_state)
+        held = _held_reference(self.model, initial_state, weather, comfort_targets, self.config.target_temp)
         capped = self._deferred_energy_cost(
             held, initial_state, prices, outdoor_temps, caps=caps, humidity=humidity,
         )

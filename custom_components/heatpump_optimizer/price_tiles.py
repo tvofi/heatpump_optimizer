@@ -17,15 +17,17 @@ null: at a flat price and a constant outdoor temperature, where the plan has
 no timing to buy, its closed-loop cost per degree it delivers is the held
 figure up to the loop's own settlement error.
 
-THE CAP TILE PRICES THE PLAN, SETTLED. A cap keeps the comfort schedule, so
-both plans answer to one thermostat, and each plan's spend plus the heat it
-left unstored (``deferred_energy_cost``) differences the same question: the
-fuse advisor reads the same figure. Unsettled, a cap that left the house
-colder at the horizon's end read as a saving, and the figure moved with
-where the house started. Across two schedules the settlement is not
-comparable (each side is bought back against its own thermostat), which is
-why the degree tiles read the held figure instead.
-``dev/audit/harnesses/r10_advisor_residue.py whatif`` measures all three.
+THE CAP TILE PRICES THE PLAN IN STEADY STATE (#2257). Both plans, the live
+configuration's and the capped one, are solved again from a start held at
+each one's own schedule (``SolveInputs.held_start``), and each one's spend
+plus the heat it left unstored (``deferred_energy_cost``) is differenced:
+the what-if panel and the fuse advisor read the same figure. From the
+measured house the settled figure still moved with where the house started,
+and a cap, which can only cost, read as a saving on some starts; unsettled,
+a cap that left the house colder at the horizon's end read as one too. The
+degree tiles keep the held figure: a degree held by a thermostat, where the
+steady figure prices the plan's own answer to the same degree, about half.
+``dev/audit/harnesses/r10_advisor_residue.py whatif`` measures all four.
 
 THE HORIZON. One solve prices one day of weather and prices, so a tile is
 published as the mean of its daily means over the last ``HORIZON_DAYS`` local
@@ -91,17 +93,26 @@ def per_month(delta: float, horizon_hours: float) -> float:
     return delta * MONTH_HOURS / horizon_hours
 
 
-def monthly_deltas(live: Any, sim: Any, extra: float, horizon_hours: float) -> dict[str, float]:
-    """A what-if's three monthly figures against the plan it shadows.
+def monthly_deltas(
+    live: Any, sim: Any, extra: float, horizon_hours: float, steady: tuple[Any, Any] | None = None,
+) -> dict[str, float]:
+    """A what-if's monthly figures against the plan it shadows.
 
     ``live`` and ``sim`` are the two solves' results, ``extra`` the what-if's
     spend outside its solve (wood). The plan's spend; the same choice held from
     a steady start, the thermostats' (the degree tiles'); and the plan's spend
-    with the heat each plan left unstored bought back (the cap tile's and the
-    fuse advisor's). Only the first carries the one-off coast or heat-up.
+    with the heat each plan left unstored bought back. Only the first carries
+    the whole one-off coast or heat-up. ``steady`` is the same pair solved
+    again from held starts, live side first: with it the answer carries the
+    steady figure, settled the same way (the panel's, the cap tile's and the
+    fuse advisor's); without it the key is absent, never a fallback.
     """
     spend = sim.predicted_cost + extra - live.predicted_cost
+    held = {} if steady is None else {"monthly_steady_cost_delta": round(per_month(
+        steady[1].predicted_cost + steady[1].deferred_energy_cost + extra
+        - steady[0].predicted_cost - steady[0].deferred_energy_cost, horizon_hours), 2)}
     return {
+        **held,
         "monthly_cost_delta": round(per_month(spend, horizon_hours), 2),
         "monthly_held_cost_delta": round(per_month(sim.baseline_cost - live.baseline_cost, horizon_hours), 2),
         "monthly_settled_cost_delta": round(per_month(
@@ -138,8 +149,8 @@ def specs(config: Any, max_kw: float) -> list[tuple[str, dict[str, float]]]:
 
 
 def monthly_figure(overrides: Mapping[str, float], answer: Mapping[str, Any]) -> float | None:
-    """The monthly figure a tile averages: a degree held, or the plan under a cap, settled."""
-    key = "monthly_settled_cost_delta" if "power_cap_kw" in overrides else "monthly_held_cost_delta"
+    """The monthly figure a tile averages: a degree held, or the plan under a cap in steady state."""
+    key = "monthly_steady_cost_delta" if "power_cap_kw" in overrides else "monthly_held_cost_delta"
     return finite_float(answer.get(key))
 
 
