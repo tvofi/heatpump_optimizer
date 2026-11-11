@@ -32,7 +32,9 @@ none owned by this change. If they show, `tests / fast (3.14)` (combi census, fi
 
 ## Forward-carry
 
-Carry 1 (R10-RCA-REPLAY-CLASS-RERECORD, state c): answered in part. Landed here: the `cycle_cost:level_shift` control over tests/replay_cost_draws.tsv (`level_shift_offenders`, prints the classes examined, red on the table without the cut declaration, planted-shift null control in tests/replay.py), the declared cut (COST_CUTS, factor 0.6339 with its interleaved evidence), and its registration as the `replay_cuts` arm in tools/policy/field_coverage.mjs. Not landed: dev/audit/rca/R10-RCA-REPLAY-CLASS-RERECORD.md, because its source text (the orchestrator's session scratch) was not in this seat's reach; it carries forward to the orchestrator or the next fixer touching tests/replay.py. The owed red/green demonstration at d08ed31049, 6715d97332 and 078780e687 is not re-run in this body.
+Carry 1 (R10-RCA-REPLAY-CLASS-RERECORD, state c) is answered in part. Built here: the `cycle_cost:level_shift` control over tests/replay_cost_draws.tsv (`level_shift_offenders` prints the classes examined; a planted-shift null control sits in tests/replay.py), the declared cut (COST_CUTS, factor 0.6339, with its interleaved evidence), and its registration as the `replay_cuts` arm in tools/policy/field_coverage.mjs.
+
+- The RCA write-up dev/audit/rca/R10-RCA-REPLAY-CLASS-RERECORD.md is not in this diff: its source text, the orchestrator's session scratch, was out of this seat's reach, and the red/green demonstration across the three historical tables was not re-run here. Carry: R10-HOTFIX-REPLAY-CLASS-CUT | dismissed: RCA write-up needs orchestrator scratch text unavailable to this seat
 
 ## Friction
 
