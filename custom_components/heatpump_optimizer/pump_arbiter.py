@@ -1571,6 +1571,20 @@ def step_supply(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool | None:
     return None if i is None or i >= len(inp.plan.power_schedule or ()) else plan_step_runs(inp.plan, i)
 
 
+def cycle_supply(inp: ArbiterInputs, boosts: Any, on: bool, now: datetime | None = None) -> bool:
+    """The cycle's supply: the plan's command for the step it is written in.
+
+    The action is cut at the solve, and the experiment, the fuse advisor and
+    the price tile run before it is written, so a cycle can write a step late.
+    :func:`note_supply` stamps the write with the step it lands in, so the
+    step tick never corrected a stale ``on``: the switch then held the last
+    step's command for a whole step, as after a reload's cold solve. ``on``
+    stands wherever :func:`step_supply` does not speak.
+    """
+    step = step_supply(inp, boosts, now or dt_util.now())
+    return on if step is None else step
+
+
 @dataclass(frozen=True)
 class SupplyWiring:
     """What the step tick reads and writes through; built by :func:`note_supply`.

@@ -7778,7 +7778,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                           self._plan_age_minutes() or 0.0, self._solve_failures)
             return
 
-        on = bool(self._current_action.get("heat_pump_on", False))
+        on = pump_arbiter.cycle_supply(self.arbiter_inputs(), boost.held_for(self), bool(self._current_action.get("heat_pump_on", False)))
         await self._write_supply(on)
         # Between cycles the step tick writes each step's change (#2492).
         pump_arbiter.note_supply(pump_arbiter.state_for(self), pump_arbiter.SupplyWiring(self.arbiter_inputs, boost.held_for(self), self._write_supply), on)

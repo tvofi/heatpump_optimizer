@@ -81040,6 +81040,44 @@ R.check(
 )
 
 
+R.section("supply switch: the cycle writes the step it lands in")
+# The cycle's write lands in the step after the one its action was cut for
+# (a reload's cold solve, the price tile, the fuse advisor before the write):
+# it writes the plan's command for the step it lands in, not the action's.
+# The null control is the same cycle inside the action's own step.
+async def _ms_stale(minute):
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=[1.5, 0.0],
+        dhw_power_schedule=[0.0, 0.0], optimal_setpoints=[21.0, 21.0])
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda *_a: (lambda: None)
+    try:
+        _sa_dt.freeze(_SA_T0 + timedelta(minutes=minute))
+        coord._last_optimization = _SA_T0
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 1.5})
+        await coord._apply_action()
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+    return [s for d, s, _d in hass.services.calls if d == "switch"]
+
+
+_ms_late, _ms_own = _asyncio.run(_ms_stale(15.5)), _asyncio.run(_ms_stale(2))
+R.check(
+    "a cycle whose ON action was cut in the last step writes the OFF of the step it lands in",
+    _ms_late == ["turn_off"],
+    f"{_ms_late}",
+)
+R.check(
+    "null control: the same cycle inside the action's own step writes its ON",
+    _ms_own == ["turn_on"],
+    f"{_ms_own}",
+)
+
+
 # --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------
 # A set-point install's plan rarely writes the flow ceiling, so the metered
 # draw window is censored at the top and the plugin cannot learn the pump's
