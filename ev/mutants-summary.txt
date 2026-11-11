@@ -1,0 +1,21 @@
+MUTANT cap-off: mutant_run self-test: 52 checks, 3 failed ; FAIL lines: 4
+  ok   diff: a command failing on the unedited tree is BASELINE FAILS, rc 3
+  FAIL forkcap: an endless-style chain past a cap of 32 is FORKCAP, within seconds, never KILLED
+  FAIL forkcap: a chain that leaves its pgrp at every link is FORKCAP, not waited out
+  FAIL forkcap: a chain that leaves its session at every link is FORKCAP, not waited out
+MUTANT counter-session-only: mutant_run self-test: 52 checks, 3 failed ; FAIL lines: 4
+  ok   diff: a command failing on the unedited tree is BASELINE FAILS, rc 3
+  FAIL forkcap: a chain that leaves its session at every link is FORKCAP, not waited out
+  FAIL forkcap: no session-leaving descendant outlives the run
+  FAIL forkcap: a daemon that left the session and outlived its command is killed at the command's exit
+MUTANT exit-kill-off: mutant_run self-test: 52 checks, 1 failed ; FAIL lines: 2
+  ok   diff: a command failing on the unedited tree is BASELINE FAILS, rc 3
+  FAIL forkcap: a daemon that left the session and outlived its command is killed at the command's exit
+MUTANT stmtdel-off: mutant_run self-test: 52 checks, 4 failed ; FAIL lines: 5
+  FAIL diff: the added lines yield all six operators
+  FAIL diff: a self-test that does not pin them leaves survivors, rc 1, one line each
+  ok   diff: a command failing on the unedited tree is BASELINE FAILS, rc 3
+  FAIL STMT_DEL: one mutant per simple statement, a three-line continuation exactly once at its first line, none for an import, a docstring, a print or a compound header
+  FAIL STMT_DEL: the unpinned assignments SURVIVE and the pinned one is KILLED
+
+[exited with code 0]

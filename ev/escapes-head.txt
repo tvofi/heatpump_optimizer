@@ -1,0 +1,14 @@
+RESULT E1 setsid+clean-env chain (escape): outcome=TIMEOUT wall=16.1s leftover_after_run=80
+RESULT E1-null same chain keeping env (control): outcome=FORKCAP wall=1.6s leftover_after_run=0
+VOID (dash has no `exec -a`, sleeper never started; superseded by harness2 lines below) RESULT E2 double-fork setsid daemon, env -i, outlives command (escape): outcome=rc=0 wall=0.0s leftover_after_run=0
+VOID (dash has no `exec -a`, sleeper never started; superseded by harness2 lines below) RESULT E2-null same daemon keeping env (control): outcome=rc=0 wall=0.0s leftover_after_run=0
+VOID (dash has no `exec -a`, sleeper never started; superseded by harness2 lines below) RESULT E3 double fork, no setsid, orphan outlives command (covered): outcome=rc=0 wall=1.1s leftover_after_run=0
+VOID (dash has no `exec -a`, sleeper never started; superseded by harness2 lines below) RESULT E4 orphan that setsid's after reparent to 1 with clean env (escape): outcome=rc=0 wall=1.1s leftover_after_run=0
+RESULT E2 double-fork setsid daemon, env -i, outlives command (escape): outcome=rc=0 wall=0.0s leftover_after_run=1
+RESULT E2-null same daemon keeping env (control): outcome=rc=0 wall=0.1s leftover_after_run=0
+RESULT E3 double fork, no setsid, orphan outlives command (covered): outcome=rc=0 wall=1.1s leftover_after_run=0
+RESULT E4 orphan that setsid's after reparent with clean env (escape): outcome=rc=0 wall=1.1s leftover_after_run=0
+RESULT (rerun) E2 double-fork setsid daemon, env -i, outlives command (escape): outcome=rc=0 wall=0.0s leftover_after_run=1
+RESULT (rerun) E2-null same daemon keeping env (control): outcome=rc=0 wall=0.1s leftover_after_run=0
+RESULT (rerun) E3 double fork, no setsid, orphan outlives command (covered): outcome=rc=0 wall=1.1s leftover_after_run=0
+RESULT (rerun) E4 orphan that setsid's after reparent with clean env (escape): outcome=rc=0 wall=1.1s leftover_after_run=0
