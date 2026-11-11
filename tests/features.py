@@ -61725,68 +61725,61 @@ R.check(
     "floor makes the first read as a 43.1 L tank heat",
 )
 
-# A charge start makes the tank reading FALL (the loading transient), so a
-# heated interval, or one ending inside DHW_CHARGE_SETTLE_HOURS after the last
-# heated sample, must book neither a draw nor a usage-profile point. Pre-fix
-# the heated arm folds a positive energy and the 5-min-after arm also teaches
-# usage; the 20-min-after arm is the null control that still learns. A
-# compressor start for SPACE heating never sets the plan's DHW flag, the
-# learner's only heating input, so with no DHW charge on record it must learn
-# exactly as before: the second null control.
-def _chg_settle(heating_now, heating_before, heated_min_ago):
+# A charge start makes the tank reading FALL (the loading transient), and the
+# reading recovers once the charge stops; a draw does not recover. Each case
+# drives one learner on a pinned clock, samples 5 min apart, and reads (the open draw occurrence in kWh,
+# usage-profile points). Pre-fix the dip is booked on the heated interval and
+# taught as usage on the settle interval; a fix that drops every
+# charge-affected interval instead loses the real draw. "dip" recovers; "draw"
+# is the same fall that stays down: it must keep what main booked. "edge" dips
+# on the interval ending exactly DHW_CHARGE_SETTLE_HOURS after the heated
+# sample, still inside the window. "space": a compressor start for SPACE
+# heating never sets the plan's DHW flag, the learner's only heating input,
+# so the dip is learned exactly as on main -- the null control.
+def _chg_seq(temps, charged=True):
+    import sys as _sys
+    import types as _types
     coord = Coord(FakeHass(), _r7d203_entry(
         data={"tibber_token": "x", "weather_entity": "weather.home"},
     ))
     coord._thermal_params.dhw_enabled = True
+    coord._thermal_params.dhw_schedule_enabled = False  # one all-day window
     learner = coord._dhw_learner
     learner.cooling_rate = 0.3
-    folded, published = [], []
-    real_fold = learner.draw_stats.fold
-    learner.draw_stats.fold = lambda w, l, e: (folded.append(e), real_fold(w, l, e))
-    learner._publish = lambda **k: published.append(k)
-    learner._heating_active = lambda: heating_now
-    now = dt_util.now()
-    learner.last_temp_sample, learner.last_sample_time = 50.0, now - timedelta(minutes=5)
-    learner.heating_since_sample = heating_before
-    learner.last_heated_time = (
-        None if heated_min_ago is None else now - timedelta(minutes=heated_min_ago)
-    )
-    _aio.run(learner.async_learn_dynamics(47.0))
-    return round(sum(folded), 6), len(published)
-
-
-_chg_heated = _chg_settle(True, True, 5)
-_chg_settling = _chg_settle(False, False, 5)
-_chg_settled = _chg_settle(False, False, 20)
-_chg_space = _chg_settle(False, False, None)
-
-
-# The same settle driven through the learner's own stamping, not a preset
-# last_heated_time: one heated sample, then unheated samples 5 min apart (each
-# "5 min later" shifts the stored stamps back). The third interval after the
-# heated sample is the one only the settle window guards.
-def _chg_driven():
-    coord = Coord(FakeHass(), _r7d203_entry(
-        data={"tibber_token": "x", "weather_entity": "weather.home"},
-    ))
-    coord._thermal_params.dhw_enabled = True
-    learner = coord._dhw_learner
-    learner.cooling_rate = 0.3
-    folded, published, heating = [], [], [False]
-    real_fold = learner.draw_stats.fold
-    learner.draw_stats.fold = lambda w, l, e: (folded.append(e), real_fold(w, l, e))
+    published, heating = [], [False]
     learner._publish = lambda **k: published.append(k)
     learner._heating_active = lambda: heating[0]
-    for temp, heat in ((50.0, False), (50.0, True), (50.0, False), (47.0, False)):
-        heating[0] = heat
-        _aio.run(learner.async_learn_dynamics(temp))
-        learner.last_sample_time -= timedelta(minutes=5)
-        if getattr(learner, "last_heated_time", None) is not None:  # absent pre-fix
-            learner.last_heated_time -= timedelta(minutes=5)
-    return round(sum(folded), 6), len(published)
+    module = _sys.modules[type(learner).__module__]
+    real_dt, start = module.dt_util, dt_util.now().replace(hour=8, minute=0)
+    clock = [start]
+    module.dt_util = _types.SimpleNamespace(now=lambda: clock[0])
+    try:
+        for i, temp in enumerate(temps):
+            clock[0] = start + timedelta(minutes=5 * i)
+            heating[0] = charged and i == 1
+            _aio.run(learner.async_learn_dynamics(temp))
+    finally:
+        module.dt_util = real_dt
+    return round(learner.draw_stats.as_dict()["open_kwh"], 4), len(published)
 
 
-_chg_seq = _chg_driven()
+_chg_dip = _chg_seq((50.0, 50.0, 48.0, 47.0, 48.5, 50.0, 50.0))
+_chg_draw = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0))
+_chg_edge = _chg_seq((50.0, 50.0, 50.0, 50.0, 48.0, 49.5, 50.0, 50.0))
+_chg_space = _chg_seq((50.0, 50.0, 48.0, 47.0, 48.5, 50.0, 50.0), charged=False)
+_chg_space_draw = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0), charged=False)
+R.check(
+    "a charge-start dip that recovers is learned as neither a draw nor usage, "
+    "and a draw that does not recover keeps what main booked",
+    _chg_dip[0] < 0.05 and _chg_dip[1] == 0
+    and _chg_edge[0] < 0.05 and _chg_edge[1] == 0
+    and _chg_draw[0] > 0.5 and _chg_draw[1] == 1
+    and _chg_space[0] > 0.5 and _chg_space[1] == 2
+    and abs(_chg_draw[0] - _chg_space_draw[0]) < 0.05,
+    f"(open kWh, usage points) dip {_chg_dip}, dip at the window edge {_chg_edge}, "
+    f"draw that stays down {_chg_draw}, the dip with no DHW charge on record "
+    f"(control) {_chg_space}, the draw with none (control) {_chg_space_draw}",
+)
 
 
 # The cooling learner reads the same flag: a 30-min interval that STARTED on a
@@ -61802,23 +61795,15 @@ def _chg_cooling(started_heated):
     now = dt_util.now()
     learner.last_temp_sample, learner.last_sample_time = 50.0, now - timedelta(minutes=30)
     learner.heating_since_sample = started_heated
-    learner.last_heated_time = now - timedelta(minutes=30) if started_heated else None
     _aio.run(learner.async_learn_dynamics(49.8))
     return learner.cooling_samples
 
 
 _chg_cool = (_chg_cooling(True), _chg_cooling(False))
 R.check(
-    "a charge-start dip is learned as neither a draw nor usage",
-    _chg_heated == (0.0, 0) and _chg_settling == (0.0, 0)
-    and _chg_settled[0] > 0.5 and _chg_settled[1] == 1
-    and _chg_space == _chg_settled and _chg_seq == (0.0, 0)
-    and _chg_cool == (0, 1),
-    f"(kWh folded, usage points) heated {_chg_heated}, 5 min after the charge "
-    f"{_chg_settling}, 20 min after (control) {_chg_settled}, space-heating "
-    f"start with no DHW charge on record (control) {_chg_space}, driven "
-    f"heated-then-settling sequence {_chg_seq}, cooling samples from a "
-    f"30-min interval started heated / not (control) {_chg_cool}",
+    "a 30-min interval that started on a heated DHW sample teaches no cooling",
+    _chg_cool == (0, 1),
+    f"cooling samples from a 30-min interval started heated / not (control) {_chg_cool}",
 )
 
 # The snapshot restore and the store loader now share one day-type reader, so
