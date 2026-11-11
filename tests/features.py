@@ -62891,6 +62891,68 @@ R.check(
     _pa_between("40", then="41") == (1, [40.0]),
     f"{_pa_between('40', then='41')=}",
 )
+# #3402 item 5b825bae: an adopted baseline is a value the entity takes, or
+# off writes one it refuses. number.water_set declares min 25, max 63.
+R.check(
+    "R10-ARBITER-OFF-RESTORE: an edit outside the entity's own range is adopted bounded to it: off "
+    "restores 63 for a reading of 70; null control: 40, inside it, is restored as read",
+    _pa_between("70") == (1, [63.0]) and _pa_between("40") == (1, [40.0]),
+    f"{_pa_between('70')=} {_pa_between('40')=}",
+)
+
+
+def _pa_at_grace(after_s):
+    """Baseline 53, the space write, then 40 read ``after_s`` seconds past the grace's start."""
+    coord = _PaCoord(_PA_TUYA, duties="dds-s")
+    _pa_settled(coord)
+    _pa_settled(coord, 30)
+    stamp = _pa.state_for(coord).written["space_setpoint"][1]
+    coord.device("number.water_set", "40")
+    _pa_aio.run(_pa.apply(coord, stamp + timedelta(seconds=after_s)))
+    coord.hass.services.calls.clear()
+    return _pa_turn_off(coord), _pa_space(coord)
+
+
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a reading exactly ECHO_GRACE_S after the write is past the grace and "
+    "adopted; null control: one a second inside it is not, and off restores 53",
+    _pa_at_grace(_pa.ECHO_GRACE_S) == (1, [40.0]) and _pa_at_grace(_pa.ECHO_GRACE_S - 1) == (1, [53.0]),
+    f"{_pa_at_grace(_pa.ECHO_GRACE_S)=} {_pa_at_grace(_pa.ECHO_GRACE_S - 1)=}",
+)
+# #3402 item 648c3c80, the write-ahead order: the baseline is on disk before
+# the space write is sent, so a crash between the two still restores it.
+import json as _pa_json  # noqa: E402
+
+from homeassistant.helpers.storage import _DISK as _pa_disk  # noqa: E402
+
+_pa_wa = _PaCoord(_PA_TUYA)
+_pa_wa_key = f"heatpump_optimizer_{_pa_wa.entry.entry_id}_off_restore"
+_pa_wa_seen = []
+_pa_wa_call = _pa_wa.hass.services.async_call
+
+
+async def _pa_wa_spy(domain, service, data=None, **kwargs):
+    if (data or {}).get("entity_id") == "number.water_set":
+        _pa_wa_seen.append(_pa_json.loads(_pa_disk.get(_pa_wa_key) or "{}").get("armed", {}).get(_pa.CONSUMER))
+    return await _pa_wa_call(domain, service, data, **kwargs)
+
+
+_pa_wa.hass.services.async_call = _pa_wa_spy
+_pa_wa_before = _pa_disk.get(_pa_wa_key)
+_pa_settled(_pa_wa)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: the space set-point's baseline is saved before the arbiter's first "
+    "write to it is sent (write-ahead); null control: the store held no baseline before that pass",
+    _pa_wa_before is None and _pa_wa_seen[:1] == [{"entity_id": "number.water_set", "value": 53.0}],
+    f"{_pa_wa_before=} {_pa_wa_seen=}",
+)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: an install with no space set-point has no restorer (the hook's "
+    "'None unconfigured'); null control: one with it has",
+    _pa._restorer(EntryConfig.from_mapping({"pump_duty_mode": "control"})) is None
+    and _pa._restorer(_pa_wa._config) is not None,
+    f"{_pa._restorer(EntryConfig.from_mapping({'pump_duty_mode': 'control'}))=}",
+)
 
 
 def _pa_restored_twice(via):

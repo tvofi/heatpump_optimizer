@@ -65,8 +65,8 @@ MUTANTS = json.loads(r"""
  {
   "name": "M07_no_rebaseline",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "    if edit is not None and _edited(held, edit, now) and await",
-  "new": "    if False and _edited(held, edit, now) and await"
+  "old": "    if await off_restore.async_rebaseline(inp.hass, entry, CONSUMER, entity, baseline):\n",
+  "new": "    if False:\n"
  },
  {
   "name": "M08_release_writes_space",
@@ -121,6 +121,30 @@ MUTANTS = json.loads(r"""
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
   "old": "        and _differs(\"space_setpoint\", observed, record[0]) \\\n",
   "new": "        and True \\\n"
+ },
+ {
+  "name": "M17_adoption_unbounded",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    baseline = cast(float, _bounded(inp, \"space_setpoint\", edit))\n",
+  "new": "    baseline = edit\n"
+ },
+ {
+  "name": "M18_send_before_arm",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    if await _held_back(inp, coord.entry, held, slot, entity, now):\n        return\n    domain = entity.split(\".\", 1)[0]\n    service = _service(slot, state, value)\n    try:\n        if service is None:\n            await write_setpoint_c(coord.hass, entity, value)\n",
+  "new": "    domain = entity.split(\".\", 1)[0]\n    service = _service(slot, state, value)\n    try:\n        if service is None:\n            await write_setpoint_c(coord.hass, entity, value)\n            if await _held_back(inp, coord.entry, held, slot, entity, now):\n                return\n"
+ },
+ {
+  "name": "M19_grace_strict",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "utc_elapsed_seconds(now, record[1]) >= ECHO_GRACE_S",
+  "new": "utc_elapsed_seconds(now, record[1]) > ECHO_GRACE_S"
+ },
+ {
+  "name": "M20_restorer_unguarded",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    if not entity:\n        return None\n    return off_restore.Restorer(",
+  "new": "    return off_restore.Restorer("
  }
 ]
 """)

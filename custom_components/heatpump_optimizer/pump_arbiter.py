@@ -115,8 +115,8 @@ on the change into Off and on every unload, a reload and a Home Assistant
 stop included (the hook's one rule). A reading equal to the arbiter's own
 last write is never captured (:func:`_arm_space`). What a person sets while
 the optimizer is off is captured at the next arm; one set between writes is
-adopted as the baseline (:func:`_edited`) and, while active, still written
-over. The mode, the hot-water set-point and the silent switch are not
+adopted as the baseline (:func:`_edited`), bounded to the entity's own
+range, and, while active, still written over. The mode, the hot-water set-point and the silent switch are not
 restored.
 
 It acts at step boundaries: a one-minute tick (only while the option is not
@@ -146,7 +146,7 @@ from collections import Counter, deque
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypeGuard
+from typing import Any, TypeGuard, cast
 from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
@@ -1169,9 +1169,15 @@ async def _adopt(inp: ArbiterInputs, entry: Any, held: ArbiterState, now: dateti
     """A space set-point a person set (:func:`_edited`) becomes the baseline off restores."""
     entity = _entities(inp.config)["space_setpoint"]
     edit = _observed(inp, "space_setpoint")
-    if edit is not None and _edited(held, edit, now) and await off_restore.async_rebaseline(inp.hass, entry, CONSUMER, entity, edit):
-        _LOGGER.info("Pump duty: %s was set to %s by hand; turning the optimizer off restores that",
-                     entity, edit)
+    if edit is None or not _edited(held, edit, now):
+        return
+    # Off writes the baseline back, so it is one the entity takes: the edit
+    # inside the entity's own range, on its step (#3402's bound at adoption).
+    # A reading implies a state, so _bounded answers a number.
+    baseline = cast(float, _bounded(inp, "space_setpoint", edit))
+    if await off_restore.async_rebaseline(inp.hass, entry, CONSUMER, entity, baseline):
+        _LOGGER.info("Pump duty: %s was set to %s by hand; turning the optimizer off restores %s",
+                     entity, edit, baseline)
 
 
 async def _held_back(
