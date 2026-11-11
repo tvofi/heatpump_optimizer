@@ -18093,7 +18093,8 @@
    "files": [
     "dev/audit/README.md",
     "CLAUDE.md",
-    "dev/governance/dimensions/D11.md"
+    "dev/governance/dimensions/D11.md",
+    "dev/governance/dimensions/D13.md"
    ],
    "hot_files": [
     "dev/audit/README.md"
@@ -18208,7 +18209,7 @@
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-round-playbook-final",
-    "note": "split from R10-ROUND-PLAYBOOK by owner ruling tvofi 2026-11-07, coordination issue comment 6707334933; overlap admitted (R10-ROUND-PLAYBOOK): split of R10-ROUND-PLAYBOOK by owner ruling, coordination issue comment 6707334933 | set-files files ['dev/audit/README.md', 'CLAUDE.md'] -> ['dev/audit/README.md', 'CLAUDE.md', 'dev/governance/dimensions/D11.md']"
+    "note": "split from R10-ROUND-PLAYBOOK by owner ruling tvofi 2026-11-07, coordination issue comment 6707334933; overlap admitted (R10-ROUND-PLAYBOOK): split of R10-ROUND-PLAYBOOK by owner ruling, coordination issue comment 6707334933 | set-files files ['dev/audit/README.md', 'CLAUDE.md'] -> ['dev/audit/README.md', 'CLAUDE.md', 'dev/governance/dimensions/D11.md'] | set-files files ['dev/audit/README.md', 'CLAUDE.md', 'dev/governance/dimensions/D11.md'] -> ['dev/audit/README.md', 'CLAUDE.md', 'dev/governance/dimensions/D11.md', 'dev/governance/dimensions/D13.md']"
    },
    "brief": "Owner ruling (tvofi, 2026-11-07, verbatim \"Approve both\"; coordination issue comment 6707334933): the final, size-S reconciliation pass of the round playbook that R10-ROUND-PLAYBOOK drafts. Start only once every after-group has merged. Re-derive dev/audit/README.md against the tree at this group's merge base: every instrument path, role contract, policy file and phase the draft names must resolve there, and every group that changed a seat contract, an instrument or the merge path since the draft merged is reflected, with no figure the tree can answer. Run the draft's path-resolving checker at the merge base; it must pass, and its fixture must still go red on a renamed instrument (null control: an unchanged tree stays green). Update the CLAUDE.md index row only if the README's role changed. The closure criteria stay the owner's 2026-11-07 sentence: both v10.0.0 and the catalog PR landed, no open pull requests, handoffs, carries, findings or leads, and only the coordination issue open. policy_lint --budgets must not grow beyond the README's cap; a raise goes through the budget-raise gate."
   },
