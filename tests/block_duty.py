@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from datetime import datetime, timedelta, timezone
+from dataclasses import replace
 from types import SimpleNamespace
 
 sys.path.insert(0, "tests")
@@ -497,7 +498,38 @@ def main() -> int:
         lambda: arb._without_block(both_off, "both", NOW) == "idle",
     )
 
+    disinfection_checks()
     return R.close("BLOCK DUTY CHECKS")
+
+
+def _dhw_snap(*, action=None, disinfecting=False, configured=55.0):
+    """A control snapshot over a hot water set-point number, 30 to 65 degC."""
+    snap = _snap(
+        config={"pump_duty_mode": "control", "dhw_setpoint_entity": "number.dhw"},
+        params=SimpleNamespace(dhw_setpoint=configured, dhw_legionella_temp=60.0,
+                               dhw_min_temp=40.0, dhw_demand_windows=[]),
+        action=action, disinfecting=disinfecting,
+    )
+    return replace(snap, hass=FakeHass({
+        "number.dhw": FakeState("55", attributes={"min": 30, "max": 65, "step": 1}),
+    }))
+
+
+def disinfection_checks() -> None:
+    """A disinfection cycle holds its own temperature, not the everyday set-point."""
+    def written(snap, duty):
+        return arb.desired(_Coord(snap), snap, duty, NOW).dhw_setpoint
+
+    check(
+        "a commanded or held disinfection cycle writes its temperature, not the configured set-point",
+        lambda: written(_dhw_snap(action={"dhw_reason": "legionella"}), "dhw") == 60.0
+        and written(_dhw_snap(disinfecting=True), "both") == 60.0
+        and written(_dhw_snap(), "dhw") == 55.0,
+    )
+    check(
+        "a configured set-point above the disinfection temperature is never lowered to it",
+        lambda: written(_dhw_snap(disinfecting=True, configured=62.0), "dhw") == 62.0,
+    )
 
 
 if __name__ == "__main__":
