@@ -656,6 +656,8 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 |---|---|---|---|
 | Heat pump operating mode | from setup | the pump's mode entity | Read only unless **Pump duty control** is set to Control. Left empty, the optimizer assumes the pump can do everything. |
 | Pump duty control | Off | Off / Observe / Control | Whether the optimizer tells the pump which duty to serve on each plan step. See [Pump duty control](#pump-duty-control) below. |
+| Heating start hysteresis | none | `sensor` / `number` / `input_number`, K | Optional. The pump's own heating hysteresis; the heating floor's lift is never below it. |
+| Hot water start hysteresis | none | `sensor` / `number` / `input_number`, K | Optional. The pump's own hot water hysteresis; the plan drops a charge it would begin above the set-point less this. |
 | Defrosting | from setup | a binary sensor | On while the pump reverses to melt frost off the outdoor coil. |
 | Pump online | from setup | a binary sensor | On while the pump is actually reachable. |
 | Fault alarm | from setup | a binary sensor | On while the pump is reporting a fault. Only whether there is a fault is used. |
@@ -843,6 +845,12 @@ writes, at every 15-minute plan step:
   reads off, nothing is compared or written: switched off, a pump can report
   set-points of its own (a Tuya pump reads 25 °C). Once it is on, a reset that
   is still there is written back like any other difference.
+- **The pump's start hysteresis, if you name it.** *Hot water start
+  hysteresis* (K): the plan drops a charge it would begin on a tank at or
+  above the hot water set-point less this, because the pump would not start
+  it (a charge already running and the disinfection cycle are kept).
+  *Heating start hysteresis* (K): on a flow or return set-point the lift over
+  the measured water at the lowest planned level is never below it.
 - **Its own mode is not a pump limit.** A mode the optimizer wrote does not
   stop the next plan from heating the house or making hot water, even when the
   pump has not shown it yet or after a restart; one set by anybody else
@@ -851,7 +859,9 @@ writes, at every 15-minute plan step:
 **Observe** writes nothing. In *Observe* and *Control* the optimizer keeps a
 ledger of the last 24 hours: per 15-minute step, the duty the plan wanted
 against what the pump did, and a verdict — *delivered*, *space-instead*,
-*dhw-instead*, *idle-instead*, *unknown* or *baseline* (no plan duty). What the
+*dhw-instead*, *idle-instead*, *not-startable* (a hot-water step left idle on a
+tank above the pump's own start temperature, see below), *unknown* or
+*baseline* (no plan duty). What the
 pump did is read from what the integration already reads: the **power
 entity** (running or not), the operating mode (*DHW (Hot Water)*) and the
 **tank temperature** (a rise of 0.5 °C over the step counts as hot water).

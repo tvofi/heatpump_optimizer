@@ -979,6 +979,12 @@ DEFAULT_DHW_DISINFECTION_MODE: Final = "observe"
 CONF_PUMP_DUTY_MODE: Final = "pump_duty_mode"
 DEFAULT_PUMP_DUTY_MODE: Final = "off"
 PUMP_DUTY_MODES: Final = ("off", "observe", "control")
+#: The pump's own start hysteresis per duty, K, read from an entity: it
+#: starts a charge only below its set-point minus this. Read on its own
+#: (``inputs.read_hysteresis_k``): a configuration value changes only when
+#: someone changes it, so its age says nothing about whether it still holds.
+CONF_SPACE_HYSTERESIS_ENTITY: Final = "space_hysteresis_entity"
+CONF_DHW_HYSTERESIS_ENTITY: Final = "dhw_hysteresis_entity"
 #: How long a switch the optimizer turned on may stay unreadable before its
 #: record is dropped with a repair, when it is no longer the configured
 #: switch or has no state at all (renamed or deleted). Not immediate: at

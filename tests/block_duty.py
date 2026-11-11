@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from datetime import datetime, timedelta, timezone
+from dataclasses import replace
 from types import SimpleNamespace
 
 sys.path.insert(0, "tests")
@@ -497,7 +498,94 @@ def main() -> int:
         lambda: arb._without_block(both_off, "both", NOW) == "idle",
     )
 
+    hysteresis_checks()
     return R.close("BLOCK DUTY CHECKS")
+
+
+def _hyst_snap(config, *, action=None):
+    """A control snapshot over a hot water number and two hysteresis sensors."""
+    snap = _snap(
+        config={"pump_duty_mode": "control", "dhw_setpoint_entity": "number.dhw", **config},
+        params=SimpleNamespace(dhw_setpoint=55.0, dhw_legionella_temp=60.0,
+                               dhw_min_temp=40.0, dhw_demand_windows=[]),
+        action=action,
+    )
+    return replace(snap, hass=FakeHass({
+        "number.dhw": FakeState("55", attributes={"min": 30, "max": 65, "step": 1}),
+        "sensor.dhw_hyst": FakeState("4", unit="K"),
+        "sensor.heat_hyst": FakeState("2", unit="K"),
+    }))
+
+
+def hysteresis_checks() -> None:
+    """The pump's own start hysteresis: read as a difference, planned and logged."""
+    hyst = FakeHass({
+        "sensor.k": FakeState("2", unit="K"),
+        "sensor.f": FakeState("9", unit="°F"),
+        "sensor.big": FakeState("25"),
+        "sensor.neg": FakeState("-1"),
+        "sensor.na": FakeState("unavailable"),
+    })
+    check(
+        "a hysteresis reads as a difference: K as it stands, °F scaled, nonsense refused",
+        lambda: arb.read_hysteresis_k(hyst, "sensor.k") == 2.0
+        and abs(arb.read_hysteresis_k(hyst, "sensor.f") - 5.0) < 1e-9
+        and arb.read_hysteresis_k(hyst, "sensor.big") is None
+        and arb.read_hysteresis_k(hyst, "sensor.neg") is None
+        and arb.read_hysteresis_k(hyst, "sensor.na") is None
+        and arb.read_hysteresis_k(hyst, None) is None,
+    )
+    check(
+        "the heating floor's lift is never below the pump's own heating hysteresis",
+        lambda: arb._start_lift_k(_hyst_snap({"space_hysteresis_entity": "sensor.heat_hyst",
+                                              "flow_min_lift_k": 0.5})) == 2.0
+        and arb._start_lift_k(_hyst_snap({"flow_min_lift_k": 0.5})) == 0.5,
+    )
+    ledger = _hyst_snap({"dhw_hysteresis_entity": "sensor.dhw_hyst"}, action={"dhw_reason": "legionella"})
+    ledger_held = arb.ArbiterState()
+    arb._observe(ledger_held, ledger, "dhw", NOW)
+    check(
+        "the ledger's start temperature is the configured set-point less the hysteresis",
+        lambda: ledger_held.step["start_c"] == 51.0,
+    )
+    row = {"start": NOW, "planned": "dhw", "tank": 52.0, "measured": True, "ran": False,
+           "dhw_mode": False, "start_c": 51.0}
+    check(
+        "an idle hot water step on a tank above the start temperature is not-startable",
+        lambda: arb._verdict(row, 52.0)["verdict"] == "not-startable"
+        and arb._verdict({**row, "tank": 50.0}, 50.0)["verdict"] == "idle-instead"
+        and arb._verdict({**row, "start_c": None}, 52.0)["verdict"] == "idle-instead",
+    )
+    import numpy as np
+    from heatpump_optimizer.dhw_planner import drop_unstartable_dhw
+
+    def temps(plan):
+        # 1 K lost per step, 3 K gained per charging step, from 54 degC.
+        out = [54.0]
+        for p in plan:
+            out.append(out[-1] - 1.0 + (3.0 if p > 0 else 0.0))
+        return np.array(out)
+
+    plan = np.array([1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0])
+    state = SimpleNamespace(dhw_start_hysteresis_k=4.0)
+    check(
+        "a charge begun above set-point minus hysteresis is dropped, the first step and a cooled tank kept",
+        lambda: list(drop_unstartable_dhw(plan, state, 55.0, None, temps))
+        == [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+    )
+    edge_state = SimpleNamespace(dhw_start_hysteresis_k=3.0)  # step 2 opens at exactly 52
+    check(
+        "a tank exactly at the start temperature does not start",
+        lambda: list(drop_unstartable_dhw(np.array([0.0, 0.0, 1.0]), edge_state, 55.0, None,
+                                          lambda p: np.array([54.0, 53.0, 52.0, 55.0])))
+        == [0.0, 0.0, 0.0],
+    )
+    check(
+        "the disinfection run is kept (the warmer tank then drops the later one), an unset hysteresis drops none",
+        lambda: list(drop_unstartable_dhw(plan, state, 55.0, 3, temps))
+        == [1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0]
+        and list(drop_unstartable_dhw(plan, SimpleNamespace(), 55.0, None, temps)) == list(plan),
+    )
 
 
 if __name__ == "__main__":

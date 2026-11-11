@@ -117,8 +117,10 @@ the planned duty against what the pump did, read from what the integration
 already reads -- the measured electrical draw (running or not), the mode
 select (DHW only) and the tank temperature (a rise of :data:`TANK_RISE_C`
 over the step is hot water). Each step is ``delivered``,
-``space-instead``, ``dhw-instead``, ``idle-instead``, ``unknown`` (no power
-meter and no tank rise) or ``baseline``. A concurrent Heating + DHW run
+``space-instead``, ``dhw-instead``, ``idle-instead``, ``not-startable`` (a
+hot-water step left idle on a tank above the pump's own start temperature,
+the configured set-point less ``dhw_hysteresis_entity``), ``unknown`` (no
+power meter and no tank rise) or ``baseline``. A concurrent Heating + DHW run
 reads as hot water; a big draw can hide a tank rise. The last
 :func:`log_steps` steps and their counts are in the diagnostics; the ledger
 is not persisted. It is what decides whether control is worth turning on:
@@ -167,7 +169,8 @@ from .freq_control import defrost_interval
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, write_setpoint_c,
+    InputReader, quantise_setpoint_c, read_hysteresis_k, read_setpoint, setpoint_range_c,
+    write_setpoint_c,
 )
 from .log_latch import log_held
 from .payload import CurrentAction
@@ -823,6 +826,25 @@ def _or_hold(floor_c: float | None, config: Any) -> float:
     return _as_target(config, FLOW_HOLD_C) if floor_c is None else floor_c
 
 
+def _hysteresis_k(inp: ArbiterInputs, duty: str) -> float | None:
+    """The pump's start hysteresis for ``duty``, K, or ``None`` when unset."""
+    entity = getattr(EntryConfig.from_mapping(inp.config), f"{duty}_hysteresis_entity")
+    return read_hysteresis_k(inp.hass, entity) if entity else None
+
+
+def _start_lift_k(inp: ArbiterInputs) -> float:
+    """The floor's lift over the inlet, K: the configured lift, never below
+    the pump's own heating hysteresis where one is read.
+
+    The pump starts only once the water sits its hysteresis below the
+    target, so a floor written closer than that books heat on a step the
+    pump never starts.
+    """
+    lift = configured_flow_min_lift_k(inp.config)
+    hysteresis = _hysteresis_k(inp, "space")
+    return lift if hysteresis is None else max(lift, hysteresis)
+
+
 def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float | None:
     """A flow set-point per duty: heat, gate, or the fallback's hold.
 
@@ -848,7 +870,7 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
         p_min, p_max = _band_kw(inp)
         heat_c = _heat_ceiling_c(inp.config)
         floor_c = _or_hold(modulation_floor_flow_c(
-            _flow_inlet_c(inp), _gate_c(inp), configured_flow_min_lift_k(inp.config),
+            _flow_inlet_c(inp), _gate_c(inp), _start_lift_k(inp),
         ), inp.config)
         return _bounded(
             inp,
@@ -1413,8 +1435,11 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
     if row is None or row["start"] != start:
         if row is not None:
             held.log.append(_verdict(row, tank))
+        hysteresis = _hysteresis_k(inp, "dhw")
         held.step = row = {"start": start, "planned": duty, "plan": inp.plan, "tank": tank,
-                           "measured": False, "ran": False, "dhw_mode": False}
+                           "measured": False, "ran": False, "dhw_mode": False,
+                           "start_c": None if hysteresis is None
+                           else float(inp.params.dhw_setpoint) - hysteresis}
     elif row["plan"] is not inp.plan:
         row["planned"], row["plan"] = duty, inp.plan
     power = inp.measured_power_kw
@@ -1423,6 +1448,16 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
         row["ran"] = row["ran"] or float(power) >= _ran_kw(inp)
     mode = pump_mode.resolve(getattr(_slot_state(inp, "mode"), "state", None))
     row["dhw_mode"] = row["dhw_mode"] or mode == pump_mode.MODE_DHW
+
+
+def _above_start(row: dict[str, Any]) -> bool:
+    """Whether the step's tank began at or above the pump's start temperature.
+
+    Its own hysteresis then kept the pump off, so an idle step says nothing
+    about whether the pump obeys the plan.
+    """
+    start, tank = row.get("start_c"), row["tank"]
+    return start is not None and tank is not None and float(tank) >= start
 
 
 def _verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
@@ -1440,6 +1475,8 @@ def _verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
         verdict = "unknown"
     elif actual == planned or (planned == "both" and actual != "idle"):
         verdict = "delivered"
+    elif planned == "dhw" and actual == "idle" and _above_start(row):
+        verdict = "not-startable"
     else:
         verdict = f"{actual}-instead"
     return {"start": row["start"].isoformat(), "planned": planned,

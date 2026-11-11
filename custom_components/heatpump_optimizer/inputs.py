@@ -509,6 +509,29 @@ def read_setpoint(hass: Any, entity_id: str | None) -> float | None:
     return None if reading is None else reading[0]
 
 
+#: The widest start hysteresis read as one, K: a larger number is a wrong
+#: entity (a tank probe, a set-point), which would otherwise drop every
+#: planned charge and raise every heating floor without a word.
+HYSTERESIS_MAX_K = 20.0
+
+
+def read_hysteresis_k(hass: Any, entity_id: str | None) -> float | None:
+    """A pump's start hysteresis in K, or ``None`` when it cannot be read.
+
+    A temperature *difference*: a Fahrenheit unit is scaled by 5/9 and every
+    other unit, "K" and "°C" included, is taken as it stands -- the absolute
+    conversion ``read`` applies would read 2 K as -271 °C. A number outside
+    0 to :data:`HYSTERESIS_MAX_K` reads as no reading.
+    """
+    state = hass.states.get(entity_id) if entity_id else None
+    value = finite_float(getattr(state, "state", None))
+    if value is None:
+        return None
+    if str(state_unit(state) or "").strip() in ("°F", "F", "degF"):
+        value *= 5.0 / 9.0
+    return value if 0.0 <= value <= HYSTERESIS_MAX_K else None
+
+
 def setpoint_range_c(hass: Any, entity_id: str | None) -> tuple[float | None, float | None]:
     """The set-point entity's own (min, max) in degC, ``None`` where it states none.
 

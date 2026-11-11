@@ -206,6 +206,7 @@ from .inputs import (
     age_of,
     normalize_price_per_kwh,
     parse_bool,
+    read_hysteresis_k,
     price_per_kwh,
     stale_summary,
     state_power_kw,
@@ -6691,10 +6692,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 self._solar_radiation = observed
                 state.solar_radiation = observed
 
-        # The tank levels. Without an ok reading each tank is seeded from the
-        # previous plan's own trajectory (open-loop propagation, D12-s1-01):
-        # a never-advanced default (55 °C DHW, 40 °C buffer) reached every
-        # solve otherwise. No reading and no plan leaves the field as it is.
+        # The tank levels. Without an ok reading each tank is seeded from the previous plan's own
+        # trajectory (open-loop propagation, D12-s1-01): a never-advanced default (55 °C DHW, 40 °C
+        # buffer) reached every solve otherwise. No reading and no plan leaves the field as it is.
         dhw = reader.read(CONF_DHW_TEMP_ENTITY)
         buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
         plan, seeded_at = self._optimization_result, dt_util.now()
@@ -6702,6 +6702,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._dhw_temperature = dhw.value
         if (level := _seed_store(dhw, plan, "dhw_temp_trajectory", seeded_at)) is not None:
             state.dhw_temperature = level
+        state.dhw_start_hysteresis_k = read_hysteresis_k(self.hass, ctx._config.dhw_hysteresis_entity)
         if (level := _seed_store(buffer_reading, plan, "buffer_temp_trajectory", seeded_at)) is not None:
             state.buffer_tank_temperature = level
 

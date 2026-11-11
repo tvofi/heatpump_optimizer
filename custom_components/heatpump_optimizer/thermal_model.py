@@ -1927,6 +1927,10 @@ class ThermalState:
     # Hours since the tank was last known to be at anti-legionella temperature.
     # None means "unknown" and is treated as not due.
     dhw_hours_since_legionella: float | None = None
+    # The pump's own start hysteresis for hot water, K: it starts a charge
+    # only below its set-point minus this. None: not configured or unread,
+    # and every planned charge is taken to start.
+    dhw_start_hysteresis_k: float | None = None
 
     # ECL110 control state
     ecl110_displace_command: float = 0.0  # °C requested parallel shift

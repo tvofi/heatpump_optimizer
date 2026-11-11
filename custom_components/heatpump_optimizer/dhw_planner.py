@@ -196,6 +196,46 @@ def _drop_off_steps(mask: np.ndarray, off: np.ndarray | None) -> np.ndarray:
     return kept
 
 
+def drop_unstartable_dhw(
+    plan: np.ndarray,
+    state: Any,
+    setpoint_c: float,
+    keep_step: int | None,
+    temps_of: Callable[[np.ndarray], np.ndarray],
+) -> np.ndarray:
+    """``plan`` without the charges the pump would never start.
+
+    A pump starts a charge only below its set-point minus its own start
+    hysteresis (``state.dhw_start_hysteresis_k``), so a run the plan begins
+    on a warmer tank does not happen, and a plan that books it promises hot
+    water and prices energy that never arrive. Each run is judged in order,
+    on the trajectory ``temps_of`` simulates for the runs kept before it.
+    Kept: a run at the first step, which may be a charge already under way
+    that runs on to its set-point, and the run holding ``keep_step``, the
+    disinfection cycle, whose own set-point sits above the tank. With no
+    hysteresis read the plan is returned as it is.
+    """
+    plan = np.array(plan, dtype=float)
+    hysteresis = getattr(state, "dhw_start_hysteresis_k", None)
+    if hysteresis is None:
+        return plan
+    on = plan > 1e-6
+    i = 1
+    while i < plan.size:
+        if not on[i] or on[i - 1]:
+            i += 1
+            continue
+        end = i
+        while end < plan.size and on[end]:
+            end += 1
+        if (keep_step is None or not i <= keep_step < end) and (
+            temps_of(plan)[i] >= setpoint_c - float(hysteresis)
+        ):
+            plan[i:end] = 0.0
+        i = end
+    return plan
+
+
 class _DhwLegionellaPlan(NamedTuple):
     """What the anti-legionella stage decides, and the ceilings it sets."""
 
@@ -1195,14 +1235,14 @@ class DhwPlanner:
             max_temp=max_temp,
             forced_off=forced_off,
         )
-        # Not re-clamped here, because the repair now carries the clamp
-        # inside its own loop: every top-up it places is followed by one,
-        # so a plan leaves this stage already bounded by the per-step
-        # ceiling and already free of sub-minimum trickles. Doing it there
-        # rather than here is what lets the two agree — the repair sizes its
-        # room on the END of a step, draw and standby loss included, and so
-        # does the clamp, so a block placed to close a breach is no longer
-        # deleted by the very check meant to bound it.
+        # A charge begun on a tank above the pump's start temperature never runs (drop_unstartable_dhw).
+        schedule = drop_unstartable_dhw(schedule, initial_state, float(params.dhw_setpoint), legionella_step, lambda plan: self._dhw_plan_temps(plan, initial_state.dhw_temperature, outdoor_temps, draw_rates, dt, humidity, tank_exo_kw))
+        # Not re-clamped here, because the repair now carries the clamp inside its own loop: every
+        # top-up it places is followed by one, so a plan leaves this stage already bounded by the
+        # per-step ceiling and free of sub-minimum trickles. Doing it there is what lets the two agree
+        # -- the repair sizes its room on the END of a step, draw and standby loss included, and so
+        # does the clamp, so a block placed to close a breach is no longer deleted by the check
+        # meant to bound it.
 
         # --- External heat source (item 5) ---------------------------------
         # While something else is charging the tank for free, buying electric
