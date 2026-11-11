@@ -179,7 +179,15 @@
   held, it prints `APPROVAL-OWED <sha> <the gate's reason>` (rc 4): reviewable,
   because the owner's approval follows the verdict. A raise_hold Stop, a gate suite still
   running or a failed read (a log included) stays RED; `classify` itself, the train and the merge state are
-  unchanged, and without `--pr` the answer is as before. A required context red at main's tip whose workflow run is at
+  unchanged, and without `--pr` the answer is as before. With `--pr` (not `--main`),
+  an `instrument-self-tests` step red at the head and not at its merge base
+  (`git merge-base origin/main <sha>`), less the push-only drift step, reads RED
+  with one `INTRODUCED <step>` line each: a finding of the pull request
+  (`introduced_at`, R10-INTRODUCED-REDS-BARRIER). No base run counts every head
+  red, a step skipped by scoping is never red, and an unreadable listing or job
+  is rc 2. A head whose job did not conclude failure costs no extra read; else
+  one filtered check-run read at the base and one job-step read per side.
+  `introduced <sha> [--base <sha>]` prints those lines alone: rc 1 any, 0 none, 2 unreadable. A required context red at main's tip whose workflow run is at
   attempt 1 and failed on infrastructure alone (every failed job but `gate`
   logs an API rate-limit or unreachable string, and `gate` printed
   RATE-LIMITED or only `<job>: failure (this run)` reasons naming those jobs)

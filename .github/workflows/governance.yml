@@ -262,8 +262,11 @@ jobs:
   # included. Here they share a job with no grader. `HPO_JOB_GRADES: nothing`
   # tells `codeowners_gap.py` so, and its `--check` refuses the marker on a
   # job a required context names: a self-test grades the program the pull
-  # request carries, never the pull request. A red here is still a red check
-  # at the head, which `pr-contract` makes the body answer.
+  # request carries, never the pull request. A red here owes no `## Red checks`
+  # answer: the job is outside `merge_train.py owed-reds` (tvofi, 2026-11-07).
+  # A step red at the head and not at the merge base is INTRODUCED
+  # (`merge_train.py classify --pr`, `review_packet.py`): a finding of the pull
+  # request, which the fix reviewer blocks on; one red at both is main's.
   instrument-self-tests:
     # R10-CI-SLIM C7(a): not a required name, so it skips whole on a pull
     # request whose every changed file is product (prelude.machinery).
