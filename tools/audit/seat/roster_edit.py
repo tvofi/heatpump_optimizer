@@ -453,7 +453,7 @@ def op_append_group(roster, json_file, rel="", sizes=(), reason=None):
 #: `set-field`'s fields (P268): the per-group mapping the CI-priority rule reads through roster_lib.
 SET_FIELDS = ("source", "hotfix", "hotfix_by", "savings", "savings_source", "class")
 CITATION = re.compile(r"^[\w./-]+\.md#\w+$")
-REQUIRED_CONTEXTS = Path(__file__).resolve().parents[2] / "tools" / "policy" / "fixtures" / "required-contexts.json"
+REQUIRED_CONTEXTS = Path(__file__).resolve().parents[3] / "tools" / "policy" / "fixtures" / "required-contexts.json"
 
 
 def required_contexts() -> set:
