@@ -80286,6 +80286,12 @@ R.check(
     and not _he.HeatEnergyMeter().bridges_hot_water((0.0, 1.0), True, False),
     f"{_he_dhw_span(False)}",
 )
+_he_all_dhw = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=_he_dhw_ev.energy.heat_kwh))
+R.check(
+    "a span whose heat all went to hot water reads 0 kW of space heat, a measurement, not a refusal",
+    _he.span_heat(_he_all_dhw, 3.0).space_kw == 0.0,
+    f"{_he.span_heat(_he_all_dhw, 3.0)}",
+)
 _he_odd = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=8.0))
 _he_blind = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=None))
 R.check(

@@ -432,8 +432,6 @@ class HeatEnergyMeter:
         self.heat.observe(heat_kwh, at)
         self.elec.observe(elec_kwh, at)
         self._opened = start is None and self.heat.start is not None
-        if self._opened:
-            self._dhw_kwh = 0.0
         if heat_kwh is not None and start is not None and start_at is not None:
             self._close(at, start_at, heat_kwh - start, cadence_h, bounds_h, max_heat_kw)
         # A span closed this cycle is read by ``settle`` after this prune, so
@@ -470,12 +468,11 @@ class HeatEnergyMeter:
         last, last_at = self.heat.last, self.heat.last_at
         if heat_kwh is None or last is None or last_at is None or not open_span or self._dhw_kwh is None:
             return
-        shares = self.dwell.shares(last_at, at)
-        total = shares[0] + shares[1] if shares is not None else 0.0
-        if shares is None or total <= 0.0:
+        shares = self.dwell.shares(last_at, at)  # observed over a window of positive length
+        if shares is None:
             self._dhw_kwh = None
         else:
-            self._dhw_kwh += max(0.0, heat_kwh - last) * shares[1] / total
+            self._dhw_kwh += max(0.0, heat_kwh - last) * shares[1] / (shares[0] + shares[1])
 
     def settle(
         self, clean: dict[str, bool], plan_kw: tuple[float, float], anchor: tuple[Any, datetime | None]
