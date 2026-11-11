@@ -38,7 +38,16 @@ name: CodeQL
 #     push to main analyzes every leg in full, which is what the weekly cadence
 #     existed to guarantee on a quiet default branch.
 #
-# One paths-ignore entry, and it narrows no finding set: `.claude/workflows/*.js`
+# A pull request's python leg also ignores tests/ and dev/ (r10-codeql-pr-paths,
+# orchestrator ruling under mandate 6715477401, scope all, not tvofi in person):
+# the extraction of tests/features.py and its query evaluation had the leg at
+# 2173-3623 s against 48-104 s for its siblings. Main's push run keeps the full
+# path set, and since there is no scheduled run (below) it is the ONLY full
+# python analysis: a finding it raises in tests/ or dev/ that the pull request
+# leg missed is a red on main. The required context keeps its name and its
+# category; there is no non-gating leg.
+#
+# One paths-ignore entry on every other run, and it narrows no finding set: `.claude/workflows/*.js`
 # are Claude Code workflow scripts, function BODIES the Workflow tool wraps,
 # with a top-level `return` beside `export const meta` -- neither a script nor
 # a module, so the JS extractor cannot parse them, and they were the 8
@@ -196,10 +205,12 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
-          # Unparseable workflow scripts only (header); pinned by tests/entities.py.
+          # The unparseable workflow scripts everywhere; tests/ and dev/ as well on a
+          # pull request's python leg only (header). `github.event_name` here is the
+          # caller's, so a callee sees the event with nothing passed. Both lists are
+          # pinned by tests/entities.py.
           config: |
-            paths-ignore:
-              - .claude/workflows/*.js
+            paths-ignore: ${{ (github.event_name == 'pull_request' && matrix.language == 'python') && '[".claude/workflows/*.js", "tests/**", "dev/**"]' || '[".claude/workflows/*.js"]' }}
 
       - name: Perform CodeQL Analysis
         if: steps.standin.outputs.ok != 'true'
