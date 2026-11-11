@@ -83519,7 +83519,8 @@ class _FbCoord:
         self._thermal_params = _PaNS(
             dhw_setpoint=48.0, min_electrical_power=0.53, max_electrical_power=2.2)
         self._current_state = _PaNS(outdoor_temperature=4.0, room_temperature=21.0)
-        self.entry = _PaNS(entry_id=f"fb{next(_FB_IDS)}")
+        # Weak-referenceable, as a real entry is: a space write arms off_restore.
+        self.entry = _pa_entry(entry_id=f"fb{next(_FB_IDS)}")
         self.power = None
         self.defrosting = False
 
@@ -84091,6 +84092,28 @@ R.check(
     "under the replaced record or over the write is a cut",
     _fb_ends == (True, True),
     f"low end {_fb_ends[0]}, high end {_fb_ends[1]}",
+)
+# The off restore's edit adoption (R10-ARBITER-OFF-RESTORE's _edited) reads the
+# space slot before hold does, so a controller's clamp of a loop write is
+# _clamp_cut's and never a person's baseline: a 26.0 cut of a 25.0 -> 27.0
+# loop move sits more than the hold tolerance from both ends. Control: a 24.0
+# reading outside the bracket, and the same 26.0 with no loop run, are edits.
+def _fb_edit(observed, run=True):
+    held = _fb_pa.ArbiterState()
+    held.written["space_setpoint"] = (27.0, _FB_NOW - timedelta(seconds=_fb_pa.ECHO_GRACE_S))
+    held.space_before = 25.0
+    if run:
+        held.feedback = _fb_running(3600, 0, prev_c=25.0, sent_c=27.0)
+    return _fb_pa._edited(held, observed, _FB_NOW)
+
+
+_fb_edits = (_fb_edit(26.0), _fb_edit(24.0), _fb_edit(26.0, run=False))
+R.check(
+    "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK: a controller's cut of a "
+    "loop write (26.0 inside a 25.0 -> 27.0 move) is not adopted as the person's "
+    "baseline; a reading outside the bracket, or with no loop run, still is",
+    _fb_edits == (False, True, True),
+    f"cut {_fb_edits[0]}, outside {_fb_edits[1]}, no run {_fb_edits[2]}",
 )
 # R1's lower side in the replay: a 26.4 degC minimum return target (parameter
 # 979) clamps the loop's first wind-down, whose writes stay under it until a
