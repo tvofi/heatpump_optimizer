@@ -507,6 +507,7 @@ def layout_edges(
     wood: bool,
     dhw_coil: bool = False,
     dhw: bool = False,
+    combi: bool = False,
 ) -> list[tuple[str, str]]:
     """The drawn edge set of a layout under this configuration's flags.
 
@@ -574,8 +575,10 @@ def layout_edges(
     # pipe entirely, leaving the tank floating unconnected (#40 feedback,
     # item 2) — with a coil, the only pipe shown was the wood one, which
     # implied the tank had no electric heat source at all.
+    # A combi store (#3225) makes hot water from the buffer's own water, so the
+    # hot water edge leaves the buffer, not the pump.
     if dhw:
-        edges.append(("heat_pump", "dhw_tank"))
+        edges.append(("buffer_tank" if combi else "heat_pump", "dhw_tank"))
     return edges
 
 
@@ -639,6 +642,7 @@ def describe_setup(
         wood=wood,
         dhw_coil=p.dhw_coil_active,
         dhw=p.dhw_enabled,
+        combi=p.combi_tank_active,
     )
     catalog = [
         {
@@ -665,6 +669,7 @@ def describe_setup(
                 wood=wood,
                 dhw_coil=p.dhw_coil_active,
                 dhw=p.dhw_enabled,
+                combi=p.combi_tank_active,
             )],
         }
         for layout in LAYOUTS.values()
@@ -674,6 +679,9 @@ def describe_setup(
         "language": language,
         "two_zone": p.two_zone_enabled,
         "dhw": p.dhw_enabled,
+        # Where hot water is made (#3225): "combi" is the buffer store through
+        # its exchanger, "tank" the separate hot water tank.
+        "dhw_source": "combi" if p.combi_tank_active else "tank",
         "valve_mode": p.mixing_valve_mode,
         # Additive (issue #40): the layout key the model resolved to, and
         # whether it runs the two-tank physics. Both renderers key off these
@@ -875,6 +883,17 @@ def dhw_coast_miss_sek(extra_kwh: float, price: float) -> float:
     return max(0.0, float(extra_kwh) * float(price))
 
 
+def _combi_store_probed(config: Mapping[str, Any]) -> bool:
+    """A combi store's buffer probe already reads the hot water's store (#3225).
+
+    One node: the seed takes the buffer probe for both levels, so a DHW probe
+    adds no information and its miss prices nothing.
+    """
+    return bool(config.get(CONF_BUFFER_TANK_TEMP_ENTITY)) and (
+        ThermalParameters.from_config(config).combi_tank_active
+    )
+
+
 def rank_sensor_gaps(
     config: Mapping[str, Any],
     *,
@@ -924,7 +943,7 @@ def rank_sensor_gaps(
         (
             CONF_DHW_TEMP_ENTITY,
             0.0
-            if config.get(CONF_DHW_TEMP_ENTITY)
+            if config.get(CONF_DHW_TEMP_ENTITY) or _combi_store_probed(config)
             else dhw_coast_miss_sek(dhw_extra_kwh, dhw_price),
         ),
     )

@@ -269,7 +269,9 @@ FEEDBACK_RATE_K_PER_MIN = 0.2
 FEEDBACK_DEADBAND_SHARE = 0.1
 #: How far below the inlet the loop may wind the target down, K. A controller
 #: stops a running compressor when its inlet reaches target plus its heating
-#: hysteresis, 0.5 K at the least on the reporting firmware; less one 0.1 K
+#: hysteresis, a setting whose minimum is 0.5 K on the reporting firmware
+#: (3.92.3; #3372 comment 6756915104, which also says not to assume 2 K, and
+#: that input 10107 carries the start threshold in effect); less one 0.1 K
 #: entity step and a 0.1 K inlet rise between passes, 0.3 K cannot stop it at
 #: any permitted hysteresis, because a loop write is sent even when it moves
 #: less than :data:`SETPOINT_TOLERANCE` (:func:`_note_sent`).
@@ -1013,6 +1015,12 @@ def _clamp_cut(held: ArbiterState, slot: str, value: Any, observed: Any, at: dat
     the rest of the run, and ``hold`` reads it as held. A cut of
     today's target, or any other reading (a person, a revert to the
     controller's default), is ``hold``'s as before and starts the run over.
+
+    On a Luxtronik the two limits are Smart Home Interface inputs 10104
+    (parameter 979) and 10103 (parameter 87), which clamp register 10001
+    (#3372 comment 6756915104). They are inferred from the readback here:
+    no configured entity names them, and a controller without them is cut
+    the same way.
     """
     if slot != "space_setpoint":
         return False
