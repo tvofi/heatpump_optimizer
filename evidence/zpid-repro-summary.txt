@@ -1,0 +1,2 @@
+old: runs=30 multi=20 fixtureNO=20 trap>0=20 sleep=0
+new: runs=30 multi=22 fixtureNO=0 trap>0=0 sleep=30

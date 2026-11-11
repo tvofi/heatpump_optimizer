@@ -1,39 +1,58 @@
-Fix review: blocked c9aed94c0e5ae5fe7cd99e538aaecdfdf07f85c7 flaky-harness: the added ZPID loop's killed pre-exec subshells run the self-test EXIT trap rm -rf "$W" and fail the pin harness in most runs
+Fix review: merge c94061668cf61ee6bec00aaee7c5ab9942b0e37f
 
-bus-nonce: 33f7211048acdf977f64d0b7a0d23e5f
+bus-nonce: b11d44a5cdaca59b185a502559fc7be7
+pending-ci: gate
 
-## Block
+## Review
 
-Delta re-review of 9e2c18ff8..c9aed94c0, which the dispatch brief calls round 3 (the prior verdict also called itself round 3; counted by verdicts, this is the fourth, at which `fixer.md` owes a re-cut). `review_carry.py` prints FRESH-REVIEW.
+This is round 4, a later round over the reviewed head c9aed94c0e5ae5fe7cd99e538aaecdfdf07f85c7. Counted by verdicts it is the fifth review. The PR answers the fourth verdict with the re-cut `fixer.md` owes, and the body's `## Re-cut` section is present. `review_carry.py c9aed94c0 c94061668` prints FRESH-REVIEW, and the packet's `## Review scope` reads delta.
 
-The repair is sound as code: every mutant the round-3 verdict named is now killed (see Evidence). But the fixture this repair added makes the PR's own pin harness, `bash tools/audit/worktree_gc.sh --self-test`, fail nondeterministically:
-
-- `tools/audit/worktree_gc.sh:217` (added in 9d0e93669) loops `sleep 600 & ZPID=$!; case $ZPID in *0*) break;; esac; kill "$ZPID"` until a pid contains a 0.
-- A `kill` that lands in the fork-before-exec window hits a bash subshell. That subshell still carries the self-test's EXIT trap from line 119 (`trap '[ -n "${ZPID:-}" ] && kill "$ZPID" 2>/dev/null; rm -rf "$W"' EXIT`), runs it, and deletes the whole fixture directory `$W`, stubs included, while the self-test is still running.
-- Result on this container (GNU bash 5.2.21): the full self-test at the head printed `167 checks, 104 failed`, `100 failed` (in a git worktree), `105 failed` (in a git-archive copy), `105 failed`, then once `0 failed` (ev/selftest-flake-runs.txt, ev/selftest-head*.txt). The base d08ed3104 printed `132 checks, 0 failed` (ev/selftest-base-worktree.txt).
-- Minimal repro of lines 119 and 217 alone (ev/zpid-repro.sh, ev/zpid-repro.txt), 6 runs: whenever the loop iterated more than once, the trap ran in 3 to 11 subshells and the fixture was gone (`fixture-present=NO`). Null control: the run whose first pid contained a 0 (`iterations=1`) ran 0 subshell traps and kept the fixture.
-- Changing only the trap's `rm -rf "$W"` to `:` (ev/deflaked.sh, a reviewer-built wrapper and not the finder's) gave `167 checks, 0 failed` in every run (ev/selftest-orig-loop-last.txt is the original's one lucky pass; the trap-only variants passed 3 of 3).
-
-So the body's `167 checks, 0 failed` figure is a lucky draw, not the head's behaviour. Any `KILLED` the unmodified harness reports, the fixer's 24 included, can come from the race instead of the mutant. In my first, unmodified run, `trap-zpid-unguarded` read KILLED and then SURVIVED once de-flaked.
-
-CI does not catch this: `worktree_gc.sh` is in no measured closure, so the scoped gate never runs the self-test.
-
-Owed: keep the helper's subshell from inheriting the trap, for example `( trap - EXIT; exec sleep 600 ) &`, or guard the trap with `[ "$BASHPID" = "$$" ] || exit`. Then show the unmodified self-test passing on repeated runs, at least 5 consecutive, and the repro's NO case gone. A fixture that removes the race has to be shown passing repeatedly, not once.
+- The delta is c9aed94c → a merge of origin/main a7628041 → 76b902b9 → c94061668, which merges 76b902b9. Every hunk of `git diff c9aed94c0 c94061668 -- tools/audit/worktree_gc.sh` sits in the self-test, at old lines 214-490. `cwd_inside` (line 719) and `cwd_free` (line 747) are byte-identical to the reviewed head. The PR changes no production (`custom_components/`) code, so the scope is not widened.
+- The round-3 block (flaky-harness) is resolved. The zero-pid helper now sends no signal (`sh -c 'case $$ in *0*) exec sleep 600 ;; esac' & ... wait "$ZPID"`). In 25 consecutive runs, the unmodified self-test at the head read `160 checks, 0 failed` every time (`25 of 25 green`). In the same loop, run concurrently on the same container, c9aed94c read `11 of 25 green`, with the other 14 runs at `100 failed`/`104 failed`.
+- The Kept and Dropped claims hold. Each dropped fixture's mutants are still killed by the unmodified harness at the head:
+  - `argvco`: `v3-argvterm-empty`, `v2-argvterm-empty` and `v1-argvterm` are KILLED.
+  - `pidfuse`: `v1-pid`, `v1-killcheck` and the train.pid-loop drop (`r4-trainpid`, the body's `recut-trainpid`) are KILLED.
+  - `nopsbin`: `v2-nopsbin` and `v1-psunread`/`v3-psunread` are KILLED.
+- The check count 167 → 160 matches the seven `st` calls removed in the diff (2 + 2 + 3).
 
 ## Findings
 
-- Residual: `[ -n "$out" ] || return 2` in `cwd_inside` (an empty `lsof -a -d cwd` listing counts as unreadable) survives its deletion mutant (`lsofcwd-empty`, SURVIVED under the de-flaked harness). The line comes from main at d08ed3104, not this PR, and the body dispositions it under `## Unpinned sites`. Carry: dismissed: pre-existing line on main, not added or changed by this PR, and not in this PR's mutation scope
+- Residual: `[ -n "$out" ] || return 2` in `cwd_inside` survives its deletion mutant (`v3-lsofcwd-empty`, `v2-lsofcwd-empty` SURVIVED). The line is a pre-existing line on main, and the body dispositions it under `## Unpinned sites`. Carry: dismissed: pre-existing line on main, not added or changed by this PR, and out of its mutation scope
 
 ## Evidence
 
-- Head reviewed: c9aed94c0e5ae5fe7cd99e538aaecdfdf07f85c7 (ev/HEAD.txt). It matches the PR head in the GitHub API, `refs/pull/3423/head` (ev/head-at-post.txt) and the body's `## Head`.
-- FIRST STEP, prior verdict's named mutants, run with `mutant_run.py --spec ev/spec.json` and the de-flaked wrapper `--cmd 'bash ev/deflaked.sh'` (ev/mutants-deflaked.txt): `SURVIVED NULL`, then KILLED argvterm-quote, argvterm-colon, argvterm-dq, argvterm-sq, argvterm-col, argvterm-com, argvterm-slash, argvterm-empty, argvterm-any (the argvsib null control moves), openfile-eq, openfile-sib (the opensib null control moves), pidzero-tr, lockglob-star, lockglob-dot, lsofall, psunread.
-- The removed empty-pid guard is redundant, shown by mutant: `pidguard-restored` (re-adds `[ -n "$pid" ] &&`) SURVIVED and `pidempty-unquoted` SURVIVED. A direct probe (ev/pidempty-probe.txt) gives `kill -0 ""` rc 1 and `kill -0` with no argument rc 2. On a no-digit `train.pid` and an empty `x.lock`, both the guarded and unguarded forms read `free`. I accept the deletion.
-- `trap-zpid-unguarded` (revert of d43bce9c9's trap) SURVIVED de-flaked. It is cleanup only: it kills the helper `sleep` at exit and pins no behaviour.
-- The unmodified-harness spec run (ev/mutants.txt) gave the same verdicts except `trap-zpid-unguarded` KILLED, which is the race. That run's NULL happened to pass.
-- Prior findings: round 3's argvterm quote/colon/comma survivors are resolved. The lsofcwd-empty residual is carried as dismissed, as before.
-- `git merge-tree --write-tree origin/main c9aed94c0` rc 0: merges cleanly.
-- Role drift: `git diff <merge-base>...origin/main -- dev/governance/roles/` changes only the owed-reds wording in fix-review.md and fixer.md, which this review applies.
-- CI: `merge_train.py classify c9aed94c0... --pr 3423` read WAIT (pending: gate) at 05:36 UTC and `GREEN c9aed94c0e5ae5fe7cd99e538aaecdfdf07f85c7 pending: none red: none` (rc 0) at 05:37:12 UTC (ev/classify.txt). The review packet's `red-unanswered: gate` refers to gate run 130340237322, which exited early with "FAIL run(s) [42964861546] at this head are still being judged; their gate decides". classify reads the later gate run, which is green, so no red is owed and the body's `## Red checks: none` stands. `merge_train.py owed-reds` is in ev/owed-reds.txt.
-- The three-dot diff touches `tools/audit/worktree_gc.sh` and `dev/programme/delivery/3423.md` only. VERSION, the manifest, the notes heading, claim files and budgets are untouched.
-- The fixer's 24-mutant count could not be re-derived as stated, because the body gives no spec file. My own 20-mutant spec covers every site the round-3 verdict and this brief name.
+- Head reviewed: c94061668cf61ee6bec00aaee7c5ab9942b0e37f (ev/HEAD.txt). It is the PR head in the GitHub API, and the body's `## Head` names it (merging the authored head 76b902b9).
+- FIRST STEP, the self-test loop at both ends (ev/loop25-head.txt, ev/loop25-c9aed94c.txt; the loop is in ev/loop.sh):
+  - RESULT head c94061668: 25 of 25 green, every line `worktree_gc self-test: 160 checks, 0 failed`.
+  - RESULT c9aed94c: 11 of 25 green, with 10 runs at `167 checks, 100 failed` and 4 at `167 checks, 104 failed`. The body's own figure at c9aed94c is 13 of 25. Mine is a different draw of the same race.
+- Mutants, run with my own spec (ev/spec.json, built by ev/mkspec_r4.py). Its parts:
+  - `v3-*`: probe/rev-3423-33f72110's ev/mkspec.py, unchanged.
+  - `v2-*`: probe/rev-3423-23bb0265's ev/mutants.py `M` table.
+  - `v1-*`: rebuilt from probe/rev-3423-468a0851's prose.
+  - `r4-*`: my own four.
+  
+  The command was `mutant_run.py --spec ev/spec.json --cmd 'bash tools/audit/worktree_gc.sh --self-test'` with the unmodified harness and the default git-archive copy (ev/mutants.txt). RESULT: `SURVIVED NULL`, 39 KILLED, 5 SURVIVED besides NULL (44 entries; `grep -c ^KILLED` 39, `grep -c ^SURVIVED` 6 with NULL) (`v3-pidguard-restored`, `v3-pidempty-unquoted`, `v3-lsofcwd-empty`, `v3-trap-zpid-unguarded`, `v2-lsofcwd-empty`).
+- Survivors versus the body: the survivors are exactly the body's survivors, and every mutant name the body quotes as KILLED is KILLED here. The body's `v1-heldway`, `v1-lsofall`, `v1-argvterm` and `v1-nopsbin-replacement` are spelled by my rebuild as `v1-heldway`, `v1-lsofall`, `v1-argvterm` and `v2-nopsbin`, the same `|| return 2` drop on the ps read.
+- Dispositions of the survivors:
+  - `pidguard-restored` and `pidempty-unquoted` are equivalent, as the round-3 verdict showed (`kill -0 ""` fails).
+  - `trap-zpid-unguarded` is cleanup only.
+  - `lsofcwd-empty` is carried above.
+- Reviewer-added mutants, each KILLED:
+  - `r4-trainpid` drops train.pid from the pidfile loop.
+  - `r4-openfile-slash` drops the open-file `/`-prefix disjunct.
+  - `r4-cwd-slash` drops the cwd `/`-prefix disjunct.
+  - `r4-pidfile-head` makes the pidfile read empty.
+- Minimal repro of the trap plus the helper loop (ev/zpid-repro-old.sh is the round-3 reviewer's script; ev/zpid-repro-new.sh changes only the loop line to the head's and adds a `/proc/$ZPID/comm` read). 30 runs each (ev/zpid-repro-summary.txt):
+  - RESULT old: multi-iteration=20 fixture-NO=20 trap-runs>0=20.
+  - RESULT new: multi-iteration=22 fixture-NO=0 trap-runs>0=0 zpid-comm=sleep 30/30.
+  
+  The body's 21/21 and 21/0/0 figures are another draw of the same shape.
+- Body figures re-derived at the head:
+  - `tests/closure.py select` prints `MODE: SCOPED -- 0 script(s) run, 33 scoped out.` (ev/closure-select.txt).
+  - `tests/structure.py` prints `STRUCTURE RATCHET PASSED`, rc 0 (ev/structure.txt).
+  - The mutant count of 43 entries / 38 KILLED / 6 SURVIVED is the fixer's own spec, which is not committed. I re-derived it with my own 44-entry spec, and every name the two specs share agrees.
+- `git merge-tree --write-tree origin/main c94061668` rc 0 at origin/main f24d107bd (ev/merge-tree.txt): merges cleanly.
+- Role drift: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty.
+- Harness (step 9): the finding has no separate finder's harness. The in-tree `--self-test` is the pin harness, as in earlier rounds.
+- The three-dot diff touches only `tools/audit/worktree_gc.sh` and `dev/programme/delivery/3423.md`. VERSION, the manifest, the notes heading, the claim files and the budgets are untouched.
+- Red checks: `merge_train.py owed-reds` is in ev/owed-reds.txt. The packet's `red-unanswered: gate` is an earlier gate run at this head. `classify` reads WAIT (pending: gate, red: none), so no red is owed. The `tests / nightly-status` failure is not in the owed set. The CI state is in ev/classify.txt: classify read WAIT (pending: gate, red: none) from 08:23 to 08:55 UTC, so the verdict carries `pending-ci: gate`.

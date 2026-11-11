@@ -1,4 +1,0 @@
-kill -0 "" rc=1
-kill -0 (no arg) rc=2
-form [kill -0 "$pid"] on no-digit/empty pidfiles: free
-form [[ -n "$pid" ] \&\& kill -0 "$pid"] on no-digit/empty pidfiles: free
