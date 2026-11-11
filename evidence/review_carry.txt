@@ -1,0 +1,8 @@
+review_carry: 1875f3ed3 -> 762fd6197  main=origin/main
+  branch-only commits: 4
+  why: 4b7a5fc40bf82e1611ef3fd8d7a96bd9d1c0fb3e is not the automatic merge of its parents
+  4b7a5fc40  Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-delta-review
+  f26d038f1  Fit step 12 under a smaller fix-review.md raise after the main merge
+  0c6829dfa  Merge commit 'f26d038f142a35b09ea309ca6b50989df4ef6a44' into fix/r10-hotfix-delta-review
+  762fd6197  Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-delta-review
+review_carry: FRESH-REVIEW

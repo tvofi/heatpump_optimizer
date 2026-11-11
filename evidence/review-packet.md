@@ -1,6 +1,95 @@
+# Review packet #3379
+head: 762fd619773d8e6291ab0d339454bc1a8d74ed55
+base: 63bcdcaad827ad3d98f914bc2e5b6110f9bb9444
+
+Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
+
+## Gate digest: red
+CodeQL id=130275338649 success
+arch-score / arch-score id=130275272798 success
+arm id=130274071353 skipped
+budget-raise-gate / budget-raise-gate id=130275272562 failure
+cancel-superseded id=130274076678 success
+codeql id=130274760697 skipped
+codeql / Analyze (actions) id=130275272508 success
+codeql / Analyze (javascript-typescript) id=130275272534 success
+codeql / Analyze (python) id=130275272540 success
+gate id=130275128370 failure
+governance id=130274760073 skipped
+governance / delivery-status id=130275272860 success
+governance / delivery-status-publish id=130275275132 skipped
+governance / env-matrix id=130275272977 in_progress
+governance / instrument-self-tests id=130275272885 in_progress
+governance / policy-docs id=130275272772 success
+governance / record id=130275275088 skipped
+governance / wave-script id=130275272855 success
+hassfest id=130274760404 skipped
+hassfest / hassfest id=130275272742 success
+kernel-points id=130275275036 skipped
+pr-contract id=130275130183 skipped
+prelude id=130274076677 success
+refresh id=130274076370 success
+sweep-self id=130275361463 skipped
+tests id=130274760491 skipped
+tests / arch-instrument id=130275626703 success
+tests / briefs id=130275272654 success
+tests / browser id=130275626681 in_progress
+tests / closure-scope id=130275272667 success
+tests / closures id=130275626679 in_progress
+tests / coverage id=130275627122 in_progress
+tests / fast (3.14) id=130275626767 in_progress
+tests / mutation id=130275272786 success
+tests / mutation-autofix id=130275819392 skipped
+tests / mutation-pins id=130275819254 skipped
+tests / nightly-ha id=130275628737 skipped
+tests / nightly-status id=130275272610 success
+tests / replay id=130275628010 skipped
+tests / typing id=130275626705 success
+validate id=130274759671 skipped
+validate / validate-hacs id=130275272603 success
+
+## Refusals
+none
+
+## Advisories
+required-wait: required context `gate` reads concluded failure at 762fd619773d8e6291ab0d339454bc1a8d74ed55 in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
+
+## carry_audit at the head
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+
+## figure_lint at the head
+ok         python3 tools/audit/seat/cloud_dispatch.py --self-test
+             `tools/audit/seat/cloud_dispatch.py` is in the tree at this head
+  ok         python3 -I tools/audit/seat/review_packet.py --self-test
+             `tools/audit/seat/review_packet.py` is in the tree at this head
+  ok         python3 dev/audit/harnesses/r10_hotfix_delta_review_mutants.py
+             `dev/audit/harnesses/r10_hotfix_delta_review_mutants.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+             `tests/closure.py` is in the tree at this head
+  ok         tests/doc_claims.py
+             `tests/doc_claims.py` is in the tree at this head
+  ok         tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         node tools/policy/policy_lint.mjs
+             `tools/policy/policy_lint.mjs` is in the tree at this head
+  ok         python3 tools/audit/archscore/score.py --diff origin/main
+             `tools/audit/archscore/score.py` is in the tree at this head
+
+FIGURES: 8 resolved, 0 not verified, 0 refused
+
+## Finder's harness: none named
+### at the base
+not run
+### at the head
+not run
+
+## Mutation-ledger diff
+none
+
+## Three-dot diff
 diff --git a/dev/audit/harnesses/r10_hotfix_delta_review_mutants.py b/dev/audit/harnesses/r10_hotfix_delta_review_mutants.py
 new file mode 100644
-index 000000000..8e541f426
+index 0000000000..8e541f426b
 --- /dev/null
 +++ b/dev/audit/harnesses/r10_hotfix_delta_review_mutants.py
 @@ -0,0 +1,111 @@
@@ -116,32 +205,23 @@ index 000000000..8e541f426
 +if __name__ == "__main__":
 +    sys.exit(main(sys.argv[1:]))
 diff --git a/dev/governance/config/policy_budgets.json b/dev/governance/config/policy_budgets.json
-index a11c8218e..1c8b21219 100644
+index a11c8218e0..a7153fb266 100644
 --- a/dev/governance/config/policy_budgets.json
 +++ b/dev/governance/config/policy_budgets.json
-@@ -71,7 +71,7 @@
-     "tools/audit/briefs/D7.md": 45,
-     "tools/audit/briefs/D8.md": 56,
-     "tools/audit/briefs/D9.md": 65,
--    "tools/audit/briefs/fix-review.md": 140,
-+    "tools/audit/briefs/fix-review.md": 143,
-     "tools/audit/briefs/fixer.md": 315,
-     "tools/audit/briefs/judge.md": 30,
-     "tools/audit/briefs/nudge.md": 115,
 @@ -124,7 +124,7 @@
      "tools/audit/briefs/D7.md": 575,
      "tools/audit/briefs/D8.md": 808,
      "tools/audit/briefs/D9.md": 857,
 -    "tools/audit/briefs/fix-review.md": 2451,
-+    "tools/audit/briefs/fix-review.md": 2549,
++    "tools/audit/briefs/fix-review.md": 2546,
      "tools/audit/briefs/fixer.md": 5216,
      "tools/audit/briefs/judge.md": 469,
      "tools/audit/briefs/nudge.md": 3814,
 diff --git a/dev/governance/roles/fix-review.md b/dev/governance/roles/fix-review.md
-index 564a8f776..64e6c617d 100644
+index 892e45a4c8..7011f226cb 100644
 --- a/dev/governance/roles/fix-review.md
 +++ b/dev/governance/roles/fix-review.md
-@@ -89,7 +89,13 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
+@@ -90,7 +90,12 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
      (#1667; tvofi 2026-10-27) while `tools/audit/seat/review_carry.py
      <verdicted> <new>` prints `CARRY`: the PR's patch is the one reviewed
      (L6), not `head-moved`; a red CI never carries.
@@ -149,37 +229,36 @@ index 564a8f776..64e6c617d 100644
 +    Else a later round is **its delta** (tvofi 2026-11-09): `git diff <reviewed-head>
 +    <head>` (a main merge: its resolution), each prior finding resolved, the live
 +    required checks. Only a delta touching production code (`custom_components/`)
-+    that puts already-reviewed code's functionality at non-obvious risk of being
-+    affected, in a way CI would not detect, widens it, to exactly that code; the
-+    verdict names the path and the risk. Instrument, test, policy and body deltas
-+    never widen it.
++    that puts already-reviewed code's functionality at non-obvious risk, in a way
++    CI would not detect, widens it, to exactly that code; the verdict names the
++    path and the risk. Instrument, test, policy and body deltas never widen it.
  
  13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
      DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
 diff --git a/dev/programme/delivery/3379.md b/dev/programme/delivery/3379.md
 new file mode 100644
-index 000000000..90adf5a5b
+index 0000000000..90adf5a5b4
 --- /dev/null
 +++ b/dev/programme/delivery/3379.md
 @@ -0,0 +1 @@
 +- [#3379](https://github.com/tvofi/heatpump_optimizer/pull/3379) — **open**, hotfix(review): later review rounds review only the delta (owner ruling 2026-11-09) (R10-HOTFIX-DELTA-REVIEW)
 diff --git a/tests/closures.json b/tests/closures.json
-index 6c37c0fde..a9d53185d 100644
+index 388f371942..d75a7085c9 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -4100,6 +4100,7 @@
+@@ -4148,6 +4148,7 @@
     "dev/audit/harnesses/r10_heat_meter_mutants.py",
     "dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py",
     "dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py",
 +   "dev/audit/harnesses/r10_hotfix_delta_review_mutants.py",
+    "dev/audit/harnesses/r10_hotfix_train_policy_mandate_mutants.py",
     "dev/audit/harnesses/r10_house_grade.py",
     "dev/audit/harnesses/r10_i1_action_guards.py",
-    "dev/audit/harnesses/r10_i1_solve_cpu_2x.py",
 diff --git a/tools/audit/seat/bus.sh b/tools/audit/seat/bus.sh
-index a5b3a0161..05906121e 100755
+index 9acfcafd3f..04aee5bbf5 100755
 --- a/tools/audit/seat/bus.sh
 +++ b/tools/audit/seat/bus.sh
-@@ -544,7 +544,8 @@ autofix_inflight() { # head -> prints the autofix bot jobs of the head that are
+@@ -552,7 +552,8 @@ autofix_inflight() { # head -> prints the autofix bot jobs of the head that are
  # (ledger.py, beside $HPO_BUS_LEDGER else its default log): a seat started at that head.
  # THE REVIEW PACKET (R10-ORCH-REVIEW-PACKET; tvofi card 8): before recording, `review_packet.py
  # render` writes $S/packets/<pr>-<head>.md, refusing on its mechanical signals, and dispatch
@@ -189,7 +268,7 @@ index a5b3a0161..05906121e 100755
  # HPO_BUS_PACKER replaces the renderer (the self-test's stub).
  dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
    local force="" fixing=""
-@@ -667,7 +668,7 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M]
+@@ -677,7 +678,7 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M]
    # told nothing about a packet and one told "no packet, because X" are in different
    # worlds, and only the second is honest (R10-ORCH-REVIEW-PACKET, #2870).
    pmsg=$(${HPO_BUS_PACKER:-python3 -I "$ROOT/tools/audit/seat/review_packet.py"} render \
@@ -198,7 +277,7 @@ index a5b3a0161..05906121e 100755
    if [ "$prc" = 0 ] && ! python3 -I "$ROOT/tools/audit/seat/review_packet.py" check "$pk" --head "$h" >/dev/null 2>&1; then
      prc=3
      pmsg="review_packet: UNAVAILABLE: the packet written does not name the head $h"
-@@ -1195,6 +1196,8 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
+@@ -1256,6 +1257,8 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
      && echo "$out" | grep -qF "review-carry: $h1 was blocked, so a fresh review is owed" \
      && [ "$(grep -c "^31 $hm cmsg_C3 " "$W/state/dispatched")" = 1 ]
    expect "P348: a blocked verdict at the reviewed head over a clean range mints, says why, and records (#3045 r3)" $?
@@ -208,10 +287,10 @@ index a5b3a0161..05906121e 100755
    out=$(seat dispatch 31 "$hm" cmsg_C4 --reviewed-head "$h1"); rc=$?
    [ $rc != 0 ] && echo "$out" | grep -q "review_carry: CARRY" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
 diff --git a/tools/audit/seat/cloud_dispatch.py b/tools/audit/seat/cloud_dispatch.py
-index 4f2aef7d0..b23485ca4 100644
+index d06a658d5f..341fef13b4 100644
 --- a/tools/audit/seat/cloud_dispatch.py
 +++ b/tools/audit/seat/cloud_dispatch.py
-@@ -197,7 +197,7 @@ def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, r
+@@ -218,7 +218,7 @@ def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, r
  
  
  def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str,
@@ -220,22 +299,27 @@ index 4f2aef7d0..b23485ca4 100644
      first = _seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN
      pin = (f"Before any commit, pin the seat identity: `git config user.name {SEAT_NAME} && git config "
             f"user.email {SEAT_EMAIL}`. ") if role in COMMITTING_ROLES else ""
-@@ -218,8 +218,14 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
-             "Start from the review packet, which you render here rather than read from the "
-             "dispatcher, whose copy is a path on its own machine: "
-             f"`python3 -I tools/audit/seat/review_packet.py render --pr {pr} --head {head} "
-+            + (f"--reviewed-head {reviewed_head} " if reviewed_head else "") +
-             "--out $HOME/review-packet.md`. A refusal names its signal and the packet is still "
-             "written unless the signal is `host-path`; re-read the live checks either way. "
-+            + (f"This is a later round over the reviewed head {reviewed_head}: its scope is the packet's "
-+               "`## Review scope` line, the delta and the previous verdict's findings when it reads `delta`, "
-+               "widened only to the exact already-reviewed code a production (custom_components/) delta puts "
-+               "at non-obvious risk that CI would not detect, the verdict naming path and risk; an "
-+               "instrument, test, policy or body delta never widens it (fix-review.md step 12). " if reviewed_head else "") +
+@@ -246,6 +246,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
+                  "the PR body is in the PR. Start from the review packet, which you render here rather than read from the "
+                  "dispatcher, whose copy is a path on its own machine: "
+                  f"`python3 -I tools/audit/seat/review_packet.py render --pr {pr} --head {head} "
++                 + (f"--reviewed-head {reviewed_head} " if reviewed_head else "") +
+                  "--out $HOME/review-packet.md`. A refusal names its signal and the packet is still "
+                  "written unless the signal is `host-path`; re-read the live checks either way. ")
+         wait_ci = ("\n" if at_handoff else
+@@ -262,6 +263,11 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
+         body = (
+             "Role: read dev/governance/roles/fix-review.md and its rules from main, and follow them "
+             f"exactly. Fetch the {'handoff' if at_handoff else 'PR'} head with `git fetch origin {head}`; " + where +
++            (f"This is a later round over the reviewed head {reviewed_head}: its scope is the packet's "
++             "`## Review scope` line, the delta and the previous verdict's findings when it reads `delta`, "
++             "widened only to the exact already-reviewed code a production (custom_components/) delta puts "
++             "at non-obvious risk that CI would not detect, the verdict naming path and risk; an "
++             "instrument, test, policy or body delta never widens it (fix-review.md step 12). " if reviewed_head else "") +
              "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
              "every figure in the body at this head. Check that it merges with origin/main "
              "(`git merge-tree --write-tree origin/main <head>`); block on main only when that reports a "
-@@ -317,7 +323,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
+@@ -353,7 +359,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
  
  def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str = "",
             topic: str = "", nonce: str = "", brief: str = "", publish_ref: str = "",
@@ -244,8 +328,8 @@ index 4f2aef7d0..b23485ca4 100644
      """The payload; with `publish_ref`, its event is the stub naming PROMPT.md at commit
      `pin` of that ref (`publish_seat`)."""
      if role not in ROLES:
-@@ -331,6 +337,8 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str
-             raise Refusal("a reviewer needs --pr <number>")
+@@ -369,6 +375,8 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str
+             raise Refusal("a reviewer needs --pr <number> (or --topic <t>, a reviewer at the handoff before the PR opens)")
      elif not topic.strip() or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", topic):
          raise Refusal("a fixer, probe or design seat needs --topic (letters, digits, . _ -)")
 +    if reviewed_head and (role != "reviewer" or not is_head(reviewed_head)):
@@ -253,7 +337,7 @@ index 4f2aef7d0..b23485ca4 100644
      if role == "design-reviewer" and not is_head(design or ""):
          raise Refusal("a design reviewer needs --design <the 40-hex design/<topic> tip it reviews>")
      for name, val in (("environment id", env_id), ("model", model), ("repo", repo)):
-@@ -341,7 +349,7 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str
+@@ -379,7 +387,7 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str
      if publish_ref and not is_head(pin):
          raise Refusal("a published seat's stub needs the 40-hex commit holding its PROMPT.md")
      text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref, pin) if publish_ref
@@ -262,22 +346,22 @@ index 4f2aef7d0..b23485ca4 100644
      payload = {"job_config": {"ccr": {
          "environment_id": env_id,
          "session_context": {
-@@ -485,7 +493,8 @@ def design_approved(repo_dir: str, group_id: str) -> bool:
- 
+@@ -526,7 +534,7 @@ def design_approved(repo_dir: str, group_id: str) -> bool:
  def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
                     roster_ref: str | None = None, head: str = "", pr: str = "", nonce: str = "",
--                   overlay: str | None = None, environ=None, design_exempt: str = "") -> str:
-+                   overlay: str | None = None, environ=None, design_exempt: str = "",
-+                   reviewed_head: str = "") -> str:
+                    overlay: str | None = None, environ=None, design_exempt: str = "",
+-                   carry_only: bool = False, record_pr: bool = False) -> str:
++                   carry_only: bool = False, record_pr: bool = False, reviewed_head: str = "") -> str:
      """Render the seat for `group_id` from the roster, publish it, return its ref name.
  
      The roster at `roster_ref` of `repo_dir` (default: the round's roster
-@@ -527,11 +536,11 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
+@@ -572,11 +580,12 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
          if not design:
              raise Refusal(f"no design/{group_id} on origin to review")
      args = dict(design=design, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
--                pr=pr, topic=topic, brief=group_brief(group))
-+                pr=pr, topic=topic, brief=group_brief(group), reviewed_head=reviewed_head)
+-                pr=pr, topic=topic, brief=group_brief(group, roster, fixer=role == "fixer"))
++                pr=pr, topic=topic, brief=group_brief(group, roster, fixer=role == "fixer"),
++                reviewed_head=reviewed_head)
      head = head or _git(repo_dir, "rev-parse", f"{HEAD_REF}^{{commit}}").strip()
      if role == "reviewer":
          render(role, head, **args, nonce=BUS_PROBE_NONCE)  # every other refusal, before the bus records
@@ -286,7 +370,7 @@ index 4f2aef7d0..b23485ca4 100644
      ref = dispatch_ref(role, topic, "")
      try:
          publish_seat(repo_dir, ref, role, head, **args, nonce=nonce)
-@@ -552,12 +561,14 @@ def _ledger_log(environ) -> list[str]:
+@@ -597,12 +606,14 @@ def _ledger_log(environ) -> list[str]:
      return ["--log", environ["HPO_BUS_LEDGER"]] if environ.get("HPO_BUS_LEDGER") else []
  
  
@@ -301,9 +385,9 @@ index 4f2aef7d0..b23485ca4 100644
 +                        *(["--nonce", nonce] if nonce else []),
 +                        *(["--reviewed-head", reviewed_head] if reviewed_head else [])],
                         cwd=repo_dir, env={**os.environ, **environ}, capture_output=True, text=True)
-     m = re.search(r"^bus-nonce: ([0-9a-f]{32})$", r.stdout, re.M)
-     if r.returncode or not m:
-@@ -812,6 +823,23 @@ def _group_checks(check) -> None:
+     n = proof_watch.verdict_nonce(r.stdout)
+     if r.returncode or not n:
+@@ -888,6 +899,23 @@ def _group_checks(check) -> None:
                and git(work, "rev-parse", "origin/main").strip() not in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
          check("the reviewer's brief carries the packet render at the dispatched head for the seat's own machine",
                f"review_packet.py render --pr 7 --head {rhead} " in fetched("dispatch/reviewer-r10-x", "PROMPT.md"))
@@ -327,16 +411,16 @@ index 4f2aef7d0..b23485ca4 100644
          check("a nonce no dispatch minted is refused by the bus, and records nothing",
                refused(role="reviewer", head=rhead, pr="7", nonce="0" * 32) and len(registry()) == 1)
          check("a packet the renderer refuses holds the reviewer dispatch, and records nothing",
-@@ -1163,7 +1191,7 @@ def self_test() -> int:
+@@ -1253,7 +1281,7 @@ def self_test() -> int:
  #: self-test drives each entry through main() and refuses a flag missing here.
  GROUP_FLAGS = {
      "role": None, "group": None, "model": None, "head": None, "roster_ref": None,
 -    "pr": None, "nonce": None, "overlay": None, "design_exempt": None,
 +    "pr": None, "nonce": None, "overlay": None, "design_exempt": None, "reviewed_head": None,
+     "carry_only": None, "record_pr": None,
      "design": "dispatch_group reads the tip of design/<group> on origin",
      "topic": "the roster gives the topic (the group's branch)",
-     "brief": "the roster gives the brief",
-@@ -1185,6 +1213,8 @@ def _parser() -> argparse.ArgumentParser:
+@@ -1276,6 +1304,8 @@ def _parser() -> argparse.ArgumentParser:
      ap.add_argument("--topic", default="")
      ap.add_argument("--nonce", default="")
      ap.add_argument("--design", default="", help="a design reviewer's reviewed design/<topic> tip (flag path)")
@@ -345,16 +429,16 @@ index 4f2aef7d0..b23485ca4 100644
      ap.add_argument("--design-exempt", default="", help="a fixer dispatch for an L/XL group whose approved "
                      "design, pre-study or prototype is already on record: the reason")
      ap.add_argument("--brief")
-@@ -1212,7 +1242,7 @@ def main(argv: list[str]) -> int:
-                 raise Refusal("--group needs --model")
-             print(dispatch_group(args.role, args.group, args.model, roster_ref=args.roster_ref,
+@@ -1304,7 +1334,7 @@ def main(argv: list[str]) -> int:
+                     raise Refusal(f"--{dest.replace('_', '-')} does not apply with --group: {why}")
+             print(dispatch_group(args.role, args.group, args.model or "", roster_ref=args.roster_ref,
                                   head=args.head or "", pr=args.pr, design_exempt=args.design_exempt,
--                                 nonce=args.nonce, overlay=args.overlay))
-+                                 nonce=args.nonce, overlay=args.overlay, reviewed_head=args.reviewed_head))
+-                                 nonce=args.nonce, overlay=args.overlay,
++                                 nonce=args.nonce, overlay=args.overlay, reviewed_head=args.reviewed_head,
+                                  carry_only=args.carry_only, record_pr=args.record_pr))
              return 0
          if not args.head:
-             raise Refusal("--head is required without --group")
-@@ -1222,7 +1252,8 @@ def main(argv: list[str]) -> int:
+@@ -1315,7 +1345,8 @@ def main(argv: list[str]) -> int:
                  brief = Path(args.brief).read_text()
              except OSError as e:
                  raise Refusal(f"unreadable brief: {e.__class__.__name__}")
@@ -365,10 +449,10 @@ index 4f2aef7d0..b23485ca4 100644
              payload = publish_seat(".", dispatch_ref(args.role, args.topic, args.pr), args.role, args.head,
                                     **known)
 diff --git a/tools/audit/seat/instruments/bus.sh.md b/tools/audit/seat/instruments/bus.sh.md
-index ca3c2e33c..f8f1b5ff8 100644
+index d896c69f9c..2f46432448 100644
 --- a/tools/audit/seat/instruments/bus.sh.md
 +++ b/tools/audit/seat/instruments/bus.sh.md
-@@ -32,7 +32,8 @@
+@@ -33,7 +33,8 @@
    `review_carry.py` answers CARRY refuses only when the latest verdict naming
    `rh` on `verdict/<pr>` is merge; a blocked one, or none, dispatches and prints
    `review-carry: <rh> was blocked|has no verdict, so a fresh review is owed`,
@@ -379,7 +463,7 @@ index ca3c2e33c..f8f1b5ff8 100644
  The design steps (decision 0014) write the same append-only way:
  `bus.sh push-design <topic> <design.md>` adds `design.md` to `design/<topic>`;
 diff --git a/tools/audit/seat/instruments/review_packet.py.md b/tools/audit/seat/instruments/review_packet.py.md
-index f49cdd216..f121ad7cb 100644
+index 35379117f8..675819084c 100644
 --- a/tools/audit/seat/instruments/review_packet.py.md
 +++ b/tools/audit/seat/instruments/review_packet.py.md
 @@ -1,7 +1,10 @@
@@ -395,7 +479,7 @@ index f49cdd216..f121ad7cb 100644
    harness at both ends when one is named (`--harness`, at the base and
    untouched by the diff, or `--harness-file` outside the tree; `none named`
 diff --git a/tools/audit/seat/review_packet.py b/tools/audit/seat/review_packet.py
-index 51b7504fd..5c4bdd674 100644
+index 17d94866b9..fbc86a2cbd 100644
 --- a/tools/audit/seat/review_packet.py
 +++ b/tools/audit/seat/review_packet.py
 @@ -1,7 +1,7 @@
@@ -421,7 +505,7 @@ index 51b7504fd..5c4bdd674 100644
  WHICH CHECKOUT. Every git read runs in the checkout the WORKING DIRECTORY is in,
  never in the directory this module is installed under: `bus.sh dispatch` runs
  the renderer where it dispatches (a cloud dispatch does so in a throwaway
-@@ -348,6 +355,42 @@ def verdict_merge_head(sha: str, read=None) -> str | None:
+@@ -381,6 +388,42 @@ def verdict_merge_head(sha: str, read=None) -> str | None:
      return v[1] if v and v[0] == "merge" else None
  
  
@@ -464,7 +548,7 @@ index 51b7504fd..5c4bdd674 100644
  def harness_source(harness: str | None, harness_file: str | None, base: str,
                     touched: set[str], cwd: Path | None = None) -> tuple[str, bytes]:
      """(label, bytes) of the finder's harness; SystemExit on the fixer's."""
-@@ -530,7 +573,7 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
+@@ -573,7 +616,7 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
          f"## Finder's harness: {facts['harness_label']}",
          "### at the base", facts["harness_base"], "### at the head", facts["harness_head"], "",
          "## Mutation-ledger diff", facts["ledger_diff"] or "none", "",
@@ -473,7 +557,7 @@ index 51b7504fd..5c4bdd674 100644
          "## Before you return the verdict (P275)",
          f"Run `{SELF_AUDIT}`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;",
          "an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.",
-@@ -538,6 +581,23 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
+@@ -581,6 +624,23 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
      return refusals, advisories, "\n".join(parts) + "\n"
  
  
@@ -497,7 +581,7 @@ index 51b7504fd..5c4bdd674 100644
  def gather(a) -> dict:
      head, main = a.head, a.main
      base = git("merge-base", main, head).strip()
-@@ -577,10 +637,19 @@ def gather(a) -> dict:
+@@ -622,10 +682,19 @@ def gather(a) -> dict:
          "harness_base": run_harness(data, base, a.harness_arg) if data else "not run",
          "harness_head": run_harness(data, head, a.harness_arg) if data else "not run",
          "ledger_diff": git("diff", f"{base}...{head}", "--", LEDGER),
@@ -518,7 +602,7 @@ index 51b7504fd..5c4bdd674 100644
  def hot_prs(touched: set[str]) -> tuple[list[dict], set[int]]:
      """(open pull requests, boarded numbers) the hot-file rule reads; no read
      at all when the diff touches no hot file."""
-@@ -731,6 +800,41 @@ def _self_test() -> int:
+@@ -836,6 +905,41 @@ def _self_test() -> int:
      check("a head with no run read is `none`, never `green`",
            est == "none" and elines == [] and build({**clean, "gate": (est, elines, [])})[0] == [])
  
@@ -560,7 +644,7 @@ index 51b7504fd..5c4bdd674 100644
      # EVIDENCE IS NEVER WITHHELD: a refusal still writes the packet, except the
      # one signal a written packet would defeat.
      check("write-on-refusal null: a clean render writes", writes_packet([]))
-@@ -974,6 +1078,27 @@ def _self_test() -> int:
+@@ -1079,6 +1183,27 @@ def _self_test() -> int:
          check("diff_paths -> red-unanswered: the row the diff adds owes main's delivery-status nothing",
                unanswered_reds(unanswering, H, B, ds, *paths, []) == [])
  
@@ -588,7 +672,7 @@ index 51b7504fd..5c4bdd674 100644
          # UNAVAILABLE is a different outcome from a refusal: a seat that cannot
          # read the inputs reports rc 3 and writes nothing, and `bus.sh dispatch`
          # degrades on it. Driven through main(), the path bus.sh calls.
-@@ -1027,6 +1152,7 @@ def main(argv: list[str]) -> int:
+@@ -1132,6 +1257,7 @@ def main(argv: list[str]) -> int:
      r.add_argument("--head", required=True)
      r.add_argument("--out", required=True)
      r.add_argument("--main", default="origin/main")
@@ -596,7 +680,7 @@ index 51b7504fd..5c4bdd674 100644
      g = r.add_mutually_exclusive_group()
      g.add_argument("--harness")
      g.add_argument("--harness-file")
-@@ -1053,8 +1179,8 @@ def main(argv: list[str]) -> int:
+@@ -1158,8 +1284,8 @@ def main(argv: list[str]) -> int:
          except Unavailable as e:
              print(f"review_packet: UNAVAILABLE: {e}", file=sys.stderr)
              return 3
@@ -607,3 +691,7 @@ index 51b7504fd..5c4bdd674 100644
          return 2
      try:
          refusals, _, text = build(gather(a))
+
+## Before you return the verdict (P275)
+Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;
+an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.

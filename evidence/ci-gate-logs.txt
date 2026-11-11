@@ -1,0 +1,9 @@
+Head 762fd619773d8e6291ab0d339454bc1a8d74ed55, check runs read 2026-11-11T02:46Z (get_check_runs, 57 runs):
+gate id=130285359237 (run 42944547187, KIND code, 02:44:33Z) failure, its whole reason:
+  FAIL budget-raise-gate / budget-raise-gate: failure (this run)
+gate id=130275128370 (run 42944546739, KIND edit, 02:17:01Z) failure, its whole reason:
+  FAIL run(s) [42944547187] at this head are still being judged; their gate decides
+budget-raise-gate / budget-raise-gate id=130275272562 failure (and 130274758276 in run 42944546739)
+pr-contract / pr-contract id=130284733374 success, started 02:42:41Z (after budget-raise-gate concluded red at 02:17:26Z)
+Every other non-skipped run: success (tests/closures, fast (3.14), coverage, browser, mutation, typing, governance/*, codeql/*, hassfest, validate-hacs, arch-score, lane-proofs, coverage-ratchet, graders-head-copy).
+merge_train.py classify ... --pr 3379, re-run 02:46:14Z: RED 762fd619773d8e6291ab0d339454bc1a8d74ed55 pending: none red: gate  (rc=1)
