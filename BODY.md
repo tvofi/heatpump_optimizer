@@ -76,8 +76,10 @@ Each in `python3 tools/audit/seat/merge_train.py owed-reds`' set:
 
 ## Forward-carry
 
-- The no-cycle write rounds an off-step everyday set-point to the nearest step, which can exceed `dhw_hard_max_temp` (everyday 58, step 5: 60): 104 of 780 census rows at origin/main and at this head alike; this repair's brief holds that row unchanged from 49a45dd8, so the ceiling there is the orchestrator's call. Control: `--grid`'s `cycle=0` lines, `grep -c over=1`. Carry: R10-OUTSIDE-DISINFECTION-SETPOINT Carry 1 landed on the roster at 2ad7130319 (body item 7052beca, origin/handoff/audit-r10-roster).
-- Bounding a cycle by the hard maximum leaves an off-step disinfection temperature above the everyday set-point a step short of the legionella guard's credit thresholds on coarse steps (34 of 330 rows under the instant rule, 71 under the hold rule; 0 at 49a45dd8, which wrote above the hard maximum instead; 265 and 286 at origin/main). Whether the hard maximum should rise to the step above the disinfection temperature is a ruling on `dhw_hard_max_temp`, outside this repair. Control: the same grid lines against `legionella.py`'s thresholds. Carry: R10-OUTSIDE-DISINFECTION-SETPOINT Carry 2 landed on the roster at ff4fefa44e (body item 9ac8c410, origin/handoff/audit-r10-roster).
+- The no-cycle write rounds an off-step everyday set-point to the nearest step, which can exceed `dhw_hard_max_temp` (everyday 58, step 5: 60): 104 of 780 census rows at origin/main and at this head alike; this repair's brief holds that row unchanged from 49a45dd8, so the ceiling there is the orchestrator's call. Control: `--grid`'s `cycle=0` lines, `grep -c over=1`. Carry: R10-OUTSIDE-DISINFECTION-SETPOINT
+  Carry 1 landed on the roster at 2ad7130319 (body item 7052beca, origin/handoff/audit-r10-roster).
+- Bounding a cycle by the hard maximum leaves an off-step disinfection temperature above the everyday set-point a step short of the legionella guard's credit thresholds on coarse steps (34 of 330 rows under the instant rule, 71 under the hold rule; 0 at 49a45dd8, which wrote above the hard maximum instead; 265 and 286 at origin/main). Whether the hard maximum should rise to the step above the disinfection temperature is a ruling on `dhw_hard_max_temp`, outside this repair. Control: the same grid lines against `legionella.py`'s thresholds. Carry: R10-OUTSIDE-DISINFECTION-SETPOINT
+  Carry 2 landed on the roster at ff4fefa44e (body item 9ac8c410, origin/handoff/audit-r10-roster).
 
 ## Friction
 
