@@ -1,0 +1,2 @@
+  FAIL tests/harness.py imports from a cwd outside the tree and finds its catalogues  [
+1 of 113 HARNESS HEADER CHECKS FAILED
