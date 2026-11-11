@@ -1,0 +1,15 @@
+timeout
+slot lines:
+LINES 61
+  ok   a body with missing-section is refused
+  ok   a body with no-figures is refused
+  ok   a body with empty-section is refused
+  ok   a body with wrong-head is refused
+  ok   a body with dead-carry is refused
+  ok   a body with bad-friction is refused
+  ok   a body with backtick-bad-event is refused
+  ok   a body with bare-na is refused
+  ok   a body with folded-entry is refused
+  ok   a body with bullet-after-entry is refused
+  ok   a body with attribution is refused
+  ok   a body that does not name its red check is refused
