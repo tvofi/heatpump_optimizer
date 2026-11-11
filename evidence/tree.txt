@@ -1,0 +1,27 @@
+== a7628041dc02e298c5399003d4c0576391dd5c4e
+exposed tests/requirements-coverage.txt coverage: #   echo 'coverage==7.17.2' | uv pip compile - --python-version 3.13.15 \
+exposed tests/requirements-typing.txt homeassistant: # installed lock: homeassistant==2026.11.0 (homeassistant-stubs 2026.9.3
+exposed tests/requirements-typing.txt astral: # pins 2026.9.3), uv==0.13.7, astral==3.2 and sqlalchemy==2.1.8
+exposed tests/requirements-typing.txt sqlalchemy: # pins 2026.9.3), uv==0.13.7, astral==3.2 and sqlalchemy==2.1.8
+exposed tests/requirements-typing.txt uv: # pins 2026.9.3), uv==0.13.7, astral==3.2 and sqlalchemy==2.1.8
+exposed tests/requirements-typing.txt acme: # (homeassistant 2026.11.0 pins each lower), acme==5.9.0 (hass-nabucasa
+exposed tests/requirements-typing.txt python-dateutil: # pins 5.7.0 or lower) and python-dateutil==4.0.0 (botocore caps it below
+summary tree=a7628041dc02e298c5399003d4c0576391dd5c4e files=5 exposed=7
+rc=1
+== d4252d0068b23323610ae4e31e9bc94faeabf83e
+summary tree=d4252d0068b23323610ae4e31e9bc94faeabf83e files=5 exposed=0
+rc=0
+== cbe349515738db71982d61a1156f19d60364041c
+summary tree=cbe349515738db71982d61a1156f19d60364041c files=5 exposed=0
+rc=0
+== origin/main
+exposed tests/requirements-coverage.txt coverage: #   echo 'coverage==7.17.2' | uv pip compile - --python-version 3.13.15 \
+exposed tests/requirements-typing.txt homeassistant: # installed lock: homeassistant==2026.11.0 (homeassistant-stubs 2026.9.3
+exposed tests/requirements-typing.txt astral: # pins 2026.9.3), uv==0.13.7, astral==3.2 and sqlalchemy==2.1.8
+exposed tests/requirements-typing.txt sqlalchemy: # pins 2026.9.3), uv==0.13.7, astral==3.2 and sqlalchemy==2.1.8
+exposed tests/requirements-typing.txt uv: # pins 2026.9.3), uv==0.13.7, astral==3.2 and sqlalchemy==2.1.8
+exposed tests/requirements-typing.txt acme: # (homeassistant 2026.11.0 pins each lower), acme==5.9.0 (hass-nabucasa
+exposed tests/requirements-typing.txt python-dateutil: # pins 5.7.0 or lower) and python-dateutil==4.0.0 (botocore caps it below
+summary tree=origin/main files=5 exposed=7
+rc=1
+self-test OK

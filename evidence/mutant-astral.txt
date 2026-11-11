@@ -1,0 +1,4 @@
+  FAIL no lock comment names a hash-pinned package as `name==` (Dependabot stale hashes)  [exposed tests/requirements-typing.txt astral: # (homeassistant-stubs 2026.9.3 pins 2026.9.3), uv, astral==3.2 and sqlalchemy
+  ok   stale-hash barrier arm: one planted `name==` comment reads exactly one pin
+1 of 2709 ENTITY CHECKS FAILED
+rc=1

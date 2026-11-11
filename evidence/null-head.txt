@@ -1,0 +1,5 @@
+  ok   every dependency install in every workflow is hash-pinned (#1548)
+  ok   no lock comment names a hash-pinned package as `name==` (Dependabot stale hashes)
+  ok   stale-hash barrier arm: one planted `name==` comment reads exactly one pin
+ALL 2709 ENTITY CHECKS PASSED
+rc=0
