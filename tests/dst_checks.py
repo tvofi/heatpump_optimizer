@@ -1829,7 +1829,7 @@ R.check(
 )
 
 _c = _fold_coord()
-_whatif_dst.state(_c).last_at = _FOLD_LAST
+_whatif_dst.state_for(_c).last_at = _FOLD_LAST
 _sim = asyncio.run(_c.async_simulate({}, limited=True))
 R.check(
     "the what-if limiter lets a call a true hour after the last one through",
