@@ -15,6 +15,7 @@ it must be still waiting at the bound, so the held pool is genuinely full.
 
 RESULT labelled_rc=0
 RESULT labelled_queued=0
+RESULT labelled_real_slot_lines=0
 RESULT bare_finished=0
 RESULT direct_take_finished=0
 
@@ -25,6 +26,7 @@ Reads and writes only a temp lock dir; touches no repository state.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -67,9 +69,12 @@ def main() -> int:
                            {**base, "HPO_SLOT_LABEL": "outer"}, LABELLED_BOUND_S)
         # A queued run prints no "joined" slot line; the self-test's own rows
         # mention "queue" in prose, so key on the slot line, not the word.
-        slot_lines = [ln for ln in out.splitlines() if "heavy slot" in ln]
+        # prepr's own slot line is `say ok|WARN "heavy slot" ...`: the label
+        # column, not a self-test row whose description mentions the words.
+        slot_lines = [ln for ln in out.splitlines()
+                      if re.match(r"\s+(ok|WARN)\s+heavy slot\s", ln)]
         queued = int(not any("joined" in ln for ln in slot_lines) and bool(slot_lines))
-        print(f"slot lines: {slot_lines}")
+        print(f"RESULT labelled_real_slot_lines={len(slot_lines)}")
         print(f"RESULT labelled_rc={rc if fin else 'timeout'}")
         print(f"RESULT labelled_queued={queued}  ({time.time() - t0:.0f}s)")
         fin, _, _ = run(["bash", "tools/pr/prepr.sh", "--self-test"], base, BARE_BOUND_S)
