@@ -73,8 +73,8 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    every red `prepr.sh` step 6d predicts is repaired before the handoff
    (`ci-autofix.md`'s wait starts at the PR), and the body passes
    `tools/pr/prepr.sh`, run on a committed tree (step 6f reads `HEAD`; 7e is
-   the carry check); the orchestrator opens the PR
-   (`dev/governance/decisions/0011-app-authored-identity.md`).
+   the carry check); the orchestrator opens
+   the PR (`docs/decisions/0011-app-authored-identity.md`).
 
    **`ci_predict.py` printing `BOOTSTRAP`** (the base's copy of the changed
    grader refuses, the head's passes in `prepr.sh`) is not `BLOCKED`: register
