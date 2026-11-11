@@ -497,6 +497,83 @@ async function themeMismatch({ browser, check, plan }) {
   }
 }
 
+/** R10-HOTFIX-CARD-HEALTH-TEXT: a content blocker's generic element-hiding
+ * rules, applied inside the card's shadow root, must leave every label a
+ * layout box. The owner's v7.1.11 Health page drew values and bars at the
+ * row's left edge with no label: EasyList's `##.adv-text` and `##.adv-label`
+ * (easylist_general_hide.txt; AdGuard Base carries both) matched the card's
+ * own class names and removed the box (rca r10-card-health-text, third
+ * pass). A blocker's `##.x` is `display: none !important`; the cell injects
+ * exactly that, as a stylesheet inside the shadow root after the render, on
+ * every page the dialog's tabs offer, and requires every element owning a
+ * text node to keep a client rect. The bare arm is the null control: the
+ * same sweep without the rules. The static class-name check in
+ * tests/card.mjs is the cheap barrier; this is the rendered proof. */
+const BLOCKER_HIDE_RULES = ["##.adv-text", "##.adv-label"];
+async function blockerHide({ browser, check, plan }) {
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+  const st = pageStates(plan);
+  const healthSt = healthPageStates(st, FROZEN);
+  const css = BLOCKER_HIDE_RULES.map((r) => `${r.slice(2)}{display:none!important}`).join("\n");
+  const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 }, deviceScaleFactor: 1 });
+  await ctx.clock.setFixedTime(FROZEN);
+  const page = await ctx.newPage();
+  const mount = async (view, inject) => {
+    await page.setContent("<!doctype html><html><head></head><body></body></html>");
+    await page.addScriptTag({ path: CARD_SRC });
+    return page.evaluate(([vars, st, view, inject]) => {
+      const style = document.createElement("style");
+      style.textContent = `html{${vars}} body{margin:0;padding:16px}` +
+        `heatpump-optimizer-card{display:block;width:900px}`;
+      document.head.appendChild(style);
+      const card = document.createElement("heatpump-optimizer-card");
+      document.body.appendChild(card);
+      card.setConfig({ type: "custom:heatpump-optimizer-card" });
+      card.hass = { states: st, language: "en", themes: { darkMode: true } };
+      card._onCardClick({});
+      card.dialog.page = view;
+      card._render();
+      const root = card.shadowRoot;
+      if (inject) {
+        const s = document.createElement("style");
+        s.textContent = inject;
+        root.appendChild(s);
+      }
+      const tabs = [...root.querySelectorAll("dialog[open] .dlg-tab[data-page]")].map((t) => t.dataset.page);
+      const scope = root.querySelector("dialog[open]");
+      let seen = 0;
+      const boxless = [];
+      for (const el of scope ? scope.querySelectorAll("*") : []) {
+        if (el.closest("svg") || el.matches("style, script, template")) continue;
+        if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+        seen++;
+        const r = el.getBoundingClientRect();
+        if (!el.getClientRects().length || r.width === 0 || r.height === 0) {
+          boxless.push(`${view} ${el.tagName.toLowerCase()}${el.classList.length ? "." + [...el.classList].join(".") : ""}`);
+        }
+      }
+      return { view, tabs, seen, boxless };
+    }, [THEMES.dark, view === "health" ? healthSt : st, view, inject]);
+  };
+  try {
+    for (const [arm, inject] of [["without blocker rules (null control)", ""],
+      [`with ${BLOCKER_HIDE_RULES.join(" ")} injected into the shadow root`, css]]) {
+      const first = await mount("plan", inject);
+      const pages = [];
+      for (const id of first.tabs) pages.push(id === "plan" ? first : await mount(id, inject));
+      const boxless = pages.flatMap((p) => p.boxless);
+      const seenOf = (id) => (pages.find((p) => p.view === id) || { seen: 0 }).seen;
+      const reach = { pages: first.tabs.length, health: seenOf("health"), advisor: seenOf("advisor") };
+      check(`R10 every text-bearing element on every dialog page keeps a layout box ${arm}`,
+        reach.pages >= 5 && reach.health >= 20 && reach.advisor >= 3 && boxless.length === 0,
+        `${pages.map((p) => `${p.view}=${p.seen}`).join(" ")}; reach ${JSON.stringify(reach)}; ` +
+          `box-less (${boxless.length}): ${boxless.slice(0, 8).join(", ")}`);
+    }
+  } finally {
+    await ctx.close();
+  }
+}
+
 /** R9-UX-8: the narrative panel at a phone width and a desktop width.
  *
  * The defect was a free-flowing italic sentence whose money tail wrapped
@@ -2983,6 +3060,7 @@ try {
   // must clear 4.5:1 against what it is painted on, in that mismatch and in
   // its mirror image -- on the tile and on every dialog page.
   await themeMismatch({ browser, check, plan });
+  await blockerHide({ browser, check, plan });
 
   // R9-UX-8: the narrative rows lay out on a phone and on a desktop.
   await narrativeLayout({ browser, check, plan, out: process.env.HPO_NL_OUT });
