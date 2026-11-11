@@ -1,6 +1,6 @@
 # `roster_queue.py`
 
-- `roster_queue.py` — the standing roster seat's queue runner: `run FIRST LAST`
+- `roster_queue.py` — the `roster-drain` beat row's queue runner: `run FIRST LAST`
   applies each queue line (`<op> <group> [arg] [--flag value]`, so `drop-carry G --match TEXT` works) through `roster_edit.py --push`,
   linting from a clone it owns and detaches at `origin/main` before every
   attempt (up to four, when main moved or a clean-lint push lost a race), and
