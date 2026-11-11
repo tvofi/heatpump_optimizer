@@ -1,0 +1,12 @@
+custom_components/heatpump_optimizer/pump_arbiter.py:940:        held.feedback = None
+custom_components/heatpump_optimizer/pump_arbiter.py:943:    rec = held.feedback
+custom_components/heatpump_optimizer/pump_arbiter.py:945:        rec = None  # passes that skipped the loop: a cooling or switched-off pump
+custom_components/heatpump_optimizer/pump_arbiter.py:949:        held.feedback = FeedbackRun(now, base, now)
+custom_components/heatpump_optimizer/pump_arbiter.py:952:        rec = held.feedback = FeedbackRun(now, base, now)
+custom_components/heatpump_optimizer/pump_arbiter.py:1062:    rec, held.feedback = held.feedback, None
+custom_components/heatpump_optimizer/pump_arbiter.py:1065:    held.feedback = rec
+custom_components/heatpump_optimizer/pump_arbiter.py:1904:        held.feedback = None  # its prev_c is that record too (_note_sent)
+---
+custom_components/heatpump_optimizer/pump_arbiter.py:1016:    held.written.pop("space_setpoint", None)
+custom_components/heatpump_optimizer/pump_arbiter.py:1336:        del held.written[slot]
+custom_components/heatpump_optimizer/pump_arbiter.py:1494:            held.written.pop(slot, None)

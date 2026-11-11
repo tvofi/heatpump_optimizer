@@ -1,0 +1,11 @@
+[
+ {"name":"X1_arm_ignores_dropped","file":"custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old":"    last = record[0] if record is not None else held.dropped.get(\"space_setpoint\")",
+  "new":"    last = record[0] if record is not None else None"},
+ {"name":"X2_note_sent_no_dropped","file":"custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old":"        rec.prev_c = held.dropped[\"space_setpoint\"] = recorded[0]",
+  "new":"        rec.prev_c = recorded[0]"},
+ {"name":"X3_load_ignores_writable","file":"custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old":"    held.dropped = {k: v for k, v in dropped.items() if _writable(k, v)} if isinstance(dropped, dict) else {}",
+  "new":"    held.dropped = {}"}
+]

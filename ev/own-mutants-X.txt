@@ -1,0 +1,5 @@
+SURVIVED NULL
+KILLED X1_arm_ignores_dropped
+KILLED X2_note_sent_no_dropped
+KILLED X3_load_ignores_writable
+rc=0

@@ -1,0 +1,9 @@
+review_carry: 4a5abf4a0 -> d7347d0cb  main=origin/main
+  branch-only commits: 5
+  why: the branch's own commits e40e4594e 2a3d69f12 da4ecec21 783e44dfc change its content: d7347d0cbfeccbfdf4e9d7a19ecafcb59ba2cb34 is not the reviewed head 4a5abf4a0c86db73bc8291dc7d9d40dfb41d7385 merged onto cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf
+  783e44dfc  R10-ARBITER-OFF-RESTORE: keep the dropped own write past the loop run's end
+  da4ecec21  R10-ARBITER-OFF-RESTORE: the armed key ends the dropped write's use; load filters it
+  2a3d69f12  R10-ARBITER-OFF-RESTORE: drop the stale _arbitrate release-guard pin
+  e40e4594e  R10-ARBITER-OFF-RESTORE: declare the pump duty record's dropped space write
+  d7347d0cb  Merge commit 'e40e4594e245c95f9d220a2803ed02d0da7d2757' into fix/r10-arbiter-off-restore
+review_carry: FRESH-REVIEW

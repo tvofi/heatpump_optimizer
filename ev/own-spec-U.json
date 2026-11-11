@@ -1,0 +1,7 @@
+[
+ {"name":"U1_note_sent_guard_off","file":"custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old":"    if recorded is not None:\n        rec.prev_c","new":"    if False:\n        rec.prev_c"},
+ {"name":"U2_release_guard_off","file":"custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old":"        if held.written or held.retry or held.dropped or held.space_before is not None:",
+  "new":"        if False:"}
+]

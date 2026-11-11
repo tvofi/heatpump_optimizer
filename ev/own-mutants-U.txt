@@ -1,0 +1,4 @@
+SURVIVED NULL
+KILLED U1_note_sent_guard_off
+KILLED U2_release_guard_off
+rc=0
