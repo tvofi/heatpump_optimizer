@@ -789,7 +789,10 @@
 # card_drift captures the whole shadow root, so every state that renders the
 # stylesheet moves: 44 of 45 (editor_schema renders none and is identical).
 # health_page also moves its header chip text, "1 input stale" -> "1 input
-# problem" (the chip counts every problem kind). No other markup moves.
+# problem" (the chip counts every problem kind). The card's adv-* classes are
+# renamed fact-* (EasyList's generic ##.adv-text and ##.adv-label hid them),
+# which moves the same 44 states' stylesheet and the Advisor and Health
+# markup; no text or value moves with the rename.
 no_plan  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
 no_plan_expanded  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
 plan_inline  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle

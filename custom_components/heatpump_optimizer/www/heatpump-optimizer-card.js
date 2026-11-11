@@ -5092,7 +5092,7 @@ function cardStyleBlock(darkMode) {
         .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
         /* The advisor page's ranked rows (#1269), the same HTML-button
            surface as the picker's controls: the same floor. */
-        .adv-row, .adv-act,
+        .fact-row, .fact-act,
         .hl-stat.hl-score,
         /* The headline score pill (#1388, R6-D4-01) joins the floor: it is a
            control -- role="button", tabindex="0" and a click handler open the
@@ -5208,7 +5208,7 @@ function cardStyleBlock(darkMode) {
          the surface anywhere else drew the theme's text on it, which is how
          the Health and Advisor rows read 1.24:1 under a dark theme HA
          reports as darkMode false (906fee95e, R10-HOTFIX-CARD-HEALTH-TEXT). */
-      .tile, .hl-stat, .hl-narrative, .health-row, .adv-inbox-row {
+      .tile, .hl-stat, .hl-narrative, .health-row, .fact-inbox-row {
         --hpo-text: var(--hpo-ink, #212121);
         --hpo-text-2: var(--hpo-ink-2, #727272);
         color: var(--hpo-text, #212121);
@@ -5981,12 +5981,12 @@ function cardStyleBlock(darkMode) {
          an unpriced row's reason text is smaller rather than faded: it
          must stay readable as prose, not pass as a de-emphasised
          number. */
-      .advisor-page .adv-head {
+      .advisor-page .fact-head {
         display: flex; flex-wrap: wrap; gap: 4px 12px;
         align-items: baseline; justify-content: space-between;
         padding: 4px 0 2px 0;
       }
-      .adv-title { font-weight: 600; }
+      .fact-title { font-weight: 600; }
       .health-cols {
         display: grid; grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
         gap: 4px 16px; align-items: start;
@@ -6034,21 +6034,21 @@ function cardStyleBlock(darkMode) {
          from the block rule beside .tile) with a title, a detail, a tabular
          value and at most one action, which wraps under the text on a
          narrow card. */
-      .adv-inbox-row {
+      .fact-inbox-row {
         display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
         padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
       }
-      .adv-text { flex: 1 1 14em; min-width: 0; }
-      .adv-text .adv-sub { display: block; font-size: max(12px, 0.85em); opacity: 0.8; }
-      .adv-act {
+      .fact-text { flex: 1 1 14em; min-width: 0; }
+      .fact-text .fact-sub { display: block; font-size: max(12px, 0.85em); opacity: 0.8; }
+      .fact-act {
         font: inherit; cursor: pointer; padding: 0.3em 0.9em;
         color: inherit; background: none;
         border: 1px solid var(--hpo-divider, currentColor); border-radius: 6px;
       }
-      .adv-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
-      .adv-basis { font-size: max(12px, 0.85em); opacity: 0.75; }
-      .adv-note { font-size: max(12px, 0.85em); padding: 0 0 8px 0; }
-      .adv-row {
+      .fact-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
+      .fact-basis { font-size: max(12px, 0.85em); opacity: 0.75; }
+      .fact-note { font-size: max(12px, 0.85em); padding: 0 0 8px 0; }
+      .fact-row {
         display: flex; width: 100%; gap: 12px;
         align-items: center; justify-content: space-between;
         padding: 0.45em 0.7em; margin: 2px 0;
@@ -6058,16 +6058,16 @@ function cardStyleBlock(darkMode) {
         border-radius: 6px; cursor: pointer;
         font-variant-numeric: tabular-nums;
       }
-      .adv-row:hover { background: var(--secondary-background-color, #f5f5f5); }
-      .adv-row:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
-      .adv-label { flex: 1 1 auto; }
-      .adv-value { flex: 0 0 auto; text-align: right; }
-      .adv-est { font-weight: 400; opacity: 0.75; margin-left: 0.35em; }
-      .adv-unpriced-head {
+      .fact-row:hover { background: var(--secondary-background-color, #f5f5f5); }
+      .fact-row:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
+      .fact-label { flex: 1 1 auto; }
+      .fact-value { flex: 0 0 auto; text-align: right; }
+      .fact-est { font-weight: 400; opacity: 0.75; margin-left: 0.35em; }
+      .fact-unpriced-head {
         font-weight: 600; padding: 14px 0 2px 0;
       }
-      .adv-unpriced-head + .adv-row .adv-value,
-      .adv-row.unpriced .adv-value {
+      .fact-unpriced-head + .fact-row .fact-value,
+      .fact-row.unpriced .fact-value {
         font-size: max(12px, 0.85em); max-width: 60%;
       }
 
@@ -10110,15 +10110,15 @@ function advisorRowHtml(host, row) {
     const text = row.status === "waiting"
       ? L("advisor.waiting", { reason: row.reason })
       : L("advisor.unavailable");
-    return `<div class="adv-inbox-row adv-${row.status}"><span class="adv-text">${esc(text)}</span></div>`;
+    return `<div class="fact-inbox-row fact-${row.status}"><span class="fact-text">${esc(text)}</span></div>`;
   }
   const value = row.value === null ? L("advisor.no_value")
     : L("advisor.value_month", {
       value: Math.round(row.value), currency: host.plan.currency() });
-  return `<div class="adv-inbox-row">
-      <span class="adv-text">${esc(row.title)}<span class="adv-sub">${esc(row.detail)}</span></span>
-      <span class="adv-value">${esc(value)}</span>
-      ${row.act ? `<button type="button" class="adv-act" data-act="${row.act}"
+  return `<div class="fact-inbox-row">
+      <span class="fact-text">${esc(row.title)}<span class="fact-sub">${esc(row.detail)}</span></span>
+      <span class="fact-value">${esc(value)}</span>
+      ${row.act ? `<button type="button" class="fact-act" data-act="${row.act}"
         data-key="${esc(row.key || "")}" data-target="${row.target ?? ""}">${esc(L(act[row.act]))}</button>` : ""}
     </div>`;
 }
@@ -10153,26 +10153,26 @@ function feedbackGaps(plan) {
 
 function feedbackRowHtml(gaps) {
   const list = gaps.map((g) => `${L(`advisor.feedback_${g.class}`)} (${g.key})`).join(", ");
-  return `<div class="adv-inbox-row" data-advice="feedback">
-      <span class="adv-text">${esc(L("advisor.feedback_title"))}<span class="adv-sub">${esc(L("advisor.feedback_detail", { list }))}</span><span class="adv-sub">${esc(L("advisor.step_metering"))}</span></span>
-      <button type="button" class="adv-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
-      <button type="button" class="adv-act" data-act="dismiss_feedback">${esc(L("advisor.act_dismiss"))}</button>
+  return `<div class="fact-inbox-row" data-advice="feedback">
+      <span class="fact-text">${esc(L("advisor.feedback_title"))}<span class="fact-sub">${esc(L("advisor.feedback_detail", { list }))}</span><span class="fact-sub">${esc(L("advisor.step_metering"))}</span></span>
+      <button type="button" class="fact-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
+      <button type="button" class="fact-act" data-act="dismiss_feedback">${esc(L("advisor.act_dismiss"))}</button>
     </div>`;
 }
 
 function advisorInboxHtml(host) {
   const rows = advisorRows(host);
   const feedback = feedbackGaps(host.plan);
-  const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="adv-inbox-row">
-      <span class="adv-text">${esc(L(`advisor.optin_${id}`))}<span class="adv-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}</span></span>
-      <button type="button" class="adv-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
+  const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="fact-inbox-row">
+      <span class="fact-text">${esc(L(`advisor.optin_${id}`))}<span class="fact-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}</span></span>
+      <button type="button" class="fact-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
     </div>`).join("");
-  return `<div class="adv-head"><span class="adv-title">${esc(L("advisor.inbox_heading"))}</span></div>
+  return `<div class="fact-head"><span class="fact-title">${esc(L("advisor.inbox_heading"))}</span></div>
     ${(rows.length ? rows.map((r) => advisorRowHtml(host, r)).join("")
       : feedback.length ? ""
         : `<div class="empty">${esc(L("advisor.inbox_empty"))}</div>`)
       + (feedback.length ? feedbackRowHtml(feedback) : "")}
-    <div class="adv-head"><span class="adv-title">${esc(L("advisor.optin_heading"))}</span></div>
+    <div class="fact-head"><span class="fact-title">${esc(L("advisor.optin_heading"))}</span></div>
     ${optIn}`;
 }
 
@@ -10341,8 +10341,8 @@ function inputAssigned(plan, key) {
 }
 
 function healthRow(attrs, title, detail, pill) {
-  return `<div class="health-row"${attrs}><span class="adv-text">${esc(title)}` +
-    `<span class="adv-sub">${esc(detail)}</span></span>${pill}</div>`;
+  return `<div class="health-row"${attrs}><span class="fact-text">${esc(title)}` +
+    `<span class="fact-sub">${esc(detail)}</span></span>${pill}</div>`;
 }
 
 function healthInputsHtml(plan) {
@@ -10438,7 +10438,7 @@ function healthModelTitle(id, reason) {
 function healthModelRow(id, title, detail, value, share, tone) {
   const pct = Math.round(Math.max(0, Math.min(1, Number(share) || 0)) * 100);
   return `<div class="health-row model-row" data-model-row="${id}" data-tone="${tone || "ok"}" title="${esc(healthModelTitle(id, detail))}">` +
-    `<span class="adv-text">${esc(title)}<span class="adv-sub">${esc(detail)}</span></span>` +
+    `<span class="fact-text">${esc(title)}<span class="fact-sub">${esc(detail)}</span></span>` +
     `<span class="model-value">${esc(value)}</span>` +
     `<span class="model-bar" aria-hidden="true"><span style="width:${pct}%"></span></span></div>`;
 }
@@ -10462,7 +10462,7 @@ function healthGainsRow(gains, learning) {
   const peak = L("health.model_gains_peak", { kw: top.toFixed(1), hh: String(at).padStart(2, "0") });
   const detail = learning ? `${learning.text} ${peak}` : peak;
   return `<div class="health-row model-row" data-model-row="gains" data-tone="ok" title="${esc(healthModelTitle("gains", detail))}">` +
-    `<span class="adv-text">${esc(L("health.model_gains"))}<span class="adv-sub">` +
+    `<span class="fact-text">${esc(L("health.model_gains"))}<span class="fact-sub">` +
     `${esc(detail)}</span></span>` +
     `<span class="gains-strip" aria-hidden="true">${bars}</span></div>`;
 }
@@ -10589,8 +10589,8 @@ function healthChecklistHtml(plan) {
   ];
   return `<h3 class="health-h">${esc(L("health.checklist"))}</h3>` + items.map(([id, done, act]) =>
     `<div class="health-row" data-check="${id}" data-done="${done}"><span class="health-mark">${done ? "✓" : ""}</span>` +
-    `<span class="adv-text">${esc(L(`health.check_${id}`))}</span>` +
-    (!done && act ? `<button type="button" class="adv-act" data-act="${act}"${act === "assign" ? ' data-key="heat_pump_power_entity"' : ""}>` +
+    `<span class="fact-text">${esc(L(`health.check_${id}`))}</span>` +
+    (!done && act ? `<button type="button" class="fact-act" data-act="${act}"${act === "assign" ? ' data-key="heat_pump_power_entity"' : ""}>` +
       `${esc(L(act === "assign" ? "health.act_assign" : "health.act_show"))}</button>` : "") + `</div>`).join("");
 }
 
@@ -10633,9 +10633,9 @@ function healthDebugHtml(host) {
   const text = host._debugArmed && state === "final" ? L("health.debug_confirm")
     : state === "active" ? L("health.debug_active", { rows, days })
       : state === "final" ? L("health.debug_final", { rows }) : L("health.debug_off");
-  return `<div class="health-row health-debug" data-debug="${state}"><span class="adv-text">${esc(L("health.debug_title"))}` +
-    `<span class="adv-sub">${esc(text)}</span></span>` +
-    (state === "active" ? "" : `<button type="button" class="adv-act" data-act="debug_start">${esc(L("health.act_debug_start"))}</button>`) +
+  return `<div class="health-row health-debug" data-debug="${state}"><span class="fact-text">${esc(L("health.debug_title"))}` +
+    `<span class="fact-sub">${esc(text)}</span></span>` +
+    (state === "active" ? "" : `<button type="button" class="fact-act" data-act="debug_start">${esc(L("health.act_debug_start"))}</button>`) +
     `</div>`;
 }
 
@@ -10655,9 +10655,9 @@ function healthPageHtml(host) {
     </div>
     ${healthInputsHtml(plan)}
     ${healthModelHtml(plan)}
-    <div class="health-row health-support"><span class="adv-text">${esc(L("health.support_title"))}
-      <span class="adv-sub">${esc(L("health.support_detail"))}</span></span>
-      <button type="button" class="adv-act" data-act="diagnostics">${esc(L("health.act_diagnostics"))}</button></div>
+    <div class="health-row health-support"><span class="fact-text">${esc(L("health.support_title"))}
+      <span class="fact-sub">${esc(L("health.support_detail"))}</span></span>
+      <button type="button" class="fact-act" data-act="diagnostics">${esc(L("health.act_diagnostics"))}</button></div>
     ${healthDebugHtml(host)}
     ${healthChecklistHtml(plan)}
     <div class="setup-result" role="status"></div></div>`;
@@ -10843,7 +10843,7 @@ function advisorPageHtml(host) {
   const spread = (row) => {
     const value = Number(row.spread_c);
     return Number.isFinite(value)
-      ? `±${value.toFixed(2)} °C <span class="adv-est">${esc(L("advisor.estimated"))}</span>`
+      ? `±${value.toFixed(2)} °C <span class="fact-est">${esc(L("advisor.estimated"))}</span>`
       : "—";
   };
   const isPriced = (row) => !!(row && row.priced);
@@ -10852,25 +10852,25 @@ function advisorPageHtml(host) {
   // Every quantified row carries the estimate badge and its spread; a row
   // the proxy cannot price renders its reason instead of a number, below
   // every ranked row, so it can never pose as one.
-  const rowHtml = (row) => `<button type="button" class="adv-row"
+  const rowHtml = (row) => `<button type="button" class="fact-row"
       data-key="${esc(String(row.key || ""))}">
-      <span class="adv-label">${esc(String(row.label || row.key || ""))}</span>
-      <span class="adv-value">${isPriced(row)
+      <span class="fact-label">${esc(String(row.label || row.key || ""))}</span>
+      <span class="fact-value">${isPriced(row)
         ? spread(row)
         : esc(L(`advisor.reason_${row.reason || "no_clamped_parameter"}`))}
       </span>
     </button>`;
   return `<div class="setup-page advisor-page">
     ${inbox}
-    <div class="adv-head">
-      <span class="adv-title">${esc(L("advisor.heading"))}</span>
-      <span class="adv-basis">${esc(L(
+    <div class="fact-head">
+      <span class="fact-title">${esc(L("advisor.heading"))}</span>
+      <span class="fact-basis">${esc(L(
         adv.basis === "history" ? "advisor.basis_history" : "advisor.basis_config"
       ))}</span>
     </div>
-    <div class="adv-note">${esc(L("advisor.spread_note"))}</div>
+    <div class="fact-note">${esc(L("advisor.spread_note"))}</div>
     ${priced.map(rowHtml).join("")}
-    ${unpriced.length ? `<div class="adv-unpriced-head">${esc(L("advisor.unpriced_heading"))}</div>` : ""}
+    ${unpriced.length ? `<div class="fact-unpriced-head">${esc(L("advisor.unpriced_heading"))}</div>` : ""}
     ${unpriced.map(rowHtml).join("")}
     <div class="setup-hint">${esc(L("advisor.act_hint"))}</div>
     <div class="setup-result" role="status"></div>
@@ -10882,7 +10882,7 @@ function advisorPageHtml(host) {
  * lane the card already owns, rather than a second one grown here. */
 function attachAdvisorPage(host, root) {
   attachAdvisorInbox(host, root);
-  for (const row of root.querySelectorAll(".adv-row")) {
+  for (const row of root.querySelectorAll(".fact-row")) {
     row.addEventListener("click", (ev) => {
       stop(ev);
       const key = row.dataset.key;
@@ -10915,7 +10915,7 @@ function attachAdvisorInbox(host, root) {
     const out = root.querySelector(".setup-result");
     if (out) out.textContent = text;
   };
-  for (const btn of root.querySelectorAll(".adv-act")) {
+  for (const btn of root.querySelectorAll(".fact-act")) {
     btn.addEventListener("click", async (ev) => {
       stop(ev);
       const act = btn.dataset.act;

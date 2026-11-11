@@ -486,7 +486,7 @@ async function themeMismatch({ browser, check, plan }) {
       // a sweep that found the Health or Advisor rows absent would pass for
       // having nothing to measure.
       const reach = { pages: first.tabs.length, empty: pages.filter((p) => p.seen < 5).map((p) => p.view),
-        health: count("health", "span.adv-text"), advisor: count("advisor", "span.adv-text") };
+        health: count("health", "span.fact-text"), advisor: count("advisor", "span.fact-text") };
       check(`R10 every own-text run on every dialog page clears 4.5:1 with ${c.name}`,
         reach.pages >= 5 && !reach.empty.length && reach.health >= 10 && reach.advisor >= 3 && low.length === 0,
         `${pages.map((p) => `${p.view}=${p.seen}`).join(" ")} runs; reach ${JSON.stringify(reach)}; ` +

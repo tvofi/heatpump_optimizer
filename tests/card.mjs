@@ -1521,6 +1521,71 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
   /width: min\(96vw, calc\([^)]*\), 1700px\)/.test(cardSrc),
   `cap ${vm.runInContext("DIALOG_FONT_PX_MAX", ctx)}, 1700 px -> ${dlgOf(1700)} px`);
 
+// R10-HOTFIX-CARD-HEALTH-TEXT: no class or id the card writes may be a name
+// an ad blocker's generic element-hiding rules target. EasyList's
+// `##.adv-text` and `##.adv-label` (AdGuard Base carries both) hid every
+// Health and Advisor label on the owner's v7.1.11 install (rca
+// r10-card-health-text, third pass). The lists change daily, so the barrier
+// is a deny set of ad-list-prone stems, not a copy of any list: a name that
+// is one of them, or starts with one followed by `-` or `_`. The names read
+// are every class and id attribute value, every className assignment and
+// classList argument, and every `.name` / `#name` token anywhere in the
+// card's source (its stylesheet and selectors included; a JS member access
+// is read too, which errs toward refusing). A templated value is read up to
+// its first `${`, so `adv-${row.status}` reads as `adv-`. The browser lane's
+// blockerHide is the rendered proof of the same property.
+const AD_PRONE_NAME = /^(?:ad|ads|adv|advert|banner|sponsor|promo)(?:$|[-_])/i;
+function cardNames(src) {
+  const names = new Set();
+  const addValue = (v) => {
+    for (const tok of v.split(/\s+/)) {
+      const lit = tok.split("${")[0];
+      if (lit) names.add(lit);
+    }
+  };
+  for (const m of src.matchAll(/\b(?:class|id)\s*=\s*(["'])([\s\S]*?)\1/g)) addValue(m[2]);
+  for (const m of src.matchAll(/\bclassName\s*=\s*(["'`])([\s\S]*?)\1/g)) addValue(m[2]);
+  for (const m of src.matchAll(/\bclassList\.(?:add|remove|toggle|contains|replace)\(([^)]*)\)/g)) {
+    for (const s of m[1].matchAll(/(["'`])([^"'`]*)\1/g)) addValue(s[2]);
+  }
+  for (const m of src.matchAll(/[.#](-?[A-Za-z_][\w-]*)/g)) names.add(m[1]);
+  return names;
+}
+{
+  // The deny pattern over a generated spelling corpus: every stem in three
+  // cases, bare and with each separator and suffix, must be refused; the
+  // near misses (a stem glued to a letter, or a word that merely contains
+  // one) must not.
+  const stems = ["ad", "ads", "adv", "advert", "banner", "sponsor", "promo"];
+  const cases = (s) => [s, s.toUpperCase(), s[0].toUpperCase() + s.slice(1)];
+  const deny = [], allow = [];
+  for (const stem of stems) {
+    for (const s of cases(stem)) {
+      deny.push(s);
+      for (const sep of ["-", "_"]) for (const suf of ["", "text", "label", "x-y", "1"]) deny.push(`${s}${sep}${suf}`);
+      for (const glue of ["x", "ice", "ent", "1"]) allow.push(`${s}${glue}`, `${s}${glue}-text`);
+      allow.push(`x-${s}`, `x${s}`, `fact-${s}`);
+    }
+  }
+  allow.push("address", "add", "adjust", "header", "badge", "advice-text", "promote", "fact-text", "fact-label", "health-row");
+  const missed = deny.filter((n) => !AD_PRONE_NAME.test(n));
+  const wrong = allow.filter((n) => AD_PRONE_NAME.test(n));
+  check("the ad-list-prone name pattern refuses every stem spelling and no near miss",
+    missed.length === 0 && wrong.length === 0,
+    `${deny.length} refused, ${allow.length} allowed; missed: ${missed.join(", ")}; wrongly refused: ${wrong.join(", ")}`);
+  // The extractor reads each route a name reaches the DOM by.
+  const probe = cardNames(`<i class="a b-\${x}"></i><p id='c'></p>x.className = "d";` +
+    ` el.classList.toggle("e", on); const css = \`.f .g:hover, #h {}\`;`);
+  const routes = ["a", "b-", "c", "d", "e", "f", "g", "h"].filter((n) => !probe.has(n));
+  check("the card-name extractor reads class, id, className, classList and selector names",
+    routes.length === 0, `not read: ${routes.join(", ")}`);
+  const names = cardNames(cardSrc);
+  const prone = [...names].filter((n) => AD_PRONE_NAME.test(n)).sort();
+  check("no class or id in the card is a name generic ad-blocker hide rules target",
+    names.size >= 100 && prone.length === 0,
+    `${names.size} names read; ad-list-prone: ${prone.join(", ")}`);
+}
+
 // R10-CARD-VOICE, the harmony study's other carries (probe/card-harmony-
 // design 6aea0d10, HARMONY.md section 4), read off the card's own stylesheet:
 // the rule each names, not a restatement of it.
@@ -1529,8 +1594,8 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
   // H1 (b): no caption role on either surface renders under the ramp's
   // smallest step, 12 px.
   const captions = [".legend-note", ".hl-caveat", ".sb-text", ".viewctl button",
-    ".setup-hint", ".setup-result", ".setup-dest", ".adv-basis", ".adv-note",
-    ".adv-text .adv-sub", ".health-mark", ".whatif .wi-hint", ".adv-row.unpriced .adv-value"];
+    ".setup-hint", ".setup-result", ".setup-dest", ".fact-basis", ".fact-note",
+    ".fact-text .fact-sub", ".health-mark", ".whatif .wi-hint", ".fact-row.unpriced .fact-value"];
   const unfloored = captions.filter((c) =>
     !/font-size: max\(12px, 0\.\d+em\)/.test(ruleOf(c)));
   check("every caption role is floored at the ramp's 12 px step",
@@ -1553,9 +1618,9 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
   const paired = (decl) => /background: var\(--hpo-surface-2, #f7f9fb\)/.test(decl) &&
     /--hpo-text: var\(--hpo-ink, #212121\)/.test(decl) && /--hpo-text-2: var\(--hpo-ink-2, #727272\)/.test(decl);
   check("the health and advisor rows take their surface and its ink from one rule",
-    [".health-row", ".adv-inbox-row"].every((c) => listing(c).some(paired) &&
+    [".health-row", ".fact-inbox-row"].every((c) => listing(c).some(paired) &&
       !listing(c).some((d) => /secondary-background-color/.test(d))),
-    [".health-row", ".adv-inbox-row"].map((c) => `${c}: ${listing(c).map((d) => d.trim()).join(" + ")}`).join(" | "));
+    [".health-row", ".fact-inbox-row"].map((c) => `${c}: ${listing(c).map((d) => d.trim()).join(" + ")}`).join(" | "));
   check("the health headings are the card's 600, not the user agent's 700",
     /font-weight: 600/.test(ruleOf(".health-h")), ruleOf(".health-h"));
   // H4: the replay drawing scrolls on a phone instead of shrinking its
@@ -3816,7 +3881,7 @@ check("the hand-scheduled reason has a label",
   const row = adv.shadowRoot.querySelector(
     '[data-key="buffer_tank_temp_entity"]');
   check("each suggestion is its own 24px-floor button",
-    !!row && row.tagName === "BUTTON" && row.classList.contains("adv-row"),
+    !!row && row.tagName === "BUTTON" && row.classList.contains("fact-row"),
     "a ranked list whose rows cannot be acted on is a report, not advice");
   if (row) await Promise.all(
     (row._listeners.click || []).map((f) => f({ stopPropagation() {} })));
@@ -3841,11 +3906,11 @@ check("the hand-scheduled reason has a label",
   const donePage = collect(done.shadowRoot).join("\n");
   // Only one dialog exists at a time, and the done card never saw the
   // advisor attribute, so the absence below is the page's own answer.
-  // The markup form is what counts: the stylesheet text names .adv-row
+  // The markup form is what counts: the stylesheet text names .fact-row
   // in every render, rows or not.
   check("with no candidates the advisor page says so in as many words",
     /already configured/.test(donePage)
-    && !/class="adv-row/.test(donePage),
+    && !/class="fact-row/.test(donePage),
     "an absent attribute must read as 'nothing to suggest', not as silence");
 
   // Swedish: the page is a first-class citizen of the card's i18n.
@@ -3866,7 +3931,7 @@ check("the hand-scheduled reason has a label",
   // under the floor on day one. Anchored to the definition itself: the
   // name also appears in prose comments later in the file.
   check("the advisor rows sit in the html target floor's selector list",
-    /\.adv-row/.test(
+    /\.fact-row/.test(
       cardSrc.slice(cardSrc.indexOf("const htmlTargetFloor"),
         cardSrc.indexOf("const htmlTargetFloor") + 450)),
     "a new HTML control joins the floor or ships below it");
@@ -3982,7 +4047,7 @@ const restartStates = (patch = {}) => {
   };
   const degreeOf = (down, up) => {
     const h = mkInbox(tileStates(down, up)).html();
-    const row = h.split('class="adv-inbox-row').find((r) => /data-act="try_degree"/.test(r)) || "";
+    const row = h.split('class="fact-inbox-row').find((r) => /data-act="try_degree"/.test(r)) || "";
     return { h, row };
   };
   const shot = degreeOf(-140, -266);
@@ -4071,7 +4136,7 @@ const restartStates = (patch = {}) => {
   check("a null configured valve target is no row, not a move from 0",
     !/data-act="apply_valve"/.test(mkInbox(nv).html()));
   const ns = restartStates({ current_scale: null });
-  const nsRow = mkInbox(ns).html().split('class="adv-inbox-row').find((r) => /data-act="adopt_refit"/.test(r)) || "";
+  const nsRow = mkInbox(ns).html().split('class="fact-inbox-row').find((r) => /data-act="adopt_refit"/.test(r)) || "";
   check("a null current scale reads as a dash in the refit row, not 0.00",
     /—/.test(nsRow) && !/0\.00/.test(nsRow), nsRow.slice(0, 300));
 
@@ -4111,12 +4176,12 @@ const restartStates = (patch = {}) => {
   // #2257 item 7: no URL reaches an options-flow step, so each row names the
   // step its button's entry link leads to, and the button links this entry.
   check("each enable-to-see row names the options step that turns it on",
-    /Wood-stove timing<span class="adv-sub">Configure → Advanced settings → Heating system and heat storage/.test(page)
-    && /Fuse size<span class="adv-sub">Configure → Grid peak tariff/.test(page)
-    && /Compressor frequency<span class="adv-sub">Configure → Advanced settings → Power and solar sensors/.test(page));
+    /Wood-stove timing<span class="fact-sub">Configure → Advanced settings → Heating system and heat storage/.test(page)
+    && /Fuse size<span class="fact-sub">Configure → Grid peak tariff/.test(page)
+    && /Compressor frequency<span class="fact-sub">Configure → Advanced settings → Power and solar sensors/.test(page));
   const ntStep = mkInbox(noTiles).html();
   check("the price-of-a-degree opt-in names Savings vs comfort",
-    /Price of a degree<span class="adv-sub">Configure → Savings vs comfort/.test(ntStep));
+    /Price of a degree<span class="fact-sub">Configure → Savings vs comfort/.test(ntStep));
   {
     const o = mkInbox(inboxStates());
     o.c.hass.callWS = async (msg) => ({ entity_id: msg.entity_id, config_entry_id: "01JADVISORENTRY" });
@@ -12376,7 +12441,7 @@ check("without an indoor reading the corner now label is absent",
       /Vedtankens toppgivare/.test(rowText(svh, "wood_tank_top_entity"))
       && /Framledningstemperatur/.test(rowText(svh, "heat_pump_supply_temp_entity")), rowText(svh, "wood_tank_top_entity"));
     check("UX-HEALTH A: a key the table does not name reads Input with its entity id, never a name from the key",
-      /Input<span class="adv-sub">sensor\.my_thing/.test(rowText(en, "mystery_entity")) && !/mystery/.test(rowText(en, "mystery_entity").replace(/data-health-input="mystery_entity"/, "")),
+      /Input<span class="fact-sub">sensor\.my_thing/.test(rowText(en, "mystery_entity")) && !/mystery/.test(rowText(en, "mystery_entity").replace(/data-health-input="mystery_entity"/, "")),
       rowText(en, "mystery_entity"));
     // The equality: one label per options-flow field per language, the
     // owning page's (never the quick_setup / modbus_prefill shortcuts), and
@@ -12465,7 +12530,7 @@ check("without an indoor reading the corner now label is absent",
         const ids = [...m.matchAll(/data-model-row="([^"]+)"/g)].map((x) => x[1]);
         const bad = ids.filter((id) => {
           const title = (new RegExp(`data-model-row="${id}"[^>]*title="([^"]*)"`).exec(m) || [])[1] || "";
-          const reason = (/<span class="adv-sub">([^<]*)</.exec(rowOf(m, id)) || [])[1] || "";
+          const reason = (/<span class="fact-sub">([^<]*)</.exec(rowOf(m, id)) || [])[1] || "";
           const metric = strings[`health.metric_${id}`];
           return !metric || !title.includes(esc(metric)) || !noData.test(metric)
             || !reason || !title.includes(reason);
@@ -12502,7 +12567,7 @@ check("without an indoor reading the corner now label is absent",
     sc[`${PFX}_plan_optimization_score`].attributes.reasons.overall = "heat_loss_learning";
     const scoreRow = pageOf(mkHealth(sc).html());
     check("UX-HEALTH D: the waiting score says its own sensor's reason",
-      /Optimization score<span class="adv-sub">Still learning the house&#39;s heat loss\.|Optimization score<span class="adv-sub">Still learning the house's heat loss\./.test(scoreRow),
+      /Optimization score<span class="fact-sub">Still learning the house&#39;s heat loss\.|Optimization score<span class="fact-sub">Still learning the house's heat loss\./.test(scoreRow),
       scoreRow.slice(scoreRow.indexOf("Optimization score"), scoreRow.indexOf("Optimization score") + 120));
 
     // Carry 14: the score's hover explains every sub-score's metric, not
@@ -12555,7 +12620,7 @@ check("without an indoor reading the corner now label is absent",
       /Normal \(COP scale 1\.02\)/.test(hm) && /Measured by the heat meter/.test(hm), hm);
     const nm = modelStates({ cop: { scale: 1.0, watched_buckets: 3, cop_observability: "not_measurable" } });
     const nmPage = pageOf(mkHealth(nm).html());
-    const learnCop = (/Heat pump COP<span class="adv-sub">([^<]*)</.exec(nmPage) || [])[1] || "";
+    const learnCop = (/Heat pump COP<span class="fact-sub">([^<]*)</.exec(nmPage) || [])[1] || "";
     check("UX-HEALTH E: the learning row says the same COP reason as the model row",
       /^COP cannot be measured on this install/.test(learnCop) && !/Needs a power meter/.test(nmPage), learnCop);
     // Every code the COP gate and the heat counter publish has words in both
