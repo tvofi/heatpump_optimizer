@@ -1,0 +1,15 @@
+M4 record_drafts call site deleted: KILLED rc=1 fails=1
+     FAIL P609 a batch records the draft key on a key-less entry before admission
+M7 pending set ignored: KILLED rc=1 fails=1
+     FAIL P608 an unfinished entry older than a SUCCESS still makes the context pending
+M8 zero-time not cleared: KILLED rc=1 fails=1
+     FAIL P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order
+M9 startedAt fallback dropped: KILLED rc=1 fails=2
+     FAIL P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order
+     FAIL P608 an entry with only startedAt is ordered by it, in either list order
+M5 read->pass: KILLED rc=1 fails=0
+     tail: KeyError: 'draft'
+M1 last-listed wins: KILLED rc=1 fails=3
+     FAIL P608 #3445's five gate entries in list order: red gate, not a missing review
+     FAIL P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order
+     FAIL P608 an entry with only startedAt is ordered by it, in either list order
