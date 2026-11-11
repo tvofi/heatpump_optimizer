@@ -1,0 +1,11 @@
++ cd /tmp/tmp.lif2ERfX1D
++ uv venv -q -p 3.13 v2502
++ VIRTUAL_ENV=v2502
++ uv pip install -q homeassistant==2025.2.0 numpy scipy
++ echo rc2502=0
+rc2502=0
++ uv venv -q -p 3.14 v2611
++ VIRTUAL_ENV=v2611
++ uv pip install -q homeassistant==2026.11.1 numpy scipy paho-mqtt
++ echo rc2611=0
+rc2611=0
