@@ -1471,11 +1471,11 @@ dt_util.freeze(None)
 debugger._COLLECTORS.clear()
 # -- R10-DIAG-REDACT: a redacted value is redacted wherever else it reaches ---
 # The download's redaction is keyed: ``tibber_token`` and ``name`` are blanked
-# and ``latitude``/``longitude`` coarsened. D15's production triage found
+# and ``latitude``/``longitude`` and ``solar_location`` blanked. D15's production triage found
 # dropped credential values surviving elsewhere in the same payload, so each
 # value the keyed passes remove is planted below in every section of the
 # download -- under an unredacted key, inside a message, as a key, and as a
-# number under a key the coarsening does not name -- and none may come back.
+# number under a key the keyed pass does not name -- and none may come back.
 NAME = "Villa Solbacken"
 EXACT = ("59.334591", "18.06324")  # the install's solar_location, as text
 OPTIONS_TOKEN = "tibber-options-fedcba9876543210"  # a token reauth saved in options
@@ -1606,13 +1606,13 @@ R.check(
 _six = "x" * replay_doc.LEAK_MIN_CHARS
 R.check(
     "the value pass searches for a removed value at the leak check's shortest length and "
-    "not one character under it, for a coordinate only when the coarsening cut it, and "
+    "not one character under it, for a coordinate as for any other, and "
     "never for a flag",
     diagnostics_mod._private_values([{"name": _six, "x": [{"name": _six[1:]}],
                                       "tibber_token": True,
                                       "solar_location": {"latitude": -123.4,
                                                          "longitude": float(EXACT[1])}}])
-    == {_six, EXACT[1]},
+    == {_six, "-123.4", EXACT[1]},
     str(diagnostics_mod._private_values([{"name": _six, "x": [{"name": _six[1:]}]}])),
 )
 R.check(
