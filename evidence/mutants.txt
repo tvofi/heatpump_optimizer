@@ -1,0 +1,10 @@
+anchors-written
+NULL edit: -        if (again && typeof again.focus === "function") again.focus();|+        if (again && typeof again.focus === "function") again.focus(); // null|
+NULL: SURVIVED rc=0 fails=0 first=
+R1 edit: +    this._folds = { narrative: false, whynow: false };|
+R1: KILLED rc=1 fails=0 first=
+M4 edit: -        if (again && typeof again.focus === "function") again.focus();|
+M4: KILLED rc=1 fails=0 first=
+M2 edit: -        this._folds = { ...this._folds, [key]: !this._folds[key] };|
+M2: KILLED rc=1 fails=0 first=
+status-after: 0 dirty

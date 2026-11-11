@@ -1,3 +1,3 @@
-cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf
-e51ee741aabc699a58398721747d222993c53111
+MERGE-CLAIM: resolved tests/golden/card_claimed_drift.txt
+5f0249d89cddab4b184a6e95e1c3340d4a3eb718
 rc=0
