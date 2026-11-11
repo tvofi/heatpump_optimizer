@@ -23322,6 +23322,44 @@
     "branch": null,
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE-P3): triage P600 (s6-batch181, record b253df9967): owed_unactioned blinded by the tick cap line; held triage refs fill 14/20 orphan cap slots; sibling because R10-TICK-RESIDUE (#3425) holds a merge verdict"
    }
+  },
+  {
+   "group": "R10-RELAY-ARM-ORDER",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "S",
+   "effort": "medium",
+   "severity": "medium",
+   "lane": "IN",
+   "wave": 1,
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/cloud_relay.sh"
+   ],
+   "hot_files": [
+    "tools/audit/seat/cloud_relay.sh"
+   ],
+   "owner_gate": null,
+   "fixture": false,
+   "rca": [],
+   "findings": [],
+   "fixes": [],
+   "issues": [],
+   "brief": "triage: dev/programme/triage/s6-batch182.md#P601 at f18bee99d1\n\nNew S group (every group listing cloud_relay.sh is done/absorbed except R10-REVIEW-DISPATCH-RESIDUE, excluded as a destination; distinct seam: the arm order in pass()). Line numbers at cbd23f1c8b.\n\n1. RELAY-ARMS-FIRST, tools/audit/seat/cloud_relay.sh pass() (:860) runs handoff_arm (inline update_pr.sh + full prepr, :572) before probe_arm/confirm_arm, so a returned verdict waits for every queued update: probe-to-POSTED latency over 24 h n=45 median 6.8, p75 18.1, p90 51.6, max 112.7 min; 11 posts >20 min (3449 55 min, 3423 73 min behind the #3442 update). Hoist the one open-PR listing to the head of pass() into the file confirm_arm reads (:433; handoff_arm writes it at :588 today), then run probe_arm, confirm_arm, handoff_arm, carry_fold_arm, stuck_arm, noreturn_arm; handoff_arm reuses the listing. Self-test: with a stub handoff_arm recording order, a probe ref returned before the pass is POSTED before handoff_arm starts; mutation proof: the old order fails it; null control: no probe ref posts nothing and handoff_arm still runs once; :1033-1035 stay green. Do NOT detach updates (arm 2 rejected: update_pr.sh already answers BUSY per branch).",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
