@@ -1,0 +1,7 @@
+Read at 84405a2a2c96b6a7476832b5e76edd9f7b96e4a2 by a delegated read-only seat of this review, quoted file:line:
+const.py:808 SPACE_SETPOINT_UNITS = ("indoor", "flow", "return"); :809 DEFAULT_SPACE_SETPOINT_UNIT = "indoor"; :816 SPACE_SETPOINT_WATER_UNITS = ("flow", "return")
+pump_arbiter.py:596-616 _space_target: a water unit returns _flow_target(...); any other returns _bounded(inp, "space_setpoint", room), room = _planned_room(result, now)
+pump_arbiter.py:1108 space = _space_target(...); :1121 PumpCommand(pump_mode.MODE_HEAT, dhw, space, silent)
+pump_arbiter.py _report_write: space_setpoint_c=command.space_setpoint; duty_switch._heated: inlet_c - space_setpoint_c >= HEATED_MARGIN_K
+tests/features.py section 81328-82315: no line sets space_setpoint_unit; the gate fixture _ds_gate drives room_c 20.0 to 21.0, so the section's "return 1.9 K and 2.0 K over the command's set-point" checks run on the default indoor unit.
+Pure predicate, run by the reviewer (ev/reviewer_probe.txt): inlet 30.0, set-point 21.0, 14 s leg: heated True; control, set-point 32.0: heated False.

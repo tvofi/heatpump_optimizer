@@ -1,0 +1,7 @@
+Read at origin/handoff/audit-r10-roster fa165de9692b5ee6d18359e43384350df7545d41, dev/programme/rosters/wave-r10-groups.json, by a delegated read-only seat of this review (git show, no checkout).
+R10-DUTY-SWITCH-RESTART-LEARNING-PR-B carry 0 (body item 1b22f416): no ready read API, reader with its first caller, control dead_top_level_symbols; conditional keys, control mutant publish_only_observed; wider loop void; n with no ceiling but the load bound; re-measure at the part's merge base.
+R10-DUTY-SWITCH-RESTART-LEARNING-PR-B carry 1 (body item 3c666f5b): factory reset keeps the store; the owner rules before a part reads the estimate.
+R10-DUTY-SWITCH-PLANNER-PRICE carry 0 (body item 3656875b): reader with its first caller, an absent key is no observation, "Controls as in the item above" (no item above exists in that group's carry).
+R10-DUTY-SWITCH-RESTART-LEARNING carry 1, 2 (be768cab, 25e8fe39): the round-1 items, landed in the design note.
+R10-COMBI-TANK-PR-B carry 8, 9 (bcf2d3ca, 7b6d8fe1): the combi_type_branch census red on main.
+PR-B's brief still reads "The arbiter reads the estimate only through the read interface part A publishes for B and C"; its carry 0 is the newer text.

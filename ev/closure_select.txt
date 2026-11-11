@@ -1,0 +1,65 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 23 script(s) run, 10 scoped out.
+  changed files (21), measured against the recorded closures in tests/closures.json:
+      custom_components/heatpump_optimizer/duty_switch.py
+      custom_components/heatpump_optimizer/pump_arbiter.py
+      custom_components/heatpump_optimizer/sensor.py
+      custom_components/heatpump_optimizer/store.py
+      custom_components/heatpump_optimizer/wear.py
+      dev/audit/harnesses/r10_duty_switch_section.py
+      dev/audit/rounds/round4/D6/claims.json
+      dev/audit/rounds/round4/D6/claims.md
+      dev/audit/rounds/round4/D6/claims.py
+      dev/programme/delivery/3461.md
+      docs/architecture.md
+      docs/design/2026-11-10-duty-switch-restart-learning/design.md
+      tests/closures.json
+      tests/deployment_shape.py
+      tests/entities.py
+      tests/features.py
+      tests/finite_boundary.py
+      tests/guard_pins.py
+      tests/mutation_ledger/killed_by/sensor.py/CompressorStartsSensor.extra_state_attributes.RETURN_DEL.0bb57d03.json
+      tests/mutation_ledger/survivor_triage/duty_switch.py/@module.CONST.43e0a892.json
+      tests/mutation_ledger/survivor_triage/duty_switch.py/Direction.decay.CMP_BOUND.225d3f33.json
+
+      RUN   tests/arch_score_head.py (its tests/closures.json entry changed)
+      RUN   tests/block_duty.py (its tests/closures.json entry changed)
+      RUN   tests/boost_drift_replay.py (its tests/closures.json entry changed)
+      RUN   tests/config_flow_steps.py (its tests/closures.json entry changed)
+      RUN   tests/debug_collect.py (its tests/closures.json entry changed)
+      RUN   tests/deployment_shape.py (its tests/closures.json entry changed)
+      RUN   tests/doc_claims.py (its tests/closures.json entry changed)
+      RUN   tests/entities.py (its tests/closures.json entry changed)
+      RUN   tests/env_drift.py (its tests/closures.json entry changed)
+      RUN   tests/features.py (its tests/closures.json entry changed)
+      RUN   tests/finite_boundary.py (its tests/closures.json entry changed)
+      RUN   tests/golden.py (its tests/closures.json entry changed)
+      RUN   tests/guard_pins.py (its tests/closures.json entry changed)
+      RUN   tests/harness_headers.py (its tests/closures.json entry changed)
+      RUN   tests/manual_plan.py (its tests/closures.json entry changed)
+      RUN   tests/md_tables.mjs
+      RUN   tests/plan_view.py (its tests/closures.json entry changed)
+      RUN   tests/card.mjs (its tests/closures.json entry changed)
+      RUN   tests/card_drift.mjs (its tests/closures.json entry changed)
+      RUN   tests/solar_alignment.py (its tests/closures.json entry changed)
+      RUN   tests/structure.py (its tests/closures.json entry changed)
+      RUN   tests/typing_ruler.py (its tests/closures.json entry changed)
+      RUN   tests/wood_advisor.py (its tests/closures.json entry changed)
+
+      SKIP  tests/arch_score.py  (closure: 166 files, no changed file is in its measured closure)
+      SKIP  tests/backtest.py  (closure: 37 files, no changed file is in its measured closure)
+      SKIP  tests/edge.py  (closure: 35 files, no changed file is in its measured closure)
+      SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/layout.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/optimality.py  (closure: 37 files, no changed file is in its measured closure)
+      SKIP  tests/stress.py  (closure: 41 files, no changed file is in its measured closure)
+      SKIP  tests/validate.py  (closure: 35 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+rc=0

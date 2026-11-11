@@ -1,0 +1,12 @@
+origin/main 046736a49f8c352160ac4f55aa7f5faa5b82cafa
+merge-base cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (565 entries)
+  closures.tests/harness_headers.py: merged as a set (409 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (995 entries)
+  re-run the gate that owns this file before pushing
+aec3c8c25aedc164eb07fe66460c035057832a9c
+merge-tree rc=0
+classify: WAIT 84405a2a2c96b6a7476832b5e76edd9f7b96e4a2 pending: gate red: none
+rc=3
+roster origin/handoff/audit-r10-roster fa165de9692b5ee6d18359e43384350df7545d41
