@@ -2781,6 +2781,24 @@ def selftest() -> int:
         expect("since-tag: a clean merge's change is read against its first parent",
                got == ["R10-STORE-RACES"], str(got))
 
+    # --measure-sizes hands --sizes-via to size_durations.run: the module is a
+    # stub in sys.modules, so the mutation copies (no size_durations.py beside
+    # them) run this arm too, and no read reaches the network.
+    import types
+    from unittest import mock
+    vias = []
+    stub = types.SimpleNamespace(
+        SINCE="2026-10-12", DEFAULT_PERCENTILE=0.5,
+        run=lambda *a, **k: vias.append((a[7:8] or [k.get("via", "graphql")])[0])
+        or {"sizes_hours": {}})
+    with mock.patch.dict(sys.modules, {"size_durations": stub}), \
+            tempfile.TemporaryDirectory() as td:
+        for via in ("rest", "graphql"):
+            main(["--measure-sizes", "--sizes-via", via,
+                  "--out-durations", os.path.join(td, "d.json")])
+    expect("--measure-sizes --sizes-via rest reaches size_durations.run as via=rest "
+           "(null: graphql)", vias == ["rest", "graphql"], str(vias))
+
     gate = gate_minutes(durations)
     want_gate = 50.0 + 22.0 + 27.0 * (1.0 + 0.04)
     expect("the gate price includes the cancelled-leg rerun",
