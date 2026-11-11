@@ -25,7 +25,7 @@ htmlcov/
 .idea/
 
 # Local Home Assistant runtime data (for local dev setups)
-config/
+/config/
 .storage/
 
 # policy_lint_mutants.mjs writes one mutated module at a time beside the
