@@ -1,0 +1,15 @@
+$ git grep -n "async_rebaseline(" -- custom_components/
+custom_components/heatpump_optimizer/heat_curve.py:491:        await off_restore.async_rebaseline(hass, entry, CONSUMER, entity_id, baseline)
+custom_components/heatpump_optimizer/off_restore.py:282:async def async_rebaseline(
+custom_components/heatpump_optimizer/pump_arbiter.py:1178:    if await off_restore.async_rebaseline(inp.hass, entry, CONSUMER, entity, baseline):
+$ git grep -n "baseline_of=" -- custom_components/
+custom_components/heatpump_optimizer/heat_curve.py:115:        return off_restore.Restorer(entity_id, write_setpoint, baseline_of=_baseline_reading,
+custom_components/heatpump_optimizer/pump_arbiter.py:1628:    return off_restore.Restorer(entity, write_setpoint_c, baseline_of=read_setpoint,
+$ git grep -n "off_restore.async_arm(" -- custom_components/
+custom_components/heatpump_optimizer/heat_curve.py:352:    if not await off_restore.async_arm(hass, entry, config, CONSUMER) \
+custom_components/heatpump_optimizer/heat_curve.py:530:    if not await off_restore.async_arm(hass, entry, config, CONSUMER):
+custom_components/heatpump_optimizer/pump_arbiter.py:1215:    return await off_restore.async_arm(inp.hass, entry, inp.config, CONSUMER)
+$ git grep -n "write_setpoint_c(" custom_components/heatpump_optimizer/
+custom_components/heatpump_optimizer/coordinator.py:732:        if await write_setpoint_c(hass, entity_id, target, rounding="down"):
+custom_components/heatpump_optimizer/inputs.py:647:async def write_setpoint_c(
+custom_components/heatpump_optimizer/pump_arbiter.py:1156:            await write_setpoint_c(coord.hass, entity, value)

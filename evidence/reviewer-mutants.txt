@@ -1,0 +1,6 @@
+SURVIVED NULL
+SURVIVED R1_own_ignores_entity_change
+SURVIVED R2_restored_keeps_misses_retry
+KILLED R3_arm_keeps_no_before
+SURVIVED R4_own_refusal_reading_none_ok
+rc=0
