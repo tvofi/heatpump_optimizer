@@ -2710,7 +2710,9 @@ def check_site_request_controls() -> None:
             R.check(f"built page: {name} is refused", bool(subpage_findings(sub.replace("</head>", tag + "</head>", 1))))
     for name, tag in built_only:
         R.check(f"built page: {name} is refused", bool(subpage_findings(sub.replace("</head>", tag + "</head>", 1))))
-    card = page.replace('href="how-it-works.html"', f'href="{_SITE_REPO}docs/how-it-works.md"', 1)
+    # Keyed on the card's own data-doc: the page also links that sub-page from its story, where GitHub is no finding.
+    card = page.replace('data-doc="docs/how-it-works.md" href="how-it-works.html"',
+                        f'data-doc="docs/how-it-works.md" href="{_SITE_REPO}docs/how-it-works.md"', 1)
     R.check("product page: a docs card for a built document linked to GitHub is refused",
             card != page and any(k == "subpage" for k, _ in site_findings(card, pages=built["pages"])[0]))
     for name, css in (
