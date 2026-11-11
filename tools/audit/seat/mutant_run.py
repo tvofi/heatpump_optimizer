@@ -22,8 +22,9 @@ working tree under `dev/audit/harnesses/mutant_guard.py`, which refuses a
 target that differs from HEAD and restores it under SIGTERM, SIGINT and exit.
 Under either mode a signal kills the running command's process group first.
 
-FORK CAP (R10-MUTANT-RUN-FORKCAP). The command runs in its own session, polled
-every 0.5 s; a session holding more than `--fork-cap` processes (default 256, 0
+FORK CAP (R10-MUTANT-RUN-FORKCAP). The command runs in its own session; its family (session, process group, and every process
+carrying the run's MUTANT_RUN_TOKEN, so a descendant that setsid'd or setpgid'd away still
+counts) is polled every 0.5 s and killed whole, also at exit; a family holding more than `--fork-cap` processes (default 256, 0
 turns the cap off) is SIGKILLed whole and reported `FORKCAP <name>` (diff mode:
 `FORKCAP file:line OPERATOR  <mutated line>`), never KILLED: a mutant that makes
 a self-test re-enter itself (a chain 700 deep once exhausted a host's `ulimit -u`)
@@ -105,53 +106,68 @@ def git(root: Path, *args: str, text: bool = True) -> subprocess.CompletedProces
 
 
 # --- running one command ----------------------------------------------------
-def session_pids(sid: int) -> list[int]:
-    """Live processes whose session id is `sid` (the command's, which setsid made its pid)."""
-    out = []
+def family(sid: int, token: str) -> list[int]:
+    """Live processes of the command `sid` started: its session, its process group, or any that
+    still carries the run's token in its environment (a descendant that called setsid or setpgid,
+    or whose parent exited, inherits the token unless it clears its environment)."""
+    out, mark = [], ("MUTANT_RUN_TOKEN=" + token).encode()
     for d in os.listdir("/proc"):
-        if not d.isdigit():
+        if not d.isdigit() or int(d) == os.getpid():
             continue
         try:
             stat = Path("/proc", d, "stat").read_text()
-        except OSError:
-            continue  # exited between the listing and the read
-        if int(stat[stat.rindex(")") + 2:].split()[3]) == sid:
-            out.append(int(d))
+            pgrp, session = (int(x) for x in stat[stat.rindex(")") + 2:].split()[2:4])
+            if sid in (pgrp, session) or mark in Path("/proc", d, "environ").read_bytes().split(b"\0"):
+                out.append(int(d))
+        except (OSError, ValueError):
+            continue  # exited between the listing and the read, or not ours to read
     return out
+
+
+def _kill_family(sid: int, token: str) -> None:
+    """SIGKILL every member until none is left (a member may fork while the list is taken)."""
+    for _ in range(20):
+        pids = family(sid, token)
+        if not pids:
+            return
+        for pid in pids:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
+        time.sleep(0.05)
 
 
 def run_cmd(argv: list[str], cwd: Path, timeout: float) -> int:
     """Exit status of the command; TIMEOUT_RC (-1) is a kill (the mutant hangs); FORKCAP_RC (-2)
     is the session holding more than FORKCAP[0] processes (a re-entering self-test), which proves
     nothing about the test pinning the mutant and is never a kill."""
-    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+    token = f"{os.getpid()}-{time.monotonic_ns()}"
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", MUTANT_RUN_TOKEN=token)
     p = subprocess.Popen(argv, cwd=str(cwd), env=env, start_new_session=True,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    _child.append(p)
+    _child.append((p, token))
     deadline = time.monotonic() + timeout
     try:
         while True:
             try:
-                return p.wait(timeout=max(0.0, min(FORKCAP_POLL_S, deadline - time.monotonic())))
+                rc = p.wait(timeout=max(0.0, min(FORKCAP_POLL_S, deadline - time.monotonic())))
+                if FORKCAP[0] and len(family(p.pid, token)) > FORKCAP[0]:
+                    rc = FORKCAP_RC
+                return rc
             except subprocess.TimeoutExpired:
                 pass
             if time.monotonic() >= deadline:
-                _killpg(p)
+                _kill_family(p.pid, token)
                 p.wait()
                 return TIMEOUT_RC
-            if FORKCAP[0] and len(session_pids(p.pid)) > FORKCAP[0]:
-                _killpg(p)
+            if FORKCAP[0] and len(family(p.pid, token)) > FORKCAP[0]:
+                _kill_family(p.pid, token)
                 p.wait()
                 return FORKCAP_RC
     finally:
+        _kill_family(p.pid, token)  # a daemon outliving its command is the command's, not the next mutant's
         _child.clear()
-
-
-def _killpg(p) -> None:
-    try:
-        os.killpg(p.pid, signal.SIGKILL)
-    except (ProcessLookupError, PermissionError):
-        pass
 
 
 class Workspace:
@@ -182,8 +198,8 @@ class Workspace:
         prev = {sg: signal.getsignal(sg) for sg in (signal.SIGTERM, signal.SIGINT)}
 
         def on_signal(signum, frame):
-            for p in _child:
-                _killpg(p)
+            for p, token in _child:
+                _kill_family(p.pid, token)
             self.close()
             h = prev[signum]
             if callable(h):
@@ -534,7 +550,7 @@ LOOSE = "from lib import clamp\nassert clamp(3, 0, 5) == 3\n"
 def _no_session(sid: int) -> bool:
     """True once no process has session id `sid` (polled for up to 5 s)."""
     for _ in range(50):
-        if not session_pids(sid):
+        if not family(sid, ""):
             return True
         time.sleep(0.1)
     return False
@@ -730,6 +746,36 @@ def _self_test() -> int:
         rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh {gate} 10", "--fork-cap", "32")
         check("forkcap: a bounded 10-process command under the same cap is unaffected (null control)",
               rc == 0 and out.splitlines() == ["SURVIVED NULL", "SURVIVED ret_hi"])
+
+        # fork cap: descendants that leave the process group or the session are still the command's
+        esc = tmp / "esc.py"
+        esc.write_text("import os, sys, time\n"
+                       "mode, n = sys.argv[1], int(sys.argv[2])\n"
+                       "if n <= 0:\n    time.sleep(120)\n    sys.exit(0)\n"
+                       "pid = os.fork()\n"
+                       "if pid == 0:\n"
+                       "    {'pgrp': lambda: os.setpgid(0, 0), 'session': os.setsid, 'plain': lambda: None}[mode]()\n"
+                       "    os.execv(sys.executable, [sys.executable, sys.argv[0], mode, str(n - 1)])\n"
+                       "time.sleep(0.02)\n"
+                       "os.waitpid(pid, 0)\n")
+        for mode in ("pgrp", "session"):
+            write_spec([bad])
+            t0 = time.monotonic()
+            rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh -c 'grep -q \"return lo\" lib.py && exit 0; python3 {esc} {mode} 120'",
+                               "--fork-cap", "32", "--timeout", "60")
+            check(f"forkcap: a chain that leaves its {mode} at every link is FORKCAP, not waited out",
+                  rc == 0 and out.splitlines() == ["SURVIVED NULL", "FORKCAP ret_hi"] and time.monotonic() - t0 < 30)
+            left = subprocess.run(["pgrep", "-f", f"{esc} {mode}"], capture_output=True, text=True).stdout.split()
+            check(f"forkcap: no {mode}-leaving descendant outlives the run", not left)
+            for pid in left:
+                os.kill(int(pid), signal.SIGKILL)
+        write_spec([bad])
+        rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh -c 'setsid python3 {esc} plain 0 </dev/null >/dev/null 2>&1 & exit 0'", "--timeout", "60")
+        left = subprocess.run(["pgrep", "-f", f"{esc} plain 0"], capture_output=True, text=True).stdout.split()
+        check("forkcap: a daemon that left the session and outlived its command is killed at the command's exit",
+              rc == 0 and not left)
+        for pid in left:
+            os.kill(int(pid), signal.SIGKILL)
 
         # STMT_DEL
         g("commit", "-q", "--allow-empty", "-m", "marker")

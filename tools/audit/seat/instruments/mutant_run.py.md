@@ -19,7 +19,9 @@
   `MUTANT_CMD` is set. Refusal, rc 2, before anything runs: a malformed spec, a
   repeated name, an `old` not occurring exactly once, a target differing from
   HEAD. A survivor is answered in the PR body; an equivalent one still owes a
-  `survivor_triage` record. The command's session is polled every 0.5 s and
-  SIGKILLed past `--fork-cap` processes (default 256): `FORKCAP name` or
+  `survivor_triage` record. The command's family (its session, its process group, and any
+  process carrying the run's `MUTANT_RUN_TOKEN` environment mark, so a descendant that
+  left either is still counted) is polled every 0.5 s and SIGKILLed whole, also at the
+  command's exit and on a signal, past `--fork-cap` processes (default 256): `FORKCAP name` or
   `FORKCAP file:line OPERATOR`, never KILLED (the cap proves no test pins the
   mutant); a diff run with one exits 1. `--self-test` builds throwaway repositories.
