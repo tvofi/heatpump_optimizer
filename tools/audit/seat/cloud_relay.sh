@@ -1911,6 +1911,21 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   awk -v e=$(( $(date +%s) - 3601 )) '$1 == "cf-g" { $5 = e } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
   rm -f "$t/folds"; carry_fold_arm >/dev/null 2>&1
   chk "... and retried once it is" 0 grep -q -- "--topic cf-g " "$t/folds"
+  # The production body_push.sh line (no HPO_RELAY_BODYPUSH): HERE points at a stand-in body_push.sh that records its working tree's HEAD.
+  mkdir -p "$t/fakehere"; printf '#!/bin/bash\necho "$@" >> %s/rbps\ngit rev-parse HEAD >> %s/rheads\n' "$t" "$t" > "$t/fakehere/body_push.sh"
+  cfref handoff/cf-i code.txt "code I"; cfref handoff-wip/cf-i BLOCKED.md "body_push: REFUSED CARRY-LANDED"; cfref handoff-wip/cf-i-body BODY.md "the body I"
+  : > "$t/rbps"; : > "$t/rheads"; cfo=$(unset HPO_RELAY_BODYPUSH; HERE=$t/fakehere; carry_fold_arm 2>&1)
+  chk "the production body_push.sh line runs the script on the kept body (carry 14)" 0 grep -q "^cf-i .*cloud-fold-cf-i.md" "$t/rbps"
+  chk "... inside the worktree at handoff/cf-i's tip, not the relay's own checkout" 0 grep -qx "$(cftip handoff/cf-i)" "$t/rheads"
+  chk "... and never at main's tip" 1 grep -qx "$(cftip main)" "$t/rheads"
+  # A CARRY-LANDED topic with no handoff/<topic> is OWED on the level, never recorded as folded or announced.
+  cfref handoff-wip/cf-h BLOCKED.md "body_push: REFUSED CARRY-LANDED"; cfref handoff-wip/cf-h-body BODY.md "the body H"
+  : > "$t/bps"; cfo=$(carry_fold_arm 2>&1)
+  chk "a CARRY-LANDED topic with no handoff/<topic> is OWED" 0 grep -q "OWED carry-fold cf-h .*no handoff/cf-h" <<< "$cfo"
+  chk "... on the level" 0 grep -q "carry-fold refs/heads/handoff-wip/cf-h .*no handoff/cf-h" "$LOG.level"
+  chk "... with no cloud-folded entry" 1 grep -q "^cf-h " "$t/state/cloud-folded"
+  chk "... no FOLDED announcement" 1 grep -q "FOLDED cf-h" <<< "$cfo"
+  chk "... and no body_push.sh run" 1 grep -q "^cf-h " "$t/bps"
   unset HPO_RELAY_FOLD HPO_RELAY_BODYPUSH; cd "$t/w" || exit 1
   cd / && rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]
