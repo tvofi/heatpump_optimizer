@@ -1,0 +1,10 @@
+
+dev/governance/roles/standing.md
+  ERROR   [budgets] dev/governance/roles/standing.md: no line cap recorded in dev/governance/config/policy_budgets.json. A new policy file is classified deliberately or not at all.
+  ERROR   [named-docs] dev/governance/roles/standing.md: is named by CLAUDE.md but has no cap in dev/governance/config/policy_budgets.json, so prose moved into it leaves the corpus and buys headroom in every cap at once. Bring it under a POLICY_GLOBS pattern so a cap on it is actually compared, or exclude it with a reason in dev/governance/config/corpus_excluded.json's `excluded` -- not in this file's CORPUS_EXCLUDED, which a pull request's CI run grades with the base's copy of, so an entry only this branch writes there is never read (#2609, #2916). A cap alone does not do it: a cap on a file no glob matches is refused by checkOrphanCaps precisely because it measures nothing.
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 2 error(s) across 51 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 276 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
