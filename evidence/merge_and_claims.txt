@@ -1,0 +1,54 @@
+head 141f8af1b1a59840ec18522dd4e44ad321d4c397
+origin/main 63bcdcaad827ad3d98f914bc2e5b6110f9bb9444
+merge-base d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a
+$ git merge-tree --write-tree origin/main HEAD
+50acf363d3414706fcd1c4cbe874f61cb8c7620f
+rc=0
+$ trees of 141f8af1 and 52ab77dc
+dbe7f8f183f19fa852b6a367d4d3a68c6cd0cfe0
+dbe7f8f183f19fa852b6a367d4d3a68c6cd0cfe0
+$ git show --remerge-diff 52ab77dc2 (paths)
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides changed claims under different
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+remerge CONFLICT (content): Merge conflict in tests/golden/claimed_drift.txt
+$ git show --remerge-diff 141f8af1 (paths; empty = clean merge)
+$ review_carry.py a47cddfeb 141f8af1b
+review_carry: a47cddfeb -> 141f8af1b  main=origin/main
+  branch-only commits: 2
+  why: 52ab77dc206962c162ee9abd475361455c0c3f68 resolves tests/golden/claimed_drift.txt to something other than the union of its parents or main's driver output on them
+  52ab77dc2  Merge origin/main into fix/r10-combi-tank-b
+  141f8af1b  Merge commit '52ab77dc206962c162ee9abd475361455c0c3f68' into fix/r10-combi-tank-b
+review_carry: FRESH-REVIEW
+rc=1
+$ diff main claim file vs head
+765a766,771
+> config_flow  # R10-COMBI-TANK (#3225): the building page gains the combi section's five option fields; additive, no existing leaf moves
+> coord_all_features  # R10-COMBI-TANK (#3225): adds dhw_legionella_cycle_active and setup_topology.dhw_source ("tank" off combi); additive
+> coord_dhw  # R10-COMBI-TANK (#3225): adds dhw_legionella_cycle_active and setup_topology.dhw_source ("tank" off combi); additive
+> coord_grid_fee  # R10-COMBI-TANK (#3225): adds dhw_legionella_cycle_active and setup_topology.dhw_source ("tank" off combi); additive
+> coord_minimal  # R10-COMBI-TANK (#3225): adds dhw_legionella_cycle_active and setup_topology.dhw_source ("tank" off combi); additive
+> coord_two_zone  # R10-COMBI-TANK (#3225): adds dhw_legionella_cycle_active and setup_topology.dhw_source ("tank" off combi); additive
+$ claim line counts head/main
+6
+0
+$ claims-for / VERSION
+# claims-for: 7.1.10
+7.1.10
+$ git diff --quiet origin/main HEAD -- VERSION manifest RELEASE_NOTES.md
+rc=0
+$ card claim file three-dot
+0
+$ roles drift
+0
+$ golden three-dot stat
+ tests/golden/claimed_drift.txt       |   6 ++
+ tests/golden/config_flow.json        | 112 +++++++++++++++++++++++++++++++++++
+ tests/golden/coord_all_features.json |   9 ++-
+ tests/golden/coord_dhw.json          |   9 ++-
+ tests/golden/coord_grid_fee.json     |   9 ++-
+ tests/golden/coord_minimal.json      |   9 ++-
+ tests/golden/coord_two_zone.json     |   9 ++-
+ 7 files changed, 148 insertions(+), 15 deletions(-)
+$ thermal_model.py delta a47..head, combi hunks
+0
