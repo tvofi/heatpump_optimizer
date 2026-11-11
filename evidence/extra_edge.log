@@ -1,0 +1,29 @@
+=== horizon / resolution edge cases ===
+  ok  1-step horizon                         n=  1 kWh=   0.16 sav=  11.1% optimal
+  ok  1-hour horizon                         n=  4 kWh=   3.00 sav=   9.9% optimal
+  ok  48-hour horizon                        n=192 kWh=  90.19 sav=  50.9% optimal
+  ok  5-min steps                            n= 24 kWh=  16.50 sav=  17.9% optimal
+=== degenerate price curves ===
+  ok  all-identical prices                   n= 96 kWh=  60.34 sav=  18.9% optimal
+  ok  all-zero prices                        n= 96 kWh=  63.82 sav=   0.0% optimal
+  ok  all-negative prices                    n= 96 kWh= 107.26 sav=   0.0% optimal
+  ok  single huge spike                      n= 96 kWh=  63.98 sav=  71.0% optimal
+=== extreme weather ===
+  ok  extreme cold -25C                      n= 96 kWh= 104.33 sav=  24.1% optimal
+  ok  storm 25 m/s                           n= 96 kWh=  79.79 sav=  38.4% optimal
+  ok  very warm +30C                         n= 96 kWh=   0.00 sav=  12.0% optimal
+=== initial states outside the band ===
+  ok  start cold 15C                         n= 96 kWh=  64.01 sav=  48.9% optimal
+  ok  start hot 26C                          n= 96 kWh=  14.85 sav=  43.6% optimal
+  ok  start empty tank 15C                   n= 96 kWh=  32.18 sav=  45.6% optimal
+  ok  legionella overdue                     n= 96 kWh=  33.67 sav=  50.7% optimal
+=== config extremes ===
+  ok  1500 L tank                            n= 96 kWh=  32.40 sav=  55.2% optimal
+  ok  band collapsed (min==target)           n= 96 kWh=  74.96 sav=  32.9% optimal
+  ok  very wide band 10-30                   n= 96 kWh=  34.39 sav=  50.6% optimal
+=== two-tank topology nulls (issue #40) ===
+  ok  unusable wood tank: byte-equal plan    kWh=  54.70
+  ok  warm wood tank displaces HP energy     kWh=  44.39 <   54.70
+
+ALL EDGE CASES PASS
+rc=0
