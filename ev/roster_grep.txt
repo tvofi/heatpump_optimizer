@@ -1,0 +1,2 @@
+origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json:20991:    "From #3464, body item e8e05480: `dev/programme/HANDOVER.md` names four standing seats in its standing-seats bullet; it is updated with the merge it records (verdict item 27). Carry: R10-STANDING-CONTRACTS-P2 (item 
+bba7761032c9572263d80f99af4c1b65f0cd5adf
