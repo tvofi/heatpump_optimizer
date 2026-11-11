@@ -65,7 +65,11 @@ def main() -> int:
         t0 = time.time()
         fin, rc, out = run(["bash", "tools/pr/prepr.sh", "--self-test"],
                            {**base, "HPO_SLOT_LABEL": "outer"}, LABELLED_BOUND_S)
-        queued = int("queue" in out.lower() or "waiting" in out.lower())
+        # A queued run prints no "joined" slot line; the self-test's own rows
+        # mention "queue" in prose, so key on the slot line, not the word.
+        slot_lines = [ln for ln in out.splitlines() if "heavy slot" in ln]
+        queued = int(not any("joined" in ln for ln in slot_lines) and bool(slot_lines))
+        print(f"slot lines: {slot_lines}")
         print(f"RESULT labelled_rc={rc if fin else 'timeout'}")
         print(f"RESULT labelled_queued={queued}  ({time.time() - t0:.0f}s)")
         fin, _, _ = run(["bash", "tools/pr/prepr.sh", "--self-test"], base, BARE_BOUND_S)
