@@ -9,7 +9,9 @@ The cycle cuts its action at the solve, then awaits system identification, the f
 
 ## Head
 
-b3b51d4258a1fa4861cd74341925f307773c0f45 on base ee64358be7ee (origin/main when measured, `git rev-parse origin/main`, 2026-11-11 UTC).
+Changed since the reviewed 134d25cbce3e369577b7b4c1951ff656ba82ced2: the tip moved to b3b51d42 (not itself reviewed), and this head adds one ledger row only (`tests/mutation_ledger/killed_by/pump_arbiter.py/cycle_supply.RETURN_DEL.011422a2.json`); no production or test code differs from b3b51d42.
+
+68646456c774b1d0e58e6c79f6fd0a38281d334c on base ee64358be7ee (origin/main when measured, `git rev-parse origin/main`, 2026-11-11 UTC).
 
 ## Mutation proof
 
@@ -31,12 +33,12 @@ Each own-step null control runs the same cycle with `pump_arbiter.cycle_supply` 
 
 ## Unpinned sites
 
-`cycle_supply`'s `step is None` branch: pinned by value checks (fixed mode, system identification, stale plan keep the action's command), not a mutation-autofix pin.
+`custom_components/heatpump_optimizer/pump_arbiter.py:1593 RETURN_DEL` (`cycle_supply`'s last line): pinned in `tests/mutation_ledger/killed_by/pump_arbiter.py/cycle_supply.RETURN_DEL.011422a2.json`, killed by `tests/typing_ruler.py` (`python3 tests/mutation_table.py --pin-killed --base origin/main`, run with the inherited combi census bound locally raised so the baseline was green; the raise is not committed). Also measured by hand: the mutant `return None` takes `tests/features.py` from 2 to 30 failed checks. It is the only unpinned site the table reports for this diff.
 
 ## Red checks
 
 `tests / fast`: `combi_type_branch census` red on main's combi census until its hotfix merges (R10-HOTFIX-COMBI-CENSUS-MAIN-RED); inherited, not caused by this diff.
-- `mutation` at b3b51d4258a1: red by construction on the 1 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+- `mutation` at b3b51d4258a1: the 1 site under `## Unpinned sites` is now pinned in the ledger; no unpinned site remains.
 
 ## Forward-carry
 
