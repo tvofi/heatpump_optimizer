@@ -214,8 +214,8 @@ class HeatPumpOptimizerEntity(CoordinatorEntity["HeatPumpOptimizerCoordinator"])
     _PUBLISHED = (
         "native_value",
         "extra_state_attributes",
-        "current_temperature",
-        "target_temperature",
+        "native_current_temperature",
+        "native_target_temperature",
     )
 
     def __init_subclass__(cls, **kwargs: Any) -> None:

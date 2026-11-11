@@ -3125,8 +3125,8 @@ R.check(
 _a3e_clim = _climate_platform.HeatPumpOptimizerClimate(_a3e_fake, ENTRY)
 R.check(
     "without an indoor reading climate does not publish the constructor default",
-    (not _a3e_clim.available) and _a3e_clim.current_temperature is None,
-    f"available={_a3e_clim.available} current={_a3e_clim.current_temperature!r}",
+    (not _a3e_clim.available) and _a3e_clim.native_current_temperature is None,
+    f"available={_a3e_clim.available} current={_a3e_clim.native_current_temperature!r}",
 )
 R.check(
     "the upper floor names where its number comes from",
@@ -3448,7 +3448,7 @@ def _d801_publications(config, cycles):
             if state is None:
                 state = getattr(entity, "is_on", None)
             if state is None:
-                state = getattr(entity, "current_temperature", None)
+                state = getattr(entity, "native_current_temperature", None)
             if state is not None:
                 out[f"{label}|state"] = state
             attrs = getattr(entity, "extra_state_attributes", None) or {}
@@ -10729,12 +10729,12 @@ R.check(
 )
 R.check(
     "the thermostat shows the user's target, not the per-step setpoint",
-    clim.target_temperature == clim.coordinator.target_temperature,
+    clim.native_target_temperature == clim.coordinator.target_temperature,
 )
 R.check(
     "current temperature reads the published payload",
-    clim.current_temperature == DATA["indoor_temperature"],
-    str(clim.current_temperature),
+    clim.native_current_temperature == DATA["indoor_temperature"],
+    str(clim.native_current_temperature),
 )
 asyncio.run(clim.async_set_hvac_mode(climate_mod.HVACMode.OFF))
 R.check(
@@ -11097,7 +11097,7 @@ R.check(
     "current_temperature is None with no coordinator data",
     climate_mod.HeatPumpOptimizerClimate(
         FakeCoordinator(None), clim._entry
-    ).current_temperature
+    ).native_current_temperature
     is None,
 )
 
