@@ -1,0 +1,20 @@
+== base cbd23f1c8
+ALL 315 checks PASSED
+selftest_wiring: 130 self-testing, 130 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+45301
+== wt 11c5dfb17
+ALL 316 checks PASSED
+selftest_wiring: 131 self-testing, 131 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+69893
+-- product page pinned to the reader documents (R9-WEB-1)
+  ok   every README link to the product page is the published Pages URL, never a repo-relative path
+  ok   the product page and a built page are the unplanted baseline (anchor)
+  ok   the product page is clean before planting
+  ok   product page: a third-party icon is refused
+-- product page pinned to the reader documents (R9-WEB-1)
+  ok   every README link to the product page is the published Pages URL, never a repo-relative path
+  ok   the product page and a built page are the unplanted baseline (anchor)
+  ok   the product page is clean before planting
+  ok   product page: a third-party icon is refused

@@ -1,0 +1,7 @@
+day_chart: self-test OK
+day_chart: docs/index.html carries the generator's chart
+rc=0
+day_chart: self-test OK
+rc=0
+day_chart: docs/index.html carries the generator's chart
+rc=0

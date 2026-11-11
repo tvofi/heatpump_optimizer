@@ -1,0 +1,10 @@
+-- M:README.md
+MODE: SCOPED -- 18 step(s) run
+  run policy-lint-mutants
+  run push-script-decisions
+  run app-push
+-- M:tools/site/day_chart.mjs
+MODE: SCOPED -- 20 step(s) run
+  run policy-lint-mutants
+  run fragment-check
+  run day-chart
