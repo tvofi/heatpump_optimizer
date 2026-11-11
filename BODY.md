@@ -18,7 +18,7 @@ Carries, numbered from 1 as `review_packet.py` counts them, unchanged by this re
 
 ## Head
 
-62a7d7a57f894aa6f4d90f296a381a4906bd0551: the merge of origin/main cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf into a4eac74f1b795b565cf2843b91c5c079796368b2, then one commit. `tests/closures.json` was resolved by the `LEDGER-MERGE` driver (`inert_reads.tests/harness_headers.py` merged as a set) and re-proved by `tools/pr/ci_predict.py --base origin/main --apply-inert`, which applied nothing.
+955d1ebfb194046069385e8f8f3f1b5ef5faf6ff: the previously reviewed head e1ab25dcff6b99e83d088bb6bcf3cedf187528f2 plus one commit, a closures repair only; the docs content is unchanged since e1ab25dc, so the round-4 reviewer's confirmation of the doc delta stands. The commit adds `tools/audit/seat/instruments/cloud_dispatch.py.md` to `INERT_EXCEPT` in `tests/closure.py` and re-derives `tests/doc_claims.py`'s closure with `./tests/derive_closures.sh --single tests/doc_claims.py` (one line added to `tests/closures.json`). `tools/pr/ci_predict.py --apply-inert` applies nothing here: a data-file read is not seen by it, which is the cause below.
 
 ## Mutation proof
 
@@ -55,7 +55,8 @@ Measured at the head, origin/main cbd23f1c8bf6 at 2026-11-11T09:17:17Z.
 
 ## Red checks
 
-none
+- `tests / closures` (red at e1ab25dc, job 130459356331: INERT READS UNDER-APPROXIMATED, `tests/doc_claims.py` reads `tools/audit/seat/instruments/cloud_dispatch.py.md`). Answered, repaired in this head. Cause: round 3's fix cited that page from the orchestrator row, and `tests/doc_claims.py` opens it, but `tools/audit/` is on `INERT`, so the read went unrecorded. Process state (c): `ci_predict.py --apply-inert` ran and predicted nothing because it does not see a data-file read. Cheaper detector: `./tests/derive_closures.sh --single tests/doc_claims.py` (one script's strace, run in the seat on Linux), which prints the refusal in this head's pre-repair state; standing cost is that script's runtime per diff that adds a cited file to a doc `tests/doc_claims.py` reads. Not built here (a tooling change); the fixer's run of it is the countermeasure for this PR.
+- `tests / fast (3.14)`: inherited, not this PR. `features.py` combi_type_branch census fails on main since #3398; the hotfix r10-hotfix-combi-census-main-red is in flight.
 
 ## Forward-carry
 
