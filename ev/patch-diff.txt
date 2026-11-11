@@ -1,0 +1,44 @@
+44c44
+< index 2eaf87889..da2891990 100644
+---
+> index dd12b3f0e..900b4bfce 100644
+47c47
+< @@ -835,6 +835,14 @@ DEFAULT_FLOW_MIN_LIFT_K: Final = 5.0
+---
+> @@ -831,6 +831,14 @@ DEFAULT_FLOW_MIN_LIFT_K: Final = 5.0
+62c62
+< @@ -1868,6 +1876,8 @@ INPUT_PLAUSIBLE_RANGE_C: Final = {
+---
+> @@ -1864,6 +1872,8 @@ INPUT_PLAUSIBLE_RANGE_C: Final = {
+72c72
+< index f3f1b548d..4bd6f2b34 100644
+---
+> index 06e7a90bb..bed91e5c5 100644
+153c153
+<      On the reporting install the two limits are smart-home interface inputs 10104
+---
+>      On a Luxtronik the two limits are Smart Home Interface inputs 10104
+270c270
+< index 745f0c764..b2b24c6ae 100644
+---
+> index 406c21bbe..3e043ef91 100644
+436c436
+< index fb88f1cc8..17a77a969 100644
+---
+> index 5be45fea8..4a231b886 100644
+439c439
+< @@ -83516,6 +83516,8 @@ _FB_T0 = datetime(2026, 1, 12, 8, 0, tzinfo=UTC)
+---
+> @@ -83513,6 +83513,8 @@ _FB_T0 = datetime(2026, 1, 12, 8, 0, tzinfo=UTC)
+448c448
+< @@ -83523,7 +83525,7 @@ class _FbCoord:
+---
+> @@ -83520,7 +83522,7 @@ class _FbCoord:
+457c457
+< @@ -83533,6 +83535,13 @@ class _FbCoord:
+---
+> @@ -83530,6 +83532,13 @@ class _FbCoord:
+471c471
+< @@ -83735,6 +83744,228 @@ R.check(
+---
+> @@ -83732,6 +83741,228 @@ R.check(

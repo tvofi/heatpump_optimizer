@@ -1,0 +1,17 @@
+A	dev/programme/delivery/3469.md
+A	tests/mutation_ledger/killed_by/pump_arbiter.py/_setpoint_limits_c.CMP_BOUND.dd7e69eb.json
+A	tests/mutation_ledger/killed_by/pump_arbiter.py/_setpoint_limits_c.GUARD_OFF.dd7e69eb.json
+A	tests/mutation_ledger/killed_by/pump_arbiter.py/_setpoint_limits_c.RETURN_DEL.b43cdc25.json
+D	tests/mutation_ledger/killed_by/pump_arbiter.py/_feedback_bounds.RETURN_DEL.1af408a4.json
+M	custom_components/heatpump_optimizer/config_flow.py
+M	custom_components/heatpump_optimizer/const.py
+M	custom_components/heatpump_optimizer/pump_arbiter.py
+M	custom_components/heatpump_optimizer/strings.json
+M	custom_components/heatpump_optimizer/translations/de.json
+M	custom_components/heatpump_optimizer/translations/en.json
+M	custom_components/heatpump_optimizer/translations/sv.json
+M	custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+M	dev/audit/harnesses/r10_water_setpoint_feedback.py
+M	docs/configuration.md
+M	tests/config_flow_steps.py
+M	tests/features.py
