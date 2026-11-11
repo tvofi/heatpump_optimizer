@@ -81,6 +81,7 @@ designer may push only `design/<group>` (through `bus.sh push-design`) and
 opens no pull request; the design reviewer may push only
 `design-verdict/<group>` and is pinned to the `design/<group>` tip read from
 origin at the dispatch (`--design` on the flag path). Each role's text says so.
+A designer payload pins the latest `design-verdict/<group>` commit and its first line when that ref exists.
 A `fixer` dispatch for an L or XL group is refused unless
 `design-verdict/<group>` reads `Design review: approve <sha>` at the current
 design tip, or `--design-exempt <reason>` names an approved design, pre-study
