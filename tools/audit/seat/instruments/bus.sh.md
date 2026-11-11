@@ -24,15 +24,17 @@
   no `gh`, no token, an unwritable path) dispatches anyway, names no packet,
   and says why in `review-packet: unavailable -- <reason>`. A head is
   dispatched only when `merge_train.py classify` reads it reviewable: RED (a
-  required context's latest run concluded failure) or an unreadable answer
-  refuses and records nothing; GREEN and WAIT dispatch, and so does
+  required context's latest run concluded failure) prints `REPAIR-OWED` (a repair
+  owed to the fixer, rc 5, never a `REFUSE:` a retry loop re-tries) and records
+  nothing; an unreadable answer refuses and records nothing; GREEN and WAIT dispatch, and so does
   APPROVAL-OWED (`classify --pr`, rc 4: the red is only a budget raise's
   approval, which follows the review; its line is printed) (`$HPO_BUS_CLASSIFY`
   replaces the command in self-tests). With `--reviewed-head <rh>`, a range
   `review_carry.py` answers CARRY refuses only when the latest verdict naming
   `rh` on `verdict/<pr>` is merge; a blocked one, or none, dispatches and prints
   `review-carry: <rh> was blocked|has no verdict, so a fresh review is owed`,
-  and an unreadable `verdict/<pr>` refuses (P348).
+  and an unreadable `verdict/<pr>` refuses (P348). The renderer is handed `--reviewed-head`
+  too, so the packet is that round's delta.
 
 The design steps (decision 0014) write the same append-only way:
 `bus.sh push-design <topic> <design.md>` adds `design.md` to `design/<topic>`;
@@ -51,3 +53,8 @@ under the review is refused, and so is a topic with no design ref.
   origin/main (a row commit on the bot's head reddens `pr-contract`).
   `watch` holds `<state>/watch.lock` (a directory naming its pid): a second
   watcher refuses naming the holder; a dead pid's lock is taken over.
+  `dispatch-handoff <topic> <tip> <reviewer>` (R10-DISPATCH-AT-HANDOFF Carry 0) starts a
+  reviewer before the pull request exists: it records `topic:<topic> <tip> ...` in the
+  registry (no reader keys on it), refuses a tip that is not `handoff/<topic>`'s or a second
+  reviewer at one tip, and reads no row, packet or CI. `rekey <topic> <pr>`, run by
+  `open_pr.sh`, appends the record under the PR (rc 3: no handoff dispatch; idempotent).
