@@ -230,18 +230,21 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
         if g:
             by_group[g] = p["number"]  # the latest merge for the group
     state = {i["number"]: i for i in snap["issues"]}
+
+    def gating(entry: dict) -> list:
+        # An edge gates by the predecessor's stage (`roster_lib.gates`), except
+        # that a discharged predecessor is closed work, as replan reads it.
+        return [a for a in entry.get("after") or []
+                if a in G and a not in discharged and roster_lib.gates(G[a])]
+
     # A hotfix that a critical-path group waits on holds the path, whether or
-    # not the longest chain runs through it: the same gating edges as `blk`.
-    gating_crit = {a for c in crit if c in G for a in G[c].get("after") or []
-                   if a in G and a not in discharged and roster_lib.gates(G[a])}
+    # not the longest chain runs through it: the edges `blk` reads.
+    gating_crit = {a for c in crit if c in G for a in gating(G[c])}
 
     rows = []
     for g, entry in G.items():
         pg = PG[g]
-        # An edge gates by the predecessor's stage (`roster_lib.gates`), except
-        # that a discharged predecessor is closed work, as replan reads it.
-        blk = [a for a in entry.get("after") or []
-               if a in G and a not in discharged and roster_lib.gates(G[a])]
+        blk = gating(entry)
         if g in done:
             blk = []  # a merged group waits on nothing (the legend's not-yet-done rule)
         part = sorted(delivered.get(g) or [])
@@ -1107,10 +1110,38 @@ def _self_test() -> int:
                 if e_["group"] == "R9-PART":
                     e_["kind"] = "defect"
             cold_rows = {r["g"]: r for r in build_rows(cold_roster, plan, snap)}
-            hot_page = "".join(
-                f'{r["g"]}' for r in hot_rows.values() if r["hot"])
-            check("a hotfix a critical-path group waits on is marked",
-                  hot_rows["R9-PART"]["hot"] is True and hot_page == "R9-PART", hot_page)
+            mark = '<span class="cp hotcp" title="hotfix blocking a critical-path group">▲</span>'
+            src_ = f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json"
+            hot_html = render(hot_roster, src_, plan, snap)
+            check("a hotfix a critical-path group waits on is marked, on its row of the page "
+                  "and on no other",
+                  [g for g, r in hot_rows.items() if r["hot"]] == ["R9-PART"]
+                  and hot_html.count(mark) == 1
+                  and re.search(r'<td class="g">(?:<span[^>]*>[^<]*</span>)*' + re.escape(mark)
+                                + re.escape(short("R9-PART")) + "<", hot_html) is not None,
+                  (hot_html.count(mark), [g for g, r in hot_rows.items() if r["hot"]]))
+            check("hotfix mark (null): the cold fixture's page carries no mark",
+                  mark not in render(cold_roster, src_, plan, snap) and mark not in page,
+                  "mark drawn on a cold page")
+            # The predecessor's state arms: each leaves the edge in place and must
+            # unmark it. `deferred` is closed but still gates (so only the not-done
+            # filter unmarks it); `refuted` is open but releases (so only the gating
+            # filter does); a discharged one is closed in the plan alone.
+            for arm, stage_ in (("deferred", "deferred"), ("refuted", "refuted"),
+                                ("discharged", None)):
+                arm_roster, arm_plan = copy.deepcopy(hot_roster), plan
+                if stage_:
+                    for e_ in arm_roster["groups"]:
+                        if e_["group"] == "R9-PART":
+                            e_.setdefault("resume", {})["stage"] = stage_
+                else:
+                    arm_plan = copy.deepcopy(plan)
+                    arm_plan["groups"]["R9-PART"]["discharged"] = True
+                arm_rows = {r["g"]: r for r in build_rows(arm_roster, arm_plan, snap)}
+                check(f"hotfix mark ({arm} predecessor): not marked, on the rows or the page",
+                      not any(r["hot"] for r in arm_rows.values())
+                      and mark not in render(arm_roster, src_, arm_plan, snap),
+                      [g for g, r in arm_rows.items() if r["hot"]])
             check("hotfix mark (null): the same edge from a non-hotfix, and a hotfix no "
                   "critical-path group waits on, are not marked",
                   not any(r["hot"] for r in cold_rows.values())
