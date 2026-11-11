@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "/tmp/claude-0/-home-user-heatpump-optimizer/d1692a3d-a2af-5bfe-8393-46bb4c405a70/scratchpad/mut.py", line 17, in <module>
-    assert src.count(old) == 1, (name, src.count(old))
-           ^^^^^^^^^^^^^^^^^^^
-AssertionError: ('M7_ok_guard_del', 2)

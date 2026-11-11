@@ -1,52 +1,24 @@
-## owed-reds
-arch-score / arch-score
-budget-raise-gate / budget-raise-gate
-codeql / Analyze (actions)
-codeql / Analyze (javascript-typescript)
-codeql / Analyze (python)
-gate
-governance / env-matrix
-governance / policy-docs
-governance / wave-script
-hassfest / hassfest
-pr-contract / pr-contract
-tests / arch-instrument
-tests / briefs
-tests / browser
-tests / ci-ratchet
-tests / closure-scope
-tests / closures
-tests / coverage
-tests / coverage-ratchet
-tests / fast (3.14)
-tests / mutation
-tests / typing
-validate / validate-hacs
-## plumbing rule
--- origin/main
-exit 1
--- 6f1dd2040ce51f5dbff0ce67ffc1085637b29ea6
-6f1dd2040ce51f5dbff0ce67ffc1085637b29ea6:custom_components/heatpump_optimizer/const.py:2
-6f1dd2040ce51f5dbff0ce67ffc1085637b29ea6:custom_components/heatpump_optimizer/strings.json:4
-6f1dd2040ce51f5dbff0ce67ffc1085637b29ea6:custom_components/heatpump_optimizer/translations/de.json:4
-6f1dd2040ce51f5dbff0ce67ffc1085637b29ea6:custom_components/heatpump_optimizer/translations/en.json:4
-6f1dd2040ce51f5dbff0ce67ffc1085637b29ea6:custom_components/heatpump_optimizer/translations/sv.json:4
-6f1dd2040ce51f5dbff0ce67ffc1085637b29ea6:custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:6
-6f1dd2040ce51f5dbff0ce67ffc1085637b29ea6:docs/configuration.md:4
-exit 0
-## seam rule
-custom_components/heatpump_optimizer/pump_arbiter.py:614:    return _bounded(inp, "space_setpoint", room)
-custom_components/heatpump_optimizer/pump_arbiter.py:755:    return _bounded(inp, "space_setpoint", gate, gate, rounding="down")
-custom_components/heatpump_optimizer/pump_arbiter.py:886:    return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config))
-custom_components/heatpump_optimizer/pump_arbiter.py:949:    out = _bounded(inp, "space_setpoint", rec.w_c, _gate_floor_c(inp.config), lo=lo, hi=hi)
-custom_components/heatpump_optimizer/pump_arbiter.py:1158:    return PumpCommand(both, dhw, None if space is None else _bounded(inp, "space_setpoint", 5.0, rounding="down"), silent)
 ## structure
 
 STRUCTURE RATCHET PASSED
 ## archscore
 Architecture score: dS +0.0000 NULL
-## features head
-  ok   a solve completed after shutdown reports it and adopts no plan (#237)
-  ok   null control: an uninterrupted cycle still commands the pump and saves (#237 -- the guards fire on shutdown, not on every cycle)
+## VERSION/manifest/notes/claims in three-dot diff
+merge-base 0a2139b1ddaf7831b32c443d438fa14e90938bcb
+(empty above = untouched)
+## roles diff lines
+0
+## owed-reds
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+## entities
 
--- #1754 — a refresh during an in-flight solve is honoured, and releases land on the override the solve pinned
+ALL 2707 ENTITY CHECKS PASSED
+[1]+  Done                    ( PYTHONPATH=tests/hastub timeout 900 python3 tests/features.py > $W/ev/features_head_worktree.txt 2>&1; echo "rc=$?" >> $W/ev/features_head_worktree.txt )
+## review_carry
+  e5d47042a  features: the sibling write paths of the space set-point are unmoved by a high-limit sensor
+  580f12908  mutation ledger: drop the pin of _feedback_bounds' old return line
+review_carry: FRESH-REVIEW

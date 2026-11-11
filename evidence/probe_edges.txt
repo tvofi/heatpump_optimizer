@@ -1,5 +1,0 @@
-PROBE low limit 40 above ceiling 32            writes 2 lowest 26.4 highest 32.0 loop-writes>32 0 issues []
-PROBE low limit 31.9 just under ceiling 32     writes 2 lowest 26.4 highest 31.9 loop-writes>32 0 issues []
-PROBE high limit 20 below gate+clear           writes 62 lowest 20.0 highest 29.9 loop-writes>32 0 issues []
-PROBE high limit 24 below inlet-DOWN?          writes 62 lowest 24.0 highest 29.9 loop-writes>32 0 issues []
-PROBE none                                     writes 65 lowest 26.0 highest 30.5 loop-writes>32 0 issues []
