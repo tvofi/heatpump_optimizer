@@ -95,6 +95,20 @@ def source(get, repo, run_id, pr, base, stop, sleep=time.sleep, now=time.monoton
         sleep(POLL_S)
 
 
+def carried_over(j):
+    """A job a partial re-run lists from the earlier attempt: completed `success` and no `steps` key at all.
+    Its analysis ran and uploaded then, and the listing no longer carries the step row; an empty or
+    lagging `steps` list is not this (the row is there, or the leg is mid-write)."""
+    return j.get("status") == "completed" and j.get("conclusion") == "success" and "steps" not in j
+
+
+def analysis(j):
+    """The conclusion of a job's analysis step: its row's, `success` for a carried-over job, else None."""
+    if carried_over(j):
+        return "success"
+    return next((s.get("conclusion") for s in j.get("steps") or [] if s["name"] == STEP), None)
+
+
 def settled(jobs):
     """Every codeql job listed completed, and each either skipped outright or with its analysis step concluded:
     a leg whose step row lags reads as stood down in `legs_uploaded`, and goes unread."""
@@ -105,7 +119,7 @@ def settled(jobs):
             return False
         if j.get("conclusion") in ("skipped", "cancelled"):
             continue
-        if not any(s["name"] == STEP and s.get("conclusion") for s in j.get("steps") or []):
+        if not analysis(j):
             return False
     return True
 
@@ -115,7 +129,7 @@ def legs_uploaded(jobs):
     out = []
     for j in jobs:
         name = j["name"]
-        if name in CODEQL and any(s["name"] == STEP and s["conclusion"] == "success" for s in j.get("steps") or []):
+        if name in CODEQL and analysis(j) == "success":
             out.append(name[name.index("(") + 1:-1])
     return sorted(out)
 
@@ -321,6 +335,20 @@ def self_test() -> int:
     reads.clear()
     check("20 null: a settled stand-down (step skipped) is not waited for",
           go(world(A.THREE[1:], A.EMPTY, [], run_jobs={100: jobs(skip=("python",))})) == [])
+    # 21-24: a partial re-run lists the carried-over jobs without `steps` (R10-GH-READ-RESIDUE, d678abfc)
+    bare = [{"name": nm, "status": "completed", "conclusion": "success"} for nm in CODEQL]
+    check("21 carried-over step-less success jobs are settled and all legs uploaded",
+          settled(bare) and legs_uploaded(bare) == legs_uploaded(jobs()) != [])
+    check("22 null: a step-less job that did not succeed is neither settled nor an uploaded leg",
+          not settled([dict(j, conclusion="failure") for j in bare]) and legs_uploaded([dict(j, conclusion="failure") for j in bare]) == [])
+    check("23 null: a lagging step row (steps present, no conclusion) is still unsettled",
+          not settled(lag()) and legs_uploaded(lag()) == [])
+    done_lag = lambda st: [{"name": nm, "status": "completed", "conclusion": "success", "steps": st} for nm in CODEQL]   # noqa: E731
+    check("23b null: a completed success job with a lagging or empty `steps` list is not carried over: unsettled, not uploaded",
+          all(not settled(done_lag(st)) and legs_uploaded(done_lag(st)) == []
+              for st in ([], [{"name": STEP, "conclusion": None}])))
+    check("24 null: a step-less job still in progress is unsettled",
+          not settled([dict(j, status="in_progress") for j in bare]))
     print(f"codescan_wait self-test: {n} checks, {bad} failed")
     return 1 if bad else 0
 

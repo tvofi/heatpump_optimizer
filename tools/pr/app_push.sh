@@ -615,7 +615,10 @@ HELPER
   # (#1267) -- 64 MiB keeps such a push in one Content-Length request.
   # Asynchronous, as prepr above, so a stop signal interrupts the `wait`.
   local push_rc=0
-  GIT_TERMINAL_PROMPT=0 git -C "$wt" -c credential.helper= -c "credential.helper=$PRIV/credhelper.sh" \
+  # Under gh_read's git retry (git_transient only: a 5xx, a reset, a timeout; a
+  # rejection answers at once), as remerge_main.sh's fetches are.
+  GIT_TERMINAL_PROMPT=0 python3 "$(cd "$(dirname -- "$0")/../audit/seat" && pwd)/gh_read.py" --git-retry \
+    git -C "$wt" -c credential.helper= -c "credential.helper=$PRIV/credhelper.sh" \
     -c http.postBuffer=64m push "https://github.com/$repo.git" "$br" &
   wait $! || push_rc=$?
   [ "$push_rc" = 0 ] || die "the App's push of $br to $repo was refused; no pull request was opened or re-bodied"
@@ -676,7 +679,8 @@ cp "$(dirname -- "$SELF")/app_mint.sh" "$W/tool/"
 # The real guard, at the path the copy resolves it by (../audit/seat/), and the
 # signal reap it sources from there.
 mkdir -p "$W/audit/seat" && cp "$(dirname -- "$SELF")/../audit/seat/ref_privacy.py" "$W/audit/seat/" \
-  && cp "$(dirname -- "$SELF")/../audit/seat/pr_args.sh" "$W/audit/seat/"
+  && cp "$(dirname -- "$SELF")/../audit/seat/pr_args.sh" "$W/audit/seat/" \
+  && cp "$(dirname -- "$SELF")/../audit/seat/gh_read.py" "$W/audit/seat/"
 FAILS=0; N=0
 st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
 SHA=1111111111111111111111111111111111111111
@@ -747,6 +751,7 @@ case "$*" in
     else printf 'a\0371+t@users.noreply.github.com\0371+t@users.noreply.github.com\037fix: the stub subject\036'; fi ;;
   *"push https://github.com/"*)
     if [ -f "$STUB/push-fails" ]; then echo "error: stub push refused" >&2; exit 1; fi
+    if [ -f "$STUB/push-flaky" ]; then rm -f "$STUB/push-flaky"; echo "error: RPC failed; HTTP 502 curl 22 The requested URL returned error: 502" >&2; exit 1; fi
     if [ -f "$STUB/push-tree" ]; then  # a push still running when the pusher is stopped
       echo $$ >> "$STUB/pids"
       bash -c 'sleep 30 & echo $! >> "$0"; wait' "$STUB/pids" & echo $! >> "$STUB/pids"
@@ -989,6 +994,13 @@ st "$(grep -c 'was refused' "$W/pushfail/err")" 1 "with the refused wording on t
 st "$(grep -c '^curl \(POST\|PATCH\) repos/o/r/pulls' "$W/pushfail/log")" 0 "and no pull request was created or re-bodied"
 st "$(calls pushfail 'curl DELETE installation/token')" 1 "the token is revoked after the failed push"
 st "$(leftover pushfail)" 0 "and the private directory is gone, token and all"
+
+# R10-GH-READ-RESIDUE: one transient push failure is ridden out (gh_read's
+# git_transient); a refusal is pushed once and answered at once (the null control).
+mkcase pushflaky; : > "$W/pushflaky/push-flaky"
+run pushflaky o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 0 "a push that fails once on a 502 still lands and opens the pull request"
+st "$(grep -c '^git .*push https://github.com/' "$W/pushflaky/log")" 2 "the push was tried twice (one transient failure, one success)"
+st "$(grep -c '^git .*push https://github.com/' "$W/pushfail/log")" 1 "a refused push is tried once, never retried"
 
 mkcase mangle; : > "$W/mangle/mangle-body"
 run mangle o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "a body that reads back different refuses, though the POST returned 0"
