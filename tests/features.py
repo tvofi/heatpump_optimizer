@@ -81252,8 +81252,8 @@ R.check(
 )
 _ds_back = _DsArb()
 _ds_back.hass, _ds_back.entry = _ds_c.hass, _ds_c.entry
-_ds_back_state = _ds_mod.DutySwitchState()
-_asyncio.run(_ds_mod._load(_ds_back, _ds_back_state))
+_asyncio.run(_ds_mod._load(_ds_back))
+_ds_back_state = _ds_mod.state(_sa_pa.state_for(_ds_back))
 R.check(
     "the episodes survive a restart in their own record, whose domain declares them; the diagnostics publish the estimate",
     _ds_back_state.episodes == _ds_mod.state(_sa_pa.state_for(_ds_c)).episodes != []

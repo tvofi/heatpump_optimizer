@@ -16,7 +16,7 @@ could explain a stop: another mode write or a person's change (the record
 ``pump_arbiter.hold`` drops), the supply switch, a non-plan or non-control
 mode, a boost, a disinfection hold, defrost, a fault, an electric heater, or
 an unavailable running signal. A stop's off time runs to the next start and
-is censored when the arbiter or the supply switch wrote in between.
+is censored when the arbiter wrote, or the supply switch read off, in between.
 
 **The running signal** is the frequency sensor above zero, else the meter at
 ``thermal_model.on_threshold_kw``, read by its own listener: not one of the
@@ -61,10 +61,11 @@ from .const import (
 )
 from .drift import stored_instant, utc_elapsed_seconds
 from .entry_config import EntryConfig
-from .inputs import InputReader, normalize_power_kw
+from .inputs import InputReader, state_power_kw
 from .pump_arbiter import (
     DUTY_CONTROL,
     SPLIT_MIN_MINUTES,
+    _pump_off,
     ArbiterInputs,
     ArbiterState,
     PumpCommand,
@@ -86,6 +87,7 @@ HEATED_MARGIN_K = 2.0
 T_SRC = timedelta(minutes=1)
 RUNNING_DEBOUNCE = timedelta(seconds=30)
 EPISODES_MAX = 200
+_EPISODES_STORE_VERSION = 1
 _DIRECTION = {(pump_mode.MODE_DHW, pump_mode.MODE_HEAT): "dhw_space",
               (pump_mode.MODE_HEAT, pump_mode.MODE_DHW): "space_dhw"}
 _VOID_FLAGS = (CONF_HEAT_PUMP_DEFROST_ENTITY, CONF_HEAT_PUMP_FAULT_ENTITY,
@@ -156,12 +158,10 @@ def duty_split(held: ArbiterState, start: datetime, now: datetime) -> tuple[str,
 
 
 def _reading(state_: Any, freq: bool, threshold_kw: float) -> bool | None:
-    raw = finite_float(getattr(state_, "state", None))
-    if raw is None:
-        return None
     if freq:
-        return raw > 0.0
-    kw = normalize_power_kw(raw, (getattr(state_, "attributes", None) or {}).get("unit_of_measurement"))
+        raw = finite_float(getattr(state_, "state", None))
+        return None if raw is None else raw > 0.0
+    kw = state_power_kw(state_, "clamp")
     return None if kw is None else kw >= threshold_kw
 
 
@@ -219,22 +219,14 @@ def _reader(inp: ArbiterInputs) -> InputReader:
                        scale=cfg.staleness_max_age_scale)
 
 
-def _switch_since(inp: ArbiterInputs) -> datetime | None:
-    """When the supply switch last changed, or ``None``."""
-    entity = EntryConfig.from_mapping(inp.config).heat_pump_switch_entity
-    changed = getattr(inp.hass.states.get(entity) if entity else None, "last_changed", None)
-    return dt_util.as_utc(changed) if changed is not None else None
-
-
 def _void(coord: Any, held: ArbiterState, inp: ArbiterInputs, ep: dict[str, Any], now: datetime) -> bool:
     """Whether anything but the switch could explain a stop since ``ep`` opened."""
     mode = held.written.get("mode")
-    since = _switch_since(inp)
     return bool(
         inp.mode not in (MODE_AUTO, MODE_ECONOMY) or duty_mode(inp.config) != DUTY_CONTROL
-        or inp.disinfecting or state(held).running is None
+        or inp.disinfecting or _pump_off(inp) or state(held).running is None
         # A person's change drops the record (``pump_arbiter.hold``), as another write moves it.
-        or mode is None or mode[1] != ep["at"] or (since is not None and since >= ep["at"])
+        or mode is None or mode[1] != ep["at"]
         or any(boost.held_for(coord).active(c, now) for c in (boost.CHANNEL_SPACE, boost.CHANNEL_DHW))
         or any(r.ok and r.flag for r in map(_reader(inp).read_bool, _VOID_FLAGS))
     )
@@ -285,13 +277,13 @@ async def duty_follow(coord: Any, held: ArbiterState, inp: ArbiterInputs, now: d
     ds = state(held)
     if not ds.loaded:
         ds.loaded = True
-        await _load(coord, ds)
+        await _load(coord)
     _arm(ds, held, inp, now)
     count = len(ds.episodes)
     _on_running(ds, now)
     _classify(coord, held, ds, inp, now)
     if len(ds.episodes) != count:
-        await _persist(coord, ds)
+        await _persist(coord)
 
 
 def _classify(coord: Any, held: ArbiterState, ds: DutySwitchState, inp: ArbiterInputs, now: datetime) -> None:
@@ -312,30 +304,33 @@ def _classify(coord: Any, held: ArbiterState, ds: DutySwitchState, inp: ArbiterI
         if _void(coord, held, inp, ep, now):
             ds.episode = None
             return
-    since = _switch_since(inp)
-    if any(at > ep["stop"] for _v, at in held.written.values()) or (since is not None and since > ep["stop"]):
+    if any(at > ep["stop"] for _v, at in held.written.values()) or _pump_off(inp):
         _close(ds, ep, True, None)
 
 
 def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
-    return QuarantiningStore(coord.hass, 1, f"{DOMAIN}_{coord.entry.entry_id}_duty_switch",
+    return QuarantiningStore(coord.hass, _EPISODES_STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_duty_switch",
                              naive_zone=dt_util.DEFAULT_TIME_ZONE)
 
 
-async def _persist(coord: Any, ds: DutySwitchState) -> None:
+async def _persist(coord: Any) -> None:
+    ds = state(state_for(coord))
     try:
         await _store(coord).async_save({"episodes": [{**e, "at": e["at"].isoformat()} for e in ds.episodes]})
     except Exception:  # noqa: BLE001 - the next closed episode saves again
         return
 
 
-async def _load(coord: Any, ds: DutySwitchState) -> None:
+async def _load(coord: Any) -> None:
+    ds = state(state_for(coord))
     raw = await load_mapping(_store(coord), "the duty-switch record")
-    for row in (raw or {}).get("episodes") or ():
+    rows = (raw or {}).get("episodes")
+    for row in rows if isinstance(rows, list) else ():
         at = stored_instant(row.get("at"), dt_util.DEFAULT_TIME_ZONE) if isinstance(row, dict) else None
         if at is not None and row.get("dir") in DIRECTIONS:
+            off = finite_float(row.get("off_min"))
             ds.episodes.append({"at": at, "dir": row["dir"], "stopped": row.get("stopped") is True,
-                                "off_min": finite_float(row.get("off_min"))})
+                                "off_min": off if off is not None and off >= 0.0 else None})
 
 
 def diagnostics_view(coord: Any) -> dict[str, Any]:
