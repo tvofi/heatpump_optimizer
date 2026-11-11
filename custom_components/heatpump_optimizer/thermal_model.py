@@ -895,10 +895,22 @@ class ThermalParameters:
         legionella boost is bounded without the everyday limit silently
         capping a cycle at the setpoint.
         """
-        top = self.dhw_setpoint
-        if self.dhw_legionella_enabled:
-            top = max(top, self.dhw_legionella_temp)
-        return min(70.0, top)
+        top = self.dhw_cycle_temp
+        return min(70.0, self.dhw_setpoint if top is None else top)
+
+    @property
+    def dhw_disinfection_temp(self) -> float | None:
+        """°C a disinfection cycle must reach, or ``None`` where none runs: the
+        one statement of whether a cycle runs, for every reader."""
+        return self.dhw_legionella_temp if self.dhw_legionella_enabled else None
+
+    @property
+    def dhw_cycle_temp(self) -> float | None:
+        """°C the tank is held at through a cycle: the higher of the everyday
+        set-point and the disinfection temperature, as a cycle never lowers
+        the tank; ``None`` where no cycle runs."""
+        target = self.dhw_disinfection_temp
+        return None if target is None else max(self.dhw_setpoint, target)
 
     def effective_dhw_draw_pattern(self) -> list[float]:
         """Hourly draw multipliers restricted to the configured demand windows.
