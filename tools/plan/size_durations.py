@@ -181,14 +181,14 @@ def rest_node(pr: dict, commits: list, comments: list) -> dict:
     }
 
 
-def fetch_rest(repo_owner: str, since: str) -> list:
+def fetch_rest(repo_owner: str, since: str, read=_gh_rest) -> list:
     """`fetch` over REST, for a seat whose GraphQL is refused: merged PRs created
     since `since`, newest first, flattened. Read only; two reads per PR. Unlike
     `fetch` it stops at the first PR older than `since` rather than finishing
-    that page."""
+    that page. `read` is the one REST read, injected for the self-test."""
     out, page = [], 1
     while True:
-        prs = _gh_rest(f"repos/{repo_owner}/pulls?state=closed&sort=created"
+        prs = read(f"repos/{repo_owner}/pulls?state=closed&sort=created"
                        f"&direction=desc&per_page=100&page={page}")
         for pr in prs:
             if pr["created_at"] < since:
@@ -197,8 +197,8 @@ def fetch_rest(repo_owner: str, since: str) -> list:
                 continue
             n = pr["number"]
             out.append(dict(flatten(rest_node(
-                pr, _gh_rest(f"repos/{repo_owner}/pulls/{n}/commits?per_page=1"),
-                _gh_rest(f"repos/{repo_owner}/issues/{n}/comments?per_page=100"))), via="rest"))
+                pr, read(f"repos/{repo_owner}/pulls/{n}/commits?per_page=1"),
+                read(f"repos/{repo_owner}/issues/{n}/comments?per_page=100"))), via="rest"))
         if len(prs) < 100:
             return out
         page += 1
@@ -712,6 +712,34 @@ def self_test() -> int:
         [{"user": {"login": "u"}, "created_at": "2026-10-13T05:00:00Z", "body": "Fix review: merge x\nmore"}])
     check("rest_node: the REST pull, first commit and comments flatten exactly as the GraphQL node",
           flatten(rest) == flatten(gql) and flatten(rest)["first_commit_at"] == "2026-10-12T23:00:00Z")
+    def fake_read(path):
+        # 100 PRs on page 1 (one unmerged), page 2 runs past `since` mid-page.
+        if "/pulls?" in path:
+            pg = int(path.rsplit("page=", 1)[1])
+            nums = range(300 - 100 * (pg - 1), 200 - 100 * (pg - 1), -1)
+            return [{"number": n, "title": "", "head": {"ref": "h"},
+                     "created_at": "2026-10-%02dT00:00:00Z" % (12 + n // 20),
+                     "merged_at": None if n == 299 else "2026-11-01T00:00:00Z",
+                     "merge_commit_sha": "m"} for n in nums]
+        if "/commits?" in path:
+            return [{"commit": {"author": {"date": "2026-10-01T00:00:00Z"}}},
+                    {"commit": {"author": {"date": "2026-10-02T00:00:00Z"}}}]
+        return [{"user": {"login": "u"}, "created_at": "2026-10-20T00:00:00Z", "body": "c"}]
+    got = fetch_rest("o/r", "2026-10-21", fake_read)
+    check("fetch_rest: pages on past a full page, skips the unmerged, stops at the first "
+          "PR older than since, and tags each PR rest",
+          [g["number"] for g in got] == [n for n in range(300, 179, -1) if n != 299]
+          and {g["via"] for g in got} == {"rest"}
+          and {g["first_commit_at"] for g in got} == {"2026-10-01T00:00:00Z"}
+          and all(len(g["verdicts"]) == 1 for g in got))
+    asked = []
+
+    def short_read(path):
+        asked.append(path)
+        return fake_read(path)[:3] if "/pulls?" in path else fake_read(path)
+    short = [g["number"] for g in fetch_rest("o/r", "2026-01-01", short_read)]
+    check("fetch_rest (null): a short first page ends the read with no second request",
+          short == [300, 298] and sum("/pulls?" in a for a in asked) == 1)
     check("input_note names the read path, and an unrecorded one, so a mismatch reads as input",
           input_note([{"via": "rest"}], "2026-10-12")
           == "Input: 1 merged PRs created since 2026-10-12, read over rest."
