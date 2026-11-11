@@ -1,0 +1,31 @@
+=== WINTER, single zone, space + DHW ===
+winter typical, cold               optimal  34.39kWh base= 124.87 cost=  31.06 sav= 50.6% room 16.9-20.9 dhw>= 45.1 peak%=0.00 dhwpeak%=0.12 starts=16 kW= 6.0   569ms
+winter extreme prices              optimal  40.39kWh base= 242.93 cost=  55.95 sav= 63.7% room 17.1-20.9 dhw>= 45.0 peak%=0.00 dhwpeak%=0.11 starts=17 kW= 6.0   479ms
+winter mild, windy+rain            optimal  27.28kWh base=  66.84 cost=  24.29 sav= 53.9% room 19.5-21.7 dhw>= 45.3 peak%=0.00 dhwpeak%=0.13 starts=11 kW= 6.0  2412ms
+winter flat price (control)        optimal  56.06kWh base= 101.82 cost=  75.71 sav= 20.0% room 17.4-20.9 dhw>= 45.3 peak%=nan dhwpeak%=nan starts=14 kW= 6.0  1985ms
+=== WINTER, TWO ZONE, space + DHW ===
+2zone winter typical               optimal  68.52kWh base= 153.88 cost=  69.36 sav= 43.4% room 17.7-21.3 dhw>= 45.1 peak%=0.00 dhwpeak%=0.12 starts=14 kW= 6.0  3292ms
+2zone winter extreme               optimal  72.53kWh base= 301.08 cost= 114.53 sav= 56.7% room 18.0-21.3 dhw>= 45.0 peak%=0.00 dhwpeak%=0.11 starts=15 kW= 6.0  3913ms
+2zone winter mild                  optimal  26.98kWh base=  77.26 cost=  26.18 sav= 53.4% room 17.7-22.1 dhw>= 45.3 peak%=0.00 dhwpeak%=0.13 starts=11 kW= 6.0  2378ms
+2zone flat price (control)         optimal  74.96kWh base= 126.90 cost=  98.39 sav= 15.5% room 17.8-20.8 dhw>= 45.3 peak%=nan dhwpeak%=nan starts=10 kW= 4.8  2099ms
+=== SUMMER, DHW only (no space heating demand) ===
+summer warm, DHW only              optimal   0.00kWh base=   4.35 cost=   1.67 sav= 22.7% room 21.0-25.7 dhw>= 45.5 peak%=nan dhwpeak%=0.34 starts=14 kW= 1.2   182ms
+summer negative prices             optimal   0.00kWh base=   2.40 cost=   0.90 sav= 16.2% room 21.0-25.7 dhw>= 45.0 peak%=nan dhwpeak%=0.72 starts=16 kW= 1.1   225ms
+summer cool rainy                  optimal   2.28kWh base=   6.71 cost=   2.16 sav= 42.7% room 20.5-21.1 dhw>= 45.1 peak%=0.00 dhwpeak%=0.32 starts=12 kW= 3.7  1421ms
+summer flat price (control)        optimal   0.00kWh base=  10.36 cost=   4.55 sav= 13.3% room 21.0-25.7 dhw>= 45.1 peak%=nan dhwpeak%=nan starts=12 kW= 1.2   146ms
+2zone summer warm                  optimal   0.00kWh base=   4.86 cost=   1.67 sav= 35.5% room 21.0-26.5 dhw>= 45.5 peak%=nan dhwpeak%=0.34 starts=14 kW= 1.2   107ms
+=== VALVE + STORAGE (the tank is a planning store) ===
+valve winter typical               optimal  62.53kWh base= 144.02 cost=  66.88 sav= 41.4% room 17.5-21.0 dhw>= 45.1 peak%=0.00 dhwpeak%=0.12 starts=14 kW= 6.0  3395ms
+valve winter extreme               optimal  55.13kWh base= 282.85 cost=  84.29 sav= 57.9% room 17.3-21.0 dhw>= 45.0 peak%=0.00 dhwpeak%=0.11 starts=16 kW= 6.0  3355ms
+valve summer warm                  optimal   0.00kWh base=   2.06 cost=   1.67 sav= 18.8% room 21.1-27.3 dhw>= 45.5 peak%=nan dhwpeak%=0.34 starts=14 kW= 1.2   175ms
+valve summer flat (control)        optimal   0.00kWh base=   5.92 cost=   4.55 sav= 23.2% room 21.1-27.3 dhw>= 45.1 peak%=nan dhwpeak%=nan starts=12 kW= 1.2   241ms
+=== SHOULDER SEASON ===
+april shoulder                     optimal   8.30kWh base=  19.65 cost=   8.60 sav= 43.1% room 20.6-21.5 dhw>= 45.1 peak%=0.44 dhwpeak%=0.80 starts=13 kW= 1.7   822ms
+2zone april shoulder               optimal  10.62kWh base=  23.55 cost=   9.16 sav= 44.0% room 20.2-21.5 dhw>= 45.1 peak%=0.26 dhwpeak%=0.80 starts=15 kW= 5.9  1931ms
+=== SPACE HEATING ONLY (DHW disabled) ===
+winter, no DHW                     optimal  36.00kWh base= 110.04 cost=  23.28 sav= 52.2% room 17.1-20.9 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 2 kW= 6.0    62ms
+summer, no DHW                     optimal   0.00kWh base=   2.29 cost=   0.00 sav= 26.2% room 21.0-25.7 dhw>=    - peak%=nan dhwpeak%=nan starts= 0 kW= 0.0    59ms
+2zone winter, no DHW               optimal  68.14kWh base= 139.05 cost=  59.10 sav= 45.2% room 17.6-21.5 dhw>=    - peak%=0.00 dhwpeak%=nan starts= 4 kW= 6.0  1628ms
+
+NO ISSUES
+rc=0

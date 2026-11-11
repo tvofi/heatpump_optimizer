@@ -1,0 +1,165 @@
+author commit vs PR head 3436:
+1433484270daff5ee1465025b289928fb7dca8e7 Bankaifan <476059+Bankaifan@users.noreply.github.com>
+ .claude/rules/finding-propagation.md               |   4 +-
+ .cursor/rules/finding-propagation.mdc              |   4 +-
+ .github/workflows/codeql.yml                       |   6 +-
+ RELEASE_NOTES.md                                   |  35 ++
+ VERSION                                            |   2 +-
+ .../heatpump_optimizer/config_flow.py              |   5 +
+ custom_components/heatpump_optimizer/const.py      |   5 +
+ .../heatpump_optimizer/coordinator.py              |   4 +-
+ .../heatpump_optimizer/entry_config.py             |   1 +
+ custom_components/heatpump_optimizer/manifest.json |   2 +-
+ .../heatpump_optimizer/pump_arbiter.py             | 226 ++++++-
+ custom_components/heatpump_optimizer/strings.json  |   6 +-
+ .../heatpump_optimizer/thermal_model.py            |   5 +-
+ .../heatpump_optimizer/translations/de.json        |   6 +-
+ .../heatpump_optimizer/translations/en.json        |   6 +-
+ .../heatpump_optimizer/translations/sv.json        |   6 +-
+ .../www/heatpump-optimizer-card.js                 |   2 +-
+ dev/audit/config/bugclasses.json                   |  18 +
+ dev/audit/harnesses/dependabot_stale_hash.py       | 154 +++++
+ dev/audit/harnesses/r10_carry_parser_mutants.py    |   6 +-
+ dev/audit/harnesses/r10_carry_sink_barrier.py      |  78 +++
+ .../harnesses/r10_hotfix_delta_review_mutants.py   | 111 ++++
+ dev/audit/harnesses/r10_seat_selftests_mutants.py  |  24 +
+ dev/audit/harnesses/r10_water_setpoint_feedback.py | 165 ++++++
+ dev/audit/rca/r10-rca-dependabot-stale-hash.md     | 185 ++++++
+ dev/audit/rounds/round4/D6/claims.json             |   2 +-
+ dev/audit/rounds/round4/D6/claims.md               |   2 +-
+ dev/governance/config/policy_budgets.json          |   2 +-
+ dev/governance/roles/fix-review.md                 |  15 +-
+ dev/governance/roles/fixer.md                      |  10 +-
+ dev/governance/roles/standing-dispatch.md          |  27 +-
+ dev/governance/rules/finding-propagation.md        |   4 +-
+ dev/programme/delivery/3321.md                     |   2 +-
+ dev/programme/delivery/3322.md                     |   2 +-
+ dev/programme/delivery/3366.md                     |   1 +
+ dev/programme/delivery/3374.md                     |   1 +
+ dev/programme/delivery/3379.md                     |   1 +
+ dev/programme/delivery/3383.md                     |   1 +
+ dev/programme/delivery/3384.md                     |   1 +
+ dev/programme/delivery/3389.md                     |   1 +
+ dev/programme/delivery/3392.md                     |   1 +
+ dev/programme/delivery/3405.md                     |   1 +
+ dev/programme/delivery/3417.md                     |   1 +
+ dev/programme/delivery/3422.md                     |   1 +
+ dev/programme/delivery/3426.md                     |   1 +
+ dev/programme/delivery/3429.md                     |   1 +
+ dev/programme/delivery/3432.md                     |   1 +
+ dev/programme/triage/s6-batch130.md                |  22 +
+ dev/programme/triage/s6-batch135.md                | 102 ++++
+ dev/programme/triage/s6-batch138.md                | 240 ++++++++
+ dev/programme/triage/s6-batch140.md                | 507 ++++++++++++++++
+ docs/configuration.md                              |  31 +
+ tests/closures.json                                |   4 +
+ tests/features.py                                  | 652 +++++++++++++++++++++
+ tests/golden/card_claimed_drift.txt                |   5 +-
+ tests/golden/claimed_drift.txt                     |  10 +-
+ .../pump_arbiter.py/@module.CONST.21026b1d.json    |   6 +
+ .../pump_arbiter.py/@module.CONST.427408d1.json    |   6 +
+ .../pump_arbiter.py/@module.CONST.509791e4.json    |   6 +
+ .../pump_arbiter.py/@module.CONST.a5c1c8b8.json    |   6 +
+ .../pump_arbiter.py/@module.CONST.f5059242.json    |   6 +
+ .../_clamp_cut.CMP_BOUND.60328cb2.json             |   6 +
+ .../_clamp_cut.GUARD_OFF.1e919956.json             |   6 +
+ .../_clamp_cut.GUARD_OFF.60328cb2.json             |   6 +
+ .../_clamp_cut.GUARD_OFF.8aa01955.json             |   6 +
+ .../_clamp_cut.GUARD_OFF.b93bc679.json             |   6 +
+ .../_clamp_cut.RETURN_DEL.80a0007e.json            |   6 +
+ .../pump_arbiter.py/_feedback.BOOLOP.3ba294ce.json |   6 +
+ .../pump_arbiter.py/_feedback.BOOLOP.5c5d06c0.json |   6 +
+ .../_feedback.CLAMP_DROP.70a04bf0.json             |   6 +
+ .../_feedback.CLAMP_DROP.8bc64e43.json             |   6 +
+ .../_feedback.CMP_BOUND.2381393a.json              |   6 +
+ .../_feedback.CMP_BOUND.270f16ff.json              |   6 +
+ .../_feedback.CMP_BOUND.3ba294ce.json              |   6 +
+ .../_feedback.CMP_BOUND.68ee2055.json              |   6 +
+ .../_feedback.GUARD_OFF.2381393a.json              |   6 +
+ .../_feedback.GUARD_OFF.3ba294ce.json              |   6 +
+ .../_feedback.GUARD_OFF.44ed6e87.json              |   6 +
+ .../_feedback.GUARD_OFF.5c5d06c0.json              |   6 +
+ .../_feedback.GUARD_OFF.68ee2055.json              |   6 +
+ .../_feedback.GUARD_OFF.a2e89f7c.json              |   6 +
+ .../_feedback.RETURN_DEL.a8227ccf.json             |   6 +
+ .../_feedback.RETURN_DEL.dbdfb12c.json             |   6 +
+ .../_feedback.RETURN_DEL.dbdfb12c~2.json           |   6 +
+ .../_feedback.RETURN_DEL.dbdfb12c~3.json           |   6 +
+ .../_feedback_bounds.GUARD_OFF.a422ef9d.json       |   6 +
+ .../_feedback_bounds.RETURN_DEL.1af408a4.json      |   6 +
+ .../_feedback_on.BOOLOP.ed430588.json              |   6 +
+ .../_feedback_on.CMP_BOUND.157e4112.json           |   6 +
+ .../_feedback_on.GUARD_OFF.ed430588.json           |   6 +
+ .../_note_sent.BOOLOP.2e3d553c.json                |   6 +
+ .../_note_sent.GUARD_OFF.2e3d553c.json             |   6 +
+ .../_note_stop.CLAMP_DROP.aaba2bff.json            |   6 +
+ .../_note_stop.CMP_BOUND.ab536908.json             |   6 +
+ .../_note_stop.GUARD_OFF.ab536908.json             |   6 +
+ .../_nudged.CLAMP_DROP.a2f84077.json               |   6 +
+ .../_nudged.CMP_BOUND.a2f84077.json                |   6 +
+ .../_nudged.GUARD_OFF.a2f84077.json                |   6 +
+ .../_nudged.RETURN_DEL.4e41a04b.json               |   6 +
+ .../desired.GUARD_OFF.0082e8a4~2.json              |   6 +
+ .../pump_arbiter.py/hold.GUARD_OFF.360fba48.json   |   6 -
+ .../pump_arbiter.py/hold.GUARD_OFF.8ebde20f.json   |   6 +
+ .../_clamp_cut.CMP_BOUND.8aa01955.json             |   6 +
+ tests/requirements-typing.txt                      | 452 +++++++-------
+ tools/audit/carry_audit.py                         |  69 ++-
+ tools/audit/seat/body_patch.sh                     |  29 +-
+ tools/audit/seat/bus.sh                            | 106 +++-
+ tools/audit/seat/cloud_dispatch.py                 | 231 ++++++--
+ tools/audit/seat/cloud_relay.sh                    | 134 ++++-
+ tools/audit/seat/instruments/body_patch.sh.md      |   2 +
+ tools/audit/seat/instruments/bus.sh.md             |  13 +-
+ tools/audit/seat/instruments/cloud_dispatch.py.md  |   7 +
+ tools/audit/seat/instruments/cloud_relay.sh.md     |  12 +
+ tools/audit/seat/instruments/open_pr.sh.md         |   3 +
+ tools/audit/seat/instruments/review_packet.py.md   |   5 +-
+ tools/audit/seat/instruments/roster_lib.py.md      |   2 +
+ tools/audit/seat/ledger.py                         |   2 +-
+ tools/audit/seat/open_pr.sh                        |   4 +
+ tools/audit/seat/orchestrator_tick.py              |  33 +-
+ tools/audit/seat/pr_args.sh                        |  20 +
+ tools/audit/seat/r10_roster_ops_mutants.py         |  27 +-
+ tools/audit/seat/review_packet.py                  | 209 ++++++-
+ tools/audit/seat/roster_edit.py                    |  41 +-
+ tools/audit/seat/roster_lib.py                     |  71 +++
+ tools/audit/seat/roster_sync.py                    |  28 +-
+ tools/pr/ci_predict.py                             |   4 +-
+ tools/pr/prepr.sh                                  |   4 +
+ tools/site/package-lock.json                       |  34 +-
+ tools/site/package.json                            |   2 +-
+ 129 files changed, 4106 insertions(+), 438 deletions(-)
+54f7b20d6c6ff91cfbce65919c86193fbc19011c 86953c6d99ecf7aa86c7bc9d57fec9a991daad07
+45adb0c3b425dc44e72fd9ce4ef51f480b5a3af6
+range diff of patch:
+26b0f74b0d4d0115b515eb772b41e7931fea517c 0000000000000000000000000000000000000000
+26b0f74b0d4d0115b515eb772b41e7931fea517c 0000000000000000000000000000000000000000
+ledger pin sites:
+== 86953c6d99ecf7aa86c7bc9d57fec9a991daad07
+8
+== 0437a8168e997e9ebc5b55897a0a96f7538969cc
+0
+D	tests/mutation_ledger/killed_by/diagnostics.py/@module.CONST.13fdaae9.json
+D	tests/mutation_ledger/killed_by/diagnostics.py/_coarsen.GUARD_OFF.c8d051b9.json
+D	tests/mutation_ledger/killed_by/diagnostics.py/_coarsen.GUARD_OFF.de958194.json
+D	tests/mutation_ledger/killed_by/diagnostics.py/_coarsen.RETURN_DEL.d4c9e2a6.json
+D	tests/mutation_ledger/killed_by/diagnostics.py/_private_values.BOOLOP.0dd41a81.json
+== origin/main
+origin/main:custom_components/heatpump_optimizer/diagnostics.py:103:COORDINATE_PLACES = 1
+origin/main:custom_components/heatpump_optimizer/diagnostics.py:141:    removed = under in TO_REDACT or (under in COORDINATE_KEYS and _coordinate(node) != node)
+origin/main:custom_components/heatpump_optimizer/diagnostics.py:315:def _coordinate(value: Any) -> Any:
+origin/main:custom_components/heatpump_optimizer/diagnostics.py:322:        return round(float(value), COORDINATE_PLACES)
+origin/main:custom_components/heatpump_optimizer/diagnostics.py:327:def _coarsen(value: Any) -> Any:
+origin/main:custom_components/heatpump_optimizer/diagnostics.py:331:            key: _coordinate(item) if key in COORDINATE_KEYS else _coarsen(item)
+origin/main:custom_components/heatpump_optimizer/diagnostics.py:335:        return [_coarsen(item) for item in value]
+origin/main:custom_components/heatpump_optimizer/diagnostics.py:428:            _coarsen(
+== 86953c6d99ecf7aa86c7bc9d57fec9a991daad07
+86953c6d99ecf7aa86c7bc9d57fec9a991daad07:custom_components/heatpump_optimizer/diagnostics.py:103:COORDINATE_PLACES = 1
+86953c6d99ecf7aa86c7bc9d57fec9a991daad07:custom_components/heatpump_optimizer/diagnostics.py:141:    removed = under in TO_REDACT or (under in COORDINATE_KEYS and _coordinate(node) != node)
+86953c6d99ecf7aa86c7bc9d57fec9a991daad07:custom_components/heatpump_optimizer/diagnostics.py:315:def _coordinate(value: Any) -> Any:
+86953c6d99ecf7aa86c7bc9d57fec9a991daad07:custom_components/heatpump_optimizer/diagnostics.py:322:        return round(float(value), COORDINATE_PLACES)
+86953c6d99ecf7aa86c7bc9d57fec9a991daad07:custom_components/heatpump_optimizer/diagnostics.py:327:def _coarsen(value: Any) -> Any:
+86953c6d99ecf7aa86c7bc9d57fec9a991daad07:custom_components/heatpump_optimizer/diagnostics.py:331:            key: _coordinate(item) if key in COORDINATE_KEYS else _coarsen(item)
+86953c6d99ecf7aa86c7bc9d57fec9a991daad07:custom_components/heatpump_optimizer/diagnostics.py:335:        return [_coarsen(item) for item in value]
+86953c6d99ecf7aa86c7bc9d57fec9a991daad07:custom_components/heatpump_optimizer/diagnostics.py:428:            _coarsen(
