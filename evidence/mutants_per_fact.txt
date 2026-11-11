@@ -1,0 +1,117 @@
+HEAD eeca7ac4214d9068c55e7db96bb77fa56380dad7
+== D1 start: 10107 -> 10108 :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the start condition states 10107, 0.5 K  [['10107']]
+1 of 315 checks FAILED
+-> KILLED
+== D2 start: 0.5 K minimum -> 1 K :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the start condition states 10107, 0.5 K  [['0.5 K']]
+1 of 315 checks FAILED
+-> KILLED
+== D3 start: citation link dropped :: 1 file changed, 1 insertion(+), 2 deletions(-)
+  FAIL the start condition cites the contributor's answers
+1 of 315 checks FAILED
+-> KILLED
+== D4 start: 2 K default re-stated :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL no start condition is stated as a 2 K Luxtronik default
+1 of 315 checks FAILED
+-> KILLED
+== D5 poll: citation link dropped :: 1 file changed, 1 insertion(+), 2 deletions(-)
+  FAIL the polling precondition cites the contributor's answers
+1 of 315 checks FAILED
+-> KILLED
+== D6 poll: 600 s -> 900 s (both) :: 1 file changed, 2 insertions(+), 2 deletions(-)
+  FAIL the polling precondition states 600 s, restart  [['600 s']]
+1 of 315 checks FAILED
+-> KILLED
+== D7 poll: 30 s default -> 60 s :: 1 file changed, 1 insertion(+), 1 deletion(-)
+ALL 315 checks PASSED
+-> SURVIVED
+== D8 poll: 10–300 s -> 10–900 s :: 1 file changed, 1 insertion(+), 1 deletion(-)
+ALL 315 checks PASSED
+-> SURVIVED
+== D9 poll: read re-arms -> only a write re-arms :: 1 file changed, 1 insertion(+), 1 deletion(-)
+ALL 315 checks PASSED
+-> SURVIVED
+== D10 poll: restore option claim inverted :: 1 file changed, 1 insertion(+), 1 deletion(-)
+ALL 315 checks PASSED
+-> SURVIVED
+== D11 loop: lower bound 0.3 -> 0.1 :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the loop's lower bound is the constant's: 'no lower than 0.3 K below the inlet'
+1 of 315 checks FAILED
+-> KILLED
+== D12 loop: 10104 -> 10105 :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the loop's preconditions states 10104, 10103, 0.5 K  [['10104']]
+1 of 315 checks FAILED
+-> KILLED
+== D13 loop: 10103 -> 10102 :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the loop's preconditions states 10104, 10103, 0.5 K  [['10103']]
+1 of 315 checks FAILED
+-> KILLED
+== D14 loop: citation link dropped :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the loop's preconditions cites the contributor's answers
+1 of 315 checks FAILED
+-> KILLED
+== D15 loop: parameter 979 -> 978 :: 1 file changed, 1 insertion(+), 1 deletion(-)
+ALL 315 checks PASSED
+-> SURVIVED
+== D16 loop: parameter 87 -> 88 :: 1 file changed, 1 insertion(+), 1 deletion(-)
+ALL 315 checks PASSED
+-> SURVIVED
+== D17 loop: 'does not read them' -> 'reads them' :: 1 file changed, 1 insertion(+), 2 deletions(-)
+ALL 315 checks PASSED
+-> SURVIVED
+== D18 start: 'does not read it' -> 'reads it' :: 1 file changed, 1 insertion(+), 1 deletion(-)
+ALL 315 checks PASSED
+-> SURVIVED
+== D19 start: Demand border -> Supply border :: 1 file changed, 1 insertion(+), 1 deletion(-)
+ALL 315 checks PASSED
+-> SURVIVED
+== D20 loop: hysteresis precondition 0.5 K -> 2 K :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the loop's preconditions states 10104, 10103, 0.5 K  [['0.5 K']]
+1 of 315 checks FAILED
+-> KILLED
+== P1 arbiter comment: citation id dropped :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the assumed minimum hysteresis behind FEEDBACK_DOWN_K cites the contributor's answers
+1 of 315 checks FAILED
+-> KILLED
+== P2 _clamp_cut doc: 10104 -> 10105 :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the inferred clamp bounds (_clamp_cut) cite the contributor's answers and name both inputs
+1 of 315 checks FAILED
+-> KILLED
+== P3 _clamp_cut doc: 10103 -> 10102 :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the inferred clamp bounds (_clamp_cut) cite the contributor's answers and name both inputs
+1 of 315 checks FAILED
+-> KILLED
+== P4 _clamp_cut doc: citation id dropped :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the inferred clamp bounds (_clamp_cut) cite the contributor's answers and name both inputs
+1 of 315 checks FAILED
+-> KILLED
+== P5 arbiter comment: 0.5 K minimum -> 1 K :: 1 file changed, 1 insertion(+), 1 deletion(-)
+ALL 315 checks PASSED
+-> SURVIVED
+== P6 arbiter comment: 10107 -> 10108 :: 1 file changed, 1 insertion(+), 1 deletion(-)
+ALL 315 checks PASSED
+-> SURVIVED
+== C1 FEEDBACK_START_HOLD 5 -> 6 min :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the loop's start hold is the constant's: 'first 6 minutes of a run'
+1 of 315 checks FAILED
+-> KILLED
+== C2 FEEDBACK_RATE_K_PER_MIN 0.2 -> 0.3 :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the loop's rate is the constant's: '0.3 K per minute'
+1 of 315 checks FAILED
+-> KILLED
+== C3 FEEDBACK_WINDOW 3 -> 4 min :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the loop's window is the constant's: 'averaged over 4 minutes'
+1 of 315 checks FAILED
+-> KILLED
+== C4 FEEDBACK_DEADBAND_SHARE 0.1 -> 0.2 :: 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL the loop's deadband is the constant's: 'within 20 % of the planned level'
+1 of 315 checks FAILED
+-> KILLED
+== NULL1 docs: reflowed sentence, no fact moved :: 1 file changed, 1 insertion(+), 1 deletion(-)
+ALL 315 checks PASSED
+-> SURVIVED
+== NULL2 arbiter: unrelated comment added :: 1 file changed, 1 insertion(+), 1 deletion(-)
+ALL 315 checks PASSED
+-> SURVIVED
+tree clean: 0 dirty paths

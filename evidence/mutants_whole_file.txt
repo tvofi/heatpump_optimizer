@@ -1,0 +1,33 @@
+HEAD eeca7ac4214d9068c55e7db96bb77fa56380dad7
+== M1: docs/configuration.md restored to d84aa03dd7
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  FAIL the loop's lower bound is the constant's: 'no lower than 0.3 K below the inlet'
+  FAIL the polling precondition cites the contributor's answers
+  FAIL the start condition cites the contributor's answers
+  FAIL the start condition states 10107, 0.5 K  [['10107', '0.5 K']]
+  FAIL the loop's preconditions cites the contributor's answers
+  FAIL the loop's preconditions states 10104, 10103, 0.5 K  [['10104', '10103']]
+  FAIL no start condition is stated as a 2 K Luxtronik default
+7 of 315 checks FAILED
+== M2: pump_arbiter.py restored to d84aa03dd7
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  FAIL the assumed minimum hysteresis behind FEEDBACK_DOWN_K cites the contributor's answers
+  FAIL the inferred clamp bounds (_clamp_cut) cite the contributor's answers and name both inputs
+2 of 315 checks FAILED
+== M3: FEEDBACK_DOWN_K 0.3 -> 0.1 (constant moves, docs stay)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  FAIL the loop's lower bound is the constant's: 'no lower than 0.1 K below the inlet'
+1 of 315 checks FAILED
+== NULL: trailing comment appended to configuration.md and pump_arbiter.py
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+ALL 315 checks PASSED
+0
