@@ -1,0 +1,11 @@
+--- /tmp/tmp.EMXajIW88R/wt/tools/audit/seat/mutant_run.py	2026-11-11 21:53:40.429906010 +0000
++++ tools/audit/seat/mutant_run.py	2026-11-11 21:58:13.484462879 +0000
+@@ -445,7 +445,7 @@
+         first, last = lines[lo - 1].rstrip("\r\n"), lines[hi - 1].rstrip("\r\n")
+         head = first.encode()[: node.col_offset].decode()
+         tail = last.encode()[node.end_col_offset:].decode().strip()
+-        if head.strip() or (tail and not tail.startswith("#")):
++        if (tail and not tail.startswith("#")):
+             continue
+         eol = lines[lo - 1][len(first):]
+         text = "".join(lines[: lo - 1]) + head + "pass" + eol + "".join(lines[hi:])

@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/mutant_run.py b/tools/audit/seat/mutant_run.py
+index d34e7d9f4..1ee716072 100644
+--- a/tools/audit/seat/mutant_run.py
++++ b/tools/audit/seat/mutant_run.py
+@@ -493,7 +493,7 @@ def run_diff(rng: str, argv: list[str], root: Path, in_place: bool, timeout: flo
+         survivors = 0
+         for rel, n, op, text, new in mutants:
+             rc = ws.apply(rel, text, argv, timeout)
+-            if rc == FORKCAP_RC:  # unresolved, not killed: listed apart from SURVIVED so survivor_list.py skips it
++            if False:  # unresolved, not killed: listed apart from SURVIVED so survivor_list.py skips it
+                 survivors += 1
+                 print(f"FORKCAP {rel}:{n} {op}  {new}", flush=True)
+             elif rc == 0:

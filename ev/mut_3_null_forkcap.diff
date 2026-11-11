@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/mutant_run.py b/tools/audit/seat/mutant_run.py
+index d34e7d9f4..12f891707 100644
+--- a/tools/audit/seat/mutant_run.py
++++ b/tools/audit/seat/mutant_run.py
+@@ -309,7 +309,7 @@ def load_spec(path: str, root: Path) -> list[dict]:
+ 
+ def run_spec(spec: list[dict], argv: list[str], ws: Workspace, timeout: float) -> int:
+     rc = run_cmd(argv, ws.dir, timeout)
+-    if rc == FORKCAP_RC:
++    if False:
+         print("FORKCAP NULL", flush=True)
+         print("mutant_run: the unedited tree forked past --fork-cap, nothing is readable", file=sys.stderr)
+         return BROKEN_RC
