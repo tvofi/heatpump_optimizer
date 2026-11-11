@@ -1,0 +1,121 @@
+# tree reads at ba0ed526cc3b0a4b62a4e05b165710237e3bd123
+== docs/architecture.md
+89-- **The Home Assistant boundary** is where side effects live.
+90-  `inputs.InputReader` reads and normalises the sensor inputs it is asked
+91:  for, and it is not the only reader of entity state: `coordinator.py` reads
+92-  the price, weather and PV production entities itself, `pump_arbiter`,
+93-  `pump_signals` and `early_cutoff.py` read the pump's own entities (the
+94-  slots it is commanded through, its mode, its switch and its defrost flag),
+95-  `away.py` reads the holiday calendar, and `services.py` and
+96-  `config_flow.py` look up an entity the user names;
+97-  `coordinator.HeatPumpOptimizerCoordinator` is the orchestration seam that
+== setpoint_check.py
+
+def _quiet(hass: Any, config: dict[str, Any]) -> None:
+    """#1910: one warning when silent rows cannot be enforced.
+
+    tvofi's chosen fallback (2026-09-30): normal operation with a warning.
+    The plan is not capped for silent rows the optimizer cannot hold --
+    planning for silence the pump will not deliver would buy the wrong
+    hours. A switch is decided from the entity ID's domain alone, so one
+    that has not reported yet (state ``unknown``) does not raise it:
+    unknown is not off. A GCHV night-mode schedule that is only partly
+    holdable (two windows, or days that differ) raises it too (#1913).
+    """
+    entity_id = EntryConfig.from_mapping(config).heat_pump_capacity_limited_entity
+    set_issue(
+        hass,
+        ISSUE_QUIET,
+        silent_unenforceable(config, hass.states.get),
+        placeholders={"entity": entity_id or ""},
+    )
+8:from __future__ import annotations
+10:import logging
+11:from typing import Any, Callable
+13:from .const import MIXING_VALVE_WRITE_EPSILON
+14:from .entry_config import EntryConfig
+15:from .issues import clear_issue, set_issue
+16:from .inputs import (
+22:from .quiet_windows import silent_unenforceable
+== gchv_schedule_ready
+./quiet_windows.py:186:def gchv_schedule_ready(
+./quiet_windows.py-187-    config: Mapping[str, Any], get_state: Callable[[str], Any] | None
+./quiet_windows.py-188-) -> bool:
+./quiet_windows.py-189-    """Whether the GCHV night-mode numbers can hold a silent window.
+./quiet_windows.py-190-
+./quiet_windows.py-191-    The capacity-limited slot must be register 68's flag (so the prefix
+./quiet_windows.py-192-    resolves) and all four hour/minute numbers must be present. The flag's
+./quiet_windows.py-193-    on/off state is not a control -- the package has no silent on/off
+./quiet_windows.py-194-    register -- and is not consulted.
+./quiet_windows.py-195-    """
+./quiet_windows.py-196-    if get_state is None:
+./quiet_windows.py-197-        return False
+./quiet_windows.py-198-    prefix = package_prefix(config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY))
+./quiet_windows.py-199-    if not prefix:
+./quiet_windows.py-200-        return False
+./quiet_windows.py-201-    return all(get_state(eid) is not None for eid in night_mode_write_ids(prefix).values())
+./quiet_windows.py-202-
+== config_flow 1340
+        vol.Optional(CONF_PRICE_ENTITY): _prefill_row(CONF_PRICE_ENTITY).widget,
+        vol.Required(CONF_WEATHER_ENTITY): _prefill_row(CONF_WEATHER_ENTITY).widget,
+    }
+
+
+def _house_power_candidates(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Power-shaped states the Pulse matcher can see (#703)."""
+    states = getattr(hass, "states", None)
+    if states is None or not hasattr(states, "keys"):
+        return []
+    candidates: list[dict[str, Any]] = []
+    for entity_id in list(states.keys()):
+        state = states.get(entity_id)
+        if state is None:
+            continue
+        attrs = getattr(state, "attributes", None) or {}
+        domain = str(entity_id).split(".", 1)[0]
+        candidates.append(
+            {
+== config_flow 2710-2718, 4000-4007
+            device_id = user_input.get(_PREFILL_DEVICE)
+            if not device_id:
+                return await self.async_step_finish_setup()
+            records = _device_records(self.hass, str(device_id))
+            resolution = device_prefill.resolve_with_fallback(records)
+            snapshot = (
+                modbus_prefill.snapshot(self.hass.states.get, resolution.roles)
+                if prefill_offer.qualifies(resolution)
+                else {}
+            else:
+                prefix = str(
+                    user_input.get(CONF_MODBUS_PREFILL_PREFIX)
+                    or DEFAULT_MODBUS_PREFILL_PREFIX
+                )
+                resolved = modbus_prefill.candidates(prefix)
+            snap = modbus_prefill.snapshot(self.hass.states.get, resolved)
+            if prefix is None and not snap:
+== callers of setpoint_check quiet
+./coordinator.py:3856:        # offending value, cleared unconditionally (setpoint_check.ConfigNotices).
+./coordinator.py:3857:        self._config_notices = setpoint_check.ConfigNotices()
+./coordinator.py:6772:        setpoint_check.evaluate(
+== gate-sweep.yml:42
+      - name: Re-judge the older gates at this head
+#!/usr/bin/env python3
+"""`gate.py --sweep --run <id>`: re-judge the other red `gate` jobs at a head once one is green.
+
+DESIGN-P2.md 4.3 items 1 and 4. Run for a `CI` completion V; acts only when V's latest
+`gate` is green at the PR's LIVE head and covers the newest event (V's gate started
+after every run at the head was created). Then, for every OTHER `ci.yml` run at the head,
+lower or higher id (an id orders nothing: GitHub numbers a same-second push and body edit
+== coordinator.py copies cited by the body (E20)
+2180:def _recovery_off_loop(
+    the resolve is inline in the update cycle. The state is a snapshot taken
+    here, on the loop: the job is pickled off it while callbacks write the
+    live one.
+    """
+    house = replace(live)
+10624:    def _capture_diagnosis_inputs(self) -> dict[str, Any] | None:
+        made.
+        """
+        ctx = getattr(self, "_ctx", self)
+        try:
+            state = replace(ctx._current_state)
