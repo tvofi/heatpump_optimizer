@@ -4576,6 +4576,48 @@ def _self_test() -> int:
           and beats[0] == f"beat: waiting CI at {H0[:8]} (poll 2, t+240s, required: 1, concluded: 0/1)"
           and beats[1] == f"beat: waiting CI at {H0[:8]} (poll 4, t+480s, required: 1, concluded: 0/1)"
           and beats[2] == f"beat: waiting CI at {H0[:8]} (poll 6, t+960s, required: 1, concluded: 0/1)")
+    # R10-CI-PRIORITY-PAUSE: wait_ci feeds each poll's check-runs to the pause; unwind resumes.
+    import ci_pause as _cp
+    import datetime as _dt
+    pnow = 1_800_000_000.0
+    qrun = [{"name": "tests", "status": "queued", "conclusion": None, "id": 1,
+             "started_at": _dt.datetime.fromtimestamp(pnow - 600, _dt.timezone.utc).isoformat().replace("+00:00", "Z")}]
+    pposts: list[str] = []
+
+    def pause_run(argv, cwd=None, stdin=None):
+        c = " ".join(argv)
+        if "-X POST" in c:
+            pposts.append(c.split("repos/o/r/")[1])
+            return 0, ""
+        if "check-runs" in c:
+            return 0, "\n".join(json.dumps(x) for x in qrun)
+        if "/pulls?state=open" in c:
+            return 0, json.dumps({"n": 5, "sha": "b" * 40, "ref": "fix/low", "fork": False})
+        if "/comments" in c:
+            return 0, json.dumps([[{"body": "hi"}]])
+        if "/actions/runs?head_sha=" in c:
+            return 0, "77"
+        if "/pulls/5" in c:
+            return 0, json.dumps({"head": {"sha": "b" * 40}})
+        return 0, ""
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=pause_run, sleep=lambda s: None, log=lambda s: None,
+                  polls=1, wall=lambda: pnow)
+        t._ci_pause = _cp.CiPause(t, {**__import__("ci_priority").load_setting(), "priority_cancel": True},
+                                  ({"groups": [{"group": "LOW", "resume": {"branch": "fix/low"}, "class": "instrument"}]}, set()))
+        t.wait_ci(H0)
+        cancelled = list(pposts)
+        pposts.clear()
+        t.unwind()
+        resumed = list(pposts)
+        t_off = Train("o/r", Path(d), None, "", (), 1, run=pause_run, sleep=lambda s: None, log=lambda s: None,
+                      polls=1, wall=lambda: pnow)
+        pposts.clear()
+        t_off._ci_pause = False
+        t_off.wait_ci(H0)
+    check("wait_ci feeds its poll to the pause: a head job queued 10 min cancels the victim's run; "
+          "unwind re-runs its failed jobs; with the pause unavailable nothing is cancelled",
+          cancelled == ["actions/runs/77/cancel"] and resumed == ["actions/runs/77/rerun-failed-jobs"] and pposts == [])
     hang[0]["status"], hang[0]["conclusion"] = "completed", "success"
     ticks = iter([0, 240, 480, 700])
     lines = []
