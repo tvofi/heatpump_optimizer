@@ -1,0 +1,11 @@
+NOTE stale tree: 63bcdcaad827ad3d98f914bc2e5b6110f9bb9444 lacks origin/main 444cf62fabe444209b6be7802de0ec5aee102142; roster read at origin/main
+NOTE body item 524aaaeb: dismissed:built in this pull request
+NOTE body item f6ac07ce: dismissed:landed in this pull request
+NOTE body item f39ba741: dismissed:built in this pull request
+NOTE body item f82af3a1: dismissed:built in this pull request
+NOTE body item c3773b1f: dismissed:nothing in this diff touches the planner's stages
+NOTE body item 278d6168: dismissed:an order-of-magnitude advisor estimate whose only effect is the rank of one probe suggestion
+NOTE review 0 item b439ce5d: dismissed:correct production code; reviewer-only mutant outside the mutation table's operators, reachable only past the combi_needs_store refusal; recorded at round 1 and unchanged
+CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
+carry rc=0
+body file given to carry_audit: the PR body's Forward-carry and Friction sections verbatim (read through the GitHub MCP at 02:20Z), not the whole body
