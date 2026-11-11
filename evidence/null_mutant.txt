@@ -1,0 +1,7 @@
+== NULL: tests/gate_lock.py at 03047e42, P=2
+FAIL priority: an urgent waiter takes before an older normal one, after its ticket rewrite queued=True/True rewrite=True order=['normal', 'urgent']
+FAIL priority: the heavy-slot pool orders by the same rule queued=True/True order=['normal', 'urgent']
+== MUTANT: urgent arm _Env('2')->'0' (both) at head, P=2
+2
+FAIL priority: an urgent waiter takes before an older normal one, after its ticket rewrite queued=True/True rewrite=False order=['normal', 'urgent']
+FAIL priority: the heavy-slot pool orders by the same rule queued=True/True order=['normal', 'urgent']
