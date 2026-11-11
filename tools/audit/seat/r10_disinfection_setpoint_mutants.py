@@ -28,6 +28,7 @@ MUTANTS = [
      'return not (reading is None or written is None or _differs("dhw_setpoint", reading, written[0])) and written[0] < float(coord.arbiter_inputs().params.dhw_setpoint) - SETPOINT_TOLERANCE'),
     ("M6-excuse-any-reading", A, 'return not (reading is None or written is None or _differs("dhw_setpoint", reading, written[0]))',
      'return not (reading is None or written is None)'),
+    ("M11-everyday-cycle-nearest", A, "    if cycle is None:\n", "    if cycle is None or cycle <= float(inp.params.dhw_setpoint):\n"),
     ("M7-flag-ignored", T, "return self.dhw_legionella_temp if self.legionella_cycle_active else None", "return self.dhw_legionella_temp"),
     ("M10-enabled-not-active", T, "return self.dhw_legionella_temp if self.legionella_cycle_active else None",
      "return self.dhw_legionella_temp if self.dhw_legionella_enabled else None"),
