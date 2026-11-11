@@ -513,7 +513,7 @@ From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393... |  |
 | R10-HOTFIX-ROSTER-DRAIN-REPLAY | IN | 1 | done | - | opus/opus | - | Hotfix (orchestrator, 2026-11-10). |  |
 | R10-HOTFIX-PREPR-READSET | IN | 1 | in-progress | - | opus/opus | - | Hotfix (orchestrator, 2026-11-10). |  |
 | R10-DUTY-SWITCH-RESTART-LEARNING | UI | 2 | not-started | #3420 | opus/opus | - | Outside contribution: pull request 3420 by Bankaifan is a design note only. |  |
-| R10-DEPENDABOT-3414-COMPAT | C | 1 | in-progress | - | sonnet/sonnet | - | Replacement for Dependabot pull request 3414 (pip group in tests, 7 updates), red at head 4182e75d on tests / typing and tests / fast (3.14): the bot moved h... |  |
+| R10-DEPENDABOT-3414-COMPAT | C | 1 | carries-open | - | sonnet/sonnet | - | Replacement for Dependabot pull request 3414 (pip group in tests, 7 updates), red at head 4182e75d on tests / typing and tests / fast (3.14): the bot moved h... |  |
 | R10-RCA-DEPENDABOT-STALE-HASH | IN | 1 | in-progress | - | opus/opus | - | Root-cause seat (dev/governance/roles/root-cause.md, defect-root-cause.md) beside R10-DEPENDABOT-3414-COMPAT, never inside it: no production code and no lock... |  |
 
 ## ETA
