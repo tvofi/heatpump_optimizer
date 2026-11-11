@@ -17,11 +17,7 @@ Carries 4, 5 and 6 on the roster entry are this body's own `Carry: R10-SAV-VALUA
 - Carry 4 is the merge-base residual in `## Figures` (-3.90 % flat, -8.02 % varying).
 - Carry 5 is the residual's attribution in `## Forward-carry`.
 - Carry 6 is the hot-water LP's secant in `## Forward-carry`.
-
-Carries 7, 8 and 9 are the same three items folded again from round 2's body (items 7e4ae819, b955105e, 0cfcc337), not further work:
-- Carry 7 is the merge-base residual in `## Figures` (-3.90 % flat, -8.02 % varying).
-- Carry 8 is the residual's attribution in `## Forward-carry`.
-- Carry 9 is the hot-water LP's secant in `## Forward-carry`.
+- Carry 7, Carry 8 and Carry 9 are this body's own `## Figures` residual line and its two `## Forward-carry` items, folded back from #3442 verbatim. They repeat Carries 4, 5 and 6, so nothing further was done for them: Carry 7 is the merge-base residual (-3.90 % flat, -8.02 % varying), Carry 8 the residual's attribution, Carry 9 the hot-water LP's secant. The two Forward-carry items stay pending the orchestrator's ruling on their owner.
 
 ## Head
 
